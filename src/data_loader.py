@@ -1,7 +1,7 @@
 """Data loading utilities for OHLCV data processing."""
 
 import pandas as pd
-from typing import Dict, List
+from typing import Dict
 
 
 def read_ohlcv_csv(path: str) -> pd.DataFrame:
