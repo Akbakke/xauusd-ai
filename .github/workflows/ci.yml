@@ -20,5 +20,16 @@ jobs:
         run: poetry run ruff check .
       - name: Black (format check)
         run: poetry run black --check .
+      - name: Debug env
+        run: |
+          pwd
+          ls -R
+          poetry --version
+          poetry run python -V
+          poetry run python -c "import sys,os; print('PYTHONPATH=',os.getenv('PYTHONPATH')); print('sys.path='); print('\n'.join(sys.path))"
       - name: Pytest
-        run: poetry run pytest -q
+        env:
+          PYTHONPATH: src
+        run: |
+          set -e
+          poetry run pytest -vv
