@@ -1,0 +1,9 @@
+symbol: XAUUSD
+tz: UTC
+paths:
+  raw: "data/raw"
+  features: "data/features"
+splits:
+  train: "2024-01-01..2024-12-31"
+  val: "2025-01-01..2025-03-31"
+  oos: "2025-04-01..2025-09-21"
