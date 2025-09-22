@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "xauusd-ai"
+version = "0.1.0"
+description = "AI trading project for XAUUSD candlestick/MTF"
+authors = ["Andre <andre_k_bakke@hotmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pytest = "^8.0.0"
+ruff = "^0.6.0"
+black = "^24.0.0"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
