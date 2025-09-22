@@ -15,7 +15,7 @@ jobs:
         run: pipx install poetry
       - name: Install deps
         run: |
-          poetry install --no-interaction --no-ansi
+          poetry install --no-root --no-interaction --no-ansi
       - name: Ruff (lint)
         run: poetry run ruff check .
       - name: Black (format check)
