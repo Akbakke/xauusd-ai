@@ -17,7 +17,9 @@ def main():
     7. Print dataset statistics
     """
     parser = argparse.ArgumentParser(description="Generate MTF feature dataset")
-    parser.add_argument("--config", default="configs/data.yaml", help="Config file path")
+    parser.add_argument(
+        "--config", default="configs/data.yaml", help="Config file path"
+    )
     parser.add_argument("--input", help="Input CSV file path")
     parser.add_argument("--output", help="Output parquet file path")
 

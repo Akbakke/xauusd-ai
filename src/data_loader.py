@@ -31,7 +31,9 @@ def resample_to_tf(df: pd.DataFrame, tf: str) -> pd.DataFrame:
     pass
 
 
-def align_to_base(base_df: pd.DataFrame, mtf_dfs: Dict[str, pd.DataFrame]) -> pd.DataFrame:
+def align_to_base(
+    base_df: pd.DataFrame, mtf_dfs: Dict[str, pd.DataFrame]
+) -> pd.DataFrame:
     """Align multi-timeframe data to base timeframe without look-ahead.
 
     Args:
