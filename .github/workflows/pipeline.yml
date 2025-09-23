@@ -41,7 +41,7 @@ jobs:
       - name: Generate features
         run: |
           mkdir -p data/features
-          poetry run python scripts/make_features.py --input data/raw/xauusd_m1.csv
+          poetry run python scripts/make_features.py --input data/raw/sample_xauusd_m1.csv
 
       - name: Train baseline (τ=0.0005)
         run: poetry run python scripts/train_baseline.py --tau 0.0005
