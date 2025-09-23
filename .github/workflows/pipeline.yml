@@ -32,6 +32,14 @@ jobs:
       - name: Install deps (no-root)
         run: poetry install --no-root --no-interaction --no-ansi
 
+      - name: Debug workspace
+        run: |
+          pwd
+          git rev-parse HEAD
+          ls -la
+          ls -la scripts || true
+          find . -maxdepth 2 -type f -print
+
       - name: Run tests (quick sanity)
         run: |
           poetry run ruff check .
