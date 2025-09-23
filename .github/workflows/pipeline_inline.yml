@@ -1,0 +1,64 @@
+name: Model Pipeline (inline)
+on:
+  workflow_dispatch: {}
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: src
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install Poetry
+        run: pipx install poetry
+
+      - name: Install deps (no-root)
+        run: poetry install --no-root --no-interaction --no-ansi
+
+      - name: Sanity checks
+        run: |
+          poetry run ruff check .
+          poetry run black --check .
+          poetry run pytest -q
+
+      - name: Generate features (inline)
+        run: |
+          mkdir -p data/features
+          poetry run python - <<'PY'
+from src.data_loader import read_ohlcv_csv
+from src.features import build_all_features
+from pathlib import Path
+
+input_path = "data/raw/sample_xauusd_m1.csv"
+df = read_ohlcv_csv(input_path)
+feat = build_all_features(df).dropna()
+Path("data/features").mkdir(parents=True, exist_ok=True)
+feat.to_parquet("data/features/features.parquet")
+print("rows:", len(feat), "cols:", feat.shape[1])
+PY
+
+      - name: Train baseline (τ=0.0005)
+        run: poetry run python scripts/train_baseline.py --tau 0.0005
+
+      - name: Sweep τ & p-gate
+        run: poetry run python scripts/sweep_tau_pgate.py
+
+      - name: Finalize model (τ=0.0003, p_gate=0.60)
+        run: poetry run python scripts/finalize_model.py
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: xauusd-ai-artifacts
+          path: |
+            data/features/features.parquet
+            data/features/sweep_tau_pgate.csv
+            models/*.joblib
+            configs/signal_config.yaml
