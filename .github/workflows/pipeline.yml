@@ -1,10 +1,6 @@
 name: Model Pipeline
 on:
-  workflow_dispatch: {}   # kjør manuelt fra Actions
-
-concurrency:
-  group: model-pipeline
-  cancel-in-progress: false
+  workflow_dispatch: {}
 
 jobs:
   pipeline:
@@ -14,8 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
-          ref: main
+          fetch-depth: 1
 
       - uses: actions/setup-python@v5
         with:
@@ -24,41 +19,26 @@ jobs:
       - name: Install Poetry
         run: pipx install poetry
 
-      - name: Cache Poetry venv
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pypoetry/virtualenvs
-          key: ${{ runner.os }}-poetry-${{ hashFiles('poetry.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-poetry-
-
       - name: Install deps (no-root)
         run: poetry install --no-root --no-interaction --no-ansi
 
-      - name: Debug workspace
-        run: |
-          pwd
-          git rev-parse HEAD
-          ls -la
-          ls -la scripts || true
-          find . -maxdepth 2 -type f -print
-
-      - name: Run tests (quick sanity)
+      - name: Quality checks
         run: |
           poetry run ruff check .
           poetry run black --check .
           poetry run pytest -q
 
       - name: Generate features (inline)
+        shell: bash
         run: |
+          set -e
           mkdir -p data/features
           poetry run python - <<'PY'
 from src.data_loader import read_ohlcv_csv
 from src.features import build_all_features
 from pathlib import Path
 
-input_path = "data/raw/sample_xauusd_m1.csv"  # bruker sample-fila i repoet
-df = read_ohlcv_csv(input_path)
+df = read_ohlcv_csv("data/raw/sample_xauusd_m1.csv")
 feat = build_all_features(df).dropna()
 Path("data/features").mkdir(parents=True, exist_ok=True)
 feat.to_parquet("data/features/features.parquet")
