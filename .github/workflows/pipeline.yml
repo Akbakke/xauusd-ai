@@ -41,7 +41,7 @@ jobs:
           FEAT="data/features/features.parquet"
           mkdir -p data/features
           if [ -f "$FEAT" ]; then
-            echo "skip=1" >> "$GITHUB_OUTPUT"
+            echo "ready=1" >> "$GITHUB_OUTPUT"
             echo "Features already present → skip."
             exit 0
           fi
@@ -49,15 +49,15 @@ jobs:
             curl -L --fail --retry 3 --retry-delay 2 "$RAW_CSV_URL" -o "$RAW"
           fi
           if [ ! -f "$RAW" ]; then
-            echo "skip=1" >> "$GITHUB_OUTPUT"
-            echo "::warning::Raw CSV '$RAW' not found. Set Org/Repo VAR RAW_CSV_PATH or commit the file. Skipping."
+            echo "::warning::Raw CSV not found"
+            echo "ready=0" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           python - <<'PY'
           import os, sys, numpy as np, pandas as pd
           from pathlib import Path
 
-          RAW = os.environ.get("RAW", os.environ.get("RAW_CSV_PATH", "data/raw/xauusd_m1_2024_2025.csv"))
+          RAW = os.environ.get("RAW", os.environ.get("RAW_CSV_PATH", "data/raw/xauusd_m1_2024.csv"))
           FEAT = "data/features/features.parquet"
 
           df = pd.read_csv(RAW)
@@ -131,9 +131,10 @@ jobs:
           feat.to_parquet(FEAT, index=True)
           print(f"Wrote {len(feat):,} rows × {feat.shape[1]} cols -> {FEAT}")
           PY
+          echo "ready=1" >> "$GITHUB_OUTPUT"
 
       - name: Train baseline (Ridge + calibration)
-        if: steps.features.outputs.skip != '1'
+        if: steps.features.outputs.ready == '1'
         env:
           TAU: "0.0003"
         run: |
@@ -173,7 +174,7 @@ jobs:
           PY
 
       - name: Eval with p-gate
-        if: steps.features.outputs.skip != '1'
+        if: steps.features.outputs.ready == '1'
         env:
           P_GATE: "0.60"
           TAU: "0.0003"
