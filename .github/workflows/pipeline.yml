@@ -57,7 +57,7 @@ jobs:
           import os, sys, numpy as np, pandas as pd
           from pathlib import Path
 
-          RAW = os.environ.get("RAW") or os.environ.get("RAW_CSV_PATH") or "data/raw/xauusd_m1_2024.csv"
+          RAW = (os.environ.get("RAW") or os.environ.get("RAW_CSV_PATH") or "data/raw/xauusd_m1_2024.csv")
           FEAT = "data/features/features.parquet"
 
           df = pd.read_csv(RAW)
