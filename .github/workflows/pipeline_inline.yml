@@ -28,21 +28,10 @@ jobs:
           poetry run black --check .
           poetry run pytest -q
 
-      - name: Generate features (inline)
+      - name: Generate features
         run: |
           mkdir -p data/features
-          poetry run python - <<'PY'
-from src.data_loader import read_ohlcv_csv
-from src.features import build_all_features
-from pathlib import Path
-
-input_path = "data/raw/sample_xauusd_m1.csv"
-df = read_ohlcv_csv(input_path)
-feat = build_all_features(df).dropna()
-Path("data/features").mkdir(parents=True, exist_ok=True)
-feat.to_parquet("data/features/features.parquet")
-print("rows:", len(feat), "cols:", feat.shape[1])
-PY
+          poetry run python scripts/make_features.py --input data/raw/sample_xauusd_m1.csv
 
       - name: Train baseline (τ=0.0005)
         run: poetry run python scripts/train_baseline.py --tau 0.0005
