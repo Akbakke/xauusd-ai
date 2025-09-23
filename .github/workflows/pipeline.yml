@@ -208,10 +208,11 @@ jobs:
           PY
 
       - name: Upload artifacts
-        if: steps.features.outputs.ready == '1'
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: xauusd-ai-artifacts
+          if-no-files-found: warn
           path: |
-            models/*.joblib
-            data/features/features.parquet
+            models/**
+            data/features/**
