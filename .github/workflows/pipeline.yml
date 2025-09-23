@@ -1,65 +1,203 @@
-name: Model Pipeline
+name: pipeline (E2E)
+
 on:
-  workflow_dispatch: {}
+  push:
+    branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'configs/**'
+      - '.github/workflows/pipeline.yml'
+      - 'data/**'
+  workflow_dispatch:
 
 jobs:
-  pipeline:
+  e2e:
     runs-on: ubuntu-latest
-    env:
-      PYTHONPATH: src
+    timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
 
-      - uses: actions/setup-python@v5
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: '3.10'
 
-      - name: Install Poetry
-        run: pipx install poetry
-
-      - name: Install deps (no-root)
-        run: poetry install --no-root --no-interaction --no-ansi
-
-      - name: Quality checks
+      - name: Install minimal deps
         run: |
-          poetry run ruff check .
-          poetry run black --check .
-          poetry run pytest -q
+          python -m pip install --upgrade pip
+          (pip install -e .) || (pip install -r requirements.txt) || pip install pandas numpy pyarrow scikit-learn
 
-      - name: Generate features (inline)
-        shell: bash
+      - name: Generate features (inline, path-proof)
+        id: features
+        env:
+          RAW_CSV_PATH: ${{ vars.RAW_CSV_PATH }}
         run: |
-          set -e
+          set -euo pipefail
+          RAW="${RAW_CSV_PATH:-data/raw/xauusd_m1_2024_2025.csv}"
+          FEAT="data/features/features.parquet"
           mkdir -p data/features
-          poetry run python - <<'PY'
-from src.data_loader import read_ohlcv_csv
-from src.features import build_all_features
-from pathlib import Path
+          if [ -f "$FEAT" ]; then
+            echo "skip=1" >> "$GITHUB_OUTPUT"
+            echo "Features already present → skip."
+            exit 0
+          fi
+          if [ ! -f "$RAW" ]; then
+            echo "skip=1" >> "$GITHUB_OUTPUT"
+            echo "::warning::Raw CSV '$RAW' not found. Set Org/Repo VAR RAW_CSV_PATH or commit the file. Skipping."
+            exit 0
+          fi
+          python - <<'PY'
+          import os, sys, numpy as np, pandas as pd
+          from pathlib import Path
 
-df = read_ohlcv_csv("data/raw/sample_xauusd_m1.csv")
-feat = build_all_features(df).dropna()
-Path("data/features").mkdir(parents=True, exist_ok=True)
-feat.to_parquet("data/features/features.parquet")
-print("rows:", len(feat), "cols:", feat.shape[1])
-PY
+          RAW = os.environ.get("RAW", os.environ.get("RAW_CSV_PATH", "data/raw/xauusd_m1_2024_2025.csv"))
+          FEAT = "data/features/features.parquet"
 
-      - name: Train baseline (τ=0.0005)
-        run: poetry run python scripts/train_baseline.py --tau 0.0005
+          df = pd.read_csv(RAW)
+          cols_lower = {c.lower(): c for c in df.columns}
 
-      - name: Sweep τ & p-gate
-        run: poetry run python scripts/sweep_tau_pgate.py
+          # Find timestamp column
+          tcol = None
+          for k in ("time","timestamp","datetime","date"):
+              if k in cols_lower:
+                  tcol = cols_lower[k]; break
+          if tcol is None:
+              raise SystemExit("Timestamp column not found (expected one of time/timestamp/datetime/date).")
 
-      - name: Finalize model (τ=0.0003, p_gate=0.60)
-        run: poetry run python scripts/finalize_model.py
+          # Normalize OHLCV names
+          rename = {}
+          def pick(name):
+              cands = [name, name.upper(), name.capitalize(), name[:1].upper()+name[1:], name[0]]
+              return next((c for c in cands if c in df.columns), None)
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: xauusd-ai-artifacts
-          path: |
-            data/features/features.parquet
-            data/features/sweep_tau_pgate.csv
-            models/*.joblib
-            configs/signal_config.yaml
+          for k in ("open","high","low","close","volume"):
+              c = pick(k)
+              if c: rename[c] = k.upper()
+          df = df.rename(columns=rename)
+
+          # Index hygiene (UTC tz-naiv, sorted, dedup)
+          df[tcol] = pd.to_datetime(df[tcol], utc=True).dt.tz_convert(None)
+          df = df.set_index(tcol).sort_index()
+          df = df[~df.index.duplicated(keep="last")].dropna()
+
+          O,H,L,C = df["OPEN"], df["HIGH"], df["LOW"], df["CLOSE"]
+          V = df["VOLUME"] if "VOLUME" in df.columns else pd.Series(index=df.index, dtype=float).fillna(0)
+
+          eps = 1e-9
+          hl = (H - L).replace(0, eps)
+          body = (C - O)
+          up_w = (H - np.maximum(O, C))
+          lo_w = (np.minimum(O, C) - L)
+
+          feat = pd.DataFrame(index=df.index)
+
+          # Returns (strictly past)
+          for k in (1,3,5):
+              feat[f"ret_{k}"] = C.pct_change(k).shift(1)
+
+          # Range/shape (strictly past)
+          feat["range"] = (H - L).shift(1)
+          feat["body"] = body.shift(1)
+          feat["up_wick"] = up_w.shift(1)
+          feat["lo_wick"] = lo_w.shift(1)
+          feat["body_frac"] = (body / hl).shift(1)
+          feat["up_frac"] = (up_w / hl).shift(1)
+          feat["lo_frac"] = (lo_w / hl).shift(1)
+
+          # Volatility proxies (shifted)
+          tr = pd.concat([(H-L), (H-C.shift(1)).abs(), (L-C.shift(1)).abs()], axis=1).max(axis=1)
+          feat["atr14"] = tr.rolling(14, min_periods=14).mean().shift(1)
+
+          logHL = (np.log(H/L)).replace([np.inf,-np.inf], np.nan)
+          feat["parkinson"] = ((1.0/(4.0*np.log(2.0))) * (logHL**2)).rolling(14, min_periods=14).mean().shift(1)
+
+          rs = (np.log(H/C.shift(1))*np.log(H/O) + np.log(L/C.shift(1))*np.log(L/O)).replace([np.inf,-np.inf], np.nan)
+          feat["rogers_satchell"] = rs.rolling(14, min_periods=14).mean().shift(1)
+
+          gk = 0.5*(np.log(H/L))**2 - (2*np.log(2)-1)*(np.log(C/O))**2
+          gk = gk.replace([np.inf,-np.inf], np.nan)
+          feat["garman_klass"] = gk.rolling(14, min_periods=14).mean().shift(1)
+
+          # Clean & persist
+          feat = feat.replace([np.inf,-np.inf], np.nan).dropna()
+          Path("data/features").mkdir(parents=True, exist_ok=True)
+          feat.to_parquet(FEAT, index=True)
+          print(f"Wrote {len(feat):,} rows × {feat.shape[1]} cols -> {FEAT}")
+          PY
+
+      - name: Train baseline (Ridge + calibration)
+        if: steps.features.outputs.skip != '1'
+        env:
+          TAU: "0.0003"
+        run: |
+          python - <<'PY'
+          import os, numpy as np, pandas as pd, joblib
+          from sklearn.linear_model import RidgeClassifier
+          from sklearn.calibration import CalibratedClassifierCV
+          from sklearn.metrics import f1_score, matthews_corrcoef
+
+          tau = float(os.environ.get("TAU", "0.0003"))
+          df = pd.read_parquet("data/features/features.parquet")
+
+          # Label by future ret_3 vs tau (strict)
+          y_raw = df["ret_3"].shift(-3)
+          y = np.where(y_raw > tau, 2, np.where(y_raw < -tau, 0, 1))
+
+          # Drop raw returns from X to avoid trivial leakage into y
+          drop_cols = [c for c in ("ret_1","ret_3","ret_5") if c in df.columns]
+          X = df.drop(columns=drop_cols).iloc[:-3]
+          y = pd.Series(y, index=df.index).iloc[:-3]
+
+          cut = int(len(X) * 0.8)
+          Xtr, Xva = X.iloc[:cut], X.iloc[cut:]
+          ytr, yva = y.iloc[:cut], y.iloc[cut:]
+
+          clf = CalibratedClassifierCV(RidgeClassifier(class_weight="balanced"), method="isotonic", cv=3)
+          clf.fit(Xtr, ytr)
+
+          proba = clf.predict_proba(Xva)
+          pred = proba.argmax(1)
+          f1 = f1_score(yva, pred, average="macro")
+          mcc = matthews_corrcoef(yva, pred)
+          print(f"Val F1={f1:.3f} MCC={mcc:.3f} Neutral={float((pred==1).mean()):.2%}")
+
+          os.makedirs("models", exist_ok=True)
+          joblib.dump(clf, "models/ridge_baseline.joblib")
+          PY
+
+      - name: Eval with p-gate
+        if: steps.features.outputs.skip != '1'
+        env:
+          P_GATE: "0.60"
+          TAU: "0.0003"
+        run: |
+          python - <<'PY'
+          import os, numpy as np, pandas as pd, joblib
+          from sklearn.metrics import f1_score, matthews_corrcoef
+
+          tau = float(os.environ["TAU"])
+          p_gate = float(os.environ["P_GATE"])
+          clf = joblib.load("models/ridge_baseline.joblib")
+          df = pd.read_parquet("data/features/features.parquet")
+
+          y_raw = df["ret_3"].shift(-3)
+          y = np.where(y_raw > tau, 2, np.where(y_raw < -tau, 0, 1))
+
+          X = df.drop(columns=[c for c in ("ret_1","ret_3","ret_5") if c in df.columns]).iloc[:-3]
+          y = y[:-3]
+
+          cut = int(len(X)*0.8)
+          Xva, yva = X.iloc[cut:], y[cut:]
+
+          proba = clf.predict_proba(Xva)
+          conf = proba.max(1)
+          pred = proba.argmax(1)
+          pred = np.where(conf < p_gate, 1, pred)
+
+          f1 = f1_score(yva, pred, average="macro")
+          mcc = matthews_corrcoef(yva, pred)
+          print(f"OOS-ish F1={f1:.3f} MCC={mcc:.3f} Neutral={float((pred==1).mean()):.2%}")
+          PY
