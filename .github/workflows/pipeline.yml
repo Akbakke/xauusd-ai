@@ -206,3 +206,12 @@ jobs:
           mcc = matthews_corrcoef(yva, pred)
           print(f"OOS-ish F1={f1:.3f} MCC={mcc:.3f} Neutral={float((pred==1).mean()):.2%}")
           PY
+
+      - name: Upload artifacts
+        if: steps.features.outputs.ready == '1'
+        uses: actions/upload-artifact@v4
+        with:
+          name: xauusd-ai-artifacts
+          path: |
+            models/*.joblib
+            data/features/features.parquet
