@@ -34,6 +34,7 @@ jobs:
         id: features
         env:
           RAW_CSV_PATH: ${{ vars.RAW_CSV_PATH }}
+          RAW_CSV_URL: ${{ vars.RAW_CSV_URL }}
         run: |
           set -euo pipefail
           RAW="${RAW_CSV_PATH:-data/raw/xauusd_m1_2024_2025.csv}"
@@ -43,6 +44,9 @@ jobs:
             echo "skip=1" >> "$GITHUB_OUTPUT"
             echo "Features already present → skip."
             exit 0
+          fi
+          if [ ! -f "$RAW" ] && [ -n "${RAW_CSV_URL:-}" ]; then
+            curl -L --fail --retry 3 --retry-delay 2 "$RAW_CSV_URL" -o "$RAW"
           fi
           if [ ! -f "$RAW" ]; then
             echo "skip=1" >> "$GITHUB_OUTPUT"
