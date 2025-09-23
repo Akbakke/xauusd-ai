@@ -37,7 +37,7 @@ jobs:
           RAW_CSV_URL: ${{ vars.RAW_CSV_URL }}
         run: |
           set -euo pipefail
-          RAW="${RAW_CSV_PATH:-data/raw/xauusd_m1_2024_2025.csv}"
+          RAW="${RAW_CSV_PATH:-data/raw/xauusd_m1_2024.csv}"
           FEAT="data/features/features.parquet"
           mkdir -p data/features
           if [ -f "$FEAT" ]; then
