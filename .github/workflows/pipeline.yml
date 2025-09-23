@@ -176,7 +176,7 @@ jobs:
       - name: Eval with p-gate
         if: steps.features.outputs.ready == '1'
         env:
-          P_GATE: "0.60"
+          P_GATE: "0.45"
           TAU: "0.0003"
         run: |
           python - <<'PY'
