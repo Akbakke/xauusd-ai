@@ -1,0 +1,49 @@
+# ENTRY_V9_FARM_V2 Policy Configuration
+#
+# FARM Entry AI+ Policy V2_PLUS: Meta-model enhanced entry selection
+# - ASIA + (LOW ∪ MEDIUM) volatilitet (enforced by brutal guard V2)
+# - p_long >= 0.70 (ENTRY_V9 probability threshold, lowered from 0.75)
+# - p_profitable >= 0.30 (Meta-model prediction threshold, lowered from 0.50)
+# - require_trend_up: false (no trend filter)
+#
+# Changes from V2_STABLE:
+#   - Lower thresholds for more coverage (0.75→0.70, 0.50→0.30)
+#   - Allow MEDIUM volatility in addition to LOW
+#   - SHORT support infrastructure prepared but disabled
+#
+# Status: EXPERIMENTAL (2025-12-05)
+# Version: FARM_ENTRY_POLICY_V2_PLUS_2025_12_05
+
+entry_v9_policy_farm_v2:
+  enabled: true
+  min_prob_long: 0.70
+  min_prob_profitable: 0.30
+  require_trend_up: false
+  
+  # Volatility regime control (FARM_V2_PLUS allows LOW + MEDIUM)
+  allow_low_vol: true
+  allow_medium_vol: true
+  allow_high_vol: false
+  allow_extreme_vol: false
+  
+  # SHORT support (infrastructure prepared, but disabled for now)
+  allow_short: false
+
+# Entry model artifacts (ENTRY_V9 transformer - CLEAN version)
+entry_models:
+  v9:
+    enabled: true
+    model_dir: gx1/models/entry_v9/nextgen_2020_2025_clean
+
+# Meta-model for p_profitable prediction (REQUIRED for FARM_V2)
+meta_model:
+  enabled: true
+  model_path: gx1/models/farm_entry_meta/baseline_model.pkl  # Default path (will try alternatives if not found)
+  feature_cols_path: gx1/models/farm_entry_meta/feature_cols.json  # Default path (will try alternatives if not found)
+  # If model_path is null or file not found, FARM_V2 will raise RuntimeError
+
+# Regime whitelist (for reference - actual filtering done in policy)
+allowed_sessions: ["ASIA"]
+allowed_vol_regimes: ["LOW", "MEDIUM"]  # V2_PLUS allows both LOW and MEDIUM
+allowed_trend_regimes: []  # No trend filter in V2
+

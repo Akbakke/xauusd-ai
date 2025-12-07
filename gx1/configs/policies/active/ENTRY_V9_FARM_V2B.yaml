@@ -1,0 +1,51 @@
+# ENTRY_V9_FARM_V2B Policy Configuration
+#
+# FARM Entry AI+ Policy V2B: p_long-driven entry (NO meta-filter)
+# - ASIA + (LOW ∪ MEDIUM) volatilitet (enforced by brutal guard V2)
+# - p_long >= 0.72 (ENTRY_V9 probability threshold)
+# - p_profitable computed and logged, but NOT used for filtering
+# - require_trend_up: false (no trend filter)
+#
+# Design Philosophy:
+#   - Remove meta-model as HARD gate (too restrictive)
+#   - Use p_long + regime as primary filter
+#   - Log p_profitable for offline analysis
+#   - Re-introduce meta-filter later as "soft gate" or "priority scorer"
+#
+# Status: EXPERIMENTAL (2025-12-06)
+# Version: FARM_ENTRY_POLICY_V2B_2025_12_06
+
+entry_v9_policy_farm_v2b:
+  enabled: true
+  min_prob_long: 0.72
+  min_prob_profitable: 0.0  # Not used for filtering
+  enable_profitable_filter: false  # Disable meta-filter
+  require_trend_up: false
+  
+  # Volatility regime control (FARM_V2B allows LOW + MEDIUM)
+  allow_low_vol: true
+  allow_medium_vol: true
+  allow_high_vol: false
+  allow_extreme_vol: false
+  
+  # SHORT support (infrastructure prepared, but disabled for now)
+  allow_short: false
+
+# Entry model artifacts (ENTRY_V9 transformer - CLEAN version)
+entry_models:
+  v9:
+    enabled: true
+    model_dir: gx1/models/entry_v9/nextgen_2020_2025_clean
+
+# Meta-model for p_profitable prediction (computed but not used for filtering)
+meta_model:
+  enabled: true
+  model_path: gx1/models/farm_entry_meta/baseline_model.pkl  # Default path (will try alternatives if not found)
+  feature_cols_path: gx1/models/farm_entry_meta/feature_cols.json  # Default path (will try alternatives if not found)
+  # p_profitable is computed and logged, but NOT used to filter trades
+
+# Regime whitelist (for reference - actual filtering done in policy)
+allowed_sessions: ["ASIA"]
+allowed_vol_regimes: ["LOW", "MEDIUM"]  # V2B allows both LOW and MEDIUM
+allowed_trend_regimes: []  # No trend filter in V2B
+

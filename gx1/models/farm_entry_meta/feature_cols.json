@@ -1,0 +1,15 @@
+{
+  "feature_cols": [
+    "side_sign",
+    "p_long",
+    "entry_prob_long",
+    "entry_prob_short",
+    "atr_bps",
+    "is_long",
+    "is_short"
+  ],
+  "n_features": 7,
+  "dataset": "gx1/wf_runs/FARM_ENTRY_DATA/farm_entry_dataset_v1.parquet",
+  "model_type": "xgboost",
+  "random_state": 42
+}

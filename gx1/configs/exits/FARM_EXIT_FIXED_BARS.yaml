@@ -1,0 +1,10 @@
+# Experimental exit that closes trades after N bars (used for sanity tests)
+exit:
+  type: "FIXED_BAR_CLOSE"
+  params:
+    mode: "random"   # "fixed" or "random"
+    bars: 3          # used when mode=fixed
+    min_bars: 1      # lower bound when mode=random
+    max_bars: 8      # upper bound when mode=random
+    seed: 1337       # optional seed for reproducibility
+  only_v2_drift: true

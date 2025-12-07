@@ -1,0 +1,25 @@
+# Data & artifacts (runtime)
+data/
+gx1/wf_runs/
+gx1/live/logs/
+logs/
+gx1/optuna/**/*.db
+
+# Large log/telemetry files
+*.jsonl
+*.log
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Environments
+.env
+.env.*
+
+# Installer scripts / heavy binaries
+Miniforge3.sh
+
+# OS junk
+.DS_Store
+

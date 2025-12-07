@@ -1,0 +1,10 @@
+# Deterministic fixed-bar exit for FARM sanity checks
+exit:
+  type: "FIXED_BAR_CLOSE"
+  params:
+    mode: "fixed"
+    bars: 3          # close after exactly N holding bars
+    min_bars: 1      # unused in fixed mode (kept for compatibility)
+    max_bars: 1      # unused in fixed mode (kept for compatibility)
+    seed: 1337       # unused in fixed mode, but kept for API parity
+  only_v2_drift: true

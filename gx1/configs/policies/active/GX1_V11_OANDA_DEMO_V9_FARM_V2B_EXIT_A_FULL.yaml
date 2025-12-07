@@ -1,0 +1,35 @@
+# GX1 v1.1 → OANDA practice policy bundle
+# FARM_V2B + EXIT_RULES_A: Full backtest (2020-2025)
+#
+# Entry: FARM_V2B (p_long-driven, ASIA + LOW/MEDIUM)
+# Exit: FARM_EXIT_V2_RULES_A (profit-capture only)
+# Guard: FARM_V2_BRUTAL_V2 (ASIA + LOW ∪ MEDIUM)
+#
+# Purpose: Full historical validation of FARM_V2B + EXIT_RULES_A
+# Period: 2020-01-01 → 2025-12-06 (or as far as data allows)
+#
+# Status: FULL_BACKTEST (2025-12-06)
+
+version: "GX1_V11_OANDA_DEMO_V9_FARM_V2B_EXIT_A_FULL"
+mode: "REPLAY"
+instrument: "XAU_USD"
+timeframe: "M5"
+warmup_bars: 288
+
+# Entry policy: FARM_V2B (p_long-driven, no meta-filter)
+entry_config: gx1/configs/policies/active/ENTRY_V9_FARM_V2B.yaml
+
+# Exit policy: FARM_EXIT_V2_RULES_A (profit-capture only)
+exit_config: gx1/configs/exits/FARM_EXIT_V2_RULES_A.yaml
+
+# Risk config
+risk_config: gx1/configs/risk/RISK_V1_DEFAULT.yaml
+
+# Trade log output
+trade_log_csv: gx1/wf_runs/FARM_V2B_EXIT_A_FULL/trade_log.csv
+
+# Logging
+logging:
+  level: WARNING
+  log_dir: gx1/wf_runs/FARM_V2B_EXIT_A_FULL/logs
+

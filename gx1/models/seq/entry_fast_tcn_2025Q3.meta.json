@@ -1,0 +1,59 @@
+{
+  "feats": [
+    "_v1_r1",
+    "_v1_body_share_1",
+    "_v1_wick_imbalance",
+    "_v1_tr_1_over_atr_14",
+    "_v1_comp3_ratio",
+    "_v1_rsi2",
+    "_v1_rsi14",
+    "_v1_bb_bandwidth_delta_10"
+  ],
+  "lookback": 24,
+  "horizon_bars": 5,
+  "scaler": {
+    "type": "RobustScaler",
+    "center_": [
+      3.0041423997317906e-06,
+      0.4577092230319977,
+      -0.008247457444667816,
+      0.9233620166778564,
+      0.31456995010375977,
+      51.40211486816406,
+      50.484092712402344,
+      -7.611078672198346e-06
+    ],
+    "scale_": [
+      0.0010090976546052845,
+      0.7330669201910496,
+      0.8818961977958681,
+      0.9696115434169774,
+      0.6903589852154255,
+      100.0,
+      43.78111381530762,
+      0.0018869311606977144
+    ],
+    "quantile_range": [
+      10,
+      90
+    ],
+    "with_centering": true,
+    "with_scaling": true
+  },
+  "seq_cfg": {
+    "in_features": 8,
+    "hidden": 64,
+    "depth": 3,
+    "kernel": 3,
+    "dilations": [
+      1,
+      2,
+      4
+    ],
+    "dropout": 0.1,
+    "head_dropout": 0.1,
+    "pool": "avg",
+    "attn_heads": 4
+  },
+  "fold_tag": "2025Q3"
+}
