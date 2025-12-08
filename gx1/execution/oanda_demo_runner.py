@@ -954,11 +954,32 @@ def update_trade_log_exit(trade_log_path: Path, trade_id: str, exit_time: str, e
     for col in fieldnames:
         if col not in df.columns:
             df[col] = ""
-    
+
     # Reorder columns to match schema
     existing_cols = [c for c in fieldnames if c in df.columns]
     extra_cols = [c for c in df.columns if c not in fieldnames]
     df = df[existing_cols + extra_cols]
+
+    # Stabilize dtypes for string columns to avoid pandas warnings when assigning scalars
+    string_cols = [
+        "exit_time",
+        "exit_reason",
+        "primary_exit_reason",
+        "session",
+        "vol_regime",
+        "trend_regime",
+        "session_entry",
+        "vol_regime_entry",
+        "farm_entry_session",
+        "farm_entry_vol_regime",
+        "farm_guard_version",
+        "session_exit",
+        "vol_regime_exit",
+        "extra",
+    ]
+    for col in string_cols:
+        if col in df.columns:
+            df[col] = df[col].astype("string")
     
     # Find trade by trade_id
     mask = df["trade_id"] == trade_id
@@ -1247,6 +1268,7 @@ class GX1DemoRunner:
         load_dotenv_if_present()
         self.policy_path = policy_path
         self.policy = load_yaml_config(policy_path)
+        self.exit_config_name = None
         
         # Initialize replay flags early (before any methods that check them)
         self.replay_mode = bool(replay_mode)
@@ -1333,6 +1355,9 @@ class GX1DemoRunner:
         exit_type = exit_cfg.get("exit", {}).get("type") if isinstance(exit_cfg.get("exit"), dict) else None
         self.exit_farm_v1_policy = None
         self.exit_farm_v2_rules_policy = None
+        self.exit_farm_v2_rules_factory = None
+        self.exit_farm_v2_rules_states: Dict[str, Any] = {}
+        self.exit_verbose_logging = False
         self.exit_fixed_bar_policy = None
         self.farm_v1_mode = False  # Track if we're in FARM_V1 mode
         self.farm_v2_mode = False  # Track if we're in FARM_V2 mode
@@ -1342,22 +1367,31 @@ class GX1DemoRunner:
             # FARM_V2_RULES mode: Rule-based exit for FARM_V2B
             from gx1.policy.exit_farm_v2_rules import get_exit_policy_farm_v2_rules
             exit_params = exit_cfg.get("exit", {}).get("params", {})
+            self.exit_verbose_logging = bool(exit_params.get("verbose_logging", False))
             
-            self.exit_farm_v2_rules_policy = get_exit_policy_farm_v2_rules(
-                enable_rule_a=exit_params.get("enable_rule_a", False),
-                enable_rule_b=exit_params.get("enable_rule_b", False),
-                enable_rule_c=exit_params.get("enable_rule_c", False),
-                rule_a_profit_min_bps=exit_params.get("rule_a_profit_min_bps", 6.0),
-                rule_a_profit_max_bps=exit_params.get("rule_a_profit_max_bps", 9.0),
-                rule_a_adaptive_threshold_bps=exit_params.get("rule_a_adaptive_threshold_bps", 4.0),
-                rule_a_trailing_stop_bps=exit_params.get("rule_a_trailing_stop_bps", 2.0),
-                rule_a_adaptive_bars=exit_params.get("rule_a_adaptive_bars", 3),
-                rule_b_mae_threshold_bps=exit_params.get("rule_b_mae_threshold_bps", -4.0),
-                rule_b_max_bars=exit_params.get("rule_b_max_bars", 6),
-                rule_c_timeout_bars=exit_params.get("rule_c_timeout_bars", 8),
-                rule_c_min_profit_bps=exit_params.get("rule_c_min_profit_bps", 2.0),
-                debug_trade_ids=exit_params.get("debug_trade_ids", []),
-            )
+            def _build_exit_farm_v2_rules_policy():
+                return get_exit_policy_farm_v2_rules(
+                    enable_rule_a=exit_params.get("enable_rule_a", False),
+                    enable_rule_b=exit_params.get("enable_rule_b", False),
+                    enable_rule_c=exit_params.get("enable_rule_c", False),
+                    rule_a_profit_min_bps=exit_params.get("rule_a_profit_min_bps", 6.0),
+                    rule_a_profit_max_bps=exit_params.get("rule_a_profit_max_bps", 9.0),
+                    rule_a_adaptive_threshold_bps=exit_params.get("rule_a_adaptive_threshold_bps", 4.0),
+                    rule_a_trailing_stop_bps=exit_params.get("rule_a_trailing_stop_bps", 2.0),
+                    rule_a_adaptive_bars=exit_params.get("rule_a_adaptive_bars", 3),
+                    rule_b_mae_threshold_bps=exit_params.get("rule_b_mae_threshold_bps", -4.0),
+                    rule_b_max_bars=exit_params.get("rule_b_max_bars", 6),
+                    rule_c_timeout_bars=exit_params.get("rule_c_timeout_bars", 8),
+                    rule_c_min_profit_bps=exit_params.get("rule_c_min_profit_bps", 2.0),
+                    debug_trade_ids=exit_params.get("debug_trade_ids", []),
+                    force_exit_bars=exit_params.get("force_exit_bars"),
+                    verbose_logging=exit_params.get("verbose_logging", False),
+                    log_every_n_bars=exit_params.get("log_every_n_bars", 5),
+                )
+
+            self.exit_farm_v2_rules_factory = _build_exit_farm_v2_rules_policy
+            self.exit_farm_v2_rules_policy = self.exit_farm_v2_rules_factory()
+            self.exit_farm_v2_rules_states = {}
             
             rules_str = []
             if exit_params.get("enable_rule_a", False):
@@ -1381,6 +1415,7 @@ class GX1DemoRunner:
                 self.tick_cfg["enabled"] = False
             
             log.info("[BOOT] FARM_V2_RULES mode: All non-FARM exits disabled")
+            self.exit_only_v2_drift = True
         
         elif exit_type == "FIXED_BAR_CLOSE":
             from gx1.policy.exit_fixed_bar import FixedBarExitPolicy
@@ -2080,6 +2115,12 @@ class GX1DemoRunner:
             trade_log_template = trade_log_template.format(chunk_id=chunk_id)
         self.trade_log_path = Path(trade_log_template)
         ensure_trade_log(self.trade_log_path)
+        if self.exit_config_name:
+            log.info(
+                "[BOOT] exit_profile column wired (trade_log=%s, expected profile=%s)",
+                self.trade_log_path,
+                self.exit_config_name,
+            )
         
         # JSON eval log path (rotates daily)
         self.eval_log_path = self.log_dir / f"eval_log_{pd.Timestamp.now(tz='UTC').strftime('%Y%m%d')}.jsonl"
@@ -2233,9 +2274,29 @@ class GX1DemoRunner:
         # Reconcile: Load open trades from OANDA and bind to internal entry_id
         self._reconcile_open_trades()
     
+        # Extract exit_config_name for EntryManager (explicit dependency injection)
+        # CRITICAL: exit_cfg_path must be defined earlier in __init__ (line 1305)
+        # Use getattr to safely access exit_cfg_path (it's a local variable in __init__)
+        try:
+            # exit_cfg_path is defined at line 1305 as a local variable
+            # It should be accessible here since we're still in __init__
+            exit_config_name = exit_cfg_path.stem if exit_cfg_path else None
+            log.info("[BOOT] exit_config_name=%s (from exit_cfg_path=%s)", exit_config_name, exit_cfg_path)
+            log.info("[BOOT] exit_verbose_logging=%s", self.exit_verbose_logging)
+        except NameError:
+            log.error("[BOOT] exit_cfg_path not defined! This will cause exit_profile to be None for all trades.")
+            exit_config_name = None
+        except Exception as e:
+            log.error("[BOOT] Error extracting exit_config_name: %s", e)
+            exit_config_name = None
+        self.exit_config_name = exit_config_name
+        if self.exit_config_name:
+            log.info("[BOOT] exit_config invariant: expecting exit_profile=%s for every trade", self.exit_config_name)
+        
         # Managers
-        self.entry_manager = EntryManager(self)
+        self.entry_manager = EntryManager(self, exit_config_name=exit_config_name)
         self.exit_manager = ExitManager(self)
+        self._reset_entry_diag()
     
     def _load_entry_v9_model(self, model_dir: Path, config: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -2566,6 +2627,11 @@ class GX1DemoRunner:
                         dry_run=False,
                         client_order_id=oanda_trade.get("clientExtensions", {}).get("id", None),
                     )
+                    self._ensure_exit_profile(trade, context="reconcile")
+                    if self.exit_config_name and not (getattr(trade, "extra", {}) or {}).get("exit_profile"):
+                        raise RuntimeError(
+                            f"[EXIT_PROFILE] Reconciled trade {trade.trade_id} missing exit_profile under exit-config {self.exit_config_name}"
+                        )
                     reconciled_trades.append(trade)
                     log.info(
                         "Reconciled trade: %s | %s | %s units | price=%.3f | open_time=%s",
@@ -2591,6 +2657,143 @@ class GX1DemoRunner:
         except Exception as e:
             log.warning("Reconcile failed: %s", e, exc_info=True)
             # Don't fail startup if reconcile fails - just log warning
+
+    def _init_farm_v2_rules_state(self, trade: LiveTrade, *, context: str) -> None:
+        """Create/reset the per-trade FARM_V2_RULES policy state."""
+        if not getattr(self, "exit_farm_v2_rules_factory", None):
+            raise RuntimeError("FARM_V2_RULES factory not configured, cannot initialize exit state")
+        if trade.entry_bid is None or trade.entry_ask is None:
+            raise ValueError(
+                f"[EXIT_PROFILE] Missing bid/ask for FARM_V2_RULES init trade_id={trade.trade_id} context={context}"
+            )
+        policy = self.exit_farm_v2_rules_states.get(trade.trade_id)
+        if policy is None:
+            policy = self.exit_farm_v2_rules_factory()
+            self.exit_farm_v2_rules_states[trade.trade_id] = policy
+        policy.reset_on_entry(
+            entry_bid=trade.entry_bid,
+            entry_ask=trade.entry_ask,
+            entry_ts=trade.entry_time,
+            side=trade.side,
+            trade_id=trade.trade_id,
+        )
+        if not getattr(trade, "extra", None):
+            trade.extra = {}
+        trade.extra["exit_farm_v2_rules_initialized"] = True
+        log.debug(
+            "[EXIT_PROFILE] FARM_V2_RULES state reset for trade %s (context=%s)",
+            trade.trade_id,
+            context,
+        )
+
+    def _teardown_exit_state(self, trade_id: str) -> None:
+        """Remove any per-trade exit state objects when a trade is closed."""
+        if hasattr(self, "exit_farm_v2_rules_states"):
+            if trade_id in self.exit_farm_v2_rules_states:
+                self.exit_farm_v2_rules_states.pop(trade_id, None)
+                log.debug("[EXIT_PROFILE] Cleared FARM_V2_RULES state for trade %s", trade_id)
+
+    def _ensure_exit_profile(self, trade: LiveTrade, *, context: str = "unknown") -> None:
+        """
+        Ensure every trade has an exit_profile and initialize the matching
+        exit policy state exactly once per trade.
+        """
+        if not getattr(trade, "extra", None):
+            trade.extra = {}
+
+        exit_profile = trade.extra.get("exit_profile")
+        if not exit_profile:
+            exit_profile = self.exit_config_name
+            if not exit_profile:
+                exit_cfg = self.policy.get("exit_config") or ""
+                exit_profile = Path(exit_cfg).stem if exit_cfg else None
+                if exit_profile:
+                    # Cache for future calls (workers/chunks never touch policy again)
+                    self.exit_config_name = exit_profile
+            if exit_profile:
+                trade.extra["exit_profile"] = exit_profile
+                log.debug(
+                    "[EXIT_PROFILE] Bound exit_profile=%s to trade %s (context=%s)",
+                    exit_profile,
+                    trade.trade_id,
+                    context,
+                )
+            else:
+                session = infer_session_tag(trade.entry_time) if hasattr(trade, "entry_time") else "UNKNOWN"
+                vol_regime = trade.extra.get("vol_regime_entry") if trade.extra else None
+                msg = (
+                    "[EXIT_PROFILE] Trade opened without exit_profile: id=%s instrument=%s session=%s vol=%s "
+                    "context=%s exit_config=%s"
+                )
+                log.error(
+                    msg,
+                    getattr(trade, "trade_id", "unknown"),
+                    getattr(self, "instrument", "unknown"),
+                    session,
+                    vol_regime or "UNKNOWN",
+                    context,
+                    self.exit_config_name,
+                )
+                raise RuntimeError(
+                    msg
+                    % (
+                        getattr(trade, "trade_id", "unknown"),
+                        getattr(self, "instrument", "unknown"),
+                        session,
+                        vol_regime or "UNKNOWN",
+                        context,
+                        self.exit_config_name,
+                    )
+                )
+
+        exit_profile = trade.extra.get("exit_profile")
+        if not exit_profile:
+            return
+
+        # Initialize FIXED_BAR exit state if needed
+        if (
+            exit_profile == "FIXED_BAR_CLOSE"
+            and hasattr(self, "exit_fixed_bar_policy")
+            and self.exit_fixed_bar_policy is not None
+            and trade.side == "long"
+            and not trade.extra.get("fixed_bar_exit_initialized")
+        ):
+            if trade.entry_bid is None or trade.entry_ask is None:
+                log.warning(
+                    "[EXIT_PROFILE] Missing bid/ask for fixed-bar init trade_id=%s context=%s",
+                    trade.trade_id,
+                    context,
+                )
+            else:
+                self.exit_fixed_bar_policy.reset_on_entry(
+                    trade.entry_bid,
+                    trade.entry_ask,
+                    trade.trade_id,
+                    trade.side,
+                )
+                trade.extra["fixed_bar_exit_initialized"] = True
+                log.debug(
+                    "[EXIT_PROFILE] Fixed-bar exit initialized for trade %s (context=%s)",
+                    trade.trade_id,
+                    context,
+                )
+
+        # Initialize FARM_V2_RULES exit state if needed
+        if (
+            exit_profile.startswith("FARM_EXIT_V2_RULES")
+            and getattr(self, "exit_farm_v2_rules_factory", None)
+            and trade.side == "long"
+            and not trade.extra.get("exit_farm_v2_rules_initialized")
+        ):
+            try:
+                self._init_farm_v2_rules_state(trade, context=context)
+            except Exception as exc:
+                log.warning(
+                    "[EXIT_PROFILE] Failed to init FARM_V2_RULES for trade %s (context=%s): %s",
+                    trade.trade_id,
+                    context,
+                    exc,
+                )
     
     def _load_backfill_state(self) -> Optional[Dict[str, Any]]:
         """
@@ -3641,6 +3844,7 @@ class GX1DemoRunner:
             # Remove from open_trades (after successful close)
             if trade in self.open_trades:
                 self.open_trades.remove(trade)
+            self._teardown_exit_state(trade_id)
             
             # Update tick watcher (only if not in replay mode)
             if not self.replay_mode:
@@ -4480,6 +4684,9 @@ class GX1DemoRunner:
             with self._closing_lock:
                 self._closing_trades.pop(trade_id, None)
             
+            # Tear down per-trade exit state (if any)
+            self._teardown_exit_state(trade_id)
+            
             return True
         
         except Exception as e:
@@ -5197,11 +5404,11 @@ class GX1DemoRunner:
             return None
 
 
-    def evaluate_entry(self, candles: pd.DataFrame) -> Optional[LiveTrade]:
+    def _evaluate_entry_impl(self, candles: pd.DataFrame) -> Optional[LiveTrade]:
         return self.entry_manager.evaluate_entry(candles)
 
     
-    def _log_entry_only_event(
+    def _log_entry_only_event_impl(
         self,
         timestamp: pd.Timestamp,
         side: str,
@@ -5266,7 +5473,7 @@ class GX1DemoRunner:
         # Removed debug logging to reduce I/O overhead (only log on flush)
     
     
-    def _flush_entry_only_log_buffer(self) -> None:
+    def _flush_entry_only_log_buffer_impl(self) -> None:
         """Flush buffered entry-only log entries to CSV file."""
         if not hasattr(self, "_entry_only_log_buffer") or len(self._entry_only_log_buffer) == 0:
             return
@@ -5322,1301 +5529,1351 @@ def _ensure_bid_ask_columns(self, df: pd.DataFrame, context: str) -> None:
             f"(context={context}): {missing}"
         )
 
-    def _calculate_unrealized_portfolio_bps(self, current_bid: float, current_ask: float) -> float:
-        """
-        Calculate unrealized portfolio PnL in bps (weighted average by units).
-        """
-        if not self.open_trades:
-            return 0.0
+def _calculate_unrealized_portfolio_bps(self, current_bid: float, current_ask: float) -> float:
+    """
+    Calculate unrealized portfolio PnL in bps (weighted average by units).
+    """
+    if not self.open_trades:
+        return 0.0
 
-        total_pnl_bps = 0.0
-        total_units = 0
+    total_pnl_bps = 0.0
+    total_units = 0
 
-        if not hasattr(self, "_portfolio_pnl_log_count"):
-            self._portfolio_pnl_log_count = 0
+    if not hasattr(self, "_portfolio_pnl_log_count"):
+        self._portfolio_pnl_log_count = 0
 
-        for trade in self.open_trades:
-            units = abs(int(trade.units))
+    for trade in self.open_trades:
+        units = abs(int(trade.units))
+        entry_bid = float(getattr(trade, "entry_bid", trade.entry_price))
+        entry_ask = float(getattr(trade, "entry_ask", trade.entry_price))
+
+        if self._portfolio_pnl_log_count < 5:
+            log.debug(
+                "[PNL] Portfolio PnL: entry_bid=%.5f entry_ask=%.5f exit_bid=%.5f exit_ask=%.5f side=%s",
+                entry_bid,
+                entry_ask,
+                current_bid,
+                current_ask,
+                trade.side,
+            )
+            self._portfolio_pnl_log_count += 1
+
+        pnl_bps = compute_pnl_bps(entry_bid, entry_ask, current_bid, current_ask, trade.side)
+
+        total_pnl_bps += pnl_bps * units
+        total_units += units
+
+    if total_units == 0:
+        return 0.0
+
+    return total_pnl_bps / total_units
+
+def _reset_entry_diag(self) -> None:
+    """Reset entry diagnostics (per run)."""
+    self._entry_diag = {
+        "total": 0,
+        "per_session": defaultdict(int),
+        "per_exit_profile": defaultdict(int),
+        "per_regime": defaultdict(int),
+    }
+
+def _record_entry_diag(self, trade: LiveTrade, policy_state: Dict[str, Any], prediction: Optional[EntryPrediction]) -> None:
+    """Record per-trade diagnostics for FARM entry."""
+    if not hasattr(self, "_entry_diag"):
+        self._reset_entry_diag()
+    session = policy_state.get("session") or infer_session_tag(trade.entry_time)
+    regime = policy_state.get("farm_regime") or trade.extra.get("vol_regime_entry") or policy_state.get("brain_vol_regime", "UNKNOWN")
+    exit_profile = (getattr(trade, "extra", {}) or {}).get("exit_profile", "UNKNOWN")
+    p_long = prediction.prob_long if prediction is not None else trade.entry_prob_long
+    margin = getattr(prediction, "margin", None)
+    if margin is None:
+        margin = abs(trade.entry_prob_long - trade.entry_prob_short)
+    spread_bps = (
+        (float(trade.entry_ask) - float(trade.entry_bid)) * 10000.0
+        if getattr(trade, "entry_bid", None) is not None and getattr(trade, "entry_ask", None) is not None
+        else float("nan")
+    )
+    log.info(
+        "[ENTRY_DIAG] trade=%s ts=%s session=%s regime=%s exit_profile=%s p_long=%.4f margin=%.4f atr_bps=%.2f spread_bps=%.2f",
+        trade.trade_id,
+        trade.entry_time.isoformat(),
+        session,
+        regime,
+        exit_profile,
+        p_long,
+        margin,
+        trade.atr_bps,
+        spread_bps,
+    )
+    diag = self._entry_diag
+    diag["total"] += 1
+    diag["per_session"][session] += 1
+    diag["per_exit_profile"][exit_profile] += 1
+    diag["per_regime"][regime] += 1
+
+def _log_entry_diag_summary(self) -> None:
+    """Log aggregated entry diagnostics at the end of replay."""
+    diag = getattr(self, "_entry_diag", None)
+    if not diag or not diag["total"]:
+        return
+    log.info(
+        "[ENTRY_DIAG_SUMMARY] total=%d per_session=%s per_exit_profile=%s per_regime=%s",
+        diag["total"],
+        dict(diag["per_session"]),
+        dict(diag["per_exit_profile"]),
+        dict(diag["per_regime"]),
+    )
+
+def _generate_client_order_id(self, ts_utc: pd.Timestamp, price: float, direction: str) -> str:
+    """
+    Generate client_order_id for idempotency.
+    
+    Parameters
+    ----------
+    ts_utc : pd.Timestamp
+        UTC timestamp of entry.
+    price : float
+        Entry price.
+    direction : str
+        Trade direction ('long' or 'short').
+    
+    Returns
+    -------
+    str
+        Client order ID (hash of ts_utc, price, direction).
+    """
+    # Create hash from timestamp, price, and direction
+    ts_str = ts_utc.strftime("%Y%m%dT%H%M%S")
+    hash_input = f"{ts_str}_{price:.3f}_{direction}"
+    client_order_id = hashlib.md5(hash_input.encode("utf-8")).hexdigest()[:16]
+    # Prepend prefix for clarity
+    return f"GX1-{client_order_id}"
+
+def _build_notes_string(self, trade: LiveTrade) -> str:
+    """
+    Build notes string for trade log, including regime information.
+    
+    Parameters
+    ----------
+    trade : LiveTrade
+        Trade object with extra dict containing atr_regime.
+    
+    Returns
+    -------
+    str
+        Notes string with mode (replay/dry_run) and regime info.
+    """
+    notes_parts = []
+    
+    # Add mode indicator
+    if self.replay_mode:
+        notes_parts.append("replay")
+    elif self.exec.dry_run:
+        notes_parts.append("dry_run")
+    
+    # Add regime info if available
+    if hasattr(trade, "extra") and trade.extra:
+        atr_regime = trade.extra.get("atr_regime")
+        if atr_regime:
+            notes_parts.append(f"atr_regime={atr_regime}")
+        
+        # Add Big Brain V1 data if available (try nested dict first, fallback to top-level)
+        brain_v1_data = trade.extra.get("big_brain_v1", {})
+        if isinstance(brain_v1_data, dict):
+            brain_trend = brain_v1_data.get("brain_trend_regime") or trade.extra.get("brain_trend_regime")
+            brain_vol = brain_v1_data.get("brain_vol_regime") or trade.extra.get("brain_vol_regime")
+            brain_risk = brain_v1_data.get("brain_risk_score") if "brain_risk_score" in brain_v1_data else trade.extra.get("brain_risk_score")
+        else:
+            # Fallback to top-level fields (backward compatibility)
+            brain_trend = trade.extra.get("brain_trend_regime")
+            brain_vol = trade.extra.get("brain_vol_regime")
+            brain_risk = trade.extra.get("brain_risk_score")
+        
+        if brain_trend and brain_trend != "UNKNOWN":
+            notes_parts.append(f"brain_trend_regime={brain_trend}")
+        if brain_vol and brain_vol != "UNKNOWN":
+            notes_parts.append(f"brain_vol_regime={brain_vol}")
+        if brain_risk is not None:
+            notes_parts.append(f"brain_risk_score={brain_risk:.3f}")
+    
+    return ";".join(notes_parts) if notes_parts else ""
+
+def _check_client_order_id_exists(self, client_order_id: str) -> bool:
+    """
+    Check if client_order_id already exists in OANDA (for reconcile).
+    
+    Parameters
+    ----------
+    client_order_id : str
+        Client order ID to check.
+    
+    Returns
+    -------
+    bool
+        True if client_order_id exists, False otherwise.
+    
+    Note
+    ----
+    This is a placeholder - OANDA API doesn't have a direct way to check
+    client_order_id existence. We'll reconcile by matching on trade_id
+    from openTrades instead.
+    """
+    # Placeholder: In production, you might want to query orders endpoint
+    # For now, we'll reconcile by matching on trade_id from openTrades
+    return False
+
+def _execute_entry_impl(self, trade: LiveTrade) -> None:
+    # Check for guard blocks (KILL_SWITCH_ON, parity/ECE/coverage)
+    guard_blocked = False
+    block_reason = None
+    
+    # Check KILL_SWITCH_ON flag
+    project_root = Path(__file__).parent.parent.parent
+    kill_flag = project_root / "KILL_SWITCH_ON"
+    if kill_flag.exists():
+        guard_blocked = True
+        block_reason = "KILL_SWITCH_ON flag"
+        log.warning("[GUARD] BLOCKED ORDER (live_mode=%s) reason=%s", not self.exec.dry_run, block_reason)
+        return
+    
+    # Check kill-switches (ECE, parity, coverage) - these are already logged in evaluate_entry
+    # So we just check if we should proceed
+    
+    if guard_blocked:
+        log.warning("[GUARD] BLOCKED ORDER (live_mode=%s) reason=%s", not self.exec.dry_run, block_reason)
+        return
+    
+    if self.exec.dry_run:
+        log.info(
+            "[DRY-RUN] WOULD EXECUTE %s %s units=%s @ %.3f | client_order_id=%s",
+            trade.side.upper(),
+            self.instrument,
+            trade.units,
+            trade.entry_price,
+            trade.client_order_id,
+        )
+    else:  # pragma: no cover - network
+        # Track consecutive failures for hard STOP
+        max_consecutive_failures = 3
+        
+        try:
+            # Calculate TP/SL prices from entry price and thresholds (bps)
+            # Get TP/SL from trade.extra (set in evaluate_entry) or tick_exit config
+            tp_bps = int(trade.extra.get("tp_bps", self.tick_cfg.get("tp_bps", 180))) if hasattr(trade, "extra") and trade.extra else int(self.tick_cfg.get("tp_bps", 180))
+            sl_bps = int(trade.extra.get("sl_bps", self.tick_cfg.get("sl_bps", 100))) if hasattr(trade, "extra") and trade.extra else int(self.tick_cfg.get("sl_bps", 100))
+
+            # Calculate TP/SL prices in absolute terms using bid/ask entry prices
+            # For LONG: we enter at ask, so TP/SL are relative to entry_ask
+            # For SHORT: we enter at bid, so TP/SL are relative to entry_bid
             entry_bid = float(getattr(trade, "entry_bid", trade.entry_price))
             entry_ask = float(getattr(trade, "entry_ask", trade.entry_price))
-
-            if self._portfolio_pnl_log_count < 5:
-                log.debug(
-                    "[PNL] Portfolio PnL: entry_bid=%.5f entry_ask=%.5f exit_bid=%.5f exit_ask=%.5f side=%s",
-                    entry_bid,
-                    entry_ask,
-                    current_bid,
-                    current_ask,
-                    trade.side,
-                )
-                self._portfolio_pnl_log_count += 1
-
-            pnl_bps = compute_pnl_bps(entry_bid, entry_ask, current_bid, current_ask, trade.side)
-
-            total_pnl_bps += pnl_bps * units
-            total_units += units
-
-        if total_units == 0:
-            return 0.0
-
-        return total_pnl_bps / total_units
-    
-    def _generate_client_order_id(self, ts_utc: pd.Timestamp, price: float, direction: str) -> str:
-        """
-        Generate client_order_id for idempotency.
-        
-        Parameters
-        ----------
-        ts_utc : pd.Timestamp
-            UTC timestamp of entry.
-        price : float
-            Entry price.
-        direction : str
-            Trade direction ('long' or 'short').
-        
-        Returns
-        -------
-        str
-            Client order ID (hash of ts_utc, price, direction).
-        """
-        # Create hash from timestamp, price, and direction
-        ts_str = ts_utc.strftime("%Y%m%dT%H%M%S")
-        hash_input = f"{ts_str}_{price:.3f}_{direction}"
-        client_order_id = hashlib.md5(hash_input.encode("utf-8")).hexdigest()[:16]
-        # Prepend prefix for clarity
-        return f"GX1-{client_order_id}"
-    
-    def _build_notes_string(self, trade: LiveTrade) -> str:
-        """
-        Build notes string for trade log, including regime information.
-        
-        Parameters
-        ----------
-        trade : LiveTrade
-            Trade object with extra dict containing atr_regime.
-        
-        Returns
-        -------
-        str
-            Notes string with mode (replay/dry_run) and regime info.
-        """
-        notes_parts = []
-        
-        # Add mode indicator
-        if self.replay_mode:
-            notes_parts.append("replay")
-        elif self.exec.dry_run:
-            notes_parts.append("dry_run")
-        
-        # Add regime info if available
-        if hasattr(trade, "extra") and trade.extra:
-            atr_regime = trade.extra.get("atr_regime")
-            if atr_regime:
-                notes_parts.append(f"atr_regime={atr_regime}")
-            
-            # Add Big Brain V1 data if available (try nested dict first, fallback to top-level)
-            brain_v1_data = trade.extra.get("big_brain_v1", {})
-            if isinstance(brain_v1_data, dict):
-                brain_trend = brain_v1_data.get("brain_trend_regime") or trade.extra.get("brain_trend_regime")
-                brain_vol = brain_v1_data.get("brain_vol_regime") or trade.extra.get("brain_vol_regime")
-                brain_risk = brain_v1_data.get("brain_risk_score") if "brain_risk_score" in brain_v1_data else trade.extra.get("brain_risk_score")
+            if trade.side == "long":
+                # LONG: profit when price rises, entered at ask
+                take_profit_price = entry_ask * (1.0 + tp_bps / 10000.0)
+                stop_loss_price = entry_ask * (1.0 - sl_bps / 10000.0)
             else:
-                # Fallback to top-level fields (backward compatibility)
-                brain_trend = trade.extra.get("brain_trend_regime")
-                brain_vol = trade.extra.get("brain_vol_regime")
-                brain_risk = trade.extra.get("brain_risk_score")
+                # SHORT: profit when price falls, entered at bid
+                take_profit_price = entry_bid * (1.0 - tp_bps / 10000.0)
+                stop_loss_price = entry_bid * (1.0 + sl_bps / 10000.0)
             
-            if brain_trend and brain_trend != "UNKNOWN":
-                notes_parts.append(f"brain_trend_regime={brain_trend}")
-            if brain_vol and brain_vol != "UNKNOWN":
-                notes_parts.append(f"brain_vol_regime={brain_vol}")
-            if brain_risk is not None:
-                notes_parts.append(f"brain_risk_score={brain_risk:.3f}")
-        
-        return ";".join(notes_parts) if notes_parts else ""
-    
-    def _check_client_order_id_exists(self, client_order_id: str) -> bool:
-        """
-        Check if client_order_id already exists in OANDA (for reconcile).
-        
-        Parameters
-        ----------
-        client_order_id : str
-            Client order ID to check.
-        
-        Returns
-        -------
-        bool
-            True if client_order_id exists, False otherwise.
-        
-        Note
-        ----
-        This is a placeholder - OANDA API doesn't have a direct way to check
-        client_order_id existence. We'll reconcile by matching on trade_id
-        from openTrades instead.
-        """
-        # Placeholder: In production, you might want to query orders endpoint
-        # For now, we'll reconcile by matching on trade_id from openTrades
-        return False
-
-    def execute_entry(self, trade: LiveTrade) -> None:
-        # Check for guard blocks (KILL_SWITCH_ON, parity/ECE/coverage)
-        guard_blocked = False
-        block_reason = None
-        
-        # Check KILL_SWITCH_ON flag
-        project_root = Path(__file__).parent.parent.parent
-        kill_flag = project_root / "KILL_SWITCH_ON"
-        if kill_flag.exists():
-            guard_blocked = True
-            block_reason = "KILL_SWITCH_ON flag"
-            log.warning("[GUARD] BLOCKED ORDER (live_mode=%s) reason=%s", not self.exec.dry_run, block_reason)
-            return
-        
-        # Check kill-switches (ECE, parity, coverage) - these are already logged in evaluate_entry
-        # So we just check if we should proceed
-        
-        if guard_blocked:
-            log.warning("[GUARD] BLOCKED ORDER (live_mode=%s) reason=%s", not self.exec.dry_run, block_reason)
-            return
-        
-        if self.exec.dry_run:
-            log.info("[DRY-RUN] WOULD EXECUTE %s %s units=%s @ %.3f | client_order_id=%s", trade.side.upper(), self.instrument, trade.units, trade.entry_price, trade.client_order_id)
-        else:  # pragma: no cover - network
-            # Track consecutive failures for hard STOP
-            max_consecutive_failures = 3
+            # Place order with broker-side TP/SL (failsafe) if enabled
+            # In REN EXIT_V2 mode, broker-side TP/SL is disabled
+            broker_side_tp_sl = bool(self.policy.get("broker_side_tp_sl", True)) and not self.exit_only_v2_drift
+            if broker_side_tp_sl:
+                response = self.broker.create_market_order(
+                    self.instrument,
+                    trade.units,
+                    client_order_id=trade.client_order_id,
+                    stop_loss_price=stop_loss_price,
+                    take_profit_price=take_profit_price,
+                )
+            else:
+                # Place order without broker-side TP/SL (rely on tick-watcher)
+                response = self.broker.create_market_order(
+                    self.instrument,
+                    trade.units,
+                    client_order_id=trade.client_order_id,
+                )
             
-            try:
-                # Calculate TP/SL prices from entry price and thresholds (bps)
-                # Get TP/SL from trade.extra (set in evaluate_entry) or tick_exit config
-                tp_bps = int(trade.extra.get("tp_bps", self.tick_cfg.get("tp_bps", 180))) if hasattr(trade, "extra") and trade.extra else int(self.tick_cfg.get("tp_bps", 180))
-                sl_bps = int(trade.extra.get("sl_bps", self.tick_cfg.get("sl_bps", 100))) if hasattr(trade, "extra") and trade.extra else int(self.tick_cfg.get("sl_bps", 100))
+            # OANDA API returns orderFillTransaction with tradeOpened or tradeID
+            fill = response.get("orderFillTransaction", {})
+            fill_price = float(fill.get("price", trade.entry_price))
 
-                # Calculate TP/SL prices in absolute terms using bid/ask entry prices
-                # For LONG: we enter at ask, so TP/SL are relative to entry_ask
-                # For SHORT: we enter at bid, so TP/SL are relative to entry_bid
-                entry_bid = float(getattr(trade, "entry_bid", trade.entry_price))
-                entry_ask = float(getattr(trade, "entry_ask", trade.entry_price))
+            # In replay mode, entry_bid/entry_ask should already be set from candles
+            # In live mode, update from fill price (OANDA returns mid price, we need to estimate bid/ask)
+            if self.replay_mode:
+                # Replay mode: entry_bid/entry_ask already set from candles in entry_manager
+                # Just update entry_price to match fill price (if different)
+                trade.entry_price = fill_price
+                # Validate that entry_bid/entry_ask are still valid
+                if not hasattr(trade, "entry_bid") or trade.entry_bid is None:
+                    raise ValueError(f"trade.entry_bid is None in replay mode for trade {trade.trade_id}")
+                if not hasattr(trade, "entry_ask") or trade.entry_ask is None:
+                    raise ValueError(f"trade.entry_ask is None in replay mode for trade {trade.trade_id}")
+            else:
+                # Live mode: Update entry_price and estimate bid/ask from fill price
+                # OANDA returns mid price, so we estimate bid/ask with a small spread
+                trade.entry_price = fill_price
+                estimated_spread = 0.1  # Typical XAUUSD spread in live trading
                 if trade.side == "long":
-                    # LONG: profit when price rises, entered at ask
-                    take_profit_price = entry_ask * (1.0 + tp_bps / 10000.0)
-                    stop_loss_price = entry_ask * (1.0 - sl_bps / 10000.0)
+                    # LONG: we buy at ask, so entry_ask = fill_price
+                    trade.entry_ask = fill_price
+                    trade.entry_bid = fill_price - estimated_spread
+                    # Ensure bid <= ask
+                    if trade.entry_bid > trade.entry_ask:
+                        trade.entry_bid = trade.entry_ask - 0.01  # Minimum spread
                 else:
-                    # SHORT: profit when price falls, entered at bid
-                    take_profit_price = entry_bid * (1.0 - tp_bps / 10000.0)
-                    stop_loss_price = entry_bid * (1.0 + sl_bps / 10000.0)
-                
-                # Place order with broker-side TP/SL (failsafe) if enabled
-                # In REN EXIT_V2 mode, broker-side TP/SL is disabled
-                broker_side_tp_sl = bool(self.policy.get("broker_side_tp_sl", True)) and not self.exit_only_v2_drift
-                if broker_side_tp_sl:
-                    response = self.broker.create_market_order(
-                        self.instrument,
-                        trade.units,
-                        client_order_id=trade.client_order_id,
-                        stop_loss_price=stop_loss_price,
-                        take_profit_price=take_profit_price,
-                    )
-                else:
-                    # Place order without broker-side TP/SL (rely on tick-watcher)
-                    response = self.broker.create_market_order(
-                        self.instrument,
-                        trade.units,
-                        client_order_id=trade.client_order_id,
-                    )
-                
-                # OANDA API returns orderFillTransaction with tradeOpened or tradeID
-                fill = response.get("orderFillTransaction", {})
-                fill_price = float(fill.get("price", trade.entry_price))
-
-                # In replay mode, entry_bid/entry_ask should already be set from candles
-                # In live mode, update from fill price (OANDA returns mid price, we need to estimate bid/ask)
-                if self.replay_mode:
-                    # Replay mode: entry_bid/entry_ask already set from candles in entry_manager
-                    # Just update entry_price to match fill price (if different)
-                    trade.entry_price = fill_price
-                    # Validate that entry_bid/entry_ask are still valid
-                    if not hasattr(trade, "entry_bid") or trade.entry_bid is None:
-                        raise ValueError(f"trade.entry_bid is None in replay mode for trade {trade.trade_id}")
-                    if not hasattr(trade, "entry_ask") or trade.entry_ask is None:
-                        raise ValueError(f"trade.entry_ask is None in replay mode for trade {trade.trade_id}")
-                else:
-                    # Live mode: Update entry_price and estimate bid/ask from fill price
-                    # OANDA returns mid price, so we estimate bid/ask with a small spread
-                    trade.entry_price = fill_price
-                    estimated_spread = 0.1  # Typical XAUUSD spread in live trading
-                    if trade.side == "long":
-                        # LONG: we buy at ask, so entry_ask = fill_price
-                        trade.entry_ask = fill_price
-                        trade.entry_bid = fill_price - estimated_spread
-                        # Ensure bid <= ask
-                        if trade.entry_bid > trade.entry_ask:
-                            trade.entry_bid = trade.entry_ask - 0.01  # Minimum spread
-                    else:
-                        # SHORT: we sell at bid, so entry_bid = fill_price
-                        trade.entry_bid = fill_price
-                        trade.entry_ask = fill_price + estimated_spread
-                        # Ensure bid <= ask
-                        if trade.entry_ask < trade.entry_bid:
-                            trade.entry_ask = trade.entry_bid + 0.01  # Minimum spread
-                
-                # Extract tradeID from orderFillTransaction (could be in tradeOpened or tradeID field)
-                trade_id_from_fill = None
-                if "tradeOpened" in fill:
-                    trade_id_from_fill = fill["tradeOpened"].get("tradeID")
-                elif "tradeID" in fill:
-                    trade_id_from_fill = fill.get("tradeID")
-                elif "id" in fill:
-                    trade_id_from_fill = fill.get("id")
-                
-                if trade_id_from_fill:
-                    trade.trade_id = str(trade_id_from_fill)
-                
-                # Log TP/SL order IDs (broker-side TP/SL lifecycle tracking)
-                if broker_side_tp_sl:
-                    # Get TP/SL orders from trade (may need to fetch trade details)
-                    try:
-                        trade_info = self.broker.get_trade(trade.trade_id)
-                        trade_data = trade_info.get("trade", {})
-                        tp_order = trade_data.get("takeProfitOrder", {})
-                        sl_order = trade_data.get("stopLossOrder", {})
-                        
-                        tp_order_id = tp_order.get("id") if tp_order else None
-                        sl_order_id = sl_order.get("id") if sl_order else None
-                        
-                        # Store TP/SL order IDs in trade.extra for tracking
-                        if not hasattr(trade, "extra"):
-                            trade.extra = {}
-                        trade.extra["tp_order_id"] = str(tp_order_id) if tp_order_id else None
-                        trade.extra["sl_order_id"] = str(sl_order_id) if sl_order_id else None
-                        
-                        log.info(
-                            "[LIVE] Order placed with broker-side TP/SL: TP=%.3f (+%d bps, order_id=%s), SL=%.3f (-%d bps, order_id=%s)",
-                            take_profit_price, tp_bps, tp_order_id or "N/A",
-                            stop_loss_price, sl_bps, sl_order_id or "N/A"
-                        )
-                    except Exception as e:
-                        log.warning("[LIVE] Failed to get TP/SL order IDs for trade %s: %s", trade.trade_id, e)
-                        log.info(
-                            "[LIVE] Order placed with TP/SL requested: TP=%.3f (+%d bps), SL=%.3f (-%d bps) (OANDA enforces server-side)",
-                            take_profit_price, tp_bps, stop_loss_price, sl_bps
-                        )
-                else:
+                    # SHORT: we sell at bid, so entry_bid = fill_price
+                    trade.entry_bid = fill_price
+                    trade.entry_ask = fill_price + estimated_spread
+                    # Ensure bid <= ask
+                    if trade.entry_ask < trade.entry_bid:
+                        trade.entry_ask = trade.entry_bid + 0.01  # Minimum spread
+            
+            # Extract tradeID from orderFillTransaction (could be in tradeOpened or tradeID field)
+            trade_id_from_fill = None
+            if "tradeOpened" in fill:
+                trade_id_from_fill = fill["tradeOpened"].get("tradeID")
+            elif "tradeID" in fill:
+                trade_id_from_fill = fill.get("tradeID")
+            elif "id" in fill:
+                trade_id_from_fill = fill.get("id")
+            
+            if trade_id_from_fill:
+                trade.trade_id = str(trade_id_from_fill)
+            
+            # Log TP/SL order IDs (broker-side TP/SL lifecycle tracking)
+            if broker_side_tp_sl:
+                # Get TP/SL orders from trade (may need to fetch trade details)
+                try:
+                    trade_info = self.broker.get_trade(trade.trade_id)
+                    trade_data = trade_info.get("trade", {})
+                    tp_order = trade_data.get("takeProfitOrder", {})
+                    sl_order = trade_data.get("stopLossOrder", {})
+                    
+                    tp_order_id = tp_order.get("id") if tp_order else None
+                    sl_order_id = sl_order.get("id") if sl_order else None
+                    
+                    # Store TP/SL order IDs in trade.extra for tracking
+                    if not hasattr(trade, "extra"):
+                        trade.extra = {}
+                    trade.extra["tp_order_id"] = str(tp_order_id) if tp_order_id else None
+                    trade.extra["sl_order_id"] = str(sl_order_id) if sl_order_id else None
+                    
                     log.info(
-                        "[LIVE] Order placed without broker-side TP/SL (relying on tick-watcher): TP=%.3f (+%d bps), SL=%.3f (-%d bps)",
+                        "[LIVE] Order placed with broker-side TP/SL: TP=%.3f (+%d bps, order_id=%s), SL=%.3f (-%d bps, order_id=%s)",
+                        take_profit_price, tp_bps, tp_order_id or "N/A",
+                        stop_loss_price, sl_bps, sl_order_id or "N/A"
+                    )
+                except Exception as e:
+                    log.warning("[LIVE] Failed to get TP/SL order IDs for trade %s: %s", trade.trade_id, e)
+                    log.info(
+                        "[LIVE] Order placed with TP/SL requested: TP=%.3f (+%d bps), SL=%.3f (-%d bps) (OANDA enforces server-side)",
                         take_profit_price, tp_bps, stop_loss_price, sl_bps
                     )
-                
-                    log.info("[LIVE] PLACED MARKET %s %s units=%s @ %.3f | order_id=%s | trade_id=%s", trade.side.upper(), self.instrument, trade.units, fill_price, trade.client_order_id, trade.trade_id)
-                # Reset consecutive failures on success
-                self._consecutive_order_failures = 0
-                # Note: Trade is added to open_trades in execute_entry() after this call
-            except Exception as e:
-                self._consecutive_order_failures += 1
-                consecutive_failures = self._consecutive_order_failures
-                
-                if consecutive_failures >= max_consecutive_failures:
-                    log.error(
-                        "[HARD STOP] %d consecutive order failures. Setting KILL_SWITCH_ON.",
-                        consecutive_failures,
-                    )
-                    # Set KILL_SWITCH_ON flag
-                    project_root = Path(__file__).parent.parent.parent
-                    kill_flag = project_root / "KILL_SWITCH_ON"
-                    kill_flag.touch()
-                    raise RuntimeError(f"Hard STOP: {consecutive_failures} consecutive order failures") from e
-                else:
-                    log.warning(
-                        "[ORDER FAILURE] Attempt failed (consecutive: %d/%d): %s",
-                        consecutive_failures,
-                        max_consecutive_failures,
-                        e,
-                    )
-                    raise
-
-            # ============================================================================
-            # DEFENSIVE ASSERT: Ensure entry_bid and entry_ask are always set correctly
-            # ============================================================================
-            # In replay mode, entry_bid/entry_ask should already be set from candles in entry_manager
-            # In live mode, they may be updated from fill price, but must still be valid
-            if not hasattr(trade, "entry_bid") or trade.entry_bid is None:
-                raise ValueError(
-                    f"trade.entry_bid is None or missing for trade {trade.trade_id}. "
-                    f"This must be set when trade is created (replay: from candles, live: from fill price)."
-                )
-            if not hasattr(trade, "entry_ask") or trade.entry_ask is None:
-                raise ValueError(
-                    f"trade.entry_ask is None or missing for trade {trade.trade_id}. "
-                    f"This must be set when trade is created (replay: from candles, live: from fill price)."
-                )
-            
-            # Validate that bid <= ask (spread should be non-negative)
-            if trade.entry_bid > trade.entry_ask:
-                raise ValueError(
-                    f"Invalid bid/ask for trade {trade.trade_id}: entry_bid={trade.entry_bid:.5f} > entry_ask={trade.entry_ask:.5f}. "
-                    f"Bid must be <= ask."
-                )
-            
-            # Validate that entry_price matches side
-            # For LONG: entry_price should be entry_ask (we buy at ask)
-            # For SHORT: entry_price should be entry_bid (we sell at bid)
-            if trade.side == "long":
-                if abs(trade.entry_price - trade.entry_ask) > 0.01:  # Allow small floating point differences
-                    log.warning(
-                        "[ENTRY_PRICE] Trade %s (LONG): entry_price=%.5f != entry_ask=%.5f. "
-                        "For LONG trades, entry_price should equal entry_ask.",
-                        trade.trade_id, trade.entry_price, trade.entry_ask
-                    )
-            elif trade.side == "short":
-                if abs(trade.entry_price - trade.entry_bid) > 0.01:  # Allow small floating point differences
-                    log.warning(
-                        "[ENTRY_PRICE] Trade %s (SHORT): entry_price=%.5f != entry_bid=%.5f. "
-                        "For SHORT trades, entry_price should equal entry_bid.",
-                        trade.trade_id, trade.entry_price, trade.entry_bid
-                    )
-            
-                    log.debug(
-                "[ENTRY_PRICE] Trade %s (%s): entry_price=%.5f, entry_bid=%.5f, entry_ask=%.5f, spread=%.5f",
-                trade.trade_id, trade.side.upper(), trade.entry_price, trade.entry_bid, trade.entry_ask,
-                trade.entry_ask - trade.entry_bid
-            )
-
-            # Initialize fixed/random bar exit state immediately when trade opens
-            if hasattr(self, "exit_fixed_bar_policy") and self.exit_fixed_bar_policy is not None and trade.side == "long":
-                if not getattr(trade, "extra", None):
-                    trade.extra = {}
-                self.exit_fixed_bar_policy.reset_on_entry(
-                    trade.entry_bid,
-                    trade.entry_ask,
-                        trade.trade_id,
-                    trade.side,
-                )
-                trade.extra["fixed_bar_exit_initialized"] = True
-            
-            # Initialize FARM_V2_RULES exit state immediately when trade opens
-            if (hasattr(self, "exit_farm_v2_rules_policy") and 
-                self.exit_farm_v2_rules_policy is not None and
-                trade.side == "long"):
-                if not getattr(trade, "extra", None):
-                    trade.extra = {}
-                # Get exit_profile to check if this trade uses FARM_V2_RULES
-                exit_profile = trade.extra.get("exit_profile")
-                if exit_profile and exit_profile.startswith("FARM_EXIT_V2_RULES"):
-                    self.exit_farm_v2_rules_policy.reset_on_entry(
-                        entry_bid=trade.entry_bid,
-                        entry_ask=trade.entry_ask,
-                        entry_ts=trade.entry_time,
-                        side=trade.side,
-                        trade_id=trade.trade_id,
-                    )
-                    trade.extra["farm_v2_rules_exit_initialized"] = True
-                    log.debug(
-                        "[REPLAY] Initialized exit_farm_v2_rules_policy for trade %s (exit_profile=%s)",
-                        trade.trade_id, exit_profile
-                    )
-
-            # Add trade to open_trades
-            self.open_trades.append(trade)
-            self.last_entry_timestamp = trade.entry_time
-            self.last_entry_side = trade.side  # Track last entry side for sticky-side logic
-    
-            # Update tick watcher (start if first trade)
-            self._maybe_update_tick_watcher()
-
-    def evaluate_and_close_trades(self, candles: pd.DataFrame) -> None:
-        return self.exit_manager.evaluate_and_close_trades(candles)
-
-    def run_once(self) -> None:
-        # Check KILL_SWITCH_ON flag (from ops_watch.py cron job)
-        # Flag is created in project root directory
-        project_root = Path(__file__).parent.parent.parent
-        kill_switch_flag = project_root / "KILL_SWITCH_ON"
-        if kill_switch_flag.exists():
-            log.warning("[GUARD] BLOCKED ORDER (live_mode=%s) reason=KILL_SWITCH_ON flag", not self.exec.dry_run)
-            return
-        
-        # Check policy-lock (policy file changed on disk)
-        if not self._check_policy_lock():
-            log.error("[GUARD] BLOCKED ORDER (live_mode=%s) reason=Policy file changed on disk", not self.exec.dry_run)
-            return
-        
-        # Check graceful shutdown flag
-        if hasattr(self, "_shutdown_requested") and self._shutdown_requested:
-            log.warning("[GUARD] BLOCKED ORDER (live_mode=%s) reason=Shutdown requested", not self.exec.dry_run)
-            return
-        
-        # Check backfill in progress (block orders during backfill)
-        if self.backfill_in_progress:
-            log.warning("[GUARD] BLOCKED ORDER (live_mode=%s) reason=Backfill in progress", not self.exec.dry_run)
-            return
-        
-        now = pd.Timestamp.now(tz="UTC")
-        
-        # "No-trade warmup" som eksplisitt fase
-        # Sperr ordre i hele WARMUP (du gjør det, men gjør fasen synlig i logger)
-        if self.warmup_floor is not None and now < self.warmup_floor:
-            log.debug(
-                "[PHASE] WARMUP (no-trade): now=%s, warmup_floor=%s (blocking orders)",
-                now.isoformat(),
-                self.warmup_floor.isoformat(),
-            )
-            # Still fetch candles and evaluate, but don't execute orders
-            # This allows feature rehydration to complete
-        else:
-            if self.warmup_floor is not None:
-                log.info("[PHASE] WARMUP_END (no-trade): warmup_floor=%s passed, resuming live trading", self.warmup_floor.isoformat())
-                self.warmup_floor = None  # Clear warmup_floor after it's passed
-        
-        # Check server time drift (every 15 minutes)
-        # API-klokkedrift-sjekk: Hent serverTime hver 15. min, sammenlign mot lokal UTC; WARN ved drift >2s
-        if not hasattr(self, "_last_server_time_check"):
-            self._last_server_time_check = now - pd.Timedelta(minutes=20)  # Force first check
-        
-        if (now - self._last_server_time_check).total_seconds() >= 900:  # Check every 15 minutes
-            try:
-                server_time_response = self.broker.get_server_time()
-                server_time_str = server_time_response.get("time", "")
-                if server_time_str:
-                    server_time = pd.Timestamp(server_time_str)
-                    if server_time.tzinfo is None:
-                        server_time = server_time.tz_localize("UTC")
-                    else:
-                        server_time = server_time.tz_convert("UTC")
-                    
-                    time_drift = abs((now - server_time).total_seconds())
-                    if time_drift > 2.0:
-                        log.warning(
-                            "[TIME DRIFT] Server time drift >2s: local=%s, server=%s, drift=%.1fs (hindrer subtile off-by-one i bar-lukking)",
-                            now.isoformat(),
-                            server_time.isoformat(),
-                            time_drift,
-                        )
-                    else:
-                        log.debug(
-                            "[TIME SYNC] Server time: local=%s, server=%s, drift=%.1fs",
-                            now.isoformat(),
-                            server_time.isoformat(),
-                            time_drift,
-                        )
-                    self._last_server_time_check = now
-            except Exception as e:
-                log.warning("Server time check failed: %s", e)
-        
-        # "Siste bar er ikke lukket"-sperre: Ignore current incomplete M5 bar
-        now_floor = now.floor("5min")
-        
-        # Fetch candles (exclude incomplete bars)
-        candles = self.broker.get_candles(
-            self.instrument,
-            self.granularity,
-            count=500,
-            exclude_incomplete=True,
-        )
-        if candles.empty:
-            log.warning("No candles returned, skipping iteration")
-            return
-        
-        # Filter out incomplete bars (only process bars < now_floor)
-        candles = candles[candles.index < now_floor]
-        if candles.empty:
-            log.debug("No complete bars available (all bars >= now_floor=%s), skipping iteration", now_floor.isoformat())
-            return
-
-        self._ensure_bid_ask_columns(candles, context="run_once")
-
-        trade = self.evaluate_entry(candles)
-        if trade and self.can_enter(candles.index[-1]):
-            self.execute_entry(trade)
-            # Build trade log row with FARM fields from trade.extra
-            trade_extra = trade.extra if hasattr(trade, "extra") and trade.extra else {}
-            trade_log_row = {
-                "trade_id": trade.trade_id,
-                "entry_time": trade.entry_time.isoformat(),
-                "entry_price": f"{trade.entry_price:.3f}",
-                "side": trade.side,
-                "units": trade.units,
-                "exit_time": "",
-                "exit_price": "",
-                "pnl_bps": "",
-                "pnl_currency": "",
-                "entry_prob_long": f"{trade.entry_prob_long:.4f}",
-                "entry_prob_short": f"{trade.entry_prob_short:.4f}",
-                "exit_prob_close": "",
-                "vol_bucket": trade.vol_bucket,
-                "atr_bps": f"{trade.atr_bps:.2f}",
-                "notes": self._build_notes_string(trade),
-                "run_id": self.run_id,
-                "policy_name": self.policy_name,
-                "model_name": self.model_name,
-                "extra": trade_extra,
-            }
-            # Extract FARM fields from trade.extra (append_trade_log will handle extraction, but set explicitly for clarity)
-            if trade_extra:
-                if "farm_entry_session" in trade_extra:
-                    trade_log_row["farm_entry_session"] = trade_extra["farm_entry_session"]
-                if "farm_entry_vol_regime" in trade_extra:
-                    trade_log_row["farm_entry_vol_regime"] = trade_extra["farm_entry_vol_regime"]
-                if "farm_guard_version" in trade_extra:
-                    trade_log_row["farm_guard_version"] = trade_extra["farm_guard_version"]
-            append_trade_log(self.trade_log_path, trade_log_row)
-
-        # Always evaluate exits even if no new entry
-        self.evaluate_and_close_trades(candles)
-        
-        # Update last_bar_ts after processing this bar
-        if not candles.empty:
-            last_bar_ts = candles.index[-1].floor("5min")
-            # Only update if backfill is enabled and we're past warmup
-            backfill_cfg = self.policy.get("backfill", {})
-            if backfill_cfg.get("enabled", True) and (self.warmup_floor is None or now >= self.warmup_floor):
-                # Update last_bar_ts in state (but don't save on every tick to reduce I/O)
-                # Save every 10 bars (50 minutes) to reduce I/O
-                if not hasattr(self, "_last_bar_ts_save_time"):
-                    self._last_bar_ts_save_time = now - pd.Timedelta(minutes=60)
-                
-                if (now - self._last_bar_ts_save_time).total_seconds() >= 600:  # Save every 10 minutes
-                    # Get current hashes for state
-                    feature_manifest_hash = self.entry_model_bundle.feature_cols_hash if self.entry_model_bundle is not None else None
-                    policy_hash = self.policy_hash
-                    # Save state (without rotation - only rotate weekly)
-                    self._save_backfill_state(
-                        last_bar_ts=last_bar_ts,
-                        feature_manifest_hash=feature_manifest_hash,
-                        policy_hash=policy_hash,
-                        rotate=False,  # Only rotate weekly, not every save
-                    )
-                    self._last_bar_ts_save_time = now
-        
-        # Update health signal (every minute)
-        self._update_health_signal(now)
-        
-        log.info(
-            "Cycle complete | open_trades=%s | daily_loss_tracker=%s",
-            len(self.open_trades),
-            json.dumps(self.daily_loss_tracker),
-        )
-    
-    def _update_health_signal(self, now: pd.Timestamp) -> None:
-        """
-        Update health signal JSON file (every minute).
-        
-        Parameters
-        ----------
-        now : pd.Timestamp
-            Current UTC timestamp.
-        """
-        # Update health signal every minute
-        if self.last_health_signal_time is None:
-            self.last_health_signal_time = now - pd.Timedelta(minutes=2)  # Force first update
-        
-        if (now - self.last_health_signal_time).total_seconds() >= 60:  # Update every minute
-            try:
-                # Get telemetry status
-                parity_ok = True
-                ece_ok = True
-                coverage_ok = True
-                
-                # Check parity status
-                if self.parity_enabled and len(self.parity_metrics) > 0:
-                    for session, errs in self.parity_metrics.items():
-                        if len(errs) >= 10:
-                            p99_err = float(np.percentile(np.array(errs), 99))
-                            if p99_err > self.parity_tolerance_p99:
-                                parity_ok = False
-                                break
-                
-                # Check ECE status
-                if hasattr(self, "telemetry_tracker") and self.telemetry_tracker is not None:
-                    for session in ("EU", "US", "OVERLAP"):
-                        try:
-                            ece = self.telemetry_tracker.get_ece(session)
-                            if ece is not None and ece > 0.18:
-                                ece_ok = False
-                                break
-                        except Exception as e:
-                            log.warning("[HEALTH] Failed to get ECE for %s: %s", session, e)
-                
-                # Check coverage status
-                if hasattr(self, "telemetry_tracker") and self.telemetry_tracker is not None:
-                    for session in ("EU", "US", "OVERLAP"):
-                        try:
-                            coverage = self.telemetry_tracker.get_coverage(session)
-                            if coverage is not None:
-                                target_coverage = self.telemetry_tracker.target_coverage
-                            coverage_diff = abs(coverage - target_coverage)
-                            coverage_threshold = 0.50 * target_coverage
-                            if coverage_diff > coverage_threshold:
-                                coverage_ok = False
-                                break
-                        except Exception as e:
-                            log.warning("[HEALTH] Failed to get coverage for %s: %s", session, e)
-                
-                # Write health signal
-                health_signal = {
-                    "alive": True,
-                    "last_tick_ts": now.isoformat(),
-                    "parity_ok": parity_ok,
-                    "ece_ok": ece_ok,
-                    "coverage_ok": coverage_ok,
-                    "open_trades": len(self.open_trades),
-                    "policy_hash": self.policy_hash,
-                    "shutdown_requested": self._shutdown_requested,
-                }
-                
-                with self.health_signal_path.open("w", encoding="utf-8") as handle:
-                    json.dump(health_signal, handle, separators=(",", ":"))
-                
-                self.last_health_signal_time = now
-                
-            except Exception as e:
-                log.warning("Health signal update failed: %s", e)
-
-    def _setup_signal_handlers(self) -> None:
-        """Setup signal handlers for graceful shutdown."""
-        import signal
-        
-        def signal_handler(signum, frame):
-            log.info("Received signal %d. Initiating graceful shutdown...", signum)
-            self._shutdown_requested = True
-            # Flush logs
-            self._flush_logs()
-            log.info("Shutdown marker: graceful shutdown requested")
-        
-        # Register signal handlers
-        signal.signal(signal.SIGINT, signal_handler)
-        signal.signal(signal.SIGTERM, signal_handler)
-    
-    def _flush_logs(self) -> None:
-        """Flush all log files and JSONL files."""
-        try:
-            # Flush telemetry logs
-            if hasattr(self, "telemetry_tracker"):
-                # Telemetry logs are auto-flushed on write, but we can force flush
-                pass
-            
-            # Flush eval log
-            if hasattr(self, "eval_log_path") and self.eval_log_path.exists():
-                # JSONL files are auto-flushed on write
-                pass
-            
-            # Flush parity log
-            if hasattr(self, "parity_log_path") and self.parity_log_path.exists():
-                # JSONL files are auto-flushed on write
-                pass
-            
-            log.info("Logs flushed")
-        except Exception as e:
-            log.warning("Log flush failed: %s", e)
-    
-    def _check_disk_space(self) -> bool:
-        """
-        Check disk space for logs directory.
-        
-        Returns
-        -------
-        bool
-            True if disk space OK, False if >2 GB.
-        """
-        try:
-            import shutil
-            
-            # Get disk usage for logs directory
-            total, used, free = shutil.disk_usage(self.log_dir)
-            
-            # Convert to GB
-            used_gb = used / (1024 ** 3)
-            
-            if used_gb > 2.0:
-                log.warning(
-                    "[DISK SPACE] Logs directory >2 GB: %.2f GB used. Consider rotating logs.",
-                    used_gb,
-                )
-                return False
-            
-            return True
-        except Exception as e:
-            log.warning("Disk space check failed: %s", e)
-            return True  # Allow trading if check fails (conservative)
-    
-    def _rotate_logs(self) -> None:
-        """
-        Rotate and compress old log files (>7 days) and cache files (>14 days).
-        
-        Note: This is a placeholder - in production, you might want to use
-        logrotate or a similar tool for log rotation.
-        """
-        try:
-            import gzip
-            from datetime import datetime, timedelta
-            
-            log_cutoff_date = datetime.now() - timedelta(days=7)
-            cache_cutoff_date = datetime.now() - timedelta(days=14)
-            
-            # Rotate telemetry logs
-            telemetry_dir = self.log_dir / "telemetry"
-            if telemetry_dir.exists():
-                for log_file in telemetry_dir.glob("*.jsonl"):
-                    try:
-                        file_time = datetime.fromtimestamp(log_file.stat().st_mtime)
-                        if file_time < log_cutoff_date:
-                            # Compress old log file
-                            with log_file.open("rb") as f_in:
-                                compressed_path = log_file.with_suffix(".jsonl.gz")
-                                with gzip.open(compressed_path, "wb") as f_out:
-                                    f_out.writelines(f_in)
-                            log_file.unlink()
-                            log.debug("Rotated log file: %s → %s", log_file.name, compressed_path.name)
-                    except Exception as e:
-                        log.warning("Failed to rotate log file %s: %s", log_file, e)
-            
-            # Rotate shadow-exit logs
-            reports_dir = self.log_dir / "reports"
-            if reports_dir.exists():
-                for log_file in reports_dir.glob("*.jsonl"):
-                    try:
-                        file_time = datetime.fromtimestamp(log_file.stat().st_mtime)
-                        if file_time < log_cutoff_date:
-                            # Compress old log file
-                            with log_file.open("rb") as f_in:
-                                compressed_path = log_file.with_suffix(".jsonl.gz")
-                                with gzip.open(compressed_path, "wb") as f_out:
-                                    f_out.writelines(f_in)
-                            log_file.unlink()
-                            log.debug("Rotated log file: %s → %s", log_file.name, compressed_path.name)
-                    except Exception as e:
-                        log.warning("Failed to rotate log file %s: %s", log_file, e)
-            
-            # Rotate cache files (compress older than 14 days)
-            cache_dir = self.log_dir / "cache"
-            if cache_dir.exists():
-                for cache_file in cache_dir.glob("*.parquet"):
-                    try:
-                        file_time = datetime.fromtimestamp(cache_file.stat().st_mtime)
-                        if file_time < cache_cutoff_date:
-                            # Compress old cache file
-                            import pandas as pd
-                            # Read parquet file
-                            df = pd.read_parquet(cache_file)
-                            # Write compressed parquet file
-                            compressed_path = cache_file.with_suffix(".parquet.gz")
-                            df.to_parquet(compressed_path, compression="gzip")
-                            cache_file.unlink()
-                            log.debug("Rotated cache file: %s → %s", cache_file.name, compressed_path.name)
-                    except Exception as e:
-                        log.warning("Failed to rotate cache file %s: %s", cache_file, e)
-            
-        except Exception as e:
-            log.warning("Log rotation failed: %s", e)
-
-    def run_forever(self) -> None:
-        log.info("Starting continuous loop (CTRL+C to terminate)")
-        log.info("[LIVE] Listening M5 %s (dry_run=%s)", self.instrument, self.exec.dry_run)
-        
-        # Setup signal handlers for graceful shutdown
-        self._setup_signal_handlers()
-        
-        # Check disk space on startup
-        self._check_disk_space()
-        
-        # Rotate logs on startup
-        self._rotate_logs()
-        
-        try:
-            while True:
-                # Check shutdown flag
-                if self._shutdown_requested:
-                    log.info("Shutdown requested. Exiting gracefully.")
-                    break
-                
-                # Check disk space (every hour)
-                if not hasattr(self, "_last_disk_check"):
-                    self._last_disk_check = pd.Timestamp.now(tz="UTC") - pd.Timedelta(hours=2)
-                
-                now = pd.Timestamp.now(tz="UTC")
-                if (now - self._last_disk_check).total_seconds() >= 3600:  # Check every hour
-                    self._check_disk_space()
-                    self._rotate_logs()
-                    self._last_disk_check = now
-                
-                wait_until_next_bar(now)
-                self.run_once()
-        except KeyboardInterrupt:
-            log.info("Interrupted by user. Exiting gracefully.")
-            self._shutdown_requested = True
-        finally:
-            # Graceful shutdown: flush logs and write shutdown marker
-            log.info("Shutdown marker: graceful shutdown complete")
-            self._flush_logs()
-            log.info("Exiting.")
-    
-    def run_replay(self, csv_path: Path) -> None:
-        """
-        Run backtest with historical M5 candles from CSV/parquet.
-        
-        Parameters
-        ----------
-        csv_path : Path
-            Path to historical M5 candles file. Expected columns:
-            time, open, high, low, close, volume.
-            Can be CSV or Parquet format.
-        """
-        log.info("=" * 60)
-        log.info("[REPLAY] Starting offline backtest with historical data")
-        log.info("[REPLAY] Input file: %s", csv_path)
-        log.info("=" * 60)
-        
-        # Load historical candles
-        if csv_path.suffix.lower() == ".parquet":
-            df = pd.read_parquet(csv_path)
-        else:
-            df = pd.read_csv(csv_path)
-        
-        # Ensure time column is datetime
-        if "time" in df.columns:
-            df["time"] = pd.to_datetime(df["time"], utc=True)
-            df = df.set_index("time").sort_index()
-        elif isinstance(df.index, pd.DatetimeIndex):
-            # Already has DatetimeIndex
-            pass
-        else:
-            raise ValueError("Historical data must have 'time' column or DatetimeIndex")
-        
-        # Verify required columns
-        required_cols = ["open", "high", "low", "close"]
-        missing_cols = [c for c in required_cols if c not in df.columns]
-        if missing_cols:
-            raise ValueError(f"Missing required columns in historical data: {missing_cols}")
-        self._ensure_bid_ask_columns(df, context="run_replay_init")
-        
-        # Add volume if missing (default to 0)
-        if "volume" not in df.columns:
-            df["volume"] = 0.0
-        
-        log.info("[REPLAY] Loaded %d M5 bars from %s to %s", 
-                 len(df), df.index.min().isoformat(), df.index.max().isoformat())
-        
-        # Limit bars if --max-bars is specified
-        max_bars = getattr(self, "_max_bars", None)
-        if max_bars is not None and max_bars > 0:
-            original_len = len(df)
-            df = df.iloc[:max_bars]
-            log.info("[REPLAY] Limited to %d bars (from %d total)", len(df), original_len)
-        
-        # Verify entry stack (feature manifest + model bundle version) matches live
-        if self.entry_model_bundle is not None:
-            feature_manifest_hash = self.entry_model_bundle.feature_cols_hash
-            model_bundle_version = self.entry_model_bundle.model_bundle_version or "N/A"
-        else:
-            feature_manifest_hash = None
-            model_bundle_version = "N/A (session-routed bundle disabled)"
-        
-        log.info("=" * 60)
-        log.info("[REPLAY] Entry Stack Verification:")
-        log.info("  feature_manifest_hash: %s", feature_manifest_hash)
-        log.info("  model_bundle_version: %s", model_bundle_version)
-        log.info("=" * 60)
-        
-        # Note: In live mode, these same values are logged at boot (see __init__ around line 1427-1433)
-        # If you want to compare against a saved baseline, add that check here
-        # For now, we just log them to ensure they're visible in replay logs
-        
-        # Initialize replay state
-        self.replay_mode = True
-        self.replay_start_ts = df.index.min()
-        self.replay_end_ts = df.index.max()
-        
-        # Skip backfill in replay mode (we already have historical data)
-        self.backfill_in_progress = False
-        self.warmup_floor = None  # No warmup in replay (assume features are stable)
-        
-        # Disable tick watcher in replay (we'll simulate ticks from M5 candles)
-        if self.tick_watcher:
-            self.tick_watcher.stop()
-            log.info("[REPLAY] Tick watcher disabled (simulating ticks from M5 candles)")
-        
-        # Load warmup prices for Big Brain V1 (MUST be from same period as replay)
-        # CRITICAL: Warmup data MUST match replay period - no mixing 2020 data with 2025 replay!
-        if self.big_brain_v1 is not None:
-            bb_v1_config = self.policy.get("big_brain_v1", {})
-            warmup_prices_path = bb_v1_config.get("warmup_prices_path")
-            lookback_bars = self.big_brain_v1.lookback
-            
-            # Try to load warmup from external file ONLY if it has data in the correct period
-            warmup_loaded = False
-            if warmup_prices_path:
-                warmup_prices_path = Path(warmup_prices_path)
-                try:
-                    log.info("[BIG_BRAIN_V1] Checking warmup prices from %s", warmup_prices_path)
-                    
-                    # Load warmup prices
-                    if warmup_prices_path.suffix.lower() == ".parquet":
-                        warmup_df = pd.read_parquet(warmup_prices_path)
-                    else:
-                        warmup_df = pd.read_csv(warmup_prices_path, nrows=1000)  # Just check first 1000 rows
-                    
-                    # Ensure time column is datetime and set as index
-                    if "time" in warmup_df.columns:
-                        warmup_df["time"] = pd.to_datetime(warmup_df["time"], utc=True)
-                        warmup_df = warmup_df.set_index("time").sort_index()
-                    elif "ts" in warmup_df.columns:
-                        warmup_df["ts"] = pd.to_datetime(warmup_df["ts"], utc=True)
-                        warmup_df = warmup_df.set_index("ts").sort_index()
-                    elif not isinstance(warmup_df.index, pd.DatetimeIndex):
-                        warmup_df.index = pd.to_datetime(warmup_df.index, utc=True)
-                    
-                    # Ensure index is timezone-aware UTC
-                    if warmup_df.index.tz is None:
-                        warmup_df.index = warmup_df.index.tz_localize("UTC")
-                    else:
-                        warmup_df.index = warmup_df.index.tz_convert("UTC")
-                    
-                    # Check if warmup file has data in the correct period (before replay start)
-                    warmup_end_ts = self.replay_start_ts - pd.Timedelta(minutes=5)
-                    warmup_start_ts = warmup_end_ts - pd.Timedelta(minutes=5 * lookback_bars)
-                    
-                    # Check if warmup file covers the required period
-                    warmup_file_has_period = (
-                        warmup_df.index.min() <= warmup_start_ts and
-                        warmup_df.index.max() >= warmup_end_ts
-                    )
-                    
-                    if warmup_file_has_period:
-                        # Warmup file has data in correct period - use it
-                        log.info(
-                            "[BIG_BRAIN_V1] Warmup file has data in correct period (%s to %s). Using warmup file.",
-                            warmup_df.index.min().isoformat(),
-                            warmup_df.index.max().isoformat(),
-                        )
-                        
-                        # Reload full file for warmup
-                        if warmup_prices_path.suffix.lower() == ".parquet":
-                            warmup_df_full = pd.read_parquet(warmup_prices_path)
-                        else:
-                            warmup_df_full = pd.read_csv(warmup_prices_path)
-                        
-                        # Process full file same way
-                        if "time" in warmup_df_full.columns:
-                            warmup_df_full["time"] = pd.to_datetime(warmup_df_full["time"], utc=True)
-                            warmup_df_full = warmup_df_full.set_index("time").sort_index()
-                        elif "ts" in warmup_df_full.columns:
-                            warmup_df_full["ts"] = pd.to_datetime(warmup_df_full["ts"], utc=True)
-                            warmup_df_full = warmup_df_full.set_index("ts").sort_index()
-                        elif not isinstance(warmup_df_full.index, pd.DatetimeIndex):
-                            warmup_df_full.index = pd.to_datetime(warmup_df_full.index, utc=True)
-                        
-                        if warmup_df_full.index.tz is None:
-                            warmup_df_full.index = warmup_df_full.index.tz_localize("UTC")
-                        else:
-                            warmup_df_full.index = warmup_df_full.index.tz_convert("UTC")
-                        
-                        # Filter to bars before replay start
-                        mask = (warmup_df_full.index >= warmup_start_ts) & (warmup_df_full.index < warmup_end_ts)
-                        warmup_filtered = warmup_df_full[mask].copy()
-                        
-                        # Ensure required columns
-                        required_cols = ['open', 'high', 'low', 'close', 'volume']
-                        missing_cols = [c for c in required_cols if c not in warmup_filtered.columns]
-                        if not missing_cols:
-                            # Calculate ATR if missing
-                            if 'atr' not in warmup_filtered.columns:
-                                high_low = warmup_filtered['high'] - warmup_filtered['low']
-                                high_close = (warmup_filtered['high'] - warmup_filtered['close'].shift(1)).abs()
-                                low_close = (warmup_filtered['low'] - warmup_filtered['close'].shift(1)).abs()
-                                tr = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
-                                warmup_filtered['atr'] = tr.rolling(window=14, min_periods=1).mean()
-                            
-                            if len(warmup_filtered) >= lookback_bars:
-                                self.big_brain_v1.feed_warmup(warmup_filtered)
-                                warmup_loaded = True
-                                log.info(
-                                    "[BIG_BRAIN_V1] Warmup complete (from external file): fed %d bars (lookback=%d) from %s to %s",
-                                    len(warmup_filtered),
-                                    lookback_bars,
-                                    warmup_filtered.index.min().isoformat(),
-                                    warmup_filtered.index.max().isoformat(),
-                                )
-                    else:
-                        # Warmup file does NOT have data in correct period - skip it
-                        log.info(
-                            "[BIG_BRAIN_V1] Warmup file does NOT have data in required period (%s to %s). "
-                            "Warmup file period: %s to %s. Will use replay file itself for warmup.",
-                            warmup_start_ts.isoformat(),
-                            warmup_end_ts.isoformat(),
-                            warmup_df.index.min().isoformat(),
-                            warmup_df.index.max().isoformat(),
-                        )
-                except Exception as e:
-                    log.warning(
-                        "[BIG_BRAIN_V1] Failed to check warmup prices from %s: %s. "
-                        "Will use replay file itself for warmup.",
-                        warmup_prices_path,
-                        e,
-                    )
-            
-            # If warmup not loaded from external file, use replay file itself
-            # But we need to wait until we have enough bars before evaluating trades
-            if not warmup_loaded:
-                if len(df) >= lookback_bars:
-                    log.info(
-                        "[BIG_BRAIN_V1] Using first %d bars from replay file itself as warmup "
-                        "(ensuring period consistency - no mixing different time periods).",
-                        lookback_bars,
-                    )
-                    # Use first lookback_bars from replay file as warmup
-                    replay_warmup = df.iloc[:lookback_bars].copy()
-                    # Ensure required columns for Big Brain V1
-                    if 'atr' not in replay_warmup.columns:
-                        high_low = replay_warmup['high'] - replay_warmup['low']
-                        high_close = (replay_warmup['high'] - replay_warmup['close'].shift(1)).abs()
-                        low_close = (replay_warmup['low'] - replay_warmup['close'].shift(1)).abs()
-                        tr = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
-                        replay_warmup['atr'] = tr.rolling(window=14, min_periods=1).mean()
-                    
-                    self.big_brain_v1.feed_warmup(replay_warmup)
-                    log.info(
-                        "[BIG_BRAIN_V1] Warmup complete (from replay file): fed %d bars from %s to %s",
-                        len(replay_warmup),
-                        replay_warmup.index.min().isoformat(),
-                        replay_warmup.index.max().isoformat(),
-                    )
-                else:
-                    log.warning(
-                        "[BIG_BRAIN_V1] Replay file has insufficient bars (%d, need %d). "
-                        "First trades may have UNKNOWN regimes. "
-                        "Consider using a replay file with at least %d bars.",
-                        len(df),
-                        lookback_bars,
-                        lookback_bars,
-                    )
-        
-        # Process each bar sequentially
-        # Skip first N bars to ensure features are stable (need lookback for ATR, ADR, etc.)
-        # build_live_entry_features needs at least ATR_PERIOD (14) bars for ATR
-        # ADR_WINDOW is 288 bars (1 day), but we can start earlier with partial ADR
-        # Big Brain V1 needs 288 bars for warmup (if using replay file itself)
-        # ENTRY-TCN needs 864 bars for lookback (3 days M5)
-        # Use max(100, lookback_bars_bb, entry_tcn_lookback) to ensure all models have enough warmup bars
-        lookback_requirements = [100]  # Minimum for stable features
-        
-        if self.big_brain_v1 is not None:
-            lookback_bars_bb = self.big_brain_v1.lookback
-            lookback_requirements.append(lookback_bars_bb)
-        
-        # Check for ENTRY-TCN lookback requirement
-        entry_tcn_lookback = self.policy.get("tcn", {}).get("lookback_bars", None)
-        if entry_tcn_lookback is not None:
-            lookback_requirements.append(entry_tcn_lookback)
-        
-        min_bars_for_features = max(lookback_requirements)
-        
-        total_bars = len(df)
-        bars_to_process = total_bars - min_bars_for_features
-        
-        import time
-        replay_start_time = time.time()
-        last_progress_log_time = replay_start_time
-        
-        for i, (ts, row) in enumerate(df.iterrows()):
-            # Skip first N bars (not enough history for stable features)
-            if i < min_bars_for_features:
-                continue
-            
-            # Progress logging every 500 bars (more frequent)
-            current_bar_idx = i - min_bars_for_features
-            current_time = time.time()
-            
-            if current_bar_idx > 0 and (current_bar_idx % 500 == 0 or (current_time - last_progress_log_time) > 30):
-                progress_pct = (current_bar_idx / bars_to_process) * 100.0
-                elapsed_time = current_time - replay_start_time
-                
-                # Estimate remaining time
-                if current_bar_idx > 0:
-                    bars_per_sec = current_bar_idx / elapsed_time if elapsed_time > 0 else 0
-                    remaining_bars = bars_to_process - current_bar_idx
-                    estimated_remaining_sec = remaining_bars / bars_per_sec if bars_per_sec > 0 else 0
-                    estimated_remaining_min = estimated_remaining_sec / 60.0
-                else:
-                    estimated_remaining_min = 0
-                
-                # Count total trades (try to read trade log)
-                total_trades = len(self.open_trades)
-                if self.trade_log_path.exists():
-                    try:
-                        with open(self.trade_log_path, 'r') as f:
-                            lines = f.readlines()
-                            # Subtract header if exists
-                            total_trades = len([l for l in lines if l.strip() and not l.startswith('run_id')])
-                    except:
-                        pass
-                
+            else:
                 log.info(
-                    "[REPLAY PROGRESS] %d/%d bars (%.1f%%) | Elapsed: %.1f min | Est. remaining: %.1f min | Trades: %d open, %d total",
-                    current_bar_idx,
-                    bars_to_process,
-                    progress_pct,
-                    elapsed_time / 60.0,
-                    estimated_remaining_min,
-                    len(self.open_trades),
-                    total_trades,
+                    "[LIVE] Order placed without broker-side TP/SL (relying on tick-watcher): TP=%.3f (+%d bps), SL=%.3f (-%d bps)",
+                    take_profit_price, tp_bps, stop_loss_price, sl_bps
                 )
-                last_progress_log_time = current_time
             
-            # Store current bar timestamp for replay context (used by _tick_close_now)
-            self._replay_current_ts = ts
+                log.info("[LIVE] PLACED MARKET %s %s units=%s @ %.3f | order_id=%s | trade_id=%s", trade.side.upper(), self.instrument, trade.units, fill_price, trade.client_order_id, trade.trade_id)
+            # Reset consecutive failures on success
+            self._consecutive_order_failures = 0
+            # Note: Trade is added to open_trades in execute_entry() after this call
+        except Exception as e:
+            self._consecutive_order_failures += 1
+            consecutive_failures = self._consecutive_order_failures
             
-            # Simulate tick-based exit for open trades (before processing new bar)
-            # Skip in ENTRY_ONLY mode
-            if self.mode != "ENTRY_ONLY" and self.open_trades:
-                candle_row = pd.Series({
-                    "open": float(row["open"]),
-                    "high": float(row["high"]),
-                    "low": float(row["low"]),
-                    "close": float(row["close"]),
-                    "volume": float(row.get("volume", 0.0)),
-                    "bid_open": float(row["bid_open"]),
-                    "bid_high": float(row["bid_high"]),
-                    "bid_low": float(row["bid_low"]),
-                    "bid_close": float(row["bid_close"]),
-                    "ask_open": float(row["ask_open"]),
-                    "ask_high": float(row["ask_high"]),
-                    "ask_low": float(row["ask_low"]),
-                    "ask_close": float(row["ask_close"]),
-                })
-                self._simulate_tick_exits_for_bar(ts, candle_row)
+            if consecutive_failures >= max_consecutive_failures:
+                log.error(
+                    "[HARD STOP] %d consecutive order failures. Setting KILL_SWITCH_ON.",
+                    consecutive_failures,
+                )
+                # Set KILL_SWITCH_ON flag
+                project_root = Path(__file__).parent.parent.parent
+                kill_flag = project_root / "KILL_SWITCH_ON"
+                kill_flag.touch()
+                raise RuntimeError(f"Hard STOP: {consecutive_failures} consecutive order failures") from e
+            else:
+                log.warning(
+                    "[ORDER FAILURE] Attempt failed (consecutive: %d/%d): %s",
+                    consecutive_failures,
+                    max_consecutive_failures,
+                    e,
+                )
+                raise
+
+    # ============================================================================
+    # DEFENSIVE ASSERT: Ensure entry_bid and entry_ask are always set correctly
+    # ============================================================================
+    # In replay mode, entry_bid/entry_ask should already be set from candles in entry_manager
+    # In live mode, they may be updated from fill price, but must still be valid
+    if not hasattr(trade, "entry_bid") or trade.entry_bid is None:
+        raise ValueError(
+            f"trade.entry_bid is None or missing for trade {trade.trade_id}. "
+            f"This must be set when trade is created (replay: from candles, live: from fill price)."
+        )
+    if not hasattr(trade, "entry_ask") or trade.entry_ask is None:
+        raise ValueError(
+            f"trade.entry_ask is None or missing for trade {trade.trade_id}. "
+            f"This must be set when trade is created (replay: from candles, live: from fill price)."
+        )
+    
+    # Validate that bid <= ask (spread should be non-negative)
+    if trade.entry_bid > trade.entry_ask:
+        raise ValueError(
+            f"Invalid bid/ask for trade {trade.trade_id}: entry_bid={trade.entry_bid:.5f} > entry_ask={trade.entry_ask:.5f}. "
+            f"Bid must be <= ask."
+        )
+    
+    # Validate that entry_price matches side
+    # For LONG: entry_price should be entry_ask (we buy at ask)
+    # For SHORT: entry_price should be entry_bid (we sell at bid)
+    if trade.side == "long":
+        if abs(trade.entry_price - trade.entry_ask) > 0.01:  # Allow small floating point differences
+            log.warning(
+                "[ENTRY_PRICE] Trade %s (LONG): entry_price=%.5f != entry_ask=%.5f. "
+                "For LONG trades, entry_price should equal entry_ask.",
+                trade.trade_id, trade.entry_price, trade.entry_ask
+            )
+    elif trade.side == "short":
+        if abs(trade.entry_price - trade.entry_bid) > 0.01:  # Allow small floating point differences
+            log.warning(
+                "[ENTRY_PRICE] Trade %s (SHORT): entry_price=%.5f != entry_bid=%.5f. "
+                "For SHORT trades, entry_price should equal entry_bid.",
+                trade.trade_id, trade.entry_price, trade.entry_bid
+            )
+    
+        log.debug(
+            "[ENTRY_PRICE] Trade %s (%s): entry_price=%.5f, entry_bid=%.5f, entry_ask=%.5f, spread=%.5f",
+            trade.trade_id,
+            trade.side.upper(),
+            trade.entry_price,
+            trade.entry_bid,
+            trade.entry_ask,
+            trade.entry_ask - trade.entry_bid,
+        )
+
+    # Ensure exit profile + policy initialization
+    self._ensure_exit_profile(trade, context="execute_entry")
+    if self.exit_config_name and not (getattr(trade, "extra", {}) or {}).get("exit_profile"):
+        raise RuntimeError(
+            f"[EXIT_PROFILE] Trade {trade.trade_id} missing exit_profile under exit-config {self.exit_config_name} (context=execute_entry)"
+        )
+
+    # Add trade to open_trades
+    self.open_trades.append(trade)
+    log.info(
+        "[ENTRY][OPEN_TRADES] open=%d last_trade=%s",
+        len(self.open_trades),
+        trade.trade_id,
+    )
+    self.last_entry_timestamp = trade.entry_time
+    self.last_entry_side = trade.side  # Track last entry side for sticky-side logic
+
+    # Update tick watcher (start if first trade)
+    self._maybe_update_tick_watcher()
+
+def _evaluate_and_close_trades_impl(self, candles: pd.DataFrame) -> None:
+    return self.exit_manager.evaluate_and_close_trades(candles)
+
+def _run_once_impl(self) -> None:
+    # Check KILL_SWITCH_ON flag (from ops_watch.py cron job)
+    # Flag is created in project root directory
+    project_root = Path(__file__).parent.parent.parent
+    kill_switch_flag = project_root / "KILL_SWITCH_ON"
+    if kill_switch_flag.exists():
+        log.warning("[GUARD] BLOCKED ORDER (live_mode=%s) reason=KILL_SWITCH_ON flag", not self.exec.dry_run)
+        return
+    
+    # Check policy-lock (policy file changed on disk)
+    if not self._check_policy_lock():
+        log.error("[GUARD] BLOCKED ORDER (live_mode=%s) reason=Policy file changed on disk", not self.exec.dry_run)
+        return
+    
+    # Check graceful shutdown flag
+    if hasattr(self, "_shutdown_requested") and self._shutdown_requested:
+        log.warning("[GUARD] BLOCKED ORDER (live_mode=%s) reason=Shutdown requested", not self.exec.dry_run)
+        return
+    
+    # Check backfill in progress (block orders during backfill)
+    if self.backfill_in_progress:
+        log.warning("[GUARD] BLOCKED ORDER (live_mode=%s) reason=Backfill in progress", not self.exec.dry_run)
+        return
+    
+    now = pd.Timestamp.now(tz="UTC")
+    
+    # "No-trade warmup" som eksplisitt fase
+    # Sperr ordre i hele WARMUP (du gjør det, men gjør fasen synlig i logger)
+    if self.warmup_floor is not None and now < self.warmup_floor:
+        log.debug(
+            "[PHASE] WARMUP (no-trade): now=%s, warmup_floor=%s (blocking orders)",
+            now.isoformat(),
+            self.warmup_floor.isoformat(),
+        )
+        # Still fetch candles and evaluate, but don't execute orders
+        # This allows feature rehydration to complete
+    else:
+        if self.warmup_floor is not None:
+            log.info("[PHASE] WARMUP_END (no-trade): warmup_floor=%s passed, resuming live trading", self.warmup_floor.isoformat())
+            self.warmup_floor = None  # Clear warmup_floor after it's passed
+    
+    # Check server time drift (every 15 minutes)
+    # API-klokkedrift-sjekk: Hent serverTime hver 15. min, sammenlign mot lokal UTC; WARN ved drift >2s
+    if not hasattr(self, "_last_server_time_check"):
+        self._last_server_time_check = now - pd.Timedelta(minutes=20)  # Force first check
+    
+    if (now - self._last_server_time_check).total_seconds() >= 900:  # Check every 15 minutes
+        try:
+            server_time_response = self.broker.get_server_time()
+            server_time_str = server_time_response.get("time", "")
+            if server_time_str:
+                server_time = pd.Timestamp(server_time_str)
+                if server_time.tzinfo is None:
+                    server_time = server_time.tz_localize("UTC")
+                else:
+                    server_time = server_time.tz_convert("UTC")
+                
+                time_drift = abs((now - server_time).total_seconds())
+                if time_drift > 2.0:
+                    log.warning(
+                        "[TIME DRIFT] Server time drift >2s: local=%s, server=%s, drift=%.1fs (hindrer subtile off-by-one i bar-lukking)",
+                        now.isoformat(),
+                        server_time.isoformat(),
+                        time_drift,
+                    )
+                else:
+                    log.debug(
+                        "[TIME SYNC] Server time: local=%s, server=%s, drift=%.1fs",
+                        now.isoformat(),
+                        server_time.isoformat(),
+                        time_drift,
+                    )
+                self._last_server_time_check = now
+        except Exception as e:
+            log.warning("Server time check failed: %s", e)
+    
+    # "Siste bar er ikke lukket"-sperre: Ignore current incomplete M5 bar
+    now_floor = now.floor("5min")
+    
+    # Fetch candles (exclude incomplete bars)
+    candles = self.broker.get_candles(
+        self.instrument,
+        self.granularity,
+        count=500,
+        exclude_incomplete=True,
+    )
+    if candles.empty:
+        log.warning("No candles returned, skipping iteration")
+        return
+    
+    # Filter out incomplete bars (only process bars < now_floor)
+    candles = candles[candles.index < now_floor]
+    if candles.empty:
+        log.debug("No complete bars available (all bars >= now_floor=%s), skipping iteration", now_floor.isoformat())
+        return
+
+    self._ensure_bid_ask_columns(candles, context="run_once")
+
+    trade = self.evaluate_entry(candles)
+    if trade and self.can_enter(candles.index[-1]):
+        self.execute_entry(trade)
+        # Build trade log row with FARM fields from trade.extra
+        trade_extra = trade.extra if hasattr(trade, "extra") and trade.extra else {}
+        trade_log_row = {
+            "trade_id": trade.trade_id,
+            "entry_time": trade.entry_time.isoformat(),
+            "entry_price": f"{trade.entry_price:.3f}",
+            "side": trade.side,
+            "units": trade.units,
+            "exit_time": "",
+            "exit_price": "",
+            "pnl_bps": "",
+            "pnl_currency": "",
+            "entry_prob_long": f"{trade.entry_prob_long:.4f}",
+            "entry_prob_short": f"{trade.entry_prob_short:.4f}",
+            "exit_prob_close": "",
+            "vol_bucket": trade.vol_bucket,
+            "atr_bps": f"{trade.atr_bps:.2f}",
+            "notes": self._build_notes_string(trade),
+            "run_id": self.run_id,
+            "policy_name": self.policy_name,
+            "model_name": self.model_name,
+            "extra": trade_extra,
+        }
+        # Extract FARM fields from trade.extra (append_trade_log will handle extraction, but set explicitly for clarity)
+        if trade_extra:
+            if "farm_entry_session" in trade_extra:
+                trade_log_row["farm_entry_session"] = trade_extra["farm_entry_session"]
+            if "farm_entry_vol_regime" in trade_extra:
+                trade_log_row["farm_entry_vol_regime"] = trade_extra["farm_entry_vol_regime"]
+            if "farm_guard_version" in trade_extra:
+                trade_log_row["farm_guard_version"] = trade_extra["farm_guard_version"]
+        append_trade_log(self.trade_log_path, trade_log_row)
+
+    # Always evaluate exits even if no new entry
+    self.evaluate_and_close_trades(candles)
+    
+    # Update last_bar_ts after processing this bar
+    if not candles.empty:
+        last_bar_ts = candles.index[-1].floor("5min")
+        # Only update if backfill is enabled and we're past warmup
+        backfill_cfg = self.policy.get("backfill", {})
+        if backfill_cfg.get("enabled", True) and (self.warmup_floor is None or now >= self.warmup_floor):
+            # Update last_bar_ts in state (but don't save on every tick to reduce I/O)
+            # Save every 10 bars (50 minutes) to reduce I/O
+            if not hasattr(self, "_last_bar_ts_save_time"):
+                self._last_bar_ts_save_time = now - pd.Timedelta(minutes=60)
             
-            # Process bar (same logic as run_once, but with historical candle)
-            log.debug("[REPLAY] Processing bar %d/%d: %s", i+1, len(df), ts.isoformat())
+            if (now - self._last_bar_ts_save_time).total_seconds() >= 600:  # Save every 10 minutes
+                # Get current hashes for state
+                feature_manifest_hash = self.entry_model_bundle.feature_cols_hash if self.entry_model_bundle is not None else None
+                policy_hash = self.policy_hash
+                # Save state (without rotation - only rotate weekly)
+                self._save_backfill_state(
+                    last_bar_ts=last_bar_ts,
+                    feature_manifest_hash=feature_manifest_hash,
+                    policy_hash=policy_hash,
+                    rotate=False,  # Only rotate weekly, not every save
+                )
+                self._last_bar_ts_save_time = now
+    
+    # Update health signal (every minute)
+    self._update_health_signal(now)
+    
+    log.info(
+        "Cycle complete | open_trades=%s | daily_loss_tracker=%s",
+        len(self.open_trades),
+        json.dumps(self.daily_loss_tracker),
+    )
+
+def _update_health_signal_impl(self, now: pd.Timestamp) -> None:
+    """
+    Update health signal JSON file (every minute).
+    
+    Parameters
+    ----------
+    now : pd.Timestamp
+        Current UTC timestamp.
+    """
+    # Update health signal every minute
+    if self.last_health_signal_time is None:
+        self.last_health_signal_time = now - pd.Timedelta(minutes=2)  # Force first update
+    
+    if (now - self.last_health_signal_time).total_seconds() >= 60:  # Update every minute
+        try:
+            # Get telemetry status
+            parity_ok = True
+            ece_ok = True
+            coverage_ok = True
             
-            # Build candle history for features (need lookback window)
-            # Use all candles up to current bar (including current bar)
-            candles_history = df.iloc[:i+1].copy()
+            # Check parity status
+            if self.parity_enabled and len(self.parity_metrics) > 0:
+                for session, errs in self.parity_metrics.items():
+                    if len(errs) >= 10:
+                        p99_err = float(np.percentile(np.array(errs), 99))
+                        if p99_err > self.parity_tolerance_p99:
+                            parity_ok = False
+                            break
             
-            # Ensure index is DatetimeIndex with UTC timezone
-            if not isinstance(candles_history.index, pd.DatetimeIndex):
-                candles_history = candles_history.set_index("time")
-            candles_history.index = pd.to_datetime(candles_history.index, utc=True)
+            # Check ECE status
+            if hasattr(self, "telemetry_tracker") and self.telemetry_tracker is not None:
+                for session in ("EU", "US", "OVERLAP"):
+                    try:
+                        ece = self.telemetry_tracker.get_ece(session)
+                        if ece is not None and ece > 0.18:
+                            ece_ok = False
+                            break
+                    except Exception as e:
+                        log.warning("[HEALTH] Failed to get ECE for %s: %s", session, e)
             
-            # Evaluate entry
-            trade = self.evaluate_entry(candles_history)
-            if trade and self.can_enter(ts):  # can_enter takes timestamp, not DataFrame
-                # In ENTRY_ONLY mode, log entry signal but don't execute trades
-                if self.mode == "ENTRY_ONLY":
-                    # Log entry signal to entry_only_log with extended features
-                    if hasattr(self, "entry_only_log_path") and self.entry_only_log_path:
-                        import csv
-                        file_exists = self.entry_only_log_path.exists()
+            # Check coverage status
+            if hasattr(self, "telemetry_tracker") and self.telemetry_tracker is not None:
+                for session in ("EU", "US", "OVERLAP"):
+                    try:
+                        coverage = self.telemetry_tracker.get_coverage(session)
+                        if coverage is not None:
+                            target_coverage = self.telemetry_tracker.target_coverage
+                        coverage_diff = abs(coverage - target_coverage)
+                        coverage_threshold = 0.50 * target_coverage
+                        if coverage_diff > coverage_threshold:
+                            coverage_ok = False
+                            break
+                    except Exception as e:
+                        log.warning("[HEALTH] Failed to get coverage for %s: %s", session, e)
+            
+            # Write health signal
+            health_signal = {
+                "alive": True,
+                "last_tick_ts": now.isoformat(),
+                "parity_ok": parity_ok,
+                "ece_ok": ece_ok,
+                "coverage_ok": coverage_ok,
+                "open_trades": len(self.open_trades),
+                "policy_hash": self.policy_hash,
+                "shutdown_requested": self._shutdown_requested,
+            }
+            
+            with self.health_signal_path.open("w", encoding="utf-8") as handle:
+                json.dump(health_signal, handle, separators=(",", ":"))
+            
+            self.last_health_signal_time = now
+            
+        except Exception as e:
+            log.warning("Health signal update failed: %s", e)
+
+def _setup_signal_handlers_impl(self) -> None:
+    """Setup signal handlers for graceful shutdown."""
+    import signal
+    
+    def signal_handler(signum, frame):
+        log.info("Received signal %d. Initiating graceful shutdown...", signum)
+        self._shutdown_requested = True
+        # Flush logs
+        self._flush_logs()
+        log.info("Shutdown marker: graceful shutdown requested")
+    
+    # Register signal handlers
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
+def _flush_logs_impl(self) -> None:
+    """Flush all log files and JSONL files."""
+    try:
+        # Flush telemetry logs
+        if hasattr(self, "telemetry_tracker"):
+            # Telemetry logs are auto-flushed on write, but we can force flush
+            pass
+        
+        # Flush eval log
+        if hasattr(self, "eval_log_path") and self.eval_log_path.exists():
+            # JSONL files are auto-flushed on write
+            pass
+        
+        # Flush parity log
+        if hasattr(self, "parity_log_path") and self.parity_log_path.exists():
+            # JSONL files are auto-flushed on write
+            pass
+        
+        log.info("Logs flushed")
+    except Exception as e:
+        log.warning("Log flush failed: %s", e)
+
+def _check_disk_space_impl(self) -> bool:
+    """
+    Check disk space for logs directory.
+    
+    Returns
+    -------
+    bool
+        True if disk space OK, False if >2 GB.
+    """
+    try:
+        import shutil
+        
+        # Get disk usage for logs directory
+        total, used, free = shutil.disk_usage(self.log_dir)
+        
+        # Convert to GB
+        used_gb = used / (1024 ** 3)
+        
+        if used_gb > 2.0:
+            log.warning(
+                "[DISK SPACE] Logs directory >2 GB: %.2f GB used. Consider rotating logs.",
+                used_gb,
+            )
+            return False
+        
+        return True
+    except Exception as e:
+        log.warning("Disk space check failed: %s", e)
+        return True  # Allow trading if check fails (conservative)
+
+def _rotate_logs_impl(self) -> None:
+    """
+    Rotate and compress old log files (>7 days) and cache files (>14 days).
+    
+    Note: This is a placeholder - in production, you might want to use
+    logrotate or a similar tool for log rotation.
+    """
+    try:
+        import gzip
+        from datetime import datetime, timedelta
+        
+        log_cutoff_date = datetime.now() - timedelta(days=7)
+        cache_cutoff_date = datetime.now() - timedelta(days=14)
+        
+        # Rotate telemetry logs
+        telemetry_dir = self.log_dir / "telemetry"
+        if telemetry_dir.exists():
+            for log_file in telemetry_dir.glob("*.jsonl"):
+                try:
+                    file_time = datetime.fromtimestamp(log_file.stat().st_mtime)
+                    if file_time < log_cutoff_date:
+                        # Compress old log file
+                        with log_file.open("rb") as f_in:
+                            compressed_path = log_file.with_suffix(".jsonl.gz")
+                            with gzip.open(compressed_path, "wb") as f_out:
+                                f_out.writelines(f_in)
+                        log_file.unlink()
+                        log.debug("Rotated log file: %s → %s", log_file.name, compressed_path.name)
+                except Exception as e:
+                    log.warning("Failed to rotate log file %s: %s", log_file, e)
+        
+        # Rotate shadow-exit logs
+        reports_dir = self.log_dir / "reports"
+        if reports_dir.exists():
+            for log_file in reports_dir.glob("*.jsonl"):
+                try:
+                    file_time = datetime.fromtimestamp(log_file.stat().st_mtime)
+                    if file_time < log_cutoff_date:
+                        # Compress old log file
+                        with log_file.open("rb") as f_in:
+                            compressed_path = log_file.with_suffix(".jsonl.gz")
+                            with gzip.open(compressed_path, "wb") as f_out:
+                                f_out.writelines(f_in)
+                        log_file.unlink()
+                        log.debug("Rotated log file: %s → %s", log_file.name, compressed_path.name)
+                except Exception as e:
+                    log.warning("Failed to rotate log file %s: %s", log_file, e)
+        
+        # Rotate cache files (compress older than 14 days)
+        cache_dir = self.log_dir / "cache"
+        if cache_dir.exists():
+            for cache_file in cache_dir.glob("*.parquet"):
+                try:
+                    file_time = datetime.fromtimestamp(cache_file.stat().st_mtime)
+                    if file_time < cache_cutoff_date:
+                        # Compress old cache file
+                        import pandas as pd
+                        # Read parquet file
+                        df = pd.read_parquet(cache_file)
+                        # Write compressed parquet file
+                        compressed_path = cache_file.with_suffix(".parquet.gz")
+                        df.to_parquet(compressed_path, compression="gzip")
+                        cache_file.unlink()
+                        log.debug("Rotated cache file: %s → %s", cache_file.name, compressed_path.name)
+                except Exception as e:
+                    log.warning("Failed to rotate cache file %s: %s", cache_file, e)
+        
+    except Exception as e:
+        log.warning("Log rotation failed: %s", e)
+
+def _run_forever_impl(self) -> None:
+    log.info("Starting continuous loop (CTRL+C to terminate)")
+    log.info("[LIVE] Listening M5 %s (dry_run=%s)", self.instrument, self.exec.dry_run)
+    
+    # Setup signal handlers for graceful shutdown
+    self._setup_signal_handlers()
+    
+    # Check disk space on startup
+    self._check_disk_space()
+    
+    # Rotate logs on startup
+    self._rotate_logs()
+    
+    try:
+        while True:
+            # Check shutdown flag
+            if self._shutdown_requested:
+                log.info("Shutdown requested. Exiting gracefully.")
+                break
+            
+            # Check disk space (every hour)
+            if not hasattr(self, "_last_disk_check"):
+                self._last_disk_check = pd.Timestamp.now(tz="UTC") - pd.Timedelta(hours=2)
+            
+            now = pd.Timestamp.now(tz="UTC")
+            if (now - self._last_disk_check).total_seconds() >= 3600:  # Check every hour
+                self._check_disk_space()
+                self._rotate_logs()
+                self._last_disk_check = now
+            
+            wait_until_next_bar(now)
+            self.run_once()
+    except KeyboardInterrupt:
+        log.info("Interrupted by user. Exiting gracefully.")
+        self._shutdown_requested = True
+    finally:
+        # Graceful shutdown: flush logs and write shutdown marker
+        log.info("Shutdown marker: graceful shutdown complete")
+        self._flush_logs()
+        log.info("Exiting.")
+
+def _run_replay_impl(self, csv_path: Path) -> None:
+    """
+    Run backtest with historical M5 candles from CSV/parquet.
+    
+    Parameters
+    ----------
+    csv_path : Path
+        Path to historical M5 candles file. Expected columns:
+        time, open, high, low, close, volume.
+        Can be CSV or Parquet format.
+    """
+    log.info("=" * 60)
+    log.info("[REPLAY] Starting offline backtest with historical data")
+    log.info("[REPLAY] Input file: %s", csv_path)
+    log.info("=" * 60)
+    
+    # Load historical candles
+    if csv_path.suffix.lower() == ".parquet":
+        df = pd.read_parquet(csv_path)
+    else:
+        df = pd.read_csv(csv_path)
+    
+    # Ensure time column is datetime
+    if "time" in df.columns:
+        df["time"] = pd.to_datetime(df["time"], utc=True)
+        df = df.set_index("time").sort_index()
+    elif isinstance(df.index, pd.DatetimeIndex):
+        # Already has DatetimeIndex
+        pass
+    else:
+        raise ValueError("Historical data must have 'time' column or DatetimeIndex")
+    
+    # Verify required columns
+    required_cols = ["open", "high", "low", "close"]
+    missing_cols = [c for c in required_cols if c not in df.columns]
+    if missing_cols:
+        raise ValueError(f"Missing required columns in historical data: {missing_cols}")
+    self._ensure_bid_ask_columns(df, context="run_replay_init")
+    
+    # Add volume if missing (default to 0)
+    if "volume" not in df.columns:
+        df["volume"] = 0.0
+    
+    log.info("[REPLAY] Loaded %d M5 bars from %s to %s", 
+             len(df), df.index.min().isoformat(), df.index.max().isoformat())
+    
+    # Limit bars if --max-bars is specified
+    max_bars = getattr(self, "_max_bars", None)
+    if max_bars is not None and max_bars > 0:
+        original_len = len(df)
+        df = df.iloc[:max_bars]
+        log.info("[REPLAY] Limited to %d bars (from %d total)", len(df), original_len)
+    
+    # Verify entry stack (feature manifest + model bundle version) matches live
+    if self.entry_model_bundle is not None:
+        feature_manifest_hash = self.entry_model_bundle.feature_cols_hash
+        model_bundle_version = self.entry_model_bundle.model_bundle_version or "N/A"
+    else:
+        feature_manifest_hash = None
+        model_bundle_version = "N/A (session-routed bundle disabled)"
+    
+    log.info("=" * 60)
+    log.info("[REPLAY] Entry Stack Verification:")
+    log.info("  feature_manifest_hash: %s", feature_manifest_hash)
+    log.info("  model_bundle_version: %s", model_bundle_version)
+    log.info("=" * 60)
+    
+    # Note: In live mode, these same values are logged at boot (see __init__ around line 1427-1433)
+    # If you want to compare against a saved baseline, add that check here
+    # For now, we just log them to ensure they're visible in replay logs
+    
+    # Initialize replay state
+    self.replay_mode = True
+    self.replay_start_ts = df.index.min()
+    self.replay_end_ts = df.index.max()
+    self._reset_entry_diag()
+    
+    # Skip backfill in replay mode (we already have historical data)
+    self.backfill_in_progress = False
+    self.warmup_floor = None  # No warmup in replay (assume features are stable)
+    
+    # Disable tick watcher in replay (we'll simulate ticks from M5 candles)
+    if self.tick_watcher:
+        self.tick_watcher.stop()
+        log.info("[REPLAY] Tick watcher disabled (simulating ticks from M5 candles)")
+    
+    # Load warmup prices for Big Brain V1 (MUST be from same period as replay)
+    # CRITICAL: Warmup data MUST match replay period - no mixing 2020 data with 2025 replay!
+    if self.big_brain_v1 is not None:
+        bb_v1_config = self.policy.get("big_brain_v1", {})
+        warmup_prices_path = bb_v1_config.get("warmup_prices_path")
+        lookback_bars = self.big_brain_v1.lookback
+        
+        # Try to load warmup from external file ONLY if it has data in the correct period
+        warmup_loaded = False
+        if warmup_prices_path:
+            warmup_prices_path = Path(warmup_prices_path)
+            try:
+                log.info("[BIG_BRAIN_V1] Checking warmup prices from %s", warmup_prices_path)
+                
+                # Load warmup prices
+                if warmup_prices_path.suffix.lower() == ".parquet":
+                    warmup_df = pd.read_parquet(warmup_prices_path)
+                else:
+                    warmup_df = pd.read_csv(warmup_prices_path, nrows=1000)  # Just check first 1000 rows
+                
+                # Ensure time column is datetime and set as index
+                if "time" in warmup_df.columns:
+                    warmup_df["time"] = pd.to_datetime(warmup_df["time"], utc=True)
+                    warmup_df = warmup_df.set_index("time").sort_index()
+                elif "ts" in warmup_df.columns:
+                    warmup_df["ts"] = pd.to_datetime(warmup_df["ts"], utc=True)
+                    warmup_df = warmup_df.set_index("ts").sort_index()
+                elif not isinstance(warmup_df.index, pd.DatetimeIndex):
+                    warmup_df.index = pd.to_datetime(warmup_df.index, utc=True)
+                
+                # Ensure index is timezone-aware UTC
+                if warmup_df.index.tz is None:
+                    warmup_df.index = warmup_df.index.tz_localize("UTC")
+                else:
+                    warmup_df.index = warmup_df.index.tz_convert("UTC")
+                
+                # Check if warmup file has data in the correct period (before replay start)
+                warmup_end_ts = self.replay_start_ts - pd.Timedelta(minutes=5)
+                warmup_start_ts = warmup_end_ts - pd.Timedelta(minutes=5 * lookback_bars)
+                
+                # Check if warmup file covers the required period
+                warmup_file_has_period = (
+                    warmup_df.index.min() <= warmup_start_ts and
+                    warmup_df.index.max() >= warmup_end_ts
+                )
+                
+                if warmup_file_has_period:
+                    # Warmup file has data in correct period - use it
+                    log.info(
+                        "[BIG_BRAIN_V1] Warmup file has data in correct period (%s to %s). Using warmup file.",
+                        warmup_df.index.min().isoformat(),
+                        warmup_df.index.max().isoformat(),
+                    )
+                    
+                    # Reload full file for warmup
+                    if warmup_prices_path.suffix.lower() == ".parquet":
+                        warmup_df_full = pd.read_parquet(warmup_prices_path)
+                    else:
+                        warmup_df_full = pd.read_csv(warmup_prices_path)
+                    
+                    # Process full file same way
+                    if "time" in warmup_df_full.columns:
+                        warmup_df_full["time"] = pd.to_datetime(warmup_df_full["time"], utc=True)
+                        warmup_df_full = warmup_df_full.set_index("time").sort_index()
+                    elif "ts" in warmup_df_full.columns:
+                        warmup_df_full["ts"] = pd.to_datetime(warmup_df_full["ts"], utc=True)
+                        warmup_df_full = warmup_df_full.set_index("ts").sort_index()
+                    elif not isinstance(warmup_df_full.index, pd.DatetimeIndex):
+                        warmup_df_full.index = pd.to_datetime(warmup_df_full.index, utc=True)
+                    
+                    if warmup_df_full.index.tz is None:
+                        warmup_df_full.index = warmup_df_full.index.tz_localize("UTC")
+                    else:
+                        warmup_df_full.index = warmup_df_full.index.tz_convert("UTC")
+                    
+                    # Filter to bars before replay start
+                    mask = (warmup_df_full.index >= warmup_start_ts) & (warmup_df_full.index < warmup_end_ts)
+                    warmup_filtered = warmup_df_full[mask].copy()
+                    
+                    # Ensure required columns
+                    required_cols = ['open', 'high', 'low', 'close', 'volume']
+                    missing_cols = [c for c in required_cols if c not in warmup_filtered.columns]
+                    if not missing_cols:
+                        # Calculate ATR if missing
+                        if 'atr' not in warmup_filtered.columns:
+                            high_low = warmup_filtered['high'] - warmup_filtered['low']
+                            high_close = (warmup_filtered['high'] - warmup_filtered['close'].shift(1)).abs()
+                            low_close = (warmup_filtered['low'] - warmup_filtered['close'].shift(1)).abs()
+                            tr = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
+                            warmup_filtered['atr'] = tr.rolling(window=14, min_periods=1).mean()
                         
-                        # Extended fieldnames for policy analysis
-                        fieldnames = [
-                            "run_id", "timestamp", "side", "entry_price",
-                            "session", "session_id", "trend_regime", "atr_regime", "vol_regime",
-                            "hour_of_day", "day_of_week",
-                            "p_long_entry", "p_short_entry", "margin_entry", "p_hat_entry",
-                            "body_pct", "wick_asym", "bar_range", "atr_bps",
-                            "htf_context_h1", "htf_context_h4",
-                            "mfe_5b", "mae_5b", "t_mfe", "t_mae",
-                            "next_vol_regime", "next_session",
-                        ]
+                        if len(warmup_filtered) >= lookback_bars:
+                            self.big_brain_v1.feed_warmup(warmup_filtered)
+                            warmup_loaded = True
+                            log.info(
+                                "[BIG_BRAIN_V1] Warmup complete (from external file): fed %d bars (lookback=%d) from %s to %s",
+                                len(warmup_filtered),
+                                lookback_bars,
+                                warmup_filtered.index.min().isoformat(),
+                                warmup_filtered.index.max().isoformat(),
+                            )
+                else:
+                    # Warmup file does NOT have data in correct period - skip it
+                    log.info(
+                        "[BIG_BRAIN_V1] Warmup file does NOT have data in required period (%s to %s). "
+                        "Warmup file period: %s to %s. Will use replay file itself for warmup.",
+                        warmup_start_ts.isoformat(),
+                        warmup_end_ts.isoformat(),
+                        warmup_df.index.min().isoformat(),
+                        warmup_df.index.max().isoformat(),
+                    )
+            except Exception as e:
+                log.warning(
+                    "[BIG_BRAIN_V1] Failed to check warmup prices from %s: %s. "
+                    "Will use replay file itself for warmup.",
+                    warmup_prices_path,
+                    e,
+                )
+        
+        # If warmup not loaded from external file, use replay file itself
+        # But we need to wait until we have enough bars before evaluating trades
+        if not warmup_loaded:
+            if len(df) >= lookback_bars:
+                log.info(
+                    "[BIG_BRAIN_V1] Using first %d bars from replay file itself as warmup "
+                    "(ensuring period consistency - no mixing different time periods).",
+                    lookback_bars,
+                )
+                # Use first lookback_bars from replay file as warmup
+                replay_warmup = df.iloc[:lookback_bars].copy()
+                # Ensure required columns for Big Brain V1
+                if 'atr' not in replay_warmup.columns:
+                    high_low = replay_warmup['high'] - replay_warmup['low']
+                    high_close = (replay_warmup['high'] - replay_warmup['close'].shift(1)).abs()
+                    low_close = (replay_warmup['low'] - replay_warmup['close'].shift(1)).abs()
+                    tr = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
+                    replay_warmup['atr'] = tr.rolling(window=14, min_periods=1).mean()
+                
+                self.big_brain_v1.feed_warmup(replay_warmup)
+                log.info(
+                    "[BIG_BRAIN_V1] Warmup complete (from replay file): fed %d bars from %s to %s",
+                    len(replay_warmup),
+                    replay_warmup.index.min().isoformat(),
+                    replay_warmup.index.max().isoformat(),
+                )
+            else:
+                log.warning(
+                    "[BIG_BRAIN_V1] Replay file has insufficient bars (%d, need %d). "
+                    "First trades may have UNKNOWN regimes. "
+                    "Consider using a replay file with at least %d bars.",
+                    len(df),
+                    lookback_bars,
+                    lookback_bars,
+                )
+    
+    # Process each bar sequentially
+    # Skip first N bars to ensure features are stable (need lookback for ATR, ADR, etc.)
+    # build_live_entry_features needs at least ATR_PERIOD (14) bars for ATR
+    # ADR_WINDOW is 288 bars (1 day), but we can start earlier with partial ADR
+    # Big Brain V1 needs 288 bars for warmup (if using replay file itself)
+    # ENTRY-TCN needs 864 bars for lookback (3 days M5)
+    # Use max(100, lookback_bars_bb, entry_tcn_lookback) to ensure all models have enough warmup bars
+    lookback_requirements = [100]  # Minimum for stable features
+    
+    if self.big_brain_v1 is not None:
+        lookback_bars_bb = self.big_brain_v1.lookback
+        lookback_requirements.append(lookback_bars_bb)
+    
+    # Check for ENTRY-TCN lookback requirement
+    entry_tcn_lookback = self.policy.get("tcn", {}).get("lookback_bars", None)
+    if entry_tcn_lookback is not None:
+        lookback_requirements.append(entry_tcn_lookback)
+    
+    min_bars_for_features = max(lookback_requirements)
+    
+    total_bars = len(df)
+    bars_to_process = total_bars - min_bars_for_features
+    
+    import time
+    replay_start_time = time.time()
+    last_progress_log_time = replay_start_time
+    
+    for i, (ts, row) in enumerate(df.iterrows()):
+        # Skip first N bars (not enough history for stable features)
+        if i < min_bars_for_features:
+            continue
+        
+        # Progress logging every 500 bars (more frequent)
+        current_bar_idx = i - min_bars_for_features
+        current_time = time.time()
+        
+        if current_bar_idx > 0 and (current_bar_idx % 500 == 0 or (current_time - last_progress_log_time) > 30):
+            progress_pct = (current_bar_idx / bars_to_process) * 100.0
+            elapsed_time = current_time - replay_start_time
+            
+            # Estimate remaining time
+            if current_bar_idx > 0:
+                bars_per_sec = current_bar_idx / elapsed_time if elapsed_time > 0 else 0
+                remaining_bars = bars_to_process - current_bar_idx
+                estimated_remaining_sec = remaining_bars / bars_per_sec if bars_per_sec > 0 else 0
+                estimated_remaining_min = estimated_remaining_sec / 60.0
+            else:
+                estimated_remaining_min = 0
+            
+            # Count total trades (try to read trade log)
+            total_trades = len(self.open_trades)
+            if self.trade_log_path.exists():
+                try:
+                    with open(self.trade_log_path, 'r') as f:
+                        lines = f.readlines()
+                        # Subtract header if exists
+                        total_trades = len([l for l in lines if l.strip() and not l.startswith('run_id')])
+                except:
+                    pass
+            
+            log.info(
+                "[REPLAY PROGRESS] %d/%d bars (%.1f%%) | Elapsed: %.1f min | Est. remaining: %.1f min | Trades: %d open, %d total",
+                current_bar_idx,
+                bars_to_process,
+                progress_pct,
+                elapsed_time / 60.0,
+                estimated_remaining_min,
+                len(self.open_trades),
+                total_trades,
+            )
+            last_progress_log_time = current_time
+        
+        # Store current bar timestamp for replay context (used by _tick_close_now)
+        self._replay_current_ts = ts
+        
+        # Simulate tick-based exit for open trades (before processing new bar)
+        # Skip in ENTRY_ONLY mode
+        if self.mode != "ENTRY_ONLY" and self.open_trades:
+            candle_row = pd.Series({
+                "open": float(row["open"]),
+                "high": float(row["high"]),
+                "low": float(row["low"]),
+                "close": float(row["close"]),
+                "volume": float(row.get("volume", 0.0)),
+                "bid_open": float(row["bid_open"]),
+                "bid_high": float(row["bid_high"]),
+                "bid_low": float(row["bid_low"]),
+                "bid_close": float(row["bid_close"]),
+                "ask_open": float(row["ask_open"]),
+                "ask_high": float(row["ask_high"]),
+                "ask_low": float(row["ask_low"]),
+                "ask_close": float(row["ask_close"]),
+            })
+            self._simulate_tick_exits_for_bar(ts, candle_row)
+        
+        # Process bar (same logic as run_once, but with historical candle)
+        log.debug("[REPLAY] Processing bar %d/%d: %s", i+1, len(df), ts.isoformat())
+        
+        # Build candle history for features (need lookback window)
+        # Use all candles up to current bar (including current bar)
+        candles_history = df.iloc[:i+1].copy()
+        
+        # Ensure index is DatetimeIndex with UTC timezone
+        if not isinstance(candles_history.index, pd.DatetimeIndex):
+            candles_history = candles_history.set_index("time")
+        candles_history.index = pd.to_datetime(candles_history.index, utc=True)
+        
+        # Evaluate entry
+        trade = self.evaluate_entry(candles_history)
+        if trade and self.can_enter(ts):  # can_enter takes timestamp, not DataFrame
+            # In ENTRY_ONLY mode, log entry signal but don't execute trades
+            if self.mode == "ENTRY_ONLY":
+                # Log entry signal to entry_only_log with extended features
+                if hasattr(self, "entry_only_log_path") and self.entry_only_log_path:
+                    import csv
+                    file_exists = self.entry_only_log_path.exists()
+                    
+                    # Extended fieldnames for policy analysis
+                    fieldnames = [
+                        "run_id", "timestamp", "side", "entry_price",
+                        "session", "session_id", "trend_regime", "atr_regime", "vol_regime",
+                        "hour_of_day", "day_of_week",
+                        "p_long_entry", "p_short_entry", "margin_entry", "p_hat_entry",
+                        "body_pct", "wick_asym", "bar_range", "atr_bps",
+                        "htf_context_h1", "htf_context_h4",
+                        "mfe_5b", "mae_5b", "t_mfe", "t_mae",
+                        "next_vol_regime", "next_session",
+                    ]
+                    
+                    with open(self.entry_only_log_path, "a", newline="") as f:
+                        writer = csv.DictWriter(f, fieldnames=fieldnames)
+                        if not file_exists:
+                            writer.writeheader()
                         
-                        with open(self.entry_only_log_path, "a", newline="") as f:
-                            writer = csv.DictWriter(f, fieldnames=fieldnames)
-                            if not file_exists:
-                                writer.writeheader()
-                            
-                            # Extract features from current_bar and trade.extra
-                            current_bar = candles_history.iloc[-1]
-                            extra = trade.extra if hasattr(trade, "extra") and trade.extra else {}
-                            
-                            # Session info
-                            session = extra.get("session", current_bar.get("session", "UNKNOWN"))
-                            session_id = current_bar.get("session_id", current_bar.get("_v1_session_tag", "UNKNOWN"))
-                            
-                            # Regime info
-                            atr_regime = extra.get("atr_regime", current_bar.get("atr_regime", "UNKNOWN"))
-                            vol_regime = extra.get("brain_vol_regime", atr_regime)
-                            trend_regime = extra.get("brain_trend_regime", current_bar.get("trend_regime_tf24h", "UNKNOWN"))
-                            
-                            # Time features
-                            hour_of_day = ts.hour
-                            day_of_week = ts.dayofweek  # 0=Monday, 6=Sunday
-                            
-                            # Bar features
-                            body_pct = current_bar.get("body_pct", current_bar.get("_v1_body_tr", 0.0))
-                            wick_asym = current_bar.get("wick_asym", 0.0)
-                            bar_range = (current_bar.get("high", 0) - current_bar.get("low", 0)) / current_bar.get("close", 1) * 10000 if "high" in current_bar.index and "low" in current_bar.index else 0.0
-                            
-                            # HTF context (H1/H4 slopes if available)
-                            htf_h1 = current_bar.get("_v1_int_slope_h1_us", 0.0)
-                            htf_h4 = current_bar.get("_v1_int_slope_h4_atr", 0.0)
-                            
-                            # Calculate MFE/MAE for next 5 bars (lookahead)
-                            mfe_5b = np.nan
-                            mae_5b = np.nan
-                            t_mfe = np.nan
-                            t_mae = np.nan
-                            
-                            # Look ahead 5 bars for MFE/MAE calculation
-                            if i + 5 < len(df):
-                                future_bars = df.iloc[i+1:i+6]
-                                if len(future_bars) > 0 and "high" in future_bars.columns and "low" in future_bars.columns:
-                                    entry_price = float(current_bar["close"])
-                                    
-                                    # For LONG: MFE = max high - entry, MAE = entry - min low
-                                    # TODO: Feature engineering MFE/MAE uses mid prices (high/low)
-                                    # This is for feature engineering only, not actual PnL calculation
-                                    # Consider using bid_high/ask_low for LONG and bid_low/ask_high for SHORT in future
-                                    highs = future_bars["high"].values
-                                    lows = future_bars["low"].values
-                                    
-                                    mfe_5b = (np.max(highs) - entry_price) / entry_price * 10000.0
-                                    mae_5b = (entry_price - np.min(lows)) / entry_price * 10000.0
-                                    
-                                    # Time to MFE/MAE (in bars)
-                                    mfe_idx = np.argmax(highs)
-                                    mae_idx = np.argmin(lows)
-                                    t_mfe = float(mfe_idx + 1)  # +1 because we start from next bar
-                                    t_mae = float(mae_idx + 1)
-                            
-                            # Next regime/session (from next bar if available)
-                            next_vol_regime = "UNKNOWN"
-                            next_session = "UNKNOWN"
-                            if i + 1 < len(df):
-                                next_bar = df.iloc[i+1]
-                                next_vol_regime = next_bar.get("atr_regime", next_bar.get("brain_vol_regime", "UNKNOWN"))
-                                next_session = next_bar.get("session", next_bar.get("_v1_session_tag", "UNKNOWN"))
-                            
-                            writer.writerow({
-                                "run_id": self.run_id,
-                                "timestamp": ts.isoformat(),
-                                "side": trade.side,
-                                "entry_price": f"{trade.entry_price:.3f}",
-                                "session": session,
-                                "session_id": str(session_id),
-                                "trend_regime": trend_regime,
-                                "atr_regime": atr_regime,
-                                "vol_regime": vol_regime,
-                                "hour_of_day": hour_of_day,
-                                "day_of_week": day_of_week,
-                                "p_long_entry": f"{trade.entry_prob_long:.4f}",
-                                "p_short_entry": f"{trade.entry_prob_short:.4f}",
-                                "margin_entry": f"{trade.margin:.4f}" if hasattr(trade, "margin") else "",
-                                "p_hat_entry": f"{trade.p_hat:.4f}" if hasattr(trade, "p_hat") else "",
-                                "body_pct": f"{body_pct:.4f}" if not np.isnan(body_pct) else "",
-                                "wick_asym": f"{wick_asym:.4f}" if not np.isnan(wick_asym) else "",
-                                "bar_range": f"{bar_range:.2f}" if not np.isnan(bar_range) else "",
-                                "atr_bps": f"{trade.atr_bps:.2f}",
-                                "htf_context_h1": f"{htf_h1:.4f}" if not np.isnan(htf_h1) else "",
-                                "htf_context_h4": f"{htf_h4:.4f}" if not np.isnan(htf_h4) else "",
-                                "mfe_5b": f"{mfe_5b:.2f}" if not np.isnan(mfe_5b) else "",
-                                "mae_5b": f"{mae_5b:.2f}" if not np.isnan(mae_5b) else "",
-                                "t_mfe": f"{t_mfe:.1f}" if not np.isnan(t_mfe) else "",
-                                "t_mae": f"{t_mae:.1f}" if not np.isnan(t_mae) else "",
-                                "next_vol_regime": next_vol_regime,
-                                "next_session": next_session,
-                            })
+                        # Extract features from current_bar and trade.extra
+                        current_bar = candles_history.iloc[-1]
+                        extra = trade.extra if hasattr(trade, "extra") and trade.extra else {}
+                        
+                        # Session info
+                        session = extra.get("session", current_bar.get("session", "UNKNOWN"))
+                        session_id = current_bar.get("session_id", current_bar.get("_v1_session_tag", "UNKNOWN"))
+                        
+                        # Regime info
+                        atr_regime = extra.get("atr_regime", current_bar.get("atr_regime", "UNKNOWN"))
+                        vol_regime = extra.get("brain_vol_regime", atr_regime)
+                        trend_regime = extra.get("brain_trend_regime", current_bar.get("trend_regime_tf24h", "UNKNOWN"))
+                        
+                        # Time features
+                        hour_of_day = ts.hour
+                        day_of_week = ts.dayofweek  # 0=Monday, 6=Sunday
+                        
+                        # Bar features
+                        body_pct = current_bar.get("body_pct", current_bar.get("_v1_body_tr", 0.0))
+                        wick_asym = current_bar.get("wick_asym", 0.0)
+                        bar_range = (current_bar.get("high", 0) - current_bar.get("low", 0)) / current_bar.get("close", 1) * 10000 if "high" in current_bar.index and "low" in current_bar.index else 0.0
+                        
+                        # HTF context (H1/H4 slopes if available)
+                        htf_h1 = current_bar.get("_v1_int_slope_h1_us", 0.0)
+                        htf_h4 = current_bar.get("_v1_int_slope_h4_atr", 0.0)
+                        
+                        # Calculate MFE/MAE for next 5 bars (lookahead)
+                        mfe_5b = np.nan
+                        mae_5b = np.nan
+                        t_mfe = np.nan
+                        t_mae = np.nan
+                        
+                        # Look ahead 5 bars for MFE/MAE calculation
+                        if i + 5 < len(df):
+                            future_bars = df.iloc[i+1:i+6]
+                            if len(future_bars) > 0 and "high" in future_bars.columns and "low" in future_bars.columns:
+                                entry_price = float(current_bar["close"])
+                                
+                                # For LONG: MFE = max high - entry, MAE = entry - min low
+                                # TODO: Feature engineering MFE/MAE uses mid prices (high/low)
+                                # This is for feature engineering only, not actual PnL calculation
+                                # Consider using bid_high/ask_low for LONG and bid_low/ask_high for SHORT in future
+                                highs = future_bars["high"].values
+                                lows = future_bars["low"].values
+                                
+                                mfe_5b = (np.max(highs) - entry_price) / entry_price * 10000.0
+                                mae_5b = (entry_price - np.min(lows)) / entry_price * 10000.0
+                                
+                                # Time to MFE/MAE (in bars)
+                                mfe_idx = np.argmax(highs)
+                                mae_idx = np.argmin(lows)
+                                t_mfe = float(mfe_idx + 1)  # +1 because we start from next bar
+                                t_mae = float(mae_idx + 1)
+                        
+                        # Next regime/session (from next bar if available)
+                        next_vol_regime = "UNKNOWN"
+                        next_session = "UNKNOWN"
+                        if i + 1 < len(df):
+                            next_bar = df.iloc[i+1]
+                            next_vol_regime = next_bar.get("atr_regime", next_bar.get("brain_vol_regime", "UNKNOWN"))
+                            next_session = next_bar.get("session", next_bar.get("_v1_session_tag", "UNKNOWN"))
+                        
+                        writer.writerow({
+                            "run_id": self.run_id,
+                            "timestamp": ts.isoformat(),
+                            "side": trade.side,
+                            "entry_price": f"{trade.entry_price:.3f}",
+                            "session": session,
+                            "session_id": str(session_id),
+                            "trend_regime": trend_regime,
+                            "atr_regime": atr_regime,
+                            "vol_regime": vol_regime,
+                            "hour_of_day": hour_of_day,
+                            "day_of_week": day_of_week,
+                            "p_long_entry": f"{trade.entry_prob_long:.4f}",
+                            "p_short_entry": f"{trade.entry_prob_short:.4f}",
+                            "margin_entry": f"{trade.margin:.4f}" if hasattr(trade, "margin") else "",
+                            "p_hat_entry": f"{trade.p_hat:.4f}" if hasattr(trade, "p_hat") else "",
+                            "body_pct": f"{body_pct:.4f}" if not np.isnan(body_pct) else "",
+                            "wick_asym": f"{wick_asym:.4f}" if not np.isnan(wick_asym) else "",
+                            "bar_range": f"{bar_range:.2f}" if not np.isnan(bar_range) else "",
+                            "atr_bps": f"{trade.atr_bps:.2f}",
+                            "htf_context_h1": f"{htf_h1:.4f}" if not np.isnan(htf_h1) else "",
+                            "htf_context_h4": f"{htf_h4:.4f}" if not np.isnan(htf_h4) else "",
+                            "mfe_5b": f"{mfe_5b:.2f}" if not np.isnan(mfe_5b) else "",
+                            "mae_5b": f"{mae_5b:.2f}" if not np.isnan(mae_5b) else "",
+                            "t_mfe": f"{t_mfe:.1f}" if not np.isnan(t_mfe) else "",
+                            "t_mae": f"{t_mae:.1f}" if not np.isnan(t_mae) else "",
+                            "next_vol_regime": next_vol_regime,
+                            "next_session": next_session,
+                        })
             else:
                 # Normal mode: execute trade and log to trade_log
                 self.execute_entry(trade)
+                log.info(
+                    "[ENTRY_DIAG] open_trades_after_execute=%d",
+                    len(self.open_trades),
+                )
                 # Build trade log row with FARM fields from trade.extra
                 trade_extra = trade.extra if hasattr(trade, "extra") and trade.extra else {}
                 trade_log_row = {
@@ -6649,589 +6906,669 @@ def _ensure_bid_ask_columns(self, df: pd.DataFrame, context: str) -> None:
                     if "farm_guard_version" in trade_extra:
                         trade_log_row["farm_guard_version"] = trade_extra["farm_guard_version"]
                 append_trade_log(self.trade_log_path, trade_log_row)
-            
-            # Evaluate exits (skip in ENTRY_ONLY mode)
-            if self.mode != "ENTRY_ONLY":
-                self.evaluate_and_close_trades(candles_history)
-            
-            # Log progress every 100 bars
-            if (i + 1) % 100 == 0:
-                log.info("[REPLAY] Progress: %d/%d bars (%.1f%%) | open_trades=%d", 
-                         i+1, len(df), 100*(i+1)/len(df), len(self.open_trades))
         
-        log.info("[REPLAY] Finished processing all bars")
+        # Evaluate exits (skip in ENTRY_ONLY mode)
+        if self.mode != "ENTRY_ONLY":
+            self.evaluate_and_close_trades(candles_history)
         
-        # Dump FARM_V2B diagnostic if available (before closing remaining trades)
-        if hasattr(self, "entry_manager") and hasattr(self.entry_manager, "farm_diag"):
-            farm_diag = self.entry_manager.farm_diag
-            if farm_diag.get("n_bars", 0) > 0:
-                # Create diagnostic output path
-                from datetime import datetime
-                diag_filename = f"farm_entry_diag_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-                diag_path = self.log_dir / diag_filename
-                
-                # Convert numpy types to native Python types for JSON serialization
-                import json
-                diag_serializable = {
-                    "n_bars": int(farm_diag["n_bars"]),
-                    "n_raw_candidates": int(farm_diag["n_raw_candidates"]),
-                    "n_after_stage0": int(farm_diag["n_after_stage0"]),
-                    "n_after_farm_regime": int(farm_diag["n_after_farm_regime"]),
-                    "n_after_brutal_guard": int(farm_diag["n_after_brutal_guard"]),
-                    "n_after_policy_thresholds": int(farm_diag["n_after_policy_thresholds"]),
-                    "p_long_values": [float(x) for x in farm_diag["p_long_values"]],
-                    "sessions": {str(k): int(v) for k, v in farm_diag["sessions"].items()},
-                    "atr_regimes": {str(k): int(v) for k, v in farm_diag["atr_regimes"].items()},
-                    "farm_regimes": {str(k): int(v) for k, v in farm_diag["farm_regimes"].items()},
-                }
-                
-                # Add statistics for p_long_values
-                if len(diag_serializable["p_long_values"]) > 0:
-                    p_long_arr = np.array(diag_serializable["p_long_values"])
-                    diag_serializable["p_long_stats"] = {
-                        "min": float(np.min(p_long_arr)),
-                        "max": float(np.max(p_long_arr)),
-                        "mean": float(np.mean(p_long_arr)),
-                        "median": float(np.median(p_long_arr)),
-                        "p5": float(np.percentile(p_long_arr, 5)),
-                        "p50": float(np.percentile(p_long_arr, 50)),
-                        "p95": float(np.percentile(p_long_arr, 95)),
-                        "p99": float(np.percentile(p_long_arr, 99)),
-                    }
-                else:
-                    diag_serializable["p_long_stats"] = {}
-                
-                # Write to JSON
-                with open(diag_path, "w") as f:
-                    json.dump(diag_serializable, f, indent=2)
-                
-                log.info(f"[FARM_DIAG] Dumped FARM_V2B entry diagnostic to {diag_path}")
-        
-        # Clear replay context
-        if hasattr(self, '_replay_current_ts'):
-            delattr(self, '_replay_current_ts')
-        
-        # Close any remaining open trades at final price
-        if self.open_trades:
-            final_candle = df.iloc[-1]
-            final_bid = float(final_candle["bid_close"])
-            final_ask = float(final_candle["ask_close"])
-            log.info(
-                "[REPLAY] Closing %d remaining open trades at final bid/ask %.3f/%.3f",
-                len(self.open_trades),
-                final_bid,
-                final_ask,
-            )
-            
-            # FAST MODE: Simple flush (for tuning runs)
-            if self.fast_replay:
-                # Simple flush: just update trade log and remove from open_trades
-                open_count_before = len(self.open_trades)
-                # Add defensive logging for first N calls
-                if not hasattr(self, "_replay_flush_pnl_log_count"):
-                    self._replay_flush_pnl_log_count = 0
-                for trade in list(self.open_trades):
-                    # Calculate final PnL
-                    entry_bid = float(getattr(trade, "entry_bid", trade.entry_price))
-                    entry_ask = float(getattr(trade, "entry_ask", trade.entry_price))
-                    if self._replay_flush_pnl_log_count < 5:
-                        log.debug(
-                            "[PNL] Replay flush PnL: entry_bid=%.5f entry_ask=%.5f exit_bid=%.5f exit_ask=%.5f side=%s",
-                            entry_bid, entry_ask, final_bid, final_ask, trade.side
-                        )
-                        self._replay_flush_pnl_log_count += 1
-                    pnl_bps = compute_pnl_bps(entry_bid, entry_ask, final_bid, final_ask, trade.side)
-                    exit_price = final_bid if trade.side == "long" else final_ask
-                    
-                    # Update trade log directly (skip ExitArbiter for speed)
-                    # Calculate bars held
-                    delta_minutes = (df.index[-1] - trade.entry_time).total_seconds() / 60.0
-                    bars_held = int(round(delta_minutes / 5.0))  # M5 = 5 minutes per bar
-                    
-                    self._update_trade_log_on_close(
-                        trade_id=trade.trade_id,
-                        exit_price=exit_price,
-                        pnl_bps=pnl_bps,
-                        reason="REPLAY_END",
-                        exit_ts=df.index[-1],
-                        bars_in_trade=bars_held,
-                    )
-                    
-                    # Remove from open_trades
-                    self.open_trades = [t for t in self.open_trades if t.trade_id != trade.trade_id]
-                
-                log.info("[REPLAY] Fast flush: closed %d trades (skipped ExitArbiter/reporting)", open_count_before)
-            else:
-                # FULL MODE: Use ExitArbiter (for manual analysis runs)
-                # Add defensive logging for first N calls
-                if not hasattr(self, "_replay_full_pnl_log_count"):
-                    self._replay_full_pnl_log_count = 0
-                for trade in list(self.open_trades):
-                    # Calculate final PnL
-                    entry_bid = float(getattr(trade, "entry_bid", trade.entry_price))
-                    entry_ask = float(getattr(trade, "entry_ask", trade.entry_price))
-                    if self._replay_full_pnl_log_count < 5:
-                        log.debug(
-                            "[PNL] Replay full PnL: entry_bid=%.5f entry_ask=%.5f exit_bid=%.5f exit_ask=%.5f side=%s",
-                            entry_bid, entry_ask, final_bid, final_ask, trade.side
-                        )
-                        self._replay_full_pnl_log_count += 1
-                    pnl_bps = compute_pnl_bps(entry_bid, entry_ask, final_bid, final_ask, trade.side)
-                    exit_price = final_bid if trade.side == "long" else final_ask
-                    
-                    # Close trade via ExitArbiter
-                    self.request_close(
-                        trade_id=trade.trade_id,
-                        source="REPLAY_END",
-                        reason="REPLAY_END",
-                        px=exit_price,
-                        pnl_bps=pnl_bps,
-                        bars_in_trade=len(df) - 1,  # Approximate
-                    )
-        
-        # Dump backtest summary (skip in fast mode)
-        if not self.fast_replay:
-            self._dump_backtest_summary()
-        
-        # Flush any remaining entry-only log buffer
-        if hasattr(self, "_entry_only_log_buffer") and len(self._entry_only_log_buffer) > 0:
-            self._flush_entry_only_log_buffer()
-            log.info("[ENTRY_ONLY] Flushed final buffer (%d entries)", len(getattr(self, "_entry_only_log_buffer", [])))
-        
-        log.info("[REPLAY] Backtest complete")
-        
-        # Generate detailed report via external script (skip in fast mode)
-        if not self.fast_replay:
-            try:
-                from gx1.backtest.generate_exit_tuning_report import main as generate_report  # type: ignore[reportMissingImports]
-                import sys
-                import os
-                # Save original argv
-                old_argv = sys.argv
-                # Set up arguments for report generator
-                exit_audit_file = self.log_dir / "exits" / f"exits_{self.replay_start_ts.strftime('%Y%m%d')}_{self.replay_end_ts.strftime('%Y%m%d')}.jsonl"
-                report_file = Path("gx1/backtest/reports") / f"GX1_ONE_BACKTEST_exit_tuning_v4.md"
-                report_file.parent.mkdir(parents=True, exist_ok=True)
-                sys.argv = [
-                    "generate_exit_tuning_report",
-                    "--trade-log", str(self.trade_log_path),
-                    "--exit-audit", str(exit_audit_file),
-                    "--output", str(report_file),
-                ]
-                generate_report()
-                sys.argv = old_argv
-                log.info("[REPLAY] Detailed report generated: %s", report_file)
-            except Exception as e:
-                log.warning("[REPLAY] Failed to generate detailed report: %s", e)
-                # Fallback to simple summary
-                self._dump_backtest_summary()
-        else:
-            log.info("[REPLAY] Fast mode: skipped detailed report generation")
+        # Log progress every 100 bars
+        if (i + 1) % 100 == 0:
+            log.info("[REPLAY] Progress: %d/%d bars (%.1f%%) | open_trades=%d", 
+                     i+1, len(df), 100*(i+1)/len(df), len(self.open_trades))
     
-    def _simulate_tick_exits_for_bar(self, bar_ts: pd.Timestamp, candle_row: pd.Series) -> None:
-        """
-        Simulate tick-based exits for a single M5 bar.
-        
-        Uses high/low of the bar to check if TP/SL/BE/soft-stop would have triggered.
-        Also calls exit policies (FIXED_BAR, FARM_V2_RULES) with bid/ask prices.
-        
-        Parameters
-        ----------
-        bar_ts : pd.Timestamp
-            Timestamp of the current bar.
-        candle_row : pd.Series
-                Single row with open, high, low, close, volume, bid_*, ask_* columns.
-        """
-        if not self.open_trades:
-            return
-        
-        # ============================================================================
-        # DEFENSIVE CHECK: Ensure bid/ask columns exist
-        # ============================================================================
-        required_bid_ask_cols = ["bid_open", "bid_high", "bid_low", "bid_close", 
-                                 "ask_open", "ask_high", "ask_low", "ask_close"]
-        missing_cols = [col for col in required_bid_ask_cols if col not in candle_row.index]
-        if missing_cols:
-            raise ValueError(
-                f"Replay requires bid_* and ask_* columns but they are missing: {missing_cols}. "
-                f"Please use data with bid/ask prices (not mid-only data)."
-            )
-        
-        # Log first time (once per run) that we're using bid/ask for exit policies
-        if not hasattr(self, "_exit_policy_bid_ask_logged"):
-            log.info(
-                "[REPLAY] Exit policies using bid/ask prices: bid_close/ask_close from candles"
-            )
-            self._exit_policy_bid_ask_logged = True
-        
-        open_pos_list = self._get_open_positions_for_tick()
-        if not open_pos_list:
-            return
-        
-        # For each open position, check if TP/SL/BE/soft-stop would trigger
-        bid_high = float(candle_row["bid_high"])
-        bid_low = float(candle_row["bid_low"])
-        ask_high = float(candle_row["ask_high"])
-        ask_low = float(candle_row["ask_low"])
-        
-        for pos in open_pos_list:
-            # Determine which price to check based on direction
-            # For LONG: check low (exit at loss) and high (exit at profit)
-            # For SHORT: check high (exit at loss) and low (exit at profit)
+    log.info("[REPLAY] Finished processing all bars")
+    
+    # Dump FARM_V2B diagnostic if available (before closing remaining trades)
+    if hasattr(self, "entry_manager") and hasattr(self.entry_manager, "farm_diag"):
+        farm_diag = self.entry_manager.farm_diag
+        if farm_diag.get("n_bars", 0) > 0:
+            # Create diagnostic output path
+            from datetime import datetime
+            diag_filename = f"farm_entry_diag_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            diag_path = self.log_dir / diag_filename
             
-            if pos.direction == "LONG":
-                tp_exit_bid, tp_exit_ask = bid_high, ask_high
-                sl_exit_bid, sl_exit_ask = bid_low, ask_low
+            # Convert numpy types to native Python types for JSON serialization
+            import json
+            diag_serializable = {
+                "n_bars": int(farm_diag["n_bars"]),
+                "n_raw_candidates": int(farm_diag["n_raw_candidates"]),
+                "n_after_stage0": int(farm_diag["n_after_stage0"]),
+                "n_after_farm_regime": int(farm_diag["n_after_farm_regime"]),
+                "n_after_brutal_guard": int(farm_diag["n_after_brutal_guard"]),
+                "n_after_policy_thresholds": int(farm_diag["n_after_policy_thresholds"]),
+                "p_long_values": [float(x) for x in farm_diag["p_long_values"]],
+                "sessions": {str(k): int(v) for k, v in farm_diag["sessions"].items()},
+                "atr_regimes": {str(k): int(v) for k, v in farm_diag["atr_regimes"].items()},
+                "farm_regimes": {str(k): int(v) for k, v in farm_diag["farm_regimes"].items()},
+            }
+            
+            # Add statistics for p_long_values
+            if len(diag_serializable["p_long_values"]) > 0:
+                p_long_arr = np.array(diag_serializable["p_long_values"])
+                diag_serializable["p_long_stats"] = {
+                    "min": float(np.min(p_long_arr)),
+                    "max": float(np.max(p_long_arr)),
+                    "mean": float(np.mean(p_long_arr)),
+                    "median": float(np.median(p_long_arr)),
+                    "p5": float(np.percentile(p_long_arr, 5)),
+                    "p50": float(np.percentile(p_long_arr, 50)),
+                    "p95": float(np.percentile(p_long_arr, 95)),
+                    "p99": float(np.percentile(p_long_arr, 99)),
+                }
             else:
-                tp_exit_bid, tp_exit_ask = bid_low, ask_low
-                sl_exit_bid, sl_exit_ask = bid_high, ask_high
+                diag_serializable["p_long_stats"] = {}
+            
+            # Write to JSON
+            with open(diag_path, "w") as f:
+                json.dump(diag_serializable, f, indent=2)
+            
+            log.info(f"[FARM_DIAG] Dumped FARM_V2B entry diagnostic to {diag_path}")
+    
+    # Clear replay context
+    if hasattr(self, '_replay_current_ts'):
+        delattr(self, '_replay_current_ts')
+    
+    # Close any remaining open trades at final price
+    if self.open_trades:
+        final_candle = df.iloc[-1]
+        final_bid = float(final_candle["bid_close"])
+        final_ask = float(final_candle["ask_close"])
+        log.info(
+            "[REPLAY] Closing %d remaining open trades at final bid/ask %.3f/%.3f",
+            len(self.open_trades),
+            final_bid,
+            final_ask,
+        )
         
-                # Add defensive logging for first N calls
-                if not hasattr(self, "_tick_sim_pnl_log_count"):
-                    self._tick_sim_pnl_log_count = 0
-                side_str = "long" if pos.direction == "LONG" else "short"
-                if self._tick_sim_pnl_log_count < 5:
+        # FAST MODE: Simple flush (for tuning runs)
+        if self.fast_replay:
+            # Simple flush: just update trade log and remove from open_trades
+            open_count_before = len(self.open_trades)
+            # Add defensive logging for first N calls
+            if not hasattr(self, "_replay_flush_pnl_log_count"):
+                self._replay_flush_pnl_log_count = 0
+            for trade in list(self.open_trades):
+                # Calculate final PnL
+                entry_bid = float(getattr(trade, "entry_bid", trade.entry_price))
+                entry_ask = float(getattr(trade, "entry_ask", trade.entry_price))
+                if self._replay_flush_pnl_log_count < 5:
                     log.debug(
-                        "[PNL] Tick sim TP PnL: entry_bid=%.5f entry_ask=%.5f exit_bid=%.5f exit_ask=%.5f side=%s",
-                        pos.entry_bid, pos.entry_ask, tp_exit_bid, tp_exit_ask, side_str
+                        "[PNL] Replay flush PnL: entry_bid=%.5f entry_ask=%.5f exit_bid=%.5f exit_ask=%.5f side=%s",
+                        entry_bid, entry_ask, final_bid, final_ask, trade.side
                     )
+                    self._replay_flush_pnl_log_count += 1
+                pnl_bps = compute_pnl_bps(entry_bid, entry_ask, final_bid, final_ask, trade.side)
+                exit_price = final_bid if trade.side == "long" else final_ask
+                
+                # Update trade log directly (skip ExitArbiter for speed)
+                # Calculate bars held
+                delta_minutes = (df.index[-1] - trade.entry_time).total_seconds() / 60.0
+                bars_held = int(round(delta_minutes / 5.0))  # M5 = 5 minutes per bar
+                
+                self._update_trade_log_on_close(
+                    trade_id=trade.trade_id,
+                    exit_price=exit_price,
+                    pnl_bps=pnl_bps,
+                    reason="REPLAY_END",
+                    exit_ts=df.index[-1],
+                    bars_in_trade=bars_held,
+                )
+                
+                # Remove from open_trades
+                self.open_trades = [t for t in self.open_trades if t.trade_id != trade.trade_id]
+            
+            log.info("[REPLAY] Fast flush: closed %d trades (skipped ExitArbiter/reporting)", open_count_before)
+        else:
+            # FULL MODE: Use ExitArbiter (for manual analysis runs)
+            # Add defensive logging for first N calls
+            if not hasattr(self, "_replay_full_pnl_log_count"):
+                self._replay_full_pnl_log_count = 0
+            for trade in list(self.open_trades):
+                # Calculate final PnL
+                entry_bid = float(getattr(trade, "entry_bid", trade.entry_price))
+                entry_ask = float(getattr(trade, "entry_ask", trade.entry_price))
+                if self._replay_full_pnl_log_count < 5:
                     log.debug(
-                        "[PNL] Tick sim SL PnL: entry_bid=%.5f entry_ask=%.5f exit_bid=%.5f exit_ask=%.5f side=%s",
-                        pos.entry_bid, pos.entry_ask, sl_exit_bid, sl_exit_ask, side_str
+                        "[PNL] Replay full PnL: entry_bid=%.5f entry_ask=%.5f exit_bid=%.5f exit_ask=%.5f side=%s",
+                        entry_bid, entry_ask, final_bid, final_ask, trade.side
                     )
-                    self._tick_sim_pnl_log_count += 1
-                pnl_bps_tp = compute_pnl_bps(
+                    self._replay_full_pnl_log_count += 1
+                pnl_bps = compute_pnl_bps(entry_bid, entry_ask, final_bid, final_ask, trade.side)
+                exit_price = final_bid if trade.side == "long" else final_ask
+                
+                # Close trade via ExitArbiter
+                self.request_close(
+                    trade_id=trade.trade_id,
+                    source="REPLAY_END",
+                    reason="REPLAY_END",
+                    px=exit_price,
+                    pnl_bps=pnl_bps,
+                    bars_in_trade=len(df) - 1,  # Approximate
+                )
+    
+    # Dump backtest summary (skip in fast mode)
+    if not self.fast_replay:
+        self._dump_backtest_summary()
+    
+    # Flush any remaining entry-only log buffer
+    if hasattr(self, "_entry_only_log_buffer") and len(self._entry_only_log_buffer) > 0:
+        self._flush_entry_only_log_buffer()
+        log.info("[ENTRY_ONLY] Flushed final buffer (%d entries)", len(getattr(self, "_entry_only_log_buffer", [])))
+
+    self._log_entry_diag_summary()
+    
+    log.info("[REPLAY] Backtest complete")
+    
+    # Generate detailed report via external script (skip in fast mode)
+    if not self.fast_replay:
+        try:
+            from gx1.backtest.generate_exit_tuning_report import main as generate_report  # type: ignore[reportMissingImports]
+            import sys
+            import os
+            # Save original argv
+            old_argv = sys.argv
+            # Set up arguments for report generator
+            exit_audit_file = self.log_dir / "exits" / f"exits_{self.replay_start_ts.strftime('%Y%m%d')}_{self.replay_end_ts.strftime('%Y%m%d')}.jsonl"
+            report_file = Path("gx1/backtest/reports") / f"GX1_ONE_BACKTEST_exit_tuning_v4.md"
+            report_file.parent.mkdir(parents=True, exist_ok=True)
+            sys.argv = [
+                "generate_exit_tuning_report",
+                "--trade-log", str(self.trade_log_path),
+                "--exit-audit", str(exit_audit_file),
+                "--output", str(report_file),
+            ]
+            generate_report()
+            sys.argv = old_argv
+            log.info("[REPLAY] Detailed report generated: %s", report_file)
+        except Exception as e:
+            log.warning("[REPLAY] Failed to generate detailed report: %s", e)
+            # Fallback to simple summary
+            self._dump_backtest_summary()
+    else:
+        log.info("[REPLAY] Fast mode: skipped detailed report generation")
+
+def _simulate_tick_exits_for_bar_impl(self, bar_ts: pd.Timestamp, candle_row: pd.Series) -> None:
+    """
+    Simulate tick-based exits for a single M5 bar.
+    
+    Uses high/low of the bar to check if TP/SL/BE/soft-stop would have triggered.
+    Also calls exit policies (FIXED_BAR, FARM_V2_RULES) with bid/ask prices.
+    
+    Parameters
+    ----------
+    bar_ts : pd.Timestamp
+        Timestamp of the current bar.
+    candle_row : pd.Series
+            Single row with open, high, low, close, volume, bid_*, ask_* columns.
+    """
+    if not self.open_trades:
+        return
+    if getattr(self, "exit_verbose_logging", False):
+        log.info(
+            "[EXIT][SIM] Evaluating %d trades on bar %s",
+            len(self.open_trades),
+            bar_ts,
+        )
+    
+    # ============================================================================
+    # DEFENSIVE CHECK: Ensure bid/ask columns exist
+    # ============================================================================
+    required_bid_ask_cols = ["bid_open", "bid_high", "bid_low", "bid_close", 
+                             "ask_open", "ask_high", "ask_low", "ask_close"]
+    missing_cols = [col for col in required_bid_ask_cols if col not in candle_row.index]
+    if missing_cols:
+        raise ValueError(
+            f"Replay requires bid_* and ask_* columns but they are missing: {missing_cols}. "
+            f"Please use data with bid/ask prices (not mid-only data)."
+        )
+    
+    # Log first time (once per run) that we're using bid/ask for exit policies
+    if not hasattr(self, "_exit_policy_bid_ask_logged"):
+        log.info(
+            "[REPLAY] Exit policies using bid/ask prices: bid_close/ask_close from candles"
+        )
+        self._exit_policy_bid_ask_logged = True
+    
+    open_pos_list = self._get_open_positions_for_tick()
+    if not open_pos_list:
+        return
+    
+    # For each open position, check if TP/SL/BE/soft-stop would trigger
+    bid_high = float(candle_row["bid_high"])
+    bid_low = float(candle_row["bid_low"])
+    ask_high = float(candle_row["ask_high"])
+    ask_low = float(candle_row["ask_low"])
+    
+    for pos in open_pos_list:
+        # Determine which price to check based on direction
+        # For LONG: check low (exit at loss) and high (exit at profit)
+        # For SHORT: check high (exit at loss) and low (exit at profit)
+        
+        if pos.direction == "LONG":
+            tp_exit_bid, tp_exit_ask = bid_high, ask_high
+            sl_exit_bid, sl_exit_ask = bid_low, ask_low
+        else:
+            tp_exit_bid, tp_exit_ask = bid_low, ask_low
+            sl_exit_bid, sl_exit_ask = bid_high, ask_high
+        
+        # Add defensive logging for first N calls
+        if not hasattr(self, "_tick_sim_pnl_log_count"):
+            self._tick_sim_pnl_log_count = 0
+        side_str = "long" if pos.direction == "LONG" else "short"
+        if self._tick_sim_pnl_log_count < 5:
+            log.debug(
+                "[PNL] Tick sim TP PnL: entry_bid=%.5f entry_ask=%.5f exit_bid=%.5f exit_ask=%.5f side=%s",
+                pos.entry_bid,
+                pos.entry_ask,
+                tp_exit_bid,
+                tp_exit_ask,
+                side_str,
+            )
+            log.debug(
+                "[PNL] Tick sim SL PnL: entry_bid=%.5f entry_ask=%.5f exit_bid=%.5f exit_ask=%.5f side=%s",
+                pos.entry_bid,
+                pos.entry_ask,
+                sl_exit_bid,
+                sl_exit_ask,
+                side_str,
+            )
+            self._tick_sim_pnl_log_count += 1
+        pnl_bps_tp = compute_pnl_bps(
+            pos.entry_bid,
+            pos.entry_ask,
+            tp_exit_bid,
+            tp_exit_ask,
+            side_str,
+        )
+        pnl_bps_sl = compute_pnl_bps(
+            pos.entry_bid,
+            pos.entry_ask,
+            sl_exit_bid,
+            sl_exit_ask,
+            side_str,
+        )
+        
+        # BE activation check (before TP/SL/BE checks)
+        # Activate BE if profit >= activate_at_bps and not already active
+        be_cfg = self.policy.get("tick_exit", {}).get("be", {})
+        be_enabled = be_cfg.get("enabled", False)
+        be_activate_at_bps = int(be_cfg.get("activate_at_bps", 50))
+        be_bias_price = float(be_cfg.get("bias_price", 0.3))
+        
+        if be_enabled and not pos.be_active:
+            # Check if we should activate BE (use TP price for profit check)
+            if pnl_bps_tp >= be_activate_at_bps:
+                # Activate BE: set BE price = entry_price + bias (lock in small profit)
+                if pos.direction == "LONG":
+                    be_price = pos.entry_px + be_bias_price
+                else:  # SHORT
+                    be_price = pos.entry_px - be_bias_price
+                
+                # Update BE status in trade.extra (thread-safe)
+                try:
+                    self._update_be_status(pos.trade_id, be_active=True, be_price=be_price)
+                    # Update pos object for this check
+                    pos.be_active = True
+                    pos.be_price = be_price
+                    log.debug(
+                        "[REPLAY] BE activated for trade %s: pnl_bps=%.2f >= %d, BE_price=%.3f",
+                        pos.trade_id, pnl_bps_tp, be_activate_at_bps, be_price
+                    )
+                except Exception as e:
+                    log.warning("[REPLAY] Failed to activate BE for trade %s: %s", pos.trade_id, e)
+        
+        # Check TP (after BE activation)
+        if pnl_bps_tp >= pos.tp_bps:
+            exit_px = tp_exit_bid if pos.direction == "LONG" else tp_exit_ask
+            self._tick_close_now(pos, "TP_TICK", exit_px, pnl_bps_tp)
+            continue
+        
+        # Check BE (if active) - check if price touched BE level
+        be_triggered = False
+        be_exit_bid = None
+        be_exit_ask = None
+        pnl_bps_be = 0.0
+        if pos.be_active and pos.be_price is not None:
+            if pos.direction == "LONG" and sl_exit_bid <= pos.be_price:
+                be_triggered = True
+                # LONG: exit at bid when BE triggers (use actual exit bid from candle)
+                be_exit_bid = sl_exit_bid  # Use actual exit bid (bid_low when BE triggers)
+                be_exit_ask = ask_low  # Use actual exit ask for consistency
+                pnl_bps_be = compute_pnl_bps(
                     pos.entry_bid,
                     pos.entry_ask,
-                    tp_exit_bid,
-                    tp_exit_ask,
-                    side_str,
+                    be_exit_bid,
+                    be_exit_ask,
+                    "long",
                 )
-                pnl_bps_sl = compute_pnl_bps(
+            elif pos.direction == "SHORT" and sl_exit_ask >= pos.be_price:
+                be_triggered = True
+                # SHORT: exit at ask when BE triggers (use actual exit ask from candle)
+                be_exit_bid = bid_high  # Use actual exit bid for consistency
+                be_exit_ask = sl_exit_ask  # Use actual exit ask (ask_high when BE triggers)
+                pnl_bps_be = compute_pnl_bps(
                     pos.entry_bid,
                     pos.entry_ask,
-                    sl_exit_bid,
-                    sl_exit_ask,
-                    side_str,
+                    be_exit_bid,
+                    be_exit_ask,
+                    "short",
                 )
-            
-            # BE activation check (before TP/SL/BE checks)
-            # Activate BE if profit >= activate_at_bps and not already active
-            be_cfg = self.policy.get("tick_exit", {}).get("be", {})
-            be_enabled = be_cfg.get("enabled", False)
-            be_activate_at_bps = int(be_cfg.get("activate_at_bps", 50))
-            be_bias_price = float(be_cfg.get("bias_price", 0.3))
-            
-            if be_enabled and not pos.be_active:
-                # Check if we should activate BE (use TP price for profit check)
-                if pnl_bps_tp >= be_activate_at_bps:
-                    # Activate BE: set BE price = entry_price + bias (lock in small profit)
-                    if pos.direction == "LONG":
-                        be_price = pos.entry_px + be_bias_price
-                    else:  # SHORT
-                        be_price = pos.entry_px - be_bias_price
-                    
-                    # Update BE status in trade.extra (thread-safe)
-                    try:
-                        self._update_be_status(pos.trade_id, be_active=True, be_price=be_price)
-                        # Update pos object for this check
-                        pos.be_active = True
-                        pos.be_price = be_price
-                        log.debug(
-                            "[REPLAY] BE activated for trade %s: pnl_bps=%.2f >= %d, BE_price=%.3f",
-                            pos.trade_id, pnl_bps_tp, be_activate_at_bps, be_price
-                        )
-                    except Exception as e:
-                        log.warning("[REPLAY] Failed to activate BE for trade %s: %s", pos.trade_id, e)
-            
-            # Check TP (after BE activation)
-            if pnl_bps_tp >= pos.tp_bps:
-                exit_px = tp_exit_bid if pos.direction == "LONG" else tp_exit_ask
-                self._tick_close_now(pos, "TP_TICK", exit_px, pnl_bps_tp)
+
+        if be_triggered:
+            # Use correct exit price based on side (LONG -> bid, SHORT -> ask)
+            exit_px = be_exit_bid if pos.direction == "LONG" else be_exit_ask
+            self._tick_close_now(pos, "BE_TICK", exit_px, pnl_bps_be)
+            continue
+        
+        # Check SL (after BE check - BE takes priority over SL)
+        if pnl_bps_sl <= -pos.sl_bps:
+            exit_px = sl_exit_bid if pos.direction == "LONG" else sl_exit_ask
+            self._tick_close_now(pos, "SL_TICK", exit_px, pnl_bps_sl)
+            continue
+        
+        # Check soft-stop (last priority - only if not TP/SL/BE)
+        tick_exit_cfg = self.policy.get("tick_exit", {})
+        soft_stop_bps = tick_exit_cfg.get("soft_stop_bps", 0)
+        if soft_stop_bps > 0 and pnl_bps_sl <= -soft_stop_bps:
+            exit_px = sl_exit_bid if pos.direction == "LONG" else sl_exit_ask
+            self._tick_close_now(pos, "SOFT_STOP_TICK", exit_px, pnl_bps_sl)
+            continue
+        
+        # ============================================================================
+        # EXIT POLICIES: Call on_bar() for exit_fixed_bar_policy and exit_farm_v2_rules_policy
+        # ============================================================================
+        # After tick-based exits, process exit policies for remaining open trades
+        # Get current bar prices (use close prices for exit policy evaluation)
+        # These are already validated to exist above
+        price_bid = float(candle_row["bid_close"])
+        price_ask = float(candle_row["ask_close"])
+        
+        # Iterate over remaining open trades (after tick-based exits)
+        for trade in list(self.open_trades):  # Use list() to avoid modification during iteration
+            # Skip if trade was closed by tick-based exits
+            if trade not in self.open_trades:
                 continue
             
-            # Check BE (if active) - check if price touched BE level
-            if pos.be_active and pos.be_price is not None:
-                be_triggered = False
-                be_exit_bid = None
-                be_exit_ask = None
-                pnl_bps_be = 0.0
-                if pos.direction == "LONG" and sl_exit_bid <= pos.be_price:
-                    be_triggered = True
-                    # LONG: exit at bid when BE triggers (use actual exit bid from candle)
-                    be_exit_bid = sl_exit_bid  # Use actual exit bid (bid_low when BE triggers)
-                    be_exit_ask = ask_low  # Use actual exit ask for consistency
-                    pnl_bps_be = compute_pnl_bps(
-                        pos.entry_bid,
-                        pos.entry_ask,
-                        be_exit_bid,
-                        be_exit_ask,
-                        "long",
+            # Get exit_profile from trade.extra
+            exit_profile = None
+            if hasattr(trade, "extra") and trade.extra:
+                exit_profile = trade.extra.get("exit_profile")
+            
+            # ========================================================================
+            # FIXED_BAR_CLOSE exit policy
+            # ========================================================================
+            if (hasattr(self, "exit_fixed_bar_policy") and 
+                self.exit_fixed_bar_policy is not None and
+                exit_profile == "FIXED_BAR_CLOSE"):
+                
+                # Check if policy has state for this trade (should be initialized on entry)
+                if self.exit_fixed_bar_policy.has_state(trade.trade_id):
+                    try:
+                        # Call on_bar() with bid/ask prices and timestamp
+                        decision = self.exit_fixed_bar_policy.on_bar(
+                            trade_id=trade.trade_id,
+                            price_bid=price_bid,
+                            price_ask=price_ask,
+                            side=trade.side,
+                            ts=bar_ts,
+                        )
+                        
+                        if decision is not None:
+                            # Exit triggered - close trade
+                            log.debug(
+                                "[REPLAY] FIXED_BAR exit triggered for trade %s: reason=%s bars_held=%d pnl=%.2f bps "
+                                "(price_bid=%.5f price_ask=%.5f)",
+                                trade.trade_id, decision.reason, decision.bars_held, decision.pnl_bps,
+                                price_bid, price_ask
+                            )
+                            self.request_close(
+                                trade_id=trade.trade_id,
+                                source="EXIT_POLICY",
+                                reason=decision.reason,
+                                px=decision.exit_price,
+                                pnl_bps=decision.pnl_bps,
+                                bars_in_trade=decision.bars_held,
+                            )
+                    except Exception as e:
+                        log.warning(
+                            "[REPLAY] Error calling exit_fixed_bar_policy.on_bar() for trade %s: %s",
+                            trade.trade_id, e
+                        )
+                else:
+                    log.debug(
+                        "[REPLAY] exit_fixed_bar_policy has no state for trade %s (not initialized?)",
+                        trade.trade_id
                     )
-                elif pos.direction == "SHORT" and sl_exit_ask >= pos.be_price:
-                    be_triggered = True
-                    # SHORT: exit at ask when BE triggers (use actual exit ask from candle)
-                    be_exit_bid = bid_high  # Use actual exit bid for consistency
-                    be_exit_ask = sl_exit_ask  # Use actual exit ask (ask_high when BE triggers)
-                    pnl_bps_be = compute_pnl_bps(
-                        pos.entry_bid,
-                        pos.entry_ask,
-                        be_exit_bid,
-                        be_exit_ask,
-                        "short",
+            
+            # ========================================================================
+            # FARM_V2_RULES exit policy
+            # ========================================================================
+            elif (getattr(self, "exit_farm_v2_rules_factory", None) and
+                  exit_profile and exit_profile.startswith("FARM_EXIT_V2_RULES")):
+                
+                policy = self.exit_farm_v2_rules_states.get(trade.trade_id)
+                if policy is None:
+                    log.debug(
+                        "[REPLAY] FARM_V2_RULES state missing for trade %s, reinitializing",
+                        trade.trade_id,
+                    )
+                    try:
+                        self._init_farm_v2_rules_state(trade, context="replay_exit_loop")
+                        policy = self.exit_farm_v2_rules_states.get(trade.trade_id)
+                    except Exception as e:
+                        log.warning(
+                            "[REPLAY] Unable to initialize FARM_V2_RULES state for trade %s: %s",
+                            trade.trade_id,
+                            e,
+                        )
+                        continue
+                
+                try:
+                    log.debug(
+                        "[REPLAY] Calling FARM_V2_RULES.on_bar() for trade %s: price_bid=%.5f price_ask=%.5f ts=%s",
+                        trade.trade_id,
+                        price_bid,
+                        price_ask,
+                        bar_ts,
+                    )
+                    decision = policy.on_bar(
+                        price_bid=price_bid,
+                        price_ask=price_ask,
+                        ts=bar_ts,
+                    )
+                    
+                    if decision is not None:
+                        log.info(
+                            "[REPLAY] FARM_V2_RULES exit triggered for trade %s: reason=%s bars_held=%d pnl=%.2f bps mae=%.2f mfe=%.2f "
+                            "(price_bid=%.5f price_ask=%.5f)",
+                            trade.trade_id, decision.reason, decision.bars_held, decision.pnl_bps, decision.mae_bps, decision.mfe_bps,
+                            price_bid, price_ask
+                        )
+                        self.request_close(
+                            trade_id=trade.trade_id,
+                            source="EXIT_POLICY",
+                            reason=decision.reason,
+                            px=decision.exit_price,
+                            pnl_bps=decision.pnl_bps,
+                            bars_in_trade=decision.bars_held,
+                        )
+                except Exception as e:
+                    log.warning(
+                        "[REPLAY] Error calling FARM_V2_RULES.on_bar() for trade %s: %s",
+                        trade.trade_id, e
                     )
 
-            if be_triggered:
-                # Use correct exit price based on side (LONG -> bid, SHORT -> ask)
-                exit_px = be_exit_bid if pos.direction == "LONG" else be_exit_ask
-                self._tick_close_now(pos, "BE_TICK", exit_px, pnl_bps_be)
-                continue
-            
-            # Check SL (after BE check - BE takes priority over SL)
-            if pnl_bps_sl <= -pos.sl_bps:
-                exit_px = sl_exit_bid if pos.direction == "LONG" else sl_exit_ask
-                self._tick_close_now(pos, "SL_TICK", exit_px, pnl_bps_sl)
-                continue
-            
-            # Check soft-stop (last priority - only if not TP/SL/BE)
-            tick_exit_cfg = self.policy.get("tick_exit", {})
-            soft_stop_bps = tick_exit_cfg.get("soft_stop_bps", 0)
-            if soft_stop_bps > 0 and pnl_bps_sl <= -soft_stop_bps:
-                exit_px = sl_exit_bid if pos.direction == "LONG" else sl_exit_ask
-                self._tick_close_now(pos, "SOFT_STOP_TICK", exit_px, pnl_bps_sl)
-                continue
-            
-            # ============================================================================
-            # EXIT POLICIES: Call on_bar() for exit_fixed_bar_policy and exit_farm_v2_rules_policy
-            # ============================================================================
-            # After tick-based exits, process exit policies for remaining open trades
-            # Get current bar prices (use close prices for exit policy evaluation)
-            # These are already validated to exist above
-            price_bid = float(candle_row["bid_close"])
-            price_ask = float(candle_row["ask_close"])
-            
-            # Iterate over remaining open trades (after tick-based exits)
-            for trade in list(self.open_trades):  # Use list() to avoid modification during iteration
-                # Skip if trade was closed by tick-based exits
-                if trade not in self.open_trades:
-                    continue
-                
-                # Get exit_profile from trade.extra
-                exit_profile = None
-                if hasattr(trade, "extra") and trade.extra:
-                    exit_profile = trade.extra.get("exit_profile")
-                
-                # ========================================================================
-                # FIXED_BAR_CLOSE exit policy
-                # ========================================================================
-                if (hasattr(self, "exit_fixed_bar_policy") and 
-                    self.exit_fixed_bar_policy is not None and
-                    exit_profile == "FIXED_BAR_CLOSE"):
-                    
-                    # Check if policy has state for this trade (should be initialized on entry)
-                    if self.exit_fixed_bar_policy.has_state(trade.trade_id):
-                        try:
-                            # Call on_bar() with bid/ask prices and timestamp
-                            decision = self.exit_fixed_bar_policy.on_bar(
-                                trade_id=trade.trade_id,
-                                price_bid=price_bid,
-                                price_ask=price_ask,
-                                side=trade.side,
-                                ts=bar_ts,
-                            )
-                            
-                            if decision is not None:
-                                # Exit triggered - close trade
-                                log.debug(
-                                    "[REPLAY] FIXED_BAR exit triggered for trade %s: reason=%s bars_held=%d pnl=%.2f bps "
-                                    "(price_bid=%.5f price_ask=%.5f)",
-                                    trade.trade_id, decision.reason, decision.bars_held, decision.pnl_bps,
-                                    price_bid, price_ask
-                                )
-                                self.request_close(
-                                    trade_id=trade.trade_id,
-                                    source="EXIT_POLICY",
-                                    reason=decision.reason,
-                                    px=decision.exit_price,
-                                    pnl_bps=decision.pnl_bps,
-                                    bars_in_trade=decision.bars_held,
-                                )
-                        except Exception as e:
-                            log.warning(
-                                "[REPLAY] Error calling exit_fixed_bar_policy.on_bar() for trade %s: %s",
-                                trade.trade_id, e
-                            )
-                    else:
-                        log.debug(
-                            "[REPLAY] exit_fixed_bar_policy has no state for trade %s (not initialized?)",
-                            trade.trade_id
-                        )
-                
-                # ========================================================================
-                # FARM_V2_RULES exit policy
-                # ========================================================================
-                elif (hasattr(self, "exit_farm_v2_rules_policy") and 
-                      self.exit_farm_v2_rules_policy is not None and
-                      exit_profile and exit_profile.startswith("FARM_EXIT_V2_RULES")):
-                    
-                    # Check if this trade has been initialized
-                    if hasattr(trade, "extra") and trade.extra:
-                        exit_init_flag = trade.extra.get("farm_v2_rules_exit_initialized", False)
-                        if exit_init_flag:
-                            # Verify that policy state matches this trade (since it's a single instance)
-                            # If policy.trade_id doesn't match, we need to reset it (shouldn't happen in normal flow)
-                            if (hasattr(self.exit_farm_v2_rules_policy, "trade_id") and 
-                                self.exit_farm_v2_rules_policy.trade_id != trade.trade_id):
-                                log.warning(
-                                    "[REPLAY] exit_farm_v2_rules_policy state mismatch: "
-                                    "policy.trade_id=%s != trade.trade_id=%s. Resetting.",
-                                    self.exit_farm_v2_rules_policy.trade_id, trade.trade_id
-                                )
-                                # Reset for this trade
-                                self.exit_farm_v2_rules_policy.reset_on_entry(
-                                    entry_bid=trade.entry_bid,
-                                    entry_ask=trade.entry_ask,
-                                    entry_ts=trade.entry_time,
-                                    side=trade.side,
-                                    trade_id=trade.trade_id,
-                                )
-                            
-                            try:
-                                # Call on_bar() with bid/ask prices and timestamp
-                                # Note: exit_farm_v2_rules_policy.on_bar() expects price_bid, price_ask, ts
-                                log.debug(
-                                    "[REPLAY] Calling exit_farm_v2_rules_policy.on_bar() for trade %s: "
-                                    "price_bid=%.5f price_ask=%.5f ts=%s",
-                                    trade.trade_id, price_bid, price_ask, bar_ts
-                                )
-                                decision = self.exit_farm_v2_rules_policy.on_bar(
-                                    price_bid=price_bid,
-                                    price_ask=price_ask,
-                                    ts=bar_ts,
-                                )
-                                
-                                if decision is not None:
-                                    # Exit triggered - close trade
-                                    log.info(
-                                        "[REPLAY] FARM_V2_RULES exit triggered for trade %s: reason=%s bars_held=%d pnl=%.2f bps mae=%.2f mfe=%.2f "
-                                        "(price_bid=%.5f price_ask=%.5f)",
-                                        trade.trade_id, decision.reason, decision.bars_held, decision.pnl_bps, decision.mae_bps, decision.mfe_bps,
-                                        price_bid, price_ask
-                                    )
-                                    self.request_close(
-                                        trade_id=trade.trade_id,
-                                        source="EXIT_POLICY",
-                                        reason=decision.reason,
-                                        px=decision.exit_price,
-                                        pnl_bps=decision.pnl_bps,
-                                        bars_in_trade=decision.bars_held,
-                                    )
-                            except Exception as e:
-                                log.warning(
-                                    "[REPLAY] Error calling exit_farm_v2_rules_policy.on_bar() for trade %s: %s",
-                                    trade.trade_id, e
-                                )
-                        else:
-                            log.debug(
-                                "[REPLAY] exit_farm_v2_rules_policy not initialized for trade %s (exit_profile=%s)",
-                                trade.trade_id, exit_profile
-                            )
+def _dump_backtest_summary_impl(self) -> None:
+    """
+    Dump backtest summary after replay.
     
-    def _dump_backtest_summary(self) -> None:
-        """
-        Dump backtest summary after replay.
-        
-        Reads trade log and exit audit to generate statistics.
-        """
-        import numpy as np
-        
-        # Read trade log (skip bad lines to handle corrupted rows)
-        if not self.trade_log_path.exists():
-            log.warning("[REPLAY] Trade log not found: %s", self.trade_log_path)
-            return
-        
-        try:
-            trades_df = pd.read_csv(self.trade_log_path, on_bad_lines='skip', engine='python')
-        except Exception as exc:
-            log.warning("[REPLAY] Failed to read trade log %s: %s. Skipping summary.", self.trade_log_path, exc)
-            return
-        
-        # Filter replay trades
-        if "notes" in trades_df.columns:
-            replay_trades = trades_df[trades_df["notes"].str.contains("replay", case=False, na=False)]
+    Reads trade log and exit audit to generate statistics.
+    """
+    import numpy as np
+    
+    # Read trade log (skip bad lines to handle corrupted rows)
+    if not self.trade_log_path.exists():
+        log.warning("[REPLAY] Trade log not found: %s", self.trade_log_path)
+        return
+    
+    try:
+        trades_df = pd.read_csv(self.trade_log_path, on_bad_lines='skip', engine='python')
+    except Exception as exc:
+        log.warning("[REPLAY] Failed to read trade log %s: %s. Skipping summary.", self.trade_log_path, exc)
+        return
+    
+    # Filter replay trades
+    if "notes" in trades_df.columns:
+        replay_trades = trades_df[trades_df["notes"].str.contains("replay", case=False, na=False)]
+    else:
+        # If notes column is missing, filter by run_id instead
+        if "run_id" in trades_df.columns:
+            replay_trades = trades_df[trades_df["run_id"].str.contains("replay", case=False, na=False)]
         else:
-            # If notes column is missing, filter by run_id instead
-            if "run_id" in trades_df.columns:
-                replay_trades = trades_df[trades_df["run_id"].str.contains("replay", case=False, na=False)]
-            else:
-                # If neither notes nor run_id exists, use all trades (legacy mode)
-                replay_trades = trades_df
-        
-        if len(replay_trades) == 0:
-            log.info("[REPLAY SUMMARY] No trades executed")
-            return
-        
-        # Parse exit times and PnL
-        replay_trades = replay_trades.copy()
-        replay_trades["entry_time"] = pd.to_datetime(replay_trades["entry_time"], utc=True, format='ISO8601')
-        replay_trades["exit_time"] = pd.to_datetime(replay_trades["exit_time"], utc=True, errors='coerce', format='ISO8601')
-        
-        # Filter closed trades (have exit_time and pnl_bps)
-        closed_trades = replay_trades[
-            replay_trades["exit_time"].notna() & 
-            replay_trades["pnl_bps"].notna() &
-            (replay_trades["pnl_bps"] != "")
-        ].copy()
-        
-        # Convert pnl_bps to float
-        closed_trades["pnl_bps"] = pd.to_numeric(closed_trades["pnl_bps"], errors='coerce')
-        closed_trades = closed_trades[closed_trades["pnl_bps"].notna()]
-        
-        if len(closed_trades) == 0:
-            log.info("[REPLAY SUMMARY] No closed trades yet")
-            return
-        
-        pnls = closed_trades["pnl_bps"].values
-        wins = pnls[pnls > 0]
-        losses = pnls[pnls < 0]
-        
-        # Count soft-stop exits from exit audit
-        soft_stop_count = 0
-        if self.exit_audit_path.exists():
-            with self.exit_audit_path.open("r", encoding="utf-8") as f:
-                for line in f:
-                    if not line.strip():
-                        continue
-                    try:
-                        entry = json.loads(line)
-                        if entry.get("source") == "TICK" and entry.get("reason") == "SOFT_STOP_TICK" and entry.get("accepted"):
-                            soft_stop_count += 1
-                    except json.JSONDecodeError:
-                        pass
-        
-        log.info("=" * 60)
-        log.info("[REPLAY SUMMARY] Backtest Results")
-        log.info("=" * 60)
-        log.info("[REPLAY SUMMARY] Period: %s to %s", 
-                 self.replay_start_ts.isoformat(), self.replay_end_ts.isoformat())
-        log.info("[REPLAY SUMMARY] Total trades: %d", len(replay_trades))
-        log.info("[REPLAY SUMMARY] Closed trades: %d", len(closed_trades))
-        log.info("[REPLAY SUMMARY] Open trades: %d", len(replay_trades) - len(closed_trades))
-        log.info("")
-        log.info("[REPLAY SUMMARY] Total PnL: %.2f bps", pnls.sum())
-        log.info("[REPLAY SUMMARY] Average PnL: %.2f bps", pnls.mean())
-        log.info("[REPLAY SUMMARY] Winrate: %.1f%%", 100 * len(wins) / len(closed_trades) if len(closed_trades) > 0 else 0)
-        log.info("")
-        if len(wins) > 0:
-            log.info("[REPLAY SUMMARY] Average Win: +%.2f bps", wins.mean())
-            log.info("[REPLAY SUMMARY] Largest Win: +%.2f bps", wins.max())
-        if len(losses) > 0:
-            log.info("[REPLAY SUMMARY] Average Loss: %.2f bps", losses.mean())
-            log.info("[REPLAY SUMMARY] Largest Loss: %.2f bps", losses.min())
-        log.info("")
-        log.info("[REPLAY SUMMARY] Soft-stop exits: %d (%.1f%% of closed trades)", 
-                 soft_stop_count, 100 * soft_stop_count / len(closed_trades) if len(closed_trades) > 0 else 0)
-        log.info("=" * 60)
+            # If neither notes nor run_id exists, use all trades (legacy mode)
+            replay_trades = trades_df
+    
+    if len(replay_trades) == 0:
+        log.info("[REPLAY SUMMARY] No trades executed")
+        return
+    
+    # Parse exit times and PnL
+    replay_trades = replay_trades.copy()
+    replay_trades["entry_time"] = pd.to_datetime(replay_trades["entry_time"], utc=True, format='ISO8601')
+    replay_trades["exit_time"] = pd.to_datetime(replay_trades["exit_time"], utc=True, errors='coerce', format='ISO8601')
+    
+    # Filter closed trades (have exit_time and pnl_bps)
+    closed_trades = replay_trades[
+        replay_trades["exit_time"].notna() & 
+        replay_trades["pnl_bps"].notna() &
+        (replay_trades["pnl_bps"] != "")
+    ].copy()
+    
+    # Convert pnl_bps to float
+    closed_trades["pnl_bps"] = pd.to_numeric(closed_trades["pnl_bps"], errors='coerce')
+    closed_trades = closed_trades[closed_trades["pnl_bps"].notna()]
+    
+    if len(closed_trades) == 0:
+        log.info("[REPLAY SUMMARY] No closed trades yet")
+        return
+    
+    pnls = closed_trades["pnl_bps"].values
+    wins = pnls[pnls > 0]
+    losses = pnls[pnls < 0]
+    
+    # Count soft-stop exits from exit audit
+    soft_stop_count = 0
+    if self.exit_audit_path.exists():
+        with self.exit_audit_path.open("r", encoding="utf-8") as f:
+            for line in f:
+                if not line.strip():
+                    continue
+                try:
+                    entry = json.loads(line)
+                    if entry.get("source") == "TICK" and entry.get("reason") == "SOFT_STOP_TICK" and entry.get("accepted"):
+                        soft_stop_count += 1
+                except json.JSONDecodeError:
+                    pass
+    
+    log.info("=" * 60)
+    log.info("[REPLAY SUMMARY] Backtest Results")
+    log.info("=" * 60)
+    log.info("[REPLAY SUMMARY] Period: %s to %s", 
+             self.replay_start_ts.isoformat(), self.replay_end_ts.isoformat())
+    log.info("[REPLAY SUMMARY] Total trades: %d", len(replay_trades))
+    log.info("[REPLAY SUMMARY] Closed trades: %d", len(closed_trades))
+    log.info("[REPLAY SUMMARY] Open trades: %d", len(replay_trades) - len(closed_trades))
+    log.info("")
+    log.info("[REPLAY SUMMARY] Total PnL: %.2f bps", pnls.sum())
+    log.info("[REPLAY SUMMARY] Average PnL: %.2f bps", pnls.mean())
+    log.info("[REPLAY SUMMARY] Winrate: %.1f%%", 100 * len(wins) / len(closed_trades) if len(closed_trades) > 0 else 0)
+    log.info("")
+    if len(wins) > 0:
+        log.info("[REPLAY SUMMARY] Average Win: +%.2f bps", wins.mean())
+        log.info("[REPLAY SUMMARY] Largest Win: +%.2f bps", wins.max())
+    if len(losses) > 0:
+        log.info("[REPLAY SUMMARY] Average Loss: %.2f bps", losses.mean())
+        log.info("[REPLAY SUMMARY] Largest Loss: %.2f bps", losses.min())
+    log.info("")
+    log.info("[REPLAY SUMMARY] Soft-stop exits: %d (%.1f%% of closed trades)", 
+             soft_stop_count, 100 * soft_stop_count / len(closed_trades) if len(closed_trades) > 0 else 0)
+    log.info("=" * 60)
+
+
+# --------------------------------------------------------------------------- #
+# Module-level wrappers for late-bound GX1DemoRunner methods
+# --------------------------------------------------------------------------- #
+
+
+def evaluate_entry(self: GX1DemoRunner, candles: pd.DataFrame) -> Optional[LiveTrade]:
+    return self._evaluate_entry_impl(candles)
+
+
+def _log_entry_only_event(
+    self: GX1DemoRunner,
+    timestamp: pd.Timestamp,
+    side: str,
+    price: float,
+    prediction: Any,
+    policy_state: Dict[str, Any],
+) -> None:
+    return self._log_entry_only_event_impl(timestamp, side, price, prediction, policy_state)
+
+
+def _flush_entry_only_log_buffer(self: GX1DemoRunner) -> None:
+    return self._flush_entry_only_log_buffer_impl()
+
+
+def execute_entry(self: GX1DemoRunner, trade: LiveTrade) -> None:
+    return self._execute_entry_impl(trade)
+
+
+def evaluate_and_close_trades(self: GX1DemoRunner, candles: pd.DataFrame) -> None:
+    return self._evaluate_and_close_trades_impl(candles)
+
+
+def run_once(self: GX1DemoRunner) -> None:
+    return self._run_once_impl()
+
+
+def _update_health_signal(self: GX1DemoRunner, now: pd.Timestamp) -> None:
+    return self._update_health_signal_impl(now)
+
+
+def _setup_signal_handlers(self: GX1DemoRunner) -> None:
+    return self._setup_signal_handlers_impl()
+
+
+def _flush_logs(self: GX1DemoRunner) -> None:
+    return self._flush_logs_impl()
+
+
+def _check_disk_space(self: GX1DemoRunner) -> bool:
+    return self._check_disk_space_impl()
+
+
+def _rotate_logs(self: GX1DemoRunner) -> None:
+    return self._rotate_logs_impl()
+
+
+def run_forever(self: GX1DemoRunner) -> None:
+    return self._run_forever_impl()
+
+
+def run_replay(self: GX1DemoRunner, csv_path: Path) -> None:
+    return self._run_replay_impl(csv_path)
+
+
+def _simulate_tick_exits_for_bar(
+    self: GX1DemoRunner,
+    bar_ts: pd.Timestamp,
+    candle_row: pd.Series,
+) -> None:
+    return self._simulate_tick_exits_for_bar_impl(bar_ts, candle_row)
+
+
+def _dump_backtest_summary(self: GX1DemoRunner) -> None:
+    return self._dump_backtest_summary_impl()
 
 
 # --------------------------------------------------------------------------- #
@@ -7282,6 +7619,15 @@ GX1DemoRunner.evaluate_entry = evaluate_entry  # type: ignore[attr-defined]
 GX1DemoRunner._log_entry_only_event = _log_entry_only_event  # type: ignore[attr-defined]
 GX1DemoRunner._flush_entry_only_log_buffer = _flush_entry_only_log_buffer  # type: ignore[attr-defined]
 GX1DemoRunner._ensure_bid_ask_columns = _ensure_bid_ask_columns  # type: ignore[attr-defined]
+GX1DemoRunner._calculate_unrealized_portfolio_bps = _calculate_unrealized_portfolio_bps  # type: ignore[attr-defined]
+GX1DemoRunner._generate_client_order_id = _generate_client_order_id  # type: ignore[attr-defined]
+GX1DemoRunner._build_notes_string = _build_notes_string  # type: ignore[attr-defined]
+GX1DemoRunner._check_client_order_id_exists = _check_client_order_id_exists  # type: ignore[attr-defined]
+GX1DemoRunner._reset_entry_diag = _reset_entry_diag  # type: ignore[attr-defined]
+GX1DemoRunner._record_entry_diag = _record_entry_diag  # type: ignore[attr-defined]
+GX1DemoRunner._log_entry_diag_summary = _log_entry_diag_summary  # type: ignore[attr-defined]
+GX1DemoRunner._execute_entry_impl = _execute_entry_impl  # type: ignore[attr-defined]
+GX1DemoRunner._evaluate_and_close_trades_impl = _evaluate_and_close_trades_impl  # type: ignore[attr-defined]
 def should_consider_entry(self, trend: str, vol: str, session: str, risk_score: float) -> bool:
     """Wrapper for _should_consider_entry_impl that takes self as first parameter."""
     return _should_consider_entry_impl(trend, vol, session, risk_score)
@@ -7290,15 +7636,25 @@ GX1DemoRunner.should_consider_entry = should_consider_entry  # type: ignore[attr
 GX1DemoRunner.execute_entry = execute_entry  # type: ignore[attr-defined]
 GX1DemoRunner.evaluate_and_close_trades = evaluate_and_close_trades  # type: ignore[attr-defined]
 GX1DemoRunner.run_once = run_once  # type: ignore[attr-defined]
+GX1DemoRunner._run_once_impl = _run_once_impl  # type: ignore[attr-defined]
 GX1DemoRunner._update_health_signal = _update_health_signal  # type: ignore[attr-defined]
+GX1DemoRunner._update_health_signal_impl = _update_health_signal_impl  # type: ignore[attr-defined]
 GX1DemoRunner._setup_signal_handlers = _setup_signal_handlers  # type: ignore[attr-defined]
+GX1DemoRunner._setup_signal_handlers_impl = _setup_signal_handlers_impl  # type: ignore[attr-defined]
 GX1DemoRunner._flush_logs = _flush_logs  # type: ignore[attr-defined]
+GX1DemoRunner._flush_logs_impl = _flush_logs_impl  # type: ignore[attr-defined]
 GX1DemoRunner._check_disk_space = _check_disk_space  # type: ignore[attr-defined]
+GX1DemoRunner._check_disk_space_impl = _check_disk_space_impl  # type: ignore[attr-defined]
 GX1DemoRunner._rotate_logs = _rotate_logs  # type: ignore[attr-defined]
+GX1DemoRunner._rotate_logs_impl = _rotate_logs_impl  # type: ignore[attr-defined]
 GX1DemoRunner.run_forever = run_forever  # type: ignore[attr-defined]
+GX1DemoRunner._run_forever_impl = _run_forever_impl  # type: ignore[attr-defined]
 GX1DemoRunner.run_replay = run_replay  # type: ignore[attr-defined]
+GX1DemoRunner._run_replay_impl = _run_replay_impl  # type: ignore[attr-defined]
 GX1DemoRunner._simulate_tick_exits_for_bar = _simulate_tick_exits_for_bar  # type: ignore[attr-defined]
+GX1DemoRunner._simulate_tick_exits_for_bar_impl = _simulate_tick_exits_for_bar_impl  # type: ignore[attr-defined]
 GX1DemoRunner._dump_backtest_summary = _dump_backtest_summary  # type: ignore[attr-defined]
+GX1DemoRunner._dump_backtest_summary_impl = _dump_backtest_summary_impl  # type: ignore[attr-defined]
 
 
 def main() -> None:

@@ -2,11 +2,26 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
+import logging
 import pandas as pd
+
+from gx1.execution.live_features import build_live_exit_snapshot, infer_session_tag
+from gx1.utils.pnl import compute_pnl_bps
 
 if TYPE_CHECKING:
     from gx1.execution.oanda_demo_runner import GX1DemoRunner
 
+log = logging.getLogger(__name__)
+_prepare_exit_features_fn = None
+
+
+def _get_prepare_exit_features():
+    global _prepare_exit_features_fn
+    if _prepare_exit_features_fn is None:
+        from gx1.execution.oanda_demo_runner import prepare_exit_features as _fn
+
+        _prepare_exit_features_fn = _fn
+    return _prepare_exit_features_fn
 
 class ExitManager:
     def __init__(self, runner: "GX1DemoRunner") -> None:
@@ -44,6 +59,22 @@ class ExitManager:
         now_ts = candles.index[-1]
         current_bid = float(candles["bid_close"].iloc[-1])
         current_ask = float(candles["ask_close"].iloc[-1])
+        if self.exit_verbose_logging:
+            log.info(
+                "[EXIT] Evaluating %d open trades on bar %s (replay=%s)",
+                len(open_trades_copy),
+                now_ts,
+                self.replay_mode,
+            )
+        else:
+            log.debug(
+                "[EXIT] Evaluating %d open trades on bar %s (replay=%s)",
+                len(open_trades_copy),
+                now_ts,
+                self.replay_mode,
+            )
+        closes_requested = 0
+        closes_accepted = 0
 
         # FARM_V1 mode: Skip tick-exit evaluation, go straight to FARM_V1 exits
         if hasattr(self, "farm_v1_mode") and self.farm_v1_mode:
@@ -51,7 +82,7 @@ class ExitManager:
             pass
 
         # Check if EXIT_FARM_V2_RULES is enabled
-        if hasattr(self, "exit_farm_v2_rules_policy") and self.exit_farm_v2_rules_policy is not None:
+        if getattr(self, "exit_farm_v2_rules_factory", None):
             # Use EXIT_FARM_V2_RULES bar-based exit logic
             for trade in open_trades_copy:
                 # Thread-safe check: skip if trade was already closed by tick-exit
@@ -65,42 +96,50 @@ class ExitManager:
                         trade.trade_id
                     )
                     continue
+                delta_minutes = (now_ts - trade.entry_time).total_seconds() / 60.0
+                est_bars = max(1, int(round(delta_minutes / 5.0)))
+                entry_bid = float(getattr(trade, "entry_bid", trade.entry_price))
+                entry_ask = float(getattr(trade, "entry_ask", trade.entry_price))
+                est_pnl = compute_pnl_bps(entry_bid, entry_ask, current_bid, current_ask, trade.side)
+                log.debug(
+                    "[EXIT] Trade %s profile=%s bars=%d pnl=%.2f -> evaluate FARM_V2_RULES",
+                    trade.trade_id,
+                    trade.extra.get("exit_profile"),
+                    est_bars,
+                    est_pnl,
+                )
                 
-                # Initialize exit policy on first bar if not already done
-                if not trade.extra.get("exit_farm_v2_rules_initialized", False):
-                    # Determine expected exit_profile
-                    exit_config_name = Path(self.policy.get("exit_config", "")).stem
-                    expected_exit_profile = exit_config_name
-                    
-                    if not hasattr(self, "exit_farm_v2_rules_policy") or self.exit_farm_v2_rules_policy is None:
-                        raise RuntimeError(
-                            "[FARM_EXIT_GUARDRAIL] FARM_V2_RULES exit policy not initialized. This should never happen."
+                policy = self.exit_farm_v2_rules_states.get(trade.trade_id)
+                if policy is None:
+                    try:
+                        self._init_farm_v2_rules_state(trade, context="exit_manager")
+                        policy = self.exit_farm_v2_rules_states.get(trade.trade_id)
+                    except Exception as exc:
+                        log.error(
+                            "[EXIT_FARM_V2_RULES] Failed to initialize state for trade %s: %s",
+                            trade.trade_id,
+                            exc,
                         )
-                    
-                    self.exit_farm_v2_rules_policy.reset_on_entry(
-                        trade.entry_bid,
-                        trade.entry_ask,
-                        trade.entry_time,
-                        side="long",  # Always "long" for EXIT_FARM_V2_RULES
-                        trade_id=trade.trade_id,
-                    )
-                    trade.extra["exit_farm_v2_rules_initialized"] = True
-                    trade.extra["exit_profile"] = expected_exit_profile
-                    log.debug(
-                        "[EXIT_FARM_V2_RULES] Initialized for trade %s: entry_price=%.5f, exit_profile=%s",
-                        trade.trade_id,
-                        trade.entry_price,
-                        expected_exit_profile,
-                    )
-                
+                        continue
+
                 # Check for exit on current bar
                 if len(candles) == 0:
                     continue
-                exit_decision = self.exit_farm_v2_rules_policy.on_bar(
+                exit_decision = policy.on_bar(
                     price_bid=current_bid,
                     price_ask=current_ask,
                     ts=now_ts,
                 )
+                
+                if exit_decision is None:
+                    log.debug(
+                        "[EXIT] Trade %s profile=%s bars=%d pnl=%.2f -> HOLD (farm rules)",
+                        trade.trade_id,
+                        trade.extra.get("exit_profile"),
+                        est_bars,
+                        est_pnl,
+                    )
+                    continue
                 
                 if exit_decision is not None:
                     # Exit triggered
@@ -117,14 +156,18 @@ class ExitManager:
                         pnl_bps=pnl_bps,
                         bars_in_trade=bars_in_trade,
                     )
+                    closes_requested += 1
                     
                     if not accepted:
                         log.warning("[EXIT] close rejected by ExitArbiter for trade %s", trade.trade_id)
+                        log.error("Exit signaled but not applied for trade %s", trade.trade_id)
                         continue
+                    closes_accepted += 1
                     
                     # Remove from open_trades
                     if trade in self.open_trades:
                         self.open_trades.remove(trade)
+                    self._teardown_exit_state(trade.trade_id)
                     
                     # Record realized PnL
                     self.record_realized_pnl(now_ts, pnl_bps)
@@ -160,6 +203,11 @@ class ExitManager:
             for trade in open_trades_copy:
                 if trade not in self.open_trades or trade.side != "long":
                     continue
+                entry_bid = float(getattr(trade, "entry_bid", trade.entry_price))
+                entry_ask = float(getattr(trade, "entry_ask", trade.entry_price))
+                est_pnl = compute_pnl_bps(entry_bid, entry_ask, current_bid, current_ask, trade.side)
+                delta_minutes = (now_ts - trade.entry_time).total_seconds() / 60.0
+                est_bars = max(1, int(round(delta_minutes / 5.0)))
                 if not getattr(trade, "extra", None):
                     trade.extra = {}
                 if (
@@ -180,6 +228,13 @@ class ExitManager:
                     side=trade.side,
                 )
                 if decision is None:
+                    log.debug(
+                        "[EXIT] Trade %s profile=%s bars=%d pnl=%.2f -> HOLD (fixed bar)",
+                        trade.trade_id,
+                        trade.extra.get("exit_profile"),
+                        est_bars,
+                        est_pnl,
+                    )
                     continue
                 accepted = self.request_close(
                     trade_id=trade.trade_id,
@@ -189,10 +244,14 @@ class ExitManager:
                     pnl_bps=decision.pnl_bps,
                     bars_in_trade=decision.bars_held,
                 )
+                closes_requested += 1
                 if not accepted:
+                    log.error("Exit signaled but not applied for trade %s", trade.trade_id)
                     continue
+                closes_accepted += 1
                 if trade in self.open_trades:
                     self.open_trades.remove(trade)
+                self._teardown_exit_state(trade.trade_id)
                 self.record_realized_pnl(now_ts, decision.pnl_bps)
                 self._update_trade_log_on_close(
                     trade.trade_id,
@@ -317,11 +376,15 @@ class ExitManager:
                         pnl_bps=exit_decision.pnl_bps,
                         bars_in_trade=exit_decision.bars_held,
                     )
+                    closes_requested += 1
                     
                     if accepted and trade in self.open_trades:
                         self.open_trades.remove(trade)
                         if not self.replay_mode:
                             self._maybe_update_tick_watcher()
+                        closes_accepted += 1
+                    elif not accepted:
+                        log.error("Exit signaled but not applied for trade %s", trade.trade_id)
                     continue  # Continue to next trade, do not fall through
             
             # If FARM_V1 mode is active, return early (no other exits allowed)
@@ -366,6 +429,7 @@ class ExitManager:
                 },
                 candles,
             )
+            prepare_exit_features = _get_prepare_exit_features()
             features = prepare_exit_features(snapshot, self.exit_bundle.feature_names)
             prob_close = float(self.exit_bundle.model.predict_proba(features.to_numpy())[0, 1])
 
@@ -424,8 +488,6 @@ class ExitManager:
                 if not hasattr(self, "_exit_mgr_pnl_log_count"):
                     self._exit_mgr_pnl_log_count = 0
                 if self._exit_mgr_pnl_log_count < 5:
-                    import logging
-                    log = logging.getLogger(__name__)
                     log.debug(
                         "[PNL] ExitManager PnL: entry_bid=%.5f entry_ask=%.5f exit_bid=%.5f exit_ask=%.5f side=%s",
                         entry_bid, entry_ask, current_bid, current_ask, trade.side
@@ -451,10 +513,13 @@ class ExitManager:
                     pnl_bps=pnl_bps,
                     bars_in_trade=bars_in_trade,
                 )
+                closes_requested += 1
                 
                 if not accepted:
                     log.warning("[EXIT] close rejected by ExitArbiter for trade %s", trade.trade_id)
+                    log.error("Exit signaled but not applied for trade %s", trade.trade_id)
                     continue  # Exit rejected, keep trade open
+                closes_accepted += 1
                 
                 # Remove from open_trades (after successful close)
                 if trade in self.open_trades:
@@ -560,12 +625,14 @@ class ExitManager:
                         # Also update trade.extra for consistency
                         trade_extra["exit_profile"] = "FARM_EXIT_V1_STABLE"
                 append_trade_log(self.trade_log_path, trade_log_row)
-                
-            else:
-                # Trade not closed by bar-exit (still open)
-                # Note: Trade may have been closed by tick-exit, in which case it's already removed from open_trades
-                # We don't need to do anything here - just continue to next trade
-                pass
+
+        if closes_requested:
+            log.debug(
+                "[EXIT] Close summary: requested=%d accepted=%d remaining_open=%d",
+                closes_requested,
+                closes_accepted,
+                len(self.open_trades),
+            )
         
         # Update tick watcher (stop if no more open trades)
         self._maybe_update_tick_watcher()

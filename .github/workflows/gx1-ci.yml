@@ -43,3 +43,6 @@ jobs:
             echo "No tests/ directory, skipping pytest"
           fi
 
+      - name: Smoke replay – FARM_V2B + EXIT_A
+        run: |
+          bash scripts/active/run_smoke_farm_v2b_exitA.sh

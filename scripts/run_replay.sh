@@ -13,7 +13,7 @@ fi
 POLICY_PATH="$1"
 START_DATE="$2"
 END_DATE="$3"
-N_WORKERS="${4:-4}"
+N_WORKERS="${4:-6}"
 OUTPUT_DIR="${5:-gx1/wf_runs/$(basename "${POLICY_PATH%.*}")}"
 
 mkdir -p "$OUTPUT_DIR"

@@ -17,8 +17,10 @@ if TYPE_CHECKING:
 
 
 class EntryManager:
-    def __init__(self, runner: "GX1DemoRunner") -> None:
+    def __init__(self, runner: "GX1DemoRunner", exit_config_name: Optional[str] = None) -> None:
         super().__setattr__("_runner", runner)
+        # Explicit exit_config_name (injected from runner, no coupling to runner.policy)
+        self.exit_config_name = exit_config_name
         # FARM_V2B diagnostic state (accumulated over replay)
         self.farm_diag = {
             "n_bars": 0,
@@ -1594,12 +1596,25 @@ class EntryManager:
         trade.extra["be_active"] = False
         trade.extra["be_price"] = None
         
+        # Ensure exit profile + exit policy initialization through shared helper
+        self._ensure_exit_profile(trade, context="entry_manager")
+        if self.exit_config_name and not (getattr(trade, "extra", {}) or {}).get("exit_profile"):
+            raise RuntimeError(
+                f"[EXIT_PROFILE] Trade created without exit_profile under exit-config {self.exit_config_name}: {trade.trade_id}"
+            )
+        policy_state_snapshot = self._last_policy_state or {}
+        if hasattr(self, "_record_entry_diag"):
+            try:
+                self._record_entry_diag(trade, policy_state_snapshot, prediction)
+            except Exception as diag_exc:
+                log.warning("[ENTRY_DIAG] Failed to record entry diagnostics for %s: %s", trade.trade_id, diag_exc)
+        
         # CRITICAL: Store ATR regime for trade log reporting (ENTRY-regime)
         # This is the source of truth for vol_regime_entry in CSV
         # Get ATR regime from features (same logic as Big Brain)
         atr_regime_name = "ALL"  # Default fallback
         if hasattr(self, "_last_policy_state") and self._last_policy_state:
-            policy_state = self._last_policy_state
+            policy_state = policy_state_snapshot
             brain_vol = policy_state.get("brain_vol_regime", None)
             if brain_vol and brain_vol != "UNKNOWN":
                 atr_regime_name = brain_vol  # Use Big Brain V1 vol_regime

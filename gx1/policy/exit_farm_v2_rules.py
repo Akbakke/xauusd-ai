@@ -61,6 +61,9 @@ class ExitFarmV2Rules:
         rule_c_timeout_bars: int = 8,  # Exit within this many bars
         rule_c_min_profit_bps: float = 2.0,  # Minimum profit to avoid exit
         debug_trade_ids: Optional[List[str]] = None,
+        force_exit_bars: Optional[int] = None,  # Fail-safe max hold
+        verbose_logging: bool = False,
+        log_every_n_bars: int = 5,
     ):
         """
         Args:
@@ -96,6 +99,10 @@ class ExitFarmV2Rules:
         self.rule_c_timeout_bars = rule_c_timeout_bars
         self.rule_c_min_profit_bps = rule_c_min_profit_bps
         self.debug_trade_ids = {tid.strip() for tid in (debug_trade_ids or []) if tid}
+        self.force_exit_bars = force_exit_bars
+        self.verbose_logging = verbose_logging
+        self.log_every_n_bars = max(1, int(log_every_n_bars))
+        self._last_logged_bar = 0
         
         # State
         self.entry_price: Optional[float] = None
@@ -111,8 +118,14 @@ class ExitFarmV2Rules:
         self.trade_id: Optional[str] = None
         
         logger.info(
-            f"[EXIT_FARM_V2_RULES] Initialized: "
-            f"A={enable_rule_a}, B={enable_rule_b}, C={enable_rule_c}"
+            "[EXIT_FARM_V2_RULES] Initialized: "
+            "A=%s, B=%s, C=%s, force_exit=%s, verbose=%s, log_every_n=%d",
+            enable_rule_a,
+            enable_rule_b,
+            enable_rule_c,
+            force_exit_bars,
+            verbose_logging,
+            self.log_every_n_bars,
         )
     
     def reset_on_entry(self, entry_bid: float, entry_ask: float, entry_ts, side: str = "long", trade_id: Optional[str] = None) -> None:
@@ -139,6 +152,7 @@ class ExitFarmV2Rules:
         self.rule_a_trailing_active = False
         self.rule_a_trailing_high = 0.0
         self.trade_id = trade_id
+        self._last_logged_bar = 0
         
         logger.debug(
             f"[EXIT_FARM_V2_RULES] Reset: entry_price={self.entry_price:.5f}, "
@@ -170,6 +184,8 @@ class ExitFarmV2Rules:
             self.mae_bps = pnl_bps
         if pnl_bps > self.mfe_bps:
             self.mfe_bps = pnl_bps
+
+        self._maybe_log_state(ts, pnl_bps, price_bid, price_ask)
         
         # Update trailing stop high if active
         if self.rule_a_trailing_active:
@@ -278,9 +294,52 @@ class ExitFarmV2Rules:
                 )
                 self._maybe_log_decision(decision)
                 return decision
-        
+
+        if self.force_exit_bars is not None and self.bars_held >= self.force_exit_bars:
+            logger.debug(
+                f"[EXIT_FARM_V2_RULES] Force exit timeout: bars_held={self.bars_held} limit={self.force_exit_bars} "
+                f"pnl_bps={pnl_bps:.2f}"
+            )
+            exit_price = float(price_bid if self.side == "long" else price_ask)
+            decision = ExitDecision(
+                exit_price=exit_price,
+                reason="RULE_FORCE_TIMEOUT",
+                bars_held=self.bars_held,
+                pnl_bps=pnl_bps,
+                mae_bps=self.mae_bps,
+                mfe_bps=self.mfe_bps,
+            )
+            self._maybe_log_decision(decision)
+            return decision
+
         # No exit triggered
         return None
+
+    def _maybe_log_state(self, ts, pnl_bps: float, price_bid: float, price_ask: float) -> None:
+        """Emit verbose per-bar state when enabled."""
+        if not self.verbose_logging:
+            return
+        if self.bars_held == 1 or self.bars_held - self._last_logged_bar >= self.log_every_n_bars:
+            self._last_logged_bar = self.bars_held
+            logger.info(
+                "[EXIT_FARM_V2_RULES][STATE] trade_id=%s bar=%d ts=%s pnl=%.2f mae=%.2f mfe=%.2f trailing=%s trailing_high=%.2f "
+                "thresholds={profit:[%.2f,%.2f], adaptive=%.2f, timeout=%s, force=%s} bid=%.5f ask=%.5f",
+                self.trade_id,
+                self.bars_held,
+                ts,
+                pnl_bps,
+                self.mae_bps,
+                self.mfe_bps,
+                self.rule_a_trailing_active,
+                self.rule_a_trailing_high,
+                self.rule_a_profit_min_bps,
+                self.rule_a_profit_max_bps,
+                self.rule_a_adaptive_threshold_bps,
+                self.rule_c_timeout_bars,
+                self.force_exit_bars,
+                price_bid,
+                price_ask,
+            )
     
     def _maybe_log_decision(self, decision: ExitDecision) -> None:
         """Emit verbose logging for selected trades."""
@@ -309,6 +368,7 @@ class ExitFarmV2Rules:
             "mfe_bps": self.mfe_bps,
             "rule_a_trailing_active": self.rule_a_trailing_active,
             "rule_a_trailing_high": self.rule_a_trailing_high,
+            "force_exit_bars": self.force_exit_bars,
         }
 
 

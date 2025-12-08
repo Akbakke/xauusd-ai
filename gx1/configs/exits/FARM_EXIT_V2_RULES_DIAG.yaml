@@ -1,0 +1,22 @@
+# Diagnostic exit config for FARM replay sanity checks.
+# Much tighter profit targets, optional loss/timer rules,
+# and a hard max-hold failsafe so trades close quickly.
+
+exit:
+  type: "FARM_V2_RULES"
+  params:
+    enable_rule_a: true
+    enable_rule_b: true
+    enable_rule_c: true
+    rule_a_profit_min_bps: 2.0
+    rule_a_profit_max_bps: 4.0
+    rule_a_adaptive_threshold_bps: 1.0
+    rule_a_trailing_stop_bps: 1.0
+    rule_a_adaptive_bars: 2
+    rule_b_mae_threshold_bps: -2.5
+    rule_b_max_bars: 4
+    rule_c_timeout_bars: 20
+    rule_c_min_profit_bps: 0.5
+    force_exit_bars: 80
+    verbose_logging: true
+    log_every_n_bars: 1
