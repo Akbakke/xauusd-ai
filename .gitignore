@@ -23,3 +23,7 @@ Miniforge3.sh
 # OS junk
 .DS_Store
 
+# Exit router training datasets
+gx1/data/exit_router/*.parquet
+gx1/data/exit_router/*.csv
+
