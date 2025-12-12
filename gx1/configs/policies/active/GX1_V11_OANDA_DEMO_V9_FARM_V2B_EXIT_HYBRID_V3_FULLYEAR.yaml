@@ -1,0 +1,85 @@
+# GX1 v1.1 → Hybrid exit controller V3 (ML decision tree RAW, conservative) full-year replay
+#
+# Entry: FARM_V2B mp68_max5_cd0 (long-only)
+# Exit: HYBRID_ROUTER_V3 - ML decision tree trained on raw atr_pct/spread_pct
+# Window: Full 2025 (2025-01-02 → 2025-12-31) – supply dates via replay CLI
+#
+# V3 routing logic (conservative variant):
+#   - Based on V3 decision tree trained on raw atr_pct/spread_pct (no standardization)
+#   - Conservative modifications:
+#     * Cuts high-spread RULE6A (spread_pct > 78.10 → always RULE5)
+#     * Requires MEDIUM regime for RULE6A
+#     * Keeps RULE5 as default
+#
+# Tree structure (simplified):
+#   - atr_pct <= 6.81 → RULE5
+#   - 6.81 < atr_pct <= 31.34:
+#     * spread_pct <= 78.10 and atr_pct > 18.75 and MEDIUM regime → RULE6A
+#     * else → RULE5
+#   - atr_pct > 31.34:
+#     * spread_pct <= 0.50 and atr_pct > 61.03 and MEDIUM regime → RULE6A
+#     * else → RULE5
+
+meta:
+  router_version: V3
+  role: PROD_BASELINE
+  description: >
+    HYBRID_ROUTER_V3 (decision-tree based). RULE5 default, RULE6A only in 5–7% of sweet-spot environments
+    (moderate ATR, decent spread, FARM_ASIA_MEDIUM regime). Approx 148–150 bps EV/trade, ~88% win rate in 2025 backtest.
+
+policy_name: GX1_V11_OANDA_DEMO_V9_FARM_V2B_EXIT_HYBRID_V3_FULLYEAR
+version: "GX1_V11_OANDA_DEMO_V9_FARM_V2B_EXIT_HYBRID_V3_FULLYEAR"
+mode: "REPLAY"
+instrument: "XAU_USD"
+timeframe: "M5"
+warmup_bars: 288
+
+entry_config: gx1/configs/policies/prod_snapshot/2025_FARM_V2B_HYBRID/ENTRY_V9_FARM_V2B_PROD.yaml
+exit_config: gx1/configs/exits/FARM_EXIT_V2_RULES_A_mp68_max5_rule5_cd0.yaml
+
+exit_policies:
+  rule5: gx1/configs/exits/FARM_EXIT_V2_RULES_A_mp68_max5_rule5_cd0.yaml
+  rule6a: gx1/configs/exits/FARM_EXIT_V2_RULES_ADAPTIVE_v1.yaml
+
+exit_hybrid:
+  enabled: true
+  mode: RULE5_RULE6A_ATR_SPREAD_V1
+  atr_low_pct: 0.0
+  atr_high_pct: 75.0
+  max_spread_pct: 40.0
+  allowed_regimes:
+    - FARM_ASIA_MEDIUM
+  exit_params:
+    enable_tp: true
+    enable_trailing: true
+    enable_be: true
+
+hybrid_exit_router:
+  version: HYBRID_ROUTER_V3
+  documentation: |
+    HYBRID_ROUTER_V3 provides ML-based routing using decision tree trained on raw atr_pct/spread_pct:
+    
+    Key features:
+      - Uses raw values (no standardization needed)
+      - Conservative variant: cuts high-spread RULE6A
+      - Requires MEDIUM regime for RULE6A
+      - RULE5 as safe default
+    
+    Expected RULE6A conditions:
+      - Moderate ATR (18.75-31.34) + OK spread (≤78.10) + MEDIUM regime
+      - Very high ATR (>61.03) + ultra-low spread (≤0.50) + MEDIUM regime
+    
+    This is "V3_SAFE" – uses tree structure but with conservative risk haircut.
+
+trade_log_csv: gx1/wf_runs/GX1_V11_OANDA_DEMO_V9_FARM_V2B_EXIT_HYBRID_V3_FULLYEAR/trade_log.csv
+
+logging:
+  level: INFO
+  log_dir: gx1/wf_runs/GX1_V11_OANDA_DEMO_V9_FARM_V2B_EXIT_HYBRID_V3_FULLYEAR/logs
+
+execution:
+  max_open_trades: 5
+
+risk:
+  min_time_between_trades_sec: 0
+

@@ -1,0 +1,68 @@
+# GX1 v1.1 → Hybrid exit controller V2B (RULE5 + RULE6A) full-year replay
+#
+# Entry: FARM_V2B mp68_max5_cd0 (long-only)
+# Exit: RULE5 default + hybrid routing V2B (conservative ML, p ~ 0.7) per trade
+# Window: Full 2025 (2025-01-02 → 2025-12-31) – supply dates via replay CLI
+
+meta:
+  router_version: V2B
+  role: ARCHIVED_SAFE_MODE
+  description: >
+    Ultra-conservative router (~0% RULE6A). Lowest EV/trade (~46 bps) and lowest win rate (~59%).
+    Overly defensive; kept as a historical experiment for "too safe" routing.
+
+policy_name: GX1_V11_OANDA_DEMO_V9_FARM_V2B_EXIT_HYBRID_FULLYEAR_V2B
+version: "GX1_V11_OANDA_DEMO_V9_FARM_V2B_EXIT_HYBRID_FULLYEAR_V2B"
+mode: "REPLAY"
+instrument: "XAU_USD"
+timeframe: "M5"
+warmup_bars: 288
+
+entry_config: gx1/configs/policies/prod_snapshot/2025_FARM_V2B_HYBRID/ENTRY_V9_FARM_V2B_PROD.yaml
+exit_config: gx1/configs/exits/FARM_EXIT_V2_RULES_A_mp68_max5_rule5_cd0.yaml
+
+exit_policies:
+  rule5: gx1/configs/exits/FARM_EXIT_V2_RULES_A_mp68_max5_rule5_cd0.yaml
+  rule6a: gx1/configs/exits/FARM_EXIT_V2_RULES_ADAPTIVE_v1.yaml
+
+exit_hybrid:
+  enabled: true
+  mode: RULE5_RULE6A_ATR_SPREAD_V1
+  atr_low_pct: 0.0
+  atr_high_pct: 75.0
+  max_spread_pct: 40.0
+  allowed_regimes:
+    - FARM_ASIA_MEDIUM
+  exit_params:
+    enable_tp: true
+    enable_trailing: true
+    enable_be: true
+
+hybrid_exit_router:
+  version: HYBRID_ROUTER_V2B
+  # Thresholds below are for documentation only - actual routing is controlled by V2B logic
+  sweet_spot_threshold: 0.70
+  target_rule6a_pct: 0.10
+  documentation: |
+    HYBRID_ROUTER_V2B uses conservative ML decision tree:
+      - Combines V1 rules (atr_pct >= 75%, spread_pct <= 40%, regime == MEDIUM)
+      - AND V2 tree high-confidence zone (atr_std > 0.85 and <= 0.97)
+      - Target: ~10% RULE6A allocation
+      - Expected EV/trade: ~176.97 bps (from threshold sweep)
+      - Uplift vs baseline: +7.10 bps
+    
+    V2 (research, p ~ 0.5): 33.8% RULE6A, EV=176.61 bps
+    V2B (production, p ~ 0.7): ~10% RULE6A, EV=~176.97 bps (expected)
+
+trade_log_csv: gx1/wf_runs/FARM_V2B_EXIT_HYBRID_2025_V2B/trade_log.csv
+
+logging:
+  level: INFO
+  log_dir: gx1/wf_runs/FARM_V2B_EXIT_HYBRID_2025_V2B/logs
+
+execution:
+  max_open_trades: 5
+
+risk:
+  min_time_between_trades_sec: 0
+
