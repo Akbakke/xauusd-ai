@@ -34,6 +34,9 @@ class EntryManager:
             "atr_regimes": {},
             "farm_regimes": {},
         }
+        self.cluster_guard_history = deque(maxlen=600)
+        self.cluster_guard_atr_median: Optional[float] = None
+        self.spread_history = deque(maxlen=600)
 
     def __getattr__(self, name: str):
         return getattr(self._runner, name)
@@ -44,8 +47,169 @@ class EntryManager:
         else:
             setattr(self._runner, name, value)
 
+    @staticmethod
+    def _percentile_from_history(history: deque, value: Optional[float]) -> Optional[float]:
+        """Return percentile rank (0-100) of value relative to a deque history."""
+        if value is None or not history:
+            return None
+        try:
+            arr = np.array(history, dtype=float)
+        except Exception:
+            return None
+        if arr.size == 0 or not np.isfinite(value):
+            return None
+        arr = arr[np.isfinite(arr)]
+        if arr.size == 0:
+            return None
+        sorted_arr = np.sort(arr)
+        idx = np.searchsorted(sorted_arr, value, side="right")
+        pct = (idx / float(sorted_arr.size)) * 100.0
+        return max(0.0, min(100.0, float(pct)))
+
+    @staticmethod
+    def _compute_range_features(candles: pd.DataFrame, window: int = 96) -> tuple[float, float]:
+        """
+        Compute range_pos and distance_to_range features from OHLC candles.
+        
+        Args:
+            candles: DataFrame with 'high', 'low', 'close' columns (or bid/ask variants)
+            window: Rolling window size (default 96 bars ≈ 1 day for M15)
+        
+        Returns:
+            (range_pos, distance_to_range) both in [0.0, 1.0]
+            Falls back to (0.5, 0.5) if insufficient data or error.
+        """
+        eps = 1e-12
+        default_range_pos = 0.5
+        default_distance = 0.5
+        
+        try:
+            if len(candles) < window:
+                # Not enough bars - return defaults
+                return (default_range_pos, default_distance)
+            
+            # Try to get high/low/close columns (prefer direct, fallback to bid/ask mid)
+            # IMPORTANT: Use consistent source - don't mix direct OHLC with bid/ask
+            has_direct = all(col in candles.columns for col in ['high', 'low', 'close'])
+            has_bid_ask = all(col in candles.columns for col in ['bid_high', 'ask_high', 'bid_low', 'ask_low', 'bid_close', 'ask_close'])
+            
+            if not has_direct and not has_bid_ask:
+                return (default_range_pos, default_distance)
+            
+            # Use last window bars (exclude current incomplete bar if possible)
+            # For range calculation, use window bars ending at -2 (last closed bar)
+            # If not enough bars, use what we have
+            if len(candles) >= window + 1:
+                # We have at least window+1 bars, use window bars ending at -2 (last closed)
+                recent = candles.iloc[-(window+1):-1]  # Exclude last bar (may be incomplete)
+            else:
+                # Not enough bars to exclude last - use all available
+                recent = candles.tail(window)
+            
+            if has_direct:
+                # Use direct OHLC consistently
+                high_vals = recent['high'].values
+                low_vals = recent['low'].values
+                close_vals = recent['close'].values
+            else:
+                # Use bid/ask mid-price consistently
+                high_vals = (recent['bid_high'].values + recent['ask_high'].values) / 2.0
+                low_vals = (recent['bid_low'].values + recent['ask_low'].values) / 2.0
+                close_vals = (recent['bid_close'].values + recent['ask_close'].values) / 2.0
+            
+            # Compute rolling max/min: max and min of the last window bars
+            # This is explicitly: max(high[-window:]) and min(low[-window:])
+            range_hi = float(np.max(high_vals))
+            range_lo = float(np.min(low_vals))
+            
+            # Current price reference: use last CLOSED bar's close
+            # If we excluded last bar, use -1 from recent (which is -2 from original)
+            # If we didn't exclude, use -1 from recent (which is -1 from original)
+            price_ref = float(close_vals[-1])
+            
+            # Compute range_pos
+            denom = max(eps, range_hi - range_lo)
+            range_pos_raw = (price_ref - range_lo) / denom
+            range_pos = max(0.0, min(1.0, float(range_pos_raw)))
+            
+            # Compute distance_to_range (edge-distance)
+            dist_edge = min(range_pos, 1.0 - range_pos)  # 0 at edge, 0.5 in middle
+            distance_to_range = dist_edge * 2.0  # Scale to 0..1 (0=edge, 1=mid)
+            distance_to_range = max(0.0, min(1.0, float(distance_to_range)))
+            
+            return (range_pos, distance_to_range)
+            
+        except Exception:
+            # Any error -> return defaults
+            return (default_range_pos, default_distance)
+    
+    @staticmethod
+    def _compute_range_edge_dist_atr(
+        candles: pd.DataFrame,
+        price_ref: float,
+        range_hi: float,
+        range_lo: float,
+        atr_value: Optional[float],
+        window: int = 96,
+    ) -> float:
+        """
+        Compute ATR-normalized distance to nearest range edge.
+        
+        Args:
+            candles: DataFrame with OHLC data (used for consistency check)
+            price_ref: Current price reference (last closed bar's close)
+            range_hi: Maximum high in the window
+            range_lo: Minimum low in the window
+            atr_value: ATR in price units (None if unavailable)
+            window: Rolling window size (for consistency)
+        
+        Returns:
+            range_edge_dist_atr: ATR-normalized distance to nearest edge [0.0, 10.0]
+            Falls back to 0.0 if insufficient data or error.
+        """
+        eps = 1e-12
+        default_value = 0.0
+        
+        try:
+            # Check if we have valid ATR value
+            if atr_value is None or not np.isfinite(atr_value) or atr_value <= 0:
+                return default_value
+            
+            # Compute distance to nearest edge in price units
+            dist_to_low = max(0.0, price_ref - range_lo)
+            dist_to_high = max(0.0, range_hi - price_ref)
+            dist_edge_price = min(dist_to_low, dist_to_high)
+            
+            # Normalize by ATR
+            denom = max(eps, atr_value)
+            range_edge_dist_atr_raw = dist_edge_price / denom
+            
+            # Clip to [0.0, 10.0] to cap outliers
+            range_edge_dist_atr = max(0.0, min(10.0, float(range_edge_dist_atr_raw)))
+            
+            return range_edge_dist_atr
+            
+        except Exception:
+            # Any error -> return default
+            return default_value
+
     def evaluate_entry(self, candles: pd.DataFrame) -> Optional[LiveTrade]:
         entry_bundle = build_live_entry_features(candles)
+        current_atr_bps: Optional[float] = None
+        current_atr_pct: Optional[float] = None
+        try:
+            if entry_bundle.atr_bps is not None:
+                current_atr_bps = float(entry_bundle.atr_bps)
+        except (TypeError, ValueError):
+            current_atr_bps = None
+        if current_atr_bps is not None and current_atr_bps > 0:
+            self.cluster_guard_history.append(current_atr_bps)
+            if len(self.cluster_guard_history) >= 25:
+                try:
+                    self.cluster_guard_atr_median = float(np.median(self.cluster_guard_history))
+                except Exception:
+                    pass
+            current_atr_pct = self._percentile_from_history(self.cluster_guard_history, current_atr_bps)
         
         # FARM_V2B diagnostic: increment bar counter
         self.farm_diag["n_bars"] += 1
@@ -522,6 +686,9 @@ class EntryManager:
                         accepted_row = df_policy[df_policy["entry_v9_policy_farm_v2b"]].iloc[0]
                         policy_state["p_long"] = accepted_row.get("p_long", v9_pred.prob_long)
                         policy_state["p_profitable"] = accepted_row.get("p_profitable", None)
+                        # Store policy-determined side if available (for side-aware filtering)
+                        if "_policy_side" in accepted_row:
+                            policy_state["_policy_side"] = accepted_row["_policy_side"]
                     else:
                         # Signal rejected - still store p_long for logging
                         policy_state["p_long"] = df_policy["p_long"].iloc[0] if len(df_policy) > 0 and "p_long" in df_policy.columns else v9_pred.prob_long
@@ -915,19 +1082,34 @@ class EntryManager:
         
         # Soft Score Shaping removed - using blended scores directly (no trend-bias or risk-damping)
         
-        # should_enter_trade is a module-level function in oanda_demo_runner
-        # EntryManager accesses it via __getattr__ from runner
-        should_enter_trade_func = getattr(self, "should_enter_trade", None)
-        if should_enter_trade_func is None:
-            # Fallback: import directly if not available via runner
-            from gx1.execution.oanda_demo_runner import should_enter_trade as should_enter_trade_func
-        side = should_enter_trade_func(
-            prediction, 
-            self.entry_params,
-            entry_gating=entry_gating,
-            last_side=last_side,
-            bars_since_last_side=bars_since_last_side,
-        )
+        # For FARM_V2B with side-aware policy, use policy-determined side if available
+        policy_side = policy_state.get("_policy_side", None)
+        if policy_side and policy_side in ("long", "short", "both"):
+            # Policy has determined which side(s) are allowed
+            if policy_side == "long":
+                side = "long"
+            elif policy_side == "short":
+                side = "short"
+            elif policy_side == "both":
+                # Both thresholds met - use default logic (max prob)
+                side = "long" if prediction.prob_long >= prediction.prob_short else "short"
+            else:
+                side = None
+        else:
+            # Default: use should_enter_trade function
+            # should_enter_trade is a module-level function in oanda_demo_runner
+            # EntryManager accesses it via __getattr__ from runner
+            should_enter_trade_func = getattr(self, "should_enter_trade", None)
+            if should_enter_trade_func is None:
+                # Fallback: import directly if not available via runner
+                from gx1.execution.oanda_demo_runner import should_enter_trade as should_enter_trade_func
+            side = should_enter_trade_func(
+                prediction, 
+                self.entry_params,
+                entry_gating=entry_gating,
+                last_side=last_side,
+                bars_since_last_side=bars_since_last_side,
+            )
         
         # POST-GATES: side after gates (diagnostic)
         side_post = side.upper() if side else "NO_ENTRY"
@@ -1507,6 +1689,22 @@ class EntryManager:
                     )
                     return None
 
+            if side == "long":
+                atr_median = getattr(self, "cluster_guard_atr_median", None)
+                if atr_median is not None and current_atr_bps is not None:
+                    same_dir = sum(
+                        1 for t in self.open_trades
+                        if getattr(t, "side", "").lower() == "long"
+                    )
+                    if same_dir >= 3 and current_atr_bps > atr_median:
+                        log.info(
+                            "[GUARD] cluster_guard: open_longs=%d atr=%.2f bps > median=%.2f bps",
+                            same_dir,
+                            current_atr_bps,
+                            atr_median,
+                        )
+                        return None
+
         # ENTRY_ONLY mode: Log entry event instead of creating trade
         if self.mode == "ENTRY_ONLY":
             self._log_entry_only_event(
@@ -1595,14 +1793,136 @@ class EntryManager:
         trade.extra["be_trigger_bps"] = be_trigger_bps
         trade.extra["be_active"] = False
         trade.extra["be_price"] = None
+
+        # Compute spread metrics for hybrid exit routing / diagnostics
+        spread_bps: Optional[float] = None
+        spread_pct: Optional[float] = None
+        try:
+            spread_raw = float(entry_ask_price) - float(entry_bid_price)
+            if spread_raw > 0:
+                spread_bps = spread_raw * 10000.0
+        except (TypeError, ValueError):
+            spread_bps = None
+        if spread_bps is not None:
+            spread_pct = self._percentile_from_history(self.spread_history, spread_bps)
+            if np.isfinite(spread_bps):
+                self.spread_history.append(spread_bps)
+
+        policy_state_snapshot = self._last_policy_state or {}
+
+        # Compute range features BEFORE router selection (needed for V3 router with range features)
+        range_window = 96
+        range_pos, distance_to_range = self._compute_range_features(candles, window=range_window)
+        trade.extra["range_pos"] = float(range_pos)
+        trade.extra["distance_to_range"] = float(distance_to_range)
         
+        # Compute range_edge_dist_atr (ATR-normalized distance to nearest edge)
+        atr_value: Optional[float] = None
+        if current_atr_bps is not None and current_atr_bps > 0 and entry_price > 0:
+            atr_value = (current_atr_bps / 10000.0) * entry_price
+        
+        if len(candles) >= range_window + 1:
+            recent = candles.iloc[-(range_window+1):-1]
+        else:
+            recent = candles.tail(range_window)
+        
+        has_direct = all(col in candles.columns for col in ['high', 'low', 'close'])
+        has_bid_ask = all(col in candles.columns for col in ['bid_high', 'ask_high', 'bid_low', 'ask_low', 'bid_close', 'ask_close'])
+        
+        range_hi = None
+        range_lo = None
+        price_ref = None
+        range_edge_dist_atr = 0.0
+        
+        if has_direct or has_bid_ask:
+            if has_direct:
+                high_vals = recent['high'].values
+                low_vals = recent['low'].values
+                close_vals = recent['close'].values
+            else:
+                high_vals = (recent['bid_high'].values + recent['ask_high'].values) / 2.0
+                low_vals = (recent['bid_low'].values + recent['ask_low'].values) / 2.0
+                close_vals = (recent['bid_close'].values + recent['ask_close'].values) / 2.0
+            
+            range_hi = float(np.max(high_vals))
+            range_lo = float(np.min(low_vals))
+            price_ref = float(close_vals[-1])
+            
+            range_edge_dist_atr = self._compute_range_edge_dist_atr(
+                candles=candles,
+                price_ref=price_ref,
+                range_hi=range_hi,
+                range_lo=range_lo,
+                atr_value=atr_value,
+                window=range_window,
+            )
+        
+        trade.extra["range_edge_dist_atr"] = float(range_edge_dist_atr)
+
+        if getattr(self, "exit_hybrid_enabled", False) and getattr(self, "exit_mode_selector", None):
+            session_for_exit = policy_state_snapshot.get("session")
+            if not session_for_exit:
+                from gx1.execution.live_features import infer_session_tag as _infer_session_tag
+
+                session_for_exit = _infer_session_tag(trade.entry_time).upper()
+            farm_regime = (
+                policy_state_snapshot.get("farm_regime")
+                or policy_state_snapshot.get("_farm_regime")
+                or "UNKNOWN"
+            )
+            selected_profile = self.exit_mode_selector.choose_exit_profile(
+                atr_bps=current_atr_bps if current_atr_bps is not None else trade.atr_bps,
+                atr_pct=current_atr_pct,
+                spread_bps=spread_bps,
+                spread_pct=spread_pct,
+                session=session_for_exit,
+                regime=farm_regime,
+                range_pos=range_pos,
+                distance_to_range=distance_to_range,
+                range_edge_dist_atr=range_edge_dist_atr,
+            )
+            trade.extra["exit_profile"] = selected_profile
+            trade.extra.setdefault("exit_hybrid", {})
+            trade.extra["exit_hybrid"].update(
+                {
+                    "mode": getattr(self, "exit_hybrid_mode", "RULE5_RULE6A_ATR_SPREAD_V1"),
+                    "atr_bps": current_atr_bps,
+                    "atr_pct": current_atr_pct,
+                    "spread_bps": spread_bps,
+                    "spread_pct": spread_pct,
+                    "session": session_for_exit,
+                    "regime": farm_regime,
+                }
+            )
+            log.info(
+                "[HYBRID_EXIT] trade=%s session=%s regime=%s atr_bps=%s atr_pct=%s spread_bps=%s spread_pct=%s -> %s",
+                trade.trade_id,
+                session_for_exit,
+                farm_regime,
+                f"{current_atr_bps:.2f}" if current_atr_bps is not None else "nan",
+                f"{current_atr_pct:.1f}" if current_atr_pct is not None else "nan",
+                f"{spread_bps:.2f}" if spread_bps is not None else "nan",
+                f"{spread_pct:.1f}" if spread_pct is not None else "nan",
+                selected_profile,
+            )
+
+        # Optional debug log
+        log.debug(
+            "[RANGE_FEAT] trade_id=%s range_pos=%.4f distance_to_range=%.4f range_edge_dist_atr=%.4f window=%d",
+            trade.trade_id,
+            range_pos,
+            distance_to_range,
+            range_edge_dist_atr,
+            range_window,
+        )
+
         # Ensure exit profile + exit policy initialization through shared helper
         self._ensure_exit_profile(trade, context="entry_manager")
         if self.exit_config_name and not (getattr(trade, "extra", {}) or {}).get("exit_profile"):
             raise RuntimeError(
                 f"[EXIT_PROFILE] Trade created without exit_profile under exit-config {self.exit_config_name}: {trade.trade_id}"
             )
-        policy_state_snapshot = self._last_policy_state or {}
+        policy_state_snapshot = self._last_policy_state or policy_state_snapshot
         if hasattr(self, "_record_entry_diag"):
             try:
                 self._record_entry_diag(trade, policy_state_snapshot, prediction)

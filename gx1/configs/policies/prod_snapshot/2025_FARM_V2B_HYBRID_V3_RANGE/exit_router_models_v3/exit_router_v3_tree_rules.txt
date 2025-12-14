@@ -1,0 +1,22 @@
+|--- atr_pct <= 6.81
+|   |--- class: RULE5
+|--- atr_pct >  6.81
+|   |--- atr_pct <= 33.50
+|   |   |--- spread_pct <= 98.47
+|   |   |   |--- atr_pct <= 10.65
+|   |   |   |   |--- class: RULE6A
+|   |   |   |--- atr_pct >  10.65
+|   |   |   |   |--- class: RULE6A
+|   |   |--- spread_pct >  98.47
+|   |   |   |--- range_edge_dist_atr <= 0.08
+|   |   |   |   |--- class: RULE5
+|   |   |   |--- range_edge_dist_atr >  0.08
+|   |   |   |   |--- class: RULE6A
+|   |--- atr_pct >  33.50
+|   |   |--- spread_pct <= 0.50
+|   |   |   |--- atr_pct <= 61.34
+|   |   |   |   |--- class: RULE5
+|   |   |   |--- atr_pct >  61.34
+|   |   |   |   |--- class: RULE6A
+|   |   |--- spread_pct >  0.50
+|   |   |   |--- class: RULE5

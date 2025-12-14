@@ -51,6 +51,9 @@ class ExitModeSelector:
         spread_pct: float | None,
         session: str,
         regime: str,
+        range_pos: float | None = None,
+        distance_to_range: float | None = None,
+        range_edge_dist_atr: float | None = None,
     ) -> str:
         """
         Decide which exit profile to assign to a trade.
@@ -85,6 +88,9 @@ class ExitModeSelector:
                 atr_bucket=atr_bucket,
                 regime=regime,
                 session=session,
+                range_pos=range_pos,
+                distance_to_range=distance_to_range,
+                range_edge_dist_atr=range_edge_dist_atr,
             )
             
             # Use V3 router

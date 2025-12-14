@@ -28,6 +28,10 @@ class ExitRouterContext:
     atr_bucket: str
     regime: str
     session: str
+    # V4 range features
+    range_pos: Optional[float] = None
+    distance_to_range: Optional[float] = None
+    range_edge_dist_atr: Optional[float] = None
 
 
 def _standardize_atr_pct(atr_pct: float) -> float:
@@ -172,63 +176,116 @@ def hybrid_exit_router_v2b(ctx: ExitRouterContext) -> ExitPolicyName:
 
 def hybrid_exit_router_v3(ctx: ExitRouterContext) -> ExitPolicyName:
     """
-    HYBRID_ROUTER_V3 - ML decision tree router (RAW, konservativ variant).
+    HYBRID_ROUTER_V3 - ML decision tree router with range features (V4-C).
     
-    Basert på V3 decision tree trent på rå atr_pct / spread_pct.
-    Konservativ variant: vi klipper bort de mest tvilsomme high-spread RULE6A-grenene.
+    Laster trent decision tree fra exit_router_models_v3/exit_router_v3_tree.pkl
+    og bruker range features (range_pos, distance_to_range, range_edge_dist_atr).
     
-    Tree structure (fra training):
+    Tree structure (fra training med range features):
     |--- atr_pct <= 6.81 → RULE5
-    |--- 6.81 < atr_pct <= 31.34:
-    |   |--- spread_pct <= 78.10:
-    |   |   |--- atr_pct <= 18.75 → RULE5
-    |   |   |--- atr_pct > 18.75 → RULE6A
-    |   |--- spread_pct > 78.10:
-    |   |   |--- spread_pct <= 99.26 → RULE6A (KUTTET UT - for høy spread)
-    |   |   |--- spread_pct > 99.26 → RULE5
-    |--- atr_pct > 31.34:
-    |   |--- spread_pct <= 0.50:
-    |   |   |--- atr_pct <= 61.03 → RULE5
-    |   |   |--- atr_pct > 61.03 → RULE6A
-    |   |--- spread_pct > 0.50 → RULE5
-    
-    Konservative endringer:
-    - Kutter high-spread RULE6A (spread_pct > 78.10)
-    - Krever MEDIUM-regime for RULE6A
-    - Beholder RULE5 som default
+    |--- atr_pct > 6.81:
+    |   |--- atr_pct <= 33.50:
+    |   |   |--- spread_pct <= 98.47:
+    |   |   |   |--- atr_pct <= 10.65 → RULE6A
+    |   |   |   |--- atr_pct > 10.65 → RULE6A
+    |   |   |--- spread_pct > 98.47:
+    |   |   |   |--- range_edge_dist_atr <= 0.08 → RULE5
+    |   |   |   |--- range_edge_dist_atr > 0.08 → RULE6A
+    |   |--- atr_pct > 33.50:
+    |   |   |--- spread_pct <= 0.50:
+    |   |   |   |--- atr_pct <= 61.34 → RULE5
+    |   |   |   |--- atr_pct > 61.34 → RULE6A
+    |   |   |--- spread_pct > 0.50 → RULE5
     """
+    import joblib
+    from pathlib import Path
+    
     atr = ctx.atr_pct
     spr = ctx.spread_pct
     regime = ctx.regime or "UNKNOWN"
+    atr_bucket = ctx.atr_bucket or "UNKNOWN"
     
     # Manglende nøkkelfeatures → alltid RULE5
     if atr is None or spr is None:
         return "RULE5"
     
-    # Vi tillater RULE6A kun i MEDIUM-regime (der vi vet det fungerer best)
-    is_medium_regime = "MEDIUM" in regime.upper()
+    # Lazy load trained model (cache after first load)
+    if not hasattr(hybrid_exit_router_v3, "_model_cache"):
+        model_path = Path(__file__).parent.parent / "analysis" / "exit_router_models_v3" / "exit_router_v3_tree.pkl"
+        if model_path.exists():
+            try:
+                hybrid_exit_router_v3._model_cache = joblib.load(model_path)
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).warning(f"[ROUTER_V3] Failed to load model: {e}, falling back to hardcoded logic")
+                hybrid_exit_router_v3._model_cache = None
+        else:
+            hybrid_exit_router_v3._model_cache = None
     
+    model = hybrid_exit_router_v3._model_cache
+    
+    # If model loaded, use it
+    if model is not None:
+        try:
+            import pandas as pd
+            import numpy as np
+            
+            # Prepare features as DataFrame (matching training format)
+            # Features: atr_pct, spread_pct, distance_to_range, range_edge_dist_atr, micro_volatility, volume_stability
+            # Categorical: atr_bucket, farm_regime, session
+            features = {
+                "atr_pct": [atr],
+                "spread_pct": [spr if spr is not None else 1.0],
+                "distance_to_range": [ctx.distance_to_range if ctx.distance_to_range is not None else 0.5],
+                "range_edge_dist_atr": [ctx.range_edge_dist_atr if ctx.range_edge_dist_atr is not None else 0.0],
+                "micro_volatility": [0.0],  # Not available in context, use default
+                "volume_stability": [0.0],  # Not available in context, use default
+                "atr_bucket": [atr_bucket],
+                "farm_regime": [regime],
+                "session": [ctx.session or "UNKNOWN"],
+            }
+            
+            X = pd.DataFrame(features)
+            
+            # Predict using pipeline
+            prediction = model.predict(X)
+            policy_name = prediction[0] if len(prediction) > 0 else "RULE5"
+            
+            # Map to ExitPolicyName
+            if isinstance(policy_name, str):
+                if policy_name.upper() == "RULE6A":
+                    return "RULE6A"
+            return "RULE5"
+            
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"[ROUTER_V3] Prediction failed: {e}, falling back to hardcoded logic")
+    
+    # Fallback: hardcoded tree logic (from training)
     # 1) Ultralav ATR → alltid RULE5
     if atr <= 6.81:
         return "RULE5"
     
-    # 2) Moderat ATR (6.81–31.34)
-    if atr <= 31.34:
-        # Spreaddritt: over ~80-percentilen → vi tvinger RULE5
-        if spr > 78.10:
+    # 2) Moderat ATR (6.81–33.50)
+    if atr <= 33.50:
+        if spr <= 98.47:
+            # Low spread → RULE6A if atr > 10.65
+            if atr > 10.65:
+                return "RULE6A"
             return "RULE5"
-        
-        # spread ok-ish og atr i øvre del av medium → RULE6A *kun* i MEDIUM regime
-        if atr > 18.75 and spr <= 78.10 and is_medium_regime:
-            return "RULE6A"
-        
-        # Resten → RULE5
-        return "RULE5"
+        else:
+            # High spread (> 98.47) → use range_edge_dist_atr
+            reda = ctx.range_edge_dist_atr if ctx.range_edge_dist_atr is not None else 0.0
+            if reda <= 0.08:
+                return "RULE5"
+            else:
+                return "RULE6A"
     
-    # 3) Høy ATR (>31.34)
-    # Her tillater vi RULE6A bare når spread er ekstremt lav og ATR veldig høy
-    if spr <= 0.50 and atr > 61.03 and is_medium_regime:
-        return "RULE6A"
+    # 3) Høy ATR (> 33.50)
+    if spr <= 0.50:
+        if atr > 61.34:
+            return "RULE6A"
+        return "RULE5"
     
     # Alt annet → RULE5
     return "RULE5"

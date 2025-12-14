@@ -1,0 +1,37 @@
+{
+  "accuracy": 0.7322175732217573,
+  "confusion_matrix": [
+    [
+      304,
+      126
+    ],
+    [
+      2,
+      46
+    ]
+  ],
+  "tree_ev_per_trade": null,
+  "baseline_rule5_ev": null,
+  "oracle_ev": null,
+  "uplift_tree_vs_baseline": null,
+  "uplift_oracle_vs_tree": null,
+  "uplift_oracle_vs_baseline": null,
+  "n_samples_ev": 0,
+  "n_samples_total": 1591,
+  "policies": [
+    "RULE5",
+    "RULE6A"
+  ],
+  "threshold_binary_ev": 0.7,
+  "ev_metrics_binary": null,
+  "full_ev_metrics": null,
+  "v4_range_awareness": {
+    "enabled": true,
+    "feature": "distance_to_range",
+    "nan_fill": 0.5,
+    "clip_if_normalized_q05_q95": [
+      -0.1,
+      1.2
+    ]
+  }
+}
