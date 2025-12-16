@@ -56,6 +56,7 @@ exit_hybrid:
 
 hybrid_exit_router:
   version: HYBRID_ROUTER_V3
+  v3_range_edge_cutoff: 1.0  # Guardrail: RULE6A only allowed when range_edge_dist_atr < 1.0
   documentation: |
     HYBRID_ROUTER_V3 provides ML-based routing using decision tree trained on raw atr_pct/spread_pct:
     
@@ -64,10 +65,12 @@ hybrid_exit_router:
       - Conservative variant: cuts high-spread RULE6A
       - Requires MEDIUM regime for RULE6A
       - RULE5 as safe default
+      - Range-edge guardrail: RULE6A only when range_edge_dist_atr < cutoff (default: 1.0)
     
     Expected RULE6A conditions:
       - Moderate ATR (18.75-31.34) + OK spread (≤78.10) + MEDIUM regime
       - Very high ATR (>61.03) + ultra-low spread (≤0.50) + MEDIUM regime
+      - AND range_edge_dist_atr < 1.0 (guardrail)
     
     This is "V3_SAFE" – uses tree structure but with conservative risk haircut.
 

@@ -71,12 +71,14 @@ def apply_entry_v9_policy_farm_v2b(
     
     # Get parameters
     min_prob_long = float(policy_cfg.get("min_prob_long", 0.72))
+    min_prob_short = float(policy_cfg.get("min_prob_short", 0.72))  # Default same as long
     enable_profitable_filter = policy_cfg.get("enable_profitable_filter", False)
     require_trend_up = policy_cfg.get("require_trend_up", False)
+    allow_short = policy_cfg.get("allow_short", False)
     
     logger.info(
-        f"[POLICY_FARM_V2B] Policy params: min_prob_long={min_prob_long}, "
-        f"enable_profitable_filter={enable_profitable_filter}, require_trend_up={require_trend_up}"
+        f"[POLICY_FARM_V2B] Policy params: min_prob_long={min_prob_long}, min_prob_short={min_prob_short}, "
+        f"allow_short={allow_short}, enable_profitable_filter={enable_profitable_filter}, require_trend_up={require_trend_up}"
     )
     
     # ============================================================================
@@ -88,9 +90,8 @@ def apply_entry_v9_policy_farm_v2b(
     # Import centralized guard V2
     from gx1.policy.farm_guards import farm_brutal_guard_v2, get_farm_entry_metadata_v2
     
-    # Get allow_medium_vol from config
+    # Get allow_medium_vol from config (allow_short already retrieved above)
     allow_medium_vol = policy_cfg.get("allow_medium_vol", True)
-    allow_short = policy_cfg.get("allow_short", False)
     
     # Apply brutal guard to ALL rows - filter out non-ASIA+(LOW|MEDIUM) BEFORE any other logic
     n_before_guard = len(df)
@@ -180,7 +181,7 @@ def apply_entry_v9_policy_farm_v2b(
             logger.warning("[POLICY_FARM_V2B] No trend regime column found, skipping trend filter")
     
     # ============================================================================
-    # STEP 2: Apply p_long threshold
+    # STEP 2: Apply side-aware probability thresholds (p_long OR p_short)
     # ============================================================================
     if "prob_long" not in df.columns:
         raise KeyError("df_signals must have 'prob_long' column for ENTRY_V9_POLICY_FARM_V2B")
@@ -189,12 +190,40 @@ def apply_entry_v9_policy_farm_v2b(
     if "p_long" not in df.columns:
         df["p_long"] = df["prob_long"]
     
+    # Ensure prob_short exists (may be missing in some datasets)
+    if "prob_short" not in df.columns:
+        if "p_short" in df.columns:
+            df["prob_short"] = df["p_short"]
+        else:
+            # If prob_short missing, compute as 1 - prob_long (assuming normalized probabilities)
+            df["prob_short"] = 1.0 - df["prob_long"]
+            logger.debug("[POLICY_FARM_V2B] prob_short not found, computed as 1 - prob_long")
+    
+    if "p_short" not in df.columns:
+        df["p_short"] = df["prob_short"]
+    
     n_before_prob = len(df)
-    prob_mask = df["p_long"] >= min_prob_long
+    
+    # Side-aware filtering: allow long if p_long >= min_prob_long, allow short if p_short >= min_prob_short
+    long_mask = df["p_long"] >= min_prob_long
+    short_mask = df["p_short"] >= min_prob_short if allow_short else pd.Series([False] * len(df), index=df.index)
+    
+    # Signal passes if EITHER long OR short threshold is met
+    prob_mask = long_mask | short_mask
+    
+    # Determine which side to use (for logging/analysis)
+    df["_policy_side"] = "none"
+    df.loc[long_mask & ~short_mask, "_policy_side"] = "long"
+    df.loc[short_mask & ~long_mask, "_policy_side"] = "short"
+    df.loc[long_mask & short_mask, "_policy_side"] = "both"  # Both thresholds met (use max)
+    
     n_after_prob = prob_mask.sum()
+    n_long_signals = long_mask.sum()
+    n_short_signals = short_mask.sum()
     
     logger.info(
-        f"[POLICY_FARM_V2B] After p_long>={min_prob_long}: {n_before_prob} -> {n_after_prob} signals"
+        f"[POLICY_FARM_V2B] After side-aware thresholds (long>={min_prob_long}, short>={min_prob_short}): "
+        f"{n_before_prob} -> {n_after_prob} signals (long={n_long_signals}, short={n_short_signals})"
     )
     
     # ============================================================================
@@ -271,16 +300,22 @@ def apply_entry_v9_policy_farm_v2b(
     
     # Set policy flag
     df["entry_v9_policy_farm_v2b"] = final_mask.astype(bool)
-    df["policy_score"] = df["p_long"]
+    
+    # Policy score: use max(p_long, p_short) for side-aware scoring
+    df["policy_score"] = df[["p_long", "p_short"]].max(axis=1)
     
     # Final coverage
     final_coverage = df["entry_v9_policy_farm_v2b"].sum() / n_original if n_original > 0 else 0.0
     
+    # Count signals by side
+    n_long_final = (df["entry_v9_policy_farm_v2b"] & (df["_policy_side"].isin(["long", "both"]))).sum()
+    n_short_final = (df["entry_v9_policy_farm_v2b"] & (df["_policy_side"].isin(["short", "both"]))).sum()
+    
     logger.info(
         f"[POLICY_FARM_V2B] ===== FINAL RESULT ====="
-        f"coverage={final_coverage:.4f}, min_prob_long={min_prob_long}, "
-        f"enable_profitable_filter={enable_profitable_filter}, "
-        f"n_signals={df['entry_v9_policy_farm_v2b'].sum()}/{n_original}"
+        f"coverage={final_coverage:.4f}, min_prob_long={min_prob_long}, min_prob_short={min_prob_short}, "
+        f"allow_short={allow_short}, enable_profitable_filter={enable_profitable_filter}, "
+        f"n_signals={df['entry_v9_policy_farm_v2b'].sum()}/{n_original} (long={n_long_final}, short={n_short_final})"
     )
     
     # CRITICAL: Return same structure as FARM_V1/V2 - must preserve all original rows
@@ -304,12 +339,15 @@ def apply_entry_v9_policy_farm_v2b(
         # No p_profitable computed - set to 0.0
         result_df["p_profitable"] = 0.0
     
-    # Update rows that passed policy
+    # Update rows that passed policy (including side information)
     if len(df) > 0:
         for idx in df.index:
             if idx in result_df.index:
                 result_df.loc[idx, "entry_v9_policy_farm_v2b"] = df.loc[idx, "entry_v9_policy_farm_v2b"]
                 result_df.loc[idx, "policy_score"] = df.loc[idx, "policy_score"]
+                # Add side information if available
+                if "_policy_side" in df.columns:
+                    result_df.loc[idx, "_policy_side"] = df.loc[idx, "_policy_side"]
     
     return result_df
 

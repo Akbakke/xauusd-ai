@@ -1,0 +1,27 @@
+# GX1 v1.1 → Production EXIT_A Phase-C Variant C
+# Phase-C tuning: max_open_trades = 6 (increased concurrent limit)
+#
+# Entry: FARM_V2B mp68_max6_cd0 (min_prob_long=0.68, max_open_trades=6, cooldown=0)
+# Exit: FARM_EXIT_V2_RULES_A_mp68_max5_rule5_cd0 (same as PROD)
+
+version: "GX1_V11_OANDA_DEMO_V9_FARM_V2B_EXIT_A_PROD_PHASEC_VARIANT_C"
+mode: "REPLAY"
+instrument: "XAU_USD"
+timeframe: "M5"
+warmup_bars: 288
+
+entry_config: gx1/configs/policies/active/ENTRY_V9_FARM_V2B_EXIT_A_PROD_Q1.yaml
+exit_config: gx1/configs/exits/FARM_EXIT_V2_RULES_A_mp68_max5_rule5_cd0.yaml
+
+trade_log_csv: gx1/wf_runs/FARM_V2B_EXIT_A_PROD_PHASEC_VARIANT_C/trade_log.csv
+
+logging:
+  level: INFO
+  log_dir: gx1/wf_runs/FARM_V2B_EXIT_A_PROD_PHASEC_VARIANT_C/logs
+
+execution:
+  max_open_trades: 6
+
+risk:
+  min_time_between_trades_sec: 0
+

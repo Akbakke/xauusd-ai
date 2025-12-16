@@ -1,9 +1,10 @@
 # FARM_V2B_HYBRID_V3_RANGE - PROD_BASELINE
 
-**Status:** ✅ PROD_BASELINE (Frozen 2025-12-14)  
-**Router Version:** V3_RANGE  
+**Status:** ✅ PROD_BASELINE (Frozen 2025-12-15)  
+**Router Version:** V3_RANGE + Guardrail  
 **Entry Policy:** FARM_V2B mp68_max5_cd0 (long-only)  
-**Exit Policies:** RULE5 + RULE6A (ML-routed)  
+**Exit Policies:** RULE5 + RULE6A (ML-routed with guardrail)  
+**Guardrail:** RULE6A only allowed when range_edge_dist_atr < 1.0  
 **Testperiode:** Full year 2025 (2025-01-01 → 2025-12-31)
 
 ---
@@ -12,13 +13,14 @@
 
 V3_RANGE router med range-aware features (range_pos, distance_to_range, range_edge_dist_atr) har blitt testet på fullt år 2025 og markert som PROD_BASELINE.
 
-**Key Results:**
+**Key Results (with guardrail):**
 - ✅ **162 trades** i FULLYEAR replay
 - ✅ **117.67 bps EV/trade**
 - ✅ **84.6% win rate**
 - ✅ **100% range feature coverage** (range_pos, range_edge_dist_atr)
-- ✅ **RULE6A allocation: 35.2%** (57 trades)
-- ✅ **RULE6A near edge: 50.9%** (range_edge_dist_atr < 2.0)
+- ✅ **RULE6A allocation: 9.3%** (15 trades, all with range_edge_dist_atr < 1.0)
+- ✅ **Guardrail blocked 42 trades** from RULE6A (range_edge_dist_atr >= 1.0)
+- ✅ **All blocked trades had identical PnL** under RULE5 vs RULE6A (RULE6A was "cosmetic")
 
 **Konklusjon:** V3_RANGE router gir range-aware routing med god performance og konsistent feature coverage.
 
@@ -53,6 +55,12 @@ V3_RANGE router med range-aware features (range_pos, distance_to_range, range_ed
 - **RULE5:** `FARM_EXIT_V2_RULES_A_mp68_max5_rule5_cd0.yaml`
 - **RULE6A:** `FARM_EXIT_V2_RULES_ADAPTIVE_v1.yaml`
 
+### 4. Guardrail
+- **Rule:** RULE6A only allowed when `range_edge_dist_atr < 1.0`
+- **Rationale:** RULE6A er en edge-spesialisert exit, kun aktivert når range_edge_dist_atr < 1.0. I øvrige regimer gir den ingen målbar forbedring i PnL eller risiko og er derfor deaktivert.
+- **Implementation:** Post-processing guardrail in `exit_hybrid_controller.py` that overrides router decision if `range_edge_dist_atr >= cutoff`
+- **Effect:** Reduced RULE6A allocation from 35.2% to 9.3%, with identical EV/trade (117.67 bps)
+
 ---
 
 ## 📈 Performance Metrics
@@ -74,8 +82,10 @@ V3_RANGE router med range-aware features (range_pos, distance_to_range, range_ed
 
 | Profile | Trades | % | Mean PnL (bps) |
 |---------|--------|---|----------------|
-| **RULE5** | 105 | 64.8% | 120.56 |
-| **RULE6A** | 57 | 35.2% | 112.33 |
+| **RULE5** | 147 | 90.7% | 110.19 |
+| **RULE6A** | 15 | 9.3% | 190.98 |
+
+**Note:** With guardrail, RULE6A allocation reduced from 35.2% to 9.3%. All remaining RULE6A trades have `range_edge_dist_atr < 1.0` and show superior performance (190.98 bps mean PnL vs 110.19 bps for RULE5).
 
 ### Range Features Coverage
 
@@ -132,7 +142,8 @@ V3_RANGE router med range-aware features (range_pos, distance_to_range, range_ed
 - [x] Router model frozen (`exit_router_v3_tree.pkl`)
 - [x] Feature set frozen (5 numeric features + regime)
 - [x] Exit policies frozen (RULE5 + RULE6A configs)
-- [x] PROD config created
+- [x] Guardrail frozen (range_edge_dist_atr < 1.0 cutoff)
+- [x] PROD config created (with guardrail)
 - [x] Documentation created
 - [x] Model files copied to prod_snapshot
 - [x] Marked as PROD_BASELINE in config
@@ -153,6 +164,27 @@ bash scripts/run_replay.sh \
 
 ---
 
-**Status:** ✅ PROD_BASELINE frozen 2025-12-14  
+**Status:** ✅ PROD_BASELINE frozen 2025-12-15 (with guardrail)  
 **Next Steps:** Ready for production deployment
+
+---
+
+## 🔒 Guardrail Documentation
+
+**RULE6A er en edge-spesialisert exit, kun aktivert når range_edge_dist_atr < 1.0. I øvrige regimer gir den ingen målbar forbedring i PnL eller risiko og er derfor deaktivert.**
+
+### Verification Results
+
+- **42 trades blocked** by guardrail (range_edge_dist_atr >= 1.0)
+- **All blocked trades** had identical PnL under RULE5 vs RULE6A (delta = 0.0 exact)
+- **All blocked trades** had identical intratrade risk (MFE, MAE, DD all identical)
+- **RULE6A was "cosmetic"** in these regimes - no measurable difference
+- **15 remaining RULE6A trades** all have range_edge_dist_atr < 1.0 and show superior performance (190.98 bps mean PnL)
+
+### Implementation
+
+Guardrail implemented as post-processing in `exit_hybrid_controller.py`:
+- Router selects policy (RULE5 or RULE6A)
+- If RULE6A selected and `range_edge_dist_atr >= cutoff` (1.0), override to RULE5
+- Debug logging when guardrail activates
 

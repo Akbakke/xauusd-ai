@@ -1,0 +1,13 @@
+exit:
+  type: FARM_V2_RULES
+  only_v2_drift: true
+  params:
+    enable_rule_a: true
+    enable_rule_b: false
+    enable_rule_c: false
+    rule_a_profit_min_bps: 6.0
+    rule_a_profit_max_bps: 9.0
+    rule_a_adaptive_threshold_bps: 4.0
+    rule_a_trailing_stop_bps: 2.0
+    rule_a_adaptive_bars: 3
+    debug_trade_ids: []

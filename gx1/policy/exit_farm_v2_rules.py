@@ -128,7 +128,15 @@ class ExitFarmV2Rules:
             self.log_every_n_bars,
         )
     
-    def reset_on_entry(self, entry_bid: float, entry_ask: float, entry_ts, side: str = "long", trade_id: Optional[str] = None) -> None:
+    def reset_on_entry(
+        self,
+        entry_bid: float,
+        entry_ask: float,
+        entry_ts,
+        side: str = "long",
+        trade_id: Optional[str] = None,
+        atr_bps: Optional[float] = None,
+    ) -> None:
         """
         Reset state for a new entry.
         
@@ -136,13 +144,14 @@ class ExitFarmV2Rules:
             entry_bid: Entry bid price
             entry_ask: Entry ask price
             entry_ts: Entry timestamp
-            side: "long" or "short" (only "long" supported for now)
+            side: "long" or "short" (both supported)
         """
-        if side != "long":
-            raise ValueError(f"EXIT_FARM_V2_RULES only supports LONG positions, got: {side}")
+        if side not in ("long", "short"):
+            raise ValueError(f"EXIT_FARM_V2_RULES side must be 'long' or 'short', got: {side}")
         
         self.entry_bid = entry_bid
         self.entry_ask = entry_ask
+        # Entry price: long uses ask (buy at ask), short uses bid (sell at bid)
         self.entry_price = entry_ask if side == "long" else entry_bid
         self.entry_ts = entry_ts
         self.side = side
@@ -155,11 +164,12 @@ class ExitFarmV2Rules:
         self._last_logged_bar = 0
         
         logger.debug(
-            f"[EXIT_FARM_V2_RULES] Reset: entry_price={self.entry_price:.5f}, "
+            f"[EXIT_FARM_V2_RULES] Reset: side={side}, entry_price={self.entry_price:.5f}, "
+            f"entry_bid={entry_bid:.5f}, entry_ask={entry_ask:.5f}, "
             f"rules A={self.enable_rule_a}, B={self.enable_rule_b}, C={self.enable_rule_c}, trade_id={self.trade_id}"
         )
     
-    def on_bar(self, price_bid: float, price_ask: float, ts) -> Optional[ExitDecision]:
+    def on_bar(self, price_bid: float, price_ask: float, ts, atr_bps: Optional[float] = None) -> Optional[ExitDecision]:
         """
         Process a new bar and check for exit conditions.
         
@@ -187,7 +197,7 @@ class ExitFarmV2Rules:
 
         self._maybe_log_state(ts, pnl_bps, price_bid, price_ask)
         
-        # Update trailing stop high if active
+        # Update trailing stop high if active (works for both long and short)
         if self.rule_a_trailing_active:
             if pnl_bps > self.rule_a_trailing_high:
                 self.rule_a_trailing_high = pnl_bps
@@ -205,17 +215,19 @@ class ExitFarmV2Rules:
                 self.rule_a_trailing_high = pnl_bps
                 logger.debug(
                     f"[EXIT_FARM_V2_RULES] Rule A: Trailing stop activated at bar {self.bars_held}, "
-                    f"pnl_bps={pnl_bps:.2f}"
+                    f"side={self.side}, pnl_bps={pnl_bps:.2f}"
                 )
             
             # Check trailing stop exit
             if self.rule_a_trailing_active:
-                trailing_exit_price = self.rule_a_trailing_high - self.rule_a_trailing_stop_bps
-                if pnl_bps <= trailing_exit_price:
+                # Trailing stop: exit if PnL drops by trailing_stop_bps from the high
+                # For both long and short, we exit when pnl_bps <= trailing_high - trailing_stop_bps
+                trailing_exit_threshold = self.rule_a_trailing_high - self.rule_a_trailing_stop_bps
+                if pnl_bps <= trailing_exit_threshold:
                     logger.debug(
                         f"[EXIT_FARM_V2_RULES] Rule A: Trailing stop hit: "
-                        f"bars_held={self.bars_held}, pnl_bps={pnl_bps:.2f}, "
-                        f"trailing_high={self.rule_a_trailing_high:.2f}"
+                        f"side={self.side}, bars_held={self.bars_held}, pnl_bps={pnl_bps:.2f}, "
+                        f"trailing_high={self.rule_a_trailing_high:.2f}, threshold={trailing_exit_threshold:.2f}"
                     )
                     # Exit price: use bid for LONG (we sell at bid), ask for SHORT (we buy back at ask)
                     exit_price = float(price_bid if self.side == "long" else price_ask)
@@ -235,7 +247,7 @@ class ExitFarmV2Rules:
                 if self.rule_a_profit_min_bps <= pnl_bps <= self.rule_a_profit_max_bps:
                     logger.debug(
                         f"[EXIT_FARM_V2_RULES] Rule A: Profit target hit: "
-                        f"bars_held={self.bars_held}, pnl_bps={pnl_bps:.2f}"
+                        f"side={self.side}, bars_held={self.bars_held}, pnl_bps={pnl_bps:.2f}"
                     )
                     # Exit price: use bid for LONG (we sell at bid), ask for SHORT (we buy back at ask)
                     exit_price = float(price_bid if self.side == "long" else price_ask)
@@ -257,7 +269,7 @@ class ExitFarmV2Rules:
             if self.bars_held < self.rule_b_max_bars and self.mae_bps <= self.rule_b_mae_threshold_bps:
                 logger.debug(
                     f"[EXIT_FARM_V2_RULES] Rule B: Fast loss-cut triggered: "
-                    f"bars_held={self.bars_held}, mae_bps={self.mae_bps:.2f}, "
+                    f"side={self.side}, bars_held={self.bars_held}, mae_bps={self.mae_bps:.2f}, "
                     f"current_pnl_bps={pnl_bps:.2f}"
                 )
                 # Exit price: use bid for LONG (we sell at bid), ask for SHORT (we buy back at ask)
@@ -280,7 +292,7 @@ class ExitFarmV2Rules:
             if self.bars_held >= self.rule_c_timeout_bars and pnl_bps < self.rule_c_min_profit_bps:
                 logger.debug(
                     f"[EXIT_FARM_V2_RULES] Rule C: Time-based abandonment: "
-                    f"bars_held={self.bars_held}, pnl_bps={pnl_bps:.2f}"
+                    f"side={self.side}, bars_held={self.bars_held}, pnl_bps={pnl_bps:.2f}"
                 )
                 # Exit price: use bid for LONG (we sell at bid), ask for SHORT (we buy back at ask)
                 exit_price = float(price_bid if self.side == "long" else price_ask)
@@ -297,7 +309,7 @@ class ExitFarmV2Rules:
 
         if self.force_exit_bars is not None and self.bars_held >= self.force_exit_bars:
             logger.debug(
-                f"[EXIT_FARM_V2_RULES] Force exit timeout: bars_held={self.bars_held} limit={self.force_exit_bars} "
+                f"[EXIT_FARM_V2_RULES] Force exit timeout: side={self.side}, bars_held={self.bars_held} limit={self.force_exit_bars} "
                 f"pnl_bps={pnl_bps:.2f}"
             )
             exit_price = float(price_bid if self.side == "long" else price_ask)
@@ -322,9 +334,10 @@ class ExitFarmV2Rules:
         if self.bars_held == 1 or self.bars_held - self._last_logged_bar >= self.log_every_n_bars:
             self._last_logged_bar = self.bars_held
             logger.info(
-                "[EXIT_FARM_V2_RULES][STATE] trade_id=%s bar=%d ts=%s pnl=%.2f mae=%.2f mfe=%.2f trailing=%s trailing_high=%.2f "
+                "[EXIT_FARM_V2_RULES][STATE] trade_id=%s side=%s bar=%d ts=%s pnl=%.2f mae=%.2f mfe=%.2f trailing=%s trailing_high=%.2f "
                 "thresholds={profit:[%.2f,%.2f], adaptive=%.2f, timeout=%s, force=%s} bid=%.5f ask=%.5f",
                 self.trade_id,
+                self.side,
                 self.bars_held,
                 ts,
                 pnl_bps,
@@ -347,9 +360,10 @@ class ExitFarmV2Rules:
             return
         if self.trade_id in self.debug_trade_ids:
             logger.info(
-                "[EXIT_FARM_V2_RULES][DEBUG] trade_id=%s entry_ts=%s exit_reason=%s "
+                "[EXIT_FARM_V2_RULES][DEBUG] trade_id=%s side=%s entry_ts=%s exit_reason=%s "
                 "entry_price=%.5f exit_price=%.5f pnl_bps=%.2f bars=%d mfe=%.2f mae=%.2f",
                 self.trade_id,
+                self.side,
                 self.entry_ts,
                 decision.reason,
                 self.entry_price,
@@ -363,6 +377,7 @@ class ExitFarmV2Rules:
     def get_state(self) -> Dict[str, Any]:
         """Get current state for debugging."""
         return {
+            "side": self.side,
             "bars_held": self.bars_held,
             "mae_bps": self.mae_bps,
             "mfe_bps": self.mfe_bps,

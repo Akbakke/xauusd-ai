@@ -1929,6 +1929,157 @@ class EntryManager:
             except Exception as diag_exc:
                 log.warning("[ENTRY_DIAG] Failed to record entry diagnostics for %s: %s", trade.trade_id, diag_exc)
         
+        # Log entry signal to trade journal
+        if hasattr(self._runner, "trade_journal") and self._runner.trade_journal:
+            try:
+                from gx1.monitoring.trade_journal import EVENT_ENTRY_SIGNAL
+                
+                # Collect gate information
+                gates = {}
+                if spread_bps is not None:
+                    gates["spread_bps"] = {"value": spread_bps, "passed": True}  # Simplified
+                if current_atr_bps is not None:
+                    gates["atr_bps"] = {"value": current_atr_bps, "passed": True}
+                if policy_state_snapshot:
+                    gates["regime"] = {"value": policy_state_snapshot.get("farm_regime", "UNKNOWN"), "passed": True}
+                    gates["session"] = {"value": policy_state_snapshot.get("session", "UNKNOWN"), "passed": True}
+                
+                # Features snapshot
+                features_snapshot = {
+                    "atr_bps": current_atr_bps,
+                    "atr_pct": current_atr_pct,
+                    "spread_bps": spread_bps,
+                    "spread_pct": spread_pct,
+                    "range_pos": float(range_pos),
+                    "distance_to_range": float(distance_to_range),
+                    "range_edge_dist_atr": float(range_edge_dist_atr),
+                }
+                
+                self._runner.trade_journal.log(
+                    EVENT_ENTRY_SIGNAL,
+                    {
+                        "entry_time": trade.entry_time.isoformat() if hasattr(trade.entry_time, "isoformat") else str(trade.entry_time),
+                        "entry_price": trade.entry_price,
+                        "side": trade.side,
+                        "entry_model_outputs": {
+                            "p_long": prediction.prob_long,
+                            "p_short": prediction.prob_short,
+                            "p_hat": prediction.p_hat,
+                            "margin": prediction.margin,
+                            "session": prediction.session,
+                        },
+                        "gates": gates,
+                        "features_snapshot": features_snapshot,
+                        "warmup_state": {
+                            "bars_since_start": len(candles) if candles is not None else None,
+                        },
+                    },
+                    trade_key={
+                        "entry_time": trade.entry_time.isoformat() if hasattr(trade.entry_time, "isoformat") else str(trade.entry_time),
+                        "entry_price": trade.entry_price,
+                        "side": trade.side,
+                    },
+                    trade_id=trade.trade_id,
+                )
+            except Exception as e:
+                log.warning("[TRADE_JOURNAL] Failed to log ENTRY_SIGNAL: %s", e)
+        
+        # Log structured entry snapshot and feature context
+        if hasattr(self._runner, "trade_journal") and self._runner.trade_journal:
+            try:
+                # Collect entry filters
+                entry_filters_passed = []
+                entry_filters_blocked = []
+                
+                # Check which filters passed (simplified - actual gates checked earlier)
+                if spread_bps is not None and spread_pct is not None:
+                    entry_filters_passed.append("spread_ok")
+                if current_atr_bps is not None and current_atr_pct is not None:
+                    entry_filters_passed.append("atr_ok")
+                if policy_state_snapshot:
+                    if policy_state_snapshot.get("farm_regime"):
+                        entry_filters_passed.append("regime_ok")
+                    if policy_state_snapshot.get("session"):
+                        entry_filters_passed.append("session_ok")
+                
+                # Entry snapshot
+                entry_time_iso = trade.entry_time.isoformat() if hasattr(trade.entry_time, "isoformat") else str(trade.entry_time)
+                
+                # Safely get instrument and model_name (avoid AttributeError from __getattr__)
+                instrument_val = "XAU_USD"
+                try:
+                    if hasattr(self._runner, "instrument"):
+                        instrument_val = self._runner.instrument
+                except AttributeError:
+                    pass
+                
+                model_name_val = None
+                try:
+                    if hasattr(self._runner, "model_name"):
+                        model_name_val = self._runner.model_name
+                except AttributeError:
+                    pass
+                
+                self._runner.trade_journal.log_entry_snapshot(
+                    trade_id=trade.trade_id,
+                    entry_time=entry_time_iso,
+                    instrument=instrument_val,
+                    side=trade.side,
+                    entry_price=trade.entry_price,
+                    session=policy_state_snapshot.get("session") if policy_state_snapshot else None,
+                    regime=policy_state_snapshot.get("farm_regime") if policy_state_snapshot else None,
+                    entry_model_version=model_name_val,
+                    entry_score={
+                        "p_long": prediction.prob_long,
+                        "p_short": prediction.prob_short,
+                        "p_hat": prediction.p_hat,
+                        "margin": prediction.margin,
+                    },
+                    entry_filters_passed=entry_filters_passed,
+                    entry_filters_blocked=entry_filters_blocked,
+                )
+                
+                # Feature context (immutable snapshot)
+                atr_value_price = None
+                if current_atr_bps is not None and current_atr_bps > 0 and trade.entry_price > 0:
+                    atr_value_price = (current_atr_bps / 10000.0) * trade.entry_price
+                
+                # Get last closed candle
+                candle_close = None
+                candle_high = None
+                candle_low = None
+                if candles is not None and len(candles) > 0:
+                    last_bar = candles.iloc[-1]
+                    if "close" in candles.columns:
+                        candle_close = float(last_bar["close"])
+                        candle_high = float(last_bar["high"])
+                        candle_low = float(last_bar["low"])
+                    elif "bid_close" in candles.columns and "ask_close" in candles.columns:
+                        candle_close = float((last_bar["bid_close"] + last_bar["ask_close"]) / 2.0)
+                        candle_high = float((last_bar["bid_high"] + last_bar["ask_high"]) / 2.0)
+                        candle_low = float((last_bar["bid_low"] + last_bar["ask_low"]) / 2.0)
+                
+                spread_value_price = None
+                if entry_ask_price and entry_bid_price:
+                    spread_value_price = float(entry_ask_price) - float(entry_bid_price)
+                
+                self._runner.trade_journal.log_feature_context(
+                    trade_id=trade.trade_id,
+                    atr_bps=current_atr_bps,
+                    atr_price=atr_value_price,
+                    atr_percentile=current_atr_pct,
+                    range_pos=float(range_pos),
+                    distance_to_range=float(distance_to_range),
+                    range_edge_dist_atr=float(range_edge_dist_atr),
+                    spread_price=spread_value_price,
+                    spread_pct=spread_pct,
+                    candle_close=candle_close,
+                    candle_high=candle_high,
+                    candle_low=candle_low,
+                )
+            except Exception as e:
+                log.warning("[TRADE_JOURNAL] Failed to log structured entry snapshot: %s", e)
+        
         # CRITICAL: Store ATR regime for trade log reporting (ENTRY-regime)
         # This is the source of truth for vol_regime_entry in CSV
         # Get ATR regime from features (same logic as Big Brain)

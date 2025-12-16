@@ -1,0 +1,16 @@
+# FARM_EXIT_V2_RULES_A Phase-C.2 Variant E: rule_a_profit_min_bps = 6
+# Based on PROD baseline (mp68_max5_rule5_cd0) with stricter TP (6 bps instead of 5)
+exit:
+  only_v2_drift: true
+  params:
+    debug_trade_ids: []
+    enable_rule_a: true
+    enable_rule_b: false
+    enable_rule_c: false
+    rule_a_adaptive_bars: 3
+    rule_a_adaptive_threshold_bps: 4.0
+    rule_a_profit_max_bps: 9.0
+    rule_a_profit_min_bps: 6.0
+    rule_a_trailing_stop_bps: 2.0
+  type: FARM_V2_RULES
+

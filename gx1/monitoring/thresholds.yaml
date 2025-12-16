@@ -1,0 +1,40 @@
+# Production monitoring thresholds
+#
+# Prod-monitor reads these thresholds and writes alerts.json if any are triggered.
+
+thresholds:
+  # Trades/day
+  trades_per_day:
+    min: 0.1  # Minimum trades per day (alert if below)
+    max: 10.0  # Maximum trades per day (alert if above)
+  
+  # EV/trade (basis points)
+  ev_per_trade:
+    min: 50.0  # Minimum EV/trade (alert if below)
+    max: 500.0  # Maximum EV/trade (alert if above)
+  
+  # RULE6A allocation rate
+  rule6a_rate:
+    min: 0.0  # Minimum RULE6A rate (alert if below)
+    max: 0.5  # Maximum RULE6A rate (alert if above, 50%)
+  
+  # Blocked RULE6A rate (guardrail effectiveness)
+  blocked_rule6a_rate:
+    min: 0.0  # Minimum blocked rate (alert if below)
+    max: 0.8  # Maximum blocked rate (alert if above, 80% - guardrail too aggressive?)
+  
+  # Max loss streak
+  max_loss_streak:
+    min: 0  # Minimum loss streak (no alert)
+    max: 5  # Maximum loss streak (alert if above 5 consecutive losses)
+  
+  # Range edge dist ATR - RULE5 vs RULE6A difference
+  range_edge_dist_atr_diff:
+    min: -2.0  # Minimum difference (alert if RULE6A has much higher range_edge_dist_atr)
+    max: 2.0  # Maximum difference (alert if difference too large)
+
+# Alert severity levels
+severity:
+  warning: "WARNING"  # Non-critical alert
+  error: "ERROR"  # Critical alert (requires attention)
+

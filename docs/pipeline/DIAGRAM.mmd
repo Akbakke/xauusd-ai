@@ -1,0 +1,71 @@
+flowchart TD
+    Start([scripts/run_replay.sh]) --> LoadConfig[load_yaml_config<br/>Policy YAML]
+    LoadConfig --> FilterData[Filter Price Data<br/>Date Range]
+    FilterData --> SplitChunks[Split into N Chunks<br/>Parallel Workers]
+    
+    SplitChunks --> ChunkLoop{For Each Chunk}
+    ChunkLoop --> InitRunner[GX1DemoRunner.__init__<br/>Load Config, Models]
+    
+    InitRunner --> InitEntryMgr[EntryManager.__init__<br/>ExitModeSelector]
+    InitRunner --> InitExitMgr[ExitManager.__init__]
+    
+    InitEntryMgr --> BarLoop{For Each Bar}
+    BarLoop --> BuildFeatures[build_live_entry_features<br/>ATR, Spread, etc.]
+    
+    BuildFeatures --> EntryEval[EntryManager.evaluate_entry<br/>FARM_V2B Prediction]
+    
+    EntryEval --> ComputeRange[_compute_range_features<br/>range_pos, distance_to_range]
+    ComputeRange --> ComputeEdge[_compute_range_edge_dist_atr<br/>ATR-normalized edge distance]
+    
+    ComputeEdge --> SetExtra[Set trade.extra<br/>range_pos, distance_to_range, range_edge_dist_atr]
+    
+    SetExtra --> RouterSelect[ExitModeSelector.choose_exit_profile<br/>Create ExitRouterContext]
+    
+    RouterSelect --> LoadModel{Model Loaded?}
+    LoadModel -->|No| LoadModelFile[joblib.load<br/>exit_router_v3_tree.pkl]
+    LoadModelFile --> ModelPredict[model.predict<br/>DecisionTreeClassifier]
+    LoadModel -->|Yes| ModelPredict
+    
+    ModelPredict --> Guardrail{Guardrail Check<br/>range_edge_dist_atr < cutoff?}
+    Guardrail -->|RULE6A && >= cutoff| OverrideRULE5[Override to RULE5<br/>Log Debug]
+    Guardrail -->|RULE6A && < cutoff| KeepRULE6A[Keep RULE6A]
+    Guardrail -->|RULE5| KeepRULE5[Keep RULE5]
+    
+    OverrideRULE5 --> SetProfile[Set trade.extra['exit_profile']]
+    KeepRULE6A --> SetProfile
+    KeepRULE5 --> SetProfile
+    
+    SetProfile --> CreateTrade[Create LiveTrade<br/>Add to open_trades]
+    
+    CreateTrade --> ExitEval[ExitManager.evaluate_and_close_trades<br/>For Each Open Trade]
+    
+    ExitEval --> GetProfile[Get trade.extra['exit_profile']]
+    GetProfile --> ProfileCheck{Exit Profile?}
+    
+    ProfileCheck -->|RULE5| RULE5Exit[get_exit_policy_farm_v2_rules<br/>RULE5 Exit Logic]
+    ProfileCheck -->|RULE6A| RULE6AExit[get_exit_policy_farm_v2_rules_adaptive<br/>RULE6A Exit Logic]
+    
+    RULE5Exit --> CheckExit[Check Exit Conditions<br/>TP, SL, Trailing, Timeout]
+    RULE6AExit --> CheckExit
+    
+    CheckExit --> ExitTriggered{Exit Triggered?}
+    ExitTriggered -->|Yes| CloseTrade[Close Trade<br/>Compute PnL]
+    ExitTriggered -->|No| BarLoop
+    
+    CloseTrade --> LogTrade[Log Trade to CSV<br/>trade_log_chunk_N.csv]
+    LogTrade --> BarLoop
+    
+    BarLoop -->|End of Chunk| MergeResults[merge_chunk_results<br/>Combine Trade Logs]
+    MergeResults --> SaveResults[Save results.json<br/>Summary Metrics]
+    
+    SaveResults --> End([End])
+    
+    style Start fill:#90EE90
+    style End fill:#90EE90
+    style RouterSelect fill:#FFD700
+    style Guardrail fill:#FF6B6B
+    style OverrideRULE5 fill:#FF6B6B
+    style ModelPredict fill:#87CEEB
+    style ComputeRange fill:#DDA0DD
+    style ComputeEdge fill:#DDA0DD
+

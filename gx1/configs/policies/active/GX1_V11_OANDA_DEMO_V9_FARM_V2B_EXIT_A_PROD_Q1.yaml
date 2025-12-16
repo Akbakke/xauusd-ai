@@ -1,0 +1,29 @@
+# GX1 v1.1 → OANDA practice policy bundle
+# FARM_V2B + EXIT_RULES_A (mp68_max5_rule4_cd0 variant): Q1 production baseline
+#
+# Entry: FARM_V2B with min_prob_long=0.68
+# Exit: FARM_EXIT_V2_RULES_A with rule_a_profit_min=4 bps
+# Guards: max_open_trades=5, cooldown disabled
+#
+# Status: EXIT_A_PROD_Q1 (2025-12-08)
+
+version: "GX1_V11_OANDA_DEMO_V9_FARM_V2B_EXIT_A_PROD_Q1"
+mode: "REPLAY"
+instrument: "XAU_USD"
+timeframe: "M5"
+warmup_bars: 288
+
+entry_config: gx1/configs/policies/active/ENTRY_V9_FARM_V2B_EXIT_A_PROD_Q1.yaml
+exit_config: gx1/configs/exits/FARM_EXIT_V2_RULES_A_EXIT_A_PROD_Q1.yaml
+
+trade_log_csv: gx1/wf_runs/FARM_V2B_EXIT_A_PROD_Q1/trade_log.csv
+
+logging:
+  level: INFO
+  log_dir: gx1/wf_runs/FARM_V2B_EXIT_A_PROD_Q1/logs
+
+execution:
+  max_open_trades: 5
+
+risk:
+  min_time_between_trades_sec: 0

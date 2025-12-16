@@ -1,0 +1,9 @@
+exit:
+  only_v2_drift: true
+  type: EXIT_FARM_V2_RULES_ADAPTIVE
+  params:
+    enable_tp: true
+    enable_trailing: true
+    enable_be: true
+    verbose_logging: false
+    log_every_n_bars: 5

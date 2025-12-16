@@ -1,0 +1,25 @@
+# GX1 v1.1 → OANDA practice policy bundle
+# Phase-C.2 Variant E: rule_a_profit_min_bps = 6
+# Based on PROD baseline (mp68_max5_rule5_cd0) with stricter TP (6 bps instead of 5)
+
+version: "GX1_V11_OANDA_DEMO_V9_FARM_V2B_EXIT_A_PHASEC2_rule6"
+mode: "REPLAY"
+instrument: "XAU_USD"
+timeframe: "M5"
+warmup_bars: 288
+
+entry_config: gx1/configs/policies/active/ENTRY_V9_FARM_V2B_EXIT_A_PROD_Q1.yaml
+exit_config: gx1/configs/exits/FARM_EXIT_V2_RULES_A_PHASEC2_rule6.yaml
+
+trade_log_csv: gx1/wf_runs/EXIT_A_PHASEC2_rule6/trade_log.csv
+
+logging:
+  level: INFO
+  log_dir: gx1/wf_runs/EXIT_A_PHASEC2_rule6/logs
+
+execution:
+  max_open_trades: 5
+
+risk:
+  min_time_between_trades_sec: 0
+

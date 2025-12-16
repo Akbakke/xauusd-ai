@@ -1,0 +1,18 @@
+# FARM_EXIT_V2_RULES_A configuration (EXIT_A_PROD_Q1)
+#
+# Same as FARM_EXIT_V2_RULES_A but with rule_a_profit_min_bps lowered to 4 bps
+# to match the mp68_max5_rule4_cd0 sweep variant.
+
+exit:
+  type: "FARM_V2_RULES"
+  params:
+    enable_rule_a: true
+    enable_rule_b: false
+    enable_rule_c: false
+    rule_a_profit_min_bps: 4.0
+    rule_a_profit_max_bps: 9.0
+    rule_a_adaptive_threshold_bps: 4.0
+    rule_a_trailing_stop_bps: 2.0
+    rule_a_adaptive_bars: 3
+    debug_trade_ids: []
+  only_v2_drift: true

@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional, TYPE_CHECKING
 import logging
 import pandas as pd
 
-from gx1.execution.live_features import build_live_exit_snapshot, infer_session_tag
+from gx1.execution.live_features import build_live_exit_snapshot, infer_session_tag, compute_atr_bps
 from gx1.utils.pnl import compute_pnl_bps
 
 if TYPE_CHECKING:
@@ -59,6 +59,7 @@ class ExitManager:
         now_ts = candles.index[-1]
         current_bid = float(candles["bid_close"].iloc[-1])
         current_ask = float(candles["ask_close"].iloc[-1])
+        runtime_atr_bps = self._compute_runtime_atr_bps(candles)
         if self.exit_verbose_logging:
             log.info(
                 "[EXIT] Evaluating %d open trades on bar %s (replay=%s)",
@@ -75,6 +76,9 @@ class ExitManager:
             )
         closes_requested = 0
         closes_accepted = 0
+        
+        # Collect price trace for open trades (for intratrade metrics)
+        self._collect_price_trace(candles, now_ts, open_trades_copy)
 
         # FARM_V1 mode: Skip tick-exit evaluation, go straight to FARM_V1 exits
         if hasattr(self, "farm_v1_mode") and self.farm_v1_mode:
@@ -129,6 +133,7 @@ class ExitManager:
                     price_bid=current_bid,
                     price_ask=current_ask,
                     ts=now_ts,
+                    atr_bps=runtime_atr_bps,
                 )
                 
                 if exit_decision is None:
@@ -146,6 +151,53 @@ class ExitManager:
                     exit_reason = exit_decision.reason
                     pnl_bps = exit_decision.pnl_bps
                     bars_in_trade = exit_decision.bars_held
+                    
+                    # Log exit triggered to trade journal
+                    if hasattr(self.runner, "trade_journal") and self.runner.trade_journal:
+                        try:
+                            from gx1.monitoring.trade_journal import EVENT_EXIT_TRIGGERED
+                            
+                            exit_state = self.exit_farm_v2_rules_states.get(trade.trade_id)
+                            exit_state_fields = {}
+                            if exit_state and hasattr(exit_state, "trail_level"):
+                                exit_state_fields["trail_level"] = getattr(exit_state, "trail_level", None)
+                            if exit_state and hasattr(exit_state, "tp_level"):
+                                exit_state_fields["tp_level"] = getattr(exit_state, "tp_level", None)
+                            if exit_state and hasattr(exit_state, "sl_level"):
+                                exit_state_fields["sl_level"] = getattr(exit_state, "sl_level", None)
+                            
+                            # Log exit event (structured)
+                            exit_time_iso = now_ts.isoformat() if hasattr(now_ts, "isoformat") else str(now_ts)
+                            self.runner.trade_journal.log_exit_event(
+                                trade_id=trade.trade_id,
+                                timestamp=exit_time_iso,
+                                event_type="EXIT_TRIGGERED",
+                                price=exit_decision.exit_price,
+                                pnl_bps=pnl_bps,
+                                bars_held=bars_in_trade,
+                            )
+                            
+                            # Log exit event (backward compatibility JSONL)
+                            self.runner.trade_journal.log(
+                                EVENT_EXIT_TRIGGERED,
+                                {
+                                    "exit_time": exit_time_iso,
+                                    "exit_price": exit_decision.exit_price,
+                                    "exit_profile": trade.extra.get("exit_profile", "UNKNOWN"),
+                                    "exit_reason": exit_reason,
+                                    "bars_held": bars_in_trade,
+                                    "pnl_bps": pnl_bps,
+                                    "exit_state_fields": exit_state_fields,
+                                },
+                                trade_key={
+                                    "entry_time": trade.entry_time.isoformat() if hasattr(trade.entry_time, "isoformat") else str(trade.entry_time),
+                                    "entry_price": trade.entry_price,
+                                    "side": trade.side,
+                                },
+                                trade_id=trade.trade_id,
+                            )
+                        except Exception as e:
+                            log.warning("[TRADE_JOURNAL] Failed to log EXIT_TRIGGERED: %s", e)
                     
                     # Request close
                     accepted = self.request_close(
@@ -181,6 +233,16 @@ class ExitManager:
                         pnl_bps,
                         exit_reason,
                         bars_in_trade,
+                    )
+                    
+                    # Log trade closed to trade journal (with intratrade metrics)
+                    self._log_trade_close_with_metrics(
+                        trade=trade,
+                        exit_time=now_ts,
+                        exit_price=exit_decision.exit_price,
+                        exit_reason=exit_reason,
+                        realized_pnl_bps=pnl_bps,
+                        bars_held=bars_in_trade,
                     )
                     
                     # Record exit in trade log
@@ -253,6 +315,17 @@ class ExitManager:
                     self.open_trades.remove(trade)
                 self._teardown_exit_state(trade.trade_id)
                 self.record_realized_pnl(now_ts, decision.pnl_bps)
+                
+                # Log trade closed to trade journal (with intratrade metrics)
+                self._log_trade_close_with_metrics(
+                    trade=trade,
+                    exit_time=now_ts,
+                    exit_price=decision.exit_price,
+                    exit_reason=decision.reason,
+                    realized_pnl_bps=decision.pnl_bps,
+                    bars_held=decision.bars_held,
+                )
+                
                 self._update_trade_log_on_close(
                     trade.trade_id,
                     decision.exit_price,
@@ -383,6 +456,16 @@ class ExitManager:
                         if not self.replay_mode:
                             self._maybe_update_tick_watcher()
                         closes_accepted += 1
+                        
+                        # Log trade closed to trade journal (with intratrade metrics)
+                        self._log_trade_close_with_metrics(
+                            trade=trade,
+                            exit_time=now_ts,
+                            exit_price=exit_decision.exit_price,
+                            exit_reason=exit_reason,
+                            realized_pnl_bps=exit_decision.pnl_bps,
+                            bars_held=exit_decision.bars_held,
+                        )
                     elif not accepted:
                         log.error("Exit signaled but not applied for trade %s", trade.trade_id)
                     continue  # Continue to next trade, do not fall through
@@ -527,6 +610,16 @@ class ExitManager:
                 
                 # Record realized PnL (after successful close)
                 self.record_realized_pnl(now_ts, pnl_bps)
+                
+                # Log trade closed to trade journal (with intratrade metrics)
+                self._log_trade_close_with_metrics(
+                    trade=trade,
+                    exit_time=now_ts,
+                    exit_price=mark_price,
+                    exit_reason="THRESHOLD",
+                    realized_pnl_bps=pnl_bps,
+                    bars_held=bars_in_trade,
+                )
 
                 # Get session for trade (from entry_time)
                 entry_session = infer_session_tag(trade.entry_time)
@@ -624,6 +717,8 @@ class ExitManager:
                         trade_log_row["exit_profile"] = "FARM_EXIT_V1_STABLE"
                         # Also update trade.extra for consistency
                         trade_extra["exit_profile"] = "FARM_EXIT_V1_STABLE"
+                # Lazy import to avoid circular dependency
+                from gx1.execution.oanda_demo_runner import append_trade_log
                 append_trade_log(self.trade_log_path, trade_log_row)
 
         if closes_requested:
@@ -636,6 +731,327 @@ class ExitManager:
         
         # Update tick watcher (stop if no more open trades)
         self._maybe_update_tick_watcher()
+    
+    def _collect_price_trace(self, candles: pd.DataFrame, now_ts: pd.Timestamp, open_trades: List[Any]) -> None:
+        """
+        Collect price trace for open trades (for intratrade metrics calculation).
+        
+        Stores high/low/close per bar in trade.extra["_price_trace"].
+        Limited to last 5000 points to prevent memory bloat.
+        """
+        if len(candles) == 0:
+            return
+        
+        try:
+            # Get last closed bar prices
+            last_bar = candles.iloc[-1]
+            
+            # Determine price source (prefer direct OHLC, fallback to bid/ask mid)
+            if "high" in candles.columns and "low" in candles.columns and "close" in candles.columns:
+                bar_high = float(last_bar["high"])
+                bar_low = float(last_bar["low"])
+                bar_close = float(last_bar["close"])
+            elif "bid_high" in candles.columns and "ask_high" in candles.columns:
+                bar_high = float((last_bar["bid_high"] + last_bar["ask_high"]) / 2.0)
+                bar_low = float((last_bar["bid_low"] + last_bar["ask_low"]) / 2.0)
+                bar_close = float((last_bar["bid_close"] + last_bar["ask_close"]) / 2.0)
+            else:
+                # Fallback: use close price for all
+                if "close" in candles.columns:
+                    bar_close = float(last_bar["close"])
+                elif "bid_close" in candles.columns and "ask_close" in candles.columns:
+                    bar_close = float((last_bar["bid_close"] + last_bar["ask_close"]) / 2.0)
+                else:
+                    return  # Cannot collect trace without price data
+                bar_high = bar_close
+                bar_low = bar_close
+            
+            # Append to price trace for each open trade
+            for trade in open_trades:
+                if not hasattr(trade, "extra") or trade.extra is None:
+                    trade.extra = {}
+                
+                if "_price_trace" not in trade.extra:
+                    trade.extra["_price_trace"] = []
+                
+                trace_point = {
+                    "ts": now_ts.isoformat() if hasattr(now_ts, "isoformat") else str(now_ts),
+                    "high": bar_high,
+                    "low": bar_low,
+                    "close": bar_close,
+                }
+                
+                trade.extra["_price_trace"].append(trace_point)
+                
+                # Limit trace size (keep last 5000 points)
+                max_trace_size = 5000
+                if len(trade.extra["_price_trace"]) > max_trace_size:
+                    trade.extra["_price_trace"] = trade.extra["_price_trace"][-max_trace_size:]
+        
+        except Exception as e:
+            # Never break trading due to trace collection failure
+            log.debug("[EXIT] Failed to collect price trace: %s", e)
+    
+    def _log_trade_close_with_metrics(
+        self,
+        trade: Any,
+        exit_time: pd.Timestamp,
+        exit_price: float,
+        exit_reason: str,
+        realized_pnl_bps: float,
+        bars_held: int,
+    ) -> None:
+        """
+        Log trade close to journal with intratrade metrics calculation.
+        
+        Helper function to ensure consistent logging across all exit paths.
+        """
+        if not hasattr(self.runner, "trade_journal") or not self.runner.trade_journal:
+            return
+        
+        try:
+            from gx1.monitoring.trade_journal import EVENT_TRADE_CLOSED
+            
+            exit_time_iso = exit_time.isoformat() if hasattr(exit_time, "isoformat") else str(exit_time)
+            
+            # Calculate intratrade metrics from price trace
+            intratrade_metrics = self._compute_intratrade_metrics(trade, exit_price)
+            
+            # Validate invariants with realized_pnl
+            self._validate_intratrade_metrics(trade.trade_id, intratrade_metrics, realized_pnl_bps)
+            
+            # Remove _price_trace from trade.extra to prevent bloating trade logs
+            # (metrics are already calculated and logged)
+            if "_price_trace" in trade.extra:
+                del trade.extra["_price_trace"]
+            
+            # Log exit summary (structured)
+            self.runner.trade_journal.log_exit_summary(
+                trade_id=trade.trade_id,
+                exit_time=exit_time_iso,
+                exit_price=exit_price,
+                exit_reason=exit_reason,
+                realized_pnl_bps=realized_pnl_bps,
+                max_mfe_bps=intratrade_metrics.get("max_mfe_bps"),
+                max_mae_bps=intratrade_metrics.get("max_mae_bps"),
+                intratrade_drawdown_bps=intratrade_metrics.get("intratrade_drawdown_bps"),
+            )
+            
+            # Log trade closed (backward compatibility JSONL)
+            self.runner.trade_journal.log(
+                EVENT_TRADE_CLOSED,
+                {
+                    "exit_time": exit_time_iso,
+                    "exit_price": exit_price,
+                    "exit_profile": trade.extra.get("exit_profile", "UNKNOWN"),
+                    "exit_reason": exit_reason,
+                    "bars_held": bars_held,
+                    "pnl_bps": realized_pnl_bps,
+                    "final_status": "CLOSED",
+                },
+                trade_key={
+                    "entry_time": trade.entry_time.isoformat() if hasattr(trade.entry_time, "isoformat") else str(trade.entry_time),
+                    "entry_price": trade.entry_price,
+                    "side": trade.side,
+                },
+                trade_id=trade.trade_id,
+            )
+        except Exception as e:
+            log.warning("[TRADE_JOURNAL] Failed to log TRADE_CLOSED: %s", e)
+    
+    def _compute_intratrade_metrics(
+        self,
+        trade: Any,
+        exit_price: float,
+    ) -> Dict[str, Optional[float]]:
+        """
+        Compute intratrade metrics (MFE, MAE, intratrade drawdown) from price trace.
+        
+        Args:
+            trade: Trade object with entry_price, side, and _price_trace
+            exit_price: Final exit price
+            
+        Returns:
+            Dict with max_mfe_bps, max_mae_bps, intratrade_drawdown_bps
+        """
+        try:
+            price_trace = trade.extra.get("_price_trace", [])
+            if not price_trace:
+                return {
+                    "max_mfe_bps": None,
+                    "max_mae_bps": None,
+                    "intratrade_drawdown_bps": None,
+                }
+            
+            entry_price = trade.entry_price
+            side = trade.side.lower()
+            
+            # Convert price trace to unrealized PnL curve (in bps)
+            pnl_curve = []
+            for point in price_trace:
+                # Use high for favorable (long), low for adverse (long)
+                # Use low for favorable (short), high for adverse (short)
+                high_price = point["high"]
+                low_price = point["low"]
+                close_price = point["close"]
+                
+                if side == "long":
+                    # Favorable: use high (best case)
+                    favorable_pnl_bps = (high_price - entry_price) / entry_price * 10000.0
+                    # Adverse: use low (worst case)
+                    adverse_pnl_bps = (low_price - entry_price) / entry_price * 10000.0
+                    # Current unrealized: use close
+                    current_pnl_bps = (close_price - entry_price) / entry_price * 10000.0
+                else:  # short
+                    # Favorable: use low (best case for short)
+                    favorable_pnl_bps = (entry_price - low_price) / entry_price * 10000.0
+                    # Adverse: use high (worst case for short)
+                    adverse_pnl_bps = (entry_price - high_price) / entry_price * 10000.0
+                    # Current unrealized: use close
+                    current_pnl_bps = (entry_price - close_price) / entry_price * 10000.0
+                
+                pnl_curve.append({
+                    "favorable": favorable_pnl_bps,
+                    "adverse": adverse_pnl_bps,
+                    "current": current_pnl_bps,
+                })
+            
+            # Add exit price to curve
+            if side == "long":
+                exit_pnl_bps = (exit_price - entry_price) / entry_price * 10000.0
+            else:  # short
+                exit_pnl_bps = (entry_price - exit_price) / entry_price * 10000.0
+            
+            pnl_curve.append({
+                "favorable": exit_pnl_bps,
+                "adverse": exit_pnl_bps,
+                "current": exit_pnl_bps,
+            })
+            
+            # Calculate MFE (max favorable excursion)
+            max_mfe_bps = max(p["favorable"] for p in pnl_curve)
+            
+            # Calculate MAE (max adverse excursion)
+            max_mae_bps = min(p["adverse"] for p in pnl_curve)
+            
+            # Calculate intratrade drawdown (largest peak-to-trough drawdown)
+            # Build unrealized PnL curve from current values
+            unrealized_curve = [p["current"] for p in pnl_curve]
+            
+            max_drawdown_bps = 0.0
+            peak = unrealized_curve[0] if unrealized_curve else 0.0
+            
+            for pnl in unrealized_curve:
+                if pnl > peak:
+                    peak = pnl
+                drawdown = peak - pnl
+                if drawdown > max_drawdown_bps:
+                    max_drawdown_bps = drawdown
+            
+            metrics = {
+                "max_mfe_bps": float(max_mfe_bps),
+                "max_mae_bps": float(max_mae_bps),
+                "intratrade_drawdown_bps": float(max_drawdown_bps),
+            }
+            
+            # Note: Invariants validated in _log_trade_close_with_metrics() with realized_pnl
+            
+            return metrics
+        
+        except Exception as e:
+            log.warning("[EXIT] Failed to compute intratrade metrics for trade %s: %s", trade.trade_id, e)
+            return {
+                "max_mfe_bps": None,
+                "max_mae_bps": None,
+                "intratrade_drawdown_bps": None,
+            }
+    
+    def _validate_intratrade_metrics(
+        self,
+        trade_id: str,
+        metrics: Dict[str, Optional[float]],
+        realized_pnl_bps: Optional[float] = None,
+    ) -> None:
+        """
+        Validate intratrade metrics invariants (soft warnings in prod).
+        
+        Invariants:
+        - MFE >= 0 (favorable excursion cannot be negative)
+        - MAE <= 0 (adverse excursion cannot be positive)
+        - Intratrade DD <= 0 (drawdown is negative or zero)
+        - If realized_pnl > 0, MFE should be >= realized_pnl (MFE is best case)
+        
+        On violation: log WARNING but do not block trading.
+        """
+        eps = 1e-6
+        
+        mfe_bps = metrics.get("max_mfe_bps")
+        mae_bps = metrics.get("max_mae_bps")
+        dd_bps = metrics.get("intratrade_drawdown_bps")
+        
+        # Validate MFE >= 0
+        if mfe_bps is not None and mfe_bps < -eps:
+            log.warning(
+                "[INTRATRADE_INVARIANT] Trade %s: MFE violation (MFE=%.2f < 0). "
+                "Metrics snapshot: MFE=%.2f, MAE=%.2f, DD=%.2f",
+                trade_id, mfe_bps, mfe_bps, mae_bps, dd_bps
+            )
+        
+        # Validate MAE <= 0
+        if mae_bps is not None and mae_bps > eps:
+            log.warning(
+                "[INTRATRADE_INVARIANT] Trade %s: MAE violation (MAE=%.2f > 0). "
+                "Metrics snapshot: MFE=%.2f, MAE=%.2f, DD=%.2f",
+                trade_id, mae_bps, mfe_bps, mae_bps, dd_bps
+            )
+        
+        # Validate DD <= 0
+        if dd_bps is not None and dd_bps > eps:
+            log.warning(
+                "[INTRATRADE_INVARIANT] Trade %s: Drawdown violation (DD=%.2f > 0). "
+                "Metrics snapshot: MFE=%.2f, MAE=%.2f, DD=%.2f",
+                trade_id, dd_bps, mfe_bps, mae_bps, dd_bps
+            )
+        
+        # Validate MFE >= realized_pnl (if realized_pnl > 0)
+        if realized_pnl_bps is not None and realized_pnl_bps > eps:
+            if mfe_bps is not None and mfe_bps + eps < realized_pnl_bps:
+                log.warning(
+                    "[INTRATRADE_INVARIANT] Trade %s: MFE < realized_pnl (MFE=%.2f < realized=%.2f). "
+                    "Metrics snapshot: MFE=%.2f, MAE=%.2f, DD=%.2f, realized=%.2f",
+                    trade_id, mfe_bps, realized_pnl_bps, mfe_bps, mae_bps, dd_bps, realized_pnl_bps
+                )
+
+    def _compute_runtime_atr_bps(self, candles: pd.DataFrame, period: int = 5) -> Optional[float]:
+        """Compute mid-price ATR(5) in bps for adaptive exit overlays."""
+        required_cols = [
+            "bid_high",
+            "bid_low",
+            "bid_close",
+            "ask_high",
+            "ask_low",
+            "ask_close",
+        ]
+        if not all(col in candles.columns for col in required_cols):
+            return None
+        window = candles[required_cols].tail(period + 2)
+        if len(window) < period:
+            return None
+        mid_df = pd.DataFrame(
+            {
+                "high": (window["bid_high"] + window["ask_high"]) * 0.5,
+                "low": (window["bid_low"] + window["ask_low"]) * 0.5,
+                "close": (window["bid_close"] + window["ask_close"]) * 0.5,
+            },
+            index=window.index,
+        )
+        atr_series = compute_atr_bps(mid_df, period=period)
+        if atr_series.empty:
+            return None
+        latest = atr_series.iloc[-1]
+        if pd.isna(latest):
+            return None
+        return float(latest)
 
     # ------------------------------------------------------------------ #
     # Main loop

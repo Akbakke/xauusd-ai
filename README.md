@@ -4,6 +4,7 @@ This repository now contains only the components that power the current GX1 FARM
 
 - **Entry:** `ENTRY_V9_FARM_V2B` (with optional V2 fallback) – transformer based p_long policy that runs through the new `EntryManager`.
 - **Exit:** `FARM_EXIT_V2_RULES_A` plus the fixed/random sanity exits, orchestrated via `ExitManager`.
+- **Exit Router:** `HYBRID_ROUTER_V3_RANGE` with guardrail – ML decision tree with range features. RULE6A er en edge-spesialisert exit, kun aktivert når range_edge_dist_atr < 1.0. I øvrige regimer gir den ingen målbar forbedring i PnL eller risiko og er derfor deaktivert.
 - **Runtime:** `gx1/execution/oanda_demo_runner.py` with the broker, entry, exit, and replay helpers.
 - **Features:** `gx1/features/basic_v1.py`, `gx1/features/runtime_v9.py`, and `gx1/seq/sequence_features.py`.
 - **Policies & Configs:** `gx1/configs/policies/active/*.yaml` (only the three active bundles) and the matching exits in `gx1/configs/exits/`.

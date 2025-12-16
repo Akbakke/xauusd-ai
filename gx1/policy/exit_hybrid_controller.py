@@ -31,7 +31,7 @@ class ExitModeSelector:
     Stateless helper that maps regime metrics to exit profile names.
     """
 
-    def __init__(self, config: Dict[str, float] | None = None) -> None:
+    def __init__(self, config: Dict[str, float] | None = None, policy_meta: Dict[str, str] | None = None, runner=None) -> None:
         cfg = config or {}
         self.config = cfg  # Store config for adaptive router thresholds
         self.thresholds = HybridThresholds(
@@ -41,6 +41,14 @@ class ExitModeSelector:
         )
         self.name = cfg.get("mode", "RULE5_RULE6A_ATR_SPREAD_V1")
         self.version = cfg.get("version", "HYBRID_ROUTER_V1")
+        # V3 guardrail: cutoff for range_edge_dist_atr (default: 1.0)
+        self.v3_range_edge_cutoff = float(cfg.get("v3_range_edge_cutoff", 1.0))
+        # V3 model path (from config, if provided)
+        self.v3_model_path = cfg.get("model_path")
+        # PROD_BASELINE mode: check policy meta.role
+        policy_meta = policy_meta or {}
+        self.prod_baseline = policy_meta.get("role", "").upper() == "PROD_BASELINE"
+        self.runner = runner  # Store runner reference for journal access
 
     def choose_exit_profile(
         self,
@@ -91,15 +99,104 @@ class ExitModeSelector:
                 range_pos=range_pos,
                 distance_to_range=distance_to_range,
                 range_edge_dist_atr=range_edge_dist_atr,
+                model_path=self.v3_model_path,
+                prod_baseline=self.prod_baseline,
             )
             
             # Use V3 router
-            policy = hybrid_exit_router_v3(ctx)
+            raw_prediction = hybrid_exit_router_v3(ctx)
+            policy = raw_prediction
+            
+            # V3 guardrail: Override RULE6A if range_edge_dist_atr >= cutoff
+            guardrail_override = False
+            if policy == "RULE6A":
+                reda = range_edge_dist_atr if range_edge_dist_atr is not None else float("inf")
+                if reda >= self.v3_range_edge_cutoff:
+                    policy = "RULE5"
+                    guardrail_override = True
+                    logger.debug(
+                        "[HYBRID_EXIT] V3 guardrail: RULE6A overridden to RULE5 (range_edge_dist_atr=%.3f >= cutoff=%.3f)",
+                        reda,
+                        self.v3_range_edge_cutoff,
+                    )
+            
+            # Log router decision to trade journal (structured)
+            if hasattr(self, "runner") and hasattr(self.runner, "trade_journal") and self.runner.trade_journal:
+                try:
+                    from gx1.monitoring.trade_journal import EVENT_ROUTER_DECISION, EVENT_GUARDRAIL_OVERRIDE
+                    
+                    # Get trade_id from context (if available)
+                    trade_id = getattr(ctx, "trade_id", None)
+                    if not trade_id:
+                        # Try to get from runner's open trades (last created)
+                        if hasattr(self.runner, "open_trades") and self.runner.open_trades:
+                            trade_id = self.runner.open_trades[-1].trade_id
+                    
+                    if trade_id:
+                        # Log structured router decision
+                        self.runner.trade_journal.log_router_decision(
+                            trade_id=trade_id,
+                            router_version=self.version,
+                            router_raw_decision=raw_prediction,
+                            final_exit_profile=policy,
+                            router_model_hash=self.router_sha256 if hasattr(self, "router_sha256") else None,
+                            router_features_used={
+                                "atr_pct": atr_pct,
+                                "spread_pct": spread_pct,
+                                "atr_bucket": atr_bucket,
+                                "regime": regime,
+                                "session": session,
+                                "range_pos": range_pos,
+                                "distance_to_range": distance_to_range,
+                                "range_edge_dist_atr": range_edge_dist_atr,
+                            },
+                            guardrail_applied=guardrail_override,
+                            guardrail_reason="range_edge_dist_atr >= cutoff" if guardrail_override else None,
+                            guardrail_cutoff=self.v3_range_edge_cutoff if guardrail_override else None,
+                            range_edge_dist_atr=range_edge_dist_atr,
+                        )
+                    
+                    # Log router decision (backward compatibility JSONL)
+                    self.runner.trade_journal.log(
+                        EVENT_ROUTER_DECISION,
+                        {
+                            "router_version": self.version,
+                            "model_path": str(self.v3_model_path) if self.v3_model_path else None,
+                            "ctx_features": {
+                                "atr_pct": ctx.atr_pct,
+                                "spread_pct": ctx.spread_pct,
+                                "atr_bucket": ctx.atr_bucket,
+                                "regime": ctx.regime,
+                                "session": ctx.session,
+                                "range_pos": ctx.range_pos,
+                                "distance_to_range": ctx.distance_to_range,
+                                "range_edge_dist_atr": ctx.range_edge_dist_atr,
+                            },
+                            "raw_prediction": raw_prediction,
+                            "final_decision": policy,
+                            "guardrail_cutoff": self.v3_range_edge_cutoff,
+                            "range_edge_dist_atr": range_edge_dist_atr,
+                        },
+                    )
+                    
+                    # Log guardrail override if it happened
+                    if guardrail_override:
+                        self.runner.trade_journal.log(
+                            EVENT_GUARDRAIL_OVERRIDE,
+                            {
+                                "raw_prediction": raw_prediction,
+                                "final_decision": policy,
+                                "range_edge_dist_atr": range_edge_dist_atr,
+                                "cutoff": self.v3_range_edge_cutoff,
+                            },
+                        )
+                except Exception as e:
+                    logger.warning("[TRADE_JOURNAL] Failed to log router decision: %s", e)
             
             profile = RULE6A_PROFILE if policy == "RULE6A" else RULE5_PROFILE
             
             logger.debug(
-                "[HYBRID_EXIT] mode=%s version=%s session=%s regime=%s atr_bps=%.2f atr_pct=%.1f spread_bps=%.2f spread_pct=%.1f -> %s (V3)",
+                "[HYBRID_EXIT] mode=%s version=%s session=%s regime=%s atr_bps=%.2f atr_pct=%.1f spread_bps=%.2f spread_pct=%.1f range_edge_dist_atr=%.3f -> %s (V3)",
                 self.name,
                 self.version,
                 session,
@@ -108,6 +205,7 @@ class ExitModeSelector:
                 atr_pct if atr_pct is not None else float("nan"),
                 spread_bps if spread_bps is not None else float("nan"),
                 spread_pct if spread_pct is not None else float("nan"),
+                range_edge_dist_atr if range_edge_dist_atr is not None else float("nan"),
                 profile,
             )
             return profile

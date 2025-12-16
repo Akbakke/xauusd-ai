@@ -1,41 +1,110 @@
 #!/usr/bin/env python3
 """
-Parameter sweep for EXIT_A tuning over Q1 2025.
+Conservative EXIT_A tuning sweep over Q1 2025.
 
-Tests combinations of:
-- min_prob_long: [0.65, 0.68, 0.70, 0.72]
-- max_open_trades: [3, 4, 5]
-- rule_a_profit_min_bps: [4.0, 5.0, 6.0]
-- rule_a_profit_max_bps: [7.0, 8.0, 9.0]
+Focuses on a curated set of variants (≤ 5) instead of a full grid:
+- min_prob_long ∈ {0.72, 0.70, 0.68}
+- max_open_trades ∈ {3, 4, 5}
+- rule_a_profit_min_bps ∈ {6.0, 5.0, 4.0}
+- cooldown/min_time_between_trades_sec ∈ {60, 0}
 
-Outputs: CSV + Markdown summary table
+Outputs combined CSV + Markdown summary tables under gx1/tuning/.
 """
 
 import pandas as pd
 import subprocess
 import json
 from pathlib import Path
-from itertools import product
 import yaml
 import sys
 import os
+from datetime import datetime
 
 # Add project root to path
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-# Parameter grid (can be reduced for faster sweeps)
-PARAM_GRID = {
-    "min_prob_long": [0.65, 0.68, 0.70, 0.72],
-    "max_open_trades": [3, 4, 5],
-    "rule_a_profit_min_bps": [4.0, 5.0, 6.0],
-    "rule_a_profit_max_bps": [7.0, 8.0, 9.0],
-}
-
-# Q1 2025 period
+# Q1 2025 period / dataset
 START_DATE = "2025-01-02"
 END_DATE = "2025-03-31"
 M5_DATA = "data/raw/xauusd_m5_2025_bid_ask.parquet"
+N_WORKERS = "6"
+RESULTS_DIR = PROJECT_ROOT / "gx1" / "tuning"
+RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+
+# Curated variant list (baseline + variants)
+VARIANTS = [
+    {
+        "name": "baseline",
+        "min_prob_long": 0.72,
+        "max_open_trades": 3,
+        "rule_a_profit_min_bps": 6.0,
+        "cooldown_sec": 60,
+        "reuse_output": "gx1/wf_runs/FARM_V2B_EXIT_A_Q1",
+    },
+    {
+        "name": "mp70_max4_rule5_cd60",
+        "min_prob_long": 0.70,
+        "max_open_trades": 4,
+        "rule_a_profit_min_bps": 5.0,
+        "cooldown_sec": 60,
+        "reuse_output": "gx1/wf_runs/EXIT_A_SWEEP_mp70_max4_rule5_cd60",
+    },
+    {
+        "name": "mp70_max4_rule4_cd0",
+        "min_prob_long": 0.70,
+        "max_open_trades": 4,
+        "rule_a_profit_min_bps": 4.0,
+        "cooldown_sec": 0,
+        "reuse_output": "gx1/wf_runs/EXIT_A_SWEEP_mp70_max4_rule4_cd0",
+    },
+    {
+        "name": "mp68_max5_rule5_cd60",
+        "min_prob_long": 0.68,
+        "max_open_trades": 5,
+        "rule_a_profit_min_bps": 5.0,
+        "cooldown_sec": 60,
+        "reuse_output": "gx1/wf_runs/EXIT_A_SWEEP_mp68_max5_rule5_cd60",
+    },
+    {
+        "name": "mp70_max5_rule4_cd0",
+        "min_prob_long": 0.70,
+        "max_open_trades": 5,
+        "rule_a_profit_min_bps": 4.0,
+        "cooldown_sec": 0,
+        "reuse_output": "gx1/wf_runs/EXIT_A_SWEEP_mp70_max5_rule4_cd0",
+    },
+    {
+        "name": "mp68_max5_rule5_cd0",
+        "min_prob_long": 0.68,
+        "max_open_trades": 5,
+        "rule_a_profit_min_bps": 5.0,
+        "cooldown_sec": 0,
+        "reuse_output": "gx1/wf_runs/EXIT_A_SWEEP_mp68_max5_rule5_cd0",
+    },
+    {
+        "name": "mp68_max5_rule4_cd60",
+        "min_prob_long": 0.68,
+        "max_open_trades": 5,
+        "rule_a_profit_min_bps": 4.0,
+        "cooldown_sec": 60,
+    },
+    {
+        "name": "mp68_max4_rule4_cd0",
+        "min_prob_long": 0.68,
+        "max_open_trades": 4,
+        "rule_a_profit_min_bps": 4.0,
+        "cooldown_sec": 0,
+    },
+    {
+        "name": "mp68_max5_rule4_cd0",
+        "min_prob_long": 0.68,
+        "max_open_trades": 5,
+        "rule_a_profit_min_bps": 4.0,
+        "cooldown_sec": 0,
+        "reuse_output": "gx1/wf_runs/EXIT_A_SWEEP_mp68_max5_rule4_cd0",
+    },
+]
 
 def create_config_variant(base_config_path, variant_name, params):
     """Create a config variant with modified parameters."""
@@ -72,7 +141,6 @@ def create_config_variant(base_config_path, variant_name, params):
         exit_cfg = yaml.safe_load(f)
     
     exit_cfg["exit"]["params"]["rule_a_profit_min_bps"] = params["rule_a_profit_min_bps"]
-    exit_cfg["exit"]["params"]["rule_a_profit_max_bps"] = params["rule_a_profit_max_bps"]
     
     # Save modified exit config
     variant_exit_cfg_path = Path(f"gx1/configs/exits/FARM_EXIT_V2_RULES_A_{variant_name}.yaml")
@@ -86,7 +154,12 @@ def create_config_variant(base_config_path, variant_name, params):
     variant_config["entry_config"] = str(variant_entry_cfg_path)
     variant_config["exit_config"] = str(variant_exit_cfg_path)
     variant_config["trade_log_csv"] = f"gx1/wf_runs/EXIT_A_SWEEP_{variant_name}/trade_log.csv"
+    variant_config.setdefault("logging", {})
     variant_config["logging"]["log_dir"] = f"gx1/wf_runs/EXIT_A_SWEEP_{variant_name}/logs"
+    variant_config.setdefault("execution", {})
+    variant_config["execution"]["max_open_trades"] = params["max_open_trades"]
+    variant_config.setdefault("risk", {})
+    variant_config["risk"]["min_time_between_trades_sec"] = params["cooldown_sec"]
     
     variant_config_path = Path(f"gx1/configs/policies/active/EXIT_A_SWEEP_{variant_name}.yaml")
     variant_config_path.parent.mkdir(parents=True, exist_ok=True)
@@ -110,7 +183,7 @@ def run_replay(config_path, variant_name):
         str(config_path),
         START_DATE,
         END_DATE,
-        "7"  # n_workers
+        N_WORKERS  # n_workers
     ]
     
     env = os.environ.copy()
@@ -125,6 +198,29 @@ def run_replay(config_path, variant_name):
         return None
     
     return str(output_dir)
+
+def _extract_exit_profile_series(df: pd.DataFrame) -> pd.Series | None:
+    """Return exit_profile series from dataframe (parsing extra if needed)."""
+    if "exit_profile" in df.columns:
+        return df["exit_profile"]
+    if "extra.exit_profile" in df.columns:
+        return df["extra.exit_profile"]
+    if "extra" not in df.columns:
+        return None
+
+    def _parse(extra):
+        if isinstance(extra, dict):
+            return extra.get("exit_profile")
+        if isinstance(extra, str) and extra.strip():
+            try:
+                data = json.loads(extra)
+            except Exception:
+                return None
+            if isinstance(data, dict):
+                return data.get("exit_profile")
+        return None
+
+    return df["extra"].apply(_parse)
 
 def analyze_results(output_dir):
     """Analyze trade log and compute metrics."""
@@ -150,157 +246,157 @@ def analyze_results(output_dir):
         print(f"ERROR: Failed to read trade log: {e}")
         return None
     
-    # Filter closed trades only
+    total_trades = len(df)
+    exit_profile_series = _extract_exit_profile_series(df)
+    if exit_profile_series is None:
+        missing_exit_profile = total_trades
+    else:
+        eps = exit_profile_series.astype("string")
+        missing_exit_profile = int(eps.isna().sum() + (eps == "").sum())
+    
     if "exit_time" not in df.columns:
         print(f"WARNING: exit_time column missing in {trade_log_path}")
         return None
-    
     closed = df[df["exit_time"].notna()].copy()
-    if len(closed) == 0:
+    closed_trades = len(closed)
+    if closed_trades == 0:
         print(f"WARNING: No closed trades in {trade_log_path}")
         return None
     
-    # Compute metrics
-    n_trades = len(closed)
-    
-    if "pnl_bps" not in closed.columns:
-        print(f"WARNING: pnl_bps column missing")
+    pnl_series = pd.to_numeric(closed["pnl_bps"], errors="coerce")
+    pnl_series = pnl_series.dropna()
+    if pnl_series.empty:
+        print(f"WARNING: No numeric pnl_bps values in {trade_log_path}")
         return None
-    
-    win_rate = (closed["pnl_bps"] > 0).mean() * 100
-    mean_pnl_bps = closed["pnl_bps"].mean()
-    median_pnl_bps = closed["pnl_bps"].median()
-    
+
+    win_rate = float((pnl_series > 0).mean() * 100.0)
+    mean_pnl_bps = float(pnl_series.mean())
+    median_pnl_bps = float(pnl_series.median())
+    days = max((pd.to_datetime(END_DATE) - pd.to_datetime(START_DATE)).days, 1)
+    trades_per_day = closed_trades / days
+    ev_per_day = float(pnl_series.sum() / days)
+    ev_per_trade = mean_pnl_bps
     if "bars_held" in closed.columns:
-        median_bars_held = closed["bars_held"].median()
+        median_bars_held = float(pd.to_numeric(closed["bars_held"], errors="coerce").dropna().median())
     else:
         median_bars_held = 0.0
     
-    # EV/day (assuming ~90 days in Q1)
-    days = (pd.to_datetime(END_DATE) - pd.to_datetime(START_DATE)).days
-    ev_per_day = (closed["pnl_bps"].sum() / days) if days > 0 else 0.0
-    trades_per_day = n_trades / days if days > 0 else 0.0
-    
     return {
-        "n_trades": n_trades,
+        "trades_total": total_trades,
+        "trades_closed": closed_trades,
+        "missing_exit_profile": missing_exit_profile,
         "trades_per_day": trades_per_day,
         "win_rate": win_rate,
-        "mean_pnl_bps": mean_pnl_bps,
+        "ev_per_trade_bps": ev_per_trade,
+        "ev_per_day_bps": ev_per_day,
         "median_pnl_bps": median_pnl_bps,
-        "ev_per_day": ev_per_day,
         "median_bars_held": median_bars_held,
     }
 
 def main():
-    """Run parameter sweep."""
-    base_config = "gx1/configs/policies/active/GX1_V11_OANDA_DEMO_V9_FARM_V2B_EXIT_A_Q1.yaml"
-    
-    if not Path(base_config).exists():
-        print(f"ERROR: Base config not found: {base_config}")
-        return
+    """Run curated parameter sweep."""
+    base_config = Path("gx1/configs/policies/active/GX1_V11_OANDA_DEMO_V9_FARM_V2B_EXIT_A_Q1.yaml")
+    if not base_config.exists():
+        raise SystemExit(f"Base config not found: {base_config}")
     
     results = []
-    
-    # Generate all combinations
-    param_names = list(PARAM_GRID.keys())
-    param_values = list(PARAM_GRID.values())
-    
-    total_combos = len(list(product(*param_values)))
-    print(f"Total variants to test: {total_combos}")
-    print(f"Parameter grid: {PARAM_GRID}")
-    
-    for idx, combo in enumerate(product(*param_values), 1):
-        params = dict(zip(param_names, combo))
-        variant_name = "_".join([f"{k}_{v}" for k, v in params.items()]).replace(".", "p")
-        
-        print(f"\n=== [{idx}/{total_combos}] Running variant: {variant_name} ===")
-        print(f"Params: {params}")
-        
-        try:
-            # Create config variant
-            config_path = create_config_variant(base_config, variant_name, params)
-            
-            # Run replay
-            output_dir = run_replay(config_path, variant_name)
+    for variant in VARIANTS:
+        name = variant["name"]
+        print(f"\n=== Variant: {name} ===")
+        reuse_dir = variant.get("reuse_output")
+        output_dir = None
+        if reuse_dir:
+            output_dir = reuse_dir
+            print(f"Reusing existing output dir: {output_dir}")
+        else:
+            config_path = create_config_variant(base_config, name, variant)
+            output_dir = run_replay(config_path, name)
             if output_dir is None:
+                print(f"Skipping {name} (replay failed)")
                 continue
-            
-            # Analyze results
-            metrics = analyze_results(output_dir)
-            if metrics is None:
-                continue
-            
-            # Store results
-            result_row = {**params, **metrics, "variant": variant_name}
-            results.append(result_row)
-            
-            print(f"Results: {metrics}")
-        except Exception as e:
-            print(f"ERROR processing variant {variant_name}: {e}")
-            import traceback
-            traceback.print_exc()
+        
+        metrics = analyze_results(output_dir)
+        if metrics is None:
+            print(f"Skipping {name}: unable to compute metrics")
             continue
+        
+        metrics.update(
+            {
+                "variant": name,
+                "min_prob_long": variant["min_prob_long"],
+                "max_open_trades": variant["max_open_trades"],
+                "rule_a_profit_min_bps": variant["rule_a_profit_min_bps"],
+                "cooldown_sec": variant["cooldown_sec"],
+                "output_dir": output_dir,
+            }
+        )
+        results.append(metrics)
     
-    if len(results) == 0:
-        print("ERROR: No results collected!")
-        return
+    if not results:
+        raise SystemExit("No successful variants.")
     
-    # Save results
-    df_results = pd.DataFrame(results)
-    results_path = Path("gx1/wf_runs/EXIT_A_SWEEP_RESULTS.csv")
-    results_path.parent.mkdir(parents=True, exist_ok=True)
-    df_results.to_csv(results_path, index=False)
-    
-    # Generate markdown summary
-    md_lines = [
-        "# EXIT_A Parameter Sweep Results (Q1 2025)",
-        "",
-        f"**Date**: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}",
-        f"**Period**: {START_DATE} to {END_DATE}",
-        f"**Total variants tested**: {len(results)}",
-        "",
-        "## Summary Table",
-        "",
-        df_results.to_markdown(index=False),
-        "",
-        "## Baseline Comparison",
-        "",
-        "- **Baseline (EXIT_A_Q1)**: 36 trades, 91.67% win rate, 55.96 bps/day",
-        "",
-        "## Best Variants",
-        "",
-        "### Highest EV/day:",
-        "",
-        df_results.nlargest(5, "ev_per_day")[["variant", "n_trades", "win_rate", "ev_per_day", "trades_per_day"]].to_markdown(index=False),
-        "",
-        "### Highest Win Rate:",
-        "",
-        df_results.nlargest(5, "win_rate")[["variant", "n_trades", "win_rate", "ev_per_day", "trades_per_day"]].to_markdown(index=False),
-        "",
-        "### Highest Trade Frequency (trades/day):",
-        "",
-        df_results.nlargest(5, "trades_per_day")[["variant", "n_trades", "win_rate", "ev_per_day", "trades_per_day"]].to_markdown(index=False),
-        "",
-        "### Best Balance (win_rate > 85%, trades_per_day > 1.0):",
-        "",
+    df = pd.DataFrame(results)
+    df = df[
+        [
+            "variant",
+            "min_prob_long",
+            "max_open_trades",
+            "rule_a_profit_min_bps",
+            "cooldown_sec",
+            "trades_total",
+            "trades_closed",
+            "missing_exit_profile",
+            "trades_per_day",
+            "win_rate",
+            "ev_per_trade_bps",
+            "ev_per_day_bps",
+            "median_pnl_bps",
+            "median_bars_held",
+            "output_dir",
+        ]
     ]
     
-    # Filter for balanced variants
-    balanced = df_results[(df_results["win_rate"] > 85) & (df_results["trades_per_day"] > 1.0)]
-    if len(balanced) > 0:
-        md_lines.append(balanced.nlargest(5, "ev_per_day")[["variant", "n_trades", "win_rate", "ev_per_day", "trades_per_day"]].to_markdown(index=False))
+    csv_path = RESULTS_DIR / "exit_a_q1_sweep_results.csv"
+    md_path = RESULTS_DIR / "exit_a_q1_sweep_results.md"
+    df.to_csv(csv_path, index=False)
+    
+    md_lines = []
+    md_lines.append(f"# EXIT_A Q1 Sweep ({datetime.utcnow().isoformat()}Z)\n")
+    md_lines.append("| Variant | min_prob_long | max_open | rule_a_min | cooldown_s | trades | closed | miss_exit_profile | trades/day | win_rate% | EV/trade (bps) | EV/day (bps) |")
+    md_lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
+    for _, row in df.iterrows():
+        md_lines.append(
+            "| {variant} | {mp:.2f} | {max_open} | {rule:.1f} | {cd:.0f} | {total} | {closed} | {miss} | {tpd:.2f} | {wr:.2f} | {evt:.2f} | {evd:.2f} |".format(
+                variant=row["variant"],
+                mp=row["min_prob_long"],
+                max_open=int(row["max_open_trades"]),
+                rule=row["rule_a_profit_min_bps"],
+                cd=row["cooldown_sec"],
+                total=int(row["trades_total"]),
+                closed=int(row["trades_closed"]),
+                miss=int(row["missing_exit_profile"]),
+                tpd=row["trades_per_day"],
+                wr=row["win_rate"],
+                evt=row["ev_per_trade_bps"],
+                evd=row["ev_per_day_bps"],
+            )
+        )
+    
+    eligible = df[(df["win_rate"] >= 80.0) & (df["trades_per_day"] >= 0.8)]
+    eligible = eligible.sort_values("ev_per_day_bps", ascending=False).head(3)
+    if not eligible.empty:
+        md_lines.append("\n## Top Variants (win_rate ≥ 80%, trades/day ≥ 0.8, sorted by EV/day)\n")
+        for _, row in eligible.iterrows():
+            md_lines.append(
+                f"- **{row['variant']}** → EV/day {row['ev_per_day_bps']:.2f} bps, trades/day {row['trades_per_day']:.2f}, win_rate {row['win_rate']:.2f}%, "
+                f"min_prob_long {row['min_prob_long']:.2f}, max_open {int(row['max_open_trades'])}, rule_a_min {row['rule_a_profit_min_bps']:.1f}, cooldown {row['cooldown_sec']:.0f}s"
+            )
     else:
-        md_lines.append("*No variants meet criteria*")
+        md_lines.append("\n_No variants met the EV/day filter with win_rate ≥ 80% and trades/day ≥ 0.8._\n")
     
-    md_path = Path("gx1/wf_runs/EXIT_A_SWEEP_RESULTS.md")
-    with open(md_path, "w") as f:
-        f.write("\n".join(md_lines))
-    
-    print("\n=== Sweep Complete ===")
-    print(f"Results saved to: {results_path}")
-    print(f"Summary saved to: {md_path}")
-    print(f"\nTotal variants tested: {len(results)}")
+    md_path.write_text("\n".join(md_lines))
+    print(f"\nSaved results: {csv_path}, {md_path}")
+    print(df)
 
 if __name__ == "__main__":
     main()
-

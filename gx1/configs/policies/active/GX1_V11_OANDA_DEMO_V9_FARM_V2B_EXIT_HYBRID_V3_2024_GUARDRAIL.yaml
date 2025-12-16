@@ -1,0 +1,70 @@
+# GX1 v1.1 → Hybrid exit controller V3_RANGE (2024 med guardrail)
+#
+# Entry: FARM_V2B mp68_max5_cd0 (long-only)
+# Exit: HYBRID_ROUTER_V3 - ML decision tree with range features + guardrail
+# Window: Full 2024 (2024-01-01 → 2024-12-31) – supply dates via replay CLI
+#
+# V3_RANGE routing logic (med guardrail):
+#   - Based on V3 decision tree trained on FULLYEAR 2025 data (1592 trades)
+#   - Features: atr_pct, spread_pct, range_pos, distance_to_range, range_edge_dist_atr
+#   - Tree uses range_edge_dist_atr in splits (range-aware routing)
+#   - RULE5 default, RULE6A allocated based on ML predictions
+#   - GUARDRAIL: RULE6A only allowed when range_edge_dist_atr < 1.0
+
+meta:
+  router_version: V3_RANGE
+  role: GUARDRAIL_2024
+  description: >
+    HYBRID_ROUTER_V3_RANGE (decision-tree with range features + guardrail).
+    Uses range_pos, distance_to_range, and range_edge_dist_atr for range-aware routing.
+    Guardrail: RULE6A only allowed when range_edge_dist_atr < 1.0 (edge-specialized exit).
+    Trained on FULLYEAR 2025 data (1592 trades). Guardrail version for 2024 comparison.
+
+policy_name: GX1_V11_OANDA_DEMO_V9_FARM_V2B_EXIT_HYBRID_V3_2024_GUARDRAIL
+version: "GX1_V11_OANDA_DEMO_V9_FARM_V2B_EXIT_HYBRID_V3_2024_GUARDRAIL"
+mode: "REPLAY"
+instrument: "XAU_USD"
+timeframe: "M5"
+warmup_bars: 288
+
+entry_config: gx1/configs/policies/prod_snapshot/2025_FARM_V2B_HYBRID/ENTRY_V9_FARM_V2B_PROD.yaml
+exit_config: gx1/configs/exits/FARM_EXIT_V2_RULES_A_mp68_max5_rule5_cd0.yaml
+
+exit_policies:
+  rule5: gx1/configs/exits/FARM_EXIT_V2_RULES_A_mp68_max5_rule5_cd0.yaml
+  rule6a: gx1/configs/exits/FARM_EXIT_V2_RULES_ADAPTIVE_v1.yaml
+
+exit_hybrid:
+  enabled: true
+  mode: RULE5_RULE6A_ATR_SPREAD_V1
+  atr_low_pct: 0.0
+  atr_high_pct: 75.0
+  max_spread_pct: 40.0
+  allowed_regimes:
+    - FARM_ASIA_MEDIUM
+  exit_params:
+    enable_tp: true
+    enable_trailing: true
+    enable_be: true
+
+hybrid_exit_router:
+  version: HYBRID_ROUTER_V3
+  v3_range_edge_cutoff: 1.0  # Guardrail: RULE6A only allowed when range_edge_dist_atr < 1.0
+  model_path: gx1/configs/policies/prod_snapshot/2025_FARM_V2B_HYBRID_V3_RANGE/exit_router_models_v3/exit_router_v3_tree.pkl
+  documentation: |
+    HYBRID_ROUTER_V3_RANGE provides ML-based routing using decision tree trained on range features.
+    
+    GUARDRAIL:
+      RULE6A er en edge-spesialisert exit, kun aktivert når range_edge_dist_atr < 1.0.
+      I øvrige regimer gir den ingen målbar forbedring i PnL eller risiko og er derfor deaktivert.
+
+logging:
+  level: INFO
+  log_dir: gx1/wf_runs/GX1_V11_OANDA_DEMO_V9_FARM_V2B_EXIT_HYBRID_V3_2024_GUARDRAIL/logs
+
+execution:
+  max_open_trades: 5
+
+risk:
+  min_time_between_trades_sec: 0
+

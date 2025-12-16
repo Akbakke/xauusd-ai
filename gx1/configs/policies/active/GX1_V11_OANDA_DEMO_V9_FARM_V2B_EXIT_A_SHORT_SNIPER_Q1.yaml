@@ -1,0 +1,30 @@
+# ⚠️ EXPERIMENTAL / NOT USED IN PRODUCTION ⚠️
+# This config is archived for experimental purposes only.
+# Production pipelines use long-only strategies (GX1_V11_OANDA_DEMO_V9_FARM_V2B_EXIT_A_PROD.yaml).
+# GX1 v1.1 → SHORT_SNIPER experimental policy
+# FARM_V2B entry stack with short-focused gating + EXIT_A RULE5 (long-only today)
+#
+# IMPORTANT: EXIT_FARM_V2_RULES currently supports LONG positions only.
+# Running this policy today will yield zero trades; see docs/EXIT_A_SHORT_NOTES.md
+# for the missing wiring required before shorts can be replayed end-to-end.
+
+version: "GX1_V11_OANDA_DEMO_V9_FARM_V2B_EXIT_A_SHORT_SNIPER_Q1"
+mode: "REPLAY"
+instrument: "XAU_USD"
+timeframe: "M5"
+warmup_bars: 288
+
+entry_config: gx1/configs/policies/active/ENTRY_V9_FARM_V2B_EXIT_A_SHORT_SNIPER_Q1.yaml
+exit_config: gx1/configs/exits/FARM_EXIT_V2_RULES_A_mp68_max5_rule5_cd0.yaml
+
+trade_log_csv: gx1/wf_runs/FARM_V2B_EXIT_A_SHORT_SNIPER_Q1/trade_log.csv
+
+logging:
+  level: INFO
+  log_dir: gx1/wf_runs/FARM_V2B_EXIT_A_SHORT_SNIPER_Q1/logs
+
+execution:
+  max_open_trades: 2
+
+risk:
+  min_time_between_trades_sec: 0

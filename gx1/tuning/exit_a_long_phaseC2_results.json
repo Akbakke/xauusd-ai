@@ -1,0 +1,54 @@
+{
+  "Baseline PROD": {
+    "n_trades": 150,
+    "trades_per_day": 0.4411764705882353,
+    "win_rate": 84.0,
+    "ev_per_trade_bps": 128.05373925877652,
+    "ev_per_day_bps": 56.494296731813165,
+    "max_drawdown_bps": -154.26792251587358,
+    "missing_exit_profile": 0,
+    "period_days": 291.97222222222223,
+    "total_bars": 0,
+    "variant_name": "Baseline PROD",
+    "note": ""
+  },
+  "Variant D (max4)": {
+    "n_trades": 130,
+    "trades_per_day": 0.5179282868525896,
+    "win_rate": 79.23076923076923,
+    "ev_per_trade_bps": 75.35717939009113,
+    "ev_per_day_bps": 39.029614823553175,
+    "max_drawdown_bps": -1721.805871724412,
+    "missing_exit_profile": 0,
+    "period_days": 0,
+    "total_bars": 0,
+    "variant_name": "Variant D (max4)",
+    "note": "Phase-C.2: max_open_trades=4"
+  },
+  "Variant E (rule6)": {
+    "n_trades": 113,
+    "trades_per_day": 0.44841269841269843,
+    "win_rate": 77.87610619469027,
+    "ev_per_trade_bps": 71.18743089052799,
+    "ev_per_day_bps": 31.92134797868914,
+    "max_drawdown_bps": -2157.567457214589,
+    "missing_exit_profile": 0,
+    "period_days": 0,
+    "total_bars": 0,
+    "variant_name": "Variant E (rule6)",
+    "note": "Phase-C.2: rule_a_profit_min_bps=6"
+  },
+  "Variant F (trail3)": {
+    "n_trades": 113,
+    "trades_per_day": 0.44841269841269843,
+    "win_rate": 75.22123893805309,
+    "ev_per_trade_bps": 71.09284537611758,
+    "ev_per_day_bps": 31.878934632941615,
+    "max_drawdown_bps": -2157.567457214589,
+    "missing_exit_profile": 0,
+    "period_days": 0,
+    "total_bars": 0,
+    "variant_name": "Variant F (trail3)",
+    "note": "Phase-C.2: rule_a_trailing_stop_bps=3"
+  }
+}

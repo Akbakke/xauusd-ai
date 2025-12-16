@@ -1,0 +1,16 @@
+|--- atr_pct <= -0.56
+|   |--- atr_pct <= -1.53
+|   |   |--- class: 0
+|   |--- atr_pct >  -1.53
+|   |   |--- atr_pct <= -1.21
+|   |   |   |--- class: 1
+|   |   |--- atr_pct >  -1.21
+|   |   |   |--- class: 1
+|--- atr_pct >  -0.56
+|   |--- atr_pct <= 0.97
+|   |   |--- atr_pct <= 0.85
+|   |   |   |--- class: 0
+|   |   |--- atr_pct >  0.85
+|   |   |   |--- class: 1
+|   |--- atr_pct >  0.97
+|   |   |--- class: 0

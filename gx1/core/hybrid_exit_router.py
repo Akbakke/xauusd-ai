@@ -32,6 +32,9 @@ class ExitRouterContext:
     range_pos: Optional[float] = None
     distance_to_range: Optional[float] = None
     range_edge_dist_atr: Optional[float] = None
+    # Model loading config (for V3)
+    model_path: Optional[str] = None  # Override default model path
+    prod_baseline: bool = False  # If True, fail closed on model load error
 
 
 def _standardize_atr_pct(atr_pct: float) -> float:
@@ -196,8 +199,15 @@ def hybrid_exit_router_v3(ctx: ExitRouterContext) -> ExitPolicyName:
     |   |   |   |--- atr_pct <= 61.34 → RULE5
     |   |   |   |--- atr_pct > 61.34 → RULE6A
     |   |   |--- spread_pct > 0.50 → RULE5
+    
+    Model Loading:
+    - Uses ctx.model_path if provided, else defaults to hardcoded path
+    - Logs path, file size, and SHA256 hash at first load
+    - In PROD_BASELINE mode (ctx.prod_baseline=True): fails closed if model cannot be loaded
+    - In dev/replay mode: falls back to hardcoded tree logic
     """
     import joblib
+    import hashlib
     from pathlib import Path
     
     atr = ctx.atr_pct
@@ -209,18 +219,62 @@ def hybrid_exit_router_v3(ctx: ExitRouterContext) -> ExitPolicyName:
     if atr is None or spr is None:
         return "RULE5"
     
+    # Determine model path (use ctx.model_path if provided, else default)
+    if ctx.model_path:
+        model_path = Path(ctx.model_path)
+    else:
+        model_path = Path(__file__).parent.parent / "analysis" / "exit_router_models_v3" / "exit_router_v3_tree.pkl"
+    
     # Lazy load trained model (cache after first load)
     if not hasattr(hybrid_exit_router_v3, "_model_cache"):
-        model_path = Path(__file__).parent.parent / "analysis" / "exit_router_models_v3" / "exit_router_v3_tree.pkl"
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        # Log model path at startup
+        logger.info("[ROUTER_V3] Loading model from: %s", model_path.resolve())
+        
         if model_path.exists():
             try:
+                # Compute file size and hash before loading
+                file_size = model_path.stat().st_size
+                with open(model_path, "rb") as f:
+                    file_hash = hashlib.sha256(f.read()).hexdigest()
+                
+                # Log file info
+                logger.info(
+                    "[ROUTER_V3] Model file info: size=%d bytes, sha256=%s",
+                    file_size,
+                    file_hash,
+                )
+                
+                # Load model
                 hybrid_exit_router_v3._model_cache = joblib.load(model_path)
+                logger.info("[ROUTER_V3] Model loaded successfully")
+                
             except Exception as e:
-                import logging
-                logging.getLogger(__name__).warning(f"[ROUTER_V3] Failed to load model: {e}, falling back to hardcoded logic")
-                hybrid_exit_router_v3._model_cache = None
+                error_msg = f"[ROUTER_V3] Failed to load model: {e}"
+                if ctx.prod_baseline:
+                    # PROD_BASELINE: fail closed
+                    logger.error(error_msg)
+                    logger.error("[ROUTER_V3] PROD_BASELINE mode: Trading disabled due to model load failure")
+                    raise RuntimeError(f"Router model load failed in PROD_BASELINE mode: {e}")
+                else:
+                    # Dev/replay: fallback to hardcoded logic
+                    logger.warning(error_msg)
+                    logger.warning("[ROUTER_V3] Falling back to hardcoded tree logic")
+                    hybrid_exit_router_v3._model_cache = None
         else:
-            hybrid_exit_router_v3._model_cache = None
+            error_msg = f"[ROUTER_V3] Model file not found: {model_path}"
+            if ctx.prod_baseline:
+                # PROD_BASELINE: fail closed
+                logger.error(error_msg)
+                logger.error("[ROUTER_V3] PROD_BASELINE mode: Trading disabled due to missing model file")
+                raise FileNotFoundError(f"Router model file not found in PROD_BASELINE mode: {model_path}")
+            else:
+                # Dev/replay: fallback to hardcoded logic
+                logger.warning(error_msg)
+                logger.warning("[ROUTER_V3] Falling back to hardcoded tree logic")
+                hybrid_exit_router_v3._model_cache = None
     
     model = hybrid_exit_router_v3._model_cache
     
