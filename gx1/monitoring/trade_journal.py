@@ -231,6 +231,11 @@ class TradeJournal:
         entry_score: Optional[Dict[str, float]] = None,
         entry_filters_passed: Optional[List[str]] = None,
         entry_filters_blocked: Optional[List[str]] = None,
+        test_mode: bool = False,
+        reason: Optional[str] = None,
+        warmup_degraded: bool = False,
+        cached_bars_at_entry: Optional[int] = None,
+        warmup_bars_required: Optional[int] = None,
     ) -> None:
         """
         Log entry snapshot (why trade was taken).
@@ -247,6 +252,8 @@ class TradeJournal:
             entry_score: Entry model scores/probabilities
             entry_filters_passed: List of filters that passed
             entry_filters_blocked: List of filters that blocked (if any)
+            test_mode: If True, marks trade as test mode (e.g., force entry, smoke test)
+            reason: Reason for trade (e.g., "FORCED_CANARY_TRADE", "EXECUTION_SMOKE_TEST")
         """
         if not self.enabled:
             return
@@ -265,7 +272,17 @@ class TradeJournal:
                 "entry_score": entry_score or {},
                 "entry_filters_passed": entry_filters_passed or [],
                 "entry_filters_blocked": entry_filters_blocked or [],
+                "test_mode": test_mode,
             }
+            if reason:
+                trade_journal["entry_snapshot"]["reason"] = reason
+            # Add degraded warmup fields if applicable
+            if warmup_degraded:
+                trade_journal["entry_snapshot"]["warmup_degraded"] = True
+                if cached_bars_at_entry is not None:
+                    trade_journal["entry_snapshot"]["cached_bars_at_entry"] = cached_bars_at_entry
+                if warmup_bars_required is not None:
+                    trade_journal["entry_snapshot"]["warmup_bars_required"] = warmup_bars_required
             self._write_trade_json(trade_id)
         except Exception as e:
             logger.warning(f"[TRADE_JOURNAL] Failed to log entry snapshot for {trade_id}: {e}")

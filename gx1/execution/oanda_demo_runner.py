@@ -40,6 +40,7 @@ from gx1.execution.broker_client import BrokerClient
 from gx1.execution.entry_manager import EntryManager
 from gx1.execution.exit_manager import ExitManager
 from gx1.execution.telemetry import TelemetryTracker
+from gx1.execution.oanda_backfill import backfill_m5_candles_until_target
 from gx1.tuning.feature_manifest import load_manifest  # type: ignore[reportMissingImports]
 from gx1.utils.env_loader import load_dotenv_if_present
 from gx1.utils.pnl import compute_pnl_bps
@@ -2339,6 +2340,66 @@ class GX1DemoRunner:
         if self.exit_config_name:
             log.info("[BOOT] exit_config invariant: expecting exit_profile=%s for every trade", self.exit_config_name)
         
+        # Perform backfill on startup (if enabled and not in replay mode) - MOVED HERE BEFORE MANAGERS
+        log.info("[BACKFILL_DEBUG] Checking backfill configuration (BEFORE managers)...")
+        log.info("[BACKFILL_DEBUG] replay_mode=%s, fast_replay=%s", self.replay_mode, self.fast_replay)
+        backfill_cfg = self.policy.get("backfill", {})
+        log.info("[BACKFILL_DEBUG] backfill_cfg from policy: %s", backfill_cfg)
+        
+        if self.replay_mode:
+            log.info("[BACKFILL] Replay mode detected (replay-csv is set) – skipping OANDA backfill.")
+            self.backfill_in_progress = False
+            self.backfill_cache = None
+            self.warmup_floor = None
+        else:
+            backfill_enabled = backfill_cfg.get("enabled", True)  # Default: enabled
+            log.info("[BACKFILL_DEBUG] backfill_enabled=%s (from config: %s)", backfill_enabled, backfill_cfg.get("enabled", "NOT SET"))
+            
+            if backfill_enabled:
+                log.info(
+                    "[BOOT] Backfill enabled: overlap_bars=%d, lookback_padding=%d", 
+                    backfill_cfg.get("overlap_bars", 6),
+                    backfill_cfg.get("lookback_padding", 100),
+                )
+                log.info("[BACKFILL] Starting backfill on startup...")
+                self.backfill_in_progress = True
+                
+                try:
+                    log.info("[BACKFILL_DEBUG] Calling _perform_backfill()...")
+                    # Perform backfill (returns cache_df, gaps_refetched, warmup_floor, bars_remaining, revisions)
+                    self.backfill_cache, gaps_refetched, warmup_floor, bars_remaining, revisions = self._perform_backfill()
+                    log.info("[BACKFILL_DEBUG] _perform_backfill() completed successfully")
+                    log.info("[BACKFILL_DEBUG] gaps_refetched=%d, bars_remaining=%d, revisions=%d", gaps_refetched, bars_remaining, revisions)
+                    
+                    # Set warmup_floor from backfill result
+                    self.warmup_floor = warmup_floor
+                    if warmup_floor is not None:
+                        log.info("[BACKFILL_DEBUG] warmup_floor set to: %s", warmup_floor.isoformat())
+                    else:
+                        log.warning("[BACKFILL_DEBUG] warmup_floor is None after backfill!")
+                    
+                    # Track revisions in telemetry (warn if >0)
+                    if revisions > 0:
+                        log.warning(
+                            "[REVISION] Detected %d revisions in backfill (n_revisions_24h tracking)", 
+                            revisions,
+                        )
+                    
+                    # Backfill complete
+                    self.backfill_in_progress = False
+                    log.info("[BACKFILL] Backfill complete: %d bars cached, warmup_floor=%s", len(self.backfill_cache) if self.backfill_cache is not None else 0, warmup_floor.isoformat() if warmup_floor is not None else "None")
+                    
+                except Exception as e:
+                    log.error("[BACKFILL] Backfill failed: %s", e, exc_info=True)
+                    import traceback
+                    log.error("[BACKFILL_DEBUG] Full traceback: %s", traceback.format_exc())
+                    # Continue without backfill (fallback to live mode)
+                    self.backfill_in_progress = False
+                    self.backfill_cache = None
+                    self.warmup_floor = None
+            else:
+                log.info("[BACKFILL] Backfill disabled in policy")
+        
         # Managers
         self.entry_manager = EntryManager(self, exit_config_name=exit_config_name)
         self.exit_manager = ExitManager(self)
@@ -2546,50 +2607,6 @@ class GX1DemoRunner:
             log.info("=" * 60)
         else:
             log.debug("[BOOT] entry_model_bundle is None - skipping version info logging")
-        
-        # Perform backfill on startup (if enabled and not in replay mode)
-        backfill_cfg = self.policy.get("backfill", {})
-        if self.replay_mode:
-            log.info("[BACKFILL] Replay mode detected (replay-csv is set) – skipping OANDA backfill.")
-            self.backfill_in_progress = False
-            self.backfill_cache = None
-            self.warmup_floor = None
-        else:
-            if backfill_cfg.get("enabled", True):  # Default: enabled
-                log.info(
-                    "[BOOT] Backfill enabled: overlap_bars=%d, lookback_padding=%d", 
-                    backfill_cfg.get("overlap_bars", 6),
-                    backfill_cfg.get("lookback_padding", 100),
-                )
-                log.info("[BACKFILL] Starting backfill on startup...")
-                self.backfill_in_progress = True
-                
-                try:
-                    # Perform backfill (returns cache_df, gaps_refetched, warmup_floor, bars_remaining, revisions)
-                    self.backfill_cache, gaps_refetched, warmup_floor, bars_remaining, revisions = self._perform_backfill()
-                    
-                    # Set warmup_floor from backfill result
-                    self.warmup_floor = warmup_floor
-                    
-                    # Track revisions in telemetry (warn if >0)
-                    if revisions > 0:
-                        log.warning(
-                            "[REVISION] Detected %d revisions in backfill (n_revisions_24h tracking)", 
-                            revisions,
-                        )
-                        # TODO: Add n_revisions_24h to telemetry tracker
-                    
-                    # Backfill complete
-                    self.backfill_in_progress = False
-                    
-                except Exception as e:
-                    log.error("[BACKFILL] Backfill failed: %s", e, exc_info=True)
-                    # Continue without backfill (fallback to live mode)
-                    self.backfill_in_progress = False
-                    self.backfill_cache = None
-                    self.warmup_floor = None
-            else:
-                log.info("[BACKFILL] Backfill disabled in policy")
 
         log.info(
             "GX1 demo runner initialised (dry_run=%s, instrument=%s, granularity=%s)",
@@ -3436,9 +3453,18 @@ class GX1DemoRunner:
         overlap_bars = int(backfill_cfg.get("overlap_bars", 6))  # Default: 6 bars = 30 minutes
         lookback_padding = int(backfill_cfg.get("lookback_padding", 100))  # Default: 100 bars for feature rehydration
         days = int(backfill_cfg.get("days", 3))  # Default: 3 days ≈ 864 M5 bars
-        hard_min_bars = int(backfill_cfg.get("hard_min_bars", 900))  # Default: 900 bars minimum
+        
+        # Target bars: warmup_bars + padding (for stateful components like ATR, percentiles, regime)
+        warmup_bars = int(self.policy.get("warmup_bars", 288))
+        target_bars_padding = int(backfill_cfg.get("target_bars_padding", 100))  # Default: +100 bars padding
+        hard_min_bars = int(backfill_cfg.get("hard_min_bars", warmup_bars + target_bars_padding))  # Default: warmup_bars + 100
         force_on_boot = bool(backfill_cfg.get("force_on_boot", False))  # Default: False (respect last_bar_ts)
-        min_bars_on_boot = int(backfill_cfg.get("min_bars_on_boot", 900))  # Default: 900 bars minimum on boot
+        min_bars_on_boot = int(backfill_cfg.get("min_bars_on_boot", warmup_bars + target_bars_padding))  # Default: warmup_bars + 100
+        
+        log.info(
+            "[BACKFILL] Target bars: warmup_bars=%d, padding=%d, target=%d (hard_min_bars=%d, min_bars_on_boot=%d)",
+            warmup_bars, target_bars_padding, warmup_bars + target_bars_padding, hard_min_bars, min_bars_on_boot
+        )
         
         # Get current hashes
         feature_manifest_hash = self.entry_model_bundle.feature_cols_hash if self.entry_model_bundle is not None else None
@@ -3519,119 +3545,133 @@ class GX1DemoRunner:
         # Measure backfill duration
         backfill_start_time = time.time()
         
-        # Perform backfill (chunked with retry, gap scan, revision detection)
-        cache_df, gaps_refetched, revisions = self._resume_with_backfill(
-            cache_df=None,  # No existing cache on startup
-            from_ts=from_ts,
-            to_ts=to_ts,
-            overlap_bars=overlap_bars,
+        # Use robust target-driven backfill
+        # Determine price type: use "M" for mid (default for practice live)
+        # TODO: Could be configurable via policy if bid/ask needed for spread
+        price_type = "M"
+        
+        # Get OANDA client (from broker if available, otherwise create temporary)
+        if hasattr(self, 'broker') and self.broker is not None:
+            # BrokerClient wraps OandaClient in _client attribute
+            oanda_client = self.broker._client
+        else:
+            # Create temporary OANDA client for backfill
+            from gx1.execution.oanda_client import OandaClient
+            oanda_client = OandaClient.from_env()
+        
+        # Perform robust target-driven backfill
+        target_bars = warmup_bars + target_bars_padding
+        cache_df, backfill_meta = backfill_m5_candles_until_target(
+            oanda_client=oanda_client,
+            instrument=self.instrument,
+            granularity=self.granularity,
+            target_bars=target_bars,
+            price=price_type,
+            max_batch=5000,
+            max_iters=10,
+            min_new_per_iter=5,
             now_utc=now_utc,
+            logger=log,
         )
         
         # Measure backfill duration
         backfill_duration_s = time.time() - backfill_start_time
         
-        # Calculate bars in cache
-        bars_in_cache = len(cache_df) if not cache_df.empty else 0
-        fetched_bars = bars_in_cache  # Approximate (actual fetched may differ due to validation)
+        # Extract metadata
+        bars_in_cache = backfill_meta.get("total_bars", 0)
+        backfill_iters = backfill_meta.get("iterations", 0)
+        stop_reason = backfill_meta.get("stop_reason", "unknown")
+        gaps_refetched = 0  # Not tracked in new backfill (could be added if needed)
+        revisions = 0  # Not tracked in new backfill (could be added if needed)
+        fetched_bars = bars_in_cache
         
-        # Check if we need to fetch more bars to meet hard_min_bars
-        # Note: OANDA API may not return candles for weekends/non-trading periods
-        # So we try to fetch more, but accept what we have if we can't get more
-        if bars_in_cache < hard_min_bars:
-            # We don't have enough bars, try to fetch more (but only if we're significantly short)
-            # If we're close to hard_min_bars (within 100 bars), accept what we have
-            if bars_in_cache < (hard_min_bars - 100):
-                log.warning(
-                    "[BACKFILL] Insufficient bars: have=%d, need≥%d. Attempting to fetch additional bars.",
-                    bars_in_cache,
-                    hard_min_bars,
-                )
-                # Calculate how many bars we need
-                bars_needed = hard_min_bars - bars_in_cache
-                # Extend from_ts to fetch more bars (but limit to max 1 day back)
-                additional_bars_ts = max(from_ts - pd.Timedelta(minutes=5 * bars_needed), from_ts - pd.Timedelta(days=1))
-                # Fetch additional bars
-                try:
-                    additional_cache_df, additional_gaps, additional_revisions = self._resume_with_backfill(
-                        cache_df=cache_df,
-                        from_ts=additional_bars_ts,
-                        to_ts=from_ts,
-                        overlap_bars=0,  # No overlap for additional fetch
-                        now_utc=now_utc,
-                    )
-                    # Combine with existing cache
-                    if not additional_cache_df.empty:
-                        cache_df = pd.concat([additional_cache_df, cache_df]).sort_index().drop_duplicates(keep="last")
-                        bars_in_cache = len(cache_df)
-                        gaps_refetched += additional_gaps
-                        revisions += additional_revisions
-                        log.info(
-                            "[BACKFILL] Fetched additional bars: now have=%d bars (target≥%d)",
-                            bars_in_cache,
-                            hard_min_bars,
-                        )
-                    else:
-                        log.warning(
-                            "[BACKFILL] No additional bars available from OANDA (weekends/non-trading periods). Using %d bars (target≥%d)",
-                            bars_in_cache,
-                            hard_min_bars,
-                        )
-                except Exception as e:
-                    log.warning(
-                        "[BACKFILL] Failed to fetch additional bars: %s. Using %d bars (target≥%d)",
-                        e,
-                        bars_in_cache,
-                        hard_min_bars,
-                    )
-            else:
+        # Log backfill results
+        log.info(
+            "[BACKFILL] iter=%d cached=%d earliest=%s latest=%s stop_reason=%s",
+            backfill_iters,
+            bars_in_cache,
+            backfill_meta.get("earliest_time", pd.NaT).isoformat() if backfill_meta.get("earliest_time") is not None else "N/A",
+            backfill_meta.get("latest_time", pd.NaT).isoformat() if backfill_meta.get("latest_time") is not None else "N/A",
+            stop_reason,
+        )
+        
+        # Warmup gate: PROD hard / CANARY soft
+        # Define thresholds
+        min_start_bars = 100  # Minimum bars for CANARY degraded warmup
+        
+        # Get role from policy
+        policy_role = self.policy.get("meta", {}).get("role", "")
+        is_prod_baseline = (policy_role == "PROD_BASELINE")
+        
+        # Calculate warmup status
+        warmup_ready = bars_in_cache >= warmup_bars
+        target_ready = bars_in_cache >= target_bars
+        degraded_warmup = (not warmup_ready) and (bars_in_cache >= min_start_bars)
+        
+        # Log cache status
+        log.info(
+            "[BACKFILL] Cache status: cached_bars=%d, warmup_bars=%d, target=%d (min_bars_on_boot=%d)",
+            bars_in_cache, warmup_bars, warmup_bars + target_bars_padding, min_bars_on_boot
+        )
+        
+        # Warmup gate logic
+        if is_prod_baseline:
+            # PROD_BASELINE: hard requirement - must have warmup_bars
+            if bars_in_cache >= warmup_bars:
+                warmup_floor = None
+                bars_remaining = 0
+                resume_at = "immediate"
                 log.info(
-                    "[BACKFILL] Close to hard_min_bars: have=%d, need≥%d. Accepting current bars (OANDA may not have more due to weekends/non-trading periods).",
-                    bars_in_cache,
-                    hard_min_bars,
+                    "[WARMUP] role=PROD_BASELINE cached=%d warmup_ready=True target_ready=%s degraded=False",
+                    bars_in_cache, target_ready
+                )
+            else:
+                # Not enough bars - hold in warmup
+                warmup_minutes = 5 * (warmup_bars - bars_in_cache)
+                warmup_floor = now_utc.floor("5min") + pd.Timedelta(minutes=warmup_minutes)
+                bars_remaining = warmup_bars - bars_in_cache
+                resume_at = warmup_floor.strftime("%Y-%m-%dT%H:%M:%SZ")
+                log.error(
+                    "[WARMUP] role=PROD_BASELINE cached=%d warmup_ready=False target_ready=False degraded=False - BLOCKING TRADING until %s",
+                    bars_in_cache, resume_at
+                )
+        else:
+            # CANARY/testing: allow degraded warmup
+            if bars_in_cache >= warmup_bars:
+                warmup_floor = None
+                bars_remaining = 0
+                resume_at = "immediate"
+                log.info(
+                    "[WARMUP] role=%s cached=%d warmup_ready=True target_ready=%s degraded=False",
+                    policy_role or "CANARY", bars_in_cache, target_ready
+                )
+            elif bars_in_cache >= min_start_bars:
+                # Degraded warmup allowed
+                warmup_floor = None
+                bars_remaining = 0
+                resume_at = "immediate"
+                log.warning(
+                    "[WARMUP] role=%s cached=%d warmup_ready=False target_ready=False degraded=True - ALLOWING DEGRADED WARMUP",
+                    policy_role or "CANARY", bars_in_cache
+                )
+            else:
+                # Not enough even for degraded - hold in warmup
+                warmup_minutes = 5 * (min_start_bars - bars_in_cache)
+                warmup_floor = now_utc.floor("5min") + pd.Timedelta(minutes=warmup_minutes)
+                bars_remaining = min_start_bars - bars_in_cache
+                resume_at = warmup_floor.strftime("%Y-%m-%dT%H:%M:%SZ")
+                log.warning(
+                    "[WARMUP] role=%s cached=%d warmup_ready=False target_ready=False degraded=False - BLOCKING TRADING until %s",
+                    policy_role or "CANARY", bars_in_cache, resume_at
                 )
         
-        # Calculate warmup_floor based on min_bars_on_boot
-        # If we have ≥min_bars_on_boot bars, clear warmup_floor immediately (no warmup)
-        # Otherwise, check if we have enough bars for feature-rehydration (≥lookback_padding)
-        # If we have enough for feature-rehydration, we can start immediately (OANDA may not have more due to weekends)
-        min_bars_for_feature_rehydration = lookback_padding  # Minimum bars needed for feature rehydration
-        if bars_in_cache >= min_bars_on_boot:
-            # We have enough bars in cache, clear warmup_floor immediately
-            warmup_floor = None
-            bars_remaining = 0
-            resume_at = "immediate"
-            log.info(
-                "[BACKFILL] Sufficient bars for immediate start: have=%d bars (need≥%d bars)",
-                bars_in_cache,
-                min_bars_on_boot,
-            )
-        elif bars_in_cache >= min_bars_for_feature_rehydration:
-            # We have enough bars for feature-rehydration, but not enough for min_bars_on_boot
-            # Accept what we have and start immediately (OANDA may not have more due to weekends/non-trading periods)
-            warmup_floor = None
-            bars_remaining = 0
-            resume_at = "immediate"
-            log.info(
-                "[BACKFILL] Sufficient bars for feature-rehydration: have=%d bars (need≥%d bars for features, target≥%d bars). Starting immediately (OANDA may not have more due to weekends/non-trading periods).",
-                bars_in_cache,
-                min_bars_for_feature_rehydration,
-                min_bars_on_boot,
-            )
-        else:
-            # We don't have enough bars, set warmup_floor to wait for more bars
-            # Use max(2*lookback, 1*H4_window) as warmup requirement
-            warmup_bars = max(2 * lookback_padding, h4_window_bars, min_bars_on_boot)
-            warmup_minutes = 5 * warmup_bars
-            warmup_floor = now_utc.floor("5min") + pd.Timedelta(minutes=warmup_minutes)
-            bars_remaining = max(0, warmup_bars - bars_in_cache)
-            resume_at = warmup_floor.strftime("%Y-%m-%dT%H:%M:%SZ")
-            log.info(
-                "[BACKFILL] Insufficient bars for immediate start: have=%d bars, need≥%d bars for features. Warmup until %s",
-                bars_in_cache,
-                min_bars_for_feature_rehydration,
-                resume_at,
-            )
+        # Store degraded warmup flag for trade journal
+        self._warmup_degraded = degraded_warmup
+        self._cached_bars_at_startup = bars_in_cache
+        
+        # Initialize _last_server_time_check if not already set
+        if not hasattr(self, '_last_server_time_check') or self._last_server_time_check is None:
+            self._last_server_time_check = pd.Timestamp.now(tz="UTC")
         
         # Calculate bars per second
         bars_per_second = bars_in_cache / backfill_duration_s if backfill_duration_s > 0 else 0.0
@@ -3674,8 +3714,10 @@ class GX1DemoRunner:
             # Determine which threshold we met
             if bars_in_cache >= min_bars_on_boot:
                 threshold_met = min_bars_on_boot
+            elif bars_in_cache >= min_start_bars:
+                threshold_met = min_start_bars
             else:
-                threshold_met = min_bars_for_feature_rehydration
+                threshold_met = warmup_bars  # Fallback
             log.info(
                 "[PHASE] WARMUP_END resume_at=immediate bars_needed≥%d bars_remaining=0 (sufficient bars: %d ≥ %d)",
                 threshold_met,

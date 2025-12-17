@@ -331,6 +331,7 @@ class EntryManager:
                 
                 # Get ATR regime from features
                 atr_regime_id = "UNKNOWN"
+                atr_regime_source = "unknown"
                 if hasattr(entry_bundle, "features") and not entry_bundle.features.empty:
                     feat_row = entry_bundle.features.iloc[-1]
                     if "_v1_atr_regime_id" in entry_bundle.features.columns:
@@ -341,6 +342,7 @@ class EntryManager:
                                 # Map: 0=LOW, 1=MEDIUM, 2=HIGH, 3=EXTREME
                                 mapping = {0: "LOW", 1: "MEDIUM", 2: "HIGH", 3: "EXTREME"}
                                 atr_regime_id = mapping.get(regime_val, "UNKNOWN")
+                                atr_regime_source = "features_v1_atr_regime_id"
                             except (TypeError, ValueError):
                                 atr_regime_id = "UNKNOWN"
                     elif "atr_regime_id" in entry_bundle.features.columns:
@@ -350,8 +352,66 @@ class EntryManager:
                                 regime_val = int(atr_regime_id_raw)
                                 mapping = {0: "LOW", 1: "MEDIUM", 2: "HIGH", 3: "EXTREME"}
                                 atr_regime_id = mapping.get(regime_val, "UNKNOWN")
+                                atr_regime_source = "features_atr_regime_id"
                             except (TypeError, ValueError):
                                 atr_regime_id = "UNKNOWN"
+                
+                # REPLAY FIX: If ATR regime is still UNKNOWN and we have candles, compute it from candles
+                # This ensures REPLAY mode can determine regime even if features are missing
+                if atr_regime_id == "UNKNOWN" and hasattr(self, "replay_mode") and self.replay_mode:
+                    if candles is not None and len(candles) >= 14:
+                        try:
+                            # Compute ATR14 from candles (same logic as basic_v1.py)
+                            # Use mid-price if bid/ask available, otherwise use OHLC
+                            if "bid_close" in candles.columns and "ask_close" in candles.columns:
+                                close = (candles["bid_close"] + candles["ask_close"]) / 2.0
+                                high = (candles.get("bid_high", candles.get("high", close)) + 
+                                       candles.get("ask_high", candles.get("high", close))) / 2.0
+                                low = (candles.get("bid_low", candles.get("low", close)) + 
+                                      candles.get("ask_low", candles.get("low", close))) / 2.0
+                            else:
+                                close = candles.get("close", candles.index)
+                                high = candles.get("high", close)
+                                low = candles.get("low", close)
+                            
+                            # Calculate ATR14 (True Range then 14-period SMA)
+                            tr = pd.concat([high - low, 
+                                          (high - close.shift(1)).abs(), 
+                                          (low - close.shift(1)).abs()], axis=1).max(axis=1)
+                            atr14 = tr.rolling(window=14, min_periods=1).mean()
+                            
+                            # Get current ATR14 value
+                            current_atr14 = atr14.iloc[-1]
+                            
+                            # Compute percentile-based regime (same as basic_v1.py qcut logic)
+                            # Use rolling percentile over last 100 bars for stability
+                            lookback = min(100, len(atr14))
+                            if lookback >= 14:
+                                atr14_window = atr14.iloc[-lookback:]
+                                atr14_pct = (atr14_window.rank(pct=True).iloc[-1])
+                                
+                                # Map to regime: 0=LOW (0-33%), 1=MEDIUM (33-67%), 2=HIGH (67-100%)
+                                if atr14_pct < 0.33:
+                                    regime_val = 0  # LOW
+                                elif atr14_pct < 0.67:
+                                    regime_val = 1  # MEDIUM
+                                else:
+                                    regime_val = 2  # HIGH
+                                
+                                mapping = {0: "LOW", 1: "MEDIUM", 2: "HIGH", 3: "EXTREME"}
+                                atr_regime_id = mapping.get(regime_val, "UNKNOWN")
+                                atr_regime_source = "candles_fallback"
+                                
+                                # Log once per run with source
+                                if not hasattr(self, "_atr_regime_fallback_logged"):
+                                    log.info(
+                                        "[REPLAY_FIX] Computed ATR regime from candles (FALLBACK): atr14_pct=%.3f -> regime=%s "
+                                        "(source=candles_fallback, features_missing=_v1_atr_regime_id)",
+                                        atr14_pct, atr_regime_id
+                                    )
+                                    self._atr_regime_fallback_logged = True
+                        except Exception as e:
+                            log.warning("[REPLAY_FIX] Failed to compute ATR regime from candles: %s", e)
                 
                 # Infer FARM regime
                 farm_regime = infer_farm_regime(current_session, atr_regime_id)
@@ -363,12 +423,12 @@ class EntryManager:
                     policy_state["_atr_regime_id"] = atr_regime_id
                     policy_state["_farm_regime"] = farm_regime
                 
-                # Log once per run
+                # Log once per run with source
                 if not hasattr(self, "_farm_regime_logged"):
                     log.info(
                         "[BOOT] FARM_V2B mode detected: using FARM-only regime (session+ATR) instead of Big Brain. "
-                        "First bar: session=%s atr_regime=%s -> farm_regime=%s",
-                        current_session, atr_regime_id, farm_regime
+                        "First bar: session=%s atr_regime=%s (source=%s) -> farm_regime=%s",
+                        current_session, atr_regime_id, atr_regime_source, farm_regime
                     )
                     self._farm_regime_logged = True
                 
@@ -388,6 +448,36 @@ class EntryManager:
                     policy_state["brain_vol_regime"] = "UNKNOWN"
                     policy_state["brain_risk_score"] = 0.0
                     policy_state["farm_regime"] = farm_regime
+                
+                # REPLAY INVARIANT CHECK: After warmup, trend/vol should not be UNKNOWN
+                # This ensures REPLAY mode can determine regime from historical data
+                if hasattr(self, "replay_mode") and self.replay_mode:
+                    # Check if we're past warmup (288 bars = 1 day)
+                    warmup_bars = getattr(self, "warmup_bars", 288)
+                    if candles is not None and len(candles) > warmup_bars:
+                        if not hasattr(self, "_replay_invariant_checked"):
+                            # Check if trend/vol are still UNKNOWN after warmup
+                            trend = policy_state.get("brain_trend_regime", "UNKNOWN")
+                            vol = policy_state.get("brain_vol_regime", "UNKNOWN")
+                            
+                            if trend == "UNKNOWN" or vol == "UNKNOWN":
+                                # Log ERROR with diagnostic info
+                                log.error(
+                                    "[REPLAY_INVARIANT] After warmup (%d bars), trend/vol still UNKNOWN: trend=%s vol=%s. "
+                                    "Diagnostics: atr_regime_id=%s, farm_regime=%s, session=%s, "
+                                    "features_available=%s, candles_len=%d",
+                                    len(candles), trend, vol, atr_regime_id, farm_regime, current_session,
+                                    hasattr(entry_bundle, "features") and not entry_bundle.features.empty,
+                                    len(candles) if candles is not None else 0
+                                )
+                            else:
+                                # Log success once
+                                log.info(
+                                    "[REPLAY_INVARIANT] After warmup (%d bars), trend/vol known: trend=%s vol=%s",
+                                    len(candles), trend, vol
+                                )
+                            
+                            self._replay_invariant_checked = True
             else:
                 # Not FARM_V2B mode - set UNKNOWN as before
                 policy_state["brain_trend_regime"] = "UNKNOWN"
@@ -423,6 +513,164 @@ class EntryManager:
         # Check if Stage-0 is enabled (config-styrt, default=True for backward compatibility)
         stage0_enabled = getattr(self, "stage0_enabled", True)
         
+        # ============================================================
+        # DEBUG FORCE ENTRY (CANARY only - kun for plumbing testing)
+        # ============================================================
+        # Check if force entry should be triggered (extremely safe, CANARY only)
+        debug_force_cfg = self.policy.get("debug_force", {})
+        force_enabled = (
+            debug_force_cfg.get("enabled", False) and
+            self.policy.get("meta", {}).get("role") == "CANARY" and
+            hasattr(self, "oanda_env") and self.oanda_env == "practice"
+        )
+        
+        if force_enabled:
+            # Initialize force entry tracking
+            if not hasattr(self, "_force_entry_start_time"):
+                self._force_entry_start_time = time.time()
+                self._force_entry_trade_count = 0
+                log.info("[FORCE_ENTRY] Force entry enabled (CANARY only, practice mode)")
+            
+            # Check if we've exceeded max trades
+            max_trades = debug_force_cfg.get("max_trades", 1)
+            if self._force_entry_trade_count >= max_trades:
+                # Already hit max trades - disable force entry
+                force_enabled = False
+            else:
+                # Check if timeout has been reached
+                timeout_minutes = debug_force_cfg.get("force_entry_if_no_trade_after_minutes", 30)
+                elapsed_minutes = (time.time() - self._force_entry_start_time) / 60.0
+                
+                # Check if we should force entry
+                should_force = (
+                    elapsed_minutes >= timeout_minutes and
+                    self._force_entry_trade_count == 0  # Only force if no trades yet
+                )
+                
+                if should_force:
+                    # Check allowed session (null/None = any session)
+                    allowed_session = debug_force_cfg.get("allowed_session")
+                    session_allowed = (
+                        allowed_session is None or
+                        allowed_session == "" or
+                        current_session.upper() == allowed_session.upper()
+                    )
+                    
+                    if not session_allowed:
+                        # Not in allowed session
+                        log.debug(
+                            "[FORCE_ENTRY] Not in allowed session (current=%s, allowed=%s)",
+                            current_session, allowed_session
+                        )
+                        should_force = False
+                    
+                    if should_force:
+                        # Log warmup progress
+                        warmup_bars_seen = len(candles) if candles is not None else 0
+                        warmup_progress_pct = min(100.0, (warmup_bars_seen / warmup_bars) * 100.0) if warmup_bars > 0 else 0.0
+                        log.info(
+                            "[FORCE_ENTRY] Warmup progress: %d/%d bars (%.1f%%)",
+                            warmup_bars_seen, warmup_bars, warmup_progress_pct
+                        )
+                        
+                        # Log session/regime
+                        log.info(
+                            "[FORCE_ENTRY] Session=%s regime=%s trend=%s vol=%s",
+                            current_session, policy_state.get("farm_regime", "UNKNOWN"),
+                            trend, vol
+                        )
+                        
+                        # Check spread (use existing spread guard, don't bypass)
+                        min_spread_pct = debug_force_cfg.get("min_spread_pct")
+                        spread_pct = None
+                        if hasattr(entry_bundle, "features") and not entry_bundle.features.empty:
+                            feat_row = entry_bundle.features.iloc[-1]
+                            spread_pct = feat_row.get("spread_pct") or feat_row.get("_v1_spread_pct")
+                        
+                        if spread_pct is not None:
+                            log.info(
+                                "[FORCE_ENTRY] Spread guard: %.2f%% %s",
+                                spread_pct,
+                                "OK" if (min_spread_pct is None or spread_pct <= min_spread_pct) else f"BLOCKED (> {min_spread_pct}%)"
+                            )
+                        
+                        if min_spread_pct is not None and spread_pct is not None and spread_pct > min_spread_pct:
+                            log.info(
+                                "[FORCE_ENTRY] Spread too high (%.2f > %.2f), not forcing entry",
+                                spread_pct, min_spread_pct
+                            )
+                            should_force = False
+                        
+                        # Check warmup requirement for force entry
+                        min_start_bars = 100  # Minimum bars for CANARY degraded warmup
+                        require_full_warmup = debug_force_cfg.get("require_full_warmup", False)
+                        warmup_bars_required = self.policy.get("warmup_bars", 288)
+                        
+                        # Get cached bars from runner
+                        cached_bars = getattr(self._runner, '_cached_bars_at_startup', None)
+                        if cached_bars is None:
+                            # Fallback: try to get from backfill_cache or candles
+                            if hasattr(self._runner, 'backfill_cache') and self._runner.backfill_cache is not None:
+                                cached_bars = len(self._runner.backfill_cache)
+                            elif candles is not None:
+                                cached_bars = len(candles)
+                            else:
+                                cached_bars = 0
+                        
+                        # Check warmup requirement
+                        if require_full_warmup:
+                            warmup_minimum = warmup_bars_required
+                        else:
+                            warmup_minimum = min_start_bars
+                        
+                        if cached_bars < warmup_minimum:
+                            log.info(
+                                "[FORCE_ENTRY] Warmup requirement not met: cached_bars=%d < min=%d (require_full_warmup=%s), not forcing entry",
+                                cached_bars, warmup_minimum, require_full_warmup
+                            )
+                            should_force = False
+                        
+                        # Log force countdown
+                        minutes_remaining = max(0, timeout_minutes - elapsed_minutes)
+                        log.info(
+                            "[FORCE_ENTRY] Countdown: %.1f minutes remaining (timeout=%d min, elapsed=%.1f min)",
+                            minutes_remaining, timeout_minutes, elapsed_minutes
+                        )
+                        
+                        if should_force:
+                            # FORCE ENTRY TRIGGERED
+                            log.warning(
+                                "[FORCE_ENTRY] TRIGGERED: reason=timeout_after_%.1f_minutes session=%s "
+                                "elapsed=%.1f_minutes trades=0",
+                                timeout_minutes, current_session, elapsed_minutes
+                            )
+                            
+                            # Set force entry flag in policy_state
+                            policy_state["force_entry"] = True
+                            policy_state["force_entry_reason"] = f"timeout_after_{timeout_minutes}_minutes"
+                            
+                            # Bypass Stage-0 if configured (but still respect other guards)
+                            bypass_trend_vol = debug_force_cfg.get("bypass_trend_vol_unknown", False)
+                            if bypass_trend_vol and (trend == "UNKNOWN" or vol == "UNKNOWN"):
+                                log.warning(
+                                    "[FORCE_ENTRY] Bypassing trend/vol UNKNOWN check (bypass_trend_vol_unknown=true)"
+                                )
+                                # Set reasonable defaults for trend/vol
+                                if trend == "UNKNOWN":
+                                    policy_state["brain_trend_regime"] = "TREND_UP"
+                                    trend = "TREND_UP"
+                                if vol == "UNKNOWN":
+                                    policy_state["brain_vol_regime"] = "MEDIUM"
+                                    vol = "MEDIUM"
+                            
+                            # Skip Stage-0 blocking for force entry
+                            log.info(
+                                "[FORCE_ENTRY] Bypassing Stage-0 filter for force entry: "
+                                "trend=%s vol=%s session=%s",
+                                trend, vol, current_session
+                            )
+                            # Continue to model inference (don't return None)
+        
         # For FARM_V2B with valid FARM regime, don't block on Stage-0
         # The brutal guard and FARM_V2B policy will handle filtering
         if is_farm_v2b_with_regime:
@@ -435,7 +683,7 @@ class EntryManager:
             # FARM_V2B diagnostic: Stage-0 passed (skipped for valid regime)
             if is_farm_v2b:
                 self.farm_diag["n_after_stage0"] += 1
-        elif stage0_enabled and not self.should_consider_entry(trend=trend, vol=vol, session=current_session, risk_score=risk_score):
+        elif not policy_state.get("force_entry", False) and stage0_enabled and not self.should_consider_entry(trend=trend, vol=vol, session=current_session, risk_score=risk_score):
             log.info(
                 "[STAGE_0] Skip entry consideration: trend=%s vol=%s session=%s risk=%.3f",
                 trend,
@@ -1730,6 +1978,15 @@ class EntryManager:
         trade_id = f"SIM-{int(time.time())}-{self._next_trade_id:06d}"
         
         # FARM_V2B diagnostic: trade actually created (final step)
+        
+        # Force entry tracking: increment trade count when trade is created
+        if hasattr(self, "_force_entry_trade_count"):
+            self._force_entry_trade_count += 1
+            log.info(
+                "[FORCE_ENTRY] Trade created: count=%d (max=%d)",
+                self._force_entry_trade_count,
+                self.policy.get("debug_force", {}).get("max_trades", 1)
+            )
         if is_farm_v2b:
             self.farm_diag["n_after_policy_thresholds"] += 1
         
@@ -1779,6 +2036,17 @@ class EntryManager:
         # Generate client_order_id for idempotency
         client_order_id = self._generate_client_order_id(trade.entry_time, trade.entry_price, trade.side)
         trade.client_order_id = client_order_id
+        
+        # Log FORCED_CANARY_TRADE if this is a force entry trade
+        # policy_state_snapshot is set later, but we can check _last_policy_state which was updated earlier
+        policy_state_for_logging = self._last_policy_state or {}
+        if policy_state_for_logging.get("force_entry", False):
+            log.warning(
+                "[FORCED_CANARY_TRADE] Trade created: trade_id=%s client_ext_id=%s reason=%s",
+                trade.trade_id,
+                client_order_id,
+                policy_state_for_logging.get("force_entry_reason", "timeout")
+            )
         
         # Store TP/SL thresholds in trade.extra for TickWatcher and broker-side orders
         # Get TP/SL from tick_exit config (or use defaults: EXIT_V3 profile = 180/100)
@@ -2020,6 +2288,19 @@ class EntryManager:
                 except AttributeError:
                     pass
                 
+                # Check if this is a force entry trade (CANARY only)
+                is_force_entry = policy_state_snapshot.get("force_entry", False) if policy_state_snapshot else False
+                force_entry_reason = policy_state_snapshot.get("force_entry_reason", None) if policy_state_snapshot else None
+                
+                # Set test_mode and reason for force entry trades
+                test_mode = is_force_entry
+                reason = "FORCED_CANARY_TRADE" if is_force_entry else None
+                
+                # Check for degraded warmup (CANARY only)
+                warmup_degraded = getattr(self._runner, '_warmup_degraded', False)
+                cached_bars_at_entry = getattr(self._runner, '_cached_bars_at_startup', None)
+                warmup_bars_required = self._runner.policy.get("warmup_bars", 288) if hasattr(self._runner, 'policy') else None
+                
                 self._runner.trade_journal.log_entry_snapshot(
                     trade_id=trade.trade_id,
                     entry_time=entry_time_iso,
@@ -2037,6 +2318,11 @@ class EntryManager:
                     },
                     entry_filters_passed=entry_filters_passed,
                     entry_filters_blocked=entry_filters_blocked,
+                    test_mode=test_mode,
+                    reason=reason,
+                    warmup_degraded=warmup_degraded,
+                    cached_bars_at_entry=cached_bars_at_entry,
+                    warmup_bars_required=warmup_bars_required,
                 )
                 
                 # Feature context (immutable snapshot)
