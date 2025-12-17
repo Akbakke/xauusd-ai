@@ -87,7 +87,8 @@ class OandaClient:
         """
         load_dotenv_if_present()
 
-        api_key = (os.getenv("OANDA_API_KEY") or "").strip()
+        # Support both OANDA_API_TOKEN (preferred) and OANDA_API_KEY (legacy)
+        api_key = (os.getenv("OANDA_API_TOKEN") or os.getenv("OANDA_API_KEY") or "").strip()
         account_id = (os.getenv("OANDA_ACCOUNT_ID") or "").strip()
         env = (os.getenv("OANDA_ENV", "practice") or "practice").strip()
 
@@ -98,7 +99,9 @@ class OandaClient:
             _mask(api_key),
         )
 
-        missing = [name for name, val in [("OANDA_API_KEY", api_key), ("OANDA_ACCOUNT_ID", account_id)] if not val]
+        # Check for either OANDA_API_TOKEN or OANDA_API_KEY
+        api_key_name = "OANDA_API_TOKEN" if os.getenv("OANDA_API_TOKEN") else "OANDA_API_KEY"
+        missing = [name for name, val in [(api_key_name, api_key), ("OANDA_ACCOUNT_ID", account_id)] if not val]
         if missing:
             raise EnvironmentError(f"Missing required environment variables: {', '.join(missing)}")
 

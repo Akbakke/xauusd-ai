@@ -415,6 +415,375 @@ Journal is human-readable (JSON) and machine-readable (CSV index).
 
 ---
 
+## GO Practice-Live (PROD_BASELINE) — Controlled Start
+
+### Overview
+
+**GO Practice-Live** is the "GO"-knappen for starting GX1 in OANDA practice mode with PROD_BASELINE policy snapshot. This is a controlled, verified start with full traceability and artifacts.
+
+**What this does:**
+- ✅ Starts GX1 in OANDA practice mode (not dry_run)
+- ✅ Uses PROD_BASELINE policy snapshot from `prod_snapshot/`
+- ✅ SINGLE worker (n_workers=1) for determinism/parity
+- ✅ max_open_trades=1 (safety limit)
+- ✅ Asia-window drift (last 24 hours warmup, then real-time)
+- ✅ Full verification + artifacts (trade journal + reconciliation + baseline proof)
+- ✅ Real orders sent to OANDA Practice API
+
+**What this does NOT do:**
+- ❌ Does NOT run in live environment (hard-fails if OANDA_ENV != practice)
+- ❌ Does NOT allow live trading (hard-fails if I_UNDERSTAND_LIVE_TRADING=YES)
+- ❌ Does NOT modify strategy parameters (uses frozen PROD_BASELINE)
+- ❌ Does NOT run in parallel (always n_workers=1)
+
+### Running GO Practice-Live
+
+```bash
+# Set environment variables
+export OANDA_ENV=practice
+export OANDA_API_TOKEN=<your_token>
+export OANDA_ACCOUNT_ID=<your_account_id>
+
+# IMPORTANT: Do NOT set I_UNDERSTAND_LIVE_TRADING=YES (script will fail)
+
+# Run with default settings
+./scripts/go_practice_live_asia.sh
+
+# Run with custom run tag
+./scripts/go_practice_live_asia.sh --run-tag MY_GO_TEST_2025
+
+# Run with debug logging
+./scripts/go_practice_live_asia.sh --debug
+```
+
+### Hard Requirements
+
+**Environment Checks (script fails if not met):**
+- `OANDA_ENV=practice` (hard-fail if not set)
+- `OANDA_API_TOKEN` must be set (hard-fail if missing)
+- `OANDA_ACCOUNT_ID` must be set (hard-fail if missing)
+- `I_UNDERSTAND_LIVE_TRADING` must NOT be set (hard-fail if set to YES)
+
+**Configuration:**
+- Uses PROD_BASELINE policy: `gx1/configs/policies/prod_snapshot/2025_FARM_V2B_HYBRID_V3_RANGE/GX1_V11_OANDA_DEMO_V9_FARM_V2B_EXIT_HYBRID_V3_RANGE_PROD.yaml`
+- `dry_run=false` (REAL ORDERS)
+- `n_workers=1` (deterministic)
+- `max_open_trades=1` (safety)
+- `logging level: INFO` (or DEBUG with `--debug` flag)
+
+### What the Script Does
+
+1. **Hard Checks:**
+   - Verifies `OANDA_ENV=practice`
+   - Verifies credentials are set
+   - Verifies `I_UNDERSTAND_LIVE_TRADING` is NOT set
+
+2. **Runs Practice-Live:**
+   - Uses PROD_BASELINE policy snapshot
+   - `dry_run=false` (real orders)
+   - `n_workers=1` (deterministic)
+   - `max_open_trades=1` (safety)
+   - Last 24 hours warmup (historical data), then real-time execution
+
+3. **Automatic Verification:**
+   - Runs `prod_baseline_proof.py` (checks hashes + 100% journal coverage)
+   - Runs `reconcile_oanda.py` (matches OANDA transactions via clientExtensions)
+   - Verifies all required artifacts exist
+
+4. **GO SUMMARY:**
+   - Prints key metrics (trades, RULE6A_rate, fill diffs)
+   - Lists all artifacts and their paths
+   - Provides verification instructions
+
+### Expected Artifacts
+
+After a successful run, the following artifacts should exist:
+
+```
+gx1/wf_runs/<RUN_TAG>/
+├── run_header.json                    # SHA256 hashes of all artifacts
+├── trade_journal/
+│   ├── trade_journal_index.csv        # Aggregated trade index
+│   └── trades/
+│       └── <trade_id>.json            # Per-trade journal (one per trade)
+├── reconciliation_report.md           # OANDA transaction reconciliation
+├── prod_baseline_proof.md             # Policy/artifact parity proof
+├── alerts.json                         # Alerts (if any)
+├── run.log                             # Full execution log
+├── prod_baseline_proof.log            # Proof generation log
+└── reconcile.log                       # Reconciliation log
+```
+
+### Stop Procedure (Kill Switch)
+
+**Location:** `{project_root}/KILL_SWITCH_ON` (project root = directory containing `gx1/`)
+
+**How to Activate:**
+```bash
+# Manual activation (emergency stop)
+touch KILL_SWITCH_ON
+
+# Or from project root:
+touch $(pwd)/KILL_SWITCH_ON
+```
+
+**How to Verify Stop:**
+```bash
+# Check if flag exists
+test -f KILL_SWITCH_ON && echo "KILL SWITCH ACTIVE" || echo "OK"
+
+# Runner will log:
+# [GUARD] BLOCKED ORDER (live_mode=...) reason=KILL_SWITCH_ON flag
+```
+
+**How to Clear:**
+```bash
+# Remove kill switch flag
+rm KILL_SWITCH_ON
+
+# Restart runner to resume trading
+```
+
+**When to Use:**
+- Emergency stop (manual)
+- System detects critical failures (automatic)
+- Maintenance window
+- Suspected bug or anomaly
+
+### How to Verify First Trade Was Sent
+
+**1. Check OANDA Practice Trading Platform:**
+- Log into OANDA Practice account
+- Check "Trades" tab for new trades
+- Verify trade details match trade journal
+
+**2. Check Trade Journal Execution Events:**
+```bash
+# View execution events from first trade
+cat gx1/wf_runs/<RUN_TAG>/trade_journal/trades/*.json | python3 -m json.tool | grep -A 10 execution_events
+```
+
+**Expected events:**
+- `ORDER_SUBMITTED`: Order sent to OANDA
+- `ORDER_FILLED`: Order filled (if immediate)
+- `TRADE_OPENED_OANDA`: Trade opened in OANDA (with OANDA trade ID)
+
+**3. Check Reconciliation Report:**
+```bash
+cat gx1/wf_runs/<RUN_TAG>/reconciliation_report.md
+```
+
+**Expected:**
+- All trades matched with OANDA transactions
+- `clientExtensions.id` matches pattern `GX1:{run_tag}:{trade_id}`
+- Fill prices match (within tolerance)
+
+**4. Check Trade Journal Index:**
+```bash
+cat gx1/wf_runs/<RUN_TAG>/trade_journal/trade_journal_index.csv
+```
+
+**Expected:**
+- Trade entries with entry_time, exit_time, pnl_bps
+- Execution events logged for each trade
+
+### Troubleshooting
+
+**Issue: Script fails with "OANDA_ENV must be 'practice'"**
+- Set: `export OANDA_ENV=practice`
+
+**Issue: Script fails with "I_UNDERSTAND_LIVE_TRADING=YES is set"**
+- Unset: `unset I_UNDERSTAND_LIVE_TRADING`
+- This script is for PRACTICE only
+
+**Issue: Missing execution events in trade journal**
+- Check that `dry_run=false` was used
+- Check that orders were actually sent (check `run.log`)
+- Check that trade journal logging didn't fail (check `run.log` for warnings)
+
+**Issue: Reconciliation report shows unmatched trades**
+- Check that `clientExtensions.id` matches pattern `GX1:{run_tag}:{trade_id}`
+- Check that OANDA transactions are available for the run period
+- Check that account ID matches
+
+**Issue: Prod baseline proof fails**
+- Check that policy SHA256 matches expected PROD_BASELINE hash
+- Check that router model SHA256 matches expected hash
+- Check that feature manifest SHA256 matches expected hash
+
+---
+
+## LIVE Force-One-Trade (CANARY only - Plumbing Testing)
+
+### Overview
+
+**LIVE Force-One-Trade** is a CANARY-only mode for plumbing testing in OANDA practice. It guarantees at least 1 trade within 30 minutes if no trades occur naturally. This is **NOT for PROD_BASELINE** - it should never be used in production.
+
+**What this does:**
+- ✅ Runs in LIVE mode (real-time candles from OANDA)
+- ✅ Uses CANARY policy with `debug_force` enabled
+- ✅ Forces entry after 30 minutes if no trades occur naturally
+- ✅ Ensures at least 1 trade for plumbing verification
+- ✅ Full traceability (trade journal + execution events + reconciliation)
+
+**What this does NOT do:**
+- ❌ Does NOT run in PROD_BASELINE mode (uses CANARY)
+- ❌ Does NOT bypass risk/guards uncritically
+- ❌ Does NOT allow more than 1 trade (hard cap)
+- ❌ Does NOT run in live environment (practice only)
+
+### Running LIVE Force-One-Trade
+
+```bash
+# Set environment variables
+export OANDA_ENV=practice
+export OANDA_API_TOKEN=<your_token>
+export OANDA_ACCOUNT_ID=<your_account_id>
+
+# IMPORTANT: Do NOT set I_UNDERSTAND_LIVE_TRADING=YES (script will fail)
+
+# Run with default settings (6 hours or until trade opened and closed)
+./scripts/run_live_force_one_trade_asia.sh
+
+# Run with custom duration
+./scripts/run_live_force_one_trade_asia.sh --hours 3
+
+# Run with debug logging
+./scripts/run_live_force_one_trade_asia.sh --debug
+```
+
+### Hard Requirements
+
+**Environment Checks (script fails if not met):**
+- `OANDA_ENV=practice` (hard-fail if not set)
+- `OANDA_API_TOKEN` must be set (hard-fail if missing)
+- `OANDA_ACCOUNT_ID` must be set (hard-fail if missing)
+- `I_UNDERSTAND_LIVE_TRADING` must NOT be set (hard-fail if set to YES)
+
+**Configuration:**
+- Uses CANARY policy: `gx1/configs/policies/active/GX1_V11_OANDA_PRACTICE_LIVE_FORCE_ONE_TRADE.yaml`
+- `mode=LIVE` (real-time candles from OANDA)
+- `dry_run=false` (REAL ORDERS)
+- `max_open_trades=1` (safety)
+- `debug_force.enabled=true` (force entry after 30 minutes)
+- `debug_force.max_trades=1` (hard cap)
+
+### What the Script Does
+
+1. **Hard Checks:**
+   - Verifies `OANDA_ENV=practice`
+   - Verifies credentials are set
+   - Verifies `I_UNDERSTAND_LIVE_TRADING` is NOT set
+
+2. **Runs LIVE:**
+   - Uses CANARY policy with debug_force enabled
+   - `mode=LIVE` (real-time candles from OANDA)
+   - `dry_run=false` (real orders)
+   - `max_open_trades=1` (safety)
+   - Runs for specified duration (default: 6 hours) or until trade opened and closed
+
+3. **Force Entry Logic:**
+   - Tracks time since start
+   - If no trades after 30 minutes, forces entry (in ASIA session only)
+   - Respects spread guard and warmup requirements
+   - Hard cap: max 1 trade total
+
+4. **Automatic Verification:**
+   - Runs `prod_baseline_proof.py` (compares with prod_snapshot for parity)
+   - Runs `reconcile_oanda.py` (matches OANDA transactions)
+   - Verifies all required artifacts exist
+
+### Expected Artifacts
+
+After a successful run, the following artifacts should exist:
+
+```
+gx1/wf_runs/<RUN_TAG>/
+├── run_header.json                    # SHA256 hashes of all artifacts
+├── trade_journal/
+│   ├── trade_journal_index.csv        # Aggregated trade index
+│   └── trades/
+│       └── <trade_id>.json            # Per-trade journal (one per trade)
+├── reconciliation_report.md           # OANDA transaction reconciliation
+├── prod_baseline_proof.md             # Policy/artifact parity proof
+├── run.log                            # Full execution log
+├── prod_baseline_proof.log            # Proof generation log
+└── reconcile.log                      # Reconciliation log
+```
+
+### Force Entry Details
+
+**When Force Entry Triggers:**
+- After 30 minutes with no trades
+- In ASIA session only
+- If spread is acceptable (respects spread guard)
+- If warmup is complete (288+ bars)
+- If max_trades not reached (hard cap: 1)
+
+**Force Entry Safety:**
+- Only in CANARY mode (`meta.role=CANARY`)
+- Only in practice (`OANDA_ENV=practice`)
+- Does NOT bypass risk/guards uncritically
+- Hard cap: max 1 trade total
+- Logs clearly: `[FORCE_ENTRY] TRIGGERED: reason=...`
+
+### How to Verify First Trade
+
+**1. Check OANDA Practice Trading Platform:**
+- Log into OANDA Practice account
+- Check "Trades" tab for new trades
+- Verify trade details match trade journal
+
+**2. Check Trade Journal Execution Events:**
+```bash
+cat gx1/wf_runs/<RUN_TAG>/trade_journal/trades/*.json | python3 -m json.tool | grep -A 10 execution_events
+```
+
+**Expected events:**
+- `ORDER_SUBMITTED`: Order sent to OANDA
+- `ORDER_FILLED`: Order filled (if immediate)
+- `TRADE_OPENED_OANDA`: Trade opened in OANDA (with OANDA trade ID)
+
+**3. Check Reconciliation Report:**
+```bash
+cat gx1/wf_runs/<RUN_TAG>/reconciliation_report.md
+```
+
+**Expected:**
+- All trades matched with OANDA transactions
+- `clientExtensions.id` matches pattern `GX1:{run_tag}:{trade_id}`
+- Fill prices match (within tolerance)
+
+### Troubleshooting
+
+**Issue: Script fails with "OANDA_ENV must be 'practice'"**
+- Set: `export OANDA_ENV=practice`
+
+**Issue: Force entry not triggering**
+- Check that 30 minutes have passed
+- Check that you're in ASIA session
+- Check that spread is acceptable
+- Check that warmup is complete (288+ bars)
+- Check logs for `[FORCE_ENTRY]` messages
+
+**Issue: No trades after force entry**
+- Check that `debug_force.enabled=true` in policy
+- Check that `meta.role=CANARY` in policy
+- Check that `OANDA_ENV=practice`
+- Check logs for force entry trigger messages
+
+### Important Notes
+
+**⚠️ Force-one-trade is ONLY for plumbing testing:**
+- Should NEVER be used in PROD_BASELINE
+- Should NEVER be used in live environment
+- Should NEVER be used for performance testing
+- Should be removed/deprecated after plumbing is verified
+
+**This mode is temporary and should not live long in the codebase.**
+
+---
+
 ## Practice-Live Micro Testing
 
 ### Overview
