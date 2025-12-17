@@ -3,8 +3,14 @@ Test robust backfill paging reaches target.
 
 Tests that backfill_m5_candles_until_target pages backward correctly
 and reaches target_bars when OANDA has sufficient historical data.
+
+NOTE: This test requires pytest to be installed:
+    pip install pytest
+
+Linter warning about pytest import is expected if pytest is not installed
+in the development environment. The test will run fine if pytest is available.
 """
-import pytest
+import pytest  # type: ignore[reportMissingImports]  # pytest may not be installed in all environments
 import pandas as pd
 from unittest.mock import Mock, MagicMock
 from datetime import datetime, timezone, timedelta

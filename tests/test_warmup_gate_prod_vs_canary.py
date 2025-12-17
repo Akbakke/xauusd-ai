@@ -3,8 +3,14 @@ Test warmup gate: PROD hard / CANARY soft.
 
 Tests that PROD_BASELINE blocks trading with < warmup_bars,
 while CANARY allows degraded warmup with >= min_start_bars.
+
+NOTE: This test requires pytest to be installed:
+    pip install pytest
+
+Linter warning about pytest import is expected if pytest is not installed
+in the development environment. The test will run fine if pytest is available.
 """
-import pytest
+import pytest  # type: ignore[reportMissingImports]  # pytest may not be installed in all environments
 import pandas as pd
 from pathlib import Path
 import sys

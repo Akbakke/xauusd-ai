@@ -3,8 +3,14 @@ Test trade journal marks degraded warmup.
 
 Tests that entry_snapshot includes warmup_degraded fields
 when trade is created in CANARY mode with cached_bars < warmup_bars.
+
+NOTE: This test requires pytest to be installed:
+    pip install pytest
+
+Linter warning about pytest import is expected if pytest is not installed
+in the development environment. The test will run fine if pytest is available.
 """
-import pytest
+import pytest  # type: ignore[reportMissingImports]  # pytest may not be installed in all environments
 import json
 import tempfile
 from pathlib import Path
