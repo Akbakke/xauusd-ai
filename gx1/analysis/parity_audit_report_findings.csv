@@ -1,0 +1,232 @@
+file,line,function,code,description,pattern
+gx1/execution/exit_manager.py,60,unknown,"current_bid = float(candles[""bid_close""].iloc[-1])",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/exit_manager.py,61,unknown,"current_ask = float(candles[""ask_close""].iloc[-1])",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/exit_manager.py,81,unknown,"self._collect_price_trace(candles, now_ts, open_trades_copy)",price trace collection,_collect_price_trace|price_trace
+gx1/execution/exit_manager.py,242,unknown,"exit_price=exit_decision.exit_price,",entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/execution/exit_manager.py,323,unknown,"exit_price=decision.exit_price,",entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/execution/exit_manager.py,464,unknown,"exit_price=exit_decision.exit_price,",entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/execution/exit_manager.py,618,unknown,"exit_price=mark_price,",entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/execution/exit_manager.py,735,_collect_price_trace,"def _collect_price_trace(self, candles: pd.DataFrame, now_ts: pd.Timestamp, open_trades: List[Any]) ",price trace collection,_collect_price_trace|price_trace
+gx1/execution/exit_manager.py,739,_collect_price_trace,"Stores high/low/close per bar in trade.extra[""_price_trace""].",price trace collection,_collect_price_trace|price_trace
+gx1/execution/exit_manager.py,747,_collect_price_trace,last_bar = candles.iloc[-1],bar close semantics,candles\.iloc\[-1\]|candles\.iloc\[-2\]|\.tail\(|\.head\(
+gx1/execution/exit_manager.py,754,_collect_price_trace,"elif ""bid_high"" in candles.columns and ""ask_high"" in candles.columns:",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/exit_manager.py,755,unknown,"bar_high = float((last_bar[""bid_high""] + last_bar[""ask_high""]) / 2.0)",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/exit_manager.py,756,unknown,"bar_low = float((last_bar[""bid_low""] + last_bar[""ask_low""]) / 2.0)",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/exit_manager.py,757,unknown,"bar_close = float((last_bar[""bid_close""] + last_bar[""ask_close""]) / 2.0)",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/exit_manager.py,762,unknown,"elif ""bid_close"" in candles.columns and ""ask_close"" in candles.columns:",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/exit_manager.py,763,unknown,"bar_close = float((last_bar[""bid_close""] + last_bar[""ask_close""]) / 2.0)",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/exit_manager.py,774,unknown,"if ""_price_trace"" not in trade.extra:",price trace collection,_collect_price_trace|price_trace
+gx1/execution/exit_manager.py,775,unknown,"trade.extra[""_price_trace""] = []",price trace collection,_collect_price_trace|price_trace
+gx1/execution/exit_manager.py,784,unknown,"trade.extra[""_price_trace""].append(trace_point)",price trace collection,_collect_price_trace|price_trace
+gx1/execution/exit_manager.py,788,unknown,"if len(trade.extra[""_price_trace""]) > max_trace_size:",price trace collection,_collect_price_trace|price_trace
+gx1/execution/exit_manager.py,789,unknown,"trade.extra[""_price_trace""] = trade.extra[""_price_trace""][-max_trace_size:]",price trace collection,_collect_price_trace|price_trace
+gx1/execution/exit_manager.py,823,unknown,# Remove _price_trace from trade.extra to prevent bloating trade logs,price trace collection,_collect_price_trace|price_trace
+gx1/execution/exit_manager.py,825,unknown,"if ""_price_trace"" in trade.extra:",price trace collection,_collect_price_trace|price_trace
+gx1/execution/exit_manager.py,826,unknown,"del trade.extra[""_price_trace""]",price trace collection,_collect_price_trace|price_trace
+gx1/execution/exit_manager.py,832,unknown,"exit_price=exit_price,",entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/execution/exit_manager.py,871,_compute_intratrade_metrics,"trade: Trade object with entry_price, side, and _price_trace",price trace collection,_collect_price_trace|price_trace
+gx1/execution/exit_manager.py,878,_compute_intratrade_metrics,"price_trace = trade.extra.get(""_price_trace"", [])",price trace collection,_collect_price_trace|price_trace
+gx1/execution/exit_manager.py,879,_compute_intratrade_metrics,if not price_trace:,price trace collection,_collect_price_trace|price_trace
+gx1/execution/exit_manager.py,886,unknown,entry_price = trade.entry_price,entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/execution/exit_manager.py,891,unknown,for point in price_trace:,price trace collection,_collect_price_trace|price_trace
+gx1/execution/exit_manager.py,1028,_compute_runtime_atr_bps,"""bid_high"",",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/exit_manager.py,1029,_compute_runtime_atr_bps,"""bid_low"",",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/exit_manager.py,1030,_compute_runtime_atr_bps,"""bid_close"",",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/exit_manager.py,1031,_compute_runtime_atr_bps,"""ask_high"",",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/exit_manager.py,1032,_compute_runtime_atr_bps,"""ask_low"",",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/exit_manager.py,1033,_compute_runtime_atr_bps,"""ask_close"",",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/exit_manager.py,1037,_compute_runtime_atr_bps,window = candles[required_cols].tail(period + 2),bar close semantics,candles\.iloc\[-1\]|candles\.iloc\[-2\]|\.tail\(|\.head\(
+gx1/execution/exit_manager.py,1042,_compute_runtime_atr_bps,"""high"": (window[""bid_high""] + window[""ask_high""]) * 0.5,",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/exit_manager.py,1043,_compute_runtime_atr_bps,"""low"": (window[""bid_low""] + window[""ask_low""]) * 0.5,",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/exit_manager.py,1044,_compute_runtime_atr_bps,"""close"": (window[""bid_close""] + window[""ask_close""]) * 0.5,",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/live_features.py,32,unknown,bid_close: Optional[float] = None,bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/live_features.py,34,unknown,ask_close: Optional[float] = None,bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/live_features.py,121,infer_vol_bucket,def build_live_entry_features(candles: pd.DataFrame) -> EntryFeatureBundle:,live entry features,build_live_entry_features
+gx1/execution/live_features.py,151,unknown,aligned_last = aligned.tail(1).copy(),bar close semantics,candles\.iloc\[-1\]|candles\.iloc\[-2\]|\.tail\(|\.head\(
+gx1/execution/live_features.py,184,unknown,recent_window = candles.tail(ADR_WINDOW),bar close semantics,candles\.iloc\[-1\]|candles\.iloc\[-2\]|\.tail\(|\.head\(
+gx1/execution/live_features.py,192,unknown,"bid_close = float(candles[""bid_close""].iloc[-1]) if ""bid_close"" in candles.columns else None",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/live_features.py,194,unknown,"ask_close = float(candles[""ask_close""].iloc[-1]) if ""ask_close"" in candles.columns else None",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/live_features.py,202,unknown,"bid_close=bid_close,",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/live_features.py,204,unknown,"ask_close=ask_close,",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/live_features.py,226,build_live_exit_snapshot,OHLCV frame used for excursions; same schema as build_live_entry_features.,live entry features,build_live_entry_features
+gx1/execution/live_features.py,229,unknown,"entry_price = float(trade[""entry_price""])",entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/execution/live_features.py,237,unknown,window = candles.tail(ATR_PERIOD).copy(),bar close semantics,candles\.iloc\[-1\]|candles\.iloc\[-2\]|\.tail\(|\.head\(
+gx1/execution/entry_manager.py,11,unknown,from gx1.execution.live_features import build_live_entry_features,live entry features,build_live_entry_features
+gx1/execution/entry_manager.py,70,_percentile_from_history,"def _compute_range_features(candles: pd.DataFrame, window: int = 96) -> tuple[float, float]:",range feature calculation,range_hi|range_lo|_compute_range_features
+gx1/execution/entry_manager.py,93,unknown,"has_direct = all(col in candles.columns for col in ['high', 'low', 'close'])",price source detection,has_bid_ask|has_direct
+gx1/execution/entry_manager.py,94,unknown,"has_bid_ask = all(col in candles.columns for col in ['bid_high', 'ask_high', 'bid_low', 'ask_low', '",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/entry_manager.py,94,unknown,"has_bid_ask = all(col in candles.columns for col in ['bid_high', 'ask_high', 'bid_low', 'ask_low', '",price source detection,has_bid_ask|has_direct
+gx1/execution/entry_manager.py,96,unknown,if not has_direct and not has_bid_ask:,price source detection,has_bid_ask|has_direct
+gx1/execution/entry_manager.py,107,unknown,recent = candles.tail(window),bar close semantics,candles\.iloc\[-1\]|candles\.iloc\[-2\]|\.tail\(|\.head\(
+gx1/execution/entry_manager.py,109,unknown,if has_direct:,price source detection,has_bid_ask|has_direct
+gx1/execution/entry_manager.py,116,unknown,high_vals = (recent['bid_high'].values + recent['ask_high'].values) / 2.0,bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/entry_manager.py,117,unknown,low_vals = (recent['bid_low'].values + recent['ask_low'].values) / 2.0,bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/entry_manager.py,118,unknown,close_vals = (recent['bid_close'].values + recent['ask_close'].values) / 2.0,bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/entry_manager.py,122,unknown,range_hi = float(np.max(high_vals)),range feature calculation,range_hi|range_lo|_compute_range_features
+gx1/execution/entry_manager.py,123,unknown,range_lo = float(np.min(low_vals)),range feature calculation,range_hi|range_lo|_compute_range_features
+gx1/execution/entry_manager.py,128,unknown,price_ref = float(close_vals[-1]),price reference assignment,price_ref\s*=
+gx1/execution/entry_manager.py,128,unknown,price_ref = float(close_vals[-1]),last closed bar price,close_vals\[-1\]|close_vals\.iloc\[-1\]
+gx1/execution/entry_manager.py,131,unknown,"denom = max(eps, range_hi - range_lo)",range feature calculation,range_hi|range_lo|_compute_range_features
+gx1/execution/entry_manager.py,132,unknown,range_pos_raw = (price_ref - range_lo) / denom,range feature calculation,range_hi|range_lo|_compute_range_features
+gx1/execution/entry_manager.py,150,_compute_range_edge_dist_atr,"range_hi: float,",range feature calculation,range_hi|range_lo|_compute_range_features
+gx1/execution/entry_manager.py,151,_compute_range_edge_dist_atr,"range_lo: float,",range feature calculation,range_hi|range_lo|_compute_range_features
+gx1/execution/entry_manager.py,161,_compute_range_edge_dist_atr,range_hi: Maximum high in the window,range feature calculation,range_hi|range_lo|_compute_range_features
+gx1/execution/entry_manager.py,162,_compute_range_edge_dist_atr,range_lo: Minimum low in the window,range feature calculation,range_hi|range_lo|_compute_range_features
+gx1/execution/entry_manager.py,179,unknown,"dist_to_low = max(0.0, price_ref - range_lo)",range feature calculation,range_hi|range_lo|_compute_range_features
+gx1/execution/entry_manager.py,180,unknown,"dist_to_high = max(0.0, range_hi - price_ref)",range feature calculation,range_hi|range_lo|_compute_range_features
+gx1/execution/entry_manager.py,197,evaluate_entry,entry_bundle = build_live_entry_features(candles),live entry features,build_live_entry_features
+gx1/execution/entry_manager.py,267,unknown,brain_candles = candles.tail(lookback_bars).copy(),bar close semantics,candles\.iloc\[-1\]|candles\.iloc\[-2\]|\.tail\(|\.head\(
+gx1/execution/entry_manager.py,1679,unknown,if entry_bundle.bid_close is None or entry_bundle.ask_close is None:,bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/entry_manager.py,1682,unknown,"entry_bundle.bid_close,",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/entry_manager.py,1683,unknown,"entry_bundle.ask_close,",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/entry_manager.py,1736,unknown,current_bar = candles.iloc[-1],bar close semantics,candles\.iloc\[-1\]|candles\.iloc\[-2\]|\.tail\(|\.head\(
+gx1/execution/entry_manager.py,1738,unknown,"entry_bid_price = float(current_bar[""bid_close""])",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/entry_manager.py,1739,unknown,"entry_ask_price = float(current_bar[""ask_close""])",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/entry_manager.py,1745,unknown,entry_price = entry_ask_price,entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/execution/entry_manager.py,1747,unknown,entry_price = entry_bid_price,entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/execution/entry_manager.py,1757,unknown,"entry_price=entry_price,",entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/execution/entry_manager.py,1799,unknown,spread_pct: Optional[float] = None,spread calculation,spread_raw|spread_price|spread_pct
+gx1/execution/entry_manager.py,1801,unknown,spread_raw = float(entry_ask_price) - float(entry_bid_price),spread calculation,spread_raw|spread_price|spread_pct
+gx1/execution/entry_manager.py,1802,unknown,if spread_raw > 0:,spread calculation,spread_raw|spread_price|spread_pct
+gx1/execution/entry_manager.py,1803,unknown,spread_bps = spread_raw * 10000.0,spread calculation,spread_raw|spread_price|spread_pct
+gx1/execution/entry_manager.py,1807,unknown,"spread_pct = self._percentile_from_history(self.spread_history, spread_bps)",spread calculation,spread_raw|spread_price|spread_pct
+gx1/execution/entry_manager.py,1815,unknown,"range_pos, distance_to_range = self._compute_range_features(candles, window=range_window)",range feature calculation,range_hi|range_lo|_compute_range_features
+gx1/execution/entry_manager.py,1827,unknown,recent = candles.tail(range_window),bar close semantics,candles\.iloc\[-1\]|candles\.iloc\[-2\]|\.tail\(|\.head\(
+gx1/execution/entry_manager.py,1829,unknown,"has_direct = all(col in candles.columns for col in ['high', 'low', 'close'])",price source detection,has_bid_ask|has_direct
+gx1/execution/entry_manager.py,1830,unknown,"has_bid_ask = all(col in candles.columns for col in ['bid_high', 'ask_high', 'bid_low', 'ask_low', '",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/entry_manager.py,1830,unknown,"has_bid_ask = all(col in candles.columns for col in ['bid_high', 'ask_high', 'bid_low', 'ask_low', '",price source detection,has_bid_ask|has_direct
+gx1/execution/entry_manager.py,1832,unknown,range_hi = None,range feature calculation,range_hi|range_lo|_compute_range_features
+gx1/execution/entry_manager.py,1833,unknown,range_lo = None,range feature calculation,range_hi|range_lo|_compute_range_features
+gx1/execution/entry_manager.py,1834,unknown,price_ref = None,price reference assignment,price_ref\s*=
+gx1/execution/entry_manager.py,1837,unknown,if has_direct or has_bid_ask:,price source detection,has_bid_ask|has_direct
+gx1/execution/entry_manager.py,1838,unknown,if has_direct:,price source detection,has_bid_ask|has_direct
+gx1/execution/entry_manager.py,1843,unknown,high_vals = (recent['bid_high'].values + recent['ask_high'].values) / 2.0,bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/entry_manager.py,1844,unknown,low_vals = (recent['bid_low'].values + recent['ask_low'].values) / 2.0,bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/entry_manager.py,1845,unknown,close_vals = (recent['bid_close'].values + recent['ask_close'].values) / 2.0,bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/entry_manager.py,1847,unknown,range_hi = float(np.max(high_vals)),range feature calculation,range_hi|range_lo|_compute_range_features
+gx1/execution/entry_manager.py,1848,unknown,range_lo = float(np.min(low_vals)),range feature calculation,range_hi|range_lo|_compute_range_features
+gx1/execution/entry_manager.py,1849,unknown,price_ref = float(close_vals[-1]),price reference assignment,price_ref\s*=
+gx1/execution/entry_manager.py,1849,unknown,price_ref = float(close_vals[-1]),last closed bar price,close_vals\[-1\]|close_vals\.iloc\[-1\]
+gx1/execution/entry_manager.py,1853,unknown,"price_ref=price_ref,",price reference assignment,price_ref\s*=
+gx1/execution/entry_manager.py,1854,unknown,"range_hi=range_hi,",range feature calculation,range_hi|range_lo|_compute_range_features
+gx1/execution/entry_manager.py,1855,unknown,"range_lo=range_lo,",range feature calculation,range_hi|range_lo|_compute_range_features
+gx1/execution/entry_manager.py,1877,unknown,"spread_pct=spread_pct,",spread calculation,spread_raw|spread_price|spread_pct
+gx1/execution/entry_manager.py,1892,unknown,"""spread_pct"": spread_pct,",spread calculation,spread_raw|spread_price|spread_pct
+gx1/execution/entry_manager.py,1898,unknown,"""[HYBRID_EXIT] trade=%s session=%s regime=%s atr_bps=%s atr_pct=%s spread_bps=%s spread_pct=%s -> %s",spread calculation,spread_raw|spread_price|spread_pct
+gx1/execution/entry_manager.py,1905,unknown,"f""{spread_pct:.1f}"" if spread_pct is not None else ""nan"",",spread calculation,spread_raw|spread_price|spread_pct
+gx1/execution/entry_manager.py,1952,unknown,"""spread_pct"": spread_pct,",spread calculation,spread_raw|spread_price|spread_pct
+gx1/execution/entry_manager.py,1995,unknown,if spread_bps is not None and spread_pct is not None:,spread calculation,spread_raw|spread_price|spread_pct
+gx1/execution/entry_manager.py,2028,unknown,"entry_price=trade.entry_price,",entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/execution/entry_manager.py,2052,unknown,last_bar = candles.iloc[-1],bar close semantics,candles\.iloc\[-1\]|candles\.iloc\[-2\]|\.tail\(|\.head\(
+gx1/execution/entry_manager.py,2057,unknown,"elif ""bid_close"" in candles.columns and ""ask_close"" in candles.columns:",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/entry_manager.py,2058,unknown,"candle_close = float((last_bar[""bid_close""] + last_bar[""ask_close""]) / 2.0)",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/entry_manager.py,2059,unknown,"candle_high = float((last_bar[""bid_high""] + last_bar[""ask_high""]) / 2.0)",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/entry_manager.py,2060,unknown,"candle_low = float((last_bar[""bid_low""] + last_bar[""ask_low""]) / 2.0)",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/entry_manager.py,2074,unknown,"spread_price=spread_value_price,",spread calculation,spread_raw|spread_price|spread_pct
+gx1/execution/entry_manager.py,2075,unknown,"spread_pct=spread_pct,",spread calculation,spread_raw|spread_price|spread_pct
+gx1/execution/oanda_demo_runner.py,35,unknown,"build_live_entry_features,",live entry features,build_live_entry_features
+gx1/execution/oanda_demo_runner.py,86,unknown,"""bid_high"",",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/oanda_demo_runner.py,87,unknown,"""bid_low"",",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/oanda_demo_runner.py,88,unknown,"""bid_close"",",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/oanda_demo_runner.py,90,unknown,"""ask_high"",",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/oanda_demo_runner.py,91,unknown,"""ask_low"",",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/oanda_demo_runner.py,92,unknown,"""ask_close"",",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/oanda_demo_runner.py,1066,unknown,"log.debug(""Updated trade log for %s: exit_time=%s exit_price=%.3f pnl_bps=%.2f"", trade_id, exit_time",entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/execution/oanda_demo_runner.py,2666,unknown,"entry_price=price,",entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/execution/oanda_demo_runner.py,5038,unknown,"exit_price=exit_price,",entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/execution/oanda_demo_runner.py,5183,_predict_entry,Feature bundle produced by build_live_entry_features.,live entry features,build_live_entry_features
+gx1/execution/oanda_demo_runner.py,5535,unknown,# These come from basic_v1.build_basic_v1() (called by build_live_entry_features),live entry features,build_live_entry_features
+gx1/execution/oanda_demo_runner.py,5610,unknown,# Align features with manifest (same as build_live_entry_features does),live entry features,build_live_entry_features
+gx1/execution/oanda_demo_runner.py,5622,unknown,seq_window = candles_seq.tail(self.entry_tcn_lookback).copy(),bar close semantics,candles\.iloc\[-1\]|candles\.iloc\[-2\]|\.tail\(|\.head\(
+gx1/execution/oanda_demo_runner.py,6177,unknown,trade.entry_price = fill_price,entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/execution/oanda_demo_runner.py,6186,unknown,trade.entry_price = fill_price,entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/execution/oanda_demo_runner.py,6309,unknown,"""[ENTRY_PRICE] Trade %s (LONG): entry_price=%.5f != entry_ask=%.5f. """,entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/execution/oanda_demo_runner.py,6316,unknown,"""[ENTRY_PRICE] Trade %s (SHORT): entry_price=%.5f != entry_bid=%.5f. """,entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/execution/oanda_demo_runner.py,6322,unknown,"""[ENTRY_PRICE] Trade %s (%s): entry_price=%.5f, entry_bid=%.5f, entry_ask=%.5f, spread=%.5f"",",entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/execution/oanda_demo_runner.py,7021,unknown,# build_live_entry_features needs at least ATR_PERIOD (14) bars for ATR,live entry features,build_live_entry_features
+gx1/execution/oanda_demo_runner.py,7104,unknown,"""bid_high"": float(row[""bid_high""]),",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/oanda_demo_runner.py,7105,unknown,"""bid_low"": float(row[""bid_low""]),",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/oanda_demo_runner.py,7106,unknown,"""bid_close"": float(row[""bid_close""]),",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/oanda_demo_runner.py,7108,unknown,"""ask_high"": float(row[""ask_high""]),",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/oanda_demo_runner.py,7109,unknown,"""ask_low"": float(row[""ask_low""]),",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/oanda_demo_runner.py,7110,unknown,"""ask_close"": float(row[""ask_close""]),",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/oanda_demo_runner.py,7189,unknown,"entry_price = float(current_bar[""close""])",entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/execution/oanda_demo_runner.py,7194,unknown,# Consider using bid_high/ask_low for LONG and bid_low/ask_high for SHORT in future,bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/oanda_demo_runner.py,7348,unknown,"final_bid = float(final_candle[""bid_close""])",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/oanda_demo_runner.py,7349,unknown,"final_ask = float(final_candle[""ask_close""])",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/oanda_demo_runner.py,7375,unknown,"exit_price = final_bid if trade.side == ""long"" else final_ask",entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/execution/oanda_demo_runner.py,7384,unknown,"exit_price=exit_price,",entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/execution/oanda_demo_runner.py,7411,unknown,"exit_price = final_bid if trade.side == ""long"" else final_ask",entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/execution/oanda_demo_runner.py,7503,unknown,"required_bid_ask_cols = [""bid_open"", ""bid_high"", ""bid_low"", ""bid_close"",",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/oanda_demo_runner.py,7504,unknown,"""ask_open"", ""ask_high"", ""ask_low"", ""ask_close""]",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/oanda_demo_runner.py,7515,unknown,"""[REPLAY] Exit policies using bid/ask prices: bid_close/ask_close from candles""",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/oanda_demo_runner.py,7524,unknown,"bid_high = float(candle_row[""bid_high""])",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/oanda_demo_runner.py,7525,unknown,"bid_low = float(candle_row[""bid_low""])",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/oanda_demo_runner.py,7526,unknown,"ask_high = float(candle_row[""ask_high""])",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/oanda_demo_runner.py,7527,unknown,"ask_low = float(candle_row[""ask_low""])",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/oanda_demo_runner.py,7535,unknown,"tp_exit_bid, tp_exit_ask = bid_high, ask_high",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/oanda_demo_runner.py,7536,unknown,"sl_exit_bid, sl_exit_ask = bid_low, ask_low",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/oanda_demo_runner.py,7538,unknown,"tp_exit_bid, tp_exit_ask = bid_low, ask_low",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/oanda_demo_runner.py,7539,unknown,"sl_exit_bid, sl_exit_ask = bid_high, ask_high",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/oanda_demo_runner.py,7622,unknown,be_exit_bid = sl_exit_bid  # Use actual exit bid (bid_low when BE triggers),bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/oanda_demo_runner.py,7623,unknown,be_exit_ask = ask_low  # Use actual exit ask for consistency,bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/oanda_demo_runner.py,7634,unknown,be_exit_bid = bid_high  # Use actual exit bid for consistency,bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/oanda_demo_runner.py,7635,unknown,be_exit_ask = sl_exit_ask  # Use actual exit ask (ask_high when BE triggers),bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/oanda_demo_runner.py,7670,unknown,"price_bid = float(candle_row[""bid_close""])",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/oanda_demo_runner.py,7671,unknown,"price_ask = float(candle_row[""ask_close""])",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/debug_oanda_ping.py,53,unknown,print(candles.tail(5)),bar close semantics,candles\.iloc\[-1\]|candles\.iloc\[-2\]|\.tail\(|\.head\(
+gx1/execution/exec_smoke_test.py,157,unknown,"entry_price=0.0,  # Will be filled from order response",entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/execution/exec_smoke_test.py,175,unknown,"spread_price=None,",spread calculation,spread_raw|spread_price|spread_pct
+gx1/execution/exec_smoke_test.py,176,unknown,"spread_pct=None,",spread calculation,spread_raw|spread_price|spread_pct
+gx1/execution/exec_smoke_test.py,207,unknown,"entry_price = float(price_info[""asks""][0][""price""])",entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/execution/exec_smoke_test.py,209,unknown,"entry_price = float(price_info[""bids""][0][""price""])",entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/execution/exec_smoke_test.py,215,unknown,entry_price = 0.0,entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/execution/exec_smoke_test.py,441,unknown,"exit_price=close_price if close_price else 0.0,",entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/execution/oanda_client.py,332,_resolve_mid,return (float(bid[key]) + float(ask[key])) / 2.0,mid price calculation,mid_price|midPrice|\(bid.*\+.*ask.*\)\s*/\s*2
+gx1/execution/oanda_client.py,351,unknown,"""bid_high"": float(bid.get(""h"", record[""high""])),",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/oanda_client.py,352,unknown,"""bid_low"": float(bid.get(""l"", record[""low""])),",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/oanda_client.py,353,unknown,"""bid_close"": float(bid.get(""c"", record[""close""])),",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/oanda_client.py,360,unknown,"""ask_high"": float(ask.get(""h"", record[""high""])),",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/oanda_client.py,361,unknown,"""ask_low"": float(ask.get(""l"", record[""low""])),",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/execution/oanda_client.py,362,unknown,"""ask_close"": float(ask.get(""c"", record[""close""])),",bid/ask OHLC usage,bid_high|ask_high|bid_low|ask_low|bid_close|ask_close
+gx1/features/basic_v1.py,46,_parkinson_sigma,"Forventer kolonner: ts, open, high, low, close, (valgfritt: vwap, spread_pct, slippage_bps)",spread calculation,spread_raw|spread_price|spread_pct
+gx1/features/basic_v1.py,150,unknown,"if ""spread_pct"" in df:",spread calculation,spread_raw|spread_price|spread_pct
+gx1/features/basic_v1.py,151,unknown,"df[""_v1_spread_p""] = (df[""spread_pct""] * 1e4).shift(1)  # til bps",spread calculation,spread_raw|spread_price|spread_pct
+gx1/features/basic_v1.py,277,unknown,"if ""spread_pct"" in df.columns:",spread calculation,spread_raw|spread_price|spread_pct
+gx1/features/basic_v1.py,278,unknown,"sp = df[""spread_pct""].astype(float)",spread calculation,spread_raw|spread_price|spread_pct
+gx1/policy/exit_hybrid_controller.py,26,unknown,max_spread_pct: float = 60.0,spread calculation,spread_raw|spread_price|spread_pct
+gx1/policy/exit_hybrid_controller.py,40,__init__,"max_spread_pct=float(cfg.get(""max_spread_pct"", 60.0)),",spread calculation,spread_raw|spread_price|spread_pct
+gx1/policy/exit_hybrid_controller.py,59,choose_exit_profile,"spread_pct: float | None,",spread calculation,spread_raw|spread_price|spread_pct
+gx1/policy/exit_hybrid_controller.py,73,unknown,"- HYBRID_ROUTER_V3: ML decision tree RAW (conservative, uses raw atr_pct/spread_pct)",spread calculation,spread_raw|spread_price|spread_pct
+gx1/policy/exit_hybrid_controller.py,95,unknown,"spread_pct=spread_pct,",spread calculation,spread_raw|spread_price|spread_pct
+gx1/policy/exit_hybrid_controller.py,145,unknown,"""spread_pct"": spread_pct,",spread calculation,spread_raw|spread_price|spread_pct
+gx1/policy/exit_hybrid_controller.py,167,unknown,"""spread_pct"": ctx.spread_pct,",spread calculation,spread_raw|spread_price|spread_pct
+gx1/policy/exit_hybrid_controller.py,199,unknown,"""[HYBRID_EXIT] mode=%s version=%s session=%s regime=%s atr_bps=%.2f atr_pct=%.1f spread_bps=%.2f spr",spread calculation,spread_raw|spread_price|spread_pct
+gx1/policy/exit_hybrid_controller.py,207,unknown,"spread_pct if spread_pct is not None else float(""nan""),",spread calculation,spread_raw|spread_price|spread_pct
+gx1/policy/exit_hybrid_controller.py,232,unknown,"spread_pct=spread_pct,",spread calculation,spread_raw|spread_price|spread_pct
+gx1/policy/exit_hybrid_controller.py,252,unknown,"""[HYBRID_EXIT] mode=%s version=%s session=%s regime=%s atr_bps=%.2f atr_pct=%.1f spread_bps=%.2f spr",spread calculation,spread_raw|spread_price|spread_pct
+gx1/policy/exit_hybrid_controller.py,260,unknown,"spread_pct if spread_pct is not None else float(""nan""),",spread calculation,spread_raw|spread_price|spread_pct
+gx1/policy/exit_hybrid_controller.py,285,unknown,"spread_pct=spread_pct,",spread calculation,spread_raw|spread_price|spread_pct
+gx1/policy/exit_hybrid_controller.py,300,unknown,"""[HYBRID_EXIT] mode=%s version=%s session=%s regime=%s atr_bps=%.2f atr_pct=%.1f spread_bps=%.2f spr",spread calculation,spread_raw|spread_price|spread_pct
+gx1/policy/exit_hybrid_controller.py,308,unknown,"spread_pct if spread_pct is not None else float(""nan""),",spread calculation,spread_raw|spread_price|spread_pct
+gx1/policy/exit_hybrid_controller.py,319,unknown,spread_pct_val = 50.0 if spread_pct is None else spread_pct,spread calculation,spread_raw|spread_price|spread_pct
+gx1/policy/exit_hybrid_controller.py,325,unknown,and spread_pct_val <= self.thresholds.max_spread_pct,spread calculation,spread_raw|spread_price|spread_pct
+gx1/policy/exit_hybrid_controller.py,332,unknown,"""[HYBRID_EXIT] mode=%s version=%s session=%s regime=%s atr_bps=%.2f atr_pct=%.1f spread_bps=%.2f spr",spread calculation,spread_raw|spread_price|spread_pct
+gx1/policy/exit_hybrid_controller.py,340,unknown,"spread_pct_val,",spread calculation,spread_raw|spread_price|spread_pct
+gx1/policy/exit_farm_v2_rules_adaptive.py,109,_maybe_log_state,"exit_price = float(price_bid if self.side == ""long"" else price_ask)",entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/policy/exit_farm_v2_rules_adaptive.py,111,_exit_decision,"exit_price=exit_price,",entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/policy/exit_fixed_bar.py,79,unknown,"exit_price = float(price_bid if state_side == ""long"" else price_ask)",entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/policy/exit_fixed_bar.py,88,unknown,"exit_price=exit_price,",entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/policy/exit_farm_v2_rules.py,155,unknown,"self.entry_price = entry_ask if side == ""long"" else entry_bid",entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/policy/exit_farm_v2_rules.py,167,unknown,"f""[EXIT_FARM_V2_RULES] Reset: side={side}, entry_price={self.entry_price:.5f}, """,entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/policy/exit_farm_v2_rules.py,233,unknown,"exit_price = float(price_bid if self.side == ""long"" else price_ask)",entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/policy/exit_farm_v2_rules.py,235,unknown,"exit_price=exit_price,",entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/policy/exit_farm_v2_rules.py,253,unknown,"exit_price = float(price_bid if self.side == ""long"" else price_ask)",entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/policy/exit_farm_v2_rules.py,255,unknown,"exit_price=exit_price,",entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/policy/exit_farm_v2_rules.py,276,unknown,"exit_price = float(price_bid if self.side == ""long"" else price_ask)",entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/policy/exit_farm_v2_rules.py,278,unknown,"exit_price=exit_price,",entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/policy/exit_farm_v2_rules.py,298,unknown,"exit_price = float(price_bid if self.side == ""long"" else price_ask)",entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/policy/exit_farm_v2_rules.py,300,unknown,"exit_price=exit_price,",entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/policy/exit_farm_v2_rules.py,315,unknown,"exit_price = float(price_bid if self.side == ""long"" else price_ask)",entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/policy/exit_farm_v2_rules.py,317,unknown,"exit_price=exit_price,",entry/exit price assignment,entry_price\s*=|exit_price\s*=
+gx1/policy/exit_farm_v2_rules.py,364,_maybe_log_decision,"""entry_price=%.5f exit_price=%.5f pnl_bps=%.2f bars=%d mfe=%.2f mae=%.2f"",",entry/exit price assignment,entry_price\s*=|exit_price\s*=

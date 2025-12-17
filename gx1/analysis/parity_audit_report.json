@@ -1,0 +1,2155 @@
+{
+  "fullyear": {
+    "run_dir": "gx1/wf_runs/FARM_V2B_EXIT_HYBRID_ROUTER_V3_RANGE_FULLYEAR",
+    "config": {
+      "policy": {
+        "entry_config": "gx1/configs/policies/prod_snapshot/2025_FARM_V2B_HYBRID/ENTRY_V9_FARM_V2B_PROD.yaml",
+        "execution": {
+          "max_open_trades": 5
+        },
+        "exit_config": "gx1/configs/exits/FARM_EXIT_V2_RULES_A_mp68_max5_rule5_cd0.yaml",
+        "exit_hybrid": {
+          "allowed_regimes": [
+            "FARM_ASIA_MEDIUM"
+          ],
+          "atr_high_pct": 75.0,
+          "atr_low_pct": 0.0,
+          "enabled": true,
+          "exit_params": {
+            "enable_be": true,
+            "enable_tp": true,
+            "enable_trailing": true
+          },
+          "max_spread_pct": 40.0,
+          "mode": "RULE5_RULE6A_ATR_SPREAD_V1"
+        },
+        "exit_policies": {
+          "rule5": "gx1/configs/exits/FARM_EXIT_V2_RULES_A_mp68_max5_rule5_cd0.yaml",
+          "rule6a": "gx1/configs/exits/FARM_EXIT_V2_RULES_ADAPTIVE_v1.yaml"
+        },
+        "hybrid_exit_router": {
+          "documentation": "HYBRID_ROUTER_V3 provides ML-based routing using decision tree trained on raw atr_pct/spread_pct:\n\nKey features:\n  - Uses raw values (no standardization needed)\n  - Conservative variant: cuts high-spread RULE6A\n  - Requires MEDIUM regime for RULE6A\n  - RULE5 as safe default\n\nExpected RULE6A conditions:\n  - Moderate ATR (18.75-31.34) + OK spread (\u226478.10) + MEDIUM regime\n  - Very high ATR (>61.03) + ultra-low spread (\u22640.50) + MEDIUM regime\n\nThis is \"V3_SAFE\" \u2013 uses tree structure but with conservative risk haircut.\n",
+          "version": "HYBRID_ROUTER_V3"
+        },
+        "instrument": "XAU_USD",
+        "logging": {
+          "level": "INFO",
+          "log_dir": "gx1/wf_runs/GX1_V11_OANDA_DEMO_V9_FARM_V2B_EXIT_HYBRID_V3_FULLYEAR/logs",
+          "trade_log_csv": "gx1/wf_runs/FARM_V2B_EXIT_HYBRID_ROUTER_V3_RANGE_FULLYEAR/parallel_chunks/trade_log_chunk_5.csv"
+        },
+        "meta": {
+          "description": "HYBRID_ROUTER_V3 (decision-tree based). RULE5 default, RULE6A only in 5\u20137% of sweet-spot environments (moderate ATR, decent spread, FARM_ASIA_MEDIUM regime). Approx 148\u2013150 bps EV/trade, ~88% win rate in 2025 backtest.\n",
+          "role": "PROD_BASELINE",
+          "router_version": "V3"
+        },
+        "mode": "REPLAY",
+        "policy_name": "GX1_V11_OANDA_DEMO_V9_FARM_V2B_EXIT_HYBRID_V3_FULLYEAR",
+        "risk": {
+          "min_time_between_trades_sec": 0
+        },
+        "timeframe": "M5",
+        "trade_log_csv": "gx1/wf_runs/GX1_V11_OANDA_DEMO_V9_FARM_V2B_EXIT_HYBRID_V3_FULLYEAR/trade_log.csv",
+        "version": "GX1_V11_OANDA_DEMO_V9_FARM_V2B_EXIT_HYBRID_V3_FULLYEAR",
+        "warmup_bars": 288
+      },
+      "entry_config": null,
+      "exit_config": null,
+      "policy_path": "gx1/wf_runs/FARM_V2B_EXIT_HYBRID_ROUTER_V3_RANGE_FULLYEAR/parallel_chunks/policy_chunk_5.yaml",
+      "entry_config_path": null,
+      "exit_config_path": null,
+      "policy_hash": "a2b67a9860a0ffefb3071e19f8422f229f106c31abdcf1a7f72600092673b953",
+      "entry_config_hash": null,
+      "exit_config_hash": null
+    },
+    "entry_model": {
+      "entry_model_version": null,
+      "feature_cols_hash": null,
+      "n_features_in_": null,
+      "model_paths": [],
+      "session_metadata": null
+    },
+    "router": {
+      "router_version": "HYBRID_ROUTER_V3",
+      "model_path": null,
+      "model_hash": null,
+      "guardrail_cutoff": null
+    },
+    "warmup": {
+      "warmup_bars": 288,
+      "warmup_floor": null,
+      "n_workers": null,
+      "parallel_chunking": true,
+      "chunk_overlap": "unknown"
+    },
+    "gates": {
+      "min_time_between_trades_sec": null,
+      "max_open_trades": null,
+      "session_allowlist": null,
+      "regime_allowlist": null,
+      "spread_filter_threshold": null,
+      "live_only_latch": null
+    },
+    "trades_per_day": {
+      "total_trades": 0,
+      "trades_per_day": null,
+      "session_trades": 0,
+      "session_trades_per_day": null,
+      "period_days": null,
+      "start_date": null,
+      "end_date": null
+    }
+  },
+  "canary": {
+    "run_dir": "gx1/wf_runs/CANARY_TEST_2025_Q1_SHORT",
+    "config": {
+      "policy": {
+        "entry_config": "gx1/configs/policies/prod_snapshot/2025_FARM_V2B_HYBRID/ENTRY_V9_FARM_V2B_PROD.yaml",
+        "execution": {
+          "max_open_trades": 5
+        },
+        "exit_config": "gx1/configs/exits/FARM_EXIT_V2_RULES_A_mp68_max5_rule5_cd0.yaml",
+        "exit_hybrid": {
+          "allowed_regimes": [
+            "FARM_ASIA_MEDIUM"
+          ],
+          "atr_high_pct": 75.0,
+          "atr_low_pct": 0.0,
+          "enabled": true,
+          "exit_params": {
+            "enable_be": true,
+            "enable_tp": true,
+            "enable_trailing": true
+          },
+          "max_spread_pct": 40.0,
+          "mode": "RULE5_RULE6A_ATR_SPREAD_V1"
+        },
+        "exit_policies": {
+          "rule5": "gx1/configs/exits/FARM_EXIT_V2_RULES_A_mp68_max5_rule5_cd0.yaml",
+          "rule6a": "gx1/configs/exits/FARM_EXIT_V2_RULES_ADAPTIVE_v1.yaml"
+        },
+        "hybrid_exit_router": {
+          "model_path": "exit_router_v3_tree.pkl",
+          "v3_range_edge_cutoff": 1.0,
+          "version": "HYBRID_ROUTER_V3"
+        },
+        "instrument": "XAU_USD",
+        "logging": {
+          "level": "INFO",
+          "log_dir": "gx1/wf_runs/GX1_V11_OANDA_DEMO_V9_FARM_V2B_EXIT_HYBRID_V3_RANGE_CANARY/logs",
+          "trade_log_csv": "gx1/wf_runs/CANARY_TEST_2025_Q1_SHORT/parallel_chunks/trade_log_chunk_5.csv"
+        },
+        "meta": {
+          "description": "CANARY mode: Full pipeline test with dry_run=True. All invariants are logged and verified. Prod metrics are generated at the end.\n",
+          "frozen_date": "2025-12-15",
+          "role": "PROD_BASELINE",
+          "router_version": "V3_RANGE"
+        },
+        "mode": "CANARY",
+        "policy_name": "GX1_V11_OANDA_DEMO_V9_FARM_V2B_EXIT_HYBRID_V3_RANGE_CANARY",
+        "risk": {
+          "min_time_between_trades_sec": 0
+        },
+        "timeframe": "M5",
+        "version": "GX1_V11_OANDA_DEMO_V9_FARM_V2B_EXIT_HYBRID_V3_RANGE_CANARY",
+        "warmup_bars": 288
+      },
+      "entry_config": null,
+      "exit_config": null,
+      "policy_path": "gx1/wf_runs/CANARY_TEST_2025_Q1_SHORT/parallel_chunks/policy_chunk_5.yaml",
+      "entry_config_path": null,
+      "exit_config_path": null,
+      "policy_hash": "c8a83be33ea788bcb518e2c8307ab3cfb4032376c8ea0146faa704c4beda4590",
+      "entry_config_hash": null,
+      "exit_config_hash": null
+    },
+    "entry_model": {
+      "entry_model_version": null,
+      "feature_cols_hash": null,
+      "n_features_in_": null,
+      "model_paths": [],
+      "session_metadata": null
+    },
+    "router": {
+      "router_version": "HYBRID_ROUTER_V3",
+      "model_path": "exit_router_v3_tree.pkl",
+      "model_hash": null,
+      "guardrail_cutoff": 1.0
+    },
+    "warmup": {
+      "warmup_bars": 288,
+      "warmup_floor": null,
+      "n_workers": null,
+      "parallel_chunking": true,
+      "chunk_overlap": "unknown"
+    },
+    "gates": {
+      "min_time_between_trades_sec": null,
+      "max_open_trades": null,
+      "session_allowlist": null,
+      "regime_allowlist": null,
+      "spread_filter_threshold": null,
+      "live_only_latch": null
+    },
+    "trades_per_day": {
+      "total_trades": 0,
+      "trades_per_day": null,
+      "session_trades": 0,
+      "session_trades_per_day": null,
+      "period_days": null,
+      "start_date": null,
+      "end_date": null
+    }
+  },
+  "live": null,
+  "verdict": {
+    "status": "NOT PARITY",
+    "primary_cause": "Policy config hash mismatch",
+    "secondary_causes": [],
+    "details": {}
+  },
+  "price_findings": [
+    {
+      "file": "gx1/execution/exit_manager.py",
+      "line": 60,
+      "function": "unknown",
+      "code": "current_bid = float(candles[\"bid_close\"].iloc[-1])",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/exit_manager.py",
+      "line": 61,
+      "function": "unknown",
+      "code": "current_ask = float(candles[\"ask_close\"].iloc[-1])",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/exit_manager.py",
+      "line": 81,
+      "function": "unknown",
+      "code": "self._collect_price_trace(candles, now_ts, open_trades_copy)",
+      "description": "price trace collection",
+      "pattern": "_collect_price_trace|price_trace"
+    },
+    {
+      "file": "gx1/execution/exit_manager.py",
+      "line": 242,
+      "function": "unknown",
+      "code": "exit_price=exit_decision.exit_price,",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/execution/exit_manager.py",
+      "line": 323,
+      "function": "unknown",
+      "code": "exit_price=decision.exit_price,",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/execution/exit_manager.py",
+      "line": 464,
+      "function": "unknown",
+      "code": "exit_price=exit_decision.exit_price,",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/execution/exit_manager.py",
+      "line": 618,
+      "function": "unknown",
+      "code": "exit_price=mark_price,",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/execution/exit_manager.py",
+      "line": 735,
+      "function": "_collect_price_trace",
+      "code": "def _collect_price_trace(self, candles: pd.DataFrame, now_ts: pd.Timestamp, open_trades: List[Any]) ",
+      "description": "price trace collection",
+      "pattern": "_collect_price_trace|price_trace"
+    },
+    {
+      "file": "gx1/execution/exit_manager.py",
+      "line": 739,
+      "function": "_collect_price_trace",
+      "code": "Stores high/low/close per bar in trade.extra[\"_price_trace\"].",
+      "description": "price trace collection",
+      "pattern": "_collect_price_trace|price_trace"
+    },
+    {
+      "file": "gx1/execution/exit_manager.py",
+      "line": 747,
+      "function": "_collect_price_trace",
+      "code": "last_bar = candles.iloc[-1]",
+      "description": "bar close semantics",
+      "pattern": "candles\\.iloc\\[-1\\]|candles\\.iloc\\[-2\\]|\\.tail\\(|\\.head\\("
+    },
+    {
+      "file": "gx1/execution/exit_manager.py",
+      "line": 754,
+      "function": "_collect_price_trace",
+      "code": "elif \"bid_high\" in candles.columns and \"ask_high\" in candles.columns:",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/exit_manager.py",
+      "line": 755,
+      "function": "unknown",
+      "code": "bar_high = float((last_bar[\"bid_high\"] + last_bar[\"ask_high\"]) / 2.0)",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/exit_manager.py",
+      "line": 756,
+      "function": "unknown",
+      "code": "bar_low = float((last_bar[\"bid_low\"] + last_bar[\"ask_low\"]) / 2.0)",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/exit_manager.py",
+      "line": 757,
+      "function": "unknown",
+      "code": "bar_close = float((last_bar[\"bid_close\"] + last_bar[\"ask_close\"]) / 2.0)",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/exit_manager.py",
+      "line": 762,
+      "function": "unknown",
+      "code": "elif \"bid_close\" in candles.columns and \"ask_close\" in candles.columns:",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/exit_manager.py",
+      "line": 763,
+      "function": "unknown",
+      "code": "bar_close = float((last_bar[\"bid_close\"] + last_bar[\"ask_close\"]) / 2.0)",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/exit_manager.py",
+      "line": 774,
+      "function": "unknown",
+      "code": "if \"_price_trace\" not in trade.extra:",
+      "description": "price trace collection",
+      "pattern": "_collect_price_trace|price_trace"
+    },
+    {
+      "file": "gx1/execution/exit_manager.py",
+      "line": 775,
+      "function": "unknown",
+      "code": "trade.extra[\"_price_trace\"] = []",
+      "description": "price trace collection",
+      "pattern": "_collect_price_trace|price_trace"
+    },
+    {
+      "file": "gx1/execution/exit_manager.py",
+      "line": 784,
+      "function": "unknown",
+      "code": "trade.extra[\"_price_trace\"].append(trace_point)",
+      "description": "price trace collection",
+      "pattern": "_collect_price_trace|price_trace"
+    },
+    {
+      "file": "gx1/execution/exit_manager.py",
+      "line": 788,
+      "function": "unknown",
+      "code": "if len(trade.extra[\"_price_trace\"]) > max_trace_size:",
+      "description": "price trace collection",
+      "pattern": "_collect_price_trace|price_trace"
+    },
+    {
+      "file": "gx1/execution/exit_manager.py",
+      "line": 789,
+      "function": "unknown",
+      "code": "trade.extra[\"_price_trace\"] = trade.extra[\"_price_trace\"][-max_trace_size:]",
+      "description": "price trace collection",
+      "pattern": "_collect_price_trace|price_trace"
+    },
+    {
+      "file": "gx1/execution/exit_manager.py",
+      "line": 823,
+      "function": "unknown",
+      "code": "# Remove _price_trace from trade.extra to prevent bloating trade logs",
+      "description": "price trace collection",
+      "pattern": "_collect_price_trace|price_trace"
+    },
+    {
+      "file": "gx1/execution/exit_manager.py",
+      "line": 825,
+      "function": "unknown",
+      "code": "if \"_price_trace\" in trade.extra:",
+      "description": "price trace collection",
+      "pattern": "_collect_price_trace|price_trace"
+    },
+    {
+      "file": "gx1/execution/exit_manager.py",
+      "line": 826,
+      "function": "unknown",
+      "code": "del trade.extra[\"_price_trace\"]",
+      "description": "price trace collection",
+      "pattern": "_collect_price_trace|price_trace"
+    },
+    {
+      "file": "gx1/execution/exit_manager.py",
+      "line": 832,
+      "function": "unknown",
+      "code": "exit_price=exit_price,",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/execution/exit_manager.py",
+      "line": 871,
+      "function": "_compute_intratrade_metrics",
+      "code": "trade: Trade object with entry_price, side, and _price_trace",
+      "description": "price trace collection",
+      "pattern": "_collect_price_trace|price_trace"
+    },
+    {
+      "file": "gx1/execution/exit_manager.py",
+      "line": 878,
+      "function": "_compute_intratrade_metrics",
+      "code": "price_trace = trade.extra.get(\"_price_trace\", [])",
+      "description": "price trace collection",
+      "pattern": "_collect_price_trace|price_trace"
+    },
+    {
+      "file": "gx1/execution/exit_manager.py",
+      "line": 879,
+      "function": "_compute_intratrade_metrics",
+      "code": "if not price_trace:",
+      "description": "price trace collection",
+      "pattern": "_collect_price_trace|price_trace"
+    },
+    {
+      "file": "gx1/execution/exit_manager.py",
+      "line": 886,
+      "function": "unknown",
+      "code": "entry_price = trade.entry_price",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/execution/exit_manager.py",
+      "line": 891,
+      "function": "unknown",
+      "code": "for point in price_trace:",
+      "description": "price trace collection",
+      "pattern": "_collect_price_trace|price_trace"
+    },
+    {
+      "file": "gx1/execution/exit_manager.py",
+      "line": 1028,
+      "function": "_compute_runtime_atr_bps",
+      "code": "\"bid_high\",",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/exit_manager.py",
+      "line": 1029,
+      "function": "_compute_runtime_atr_bps",
+      "code": "\"bid_low\",",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/exit_manager.py",
+      "line": 1030,
+      "function": "_compute_runtime_atr_bps",
+      "code": "\"bid_close\",",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/exit_manager.py",
+      "line": 1031,
+      "function": "_compute_runtime_atr_bps",
+      "code": "\"ask_high\",",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/exit_manager.py",
+      "line": 1032,
+      "function": "_compute_runtime_atr_bps",
+      "code": "\"ask_low\",",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/exit_manager.py",
+      "line": 1033,
+      "function": "_compute_runtime_atr_bps",
+      "code": "\"ask_close\",",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/exit_manager.py",
+      "line": 1037,
+      "function": "_compute_runtime_atr_bps",
+      "code": "window = candles[required_cols].tail(period + 2)",
+      "description": "bar close semantics",
+      "pattern": "candles\\.iloc\\[-1\\]|candles\\.iloc\\[-2\\]|\\.tail\\(|\\.head\\("
+    },
+    {
+      "file": "gx1/execution/exit_manager.py",
+      "line": 1042,
+      "function": "_compute_runtime_atr_bps",
+      "code": "\"high\": (window[\"bid_high\"] + window[\"ask_high\"]) * 0.5,",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/exit_manager.py",
+      "line": 1043,
+      "function": "_compute_runtime_atr_bps",
+      "code": "\"low\": (window[\"bid_low\"] + window[\"ask_low\"]) * 0.5,",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/exit_manager.py",
+      "line": 1044,
+      "function": "_compute_runtime_atr_bps",
+      "code": "\"close\": (window[\"bid_close\"] + window[\"ask_close\"]) * 0.5,",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/live_features.py",
+      "line": 32,
+      "function": "unknown",
+      "code": "bid_close: Optional[float] = None",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/live_features.py",
+      "line": 34,
+      "function": "unknown",
+      "code": "ask_close: Optional[float] = None",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/live_features.py",
+      "line": 121,
+      "function": "infer_vol_bucket",
+      "code": "def build_live_entry_features(candles: pd.DataFrame) -> EntryFeatureBundle:",
+      "description": "live entry features",
+      "pattern": "build_live_entry_features"
+    },
+    {
+      "file": "gx1/execution/live_features.py",
+      "line": 151,
+      "function": "unknown",
+      "code": "aligned_last = aligned.tail(1).copy()",
+      "description": "bar close semantics",
+      "pattern": "candles\\.iloc\\[-1\\]|candles\\.iloc\\[-2\\]|\\.tail\\(|\\.head\\("
+    },
+    {
+      "file": "gx1/execution/live_features.py",
+      "line": 184,
+      "function": "unknown",
+      "code": "recent_window = candles.tail(ADR_WINDOW)",
+      "description": "bar close semantics",
+      "pattern": "candles\\.iloc\\[-1\\]|candles\\.iloc\\[-2\\]|\\.tail\\(|\\.head\\("
+    },
+    {
+      "file": "gx1/execution/live_features.py",
+      "line": 192,
+      "function": "unknown",
+      "code": "bid_close = float(candles[\"bid_close\"].iloc[-1]) if \"bid_close\" in candles.columns else None",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/live_features.py",
+      "line": 194,
+      "function": "unknown",
+      "code": "ask_close = float(candles[\"ask_close\"].iloc[-1]) if \"ask_close\" in candles.columns else None",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/live_features.py",
+      "line": 202,
+      "function": "unknown",
+      "code": "bid_close=bid_close,",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/live_features.py",
+      "line": 204,
+      "function": "unknown",
+      "code": "ask_close=ask_close,",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/live_features.py",
+      "line": 226,
+      "function": "build_live_exit_snapshot",
+      "code": "OHLCV frame used for excursions; same schema as build_live_entry_features.",
+      "description": "live entry features",
+      "pattern": "build_live_entry_features"
+    },
+    {
+      "file": "gx1/execution/live_features.py",
+      "line": 229,
+      "function": "unknown",
+      "code": "entry_price = float(trade[\"entry_price\"])",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/execution/live_features.py",
+      "line": 237,
+      "function": "unknown",
+      "code": "window = candles.tail(ATR_PERIOD).copy()",
+      "description": "bar close semantics",
+      "pattern": "candles\\.iloc\\[-1\\]|candles\\.iloc\\[-2\\]|\\.tail\\(|\\.head\\("
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 11,
+      "function": "unknown",
+      "code": "from gx1.execution.live_features import build_live_entry_features",
+      "description": "live entry features",
+      "pattern": "build_live_entry_features"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 70,
+      "function": "_percentile_from_history",
+      "code": "def _compute_range_features(candles: pd.DataFrame, window: int = 96) -> tuple[float, float]:",
+      "description": "range feature calculation",
+      "pattern": "range_hi|range_lo|_compute_range_features"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 93,
+      "function": "unknown",
+      "code": "has_direct = all(col in candles.columns for col in ['high', 'low', 'close'])",
+      "description": "price source detection",
+      "pattern": "has_bid_ask|has_direct"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 94,
+      "function": "unknown",
+      "code": "has_bid_ask = all(col in candles.columns for col in ['bid_high', 'ask_high', 'bid_low', 'ask_low', '",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 94,
+      "function": "unknown",
+      "code": "has_bid_ask = all(col in candles.columns for col in ['bid_high', 'ask_high', 'bid_low', 'ask_low', '",
+      "description": "price source detection",
+      "pattern": "has_bid_ask|has_direct"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 96,
+      "function": "unknown",
+      "code": "if not has_direct and not has_bid_ask:",
+      "description": "price source detection",
+      "pattern": "has_bid_ask|has_direct"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 107,
+      "function": "unknown",
+      "code": "recent = candles.tail(window)",
+      "description": "bar close semantics",
+      "pattern": "candles\\.iloc\\[-1\\]|candles\\.iloc\\[-2\\]|\\.tail\\(|\\.head\\("
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 109,
+      "function": "unknown",
+      "code": "if has_direct:",
+      "description": "price source detection",
+      "pattern": "has_bid_ask|has_direct"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 116,
+      "function": "unknown",
+      "code": "high_vals = (recent['bid_high'].values + recent['ask_high'].values) / 2.0",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 117,
+      "function": "unknown",
+      "code": "low_vals = (recent['bid_low'].values + recent['ask_low'].values) / 2.0",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 118,
+      "function": "unknown",
+      "code": "close_vals = (recent['bid_close'].values + recent['ask_close'].values) / 2.0",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 122,
+      "function": "unknown",
+      "code": "range_hi = float(np.max(high_vals))",
+      "description": "range feature calculation",
+      "pattern": "range_hi|range_lo|_compute_range_features"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 123,
+      "function": "unknown",
+      "code": "range_lo = float(np.min(low_vals))",
+      "description": "range feature calculation",
+      "pattern": "range_hi|range_lo|_compute_range_features"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 128,
+      "function": "unknown",
+      "code": "price_ref = float(close_vals[-1])",
+      "description": "price reference assignment",
+      "pattern": "price_ref\\s*="
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 128,
+      "function": "unknown",
+      "code": "price_ref = float(close_vals[-1])",
+      "description": "last closed bar price",
+      "pattern": "close_vals\\[-1\\]|close_vals\\.iloc\\[-1\\]"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 131,
+      "function": "unknown",
+      "code": "denom = max(eps, range_hi - range_lo)",
+      "description": "range feature calculation",
+      "pattern": "range_hi|range_lo|_compute_range_features"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 132,
+      "function": "unknown",
+      "code": "range_pos_raw = (price_ref - range_lo) / denom",
+      "description": "range feature calculation",
+      "pattern": "range_hi|range_lo|_compute_range_features"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 150,
+      "function": "_compute_range_edge_dist_atr",
+      "code": "range_hi: float,",
+      "description": "range feature calculation",
+      "pattern": "range_hi|range_lo|_compute_range_features"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 151,
+      "function": "_compute_range_edge_dist_atr",
+      "code": "range_lo: float,",
+      "description": "range feature calculation",
+      "pattern": "range_hi|range_lo|_compute_range_features"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 161,
+      "function": "_compute_range_edge_dist_atr",
+      "code": "range_hi: Maximum high in the window",
+      "description": "range feature calculation",
+      "pattern": "range_hi|range_lo|_compute_range_features"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 162,
+      "function": "_compute_range_edge_dist_atr",
+      "code": "range_lo: Minimum low in the window",
+      "description": "range feature calculation",
+      "pattern": "range_hi|range_lo|_compute_range_features"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 179,
+      "function": "unknown",
+      "code": "dist_to_low = max(0.0, price_ref - range_lo)",
+      "description": "range feature calculation",
+      "pattern": "range_hi|range_lo|_compute_range_features"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 180,
+      "function": "unknown",
+      "code": "dist_to_high = max(0.0, range_hi - price_ref)",
+      "description": "range feature calculation",
+      "pattern": "range_hi|range_lo|_compute_range_features"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 197,
+      "function": "evaluate_entry",
+      "code": "entry_bundle = build_live_entry_features(candles)",
+      "description": "live entry features",
+      "pattern": "build_live_entry_features"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 267,
+      "function": "unknown",
+      "code": "brain_candles = candles.tail(lookback_bars).copy()",
+      "description": "bar close semantics",
+      "pattern": "candles\\.iloc\\[-1\\]|candles\\.iloc\\[-2\\]|\\.tail\\(|\\.head\\("
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 1679,
+      "function": "unknown",
+      "code": "if entry_bundle.bid_close is None or entry_bundle.ask_close is None:",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 1682,
+      "function": "unknown",
+      "code": "entry_bundle.bid_close,",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 1683,
+      "function": "unknown",
+      "code": "entry_bundle.ask_close,",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 1736,
+      "function": "unknown",
+      "code": "current_bar = candles.iloc[-1]",
+      "description": "bar close semantics",
+      "pattern": "candles\\.iloc\\[-1\\]|candles\\.iloc\\[-2\\]|\\.tail\\(|\\.head\\("
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 1738,
+      "function": "unknown",
+      "code": "entry_bid_price = float(current_bar[\"bid_close\"])",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 1739,
+      "function": "unknown",
+      "code": "entry_ask_price = float(current_bar[\"ask_close\"])",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 1745,
+      "function": "unknown",
+      "code": "entry_price = entry_ask_price",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 1747,
+      "function": "unknown",
+      "code": "entry_price = entry_bid_price",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 1757,
+      "function": "unknown",
+      "code": "entry_price=entry_price,",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 1799,
+      "function": "unknown",
+      "code": "spread_pct: Optional[float] = None",
+      "description": "spread calculation",
+      "pattern": "spread_raw|spread_price|spread_pct"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 1801,
+      "function": "unknown",
+      "code": "spread_raw = float(entry_ask_price) - float(entry_bid_price)",
+      "description": "spread calculation",
+      "pattern": "spread_raw|spread_price|spread_pct"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 1802,
+      "function": "unknown",
+      "code": "if spread_raw > 0:",
+      "description": "spread calculation",
+      "pattern": "spread_raw|spread_price|spread_pct"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 1803,
+      "function": "unknown",
+      "code": "spread_bps = spread_raw * 10000.0",
+      "description": "spread calculation",
+      "pattern": "spread_raw|spread_price|spread_pct"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 1807,
+      "function": "unknown",
+      "code": "spread_pct = self._percentile_from_history(self.spread_history, spread_bps)",
+      "description": "spread calculation",
+      "pattern": "spread_raw|spread_price|spread_pct"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 1815,
+      "function": "unknown",
+      "code": "range_pos, distance_to_range = self._compute_range_features(candles, window=range_window)",
+      "description": "range feature calculation",
+      "pattern": "range_hi|range_lo|_compute_range_features"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 1827,
+      "function": "unknown",
+      "code": "recent = candles.tail(range_window)",
+      "description": "bar close semantics",
+      "pattern": "candles\\.iloc\\[-1\\]|candles\\.iloc\\[-2\\]|\\.tail\\(|\\.head\\("
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 1829,
+      "function": "unknown",
+      "code": "has_direct = all(col in candles.columns for col in ['high', 'low', 'close'])",
+      "description": "price source detection",
+      "pattern": "has_bid_ask|has_direct"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 1830,
+      "function": "unknown",
+      "code": "has_bid_ask = all(col in candles.columns for col in ['bid_high', 'ask_high', 'bid_low', 'ask_low', '",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 1830,
+      "function": "unknown",
+      "code": "has_bid_ask = all(col in candles.columns for col in ['bid_high', 'ask_high', 'bid_low', 'ask_low', '",
+      "description": "price source detection",
+      "pattern": "has_bid_ask|has_direct"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 1832,
+      "function": "unknown",
+      "code": "range_hi = None",
+      "description": "range feature calculation",
+      "pattern": "range_hi|range_lo|_compute_range_features"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 1833,
+      "function": "unknown",
+      "code": "range_lo = None",
+      "description": "range feature calculation",
+      "pattern": "range_hi|range_lo|_compute_range_features"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 1834,
+      "function": "unknown",
+      "code": "price_ref = None",
+      "description": "price reference assignment",
+      "pattern": "price_ref\\s*="
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 1837,
+      "function": "unknown",
+      "code": "if has_direct or has_bid_ask:",
+      "description": "price source detection",
+      "pattern": "has_bid_ask|has_direct"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 1838,
+      "function": "unknown",
+      "code": "if has_direct:",
+      "description": "price source detection",
+      "pattern": "has_bid_ask|has_direct"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 1843,
+      "function": "unknown",
+      "code": "high_vals = (recent['bid_high'].values + recent['ask_high'].values) / 2.0",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 1844,
+      "function": "unknown",
+      "code": "low_vals = (recent['bid_low'].values + recent['ask_low'].values) / 2.0",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 1845,
+      "function": "unknown",
+      "code": "close_vals = (recent['bid_close'].values + recent['ask_close'].values) / 2.0",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 1847,
+      "function": "unknown",
+      "code": "range_hi = float(np.max(high_vals))",
+      "description": "range feature calculation",
+      "pattern": "range_hi|range_lo|_compute_range_features"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 1848,
+      "function": "unknown",
+      "code": "range_lo = float(np.min(low_vals))",
+      "description": "range feature calculation",
+      "pattern": "range_hi|range_lo|_compute_range_features"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 1849,
+      "function": "unknown",
+      "code": "price_ref = float(close_vals[-1])",
+      "description": "price reference assignment",
+      "pattern": "price_ref\\s*="
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 1849,
+      "function": "unknown",
+      "code": "price_ref = float(close_vals[-1])",
+      "description": "last closed bar price",
+      "pattern": "close_vals\\[-1\\]|close_vals\\.iloc\\[-1\\]"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 1853,
+      "function": "unknown",
+      "code": "price_ref=price_ref,",
+      "description": "price reference assignment",
+      "pattern": "price_ref\\s*="
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 1854,
+      "function": "unknown",
+      "code": "range_hi=range_hi,",
+      "description": "range feature calculation",
+      "pattern": "range_hi|range_lo|_compute_range_features"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 1855,
+      "function": "unknown",
+      "code": "range_lo=range_lo,",
+      "description": "range feature calculation",
+      "pattern": "range_hi|range_lo|_compute_range_features"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 1877,
+      "function": "unknown",
+      "code": "spread_pct=spread_pct,",
+      "description": "spread calculation",
+      "pattern": "spread_raw|spread_price|spread_pct"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 1892,
+      "function": "unknown",
+      "code": "\"spread_pct\": spread_pct,",
+      "description": "spread calculation",
+      "pattern": "spread_raw|spread_price|spread_pct"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 1898,
+      "function": "unknown",
+      "code": "\"[HYBRID_EXIT] trade=%s session=%s regime=%s atr_bps=%s atr_pct=%s spread_bps=%s spread_pct=%s -> %s",
+      "description": "spread calculation",
+      "pattern": "spread_raw|spread_price|spread_pct"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 1905,
+      "function": "unknown",
+      "code": "f\"{spread_pct:.1f}\" if spread_pct is not None else \"nan\",",
+      "description": "spread calculation",
+      "pattern": "spread_raw|spread_price|spread_pct"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 1952,
+      "function": "unknown",
+      "code": "\"spread_pct\": spread_pct,",
+      "description": "spread calculation",
+      "pattern": "spread_raw|spread_price|spread_pct"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 1995,
+      "function": "unknown",
+      "code": "if spread_bps is not None and spread_pct is not None:",
+      "description": "spread calculation",
+      "pattern": "spread_raw|spread_price|spread_pct"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 2028,
+      "function": "unknown",
+      "code": "entry_price=trade.entry_price,",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 2052,
+      "function": "unknown",
+      "code": "last_bar = candles.iloc[-1]",
+      "description": "bar close semantics",
+      "pattern": "candles\\.iloc\\[-1\\]|candles\\.iloc\\[-2\\]|\\.tail\\(|\\.head\\("
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 2057,
+      "function": "unknown",
+      "code": "elif \"bid_close\" in candles.columns and \"ask_close\" in candles.columns:",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 2058,
+      "function": "unknown",
+      "code": "candle_close = float((last_bar[\"bid_close\"] + last_bar[\"ask_close\"]) / 2.0)",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 2059,
+      "function": "unknown",
+      "code": "candle_high = float((last_bar[\"bid_high\"] + last_bar[\"ask_high\"]) / 2.0)",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 2060,
+      "function": "unknown",
+      "code": "candle_low = float((last_bar[\"bid_low\"] + last_bar[\"ask_low\"]) / 2.0)",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 2074,
+      "function": "unknown",
+      "code": "spread_price=spread_value_price,",
+      "description": "spread calculation",
+      "pattern": "spread_raw|spread_price|spread_pct"
+    },
+    {
+      "file": "gx1/execution/entry_manager.py",
+      "line": 2075,
+      "function": "unknown",
+      "code": "spread_pct=spread_pct,",
+      "description": "spread calculation",
+      "pattern": "spread_raw|spread_price|spread_pct"
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 35,
+      "function": "unknown",
+      "code": "build_live_entry_features,",
+      "description": "live entry features",
+      "pattern": "build_live_entry_features"
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 86,
+      "function": "unknown",
+      "code": "\"bid_high\",",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 87,
+      "function": "unknown",
+      "code": "\"bid_low\",",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 88,
+      "function": "unknown",
+      "code": "\"bid_close\",",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 90,
+      "function": "unknown",
+      "code": "\"ask_high\",",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 91,
+      "function": "unknown",
+      "code": "\"ask_low\",",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 92,
+      "function": "unknown",
+      "code": "\"ask_close\",",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 1066,
+      "function": "unknown",
+      "code": "log.debug(\"Updated trade log for %s: exit_time=%s exit_price=%.3f pnl_bps=%.2f\", trade_id, exit_time",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 2666,
+      "function": "unknown",
+      "code": "entry_price=price,",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 5038,
+      "function": "unknown",
+      "code": "exit_price=exit_price,",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 5183,
+      "function": "_predict_entry",
+      "code": "Feature bundle produced by build_live_entry_features.",
+      "description": "live entry features",
+      "pattern": "build_live_entry_features"
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 5535,
+      "function": "unknown",
+      "code": "# These come from basic_v1.build_basic_v1() (called by build_live_entry_features)",
+      "description": "live entry features",
+      "pattern": "build_live_entry_features"
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 5610,
+      "function": "unknown",
+      "code": "# Align features with manifest (same as build_live_entry_features does)",
+      "description": "live entry features",
+      "pattern": "build_live_entry_features"
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 5622,
+      "function": "unknown",
+      "code": "seq_window = candles_seq.tail(self.entry_tcn_lookback).copy()",
+      "description": "bar close semantics",
+      "pattern": "candles\\.iloc\\[-1\\]|candles\\.iloc\\[-2\\]|\\.tail\\(|\\.head\\("
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 6177,
+      "function": "unknown",
+      "code": "trade.entry_price = fill_price",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 6186,
+      "function": "unknown",
+      "code": "trade.entry_price = fill_price",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 6309,
+      "function": "unknown",
+      "code": "\"[ENTRY_PRICE] Trade %s (LONG): entry_price=%.5f != entry_ask=%.5f. \"",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 6316,
+      "function": "unknown",
+      "code": "\"[ENTRY_PRICE] Trade %s (SHORT): entry_price=%.5f != entry_bid=%.5f. \"",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 6322,
+      "function": "unknown",
+      "code": "\"[ENTRY_PRICE] Trade %s (%s): entry_price=%.5f, entry_bid=%.5f, entry_ask=%.5f, spread=%.5f\",",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 7021,
+      "function": "unknown",
+      "code": "# build_live_entry_features needs at least ATR_PERIOD (14) bars for ATR",
+      "description": "live entry features",
+      "pattern": "build_live_entry_features"
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 7104,
+      "function": "unknown",
+      "code": "\"bid_high\": float(row[\"bid_high\"]),",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 7105,
+      "function": "unknown",
+      "code": "\"bid_low\": float(row[\"bid_low\"]),",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 7106,
+      "function": "unknown",
+      "code": "\"bid_close\": float(row[\"bid_close\"]),",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 7108,
+      "function": "unknown",
+      "code": "\"ask_high\": float(row[\"ask_high\"]),",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 7109,
+      "function": "unknown",
+      "code": "\"ask_low\": float(row[\"ask_low\"]),",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 7110,
+      "function": "unknown",
+      "code": "\"ask_close\": float(row[\"ask_close\"]),",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 7189,
+      "function": "unknown",
+      "code": "entry_price = float(current_bar[\"close\"])",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 7194,
+      "function": "unknown",
+      "code": "# Consider using bid_high/ask_low for LONG and bid_low/ask_high for SHORT in future",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 7348,
+      "function": "unknown",
+      "code": "final_bid = float(final_candle[\"bid_close\"])",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 7349,
+      "function": "unknown",
+      "code": "final_ask = float(final_candle[\"ask_close\"])",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 7375,
+      "function": "unknown",
+      "code": "exit_price = final_bid if trade.side == \"long\" else final_ask",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 7384,
+      "function": "unknown",
+      "code": "exit_price=exit_price,",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 7411,
+      "function": "unknown",
+      "code": "exit_price = final_bid if trade.side == \"long\" else final_ask",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 7503,
+      "function": "unknown",
+      "code": "required_bid_ask_cols = [\"bid_open\", \"bid_high\", \"bid_low\", \"bid_close\",",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 7504,
+      "function": "unknown",
+      "code": "\"ask_open\", \"ask_high\", \"ask_low\", \"ask_close\"]",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 7515,
+      "function": "unknown",
+      "code": "\"[REPLAY] Exit policies using bid/ask prices: bid_close/ask_close from candles\"",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 7524,
+      "function": "unknown",
+      "code": "bid_high = float(candle_row[\"bid_high\"])",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 7525,
+      "function": "unknown",
+      "code": "bid_low = float(candle_row[\"bid_low\"])",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 7526,
+      "function": "unknown",
+      "code": "ask_high = float(candle_row[\"ask_high\"])",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 7527,
+      "function": "unknown",
+      "code": "ask_low = float(candle_row[\"ask_low\"])",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 7535,
+      "function": "unknown",
+      "code": "tp_exit_bid, tp_exit_ask = bid_high, ask_high",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 7536,
+      "function": "unknown",
+      "code": "sl_exit_bid, sl_exit_ask = bid_low, ask_low",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 7538,
+      "function": "unknown",
+      "code": "tp_exit_bid, tp_exit_ask = bid_low, ask_low",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 7539,
+      "function": "unknown",
+      "code": "sl_exit_bid, sl_exit_ask = bid_high, ask_high",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 7622,
+      "function": "unknown",
+      "code": "be_exit_bid = sl_exit_bid  # Use actual exit bid (bid_low when BE triggers)",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 7623,
+      "function": "unknown",
+      "code": "be_exit_ask = ask_low  # Use actual exit ask for consistency",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 7634,
+      "function": "unknown",
+      "code": "be_exit_bid = bid_high  # Use actual exit bid for consistency",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 7635,
+      "function": "unknown",
+      "code": "be_exit_ask = sl_exit_ask  # Use actual exit ask (ask_high when BE triggers)",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 7670,
+      "function": "unknown",
+      "code": "price_bid = float(candle_row[\"bid_close\"])",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/oanda_demo_runner.py",
+      "line": 7671,
+      "function": "unknown",
+      "code": "price_ask = float(candle_row[\"ask_close\"])",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/debug_oanda_ping.py",
+      "line": 53,
+      "function": "unknown",
+      "code": "print(candles.tail(5))",
+      "description": "bar close semantics",
+      "pattern": "candles\\.iloc\\[-1\\]|candles\\.iloc\\[-2\\]|\\.tail\\(|\\.head\\("
+    },
+    {
+      "file": "gx1/execution/exec_smoke_test.py",
+      "line": 157,
+      "function": "unknown",
+      "code": "entry_price=0.0,  # Will be filled from order response",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/execution/exec_smoke_test.py",
+      "line": 175,
+      "function": "unknown",
+      "code": "spread_price=None,",
+      "description": "spread calculation",
+      "pattern": "spread_raw|spread_price|spread_pct"
+    },
+    {
+      "file": "gx1/execution/exec_smoke_test.py",
+      "line": 176,
+      "function": "unknown",
+      "code": "spread_pct=None,",
+      "description": "spread calculation",
+      "pattern": "spread_raw|spread_price|spread_pct"
+    },
+    {
+      "file": "gx1/execution/exec_smoke_test.py",
+      "line": 207,
+      "function": "unknown",
+      "code": "entry_price = float(price_info[\"asks\"][0][\"price\"])",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/execution/exec_smoke_test.py",
+      "line": 209,
+      "function": "unknown",
+      "code": "entry_price = float(price_info[\"bids\"][0][\"price\"])",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/execution/exec_smoke_test.py",
+      "line": 215,
+      "function": "unknown",
+      "code": "entry_price = 0.0",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/execution/exec_smoke_test.py",
+      "line": 441,
+      "function": "unknown",
+      "code": "exit_price=close_price if close_price else 0.0,",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/execution/oanda_client.py",
+      "line": 332,
+      "function": "_resolve_mid",
+      "code": "return (float(bid[key]) + float(ask[key])) / 2.0",
+      "description": "mid price calculation",
+      "pattern": "mid_price|midPrice|\\(bid.*\\+.*ask.*\\)\\s*/\\s*2"
+    },
+    {
+      "file": "gx1/execution/oanda_client.py",
+      "line": 351,
+      "function": "unknown",
+      "code": "\"bid_high\": float(bid.get(\"h\", record[\"high\"])),",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/oanda_client.py",
+      "line": 352,
+      "function": "unknown",
+      "code": "\"bid_low\": float(bid.get(\"l\", record[\"low\"])),",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/oanda_client.py",
+      "line": 353,
+      "function": "unknown",
+      "code": "\"bid_close\": float(bid.get(\"c\", record[\"close\"])),",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/oanda_client.py",
+      "line": 360,
+      "function": "unknown",
+      "code": "\"ask_high\": float(ask.get(\"h\", record[\"high\"])),",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/oanda_client.py",
+      "line": 361,
+      "function": "unknown",
+      "code": "\"ask_low\": float(ask.get(\"l\", record[\"low\"])),",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/execution/oanda_client.py",
+      "line": 362,
+      "function": "unknown",
+      "code": "\"ask_close\": float(ask.get(\"c\", record[\"close\"])),",
+      "description": "bid/ask OHLC usage",
+      "pattern": "bid_high|ask_high|bid_low|ask_low|bid_close|ask_close"
+    },
+    {
+      "file": "gx1/features/basic_v1.py",
+      "line": 46,
+      "function": "_parkinson_sigma",
+      "code": "Forventer kolonner: ts, open, high, low, close, (valgfritt: vwap, spread_pct, slippage_bps)",
+      "description": "spread calculation",
+      "pattern": "spread_raw|spread_price|spread_pct"
+    },
+    {
+      "file": "gx1/features/basic_v1.py",
+      "line": 150,
+      "function": "unknown",
+      "code": "if \"spread_pct\" in df:",
+      "description": "spread calculation",
+      "pattern": "spread_raw|spread_price|spread_pct"
+    },
+    {
+      "file": "gx1/features/basic_v1.py",
+      "line": 151,
+      "function": "unknown",
+      "code": "df[\"_v1_spread_p\"] = (df[\"spread_pct\"] * 1e4).shift(1)  # til bps",
+      "description": "spread calculation",
+      "pattern": "spread_raw|spread_price|spread_pct"
+    },
+    {
+      "file": "gx1/features/basic_v1.py",
+      "line": 277,
+      "function": "unknown",
+      "code": "if \"spread_pct\" in df.columns:",
+      "description": "spread calculation",
+      "pattern": "spread_raw|spread_price|spread_pct"
+    },
+    {
+      "file": "gx1/features/basic_v1.py",
+      "line": 278,
+      "function": "unknown",
+      "code": "sp = df[\"spread_pct\"].astype(float)",
+      "description": "spread calculation",
+      "pattern": "spread_raw|spread_price|spread_pct"
+    },
+    {
+      "file": "gx1/policy/exit_hybrid_controller.py",
+      "line": 26,
+      "function": "unknown",
+      "code": "max_spread_pct: float = 60.0",
+      "description": "spread calculation",
+      "pattern": "spread_raw|spread_price|spread_pct"
+    },
+    {
+      "file": "gx1/policy/exit_hybrid_controller.py",
+      "line": 40,
+      "function": "__init__",
+      "code": "max_spread_pct=float(cfg.get(\"max_spread_pct\", 60.0)),",
+      "description": "spread calculation",
+      "pattern": "spread_raw|spread_price|spread_pct"
+    },
+    {
+      "file": "gx1/policy/exit_hybrid_controller.py",
+      "line": 59,
+      "function": "choose_exit_profile",
+      "code": "spread_pct: float | None,",
+      "description": "spread calculation",
+      "pattern": "spread_raw|spread_price|spread_pct"
+    },
+    {
+      "file": "gx1/policy/exit_hybrid_controller.py",
+      "line": 73,
+      "function": "unknown",
+      "code": "- HYBRID_ROUTER_V3: ML decision tree RAW (conservative, uses raw atr_pct/spread_pct)",
+      "description": "spread calculation",
+      "pattern": "spread_raw|spread_price|spread_pct"
+    },
+    {
+      "file": "gx1/policy/exit_hybrid_controller.py",
+      "line": 95,
+      "function": "unknown",
+      "code": "spread_pct=spread_pct,",
+      "description": "spread calculation",
+      "pattern": "spread_raw|spread_price|spread_pct"
+    },
+    {
+      "file": "gx1/policy/exit_hybrid_controller.py",
+      "line": 145,
+      "function": "unknown",
+      "code": "\"spread_pct\": spread_pct,",
+      "description": "spread calculation",
+      "pattern": "spread_raw|spread_price|spread_pct"
+    },
+    {
+      "file": "gx1/policy/exit_hybrid_controller.py",
+      "line": 167,
+      "function": "unknown",
+      "code": "\"spread_pct\": ctx.spread_pct,",
+      "description": "spread calculation",
+      "pattern": "spread_raw|spread_price|spread_pct"
+    },
+    {
+      "file": "gx1/policy/exit_hybrid_controller.py",
+      "line": 199,
+      "function": "unknown",
+      "code": "\"[HYBRID_EXIT] mode=%s version=%s session=%s regime=%s atr_bps=%.2f atr_pct=%.1f spread_bps=%.2f spr",
+      "description": "spread calculation",
+      "pattern": "spread_raw|spread_price|spread_pct"
+    },
+    {
+      "file": "gx1/policy/exit_hybrid_controller.py",
+      "line": 207,
+      "function": "unknown",
+      "code": "spread_pct if spread_pct is not None else float(\"nan\"),",
+      "description": "spread calculation",
+      "pattern": "spread_raw|spread_price|spread_pct"
+    },
+    {
+      "file": "gx1/policy/exit_hybrid_controller.py",
+      "line": 232,
+      "function": "unknown",
+      "code": "spread_pct=spread_pct,",
+      "description": "spread calculation",
+      "pattern": "spread_raw|spread_price|spread_pct"
+    },
+    {
+      "file": "gx1/policy/exit_hybrid_controller.py",
+      "line": 252,
+      "function": "unknown",
+      "code": "\"[HYBRID_EXIT] mode=%s version=%s session=%s regime=%s atr_bps=%.2f atr_pct=%.1f spread_bps=%.2f spr",
+      "description": "spread calculation",
+      "pattern": "spread_raw|spread_price|spread_pct"
+    },
+    {
+      "file": "gx1/policy/exit_hybrid_controller.py",
+      "line": 260,
+      "function": "unknown",
+      "code": "spread_pct if spread_pct is not None else float(\"nan\"),",
+      "description": "spread calculation",
+      "pattern": "spread_raw|spread_price|spread_pct"
+    },
+    {
+      "file": "gx1/policy/exit_hybrid_controller.py",
+      "line": 285,
+      "function": "unknown",
+      "code": "spread_pct=spread_pct,",
+      "description": "spread calculation",
+      "pattern": "spread_raw|spread_price|spread_pct"
+    },
+    {
+      "file": "gx1/policy/exit_hybrid_controller.py",
+      "line": 300,
+      "function": "unknown",
+      "code": "\"[HYBRID_EXIT] mode=%s version=%s session=%s regime=%s atr_bps=%.2f atr_pct=%.1f spread_bps=%.2f spr",
+      "description": "spread calculation",
+      "pattern": "spread_raw|spread_price|spread_pct"
+    },
+    {
+      "file": "gx1/policy/exit_hybrid_controller.py",
+      "line": 308,
+      "function": "unknown",
+      "code": "spread_pct if spread_pct is not None else float(\"nan\"),",
+      "description": "spread calculation",
+      "pattern": "spread_raw|spread_price|spread_pct"
+    },
+    {
+      "file": "gx1/policy/exit_hybrid_controller.py",
+      "line": 319,
+      "function": "unknown",
+      "code": "spread_pct_val = 50.0 if spread_pct is None else spread_pct",
+      "description": "spread calculation",
+      "pattern": "spread_raw|spread_price|spread_pct"
+    },
+    {
+      "file": "gx1/policy/exit_hybrid_controller.py",
+      "line": 325,
+      "function": "unknown",
+      "code": "and spread_pct_val <= self.thresholds.max_spread_pct",
+      "description": "spread calculation",
+      "pattern": "spread_raw|spread_price|spread_pct"
+    },
+    {
+      "file": "gx1/policy/exit_hybrid_controller.py",
+      "line": 332,
+      "function": "unknown",
+      "code": "\"[HYBRID_EXIT] mode=%s version=%s session=%s regime=%s atr_bps=%.2f atr_pct=%.1f spread_bps=%.2f spr",
+      "description": "spread calculation",
+      "pattern": "spread_raw|spread_price|spread_pct"
+    },
+    {
+      "file": "gx1/policy/exit_hybrid_controller.py",
+      "line": 340,
+      "function": "unknown",
+      "code": "spread_pct_val,",
+      "description": "spread calculation",
+      "pattern": "spread_raw|spread_price|spread_pct"
+    },
+    {
+      "file": "gx1/policy/exit_farm_v2_rules_adaptive.py",
+      "line": 109,
+      "function": "_maybe_log_state",
+      "code": "exit_price = float(price_bid if self.side == \"long\" else price_ask)",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/policy/exit_farm_v2_rules_adaptive.py",
+      "line": 111,
+      "function": "_exit_decision",
+      "code": "exit_price=exit_price,",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/policy/exit_fixed_bar.py",
+      "line": 79,
+      "function": "unknown",
+      "code": "exit_price = float(price_bid if state_side == \"long\" else price_ask)",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/policy/exit_fixed_bar.py",
+      "line": 88,
+      "function": "unknown",
+      "code": "exit_price=exit_price,",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/policy/exit_farm_v2_rules.py",
+      "line": 155,
+      "function": "unknown",
+      "code": "self.entry_price = entry_ask if side == \"long\" else entry_bid",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/policy/exit_farm_v2_rules.py",
+      "line": 167,
+      "function": "unknown",
+      "code": "f\"[EXIT_FARM_V2_RULES] Reset: side={side}, entry_price={self.entry_price:.5f}, \"",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/policy/exit_farm_v2_rules.py",
+      "line": 233,
+      "function": "unknown",
+      "code": "exit_price = float(price_bid if self.side == \"long\" else price_ask)",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/policy/exit_farm_v2_rules.py",
+      "line": 235,
+      "function": "unknown",
+      "code": "exit_price=exit_price,",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/policy/exit_farm_v2_rules.py",
+      "line": 253,
+      "function": "unknown",
+      "code": "exit_price = float(price_bid if self.side == \"long\" else price_ask)",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/policy/exit_farm_v2_rules.py",
+      "line": 255,
+      "function": "unknown",
+      "code": "exit_price=exit_price,",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/policy/exit_farm_v2_rules.py",
+      "line": 276,
+      "function": "unknown",
+      "code": "exit_price = float(price_bid if self.side == \"long\" else price_ask)",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/policy/exit_farm_v2_rules.py",
+      "line": 278,
+      "function": "unknown",
+      "code": "exit_price=exit_price,",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/policy/exit_farm_v2_rules.py",
+      "line": 298,
+      "function": "unknown",
+      "code": "exit_price = float(price_bid if self.side == \"long\" else price_ask)",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/policy/exit_farm_v2_rules.py",
+      "line": 300,
+      "function": "unknown",
+      "code": "exit_price=exit_price,",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/policy/exit_farm_v2_rules.py",
+      "line": 315,
+      "function": "unknown",
+      "code": "exit_price = float(price_bid if self.side == \"long\" else price_ask)",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/policy/exit_farm_v2_rules.py",
+      "line": 317,
+      "function": "unknown",
+      "code": "exit_price=exit_price,",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    },
+    {
+      "file": "gx1/policy/exit_farm_v2_rules.py",
+      "line": 364,
+      "function": "_maybe_log_decision",
+      "code": "\"entry_price=%.5f exit_price=%.5f pnl_bps=%.2f bars=%d mfe=%.2f mae=%.2f\",",
+      "description": "entry/exit price assignment",
+      "pattern": "entry_price\\s*=|exit_price\\s*="
+    }
+  ],
+  "price_contract": {
+    "entry_features": "bid/ask mid",
+    "spread": "bid/ask",
+    "range_features": "UNKNOWN",
+    "exit_evaluation": "UNKNOWN",
+    "intratrade_metrics": "UNKNOWN",
+    "bar_close_semantics": "last closed bar (iloc[-1] or close_vals[-1])",
+    "mixed_sources": false
+  },
+  "fullyear_price_data": {
+    "has_bid_ask": true,
+    "has_ohlc": true,
+    "sample_diffs": [
+      {
+        "timestamp": "2025-01-01 23:00:00+00:00",
+        "close": 2625.2,
+        "mid_close": 2625.2,
+        "diff": 0.0,
+        "diff_bps": 0.0
+      },
+      {
+        "timestamp": "2025-01-01 23:05:00+00:00",
+        "close": 2625.26,
+        "mid_close": 2625.26,
+        "diff": 0.0,
+        "diff_bps": 0.0
+      },
+      {
+        "timestamp": "2025-01-01 23:10:00+00:00",
+        "close": 2624.87,
+        "mid_close": 2624.87,
+        "diff": 0.0,
+        "diff_bps": 0.0
+      },
+      {
+        "timestamp": "2025-01-01 23:15:00+00:00",
+        "close": 2624.455,
+        "mid_close": 2624.455,
+        "diff": 0.0,
+        "diff_bps": 0.0
+      },
+      {
+        "timestamp": "2025-01-01 23:20:00+00:00",
+        "close": 2623.75,
+        "mid_close": 2623.75,
+        "diff": 0.0,
+        "diff_bps": 0.0
+      }
+    ],
+    "price_data_hash": "1a82ca81e4714de3c8befb92eacf2cc64ff67d8709a4c3131bf0df5811286587"
+  },
+  "canary_price_data": {
+    "has_bid_ask": true,
+    "has_ohlc": true,
+    "sample_diffs": [
+      {
+        "timestamp": "2025-01-01 23:00:00+00:00",
+        "close": 2625.2,
+        "mid_close": 2625.2,
+        "diff": 0.0,
+        "diff_bps": 0.0
+      },
+      {
+        "timestamp": "2025-01-01 23:05:00+00:00",
+        "close": 2625.26,
+        "mid_close": 2625.26,
+        "diff": 0.0,
+        "diff_bps": 0.0
+      },
+      {
+        "timestamp": "2025-01-01 23:10:00+00:00",
+        "close": 2624.87,
+        "mid_close": 2624.87,
+        "diff": 0.0,
+        "diff_bps": 0.0
+      },
+      {
+        "timestamp": "2025-01-01 23:15:00+00:00",
+        "close": 2624.455,
+        "mid_close": 2624.455,
+        "diff": 0.0,
+        "diff_bps": 0.0
+      },
+      {
+        "timestamp": "2025-01-01 23:20:00+00:00",
+        "close": 2623.75,
+        "mid_close": 2623.75,
+        "diff": 0.0,
+        "diff_bps": 0.0
+      }
+    ],
+    "price_data_hash": "2152cf7dad106a6e052b9439326e0394302e15730d6f68ff0a8c18abdd1f0e8a"
+  },
+  "live_price_data": null,
+  "historical_claims": []
+}
