@@ -1,6 +1,11 @@
 # Data & artifacts (runtime)
 data/
 gx1/wf_runs/
+# But keep inventory files for reference (they're small)
+!gx1/wf_runs/_inventory.json
+!gx1/wf_runs/_inventory.csv
+# Archive directory
+gx1/wf_runs/_archive/
 gx1/live/logs/
 logs/
 gx1/optuna/**/*.db
