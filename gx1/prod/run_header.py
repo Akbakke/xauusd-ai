@@ -56,6 +56,7 @@ def generate_run_header(
     feature_manifest_path: Optional[Path] = None,
     output_dir: Path = Path("gx1/wf_runs"),
     run_tag: Optional[str] = None,
+    policy_dict: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
     Generate run_header.json artifact.
@@ -67,6 +68,7 @@ def generate_run_header(
         feature_manifest_path: Path to feature manifest (optional)
         output_dir: Output directory for run_header.json
         run_tag: Run tag/identifier (optional)
+        policy_dict: Policy dictionary (optional, for extracting meta.role)
         
     Returns:
         Run header dict
@@ -76,7 +78,37 @@ def generate_run_header(
         "run_tag": run_tag,
         "artifacts": {},
         "git_commit": get_git_commit_hash(),
+        "policy_path": str(policy_path.resolve()),
+        "meta": {},
     }
+    
+    # Extract meta.role from policy (CRITICAL for PROD_BASELINE identification)
+    if policy_dict:
+        meta = policy_dict.get("meta", {})
+        header["meta"]["role"] = meta.get("role", "DEV")
+        
+        # Extract guardrail params
+        hybrid_exit = policy_dict.get("hybrid_exit_router", {})
+        if hybrid_exit:
+            header["hybrid_exit_router"] = {
+                "version": hybrid_exit.get("version"),
+                "v3_range_edge_cutoff": hybrid_exit.get("v3_range_edge_cutoff"),
+            }
+        
+        # Extract config paths
+        header["entry_config"] = policy_dict.get("entry_config")
+        header["exit_config"] = policy_dict.get("exit_config")
+    else:
+        # Try to load policy if not provided
+        try:
+            import yaml
+            with open(policy_path, "r") as f:
+                policy_dict = yaml.safe_load(f)
+                if policy_dict:
+                    meta = policy_dict.get("meta", {})
+                    header["meta"]["role"] = meta.get("role", "DEV")
+        except Exception:
+            header["meta"]["role"] = "DEV"  # Default fallback
     
     # Policy hash
     if policy_path.exists():

@@ -3939,6 +3939,7 @@ class GX1DemoRunner:
             
             # Generate header
             header = generate_run_header(
+                policy_dict=self.policy,  # Pass policy dict for meta.role extraction
                 policy_path=self.policy_path,
                 router_model_path=router_model_path,
                 entry_model_paths=entry_model_paths if entry_model_paths else None,

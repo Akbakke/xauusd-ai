@@ -11,7 +11,10 @@
 - **Total Runs:** 118 directories
 - **Total Size:** 4,467.83 MB (~4.37 GB)
 - **Runs with Trade Journal:** 9 (7.6%)
-- **PROD_BASELINE Runs:** 0 (identified by run_header.json)
+- **PROD_BASELINE Runs:** 0 (identified by run_header.json.meta.role)
+  - **Note:** This means "0 runs where inventory can prove PROD_BASELINE via run_header.json"
+  - Historical runs may be PROD_BASELINE but lack proper instrumentation
+  - Use `--infer-role` flag to infer role from multiple sources (fail-open)
 - **CANARY Runs:** 0 (identified by run_header.json)
 - **Runs with V3_RANGE Router:** Unknown (need to check guardrail params)
 - **Obsolete Candidates:** 32 runs (27.1%)

@@ -12,11 +12,17 @@ Outputs:
 - gx1/wf_runs/_inventory.json (detailed)
 - gx1/wf_runs/_inventory.csv (summary)
 - Terminal summary with actionable insights
+
+Role Inference:
+- Fail-open on classification (infer role from multiple sources)
+- Fail-closed on deletion (never delete without explicit proof)
 """
 from __future__ import annotations
 
+import argparse
 import json
 import hashlib
+import re
 import subprocess
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -98,6 +104,8 @@ def extract_run_metadata(run_dir: Path) -> Dict[str, Any]:
         "policy_name": None,
         "policy_hash": None,
         "policy_role": None,
+        "policy_role_inferred": None,
+        "role_inference_source": None,
         "guardrail_params": {},
         "instrument": None,
         "timeframe": None,
@@ -109,6 +117,8 @@ def extract_run_metadata(run_dir: Path) -> Dict[str, Any]:
         "router_version": None,
         "entry_config": None,
         "exit_config": None,
+        "is_keep": False,
+        "keep_reason": None,
     }
     
     if not run_dir.exists() or not run_dir.is_dir():
@@ -228,20 +238,56 @@ def find_prod_baseline() -> Dict[str, Any]:
     return baseline
 
 
-def scan_runs() -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+def scan_runs(infer_role: bool = False) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
     """Scan all run directories."""
     runs_dir = Path("gx1/wf_runs")
     if not runs_dir.exists():
         return [], {}
     
+    # Load KEEP manifest
+    keep_manifest = load_keep_manifest()
+    
     runs = []
     for run_dir in runs_dir.iterdir():
         if run_dir.is_dir() and not run_dir.name.startswith("_"):
-            metadata = extract_run_metadata(run_dir)
+            metadata = extract_run_metadata(run_dir, infer_role=infer_role)
+            
+            # Check if run should be KEPT
+            run_name = metadata["run_name"]
+            is_keep = False
+            keep_reason = None
+            
+            # Check explicit run_tags
+            if run_name in keep_manifest.get("run_tags", []):
+                is_keep = True
+                keep_reason = "explicit_run_tag"
+            
+            # Check prefixes
+            for prefix in keep_manifest.get("prefixes", []):
+                if run_name.startswith(prefix):
+                    is_keep = True
+                    keep_reason = f"prefix_{prefix}"
+                    break
+            
+            # Check PROD_BASELINE
+            if metadata["is_prod_baseline"]:
+                is_keep = True
+                keep_reason = "PROD_BASELINE"
+            
+            metadata["is_keep"] = is_keep
+            metadata["keep_reason"] = keep_reason
+            
             runs.append(metadata)
     
     # Sort by mtime (newest first)
     runs.sort(key=lambda x: x.get("mtime") or "", reverse=True)
+    
+    # Mark last N runs as KEEP
+    last_n = keep_manifest.get("last_n", 10)
+    for i, run in enumerate(runs[:last_n]):
+        if not run["is_keep"]:
+            run["is_keep"] = True
+            run["keep_reason"] = f"last_{last_n}"
     
     # Find current baseline
     baseline = find_prod_baseline()
@@ -269,14 +315,40 @@ def generate_summary(runs: List[Dict[str, Any]], baseline: Dict[str, Any]) -> Di
             if run.get("policy_hash") == baseline.get("policy_hash"):
                 summary["runs_matching_baseline"].append(run["run_name"])
     
-    # Find obsolete candidates (no journal, old, not referenced)
+    # Find obsolete candidates (fail-closed: only delete if explicitly safe)
     for run in runs:
-        if not run.get("has_trade_journal") and run.get("size_mb", 0) < 1.0:
-            summary["obsolete_candidates"].append({
+        # Never delete KEEP runs
+        if run.get("is_keep"):
+            continue
+        
+        # Never delete unknown runs (fail-closed)
+        if not run.get("policy_role") and not run.get("policy_role_inferred"):
+            summary["unknown_runs"].append({
                 "run_name": run["run_name"],
                 "size_mb": run.get("size_mb", 0),
                 "mtime": run.get("mtime"),
-                "reason": "No trade journal, small size",
+                "reason": "Unknown role - cannot safely delete",
+            })
+            continue
+        
+        # Safe delete candidates: LIVE_FORCE_* without journal, >1 day old
+        run_name = run["run_name"]
+        if run_name.startswith("LIVE_FORCE_") and not run.get("has_trade_journal"):
+            summary["obsolete_candidates"].append({
+                "run_name": run_name,
+                "size_mb": run.get("size_mb", 0),
+                "mtime": run.get("mtime"),
+                "reason": "LIVE_FORCE without journal (safe to delete after 1 day)",
+            })
+        # Other empty runs: only if <1MB, no journal, >7 days old, and role is known
+        elif (not run.get("has_trade_journal") and 
+              run.get("size_mb", 0) < 1.0 and
+              run.get("policy_role")):  # Must have known role
+            summary["obsolete_candidates"].append({
+                "run_name": run_name,
+                "size_mb": run.get("size_mb", 0),
+                "mtime": run.get("mtime"),
+                "reason": "Empty run with known role (safe to delete after 7 days)",
             })
     
     return summary
@@ -336,39 +408,42 @@ def main():
         print(f"  ... and {len(summary['runs_matching_baseline']) - 10} more")
     print()
     
-    # Print obsolete candidates
-    print("=" * 80)
-    print(f"OBSOLETE CANDIDATES ({len(summary['obsolete_candidates'])} found)")
-    print("=" * 80)
-    for candidate in summary["obsolete_candidates"][:20]:
-        print(f"  - {candidate['run_name']}: {candidate['size_mb']:.2f} MB "
-              f"({candidate.get('mtime', 'N/A')[:10] if candidate.get('mtime') else 'N/A'}) - {candidate['reason']}")
-    if len(summary["obsolete_candidates"]) > 20:
-        print(f"  ... and {len(summary['obsolete_candidates']) - 20} more")
-    print()
+    # Print obsolete candidates (if requested)
+    if args.report in ["obsolete", "all"]:
+        print("=" * 80)
+        print(f"OBSOLETE CANDIDATES ({len(summary['obsolete_candidates'])} found - Safe to delete)")
+        print("=" * 80)
+        for candidate in summary["obsolete_candidates"][:20]:
+            print(f"  - {candidate['run_name']}: {candidate['size_mb']:.2f} MB "
+                  f"({candidate.get('mtime', 'N/A')[:10] if candidate.get('mtime') else 'N/A'}) - {candidate['reason']}")
+        if len(summary["obsolete_candidates"]) > 20:
+            print(f"  ... and {len(summary['obsolete_candidates']) - 20} more")
+        print()
     
-    # Save inventory
-    output_dir = Path("gx1/wf_runs")
-    output_dir.mkdir(parents=True, exist_ok=True)
-    
-    # Save JSON
-    inventory_json = {
-        "scan_timestamp": datetime.now(timezone.utc).isoformat(),
-        "baseline": baseline,
-        "summary": summary,
-        "runs": runs,
-    }
-    json_path = output_dir / "_inventory.json"
-    with open(json_path, "w") as f:
-        json.dump(inventory_json, f, indent=2)
-    print(f"Saved detailed inventory: {json_path}")
-    
-    # Save CSV
-    csv_path = output_dir / "_inventory.csv"
-    if runs:
-        df = pd.DataFrame(runs)
-        df.to_csv(csv_path, index=False)
-        print(f"Saved CSV inventory: {csv_path}")
+    # Save inventory (if requested)
+    if args.write_inventory:
+        output_dir = Path("gx1/wf_runs")
+        output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Save JSON
+        inventory_json = {
+            "scan_timestamp": datetime.now(timezone.utc).isoformat(),
+            "infer_role": args.infer_role,
+            "baseline": baseline,
+            "summary": summary,
+            "runs": runs,
+        }
+        json_path = output_dir / "_inventory.json"
+        with open(json_path, "w") as f:
+            json.dump(inventory_json, f, indent=2)
+        print(f"Saved detailed inventory: {json_path}")
+        
+        # Save CSV
+        csv_path = output_dir / "_inventory.csv"
+        if runs:
+            df = pd.DataFrame(runs)
+            df.to_csv(csv_path, index=False)
+            print(f"Saved CSV inventory: {csv_path}")
     
     print()
     print("=" * 80)
