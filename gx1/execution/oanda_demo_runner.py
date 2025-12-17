@@ -2608,6 +2608,40 @@ class GX1DemoRunner:
         else:
             log.debug("[BOOT] entry_model_bundle is None - skipping version info logging")
 
+        # Anti-fail baseline guard: Log critical fingerprint at startup
+        policy_role = self.policy.get("meta", {}).get("role", "")
+        policy_hash = getattr(self, "policy_hash", None)
+        guardrail_params = {}
+        if hasattr(self, "exit_mode_selector") and self.exit_mode_selector:
+            hybrid_exit = self.policy.get("hybrid_exit_router", {})
+            guardrail_params["v3_range_edge_cutoff"] = hybrid_exit.get("v3_range_edge_cutoff")
+            guardrail_params["router_version"] = hybrid_exit.get("version")
+        
+        git_commit = getattr(self, "git_commit", None)
+        if git_commit is None:
+            try:
+                import subprocess
+                result = subprocess.run(
+                    ["git", "rev-parse", "HEAD"],
+                    capture_output=True,
+                    text=True,
+                    timeout=2,
+                )
+                if result.returncode == 0:
+                    git_commit = result.stdout.strip()[:8]
+            except Exception:
+                git_commit = "unknown"
+        
+        log.info(
+            "[BASELINE_FINGERPRINT] Config=%s PolicyHash=%s Role=%s Guardrail=%s Git=%s RunTag=%s",
+            self.policy_path,
+            policy_hash[:16] if policy_hash else "N/A",
+            policy_role,
+            guardrail_params.get("v3_range_edge_cutoff", "N/A"),
+            git_commit,
+            self.run_id,
+        )
+        
         log.info(
             "GX1 demo runner initialised (dry_run=%s, instrument=%s, granularity=%s)",
             self.exec.dry_run,
