@@ -85,7 +85,110 @@ def get_dir_size(path: Path) -> int:
     return total
 
 
-def extract_run_metadata(run_dir: Path) -> Dict[str, Any]:
+def infer_role_from_sources(
+    run_dir: Path,
+    run_header: Optional[Dict[str, Any]] = None,
+) -> Tuple[Optional[str], str]:
+    """
+    Infer role from multiple sources (fail-open on classification).
+    
+    Priority:
+    1. run_header.json.meta.role (authoritative)
+    2. run_header.json.policy_path/config_path → prod_snapshot/..._PROD.yaml → PROD_BASELINE
+    3. logs/oanda_demo_runner.log → grep [BASELINE_FINGERPRINT] ... Role=...
+    4. Run-tag prefix (weak signal, only for sorting, not deletion)
+    
+    Returns:
+        (inferred_role, inference_source)
+    """
+    # Priority 1: run_header.json.meta.role (authoritative)
+    if run_header:
+        meta_role = run_header.get("meta", {}).get("role")
+        if meta_role:
+            return meta_role, "run_header.meta.role"
+        
+        # Priority 2: Infer from policy_path/config_path
+        policy_path = run_header.get("config_path") or run_header.get("policy_path")
+        if policy_path:
+            if "prod_snapshot" in str(policy_path) and "_PROD.yaml" in str(policy_path):
+                return "PROD_BASELINE", "run_header.policy_path"
+            if "prod_snapshot" in str(policy_path):
+                return "PROD_BASELINE", "run_header.policy_path (inferred)"
+    
+    # Priority 3: Check logs for [BASELINE_FINGERPRINT]
+    log_path = run_dir / "logs" / "oanda_demo_runner.log"
+    if log_path.exists():
+        try:
+            with open(log_path, "r") as f:
+                for line in f:
+                    if "[BASELINE_FINGERPRINT]" in line:
+                        # Extract Role=... from log line
+                        match = re.search(r"Role=(\w+)", line)
+                        if match:
+                            role = match.group(1)
+                            if role in ["PROD_BASELINE", "CANARY", "DEV", "TEST"]:
+                                return role, "log.BASELINE_FINGERPRINT"
+        except Exception:
+            pass
+    
+    # Priority 4: Weak signal from run-tag prefix (for sorting only, not deletion)
+    run_name = run_dir.name
+    if run_name.startswith("GO_PRACTICE_"):
+        return "PROD_BASELINE", "run_tag_prefix (weak)"
+    if run_name.startswith("OBS_REPLAY_PROD_BASELINE_"):
+        return "PROD_BASELINE", "run_tag_prefix (weak)"
+    if run_name.startswith("LIVE_FORCE_"):
+        return "CANARY", "run_tag_prefix (weak)"
+    
+    return None, "unknown"
+
+
+def load_keep_manifest() -> Dict[str, Any]:
+    """Load KEEP manifest from gx1/wf_runs/_KEEP.txt or _KEEP.yaml."""
+    keep_path = Path("gx1/wf_runs/_KEEP.txt")
+    if not keep_path.exists():
+        keep_path = Path("gx1/wf_runs/_KEEP.yaml")
+    
+    if not keep_path.exists():
+        # Default KEEP rules
+        return {
+            "run_tags": [],
+            "prefixes": [
+                "FULLYEAR_",
+                "DETERMINISM_",
+                "EXEC_SMOKE_",
+                "OBS_REPLAY_PROD_BASELINE_",
+            ],
+            "last_n": 10,
+        }
+    
+    try:
+        if keep_path.suffix == ".yaml":
+            with open(keep_path, "r") as f:
+                return yaml.safe_load(f) or {}
+        else:
+            # Simple text format: one tag/prefix per line
+            with open(keep_path, "r") as f:
+                lines = [l.strip() for l in f if l.strip() and not l.startswith("#")]
+                return {
+                    "run_tags": [l for l in lines if not l.endswith("_")],
+                    "prefixes": [l for l in lines if l.endswith("_")],
+                    "last_n": 10,
+                }
+    except Exception:
+        return {
+            "run_tags": [],
+            "prefixes": [
+                "FULLYEAR_",
+                "DETERMINISM_",
+                "EXEC_SMOKE_",
+                "OBS_REPLAY_PROD_BASELINE_",
+            ],
+            "last_n": 10,
+        }
+
+
+def extract_run_metadata(run_dir: Path, infer_role: bool = False) -> Dict[str, Any]:
     """Extract metadata from a run directory."""
     metadata = {
         "run_path": str(run_dir),
@@ -303,10 +406,13 @@ def generate_summary(runs: List[Dict[str, Any]], baseline: Dict[str, Any]) -> Di
         "runs_with_journal": sum(1 for r in runs if r.get("has_trade_journal")),
         "runs_with_reconciliation": sum(1 for r in runs if r.get("has_reconciliation")),
         "prod_baseline_runs": sum(1 for r in runs if r.get("is_prod_baseline")),
+        "prod_baseline_runs_inferred": sum(1 for r in runs if r.get("is_prod_baseline") and r.get("policy_role_inferred")),
         "canary_runs": sum(1 for r in runs if r.get("is_canary")),
         "runs_with_v3_range": sum(1 for r in runs if r.get("v3_range_edge_cutoff") is not None),
         "runs_matching_baseline": [],
         "obsolete_candidates": [],
+        "unknown_runs": [],
+        "keep_runs": sum(1 for r in runs if r.get("is_keep")),
     }
     
     # Find runs matching current baseline
