@@ -462,6 +462,12 @@ def generate_summary(runs: List[Dict[str, Any]], baseline: Dict[str, Any]) -> Di
 
 def main():
     """Main entry point."""
+    parser = argparse.ArgumentParser(description="GX1 Pipeline Hygiene Audit: Runs Inventory Scanner")
+    parser.add_argument("--infer-role", action="store_true", help="Infer role from multiple sources (fail-open)")
+    parser.add_argument("--write-inventory", action="store_true", help="Write inventory files")
+    parser.add_argument("--report", choices=["unknown", "obsolete", "all"], default="all", help="Report type")
+    args = parser.parse_args()
+    
     print("=" * 80)
     print("GX1 Pipeline Hygiene Audit: Runs Inventory Scanner")
     print("=" * 80)
@@ -469,7 +475,9 @@ def main():
     
     # Scan runs
     print("Scanning run directories...")
-    runs, baseline = scan_runs()
+    if args.infer_role:
+        print("  Using role inference (fail-open on classification)")
+    runs, baseline = scan_runs(infer_role=args.infer_role)
     print(f"Found {len(runs)} run directories")
     print()
     
