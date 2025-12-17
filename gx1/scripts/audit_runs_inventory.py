@@ -516,11 +516,41 @@ def main():
     print("=" * 80)
     print(f"RUNS MATCHING CURRENT BASELINE ({len(summary['runs_matching_baseline'])} found)")
     print("=" * 80)
-    for run_name in summary["runs_matching_baseline"][:10]:
-        print(f"  - {run_name}")
-    if len(summary["runs_matching_baseline"]) > 10:
-        print(f"  ... and {len(summary['runs_matching_baseline']) - 10} more")
+    if summary["runs_matching_baseline"]:
+        for run_name in summary["runs_matching_baseline"][:10]:
+            print(f"  - {run_name}")
+        if len(summary["runs_matching_baseline"]) > 10:
+            print(f"  ... and {len(summary['runs_matching_baseline']) - 10} more")
+    else:
+        print("  None found (note: may need --infer-role to detect PROD_BASELINE runs)")
     print()
+    
+    # Print PROD_BASELINE runs (including inferred)
+    prod_runs = [r for r in runs if r.get("is_prod_baseline")]
+    inferred_prod = [r for r in prod_runs if r.get("policy_role_inferred")]
+    if prod_runs:
+        print("=" * 80)
+        print(f"PROD_BASELINE RUNS ({len(prod_runs)} total, {len(inferred_prod)} inferred)")
+        print("=" * 80)
+        for run in prod_runs[:10]:
+            inferred_marker = " [INFERRED]" if run.get("policy_role_inferred") else ""
+            source = run.get("role_inference_source", "run_header")
+            print(f"  - {run['run_name']}{inferred_marker} (source: {source})")
+        if len(prod_runs) > 10:
+            print(f"  ... and {len(prod_runs) - 10} more")
+        print()
+    
+    # Print unknown runs (if requested)
+    if args.report in ["unknown", "all"] and summary["unknown_runs"]:
+        print("=" * 80)
+        print(f"UNKNOWN RUNS ({len(summary['unknown_runs'])} found - DO NOT DELETE)")
+        print("=" * 80)
+        for unknown in summary["unknown_runs"][:20]:
+            print(f"  - {unknown['run_name']}: {unknown['size_mb']:.2f} MB "
+                  f"({unknown.get('mtime', 'N/A')[:10] if unknown.get('mtime') else 'N/A'}) - {unknown['reason']}")
+        if len(summary["unknown_runs"]) > 20:
+            print(f"  ... and {len(summary['unknown_runs']) - 20} more")
+        print()
     
     # Print obsolete candidates (if requested)
     if args.report in ["obsolete", "all"]:
@@ -566,8 +596,12 @@ def main():
     print(f"Total runs: {summary['total_runs']}")
     print(f"Total size: {summary['total_size_mb']:.2f} MB")
     print(f"Runs with journal: {summary['runs_with_journal']}")
-    print(f"PROD_BASELINE runs: {summary['prod_baseline_runs']}")
+    print(f"PROD_BASELINE runs: {summary['prod_baseline_runs']} "
+          f"({summary['prod_baseline_runs_inferred']} inferred)" if args.infer_role else "")
     print(f"CANARY runs: {summary['canary_runs']}")
+    print(f"KEEP runs: {summary['keep_runs']}")
+    print(f"Unknown runs: {len(summary['unknown_runs'])} (DO NOT DELETE)")
+    print(f"Obsolete candidates: {len(summary['obsolete_candidates'])} (safe to delete)")
     print()
 
 
