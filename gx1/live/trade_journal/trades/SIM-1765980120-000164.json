@@ -1,0 +1,68 @@
+{
+  "trade_id": "SIM-1765980120-000164",
+  "run_tag": "replay_20251217_140118",
+  "policy_sha256": "N/A",
+  "router_sha256": "N/A",
+  "manifest_sha256": "N/A",
+  "entry_snapshot": {
+    "trade_id": "SIM-1765980120-000164",
+    "entry_time": "2025-02-11T08:05:00+00:00",
+    "instrument": "XAU_USD",
+    "side": "long",
+    "entry_price": 2912.78,
+    "session": "EU",
+    "regime": null,
+    "entry_model_version": "ENTRY_V9",
+    "entry_score": {
+      "p_long": 0.9282132983207703,
+      "p_short": 0.07178670167922974,
+      "p_hat": 0.9282132983207703,
+      "margin": 0.8564265966415405
+    },
+    "entry_filters_passed": [
+      "spread_ok",
+      "atr_ok",
+      "session_ok"
+    ],
+    "entry_filters_blocked": [],
+    "test_mode": false
+  },
+  "feature_context": {
+    "atr": {
+      "atr_bps": 11.98865510514132,
+      "atr_price": 3.4920314817153537,
+      "atr_percentile": 98.83720930232558
+    },
+    "range": {
+      "range_pos": 0.75,
+      "distance_to_range": 0.5,
+      "range_edge_dist_atr": 1.556400630537892
+    },
+    "spread": {
+      "spread_price": 0.41000000000030923,
+      "spread_pct": 7.361963190184049
+    },
+    "candle": {
+      "close": 2912.575,
+      "high": 2914.175,
+      "low": 2911.91
+    }
+  },
+  "router_explainability": null,
+  "exit_configuration": {
+    "exit_profile": "SNIPER_EXIT_RULES_A",
+    "tp_levels": [
+      5.0,
+      9.0
+    ],
+    "sl": 4.0,
+    "trailing_enabled": true,
+    "be_rules": {
+      "adaptive_threshold_bps": 4.0,
+      "trailing_stop_bps": 2.0
+    }
+  },
+  "exit_events": [],
+  "execution_events": [],
+  "exit_summary": null
+}

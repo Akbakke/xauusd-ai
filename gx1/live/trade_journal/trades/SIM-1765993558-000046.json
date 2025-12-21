@@ -1,0 +1,86 @@
+{
+  "trade_id": "SIM-1765993558-000046",
+  "run_tag": "replay_20251217_174548",
+  "policy_sha256": "N/A",
+  "router_sha256": "N/A",
+  "manifest_sha256": "N/A",
+  "entry_snapshot": {
+    "trade_id": "SIM-1765993558-000046",
+    "entry_time": "2025-01-15T19:05:00+00:00",
+    "instrument": "XAU_USD",
+    "side": "long",
+    "entry_price": 2693.61,
+    "session": "US",
+    "regime": null,
+    "vol_regime": "LOW",
+    "trend_regime": "TREND_NEUTRAL",
+    "entry_model_version": "ENTRY_V9",
+    "entry_score": {
+      "p_long": 0.9584667086601257,
+      "p_short": 0.04153329133987427,
+      "p_hat": 0.9584667086601257,
+      "margin": 0.9169334173202515
+    },
+    "entry_filters_passed": [
+      "spread_ok",
+      "atr_ok",
+      "session_ok"
+    ],
+    "entry_filters_blocked": [],
+    "test_mode": false
+  },
+  "feature_context": {
+    "atr": {
+      "atr_bps": 5.440679094346595,
+      "atr_price": 1.4655067615322932,
+      "atr_percentile": 6.521739130434782
+    },
+    "range": {
+      "range_pos": 0.9139450492483225,
+      "distance_to_range": 0.17210990150335492,
+      "range_edge_dist_atr": 1.1327139823389176
+    },
+    "spread": {
+      "spread_price": 0.5500000000001819,
+      "spread_pct": 73.33333333333333
+    },
+    "candle": {
+      "close": 2693.335,
+      "high": 2694.715,
+      "low": 2693.275
+    }
+  },
+  "router_explainability": null,
+  "exit_configuration": {
+    "exit_profile": "SNIPER_EXIT_RULES_A",
+    "tp_levels": [
+      5.0,
+      9.0
+    ],
+    "sl": 4.0,
+    "trailing_enabled": true,
+    "be_rules": {
+      "adaptive_threshold_bps": 4.0,
+      "trailing_stop_bps": 2.0
+    }
+  },
+  "exit_events": [
+    {
+      "timestamp": "2025-01-15T20:10:00+00:00",
+      "event_type": "EXIT_TRIGGERED",
+      "price": 2695.72,
+      "pnl_bps": 7.833353752026732,
+      "bars_held": 14
+    }
+  ],
+  "execution_events": [],
+  "exit_summary": {
+    "exit_time": "2025-01-15T20:10:00+00:00",
+    "exit_price": 2695.72,
+    "exit_reason": "RULE_A_PROFIT",
+    "realized_pnl_bps": 7.833353752026732,
+    "max_mfe_bps": 8.761476234494499,
+    "max_mae_bps": -3.582552782326118,
+    "intratrade_drawdown_bps": 2.932867044598007
+  }
+}

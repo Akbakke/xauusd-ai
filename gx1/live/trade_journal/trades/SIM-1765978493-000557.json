@@ -1,0 +1,84 @@
+{
+  "trade_id": "SIM-1765978493-000557",
+  "run_tag": "replay_20251217_132717",
+  "policy_sha256": "N/A",
+  "router_sha256": "N/A",
+  "manifest_sha256": "N/A",
+  "entry_snapshot": {
+    "trade_id": "SIM-1765978493-000557",
+    "entry_time": "2025-01-23T16:00:00+00:00",
+    "instrument": "XAU_USD",
+    "side": "long",
+    "entry_price": 2747.67,
+    "session": "US",
+    "regime": null,
+    "entry_model_version": "ENTRY_V9",
+    "entry_score": {
+      "p_long": 0.9256899356842041,
+      "p_short": 0.0743100643157959,
+      "p_hat": 0.9256899356842041,
+      "margin": 0.8513798713684082
+    },
+    "entry_filters_passed": [
+      "spread_ok",
+      "atr_ok",
+      "session_ok"
+    ],
+    "entry_filters_blocked": [],
+    "test_mode": false
+  },
+  "feature_context": {
+    "atr": {
+      "atr_bps": 8.288370828158428,
+      "atr_price": 2.277370787340607,
+      "atr_percentile": 73.16666666666667
+    },
+    "range": {
+      "range_pos": 0.5548523206751035,
+      "distance_to_range": 0.890295358649793,
+      "range_edge_dist_atr": 3.7060280420369494
+    },
+    "spread": {
+      "spread_price": 0.5500000000001819,
+      "spread_pct": 59.71223021582733
+    },
+    "candle": {
+      "close": 2747.395,
+      "high": 2748.56,
+      "low": 2745.405
+    }
+  },
+  "router_explainability": null,
+  "exit_configuration": {
+    "exit_profile": "SNIPER_EXIT_RULES_A",
+    "tp_levels": [
+      5.0,
+      9.0
+    ],
+    "sl": 4.0,
+    "trailing_enabled": true,
+    "be_rules": {
+      "adaptive_threshold_bps": 4.0,
+      "trailing_stop_bps": 2.0
+    }
+  },
+  "exit_events": [
+    {
+      "timestamp": "2025-01-27T07:35:00+00:00",
+      "event_type": "EXIT_TRIGGERED",
+      "price": 2749.93,
+      "pnl_bps": 8.225150764101087,
+      "bars_held": 260
+    }
+  ],
+  "execution_events": [],
+  "exit_summary": {
+    "exit_time": "2025-01-27T07:35:00+00:00",
+    "exit_price": 2749.93,
+    "exit_reason": "RULE_A_PROFIT",
+    "realized_pnl_bps": 8.225150764101087,
+    "max_mfe_bps": 139.71837957251006,
+    "max_mae_bps": -12.59248745300577,
+    "intratrade_drawdown_bps": 132.2939072013739
+  }
+}

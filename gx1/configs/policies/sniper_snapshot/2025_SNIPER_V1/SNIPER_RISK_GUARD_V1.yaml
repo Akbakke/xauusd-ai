@@ -1,0 +1,37 @@
+# SNIPER Risk Guard V1 Configuration
+#
+# Purpose: Reduce tail risk (Q2 p90 loss / avg loss) with minimal EV loss
+# - Block entries during extreme spread/vol spikes
+# - Enforce cooldown after entry
+# - Optional session-specific clamps (US / HIGH vol)
+#
+# This guard is SNIPER-only and does not affect FARM or other policies.
+
+sniper_risk_guard_v1:
+  enabled: true
+
+  # Live-realistic capacity control
+  max_open_trades_override: 1
+  cooldown_bars_after_entry: 1   # 0/1/2 bars cooldown after entry
+
+  # Hard risk blocks
+  block_if_spread_bps_gte: 3500         # Start conservative (35 bps = 0.35%)
+  block_if_atr_bps_gte: 25.0            # If ATR is very high (25 bps = 0.25%)
+  block_if_vol_regime_in: ["EXTREME"]   # If EXTREME vol regime exists, block (otherwise ignore)
+
+  # Optional session clamps
+  us_session:
+    enabled: true
+    extra_min_prob_long: 0.02           # +0.02 clamp in US (conservative)
+    block_if_spread_bps_gte: 3000       # Stricter spread limit in US
+
+  overlap_session:
+    enabled: true
+    extra_min_prob_long: 0.01           # +0.01 clamp in OVERLAP
+    block_if_spread_bps_gte: 3200       # Stricter spread limit in OVERLAP
+
+  # Fallbacks if fields are missing
+  allow_if_missing_spread: true         # Allow if spread_bps is missing
+  allow_if_missing_atr: true            # Allow if atr_bps is missing
+  allow_if_missing_session: false       # Fail-closed if session is missing
+

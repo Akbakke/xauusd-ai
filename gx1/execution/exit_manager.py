@@ -153,7 +153,7 @@ class ExitManager:
                     bars_in_trade = exit_decision.bars_held
                     
                     # Log exit triggered to trade journal
-                    if hasattr(self.runner, "trade_journal") and self.runner.trade_journal:
+                    if hasattr(self._runner, "trade_journal") and self._runner.trade_journal:
                         try:
                             from gx1.monitoring.trade_journal import EVENT_EXIT_TRIGGERED
                             
@@ -168,7 +168,7 @@ class ExitManager:
                             
                             # Log exit event (structured)
                             exit_time_iso = now_ts.isoformat() if hasattr(now_ts, "isoformat") else str(now_ts)
-                            self.runner.trade_journal.log_exit_event(
+                            self._runner.trade_journal.log_exit_event(
                                 trade_id=trade.trade_id,
                                 timestamp=exit_time_iso,
                                 event_type="EXIT_TRIGGERED",
@@ -178,7 +178,7 @@ class ExitManager:
                             )
                             
                             # Log exit event (backward compatibility JSONL)
-                            self.runner.trade_journal.log(
+                            self._runner.trade_journal.log(
                                 EVENT_EXIT_TRIGGERED,
                                 {
                                     "exit_time": exit_time_iso,
@@ -806,7 +806,7 @@ class ExitManager:
         
         Helper function to ensure consistent logging across all exit paths.
         """
-        if not hasattr(self.runner, "trade_journal") or not self.runner.trade_journal:
+        if not hasattr(self._runner, "trade_journal") or not self._runner.trade_journal:
             return
         
         try:
@@ -826,7 +826,7 @@ class ExitManager:
                 del trade.extra["_price_trace"]
             
             # Log exit summary (structured)
-            self.runner.trade_journal.log_exit_summary(
+            self._runner.trade_journal.log_exit_summary(
                 trade_id=trade.trade_id,
                 exit_time=exit_time_iso,
                 exit_price=exit_price,
@@ -838,7 +838,7 @@ class ExitManager:
             )
             
             # Log trade closed (backward compatibility JSONL)
-            self.runner.trade_journal.log(
+            self._runner.trade_journal.log(
                 EVENT_TRADE_CLOSED,
                 {
                     "exit_time": exit_time_iso,

@@ -1,5 +1,9 @@
 # SNIPER 2025 Fullyear Report (Baseline vs Guarded)
 
+Status: Frozen  
+Freeze date: 2025-12-18  
+Note: This report is a deterministic aggregation of previously generated metrics. No simulations were rerun.
+
 Generated: 2025-12-18  
 Source files (single source of truth):
 - `SNIPER_2025_OOS_SUMMARY__baseline_20251218_145523.md`

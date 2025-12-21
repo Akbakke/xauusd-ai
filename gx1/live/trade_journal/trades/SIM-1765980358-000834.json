@@ -1,0 +1,24 @@
+{
+  "trade_id": "SIM-1765980358-000834",
+  "run_tag": "replay_20251217_162618",
+  "policy_sha256": "N/A",
+  "router_sha256": "N/A",
+  "manifest_sha256": "N/A",
+  "entry_snapshot": null,
+  "feature_context": null,
+  "router_explainability": null,
+  "exit_configuration": null,
+  "exit_events": [],
+  "execution_events": [],
+  "exit_summary": {
+    "exit_time": "2025-03-12T14:55:00+00:00",
+    "exit_price": 2921.985,
+    "exit_reason": "REPLAY_EOF",
+    "realized_pnl_bps": -355.9227486227507,
+    "max_mfe_bps": null,
+    "max_mae_bps": null,
+    "intratrade_drawdown_bps": null,
+    "closed_by_replay_eof": true,
+    "eof_price_source": "mid"
+  }
+}

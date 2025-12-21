@@ -180,6 +180,15 @@ class TradeJournal:
                     "oanda_trade_id",
                     "oanda_last_txn_id",
                     "execution_status",
+                    # Entry context (parity with FARM)
+                    "session",
+                    "vol_regime",
+                    "trend_regime",
+                    "atr_bps",
+                    "spread_bps",
+                    "range_pos",
+                    "distance_to_range",
+                    "router_version",
                 ])
                 writer.writeheader()
         except Exception as e:
@@ -227,6 +236,8 @@ class TradeJournal:
         entry_price: float,
         session: Optional[str] = None,
         regime: Optional[str] = None,
+        vol_regime: Optional[str] = None,
+        trend_regime: Optional[str] = None,
         entry_model_version: Optional[str] = None,
         entry_score: Optional[Dict[str, float]] = None,
         entry_filters_passed: Optional[List[str]] = None,
@@ -236,6 +247,16 @@ class TradeJournal:
         warmup_degraded: bool = False,
         cached_bars_at_entry: Optional[int] = None,
         warmup_bars_required: Optional[int] = None,
+        risk_guard_blocked: bool = False,
+        risk_guard_reason: Optional[str] = None,
+        risk_guard_details: Optional[Dict[str, Any]] = None,
+        risk_guard_min_prob_long_clamp: Optional[float] = None,
+        sniper_overlay: Optional[Dict[str, Any]] = None,
+        base_units: Optional[int] = None,
+        units: Optional[int] = None,
+        sniper_overlays: Optional[List[Dict[str, Any]]] = None,
+        atr_bps: Optional[float] = None,
+        spread_bps: Optional[float] = None,
     ) -> None:
         """
         Log entry snapshot (why trade was taken).
@@ -246,8 +267,10 @@ class TradeJournal:
             instrument: Instrument symbol
             side: Trade side (long/short)
             entry_price: Entry price
-            session: Trading session (EU/US/OVERLAP)
-            regime: Volatility regime
+            session: Trading session (EU/US/OVERLAP/ASIA)
+            regime: Volatility regime (legacy, use vol_regime instead)
+            vol_regime: Volatility regime (LOW/MEDIUM/HIGH/EXTREME)
+            trend_regime: Trend regime (TREND_UP/TREND_DOWN/NEUTRAL/UNKNOWN)
             entry_model_version: Entry model version
             entry_score: Entry model scores/probabilities
             entry_filters_passed: List of filters that passed
@@ -260,22 +283,71 @@ class TradeJournal:
         
         try:
             trade_journal = self._get_trade_journal(trade_id)
-            trade_journal["entry_snapshot"] = {
+            # Use vol_regime if provided, otherwise fall back to regime (backward compatibility)
+            vol_regime_final = vol_regime or regime
+            entry_snapshot: Dict[str, Any] = {
                 "trade_id": trade_id,
                 "entry_time": entry_time,
                 "instrument": instrument,
                 "side": side,
                 "entry_price": entry_price,
                 "session": session,
-                "regime": regime,
+                "regime": regime,  # Legacy field
+                "vol_regime": vol_regime_final,
+                "trend_regime": trend_regime,
                 "entry_model_version": entry_model_version,
                 "entry_score": entry_score or {},
                 "entry_filters_passed": entry_filters_passed or [],
                 "entry_filters_blocked": entry_filters_blocked or [],
                 "test_mode": test_mode,
+                # SNIPER Risk Guard metadata
+                "risk_guard_blocked": risk_guard_blocked,
+                "risk_guard_reason": risk_guard_reason,
+                "risk_guard_details": risk_guard_details or {},
+                "risk_guard_min_prob_long_clamp": risk_guard_min_prob_long_clamp,
             }
             if reason:
-                trade_journal["entry_snapshot"]["reason"] = reason
+                entry_snapshot["reason"] = reason
+            
+            # Add units and base_units if provided
+            if base_units is not None:
+                try:
+                    entry_snapshot["base_units"] = int(base_units)
+                except (ValueError, TypeError):
+                    logger.warning(f"[TRADE_JOURNAL] Invalid base_units for {trade_id}: {base_units}")
+            
+            if units is not None:
+                try:
+                    entry_snapshot["units"] = int(units)
+                except (ValueError, TypeError):
+                    logger.warning(f"[TRADE_JOURNAL] Invalid units for {trade_id}: {units}")
+            
+            # Add atr_bps and spread_bps if provided (for regime classification consistency)
+            if atr_bps is not None:
+                try:
+                    entry_snapshot["atr_bps"] = float(atr_bps)
+                except (ValueError, TypeError):
+                    logger.warning(f"[TRADE_JOURNAL] Invalid atr_bps for {trade_id}: {atr_bps}")
+            
+            if spread_bps is not None:
+                try:
+                    entry_snapshot["spread_bps"] = float(spread_bps)
+                except (ValueError, TypeError):
+                    logger.warning(f"[TRADE_JOURNAL] Invalid spread_bps for {trade_id}: {spread_bps}")
+            
+            # Attach SNIPER size overlay metadata (if any)
+            # Prefer sniper_overlays (list) if provided, otherwise use sniper_overlay (single dict)
+            if sniper_overlays and len(sniper_overlays) > 0:
+                entry_snapshot["sniper_overlays"] = sniper_overlays
+                # Also set sniper_overlay to last overlay for backward compatibility
+                if len(sniper_overlays) > 0:
+                    entry_snapshot["sniper_overlay"] = sniper_overlays[-1]
+            elif sniper_overlay:
+                entry_snapshot["sniper_overlay"] = sniper_overlay
+                # Also set sniper_overlays as single-item list for consistency
+                entry_snapshot["sniper_overlays"] = [sniper_overlay]
+            
+            trade_journal["entry_snapshot"] = entry_snapshot
             # Add degraded warmup fields if applicable
             if warmup_degraded:
                 trade_journal["entry_snapshot"]["warmup_degraded"] = True
@@ -285,7 +357,20 @@ class TradeJournal:
                     trade_journal["entry_snapshot"]["warmup_bars_required"] = warmup_bars_required
             self._write_trade_json(trade_id)
         except Exception as e:
-            logger.warning(f"[TRADE_JOURNAL] Failed to log entry snapshot for {trade_id}: {e}")
+            logger.exception(f"[TRADE_JOURNAL] Failed to log entry snapshot for {trade_id}")
+            # Fail-safe: write minimal entry_snapshot to avoid None
+            try:
+                trade_journal = self._get_trade_journal(trade_id)
+                trade_journal["entry_snapshot"] = {
+                    "trade_id": trade_id,
+                    "entry_time": entry_time,
+                    "error": "entry_snapshot_failed",
+                    "error_type": type(e).__name__,
+                    "error_msg": str(e),
+                }
+                self._write_trade_json(trade_id)
+            except Exception as e2:
+                logger.error(f"[TRADE_JOURNAL] Failed to write minimal entry_snapshot for {trade_id}: {e2}")
     
     def log_feature_context(
         self,
@@ -542,6 +627,43 @@ class TradeJournal:
                 elif event.get("event_type") == "TRADE_CLOSED_OANDA":
                     oanda_last_txn_id = event.get("oanda_transaction_id") or oanda_last_txn_id
             
+            # Extract entry context (session, vol_regime, trend_regime)
+            entry_session = entry_snapshot.get("session")
+            entry_vol_regime = entry_snapshot.get("vol_regime") or entry_snapshot.get("regime")  # Fallback to legacy regime
+            entry_trend_regime = entry_snapshot.get("trend_regime")
+            
+            # Extract feature context (atr_bps, spread_bps, range features)
+            feature_context = trade_journal.get("feature_context") or {}
+            atr_data = feature_context.get("atr", {})
+            spread_data = feature_context.get("spread", {})
+            range_data = feature_context.get("range", {})
+            
+            atr_bps = atr_data.get("atr_bps")
+            spread_bps = None
+            if spread_data.get("spread_pct") is not None:
+                # Convert spread_pct to bps (multiply by 10000)
+                spread_bps = spread_data.get("spread_pct") * 10000.0
+            
+            range_pos = range_data.get("range_pos")
+            distance_to_range = range_data.get("distance_to_range")
+            
+            # Extract router version
+            router_version = router_explainability.get("router_version", "")
+            
+            # Extract risk guard metadata from entry_snapshot
+            risk_guard_blocked = entry_snapshot.get("risk_guard_blocked", False)
+            risk_guard_reason = entry_snapshot.get("risk_guard_reason", "")
+            risk_guard_details = entry_snapshot.get("risk_guard_details", {})
+            risk_guard_clamp = entry_snapshot.get("risk_guard_min_prob_long_clamp")
+            
+            # Serialize risk_guard_details to JSON string if it's a dict
+            risk_guard_details_str = ""
+            if risk_guard_details:
+                try:
+                    risk_guard_details_str = json.dumps(risk_guard_details, separators=(',', ':'))
+                except Exception:
+                    risk_guard_details_str = str(risk_guard_details)
+            
             index_row = {
                 "trade_id": trade_id,
                 "entry_time": entry_snapshot.get("entry_time", ""),
@@ -556,6 +678,20 @@ class TradeJournal:
                 "oanda_trade_id": oanda_trade_id or "",
                 "oanda_last_txn_id": oanda_last_txn_id or "",
                 "execution_status": execution_status,
+                # Entry context (parity with FARM)
+                "session": entry_session or "",
+                "vol_regime": entry_vol_regime or "",
+                "trend_regime": entry_trend_regime or "",
+                "atr_bps": atr_bps or "",
+                "spread_bps": spread_bps or "",
+                "range_pos": range_pos or "",
+                "distance_to_range": distance_to_range or "",
+                "router_version": router_version or "",
+                # SNIPER Risk Guard metadata
+                "risk_guard_blocked": risk_guard_blocked,
+                "risk_guard_reason": risk_guard_reason or "",
+                "risk_guard_details": risk_guard_details_str,
+                "risk_guard_min_prob_long_clamp": risk_guard_clamp if risk_guard_clamp is not None else "",
             }
             
             # Append to CSV
@@ -576,6 +712,20 @@ class TradeJournal:
                 "oanda_trade_id",
                 "oanda_last_txn_id",
                 "execution_status",
+                # Entry context (parity with FARM)
+                "session",
+                "vol_regime",
+                "trend_regime",
+                "atr_bps",
+                "spread_bps",
+                "range_pos",
+                "distance_to_range",
+                "router_version",
+                # SNIPER Risk Guard metadata
+                "risk_guard_blocked",
+                "risk_guard_reason",
+                "risk_guard_details",
+                "risk_guard_min_prob_long_clamp",
             ]
             
             with open(self.index_path, "a", newline="", encoding="utf-8") as f:

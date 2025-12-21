@@ -1,0 +1,56 @@
+{
+  "trade_id": "SIM-1765970824-000237",
+  "run_tag": "replay_20251217_112631",
+  "policy_sha256": "N/A",
+  "router_sha256": "N/A",
+  "manifest_sha256": "N/A",
+  "entry_snapshot": {
+    "trade_id": "SIM-1765970824-000237",
+    "entry_time": "2025-01-03T20:25:00+00:00",
+    "instrument": "XAU_USD",
+    "side": "long",
+    "entry_price": 2639.56,
+    "session": "US",
+    "regime": null,
+    "entry_model_version": "ENTRY_V9",
+    "entry_score": {
+      "p_long": 0.8370987176895142,
+      "p_short": 0.16290128231048584,
+      "p_hat": 0.8370987176895142,
+      "margin": 0.6741974353790283
+    },
+    "entry_filters_passed": [
+      "spread_ok",
+      "atr_ok",
+      "session_ok"
+    ],
+    "entry_filters_blocked": [],
+    "test_mode": false
+  },
+  "feature_context": {
+    "atr": {
+      "atr_bps": 3.276012363597594,
+      "atr_price": 0.8647231194457665,
+      "atr_percentile": 2.479338842975207
+    },
+    "range": {
+      "range_pos": 0.05792522380199693,
+      "distance_to_range": 0.11585044760399386,
+      "range_edge_dist_atr": 1.2720834857577767
+    },
+    "spread": {
+      "spread_price": 0.4899999999997817,
+      "spread_pct": 40.67796610169492
+    },
+    "candle": {
+      "close": 2639.315,
+      "high": 2639.66,
+      "low": 2638.565
+    }
+  },
+  "router_explainability": null,
+  "exit_configuration": null,
+  "exit_events": [],
+  "execution_events": [],
+  "exit_summary": null
+}

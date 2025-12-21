@@ -1,0 +1,38 @@
+# SNIPER Exit Rules A (RULE5)
+#
+# SNIPER-specific exit profile for EU/London/NY sessions.
+# Based on FARM_EXIT_V2_RULES_A but with SNIPER-specific parameters.
+#
+# Key differences from FARM:
+#   - May have different TP/SL/BE parameters optimized for EU/NY sessions
+#   - May have different cooldown/max hold times
+#   - Same engine code (RULE5) but different config values
+#
+# Status: SNIPER_V1 (can be tuned independently of FARM)
+
+exit:
+  only_v2_drift: true
+  params:
+    debug_trade_ids: []
+    enable_rule_a: true
+    enable_rule_b: false
+    enable_rule_c: false
+    rule_a_adaptive_bars: 3
+    rule_a_adaptive_threshold_bps: 4.0
+    rule_a_profit_max_bps: 9.0
+    rule_a_profit_min_bps: 5.0
+    rule_a_trailing_stop_bps: 2.0
+  type: FARM_V2_RULES
+
+# SNIPER-specific tuning parameters (can be adjusted independently)
+sniper_tuning:
+  # Session-specific adjustments (future use)
+  eu_cooldown_bars: null  # Use default
+  overlap_cooldown_bars: null
+  us_cooldown_bars: null
+  
+  # Volatility-specific adjustments (future use)
+  high_vol_multiplier: null  # Use default
+  
+  # Note: In v1, we use same params as FARM. Tuning happens in later rounds.
+

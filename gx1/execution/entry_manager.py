@@ -1,14 +1,19 @@
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
-from collections import deque
+from collections import deque, defaultdict
 
 import logging
 import numpy as np
 import pandas as pd
 import time
+import traceback
 
-from gx1.execution.live_features import build_live_entry_features
+from gx1.execution.live_features import build_live_entry_features, infer_session_tag
+from gx1.sniper.policy.sniper_regime_size_overlay import apply_size_overlay
+from gx1.sniper.policy.sniper_q4_cchop_size_overlay import apply_q4_cchop_overlay
+from gx1.sniper.policy.sniper_q4_atrend_size_overlay import apply_q4_atrend_overlay
+from gx1.sniper.policy.runtime_regime_inputs import get_runtime_regime_inputs
 
 log = logging.getLogger(__name__)
 
@@ -34,9 +39,14 @@ class EntryManager:
             "atr_regimes": {},
             "farm_regimes": {},
         }
+        # Stage-0 reason tracking (for breakdown reporting)
+        self.stage0_reasons = defaultdict(int)
+        self.stage0_total_considered = 0
         self.cluster_guard_history = deque(maxlen=600)
         self.cluster_guard_atr_median: Optional[float] = None
         self.spread_history = deque(maxlen=600)
+        # SNIPER risk guard (initialized lazily when needed)
+        self._sniper_risk_guard: Optional[Any] = None
 
     def __getattr__(self, name: str):
         return getattr(self._runner, name)
@@ -455,13 +465,18 @@ class EntryManager:
                     # Check if we're past warmup (288 bars = 1 day)
                     warmup_bars = getattr(self, "warmup_bars", 288)
                     if candles is not None and len(candles) > warmup_bars:
-                        if not hasattr(self, "_replay_invariant_checked"):
-                            # Check if trend/vol are still UNKNOWN after warmup
-                            trend = policy_state.get("brain_trend_regime", "UNKNOWN")
-                            vol = policy_state.get("brain_vol_regime", "UNKNOWN")
-                            
-                            if trend == "UNKNOWN" or vol == "UNKNOWN":
-                                # Log ERROR with diagnostic info
+                        # Check if trend/vol are still UNKNOWN after warmup
+                        trend = policy_state.get("brain_trend_regime", "UNKNOWN")
+                        vol = policy_state.get("brain_vol_regime", "UNKNOWN")
+                        
+                        # Rate-limited debug logging (every 1000 bars)
+                        if not hasattr(self, "_replay_unknown_debug_counter"):
+                            self._replay_unknown_debug_counter = 0
+                        self._replay_unknown_debug_counter += 1
+                        
+                        if trend == "UNKNOWN" or vol == "UNKNOWN":
+                            # Log ERROR with diagnostic info (always)
+                            if not hasattr(self, "_replay_invariant_checked"):
                                 log.error(
                                     "[REPLAY_INVARIANT] After warmup (%d bars), trend/vol still UNKNOWN: trend=%s vol=%s. "
                                     "Diagnostics: atr_regime_id=%s, farm_regime=%s, session=%s, "
@@ -470,19 +485,65 @@ class EntryManager:
                                     hasattr(entry_bundle, "features") and not entry_bundle.features.empty,
                                     len(candles) if candles is not None else 0
                                 )
-                            else:
-                                # Log success once
+                                self._replay_invariant_checked = True
+                            
+                            # Rate-limited debug report (every 1000 bars)
+                            if self._replay_unknown_debug_counter % 1000 == 0:
+                                # Compute ATR for debug
+                                try:
+                                    if "bid_close" in candles.columns and "ask_close" in candles.columns:
+                                        close = (candles["bid_close"] + candles["ask_close"]) / 2.0
+                                    else:
+                                        close = candles.get("close", candles.index)
+                                    tr = pd.concat([
+                                        candles.get("high", close) - candles.get("low", close),
+                                        (candles.get("high", close) - close.shift(1)).abs(),
+                                        (candles.get("low", close) - close.shift(1)).abs()
+                                    ], axis=1).max(axis=1)
+                                    atr14 = tr.rolling(window=14, min_periods=1).mean()
+                                    current_atr = atr14.iloc[-1] if len(atr14) > 0 else None
+                                except:
+                                    current_atr = None
+                                
+                                log.warning(
+                                    "[REPLAY_UNKNOWN_DEBUG] Bar %d: ts=%s, cached_bars=%d, computed_atr=%s, "
+                                    "vol_bucket=%s, trend_tag=%s, session=%s",
+                                    self._replay_unknown_debug_counter,
+                                    current_ts.isoformat() if current_ts else "N/A",
+                                    len(candles),
+                                    f"{current_atr:.2f}" if current_atr is not None else "N/A",
+                                    vol,
+                                    trend,
+                                    current_session
+                                )
+                        else:
+                            # Log success once
+                            if not hasattr(self, "_replay_invariant_checked"):
                                 log.info(
                                     "[REPLAY_INVARIANT] After warmup (%d bars), trend/vol known: trend=%s vol=%s",
                                     len(candles), trend, vol
                                 )
-                            
-                            self._replay_invariant_checked = True
+                                self._replay_invariant_checked = True
             else:
-                # Not FARM_V2B mode - set UNKNOWN as before
-                policy_state["brain_trend_regime"] = "UNKNOWN"
-                policy_state["brain_vol_regime"] = "UNKNOWN"
-                policy_state["brain_risk_score"] = 0.0
+                # Not FARM_V2B mode - try to compute tags from candles in replay mode
+                # This ensures SNIPER and other non-FARM policies get trend/vol tags BEFORE Stage-0
+                if hasattr(self, "replay_mode") and self.replay_mode and candles is not None:
+                    from gx1.execution.replay_features import ensure_replay_tags
+                    current_ts = candles.index[-1] if len(candles) > 0 else None
+                    # Create a dummy row for ensure_replay_tags (it will compute from candles anyway)
+                    import pandas as pd
+                    dummy_row = pd.Series({"ts": current_ts} if current_ts else {})
+                    dummy_row, policy_state = ensure_replay_tags(
+                        dummy_row,
+                        candles,
+                        policy_state,
+                        current_ts=current_ts,
+                    )
+                else:
+                    # Not replay mode or no candles - set UNKNOWN as before
+                    policy_state["brain_trend_regime"] = "UNKNOWN"
+                    policy_state["brain_vol_regime"] = "UNKNOWN"
+                    policy_state["brain_risk_score"] = 0.0
         
         # ============================================================
         # Stage-0 Opportunitetsfilter (should_consider_entry)
@@ -683,27 +744,52 @@ class EntryManager:
             # FARM_V2B diagnostic: Stage-0 passed (skipped for valid regime)
             if is_farm_v2b:
                 self.farm_diag["n_after_stage0"] += 1
-        elif not policy_state.get("force_entry", False) and stage0_enabled and not self.should_consider_entry(trend=trend, vol=vol, session=current_session, risk_score=risk_score):
-            log.info(
-                "[STAGE_0] Skip entry consideration: trend=%s vol=%s session=%s risk=%.3f",
-                trend,
-                vol,
-                current_session,
-                risk_score,
-            )
-            # Store stage-0 skip in policy_state for logging (if needed)
-            policy_state["stage_0_skip"] = {
-                "trend": trend,
-                "vol": vol,
-                "session": current_session,
-                "risk_score": float(risk_score),
-            }
-            self._last_policy_state = policy_state
-            # FARM_V2B diagnostic: Stage-0 blocked (only if not FARM_V2B with valid regime)
-            if is_farm_v2b and not is_farm_v2b_with_regime:
-                # Stage-0 blocked for FARM_V2B (but not counted in n_after_stage0)
-                pass
-            return None  # Skip XGB/TCN inference entirely
+        elif not policy_state.get("force_entry", False) and stage0_enabled:
+            # Track total considered
+            self.stage0_total_considered += 1
+            
+            # Call should_consider_entry (now returns bool, reason stored in runner)
+            should_consider = self.should_consider_entry(trend=trend, vol=vol, session=current_session, risk_score=risk_score)
+            
+            if not should_consider:
+                # Get reason from runner's tracking (if available)
+                reason = getattr(self._runner, "_last_stage0_reason", "stage0_unknown")
+                self.stage0_reasons[reason] += 1
+                
+                # Rate-limited logging (once per 500 bars)
+                if self.stage0_total_considered % 500 == 0:
+                    log.info(
+                        "[STAGE_0] Skip entry consideration (rate-limited): trend=%s vol=%s session=%s risk=%.3f reason=%s",
+                        trend,
+                        vol,
+                        current_session,
+                        risk_score,
+                        reason,
+                    )
+                else:
+                    log.debug(
+                        "[STAGE_0] Skip entry consideration: trend=%s vol=%s session=%s risk=%.3f reason=%s",
+                        trend,
+                        vol,
+                        current_session,
+                        risk_score,
+                        reason,
+                    )
+                
+                # Store stage-0 skip in policy_state for logging (if needed)
+                policy_state["stage_0_skip"] = {
+                    "trend": trend,
+                    "vol": vol,
+                    "session": current_session,
+                    "risk_score": float(risk_score),
+                    "reason": reason,
+                }
+                self._last_policy_state = policy_state
+                # FARM_V2B diagnostic: Stage-0 blocked (only if not FARM_V2B with valid regime)
+                if is_farm_v2b and not is_farm_v2b_with_regime:
+                    # Stage-0 blocked for FARM_V2B (but not counted in n_after_stage0)
+                    pass
+                return None  # Skip XGB/TCN inference entirely
         
         # Get base cutoff from entry_params or entry_gating (for adaptive thresholding)
         entry_gating = self.policy.get("entry_gating", None)
@@ -767,19 +853,267 @@ class EntryManager:
         
         # Apply ENTRY_V9_POLICY (FARM_V2B, FARM_V2, FARM_V1, BASE_V1, or V1) if enabled
         # Check in priority order: FARM_V2B > FARM_V2 > FARM_V1 > BASE_V1 > V1
+        policy_sniper_cfg = self.policy.get("entry_v9_policy_sniper", {})
         policy_farm_v2b_cfg = self.policy.get("entry_v9_policy_farm_v2b", {})
         policy_farm_v2_cfg = self.policy.get("entry_v9_policy_farm_v2", {})
         policy_farm_v1_cfg = self.policy.get("entry_v9_policy_farm_v1", {})
         policy_base_v1_cfg = self.policy.get("entry_v9_policy_base_v1", {})
         policy_v1_cfg = self.policy.get("entry_v9_policy_v1", {})
         
-        use_farm_v2b = policy_farm_v2b_cfg.get("enabled", False)
-        use_farm_v2 = policy_farm_v2_cfg.get("enabled", False) and not use_farm_v2b
-        use_farm_v1 = policy_farm_v1_cfg.get("enabled", False) and not use_farm_v2b and not use_farm_v2
-        use_base_v1 = policy_base_v1_cfg.get("enabled", False) and not use_farm_v2b and not use_farm_v2 and not use_farm_v1
-        use_v1 = policy_v1_cfg.get("enabled", False) and not use_farm_v2b and not use_farm_v2 and not use_farm_v1 and not use_base_v1
+        use_sniper = policy_sniper_cfg.get("enabled", False)
+        use_farm_v2b = policy_farm_v2b_cfg.get("enabled", False) and not use_sniper
+        use_farm_v2 = policy_farm_v2_cfg.get("enabled", False) and not use_sniper and not use_farm_v2b
+        use_farm_v1 = policy_farm_v1_cfg.get("enabled", False) and not use_sniper and not use_farm_v2b and not use_farm_v2
+        use_base_v1 = policy_base_v1_cfg.get("enabled", False) and not use_sniper and not use_farm_v2b and not use_farm_v2 and not use_farm_v1
+        use_v1 = policy_v1_cfg.get("enabled", False) and not use_sniper and not use_farm_v2b and not use_farm_v2 and not use_farm_v1 and not use_base_v1
         
-        if use_farm_v2b:
+        if use_sniper:
+            from gx1.policy.entry_v9_policy_sniper import apply_entry_v9_policy_sniper
+            from gx1.policy.farm_guards import sniper_guard_v1
+            
+            # Get allow_high_vol and allow_extreme_vol from config
+            policy_cfg = self.policy.get("entry_v9_policy_sniper", {})
+            allow_high_vol = policy_cfg.get("allow_high_vol", True)
+            allow_extreme_vol = policy_cfg.get("allow_extreme_vol", False)
+            
+            # Build current_row for SNIPER (needed for guard)
+            current_row = entry_bundle.features.iloc[-1:].copy()
+            current_row["prob_long"] = v9_pred.prob_long
+            current_row["prob_short"] = v9_pred.prob_short
+            
+            # CRITICAL: Add close and _v1_atr14 for meta-model feature mapping
+            if "close" not in current_row.columns:
+                current_row["close"] = entry_bundle.close_price
+            if "_v1_atr14" not in current_row.columns and "_v1_atr14" in entry_bundle.raw_row.index:
+                current_row["_v1_atr14"] = entry_bundle.raw_row["_v1_atr14"]
+            
+            # Ensure ts column exists
+            if "ts" not in current_row.columns:
+                if isinstance(current_row.index, pd.DatetimeIndex):
+                    current_row = current_row.reset_index()
+                    if len(current_row.columns) > 0:
+                        current_row = current_row.rename(columns={current_row.columns[0]: "ts"})
+            
+            # REPLAY FEATURE PARITY: Ensure tags are set from candles if missing/UNKNOWN
+            # This must happen BEFORE guards run, but AFTER current_row is built
+            if hasattr(self, "replay_mode") and self.replay_mode and candles is not None:
+                # Check if tags are missing or UNKNOWN
+                needs_tags = (
+                    policy_state.get("brain_trend_regime", "UNKNOWN") == "UNKNOWN" or
+                    policy_state.get("brain_vol_regime", "UNKNOWN") == "UNKNOWN" or
+                    "session" not in policy_state or policy_state.get("session") == "UNKNOWN"
+                )
+                if needs_tags:
+                    from gx1.execution.replay_features import ensure_replay_tags
+                    current_ts = candles.index[-1] if len(candles) > 0 else None
+                    current_row_for_tags = current_row.iloc[0] if isinstance(current_row, pd.DataFrame) and len(current_row) > 0 else current_row
+                    current_row_for_tags, policy_state = ensure_replay_tags(
+                        current_row_for_tags,
+                        candles,
+                        policy_state,
+                        current_ts=current_ts,
+                    )
+                    # CRITICAL FIX: Update current_row DataFrame with tags from Series
+                    if isinstance(current_row, pd.DataFrame) and len(current_row) > 0:
+                        # Update each tag column individually using .loc (more reliable than direct assignment)
+                        for col in ["session", "vol_regime", "atr_regime", "trend_regime", "_v1_atr_regime_id"]:
+                            if col in current_row_for_tags.index:
+                                current_row.loc[current_row.index[0], col] = current_row_for_tags[col]
+                        # Also ensure session is set from policy_state if available (CRITICAL FIX)
+                        if "session" in policy_state:
+                            current_row.loc[current_row.index[0], "session"] = policy_state["session"]
+            
+            # CRITICAL FIX: Ensure session is ALWAYS set in current_row before guard (fallback)
+            if isinstance(current_row, pd.DataFrame) and len(current_row) > 0:
+                current_session_value = None
+                if "session" in current_row.columns:
+                    current_session_value = current_row["session"].iloc[0]
+                
+                if current_session_value is None or current_session_value == "UNKNOWN" or pd.isna(current_session_value):
+                    # Try policy_state first
+                    if "session" in policy_state and policy_state["session"] != "UNKNOWN":
+                        current_row.loc[current_row.index[0], "session"] = policy_state["session"]
+                    else:
+                        # Infer from timestamp as last resort
+                        current_ts = candles.index[-1] if candles is not None and len(candles) > 0 else None
+                        if current_ts:
+                            session_tag = infer_session_tag(current_ts)
+                            current_row.loc[current_row.index[0], "session"] = session_tag
+                            policy_state["session"] = session_tag
+                
+                # DIAGNOSTIC: Log if session is still UNKNOWN after all fixes (rate-limited)
+                final_session = current_row["session"].iloc[0] if "session" in current_row.columns else None
+                if final_session == "UNKNOWN" or final_session is None:
+                    if not hasattr(self, "_session_unknown_log_counter"):
+                        self._session_unknown_log_counter = 0
+                    self._session_unknown_log_counter += 1
+                    if self._session_unknown_log_counter % 500 == 0:
+                        current_ts = candles.index[-1] if candles is not None and len(candles) > 0 else None
+                        log.warning(
+                            "[SESSION_UNKNOWN_DIAG] session=UNKNOWN after all fixes: ts=%s candles_len=%d policy_state_session=%s",
+                            current_ts.isoformat() if current_ts else "N/A",
+                            len(candles) if candles is not None else 0,
+                            policy_state.get("session", "N/A")
+                        )
+            
+            # SNIPER GUARD: Apply centralized guard BEFORE policy (EU/OVERLAP/US + (LOW|MEDIUM|HIGH))
+            try:
+                sniper_guard_v1(
+                    current_row.iloc[0], 
+                    context="live_runner_pre_policy_sniper",
+                    allow_high_vol=allow_high_vol,
+                    allow_extreme_vol=allow_extreme_vol
+                )
+            except AssertionError as e:
+                log.debug(f"[ENTRY] SNIPER entry rejected by sniper guard: {e}")
+                return None
+            
+            # SNIPER RISK GUARD V1: Apply risk guard (spread/vol blocks, cooldown, clamps)
+            # Initialize guard if not already initialized
+            if self._sniper_risk_guard is None:
+                risk_guard_cfg_path = self.policy.get("risk_guard", {}).get("config_path")
+                if risk_guard_cfg_path:
+                    try:
+                        import yaml
+                        from pathlib import Path
+                        from gx1.policy.sniper_risk_guard import SniperRiskGuardV1
+                        
+                        guard_cfg_path = Path(risk_guard_cfg_path)
+                        if not guard_cfg_path.is_absolute():
+                            # Resolve relative to project root
+                            project_root = Path(__file__).resolve().parent.parent.parent
+                            guard_cfg_path = project_root / guard_cfg_path
+                        
+                        if guard_cfg_path.exists():
+                            with open(guard_cfg_path) as f:
+                                guard_cfg = yaml.safe_load(f)
+                            self._sniper_risk_guard = SniperRiskGuardV1(guard_cfg)
+                            log.info(f"[SNIPER_RISK_GUARD] Initialized from {risk_guard_cfg_path}")
+                        else:
+                            log.warning(f"[SNIPER_RISK_GUARD] Config file not found: {guard_cfg_path}")
+                    except Exception as e:
+                        log.warning(f"[SNIPER_RISK_GUARD] Failed to initialize: {e}")
+            
+            # Apply risk guard if initialized
+            risk_guard_blocked = False
+            risk_guard_reason = None
+            risk_guard_details = {}
+            risk_guard_clamp = None
+            
+            if self._sniper_risk_guard is not None and self._sniper_risk_guard.enabled:
+                # Build entry snapshot and feature context for guard
+                entry_snapshot = {
+                    "session": current_row["session"].iloc[0] if "session" in current_row.columns and len(current_row) > 0 else None,
+                    "vol_regime": current_row["vol_regime"].iloc[0] if "vol_regime" in current_row.columns and len(current_row) > 0 else None,
+                    "spread_bps": current_row.get("spread_bps", [None])[0] if "spread_bps" in current_row.columns and len(current_row) > 0 else None,
+                    "atr_bps": current_row.get("atr_bps", [None])[0] if "atr_bps" in current_row.columns and len(current_row) > 0 else None,
+                }
+                
+                feature_context = {
+                    "spread_bps": entry_bundle.spread_bps if hasattr(entry_bundle, "spread_bps") else None,
+                    "atr_bps": current_atr_bps,
+                }
+                
+                # Use len(candles) as bar index proxy
+                current_bar_index = len(candles) if candles is not None else 0
+                
+                # Check if entry should be blocked
+                should_block, reason_code, details = self._sniper_risk_guard.should_block(
+                    entry_snapshot,
+                    feature_context,
+                    policy_state,
+                    current_bar_index,
+                )
+                
+                if should_block:
+                    risk_guard_blocked = True
+                    risk_guard_reason = reason_code
+                    risk_guard_details = details
+                    log.info(f"[SNIPER_RISK_GUARD] Blocked entry: reason={reason_code}, details={details}")
+                    
+                    # Log blocked entry attempt (if journal supports it)
+                    if hasattr(self, "trade_journal") and self.trade_journal:
+                        try:
+                            # Try to log as entry attempt (if method exists)
+                            if hasattr(self.trade_journal, "log_entry_attempt"):
+                                self.trade_journal.log_entry_attempt(
+                                    entry_time=candles.index[-1].isoformat() if candles is not None and len(candles) > 0 else None,
+                                    reason=reason_code,
+                                    details=details,
+                                )
+                        except Exception as e:
+                            log.debug(f"[SNIPER_RISK_GUARD] Failed to log entry attempt: {e}")
+                    
+                    return None
+                
+                # Check for session clamp (adjust min_prob_long locally)
+                session = entry_snapshot.get("session") or policy_state.get("session")
+                clamp = self._sniper_risk_guard.get_session_clamp(session)
+                if clamp is not None and clamp > 0:
+                    risk_guard_clamp = clamp
+                    # Store clamp info for later use in policy evaluation
+                    policy_state["risk_guard_min_prob_long_clamp"] = clamp
+                    log.debug(f"[SNIPER_RISK_GUARD] Session clamp applied: session={session}, clamp=+{clamp}")
+                
+                # Store risk guard metadata in policy_state for trade journal
+                policy_state["risk_guard_blocked"] = risk_guard_blocked
+                policy_state["risk_guard_reason"] = risk_guard_reason
+                policy_state["risk_guard_details"] = risk_guard_details
+                policy_state["risk_guard_clamp"] = risk_guard_clamp
+            
+            # Use meta-model loaded at init (same as FARM_V2B)
+            meta_model = getattr(self, "farm_entry_meta_model", None)
+            meta_feature_cols = getattr(self, "farm_entry_meta_feature_cols", None)
+            
+            # If feature columns not loaded, auto-detect (fallback)
+            if meta_model is not None and meta_feature_cols is None:
+                numeric_cols = current_row.select_dtypes(include=[np.number]).columns.tolist()
+                exclude_cols = {'prob_long', 'prob_short', 'prob_neutral', 'p_long', 'p_profitable', 
+                                'y_profitable_8b', 'pnl_bps_signed', 'mfe_8b_signed', 'mae_8b_signed',
+                                'trade_id', 'entry_ts', 'exit_ts'}
+                meta_feature_cols = [c for c in numeric_cols if c not in exclude_cols]
+                log.info(f"[ENTRY] Auto-detected {len(meta_feature_cols)} feature columns for meta-model")
+            
+            # Check if we have any candidates at all
+            if len(current_row) == 0:
+                log.debug("[ENTRY] SNIPER: No entry candidates in batch (empty current_row)")
+                policy_state["p_long"] = v9_pred.prob_long
+                policy_state["p_profitable"] = None
+            else:
+                # Apply policy (will compute p_profitable for logging, but NOT use it for filtering)
+                df_policy = apply_entry_v9_policy_sniper(
+                    current_row,
+                    self.policy,
+                    meta_model=meta_model,
+                    meta_feature_cols=meta_feature_cols,
+                )
+                policy_flag_col = "entry_v9_policy_sniper"
+                
+                # Store p_long and p_profitable for trade creation (if signal passed)
+                if len(df_policy) > 0 and df_policy["entry_v9_policy_sniper"].sum() > 0:
+                    # Signal passed - extract values from accepted row
+                    accepted_row = df_policy[df_policy["entry_v9_policy_sniper"]].iloc[0]
+                    policy_state["p_long"] = accepted_row.get("p_long", v9_pred.prob_long)
+                    policy_state["p_profitable"] = accepted_row.get("p_profitable", None)
+                    # Store policy-determined side if available
+                    if "_policy_side" in accepted_row:
+                        policy_state["_policy_side"] = accepted_row["_policy_side"]
+                else:
+                    # Signal rejected - still store p_long for logging
+                    policy_state["p_long"] = df_policy["p_long"].iloc[0] if len(df_policy) > 0 and "p_long" in df_policy.columns else v9_pred.prob_long
+                    policy_state["p_profitable"] = df_policy["p_profitable"].iloc[0] if len(df_policy) > 0 and "p_profitable" in df_policy.columns else None
+                    return None
+                
+                # Check if signal passed
+                if df_policy[policy_flag_col].sum() == 0:
+                    return None
+                
+                # Signal passed - continue to trade creation
+                policy_state["policy_name"] = "V9_SNIPER"
+                prediction = v9_pred
+                policy_state["entry_model_active"] = "ENTRY_V9"
+                # SNIPER policy complete - skip other policy blocks and continue to trade creation
+        elif use_farm_v2b and not use_sniper:
             # Use FARM_V2B policy (p_long-driven, no meta-filter)
             policy_cfg = policy_farm_v2b_cfg
         elif use_farm_v2:
@@ -797,7 +1131,10 @@ class EntryManager:
         else:
             policy_cfg = None
         
-        if policy_cfg is not None and policy_cfg.get("enabled", False):
+        if use_sniper:
+            # SNIPER policy already handled above - skip other policy blocks
+            pass
+        elif policy_cfg is not None and policy_cfg.get("enabled", False):
             # Build DataFrame with single row for policy evaluation
             current_row = entry_bundle.features.iloc[-1:].copy()
             current_row["prob_long"] = v9_pred.prob_long
@@ -816,6 +1153,35 @@ class EntryManager:
                     current_row = current_row.reset_index()
                     if len(current_row.columns) > 0:
                         current_row = current_row.rename(columns={current_row.columns[0]: "ts"})
+            
+            # REPLAY FEATURE PARITY: Ensure tags are set from candles if missing/UNKNOWN
+            # This must happen BEFORE guards run, but AFTER current_row is built
+            if hasattr(self, "replay_mode") and self.replay_mode and candles is not None:
+                # Check if tags are missing or UNKNOWN
+                needs_tags = (
+                    policy_state.get("brain_trend_regime", "UNKNOWN") == "UNKNOWN" or
+                    policy_state.get("brain_vol_regime", "UNKNOWN") == "UNKNOWN" or
+                    "session" not in policy_state or policy_state.get("session") == "UNKNOWN"
+                )
+                if needs_tags:
+                    from gx1.execution.replay_features import ensure_replay_tags
+                    current_ts = candles.index[-1] if len(candles) > 0 else None
+                    current_row_for_tags = current_row.iloc[0] if isinstance(current_row, pd.DataFrame) and len(current_row) > 0 else current_row
+                    current_row_for_tags, policy_state = ensure_replay_tags(
+                        current_row_for_tags,
+                        candles,
+                        policy_state,
+                        current_ts=current_ts,
+                    )
+                    # Update current_row DataFrame with tags from Series
+                    if isinstance(current_row, pd.DataFrame) and len(current_row) > 0:
+                        # Update each tag column individually (iloc assignment doesn't work for Series -> DataFrame)
+                        for col in ["session", "vol_regime", "atr_regime", "trend_regime", "_v1_atr_regime_id"]:
+                            if col in current_row_for_tags.index:
+                                current_row[col] = current_row_for_tags[col]
+                        # Also ensure session is set from policy_state if available
+                        if "session" in policy_state:
+                            current_row["session"] = policy_state["session"]
             
             # Add regime columns from Big Brain V1 if available
             if hasattr(self, "big_brain_v1") and self.big_brain_v1 is not None:
@@ -845,7 +1211,6 @@ class EntryManager:
                     current_row["session"] = current_row["session_tag"]
                 # Infer from timestamp if available
                 elif "ts" in current_row.columns or isinstance(current_row.index, pd.DatetimeIndex):
-                    from gx1.execution.live_features import infer_session_tag
                     ts = current_row.index[0] if isinstance(current_row.index, pd.DatetimeIndex) else pd.to_datetime(current_row["ts"].iloc[0])
                     current_row["session"] = infer_session_tag(ts)
             
@@ -890,6 +1255,9 @@ class EntryManager:
                 # Get allow_medium_vol from config
                 policy_cfg = self.policy.get("entry_v9_policy_farm_v2b", {})
                 allow_medium_vol = policy_cfg.get("allow_medium_vol", True)
+                
+                # Note: REPLAY FEATURE PARITY is already applied above (after current_row is built)
+                # FARM_V2B already computes tags above, but replay_features ensures they're set even if that path fails
                 
                 # BRUTAL GUARD V2: Apply centralized guard BEFORE policy (ASIA + (LOW ∪ MEDIUM))
                 try:
@@ -1124,7 +1492,9 @@ class EntryManager:
             if len(df_policy) > 0 and df_policy[policy_flag_col].iloc[0]:
                 prediction = v9_pred
                 policy_state["entry_model_active"] = "ENTRY_V9"
-                if use_farm_v2b:
+                if use_sniper:
+                    policy_name = "V9_SNIPER"
+                elif use_farm_v2b:
                     policy_name = "V9_FARM_V2B"
                 elif use_farm_v2:
                     policy_name = "V9_FARM_V2"
@@ -1140,7 +1510,9 @@ class EntryManager:
                 policy_state["_current_row"] = current_row
             else:
                 # Policy rejected - no entry
-                if use_farm_v2:
+                if use_sniper:
+                    policy_name = "POLICY_SNIPER"
+                elif use_farm_v2:
                     policy_name = "POLICY_FARM_V2"
                 elif use_farm_v1:
                     policy_name = "POLICY_FARM_V1"
@@ -2003,6 +2375,237 @@ class EntryManager:
         else:
             entry_price = entry_bid_price
         
+        # Base units (before any SNIPER overlays)
+        base_units = self.exec.default_units if side == "long" else -self.exec.default_units
+
+        # Get policy_state_snapshot early (needed for regime inputs extractor)
+        policy_state_snapshot = self._last_policy_state or {}
+
+        # Compute spread metrics BEFORE overlays (needed for regime classification)
+        spread_bps_for_overlay: Optional[float] = None
+        spread_pct_for_overlay: Optional[float] = None
+        try:
+            spread_raw = float(entry_ask_price) - float(entry_bid_price)
+            if spread_raw > 0:
+                spread_bps_for_overlay = spread_raw * 10000.0
+                # Try to get spread_pct from percentile history if available
+                if hasattr(self, "spread_history") and len(self.spread_history) > 0:
+                    try:
+                        spread_pct_for_overlay = self._percentile_from_history(self.spread_history, spread_bps_for_overlay)
+                    except Exception:
+                        pass
+        except (TypeError, ValueError):
+            pass
+
+        # Composable SNIPER overlays (runtime-only, no change to entry/exit logic)
+        overlays_meta: List[Dict[str, Any]] = []
+        units_current = base_units
+
+        # Extract regime inputs from all available sources (single source of truth)
+        # This ensures overlays see the same data as offline analysis
+        # Build feature_context-like dict from available sources
+        feature_context_dict: Dict[str, Any] = {}
+        if current_atr_bps is not None:
+            feature_context_dict["atr_bps"] = current_atr_bps
+        if spread_bps_for_overlay is not None:
+            feature_context_dict["spread_bps"] = spread_bps_for_overlay
+        if spread_pct_for_overlay is not None:
+            feature_context_dict["spread_pct"] = spread_pct_for_overlay
+        # Also check entry_bundle for additional fields
+        if entry_bundle is not None:
+            if hasattr(entry_bundle, "atr_bps") and entry_bundle.atr_bps is not None:
+                feature_context_dict.setdefault("atr_bps", entry_bundle.atr_bps)
+            if hasattr(entry_bundle, "spread_bps") and entry_bundle.spread_bps is not None:
+                feature_context_dict.setdefault("spread_bps", entry_bundle.spread_bps)
+        
+        regime_inputs = get_runtime_regime_inputs(
+            prediction=prediction,
+            feature_context=feature_context_dict if feature_context_dict else None,
+            spread_pct=spread_pct_for_overlay,  # Use pre-computed spread_pct
+            current_atr_bps=current_atr_bps,
+            entry_bundle=entry_bundle,
+            policy_state=policy_state_snapshot,
+            entry_time=now_ts,
+        )
+        
+        # Extract individual fields for overlay calls
+        _trend_regime = regime_inputs["trend_regime"]
+        _vol_regime = regime_inputs["vol_regime"]
+        _atr_bps = regime_inputs["atr_bps"]
+        _spread_bps = regime_inputs["spread_bps"]
+        _session = regime_inputs["session"]
+        
+        # Debug logging for first few trades per chunk (to verify regime inputs are correct)
+        if not hasattr(self, "_overlay_debug_count"):
+            self._overlay_debug_count = 0
+        if self._overlay_debug_count < 5:
+            self._overlay_debug_count += 1
+            sources = regime_inputs.get("_sources", {})
+            log.info(
+                "[REGIME_EXTRACTOR] Trade %d - trend=%s (source=%s) vol=%s (source=%s) atr_bps=%s (source=%s) spread_bps=%s (source=%s) session=%s (source=%s)",
+                self._overlay_debug_count,
+                _trend_regime,
+                sources.get("trend_regime", "unknown"),
+                _vol_regime,
+                sources.get("vol_regime", "unknown"),
+                _atr_bps,
+                sources.get("atr_bps", "unknown"),
+                _spread_bps,
+                sources.get("spread_bps", "unknown"),
+                _session,
+                sources.get("session", "unknown"),
+            )
+            
+            # Runtime vs offline parity check (replay-only)
+            try:
+                from gx1.sniper.analysis.regime_classifier import classify_regime
+                offline_row = {
+                    "trend_regime": _trend_regime,
+                    "vol_regime": _vol_regime,
+                    "atr_bps": _atr_bps,
+                    "spread_bps": _spread_bps,
+                }
+                offline_regime_class, offline_reason = classify_regime(offline_row)
+                # Store for later comparison with overlay
+                regime_inputs["_offline_regime_class"] = offline_regime_class
+                regime_inputs["_offline_regime_reason"] = offline_reason
+            except Exception as e:
+                log.debug("[REGIME_EXTRACTOR] Offline classification failed: %s", e)
+
+        # Overlay 1: Q4 × B_MIXED size gate
+        regime_overlay_cfg: Dict[str, Any] = {}
+        if hasattr(self, "policy") and getattr(self, "policy"):
+            regime_overlay_cfg = self.policy.get("sniper_regime_size_overlay", {}) or {}
+        try:
+            units_1, meta_1 = apply_size_overlay(
+                base_units=units_current,
+                entry_time=now_ts,
+                trend_regime=_trend_regime,
+                vol_regime=_vol_regime,
+                atr_bps=_atr_bps,
+                spread_bps=_spread_bps,
+                session=_session,
+                cfg=regime_overlay_cfg,
+            )
+        except Exception as e:
+            log.exception("SNIPER B_MIXED size overlay failed; falling back to current units")
+            units_1 = units_current
+            tb = traceback.format_exc(limit=20)
+            meta_1 = {
+                "overlay_applied": False,
+                "overlay_name": "Q4_B_MIXED_SIZE",
+                "reason": f"overlay_error:{type(e).__name__}",
+                "error": str(e),
+                "traceback": tb,
+            }
+        overlays_meta.append(meta_1)
+        units_current = units_1
+
+        # Overlay 2: Q4 × C_CHOP session-based size gate
+        cchop_cfg: Dict[str, Any] = {}
+        if hasattr(self, "policy") and getattr(self, "policy"):
+            cchop_cfg = self.policy.get("sniper_q4_cchop_overlay", {}) or {}
+        try:
+            units_2, meta_2 = apply_q4_cchop_overlay(
+                base_units=units_current,
+                entry_time=now_ts,
+                trend_regime=_trend_regime,
+                vol_regime=_vol_regime,
+                atr_bps=_atr_bps,
+                spread_bps=_spread_bps,
+                session=_session,
+                cfg=cchop_cfg,
+            )
+        except Exception as e:
+            log.exception("SNIPER Q4 C_CHOP session overlay failed; falling back to current units")
+            units_2 = units_current
+            tb = traceback.format_exc(limit=20)
+            meta_2 = {
+                "overlay_applied": False,
+                "overlay_name": "Q4_C_CHOP_SESSION_SIZE",
+                "reason": f"overlay_error:{type(e).__name__}",
+                "error": str(e),
+                "traceback": tb,
+            }
+        overlays_meta.append(meta_2)
+        units_current = units_2
+
+        # Overlay 3: Q4 × A_TREND size gate
+        atrend_cfg: Dict[str, Any] = {}
+        if hasattr(self, "policy") and getattr(self, "policy"):
+            atrend_cfg = self.policy.get("sniper_q4_atrend_overlay", {}) or {}
+        try:
+            units_3, meta_3 = apply_q4_atrend_overlay(
+                base_units=units_current,
+                entry_time=now_ts,
+                trend_regime=_trend_regime,
+                vol_regime=_vol_regime,
+                atr_bps=_atr_bps,
+                spread_bps=_spread_bps,
+                session=_session,
+                cfg=atrend_cfg,
+            )
+        except Exception as e:
+            log.exception("SNIPER Q4 A_TREND size overlay failed; falling back to current units")
+            units_3 = units_current
+            tb = traceback.format_exc(limit=20)
+            meta_3 = {
+                "overlay_applied": False,
+                "overlay_name": "Q4_A_TREND_SIZE",
+                "reason": f"overlay_error:{type(e).__name__}",
+                "error": str(e),
+                "traceback": tb,
+            }
+        overlays_meta.append(meta_3)
+        units_out = units_3
+        
+        # NO-TRADE check: if overlay set units to 0, skip trade creation
+        if units_out == 0:
+            # Log the reason from the last overlay that set units to 0
+            reason_no_trade = "unknown"
+            overlay_name_no_trade = "unknown"
+            for meta in reversed(overlays_meta):
+                if meta.get("size_after_units") == 0:
+                    reason_no_trade = meta.get("reason", "unknown")
+                    overlay_name_no_trade = meta.get("overlay_name", "unknown")
+                    break
+            log.info(
+                "[NO_TRADE] Overlay set units to 0, skipping trade creation. Overlay=%s, Reason=%s",
+                overlay_name_no_trade,
+                reason_no_trade,
+            )
+            return None
+        
+        # Debug logging: log overlay regime classification for first few trades
+        if self._overlay_debug_count <= 5:
+            for meta in overlays_meta:
+                if meta.get("overlay_name") == "Q4_A_TREND_SIZE":
+                    overlay_regime = meta.get("regime_class")
+                    offline_regime = regime_inputs.get("_offline_regime_class")
+                    if overlay_regime != offline_regime:
+                        log.warning(
+                            "[REGIME_PARITY_MISMATCH] Trade %d - Overlay regime=%s (reason=%s) vs Offline regime=%s (reason=%s). Runtime inputs: trend=%s vol=%s atr_bps=%s spread_bps=%s",
+                            self._overlay_debug_count,
+                            overlay_regime,
+                            meta.get("reason"),
+                            offline_regime,
+                            regime_inputs.get("_offline_regime_reason"),
+                            _trend_regime,
+                            _vol_regime,
+                            _atr_bps,
+                            _spread_bps,
+                        )
+                    else:
+                        log.info(
+                            "[OVERLAY_DEBUG] Q4_A_TREND overlay: applied=%s regime_class=%s reason=%s size_before=%s size_after=%s",
+                            meta.get("overlay_applied"),
+                            meta.get("regime_class"),
+                            meta.get("reason"),
+                            meta.get("size_before_units"),
+                            meta.get("size_after_units"),
+                        )
+                    break
+        
         # Lazy import to avoid circular dependency
         from gx1.execution.oanda_demo_runner import LiveTrade
         
@@ -2010,7 +2613,7 @@ class EntryManager:
             trade_id=trade_id,
             entry_time=now_ts,
             side=side,
-            units=self.exec.default_units if side == "long" else -self.exec.default_units,
+            units=units_out,
             entry_price=entry_price,
             entry_bid=entry_bid_price,
             entry_ask=entry_ask_price,
@@ -2076,7 +2679,7 @@ class EntryManager:
             if np.isfinite(spread_bps):
                 self.spread_history.append(spread_bps)
 
-        policy_state_snapshot = self._last_policy_state or {}
+        # Note: policy_state_snapshot is now set earlier (before overlay calls)
 
         # Compute range features BEFORE router selection (needed for V3 router with range features)
         range_window = 96
@@ -2301,14 +2904,43 @@ class EntryManager:
                 cached_bars_at_entry = getattr(self._runner, '_cached_bars_at_startup', None)
                 warmup_bars_required = self._runner.policy.get("warmup_bars", 288) if hasattr(self._runner, 'policy') else None
                 
+                # Extract vol_regime and trend_regime from policy_state
+                vol_regime = None
+                trend_regime = None
+                if policy_state_snapshot:
+                    # Prefer brain_vol_regime/brain_trend_regime (Big Brain V1)
+                    vol_regime = policy_state_snapshot.get("brain_vol_regime") or policy_state_snapshot.get("vol_regime")
+                    trend_regime = policy_state_snapshot.get("brain_trend_regime") or policy_state_snapshot.get("trend_regime")
+                    # Fallback to farm_regime if available (for FARM policies)
+                    if not vol_regime:
+                        farm_regime = policy_state_snapshot.get("farm_regime")
+                        if farm_regime:
+                            # farm_regime is like "ASIA_LOW", extract vol part
+                            if "_" in farm_regime:
+                                vol_regime = farm_regime.split("_")[-1]  # Extract "LOW" from "ASIA_LOW"
+                            else:
+                                vol_regime = farm_regime
+                
+                # Extract risk guard metadata from policy_state
+                risk_guard_blocked = policy_state_snapshot.get("risk_guard_blocked", False) if policy_state_snapshot else False
+                risk_guard_reason = policy_state_snapshot.get("risk_guard_reason") if policy_state_snapshot else None
+                risk_guard_details = policy_state_snapshot.get("risk_guard_details", {}) if policy_state_snapshot else {}
+                risk_guard_clamp = policy_state_snapshot.get("risk_guard_clamp") if policy_state_snapshot else None
+                
+                # Use regime inputs from extractor (same as overlays see)
+                # This ensures entry_snapshot has the same regime data as overlay metadata
                 self._runner.trade_journal.log_entry_snapshot(
                     trade_id=trade.trade_id,
                     entry_time=entry_time_iso,
                     instrument=instrument_val,
                     side=trade.side,
                     entry_price=trade.entry_price,
-                    session=policy_state_snapshot.get("session") if policy_state_snapshot else None,
-                    regime=policy_state_snapshot.get("farm_regime") if policy_state_snapshot else None,
+                    units=units_out,
+                    base_units=base_units,
+                    session=regime_inputs["session"],  # Use extractor result
+                    regime=policy_state_snapshot.get("farm_regime") if policy_state_snapshot else None,  # Legacy field
+                    vol_regime=regime_inputs["vol_regime"],  # Use extractor result
+                    trend_regime=regime_inputs["trend_regime"],  # Use extractor result
                     entry_model_version=model_name_val,
                     entry_score={
                         "p_long": prediction.prob_long,
@@ -2323,6 +2955,14 @@ class EntryManager:
                     warmup_degraded=warmup_degraded,
                     cached_bars_at_entry=cached_bars_at_entry,
                     warmup_bars_required=warmup_bars_required,
+                    risk_guard_blocked=risk_guard_blocked,
+                    risk_guard_reason=risk_guard_reason,
+                    risk_guard_details=risk_guard_details,
+                    risk_guard_min_prob_long_clamp=risk_guard_clamp,
+                    sniper_overlays=overlays_meta,
+                    sniper_overlay=overlays_meta[-1] if overlays_meta else None,
+                    atr_bps=regime_inputs["atr_bps"],  # Store for consistency with overlay inputs
+                    spread_bps=regime_inputs["spread_bps"],  # Store for consistency with overlay inputs
                 )
                 
                 # Feature context (immutable snapshot)

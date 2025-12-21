@@ -1,0 +1,98 @@
+# GX1 v1.1 → SNIPER entry policy (EU/London/NY)
+#
+# Entry: SNIPER (EU/OVERLAP/US + HIGH volatility allowed)
+# Exit: HYBRID_ROUTER_V3 - ML decision tree with range features
+# Status: SNIPER_CANARY (not PROD_BASELINE)
+#
+# SNIPER goals:
+#   - Higher frequency than FARM (more sessions, HIGH vol allowed)
+#   - Same exit engine (Hybrid router V3 + RULE5/RULE6A)
+#   - Conservative start: max_open_trades=1 or 2
+#
+# IMPORTANT: This is SNIPER bundle - isolated from FARM PROD_BASELINE
+
+meta:
+  router_version: V3_RANGE
+  role: SNIPER_CANARY  # NOT PROD_BASELINE
+  description: >
+    SNIPER entry policy for EU/London/NY sessions.
+    Higher frequency than FARM, allows HIGH volatility.
+    Uses same exit engine (Hybrid router V3 + RULE5/RULE6A).
+    Conservative start: max_open_trades=1-2.
+  bundle_location: sniper_snapshot/2025_SNIPER_V1
+
+policy_name: GX1_V11_OANDA_PRACTICE_LIVE_SNIPER_LONDON_NY
+version: "GX1_V11_OANDA_PRACTICE_LIVE_SNIPER_LONDON_NY"
+mode: "LIVE"  # or "REPLAY"
+run_mode: "PROD"  # PROD | SHADOW (SHADOW: journal trades, no real orders)
+instrument: "XAU_USD"
+timeframe: "M5"
+warmup_bars: 288
+
+# SNIPER-specific entry config (in sniper_snapshot)
+entry_config: gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/ENTRY_V9_SNIPER_LONDON_NY.yaml
+
+# SNIPER-specific exit configs (in sniper_snapshot/exits)
+exit_config: gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/exits/SNIPER_EXIT_RULES_A.yaml
+
+exit_policies:
+  rule5: gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/exits/SNIPER_EXIT_RULES_A.yaml
+  rule6a: gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/exits/SNIPER_EXIT_RULES_ADAPTIVE.yaml
+
+hybrid_exit_router:
+  version: HYBRID_ROUTER_V3
+  # In v1: Use same router model as FARM (can be tuned via params later)
+  model_path: gx1/configs/policies/prod_snapshot/2025_FARM_V2B_HYBRID_V3_RANGE/exit_router_models_v3/exit_router_v3_tree.pkl
+  # SNIPER-specific router parameters (can be tuned independently)
+  v3_range_edge_cutoff: 1.0  # Start with same as FARM (can tune later)
+  # Future: session-specific cutoffs, vol-specific thresholds
+  documentation: |
+    HYBRID_ROUTER_V3_RANGE provides ML-based routing using decision tree trained on range features.
+    In v1: Uses same router model as FARM PROD_BASELINE.
+    SNIPER can tune router parameters (cutoffs, thresholds) via config without affecting FARM.
+
+execution:
+  dry_run: false
+  max_open_trades: 10  # Increased for Q1 replay testing (will be overridden by risk_guard for guarded variant)
+
+# SNIPER Risk Guard V1 configuration
+risk_guard:
+  config_path: gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/SNIPER_RISK_GUARD_V1.yaml
+
+logging:
+  level: INFO
+
+backfill:
+  enabled: true
+  overlap_bars: 6
+  lookback_padding: 100
+  target_bars_padding: 100
+
+# Exit control (ExitArbiter configuration)
+# SNIPER-specific: Allow SL_TICK for tick-based stop-loss in live mode
+# Note: In replay mode, SL_TICK should not occur (TickWatcher disabled)
+exit_control:
+  allowed_loss_closers:
+    - RULE_A_PROFIT
+    - RULE_A_TRAILING
+    - RULE_B_FAST_LOSS
+    - RULE_C_TIMEOUT
+    - BROKER_SL  # Allows SL_TICK automatically (see oanda_demo_runner.py line 4994-4995)
+    - SL_TICK    # Explicitly allow SL_TICK for SNIPER (tick-based stop-loss)
+    - REPLAY_EOF # Always allowed in replay mode for end-of-simulation liquidation
+  require_trade_open: true
+
+# Replay-specific configuration
+replay:
+  close_open_trades_at_end: true  # Close all open trades at end of replay for complete analysis
+  eof_close_reason: "REPLAY_EOF"  # Reason code for EOF-closed trades
+  eof_price_source: "mid"  # Price source for EOF close: "mid", "bid", or "ask"
+
+sniper_q4_cchop_overlay:
+  enabled: true
+  multipliers:
+    EU: 1.00
+    OVERLAP: 1.00
+    US: 0.50
+  default_multiplier: 1.00
+

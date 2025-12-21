@@ -1,0 +1,55 @@
+# GX1 v1.1 → SNIPER entry policy (EU/London/NY)
+#
+# Entry: SNIPER (EU/OVERLAP/US + HIGH volatility allowed)
+# Exit: HYBRID_ROUTER_V3 - ML decision tree with range features (same as PROD_BASELINE)
+# Status: SNIPER_CANARY (not PROD_BASELINE)
+#
+# SNIPER goals:
+#   - Higher frequency than FARM (more sessions, HIGH vol allowed)
+#   - Same exit engine (Hybrid router V3 + RULE5/RULE6A)
+#   - Conservative start: max_open_trades=1 or 2
+
+meta:
+  router_version: V3_RANGE
+  role: SNIPER_CANARY  # NOT PROD_BASELINE initially
+  description: >
+    SNIPER entry policy for EU/London/NY sessions.
+    Higher frequency than FARM, allows HIGH volatility.
+    Uses same exit engine (Hybrid router V3 + RULE5/RULE6A).
+    Conservative start: max_open_trades=1-2.
+
+policy_name: GX1_V11_OANDA_PRACTICE_LIVE_SNIPER_LONDON_NY
+version: "GX1_V11_OANDA_PRACTICE_LIVE_SNIPER_LONDON_NY"
+mode: "LIVE"  # or "REPLAY"
+instrument: "XAU_USD"
+timeframe: "M5"
+warmup_bars: 288
+
+entry_config: gx1/configs/policies/active/ENTRY_V9_SNIPER_LONDON_NY.yaml
+exit_config: gx1/configs/exits/FARM_EXIT_V2_RULES_A_mp68_max5_rule5_cd0.yaml
+
+exit_policies:
+  rule5: gx1/configs/exits/FARM_EXIT_V2_RULES_A_mp68_max5_rule5_cd0.yaml
+  rule6a: gx1/configs/exits/FARM_EXIT_V2_RULES_ADAPTIVE_v1.yaml
+
+hybrid_exit_router:
+  version: HYBRID_ROUTER_V3
+  model_path: gx1/configs/policies/prod_snapshot/2025_FARM_V2B_HYBRID_V3_RANGE/exit_router_models_v3/exit_router_v3_tree.pkl
+  v3_range_edge_cutoff: 1.0  # Same as PROD_BASELINE
+  documentation: |
+    HYBRID_ROUTER_V3_RANGE provides ML-based routing using decision tree trained on range features.
+    Same router model as PROD_BASELINE (reuse 100%).
+
+execution:
+  dry_run: false
+  max_open_trades: 1  # Conservative start (can increase to 2 later)
+
+logging:
+  level: INFO
+
+backfill:
+  enabled: true
+  overlap_bars: 6
+  lookback_padding: 100
+  target_bars_padding: 100
+

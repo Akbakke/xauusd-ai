@@ -6,7 +6,7 @@ This is the single source of truth for FARM entry validation.
 """
 
 import logging
-from typing import Union, Dict, Any
+from typing import Union, Dict, Any, List
 import pandas as pd
 
 logger = logging.getLogger(__name__)
@@ -175,29 +175,14 @@ def get_farm_entry_metadata(row: Union[pd.Series, Dict[str, Any]]) -> Dict[str, 
     }
 
 
-def farm_brutal_guard_v2(
-    row: Union[pd.Series, Dict[str, Any]], 
-    context: str = "unknown",
-    allow_medium_vol: bool = True
-) -> bool:
+def _extract_session_vol_regime(row: Union[pd.Series, Dict[str, Any]]) -> tuple[str, str]:
     """
-    Brutal guard for FARM_V2: Allows ASIA + (LOW ∪ MEDIUM) volatility.
-    
-    This is the guard for FARM_V2_PLUS which allows both LOW and MEDIUM volatility
-    regimes, while FARM_V1 remains ASIA+LOW only.
-    
-    Args:
-        row: DataFrame row (pd.Series) or dict with session and vol_regime information
-        context: Context string for logging (e.g., "policy", "live_runner", "replay")
-        allow_medium_vol: Whether to allow MEDIUM volatility (default: True)
+    Extract session and vol_regime from a row (shared logic for all guards).
     
     Returns:
-        True if guard passes (ASIA + (LOW or MEDIUM)), raises AssertionError otherwise
-    
-    Raises:
-        AssertionError: If session != "ASIA" or vol_regime not in allowed set
+        (session, vol_regime) tuple
     """
-    # Extract session - same logic as V1 guard
+    # Extract session
     session = None
     for col in ["session", "session_entry", "_v1_session_tag", "session_tag"]:
         if isinstance(row, pd.Series):
@@ -222,7 +207,7 @@ def farm_brutal_guard_v2(
                 session_id = row["session_id"]
                 session = session_map.get(int(session_id), "UNKNOWN")
     
-    # Extract vol_regime - same logic as V1 guard
+    # Extract vol_regime
     vol_regime = None
     for col in ["vol_regime", "vol_regime_entry", "atr_regime"]:
         if isinstance(row, pd.Series):
@@ -249,33 +234,135 @@ def farm_brutal_guard_v2(
                     vol_regime = ATR_ID_TO_VOL.get(atr_id, "UNKNOWN")
                     break
     
-    # BRUTAL ASSERT: Session must be ASIA
-    if session != "ASIA":
+    return (session or "UNKNOWN", vol_regime or "UNKNOWN")
+
+
+def session_vol_guard(
+    row: Union[pd.Series, Dict[str, Any]],
+    allowed_sessions: List[str],
+    allowed_vol_regimes: List[str],
+    allow_extreme: bool = False,
+    context: str = "unknown",
+    guard_name: str = "SESSION_VOL_GUARD"
+) -> bool:
+    """
+    Generalized session + volatility guard.
+    
+    Args:
+        row: DataFrame row (pd.Series) or dict with session and vol_regime information
+        allowed_sessions: List of allowed session IDs (e.g., ["ASIA"] or ["EU", "OVERLAP", "US"])
+        allowed_vol_regimes: List of allowed volatility regimes (e.g., ["LOW", "MEDIUM"])
+        allow_extreme: Whether to allow EXTREME volatility (default: False)
+        context: Context string for logging
+        guard_name: Name of guard for logging (e.g., "FARM_BRUTAL_GUARD_V2" or "SNIPER_GUARD_V1")
+    
+    Returns:
+        True if guard passes, raises AssertionError otherwise
+    
+    Raises:
+        AssertionError: If session or vol_regime not in allowed sets
+    """
+    session, vol_regime = _extract_session_vol_regime(row)
+    
+    # Build allowed vol regimes list (include EXTREME if allowed)
+    effective_allowed_vol = allowed_vol_regimes.copy()
+    if allow_extreme and "EXTREME" not in effective_allowed_vol:
+        effective_allowed_vol.append("EXTREME")
+    
+    # BRUTAL ASSERT: Session must be in allowed list
+    if session not in allowed_sessions:
         error_msg = (
-            f"[FARM_BRUTAL_GUARD_V2] {context}: session={session} != ASIA. "
-            f"FARM_V2 only allows ASIA session."
+            f"[{guard_name}] {context}: session={session} not in {allowed_sessions}. "
+            f"Only {allowed_sessions} sessions allowed."
         )
         logger.error(error_msg)
         raise AssertionError(error_msg)
     
-    # BRUTAL ASSERT: Vol regime must be LOW or (MEDIUM if allowed)
-    allowed_vol_regimes = ["LOW"]
-    if allow_medium_vol:
-        allowed_vol_regimes.append("MEDIUM")
-    
-    if vol_regime not in allowed_vol_regimes:
+    # BRUTAL ASSERT: Vol regime must be in allowed list
+    if vol_regime not in effective_allowed_vol:
         error_msg = (
-            f"[FARM_BRUTAL_GUARD_V2] {context}: vol_regime={vol_regime} not in {allowed_vol_regimes}. "
-            f"FARM_V2 only allows {allowed_vol_regimes} volatility."
+            f"[{guard_name}] {context}: vol_regime={vol_regime} not in {effective_allowed_vol}. "
+            f"Only {effective_allowed_vol} volatility allowed."
         )
         logger.error(error_msg)
         raise AssertionError(error_msg)
     
     # Guard passed
     logger.debug(
-        f"[FARM_BRUTAL_GUARD_V2] {context}: PASSED - session={session}, vol_regime={vol_regime}"
+        f"[{guard_name}] {context}: PASSED - session={session}, vol_regime={vol_regime}"
     )
     return True
+
+
+def farm_brutal_guard_v2(
+    row: Union[pd.Series, Dict[str, Any]], 
+    context: str = "unknown",
+    allow_medium_vol: bool = True
+) -> bool:
+    """
+    Brutal guard for FARM_V2: Allows ASIA + (LOW ∪ MEDIUM) volatility.
+    
+    This is the guard for FARM_V2_PLUS which allows both LOW and MEDIUM volatility
+    regimes, while FARM_V1 remains ASIA+LOW only.
+    
+    Args:
+        row: DataFrame row (pd.Series) or dict with session and vol_regime information
+        context: Context string for logging (e.g., "policy", "live_runner", "replay")
+        allow_medium_vol: Whether to allow MEDIUM volatility (default: True)
+    
+    Returns:
+        True if guard passes (ASIA + (LOW or MEDIUM)), raises AssertionError otherwise
+    
+    Raises:
+        AssertionError: If session != "ASIA" or vol_regime not in allowed set
+    """
+    allowed_vol_regimes = ["LOW"]
+    if allow_medium_vol:
+        allowed_vol_regimes.append("MEDIUM")
+    
+    return session_vol_guard(
+        row=row,
+        allowed_sessions=["ASIA"],
+        allowed_vol_regimes=allowed_vol_regimes,
+        allow_extreme=False,
+        context=context,
+        guard_name="FARM_BRUTAL_GUARD_V2"
+    )
+
+
+def sniper_guard_v1(
+    row: Union[pd.Series, Dict[str, Any]],
+    context: str = "unknown",
+    allow_high_vol: bool = True,
+    allow_extreme_vol: bool = False
+) -> bool:
+    """
+    Guard for SNIPER: Allows EU/OVERLAP/US + (LOW ∪ MEDIUM ∪ HIGH) volatility.
+    
+    Args:
+        row: DataFrame row (pd.Series) or dict with session and vol_regime information
+        context: Context string for logging
+        allow_high_vol: Whether to allow HIGH volatility (default: True)
+        allow_extreme_vol: Whether to allow EXTREME volatility (default: False)
+    
+    Returns:
+        True if guard passes, raises AssertionError otherwise
+    
+    Raises:
+        AssertionError: If session not in [EU, OVERLAP, US] or vol_regime not allowed
+    """
+    allowed_vol_regimes = ["LOW", "MEDIUM"]
+    if allow_high_vol:
+        allowed_vol_regimes.append("HIGH")
+    
+    return session_vol_guard(
+        row=row,
+        allowed_sessions=["EU", "OVERLAP", "US"],
+        allowed_vol_regimes=allowed_vol_regimes,
+        allow_extreme=allow_extreme_vol,
+        context=context,
+        guard_name="SNIPER_GUARD_V1"
+    )
 
 
 def get_farm_entry_metadata_v2(

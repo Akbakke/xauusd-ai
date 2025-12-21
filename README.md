@@ -1,5 +1,11 @@
 # GX1 / FARM – Active Runtime
 
+## Reports
+
+### SNIPER 2025 – Frozen Analysis
+- Fullyear report: `docs/SNIPER_2025_FULLYEAR_REPORT__20251218.md`
+- Freeze marker: `docs/SNIPER_2025_ANALYSIS_FROZEN.md`
+
 This repository now contains only the components that power the current GX1 FARM pipeline:
 
 - **Entry:** `ENTRY_V9_FARM_V2B` (with optional V2 fallback) – transformer based p_long policy that runs through the new `EntryManager`.
