@@ -1,0 +1,16 @@
+=== BRUK AV DISSE SCRIPTS I ANDRE FILER ===
+--- Script: === SCRIPTS/ RUNNERS I PROSJEKTET === ---
+Ingen treff
+
+--- Script: ./gx1/execution/oanda_demo_runner.py ---
+Ingen treff
+
+--- Script: ./gx1/prod/run_header.py ---
+Ingen treff
+
+--- Script: ./gx1/scripts/run_sniper_quarter_replays.py ---
+Ingen treff
+
+--- Script: ./scripts/active/run_parallel_replay.py ---
+Ingen treff
+
