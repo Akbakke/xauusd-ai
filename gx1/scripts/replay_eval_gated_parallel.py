@@ -389,6 +389,11 @@ def process_chunk(
         pregate_passes = getattr(runner, "pregate_passes", 0)
         pregate_missing_inputs = getattr(runner, "pregate_missing_inputs", 0)
         
+        # PATCH: Extract HTF alignment timing from runner (set in oanda_demo_runner.py)
+        htf_align_time_total_sec = getattr(runner, "htf_align_time_total_sec", 0.0)
+        htf_align_call_count = getattr(runner, "htf_align_call_count", 0)
+        htf_align_warning_time_sec = getattr(runner, "htf_align_warning_time_sec", 0.0)
+        
         # DEL 1: Extract phase timing (for "bars/sec" breakdown)
         t_pregate_total_sec = getattr(runner, "t_pregate_total_sec", 0.0)
         t_feature_build_total_sec = feature_time_total  # Pure feature build time (from perf_feat_time)
@@ -490,6 +495,9 @@ def process_chunk(
                 "feature_time_mean_ms": convert_to_json_serializable(feature_time_mean_ms),
                 "feature_timeout_count": convert_to_json_serializable(feature_timeout_count),
                 "htf_align_warn_count": convert_to_json_serializable(htf_align_warn_count),
+                "htf_align_time_total_sec": convert_to_json_serializable(htf_align_time_total_sec),
+                "htf_align_call_count": convert_to_json_serializable(htf_align_call_count),
+                "htf_align_warning_time_sec": convert_to_json_serializable(htf_align_warning_time_sec),
                 "pregate_skips": convert_to_json_serializable(pregate_skips),
                 "pregate_passes": convert_to_json_serializable(pregate_passes),
                 "pregate_missing_inputs": convert_to_json_serializable(pregate_missing_inputs),
@@ -529,10 +537,13 @@ def process_chunk(
         "wall_clock_sec": wall_clock_sec,
         "total_bars": total_bars,
         "bars_per_sec": bars_processed / wall_clock_sec if wall_clock_sec > 0 else 0.0,
-        "feature_time_mean_ms": feature_time_mean_ms,
-        "feature_timeout_count": feature_timeout_count,
-        "htf_align_warn_count": htf_align_warn_count,
-        "pregate_skips": pregate_skips,
+                "feature_time_mean_ms": feature_time_mean_ms,
+                "feature_timeout_count": feature_timeout_count,
+                "htf_align_warn_count": htf_align_warn_count,
+                "htf_align_time_total_sec": htf_align_time_total_sec,
+                "htf_align_call_count": htf_align_call_count,
+                "htf_align_warning_time_sec": htf_align_warning_time_sec,
+                "pregate_skips": pregate_skips,
         "pregate_passes": pregate_passes,
         "pregate_missing_inputs": pregate_missing_inputs,
         "artifacts": {
@@ -619,6 +630,9 @@ def export_perf_json_from_footers(
                     "feature_time_mean_ms": footer.get("feature_time_mean_ms", 0.0),
                     "feature_timeout_count": footer.get("feature_timeout_count", 0),
                     "htf_align_warn_count": footer.get("htf_align_warn_count", 0),
+                    "htf_align_time_total_sec": footer.get("htf_align_time_total_sec", 0.0),
+                    "htf_align_call_count": footer.get("htf_align_call_count", 0),
+                    "htf_align_warning_time_sec": footer.get("htf_align_warning_time_sec", 0.0),
                     "pregate_skips": footer.get("pregate_skips", 0),
                     "pregate_passes": footer.get("pregate_passes", 0),
                     "pregate_missing_inputs": footer.get("pregate_missing_inputs", 0),

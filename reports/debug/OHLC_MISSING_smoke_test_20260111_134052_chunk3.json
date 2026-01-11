@@ -1,0 +1,144 @@
+{
+  "timestamp": "2026-01-11T12:40:56.421855+00:00",
+  "input_path": "/Users/andrekildalbakke/Desktop/GX1 XAUUSD/reports/replay_eval/GATED/chunk_3/chunk_3_data.parquet",
+  "input_path_resolved": "/Users/andrekildalbakke/Desktop/GX1 XAUUSD/reports/replay_eval/GATED/chunk_3/chunk_3_data.parquet",
+  "file_exists": true,
+  "file_size_bytes": 702072,
+  "file_mtime": 1768135254.6016142,
+  "source_format": "parquet",
+  "df_shape": [
+    10031,
+    13
+  ],
+  "df_columns": [
+    {
+      "name": "open",
+      "type": "<class 'str'>"
+    },
+    {
+      "name": "high",
+      "type": "<class 'str'>"
+    },
+    {
+      "name": "low",
+      "type": "<class 'str'>"
+    },
+    {
+      "name": "close",
+      "type": "<class 'str'>"
+    },
+    {
+      "name": "volume",
+      "type": "<class 'str'>"
+    },
+    {
+      "name": "bid_open",
+      "type": "<class 'str'>"
+    },
+    {
+      "name": "bid_high",
+      "type": "<class 'str'>"
+    },
+    {
+      "name": "bid_low",
+      "type": "<class 'str'>"
+    },
+    {
+      "name": "bid_close",
+      "type": "<class 'str'>"
+    },
+    {
+      "name": "ask_open",
+      "type": "<class 'str'>"
+    },
+    {
+      "name": "ask_high",
+      "type": "<class 'str'>"
+    },
+    {
+      "name": "ask_low",
+      "type": "<class 'str'>"
+    },
+    {
+      "name": "ask_close",
+      "type": "<class 'str'>"
+    }
+  ],
+  "df_dtypes": {
+    "open": "float64",
+    "high": "float64",
+    "low": "float64",
+    "close": "float64",
+    "volume": "float64",
+    "bid_open": "float64",
+    "bid_high": "float64",
+    "bid_low": "float64",
+    "bid_close": "float64",
+    "ask_open": "float64",
+    "ask_high": "float64",
+    "ask_low": "float64",
+    "ask_close": "float64"
+  },
+  "df_index_name": "time",
+  "df_index_type": "<class 'pandas.core.indexes.datetimes.DatetimeIndex'>",
+  "df_index_first": "2025-06-05 06:20:00+00:00",
+  "df_index_last": "2025-07-25 20:40:00+00:00",
+  "df_head_columns": [
+    "open",
+    "high",
+    "low",
+    "close",
+    "volume",
+    "bid_open",
+    "bid_high",
+    "bid_low",
+    "bid_close",
+    "ask_open",
+    "ask_high",
+    "ask_low",
+    "ask_close"
+  ],
+  "df_tail_columns": [
+    "open",
+    "high",
+    "low",
+    "close",
+    "volume",
+    "bid_open",
+    "bid_high",
+    "bid_low",
+    "bid_close",
+    "ask_open",
+    "ask_high",
+    "ask_low",
+    "ask_close"
+  ],
+  "cols_normalized": {
+    "open": "open",
+    "high": "high",
+    "low": "low",
+    "close": "close",
+    "volume": "volume",
+    "bid_open": "bid_open",
+    "bid_high": "bid_high",
+    "bid_low": "bid_low",
+    "bid_close": "bid_close",
+    "ask_open": "ask_open",
+    "ask_high": "ask_high",
+    "ask_low": "ask_low",
+    "ask_close": "ask_close"
+  },
+  "required_lower": [
+    "open",
+    "high",
+    "low",
+    "close"
+  ],
+  "missing_via_norm": [],
+  "ohlc_dtypes": {
+    "open": "float64",
+    "high": "float64",
+    "low": "float64",
+    "close": "float64"
+  }
+}
