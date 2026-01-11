@@ -558,9 +558,13 @@ def export_perf_json_from_footers(
     output_dir: Path,
     policy_path: Path,
     pregate_enabled: bool,
+    pregate_enabled_source: str,  # "env" or "yaml"
     workers: int,
+    actual_workers_started: int,
     chunks: List[Tuple[pd.Timestamp, pd.Timestamp, int]],
     total_time: float,
+    export_mode: str = "normal",  # "normal" or "watchdog_sigterm"
+    export_partial: bool = False,  # True if export happened while workers still running
 ) -> Path:
     """
     Export perf JSON from chunk_footer.json files (robust, always works).
@@ -657,7 +661,9 @@ def export_perf_json_from_footers(
         "run_id": run_id,
         "timestamp": datetime.now().isoformat(),
         "pregate_enabled": pregate_enabled,
-        "workers": workers,
+        "requested_workers": workers,
+        "actual_workers_started": actual_workers_started,
+        "workers": workers,  # Keep for backward compatibility
         "total_wall_clock_sec": total_time,
         "total_bars": total_bars,
         "total_model_calls": total_model_calls,
@@ -666,10 +672,22 @@ def export_perf_json_from_footers(
         "chunks_statuses": chunks_statuses,
         "chunks": chunks_metrics,
         "env_info": env_info,
+        "export_mode": export_mode,  # "normal" or "watchdog_sigterm"
+        "export_partial": export_partial,  # True if workers still running during export
     }
     
-    with open(perf_json_path, "w") as f:
-        json.dump(perf_data, f, indent=2)
+    # CRITICAL: Atomic write (tmp → rename) to prevent truncation if process dies mid-write
+    perf_json_tmp = perf_json_path.with_suffix(".tmp")
+    try:
+        with open(perf_json_tmp, "w") as f:
+            json.dump(perf_data, f, indent=2)
+        # Atomic rename (POSIX guarantees this is atomic)
+        perf_json_tmp.replace(perf_json_path)
+    except Exception as e:
+        # Clean up tmp file on error
+        if perf_json_tmp.exists():
+            perf_json_tmp.unlink()
+        raise
     
     log.info(
         f"[PERF] Wrote perf_{run_id}.json "
@@ -928,16 +946,27 @@ def main():
                                 # Fallback to dummy timestamps
                                 chunks_for_export.append((pd.Timestamp("2025-01-01"), pd.Timestamp("2025-01-02"), i))
                         
-                        # Export perf JSON
+                        # Determine pregate_enabled_source
+                        env_pregate_enabled = os.getenv("GX1_REPLAY_PREGATE_ENABLED")
+                        if env_pregate_enabled is not None:
+                            pregate_enabled_source = "env"
+                        else:
+                            pregate_enabled_source = "yaml"
+                        
+                        # Export perf JSON (watchdog mode - workers may still be running)
                         total_time_estimate = 60.0  # Conservative estimate
                         perf_json_path = export_perf_json_from_footers(
                             run_id=run_id,
                             output_dir=args.output_dir,
                             policy_path=args.policy,
                             pregate_enabled=pregate_enabled,
+                            pregate_enabled_source=pregate_enabled_source,
                             workers=args.workers,
+                            actual_workers_started=args.workers,  # Best guess in watchdog mode
                             chunks=chunks_for_export,
                             total_time=total_time_estimate,
+                            export_mode="watchdog_sigterm",
+                            export_partial=True,  # Workers may still be running
                         )
                         
                         # Verify file was written
@@ -1064,11 +1093,15 @@ def main():
     # CRITICAL: Initialize merged_artifacts to empty dict (in case we exit early)
     merged_artifacts = {}
     
+    # Track actual_workers_started in outer scope (accessible in finally)
+    actual_workers_started = args.workers  # Default, will be set when pool is created
+    
     try:
         # Use apply_async instead of starmap to allow polling/timeout
         log.info(f"[MASTER] Submitted {len(chunk_tasks)} chunks")
         
         pool = mp.Pool(processes=args.workers)
+        actual_workers_started = args.workers  # Track actual workers started (for perf JSON)
         async_results = [
             pool.apply_async(process_chunk, args=task) for task in chunk_tasks
         ]
@@ -1245,15 +1278,36 @@ def main():
                         pregate_enabled = pregate_cfg.get("enabled", False) if isinstance(pregate_cfg, dict) else False
                         log.info(f"[PERF] PreGate enabled from YAML: {pregate_enabled}")
                     
+                    # Determine pregate_enabled_source
+                    env_pregate_check = os.getenv("GX1_REPLAY_PREGATE_ENABLED")
+                    if env_pregate_check is not None:
+                        pregate_enabled_source = "env"
+                    else:
+                        pregate_enabled_source = "yaml"
+                    
+                    # Use tracked actual_workers_started (set when pool was created)
+                    # If not available (e.g., in finally after pool cleanup), use requested
+                    try:
+                        # actual_workers_started should be in scope from pool creation
+                        if 'actual_workers_started' not in locals():
+                            actual_workers_started = args.workers
+                    except NameError:
+                        # Fallback if variable not in scope (shouldn't happen, but be safe)
+                        actual_workers_started = args.workers
+                    
                     # Export perf JSON from footers (robust, always works)
                     perf_json_path = export_perf_json_from_footers(
                         run_id=run_id,
                         output_dir=args.output_dir,
                         policy_path=args.policy,
                         pregate_enabled=pregate_enabled,
+                        pregate_enabled_source=pregate_enabled_source,
                         workers=args.workers,
+                        actual_workers_started=actual_workers_started,
                         chunks=chunks,
                         total_time=total_time,
+                        export_mode="normal",
+                        export_partial=False,  # Normal completion
                     )
                     
                     # Verify file was written

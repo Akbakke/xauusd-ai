@@ -26,15 +26,28 @@ log = logging.getLogger(__name__)
 
 def load_perf_json(path: Path) -> Dict[str, Any]:
     """
-    Load performance JSON file.
+    Load performance JSON file with validation.
     
-    Raises ValueError if file is a stub (export_failed).
+    Raises:
+        FileNotFoundError: If file doesn't exist
+        json.JSONDecodeError: If file is invalid JSON (truncated)
+        ValueError: If file is a stub (export_failed) or missing required fields
     """
     if not path.exists():
         raise FileNotFoundError(f"Perf JSON not found: {path}")
     
-    with open(path, "r") as f:
-        data = json.load(f)
+    # CRITICAL: Try to parse JSON - will raise JSONDecodeError if truncated
+    try:
+        with open(path, "r") as f:
+            data = json.load(f)
+    except json.JSONDecodeError as e:
+        raise json.JSONDecodeError(
+            f"Perf JSON is invalid (truncated or corrupted): {path}\n"
+            f"JSON decode error: {e.msg} at line {e.lineno}, column {e.colno}\n"
+            f"This file may have been written while the process was killed mid-write.",
+            e.doc,
+            e.pos
+        ) from e
     
     # CRITICAL: Check if this is a stub file (export failed)
     if data.get("status") == "export_failed":
@@ -42,6 +55,30 @@ def load_perf_json(path: Path) -> Dict[str, Any]:
             f"Perf JSON is a stub file (export failed): {path}\n"
             f"Export error: {data.get('export_error', 'unknown')}\n"
             f"This file was written because perf export failed. "
+            f"Comparison cannot proceed with incomplete data."
+        )
+    
+    # CRITICAL: Validate required fields
+    required_fields = ["run_id", "chunks_total", "chunks_statuses", "env_info", "timestamp"]
+    missing_fields = [field for field in required_fields if field not in data]
+    if missing_fields:
+        raise ValueError(
+            f"Perf JSON missing required fields: {missing_fields}\n"
+            f"File: {path}\n"
+            f"This file may be incomplete or from an older version."
+        )
+    
+    # Validate env_info has git_commit
+    env_info = data.get("env_info", {})
+    if "git_commit" not in env_info:
+        log.warning(f"Perf JSON missing git_commit in env_info: {path}")
+    
+    # CRITICAL: Reject partial exports from watchdog (unless explicitly allowed)
+    if data.get("export_mode") == "watchdog_sigterm" and data.get("export_partial", False):
+        raise ValueError(
+            f"Perf JSON is from watchdog SIGTERM export (partial data): {path}\n"
+            f"Export mode: {data.get('export_mode')}, export_partial: {data.get('export_partial')}\n"
+            f"This file was written while workers were still running. "
             f"Comparison cannot proceed with incomplete data."
         )
     
