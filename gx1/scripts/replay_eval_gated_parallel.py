@@ -1256,7 +1256,8 @@ def main():
         if pool:
             log.warning("[MASTER] Terminating pool due to error...")
             pool.terminate()
-            pool.join(timeout=30)
+            # Note: pool.join() doesn't support timeout in Python 3.10
+            pool.join()  # Wait for workers to terminate
             pool = None
         # Continue to finally to write perf JSON
     finally:
