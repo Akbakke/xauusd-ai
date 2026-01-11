@@ -262,6 +262,13 @@ def _align_htf_to_m5_numpy(
         # DEL C: Rate-limit HTF alignment warnings in replay mode (GX1_REPLAY_QUIET=1)
         replay_quiet = os.getenv("GX1_REPLAY_QUIET", "0") == "1"
         if is_replay and replay_quiet and n_missing > 0:
+            # PATCH: Track warning path timing
+            from gx1.utils.perf_timer import perf_add
+            perf_add("feat.htf_align.warning_path", 1.0)  # Count warning paths
+            # Conservative estimate: 0.5us per missing bar (searchsorted + mask + zeros + roll)
+            estimated_overhead = n_missing * 0.5e-6
+            perf_add("feat.htf_align.warning_overhead_est", estimated_overhead)
+            
             # Track alignment warning count per runner (via thread-local or module-level)
             # For now, use module-level cache (will be reset per chunk in replay_eval_gated_parallel)
             if not hasattr(_align_htf_to_m5_numpy, "_align_warn_count"):
