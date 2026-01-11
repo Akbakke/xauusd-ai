@@ -1162,7 +1162,8 @@ def main():
             log.info(f"[PARALLEL] All chunks completed in {total_time:.1f}s")
             log.info("[MASTER] Closing pool (all chunks done)...")
             pool.close()  # Prevent new tasks, allow existing to finish
-            pool.join(timeout=30)  # Wait for workers to finish gracefully
+            # Note: pool.join() doesn't support timeout in Python 3.10, but workers should finish quickly after close()
+            pool.join()  # Wait for workers to finish gracefully
         else:
             log.warning("[MASTER] Terminating pool due to stop/timeout...")
             pool.terminate()  # Force kill workers
@@ -1244,7 +1245,8 @@ def main():
         if pool:
             log.warning("[MASTER] Terminating pool due to interrupt...")
             pool.terminate()
-            pool.join(timeout=30)
+            # Note: pool.join() doesn't support timeout in Python 3.10
+            pool.join()  # Wait for workers to terminate
             pool = None
         # Continue to finally to write perf JSON
     except Exception as e:
