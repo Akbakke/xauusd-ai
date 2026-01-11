@@ -1174,7 +1174,8 @@ def main():
             join_done = threading.Event()
             def join_pool():
                 try:
-                    pool.join(timeout=5)  # Short timeout after terminate
+                    # Note: pool.join() doesn't support timeout in Python 3.10
+                    pool.join()  # Wait for workers to terminate
                     log.info("[MASTER] Pool joined successfully")
                 except Exception as e:
                     log.warning(f"[MASTER] Pool join error (non-fatal): {e}")
