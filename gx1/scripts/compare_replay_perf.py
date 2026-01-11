@@ -58,14 +58,34 @@ def load_perf_json(path: Path) -> Dict[str, Any]:
             f"Comparison cannot proceed with incomplete data."
         )
     
+    # CRITICAL: Validate schema version first
+    expected_schema_version = "perf_v1"
+    schema_version = data.get("schema_version")
+    if schema_version != expected_schema_version:
+        raise ValueError(
+            f"Perf JSON schema version mismatch: expected '{expected_schema_version}', got '{schema_version}'\n"
+            f"File: {path}\n"
+            f"This file may be from a different version of the codebase. "
+            f"Schema changes require explicit migration."
+        )
+    
     # CRITICAL: Validate required fields
-    required_fields = ["run_id", "chunks_total", "chunks_statuses", "env_info", "timestamp"]
+    required_fields = ["run_id", "chunks_total", "chunks_statuses", "env_info", "timestamp", "writer_pid", "export_seq"]
     missing_fields = [field for field in required_fields if field not in data]
     if missing_fields:
         raise ValueError(
             f"Perf JSON missing required fields: {missing_fields}\n"
             f"File: {path}\n"
             f"This file may be incomplete or from an older version."
+        )
+    
+    # CRITICAL: Validate export_seq (should always be 1)
+    export_seq = data.get("export_seq")
+    if export_seq != 1:
+        raise ValueError(
+            f"Perf JSON has invalid export_seq: expected 1, got {export_seq}\n"
+            f"File: {path}\n"
+            f"This file may have been written multiple times (should never happen)."
         )
     
     # Validate env_info has git_commit

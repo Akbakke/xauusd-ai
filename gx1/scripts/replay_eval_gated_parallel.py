@@ -658,8 +658,11 @@ def export_perf_json_from_footers(
     }
     
     perf_data = {
+        "schema_version": "perf_v1",  # Schema version for future compatibility
         "run_id": run_id,
         "timestamp": datetime.now().isoformat(),
+        "writer_pid": os.getpid(),  # PID of master process that wrote this file
+        "export_seq": 1,  # Always 1 (hard-fail if someone tries to write twice)
         "pregate_enabled": pregate_enabled,
         "requested_workers": workers,
         "actual_workers_started": actual_workers_started,
@@ -990,8 +993,11 @@ def main():
                         # CRITICAL: Write stub file with error info before exiting
                         import traceback
                         error_stub = {
+                            "schema_version": "perf_v1",  # Same schema as normal perf JSON
                             "run_id": run_id,
                             "timestamp": datetime.now().isoformat(),
+                            "writer_pid": os.getpid(),
+                            "export_seq": 1,
                             "status": "export_failed",
                             "export_error": str(e),
                             "export_traceback": "".join(traceback.format_exception(type(e), e, e.__traceback__)),
@@ -1324,8 +1330,11 @@ def main():
                     # CRITICAL: Write stub file with error info
                     import traceback
                     error_stub = {
+                        "schema_version": "perf_v1",  # Same schema as normal perf JSON
                         "run_id": run_id,
                         "timestamp": datetime.now().isoformat(),
+                        "writer_pid": os.getpid(),
+                        "export_seq": 1,
                         "status": "export_failed",
                         "export_error": str(perf_error),
                         "export_traceback": "".join(traceback.format_exception(type(perf_error), perf_error, perf_error.__traceback__)),
