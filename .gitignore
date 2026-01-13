@@ -6,9 +6,22 @@ gx1/wf_runs/
 !gx1/wf_runs/_inventory.csv
 # Archive directory
 gx1/wf_runs/_archive/
+gx1/live/
 gx1/live/logs/
 logs/
 gx1/optuna/**/*.db
+
+# Runtime data directories (permanent exclusion)
+runs/
+data/replay/
+data/temp/
+
+# Large binary files (permanent exclusion)
+*.parquet
+*.pt
+*.joblib
+*.csv
+*.sqlite
 
 # Large log/telemetry files
 *.jsonl
@@ -28,7 +41,7 @@ Miniforge3.sh
 # OS junk
 .DS_Store
 
-# Exit router training datasets
-gx1/data/exit_router/*.parquet
-gx1/data/exit_router/*.csv
+# Exit router training datasets (already covered by *.parquet and *.csv above)
+# gx1/data/exit_router/*.parquet
+# gx1/data/exit_router/*.csv
 
