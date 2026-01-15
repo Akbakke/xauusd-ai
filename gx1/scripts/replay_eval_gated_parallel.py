@@ -23,6 +23,14 @@ from typing import Dict, List, Optional, Any, Tuple
 
 import pandas as pd
 
+# FASE 0.1: Import psutil for process detection
+try:
+    import psutil
+except ImportError:
+    psutil = None
+    log = logging.getLogger(__name__)
+    log.warning("[FASE_0] psutil not available - cannot detect parallel replays")
+
 # Add workspace root to path
 workspace_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(workspace_root))
@@ -41,7 +49,9 @@ os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
 os.environ.setdefault("VECLIB_MAXIMUM_THREADS", "1")
 os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
 
-from gx1.execution.oanda_demo_runner import GX1DemoRunner
+# FASE 1: DO NOT import GX1DemoRunner at top level - it imports live_features which imports basic_v1
+# Import will happen in process_chunk() where workers have clean import state (spawn method)
+# from gx1.execution.oanda_demo_runner import GX1DemoRunner
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -71,10 +81,16 @@ def get_git_commit_hash() -> Optional[str]:
 
 
 def split_data_into_chunks(
-    data_path: Path, n_chunks: int
+    data_path: Path, n_chunks: int, slice_head: Optional[int] = None, days: Optional[int] = None
 ) -> List[Tuple[pd.Timestamp, pd.Timestamp, int]]:
     """
     Split data into N time-based chunks (no overlap).
+    
+    Args:
+        data_path: Path to data file
+        n_chunks: Number of chunks
+        slice_head: If set, use only first N bars (deterministic)
+        days: If set, use only first N days (deterministic, M5 = 288 bars/day)
     
     Returns list of (start_ts, end_ts, chunk_idx) tuples.
     """
@@ -92,6 +108,19 @@ def split_data_into_chunks(
             raise ValueError("Data must have datetime index or 'ts' column")
     
     df = df.sort_index()
+    
+    # Apply slicing if requested (deterministic: always use head)
+    if days is not None:
+        bars_per_day = 288  # M5
+        slice_bars = days * bars_per_day
+        df = df.head(slice_bars)
+        log.info(f"[PARALLEL] Sliced to first {days} days ({slice_bars} bars)")
+    elif slice_head is not None:
+        df = df.head(slice_head)
+        log.info(f"[PARALLEL] Sliced to first {slice_head} bars")
+    
+    if len(df) == 0:
+        raise ValueError(f"Data is empty after slicing")
     
     start_ts = df.index[0]
     end_ts = df.index[-1]
@@ -160,6 +189,7 @@ def process_chunk(
     policy_path: Path,
     run_id: str,
     output_dir: Path,
+    bundle_sha256: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Process a single chunk in a worker process.
@@ -170,6 +200,9 @@ def process_chunk(
     Returns dict with chunk results and paths to artifacts.
     """
     global STOP_REQUESTED
+    
+    # FIX: Import os at function level to avoid shadowing issues in finally block
+    import os as os_module
     
     # DEL 2: Install SIGTERM handler for graceful shutdown
     signal.signal(signal.SIGTERM, _sigterm_handler)
@@ -190,6 +223,42 @@ def process_chunk(
     bars_processed = 0
     last_checkpoint_bars = 0
     CHECKPOINT_EVERY_BARS = 1000  # DEL 3: Periodic checkpoint flush
+    
+    # Initialize entry stage telemetry (before runner is created)
+    bars_seen = 0
+    bars_skipped_warmup = 0
+    bars_skipped_pregate = 0
+    bars_reaching_entry_stage = 0
+    pregate_enabled = False
+    
+    # FIX: Initialize all footer variables to prevent "referenced before assignment"
+    total_bars = 0
+    n_trades_created = 0
+    feature_time_total = 0.0
+    feature_time_mean_ms = 0.0
+    feature_timeout_count = 0
+    htf_align_warn_count = 0
+    htf_align_time_total_sec = 0.0
+    htf_align_call_count = 0
+    htf_align_warning_time_sec = 0.0
+    htf_align_fallback_count = 0
+    htf_feature_compute_bars = 0
+    pregate_skips = 0
+    pregate_passes = 0
+    pregate_missing_inputs = 0
+    t_pregate_total_sec = 0.0
+    t_feature_build_total_sec = 0.0
+    t_model_total_sec = 0.0
+    t_policy_total_sec = 0.0
+    t_io_total_sec = 0.0
+    wall_clock_sec = 0.0
+    htf_h1_calls = 0
+    htf_h4_calls = 0
+    htf_h1_warns = 0
+    htf_h4_warns = 0
+    htf_last_m5_ts = None
+    htf_last_j = None
+    vol_regime_unknown_count = 0
     
     log.info(
         f"[CHUNK {chunk_idx}] Starting: {chunk_start} to {chunk_end}"
@@ -270,20 +339,24 @@ def process_chunk(
         )
         
         # Set environment variables for this worker
-        os.environ["GX1_GATED_FUSION_ENABLED"] = "1"
-        os.environ["GX1_REQUIRE_XGB_CALIBRATION"] = "1"
-        os.environ["GX1_REPLAY_INCREMENTAL_FEATURES"] = "1"
-        os.environ["GX1_REPLAY_NO_CSV"] = "1"
-        os.environ["GX1_FEATURE_USE_NP_ROLLING"] = "1"
-        os.environ["GX1_RUN_ID"] = run_id
-        os.environ["GX1_CHUNK_ID"] = str(chunk_idx)
+        os_module.environ["GX1_GATED_FUSION_ENABLED"] = "1"
+        os_module.environ["GX1_REQUIRE_XGB_CALIBRATION"] = "1"
+        os_module.environ["GX1_REPLAY_INCREMENTAL_FEATURES"] = "1"
+        os_module.environ["GX1_REPLAY_NO_CSV"] = "1"
+        os_module.environ["GX1_FEATURE_USE_NP_ROLLING"] = "1"
+        os_module.environ["GX1_RUN_ID"] = run_id
+        os_module.environ["GX1_CHUNK_ID"] = str(chunk_idx)
         
         # Set thread limits (already set globally, but ensure in worker)
-        os.environ["OMP_NUM_THREADS"] = "1"
-        os.environ["MKL_NUM_THREADS"] = "1"
-        os.environ["OPENBLAS_NUM_THREADS"] = "1"
-        os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
-        os.environ["NUMEXPR_NUM_THREADS"] = "1"
+        os_module.environ["OMP_NUM_THREADS"] = "1"
+        os_module.environ["MKL_NUM_THREADS"] = "1"
+        os_module.environ["OPENBLAS_NUM_THREADS"] = "1"
+        os_module.environ["VECLIB_MAXIMUM_THREADS"] = "1"
+        os_module.environ["NUMEXPR_NUM_THREADS"] = "1"
+        
+        # FASE 1: Import GX1DemoRunner here (in worker process) to avoid importing live_features in master
+        # With spawn method, workers have clean import state, so this won't affect master's sys.modules
+        from gx1.execution.oanda_demo_runner import GX1DemoRunner
         
         # Create runner for this chunk
         runner = GX1DemoRunner(
@@ -296,6 +369,15 @@ def process_chunk(
         # Set run_id and chunk_id
         runner.run_id = run_id
         runner.chunk_id = str(chunk_idx)
+        
+        # Set bundle_sha256 from args (computed in master before workers start)
+        if bundle_sha256:
+            runner.bundle_sha256_from_master = bundle_sha256
+        else:
+            raise RuntimeError(
+                "[SSOT_FAIL] bundle_sha256 is missing in process_chunk. "
+                "This should never happen - bundle_sha256 must be computed before workers start."
+            )
         
         # DEL 2: Verify worker reads correct file
         chunk_data_path_abs = chunk_data_path.resolve()
@@ -340,11 +422,10 @@ def process_chunk(
         
         # DEL 2: Set STOP_REQUESTED flag in runner and env for bar loop checks
         runner._stop_requested = False
-        os.environ["GX1_STOP_REQUESTED"] = "0"
-        os.environ["GX1_CHECKPOINT_EVERY_BARS"] = str(CHECKPOINT_EVERY_BARS)
+        os_module.environ["GX1_STOP_REQUESTED"] = "0"
+        os_module.environ["GX1_CHECKPOINT_EVERY_BARS"] = str(CHECKPOINT_EVERY_BARS)
         
-        # DEL C: Set GX1_REPLAY_QUIET=1 for workers (default ON for replay_eval_gated_parallel.py)
-        os.environ["GX1_REPLAY_QUIET"] = "1"
+        # FASE 5: Quiet mode removed - all errors must be visible
         
         # DEL C: Filter sklearn warnings (UserWarning spam)
         import warnings
@@ -355,11 +436,22 @@ def process_chunk(
         def update_stop_flag():
             """Update env var when STOP_REQUESTED changes."""
             if STOP_REQUESTED:
-                os.environ["GX1_STOP_REQUESTED"] = "1"
+                os_module.environ["GX1_STOP_REQUESTED"] = "1"
                 runner._stop_requested = True
+        
+        # Fast abort mode: set env var for abort-after-N-bars-per-chunk
+        abort_after_n_bars = os_module.getenv("GX1_ABORT_AFTER_N_BARS_PER_CHUNK")
+        if abort_after_n_bars:
+            try:
+                abort_after_n_bars_int = int(abort_after_n_bars)
+                os_module.environ["GX1_ABORT_AFTER_N_BARS_PER_CHUNK"] = str(abort_after_n_bars_int)
+                log.info(f"[CHUNK {chunk_idx}] Fast abort mode: will stop after {abort_after_n_bars_int} bars")
+            except ValueError:
+                log.warning(f"[CHUNK {chunk_idx}] Invalid GX1_ABORT_AFTER_N_BARS_PER_CHUNK: {abort_after_n_bars}")
         
         # Run replay for this chunk
         # DEL 3: Checkpoint flush is handled inside bar loop via env var
+        # Entry stage telemetry: track bars directly from runner (fallback to local if runner telemetry missing)
         try:
             runner.run_replay(chunk_data_path_abs)
         except KeyboardInterrupt:
@@ -378,21 +470,103 @@ def process_chunk(
         bars_processed = n_model_calls
         wall_clock_sec = time.time() - worker_start_time  # DEL 2: Always define wall_clock_sec (even on early failure)
         
+        # Extract entry stage telemetry (where bars disappear)
+        # Hard-check: verify telemetry attributes exist on runner (since perf_n_bars_processed works)
+        if runner:
+            # Required telemetry attributes (must exist if bar loop ran)
+            required_attrs = ["bars_seen", "bars_skipped_warmup", "bars_skipped_pregate", "bars_reaching_entry_stage"]
+            missing_attrs = [attr for attr in required_attrs if not hasattr(runner, attr)]
+            
+            if missing_attrs:
+                # Diagnostic: show what attributes are available
+                available_attrs = [x for x in dir(runner) if x.startswith(('bars_', 'perf_')) and not x.startswith('__')]
+                raise RuntimeError(
+                    f"[CHUNK {chunk_idx}] TELEMETRY_MISSING: Required telemetry attributes missing on runner: {missing_attrs}. "
+                    f"Runner type: {type(runner).__name__}. "
+                    f"Available bars_/perf_ attributes: {available_attrs}. "
+                    f"This indicates telemetry was not initialized in bar loop (but perf_n_bars_processed={bars_processed} suggests loop ran)."
+                )
+            
+            # Direct attribute access (hard-check passed, attributes exist)
+            bars_seen = runner.bars_seen
+            bars_skipped_warmup = runner.bars_skipped_warmup
+            bars_skipped_pregate = runner.bars_skipped_pregate
+            bars_reaching_entry_stage = runner.bars_reaching_entry_stage
+            pregate_enabled = getattr(runner, "pregate_enabled", False)
+        else:
+            bars_seen = None
+            bars_skipped_warmup = None
+            bars_skipped_pregate = None
+            bars_reaching_entry_stage = None
+            pregate_enabled = False
+        
+        # If runner telemetry is None, use chunk_df length as proxy for bars_seen
+        # This handles the case where runner telemetry wasn't initialized
+        # bars_processed represents bars that reached the processing stage (after warmup)
+        if bars_seen is None:
+            # Use len(chunk_df) as proxy for total bars seen (all bars in chunk)
+            if chunk_df is not None:
+                bars_seen = len(chunk_df)
+            else:
+                # Fallback: use bars_processed (at least this many bars were seen)
+                bars_seen = bars_processed
+        if bars_skipped_warmup is None:
+            bars_skipped_warmup = 0  # Unknown, but at least 0
+        if bars_skipped_pregate is None:
+            bars_skipped_pregate = 0  # Unknown, but at least 0
+        if bars_reaching_entry_stage is None:
+            bars_reaching_entry_stage = 0  # Unknown, but at least 0
+        
+        # FIX: Set total_bars deterministically from chunk input (bars_processed from len(chunk_df))
+        # Use runner value if available, otherwise use bars_processed (from len(chunk_df))
+        total_bars = getattr(runner, "perf_n_bars_processed", bars_processed)
+        
         # DEL 1: Extract performance summary metrics from runner
-        total_bars = getattr(runner, "perf_n_bars_processed", 0)
         n_trades_created = getattr(runner, "perf_n_trades_created", 0)
         feature_time_total = getattr(runner, "perf_feat_time", 0.0)
         feature_time_mean_ms = (feature_time_total / total_bars * 1000.0) if total_bars > 0 else 0.0
         feature_timeout_count = getattr(runner, "feature_timeout_count", 0)
+        vol_regime_unknown_count = getattr(runner, "vol_regime_unknown_count", 0)
         htf_align_warn_count = getattr(runner, "htf_align_warn_count", 0)
         pregate_skips = getattr(runner, "pregate_skips", 0)
         pregate_passes = getattr(runner, "pregate_passes", 0)
         pregate_missing_inputs = getattr(runner, "pregate_missing_inputs", 0)
         
-        # PATCH: Extract HTF alignment timing from runner (set in oanda_demo_runner.py)
+        # PATCH: Extract HTF alignment stats from runner (set in oanda_demo_runner.py)
+        # FIX: Get stats directly from FeatureState/HTFAligner (not just perf collector)
         htf_align_time_total_sec = getattr(runner, "htf_align_time_total_sec", 0.0)
-        htf_align_call_count = getattr(runner, "htf_align_call_count", 0)
         htf_align_warning_time_sec = getattr(runner, "htf_align_warning_time_sec", 0.0)
+        
+        # FIX: Get HTFAligner stats directly from aligners via get_stats()
+        if hasattr(runner, "feature_state") and runner.feature_state:
+            h1_aligner = getattr(runner.feature_state, "h1_aligner", None)
+            h4_aligner = getattr(runner.feature_state, "h4_aligner", None)
+            
+            if h1_aligner is not None:
+                h1_stats = h1_aligner.get_stats()
+                htf_h1_calls = h1_stats.get("call_count", 0)
+                htf_h1_warns = h1_stats.get("warn_count", 0)
+                htf_align_call_count += htf_h1_calls
+                htf_align_warn_count += htf_h1_warns
+                htf_last_m5_ts = h1_stats.get("last_m5_ts")
+                htf_last_j = h1_stats.get("last_j")
+            
+            if h4_aligner is not None:
+                h4_stats = h4_aligner.get_stats()
+                htf_h4_calls = h4_stats.get("call_count", 0)
+                htf_h4_warns = h4_stats.get("warn_count", 0)
+                htf_align_call_count += htf_h4_calls
+                htf_align_warn_count += htf_h4_warns
+            
+            # Get fallback count and feature compute bars from feature_state
+            htf_align_fallback_count = getattr(runner.feature_state, "htf_align_fallback_count", 0)
+            htf_feature_compute_bars = getattr(runner.feature_state, "htf_feature_compute_bars", 0)
+        else:
+            # Fallback to runner attributes if feature_state not available
+            htf_align_call_count = getattr(runner, "htf_align_call_count", 0)
+            htf_align_warn_count = getattr(runner, "htf_align_warn_count_total", htf_align_warn_count)
+            htf_align_fallback_count = getattr(runner, "htf_align_fallback_count", 0)
+            htf_feature_compute_bars = getattr(runner, "htf_feature_compute_bars", 0)
         
         # DEL 1: Extract phase timing (for "bars/sec" breakdown)
         t_pregate_total_sec = getattr(runner, "t_pregate_total_sec", 0.0)
@@ -400,6 +574,18 @@ def process_chunk(
         t_model_total_sec = getattr(runner, "t_model_total_sec", 0.0)
         t_policy_total_sec = getattr(runner, "t_policy_total_sec", 0.0)
         t_io_total_sec = getattr(runner, "t_io_total_sec", 0.0)
+        
+        # D) Check prebuilt invariant: if prebuilt enabled, feature_time should be ~0
+        prebuilt_used_env = os_module.getenv("GX1_REPLAY_USE_PREBUILT_FEATURES") == "1"
+        if prebuilt_used_env and feature_time_mean_ms > 5.0:
+            log.error(
+                f"[PREBUILT_FAIL] Prebuilt enabled but feature_time_mean_ms={feature_time_mean_ms:.2f}ms > 5ms. "
+                f"This indicates prebuilt features are not being used correctly."
+            )
+            # Mark as failed_invariant but continue to write footer
+            if status == "ok":
+                status = "failed_invariant"
+                error = f"Prebuilt invariant violation: feature_time_mean_ms={feature_time_mean_ms:.2f}ms > 5ms"
         
         # Count trades from trade journal if available
         if hasattr(runner, "trade_journal") and runner.trade_journal:
@@ -424,9 +610,12 @@ def process_chunk(
         import traceback as tb
         error_traceback = "".join(tb.format_exception(type(e), e, e.__traceback__))
         log.error(f"[CHUNK {chunk_idx}] FAILED: {error}", exc_info=True)
-        # DEL 2: Ensure wall_clock_sec is defined even on early failure
-        if 'wall_clock_sec' not in locals():
-            wall_clock_sec = time.time() - worker_start_time
+        # FIX: Ensure all footer variables are defined even on early failure
+        wall_clock_sec = time.time() - worker_start_time
+        # Set total_bars from bars_processed if available, otherwise keep 0
+        if bars_processed > 0:
+            total_bars = bars_processed
+        # Note: os_module is already imported at function start
     
     finally:
         # DEL 1: ALWAYS flush collectors, even on exceptions
@@ -461,10 +650,14 @@ def process_chunk(
             log.error(f"[FLUSH] chunk={chunk_idx} flush failed: {flush_error}", exc_info=True)
         
         # DEL 2: Write chunk_footer.json with status
+        # FIX: Import json and datetime at function level (needed in both try and except)
+        # Note: os_module is already imported at function start
+        import json
+        from datetime import datetime
+        import numpy as np
+        
         try:
             import traceback as tb
-            from datetime import datetime
-            import numpy as np
             
             # Convert numpy types to native Python types for JSON serialization
             def convert_to_json_serializable(obj):
@@ -480,40 +673,343 @@ def process_chunk(
                     return [convert_to_json_serializable(item) for item in obj]
                 return obj
             
+            # 5) Set metrics to null if status != ok (not 0.0 which masks errors)
+            if status == "ok":
+                feature_time_mean_ms_val = convert_to_json_serializable(feature_time_mean_ms)
+                t_feature_build_total_sec_val = convert_to_json_serializable(t_feature_build_total_sec)
+                t_model_total_sec_val = convert_to_json_serializable(t_model_total_sec)
+                t_policy_total_sec_val = convert_to_json_serializable(t_policy_total_sec)
+                t_io_total_sec_val = convert_to_json_serializable(t_io_total_sec)
+                bars_per_sec_val = convert_to_json_serializable(bars_processed / wall_clock_sec if wall_clock_sec > 0 else 0.0)
+            else:
+                feature_time_mean_ms_val = None
+                t_feature_build_total_sec_val = None
+                t_model_total_sec_val = None
+                t_policy_total_sec_val = None
+                t_io_total_sec_val = None
+                bars_per_sec_val = None
+            
             chunk_footer = {
                 "run_id": run_id,
                 "chunk_id": str(chunk_idx),
                 "status": status,
                 "error": error,
                 "error_traceback": error_traceback[:5000] if error_traceback else None,  # Trim long tracebacks
-                "n_model_calls": convert_to_json_serializable(n_model_calls),
-                "n_trades_closed": convert_to_json_serializable(n_trades_closed),
+                "n_model_calls": convert_to_json_serializable(n_model_calls) if status == "ok" else None,
+                "n_trades_closed": convert_to_json_serializable(n_trades_closed) if status == "ok" else None,
                 # DEL 1: Add performance summary metrics for A/B comparison
                 "wall_clock_sec": convert_to_json_serializable(wall_clock_sec),
-                "total_bars": convert_to_json_serializable(total_bars),
-                "bars_per_sec": convert_to_json_serializable(bars_processed / wall_clock_sec if wall_clock_sec > 0 else 0.0),
-                "feature_time_mean_ms": convert_to_json_serializable(feature_time_mean_ms),
-                "feature_timeout_count": convert_to_json_serializable(feature_timeout_count),
-                "htf_align_warn_count": convert_to_json_serializable(htf_align_warn_count),
-                "htf_align_time_total_sec": convert_to_json_serializable(htf_align_time_total_sec),
-                "htf_align_call_count": convert_to_json_serializable(htf_align_call_count),
-                "htf_align_warning_time_sec": convert_to_json_serializable(htf_align_warning_time_sec),
-                "pregate_skips": convert_to_json_serializable(pregate_skips),
-                "pregate_passes": convert_to_json_serializable(pregate_passes),
-                "pregate_missing_inputs": convert_to_json_serializable(pregate_missing_inputs),
+                "total_bars": convert_to_json_serializable(total_bars) if status == "ok" else None,
+                "bars_per_sec": bars_per_sec_val,
+                "feature_time_mean_ms": feature_time_mean_ms_val,
+                "feature_timeout_count": convert_to_json_serializable(feature_timeout_count) if status == "ok" else None,
+                "htf_align_warn_count": convert_to_json_serializable(htf_align_warn_count) if status == "ok" else None,
+                "htf_align_time_total_sec": convert_to_json_serializable(htf_align_time_total_sec) if status == "ok" else None,
+                "htf_align_call_count": convert_to_json_serializable(htf_align_call_count) if status == "ok" else None,
+                "htf_align_warning_time_sec": convert_to_json_serializable(htf_align_warning_time_sec) if status == "ok" else None,
+                "htf_align_fallback_count": convert_to_json_serializable(htf_align_fallback_count) if status == "ok" else None,
+                "htf_feature_compute_bars": convert_to_json_serializable(htf_feature_compute_bars) if status == "ok" else None,
+                # FIX: Export HTFAligner stats (from get_stats())
+                "htf_h1_calls": convert_to_json_serializable(htf_h1_calls) if status == "ok" else None,
+                "htf_h4_calls": convert_to_json_serializable(htf_h4_calls) if status == "ok" else None,
+                "htf_h1_warns": convert_to_json_serializable(htf_h1_warns) if status == "ok" else None,
+                "htf_h4_warns": convert_to_json_serializable(htf_h4_warns) if status == "ok" else None,
+                "htf_last_m5_ts": convert_to_json_serializable(htf_last_m5_ts) if status == "ok" else None,
+                "htf_last_j": convert_to_json_serializable(htf_last_j) if status == "ok" else None,
+                "pregate_skips": convert_to_json_serializable(pregate_skips) if status == "ok" else None,
+                "pregate_passes": convert_to_json_serializable(pregate_passes) if status == "ok" else None,
+                "pregate_missing_inputs": convert_to_json_serializable(pregate_missing_inputs) if status == "ok" else None,
+                "vol_regime_unknown_count": convert_to_json_serializable(vol_regime_unknown_count) if status == "ok" else None,
                 # DEL 1: Phase timing breakdown
-                "t_pregate_total_sec": convert_to_json_serializable(t_pregate_total_sec),
-                "t_feature_build_total_sec": convert_to_json_serializable(t_feature_build_total_sec),
-                "t_model_total_sec": convert_to_json_serializable(t_model_total_sec),
-                "t_policy_total_sec": convert_to_json_serializable(t_policy_total_sec),
-                "t_io_total_sec": convert_to_json_serializable(t_io_total_sec),
+                "t_pregate_total_sec": convert_to_json_serializable(t_pregate_total_sec) if status == "ok" else None,
+                "t_feature_build_total_sec": t_feature_build_total_sec_val,
+                "t_model_total_sec": t_model_total_sec_val,
+                "t_policy_total_sec": t_policy_total_sec_val,
+                "t_io_total_sec": t_io_total_sec_val,
                 "bars_processed": convert_to_json_serializable(bars_processed),
                 "start_ts": chunk_start.isoformat() if chunk_start else None,
                 "end_ts": chunk_end.isoformat() if chunk_end else None,
                 "worker_time_sec": float(time.time() - worker_start_time),
-                "pid": int(os.getpid()),
+                "pid": int(os_module.getpid()),
                 "timestamp": datetime.now().isoformat(),
             }
+            
+            # D) Add prebuilt features info to chunk footer
+            # Get prebuilt_used from runner (not env var, as runner validates it)
+            prebuilt_used = False
+            if runner and hasattr(runner, "prebuilt_used"):
+                prebuilt_used = runner.prebuilt_used
+            
+            chunk_footer["prebuilt_used"] = prebuilt_used
+            
+            # Add prebuilt gate dump for diagnosis (from entry_manager)
+            # If entry_manager hasn't been called yet, build dump from runner state directly
+            prebuilt_gate_dump = None
+            try:
+                if runner:
+                    if hasattr(runner, "entry_manager") and hasattr(runner.entry_manager, "_prebuilt_gate_dump"):
+                        prebuilt_gate_dump = runner.entry_manager._prebuilt_gate_dump
+                    else:
+                        # Fallback: build dump from runner state if entry_manager hasn't been called
+                        prebuilt_features_df_exists = hasattr(runner, "prebuilt_features_df")
+                        prebuilt_features_df_is_none = not prebuilt_features_df_exists or runner.prebuilt_features_df is None
+                        prebuilt_features_df_len = len(runner.prebuilt_features_df) if not prebuilt_features_df_is_none else 0
+                        prebuilt_features_df_index_type = type(runner.prebuilt_features_df.index).__name__ if not prebuilt_features_df_is_none else "N/A"
+                        prebuilt_features_df_index_tz = str(getattr(runner.prebuilt_features_df.index, 'tz', None)) if not prebuilt_features_df_is_none else "N/A"
+                        prebuilt_gate_dump = {
+                            "is_replay": getattr(runner, "replay_mode", False),
+                            "prebuilt_enabled": os_module.getenv("GX1_REPLAY_USE_PREBUILT_FEATURES") == "1",
+                            "prebuilt_used_flag": getattr(runner, "prebuilt_used", False),
+                            "prebuilt_features_df_exists": prebuilt_features_df_exists,
+                            "prebuilt_features_df_is_none": prebuilt_features_df_is_none,
+                            "prebuilt_features_df_len": prebuilt_features_df_len,
+                            "prebuilt_features_df_index_type": prebuilt_features_df_index_type,
+                            "prebuilt_features_df_index_tz": prebuilt_features_df_index_tz,
+                        }
+                else:
+                    # Runner not created yet - minimal dump
+                    prebuilt_gate_dump = {
+                        "is_replay": None,
+                        "prebuilt_enabled": os_module.getenv("GX1_REPLAY_USE_PREBUILT_FEATURES") == "1",
+                        "prebuilt_used_flag": None,
+                        "prebuilt_features_df_exists": False,
+                        "prebuilt_features_df_is_none": True,
+                        "prebuilt_features_df_len": 0,
+                        "prebuilt_features_df_index_type": "N/A",
+                        "prebuilt_features_df_index_tz": "N/A",
+                        "runner_is_none": True,
+                    }
+            except Exception as dump_error:
+                prebuilt_gate_dump = {
+                    "error": str(dump_error),
+                    "runner_exists": runner is not None,
+                }
+            chunk_footer["prebuilt_gate_dump"] = prebuilt_gate_dump
+            
+            # Add lookup telemetry (always, for diagnosis)
+            lookup_attempts = getattr(runner, "lookup_attempts", 0) if runner else 0
+            lookup_hits = getattr(runner, "lookup_hits", 0) if runner else 0
+            chunk_footer["lookup_attempts"] = lookup_attempts
+            chunk_footer["lookup_hits"] = lookup_hits
+            
+            # Add evaluate_entry() call telemetry (from entry_manager)
+            eval_calls_total = 0
+            eval_calls_prebuilt_gate_true = 0
+            eval_calls_prebuilt_gate_false = 0
+            if runner and hasattr(runner, "entry_manager"):
+                eval_calls_total = getattr(runner.entry_manager, "eval_calls_total", 0)
+                eval_calls_prebuilt_gate_true = getattr(runner.entry_manager, "eval_calls_prebuilt_gate_true", 0)
+                eval_calls_prebuilt_gate_false = getattr(runner.entry_manager, "eval_calls_prebuilt_gate_false", 0)
+            chunk_footer["eval_calls_total"] = eval_calls_total
+            chunk_footer["eval_calls_prebuilt_gate_true"] = eval_calls_prebuilt_gate_true
+            chunk_footer["eval_calls_prebuilt_gate_false"] = eval_calls_prebuilt_gate_false
+
+            # Kill-chain telemetry (READ-ONLY, where trades die)
+            killchain_version = 1
+            killchain_fields = {
+                "killchain_n_entry_pred_total": 0,
+                "killchain_n_above_threshold": 0,
+                "killchain_n_after_session_guard": 0,
+                "killchain_n_after_vol_guard": 0,
+                "killchain_n_after_regime_guard": 0,
+                "killchain_n_after_risk_sizing": 0,
+                "killchain_n_trade_create_attempts": 0,
+                "killchain_n_trade_created": 0,
+            }
+            killchain_block_reason_counts = {}
+            if runner and hasattr(runner, "entry_manager"):
+                em = runner.entry_manager
+                killchain_version = int(getattr(em, "killchain_version", 1))
+                for k in list(killchain_fields.keys()):
+                    killchain_fields[k] = int(getattr(em, k.replace("killchain_", "killchain_"), 0))
+                killchain_block_reason_counts = getattr(em, "killchain_block_reason_counts", {}) or {}
+
+            # Deterministic JSON output (sorted reason keys)
+            killchain_block_reason_counts_sorted = {
+                str(k): int(killchain_block_reason_counts.get(k, 0))
+                for k in sorted(killchain_block_reason_counts.keys())
+            }
+            # Compute top block reason (stable tie-break: lexicographic)
+            top_reason = None
+            if killchain_block_reason_counts_sorted:
+                top_reason = sorted(
+                    killchain_block_reason_counts_sorted.items(),
+                    key=lambda kv: (-kv[1], kv[0]),
+                )[0][0]
+
+            chunk_footer["killchain_version"] = killchain_version
+            for k, v in killchain_fields.items():
+                chunk_footer[k] = convert_to_json_serializable(v)
+            chunk_footer["killchain_block_reason_counts"] = convert_to_json_serializable(killchain_block_reason_counts_sorted)
+            chunk_footer["killchain_top_block_reason"] = top_reason
+            
+            # STEG 3: Export entry-score stats to footer (for entry-score distribution analysis)
+            if runner:
+                entry_score_samples = getattr(runner, "entry_score_samples", [])
+                if entry_score_samples:
+                    prob_longs = [s.get("prob_long") for s in entry_score_samples if s.get("prob_long") is not None and np.isfinite(s.get("prob_long"))]
+                    if prob_longs:
+                        import numpy as np
+                        chunk_footer["entry_score_samples"] = len(prob_longs)
+                        chunk_footer["entry_score_min"] = convert_to_json_serializable(np.min(prob_longs))
+                        chunk_footer["entry_score_max"] = convert_to_json_serializable(np.max(prob_longs))
+                        chunk_footer["entry_score_mean"] = convert_to_json_serializable(np.mean(prob_longs))
+                        chunk_footer["entry_score_median"] = convert_to_json_serializable(np.median(prob_longs))
+                        chunk_footer["entry_score_p5"] = convert_to_json_serializable(np.percentile(prob_longs, 5))
+                        chunk_footer["entry_score_p25"] = convert_to_json_serializable(np.percentile(prob_longs, 25))
+                        chunk_footer["entry_score_p50"] = convert_to_json_serializable(np.median(prob_longs))
+                        chunk_footer["entry_score_p75"] = convert_to_json_serializable(np.percentile(prob_longs, 75))
+                        chunk_footer["entry_score_p95"] = convert_to_json_serializable(np.percentile(prob_longs, 95))
+                        chunk_footer["entry_score_p99"] = convert_to_json_serializable(np.percentile(prob_longs, 99))
+                    else:
+                        chunk_footer["entry_score_samples"] = 0
+                else:
+                    chunk_footer["entry_score_samples"] = 0
+            else:
+                chunk_footer["entry_score_samples"] = 0
+            
+            # Add entry stage telemetry (where bars disappear)
+            chunk_footer["bars_seen"] = bars_seen
+            chunk_footer["bars_skipped_warmup"] = bars_skipped_warmup
+            chunk_footer["bars_skipped_pregate"] = bars_skipped_pregate
+            chunk_footer["bars_reaching_entry_stage"] = bars_reaching_entry_stage
+            chunk_footer["pregate_enabled"] = pregate_enabled
+            
+            # Add effective gate values and override flags (Gate-SSoT)
+            if runner:
+                warmup_required_effective = getattr(runner, "warmup_required_effective", None)
+                warmup_override_applied = getattr(runner, "warmup_override_applied", False)
+                pregate_enabled_effective = getattr(runner, "pregate_enabled_effective", pregate_enabled)
+                pregate_override_applied = getattr(runner, "pregate_override_applied", False)
+                
+                chunk_footer["warmup_required_effective"] = warmup_required_effective
+                chunk_footer["warmup_override_applied"] = warmup_override_applied
+                chunk_footer["pregate_enabled_effective"] = pregate_enabled_effective
+                chunk_footer["pregate_override_applied"] = pregate_override_applied
+            else:
+                chunk_footer["warmup_required_effective"] = None
+                chunk_footer["warmup_override_applied"] = False
+                chunk_footer["pregate_enabled_effective"] = pregate_enabled
+                chunk_footer["pregate_override_applied"] = False
+            
+            # Add warmup info if available from runner (legacy fields, kept for compatibility)
+            warmup_required = None
+            warmup_seen = None
+            if runner:
+                # Try to get warmup info from runner
+                if hasattr(runner, "warmup_floor") and runner.warmup_floor is not None:
+                    warmup_required = True
+                elif hasattr(runner, "replay_eval_start_ts") and runner.replay_eval_start_ts is not None:
+                    warmup_required = True
+                warmup_seen = getattr(runner, "n_bars_skipped_due_to_htf_warmup", None)
+            chunk_footer["warmup_required"] = warmup_required
+            chunk_footer["warmup_seen"] = warmup_seen
+            
+            if prebuilt_used:
+                prebuilt_path = os_module.getenv("GX1_REPLAY_PREBUILT_FEATURES_PATH", "")
+                if runner and hasattr(runner, "prebuilt_features_path_resolved"):
+                    prebuilt_path = runner.prebuilt_features_path_resolved
+                chunk_footer["prebuilt_path"] = prebuilt_path
+                if runner and hasattr(runner, "prebuilt_features_sha256") and runner.prebuilt_features_sha256:
+                    chunk_footer["features_file_sha256"] = runner.prebuilt_features_sha256
+                # Add bypass count (number of bars that used prebuilt features)
+                prebuilt_bypass_count = getattr(runner, "prebuilt_bypass_count", 0) if runner else 0
+                chunk_footer["prebuilt_bypass_count"] = prebuilt_bypass_count
+                
+                # Add lookup telemetry (SSoT counters)
+                lookup_attempts = getattr(runner, "lookup_attempts", 0) if runner else 0
+                lookup_hits = getattr(runner, "lookup_hits", 0) if runner else 0
+                lookup_misses = getattr(runner, "lookup_misses", 0) if runner else 0
+                lookup_miss_details = getattr(runner, "lookup_miss_details", []) if runner else []
+                chunk_footer["lookup_attempts"] = lookup_attempts
+                chunk_footer["lookup_hits"] = lookup_hits
+                chunk_footer["lookup_misses"] = lookup_misses
+                chunk_footer["lookup_miss_details"] = lookup_miss_details[:3]  # First 3 misses only
+                
+                # STEG 3: Assert prebuilt_bypass_count == lookup_hits (SSoT)
+                if prebuilt_bypass_count != lookup_hits:
+                    log.error(
+                        "[PREBUILT_FAIL] prebuilt_bypass_count=%d != lookup_hits=%d. "
+                        "This indicates bypass_count is incremented incorrectly. "
+                        "SSoT: bypass_count must equal lookup_hits.",
+                        prebuilt_bypass_count, lookup_hits
+                    )
+                    # Don't raise here - let tripwire handle it, but log the mismatch
+                
+                # Add basic_v1_call_count (should be 0 in prebuilt-run)
+                # FASE 1: Import basic_v1 here (in worker process) is safe - workers have clean import state
+                from gx1.features.basic_v1 import get_basic_v1_call_count
+                basic_v1_calls = get_basic_v1_call_count()
+                chunk_footer["basic_v1_call_count"] = basic_v1_calls
+                
+                # HARD INVARIANT: If prebuilt_used=True, bypass_count should be > 0
+                if prebuilt_bypass_count == 0 and bars_processed > 0:
+                    log.warning(
+                        "[PREBUILT_FAIL] prebuilt_used=True but prebuilt_bypass_count=0. "
+                        "This indicates prebuilt features were loaded but not used."
+                    )
+                
+                # FASE 2: Tripwire - basic_v1_call_count must be 0
+                if basic_v1_calls > 0:
+                    raise RuntimeError(
+                        f"[PREBUILT_FAIL] FASE_2_TRIPWIRE: basic_v1_call_count={basic_v1_calls} > 0 in prebuilt-run (expected 0). "
+                        f"This indicates build_basic_v1() was called despite prebuilt features being enabled. "
+                        f"CRASH: Feature-building is forbidden in PREBUILT mode."
+                    )
+                
+                # FASE 2: Tripwire - FEATURE_BUILD_TIMEOUT must be 0
+                if feature_timeout_count > 0:
+                    raise RuntimeError(
+                        f"[PREBUILT_FAIL] FASE_2_TRIPWIRE: FEATURE_BUILD_TIMEOUT={feature_timeout_count} > 0 in prebuilt-run (expected 0). "
+                        f"This indicates feature-building timed out despite prebuilt features being enabled. "
+                        f"CRASH: Feature-building is forbidden in PREBUILT mode."
+                    )
+                
+                # FASE 2: Tripwire - feature_time_mean_ms must be <= 5ms
+                if feature_time_mean_ms is not None and feature_time_mean_ms > 5.0:
+                    raise RuntimeError(
+                        f"[PREBUILT_FAIL] FASE_2_TRIPWIRE: feature_time_mean_ms={feature_time_mean_ms:.2f}ms > 5ms in prebuilt-run. "
+                        f"This indicates feature-building is still happening. "
+                        f"CRASH: Feature-building is forbidden in PREBUILT mode."
+                    )
+                
+                # FASE 2: Tripwire - All eligible bars must use prebuilt features
+                # Semantikk: "Alle bars som ER eligible og når lookup, må bruke prebuilt"
+                # lookup_misses representerer hard eligibility blocks (faktiske KeyError hard-failer umiddelbart)
+                # Tripwire: lookup_hits == lookup_attempts - lookup_misses (eligibility blocks)
+                eligibility_blocks = lookup_misses  # Hard eligibility blocks (faktiske KeyError hard-failer allerede)
+                expected_prebuilt_hits = lookup_attempts - eligibility_blocks
+                
+                # Logg tripwire-detaljer til footer
+                chunk_footer["tripwire_eligibility_blocks"] = eligibility_blocks
+                chunk_footer["tripwire_expected_prebuilt_hits"] = expected_prebuilt_hits
+                chunk_footer["tripwire_passed"] = (lookup_hits == expected_prebuilt_hits)
+                
+                if lookup_hits != expected_prebuilt_hits:
+                    raise RuntimeError(
+                        f"[PREBUILT_FAIL] FASE_2_TRIPWIRE: Expected all ELIGIBLE bars to use prebuilt features. "
+                        f"lookup_hits={lookup_hits}, expected={expected_prebuilt_hits} "
+                        f"(lookup_attempts={lookup_attempts}, eligibility_blocks={eligibility_blocks}). "
+                        f"This indicates some eligible bars did not use prebuilt features. "
+                        f"CRASH: All eligible bars must use prebuilt features in PREBUILT mode."
+                    )
+            else:
+                chunk_footer["prebuilt_path"] = None
+                chunk_footer["features_file_sha256"] = None
+                chunk_footer["prebuilt_bypass_count"] = 0
+                chunk_footer["basic_v1_call_count"] = None
+            
+            # Add SSoT bundle_sha256 to chunk footer
+            if bundle_sha256:
+                chunk_footer["ssot"] = {
+                    "bundle_sha256": bundle_sha256,
+                }
+            else:
+                # HARD-FAIL: bundle_sha256 must be present
+                raise RuntimeError(
+                    "[SSOT_FAIL] bundle_sha256 is missing in chunk footer. "
+                    "This should never happen - bundle_sha256 must be computed before workers start."
+                )
             
             # Convert all values to JSON-serializable types
             chunk_footer = convert_to_json_serializable(chunk_footer)
@@ -525,6 +1021,156 @@ def process_chunk(
             log.info(f"[CHUNK {chunk_idx}] chunk_footer.json written: status={status}")
         except Exception as footer_error:
             log.error(f"[CHUNK {chunk_idx}] Failed to write chunk_footer.json: {footer_error}", exc_info=True)
+            # FIX: Write minimal stub-footer on error (so aggregator can detect and hard-fail)
+            # Include prebuilt_gate_dump in stub_footer for diagnosis
+            try:
+                # Try to get gate dump from runner if available
+                stub_gate_dump = None
+                try:
+                    if runner:
+                        if hasattr(runner, "entry_manager") and hasattr(runner.entry_manager, "_prebuilt_gate_dump"):
+                            stub_gate_dump = runner.entry_manager._prebuilt_gate_dump
+                        else:
+                            prebuilt_features_df_exists = hasattr(runner, "prebuilt_features_df")
+                            prebuilt_features_df_is_none = not prebuilt_features_df_exists or runner.prebuilt_features_df is None
+                            stub_gate_dump = {
+                                "is_replay": getattr(runner, "replay_mode", False),
+                                "prebuilt_enabled": os_module.getenv("GX1_REPLAY_USE_PREBUILT_FEATURES") == "1",
+                                "prebuilt_used_flag": getattr(runner, "prebuilt_used", False),
+                                "prebuilt_features_df_exists": prebuilt_features_df_exists,
+                                "prebuilt_features_df_is_none": prebuilt_features_df_is_none,
+                            }
+                except Exception:
+                    pass
+                
+                # Try to get prebuilt_used and other values from runner if available
+                stub_prebuilt_used = None
+                stub_prebuilt_bypass_count = None
+                stub_lookup_attempts = None
+                stub_lookup_hits = None
+                stub_eval_calls_total = None
+                stub_eval_calls_prebuilt_gate_true = None
+                stub_eval_calls_prebuilt_gate_false = None
+                try:
+                    if runner:
+                        stub_prebuilt_used = getattr(runner, "prebuilt_used", None)
+                        stub_prebuilt_bypass_count = getattr(runner, "prebuilt_bypass_count", None)
+                        stub_lookup_attempts = getattr(runner, "lookup_attempts", None)
+                        stub_lookup_hits = getattr(runner, "lookup_hits", None)
+                        # Get evaluate_entry() telemetry from entry_manager
+                        if hasattr(runner, "entry_manager"):
+                            stub_eval_calls_total = getattr(runner.entry_manager, "eval_calls_total", None)
+                            stub_eval_calls_prebuilt_gate_true = getattr(runner.entry_manager, "eval_calls_prebuilt_gate_true", None)
+                            stub_eval_calls_prebuilt_gate_false = getattr(runner.entry_manager, "eval_calls_prebuilt_gate_false", None)
+                except Exception:
+                    pass
+                
+                # Try to get entry stage telemetry from runner if available
+                # Use same hard-check logic as normal footer (direct attribute access if exists)
+                stub_bars_seen = None
+                stub_bars_skipped_warmup = None
+                stub_bars_skipped_pregate = None
+                stub_bars_reaching_entry_stage = None
+                stub_pregate_enabled = None
+                try:
+                    if runner:
+                        # Check if attributes exist (same as normal footer)
+                        required_attrs = ["bars_seen", "bars_skipped_warmup", "bars_skipped_pregate", "bars_reaching_entry_stage"]
+                        missing_attrs = [attr for attr in required_attrs if not hasattr(runner, attr)]
+                        if not missing_attrs:
+                            # Attributes exist, use direct access (same as normal footer)
+                            stub_bars_seen = runner.bars_seen
+                            stub_bars_skipped_warmup = runner.bars_skipped_warmup
+                            stub_bars_skipped_pregate = runner.bars_skipped_pregate
+                            stub_bars_reaching_entry_stage = runner.bars_reaching_entry_stage
+                            stub_pregate_enabled = getattr(runner, "pregate_enabled", False)
+                        else:
+                            # Attributes missing - this should not happen if bar loop ran
+                            # But don't raise in stub_footer (already in error state)
+                            stub_bars_seen = None
+                            stub_bars_skipped_warmup = None
+                            stub_bars_skipped_pregate = None
+                            stub_bars_reaching_entry_stage = None
+                            stub_pregate_enabled = None
+                except Exception:
+                    pass
+                
+                # Fallback: use chunk_df length as proxy for bars_seen if runner telemetry is None
+                # But first check if runner has attributes (hard-check like in normal footer)
+                if runner:
+                    required_attrs = ["bars_seen", "bars_skipped_warmup", "bars_skipped_pregate", "bars_reaching_entry_stage"]
+                    missing_attrs = [attr for attr in required_attrs if not hasattr(runner, attr)]
+                    if not missing_attrs:
+                        # Attributes exist, use them directly
+                        stub_bars_seen = runner.bars_seen
+                        stub_bars_skipped_warmup = runner.bars_skipped_warmup
+                        stub_bars_skipped_pregate = runner.bars_skipped_pregate
+                        stub_bars_reaching_entry_stage = runner.bars_reaching_entry_stage
+                    else:
+                        # Attributes missing, use fallback
+                        if chunk_df is not None:
+                            stub_bars_seen = len(chunk_df)
+                        else:
+                            stub_bars_seen = bars_processed
+                        stub_bars_skipped_warmup = 0
+                        stub_bars_skipped_pregate = 0
+                        stub_bars_reaching_entry_stage = 0
+                else:
+                    # No runner, use fallback
+                    if chunk_df is not None:
+                        stub_bars_seen = len(chunk_df)
+                    else:
+                        stub_bars_seen = bars_processed
+                    stub_bars_skipped_warmup = 0
+                    stub_bars_skipped_pregate = 0
+                    stub_bars_reaching_entry_stage = 0
+                
+                # Add warmup info to stub_footer if available
+                stub_warmup_required = None
+                stub_warmup_seen = None
+                try:
+                    if runner:
+                        if hasattr(runner, "warmup_floor") and runner.warmup_floor is not None:
+                            stub_warmup_required = True
+                        elif hasattr(runner, "replay_eval_start_ts") and runner.replay_eval_start_ts is not None:
+                            stub_warmup_required = True
+                        stub_warmup_seen = getattr(runner, "n_bars_skipped_due_to_htf_warmup", None)
+                except Exception:
+                    pass
+                
+                # Convert all numeric values to JSON-serializable types
+                stub_footer = {
+                    "run_id": run_id,
+                    "chunk_id": str(chunk_idx),
+                    "status": "footer_error",
+                    "error": f"Failed to write chunk_footer.json: {str(footer_error)[:500]}",
+                    "total_bars": convert_to_json_serializable(total_bars),
+                    "bars_processed": convert_to_json_serializable(bars_processed),
+                    "prebuilt_used": stub_prebuilt_used,
+                    "prebuilt_bypass_count": convert_to_json_serializable(stub_prebuilt_bypass_count),
+                    "lookup_attempts": convert_to_json_serializable(stub_lookup_attempts),
+                    "lookup_hits": convert_to_json_serializable(stub_lookup_hits),
+                    "lookup_misses": convert_to_json_serializable(getattr(runner, "lookup_misses", 0) if runner else 0),
+                    "eval_calls_total": convert_to_json_serializable(stub_eval_calls_total),
+                    "eval_calls_prebuilt_gate_true": convert_to_json_serializable(stub_eval_calls_prebuilt_gate_true),
+                    "eval_calls_prebuilt_gate_false": convert_to_json_serializable(stub_eval_calls_prebuilt_gate_false),
+                    "bars_seen": convert_to_json_serializable(stub_bars_seen),
+                    "bars_skipped_warmup": convert_to_json_serializable(stub_bars_skipped_warmup),
+                    "bars_skipped_pregate": convert_to_json_serializable(stub_bars_skipped_pregate),
+                    "bars_reaching_entry_stage": convert_to_json_serializable(stub_bars_reaching_entry_stage),
+                    "pregate_enabled": stub_pregate_enabled,
+                    "warmup_required": stub_warmup_required,
+                    "warmup_seen": convert_to_json_serializable(stub_warmup_seen),
+                    "prebuilt_gate_dump": stub_gate_dump,
+                    "lookup_miss_details": getattr(runner, "lookup_miss_details", [])[:3] if runner else [],
+                    "timestamp": datetime.now().isoformat(),
+                }
+                chunk_footer_path = chunk_output_dir / "chunk_footer.json"
+                with open(chunk_footer_path, "w") as f:
+                    json.dump(stub_footer, f, indent=2)
+                log.warning(f"[CHUNK {chunk_idx}] Wrote stub chunk_footer.json (footer_error)")
+            except Exception as stub_error:
+                log.error(f"[CHUNK {chunk_idx}] Failed to write stub chunk_footer.json: {stub_error}", exc_info=True)
     
     # Collect artifact paths (even if failed, artifacts may exist from partial flush)
     chunk_artifacts = {
@@ -620,29 +1266,57 @@ def export_perf_json_from_footers(
                 status = footer.get("status", "unknown")
                 chunks_statuses[chunk_idx] = status
                 
+                # FIX: Hard-fail if footer is stub/partial (footer_error status)
+                if status == "footer_error":
+                    error_msg = footer.get("error", "Unknown footer error")
+                    raise RuntimeError(
+                        f"Chunk {chunk_idx} has footer_error status: {error_msg}. "
+                        f"Footer export failed - cannot aggregate metrics."
+                    )
+                
+                # 5) Hard-fail if status=ok but required fields are null
+                if status == "ok":
+                    required_fields = ["total_bars", "n_model_calls", "feature_time_mean_ms", "t_feature_build_total_sec"]
+                    for field in required_fields:
+                        if footer.get(field) is None:
+                            raise RuntimeError(
+                                f"Chunk {chunk_idx} has status=ok but required field '{field}' is null. "
+                                f"This indicates a bug in chunk footer generation."
+                            )
+                
                 chunks_metrics.append({
                     "chunk_idx": chunk_idx,
                     "wall_clock_sec": footer.get("wall_clock_sec", footer.get("worker_time_sec", 0.0)),
-                    "total_bars": footer.get("total_bars", footer.get("bars_processed", 0)),
-                    "bars_per_sec": footer.get("bars_per_sec", 0.0),
-                    "n_model_calls": footer.get("n_model_calls", 0),
-                    "n_trades_closed": footer.get("n_trades_closed", 0),
-                    "feature_time_mean_ms": footer.get("feature_time_mean_ms", 0.0),
-                    "feature_timeout_count": footer.get("feature_timeout_count", 0),
-                    "htf_align_warn_count": footer.get("htf_align_warn_count", 0),
-                    "htf_align_time_total_sec": footer.get("htf_align_time_total_sec", 0.0),
-                    "htf_align_call_count": footer.get("htf_align_call_count", 0),
-                    "htf_align_warning_time_sec": footer.get("htf_align_warning_time_sec", 0.0),
-                    "pregate_skips": footer.get("pregate_skips", 0),
-                    "pregate_passes": footer.get("pregate_passes", 0),
-                    "pregate_missing_inputs": footer.get("pregate_missing_inputs", 0),
+                    "total_bars": footer.get("total_bars") if status == "ok" else None,
+                    "bars_per_sec": footer.get("bars_per_sec"),
+                    "n_model_calls": footer.get("n_model_calls") if status == "ok" else None,
+                    "n_trades_closed": footer.get("n_trades_closed") if status == "ok" else None,
+                    "feature_time_mean_ms": footer.get("feature_time_mean_ms"),
+                    "feature_timeout_count": footer.get("feature_timeout_count") if status == "ok" else None,
+                    "htf_align_warn_count": footer.get("htf_align_warn_count") if status == "ok" else None,
+                    "htf_align_time_total_sec": footer.get("htf_align_time_total_sec") if status == "ok" else None,
+                    "htf_align_call_count": footer.get("htf_align_call_count") if status == "ok" else None,
+                    "htf_align_warning_time_sec": footer.get("htf_align_warning_time_sec") if status == "ok" else None,
+                    "htf_align_fallback_count": footer.get("htf_align_fallback_count") if status == "ok" else None,
+                    "htf_feature_compute_bars": footer.get("htf_feature_compute_bars") if status == "ok" else None,
+                    # FIX: Export HTFAligner stats (from get_stats())
+                    "htf_h1_calls": footer.get("htf_h1_calls") if status == "ok" else None,
+                    "htf_h4_calls": footer.get("htf_h4_calls") if status == "ok" else None,
+                    "htf_h1_warns": footer.get("htf_h1_warns") if status == "ok" else None,
+                    "htf_h4_warns": footer.get("htf_h4_warns") if status == "ok" else None,
+                    "htf_last_m5_ts": footer.get("htf_last_m5_ts") if status == "ok" else None,
+                    "htf_last_j": footer.get("htf_last_j") if status == "ok" else None,
+                    "pregate_skips": footer.get("pregate_skips") if status == "ok" else None,
+                    "pregate_passes": footer.get("pregate_passes") if status == "ok" else None,
+                    "pregate_missing_inputs": footer.get("pregate_missing_inputs") if status == "ok" else None,
+                    "vol_regime_unknown_count": footer.get("vol_regime_unknown_count") if status == "ok" else None,
                     "status": status,
                     # Phase timing breakdown
-                    "t_pregate_total_sec": footer.get("t_pregate_total_sec", 0.0),
-                    "t_feature_build_total_sec": footer.get("t_feature_build_total_sec", 0.0),
-                    "t_model_total_sec": footer.get("t_model_total_sec", 0.0),
-                    "t_policy_total_sec": footer.get("t_policy_total_sec", 0.0),
-                    "t_io_total_sec": footer.get("t_io_total_sec", 0.0),
+                    "t_pregate_total_sec": footer.get("t_pregate_total_sec") if status == "ok" else None,
+                    "t_feature_build_total_sec": footer.get("t_feature_build_total_sec"),
+                    "t_model_total_sec": footer.get("t_model_total_sec"),
+                    "t_policy_total_sec": footer.get("t_policy_total_sec"),
+                    "t_io_total_sec": footer.get("t_io_total_sec"),
                 })
             except json.JSONDecodeError as e:
                 log.warning(f"[PERF] Failed to parse chunk_footer.json for chunk {chunk_idx} (truncated?): {e}")
@@ -654,9 +1328,10 @@ def export_perf_json_from_footers(
             log.warning(f"[PERF] chunk_footer.json missing for chunk {chunk_idx}")
             chunks_statuses[chunk_idx] = "missing"
     
-    # Compute aggregate stats
-    total_model_calls = sum(m.get("n_model_calls", 0) for m in chunks_metrics)
-    total_bars = sum(m.get("total_bars", 0) for m in chunks_metrics)
+    # Compute aggregate stats (handle None values from failed chunks)
+    total_model_calls = sum(m.get("n_model_calls") or 0 for m in chunks_metrics)
+    total_bars = sum(m.get("total_bars") or 0 for m in chunks_metrics)
+    total_vol_regime_unknown_count = sum(m.get("vol_regime_unknown_count") or 0 for m in chunks_metrics)
     chunks_completed = sum(1 for s in chunks_statuses.values() if s == "ok")
     
     # Collect environment info
@@ -669,6 +1344,120 @@ def export_perf_json_from_footers(
         "openblas_num_threads": os.getenv("OPENBLAS_NUM_THREADS", "1"),
         "pregate_enabled": pregate_enabled,
         "quiet_mode": os.getenv("GX1_REPLAY_QUIET", "0") == "1",
+    }
+    
+    # 1) Collect SSoT metadata from chunk footers
+    prebuilt_enabled = os.getenv("GX1_REPLAY_USE_PREBUILT_FEATURES") == "1"
+    prebuilt_used = False
+    features_file_sha256 = None
+    features_schema_version = None
+    prebuilt_path_resolved = None
+    
+    # Get from first chunk footer that has prebuilt info
+    for chunk_start, chunk_end, chunk_idx in chunks:
+        chunk_output_dir = output_dir / f"chunk_{chunk_idx}"
+        chunk_footer_path = chunk_output_dir / "chunk_footer.json"
+        if chunk_footer_path.exists():
+            try:
+                with open(chunk_footer_path, "r") as f:
+                    footer = json.load(f)
+                if footer.get("prebuilt_used"):
+                    prebuilt_used = True
+                    features_file_sha256 = footer.get("features_file_sha256")
+                    prebuilt_path_resolved = footer.get("prebuilt_path")
+                    # Try to get schema version from manifest
+                    if prebuilt_path_resolved and Path(prebuilt_path_resolved).exists():
+                        manifest_path = Path(prebuilt_path_resolved).with_suffix(".manifest.json")
+                        if manifest_path.exists():
+                            try:
+                                with open(manifest_path, "r") as f_manifest:
+                                    manifest = json.load(f_manifest)
+                                    features_schema_version = manifest.get("schema_version")
+                            except Exception:
+                                pass
+                    break
+            except Exception:
+                pass
+    
+    # 1) HARD INVARIANT: prebuilt_enabled==1 and prebuilt_used==0 => fail
+    if prebuilt_enabled and not prebuilt_used:
+        raise RuntimeError(
+            "[PREBUILT_FAIL] Prebuilt enabled but not used. "
+            "This indicates prebuilt features failed to load or validate. "
+            "Check logs for [PREBUILT_FAIL] errors. "
+            "Instructions: Run prebuilt_preflight.py to diagnose."
+        )
+    
+    # Compute raw file metadata (fast: mtime+size, or SHA256 if available)
+    raw_file_sha256 = None
+    raw_file_mtime = None
+    raw_file_size = None
+    try:
+        data_path_stat = data_path.stat()
+        raw_file_mtime = data_path_stat.st_mtime
+        raw_file_size = data_path_stat.st_size
+        # Optionally compute SHA256 (slower, but more reliable)
+        # For now, use mtime+size as it's fast
+    except Exception:
+        pass
+    
+    # Compute policy SHA256
+    policy_sha256 = None
+    try:
+        if policy_path.exists():
+            sha256_hash = hashlib.sha256()
+            with open(policy_path, "rb") as f:
+                for chunk in iter(lambda: f.read(4096), b""):
+                    sha256_hash.update(chunk)
+            policy_sha256 = sha256_hash.hexdigest()
+    except Exception:
+        pass
+    
+    # 1) Collect bundle_sha256 from chunk footers (should be identical across all chunks)
+    bundle_sha256_from_footers = None
+    for chunk_start, chunk_end, chunk_idx in chunks:
+        chunk_output_dir = output_dir / f"chunk_{chunk_idx}"
+        chunk_footer_path = chunk_output_dir / "chunk_footer.json"
+        if chunk_footer_path.exists():
+            try:
+                with open(chunk_footer_path, "r") as f:
+                    footer = json.load(f)
+                footer_ssot = footer.get("ssot", {})
+                footer_bundle_sha256 = footer_ssot.get("bundle_sha256")
+                if footer_bundle_sha256:
+                    if bundle_sha256_from_footers is None:
+                        bundle_sha256_from_footers = footer_bundle_sha256
+                    elif bundle_sha256_from_footers != footer_bundle_sha256:
+                        log.warning(
+                            f"[SSOT] bundle_sha256 mismatch in chunk {chunk_idx}: "
+                            f"expected={bundle_sha256_from_footers[:16]}..., got={footer_bundle_sha256[:16]}..."
+                        )
+                    break  # Found one, use it
+            except Exception:
+                pass
+    
+    # HARD-FAIL if bundle_sha256 is missing
+    if not bundle_sha256_from_footers:
+        raise RuntimeError(
+            "[SSOT_FAIL] bundle_sha256 is missing in all chunk footers. "
+            "This should never happen - bundle_sha256 must be computed before workers start."
+        )
+    
+    # 1) Build SSoT header
+    ssot_header = {
+        "prebuilt_enabled": prebuilt_enabled,
+        "prebuilt_used": prebuilt_used,
+        "prebuilt_path": prebuilt_path_resolved,
+        "features_file_sha256": features_file_sha256,
+        "features_schema_version": features_schema_version,
+        "raw_file_mtime": raw_file_mtime,
+        "raw_file_size": raw_file_size,
+        "raw_file_sha256": raw_file_sha256,  # Optional, may be None
+        "policy_path": str(policy_path.resolve()) if policy_path.exists() else str(policy_path),
+        "policy_sha256": policy_sha256,
+        "bundle_sha256": bundle_sha256_from_footers,  # CRITICAL: Must be present
+        "git_commit": get_git_commit_hash(),
+        "python_version": sys.version.split()[0],
     }
     
     perf_data = {
@@ -684,6 +1473,7 @@ def export_perf_json_from_footers(
         "total_wall_clock_sec": total_time,
         "total_bars": total_bars,
         "total_model_calls": total_model_calls,
+        "total_vol_regime_unknown_count": total_vol_regime_unknown_count,  # Aggregate vol_regime=UNKNOWN count
         "chunks_completed": chunks_completed,
         "chunks_total": len(chunks),
         "chunks_statuses": chunks_statuses,
@@ -691,6 +1481,7 @@ def export_perf_json_from_footers(
         "env_info": env_info,
         "export_mode": export_mode,  # "normal" or "watchdog_sigterm"
         "export_partial": export_partial,  # True if workers still running during export
+        "ssot": ssot_header,  # 1) SSoT header with all metadata
     }
     
     # CRITICAL: Atomic write (tmp → rename) to prevent truncation if process dies mid-write
@@ -710,6 +1501,13 @@ def export_perf_json_from_footers(
         f"[PERF] Wrote perf_{run_id}.json "
         f"(chunks_completed={chunks_completed}/{len(chunks)}, "
         f"total_bars={total_bars}, total_model_calls={total_model_calls})"
+    )
+    
+    # 4) Log run end
+    run_status = "ok" if chunks_completed == len(chunks) and all(s == "ok" for s in chunks_statuses.values()) else "failed"
+    log.info(
+        "[RUN_END] run_id=%s status=%s wall_clock_sec=%.1f chunks_completed=%d/%d",
+        run_id, run_status, total_time, chunks_completed, len(chunks)
     )
     
     return perf_json_path
@@ -878,10 +1676,38 @@ def main():
     parser.add_argument("--policy", type=Path, required=True, help="Policy YAML path")
     parser.add_argument("--data", type=Path, required=True, help="Input data (parquet)")
     parser.add_argument("--workers", type=int, default=7, help="Number of parallel workers")
-    parser.add_argument("--output-dir", type=Path, default=Path("reports/replay_eval/GATED"), help="Output directory")
+    parser.add_argument("--output-dir", type=Path, default=None, help="Output directory (default: reports/replay_eval/{run_id})")
     parser.add_argument("--run-id", type=str, default=None, help="Run ID (default: timestamp)")
+    parser.add_argument("--slice-head", type=int, default=None, help="Use only first N bars (deterministic)")
+    parser.add_argument("--days", type=int, default=None, help="Use only first N days (deterministic, M5=288 bars/day)")
+    parser.add_argument("--abort-after-first-chunk", type=int, default=0, help="Stop after first chunk completes (default: 0)")
+    parser.add_argument("--abort-after-n-bars-per-chunk", type=int, default=None, help="Stop each chunk after N bars processed (for fast verification, default: None)")
+    parser.add_argument("--dry-run-prebuilt-check", type=int, default=0, help="Only load prebuilt + run checks, then exit (default: 0)")
     
     args = parser.parse_args()
+    
+    # FASE 0.1: Forby parallell replay - maks én aktiv replay_eval_gated_parallel per maskin
+    if psutil is not None:
+        current_pid = os.getpid()
+        script_name = "replay_eval_gated_parallel.py"
+        running_replays = []
+        for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+            try:
+                if proc.info['pid'] == current_pid:
+                    continue
+                cmdline = proc.info.get('cmdline', [])
+                if cmdline and any(script_name in str(arg) for arg in cmdline):
+                    running_replays.append(proc.info['pid'])
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                pass
+        
+        if running_replays:
+            raise RuntimeError(
+                f"[PREBUILT_FAIL] Another replay_eval_gated_parallel.py is already running (PIDs: {running_replays}). "
+                f"Only one replay can run at a time. Kill existing processes before starting a new one."
+            )
+    else:
+        log.warning("[FASE_0] psutil not available - skipping parallel replay detection")
     
     # DEL 1: Verify GX1_GATED_FUSION_ENABLED=1
     gated_fusion_enabled = os.getenv("GX1_GATED_FUSION_ENABLED", "0") == "1"
@@ -891,8 +1717,60 @@ def main():
             "Set GX1_GATED_FUSION_ENABLED=1 to run replay eval."
         )
     
+    # FASE 0.3: Global kill-switch - sett GX1_FEATURE_BUILD_DISABLED=1 når prebuilt enabled
+    prebuilt_enabled = os.getenv("GX1_REPLAY_USE_PREBUILT_FEATURES", "0") == "1"
+    if prebuilt_enabled:
+        os.environ["GX1_FEATURE_BUILD_DISABLED"] = "1"
+        log.info("[FASE_0] GX1_FEATURE_BUILD_DISABLED=1 set (prebuilt enabled)")
+    
     # Generate run_id
     run_id = args.run_id or datetime.now().strftime("%Y%m%d_%H%M%S")
+    
+    # FASE 0.2: Hard reset - output-dir må ikke eksistere
+    if args.output_dir is None:
+        args.output_dir = Path(f"reports/replay_eval/{run_id}")
+    
+    # FASE 0.2: Hard-fail hvis output-dir eksisterer (ingen gjenbruk)
+    if args.output_dir.exists():
+        # Check for any existing chunks or perf JSONs
+        has_chunks = any(args.output_dir.glob("chunk_*"))
+        has_perf = any(args.output_dir.glob("perf_*.json"))
+        if has_chunks or has_perf:
+            raise RuntimeError(
+                f"[PREBUILT_FAIL] Output directory {args.output_dir} already exists and contains artifacts. "
+                f"This violates FASE 0.2: Hard reset - no reuse of output-dir. "
+                f"Instructions: Remove or rename the existing directory before starting a new run."
+            )
+    
+    # 4) Standardize log path
+    log_path = Path(f"/tmp/gx1_replay_{run_id}.log")
+    
+    # 4) Log run start
+    prebuilt_enabled_log = os.getenv("GX1_REPLAY_USE_PREBUILT_FEATURES", "0") == "1"
+    prebuilt_path_log = os.getenv("GX1_REPLAY_PREBUILT_FEATURES_PATH", "N/A")
+    
+    # Reset basic_v1_call_count at run start (for prebuilt verification)
+    # FASE 1: DO NOT import basic_v1 in PREBUILT mode - it violates FASE 1 separation
+    # In PREBUILT mode, basic_v1_call_count should be 0 by default (never called)
+    if prebuilt_enabled_log:
+        # FASE 1: Skip reset in PREBUILT mode to avoid importing basic_v1
+        # The counter will be checked in workers (where it's safe to import)
+        log.info("[RUN_START] PREBUILT mode: basic_v1_call_count will be verified in workers (must be 0)")
+    else:
+        # BASELINE mode: Reset counter (safe to import here)
+        from gx1.features.basic_v1 import reset_basic_v1_call_count
+        reset_basic_v1_call_count()
+        log.info("[RUN_START] Reset basic_v1_call_count to 0 (baseline mode)")
+    
+    log.info(
+        "[RUN_START] run_id=%s workers=%d prebuilt_enabled=%d prebuilt_path=%s log=%s",
+        run_id, args.workers, 1 if prebuilt_enabled_log else 0, prebuilt_path_log, log_path
+    )
+    
+    # Set abort-after-N-bars-per-chunk if specified
+    if args.abort_after_n_bars_per_chunk is not None:
+        os.environ["GX1_ABORT_AFTER_N_BARS_PER_CHUNK"] = str(args.abort_after_n_bars_per_chunk)
+        log.info(f"[RUN_START] Fast abort mode: will stop each chunk after {args.abort_after_n_bars_per_chunk} bars")
     
     log.info(f"[PARALLEL] Starting parallel replay evaluation")
     log.info(f"[PARALLEL] Policy: {args.policy}")
@@ -900,6 +1778,7 @@ def main():
     log.info(f"[PARALLEL] Workers: {args.workers}")
     log.info(f"[PARALLEL] Run ID: {run_id}")
     log.info(f"[PARALLEL] Output: {args.output_dir}")
+    log.info(f"[PARALLEL] Log: {log_path}")
     log.info(f"[PARALLEL] Multiprocessing start method: {mp.get_start_method()}")
     log.info(f"[PARALLEL] Thread limits: OMP={os.getenv('OMP_NUM_THREADS')}, MKL={os.getenv('MKL_NUM_THREADS')}")
     
@@ -1027,7 +1906,7 @@ def main():
                                 "mkl_num_threads": os.getenv("MKL_NUM_THREADS", "1"),
                                 "openblas_num_threads": os.getenv("OPENBLAS_NUM_THREADS", "1"),
                                 "pregate_enabled": pregate_enabled,
-                                "quiet_mode": os.getenv("GX1_REPLAY_QUIET", "0") == "1",
+                                "quiet_mode": False,  # FASE 5: Quiet mode removed
                             },
                         }
                         
@@ -1082,6 +1961,113 @@ def main():
     watchdog.start()
     log.info("[MASTER] Watchdog thread started (guarantees perf JSON export on SIGTERM)")
     
+    # CRITICAL: Compute bundle_sha256 BEFORE workers start (hard-fail if missing)
+    log.info("[SSOT] Computing bundle_sha256 from policy + artifacts...")
+    try:
+        from gx1.utils.ssot_hash import compute_bundle_sha256, resolve_artifact_paths_from_policy
+        
+        # Resolve artifact paths
+        resolved_artifact_paths = resolve_artifact_paths_from_policy(args.policy)
+        
+        # Compute bundle_sha256
+        bundle_sha256 = compute_bundle_sha256(args.policy, resolved_artifact_paths)
+        
+        log.info(f"[SSOT] bundle_sha256={bundle_sha256[:16]}... (computed successfully)")
+        log.info(f"[SSOT] bundle_sha256={bundle_sha256}")  # Full hash for grep
+        
+        # Log bundle metadata mismatch once in master (not in each worker)
+        # FASE 1: Skip this in PREBUILT mode to avoid importing runtime_sniper_core
+        prebuilt_enabled_check = os.getenv("GX1_REPLAY_USE_PREBUILT_FEATURES", "0") == "1"
+        if not prebuilt_enabled_check:
+            try:
+                import yaml
+                with open(args.policy, "r") as f:
+                    policy = yaml.safe_load(f)
+                entry_models = policy.get("entry_models", {})
+                v10_ctx_cfg = entry_models.get("v10_ctx", {})
+                bundle_dir = v10_ctx_cfg.get("bundle_dir")
+                if bundle_dir:
+                    bundle_dir_path = Path(bundle_dir)
+                    if not bundle_dir_path.is_absolute():
+                        bundle_dir_path = workspace_root / bundle_dir_path
+                    bundle_metadata_path = bundle_dir_path / "bundle_metadata.json"
+                    if bundle_metadata_path.exists():
+                        with open(bundle_metadata_path, "r") as f:
+                            bundle_meta = json.load(f)
+                        expected_seq_dim = bundle_meta.get("seq_input_dim")
+                        expected_snap_dim = bundle_meta.get("snap_input_dim")
+                        
+                        # Get runtime contract dims (from feature contract)
+                        # FASE 1: Use feature_contract_v10_ctx instead of runtime_sniper_core (avoids importing basic_v1)
+                        try:
+                            from gx1.features.feature_contract_v10_ctx import get_contract_summary
+                            contract_summary = get_contract_summary()
+                            runtime_seq_dim = contract_summary["total_seq_features"]
+                            runtime_snap_dim = contract_summary["total_snap_features"]
+                            
+                            if expected_seq_dim is not None and expected_seq_dim != runtime_seq_dim:
+                                log.info(
+                                    "[REPLAY] Using runtime contract dims seq=%d snap=%d (metadata seq=%d snap=%d; +3 XGB channels). "
+                                    "Contract is source of truth.",
+                                    runtime_seq_dim, runtime_snap_dim, expected_seq_dim, expected_snap_dim
+                                )
+                            elif expected_snap_dim is not None and expected_snap_dim != runtime_snap_dim:
+                                log.info(
+                                    "[REPLAY] Using runtime contract dims seq=%d snap=%d (metadata seq=%d snap=%d; +3 XGB channels). "
+                                    "Contract is source of truth.",
+                                    runtime_seq_dim, runtime_snap_dim, expected_seq_dim, expected_snap_dim
+                                )
+                        except ImportError:
+                            pass  # Feature contract module not available
+            except Exception:
+                pass  # Non-fatal - just skip bundle metadata logging
+    except Exception as ssot_error:
+        log.error(f"[SSOT_FAIL] Failed to compute bundle_sha256: {ssot_error}", exc_info=True)
+        raise RuntimeError(
+            f"[SSOT_FAIL] bundle_sha256 computation failed. "
+            f"This is a hard-fail - replay cannot proceed without bundle_sha256. "
+            f"Error: {ssot_error}"
+        ) from ssot_error
+    
+    # FASE 2: Tripwire - prebuilt_enabled=1 && prebuilt_used=0 skal ALDRI nå chunks
+    # This check happens AFTER prebuilt validation in _run_replay_impl
+    # We can't check prebuilt_used here because it's set in worker processes
+    # But we can verify that prebuilt path exists and is valid BEFORE workers start
+    if prebuilt_enabled:
+        prebuilt_path_check = Path(prebuilt_path_log) if prebuilt_path_log != "N/A" else None
+        if not prebuilt_path_check or not prebuilt_path_check.exists():
+            raise RuntimeError(
+                f"[PREBUILT_FAIL] FASE_2_TRIPWIRE: prebuilt_enabled=1 but prebuilt_path={prebuilt_path_log} does not exist. "
+                f"CRASH: Prebuilt features file must exist before workers start."
+            )
+        # Verify manifest exists
+        manifest_path = prebuilt_path_check.parent / f"{prebuilt_path_check.stem}.manifest.json"
+        if not manifest_path.exists():
+            raise RuntimeError(
+                f"[PREBUILT_FAIL] FASE_2_TRIPWIRE: prebuilt_enabled=1 but manifest={manifest_path} does not exist. "
+                f"CRASH: Prebuilt features manifest must exist before workers start."
+            )
+        log.info(f"[FASE_2] Prebuilt path validated: {prebuilt_path_check} (exists)")
+    
+    # FASE 1: Hard guarantee - assert feature-building modules are NOT imported in PREBUILT mode
+    # This check happens BEFORE workers start (in master process)
+    if prebuilt_enabled:
+        import sys
+        forbidden_modules = [
+            "gx1.features.basic_v1",
+            "gx1.execution.live_features",
+            "gx1.features.runtime_v10_ctx",
+            "gx1.features.runtime_sniper_core",
+        ]
+        imported_forbidden = [mod for mod in forbidden_modules if mod in sys.modules]
+        if imported_forbidden:
+            raise RuntimeError(
+                f"[PREBUILT_FAIL] FASE_1_SEPARATION: Forbidden feature-building modules imported in PREBUILT mode: {imported_forbidden}\n"
+                f"This violates FASE 1: PREBUILT and BASELINE must be completely separate code paths.\n"
+                f"CRASH: Feature-building code must not be imported in PREBUILT mode before workers start."
+            )
+        log.info("[FASE_1] PREBUILT mode: Feature-building modules verified as NOT imported in master process")
+    
     # Split data into chunks
     chunks = split_data_into_chunks(args.data, args.workers)
     
@@ -1100,6 +2086,7 @@ def main():
             args.policy,
             run_id,
             args.output_dir,
+            bundle_sha256,  # Pass bundle_sha256 to workers
         )
         for chunk_start, chunk_end, chunk_idx in chunks
     ]
@@ -1161,12 +2148,20 @@ def main():
                         chunk_results.append(chunk_result)
                         completed.add(i)
                         log.info(f"[MASTER] Progress: done={len(completed)}/{len(async_results)} pending={len(async_results) - len(completed)}")
+                        
+                        # E) Abort after first chunk
+                        if args.abort_after_first_chunk == 1 and len(completed) >= 1:
+                            log.info("[ABORT_MODE] First chunk completed - aborting remaining chunks")
+                            MASTER_STOP_REQUESTED = True
+                            break
                     except Exception as e:
                         log.warning(f"[MASTER] Error getting result for chunk {i} (will use footer): {e}")
                         completed.add(i)  # Mark as done to avoid infinite loop, will read from footer
             
-            if len(completed) < len(async_results):
+            if len(completed) < len(async_results) and not (args.abort_after_first_chunk == 1 and len(completed) >= 1):
                 time.sleep(poll_interval)
+            elif args.abort_after_first_chunk == 1 and len(completed) >= 1:
+                break  # Exit loop if abort mode and first chunk done
         
         total_time = time.time() - start_time
         
