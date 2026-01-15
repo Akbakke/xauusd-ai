@@ -15,6 +15,12 @@ logger = logging.getLogger(__name__)
 FARM_GUARD_VERSION_V1 = "FARM_V1_BRUTAL_V1"
 FARM_GUARD_VERSION_V2 = "FARM_V2_BRUTAL_V2"
 
+# SNIPER_GUARD_V1 UNKNOWN policy telemetry (module-level; per-process / per-worker)
+# Policy B (PASS-THROUGH): vol_regime=UNKNOWN is NOT allowed to block by itself.
+SNIPER_GUARD_UNKNOWN_PASS_COUNT = 0
+SNIPER_GUARD_UNKNOWN_BLOCK_COUNT = 0  # Should remain 0 for Policy B
+SNIPER_GUARD_UNKNOWN_LOG_COUNT = 0  # Rate-limit log spam
+
 
 def farm_brutal_guard(row: Union[pd.Series, Dict[str, Any]], context: str = "unknown") -> bool:
     """
@@ -284,6 +290,21 @@ def session_vol_guard(
             f"[{guard_name}] {context}: vol_regime={vol_regime} not in {effective_allowed_vol}. "
             f"Only {effective_allowed_vol} volatility allowed."
         )
+        # SNIPER_GUARD_V1 Policy B: UNKNOWN = PASS-THROUGH (NOT a blocker by itself)
+        # Rationale: UNKNOWN means "missing or unmappable regime fields" in replay; hard-blocking makes replay deterministic-dead.
+        if guard_name == "SNIPER_GUARD_V1" and vol_regime == "UNKNOWN":
+            global SNIPER_GUARD_UNKNOWN_PASS_COUNT, SNIPER_GUARD_UNKNOWN_LOG_COUNT
+            SNIPER_GUARD_UNKNOWN_PASS_COUNT += 1
+            # Rate-limit to first N occurrences per process to avoid spam
+            if SNIPER_GUARD_UNKNOWN_LOG_COUNT < 3:
+                SNIPER_GUARD_UNKNOWN_LOG_COUNT += 1
+                logger.warning(
+                    f"[{guard_name}] {context}: vol_regime=UNKNOWN -> PASS (policy=B) "
+                    f"reason=missing_or_unmappable_regime_fields"
+                )
+            return True
+
+        # Default: hard-block on disallowed vol regime
         logger.error(error_msg)
         raise AssertionError(error_msg)
     

@@ -142,6 +142,21 @@ def _pct(part: int, total: int) -> str:
 def generate_report(run_dir: Path, output_path: Path) -> None:
     agg, ctx = _aggregate_killchain(run_dir)
 
+    # Optional guard counters (UNKNOWN pass-through policy proof)
+    guard_unknown_pass = 0
+    guard_unknown_block = 0
+    footer_paths = sorted(run_dir.glob("chunk_*/chunk_footer.json"))
+    for p in footer_paths:
+        f = _load_json(p) or {}
+        try:
+            guard_unknown_pass += int(f.get("guard_unknown_pass_count", 0))
+        except Exception:
+            pass
+        try:
+            guard_unknown_block += int(f.get("guard_unknown_block_count", 0))
+        except Exception:
+            pass
+
     total_pred = int(agg.counters["killchain_n_entry_pred_total"])
     above_thr = int(agg.counters["killchain_n_above_threshold"])
     created = int(agg.counters["killchain_n_trade_created"])
@@ -201,6 +216,8 @@ def generate_report(run_dir: Path, output_path: Path) -> None:
     lines.append("")
     lines.append(f"- **smoking_gun:** {smoking_gun}")
     lines.append(f"- **top_block_reason:** {top_reason}")
+    lines.append(f"- **guard_unknown_pass_count:** {guard_unknown_pass:,}")
+    lines.append(f"- **guard_unknown_block_count:** {guard_unknown_block:,}")
     if above_thr > 0 and created == 0:
         lines.append(
             "- **conclusion:** n_above_threshold > 0 and n_trade_created == 0 → post-gates are killing all potential trades."

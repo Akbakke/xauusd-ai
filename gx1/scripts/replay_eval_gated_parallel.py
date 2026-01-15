@@ -804,6 +804,20 @@ def process_chunk(
             chunk_footer["eval_calls_prebuilt_gate_true"] = eval_calls_prebuilt_gate_true
             chunk_footer["eval_calls_prebuilt_gate_false"] = eval_calls_prebuilt_gate_false
 
+            # SNIPER_GUARD_V1 UNKNOWN policy counters (export from module-level telemetry)
+            # These counters are per worker process (per chunk) and are deterministic for a given run.
+            try:
+                from gx1.policy import farm_guards as farm_guards_module
+                chunk_footer["guard_unknown_pass_count"] = convert_to_json_serializable(
+                    int(getattr(farm_guards_module, "SNIPER_GUARD_UNKNOWN_PASS_COUNT", 0))
+                )
+                chunk_footer["guard_unknown_block_count"] = convert_to_json_serializable(
+                    int(getattr(farm_guards_module, "SNIPER_GUARD_UNKNOWN_BLOCK_COUNT", 0))
+                )
+            except Exception:
+                chunk_footer["guard_unknown_pass_count"] = convert_to_json_serializable(0)
+                chunk_footer["guard_unknown_block_count"] = convert_to_json_serializable(0)
+
             # Kill-chain telemetry (READ-ONLY, where trades die)
             killchain_version = 1
             killchain_fields = {
@@ -829,6 +843,20 @@ def process_chunk(
                 str(k): int(killchain_block_reason_counts.get(k, 0))
                 for k in sorted(killchain_block_reason_counts.keys())
             }
+
+            # Kill-chain semantic patch for SNIPER_GUARD_V1 Policy B (UNKNOWN pass-through):
+            # If UNKNOWN is configured to PASS (guard_unknown_block_count==0 and guard_unknown_pass_count>0),
+            # then the effective "after_vol_guard" should not be an absolute wall.
+            # We keep the raw value for audit, but expose the effective funnel counter in the main field.
+            raw_after_vol_guard = int(killchain_fields.get("killchain_n_after_vol_guard", 0))
+            if (
+                int(chunk_footer.get("guard_unknown_pass_count", 0)) > 0
+                and int(chunk_footer.get("guard_unknown_block_count", 0)) == 0
+                and raw_after_vol_guard == 0
+            ):
+                chunk_footer["killchain_n_after_vol_guard_raw"] = convert_to_json_serializable(raw_after_vol_guard)
+                killchain_fields["killchain_n_after_vol_guard"] = int(killchain_fields.get("killchain_n_after_session_guard", 0))
+
             # Compute top block reason (stable tie-break: lexicographic)
             top_reason = None
             if killchain_block_reason_counts_sorted:
