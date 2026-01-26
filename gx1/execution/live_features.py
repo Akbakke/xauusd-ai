@@ -9,7 +9,9 @@ from typing import Any, Dict, Optional, Tuple
 import numpy as np
 import pandas as pd
 
-from gx1.features import basic_v1
+# FASE 1: PREBUILT mode fix - move basic_v1 import to lazy import
+# basic_v1 is forbidden in PREBUILT mode, so we only import it when build_live_entry_features is called
+# (which should never happen in PREBUILT mode due to bypass logic)
 from gx1.tuning.feature_manifest import align_features, load_manifest
 
 log = logging.getLogger(__name__)
@@ -127,23 +129,73 @@ def build_live_entry_features(candles: pd.DataFrame) -> EntryFeatureBundle:
     candles : pd.DataFrame
         Columns: open, high, low, close, volume. Index = UTC timestamps.
         Must contain at least ATR_PERIOD rows.
+    
+    FASE 0.3: Global kill-switch - GX1_FEATURE_BUILD_DISABLED=1 forbydder ALL feature-building.
     """
+    # FASE 0.3: Global kill-switch - hard-fail hvis feature-building er deaktivert
+    import os
+    feature_build_disabled = os.getenv("GX1_FEATURE_BUILD_DISABLED", "0") == "1"
+    if feature_build_disabled:
+        raise RuntimeError(
+            "[PREBUILT_FAIL] build_live_entry_features() called while GX1_FEATURE_BUILD_DISABLED=1. "
+            "Feature-building is completely disabled in prebuilt mode. "
+            "This is a hard invariant - prebuilt features must be used directly."
+        )
+    
+    # Del 2C: Time total function
+    import time
+    from gx1.utils.perf_timer import perf_add
+    t_start = time.perf_counter()
+    
     if candles.empty:
         raise ValueError("Candles DataFrame is empty")
-    candles = candles.sort_index()
+    
+    # Conditional sort: skip if already sorted (performance optimization)
+    if not candles.index.is_monotonic_increasing:
+        sort_start = time.time()
+        nrows = len(candles)
+        candles = candles.sort_index()
+        sort_time = time.time() - sort_start
+        log.warning(
+            "[LIVE_FEATURES] candles.sort_index() required (not monotonic). "
+            "nrows=%d, sort_time=%.3fs. Consider pre-sorting data.",
+            nrows, sort_time
+        )
 
     # CRITICAL: Use basic_v1.build_basic_v1() (same as offline evaluation)
     # NOT make_features_v2.build_features() (which doesn't build _v1_r5, _v1_r8)
     # Add 'ts' column (required by basic_v1)
+    import os
     candles_with_ts = candles.copy()
     candles_with_ts["ts"] = candles_with_ts.index
     
+    # Del 2: Incremental quantile state for replay/live (if enabled)
+    use_incremental = os.environ.get("GX1_REPLAY_INCREMENTAL_FEATURES") == "1"
+    q10_val = None
+    q90_val = None
+    
+    if use_incremental:
+        from gx1.utils.feature_context import get_feature_state
+        state = get_feature_state()
+        if state is not None and state.r1_quantiles_state is not None:
+            # Get current close price (last bar)
+            close_now = float(candles["close"].iloc[-1])
+            q10_val, q90_val = state.r1_quantiles_state.update(close_now)
+    
     # Build features using basic_v1 (same as offline evaluation)
+    # FASE 1: Lazy import to avoid importing basic_v1 in PREBUILT mode
+    from gx1.features import basic_v1
     feature_df, _ = basic_v1.build_basic_v1(candles_with_ts)
     # Extract only _v1_* feature columns (drop OHLC and ts)
     feature_cols = [c for c in feature_df.columns if c.startswith("_v1_")]
     feature_df = feature_df[feature_cols].copy()
     feature_df.index = candles.index
+    
+    # Inject incremental quantile values if computed (overwrite batch values)
+    if use_incremental and q10_val is not None and q90_val is not None:
+        feature_df["_v1_r1_q10_48"] = q10_val
+        feature_df["_v1_r1_q90_48"] = q90_val
+    
     last_row = feature_df.iloc[-1].copy()
 
     manifest = load_manifest()
@@ -203,6 +255,11 @@ def build_live_entry_features(candles: pd.DataFrame) -> EntryFeatureBundle:
         ask_open=ask_open,
         ask_close=ask_close,
     )
+    
+    # Del 2C: Record total time
+    t_end = time.perf_counter()
+    perf_add("feat.live_entry_features.total", t_end - t_start)
+    
     return bundle
 
 
@@ -225,12 +282,27 @@ def build_live_exit_snapshot(
     candles : pd.DataFrame
         OHLCV frame used for excursions; same schema as build_live_entry_features.
     """
+    # Del 2C: Time total function
+    import time
+    from gx1.utils.perf_timer import perf_add
+    t_start = time.perf_counter()
+    
     entry_time = pd.to_datetime(trade["entry_time"])
     entry_price = float(trade["entry_price"])
     side_str = trade.get("side", "long").lower()
     side = 1 if side_str == "long" else -1
 
-    candles = candles.sort_index()
+    # Conditional sort: skip if already sorted (performance optimization)
+    if not candles.index.is_monotonic_increasing:
+        sort_start = time.time()
+        nrows = len(candles)
+        candles = candles.sort_index()
+        sort_time = time.time() - sort_start
+        log.warning(
+            "[LIVE_FEATURES] candles.sort_index() required in build_live_exit_snapshot (not monotonic). "
+            "nrows=%d, sort_time=%.3fs. Consider pre-sorting data.",
+            nrows, sort_time
+        )
     now_ts = candles.index[-1]
     window = candles[candles.index >= entry_time]
     if window.empty:
@@ -289,4 +361,9 @@ def build_live_exit_snapshot(
             }
         ]
     )
+    
+    # Del 2C: Record total time
+    t_end = time.perf_counter()
+    perf_add("feat.live_exit_snapshot.total", t_end - t_start)
+    
     return snapshot

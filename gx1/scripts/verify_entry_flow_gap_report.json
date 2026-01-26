@@ -1,0 +1,24 @@
+{
+  "soft_passed_count": 540,
+  "stage0_count": 540,
+  "gap_exception_count": 0,
+  "early_return_count": 0,
+  "exception_present": false,
+  "exception_gap": null,
+  "transformer_forward_calls": 1080,
+  "routing_v10_count": 540,
+  "callsite_entered": 540,
+  "callsite_returned": 0,
+  "callsite_exception": 0,
+  "model_attempts": 540,
+  "model_forwards": 540,
+  "hints": [
+    "All verification criteria met"
+  ],
+  "paths_used": [
+    "/Users/andrekildalbakke/Desktop/GX1_DATA/reports/replay_eval/VERIFY_ENTRY_FLOW_GAP/VERIFY_ENTRY_FLOW_GAP_20260123_224437/chunk_0/ENTRY_FEATURES_USED.json",
+    "/Users/andrekildalbakke/Desktop/GX1_DATA/reports/replay_eval/VERIFY_ENTRY_FLOW_GAP/VERIFY_ENTRY_FLOW_GAP_20260123_224437/chunk_0/chunk_footer.json"
+  ],
+  "status": "STAGE0_REACHED",
+  "exit_code": 0
+}

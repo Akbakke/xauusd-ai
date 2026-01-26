@@ -13,6 +13,13 @@
 # Example:
 #   ./scripts/run_canary_oanda_practice.sh 2025-01-01 2025-01-02 7 CANARY_TEST_2025_Q1
 
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+test "$(pwd)" = "$ROOT" || { echo "❌ FAIL: Not in repo-root (pwd=$(pwd), root=$ROOT)"; exit 1; }
+echo "[RUN_CTX] root=$ROOT"
+echo "[RUN_CTX] head=$(git rev-parse --short HEAD)"
+echo "[RUN_CTX] whoami=$(whoami) host=$(hostname)"
+
 set -euo pipefail
 
 # Colors for output

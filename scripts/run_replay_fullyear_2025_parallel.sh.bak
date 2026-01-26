@@ -1,0 +1,311 @@
+#!/bin/bash
+# FULLYEAR 2025 Parallel Replay (7 workers)
+#
+# Splits 2025 data into 7 chunks and runs parallel replay with incremental quantiles.
+#
+# Usage:
+#   ./scripts/run_replay_fullyear_2025_parallel.sh
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$PROJECT_ROOT"
+
+N_WORKERS=7
+POLICY="${1:-gx1/configs/policies/sniper_snapshot/2025_SNIPER_V10_1/GX1_V12_SNIPER_ENTRY_V10_1_FLAT_THRESHOLD_0_18.yaml}"
+DATA_FILE="${2:-data/entry_v9/full_2025.parquet}"
+
+# FULLYEAR 2025 (UTC)
+START_TS="2025-01-01T00:00:00Z"
+END_TS="2026-01-01T00:00:00Z"  # exclusive
+
+echo "=================================================================================="
+echo "FULLYEAR 2025 Parallel Replay (7 Workers)"
+echo "=================================================================================="
+echo ""
+echo "Policy: $POLICY"
+echo "Data: $DATA_FILE"
+echo "Workers: $N_WORKERS"
+echo "Date Range: $START_TS → $END_TS"
+echo ""
+
+# Verify data file exists
+if [[ ! -f "$DATA_FILE" ]]; then
+    echo "ERROR: Data file not found: $DATA_FILE"
+    exit 1
+fi
+
+# Step 1: Prepare filtered 2025 data
+echo "[1/5] Preparing 2025 data..."
+TEMP_DATA_DIR="data/temp/fullyear_2025_$(date +%Y%m%d_%H%M%S)"
+mkdir -p "$TEMP_DATA_DIR"
+
+python3 -c "
+import pandas as pd
+from pathlib import Path
+import sys
+
+data_file = sys.argv[1]
+start_ts = sys.argv[2]
+end_ts = sys.argv[3]
+output_file = sys.argv[4]
+
+df = pd.read_parquet(data_file)
+if 'time' in df.columns:
+    df = df.set_index('time')
+elif 'ts' in df.columns:
+    df = df.set_index('ts')
+df.index = pd.to_datetime(df.index, utc=True)
+
+df = df[(df.index >= start_ts) & (df.index < end_ts)].copy()
+
+print(f'Filtered 2025 data: {len(df):,} rows')
+print(f'Date range: {df.index.min()} → {df.index.max()}')
+
+df.to_parquet(output_file)
+print(f'✅ Saved to: {output_file}')
+" "$DATA_FILE" "$START_TS" "$END_TS" "$TEMP_DATA_DIR/fullyear_2025_filtered.parquet"
+
+FILTERED_DATA="$TEMP_DATA_DIR/fullyear_2025_filtered.parquet"
+
+# Step 2: Split into chunks
+echo ""
+echo "[2/5] Splitting into $N_WORKERS chunks..."
+CHUNK_DIR="$TEMP_DATA_DIR/chunks"
+mkdir -p "$CHUNK_DIR"
+
+python3 -c "
+import pandas as pd
+from pathlib import Path
+import sys
+
+input_file = sys.argv[1]
+n_chunks = int(sys.argv[2])
+chunk_dir = Path(sys.argv[3])
+
+df = pd.read_parquet(input_file)
+total_bars = len(df)
+chunk_size = total_bars // n_chunks
+remainder = total_bars % n_chunks
+
+print(f'Total bars: {total_bars:,}')
+print(f'Chunk size: ~{chunk_size:,} bars each')
+
+chunk_files = []
+start_idx = 0
+
+for i in range(n_chunks):
+    current_chunk_size = chunk_size + (1 if i < remainder else 0)
+    end_idx = start_idx + current_chunk_size
+    
+    chunk_df = df.iloc[start_idx:end_idx].copy()
+    chunk_file = chunk_dir / f'chunk_{i}.parquet'
+    chunk_df.to_parquet(chunk_file)
+    
+    print(f'  Chunk {i}: {len(chunk_df):,} bars ({chunk_df.index.min()} → {chunk_df.index.max()})')
+    chunk_files.append(chunk_file)
+    
+    start_idx = end_idx
+
+print(f'✅ Created {len(chunk_files)} chunks')
+" "$FILTERED_DATA" "$N_WORKERS" "$CHUNK_DIR"
+
+# Step 3: Run parallel replays
+echo ""
+echo "[3/5] Running $N_WORKERS parallel replays with incremental quantiles..."
+RUN_TAG="FULLYEAR_2025_$(date +%Y%m%d_%H%M%S)"
+OUTPUT_DIR="gx1/wf_runs/$RUN_TAG"
+mkdir -p "$OUTPUT_DIR/parallel_chunks"
+
+# Step 3a: Write config snapshot (verify trading mode)
+echo "[3a/5] Writing config snapshot..."
+python3 -c "
+import json
+import yaml
+from pathlib import Path
+import sys
+
+policy_path = sys.argv[1]
+output_dir = Path(sys.argv[2])
+
+# Load policy config
+with open(policy_path) as f:
+    policy = yaml.safe_load(f)
+
+# Extract key config for verification
+config_snapshot = {
+    "policy_path": str(policy_path),
+    "entry_config": policy.get("entry_config", ""),
+    "entry_v9_policy_sniper": {
+        "enabled": policy.get("entry_v9_policy_sniper", {}).get("enabled", False),
+        "threshold": policy.get("entry_v9_policy_sniper", {}).get("threshold", None),
+        "shadow_only": policy.get("entry_v9_policy_sniper", {}).get("shadow_only", False),
+    },
+    "entry_v9_policy_farm_v2b": {
+        "enabled": policy.get("entry_v9_policy_farm_v2b", {}).get("enabled", False),
+    },
+    "gates": policy.get("gates", {}),
+    "killswitch": policy.get("killswitch", {}),
+    "dry_run": False,  # run_mini_replay_perf.py sets dry_run_override=True, but we track it
+    "replay_mode": True,
+    "fast_replay": True,
+}
+
+# Write config snapshot
+config_path = output_dir / "config_snapshot.json"
+with open(config_path, 'w') as f:
+    json.dump(config_snapshot, f, indent=2, default=str)
+
+print(f"OK: Config snapshot written: {config_path}")
+" "$POLICY" "$OUTPUT_DIR"
+
+# Function to run a single chunk
+run_chunk() {
+    local chunk_id=$1
+    local chunk_file="$CHUNK_DIR/chunk_${chunk_id}.parquet"
+    local chunk_output_dir="$OUTPUT_DIR/parallel_chunks/chunk_${chunk_id}"
+    
+    mkdir -p "$chunk_output_dir"
+    
+    echo "[CHUNK $chunk_id/$N_WORKERS] Starting..."
+    
+    # Set environment variables for this chunk (incremental quantiles enabled)
+    export GX1_CHUNK_ID="$chunk_id"
+    export OMP_NUM_THREADS=1
+    export OPENBLAS_NUM_THREADS=1
+    export MKL_NUM_THREADS=1
+    export VECLIB_MAXIMUM_THREADS=1
+    export NUMEXPR_NUM_THREADS=1
+    export GX1_XGB_THREADS=1
+    export PYTHONFAULTHANDLER=1
+    export GX1_REPLAY_NO_CSV=1
+    export GX1_FEATURE_USE_NP_ROLLING=1
+    export GX1_REPLAY_INCREMENTAL_FEATURES=1
+    
+    # Run replay using run_mini_replay_perf.py for performance tracking
+    python3 scripts/run_mini_replay_perf.py \
+        "$POLICY" \
+        "$chunk_file" \
+        "$chunk_output_dir" \
+        2>&1 | tee "$OUTPUT_DIR/parallel_chunks/chunk_${chunk_id}.log"
+    
+    echo "[CHUNK $chunk_id/$N_WORKERS] ✅ Done"
+}
+
+# Run chunks in parallel using background jobs
+for i in $(seq 0 $((N_WORKERS - 1))); do
+    run_chunk $i &
+done
+
+# Wait for all jobs to complete
+wait
+
+echo ""
+echo "✅ All chunks completed!"
+
+# Step 4: Merge trade journals
+echo ""
+echo "[4/6] Merging trade journals..."
+
+python3 gx1/scripts/merge_trade_journals.py "$OUTPUT_DIR" 2>&1 | tee "$OUTPUT_DIR/merge_trade_journals.log"
+
+# Step 5: Merge performance summaries (fail-fast)
+echo ""
+echo "[5/6] Merging performance summaries..."
+
+MERGE_START_TIME=$(date +%s)
+python3 scripts/merge_perf_summaries.py "$OUTPUT_DIR" 2>&1 | tee "$OUTPUT_DIR/merge_perf_summaries.log"
+MERGE_EXIT_CODE=$?
+MERGE_END_TIME=$(date +%s)
+MERGE_DURATION=$((MERGE_END_TIME - MERGE_START_TIME))
+
+if [ $MERGE_EXIT_CODE -ne 0 ]; then
+    echo ""
+    echo "❌ ERROR: Failed to merge perf summaries (exit code: $MERGE_EXIT_CODE)"
+    echo "   Check: $OUTPUT_DIR/merge_perf_summaries.log"
+    exit $MERGE_EXIT_CODE
+fi
+
+echo "✅ Performance summaries merged (took ${MERGE_DURATION}s)"
+
+# Step 6: Aggregate performance summaries (legacy, kept for compatibility)
+echo ""
+echo "[6/6] Aggregating performance summaries (legacy)..."
+
+python3 -c "
+import json
+from pathlib import Path
+import sys
+
+output_dir = Path(sys.argv[1])
+n_workers = int(sys.argv[2])
+
+# Aggregate perf summaries from all chunks
+all_perf_entries = {}
+total_bars = 0
+total_duration = 0.0
+total_feat_time = 0.0
+
+for chunk_id in range(n_workers):
+    chunk_perf_file = output_dir / 'parallel_chunks' / f'chunk_{chunk_id}' / 'REPLAY_PERF_SUMMARY.json'
+    if chunk_perf_file.exists():
+        with open(chunk_perf_file) as f:
+            chunk_perf = json.load(f)
+        
+        total_bars += chunk_perf.get('bars_total', 0)
+        total_duration += chunk_perf.get('duration_sec', 0)
+        total_feat_time += chunk_perf.get('feat_time_sec', 0)
+        
+        # Aggregate top blocks (simplified - just sum times)
+        for block in chunk_perf.get('feature_top_blocks', [])[:15]:
+            name = block.get('name')
+            total_sec = block.get('total_sec', 0)
+            count = block.get('count', 0)
+            
+            if name not in all_perf_entries:
+                all_perf_entries[name] = {'total_sec': 0, 'count': 0}
+            all_perf_entries[name]['total_sec'] += total_sec
+            all_perf_entries[name]['count'] += count
+
+# Create aggregated summary
+aggregated = {
+    'bars_total': total_bars,
+    'duration_sec': total_duration,
+    'feat_time_sec': total_feat_time,
+    'bars_per_sec': total_bars / max(total_duration, 1),
+    'feat_sec_per_bar_ms': (total_feat_time / max(total_bars, 1)) * 1000,
+    'feature_top_blocks': sorted(
+        [{'name': k, 'total_sec': v['total_sec'], 'count': v['count']} 
+         for k, v in all_perf_entries.items()],
+        key=lambda x: x['total_sec'],
+        reverse=True
+    )[:15]
+}
+
+# Save aggregated summary
+agg_file = output_dir / 'REPLAY_PERF_SUMMARY_AGGREGATED.json'
+with open(agg_file, 'w') as f:
+    json.dump(aggregated, f, indent=2)
+
+print(f'✅ Aggregated performance summary saved to {agg_file}')
+print(f'   Total bars: {total_bars:,}')
+print(f'   Total duration: {total_duration:.1f}s ({total_duration/60:.1f} min)')
+print(f'   Total feat time: {total_feat_time:.1f}s')
+print(f'   Bars/sec: {aggregated[\"bars_per_sec\"]:.2f}')
+print(f'   Feat time per bar: {aggregated[\"feat_sec_per_bar_ms\"]:.4f} ms')
+" "$OUTPUT_DIR" "$N_WORKERS"
+
+echo ""
+echo "=================================================================================="
+echo "✅ FULLYEAR 2025 Parallel Replay Complete!"
+echo "=================================================================================="
+echo ""
+echo "Run Tag: $RUN_TAG"
+echo "Output: $OUTPUT_DIR"
+echo ""
+echo "Trade Journal: $OUTPUT_DIR/trade_journal/"
+echo "Aggregated Perf: $OUTPUT_DIR/REPLAY_PERF_SUMMARY_AGGREGATED.json"
+echo "Chunk Logs: $OUTPUT_DIR/parallel_chunks/"
+echo ""
+

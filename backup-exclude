@@ -1,0 +1,25 @@
+# Backup exclusion list
+# These directories and file patterns should be permanently excluded from backups
+
+# Runtime workflow runs
+gx1/wf_runs/
+
+# Replay runs
+runs/
+
+# Runtime data directories
+data/replay/
+data/temp/
+
+# Live runtime data
+gx1/live/
+
+# Large binary files
+*.parquet
+*.pt
+*.joblib
+*.csv
+*.sqlite
+
+# Python cache
+__pycache__/

@@ -1,0 +1,103 @@
+# GX1 v1.2 → SNIPER ENTRY_V10.1 FLAT THRESHOLD 0.25 (OFFLINE_ONLY)
+#
+# Entry: ENTRY_V10.1 HYBRID (variant=v10_1, seq_len=90) with baseline sizing
+# Exit: HYBRID_ROUTER_V3 - ML decision tree with range features
+# Mode: REPLAY (OFFLINE_ONLY - threshold sweep test)
+#
+# Configuration:
+#   - Entry: ENTRY_V10.1 HYBRID (deeper Transformer, longer sequences)
+#   - FLAT sizing: Same baseline sizing as P4.1 (no aggressive size overlays)
+#   - THRESHOLD 0.25: Threshold sweep test value
+#   - Exit: ExitCritic V1 + RULE5/RULE6A (same as P4.1)
+#
+# ⚠️  OFFLINE_ONLY: This config is for threshold sweep testing only.
+
+meta:
+  router_version: V3_RANGE
+  name: "SNIPER_ENTRY_V10_1_FLAT_THRESHOLD_0_25"
+  role: OFFLINE_ONLY
+  description: >
+    SNIPER with ENTRY_V10.1 HYBRID (variant=v10_1, seq_len=90) in FLAT mode.
+    Threshold 0.25 (threshold sweep test).
+    Baseline sizing (no aggressive size overlays).
+  bundle_location: sniper_snapshot/2025_SNIPER_V10_1
+  notes: "Threshold sweep test (threshold=0.25)"
+
+policy_name: GX1_V12_SNIPER_ENTRY_V10_1_FLAT_THRESHOLD_0_25
+version: "GX1_V12_SNIPER_ENTRY_V10_1_FLAT_THRESHOLD_0_25"
+mode: "REPLAY"
+run_mode: "PROD"
+instrument: "XAU_USD"
+timeframe: "M5"
+warmup_bars: 288
+
+entry_config: gx1/configs/policies/sniper_snapshot/2025_SNIPER_V10_1/ENTRY_V10_1_SNIPER_FLAT_THRESHOLD_0_25.yaml
+
+exit_config: gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/exits/SNIPER_EXIT_RULES_A_P4_1.yaml
+
+exit_policies:
+  rule5: gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/exits/SNIPER_EXIT_RULES_A_P4_1.yaml
+  rule6a: gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/exits/SNIPER_EXIT_RULES_ADAPTIVE.yaml
+
+hybrid_exit_router:
+  version: HYBRID_ROUTER_V3
+  model_path: gx1/models/exit_router/exit_router_v3_tree.pkl
+  v3_range_edge_cutoff: 1.0
+  documentation: |
+    HYBRID_ROUTER_V3_RANGE provides ML-based routing using decision tree trained on range features.
+
+execution:
+  dry_run: true
+  max_open_trades: 3
+  min_time_between_trades_sec: 180
+
+risk_guard:
+  config_path: gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/SNIPER_RISK_GUARD_V1.yaml
+
+logging:
+  level: INFO
+
+backfill:
+  enabled: false
+
+exit_control:
+  allowed_loss_closers:
+    - RULE_A_PROFIT
+    - RULE_A_TRAILING
+    - RULE_B_FAST_LOSS
+    - RULE_C_TIMEOUT
+    - RULE_FORCE_TIMEOUT
+    - BROKER_SL
+    - SL_TICK
+    - REPLAY_EOF
+  require_trade_open: true
+
+replay:
+  close_open_trades_at_end: true
+  eof_close_reason: "REPLAY_EOF"
+  eof_price_source: "mid"
+
+exit_critic:
+  enabled: true
+  model_path: models/exit_critic/exit_critic_xgb_v1.json
+  metadata_path: models/exit_critic/exit_critic_xgb_v1.meta.json
+  
+  exit_now_threshold: 0.60
+  scalp_threshold: 0.40
+  
+  guards:
+    min_bars_held: 5
+    apply_for_loss_leq: -40.0
+    apply_for_profit_ge: 40.0
+    allowed_sessions:
+      - EU
+      - OVERLAP
+      - US
+    allowed_vol_regimes:
+      - LOW
+      - MEDIUM
+      - HIGH
+    allowed_trend_regimes:
+      - TREND_UP
+      - TREND_NEUTRAL
+      - TREND_DOWN

@@ -132,3 +132,74 @@ See `docs/ops/INCIDENT_PLAYBOOK.md` for:
 - Alarm response procedures
 - Policy adjustment guidelines
 - Escalation process
+
+---
+
+## Portfolio 2025 Replay
+
+### Overview
+
+Combines FARM (Asia session) and SNIPER (EU/London/NY sessions) full-year replays into a single portfolio journal.
+
+**Router Rules**:
+- `ASIA` session → FARM engine
+- `EU`/`LONDON`/`NY`/`OVERLAP` sessions → SNIPER engine
+- Conflicts (same `entry_time`): SNIPER wins
+- Risk stacking: `--max-open-trades` (default=1) prevents overlapping positions
+
+### Prerequisites
+
+1. **FARM Full-Year Replay**:
+   ```bash
+   # Run FARM replay for 2025-01-01 to 2025-12-31
+   # Output: wf_runs/PORTFOLIO_2025_FARM_FULLYEAR_YYYYMMDD_HHMMSS/
+   ```
+
+2. **SNIPER Full-Year Replay**:
+   ```bash
+   # Run SNIPER replay for 2025-01-01 to 2025-12-31
+   python gx1/scripts/run_sniper_quarter_replays.py \
+     --policy gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/GX1_V11_OANDA_PRACTICE_LIVE_SNIPER_LONDON_NY.yaml \
+     --data data/raw/xauusd_m5_2025_bid_ask.parquet \
+     --quarters Q1,Q2,Q3,Q4 \
+     --variants baseline \
+     --workers 7
+   # Output: wf_runs/SNIPER_OBS_Q1_Q2_Q3_Q4_2025_baseline_YYYYMMDD_HHMMSS/
+   ```
+
+### Combine Portfolio
+
+```bash
+# Using shell wrapper
+./scripts/run_portfolio_2025.sh \
+  --farm-run-dir gx1/wf_runs/PORTFOLIO_2025_FARM_FULLYEAR_20251221_120000 \
+  --sniper-run-dir gx1/wf_runs/SNIPER_OBS_Q1_Q2_Q3_Q4_2025_baseline_20251221_120000 \
+  --max-open-trades 1 \
+  --output-dir reports/portfolio/2025
+
+# Direct Python usage
+PYTHONPATH=. python gx1/portfolio/combine_farm_sniper_2025.py \
+  --farm-run-dir gx1/wf_runs/PORTFOLIO_2025_FARM_FULLYEAR_20251221_120000 \
+  --sniper-run-dir gx1/wf_runs/SNIPER_OBS_Q1_Q2_Q3_Q4_2025_baseline_20251221_120000 \
+  --max-open-trades 1 \
+  --output-dir reports/portfolio/2025
+```
+
+### Output
+
+Reports written to `reports/portfolio/2025/`:
+- `portfolio_trades.jsonl` - All accepted trades (one per line, JSON)
+- `portfolio_metrics.csv` - Trade-level metrics (CSV)
+- `summary.txt` - Portfolio summary with:
+  - Total trades, trades/day
+  - Mean/median PnL, P90/P95 loss, max loss, winrate
+  - Engine breakdown (FARM vs SNIPER)
+  - Routing stats (conflicts, dropped trades)
+
+### Verification
+
+After running, verify:
+- No double-counting (each trade appears once)
+- Session routing correct (ASIA → FARM, others → SNIPER)
+- Conflicts logged (if any)
+- Dropped trades logged (if `max_open_trades` limit hit)

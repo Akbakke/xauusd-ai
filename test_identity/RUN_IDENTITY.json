@@ -1,0 +1,16 @@
+{
+  "bundle_sha256": null,
+  "exit_v2_enabled": false,
+  "feature_build_disabled": false,
+  "feature_schema_fingerprint": null,
+  "git_dirty": true,
+  "git_head_sha": "eebf943f4983ea9128ecc9240244cadaa3551dfa",
+  "policy_id": "test",
+  "policy_sha256": "test",
+  "prebuilt_manifest_path": null,
+  "prebuilt_manifest_sha256": null,
+  "python_executable": "/Users/andrekildalbakke/.pyenv/versions/3.10.13/bin/python3",
+  "python_version": "3.10.13",
+  "replay_mode": "LIVE",
+  "windows_sha": null
+}

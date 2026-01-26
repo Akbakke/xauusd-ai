@@ -1,0 +1,166 @@
+# GX1 v1.1 → SNIPER entry policy (EU/London/NY) - REPLAY V10 VERIFICATION
+#
+# Entry: SNIPER (EU/OVERLAP/US + HIGH volatility allowed) with V10 enabled
+# Exit: HYBRID_ROUTER_V3 - ML decision tree with range features
+# Status: REPLAY-ONLY verification policy (not for production)
+#
+# Purpose: Verify that V10/V10_CTX is actually called in replay
+# This is a verification policy, not a new strategy.
+# All gates/thresholds/risk settings are identical to baseline.
+
+meta:
+  router_version: V3_RANGE
+  role: REPLAY_VERIFICATION  # REPLAY-ONLY, not PROD
+  description: >
+    SNIPER entry policy for EU/London/NY sessions with V10 enabled for replay verification.
+    This is a verification policy to ensure V10/V10_CTX is actually called in replay.
+    All gates/thresholds/risk settings are identical to baseline SNIPER policy.
+  bundle_location: sniper_snapshot/2025_SNIPER_V1
+
+policy_name: GX1_SNIPER_REPLAY_V10_CTX_VERIFY
+version: "GX1_SNIPER_REPLAY_V10_CTX_VERIFY"
+mode: "REPLAY"  # REPLAY mode for verification
+run_mode: "PROD"  # PROD mode (trades are journaled, but no real orders in replay)
+instrument: "XAU_USD"
+timeframe: "M5"
+warmup_bars: 288
+
+# SNIPER-specific entry config (V10_CTX only, V9 disabled)
+entry_config: gx1/configs/entry_configs/ENTRY_V10_CTX_SNIPER_REPLAY.yaml
+
+# DEL 1: Explicit replay configuration (SSoT - source of truth in YAML)
+# These fields are REQUIRED for replay mode and must be explicitly set (no auto-switch)
+replay_config:
+  # Policy module (explicit - no auto-switch)
+  policy_module: "gx1.policy.entry_policy_sniper_v10_ctx"
+  policy_class: "EntryPolicySniperV10Ctx"
+  policy_id: "entry_policy_sniper_v10_ctx"
+  
+  # Entry model identifier
+  entry_model_id: "ENTRY_V10_CTX_GATED_FUSION"
+  
+  # Runtime feature implementation (must NOT be runtime_v9 in replay)
+  runtime_feature_impl: "v10_ctx"
+  # Explicit runtime module path (for provenance)
+  runtime_feature_module: "gx1.features.runtime_v10_ctx"
+  
+  # Guardrails: V9 forbidden in replay
+  v9_forbidden: true
+  
+  # DEL A: Replay PreGate - early skip before expensive feature building
+  replay_pregate:
+    enabled: true  # Enable pregate optimization (replay-only)
+    allow_sessions: ["EU", "OVERLAP", "US"]  # Only allow these sessions (ASIA blocked)
+    max_spread_bps: 100.0  # Skip if spread > 100 bps (same as hard eligibility)
+    min_atr_bps: null  # Optional: skip if ATR too low
+    max_atr_bps: 200.0  # Skip if ATR > 200 bps (EXTREME vol, same as soft eligibility)
+    require_warmup_ready: true  # Skip if warmup not ready
+    allow_degraded: false  # Don't allow degraded warmup in pregate (strict)
+
+# SNIPER-specific exit configs (same as baseline)
+exit_config: gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/exits/SNIPER_EXIT_RULES_A.yaml
+
+exit_policies:
+  rule5: gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/exits/SNIPER_EXIT_RULES_A.yaml
+  rule6a: gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/exits/SNIPER_EXIT_RULES_ADAPTIVE.yaml
+
+hybrid_exit_router:
+  version: HYBRID_ROUTER_V3
+  # In v1: Use same router model as FARM (can be tuned via params later)
+  model_path: gx1/models/exit_router/exit_router_v3_tree.pkl
+  # SNIPER-specific router parameters (can be tuned independently)
+  v3_range_edge_cutoff: 1.0  # Start with same as FARM (can tune later)
+  # Future: session-specific cutoffs, vol-specific thresholds
+  documentation: |
+    HYBRID_ROUTER_V3_RANGE provides ML-based routing using decision tree trained on range features.
+    In v1: Uses same router model as FARM PROD_BASELINE.
+    SNIPER can tune router parameters (cutoffs, thresholds) via config without affecting FARM.
+
+execution:
+  dry_run: false
+  max_open_trades: 10  # Same as baseline
+
+# SNIPER Risk Guard V1 configuration (same as baseline)
+risk_guard:
+  config_path: gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/SNIPER_RISK_GUARD_V1.yaml
+
+logging:
+  level: INFO
+
+backfill:
+  enabled: true
+  overlap_bars: 6
+  lookback_padding: 100
+  target_bars_padding: 100
+
+# Exit control (ExitArbiter configuration) - same as baseline
+exit_control:
+  allowed_loss_closers:
+    - RULE_A_PROFIT
+    - RULE_A_TRAILING
+    - RULE_B_FAST_LOSS
+    - RULE_C_TIMEOUT
+    - BROKER_SL
+    - SL_TICK
+    - REPLAY_EOF
+  require_trade_open: true
+
+# Replay-specific configuration
+replay:
+  close_open_trades_at_end: true
+  eof_close_reason: "REPLAY_EOF"
+  eof_price_source: "mid"
+
+sniper_q4_cchop_overlay:
+  enabled: true
+  multipliers:
+    EU: 1.00
+    OVERLAP: 1.00
+    US: 0.50
+  default_multiplier: 1.00
+
+# Entry models configuration - V10 ENABLED FOR VERIFICATION
+# CRITICAL: Set require_v9_for_entry=false to allow V10-only mode
+require_v9_for_entry: false
+entry_models:
+  # V9 disabled (V10 replaces it for verification)
+  v9:
+    enabled: false
+  
+  # V10 hybrid (XGB + Transformer) - ENABLED FOR REPLAY VERIFICATION
+  v10:
+    enabled: true
+    model_path: "models/entry_v10/entry_v10_transformer.pt"
+    feature_meta_path: "gx1/models/entry_v9/nextgen_2020_2025_clean/entry_v9_feature_meta.json"
+    seq_scaler_path: "gx1/models/entry_v9/nextgen_2020_2025_clean/seq_scaler.joblib"
+    snap_scaler_path: "gx1/models/entry_v9/nextgen_2020_2025_clean/snap_scaler.joblib"
+  
+  # XGB models (required for V10 hybrid) - migrated to entry_v10_ctx bundle
+  # Mode: "universal" (single model) or "session" (EU/US/OVERLAP/ASIA split)
+  xgb:
+    enabled: true
+    mode: "session"  # Change to "universal" when xgb_universal_v1.joblib is ready
+    universal_model_path: "models/entry_v10_ctx/FULLYEAR_2025_GATED_FUSION/xgb_universal_v1.joblib"
+    eu_model_path: "models/entry_v10_ctx/FULLYEAR_2025_GATED_FUSION/xgb_EU.joblib"
+    us_model_path: "models/entry_v10_ctx/FULLYEAR_2025_GATED_FUSION/xgb_US.joblib"
+    overlap_model_path: "models/entry_v10_ctx/FULLYEAR_2025_GATED_FUSION/xgb_OVERLAP.joblib"
+    asia_model_path: "models/entry_v10_ctx/FULLYEAR_2025_GATED_FUSION/xgb_ASIA.joblib"
+  
+  # V10_CTX (context features) - ENABLED FOR REPLAY VERIFICATION
+  v10_ctx:
+    enabled: true
+    bundle_dir: "models/entry_v10_ctx/FULLYEAR_2025_GATED_FUSION"
+    feature_meta_path: "gx1/models/entry_v9/nextgen_2020_2025_clean/entry_v9_feature_meta.json"
+    seq_scaler_path: "gx1/models/entry_v9/nextgen_2020_2025_clean/seq_scaler.joblib"
+    snap_scaler_path: "gx1/models/entry_v9/nextgen_2020_2025_clean/snap_scaler.joblib"
+    xgb:
+      enabled: true
+      mode: "session"  # Change to "universal" when ready
+      universal_model_path: models/entry_v10_ctx/FULLYEAR_2025_GATED_FUSION/xgb_universal_v1.joblib
+      eu_model_path: models/entry_v10_ctx/FULLYEAR_2025_GATED_FUSION/xgb_EU.joblib
+      us_model_path: models/entry_v10_ctx/FULLYEAR_2025_GATED_FUSION/xgb_US.joblib
+      overlap_model_path: models/entry_v10_ctx/FULLYEAR_2025_GATED_FUSION/xgb_OVERLAP.joblib
+      asia_model_path: models/entry_v10_ctx/FULLYEAR_2025_GATED_FUSION/xgb_ASIA.joblib
+
+# CRITICAL: Context features must be enabled for V10_CTX
+ENTRY_CONTEXT_FEATURES_ENABLED: true

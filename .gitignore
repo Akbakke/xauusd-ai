@@ -6,6 +6,7 @@ gx1/wf_runs/
 !gx1/wf_runs/_inventory.csv
 # Archive directory
 gx1/wf_runs/_archive/
+archive/REPLAY_RAW_*/
 gx1/live/
 gx1/live/logs/
 logs/
@@ -13,8 +14,25 @@ gx1/optuna/**/*.db
 
 # Runtime data directories (permanent exclusion)
 runs/
+outputs/
 data/replay/
 data/temp/
+
+# Replay eval: Ignore DERIVAT artifacts, but keep SSoT reports
+reports/replay_eval/**/chunk_*/
+reports/replay_eval/**/chunks/
+reports/replay_eval/**/intratrade/
+reports/replay_eval/**/raw/
+reports/replay_eval/**/perf_*.json
+reports/replay_eval/**/trade_journal/
+# Keep SSoT reports (explicit exceptions)
+!reports/replay_eval/TRIAL160_YEARLY/*/RUN_IDENTITY.json
+!reports/replay_eval/TRIAL160_YEARLY/*/FULLYEAR_TRIAL160_REPORT_*.md
+!reports/replay_eval/TRIAL160_YEARLY/*/FULLYEAR_TRIAL160_METRICS_*.json
+!reports/replay_eval/TRIAL160_MULTIYEAR_2020_2025/MULTIYEAR_SUMMARY.md
+!reports/replay_eval/TRIAL160_MULTIYEAR_2020_2025/MULTIYEAR_METRICS.json
+!reports/replay_eval/TRIAL160_MULTIYEAR_2020_2025/MULTIYEAR_PARALLEL_STATUS.json
+!reports/replay_eval/TRIAL160_MULTIYEAR_2020_2025/FULLSTENDIG_SAMMENDRAG.md
 
 # Large binary files (permanent exclusion)
 *.parquet
@@ -22,6 +40,8 @@ data/temp/
 *.joblib
 *.csv
 *.sqlite
+# Exception: Keep prebuilt feature manifests (small JSON files)
+!data/prebuilt/**/*.manifest.json
 
 # Large log/telemetry files
 *.jsonl
@@ -45,3 +65,39 @@ Miniforge3.sh
 # gx1/data/exit_router/*.parquet
 # gx1/data/exit_router/*.csv
 
+
+# Quarantine directories (legacy cleanup)
+_quarantine_*/
+
+# GX1_DATA (external data directory - never commit)
+../GX1_DATA/
+GX1_DATA/
+
+# Data directories
+data/
+models/
+reports/
+archive/
+quarantine/
+
+# Large binary/model files
+**/*.parquet
+**/*.joblib
+**/*.pkl
+**/*.bst
+**/*.sqlite
+**/*.db
+**/*.pt
+**/*.onnx
+**/*.npy
+**/*.npz
+**/optuna*.db
+
+# OS and cache
+**/.DS_Store
+**/__pycache__/
+**/*.log
+
+# Temporary files
+$TEMP_DATA_2D
+0

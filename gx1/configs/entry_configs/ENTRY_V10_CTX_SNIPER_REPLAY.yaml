@@ -1,0 +1,83 @@
+# ENTRY_V10_CTX_SNIPER_REPLAY Policy Configuration
+#
+# V10_CTX (GATED FUSION) entry policy for SNIPER replay verification.
+# CRITICAL: V9 is DISABLED - only V10_CTX is allowed.
+#
+# Requirements:
+#   - GX1_GATED_FUSION_ENABLED=1 (enforced via environment)
+#   - GX1_REQUIRE_XGB_CALIBRATION=1 (hard-fail if calibrator missing)
+#   - bundle_dir must point to FULLYEAR_2025_GATED_FUSION (set in replay policy)
+#   - No V9 references anywhere
+
+# CRITICAL: V9 is DISABLED for replay
+require_v9_for_entry: false
+
+# Entry models - ONLY V10_CTX enabled
+entry_models:
+  v9:
+    enabled: false  # V9 DISABLED
+  v10:
+    enabled: false  # V10 (non-ctx) DISABLED - use v10_ctx instead
+  v10_ctx:
+    enabled: true
+    # bundle_dir is set in replay policy (FULLYEAR_2025_GATED_FUSION)
+    # feature_meta_path, scalers are set in replay policy
+  
+  # XGB models for V10 hybrid entry
+  # Mode: "universal" (single model) or "session" (EU/US/OVERLAP/ASIA split)
+  xgb:
+    enabled: true
+    mode: "session"  # Change to "universal" when xgb_universal_v1.joblib is ready
+    # Universal model (used when mode: universal)
+    universal_model_path: "../GX1_DATA/models/models/entry_v10_ctx/FULLYEAR_2025_GATED_FUSION/xgb_universal_v1.joblib"
+    # Session-split models (used when mode: session)
+    eu_model_path: "../GX1_DATA/models/models/entry_v10_ctx/FULLYEAR_2025_GATED_FUSION/xgb_EU.joblib"
+    us_model_path: "../GX1_DATA/models/models/entry_v10_ctx/FULLYEAR_2025_GATED_FUSION/xgb_US.joblib"
+    overlap_model_path: "../GX1_DATA/models/models/entry_v10_ctx/FULLYEAR_2025_GATED_FUSION/xgb_OVERLAP.joblib"
+    asia_model_path: "../GX1_DATA/models/models/entry_v10_ctx/FULLYEAR_2025_GATED_FUSION/xgb_ASIA.joblib"
+
+# SNIPER entry policy (same thresholds as ENTRY_V9_SNIPER_LONDON_NY)
+entry_v9_policy_sniper:
+  enabled: true
+  min_prob_long: 0.67  # Same as ENTRY_V9_SNIPER_LONDON_NY
+  min_prob_profitable: 0.0
+  enable_profitable_filter: false
+  require_trend_up: false
+  
+  allow_low_vol: true
+  allow_medium_vol: true
+  allow_high_vol: true    # HIGH vol allowed (SNIPER characteristic)
+  allow_extreme_vol: false
+  
+  allow_short: false  # Long-only
+
+# Meta-model (same as ENTRY_V9_SNIPER_LONDON_NY)
+meta_model:
+  enabled: true
+  model_path: gx1/models/farm_entry_meta/baseline_model.pkl
+  feature_cols_path: gx1/models/farm_entry_meta/feature_cols.json
+
+# Session/regime filters (same as ENTRY_V9_SNIPER_LONDON_NY)
+allowed_sessions: ["EU", "OVERLAP", "US"]  # Not ASIA
+allowed_vol_regimes: ["LOW", "MEDIUM", "HIGH"]  # HIGH allowed
+allowed_trend_regimes: []  # Trend checked via require_trend_up (soft gate only)
+
+guard:
+  enabled: true
+
+entry_gating:
+  p_side_min:
+    long: 0.67  # Same as ENTRY_V9_SNIPER_LONDON_NY
+    short: 1.0  # Blocks shorts
+  margin_min:
+    long: 0.50
+    short: 0.50
+  side_ratio_min: 1.25
+  sticky_bars: 1
+  
+  # Stage-0 configuration (SNIPER-specific)
+  stage0:
+    enabled: true
+    allowed_sessions: ["EU", "OVERLAP", "US"]
+    allowed_vol_regimes: ["LOW", "MEDIUM", "HIGH"]
+    block_trend_vol_combos: []

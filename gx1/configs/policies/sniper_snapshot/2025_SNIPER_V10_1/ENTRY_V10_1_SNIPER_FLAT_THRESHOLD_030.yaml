@@ -1,0 +1,90 @@
+# ENTRY_V10.1_SNIPER Policy Configuration (FLAT THRESHOLD 0.30) - Threshold-tested baseline
+#
+# SNIPER entry policy with ENTRY_V10.1 HYBRID (XGB + Transformer).
+# FLAT mode: No aggressive sizing, uses baseline sizing from P4.1.
+# THRESHOLD 0.30: Based on UNGATED analysis showing positive edge starts around 0.070-0.100.
+#                 Using 0.30 as conservative threshold for better selectivity.
+#
+# Configuration:
+#   - Entry: ENTRY_V10.1 HYBRID (variant=v10_1, seq_len=90)
+#   - Same regime blocks as P4.1 (TREND_UP×LOW, NEUTRAL×HIGH, DOWN×HIGH)
+#   - Same session filters (EU/OVERLAP/US)
+#   - Baseline sizing (same lot/risk logic as P4.1)
+#   - Threshold: min_prob_long=0.30, p_side_min.long=0.30 (threshold-tested baseline)
+#
+# Status: OFFLINE_ONLY (threshold-tested baseline)
+
+entry_v9_policy_sniper:
+  enabled: true
+  min_prob_long: 0.30  # Threshold-tested baseline (based on UNGATED analysis)
+  min_prob_profitable: 0.0
+  enable_profitable_filter: false
+  require_trend_up: false  # v1: soft gate only (log but don't hard-require)
+  
+  allow_low_vol: true
+  allow_medium_vol: true
+  allow_high_vol: true    # HIGH vol allowed (same as P4.1)
+  allow_extreme_vol: false
+  
+  allow_short: false  # Long-only (same as P4.1)
+
+entry_models:
+  # V9 disabled (V10.1 replaces it)
+  v9:
+    enabled: false
+  
+  # V10.1 hybrid (XGB + Transformer) - PRIMARY ENTRY ENGINE
+  v10:
+    enabled: true
+    variant: v10_1  # Use V10.1 variant (deeper model, seq_len=90)
+    model_path: "models/entry_v10/entry_v10_1_transformer.pt"
+    meta_path: "models/entry_v10/entry_v10_1_transformer_meta.json"
+    feature_meta_path: "gx1/models/entry_v9/nextgen_2020_2025_clean/entry_v9_feature_meta.json"
+  
+  # XGB models (required for V10.1 hybrid)
+  xgb:
+    enabled: true
+    eu_model_path: "models/entry_v10/xgb_entry_EU_v10.joblib"
+    us_model_path: "models/entry_v10/xgb_entry_US_v10.joblib"
+    overlap_model_path: "models/entry_v10/xgb_entry_OVERLAP_v10.joblib"
+
+# V10-only mode: V9 is NOT required for entry (V10.1 can operate independently)
+require_v9_for_entry: false
+
+meta_model:
+  enabled: true
+  model_path: gx1/models/farm_entry_meta/baseline_model.pkl  # Same as P4.1
+  feature_cols_path: gx1/models/farm_entry_meta/feature_cols.json
+
+allowed_sessions: ["EU", "OVERLAP", "US"]  # Same as P4.1
+allowed_vol_regimes: ["LOW", "MEDIUM", "HIGH"]  # Same as P4.1
+allowed_trend_regimes: []  # Trend checked via require_trend_up (soft gate only in v1)
+
+guard:
+  enabled: true
+
+entry_gating:
+  p_side_min:
+    long: 0.30  # Threshold-tested baseline (based on UNGATED analysis)
+    short: 1.0  # Blocks shorts
+  margin_min:
+    long: 0.50
+    short: 0.50
+  side_ratio_min: 1.25
+  sticky_bars: 1
+  
+  # Stage-0 configuration (SNIPER-specific, same as P4.1)
+  stage0:
+    enabled: true
+    allowed_sessions: ["EU", "OVERLAP", "US"]  # SNIPER sessions (not ASIA)
+    allowed_vol_regimes: ["LOW", "MEDIUM", "HIGH"]  # SNIPER allows HIGH vol
+    
+    # P4.1 regime blocks (same as P4.1)
+    block_trend_vol_combos:
+      - trend: "TREND_NEUTRAL"
+        vol: "HIGH"
+      - trend: "TREND_DOWN"
+        vol: "HIGH"
+      - trend: "TREND_UP"
+        vol: "LOW"
+

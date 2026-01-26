@@ -1,5 +1,0 @@
-=== SCRIPTS/ RUNNERS I PROSJEKTET ===
-./gx1/execution/oanda_demo_runner.py
-./gx1/prod/run_header.py
-./gx1/scripts/run_sniper_quarter_replays.py
-./scripts/active/run_parallel_replay.py

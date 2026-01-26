@@ -1,0 +1,105 @@
+# gx1/configs/exit/EXIT_CRITIC_XGB_V1.yaml
+#
+# Konfigurasjon for ExitCriticRuntimeV1
+# Brukes sammen med:
+#   gx1/rl/exit_critic/integrate_exit_critic_runtime_v1.py
+#
+# Målet her er:
+# - Kun bruke ExitCritic der den faktisk har edge
+# - Unngå å gjøre tail-risk verre
+# - Ha enkel toggle mellom SHADOW og ENFORCE
+
+meta:
+  name: "EXIT_CRITIC_XGB_V1"
+  version: 1
+  description: >
+    ExitCritic XGBoost V1 – trent på FULLYEAR 2025 med entry/exit-features.
+    Brukes som ekstra sikkerhetslag over eksisterende exit-router (RULE5/RULE6A).
+    Kan kjøre i SHADOW-modus (kun logging) eller ENFORCE (påvirker exits).
+
+model:
+  model_path: "models/exit_critic/exit_critic_xgb_v1.json"
+  metadata_path: "models/exit_critic/exit_critic_xgb_v1.meta.json"
+
+runtime:
+  # mode:
+  #   SHADOW  = kun logg beslutninger (ingen faktisk effekt)
+  #   ENFORCE = la ExitCritic få lov å trigge exit/partial-exit
+  mode: "SHADOW"
+
+  # Sannsynlighetsterskler (samme som i ExitCriticRuntimeV1, men styrt fra config)
+  exit_now_threshold: 0.60    # label=EXIT_NOW
+  scalp_threshold: 0.35       # label=SCALP_PROFIT
+
+  # Når får ExitCritic lov å mene noe i det hele tatt?
+  guards:
+
+    # Minimum barer holdt før vi bryr oss om signalet
+    min_bars_held: 4
+
+    # Ikke bruk ExitCritic når vi er i dyp rødt allerede – da skal eksisterende
+    # SL-logikk få styre alene (unngå "panic exit" inni selve SL-sonen)
+    min_pnl_bps: -80.0        # under dette → ignorér ExitCritic
+
+    # Ikke vits å rope EXIT_NOW hvis vi allerede ligger helt i take-profit-land.
+    max_pnl_bps: 80.0
+
+    # Session-filter – hvor ExitCritic er aktiv
+    allowed_sessions:
+      - "EU"
+      - "OVERLAP"
+      - "US"
+
+    # Vol-regimer der ExitCritic er aktiv.
+    # (HIGH er viktig for å kvele dårlige trades; LOW/MEDIUM for å beskytte range-miljøer)
+    allowed_vol_regimes:
+      - "LOW"
+      - "MEDIUM"
+      - "HIGH"
+
+    # Trend-regimer – vi kan velge å f.eks. være ekstra forsiktig i TREND_DOWN
+    allowed_trend_regimes:
+      - "TREND_UP"
+      - "TREND_NEUTRAL"
+      - "TREND_DOWN"
+
+  actions:
+    # Hvordan mappe ACTION_* til faktisk oppførsel i exit_manager
+    EXIT_NOW:
+      enabled: true
+      # full close av hele posisjonen
+      close_fraction: 1.0
+      # flagg i journal: "EXIT_CRITIC_EXIT_NOW"
+      reason_tag: "EXIT_CRITIC_EXIT_NOW"
+
+    SCALP_PROFIT:
+      enabled: true
+      # hvor stor del vi tar av bordet når vi tar scalp
+      close_fraction: 0.50
+      # anbefaling: stram inn trail på rest (styres i exit_manager)
+      tighten_trailing_sl: true
+      reason_tag: "EXIT_CRITIC_SCALP_PROFIT"
+
+    HOLD:
+      enabled: true
+      # ingen endring – lar eksisterende exit-policy kjøre videre
+      reason_tag: "EXIT_CRITIC_HOLD"
+
+logging:
+  enabled: true
+  # egen journal-fil for debugging
+  log_path: "runs/live/exit_critic/exit_critic_decisions.parquet"
+
+  # logg kun hvis ExitCritic faktisk foreslår noe annet enn HOLD
+  log_only_non_hold: true
+
+  # Ekstra felter å dumpe til logg (må finnes i snapshot)
+  extra_snapshot_fields:
+    - "trade_id"
+    - "session"
+    - "vol_regime"
+    - "trend_regime"
+    - "current_pnl_bps"
+    - "mfe_bps"
+    - "mae_bps"
+    - "bars_held"

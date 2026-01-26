@@ -26,6 +26,7 @@ from __future__ import annotations
 import csv
 import json
 import logging
+import os
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -162,12 +163,49 @@ class TradeJournal:
         if self.enabled and not self.index_path.exists():
             self._write_index_header()
     
+    def _key(self, trade_uid: Optional[str] = None, trade_id: Optional[str] = None) -> str:
+        """
+        Normalize trade identifier to internal key (COMMIT C).
+        
+        Priority:
+        1. trade_uid (new, globally unique)
+        2. trade_id (legacy, wrapped as LEGACY:{trade_id})
+        3. Raise error if neither provided
+        
+        Parameters
+        ----------
+        trade_uid : str, optional
+            Globally unique trade identifier (run_id:chunk_id:seq:uuid)
+        trade_id : str, optional
+            Legacy trade identifier (SIM-...)
+        
+        Returns
+        -------
+        str
+            Internal key for storage/indexing
+        """
+        if trade_uid:
+            return trade_uid
+        elif trade_id:
+            # Legacy mode: wrap trade_id to avoid collisions with new trade_uid format
+            logger.warning(
+                f"[TRADE_JOURNAL] Using legacy trade_id={trade_id} (trade_uid not provided). "
+                f"This should be migrated to trade_uid for parallel replay compatibility."
+            )
+            return f"LEGACY:{trade_id}"
+        else:
+            raise ValueError("Either trade_uid or trade_id must be provided")
+    
     def _write_index_header(self) -> None:
         """Write CSV header for index file."""
         try:
             with open(self.index_path, "w", newline="", encoding="utf-8") as f:
                 writer = csv.DictWriter(f, fieldnames=[
-                    "trade_id",
+                    "trade_key",  # PRIMARY KEY (COMMIT C)
+                    "trade_uid",  # Globally unique ID (nullable)
+                    "trade_id",  # Legacy display ID (nullable)
+                    "run_id",  # Run identifier
+                    "chunk_id",  # Chunk identifier (for parallel replay)
                     "entry_time",
                     "exit_time",
                     "side",
@@ -194,11 +232,63 @@ class TradeJournal:
         except Exception as e:
             logger.warning(f"[TRADE_JOURNAL] Failed to write index header: {e}")
     
-    def _get_trade_journal(self, trade_id: str) -> Dict[str, Any]:
-        """Get or create trade journal dict."""
-        if trade_id not in self._trade_journals:
-            self._trade_journals[trade_id] = {
-                "trade_id": trade_id,
+    def _get_trade_journal(self, trade_uid: Optional[str] = None, trade_id: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Get or create trade journal dict (COMMIT C: backward-compatible wrapper).
+        
+        Parameters
+        ----------
+        trade_uid : str, optional
+            Globally unique trade identifier (preferred)
+        trade_id : str, optional
+            Legacy trade identifier (fallback)
+        
+        Returns
+        -------
+        Dict[str, Any]
+            Trade journal dict
+        """
+        # GUARD 1: Replay-only fail-fast - trade_uid format invariant
+        is_replay = (
+            os.getenv("GX1_REPLAY") == "1" or 
+            os.getenv("REPLAY_MODE") == "1" or 
+            self.run_tag.startswith("REPLAY_") or 
+            "REPLAY" in self.run_tag.upper() or
+            (self.run_tag and ("MINI" in self.run_tag.upper() or "TEST" in self.run_tag.upper()))
+        )
+        
+        if is_replay and trade_uid:
+            # In replay, trade_uid must start with GX1_RUN_ID:GX1_CHUNK_ID:
+            env_run_id = os.getenv("GX1_RUN_ID")
+            env_chunk_id = os.getenv("GX1_CHUNK_ID")
+            if env_run_id and env_chunk_id:
+                expected_prefix = f"{env_run_id}:{env_chunk_id}:"
+                if not trade_uid.startswith(expected_prefix):
+                    raise RuntimeError(
+                        f"BAD_TRADE_UID_FORMAT_REPLAY: trade_uid={trade_uid} does not start with "
+                        f"expected prefix={expected_prefix}. GX1_RUN_ID={env_run_id}, GX1_CHUNK_ID={env_chunk_id}. "
+                        f"This is a hard contract violation in replay mode."
+                    )
+        
+        key = self._key(trade_uid=trade_uid, trade_id=trade_id)
+        journal_exists = key in self._trade_journals
+        
+        # GUARD 2: In replay mode, never create new journal in exit path
+        # If journal doesn't exist and we're in a context where entry_snapshot should exist, fail hard
+        if is_replay and not journal_exists:
+            # Check if this is being called from exit path (heuristic: trade_id provided but no trade_uid, or trade_uid doesn't match expected format)
+            if trade_id and (not trade_uid or (trade_uid and not trade_uid.startswith(f"{env_run_id}:{env_chunk_id}:") if env_run_id and env_chunk_id else False)):
+                raise RuntimeError(
+                    f"EXIT_WITHOUT_ENTRY_SNAPSHOT_REPLAY: Attempted to create new journal for trade_id={trade_id}, "
+                    f"trade_uid={trade_uid} but journal does not exist. This indicates exit logging attempted "
+                    f"without entry_snapshot being logged first. This is a hard contract violation in replay mode."
+                )
+        
+        if key not in self._trade_journals:
+            self._trade_journals[key] = {
+                "trade_key": key,  # Internal primary key
+                "trade_uid": trade_uid,  # Globally unique ID (COMMIT C)
+                "trade_id": trade_id,  # Legacy display ID (backward compatibility)
                 "run_tag": self.run_tag,
                 "policy_sha256": self.policy_sha256,
                 "router_sha256": self.router_sha256,
@@ -211,29 +301,74 @@ class TradeJournal:
                 "execution_events": [],  # Order submission, fills, OANDA events
                 "exit_summary": None,
             }
-        return self._trade_journals[trade_id]
+        return self._trade_journals[key]
     
-    def _write_trade_json(self, trade_id: str) -> None:
-        """Write complete trade journal to JSON file."""
+    def _write_trade_json(self, trade_uid: Optional[str] = None, trade_id: Optional[str] = None) -> None:
+        """
+        Write complete trade journal to JSON file (COMMIT C: backward-compatible wrapper).
+        
+        Parameters
+        ----------
+        trade_uid : str, optional
+            Globally unique trade identifier (preferred)
+        trade_id : str, optional
+            Legacy trade identifier (fallback)
+        """
+        import time
+        
         if not self.enabled:
             return
         
-        trade_journal = self._get_trade_journal(trade_id)
-        trade_json_path = self.trade_json_dir / f"{trade_id}.json"
+        # GUARD 1: Replay-only fail-fast - trade_uid format invariant when writing
+        is_replay = (
+            os.getenv("GX1_REPLAY") == "1" or 
+            os.getenv("REPLAY_MODE") == "1" or 
+            self.run_tag.startswith("REPLAY_") or 
+            "REPLAY" in self.run_tag.upper() or
+            (self.run_tag and ("MINI" in self.run_tag.upper() or "TEST" in self.run_tag.upper()))
+        )
+        
+        if is_replay and trade_uid:
+            env_run_id = os.getenv("GX1_RUN_ID")
+            env_chunk_id = os.getenv("GX1_CHUNK_ID")
+            if env_run_id and env_chunk_id:
+                expected_prefix = f"{env_run_id}:{env_chunk_id}:"
+                if not trade_uid.startswith(expected_prefix):
+                    raise RuntimeError(
+                        f"BAD_TRADE_UID_FORMAT_REPLAY: Attempted to write journal with trade_uid={trade_uid} "
+                        f"that does not start with expected prefix={expected_prefix}. "
+                        f"GX1_RUN_ID={env_run_id}, GX1_CHUNK_ID={env_chunk_id}. "
+                        f"This is a hard contract violation in replay mode."
+                    )
+        
+        key = self._key(trade_uid=trade_uid, trade_id=trade_id)
+        trade_journal = self._get_trade_journal(trade_uid=trade_uid, trade_id=trade_id)
+        trade_json_path = self.trade_json_dir / f"{key}.json"
         
         try:
+            # Time the actual I/O operation
+            io_start = time.perf_counter()
             with open(trade_json_path, "w", encoding="utf-8") as f:
                 json.dump(trade_journal, f, indent=2, ensure_ascii=False, default=str)
+            io_time = time.perf_counter() - io_start
+            
+            # Log journal I/O time (only periodically to avoid spam)
+            if not hasattr(self, "_journal_io_log_count"):
+                self._journal_io_log_count = 0
+            self._journal_io_log_count += 1
+            if self._journal_io_log_count % 100 == 0:
+                logger.debug(f"[JOURNAL_PERF] Wrote {self._journal_io_log_count} trade JSONs, last I/O time: {io_time*1000:.2f}ms")
         except Exception as e:
-            logger.warning(f"[TRADE_JOURNAL] Failed to write trade JSON for {trade_id}: {e}")
+            logger.warning(f"[TRADE_JOURNAL] Failed to write trade JSON for key={key}: {e}")
     
     def log_entry_snapshot(
         self,
-        trade_id: str,
         entry_time: str,
         instrument: str,
         side: str,
         entry_price: float,
+        trade_uid: Optional[str] = None,  # Globally unique ID (COMMIT C)
+        trade_id: Optional[str] = None,  # Legacy display ID (backward compatibility)
         session: Optional[str] = None,
         regime: Optional[str] = None,
         vol_regime: Optional[str] = None,
@@ -257,6 +392,7 @@ class TradeJournal:
         sniper_overlays: Optional[List[Dict[str, Any]]] = None,
         atr_bps: Optional[float] = None,
         spread_bps: Optional[float] = None,
+        entry_critic: Optional[Dict[str, Any]] = None,
     ) -> None:
         """
         Log entry snapshot (why trade was taken).
@@ -282,7 +418,7 @@ class TradeJournal:
             return
         
         try:
-            trade_journal = self._get_trade_journal(trade_id)
+            trade_journal = self._get_trade_journal(trade_uid=trade_uid, trade_id=trade_id)
             # Use vol_regime if provided, otherwise fall back to regime (backward compatibility)
             vol_regime_final = vol_regime or regime
             entry_snapshot: Dict[str, Any] = {
@@ -347,6 +483,10 @@ class TradeJournal:
                 # Also set sniper_overlays as single-item list for consistency
                 entry_snapshot["sniper_overlays"] = [sniper_overlay]
             
+            # Add Entry Critic V1 score if provided (shadow-only mode)
+            if entry_critic is not None:
+                entry_snapshot["entry_critic"] = entry_critic
+            
             trade_journal["entry_snapshot"] = entry_snapshot
             # Add degraded warmup fields if applicable
             if warmup_degraded:
@@ -355,26 +495,30 @@ class TradeJournal:
                     trade_journal["entry_snapshot"]["cached_bars_at_entry"] = cached_bars_at_entry
                 if warmup_bars_required is not None:
                     trade_journal["entry_snapshot"]["warmup_bars_required"] = warmup_bars_required
-            self._write_trade_json(trade_id)
+            self._write_trade_json(trade_uid=trade_uid, trade_id=trade_id)
         except Exception as e:
-            logger.exception(f"[TRADE_JOURNAL] Failed to log entry snapshot for {trade_id}")
+            key_str = self._key(trade_uid=trade_uid, trade_id=trade_id) if (trade_uid or trade_id) else "UNKNOWN"
+            logger.exception(f"[TRADE_JOURNAL] Failed to log entry snapshot for key={key_str}")
             # Fail-safe: write minimal entry_snapshot to avoid None
             try:
-                trade_journal = self._get_trade_journal(trade_id)
+                trade_journal = self._get_trade_journal(trade_uid=trade_uid, trade_id=trade_id)
                 trade_journal["entry_snapshot"] = {
+                    "trade_key": key_str,
+                    "trade_uid": trade_uid,
                     "trade_id": trade_id,
                     "entry_time": entry_time,
                     "error": "entry_snapshot_failed",
                     "error_type": type(e).__name__,
                     "error_msg": str(e),
                 }
-                self._write_trade_json(trade_id)
+                self._write_trade_json(trade_uid=trade_uid, trade_id=trade_id)
             except Exception as e2:
                 logger.error(f"[TRADE_JOURNAL] Failed to write minimal entry_snapshot for {trade_id}: {e2}")
     
     def log_feature_context(
         self,
-        trade_id: str,
+        trade_uid: Optional[str] = None,  # Globally unique ID (COMMIT C)
+        trade_id: Optional[str] = None,  # Legacy display ID (backward compatibility)
         atr_bps: Optional[float] = None,
         atr_price: Optional[float] = None,
         atr_percentile: Optional[float] = None,
@@ -408,7 +552,7 @@ class TradeJournal:
             return
         
         try:
-            trade_journal = self._get_trade_journal(trade_id)
+            trade_journal = self._get_trade_journal(trade_uid=trade_uid, trade_id=trade_id)
             trade_journal["feature_context"] = {
                 "atr": {
                     "atr_bps": atr_bps,
@@ -430,9 +574,10 @@ class TradeJournal:
                     "low": candle_low,
                 },
             }
-            self._write_trade_json(trade_id)
+            self._write_trade_json(trade_uid=trade_uid, trade_id=trade_id)
         except Exception as e:
-            logger.warning(f"[TRADE_JOURNAL] Failed to log feature context for {trade_id}: {e}")
+            key_str = self._key(trade_uid=trade_uid, trade_id=trade_id) if (trade_uid or trade_id) else "UNKNOWN"
+            logger.warning(f"[TRADE_JOURNAL] Failed to log feature context for key={key_str}: {e}")
     
     def log_router_decision(
         self,
@@ -466,7 +611,7 @@ class TradeJournal:
             return
         
         try:
-            trade_journal = self._get_trade_journal(trade_id)
+            trade_journal = self._get_trade_journal(trade_uid=trade_uid, trade_id=trade_id)
             trade_journal["router_explainability"] = {
                 "router_version": router_version,
                 "router_model_hash": router_model_hash or self.router_sha256,
@@ -478,9 +623,10 @@ class TradeJournal:
                 "range_edge_dist_atr": range_edge_dist_atr,
                 "final_exit_profile": final_exit_profile,
             }
-            self._write_trade_json(trade_id)
+            self._write_trade_json(trade_uid=trade_uid, trade_id=trade_id)
         except Exception as e:
-            logger.warning(f"[TRADE_JOURNAL] Failed to log router decision for {trade_id}: {e}")
+            key_str = self._key(trade_uid=trade_uid, trade_id=trade_id) if (trade_uid or trade_id) else "UNKNOWN"
+            logger.warning(f"[TRADE_JOURNAL] Failed to log router decision for key={key_str}: {e}")
     
     def log_exit_configuration(
         self,
@@ -506,7 +652,7 @@ class TradeJournal:
             return
         
         try:
-            trade_journal = self._get_trade_journal(trade_id)
+            trade_journal = self._get_trade_journal(trade_uid=trade_uid, trade_id=trade_id)
             trade_journal["exit_configuration"] = {
                 "exit_profile": exit_profile,
                 "tp_levels": tp_levels or [],
@@ -514,9 +660,10 @@ class TradeJournal:
                 "trailing_enabled": trailing_enabled,
                 "be_rules": be_rules or {},
             }
-            self._write_trade_json(trade_id)
+            self._write_trade_json(trade_uid=trade_uid, trade_id=trade_id)
         except Exception as e:
-            logger.warning(f"[TRADE_JOURNAL] Failed to log exit configuration for {trade_id}: {e}")
+            key_str = self._key(trade_uid=trade_uid, trade_id=trade_id) if (trade_uid or trade_id) else "UNKNOWN"
+            logger.warning(f"[TRADE_JOURNAL] Failed to log exit configuration for key={key_str}: {e}")
     
     def log_exit_event(
         self,
@@ -542,7 +689,7 @@ class TradeJournal:
             return
         
         try:
-            trade_journal = self._get_trade_journal(trade_id)
+            trade_journal = self._get_trade_journal(trade_uid=trade_uid, trade_id=trade_id)
             event = {
                 "timestamp": timestamp,
                 "event_type": event_type,
@@ -551,17 +698,19 @@ class TradeJournal:
                 "bars_held": bars_held,
             }
             trade_journal["exit_events"].append(event)
-            self._write_trade_json(trade_id)
+            self._write_trade_json(trade_uid=trade_uid, trade_id=trade_id)
         except Exception as e:
-            logger.warning(f"[TRADE_JOURNAL] Failed to log exit event for {trade_id}: {e}")
+            key_str = self._key(trade_uid=trade_uid, trade_id=trade_id) if (trade_uid or trade_id) else "UNKNOWN"
+            logger.warning(f"[TRADE_JOURNAL] Failed to log exit event for key={key_str}: {e}")
     
     def log_exit_summary(
         self,
-        trade_id: str,
         exit_time: str,
         exit_price: float,
         exit_reason: str,
         realized_pnl_bps: float,
+        trade_uid: Optional[str] = None,
+        trade_id: Optional[str] = None,
         max_mfe_bps: Optional[float] = None,
         max_mae_bps: Optional[float] = None,
         intratrade_drawdown_bps: Optional[float] = None,
@@ -570,11 +719,12 @@ class TradeJournal:
         Log exit summary (final trade closure).
         
         Args:
-            trade_id: Trade identifier
             exit_time: Exit timestamp (ISO8601 UTC)
             exit_price: Exit price
             exit_reason: Exit reason (TP, SL, BE, TIMEOUT, TRAIL, etc.)
             realized_pnl_bps: Realized PnL in basis points
+            trade_uid: Globally unique trade identifier (preferred)
+            trade_id: Display trade identifier (legacy/backward compatibility)
             max_mfe_bps: Maximum favorable excursion (bps)
             max_mae_bps: Maximum adverse excursion (bps)
             intratrade_drawdown_bps: Intratrade drawdown (bps)
@@ -583,7 +733,43 @@ class TradeJournal:
             return
         
         try:
-            trade_journal = self._get_trade_journal(trade_id)
+            # GUARD 2: Replay-only fail-fast - exit logging must not create journals
+            is_replay = (
+                os.getenv("GX1_REPLAY") == "1" or 
+                os.getenv("REPLAY_MODE") == "1" or 
+                self.run_tag.startswith("REPLAY_") or 
+                "REPLAY" in self.run_tag.upper() or
+                (trade_uid and ":" in trade_uid and "chunk" in trade_uid.lower()) or
+                (trade_uid and trade_uid.startswith("MINI_")) or
+                (self.run_tag and ("MINI" in self.run_tag.upper() or "TEST" in self.run_tag.upper()))
+            )
+            
+            key = self._key(trade_uid=trade_uid, trade_id=trade_id)
+            
+            # In replay mode, check if journal exists before trying to get it
+            if is_replay and key not in self._trade_journals:
+                raise RuntimeError(
+                    f"EXIT_WITHOUT_ENTRY_SNAPSHOT_REPLAY: Attempted to log exit_summary for trade_id={trade_id}, "
+                    f"trade_uid={trade_uid}, key={key} but journal does not exist. "
+                    f"This indicates exit logging attempted without entry_snapshot being logged first. "
+                    f"This is a hard contract violation in replay mode."
+                )
+            
+            trade_journal = self._get_trade_journal(trade_uid=trade_uid, trade_id=trade_id)
+            
+            # EXTRA GUARD: For replay mode, forbid exit logging without entry_snapshot
+            # This prevents "exit-only" orphan journals from being created
+            entry_snapshot = trade_journal.get("entry_snapshot")
+            
+            if is_replay and not entry_snapshot:
+                # Hard fail in replay mode if entry_snapshot is missing
+                raise RuntimeError(
+                    f"EXIT_WITHOUT_ENTRY_SNAPSHOT_REPLAY: Attempted to log exit_summary for trade_id={trade_id}, "
+                    f"trade_uid={trade_uid}, key={key} but entry_snapshot is None. "
+                    f"This indicates a trade was closed without entry_snapshot being logged first. "
+                    f"This is a hard contract violation in replay mode."
+                )
+            
             trade_journal["exit_summary"] = {
                 "exit_time": exit_time,
                 "exit_price": exit_price,
@@ -593,20 +779,22 @@ class TradeJournal:
                 "max_mae_bps": max_mae_bps,
                 "intratrade_drawdown_bps": intratrade_drawdown_bps,
             }
-            self._write_trade_json(trade_id)
+            self._write_trade_json(trade_uid=trade_uid, trade_id=trade_id)
             
             # Update index CSV
-            self._update_index(trade_id)
+            self._update_index(trade_uid=trade_uid, trade_id=trade_id)
         except Exception as e:
-            logger.warning(f"[TRADE_JOURNAL] Failed to log exit summary for {trade_id}: {e}")
+            key_str = self._key(trade_uid=trade_uid, trade_id=trade_id) if (trade_uid or trade_id) else "UNKNOWN"
+            logger.warning(f"[TRADE_JOURNAL] Failed to log exit summary for key={key_str}: {e}")
     
-    def _update_index(self, trade_id: str) -> None:
+    def _update_index(self, trade_uid: Optional[str] = None, trade_id: Optional[str] = None) -> None:
         """Update index CSV with trade summary."""
         if not self.enabled:
             return
         
         try:
-            trade_journal = self._get_trade_journal(trade_id)
+            key = self._key(trade_uid=trade_uid, trade_id=trade_id)
+            trade_journal = self._get_trade_journal(trade_uid=trade_uid, trade_id=trade_id)
             entry_snapshot = trade_journal.get("entry_snapshot") or {}
             router_explainability = trade_journal.get("router_explainability") or {}
             exit_summary = trade_journal.get("exit_summary") or {}
@@ -664,8 +852,17 @@ class TradeJournal:
                 except Exception:
                     risk_guard_details_str = str(risk_guard_details)
             
+            # COMMIT C: Extract trade_key, run_id, chunk_id from trade_journal
+            trade_key_val = key  # From _key() call above
+            run_id_val = trade_journal.get("run_id") or ""  # Extract from journal if stored
+            chunk_id_val = trade_journal.get("chunk_id") or ""  # Extract from journal if stored
+            
             index_row = {
-                "trade_id": trade_id,
+                "trade_key": trade_key_val,  # PRIMARY KEY (COMMIT C)
+                "trade_uid": trade_uid or "",  # Globally unique ID
+                "trade_id": trade_id or "",  # Legacy display ID
+                "run_id": run_id_val,
+                "chunk_id": chunk_id_val,
                 "entry_time": entry_snapshot.get("entry_time", ""),
                 "exit_time": exit_summary.get("exit_time", ""),
                 "side": entry_snapshot.get("side", ""),
@@ -699,7 +896,11 @@ class TradeJournal:
             write_header = not self.index_path.exists() or self.index_path.stat().st_size == 0
             
             fieldnames = [
-                "trade_id",
+                "trade_key",  # PRIMARY KEY (COMMIT C)
+                "trade_uid",  # Globally unique ID (nullable)
+                "trade_id",  # Legacy display ID (nullable)
+                "run_id",  # Run identifier
+                "chunk_id",  # Chunk identifier
                 "entry_time",
                 "exit_time",
                 "side",
@@ -734,7 +935,8 @@ class TradeJournal:
                     writer.writeheader()
                 writer.writerow(index_row)
         except Exception as e:
-            logger.warning(f"[TRADE_JOURNAL] Failed to update index for {trade_id}: {e}")
+            key_str = self._key(trade_uid=trade_uid, trade_id=trade_id) if (trade_uid or trade_id) else "UNKNOWN"
+            logger.warning(f"[TRADE_JOURNAL] Failed to update index for key={key_str}: {e}")
     
     # Backward compatibility: JSONL logging
     def log(
@@ -850,9 +1052,10 @@ class TradeJournal:
             }
             
             trade_journal["execution_events"].append(event)
-            self._write_trade_json(trade_id)
+            self._write_trade_json(trade_uid=trade_uid, trade_id=trade_id)
         except Exception as e:
-            logger.warning(f"[TRADE_JOURNAL] Failed to log ORDER_SUBMITTED for {trade_id}: {e}")
+            key_str = self._key(trade_uid=trade_uid, trade_id=trade_id) if (trade_uid or trade_id) else "UNKNOWN"
+            logger.warning(f"[TRADE_JOURNAL] Failed to log ORDER_SUBMITTED for key={key_str}: {e}")
     
     def log_order_rejected(
         self,
@@ -890,9 +1093,10 @@ class TradeJournal:
             }
             
             trade_journal["execution_events"].append(event)
-            self._write_trade_json(trade_id)
+            self._write_trade_json(trade_uid=trade_uid, trade_id=trade_id)
         except Exception as e:
-            logger.warning(f"[TRADE_JOURNAL] Failed to log ORDER_REJECTED for {trade_id}: {e}")
+            key_str = self._key(trade_uid=trade_uid, trade_id=trade_id) if (trade_uid or trade_id) else "UNKNOWN"
+            logger.warning(f"[TRADE_JOURNAL] Failed to log ORDER_REJECTED for key={key_str}: {e}")
     
     def log_order_filled(
         self,
@@ -945,9 +1149,10 @@ class TradeJournal:
             }
             
             trade_journal["execution_events"].append(event)
-            self._write_trade_json(trade_id)
+            self._write_trade_json(trade_uid=trade_uid, trade_id=trade_id)
         except Exception as e:
-            logger.warning(f"[TRADE_JOURNAL] Failed to log ORDER_FILLED for {trade_id}: {e}")
+            key_str = self._key(trade_uid=trade_uid, trade_id=trade_id) if (trade_uid or trade_id) else "UNKNOWN"
+            logger.warning(f"[TRADE_JOURNAL] Failed to log ORDER_FILLED for key={key_str}: {e}")
     
     def log_oanda_trade_update(
         self,
@@ -993,9 +1198,10 @@ class TradeJournal:
             }
             
             trade_journal["execution_events"].append(event)
-            self._write_trade_json(trade_id)
+            self._write_trade_json(trade_uid=trade_uid, trade_id=trade_id)
         except Exception as e:
-            logger.warning(f"[TRADE_JOURNAL] Failed to log {event_type} for {trade_id}: {e}")
+            key_str = self._key(trade_uid=trade_uid, trade_id=trade_id) if (trade_uid or trade_id) else "UNKNOWN"
+            logger.warning(f"[TRADE_JOURNAL] Failed to log {event_type} for key={key_str}: {e}")
     
     def close(self) -> None:
         """Close journal and flush all pending writes."""

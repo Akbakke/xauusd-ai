@@ -1,0 +1,36 @@
+# SNIPER Exit Rules A P4.1 (RULE5 with max_bars_held fail-safe)
+#
+# SNIPER-specific exit profile for P4.1 with fail-safe timeout.
+# Based on SNIPER_EXIT_RULES_A but with force_exit_bars for tail risk management.
+#
+# P4.1 improvements:
+#   - force_exit_bars: 3000 (fail-safe timeout ~10 days M5)
+#   - All other RULE5 parameters preserved
+
+exit:
+  only_v2_drift: true
+  params:
+    debug_trade_ids: []
+    enable_rule_a: true
+    enable_rule_b: false
+    enable_rule_c: false
+    rule_a_adaptive_bars: 3
+    rule_a_adaptive_threshold_bps: 4.0
+    rule_a_profit_max_bps: 9.0
+    rule_a_profit_min_bps: 5.0
+    rule_a_trailing_stop_bps: 2.0
+    force_exit_bars: 3000  # P4.1: Fail-safe timeout (~10 days M5)
+  type: FARM_V2_RULES
+
+# SNIPER-specific tuning parameters (can be adjusted independently)
+sniper_tuning:
+  # Session-specific adjustments (future use)
+  eu_cooldown_bars: null  # Use default
+  overlap_cooldown_bars: null
+  us_cooldown_bars: null
+  
+  # Volatility-specific adjustments (future use)
+  high_vol_multiplier: null  # Use default
+  
+  # Note: In v1, we use same params as FARM. Tuning happens in later rounds.
+

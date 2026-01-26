@@ -14,3 +14,15 @@ from gx1.tools.exec_smoke_test import main, run_smoke_test
 if __name__ == "__main__":
     exit(main())
 
+
+
+
+
+
+
+
+
+
+
+
+

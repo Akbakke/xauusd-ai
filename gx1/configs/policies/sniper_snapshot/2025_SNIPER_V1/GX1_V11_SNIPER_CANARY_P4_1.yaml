@@ -1,0 +1,141 @@
+# GX1 v1.1 → SNIPER CANARY P4.1 (P4 + Improvements)
+#
+# Entry: SNIPER P4.1 (P4 + TREND_UP×LOW block + EU mid/late reduce + max_bars_held=3000)
+# Exit: HYBRID_ROUTER_V3 - ML decision tree with range features
+# Mode: REPLAY (for testing P4.1 candidate)
+#
+# Changes from P4:
+#   - entry_config: ENTRY_V9_SNIPER_LONDON_NY_P4_1.yaml (adds TREND_UP×LOW block)
+#   - exit_config: SNIPER_EXIT_RULES_A_P4_1.yaml (adds force_exit_bars=3000)
+#   - sniper_q4_eu_timing_overlay: Reduces EU mid/late exposure
+#   - meta.role: CANARY (not PROD)
+#
+# Expected: Further reduction from P4, improved tail risk
+# Risk: Moderate (refinement of P4)
+
+meta:
+  router_version: V3_RANGE
+  name: "SNIPER_P4_1_CANARY"
+  role: CANARY  # 🔄 CANARY mode (not PROD)
+  description: >
+    SNIPER P4.1 CANARY: P4 + TREND_UP×LOW block + EU mid/late reduce + max_bars_held=3000.
+    Refinements based on P4 analysis:
+    - Block TREND_UP×LOW (poor performing regime)
+    - Reduce EU mid/late exposure (keep EU early)
+    - Fail-safe timeout at 3000 bars (~10 days)
+    Expected: Further reduction from P4, improved tail risk.
+  bundle_location: sniper_snapshot/2025_SNIPER_V1
+
+policy_name: GX1_V11_SNIPER_CANARY_P4_1
+version: "GX1_V11_SNIPER_CANARY_P4_1"
+mode: "REPLAY"  # REPLAY mode for historical data
+run_mode: "PROD"  # PROD mode (trades are journaled, but no real orders in replay)
+instrument: "XAU_USD"
+timeframe: "M5"
+warmup_bars: 288
+
+# SNIPER-specific entry config (P4.1: P4 + TREND_UP×LOW block)
+entry_config: gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/ENTRY_V9_SNIPER_LONDON_NY_P4_1.yaml
+
+# SNIPER-specific exit configs (P4.1: adds force_exit_bars=3000)
+exit_config: gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/exits/SNIPER_EXIT_RULES_A_P4_1.yaml
+
+exit_policies:
+  rule5: gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/exits/SNIPER_EXIT_RULES_A_P4_1.yaml
+  rule6a: gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/exits/SNIPER_EXIT_RULES_ADAPTIVE.yaml
+
+hybrid_exit_router:
+  version: HYBRID_ROUTER_V3
+  model_path: gx1/models/exit_router/exit_router_v3_tree.pkl
+  v3_range_edge_cutoff: 1.0
+  documentation: |
+    HYBRID_ROUTER_V3_RANGE provides ML-based routing using decision tree trained on range features.
+    Uses same router model as FARM PROD_BASELINE.
+
+execution:
+  dry_run: true  # Always dry_run in replay (no real orders)
+  max_open_trades: 3  # P4.1: Stricter concurrency for "true sniper"
+  min_time_between_trades_sec: 180  # P4.1: 3 min between entries
+
+# SNIPER Risk Guard V1 configuration (same as live)
+risk_guard:
+  config_path: gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/SNIPER_RISK_GUARD_V1.yaml
+
+logging:
+  level: INFO
+
+backfill:
+  enabled: false  # Disabled in replay (we have historical data)
+
+# Exit control (ExitArbiter configuration)
+exit_control:
+  allowed_loss_closers:
+    - RULE_A_PROFIT
+    - RULE_A_TRAILING
+    - RULE_B_FAST_LOSS
+    - RULE_C_TIMEOUT
+    - RULE_FORCE_TIMEOUT  # P4.1: Allow force exit timeout
+    - BROKER_SL
+    - SL_TICK
+    - REPLAY_EOF  # Always allowed in replay mode for end-of-simulation liquidation
+  require_trade_open: true
+
+# Replay-specific configuration
+replay:
+  close_open_trades_at_end: true  # Close all open trades at end of replay for complete analysis
+  eof_close_reason: "REPLAY_EOF"  # Reason code for EOF-closed trades
+  eof_price_source: "mid"  # Price source for EOF close: "mid", "bid", or "ask"
+
+sniper_q4_cchop_overlay:
+  enabled: true
+  multipliers:
+    EU: 1.00
+    OVERLAP: 1.00
+    US: 0.50
+  default_multiplier: 1.00
+
+# P4.1: EU timing overlay (reduces EU mid/late exposure)
+sniper_q4_eu_timing_overlay:
+  enabled: true
+  # EU session: 07:00-12:00 UTC (5 hours)
+  # Early: 07:00-09:00 (first 33%)
+  # Mid: 09:00-10:20 (middle 33%)
+  # Late: 10:20-12:00 (last 33%)
+  multipliers:
+    EU_EARLY: 1.00  # Keep EU early
+    EU_MID: 0.0     # Block EU mid (size=0)
+    EU_LATE: 0.0    # Block EU late (size=0)
+    OVERLAP: 1.00   # Keep overlap
+    US_EARLY: 1.00  # Keep US early
+    US_MID: 1.00    # Keep US mid
+    US_LATE: 1.00   # Keep US late
+  default_multiplier: 1.00
+
+# ExitCritic V1 configuration
+exit_critic:
+  enabled: true
+  model_path: models/exit_critic/exit_critic_xgb_v1.json
+  metadata_path: models/exit_critic/exit_critic_xgb_v1.meta.json
+  
+  # Thresholds
+  exit_now_threshold: 0.60
+  scalp_threshold: 0.40
+  
+  # Guards
+  guards:
+    min_bars_held: 5        # Don't use critic if trade is too fresh
+    apply_for_loss_leq: -40.0  # Use EXIT_NOW only if pnl <= -40 bps
+    apply_for_profit_ge: 40.0   # Use SCALP_PROFIT only if pnl >= 40 bps
+    allowed_sessions:
+      - EU
+      - OVERLAP
+      - US
+    allowed_vol_regimes:
+      - LOW
+      - MEDIUM
+      - HIGH
+    allowed_trend_regimes:
+      - TREND_UP
+      - TREND_NEUTRAL
+      - TREND_DOWN
+

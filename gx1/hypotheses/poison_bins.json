@@ -1,0 +1,22 @@
+{
+  "_warning": "DO NOT CONSUME AT RUNTIME (Mac phase). This file is for analysis and hypothesis design only.",
+  "_baseline": "Trial160 (2020-2025, 29,710 trades)",
+  "_generated_from": "reports/truth_decomp/truth_decomp_2020_2025.json",
+  "_last_updated": "2026-01-19",
+  "total_poison_bins": 1,
+  "poison_bins": [
+    {
+      "session": "US",
+      "bin_key": "ATR:Q80-Q100|SPREAD:Q50-Q80|TREND:TREND_UP|VOL:LOW",
+      "trades": 12,
+      "total_pnl_bps": -18.72654497467348,
+      "avg_pnl_per_trade": -1.5605454145561233,
+      "winrate": 0.75,
+      "p5_pnl": -32.268341624380454,
+      "p50_pnl": 5.496366514409758,
+      "p95_pnl": 8.82982869597871,
+      "worst_trade": -57.7088019678602,
+      "maxdd_proxy": -57.7088019678602
+    }
+  ]
+}

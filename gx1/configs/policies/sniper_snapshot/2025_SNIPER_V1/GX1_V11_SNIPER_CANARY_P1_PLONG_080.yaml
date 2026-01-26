@@ -1,0 +1,88 @@
+# GX1 v1.1 → SNIPER CANARY P1 (p_long >= 0.80)
+#
+# Entry: SNIPER P1 (Policy B: p_long >= 0.80)
+# Exit: HYBRID_ROUTER_V3 - ML decision tree with range features
+# Mode: REPLAY (for testing P1 candidate)
+#
+# Changes from baseline (GX1_V11_REPLAY_SHADOW_2025):
+#   - entry_config: ENTRY_V9_SNIPER_LONDON_NY_P1.yaml (p_long 0.80)
+#   - meta.role: CANARY (not PROD)
+#
+# Expected: 25,327 trades (24.4% reduction), 66.23% win rate, +9.9% reward/1k
+# Risk: Low (already verified in policy evaluation)
+
+meta:
+  router_version: V3_RANGE
+  role: CANARY  # 🔄 CANARY mode (not PROD)
+  description: >
+    SNIPER P1 CANARY: p_long >= 0.80 (Policy B baseline-mod).
+    Pure probabilistic tightening - no regime blocks.
+    Expected: 25,327 trades, 66.23% win rate, +9.9% reward/1k.
+  bundle_location: sniper_snapshot/2025_SNIPER_V1
+
+policy_name: GX1_V11_SNIPER_CANARY_P1_PLONG_080
+version: "GX1_V11_SNIPER_CANARY_P1_PLONG_080"
+mode: "REPLAY"  # REPLAY mode for historical data
+run_mode: "PROD"  # PROD mode (trades are journaled, but no real orders in replay)
+instrument: "XAU_USD"
+timeframe: "M5"
+warmup_bars: 288
+
+# SNIPER-specific entry config (P1: p_long 0.80)
+entry_config: gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/ENTRY_V9_SNIPER_LONDON_NY_P1.yaml
+
+# SNIPER-specific exit configs (same as live)
+exit_config: gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/exits/SNIPER_EXIT_RULES_A.yaml
+
+exit_policies:
+  rule5: gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/exits/SNIPER_EXIT_RULES_A.yaml
+  rule6a: gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/exits/SNIPER_EXIT_RULES_ADAPTIVE.yaml
+
+hybrid_exit_router:
+  version: HYBRID_ROUTER_V3
+  model_path: gx1/models/exit_router/exit_router_v3_tree.pkl
+  v3_range_edge_cutoff: 1.0
+  documentation: |
+    HYBRID_ROUTER_V3_RANGE provides ML-based routing using decision tree trained on range features.
+    Uses same router model as FARM PROD_BASELINE.
+
+execution:
+  dry_run: true  # Always dry_run in replay (no real orders)
+  max_open_trades: 10  # Same as baseline
+
+# SNIPER Risk Guard V1 configuration (same as live)
+risk_guard:
+  config_path: gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/SNIPER_RISK_GUARD_V1.yaml
+
+logging:
+  level: INFO
+
+backfill:
+  enabled: false  # Disabled in replay (we have historical data)
+
+# Exit control (ExitArbiter configuration)
+exit_control:
+  allowed_loss_closers:
+    - RULE_A_PROFIT
+    - RULE_A_TRAILING
+    - RULE_B_FAST_LOSS
+    - RULE_C_TIMEOUT
+    - BROKER_SL
+    - SL_TICK
+    - REPLAY_EOF  # Always allowed in replay mode for end-of-simulation liquidation
+  require_trade_open: true
+
+# Replay-specific configuration
+replay:
+  close_open_trades_at_end: true  # Close all open trades at end of replay for complete analysis
+  eof_close_reason: "REPLAY_EOF"  # Reason code for EOF-closed trades
+  eof_price_source: "mid"  # Price source for EOF close: "mid", "bid", or "ask"
+
+sniper_q4_cchop_overlay:
+  enabled: true
+  multipliers:
+    EU: 1.00
+    OVERLAP: 1.00
+    US: 0.50
+  default_multiplier: 1.00
+

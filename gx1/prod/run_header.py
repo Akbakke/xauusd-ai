@@ -57,6 +57,10 @@ def generate_run_header(
     output_dir: Path = Path("gx1/wf_runs"),
     run_tag: Optional[str] = None,
     policy_dict: Optional[Dict[str, Any]] = None,
+    chunk_id: Optional[str] = None,
+    bundle_path: Optional[str] = None,
+    bundle_sha256: Optional[str] = None,
+    run_id: Optional[str] = None,  # DEL 4: Explicit run_id parameter
 ) -> Dict[str, Any]:
     """
     Generate run_header.json artifact.
@@ -73,14 +77,31 @@ def generate_run_header(
     Returns:
         Run header dict
     """
+    import os
+    # DEL 4: Use run_id if provided, otherwise use run_tag
+    effective_run_id = run_id or run_tag
+    
     header = {
         "timestamp": datetime.now().isoformat(),
         "run_tag": run_tag,
+        "run_id": effective_run_id,  # DEL 4: Always include run_id
         "artifacts": {},
         "git_commit": get_git_commit_hash(),
         "policy_path": str(policy_path.resolve()),
         "meta": {},
+        "output_dir": str(output_dir.resolve()),
+        "pid": os.getpid(),
     }
+    
+    # DEL 2: Add chunk_id if provided (for parallel replay)
+    if chunk_id is not None:
+        header["chunk_id"] = chunk_id
+    
+    # DEL 2: Add bundle info if provided
+    if bundle_path:
+        header["bundle_path"] = bundle_path
+    if bundle_sha256:
+        header["bundle_sha256"] = bundle_sha256
     
     # Extract meta.role from policy (CRITICAL for PROD_BASELINE identification)
     if policy_dict:

@@ -1,8 +1,0 @@
-{
-  "best_epoch": 10,
-  "best_val_auc": 0.9957040495412248,
-  "best_val_coverage": 0.35798052077121845,
-  "training_period": "2024-12-31 to 2025-01-01",
-  "n_train": 8159,
-  "n_val": 5060
-}

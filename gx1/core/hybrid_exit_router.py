@@ -208,6 +208,7 @@ def hybrid_exit_router_v3(ctx: ExitRouterContext) -> ExitPolicyName:
     """
     import joblib
     import hashlib
+    import os
     from pathlib import Path
     
     atr = ctx.atr_pct
@@ -223,7 +224,39 @@ def hybrid_exit_router_v3(ctx: ExitRouterContext) -> ExitPolicyName:
     if ctx.model_path:
         model_path = Path(ctx.model_path)
     else:
-        model_path = Path(__file__).parent.parent / "analysis" / "exit_router_models_v3" / "exit_router_v3_tree.pkl"
+        # Default to canonical path
+        model_path = Path(__file__).parent.parent / "models" / "exit_router" / "exit_router_v3_tree.pkl"
+    
+    # Guardrail: Enforce canonical directory for exit router models
+    canonical_exit_router_dir = Path(__file__).parent.parent / "models" / "exit_router"
+    model_path_resolved = model_path.resolve()
+    canonical_dir_resolved = canonical_exit_router_dir.resolve()
+    
+    try:
+        is_canonical = model_path_resolved.is_relative_to(canonical_dir_resolved)
+    except AttributeError:
+        # Python < 3.9 compatibility
+        try:
+            model_path_resolved.relative_to(canonical_dir_resolved)
+            is_canonical = True
+        except ValueError:
+            is_canonical = False
+    
+    if not is_canonical:
+        allow_non_canonical = os.environ.get("GX1_ALLOW_NON_CANONICAL_EXIT_ROUTER", "0")
+        if allow_non_canonical != "1":
+            raise RuntimeError(
+                f"EXIT_ROUTER_NON_CANONICAL_PATH: Attempted to load exit router model from non-canonical path '{model_path}'. "
+                f"Exit router models must be loaded from canonical directory: {canonical_exit_router_dir}. "
+                f"If you really need to load from a non-canonical path (e.g., for testing), "
+                f"set GX1_ALLOW_NON_CANONICAL_EXIT_ROUTER=1. "
+                f"This is a security and determinism requirement."
+            )
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(
+            f"[ROUTER_V3] ⚠️  Loading from non-canonical path (GX1_ALLOW_NON_CANONICAL_EXIT_ROUTER=1): {model_path}"
+        )
     
     # Lazy load trained model (cache after first load)
     if not hasattr(hybrid_exit_router_v3, "_model_cache"):

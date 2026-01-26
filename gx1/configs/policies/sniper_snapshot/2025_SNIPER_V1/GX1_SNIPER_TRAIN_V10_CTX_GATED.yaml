@@ -1,0 +1,84 @@
+# Training Policy for ENTRY_V10_CTX + Gated Fusion
+# FULLYEAR_2025 Training Setup
+#
+# Purpose: Training-only policy (not for replay/verify)
+# Requirements:
+#   - entry_models.v10_ctx.enabled: true
+#   - GX1_GATED_FUSION_ENABLED: true
+#   - GX1_REQUIRE_XGB_CALIBRATION: 1
+#   - Only safety kill-switch gates as post-veto
+
+meta:
+  role: TRAIN
+  description: "Training policy for ENTRY_V10_CTX with Gated Fusion (FULLYEAR_2025)"
+
+policy_name: GX1_SNIPER_TRAIN_V10_CTX_GATED
+version: TRAIN
+mode: TRAIN
+instrument: XAU_USD
+timeframe: M5
+warmup_bars: 288
+
+# Entry models config
+entry_models:
+  v9:
+    enabled: false
+  v10:
+    enabled: false  # Use v10_ctx instead
+  v10_ctx:
+    enabled: true
+    bundle_dir: models/entry_v10_ctx/FULLYEAR_2025_GATED_FUSION  # Will be created during training
+    feature_meta_path: gx1/models/entry_v9/nextgen_2020_2025_clean/entry_v9_feature_meta.json
+    seq_scaler_path: gx1/models/entry_v9/nextgen_2020_2025_clean/seq_scaler.joblib
+    snap_scaler_path: gx1/models/entry_v9/nextgen_2020_2025_clean/snap_scaler.joblib
+    xgb:
+      enabled: true
+      eu_model_path: models/entry_v10/xgb_entry_EU_v10.joblib
+      us_model_path: models/entry_v10/xgb_entry_US_v10.joblib
+      overlap_model_path: models/entry_v10/xgb_entry_OVERLAP_v10.joblib
+      asia_model_path: models/entry_v10/xgb_entry_ASIA_v10.joblib
+
+# Entry config (required by runner, but not used in training)
+entry_config: gx1/configs/policies/prod_snapshot/2025_FARM_V2B_HYBRID/ENTRY_V9_FARM_V2B_PROD.yaml
+
+# Entry policy (SNIPER) - DISABLED for training (we want to use entry_v10_ctx directly)
+entry_v9_policy_sniper:
+  enabled: false  # Disable v9 to force v10_ctx usage
+  threshold: 0.18  # Locked threshold (not used in training)
+  max_concurrent_positions: 5
+  session_gating:
+    allowed_sessions:
+      - EU
+      - US
+      - OVERLAP
+    blocked_sessions:
+      - ASIA
+
+# Exit config (not relevant for entry training)
+exit_config: gx1/configs/exits/FARM_EXIT_V2_RULES_A_mp68_max5_rule5_cd0.yaml
+
+# Execution (not relevant for training)
+execution:
+  max_open_trades: 5
+
+# Risk (not relevant for training)
+risk:
+  min_time_between_trades_sec: 0
+
+# Allow V10_CTX to be used without requiring V9
+require_v9_for_entry: false
+
+# Training-specific flags (documented, set via environment variables)
+# GX1_GATED_FUSION_ENABLED=1 (default: enabled)
+# GX1_REQUIRE_XGB_CALIBRATION=1 (hard fail if calibrator missing)
+# GX1_ALLOW_UNCALIBRATED_XGB=0 (default: false, no fallback)
+
+# Post-veto gates (only safety kill-switch)
+# Documented safety gates:
+#   - HARD_WARMUP: Insufficient warmup bars (< 288)
+#   - HARD_SESSION_BLOCK: ASIA session blocked (SNIPER requirement)
+#   - HARD_SPREAD_CAP: Spread > 100 bps (hard cap)
+#   - KILL_SWITCH: System kill-switch active (file-based, not used in training)
+#
+# Note: No post-model veto gates (thresholds, regime gates, etc.)
+# All filtering happens via eligibility checks before model inference.

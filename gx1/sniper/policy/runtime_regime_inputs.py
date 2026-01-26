@@ -18,7 +18,9 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, Optional
 
-from gx1.execution.live_features import infer_session_tag
+# DEL 3: PREBUILT mode fix - move live_features import to lazy (baseline-only)
+# live_features is forbidden in PREBUILT mode, so we only import it when needed (baseline mode only)
+# infer_session_tag is used at runtime, so we import it locally where needed
 
 log = logging.getLogger(__name__)
 
@@ -106,6 +108,8 @@ def get_runtime_regime_inputs(
     
     if result["session"] == "UNKNOWN" and entry_time is not None:
         try:
+            # DEL 3: Lazy import - only import when actually needed (baseline mode only)
+            from gx1.execution.live_features import infer_session_tag
             result["session"] = infer_session_tag(entry_time)
             sources["session"] = "infer_session_tag(entry_time)"
         except Exception:

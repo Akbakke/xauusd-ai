@@ -5,8 +5,25 @@ from typing import Any, Dict, List, Optional, TYPE_CHECKING
 import logging
 import pandas as pd
 
-from gx1.execution.live_features import build_live_exit_snapshot, infer_session_tag, compute_atr_bps
+# DEL 3: PREBUILT mode fix - move live_features imports to lazy imports
+# live_features is forbidden in PREBUILT mode, so we only import it when needed (live mode only)
+# These functions are used at runtime, so we import them locally where needed
 from gx1.utils.pnl import compute_pnl_bps
+from gx1.execution.exit_critic_controller import ExitCriticController
+from gx1.rl.exit_critic.integrate_exit_critic_runtime_v1 import (
+    ACTION_EXIT_NOW,
+    ACTION_SCALP_PROFIT,
+)
+
+# Exit Policy V2 (optional)
+try:
+    from gx1.exits.exit_policy_v2 import ExitPolicyV2, load_exit_policy_v2_config, ExitPolicyV2Config
+    EXIT_POLICY_V2_AVAILABLE = True
+except ImportError:
+    EXIT_POLICY_V2_AVAILABLE = False
+    ExitPolicyV2 = None
+    load_exit_policy_v2_config = None
+    ExitPolicyV2Config = None
 
 if TYPE_CHECKING:
     from gx1.execution.oanda_demo_runner import GX1DemoRunner
@@ -35,6 +52,118 @@ class ExitManager:
             super().__setattr__(name, value)
         else:
             setattr(self._runner, name, value)
+    
+    def _evaluate_exit_policy_v2_impl(
+        self,
+        open_trades: List[Any],
+        candles: pd.DataFrame,
+        now_ts: pd.Timestamp,
+        current_bid: float,
+        current_ask: float,
+        runtime_atr_bps: float,
+    ) -> bool:
+        """
+        Evaluate Exit Policy V2 for all open trades.
+        
+        Returns:
+            True if at least one exit was triggered, False otherwise.
+        """
+        if not EXIT_POLICY_V2_AVAILABLE or not hasattr(self, "exit_policy_v2") or not self.exit_policy_v2:
+            return False
+        
+        exit_triggered = False
+        
+        for trade in open_trades:
+            # Update trade state (age, MFE, MAE)
+            if not hasattr(trade, "age_bars"):
+                trade.age_bars = 0
+            if not hasattr(trade, "mfe_bps"):
+                trade.mfe_bps = 0.0
+            if not hasattr(trade, "mae_bps"):
+                trade.mae_bps = 0.0
+            
+            # Get entry bid/ask (fallback to entry_price if not available)
+            entry_bid = getattr(trade, "entry_bid", None) or trade.entry_price
+            entry_ask = getattr(trade, "entry_ask", None) or trade.entry_price
+            
+            # Calculate unrealized PnL (bps) using bid/ask
+            unrealized_pnl_bps = compute_pnl_bps(
+                entry_bid=entry_bid,
+                entry_ask=entry_ask,
+                exit_bid=current_bid,
+                exit_ask=current_ask,
+                side=trade.side,
+            )
+            
+            # Update MFE/MAE
+            if unrealized_pnl_bps > trade.mfe_bps:
+                trade.mfe_bps = unrealized_pnl_bps
+            if unrealized_pnl_bps < trade.mae_bps:
+                trade.mae_bps = unrealized_pnl_bps
+            
+            # Get entry ATR (from trade metadata or use runtime ATR as fallback)
+            entry_atr_bps = getattr(trade, "entry_atr_bps", None) or runtime_atr_bps
+            
+            # Initialize trade state in ExitPolicyV2 if not already initialized
+            if trade.trade_id not in self.exit_policy_v2.states:
+                self.exit_policy_v2.initialize_trade(trade, entry_atr_bps)
+            
+            # Update trade state in ExitPolicyV2
+            self.exit_policy_v2.update_trade_state(
+                trade=trade,
+                current_bid=current_bid,
+                current_ask=current_ask,
+                current_atr_bps=runtime_atr_bps,
+                bars_held=trade.age_bars,
+            )
+            
+            # Evaluate Exit Policy V2
+            from gx1.execution.live_features import infer_session_tag
+            session_tag = infer_session_tag(now_ts)
+            decision = self.exit_policy_v2.evaluate_exit(
+                trade=trade,
+                current_bid=current_bid,
+                current_ask=current_ask,
+                current_atr_bps=runtime_atr_bps,
+                bars_held=trade.age_bars,
+                session=session_tag,
+            )
+            
+            exit_reason = decision.exit_reason if decision and decision.should_exit else None
+            
+            if exit_reason and decision:
+                # Request close with ExitV2 reason
+                exit_reason_map = {
+                    "TIME_STOP": "EXIT_V2_TIME_STOP",
+                    "MAE_KILL": "EXIT_V2_MAE_KILL",
+                    "TRAIL_PROTECT": "EXIT_V2_TRAIL_PROTECT",
+                    "NEWS_GUARD": "EXIT_V2_NEWS_GUARD",
+                }
+                close_reason = exit_reason_map.get(exit_reason, f"EXIT_V2_{exit_reason}")
+                
+                # Get exit price and PnL from decision
+                exit_price = decision.exit_price or (current_bid if trade.side == "long" else current_ask)
+                exit_pnl_bps = decision.pnl_bps or unrealized_pnl_bps
+                
+                self.request_close(
+                    trade_id=trade.trade_id,
+                    source="EXIT_POLICY_V2",
+                    reason=close_reason,
+                    px=exit_price,
+                    pnl_bps=exit_pnl_bps,
+                    bars_in_trade=trade.age_bars,
+                )
+                exit_triggered = True
+                
+                # Increment counters (if available)
+                if hasattr(self, "telemetry_tracker") and hasattr(self.telemetry_tracker, "exit_v2_counters"):
+                    counter_key = f"exit_v2_n_{exit_reason.lower()}"
+                    if counter_key in self.telemetry_tracker.exit_v2_counters:
+                        self.telemetry_tracker.exit_v2_counters[counter_key] += 1
+                    if "exit_v2_n_total_v2_exits" in self.telemetry_tracker.exit_v2_counters:
+                        self.telemetry_tracker.exit_v2_counters["exit_v2_n_total_v2_exits"] += 1
+        
+        return exit_triggered
 
     def evaluate_and_close_trades(self, candles: pd.DataFrame) -> None:
         # Skip exit evaluation in ENTRY_ONLY mode (no trades to close)
@@ -80,6 +209,20 @@ class ExitManager:
         # Collect price trace for open trades (for intratrade metrics)
         self._collect_price_trace(candles, now_ts, open_trades_copy)
 
+        # ========================================================================
+        # EXIT POLICY V2 (pre-empts all other exit rules if enabled)
+        # ========================================================================
+        exit_v2_triggered = False
+        if EXIT_POLICY_V2_AVAILABLE and hasattr(self, "exit_policy_v2") and self.exit_policy_v2:
+            exit_v2_triggered = self._evaluate_exit_policy_v2_impl(
+                open_trades_copy, candles, now_ts, current_bid, current_ask, runtime_atr_bps
+            )
+            if exit_v2_triggered:
+                # Exit Policy V2 triggered at least one exit, skip other exit logic for this bar
+                # (remaining trades will be evaluated on next bar)
+                log.debug("[EXIT_POLICY_V2] Exits triggered, skipping other exit logic for this bar")
+                return
+
         # FARM_V1 mode: Skip tick-exit evaluation, go straight to FARM_V1 exits
         if hasattr(self, "farm_v1_mode") and self.farm_v1_mode:
             # Skip all tick-exit logic - only FARM_V1 exits allowed
@@ -112,6 +255,96 @@ class ExitManager:
                     est_bars,
                     est_pnl,
                 )
+                
+                # Build exit snapshot for ExitCritic (if enabled)
+                exit_snapshot = None
+                critic_action = None
+                if hasattr(self, "exit_critic_controller") and self.exit_critic_controller:
+                    try:
+                        from gx1.execution.live_features import build_live_exit_snapshot
+                        exit_snapshot = build_live_exit_snapshot(
+                            {
+                                "trade_id": trade.trade_id,
+                                "entry_time": trade.entry_time,
+                                "entry_price": trade.entry_price,
+                                "side": trade.side,
+                                "units": trade.units,
+                                "cost_bps": 0.0,
+                            },
+                            candles,
+                        )
+                        # Get regime info from trade if available
+                        session = getattr(trade, "session", None) or exit_snapshot["session_tag"].iloc[0] if len(exit_snapshot) > 0 else None
+                        vol_regime = getattr(trade, "vol_regime", None) or exit_snapshot["vol_bucket"].iloc[0] if len(exit_snapshot) > 0 else None
+                        trend_regime = getattr(trade, "trend_regime", None) or None
+                        
+                        critic_action = self.exit_critic_controller.maybe_apply_exit_critic(
+                            trade_snapshot=exit_snapshot.iloc[0].to_dict() if len(exit_snapshot) > 0 else {},
+                            bars_held=est_bars,
+                            current_pnl_bps=est_pnl,
+                            session=session,
+                            vol_regime=vol_regime,
+                            trend_regime=trend_regime,
+                        )
+                    except Exception as e:
+                        log.warning("[EXIT_CRITIC] Failed to evaluate: %s", e, exc_info=True)
+                
+                # ExitCritic override: EXIT_NOW
+                if critic_action == ACTION_EXIT_NOW:
+                    exit_price = current_bid if trade.side == "long" else current_ask
+                    accepted = self.request_close(
+                        trade_id=trade.trade_id,
+                        source="EXIT_CRITIC",
+                        reason="EXIT_CRITIC_EXIT_NOW",
+                        px=exit_price,
+                        pnl_bps=est_pnl,
+                        bars_in_trade=est_bars,
+                    )
+                    if accepted:
+                        if trade in self.open_trades:
+                            self.open_trades.remove(trade)
+                        self._teardown_exit_state(trade.trade_id)
+                        self.record_realized_pnl(now_ts, est_pnl)
+                        log.info(
+                            "[LIVE] CLOSED TRADE (EXIT_CRITIC_EXIT_NOW) %s %s @ %.3f | pnl=%.1f bps | bars=%d",
+                            trade.side.upper(),
+                            trade.trade_id,
+                            exit_price,
+                            est_pnl,
+                            est_bars,
+                        )
+                        self._log_trade_close_with_metrics(
+                            trade=trade,
+                            exit_time=now_ts,
+                            exit_price=exit_price,
+                            exit_reason="EXIT_CRITIC_EXIT_NOW",
+                            realized_pnl_bps=est_pnl,
+                            bars_held=est_bars,
+                        )
+                        self._update_trade_log_on_close(
+                            trade.trade_id,
+                            exit_price,
+                            est_pnl,
+                            "EXIT_CRITIC_EXIT_NOW",
+                            now_ts,
+                            bars_in_trade=est_bars,
+                        )
+                        continue
+                
+                # ExitCritic override: SCALP_PROFIT (partial exit)
+                if critic_action == ACTION_SCALP_PROFIT:
+                    # Partial exit: close 50% of position
+                    exit_price = current_bid if trade.side == "long" else current_ask
+                    partial_units = abs(trade.units) // 2
+                    if partial_units > 0:
+                        # Note: request_close doesn't support partial closes directly
+                        # For now, we'll log and let normal exit logic handle it
+                        # TODO: Implement partial close support
+                        log.info(
+                            "[EXIT_CRITIC] SCALP_PROFIT signal for trade %s (pnl=%.2f bps) - partial exit not yet implemented, continuing with normal exit",
+                            trade.trade_id,
+                            est_pnl,
+                        )
                 
                 policy = self.exit_farm_v2_rules_states.get(trade.trade_id)
                 if policy is None:
@@ -169,8 +402,9 @@ class ExitManager:
                             # Log exit event (structured)
                             exit_time_iso = now_ts.isoformat() if hasattr(now_ts, "isoformat") else str(now_ts)
                             self._runner.trade_journal.log_exit_event(
-                                trade_id=trade.trade_id,
                                 timestamp=exit_time_iso,
+                                trade_uid=trade.trade_uid,  # Primary key (COMMIT C)
+                                trade_id=trade.trade_id,  # Display ID (backward compatibility)
                                 event_type="EXIT_TRIGGERED",
                                 price=exit_decision.exit_price,
                                 pnl_bps=pnl_bps,
@@ -501,6 +735,7 @@ class ExitManager:
                 )
                 continue  # Skip exit evaluation for new trades
             
+            from gx1.execution.live_features import build_live_exit_snapshot
             snapshot = build_live_exit_snapshot(
                 {
                     "trade_id": trade.trade_id,
@@ -827,8 +1062,9 @@ class ExitManager:
             
             # Log exit summary (structured)
             self._runner.trade_journal.log_exit_summary(
-                trade_id=trade.trade_id,
                 exit_time=exit_time_iso,
+                trade_uid=trade.trade_uid,  # Primary key (COMMIT C)
+                trade_id=trade.trade_id,  # Display ID (backward compatibility)
                 exit_price=exit_price,
                 exit_reason=exit_reason,
                 realized_pnl_bps=realized_pnl_bps,
@@ -931,8 +1167,9 @@ class ExitManager:
             # Calculate MFE (max favorable excursion)
             max_mfe_bps = max(p["favorable"] for p in pnl_curve)
             
-            # Calculate MAE (max adverse excursion)
-            max_mae_bps = min(p["adverse"] for p in pnl_curve)
+            # Calculate MAE (max adverse excursion) - convert to positive magnitude
+            max_mae_bps_raw = min(p["adverse"] for p in pnl_curve)
+            max_mae_bps = abs(max_mae_bps_raw)  # Positive magnitude (>=0)
             
             # Calculate intratrade drawdown (largest peak-to-trough drawdown)
             # Build unrealized PnL curve from current values
@@ -948,10 +1185,14 @@ class ExitManager:
                 if drawdown > max_drawdown_bps:
                     max_drawdown_bps = drawdown
             
+            # Ensure MFE is positive (should already be, but enforce)
+            max_mfe_bps_abs = abs(float(max_mfe_bps)) if max_mfe_bps < 0 else float(max_mfe_bps)
+            max_drawdown_bps_abs = abs(float(max_drawdown_bps)) if max_drawdown_bps < 0 else float(max_drawdown_bps)
+            
             metrics = {
-                "max_mfe_bps": float(max_mfe_bps),
-                "max_mae_bps": float(max_mae_bps),
-                "intratrade_drawdown_bps": float(max_drawdown_bps),
+                "max_mfe_bps": max_mfe_bps_abs,
+                "max_mae_bps": float(max_mae_bps),  # Already positive magnitude from line 1031
+                "intratrade_drawdown_bps": max_drawdown_bps_abs,
             }
             
             # Note: Invariants validated in _log_trade_close_with_metrics() with realized_pnl
@@ -1045,6 +1286,9 @@ class ExitManager:
             },
             index=window.index,
         )
+        # DEL 3: Lazy import - only import when actually needed (baseline mode only)
+        # live_features is forbidden in PREBUILT mode, so we only import it when needed
+        from gx1.execution.live_features import compute_atr_bps
         atr_series = compute_atr_bps(mid_df, period=period)
         if atr_series.empty:
             return None

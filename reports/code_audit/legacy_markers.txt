@@ -1,2 +1,0 @@
-=== LEGACY-TAGGER (TODO/FIXME/DEPRECATED/LEGACY/OLD) ===
-No legacy markers found

@@ -1,0 +1,1049 @@
+{
+  "_warning": "DO NOT CONSUME AT RUNTIME (Mac phase). This file is for analysis and hypothesis design only.",
+  "_baseline": "Trial160 (2020-2025, 29,710 trades)",
+  "_generated_from": "reports/truth_decomp/truth_decomp_2020_2025.json",
+  "_last_updated": "2026-01-19",
+  "total_stable_bins": 130,
+  "stable_edge_bins": [
+    {
+      "bin_key": "EU|ATR:Q80-Q100|SPREAD:Q0-Q50|TREND:TREND_DOWN|VOL:HIGH",
+      "avg_2020": 7.425560662204497,
+      "avg_2025": 13.833226770245224,
+      "delta": 6.4076661080407264,
+      "n_trades_2020": 22,
+      "n_trades_2025": 19
+    },
+    {
+      "bin_key": "EU|ATR:Q80-Q100|SPREAD:Q80-Q95|TREND:TREND_DOWN|VOL:HIGH",
+      "avg_2020": 6.646378743585387,
+      "avg_2025": 12.333641375177672,
+      "delta": 5.687262631592285,
+      "n_trades_2020": 17,
+      "n_trades_2025": 8
+    },
+    {
+      "bin_key": "EU|ATR:Q80-Q100|SPREAD:Q50-Q80|TREND:TREND_NEUTRAL|VOL:LOW",
+      "avg_2020": 7.108154717288274,
+      "avg_2025": 12.277211789248922,
+      "delta": 5.169057071960648,
+      "n_trades_2020": 9,
+      "n_trades_2025": 23
+    },
+    {
+      "bin_key": "EU|ATR:Q80-Q100|SPREAD:Q50-Q80|TREND:TREND_DOWN|VOL:HIGH",
+      "avg_2020": 7.955386548724131,
+      "avg_2025": 12.207309445946478,
+      "delta": 4.2519228972223475,
+      "n_trades_2020": 19,
+      "n_trades_2025": 8
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q80-Q100|SPREAD:Q50-Q80|TREND:TREND_NEUTRAL|VOL:MEDIUM",
+      "avg_2020": 7.4434857998327715,
+      "avg_2025": 11.486353793229679,
+      "delta": 4.042867993396907,
+      "n_trades_2020": 20,
+      "n_trades_2025": 31
+    },
+    {
+      "bin_key": "EU|ATR:Q80-Q100|SPREAD:Q95-Q100|TREND:TREND_NEUTRAL|VOL:MEDIUM",
+      "avg_2020": 10.24624944448766,
+      "avg_2025": 11.377919272995921,
+      "delta": 1.1316698285082616,
+      "n_trades_2020": 13,
+      "n_trades_2025": 10
+    },
+    {
+      "bin_key": "EU|ATR:Q80-Q100|SPREAD:Q50-Q80|TREND:TREND_UP|VOL:HIGH",
+      "avg_2020": 6.546944822866555,
+      "avg_2025": 11.255539785471985,
+      "delta": 4.70859496260543,
+      "n_trades_2020": 8,
+      "n_trades_2025": 7
+    },
+    {
+      "bin_key": "EU|ATR:Q60-Q80|SPREAD:Q80-Q95|TREND:TREND_NEUTRAL|VOL:HIGH",
+      "avg_2020": 6.859411492847843,
+      "avg_2025": 11.188633232801951,
+      "delta": 4.329221739954108,
+      "n_trades_2020": 28,
+      "n_trades_2025": 19
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q80-Q100|SPREAD:Q95-Q100|TREND:TREND_NEUTRAL|VOL:HIGH",
+      "avg_2020": 7.737277756294117,
+      "avg_2025": 10.900845202408933,
+      "delta": 3.1635674461148158,
+      "n_trades_2020": 11,
+      "n_trades_2025": 26
+    },
+    {
+      "bin_key": "US|ATR:Q20-Q40|SPREAD:Q95-Q100|TREND:TREND_NEUTRAL|VOL:LOW",
+      "avg_2020": 6.929468773718682,
+      "avg_2025": 10.818326688797386,
+      "delta": 3.888857915078704,
+      "n_trades_2020": 9,
+      "n_trades_2025": 15
+    },
+    {
+      "bin_key": "US|ATR:Q80-Q100|SPREAD:Q0-Q50|TREND:TREND_DOWN|VOL:MEDIUM",
+      "avg_2020": 6.808283728345264,
+      "avg_2025": 10.80449364835104,
+      "delta": 3.996209920005775,
+      "n_trades_2020": 17,
+      "n_trades_2025": 11
+    },
+    {
+      "bin_key": "US|ATR:Q0-Q20|SPREAD:Q95-Q100|TREND:TREND_NEUTRAL|VOL:LOW",
+      "avg_2020": 6.382723160158537,
+      "avg_2025": 10.585412198817064,
+      "delta": 4.202689038658527,
+      "n_trades_2020": 37,
+      "n_trades_2025": 38
+    },
+    {
+      "bin_key": "US|ATR:Q20-Q40|SPREAD:Q80-Q95|TREND:TREND_NEUTRAL|VOL:LOW",
+      "avg_2020": 6.270857975698679,
+      "avg_2025": 10.407642393746958,
+      "delta": 4.136784418048279,
+      "n_trades_2020": 30,
+      "n_trades_2025": 59
+    },
+    {
+      "bin_key": "US|ATR:Q80-Q100|SPREAD:Q80-Q95|TREND:TREND_NEUTRAL|VOL:LOW",
+      "avg_2020": 6.733534484483542,
+      "avg_2025": 10.325713988943958,
+      "delta": 3.5921795044604163,
+      "n_trades_2020": 36,
+      "n_trades_2025": 38
+    },
+    {
+      "bin_key": "US|ATR:Q40-Q60|SPREAD:Q50-Q80|TREND:TREND_NEUTRAL|VOL:LOW",
+      "avg_2020": 6.27619323212185,
+      "avg_2025": 9.82000480757007,
+      "delta": 3.5438115754482205,
+      "n_trades_2020": 35,
+      "n_trades_2025": 57
+    },
+    {
+      "bin_key": "EU|ATR:Q40-Q60|SPREAD:Q50-Q80|TREND:TREND_UP|VOL:HIGH",
+      "avg_2020": 7.502579784197062,
+      "avg_2025": 9.77859902545562,
+      "delta": 2.276019241258558,
+      "n_trades_2020": 5,
+      "n_trades_2025": 19
+    },
+    {
+      "bin_key": "EU|ATR:Q80-Q100|SPREAD:Q80-Q95|TREND:TREND_NEUTRAL|VOL:LOW",
+      "avg_2020": 9.183671253909703,
+      "avg_2025": 9.349243911223528,
+      "delta": 0.16557265731382564,
+      "n_trades_2020": 6,
+      "n_trades_2025": 28
+    },
+    {
+      "bin_key": "US|ATR:Q60-Q80|SPREAD:Q50-Q80|TREND:TREND_NEUTRAL|VOL:LOW",
+      "avg_2020": 7.267175253538128,
+      "avg_2025": 9.185824429923738,
+      "delta": 1.9186491763856095,
+      "n_trades_2020": 25,
+      "n_trades_2025": 68
+    },
+    {
+      "bin_key": "US|ATR:Q80-Q100|SPREAD:Q50-Q80|TREND:TREND_DOWN|VOL:MEDIUM",
+      "avg_2020": 7.083152984679126,
+      "avg_2025": 9.140263258303586,
+      "delta": 2.0571102736244598,
+      "n_trades_2020": 14,
+      "n_trades_2025": 9
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q80-Q100|SPREAD:Q50-Q80|TREND:TREND_NEUTRAL|VOL:HIGH",
+      "avg_2020": 6.380725065352239,
+      "avg_2025": 9.063040409284005,
+      "delta": 2.6823153439317657,
+      "n_trades_2020": 85,
+      "n_trades_2025": 135
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q80-Q100|SPREAD:Q80-Q95|TREND:TREND_NEUTRAL|VOL:HIGH",
+      "avg_2020": 8.094304641662303,
+      "avg_2025": 9.061427839581222,
+      "delta": 0.9671231979189194,
+      "n_trades_2020": 65,
+      "n_trades_2025": 60
+    },
+    {
+      "bin_key": "EU|ATR:Q40-Q60|SPREAD:Q50-Q80|TREND:TREND_NEUTRAL|VOL:HIGH",
+      "avg_2020": 6.834633839114711,
+      "avg_2025": 8.860671513722496,
+      "delta": 2.0260376746077844,
+      "n_trades_2020": 78,
+      "n_trades_2025": 62
+    },
+    {
+      "bin_key": "US|ATR:Q40-Q60|SPREAD:Q95-Q100|TREND:TREND_NEUTRAL|VOL:LOW",
+      "avg_2020": 6.66571772200187,
+      "avg_2025": 8.851208169693129,
+      "delta": 2.185490447691259,
+      "n_trades_2020": 7,
+      "n_trades_2025": 10
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q60-Q80|SPREAD:Q95-Q100|TREND:TREND_NEUTRAL|VOL:HIGH",
+      "avg_2020": 8.573010210416792,
+      "avg_2025": 8.814687800977664,
+      "delta": 0.24167759056087235,
+      "n_trades_2020": 18,
+      "n_trades_2025": 21
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q20-Q40|SPREAD:Q80-Q95|TREND:TREND_NEUTRAL|VOL:HIGH",
+      "avg_2020": 7.806456138976151,
+      "avg_2025": 8.717347167644787,
+      "delta": 0.9108910286686358,
+      "n_trades_2020": 43,
+      "n_trades_2025": 28
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q0-Q20|SPREAD:Q50-Q80|TREND:TREND_NEUTRAL|VOL:MEDIUM",
+      "avg_2020": 6.106371464271288,
+      "avg_2025": 8.652251033829447,
+      "delta": 2.545879569558159,
+      "n_trades_2020": 51,
+      "n_trades_2025": 25
+    },
+    {
+      "bin_key": "EU|ATR:Q40-Q60|SPREAD:Q0-Q50|TREND:TREND_NEUTRAL|VOL:MEDIUM",
+      "avg_2020": 7.036163544434009,
+      "avg_2025": 8.534401377885876,
+      "delta": 1.4982378334518671,
+      "n_trades_2020": 18,
+      "n_trades_2025": 115
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q80-Q100|SPREAD:Q0-Q50|TREND:TREND_UP|VOL:HIGH",
+      "avg_2020": 5.773535708848622,
+      "avg_2025": 8.523901768140087,
+      "delta": 2.7503660592914647,
+      "n_trades_2020": 41,
+      "n_trades_2025": 40
+    },
+    {
+      "bin_key": "EU|ATR:Q20-Q40|SPREAD:Q80-Q95|TREND:TREND_NEUTRAL|VOL:HIGH",
+      "avg_2020": 10.006189046554288,
+      "avg_2025": 8.459810890411276,
+      "delta": -1.546378156143012,
+      "n_trades_2020": 33,
+      "n_trades_2025": 33
+    },
+    {
+      "bin_key": "US|ATR:Q80-Q100|SPREAD:Q80-Q95|TREND:TREND_NEUTRAL|VOL:HIGH",
+      "avg_2020": 11.995350473836075,
+      "avg_2025": 8.450644487963345,
+      "delta": -3.5447059858727297,
+      "n_trades_2020": 10,
+      "n_trades_2025": 20
+    },
+    {
+      "bin_key": "US|ATR:Q60-Q80|SPREAD:Q50-Q80|TREND:TREND_NEUTRAL|VOL:HIGH",
+      "avg_2020": 11.207215516456708,
+      "avg_2025": 8.395041019621104,
+      "delta": -2.8121744968356044,
+      "n_trades_2020": 9,
+      "n_trades_2025": 10
+    },
+    {
+      "bin_key": "US|ATR:Q80-Q100|SPREAD:Q0-Q50|TREND:TREND_NEUTRAL|VOL:HIGH",
+      "avg_2020": 8.909614172128896,
+      "avg_2025": 8.347089746134607,
+      "delta": -0.5625244259942885,
+      "n_trades_2020": 16,
+      "n_trades_2025": 33
+    },
+    {
+      "bin_key": "EU|ATR:Q20-Q40|SPREAD:Q0-Q50|TREND:TREND_NEUTRAL|VOL:MEDIUM",
+      "avg_2020": 6.053820972157539,
+      "avg_2025": 8.30066901964532,
+      "delta": 2.24684804748778,
+      "n_trades_2020": 64,
+      "n_trades_2025": 164
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q80-Q100|SPREAD:Q0-Q50|TREND:TREND_NEUTRAL|VOL:MEDIUM",
+      "avg_2020": 7.071573518020354,
+      "avg_2025": 8.199255104442951,
+      "delta": 1.1276815864225975,
+      "n_trades_2020": 21,
+      "n_trades_2025": 37
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q60-Q80|SPREAD:Q0-Q50|TREND:TREND_UP|VOL:MEDIUM",
+      "avg_2020": 5.927206937440152,
+      "avg_2025": 8.191910769644636,
+      "delta": 2.264703832204484,
+      "n_trades_2020": 8,
+      "n_trades_2025": 7
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q60-Q80|SPREAD:Q0-Q50|TREND:TREND_NEUTRAL|VOL:HIGH",
+      "avg_2020": 8.422594783008742,
+      "avg_2025": 8.181457716720962,
+      "delta": -0.24113706628778075,
+      "n_trades_2020": 198,
+      "n_trades_2025": 211
+    },
+    {
+      "bin_key": "US|ATR:Q40-Q60|SPREAD:Q80-Q95|TREND:TREND_NEUTRAL|VOL:MEDIUM",
+      "avg_2020": 6.826117731865414,
+      "avg_2025": 8.157253393834582,
+      "delta": 1.331135661969168,
+      "n_trades_2020": 14,
+      "n_trades_2025": 23
+    },
+    {
+      "bin_key": "US|ATR:Q20-Q40|SPREAD:Q50-Q80|TREND:TREND_NEUTRAL|VOL:LOW",
+      "avg_2020": 7.029683577849396,
+      "avg_2025": 8.117032819071733,
+      "delta": 1.087349241222337,
+      "n_trades_2020": 23,
+      "n_trades_2025": 105
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q80-Q100|SPREAD:Q0-Q50|TREND:TREND_NEUTRAL|VOL:HIGH",
+      "avg_2020": 7.535800365387871,
+      "avg_2025": 8.086079013177496,
+      "delta": 0.5502786477896251,
+      "n_trades_2020": 155,
+      "n_trades_2025": 232
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q40-Q60|SPREAD:Q0-Q50|TREND:TREND_UP|VOL:HIGH",
+      "avg_2020": 15.15983469343621,
+      "avg_2025": 8.075728193318652,
+      "delta": -7.084106500117558,
+      "n_trades_2020": 19,
+      "n_trades_2025": 33
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q20-Q40|SPREAD:Q0-Q50|TREND:TREND_NEUTRAL|VOL:MEDIUM",
+      "avg_2020": 5.803980189839117,
+      "avg_2025": 8.049743603398351,
+      "delta": 2.245763413559234,
+      "n_trades_2020": 28,
+      "n_trades_2025": 56
+    },
+    {
+      "bin_key": "EU|ATR:Q0-Q20|SPREAD:Q0-Q50|TREND:TREND_NEUTRAL|VOL:MEDIUM",
+      "avg_2020": 6.3108161852044224,
+      "avg_2025": 8.03945613944416,
+      "delta": 1.7286399542397382,
+      "n_trades_2020": 128,
+      "n_trades_2025": 160
+    },
+    {
+      "bin_key": "EU|ATR:Q0-Q20|SPREAD:Q80-Q95|TREND:TREND_NEUTRAL|VOL:MEDIUM",
+      "avg_2020": 7.42714390249604,
+      "avg_2025": 8.03611333209858,
+      "delta": 0.6089694296025403,
+      "n_trades_2020": 16,
+      "n_trades_2025": 16
+    },
+    {
+      "bin_key": "EU|ATR:Q60-Q80|SPREAD:Q50-Q80|TREND:TREND_NEUTRAL|VOL:MEDIUM",
+      "avg_2020": 6.797322797204719,
+      "avg_2025": 8.032440681521086,
+      "delta": 1.2351178843163666,
+      "n_trades_2020": 27,
+      "n_trades_2025": 47
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q40-Q60|SPREAD:Q50-Q80|TREND:TREND_NEUTRAL|VOL:HIGH",
+      "avg_2020": 8.574465109590822,
+      "avg_2025": 7.941197227064883,
+      "delta": -0.6332678825259386,
+      "n_trades_2020": 102,
+      "n_trades_2025": 111
+    },
+    {
+      "bin_key": "US|ATR:Q60-Q80|SPREAD:Q80-Q95|TREND:TREND_NEUTRAL|VOL:LOW",
+      "avg_2020": 7.102828330968105,
+      "avg_2025": 7.928648604500617,
+      "delta": 0.8258202735325115,
+      "n_trades_2020": 39,
+      "n_trades_2025": 41
+    },
+    {
+      "bin_key": "EU|ATR:Q20-Q40|SPREAD:Q50-Q80|TREND:TREND_NEUTRAL|VOL:MEDIUM",
+      "avg_2020": 7.014074942725981,
+      "avg_2025": 7.906090569861135,
+      "delta": 0.8920156271351543,
+      "n_trades_2020": 29,
+      "n_trades_2025": 94
+    },
+    {
+      "bin_key": "US|ATR:Q80-Q100|SPREAD:Q0-Q50|TREND:TREND_NEUTRAL|VOL:LOW",
+      "avg_2020": 7.091059343620907,
+      "avg_2025": 7.887464648239533,
+      "delta": 0.7964053046186255,
+      "n_trades_2020": 25,
+      "n_trades_2025": 64
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q20-Q40|SPREAD:Q50-Q80|TREND:TREND_NEUTRAL|VOL:MEDIUM",
+      "avg_2020": 8.98697388727885,
+      "avg_2025": 7.84674579971701,
+      "delta": -1.14022808756184,
+      "n_trades_2020": 14,
+      "n_trades_2025": 23
+    },
+    {
+      "bin_key": "US|ATR:Q40-Q60|SPREAD:Q0-Q50|TREND:TREND_DOWN|VOL:MEDIUM",
+      "avg_2020": 7.591816214343267,
+      "avg_2025": 7.776547869392516,
+      "delta": 0.18473165504924882,
+      "n_trades_2020": 7,
+      "n_trades_2025": 5
+    },
+    {
+      "bin_key": "EU|ATR:Q0-Q20|SPREAD:Q80-Q95|TREND:TREND_NEUTRAL|VOL:HIGH",
+      "avg_2020": 6.0682975210559995,
+      "avg_2025": 7.7484403790293985,
+      "delta": 1.680142857973399,
+      "n_trades_2020": 18,
+      "n_trades_2025": 13
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q0-Q20|SPREAD:Q50-Q80|TREND:TREND_NEUTRAL|VOL:HIGH",
+      "avg_2020": 6.854233916348427,
+      "avg_2025": 7.737370535443981,
+      "delta": 0.8831366190955539,
+      "n_trades_2020": 69,
+      "n_trades_2025": 25
+    },
+    {
+      "bin_key": "EU|ATR:Q40-Q60|SPREAD:Q0-Q50|TREND:TREND_NEUTRAL|VOL:HIGH",
+      "avg_2020": 6.192382232484208,
+      "avg_2025": 7.706914472502942,
+      "delta": 1.5145322400187338,
+      "n_trades_2020": 136,
+      "n_trades_2025": 97
+    },
+    {
+      "bin_key": "US|ATR:Q60-Q80|SPREAD:Q0-Q50|TREND:TREND_NEUTRAL|VOL:HIGH",
+      "avg_2020": 5.932762073439349,
+      "avg_2025": 7.670420079276748,
+      "delta": 1.7376580058373987,
+      "n_trades_2020": 20,
+      "n_trades_2025": 20
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q60-Q80|SPREAD:Q50-Q80|TREND:TREND_NEUTRAL|VOL:HIGH",
+      "avg_2020": 7.17610358522798,
+      "avg_2025": 7.642201314787332,
+      "delta": 0.466097729559352,
+      "n_trades_2020": 109,
+      "n_trades_2025": 101
+    },
+    {
+      "bin_key": "EU|ATR:Q20-Q40|SPREAD:Q0-Q50|TREND:TREND_NEUTRAL|VOL:HIGH",
+      "avg_2020": 7.203552237217827,
+      "avg_2025": 7.621861075219169,
+      "delta": 0.4183088380013418,
+      "n_trades_2020": 169,
+      "n_trades_2025": 170
+    },
+    {
+      "bin_key": "EU|ATR:Q0-Q20|SPREAD:Q50-Q80|TREND:TREND_NEUTRAL|VOL:MEDIUM",
+      "avg_2020": 6.5545939288055175,
+      "avg_2025": 7.6216300964298975,
+      "delta": 1.06703616762438,
+      "n_trades_2020": 59,
+      "n_trades_2025": 90
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q20-Q40|SPREAD:Q50-Q80|TREND:TREND_NEUTRAL|VOL:HIGH",
+      "avg_2020": 8.462320372282836,
+      "avg_2025": 7.58112550007339,
+      "delta": -0.8811948722094458,
+      "n_trades_2020": 85,
+      "n_trades_2025": 82
+    },
+    {
+      "bin_key": "EU|ATR:Q40-Q60|SPREAD:Q80-Q95|TREND:TREND_NEUTRAL|VOL:MEDIUM",
+      "avg_2020": 5.399200326408141,
+      "avg_2025": 7.562535291446217,
+      "delta": 2.163334965038076,
+      "n_trades_2020": 12,
+      "n_trades_2025": 31
+    },
+    {
+      "bin_key": "EU|ATR:Q0-Q20|SPREAD:Q50-Q80|TREND:TREND_NEUTRAL|VOL:LOW",
+      "avg_2020": 8.303372347174003,
+      "avg_2025": 7.558176316837309,
+      "delta": -0.745196030336694,
+      "n_trades_2020": 11,
+      "n_trades_2025": 73
+    },
+    {
+      "bin_key": "EU|ATR:Q20-Q40|SPREAD:Q50-Q80|TREND:TREND_NEUTRAL|VOL:HIGH",
+      "avg_2020": 7.571497213330046,
+      "avg_2025": 7.553926611633466,
+      "delta": -0.017570601696579757,
+      "n_trades_2020": 102,
+      "n_trades_2025": 80
+    },
+    {
+      "bin_key": "EU|ATR:Q40-Q60|SPREAD:Q80-Q95|TREND:TREND_NEUTRAL|VOL:HIGH",
+      "avg_2020": 5.417122090334375,
+      "avg_2025": 7.529001607093826,
+      "delta": 2.1118795167594513,
+      "n_trades_2020": 27,
+      "n_trades_2025": 18
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q0-Q20|SPREAD:Q0-Q50|TREND:TREND_NEUTRAL|VOL:MEDIUM",
+      "avg_2020": 6.010465764086177,
+      "avg_2025": 7.516694339728958,
+      "delta": 1.5062285756427807,
+      "n_trades_2020": 56,
+      "n_trades_2025": 35
+    },
+    {
+      "bin_key": "US|ATR:Q60-Q80|SPREAD:Q0-Q50|TREND:TREND_DOWN|VOL:MEDIUM",
+      "avg_2020": 6.905236443276062,
+      "avg_2025": 7.476395003878202,
+      "delta": 0.5711585606021403,
+      "n_trades_2020": 10,
+      "n_trades_2025": 9
+    },
+    {
+      "bin_key": "EU|ATR:Q40-Q60|SPREAD:Q0-Q50|TREND:TREND_NEUTRAL|VOL:LOW",
+      "avg_2020": 8.581703765455932,
+      "avg_2025": 7.442239814539687,
+      "delta": -1.1394639509162454,
+      "n_trades_2020": 5,
+      "n_trades_2025": 66
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q40-Q60|SPREAD:Q0-Q50|TREND:TREND_NEUTRAL|VOL:MEDIUM",
+      "avg_2020": 8.544610624917839,
+      "avg_2025": 7.439742791641879,
+      "delta": -1.1048678332759598,
+      "n_trades_2020": 9,
+      "n_trades_2025": 30
+    },
+    {
+      "bin_key": "EU|ATR:Q80-Q100|SPREAD:Q50-Q80|TREND:TREND_NEUTRAL|VOL:HIGH",
+      "avg_2020": 6.073176955309176,
+      "avg_2025": 7.375320045632022,
+      "delta": 1.3021430903228461,
+      "n_trades_2020": 32,
+      "n_trades_2025": 39
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q60-Q80|SPREAD:Q0-Q50|TREND:TREND_UP|VOL:HIGH",
+      "avg_2020": 10.787786350857186,
+      "avg_2025": 7.367220740390983,
+      "delta": -3.4205656104662028,
+      "n_trades_2020": 37,
+      "n_trades_2025": 44
+    },
+    {
+      "bin_key": "US|ATR:Q40-Q60|SPREAD:Q0-Q50|TREND:TREND_NEUTRAL|VOL:LOW",
+      "avg_2020": 7.043727001146752,
+      "avg_2025": 7.308463545930528,
+      "delta": 0.2647365447837764,
+      "n_trades_2020": 75,
+      "n_trades_2025": 71
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q0-Q20|SPREAD:Q80-Q95|TREND:TREND_NEUTRAL|VOL:MEDIUM",
+      "avg_2020": 7.276572174452148,
+      "avg_2025": 7.3045291392471725,
+      "delta": 0.027956964795024852,
+      "n_trades_2020": 11,
+      "n_trades_2025": 6
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q80-Q100|SPREAD:Q50-Q80|TREND:TREND_UP|VOL:HIGH",
+      "avg_2020": 9.393558388862969,
+      "avg_2025": 7.281256902726633,
+      "delta": -2.112301486136336,
+      "n_trades_2020": 28,
+      "n_trades_2025": 22
+    },
+    {
+      "bin_key": "US|ATR:Q20-Q40|SPREAD:Q0-Q50|TREND:TREND_NEUTRAL|VOL:LOW",
+      "avg_2020": 6.183622253109417,
+      "avg_2025": 7.27303914196921,
+      "delta": 1.0894168888597937,
+      "n_trades_2020": 87,
+      "n_trades_2025": 149
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q20-Q40|SPREAD:Q0-Q50|TREND:TREND_NEUTRAL|VOL:HIGH",
+      "avg_2020": 7.030807753117948,
+      "avg_2025": 7.271884765210125,
+      "delta": 0.2410770120921768,
+      "n_trades_2020": 155,
+      "n_trades_2025": 119
+    },
+    {
+      "bin_key": "US|ATR:Q80-Q100|SPREAD:Q95-Q100|TREND:TREND_NEUTRAL|VOL:LOW",
+      "avg_2020": 5.615172078990932,
+      "avg_2025": 7.233823011313574,
+      "delta": 1.618650932322642,
+      "n_trades_2020": 14,
+      "n_trades_2025": 23
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q40-Q60|SPREAD:Q0-Q50|TREND:TREND_NEUTRAL|VOL:HIGH",
+      "avg_2020": 7.997230087473396,
+      "avg_2025": 7.22658931571538,
+      "delta": -0.7706407717580159,
+      "n_trades_2020": 230,
+      "n_trades_2025": 184
+    },
+    {
+      "bin_key": "EU|ATR:Q60-Q80|SPREAD:Q50-Q80|TREND:TREND_NEUTRAL|VOL:LOW",
+      "avg_2020": 8.284934821944097,
+      "avg_2025": 7.2222825466367295,
+      "delta": -1.062652275307367,
+      "n_trades_2020": 9,
+      "n_trades_2025": 51
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q60-Q80|SPREAD:Q80-Q95|TREND:TREND_NEUTRAL|VOL:MEDIUM",
+      "avg_2020": 6.852020526320302,
+      "avg_2025": 7.202295458385046,
+      "delta": 0.35027493206474425,
+      "n_trades_2020": 6,
+      "n_trades_2025": 8
+    },
+    {
+      "bin_key": "EU|ATR:Q80-Q100|SPREAD:Q0-Q50|TREND:TREND_NEUTRAL|VOL:HIGH",
+      "avg_2020": 6.2316182748679445,
+      "avg_2025": 7.186232508298704,
+      "delta": 0.9546142334307595,
+      "n_trades_2020": 64,
+      "n_trades_2025": 44
+    },
+    {
+      "bin_key": "EU|ATR:Q40-Q60|SPREAD:Q0-Q50|TREND:TREND_UP|VOL:HIGH",
+      "avg_2020": 6.2727031724244435,
+      "avg_2025": 7.1566496553441565,
+      "delta": 0.883946482919713,
+      "n_trades_2020": 10,
+      "n_trades_2025": 17
+    },
+    {
+      "bin_key": "US|ATR:Q60-Q80|SPREAD:Q0-Q50|TREND:TREND_NEUTRAL|VOL:MEDIUM",
+      "avg_2020": 6.559994745050846,
+      "avg_2025": 7.133690265957655,
+      "delta": 0.5736955209068091,
+      "n_trades_2020": 66,
+      "n_trades_2025": 66
+    },
+    {
+      "bin_key": "EU|ATR:Q60-Q80|SPREAD:Q50-Q80|TREND:TREND_NEUTRAL|VOL:HIGH",
+      "avg_2020": 6.35616640886965,
+      "avg_2025": 7.103774387015362,
+      "delta": 0.7476079781457114,
+      "n_trades_2020": 57,
+      "n_trades_2025": 27
+    },
+    {
+      "bin_key": "EU|ATR:Q60-Q80|SPREAD:Q0-Q50|TREND:TREND_NEUTRAL|VOL:HIGH",
+      "avg_2020": 7.661909717657261,
+      "avg_2025": 7.011323632619903,
+      "delta": -0.6505860850373582,
+      "n_trades_2020": 81,
+      "n_trades_2025": 66
+    },
+    {
+      "bin_key": "US|ATR:Q0-Q20|SPREAD:Q0-Q50|TREND:TREND_NEUTRAL|VOL:LOW",
+      "avg_2020": 6.839852546567157,
+      "avg_2025": 6.976459152875592,
+      "delta": 0.13660660630843502,
+      "n_trades_2020": 105,
+      "n_trades_2025": 328
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q0-Q20|SPREAD:Q0-Q50|TREND:TREND_NEUTRAL|VOL:HIGH",
+      "avg_2020": 9.483739955576485,
+      "avg_2025": 6.972035278201941,
+      "delta": -2.511704677374545,
+      "n_trades_2020": 65,
+      "n_trades_2025": 58
+    },
+    {
+      "bin_key": "US|ATR:Q40-Q60|SPREAD:Q50-Q80|TREND:TREND_NEUTRAL|VOL:MEDIUM",
+      "avg_2020": 7.335303166280745,
+      "avg_2025": 6.965391734777599,
+      "delta": -0.3699114315031462,
+      "n_trades_2020": 17,
+      "n_trades_2025": 56
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q40-Q60|SPREAD:Q50-Q80|TREND:TREND_UP|VOL:HIGH",
+      "avg_2020": 7.751387815667187,
+      "avg_2025": 6.9568001168113005,
+      "delta": -0.7945876988558869,
+      "n_trades_2020": 12,
+      "n_trades_2025": 21
+    },
+    {
+      "bin_key": "EU|ATR:Q60-Q80|SPREAD:Q0-Q50|TREND:TREND_NEUTRAL|VOL:MEDIUM",
+      "avg_2020": 6.112807460084112,
+      "avg_2025": 6.94899376676254,
+      "delta": 0.8361863066784281,
+      "n_trades_2020": 11,
+      "n_trades_2025": 90
+    },
+    {
+      "bin_key": "US|ATR:Q0-Q20|SPREAD:Q50-Q80|TREND:TREND_NEUTRAL|VOL:LOW",
+      "avg_2020": 6.562479231165876,
+      "avg_2025": 6.94866577325254,
+      "delta": 0.3861865420866639,
+      "n_trades_2020": 48,
+      "n_trades_2025": 160
+    },
+    {
+      "bin_key": "EU|ATR:Q80-Q100|SPREAD:Q50-Q80|TREND:TREND_NEUTRAL|VOL:MEDIUM",
+      "avg_2020": 9.963855634635976,
+      "avg_2025": 6.885329457352213,
+      "delta": -3.0785261772837638,
+      "n_trades_2020": 5,
+      "n_trades_2025": 35
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q80-Q100|SPREAD:Q0-Q50|TREND:TREND_DOWN|VOL:HIGH",
+      "avg_2020": 6.749783368818802,
+      "avg_2025": 6.866491898522591,
+      "delta": 0.11670852970378931,
+      "n_trades_2020": 15,
+      "n_trades_2025": 23
+    },
+    {
+      "bin_key": "US|ATR:Q40-Q60|SPREAD:Q0-Q50|TREND:TREND_NEUTRAL|VOL:HIGH",
+      "avg_2020": 3.5143556413485864,
+      "avg_2025": 6.862012372204542,
+      "delta": 3.3476567308559555,
+      "n_trades_2020": 12,
+      "n_trades_2025": 7
+    },
+    {
+      "bin_key": "EU|ATR:Q0-Q20|SPREAD:Q50-Q80|TREND:TREND_NEUTRAL|VOL:HIGH",
+      "avg_2020": 7.108945938218437,
+      "avg_2025": 6.802192678832885,
+      "delta": -0.30675325938555176,
+      "n_trades_2020": 103,
+      "n_trades_2025": 79
+    },
+    {
+      "bin_key": "US|ATR:Q40-Q60|SPREAD:Q0-Q50|TREND:TREND_NEUTRAL|VOL:MEDIUM",
+      "avg_2020": 6.101350576883717,
+      "avg_2025": 6.791873992577648,
+      "delta": 0.6905234156939315,
+      "n_trades_2020": 36,
+      "n_trades_2025": 86
+    },
+    {
+      "bin_key": "US|ATR:Q80-Q100|SPREAD:Q80-Q95|TREND:TREND_NEUTRAL|VOL:MEDIUM",
+      "avg_2020": 4.610940994807044,
+      "avg_2025": 6.754742830113814,
+      "delta": 2.1438018353067703,
+      "n_trades_2020": 13,
+      "n_trades_2025": 28
+    },
+    {
+      "bin_key": "EU|ATR:Q80-Q100|SPREAD:Q0-Q50|TREND:TREND_NEUTRAL|VOL:MEDIUM",
+      "avg_2020": 6.667149952847503,
+      "avg_2025": 6.678484995089752,
+      "delta": 0.011335042242248683,
+      "n_trades_2020": 7,
+      "n_trades_2025": 49
+    },
+    {
+      "bin_key": "US|ATR:Q0-Q20|SPREAD:Q80-Q95|TREND:TREND_NEUTRAL|VOL:LOW",
+      "avg_2020": 7.067992769281765,
+      "avg_2025": 6.655915524844968,
+      "delta": -0.41207724443679705,
+      "n_trades_2020": 33,
+      "n_trades_2025": 76
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q40-Q60|SPREAD:Q80-Q95|TREND:TREND_NEUTRAL|VOL:HIGH",
+      "avg_2020": 12.087533159233208,
+      "avg_2025": 6.653686246684363,
+      "delta": -5.433846912548845,
+      "n_trades_2020": 61,
+      "n_trades_2025": 62
+    },
+    {
+      "bin_key": "US|ATR:Q80-Q100|SPREAD:Q50-Q80|TREND:TREND_NEUTRAL|VOL:MEDIUM",
+      "avg_2020": 7.5086775591731865,
+      "avg_2025": 6.645211802281103,
+      "delta": -0.8634657568920838,
+      "n_trades_2020": 34,
+      "n_trades_2025": 61
+    },
+    {
+      "bin_key": "US|ATR:Q40-Q60|SPREAD:Q80-Q95|TREND:TREND_NEUTRAL|VOL:LOW",
+      "avg_2020": 7.695416841813878,
+      "avg_2025": 6.6171436234046,
+      "delta": -1.0782732184092776,
+      "n_trades_2020": 24,
+      "n_trades_2025": 60
+    },
+    {
+      "bin_key": "US|ATR:Q20-Q40|SPREAD:Q0-Q50|TREND:TREND_NEUTRAL|VOL:MEDIUM",
+      "avg_2020": 6.587551718923628,
+      "avg_2025": 6.614886471088298,
+      "delta": 0.02733475216467074,
+      "n_trades_2020": 47,
+      "n_trades_2025": 48
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q0-Q20|SPREAD:Q0-Q50|TREND:TREND_NEUTRAL|VOL:LOW",
+      "avg_2020": 9.329121670533166,
+      "avg_2025": 6.600412510273831,
+      "delta": -2.728709160259335,
+      "n_trades_2020": 19,
+      "n_trades_2025": 24
+    },
+    {
+      "bin_key": "EU|ATR:Q0-Q20|SPREAD:Q0-Q50|TREND:TREND_NEUTRAL|VOL:LOW",
+      "avg_2020": 7.420237158889237,
+      "avg_2025": 6.587881832919245,
+      "delta": -0.8323553259699921,
+      "n_trades_2020": 48,
+      "n_trades_2025": 128
+    },
+    {
+      "bin_key": "EU|ATR:Q0-Q20|SPREAD:Q0-Q50|TREND:TREND_NEUTRAL|VOL:HIGH",
+      "avg_2020": 6.853267869995924,
+      "avg_2025": 6.584593343652194,
+      "delta": -0.26867452634373024,
+      "n_trades_2020": 134,
+      "n_trades_2025": 158
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q60-Q80|SPREAD:Q50-Q80|TREND:TREND_UP|VOL:MEDIUM",
+      "avg_2020": 5.958771480222735,
+      "avg_2025": 6.548994273353311,
+      "delta": 0.5902227931305761,
+      "n_trades_2020": 9,
+      "n_trades_2025": 8
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q60-Q80|SPREAD:Q80-Q95|TREND:TREND_NEUTRAL|VOL:HIGH",
+      "avg_2020": 9.200852644280975,
+      "avg_2025": 6.514325713299764,
+      "delta": -2.686526930981211,
+      "n_trades_2020": 42,
+      "n_trades_2025": 60
+    },
+    {
+      "bin_key": "US|ATR:Q20-Q40|SPREAD:Q0-Q50|TREND:TREND_NEUTRAL|VOL:HIGH",
+      "avg_2020": 5.084614300454853,
+      "avg_2025": 6.404548393220582,
+      "delta": 1.3199340927657284,
+      "n_trades_2020": 6,
+      "n_trades_2025": 5
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q60-Q80|SPREAD:Q80-Q95|TREND:TREND_UP|VOL:HIGH",
+      "avg_2020": 9.291878634380822,
+      "avg_2025": 6.312641123565502,
+      "delta": -2.97923751081532,
+      "n_trades_2020": 8,
+      "n_trades_2025": 9
+    },
+    {
+      "bin_key": "US|ATR:Q20-Q40|SPREAD:Q50-Q80|TREND:TREND_NEUTRAL|VOL:MEDIUM",
+      "avg_2020": 5.721248647450531,
+      "avg_2025": 6.236309604525113,
+      "delta": 0.5150609570745823,
+      "n_trades_2020": 11,
+      "n_trades_2025": 29
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q0-Q20|SPREAD:Q80-Q95|TREND:TREND_NEUTRAL|VOL:HIGH",
+      "avg_2020": 4.70285165809503,
+      "avg_2025": 6.187864961187136,
+      "delta": 1.4850133030921064,
+      "n_trades_2020": 15,
+      "n_trades_2025": 5
+    },
+    {
+      "bin_key": "US|ATR:Q60-Q80|SPREAD:Q50-Q80|TREND:TREND_NEUTRAL|VOL:MEDIUM",
+      "avg_2020": 5.987084371684598,
+      "avg_2025": 6.152390851874225,
+      "delta": 0.1653064801896269,
+      "n_trades_2020": 24,
+      "n_trades_2025": 49
+    },
+    {
+      "bin_key": "EU|ATR:Q20-Q40|SPREAD:Q0-Q50|TREND:TREND_NEUTRAL|VOL:LOW",
+      "avg_2020": 10.776689479355035,
+      "avg_2025": 6.122124622576304,
+      "delta": -4.654564856778731,
+      "n_trades_2020": 16,
+      "n_trades_2025": 90
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q0-Q20|SPREAD:Q50-Q80|TREND:TREND_NEUTRAL|VOL:LOW",
+      "avg_2020": 9.448548059354538,
+      "avg_2025": 6.014444732498342,
+      "delta": -3.434103326856196,
+      "n_trades_2020": 7,
+      "n_trades_2025": 7
+    },
+    {
+      "bin_key": "EU|ATR:Q40-Q60|SPREAD:Q50-Q80|TREND:TREND_NEUTRAL|VOL:MEDIUM",
+      "avg_2020": 7.1834187892257155,
+      "avg_2025": 6.006933306455826,
+      "delta": -1.1764854827698894,
+      "n_trades_2020": 21,
+      "n_trades_2025": 55
+    },
+    {
+      "bin_key": "EU|ATR:Q60-Q80|SPREAD:Q80-Q95|TREND:TREND_NEUTRAL|VOL:MEDIUM",
+      "avg_2020": 6.511498567499677,
+      "avg_2025": 5.9870775146083295,
+      "delta": -0.5244210528913475,
+      "n_trades_2020": 15,
+      "n_trades_2025": 27
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q60-Q80|SPREAD:Q50-Q80|TREND:TREND_NEUTRAL|VOL:MEDIUM",
+      "avg_2020": 10.628419430585156,
+      "avg_2025": 5.985258992873119,
+      "delta": -4.643160437712037,
+      "n_trades_2020": 8,
+      "n_trades_2025": 23
+    },
+    {
+      "bin_key": "US|ATR:Q80-Q100|SPREAD:Q50-Q80|TREND:TREND_NEUTRAL|VOL:LOW",
+      "avg_2020": 5.45133703314135,
+      "avg_2025": 5.98058353592615,
+      "delta": 0.5292465027848001,
+      "n_trades_2020": 29,
+      "n_trades_2025": 47
+    },
+    {
+      "bin_key": "US|ATR:Q80-Q100|SPREAD:Q0-Q50|TREND:TREND_NEUTRAL|VOL:MEDIUM",
+      "avg_2020": 6.535202149019349,
+      "avg_2025": 5.894727924752275,
+      "delta": -0.6404742242670736,
+      "n_trades_2020": 42,
+      "n_trades_2025": 55
+    },
+    {
+      "bin_key": "EU|ATR:Q80-Q100|SPREAD:Q80-Q95|TREND:TREND_NEUTRAL|VOL:MEDIUM",
+      "avg_2020": 8.568905562330608,
+      "avg_2025": 5.832934940605074,
+      "delta": -2.735970621725534,
+      "n_trades_2020": 14,
+      "n_trades_2025": 24
+    },
+    {
+      "bin_key": "US|ATR:Q0-Q20|SPREAD:Q0-Q50|TREND:TREND_NEUTRAL|VOL:MEDIUM",
+      "avg_2020": 6.012834598416205,
+      "avg_2025": 5.8220522561330865,
+      "delta": -0.19078234228311874,
+      "n_trades_2020": 13,
+      "n_trades_2025": 20
+    },
+    {
+      "bin_key": "US|ATR:Q60-Q80|SPREAD:Q0-Q50|TREND:TREND_DOWN|VOL:HIGH",
+      "avg_2020": 7.245128134333933,
+      "avg_2025": 5.8132693374785385,
+      "delta": -1.4318587968553942,
+      "n_trades_2020": 6,
+      "n_trades_2025": 6
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q40-Q60|SPREAD:Q95-Q100|TREND:TREND_NEUTRAL|VOL:HIGH",
+      "avg_2020": 2.8922811921256963,
+      "avg_2025": 5.718481500632232,
+      "delta": 2.826200308506536,
+      "n_trades_2020": 13,
+      "n_trades_2025": 17
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q20-Q40|SPREAD:Q95-Q100|TREND:TREND_NEUTRAL|VOL:HIGH",
+      "avg_2020": 6.360011367233872,
+      "avg_2025": 5.69887792616413,
+      "delta": -0.661133441069742,
+      "n_trades_2020": 19,
+      "n_trades_2025": 13
+    },
+    {
+      "bin_key": "EU|ATR:Q60-Q80|SPREAD:Q50-Q80|TREND:TREND_UP|VOL:HIGH",
+      "avg_2020": 7.488938119445264,
+      "avg_2025": 5.6488623209669475,
+      "delta": -1.840075798478317,
+      "n_trades_2020": 6,
+      "n_trades_2025": 13
+    },
+    {
+      "bin_key": "EU|ATR:Q60-Q80|SPREAD:Q0-Q50|TREND:TREND_DOWN|VOL:HIGH",
+      "avg_2020": 5.589803997416341,
+      "avg_2025": 5.631297315989787,
+      "delta": 0.04149331857344585,
+      "n_trades_2020": 10,
+      "n_trades_2025": 8
+    },
+    {
+      "bin_key": "US|ATR:Q60-Q80|SPREAD:Q0-Q50|TREND:TREND_NEUTRAL|VOL:LOW",
+      "avg_2020": 7.511195817339512,
+      "avg_2025": 5.529391488019729,
+      "delta": -1.9818043293197833,
+      "n_trades_2020": 38,
+      "n_trades_2025": 76
+    },
+    {
+      "bin_key": "EU|ATR:Q80-Q100|SPREAD:Q80-Q95|TREND:TREND_NEUTRAL|VOL:HIGH",
+      "avg_2020": 7.4279321350402965,
+      "avg_2025": 5.392859348372006,
+      "delta": -2.03507278666829,
+      "n_trades_2020": 24,
+      "n_trades_2025": 20
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q80-Q100|SPREAD:Q50-Q80|TREND:TREND_DOWN|VOL:HIGH",
+      "avg_2020": 8.49273405075589,
+      "avg_2025": 5.072429895906875,
+      "delta": -3.420304154849015,
+      "n_trades_2020": 12,
+      "n_trades_2025": 11
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q60-Q80|SPREAD:Q50-Q80|TREND:TREND_UP|VOL:HIGH",
+      "avg_2020": 7.153688494960452,
+      "avg_2025": 5.0187797814546355,
+      "delta": -2.1349087135058165,
+      "n_trades_2020": 16,
+      "n_trades_2025": 13
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q60-Q80|SPREAD:Q0-Q50|TREND:TREND_NEUTRAL|VOL:MEDIUM",
+      "avg_2020": 6.100617686942979,
+      "avg_2025": 4.8548044623990405,
+      "delta": -1.2458132245439382,
+      "n_trades_2020": 21,
+      "n_trades_2025": 34
+    },
+    {
+      "bin_key": "OVERLAP|ATR:Q80-Q100|SPREAD:Q80-Q95|TREND:TREND_NEUTRAL|VOL:MEDIUM",
+      "avg_2020": 6.076588411401509,
+      "avg_2025": 4.333888080250601,
+      "delta": -1.7427003311509086,
+      "n_trades_2020": 5,
+      "n_trades_2025": 10
+    }
+  ]
+}

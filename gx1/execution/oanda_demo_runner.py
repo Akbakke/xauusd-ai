@@ -21,7 +21,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 # DEL 2 & 3: Set thread limits and multiprocessing start method BEFORE any imports that use them
 # DEL 3: Thread library limits (OMP/MKL/OpenBLAS)
@@ -53,12 +53,17 @@ import yaml
 # DEL 2: Runtime V9 import moved to local scope (not top-level)
 # runtime_v9 is forbidden in replay-mode, so we only import it when needed (live mode only)
 # build_v9_runtime_features will be imported locally in methods that need it (live mode only)
-from gx1.execution.live_features import (
-    EntryFeatureBundle,
-    build_live_entry_features,
-    build_live_exit_snapshot,
-    infer_session_tag,
-)
+
+# DEL 3: PREBUILT mode fix - move live_features imports to lazy imports
+# live_features is forbidden in PREBUILT mode, so we only import it when needed (live mode only)
+# Use TYPE_CHECKING guard for type hints to avoid runtime imports
+if TYPE_CHECKING:
+    from gx1.execution.live_features import (
+        EntryFeatureBundle,
+        build_live_entry_features,
+        build_live_exit_snapshot,
+        infer_session_tag,
+    )
 from gx1.execution.broker_client import BrokerClient
 from gx1.execution.entry_manager import EntryManager
 from gx1.execution.exit_manager import ExitManager
@@ -1393,6 +1398,13 @@ class GX1DemoRunner:
         self.perf_n_trades_created = 0
         self.perf_bars_total = 0  # Del 1: Total bars to process (set in _run_replay_impl)
         
+        # Entry stage telemetry: initialize early (will be reset in _run_replay_impl before loop)
+        # These are persistent attributes on runner-self (not local variables)
+        self.bars_seen = 0
+        self.bars_skipped_warmup = 0
+        self.bars_skipped_pregate = 0
+        self.bars_reaching_entry_stage = 0
+        
         # Del 2: Performance collector for feature timing breakdown
         from gx1.utils.perf_timer import PerfCollector
         self.perf_collector = PerfCollector()
@@ -1520,6 +1532,61 @@ class GX1DemoRunner:
             log.info("[BOOT] tick_exit disabled (REN EXIT_V2 mode)")
             log.info("[BOOT] broker_side_tp_sl disabled (REN EXIT_V2 mode)")
         self.exit_params = exit_cfg  # Store exit config for shadow-exit A/B
+        
+        # Check for EXIT_POLICY_V2 (pre-empts all other exit rules if enabled)
+        self.exit_policy_v2 = None
+        exit_v2_enabled = os.environ.get("GX1_EXIT_POLICY_V2", "0") == "1"
+        if exit_v2_enabled:
+            try:
+                from gx1.exits.exit_policy_v2 import ExitPolicyV2, load_exit_policy_v2_config
+                
+                # Load Exit Policy V2 config
+                exit_v2_yaml_path = os.environ.get("GX1_EXIT_POLICY_V2_YAML", "gx1/configs/exits/EXIT_POLICY_V2_TRIAL160.yaml")
+                exit_v2_yaml_path = Path(exit_v2_yaml_path)
+                if not exit_v2_yaml_path.is_absolute():
+                    # Try relative to workspace root
+                    workspace_root = Path(__file__).parent.parent.parent
+                    exit_v2_yaml_path = workspace_root / exit_v2_yaml_path
+                
+                if not exit_v2_yaml_path.exists():
+                    raise FileNotFoundError(f"Exit Policy V2 YAML not found: {exit_v2_yaml_path}")
+                
+                # Load config
+                exit_v2_config = load_exit_policy_v2_config(config_path=exit_v2_yaml_path)
+                
+                if exit_v2_config.enabled:
+                    self.exit_policy_v2 = ExitPolicyV2(exit_v2_config)
+                    
+                    # Calculate YAML SHA256 (hashlib already imported at top level)
+                    with open(exit_v2_yaml_path, "rb") as f:
+                        exit_v2_yaml_sha256 = hashlib.sha256(f.read()).hexdigest()
+                    
+                    # Store for RUN_IDENTITY
+                    self.exit_v2_yaml_path = str(exit_v2_yaml_path.resolve())
+                    self.exit_v2_yaml_sha256 = exit_v2_yaml_sha256
+                    self.exit_v2_params_summary = {
+                        "mae_kill_atr": exit_v2_config.mae_kill_mae_atr_ge,
+                        "time_stop_bars": exit_v2_config.time_stop_t1_bars,
+                        "time_stop_mfe_atr": exit_v2_config.time_stop_require_mfe_atr_ge,
+                        "trail_activate_mfe_atr": exit_v2_config.profit_trail_activate_mfe_atr_ge,
+                        "trail_giveback_frac": exit_v2_config.profit_trail_giveback_frac,
+                    }
+                    
+                    log.info(
+                        "[BOOT] EXIT_POLICY_V2 enabled: YAML=%s SHA256=%s",
+                        self.exit_v2_yaml_path,
+                        exit_v2_yaml_sha256[:16],
+                    )
+                else:
+                    log.warning("[BOOT] EXIT_POLICY_V2 YAML found but enabled=false")
+            except Exception as e:
+                log.error("[BOOT] Failed to initialize EXIT_POLICY_V2: %s", e, exc_info=True)
+                raise RuntimeError(f"EXIT_POLICY_V2 initialization failed: {e}") from e
+        else:
+            log.info("[BOOT] EXIT_POLICY_V2 disabled (GX1_EXIT_POLICY_V2 != 1)")
+            self.exit_v2_yaml_path = None
+            self.exit_v2_yaml_sha256 = None
+            self.exit_v2_params_summary = None
         
         # Check for EXIT_V2_DRIFT, EXIT_V3_ADAPTIVE, EXIT_FARM_V1, or EXIT_FARM_V2_RULES configuration
         exit_type = exit_cfg.get("exit", {}).get("type") if isinstance(exit_cfg.get("exit"), dict) else None
@@ -2279,14 +2346,40 @@ class GX1DemoRunner:
                 # Force CPU for replay/ops safety
                 device = torch.device("cpu")
                 
-                # Get bundle directory
-                bundle_dir = entry_v10_ctx_cfg.get("bundle_dir")
-                if not bundle_dir:
-                    raise ValueError("[ENTRY_V10_CTX] bundle_dir is required in entry_models.v10_ctx config")
+                # Get bundle directory (priority: ENV > Policy)
+                bundle_dir = None
+                bundle_dir_source = None
                 
-                bundle_dir = Path(bundle_dir)
+                # Priority B: ENV override (GX1_BUNDLE_DIR)
+                if os.getenv("GX1_BUNDLE_DIR"):
+                    bundle_dir = Path(os.getenv("GX1_BUNDLE_DIR")).resolve()
+                    bundle_dir_source = "env"
+                # Priority C: Policy (resolve relative to policy file's directory if relative)
+                else:
+                    bundle_dir_str = entry_v10_ctx_cfg.get("bundle_dir")
+                    if not bundle_dir_str:
+                        raise ValueError("[ENTRY_V10_CTX] bundle_dir is required in entry_models.v10_ctx config or GX1_BUNDLE_DIR env var")
+                    
+                    bundle_dir = Path(bundle_dir_str)
+                    if not bundle_dir.is_absolute():
+                        # Resolve relative to policy file's directory (not cwd)
+                        policy_path = Path(self.policy_path) if hasattr(self, "policy_path") else None
+                        if policy_path and policy_path.exists():
+                            policy_dir = policy_path.resolve().parent
+                            bundle_dir = (policy_dir / bundle_dir).resolve()
+                        else:
+                            # Fallback: resolve relative to workspace root
+                            workspace_root = Path(__file__).parent.parent.parent
+                            bundle_dir = (workspace_root / bundle_dir).resolve()
+                    else:
+                        bundle_dir = bundle_dir.resolve()
+                    bundle_dir_source = "policy"
+                
                 if not bundle_dir.exists():
-                    raise FileNotFoundError(f"[ENTRY_V10_CTX] Bundle directory not found: {bundle_dir}")
+                    raise FileNotFoundError(
+                        f"[ENTRY_V10_CTX] Bundle directory not found: {bundle_dir} "
+                        f"(resolved from {bundle_dir_source})"
+                    )
                 
                 # Get feature_meta_path (required)
                 feature_meta_path = entry_v10_ctx_cfg.get("feature_meta_path")
@@ -2315,7 +2408,46 @@ class GX1DemoRunner:
                 
                 # Try to get XGB config from entry_config or policy
                 xgb_models = {}
+                xgb_model_paths = {}  # Track paths for SSoT capsule
                 workspace_root = Path(__file__).parent.parent.parent  # gx1/execution -> gx1 -> workspace
+                
+                # Helper function to load XGB model and track path
+                def load_xgb_model(session: str, model_path: str, source: str) -> bool:
+                    """Load XGB model and track path. Returns True if loaded."""
+                    if not model_path:
+                        return False
+                    model_path_obj = Path(model_path)
+                    # Resolve paths relative to workspace root
+                    if not model_path_obj.is_absolute():
+                        model_path_resolved = workspace_root / model_path_obj
+                    else:
+                        model_path_resolved = model_path_obj
+                    if model_path_resolved.exists():
+                        # UNIVERSAL MODE TRIPWIRE: Forbid entry_v10/ paths in universal mode
+                        path_str = str(model_path_resolved)
+                        if "/entry_v10/" in path_str and "/entry_v10_ctx/" not in path_str:
+                            raise RuntimeError(
+                                f"UNIVERSAL_MODE_LEGACY_XGB_FORBIDDEN: XGB model path '{model_path_resolved}' "
+                                f"is under /entry_v10/ (legacy). Universal mode requires entry_v10_ctx bundles. "
+                                f"Session: {session}, Source: {source}"
+                            )
+                        
+                        # Also check filename pattern
+                        if "xgb_entry_" in model_path_resolved.name and "_v10.joblib" in model_path_resolved.name:
+                            raise RuntimeError(
+                                f"UNIVERSAL_MODE_LEGACY_XGB_FORBIDDEN: XGB model filename '{model_path_resolved.name}' "
+                                f"matches legacy pattern 'xgb_entry_*_v10.joblib'. Universal mode requires entry_v10_ctx bundle structure. "
+                                f"Session: {session}, Source: {source}"
+                            )
+                        
+                        xgb_models[session] = joblib.load(model_path_resolved)
+                        xgb_model_paths[session] = str(model_path_resolved.resolve())
+                        log.info(f"[ENTRY_V10_CTX] Loaded XGB model for {session} from {source}: {model_path_resolved}")
+                        return True
+                    else:
+                        log.warning(f"[ENTRY_V10_CTX] XGB model not found for {session} from {source}: {model_path_resolved}")
+                        return False
+                
                 if entry_config_path:
                     try:
                         entry_config = load_yaml_config(Path(entry_config_path))
@@ -2338,76 +2470,32 @@ class GX1DemoRunner:
                         xgb_cfg_from_entry = entry_models_cfg_in_entry.get("xgb", {})
                         if xgb_cfg_from_entry:
                             # Load XGB models
-                            session_map = {
-                                "EU": xgb_cfg_from_entry.get("eu_model_path"),
-                                "US": xgb_cfg_from_entry.get("us_model_path"),
-                                "OVERLAP": xgb_cfg_from_entry.get("overlap_model_path"),
-                            }
-                            for session, model_path in session_map.items():
-                                if model_path:
-                                    model_path = Path(model_path)
-                                    # Resolve paths relative to workspace root
-                                    if not model_path.is_absolute():
-                                        model_path_resolved = workspace_root / model_path
-                                    else:
-                                        model_path_resolved = model_path
-                                    if model_path_resolved.exists():
-                                        xgb_models[session] = joblib.load(model_path_resolved)
-                                        log.info(f"[ENTRY_V10_CTX] Loaded XGB model for {session}: {model_path_resolved}")
+                            load_xgb_model("EU", xgb_cfg_from_entry.get("eu_model_path"), "entry_config")
+                            load_xgb_model("US", xgb_cfg_from_entry.get("us_model_path"), "entry_config")
+                            load_xgb_model("OVERLAP", xgb_cfg_from_entry.get("overlap_model_path"), "entry_config")
                     except Exception as e:
                         log.warning("[ENTRY_V10_CTX] Failed to load XGB models from entry_config: %s", e)
                 
                 # Also check main policy for XGB config (check v10_ctx.xgb first, then top-level xgb)
                 xgb_cfg_from_v10_ctx = entry_v10_ctx_cfg.get("xgb", {})
                 if xgb_cfg_from_v10_ctx and not xgb_models:
-                    session_map = {
-                        "EU": xgb_cfg_from_v10_ctx.get("eu_model_path"),
-                        "US": xgb_cfg_from_v10_ctx.get("us_model_path"),
-                        "OVERLAP": xgb_cfg_from_v10_ctx.get("overlap_model_path"),
-                    }
-                    # Resolve paths relative to workspace root (handle relative paths)
-                    workspace_root = Path(__file__).parent.parent.parent  # gx1/execution -> gx1 -> workspace
-                    for session, model_path in session_map.items():
-                        if model_path:
-                            model_path = Path(model_path)
-                            # Try relative to workspace first, then absolute
-                            if not model_path.is_absolute():
-                                model_path_resolved = workspace_root / model_path
-                            else:
-                                model_path_resolved = model_path
-                            if model_path_resolved.exists():
-                                xgb_models[session] = joblib.load(model_path_resolved)
-                                log.info(f"[ENTRY_V10_CTX] Loaded XGB model for {session}: {model_path_resolved}")
-                            else:
-                                log.warning(f"[ENTRY_V10_CTX] XGB model not found for {session}: {model_path_resolved}")
+                    load_xgb_model("EU", xgb_cfg_from_v10_ctx.get("eu_model_path"), "v10_ctx")
+                    load_xgb_model("US", xgb_cfg_from_v10_ctx.get("us_model_path"), "v10_ctx")
+                    load_xgb_model("OVERLAP", xgb_cfg_from_v10_ctx.get("overlap_model_path"), "v10_ctx")
                 
                 # Also check main policy for XGB config
                 xgb_cfg_from_policy = entry_models_cfg.get("xgb", {})
                 if xgb_cfg_from_policy and not xgb_models:
-                    session_map = {
-                        "EU": xgb_cfg_from_policy.get("eu_model_path"),
-                        "US": xgb_cfg_from_policy.get("us_model_path"),
-                        "OVERLAP": xgb_cfg_from_policy.get("overlap_model_path"),
-                    }
-                    # Resolve paths relative to workspace root (handle relative paths)
-                    workspace_root = Path(__file__).parent.parent.parent  # gx1/execution -> gx1 -> workspace
-                    for session, model_path in session_map.items():
-                        if model_path:
-                            model_path = Path(model_path)
-                            # Try relative to workspace first, then absolute
-                            if not model_path.is_absolute():
-                                model_path_resolved = workspace_root / model_path
-                            else:
-                                model_path_resolved = model_path
-                            if model_path_resolved.exists():
-                                xgb_models[session] = joblib.load(model_path_resolved)
-                                log.info(f"[ENTRY_V10_CTX] Loaded XGB model for {session}: {model_path_resolved}")
-                            else:
-                                log.warning(f"[ENTRY_V10_CTX] XGB model not found for {session}: {model_path_resolved}")
+                    load_xgb_model("EU", xgb_cfg_from_policy.get("eu_model_path"), "policy")
+                    load_xgb_model("US", xgb_cfg_from_policy.get("us_model_path"), "policy")
+                    load_xgb_model("OVERLAP", xgb_cfg_from_policy.get("overlap_model_path"), "policy")
                 
                 # Log XGB loading status
                 if xgb_models:
                     log.info(f"[ENTRY_V10_CTX] XGB models loaded successfully: {list(xgb_models.keys())}")
+                    
+                    # Write MODEL_USED_CAPSULE.json (SSoT for model usage)
+                    self._write_model_used_capsule(xgb_models, xgb_model_paths, bundle_dir, policy_id)
                 else:
                     log.warning("[ENTRY_V10_CTX] NO XGB models loaded! V10 hybrid predictions will fail with XGB_MISSING.")
                     log.warning("[ENTRY_V10_CTX] XGB config from v10_ctx: %s", entry_v10_ctx_cfg.get("xgb", {}))
@@ -2923,6 +3011,10 @@ class GX1DemoRunner:
         # Race-condition handling: track trades that are currently being closed
         self._closing_trades: Dict[str, bool] = {}  # trade_id -> True if closing
         self._closing_lock = threading.Lock()  # Lock for closing_trades dict
+        # PHASE 1 FIX: Track exited trades for single-exit invariant
+        self._exited_trade_ids: set[str] = set()  # trade_id -> True if already exited
+        self._exit_monotonicity_violations: int = 0  # Counter for exit_time < entry_time
+        self._duplicate_exit_attempts: int = 0  # Counter for duplicate exit attempts
         
         # Sticky session: prevent session changes during an hour
         self.last_session: Optional[str] = None
@@ -4673,6 +4765,95 @@ class GX1DemoRunner:
         except Exception as e:
             log.warning("[RUN_HEADER] Failed to update run_header.json with replay metadata: %s", e)
     
+    def _write_model_used_capsule(
+        self,
+        xgb_models: Dict[str, Any],
+        xgb_model_paths: Dict[str, str],
+        bundle_dir: Path,
+        policy_id: str,
+    ) -> None:
+        """
+        Write MODEL_USED_CAPSULE.json (SSoT for model usage).
+        
+        This capsule provides proof of which XGB models were actually used in runtime,
+        enabling audit scripts to build TRUTH_USED_SET.
+        """
+        try:
+            # Determine output directory (same logic as _generate_run_header)
+            if hasattr(self, "output_dir") and self.output_dir:
+                output_dir = Path(self.output_dir)
+            elif hasattr(self, "explicit_output_dir") and self.explicit_output_dir:
+                output_dir = Path(self.explicit_output_dir)
+            elif hasattr(self, "run_id") and self.run_id:
+                output_dir = Path("gx1/wf_runs") / self.run_id
+            else:
+                # Fallback: use current working directory / reports/replay_eval/GATED
+                output_dir = Path("reports/replay_eval/GATED")
+            
+            output_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Compute SHA256 for each XGB model
+            xgb_models_info = {}
+            for session, model_path_str in xgb_model_paths.items():
+                model_path = Path(model_path_str)
+                if model_path.exists():
+                    with open(model_path, "rb") as f:
+                        model_sha256 = hashlib.sha256(f.read()).hexdigest()
+                    xgb_models_info[session] = {
+                        "selected_xgb_model_path": str(model_path.resolve()),
+                        "selected_xgb_model_sha256": model_sha256,
+                        "selected_model_kind": "xgb_pre",
+                    }
+            
+            # Get bundle SHA256 if available
+            bundle_sha256 = None
+            model_state_path = Path(bundle_dir) / "model_state_dict.pt"
+            if model_state_path.exists():
+                with open(model_state_path, "rb") as f:
+                    bundle_sha256 = hashlib.sha256(f.read()).hexdigest()
+            
+            # Get policy SHA256 if available
+            policy_sha256 = None
+            if hasattr(self, "policy_hash"):
+                policy_sha256 = self.policy_hash
+            elif hasattr(self, "policy_path") and self.policy_path:
+                policy_path = Path(self.policy_path)
+                if policy_path.exists():
+                    with open(policy_path, "rb") as f:
+                        policy_sha256 = hashlib.sha256(f.read()).hexdigest()
+            
+            # Get git commit
+            from gx1.prod.run_header import get_git_commit_hash
+            git_commit = get_git_commit_hash()
+            
+            # Build capsule
+            capsule = {
+                "timestamp": datetime.now(tz=timezone.utc).isoformat(),
+                "run_id": getattr(self, "run_id", None),
+                "policy_id": policy_id,
+                "policy_sha256": policy_sha256,
+                "bundle_dir": str(Path(bundle_dir).resolve()),
+                "bundle_sha256": bundle_sha256,
+                "xgb_models": xgb_models_info,
+                "provenance": {
+                    "git_commit": git_commit,
+                    "worker_pid": os.getpid(),
+                },
+            }
+            
+            # Atomic write
+            capsule_path = output_dir / "MODEL_USED_CAPSULE.json"
+            tmp_path = capsule_path.with_suffix(".json.tmp")
+            with open(tmp_path, "w") as f:
+                jsonlib.dump(capsule, f, indent=2)
+            tmp_path.rename(capsule_path)
+            
+            log.info(f"[MODEL_CAPSULE] ✅ Written MODEL_USED_CAPSULE.json to: {capsule_path}")
+            log.info(f"[MODEL_CAPSULE]   XGB models: {list(xgb_models_info.keys())}")
+            
+        except Exception as e:
+            log.error(f"[MODEL_CAPSULE] Failed to write MODEL_USED_CAPSULE.json: {e}", exc_info=True)
+    
     def _log_canary_invariants(self) -> None:
         """
         Log all invariants in canary mode.
@@ -5141,8 +5322,24 @@ class GX1DemoRunner:
         """
         now_ts = pd.Timestamp.now(tz="UTC")
         
-        # Race-condition handling: Check if trade is already being closed
+        # PHASE 1 FIX: Single-exit invariant - check if trade already exited
+        is_replay = getattr(self, "replay_mode", False) or getattr(self, "fast_replay", False)
         with self._closing_lock:
+            if trade_id in self._exited_trade_ids:
+                # Trade already exited - this is a duplicate exit attempt
+                self._duplicate_exit_attempts += 1
+                error_msg = (
+                    f"[EXIT_INVARIANT_VIOLATION] Duplicate exit attempt for trade {trade_id} "
+                    f"(source={source}, reason={reason}). Trade already exited. "
+                    f"This violates single-exit-per-trade invariant."
+                )
+                if is_replay:
+                    raise RuntimeError(error_msg)
+                else:
+                    log.warning(error_msg + " (live mode: ignoring duplicate exit)")
+                    return False
+            
+            # Race-condition handling: Check if trade is already being closed
             if trade_id in self._closing_trades:
                 log.info("[ARB] reject close (already closing) %s %s", trade_id, source)
                 # Get TP/SL state for audit (even though we're rejecting)
@@ -5761,6 +5958,10 @@ class GX1DemoRunner:
             # Log accepted close
             self._log_exit_audit(trade_id, source, reason, pnl_bps, True, broker_info, tp_sl_state, bars_in_trade)
             
+            # PHASE 1 FIX: Mark trade as exited (single-exit invariant)
+            with self._closing_lock:
+                self._exited_trade_ids.add(trade_id)
+            
             # Update trade log CSV with exit information
             self._update_trade_log_on_close(trade_id, px, pnl_bps, reason, now_ts, bars_in_trade=bars_in_trade)
             
@@ -6146,19 +6347,30 @@ class GX1DemoRunner:
         prediction = extract_entry_probabilities(probs, classes)
         prediction.session = session_key
         
-        # Apply temperature scaling to p_long and p_short (before gating)
+        # PHASE 1 FIX: Re-enable temperature scaling (removed temporary T=1.0 hardcode)
         temp_map = self._get_temperature_map()
-        # TEMPORARY TEST: Force T=1.0 for all sessions (disable temperature scaling)
-        # TODO: Remove this after diagnosis - restore: T = float(temp_map.get(session_key, 1.0))
-        T = 1.0
         
-        # Fail-safe: Warn if temperature is missing for session (continue with T=1.0)
-        if session_key not in temp_map and T != 1.0:
-            log.warning(
-                "Temperature missing for session '%s', using T=1.0 (no scaling). "
-                "This may indicate missing temperature configuration.",
-                session_key,
-            )
+        # Check if temperature scaling is explicitly disabled via env var
+        temp_scaling_disabled = os.getenv("GX1_TEMPERATURE_SCALING", "1") == "0"
+        
+        if temp_scaling_disabled:
+            T = 1.0
+            log.info(f"[TEMPERATURE] Scaling disabled via GX1_TEMPERATURE_SCALING=0 (using T=1.0 for all sessions)")
+        else:
+            # Use temperature from map, default to 1.0 if session not found
+            T = float(temp_map.get(session_key, 1.0))
+            
+            # Log once if temperature is missing for session (but continue with T=1.0)
+            if session_key not in temp_map:
+                if not hasattr(self, "_temp_missing_logged"):
+                    self._temp_missing_logged = set()
+                if session_key not in self._temp_missing_logged:
+                    log.warning(
+                        "[TEMPERATURE] Temperature missing for session '%s', using T=1.0 (no scaling). "
+                        "This may indicate missing temperature configuration.",
+                        session_key,
+                    )
+                    self._temp_missing_logged.add(session_key)
         
         # Store raw probabilities before temperature scaling
         p_long_raw = prediction.prob_long
@@ -6378,6 +6590,15 @@ class GX1DemoRunner:
         
         Returns EntryPrediction with prob_long from V10 hybrid model.
         """
+        # DEL 1: Record v10_callsite.entered (right at function entry, before any other telemetry)
+        if hasattr(self, "entry_manager") and self.entry_manager and hasattr(self.entry_manager, "entry_feature_telemetry") and self.entry_manager.entry_feature_telemetry:
+            self.entry_manager.entry_feature_telemetry.v10_callsite_entered += 1
+        
+        # ENTRY FEATURE TELEMETRY: Record model attempt (right at function entry)
+        model_name = "v10_hybrid"
+        if hasattr(self, "entry_manager") and self.entry_manager and hasattr(self.entry_manager, "entry_feature_telemetry") and self.entry_manager.entry_feature_telemetry:
+            self.entry_manager.entry_feature_telemetry.record_model_attempt(model_name)
+        
         # Initialize reason tracking telemetry
         if not hasattr(self, "entry_manager") or self.entry_manager is None:
             # Fallback: create minimal telemetry dict
@@ -6401,12 +6622,29 @@ class GX1DemoRunner:
         
         # Early session gating: V10 hybrid requires XGB which only exists for EU/US/OVERLAP
         # Check session early and return with explicit reason code (not counted as V10 call failure)
+        # NOTE: Session filtering is now handled in entry_manager.py with v10_session_supported gate
+        # This duplicate check is kept for defensive programming but should not trigger
+        # if entry_manager gate is working correctly
         import os
         current_session_early = policy_state.get("session", "OVERLAP")
         supported_sessions = {"EU", "US", "OVERLAP"}
         if current_session_early not in supported_sessions:
+            # ENTRY FEATURE TELEMETRY: Record model block
+            if hasattr(self, "entry_manager") and self.entry_manager and hasattr(self.entry_manager, "entry_feature_telemetry") and self.entry_manager.entry_feature_telemetry:
+                self.entry_manager.entry_feature_telemetry.record_model_block(model_name, "SESSION_UNSUPPORTED_INTERNAL")
+            
             # ASIA and other sessions don't have XGB models - skip silently (not a failure)
             # This is expected and should NOT count towards v10_none_reason_counts
+            # NOTE: This should not happen if entry_manager v10_session_supported gate is working
+            run_mode = getattr(self, "replay_mode", False) and "REPLAY" or "LIVE"
+            is_sniper = getattr(self, "is_sniper", False)
+            log.warning(
+                "[ENTRY_DEBUG] Early return in _predict_entry_v10_hybrid | "
+                f"reason=SESSION_NOT_SUPPORTED (duplicate check - should be caught by entry_manager gate) | "
+                f"run_mode={run_mode} | "
+                f"session={current_session_early} | "
+                f"is_sniper={is_sniper}"
+            )
             log.debug("[ENTRY_V10] Session %s not supported (no XGB model), skipping", current_session_early)
             return None  # Return directly without counting as V10 call
         
@@ -6432,6 +6670,20 @@ class GX1DemoRunner:
                 log.warning("[ENTRY_V10] ctx_expected=True but entry_context_features=None (live mode: degraded)")
         
         if self.entry_v10_bundle is None:
+            # ENTRY FEATURE TELEMETRY: Record model block
+            if hasattr(self, "entry_manager") and self.entry_manager and hasattr(self.entry_manager, "entry_feature_telemetry") and self.entry_manager.entry_feature_telemetry:
+                self.entry_manager.entry_feature_telemetry.record_model_block(model_name, "BUNDLE_MISSING")
+            
+            run_mode = getattr(self, "replay_mode", False) and "REPLAY" or "LIVE"
+            current_session_debug = policy_state.get("session", "OVERLAP")
+            is_sniper = getattr(self, "is_sniper", False)
+            log.error(
+                "[ENTRY_DEBUG] Early return in _predict_entry_v10_hybrid | "
+                f"reason=BUNDLE_MISSING | "
+                f"run_mode={run_mode} | "
+                f"session={current_session_debug} | "
+                f"is_sniper={is_sniper}"
+            )
             log.error("[ENTRY_V10] V10 bundle not loaded")
             return _ret_none("BUNDLE_MISSING")
         
@@ -6450,6 +6702,20 @@ class GX1DemoRunner:
             
             # Get current bar for regime info
             if len(entry_bundle.features) == 0:
+                # ENTRY FEATURE TELEMETRY: Record model block
+                if hasattr(self, "entry_manager") and self.entry_manager and hasattr(self.entry_manager, "entry_feature_telemetry") and self.entry_manager.entry_feature_telemetry:
+                    self.entry_manager.entry_feature_telemetry.record_model_block(model_name, "FEATURES_EMPTY")
+                
+                run_mode = getattr(self, "replay_mode", False) and "REPLAY" or "LIVE"
+                current_session_debug = policy_state.get("session", "OVERLAP")
+                is_sniper = getattr(self, "is_sniper", False)
+                log.error(
+                    "[ENTRY_DEBUG] Early return in _predict_entry_v10_hybrid | "
+                    f"reason=FEATURES_EMPTY | "
+                    f"run_mode={run_mode} | "
+                    f"session={current_session_debug} | "
+                    f"is_sniper={is_sniper}"
+                )
                 log.warning("[ENTRY_V10] Empty features DataFrame")
                 return _ret_none("FEATURES_EMPTY")
             
@@ -6519,6 +6785,20 @@ class GX1DemoRunner:
             # Get feature_meta_path from config (same as used during loading)
             feature_meta_path = Path(self.entry_v10_cfg.get("feature_meta_path"))
             if not feature_meta_path.exists():
+                # ENTRY FEATURE TELEMETRY: Record model block
+                if hasattr(self, "entry_manager") and self.entry_manager and hasattr(self.entry_manager, "entry_feature_telemetry") and self.entry_manager.entry_feature_telemetry:
+                    self.entry_manager.entry_feature_telemetry.record_model_block(model_name, "FEATURE_META_PATH_MISSING")
+                
+                run_mode = getattr(self, "replay_mode", False) and "REPLAY" or "LIVE"
+                current_session_debug = policy_state.get("session", "OVERLAP")
+                is_sniper = getattr(self, "is_sniper", False)
+                log.error(
+                    "[ENTRY_DEBUG] Early return in _predict_entry_v10_hybrid | "
+                    f"reason=FEATURE_META_PATH_MISSING | "
+                    f"run_mode={run_mode} | "
+                    f"session={current_session_debug} | "
+                    f"is_sniper={is_sniper}"
+                )
                 log.error("[ENTRY_V10] Feature meta path not found: %s", feature_meta_path)
                 return _ret_none("FEATURE_META_PATH_MISSING")
             
@@ -6533,18 +6813,58 @@ class GX1DemoRunner:
             # In live mode, use runtime_v9 directly (backward compatible)
             try:
                 if self.replay_mode:
-                    # Replay mode: use V10_CTX wrapper (forbids direct runtime_v9 usage)
-                    from gx1.features.runtime_v10_ctx import build_v10_ctx_runtime_features
-                    df_v9_feats, seq_feat_names, snap_feat_names = build_v10_ctx_runtime_features(
-                        df_raw,
-                        feature_meta_path,
-                        seq_scaler_path=seq_scaler_path,
-                        snap_scaler_path=snap_scaler_path,
-                    )
-                    log.debug(
-                        "[ENTRY_V10_CTX] Built runtime features via V10_CTX wrapper: shape=%s, n_seq=%d, n_snap=%d",
-                        df_v9_feats.shape, len(seq_feat_names), len(snap_feat_names)
-                    )
+                    # PATCH: Use prebuilt features if available (GX1_REPLAY_USE_PREBUILT_FEATURES=1)
+                    if hasattr(self, "prebuilt_features_df") and self.prebuilt_features_df is not None:
+                        # Use prebuilt features - extract features for timestamps in df_raw
+                        # Match timestamps from df_raw to prebuilt_features_df
+                        df_raw_index = df_raw.index
+                        # Find matching rows in prebuilt features
+                        matching_features = self.prebuilt_features_df.loc[df_raw_index.intersection(self.prebuilt_features_df.index)]
+                        
+                        if len(matching_features) != len(df_raw):
+                            # Some timestamps missing - fall back to building features
+                            log.warning(
+                                "[ENTRY_V10_CTX] Prebuilt features missing %d/%d timestamps, falling back to feature building",
+                                len(df_raw) - len(matching_features),
+                                len(df_raw)
+                            )
+                            from gx1.features.runtime_v10_ctx import build_v10_ctx_runtime_features
+                            df_v9_feats, seq_feat_names, snap_feat_names = build_v10_ctx_runtime_features(
+                                df_raw,
+                                feature_meta_path,
+                                seq_scaler_path=seq_scaler_path,
+                                snap_scaler_path=snap_scaler_path,
+                            )
+                        else:
+                            # All timestamps found - use prebuilt features
+                            df_v9_feats = matching_features.copy()
+                            # Set feature build time to 0 (prebuilt features used)
+                            # Note: perf_feat_time is accumulated in entry_manager, so we don't need to set it here
+                            # The fact that we skip build_v10_ctx_runtime_features means perf_feat_time won't be incremented
+                            # Load feature_meta to get seq/snap feature names
+                            import json
+                            with open(feature_meta_path) as f:
+                                feature_meta = json.load(f)
+                            seq_feat_names = feature_meta.get("seq_features", [])
+                            snap_feat_names = feature_meta.get("snap_features", [])
+                            
+                            log.debug(
+                                "[ENTRY_V10_CTX] Using prebuilt features: shape=%s, n_seq=%d, n_snap=%d",
+                                df_v9_feats.shape, len(seq_feat_names), len(snap_feat_names)
+                            )
+                    else:
+                        # Replay mode: use V10_CTX wrapper (forbids direct runtime_v9 usage)
+                        from gx1.features.runtime_v10_ctx import build_v10_ctx_runtime_features
+                        df_v9_feats, seq_feat_names, snap_feat_names = build_v10_ctx_runtime_features(
+                            df_raw,
+                            feature_meta_path,
+                            seq_scaler_path=seq_scaler_path,
+                            snap_scaler_path=snap_scaler_path,
+                        )
+                        log.debug(
+                            "[ENTRY_V10_CTX] Built runtime features via V10_CTX wrapper: shape=%s, n_seq=%d, n_snap=%d",
+                            df_v9_feats.shape, len(seq_feat_names), len(snap_feat_names)
+                        )
                 else:
                     # Live mode: use runtime_v9 directly (backward compatible)
                     # DEL 2: Import runtime_v9 locally (not at top-level)
@@ -6588,6 +6908,20 @@ class GX1DemoRunner:
             # Get sequence length from bundle
             seq_len = self.entry_v10_bundle.transformer_config.get("seq_len", 30)
             if len(df_v9_feats) < seq_len:
+                # ENTRY FEATURE TELEMETRY: Record model block
+                if hasattr(self, "entry_manager") and self.entry_manager and hasattr(self.entry_manager, "entry_feature_telemetry") and self.entry_manager.entry_feature_telemetry:
+                    self.entry_manager.entry_feature_telemetry.record_model_block(model_name, "SEQ_TOO_SHORT")
+                
+                run_mode = getattr(self, "replay_mode", False) and "REPLAY" or "LIVE"
+                current_session_debug = policy_state.get("session", "OVERLAP")
+                is_sniper = getattr(self, "is_sniper", False)
+                log.error(
+                    "[ENTRY_DEBUG] Early return in _predict_entry_v10_hybrid | "
+                    f"reason=SEQ_TOO_SHORT | "
+                    f"run_mode={run_mode} | "
+                    f"session={current_session_debug} | "
+                    f"is_sniper={is_sniper}"
+                )
                 log.warning("[ENTRY_V10] Insufficient history: %d < %d", len(df_v9_feats), seq_len)
                 return _ret_none("SEQ_TOO_SHORT")
             
@@ -6595,148 +6929,155 @@ class GX1DemoRunner:
             seq_window = df_v9_feats.tail(seq_len).copy()
             current_row = df_v9_feats.iloc[-1]
             
-            # Run XGBoost for current session to get XGB predictions
-            xgb_model = self.entry_v10_bundle.xgb_models_by_session.get(current_session)
-            if xgb_model is None:
-                # Check if session is gated (e.g., ASIA has no XGB model)
-                # This is expected for ASIA - don't log as error, just skip
-                if current_session == "ASIA":
-                    log.debug("[ENTRY_V10] Skipping ASIA session (no XGB model configured)")
-                    return _ret_none("SESSION_ASIA_NO_XGB")
-                log.error("[ENTRY_V10] XGB model not found for session: %s", current_session)
-                return _ret_none("XGB_MISSING")
+            # XGB FLOW ABLATION TEST 2: Toggle for disabling XGB post-transformer
+            # XGB FLOW ABLATION TEST 1: Toggle for disabling XGB channels in transformer input
+            # NOTE: XGB POST (calibration/veto) has been REMOVED as of 2026-01-24.
+            # XGB now only provides pre-predict channels to Transformer. No post-processing.
+            disable_xgb_channels_in_transformer = os.getenv("GX1_DISABLE_XGB_CHANNELS_IN_TRANSFORMER", "0") == "1"
             
-            # Prepare XGB features (snapshot features only)
-            xgb_features = current_row[snap_feat_names].values.reshape(1, -1).astype(np.float32)
-            xgb_features = np.nan_to_num(xgb_features, nan=0.0, posinf=0.0, neginf=0.0)
+            # Skip XGB predict entirely if channels are disabled (no reason to run XGB if not used)
+            skip_xgb_predict = disable_xgb_channels_in_transformer
             
-            # XGB prediction
-            xgb_proba = xgb_model.predict_proba(xgb_features)[0]
-            # Assuming binary classification: [prob_short, prob_long] or [prob_long, prob_short]
-            # Check model classes to determine order
-            if hasattr(xgb_model, 'classes_') and len(xgb_model.classes_) == 2:
-                if xgb_model.classes_[0] == 0:  # [prob_0, prob_1] where 0=short, 1=long
-                    p_long_xgb_raw = float(xgb_proba[1])
-                else:
-                    p_long_xgb_raw = float(xgb_proba[0])
+            if skip_xgb_predict:
+                # TEST 2 + TEST 1: Both disabled - skip XGB predict entirely
+                # Use neutral defaults for XGB values (channels will be zeroed)
+                # NOTE: margin_xgb was REMOVED as of 2026-01-25
+                p_long_xgb = 0.5  # Neutral default
+                # margin_xgb = 0.0  # REMOVED
+                p_hat_xgb = 0.5
+                uncertainty_score = 0.5
+                p_long_xgb_raw = 0.5
+                
+                # Record that XGB was not called
+                if hasattr(self, "entry_manager") and self.entry_manager and hasattr(self.entry_manager, "entry_feature_telemetry") and self.entry_manager.entry_feature_telemetry:
+                    self.entry_manager.entry_feature_telemetry.record_xgb_flow(
+                        xgb_called=False,
+                        xgb_used_as="none",
+                        post_predict_called=False,
+                    )
             else:
-                # Default: assume second element is prob_long
-                p_long_xgb_raw = float(xgb_proba[1] if len(xgb_proba) > 1 else xgb_proba[0])
-            
-            # PHASE 1: Apply XGB calibration
-            try:
-                from gx1.models.entry_v10.xgb_calibration import (
-                    apply_xgb_calibration,
-                    load_xgb_calibrators,
-                )
+                # Run XGBoost for current session to get XGB predictions
+                # (Even if post is disabled, we still need XGB predict if channels are enabled)
+                xgb_model = self.entry_v10_bundle.xgb_models_by_session.get(current_session)
+                if xgb_model is None:
+                    # Check if session is gated (e.g., ASIA has no XGB model)
+                    # This is expected for ASIA - don't log as error, just skip
+                    if current_session == "ASIA":
+                        # ENTRY FEATURE TELEMETRY: Record model block
+                        if hasattr(self, "entry_manager") and self.entry_manager and hasattr(self.entry_manager, "entry_feature_telemetry") and self.entry_manager.entry_feature_telemetry:
+                            self.entry_manager.entry_feature_telemetry.record_model_block(model_name, "SESSION_ASIA_NO_XGB")
+                        log.debug("[ENTRY_V10] Skipping ASIA session (no XGB model configured)")
+                        return _ret_none("SESSION_ASIA_NO_XGB")
+                    # ENTRY FEATURE TELEMETRY: Record model block
+                    if hasattr(self, "entry_manager") and self.entry_manager and hasattr(self.entry_manager, "entry_feature_telemetry") and self.entry_manager.entry_feature_telemetry:
+                        self.entry_manager.entry_feature_telemetry.record_model_block(model_name, "XGB_MISSING")
+                    log.error("[ENTRY_V10] XGB model not found for session: %s", current_session)
+                    return _ret_none("XGB_MISSING")
                 
-                # Load calibrators if not already loaded
-                if not hasattr(self, "_xgb_calibrators"):
-                    calibration_method = os.getenv("GX1_CALIBRATION_METHOD", "platt")
-                    # Use GX1_SNIPER_TRAIN_V10_CTX_GATED as policy_id for calibration lookup
-                    # (calibrators are trained with this policy_id, not replay policy_id)
-                    policy_id = "GX1_SNIPER_TRAIN_V10_CTX_GATED"
-                    calibration_dir = Path("models/xgb_calibration")
-                    
-                    self._xgb_calibrators = load_xgb_calibrators(
-                        calibration_dir=calibration_dir,
-                        policy_id=policy_id,
-                        method=calibration_method,
-                    )
-                    self._calibration_method = calibration_method
-                    log.info(f"[XGB_CALIB] Loaded calibrators for policy_id={policy_id}, sessions={list(self._xgb_calibrators.keys())}")
+                # Prepare XGB features (from XGB model's expected feature list, not snap_feat_names)
+                # XGB was trained with 85 features including CLOSE, but snap_feat_names has 84 (no CLOSE)
+                # Load XGB feature list from xgb_entry_meta_v10.json if available
+                xgb_meta_path = Path(self.entry_v10_cfg.get("feature_meta_path")).parent.parent / "entry_v10" / "xgb_entry_meta_v10.json"
+                if not xgb_meta_path.exists():
+                    # Fallback: try GX1_DATA path
+                    xgb_meta_path = Path(__file__).parent.parent.parent.parent / "GX1_DATA" / "models" / "models" / "entry_v10" / "xgb_entry_meta_v10.json"
                 
-                # Get vol_regime_id from current_row
-                vol_regime_id = int(current_row.get("atr_regime_id", 2)) if "atr_regime_id" in current_row.index else 2
-                vol_regime_id = max(0, min(3, vol_regime_id))
+                if xgb_meta_path.exists():
+                    import json as _json
+                    with open(xgb_meta_path) as f:
+                        xgb_meta = _json.load(f)
+                    xgb_feature_cols = xgb_meta.get("feature_cols", [])
+                else:
+                    # Fallback: use snap_feat_names (may cause mismatch)
+                    log.warning(f"[XGB_INPUT] xgb_entry_meta_v10.json not found at {xgb_meta_path}, using snap_feat_names")
+                    xgb_feature_cols = snap_feat_names
                 
-                # Get trend_regime_id (optional)
-                trend_regime_id = None
-                if "trend_regime_tf24h" in current_row.index:
-                    trend_val = float(current_row["trend_regime_tf24h"])
-                    if trend_val > 0.001:
-                        trend_regime_id = 0  # UP
-                    elif trend_val < -0.001:
-                        trend_regime_id = 1  # DOWN
+                # Build XGB feature vector with CLOSE aliasing
+                xgb_feat_values = []
+                for feat_name in xgb_feature_cols:
+                    if feat_name in current_row.index:
+                        xgb_feat_values.append(float(current_row[feat_name]))
+                    elif feat_name == "CLOSE":
+                        # CLOSE alias from candles.close (not in prebuilt features)
+                        if "close" in candles.columns:
+                            xgb_feat_values.append(float(candles["close"].iloc[-1]))
+                        else:
+                            raise RuntimeError(
+                                "[XGB_INPUT_FAIL] CLOSE feature required but candles.close not found. "
+                                "CLOSE must be aliased from candles.close."
+                            )
                     else:
-                        trend_regime_id = 2  # NEUTRAL
+                        # Feature missing - log warning and use 0.0
+                        log.warning(f"[XGB_INPUT] Feature '{feat_name}' not found in current_row, using 0.0")
+                        xgb_feat_values.append(0.0)
+                xgb_features = np.array(xgb_feat_values, dtype=np.float32).reshape(1, -1)
+                # PHASE 1 FIX: Hard-fail on NaN/Inf in XGB features in replay mode
+                is_replay = getattr(self, "replay_mode", False) or getattr(self, "fast_replay", False)
+                if is_replay:
+                    if not np.all(np.isfinite(xgb_features)):
+                        nan_count = np.isnan(xgb_features).sum()
+                        inf_count = np.isinf(xgb_features).sum()
+                        raise RuntimeError(
+                            f"[NAN_INF_INPUT_FATAL] XGB features contain NaN/Inf: "
+                            f"NaN count={nan_count}, Inf count={inf_count}, shape={xgb_features.shape}. "
+                            f"This violates input-finiteness invariant (replay mode)."
+                        )
+                # In live mode, allow nan_to_num but log counter
+                if not is_replay and not np.all(np.isfinite(xgb_features)):
+                    if not hasattr(self, "_xgb_nan_inf_count"):
+                        self._xgb_nan_inf_count = 0
+                    self._xgb_nan_inf_count += 1
+                    if self._xgb_nan_inf_count <= 3:
+                        log.warning(
+                            "[NAN_INF_INPUT] XGB features contain NaN/Inf (live mode: converting to 0.0): "
+                            f"NaN count={np.isnan(xgb_features).sum()}, Inf count={np.isinf(xgb_features).sum()}"
+                        )
+                xgb_features = np.nan_to_num(xgb_features, nan=0.0, posinf=0.0, neginf=0.0)
                 
-                # Apply calibration
-                calibrated_output = apply_xgb_calibration(
-                    p_raw=p_long_xgb_raw,
-                    session=current_session,
-                    vol_regime_id=vol_regime_id,
-                    calibrators=self._xgb_calibrators,
-                    method=self._calibration_method,
-                    trend_regime_id=trend_regime_id,
-                )
+                # XGB prediction
+                xgb_proba = xgb_model.predict_proba(xgb_features)[0]
+                # Assuming binary classification: [prob_short, prob_long] or [prob_long, prob_short]
+                # Check model classes to determine order
+                if hasattr(xgb_model, 'classes_') and len(xgb_model.classes_) == 2:
+                    if xgb_model.classes_[0] == 0:  # [prob_0, prob_1] where 0=short, 1=long
+                        p_long_xgb_raw = float(xgb_proba[1])
+                    else:
+                        p_long_xgb_raw = float(xgb_proba[0])
+                else:
+                    # Default: assume second element is prob_long
+                    p_long_xgb_raw = float(xgb_proba[1] if len(xgb_proba) > 1 else xgb_proba[0])
                 
-                # Use calibrated outputs
-                p_long_xgb = calibrated_output.p_cal
-                margin_xgb = calibrated_output.margin
-                p_hat_xgb = calibrated_output.p_hat
-                uncertainty_score = calibrated_output.uncertainty_score
-                
-                # Log first 3 calibrations (debug)
-                if not hasattr(self, "_xgb_calibration_log_count"):
-                    self._xgb_calibration_log_count = 0
-                if self._xgb_calibration_log_count < 3:
-                    log.info(
-                        "[XGB_CALIB] Call #%d: p_raw=%.4f → p_cal=%.4f, margin=%.4f, uncertainty=%.4f",
-                        self._xgb_calibration_log_count + 1,
-                        p_long_xgb_raw,
-                        p_long_xgb,
-                        margin_xgb,
-                        uncertainty_score,
+                # ENTRY FEATURE TELEMETRY: Record XGB flow
+                # NOTE: XGB POST (calibration/veto) has been REMOVED. XGB is now pre-only.
+                if hasattr(self, "entry_manager") and self.entry_manager and hasattr(self.entry_manager, "entry_feature_telemetry") and self.entry_manager.entry_feature_telemetry:
+                    self.entry_manager.entry_feature_telemetry.record_xgb_flow(
+                        xgb_called=True,
+                        xgb_session=current_session,
+                        xgb_p_long_raw=p_long_xgb_raw,
+                        xgb_used_as="pre",  # XGB is pre-only (no post calibration/veto)
                     )
-                    self._xgb_calibration_log_count += 1
                 
-            except ImportError:
-                # Calibration module not available - use raw (with warning)
-                log.warning("[XGB_CALIB] Calibration module not available, using raw probabilities")
+                # XGB values: Use raw predictions directly (no calibration/post-processing)
+                # NOTE: XGB POST (calibration/veto) has been REMOVED as of 2026-01-24.
+                # NOTE: margin_xgb has been REMOVED as of 2026-01-25 (FULLYEAR ablation showed it's harmful)
                 p_long_xgb = p_long_xgb_raw
                 p_short_xgb = 1.0 - p_long_xgb
-                margin_xgb = abs(p_long_xgb - p_short_xgb)
+                # margin_xgb = abs(p_long_xgb - p_short_xgb)  # REMOVED
                 p_hat_xgb = max(p_long_xgb, p_short_xgb)
                 # Compute uncertainty_score from raw (binary entropy normalized)
                 from gx1.execution.telemetry import prob_entropy
                 entropy_raw = prob_entropy(p_long_xgb)
                 uncertainty_score = entropy_raw / np.log(2.0)  # Normalize to [0, 1]
-            except Exception as e:
-                # Calibration failed - check if we can fallback
-                require_cal = os.getenv("GX1_REQUIRE_XGB_CALIBRATION", "0") == "1"
-                allow_uncal = os.getenv("GX1_ALLOW_UNCALIBRATED_XGB", "0") == "1"
                 
-                if require_cal:
-                    # Hard fail in replay
-                    is_replay = getattr(self, "replay_mode", False) or os.getenv("GX1_REPLAY", "0") == "1"
-                    if is_replay:
-                        raise RuntimeError(f"XGB_CALIBRATION_FAILED: {e}") from e
-                    else:
-                        log.error(f"[XGB_CALIB] Calibration failed (require_cal=True): {e}")
-                        return _ret_none("XGB_CALIBRATION_FAILED")
-                elif allow_uncal:
-                    # Use raw with warning
-                    log.warning(f"[XGB_CALIB] Calibration failed, using raw probabilities: {e}")
-                    p_long_xgb = p_long_xgb_raw
-                    p_short_xgb = 1.0 - p_long_xgb
-                    margin_xgb = abs(p_long_xgb - p_short_xgb)
-                    p_hat_xgb = max(p_long_xgb, p_short_xgb)
-                    # Compute uncertainty_score from raw (binary entropy normalized)
-                    from gx1.execution.telemetry import prob_entropy
-                    entropy_raw = prob_entropy(p_long_xgb)
-                    uncertainty_score = entropy_raw / np.log(2.0)  # Normalize to [0, 1]
-                else:
-                    # Default: use raw but warn
-                    log.warning(f"[XGB_CALIB] Calibration failed, using raw probabilities: {e}")
-                    p_long_xgb = p_long_xgb_raw
-                    p_short_xgb = 1.0 - p_long_xgb
-                    margin_xgb = abs(p_long_xgb - p_short_xgb)
-                    p_hat_xgb = max(p_long_xgb, p_short_xgb)
-                    # Compute uncertainty_score from raw (binary entropy normalized)
-                    from gx1.execution.telemetry import prob_entropy
-                    entropy_raw = prob_entropy(p_long_xgb)
-                    uncertainty_score = entropy_raw / np.log(2.0)  # Normalize to [0, 1]
+                # Update telemetry with XGB values
+                if hasattr(self, "entry_manager") and self.entry_manager and hasattr(self.entry_manager, "entry_feature_telemetry") and self.entry_manager.entry_feature_telemetry:
+                    if self.entry_manager.entry_feature_telemetry.xgb_flows:
+                        last_xgb = self.entry_manager.entry_feature_telemetry.xgb_flows[-1]
+                        last_xgb.xgb_p_long_cal = p_long_xgb  # Now same as raw (no cal)
+                        # last_xgb.xgb_margin = margin_xgb  # REMOVED
+                        last_xgb.xgb_p_hat = p_hat_xgb
+                        last_xgb.xgb_uncertainty_score = uncertainty_score
+                
             
             # Compute p_long_xgb_ema_5 for sequence (simple EMA over last 5 XGB predictions in window)
             # For simplicity, use current p_long_xgb if history insufficient
@@ -6759,8 +7100,18 @@ class GX1DemoRunner:
                 SNAP_XGB_CHANNEL_START,
             )
             
+            # XGB FLOW ABLATION TEST 1: Toggle for disabling XGB channels in transformer input
+            # NOTE: We still use TOTAL_* dimensions (model expects them), but set XGB channels to zero
+            # (disable_xgb_channels_in_transformer already defined on line 6855)
+            
+            # Determine effective XGB channel count (0 if disabled, XGB_CHANNELS if enabled)
+            if disable_xgb_channels_in_transformer:
+                n_xgb_channels_in_transformer_input = 0
+            else:
+                n_xgb_channels_in_transformer_input = XGB_CHANNELS
+            
             # Build sequence tensor [1, seq_len, TOTAL_SEQ_FEATURES]
-            # BASE_SEQ_FEATURES seq features + XGB_CHANNELS XGB channels
+            # Always use TOTAL_* dimensions (model expects them), but XGB channels may be zeroed
             seq_data = np.zeros((seq_len, TOTAL_SEQ_FEATURES), dtype=np.float32)
             
             # Defensive check: ensure seq_data is 2D
@@ -6785,37 +7136,82 @@ class GX1DemoRunner:
                         return _ret_none("FEATURE_LENGTH_MISMATCH")
                     seq_data[:, i] = feat_values.astype(np.float32)
             
-            # Fill XGB sequence channels (XGB_CHANNELS)
-            # PHASE 1: Use calibrated values (p_cal, margin, uncertainty_score)
-            # For now, use current XGB values for all timesteps (simplification)
-            # In training, this was historical XGB predictions
-            seq_data[:, SEQ_XGB_CHANNEL_START + 0] = p_long_xgb  # p_cal (calibrated)
-            seq_data[:, SEQ_XGB_CHANNEL_START + 1] = margin_xgb  # margin (from calibrated)
-            seq_data[:, SEQ_XGB_CHANNEL_START + 2] = uncertainty_score  # uncertainty_score (replaces p_long_xgb_ema_5)
+            # Fill XGB sequence channels (XGB_CHANNELS) - zero if disabled, otherwise use calibrated values
+            if disable_xgb_channels_in_transformer:
+                # TEST 1: Zero out XGB channels (model still expects TOTAL_* dimensions)
+                seq_data[:, SEQ_XGB_CHANNEL_START:SEQ_XGB_CHANNEL_START + XGB_CHANNELS] = 0.0
+            else:
+                # PHASE 1: Use calibrated values (p_long_xgb, uncertainty_score)
+                # NOTE: margin_xgb was REMOVED as of 2026-01-25
+                # For now, use current XGB values for all timesteps (simplification)
+                # In training, this was historical XGB predictions
+                seq_data[:, SEQ_XGB_CHANNEL_START + 0] = p_long_xgb  # p_long_xgb
+                # seq_data[:, SEQ_XGB_CHANNEL_START + 1] = margin_xgb  # REMOVED
+                seq_data[:, SEQ_XGB_CHANNEL_START + 1] = uncertainty_score  # uncertainty_score (moved from index 2 to 1)
             
             # Build snapshot tensor [1, TOTAL_SNAP_FEATURES]
-            # BASE_SNAP_FEATURES snap features + XGB_CHANNELS XGB-now
+            # Always use TOTAL_* dimensions (model expects them), but XGB channels may be zeroed
             snap_data = np.zeros(TOTAL_SNAP_FEATURES, dtype=np.float32)
+            
+            # DEL 2: Track input aliases applied (for telemetry)
+            input_aliases_applied = {}
             
             # Fill snapshot features (BASE_SNAP_FEATURES from snap_feat_names)
             for i, feat_name in enumerate(snap_feat_names[:BASE_SNAP_FEATURES]):
                 if feat_name in current_row.index:
                     snap_data[i] = float(current_row[feat_name])
+                elif feat_name == "CLOSE":
+                    # DEL 2: CLOSE alias from candles.close (not in prebuilt features)
+                    if "close" in candles.columns:
+                        close_value = float(candles["close"].iloc[-1])
+                        snap_data[i] = close_value
+                        input_aliases_applied["CLOSE"] = "candles.close"
+                        log.debug("[TRANSFORMER_INPUT] Applied CLOSE alias from candles.close: %.6f", close_value)
+                    else:
+                        raise RuntimeError(
+                            "[TRANSFORMER_INPUT_FAIL] CLOSE feature required but candles.close not found. "
+                            "CLOSE must be aliased from candles.close, but candles DataFrame is missing 'close' column."
+                        )
+                else:
+                    # Feature missing - use 0.0 (should not happen if feature_meta is correct)
+                    log.warning(
+                        "[TRANSFORMER_INPUT] Snapshot feature '%s' not found in current_row or candles, using 0.0",
+                        feat_name
+                    )
+                    snap_data[i] = 0.0
             
-            # Fill XGB-now features (XGB_CHANNELS)
-            # PHASE 1: Use calibrated values
-            snap_data[SNAP_XGB_CHANNEL_START + 0] = p_long_xgb  # p_cal (calibrated)
-            snap_data[SNAP_XGB_CHANNEL_START + 1] = margin_xgb  # margin (from calibrated)
-            snap_data[SNAP_XGB_CHANNEL_START + 2] = p_hat_xgb  # p_hat (from calibrated)
+            # DEL 2: Fail-fast if CLOSE is required but aliasing failed
+            if "CLOSE" in snap_feat_names[:BASE_SNAP_FEATURES]:
+                close_idx = snap_feat_names[:BASE_SNAP_FEATURES].index("CLOSE")
+                if np.isnan(snap_data[close_idx]) or np.isinf(snap_data[close_idx]):
+                    raise RuntimeError(
+                        f"[TRANSFORMER_INPUT_FAIL] CLOSE feature has NaN/Inf value after aliasing. "
+                        f"This indicates a problem with candles.close or aliasing logic."
+                    )
+            
+            # Fill XGB-now features (XGB_CHANNELS) - zero if disabled, otherwise use calibrated values
+            if disable_xgb_channels_in_transformer:
+                # TEST 1: Zero out XGB channels (model still expects TOTAL_* dimensions)
+                snap_data[SNAP_XGB_CHANNEL_START:SNAP_XGB_CHANNEL_START + XGB_CHANNELS] = 0.0
+            else:
+                # PHASE 1: Use calibrated values
+                # NOTE: margin_xgb was REMOVED as of 2026-01-25
+                snap_data[SNAP_XGB_CHANNEL_START + 0] = p_long_xgb  # p_long_xgb
+                # snap_data[SNAP_XGB_CHANNEL_START + 1] = margin_xgb  # REMOVED
+                snap_data[SNAP_XGB_CHANNEL_START + 1] = p_hat_xgb  # p_hat (moved from index 2 to 1)
+            
+            # NOTE: Telemetry recording moved to AFTER masking (see line ~7556)
+            # This ensures we record the effective channels (after masking), not the contract channels
             
             # DEL 3: Runtime assertions using canonical contract
+            # NOTE: We always use TOTAL_* dimensions (model expects them), even when XGB channels are zeroed
             from gx1.features.feature_contract_v10_ctx import (
                 validate_seq_features,
                 validate_snap_features,
                 get_contract_summary,
             )
             
-            # Validate dimensions against contract
+            # Validate dimensions against contract (always TOTAL_* dimensions)
             try:
                 validate_seq_features(seq_data, context="entry_v10_hybrid")
                 validate_snap_features(snap_data, context="entry_v10_hybrid")
@@ -6826,6 +7222,153 @@ class GX1DemoRunner:
                 else:
                     log.error(str(e))
                     return _ret_none("FEATURE_CONTRACT_MISMATCH")
+            
+            # XGB FLOW ABLATION TEST 1: Hard invariant - if disabled, channels must be zero
+            if disable_xgb_channels_in_transformer:
+                # Verify XGB channels are actually zero
+                seq_xgb_sum = np.abs(seq_data[:, SEQ_XGB_CHANNEL_START:SEQ_XGB_CHANNEL_START + XGB_CHANNELS]).sum()
+                snap_xgb_sum = np.abs(snap_data[SNAP_XGB_CHANNEL_START:SNAP_XGB_CHANNEL_START + XGB_CHANNELS]).sum()
+                if seq_xgb_sum > 1e-6 or snap_xgb_sum > 1e-6:
+                    raise RuntimeError(
+                        f"[XGB_ABLATION_FAIL] GX1_DISABLE_XGB_CHANNELS_IN_TRANSFORMER=1 but XGB channels are non-zero: "
+                        f"seq_xgb_sum={seq_xgb_sum:.6f}, snap_xgb_sum={snap_xgb_sum:.6f}"
+                    )
+            
+            # XGB FLOW ABLATION TEST 2: Hard invariant - if disabled, post_predict must not be called
+            # NOTE: We track this in telemetry, but there's no explicit post-transformer XGB predict in current code
+            # This invariant is checked in compare script based on telemetry
+            
+            # LIVE FEATURE FINGERPRINT: Compute and validate fingerprint
+            from gx1.runtime.feature_fingerprint import (
+                compute_feature_fingerprint,
+                load_expected_fingerprint,
+                validate_feature_fingerprint,
+            )
+            
+            # Compute actual fingerprint (include XGB channel names from contract)
+            # NOTE: When XGB channels are disabled, they are zeroed but still present in fingerprint
+            from gx1.features.feature_contract_v10_ctx import SEQ_XGB_CHANNEL_NAMES, SNAP_XGB_CHANNEL_NAMES
+            actual_fingerprint = compute_feature_fingerprint(
+                seq_data=seq_data,
+                snap_data=snap_data,
+                seq_feat_names=seq_feat_names,  # Base features only (13)
+                snap_feat_names=snap_feat_names,  # Base features only (85)
+                xgb_seq_channel_names=SEQ_XGB_CHANNEL_NAMES if not disable_xgb_channels_in_transformer else [],  # XGB channels (3) or empty
+                xgb_snap_channel_names=SNAP_XGB_CHANNEL_NAMES if not disable_xgb_channels_in_transformer else [],  # XGB channels (3) or empty
+            )
+            
+            # Load expected fingerprint from bundle
+            bundle_dir = Path(self.entry_v10_bundle.bundle_dir) if hasattr(self.entry_v10_bundle, "bundle_dir") else None
+            if bundle_dir is None:
+                bundle_dir = Path(self.entry_v10_cfg.get("bundle_dir", ""))
+            
+            expected_fingerprint = None
+            if bundle_dir and bundle_dir.exists():
+                expected_fingerprint = load_expected_fingerprint(bundle_dir)
+            
+            # Validate fingerprint (hard-fail in live mode)
+            is_live_mode = not getattr(self, "replay_mode", False)
+            try:
+                is_valid, error_msg = validate_feature_fingerprint(
+                    actual=actual_fingerprint,
+                    expected=expected_fingerprint,
+                    is_live=is_live_mode,
+                )
+                if not is_valid and error_msg:
+                    if is_live_mode:
+                        raise RuntimeError(f"[FEATURE_FINGERPRINT_FAIL] {error_msg}")
+                    else:
+                        log.warning(f"[FEATURE_FINGERPRINT] {error_msg}")
+            except RuntimeError:
+                raise  # Re-raise hard-fail errors
+            
+            # Store fingerprint in runner for RUN_IDENTITY (update if not set or if different)
+            if not hasattr(self, "_feature_fingerprint") or self._feature_fingerprint.fingerprint_hash != actual_fingerprint.fingerprint_hash:
+                self._feature_fingerprint = actual_fingerprint
+                log.info(
+                    "[FEATURE_FINGERPRINT] Computed fingerprint: %s (hash: %s...)",
+                    actual_fingerprint.fingerprint_hash[:16],
+                    actual_fingerprint.fingerprint_hash[:16],
+                )
+                
+                # Update RUN_IDENTITY.json if output_dir is available (both live and replay mode)
+                # Try multiple possible locations for RUN_IDENTITY.json
+                identity_paths_to_try = []
+                if hasattr(self, "output_dir") and self.output_dir:
+                    identity_paths_to_try.append(Path(self.output_dir) / "RUN_IDENTITY.json")
+                if hasattr(self, "explicit_output_dir") and self.explicit_output_dir:
+                    # For parallel chunk workers, try parent directory (where RUN_IDENTITY is usually written)
+                    parent_dir = Path(self.explicit_output_dir).parent
+                    identity_paths_to_try.append(parent_dir / "RUN_IDENTITY.json")
+                    # Also try chunk directory itself
+                    identity_paths_to_try.append(Path(self.explicit_output_dir) / "RUN_IDENTITY.json")
+                # Try environment variable for output dir (used in replay_eval_gated_parallel)
+                output_dir_env = os.getenv("GX1_OUTPUT_DIR")
+                if output_dir_env:
+                    identity_paths_to_try.append(Path(output_dir_env) / "RUN_IDENTITY.json")
+                
+                # Try to update RUN_IDENTITY.json in any of the possible locations
+                updated = False
+                for identity_path in identity_paths_to_try:
+                    if identity_path.exists():
+                        try:
+                            from gx1.runtime.run_identity import load_run_identity
+                            identity = load_run_identity(identity_path)
+                            # Update fingerprint
+                            identity.feature_schema_fingerprint = actual_fingerprint.fingerprint_hash
+                            # Write updated identity (atomic write)
+                            import json
+                            temp_path = identity_path.with_suffix(".json.tmp")
+                            with open(temp_path, "w", encoding="utf-8") as f:
+                                json.dump(identity.to_dict(), f, indent=2, sort_keys=True)
+                            temp_path.replace(identity_path)
+                            log.info(f"[FEATURE_FINGERPRINT] Updated RUN_IDENTITY.json with fingerprint: {identity_path}")
+                            updated = True
+                            break
+                        except Exception as e:
+                            log.debug(f"[FEATURE_FINGERPRINT] Failed to update {identity_path}: {e}")
+                            continue
+                
+                if not updated:
+                    log.warning(
+                        "[FEATURE_FINGERPRINT] Could not find RUN_IDENTITY.json to update. "
+                        f"Tried: {[str(p) for p in identity_paths_to_try]}. "
+                        "Fingerprint computed but not persisted."
+                    )
+            
+            # FIRST-N-CYCLES ECHO CHECK: Check for NaN and log stats
+            from gx1.runtime.first_n_cycles_check import FirstNCyclesChecker
+            
+            # Initialize checker if not exists
+            if not hasattr(self, "_first_n_cycles_checker"):
+                warmup_bars = getattr(self, "warmup_bars", 288)
+                self._first_n_cycles_checker = FirstNCyclesChecker(
+                    n_cycles=200,
+                    warmup_bars=warmup_bars,
+                    nan_tolerance=0,  # Hard-fail on any NaN after warmup
+                )
+            
+            # Get current bar index (approximate from candles length)
+            current_bar_index = len(candles) if candles is not None else 0
+            
+            # Prepare ctx arrays for echo check
+            ctx_cat_arr = None
+            ctx_cont_arr = None
+            if entry_context_features is not None:
+                ctx_cat_arr = np.array(entry_context_features.to_tensor_categorical(), dtype=np.int64)
+                ctx_cont_arr = np.array(entry_context_features.to_tensor_continuous(), dtype=np.float32)
+            
+            # Check cycle (hard-fail if NaN after warmup)
+            if self._first_n_cycles_checker.should_continue_checking():
+                error_msg = self._first_n_cycles_checker.check_cycle(
+                    seq_data=seq_data,
+                    snap_data=snap_data,
+                    ctx_cat=ctx_cat_arr,
+                    ctx_cont=ctx_cont_arr,
+                    current_bar_index=current_bar_index,
+                )
+                if error_msg:
+                    raise RuntimeError(error_msg)
             
             # DEL 4: Log contract at replay-start (once)
             if not hasattr(self, "_v10_contract_logged"):
@@ -6848,25 +7391,10 @@ class GX1DemoRunner:
                 log.info("  Runtime snap_feat_names (%d): %s", len(snap_feat_names), snap_feat_names[:5])
                 self._v10_contract_logged = True
             
-            # DEL 3: Also check bundle metadata (for compatibility, but contract is source of truth)
-            bundle_meta = getattr(self.entry_v10_bundle, "metadata", {}) or {}
-            expected_seq_dim = bundle_meta.get("seq_input_dim", None)
-            expected_snap_dim = bundle_meta.get("snap_input_dim", None)
-            
-            # Bundle metadata may have wrong values (13/85), but contract is correct (16/88)
-            # Log warning if mismatch, but don't fail (contract validation already passed)
-            if expected_seq_dim is not None and expected_seq_dim != TOTAL_SEQ_FEATURES:
-                log.warning(
-                    "[ENTRY_V10] Bundle metadata seq_input_dim=%d doesn't match contract %d. "
-                    "Using contract value.",
-                    expected_seq_dim, TOTAL_SEQ_FEATURES
-                )
-            if expected_snap_dim is not None and expected_snap_dim != TOTAL_SNAP_FEATURES:
-                log.warning(
-                    "[ENTRY_V10] Bundle metadata snap_input_dim=%d doesn't match contract %d. "
-                    "Using contract value.",
-                    expected_snap_dim, TOTAL_SNAP_FEATURES
-                )
+            # DEL 3: Bundle metadata check removed from hot path
+            # Bundle metadata mismatch is now logged once at RUN_START in _run_replay_impl()
+            # (see _run_replay_impl() around line 9642-9660)
+            # This reduces log noise - contract validation already passed, so no need to log repeatedly
             
             # OPPGAVE 2: Check if bundle supports context features
             supports_context_features = bundle_meta.get("supports_context_features", False)
@@ -6946,6 +7474,42 @@ class GX1DemoRunner:
                             entry_context_features = None
                             return _ret_none("CTX_SHAPE_MISMATCH_CONT")
             
+            # DEL C: Apply per-channel XGB masking (if configured)
+            # This allows ablating individual XGB channels for analysis
+            from gx1.features.feature_contract_v10_ctx import apply_channel_mask, get_channel_mask_indices
+            
+            # Cache mask indices for performance
+            if not hasattr(self, "_xgb_channel_mask_indices"):
+                self._xgb_channel_mask_indices = get_channel_mask_indices()
+            
+            mask_info = self._xgb_channel_mask_indices["mask_info"]
+            # Store mask_info as instance variable for later use in telemetry
+            self._current_mask_info = mask_info
+            
+            if mask_info["masked_channels"]:
+                # Apply masking (zeros out specified channels)
+                seq_data, snap_data, _ = apply_channel_mask(
+                    seq_data, snap_data, self._xgb_channel_mask_indices
+                )
+                # Log first time only
+                if not hasattr(self, "_xgb_channel_mask_logged"):
+                    log.info(
+                        f"[ENTRY_V10] XGB channel masking active: "
+                        f"masked={mask_info['masked_channels']}, "
+                        f"kept_seq={mask_info['effective_seq_channels']}, "
+                        f"kept_snap={mask_info['effective_snap_channels']}"
+                    )
+                    self._xgb_channel_mask_logged = True
+                
+                # Record in telemetry
+                if hasattr(self, "entry_manager") and self.entry_manager and hasattr(self.entry_manager, "entry_feature_telemetry") and self.entry_manager.entry_feature_telemetry:
+                    self.entry_manager.entry_feature_telemetry.record_channel_mask(
+                        masked_channels=mask_info["masked_channels"],
+                        kept_channels=mask_info["kept_channels"],
+                        effective_seq_channels=mask_info["effective_seq_channels"],
+                        effective_snap_channels=mask_info["effective_snap_channels"],
+                    )
+            
             # Convert to tensors
             device = self.entry_v10_bundle.device
             seq_x = torch.FloatTensor(seq_data).unsqueeze(0).to(device)  # [1, seq_len, TOTAL_SEQ_FEATURES]
@@ -6999,7 +7563,83 @@ class GX1DemoRunner:
             # Predict with Transformer
             transformer_model = self.entry_v10_bundle.transformer_model
             transformer_model.eval()
+            
+            # ENTRY FEATURE TELEMETRY: Record model forward (right before transformer call)
+            if hasattr(self, "entry_manager") and self.entry_manager and hasattr(self.entry_manager, "entry_feature_telemetry") and self.entry_manager.entry_feature_telemetry:
+                self.entry_manager.entry_feature_telemetry.record_model_forward(model_name)
+            
+            # DEL 2: Guard-print før transformer forward call
+            if hasattr(self, "entry_manager") and self.entry_manager and hasattr(self.entry_manager, "entry_feature_telemetry") and self.entry_manager.entry_feature_telemetry:
+                self.entry_manager.entry_feature_telemetry.record_control_flow("ABOUT_TO_CALL_TRANSFORMER")
+            
             with torch.no_grad():
+                # ENTRY FEATURE TELEMETRY: First-call capture hook (right before model call)
+                # This ensures telemetry is recorded when transformer is actually called
+                if hasattr(self, "entry_manager") and self.entry_manager and hasattr(self.entry_manager, "entry_feature_telemetry") and self.entry_manager.entry_feature_telemetry:
+                    telemetry = self.entry_manager.entry_feature_telemetry
+                    # Increment transformer forward call counter
+                    telemetry.transformer_forward_calls += 1
+                    
+                    # Record transformer input on first call only (if not already recorded)
+                    # NOTE: This happens AFTER masking, so we use effective channels
+                    if not telemetry.transformer_input_recorded:
+                        from gx1.features.feature_contract_v10_ctx import SEQ_XGB_CHANNEL_NAMES, SNAP_XGB_CHANNEL_NAMES
+                        
+                        # Get effective channels (after masking)
+                        current_mask_info = getattr(self, "_current_mask_info", {})
+                        effective_seq_channels = current_mask_info.get("effective_seq_channels", SEQ_XGB_CHANNEL_NAMES)
+                        effective_snap_channels = current_mask_info.get("effective_snap_channels", SNAP_XGB_CHANNEL_NAMES)
+                        
+                        # Record XGB channel values only if channels are enabled
+                        xgb_seq_values = None
+                        xgb_snap_values = None
+                        xgb_seq_channels_list = []
+                        xgb_snap_channels_list = []
+                        
+                        if not disable_xgb_channels_in_transformer:
+                            # Build values dict using effective channels (only non-masked)
+                            xgb_seq_values = {}
+                            for i, ch_name in enumerate(SEQ_XGB_CHANNEL_NAMES):
+                                if ch_name in effective_seq_channels:
+                                    xgb_seq_values[ch_name] = float(seq_data[0, SEQ_XGB_CHANNEL_START + i])
+                            
+                            xgb_snap_values = {}
+                            for i, ch_name in enumerate(SNAP_XGB_CHANNEL_NAMES):
+                                if ch_name in effective_snap_channels:
+                                    xgb_snap_values[ch_name] = float(snap_data[SNAP_XGB_CHANNEL_START + i])
+                            
+                            # Use effective channels (after masking) for telemetry
+                            xgb_seq_channels_list = effective_seq_channels
+                            xgb_snap_channels_list = effective_snap_channels
+                            
+                            # REGRESSION GUARD: margin_xgb was REMOVED as of 2026-01-25
+                            is_truth_run = os.getenv("GX1_TRUTH_MODE", "0") == "1" or os.getenv("GX1_REQUIRE_ENTRY_TELEMETRY", "0") == "1"
+                            if "margin_xgb" in xgb_seq_channels_list or "margin_xgb" in xgb_snap_channels_list:
+                                if is_truth_run:
+                                    raise RuntimeError(
+                                        "MARGIN_XGB_REGRESSION: margin_xgb detected in transformer input channels. "
+                                        "margin_xgb was REMOVED as of 2026-01-25 and must not appear in the pipeline."
+                                    )
+                        
+                        telemetry.record_transformer_input(
+                            seq_shape=seq_data.shape,
+                            snap_shape=snap_data.shape,
+                            seq_feature_names=seq_feat_names[:BASE_SEQ_FEATURES],
+                            snap_feature_names=snap_feat_names[:BASE_SNAP_FEATURES],
+                            xgb_seq_channels=xgb_seq_channels_list,
+                            xgb_snap_channels=xgb_snap_channels_list,
+                            xgb_seq_values=xgb_seq_values,
+                            xgb_snap_values=xgb_snap_values,
+                        )
+                        telemetry.transformer_input_recorded = True
+                        
+                        # Record toggle state (both Test 1 and Test 2)
+                        telemetry.record_toggle_state(
+                            disable_xgb_channels_in_transformer_requested=disable_xgb_channels_in_transformer,
+                            disable_xgb_channels_in_transformer_effective=disable_xgb_channels_in_transformer,
+                            n_xgb_channels_in_transformer_input=n_xgb_channels_in_transformer_input,
+                        )
+                
                 # DEL 3: Use context features if ctx-modell is active
                 if context_features_enabled and entry_context_features is not None and supports_context_features:
                     # Ctx-modell path: pass ctx_cat and ctx_cont
@@ -7208,6 +7848,16 @@ class GX1DemoRunner:
             )
             
             # Create EntryPrediction
+            run_mode = getattr(self, "replay_mode", False) and "REPLAY" or "LIVE"
+            is_sniper = getattr(self, "is_sniper", False)
+            log.info(
+                "[ENTRY_DEBUG] Entry prediction produced | "
+                f"score={prob_long:.4f} | "
+                f"side={'LONG' if prob_long > 0.5 else 'SHORT'} | "
+                f"session={current_session} | "
+                f"run_mode={run_mode} | "
+                f"is_sniper={is_sniper}"
+            )
             return EntryPrediction(
                 session=current_session,
                 prob_long=float(prob_long),
@@ -7218,8 +7868,24 @@ class GX1DemoRunner:
             )
             
         except Exception as e:
-            log.error("[ENTRY_V10] Prediction error: %s", e, exc_info=True)
-            return _ret_none("EXCEPTION")
+            # DEL 1: Brutal exception logging (midlertidig)
+            import traceback
+            if hasattr(self, "entry_manager") and self.entry_manager and hasattr(self.entry_manager, "entry_feature_telemetry") and self.entry_manager.entry_feature_telemetry:
+                telemetry = self.entry_manager.entry_feature_telemetry
+                # Record exception with full details
+                exception_reason = f"EXCEPTION_{type(e).__name__}"
+                telemetry.record_model_block(model_name, exception_reason)
+                # Log full exception details
+                log.error(
+                    "[ENTRY_V10_EXCEPTION] Exception in _predict_entry_v10_hybrid | "
+                    f"type={type(e).__name__} | "
+                    f"message={str(e)} | "
+                    f"repr={repr(e)} | "
+                    f"traceback=\n{traceback.format_exc()}"
+                )
+            
+            # DEL 1: Re-raise exception (ikke swallow)
+            raise
 
     def _predict_entry_tcn(
         self,
@@ -7344,12 +8010,42 @@ class GX1DemoRunner:
             # Extract feature matrix [lookback, n_features]
             X_seq = seq_window[self.entry_tcn_feats].values.astype(np.float32)
             
-            # Handle NaN/Inf
+            # PHASE 1 FIX: Hard-fail on NaN/Inf in sequence features in replay mode
+            is_replay = getattr(self, "replay_mode", False) or getattr(self, "fast_replay", False)
+            if is_replay:
+                if not np.all(np.isfinite(X_seq)):
+                    nan_count = np.isnan(X_seq).sum()
+                    inf_count = np.isinf(X_seq).sum()
+                    raise RuntimeError(
+                        f"[NAN_INF_INPUT_FATAL] Sequence features contain NaN/Inf: "
+                        f"NaN count={nan_count}, Inf count={inf_count}, shape={X_seq.shape}. "
+                        f"This violates input-finiteness invariant (replay mode)."
+                    )
+            # In live mode, allow nan_to_num but log counter
+            if not is_replay and not np.all(np.isfinite(X_seq)):
+                if not hasattr(self, "_seq_nan_inf_count"):
+                    self._seq_nan_inf_count = 0
+                self._seq_nan_inf_count += 1
+                if self._seq_nan_inf_count <= 3:
+                    log.warning(
+                        "[NAN_INF_INPUT] Sequence features contain NaN/Inf (live mode: converting to 0.0): "
+                        f"NaN count={np.isnan(X_seq).sum()}, Inf count={np.isinf(X_seq).sum()}"
+                    )
             X_seq = np.nan_to_num(X_seq, nan=0.0, posinf=0.0, neginf=0.0)
             
             # Scale
             if self.entry_tcn_scaler is not None:
                 X_seq = self.entry_tcn_scaler.transform(X_seq)
+                # PHASE 1 FIX: Check again after scaling (scaler may introduce NaN/Inf)
+                if is_replay:
+                    if not np.all(np.isfinite(X_seq)):
+                        nan_count = np.isnan(X_seq).sum()
+                        inf_count = np.isinf(X_seq).sum()
+                        raise RuntimeError(
+                            f"[NAN_INF_INPUT_FATAL] Sequence features after scaling contain NaN/Inf: "
+                            f"NaN count={nan_count}, Inf count={inf_count}, shape={X_seq.shape}. "
+                            f"This violates input-finiteness invariant (replay mode)."
+                        )
                 X_seq = np.nan_to_num(X_seq, nan=0.0, posinf=0.0, neginf=0.0)
             
             # Convert to tensor [1, lookback, n_features]
@@ -7391,7 +8087,41 @@ class GX1DemoRunner:
 
 
     def _evaluate_entry_impl(self, candles: pd.DataFrame) -> Optional[LiveTrade]:
+        import inspect
+        
+        # ENTRY EVAL PATH TELEMETRY: Record which function actually performs entry evaluation (SSoT)
+        # This MUST be the very first thing in the function to identify the actual code path
+        if hasattr(self, "entry_manager") and self.entry_manager and hasattr(self.entry_manager, "entry_feature_telemetry") and self.entry_manager.entry_feature_telemetry:
+            current_frame = inspect.currentframe()
+            frame = current_frame if current_frame else None
+            lineno = frame.f_lineno if frame else 0
+            self.entry_manager.entry_feature_telemetry.record_entry_eval_path(
+                function="GX1DemoRunner._evaluate_entry_impl",
+                file=__file__,
+                line=lineno,
+            )
+        
         return self.entry_manager.evaluate_entry(candles)
+    
+    def get_pre_entry_funnel_snapshot(self) -> Dict[str, Any]:
+        """
+        Get pre-entry funnel snapshot (SSoT for where bars die before entry evaluation).
+        
+        Returns:
+            Dict with all pre-entry funnel counters and last_stop_reason
+        """
+        return {
+            "candles_iterated": getattr(self, "candles_iterated", 0),
+            "warmup_skipped": getattr(self, "warmup_skipped", 0),
+            "pregate_checked_count": getattr(self, "pregate_checked_count", 0),
+            "pregate_skipped": getattr(self, "pregate_skipped", 0),
+            "prebuilt_available_checked": getattr(self, "prebuilt_available_checked", 0),
+            "prebuilt_missing_skipped": getattr(self, "prebuilt_missing_skipped", 0),
+            "bars_before_evaluate_entry": getattr(self, "bars_before_evaluate_entry", 0),
+            "evaluate_entry_called_count": getattr(self, "evaluate_entry_called_count", 0),
+            "bars_after_evaluate_entry": getattr(self, "bars_after_evaluate_entry", 0),
+            "last_stop_reason": getattr(self, "last_stop_reason", None),
+        }
 
     
     def _log_entry_only_event_impl(
@@ -8795,9 +9525,12 @@ def _replay_force_close_open_trades_at_end(
         log.info("[REPLAY_EOF] Closed %d/%d open trades at EOF (reason=%s, price_source=%s)", 
                  closed_count, len(list(self.open_trades)), reason, price_source)
 
-def _assert_no_case_collisions(df: pd.DataFrame, where: str) -> None:
+def _assert_no_case_collisions(df: pd.DataFrame, where: str) -> pd.DataFrame:
     """
     Fail-fast check for case-insensitive column name collisions.
+    
+    This function now uses the centralized column_collision_guard utility
+    with support for temporary compat-mode (GX1_ALLOW_CLOSE_ALIAS_COMPAT=1).
     
     Parameters
     ----------
@@ -8806,23 +9539,49 @@ def _assert_no_case_collisions(df: pd.DataFrame, where: str) -> None:
     where : str
         Description of where this check is performed (for error messages)
     
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with collisions resolved (if compat-mode enabled)
+    
     Raises
     ------
-    ValueError
-        If case-insensitive collisions are detected
+    RuntimeError
+        If case-insensitive collisions are detected and compat-mode is not enabled
+        or collision is not only close/CLOSE.
     """
-    cols = list(df.columns)
-    lower = {}
-    for c in cols:
-        k = str(c).lower()
-        lower.setdefault(k, []).append(c)
-    collisions = {k: v for k, v in lower.items() if len(v) > 1}
-    if collisions:
-        raise ValueError(
-            f"[CASE_COLLISION] {where}: Case-insensitive column name collisions detected. "
-            f"Collisions: {collisions}. "
-            f"This must be fixed at the source (CSV/parquet file or DataFrame construction)."
+    from gx1.runtime.column_collision_guard import assert_no_case_collisions, resolve_close_alias_collision
+    
+    # Check for collisions (compat-mode only via explicit env var, not default)
+    resolution = assert_no_case_collisions(
+        df=df,
+        context=f"After loading from {where}",
+        allow_close_alias_compat=False,  # DEL 3: No default - must be explicit GX1_ALLOW_CLOSE_ALIAS_COMPAT=1
+    )
+    
+    # If resolution dict is returned, apply the resolution
+    if resolution:
+        # Drop CLOSE column and log
+        import logging
+        log = logging.getLogger(__name__)
+        log.warning(
+            "[COMPAT] Dropped CLOSE column due to collision with candles.close. "
+            "Alias expected: CLOSE -> candles.close"
         )
+        
+        # Resolve collision by dropping CLOSE
+        df_resolved, resolution_meta = resolve_close_alias_collision(
+            df=df,
+            context=where,
+            transformer_requires_close=False,  # TODO: Check if transformer actually needs CLOSE
+        )
+        
+        # Store resolution metadata in runner if available
+        # (This will be logged in RUN_CTX.json later)
+        return df_resolved
+    
+    # No collision or no resolution needed
+    return df
 
 
 def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
@@ -8857,7 +9616,8 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
             df = pd.read_csv(csv_path)
         
         # Checkpoint 1: After loading from CSV/parquet
-        _assert_no_case_collisions(df, f"After loading from {csv_path.name}")
+        # This may resolve close/CLOSE collision if compat-mode is enabled
+        df = _assert_no_case_collisions(df, f"After loading from {csv_path.name}")
         
         # Ensure time column is datetime
         if "time" in df.columns:
@@ -8873,6 +9633,7 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
         # Import explicitly to avoid UnboundLocalError in multiprocessing
         import datetime as dt_module
         from pathlib import Path as Path_module
+        import json as jsonlib  # Explicit import to avoid UnboundLocalError
         # DEL 3: Guard against json shadowing
         assert 'json' not in locals(), "Do not shadow json module - use jsonlib from top-level import"
         
@@ -8983,6 +9744,303 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
         # Initialize replay state
         self.replay_mode = True
         
+        # C) Hard invariants for prebuilt features (fail-fast, no silent fallback)
+        # FIX: Import os and Path explicitly to avoid shadowing issues in multiprocessing
+        import os as os_module
+        from pathlib import Path as Path_module
+        Path = Path_module  # Alias for convenience
+        
+        # FASE 1: Determine replay mode and enforce strict separation
+        from gx1.utils.replay_mode import ReplayMode
+        replay_mode_enum = ReplayMode.from_env()
+        
+        # FASE 1: Hard guarantee - assert feature-building modules are NOT imported in PREBUILT mode
+        # NOTE: This check is done in master process (replay_eval_gated_parallel.py) BEFORE workers start.
+        # In worker processes, GX1DemoRunner is imported which imports entry_manager → live_features → basic_v1,
+        # so this check would always fail in workers. The master process check is sufficient.
+        # We only check here if we're NOT in a worker (i.e., if this is called directly, not from process_chunk).
+        prebuilt_enabled = replay_mode_enum.is_prebuilt()
+        if prebuilt_enabled:
+            # Only check if we're in master process (not in worker spawned via multiprocessing)
+            # Workers will have imported GX1DemoRunner which imports forbidden modules, but that's OK
+            # because master process already verified they weren't imported before workers started.
+            # Also skip check if GX1_ALLOW_PARALLEL_REPLAY=1 (direct call from year job, not multiprocessing)
+            import multiprocessing as mp
+            import os
+            is_worker = mp.current_process().name != 'MainProcess'
+            allow_parallel = os.getenv("GX1_ALLOW_PARALLEL_REPLAY", "0") == "1"
+            if not is_worker and not allow_parallel:
+                # We're in master process and NOT in parallel mode - do the check
+                import sys
+                import traceback
+                import json as jsonlib
+                from datetime import datetime
+                forbidden_modules = [
+                    "gx1.features.basic_v1",
+                    "gx1.execution.live_features",
+                    "gx1.features.runtime_v10_ctx",
+                    "gx1.features.runtime_sniper_core",
+                ]
+                imported_forbidden = [mod for mod in forbidden_modules if mod in sys.modules]
+                if imported_forbidden:
+                    # Collect import violation details
+                    violations = []
+                    for mod_name in imported_forbidden:
+                        mod = sys.modules.get(mod_name)
+                        if mod:
+                            # Try to get import stack (best-effort)
+                            import_stack = []
+                            try:
+                                mod_file = getattr(mod, "__file__", None)
+                                if mod_file:
+                                    import_stack.append(f"Module file: {mod_file}")
+                                import_stack.append("Import detected in sys.modules")
+                            except Exception:
+                                pass
+                            
+                            violations.append({
+                                "forbidden_module": mod_name,
+                                "module_file": getattr(mod, "__file__", None),
+                                "importer": "unknown (check import chain)",
+                                "import_stack": import_stack,
+                            })
+                    
+                    # Write violation report to output directory
+                    output_dir_for_report = getattr(self, "output_dir", None) or Path("reports/replay_eval")
+                    output_dir_for_report = Path(output_dir_for_report)
+                    output_dir_for_report.mkdir(parents=True, exist_ok=True)
+                    violation_path = output_dir_for_report / "PREBUILT_IMPORT_VIOLATION.json"
+                    
+                    violation_report = {
+                        "detected_at": datetime.now().isoformat(),
+                        "prebuilt_enabled": True,
+                        "violations": violations,
+                        "message": "Forbidden feature-building modules imported in PREBUILT mode",
+                    }
+                    
+                    with open(violation_path, "w") as f:
+                        jsonlib.dump(violation_report, f, indent=2)
+                    log.error(f"[PREBUILT_FAIL] Import violations written to: {violation_path}")
+                    
+                    raise RuntimeError(
+                        f"[PREBUILT_FAIL] FASE_1_SEPARATION: Forbidden feature-building modules imported in PREBUILT mode: {imported_forbidden}\n"
+                        f"This violates FASE 1: PREBUILT and BASELINE must be completely separate code paths.\n"
+                        f"CRASH: Feature-building code must not be imported in PREBUILT mode.\n"
+                        f"Violation details written to: {violation_path}"
+                    )
+                log.info("[FASE_1] PREBUILT mode: Feature-building modules verified as NOT imported in master process")
+            else:
+                # We're in worker process or parallel mode - skip check (modules are imported via GX1DemoRunner, which is OK)
+                if is_worker:
+                    log.info("[FASE_1] PREBUILT mode: In worker process - skipping FASE 1 check (already verified in master)")
+                else:
+                    log.info("[FASE_1] PREBUILT mode: GX1_ALLOW_PARALLEL_REPLAY=1 - skipping FASE 1 check (direct call from year job)")
+        self.prebuilt_features_loader = None
+        self.prebuilt_features_df = None
+        self.prebuilt_features_sha256 = None
+        self.prebuilt_used = False  # Flag for perf collector
+        # Lookup telemetry for PREBUILT mode
+        self.lookup_attempts = 0
+        self.lookup_hits = 0
+        self.lookup_miss_logged = 0
+        
+        # FASE 1: Use isolated PrebuiltFeaturesLoader (no feature-building imports)
+        if prebuilt_enabled:
+            prebuilt_features_path = os_module.getenv("GX1_REPLAY_PREBUILT_FEATURES_PATH")
+            if not prebuilt_features_path:
+                # Try to infer from input file
+                prebuilt_features_path = str(csv_path).replace("raw/", "features/").replace("_bid_ask.parquet", "_features_v10_ctx.parquet")
+                prebuilt_features_path = Path_module(prebuilt_features_path)
+            else:
+                prebuilt_features_path = Path_module(prebuilt_features_path)
+            
+            # FASE 1: Load prebuilt features using isolated loader
+            from gx1.execution.prebuilt_features_loader import PrebuiltFeaturesLoader
+            self.prebuilt_features_loader = PrebuiltFeaturesLoader(prebuilt_features_path)
+            self.prebuilt_features_df = self.prebuilt_features_loader.df
+            self.prebuilt_features_sha256 = self.prebuilt_features_loader.sha256
+            self.prebuilt_features_path_resolved = self.prebuilt_features_loader.prebuilt_path_resolved
+            self.prebuilt_schema_version = self.prebuilt_features_loader.schema_version
+            
+            log.info("[FASE_1] Prebuilt features loaded via isolated PrebuiltFeaturesLoader (no feature-building imports)")
+            
+            # FASE 1: Use PrebuiltFeaturesLoader for validation and common_index filtering
+            # CRITICAL: Build common_index and filter BOTH datasets before chunking
+            if len(df) > 0:
+                common_index = self.prebuilt_features_loader.get_common_index(df.index)
+                
+                if len(common_index) == 0:
+                    raise RuntimeError(
+                        "[PREBUILT_FAIL] No common timestamps between raw data and prebuilt features.\n"
+                        f"Raw range: {df.index[0]} to {df.index[-1]}\n"
+                        f"Prebuilt range: {self.prebuilt_features_df.index[0]} to {self.prebuilt_features_df.index[-1]}\n"
+                        f"Instructions: Rebuild prebuilt features to match raw data."
+                    )
+                
+                # Store original lengths before filtering
+                raw_len_before = len(df)
+                prebuilt_len_before = len(self.prebuilt_features_df)
+                
+                # Filter both datasets to common_index
+                df = df.loc[common_index]
+                # CRITICAL FIX: Use .copy() to ensure we have a proper DataFrame, not a view
+                # Without .copy(), the filtered DataFrame might become invalid or inaccessible
+                self.prebuilt_features_df = self.prebuilt_features_df.loc[common_index].copy()
+                
+                # HARD INVARIANTS: Fail-fast if prebuilt_features_df is None or empty after filtering
+                if replay_mode_enum == ReplayMode.PREBUILT:
+                    if self.prebuilt_features_df is None:
+                        raise RuntimeError("[PREBUILT] prebuilt_features_df is None after filtering")
+                    
+                    n = len(self.prebuilt_features_df)
+                    if n == 0:
+                        raise RuntimeError(
+                            "[PREBUILT] prebuilt_features_df became empty after common_index filtering. "
+                            "This almost always means timestamp/index mismatch (tz, rounding, open/close) "
+                            "or wrong prebuilt file."
+                        )
+                    
+                    # Strong sanity: show boundaries once
+                    idx = self.prebuilt_features_df.index
+                    log.info(
+                        "[PREBUILT] filtered_df rows=%d idx_min=%s idx_max=%s tz=%s",
+                        n, idx.min(), idx.max(), getattr(idx, 'tz', None)
+                    )
+                
+                # Update loader metadata after alignment
+                self.prebuilt_features_loader.prebuilt_index_aligned = True
+                self.prebuilt_features_loader.subset_first_ts = common_index[0] if len(common_index) > 0 else None
+                self.prebuilt_features_loader.subset_last_ts = common_index[-1] if len(common_index) > 0 else None
+                self.prebuilt_features_loader.subset_rows = len(common_index)
+                
+                # Define lookup_phase: lookup happens AFTER hard eligibility check
+                # This is determined by where lookup_attempts is incremented in entry_manager.evaluate_entry()
+                # lookup_attempts is incremented AFTER hard eligibility passes, before soft eligibility
+                # So lookup_phase = "after_hard_eligibility" (lookup only for bars that passed hard eligibility)
+                self.prebuilt_lookup_phase = "after_hard_eligibility"
+                log.info("[PREBUILT] lookup_phase set to 'after_hard_eligibility' (lookup happens after hard eligibility passes)")
+                
+                log.info(
+                    "[PREBUILT] Filtered to common_index: %d bars (raw: %d -> %d, prebuilt: %d -> %d)",
+                    len(common_index),
+                    raw_len_before, len(df),
+                    prebuilt_len_before, len(self.prebuilt_features_df)
+                )
+            
+            # FASE 1: Use PrebuiltFeaturesLoader.validate_timestamp_alignment
+            if len(df) > 0:
+                is_valid, error_msg = self.prebuilt_features_loader.validate_timestamp_alignment(
+                    df.index,
+                    sample_size=1000,
+                    random_mid_check=True
+                )
+                if not is_valid:
+                    raise RuntimeError(
+                        f"[PREBUILT_FAIL] Timestamp alignment validation failed: {error_msg}\n"
+                        f"Instructions: Rebuild prebuilt features to match raw data."
+                    )
+                log.debug("[PREBUILT] Timestamp alignment validation passed")
+            
+            # C4: Require required columns present (basic check - full check in preflight)
+            # Get required columns from feature_meta if available
+            required_cols = set()
+            try:
+                v10_ctx_cfg = self.policy.get("entry_models", {}).get("v10_ctx", {})
+                feature_meta_path = v10_ctx_cfg.get("feature_meta_path")
+                if feature_meta_path:
+                    feature_meta_path = Path_module(feature_meta_path)
+                    if not feature_meta_path.is_absolute():
+                        from pathlib import Path as Path_root
+                        project_root = Path_root(__file__).parent.parent.parent
+                        feature_meta_path = project_root / feature_meta_path
+                    
+                    if feature_meta_path.exists():
+                        with open(feature_meta_path, "r") as f:
+                            feature_meta = jsonlib.load(f)
+                        seq_features = feature_meta.get("seq_features", [])
+                        snap_features = feature_meta.get("snap_features", [])
+                        required_cols.update(seq_features)
+                        required_cols.update(snap_features)
+            except Exception as e:
+                log.warning(f"[PREBUILT] Could not load feature_meta for column check: {e}")
+            
+            if required_cols:
+                # ALIASED_FEATURES: Features that come from candles (not prebuilt) via aliasing
+                # These should not be required in prebuilt parquet
+                ALIASED_FEATURES = {"CLOSE", "close"}
+                required_cols_no_alias = required_cols - ALIASED_FEATURES
+                
+                missing_cols = required_cols_no_alias - set(self.prebuilt_features_df.columns)
+                if missing_cols:
+                    raise RuntimeError(
+                        f"[PREBUILT_FAIL] Missing required columns in prebuilt features: {sorted(missing_cols)}\n"
+                        f"Instructions: Rebuild prebuilt features with correct feature_meta."
+                    )
+            
+            # C5: Set flag for perf collector ONLY after all checks pass
+            # This is the ONLY place where prebuilt_used is set to True
+            # All checks must pass: file exists, sha matches, timestamps align (1k + mid), columns OK
+            self.prebuilt_used = True
+            self.prebuilt_features_path_resolved = str(prebuilt_features_path.resolve())
+            
+            # Get schema version from manifest (if available)
+            self.prebuilt_schema_version = None
+            manifest_path = prebuilt_features_path.parent / "manifest.json"
+            if manifest_path.exists():
+                try:
+                    import json as json_module
+                    with open(manifest_path, "r") as f:
+                        manifest = json_module.load(f)
+                    self.prebuilt_schema_version = manifest.get("schema_version", "unknown")
+                except Exception:
+                    pass
+            
+            # C) Log SSoT line (with bypass count if available)
+            prebuilt_bypass_count = getattr(self, "prebuilt_bypass_count", 0)
+            log.info(
+                "[PREBUILT_STATUS] enabled=1 used=%d path=%s exists=1 sha256=%s rows=%d cols=%d schema=%s bypass_count=%d",
+                1 if self.prebuilt_used else 0,
+                self.prebuilt_features_path_resolved,
+                self.prebuilt_features_sha256[:16] + "...",
+                len(self.prebuilt_features_df),
+                len(self.prebuilt_features_df.columns),
+                self.prebuilt_schema_version or "unknown",
+                prebuilt_bypass_count
+            )
+            
+            log.info(
+                "[REPLAY] ✅ Prebuilt features loaded: %d bars, %d features, SHA256=%s",
+                len(self.prebuilt_features_df),
+                len(self.prebuilt_features_df.columns),
+                self.prebuilt_features_sha256[:16] + "..."
+            )
+            
+            # Validate that prebuilt features cover the replay period
+            if len(self.prebuilt_features_df) > 0:
+                prebuilt_start = self.prebuilt_features_df.index.min()
+                prebuilt_end = self.prebuilt_features_df.index.max()
+                replay_start = df.index.min()
+                replay_end = df.index.max()
+                
+                if prebuilt_start > replay_start or prebuilt_end < replay_end:
+                    log.warning(
+                        "[REPLAY] ⚠️  Prebuilt features time range (%s to %s) does not fully cover replay period (%s to %s)",
+                        prebuilt_start.isoformat(),
+                        prebuilt_end.isoformat(),
+                        replay_start.isoformat(),
+                        replay_end.isoformat()
+                    )
+                else:
+                    log.info(
+                        "[REPLAY] ✅ Prebuilt features time range covers replay period"
+                    )
+        else:
+            # C) Log SSoT line for disabled case
+            log.info("[PREBUILT_STATUS] enabled=0 path=None exists=0 sha256=None rows=0 cols=0 schema=None")
+            self.prebuilt_used = False
+            self.prebuilt_features_path_resolved = None
+            self.prebuilt_schema_version = None
+        
         # REPLAY WARMUP: Include extra bars before evaluation window for ATR/trend computation
         # This ensures vol_regime and trend_regime can be computed from rolling windows
         warmup_bars = int(self.policy.get("warmup_bars", 288))
@@ -9046,7 +10104,7 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
         # Try to load warmup from external file ONLY if it has data in the correct period
         warmup_loaded = False
         if warmup_prices_path:
-            warmup_prices_path = Path(warmup_prices_path)
+            warmup_prices_path = Path_module(warmup_prices_path)
             try:
                 log.info("[BIG_BRAIN_V1] Checking warmup prices from %s", warmup_prices_path)
                 
@@ -9199,18 +10257,43 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
         # Big Brain V1 needs 288 bars for warmup (if using replay file itself)
         # ENTRY-TCN needs 864 bars for lookback (3 days M5)
         # Use max(100, lookback_bars_bb, entry_tcn_lookback) to ensure all models have enough warmup bars
-        lookback_requirements = [100]  # Minimum for stable features
         
-        if self.big_brain_v1 is not None:
-            lookback_bars_bb = self.big_brain_v1.lookback
-            lookback_requirements.append(lookback_bars_bb)
+        # PREFLIGHT-ONLY: Allow override for sanity/smoke tests (reduces warmup to allow entry-stage)
+        # Gate-SSoT: This is where warmup requirement is determined (used in bar loop at line 9914, 9919)
+        import os as os_module
+        preflight_warmup_override = os_module.getenv("GX1_PREFLIGHT_WARMUP_BARS")
+        is_preflight_run = os_module.getenv("GX1_PREFLIGHT", "0") == "1" or preflight_warmup_override is not None
         
-        # Check for ENTRY-TCN lookback requirement
-        entry_tcn_lookback = self.policy.get("tcn", {}).get("lookback_bars", None)
-        if entry_tcn_lookback is not None:
-            lookback_requirements.append(entry_tcn_lookback)
+        if preflight_warmup_override is not None and is_preflight_run:
+            try:
+                min_bars_for_features_effective = int(preflight_warmup_override)
+                warmup_override_applied = True
+                log.info("[PREFLIGHT] Using warmup override: GX1_PREFLIGHT_WARMUP_BARS=%d (preflight-only, does not affect FULLYEAR/prod)", min_bars_for_features_effective)
+            except ValueError:
+                log.warning("[PREFLIGHT] Invalid GX1_PREFLIGHT_WARMUP_BARS=%s, using normal calculation", preflight_warmup_override)
+                preflight_warmup_override = None
+                warmup_override_applied = False
+        else:
+            warmup_override_applied = False
         
-        min_bars_for_features = max(lookback_requirements)
+        if preflight_warmup_override is None or not is_preflight_run:
+            lookback_requirements = [100]  # Minimum for stable features
+            
+            if self.big_brain_v1 is not None:
+                lookback_bars_bb = self.big_brain_v1.lookback
+                lookback_requirements.append(lookback_bars_bb)
+            
+            # Check for ENTRY-TCN lookback requirement
+            entry_tcn_lookback = self.policy.get("tcn", {}).get("lookback_bars", None)
+            if entry_tcn_lookback is not None:
+                lookback_requirements.append(entry_tcn_lookback)
+            
+            min_bars_for_features_effective = max(lookback_requirements)
+        
+        # Store effective warmup value and override flag on runner (for footer export)
+        self.warmup_required_effective = min_bars_for_features_effective
+        self.warmup_override_applied = warmup_override_applied
+        min_bars_for_features = min_bars_for_features_effective  # Use effective value for calculations
         
         total_bars = len(df)
         
@@ -9236,6 +10319,88 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
         from gx1.utils.feature_context import set_feature_state
         feature_token = set_feature_state(self.feature_state)
         
+        # PATCH: Initialize HTF aligners for stateful alignment (O(1) per bar)
+        # Build HTF bars from ENTIRE df once before per-bar loop
+        # This ensures aligners have complete HTF history, avoiding O(N²) behavior
+        if self.replay_mode and len(df) > 0:
+            try:
+                import numpy as np
+                from gx1.features.htf_aggregator import build_htf_from_m5
+                from gx1.features.htf_align_state import HTFAligner
+                
+                # Extract M5 data from ENTIRE df (not just first 1000 bars)
+                # This ensures aligners have complete HTF history
+                if isinstance(df.index, pd.DatetimeIndex):
+                    m5_timestamps_sec = (df.index.astype(np.int64) // 1_000_000_000).astype(np.int64)
+                elif "ts" in df.columns:
+                    ts_col = pd.to_datetime(df["ts"], utc=True, errors="coerce")
+                    m5_timestamps_sec = (ts_col.astype(np.int64) // 1_000_000_000).astype(np.int64)
+                else:
+                    m5_timestamps_sec = None
+                
+                if m5_timestamps_sec is not None and len(m5_timestamps_sec) > 0:
+                    m5_open = df["open"].values.astype(np.float64)
+                    m5_high = df["high"].values.astype(np.float64)
+                    m5_low = df["low"].values.astype(np.float64)
+                    m5_close = df["close"].values.astype(np.float64)
+                    
+                    # Build H1 bars from entire df
+                    h1_ts, h1_open, h1_high, h1_low, h1_close, h1_close_times = build_htf_from_m5(
+                        m5_timestamps_sec, m5_open, m5_high, m5_low, m5_close, interval_hours=1
+                    )
+                    
+                    # Build H4 bars from entire df
+                    h4_ts, h4_open, h4_high, h4_low, h4_close, h4_close_times = build_htf_from_m5(
+                        m5_timestamps_sec, m5_open, m5_high, m5_low, m5_close, interval_hours=4
+                    )
+                    
+                    # PATCH 2: Initialize H1 aligner with complete HTF history (chunk-local)
+                    # Each chunk is a new universe - aligners are reset per chunk (new runner = new feature_state)
+                    if len(h1_close_times) > 0:
+                        # PATCH 4: Validate HTF history is complete and sorted (assert in HTFAligner.__init__)
+                        self.feature_state.h1_aligner = HTFAligner(
+                            htf_close_times=h1_close_times,
+                            htf_values=h1_close,
+                            is_replay=True
+                        )
+                        log.info(
+                            "[REPLAY] Initialized H1 aligner: %d HTF bars (from %d M5 bars), "
+                            "first_close=%s, last_close=%s",
+                            len(h1_close_times),
+                            len(m5_timestamps_sec),
+                            pd.Timestamp(h1_close_times[0], unit='s', tz='UTC').isoformat() if len(h1_close_times) > 0 else "N/A",
+                            pd.Timestamp(h1_close_times[-1], unit='s', tz='UTC').isoformat() if len(h1_close_times) > 0 else "N/A"
+                        )
+                    else:
+                        log.warning("[REPLAY] No H1 bars found for aligner initialization")
+                    
+                    # PATCH 2: Initialize H4 aligner with complete HTF history (chunk-local)
+                    if len(h4_close_times) > 0:
+                        # PATCH 4: Validate HTF history is complete and sorted (assert in HTFAligner.__init__)
+                        self.feature_state.h4_aligner = HTFAligner(
+                            htf_close_times=h4_close_times,
+                            htf_values=h4_close,
+                            is_replay=True
+                        )
+                        log.info(
+                            "[REPLAY] Initialized H4 aligner: %d HTF bars (from %d M5 bars), "
+                            "first_close=%s, last_close=%s",
+                            len(h4_close_times),
+                            len(m5_timestamps_sec),
+                            pd.Timestamp(h4_close_times[0], unit='s', tz='UTC').isoformat() if len(h4_close_times) > 0 else "N/A",
+                            pd.Timestamp(h4_close_times[-1], unit='s', tz='UTC').isoformat() if len(h4_close_times) > 0 else "N/A"
+                        )
+                    else:
+                        log.warning("[REPLAY] No H4 bars found for aligner initialization")
+            except Exception as e:
+                log.warning(
+                    "[REPLAY] Failed to initialize HTF aligners: %s. Falling back to legacy alignment.",
+                    e, exc_info=True
+                )
+                # Clear aligners on error (fallback to legacy)
+                self.feature_state.h1_aligner = None
+                self.feature_state.h4_aligner = None
+        
         # DEL 1: Initialize regime histogram for replay
         try:
             from gx1.execution.regime_histogram import init_regime_histogram
@@ -9258,6 +10423,9 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
                      contract_summary["base_snap_features"],
                      contract_summary["xgb_channels"],
                      contract_summary["total_snap_features"])
+            
+            # Bundle metadata mismatch is now logged once in master process (replay_eval_gated_parallel.py)
+            # before workers start, to avoid duplicate logs across workers
         except ImportError:
             log.warning("[REPLAY] Feature contract module not available")
         
@@ -9332,37 +10500,46 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
             )
         
         # DEL 2 + DEL 3: Enforce V9 guardrails (sys.modules check + log sanitizer)
-        from gx1.execution.replay_v9_guardrails import enforce_replay_v9_guardrails
         try:
+            from gx1.execution.replay_v9_guardrails import enforce_replay_v9_guardrails
             enforce_replay_v9_guardrails()
             log.info("[REPLAY_V9_GUARDRAILS] ✅ All V9 guardrails enforced successfully")
+        except ImportError:
+            # Module not available (may be quarantined or removed)
+            log.debug("[REPLAY] replay_v9_guardrails module not available (skipping)")
         except RuntimeError as e:
             log.error(f"[REPLAY_V9_GUARDRAILS] ❌ V9 guardrails failed: {e}")
             raise
         
         # DEL 1: Get bundle sha256 early (for SSoT header)
         bundle_path_abs = None
+        # Use bundle_sha256 from master if available (computed deterministically before workers start)
         bundle_sha256 = None
-        if hasattr(self, "entry_v10_ctx_cfg") and self.entry_v10_ctx_cfg:
-            bundle_dir = self.entry_v10_ctx_cfg.get("bundle_dir", "")
-            if bundle_dir:
-                bundle_path_abs = str(Path_module(bundle_dir).resolve())
-                bundle_metadata_path = Path_module(bundle_dir) / "bundle_metadata.json"
-                if bundle_metadata_path.exists():
-                    try:
-                        with open(bundle_metadata_path, "r") as f:
-                            bundle_metadata = jsonlib.load(f)
-                            bundle_sha256 = bundle_metadata.get("sha256")
-                    except Exception:
-                        pass
-                if not bundle_sha256:
-                    model_state_path = Path_module(bundle_dir) / "model_state_dict.pt"
-                    if model_state_path.exists():
+        if hasattr(self, "bundle_sha256_from_master") and self.bundle_sha256_from_master:
+            bundle_sha256 = self.bundle_sha256_from_master
+            log.info(f"[SSOT] Using bundle_sha256 from master: {bundle_sha256[:16]}...")
+        else:
+            # Fallback: compute from bundle (for backward compatibility, but this should not happen in replay)
+            if hasattr(self, "entry_v10_ctx_cfg") and self.entry_v10_ctx_cfg:
+                bundle_dir = self.entry_v10_ctx_cfg.get("bundle_dir", "")
+                if bundle_dir:
+                    bundle_path_abs = str(Path_module(bundle_dir).resolve())
+                    bundle_metadata_path = Path_module(bundle_dir) / "bundle_metadata.json"
+                    if bundle_metadata_path.exists():
                         try:
-                            with open(model_state_path, "rb") as f:
-                                bundle_sha256 = hashlib.sha256(f.read()).hexdigest()
+                            with open(bundle_metadata_path, "r") as f:
+                                bundle_metadata = jsonlib.load(f)
+                                bundle_sha256 = bundle_metadata.get("sha256")
                         except Exception:
                             pass
+                    if not bundle_sha256:
+                        model_state_path = Path_module(bundle_dir) / "model_state_dict.pt"
+                        if model_state_path.exists():
+                            try:
+                                with open(model_state_path, "rb") as f:
+                                    bundle_sha256 = hashlib.sha256(f.read()).hexdigest()
+                            except Exception:
+                                pass
         
         # DEL 1: SSoT Assert - Hard-fail if any critical fields are missing or wrong
         if not policy_module:
@@ -9515,19 +10692,30 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
         self.t_io_total_sec = 0.0
         
         # DEL A2: Check if pregate is enabled in replay_config
+        # Gate-SSoT: This is where pregate_enabled is determined (used in bar loop at line 10085)
         # DEL 1B: Env override trumfer YAML (for reproducible A/B testing)
-        env_pregate_enabled = os.getenv("GX1_REPLAY_PREGATE_ENABLED")
+        import os as os_module
+        env_pregate_enabled = os_module.getenv("GX1_REPLAY_PREGATE_ENABLED")
+        is_preflight_run = os_module.getenv("GX1_PREFLIGHT", "0") == "1" or os_module.getenv("GX1_PREFLIGHT_WARMUP_BARS") is not None
+        
         if env_pregate_enabled is not None:
             # Env override: "1" or "true" (case-insensitive) = enabled, else disabled
-            self.pregate_enabled = env_pregate_enabled.lower() in ("1", "true")
-            log.info("[REPLAY_PREGATE] Env override: GX1_REPLAY_PREGATE_ENABLED=%s -> enabled=%s", env_pregate_enabled, self.pregate_enabled)
+            pregate_enabled_effective = env_pregate_enabled.lower() in ("1", "true")
+            pregate_override_applied = is_preflight_run and env_pregate_enabled.lower() == "0"
+            log.info("[REPLAY_PREGATE] Env override: GX1_REPLAY_PREGATE_ENABLED=%s -> enabled=%s (preflight=%s)", env_pregate_enabled, pregate_enabled_effective, is_preflight_run)
         else:
             # No env override: read from YAML
             replay_config = self.policy.get("replay_config", {})
             pregate_cfg = replay_config.get("replay_pregate", {})
-            self.pregate_enabled = pregate_cfg.get("enabled", False) if isinstance(pregate_cfg, dict) else False
-            if self.pregate_enabled:
+            pregate_enabled_effective = pregate_cfg.get("enabled", False) if isinstance(pregate_cfg, dict) else False
+            pregate_override_applied = False
+            if pregate_enabled_effective:
                 log.info("[REPLAY_PREGATE] Enabled from YAML config: %s", pregate_cfg)
+        
+        # Store effective pregate value and override flag on runner (for footer export)
+        self.pregate_enabled_effective = pregate_enabled_effective
+        self.pregate_override_applied = pregate_override_applied
+        self.pregate_enabled = pregate_enabled_effective  # Use effective value for bar loop
         
         # DEL C: Initialize HTF alignment warning counter (for chunk summary)
         self.htf_align_warn_count = 0
@@ -9535,23 +10723,66 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
         # DEL 2: Initialize feature timeout counter (for chunk summary)
         self.feature_timeout_count = 0
         
+        # Entry stage telemetry: reset before loop (attributes already initialized in __init__)
+        # These are persistent attributes on runner-self (not local variables)
+        self.bars_seen = 0
+        self.bars_skipped_warmup = 0
+        self.bars_skipped_pregate = 0
+        self.bars_reaching_entry_stage = 0
+        
+        # PRE-ENTRY FUNNEL COUNTERS: Track where bars die before entry evaluation
+        self.candles_iterated = 0  # Total loop iterations
+        self.warmup_skipped = 0  # Bars skipped due to warmup/min bars (alias for bars_skipped_warmup)
+        self.pregate_checked_count = 0  # Number of times pregate was checked
+        self.pregate_skipped = 0  # Bars skipped by pregate (alias for bars_skipped_pregate)
+        self.prebuilt_available_checked = 0  # Number of times prebuilt availability was checked
+        self.prebuilt_missing_skipped = 0  # Bars skipped due to prebuilt missing
+        self.bars_before_evaluate_entry = 0  # Bars that reached point right before evaluate_entry() call
+        self.evaluate_entry_called_count = 0  # Actual number of times evaluate_entry() was called
+        self.bars_after_evaluate_entry = 0  # Bars that completed evaluate_entry() call
+        self.last_stop_reason = None  # Last reason for early exit (WARMUP, PREGATE, PREBUILT_MISSING, STOP_REQUESTED, EXCEPTION, UNKNOWN_EARLY_EXIT)
+        
         for i, (ts, row) in enumerate(df.iterrows()):
+            # PRE-ENTRY FUNNEL: Track every loop iteration
+            self.candles_iterated += 1
+            self.bars_seen += 1
+            
             # Skip bars before first_valid_eval_idx (HTF warmup not satisfied)
             if i < first_valid_eval_idx:
                 self.n_bars_skipped_due_to_htf_warmup += 1
+                self.bars_skipped_warmup += 1
+                self.warmup_skipped += 1
+                self.last_stop_reason = "WARMUP"
                 continue
             
             # Skip first N bars (not enough history for stable features) - now relative to first_valid_eval_idx
             if i < first_valid_eval_idx + min_bars_for_features:
+                self.bars_skipped_warmup += 1
+                self.warmup_skipped += 1
+                self.last_stop_reason = "WARMUP"
                 continue
             
             # Fix 3: Increment bar counter
             self.perf_n_bars_processed += 1
             
+            # Fast abort mode: stop after N bars per chunk (for fast verification)
+            abort_after_n_bars = os.getenv("GX1_ABORT_AFTER_N_BARS_PER_CHUNK")
+            if abort_after_n_bars:
+                try:
+                    abort_after_n_bars_int = int(abort_after_n_bars)
+                    if self.perf_n_bars_processed >= abort_after_n_bars_int:
+                        log.info(
+                            f"[REPLAY] Fast abort: stopping after {self.perf_n_bars_processed} bars "
+                            f"(requested: {abort_after_n_bars_int})"
+                        )
+                        break
+                except ValueError:
+                    pass  # Invalid value, ignore
+            
             # DEL 2: Check for STOP_REQUESTED flag (graceful shutdown)
-            import os
             if os.getenv("GX1_STOP_REQUESTED", "0") == "1" or getattr(self, "_stop_requested", False):
                 log.warning("[REPLAY] STOP_REQUESTED flag detected, breaking bar loop gracefully")
+                self.last_stop_reason = "STOP_REQUESTED"
                 break
             
             # Test-only crash injection (only active when env vars set)
@@ -9577,11 +10808,33 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
                 if hasattr(self, "replay_eval_collectors") and self.replay_eval_collectors:
                     try:
                         from gx1.scripts.replay_eval_gated import flush_replay_eval_collectors
-                        output_dir = getattr(self, "explicit_output_dir", None) or Path("gx1/wf_runs") / getattr(self, "run_id", "unknown")
+                        output_dir = getattr(self, "explicit_output_dir", None) or Path_module("gx1/wf_runs") / getattr(self, "run_id", "unknown")
                         flush_replay_eval_collectors(self, self.replay_eval_collectors, output_dir=output_dir, partial=True)
                         log.info(f"[CHECKPOINT] Flushed checkpoint at {self.perf_n_bars_processed} bars")
                     except Exception as checkpoint_error:
                         log.warning(f"[CHECKPOINT] Failed to flush checkpoint: {checkpoint_error}")
+            
+            # FIX: Rate-limited HTF progress logging every 10k bars
+            if self.perf_n_bars_processed > 0 and self.perf_n_bars_processed % 10000 == 0:
+                # Get HTFAligner stats directly from feature_state
+                h1_calls = 0
+                h4_calls = 0
+                fallback_count = 0
+                if hasattr(self, "feature_state") and self.feature_state:
+                    h1_aligner = getattr(self.feature_state, "h1_aligner", None)
+                    h4_aligner = getattr(self.feature_state, "h4_aligner", None)
+                    if h1_aligner is not None:
+                        h1_stats = h1_aligner.get_stats()
+                        h1_calls = h1_stats.get("call_count", 0)
+                    if h4_aligner is not None:
+                        h4_stats = h4_aligner.get_stats()
+                        h4_calls = h4_stats.get("call_count", 0)
+                    fallback_count = getattr(self.feature_state, "htf_align_fallback_count", 0)
+                
+                log.info(
+                    "[HTF_PROGRESS] bars_processed=%d, h1_calls=%d, h4_calls=%d, total_calls=%d, fallback_count=%d",
+                    self.perf_n_bars_processed, h1_calls, h4_calls, h1_calls + h4_calls, fallback_count
+                )
             
             # Progress logging every 500 bars (more frequent)
             current_bar_idx = i - first_valid_eval_idx
@@ -9672,6 +10925,8 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
             pregate_reason = ""
             t_pregate_start = time.perf_counter()
             if self.replay_mode and self.pregate_enabled:
+                # PRE-ENTRY FUNNEL: Track pregate check
+                self.pregate_checked_count += 1
                 from gx1.execution.replay_pregate import replay_pregate_should_skip
                 
                 # Get cheap inputs for pregate (no pandas, no HTF, no rolling)
@@ -9741,6 +10996,9 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
                 if should_skip_pregate:
                     # PreGate skip - register decision but don't build features or call model
                     self.pregate_skips += 1
+                    self.bars_skipped_pregate += 1
+                    self.pregate_skipped += 1
+                    self.last_stop_reason = "PREGATE"
                     
                     # Register skip decision in collector (same as normal skip)
                     if hasattr(self, "replay_eval_collectors") and self.replay_eval_collectors:
@@ -9771,8 +11029,18 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
             # DEL 1: Time feature building phase
             t_feature_start = time.perf_counter()
             
+            # PRE-ENTRY FUNNEL: Track bars reaching point before evaluate_entry
+            self.bars_before_evaluate_entry += 1
+            self.bars_reaching_entry_stage += 1
+            
+            # PRE-ENTRY FUNNEL: Track actual evaluate_entry call
+            self.evaluate_entry_called_count += 1
+            
             # Evaluate entry (only if pregate didn't skip)
             trade = self.evaluate_entry(candles_history)
+            
+            # PRE-ENTRY FUNNEL: Track bars after evaluate_entry returns
+            self.bars_after_evaluate_entry += 1
             
             t_feature_end = time.perf_counter()
             # Feature time is already tracked in self.perf_feat_time, but we need total time
@@ -9948,6 +11216,31 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
                     i+1, len(df), 100*(i+1)/len(df), len(self.open_trades))
         
         log.info("[REPLAY] Finished processing all bars")
+        # CRITICAL: bars_seen is total bars loop iterated over (including warmup skips)
+        # perf_n_bars_processed is bars that reached model call stage (after warmup/pregate)
+        # Ensure bars_seen reflects all bars in df (loop completion)
+        expected_bars = len(df)
+        if self.bars_seen != expected_bars:
+            log.error(
+                f"[REPLAY] FATAL: Early stop before end of subset. "
+                f"bars_seen={self.bars_seen}, expected_bars={expected_bars}, diff={expected_bars - self.bars_seen}"
+            )
+            # Hard-fail if not timeout/stop requested
+            if not (os.getenv("GX1_STOP_REQUESTED", "0") == "1" or getattr(self, "_stop_requested", False)):
+                raise RuntimeError(
+                    f"[REPLAY] FATAL: Early stop before end of subset. "
+                    f"bars_seen={self.bars_seen}, expected_bars={expected_bars}, diff={expected_bars - self.bars_seen}"
+                )
+        else:
+            log.info(f"[REPLAY] ✅ Loop completed all bars: bars_seen={self.bars_seen} == expected_bars={expected_bars}")
+        
+        # Log when approaching end (100 bars before end)
+        if self.bars_seen >= expected_bars - 100 and self.bars_seen < expected_bars:
+            log.info(
+                f"[REPLAY] Approaching end: bars_seen={self.bars_seen}, "
+                f"expected_bars={expected_bars}, remaining={expected_bars - self.bars_seen}"
+            )
+        
         self.perf_n_bars_processed = self.perf_bars_total # Ensure 100% completion is reflected
         
         # DEL C: End-of-chunk perf summary
@@ -9979,18 +11272,29 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
         except Exception:
             pass  # Non-fatal: use self.htf_align_warn_count
         
-        # PATCH: Get HTF alignment timing from perf collector
+        # PATCH: Get HTF alignment stats from FeatureState/HTFAligner (direct export, not perf collector)
+        # FIX: Export aligner stats directly from FeatureState since perf collector may not have them
         htf_align_time_total_sec = 0.0
         htf_align_warning_time_sec = 0.0
         htf_align_call_count = 0
-        if hasattr(self, "perf_collector") and self.perf_collector:
+        htf_align_warn_count_total = 0
+        
+        # Try to get stats from aligners first (most reliable)
+        if self.feature_state.h1_aligner is not None or self.feature_state.h4_aligner is not None:
+            h1_stats = self.feature_state.h1_aligner.get_stats() if self.feature_state.h1_aligner is not None else {}
+            h4_stats = self.feature_state.h4_aligner.get_stats() if self.feature_state.h4_aligner is not None else {}
+            htf_align_call_count = h1_stats.get("call_count", 0) + h4_stats.get("call_count", 0)
+            htf_align_warn_count_total = h1_stats.get("warn_count", 0) + h4_stats.get("warn_count", 0)
+            # Note: aligner.get_stats() doesn't have time, so we fall back to perf collector for timing
+            # But call_count and warn_count come from aligners
+        
+        # Fallback to perf collector for timing (if aligners don't have it)
+        if htf_align_time_total_sec == 0.0 and hasattr(self, "perf_collector") and self.perf_collector:
             try:
                 perf_data = self.perf_collector.get_all()
                 for name, data in perf_data.items():
                     if name.startswith("feat.htf_align.call_total"):
                         htf_align_time_total_sec += data.get("total_sec", 0.0)
-                    elif name.startswith("feat.htf_align.call_count"):
-                        htf_align_call_count += int(data.get("count", 0))
                     elif name.startswith("feat.htf_align.warning_overhead_est"):
                         htf_align_warning_time_sec += data.get("total_sec", 0.0)
             except Exception:
@@ -10000,8 +11304,77 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
         self.htf_align_time_total_sec = htf_align_time_total_sec
         self.htf_align_call_count = htf_align_call_count
         self.htf_align_warning_time_sec = htf_align_warning_time_sec
+        self.htf_align_warn_count_total = htf_align_warn_count_total
+        
+        # Get vol_regime_unknown_count from entry_manager telemetry
+        vol_regime_unknown_count = 0
+        if hasattr(self, "entry_manager") and self.entry_manager:
+            vol_regime_unknown_count = self.entry_manager.entry_telemetry.get("vol_regime_unknown_count", 0)
+        self.vol_regime_unknown_count = vol_regime_unknown_count
         
         feature_timeout_rate = (feature_timeout_count / self.perf_n_bars_processed * 100.0) if self.perf_n_bars_processed > 0 else 0.0
+        
+        # HARD INVARIANT: If prebuilt is enabled and used, verify all invariants
+        if hasattr(self, "prebuilt_used") and self.prebuilt_used:
+            # A1) FEATURE_BUILD_TIMEOUT must be 0
+            if feature_timeout_count > 0:
+                raise RuntimeError(
+                    f"[PREBUILT_FAIL] FEATURE_BUILD_TIMEOUT triggered {feature_timeout_count} times in prebuilt-run. "
+                    f"This indicates build_basic_v1() was called despite prebuilt features being enabled. "
+                    f"Instructions: Check that entry_manager.evaluate_entry bypasses build_live_entry_features when prebuilt is enabled."
+                )
+            
+            # A2) feature_build_call_count must be 0
+            # FASE 1: Use PREBUILT-safe tripwire counter (does not import basic_v1)
+            from gx1.execution.feature_build_tripwires import (
+                get_feature_build_call_count,
+                get_feature_build_call_details,
+            )
+            feature_build_calls = get_feature_build_call_count()
+            feature_build_details = get_feature_build_call_details()
+            if feature_build_calls > 0:
+                raise RuntimeError(
+                    f"[PREBUILT_FAIL] Feature build functions were called {feature_build_calls} times "
+                    f"in prebuilt-run (expected 0). Details: {feature_build_details}. "
+                    f"This indicates prebuilt bypass is not working. "
+                    f"Instructions: Check that entry_manager.evaluate_entry bypasses build_live_entry_features when prebuilt is enabled."
+                )
+            
+            # A3) feature_time_mean_ms must be <= 5ms (or 0.0 with bypass_count proof)
+            prebuilt_bypass_count = getattr(self, "prebuilt_bypass_count", 0)
+            feature_time_mean_ms = (self.perf_feat_time / self.perf_n_bars_processed * 1000.0) if self.perf_n_bars_processed > 0 else 0.0
+            if feature_time_mean_ms > 5.0:
+                if prebuilt_bypass_count == 0:
+                    raise RuntimeError(
+                        f"[PREBUILT_FAIL] feature_time_mean_ms={feature_time_mean_ms:.2f}ms > 5ms and prebuilt_bypass_count=0. "
+                        f"This indicates feature-building is still happening. "
+                        f"Instructions: Verify prebuilt bypass is working correctly."
+                    )
+                else:
+                    log.warning(
+                        "[PREBUILT] feature_time_mean_ms=%.2fms > 5ms but prebuilt_bypass_count=%d > 0. "
+                        "This may indicate ATR/vol_bucket computation overhead.",
+                        feature_time_mean_ms, prebuilt_bypass_count
+                    )
+            
+            # A4) prebuilt_bypass_count must equal n_model_calls (minus warmup)
+            # Get warmup_bars from runner state
+            warmup_bars = getattr(self, "n_bars_skipped_due_to_htf_warmup", 0)
+            n_model_calls = self.perf_n_bars_processed
+            expected_bypass = n_model_calls  # All processed bars should use prebuilt (warmup is skipped before processing)
+            if prebuilt_bypass_count != expected_bypass:
+                log.warning(
+                    "[PREBUILT] prebuilt_bypass_count=%d != n_model_calls=%d (warmup_bars=%d). "
+                    "This may indicate some bars did not use prebuilt features.",
+                    prebuilt_bypass_count, n_model_calls, warmup_bars
+                )
+            
+            if self.perf_feat_time > 0.1:  # Allow small tolerance for ATR/vol_bucket computation
+                log.warning(
+                    "[PREBUILT] perf_feat_time=%.3f > 0.1s (expected ~0 for prebuilt). "
+                    "This may indicate feature-building is still happening.",
+                    self.perf_feat_time
+                )
         
         # DEL 1: Phase timing breakdown (for "bars/sec" pie chart)
         # Note: t_feature_build_total_sec includes feature build + model + policy from evaluate_entry
@@ -10014,13 +11387,18 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
         # I/O time is hard to measure per-bar, so we'll estimate from wall_clock - other phases
         self.t_io_total_sec = max(0.0, wall_clock_sec - self.t_pregate_total_sec - self.t_feature_build_total_sec)
         
+        # Log prebuilt bypass count if available
+        prebuilt_bypass_log = ""
+        if hasattr(self, "prebuilt_bypass_count") and self.prebuilt_bypass_count > 0:
+            prebuilt_bypass_log = f" | prebuilt_bypass_count={self.prebuilt_bypass_count}"
+        
         log.info(
             "[REPLAY_PERF_SUMMARY] "
             "wall_clock_sec=%.1f | bars_per_sec=%.2f | total_bars=%d | n_model_calls=%d | n_trades_closed=%d | "
             "pregate_skips=%d (%.1f%%) | pregate_passes=%d | pregate_missing_inputs=%d | "
             "feature_time_mean_ms=%.2f | feature_timeout_count=%d (%.2f%%) | htf_align_warn_count=%d | "
             "htf_align_time=%.2fs | htf_align_calls=%d | htf_align_warn_overhead=%.2fs | "
-            "t_pregate=%.2fs | t_feature=%.2fs | t_model=%.2fs | t_policy=%.2fs | t_io=%.2fs",
+            "t_pregate=%.2fs | t_feature=%.2fs | t_model=%.2fs | t_policy=%.2fs | t_io=%.2fs%s",
             wall_clock_sec,
             bars_per_sec,
             self.perf_n_bars_processed,
@@ -10042,6 +11420,7 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
             self.t_model_total_sec,
             self.t_policy_total_sec,
             self.t_io_total_sec,
+            prebuilt_bypass_log,
         )
         
         # DEL 1: Flush replay eval collectors to disk (if enabled)
@@ -10062,6 +11441,97 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
                 self.feature_state.htf_cache_hits, self.feature_state.htf_cache_misses, hit_rate, total_cache_requests
             )
         
+        # PATCH 8: Log HTF aligner stats (instrumentering - to tall som avgjør alt)
+        # FIX: Update runner stats from FeatureState/HTFAligner (for chunk footer export)
+        if self.feature_state.h1_aligner is not None or self.feature_state.h4_aligner is not None:
+            h1_stats = self.feature_state.h1_aligner.get_stats() if self.feature_state.h1_aligner is not None else {}
+            h4_stats = self.feature_state.h4_aligner.get_stats() if self.feature_state.h4_aligner is not None else {}
+            total_align_calls = h1_stats.get("call_count", 0) + h4_stats.get("call_count", 0)
+            total_align_warns = h1_stats.get("warn_count", 0) + h4_stats.get("warn_count", 0)
+            fallback_count = getattr(self.feature_state, "htf_align_fallback_count", 0)
+            
+            # FIX: Update runner stats from aligners (overrides perf collector if available)
+            if total_align_calls > 0:
+                self.htf_align_call_count = total_align_calls
+            if total_align_warns > 0:
+                self.htf_align_warn_count_total = total_align_warns
+            
+            # Expected: ≈ n_bars × 2 (H1 + H4), not n_bars × 7–8
+            expected_calls = self.perf_n_bars_processed * 2
+            call_ratio = (total_align_calls / expected_calls * 100) if expected_calls > 0 else 0.0
+            
+            log.info(
+                "[HTF_ALIGNER] Replay complete - Aligner stats: "
+                "H1_calls=%d, H4_calls=%d, Total_calls=%d (expected≈%d, ratio=%.1f%%), "
+                "H1_warns=%d, H4_warns=%d, Total_warns=%d, Fallback_count=%d",
+                h1_stats.get("call_count", 0),
+                h4_stats.get("call_count", 0),
+                total_align_calls,
+                expected_calls,
+                call_ratio,
+                h1_stats.get("warn_count", 0),
+                h4_stats.get("warn_count", 0),
+                total_align_warns,
+                fallback_count
+            )
+            
+            # PATCH: Replay-only invariant - verify call counts match feature compute bars
+            htf_feature_compute_bars = getattr(self.feature_state, "htf_feature_compute_bars", 0)
+            h1_call_count = h1_stats.get("call_count", 0)
+            h4_call_count = h4_stats.get("call_count", 0)
+            
+            # Check if we're in replay mode
+            is_replay = getattr(self, "replay_mode", False) or os.getenv("GX1_REPLAY", "0") == "1"
+            
+            if is_replay and htf_feature_compute_bars > 0:
+                # Invariant: H1 and H4 should be called once per bar where features were computed
+                # Allow small tolerance for warmup/skip (±5 bars)
+                h1_deviation = abs(h1_call_count - htf_feature_compute_bars)
+                h4_deviation = abs(h4_call_count - htf_feature_compute_bars)
+                tolerance = max(5, int(htf_feature_compute_bars * 0.01))  # ±1% or ±5 bars, whichever is larger
+                
+                if h1_deviation > tolerance:
+                    raise RuntimeError(
+                        f"HTF_ALIGNER INVARIANT VIOLATION: H1 call_count ({h1_call_count}) != "
+                        f"htf_feature_compute_bars ({htf_feature_compute_bars}), deviation={h1_deviation} "
+                        f"(tolerance={tolerance}). This indicates aligner.step() was not called for every bar."
+                    )
+                
+                if h4_deviation > tolerance:
+                    raise RuntimeError(
+                        f"HTF_ALIGNER INVARIANT VIOLATION: H4 call_count ({h4_call_count}) != "
+                        f"htf_feature_compute_bars ({htf_feature_compute_bars}), deviation={h4_deviation} "
+                        f"(tolerance={tolerance}). This indicates aligner.step() was not called for every bar."
+                    )
+                
+                log.info(
+                    "[HTF_ALIGNER] Invariant verified: H1_calls=%d, H4_calls=%d, "
+                    "htf_feature_compute_bars=%d (all match within tolerance=%d)",
+                    h1_call_count, h4_call_count, htf_feature_compute_bars, tolerance
+                )
+            
+            # PATCH 8: Hard-fail if call count is too high (indicates O(N²) still present)
+            if total_align_calls > expected_calls * 1.5:  # Allow 50% overhead for edge cases
+                log.warning(
+                    "[HTF_ALIGNER] WARNING: Total aligner calls (%d) is much higher than expected (%d). "
+                    "This may indicate O(N²) behavior is still present. Ratio: %.1f%%",
+                    total_align_calls, expected_calls, call_ratio
+                )
+            
+            # PATCH 6: Hard-fail if fallback was used (SSoT violation)
+            if fallback_count > 0:
+                if os.getenv("GX1_HTF_ALIGN_FALLBACK_ALLOWED") != "1":
+                    raise RuntimeError(
+                        f"HTF legacy fallback was used {fallback_count} times in replay (SSoT violation). "
+                        f"Stateful alignment should always be available. "
+                        f"Set GX1_HTF_ALIGN_FALLBACK_ALLOWED=1 to allow (not recommended)."
+                    )
+                else:
+                    log.warning(
+                        "[HTF_ALIGNER] WARNING: Fallback was used %d times (allowed via GX1_HTF_ALIGN_FALLBACK_ALLOWED=1)",
+                        fallback_count
+                    )
+        
         # Del 2B: Clear perf collector context
         from gx1.utils.perf_timer import reset_current_perf
         reset_current_perf(perf_token)
@@ -10074,7 +11544,7 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
         if hasattr(self, "_stage0_reasons") and self._stage0_reasons:
             try:
                 from pathlib import Path
-                report_path = Path(self.output_dir) / "stage0_reasons.json"
+                report_path = Path_module(self.output_dir) / "stage0_reasons.json"
                 with open(report_path, "w") as f:
                     jsonlib.dump(self._stage0_reasons, f, indent=2)
                 log.info("[STAGE0] Wrote reason report to %s", report_path)
@@ -10665,11 +12135,11 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
                 try:
                     from pathlib import Path
                     if hasattr(self, "output_dir") and self.output_dir:
-                        report_path = Path(self.output_dir) / "stage0_reasons.json"
+                        report_path = Path_module(self.output_dir) / "stage0_reasons.json"
                     elif hasattr(self, "run_id") and self.run_id:
-                        report_path = Path("gx1/wf_runs") / self.run_id / "stage0_reasons.json"
+                        report_path = Path_module("gx1/wf_runs") / self.run_id / "stage0_reasons.json"
                     else:
-                        report_path = Path("gx1/live/logs") / "stage0_reasons.json"
+                        report_path = Path_module("gx1/live/logs") / "stage0_reasons.json"
                     report_path.parent.mkdir(parents=True, exist_ok=True)
                     with open(report_path, "w") as f:
                         jsonlib.dump(self.entry_manager.stage0_reasons, f, indent=2)
@@ -10678,7 +12148,253 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
                     log.warning("[STAGE0] Failed to write reason report: %s", e)
     
         log.info("[REPLAY] Backtest complete")
-    
+        
+        # PHASE 1 FIX: Update RUN_IDENTITY with temperature scaling status
+        try:
+            from gx1.runtime.run_identity import load_run_identity
+            identity_paths_to_try = []
+            if hasattr(self, "output_dir") and self.output_dir:
+                identity_paths_to_try.append(Path(self.output_dir) / "RUN_IDENTITY.json")
+            if hasattr(self, "explicit_output_dir") and self.explicit_output_dir:
+                identity_paths_to_try.append(Path(self.explicit_output_dir) / "RUN_IDENTITY.json")
+                parent_dir = Path(self.explicit_output_dir).parent
+                identity_paths_to_try.append(parent_dir / "RUN_IDENTITY.json")
+            output_dir_env = os.getenv("GX1_OUTPUT_DIR")
+            if output_dir_env:
+                identity_paths_to_try.append(Path(output_dir_env) / "RUN_IDENTITY.json")
+            
+            for identity_path in identity_paths_to_try:
+                if identity_path.exists():
+                    identity = load_run_identity(identity_path)
+                    # Update temperature scaling status
+                    temp_map = self._get_temperature_map()
+                    identity.temperature_scaling_enabled = os.getenv("GX1_TEMPERATURE_SCALING", "1") != "0"
+                    identity.temperature_map_loaded = len(temp_map) > 0 if temp_map else False
+                    identity.temperature_defaults_used_count = getattr(self, "_temp_defaults_used_count", 0)
+                    # Write updated identity
+                    import json as jsonlib
+                    with open(identity_path, "w") as f:
+                        jsonlib.dump(identity.to_dict(), f, indent=2, sort_keys=True)
+                    log.info(
+                        f"[REPLAY] Updated RUN_IDENTITY with temperature scaling: "
+                        f"enabled={identity.temperature_scaling_enabled}, "
+                        f"map_loaded={identity.temperature_map_loaded}, "
+                        f"defaults_used={identity.temperature_defaults_used_count}"
+                    )
+                    break
+        except Exception as e:
+            log.warning(f"[REPLAY] Failed to update RUN_IDENTITY with temperature scaling: {e}")
+        
+        # Update RUN_IDENTITY with Exit Policy V2 counters (if enabled)
+        if hasattr(self, "exit_policy_v2") and self.exit_policy_v2:
+            try:
+                exit_v2_counters = self.exit_policy_v2.get_counters()
+                # Update RUN_IDENTITY.json with counters
+                from gx1.runtime.run_identity import load_run_identity
+                identity_paths_to_try = []
+                if hasattr(self, "output_dir") and self.output_dir:
+                    identity_paths_to_try.append(Path(self.output_dir) / "RUN_IDENTITY.json")
+                if hasattr(self, "explicit_output_dir") and self.explicit_output_dir:
+                    identity_paths_to_try.append(Path(self.explicit_output_dir) / "RUN_IDENTITY.json")
+                    # Also try parent directory (for chunk workers)
+                    parent_dir = Path(self.explicit_output_dir).parent
+                    identity_paths_to_try.append(parent_dir / "RUN_IDENTITY.json")
+                # Try environment variable for output dir (used in replay_eval_gated_parallel)
+                output_dir_env = os.getenv("GX1_OUTPUT_DIR")
+                if output_dir_env:
+                    identity_paths_to_try.append(Path(output_dir_env) / "RUN_IDENTITY.json")
+                
+                updated = False
+                for identity_path in identity_paths_to_try:
+                    if identity_path.exists():
+                        try:
+                            identity = load_run_identity(identity_path)
+                            identity.exit_v2_enabled = True  # Mark as enabled
+                            identity.exit_v2_counters = exit_v2_counters
+                            # Write updated identity (atomic write)
+                            import json
+                            temp_path = identity_path.with_suffix(".json.tmp")
+                            with open(temp_path, "w", encoding="utf-8") as f:
+                                json.dump(identity.to_dict(), f, indent=2, sort_keys=True)
+                            temp_path.replace(identity_path)
+                            log.info(f"[EXIT_POLICY_V2] Updated RUN_IDENTITY.json with counters: {identity_path}")
+                            updated = True
+                            break
+                        except Exception as e:
+                            log.warning(f"[EXIT_POLICY_V2] Failed to update {identity_path}: {e}", exc_info=True)
+                
+                if not updated:
+                    log.warning(f"[EXIT_POLICY_V2] Could not find RUN_IDENTITY.json in any of: {identity_paths_to_try}")
+            except Exception as e:
+                log.warning(f"[EXIT_POLICY_V2] Failed to update RUN_IDENTITY with counters: {e}", exc_info=True)
+        
+        # DEL 3: Update RUN_IDENTITY with Pre-Entry Wait Gate counters (if enabled)
+        if hasattr(self, "entry_manager") and self.entry_manager and hasattr(self.entry_manager, "pre_entry_wait_gate") and self.entry_manager.pre_entry_wait_gate:
+            try:
+                pre_entry_wait_counters = self.entry_manager.pre_entry_wait_gate.get_counters()
+                # Update RUN_IDENTITY.json with counters
+                from gx1.runtime.run_identity import load_run_identity
+                identity_paths_to_try = []
+                if hasattr(self, "output_dir") and self.output_dir:
+                    identity_paths_to_try.append(Path(self.output_dir) / "RUN_IDENTITY.json")
+                if hasattr(self, "explicit_output_dir") and self.explicit_output_dir:
+                    identity_paths_to_try.append(Path(self.explicit_output_dir) / "RUN_IDENTITY.json")
+                    # Also try parent directory for chunk workers
+                    identity_paths_to_try.append(Path(self.explicit_output_dir).parent / "RUN_IDENTITY.json")
+                output_dir_env = os.getenv("GX1_OUTPUT_DIR")
+                if output_dir_env:
+                    identity_paths_to_try.append(Path(output_dir_env) / "RUN_IDENTITY.json")
+                
+                updated = False
+                for identity_path in identity_paths_to_try:
+                    if identity_path.exists():
+                        try:
+                            identity = load_run_identity(identity_path)
+                            identity.pre_entry_wait_enabled = True  # Mark as enabled
+                            identity.pre_entry_wait_counters = pre_entry_wait_counters
+                            # Write updated identity (atomic write)
+                            import json
+                            temp_path = identity_path.with_suffix(".json.tmp")
+                            with open(temp_path, "w", encoding="utf-8") as f:
+                                json.dump(identity.to_dict(), f, indent=2, sort_keys=True)
+                            temp_path.replace(identity_path)
+                            log.info(f"[PRE_ENTRY_WAIT] Updated RUN_IDENTITY.json with counters: {identity_path}")
+                            updated = True
+                            break
+                        except Exception as e:
+                            log.warning(f"[PRE_ENTRY_WAIT] Failed to update {identity_path}: {e}", exc_info=True)
+                
+                if not updated:
+                    log.warning(f"[PRE_ENTRY_WAIT] Could not find RUN_IDENTITY.json in any of: {identity_paths_to_try}")
+            except Exception as e:
+                log.warning(f"[PRE_ENTRY_WAIT] Failed to update RUN_IDENTITY with counters: {e}", exc_info=True)
+        
+        # BUGFIX: Update RUN_IDENTITY with OVERLAP Overlay counters and invariants
+        if hasattr(self, "entry_manager") and self.entry_manager and hasattr(self.entry_manager, "overlap_overlay_config") and self.entry_manager.overlap_overlay_config:
+            try:
+                # Collect overlap overlay counters from entry_telemetry
+                # BUGFIX: Include hard telemetry for cost-gate debugging
+                overlap_counters = {}
+                if hasattr(self.entry_manager, "entry_telemetry"):
+                    telemetry = self.entry_manager.entry_telemetry
+                    
+                    # Cost-gate telemetry
+                    cost_gate_eval_count = telemetry.get("overlap_cost_gate_eval_count", 0)
+                    cost_gate_missing_inputs = telemetry.get("overlap_cost_gate_missing_inputs_count", 0)
+                    cost_gate_skips = telemetry.get("overlap_cost_gate_skips", 0)
+                    
+                    # BUGFIX: Compute spread/ATR stats
+                    spread_values = telemetry.get("overlap_cost_gate_spread_bps_values", [])
+                    atr_values = telemetry.get("overlap_cost_gate_atr_bps_values", [])
+                    
+                    spread_stats = {}
+                    atr_stats = {}
+                    if spread_values:
+                        import numpy as np
+                        spread_arr = np.array(spread_values)
+                        spread_stats = {
+                            "min": float(np.min(spread_arr)),
+                            "median": float(np.median(spread_arr)),
+                            "p95": float(np.percentile(spread_arr, 95)),
+                            "max": float(np.max(spread_arr)),
+                        }
+                    if atr_values:
+                        import numpy as np
+                        atr_arr = np.array(atr_values)
+                        atr_stats = {
+                            "min": float(np.min(atr_arr)),
+                            "median": float(np.median(atr_arr)),
+                            "p95": float(np.percentile(atr_arr, 95)),
+                            "max": float(np.max(atr_arr)),
+                        }
+                    
+                    overlap_counters = {
+                        "overlap_cost_gate_eval_count": cost_gate_eval_count,
+                        "overlap_cost_gate_missing_inputs_count": cost_gate_missing_inputs,
+                        "overlap_cost_gate_skips": cost_gate_skips,
+                        "overlap_cost_gate_spread_bps_stats": spread_stats,
+                        "overlap_cost_gate_atr_bps_stats": atr_stats,
+                        "overlap_window_blocks": telemetry.get("overlap_window_blocks", 0),
+                        "overlap_window_veto_count": telemetry.get("overlap_window_veto_count", 0),
+                    }
+                    
+                    # BUGFIX: Fail-fast if cost-gate enabled but never evaluated
+                    if hasattr(self.entry_manager, "overlap_overlay_config") and self.entry_manager.overlap_overlay_config:
+                        if self.entry_manager.overlap_overlay_config.overlap_cost_gate_enabled:
+                            if cost_gate_eval_count == 0:
+                                error_msg = (
+                                    f"[OVERLAP_COST_GATE_WIRING_BUG] Cost-gate is enabled but eval_count=0. "
+                                    f"This indicates a wiring bug - cost-gate check is not being called."
+                                )
+                                log.error(error_msg)
+                                raise RuntimeError(error_msg)
+                            
+                            if cost_gate_missing_inputs > 0:
+                                error_msg = (
+                                    f"[OVERLAP_COST_GATE_INPUTS_BUG] Cost-gate missing inputs {cost_gate_missing_inputs} times. "
+                                    f"This indicates an ordering/inputs bug - spread_bps/atr_bps not available when needed."
+                                )
+                                log.error(error_msg)
+                                raise RuntimeError(error_msg)
+                
+                # Get overlap override counters from runner
+                overlap_override_applied_n = getattr(self, "overlap_override_applied_n", 0)
+                overlap_override_applied_outside_overlap = getattr(self, "overlap_override_applied_outside_overlap", 0)
+                
+                # Update RUN_IDENTITY.json with counters
+                from gx1.runtime.run_identity import load_run_identity
+                identity_paths_to_try = []
+                if hasattr(self, "output_dir") and self.output_dir:
+                    identity_paths_to_try.append(Path(self.output_dir) / "RUN_IDENTITY.json")
+                if hasattr(self, "explicit_output_dir") and self.explicit_output_dir:
+                    identity_paths_to_try.append(Path(self.explicit_output_dir) / "RUN_IDENTITY.json")
+                    identity_paths_to_try.append(Path(self.explicit_output_dir).parent / "RUN_IDENTITY.json")
+                output_dir_env = os.getenv("GX1_OUTPUT_DIR")
+                if output_dir_env:
+                    identity_paths_to_try.append(Path(output_dir_env) / "RUN_IDENTITY.json")
+                
+                updated = False
+                for identity_path in identity_paths_to_try:
+                    if identity_path.exists():
+                        try:
+                            identity = load_run_identity(identity_path)
+                            identity.overlap_overlay_enabled = True
+                            identity.overlap_overlay_counters = overlap_counters
+                            identity.overlap_override_applied_n = overlap_override_applied_n
+                            identity.overlap_override_applied_outside_overlap = overlap_override_applied_outside_overlap
+                            
+                            # BUGFIX: Hard-fail if overlap override applied outside OVERLAP session
+                            if overlap_override_applied_outside_overlap > 0:
+                                error_msg = (
+                                    f"[OVERLAP_INVARIANT_VIOLATION] Overlap override applied to non-OVERLAP session "
+                                    f"{overlap_override_applied_outside_overlap} times. This violates the invariant that "
+                                    f"overlap overlays ONLY affect OVERLAP trades."
+                                )
+                                log.error(error_msg)
+                                raise RuntimeError(error_msg)
+                            
+                            # Write updated identity (atomic write)
+                            import json
+                            temp_path = identity_path.with_suffix(".json.tmp")
+                            with open(temp_path, "w", encoding="utf-8") as f:
+                                json.dump(identity.to_dict(), f, indent=2, sort_keys=True)
+                            temp_path.replace(identity_path)
+                            log.info(
+                                f"[OVERLAP_OVERLAY] Updated RUN_IDENTITY.json with counters: "
+                                f"override_applied={overlap_override_applied_n}, "
+                                f"override_outside_overlap={overlap_override_applied_outside_overlap}, "
+                                f"counters={overlap_counters}"
+                            )
+                            updated = True
+                            break
+                        except Exception as e:
+                            log.warning(f"[OVERLAP_OVERLAY] Failed to update {identity_path}: {e}", exc_info=True)
+                
+                if not updated:
+                    log.warning(f"[OVERLAP_OVERLAY] Could not find RUN_IDENTITY.json in any of: {identity_paths_to_try}")
+            except Exception as e:
+                log.warning(f"[OVERLAP_OVERLAY] Failed to update RUN_IDENTITY with counters: {e}", exc_info=True)
+        
         # Close trade journal
         if hasattr(self, "trade_journal") and self.trade_journal:
             try:
@@ -10702,7 +12418,7 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
                 old_argv = sys.argv
                 # Set up arguments for report generator
                 exit_audit_file = self.log_dir / "exits" / f"exits_{self.replay_start_ts.strftime('%Y%m%d')}_{self.replay_end_ts.strftime('%Y%m%d')}.jsonl"
-                report_file = Path("gx1/backtest/reports") / f"GX1_ONE_BACKTEST_exit_tuning_v4.md"
+                report_file = Path_module("gx1/backtest/reports") / f"GX1_ONE_BACKTEST_exit_tuning_v4.md"
                 report_file.parent.mkdir(parents=True, exist_ok=True)
                 sys.argv = [
                     "generate_exit_tuning_report",
@@ -11145,6 +12861,20 @@ def _dump_backtest_summary_impl(self) -> None:
 
 
 def evaluate_entry(self: GX1DemoRunner, candles: pd.DataFrame) -> Optional[LiveTrade]:
+    import inspect
+    
+    # ENTRY EVAL PATH TELEMETRY: Record which function actually performs entry evaluation (SSoT)
+    # This MUST be the very first thing in the function to identify the actual code path
+    if hasattr(self, "entry_manager") and self.entry_manager and hasattr(self.entry_manager, "entry_feature_telemetry") and self.entry_manager.entry_feature_telemetry:
+        current_frame = inspect.currentframe()
+        frame = current_frame if current_frame else None
+        lineno = frame.f_lineno if frame else 0
+        self.entry_manager.entry_feature_telemetry.record_entry_eval_path(
+            function="evaluate_entry",
+            file=__file__,
+            line=lineno,
+        )
+    
     return self._evaluate_entry_impl(candles)
 
 

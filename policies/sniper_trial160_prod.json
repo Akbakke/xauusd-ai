@@ -1,0 +1,35 @@
+{
+  "policy_id": "trial160_prod_v1",
+  "policy_name": "Trial 160 Production Policy",
+  "policy_version": "1.0.0",
+  "created": "2026-01-16T18:00:00Z",
+  "source": "Optuna sweep promotion (trial 160, LANE B with sane constraints)",
+  "description": "Canonical production policy for Trial 160. Parameters verified on FULLYEAR 2025 with robust edge in both LANE A (AS-IS) and LANE B (SANE-CONSTRAINED).",
+  "parameters": {
+    "entry_threshold": 0.102,
+    "max_concurrent_positions": 2,
+    "risk_guard_block_atr_bps_gte": 13.73,
+    "risk_guard_block_spread_bps_gte": 2000,
+    "risk_guard_cooldown_bars_after_entry": 2
+  },
+  "promotion_results": {
+    "trial_id": 160,
+    "lane_a_pnl_bps": 92923.77,
+    "lane_b_pnl_bps": 92923.77,
+    "status": "ROBUST",
+    "trades_created": 15508,
+    "atr_block_rate": 0.1463,
+    "threshold_pass_rate": 0.5125
+  },
+  "invariants": {
+    "replay_mode": "PREBUILT",
+    "feature_build_disabled": true,
+    "prebuilt_required": true
+  },
+  "notes": [
+    "Spread caps (2000 bps) do not affect results (spread never exceeds threshold in 2025 dataset)",
+    "Max positions cap (2) does not affect results (position limits rarely hit)",
+    "ATR block rate: 14.63% (lowest of all candidates)",
+    "Robust edge verified in both AS-IS and SANE-CONSTRAINED lanes"
+  ]
+}

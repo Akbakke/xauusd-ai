@@ -1,0 +1,105 @@
+# GX1 v1.1 → SNIPER entry policy (EU/London/NY) - LIVE TRIAL 160
+#
+# Entry: SNIPER (EU/OVERLAP/US + HIGH volatility allowed) with V10_CTX enabled
+# Exit: HYBRID_ROUTER_V3 - ML decision tree with range features
+# Status: LIVE production policy for Trial 160
+#
+# Purpose: Canonical live policy for Trial 160 with hard monitoring and invariants
+# Policy parameters loaded from policies/sniper_trial160_prod.json (SSoT)
+
+meta:
+  router_version: V3_RANGE
+  role: PROD_LIVE_TRIAL160
+  description: >
+    SNIPER entry policy for EU/London/NY sessions with V10_CTX enabled for live trading.
+    Policy parameters from Trial 160 (trial160_prod_v1).
+    Hard monitoring and invariants enforced.
+  bundle_location: sniper_snapshot/2025_SNIPER_V1
+
+policy_name: GX1_SNIPER_LIVE_TRIAL160_V10_CTX
+version: "GX1_SNIPER_LIVE_TRIAL160_V10_CTX"
+mode: "LIVE"  # LIVE mode
+run_mode: "PROD"  # PROD mode (real orders)
+instrument: "XAU_USD"
+timeframe: "M5"
+warmup_bars: 288
+
+# SNIPER-specific entry config (V10_CTX only, V9 disabled)
+entry_config: gx1/configs/entry_configs/ENTRY_V10_CTX_SNIPER_REPLAY.yaml
+
+# DEL 1: Explicit live configuration (SSoT - source of truth in YAML)
+live_config:
+  # Policy module (explicit - no auto-switch)
+  policy_module: "gx1.policy.entry_policy_sniper_v10_ctx"
+  policy_class: "EntryPolicySniperV10Ctx"
+  policy_id: "trial160_prod_v1"  # Must match policies/sniper_trial160_prod.json
+  
+  # Entry model identifier
+  entry_model_id: "ENTRY_V10_CTX_GATED_FUSION"
+  
+  # Runtime feature implementation (live builds features on-the-fly)
+  runtime_feature_impl: "v10_ctx"
+  # Explicit runtime module path (for provenance)
+  runtime_feature_module: "gx1.features.runtime_v10_ctx"
+  
+  # Guardrails: V9 forbidden in live (same as replay)
+  v9_forbidden: true
+  
+  # Trial 160 policy parameters (loaded from policies/sniper_trial160_prod.json)
+  # These are overridden by environment variables in run_live_trial160.sh
+  entry_threshold: 0.102
+  max_concurrent_positions: 2
+  risk_guard_block_atr_bps_gte: 13.73
+  risk_guard_block_spread_bps_gte: 2000
+  risk_guard_cooldown_bars_after_entry: 2
+
+# DEL A: Live PreGate - early skip before expensive feature building
+live_pregate:
+  enabled: true
+  # PreGate skips bars that are:
+  # - Not in allowed sessions (EU/OVERLAP/US)
+  # - Not in allowed volatility regimes (LOW/MEDIUM/HIGH, not EXTREME)
+  # - Missing required inputs (spread, ATR, etc.)
+  skip_missing_inputs: true
+  skip_invalid_session: true
+  skip_extreme_vol: true
+
+# Entry models configuration
+entry_models:
+  # V10_CTX (context features) - ENABLED FOR LIVE
+  v10_ctx:
+    enabled: true
+    bundle_dir: "models/entry_v10_ctx/FULLYEAR_2025_GATED_FUSION"
+    feature_meta_path: "gx1/models/entry_v9/nextgen_2020_2025_clean/entry_v9_feature_meta.json"
+    seq_scaler_path: "gx1/models/entry_v9/nextgen_2020_2025_clean/seq_scaler.joblib"
+    snap_scaler_path: "gx1/models/entry_v9/nextgen_2020_2025_clean/snap_scaler.joblib"
+    xgb:
+      enabled: true
+      eu_model_path: models/entry_v10/xgb_entry_EU_v10.joblib
+      us_model_path: models/entry_v10/xgb_entry_US_v10.joblib
+      overlap_model_path: models/entry_v10/xgb_entry_OVERLAP_v10.joblib
+      asia_model_path: models/entry_v10/xgb_entry_ASIA_v10.joblib
+
+# CRITICAL: Context features must be enabled for V10_CTX
+ENTRY_CONTEXT_FEATURES_ENABLED: true
+
+# Exit configuration
+exit_config:
+  exit_router: hybrid_exit_router
+  hybrid_exit_router:
+    version: HYBRID_ROUTER_V3
+    model_path: gx1/models/exit_router/exit_router_v3_tree.pkl
+    v3_range_edge_cutoff: 1.0
+
+# Risk management
+risk_management:
+  max_open_trades: 10  # Will be overridden by Trial 160 policy (max_concurrent_positions=2)
+  max_position_size: 1
+  max_daily_loss_bps: 1000
+  max_daily_trades: 1000
+
+# Monitoring and reporting
+monitoring:
+  daily_report_enabled: true
+  trade_journal_enabled: true
+  telemetry_enabled: true

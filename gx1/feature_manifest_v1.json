@@ -1,0 +1,1578 @@
+{
+  "version": "1.0",
+  "generated_date": "2026-01-21T15:46:52.247114",
+  "prebuilt_parquet_path": "data/features/xauusd_m5_2025_features_v10_ctx.parquet",
+  "total_features": 98,
+  "features": [
+    {
+      "name": "CLOSE",
+      "family": "unknown",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.runtime_sniper_core",
+      "how_computed": "Computed by gx1.features.runtime_sniper_core (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_atr14",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "bps",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_atr_regime_id",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "bps",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_atr_z_10_100",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "bps",
+      "normalization": "ATR-normalized",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_bb_bandwidth_delta_10",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "int",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_bb_squeeze_20_2",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_body_share_1",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_body_tr",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_close_ema_slope_3",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_clv",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_comp3_ratio",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "ratio",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_cost_bps_dyn",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "bps",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_cost_bps_est",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "bps",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_ema_diff",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_int_clv_atr",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "bps",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_int_ema_us",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_int_r5_atr",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "bps",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_int_range_us",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_int_slope_h1_us",
+      "family": "basic_v1",
+      "timeframe": "H1",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_int_slope_h4_atr",
+      "family": "basic_v1",
+      "timeframe": "H4",
+      "lookback_bars": null,
+      "units": "bps",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_int_vwap_h1",
+      "family": "basic_v1",
+      "timeframe": "H1",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_is_EU",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_is_US",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_kama_slope_30",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_kurt_r",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_lower_tr",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_pk_sigma20",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_r1",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_r12",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_r1_q10_48",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_r1_q90_48",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_r24",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_r3",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_r48_z",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_r5",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_r8",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_range_adr",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_range_comp_20_100",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_range_z",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_ret_ema_diff_2_5",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_ret_ema_ratio_5_34",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "ratio",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_rsi14",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_rsi14_z",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_rsi2",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_rsi2_gt_rsi14",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_session_tag_EU",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_session_tag_OVERLAP",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_session_tag_US",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_slip_bps",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "bps",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_spread_p",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_spread_z",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_tema_slope_20",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_tod_cos",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_tod_sin",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_tr_1_over_atr_14",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "bps",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_upper_tr",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_vwap_drift48",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1_wick_imbalance",
+      "family": "basic_v1",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.basic_v1",
+      "how_computed": "Computed by gx1.features.basic_v1 (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1h1_atr",
+      "family": "unknown",
+      "timeframe": "H1",
+      "lookback_bars": null,
+      "units": "bps",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.htf_aggregator",
+      "how_computed": "Computed by gx1.features.htf_aggregator (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1h1_ema_diff",
+      "family": "unknown",
+      "timeframe": "H1",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.htf_aggregator",
+      "how_computed": "Computed by gx1.features.htf_aggregator (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1h1_rsi14_z",
+      "family": "unknown",
+      "timeframe": "H1",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.htf_aggregator",
+      "how_computed": "Computed by gx1.features.htf_aggregator (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1h1_slope3",
+      "family": "unknown",
+      "timeframe": "H1",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.htf_aggregator",
+      "how_computed": "Computed by gx1.features.htf_aggregator (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1h1_slope5",
+      "family": "unknown",
+      "timeframe": "H1",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.htf_aggregator",
+      "how_computed": "Computed by gx1.features.htf_aggregator (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1h1_vwap_drift",
+      "family": "unknown",
+      "timeframe": "H1",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.htf_aggregator",
+      "how_computed": "Computed by gx1.features.htf_aggregator (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1h4_atr",
+      "family": "unknown",
+      "timeframe": "H4",
+      "lookback_bars": null,
+      "units": "bps",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.htf_aggregator",
+      "how_computed": "Computed by gx1.features.htf_aggregator (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1h4_ema_diff",
+      "family": "unknown",
+      "timeframe": "H4",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.htf_aggregator",
+      "how_computed": "Computed by gx1.features.htf_aggregator (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1h4_rsi14_z",
+      "family": "unknown",
+      "timeframe": "H4",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.htf_aggregator",
+      "how_computed": "Computed by gx1.features.htf_aggregator (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1h4_slope3",
+      "family": "unknown",
+      "timeframe": "H4",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.htf_aggregator",
+      "how_computed": "Computed by gx1.features.htf_aggregator (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "_v1h4_slope5",
+      "family": "unknown",
+      "timeframe": "H4",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.htf_aggregator",
+      "how_computed": "Computed by gx1.features.htf_aggregator (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "atr",
+      "family": "atr",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "bps",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.runtime_sniper_core",
+      "how_computed": "Computed by gx1.features.runtime_sniper_core (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "atr50",
+      "family": "atr",
+      "timeframe": "M5",
+      "lookback_bars": 50,
+      "units": "bps",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.seq.sequence_features",
+      "how_computed": "Computed by gx1.seq.sequence_features (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "atr_regime_id",
+      "family": "atr",
+      "timeframe": "M5",
+      "lookback_bars": 1,
+      "units": "bps",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "GATE_ONLY",
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.seq.sequence_features",
+      "how_computed": "Computed by gx1.seq.sequence_features (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "atr_z",
+      "family": "atr",
+      "timeframe": "M5",
+      "lookback_bars": 1,
+      "units": "bps",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.seq.sequence_features",
+      "how_computed": "Computed by gx1.seq.sequence_features (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "body_pct",
+      "family": "microstructure",
+      "timeframe": "M5",
+      "lookback_bars": 1,
+      "units": "ratio",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.seq.sequence_features",
+      "how_computed": "Computed by gx1.seq.sequence_features (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "brain_risk_score",
+      "family": "unknown",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.runtime_sniper_core",
+      "how_computed": "Computed by gx1.features.runtime_sniper_core (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "ema100_slope",
+      "family": "sequence",
+      "timeframe": "M5",
+      "lookback_bars": 100,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.seq.sequence_features",
+      "how_computed": "Computed by gx1.seq.sequence_features (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "ema20_slope",
+      "family": "sequence",
+      "timeframe": "M5",
+      "lookback_bars": 20,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.seq.sequence_features",
+      "how_computed": "Computed by gx1.seq.sequence_features (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "is_EU",
+      "family": "session",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "flag",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "GATE_ONLY"
+      ],
+      "source_module": "gx1.features.runtime_sniper_core",
+      "how_computed": "Computed by gx1.features.runtime_sniper_core (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "is_US",
+      "family": "session",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "flag",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "GATE_ONLY"
+      ],
+      "source_module": "gx1.features.runtime_sniper_core",
+      "how_computed": "Computed by gx1.features.runtime_sniper_core (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "mid",
+      "family": "unknown",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "int",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.runtime_sniper_core",
+      "how_computed": "Computed by gx1.features.runtime_sniper_core (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "pos_vs_ema200",
+      "family": "sequence",
+      "timeframe": "M5",
+      "lookback_bars": 20,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.seq.sequence_features",
+      "how_computed": "Computed by gx1.seq.sequence_features (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "prob_long",
+      "family": "unknown",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "LOG_ONLY"
+      ],
+      "source_module": "gx1.features.runtime_sniper_core",
+      "how_computed": "Computed by gx1.features.runtime_sniper_core (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "prob_neutral",
+      "family": "unknown",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "LOG_ONLY"
+      ],
+      "source_module": "gx1.features.runtime_sniper_core",
+      "how_computed": "Computed by gx1.features.runtime_sniper_core (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "prob_short",
+      "family": "unknown",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "LOG_ONLY"
+      ],
+      "source_module": "gx1.features.runtime_sniper_core",
+      "how_computed": "Computed by gx1.features.runtime_sniper_core (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "range",
+      "family": "unknown",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.runtime_sniper_core",
+      "how_computed": "Computed by gx1.features.runtime_sniper_core (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "ret_1",
+      "family": "unknown",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.runtime_sniper_core",
+      "how_computed": "Computed by gx1.features.runtime_sniper_core (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "ret_20",
+      "family": "unknown",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.runtime_sniper_core",
+      "how_computed": "Computed by gx1.features.runtime_sniper_core (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "ret_5",
+      "family": "unknown",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.runtime_sniper_core",
+      "how_computed": "Computed by gx1.features.runtime_sniper_core (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "roc100",
+      "family": "sequence",
+      "timeframe": "M5",
+      "lookback_bars": 100,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.seq.sequence_features",
+      "how_computed": "Computed by gx1.seq.sequence_features (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "roc20",
+      "family": "sequence",
+      "timeframe": "M5",
+      "lookback_bars": 20,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.seq.sequence_features",
+      "how_computed": "Computed by gx1.seq.sequence_features (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "rvol_20",
+      "family": "unknown",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.runtime_sniper_core",
+      "how_computed": "Computed by gx1.features.runtime_sniper_core (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "rvol_60",
+      "family": "unknown",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.runtime_sniper_core",
+      "how_computed": "Computed by gx1.features.runtime_sniper_core (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "session_id",
+      "family": "session",
+      "timeframe": "M5",
+      "lookback_bars": 1,
+      "units": "int",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "GATE_ONLY",
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.seq.sequence_features",
+      "how_computed": "Computed by gx1.seq.sequence_features (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "side",
+      "family": "unknown",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "int",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.runtime_sniper_core",
+      "how_computed": "Computed by gx1.features.runtime_sniper_core (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "std50",
+      "family": "sequence",
+      "timeframe": "M5",
+      "lookback_bars": 50,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.seq.sequence_features",
+      "how_computed": "Computed by gx1.seq.sequence_features (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "trend_regime_tf24h",
+      "family": "sequence",
+      "timeframe": "M5",
+      "lookback_bars": 1,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.seq.sequence_features",
+      "how_computed": "Computed by gx1.seq.sequence_features (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "vol_ratio",
+      "family": "unknown",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "ratio",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.runtime_sniper_core",
+      "how_computed": "Computed by gx1.features.runtime_sniper_core (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "wick_asym",
+      "family": "microstructure",
+      "timeframe": "M5",
+      "lookback_bars": 1,
+      "units": "unknown",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.seq.sequence_features",
+      "how_computed": "Computed by gx1.seq.sequence_features (see FEATURE_MAP.md for details)"
+    }
+  ]
+}

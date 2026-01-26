@@ -92,11 +92,14 @@ class OandaClient:
         account_id = (os.getenv("OANDA_ACCOUNT_ID") or "").strip()
         env = (os.getenv("OANDA_ENV", "practice") or "practice").strip()
 
+        # Determine base URL for logging
+        base_url = PRACTICE_URL if env == "practice" else LIVE_URL
         log.info(
-            "OandaClient.from_env: env=%s, account=%s, api_key=%s",
+            "OandaClient.from_env: env=%s, account=%s, api_key=%s, base_url=%s",
             env or "<EMPTY>",
             _mask(account_id),
             _mask(api_key),
+            base_url,
         )
 
         # Check for either OANDA_API_TOKEN or OANDA_API_KEY

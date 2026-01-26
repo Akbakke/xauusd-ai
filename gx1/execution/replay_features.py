@@ -13,7 +13,9 @@ from typing import Dict, Optional, Tuple, Union
 import numpy as np
 import pandas as pd
 
-from gx1.execution.live_features import infer_session_tag
+# DEL 3: PREBUILT mode fix - move live_features imports to lazy imports
+# live_features is forbidden in PREBUILT mode, so we only import it when needed (live mode only)
+# infer_session_tag is used at runtime, so we import it locally where needed
 
 log = logging.getLogger(__name__)
 
@@ -88,6 +90,7 @@ def ensure_replay_tags(
     
     # Compute from timestamp if missing
     if session_tag is None or session_tag == "UNKNOWN":
+        from gx1.execution.live_features import infer_session_tag
         session_tag = infer_session_tag(current_ts)
         policy_state["session"] = session_tag
         policy_state["session_id"] = {"EU": 0, "OVERLAP": 1, "US": 2, "ASIA": 3}.get(session_tag, 0)

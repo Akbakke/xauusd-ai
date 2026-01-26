@@ -36,6 +36,22 @@ Målet er å unngå «feil script / feil YAML / feil datasett / feil output-dir�
   - Hvis `killchain_n_above_threshold > 0` og `killchain_n_trade_created == 0` → post-gates dreper.
   - Identifiser *hvilken* (session/vol/regime/risk/position/cooldown).
 
+## 5.1) Spesifikk “vol_regime=UNKNOWN” sjekk (SNIPER_GUARD_V1)
+
+Dette er et kjent blindspor: `vol_regime=UNKNOWN` har i dag blitt tolket som **hard reject** i `SNIPER_GUARD_V1`.
+
+- [ ] **Hva betyr UNKNOWN i dag?**
+  - `UNKNOWN` betyr at vi ikke fikk utledet vol-regime fra barens felter (ingen `vol_regime` / `atr_regime` / `_v1_atr_regime_id` mapping tilgjengelig for guard på det tidspunktet).
+- [ ] **Er UNKNOWN et gyldig regime i FULLYEAR-replay?**
+  - Ja: det forekommer i replay og blir i dag eksplisitt logget som “expected” i guard, men blir likevel rejectet.
+- [ ] **Historisk (i dagens kode)**
+  - `SNIPER_GUARD_V1` har eksplisitt **blokkert** `vol_regime=UNKNOWN` (warning + `AssertionError` → `return None` i entry-path).
+- [ ] **Hvis trades=0 og killchain viser:**
+  - `killchain_n_above_threshold > 0`
+  - `killchain_n_after_vol_guard == 0`
+  - `killchain_top_block_reason == BLOCK_VOL`
+  → da er konklusjonen: **Trades=0 fordi vol_regime=UNKNOWN ble tolket som hard reject i SNIPER_GUARD_V1.**
+
 ## 6) STOPP-OG-SE-BAKOVER output (hvor å se)
 
 - **Per chunk**: `chunk_*/chunk_footer.json`

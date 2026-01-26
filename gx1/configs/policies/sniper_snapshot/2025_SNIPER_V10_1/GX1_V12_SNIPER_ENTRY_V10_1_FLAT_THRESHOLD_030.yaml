@@ -1,0 +1,121 @@
+# GX1 v1.2 → SNIPER ENTRY_V10.1 FLAT THRESHOLD 0.30 (OFFLINE_ONLY)
+#
+# Entry: ENTRY_V10.1 HYBRID (variant=v10_1, seq_len=90) with baseline sizing
+# Exit: HYBRID_ROUTER_V3 - ML decision tree with range features
+# Mode: REPLAY (OFFLINE_ONLY - threshold-tested baseline)
+#
+# Configuration:
+#   - Entry: ENTRY_V10.1 HYBRID (deeper Transformer, longer sequences)
+#   - FLAT sizing: Same baseline sizing as P4.1 (no aggressive size overlays)
+#   - THRESHOLD 0.30: Based on UNGATED analysis (positive edge starts around 0.070-0.100)
+#   - Exit: ExitCritic V1 + RULE5/RULE6A (same as P4.1)
+#   - Same regime blocks and session filters as P4.1
+#
+# Threshold Selection:
+#   - UNGATED analysis showed p_long range [0.070, 0.353] with positive edge starting around 0.070
+#   - Using 0.30 as conservative threshold for better selectivity
+#   - This is a threshold-tested baseline (not final production config)
+#
+# ⚠️  OFFLINE_ONLY: This config is for threshold testing only. Do not use live.
+
+meta:
+  router_version: V3_RANGE
+  name: "SNIPER_ENTRY_V10_1_FLAT_THRESHOLD_030"
+  role: OFFLINE_ONLY  # ⚠️ OFFLINE_ONLY - threshold-tested baseline
+  description: >
+    SNIPER with ENTRY_V10.1 HYBRID (variant=v10_1, seq_len=90) in FLAT mode.
+    Same P4.1 regime blocks and execution, new V10.1 hybrid entry engine.
+    Baseline sizing (no aggressive size overlays).
+    THRESHOLD 0.30: Based on UNGATED analysis showing positive edge starts around 0.070-0.100.
+    V10.1 combines XGBoost snapshot expert with deeper Transformer sequence brain.
+  bundle_location: sniper_snapshot/2025_SNIPER_V10_1
+  notes: "Threshold-tested baseline (threshold=0.30 based on UNGATED analysis)"
+
+policy_name: GX1_V12_SNIPER_ENTRY_V10_1_FLAT_THRESHOLD_030
+version: "GX1_V12_SNIPER_ENTRY_V10_1_FLAT_THRESHOLD_030"
+mode: "REPLAY"  # REPLAY mode for historical data
+run_mode: "PROD"  # PROD mode (trades are journaled, but no real orders in replay)
+instrument: "XAU_USD"
+timeframe: "M5"
+warmup_bars: 288
+
+# SNIPER-specific entry config (V10.1 FLAT THRESHOLD 0.30)
+entry_config: gx1/configs/policies/sniper_snapshot/2025_SNIPER_V10_1/ENTRY_V10_1_SNIPER_FLAT_THRESHOLD_030.yaml
+
+# SNIPER-specific exit configs (P4.1: adds force_exit_bars=3000)
+exit_config: gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/exits/SNIPER_EXIT_RULES_A_P4_1.yaml
+
+exit_policies:
+  rule5: gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/exits/SNIPER_EXIT_RULES_A_P4_1.yaml
+  rule6a: gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/exits/SNIPER_EXIT_RULES_ADAPTIVE.yaml
+
+hybrid_exit_router:
+  version: HYBRID_ROUTER_V3
+  model_path: gx1/models/exit_router/exit_router_v3_tree.pkl
+  v3_range_edge_cutoff: 1.0
+  documentation: |
+    HYBRID_ROUTER_V3_RANGE provides ML-based routing using decision tree trained on range features.
+    Uses same router model as FARM PROD_BASELINE.
+
+execution:
+  dry_run: true  # Always dry_run in replay (no real orders)
+  max_open_trades: 3  # P4.1: Stricter concurrency for "true sniper"
+  min_time_between_trades_sec: 180  # P4.1: 3 min between entries
+
+# SNIPER Risk Guard V1 configuration (same as P4.1)
+risk_guard:
+  config_path: gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/SNIPER_RISK_GUARD_V1.yaml
+
+logging:
+  level: INFO
+
+backfill:
+  enabled: false  # Disabled in replay (we have historical data)
+
+# Exit control (ExitArbiter configuration)
+exit_control:
+  allowed_loss_closers:
+    - RULE_A_PROFIT
+    - RULE_A_TRAILING
+    - RULE_B_FAST_LOSS
+    - RULE_C_TIMEOUT
+    - RULE_FORCE_TIMEOUT  # P4.1: Allow force exit timeout
+    - BROKER_SL
+    - SL_TICK
+    - REPLAY_EOF  # Always allowed in replay mode for end-of-simulation liquidation
+  require_trade_open: true
+
+# Replay-specific configuration
+replay:
+  close_open_trades_at_end: true  # Close all open trades at end of replay for complete analysis
+  eof_close_reason: "REPLAY_EOF"  # Reason code for EOF-closed trades
+  eof_price_source: "mid"  # Price source for EOF close: "mid", "bid", or "ask"
+
+# ExitCritic V1 configuration (same as P4.1)
+exit_critic:
+  enabled: true
+  model_path: models/exit_critic/exit_critic_xgb_v1.json
+  metadata_path: models/exit_critic/exit_critic_xgb_v1.meta.json
+  
+  # Thresholds
+  exit_now_threshold: 0.60
+  scalp_threshold: 0.40
+  
+  # Guards
+  guards:
+    min_bars_held: 5        # Don't use critic if trade is too fresh
+    apply_for_loss_leq: -40.0  # Use EXIT_NOW only if pnl <= -40 bps
+    apply_for_profit_ge: 40.0   # Use SCALP_PROFIT only if pnl >= 40 bps
+    allowed_sessions:
+      - EU
+      - OVERLAP
+      - US
+    allowed_vol_regimes:
+      - LOW
+      - MEDIUM
+      - HIGH
+    allowed_trend_regimes:
+      - TREND_UP
+      - TREND_NEUTRAL
+      - TREND_DOWN
+

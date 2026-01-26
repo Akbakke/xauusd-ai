@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 from collections import deque, defaultdict
 
 import logging
+import os
 import numpy as np
 import pandas as pd
 import time
@@ -39,6 +40,13 @@ class EntryManager:
         super().__setattr__("_runner", runner)
         # Explicit exit_config_name (injected from runner, no coupling to runner.policy)
         self.exit_config_name = exit_config_name
+        # Initialize entry_feature_telemetry if required
+        self.entry_feature_telemetry = None
+        require_telemetry = os.environ.get("GX1_REQUIRE_ENTRY_TELEMETRY", "0") == "1"
+        if require_telemetry:
+            from gx1.execution.entry_feature_telemetry import EntryFeatureTelemetryCollector
+            output_dir = getattr(runner, "output_dir", None)
+            self.entry_feature_telemetry = EntryFeatureTelemetryCollector(output_dir=output_dir)
         # Entry telemetry state (SNIPER/NY-first, accumulated over replay)
         # DESIGN CONTRACT: Stage-0 (precheck) vs Stage-1 (candidate) counters
         self.entry_telemetry = {
@@ -804,6 +812,10 @@ class EntryManager:
     def evaluate_entry(self, candles: pd.DataFrame) -> Optional[LiveTrade]:
         import time
         
+        # DEL 3: Reset routing telemetry for this bar (must be called at start of each bar evaluation)
+        if hasattr(self, "entry_feature_telemetry") and self.entry_feature_telemetry:
+            self.entry_feature_telemetry.reset_routing_for_next_bar()
+        
         # PREBUILT telemetry: track that evaluate_entry() was called
         self.eval_calls_total += 1
         
@@ -838,6 +850,25 @@ class EntryManager:
         
         # Hard eligibility check (before feature build)
         eligible, eligibility_reason = self._check_hard_eligibility(candles, policy_state)
+        
+        # DEL 1: Record hard eligibility gate in telemetry
+        if hasattr(self, "entry_feature_telemetry") and self.entry_feature_telemetry:
+            if eligible:
+                self.entry_feature_telemetry.record_gate(
+                    gate_name="hard_eligibility",
+                    executed=True,
+                    blocked=False,
+                    passed=True,
+                    reason=None,
+                )
+            else:
+                self.entry_feature_telemetry.record_gate(
+                    gate_name="hard_eligibility",
+                    executed=True,
+                    blocked=True,
+                    passed=False,
+                    reason=eligibility_reason,
+                )
         
         if not eligible:
             # Hard eligibility failed - STOP immediately
@@ -885,6 +916,29 @@ class EntryManager:
         # Soft eligibility check (after minimal cheap computation, before feature build)
         soft_eligible, soft_reason = self._check_soft_eligibility(candles, policy_state)
         
+        # DEL 1: Record soft eligibility gate in telemetry
+        if hasattr(self, "entry_feature_telemetry") and self.entry_feature_telemetry:
+            if soft_eligible:
+                self.entry_feature_telemetry.record_gate(
+                    gate_name="soft_eligibility",
+                    executed=True,
+                    blocked=False,
+                    passed=True,
+                    reason=None,
+                )
+                # Record control flow for execution-truth validation
+                self.entry_feature_telemetry.record_control_flow("SOFT_ELIGIBILITY_RETURN_TRUE")
+            else:
+                self.entry_feature_telemetry.record_gate(
+                    gate_name="soft_eligibility",
+                    executed=True,
+                    blocked=True,
+                    passed=False,
+                    reason=soft_reason,
+                )
+                # Record control flow for execution-truth validation
+                self.entry_feature_telemetry.record_control_flow("SOFT_ELIGIBILITY_RETURN_FALSE")
+        
         if not soft_eligible:
             # Soft eligibility failed - STOP before feature build
             if soft_reason == self.SOFT_ELIGIBILITY_VOL_REGIME_EXTREME:
@@ -905,6 +959,10 @@ class EntryManager:
         
         # Both hard and soft eligibility passed - increment eligible cycles counter
         self.entry_telemetry["n_eligible_cycles"] += 1
+        
+        # Record control flow: past soft eligibility, proceeding to feature build
+        if hasattr(self, "entry_feature_telemetry") and self.entry_feature_telemetry:
+            self.entry_feature_telemetry.record_control_flow("AFTER_SOFT_ELIGIBILITY_PASSED")
         
         # OPPGAVE 2: Build context features (after soft eligibility, before full feature build)
         # This is cheaper than full V9 feature build and uses ATR proxy from soft eligibility
@@ -1744,12 +1802,19 @@ class EntryManager:
                 "brutal guard will handle filtering",
                 policy_state.get("farm_regime")
             )
+            # Record control flow: Stage-0 bypassed (FARM_V2B mode)
+            if hasattr(self, "entry_feature_telemetry") and self.entry_feature_telemetry:
+                self.entry_feature_telemetry.record_control_flow("BEFORE_STAGE0_CHECK")
             # FARM_V2B diagnostic: Stage-0 passed (skipped for valid regime)
             if is_farm_v2b:
                 if "n_after_stage0" not in self.farm_diag:
                     self.farm_diag["n_after_stage0"] = 0
                 self.farm_diag["n_after_stage0"] += 1
         elif not policy_state.get("force_entry", False) and stage0_enabled:
+            # Record control flow: entering Stage-0 check
+            if hasattr(self, "entry_feature_telemetry") and self.entry_feature_telemetry:
+                self.entry_feature_telemetry.record_control_flow("BEFORE_STAGE0_CHECK")
+            
             # Track total considered
             self.stage0_total_considered += 1
             
@@ -1871,6 +1936,9 @@ class EntryManager:
                     self.farm_diag["n_after_stage0"] += 1
         else:
             # Stage-0 bypassed (force_entry or stage0_enabled=False)
+            # Record control flow: Stage-0 bypassed (force_entry or disabled)
+            if hasattr(self, "entry_feature_telemetry") and self.entry_feature_telemetry:
+                self.entry_feature_telemetry.record_control_flow("BEFORE_STAGE0_CHECK")
             # TELEMETRY CONTRACT: Stage-0 passed (prediction allowed)
             self.entry_telemetry["n_precheck_pass"] += 1
         
@@ -1971,11 +2039,22 @@ class EntryManager:
         # V10 takes priority if both are enabled
         entry_pred = None
         
+        # DEL 1: Record V10 enable state in telemetry (before routing)
+        if hasattr(self, "entry_feature_telemetry") and self.entry_feature_telemetry:
+            v10_enabled = hasattr(self._runner, "entry_v10_enabled") and self._runner.entry_v10_enabled
+            if v10_enabled:
+                reason = "ENABLED"
+            else:
+                reason = "POLICY_DISABLED" if hasattr(self._runner, "entry_v10_enabled") else "NOT_CONFIGURED"
+            self.entry_feature_telemetry.record_v10_enable_state(enabled=v10_enabled, reason=reason)
+        
         # Model inference timing
         model_start = time.perf_counter()
         if hasattr(self._runner, "entry_v10_enabled") and self._runner.entry_v10_enabled:
             # Session gating: V10 hybrid requires XGB which only exists for EU/US/OVERLAP
             # Skip ASIA (and other unsupported sessions) BEFORE counting as V10 call
+            # NOTE: Session filtering is already handled by v10_session_supported gate earlier
+            # This check should not trigger if gate is working correctly
             v10_supported_sessions = {"EU", "US", "OVERLAP"}
             if current_session not in v10_supported_sessions:
                 # ASIA session: skip V10 (no XGB model)
@@ -1984,7 +2063,16 @@ class EntryManager:
                     "[ENTRY_V10] Session %s not supported (no XGB), skipping entry evaluation",
                     current_session
                 )
+                # DEL 3: Do NOT record routing here - session gate already handled this
+                # Recording here causes duplicate routing telemetry (wiring bug)
                 return None
+            
+            # DEL 1: Record routing for V10 hybrid
+            if hasattr(self, "entry_feature_telemetry") and self.entry_feature_telemetry:
+                self.entry_feature_telemetry.record_entry_routing(
+                    selected_model="v10_hybrid",
+                    reason="V10_ENABLED_AND_SESSION_SUPPORTED"
+                )
             
             self.n_v10_calls += 1
             if self._v10_log_count < 3:

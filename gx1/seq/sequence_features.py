@@ -20,6 +20,8 @@ def build_sequence_features(df: pd.DataFrame) -> pd.DataFrame:
     Output:
       df: DataFrame med tillegg av nye feature-kolonner
     
+    FIX: Sanitize OHLCV dtypes before processing (avoids pandas object dtype path)
+    
     Features lagt til:
       Trend/retning:
         - ema20_slope: EMA(20) slope (diff per bar)
@@ -44,6 +46,20 @@ def build_sequence_features(df: pd.DataFrame) -> pd.DataFrame:
         - atr_regime_id: int (0=LOW, 1=MID, 2=HIGH, 3=EXTREME)
         - trend_regime_tf24h: float (EMA100 slope over 24h / ATR100, normalisert)
     """
+    # Sanitize OHLCV dtypes (ensure float32/float64)
+    import os
+    is_replay = os.getenv("GX1_REPLAY", "0") == "1"
+    ohlcv_cols = ['open', 'high', 'low', 'close']
+    for col in ohlcv_cols:
+        if col in df.columns:
+            if df[col].dtype not in [np.float32, np.float64]:
+                if is_replay:
+                    raise ValueError(
+                        f"OHLCV dtype mismatch (replay): column '{col}' has dtype {df[col].dtype}, "
+                        f"expected float32/float64. This may cause pandas timeout."
+                    )
+                df[col] = df[col].astype(np.float32, copy=False)
+    
     df = df.copy()
     
     # Sikre at close, high, low, open, volume finnes
@@ -84,11 +100,21 @@ def build_sequence_features(df: pd.DataFrame) -> pd.DataFrame:
     
     # Rolling ATR(50)
     # ATR = True Range rolling average
-    tr = pd.concat([
-        high - low,  # High - Low
-        (high - close.shift(1)).abs(),  # |High - Previous Close|
-        (low - close.shift(1)).abs()   # |Low - Previous Close|
-    ], axis=1).max(axis=1)
+    # FIX: Replace pandas .max(axis=1) with NumPy for performance (avoids timeout)
+    high_arr = high.values if hasattr(high, 'values') else np.asarray(high, dtype=np.float32)
+    low_arr = low.values if hasattr(low, 'values') else np.asarray(low, dtype=np.float32)
+    close_arr = close.values if hasattr(close, 'values') else np.asarray(close, dtype=np.float32)
+    
+    # Compute True Range components
+    tr1 = high_arr - low_arr  # High - Low
+    close_shifted = np.roll(close_arr, 1)
+    close_shifted[0] = close_arr[0]  # First bar: no previous close, use current
+    tr2 = np.abs(high_arr - close_shifted)  # |High - Previous Close|
+    tr3 = np.abs(low_arr - close_shifted)   # |Low - Previous Close|
+    
+    # Use NumPy nanmax instead of pandas .max(axis=1)
+    tr = np.nanmax(np.column_stack([tr1, tr2, tr3]), axis=1)
+    tr = pd.Series(tr, index=df.index, dtype=np.float32)
     atr50 = tr.rolling(window=50, min_periods=1).mean()
     df['atr50'] = atr50.fillna(0.0)
     

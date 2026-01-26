@@ -42,7 +42,7 @@ exit_policies:
 hybrid_exit_router:
   version: HYBRID_ROUTER_V3
   # In v1: Use same router model as FARM (can be tuned via params later)
-  model_path: gx1/configs/policies/prod_snapshot/2025_FARM_V2B_HYBRID_V3_RANGE/exit_router_models_v3/exit_router_v3_tree.pkl
+  model_path: gx1/models/exit_router/exit_router_v3_tree.pkl
   # SNIPER-specific router parameters (can be tuned independently)
   v3_range_edge_cutoff: 1.0  # Start with same as FARM (can tune later)
   # Future: session-specific cutoffs, vol-specific thresholds
