@@ -16,6 +16,10 @@
 | `GX1_ARCHIVE_ROOT` | `../GX1_DATA/archive` | Archive directory (historical artifacts) |
 | `GX1_OPTUNA_ROOT` | `../GX1_DATA/optuna` | Optuna database directory |
 
+### Canonical Python / venv (TRUTH/SMOKE)
+
+- `CANONICAL_PYTHON=/home/andre2/venvs/gx1/bin/python`
+
 ## Directory Structure
 
 ### GX1_ENGINE (Repository)
