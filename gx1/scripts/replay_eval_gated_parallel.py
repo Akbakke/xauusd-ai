@@ -1438,7 +1438,7 @@ def process_chunk(
             # Set GX1_BUNDLE_DIR env var if bundle_dir is provided (overrides policy bundle_dir)
             # This must be set BEFORE creating GX1DemoRunner, as it reads GX1_BUNDLE_DIR during init
             if bundle_dir:
-                # Use os (already imported on line 667) instead of local import os
+                # Use os (already imported) instead of a local os-import
                 bundle_dir_resolved = bundle_dir.resolve() if hasattr(bundle_dir, 'resolve') else Path(bundle_dir).resolve()
                 os.environ["GX1_BUNDLE_DIR"] = str(bundle_dir_resolved)
                 log.info(f"[CHUNK {chunk_idx}] Set GX1_BUNDLE_DIR={bundle_dir_resolved}")
@@ -5865,10 +5865,6 @@ def main():
     run_mode = os.getenv("GX1_RUN_MODE", "").upper()
     is_truth_or_smoke = run_mode in ("TRUTH", "SMOKE") or os.getenv("GX1_SMOKE", "0") == "1"
 
-    # In TRUTH/SMOKE: forbid local OS imports early
-    if is_truth_or_smoke:
-        _assert_no_local_os_imports()
-
     # Resolve output directory using helper (with TRUTH/SMOKE validation) EARLY
     from gx1.utils.output_dir import resolve_output_dir
 
@@ -5917,6 +5913,10 @@ def main():
             print(f"[ENV_IDENTITY_GATE] FATAL: {type(e).__name__}: {e}", file=sys.stderr, flush=True)
             sys.exit(2)
         log.warning(f"[ENV_IDENTITY_GATE] Unexpected error (non-fatal, non-TRUTH/SMOKE): {e}")
+
+    # In TRUTH/SMOKE: forbid local OS imports (after gates so we always get capsules first)
+    if is_truth_or_smoke:
+        _assert_no_local_os_imports()
     
     # FASE 0.1: Forby parallell replay - maks én aktiv replay_eval_gated_parallel per maskin
     # Exception: Allow parallel replay if GX1_ALLOW_PARALLEL_REPLAY=1 (for multi-year parallel execution)
