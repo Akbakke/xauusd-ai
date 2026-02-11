@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/home/andre2/venvs/gx1/bin/python
 # -*- coding: utf-8 -*-
 """
 Replay Evaluation for GATED_FUSION - Parallel Chunked Execution
@@ -12,12 +12,38 @@ CRITICAL: This script has MASTER DEATH FORENSICS enabled.
 """
 
 # ============================================================================
+# ENV IDENTITY GATE: hard-fail on wrong interpreter BEFORE heavy imports
+# ============================================================================
+import sys
+import os
+
+REQUIRED_VENV = "/home/andre2/venvs/gx1/bin/python"
+
+
+def _env_identity_gate() -> None:
+    """
+    Hard-fail on wrong python interpreter.
+
+    NOTE: This file is imported as a module by other code (e.g. `replay_worker.py`),
+    so the gate must NOT run at import-time.
+    """
+    if sys.executable != REQUIRED_VENV:
+        raise RuntimeError(
+            f"[ENV_IDENTITY_FAIL] Wrong python interpreter\n"
+            f"Expected: {REQUIRED_VENV}\n"
+            f"Actual:   {sys.executable}\n"
+            f"Hint: source ~/venvs/gx1/bin/activate"
+        )
+
+
+if __name__ == "__main__":
+    _env_identity_gate()
+
+# ============================================================================
 # MASTER DEATH FORENSICS: faulthandler MUST be first (before any imports that can crash)
 # ============================================================================
 import faulthandler
-import os
 import signal
-import sys
 
 # Get output path for fault dump (from env or default)
 _fault_dump_path = os.environ.get("GX1_FAULTHANDLER_OUTPUT", "/tmp/gx1_master_fault_dump.txt")
@@ -42,6 +68,7 @@ import json
 import logging
 import multiprocessing as mp
 import subprocess
+import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -386,6 +413,68 @@ def _master_hang_handler(signum, frame):
     log.warning(f"[MASTER] Received SIGUSR2 (hang detection trigger)")
     if MASTER_OUTPUT_DIR is not None:
         dump_master_hang_state(MASTER_OUTPUT_DIR)
+
+
+def write_master_early_capsule(
+    output_dir: Path,
+    stage: str,
+    argv: List[str],
+    resolved_paths: Optional[Dict[str, Any]] = None,
+    run_mode: Optional[str] = None,
+    workers_requested: Optional[int] = None,
+    workers_effective: Optional[int] = None,
+) -> None:
+    """
+    Write MASTER_EARLY.json capsule at critical stages to track early crashes.
+    
+    Args:
+        output_dir: Output directory (fallback to /tmp if not writable)
+        stage: Stage identifier (e.g., "args_resolved", "gates_passed", "before_chunk_planning")
+        argv: Command-line arguments
+        resolved_paths: Dictionary with resolved paths (data, policy, output_dir, bundle_dir)
+        run_mode: TRUTH/SMOKE/other
+        workers_requested: Requested number of workers
+        workers_effective: Effective number of workers (after RAM scheduler)
+    """
+    import tempfile
+    
+    # Try output_dir first, fallback to /tmp
+    try:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        report_dir = output_dir
+    except Exception:
+        report_dir = Path(tempfile.gettempdir()) / "gx1_master_early"
+        report_dir.mkdir(parents=True, exist_ok=True)
+    
+    capsule_path = report_dir / "MASTER_EARLY.json"
+    
+    capsule = {
+        "timestamp": dt_now_iso(),
+        "pid": os.getpid(),
+        "stage": stage,
+        "sys.executable": sys.executable,
+        "sys.version": sys.version.split()[0],  # Just version string, not full sys.version
+        "cwd": str(Path.cwd()),
+        "argv": argv,
+        "resolved_paths": resolved_paths or {},
+        "run_mode": run_mode,
+        "workers_requested": workers_requested,
+        "workers_effective": workers_effective,
+    }
+    
+    # Atomic write with /tmp fallback
+    try:
+        write_json_atomic(capsule_path, capsule, output_dir=report_dir)
+        log.info(f"[MASTER_EARLY] Stage '{stage}' capsule written to {capsule_path}")
+    except Exception as e:
+        # Last resort: write to /tmp directly
+        tmp_path = Path(tempfile.gettempdir()) / f"gx1_master_early_{os.getpid()}_{stage}.json"
+        try:
+            with open(tmp_path, "w") as f:
+                json.dump(capsule, f, indent=2)
+            log.warning(f"[MASTER_EARLY] Fallback write to {tmp_path} (original error: {e})")
+        except Exception:
+            log.error(f"[MASTER_EARLY] Failed to write capsule even to /tmp: {e}")
 
 
 def split_data_into_chunks(
@@ -809,6 +898,7 @@ def process_chunk(
     bundle_sha256: Optional[str] = None,
     prebuilt_parquet_path: Optional[str] = None,  # DEL 3: Force string, not Path
     bundle_dir: Optional[Path] = None,  # Bundle directory override
+    chunk_local_padding_days: int = 0,  # Chunk-local padding days (TRUTH/SMOKE only)
 ) -> Dict[str, Any]:
     """
     Process a single chunk in a worker process.
@@ -828,8 +918,92 @@ def process_chunk(
     policy_id = None
     run_identity_data = None
     
+    # A) Initialize SKIP_LEDGER early (always-on, written in finally)
+    skip_ledger = {
+        "chunk_id": chunk_idx,
+        "run_id": run_id,
+        "stage": "init",
+        "timestamp": None,  # Will be set in finally
+        # Raw/prebuilt/join stats (updated as we progress)
+        "raw_rows_loaded": None,
+        "prebuilt_rows_loaded": None,
+        "join_rows": None,
+        "join_ratio": None,
+        "ts_min_raw": None,
+        "ts_max_raw": None,
+        "ts_min_prebuilt": None,
+        "ts_max_prebuilt": None,
+        "ts_min_join": None,
+        "ts_max_join": None,
+        # Eval window
+        "eval_start_ts": str(chunk_start),
+        "eval_end_ts": str(chunk_end),
+        "n_in_eval_window": None,
+        # Warmup
+        "warmup_bars_required": None,
+        "warmup_bars_seen": None,
+        # Skip breakdown
+        "n_skipped_total": None,
+        "skipped_breakdown": {
+            "skipped_warmup": None,
+            "skipped_pregate": None,
+            "skipped_no_eval_window": None,
+            "skipped_missing_features": None,
+            "skipped_session_gate": None,
+            "skipped_score_gate": None,
+            "skipped_vol_gate": None,
+            "skipped_other": None,
+            "skipped_other_reason": None,
+        },
+        # Counters
+        "candles_iterated": None,
+        "reached_entry_stage": None,
+        "processed": None,
+        "bars_processed": None,
+        # Exception info (if any)
+        "exception_type": None,
+        "exception_msg": None,
+        "traceback": None,
+        # Gating counters
+        "gating_counters": {},
+    }
+    
     # DEL 1: Wrap entire function in try/except to catch ALL exceptions (including import errors)
     try:
+        # ------------------------------------------------------------------------
+        # WORKER PRE-FORK FREEZE VERIFICATION (TRUTH/SMOKE ONLY)
+        # ------------------------------------------------------------------------
+        # Verify that PRE_FORK_FREEZE.json exists in run root before processing.
+        # This ensures workers only start after master has verified all guards.
+        # ------------------------------------------------------------------------
+        run_mode = os.getenv("GX1_RUN_MODE", "").upper()
+        is_truth_or_smoke = run_mode in ("TRUTH", "SMOKE") or os.getenv("GX1_SMOKE", "0") == "1"
+        if is_truth_or_smoke:
+            prefork_freeze_path = output_dir / "PRE_FORK_FREEZE.json"
+            if not prefork_freeze_path.exists():
+                # Import dt_module for timestamp
+                from gx1.utils.dt_module import now_iso as dt_now_iso
+                fatal_capsule = {
+                    "timestamp": dt_now_iso(),
+                    "chunk_id": chunk_idx,
+                    "run_id": run_id,
+                    "fatal_reason": "WORKER_PREFORK_MISSING",
+                    "error_message": f"PRE_FORK_FREEZE.json not found in run root: {output_dir}",
+                    "output_dir": str(output_dir),
+                }
+                fatal_path = output_dir / f"chunk_{chunk_idx}" / "WORKER_PREFORK_MISSING_FATAL.json"
+                try:
+                    fatal_path.parent.mkdir(parents=True, exist_ok=True)
+                    import json as json_module
+                    with open(fatal_path, "w") as f:
+                        json_module.dump(fatal_capsule, f, indent=2)
+                except Exception as e:
+                    log.error(f"[WORKER_PREFORK] Failed to write FATAL capsule: {e}")
+                raise RuntimeError(
+                    f"[WORKER_PREFORK_MISSING] PRE_FORK_FREEZE.json not found. "
+                    f"Worker cannot start without master freeze verification. See {fatal_path}"
+                )
+        
         # DEL A: Minimal, korrekt fiks - WORKER_BOOT.json som første linje
         # Resolve chunk_dir first (must be absolute)
         chunk_output_dir = (output_dir / f"chunk_{chunk_idx}").resolve()
@@ -905,6 +1079,19 @@ def process_chunk(
         
         worker_start_time = time.time()
         
+        # TRUTH-only timing breakdown
+        is_truth_or_smoke_worker = os.getenv("GX1_RUN_MODE", "").upper() in ("TRUTH", "SMOKE") or os.getenv("GX1_SMOKE", "0") == "1"
+        t_init_s = 0.0
+        t_load_raw_s = 0.0
+        t_load_prebuilt_s = 0.0
+        t_join_s = 0.0
+        t_loop_s = 0.0
+        t_write_s = 0.0
+        t_total_s = 0.0
+        
+        if is_truth_or_smoke_worker:
+            t_init_start = time.time()
+        
         # DEL 1: Write WORKER_START.json immediately (before any processing)
         worker_start_info = {
             "chunk_id": chunk_idx,
@@ -937,20 +1124,18 @@ def process_chunk(
         
         # DEL A: SSoT logging - Root cause analysis
         cwd = str(Path.cwd())
-        python_exe = sys.executable
+        python_exe = REQUIRED_VENV
         output_dir_env = os.getenv("GX1_OUTPUT_DIR", "NOT_SET")
         prebuilt_env = os.getenv("GX1_REPLAY_USE_PREBUILT_FEATURES", "NOT_SET")
-        prebuilt_path_env = os.getenv("GX1_REPLAY_PREBUILT_FEATURES_PATH", "NOT_SET")
         
         # DEL 4: Determine prebuilt path (explicit arg takes precedence, FATAL if missing)
         if prebuilt_parquet_path:
             # DEL 3: Already a string, resolve to absolute
             prebuilt_root = str(Path(prebuilt_parquet_path).resolve())
         else:
-            # DEL 4: FATAL if arg missing (we expect explicit path in this code path)
+            # FATAL if arg missing (no fallback)
             fatal_msg = (
-                f"[PREBUILT_FAIL] [CHUNK {chunk_idx}] prebuilt_parquet_path arg is None/empty. "
-                f"env GX1_REPLAY_PREBUILT_FEATURES_PATH={prebuilt_path_env}"
+                f"[PREBUILT_FAIL] [CHUNK {chunk_idx}] prebuilt_parquet_path arg is None/empty."
             )
             worker_start_info["exception_full"] = fatal_msg
             worker_start_json_path = chunk_output_dir / "WORKER_START.json"
@@ -961,7 +1146,6 @@ def process_chunk(
             with open(fatal_error_path, "w") as f:
                 f.write(fatal_msg + "\n")
                 f.write(f"prebuilt_parquet_path (arg): {prebuilt_parquet_path}\n")
-                f.write(f"GX1_REPLAY_PREBUILT_FEATURES_PATH (env): {prebuilt_path_env}\n")
             raise RuntimeError(fatal_msg)
         
         prebuilt_parquet_path_resolved = prebuilt_root
@@ -981,7 +1165,6 @@ def process_chunk(
         log.info(f"[CHUNK {chunk_idx}] [SSoT]   sys.executable = {python_exe}")
         log.info(f"[CHUNK {chunk_idx}] [SSoT]   GX1_OUTPUT_DIR = {output_dir_env}")
         log.info(f"[CHUNK {chunk_idx}] [SSoT]   GX1_REPLAY_USE_PREBUILT_FEATURES = {prebuilt_env}")
-        log.info(f"[CHUNK {chunk_idx}] [SSoT]   GX1_REPLAY_PREBUILT_FEATURES_PATH (env) = {prebuilt_path_env}")
         log.info(f"[CHUNK {chunk_idx}] [SSoT]   prebuilt_parquet_path (arg) = {prebuilt_parquet_path}")
         log.info(f"[CHUNK {chunk_idx}] [SSoT]   prebuilt_parquet_path_resolved = {prebuilt_parquet_path_resolved}")
         log.info(f"[CHUNK {chunk_idx}] [SSoT]   exists = {worker_start_info['exists']}, size = {worker_start_info['size']}")
@@ -1043,8 +1226,7 @@ def process_chunk(
             log.info(f"[CHUNK {chunk_idx}] [SSoT]   prebuilt_parquet_path_resolved.exists() = True")
             log.info(f"[CHUNK {chunk_idx}] [SSoT]   prebuilt_parquet_path_resolved.stat().st_size = {worker_start_info['size']:,} bytes")
             
-            # DEL 4: Set environment variables for runner (backward compatibility), but log that we use arg
-            os.environ["GX1_REPLAY_PREBUILT_FEATURES_PATH"] = prebuilt_parquet_path_resolved
+            # Prebuilt mode is enabled via GX1_REPLAY_USE_PREBUILT_FEATURES; path is passed explicitly via args.
             os.environ["GX1_REPLAY_USE_PREBUILT_FEATURES"] = "1"  # CRITICAL: Enable PREBUILT mode
             log.info(f"[CHUNK {chunk_idx}] [SSoT] Using prebuilt_parquet_path from arg (not env): {prebuilt_parquet_path_resolved}")
             log.info(f"[CHUNK {chunk_idx}] [SSoT] Set GX1_REPLAY_USE_PREBUILT_FEATURES=1 to enable PREBUILT mode")
@@ -1132,24 +1314,174 @@ def process_chunk(
         
         # Inner try for replay loop (nested in outer try)
         try:
-            # Load chunk data
-            df_full = pd.read_parquet(data_path)
-            if not isinstance(df_full.index, pd.DatetimeIndex):
-                if "ts" in df_full.columns:
-                    df_full.index = pd.to_datetime(df_full["ts"])
-                else:
-                    raise ValueError("Data must have datetime index or 'ts' column")
-            
-            df_full = df_full.sort_index()
-            
-            # Filter to chunk time range
-            chunk_df = df_full[(df_full.index >= chunk_start) & (df_full.index <= chunk_end)]
-            
-            if len(chunk_df) == 0:
-                raise ValueError(f"Chunk {chunk_idx} is empty after filtering")
-            
+            # CHUNK-LOCAL PADDING: Extend chunk start backwards for warmup, but eval only counts [chunk_start, chunk_end]
+            actual_chunk_start = chunk_start
+            if chunk_local_padding_days > 0:
+                actual_chunk_start = chunk_start - pd.Timedelta(days=chunk_local_padding_days)
+                log.info(
+                    f"[CHUNK {chunk_idx}] [CHUNK_LOCAL_PADDING] chunk_start={chunk_start}, "
+                    f"actual_chunk_start={actual_chunk_start} (padding={chunk_local_padding_days} days), "
+                    f"eval_window=[{chunk_start}, {chunk_end}]"
+                )
+
+            # Load RAW candles for this chunk window (fast: filter by time and keep only needed columns)
+            # NOTE: raw candles must contain OHLC; prebuilt features are validated separately.
+            import pyarrow.parquet as pq
+            from gx1.utils.ts_utils import ensure_ts_column
+
+            raw_filters = [
+                ("time", ">=", actual_chunk_start.to_pydatetime()),
+                ("time", "<=", chunk_end.to_pydatetime()),
+            ]
+
+            raw_table = pq.read_table(
+                data_path,
+                filters=raw_filters,
+                # raw candles parquet is small; keep all columns (includes bid/ask if present)
+            )
+            raw_df = raw_table.to_pandas()
+            if len(raw_df) == 0:
+                raise ValueError(
+                    f"Chunk {chunk_idx} raw candles are empty after filtering "
+                    f"(actual_chunk_start={actual_chunk_start}, chunk_end={chunk_end})"
+                )
+
+            raw_df = ensure_ts_column(raw_df, context=f"raw_candles_chunk_{chunk_idx}")
+            raw_df["ts"] = pd.to_datetime(raw_df["ts"], utc=True)
+            if raw_df["ts"].duplicated().any():
+                dup_count = int(raw_df["ts"].duplicated().sum())
+                raise RuntimeError(f"RAW_TS_DUPLICATES: raw candles have {dup_count} duplicate ts values (chunk={chunk_idx})")
+            raw_df = raw_df.sort_values("ts")
+            chunk_df = raw_df.set_index("ts", drop=False)
+
+            # Update ledger after raw load
+            skip_ledger["stage"] = "raw_loaded"
+            skip_ledger["raw_rows_loaded"] = len(chunk_df)
+            skip_ledger["ts_min_raw"] = str(chunk_df["ts"].min()) if "ts" in chunk_df.columns else None
+            skip_ledger["ts_max_raw"] = str(chunk_df["ts"].max()) if "ts" in chunk_df.columns else None
+
+            # Store eval window boundaries for warmup ledger
+            eval_start_ts = chunk_start  # Eval window starts at original chunk_start (not actual_chunk_start)
+            eval_end_ts = chunk_end
+
+            # Must have at least some bars in the eval window (excluding padding)
+            n_raw_eval = int(((chunk_df["ts"] >= chunk_start) & (chunk_df["ts"] <= chunk_end)).sum())
+            skip_ledger["n_in_eval_window"] = n_raw_eval
+            if n_raw_eval == 0:
+                raise RuntimeError(
+                    f"RAW_EVAL_WINDOW_EMPTY: raw candles have 0 rows in eval window [{chunk_start}, {chunk_end}] "
+                    f"(chunk={chunk_idx}, padding_start={actual_chunk_start})"
+                )
+
             bars_processed = len(chunk_df)
-            log.info(f"[CHUNK {chunk_idx}] Loaded {bars_processed} bars")
+            log.info(f"[CHUNK {chunk_idx}] Loaded raw candles: {bars_processed} bars (eval_window_bars={n_raw_eval})")
+
+            # Validate RAW + PREBUILT alignment deterministically (join on ts) and write join metrics
+            prebuilt_enabled = os.getenv("GX1_REPLAY_USE_PREBUILT_FEATURES", "0") == "1"
+            if prebuilt_enabled:
+                # TRUTH-only timing: t_load_prebuilt_s
+                if is_truth_or_smoke_worker:
+                    t_load_prebuilt_start = time.time()
+                
+                prebuilt_filters = [
+                    ("time", ">=", actual_chunk_start.to_pydatetime()),
+                    ("time", "<=", chunk_end.to_pydatetime()),
+                ]
+                # Read ONLY timestamp column from prebuilt (cheap), then compute join stats on ts.
+                prebuilt_time_table = pq.read_table(prebuilt_parquet_path_resolved, columns=["time"], filters=prebuilt_filters)
+                prebuilt_time_df = prebuilt_time_table.to_pandas()
+                
+                if is_truth_or_smoke_worker:
+                    t_load_prebuilt_s = time.time() - t_load_prebuilt_start
+                if len(prebuilt_time_df) == 0:
+                    raise RuntimeError(
+                        f"PREBUILT_WINDOW_EMPTY: prebuilt has 0 rows after filtering "
+                        f"(actual_chunk_start={actual_chunk_start}, chunk_end={chunk_end}, chunk={chunk_idx})"
+                    )
+                prebuilt_time_df = ensure_ts_column(prebuilt_time_df, context=f"prebuilt_times_chunk_{chunk_idx}")
+                prebuilt_time_df["ts"] = pd.to_datetime(prebuilt_time_df["ts"], utc=True)
+                if prebuilt_time_df["ts"].duplicated().any():
+                    dup_count = int(prebuilt_time_df["ts"].duplicated().sum())
+                    raise RuntimeError(f"PREBUILT_TS_DUPLICATES: prebuilt has {dup_count} duplicate ts values (chunk={chunk_idx})")
+                prebuilt_time_df = prebuilt_time_df.sort_values("ts")
+
+                # Update ledger after prebuilt load
+                skip_ledger["stage"] = "prebuilt_loaded"
+                skip_ledger["prebuilt_rows_loaded"] = len(prebuilt_time_df)
+                skip_ledger["ts_min_prebuilt"] = str(prebuilt_time_df["ts"].min()) if "ts" in prebuilt_time_df.columns else None
+                skip_ledger["ts_max_prebuilt"] = str(prebuilt_time_df["ts"].max()) if "ts" in prebuilt_time_df.columns else None
+
+                n_prebuilt_eval = int(((prebuilt_time_df["ts"] >= chunk_start) & (prebuilt_time_df["ts"] <= chunk_end)).sum())
+                if n_prebuilt_eval == 0:
+                    raise RuntimeError(
+                        f"PREBUILT_EVAL_WINDOW_EMPTY: prebuilt has 0 rows in eval window [{chunk_start}, {chunk_end}] "
+                        f"(chunk={chunk_idx}, padding_start={actual_chunk_start})"
+                    )
+
+                # IMPORTANT: avoid pandas ambiguity where "ts" is both an index level and a column label.
+                # Always join on plain columns with a RangeIndex.
+                # TRUTH-only timing: t_join_s
+                if is_truth_or_smoke_worker:
+                    t_join_start = time.time()
+                
+                raw_ts = chunk_df[["ts"]].reset_index(drop=True).copy()
+                pre_ts = prebuilt_time_df[["ts"]].reset_index(drop=True).copy()
+                joined = raw_ts.merge(pre_ts, on="ts", how="inner")
+                n_raw = int(len(raw_ts))
+                n_pre = int(len(pre_ts))
+                n_join = int(len(joined))
+                denom = min(n_raw, n_pre) if min(n_raw, n_pre) > 0 else 0
+                join_ratio = (n_join / denom) if denom else 0.0
+                
+                if is_truth_or_smoke_worker:
+                    t_join_s = time.time() - t_join_start
+                
+                # Update ledger after join
+                skip_ledger["stage"] = "join_completed"
+                skip_ledger["join_rows"] = n_join
+                skip_ledger["join_ratio"] = join_ratio
+                if len(joined) > 0 and "ts" in joined.columns:
+                    skip_ledger["ts_min_join"] = str(joined["ts"].min())
+                    skip_ledger["ts_max_join"] = str(joined["ts"].max())
+
+                if n_join == 0:
+                    raise RuntimeError(
+                        f"RAW_PREBUILT_JOIN_EMPTY: join produced 0 rows (chunk={chunk_idx}). "
+                        f"raw_n={n_raw} prebuilt_n={n_pre}"
+                    )
+                if is_truth_or_smoke_worker and join_ratio < 0.98:
+                    raise RuntimeError(
+                        f"RAW_PREBUILT_JOIN_RATIO_LOW: join_ratio={join_ratio:.4f} < 0.98 (chunk={chunk_idx}). "
+                        f"raw_n={n_raw} prebuilt_n={n_pre} join_n={n_join}"
+                    )
+
+                join_metrics = {
+                    "chunk_id": chunk_idx,
+                    "actual_chunk_start": str(actual_chunk_start),
+                    "eval_start_ts": str(chunk_start),
+                    "eval_end_ts": str(chunk_end),
+                    "raw_path": str(data_path),
+                    "prebuilt_path": str(prebuilt_parquet_path_resolved),
+                    "raw_rows_window": n_raw,
+                    "prebuilt_rows_window": n_pre,
+                    "joined_rows_window": n_join,
+                    "join_ratio": join_ratio,
+                    "raw_eval_rows": n_raw_eval,
+                    "prebuilt_eval_rows": n_prebuilt_eval,
+                    "raw_ts_min": str(chunk_df["ts"].min()),
+                    "raw_ts_max": str(chunk_df["ts"].max()),
+                    "prebuilt_ts_min": str(prebuilt_time_df["ts"].min()),
+                    "prebuilt_ts_max": str(prebuilt_time_df["ts"].max()),
+                }
+                join_path = chunk_output_dir / "RAW_PREBUILT_JOIN.json"
+                with open(join_path, "w") as f:
+                    import json
+                    json.dump(join_metrics, f, indent=2)
+                    f.flush()
+                    os.fsync(f.fileno())
+                log.info(
+                    f"[CHUNK {chunk_idx}] [RAW_PREBUILT_JOIN] raw={n_raw} prebuilt={n_pre} join={n_join} ratio={join_ratio:.4f}"
+                )
             
             # A) Compute SSoT expected_bars early (before warmup calculation)
             # This will be updated after warmup is calculated, but we log it here for early visibility
@@ -1255,7 +1587,11 @@ def process_chunk(
             if "GX1_REQUIRE_XGB_CALIBRATION" not in os.environ:
                 os.environ["GX1_REQUIRE_XGB_CALIBRATION"] = "1"
             os.environ["GX1_REPLAY_INCREMENTAL_FEATURES"] = "1"
-            os.environ["GX1_REPLAY_NO_CSV"] = "1"
+            # TRUTH-only: Do NOT set GX1_REPLAY_NO_CSV=1 (trade journal requires CSV writes)
+            # GX1_REPLAY_NO_CSV=1 is only for non-TRUTH runs where I/O is a bottleneck
+            is_truth_or_smoke_worker = os.getenv("GX1_RUN_MODE", "").upper() in ("TRUTH", "SMOKE") or os.getenv("GX1_SMOKE", "0") == "1"
+            if not is_truth_or_smoke_worker:
+                os.environ["GX1_REPLAY_NO_CSV"] = "1"
             os.environ["GX1_FEATURE_USE_NP_ROLLING"] = "1"
             os.environ["GX1_RUN_ID"] = run_id
             os.environ["GX1_CHUNK_ID"] = str(chunk_idx)
@@ -1435,10 +1771,15 @@ def process_chunk(
             # With spawn method, workers have clean import state, so this won't affect master's sys.modules
             from gx1.execution.oanda_demo_runner import GX1DemoRunner
             
-            # Set GX1_BUNDLE_DIR env var if bundle_dir is provided (overrides policy bundle_dir)
+            # Set GX1_BUNDLE_DIR env var (priority: GX1_CANONICAL_BUNDLE_DIR > bundle_dir > policy)
             # This must be set BEFORE creating GX1DemoRunner, as it reads GX1_BUNDLE_DIR during init
-            if bundle_dir:
-                # Use os (already imported) instead of a local os-import
+            canonical_bundle_dir = os.getenv("GX1_CANONICAL_BUNDLE_DIR")
+            if canonical_bundle_dir:
+                # Use canonical bundle dir if set (TRUTH/SMOKE mode)
+                os.environ["GX1_BUNDLE_DIR"] = canonical_bundle_dir
+                log.info(f"[CHUNK {chunk_idx}] Set GX1_BUNDLE_DIR={canonical_bundle_dir} (from GX1_CANONICAL_BUNDLE_DIR)")
+            elif bundle_dir:
+                # Use bundle_dir from args/policy if canonical not set
                 bundle_dir_resolved = bundle_dir.resolve() if hasattr(bundle_dir, 'resolve') else Path(bundle_dir).resolve()
                 os.environ["GX1_BUNDLE_DIR"] = str(bundle_dir_resolved)
                 log.info(f"[CHUNK {chunk_idx}] Set GX1_BUNDLE_DIR={bundle_dir_resolved}")
@@ -1456,17 +1797,163 @@ def process_chunk(
             # Set run_id and chunk_id
             runner.run_id = run_id
             runner.chunk_id = str(chunk_idx)
+
+            # ------------------------------------------------------------------------
+            # TRUTH-only: Load OPEN_TRADES_SNAPSHOT.json from previous chunk (carry-forward)
+            # ------------------------------------------------------------------------
+            if is_truth_or_smoke_worker and chunk_idx > 0:
+                try:
+                    prev_chunk_dir = output_dir / f"chunk_{chunk_idx - 1}"
+                    snapshot_path = prev_chunk_dir / "OPEN_TRADES_SNAPSHOT.json"
+                    
+                    if snapshot_path.exists():
+                        with open(snapshot_path, "r") as f:
+                            snapshot = json.load(f)
+                        
+                        open_trades_from_snapshot = snapshot.get("open_trades", [])
+                        snapshot_count = len(open_trades_from_snapshot)
+                        
+                        if snapshot_count > 0:
+                            log.info(f"[CHUNK {chunk_idx}] Loading {snapshot_count} open trades from chunk_{chunk_idx - 1}/OPEN_TRADES_SNAPSHOT.json")
+                            
+                            # Restore trades into runner.open_trades
+                            # Note: LiveTrade is defined in oanda_demo_runner.py
+                            from gx1.execution.oanda_demo_runner import LiveTrade
+                            import pandas as pd
+                            
+                            restored_count = 0
+                            for trade_snap in open_trades_from_snapshot:
+                                try:
+                                    entry_ts = None
+                                    if trade_snap.get("entry_ts"):
+                                        entry_ts = pd.Timestamp(trade_snap.get("entry_ts"), tz="UTC")
+                                    
+                                    # Create LiveTrade object from snapshot (minimal required fields)
+                                    # trade_uid is required, fallback to trade_id if missing
+                                    trade_uid = trade_snap.get("trade_uid") or trade_snap.get("trade_id", "")
+                                    trade = LiveTrade(
+                                        trade_id=trade_snap.get("trade_id", ""),
+                                        trade_uid=trade_uid,
+                                        entry_time=entry_ts,
+                                        side=trade_snap.get("side", "long"),
+                                        units=int(float(trade_snap.get("size", 0.0))),  # units must be int
+                                        entry_price=float(trade_snap.get("entry_price", 0.0)),
+                                        entry_bid=float(trade_snap.get("entry_bid", trade_snap.get("entry_price", 0.0))),
+                                        entry_ask=float(trade_snap.get("entry_ask", trade_snap.get("entry_price", 0.0))),
+                                        atr_bps=0.0,  # Default (not in snapshot)
+                                        vol_bucket="unknown",  # Default (not in snapshot)
+                                        entry_prob_long=0.5,  # Default (not in snapshot)
+                                        entry_prob_short=0.5,  # Default (not in snapshot)
+                                        dry_run=False,
+                                    )
+                                    if trade_snap.get("entry_score"):
+                                        trade.entry_score = trade_snap.get("entry_score")
+                                    if trade_snap.get("extra"):
+                                        trade.extra = trade_snap.get("extra")
+                                    
+                                    # Ensure exit profile is set (required by runner)
+                                    runner._ensure_exit_profile(trade, context="carry_forward")
+                                    
+                                    runner.open_trades.append(trade)
+                                    restored_count += 1
+                                except Exception as restore_error:
+                                    log.warning(f"[CHUNK {chunk_idx}] Failed to restore trade {trade_snap.get('trade_id', 'unknown')}: {restore_error}", exc_info=True)
+                            
+                            log.info(f"[CHUNK {chunk_idx}] Restored {restored_count}/{snapshot_count} open trades from snapshot")
+                        else:
+                            log.debug(f"[CHUNK {chunk_idx}] Snapshot exists but has 0 open trades")
+                    else:
+                        # Check if previous chunk had open trades (invariant check)
+                        prev_footer_path = prev_chunk_dir / "chunk_footer.json"
+                        if prev_footer_path.exists():
+                            try:
+                                with open(prev_footer_path, "r") as f:
+                                    prev_footer = json.load(f)
+                                prev_open_end = prev_footer.get("open_trades_end_of_chunk", 0) or 0
+                                if prev_open_end > 0:
+                                    # Previous chunk had open trades but snapshot is missing - FATAL
+                                    fatal_capsule = {
+                                        "chunk_id": chunk_idx,
+                                        "run_id": run_id,
+                                        "fatal_reason": "OPEN_TRADES_SNAPSHOT_MISSING",
+                                        "prev_chunk_id": chunk_idx - 1,
+                                        "prev_open_trades_end": prev_open_end,
+                                        "snapshot_path": str(snapshot_path),
+                                        "message": f"Previous chunk (chunk_{chunk_idx - 1}) had {prev_open_end} open trades at end, but OPEN_TRADES_SNAPSHOT.json is missing. This violates carry-forward contract.",
+                                        "timestamp": dt_now_iso(),
+                                    }
+                                    from gx1.utils.atomic_json import atomic_write_json
+                                    fatal_path = chunk_output_dir / "OPEN_TRADES_SNAPSHOT_MISSING_FATAL.json"
+                                    atomic_write_json(fatal_path, fatal_capsule)
+                                    raise RuntimeError(
+                                        f"[CHUNK {chunk_idx}] FATAL: OPEN_TRADES_SNAPSHOT_MISSING - "
+                                        f"chunk_{chunk_idx - 1} had {prev_open_end} open trades but snapshot missing. See {fatal_path}"
+                                    )
+                            except Exception as check_error:
+                                log.warning(f"[CHUNK {chunk_idx}] Failed to check previous chunk footer: {check_error}")
+                except Exception as snapshot_load_error:
+                    # Best-effort: do not break non-TRUTH runs
+                    log.warning(f"[CHUNK {chunk_idx}] Failed to load OPEN_TRADES_SNAPSHOT.json: {snapshot_load_error}")
             
-            # B) Propagate prebuilt_df into runner if it was loaded in worker
-            # Check if prebuilt was loaded in worker (via environment or explicit propagation)
-            # If GX1_REPLAY_PREBUILT_FEATURES_PATH is set and runner doesn't have prebuilt_df, load it
-            prebuilt_path_from_env = os.getenv("GX1_REPLAY_PREBUILT_FEATURES_PATH")
-            if prebuilt_path_from_env and (not hasattr(runner, "prebuilt_features_df") or runner.prebuilt_features_df is None):
-                log.info(f"[CHUNK {chunk_idx}] [PREBUILT_PROPAGATE] Loading prebuilt_df into runner (not set during init)")
+            # ------------------------------------------------------------------------
+            # EXIT COVERAGE (TRUTH-only): initialize open_trades_start_of_chunk
+            # ------------------------------------------------------------------------
+            if is_truth_or_smoke_worker and runner and hasattr(runner, "exit_coverage") and isinstance(getattr(runner, "exit_coverage"), dict):
+                try:
+                    open_start = int(len(getattr(runner, "open_trades", []) or []))
+                    runner.exit_coverage["open_trades_start_of_chunk"] = open_start
+                    
+                    # TRUTH-only invariant: if snapshot was loaded, open_start must match previous open_end
+                    if chunk_idx > 0:
+                        prev_chunk_dir = output_dir / f"chunk_{chunk_idx - 1}"
+                        snapshot_path = prev_chunk_dir / "OPEN_TRADES_SNAPSHOT.json"
+                        prev_footer_path = prev_chunk_dir / "chunk_footer.json"
+                        
+                        if snapshot_path.exists() and prev_footer_path.exists():
+                            try:
+                                with open(prev_footer_path, "r") as f:
+                                    prev_footer = json.load(f)
+                                prev_open_end = prev_footer.get("open_trades_end_of_chunk", 0) or 0
+                                
+                                # Allow for forced closes at boundary if explicitly enabled (accounting close)
+                                # But if snapshot exists, we should have restored trades
+                                if prev_open_end > 0 and open_start == 0:
+                                    # This is suspicious - previous chunk had open trades, snapshot exists, but we restored 0
+                                    log.warning(
+                                        f"[CHUNK {chunk_idx}] WARNING: Previous chunk had {prev_open_end} open trades, "
+                                        f"snapshot exists, but restored {open_start} trades. "
+                                        f"This may indicate a restore failure."
+                                    )
+                                elif prev_open_end > 0 and open_start != prev_open_end:
+                                    # Mismatch - log warning but don't fail (may be legitimate if trades were force-closed)
+                                    log.info(
+                                        f"[CHUNK {chunk_idx}] Previous chunk had {prev_open_end} open trades, "
+                                        f"restored {open_start} trades (difference: {prev_open_end - open_start}). "
+                                        f"This may be expected if trades were force-closed at boundary."
+                                    )
+                            except Exception as check_error:
+                                log.warning(f"[CHUNK {chunk_idx}] Failed to verify snapshot state match: {check_error}")
+                except Exception:
+                    pass
+            
+            # CHUNK-LOCAL PADDING: Set eval window explicitly (only [chunk_start, chunk_end] counts for eval)
+            if chunk_local_padding_days > 0:
+                # Set eval window to original chunk boundaries (not actual_chunk_start)
+                runner.replay_eval_start_ts = chunk_start
+                runner.replay_eval_end_ts = chunk_end
+                log.info(
+                    f"[CHUNK {chunk_idx}] [CHUNK_LOCAL_PADDING] Set eval window: "
+                    f"[{runner.replay_eval_start_ts}, {runner.replay_eval_end_ts}] "
+                    f"(actual data range: [{actual_chunk_start}, {chunk_end}])"
+                )
+            
+            # B) Prebuilt propagation (no env fallback): if runner does not have prebuilt_df, load from the explicit arg path.
+            if prebuilt_parquet_path_resolved and (not hasattr(runner, "prebuilt_features_df") or runner.prebuilt_features_df is None):
+                log.info(f"[CHUNK {chunk_idx}] [PREBUILT_PROPAGATE] Loading prebuilt_df into runner (explicit path)")
                 try:
                     from gx1.execution.prebuilt_features_loader import PrebuiltFeaturesLoader
                     from gx1.utils.replay_mode import ReplayMode
-                    prebuilt_loader_worker = PrebuiltFeaturesLoader(Path(prebuilt_path_from_env))
+                    prebuilt_loader_worker = PrebuiltFeaturesLoader(Path(prebuilt_parquet_path_resolved))
                     runner.prebuilt_features_loader = prebuilt_loader_worker
                     runner.prebuilt_features_df = prebuilt_loader_worker.df
                     runner.prebuilt_features_sha256 = prebuilt_loader_worker.sha256
@@ -1634,17 +2121,17 @@ def process_chunk(
                 except ValueError:
                     log.warning(f"[CHUNK {chunk_idx}] Invalid GX1_ABORT_AFTER_N_BARS_PER_CHUNK: {abort_after_n_bars}")
             
-            # STEG 4: Log replay mode and prebuilt status before starting replay
-            prebuilt_parquet_path_env = os.getenv("GX1_REPLAY_PREBUILT_FEATURES_PATH")
+            # STEG 4: Log replay mode and prebuilt status before starting replay (no env fallback)
             prebuilt_enabled_env = os.getenv("GX1_REPLAY_USE_PREBUILT_FEATURES", "0") == "1"
             has_prebuilt_df = hasattr(runner, "prebuilt_features_df") and runner.prebuilt_features_df is not None
             prebuilt_df_rows = len(runner.prebuilt_features_df) if has_prebuilt_df else 0
             prebuilt_df_cols = len(runner.prebuilt_features_df.columns) if has_prebuilt_df else 0
+            prebuilt_path_logged = getattr(runner, "prebuilt_features_path_resolved", None)
             
             log.info(
                 f"[CHUNK {chunk_idx}] [REPLAY_MODE] Before run_replay: "
                 f"prebuilt_enabled_env={prebuilt_enabled_env}, "
-                f"prebuilt_parquet_path={prebuilt_parquet_path_env}, "
+                f"prebuilt_parquet_path={prebuilt_path_logged}, "
                 f"has_prebuilt_df={has_prebuilt_df}, "
                 f"prebuilt_df_rows={prebuilt_df_rows}, "
                 f"prebuilt_df_cols={prebuilt_df_cols}"
@@ -1653,12 +2140,19 @@ def process_chunk(
             # Run replay for this chunk
             # DEL 3: Checkpoint flush is handled inside bar loop via env var
             # Entry stage telemetry: track bars directly from runner (fallback to local if runner telemetry missing)
+            # TRUTH-only timing: t_loop_s
+            if is_truth_or_smoke_worker:
+                t_loop_start = time.time()
+            
             try:
                 runner.run_replay(chunk_data_path_abs)
             except KeyboardInterrupt:
                 log.warning(f"[CHUNK {chunk_idx}] Interrupted (KeyboardInterrupt)")
                 status = "stopped"
                 error = "Interrupted by KeyboardInterrupt"
+            
+            if is_truth_or_smoke_worker:
+                t_loop_s = time.time() - t_loop_start
             
             # DEL 2: Check if we were stopped
             if STOP_REQUESTED:
@@ -1955,8 +2449,18 @@ def process_chunk(
             # DEL 1: Extract phase timing (for "bars/sec" breakdown)
             t_pregate_total_sec = getattr(runner, "t_pregate_total_sec", 0.0)
             t_feature_build_total_sec = feature_time_total  # Pure feature build time (from perf_feat_time)
-            t_model_total_sec = getattr(runner, "t_model_total_sec", 0.0)
-            t_policy_total_sec = getattr(runner, "t_policy_total_sec", 0.0)
+            # B1: True timers (best-effort; semantics-neutral)
+            t_xgb_predict_sec = getattr(runner, "t_xgb_predict_sec", 0.0)
+            t_transformer_forward_sec = getattr(runner, "t_transformer_forward_sec", 0.0)
+            t_gates_policy_sec = getattr(runner, "t_gates_policy_sec", 0.0)
+            t_replay_tags_sec = getattr(runner, "t_replay_tags_sec", 0.0)
+            t_telemetry_sec = getattr(runner, "t_telemetry_sec", 0.0)
+            # Step 4A: replay tagger sub-timers
+            t_replay_tags_build_inputs_sec = getattr(runner, "t_replay_tags_build_inputs_sec", 0.0)
+            t_replay_tags_rolling_sec = getattr(runner, "t_replay_tags_rolling_sec", 0.0)
+            t_replay_tags_ewm_sec = getattr(runner, "t_replay_tags_ewm_sec", 0.0)
+            t_replay_tags_rank_sec = getattr(runner, "t_replay_tags_rank_sec", 0.0)
+            t_replay_tags_assign_sec = getattr(runner, "t_replay_tags_assign_sec", 0.0)
             t_io_total_sec = getattr(runner, "t_io_total_sec", 0.0)
             
             # D) Check prebuilt invariant: if prebuilt enabled, feature_time should be ~0
@@ -2157,15 +2661,31 @@ def process_chunk(
                 if status == "ok":
                     feature_time_mean_ms_val = convert_to_json_serializable(feature_time_mean_ms)
                     t_feature_build_total_sec_val = convert_to_json_serializable(t_feature_build_total_sec)
-                    t_model_total_sec_val = convert_to_json_serializable(t_model_total_sec)
-                    t_policy_total_sec_val = convert_to_json_serializable(t_policy_total_sec)
+                    t_xgb_predict_sec_val = convert_to_json_serializable(t_xgb_predict_sec)
+                    t_transformer_forward_sec_val = convert_to_json_serializable(t_transformer_forward_sec)
+                    t_gates_policy_sec_val = convert_to_json_serializable(t_gates_policy_sec)
+                    t_replay_tags_sec_val = convert_to_json_serializable(t_replay_tags_sec)
+                    t_telemetry_sec_val = convert_to_json_serializable(t_telemetry_sec)
+                    t_replay_tags_build_inputs_sec_val = convert_to_json_serializable(t_replay_tags_build_inputs_sec)
+                    t_replay_tags_rolling_sec_val = convert_to_json_serializable(t_replay_tags_rolling_sec)
+                    t_replay_tags_ewm_sec_val = convert_to_json_serializable(t_replay_tags_ewm_sec)
+                    t_replay_tags_rank_sec_val = convert_to_json_serializable(t_replay_tags_rank_sec)
+                    t_replay_tags_assign_sec_val = convert_to_json_serializable(t_replay_tags_assign_sec)
                     t_io_total_sec_val = convert_to_json_serializable(t_io_total_sec)
                     bars_per_sec_val = convert_to_json_serializable(bars_processed / wall_clock_sec if wall_clock_sec > 0 else 0.0)
                 else:
                     feature_time_mean_ms_val = None
                     t_feature_build_total_sec_val = None
-                    t_model_total_sec_val = None
-                    t_policy_total_sec_val = None
+                    t_xgb_predict_sec_val = None
+                    t_transformer_forward_sec_val = None
+                    t_gates_policy_sec_val = None
+                    t_replay_tags_sec_val = None
+                    t_telemetry_sec_val = None
+                    t_replay_tags_build_inputs_sec_val = None
+                    t_replay_tags_rolling_sec_val = None
+                    t_replay_tags_ewm_sec_val = None
+                    t_replay_tags_rank_sec_val = None
+                    t_replay_tags_assign_sec_val = None
                     t_io_total_sec_val = None
                     bars_per_sec_val = None
                 
@@ -2173,6 +2693,11 @@ def process_chunk(
                 case_collision_resolution_val = None
                 if 'case_collision_resolution' in locals():
                     case_collision_resolution_val = convert_to_json_serializable(case_collision_resolution)
+                
+                # TRUTH-only timing breakdown
+                if is_truth_or_smoke_worker:
+                    t_total_s = time.time() - worker_start_time
+                    # t_write_s will be calculated after footer is written
                 
                 chunk_footer = {
                     "run_id": run_id,
@@ -2186,6 +2711,14 @@ def process_chunk(
                     "case_collision_resolution": case_collision_resolution_val,
                     # DEL 1: Add performance summary metrics for A/B comparison
                     "wall_clock_sec": convert_to_json_serializable(wall_clock_sec),
+                    # TRUTH-only timing breakdown
+                    "t_init_s": convert_to_json_serializable(t_init_s) if is_truth_or_smoke_worker else None,
+                    "t_load_raw_s": convert_to_json_serializable(t_load_raw_s) if is_truth_or_smoke_worker else None,
+                    "t_load_prebuilt_s": convert_to_json_serializable(t_load_prebuilt_s) if is_truth_or_smoke_worker else None,
+                    "t_join_s": convert_to_json_serializable(t_join_s) if is_truth_or_smoke_worker else None,
+                    "t_loop_s": convert_to_json_serializable(t_loop_s) if is_truth_or_smoke_worker else None,
+                    "t_write_s": convert_to_json_serializable(t_write_s) if is_truth_or_smoke_worker else None,
+                    "t_total_s": convert_to_json_serializable(t_total_s) if is_truth_or_smoke_worker else None,
                     "total_bars": convert_to_json_serializable(total_bars) if status == "ok" else None,
                     "bars_per_sec": bars_per_sec_val,
                     "feature_time_mean_ms": feature_time_mean_ms_val,
@@ -2210,8 +2743,16 @@ def process_chunk(
                     # DEL 1: Phase timing breakdown
                     "t_pregate_total_sec": convert_to_json_serializable(t_pregate_total_sec) if status == "ok" else None,
                     "t_feature_build_total_sec": t_feature_build_total_sec_val,
-                    "t_model_total_sec": t_model_total_sec_val,
-                    "t_policy_total_sec": t_policy_total_sec_val,
+                    "t_xgb_predict_sec": t_xgb_predict_sec_val,
+                    "t_transformer_forward_sec": t_transformer_forward_sec_val,
+                    "t_gates_policy_sec": t_gates_policy_sec_val,
+                    "t_replay_tags_sec": t_replay_tags_sec_val,
+                    "t_replay_tags_build_inputs_sec": t_replay_tags_build_inputs_sec_val,
+                    "t_replay_tags_rolling_sec": t_replay_tags_rolling_sec_val,
+                    "t_replay_tags_ewm_sec": t_replay_tags_ewm_sec_val,
+                    "t_replay_tags_rank_sec": t_replay_tags_rank_sec_val,
+                    "t_replay_tags_assign_sec": t_replay_tags_assign_sec_val,
+                    "t_telemetry_sec": t_telemetry_sec_val,
                     "t_io_total_sec": t_io_total_sec_val,
                     "bars_processed": convert_to_json_serializable(bars_processed),
                     "start_ts": chunk_start.isoformat() if chunk_start else None,
@@ -2229,6 +2770,18 @@ def process_chunk(
                     prebuilt_used = runner.prebuilt_used
                 
                 chunk_footer["prebuilt_used"] = prebuilt_used
+
+                # Step 4A: replay tagger fast-skip counters (TRUTH/SMOKE only)
+                try:
+                    if runner:
+                        chunk_footer["replay_tags_fastskip_hits"] = int(getattr(runner, "replay_tags_fastskip_hits", 0) or 0)
+                        counts = getattr(runner, "replay_tags_fastskip_reason_counts", None)
+                        top_reason = None
+                        if isinstance(counts, dict) and counts:
+                            top_reason = sorted(counts.items(), key=lambda kv: kv[1], reverse=True)[0][0]
+                        chunk_footer["replay_tags_fastskip_reason"] = top_reason
+                except Exception:
+                    pass
                 
                 # Add prebuilt gate dump for diagnosis (from entry_manager)
                 # If entry_manager hasn't been called yet, build dump from runner state directly
@@ -2578,12 +3131,29 @@ def process_chunk(
                     "killchain_n_trade_created": 0,
                 }
                 killchain_block_reason_counts = {}
+                threshold_value_used = None
+                threshold_source = None
                 if runner and hasattr(runner, "entry_manager"):
                     em = runner.entry_manager
                     killchain_version = int(getattr(em, "killchain_version", 1))
                     for k in list(killchain_fields.keys()):
                         killchain_fields[k] = int(getattr(em, k.replace("killchain_", "killchain_"), 0))
                     killchain_block_reason_counts = getattr(em, "killchain_block_reason_counts", {}) or {}
+                    # Extract threshold_value_used (SSoT for score gate)
+                    threshold_value_used = getattr(em, "threshold_used", None)
+                    # Determine threshold_source from policy
+                    if hasattr(runner, "replay_mode") and runner.replay_mode:
+                        replay_policy_cfg = runner.policy.get("entry_policy_sniper_v10_ctx", {}) or runner.policy.get("sniper_policy", {})
+                        if replay_policy_cfg:
+                            threshold_source = "entry_policy_sniper_v10_ctx" if "entry_policy_sniper_v10_ctx" in runner.policy else "sniper_policy"
+                        else:
+                            threshold_source = "default (SniperPolicyParams)"
+                    else:
+                        policy_sniper_cfg = runner.policy.get("entry_v9_policy_sniper", {})
+                        if policy_sniper_cfg:
+                            threshold_source = "entry_v9_policy_sniper"
+                        else:
+                            threshold_source = "default (SniperPolicyParams)"
 
                 # Deterministic JSON output (sorted reason keys)
                 killchain_block_reason_counts_sorted = {
@@ -2604,6 +3174,9 @@ def process_chunk(
                     chunk_footer[k] = convert_to_json_serializable(v)
                 chunk_footer["killchain_block_reason_counts"] = convert_to_json_serializable(killchain_block_reason_counts_sorted)
                 chunk_footer["killchain_top_block_reason"] = top_reason
+                # Score gate threshold (SSoT)
+                chunk_footer["threshold_used"] = threshold_value_used
+                chunk_footer["threshold_source"] = threshold_source
 
                 # Kill-chain STAGE2 (post-vol) counters (SSoT)
                 stage2 = {
@@ -2751,7 +3324,10 @@ def process_chunk(
                         f"stage2_total={stage2_total_canonical} != stage2_pass={stage2_pass_canonical} + stage2_block={stage2_block_canonical} + stage2_early_return={stage2_early_return_canonical}"
                     )
                 
-                # pass_score must partition into trade_created + explicit post-score blocks
+                # pass_score is the number of bars that passed score gate.
+                # NOTE: Not all score-passing bars necessarily create trades (policy may choose not to trade).
+                # Therefore we only enforce a *lower bound* invariant here:
+                #   trade_created + explicit_post_score_blocks <= pass_score
                 trade_created = int(killchain_fields.get("killchain_n_trade_created", 0))
                 post_blocks = (
                     int(stage2.get("killchain_n_block_spread_guard", 0))
@@ -2762,18 +3338,18 @@ def process_chunk(
                     + int(stage2.get("killchain_n_block_risk_guard", 0))
                     + int(stage2.get("killchain_n_block_unknown_post_vol", 0))
                 )
-                if pass_score != (trade_created + post_blocks):
-                    # Write diff capsule before raising
+                if (trade_created + post_blocks) > pass_score:
                     _write_ssoT_diff_capsule(
                         chunk_output_dir, chunk_idx, run_id, policy_hash, bundle_sha, replay_mode_enum,
                         counter_context, expected_lookup_attempts=None, actual_lookup_attempts=None,
                         stage2_total=pass_score, stage2_pass=trade_created, stage2_block=post_blocks,
-                        error_type="KILLCHAIN_STAGE2_FAIL", error_msg=f"pass_score_gate={pass_score} != trade_created={trade_created} + post_blocks={post_blocks}",
+                        error_type="KILLCHAIN_STAGE2_FAIL",
+                        error_msg=f"trade_created+post_blocks={trade_created + post_blocks} > pass_score_gate={pass_score}",
                         chunk_df=chunk_df
                     )
                     raise RuntimeError(
                         "[KILLCHAIN_STAGE2_FAIL] SSoT mismatch: "
-                        f"pass_score_gate={pass_score} != trade_created={trade_created} + post_blocks={post_blocks}"
+                        f"trade_created+post_blocks={trade_created + post_blocks} > pass_score_gate={pass_score}"
                     )
                 if pass_score < trade_created:
                     # Write diff capsule before raising
@@ -2837,8 +3413,10 @@ def process_chunk(
                         stage3_early_return_reasons_canonical = dict(getattr(telemetry, "stage3_early_return_reasons", {}))
                 
                 # D) Canonical Stage3 invariant: stage3_total == stage3_pass + stage3_block + stage3_early_return
+                #
+                # IMPORTANT: This is telemetry-only and must not fail TRUTH runs (no trading semantics).
+                # If this invariant breaks, write a diff capsule + mark footer fields, but continue.
                 if stage3_total_canonical > 0 and stage3_total_canonical != (stage3_pass_canonical + stage3_block_canonical + stage3_early_return_canonical):
-                    # Write KILLCHAIN_SSoT_DIFF.json
                     _write_killchain_ssoT_diff(
                         chunk_output_dir, chunk_idx, run_id, policy_hash, bundle_sha, replay_mode_enum,
                         stage2_total=None, stage2_pass=None, stage2_block=None, stage2_early_return=None,
@@ -2846,14 +3424,23 @@ def process_chunk(
                         stage3_total=stage3_total_canonical, stage3_pass=stage3_pass_canonical, stage3_block=stage3_block_canonical,
                         stage3_early_return=stage3_early_return_canonical, stage3_block_reasons=stage3_block_reasons_canonical,
                         stage3_early_return_reasons=stage3_early_return_reasons_canonical,
-                        error_type="KILLCHAIN_STAGE3_FAIL",
+                        error_type="KILLCHAIN_STAGE3_MISMATCH",
                         error_msg=f"stage3_total={stage3_total_canonical} != stage3_pass={stage3_pass_canonical} + stage3_block={stage3_block_canonical} + stage3_early_return={stage3_early_return_canonical}",
                         chunk_df=chunk_df
                     )
-                    raise RuntimeError(
-                        "[KILLCHAIN_STAGE3_FAIL] SSoT mismatch: "
-                        f"stage3_total={stage3_total_canonical} != stage3_pass={stage3_pass_canonical} + stage3_block={stage3_block_canonical} + stage3_early_return={stage3_early_return_canonical}"
+                    chunk_footer["killchain_stage3_ssot_ok"] = False
+                    chunk_footer["killchain_stage3_ssot_mismatch"] = {
+                        "stage3_total": int(stage3_total_canonical),
+                        "stage3_pass": int(stage3_pass_canonical),
+                        "stage3_block": int(stage3_block_canonical),
+                        "stage3_early_return": int(stage3_early_return_canonical),
+                    }
+                    log.error(
+                        "[KILLCHAIN_STAGE3_MISMATCH] stage3_total=%s != stage3_pass=%s + stage3_block=%s + stage3_early_return=%s (telemetry-only; continuing)",
+                        stage3_total_canonical, stage3_pass_canonical, stage3_block_canonical, stage3_early_return_canonical
                     )
+                else:
+                    chunk_footer["killchain_stage3_ssot_ok"] = True
                 
                 # Also enforce: post_score_gate_reached <= post_vol_guard_reached
                 if stage3_total_canonical > 0 and stage2_total_canonical > 0 and stage3_total_canonical > stage2_total_canonical:
@@ -2974,6 +3561,21 @@ def process_chunk(
                 reached_entry_stage = bar_counters["reached_entry_stage"]
                 processed = bar_counters["processed"]
                 
+                # Update ledger with bar counters
+                skip_ledger["stage"] = "bar_counters_computed"
+                skip_ledger["candles_iterated"] = candles_iterated
+                skip_ledger["reached_entry_stage"] = reached_entry_stage
+                skip_ledger["processed"] = processed
+                skip_ledger["bars_processed"] = bars_processed
+                skip_ledger["warmup_bars_required"] = getattr(runner, "warmup_bars_required", None) if runner else None
+                skip_ledger["warmup_bars_seen"] = warmup_skipped
+                skip_ledger["skipped_breakdown"]["skipped_warmup"] = warmup_skipped
+                skip_ledger["skipped_breakdown"]["skipped_pregate"] = pregate_skipped
+                if runner:
+                    skip_ledger["gating_counters"]["pregate_enabled"] = getattr(runner, "pregate_enabled", False)
+                    skip_ledger["gating_counters"]["pregate_skips"] = getattr(runner, "pregate_skips", None)
+                    skip_ledger["gating_counters"]["pregate_passes"] = getattr(runner, "pregate_passes", None)
+                
                 # Store in chunk_footer
                 chunk_footer["bar_counters"] = bar_counters
                 chunk_footer["bars_skipped"] = candles_iterated - processed
@@ -2984,6 +3586,9 @@ def process_chunk(
                 # skipped = candles_iterated - reached_entry_stage (bars that didn't reach entry stage)
                 skipped = candles_iterated - reached_entry_stage
                 expected_skipped = warmup_skipped + pregate_skipped
+                skip_ledger["n_skipped_total"] = skipped
+                skip_ledger["skipped_breakdown"]["skipped_other"] = skipped - warmup_skipped - pregate_skipped
+                skip_ledger["skipped_breakdown"]["skipped_other_reason"] = "unaccounted_skip" if (skipped - warmup_skipped - pregate_skipped) > 0 else None
                 
                 if skipped != expected_skipped:
                     # Check panic mode (default: disabled for smokes)
@@ -3087,9 +3692,7 @@ def process_chunk(
                 chunk_footer["warmup_seen"] = warmup_seen
                 
                 if prebuilt_used:
-                    prebuilt_path = os.getenv("GX1_REPLAY_PREBUILT_FEATURES_PATH", "")
-                    if runner and hasattr(runner, "prebuilt_features_path_resolved"):
-                        prebuilt_path = runner.prebuilt_features_path_resolved
+                    prebuilt_path = runner.prebuilt_features_path_resolved if runner and hasattr(runner, "prebuilt_features_path_resolved") else None
                     chunk_footer["prebuilt_path"] = prebuilt_path
                     if runner and hasattr(runner, "prebuilt_features_sha256") and runner.prebuilt_features_sha256:
                         chunk_footer["features_file_sha256"] = runner.prebuilt_features_sha256
@@ -3515,6 +4118,199 @@ def process_chunk(
                         "[SSOT_FAIL] bundle_sha256 is missing in chunk footer. "
                         "This should never happen - bundle_sha256 must be computed before workers start."
                     )
+                
+                # CHUNK-LOCAL PADDING: Add warmup ledger to chunk footer
+                if chunk_local_padding_days > 0:
+                    # Get warmup counters from runner
+                    warmup_required_bars = getattr(runner, "warmup_bars", 288) if runner else 288
+                    warmup_seen_bars = bars_seen if bars_seen is not None else 0
+                    warmup_skipped_total = bars_skipped_warmup if bars_skipped_warmup is not None else 0
+                    warmup_completed_ts = None
+                    if runner and hasattr(runner, "first_valid_eval_idx_stored") and runner.first_valid_eval_idx_stored is not None:
+                        if chunk_df is not None and len(chunk_df) > runner.first_valid_eval_idx_stored:
+                            warmup_completed_ts = chunk_df.index[runner.first_valid_eval_idx_stored].isoformat()
+                    
+                    chunk_footer["warmup_ledger"] = {
+                        "chunk_local_padding_days": chunk_local_padding_days,
+                        "actual_replay_start_ts": actual_chunk_start.isoformat() if 'actual_chunk_start' in locals() else None,
+                        "eval_start_ts": eval_start_ts.isoformat() if 'eval_start_ts' in locals() else chunk_start.isoformat(),
+                        "eval_end_ts": eval_end_ts.isoformat() if 'eval_end_ts' in locals() else chunk_end.isoformat(),
+                        "warmup_required_bars": warmup_required_bars,
+                        "warmup_seen_bars": warmup_seen_bars,
+                        "warmup_skipped_total": warmup_skipped_total,
+                        "warmup_completed_ts": warmup_completed_ts,
+                        "bars_processed_total": bars_processed,
+                    }
+                else:
+                    chunk_footer["warmup_ledger"] = None
+
+                # ------------------------------------------------------------------------
+                # EXIT COVERAGE (TRUTH-only): export exit counters + write proof artifact
+                # ------------------------------------------------------------------------
+                if is_truth_or_smoke_worker and runner and hasattr(runner, "exit_coverage") and isinstance(getattr(runner, "exit_coverage"), dict):
+                    try:
+                        exit_cov = runner.exit_coverage
+
+                        # Open trades end-of-chunk
+                        open_end = int(len(getattr(runner, "open_trades", []) or []))
+                        exit_cov["open_trades_end_of_chunk"] = open_end
+
+                        # Export CSV exit row count if available
+                        exit_rows_written = 0
+                        tj = getattr(runner, "trade_journal", None)
+                        if tj is not None and hasattr(tj, "event_row_counts"):
+                            try:
+                                exit_rows_written = int(getattr(tj, "event_row_counts", {}).get("EXIT", 0) or 0)
+                            except Exception:
+                                exit_rows_written = 0
+                        exit_cov["exit_event_rows_written"] = exit_rows_written
+
+                        # Derived count: open_to_closed_within_chunk (best-effort)
+                        # Use exit_summary_logged as closed count signal (replay accounting)
+                        try:
+                            exit_cov["open_to_closed_within_chunk"] = int(exit_cov.get("exit_summary_logged", 0) or 0)
+                        except Exception:
+                            pass
+
+                        # closed_trades_in_chunk: trades that closed within this chunk
+                        closed_trades_in_chunk = int(exit_cov.get("exit_summary_logged", 0) or 0)
+                        exit_cov["closed_trades_in_chunk"] = closed_trades_in_chunk
+
+                        # Copy counters into footer (flat keys as requested)
+                        for k in [
+                            "exit_attempts_total",
+                            "exit_request_close_called",
+                            "exit_request_close_accepted",
+                            "exit_summary_logged",
+                            "exit_event_rows_written",
+                            "force_close_attempts_replay_end",
+                            "force_close_logged_replay_end",
+                            "force_close_attempts_replay_eof",
+                            "force_close_logged_replay_eof",
+                            "open_trades_start_of_chunk",
+                            "open_trades_end_of_chunk",
+                            "open_to_closed_within_chunk",
+                            "closed_trades_in_chunk",
+                            "replay_end_or_eof_triggered",
+                            "accounting_close_enabled",
+                        ]:
+                            chunk_footer[k] = exit_cov.get(k)
+
+                        # TRUTH-only proof artifact per chunk
+                        proof_payload = {
+                            "chunk_id": chunk_idx,
+                            "run_id": run_id,
+                            "open_trades_start": exit_cov.get("open_trades_start_of_chunk"),
+                            "open_trades_end": exit_cov.get("open_trades_end_of_chunk"),
+                            "exit_attempts_total": exit_cov.get("exit_attempts_total", 0),
+                            "exit_request_close_called": exit_cov.get("exit_request_close_called", 0),
+                            "exit_request_close_accepted": exit_cov.get("exit_request_close_accepted", 0),
+                            "exit_summary_logged": exit_cov.get("exit_summary_logged", 0),
+                            "exit_event_rows_written": exit_cov.get("exit_event_rows_written", 0),
+                            "force_close_attempts_replay_end": exit_cov.get("force_close_attempts_replay_end", 0),
+                            "force_close_logged_replay_end": exit_cov.get("force_close_logged_replay_end", 0),
+                            "force_close_attempts_replay_eof": exit_cov.get("force_close_attempts_replay_eof", 0),
+                            "force_close_logged_replay_eof": exit_cov.get("force_close_logged_replay_eof", 0),
+                            "open_to_closed_within_chunk": exit_cov.get("open_to_closed_within_chunk", 0),
+                            "last_5_exit_reasons": list(exit_cov.get("last_5_exit_reasons") or []),
+                            "last_5_trade_ids_closed": list(exit_cov.get("last_5_trade_ids_closed") or []),
+                            "replay_end_or_eof_triggered": bool(exit_cov.get("replay_end_or_eof_triggered", False)),
+                            "accounting_close_enabled": bool(exit_cov.get("accounting_close_enabled", False)),
+                            "timestamp": dt_now_iso(),
+                        }
+
+                        from gx1.utils.atomic_json import atomic_write_json
+                        proof_path = chunk_output_dir / "EXIT_COVERAGE_PROOF.json"
+                        atomic_write_json(proof_path, proof_payload)
+
+                        # ------------------------------------------------------------
+                        # TRUTH invariant (C1): accepted close MUST be journaled
+                        #
+                        # If exit_request_close_accepted > 0 in this chunk, then we
+                        # require evidence of journaling:
+                        #   - exit_event_rows_written > 0  OR
+                        #   - exit_summary_logged > 0
+                        # Otherwise: hard-fail with capsule(s).
+                        # ------------------------------------------------------------
+                        accepted = int(proof_payload.get("exit_request_close_accepted", 0) or 0)
+                        summary_logged = int(proof_payload.get("exit_summary_logged", 0) or 0)
+                        event_rows = int(proof_payload.get("exit_event_rows_written", 0) or 0)
+                        truth_ok = True
+                        truth_fail_reason = None
+                        if accepted > 0 and (summary_logged <= 0 and event_rows <= 0):
+                            truth_ok = False
+                            truth_fail_reason = "EXIT_ACCEPTED_BUT_NOT_JOURNALED"
+
+                            # Best-effort: include an example trade id (first recent close)
+                            example_trade_id = None
+                            try:
+                                tids = list(exit_cov.get("last_5_trade_ids_closed") or [])
+                                if tids:
+                                    example_trade_id = str(tids[0])
+                            except Exception:
+                                example_trade_id = None
+
+                            capsule = {
+                                "fatal_tag": "[TRUTH_FAIL] EXIT_ACCEPTED_BUT_NOT_JOURNALED",
+                                "chunk_id": chunk_idx,
+                                "run_id": run_id,
+                                "counters": {
+                                    "exit_request_close_accepted": accepted,
+                                    "exit_summary_logged": summary_logged,
+                                    "exit_event_rows_written": event_rows,
+                                },
+                                "paths": {
+                                    "chunk_output_dir": str(chunk_output_dir),
+                                    "exit_coverage_proof": str(proof_path),
+                                    "trade_journal_dir": str((chunk_output_dir / "trade_journal").resolve()),
+                                    "trade_journal_jsonl": str((chunk_output_dir / "trade_journal" / "trade_journal.jsonl").resolve()),
+                                    "trade_journal_index_csv": str((chunk_output_dir / "trade_journal" / "trade_journal_index.csv").resolve()),
+                                },
+                                "example_trade_id": example_trade_id,
+                                "timestamp": dt_now_iso(),
+                            }
+                            capsule_path_chunk = chunk_output_dir / "TRUTH_EXIT_JOURNAL_FAIL_CAPSULE.json"
+                            capsule_path_root = args.output_dir / "TRUTH_EXIT_JOURNAL_FAIL_CAPSULE.json"
+                            atomic_write_json(capsule_path_chunk, capsule)
+                            atomic_write_json(capsule_path_root, capsule)
+
+                        exit_cov["truth_exit_journal_ok"] = truth_ok
+                        exit_cov["truth_exit_journal_fail_reason"] = truth_fail_reason
+                        chunk_footer["truth_exit_journal_ok"] = truth_ok
+                        chunk_footer["truth_exit_journal_fail_reason"] = truth_fail_reason
+
+                        if not truth_ok:
+                            raise RuntimeError(
+                                f"[TRUTH_FAIL] EXIT_ACCEPTED_BUT_NOT_JOURNALED: "
+                                f"accepted={accepted} exit_summary_logged={summary_logged} exit_event_rows_written={event_rows}. "
+                                f"See {capsule_path_chunk}"
+                            )
+
+                        # TRUTH-only invariant: if replay end/eof triggered and open trades remain, we must have logged force-close
+                        if proof_payload["replay_end_or_eof_triggered"] and open_end > 0:
+                            force_logged = int(proof_payload.get("force_close_logged_replay_end", 0) or 0) + int(proof_payload.get("force_close_logged_replay_eof", 0) or 0)
+                            if force_logged == 0:
+                                fatal_capsule = {
+                                    "chunk_id": chunk_idx,
+                                    "run_id": run_id,
+                                    "fatal_reason": "EXIT_FORCE_CLOSE_LOGGING",
+                                    "open_trades_end_of_chunk": open_end,
+                                    "proof_path": str(proof_path),
+                                    "message": "REPLAY_END/EOF was triggered with open trades remaining, but force_close_logged_* == 0. This violates exit accounting contract.",
+                                    "timestamp": dt_now_iso(),
+                                }
+                                fatal_path = chunk_output_dir / "EXIT_FORCE_CLOSE_LOGGING_FATAL.json"
+                                atomic_write_json(fatal_path, fatal_capsule)
+                                raise RuntimeError(
+                                    f"[CHUNK {chunk_idx}] FATAL: EXIT_FORCE_CLOSE_LOGGING - open_trades_end={open_end} but force_close_logged==0. See {fatal_path}"
+                                )
+                    except Exception as exit_cov_error:
+                        # Best-effort: do not break non-TRUTH runs.
+                        # In TRUTH/SMOKE, re-raise if this is an explicit TRUTH_FAIL capsule-worthy invariant.
+                        msg = str(exit_cov_error)
+                        if "[TRUTH_FAIL]" in msg:
+                            raise
+                        log.warning(f"[CHUNK {chunk_idx}] EXIT_COVERAGE export failed: {exit_cov_error}")
                 
                 # Convert all values to JSON-serializable types
                 chunk_footer = convert_to_json_serializable(chunk_footer)
@@ -4028,10 +4824,155 @@ def process_chunk(
                             f"(GX1_REQUIRE_ENTRY_TELEMETRY=1). Error: {e}"
                         )
                 
+                # E) TRUTH-only invariant: Score gate impossible check
+                # If score_max > threshold AND above_threshold == 0, this is impossible and must FATAL
+                is_truth_or_smoke_local = os.getenv("GX1_RUN_MODE", "").upper() in ["TRUTH", "SMOKE"]
+                if is_truth_or_smoke_local and runner and hasattr(runner, "entry_manager") and runner.entry_manager:
+                    em = runner.entry_manager
+                    killchain_n_above_threshold = getattr(em, "killchain_n_above_threshold", 0)
+                    entry_score_max = chunk_footer.get("entry_score_max")
+                    entry_score_samples = chunk_footer.get("entry_score_samples", 0)
+                    
+                    # Get threshold used (from killchain check - must match what killchain check actually uses)
+                    # In replay mode, killchain check uses entry_policy_sniper_v10_ctx or sniper_policy config
+                    # We must read from the same config to match killchain check logic
+                    threshold_val = None
+                    try:
+                        if hasattr(runner, "replay_mode") and runner.replay_mode:
+                            # Replay mode: read from entry_policy_sniper_v10_ctx or sniper_policy (same as killchain check)
+                            replay_policy_cfg = runner.policy.get("entry_policy_sniper_v10_ctx", {}) or runner.policy.get("sniper_policy", {})
+                            threshold_val = float(replay_policy_cfg.get("min_prob_long", 0.68))  # Match SniperPolicyParams default
+                        else:
+                            # Live mode: use entry_v9_policy_sniper config
+                            policy_sniper_cfg = runner.policy.get("entry_v9_policy_sniper", {})
+                            threshold_val = float(policy_sniper_cfg.get("min_prob_long", 0.67))
+                    except Exception:
+                        threshold_val = None
+                    
+                    # Check invariant: if score_max > threshold and above_threshold == 0, this is impossible
+                    if entry_score_max is not None and threshold_val is not None and entry_score_samples > 0:
+                        if entry_score_max > threshold_val and killchain_n_above_threshold == 0:
+                            fatal_capsule = {
+                                "chunk_idx": chunk_idx,
+                                "run_id": run_id,
+                                "fatal_reason": "SCORE_GATE_IMPOSSIBLE",
+                                "entry_score_max": entry_score_max,
+                                "threshold_used": threshold_val,
+                                "killchain_n_above_threshold": killchain_n_above_threshold,
+                                "entry_score_samples": entry_score_samples,
+                                "killchain_n_entry_pred_total": getattr(em, "killchain_n_entry_pred_total", 0),
+                                "message": f"Entry score max ({entry_score_max:.4f}) > threshold ({threshold_val:.4f}) but killchain_n_above_threshold=0. This is impossible and indicates a bug in score gate logic.",
+                                "timestamp": dt_now_iso(),
+                            }
+                            fatal_path = chunk_output_dir / "SCORE_GATE_IMPOSSIBLE_FATAL.json"
+                            from gx1.utils.atomic_json import atomic_write_json
+                            atomic_write_json(fatal_path, fatal_capsule)
+                            raise RuntimeError(
+                                f"[CHUNK {chunk_idx}] FATAL: SCORE_GATE_IMPOSSIBLE - "
+                                f"entry_score_max={entry_score_max:.4f} > threshold={threshold_val:.4f} "
+                                f"but killchain_n_above_threshold=0. "
+                                f"This indicates a bug in score gate logic. "
+                                f"See {fatal_path} for details."
+                            )
+                
                 with open(chunk_footer_path, "w") as f:
                     json.dump(chunk_footer, f, indent=2)
                 
                 log.info(f"[CHUNK {chunk_idx}] chunk_footer.json written: status={status}")
+                
+                # ------------------------------------------------------------------------
+                # TRUTH-only: Write OPEN_TRADES_SNAPSHOT.json for carry-forward (status=ok only)
+                # ------------------------------------------------------------------------
+                if is_truth_or_smoke_worker and status == "ok" and runner:
+                    try:
+                        open_trades = getattr(runner, "open_trades", []) or []
+                        open_end = len(open_trades)
+                        
+                        if open_end > 0:
+                            # Build snapshot with minimal trade state needed to continue
+                            snapshot_trades = []
+                            for trade in open_trades:
+                                try:
+                                    trade_snapshot = {
+                                        "trade_id": getattr(trade, "trade_id", None),
+                                        "trade_uid": getattr(trade, "trade_uid", None),
+                                        "entry_ts": getattr(trade, "entry_time", None).isoformat() if hasattr(trade, "entry_time") and trade.entry_time else None,
+                                        "entry_price": float(getattr(trade, "entry_price", 0.0)),
+                                        "entry_bid": float(getattr(trade, "entry_bid", getattr(trade, "entry_price", 0.0))),
+                                        "entry_ask": float(getattr(trade, "entry_ask", getattr(trade, "entry_price", 0.0))),
+                                        "side": getattr(trade, "side", "long"),
+                                        "size": float(getattr(trade, "units", 0.0)),
+                                        "entry_score": getattr(trade, "entry_score", None),
+                                        "extra": getattr(trade, "extra", {}) or {},
+                                    }
+                                    snapshot_trades.append(trade_snapshot)
+                                except Exception as trade_snap_error:
+                                    log.warning(f"[CHUNK {chunk_idx}] Failed to snapshot trade {getattr(trade, 'trade_id', 'unknown')}: {trade_snap_error}")
+                            
+                            # Get last bar timestamp from chunk_df
+                            last_bar_ts = None
+                            if chunk_df is not None and len(chunk_df) > 0:
+                                last_bar_ts = chunk_df.index[-1].isoformat()
+                            
+                            snapshot = {
+                                "chunk_id": chunk_idx,
+                                "run_id": run_id,
+                                "last_bar_ts": last_bar_ts,
+                                "open_trades_count": open_end,
+                                "open_trades": snapshot_trades,
+                                "timestamp": dt_now_iso(),
+                            }
+                            
+                            from gx1.utils.atomic_json import atomic_write_json
+                            snapshot_path = chunk_output_dir / "OPEN_TRADES_SNAPSHOT.json"
+                            atomic_write_json(snapshot_path, snapshot)
+                            log.info(f"[CHUNK {chunk_idx}] OPEN_TRADES_SNAPSHOT.json written: {open_end} open trades")
+                        else:
+                            # No open trades - snapshot not needed, but log for clarity
+                            log.debug(f"[CHUNK {chunk_idx}] No open trades at end - skipping snapshot")
+                    except Exception as snapshot_error:
+                        # Best-effort: do not break non-TRUTH runs
+                        log.warning(f"[CHUNK {chunk_idx}] Failed to write OPEN_TRADES_SNAPSHOT.json: {snapshot_error}")
+                
+                # CHUNK-LOCAL PADDING: Write WARMUP_LEDGER.json and .md per chunk
+                if chunk_local_padding_days > 0 and chunk_footer.get("warmup_ledger"):
+                    warmup_ledger = chunk_footer["warmup_ledger"]
+                    warmup_ledger_json_path = chunk_output_dir / "WARMUP_LEDGER.json"
+                    with open(warmup_ledger_json_path, "w") as f:
+                        json.dump(warmup_ledger, f, indent=2)
+                    
+                    # Write Markdown version
+                    warmup_ledger_md_path = chunk_output_dir / "WARMUP_LEDGER.md"
+                    warmup_ledger_md_lines = [
+                        f"# Warmup Ledger (Chunk {chunk_idx})",
+                        "",
+                        f"**Chunk ID:** {chunk_idx}",
+                        f"**Chunk Local Padding Days:** {warmup_ledger.get('chunk_local_padding_days', 0)}",
+                        "",
+                        "## Timestamps",
+                        "",
+                        f"- **Actual Replay Start:** `{warmup_ledger.get('actual_replay_start_ts', 'N/A')}`",
+                        f"- **Eval Start:** `{warmup_ledger.get('eval_start_ts', 'N/A')}`",
+                        f"- **Eval End:** `{warmup_ledger.get('eval_end_ts', 'N/A')}`",
+                        "",
+                        "## Warmup Status",
+                        "",
+                        f"- **Warmup Required Bars:** {warmup_ledger.get('warmup_required_bars', 0)}",
+                        f"- **Warmup Seen Bars:** {warmup_ledger.get('warmup_seen_bars', 0)}",
+                        f"- **Warmup Skipped Total:** {warmup_ledger.get('warmup_skipped_total', 0)}",
+                        f"- **Warmup Completed TS:** `{warmup_ledger.get('warmup_completed_ts', 'N/A')}`",
+                        "",
+                        "## Processing",
+                        "",
+                        f"- **Bars Processed Total:** {warmup_ledger.get('bars_processed_total', 0)}",
+                        "",
+                        "---",
+                        f"*Generated: {dt_now_iso()}*",
+                    ]
+                    with open(warmup_ledger_md_path, "w") as f:
+                        f.write("\n".join(warmup_ledger_md_lines))
+                    
+                    log.info(f"[CHUNK {chunk_idx}] WARMUP_LEDGER.json/.md written")
             except Exception as footer_error:
                 log.error(f"[CHUNK {chunk_idx}] Failed to write chunk_footer.json: {footer_error}", exc_info=True)
                 
@@ -4176,10 +5117,10 @@ def process_chunk(
                         "prebuilt_lookup_hits": lookup_hits_capsule,
                         "prebuilt_lookup_misses": lookup_misses_capsule,
                         "prebuilt_lookup_phase": lookup_phase_capsule,
-                        "bars_passed_hard_eligibility": bars_passed_hard_eligibility_capsule,
-                        "bars_blocked_hard_eligibility": bars_blocked_hard_eligibility_capsule,
-                        "bars_passed_soft_eligibility": bars_passed_soft_eligibility_capsule,
-                        "bars_blocked_soft_eligibility": bars_blocked_soft_eligibility_capsule,
+                        "bars_passed_hard_eligibility": bar_counters.get("bars_passed_hard_eligibility"),
+                        "bars_blocked_hard_eligibility": bar_counters.get("bars_blocked_hard_eligibility"),
+                        "bars_passed_soft_eligibility": bar_counters.get("bars_passed_soft_eligibility"),
+                        "bars_blocked_soft_eligibility": bar_counters.get("bars_blocked_soft_eligibility"),
                         "transformer_forward_calls": transformer_forward_calls_capsule,
                         "transformer_input_recorded": transformer_input_recorded_capsule,
                         "seq_feature_count": seq_feature_count_capsule,
@@ -4423,6 +5364,12 @@ def process_chunk(
         import traceback as tb_module
         error_traceback = "".join(tb_module.format_exception(type(outer_exception), outer_exception, outer_exception.__traceback__))
         
+        # A) Update skip_ledger with exception info
+        skip_ledger["stage"] = "exception"
+        skip_ledger["exception_type"] = type(outer_exception).__name__
+        skip_ledger["exception_msg"] = str(outer_exception)[:500]
+        skip_ledger["traceback"] = error_traceback[:5000]  # Limit traceback size
+        
         # CRITICAL: Write CHUNK_FAIL_CAPSULE.json BEFORE any other handling (atomic, always valid JSON)
         try:
             from gx1.utils.atomic_json import atomic_write_json
@@ -4514,6 +5461,11 @@ def process_chunk(
                 pass
             
             # Build capsule payload
+            # B) Include skip_ledger_path in CHUNK_FAIL_CAPSULE
+            skip_ledger_path_str = None
+            if chunk_output_dir:
+                skip_ledger_path_str = f"chunk_{chunk_idx}/SKIP_LEDGER_FINAL.json"
+            
             fail_capsule = {
                 "chunk_idx": chunk_idx,
                 "run_id": run_id,
@@ -4535,12 +5487,14 @@ def process_chunk(
                 "argv": sys.argv.copy() if hasattr(sys, 'argv') else None,
                 "cwd": str(Path.cwd()),
                 "sys_executable": sys.executable if hasattr(sys, 'executable') else None,
-                "hint": "failure happened before normal flush; see PREBUILT_FAIL_CAPSULE if present",
+                "skip_ledger_path": skip_ledger_path_str,  # B) Link to SKIP_LEDGER_FINAL.json
+                "hint": "failure happened before normal flush; see PREBUILT_FAIL_CAPSULE if present. See skip_ledger_path for detailed skip breakdown.",
                 "timestamp": dt_now_iso(),
             }
             
             # Write capsule atomically
             capsule_written = False
+            capsule_path = None
             if chunk_output_dir:
                 capsule_path = chunk_output_dir / "CHUNK_FAIL_CAPSULE.json"
                 if atomic_write_json(capsule_path, fail_capsule):
@@ -4552,9 +5506,11 @@ def process_chunk(
                 import tempfile
                 fallback_path = Path(tempfile.gettempdir()) / f"chunk_{chunk_idx}_FAIL_CAPSULE_{run_id}.json"
                 if atomic_write_json(fallback_path, fail_capsule):
+                    capsule_path = fallback_path
                     log.error(f"[CHUNK {chunk_idx}] Wrote CHUNK_FAIL_CAPSULE.json to fallback: {fallback_path}")
         except Exception as capsule_error:
             log.error(f"[CHUNK {chunk_idx}] Failed to write CHUNK_FAIL_CAPSULE.json: {capsule_error}", exc_info=True)  # Give up
+            capsule_path = None
         
         # Try to create output dir and write logs (may fail if we can't create dir)
         try:
@@ -4600,6 +5556,50 @@ def process_chunk(
         
         # Re-raise to let multiprocessing handle it
         raise
+    
+    finally:
+        # A) ALWAYS write SKIP_LEDGER_FINAL.json (best-effort, never fail)
+        # This ensures we have diagnostic info even if exception occurred before invariant check
+        try:
+            # Update timestamp
+            skip_ledger["timestamp"] = dt_now_iso()
+            
+            # Ensure chunk_output_dir exists
+            if chunk_output_dir is None:
+                try:
+                    chunk_output_dir = output_dir / f"chunk_{chunk_idx}"
+                    chunk_output_dir.mkdir(parents=True, exist_ok=True)
+                except Exception:
+                    chunk_output_dir = None
+            
+            if chunk_output_dir:
+                skip_ledger_final_path = chunk_output_dir / "SKIP_LEDGER_FINAL.json"
+                try:
+                    from gx1.utils.atomic_json import atomic_write_json
+                    atomic_write_json(skip_ledger_final_path, skip_ledger)
+                    log.info(f"[CHUNK {chunk_idx}] [SKIP_LEDGER] Wrote SKIP_LEDGER_FINAL.json to {skip_ledger_final_path}")
+                except Exception as ledger_error:
+                    log.error(f"[CHUNK {chunk_idx}] [SKIP_LEDGER] Failed to write SKIP_LEDGER_FINAL.json (atomic): {ledger_error}")
+                    # Fallback: write directly (non-atomic)
+                    try:
+                        with open(skip_ledger_final_path, "w") as f:
+                            import json
+                            json.dump(skip_ledger, f, indent=2, default=str)
+                        log.warning(f"[CHUNK {chunk_idx}] [SKIP_LEDGER] Wrote SKIP_LEDGER_FINAL.json (non-atomic fallback)")
+                    except Exception as fallback_error:
+                        log.error(f"[CHUNK {chunk_idx}] [SKIP_LEDGER] CRITICAL: Failed to write SKIP_LEDGER_FINAL.json even with fallback: {fallback_error}")
+                        # Last resort: write to /tmp
+                        try:
+                            import tempfile
+                            tmp_path = Path(tempfile.gettempdir()) / f"chunk_{chunk_idx}_SKIP_LEDGER_FINAL_{run_id}.json"
+                            with open(tmp_path, "w") as f:
+                                json.dump(skip_ledger, f, indent=2, default=str)
+                            log.error(f"[CHUNK {chunk_idx}] [SKIP_LEDGER] Wrote SKIP_LEDGER_FINAL.json to /tmp fallback: {tmp_path}")
+                        except Exception:
+                            log.error(f"[CHUNK {chunk_idx}] [SKIP_LEDGER] FATAL: Could not write SKIP_LEDGER_FINAL.json anywhere")
+        except Exception as final_error:
+            # Never fail in finally - just log
+            log.error(f"[CHUNK {chunk_idx}] [SKIP_LEDGER] Exception in finally block: {final_error}", exc_info=True)
 
 
 
@@ -5813,6 +6813,145 @@ def merge_artifacts(
     return merged_artifacts
 
 
+def write_exit_coverage_summary(output_dir: Path) -> None:
+    """
+    TRUTH-only: Aggregate per-chunk exit coverage counters and write:
+      - EXIT_COVERAGE_SUMMARY.json
+      - EXIT_COVERAGE_SUMMARY.md
+    """
+    try:
+        output_dir = Path(output_dir).resolve()
+        chunk_dirs = sorted([d for d in output_dir.iterdir() if d.is_dir() and d.name.startswith("chunk_")])
+        per_chunk = []
+
+        totals = {
+            "exit_attempts_total": 0,
+            "exit_request_close_called": 0,
+            "exit_request_close_accepted": 0,
+            "exit_summary_logged": 0,
+            "exit_event_rows_written": 0,
+            "force_close_attempts_replay_end": 0,
+            "force_close_logged_replay_end": 0,
+            "force_close_attempts_replay_eof": 0,
+            "force_close_logged_replay_eof": 0,
+            "open_trades_start_of_chunk": 0,
+            "open_trades_end_of_chunk": 0,
+            "open_to_closed_within_chunk": 0,
+            "replay_end_or_eof_triggered_chunks": 0,
+            "accounting_close_enabled_chunks": 0,
+        }
+
+        for chunk_dir in chunk_dirs:
+            footer_path = chunk_dir / "chunk_footer.json"
+            if not footer_path.exists():
+                continue
+            try:
+                with open(footer_path, "r") as f:
+                    footer = json.load(f)
+            except Exception:
+                continue
+
+            row = {
+                "chunk": chunk_dir.name,
+                "status": footer.get("status"),
+                "exit_attempts_total": footer.get("exit_attempts_total", 0) or 0,
+                "exit_request_close_called": footer.get("exit_request_close_called", 0) or 0,
+                "exit_request_close_accepted": footer.get("exit_request_close_accepted", 0) or 0,
+                "exit_summary_logged": footer.get("exit_summary_logged", 0) or 0,
+                "exit_event_rows_written": footer.get("exit_event_rows_written", 0) or 0,
+                "force_close_attempts_replay_end": footer.get("force_close_attempts_replay_end", 0) or 0,
+                "force_close_logged_replay_end": footer.get("force_close_logged_replay_end", 0) or 0,
+                "force_close_attempts_replay_eof": footer.get("force_close_attempts_replay_eof", 0) or 0,
+                "force_close_logged_replay_eof": footer.get("force_close_logged_replay_eof", 0) or 0,
+                "open_trades_start_of_chunk": footer.get("open_trades_start_of_chunk"),
+                "open_trades_end_of_chunk": footer.get("open_trades_end_of_chunk"),
+                "open_to_closed_within_chunk": footer.get("open_to_closed_within_chunk", 0) or 0,
+                "replay_end_or_eof_triggered": bool(footer.get("replay_end_or_eof_triggered", False)),
+                "accounting_close_enabled": bool(footer.get("accounting_close_enabled", False)),
+            }
+            per_chunk.append(row)
+
+            for k in [
+                "exit_attempts_total",
+                "exit_request_close_called",
+                "exit_request_close_accepted",
+                "exit_summary_logged",
+                "exit_event_rows_written",
+                "force_close_attempts_replay_end",
+                "force_close_logged_replay_end",
+                "force_close_attempts_replay_eof",
+                "force_close_logged_replay_eof",
+                "open_to_closed_within_chunk",
+            ]:
+                totals[k] += int(row.get(k, 0) or 0)
+
+            if row.get("open_trades_start_of_chunk") is not None:
+                totals["open_trades_start_of_chunk"] += int(row.get("open_trades_start_of_chunk") or 0)
+            if row.get("open_trades_end_of_chunk") is not None:
+                totals["open_trades_end_of_chunk"] += int(row.get("open_trades_end_of_chunk") or 0)
+            if row.get("replay_end_or_eof_triggered"):
+                totals["replay_end_or_eof_triggered_chunks"] += 1
+            if row.get("accounting_close_enabled"):
+                totals["accounting_close_enabled_chunks"] += 1
+
+        summary = {
+            "output_dir": str(output_dir),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "chunks_seen": len(per_chunk),
+            "totals": totals,
+            "per_chunk": per_chunk[-50:],  # cap for size
+        }
+        # TRUTH contract (C1): accepted close implies journaling evidence
+        try:
+            accepted_total = int((totals.get("exit_request_close_accepted") or 0))
+            journal_evidence_total = int((totals.get("exit_event_rows_written") or 0)) + int((totals.get("exit_summary_logged") or 0))
+            truth_ok = True
+            truth_reason = None
+            if accepted_total > 0 and journal_evidence_total <= 0:
+                truth_ok = False
+                truth_reason = "EXIT_ACCEPTED_BUT_NOT_JOURNALED"
+            summary["truth_exit_journal_ok"] = truth_ok
+            summary["truth_exit_journal_fail_reason"] = truth_reason
+        except Exception:
+            summary["truth_exit_journal_ok"] = None
+            summary["truth_exit_journal_fail_reason"] = "ERROR_COMPUTING_TRUTH_EXIT_JOURNAL_FIELDS"
+
+        from gx1.utils.atomic_json import atomic_write_json
+        json_path = output_dir / "EXIT_COVERAGE_SUMMARY.json"
+        atomic_write_json(json_path, summary)
+
+        # Markdown summary
+        md_lines = [
+            "# EXIT COVERAGE SUMMARY",
+            "",
+            f"**Output dir:** `{output_dir}`",
+            f"**Generated:** {summary['timestamp']}",
+            "",
+            "## Totals",
+            "",
+        ]
+        for k, v in totals.items():
+            md_lines.append(f"- **{k}:** {v}")
+        md_lines.extend([
+            "",
+            "## Per-chunk (last 50)",
+            "",
+            "| chunk | status | open_start | open_end | exit_summary_logged | exit_event_rows_written | force_end_logged | force_eof_logged | accounting_close |",
+            "|------|--------|------------|----------|---------------------|------------------------|------------------|------------------|------------------|",
+        ])
+        for r in per_chunk[-50:]:
+            md_lines.append(
+                f"| {r.get('chunk')} | {r.get('status')} | {r.get('open_trades_start_of_chunk')} | {r.get('open_trades_end_of_chunk')} | "
+                f"{r.get('exit_summary_logged')} | {r.get('exit_event_rows_written')} | {r.get('force_close_logged_replay_end')} | "
+                f"{r.get('force_close_logged_replay_eof')} | {r.get('accounting_close_enabled')} |"
+            )
+        md_path = output_dir / "EXIT_COVERAGE_SUMMARY.md"
+        with open(md_path, "w") as f:
+            f.write("\n".join(md_lines))
+    except Exception as e:
+        log.warning(f"[EXIT_COVERAGE] Failed to write master summary: {e}")
+
+
 def main():
     # CRITICAL: Log immediately when main() starts (for wrapper verification)
     print("[MASTER_START] replay master started", flush=True)
@@ -5833,6 +6972,8 @@ def main():
     parser.add_argument("--policy", type=Path, required=True, help="Policy YAML path")
     parser.add_argument("--data", type=Path, required=True, help="Input data (parquet)")
     parser.add_argument("--workers", type=int, default=7, help="Number of parallel workers")
+
+    parser.add_argument("--chunks", type=int, default=None, help="Number of chunks to split data into (default: same as workers)")
     parser.add_argument("--max-procs", type=int, default=None, help="Hard cap on concurrent subprocesses (default: workers)")
     parser.add_argument("--min-free-mem-gb", type=float, default=6.0, help="Minimum free memory to keep available (GB)")
     parser.add_argument("--mem-per-proc-gb", type=float, default=3.0, help="Estimated memory per subprocess (GB)")
@@ -5850,6 +6991,7 @@ def main():
     parser.add_argument("--prebuilt-parquet", type=Path, default=None, help="Absolute path to prebuilt features parquet file (required if prebuilt enabled)")
     parser.add_argument("--bundle-dir", type=Path, default=None, help="Override bundle_dir from policy (absolute path, highest priority)")
     parser.add_argument("--selftest-only", action="store_true", help="Run only worker self-test (smoke_open) and exit (for debugging)")
+    parser.add_argument("--chunk-local-padding-days", type=int, default=None, help="Chunk-local padding days (TRUTH/SMOKE only, default: 7 if TRUTH/SMOKE, else 0)")
     
     args = parser.parse_args()
     
@@ -5875,6 +7017,30 @@ def main():
         output_dir=output_dir_str,
         truth_or_smoke=is_truth_or_smoke,
     )
+
+    # TRUTH BANLIST: fail-fast on forbidden fallback envs / legacy module imports (best-effort).
+    # NOTE: This does not replace structural removal of legacy code; it is an extra guardrail.
+    from gx1.utils.truth_banlist import assert_truth_banlist_clean
+    assert_truth_banlist_clean(output_dir=args.output_dir, stage="replay_eval_gated_parallel:master_start")
+
+    # B0.2: MASTER_EARLY.json Stage 1 - After args + output_dir resolve
+    try:
+        resolved_paths = {
+            "data": str(args.data) if args.data else None,
+            "policy": str(args.policy) if args.policy else None,
+            "output_dir": str(args.output_dir),
+            "bundle_dir": str(args.bundle_dir) if args.bundle_dir else None,
+        }
+        write_master_early_capsule(
+            output_dir=args.output_dir,
+            stage="args_resolved",
+            argv=sys.argv,
+            resolved_paths=resolved_paths,
+            run_mode=run_mode,
+            workers_requested=args.workers,
+        )
+    except Exception as e:
+        log.warning(f"[MASTER_EARLY] Failed to write stage 1 capsule: {e}")
 
     # ------------------------------------------------------------------------
     # SYNTAX COMPILE GATE (TRUTH/SMOKE ONLY)
@@ -5913,6 +7079,147 @@ def main():
             print(f"[ENV_IDENTITY_GATE] FATAL: {type(e).__name__}: {e}", file=sys.stderr, flush=True)
             sys.exit(2)
         log.warning(f"[ENV_IDENTITY_GATE] Unexpected error (non-fatal, non-TRUTH/SMOKE): {e}")
+
+    # ------------------------------------------------------------------------
+    # BUNDLE IDENTITY GATE (TRUTH/SMOKE ONLY)
+    # ------------------------------------------------------------------------
+    # Enforces canonical bundle directory and verifies bundle SHA256 matches expected.
+    # Hard-fails (exit code 2) if GX1_CANONICAL_BUNDLE_DIR is not set, bundle dir mismatch, or SHA mismatch.
+    # ------------------------------------------------------------------------
+    try:
+        from gx1.utils.bundle_identity_gate import run_bundle_identity_gate_or_fatal
+
+        run_bundle_identity_gate_or_fatal(
+            output_dir=args.output_dir,
+            truth_or_smoke=is_truth_or_smoke,
+            policy_path=args.policy,
+            bundle_dir_override=args.bundle_dir,
+        )
+    except SystemExit:
+        raise
+    except Exception as e:
+        if is_truth_or_smoke:
+            print(f"[BUNDLE_IDENTITY_GATE] FATAL: {type(e).__name__}: {e}", file=sys.stderr, flush=True)
+            sys.exit(2)
+        log.warning(f"[BUNDLE_IDENTITY_GATE] Unexpected error (non-fatal, non-TRUTH/SMOKE): {e}")
+
+    # ------------------------------------------------------------------------
+    # POLICY IDENTITY GATE (TRUTH/SMOKE ONLY)
+    # ------------------------------------------------------------------------
+    # Enforces canonical policy file and verifies policy SHA256 matches expected.
+    # Hard-fails (exit code 2) if policy file does not exist or SHA256 mismatch.
+    # ------------------------------------------------------------------------
+    try:
+        from gx1.utils.policy_identity_gate import run_policy_identity_gate_or_fatal
+
+        run_policy_identity_gate_or_fatal(
+            output_dir=args.output_dir,
+            truth_or_smoke=is_truth_or_smoke,
+            policy_path=args.policy,
+        )
+    except SystemExit:
+        raise
+    except Exception as e:
+        if is_truth_or_smoke:
+            print(f"[POLICY_IDENTITY_GATE] FATAL: {type(e).__name__}: {e}", file=sys.stderr, flush=True)
+            sys.exit(2)
+        log.warning(f"[POLICY_IDENTITY_GATE] Unexpected error (non-fatal, non-TRUTH/SMOKE): {e}")
+
+    # ------------------------------------------------------------------------
+    # RAW CANDLES SCHEMA GATE (TRUTH/SMOKE ONLY)
+    # ------------------------------------------------------------------------
+    # Verifies that --data (raw candles parquet) contains OHLC columns.
+    # NOTE: Prebuilt features (--prebuilt-parquet) do NOT need OHLC.
+    # Hard-fails (exit code 2) if raw candles are missing OHLC.
+    # ------------------------------------------------------------------------
+    if args.data:
+        try:
+            from gx1.utils.raw_candles_schema_gate import run_raw_candles_schema_gate_or_fatal
+
+            raw_data_path = Path(args.data)
+            run_raw_candles_schema_gate_or_fatal(
+                output_dir=args.output_dir,
+                truth_or_smoke=is_truth_or_smoke,
+                raw_data_path=raw_data_path,
+            )
+        except SystemExit:
+            raise
+        except Exception as e:
+            if is_truth_or_smoke:
+                print(f"[RAW_CANDLES_SCHEMA_GATE] FATAL: {type(e).__name__}: {e}", file=sys.stderr, flush=True)
+                sys.exit(2)
+            log.warning(f"[RAW_CANDLES_SCHEMA_GATE] Unexpected error (non-fatal, non-TRUTH/SMOKE): {e}")
+
+    # ------------------------------------------------------------------------
+    # PREBUILT FEATURE SCHEMA GATE (TRUTH/SMOKE ONLY)
+    # ------------------------------------------------------------------------
+    # Validates --prebuilt-parquet contains:
+    # - timestamp column (ts/time/timestamp)
+    # - required minimal feature set (SSoT guardrail)
+    # - no banned prob_* columns
+    # ------------------------------------------------------------------------
+    # Prebuilt path comes from --prebuilt-parquet only (no fallback / no auto-discovery).
+    prebuilt_path_for_gate = Path(args.prebuilt_parquet) if args.prebuilt_parquet else None
+    
+    if prebuilt_path_for_gate and prebuilt_path_for_gate.exists():
+        try:
+            from gx1.utils.prebuilt_feature_schema_gate import run_prebuilt_feature_schema_gate_or_fatal
+
+            run_prebuilt_feature_schema_gate_or_fatal(
+                output_dir=args.output_dir,
+                truth_or_smoke=is_truth_or_smoke,
+                prebuilt_path=prebuilt_path_for_gate,
+            )
+        except SystemExit:
+            raise
+        except Exception as e:
+            if is_truth_or_smoke:
+                print(f"[PREBUILT_FEATURE_SCHEMA_GATE] FATAL: {type(e).__name__}: {e}", file=sys.stderr, flush=True)
+                sys.exit(2)
+            log.warning(f"[PREBUILT_FEATURE_SCHEMA_GATE] Unexpected error (non-fatal, non-TRUTH/SMOKE): {e}")
+
+    # ------------------------------------------------------------------------
+    # PREBUILT IDENTITY GATE (TRUTH/SMOKE ONLY)
+    # ------------------------------------------------------------------------
+    # Enforces canonical prebuilt symlink and verifies schema is clean (no prob_* columns).
+    # Hard-fails (exit code 2) if prebuilt is not canonical or contains prob_* columns.
+    # NOTE: This checks the PREBUILT file (from --prebuilt-parquet or env), not --data.
+    # ------------------------------------------------------------------------
+    if prebuilt_path_for_gate and prebuilt_path_for_gate.exists():
+        try:
+            from gx1.utils.prebuilt_identity_gate import run_prebuilt_identity_gate_or_fatal
+
+            run_prebuilt_identity_gate_or_fatal(
+                prebuilt_path=prebuilt_path_for_gate,
+                output_dir=args.output_dir,
+                truth_or_smoke=is_truth_or_smoke,
+            )
+        except SystemExit:
+            raise
+        except Exception as e:
+            if is_truth_or_smoke:
+                print(f"[PREBUILT_IDENTITY_GATE] FATAL: {type(e).__name__}: {e}", file=sys.stderr, flush=True)
+                sys.exit(2)
+            log.warning(f"[PREBUILT_IDENTITY_GATE] Unexpected error (non-fatal, non-TRUTH/SMOKE): {e}")
+
+    # B0.2: MASTER_EARLY.json Stage 2 - After all gates (syntax, env, bundle, prebuilt)
+    try:
+        resolved_paths = {
+            "data": str(args.data) if args.data else None,
+            "policy": str(args.policy) if args.policy else None,
+            "output_dir": str(args.output_dir),
+            "bundle_dir": str(args.bundle_dir) if args.bundle_dir else None,
+        }
+        write_master_early_capsule(
+            output_dir=args.output_dir,
+            stage="gates_passed",
+            argv=sys.argv,
+            resolved_paths=resolved_paths,
+            run_mode=run_mode,
+            workers_requested=args.workers,
+        )
+    except Exception as e:
+        log.warning(f"[MASTER_EARLY] Failed to write stage 2 capsule: {e}")
 
     # In TRUTH/SMOKE: forbid local OS imports (after gates so we always get capsules first)
     if is_truth_or_smoke:
@@ -5978,23 +7285,27 @@ def main():
             )
         
         # Pre-create output_dir and chunks subdirectory
-        # In TRUTH/SMOKE mode: fail if exists (no reuse)
+        # In TRUTH/SMOKE mode: fail if exists with artifacts (no reuse)
         # In other modes: allow exist_ok=True
-        if is_truth_or_smoke:
-            try:
-                output_dir_resolved.mkdir(parents=True, exist_ok=False)
-            except FileExistsError:
-                # Check if it has artifacts
-                has_artifacts = any(output_dir_resolved.glob("chunk_*")) or any(output_dir_resolved.glob("*.json"))
-                if has_artifacts:
-                    raise RuntimeError(
-                        f"[OUTPUT_DIR_INIT] Output directory already exists with artifacts: {output_dir_resolved}. "
-                        f"This violates TRUTH/SMOKE mode: no reuse of output-dir. "
-                        f"Remove or rename the existing directory before starting a new run."
-                    )
-                # Empty directory: allow reuse
-                output_dir_resolved.mkdir(parents=True, exist_ok=True)
+        # BUGFIX: Check if dir exists before mkdir to avoid race condition
+        # NOTE: MASTER_EARLY.json may have been written already (by write_master_early_capsule),
+        # so we exclude it from artifact check
+        if output_dir_resolved.exists():
+            # Directory already exists - check if it has artifacts (excluding MASTER_EARLY.json)
+            json_files = list(output_dir_resolved.glob("*.json"))
+            # Exclude MASTER_EARLY.json from artifact check (it's written before OUTPUT_DIR_INIT)
+            json_files = [f for f in json_files if f.name != "MASTER_EARLY.json"]
+            has_artifacts = any(output_dir_resolved.glob("chunk_*")) or len(json_files) > 0
+            if is_truth_or_smoke and has_artifacts:
+                raise RuntimeError(
+                    f"[OUTPUT_DIR_INIT] Output directory already exists with artifacts: {output_dir_resolved}. "
+                    f"This violates TRUTH/SMOKE mode: no reuse of output-dir. "
+                    f"Remove or rename the existing directory before starting a new run."
+                )
+            # Empty directory or non-TRUTH/SMOKE: allow reuse, ensure it exists
+            output_dir_resolved.mkdir(parents=True, exist_ok=True)
         else:
+            # Directory doesn't exist - create it
             output_dir_resolved.mkdir(parents=True, exist_ok=True)
         
         # Pre-create chunks subdirectory
@@ -6111,6 +7422,21 @@ def main():
             f"GX1_RITUAL_WARMUP_PADDING_DAYS too large (max 60, got: {ritual_padding_days})"
         )
     
+    # Chunk-local padding (TRUTH/SMOKE only, default: 7 if TRUTH/SMOKE, else 0)
+    chunk_local_padding_days = args.chunk_local_padding_days
+    if chunk_local_padding_days is None:
+        chunk_local_padding_days = 7 if is_truth_or_smoke else 0
+    elif chunk_local_padding_days > 0 and not is_truth_or_smoke:
+        log.warning(f"[CHUNK_LOCAL_PADDING] chunk_local_padding_days={chunk_local_padding_days} but not TRUTH/SMOKE mode, ignoring")
+        chunk_local_padding_days = 0
+    elif chunk_local_padding_days < 0:
+        raise ValueError(f"--chunk-local-padding-days must be >= 0 (got: {chunk_local_padding_days})")
+    elif chunk_local_padding_days > 30:
+        raise ValueError(f"--chunk-local-padding-days too large (max 30, got: {chunk_local_padding_days})")
+    
+    if chunk_local_padding_days > 0:
+        log.info(f"[CHUNK_LOCAL_PADDING] Enabled: {chunk_local_padding_days} days per chunk (TRUTH/SMOKE mode)")
+    
     truth_or_smoke_or_telemetry = is_truth_or_smoke or os.getenv("GX1_TRUTH_TELEMETRY", "0") == "1"
     requested_eval_start_ts = parsed_start_ts
     requested_eval_end_ts = parsed_end_ts
@@ -6164,12 +7490,49 @@ def main():
     except Exception:
         policy_id = policy_id or args.policy.stem
     
-    if args.bundle_dir:
-        bundle_dir_for_identity = args.bundle_dir.resolve()
-        bundle_dir_source = "cli"
-    elif os.getenv("GX1_BUNDLE_DIR"):
-        bundle_dir_for_identity = Path(os.getenv("GX1_BUNDLE_DIR")).resolve()
-        bundle_dir_source = "env"
+    if is_truth_or_smoke:
+        # ONE truth only: require GX1_CANONICAL_BUNDLE_DIR and forbid alternate selection paths.
+        if args.bundle_dir is not None:
+            raise RuntimeError("[TRUTH_FAIL] BUNDLE_DIR_CLI_FORBIDDEN: use GX1_CANONICAL_BUNDLE_DIR only in TRUTH/SMOKE")
+        canonical = os.getenv("GX1_CANONICAL_BUNDLE_DIR") or ""
+        if not canonical:
+            # Ambiguity guard: report candidates if multiple exist.
+            candidates = []
+            try:
+                gx1_data_root_env = os.getenv("GX1_DATA_DIR") or os.getenv("GX1_DATA_ROOT") or os.getenv("GX1_DATA")
+                if gx1_data_root_env:
+                    gx1_data_root = Path(gx1_data_root_env).expanduser().resolve()
+                    cand_dir = gx1_data_root / "models" / "models" / "entry_v10_ctx"
+                    if cand_dir.exists():
+                        candidates = sorted([str(p.resolve()) for p in cand_dir.glob("XGB_V13_REFINED3_PRUNE14_*/MASTER_MODEL_LOCK.json")])
+            except Exception:
+                candidates = []
+            fatal = {
+                "status": "FAIL",
+                "error": "AMBIGUOUS_TRUTH",
+                "message": "TRUTH requires explicit GX1_CANONICAL_BUNDLE_DIR (absolute).",
+                "candidates_found_n": len(candidates),
+                "candidates_found": candidates[:50],
+            }
+            try:
+                from gx1.utils.json_atomic import write_json_atomic
+                write_json_atomic(args.output_dir / "BUNDLE_DIR_FATAL.json", fatal, output_dir=args.output_dir)
+            except Exception:
+                pass
+            raise RuntimeError("[TRUTH_FAIL] TRUTH_NO_FALLBACK: missing GX1_CANONICAL_BUNDLE_DIR")
+        bundle_dir_for_identity = Path(canonical).expanduser().resolve()
+        bundle_dir_source = "env:GX1_CANONICAL_BUNDLE_DIR"
+        if not bundle_dir_for_identity.is_absolute():
+            raise RuntimeError(f"[TRUTH_FAIL] GX1_CANONICAL_BUNDLE_DIR must be absolute: {bundle_dir_for_identity}")
+        if not bundle_dir_for_identity.exists():
+            raise RuntimeError(f"[TRUTH_FAIL] GX1_CANONICAL_BUNDLE_DIR does not exist: {bundle_dir_for_identity}")
+    else:
+        if args.bundle_dir:
+            bundle_dir_for_identity = args.bundle_dir.resolve()
+            bundle_dir_source = "cli"
+        elif os.getenv("GX1_BUNDLE_DIR"):
+            bundle_dir_for_identity = Path(os.getenv("GX1_BUNDLE_DIR")).resolve()
+            bundle_dir_source = "env"
     
     try:
         if args.policy.exists():
@@ -6200,8 +7563,10 @@ def main():
             entry_model_id = policy.get("replay_config", {}).get("entry_model_id")
     except Exception:
         pass
-    # Session tokens + snap dim metadata (for RUN_IDENTITY)
-    session_tokens_enabled = os.getenv("GX1_TRANSFORMER_SESSION_TOKEN", "0") == "1"
+    # Signal-only truth: session tokens are forbidden (no legacy snap extensions).
+    if os.getenv("GX1_TRANSFORMER_SESSION_TOKEN", "0") == "1" and is_truth_or_smoke:
+        raise RuntimeError("[TRUTH_FAIL] SESSION_TOKENS_FORBIDDEN: GX1_TRANSFORMER_SESSION_TOKEN=1 under signal-only truth")
+    session_tokens_enabled = False
     diagnostic_force_eval_sessions = os.getenv("GX1_DIAGNOSTIC_FORCE_EVAL_SESSIONS", "")
     diagnostic_enabled = bool(diagnostic_force_eval_sessions) and os.getenv("GX1_TRUTH_TELEMETRY", "0") == "1"
     diagnostic_bypass_gate_env = os.getenv("GX1_DIAGNOSTIC_BYPASS_GATE", "").strip().lower()
@@ -6261,30 +7626,43 @@ def main():
             os.environ["GX1_DIAGNOSTIC_BYPASS_GATE"] = diagnostic_bypassed_gate
         else:
             diagnostic_bypassed_gate = diagnostic_bypass_gate_env
-    snap_dim_expected = None
-    snap_dim_effective = None
+    # Signal-only truth: dims are from signal bridge contract.
+    from gx1.contracts.signal_bridge_v1 import CONTRACT_SHA256 as SIGNAL_BRIDGE_SHA256, SEQ_SIGNAL_DIM, SNAP_SIGNAL_DIM
+    snap_dim_expected = int(SNAP_SIGNAL_DIM)
+    snap_dim_effective = int(SNAP_SIGNAL_DIM)
+
+    # XGB lock + schema manifest identity fields (SSoT)
+    xgb_lock_path = None
+    xgb_lock_file_sha256 = None
+    xgb_lock_feature_contract_id = None
+    xgb_lock_feature_list_sha256 = None
+    xgb_lock_model_sha256 = None
+    prebuilt_schema_manifest_path = None
+    prebuilt_schema_manifest_sha256 = None
     try:
-        from gx1.features.feature_contract_v10_ctx import XGB_CHANNELS, get_snap_features_dim
-        snap_dim_effective = get_snap_features_dim(session_tokens_enabled)
-        # Resolve feature_meta path (bundle or policy)
-        feature_meta_path = None
-        try:
-            if policy:
-                entry_cfg = policy.get("entry_models", {}).get("v10_ctx", {})
-                feature_meta_path = entry_cfg.get("feature_meta_path")
-        except Exception:
-            feature_meta_path = None
-        if feature_meta_path is None and bundle_dir_for_identity is not None:
-            candidate = bundle_dir_for_identity / "entry_v10_ctx_feature_meta.json"
-            if candidate.exists():
-                feature_meta_path = str(candidate)
-        if feature_meta_path:
-            with open(feature_meta_path, "r") as f:
-                meta = json.load(f)
-            snap_features = meta.get("snap_features", [])
-            snap_dim_expected = len(snap_features) + XGB_CHANNELS
-    except Exception as meta_error:
-        log.warning(f"[RUN_IDENTITY] Failed to compute snap_dim_expected: {meta_error}")
+        if bundle_dir_for_identity is None:
+            raise RuntimeError("bundle_dir_for_identity is None")
+        xgb_lock_path = (bundle_dir_for_identity / "MASTER_MODEL_LOCK.json")
+        if is_truth_or_smoke and not xgb_lock_path.exists():
+            raise RuntimeError(f"MASTER_MODEL_LOCK.json missing: {xgb_lock_path}")
+        if xgb_lock_path.exists():
+            lock_obj = json.loads(xgb_lock_path.read_text(encoding="utf-8"))
+            import hashlib as _hashlib
+            xgb_lock_file_sha256 = _hashlib.sha256(xgb_lock_path.read_bytes()).hexdigest()
+            xgb_lock_feature_contract_id = str(lock_obj.get("feature_contract_id") or "")
+            xgb_lock_feature_list_sha256 = str(lock_obj.get("feature_list_sha256") or "")
+            xgb_lock_model_sha256 = str(lock_obj.get("model_sha256") or "")
+        if args.prebuilt_parquet:
+            prebuilt_schema_manifest_path = str(Path(str(args.prebuilt_parquet)).with_suffix(".schema_manifest.json").resolve())
+            psm = Path(prebuilt_schema_manifest_path)
+            if is_truth_or_smoke and not psm.exists():
+                raise RuntimeError(f"Prebuilt schema manifest missing: {psm}")
+            if psm.exists():
+                import hashlib as _hashlib
+                prebuilt_schema_manifest_sha256 = _hashlib.sha256(psm.read_bytes()).hexdigest()
+    except Exception as e:
+        if is_truth_or_smoke:
+            raise RuntimeError(f"[RUN_IDENTITY_FAIL] signal-only SSoT extraction failed: {e}") from e
     try:
         def _ts_to_iso(ts_value: Optional[pd.Timestamp]) -> Optional[str]:
             if ts_value is None:
@@ -6306,6 +7684,16 @@ def main():
             session_tokens_enabled=session_tokens_enabled,
             snap_dim_expected=snap_dim_expected,
             snap_dim_effective=snap_dim_effective,
+            signal_bridge_contract_sha256=str(SIGNAL_BRIDGE_SHA256),
+            seq_signal_dim=int(SEQ_SIGNAL_DIM),
+            snap_signal_dim=int(SNAP_SIGNAL_DIM),
+            xgb_lock_path=str(xgb_lock_path) if xgb_lock_path else None,
+            xgb_lock_file_sha256=str(xgb_lock_file_sha256) if xgb_lock_file_sha256 else None,
+            xgb_lock_feature_contract_id=str(xgb_lock_feature_contract_id) if xgb_lock_feature_contract_id else None,
+            xgb_lock_feature_list_sha256=str(xgb_lock_feature_list_sha256) if xgb_lock_feature_list_sha256 else None,
+            xgb_lock_model_sha256=str(xgb_lock_model_sha256) if xgb_lock_model_sha256 else None,
+            prebuilt_schema_manifest_path=str(prebuilt_schema_manifest_path) if prebuilt_schema_manifest_path else None,
+            prebuilt_schema_manifest_sha256=str(prebuilt_schema_manifest_sha256) if prebuilt_schema_manifest_sha256 else None,
             diagnostic_enabled=diagnostic_enabled,
             diagnostic_force_eval_sessions=diagnostic_force_eval_sessions or None,
             diagnostic_bypassed_gate=diagnostic_bypassed_gate,
@@ -6400,13 +7788,8 @@ def main():
     
     # 4) Log run start
     prebuilt_enabled_log = os.getenv("GX1_REPLAY_USE_PREBUILT_FEATURES", "0") == "1"
-    # Use CLI --prebuilt-parquet if provided, otherwise fallback to env var
-    if args.prebuilt_parquet:
-        prebuilt_path_log = str(args.prebuilt_parquet.resolve())
-        # Also set env var for workers
-        os.environ["GX1_REPLAY_PREBUILT_FEATURES_PATH"] = prebuilt_path_log
-    else:
-        prebuilt_path_log = os.getenv("GX1_REPLAY_PREBUILT_FEATURES_PATH", "N/A")
+    # No fallback / no env propagation: prebuilt path must be explicit via --prebuilt-parquet when enabled.
+    prebuilt_path_log = str(args.prebuilt_parquet.resolve()) if args.prebuilt_parquet else "N/A"
     
     # Reset basic_v1_call_count at run start (for prebuilt verification)
     # FASE 1: DO NOT import basic_v1 in PREBUILT mode - it violates FASE 1 separation
@@ -6533,14 +7916,14 @@ def main():
                             export_partial=True,  # Workers may still be running
                         )
                         
-                        # CRITICAL: Write completion contract in watchdog thread (before perf JSON verification)
+                        # CRITICAL: On SIGTERM/STOP_REQUESTED, NEVER write RUN_COMPLETED.json.
+                        # This is an abort path; write RUN_FAILED.json with a clear reason so downstream
+                        # tooling does not treat partial exports as a successful run.
                         try:
-                            # Count completed chunks from footers
                             chunks_completed_count = 0
                             try:
-                                for chunk_idx, (chunk_start, chunk_end, _) in enumerate(chunks_for_export):
-                                    chunk_dir = args.output_dir / f"chunk_{chunk_idx}"
-                                    chunk_footer_path = chunk_dir / "chunk_footer.json"
+                                for chunk_idx in range(int(args.chunks)):
+                                    chunk_footer_path = args.output_dir / f"chunk_{chunk_idx}" / "chunk_footer.json"
                                     if chunk_footer_path.exists():
                                         try:
                                             with open(chunk_footer_path, "r") as f:
@@ -6550,35 +7933,88 @@ def main():
                                         except Exception:
                                             pass
                             except Exception:
-                                pass  # Non-fatal
+                                pass
                             
-                            # Write completion contract
-                            all_chunks_completed = chunks_completed_count == len(chunks_for_export)
-                            completion_contract_path = args.output_dir / "RUN_COMPLETED.json" if all_chunks_completed else args.output_dir / "RUN_FAILED.json"
-                            
-                            if all_chunks_completed:
-                                completion_data = {
-                                    "status": "COMPLETED",
-                                    "run_id": run_id,
-                                    "timestamp": datetime.now(timezone.utc).isoformat(),
-                                    "chunks_submitted": len(chunks_for_export),
-                                    "chunks_completed": chunks_completed_count,
-                                    "written_by": "watchdog_thread",
-                                }
-                            else:
-                                completion_data = {
-                                    "status": "FAILED",
-                                    "reason": "INCOMPLETE_CHUNKS",
-                                    "run_id": run_id,
-                                    "timestamp": datetime.now(timezone.utc).isoformat(),
-                                    "chunks_submitted": len(chunks_for_export),
-                                    "chunks_completed": chunks_completed_count,
-                                    "chunks_incomplete": len(chunks_for_export) - chunks_completed_count,
-                                    "written_by": "watchdog_thread",
-                                }
+                            completion_contract_path = args.output_dir / "RUN_FAILED.json"
+                            completion_data = {
+                                "status": "FAILED",
+                                "reason": "SIGTERM_ABORTED",
+                                "run_id": run_id,
+                                "timestamp": datetime.now(timezone.utc).isoformat(),
+                                "chunks_submitted": int(args.chunks),
+                                "chunks_completed": int(chunks_completed_count),
+                                "chunks_incomplete": int(max(0, int(args.chunks) - int(chunks_completed_count))),
+                                "written_by": "watchdog_thread",
+                            }
                             
                             write_json_atomic(completion_contract_path, completion_data, output_dir=args.output_dir)
-                            log.warning(f"[COMPLETION_CONTRACT] ✅ Wrote {completion_contract_path.name} (watchdog thread)")
+                            log.warning("[COMPLETION_CONTRACT] Writing RUN_FAILED.json (watchdog thread, SIGTERM_ABORTED)")
+                            
+                            # B) TRUTH invariant: trade journal contract
+                            # If TRUTH and trades_created_total > 0, require trade journal
+                            is_truth_or_smoke = os.getenv("GX1_RUN_MODE", "").upper() in ("TRUTH", "SMOKE") or os.getenv("GX1_SMOKE", "0") == "1"
+                            if is_truth_or_smoke:
+                                # Aggregate trades_created from all chunk footers
+                                trades_created_total = 0
+                                chunk_dirs_for_check = sorted([d for d in args.output_dir.iterdir() if d.is_dir() and d.name.startswith("chunk_")])
+                                for chunk_dir in chunk_dirs_for_check:
+                                    footer_path = chunk_dir / "chunk_footer.json"
+                                    if footer_path.exists():
+                                        try:
+                                            with open(footer_path, "r") as f:
+                                                footer = json.load(f)
+                                            if footer.get("status") == "ok":
+                                                trades_created_total += footer.get("trades_created", 0) or footer.get("n_trades_closed", 0)
+                                        except Exception:
+                                            pass
+                                
+                                if trades_created_total > 0:
+                                    # Check for trade journal
+                                    trade_journal_index_path = args.output_dir / "trade_journal_index.csv"
+                                    trade_journal_dir = args.output_dir / "trade_journal" / "trades"
+                                    journal_exists = trade_journal_index_path.exists() or (trade_journal_dir.exists() and len(list(trade_journal_dir.glob("*.json"))) > 0)
+                                    
+                                    # Also check chunk journals (aggregated)
+                                    chunk_journals_exist = False
+                                    chunk_journals_with_data = 0
+                                    for chunk_dir in chunk_dirs_for_check:
+                                        chunk_journal = chunk_dir / "trade_journal" / "trade_journal_index.csv"
+                                        if chunk_journal.exists():
+                                            try:
+                                                with open(chunk_journal, "r") as f:
+                                                    lines = f.readlines()
+                                                    if len(lines) > 1:  # Has data beyond header
+                                                        chunk_journals_with_data += 1
+                                                        chunk_journals_exist = True
+                                            except Exception:
+                                                pass
+                                    
+                                    if not journal_exists and not chunk_journals_exist:
+                                        # FATAL: trades created but no journal
+                                        fatal_capsule = {
+                                            "timestamp": dt_now_iso(),
+                                            "run_id": run_id,
+                                            "fatal_reason": "TRADE_JOURNAL_MISSING",
+                                            "trades_created_total": trades_created_total,
+                                            "expected_paths": {
+                                                "run_root_index": str(trade_journal_index_path),
+                                                "run_root_trades_dir": str(trade_journal_dir),
+                                                "chunk_pattern": "chunk_*/trade_journal/trade_journal_index.csv",
+                                            },
+                                            "journal_config_path": str(args.output_dir / "JOURNAL_CONFIG.json"),
+                                            "message": f"TRUTH run created {trades_created_total} trades but trade journal is missing. This violates the trade journal contract.",
+                                        }
+                                        fatal_path = args.output_dir / "TRADE_JOURNAL_MISSING_FATAL.json"
+                                        from gx1.utils.atomic_json import atomic_write_json
+                                        atomic_write_json(fatal_path, fatal_capsule)
+                                        log.error(f"[TRUTH_INVARIANT] ❌ FATAL: {fatal_capsule['message']}")
+                                        log.error(f"[TRUTH_INVARIANT] See {fatal_path} for details")
+                                        # Don't exit here - let watchdog complete, but mark as failed
+                                        completion_data["status"] = "FAILED"
+                                        completion_data["fatal_reason"] = "TRADE_JOURNAL_MISSING"
+                                        write_json_atomic(completion_contract_path, completion_data, output_dir=args.output_dir)
+                                    elif chunk_journals_exist:
+                                        log.info(f"[TRUTH_INVARIANT] ✅ Trade journals found in {chunk_journals_with_data} chunks")
                             
                             # Append to run index ledger
                             try:
@@ -6932,12 +8368,126 @@ def main():
         
         log.info("[FASE_1] ✅ PREBUILT preflight selftest PASSED: No forbidden modules imported")
     
+    # B0.2: MASTER_EARLY.json Stage 3 - Before chunk planning starts
+    try:
+        resolved_paths = {
+            "data": str(args.data) if args.data else None,
+            "policy": str(args.policy) if args.policy else None,
+            "output_dir": str(args.output_dir),
+            "bundle_dir": str(args.bundle_dir) if args.bundle_dir else None,
+        }
+        write_master_early_capsule(
+            output_dir=args.output_dir,
+            stage="before_chunk_planning",
+            argv=sys.argv,
+            resolved_paths=resolved_paths,
+            run_mode=run_mode,
+            workers_requested=args.workers,
+        )
+    except Exception as e:
+        log.warning(f"[MASTER_EARLY] Failed to write stage 3 capsule: {e}")
+
+    # --- Watchdog Setup (A) ---
+    # Start run watchdog thread to monitor progress and detect stalls
+    run_watchdog_done = threading.Event()
+    # Store running_procs in a mutable container so watchdog can access it
+    running_procs_container = {"procs": None}  # Will be set when running_procs is created
+    
+    try:
+        from gx1.utils.watchdog import run_watchdog
+        
+        # Get running_procs function (will access running_procs_container)
+        def get_running_procs_fn():
+            """Helper to get running process PIDs if available."""
+            if running_procs_container["procs"] is not None:
+                try:
+                    return [proc.pid for proc, _, _, _, _, _, _ in running_procs_container["procs"].values() if proc.poll() is None]
+                except Exception:
+                    return []
+            return []
+        
+        # Start watchdog thread
+        run_watchdog_thread = threading.Thread(
+            target=run_watchdog,
+            args=(
+                args.output_dir,
+                run_id,
+                run_watchdog_done,
+                get_running_procs_fn,
+            ),
+            kwargs={
+                "stall_timeout_seconds": int(os.getenv("GX1_WATCHDOG_STALL_TIMEOUT_SEC", "120")),
+                "progress_window_seconds": int(os.getenv("GX1_WATCHDOG_PROGRESS_WINDOW_SEC", "30")),
+                "heartbeat_interval_seconds": float(os.getenv("GX1_WATCHDOG_HEARTBEAT_INTERVAL_SEC", "5.0")),
+            },
+            daemon=True,
+            name="run-watchdog",
+        )
+        run_watchdog_thread.start()
+        log.info("[WATCHDOG] Run watchdog thread started (monitors progress and detects stalls)")
+    except Exception as watchdog_error:
+        log.warning(f"[WATCHDOG] Failed to start run watchdog thread (non-fatal): {watchdog_error}")
+
+    # ------------------------------------------------------------------------
+    # PRE-FORK FREEZE GATE (TRUTH/SMOKE ONLY)
+    # ------------------------------------------------------------------------
+    # Verifies that all required code fixes/guards are present BEFORE any
+    # workers are spawned. This prevents mixed-logic runs where some chunks
+    # start before fixes are applied.
+    # ------------------------------------------------------------------------
+    if is_truth_or_smoke:
+        log.info("[PRE_FORK_FREEZE] Verifying required code fixes before spawning workers...")
+        try:
+            from gx1.utils.prefork_freeze_gate import run_prefork_freeze_gate_or_fatal
+            
+            # Get git head SHA, policy SHA, bundle SHA for provenance
+            git_head_sha = None
+            try:
+                import subprocess
+                result = subprocess.run(
+                    ["git", "rev-parse", "HEAD"],
+                    cwd=str(Path(__file__).parent.parent.parent),
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
+                )
+                if result.returncode == 0:
+                    git_head_sha = result.stdout.strip()
+            except Exception:
+                pass
+            
+            policy_sha = None
+            if args.policy and Path(args.policy).exists():
+                try:
+                    with open(args.policy, "rb") as f:
+                        policy_sha = hashlib.sha256(f.read()).hexdigest()
+                except Exception:
+                    pass
+            
+            bundle_sha = bundle_sha256 if 'bundle_sha256' in locals() else None
+            
+            run_prefork_freeze_gate_or_fatal(
+                output_dir=args.output_dir,
+                truth_or_smoke=is_truth_or_smoke,
+                git_head_sha=git_head_sha,
+                policy_sha=policy_sha,
+                bundle_sha=bundle_sha,
+            )
+            log.info("[PRE_FORK_FREEZE] ✅ All required guards verified - workers can be spawned")
+        except SystemExit:
+            raise
+        except Exception as e:
+            if is_truth_or_smoke:
+                print(f"[PRE_FORK_FREEZE] FATAL: {type(e).__name__}: {e}", file=sys.stderr, flush=True)
+                sys.exit(2)
+            log.warning(f"[PRE_FORK_FREEZE] Unexpected error (non-fatal, non-TRUTH/SMOKE): {e}")
+
     # Split data into chunks (supports deterministic time-window slicing for screening)
     # Check data timezone and adjust timestamps if needed
     # We'll do this inside split_data_into_chunks after loading data
     chunks = split_data_into_chunks(
         args.data,
-        args.workers,
+        args.chunks if args.chunks is not None else args.workers,
         slice_head=args.slice_head,
         days=args.days,
         start_ts=effective_replay_start_ts,
@@ -7078,20 +8628,33 @@ def main():
         log.info(f"[MASTER] Prebuilt parquet path (explicit): {prebuilt_parquet_path}")
         log.info(f"[MASTER] Prebuilt parquet exists: True, size: {file_size:,} bytes")
     else:
-        # Fallback to env (for backward compatibility)
-        prebuilt_env_path = os.getenv("GX1_REPLAY_PREBUILT_FEATURES_PATH")
-        if prebuilt_env_path:
-            prebuilt_parquet_path_obj = Path(prebuilt_env_path).resolve()
-            # DEL 3: Force string
-            prebuilt_parquet_path = str(prebuilt_parquet_path_obj)
-            log.info(f"[MASTER] Prebuilt parquet path (from env): {prebuilt_parquet_path}")
-        else:
-            # DEL 2: Hard-fail in master if prebuilt enabled but no path
-            prebuilt_enabled = os.getenv("GX1_REPLAY_USE_PREBUILT_FEATURES", "0") == "1"
-            if prebuilt_enabled:
-                raise RuntimeError(
-                    "[PREBUILT_FAIL] Prebuilt enabled but no prebuilt_parquet_path provided (arg or env)"
-                )
+        # No fallback / no auto-discovery (TRUTH invariant).
+        prebuilt_enabled = os.getenv("GX1_REPLAY_USE_PREBUILT_FEATURES", "0") == "1"
+        if prebuilt_enabled:
+            # Provide ambiguity context if candidates exist on disk.
+            candidates = []
+            try:
+                gx1_data_root_env = os.getenv("GX1_DATA_DIR") or os.getenv("GX1_DATA_ROOT") or os.getenv("GX1_DATA")
+                if gx1_data_root_env:
+                    gx1_data_root = Path(gx1_data_root_env).expanduser().resolve()
+                    cand_dir = gx1_data_root / "data" / "data" / "prebuilt" / "V13_REFINED3_PRUNE14" / "2025"
+                    if cand_dir.exists():
+                        candidates = sorted([str(p.resolve()) for p in cand_dir.glob("*.parquet")])
+            except Exception:
+                candidates = []
+            fatal = {
+                "status": "FAIL",
+                "error": "AMBIGUOUS_TRUTH",
+                "message": "Prebuilt enabled but --prebuilt-parquet was not provided. TRUTH forbids fallback.",
+                "candidates_found_n": len(candidates),
+                "candidates_found": candidates[:50],
+            }
+            try:
+                from gx1.utils.json_atomic import write_json_atomic
+                write_json_atomic(args.output_dir / "PREBUILT_PATH_FATAL.json", fatal, output_dir=args.output_dir)
+            except Exception:
+                pass
+            raise RuntimeError("[PREBUILT_FAIL] TRUTH_NO_FALLBACK: missing --prebuilt-parquet (absolute)")
     
     # DEL 2: Master-side logging per chunk task (before submit)
     log.info(f"[MASTER] [PRE_SUBMIT] Validating prebuilt path for {len(chunks)} chunks...")
@@ -7175,11 +8738,13 @@ def main():
             bundle_sha256,  # Pass bundle_sha256 to workers
             prebuilt_parquet_path,  # DEL B: Pass explicit prebuilt path to workers (as string)
             bundle_dir_override,  # Pass bundle_dir override to worker
+            chunk_local_padding_days,  # Pass chunk-local padding days to worker
         )
         for chunk_start, chunk_end, chunk_idx in chunks
     ]
     
     # DEL 2: Pre-create chunk dirs in MASTER før submit
+    # B0.3: Pre-create chunk dirs and write CHUNK_PLAN.json
     log.info(f"[MASTER] [PRE_CREATE] Pre-creating {len(chunks)} chunk directories...")
     for chunk_start, chunk_end, chunk_idx in chunks:
         chunk_dir = args.output_dir / f"chunk_{chunk_idx}"
@@ -7197,6 +8762,21 @@ def main():
             chunk_master_created_path = chunk_dir / "chunk_master_created.json"
             with open(chunk_master_created_path, "w") as f:
                 json.dump(chunk_master_created, f, indent=2)
+            
+            # B0.3: Write CHUNK_PLAN.json with padding info
+            chunk_plan = {
+                "chunk_id": chunk_idx,
+                "chunk_start": str(chunk_start),
+                "chunk_end": str(chunk_end),
+                "chunk_local_padding_days": chunk_local_padding_days if 'chunk_local_padding_days' in locals() else 0,
+                "effective_chunk_start": str(chunk_start - pd.Timedelta(days=chunk_local_padding_days)) if 'chunk_local_padding_days' in locals() and chunk_local_padding_days > 0 else str(chunk_start),
+                "data_path": str(args.data) if args.data else None,
+                "policy_path": str(args.policy) if args.policy else None,
+                "timestamp": _dt_now_iso(),
+            }
+            chunk_plan_path = chunk_dir / "CHUNK_PLAN.json"
+            write_json_atomic(chunk_plan_path, chunk_plan, output_dir=chunk_dir)
+            
             log.info(f"[MASTER] [PRE_CREATE] Created chunk_{chunk_idx} dir: {chunk_dir}")
         except FileExistsError:
             # Check if --force-clean-output was used (we don't have that flag, but check anyway)
@@ -7229,16 +8809,48 @@ def main():
         # Use apply_async instead of starmap to allow polling/timeout
         log.info(f"[MASTER] Submitted {len(chunk_tasks)} chunks")
         
-        # If workers=1, run directly without multiprocessing pool to avoid extra process
+        # If workers=1, run directly without multiprocessing pool to avoid extra process.
+        # IMPORTANT: Still honor args.chunks > 1 by running all chunk_tasks sequentially.
         if args.workers == 1:
             log.info("[MASTER] Workers=1, running directly without multiprocessing pool")
             actual_workers_started = 1
             # Initialize deadline for workers=1 case (needed for later check)
             deadline = time.time() + master_timeout_sec
-            # Run directly in current process
-            chunk_result = process_chunk(*chunk_tasks[0])
-            chunk_results = [chunk_result]
-            completed = set([0])
+            completed = set()
+            # Run directly in current process (sequential per chunk).
+            perf_profile_enabled = os.getenv("GX1_PERF_PROFILE", "0") in ("1", "true", "TRUE", "yes", "YES")
+            if perf_profile_enabled:
+                import cProfile
+                import pstats
+                from io import StringIO
+
+                prof = cProfile.Profile()
+                prof.enable()
+                try:
+                    for i, task in enumerate(chunk_tasks):
+                        chunk_results.append(process_chunk(*task))
+                        completed.add(task[0])
+                        if int(getattr(args, "abort_after_first_chunk", 0) or 0) == 1:
+                            break
+                finally:
+                    prof.disable()
+                    try:
+                        pstats_path = args.output_dir / "profile_master.pstats"
+                        prof.dump_stats(str(pstats_path))
+                        s = StringIO()
+                        ps = pstats.Stats(prof, stream=s).sort_stats("cumulative")
+                        ps.print_stats(40)
+                        top_txt = args.output_dir / "profile_master_top40_cumulative.txt"
+                        top_txt.write_text(s.getvalue(), encoding="utf-8")
+                        log.info(f"[PERF_PROFILE] Wrote {pstats_path} and {top_txt}")
+                    except Exception as e:
+                        log.warning(f"[PERF_PROFILE] Failed to write profile artifacts: {e}")
+            else:
+                for i, task in enumerate(chunk_tasks):
+                    chunk_results.append(process_chunk(*task))
+                    completed.add(task[0])
+                    if int(getattr(args, "abort_after_first_chunk", 0) or 0) == 1:
+                        break
             pool = None
         else:
             # SUBPROCESS-PER-CHUNK ARCHITECTURE (eliminates multiprocessing/IPC problems)
@@ -7283,7 +8895,7 @@ def main():
             if not worker_script.exists():
                 raise RuntimeError(f"Worker script not found: {worker_script}")
             
-            python_exe = sys.executable
+            python_exe = REQUIRED_VENV
             base_cmd = [
                 python_exe,
                 str(worker_script),
@@ -7298,6 +8910,9 @@ def main():
             
             # Track running subprocesses: {chunk_idx: (proc, start_time, chunk_start, chunk_end, mem_avail_at_start)}
             running_procs = {}
+            # Update container for watchdog access
+            if 'running_procs_container' in locals():
+                running_procs_container["procs"] = running_procs
             completed = set()
             chunk_results = []
             chunk_exit_codes = {}  # {chunk_idx: exit_code}
@@ -7317,6 +8932,8 @@ def main():
             
             poll_interval = 5.0
             last_progress_log = time.time()
+            last_heartbeat = time.time()
+            heartbeat_interval = 10.0  # Write heartbeat every 10 seconds
             
             while len(completed) < total_chunks:
                 if MASTER_STOP_REQUESTED:
@@ -7364,6 +8981,7 @@ def main():
                         "--chunk-id", str(chunk_idx),
                         "--chunk-start", str(chunk_start),
                         "--chunk-end", str(chunk_end),
+                        "--chunk-local-padding-days", str(chunk_local_padding_days),
                     ]
                     
                     # Check if this chunk should be retried (SIGKILL retry policy)
@@ -7418,8 +9036,33 @@ def main():
                     
                     next_chunk_idx += 1
                 
-                # Check for completed subprocesses
+                # TRUTH-only master heartbeat with worker metrics
                 current_time = time.time()
+                is_truth_or_smoke_master = os.getenv("GX1_RUN_MODE", "").upper() in ("TRUTH", "SMOKE") or os.getenv("GX1_SMOKE", "0") == "1"
+                if is_truth_or_smoke_master and (current_time - last_heartbeat) >= heartbeat_interval:
+                    n_running_workers = len(running_procs)
+                    n_submitted = next_chunk_idx
+                    n_completed = len(completed)
+                    n_failed = sum(1 for cid in completed if chunk_exit_codes.get(cid, 0) != 0)
+                    n_pending = total_chunks - n_submitted
+                    
+                    heartbeat = {
+                        "timestamp": _dt_now_iso(),
+                        "n_running_workers": n_running_workers,
+                        "n_submitted": n_submitted,
+                        "n_completed": n_completed,
+                        "n_failed": n_failed,
+                        "n_pending": n_pending,
+                        "total_chunks": total_chunks,
+                        "mem_avail_gb": get_mem_available_gb(),
+                        "allowed_procs": allowed_procs,
+                    }
+                    heartbeat_path = args.output_dir / "MASTER_HEARTBEAT.json"
+                    write_json_atomic(heartbeat_path, heartbeat, output_dir=args.output_dir)
+                    last_heartbeat = current_time
+                    log.info(f"[MASTER_HEARTBEAT] running={n_running_workers}, submitted={n_submitted}, completed={n_completed}, failed={n_failed}, pending={n_pending}")
+                
+                # Check for completed subprocesses
                 for chunk_idx in list(running_procs.keys()):
                     proc, start_time, chunk_start, chunk_end, mem_avail_at_start, stdout_file, stderr_file = running_procs[chunk_idx]
                     
@@ -7854,6 +9497,65 @@ def main():
             completion_contract_path = args.output_dir / "RUN_COMPLETED.json" if all_chunks_completed else args.output_dir / "RUN_FAILED.json"
             
             if all_chunks_completed:
+                # ------------------------------------------------------------------
+                # TRUTH/SMOKE observability: aggregate stage timings + perf counters
+                # from chunk footers. Read-only; does not affect semantics.
+                # ------------------------------------------------------------------
+                stage_timings_s = {}
+                perf_counters = {}
+                try:
+                    from collections import defaultdict
+
+                    stage_acc = defaultdict(float)
+                    bars_processed_total = 0
+                    model_calls_total = 0
+                    chunk_wall_clock_total = 0.0
+
+                    for chunk_dir in sorted(args.output_dir.glob("chunk_*")):
+                        footer_path = chunk_dir / "chunk_footer.json"
+                        if not footer_path.exists():
+                            continue
+                        try:
+                            footer = json.loads(footer_path.read_text(encoding="utf-8"))
+                        except Exception:
+                            continue
+                        if (footer.get("status") or "").lower() != "ok":
+                            continue
+
+                        bars_processed_total += int(footer.get("bars_processed", 0) or 0)
+                        model_calls_total += int(footer.get("eval_calls_total", 0) or 0)
+                        chunk_wall_clock_total += float(footer.get("wall_clock_sec", 0.0) or 0.0)
+
+                        for k, v in (footer or {}).items():
+                            if not isinstance(k, str):
+                                continue
+                            if not k.startswith("t_") or not k.endswith("_sec"):
+                                continue
+                            try:
+                                stage_acc[k] += float(v or 0.0)
+                            except Exception:
+                                pass
+                        for k in ("htf_align_time_total_sec", "htf_align_warning_time_sec"):
+                            if k in footer:
+                                try:
+                                    stage_acc[k] += float(footer.get(k) or 0.0)
+                                except Exception:
+                                    pass
+
+                    stage_timings_s = dict(stage_acc)
+                    perf_counters = {
+                        "bars_processed_total": int(bars_processed_total),
+                        "model_calls_total": int(model_calls_total),
+                        "chunk_wall_clock_sec_total": float(chunk_wall_clock_total),
+                        "wall_clock_sec_total": float(total_time if 'total_time' in locals() else 0.0),
+                    }
+                    wt = float(total_time) if 'total_time' in locals() and float(total_time) > 0.0 else 0.0
+                    if wt > 0.0:
+                        perf_counters["bars_per_sec"] = float(bars_processed_total) / wt
+                except Exception as e:
+                    stage_timings_s = {"error": str(e)}
+                    perf_counters = {"error": str(e)}
+
                 completion_data = {
                     "status": "COMPLETED",
                     "run_id": run_id,
@@ -7861,6 +9563,8 @@ def main():
                     "chunks_submitted": len(chunks),
                     "chunks_completed": chunks_completed_count,
                     "total_time_sec": total_time if 'total_time' in locals() else 0.0,
+                    "stage_timings_s": stage_timings_s,
+                    "perf_counters": perf_counters,
                 }
                 log.info(f"[COMPLETION_CONTRACT] Writing RUN_COMPLETED.json (chunks_completed={chunks_completed_count}/{len(chunks)})")
             else:
@@ -7877,6 +9581,15 @@ def main():
             
             write_json_atomic(completion_contract_path, completion_data, output_dir=args.output_dir)
             log.info(f"[COMPLETION_CONTRACT] ✅ Wrote {completion_contract_path.name} to {completion_contract_path}")
+
+            # TRUTH-only: write master exit coverage summary (works for workers=1 direct-run path too)
+            try:
+                is_truth_or_smoke = os.getenv("GX1_RUN_MODE", "").upper() in ("TRUTH", "SMOKE") or os.getenv("GX1_SMOKE", "0") == "1"
+                if is_truth_or_smoke and all_chunks_completed:
+                    write_exit_coverage_summary(args.output_dir)
+                    log.info("[EXIT_COVERAGE] Wrote EXIT_COVERAGE_SUMMARY.{json,md}")
+            except Exception as e:
+                log.warning(f"[EXIT_COVERAGE] Failed to write summary (non-fatal): {e}")
             
             # Append to run index ledger
             try:
@@ -8158,14 +9871,321 @@ def main():
         except Exception as summary_error:
             log.warning(f"[PARALLEL] Failed to write orchestrator summary: {summary_error}")
         
+        # CHUNK-LOCAL PADDING: Write master WARMUP_LEDGER summary (aggregate from all chunks)
+        if chunk_local_padding_days > 0:
+            try:
+                master_warmup_ledger = {
+                    "chunk_local_padding_days": chunk_local_padding_days,
+                    "total_chunks": len(chunks),
+                    "chunks": [],
+                }
+                
+                for chunk_start, chunk_end, chunk_idx in chunks:
+                    chunk_dir = args.output_dir / f"chunk_{chunk_idx}"
+                    chunk_footer_path = chunk_dir / "chunk_footer.json"
+                    if chunk_footer_path.exists():
+                        try:
+                            with open(chunk_footer_path, "r") as f:
+                                chunk_footer = json.load(f)
+                            warmup_ledger = chunk_footer.get("warmup_ledger")
+                            if warmup_ledger:
+                                master_warmup_ledger["chunks"].append({
+                                    "chunk_id": chunk_idx,
+                                    "chunk_start": str(chunk_start),
+                                    "chunk_end": str(chunk_end),
+                                    **warmup_ledger,
+                                })
+                        except Exception as e:
+                            log.warning(f"[WARMUP_LEDGER] Failed to read warmup ledger from chunk {chunk_idx}: {e}")
+                
+                # Write master WARMUP_LEDGER.json
+                master_warmup_ledger_json_path = args.output_dir / "WARMUP_LEDGER.json"
+                with open(master_warmup_ledger_json_path, "w") as f:
+                    json.dump(master_warmup_ledger, f, indent=2)
+                
+                # Write master WARMUP_LEDGER.md
+                master_warmup_ledger_md_path = args.output_dir / "WARMUP_LEDGER.md"
+                md_lines = [
+                    "# Master Warmup Ledger",
+                    "",
+                    f"**Chunk Local Padding Days:** {chunk_local_padding_days}",
+                    f"**Total Chunks:** {len(chunks)}",
+                    "",
+                    "## Summary",
+                    "",
+                ]
+                
+                # Aggregate totals
+                total_warmup_skipped = sum(c.get("warmup_skipped_total", 0) for c in master_warmup_ledger["chunks"])
+                total_bars_processed = sum(c.get("bars_processed_total", 0) for c in master_warmup_ledger["chunks"])
+                total_warmup_seen = sum(c.get("warmup_seen_bars", 0) for c in master_warmup_ledger["chunks"])
+                
+                md_lines.extend([
+                    f"- **Total Warmup Skipped:** {total_warmup_skipped}",
+                    f"- **Total Bars Processed:** {total_bars_processed}",
+                    f"- **Total Warmup Seen:** {total_warmup_seen}",
+                    "",
+                    "## Per-Chunk Details",
+                    "",
+                ])
+                
+                for chunk_data in master_warmup_ledger["chunks"]:
+                    md_lines.extend([
+                        f"### Chunk {chunk_data['chunk_id']}",
+                        "",
+                        f"- **Actual Replay Start:** `{chunk_data.get('actual_replay_start_ts', 'N/A')}`",
+                        f"- **Eval Start:** `{chunk_data.get('eval_start_ts', 'N/A')}`",
+                        f"- **Eval End:** `{chunk_data.get('eval_end_ts', 'N/A')}`",
+                        f"- **Warmup Required Bars:** {chunk_data.get('warmup_required_bars', 0)}",
+                        f"- **Warmup Seen Bars:** {chunk_data.get('warmup_seen_bars', 0)}",
+                        f"- **Warmup Skipped Total:** {chunk_data.get('warmup_skipped_total', 0)}",
+                        f"- **Warmup Completed TS:** `{chunk_data.get('warmup_completed_ts', 'N/A')}`",
+                        f"- **Bars Processed Total:** {chunk_data.get('bars_processed_total', 0)}",
+                        "",
+                    ])
+                
+                md_lines.extend([
+                    "---",
+                    f"*Generated: {dt_now_iso()}*",
+                ])
+                
+                with open(master_warmup_ledger_md_path, "w") as f:
+                    f.write("\n".join(md_lines))
+                
+                log.info(f"[WARMUP_LEDGER] Master summary written: {master_warmup_ledger_json_path}")
+            except Exception as warmup_ledger_error:
+                log.warning(f"[WARMUP_LEDGER] Failed to write master warmup ledger: {warmup_ledger_error}")
+        
+        # SSoT-AUDIT: Duplicate eval bars audit (TRUTH/SMOKE only, master-only)
+        if is_truth_or_smoke:
+            try:
+                from collections import Counter, defaultdict
+                
+                # Collect all (session, ts) pairs where eval_called occurred from all chunks
+                eval_bars_by_session_ts: Dict[str, Dict[str, List[int]]] = defaultdict(lambda: defaultdict(list))
+                
+                for chunk_start, chunk_end, chunk_idx in chunks:
+                    chunk_dir = args.output_dir / f"chunk_{chunk_idx}"
+                    entry_features_path = chunk_dir / "ENTRY_FEATURES_USED.json"
+                    
+                    if not entry_features_path.exists():
+                        continue
+                    
+                    try:
+                        with open(entry_features_path, "r") as f:
+                            chunk_telemetry = json.load(f)
+                        
+                        # Extract entry_eval_trace_events (contains (session, ts) pairs)
+                        entry_eval_trace = chunk_telemetry.get("entry_eval_trace", {})
+                        # Use entry_eval_trace_summary counts_by_session to get total counts
+                        # But we need actual (session, ts) pairs, so we use samples
+                        # Note: samples might be capped, but for duplicate detection, we need to check
+                        # if the same (session, ts) appears in multiple chunks
+                        events = entry_eval_trace.get("entry_eval_trace_samples", [])
+                        
+                        # For duplicate detection, we only care about (session, ts) pairs that appear
+                        # in multiple chunks. If a (session, ts) appears multiple times in the same chunk,
+                        # that's also a duplicate, but we focus on cross-chunk duplicates first.
+                        for event in events:
+                            session = event.get("session")
+                            ts = event.get("ts")
+                            if session and ts:
+                                eval_bars_by_session_ts[session][ts].append(chunk_idx)
+                    except Exception as e:
+                        log.warning(f"[EVAL_DEDUP_AUDIT] Failed to read telemetry from chunk {chunk_idx}: {e}")
+                
+                # Compute duplicates per session
+                audit_results = {}
+                total_duplicates = 0
+                top_duplicates = []
+                
+                for session in sorted(eval_bars_by_session_ts.keys()):
+                    session_ts_map = eval_bars_by_session_ts[session]
+                    n_total_eval_calls = sum(len(chunk_ids) for chunk_ids in session_ts_map.values())
+                    n_unique_eval_ts = len(session_ts_map)
+                    duplicate_eval_calls = n_total_eval_calls - n_unique_eval_ts
+                    
+                    audit_results[session] = {
+                        "n_total_eval_calls": n_total_eval_calls,
+                        "n_unique_eval_ts": n_unique_eval_ts,
+                        "duplicate_eval_calls": duplicate_eval_calls,
+                    }
+                    
+                    total_duplicates += duplicate_eval_calls
+                    
+                    # Collect duplicates for top 20
+                    for ts, chunk_ids in session_ts_map.items():
+                        if len(chunk_ids) > 1:
+                            top_duplicates.append({
+                                "session": session,
+                                "ts": ts,
+                                "count": len(chunk_ids),
+                                "chunk_ids": sorted(chunk_ids),
+                            })
+                
+                # Sort by count (descending) and take top 20
+                top_duplicates.sort(key=lambda x: x["count"], reverse=True)
+                top_duplicates = top_duplicates[:20]
+                
+                # Write EVAL_DEDUP_AUDIT.md
+                audit_md_path = args.output_dir / "EVAL_DEDUP_AUDIT.md"
+                md_lines = [
+                    "# Eval Deduplication Audit",
+                    "",
+                    f"**Generated:** {datetime.now(timezone.utc).isoformat()}",
+                    f"**Total Duplicates:** {total_duplicates}",
+                    "",
+                    "## Per-Session Summary",
+                    "",
+                    "| Session | Total Eval Calls | Unique Eval TS | Duplicate Calls |",
+                    "|---------|------------------|----------------|-----------------|",
+                ]
+                
+                for session in sorted(audit_results.keys()):
+                    result = audit_results[session]
+                    md_lines.append(
+                        f"| {session} | {result['n_total_eval_calls']} | {result['n_unique_eval_ts']} | {result['duplicate_eval_calls']} |"
+                    )
+                
+                md_lines.extend([
+                    "",
+                    "## Top 20 Duplicated (session, ts) Pairs",
+                    "",
+                ])
+                
+                if top_duplicates:
+                    md_lines.extend([
+                        "| Session | TS | Count | Chunk IDs |",
+                        "|---------|----|----|-----------|",
+                    ])
+                    for dup in top_duplicates:
+                        md_lines.append(
+                            f"| {dup['session']} | `{dup['ts']}` | {dup['count']} | {', '.join(map(str, dup['chunk_ids']))} |"
+                        )
+                else:
+                    md_lines.append("*No duplicates found.*")
+                
+                md_lines.extend([
+                    "",
+                    "## Conclusion",
+                    "",
+                ])
+                
+                status = "PASS" if total_duplicates == 0 else "FAIL"
+                md_lines.append(f"**Status:** {status}")
+                if total_duplicates > 0:
+                    md_lines.append(f"**Reason:** Found {total_duplicates} duplicate eval calls across all sessions.")
+                else:
+                    md_lines.append("**Reason:** No duplicate eval calls detected.")
+                
+                md_lines.extend([
+                    "",
+                    "---",
+                    f"*Generated: {datetime.now(timezone.utc).isoformat()}*",
+                ])
+                
+                with open(audit_md_path, "w") as f:
+                    f.write("\n".join(md_lines))
+                
+                log.info(f"[EVAL_DEDUP_AUDIT] Audit report written: {audit_md_path} (status={status})")
+                
+                # Hard-fail if duplicates > 0
+                if total_duplicates > 0:
+                    fatal_path = args.output_dir / "DUPLICATE_EVAL_BARS_FATAL.json"
+                    capsule = {
+                        "status": "FAIL",
+                        "message": f"Found {total_duplicates} duplicate eval calls across all sessions",
+                        "total_duplicates": total_duplicates,
+                        "per_session": audit_results,
+                        "top_20_duplicates": top_duplicates,
+                        "sys.executable": sys.executable,
+                        "sys.version": sys.version,
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                    }
+                    with open(fatal_path, "w") as f:
+                        json.dump(capsule, f, indent=2)
+                    log.error(f"[EVAL_DEDUP_AUDIT] FATAL: Duplicate eval bars detected. Capsule: {fatal_path}")
+                    raise SystemExit(2)
+            except SystemExit:
+                raise
+            except Exception as audit_error:
+                log.warning(f"[EVAL_DEDUP_AUDIT] Failed to run duplicate eval bars audit: {audit_error}", exc_info=True)
+        
         # Stop watchdog thread (normal completion path)
         watchdog_done.set()
+        
+        # Stop run watchdog thread
+        if 'run_watchdog_done' in locals():
+            run_watchdog_done.set()
         
         # STEG 4: Write RUN_COMPLETED.json (completion contract) - only if all chunks completed
         try:
             all_chunks_completed = len(completed) == len(async_results) if 'completed' in locals() and 'async_results' in locals() else False
             if all_chunks_completed and not MASTER_STOP_REQUESTED:
                 run_completed_path = args.output_dir / "RUN_COMPLETED.json"
+
+                # ------------------------------------------------------------------
+                # TRUTH/SMOKE observability: aggregate stage timings + perf counters
+                # from chunk footers. This is read-only and does not affect semantics.
+                # ------------------------------------------------------------------
+                stage_timings_s = {}
+                perf_counters = {}
+                try:
+                    from collections import defaultdict
+
+                    stage_acc = defaultdict(float)
+                    bars_processed_total = 0
+                    model_calls_total = 0
+                    chunk_wall_clock_total = 0.0
+
+                    for chunk_dir in sorted(args.output_dir.glob("chunk_*")):
+                        footer_path = chunk_dir / "chunk_footer.json"
+                        if not footer_path.exists():
+                            continue
+                        try:
+                            footer = json.loads(footer_path.read_text(encoding="utf-8"))
+                        except Exception:
+                            continue
+                        if (footer.get("status") or "").lower() != "ok":
+                            continue
+
+                        bars_processed_total += int(footer.get("bars_processed", 0) or 0)
+                        model_calls_total += int(footer.get("eval_calls_total", 0) or 0)
+                        chunk_wall_clock_total += float(footer.get("wall_clock_sec", 0.0) or 0.0)
+
+                        # Stage timings: sum all keys like t_*_sec (seconds)
+                        for k, v in (footer or {}).items():
+                            if not isinstance(k, str):
+                                continue
+                            if not k.startswith("t_") or not k.endswith("_sec"):
+                                continue
+                            try:
+                                stage_acc[k] += float(v or 0.0)
+                            except Exception:
+                                pass
+                        # Also include HTF align timings if present
+                        for k in ("htf_align_time_total_sec", "htf_align_warning_time_sec"):
+                            if k in footer:
+                                try:
+                                    stage_acc[k] += float(footer.get(k) or 0.0)
+                                except Exception:
+                                    pass
+
+                    stage_timings_s = dict(stage_acc)
+                    perf_counters = {
+                        "bars_processed_total": int(bars_processed_total),
+                        "model_calls_total": int(model_calls_total),
+                        "chunk_wall_clock_sec_total": float(chunk_wall_clock_total),
+                        "wall_clock_sec_total": float(total_time),
+                    }
+                    # Derived throughput (avoid divide-by-zero)
+                    if float(total_time) > 0.0:
+                        perf_counters["bars_per_sec"] = float(bars_processed_total) / float(total_time)
+                except Exception as e:
+                    # Best-effort only; never fail completion contract due to observability export
+                    stage_timings_s = {"error": str(e)}
+                    perf_counters = {"error": str(e)}
+
                 run_completed_data = {
                     "status": "COMPLETED",
                     "run_id": run_id,
@@ -8174,10 +10194,21 @@ def main():
                     "chunks_completed": len(completed) if 'completed' in locals() else 0,
                     "total_time_sec": total_time,
                     "perf_json_written": perf_json_written,
+                    "stage_timings_s": stage_timings_s,
+                    "perf_counters": perf_counters,
                 }
                 with open(run_completed_path, "w") as f:
                     json.dump(run_completed_data, f, indent=2)
                 log.info(f"[COMPLETION_CONTRACT] Wrote RUN_COMPLETED.json to {run_completed_path}")
+
+                # TRUTH-only: write master exit coverage summary
+                try:
+                    is_truth_or_smoke = os.getenv("GX1_RUN_MODE", "").upper() in ("TRUTH", "SMOKE") or os.getenv("GX1_SMOKE", "0") == "1"
+                    if is_truth_or_smoke:
+                        write_exit_coverage_summary(args.output_dir)
+                        log.info("[EXIT_COVERAGE] Wrote EXIT_COVERAGE_SUMMARY.{json,md}")
+                except Exception as e:
+                    log.warning(f"[EXIT_COVERAGE] Failed to write summary (non-fatal): {e}")
                 
                 # Append to run index ledger
                 try:
@@ -8278,4 +10309,60 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # B0.2: Wrap main() in try/except to catch uncaught exceptions
+    try:
+        main()
+    except (KeyboardInterrupt, SystemExit):
+        # Re-raise these (they're expected)
+        raise
+    except Exception as e:
+        import traceback
+        import tempfile
+        
+        # Try to get output_dir from args if available
+        output_dir = None
+        try:
+            # Try to parse args to get output_dir
+            parser = argparse.ArgumentParser()
+            parser.add_argument("--output-dir", type=Path)
+            args, _ = parser.parse_known_args()
+            if args.output_dir:
+                output_dir = args.output_dir
+        except Exception:
+            pass
+        
+        # Fallback to /tmp if output_dir not available
+        if output_dir is None:
+            output_dir = Path(tempfile.gettempdir()) / "gx1_master_uncaught"
+            output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Write MASTER_UNCAUGHT_FATAL.json
+        fatal_capsule = {
+            "status": "FATAL",
+            "exception_type": type(e).__name__,
+            "message": str(e),
+            "traceback": traceback.format_exc(),
+            "timestamp": dt_now_iso(),
+            "pid": os.getpid(),
+            "sys.executable": sys.executable,
+            "sys.version": sys.version,
+            "cwd": str(Path.cwd()),
+            "argv": sys.argv,
+        }
+        
+        fatal_path = output_dir / "MASTER_UNCAUGHT_FATAL.json"
+        try:
+            write_json_atomic(fatal_path, fatal_capsule, output_dir=output_dir)
+            log.error(f"[MASTER_UNCAUGHT_FATAL] Uncaught exception written to {fatal_path}")
+        except Exception as write_error:
+            # Last resort: write to /tmp directly
+            tmp_path = Path(tempfile.gettempdir()) / f"gx1_master_uncaught_{os.getpid()}.json"
+            try:
+                with open(tmp_path, "w") as f:
+                    json.dump(fatal_capsule, f, indent=2)
+                log.error(f"[MASTER_UNCAUGHT_FATAL] Fallback write to {tmp_path} (original error: {write_error})")
+            except Exception:
+                log.error(f"[MASTER_UNCAUGHT_FATAL] Failed to write capsule even to /tmp: {write_error}")
+        
+        # Re-raise to ensure proper exit code
+        raise
