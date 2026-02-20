@@ -1,7 +1,10 @@
+# CANONICAL POLICY — DO NOT DUPLICATE
+# Lock: run `chmod a-w` on this file locally to enforce read-only (best-effort).
+#
 # GX1 v1.1 → SNIPER entry policy (EU/London/NY) - REPLAY V10 VERIFICATION
 #
 # Entry: SNIPER (EU/OVERLAP/US + HIGH volatility allowed) with V10 enabled
-# Exit: HYBRID_ROUTER_V3 - ML decision tree with range features
+# Exit: EXIT_TRANSFORMER_V0 only (ML exit only; no router, no exit_critic, no rules)
 # Status: REPLAY-ONLY verification policy (not for production)
 #
 # Purpose: Verify that V10/V10_CTX is actually called in replay
@@ -57,24 +60,8 @@ replay_config:
     require_warmup_ready: true  # Skip if warmup not ready
     allow_degraded: false  # Don't allow degraded warmup in pregate (strict)
 
-# SNIPER-specific exit configs (same as baseline)
-exit_config: gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/exits/SNIPER_EXIT_RULES_A.yaml
-
-exit_policies:
-  rule5: gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/exits/SNIPER_EXIT_RULES_A.yaml
-  rule6a: gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/exits/SNIPER_EXIT_RULES_ADAPTIVE.yaml
-
-hybrid_exit_router:
-  version: HYBRID_ROUTER_V3
-  # In v1: Use same router model as FARM (can be tuned via params later)
-  model_path: gx1/models/exit_router/exit_router_v3_tree.pkl
-  # SNIPER-specific router parameters (can be tuned independently)
-  v3_range_edge_cutoff: 1.0  # Start with same as FARM (can tune later)
-  # Future: session-specific cutoffs, vol-specific thresholds
-  documentation: |
-    HYBRID_ROUTER_V3_RANGE provides ML-based routing using decision tree trained on range features.
-    In v1: Uses same router model as FARM PROD_BASELINE.
-    SNIPER can tune router parameters (cutoffs, thresholds) via config without affecting FARM.
+# EXIT_TRANSFORMER_V0 only (ONE UNIVERSE: ML exit only; no rule-based exit)
+exit_config: gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/exits/EXIT_TRANSFORMER_ONLY_V0.yaml
 
 execution:
   dry_run: false
@@ -93,13 +80,10 @@ backfill:
   lookback_padding: 100
   target_bars_padding: 100
 
-# Exit control (ExitArbiter configuration) - same as baseline
+# Exit control (ExitArbiter) - EXIT_TRANSFORMER_V0 (ML only)
 exit_control:
   allowed_loss_closers:
-    - RULE_A_PROFIT
-    - RULE_A_TRAILING
-    - RULE_B_FAST_LOSS
-    - RULE_C_TIMEOUT
+    - ML_EXIT_TRANSFORMER
     - BROKER_SL
     - SL_TICK
     - REPLAY_EOF
