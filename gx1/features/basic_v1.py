@@ -339,7 +339,7 @@ def _align_htf_to_m5_numpy(
             perf_add("feat.htf_align.warning_overhead_est", estimated_overhead)
             
             # Track alignment warning count per runner (via thread-local or module-level)
-            # For now, use module-level cache (will be reset per chunk in replay_eval_gated_parallel)
+            # For now, use module-level cache (will be reset per chunk in legacy replay, quarantined)
             if not hasattr(_align_htf_to_m5_numpy, "_align_warn_count"):
                 _align_htf_to_m5_numpy._align_warn_count = 0  # type: ignore
             _align_htf_to_m5_numpy._align_warn_count += 1  # type: ignore

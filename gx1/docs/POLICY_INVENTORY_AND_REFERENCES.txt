@@ -1,0 +1,54 @@
+# Policy inventory and code references (OPPGAVE B output)
+
+## Canonical (THE ONE) – excluded from DELETE_CANDIDATE
+
+  gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/GX1_SNIPER_REPLAY_V10_CTX_VERIFY.yaml
+
+## Inventory: all YAML under gx1/configs/policies/** that are NOT the one
+
+Grouped per folder; for each: path, size, mtime, has exit_config/hybrid_exit_router/exit_policies/exit_critic (substring in file).
+
+=== gx1/configs/policies/active ===
+  gx1/configs/policies/active/GX1_V11_OANDA_PRACTICE_LIVE_SNIPER_LONDON_NY.yaml
+    size=1806 mtime=2026-01-26 17:51
+    exit_config=True hybrid_exit_router=True exit_policies=True exit_critic=False
+
+=== gx1/configs/policies/prod_snapshot/2025_FARM_V2B_HYBRID ===
+  FARM_EXIT_V2_RULES_ADAPTIVE_v1.yaml, FARM_EXIT_V2_RULES_A_mp68_max5_rule5_cd0.yaml
+  (exit_config=False hybrid_exit_router=False exit_policies=False exit_critic=False)
+
+=== gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1 ===
+  GX1_SNIPER_LIVE_TRIAL160_V10_CTX.yaml, GX1_SNIPER_REPLAY_V10_CTX_VERIFY_EXIT_RULE6A_PURE.yaml,
+  GX1_SNIPER_TRAIN_V10_CTX_GATED.yaml, GX1_V11_* (all canary/replay/live variants),
+  SNIPER_RISK_GUARD_V1.yaml (KEEP – risk_guard dependency)
+  (various exit_config/hybrid_exit_router/exit_policies/exit_critic)
+
+=== gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/exits ===
+  MASTER_EXIT_V1_A.yaml (KEEP – exit_config of canonical)
+  SNIPER_EXIT_RULES_A.yaml, SNIPER_EXIT_RULES_ADAPTIVE.yaml, SNIPER_EXIT_RULES_A_P4_1.yaml (DELETE_CANDIDATE)
+
+=== gx1/configs/policies/sniper_snapshot/2025_SNIPER_V10_1 ===
+  All ENTRY_* and GX1_V12_* YAMLs (many files; full list in Python inventory output above).
+
+## PREVIEW: DELETE_CANDIDATE size/count
+
+  Dirs (files inside): 33
+  Single files in 2025_SNIPER_V1 (non-KEEP): 11
+  Single files in exits/ (non-KEEP): 3
+  Total size of dirs: active 12K, prod_snapshot 56K, sniper_snapshot/2025_SNIPER_V10_1 116K
+
+## References in code (rg GX1_.*POLICY|policy_path|configs/policies/ in gx1)
+
+Key locations:
+- run_truth_e2e_sanity.py: policy_path from GX1_CANONICAL_POLICY_PATH, default ENGINE/.../GX1_SNIPER_REPLAY_V10_CTX_VERIFY.yaml
+- run_fullyear_2025_truth_proof.py: policy_path from GX1_CANONICAL_POLICY_PATH, assert_truth_policy_path_canonical
+- oanda_demo_runner.py: self.policy_path, load_yaml_config(policy_path), default in one place: gx1/configs/policies/GX1_V11_OANDA_DEMO.yaml
+- replay_chunk.py, chunk_bootstrap.py: policy_path argument
+- replay_with_shadow.py: default Path("gx1/configs/policies/.../GX1_V11_REPLAY_SHADOW_2025.yaml")
+- replay_with_shadow_parallel.py: same default
+- write_model_used_capsule.py: candidate list includes GX1_SNIPER_REPLAY_V10_CTX_VERIFY.yaml, GX1_SNIPER_TRAIN_V10_CTX_GATED.yaml, active/GX1_V11_OANDA_PRACTICE_LIVE_SNIPER_LONDON_NY.yaml
+- resolve_unknown_artifacts.py: list of policy paths including GX1_SNIPER_TRAIN_V10_CTX_GATED.yaml, GX1_SNIPER_REPLAY_V10_CTX_VERIFY.yaml, GX1_V11_OANDA_PRACTICE_LIVE_SNIPER_LONDON_NY.yaml
+- smoke_close_aliasing_v10.py, run_verify_entry_flow_gap_smoke.py: hardcoded path to GX1_SNIPER_REPLAY_V10_CTX_VERIFY.yaml
+- gx1/utils/truth_banlist.py: TRUTH_CANONICAL_POLICY_RELATIVE, assert_truth_policy_path_canonical
+
+Full rg output saved in run; see terminal or run: rg -n 'GX1_.*POLICY|policy_path|configs/policies/' gx1 --type py -t yaml

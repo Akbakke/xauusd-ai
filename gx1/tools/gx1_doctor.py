@@ -269,16 +269,9 @@ def check_output_policy() -> CheckResult:
 
 
 def check_imports() -> CheckResult:
-    """Check 6: Quick import check (BLOCKING)."""
+    """Check 6: Quick import check (gx1 only). Legacy replay is never imported."""
     try:
         import gx1
-        import gx1.scripts.replay_eval_gated_parallel
-        return CheckResult(
-            name="Import check",
-            status="OK",
-            message="gx1 and gx1.scripts.replay_eval_gated_parallel imported successfully",
-            blocking=False,
-        )
     except ImportError as e:
         return CheckResult(
             name="Import check",
@@ -295,6 +288,25 @@ def check_imports() -> CheckResult:
             blocking=True,
             fix="Check Python environment and gx1 package installation"
         )
+
+    engine_root, _ = find_engine_root()
+    legacy_path = None
+    if engine_root is not None:
+        legacy_path = engine_root / "gx1" / "scripts" / "replay_eval_gated_parallel.py"
+    if legacy_path is not None and legacy_path.exists():
+        return CheckResult(
+            name="Import check",
+            status="FAIL",
+            message="Legacy replay script must not exist in repo (ghost purge).",
+            blocking=True,
+            fix="Remove gx1/scripts/replay_eval_gated_parallel.py (use run_truth_e2e_sanity only).",
+        )
+    return CheckResult(
+        name="Import check",
+        status="OK",
+        message="gx1 imported successfully (legacy replay not present; ghost purge OK).",
+        blocking=False,
+    )
 
 
 def run_checks(strict: bool = False) -> Tuple[List[CheckResult], bool]:

@@ -1,0 +1,12 @@
+{
+  "feature_contract_id": "v13_refined3",
+  "prebuilt_schema_manifest_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V13_REFINED3/2025/xauusd_m5_2025_features_v13_refined3_20260215_150308.schema_manifest.json",
+  "prebuilt_parquet_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V13_REFINED3/2025/xauusd_m5_2025_features_v13_refined3_20260215_150308.parquet",
+  "bundle_dir": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/XGB_V13_REFINED3_BASE28_20260215_150556",
+  "master_model_lock_path": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/XGB_V13_REFINED3_BASE28_20260215_150556/MASTER_MODEL_LOCK.json",
+  "notes": [
+    "SSoT artifacts config for v13_refined3.",
+    "All paths must be absolute. No fallback resolution.",
+    "Builder scripts update these fields during --verify; TRUTH/SMOKE hard-fails if empty."
+  ]
+}

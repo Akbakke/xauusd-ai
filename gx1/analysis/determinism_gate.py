@@ -10,7 +10,7 @@ Runs multiple replays with identical policy to detect:
 
 Usage:
     python gx1/analysis/determinism_gate.py \
-        --policy gx1/configs/policies/.../PROD_BASELINE.yaml \
+        --policy <path>  # use canonical policy or GX1_CANONICAL_POLICY_PATH \
         --start 2025-01-01 --end 2025-01-15 \
         --out gx1/wf_runs/DETERMINISM_GATE_2025Q1
 """

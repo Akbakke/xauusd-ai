@@ -1,7 +1,10 @@
 # FULLYEAR_2025 Robust Pipeline
 
 **Date:** 2026-01-07  
-**Status:** ✅ Implemented
+**Status:** ✅ Implemented  
+
+**Canonical script (full pipeline with calibration):** `gx1/scripts/build_entry_v10_ctx_training_dataset_legacy.py` — run `python -m gx1.scripts.build_entry_v10_ctx_training_dataset_legacy`.  
+The old name `build_entry_v10_ctx_training_dataset.py` is deprecated and stubbed (fail-fast).
 
 ---
 
@@ -13,7 +16,7 @@ Ekstremt robust og lett å verifisere FULLYEAR-pipeline med hygiene, observabili
 
 ## 1. Build-Script: Mini-Build og Tidsavgrensing
 
-**File:** `gx1/scripts/build_entry_v10_ctx_training_dataset.py`
+**File:** `gx1/scripts/build_entry_v10_ctx_training_dataset_legacy.py`
 
 **Nye CLI Args:**
 - `--start` (ISO date/time): Filtrer input data før feature-bygging
@@ -29,7 +32,7 @@ Ekstremt robust og lett å verifisere FULLYEAR-pipeline med hygiene, observabili
 **Example:**
 ```bash
 # Mini-build for testing
-python gx1/scripts/build_entry_v10_ctx_training_dataset.py \
+python -m gx1.scripts.build_entry_v10_ctx_training_dataset_legacy \
     --data data/entry_v9/full_2025.parquet \
     --output data/entry_v10_ctx/FULLYEAR_2025_mini.parquet \
     --start 2025-01-01T00:00:00Z \
@@ -43,7 +46,7 @@ python gx1/scripts/build_entry_v10_ctx_training_dataset.py \
     --calibration_method platt
 
 # Dry run (verify only)
-python gx1/scripts/build_entry_v10_ctx_training_dataset.py \
+python -m gx1.scripts.build_entry_v10_ctx_training_dataset_legacy \
     --data data/entry_v9/full_2025.parquet \
     --output data/entry_v10_ctx/FULLYEAR_2025.parquet \
     --dry_run \
@@ -55,7 +58,7 @@ python gx1/scripts/build_entry_v10_ctx_training_dataset.py \
 
 ## 2. Dataset Sanity-Check (Hard Fail)
 
-**File:** `gx1/scripts/build_entry_v10_ctx_training_dataset.py`
+**File:** `gx1/scripts/build_entry_v10_ctx_training_dataset_legacy.py`
 
 **Function:** `validate_built_dataset()`
 
@@ -115,7 +118,7 @@ get_calibrator_path(
 
 ## 4. Manifest for Prebuilt Dataset (SSoT)
 
-**File:** `gx1/scripts/build_entry_v10_ctx_training_dataset.py`
+**File:** `gx1/scripts/build_entry_v10_ctx_training_dataset_legacy.py`
 
 **Function:** `write_manifest()`
 
@@ -204,7 +207,7 @@ MANIFEST WRITTEN: data/entry_v10_ctx/FULLYEAR_2025_GATED_FUSION_train.manifest.j
 ## Files Changed
 
 1. `gx1/models/entry_v10/calibration_paths.py` (NEW) - SSoT for calibrator paths
-2. `gx1/scripts/build_entry_v10_ctx_training_dataset.py` (UPDATED)
+2. `gx1/scripts/build_entry_v10_ctx_training_dataset_legacy.py` (UPDATED)
    - `--start/--end/--max_rows/--dry_run` args
    - `validate_built_dataset()` function
    - `write_manifest()` function
@@ -225,7 +228,7 @@ MANIFEST WRITTEN: data/entry_v10_ctx/FULLYEAR_2025_GATED_FUSION_train.manifest.j
 ```bash
 export GX1_REQUIRE_XGB_CALIBRATION=1
 
-python gx1/scripts/build_entry_v10_ctx_training_dataset.py \
+python -m gx1.scripts.build_entry_v10_ctx_training_dataset_legacy \
     --data data/entry_v9/full_2025.parquet \
     --output data/entry_v10_ctx/FULLYEAR_2025_mini.parquet \
     --start 2025-01-01T00:00:00Z \

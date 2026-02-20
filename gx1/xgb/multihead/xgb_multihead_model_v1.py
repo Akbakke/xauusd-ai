@@ -25,6 +25,27 @@ import pandas as pd
 log = logging.getLogger(__name__)
 
 
+def load_session_policy(workspace_root: Path) -> Tuple[Dict[str, Any], str]:
+    """
+    Load canonical XGB session policy (enable/disable per-session heads).
+
+    Contract:
+    - Reads `gx1/configs/xgb_session_policy.json` relative to workspace_root
+    - Returns (policy_dict, sha256_hex)
+    - Hard-fails if file missing or invalid
+    """
+    root = Path(workspace_root).expanduser().resolve()
+    policy_path = root / "gx1" / "configs" / "xgb_session_policy.json"
+    if not policy_path.exists():
+        raise FileNotFoundError(f"[XGB_SESSION_POLICY_FAIL] policy file missing: {policy_path}")
+    raw = policy_path.read_bytes()
+    sha = hashlib.sha256(raw).hexdigest()
+    obj = json.loads(raw.decode("utf-8"))
+    if not isinstance(obj, dict) or "sessions" not in obj or not isinstance(obj.get("sessions"), dict):
+        raise RuntimeError(f"[XGB_SESSION_POLICY_FAIL] invalid policy format: {policy_path}")
+    return obj, sha
+
+
 @dataclass
 class MultiheadOutputs:
     """Outputs from a single head prediction."""
@@ -255,6 +276,27 @@ class XGBMultiheadModel:
                         f"Extra: {set(feature_list) - set(self.feature_list)}"
                     )
         
+        # Session head handling:
+        # Some bundles legitimately omit a head (e.g., US disabled). In that case we return neutral outputs
+        # rather than failing, but we still hard-fail for unknown session labels.
+        if session not in self.heads:
+            known = {"EU", "OVERLAP", "US", "ASIA"}
+            if session not in known:
+                raise ValueError(
+                    f"Session '{session}' not found in model. "
+                    f"Available: {list(self.heads.keys())}"
+                )
+            n = int(len(df))
+            p = np.full((n,), 1.0 / 3.0, dtype=np.float32)
+            u = np.ones((n,), dtype=np.float32)
+            return MultiheadOutputs(
+                p_long=p,
+                p_short=p,
+                p_flat=p,
+                uncertainty=u,
+                session=session,
+            )
+
         # Get head
         head = self.get_head(session)
         

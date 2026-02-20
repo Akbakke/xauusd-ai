@@ -61,6 +61,8 @@ def generate_run_header(
     bundle_path: Optional[str] = None,
     bundle_sha256: Optional[str] = None,
     run_id: Optional[str] = None,  # DEL 4: Explicit run_id parameter
+    policy_snapshot_path: Optional[str] = None,
+    policy_snapshot_sha256: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Generate run_header.json artifact.
@@ -102,7 +104,13 @@ def generate_run_header(
         header["bundle_path"] = bundle_path
     if bundle_sha256:
         header["bundle_sha256"] = bundle_sha256
-    
+
+    # Policy snapshot (frozen input per run)
+    if policy_snapshot_path is not None:
+        header["policy_snapshot_path"] = policy_snapshot_path
+    if policy_snapshot_sha256 is not None:
+        header["policy_snapshot_sha256"] = policy_snapshot_sha256
+
     # Extract meta.role from policy (CRITICAL for PROD_BASELINE identification)
     if policy_dict:
         meta = policy_dict.get("meta", {})

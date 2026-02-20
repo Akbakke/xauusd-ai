@@ -132,7 +132,7 @@ def test_build_script_preserves_raw_columns():
     """Test C: Build script outputs include preserved raw columns list."""
     # This test would require running the build script, which is integration-level
     # For now, we verify the contract exists in the code
-    from gx1.scripts.build_entry_v10_ctx_training_dataset import build_dataset
+    from gx1.datasets.entry_v10_ctx_legacy import build_dataset
     
     # Check that build_dataset returns raw_columns_preserved in metadata
     # This is verified by checking the function signature and return value
@@ -141,7 +141,7 @@ def test_build_script_preserves_raw_columns():
     # build_dataset should return (df, meta_dict) where meta_dict has raw_columns_preserved
     
     # Verify write_manifest accepts raw_columns_preserved
-    from gx1.scripts.build_entry_v10_ctx_training_dataset import write_manifest
+    from gx1.datasets.entry_v10_ctx_legacy import write_manifest
     sig_manifest = inspect.signature(write_manifest)
     assert "raw_columns_preserved" in sig_manifest.parameters, "write_manifest must accept raw_columns_preserved"
     

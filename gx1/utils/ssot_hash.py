@@ -8,6 +8,7 @@ for audit trail and reproducibility in replay runs.
 import hashlib
 import json
 import logging
+import os
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -202,10 +203,14 @@ def compute_bundle_sha256(
     artifacts = []
     
     # Required artifacts
+    #
+    # Signal-only TRUTH: feature_meta_path is legacy and must not be required.
+    is_signal_only_truth = bool(os.getenv("GX1_CANONICAL_TRUTH_FILE"))
     required_artifacts = {
         "bundle_dir": "bundle",
-        "feature_meta_path": "feature_meta.json",
     }
+    if not is_signal_only_truth:
+        required_artifacts["feature_meta_path"] = "feature_meta.json"
     
     for key, artifact_name in required_artifacts.items():
         artifact_path = resolved_artifact_paths.get(key)
@@ -272,12 +277,14 @@ def compute_bundle_sha256(
             })
     
     # Optional artifacts (scaler paths, xgb models)
-    # HARD-FAIL: If specified in policy but missing, fail immediately
-    optional_artifacts = {
-        "seq_scaler_path": "seq_scaler",
-        "snap_scaler_path": "snap_scaler",
-        "xgb_models": "entry_config.yaml",  # XGB models are in entry_config
-    }
+    # HARD-FAIL: If specified in policy but missing, fail immediately (non-signal-only).
+    optional_artifacts = {}
+    if not is_signal_only_truth:
+        optional_artifacts = {
+            "seq_scaler_path": "seq_scaler",
+            "snap_scaler_path": "snap_scaler",
+            "xgb_models": "entry_config.yaml",  # XGB models are in entry_config
+        }
     
     # Find repo root (same logic as in resolve_artifact_paths_from_policy)
     repo_root = policy_path.resolve().parent
@@ -289,7 +296,6 @@ def compute_bundle_sha256(
             break
         repo_root = repo_root.parent
     else:
-        import os
         repo_root = Path(os.getcwd()).resolve()
     
     for key, artifact_name in optional_artifacts.items():

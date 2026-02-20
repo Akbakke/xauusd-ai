@@ -10,7 +10,7 @@ import logging
 
 log = logging.getLogger(__name__)
 
-def verify_fast_path_enabled(is_replay: bool = False) -> dict:
+def verify_fast_path_enabled(is_replay: bool = False, is_truth_or_smoke: bool = False) -> dict:
     """
     Verify fast path is enabled.
     
@@ -22,6 +22,7 @@ def verify_fast_path_enabled(is_replay: bool = False) -> dict:
     
     Args:
         is_replay: Whether we're in replay mode (hard fail if fast path not enabled)
+        is_truth_or_smoke: If True, allow TRUTH/SMOKE exceptions (e.g., GX1_REPLAY_NO_CSV may be false due to journaling)
     
     Returns:
         dict with fast_path_enabled (bool) and details
@@ -36,6 +37,10 @@ def verify_fast_path_enabled(is_replay: bool = False) -> dict:
         "VECLIB_MAXIMUM_THREADS": os.getenv("VECLIB_MAXIMUM_THREADS") == "1",
         "NUMEXPR_NUM_THREADS": os.getenv("NUMEXPR_NUM_THREADS") == "1",
     }
+
+    # TRUTH/SMOKE: allow CSV writes for journaling without failing the fast-path contract.
+    if is_truth_or_smoke:
+        checks["GX1_REPLAY_NO_CSV"] = True
     
     all_passed = all(checks.values())
     

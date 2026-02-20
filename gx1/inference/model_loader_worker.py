@@ -49,7 +49,7 @@ class ModelLoadConfig:
     feature_meta_path: Path
     seq_scaler_path: Optional[Path] = None
     snap_scaler_path: Optional[Path] = None
-    model_variant: str = "v10"  # "v10" or "v10_ctx"
+    model_variant: str = "v10_ctx"  # ONE UNIVERSE: only v10_ctx (6/6)
     device: str = "cpu"
     timeout_sec: float = 60.0
 
@@ -112,102 +112,33 @@ def _load_model_worker_impl(config: ModelLoadConfig) -> ModelLoadResult:
             import json
             feature_meta = json.load(f)
         
-        # Determine model type and load accordingly
-        if config.model_variant == "v10_ctx":
-            # Load V10_CTX bundle
-            from gx1.models.entry_v10.entry_v10_bundle import load_entry_v10_ctx_bundle
-            from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import EntryV10CtxHybridTransformer
-            
-            log.info("[MODEL_LOADER_WORKER] Loading V10_CTX bundle...")
-            bundle = load_entry_v10_ctx_bundle(
-                bundle_dir=config.bundle_dir,
-                feature_meta_path=config.feature_meta_path,
-                seq_scaler_path=config.seq_scaler_path,
-                snap_scaler_path=config.snap_scaler_path,
-                device=device,
-                is_replay=True,  # Strict validation
+        # ONE UNIVERSE: only v10_ctx (6/6). No legacy v10 (16/88).
+        if config.model_variant != "v10_ctx":
+            return ModelLoadResult(
+                success=False,
+                model_class_name="",
+                param_count=0,
+                model_hash="",
+                error_type="ONE_UNIVERSE",
+                error_message=f"Only model_variant='v10_ctx' supported. Got {config.model_variant!r}. Legacy 16/88 removed.",
+                load_time_sec=time.perf_counter() - start_time,
+                traceback_excerpt=None,
             )
-            
-            transformer_model = bundle.transformer_model
-            model_class_name = type(transformer_model).__name__
-            
-        else:
-            # Load legacy V10 transformer directly (simpler: just verify transformer loads)
-            from gx1.models.entry_v10.entry_v10_hybrid_transformer import EntryV10HybridTransformer
-            
-            log.info("[MODEL_LOADER_WORKER] Loading legacy V10 transformer directly...")
-            
-            # Find model file
-            model_path = None
-            possible_model_names = [
-                "entry_v10_transformer.pt",
-                "entry_v10_transformer_CANONICAL.pt",
-                "model_state_dict.pt",
-            ]
-            for name in possible_model_names:
-                candidate = config.bundle_dir / name
-                if candidate.exists():
-                    model_path = candidate
-                    break
-            
-            if model_path is None:
-                # Try to find any .pt file in bundle_dir
-                pt_files = list(config.bundle_dir.glob("*.pt"))
-                if pt_files:
-                    model_path = pt_files[0]
-                else:
-                    raise FileNotFoundError(f"[MODEL_LOADER_WORKER] No model file found in {config.bundle_dir}")
-            
-            # Load metadata (try to find transformer metadata)
-            meta_path = config.bundle_dir / f"{model_path.stem}_meta.json"
-            if not meta_path.exists():
-                meta_path = config.bundle_dir / "entry_v10_transformer_meta.json"
-            if not meta_path.exists():
-                meta_path = config.bundle_dir / "entry_v10_1_transformer_meta.json"
-            if not meta_path.exists():
-                # Fallback: use feature_meta for dimensions
-                meta_path = config.feature_meta_path
-            
-            with open(meta_path, "r") as f:
-                import json
-                transformer_meta = json.load(f)
-            
-            # Build model
-            seq_input_dim = transformer_meta.get("seq_feature_count", len(feature_meta.get("seq_features", [])))
-            snap_input_dim = transformer_meta.get("snap_feature_count", len(feature_meta.get("snap_features", [])))
-            max_seq_len = transformer_meta.get("seq_len", 30)
-            variant = transformer_meta.get("variant", "v10")
-            
-            log.info(f"[MODEL_LOADER_WORKER] Creating model (seq_dim={seq_input_dim}, snap_dim={snap_input_dim}, seq_len={max_seq_len}, variant={variant})...")
-            transformer_model = EntryV10HybridTransformer(
-                seq_input_dim=seq_input_dim,
-                snap_input_dim=snap_input_dim,
-                max_seq_len=max_seq_len,
-                variant=variant,
-                enable_auxiliary_heads=True,
-            )
-            transformer_model = transformer_model.to(device)
-            
-            # Load checkpoint
-            log.info(f"[MODEL_LOADER_WORKER] Loading checkpoint: {model_path}")
-            checkpoint = torch.load(model_path, map_location="cpu")
-            
-            # Get state_dict
-            state_dict = checkpoint["model_state_dict"] if (isinstance(checkpoint, dict) and "model_state_dict" in checkpoint) else checkpoint
-            
-            # Filter out causal_mask
-            filtered_state_dict = {k: v for k, v in state_dict.items() if "causal_mask" not in k}
-            cpu_state_dict = {k: v.cpu() if hasattr(v, 'cpu') else v for k, v in filtered_state_dict.items()}
-            
-            # Load state_dict
-            log.info(f"[MODEL_LOADER_WORKER] Loading state_dict with {len(cpu_state_dict)} keys...")
-            missing_keys, unexpected_keys = transformer_model.load_state_dict(cpu_state_dict, strict=False)
-            if missing_keys:
-                log.warning(f"[MODEL_LOADER_WORKER] Missing keys: {missing_keys[:5]}...")
-            if unexpected_keys:
-                log.warning(f"[MODEL_LOADER_WORKER] Unexpected keys: {unexpected_keys[:5]}...")
-            
-            model_class_name = type(transformer_model).__name__
+        
+        from gx1.models.entry_v10.entry_v10_bundle import load_entry_v10_ctx_bundle
+        
+        log.info("[MODEL_LOADER_WORKER] Loading V10_CTX bundle...")
+        bundle = load_entry_v10_ctx_bundle(
+            bundle_dir=config.bundle_dir,
+            feature_meta_path=config.feature_meta_path,
+            seq_scaler_path=config.seq_scaler_path,
+            snap_scaler_path=config.snap_scaler_path,
+            device=device,
+            is_replay=True,
+        )
+        
+        transformer_model = bundle.transformer_model
+        model_class_name = type(transformer_model).__name__
         
         log.info(f"[MODEL_LOADER_WORKER] Model loaded: {model_class_name}")
         
@@ -231,53 +162,22 @@ def _load_model_worker_impl(config: ModelLoadConfig) -> ModelLoadResult:
         log.info("[MODEL_LOADER_WORKER] Running smoke test...")
         transformer_model.eval()
         
-        # Get model dimensions from metadata or bundle
-        if config.model_variant == "v10_ctx":
-            seq_input_dim = len(feature_meta.get("seq_features", []))
-            snap_input_dim = len(feature_meta.get("snap_features", []))
-            max_seq_len = feature_meta.get("seq_len", 30)
-            
-            # Create dummy inputs for ctx model
-            batch_size = 1
-            seq_x = torch.zeros(batch_size, max_seq_len, seq_input_dim, dtype=torch.float32)
-            snap_x = torch.zeros(batch_size, snap_input_dim, dtype=torch.float32)
-            session_id = torch.zeros(batch_size, dtype=torch.int64)
-            vol_regime_id = torch.zeros(batch_size, dtype=torch.int64)
-            trend_regime_id = torch.zeros(batch_size, dtype=torch.int64)
-            ctx_cat = torch.zeros(batch_size, 5, dtype=torch.int64)  # 5 categorical features
-            ctx_cont = torch.zeros(batch_size, 2, dtype=torch.float32)  # 2 continuous features
-            
-            with torch.no_grad():
-                outputs = transformer_model(
-                    seq_x=seq_x,
-                    snap_x=snap_x,
-                    session_id=session_id,
-                    vol_regime_id=vol_regime_id,
-                    trend_regime_id=trend_regime_id,
-                    ctx_cat=ctx_cat,
-                    ctx_cont=ctx_cont,
-                )
-        else:
-            seq_input_dim = len(feature_meta.get("seq_features", []))
-            snap_input_dim = len(feature_meta.get("snap_features", []))
-            max_seq_len = feature_meta.get("seq_len", 30)
-            
-            # Create dummy inputs for legacy model
-            batch_size = 1
-            seq_x = torch.zeros(batch_size, max_seq_len, seq_input_dim, dtype=torch.float32)
-            snap_x = torch.zeros(batch_size, snap_input_dim, dtype=torch.float32)
-            session_id = torch.zeros(batch_size, dtype=torch.int64)
-            vol_regime_id = torch.zeros(batch_size, dtype=torch.int64)
-            trend_regime_id = torch.zeros(batch_size, dtype=torch.int64)
-            
-            with torch.no_grad():
-                outputs = transformer_model(
-                    seq_x=seq_x,
-                    snap_x=snap_x,
-                    session_id=session_id,
-                    vol_regime_id=vol_regime_id,
-                    trend_regime_id=trend_regime_id,
-                )
+        # ONE UNIVERSE: 6/6 ctx, 7/7 signal. Smoke test with ctx-only signature.
+        seq_input_dim = len(feature_meta.get("seq_features", []))
+        snap_input_dim = len(feature_meta.get("snap_features", []))
+        max_seq_len = feature_meta.get("seq_len", 30)
+        batch_size = 1
+        seq_x = torch.zeros(batch_size, max_seq_len, seq_input_dim, dtype=torch.float32)
+        snap_x = torch.zeros(batch_size, snap_input_dim, dtype=torch.float32)
+        ctx_cat = torch.zeros(batch_size, 6, dtype=torch.int64)
+        ctx_cont = torch.zeros(batch_size, 6, dtype=torch.float32)
+        with torch.no_grad():
+            outputs = transformer_model(
+                seq_x=seq_x,
+                snap_x=snap_x,
+                ctx_cat=ctx_cat,
+                ctx_cont=ctx_cont,
+            )
         
         # Verify output
         if "direction_logit" not in outputs:

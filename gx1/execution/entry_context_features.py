@@ -1,306 +1,352 @@
 """
-Entry Context Features - Model Input (not gates).
+Entry Context Features - Model Input (ONE UNIVERSE 6/6, not gates).
 
 STEP 2: Context features are INPUT to the model, allowing the model to learn
 optimal entries per regime/session/spread context.
 
-This is separate from V9 feature build - context features are cheaper to compute
-and available earlier in the pipeline (after soft eligibility).
+ONE UNIVERSE doctrine (locked):
+- ctx_cont_dim == 6
+- ctx_cat_dim  == 6
+- No fallback. No optional dims. No silent defaults.
+- Tensor order and naming follow gx1.contracts.signal_bridge_v1 (ORDERED_CTX_*_EXTENDED prefix).
+
+If any required ctx feature is missing or non-finite → hard fail.
 """
 
 from __future__ import annotations
 
 import logging
+import os
 from dataclasses import dataclass
-from typing import Optional
+from typing import Any, Dict
 
 import numpy as np
 import pandas as pd
 
+from gx1.contracts.signal_bridge_v1 import (
+    CTX_CONT_COL_D1_ATR_PCTL252,
+    CTX_CONT_COL_D1_DIST,
+    CTX_CONT_COL_H1_COMP,
+    CTX_CONT_COL_M15_COMP,
+    ORDERED_CTX_CAT_NAMES_EXTENDED,
+    ORDERED_CTX_CONT_NAMES_EXTENDED,
+)
+
 log = logging.getLogger(__name__)
 
+# ---------------------------------------------------------------------
+# ONE UNIVERSE: ONLY 6/6
+# ---------------------------------------------------------------------
+CTX_CONT_DIM = 6
+CTX_CAT_DIM = 6
 
-@dataclass
+
+def _is_truth_or_smoke() -> bool:
+    mode = os.getenv("GX1_RUN_MODE", "").upper()
+    return os.getenv("GX1_TRUTH_MODE", "0") == "1" or mode in {"TRUTH", "SMOKE"}
+
+
+def _finite(x: float) -> bool:
+    return bool(np.isfinite(x))
+
+
+def _require(condition: bool, msg: str) -> None:
+    if not condition:
+        raise RuntimeError(msg)
+
+
+@dataclass(frozen=True)
 class EntryContextFeatures:
     """
-    Context features for ENTRY_V10 model input.
-    
-    These are computed after soft eligibility (cheap ATR proxy available),
-    but before full V9 feature build.
-    
-    All features are validated and normalized according to contract.
+    Context features for ENTRY_V10 model input (ONE UNIVERSE 6/6).
+
+    Categorical (6):
+      0 session_id          : 0=ASIA, 1=EU, 2=US, 3=OVERLAP
+      1 trend_regime_id     : 0=TREND_DOWN, 1=TREND_NEUTRAL, 2=TREND_UP
+      2 vol_regime_id       : 0=LOW, 1=MEDIUM, 2=HIGH, 3=EXTREME
+      3 atr_bucket          : 0=LOW, 1=MEDIUM, 2=HIGH, 3=EXTREME
+      4 spread_bucket       : 0=LOW, 1=MEDIUM, 2=HIGH
+      5 h4_trend_sign_cat   : 0/1/2 (contract column exists in ORDERED_CTX_CAT_NAMES_EXTENDED[5])
+
+    Continuous (6):
+      0 atr_bps                         : clipped [0, 1000]
+      1 spread_bps                      : clipped [0, 500]
+      2 d1_dist_from_ema200_atr          : finite (contract col CTX_CONT_COL_D1_DIST)
+      3 h1_range_compression_ratio       : finite (contract col CTX_CONT_COL_H1_COMP)
+      4 d1_atr_percentile_252            : finite (contract col CTX_CONT_COL_D1_ATR_PCTL252)
+      5 m15_range_compression_ratio      : finite (contract col CTX_CONT_COL_M15_COMP)
+
+    No optional fields. No defaults. No silent “0.0” padding.
     """
+
     # Categorical features (integer IDs)
-    session_id: int  # 0=ASIA, 1=EU, 2=US, 3=OVERLAP
-    trend_regime_id: int  # 0=TREND_DOWN, 1=TREND_NEUTRAL, 2=TREND_UP
-    vol_regime_id: int  # 0=LOW, 1=MEDIUM, 2=HIGH, 3=EXTREME
-    atr_bucket: int  # 0=LOW, 1=MEDIUM, 2=HIGH, 3=EXTREME
-    spread_bucket: int  # 0=LOW, 1=MEDIUM, 2=HIGH
-    
+    session_id: int
+    trend_regime_id: int
+    vol_regime_id: int
+    atr_bucket: int
+    spread_bucket: int
+    h4_trend_sign_cat: int
+
     # Continuous features (normalized)
-    atr_bps: float  # ATR in basis points, clipped [0, 1000]
-    spread_bps: float  # Spread in basis points, clipped [0, 500]
-    
-    # Metadata (for validation/debugging)
-    _atr_bps_raw: Optional[float] = None  # Raw ATR before clipping
-    _spread_bps_raw: Optional[float] = None  # Raw spread before clipping
-    _source: str = "computed"  # Source of features (for debugging)
-    
+    atr_bps: float
+    spread_bps: float
+    d1_dist_from_ema200_atr: float
+    h1_range_compression_ratio: float
+    d1_atr_percentile_252: float
+    m15_range_compression_ratio: float
+
+    # Metadata (debug only; not part of tensors)
+    _atr_bps_raw: float | None = None
+    _spread_bps_raw: float | None = None
+    _source: str = "computed"
+
     def to_tensor_categorical(self) -> np.ndarray:
-        """
-        Convert categorical features to int64 tensor.
-        
-        Returns:
-            int64 array: [session_id, trend_regime_id, vol_regime_id, atr_bucket, spread_bucket]
-        """
-        return np.array([
-            self.session_id,
-            self.trend_regime_id,
-            self.vol_regime_id,
-            self.atr_bucket,
-            self.spread_bucket,
-        ], dtype=np.int64)
-    
+        """Return int64 tensor of length 6 (order = ORDERED_CTX_CAT_NAMES_EXTENDED[:6])."""
+        arr = np.array(
+            [
+                int(self.session_id),
+                int(self.trend_regime_id),
+                int(self.vol_regime_id),
+                int(self.atr_bucket),
+                int(self.spread_bucket),
+                int(self.h4_trend_sign_cat),
+            ],
+            dtype=np.int64,
+        )
+        _require(arr.shape[0] == CTX_CAT_DIM, f"[CTX__DIM_MISMATCH] cat tensor len={arr.shape[0]} expected={CTX_CAT_DIM}")
+        return arr
+
     def to_tensor_continuous(self) -> np.ndarray:
+        """Return float32 tensor of length 6 (order = ORDERED_CTX_CONT_NAMES_EXTENDED[:6])."""
+        arr = np.array(
+            [
+                float(self.atr_bps),
+                float(self.spread_bps),
+                float(self.d1_dist_from_ema200_atr),
+                float(self.h1_range_compression_ratio),
+                float(self.d1_atr_percentile_252),
+                float(self.m15_range_compression_ratio),
+            ],
+            dtype=np.float32,
+        )
+        _require(arr.shape[0] == CTX_CONT_DIM, f"[CTX__DIM_MISMATCH] cont tensor len={arr.shape[0]} expected={CTX_CONT_DIM}")
+        return arr
+
+    def as_contract_dict(self) -> Dict[str, Any]:
         """
-        Convert continuous features to float32 tensor (normalized).
-        
-        Note: Normalization (Z-score) is applied by model/bundle, not here.
-        This returns raw values (will be normalized by model).
-        
-        Returns:
-            float32 array: [atr_bps, spread_bps]
+        Export using contract column names for debugging/auditing (not required by model).
+        Keys align with ORDERED_CTX_*_EXTENDED prefix columns.
         """
-        return np.array([
-            self.atr_bps,
-            self.spread_bps,
-        ], dtype=np.float32)
-    
-    def validate(self, is_replay: bool = True) -> tuple[bool, Optional[str]]:
-        """
-        Validate context features according to contract.
-        
-        Args:
-            is_replay: If True, hard fail on invalid features
-        
-        Returns:
-            (valid: bool, error_message: Optional[str])
-        """
-        # Validate categorical IDs
-        if not (0 <= self.session_id <= 3):
-            return False, f"session_id out of range: {self.session_id} (expected 0-3)"
-        
-        if not (0 <= self.trend_regime_id <= 2):
-            return False, f"trend_regime_id out of range: {self.trend_regime_id} (expected 0-2)"
-        
-        if not (0 <= self.vol_regime_id <= 3):
-            return False, f"vol_regime_id out of range: {self.vol_regime_id} (expected 0-3)"
-        
-        if not (0 <= self.atr_bucket <= 3):
-            return False, f"atr_bucket out of range: {self.atr_bucket} (expected 0-3)"
-        
-        if not (0 <= self.spread_bucket <= 2):
-            return False, f"spread_bucket out of range: {self.spread_bucket} (expected 0-2)"
-        
-        # Validate continuous features (must be finite)
-        if not np.isfinite(self.atr_bps):
-            return False, f"atr_bps is not finite: {self.atr_bps}"
-        
-        if not np.isfinite(self.spread_bps):
-            return False, f"spread_bps is not finite: {self.spread_bps}"
-        
-        # Validate ranges (should be clipped, but double-check)
-        if not (0.0 <= self.atr_bps <= 1000.0):
-            return False, f"atr_bps out of range: {self.atr_bps} (expected [0, 1000])"
-        
-        if not (0.0 <= self.spread_bps <= 500.0):
-            return False, f"spread_bps out of range: {self.spread_bps} (expected [0, 500])"
-        
-        return True, None
+        cont_cols = list(ORDERED_CTX_CONT_NAMES_EXTENDED[:CTX_CONT_DIM])
+        cat_cols = list(ORDERED_CTX_CAT_NAMES_EXTENDED[:CTX_CAT_DIM])
+        cont_vals = [
+            float(self.atr_bps),
+            float(self.spread_bps),
+            float(self.d1_dist_from_ema200_atr),
+            float(self.h1_range_compression_ratio),
+            float(self.d1_atr_percentile_252),
+            float(self.m15_range_compression_ratio),
+        ]
+        cat_vals = [
+            int(self.session_id),
+            int(self.trend_regime_id),
+            int(self.vol_regime_id),
+            int(self.atr_bucket),
+            int(self.spread_bucket),
+            int(self.h4_trend_sign_cat),
+        ]
+        return {
+            "ctx_cont": dict(zip(cont_cols, cont_vals)),
+            "ctx_cat": dict(zip(cat_cols, cat_vals)),
+            "_meta": {"source": self._source, "atr_bps_raw": self._atr_bps_raw, "spread_bps_raw": self._spread_bps_raw},
+        }
+
+    def validate(self) -> None:
+        """Strict validation for ONE UNIVERSE 6/6. Raises RuntimeError on any invalid state."""
+        # Categorical ranges
+        _require(0 <= int(self.session_id) <= 3, f"[CTX_CAT_FAIL] session_id out of range: {self.session_id} (expected 0-3)")
+        _require(0 <= int(self.trend_regime_id) <= 2, f"[CTX_CAT_FAIL] trend_regime_id out of range: {self.trend_regime_id} (expected 0-2)")
+        _require(0 <= int(self.vol_regime_id) <= 3, f"[CTX_CAT_FAIL] vol_regime_id out of range: {self.vol_regime_id} (expected 0-3)")
+        _require(0 <= int(self.atr_bucket) <= 3, f"[CTX_CAT_FAIL] atr_bucket out of range: {self.atr_bucket} (expected 0-3)")
+        _require(0 <= int(self.spread_bucket) <= 2, f"[CTX_CAT_FAIL] spread_bucket out of range: {self.spread_bucket} (expected 0-2)")
+        _require(0 <= int(self.h4_trend_sign_cat) <= 2, f"[CTX_CAT_FAIL] h4_trend_sign_cat out of range: {self.h4_trend_sign_cat} (expected 0-2)")
+
+        # Continuous must be finite
+        _require(_finite(float(self.atr_bps)), f"[CTX_CONT_FAIL] atr_bps not finite: {self.atr_bps}")
+        _require(_finite(float(self.spread_bps)), f"[CTX_CONT_FAIL] spread_bps not finite: {self.spread_bps}")
+        _require(_finite(float(self.d1_dist_from_ema200_atr)), f"[CTX_CONT_FAIL] {CTX_CONT_COL_D1_DIST} not finite: {self.d1_dist_from_ema200_atr}")
+        _require(_finite(float(self.h1_range_compression_ratio)), f"[CTX_CONT_FAIL] {CTX_CONT_COL_H1_COMP} not finite: {self.h1_range_compression_ratio}")
+        _require(_finite(float(self.d1_atr_percentile_252)), f"[CTX_CONT_FAIL] {CTX_CONT_COL_D1_ATR_PCTL252} not finite: {self.d1_atr_percentile_252}")
+        _require(_finite(float(self.m15_range_compression_ratio)), f"[CTX_CONT_FAIL] {CTX_CONT_COL_M15_COMP} not finite: {self.m15_range_compression_ratio}")
+
+        # Range sanity for clipped ones
+        _require(0.0 <= float(self.atr_bps) <= 1000.0, f"[CTX_CONT_FAIL] atr_bps out of range: {self.atr_bps} (expected [0, 1000])")
+        _require(0.0 <= float(self.spread_bps) <= 500.0, f"[CTX_CONT_FAIL] spread_bps out of range: {self.spread_bps} (expected [0, 500])")
 
 
 def build_entry_context_features(
     candles: pd.DataFrame,
     policy_state: dict,
-    atr_proxy: Optional[float] = None,
-    spread_bps: Optional[float] = None,
-    is_replay: bool = True,
+    *,
+    # Baseline
+    atr_proxy: float | None = None,
+    spread_bps: float | None = None,
+    # Required ONE UNIVERSE 6/6 extensions (must be provided; typically from prebuilt)
+    d1_dist_from_ema200_atr: float | None = None,
+    h1_range_compression_ratio: float | None = None,
+    d1_atr_percentile_252: float | None = None,
+    m15_range_compression_ratio: float | None = None,
+    h4_trend_sign_cat: int | None = None,
+    **kwargs: object,
 ) -> EntryContextFeatures:
     """
-    Build entry context features from minimal inputs.
-    
-    This is called after soft eligibility (cheap ATR proxy available),
-    but before full V9 feature build.
-    
-    Args:
-        candles: Candles DataFrame (for session inference)
-        policy_state: Policy state dict (may contain regime info)
-        atr_proxy: Cheap ATR proxy from soft eligibility (optional, will compute if None)
-        spread_bps: Spread in bps from hard eligibility (optional, will compute if None)
-        is_replay: If True, hard fail on missing features
-    
-    Returns:
-        EntryContextFeatures object with all 7 features
-    
-    Raises:
-        RuntimeError: If required features are missing and is_replay=True
+    Build entry context features (ONE UNIVERSE 6/6).
+
+    Policy:
+    - Baseline (atr_bps/spread_bps + buckets) can be computed.
+    - Extended 6/6 fields MUST be provided (typically from prebuilt join). No fallback.
     """
     from gx1.execution.live_features import infer_session_tag
-    
+
     current_ts = candles.index[-1] if len(candles) > 0 else pd.Timestamp.now(tz="UTC")
-    
-    # 1. session_id (always available, time-based)
+
+    # session_id (time-based)
     current_session = policy_state.get("session")
     if not current_session:
         current_session = infer_session_tag(current_ts).upper()
         policy_state["session"] = current_session
-    
+
+    valid_sessions = {"ASIA", "EU", "US", "OVERLAP"}
+    tag = (current_session or "").strip().upper()
+    _require(tag in valid_sessions, f"[CTX_CAT_FAIL] unknown session tag: {current_session!r} (expected one of {sorted(valid_sessions)})")
     session_map = {"ASIA": 0, "EU": 1, "US": 2, "OVERLAP": 3}
-    session_id = session_map.get(current_session, 0)  # Default to ASIA if unknown
-    
-    # 2. spread_bps (from hard eligibility or compute)
+    session_id = session_map[tag]
+
+    # spread_bps
     if spread_bps is None:
-        # Try to get from candles
-        try:
-            if "bid_close" in candles.columns and "ask_close" in candles.columns:
-                bid = candles["bid_close"].iloc[-1]
-                ask = candles["ask_close"].iloc[-1]
-                if pd.notna(bid) and pd.notna(ask) and bid > 0:
-                    spread_price = ask - bid
-                    spread_bps_raw = (spread_price / bid) * 10000.0
-                    spread_bps = float(spread_bps_raw)
-                else:
-                    spread_bps = 10.0  # Default
-            else:
-                spread_bps = 10.0  # Default
-        except Exception:
-            spread_bps = 10.0  # Default
-    
-    # Clip spread_bps to [0, 500]
-    spread_bps_raw = spread_bps
-    spread_bps = max(0.0, min(500.0, float(spread_bps)))
-    
-    # 3. spread_bucket (derived from spread_bps)
-    # Simple percentile buckets (can be improved with historical distribution)
-    if spread_bps < 10.0:
-        spread_bucket = 0  # LOW
-    elif spread_bps < 30.0:
-        spread_bucket = 1  # MEDIUM
+        _require(
+            ("bid_close" in candles.columns and "ask_close" in candles.columns),
+            "[CTX_CONT_FAIL] spread_bps missing (no bid_close/ask_close in candles)",
+        )
+        bid = candles["bid_close"].iloc[-1]
+        ask = candles["ask_close"].iloc[-1]
+        _require(pd.notna(bid) and pd.notna(ask) and float(bid) > 0.0, "[CTX_CONT_FAIL] spread_bps missing (bid/ask invalid)")
+        spread_price = float(ask) - float(bid)
+        spread_bps_raw = (spread_price / float(bid)) * 10000.0
+        spread_bps = float(spread_bps_raw)
     else:
-        spread_bucket = 2  # HIGH
-    
-    # 4. atr_bps (from soft eligibility ATR proxy or compute)
+        spread_bps_raw = float(spread_bps)
+
+    spread_bps_clipped = max(0.0, min(500.0, float(spread_bps_raw)))
+
+    # spread_bucket (simple)
+    if spread_bps_clipped < 10.0:
+        spread_bucket = 0
+    elif spread_bps_clipped < 30.0:
+        spread_bucket = 1
+    else:
+        spread_bucket = 2
+
+    # atr_proxy (cheap compute if missing)
     if atr_proxy is None:
-        # Compute cheap ATR proxy (same as soft eligibility)
         atr_proxy = _compute_cheap_atr_proxy(candles, window=14)
-    
-    if atr_proxy is None:
-        if is_replay:
-            raise RuntimeError(
-                "CONTEXT_FEATURE_MISSING: atr_bps unavailable "
-                f"(atr_proxy=None, candles_len={len(candles)})"
-            )
-        # Live mode: use default ATR in bps directly (skip conversion)
-        atr_bps_raw = 50.0  # Default (median estimate in bps)
-        log.warning("[CONTEXT_FEATURES] atr_bps unavailable, using default=50.0 bps")
+    _require(atr_proxy is not None, f"[CTX_CONT_FAIL] atr_proxy unavailable (candles_len={len(candles)})")
+
+    close = candles.get("close", None)
+    _require(close is not None and len(close) > 0, "[CTX_CONT_FAIL] atr_bps: close missing")
+    current_price = float(close.iloc[-1])
+    _require(current_price > 0.0, "[CTX_CONT_FAIL] atr_bps: close price <= 0")
+    atr_bps_raw = (float(atr_proxy) / current_price) * 10000.0
+    atr_bps_clipped = max(0.0, min(1000.0, float(atr_bps_raw)))
+
+    # atr_bucket / vol_regime_id (simple)
+    if atr_bps_clipped < 30.0:
+        atr_bucket = 0
+    elif atr_bps_clipped < 100.0:
+        atr_bucket = 1
+    elif atr_bps_clipped < 200.0:
+        atr_bucket = 2
     else:
-        # Convert ATR proxy to bps
-        close = candles.get("close", None)
-        if close is not None and len(close) > 0:
-            current_price = float(close.iloc[-1])
-            if current_price > 0:
-                atr_bps_raw = (atr_proxy / current_price) * 10000.0
-            else:
-                atr_bps_raw = 50.0  # Default
-        else:
-            atr_bps_raw = 50.0  # Default
-    
-    # Clip atr_bps to [0, 1000]
-    atr_bps = max(0.0, min(1000.0, float(atr_bps_raw)))
-    
-    # 5. atr_bucket (derived from atr_bps)
-    # Simple percentile buckets (can be improved with historical distribution)
-    if atr_bps < 30.0:
-        atr_bucket = 0  # LOW
-    elif atr_bps < 100.0:
-        atr_bucket = 1  # MEDIUM
-    elif atr_bps < 200.0:
-        atr_bucket = 2  # HIGH
-    else:
-        atr_bucket = 3  # EXTREME
-    
-    # 6. vol_regime_id (derived from atr_bps percentile, same as atr_bucket)
-    vol_regime_id = atr_bucket  # Same mapping for now
-    
-    # 7. trend_regime_id (from policy_state or fallback)
-    trend_regime = policy_state.get("brain_trend_regime", "UNKNOWN")
-    trend_map = {
-        "TREND_DOWN": 0,
-        "TREND_NEUTRAL": 1,
-        "TREND_UP": 2,
-    }
-    trend_regime_id = trend_map.get(trend_regime, 1)  # Default to NEUTRAL if UNKNOWN
-    
-    # Build context features object
+        atr_bucket = 3
+    vol_regime_id = atr_bucket
+
+    # trend_regime_id
+    trend_regime = policy_state.get("brain_trend_regime", "TREND_NEUTRAL")
+    trend_map = {"TREND_DOWN": 0, "TREND_NEUTRAL": 1, "TREND_UP": 2}
+    _require(trend_regime in trend_map, f"[CTX_CAT_FAIL] brain_trend_regime unknown: {trend_regime!r}")
+    trend_regime_id = trend_map[trend_regime]
+
+    # -----------------------------------------------------------------
+    # ONE UNIVERSE required extensions (no fallback)
+    # -----------------------------------------------------------------
+    _require(d1_dist_from_ema200_atr is not None, f"[CTX_CONT_FAIL] missing required {CTX_CONT_COL_D1_DIST} (d1_dist_from_ema200_atr)")
+    _require(h1_range_compression_ratio is not None, f"[CTX_CONT_FAIL] missing required {CTX_CONT_COL_H1_COMP} (h1_range_compression_ratio)")
+    _require(d1_atr_percentile_252 is not None, f"[CTX_CONT_FAIL] missing required {CTX_CONT_COL_D1_ATR_PCTL252} (d1_atr_percentile_252)")
+    _require(m15_range_compression_ratio is not None, f"[CTX_CONT_FAIL] missing required {CTX_CONT_COL_M15_COMP} (m15_range_compression_ratio)")
+    _require(h4_trend_sign_cat is not None, "[CTX_CAT_FAIL] missing required h4_trend_sign_cat (ctx_cat dim 6)")
+
     ctx = EntryContextFeatures(
-        session_id=session_id,
-        trend_regime_id=trend_regime_id,
-        vol_regime_id=vol_regime_id,
-        atr_bucket=atr_bucket,
-        spread_bucket=spread_bucket,
-        atr_bps=atr_bps,
-        spread_bps=spread_bps,
-        _atr_bps_raw=atr_bps_raw,
-        _spread_bps_raw=spread_bps_raw,
+        session_id=int(session_id),
+        trend_regime_id=int(trend_regime_id),
+        vol_regime_id=int(vol_regime_id),
+        atr_bucket=int(atr_bucket),
+        spread_bucket=int(spread_bucket),
+        h4_trend_sign_cat=int(h4_trend_sign_cat),
+        atr_bps=float(atr_bps_clipped),
+        spread_bps=float(spread_bps_clipped),
+        d1_dist_from_ema200_atr=float(d1_dist_from_ema200_atr),
+        h1_range_compression_ratio=float(h1_range_compression_ratio),
+        d1_atr_percentile_252=float(d1_atr_percentile_252),
+        m15_range_compression_ratio=float(m15_range_compression_ratio),
+        _atr_bps_raw=float(atr_bps_raw),
+        _spread_bps_raw=float(spread_bps_raw),
         _source="computed",
     )
-    
-    # Validate
-    valid, error_msg = ctx.validate(is_replay=is_replay)
-    if not valid:
-        if is_replay:
-            raise RuntimeError(f"CONTEXT_FEATURE_INVALID: {error_msg}")
-        else:
-            log.warning(f"[CONTEXT_FEATURES] data_integrity_degraded: {error_msg}")
-    
+
+    # Validate (always strict)
+    ctx.validate()
+
+    # Extra paranoia in TRUTH/SMOKE: assert tensor lengths now (fast)
+    if _is_truth_or_smoke():
+        _ = ctx.to_tensor_categorical()
+        _ = ctx.to_tensor_continuous()
+
     return ctx
 
 
-def _compute_cheap_atr_proxy(candles: pd.DataFrame, window: int = 14) -> Optional[float]:
+def _compute_cheap_atr_proxy(candles: pd.DataFrame, window: int = 14) -> float | None:
     """
     Compute ultra-cheap ATR proxy from raw candles (no feature build required).
-    
-    Same implementation as in entry_manager.py soft eligibility.
+
+    Same style as soft eligibility: fixed-window mean true range, no randomness.
     """
     if candles.empty or len(candles) < window:
         return None
-    
+
     try:
-        # Get OHLC
         high = candles.get("high", None)
         low = candles.get("low", None)
         close = candles.get("close", None)
-        
         if high is None or low is None or close is None:
             return None
-        
-        # Convert to numpy arrays (last window bars)
-        high_arr = high.iloc[-window:].values
-        low_arr = low.iloc[-window:].values
-        close_arr = close.iloc[-window:].values
-        
-        # True Range components
-        tr1 = high_arr - low_arr  # High - Low
-        tr2 = np.abs(high_arr - np.roll(close_arr, 1))  # |High - Prev Close|
-        tr3 = np.abs(low_arr - np.roll(close_arr, 1))   # |Low - Prev Close|
-        
-        # True Range = max of three components
-        tr = np.maximum(tr1, np.maximum(tr2, tr3))
-        
-        # ATR = mean of True Range
-        atr = np.mean(tr)
-        
-        return float(atr)
+
+        high_arr = high.iloc[-window:].to_numpy(dtype=np.float64, copy=False)
+        low_arr = low.iloc[-window:].to_numpy(dtype=np.float64, copy=False)
+        close_arr = close.iloc[-window:].to_numpy(dtype=np.float64, copy=False)
+
+        # prev_close: first element has no previous -> NaN, no roll wrap
+        prev_close = np.concatenate([[np.nan], close_arr[:-1]])
+        tr1 = high_arr - low_arr
+        tr2 = np.abs(high_arr - prev_close)
+        tr3 = np.abs(low_arr - prev_close)
+
+        tr = tr1.copy()
+        mask = ~np.isnan(prev_close)
+        tr[mask] = np.maximum(tr1[mask], np.maximum(tr2[mask], tr3[mask]))
+
+        atr = float(np.mean(tr))
+        if not np.isfinite(atr):
+            return None
+        return atr
     except Exception:
         return None
-

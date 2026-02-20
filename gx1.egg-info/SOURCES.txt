@@ -1,0 +1,6 @@
+README.md
+setup.py
+gx1.egg-info/PKG-INFO
+gx1.egg-info/SOURCES.txt
+gx1.egg-info/dependency_links.txt
+gx1.egg-info/top_level.txt

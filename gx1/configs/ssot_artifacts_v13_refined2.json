@@ -1,0 +1,12 @@
+{
+  "feature_contract_id": "v13_refined2",
+  "prebuilt_schema_manifest_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V13_REFINED2/2025/xauusd_m5_2025_features_v13_refined2_20260210_135004.schema_manifest.json",
+  "prebuilt_parquet_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V13_REFINED2/2025/xauusd_m5_2025_features_v13_refined2_20260210_135004.parquet",
+  "bundle_dir": "",
+  "master_model_lock_path": "",
+  "notes": [
+    "SSoT artifacts config for v13_refined2.",
+    "Leave paths empty in DEV. In TRUTH/SMOKE the loader will hard-fail if any required path is empty or missing.",
+    "All paths must be absolute."
+  ]
+}

@@ -1,5 +1,7 @@
 # STEP 3: Model Training med Context Features - Arkitekturplan
 
+> **ONE UNIVERSE (2026-02):** Kun 6/6 ctx og 7/7 signal (signal_bridge_v1). Legacy 16/88 og 5/2 er fjernet. Diagrammer under kan vise gamle dims; refer til kontrakter for 6/6 og 7/7.
+
 **Date:** 2026-01-06  
 **Status:** Design Phase  
 **Next:** Implementation

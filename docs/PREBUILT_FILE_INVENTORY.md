@@ -77,7 +77,8 @@
 - `audit_v9_models.py`
 - `backfill_xauusd_m5_from_oanda.py`
 - `build_entry_timing_dataset_v1.py`
-- `build_entry_v10_ctx_training_dataset.py`
+- `build_entry_v10_ctx_training_dataset_signal_only.py` (signal-only dataset build)
+- `build_entry_v10_ctx_training_dataset_legacy.py` (legacy/full with calibration)
 - `canonicalize_exit_router.py`
 - `check_live_coverage.py`
 - `cleanup_execution_plan.py`

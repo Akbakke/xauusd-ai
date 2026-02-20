@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from gx1.scripts.build_entry_v10_ctx_training_dataset import compute_session_histogram
+from gx1.datasets.entry_v10_ctx_legacy import compute_session_histogram
 
 
 def test_session_histogram_counts_sum_to_n_rows() -> None:
@@ -23,7 +23,7 @@ def test_session_histogram_counts_sum_to_n_rows() -> None:
         }
     )
 
-    h = compute_session_histogram(df, ts_col="ts", session_col="session_id")
+    h = compute_session_histogram(df=df, ts_col="ts", session_col="session_id")
 
     assert "n_rows" in h
     assert "counts" in h

@@ -1,0 +1,498 @@
+{
+  "generated_utc": "2026-02-15T15:03:20.938026+00:00",
+  "args": {
+    "run_dir": null,
+    "schema_manifest": "/home/andre2/GX1_DATA/data/data/prebuilt/V13_REFINED3_PRUNE14/2025/xauusd_m5_2025_features_v13_refined3_prune14_20260215_150320.schema_manifest.json",
+    "prebuilt_parquet": "/home/andre2/GX1_DATA/data/data/prebuilt/V13_REFINED3_PRUNE14/2025/xauusd_m5_2025_features_v13_refined3_prune14_20260215_150320.parquet",
+    "out_dir": "/home/andre2/src/GX1_ENGINE/INPUT_INVENTORY_NOW_20260215_150320",
+    "sample_rows": 20000,
+    "strict": 1
+  },
+  "sources": {
+    "schema_manifest_source": "cli",
+    "prebuilt_parquet_source": "cli"
+  },
+  "A_schema": {
+    "features_in_schema_ordered": [
+      "spread_bps",
+      "atr",
+      "std50",
+      "volatility",
+      "ret_1",
+      "ret_5",
+      "ret_20",
+      "roc100",
+      "rvol_60",
+      "vol_ratio",
+      "ema_50",
+      "price_vs_ema50_atr",
+      "trend_regime_tf24h",
+      "wick_asym"
+    ],
+    "n_schema_features": 14,
+    "sha256_pipe_join": "2157f092ddcb7d578031ee591f7a25645ff06f79cc87cddd45fe98531975ae40",
+    "markers": {
+      "spread_bps": {
+        "is_ema": false,
+        "is_rsi": false,
+        "is_macd": false,
+        "is_atr": false,
+        "is_spread": true
+      },
+      "atr": {
+        "is_ema": false,
+        "is_rsi": false,
+        "is_macd": false,
+        "is_atr": true,
+        "is_spread": false
+      },
+      "std50": {
+        "is_ema": false,
+        "is_rsi": false,
+        "is_macd": false,
+        "is_atr": false,
+        "is_spread": false
+      },
+      "volatility": {
+        "is_ema": false,
+        "is_rsi": false,
+        "is_macd": false,
+        "is_atr": false,
+        "is_spread": false
+      },
+      "ret_1": {
+        "is_ema": false,
+        "is_rsi": false,
+        "is_macd": false,
+        "is_atr": false,
+        "is_spread": false
+      },
+      "ret_5": {
+        "is_ema": false,
+        "is_rsi": false,
+        "is_macd": false,
+        "is_atr": false,
+        "is_spread": false
+      },
+      "ret_20": {
+        "is_ema": false,
+        "is_rsi": false,
+        "is_macd": false,
+        "is_atr": false,
+        "is_spread": false
+      },
+      "roc100": {
+        "is_ema": false,
+        "is_rsi": false,
+        "is_macd": false,
+        "is_atr": false,
+        "is_spread": false
+      },
+      "rvol_60": {
+        "is_ema": false,
+        "is_rsi": false,
+        "is_macd": false,
+        "is_atr": false,
+        "is_spread": false
+      },
+      "vol_ratio": {
+        "is_ema": false,
+        "is_rsi": false,
+        "is_macd": false,
+        "is_atr": false,
+        "is_spread": false
+      },
+      "ema_50": {
+        "is_ema": true,
+        "is_rsi": false,
+        "is_macd": false,
+        "is_atr": false,
+        "is_spread": false
+      },
+      "price_vs_ema50_atr": {
+        "is_ema": false,
+        "is_rsi": false,
+        "is_macd": false,
+        "is_atr": false,
+        "is_spread": false
+      },
+      "trend_regime_tf24h": {
+        "is_ema": false,
+        "is_rsi": false,
+        "is_macd": false,
+        "is_atr": false,
+        "is_spread": false
+      },
+      "wick_asym": {
+        "is_ema": false,
+        "is_rsi": false,
+        "is_macd": false,
+        "is_atr": false,
+        "is_spread": false
+      }
+    },
+    "schema_manifest_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V13_REFINED3_PRUNE14/2025/xauusd_m5_2025_features_v13_refined3_prune14_20260215_150320.schema_manifest.json"
+  },
+  "B_parquet": {
+    "parquet_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V13_REFINED3_PRUNE14/2025/xauusd_m5_2025_features_v13_refined3_prune14_20260215_150320.parquet",
+    "parquet_columns": [
+      "spread_bps",
+      "atr",
+      "std50",
+      "volatility",
+      "ret_1",
+      "ret_5",
+      "ret_20",
+      "roc100",
+      "rvol_60",
+      "vol_ratio",
+      "ema_50",
+      "price_vs_ema50_atr",
+      "trend_regime_tf24h",
+      "wick_asym"
+    ],
+    "parquet_feature_columns": [
+      "spread_bps",
+      "atr",
+      "std50",
+      "volatility",
+      "ret_1",
+      "ret_5",
+      "ret_20",
+      "roc100",
+      "rvol_60",
+      "vol_ratio",
+      "ema_50",
+      "price_vs_ema50_atr",
+      "trend_regime_tf24h",
+      "wick_asym"
+    ],
+    "n_rows_total": 70217,
+    "missing_from_parquet": [],
+    "extra_in_parquet": []
+  },
+  "C_liveness_sample": {
+    "sample_n": 20000,
+    "sample_indices_head": [
+      0,
+      3,
+      6,
+      9,
+      12,
+      15,
+      18,
+      21,
+      24,
+      27
+    ],
+    "per_feature": {
+      "spread_bps": {
+        "unique_count": 19925,
+        "std": 0.597583235102278,
+        "min": 0.4644336142774477,
+        "max": 18.536643236349615,
+        "percent_zero": 0.0,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      },
+      "atr": {
+        "unique_count": 20000,
+        "std": 1.8039646402688416,
+        "min": 0.1500000000005457,
+        "max": 18.499993455281313,
+        "percent_zero": 0.0,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      },
+      "std50": {
+        "unique_count": 20000,
+        "std": 0.00031932717027670826,
+        "min": 0.0,
+        "max": 0.002664454205509441,
+        "percent_zero": 5e-05,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      },
+      "volatility": {
+        "unique_count": 20000,
+        "std": 0.0003463961705969789,
+        "min": 0.0,
+        "max": 0.0038189687089515627,
+        "percent_zero": 5e-05,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      },
+      "ret_1": {
+        "unique_count": 19976,
+        "std": 0.0006851640790422073,
+        "min": -0.015997468324480346,
+        "max": 0.00578424107099873,
+        "percent_zero": 0.001,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      },
+      "ret_5": {
+        "unique_count": 19977,
+        "std": 0.0015255587343693208,
+        "min": -0.018140338631004727,
+        "max": 0.01199614439475516,
+        "percent_zero": 0.0009,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      },
+      "ret_20": {
+        "unique_count": 19985,
+        "std": 0.003011683318291433,
+        "min": -0.024284674380542937,
+        "max": 0.022684186655093974,
+        "percent_zero": 0.00075,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      },
+      "roc100": {
+        "unique_count": 19966,
+        "std": 0.6771317807636444,
+        "min": -5.138236164819531,
+        "max": 2.9498316486412435,
+        "percent_zero": 0.00175,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      },
+      "rvol_60": {
+        "unique_count": 20000,
+        "std": 0.2555507895017703,
+        "min": 0.0,
+        "max": 1.7332030175057056,
+        "percent_zero": 5e-05,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      },
+      "vol_ratio": {
+        "unique_count": 19995,
+        "std": 0.3901646010973053,
+        "min": 0.0,
+        "max": 5.908074932107707,
+        "percent_zero": 5e-05,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      },
+      "ema_50": {
+        "unique_count": 20000,
+        "std": 381.70957828232736,
+        "min": 2624.600910097967,
+        "max": 4362.787291259799,
+        "percent_zero": 0.0,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      },
+      "price_vs_ema50_atr": {
+        "unique_count": 20000,
+        "std": 2.1468986370609215,
+        "min": -9.20759827723039,
+        "max": 7.843516880671503,
+        "percent_zero": 5e-05,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      },
+      "trend_regime_tf24h": {
+        "unique_count": 19901,
+        "std": 1.1783551171709452,
+        "min": -7.570061360930502,
+        "max": 4.4252123343523575,
+        "percent_zero": 0.005,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      },
+      "wick_asym": {
+        "unique_count": 18957,
+        "std": 0.5885725592388724,
+        "min": -0.9999999999998754,
+        "max": 0.9999999999999213,
+        "percent_zero": 0.0032,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      }
+    },
+    "alive_features": [
+      "atr",
+      "ema_50",
+      "price_vs_ema50_atr",
+      "ret_1",
+      "ret_20",
+      "ret_5",
+      "roc100",
+      "rvol_60",
+      "spread_bps",
+      "std50",
+      "trend_regime_tf24h",
+      "vol_ratio",
+      "volatility",
+      "wick_asym"
+    ],
+    "dead_features": [],
+    "dead_all_zero_features": [],
+    "ema_family_status": {
+      "ema_20": {
+        "label": "MISSING"
+      },
+      "ema_50": {
+        "unique_count": 20000,
+        "std": 381.70957828232736,
+        "min": 2624.600910097967,
+        "max": 4362.787291259799,
+        "percent_zero": 0.0,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      }
+    },
+    "oscillator_status": {
+      "rsi": {
+        "label": "MISSING"
+      },
+      "macd": {
+        "label": "MISSING"
+      }
+    },
+    "volatility_status": {
+      "atr": {
+        "unique_count": 20000,
+        "std": 1.8039646402688416,
+        "min": 0.1500000000005457,
+        "max": 18.499993455281313,
+        "percent_zero": 0.0,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      },
+      "true_range": {
+        "label": "MISSING"
+      },
+      "std50": {
+        "unique_count": 20000,
+        "std": 0.00031932717027670826,
+        "min": 0.0,
+        "max": 0.002664454205509441,
+        "percent_zero": 5e-05,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      }
+    },
+    "spread_status": {
+      "spread_bps": {
+        "unique_count": 19925,
+        "std": 0.597583235102278,
+        "min": 0.4644336142774477,
+        "max": 18.536643236349615,
+        "percent_zero": 0.0,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      },
+      "spread_atr_ratio": {
+        "label": "MISSING"
+      }
+    }
+  },
+  "D_xgb_truth_dump": {
+    "present": false,
+    "path": null
+  },
+  "E_conclusion": {
+    "AVAILABLE_NOW_ALIVE": [
+      "spread_bps",
+      "atr",
+      "std50",
+      "volatility",
+      "ret_1",
+      "ret_5",
+      "ret_20",
+      "roc100",
+      "rvol_60",
+      "vol_ratio",
+      "ema_50",
+      "price_vs_ema50_atr",
+      "trend_regime_tf24h",
+      "wick_asym"
+    ],
+    "AVAILABLE_NOW_BUT_DEAD": [],
+    "NOT_AVAILABLE_NOW": []
+  },
+  "F_strict": {
+    "enabled": true,
+    "fail_reasons": []
+  },
+  "FEATURE_REFINED_REVIEW": {
+    "family_groups": {
+      "SPREAD/COST": [
+        "spread_bps"
+      ],
+      "VOLATILITY": [
+        "atr",
+        "std50",
+        "volatility"
+      ],
+      "RETURNS/MOMENTUM": [
+        "ret_1",
+        "ret_5",
+        "ret_20",
+        "roc100"
+      ],
+      "VOLUME PROXY": [
+        "rvol_60",
+        "vol_ratio"
+      ],
+      "TREND": [
+        "ema_50",
+        "price_vs_ema50_atr"
+      ],
+      "REGIME": [
+        "trend_regime_tf24h"
+      ],
+      "CANDLE GEOMETRY": [
+        "wick_asym"
+      ]
+    },
+    "rvol_scale_audit": {
+      "rvol_60": {
+        "unique_count": 20000,
+        "std": 0.2555507895017703,
+        "min": 0.0,
+        "max": 1.7332030175057056,
+        "percent_zero": 5e-05,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      },
+      "vol_ratio": {
+        "unique_count": 19995,
+        "std": 0.3901646010973053,
+        "min": 0.0,
+        "max": 5.908074932107707,
+        "percent_zero": 5e-05,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      }
+    },
+    "redundant_candidates": {
+      "atr_vs_true_range": false,
+      "std50_vs_volatility": true
+    }
+  }
+}

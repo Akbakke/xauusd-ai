@@ -1,0 +1,653 @@
+{
+  "generated_utc": "2026-02-15T15:05:54.410292+00:00",
+  "args": {
+    "run_dir": null,
+    "schema_manifest": "/home/andre2/GX1_DATA/data/data/prebuilt/V13_REFINED3_PRUNE20/2025/xauusd_m5_2025_features_v13_refined3_prune20_20260215_150553.schema_manifest.json",
+    "prebuilt_parquet": "/home/andre2/GX1_DATA/data/data/prebuilt/V13_REFINED3_PRUNE20/2025/xauusd_m5_2025_features_v13_refined3_prune20_20260215_150553.parquet",
+    "out_dir": "/home/andre2/src/GX1_ENGINE/INPUT_INVENTORY_NOW_20260215_150554",
+    "sample_rows": 20000,
+    "strict": 1
+  },
+  "sources": {
+    "schema_manifest_source": "cli",
+    "prebuilt_parquet_source": "cli"
+  },
+  "A_schema": {
+    "features_in_schema_ordered": [
+      "spread_bps",
+      "spread_atr_ratio",
+      "atr",
+      "std50",
+      "volatility",
+      "atr_z_200",
+      "ret_1",
+      "ret_5",
+      "ret_20",
+      "roc100",
+      "momentum",
+      "rvol_20",
+      "rvol_60",
+      "vol_ratio",
+      "spread_vs_rvol60",
+      "ema_50",
+      "price_vs_ema50_atr",
+      "trend_regime_tf24h",
+      "wick_asym",
+      "high_low_ratio"
+    ],
+    "n_schema_features": 20,
+    "sha256_pipe_join": "22e097ca0315664190310bcef9f398e3403c11289c19bad9155f886d34e82caf",
+    "markers": {
+      "spread_bps": {
+        "is_ema": false,
+        "is_rsi": false,
+        "is_macd": false,
+        "is_atr": false,
+        "is_spread": true
+      },
+      "spread_atr_ratio": {
+        "is_ema": false,
+        "is_rsi": false,
+        "is_macd": false,
+        "is_atr": false,
+        "is_spread": true
+      },
+      "atr": {
+        "is_ema": false,
+        "is_rsi": false,
+        "is_macd": false,
+        "is_atr": true,
+        "is_spread": false
+      },
+      "std50": {
+        "is_ema": false,
+        "is_rsi": false,
+        "is_macd": false,
+        "is_atr": false,
+        "is_spread": false
+      },
+      "volatility": {
+        "is_ema": false,
+        "is_rsi": false,
+        "is_macd": false,
+        "is_atr": false,
+        "is_spread": false
+      },
+      "atr_z_200": {
+        "is_ema": false,
+        "is_rsi": false,
+        "is_macd": false,
+        "is_atr": false,
+        "is_spread": false
+      },
+      "ret_1": {
+        "is_ema": false,
+        "is_rsi": false,
+        "is_macd": false,
+        "is_atr": false,
+        "is_spread": false
+      },
+      "ret_5": {
+        "is_ema": false,
+        "is_rsi": false,
+        "is_macd": false,
+        "is_atr": false,
+        "is_spread": false
+      },
+      "ret_20": {
+        "is_ema": false,
+        "is_rsi": false,
+        "is_macd": false,
+        "is_atr": false,
+        "is_spread": false
+      },
+      "roc100": {
+        "is_ema": false,
+        "is_rsi": false,
+        "is_macd": false,
+        "is_atr": false,
+        "is_spread": false
+      },
+      "momentum": {
+        "is_ema": false,
+        "is_rsi": false,
+        "is_macd": false,
+        "is_atr": false,
+        "is_spread": false
+      },
+      "rvol_20": {
+        "is_ema": false,
+        "is_rsi": false,
+        "is_macd": false,
+        "is_atr": false,
+        "is_spread": false
+      },
+      "rvol_60": {
+        "is_ema": false,
+        "is_rsi": false,
+        "is_macd": false,
+        "is_atr": false,
+        "is_spread": false
+      },
+      "vol_ratio": {
+        "is_ema": false,
+        "is_rsi": false,
+        "is_macd": false,
+        "is_atr": false,
+        "is_spread": false
+      },
+      "spread_vs_rvol60": {
+        "is_ema": false,
+        "is_rsi": false,
+        "is_macd": false,
+        "is_atr": false,
+        "is_spread": true
+      },
+      "ema_50": {
+        "is_ema": true,
+        "is_rsi": false,
+        "is_macd": false,
+        "is_atr": false,
+        "is_spread": false
+      },
+      "price_vs_ema50_atr": {
+        "is_ema": false,
+        "is_rsi": false,
+        "is_macd": false,
+        "is_atr": false,
+        "is_spread": false
+      },
+      "trend_regime_tf24h": {
+        "is_ema": false,
+        "is_rsi": false,
+        "is_macd": false,
+        "is_atr": false,
+        "is_spread": false
+      },
+      "wick_asym": {
+        "is_ema": false,
+        "is_rsi": false,
+        "is_macd": false,
+        "is_atr": false,
+        "is_spread": false
+      },
+      "high_low_ratio": {
+        "is_ema": false,
+        "is_rsi": false,
+        "is_macd": false,
+        "is_atr": false,
+        "is_spread": false
+      }
+    },
+    "schema_manifest_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V13_REFINED3_PRUNE20/2025/xauusd_m5_2025_features_v13_refined3_prune20_20260215_150553.schema_manifest.json"
+  },
+  "B_parquet": {
+    "parquet_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V13_REFINED3_PRUNE20/2025/xauusd_m5_2025_features_v13_refined3_prune20_20260215_150553.parquet",
+    "parquet_columns": [
+      "spread_bps",
+      "spread_atr_ratio",
+      "atr",
+      "std50",
+      "volatility",
+      "atr_z_200",
+      "ret_1",
+      "ret_5",
+      "ret_20",
+      "roc100",
+      "momentum",
+      "rvol_20",
+      "rvol_60",
+      "vol_ratio",
+      "spread_vs_rvol60",
+      "ema_50",
+      "price_vs_ema50_atr",
+      "trend_regime_tf24h",
+      "wick_asym",
+      "high_low_ratio"
+    ],
+    "parquet_feature_columns": [
+      "spread_bps",
+      "spread_atr_ratio",
+      "atr",
+      "std50",
+      "volatility",
+      "atr_z_200",
+      "ret_1",
+      "ret_5",
+      "ret_20",
+      "roc100",
+      "momentum",
+      "rvol_20",
+      "rvol_60",
+      "vol_ratio",
+      "spread_vs_rvol60",
+      "ema_50",
+      "price_vs_ema50_atr",
+      "trend_regime_tf24h",
+      "wick_asym",
+      "high_low_ratio"
+    ],
+    "n_rows_total": 70217,
+    "missing_from_parquet": [],
+    "extra_in_parquet": []
+  },
+  "C_liveness_sample": {
+    "sample_n": 20000,
+    "sample_indices_head": [
+      0,
+      3,
+      6,
+      9,
+      12,
+      15,
+      18,
+      21,
+      24,
+      27
+    ],
+    "per_feature": {
+      "spread_bps": {
+        "unique_count": 19925,
+        "std": 0.597583235102278,
+        "min": 0.4644336142774477,
+        "max": 18.536643236349615,
+        "percent_zero": 0.0,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      },
+      "spread_atr_ratio": {
+        "unique_count": 20000,
+        "std": 0.14993666654223886,
+        "min": 0.028595965631003882,
+        "max": 8.26666666663817,
+        "percent_zero": 0.0,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      },
+      "atr": {
+        "unique_count": 20000,
+        "std": 1.8039646402688416,
+        "min": 0.1500000000005457,
+        "max": 18.499993455281313,
+        "percent_zero": 0.0,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      },
+      "std50": {
+        "unique_count": 20000,
+        "std": 0.00031932717027670826,
+        "min": 0.0,
+        "max": 0.002664454205509441,
+        "percent_zero": 5e-05,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      },
+      "volatility": {
+        "unique_count": 20000,
+        "std": 0.0003463961705969789,
+        "min": 0.0,
+        "max": 0.0038189687089515627,
+        "percent_zero": 5e-05,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      },
+      "atr_z_200": {
+        "unique_count": 20000,
+        "std": 1.280778433283634,
+        "min": -2.7435643833575316,
+        "max": 7.0234541593339275,
+        "percent_zero": 5e-05,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      },
+      "ret_1": {
+        "unique_count": 19976,
+        "std": 0.0006851640790422073,
+        "min": -0.015997468324480346,
+        "max": 0.00578424107099873,
+        "percent_zero": 0.001,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      },
+      "ret_5": {
+        "unique_count": 19977,
+        "std": 0.0015255587343693208,
+        "min": -0.018140338631004727,
+        "max": 0.01199614439475516,
+        "percent_zero": 0.0009,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      },
+      "ret_20": {
+        "unique_count": 19985,
+        "std": 0.003011683318291433,
+        "min": -0.024284674380542937,
+        "max": 0.022684186655093974,
+        "percent_zero": 0.00075,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      },
+      "roc100": {
+        "unique_count": 19966,
+        "std": 0.6771317807636444,
+        "min": -5.138236164819531,
+        "max": 2.9498316486412435,
+        "percent_zero": 0.00175,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      },
+      "momentum": {
+        "unique_count": 19982,
+        "std": 0.0021480851996155516,
+        "min": -0.021603971650949627,
+        "max": 0.0233754506576076,
+        "percent_zero": 0.00095,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      },
+      "rvol_20": {
+        "unique_count": 20000,
+        "std": 0.3745451095719997,
+        "min": 0.0,
+        "max": 2.7170699412888775,
+        "percent_zero": 5e-05,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      },
+      "rvol_60": {
+        "unique_count": 20000,
+        "std": 0.2555507895017703,
+        "min": 0.0,
+        "max": 1.7332030175057056,
+        "percent_zero": 5e-05,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      },
+      "vol_ratio": {
+        "unique_count": 19995,
+        "std": 0.3901646010973053,
+        "min": 0.0,
+        "max": 5.908074932107707,
+        "percent_zero": 5e-05,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      },
+      "spread_vs_rvol60": {
+        "unique_count": 20000,
+        "std": 33398997717.76841,
+        "min": 0.38866086600423744,
+        "max": 4723449641932.944,
+        "percent_zero": 0.0,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      },
+      "ema_50": {
+        "unique_count": 20000,
+        "std": 381.70957828232736,
+        "min": 2624.600910097967,
+        "max": 4362.787291259799,
+        "percent_zero": 0.0,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      },
+      "price_vs_ema50_atr": {
+        "unique_count": 20000,
+        "std": 2.1468986370609215,
+        "min": -9.20759827723039,
+        "max": 7.843516880671503,
+        "percent_zero": 5e-05,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      },
+      "trend_regime_tf24h": {
+        "unique_count": 19901,
+        "std": 1.1783551171709452,
+        "min": -7.570061360930502,
+        "max": 4.4252123343523575,
+        "percent_zero": 0.005,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      },
+      "wick_asym": {
+        "unique_count": 18957,
+        "std": 0.5885725592388724,
+        "min": -0.9999999999998754,
+        "max": 0.9999999999999213,
+        "percent_zero": 0.0032,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      },
+      "high_low_ratio": {
+        "unique_count": 19992,
+        "std": 0.0006679518534507973,
+        "min": 0.9999999999999997,
+        "max": 1.010346193715619,
+        "percent_zero": 0.0,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      }
+    },
+    "alive_features": [
+      "atr",
+      "atr_z_200",
+      "ema_50",
+      "high_low_ratio",
+      "momentum",
+      "price_vs_ema50_atr",
+      "ret_1",
+      "ret_20",
+      "ret_5",
+      "roc100",
+      "rvol_20",
+      "rvol_60",
+      "spread_atr_ratio",
+      "spread_bps",
+      "spread_vs_rvol60",
+      "std50",
+      "trend_regime_tf24h",
+      "vol_ratio",
+      "volatility",
+      "wick_asym"
+    ],
+    "dead_features": [],
+    "dead_all_zero_features": [],
+    "ema_family_status": {
+      "ema_20": {
+        "label": "MISSING"
+      },
+      "ema_50": {
+        "unique_count": 20000,
+        "std": 381.70957828232736,
+        "min": 2624.600910097967,
+        "max": 4362.787291259799,
+        "percent_zero": 0.0,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      }
+    },
+    "oscillator_status": {
+      "rsi": {
+        "label": "MISSING"
+      },
+      "macd": {
+        "label": "MISSING"
+      }
+    },
+    "volatility_status": {
+      "atr": {
+        "unique_count": 20000,
+        "std": 1.8039646402688416,
+        "min": 0.1500000000005457,
+        "max": 18.499993455281313,
+        "percent_zero": 0.0,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      },
+      "true_range": {
+        "label": "MISSING"
+      },
+      "std50": {
+        "unique_count": 20000,
+        "std": 0.00031932717027670826,
+        "min": 0.0,
+        "max": 0.002664454205509441,
+        "percent_zero": 5e-05,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      }
+    },
+    "spread_status": {
+      "spread_bps": {
+        "unique_count": 19925,
+        "std": 0.597583235102278,
+        "min": 0.4644336142774477,
+        "max": 18.536643236349615,
+        "percent_zero": 0.0,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      },
+      "spread_atr_ratio": {
+        "unique_count": 20000,
+        "std": 0.14993666654223886,
+        "min": 0.028595965631003882,
+        "max": 8.26666666663817,
+        "percent_zero": 0.0,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      }
+    }
+  },
+  "D_xgb_truth_dump": {
+    "present": false,
+    "path": null
+  },
+  "E_conclusion": {
+    "AVAILABLE_NOW_ALIVE": [
+      "spread_bps",
+      "spread_atr_ratio",
+      "atr",
+      "std50",
+      "volatility",
+      "atr_z_200",
+      "ret_1",
+      "ret_5",
+      "ret_20",
+      "roc100",
+      "momentum",
+      "rvol_20",
+      "rvol_60",
+      "vol_ratio",
+      "spread_vs_rvol60",
+      "ema_50",
+      "price_vs_ema50_atr",
+      "trend_regime_tf24h",
+      "wick_asym",
+      "high_low_ratio"
+    ],
+    "AVAILABLE_NOW_BUT_DEAD": [],
+    "NOT_AVAILABLE_NOW": []
+  },
+  "F_strict": {
+    "enabled": true,
+    "fail_reasons": []
+  },
+  "FEATURE_REFINED_REVIEW": {
+    "family_groups": {
+      "SPREAD/COST": [
+        "spread_bps",
+        "spread_atr_ratio",
+        "spread_vs_rvol60"
+      ],
+      "VOLATILITY": [
+        "atr",
+        "std50",
+        "volatility",
+        "atr_z_200"
+      ],
+      "RETURNS/MOMENTUM": [
+        "ret_1",
+        "ret_5",
+        "ret_20",
+        "roc100",
+        "momentum"
+      ],
+      "VOLUME PROXY": [
+        "rvol_20",
+        "rvol_60",
+        "vol_ratio"
+      ],
+      "TREND": [
+        "ema_50",
+        "price_vs_ema50_atr"
+      ],
+      "REGIME": [
+        "trend_regime_tf24h"
+      ],
+      "CANDLE GEOMETRY": [
+        "wick_asym",
+        "high_low_ratio"
+      ]
+    },
+    "rvol_scale_audit": {
+      "rvol_20": {
+        "unique_count": 20000,
+        "std": 0.3745451095719997,
+        "min": 0.0,
+        "max": 2.7170699412888775,
+        "percent_zero": 5e-05,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      },
+      "rvol_60": {
+        "unique_count": 20000,
+        "std": 0.2555507895017703,
+        "min": 0.0,
+        "max": 1.7332030175057056,
+        "percent_zero": 5e-05,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      },
+      "vol_ratio": {
+        "unique_count": 19995,
+        "std": 0.3901646010973053,
+        "min": 0.0,
+        "max": 5.908074932107707,
+        "percent_zero": 5e-05,
+        "nan_rate": 0.0,
+        "inf_rate": 0.0,
+        "label": "ALIVE"
+      }
+    },
+    "redundant_candidates": {
+      "atr_vs_true_range": false,
+      "std50_vs_volatility": true
+    }
+  }
+}

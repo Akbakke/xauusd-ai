@@ -1,0 +1,156 @@
+{
+  "generated_utc": "2026-02-10T20:34:17.504632+00:00",
+  "feature_contract_id": "v13_refined3",
+  "baseline_contract_sha256": "2b07a0c1442bd2e76ecf66d91745328312a2d936535322cd2d8acb453b027d94",
+  "inputs": {
+    "contrib_json": "/home/andre2/src/GX1_ENGINE/gx1/reports/feature_carpenter_audit_v13_refined3/20260210_185526/FEATURE_XGB_CONTRIBUTION.json",
+    "redundancy_json": "/home/andre2/src/GX1_ENGINE/gx1/reports/feature_carpenter_audit_v13_refined3/20260210_185526/FEATURE_REDUNDANCY_MATRIX.json"
+  },
+  "provenance": {
+    "GX1_DATA": "/home/andre2/GX1_DATA",
+    "sys_executable": "/home/andre2/venvs/gx1/bin/python",
+    "git_sha": "5416173f4febefa6a2bccb40573b1db53da606a8"
+  },
+  "rules": {
+    "corr_cluster_abs_threshold": 0.9,
+    "required_always_include": [
+      "spread_bps",
+      "atr",
+      "ret_1",
+      "ret_5",
+      "ret_20"
+    ],
+    "required_min1_candle_geometry": [
+      "wick_asym",
+      "range_atr"
+    ],
+    "required_min1_trend": [
+      "price_vs_ema50_atr",
+      "ema_50",
+      "ema_20"
+    ],
+    "ordering": "baseline_contract_order"
+  },
+  "feature_sets": {
+    "baseline_28": {
+      "features_ordered": [
+        "spread_bps",
+        "spread_atr_ratio",
+        "atr",
+        "std50",
+        "volatility",
+        "atr_z_200",
+        "ret_1",
+        "ret_5",
+        "ret_20",
+        "roc20",
+        "roc100",
+        "momentum",
+        "ret_1_atr",
+        "rvol_20",
+        "rvol_60",
+        "rvol_ratio",
+        "vol_ratio",
+        "spread_vs_rvol60",
+        "ema_20",
+        "ema_50",
+        "price_vs_ema50_atr",
+        "trend_regime_tf24h",
+        "body_size_atr",
+        "range_atr",
+        "upper_shadow_atr",
+        "lower_shadow_atr",
+        "wick_asym",
+        "high_low_ratio"
+      ],
+      "n_features": 28,
+      "sha256": "2b07a0c1442bd2e76ecf66d91745328312a2d936535322cd2d8acb453b027d94"
+    },
+    "prune_20": {
+      "features_ordered": [
+        "spread_bps",
+        "spread_atr_ratio",
+        "atr",
+        "std50",
+        "volatility",
+        "atr_z_200",
+        "ret_1",
+        "ret_5",
+        "ret_20",
+        "roc100",
+        "momentum",
+        "rvol_20",
+        "rvol_60",
+        "vol_ratio",
+        "spread_vs_rvol60",
+        "ema_50",
+        "price_vs_ema50_atr",
+        "trend_regime_tf24h",
+        "wick_asym",
+        "high_low_ratio"
+      ],
+      "n_features": 20,
+      "sha256": "22e097ca0315664190310bcef9f398e3403c11289c19bad9155f886d34e82caf",
+      "removed": [
+        "roc20",
+        "ret_1_atr",
+        "rvol_ratio",
+        "ema_20",
+        "body_size_atr",
+        "range_atr",
+        "upper_shadow_atr",
+        "lower_shadow_atr"
+      ]
+    },
+    "prune_14": {
+      "features_ordered": [
+        "spread_bps",
+        "atr",
+        "std50",
+        "volatility",
+        "ret_1",
+        "ret_5",
+        "ret_20",
+        "roc100",
+        "rvol_60",
+        "vol_ratio",
+        "ema_50",
+        "price_vs_ema50_atr",
+        "trend_regime_tf24h",
+        "wick_asym"
+      ],
+      "n_features": 14,
+      "sha256": "2157f092ddcb7d578031ee591f7a25645ff06f79cc87cddd45fe98531975ae40",
+      "removed": [
+        "spread_atr_ratio",
+        "atr_z_200",
+        "roc20",
+        "momentum",
+        "ret_1_atr",
+        "rvol_20",
+        "rvol_ratio",
+        "spread_vs_rvol60",
+        "ema_20",
+        "body_size_atr",
+        "range_atr",
+        "upper_shadow_atr",
+        "lower_shadow_atr",
+        "high_low_ratio"
+      ]
+    }
+  },
+  "redundancy_clusters": [
+    [
+      "ema_20",
+      "ema_50"
+    ],
+    [
+      "ret_20",
+      "roc20"
+    ],
+    [
+      "rvol_ratio",
+      "vol_ratio"
+    ]
+  ]
+}

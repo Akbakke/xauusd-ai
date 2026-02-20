@@ -2,6 +2,9 @@
 Run identity utilities for generating stable run_id and chunk_id.
 
 Used for generating globally unique trade_uid across parallel replay chunks.
+
+SSoT: run_id must come from CLI (--run-id) or GX1_RUN_ID. NEVER derive from
+Path(run_root).name / basename - causes merge/lookup bugs in sweep/aggregator.
 """
 import os
 import re
@@ -12,42 +15,18 @@ from typing import Optional
 def get_run_id(output_dir: Optional[Path] = None, env_run_id: Optional[str] = None) -> str:
     """
     Get stable run_id for this run.
-    
+
     Priority:
-    1. Environment variable GX1_RUN_ID
-    2. Policy config run_id
-    3. For replay: basename of output_dir (if output_dir contains "FULLYEAR" or similar pattern)
-    4. Auto-generated timestamp-based ID
-    
-    Parameters
-    ----------
-    output_dir : Path, optional
-        Output directory for this run (used to infer run_id from path)
-    env_run_id : str, optional
-        run_id from environment variable (GX1_RUN_ID)
-    
-    Returns
-    -------
-    str
-        Stable run_id for this run
+    1. Environment variable GX1_RUN_ID (or env_run_id param)
+    2. Auto-generated timestamp-based ID
+
+    NEVER uses output_dir.name/basename - run_id must be explicit SSoT from CLI/env.
     """
-    # Priority 1: Environment variable
+    # Priority 1: Environment variable / explicit pass
     if env_run_id:
         return env_run_id
-    
-    # Priority 2: Output dir basename (for replay runs with structured output dirs)
-    if output_dir:
-        output_dir = Path(output_dir)
-        # Use basename if it looks like a run identifier (contains timestamp pattern)
-        basename = output_dir.name
-        # Check if basename looks like a run tag (e.g., FULLYEAR_2025_20260105_190429)
-        if re.match(r'^[A-Z_0-9]+_\d{8}_\d{6}', basename) or 'FULLYEAR' in basename or 'SNIPER' in basename:
-            return basename
-        # If output_dir is inside a run directory, use parent basename
-        if output_dir.parent.name and (output_dir.parent.name.startswith('FULLYEAR') or output_dir.parent.name.startswith('SNIPER')):
-            return output_dir.parent.name
-    
-    # Priority 3: Auto-generate (fallback, should rarely happen)
+
+    # Priority 2: Auto-generate (never derive from output_dir basename)
     from datetime import datetime, timezone
     ts_str = datetime.now(tz=timezone.utc).strftime("%Y%m%d_%H%M%S")
     return f"run_{ts_str}"

@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Robust: find git root and cd there (works from any subdirectory or GUI client)
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+echo "[GX1_HOOK] pre-commit: running ENV gate policy check..."
+
+# Use exec so exit code always bubbles up correctly
+exec ./gx1/scripts/tools/run_env_gate_policy_check.sh
+

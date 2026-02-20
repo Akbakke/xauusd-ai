@@ -159,8 +159,9 @@ class TradeJournal:
                 logger.warning(f"[TRADE_JOURNAL] Failed to open JSONL file: {e}")
                 self._file_handle = None
         
-        # Initialize index CSV if it doesn't exist
-        if self.enabled and not self.index_path.exists():
+        # Initialize index CSV if it doesn't exist (skip in TRUTH mode - generated post-merge)
+        is_truth = os.getenv("GX1_RUN_MODE", "").upper() == "TRUTH" or os.getenv("GX1_TRUTH_MODE", "0") == "1"
+        if self.enabled and not is_truth and not self.index_path.exists():
             self._write_index_header()
     
     def _key(self, trade_uid: Optional[str] = None, trade_id: Optional[str] = None) -> str:
@@ -198,6 +199,11 @@ class TradeJournal:
     
     def _write_index_header(self) -> None:
         """Write CSV header for index file."""
+        # TRUTH mode: Skip CSV header writing (trade_journal_index.csv is generated post-merge)
+        is_truth = os.getenv("GX1_RUN_MODE", "").upper() == "TRUTH" or os.getenv("GX1_TRUTH_MODE", "0") == "1"
+        if is_truth:
+            return
+        
         try:
             with open(self.index_path, "w", newline="", encoding="utf-8") as f:
                 writer = csv.DictWriter(f, fieldnames=[
@@ -714,6 +720,7 @@ class TradeJournal:
         max_mfe_bps: Optional[float] = None,
         max_mae_bps: Optional[float] = None,
         intratrade_drawdown_bps: Optional[float] = None,
+        forced_close: bool = False,
     ) -> None:
         """
         Log exit summary (final trade closure).
@@ -728,6 +735,7 @@ class TradeJournal:
             max_mfe_bps: Maximum favorable excursion (bps)
             max_mae_bps: Maximum adverse excursion (bps)
             intratrade_drawdown_bps: Intratrade drawdown (bps)
+            forced_close: True if close was BROKER_SL/SL_TICK/REPLAY_EOF (non-policy); for analytics.
         """
         if not self.enabled:
             return
@@ -778,6 +786,7 @@ class TradeJournal:
                 "max_mfe_bps": max_mfe_bps,
                 "max_mae_bps": max_mae_bps,
                 "intratrade_drawdown_bps": intratrade_drawdown_bps,
+                "exit_source": "forced_close" if forced_close else "policy",
             }
             self._write_trade_json(trade_uid=trade_uid, trade_id=trade_id)
             
@@ -890,6 +899,14 @@ class TradeJournal:
                 "risk_guard_details": risk_guard_details_str,
                 "risk_guard_min_prob_long_clamp": risk_guard_clamp if risk_guard_clamp is not None else "",
             }
+            
+            # TRUTH mode: Skip CSV writing (trade_journal_index.csv is generated deterministically
+            # from trade_outcomes_*.parquet in merge_artifacts, not from runtime journaling)
+            is_truth = os.getenv("GX1_RUN_MODE", "").upper() == "TRUTH" or os.getenv("GX1_TRUTH_MODE", "0") == "1"
+            if is_truth:
+                # In TRUTH mode, trade_journal_index.csv is generated post-merge from trade_outcomes (SSoT)
+                # Skip runtime CSV writing to avoid double truth
+                return
             
             # Append to CSV
             # Ensure CSV has correct headers (write header if file is new)

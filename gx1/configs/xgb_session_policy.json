@@ -1,0 +1,31 @@
+{
+  "version": "1.0",
+  "created_at": "2026-01-28T09:30:00Z",
+  "description": "XGB session policy - controls which session heads are enabled/disabled",
+  "sessions": {
+    "EU": {
+      "enabled": true,
+      "mode": "normal"
+    },
+    "OVERLAP": {
+      "enabled": true,
+      "mode": "normal"
+    },
+    "US": {
+      "enabled": false,
+      "mode": "neutral_probs",
+      "uncertainty": 1.0,
+      "rationale": "US head disabled due to high drift (KS=0.227619, PSI=0.277938). Transformer will handle US decisions."
+    }
+  },
+  "notes": {
+    "neutral_probs": "When disabled with mode='neutral_probs', returns (1/3, 1/3, 1/3) for (p_long, p_short, p_flat) and uncertainty=1.0",
+    "re_enable_requirements": "US must meet GO policy on canonical benchmark (KS<0.16, PSI<0.15) before re-enabling",
+    "canonical_baseline": {
+      "fingerprint": "e39dfafbf63711338442a9e193fb5278aad2b64c807cc1fa805d4e5017cf7036",
+      "ks": 0.227619,
+      "psi": 0.277938,
+      "report": "gx1/configs/reports_snapshot/us_canonical_benchmark/C0/"
+    }
+  }
+}

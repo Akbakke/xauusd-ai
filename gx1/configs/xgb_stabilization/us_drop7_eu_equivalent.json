@@ -1,0 +1,71 @@
+{
+  "version": "1.0",
+  "created_at": "2026-01-27T17:45:00Z",
+  "description": "US 7-feature drop - identical to EU stabilization",
+  "target_session": "US",
+  "base_feature_count": 96,
+  "drop_feature_count": 7,
+  "remaining_feature_count": 89,
+  "drop_features": [
+    {
+      "name": "mid",
+      "index": 78,
+      "reason": "Price level - extreme drift",
+      "category": "price-level"
+    },
+    {
+      "name": "_v1_r1_q10_48",
+      "index": 28,
+      "reason": "Price quantile - high drift",
+      "category": "price-level"
+    },
+    {
+      "name": "_v1_r1_q90_48",
+      "index": 29,
+      "reason": "Price quantile - high drift",
+      "category": "price-level"
+    },
+    {
+      "name": "atr",
+      "index": 68,
+      "reason": "Raw ATR - volatility regime drift",
+      "category": "atr-family"
+    },
+    {
+      "name": "atr50",
+      "index": 69,
+      "reason": "50-bar ATR - volatility regime drift",
+      "category": "atr-family"
+    },
+    {
+      "name": "_v1h1_atr",
+      "index": 57,
+      "reason": "H1 ATR - volatility regime drift",
+      "category": "atr-family"
+    },
+    {
+      "name": "_v1h4_atr",
+      "index": 63,
+      "reason": "H4 ATR - volatility regime drift",
+      "category": "atr-family"
+    }
+  ],
+  "drop_feature_names": [
+    "mid",
+    "_v1_r1_q10_48",
+    "_v1_r1_q90_48",
+    "atr",
+    "atr50",
+    "_v1h1_atr",
+    "_v1h4_atr"
+  ],
+  "drop_indices": [28, 29, 57, 63, 68, 69, 78],
+  "notes": {
+    "eu_equivalent": "This drop list is identical to EU stabilization (eu_go_pack.md)",
+    "categories": {
+      "price-level": "3 features (mid, _v1_r1_q10_48, _v1_r1_q90_48)",
+      "atr-family": "4 features (atr, atr50, _v1h1_atr, _v1h4_atr)"
+    },
+    "threshold_policy": "Short-regime: KS < 0.16, PSI < 0.15 for 2024 vs 2025"
+  }
+}

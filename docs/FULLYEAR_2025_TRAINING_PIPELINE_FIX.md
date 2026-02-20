@@ -1,7 +1,10 @@
 # FULLYEAR_2025 Training Pipeline Fix
 
 **Date:** 2026-01-07  
-**Status:** ✅ Implemented
+**Status:** ✅ Implemented  
+
+**Canonical script (full pipeline with calibration):** `gx1/scripts/build_entry_v10_ctx_training_dataset_legacy.py` — run `python -m gx1.scripts.build_entry_v10_ctx_training_dataset_legacy`.  
+The old name `build_entry_v10_ctx_training_dataset.py` is deprecated and stubbed (fail-fast).
 
 ---
 
@@ -15,7 +18,7 @@ FULLYEAR training brukte raw XGB fordi calibrators ikke fantes. Dette undergrave
 
 ### 1. Hard Fail hvis Calibrators Mangler
 
-**File:** `gx1/scripts/build_entry_v10_ctx_training_dataset.py`
+**File:** `gx1/scripts/build_entry_v10_ctx_training_dataset_legacy.py`
 
 - `verify_calibrators_exist()` funksjon som:
   - Logger eksakt path som søkes: `{calibration_dir}/{policy_id}/{session}/calibrator_{method}.joblib`
@@ -33,7 +36,7 @@ FULLYEAR training brukte raw XGB fordi calibrators ikke fantes. Dette undergrave
 
 ### 2. Del Pipeline: Offline Build Script
 
-**File:** `gx1/scripts/build_entry_v10_ctx_training_dataset.py`
+**File:** `gx1/scripts/build_entry_v10_ctx_training_dataset_legacy.py`
 
 **Funksjonalitet:**
 - Bygger FULLYEAR_2025 train/val/test parquet med:
@@ -48,7 +51,7 @@ FULLYEAR training brukte raw XGB fordi calibrators ikke fantes. Dette undergrave
 
 **Usage:**
 ```bash
-python gx1/scripts/build_entry_v10_ctx_training_dataset.py \
+python -m gx1.scripts.build_entry_v10_ctx_training_dataset_legacy \
     --data data/entry_v9/full_2025.parquet \
     --output data/entry_v10_ctx/FULLYEAR_2025_GATED_FUSION.parquet \
     --policy_config gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/GX1_SNIPER_TRAIN_V10_CTX_GATED.yaml \
@@ -131,7 +134,7 @@ dataloader = DataLoader(
 ```bash
 export GX1_REQUIRE_XGB_CALIBRATION=1
 
-python gx1/scripts/build_entry_v10_ctx_training_dataset.py \
+python -m gx1.scripts.build_entry_v10_ctx_training_dataset_legacy \
     --data data/entry_v9/full_2025.parquet \
     --output data/entry_v10_ctx/FULLYEAR_2025_GATED_FUSION.parquet \
     --policy_config gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/GX1_SNIPER_TRAIN_V10_CTX_GATED.yaml \
@@ -208,7 +211,7 @@ python -m gx1.models.entry_v10.entry_v10_ctx_train \
 
 ## Files Changed
 
-1. `gx1/scripts/build_entry_v10_ctx_training_dataset.py` (NEW)
+1. `gx1/scripts/build_entry_v10_ctx_training_dataset_legacy.py` (NEW)
 2. `gx1/models/entry_v10/entry_v10_ctx_train.py` (UPDATED)
 3. `gx1/models/entry_v10/entry_v10_ctx_dataset.py` (UPDATED)
 4. `gx1/models/entry_v10/xgb_calibration.py` (UPDATED - hard fail logic)

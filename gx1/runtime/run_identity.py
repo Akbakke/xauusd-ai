@@ -707,7 +707,7 @@ def create_run_identity(
         output_mode = "MINIMAL"
     
     # XGB SESSION POLICY: Policy loading is deferred to ensure_xgb_policy_fields_loaded()
-    # This is called explicitly before writing RUN_IDENTITY.json in replay_eval_gated_parallel.py
+    # This is called explicitly before writing RUN_IDENTITY.json (legacy replay, quarantined).
     xgb_session_policy_hash = None
     xgb_us_disabled_enabled = False
     

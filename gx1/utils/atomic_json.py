@@ -119,6 +119,47 @@ def atomic_write_json(path: Path, payload: Dict[str, Any], fallback_on_error: bo
         return False
 
 
+def atomic_write_json_deterministic(path: Path, payload: Dict[str, Any]) -> bool:
+    """
+    Write JSON atomically with bit-for-bit deterministic output.
+    
+    Uses sort_keys=True, separators=(",", ":"), ensure_ascii=False for stable
+    serialization. Use ONLY for proof-critical files (e.g. empty attribution fallback).
+    
+    Args:
+        path: Target file path
+        payload: Dictionary with JSON-serializable values only (no timestamp etc. for determinism)
+    
+    Returns:
+        True if successful, False otherwise
+    """
+    if not isinstance(payload, dict):
+        return False
+    try:
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp_path = path.with_suffix(path.suffix + ".tmp")
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            json.dump(
+                payload,
+                f,
+                sort_keys=True,
+                separators=(",", ":"),
+                ensure_ascii=False,
+            )
+            f.flush()
+            os.fsync(f.fileno())
+        tmp_path.replace(path)
+        return True
+    except Exception:
+        try:
+            if "tmp_path" in locals() and tmp_path.exists():
+                tmp_path.unlink()
+        except Exception:
+            pass
+        return False
+
+
 def _write_fallback_error(path: Path, error: Exception, payload: Any, error_stage: str) -> None:
     """Write fallback error file when atomic_write_json fails."""
     try:

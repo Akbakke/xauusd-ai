@@ -1,0 +1,11 @@
+{
+  "version": "v12",
+  "canonical_price_col": "mid",
+  "canonical_atr_col": "atr",
+  "description": "SSoT canonical mapping for prebuilt price/ATR columns used by compute_payoffs()",
+  "notes": [
+    "Price column must be non-zero and finite after warmup",
+    "ATR column must be non-zero and finite after warmup",
+    "No fallback allowed - missing or invalid columns must FATAL"
+  ]
+}

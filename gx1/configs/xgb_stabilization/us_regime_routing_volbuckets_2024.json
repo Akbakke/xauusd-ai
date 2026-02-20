@@ -1,0 +1,37 @@
+{
+  "vol_signal": "rvol_20",
+  "vol_signal_index": 89,
+  "train_year": 2024,
+  "thresholds": {
+    "q33": -0.9996811151504517,
+    "q66": -0.9995537400245667
+  },
+  "bucket_definitions": {
+    "LOW": "vol_signal <= -0.999681",
+    "MID": "-0.999681 < vol_signal <= -0.999554",
+    "HIGH": "vol_signal > -0.999554"
+  },
+  "train_fingerprint": "f58a3d00a481d2df0b0be0aa20276e7277d8eebb0b9695edc08c449404fb1061",
+  "train_stats": {
+    "n_rows": 12212,
+    "min": -0.9998905661702157,
+    "max": -0.997791585624218,
+    "median": -0.9996178150177002,
+    "mean": -0.9995669636543495,
+    "std": 0.0002309973937013174
+  },
+  "bucket_distribution_train": {
+    "LOW": {
+      "count": 4032,
+      "pct": 0.33016704880445463
+    },
+    "MID": {
+      "count": 4029,
+      "pct": 0.3299213887979037
+    },
+    "HIGH": {
+      "count": 4151,
+      "pct": 0.33991156239764164
+    }
+  }
+}

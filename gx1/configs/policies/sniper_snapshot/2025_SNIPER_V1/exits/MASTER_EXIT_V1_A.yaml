@@ -1,0 +1,40 @@
+# MASTER_EXIT_V1_A - Single exit strategy for TRUTH/prod (SSoT)
+#
+# No router, no exit_policies, no exit_critic.
+# Deterministic: hard stop, trailing after MFE, stagnation.
+
+exit:
+  type: MASTER_EXIT_V1
+  params:
+    hard_stop_atr: 1.5
+    mfe_activate_atr: 0.8
+    trail_gap_atr: 0.5
+    stagnation_bars: 12
+    stagnation_min_profit_atr: 0.0
+    # guardrails: trail only after min bars; arm trailing only after proof-of-life (bps)
+    min_hold_bars: 3
+    min_mfe_bps_to_arm: 5.0
+    # optional modulators (v1: unused)
+    entry_score_frozen: null
+    uncertainty_frozen: null
+    verbose_logging: false
+    # ML exit decider: GX1_EXIT_ML_DECIDER=1/0, GX1_EXIT_ML_MODE=score_v1|exit_transformer_v0
+    exit_ml:
+      decider_enabled: false
+      mode: score_v1
+      # score_v1: optional w0..w5, threshold; omit to use module defaults
+      # score_v1:
+      #   w0: 0.0
+      #   w1: 0.5
+      #   w2: 0.0
+      #   w3: 0.0
+      #   w4: 0.2
+      #   w5: 0.1
+      #   threshold: 0.5
+      # exit_transformer_v0 (imitation): set mode to exit_transformer_v0 and enable below
+      # exit_transformer:
+      #   enabled: true
+      #   model_path: exit_transformer_v0
+      #   model_sha: ""
+      #   threshold: 0.5
+      #   window_len: 64

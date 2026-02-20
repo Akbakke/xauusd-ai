@@ -1,0 +1,1307 @@
+{
+  "generated_utc": "2026-02-10T18:55:29.313580+00:00",
+  "feature_contract_id": "v13_refined3",
+  "n_features": 28,
+  "feature_list_sha256": "2b07a0c1442bd2e76ecf66d91745328312a2d936535322cd2d8acb453b027d94",
+  "schema_manifest_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V13_REFINED3/2025/xauusd_m5_2025_features_v13_refined3_20260210_140328.schema_manifest.json",
+  "prebuilt_parquet_path": "/home/andre2/GX1_DATA/data/data/prebuilt/V13_REFINED3/2025/xauusd_m5_2025_features_v13_refined3_20260210_140328.parquet",
+  "bundle_dir": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/XGB_V13_REFINED3_20260210_185419",
+  "master_model_lock_path": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/XGB_V13_REFINED3_20260210_185419/MASTER_MODEL_LOCK.json",
+  "model_path": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/XGB_V13_REFINED3_20260210_185419/xgb_universal_multihead_v2.joblib",
+  "sessions": [
+    "EU",
+    "US",
+    "OVERLAP"
+  ],
+  "sample_rows": 5000,
+  "per_head": {
+    "EU": {
+      "gain": {
+        "spread_bps": 3.484696865081787,
+        "spread_atr_ratio": 3.511669158935547,
+        "atr": 7.2718024253845215,
+        "std50": 7.884208679199219,
+        "volatility": 6.761469841003418,
+        "atr_z_200": 7.036684989929199,
+        "ret_1": 2.8813436031341553,
+        "ret_5": 3.5961079597473145,
+        "ret_20": 7.737485408782959,
+        "roc20": 0.0,
+        "roc100": 6.943809509277344,
+        "momentum": 6.10378885269165,
+        "ret_1_atr": 2.7424933910369873,
+        "rvol_20": 6.487423896789551,
+        "rvol_60": 7.59013557434082,
+        "rvol_ratio": 7.6276469230651855,
+        "vol_ratio": 7.343564033508301,
+        "spread_vs_rvol60": 4.27901554107666,
+        "ema_20": 9.20790958404541,
+        "ema_50": 11.229008674621582,
+        "price_vs_ema50_atr": 7.750949859619141,
+        "trend_regime_tf24h": 7.27534818649292,
+        "body_size_atr": 3.0123608112335205,
+        "range_atr": 2.6298415660858154,
+        "upper_shadow_atr": 3.0875844955444336,
+        "lower_shadow_atr": 3.068448543548584,
+        "wick_asym": 3.0023059844970703,
+        "high_low_ratio": 4.531302452087402
+      },
+      "gain_norm": {
+        "spread_bps": 0.022616386924104823,
+        "spread_atr_ratio": 0.02279144256241297,
+        "atr": 0.04719546739807459,
+        "std50": 0.05117010775483046,
+        "volatility": 0.04388330578539713,
+        "atr_z_200": 0.04566950772389329,
+        "ret_1": 0.018700502314208306,
+        "ret_5": 0.023339467445065574,
+        "ret_20": 0.050217844076530196,
+        "roc20": 0.0,
+        "roc100": 0.045066727083995284,
+        "momentum": 0.03961482325156918,
+        "ret_1_atr": 0.017799336375572242,
+        "rvol_20": 0.042104692221781745,
+        "rvol_60": 0.04926151387107114,
+        "rvol_ratio": 0.049504970105470274,
+        "vol_ratio": 0.04766121473807609,
+        "spread_vs_rvol60": 0.027771675665962448,
+        "ema_20": 0.05976119415197867,
+        "ema_50": 0.07287853572118694,
+        "price_vs_ema50_atr": 0.05030523108367078,
+        "trend_regime_tf24h": 0.04721848010427913,
+        "body_size_atr": 0.01955083047382045,
+        "range_atr": 0.01706820326430162,
+        "upper_shadow_atr": 0.02003904738797444,
+        "lower_shadow_atr": 0.019914851192076904,
+        "wick_asym": 0.01948557261618437,
+        "high_low_ratio": 0.029409068706510964
+      },
+      "cover": {
+        "spread_bps": 142.38050842285156,
+        "spread_atr_ratio": 98.1007080078125,
+        "atr": 522.2264404296875,
+        "std50": 430.5569152832031,
+        "volatility": 519.6980590820312,
+        "atr_z_200": 764.2669677734375,
+        "ret_1": 143.81134033203125,
+        "ret_5": 56.51430130004883,
+        "ret_20": 907.46435546875,
+        "roc20": 0.0,
+        "roc100": 489.2402038574219,
+        "momentum": 427.9367980957031,
+        "ret_1_atr": 1210.7239990234375,
+        "rvol_20": 364.0835266113281,
+        "rvol_60": 457.95513916015625,
+        "rvol_ratio": 984.6179809570312,
+        "vol_ratio": 587.4364013671875,
+        "spread_vs_rvol60": 198.39524841308594,
+        "ema_20": 768.150634765625,
+        "ema_50": 1318.8472900390625,
+        "price_vs_ema50_atr": 1155.8558349609375,
+        "trend_regime_tf24h": 414.7812805175781,
+        "body_size_atr": 394.8108215332031,
+        "range_atr": 347.3297119140625,
+        "upper_shadow_atr": 575.8304443359375,
+        "lower_shadow_atr": 658.59228515625,
+        "wick_asym": 194.26315307617188,
+        "high_low_ratio": 202.1103515625
+      },
+      "weight": {
+        "spread_bps": 84.0,
+        "spread_atr_ratio": 80.0,
+        "atr": 275.0,
+        "std50": 255.0,
+        "volatility": 203.0,
+        "atr_z_200": 218.0,
+        "ret_1": 36.0,
+        "ret_5": 104.0,
+        "ret_20": 188.0,
+        "roc20": 0.0,
+        "roc100": 357.0,
+        "momentum": 158.0,
+        "ret_1_atr": 51.0,
+        "rvol_20": 166.0,
+        "rvol_60": 317.0,
+        "rvol_ratio": 187.0,
+        "vol_ratio": 20.0,
+        "spread_vs_rvol60": 81.0,
+        "ema_20": 310.0,
+        "ema_50": 277.0,
+        "price_vs_ema50_atr": 266.0,
+        "trend_regime_tf24h": 379.0,
+        "body_size_atr": 51.0,
+        "range_atr": 62.0,
+        "upper_shadow_atr": 88.0,
+        "lower_shadow_atr": 69.0,
+        "wick_asym": 62.0,
+        "high_low_ratio": 44.0
+      }
+    },
+    "US": {
+      "gain": {
+        "spread_bps": 5.561298847198486,
+        "spread_atr_ratio": 4.466981410980225,
+        "atr": 8.14449405670166,
+        "std50": 7.0370635986328125,
+        "volatility": 8.019146919250488,
+        "atr_z_200": 7.023904800415039,
+        "ret_1": 2.4477391242980957,
+        "ret_5": 3.8745977878570557,
+        "ret_20": 7.456978797912598,
+        "roc20": 0.0,
+        "roc100": 6.870830059051514,
+        "momentum": 5.1205339431762695,
+        "ret_1_atr": 2.959390640258789,
+        "rvol_20": 7.270041465759277,
+        "rvol_60": 6.669600963592529,
+        "rvol_ratio": 6.3617119789123535,
+        "vol_ratio": 9.412102699279785,
+        "spread_vs_rvol60": 4.382120132446289,
+        "ema_20": 8.523716926574707,
+        "ema_50": 10.12320327758789,
+        "price_vs_ema50_atr": 6.206341743469238,
+        "trend_regime_tf24h": 8.0054349899292,
+        "body_size_atr": 2.541156530380249,
+        "range_atr": 3.2291507720947266,
+        "upper_shadow_atr": 2.7233235836029053,
+        "lower_shadow_atr": 2.152404546737671,
+        "wick_asym": 2.8019638061523438,
+        "high_low_ratio": 3.9625020027160645
+      },
+      "gain_norm": {
+        "spread_bps": 0.03626593397360538,
+        "spread_atr_ratio": 0.029129751405741987,
+        "atr": 0.05311127702794748,
+        "std50": 0.04588958278417994,
+        "volatility": 0.0522938724727374,
+        "atr_z_200": 0.045803772594788995,
+        "ret_1": 0.01596201677079864,
+        "ret_5": 0.02526674278967881,
+        "ret_20": 0.04862790296980807,
+        "roc20": 0.0,
+        "roc100": 0.0448055528235007,
+        "momentum": 0.033391650223289646,
+        "ret_1_atr": 0.019298561093474803,
+        "rvol_20": 0.04740886095618037,
+        "rvol_60": 0.04349331241168393,
+        "rvol_ratio": 0.041485529356609215,
+        "vol_ratio": 0.06137751349521948,
+        "spread_vs_rvol60": 0.028576360262991627,
+        "ema_20": 0.05558423738090983,
+        "ema_50": 0.06601469040839786,
+        "price_vs_ema50_atr": 0.04047234037776446,
+        "trend_regime_tf24h": 0.05220445524538104,
+        "body_size_atr": 0.016571203504697592,
+        "range_atr": 0.021057701071144127,
+        "upper_shadow_atr": 0.017759137925389103,
+        "lower_shadow_atr": 0.014036102594234566,
+        "wick_asym": 0.01827196077433279,
+        "high_low_ratio": 0.025839977305512168
+      },
+      "cover": {
+        "spread_bps": 1233.1005859375,
+        "spread_atr_ratio": 359.37005615234375,
+        "atr": 971.579345703125,
+        "std50": 576.232177734375,
+        "volatility": 777.2183837890625,
+        "atr_z_200": 993.8505249023438,
+        "ret_1": 106.52403259277344,
+        "ret_5": 168.1836700439453,
+        "ret_20": 1113.5013427734375,
+        "roc20": 0.0,
+        "roc100": 535.2155151367188,
+        "momentum": 182.50564575195312,
+        "ret_1_atr": 204.1955108642578,
+        "rvol_20": 697.9382934570312,
+        "rvol_60": 644.5003051757812,
+        "rvol_ratio": 462.855712890625,
+        "vol_ratio": 2733.14013671875,
+        "spread_vs_rvol60": 483.1539611816406,
+        "ema_20": 884.5242309570312,
+        "ema_50": 1177.860595703125,
+        "price_vs_ema50_atr": 319.4703674316406,
+        "trend_regime_tf24h": 819.3489379882812,
+        "body_size_atr": 154.75169372558594,
+        "range_atr": 415.48553466796875,
+        "upper_shadow_atr": 100.33370208740234,
+        "lower_shadow_atr": 91.28740692138672,
+        "wick_asym": 49.67196273803711,
+        "high_low_ratio": 383.3747863769531
+      },
+      "weight": {
+        "spread_bps": 182.0,
+        "spread_atr_ratio": 121.0,
+        "atr": 334.0,
+        "std50": 416.0,
+        "volatility": 244.0,
+        "atr_z_200": 324.0,
+        "ret_1": 89.0,
+        "ret_5": 205.0,
+        "ret_20": 292.0,
+        "roc20": 0.0,
+        "roc100": 402.0,
+        "momentum": 212.0,
+        "ret_1_atr": 48.0,
+        "rvol_20": 311.0,
+        "rvol_60": 404.0,
+        "rvol_ratio": 217.0,
+        "vol_ratio": 36.0,
+        "spread_vs_rvol60": 161.0,
+        "ema_20": 441.0,
+        "ema_50": 357.0,
+        "price_vs_ema50_atr": 364.0,
+        "trend_regime_tf24h": 533.0,
+        "body_size_atr": 99.0,
+        "range_atr": 114.0,
+        "upper_shadow_atr": 97.0,
+        "lower_shadow_atr": 95.0,
+        "wick_asym": 77.0,
+        "high_low_ratio": 98.0
+      }
+    },
+    "OVERLAP": {
+      "gain": {
+        "spread_bps": 2.0892062187194824,
+        "spread_atr_ratio": 3.3199663162231445,
+        "atr": 6.829439640045166,
+        "std50": 9.163785934448242,
+        "volatility": 6.171768665313721,
+        "atr_z_200": 6.170125484466553,
+        "ret_1": 1.983169436454773,
+        "ret_5": 3.9482760429382324,
+        "ret_20": 4.711476802825928,
+        "roc20": 0.0,
+        "roc100": 7.005819797515869,
+        "momentum": 4.615619659423828,
+        "ret_1_atr": 1.8116874694824219,
+        "rvol_20": 5.711313724517822,
+        "rvol_60": 7.876518726348877,
+        "rvol_ratio": 5.4974446296691895,
+        "vol_ratio": 17.102182388305664,
+        "spread_vs_rvol60": 3.2309494018554688,
+        "ema_20": 9.262410163879395,
+        "ema_50": 12.183954238891602,
+        "price_vs_ema50_atr": 7.453826427459717,
+        "trend_regime_tf24h": 7.290290832519531,
+        "body_size_atr": 2.348099708557129,
+        "range_atr": 2.89705753326416,
+        "upper_shadow_atr": 3.24352765083313,
+        "lower_shadow_atr": 1.8382216691970825,
+        "wick_asym": 2.6143364906311035,
+        "high_low_ratio": 1.9502856731414795
+      },
+      "gain_norm": {
+        "spread_bps": 0.014085730200412677,
+        "spread_atr_ratio": 0.022383692612900553,
+        "atr": 0.04604506885329932,
+        "std50": 0.06178356886477653,
+        "volatility": 0.041610956113395874,
+        "atr_z_200": 0.041599877550697606,
+        "ret_1": 0.013370814892906048,
+        "ret_5": 0.026619847576209162,
+        "ret_20": 0.031765457375856926,
+        "roc20": 0.0,
+        "roc100": 0.047234249360507165,
+        "momentum": 0.031119174664439465,
+        "ret_1_atr": 0.012214658693787949,
+        "rvol_20": 0.038506502370445915,
+        "rvol_60": 0.05310462734782102,
+        "rvol_ratio": 0.03706456603058056,
+        "vol_ratio": 0.11530538479230332,
+        "spread_vs_rvol60": 0.021783527713992275,
+        "ema_20": 0.062448507670023946,
+        "ema_50": 0.08214597996381175,
+        "price_vs_ema50_atr": 0.050254774793009944,
+        "trend_regime_tf24h": 0.04915219418232074,
+        "body_size_atr": 0.015831227516963607,
+        "range_atr": 0.01953238049121048,
+        "upper_shadow_atr": 0.02186833208605735,
+        "lower_shadow_atr": 0.012393556102246583,
+        "wick_asym": 0.01762623437081962,
+        "high_low_ratio": 0.013149107809203617
+      },
+      "cover": {
+        "spread_bps": 77.6505355834961,
+        "spread_atr_ratio": 286.3397216796875,
+        "atr": 942.3067016601562,
+        "std50": 789.0782470703125,
+        "volatility": 447.88970947265625,
+        "atr_z_200": 300.39910888671875,
+        "ret_1": 61.5699462890625,
+        "ret_5": 399.2919006347656,
+        "ret_20": 296.4256286621094,
+        "roc20": 0.0,
+        "roc100": 637.9833984375,
+        "momentum": 322.4972839355469,
+        "ret_1_atr": 44.06314468383789,
+        "rvol_20": 385.3680725097656,
+        "rvol_60": 618.3163452148438,
+        "rvol_ratio": 454.012451171875,
+        "vol_ratio": 3450.512451171875,
+        "spread_vs_rvol60": 64.23851013183594,
+        "ema_20": 1032.3309326171875,
+        "ema_50": 1692.21533203125,
+        "price_vs_ema50_atr": 369.0373840332031,
+        "trend_regime_tf24h": 407.69000244140625,
+        "body_size_atr": 122.85993957519531,
+        "range_atr": 777.4564208984375,
+        "upper_shadow_atr": 407.41998291015625,
+        "lower_shadow_atr": 40.09169006347656,
+        "wick_asym": 276.73590087890625,
+        "high_low_ratio": 238.94277954101562
+      },
+      "weight": {
+        "spread_bps": 115.0,
+        "spread_atr_ratio": 72.0,
+        "atr": 226.0,
+        "std50": 280.0,
+        "volatility": 161.0,
+        "atr_z_200": 264.0,
+        "ret_1": 91.0,
+        "ret_5": 207.0,
+        "ret_20": 159.0,
+        "roc20": 0.0,
+        "roc100": 315.0,
+        "momentum": 122.0,
+        "ret_1_atr": 58.0,
+        "rvol_20": 242.0,
+        "rvol_60": 349.0,
+        "rvol_ratio": 183.0,
+        "vol_ratio": 14.0,
+        "spread_vs_rvol60": 105.0,
+        "ema_20": 287.0,
+        "ema_50": 239.0,
+        "price_vs_ema50_atr": 166.0,
+        "trend_regime_tf24h": 362.0,
+        "body_size_atr": 58.0,
+        "range_atr": 153.0,
+        "upper_shadow_atr": 77.0,
+        "lower_shadow_atr": 106.0,
+        "wick_asym": 91.0,
+        "high_low_ratio": 55.0
+      }
+    }
+  },
+  "shap_mean_abs_by_head": {
+    "EU": [
+      0.003318631090223789,
+      0.002575626829639077,
+      0.0256405808031559,
+      0.019192038103938103,
+      0.014473394490778446,
+      0.023272285237908363,
+      0.0010486218379810452,
+      0.0032237020786851645,
+      0.027149604633450508,
+      0.0,
+      0.019364645704627037,
+      0.01324621681123972,
+      0.003961675800383091,
+      0.010760873556137085,
+      0.020534081384539604,
+      0.029833849519491196,
+      0.0031283367425203323,
+      0.003611690364778042,
+      0.03542814403772354,
+      0.04690168797969818,
+      0.04153049737215042,
+      0.02156948111951351,
+      0.003285003826022148,
+      0.0031604047399014235,
+      0.005859119817614555,
+      0.004311810247600079,
+      0.0022723653819411993,
+      0.0022917904425412416
+    ],
+    "US": [
+      0.028997203335165977,
+      0.006021079141646624,
+      0.04237929731607437,
+      0.021327979862689972,
+      0.024796877056360245,
+      0.01681438833475113,
+      0.0014052672777324915,
+      0.006930730305612087,
+      0.04054468125104904,
+      0.0,
+      0.01712801121175289,
+      0.006942236330360174,
+      0.0012620557099580765,
+      0.019903114065527916,
+      0.03255024552345276,
+      0.011498344130814075,
+      0.0066434764303267,
+      0.01152386236935854,
+      0.04063419625163078,
+      0.03377002850174904,
+      0.013815348036587238,
+      0.03863507881760597,
+      0.0019327683839946985,
+      0.0034861459862440825,
+      0.0020003148820251226,
+      0.0018073490355163813,
+      0.000916101154871285,
+      0.0061884489841759205
+    ],
+    "OVERLAP": [
+      0.0036111699882894754,
+      0.005255060736089945,
+      0.022450558841228485,
+      0.026867473497986794,
+      0.016460325568914413,
+      0.025798292830586433,
+      0.0017494988860562444,
+      0.010698439553380013,
+      0.009456341154873371,
+      0.0,
+      0.02149682678282261,
+      0.006579219363629818,
+      0.0013381672324612737,
+      0.019474714994430542,
+      0.04016586393117905,
+      0.014024654403328896,
+      0.009078391827642918,
+      0.004634805954992771,
+      0.044271085411310196,
+      0.045659322291612625,
+      0.01718984544277191,
+      0.022036990150809288,
+      0.0014192776288837194,
+      0.015361424535512924,
+      0.004306654445827007,
+      0.0015013640513643622,
+      0.005455092992633581,
+      0.0036988479550927877
+    ]
+  },
+  "rows": [
+    {
+      "name": "spread_bps",
+      "contract_index": 0,
+      "gain_norm_total": 0.024322683699374292,
+      "cover_mean": 484.37720998128253,
+      "weight_mean": 127.0,
+      "shap_mean_abs": 0.01197566813789308,
+      "flags": {
+        "low_gain_norm": false,
+        "shap_near_zero": false
+      }
+    },
+    {
+      "name": "spread_atr_ratio",
+      "contract_index": 1,
+      "gain_norm_total": 0.024768295527018504,
+      "cover_mean": 247.93682861328125,
+      "weight_mean": 91.0,
+      "shap_mean_abs": 0.0046172555691252155,
+      "flags": {
+        "low_gain_norm": false,
+        "shap_near_zero": false
+      }
+    },
+    {
+      "name": "atr",
+      "contract_index": 2,
+      "gain_norm_total": 0.0487839377597738,
+      "cover_mean": 812.0374959309896,
+      "weight_mean": 278.3333333333333,
+      "shap_mean_abs": 0.03015681232015292,
+      "flags": {
+        "low_gain_norm": false,
+        "shap_near_zero": false
+      }
+    },
+    {
+      "name": "std50",
+      "contract_index": 3,
+      "gain_norm_total": 0.05294775313459565,
+      "cover_mean": 598.6224466959635,
+      "weight_mean": 317.0,
+      "shap_mean_abs": 0.022462497154871624,
+      "flags": {
+        "low_gain_norm": false,
+        "shap_near_zero": false
+      }
+    },
+    {
+      "name": "volatility",
+      "contract_index": 4,
+      "gain_norm_total": 0.04592937812384346,
+      "cover_mean": 581.60205078125,
+      "weight_mean": 202.66666666666666,
+      "shap_mean_abs": 0.018576865705351036,
+      "flags": {
+        "low_gain_norm": false,
+        "shap_near_zero": false
+      }
+    },
+    {
+      "name": "atr_z_200",
+      "contract_index": 5,
+      "gain_norm_total": 0.0443577192897933,
+      "cover_mean": 686.1722005208334,
+      "weight_mean": 268.6666666666667,
+      "shap_mean_abs": 0.021961655467748642,
+      "flags": {
+        "low_gain_norm": false,
+        "shap_near_zero": false
+      }
+    },
+    {
+      "name": "ret_1",
+      "contract_index": 6,
+      "gain_norm_total": 0.016011111325970998,
+      "cover_mean": 103.96843973795573,
+      "weight_mean": 72.0,
+      "shap_mean_abs": 0.0014011293339232604,
+      "flags": {
+        "low_gain_norm": false,
+        "shap_near_zero": false
+      }
+    },
+    {
+      "name": "ret_5",
+      "contract_index": 7,
+      "gain_norm_total": 0.025075352603651183,
+      "cover_mean": 207.99662399291992,
+      "weight_mean": 172.0,
+      "shap_mean_abs": 0.006950957312559088,
+      "flags": {
+        "low_gain_norm": false,
+        "shap_near_zero": false
+      }
+    },
+    {
+      "name": "ret_20",
+      "contract_index": 8,
+      "gain_norm_total": 0.04353706814073174,
+      "cover_mean": 772.4637756347656,
+      "weight_mean": 213.0,
+      "shap_mean_abs": 0.025716875679790974,
+      "flags": {
+        "low_gain_norm": false,
+        "shap_near_zero": false
+      }
+    },
+    {
+      "name": "roc20",
+      "contract_index": 9,
+      "gain_norm_total": 0.0,
+      "cover_mean": 0.0,
+      "weight_mean": 0.0,
+      "shap_mean_abs": 0.0,
+      "flags": {
+        "low_gain_norm": true,
+        "shap_near_zero": true
+      }
+    },
+    {
+      "name": "roc100",
+      "contract_index": 10,
+      "gain_norm_total": 0.04570217642266772,
+      "cover_mean": 554.1463724772135,
+      "weight_mean": 358.0,
+      "shap_mean_abs": 0.01932982789973418,
+      "flags": {
+        "low_gain_norm": false,
+        "shap_near_zero": false
+      }
+    },
+    {
+      "name": "momentum",
+      "contract_index": 11,
+      "gain_norm_total": 0.0347085493797661,
+      "cover_mean": 310.9799092610677,
+      "weight_mean": 164.0,
+      "shap_mean_abs": 0.008922557501743237,
+      "flags": {
+        "low_gain_norm": false,
+        "shap_near_zero": false
+      }
+    },
+    {
+      "name": "ret_1_atr",
+      "contract_index": 12,
+      "gain_norm_total": 0.016437518720944996,
+      "cover_mean": 486.3275515238444,
+      "weight_mean": 52.333333333333336,
+      "shap_mean_abs": 0.002187299580934147,
+      "flags": {
+        "low_gain_norm": false,
+        "shap_near_zero": false
+      }
+    },
+    {
+      "name": "rvol_20",
+      "contract_index": 13,
+      "gain_norm_total": 0.04267335184946935,
+      "cover_mean": 482.4632975260417,
+      "weight_mean": 239.66666666666666,
+      "shap_mean_abs": 0.01671290087203185,
+      "flags": {
+        "low_gain_norm": false,
+        "shap_near_zero": false
+      }
+    },
+    {
+      "name": "rvol_60",
+      "contract_index": 14,
+      "gain_norm_total": 0.0486198178768587,
+      "cover_mean": 573.5905965169271,
+      "weight_mean": 356.6666666666667,
+      "shap_mean_abs": 0.03108339694639047,
+      "flags": {
+        "low_gain_norm": false,
+        "shap_near_zero": false
+      }
+    },
+    {
+      "name": "rvol_ratio",
+      "contract_index": 15,
+      "gain_norm_total": 0.04268502183088668,
+      "cover_mean": 633.8287150065104,
+      "weight_mean": 195.66666666666666,
+      "shap_mean_abs": 0.018452282684544723,
+      "flags": {
+        "low_gain_norm": false,
+        "shap_near_zero": false
+      }
+    },
+    {
+      "name": "vol_ratio",
+      "contract_index": 16,
+      "gain_norm_total": 0.07478137100853295,
+      "cover_mean": 2257.0296630859375,
+      "weight_mean": 23.333333333333332,
+      "shap_mean_abs": 0.006283401666829984,
+      "flags": {
+        "low_gain_norm": false,
+        "shap_near_zero": false
+      }
+    },
+    {
+      "name": "spread_vs_rvol60",
+      "contract_index": 17,
+      "gain_norm_total": 0.026043854547648782,
+      "cover_mean": 248.59590657552084,
+      "weight_mean": 115.66666666666667,
+      "shap_mean_abs": 0.0065901195630431175,
+      "flags": {
+        "low_gain_norm": false,
+        "shap_near_zero": false
+      }
+    },
+    {
+      "name": "ema_20",
+      "contract_index": 18,
+      "gain_norm_total": 0.059264646400970816,
+      "cover_mean": 895.0019327799479,
+      "weight_mean": 346.0,
+      "shap_mean_abs": 0.040111141900221504,
+      "flags": {
+        "low_gain_norm": false,
+        "shap_near_zero": false
+      }
+    },
+    {
+      "name": "ema_50",
+      "contract_index": 19,
+      "gain_norm_total": 0.07367973536446552,
+      "cover_mean": 1396.3077392578125,
+      "weight_mean": 291.0,
+      "shap_mean_abs": 0.042110346257686615,
+      "flags": {
+        "low_gain_norm": false,
+        "shap_near_zero": false
+      }
+    },
+    {
+      "name": "price_vs_ema50_atr",
+      "contract_index": 20,
+      "gain_norm_total": 0.047010782084815066,
+      "cover_mean": 614.7878621419271,
+      "weight_mean": 265.3333333333333,
+      "shap_mean_abs": 0.024178563617169857,
+      "flags": {
+        "low_gain_norm": false,
+        "shap_near_zero": false
+      }
+    },
+    {
+      "name": "trend_regime_tf24h",
+      "contract_index": 21,
+      "gain_norm_total": 0.04952504317732697,
+      "cover_mean": 547.2734069824219,
+      "weight_mean": 424.6666666666667,
+      "shap_mean_abs": 0.02741385002930959,
+      "flags": {
+        "low_gain_norm": false,
+        "shap_near_zero": false
+      }
+    },
+    {
+      "name": "body_size_atr",
+      "contract_index": 22,
+      "gain_norm_total": 0.017317753831827216,
+      "cover_mean": 224.14081827799478,
+      "weight_mean": 69.33333333333333,
+      "shap_mean_abs": 0.0022123499463001886,
+      "flags": {
+        "low_gain_norm": false,
+        "shap_near_zero": false
+      }
+    },
+    {
+      "name": "range_atr",
+      "contract_index": 23,
+      "gain_norm_total": 0.019219428275552074,
+      "cover_mean": 513.4238891601562,
+      "weight_mean": 109.66666666666667,
+      "shap_mean_abs": 0.007335991753886144,
+      "flags": {
+        "low_gain_norm": false,
+        "shap_near_zero": false
+      }
+    },
+    {
+      "name": "upper_shadow_atr",
+      "contract_index": 24,
+      "gain_norm_total": 0.019888839133140296,
+      "cover_mean": 361.19470977783203,
+      "weight_mean": 87.33333333333333,
+      "shap_mean_abs": 0.004055363048488895,
+      "flags": {
+        "low_gain_norm": false,
+        "shap_near_zero": false
+      }
+    },
+    {
+      "name": "lower_shadow_atr",
+      "contract_index": 25,
+      "gain_norm_total": 0.015448169962852684,
+      "cover_mean": 263.3237940470378,
+      "weight_mean": 90.0,
+      "shap_mean_abs": 0.0025401744448269406,
+      "flags": {
+        "low_gain_norm": false,
+        "shap_near_zero": false
+      }
+    },
+    {
+      "name": "wick_asym",
+      "contract_index": 26,
+      "gain_norm_total": 0.01846125592044559,
+      "cover_mean": 173.55700556437174,
+      "weight_mean": 76.66666666666667,
+      "shap_mean_abs": 0.0028811865098153553,
+      "flags": {
+        "low_gain_norm": false,
+        "shap_near_zero": false
+      }
+    },
+    {
+      "name": "high_low_ratio",
+      "contract_index": 27,
+      "gain_norm_total": 0.02279938460707558,
+      "cover_mean": 274.80930582682294,
+      "weight_mean": 65.66666666666667,
+      "shap_mean_abs": 0.00405969579393665,
+      "flags": {
+        "low_gain_norm": false,
+        "shap_near_zero": false
+      }
+    }
+  ],
+  "summary": {
+    "n_low_gain_norm": 1,
+    "low_gain_norm_features": [
+      "roc20"
+    ]
+  },
+  "top": {
+    "top_by_gain_norm_total": [
+      {
+        "name": "vol_ratio",
+        "contract_index": 16,
+        "gain_norm_total": 0.07478137100853295,
+        "cover_mean": 2257.0296630859375,
+        "weight_mean": 23.333333333333332,
+        "shap_mean_abs": 0.006283401666829984,
+        "flags": {
+          "low_gain_norm": false,
+          "shap_near_zero": false
+        }
+      },
+      {
+        "name": "ema_50",
+        "contract_index": 19,
+        "gain_norm_total": 0.07367973536446552,
+        "cover_mean": 1396.3077392578125,
+        "weight_mean": 291.0,
+        "shap_mean_abs": 0.042110346257686615,
+        "flags": {
+          "low_gain_norm": false,
+          "shap_near_zero": false
+        }
+      },
+      {
+        "name": "ema_20",
+        "contract_index": 18,
+        "gain_norm_total": 0.059264646400970816,
+        "cover_mean": 895.0019327799479,
+        "weight_mean": 346.0,
+        "shap_mean_abs": 0.040111141900221504,
+        "flags": {
+          "low_gain_norm": false,
+          "shap_near_zero": false
+        }
+      },
+      {
+        "name": "std50",
+        "contract_index": 3,
+        "gain_norm_total": 0.05294775313459565,
+        "cover_mean": 598.6224466959635,
+        "weight_mean": 317.0,
+        "shap_mean_abs": 0.022462497154871624,
+        "flags": {
+          "low_gain_norm": false,
+          "shap_near_zero": false
+        }
+      },
+      {
+        "name": "trend_regime_tf24h",
+        "contract_index": 21,
+        "gain_norm_total": 0.04952504317732697,
+        "cover_mean": 547.2734069824219,
+        "weight_mean": 424.6666666666667,
+        "shap_mean_abs": 0.02741385002930959,
+        "flags": {
+          "low_gain_norm": false,
+          "shap_near_zero": false
+        }
+      },
+      {
+        "name": "atr",
+        "contract_index": 2,
+        "gain_norm_total": 0.0487839377597738,
+        "cover_mean": 812.0374959309896,
+        "weight_mean": 278.3333333333333,
+        "shap_mean_abs": 0.03015681232015292,
+        "flags": {
+          "low_gain_norm": false,
+          "shap_near_zero": false
+        }
+      },
+      {
+        "name": "rvol_60",
+        "contract_index": 14,
+        "gain_norm_total": 0.0486198178768587,
+        "cover_mean": 573.5905965169271,
+        "weight_mean": 356.6666666666667,
+        "shap_mean_abs": 0.03108339694639047,
+        "flags": {
+          "low_gain_norm": false,
+          "shap_near_zero": false
+        }
+      },
+      {
+        "name": "price_vs_ema50_atr",
+        "contract_index": 20,
+        "gain_norm_total": 0.047010782084815066,
+        "cover_mean": 614.7878621419271,
+        "weight_mean": 265.3333333333333,
+        "shap_mean_abs": 0.024178563617169857,
+        "flags": {
+          "low_gain_norm": false,
+          "shap_near_zero": false
+        }
+      },
+      {
+        "name": "volatility",
+        "contract_index": 4,
+        "gain_norm_total": 0.04592937812384346,
+        "cover_mean": 581.60205078125,
+        "weight_mean": 202.66666666666666,
+        "shap_mean_abs": 0.018576865705351036,
+        "flags": {
+          "low_gain_norm": false,
+          "shap_near_zero": false
+        }
+      },
+      {
+        "name": "roc100",
+        "contract_index": 10,
+        "gain_norm_total": 0.04570217642266772,
+        "cover_mean": 554.1463724772135,
+        "weight_mean": 358.0,
+        "shap_mean_abs": 0.01932982789973418,
+        "flags": {
+          "low_gain_norm": false,
+          "shap_near_zero": false
+        }
+      },
+      {
+        "name": "atr_z_200",
+        "contract_index": 5,
+        "gain_norm_total": 0.0443577192897933,
+        "cover_mean": 686.1722005208334,
+        "weight_mean": 268.6666666666667,
+        "shap_mean_abs": 0.021961655467748642,
+        "flags": {
+          "low_gain_norm": false,
+          "shap_near_zero": false
+        }
+      },
+      {
+        "name": "ret_20",
+        "contract_index": 8,
+        "gain_norm_total": 0.04353706814073174,
+        "cover_mean": 772.4637756347656,
+        "weight_mean": 213.0,
+        "shap_mean_abs": 0.025716875679790974,
+        "flags": {
+          "low_gain_norm": false,
+          "shap_near_zero": false
+        }
+      },
+      {
+        "name": "rvol_ratio",
+        "contract_index": 15,
+        "gain_norm_total": 0.04268502183088668,
+        "cover_mean": 633.8287150065104,
+        "weight_mean": 195.66666666666666,
+        "shap_mean_abs": 0.018452282684544723,
+        "flags": {
+          "low_gain_norm": false,
+          "shap_near_zero": false
+        }
+      },
+      {
+        "name": "rvol_20",
+        "contract_index": 13,
+        "gain_norm_total": 0.04267335184946935,
+        "cover_mean": 482.4632975260417,
+        "weight_mean": 239.66666666666666,
+        "shap_mean_abs": 0.01671290087203185,
+        "flags": {
+          "low_gain_norm": false,
+          "shap_near_zero": false
+        }
+      },
+      {
+        "name": "momentum",
+        "contract_index": 11,
+        "gain_norm_total": 0.0347085493797661,
+        "cover_mean": 310.9799092610677,
+        "weight_mean": 164.0,
+        "shap_mean_abs": 0.008922557501743237,
+        "flags": {
+          "low_gain_norm": false,
+          "shap_near_zero": false
+        }
+      },
+      {
+        "name": "spread_vs_rvol60",
+        "contract_index": 17,
+        "gain_norm_total": 0.026043854547648782,
+        "cover_mean": 248.59590657552084,
+        "weight_mean": 115.66666666666667,
+        "shap_mean_abs": 0.0065901195630431175,
+        "flags": {
+          "low_gain_norm": false,
+          "shap_near_zero": false
+        }
+      },
+      {
+        "name": "ret_5",
+        "contract_index": 7,
+        "gain_norm_total": 0.025075352603651183,
+        "cover_mean": 207.99662399291992,
+        "weight_mean": 172.0,
+        "shap_mean_abs": 0.006950957312559088,
+        "flags": {
+          "low_gain_norm": false,
+          "shap_near_zero": false
+        }
+      },
+      {
+        "name": "spread_atr_ratio",
+        "contract_index": 1,
+        "gain_norm_total": 0.024768295527018504,
+        "cover_mean": 247.93682861328125,
+        "weight_mean": 91.0,
+        "shap_mean_abs": 0.0046172555691252155,
+        "flags": {
+          "low_gain_norm": false,
+          "shap_near_zero": false
+        }
+      },
+      {
+        "name": "spread_bps",
+        "contract_index": 0,
+        "gain_norm_total": 0.024322683699374292,
+        "cover_mean": 484.37720998128253,
+        "weight_mean": 127.0,
+        "shap_mean_abs": 0.01197566813789308,
+        "flags": {
+          "low_gain_norm": false,
+          "shap_near_zero": false
+        }
+      },
+      {
+        "name": "high_low_ratio",
+        "contract_index": 27,
+        "gain_norm_total": 0.02279938460707558,
+        "cover_mean": 274.80930582682294,
+        "weight_mean": 65.66666666666667,
+        "shap_mean_abs": 0.00405969579393665,
+        "flags": {
+          "low_gain_norm": false,
+          "shap_near_zero": false
+        }
+      }
+    ],
+    "top_by_shap_mean_abs": [
+      {
+        "name": "ema_50",
+        "contract_index": 19,
+        "gain_norm_total": 0.07367973536446552,
+        "cover_mean": 1396.3077392578125,
+        "weight_mean": 291.0,
+        "shap_mean_abs": 0.042110346257686615,
+        "flags": {
+          "low_gain_norm": false,
+          "shap_near_zero": false
+        }
+      },
+      {
+        "name": "ema_20",
+        "contract_index": 18,
+        "gain_norm_total": 0.059264646400970816,
+        "cover_mean": 895.0019327799479,
+        "weight_mean": 346.0,
+        "shap_mean_abs": 0.040111141900221504,
+        "flags": {
+          "low_gain_norm": false,
+          "shap_near_zero": false
+        }
+      },
+      {
+        "name": "rvol_60",
+        "contract_index": 14,
+        "gain_norm_total": 0.0486198178768587,
+        "cover_mean": 573.5905965169271,
+        "weight_mean": 356.6666666666667,
+        "shap_mean_abs": 0.03108339694639047,
+        "flags": {
+          "low_gain_norm": false,
+          "shap_near_zero": false
+        }
+      },
+      {
+        "name": "atr",
+        "contract_index": 2,
+        "gain_norm_total": 0.0487839377597738,
+        "cover_mean": 812.0374959309896,
+        "weight_mean": 278.3333333333333,
+        "shap_mean_abs": 0.03015681232015292,
+        "flags": {
+          "low_gain_norm": false,
+          "shap_near_zero": false
+        }
+      },
+      {
+        "name": "trend_regime_tf24h",
+        "contract_index": 21,
+        "gain_norm_total": 0.04952504317732697,
+        "cover_mean": 547.2734069824219,
+        "weight_mean": 424.6666666666667,
+        "shap_mean_abs": 0.02741385002930959,
+        "flags": {
+          "low_gain_norm": false,
+          "shap_near_zero": false
+        }
+      },
+      {
+        "name": "ret_20",
+        "contract_index": 8,
+        "gain_norm_total": 0.04353706814073174,
+        "cover_mean": 772.4637756347656,
+        "weight_mean": 213.0,
+        "shap_mean_abs": 0.025716875679790974,
+        "flags": {
+          "low_gain_norm": false,
+          "shap_near_zero": false
+        }
+      },
+      {
+        "name": "price_vs_ema50_atr",
+        "contract_index": 20,
+        "gain_norm_total": 0.047010782084815066,
+        "cover_mean": 614.7878621419271,
+        "weight_mean": 265.3333333333333,
+        "shap_mean_abs": 0.024178563617169857,
+        "flags": {
+          "low_gain_norm": false,
+          "shap_near_zero": false
+        }
+      },
+      {
+        "name": "std50",
+        "contract_index": 3,
+        "gain_norm_total": 0.05294775313459565,
+        "cover_mean": 598.6224466959635,
+        "weight_mean": 317.0,
+        "shap_mean_abs": 0.022462497154871624,
+        "flags": {
+          "low_gain_norm": false,
+          "shap_near_zero": false
+        }
+      },
+      {
+        "name": "atr_z_200",
+        "contract_index": 5,
+        "gain_norm_total": 0.0443577192897933,
+        "cover_mean": 686.1722005208334,
+        "weight_mean": 268.6666666666667,
+        "shap_mean_abs": 0.021961655467748642,
+        "flags": {
+          "low_gain_norm": false,
+          "shap_near_zero": false
+        }
+      },
+      {
+        "name": "roc100",
+        "contract_index": 10,
+        "gain_norm_total": 0.04570217642266772,
+        "cover_mean": 554.1463724772135,
+        "weight_mean": 358.0,
+        "shap_mean_abs": 0.01932982789973418,
+        "flags": {
+          "low_gain_norm": false,
+          "shap_near_zero": false
+        }
+      },
+      {
+        "name": "volatility",
+        "contract_index": 4,
+        "gain_norm_total": 0.04592937812384346,
+        "cover_mean": 581.60205078125,
+        "weight_mean": 202.66666666666666,
+        "shap_mean_abs": 0.018576865705351036,
+        "flags": {
+          "low_gain_norm": false,
+          "shap_near_zero": false
+        }
+      },
+      {
+        "name": "rvol_ratio",
+        "contract_index": 15,
+        "gain_norm_total": 0.04268502183088668,
+        "cover_mean": 633.8287150065104,
+        "weight_mean": 195.66666666666666,
+        "shap_mean_abs": 0.018452282684544723,
+        "flags": {
+          "low_gain_norm": false,
+          "shap_near_zero": false
+        }
+      },
+      {
+        "name": "rvol_20",
+        "contract_index": 13,
+        "gain_norm_total": 0.04267335184946935,
+        "cover_mean": 482.4632975260417,
+        "weight_mean": 239.66666666666666,
+        "shap_mean_abs": 0.01671290087203185,
+        "flags": {
+          "low_gain_norm": false,
+          "shap_near_zero": false
+        }
+      },
+      {
+        "name": "spread_bps",
+        "contract_index": 0,
+        "gain_norm_total": 0.024322683699374292,
+        "cover_mean": 484.37720998128253,
+        "weight_mean": 127.0,
+        "shap_mean_abs": 0.01197566813789308,
+        "flags": {
+          "low_gain_norm": false,
+          "shap_near_zero": false
+        }
+      },
+      {
+        "name": "momentum",
+        "contract_index": 11,
+        "gain_norm_total": 0.0347085493797661,
+        "cover_mean": 310.9799092610677,
+        "weight_mean": 164.0,
+        "shap_mean_abs": 0.008922557501743237,
+        "flags": {
+          "low_gain_norm": false,
+          "shap_near_zero": false
+        }
+      },
+      {
+        "name": "range_atr",
+        "contract_index": 23,
+        "gain_norm_total": 0.019219428275552074,
+        "cover_mean": 513.4238891601562,
+        "weight_mean": 109.66666666666667,
+        "shap_mean_abs": 0.007335991753886144,
+        "flags": {
+          "low_gain_norm": false,
+          "shap_near_zero": false
+        }
+      },
+      {
+        "name": "ret_5",
+        "contract_index": 7,
+        "gain_norm_total": 0.025075352603651183,
+        "cover_mean": 207.99662399291992,
+        "weight_mean": 172.0,
+        "shap_mean_abs": 0.006950957312559088,
+        "flags": {
+          "low_gain_norm": false,
+          "shap_near_zero": false
+        }
+      },
+      {
+        "name": "spread_vs_rvol60",
+        "contract_index": 17,
+        "gain_norm_total": 0.026043854547648782,
+        "cover_mean": 248.59590657552084,
+        "weight_mean": 115.66666666666667,
+        "shap_mean_abs": 0.0065901195630431175,
+        "flags": {
+          "low_gain_norm": false,
+          "shap_near_zero": false
+        }
+      },
+      {
+        "name": "vol_ratio",
+        "contract_index": 16,
+        "gain_norm_total": 0.07478137100853295,
+        "cover_mean": 2257.0296630859375,
+        "weight_mean": 23.333333333333332,
+        "shap_mean_abs": 0.006283401666829984,
+        "flags": {
+          "low_gain_norm": false,
+          "shap_near_zero": false
+        }
+      },
+      {
+        "name": "spread_atr_ratio",
+        "contract_index": 1,
+        "gain_norm_total": 0.024768295527018504,
+        "cover_mean": 247.93682861328125,
+        "weight_mean": 91.0,
+        "shap_mean_abs": 0.0046172555691252155,
+        "flags": {
+          "low_gain_norm": false,
+          "shap_near_zero": false
+        }
+      }
+    ]
+  }
+}

@@ -9,7 +9,7 @@ verifying that the run used PROD_BASELINE policy and artifacts correctly.
 Usage:
     python gx1/analysis/prod_baseline_proof.py \
       --run gx1/wf_runs/CANARY_TEST_2025_Q1_2WEEKS_SINGLE \
-      --prod-policy gx1/configs/policies/prod_snapshot/2025_FARM_V2B_HYBRID_V3_RANGE/GX1_..._PROD.yaml \
+      --prod-policy <path>  # use canonical or set GX1_CANONICAL_POLICY_PATH \
       --out gx1/wf_runs/CANARY_TEST_2025_Q1_2WEEKS_SINGLE/prod_baseline_proof.md
 """
 from __future__ import annotations

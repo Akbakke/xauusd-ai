@@ -1,0 +1,25 @@
+{
+  "variant": "B3",
+  "clip_features": [
+    "range",
+    "std50",
+    "rvol_20"
+  ],
+  "lo_percentile": 1.0,
+  "hi_percentile": 99.0,
+  "computed_from": "2024 US session (train)",
+  "bounds": {
+    "range": {
+      "lo": -0.4113735258579254,
+      "hi": 11.318232536315918
+    },
+    "std50": {
+      "lo": -1.2010820281505585,
+      "hi": 10.196114997863765
+    },
+    "rvol_20": {
+      "lo": -0.9998401272296905,
+      "hi": -0.9985791617631912
+    }
+  }
+}

@@ -1,0 +1,2 @@
+D1_dist_from_ema200_atr
+H1_range_compression_ratio

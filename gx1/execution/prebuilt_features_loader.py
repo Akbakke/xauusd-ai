@@ -59,14 +59,48 @@ class PrebuiltFeaturesLoader:
                 f"[PREBUILT_FAIL] Prebuilt features file not found: {self.prebuilt_path}"
             )
         
+        def _is_truth_or_smoke() -> bool:
+            mode = os.getenv("GX1_RUN_MODE", "").upper()
+            return os.getenv("GX1_TRUTH_MODE", "0") == "1" or mode in {"TRUTH", "SMOKE"}
+
         if not self.manifest_path.exists():
+            if _is_truth_or_smoke():
+                raise RuntimeError(
+                    f"[PREBUILT_FAIL] TRUTH/SMOKE: Prebuilt manifest required but not found: {self.manifest_path}. "
+                    "Canonical CTX2PLUS prebuilt must have .manifest.json (audit-proofing)."
+                )
             raise FileNotFoundError(
                 f"[PREBUILT_FAIL] Prebuilt features manifest not found: {self.manifest_path}"
             )
-        
+
         # Load manifest
         with open(self.manifest_path, "r") as f:
             self.manifest = json.load(f)
+
+        # TRUTH/SMOKE: validate manifest audit fields when present (contract vs prebuilt)
+        if _is_truth_or_smoke() and self.manifest:
+            from gx1.contracts.signal_bridge_v1 import ORDERED_CTX_CONT_NAMES_EXTENDED
+            expected_ctx_cont_len = 4
+            contract_ctx_cont_4 = ORDERED_CTX_CONT_NAMES_EXTENDED[:expected_ctx_cont_len]
+            contract_ctx_cont_sha256 = hashlib.sha256("|".join(contract_ctx_cont_4).encode("utf-8")).hexdigest()
+            manifest_len = self.manifest.get("ordered_features_len")
+            manifest_ctx_dim = self.manifest.get("ctx_cont_dim")
+            manifest_ctx_sha = self.manifest.get("ctx_cont_names_sha256")
+            if manifest_len is not None and manifest_len != 28:
+                raise RuntimeError(
+                    f"[PREBUILT_FAIL] TRUTH/SMOKE: manifest ordered_features_len={manifest_len} != 28 (canonical BASE28). "
+                    f"Prebuilt: {self.prebuilt_path}"
+                )
+            if manifest_ctx_dim is not None and manifest_ctx_dim != expected_ctx_cont_len:
+                raise RuntimeError(
+                    f"[PREBUILT_FAIL] TRUTH/SMOKE: manifest ctx_cont_dim={manifest_ctx_dim} != {expected_ctx_cont_len} (canonical CTX2PLUS). "
+                    f"Prebuilt: {self.prebuilt_path}"
+                )
+            if manifest_ctx_sha is not None and manifest_ctx_sha != contract_ctx_cont_sha256:
+                raise RuntimeError(
+                    f"[PREBUILT_FAIL] TRUTH/SMOKE: manifest ctx_cont_names_sha256 does not match contract (signal_bridge_v1 ORDERED_CTX_CONT_NAMES_EXTENDED[:4]). "
+                    f"Prebuilt: {self.prebuilt_path}"
+                )
         
         # Load prebuilt features DataFrame
         log.info(f"[PREBUILT_LOADER] Loading prebuilt features from {self.prebuilt_path}")

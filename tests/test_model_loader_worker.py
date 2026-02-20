@@ -36,7 +36,7 @@ class TestModelLoaderWorker(unittest.TestCase):
         config = ModelLoadConfig(
             bundle_dir=Path("/nonexistent/bundle"),
             feature_meta_path=Path("/nonexistent/feature_meta.json"),
-            model_variant="v10",
+            model_variant="v10_ctx",
             timeout_sec=0.1,  # Very short timeout (100ms)
         )
         
@@ -44,26 +44,27 @@ class TestModelLoaderWorker(unittest.TestCase):
         # but the timeout mechanism should catch it
         result = load_model_with_timeout(config, timeout_sec=0.1)
         
-        # Should get timeout result (or file not found, both are acceptable)
+        # Should get timeout, file not found, or ONE_UNIVERSE (if variant passed but path bad)
         self.assertFalse(result.success)
-        # Could be timeout or file not found depending on timing
-        self.assertIn(result.error_type, ["MODEL_LOAD_TIMEOUT", "FILE_NOT_FOUND", "RUNTIME_ERROR"])
+        self.assertIn(
+            result.error_type,
+            ["MODEL_LOAD_TIMEOUT", "FILE_NOT_FOUND", "RUNTIME_ERROR", "ONE_UNIVERSE"],
+        )
     
     def test_file_not_found_returns_reason_code(self):
         """Test that file not found returns FILE_NOT_FOUND reason code."""
         config = ModelLoadConfig(
             bundle_dir=Path("/nonexistent/bundle"),
             feature_meta_path=Path("/nonexistent/feature_meta.json"),
-            model_variant="v10",
-            timeout_sec=5.0,  # Reasonable timeout
+            model_variant="v10_ctx",
+            timeout_sec=5.0,
         )
-        
         result = load_model_with_timeout(config, timeout_sec=5.0)
-        
-        # Should get file not found result (or timeout if worker hangs)
         self.assertFalse(result.success)
-        # Could be FILE_NOT_FOUND or MODEL_LOAD_TIMEOUT depending on worker behavior
-        self.assertIn(result.error_type, ["FILE_NOT_FOUND", "MODEL_LOAD_TIMEOUT", "RUNTIME_ERROR"])
+        self.assertIn(
+            result.error_type,
+            ["FILE_NOT_FOUND", "MODEL_LOAD_TIMEOUT", "RUNTIME_ERROR", "ONE_UNIVERSE"],
+        )
     
     @unittest.skip("Requires actual bundle files - skip in CI")
     def test_preflight_only_exits_0_when_ok(self):
@@ -81,16 +82,16 @@ class TestModelLoaderWorker(unittest.TestCase):
     
     def test_model_load_result_dataclass(self):
         """Test ModelLoadResult dataclass structure."""
-        # Success case
+        # Success case (ONE UNIVERSE: ctx-only model class name)
         success_result = ModelLoadResult(
             success=True,
-            model_class_name="EntryV10HybridTransformer",
+            model_class_name="EntryV10CtxHybridTransformer",
             param_count=1000000,
             model_hash="abc123",
             load_time_sec=1.5,
         )
         self.assertTrue(success_result.success)
-        self.assertEqual(success_result.model_class_name, "EntryV10HybridTransformer")
+        self.assertEqual(success_result.model_class_name, "EntryV10CtxHybridTransformer")
         self.assertEqual(success_result.param_count, 1000000)
         self.assertEqual(success_result.model_hash, "abc123")
         self.assertIsNone(success_result.error_type)
@@ -126,6 +127,26 @@ class TestModelLoaderWorker(unittest.TestCase):
         self.assertEqual(config.model_variant, "v10_ctx")
         self.assertEqual(config.device, "cpu")
         self.assertEqual(config.timeout_sec, 30.0)
+
+    def test_variant_v10_returns_one_universe_error(self):
+        """ONE UNIVERSE: model_variant other than v10_ctx must return ONE_UNIVERSE error (no legacy load)."""
+        import tempfile
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            f.write("{}")
+            meta_path = Path(f.name)
+        try:
+            config = ModelLoadConfig(
+                bundle_dir=Path("/nonexistent/bundle"),
+                feature_meta_path=meta_path,
+                model_variant="v10",
+                timeout_sec=5.0,
+            )
+            result = _load_model_worker_impl(config)
+            self.assertFalse(result.success)
+            self.assertEqual(result.error_type, "ONE_UNIVERSE")
+            self.assertIn("v10_ctx", result.error_message or "")
+        finally:
+            meta_path.unlink(missing_ok=True)
 
 
     def test_preflight_only_writes_json_and_md(self):

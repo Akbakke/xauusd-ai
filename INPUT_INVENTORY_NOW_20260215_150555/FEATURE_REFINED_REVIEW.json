@@ -1,0 +1,58 @@
+{
+  "family_groups": {
+    "SPREAD/COST": [
+      "spread_bps"
+    ],
+    "VOLATILITY": [
+      "atr",
+      "std50",
+      "volatility"
+    ],
+    "RETURNS/MOMENTUM": [
+      "ret_1",
+      "ret_5",
+      "ret_20",
+      "roc100"
+    ],
+    "VOLUME PROXY": [
+      "rvol_60",
+      "vol_ratio"
+    ],
+    "TREND": [
+      "ema_50",
+      "price_vs_ema50_atr"
+    ],
+    "REGIME": [
+      "trend_regime_tf24h"
+    ],
+    "CANDLE GEOMETRY": [
+      "wick_asym"
+    ]
+  },
+  "rvol_scale_audit": {
+    "rvol_60": {
+      "unique_count": 20000,
+      "std": 0.2555507895017703,
+      "min": 0.0,
+      "max": 1.7332030175057056,
+      "percent_zero": 5e-05,
+      "nan_rate": 0.0,
+      "inf_rate": 0.0,
+      "label": "ALIVE"
+    },
+    "vol_ratio": {
+      "unique_count": 19995,
+      "std": 0.3901646010973053,
+      "min": 0.0,
+      "max": 5.908074932107707,
+      "percent_zero": 5e-05,
+      "nan_rate": 0.0,
+      "inf_rate": 0.0,
+      "label": "ALIVE"
+    }
+  },
+  "redundant_candidates": {
+    "atr_vs_true_range": false,
+    "std50_vs_volatility": true
+  }
+}

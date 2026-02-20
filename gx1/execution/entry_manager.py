@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 from collections import deque, defaultdict
+from pathlib import Path
 
 import logging
 import os
+import json
 import numpy as np
 import pandas as pd
 import time
@@ -40,13 +42,20 @@ class EntryManager:
         super().__setattr__("_runner", runner)
         # Explicit exit_config_name (injected from runner, no coupling to runner.policy)
         self.exit_config_name = exit_config_name
-        # Initialize entry_feature_telemetry if required
+        # Initialize entry_feature_telemetry: required when GX1_REQUIRE_ENTRY_TELEMETRY=1, or always in replay/TRUTH for n_model_calls observability
         self.entry_feature_telemetry = None
         require_telemetry = os.environ.get("GX1_REQUIRE_ENTRY_TELEMETRY", "0") == "1"
-        if require_telemetry:
+        is_replay_or_truth = (
+            getattr(runner, "replay_mode", False)
+            or os.environ.get("GX1_RUN_MODE", "").upper() == "TRUTH"
+            or os.environ.get("GX1_TRUTH_MODE", "0") == "1"
+        )
+        if require_telemetry or is_replay_or_truth:
             from gx1.execution.entry_feature_telemetry import EntryFeatureTelemetryCollector
             output_dir = getattr(runner, "output_dir", None)
             self.entry_feature_telemetry = EntryFeatureTelemetryCollector(output_dir=output_dir)
+        
+        self._entry_manager_instance_id = id(self)  # Track instance identity
         # Entry telemetry state (SNIPER/NY-first, accumulated over replay)
         # DESIGN CONTRACT: Stage-0 (precheck) vs Stage-1 (candidate) counters
         self.entry_telemetry = {
@@ -102,6 +111,37 @@ class EntryManager:
             "BLOCK_UNKNOWN": 0,
         }
         self.killchain_unknown_examples: List[Dict[str, Any]] = []
+
+        # Kill-chain STAGE2 counters (post-vol / score-gate / post-gates)
+        #
+        # NOTE: These are read by replay footer export (legacy quarantined) via getattr(self, ...)
+        # and are part of the strict TRUTH invariants (KILLCHAIN_STAGE2_FAIL).
+        self.killchain_stage2_version = 1
+        self.killchain_n_pred_available = 0
+        self.killchain_n_pass_score_gate = 0
+        self.killchain_n_block_below_threshold = 0
+        self.killchain_n_block_spread_guard = 0
+        self.killchain_n_block_cost_guard = 0
+        self.killchain_n_block_session_time_guard = 0
+        self.killchain_n_block_position_limit = 0
+        self.killchain_n_block_cooldown = 0
+        self.killchain_n_block_risk_guard = 0
+        self.killchain_n_block_unknown_post_vol = 0
+        self.killchain_stage2_unknown_examples: List[Dict[str, Any]] = []
+
+        # TRUTH-only Stage2 trace (bar-level, first N events; deterministic)
+        # Enabled by env var to avoid heavy logging by default.
+        is_truth = (os.environ.get("GX1_TRUTH_MODE") == "1") or (os.environ.get("GX1_RUN_MODE") == "TRUTH")
+        trace_enabled = is_truth and (os.environ.get("GX1_KILLCHAIN_STAGE2_TRACE", "0") == "1")
+        super().__setattr__("_kc_trace_enabled", bool(trace_enabled))
+        super().__setattr__("_kc_trace_count", 0)
+        super().__setattr__("_kc_trace_max", int(os.environ.get("GX1_KILLCHAIN_STAGE2_TRACE_MAX", "500")))
+        super().__setattr__("_kc_trace_path", None)
+        super().__setattr__("_kc_ctx", None)  # per-bar context
+        super().__setattr__("_kc_last_score_gate_pass", None)  # previous bar state (for change logging)
+        super().__setattr__("_signal_trace_writer", None)  # ENTRY_SIGNAL_TRACE when GX1_ENTRY_SIGNAL_TRACE=1
+        super().__setattr__("_pending_signal_trace", None)  # base event when killchain_n_above_threshold += 1
+        super().__setattr__("_in_create_trade_path", False)  # True inside _create_trade (for entry_attempted)
         # Legacy FARM_V2B diagnostic state (DEPRECATED - SNIPER/NY uses entry_telemetry)
         # Kept as empty dict for backward compatibility (export scripts may reference it)
         # TODO: Remove after verification that no external scripts depend on farm_diag
@@ -178,6 +218,178 @@ class EntryManager:
         else:
             setattr(self._runner, name, value)
 
+    def _kc_trace_event(self, payload: Dict[str, Any]) -> None:
+        """
+        TRUTH-only: append a compact JSONL trace entry under chunk output_dir.
+        Deterministic and rate-limited: only first N events are written.
+        """
+        if not getattr(self, "_kc_trace_enabled", False):
+            return
+        if getattr(self, "_kc_trace_count", 0) >= getattr(self, "_kc_trace_max", 0):
+            return
+        try:
+            trace_path = getattr(self, "_kc_trace_path", None)
+            if trace_path is None:
+                output_dir = getattr(self._runner, "output_dir", None)
+                if output_dir is None:
+                    return
+                from pathlib import Path
+                trace_path = Path(output_dir) / "KILLCHAIN_STAGE2_TRACE.jsonl"
+                super().__setattr__("_kc_trace_path", trace_path)
+            with open(trace_path, "a", encoding="utf-8") as f:
+                f.write(json.dumps(payload, sort_keys=True) + "\n")
+            super().__setattr__("_kc_trace_count", int(getattr(self, "_kc_trace_count", 0)) + 1)
+        except Exception:
+            # Trace must never affect trading/replay semantics.
+            return
+
+    def _log_create_trade_event(
+        self,
+        event_type: str,
+        now_ts_utc: pd.Timestamp,
+        side: Optional[str],
+        prediction: Optional[Any],
+        units_out: Optional[int] = None,
+        overlays_meta: Optional[List[Dict[str, Any]]] = None,
+        trade_uid: Optional[str] = None,
+        trade_id: Optional[str] = None,
+        block_reason: Optional[str] = None,
+    ) -> None:
+        """Log CREATE_TRADE events for the 3 target timestamps (TRUTH-only)."""
+        import os
+        truth_mode = os.getenv("GX1_TRUTH_MODE", "0") == "1"
+        if not truth_mode:
+            return
+        
+        # Target the 3 specific timestamps
+        target_timestamps = [
+            pd.Timestamp('2025-09-05 12:05:00', tz='UTC'),
+            pd.Timestamp('2025-09-15 15:25:00', tz='UTC'),
+            pd.Timestamp('2025-09-15 15:30:00', tz='UTC'),
+        ]
+        
+        # Check if current bar_time matches any target timestamp
+        if isinstance(now_ts_utc, pd.Timestamp):
+            bar_time_utc = now_ts_utc.tz_convert("UTC") if now_ts_utc.tzinfo else pd.Timestamp(now_ts_utc, tz="UTC")
+        else:
+            bar_time_utc = pd.to_datetime(now_ts_utc).tz_localize("UTC") if pd.to_datetime(now_ts_utc).tzinfo is None else pd.to_datetime(now_ts_utc)
+        
+        matches_target = False
+        for target_ts in target_timestamps:
+            if bar_time_utc == target_ts:
+                matches_target = True
+                break
+        
+        if not matches_target:
+            return  # Only log for target timestamps
+        
+        # Get output_dir for trace file
+        output_dir = getattr(self._runner, "output_dir", None)
+        if not output_dir:
+            return
+        
+        from pathlib import Path
+        trace_file = Path(str(output_dir)) / "CREATE_TRADE_TRACE.jsonl"
+        
+        try:
+            # Collect all relevant state
+            run_id = getattr(self._runner, "run_id", "unknown")
+            chunk_id = getattr(self._runner, "chunk_id", "single")
+            
+            # TRUTH 1W1C: ownership gating removed
+            
+            # Policy decision
+            policy_decision = "enter" if side is not None else "no_entry"
+            p_hat = prediction.p_hat if prediction and hasattr(prediction, 'p_hat') else None
+            score = prediction.p_hat if prediction and hasattr(prediction, 'p_hat') else None
+            
+            # Position state
+            current_open_positions = len(self.open_trades) if hasattr(self, "open_trades") else 0
+            max_positions = getattr(self, "max_concurrent_positions", None)
+            
+            # Last entry timestamp and cooldown
+            last_entry_timestamp = None
+            cooldown_remaining_seconds = None
+            if hasattr(self, "open_trades") and len(self.open_trades) > 0:
+                last_entry_times = [getattr(t, "entry_time", None) for t in self.open_trades if hasattr(t, "entry_time") and getattr(t, "entry_time", None) is not None]
+                if last_entry_times:
+                    last_entry_ts = max(last_entry_times)
+                    last_entry_timestamp = str(last_entry_ts)
+                    if isinstance(bar_time_utc, pd.Timestamp) and isinstance(last_entry_ts, pd.Timestamp):
+                        cooldown_remaining_seconds = (bar_time_utc - last_entry_ts).total_seconds()
+            
+            # Risk overlay units
+            risk_overlay_units = units_out
+            risk_overlay_result = None
+            if overlays_meta:
+                # Get last overlay result
+                last_overlay = overlays_meta[-1] if overlays_meta else {}
+                risk_overlay_result = {
+                    "overlay_name": last_overlay.get("overlay_name", "unknown"),
+                    "size_after_units": last_overlay.get("size_after_units", None),
+                    "reason": last_overlay.get("reason", None),
+                }
+            
+            # Trade registry size
+            trade_registry_size = len(self.open_trades) if hasattr(self, "open_trades") else 0
+            
+            # Existing trade detection (duplicate protection)
+            existing_trade_detected = False
+            if hasattr(self, "open_trades") and trade_uid:
+                for t in self.open_trades:
+                    if hasattr(t, "trade_uid") and getattr(t, "trade_uid", None) == trade_uid:
+                        existing_trade_detected = True
+                        break
+            
+            trace_entry = {
+                "event": event_type,
+                "bar_time": str(bar_time_utc),
+                "chunk_id": chunk_id,
+                "run_id": run_id,
+                "policy_decision": policy_decision,
+                "side": side,
+                "score": score,
+                "p_hat": p_hat,
+                "current_open_positions": current_open_positions,
+                "max_positions": max_positions,
+                "last_entry_timestamp": last_entry_timestamp,
+                "cooldown_remaining_seconds": cooldown_remaining_seconds,
+                "risk_overlay_units": risk_overlay_units,
+                "risk_overlay_result": risk_overlay_result,
+                "trade_registry_size": trade_registry_size,
+                "existing_trade_detected": existing_trade_detected,
+                "block_reason": block_reason,
+                "trade_uid": trade_uid,
+                "trade_id": trade_id,
+            }
+            
+            with open(trace_file, "a") as f:
+                import json
+                f.write(json.dumps(trace_entry, default=str) + "\n")
+        except Exception as trace_err:
+            import logging
+            log = logging.getLogger(__name__)
+            log.warning(f"[CREATE_TRADE_TRACE] Failed to write trace: {trace_err}")
+
+    def _flush_signal_trace_if_pending(
+        self, block_code: str, entry_attempted: bool, entry_taken: bool
+    ) -> None:
+        """Flush pending signal trace event (when GX1_ENTRY_SIGNAL_TRACE=1). Best-effort, never raises."""
+        writer = getattr(self, "_signal_trace_writer", None)
+        pending = getattr(self, "_pending_signal_trace", None)
+        if not writer or not pending:
+            return
+        try:
+            event = dict(pending)
+            event["final_block_code"] = block_code
+            event["entry_attempted"] = entry_attempted
+            event["entry_taken"] = entry_taken
+            writer.append(event)
+        except Exception as e:
+            log.warning("[ENTRY_SIGNAL_TRACE] Flush failed: %s", e)
+        finally:
+            super().__setattr__("_pending_signal_trace", None)
+
     def _killchain_inc_reason(self, reason_code: str) -> None:
         """
         Increment kill-chain block reason counter.
@@ -188,6 +400,76 @@ class EntryManager:
         if reason_code not in self.killchain_block_reason_counts:
             reason_code = "BLOCK_UNKNOWN"
         self.killchain_block_reason_counts[reason_code] += 1
+
+        # ENTRY_SIGNAL_TRACE: flush pending signal when we block (had signal this bar)
+        entry_attempted = getattr(self, "_in_create_trade_path", False)
+        self._flush_signal_trace_if_pending(reason_code, entry_attempted, False)
+
+        # Stage2 accounting (strict footer invariants rely on these counters).
+        # We only count post-score blocks as Stage2 post-blocks when the bar has score_gate_pass=True
+        # (set when the policy produces a trade candidate).
+        ctx = getattr(self, "_kc_ctx", None) or {}
+        score_gate_pass = bool(ctx.get("score_gate_pass", False))
+        bar_i = ctx.get("bar_i")
+        ts = ctx.get("ts")
+        predict_entered = ctx.get("predict_entered")
+
+        if reason_code == "BLOCK_BELOW_THRESHOLD":
+            self.killchain_n_block_below_threshold += 1
+            self._kc_trace_event(
+                {
+                    "event": "score_gate_block_below_threshold",
+                    "bar_i": bar_i,
+                    "ts": ts,
+                    "score_gate_pass": False,
+                    "predict_entered": predict_entered,
+                    "reason": reason_code,
+                }
+            )
+            return
+
+        if not score_gate_pass:
+            return
+
+        # Post-score blocks (only meaningful after score gate pass)
+        if reason_code == "BLOCK_POSITION_LIMIT":
+            self.killchain_n_block_position_limit += 1
+        elif reason_code == "BLOCK_COOLDOWN":
+            self.killchain_n_block_cooldown += 1
+        elif reason_code == "BLOCK_RISK":
+            self.killchain_n_block_risk_guard += 1
+        elif reason_code == "BLOCK_UNKNOWN":
+            self.killchain_n_block_unknown_post_vol += 1
+            if len(self.killchain_stage2_unknown_examples) < 5:
+                self.killchain_stage2_unknown_examples.append(
+                    {
+                        "bar_i": bar_i,
+                        "ts": ts,
+                        "reason": "BLOCK_UNKNOWN",
+                    }
+                )
+        else:
+            # Unknown post-score block reason (count as unknown_post_vol for Stage2)
+            self.killchain_n_block_unknown_post_vol += 1
+            if len(self.killchain_stage2_unknown_examples) < 5:
+                self.killchain_stage2_unknown_examples.append(
+                    {
+                        "bar_i": bar_i,
+                        "ts": ts,
+                        "reason": str(reason_code),
+                    }
+                )
+
+        self._kc_trace_event(
+            {
+                "event": "post_block",
+                "bar_i": bar_i,
+                "ts": ts,
+                "score_gate_pass": True,
+                "predict_entered": predict_entered,
+                "reason": reason_code,
+            }
+        )
 
     def _killchain_record_unknown(self, example: Dict[str, Any]) -> None:
         """
@@ -496,15 +778,14 @@ class EntryManager:
             low_arr = low.iloc[-window:].values
             close_arr = close.iloc[-window:].values
             
-            # True Range components
+            # True Range components (prev_close: first element has no previous -> NaN, no roll wrap)
+            prev_close = np.concatenate([[np.nan], close_arr[:-1]])
             tr1 = high_arr - low_arr  # High - Low
-            tr2 = np.abs(high_arr - np.roll(close_arr, 1))  # |High - Prev Close|
-            tr3 = np.abs(low_arr - np.roll(close_arr, 1))   # |Low - Prev Close|
-            
-            # True Range = max of three components
-            tr = np.maximum(tr1, np.maximum(tr2, tr3))
-            
-            # ATR = mean of True Range
+            tr2 = np.abs(high_arr - prev_close)
+            tr3 = np.abs(low_arr - prev_close)
+            tr = tr1.copy()
+            mask = ~np.isnan(prev_close)
+            tr[mask] = np.maximum(tr1[mask], np.maximum(tr2[mask], tr3[mask]))
             atr = np.mean(tr)
             
             return float(atr)
@@ -809,9 +1090,17 @@ class EntryManager:
         except Exception as e:
             log.warning(f"[SNIPER_SHADOW] Failed to write shadow journal: {e}")
 
-    def evaluate_entry(self, candles: pd.DataFrame) -> Optional[LiveTrade]:
+    def evaluate_entry(self, candles: pd.DataFrame, **kwargs: Any) -> Optional[LiveTrade]:
+        """
+        Evaluate entry. Optional prebuilt_ctx_cont_extra (dict with D1_dist_from_ema200_atr,
+        H1_range_compression_ratio) when prebuilt and model expects ctx_cont dim 4.
+        """
         import time
         
+        # ENTRY_SIGNAL_TRACE: reset per-bar state
+        super().__setattr__("_in_create_trade_path", False)
+        super().__setattr__("_pending_signal_trace", None)
+
         # DEL 3: Reset routing telemetry for this bar (must be called at start of each bar evaluation)
         if hasattr(self, "entry_feature_telemetry") and self.entry_feature_telemetry:
             self.entry_feature_telemetry.reset_routing_for_next_bar()
@@ -847,6 +1136,34 @@ class EntryManager:
         from gx1.execution.live_features import infer_session_tag
         current_session = infer_session_tag(current_ts).upper()
         policy_state["session"] = current_session
+
+        # Stage2 trace context (per bar)
+        try:
+            bar_i = getattr(self._runner, "last_i", None)
+        except Exception:
+            bar_i = None
+        super().__setattr__(
+            "_kc_ctx",
+            {
+                "bar_i": bar_i,
+                "ts": current_ts.isoformat(),
+                "score_gate_pass": False,
+                "predict_entered": False,
+            },
+        )
+        # Trace: score_gate_pass state change to False at bar start (if prior bar was True)
+        prev_gate = getattr(self, "_kc_last_score_gate_pass", None)
+        if prev_gate is True:
+            self._kc_trace_event(
+                {
+                    "event": "score_gate_pass_change",
+                    "bar_i": bar_i,
+                    "ts": current_ts.isoformat(),
+                    "from": True,
+                    "to": False,
+                }
+            )
+        super().__setattr__("_kc_last_score_gate_pass", False)
         
         # Hard eligibility check (before feature build)
         eligible, eligibility_reason = self._check_hard_eligibility(candles, policy_state)
@@ -984,14 +1301,25 @@ class EntryManager:
                 if hasattr(self, "_last_spread_bps"):
                     spread_bps = self._last_spread_bps
                 
-                # Build context features
+                # Build context features (optional extended ctx_cont from prebuilt)
                 is_replay = getattr(self._runner, "replay_mode", False)
+                prebuilt_extra = kwargs.get("prebuilt_ctx_cont_extra") or {}
+                d1_dist = prebuilt_extra.get("D1_dist_from_ema200_atr")
+                h1_comp = prebuilt_extra.get("H1_range_compression_ratio")
+                d1_atr_pctl = prebuilt_extra.get("D1_atr_percentile_252")
+                m15_comp = prebuilt_extra.get("M15_range_compression_ratio")
+                h4_trend = prebuilt_extra.get("H4_trend_sign_cat")
                 entry_context_features = build_entry_context_features(
                     candles=candles,
                     policy_state=policy_state,
                     atr_proxy=atr_proxy,
                     spread_bps=spread_bps,
                     is_replay=is_replay,
+                    d1_dist_from_ema200_atr=d1_dist,
+                    h1_range_compression_ratio=h1_comp,
+                    d1_atr_percentile_252=d1_atr_pctl,
+                    m15_range_compression_ratio=m15_comp,
+                    h4_trend_sign_cat=int(h4_trend) if h4_trend is not None else None,
                 )
                 
                 # Track context build
@@ -2081,6 +2409,11 @@ class EntryManager:
                     self.n_v10_calls, brain_trend_regime, brain_vol_regime, current_session
                 )
             # OPPGAVE 2: Pass context features to V10 prediction (if enabled)
+            # Stage2 trace: model prediction path entered
+            ctx = getattr(self, "_kc_ctx", None)
+            if isinstance(ctx, dict):
+                ctx["predict_entered"] = True
+                super().__setattr__("_kc_ctx", ctx)
             entry_pred = self._runner._predict_entry_v10_hybrid(
                 entry_bundle, 
                 candles, 
@@ -2378,7 +2711,32 @@ class EntryManager:
             )
             if killchain_above_threshold:
                 self.killchain_n_above_threshold += 1
-            
+                # ENTRY_SIGNAL_TRACE: store base event for this signal (flush on return/block)
+                if getattr(self, "_signal_trace_writer", None):
+                    try:
+                        from gx1.execution.entry_signal_trace import build_trace_event_base
+                        ctx = getattr(self, "_kc_ctx", None) or {}
+                        run_id = getattr(self._runner, "run_id", "unknown")
+                        chunk_id = getattr(self._runner, "chunk_id", "single")
+                        session = policy_state.get("session")
+                        thresh_source = "override" if killchain_threshold_override else "canonical"
+                        base = build_trace_event_base(
+                            time=ctx.get("ts") or "",
+                            run_id=run_id,
+                            model_id="BASE28",
+                            chunk_id=chunk_id,
+                            session=session,
+                            threshold_used=killchain_min_prob_long,
+                            threshold_source=thresh_source,
+                            analysis_mode=killchain_analysis_mode,
+                            xgb_prob_long=float(v9_pred.prob_long),
+                            xgb_prob_short=float(v9_pred.prob_short) if v9_pred.prob_short is not None else None,
+                            xgb_p_hat=float(v9_pred.p_hat) if hasattr(v9_pred, "p_hat") and v9_pred.p_hat is not None else None,
+                        )
+                        super().__setattr__("_pending_signal_trace", base)
+                    except Exception as e:
+                        log.warning("[ENTRY_SIGNAL_TRACE] Failed to build base event: %s", e)
+
             # Build current_row for SNIPER (needed for guard)
             current_row = entry_bundle.features.iloc[-1:].copy()
             current_row["prob_long"] = v9_pred.prob_long
@@ -2707,7 +3065,38 @@ class EntryManager:
                     # Fallback: V9 wrapper may have set both columns, use V9 column if V10 column missing
                     policy_flag_col = "entry_v9_policy_sniper"
                 
+                # Stage2: prediction available for score gate
+                self.killchain_n_pred_available += 1
+
                 if len(df_policy) > 0 and policy_flag_col in df_policy.columns and df_policy[policy_flag_col].sum() > 0:
+                    # Stage2: score gate passed (candidate exists)
+                    self.killchain_n_pass_score_gate += 1
+                    ctx = getattr(self, "_kc_ctx", None)
+                    if isinstance(ctx, dict):
+                        ctx["score_gate_pass"] = True
+                        super().__setattr__("_kc_ctx", ctx)
+                    # Trace: score_gate_pass state change to True (from previous bar state)
+                    prev_gate = getattr(self, "_kc_last_score_gate_pass", None)
+                    if prev_gate is not True:
+                        self._kc_trace_event(
+                            {
+                                "event": "score_gate_pass_change",
+                                "bar_i": getattr(self, "_kc_ctx", {}).get("bar_i") if isinstance(getattr(self, "_kc_ctx", None), dict) else None,
+                                "ts": getattr(self, "_kc_ctx", {}).get("ts") if isinstance(getattr(self, "_kc_ctx", None), dict) else None,
+                                "from": prev_gate,
+                                "to": True,
+                            }
+                        )
+                    super().__setattr__("_kc_last_score_gate_pass", True)
+                    self._kc_trace_event(
+                        {
+                            "event": "pass_score_gate",
+                            "bar_i": getattr(self, "_kc_ctx", {}).get("bar_i") if isinstance(getattr(self, "_kc_ctx", None), dict) else None,
+                            "ts": getattr(self, "_kc_ctx", {}).get("ts") if isinstance(getattr(self, "_kc_ctx", None), dict) else None,
+                            "score_gate_pass": True,
+                            "predict_entered": getattr(self, "_kc_ctx", {}).get("predict_entered") if isinstance(getattr(self, "_kc_ctx", None), dict) else None,
+                        }
+                    )
                     # Signal passed - extract values from accepted row
                     accepted_row = df_policy[df_policy[policy_flag_col]].iloc[0]
                     policy_state["p_long"] = accepted_row.get("p_long", v9_pred.prob_long)
@@ -3933,6 +4322,9 @@ class EntryManager:
                 T,
             )
             return None
+
+        # ENTRY_SIGNAL_TRACE: we're in trade-creation path (entry_attempted=True for subsequent blocks)
+        super().__setattr__("_in_create_trade_path", True)
         
         # Big Brain V0 removed - using V1 entry gating only (already applied above)
         
@@ -4099,6 +4491,7 @@ class EntryManager:
                 # Track veto (veto_cand_max_trades already incremented above)
                 # KILL-CHAIN: position limit block
                 self._killchain_inc_reason("BLOCK_POSITION_LIMIT")
+                self._log_create_trade_event("CREATE_TRADE_BLOCK", now_ts_utc, side, prediction, block_reason="BLOCK_POSITION_LIMIT")
                 return None
         
             # Portfolio protection: intraday drawdown limit
@@ -4121,6 +4514,7 @@ class EntryManager:
                     self.veto_cand["veto_cand_risk_guard"] += 1
                     # KILL-CHAIN: risk block
                     self._killchain_inc_reason("BLOCK_RISK")
+                    self._log_create_trade_event("CREATE_TRADE_BLOCK", now_ts_utc, side, prediction, block_reason="BLOCK_RISK_PORTFOLIO_DRAWDOWN")
                     return None
 
             if side == "long":
@@ -4139,6 +4533,7 @@ class EntryManager:
                         )
                         # KILL-CHAIN: volatility-style block (cluster guard)
                         self._killchain_inc_reason("BLOCK_VOL")
+                        self._log_create_trade_event("CREATE_TRADE_BLOCK", now_ts_utc, side, prediction, block_reason="BLOCK_VOL_CLUSTER_GUARD")
                         return None
 
         # KILL-CHAIN: passed post-policy regime/portfolio guards (candidate is still alive)
@@ -4159,28 +4554,74 @@ class EntryManager:
                 entry_bundle.close_price,
                 prediction.p_hat,
             )
+            self._log_create_trade_event("CREATE_TRADE_BLOCK", now_ts_utc, side, prediction, block_reason="ENTRY_ONLY_MODE")
             return None  # No trade created in ENTRY_ONLY mode
         
+        # DETERMINISTIC OWNERSHIP: Block trade creation outside owner window
+        # Only one chunk is allowed to create trades for a given bar_time.
+        # TRUTH 1W1C: owner windows and OWNERSHIP_GATE_TRACE removed
+        # No ownership gating in 1W1C mode - all trades allowed
+        truth_mode = os.getenv("GX1_TRUTH_MODE", "0") == "1"
+        
+        # Track if we've passed ownership gate and policy decision is "enter"
+        policy_decision_enter = (side is not None)  # side is set when policy decision is "enter"
+        
+        # TRUTH 1W1C: segment_start/chunk_start blocking removed - no preroll blocking
+        # All trades allowed in 1W1C mode
+        
         # Normal mode: Create LiveTrade
-        # COMMIT B: Generate trade_uid (globally unique) and trade_id (display ID)
+        # TRUTH FIX: Generate deterministic trade_uid (globally unique) and trade_id (display ID)
         if not hasattr(self, "_next_trade_id"):
             self._next_trade_id = 0
         self._next_trade_id += 1
         
-        # Generate trade_id (display ID, kept for backward compatibility)
-        trade_id = f"SIM-{int(time.time())}-{self._next_trade_id:06d}"
-        
-        # Generate trade_uid (globally unique primary key for journaling)
-        # Format: {run_id}:{chunk_id}:{local_seq}:{uuid4_short}
+        # Get run_id and chunk_id (must be set for parallel mode)
         run_id = getattr(self._runner, "run_id", "unknown")
         chunk_id = getattr(self._runner, "chunk_id", "single")
         local_seq = self._next_trade_id
-        uuid_short = uuid.uuid4().hex[:12]  # 12 hex chars for uniqueness
-        trade_uid = f"{run_id}:{chunk_id}:{local_seq:06d}:{uuid_short}"
         
-        # GUARD 1: Replay-only fail-fast - trade_uid format invariant
+        # Get entry_time for deterministic hash (use now_ts_utc which is already available)
+        entry_time_ts = now_ts_utc
+        if not isinstance(entry_time_ts, pd.Timestamp):
+            entry_time_ts = pd.to_datetime(entry_time_ts)
+        entry_time_iso = entry_time_ts.isoformat()
+        
+        # TRUTH: Generate deterministic trade_uid (globally unique, no randomness)
+        # Format: {run_id}|{chunk_id}|{local_seq:06d}|{deterministic_hash}
+        # Hash is SHA256 of (run_id|chunk_id|local_seq|entry_time_iso) for determinism
+        import hashlib
+        hash_input = f"{run_id}|{chunk_id}|{local_seq:06d}|{entry_time_iso}"
+        deterministic_hash = hashlib.sha256(hash_input.encode("utf-8")).hexdigest()[:16]  # 16 hex chars
+        trade_uid = f"{run_id}|{chunk_id}|{local_seq:06d}|{deterministic_hash}"
+        
+        # TRUTH: Generate deterministic trade_id (namespaced by run+chunk, no wall-clock)
+        # Format: {run_id}_{chunk_id}_{local_seq:06d} (no SIM- prefix in TRUTH)
+        is_truth = os.getenv("GX1_RUN_MODE", "").upper() == "TRUTH" or os.getenv("GX1_TRUTH_MODE", "0") == "1"
+        if is_truth:
+            # TRUTH: Use namespaced format (no SIM-, no wall-clock)
+            trade_id = f"{run_id}_{chunk_id}_{local_seq:06d}"
+        else:
+            # Non-TRUTH: Keep legacy format for backward compatibility
+            trade_id = f"SIM-{int(time.time())}-{local_seq:06d}"
+        
+        # GUARD 1: TRUTH - Hard fail if SIM- format is used
+        if is_truth:
+            if trade_id.startswith("SIM-"):
+                raise RuntimeError(
+                    f"[TRUTH_TRADE_ID_BAN] Legacy SIM- format detected in TRUTH mode: {trade_id}. "
+                    f"This violates TRUTH invariant. trade_id must be namespaced by run_id+chunk_id, "
+                    f"not use SIM- format. run_id={run_id}, chunk_id={chunk_id}, local_seq={local_seq}"
+                )
+            if trade_uid.startswith("SIM-"):
+                raise RuntimeError(
+                    f"[TRUTH_TRADE_UID_BAN] Legacy SIM- format detected in TRUTH mode: {trade_uid}. "
+                    f"This violates TRUTH invariant. trade_uid must use canonical format, "
+                    f"not legacy SIM- format."
+                )
+        
+        # GUARD 2: Replay-only fail-fast - trade_uid format invariant
         if self.is_replay:
-            expected_prefix = f"{run_id}:{chunk_id}:"
+            expected_prefix = f"{run_id}|{chunk_id}|"
             if not trade_uid.startswith(expected_prefix):
                 raise RuntimeError(
                     f"BAD_TRADE_UID_FORMAT_REPLAY: Generated trade_uid={trade_uid} does not start with "
@@ -4535,6 +4976,7 @@ class EntryManager:
             )
             # KILL-CHAIN: risk sizing / overlays blocked trade
             self._killchain_inc_reason("BLOCK_RISK")
+            self._log_create_trade_event("CREATE_TRADE_BLOCK", now_ts_utc, side, prediction, units_out=units_out, overlays_meta=overlays_meta, block_reason=f"BLOCK_RISK_OVERLAY_UNITS_ZERO_{overlay_name_no_trade}")
             return None
 
         # KILL-CHAIN: passed risk sizing (units decided)
@@ -4592,6 +5034,32 @@ class EntryManager:
         # TELEMETRY CONTRACT: Increment n_candidate_pass (candidate passed all Stage-1 gates)
         self.entry_telemetry["n_candidate_pass"] += 1
         
+        # Log CREATE_TRADE_ATTEMPT right before trade creation
+        # Track if we should expect a SUCCESS or BLOCK for hard-fail check
+        should_expect_trade_creation = False
+        truth_mode_check = os.getenv("GX1_TRUTH_MODE", "0") == "1"
+        if truth_mode_check:
+            target_timestamps = [
+                pd.Timestamp('2025-09-05 12:05:00', tz='UTC'),
+                pd.Timestamp('2025-09-15 15:25:00', tz='UTC'),
+                pd.Timestamp('2025-09-15 15:30:00', tz='UTC'),
+            ]
+            if isinstance(now_ts_utc, pd.Timestamp):
+                bar_time_utc = now_ts_utc.tz_convert("UTC") if now_ts_utc.tzinfo else pd.Timestamp(now_ts_utc, tz="UTC")
+            else:
+                bar_time_utc = pd.to_datetime(now_ts_utc).tz_localize("UTC") if pd.to_datetime(now_ts_utc).tzinfo is None else pd.to_datetime(now_ts_utc)
+            
+            matches_target = any(bar_time_utc == target_ts for target_ts in target_timestamps)
+            
+            if matches_target:
+                # Check if policy decision is enter
+                policy_decision_enter = (side is not None)
+                
+                # TRUTH 1W1C: ownership gating removed - all trades allowed
+                should_expect_trade_creation = policy_decision_enter
+        
+        self._log_create_trade_event("CREATE_TRADE_ATTEMPT", now_ts_utc, side, prediction, units_out=units_out, overlays_meta=overlays_meta)
+        
         # Lazy import to avoid circular dependency
         from gx1.execution.oanda_demo_runner import LiveTrade
         
@@ -4620,6 +5088,24 @@ class EntryManager:
         self.entry_telemetry["n_trades_created"] += 1
         # KILL-CHAIN: trade created
         self.killchain_n_trade_created += 1
+
+        # ENTRY_SIGNAL_TRACE: flush pending signal with TRADE_CREATED
+        self._flush_signal_trace_if_pending("TRADE_CREATED", True, True)
+
+        # Log CREATE_TRADE_SUCCESS
+        self._log_create_trade_event("CREATE_TRADE_SUCCESS", now_ts_utc, side, prediction, units_out=units_out, overlays_meta=overlays_meta, trade_uid=trade_uid, trade_id=trade_id)
+        # Stage2 trace: trade created (key invariant: must not happen with score_gate_pass=False)
+        self._kc_trace_event(
+            {
+                "event": "trade_created",
+                "bar_i": getattr(self, "_kc_ctx", {}).get("bar_i") if isinstance(getattr(self, "_kc_ctx", None), dict) else None,
+                "ts": getattr(self, "_kc_ctx", {}).get("ts") if isinstance(getattr(self, "_kc_ctx", None), dict) else None,
+                "score_gate_pass": bool(getattr(self, "_kc_ctx", {}).get("score_gate_pass")) if isinstance(getattr(self, "_kc_ctx", None), dict) else None,
+                "predict_entered": getattr(self, "_kc_ctx", {}).get("predict_entered") if isinstance(getattr(self, "_kc_ctx", None), dict) else None,
+                "trade_uid": trade_uid,
+                "trade_id": trade_id,
+            }
+        )
         # Track trade session distribution
         session_key = policy_state.get("session") or infer_session_tag(trade.entry_time).upper()
         self.entry_telemetry["trade_sessions"][session_key] = self.entry_telemetry["trade_sessions"].get(session_key, 0) + 1
@@ -4667,6 +5153,24 @@ class EntryManager:
         trade.extra["be_trigger_bps"] = be_trigger_bps
         trade.extra["be_active"] = False
         trade.extra["be_price"] = None
+
+        # MASTER_EXIT_V1: freeze entry-bar signal-bridge snapshot (causal, no leakage)
+        snapshot = getattr(self._runner, "_last_entry_ml_snapshot", None) if hasattr(self, "_runner") and self._runner else None
+        if isinstance(snapshot, dict):
+            if snapshot.get("uncertainty_score") is not None:
+                trade.extra["entry_uncertainty_score"] = float(snapshot["uncertainty_score"])
+            if snapshot.get("margin_top1_top2") is not None:
+                trade.extra["entry_margin_top1_top2"] = float(snapshot["margin_top1_top2"])
+            if snapshot.get("entropy") is not None:
+                trade.extra["entry_entropy"] = float(snapshot["entropy"])
+            if snapshot.get("p_hat") is not None:
+                trade.extra["entry_p_hat"] = float(snapshot["p_hat"])
+            if snapshot.get("p_long") is not None:
+                trade.extra["entry_p_long"] = float(snapshot["p_long"])
+            if snapshot.get("p_short") is not None:
+                trade.extra["entry_p_short"] = float(snapshot["p_short"])
+            if snapshot.get("p_flat") is not None:
+                trade.extra["entry_p_flat"] = float(snapshot["p_flat"])
 
         # Compute spread metrics for hybrid exit routing / diagnostics
         spread_bps: Optional[float] = None
@@ -5446,6 +5950,16 @@ class EntryManager:
             
             log.warning("[DEBUG_SESSION] no policy_state available, inferred session from entry_time: %s", 
                         trade.extra["session"])
+        
+        # Hard-fail check: If policy_decision == enter, we must have logged either SUCCESS or BLOCK
+        if should_expect_trade_creation and trade is None:
+            error_msg = (
+                f"[CREATE_TRADE_HARD_FAIL] Trade creation expected but neither SUCCESS nor BLOCK was logged. "
+                f"bar_time={now_ts_utc}, policy_decision=enter, but trade is None. "
+                f"This indicates a code path that bypasses CREATE_TRADE logging."
+            )
+            log.error(error_msg)
+            raise RuntimeError(error_msg)
         
         return trade
     

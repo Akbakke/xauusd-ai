@@ -1,0 +1,15 @@
+{
+  "variant": "B1",
+  "clip_features": [
+    "range"
+  ],
+  "lo_percentile": 1.0,
+  "hi_percentile": 99.0,
+  "computed_from": "2024 US session (train)",
+  "bounds": {
+    "range": {
+      "lo": -0.4113735258579254,
+      "hi": 11.318232536315918
+    }
+  }
+}

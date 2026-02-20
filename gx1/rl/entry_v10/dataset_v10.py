@@ -1,204 +1,262 @@
 #!/usr/bin/env python3
 """
-ENTRY_V10 Dataset Module
+ENTRY_V10_CTX Dataset Module (ONE UNIVERSE: 6/6 + signal bridge 7/7).
 
-PyTorch Dataset and utilities for ENTRY_V10 training.
-Handles sequences with XGBoost-annotated features.
+PyTorch Dataset for ENTRY_V10_CTX training only.
+NO LEGACY. ctx_cont_dim=6, ctx_cat_dim=6. seq_x [seq_len, 7], snap_x [7] from signal_bridge_v1.
 
-LAZY LOADING: Data is loaded on-demand by workers for parallel processing.
+NO FALLBACKS:
+- No NaN/Inf sanitizing (data must be clean upstream).
+- No padding/truncation. Any schema/shape mismatch hard-fails early.
+
+Expected parquet columns:
+  - seq_x: [seq_len, SEQ_SIGNAL_DIM]  (7)
+  - snap_x: [SNAP_SIGNAL_DIM]  (7)
+  - ctx_cont: [6]
+  - ctx_cat: [6]
+  - y_direction: 0/1
+  Optional: y_early_move, y_quality_score
 """
+
+from __future__ import annotations
+
+import logging
+from pathlib import Path
+from typing import Any, Dict, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 import torch
-from pathlib import Path
-from typing import Dict, List, Tuple, Optional, Any
 from torch.utils.data import Dataset
-from dataclasses import dataclass
+
+log = logging.getLogger(__name__)
 
 
-@dataclass
-class EntryV10RowSchema:
-    """Schema for a single row in ENTRY_V10 dataset."""
-    seq_x: np.ndarray  # [seq_len, 16] - 13 seq + 3 XGB channels
-    snap_x: np.ndarray  # [88] - 85 snap + 3 XGB-now
-    session_id: int  # 0=EU, 1=OVERLAP, 2=US
-    vol_regime_id: int  # 0=LOW, 1=MEDIUM, 2=HIGH, 3=EXTREME
-    trend_regime_id: int  # 0=UP, 1=DOWN, 2=NEUTRAL
-    y_direction: int  # 0 or 1 (binary LONG edge)
+PathLike = Union[str, Path]
 
 
-class EntryV10Dataset(Dataset):
+def _require_file(path: Path, label: str) -> None:
+    if not path.is_file():
+        raise FileNotFoundError(f"{label} not found: {path}")
+
+
+def _is_finite_array(x: np.ndarray) -> bool:
+    if np.issubdtype(x.dtype, np.floating):
+        return bool(np.isfinite(x).all())
+    return True
+
+
+def _as_np_array_strict(x: Any, *, dtype: np.dtype) -> np.ndarray:
+    if isinstance(x, np.ndarray):
+        arr = x
+    elif isinstance(x, (list, tuple)):
+        arr = np.asarray(x)
+    else:
+        raise TypeError(f"UNSUPPORTED_TYPE: expected list/tuple/np.ndarray, got {type(x)}")
+    try:
+        arr = arr.astype(dtype, copy=False)
+    except Exception as e:
+        raise TypeError(f"DTYPE_CAST_FAIL: cannot cast to {dtype}: {e}") from e
+    return arr
+
+
+def _reshape_exact(arr: np.ndarray, shape: Tuple[int, ...], *, label: str) -> np.ndarray:
+    if arr.shape == shape:
+        return arr
+    if arr.size == int(np.prod(shape)):
+        return arr.reshape(shape)
+    raise ValueError(f"{label}_SHAPE_MISMATCH: got shape={arr.shape} size={arr.size} expected shape={shape}")
+
+
+def _parse_binary_label(y: Any, *, label: str) -> float:
+    try:
+        v = float(y)
+    except Exception as e:
+        raise TypeError(f"{label}_TYPE_FAIL: cannot cast y to float: {e}") from e
+    if v not in (0.0, 1.0):
+        raise ValueError(f"{label}_VALUE_FAIL: expected 0/1 got {v}")
+    return v
+
+
+# =============================================================================
+# ENTRY_V10_CTX dataset (6/6 only)
+# =============================================================================
+
+CTX_CONT_DIM = 6
+CTX_CAT_DIM = 6
+
+
+class EntryV10CtxDataset(Dataset):
     """
-    PyTorch Dataset for ENTRY_V10 training with LAZY LOADING.
-    
-    Data is loaded on-demand in __getitem__ to allow DataLoader workers
-    to process data in parallel. Each worker loads its own copy of the DataFrame.
+    Dataset for ENTRY_V10_CTX (STRICT 6/6 only).
 
-    Expects Parquet file with columns:
-    - seq: list/array of shape [seq_len, 16]
-    - snap: array of shape [88]
-    - session_id: int
-    - vol_regime_id: int
-    - trend_regime_id: int
-    - y_direction: int (0 or 1)
+    Expects parquet columns: seq_x [seq_len, 7], snap_x [7], ctx_cont [6], ctx_cat [6], y_direction.
+    ONE UNIVERSE: no 2/4/6 or 5/6. Hard-fail on other dims.
     """
+
+    REQUIRED_COLS = ("seq_x", "snap_x", "ctx_cont", "ctx_cat", "y_direction")
 
     def __init__(
         self,
-        parquet_path: str | Path,
+        parquet_path: PathLike,
+        *,
         seq_len: int = 30,
-        device: str = "cpu",
+        ctx_cont_dim: int = 6,
+        ctx_cat_dim: int = 6,
     ):
-        """
-        Args:
-            parquet_path: Path to Parquet file with V10 dataset
-            seq_len: Expected sequence length (default: 30)
-            device: Device for tensors (default: "cpu")
-        """
-        self.parquet_path = Path(parquet_path)
-        self.seq_len = seq_len
-        self.device = device
+        from gx1.contracts.signal_bridge_v1 import (
+            ORDERED_CTX_CAT_NAMES_EXTENDED,
+            ORDERED_CTX_CONT_NAMES_EXTENDED,
+            SEQ_SIGNAL_DIM,
+            SNAP_SIGNAL_DIM,
+        )
 
-        if not self.parquet_path.exists():
-            raise FileNotFoundError(f"Dataset not found: {self.parquet_path}")
+        self.parquet_path = Path(parquet_path).expanduser().resolve()
+        _require_file(self.parquet_path, "EntryV10CtxDataset parquet_path")
 
-        # LAZY LOADING: Only load metadata, not the actual data
-        # Workers will load data in parallel via __getitem__
-        print(f"[ENTRY_V10_DATASET] Preparing lazy loading from {self.parquet_path}")
-        
-        # Get length without loading full dataset
-        try:
-            import pyarrow.parquet as pq
-            parquet_file = pq.ParquetFile(self.parquet_path)
-            self._len = parquet_file.metadata.num_rows
-        except ImportError:
-            # Fallback: load just to get length
-            df_temp = pd.read_parquet(self.parquet_path, nrows=1)
-            self._len = len(pd.read_parquet(self.parquet_path))
-        
-        print(f"[ENTRY_V10_DATASET] Prepared {self._len} samples (lazy loading, seq_len={seq_len})")
-        print(f"[ENTRY_V10_DATASET] Each worker will load its own copy of the data")
+        self.seq_len = int(seq_len)
+        self.ctx_cont_dim = int(ctx_cont_dim)
+        self.ctx_cat_dim = int(ctx_cat_dim)
+
+        if self.seq_len <= 0:
+            raise ValueError(f"seq_len must be > 0; got {self.seq_len}")
+        if self.ctx_cont_dim != CTX_CONT_DIM:
+            raise ValueError(f"ctx_cont_dim must be {CTX_CONT_DIM} (ONE UNIVERSE); got {self.ctx_cont_dim}")
+        if self.ctx_cat_dim != CTX_CAT_DIM:
+            raise ValueError(f"ctx_cat_dim must be {CTX_CAT_DIM} (ONE UNIVERSE); got {self.ctx_cat_dim}")
+
+        self._seq_signal_dim = int(SEQ_SIGNAL_DIM)
+        self._snap_signal_dim = int(SNAP_SIGNAL_DIM)
+        self._cont_names = list(ORDERED_CTX_CONT_NAMES_EXTENDED[: self.ctx_cont_dim])
+        self._cat_names = list(ORDERED_CTX_CAT_NAMES_EXTENDED[: self.ctx_cat_dim])
+
+        df = pd.read_parquet(self.parquet_path)
+        for c in self.REQUIRED_COLS:
+            if c not in df.columns:
+                raise RuntimeError(f"CTX_DATASET_MISSING_COL: {c}")
+        if len(df) <= 0:
+            raise RuntimeError("CTX_DATASET_EMPTY")
+
+        self._df = df
+
+        r0 = df.iloc[0]
+        seq0 = _as_np_array_strict(r0["seq_x"], dtype=np.float32)
+        snap0 = _as_np_array_strict(r0["snap_x"], dtype=np.float32)
+        cont0 = _as_np_array_strict(r0["ctx_cont"], dtype=np.float32)
+        cat0 = _as_np_array_strict(r0["ctx_cat"], dtype=np.int64)
+
+        _ = _reshape_exact(seq0, (self.seq_len, self._seq_signal_dim), label="SEQ_X")
+        _ = _reshape_exact(snap0, (self._snap_signal_dim,), label="SNAP_X")
+        _ = _reshape_exact(cont0, (self.ctx_cont_dim,), label="CTX_CONT")
+        _ = _reshape_exact(cat0, (self.ctx_cat_dim,), label="CTX_CAT")
+
+        if not _is_finite_array(seq0) or not _is_finite_array(snap0) or not _is_finite_array(cont0):
+            raise ValueError("NON_FINITE_INPUTS: ctx dataset contains NaN/Inf (no fallback)")
+
+        y0 = _parse_binary_label(r0["y_direction"], label="Y_DIRECTION")
+
+        log.info(
+            f"[EntryV10CtxDataset] path={self.parquet_path} rows={len(df)} "
+            f"seq_len={self.seq_len} seq_dim={self._seq_signal_dim} snap_dim={self._snap_signal_dim} "
+            f"ctx_cont_dim={self.ctx_cont_dim} ctx_cat_dim={self.ctx_cat_dim} y0={y0}"
+        )
 
     def __len__(self) -> int:
-        return self._len
+        return int(len(self._df))
 
-    def _parse_sequence(self, seq, seq_len: int) -> np.ndarray:
-        """Parse sequence from various formats and clean NaN/Inf values."""
-        if isinstance(seq, np.ndarray):
-            if seq.dtype == object:
-                try:
-                    seq = np.array([np.array(x, dtype=np.float32) for x in seq], dtype=np.float32)
-                except (ValueError, TypeError):
-                    flat = np.concatenate([np.array(x, dtype=np.float32).flatten() for x in seq])
-                    seq = flat.reshape(seq_len, 16)
-            else:
-                seq = seq.astype(np.float32)
-        elif isinstance(seq, list):
-            if len(seq) > 0 and isinstance(seq[0], (list, np.ndarray)):
-                seq = np.array([np.array(x, dtype=np.float32) for x in seq], dtype=np.float32)
-            else:
-                seq = np.array(seq, dtype=np.float32)
-        
-        if seq.ndim == 1:
-            if len(seq) == seq_len * 16:
-                seq = seq.reshape(seq_len, 16)
-        elif seq.ndim == 2:
-            if seq.shape != (seq_len, 16) and seq.size == seq_len * 16:
-                seq = seq.reshape(seq_len, 16)
-        
-        # Replace NaN and Inf with 0.0
-        seq = np.nan_to_num(seq, nan=0.0, posinf=0.0, neginf=0.0)
-        
-        return seq.astype(np.float32)
+    def __getitem__(self, idx: int) -> Dict[str, Any]:
+        i = int(idx)
+        if i < 0 or i >= len(self._df):
+            raise IndexError(f"INDEX_OOB: idx={i} len={len(self._df)}")
 
-    def _parse_snapshot(self, snap) -> np.ndarray:
-        """Parse snapshot from various formats and clean NaN/Inf values."""
-        if isinstance(snap, list):
-            snap = np.array(snap, dtype=np.float32)
-        elif isinstance(snap, np.ndarray):
-            snap = snap.astype(np.float32)
-        if snap.ndim > 1:
-            snap = snap.flatten()
-        if len(snap) != 88:
-            snap = snap[:88] if len(snap) > 88 else np.pad(snap, (0, 88 - len(snap)), 'constant', constant_values=0.0)
-        
-        # Replace NaN and Inf with 0.0
-        snap = np.nan_to_num(snap, nan=0.0, posinf=0.0, neginf=0.0)
-        
-        return snap.astype(np.float32)
+        row = self._df.iloc[i]
 
-    def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
-        """
-        Get a single sample - called by DataLoader workers in parallel.
-        Each worker process loads its own copy of the DataFrame.
-        """
-        # Lazy load DataFrame per worker (each worker process gets its own copy)
-        if not hasattr(self, '_df') or self._df is None:
-            self._df = pd.read_parquet(self.parquet_path)
-        
-        row = self._df.iloc[idx]
-        
-        seq = self._parse_sequence(row["seq"], self.seq_len)
-        snap = self._parse_snapshot(row["snap"])
-        
-        return {
-            "seq_x": torch.tensor(seq, dtype=torch.float32).to(self.device),
-            "snap_x": torch.tensor(snap, dtype=torch.float32).to(self.device),
-            "session_id": torch.tensor(int(row["session_id"]), dtype=torch.long).to(self.device),
-            "vol_regime_id": torch.tensor(int(row["vol_regime_id"]), dtype=torch.long).to(self.device),
-            "trend_regime_id": torch.tensor(int(row["trend_regime_id"]), dtype=torch.long).to(self.device),
-            "y_direction": torch.tensor(int(row["y_direction"]), dtype=torch.float32).to(self.device),
+        seq = _as_np_array_strict(row["seq_x"], dtype=np.float32)
+        seq = _reshape_exact(seq, (self.seq_len, self._seq_signal_dim), label="SEQ_X")
+
+        snap = _as_np_array_strict(row["snap_x"], dtype=np.float32)
+        snap = _reshape_exact(snap, (self._snap_signal_dim,), label="SNAP_X")
+
+        ctx_cont = _as_np_array_strict(row["ctx_cont"], dtype=np.float32)
+        ctx_cont = _reshape_exact(ctx_cont, (self.ctx_cont_dim,), label="CTX_CONT")
+
+        ctx_cat = _as_np_array_strict(row["ctx_cat"], dtype=np.int64)
+        ctx_cat = _reshape_exact(ctx_cat, (self.ctx_cat_dim,), label="CTX_CAT")
+
+        if not _is_finite_array(seq) or not _is_finite_array(snap) or not _is_finite_array(ctx_cont):
+            raise ValueError(f"NON_FINITE_INPUTS: idx={i} has NaN/Inf (no fallback)")
+
+        y_dir = _parse_binary_label(row["y_direction"], label="Y_DIRECTION")
+
+        out: Dict[str, Any] = {
+            "seq_x": torch.tensor(seq, dtype=torch.float32),
+            "snap_x": torch.tensor(snap, dtype=torch.float32),
+            "ctx_cont": torch.tensor(ctx_cont, dtype=torch.float32),
+            "ctx_cat": torch.tensor(ctx_cat, dtype=torch.long),
+            "y_direction": torch.tensor(y_dir, dtype=torch.float32),
         }
 
+        if "y_early_move" in self._df.columns:
+            out["y_early_move"] = torch.tensor(float(row["y_early_move"]), dtype=torch.float32)
+        if "y_quality_score" in self._df.columns:
+            out["y_quality_score"] = torch.tensor(float(row["y_quality_score"]), dtype=torch.float32)
+
+        return out
+
+
+# =============================================================================
+# Train/val split utility
+# =============================================================================
 
 def train_val_split(
-    parquet_path: str | Path,
+    parquet_path: PathLike,
+    *,
     val_frac: float = 0.2,
     by_date: bool = True,
-    output_dir: Optional[Path] = None,
+    output_dir: Optional[PathLike] = None,
+    seed: int = 42,
+    ts_col: str = "ts",
 ) -> Tuple[Path, Path]:
     """
-    Splits a Parquet dataset into training and validation sets.
-    
-    Args:
-        parquet_path: Path to the input Parquet dataset.
-        val_frac: Fraction of data to use for validation (default: 0.2).
-        by_date: If True, split by date; otherwise, split randomly.
-        output_dir: Directory to save split datasets. If None, uses same dir as input.
-    
-    Returns:
-        Tuple of (train_path, val_path) for the saved datasets.
+    Split a parquet dataset into train/val (STRICT, deterministic).
+    Returns (train_path, val_path).
     """
-    from pathlib import Path
-    import pandas as pd
-    
-    parquet_path = Path(parquet_path)
+    parquet_path = Path(parquet_path).expanduser().resolve()
+    _require_file(parquet_path, "train_val_split parquet_path")
+
+    if not (0.0 < float(val_frac) < 1.0):
+        raise ValueError(f"val_frac must be in (0,1); got {val_frac}")
+
     if output_dir is None:
-        output_dir = parquet_path.parent
+        out_dir = parquet_path.parent
     else:
-        output_dir = Path(output_dir)
-        output_dir.mkdir(parents=True, exist_ok=True)
-    
-    print(f"[TRAIN_VAL_SPLIT] Loading {parquet_path}")
+        out_dir = Path(output_dir).expanduser().resolve()
+        out_dir.mkdir(parents=True, exist_ok=True)
+
     df = pd.read_parquet(parquet_path)
-    
-    if by_date and "ts" in df.columns:
-        df = df.sort_values("ts")
-        split_idx = int(len(df) * (1 - val_frac))
-        df_train = df.iloc[:split_idx]
-        df_val = df.iloc[split_idx:]
+    if len(df) <= 0:
+        raise RuntimeError("SPLIT_FAIL: dataset empty")
+
+    if by_date:
+        if ts_col not in df.columns:
+            raise RuntimeError(f"SPLIT_FAIL: by_date=1 requires column '{ts_col}'")
+        df = df.sort_values(ts_col, kind="mergesort")
+        split_idx = int(len(df) * (1.0 - float(val_frac)))
+        if split_idx <= 0 or split_idx >= len(df):
+            raise RuntimeError(f"SPLIT_FAIL: invalid split_idx={split_idx} for n={len(df)}")
+        df_train = df.iloc[:split_idx].copy()
+        df_val = df.iloc[split_idx:].copy()
     else:
-        df_train = df.sample(frac=(1 - val_frac), random_state=42)
-        df_val = df.drop(df_train.index)
-    
-    train_path = output_dir / f"{parquet_path.stem}_train.parquet"
-    val_path = output_dir / f"{parquet_path.stem}_val.parquet"
-    
+        df_train = df.sample(frac=(1.0 - float(val_frac)), random_state=int(seed)).copy()
+        df_val = df.drop(df_train.index).copy()
+
+    train_path = out_dir / f"{parquet_path.stem}_train.parquet"
+    val_path = out_dir / f"{parquet_path.stem}_val.parquet"
+
     df_train.to_parquet(train_path, index=False)
     df_val.to_parquet(val_path, index=False)
-    
-    print(f"[TRAIN_VAL_SPLIT] Train: {len(df_train)} samples -> {train_path}")
-    print(f"[TRAIN_VAL_SPLIT] Val: {len(df_val)} samples -> {val_path}")
-    
+
+    log.info(f"[train_val_split] train={len(df_train)} -> {train_path}")
+    log.info(f"[train_val_split] val={len(df_val)} -> {val_path}")
+
     return train_path, val_path
