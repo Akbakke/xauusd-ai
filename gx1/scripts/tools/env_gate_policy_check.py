@@ -29,15 +29,16 @@ from typing import Iterable, List, Tuple
 REQUIRED_PYTHON = "/home/andre2/venvs/gx1/bin/python"
 REQUIRED_SHEBANG = f"#!{REQUIRED_PYTHON}"
 
-# Canonical wrapper set (same as run_env_gate_policy_check.sh WRAPPERS + this checker)
+# Canonical wrapper set (ONE UNIVERSE – run_env_gate_policy_check.sh WRAPPERS + this checker)
+# Paths must exist; missing → hard-fail.
 CANONICAL_WRAPPERS = [
+    "gx1/scripts/tools/run_env_gate_policy_check.sh",
+    "gx1/scripts/tools/env_gate_policy_check.py",
     "gx1/scripts/run_phase_a.sh",
     "gx1/scripts/run_phase_b.sh",
     "gx1/scripts/run_phase_c.sh",
-    "gx1/scripts/run_replay_eval_chain_compute.sh",
     "gx1/scripts/run_build_year_metrics.sh",
-    "gx1/scripts/tools/run_env_gate_policy_check.sh",
-    "gx1/scripts/tools/env_gate_policy_check.py",
+    "gx1/scripts/run_replay_eval_chain_compute.sh",
 ]
 
 if sys.executable != REQUIRED_PYTHON:
@@ -65,12 +66,24 @@ def _iter_files_full(root: Path) -> Iterable[Path]:
             yield p
 
 
-def _iter_files_allowlist(repo_root: Path) -> Iterable[Path]:
-    """Only canonical wrapper paths."""
+def _iter_files_allowlist(repo_root: Path) -> List[Path]:
+    """Only canonical wrapper paths. Hard-fail if any missing."""
+    missing: List[str] = []
+    out: List[Path] = []
     for rel in CANONICAL_WRAPPERS:
         p = repo_root / rel
-        if p.exists():
-            yield p
+        if not p.exists():
+            missing.append(rel)
+        else:
+            out.append(p)
+    if missing:
+        print("[ENV_GATE_POLICY_CHECK] FAIL", file=sys.stderr)
+        print(f"REQUIRED_PYTHON={REQUIRED_PYTHON}", file=sys.stderr)
+        print("Missing canonical wrappers:", file=sys.stderr)
+        for m in missing:
+            print(f"  - {m}", file=sys.stderr)
+        sys.exit(2)
+    return out
 
 
 def _read_text(path: Path) -> str:
@@ -156,7 +169,7 @@ def main() -> int:
     if args.full_scan:
         files_to_check = list(_iter_files_full(scripts_root))
     else:
-        files_to_check = list(_iter_files_allowlist(repo_root))
+        files_to_check = _iter_files_allowlist(repo_root)
 
     findings: List[Finding] = []
 
