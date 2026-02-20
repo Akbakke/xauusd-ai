@@ -12026,6 +12026,18 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
         log.info("[REPLAY] Starting offline backtest with historical data")
         log.info("[REPLAY] Input file: %s", csv_path)
         log.info("=" * 60)
+
+        # TRUTH: ensure exit_ml exits jsonl exists when exit transformer enabled (for 0-trade POSTRUN gate)
+        out_dir = getattr(self, "explicit_output_dir", None) or getattr(self, "output_dir", None)
+        if (
+            out_dir
+            and getattr(self, "run_id", None)
+            and getattr(self, "exit_transformer_decider", None) is not None
+        ):
+            from gx1.execution.exit_logs import create_exit_jsonl_placeholder
+            log_path = create_exit_jsonl_placeholder(out_dir, self.run_id)
+            self.exit_ml_log_path = log_path
+            log.debug("[EXIT_ML] Exits jsonl placeholder ready: %s", log_path)
         
         # Replay-only: lazy import session classifier (avoid module-level import in PREBUILT)
         from gx1.execution.live_features import infer_session_tag
