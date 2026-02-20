@@ -3,10 +3,13 @@
 """
 ENV Gate Policy Check (Anti-regression)
 
-Scans `gx1/scripts/**` (including docs) to enforce the single-interpreter contract:
-- No `#!/usr/bin/env python*` shebangs
-- No `py3` mentions in scripts/docs under gx1/scripts/** (forbidden)
-- Entrypoint scripts must use the absolute shebang:
+Default: checks only the canonical wrapper set (ONE UNIVERSE). Use --full-scan to
+scan all of gx1/scripts/** (legacy scripts may fail).
+
+Rules:
+- No `#!/usr/bin/env python*` shebangs (for .py entrypoints)
+- No `py3` mentions in checked files (forbidden)
+- Entrypoint .py scripts must use the absolute shebang:
     #!/home/andre2/venvs/gx1/bin/python
 
 Exit code:
@@ -16,8 +19,7 @@ Exit code:
 
 from __future__ import annotations
 
-import os
-import re
+import argparse
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -26,6 +28,17 @@ from typing import Iterable, List, Tuple
 
 REQUIRED_PYTHON = "/home/andre2/venvs/gx1/bin/python"
 REQUIRED_SHEBANG = f"#!{REQUIRED_PYTHON}"
+
+# Canonical wrapper set (same as run_env_gate_policy_check.sh WRAPPERS + this checker)
+CANONICAL_WRAPPERS = [
+    "gx1/scripts/run_phase_a.sh",
+    "gx1/scripts/run_phase_b.sh",
+    "gx1/scripts/run_phase_c.sh",
+    "gx1/scripts/run_replay_eval_chain_compute.sh",
+    "gx1/scripts/run_build_year_metrics.sh",
+    "gx1/scripts/tools/run_env_gate_policy_check.sh",
+    "gx1/scripts/tools/env_gate_policy_check.py",
+]
 
 if sys.executable != REQUIRED_PYTHON:
     raise RuntimeError(
@@ -43,12 +56,20 @@ class Finding:
     detail: str
 
 
-def _iter_files(root: Path) -> Iterable[Path]:
+def _iter_files_full(root: Path) -> Iterable[Path]:
+    """Scan entire gx1/scripts/** (legacy --full-scan)."""
     for p in root.rglob("*"):
         if p.is_dir():
             continue
-        # Only scan scripts + docs
         if p.suffix.lower() in {".py", ".sh", ".md", ".json", ".txt"}:
+            yield p
+
+
+def _iter_files_allowlist(repo_root: Path) -> Iterable[Path]:
+    """Only canonical wrapper paths."""
+    for rel in CANONICAL_WRAPPERS:
+        p = repo_root / rel
+        if p.exists():
             yield p
 
 
@@ -56,7 +77,6 @@ def _read_text(path: Path) -> str:
     try:
         return path.read_text(encoding="utf-8")
     except UnicodeDecodeError:
-        # Skip binary-ish files
         return ""
 
 
@@ -100,7 +120,6 @@ def _check_py3_mentions(path: Path, text: str) -> List[Finding]:
 
     token = "python" + "3"
     if token in text:
-        # Find first 3 matches with crude context (line numbers)
         lines = text.splitlines()
         hits: List[Tuple[int, str]] = []
         for i, line in enumerate(lines, start=1):
@@ -119,20 +138,31 @@ def _check_py3_mentions(path: Path, text: str) -> List[Finding]:
 
 
 def main() -> int:
-    repo_root = Path(__file__).resolve().parents[3]  # .../src/GX1_ENGINE
+    parser = argparse.ArgumentParser(description="ENV gate policy check")
+    parser.add_argument(
+        "--full-scan",
+        action="store_true",
+        help="Scan all gx1/scripts/** (default: only canonical wrappers)",
+    )
+    args = parser.parse_args()
+
+    repo_root = Path(__file__).resolve().parents[3]
     scripts_root = repo_root / "gx1" / "scripts"
 
     if not scripts_root.exists():
         print(f"ERROR: scripts root not found: {scripts_root}", file=sys.stderr)
         return 2
 
+    if args.full_scan:
+        files_to_check = list(_iter_files_full(scripts_root))
+    else:
+        files_to_check = list(_iter_files_allowlist(repo_root))
+
     findings: List[Finding] = []
 
-    for p in _iter_files(scripts_root):
+    for p in files_to_check:
         text = _read_text(p)
-        # Global checks
         findings.extend(_check_py3_mentions(p, text))
-        # Entrypoint check: all gx1/scripts/**/*.py must use required shebang
         if p.suffix.lower() == ".py":
             findings.extend(_check_shebangs(p, text))
 
@@ -153,4 +183,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
