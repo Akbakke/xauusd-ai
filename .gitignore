@@ -101,3 +101,25 @@ quarantine/
 # Temporary files
 $TEMP_DATA_2D
 0
+
+# local venvs
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# data/artifacts
+*.parquet
+*.joblib
+*.pt
+*.pth
+*.onnx
+*.zip
+*.tgz
+*.tar.gz
+
+# reports/logs
+GX1_DATA/
+reports/
+logs/
+*.log
