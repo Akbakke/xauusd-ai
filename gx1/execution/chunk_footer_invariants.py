@@ -19,13 +19,25 @@ def check_bars_invariant(
     warmup_holdback_bars: int = 0,
 ) -> bool:
     """
-    Check bars invariant: bars_total_input - bars_processed == warmup_holdback_bars + tail_holdback_bars when complete.
-
-    Returns True if invariant holds; False if violated (status==ok and gap != expected).
+    Returns True if invariant holds.
     When status != "ok", always returns True (no enforcement).
     """
-    if status != "ok":
-        return True  # Don't enforce on stopped/failed/early-abort
+    s = (status or "").lower().strip()
+    if s != "ok":
+        return True
+
+    # TRUTH-grade sanity in ok-case (avoid "accidental equality")
+    if (
+        bars_total_input < 0
+        or bars_processed < 0
+        or warmup_holdback_bars < 0
+        or tail_holdback_bars < 0
+    ):
+        return False
+
+    if bars_processed > bars_total_input:
+        return False
+
     bars_gap = bars_total_input - bars_processed
     expected_gap = warmup_holdback_bars + tail_holdback_bars
     return bars_gap == expected_gap

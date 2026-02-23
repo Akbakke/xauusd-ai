@@ -19,10 +19,9 @@ import json
 import logging
 import os
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
-
-from gx1.utils.dt_module import now_iso as dt_now_iso
 
 log = logging.getLogger(__name__)
 
@@ -47,6 +46,11 @@ class ChunkFooterContext:
     run_id: Optional[str] = None  # optional, only for backfill/log context
 
 
+def _now_iso_utc() -> str:
+    # Local dumb timestamp helper. No dt_module dependency.
+    return datetime.now(timezone.utc).isoformat()
+
+
 def write_chunk_footer(ctx: ChunkFooterContext) -> Dict[str, Any]:
     """
     Build (finalize minimal metadata) and atomically write chunk_footer.json.
@@ -61,9 +65,9 @@ def write_chunk_footer(ctx: ChunkFooterContext) -> Dict[str, Any]:
     else:
         footer = {"payload": ctx.payload}
 
-    # 2) Dumb defaults (deterministic; not "validation")
+    # 2) Dumb defaults (deterministic-ish; not "validation")
     footer.setdefault("chunk_id", int(ctx.chunk_idx))
-    footer.setdefault("timestamp", dt_now_iso())
+    footer.setdefault("timestamp", _now_iso_utc())
     footer.setdefault("status", "UNKNOWN")  # dumb backstop only
 
     # Backfill run_id if missing
@@ -105,10 +109,13 @@ def write_chunk_footer(ctx: ChunkFooterContext) -> Dict[str, Any]:
             exc_info=True,
         )
         try:
-            if Path(tmp_path).exists():
-                Path(tmp_path).unlink()
+            Path(tmp_path).unlink(missing_ok=True)  # py3.8+ supports missing_ok
         except Exception:
-            pass
+            try:
+                if Path(tmp_path).exists():
+                    Path(tmp_path).unlink()
+            except Exception:
+                pass
 
     # Return the *attempted* footer (original types), not jsonable copy
     return footer

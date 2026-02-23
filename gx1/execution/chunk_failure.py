@@ -47,14 +47,12 @@ def convert_to_json_serializable(obj: Any) -> Any:
 
         # datetime
         if isinstance(obj, datetime):
-            # ISO 8601 is stable and readable
             return obj.isoformat()
 
         # dict / iterables
         if isinstance(obj, dict):
             out: Dict[str, Any] = {}
             for k, v in obj.items():
-                # JSON keys must be strings
                 out[str(k)] = convert_to_json_serializable(v)
             return out
 
@@ -67,10 +65,7 @@ def convert_to_json_serializable(obj: Any) -> Any:
 
         # Exceptions
         if isinstance(obj, BaseException):
-            return {
-                "type": type(obj).__name__,
-                "message": str(obj),
-            }
+            return {"type": type(obj).__name__, "message": str(obj)}
 
         # numpy (optional)
         try:
@@ -90,16 +85,16 @@ def convert_to_json_serializable(obj: Any) -> Any:
             import pandas as pd  # type: ignore
 
             if isinstance(obj, pd.Timestamp):
-                # Preserve timezone info if present
                 return obj.isoformat()
-            # Some pandas objects stringify nicely; keep best-effort
+            # NaT check (string fallback is fine)
+            if obj is pd.NaT:
+                return None
         except Exception:
             pass
 
         # Last resort: string
         return str(obj)
     except Exception:
-        # Ultra-last-resort
         try:
             return str(obj)
         except Exception:
@@ -110,28 +105,39 @@ def _atomic_write_json_best_effort(path: Path, payload: Dict[str, Any]) -> bool:
     """
     Internal: write JSON atomically via tmp -> replace with fsync.
     Never raises.
+
+    NOTE: Uses mkstemp() inside target directory to avoid cross-device rename issues.
     """
+    tmp_path: Optional[Path] = None
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
 
-        tmp_path = path.with_suffix(path.suffix + f".tmp.{os.getpid()}")
+        fd, tmp_name = tempfile.mkstemp(
+            prefix=f".{path.name}.tmp.",
+            suffix=f".{os.getpid()}",
+            dir=str(path.parent),
+        )
+        os.close(fd)
+        tmp_path = Path(tmp_name)
+
         with open(tmp_path, "w", encoding="utf-8") as f:
             json.dump(payload, f, indent=2, sort_keys=True, ensure_ascii=False)
+            f.write("\n")
             f.flush()
             os.fsync(f.fileno())
 
-        os.replace(tmp_path, path)
-
+        os.replace(str(tmp_path), str(path))
         return True
+
     except Exception as e:
-        # Best-effort cleanup (allowed: exists() check before unlink)
+        # Best-effort cleanup (no exists() read; just try)
         try:
-            if "tmp_path" in locals() and isinstance(tmp_path, Path) and tmp_path.exists():
+            if tmp_path is not None:
                 tmp_path.unlink()
         except Exception:
             pass
 
-        log.warning(f"[ATOMIC_WRITE] Failed to write {path}: {e}")
+        log.warning("[ATOMIC_WRITE] Failed to write %s: %s", str(path), e)
         return False
 
 
@@ -145,14 +151,13 @@ def atomic_write_json_safe(path: Path, payload: Dict[str, Any]) -> bool:
     3) Fallback to our own atomic tmp->replace writer.
     """
     if not isinstance(payload, dict):
-        log.warning(f"[ATOMIC_WRITE] Payload is not dict: {type(payload)}")
+        log.warning("[ATOMIC_WRITE] Payload is not dict: %s", type(payload))
         return False
 
     try:
         payload_ser = convert_to_json_serializable(payload)
         if not isinstance(payload_ser, dict):
-            # Should not happen, but keep us safe
-            log.warning("[ATOMIC_WRITE] Payload conversion did not return dict; forcing dict wrapper")
+            log.warning("[ATOMIC_WRITE] Payload conversion did not return dict; forcing wrapper")
             payload_ser = {"payload": payload_ser}
 
         # Try project atomic writer first (may include extra guarantees)
@@ -162,13 +167,12 @@ def atomic_write_json_safe(path: Path, payload: Dict[str, Any]) -> bool:
             atomic_write_json(path, payload_ser)
             return True
         except Exception as atomic_error:
-            log.debug(f"[ATOMIC_WRITE] gx1.utils.atomic_json failed, falling back: {atomic_error}")
+            log.debug("[ATOMIC_WRITE] gx1.utils.atomic_json failed, falling back: %s", atomic_error)
 
-        # Fallback: atomic tmp->replace
         return _atomic_write_json_best_effort(path, payload_ser)
 
     except Exception as e:
-        log.warning(f"[ATOMIC_WRITE] Failed to write {path}: {e}")
+        log.warning("[ATOMIC_WRITE] Failed to write %s: %s", str(path), e)
         return False
 
 
@@ -187,20 +191,21 @@ def write_fatal_capsule(
 
     Writes:
     - WORKER_START.json (atomic)
-    - FATAL_ERROR.txt (best-effort)
+    - FATAL_ERROR.txt (best-effort; fsync)
     """
     ok_any = False
     try:
         capsule: Dict[str, Any] = {
             "timestamp": dt_now_iso(),
-            "chunk_id": chunk_idx,
-            "run_id": run_id,
-            "fatal_reason": fatal_reason,
-            "error_message": error_message,
+            "chunk_id": int(chunk_idx),
+            "run_id": str(run_id),
+            "fatal_reason": str(fatal_reason),
+            "error_message": str(error_message),
         }
         if extra_fields:
             capsule.update(convert_to_json_serializable(extra_fields))
 
+        # Ensure dir exists (this is a write-path; no reads)
         chunk_output_dir.mkdir(parents=True, exist_ok=True)
 
         worker_start_path = chunk_output_dir / "WORKER_START.json"
@@ -208,7 +213,7 @@ def write_fatal_capsule(
 
         fatal_txt_path = chunk_output_dir / "FATAL_ERROR.txt"
         try:
-            lines = [error_message]
+            lines = [str(error_message)]
             if extra_fields:
                 for k, v in extra_fields.items():
                     lines.append(f"{k}: {convert_to_json_serializable(v)}")
@@ -220,11 +225,11 @@ def write_fatal_capsule(
                 os.fsync(f.fileno())
             ok_any = True
         except Exception as txt_error:
-            log.warning(f"[FATAL_CAPSULE] Failed to write FATAL_ERROR.txt: {txt_error}")
+            log.warning("[FATAL_CAPSULE] Failed to write FATAL_ERROR.txt: %s", txt_error)
 
         return ok_any
     except Exception as e:
-        log.error(f"[FATAL_CAPSULE] Failed to write fatal capsule: {e}", exc_info=True)
+        log.error("[FATAL_CAPSULE] Failed to write fatal capsule: %s", e, exc_info=True)
         return ok_any
 
 
@@ -233,8 +238,8 @@ def write_failure_capsule(
     chunk_output_dir: Optional[Path],
     payload: Dict[str, Any],
     filename: str = "CHUNK_FAIL_CAPSULE.json",
-    chunk_idx: int,
-    run_id: str,
+    chunk_idx: int = 0,
+    run_id: str = "UNKNOWN",
 ) -> Optional[str]:
     """
     Robust writer for failure capsules. Never raises.
@@ -257,18 +262,18 @@ def write_failure_capsule(
             except Exception:
                 pass
 
-        # Fallback to /tmp
+        # Fallback to /tmp (no reads)
         try:
-            fallback_path = Path(tempfile.gettempdir()) / f"chunk_{chunk_idx}_{filename}_{run_id}.json"
+            fallback_path = Path(tempfile.gettempdir()) / f"chunk_{int(chunk_idx)}_{filename}_{run_id}.json"
             if atomic_write_json_safe(fallback_path, payload_ser):
-                log.warning(f"[CHUNK {chunk_idx}] Wrote {filename} to fallback: {fallback_path}")
+                log.warning("[CHUNK %s] Wrote %s to fallback: %s", chunk_idx, filename, str(fallback_path))
                 return str(fallback_path)
         except Exception:
             pass
 
         return None
     except Exception as e:
-        log.warning(f"[CHUNK {chunk_idx}] Failed to write {filename}: {e}")
+        log.warning("[CHUNK %s] Failed to write %s: %s", chunk_idx, filename, e)
         return None
 
 
@@ -291,8 +296,8 @@ def build_failure_context(
     No file I/O, no heavy imports, never raises.
     """
     ctx: Dict[str, Any] = {
-        "chunk_idx": chunk_idx,
-        "run_id": run_id,
+        "chunk_idx": int(chunk_idx),
+        "run_id": str(run_id),
         "exception_type": type(error).__name__ if error else None,
         "exception_message": str(error)[:500] if error else None,
         "bars_processed": int(bars_processed_safe) if bars_processed_safe is not None else 0,
@@ -375,8 +380,8 @@ def write_stub_footer(
     """
     try:
         stub: Dict[str, Any] = {
-            "run_id": run_id,
-            "chunk_id": str(chunk_idx),
+            "run_id": str(run_id),
+            "chunk_id": int(chunk_idx),
             "status": "footer_error",
             "error": f"Failed to write chunk_footer.json: {str(footer_error)[:500]}",
             "bars_processed": int(bars_processed_safe) if bars_processed_safe is not None else 0,
@@ -397,10 +402,10 @@ def write_stub_footer(
         stub_path = chunk_output_dir / "chunk_footer_stub.json"
         ok = atomic_write_json_safe(stub_path, convert_to_json_serializable(stub))
         if ok:
-            log.warning(f"[CHUNK {chunk_idx}] Wrote chunk_footer_stub.json (footer_error)")
+            log.warning("[CHUNK %s] Wrote chunk_footer_stub.json (footer_error)", chunk_idx)
         return ok
     except Exception as e:
-        log.error(f"[CHUNK {chunk_idx}] Failed to write chunk_footer_stub.json: {e}", exc_info=True)
+        log.error("[CHUNK %s] Failed to write chunk_footer_stub.json: %s", chunk_idx, e, exc_info=True)
         return False
 
 
@@ -416,44 +421,35 @@ def write_signal_event_capsule(
 ) -> bool:
     """
     Write SIGNAL_EVENT.json when SIGTERM is received during replay.
-    Best-effort: reads /proc/self/status for VmRSS/VmHWM, ppid, etc.
-    Never raises.
+
+    Contract alignment:
+    - No disk reads (so: no /proc reads here).
+    - Best-effort; never raises.
     """
     try:
         payload: Dict[str, Any] = {
             "event": "SIGTERM_RECEIVED",
             "timestamp": dt_now_iso(),
-            "run_id": run_id,
-            "chunk_idx": chunk_idx,
-            "bars_processed": bars_processed,
-            "total_bars": total_bars,
+            "run_id": str(run_id),
+            "chunk_idx": int(chunk_idx),
+            "bars_processed": int(bars_processed),
+            "total_bars": int(total_bars),
             "last_ts": str(last_ts) if last_ts is not None else None,
-            "wall_clock_sec": wall_clock_sec,
-            "pid": os.getpid(),
+            "wall_clock_sec": float(wall_clock_sec),
+            "pid": int(os.getpid()),
             "ppid": None,
+            "env_hints": {
+                "GX1_STOP_REQUESTED": os.getenv("GX1_STOP_REQUESTED", "?"),
+                "GX1_RUN_MODE": os.getenv("GX1_RUN_MODE", "?"),
+            },
         }
         try:
-            payload["ppid"] = os.getppid()
-        except (AttributeError, OSError):
-            pass
-        try:
-            status_path = Path(f"/proc/{os.getpid()}/status")
-            if status_path.exists():
-                for line in status_path.read_text().splitlines():
-                    if line.startswith("VmRSS:"):
-                        payload["vmrss_kb"] = line.split(":")[1].strip().split()[0]
-                    elif line.startswith("VmHWM:"):
-                        payload["vmhwm_kb"] = line.split(":")[1].strip().split()[0]
-                    elif line.startswith("PPid:"):
-                        payload["ppid_proc"] = line.split(":")[1].strip()
+            payload["ppid"] = int(os.getppid())
         except Exception:
-            pass
-        payload["env_hints"] = {
-            "GX1_STOP_REQUESTED": os.getenv("GX1_STOP_REQUESTED", "?"),
-            "GX1_RUN_MODE": os.getenv("GX1_RUN_MODE", "?"),
-        }
+            payload["ppid"] = None
+
         path = chunk_output_dir / "SIGNAL_EVENT.json"
         return atomic_write_json_safe(path, convert_to_json_serializable(payload))
     except Exception as e:
-        log.warning(f"[SIGNAL_EVENT] Failed to write capsule: {e}")
+        log.warning("[SIGNAL_EVENT] Failed to write capsule: %s", e)
         return False

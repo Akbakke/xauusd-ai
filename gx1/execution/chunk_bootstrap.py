@@ -65,6 +65,9 @@ _FORBIDDEN_ENV_VARS_TRUTH = (
 _WORKER_BOOT_JSON = "WORKER_BOOT.json"
 _WORKER_START_JSON = "WORKER_START.json"
 
+# Canonical truth env
+_CANONICAL_TRUTH_ENV = "GX1_CANONICAL_TRUTH_FILE"
+
 
 def _require(cond: bool, msg: str) -> None:
     if not cond:
@@ -295,27 +298,105 @@ def _one_universe_required_ctx_columns() -> List[str]:
     return cont + cat
 
 
-def _compute_prebuilt_required_columns_one_universe(
+def _load_canonical_truth_file(*, chunk_output_dir: Path, chunk_idx: int, run_id: str) -> tuple[Path, Dict[str, Any]]:
+    truth_path = os.environ.get(_CANONICAL_TRUTH_ENV)
+    if not truth_path:
+        fatal_msg = f"[TRUTH_FILE_MISSING_ENV] env {_CANONICAL_TRUTH_ENV} is not set"
+        write_fatal_capsule(
+            chunk_output_dir=chunk_output_dir,
+            chunk_idx=chunk_idx,
+            run_id=run_id,
+            fatal_reason="CANONICAL_TRUTH_FILE_MISSING",
+            error_message=fatal_msg,
+            extra_fields={"env": _CANONICAL_TRUTH_ENV},
+        )
+        raise RuntimeError(fatal_msg)
+
+    p = Path(truth_path).expanduser().resolve()
+    if not p.is_file():
+        fatal_msg = f"[TRUTH_FILE_NOT_FOUND] path={str(p)}"
+        write_fatal_capsule(
+            chunk_output_dir=chunk_output_dir,
+            chunk_idx=chunk_idx,
+            run_id=run_id,
+            fatal_reason="CANONICAL_TRUTH_FILE_NOT_FOUND",
+            error_message=fatal_msg,
+            extra_fields={"path": str(p)},
+        )
+        raise RuntimeError(fatal_msg)
+
+    try:
+        obj = json.loads(p.read_text(encoding="utf-8"))
+    except Exception as e:
+        fatal_msg = f"[TRUTH_FILE_INVALID_JSON] path={str(p)} err={e}"
+        write_fatal_capsule(
+            chunk_output_dir=chunk_output_dir,
+            chunk_idx=chunk_idx,
+            run_id=run_id,
+            fatal_reason="CANONICAL_TRUTH_FILE_INVALID_JSON",
+            error_message=fatal_msg,
+            extra_fields={"path": str(p), "traceback": traceback.format_exc()},
+        )
+        raise RuntimeError(fatal_msg) from e
+
+    if not isinstance(obj, dict):
+        fatal_msg = f"[TRUTH_FILE_INVALID_JSON] expected dict at top-level, got {type(obj)}"
+        write_fatal_capsule(
+            chunk_output_dir=chunk_output_dir,
+            chunk_idx=chunk_idx,
+            run_id=run_id,
+            fatal_reason="CANONICAL_TRUTH_FILE_INVALID_JSON",
+            error_message=fatal_msg,
+            extra_fields={"path": str(p), "type": str(type(obj))},
+        )
+        raise RuntimeError(fatal_msg)
+
+    return p, obj
+
+
+def _truth_get_prebuilt_required_columns(*, truth_obj: Dict[str, Any]) -> List[str]:
+    cols = truth_obj.get("prebuilt_required_columns")
+    _require(
+        isinstance(cols, list) and cols and all(isinstance(x, str) and x for x in cols),
+        "TRUTH_PREBUILT_REQUIRED_COLUMNS_MISSING_OR_INVALID: expected non-empty list[str]",
+    )
+    if len(set(cols)) != len(cols):
+        raise RuntimeError("TRUTH_PREBUILT_REQUIRED_COLUMNS_HAS_DUPLICATES")
+    return list(cols)
+
+
+def _truth_resolve_prebuilt_parquet_path(*, truth_obj: Dict[str, Any]) -> str:
+    raw = truth_obj.get("canonical_prebuilt_parquet")
+    _require(isinstance(raw, str) and raw.strip(), "TRUTH_CANONICAL_PREBUILT_PARQUET_MISSING_OR_INVALID")
+    p = Path(raw).expanduser().resolve()
+    _require(p.is_file(), f"TRUTH_CANONICAL_PREBUILT_PARQUET_NOT_FOUND: path={str(p)}")
+    return str(p)
+
+
+def _truth_validate_one_universe_contract(
     *,
     chunk_output_dir: Path,
     chunk_idx: int,
     run_id: str,
-    canonical_truth_file: Path,
+    truth_obj: Dict[str, Any],
+    prebuilt_required_columns: List[str],
 ) -> Dict[str, Any]:
     """
-    ONE UNIVERSE SSoT:
-    - Truth file must exist.
+    ONE UNIVERSE validation (no fallback):
     - canonical_xgb_bundle_dir must exist and have MASTER_MODEL_LOCK.json with ordered_features len=28.
     - canonical_transformer_bundle_dir must exist and have MASTER_TRANSFORMER_LOCK.json with ctx_cont_dim=6 ctx_cat_dim=6.
-    - required columns = ordered_features (28) + missing(ctx12) appended.
+    - prebuilt_required_columns from truth must:
+        - start with ordered_features (exact order)
+        - contain ctx12 (ORDERED_CTX_CONT_NAMES_EXTENDED[:6] + ORDERED_CTX_CAT_NAMES_EXTENDED[:6])
     """
-    truth_obj = _load_json_file(canonical_truth_file)
-
     canonical_xgb_bundle_dir_str = str(truth_obj.get("canonical_xgb_bundle_dir") or "").strip()
     canonical_transformer_bundle_dir_str = str(truth_obj.get("canonical_transformer_bundle_dir") or "").strip()
 
     _require(canonical_xgb_bundle_dir_str, "canonical_xgb_bundle_dir missing in truth config")
-    _require(canonical_transformer_bundle_dir_str, "canonical_transformer_bundle_dir missing in truth config (ONE UNIVERSE requires it)")
+    _require(
+        canonical_transformer_bundle_dir_str,
+        "canonical_transformer_bundle_dir missing in truth config (ONE UNIVERSE requires it)",
+    )
 
     canonical_xgb_bundle_dir = Path(canonical_xgb_bundle_dir_str).expanduser().resolve()
     canonical_transformer_bundle_dir = Path(canonical_transformer_bundle_dir_str).expanduser().resolve()
@@ -331,7 +412,10 @@ def _compute_prebuilt_required_columns_one_universe(
     lock_obj = _load_json_file(lock_path)
 
     ordered = lock_obj.get("ordered_features")
-    _require(isinstance(ordered, list) and all(isinstance(x, str) for x in ordered), "MASTER_MODEL_LOCK.ordered_features missing or not list[str]")
+    _require(
+        isinstance(ordered, list) and all(isinstance(x, str) for x in ordered),
+        "MASTER_MODEL_LOCK.ordered_features missing or not list[str]",
+    )
 
     n = len(ordered)
     if n != EXPECTED_XGB_FEATURES_LEN:
@@ -352,7 +436,6 @@ def _compute_prebuilt_required_columns_one_universe(
     # Transformer lock must exist and must be 6/6
     trans_lock_path = canonical_transformer_bundle_dir / "MASTER_TRANSFORMER_LOCK.json"
     _require(trans_lock_path.exists(), f"MASTER_TRANSFORMER_LOCK.json missing: {trans_lock_path}")
-
     trans_lock_obj = _load_json_file(trans_lock_path)
 
     ctx_cont_dim = trans_lock_obj.get("ctx_cont_dim")
@@ -377,24 +460,48 @@ def _compute_prebuilt_required_columns_one_universe(
         )
         raise RuntimeError(fatal_msg)
 
+    ordered_features = list(ordered)
+
+    # Truth columns must start with ordered_features in exact order (no partial/no reordering)
+    if prebuilt_required_columns[: len(ordered_features)] != ordered_features:
+        fatal_msg = (
+            f"[TRUTH_PREBUILT_COLUMNS_MISMATCH] [CHUNK {chunk_idx}] prebuilt_required_columns does not start with "
+            f"MASTER_MODEL_LOCK.ordered_features (exact order required)."
+        )
+        write_fatal_capsule(
+            chunk_output_dir=chunk_output_dir,
+            chunk_idx=chunk_idx,
+            run_id=run_id,
+            fatal_reason="TRUTH_PREBUILT_COLUMNS_MISMATCH",
+            error_message=fatal_msg,
+            extra_fields={
+                "expected_prefix_len": len(ordered_features),
+                "expected_prefix_head": ordered_features[:10],
+                "actual_prefix_head": prebuilt_required_columns[:10],
+                "canonical_xgb_bundle_dir": str(canonical_xgb_bundle_dir),
+            },
+        )
+        raise RuntimeError(fatal_msg)
+
     required_ctx_12 = _one_universe_required_ctx_columns()
-
-    base_set = set(ordered)
-    extra = [c for c in required_ctx_12 if c not in base_set]
-    required_all = list(ordered) + extra
-
-    # Ensure the full ctx12 is present in required_all
-    missing_ctx = [c for c in required_ctx_12 if c not in set(required_all)]
-    _require(not missing_ctx, f"[BOOTSTRAP_FAIL] required_all missing ctx columns: {missing_ctx}")
+    missing_ctx = [c for c in required_ctx_12 if c not in set(prebuilt_required_columns)]
+    if missing_ctx:
+        fatal_msg = f"[TRUTH_PREBUILT_COLUMNS_MISSING_CTX] [CHUNK {chunk_idx}] missing ctx columns: {missing_ctx}"
+        write_fatal_capsule(
+            chunk_output_dir=chunk_output_dir,
+            chunk_idx=chunk_idx,
+            run_id=run_id,
+            fatal_reason="TRUTH_PREBUILT_COLUMNS_MISSING_CTX",
+            error_message=fatal_msg,
+            extra_fields={"missing_ctx": missing_ctx},
+        )
+        raise RuntimeError(fatal_msg)
 
     return {
         "canonical_xgb_bundle_dir": str(canonical_xgb_bundle_dir),
         "canonical_transformer_bundle_dir": str(canonical_transformer_bundle_dir),
         "expected_ctx_cont_dim": EXPECTED_CTX_CONT_DIM,
         "expected_ctx_cat_dim": EXPECTED_CTX_CAT_DIM,
-        "ordered_features": list(ordered),
-        "required_ctx_12": required_ctx_12,
-        "prebuilt_required_columns": required_all,
     }
 
 
@@ -474,12 +581,15 @@ def bootstrap_chunk_environment(
     ONE UNIVERSE:
     - Requires signal bridge dims 7/7
     - Requires transformer ctx dims 6/6 (from MASTER_TRANSFORMER_LOCK in canonical bundle dir from truth)
-    - Requires prebuilt_required_columns to include XGB 28 + ctx 12
-    - No legacy, no defaults, no fallback.
+    - Requires prebuilt_required_columns to be sourced from canonical truth config (no fallback)
+    - Requires prebuilt parquet path to be sourced/resolved from canonical truth config (no fallback)
     """
     # Determine run mode
     run_mode = os.getenv("GX1_RUN_MODE", "").upper()
     is_truth_or_smoke_worker = run_mode in ("TRUTH", "SMOKE") or os.getenv("GX1_SMOKE", "0") == "1"
+
+    # TRUTH-only init timing: start as early as possible (fix #2)
+    t_init_start: Optional[float] = time.time() if is_truth_or_smoke_worker else None
 
     # Resolve chunk output dir (absolute)
     chunk_output_dir = (Path(output_dir) / f"chunk_{chunk_idx}").resolve()
@@ -535,10 +645,26 @@ def bootstrap_chunk_environment(
             run_id=run_id,
         )
 
-    # Prebuilt mode (env is the truth of intent; arg is required if enabled)
+    # Prebuilt mode (env is the truth of intent)
     prebuilt_enabled = os.getenv("GX1_REPLAY_USE_PREBUILT_FEATURES", "0") == "1"
 
-    # Enforce type discipline
+    # Fix #1: TRUTH/SMOKE must require prebuilt-enabled (fail early, not later in loader)
+    if is_truth_or_smoke_worker and not prebuilt_enabled:
+        fatal_msg = (
+            f"[TRUTH_PREBUILT_REQUIRED] [CHUNK {chunk_idx}] "
+            "GX1_REPLAY_USE_PREBUILT_FEATURES must be 1 in TRUTH/SMOKE"
+        )
+        write_fatal_capsule(
+            chunk_output_dir=chunk_output_dir,
+            chunk_idx=chunk_idx,
+            run_id=run_id,
+            fatal_reason="TRUTH_PREBUILT_REQUIRED",
+            error_message=fatal_msg,
+            extra_fields={"GX1_REPLAY_USE_PREBUILT_FEATURES": os.getenv("GX1_REPLAY_USE_PREBUILT_FEATURES")},
+        )
+        raise RuntimeError(fatal_msg)
+
+    # Enforce type discipline on arg (even if ignored in TRUTH SSoT path)
     if prebuilt_parquet_path is not None and not isinstance(prebuilt_parquet_path, str):
         fatal_msg = (
             f"[PREBUILT_TYPE_FAIL] [CHUNK {chunk_idx}] prebuilt_parquet_path must be str, "
@@ -554,142 +680,112 @@ def bootstrap_chunk_environment(
         )
         raise RuntimeError(fatal_msg)
 
-    if prebuilt_enabled and not prebuilt_parquet_path:
-        fatal_msg = (
-            f"[PREBUILT_MISSING] [CHUNK {chunk_idx}] prebuilt_parquet_path arg is None/empty "
-            f"but GX1_REPLAY_USE_PREBUILT_FEATURES=1 (prebuilt required)."
-        )
-        write_fatal_capsule(
-            chunk_output_dir=chunk_output_dir,
-            chunk_idx=chunk_idx,
-            run_id=run_id,
-            fatal_reason="PREBUILT_MISSING",
-            error_message=fatal_msg,
-            extra_fields={"GX1_REPLAY_USE_PREBUILT_FEATURES": prebuilt_env},
-        )
-        raise RuntimeError(fatal_msg)
-
-    # Canonical truth file (required in ONE UNIVERSE prebuilt mode)
+    # Canonical truth file + TRUTH SSoT derivations (only required when prebuilt is enabled)
     canonical_truth_file_val: Optional[Path] = None
-    canonical_truth_file_env = os.getenv("GX1_CANONICAL_TRUTH_FILE")
-    if canonical_truth_file_env:
-        canonical_truth_file_val = Path(canonical_truth_file_env)
+    truth_obj: Optional[Dict[str, Any]] = None
 
-    if prebuilt_enabled:
-        if not canonical_truth_file_val or not canonical_truth_file_val.exists():
-            fatal_msg = (
-                "[TRUTH_NO_FALLBACK] GX1_CANONICAL_TRUTH_FILE missing or does not exist; "
-                "required in ONE UNIVERSE prebuilt mode."
-            )
-            write_fatal_capsule(
-                chunk_output_dir=chunk_output_dir,
-                chunk_idx=chunk_idx,
-                run_id=run_id,
-                fatal_reason="CANONICAL_TRUTH_FILE_MISSING",
-                error_message=fatal_msg,
-                extra_fields={"GX1_CANONICAL_TRUTH_FILE": canonical_truth_file_env},
-            )
-            raise RuntimeError(fatal_msg)
-
-    prebuilt_parquet_path_resolved: Optional[str] = None
-    prebuilt_exists = False
-    prebuilt_size = 0
-
-    if prebuilt_parquet_path:
-        try:
-            prebuilt_parquet_path_resolved = str(Path(prebuilt_parquet_path).resolve())
-            p = Path(prebuilt_parquet_path_resolved)
-
-            if not p.is_absolute():
-                fatal_msg = (
-                    f"[PREBUILT_PATH_NOT_ABSOLUTE] [CHUNK {chunk_idx}] Prebuilt path is not absolute: "
-                    f"{prebuilt_parquet_path_resolved}"
-                )
-                write_fatal_capsule(
-                    chunk_output_dir=chunk_output_dir,
-                    chunk_idx=chunk_idx,
-                    run_id=run_id,
-                    fatal_reason="PREBUILT_PATH_NOT_ABSOLUTE",
-                    error_message=fatal_msg,
-                    extra_fields={"prebuilt_parquet_path_resolved": prebuilt_parquet_path_resolved},
-                )
-                raise RuntimeError(fatal_msg)
-
-            prebuilt_exists = p.exists()
-            if prebuilt_exists:
-                prebuilt_size = int(p.stat().st_size)
-
-        except Exception as e:
-            fatal_msg = f"[PREBUILT_RESOLVE_FAIL] [CHUNK {chunk_idx}] Failed to resolve/stat prebuilt path: {e}"
-            write_fatal_capsule(
-                chunk_output_dir=chunk_output_dir,
-                chunk_idx=chunk_idx,
-                run_id=run_id,
-                fatal_reason="PREBUILT_RESOLVE_FAIL",
-                error_message=fatal_msg,
-                extra_fields={
-                    "prebuilt_parquet_path": str(prebuilt_parquet_path),
-                    "traceback": traceback.format_exc(),
-                },
-            )
-            raise
-
-    # -------------------------------------------------------------------------
-    # ONE UNIVERSE: compute prebuilt_required_columns (TRUTH/SMOKE: no fallback)
-    # -------------------------------------------------------------------------
     prebuilt_required_columns_val: Optional[List[str]] = None
+    prebuilt_parquet_path_resolved: Optional[str] = None
+
     canonical_xgb_bundle_dir_str: Optional[str] = None
     canonical_transformer_bundle_dir_str: Optional[str] = None
     expected_ctx_cont_dim: Optional[int] = None
     expected_ctx_cat_dim: Optional[int] = None
 
     if prebuilt_enabled:
+        # Load truth (no fallback)
+        canonical_truth_file_val, truth_obj = _load_canonical_truth_file(
+            chunk_output_dir=chunk_output_dir, chunk_idx=chunk_idx, run_id=run_id
+        )
+
         try:
-            ssot = _compute_prebuilt_required_columns_one_universe(
+            prebuilt_required_columns_val = _truth_get_prebuilt_required_columns(truth_obj=truth_obj)
+
+            # Fix #3: TRUTH prebuilt_required_columns must NOT include "time" (loader injects it)
+            if prebuilt_required_columns_val and prebuilt_required_columns_val[0] == "time":
+                raise RuntimeError(
+                    "TRUTH_PREBUILT_REQUIRED_COLUMNS_INVALID: must not include 'time' (loader injects it)"
+                )
+
+            prebuilt_parquet_path_resolved = _truth_resolve_prebuilt_parquet_path(truth_obj=truth_obj)
+
+            # Validate ONE UNIVERSE contract (locks + ctx dims + columns prefix)
+            contract = _truth_validate_one_universe_contract(
                 chunk_output_dir=chunk_output_dir,
                 chunk_idx=chunk_idx,
                 run_id=run_id,
-                canonical_truth_file=canonical_truth_file_val,  # type: ignore[arg-type]
+                truth_obj=truth_obj,
+                prebuilt_required_columns=prebuilt_required_columns_val,
             )
-            canonical_xgb_bundle_dir_str = ssot["canonical_xgb_bundle_dir"]
-            canonical_transformer_bundle_dir_str = ssot["canonical_transformer_bundle_dir"]
-            expected_ctx_cont_dim = ssot["expected_ctx_cont_dim"]
-            expected_ctx_cat_dim = ssot["expected_ctx_cat_dim"]
-            prebuilt_required_columns_val = ssot["prebuilt_required_columns"]
+            canonical_xgb_bundle_dir_str = contract["canonical_xgb_bundle_dir"]
+            canonical_transformer_bundle_dir_str = contract["canonical_transformer_bundle_dir"]
+            expected_ctx_cont_dim = int(contract["expected_ctx_cont_dim"])
+            expected_ctx_cat_dim = int(contract["expected_ctx_cat_dim"])
 
-            _require(int(expected_ctx_cont_dim) == 6, "ONE UNIVERSE violation: expected_ctx_cont_dim != 6")
-            _require(int(expected_ctx_cat_dim) == 6, "ONE UNIVERSE violation: expected_ctx_cat_dim != 6")
+            # Fix #4: bundle_dir split-brain guard in TRUTH/SMOKE
+            if is_truth_or_smoke_worker and bundle_dir is not None:
+                caller_bundle = str(Path(bundle_dir).expanduser().resolve())
+                # Allow only exact canonical dirs (strict)
+                if caller_bundle not in (canonical_xgb_bundle_dir_str, canonical_transformer_bundle_dir_str):
+                    fatal_msg = (
+                        f"[BUNDLE_SPLIT_BRAIN] [CHUNK {chunk_idx}] caller bundle_dir does not match canonical dirs. "
+                        f"caller={caller_bundle} canonical_xgb={canonical_xgb_bundle_dir_str} "
+                        f"canonical_transformer={canonical_transformer_bundle_dir_str}"
+                    )
+                    write_fatal_capsule(
+                        chunk_output_dir=chunk_output_dir,
+                        chunk_idx=chunk_idx,
+                        run_id=run_id,
+                        fatal_reason="BUNDLE_SPLIT_BRAIN",
+                        error_message=fatal_msg,
+                        extra_fields={
+                            "caller_bundle_dir_resolved": caller_bundle,
+                            "canonical_xgb_bundle_dir": canonical_xgb_bundle_dir_str,
+                            "canonical_transformer_bundle_dir": canonical_transformer_bundle_dir_str,
+                        },
+                    )
+                    raise RuntimeError(fatal_msg)
 
         except Exception as e:
             write_fatal_capsule(
                 chunk_output_dir=chunk_output_dir,
                 chunk_idx=chunk_idx,
                 run_id=run_id,
-                fatal_reason="PREBUILT_REQUIRED_COLUMNS_FAIL",
+                fatal_reason="TRUTH_SSOT_BOOTSTRAP_FAIL",
                 error_message=str(e),
                 extra_fields={
                     "canonical_truth_file": str(canonical_truth_file_val) if canonical_truth_file_val else None,
-                    "canonical_xgb_bundle_dir": canonical_xgb_bundle_dir_str,
-                    "canonical_transformer_bundle_dir": canonical_transformer_bundle_dir_str,
                     "traceback": traceback.format_exc(),
                 },
             )
-            raise RuntimeError(
-                "[TRUTH_NO_FALLBACK] Failed to compute ONE UNIVERSE prebuilt_required_columns (28 + ctx12). "
-                f"Error: {e}"
-            ) from e
+            raise RuntimeError(f"[TRUTH_NO_FALLBACK] bootstrap failed: {e}") from e
 
-        if not prebuilt_required_columns_val:
-            fatal_msg = "[TRUTH_NO_FALLBACK] prebuilt_required_columns missing in ONE UNIVERSE prebuilt mode."
-            write_fatal_capsule(
-                chunk_output_dir=chunk_output_dir,
-                chunk_idx=chunk_idx,
-                run_id=run_id,
-                fatal_reason="PREBUILT_REQUIRED_COLUMNS_MISSING",
-                error_message=fatal_msg,
-                extra_fields={"canonical_truth_file": str(canonical_truth_file_val) if canonical_truth_file_val else None},
-            )
-            raise RuntimeError(fatal_msg)
+        # Split-brain guard: if caller passed a path, it must match truth (after resolve)
+        if prebuilt_parquet_path:
+            caller_resolved = str(Path(prebuilt_parquet_path).expanduser().resolve())
+            if caller_resolved != prebuilt_parquet_path_resolved:
+                fatal_msg = (
+                    f"[PREBUILT_SPLIT_BRAIN] [CHUNK {chunk_idx}] caller prebuilt path does not match truth canonical_prebuilt_parquet. "
+                    f"caller_resolved={caller_resolved} truth_resolved={prebuilt_parquet_path_resolved}"
+                )
+                write_fatal_capsule(
+                    chunk_output_dir=chunk_output_dir,
+                    chunk_idx=chunk_idx,
+                    run_id=run_id,
+                    fatal_reason="PREBUILT_SPLIT_BRAIN",
+                    error_message=fatal_msg,
+                    extra_fields={"caller_resolved": caller_resolved, "truth_resolved": prebuilt_parquet_path_resolved},
+                )
+                raise RuntimeError(fatal_msg)
+
+    # Existence + size (deterministic: only the resolved path matters)
+    prebuilt_exists = False
+    prebuilt_size = 0
+    if prebuilt_parquet_path_resolved:
+        p = Path(prebuilt_parquet_path_resolved)
+        prebuilt_exists = p.exists()
+        if prebuilt_exists:
+            prebuilt_size = int(p.stat().st_size)
 
     # Build WORKER_BOOT payload (always written; TRUTH/SMOKE requires write success)
     worker_boot_payload: Dict[str, Any] = {
@@ -807,6 +903,7 @@ def bootstrap_chunk_environment(
 
         log.info(f"[CHUNK {chunk_idx}] [SSoT] prebuilt_enabled=1, resolved={prebuilt_parquet_path_resolved}")
         log.info(f"[CHUNK {chunk_idx}] [SSoT] prebuilt exists=True size={prebuilt_size:,} bytes")
+        log.info(f"[CHUNK {chunk_idx}] [SSoT] truth_prebuilt_required_columns_len={len(prebuilt_required_columns_val or [])}")
 
         _run_prebuilt_smoke_test(
             chunk_idx=chunk_idx,
@@ -824,10 +921,11 @@ def bootstrap_chunk_environment(
         telemetry_required = True
         log.info("[TELEMETRY] GX1_TRUTH_TELEMETRY=1 enabled -> telemetry_required=True")
 
-    # TRUTH-only init timing
-    worker_start_time = time.time()
-    t_init_start: Optional[float] = time.time() if is_truth_or_smoke_worker else None
+    # Fix #2: finalize bootstrap duration correctly
     t_init_s = (time.time() - t_init_start) if t_init_start is not None else 0.0
+
+    # Worker start time (post-bootstrap “ready to run” timestamp)
+    worker_start_time = time.time()
 
     # Final SSoT logs
     log.info(f"[CHUNK {chunk_idx}] [SSoT] cwd={cwd}")
@@ -838,7 +936,8 @@ def bootstrap_chunk_environment(
     log.info(f"[CHUNK {chunk_idx}] [SSoT] prebuilt_resolved={prebuilt_parquet_path_resolved}")
 
     if prebuilt_enabled:
-        log.info(f"[CHUNK {chunk_idx}] [SSoT] ONE_UNIVERSE ctx_cont_dim=6 ctx_cat_dim=6")
+        log.info(f"[CHUNK {chunk_idx}] [SSoT] ONE_UNIVERSE ctx_cont_dim=6 ctx_cat_dim=6 (validated)")
+        log.info(f"[CHUNK {chunk_idx}] [SSoT] canonical_truth_file={canonical_truth_file_val}")
 
     return BootstrapContext(
         chunk_idx=chunk_idx,

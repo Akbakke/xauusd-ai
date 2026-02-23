@@ -13,10 +13,8 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
-
-from gx1.scripts.add_ctx_cont_columns_to_prebuilt import get_prebuilt_ctx_contract_columns
-from gx1.utils.dt_module import now_iso as dt_now_iso
 
 log = logging.getLogger(__name__)
 
@@ -54,6 +52,122 @@ class PrebuiltInvariantContext:
 
 
 # ============================================================
+# Helpers (no-throw / json-safe)
+# ============================================================
+
+def _now_iso_utc() -> str:
+    # Deterministic-ish format. (Value changes with time, but format and code path are stable.)
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _safe_int(x: Any, default: Optional[int] = None) -> Optional[int]:
+    try:
+        if x is None:
+            return default
+        return int(x)
+    except Exception:
+        return default
+
+
+def _safe_float(x: Any, default: Optional[float] = None) -> Optional[float]:
+    try:
+        if x is None:
+            return default
+        return float(x)
+    except Exception:
+        return default
+
+
+def _safe_bool(x: Any, default: Optional[bool] = None) -> Optional[bool]:
+    try:
+        if x is None:
+            return default
+        return bool(x)
+    except Exception:
+        return default
+
+
+def _safe_str(x: Any, default: Optional[str] = None) -> Optional[str]:
+    try:
+        if x is None:
+            return default
+        return str(x)
+    except Exception:
+        return default
+
+
+def _safe_enum_to_str(x: Any) -> Optional[str]:
+    # Enum -> stable-ish string
+    try:
+        if x is None:
+            return None
+        if hasattr(x, "value"):
+            return str(x.value)
+        if hasattr(x, "name"):
+            return str(x.name)
+        return str(x)
+    except Exception:
+        return None
+
+
+def _get_required_ctx_columns_from_runner(runner: Any) -> Tuple[List[str], List[str]]:
+    """
+    NO I/O: derive ctx contract columns from runner/runtime only.
+    We accept multiple possible attribute names to avoid coupling.
+
+    Returns:
+      (required_cont: list[str], required_cat: list[str])
+    """
+    required_cont: List[str] = []
+    required_cat: List[str] = []
+
+    if runner is None:
+        return required_cont, required_cat
+
+    # Candidate attribute names (in priority order)
+    cont_candidates = (
+        "ctx_cont_required_columns",
+        "ctx_cont_columns_required",
+        "ctx_cont_feature_names",
+        "ctx_cont_names",
+        "ORDERED_CTX_CONT_NAMES",  # if runner exposes these
+    )
+    cat_candidates = (
+        "ctx_cat_required_columns",
+        "ctx_cat_columns_required",
+        "ctx_cat_feature_names",
+        "ctx_cat_names",
+        "ORDERED_CTX_CAT_NAMES",
+    )
+
+    def _extract_list(attr_names: Tuple[str, ...]) -> List[str]:
+        for a in attr_names:
+            try:
+                v = getattr(runner, a, None)
+                if isinstance(v, (list, tuple)) and all(isinstance(x, str) for x in v):
+                    return list(v)
+            except Exception:
+                continue
+        return []
+
+    required_cont = _extract_list(cont_candidates)
+    required_cat = _extract_list(cat_candidates)
+
+    # If dims exist, and lists are longer, caller may be masking; trim only if dims are sane.
+    try:
+        cont_dim = _safe_int(getattr(runner, "ctx_cont_dim", None), None)
+        cat_dim = _safe_int(getattr(runner, "ctx_cat_dim", None), None)
+        if cont_dim is not None and cont_dim > 0 and len(required_cont) >= cont_dim:
+            required_cont = required_cont[:cont_dim]
+        if cat_dim is not None and cat_dim > 0 and len(required_cat) >= cat_dim:
+            required_cat = required_cat[:cat_dim]
+    except Exception:
+        pass
+
+    return required_cont, required_cat
+
+
+# ============================================================
 # Invariant Check
 # ============================================================
 
@@ -65,88 +179,90 @@ def check_prebuilt_invariants(
 
     Returns:
         (ok: bool, report: dict)
-    """
 
+    NEVER raises.
+    NO file I/O.
+    """
     FEATURE_TIME_MEAN_MS_THRESHOLD = 5.0
-    violations = []
+    violations: List[Dict[str, Any]] = []
 
     # --------------------------------------------------------
     # Extract runner state (best-effort, never fail)
     # --------------------------------------------------------
-
-    runner_prebuilt_used = None
-    runner_replay_mode_enum = None
+    runner_prebuilt_used: Optional[bool] = None
+    runner_replay_mode_enum: Optional[str] = None
     has_prebuilt_df = False
-    lookup_attempts = None
-    lookup_hits = None
-    lookup_misses = None
-    prebuilt_lookup_phase = None
-    prebuilt_features_sha256 = None
-    prebuilt_features_path_resolved = None
-    prebuilt_schema_version = None
 
-    if ctx.runner:
+    lookup_attempts: Optional[int] = None
+    lookup_hits: Optional[int] = None
+    lookup_misses: Optional[int] = None
+    prebuilt_lookup_phase: Optional[str] = None
+
+    prebuilt_features_sha256: Optional[str] = None
+    prebuilt_features_path_resolved: Optional[str] = None
+    prebuilt_schema_version: Optional[str] = None
+
+    if ctx.runner is not None:
         try:
-            runner_prebuilt_used = getattr(ctx.runner, "prebuilt_used", None)
+            runner_prebuilt_used = _safe_bool(getattr(ctx.runner, "prebuilt_used", None), None)
 
-            # Enum -> stable string
             replay_enum = getattr(ctx.runner, "replay_mode_enum", None)
-            if replay_enum is not None:
-                if hasattr(replay_enum, "value"):
-                    runner_replay_mode_enum = str(replay_enum.value)
-                elif hasattr(replay_enum, "name"):
-                    runner_replay_mode_enum = str(replay_enum.name)
-                else:
-                    runner_replay_mode_enum = str(replay_enum)
+            runner_replay_mode_enum = _safe_enum_to_str(replay_enum)
 
-            has_prebuilt_df = (
-                hasattr(ctx.runner, "prebuilt_features_df")
-                and ctx.runner.prebuilt_features_df is not None
-            )
+            try:
+                has_prebuilt_df = (
+                    hasattr(ctx.runner, "prebuilt_features_df")
+                    and getattr(ctx.runner, "prebuilt_features_df", None) is not None
+                )
+            except Exception:
+                has_prebuilt_df = False
 
-            lookup_attempts = int(getattr(ctx.runner, "lookup_attempts", 0))
-            lookup_hits = int(getattr(ctx.runner, "lookup_hits", 0))
-            lookup_misses = int(getattr(ctx.runner, "lookup_misses", 0))
-            prebuilt_lookup_phase = getattr(ctx.runner, "prebuilt_lookup_phase", None)
+            lookup_attempts = _safe_int(getattr(ctx.runner, "lookup_attempts", None), None)
+            lookup_hits = _safe_int(getattr(ctx.runner, "lookup_hits", None), None)
+            lookup_misses = _safe_int(getattr(ctx.runner, "lookup_misses", None), None)
+            prebuilt_lookup_phase = _safe_str(getattr(ctx.runner, "prebuilt_lookup_phase", None), None)
 
             # Loader metadata (if available)
             loader = getattr(ctx.runner, "prebuilt_features_loader", None)
-            if loader:
-                prebuilt_features_sha256 = getattr(loader, "sha256", None)
+            if loader is not None:
+                prebuilt_features_sha256 = _safe_str(getattr(loader, "sha256", None), None)
                 p = getattr(loader, "prebuilt_path_resolved", None)
-                prebuilt_features_path_resolved = str(p) if p is not None else None
-                prebuilt_schema_version = getattr(loader, "schema_version", None)
+                prebuilt_features_path_resolved = _safe_str(p, None)
+                prebuilt_schema_version = _safe_str(getattr(loader, "schema_version", None), None)
 
             # Fallback metadata
             if prebuilt_features_sha256 is None:
-                prebuilt_features_sha256 = getattr(ctx.runner, "prebuilt_features_sha256", None)
+                prebuilt_features_sha256 = _safe_str(getattr(ctx.runner, "prebuilt_features_sha256", None), None)
 
             if prebuilt_features_path_resolved is None:
-                p = getattr(ctx.runner, "prebuilt_features_path_resolved", None)
-                prebuilt_features_path_resolved = str(p) if p is not None else None
+                prebuilt_features_path_resolved = _safe_str(
+                    getattr(ctx.runner, "prebuilt_features_path_resolved", None), None
+                )
 
             if prebuilt_schema_version is None:
-                prebuilt_schema_version = getattr(ctx.runner, "prebuilt_schema_version", None)
+                prebuilt_schema_version = _safe_str(getattr(ctx.runner, "prebuilt_schema_version", None), None)
 
         except Exception as e:
+            # Contract: never throw
             log.warning("[PREBUILT_INVARIANTS] Failed to read runner state: %s", e)
 
     # --------------------------------------------------------
     # Logging helper
     # --------------------------------------------------------
-
-    def _log_violation(msg: str):
-        if ctx.is_truth_or_smoke_worker:
-            log.error(msg)
-        else:
-            log.warning(msg)
+    def _log_violation(msg: str) -> None:
+        try:
+            if ctx.is_truth_or_smoke_worker:
+                log.error(msg)
+            else:
+                log.warning(msg)
+        except Exception:
+            pass
 
     # --------------------------------------------------------
     # Invariant A
     # PREBUILT env enabled => runner.prebuilt_used must be True
     # --------------------------------------------------------
-
-    if ctx.prebuilt_enabled_env and runner_prebuilt_used is not True:
+    if bool(ctx.prebuilt_enabled_env) and runner_prebuilt_used is not True:
         code = "INV_A_PREBUILT_USED_FALSE"
         msg = (
             "PREBUILT env enabled but runner.prebuilt_used="
@@ -159,12 +275,12 @@ def check_prebuilt_invariants(
     # Invariant B
     # PREBUILT env enabled => feature time must be near zero
     # --------------------------------------------------------
-
-    if ctx.prebuilt_enabled_env and ctx.feature_time_mean_ms > FEATURE_TIME_MEAN_MS_THRESHOLD:
+    ft_mean = _safe_float(ctx.feature_time_mean_ms, 0.0) or 0.0
+    if bool(ctx.prebuilt_enabled_env) and ft_mean > FEATURE_TIME_MEAN_MS_THRESHOLD:
         code = "INV_B_FEATURE_TIME_HIGH"
         msg = (
             "PREBUILT env enabled but feature_time_mean_ms="
-            f"{ctx.feature_time_mean_ms:.3f} > {FEATURE_TIME_MEAN_MS_THRESHOLD}"
+            f"{ft_mean:.3f} > {FEATURE_TIME_MEAN_MS_THRESHOLD}"
         )
         violations.append({"code": code, "msg": msg})
         _log_violation(msg)
@@ -173,8 +289,7 @@ def check_prebuilt_invariants(
     # Invariant C
     # PREBUILT env enabled => DF must exist
     # --------------------------------------------------------
-
-    if ctx.prebuilt_enabled_env and not has_prebuilt_df:
+    if bool(ctx.prebuilt_enabled_env) and not bool(has_prebuilt_df):
         code = "INV_C_PREBUILT_DF_MISSING"
         msg = "PREBUILT env enabled but runner.prebuilt_features_df is missing"
         violations.append({"code": code, "msg": msg})
@@ -182,41 +297,62 @@ def check_prebuilt_invariants(
 
     # --------------------------------------------------------
     # Invariant D (TRUTH/SMOKE)
-    # Prebuilt DF must contain all ctx contract columns (required_cont + required_cat)
+    # Prebuilt DF must contain all ctx contract columns derived from runner (NO I/O)
     # --------------------------------------------------------
-
     ctx_contract_missing: List[str] = []
-    if ctx.prebuilt_enabled_env and has_prebuilt_df and ctx.is_truth_or_smoke_worker:
+    required_cont: List[str] = []
+    required_cat: List[str] = []
+
+    if bool(ctx.prebuilt_enabled_env) and bool(has_prebuilt_df) and bool(ctx.is_truth_or_smoke_worker):
         try:
-            required_cont, required_cat = get_prebuilt_ctx_contract_columns()
-            all_required = required_cont + required_cat
+            required_cont, required_cat = _get_required_ctx_columns_from_runner(ctx.runner)
+            all_required = list(required_cont) + list(required_cat)
+
             df = getattr(ctx.runner, "prebuilt_features_df", None)
-            if df is not None and hasattr(df, "columns"):
-                ctx_contract_missing = [c for c in all_required if c not in df.columns]
+            df_cols = []
+            try:
+                if df is not None and hasattr(df, "columns"):
+                    df_cols = list(df.columns)
+            except Exception:
+                df_cols = []
+
+            if all_required and df_cols:
+                ctx_contract_missing = [c for c in all_required if c not in df_cols]
+            elif not all_required:
+                # We cannot derive contract from runner; treat as a violation in TRUTH/SMOKE.
+                ctx_contract_missing = ["<runner_ctx_contract_unavailable>"]
+            else:
+                ctx_contract_missing = ["<prebuilt_df_columns_unavailable>"]
+
             if ctx_contract_missing:
                 code = "INV_D_CTX_CONTRACT_COLUMNS_MISSING"
                 msg = (
-                    "[PREBUILT_CTX_CONTRACT] TRUTH/SMOKE prebuilt missing ctx contract columns: "
-                    f"missing={ctx_contract_missing}"
+                    "[PREBUILT_CTX_CONTRACT] TRUTH/SMOKE prebuilt missing ctx contract columns "
+                    f"(derived from runner): missing={ctx_contract_missing}"
                 )
-                violations.append({"code": code, "msg": msg, "missing": ctx_contract_missing})
+                violations.append(
+                    {"code": code, "msg": msg, "missing": list(ctx_contract_missing)}
+                )
                 _log_violation(msg)
             else:
-                log.info("[PREBUILT_CTX_CONTRACT] required cont+cat present; missing: []")
+                try:
+                    log.info("[PREBUILT_CTX_CONTRACT] required cont+cat present; missing: []")
+                except Exception:
+                    pass
         except Exception as e:
+            # Contract: never throw
             log.warning("[PREBUILT_CTX_CONTRACT] Failed to check ctx contract columns: %s", e)
-            ctx_contract_missing = ["check_failed"]
+            ctx_contract_missing = ["<check_failed>"]
 
     # --------------------------------------------------------
     # Summary
     # --------------------------------------------------------
-
     ok = len(violations) == 0
 
     if ok:
         summary = "OK"
     else:
-        first_code = violations[0]["code"]
+        first_code = _safe_str(violations[0].get("code"), "UNKNOWN") or "UNKNOWN"
         summary = f"VIOLATION: {first_code}"
         if len(violations) > 1:
             summary += f" (+{len(violations) - 1} more)"
@@ -224,34 +360,33 @@ def check_prebuilt_invariants(
     # --------------------------------------------------------
     # Final Report (JSON-safe)
     # --------------------------------------------------------
-
-    report = {
+    report: Dict[str, Any] = {
         "contract_id": "PREBUILT_INVARIANTS_V1",
-        "report_version": 1,
+        "report_version": 2,
 
-        "ok": ok,
-        "summary": summary,
+        "ok": bool(ok),
+        "summary": str(summary),
 
-        "run_id": ctx.run_id,
-        "chunk_idx": ctx.chunk_idx,
-        "timestamp": dt_now_iso(),
+        "run_id": _safe_str(ctx.run_id, "") or "",
+        "chunk_idx": _safe_int(ctx.chunk_idx, 0) or 0,
+        "timestamp": _now_iso_utc(),
 
         # Context
-        "status": ctx.status,
-        "error": ctx.error,
-        "bars_total": ctx.bars_total,
-        "is_truth_or_smoke_worker": ctx.is_truth_or_smoke_worker,
+        "status": _safe_str(ctx.status, None),
+        "error": _safe_str(ctx.error, None),
+        "bars_total": _safe_int(ctx.bars_total, 0) or 0,
+        "is_truth_or_smoke_worker": bool(ctx.is_truth_or_smoke_worker),
 
         # Env vs runner
-        "prebuilt_enabled_env": ctx.prebuilt_enabled_env,
+        "prebuilt_enabled_env": bool(ctx.prebuilt_enabled_env),
         "runner_prebuilt_used": runner_prebuilt_used,
         "runner_replay_mode_enum": runner_replay_mode_enum,
-        "has_prebuilt_df": has_prebuilt_df,
+        "has_prebuilt_df": bool(has_prebuilt_df),
 
         # Feature timing
-        "feature_time_mean_ms_threshold": FEATURE_TIME_MEAN_MS_THRESHOLD,
-        "feature_time_mean_ms_observed": ctx.feature_time_mean_ms,
-        "feature_time_total_sec": ctx.feature_time_total_sec,
+        "feature_time_mean_ms_threshold": float(FEATURE_TIME_MEAN_MS_THRESHOLD),
+        "feature_time_mean_ms_observed": float(ft_mean),
+        "feature_time_total_sec": float(_safe_float(ctx.feature_time_total_sec, 0.0) or 0.0),
 
         # Lookup telemetry
         "lookup_attempts": lookup_attempts,
@@ -268,7 +403,9 @@ def check_prebuilt_invariants(
         "violations": violations,
 
         # Ctx contract (TRUTH/SMOKE)
-        "ctx_contract_missing": ctx_contract_missing,
+        "ctx_contract_required_cont": list(required_cont),
+        "ctx_contract_required_cat": list(required_cat),
+        "ctx_contract_missing": list(ctx_contract_missing),
     }
 
     return ok, report

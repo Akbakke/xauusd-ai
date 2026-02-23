@@ -1,18 +1,20 @@
 """
-Replay Chunk Runner: Kanonisk wrapper for "kjør én replay-chunk" (TRUTH-grade).
-
-Dette er den kanoniske 1-chunk orchestratoren.
+Replay Chunk Runner: Canonical wrapper for "run one replay chunk" (TRUTH-grade).
 
 LOCKED GOALS:
-- replay_chunk.py er en thin orchestrator (SSoT/flow, ikke “smart” IO)
-- Alle writes utenfor orchestrator er atomic/best-effort helpers
-- chunk_footer_writer er DUMB WRITER: tar payload dict, skriver chunk_footer.json atomisk
-- TRUTH/SMOKE er strict: invariants kan flippe status til failed_invariant
-- Ingen segmented/parallel/owner/preroll i TRUTH 1W1C
+- replay_chunk.py is a thin orchestrator (SSoT flow; not “smart” IO).
+- All writes outside the orchestrator happen via atomic/best-effort helpers.
+- chunk_footer_writer is a DUMB WRITER:
+    - does NOT read from disk
+    - does NOT read runner/telemetry objects
+    - does NOT validate invariants or mutate status/error
+    - writes ONLY chunk_footer.json atomically
+- TRUTH/SMOKE is strict: invariants may flip status to failed_invariant.
+- No segmented/parallel/owner/preroll in TRUTH 1W1C.
 
 NOTES:
-- Denne fila *kan* lese små ting fra runner i minnet (perf counters etc).
-- Denne fila *skal ikke* bygge data/features på nytt (prebuilt-only i TRUTH).
+- This file may read small things from runner in-memory (perf counters etc).
+- This file must not rebuild data/features (prebuilt-only in TRUTH).
 """
 
 from __future__ import annotations
@@ -24,7 +26,7 @@ import tempfile
 import time
 import traceback
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 import pandas as pd
 
@@ -47,25 +49,9 @@ def _sigterm_handler(signum, frame):
 
 
 # -----------------------------------------------------------------------------
-# Best-effort bar counters snapshot (used in error capsules)
-# TRUTH path: no import from legacy (quarantined) replay scripts.
-# -----------------------------------------------------------------------------
-def compute_bar_counters_snapshot(runner, bars_processed, chunk_df):
-    """Stub for error capsules; full counters live in legacy replay script."""
-    return {
-        "candles_iterated": int(bars_processed or 0),
-        "reached_entry_stage": 0,
-        "bars_passed_hard_eligibility": 0,
-        "bars_blocked_hard_eligibility": 0,
-        "bars_passed_soft_eligibility": 0,
-        "bars_blocked_soft_eligibility": 0,
-    }
-
-
-# -----------------------------------------------------------------------------
 # Failure helpers (robust, no disk reads required)
 # -----------------------------------------------------------------------------
-from gx1.execution.chunk_failure import (
+from gx1.execution.chunk_failure import (  # noqa: E402
     convert_to_json_serializable,
     atomic_write_json_safe,
     write_failure_capsule,
@@ -76,16 +62,16 @@ from gx1.execution.chunk_failure import (
 # -----------------------------------------------------------------------------
 # Dumb footer writer (payload-only)
 # -----------------------------------------------------------------------------
-from gx1.execution.chunk_footer_writer import ChunkFooterContext, write_chunk_footer
+from gx1.execution.chunk_footer_writer import ChunkFooterContext, write_chunk_footer  # noqa: E402
 
 # -----------------------------------------------------------------------------
 # Bootstrap / data loader / exporters / invariants
 # -----------------------------------------------------------------------------
-from gx1.execution.chunk_bootstrap import bootstrap_chunk_environment, BootstrapContext
-from gx1.execution.chunk_data_loader import load_chunk_data, DataContext
-from gx1.execution.killchain_export import KillchainExportContext, export_killchain
-from gx1.execution.prebuilt_invariants import PrebuiltInvariantContext, check_prebuilt_invariants
-from gx1.utils.empty_trade_outcomes import (
+from gx1.execution.chunk_bootstrap import bootstrap_chunk_environment, BootstrapContext  # noqa: E402
+from gx1.execution.chunk_data_loader import load_chunk_data, DataContext  # noqa: E402
+from gx1.execution.killchain_export import KillchainExportContext, export_killchain  # noqa: E402
+from gx1.execution.prebuilt_invariants import PrebuiltInvariantContext, check_prebuilt_invariants  # noqa: E402
+from gx1.utils.empty_trade_outcomes import (  # noqa: E402
     TRADE_OUTCOMES_REQUIRED_COLUMNS,
     write_empty_trade_outcomes_parquet,
 )
@@ -115,54 +101,6 @@ def _assert_truth_ban_envs() -> None:
             raise RuntimeError(f"[FORBIDDEN_ENV] {forbidden} is not allowed in 1W1C TRUTH")
 
 
-def _write_minimal_attribution(chunk_output_dir: Path, run_id: str) -> None:
-    """Write minimal attribution JSON in TRUTH path when legacy replay_eval_gated is quarantined."""
-    path = chunk_output_dir / f"attribution_{run_id}.json"
-    data = {
-        "mode": "truth_minimal",
-        "run_id": run_id,
-        "chunks": 1,
-        "note": "Legacy replay_eval_gated quarantined; minimal attribution written by TRUTH path.",
-    }
-    atomic_write_json_safe(path, convert_to_json_serializable(data))
-
-
-def _write_trade_outcomes_truth(chunk_output_dir: Path, run_id: str, runner: Any) -> None:
-    """
-    TRUTH-native writer: always write chunk-level trade_outcomes_{run_id}.parquet.
-    No import of gx1.scripts.replay_eval_gated. Uses runner.replay_eval_collectors
-    if present; otherwise writes empty parquet with canonical schema.
-    Atomic write via tmp + os.replace.
-    """
-    out_path = chunk_output_dir / f"trade_outcomes_{run_id}.parquet"
-    collector = None
-    if runner and getattr(runner, "replay_eval_collectors", None):
-        collector = runner.replay_eval_collectors.get("trade_outcomes")
-    rows = list(getattr(collector, "outcomes", [])) if collector else []
-
-    fd, tmp_path = tempfile.mkstemp(suffix=".parquet", prefix="trade_outcomes_", dir=str(chunk_output_dir))
-    try:
-        os.close(fd)
-        tmp = Path(tmp_path)
-        if rows:
-            df = pd.DataFrame(rows)
-            # Ensure column order matches contract; only include existing columns
-            cols = [c for c in TRADE_OUTCOMES_REQUIRED_COLUMNS if c in df.columns]
-            extra = [c for c in df.columns if c not in TRADE_OUTCOMES_REQUIRED_COLUMNS]
-            df = df[cols + extra] if cols else df
-            df.to_parquet(tmp, index=False)
-        else:
-            write_empty_trade_outcomes_parquet(tmp, run_id=run_id)
-        os.replace(str(tmp), str(out_path))
-        log.info("[TRUTH_TRADE_OUTCOMES] Wrote %s (%d rows)", out_path.name, len(rows))
-    except Exception as e:
-        try:
-            Path(tmp_path).unlink(missing_ok=True)
-        except Exception:
-            pass
-        raise RuntimeError(f"[TRUTH_TRADE_OUTCOMES] Failed to write {out_path}: {e}") from e
-
-
 def _safe_int(x: Any, default: int = 0) -> int:
     try:
         if x is None:
@@ -190,6 +128,178 @@ def _safe_bool(x: Any, default: bool = False) -> bool:
         return default
 
 
+def _write_minimal_attribution(chunk_output_dir: Path, run_id: str) -> None:
+    """
+    Write minimal attribution JSON (TRUTH-safe) when legacy attribution pipeline
+    is not present. This is used only to satisfy TRUTH gates that expect an
+    attribution_{run_id}.json artifact.
+    """
+    path = chunk_output_dir / f"attribution_{run_id}.json"
+    payload = {
+        "mode": "truth_minimal",
+        "run_id": run_id,
+        "chunks": 1,
+        "note": "Minimal attribution written by replay_chunk (legacy attribution unavailable).",
+        "timestamp": dt_now_iso(),
+    }
+    atomic_write_json_safe(path, convert_to_json_serializable(payload))
+
+
+def _write_trade_outcomes_truth(chunk_output_dir: Path, run_id: str, runner: Any) -> None:
+    """
+    TRUTH-native writer: always write chunk-level trade_outcomes_{run_id}.parquet.
+
+    - Does NOT import legacy gx1.scripts.replay_eval_gated.
+    - Uses runner.replay_eval_collectors["trade_outcomes"].outcomes if available.
+    - Otherwise writes an empty parquet with canonical schema.
+    - Atomic via tmp -> os.replace.
+
+    Raises on failure (TRUTH-grade).
+    """
+    out_path = chunk_output_dir / f"trade_outcomes_{run_id}.parquet"
+
+    collector = None
+    if runner is not None and getattr(runner, "replay_eval_collectors", None):
+        collector = runner.replay_eval_collectors.get("trade_outcomes")
+
+    rows = list(getattr(collector, "outcomes", [])) if collector else []
+
+    fd, tmp_path = tempfile.mkstemp(
+        suffix=".parquet",
+        prefix="trade_outcomes_",
+        dir=str(chunk_output_dir),
+    )
+    try:
+        os.close(fd)
+        tmp = Path(tmp_path)
+
+        if rows:
+            df = pd.DataFrame(rows)
+
+            # Ensure deterministic-ish ordering: contract first, then any extras.
+            cols = [c for c in TRADE_OUTCOMES_REQUIRED_COLUMNS if c in df.columns]
+            extra = [c for c in df.columns if c not in TRADE_OUTCOMES_REQUIRED_COLUMNS]
+            if cols:
+                df = df[cols + extra]
+            df.to_parquet(tmp, index=False)
+        else:
+            write_empty_trade_outcomes_parquet(tmp, run_id=run_id)
+
+        os.replace(str(tmp), str(out_path))
+        log.info("[TRUTH_TRADE_OUTCOMES] Wrote %s (%d rows)", out_path.name, len(rows))
+    except Exception as e:
+        try:
+            Path(tmp_path).unlink(missing_ok=True)
+        except Exception:
+            pass
+        raise RuntimeError(f"[TRUTH_TRADE_OUTCOMES] Failed to write {out_path}: {e}") from e
+
+
+def _try_write_optional_observability(
+    chunk_output_dir: Path,
+    run_id: str,
+    chunk_idx: int,
+    runner: Any,
+    bars_processed: int,
+    total_bars: int,
+    wall_clock_sec: float,
+) -> None:
+    """
+    Optional observability hooks.
+    Must never crash the chunk. Best-effort only.
+    """
+    # ENTRY_SIGNAL_TRACE autopsy etc (optional modules)
+    try:
+        if os.environ.get("GX1_ENTRY_SIGNAL_TRACE", "0") == "1":
+            from gx1.execution.signal_autopsy import write_signal_autopsy_summary  # type: ignore
+
+            n_entry_signals = _safe_int(
+                getattr(getattr(runner, "entry_manager", None), "killchain_n_above_threshold", 0),
+                0,
+            )
+            write_signal_autopsy_summary(
+                chunk_output_dir=chunk_output_dir,
+                run_id=run_id,
+                n_entry_signals=n_entry_signals,
+                first_n_events=20,
+                is_truth_or_smoke=_is_truth_or_smoke(),
+            )
+    except Exception as e:
+        log.warning("[OBS] [CHUNK %s] signal_autopsy failed: %s", chunk_idx, e)
+
+    # ZERO_TRADES_DIAG (optional)
+    try:
+        if _is_truth_or_smoke():
+            n_trades_closed = _safe_int(getattr(runner, "perf_n_trades_created", 0), 0)
+            if n_trades_closed == 0:
+                from gx1.execution.zero_trades_diag import write_zero_trades_diag  # type: ignore
+
+                thresh_override = "override" if os.environ.get("GX1_ENTRY_THRESHOLD_OVERRIDE") else None
+                write_zero_trades_diag(
+                    chunk_output_dir=chunk_output_dir,
+                    run_id=run_id,
+                    chunk_idx=chunk_idx,
+                    n_trades_closed=int(n_trades_closed),
+                    runner=runner,
+                    bars_processed=int(bars_processed),
+                    total_bars=int(total_bars),
+                    n_model_calls=_safe_int(getattr(runner, "perf_n_model_calls", 0), 0),
+                    threshold_source_override=thresh_override,
+                )
+    except Exception as e:
+        log.warning("[OBS] [CHUNK %s] zero_trades_diag failed: %s", chunk_idx, e)
+
+
+def _compute_basic_bar_counters_snapshot(runner: Any, bars_processed: int) -> Dict[str, Any]:
+    """
+    Best-effort snapshot for failure capsules. Avoids disk reads.
+    Keep this small and stable.
+    """
+    return {
+        "candles_iterated": int(bars_processed or 0),
+        "bars_seen": _safe_int(getattr(runner, "bars_seen", 0), 0),
+        "bars_skipped_warmup": _safe_int(getattr(runner, "bars_skipped_warmup", 0), 0),
+        "bars_skipped_pregate": _safe_int(getattr(runner, "bars_skipped_pregate", 0), 0),
+        "bars_reaching_entry_stage": _safe_int(getattr(runner, "bars_reaching_entry_stage", 0), 0),
+        "pregate_enabled": _safe_bool(getattr(runner, "pregate_enabled", False), False),
+    }
+
+
+def _extract_runner_perf(runner: Any, chunk_df: Optional[pd.DataFrame]) -> Tuple[int, int, int, int, float, float]:
+    """
+    Extract key counters/timing from runner in-memory (best-effort).
+
+    Returns:
+      total_bars, bars_processed, bars_evaluated, warmup_holdback_bars, feature_time_total_sec, t_transformer_forward_sec
+    """
+    total_bars = int(len(chunk_df) if chunk_df is not None else 0)
+
+    bars_seen = _safe_int(getattr(runner, "bars_seen", None), default=total_bars)
+    bars_processed = _safe_int(getattr(runner, "perf_n_bars_processed", None), default=bars_seen)
+
+    bars_evaluated = _safe_int(
+        getattr(runner, "perf_n_model_calls", None),
+        default=_safe_int(
+            getattr(runner, "perf_n_policy_calls", None),
+            default=_safe_int(getattr(runner, "n_model_calls", None), default=0),
+        ),
+    )
+
+    warmup_holdback_bars = _safe_int(getattr(runner, "first_valid_eval_idx_stored", 0), 0)
+
+    feature_time_total_sec = _safe_float(getattr(runner, "perf_feat_time", 0.0), 0.0)
+    t_transformer_forward_sec = _safe_float(getattr(runner, "t_transformer_forward_sec", 0.0), 0.0)
+
+    return (
+        total_bars,
+        bars_processed,
+        bars_evaluated,
+        warmup_holdback_bars,
+        feature_time_total_sec,
+        t_transformer_forward_sec,
+    )
+
+
 # -----------------------------------------------------------------------------
 # Main function
 # -----------------------------------------------------------------------------
@@ -210,17 +320,16 @@ def process_chunk(
     Process a single replay chunk.
 
     Returns:
-        chunk_artifacts: dict with status + artifact paths
+      chunk_artifacts: dict with status + artifact paths
+
+    TRUTH/SMOKE:
+      - Strict: missing bundle_sha256 => hard fail
+      - Invariant violations => status flips to failed_invariant and raises
     """
-    # -------------------------------------------------------------------------
-    # Hard-gates (TRUTH/SMOKE 1W1C)
-    # -------------------------------------------------------------------------
     _assert_truth_ban_envs()
     is_truth_or_smoke_worker = _is_truth_or_smoke()
 
-    # -------------------------------------------------------------------------
-    # Always-initialized locals (so finally/except always has something sane)
-    # -------------------------------------------------------------------------
+    # Always-initialized locals (finally/except safe)
     status: str = "ok"
     error: Optional[str] = None
     error_traceback: Optional[str] = None
@@ -228,19 +337,20 @@ def process_chunk(
     chunk_output_dir: Optional[Path] = None
     runner: Any = None
     chunk_df: Optional[pd.DataFrame] = None
+    bootstrap_ctx: Optional[BootstrapContext] = None
+    data_ctx: Optional[DataContext] = None
 
     # Perf / counters (best-effort)
-    bars_processed = 0              # bars iterated by replay loop
-    total_bars = 0                  # input bars available to loop (post-join)
-    bars_evaluated = 0              # bars where model/policy was called (after warmup)
+    bars_processed = 0
+    total_bars = 0
+    bars_evaluated = 0
     warmup_holdback_bars = 0
-    tail_holdback_bars = 0          # reserved for deliberate tail skipping (default 0)
+    tail_holdback_bars = 0
     n_trades_closed = 0
     wall_clock_sec = 0.0
 
-    # Feature perf (best-effort)
-    feature_time_mean_ms = 0.0
     feature_time_total_sec = 0.0
+    feature_time_mean_ms = 0.0
 
     # TRUTH timing breakdown (best-effort)
     t_init_s = 0.0
@@ -250,68 +360,26 @@ def process_chunk(
     t_loop_s = 0.0
     t_write_s = 0.0
 
-    # extra telemetry (best-effort)
+    t_transformer_forward_sec = 0.0
     dt_module_version: Optional[str] = None
     telemetry_required = False
     worker_start_time = time.time()
 
-    # invariants/export reports
     inv_report: Optional[Dict[str, Any]] = None
-
-    # data loader outputs
     prebuilt_parquet_path_resolved: Optional[str] = None
     chunk_data_path_abs: Optional[Path] = None
     case_collision_resolution: Optional[Dict[str, Any]] = None
     actual_chunk_start: Optional[pd.Timestamp] = None
 
-    # entry funnel counters (best-effort)
-    bars_seen = 0
-    bars_skipped_warmup = 0
-    bars_skipped_pregate = 0
-    bars_reaching_entry_stage = 0
-    pregate_enabled = False
+    # SSoT bar counts (prefer loader, never len(df)-gjetting for footer)
+    bars_total_input_all_ssot: Optional[int] = None
+    bars_total_eval_ssot: Optional[int] = None
+    join_metrics_path_ssot: Optional[str] = None
 
-    # pregate / regimes
-    pregate_skips = 0
-    pregate_passes = 0
-    pregate_missing_inputs = 0
-    vol_regime_unknown_count = 0
-    feature_timeout_count = 0
-
-    # phase timers (best-effort)
-    t_pregate_total_sec = 0.0
-    t_xgb_predict_sec = 0.0
-    t_transformer_forward_sec = 0.0
-    t_gates_policy_sec = 0.0
-    t_replay_tags_sec = 0.0
-    t_telemetry_sec = 0.0
-    t_replay_tags_build_inputs_sec = 0.0
-    t_replay_tags_rolling_sec = 0.0
-    t_replay_tags_ewm_sec = 0.0
-    t_replay_tags_rank_sec = 0.0
-    t_replay_tags_assign_sec = 0.0
-    t_io_total_sec = 0.0
-
-    # HTF stats (best-effort)
-    htf_align_warn_count = 0
-    htf_align_time_total_sec = 0.0
-    htf_align_warning_time_sec = 0.0
-    htf_align_call_count = 0
-    htf_align_fallback_count = 0
-    htf_feature_compute_bars = 0
-    htf_h1_calls = 0
-    htf_h4_calls = 0
-    htf_h1_warns = 0
-    htf_h4_warns = 0
-    htf_last_m5_ts = None
-    htf_last_j = None
-
-    # stable env flags
+    # Stable env flag (prebuilt-only doctrine)
     prebuilt_enabled_env = os.getenv("GX1_REPLAY_USE_PREBUILT_FEATURES", "0") == "1"
 
-    # -------------------------------------------------------------------------
-    # Always-on SKIP_LEDGER (written in finally)
-    # -------------------------------------------------------------------------
+    # Skip ledger (always written best-effort in finally)
     skip_ledger: Dict[str, Any] = {
         "chunk_id": chunk_idx,
         "run_id": run_id,
@@ -343,9 +411,7 @@ def process_chunk(
         "gating_counters": {},
     }
 
-    # -------------------------------------------------------------------------
     # Install SIGTERM handler
-    # -------------------------------------------------------------------------
     global STOP_REQUESTED
     try:
         signal.signal(signal.SIGTERM, _sigterm_handler)
@@ -354,15 +420,12 @@ def process_chunk(
     STOP_REQUESTED = False
     os.environ["GX1_STOP_REQUESTED"] = "0"
 
-    # -------------------------------------------------------------------------
-    # Main try
-    # -------------------------------------------------------------------------
     try:
         # ---------------------------------------------------------------------
         # PHASE 0: Bootstrap
         # ---------------------------------------------------------------------
         t0 = time.time()
-        bootstrap_ctx: BootstrapContext = bootstrap_chunk_environment(
+        bootstrap_ctx = bootstrap_chunk_environment(
             chunk_idx=chunk_idx,
             chunk_start=chunk_start,
             chunk_end=chunk_end,
@@ -378,22 +441,32 @@ def process_chunk(
         )
 
         chunk_output_dir = bootstrap_ctx.chunk_output_dir
-        is_truth_or_smoke_worker = _safe_bool(getattr(bootstrap_ctx, "is_truth_or_smoke_worker", is_truth_or_smoke_worker))
-        telemetry_required = _safe_bool(getattr(bootstrap_ctx, "telemetry_required", False))
+        is_truth_or_smoke_worker = _safe_bool(
+            getattr(bootstrap_ctx, "is_truth_or_smoke_worker", is_truth_or_smoke_worker),
+            is_truth_or_smoke_worker,
+        )
+        telemetry_required = _safe_bool(getattr(bootstrap_ctx, "telemetry_required", False), False)
         dt_module_version = getattr(bootstrap_ctx, "dt_module_version", None)
         worker_start_time = _safe_float(getattr(bootstrap_ctx, "worker_start_time", worker_start_time), worker_start_time)
-
         t_init_s = _safe_float(getattr(bootstrap_ctx, "t_init_s", time.time() - t0), time.time() - t0)
 
         if chunk_output_dir is None:
             raise RuntimeError("[BOOTSTRAP_FAIL] chunk_output_dir is None after bootstrap")
 
-        # TRUTH hard fail: bundle_sha256 must exist
-        if not bundle_sha256:
-            raise RuntimeError("[SSOT_FAIL] bundle_sha256 missing in process_chunk()")
+        # TRUTH strict: bundle_sha256 must exist (SSoT)
+        if is_truth_or_smoke_worker and not bundle_sha256:
+            raise RuntimeError("[SSOT_FAIL] bundle_sha256 missing in process_chunk() (TRUTH/SMOKE strict)")
+
+        # TRUTH strict: env intent must match bootstrap prebuilt_enabled (no silent mismatch)
+        if is_truth_or_smoke_worker:
+            boot_prebuilt_enabled = _safe_bool(getattr(bootstrap_ctx, "prebuilt_enabled", False), False)
+            if bool(prebuilt_enabled_env) != bool(boot_prebuilt_enabled):
+                raise RuntimeError(
+                    f"[TRUTH_NO_FALLBACK] prebuilt_enabled mismatch: env={prebuilt_enabled_env} bootstrap={boot_prebuilt_enabled}"
+                )
 
         # ---------------------------------------------------------------------
-        # PHASE 1: Create runner (worker-local import)
+        # PHASE 1: Create runner
         # ---------------------------------------------------------------------
         from gx1.execution.oanda_demo_runner import GX1DemoRunner
 
@@ -418,29 +491,28 @@ def process_chunk(
         runner.chunk_start = chunk_start
         runner.chunk_end = chunk_end
 
-        # ENTRY_SIGNAL_TRACE: init writer when GX1_ENTRY_SIGNAL_TRACE=1 (TRUTH/SMOKE only)
-        signal_trace_writer = None
-        if is_truth_or_smoke_worker and os.environ.get("GX1_ENTRY_SIGNAL_TRACE", "0") == "1":
-            from gx1.execution.entry_signal_trace import EntrySignalTraceWriter
+        # TRUTH 1W1C: defensively ban segmented/parallel state on runner
+        for attr, val in (
+            ("segment_start", None),
+            ("segment_end", None),
+            ("preroll_start", None),
+            ("segmented_parallel_mode", False),
+        ):
+            try:
+                setattr(runner, attr, val)
+            except Exception:
+                pass
 
-            trace_path = chunk_output_dir / "ENTRY_SIGNAL_TRACE.jsonl"
-            signal_trace_writer = EntrySignalTraceWriter(trace_path, enabled=True, max_lines=500)
-            if hasattr(runner, "entry_manager") and runner.entry_manager is not None:
-                runner.entry_manager._signal_trace_writer = signal_trace_writer
-
-        # TRUTH 1W1C: ban segmented/parallel state on runner (defensive)
-        runner.segment_start = None
-        runner.segment_end = None
-        runner.preroll_start = None
-        runner.segmented_parallel_mode = False
-
-        # propagate master-computed sha
-        runner.bundle_sha256_from_master = bundle_sha256
+        # propagate master sha (if provided)
+        try:
+            runner.bundle_sha256_from_master = bundle_sha256
+        except Exception:
+            pass
 
         # ---------------------------------------------------------------------
-        # PHASE 2: Load chunk data
+        # PHASE 2: Load chunk data (raw + prebuilt join)  [SSoT counts live here]
         # ---------------------------------------------------------------------
-        data_ctx: DataContext = load_chunk_data(bootstrap_ctx, chunk_start, chunk_end)
+        data_ctx = load_chunk_data(bootstrap_ctx, chunk_start, chunk_end)
 
         chunk_df = data_ctx.chunk_df
         case_collision_resolution = getattr(data_ctx, "case_collision_resolution", None)
@@ -448,15 +520,24 @@ def process_chunk(
         prebuilt_parquet_path_resolved = getattr(data_ctx, "prebuilt_parquet_path_resolved", None)
         actual_chunk_start = getattr(data_ctx, "actual_chunk_start", None)
 
-        # timings from data_ctx (preferred)
+        # SSoT bar counts from loader (footer must prefer these)
+        bars_total_input_all_ssot = _safe_int(getattr(data_ctx, "bars_total_input_all", None), 0)
+        bars_total_eval_ssot = _safe_int(getattr(data_ctx, "bars_total_eval", None), 0)
+        join_metrics_path_ssot = str(getattr(data_ctx, "join_metrics_path", None)) if getattr(data_ctx, "join_metrics_path", None) else None
+
+        # preferred timings from data_ctx
         t_load_raw_s = _safe_float(getattr(data_ctx, "t_load_raw_s", 0.0), 0.0)
         t_load_prebuilt_s = _safe_float(getattr(data_ctx, "t_load_prebuilt_s", 0.0), 0.0)
         t_join_s = _safe_float(getattr(data_ctx, "t_join_s", 0.0), 0.0)
         t_write_s = _safe_float(getattr(data_ctx, "t_write_s", 0.0), 0.0)
 
         if chunk_local_padding_days and chunk_local_padding_days > 0:
-            runner.replay_eval_start_ts = chunk_start
-            runner.replay_eval_end_ts = chunk_end
+            # runner may use these for eval window vs padded load window
+            try:
+                runner.replay_eval_start_ts = chunk_start
+                runner.replay_eval_end_ts = chunk_end
+            except Exception:
+                pass
             log.info(
                 "[CHUNK %s] [CHUNK_LOCAL_PADDING] eval=[%s, %s] (actual_start=%s)",
                 chunk_idx,
@@ -469,12 +550,15 @@ def process_chunk(
             raise RuntimeError("[DATA_FAIL] chunk_data_path_abs missing after load_chunk_data()")
 
         # Prebuilt plumbing: loader state -> runner (before first on_bar)
-        if getattr(data_ctx, "prebuilt_used", False) and getattr(data_ctx, "prebuilt_features_df", None) is not None:
-            runner.prebuilt_features_df = data_ctx.prebuilt_features_df
-            runner.prebuilt_used = True
-            if getattr(data_ctx, "prebuilt_parquet_path_resolved", None):
-                runner.prebuilt_parquet_path = data_ctx.prebuilt_parquet_path_resolved
-                runner.prebuilt_features_path_resolved = data_ctx.prebuilt_parquet_path_resolved
+        try:
+            if getattr(data_ctx, "prebuilt_used", False) and getattr(data_ctx, "prebuilt_features_df", None) is not None:
+                runner.prebuilt_features_df = data_ctx.prebuilt_features_df
+                runner.prebuilt_used = True
+                if getattr(data_ctx, "prebuilt_parquet_path_resolved", None):
+                    runner.prebuilt_parquet_path = data_ctx.prebuilt_parquet_path_resolved
+                    runner.prebuilt_features_path_resolved = data_ctx.prebuilt_parquet_path_resolved
+        except Exception:
+            pass
 
         log.info(
             "[CHUNK %s] [REPLAY_MODE] env_prebuilt=%s prebuilt_path=%s",
@@ -495,13 +579,13 @@ def process_chunk(
         finally:
             t_loop_s = time.time() - t_loop_start
 
+        # SIGTERM graceful stop capsule
         if STOP_REQUESTED and status == "ok":
             status = "stopped"
             error = "Stopped early due to SIGTERM"
-            # Instrumentation: write signal_event capsule for debugging
-            if chunk_output_dir is not None:
+            try:
                 _bars = _safe_int(getattr(runner, "perf_n_bars_processed", 0), 0)
-                _total = int(len(chunk_df) if chunk_df is not None else 0)
+                _total = _safe_int(bars_total_input_all_ssot, default=int(len(chunk_df) if chunk_df is not None else 0))
                 _last_ts = getattr(runner, "_last_bar_ts", None)
                 write_signal_event_capsule(
                     chunk_output_dir=chunk_output_dir,
@@ -512,171 +596,61 @@ def process_chunk(
                     last_ts=_last_ts,
                     wall_clock_sec=_safe_float(time.time() - worker_start_time, 0.0),
                 )
+            except Exception:
+                pass
 
         # ---------------------------------------------------------------------
-        # PHASE 4: Extract counters/metrics (best-effort)
+        # PHASE 4: Extract perf/counters (best-effort)
         # ---------------------------------------------------------------------
         wall_clock_sec = _safe_float(time.time() - worker_start_time, 0.0)
 
-        # total bars in chunk_df (post-join)
-        total_bars = int(len(chunk_df) if chunk_df is not None else 0)
+        (
+            _total_bars_len_df,
+            bars_processed,
+            bars_evaluated,
+            warmup_holdback_bars,
+            feature_time_total_sec,
+            t_transformer_forward_sec,
+        ) = _extract_runner_perf(runner, chunk_df)
 
-        # bars processed (iterated by replay loop)
-        # prefer explicit counter if runner provides it, else fall back to bars_seen/total_bars
-        bars_seen = _safe_int(getattr(runner, "bars_seen", None), default=total_bars)
-        bars_processed = _safe_int(getattr(runner, "perf_n_bars_processed", None), default=bars_seen)
+        # TRUTH: total_bars for invariants/footer must prefer loader SSoT
+        if bars_total_input_all_ssot is not None and bars_total_input_all_ssot > 0:
+            total_bars = int(bars_total_input_all_ssot)
+        else:
+            total_bars = int(_total_bars_len_df)
 
-        # evaluated bars = transformer forward calls (n_model_calls); prefer runner.perf_n_model_calls, then telemetry
-        bars_evaluated = _safe_int(
-            getattr(runner, "perf_n_model_calls", None),
-            default=_safe_int(
-                getattr(runner, "perf_n_policy_calls", None),
-                default=_safe_int(
-                    getattr(runner, "n_model_calls", None),
-                    default=_safe_int(
-                        getattr(
-                            getattr(getattr(runner, "entry_manager", None), "entry_feature_telemetry", None),
-                            "transformer_forward_calls",
-                            None,
-                        ),
-                        default=0,
-                    ),
-                ),
-            ),
-        )
-
-        # warmup holdback (best-effort)
-        warmup_holdback_bars = _safe_int(getattr(runner, "first_valid_eval_idx_stored", 0), 0)
-
-        # entry funnel
-        bars_skipped_warmup = _safe_int(getattr(runner, "bars_skipped_warmup", 0), 0)
-        bars_skipped_pregate = _safe_int(getattr(runner, "bars_skipped_pregate", 0), 0)
-        bars_reaching_entry_stage = _safe_int(getattr(runner, "bars_reaching_entry_stage", 0), 0)
-        pregate_enabled = _safe_bool(getattr(runner, "pregate_enabled", False), False)
-
-        # feature perf
-        feature_time_total_sec = _safe_float(getattr(runner, "perf_feat_time", 0.0), 0.0)
         feature_time_mean_ms = (feature_time_total_sec / total_bars * 1000.0) if total_bars > 0 else 0.0
 
-        # pregate / regimes
-        feature_timeout_count = _safe_int(getattr(runner, "feature_timeout_count", 0), 0)
-        vol_regime_unknown_count = _safe_int(getattr(runner, "vol_regime_unknown_count", 0), 0)
-        pregate_skips = _safe_int(getattr(runner, "pregate_skips", 0), 0)
-        pregate_passes = _safe_int(getattr(runner, "pregate_passes", 0), 0)
-        pregate_missing_inputs = _safe_int(getattr(runner, "pregate_missing_inputs", 0), 0)
-
-        # timers
-        t_pregate_total_sec = _safe_float(getattr(runner, "t_pregate_total_sec", 0.0), 0.0)
-        t_xgb_predict_sec = _safe_float(getattr(runner, "t_xgb_predict_sec", 0.0), 0.0)
-        t_transformer_forward_sec = _safe_float(getattr(runner, "t_transformer_forward_sec", 0.0), 0.0)
-        t_gates_policy_sec = _safe_float(getattr(runner, "t_gates_policy_sec", 0.0), 0.0)
-        t_replay_tags_sec = _safe_float(getattr(runner, "t_replay_tags_sec", 0.0), 0.0)
-        t_telemetry_sec = _safe_float(getattr(runner, "t_telemetry_sec", 0.0), 0.0)
-        t_replay_tags_build_inputs_sec = _safe_float(getattr(runner, "t_replay_tags_build_inputs_sec", 0.0), 0.0)
-        t_replay_tags_rolling_sec = _safe_float(getattr(runner, "t_replay_tags_rolling_sec", 0.0), 0.0)
-        t_replay_tags_ewm_sec = _safe_float(getattr(runner, "t_replay_tags_ewm_sec", 0.0), 0.0)
-        t_replay_tags_rank_sec = _safe_float(getattr(runner, "t_replay_tags_rank_sec", 0.0), 0.0)
-        t_replay_tags_assign_sec = _safe_float(getattr(runner, "t_replay_tags_assign_sec", 0.0), 0.0)
-        t_io_total_sec = _safe_float(getattr(runner, "t_io_total_sec", 0.0), 0.0)
-
-        # HTF stats
-        htf_align_time_total_sec = _safe_float(getattr(runner, "htf_align_time_total_sec", 0.0), 0.0)
-        htf_align_warning_time_sec = _safe_float(getattr(runner, "htf_align_warning_time_sec", 0.0), 0.0)
-        htf_align_warn_count = _safe_int(getattr(runner, "htf_align_warn_count", 0), 0)
-
-        try:
-            if hasattr(runner, "feature_state") and runner.feature_state:
-                h1_aligner = getattr(runner.feature_state, "h1_aligner", None)
-                h4_aligner = getattr(runner.feature_state, "h4_aligner", None)
-
-                if h1_aligner is not None:
-                    s = h1_aligner.get_stats()
-                    htf_h1_calls = _safe_int(s.get("call_count", 0), 0)
-                    htf_h1_warns = _safe_int(s.get("warn_count", 0), 0)
-                    htf_last_m5_ts = s.get("last_m5_ts")
-                    htf_last_j = s.get("last_j")
-
-                if h4_aligner is not None:
-                    s = h4_aligner.get_stats()
-                    htf_h4_calls = _safe_int(s.get("call_count", 0), 0)
-                    htf_h4_warns = _safe_int(s.get("warn_count", 0), 0)
-
-                htf_align_call_count = htf_h1_calls + htf_h4_calls
-                htf_align_warn_count = htf_h1_warns + htf_h4_warns
-
-                htf_align_fallback_count = _safe_int(getattr(runner.feature_state, "htf_align_fallback_count", 0), 0)
-                htf_feature_compute_bars = _safe_int(getattr(runner.feature_state, "htf_feature_compute_bars", 0), 0)
-        except Exception:
-            pass
-
         # ---------------------------------------------------------------------
-        # PHASE 5: Trade outcomes parquet (TRUTH always) / legacy flush (non-TRUTH)
+        # PHASE 5: TRUTH/SMOKE required artifacts (trade_outcomes + attribution)
         # ---------------------------------------------------------------------
         if is_truth_or_smoke_worker:
-            try:
-                _write_trade_outcomes_truth(chunk_output_dir, run_id, runner)
-            except Exception as e:
-                log.error("[FLUSH] [CHUNK %s] TRUTH trade_outcomes write failed: %s", chunk_idx, e, exc_info=True)
-                raise
+            _write_trade_outcomes_truth(chunk_output_dir, run_id, runner)
+
+            attribution_path = chunk_output_dir / f"attribution_{run_id}.json"
+            if not attribution_path.exists():
+                _write_minimal_attribution(chunk_output_dir, run_id)
         else:
             try:
                 if runner and getattr(runner, "replay_eval_collectors", None):
-                    from gx1.scripts.replay_eval_gated import flush_replay_eval_collectors
+                    from gx1.scripts.replay_eval_gated import flush_replay_eval_collectors  # type: ignore
 
                     flush_replay_eval_collectors(runner, runner.replay_eval_collectors, output_dir=chunk_output_dir)
-                    log.info("[FLUSH] [CHUNK %s] collectors flushed", chunk_idx)
-                else:
-                    log.warning("[FLUSH] [CHUNK %s] no collectors to flush", chunk_idx)
             except Exception as e:
-                log.error("[FLUSH] [CHUNK %s] flush failed: %s", chunk_idx, e, exc_info=True)
+                log.warning("[FLUSH] [CHUNK %s] non-TRUTH flush failed: %s", chunk_idx, e)
 
         # ---------------------------------------------------------------------
-        # PHASE 5a: TRUTH/SMOKE minimal attribution when legacy flush unavailable
+        # PHASE 5b: Optional observability (never fatal)
         # ---------------------------------------------------------------------
-        attribution_path = (chunk_output_dir / f"attribution_{run_id}.json") if chunk_output_dir is not None else None
-        if is_truth_or_smoke_worker and attribution_path is not None and not attribution_path.exists():
-            _write_minimal_attribution(chunk_output_dir, run_id)
-
-        # ---------------------------------------------------------------------
-        # PHASE 5b: TRUTH/SMOKE attribution gate (attribution file must exist)
-        # ---------------------------------------------------------------------
-        if is_truth_or_smoke_worker:
-            if attribution_path is None or not attribution_path.exists():
-                status = "failed_invariant"
-                error = (
-                    f"[TRUTH_MISSING_ATTR_PATH] attribution file missing: {attribution_path} "
-                    "(required in TRUTH/SMOKE mode)"
-                )
-                log.error("[ATTRIBUTION_GATE] [CHUNK %s] %s", chunk_idx, error)
-        else:
-            if attribution_path is not None and not attribution_path.exists():
-                log.warning(
-                    "[ATTRIBUTION_GATE] [CHUNK %s] attribution file missing (non-TRUTH): %s",
-                    chunk_idx,
-                    attribution_path,
-                )
-
-        # ---------------------------------------------------------------------
-        # PHASE 5c: ENTRY_SIGNAL_TRACE - close writer, run autopsy (TRUTH/SMOKE)
-        # ---------------------------------------------------------------------
-        if signal_trace_writer is not None:
-            try:
-                signal_trace_writer.close()
-                n_entry_signals = _safe_int(
-                    getattr(getattr(runner, "entry_manager", None), "killchain_n_above_threshold", 0),
-                    0,
-                )
-                from gx1.execution.signal_autopsy import write_signal_autopsy_summary
-
-                write_signal_autopsy_summary(
-                    chunk_output_dir,
-                    run_id,
-                    n_entry_signals,
-                    first_n_events=20,
-                    is_truth_or_smoke=is_truth_or_smoke_worker,
-                )
-            except Exception as e:
-                log.warning("[SIGNAL_AUTOPSY] [CHUNK %s] failed: %s", chunk_idx, e)
+        _try_write_optional_observability(
+            chunk_output_dir=chunk_output_dir,
+            run_id=run_id,
+            chunk_idx=chunk_idx,
+            runner=runner,
+            bars_processed=int(bars_processed),
+            total_bars=int(total_bars),
+            wall_clock_sec=float(wall_clock_sec),
+        )
 
         # ---------------------------------------------------------------------
         # PHASE 6: Export killchain (best-effort)
@@ -745,89 +719,105 @@ def process_chunk(
             n_trades_closed = _safe_int(getattr(runner, "perf_n_trades_created", 0), 0)
 
         # ---------------------------------------------------------------------
-        # PHASE 8b: ZERO_TRADES_DIAG (TRUTH observability, only when n_trades==0)
+        # PHASE 8c: Bars invariant (may raise AFTER footer write in TRUTH/SMOKE)
         # ---------------------------------------------------------------------
-        if is_truth_or_smoke_worker and int(n_trades_closed or 0) == 0:
-            try:
-                from gx1.execution.zero_trades_diag import write_zero_trades_diag
+        from gx1.execution.chunk_footer_invariants import check_bars_invariant  # local import
 
-                thresh_override = "override" if os.environ.get("GX1_ENTRY_THRESHOLD_OVERRIDE") else None
-                write_zero_trades_diag(
-                    chunk_output_dir=chunk_output_dir,
-                    run_id=run_id,
-                    chunk_idx=chunk_idx,
-                    n_trades_closed=int(n_trades_closed or 0),
-                    runner=runner,
-                    bars_processed=int(bars_processed or 0),
-                    total_bars=int(total_bars or 0),
-                    n_model_calls=int(bars_evaluated or 0),
-                    threshold_source_override=thresh_override,
-                )
-            except Exception as e:
-                log.warning("[ZERO_TRADES_DIAG] [CHUNK %s] failed: %s", chunk_idx, e)
-
-        # ---------------------------------------------------------------------
-        # PHASE 8c: Bars invariant (written to footer; may raise AFTER footer)
-        # ---------------------------------------------------------------------
-        from gx1.execution.chunk_footer_invariants import check_bars_invariant
-
-        bars_total_input = total_bars
-        bars_invariant_gap = int(bars_total_input - bars_processed)
+        bars_total_input = int(total_bars)
+        bars_invariant_gap = int(bars_total_input - int(bars_processed))
         bars_invariant_expected_gap = int(warmup_holdback_bars + tail_holdback_bars)
+
         bars_invariant_ok = check_bars_invariant(
-            bars_total_input, bars_processed, tail_holdback_bars, status,
-            warmup_holdback_bars=warmup_holdback_bars,
+            bars_total_input=bars_total_input,
+            bars_processed=int(bars_processed),
+            tail_holdback_bars=int(tail_holdback_bars),
+            status=status,
+            warmup_holdback_bars=int(warmup_holdback_bars),
         )
 
         if not bars_invariant_ok:
+            msg = (
+                f"[BARS_INVARIANT] gap={bars_invariant_gap} != expected={bars_invariant_expected_gap} "
+                f"(warmup={warmup_holdback_bars} tail={tail_holdback_bars})"
+            )
             if is_truth_or_smoke_worker:
-                log.error(
-                    "[BARS_INVARIANT] gap=%d != expected=%d; will raise after footer write",
-                    bars_invariant_gap,
-                    bars_invariant_expected_gap,
-                )
+                log.error("%s; will raise after footer write", msg)
             else:
-                log.warning(
-                    "[BARS_INVARIANT] bars_total_input - bars_processed = %d != tail_holdback_bars = %d",
-                    bars_invariant_gap,
-                    bars_invariant_expected_gap,
-                )
+                log.warning("%s", msg)
 
         # ---------------------------------------------------------------------
-        # PHASE 9: Write chunk_footer.json (payload-only dumb writer)
+        # PHASE 9: Write chunk_footer.json (DUMB WRITER; payload-only)
         # ---------------------------------------------------------------------
         try:
             prebuilt_used_runner = _safe_bool(getattr(runner, "prebuilt_used", False), False)
             prebuilt_path_str = str(prebuilt_parquet_path_resolved) if prebuilt_parquet_path_resolved else None
 
+            # Best-effort funnel counters
+            bars_seen = _safe_int(getattr(runner, "bars_seen", 0), 0)
+            bars_skipped_warmup = _safe_int(getattr(runner, "bars_skipped_warmup", 0), 0)
+            bars_skipped_pregate = _safe_int(getattr(runner, "bars_skipped_pregate", 0), 0)
+            bars_reaching_entry_stage = _safe_int(getattr(runner, "bars_reaching_entry_stage", 0), 0)
+            pregate_enabled = _safe_bool(getattr(runner, "pregate_enabled", False), False)
+
+            feature_timeout_count = _safe_int(getattr(runner, "feature_timeout_count", 0), 0)
+            vol_regime_unknown_count = _safe_int(getattr(runner, "vol_regime_unknown_count", 0), 0)
+
+            pregate_skips = _safe_int(getattr(runner, "pregate_skips", 0), 0)
+            pregate_passes = _safe_int(getattr(runner, "pregate_passes", 0), 0)
+            pregate_missing_inputs = _safe_int(getattr(runner, "pregate_missing_inputs", 0), 0)
+
+            # timers
+            t_pregate_total_sec = _safe_float(getattr(runner, "t_pregate_total_sec", 0.0), 0.0)
+            t_xgb_predict_sec = _safe_float(getattr(runner, "t_xgb_predict_sec", 0.0), 0.0)
+            t_gates_policy_sec = _safe_float(getattr(runner, "t_gates_policy_sec", 0.0), 0.0)
+            t_replay_tags_sec = _safe_float(getattr(runner, "t_replay_tags_sec", 0.0), 0.0)
+            t_telemetry_sec = _safe_float(getattr(runner, "t_telemetry_sec", 0.0), 0.0)
+            t_replay_tags_build_inputs_sec = _safe_float(getattr(runner, "t_replay_tags_build_inputs_sec", 0.0), 0.0)
+            t_replay_tags_rolling_sec = _safe_float(getattr(runner, "t_replay_tags_rolling_sec", 0.0), 0.0)
+            t_replay_tags_ewm_sec = _safe_float(getattr(runner, "t_replay_tags_ewm_sec", 0.0), 0.0)
+            t_replay_tags_rank_sec = _safe_float(getattr(runner, "t_replay_tags_rank_sec", 0.0), 0.0)
+            t_replay_tags_assign_sec = _safe_float(getattr(runner, "t_replay_tags_assign_sec", 0.0), 0.0)
+            t_io_total_sec = _safe_float(getattr(runner, "t_io_total_sec", 0.0), 0.0)
+
+            # HTF stats (best-effort)
+            htf_align_time_total_sec = _safe_float(getattr(runner, "htf_align_time_total_sec", 0.0), 0.0)
+            htf_align_warning_time_sec = _safe_float(getattr(runner, "htf_align_warning_time_sec", 0.0), 0.0)
+            htf_align_warn_count = _safe_int(getattr(runner, "htf_align_warn_count", 0), 0)
+            htf_align_call_count = _safe_int(getattr(runner, "htf_align_call_count", 0), 0)
+            htf_align_fallback_count = _safe_int(getattr(runner, "htf_align_fallback_count", 0), 0)
+            htf_feature_compute_bars = _safe_int(getattr(runner, "htf_feature_compute_bars", 0), 0)
+            htf_h1_calls = _safe_int(getattr(runner, "htf_h1_calls", 0), 0)
+            htf_h4_calls = _safe_int(getattr(runner, "htf_h4_calls", 0), 0)
+            htf_h1_warns = _safe_int(getattr(runner, "htf_h1_warns", 0), 0)
+            htf_h4_warns = _safe_int(getattr(runner, "htf_h4_warns", 0), 0)
+            htf_last_m5_ts = getattr(runner, "htf_last_m5_ts", None)
+            htf_last_j = getattr(runner, "htf_last_j", None)
+
             payload: Dict[str, Any] = {
                 "run_id": run_id,
-                "chunk_id": str(chunk_idx),
+                "chunk_id": int(chunk_idx),
                 "status": status,
                 "error": error,
                 "error_traceback": (error_traceback[:5000] if error_traceback else None),
-
                 "timestamp": dt_now_iso(),
                 "pid": int(os.getpid()),
                 "dt_module_version": dt_module_version,
-
                 # perf
                 "wall_clock_sec": float(wall_clock_sec),
                 "bars_processed": int(bars_processed),
                 "bars_evaluated": int(bars_evaluated),
                 "total_bars": int(total_bars),
                 "bars_total_input": int(bars_total_input),
+                "bars_total_eval": int(bars_total_eval_ssot) if bars_total_eval_ssot is not None else None,
                 "warmup_holdback_bars": int(warmup_holdback_bars),
                 "tail_holdback_bars": int(tail_holdback_bars),
                 "bars_per_sec": (float(bars_processed) / float(wall_clock_sec)) if wall_clock_sec > 0 else None,
                 "n_model_calls": int(bars_evaluated),  # alias
                 "n_trades_closed": int(n_trades_closed),
-
                 # bars invariant
                 "bars_invariant_ok": bool(bars_invariant_ok),
                 "bars_invariant_gap": int(bars_invariant_gap),
                 "bars_invariant_expected_gap": int(bars_invariant_expected_gap),
-
                 # TRUTH timings
                 "t_init_s": float(t_init_s) if is_truth_or_smoke_worker else None,
                 "t_load_raw_s": float(t_load_raw_s) if is_truth_or_smoke_worker else None,
@@ -835,26 +825,22 @@ def process_chunk(
                 "t_join_s": float(t_join_s) if is_truth_or_smoke_worker else None,
                 "t_loop_s": float(t_loop_s) if is_truth_or_smoke_worker else None,
                 "t_write_s": float(t_write_s) if is_truth_or_smoke_worker else None,
-
                 # entry funnel
                 "bars_seen": int(bars_seen),
                 "bars_skipped_warmup": int(bars_skipped_warmup),
                 "bars_skipped_pregate": int(bars_skipped_pregate),
                 "bars_reaching_entry_stage": int(bars_reaching_entry_stage),
                 "pregate_enabled": bool(pregate_enabled),
-
                 # feature perf
                 "feature_time_mean_ms": float(feature_time_mean_ms),
                 "feature_time_total_sec": float(feature_time_total_sec),
-                "t_feature_build_total_sec": float(feature_time_total_sec),  # alias for perf export required_fields
+                "t_feature_build_total_sec": float(feature_time_total_sec),  # alias
                 "feature_timeout_count": int(feature_timeout_count),
                 "vol_regime_unknown_count": int(vol_regime_unknown_count),
-
                 # pregate stats
                 "pregate_skips": int(pregate_skips),
                 "pregate_passes": int(pregate_passes),
                 "pregate_missing_inputs": int(pregate_missing_inputs),
-
                 # timers
                 "t_pregate_total_sec": float(t_pregate_total_sec),
                 "t_xgb_predict_sec": float(t_xgb_predict_sec),
@@ -868,7 +854,6 @@ def process_chunk(
                 "t_replay_tags_assign_sec": float(t_replay_tags_assign_sec),
                 "t_telemetry_sec": float(t_telemetry_sec),
                 "t_io_total_sec": float(t_io_total_sec),
-
                 # HTF
                 "htf_align_warn_count": int(htf_align_warn_count),
                 "htf_align_time_total_sec": float(htf_align_time_total_sec),
@@ -882,70 +867,38 @@ def process_chunk(
                 "htf_h4_warns": int(htf_h4_warns),
                 "htf_last_m5_ts": htf_last_m5_ts,
                 "htf_last_j": htf_last_j,
-
                 # bookkeeping
                 "case_collision_resolution": case_collision_resolution,
                 "prebuilt_invariant_report": inv_report,
-                # TRUTH-safe counter invariant: t_transformer_forward_sec > 0 but n_model_calls == 0 → observability bug
-                "counter_invariant_violation": bool(
-                    t_transformer_forward_sec > 0 and (bars_evaluated or 0) == 0
-                ),
-
+                "counter_invariant_violation": bool(float(t_transformer_forward_sec or 0.0) > 0.0 and int(bars_evaluated or 0) == 0),
                 # prebuilt flags/paths
                 "prebuilt_used": bool(prebuilt_used_runner),
                 "prebuilt_parquet_path": prebuilt_path_str,
-                "prebuilt_required_columns": getattr(bootstrap_ctx, "prebuilt_required_columns", None),
-
-                # threshold / analysis mode (one-glance override verification)
+                "prebuilt_required_columns": getattr(bootstrap_ctx, "prebuilt_required_columns", None) if bootstrap_ctx else None,
+                "raw_prebuilt_join_metrics_path": join_metrics_path_ssot,
+                # analysis / threshold
                 "analysis_mode": os.environ.get("GX1_ANALYSIS_MODE") == "1",
-                "threshold_used": (
-                    getattr(getattr(runner, "entry_manager", None), "threshold_used", None)
-                    if runner else None
-                ),
+                "threshold_used": (getattr(getattr(runner, "entry_manager", None), "threshold_used", None) if runner else None),
                 "threshold_source": (
                     "override"
                     if (os.environ.get("GX1_ANALYSIS_MODE") == "1" and os.environ.get("GX1_ENTRY_THRESHOLD_OVERRIDE"))
                     else "canonical"
                 ),
-
                 # exit strategy observability
-                "exit_profile": (
-                    "RULE6A_PURE"
-                    if (
-                        getattr(runner, "exit_type", None) == "EXIT_FARM_V2_RULES_ADAPTIVE"
-                        and not (getattr(runner, "policy", None) or {}).get("hybrid_exit_router")
-                    )
-                    else (getattr(runner, "exit_config_name", None) or "unknown")
-                ),
+                "exit_profile": (getattr(runner, "exit_config_name", None) or "unknown"),
                 "exit_type": getattr(runner, "exit_type", None),
-                "router_enabled": (
-                    False
-                    if getattr(runner, "exit_type", None) in ("MASTER_EXIT_V1", "EXIT_TRANSFORMER_V0")
-                    else bool((getattr(runner, "policy", None) or {}).get("hybrid_exit_router"))
-                ),
-                "exit_critic_enabled": (
-                    False
-                    if getattr(runner, "exit_type", None) in ("MASTER_EXIT_V1", "EXIT_TRANSFORMER_V0")
-                    else bool(
-                        (getattr(runner, "policy", None) or {}).get("exit_critic", {}).get("enabled", False)
-                    )
-                ),
-                "exit_tuning_capsule": (
-                    getattr(runner, "exit_tuning_capsule", None)
-                    if getattr(runner, "exit_type", None) == "MASTER_EXIT_V1"
-                    else None
-                ),
+                "router_enabled": bool((getattr(runner, "policy", None) or {}).get("hybrid_exit_router", False)),
+                "exit_critic_enabled": bool((getattr(runner, "policy", None) or {}).get("exit_critic", {}).get("enabled", False)),
+                "exit_tuning_capsule": getattr(runner, "exit_tuning_capsule", None),
                 "exit_ml_enabled": getattr(runner, "exit_ml_enabled", False),
                 "exit_ml_decision_mode": getattr(runner, "exit_ml_decision_mode", "") or None,
                 "exit_ml_config_hash": getattr(runner, "exit_ml_config_hash", "") or None,
                 "exit_ml_model_sha": getattr(runner, "exit_ml_model_sha", None),
                 "exit_ml_input_dim": getattr(runner, "exit_ml_input_dim", None),
                 "exit_ml_io_version": getattr(runner, "exit_ml_io_version", None),
-
                 # ssot
                 "ssot": {"bundle_sha256": bundle_sha256},
-
-                # ctx feature mask (diagnostics / ablation)
+                # ctx masks (diagnostics)
                 "ctx_cont_dim": _safe_int(getattr(runner, "ctx_cont_dim", 0), 0) or None,
                 "ctx_cat_dim": _safe_int(getattr(runner, "ctx_cat_dim", 0), 0) or None,
                 "ctx_cont_mask_id": getattr(runner, "ctx_cont_mask_id", None),
@@ -964,23 +917,22 @@ def process_chunk(
 
             log.info("[CHUNK %s] chunk_footer.json written (status=%s)", chunk_idx, status)
 
-            # TRUTH: if bars invariant failed, raise AFTER footer write
+            # TRUTH strict: if bars invariant failed, raise AFTER footer write
             if (not bars_invariant_ok) and is_truth_or_smoke_worker:
                 raise RuntimeError(
                     f"[BARS_INVARIANT] bars_total_input - bars_processed = {bars_invariant_gap} "
                     f"!= expected (warmup+tail) = {bars_invariant_expected_gap}. "
                     f"bars_total_input={bars_total_input}, bars_processed={bars_processed}, "
-                    f"warmup_holdback_bars={warmup_holdback_bars}, tail_holdback_bars={tail_holdback_bars} (footer written with bars_invariant_ok=false)"
+                    f"warmup_holdback_bars={warmup_holdback_bars}, tail_holdback_bars={tail_holdback_bars} "
+                    f"(footer written with bars_invariant_ok=false)"
                 )
 
         except Exception as footer_err:
-            # If the error is the intentional invariant raise, bubble it.
             if isinstance(footer_err, RuntimeError) and "BARS_INVARIANT" in str(footer_err):
                 raise
 
-            log.error("[CHUNK %s] Failed to write chunk_footer.json: %s", chunk_idx, footer_err, exc_info=True)
+            log.error("[CHUNK %s] Failed during footer write block: %s", chunk_idx, footer_err, exc_info=True)
 
-            # Failure capsule (best-effort)
             try:
                 tb_str = "".join(traceback.format_exception(type(footer_err), footer_err, footer_err.__traceback__))
                 failure_context = build_failure_context(
@@ -996,12 +948,12 @@ def process_chunk(
                     policy_id=getattr(runner, "policy_id", None) if runner else None,
                     bundle_sha256=bundle_sha256,
                 )
-                bar_counters = compute_bar_counters_snapshot(runner, int(bars_processed or 0), chunk_df)
+                bar_counters = _compute_basic_bar_counters_snapshot(runner, int(bars_processed or 0))
                 fail_capsule = {
                     **failure_context,
                     "traceback": tb_str[:10000],
                     "bar_counters": bar_counters,
-                    "hint": "footer_error: Failed to write chunk_footer.json",
+                    "hint": "footer_error: failure in footer write block",
                     "timestamp": dt_now_iso(),
                 }
                 write_failure_capsule(
@@ -1014,13 +966,12 @@ def process_chunk(
             except Exception:
                 pass
 
-            # Stub footer (never overwrite chunk_footer.json)
             try:
                 stub = {
                     "run_id": run_id,
-                    "chunk_id": str(chunk_idx),
+                    "chunk_id": int(chunk_idx),
                     "status": "footer_error",
-                    "error": f"Failed to write chunk_footer.json: {str(footer_err)[:500]}",
+                    "error": f"Failed during footer write block: {str(footer_err)[:500]}",
                     "bars_processed": int(bars_processed or 0),
                     "total_bars": int(total_bars or 0),
                     "dt_module_version": dt_module_version,
@@ -1036,7 +987,6 @@ def process_chunk(
         # ---------------------------------------------------------------------
         # Return object (for merge)
         # ---------------------------------------------------------------------
-        # attribution: str path (avoids Path/JSON type friction in merge)
         attribution_path_str = str(chunk_output_dir / f"attribution_{run_id}.json")
 
         artifacts = {
@@ -1050,7 +1000,7 @@ def process_chunk(
         }
 
         chunk_artifacts = {
-            "chunk_idx": chunk_idx,
+            "chunk_idx": int(chunk_idx),
             "status": status,
             "error": error,
             "n_bars": int(bars_processed or 0),
@@ -1062,7 +1012,6 @@ def process_chunk(
             "artifacts": artifacts,
         }
 
-        # TRUTH/SMOKE strictness: fail fast if invariants failed
         if status == "failed":
             raise RuntimeError(f"CHUNK_{chunk_idx}_FAILED: {error}")
         if is_truth_or_smoke_worker and status == "failed_invariant":
@@ -1077,7 +1026,6 @@ def process_chunk(
         if error is None:
             error = str(outer_exc)
 
-        # Ensure chunk_output_dir exists best-effort
         if chunk_output_dir is None:
             try:
                 chunk_output_dir = output_dir / f"chunk_{chunk_idx}"
@@ -1085,13 +1033,11 @@ def process_chunk(
             except Exception:
                 chunk_output_dir = None
 
-        # Update skip_ledger
         skip_ledger["stage"] = "exception"
         skip_ledger["exception_type"] = type(outer_exc).__name__
         skip_ledger["exception_msg"] = str(outer_exc)[:500]
         skip_ledger["traceback"] = error_traceback[:5000]
 
-        # Failure capsule (best-effort)
         try:
             if chunk_output_dir is not None:
                 failure_context = build_failure_context(
@@ -1107,7 +1053,7 @@ def process_chunk(
                     policy_id=getattr(runner, "policy_id", None) if runner else None,
                     bundle_sha256=bundle_sha256,
                 )
-                bar_counters = compute_bar_counters_snapshot(runner, int(bars_processed or 0), chunk_df)
+                bar_counters = _compute_basic_bar_counters_snapshot(runner, int(bars_processed or 0))
                 fail_capsule = {
                     **failure_context,
                     "traceback": error_traceback[:10000],
@@ -1133,7 +1079,11 @@ def process_chunk(
             skip_ledger["timestamp"] = dt_now_iso()
             skip_ledger["bars_processed"] = int(bars_processed or 0)
             skip_ledger["candles_iterated"] = int(bars_processed or 0)
-            skip_ledger["reached_entry_stage"] = int(bars_reaching_entry_stage or 0)
+
+            try:
+                skip_ledger["reached_entry_stage"] = _safe_int(getattr(runner, "bars_reaching_entry_stage", 0), 0)
+            except Exception:
+                skip_ledger["reached_entry_stage"] = 0
 
             if chunk_output_dir is None:
                 try:
