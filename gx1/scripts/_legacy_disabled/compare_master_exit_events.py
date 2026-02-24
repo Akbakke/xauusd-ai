@@ -1,4 +1,5 @@
 #!/home/andre2/venvs/gx1/bin/python
+raise RuntimeError("LEGACY_DISABLED: Use gx1/scripts/README_TRUTH_XGB.md (TRUTH XGB lane only).")
 """
 Deterministic comparison of MASTER_EXIT_V1 exits between two runs.
 Proves whether guardrails (min_hold_bars, min_mfe_bps_to_arm) affect exit timing.

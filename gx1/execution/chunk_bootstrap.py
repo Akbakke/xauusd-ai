@@ -26,6 +26,7 @@ from gx1.contracts.signal_bridge_v1 import (
     SEQ_SIGNAL_DIM,
     SNAP_SIGNAL_DIM,
 )
+from gx1.utils.canonical_prebuilt_resolver import resolve_base28_canonical_from_manifest
 from gx1.execution.chunk_failure import (
     atomic_write_json_safe,
     convert_to_json_serializable,
@@ -284,6 +285,18 @@ def _run_prebuilt_smoke_test(
 def _load_json_file(path: Path) -> Dict[str, Any]:
     _require(path.exists(), f"[BOOTSTRAP] file not found: {path}")
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _forbid_prune(label: str, value: str, *, allow_ctx6cat6: bool = False) -> None:
+    """Hard-fail if value contains forbidden legacy PRUNE markers."""
+    upper = value.upper()
+    tokens = ("PRUNE14", "PRUNE20", "V13_REFINED3_PRUNE", "REFINED3")
+    if allow_ctx6cat6:
+        forbidden = tokens
+    else:
+        forbidden = tokens + ("CTX6CAT6_",)
+    if any(bad in upper for bad in forbidden):
+        raise RuntimeError(f"LEGACY_PRUNE_FORBIDDEN_IN_TRUTH: {label}={value}")
 
 
 def _one_universe_required_ctx_columns() -> List[str]:
@@ -699,15 +712,65 @@ def bootstrap_chunk_environment(
         )
 
         try:
-            prebuilt_required_columns_val = _truth_get_prebuilt_required_columns(truth_obj=truth_obj)
+            # PRUNE kill-switch on truth-config paths (before IO)
+            for key in ("canonical_xgb_bundle_dir", "canonical_prebuilt_parquet", "canonical_transformer_bundle_dir"):
+                val = str(truth_obj.get(key) or "").strip()
+                if val:
+                    _forbid_prune(key, val, allow_ctx6cat6=(key == "canonical_transformer_bundle_dir"))
 
-            # Fix #3: TRUTH prebuilt_required_columns must NOT include "time" (loader injects it)
-            if prebuilt_required_columns_val and prebuilt_required_columns_val[0] == "time":
+            # Manifest-only resolution (TRUTH/SMOKE): resolve from BASE28_CANONICAL/CURRENT_MANIFEST.json
+            manifest_path = Path("/home/andre2/GX1_DATA/data/data/prebuilt/BASE28_CANONICAL/CURRENT_MANIFEST.json")
+            truth_manifest_raw = str(truth_obj.get("canonical_prebuilt_manifest") or "").strip()
+            if truth_manifest_raw:
+                if Path(truth_manifest_raw).expanduser().resolve() != manifest_path.expanduser().resolve():
+                    raise RuntimeError(
+                        f"PREBUILT_MANIFEST_SPLIT_BRAIN: truth_manifest={truth_manifest_raw} expected={manifest_path}"
+                    )
+            manifest_info = resolve_base28_canonical_from_manifest(manifest_path)
+            prebuilt_parquet_path_resolved = manifest_info["parquet_path"]
+
+            # PRUNE kill-switch on manifest/parquet paths
+            _forbid_prune("manifest_path", str(manifest_path))
+            _forbid_prune("parquet_path", prebuilt_parquet_path_resolved)
+
+            # TRUTH/SMOKE: caller-supplied prebuilt path is forbidden (manifest is the only source of truth)
+            if prebuilt_parquet_path:
                 raise RuntimeError(
-                    "TRUTH_PREBUILT_REQUIRED_COLUMNS_INVALID: must not include 'time' (loader injects it)"
+                    f"SPLIT_BRAIN_PREBUILT: TRUTH requires manifest-only; caller prebuilt path forbidden "
+                    f"(caller={Path(prebuilt_parquet_path).expanduser().resolve()})"
                 )
 
-            prebuilt_parquet_path_resolved = _truth_resolve_prebuilt_parquet_path(truth_obj=truth_obj)
+            # Split-brain guard: truth canonical_prebuilt_parquet (if present) must match manifest parquet
+            truth_parquet_raw = str(truth_obj.get("canonical_prebuilt_parquet") or "").strip()
+            if not truth_parquet_raw:
+                raise RuntimeError("canonical_prebuilt_parquet missing in truth (must mirror manifest)")
+            truth_parquet_resolved = str(Path(truth_parquet_raw).expanduser().resolve())
+            if truth_parquet_resolved != prebuilt_parquet_path_resolved:
+                raise RuntimeError(
+                    f"SPLIT_BRAIN_PREBUILT: truth_parquet={truth_parquet_resolved} manifest_parquet={prebuilt_parquet_path_resolved}"
+                )
+
+            # PRUNE kill-switch on resolved parquet path
+            upp = prebuilt_parquet_path_resolved.upper()
+            if "PRUNE14" in upp or "PRUNE20" in upp:
+                raise RuntimeError(f"PRUNE_PREBUILT_FORBIDDEN_IN_TRUTH: {prebuilt_parquet_path_resolved}")
+
+            # Load required columns from schema_manifest adjacent to resolved parquet
+            schema_path = Path(prebuilt_parquet_path_resolved).with_suffix(".schema_manifest.json")
+            _require(schema_path.exists(), f"TRUTH_PREBUILT_SCHEMA_MANIFEST_NOT_FOUND: path={schema_path}")
+            schema_obj = _load_json_file(schema_path)
+            prebuilt_required_columns_val = list(schema_obj.get("required_all_features") or [])
+            _require(
+                isinstance(prebuilt_required_columns_val, list)
+                and prebuilt_required_columns_val
+                and all(isinstance(x, str) and x for x in prebuilt_required_columns_val),
+                "TRUTH_PREBUILT_REQUIRED_COLUMNS_MISSING_OR_INVALID (from schema_manifest.required_all_features)",
+            )
+            if len(set(prebuilt_required_columns_val)) != len(prebuilt_required_columns_val):
+                raise RuntimeError("TRUTH_PREBUILT_REQUIRED_COLUMNS_HAS_DUPLICATES (from schema_manifest)")
+            if "time" in prebuilt_required_columns_val:
+                # Schema manifest may include time (on-disk column). TRUTH contract excludes time; drop and continue.
+                prebuilt_required_columns_val = [c for c in prebuilt_required_columns_val if c != "time"]
 
             # Validate ONE UNIVERSE contract (locks + ctx dims + columns prefix)
             contract = _truth_validate_one_universe_contract(

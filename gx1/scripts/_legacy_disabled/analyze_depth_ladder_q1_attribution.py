@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+raise RuntimeError("LEGACY_DISABLED: Use gx1/scripts/README_TRUTH_XGB.md (TRUTH XGB lane only).")
 """
 Analyze Q1 Depth Ladder attribution to explain PnL loss.
 

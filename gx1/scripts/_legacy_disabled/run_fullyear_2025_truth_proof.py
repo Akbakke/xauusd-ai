@@ -1,4 +1,5 @@
 #!/home/andre2/venvs/gx1/bin/python
+raise RuntimeError("LEGACY_DISABLED: Use gx1/scripts/README_TRUTH_XGB.md (TRUTH XGB lane only).")
 # -*- coding: utf-8 -*-
 """
 Thin wrapper: runs TRUTH full-year via run_truth_e2e_sanity (no legacy replay import).

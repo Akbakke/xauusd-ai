@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+raise RuntimeError("LEGACY_DISABLED: Use gx1/scripts/README_TRUTH_XGB.md (TRUTH XGB lane only).")
 """
 Write MODEL_USED_CAPSULE.json - SSoT for XGB model usage.
 

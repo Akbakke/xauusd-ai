@@ -13494,13 +13494,7 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
             CHECKPOINT_EVERY_BARS = int(os.getenv("GX1_CHECKPOINT_EVERY_BARS", "1000"))
             if self.perf_n_bars_processed > 0 and self.perf_n_bars_processed % CHECKPOINT_EVERY_BARS == 0:
                 if hasattr(self, "replay_eval_collectors") and self.replay_eval_collectors:
-                    try:
-                        from gx1.scripts.replay_eval_gated import flush_replay_eval_collectors
-                        output_dir = getattr(self, "explicit_output_dir", None) or Path_module("gx1/wf_runs") / getattr(self, "run_id", "unknown")
-                        flush_replay_eval_collectors(self, self.replay_eval_collectors, output_dir=output_dir, partial=True)
-                        log.info(f"[CHECKPOINT] Flushed checkpoint at {self.perf_n_bars_processed} bars")
-                    except Exception as checkpoint_error:
-                        log.warning(f"[CHECKPOINT] Failed to flush checkpoint: {checkpoint_error}")
+                    log.info("[REPLAY_EVAL] skip legacy flush_replay_eval_collectors (forbidden import path)")
             
             # FIX: Rate-limited HTF progress logging every 10k bars
             if self.perf_n_bars_processed > 0 and self.perf_n_bars_processed % 10000 == 0:
@@ -14184,14 +14178,9 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
             prebuilt_bypass_log,
         )
         
-        # DEL 1: Flush replay eval collectors to disk (if enabled)
+        # DEL 1: Flush replay eval collectors to disk (if enabled) — legacy path forbidden.
         if hasattr(self, "replay_eval_collectors") and self.replay_eval_collectors:
-            try:
-                from gx1.scripts.replay_eval_gated import flush_replay_eval_collectors
-                flush_replay_eval_collectors(self, self.replay_eval_collectors)
-                log.info("[REPLAY_EVAL] Collectors flushed to disk")
-            except Exception as e:
-                log.warning("[REPLAY_EVAL] Failed to flush collectors: %s", e, exc_info=True)
+            log.info("[REPLAY_EVAL] skip legacy flush_replay_eval_collectors (forbidden import path)")
         
         # Del 4: Log cache statistics once at replay end
         total_cache_requests = self.feature_state.htf_cache_hits + self.feature_state.htf_cache_misses

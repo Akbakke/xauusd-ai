@@ -17,6 +17,11 @@ Hard rules:
 
 from __future__ import annotations
 
+raise RuntimeError(
+    "LEGACY_DISABLED: TRUTH/SMOKE uses manifest-only BASE28_CANONICAL/CURRENT_MANIFEST.json. "
+    "Use canonical_prebuilt_rebuilder instead of purge/move scripts."
+)  # noqa: E702
+
 import argparse
 import json
 import os

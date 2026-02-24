@@ -1,4 +1,5 @@
 #!/home/andre2/venvs/gx1/bin/python
+raise RuntimeError("LEGACY_DISABLED: Use gx1/scripts/README_TRUTH_XGB.md (TRUTH XGB lane only).")
 # -*- coding: utf-8 -*-
 """
 Smoke test for A/B trade-outcomes delta analyzer.

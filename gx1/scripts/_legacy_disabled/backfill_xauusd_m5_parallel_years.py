@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+raise RuntimeError("LEGACY_DISABLED: Use gx1/scripts/README_TRUTH_XGB.md (TRUTH XGB lane only).")
 # -*- coding: utf-8 -*-
 """
 Parallel OANDA XAUUSD M5 Bid/Ask Backfill by Year (2020-2024)

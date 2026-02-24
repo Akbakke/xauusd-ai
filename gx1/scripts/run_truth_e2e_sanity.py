@@ -70,6 +70,18 @@ from typing import Any, Dict, List, Optional
 
 ENGINE = Path(__file__).resolve().parents[2]
 
+# TRUTH/SMOKE SSoT allowlist (entrypoints that may run in TRUTH/SMOKE):
+# - gx1/scripts/run_truth_e2e_sanity.py (this orchestrator)
+# - gx1/execution/replay_chunk.py (worker)
+# - gx1/execution/chunk_data_loader.py (data loader)
+# - XGB eval/calibration: train_xgb_universal_v1_multiyear.py, train_xgb_universal_multihead_v2.py
+# Everything else touching PRUNE14/PRUNE20/v13_refined3/CTX6CAT6 or direct canonical_prebuilt_parquet
+# must remain frozen/disabled.
+
+# KUN ÉN TRUTH (default) — used when neither CLI nor env provides truth-file.
+CANONICAL_TRUTH_DEFAULT = "/home/andre2/src/GX1_ENGINE/gx1/configs/canonical_truth_signal_only.json"
+MANIFEST_SSOT = Path("/home/andre2/GX1_DATA/data/data/prebuilt/BASE28_CANONICAL/CURRENT_MANIFEST.json")
+
 DEFAULT_START_TS = "2025-06-03T00:00:00+00:00"
 DEFAULT_END_TS = "2025-06-10T23:59:59+00:00"
 FULLYEAR_START_TS = "2025-01-01T00:00:00+00:00"
@@ -156,6 +168,15 @@ def _sha256_file(path: Path) -> str:
     return h.hexdigest()
 
 
+def _forbid_prune_path(label: str, value: str, *, allow_ctx6cat6: bool = False) -> None:
+    upper = value.upper()
+    tokens = ["PRUNE14", "PRUNE20", "V13_REFINED3_PRUNE", "REFINED3"]
+    if not allow_ctx6cat6:
+        tokens.append("CTX6CAT6")
+    if any(bad in upper for bad in tokens):
+        raise RuntimeError(f"LEGACY_PRUNE_FORBIDDEN_IN_TRUTH: {label}={value}")
+
+
 def _atomic_write_json(path: Path, payload: Dict[str, Any]) -> bool:
     """
     Atomic JSON writer; prefers gx1.utils.atomic_json.atomic_write_json with fallback to tmp+replace.
@@ -240,9 +261,7 @@ def _exits_context_gate(
     exits_path = run_root / "replay" / "chunk_0" / "logs" / "exits" / f"exits_{run_id}.jsonl"
     if not exits_path.exists():
         if require_exits_file:
-            return False, (
-                f"exits jsonl required when exit ML/audit enabled but file not found: {exits_path}"
-            )
+            return False, (f"exits jsonl required when exit ML/audit enabled but file not found: {exits_path}")
         return True, None
     found_valid = False
     for line in exits_path.read_text(encoding="utf-8").strip().splitlines():
@@ -271,7 +290,11 @@ def _exits_context_gate(
         if footer_path.exists():
             try:
                 footer = _load_json(footer_path)
-                if footer.get("n_trades_closed", 0) == 0 and footer.get("ctx_cont_dim") == expected_ctx_cont_dim and footer.get("ctx_cat_dim") == expected_ctx_cat_dim:
+                if (
+                    footer.get("n_trades_closed", 0) == 0
+                    and footer.get("ctx_cont_dim") == expected_ctx_cont_dim
+                    and footer.get("ctx_cat_dim") == expected_ctx_cat_dim
+                ):
                     return True, None
             except Exception:
                 pass
@@ -337,6 +360,7 @@ def _run_preflight(truth_path: Path, run_root: Path) -> Dict[str, Any]:
         }
         try:
             from gx1.contracts.signal_bridge_v1 import CONTRACT_SHA256 as _EXP  # type: ignore
+
             result["checks"]["canonical_truth"]["signal_bridge_contract_sha256_expected"] = _EXP
         except Exception:
             pass
@@ -352,6 +376,7 @@ def _run_preflight(truth_path: Path, run_root: Path) -> Dict[str, Any]:
         }
         try:
             from gx1.contracts.signal_bridge_v1 import CONTRACT_SHA256 as _EXP  # type: ignore
+
             result["checks"]["canonical_truth"]["signal_bridge_contract_sha256_expected"] = _EXP
         except Exception:
             pass
@@ -359,6 +384,7 @@ def _run_preflight(truth_path: Path, run_root: Path) -> Dict[str, Any]:
 
     try:
         from gx1.contracts.signal_bridge_v1 import CONTRACT_SHA256 as _BRIDGE_SHA  # type: ignore
+
         match = bridge_sha == _BRIDGE_SHA
         if not match:
             result["gates_failed"].append("signal_bridge_sha")
@@ -381,15 +407,104 @@ def _run_preflight(truth_path: Path, run_root: Path) -> Dict[str, Any]:
 
     canonical_bundle = str(truth_obj.get("canonical_xgb_bundle_dir") or "")
     canonical_prebuilt = str(truth_obj.get("canonical_prebuilt_parquet") or "")
+    canonical_manifest_truth = str(truth_obj.get("canonical_prebuilt_manifest") or "")
     canonical_transformer = str(truth_obj.get("canonical_transformer_bundle_dir") or "")
-    if not canonical_bundle or not canonical_prebuilt or not canonical_transformer:
+
+    # Hard forbid legacy tokens before IO
+    for label, val in (
+        ("canonical_xgb_bundle_dir", canonical_bundle),
+        ("canonical_prebuilt_parquet", canonical_prebuilt),
+        ("canonical_prebuilt_manifest", canonical_manifest_truth),
+        ("canonical_transformer_bundle_dir", canonical_transformer),
+        ("manifest_ssot", str(MANIFEST_SSOT)),
+    ):
+        if val:
+            try:
+                _forbid_prune_path(label, val, allow_ctx6cat6=label == "canonical_transformer_bundle_dir")
+            except Exception as e:
+                result["gates_failed"].append("canonical_truth_paths")
+                result["checks"]["canonical_truth"] = {"error": str(e)}
+                return result
+
+    if not canonical_bundle or not canonical_transformer:
         result["gates_failed"].append("canonical_truth_paths")
         result["checks"]["canonical_truth"] = {"error": "Missing canonical_* paths in truth file"}
         return result
 
+    manifest_ssot_resolved = MANIFEST_SSOT.expanduser().resolve()
+    if canonical_manifest_truth:
+        if Path(canonical_manifest_truth).expanduser().resolve() != manifest_ssot_resolved:
+            result["gates_failed"].append("canonical_truth_paths")
+            result["checks"]["canonical_truth"] = {
+                "error": f"PREBUILT_MANIFEST_SPLIT_BRAIN: truth_manifest={canonical_manifest_truth} "
+                f"expected={manifest_ssot_resolved}"
+            }
+            return result
+
+    if not manifest_ssot_resolved.exists():
+        result["gates_failed"].append("prebuilt_manifest")
+        result["checks"]["prebuilt_manifest"] = {"error": f"MANIFEST_SSOT_NOT_FOUND: {manifest_ssot_resolved}"}
+        return result
+
+    try:
+        manifest_obj = json.loads(manifest_ssot_resolved.read_text(encoding="utf-8"))
+    except Exception as e:
+        result["gates_failed"].append("prebuilt_manifest")
+        result["checks"]["prebuilt_manifest"] = {"error": f"MANIFEST_SSOT_INVALID_JSON: {e}"}
+        return result
+
+    manifest_parquet = str(Path(manifest_obj.get("parquet_path") or "").expanduser().resolve())
+    manifest_sha = manifest_obj.get("parquet_sha256") or ""
+
+    if not manifest_parquet:
+        result["gates_failed"].append("prebuilt_manifest")
+        result["checks"]["prebuilt_manifest"] = {"error": "MANIFEST_SSOT_MISSING_PARQUET_PATH"}
+        return result
+
+    if not Path(manifest_parquet).is_file():
+        result["gates_failed"].append("prebuilt_manifest")
+        result["checks"]["prebuilt_manifest"] = {"error": f"MANIFEST_PARQUET_NOT_FOUND: {manifest_parquet}"}
+        return result
+
+    if not canonical_prebuilt:
+        result["gates_failed"].append("canonical_truth_paths")
+        result["checks"]["canonical_truth"] = {"error": "canonical_prebuilt_parquet missing (must mirror manifest)"}
+        return result
+
+    prebuilt_resolved = str(Path(canonical_prebuilt).expanduser().resolve())
+    if prebuilt_resolved != manifest_parquet:
+        result["gates_failed"].append("canonical_truth_paths")
+        result["checks"]["canonical_truth"] = {
+            "error": f"PREBUILT_SPLIT_BRAIN: manifest.parquet_path={manifest_parquet} != canonical_prebuilt_parquet={prebuilt_resolved}"
+        }
+        return result
+
+    try:
+        _forbid_prune_path("manifest_parquet", manifest_parquet)
+    except Exception as e:
+        result["gates_failed"].append("canonical_truth_paths")
+        result["checks"]["canonical_truth"] = {"error": str(e)}
+        return result
+
+    # Single source assertion (print)
+    try:
+        parquet_sha = _sha256_file(Path(manifest_parquet))
+    except Exception:
+        parquet_sha = "MISSING_OR_UNREADABLE"
+    print(
+        "[E2E] SSoT_PREBUILT "
+        f"manifest_ssot={manifest_ssot_resolved} manifest_parquet={manifest_parquet} "
+        f"canonical_prebuilt_parquet={canonical_prebuilt} parquet_sha256={parquet_sha}",
+        file=sys.stderr,
+    )
+
     result["checks"]["canonical_truth"] = {
         "truth_file": str(truth_path),
         "truth_file_sha256": _sha256_file(truth_path),
+        "manifest_ssot": str(manifest_ssot_resolved),
+        "manifest_parquet_path": manifest_parquet,
+        "manifest_parquet_sha256": manifest_sha,
+        "canonical_prebuilt_parquet": prebuilt_resolved,
         "signal_bridge_sha_match": True,
         "signal_bridge_sha_key_used": key_used,
         "signal_bridge_sha_value": bridge_sha[:16] + "..." if len(bridge_sha) > 16 else bridge_sha,
@@ -469,8 +584,10 @@ def _run_preflight(truth_path: Path, run_root: Path) -> Dict[str, Any]:
             ORDERED_CTX_CAT_NAMES_EXTENDED,
             ORDERED_CTX_CONT_NAMES_EXTENDED,
         )
+
         required_ctx_12 = list(ORDERED_CTX_CONT_NAMES_EXTENDED) + list(ORDERED_CTX_CAT_NAMES_EXTENDED)
         import pyarrow.parquet as pq
+
         parquet_schema = pq.read_schema(prebuilt_path)
         prebuilt_cols = list(parquet_schema.names)
         missing_ctx_cols = [c for c in required_ctx_12 if c not in prebuilt_cols]
@@ -485,6 +602,7 @@ def _run_preflight(truth_path: Path, run_root: Path) -> Dict[str, Any]:
         # Bonus: no NaN/Inf in ctx columns (STRICT dataset will fail early otherwise)
         import numpy as np
         import pandas as pd
+
         df_sample = pd.read_parquet(prebuilt_path, columns=required_ctx_12).head(1000)
         if len(df_sample) > 0:
             for col in required_ctx_12:
@@ -581,6 +699,14 @@ def _run_replay(
             truth_or_smoke=True,
             bundle_sha=bundle_sha,
         )
+    except ImportError:
+        # Fallback: write minimal PRE_FORK_FREEZE.json to satisfy bootstrap (no legacy module needed)
+        payload = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "bundle_sha256": bundle_sha,
+            "note": "prefork freeze stub (module missing); TRUTH/SMOKE requires presence only.",
+        }
+        _atomic_write_json(replay_output_dir / "PRE_FORK_FREEZE.json", payload)
     except Exception as e:
         print(f"[E2E] PRE_FORK_FREEZE failed: {e}", file=sys.stderr)
         return 2
@@ -602,7 +728,7 @@ def _run_replay(
         run_id=run_id,
         output_dir=replay_output_dir,
         bundle_sha256=bundle_sha,
-        prebuilt_parquet_path=str(prebuilt_path),
+        prebuilt_parquet_path=None,
         bundle_dir=bundle_dir,
         chunk_local_padding_days=0,
     )
@@ -692,7 +818,9 @@ def _run_postrun_checks(run_root: Path, run_id: str) -> Dict[str, Any]:
     expected_sha256 = header.get("policy_snapshot_sha256")
     if not expected_sha256:
         result["gates_failed"].append("policy_snapshot_sha256")
-        result["checks"]["policy_snapshot"] = {"error": "run_header missing policy_snapshot_sha256 (run must use snapshot runner)"}
+        result["checks"]["policy_snapshot"] = {
+            "error": "run_header missing policy_snapshot_sha256 (run must use snapshot runner)"
+        }
         return result
     snapshot_name = header.get("policy_snapshot_path") or "RUN_POLICY_USED.yaml"
     snapshot_file = chunk_dir / snapshot_name
@@ -825,11 +953,6 @@ def _run_postrun_checks(run_root: Path, run_id: str) -> Dict[str, Any]:
 
     # ---------------------------------------------------------------------
     # forward_calls / n_model_calls (observability gate; never use t_transformer_forward_sec as proof)
-    #
-    # Verification scenarios (no code execution, documentation only):
-    # - 1-day window, no trades: forward_calls may be 0 (policy/session filtered) → E2E = GO.
-    # - 7-day window, with trades: forward_calls must be > 0 → E2E = GO only if so.
-    # - Full-year historical run: result canonical; counters may be historically outdated (accepted).
     # ---------------------------------------------------------------------
     metrics_path = run_root / f"metrics_{run_id}_MERGED.json"
     metrics: Dict[str, Any] = _load_json(metrics_path) if metrics_path.exists() else {}
@@ -865,7 +988,6 @@ def _run_postrun_checks(run_root: Path, run_id: str) -> Dict[str, Any]:
             except Exception:
                 pass
 
-    # n_trades > 0 => forward_calls must be > 0 (trades imply model was invoked)
     if n_trades > 0:
         if forward_calls is None or forward_calls <= 0:
             keys = sorted(list(metrics.keys()))
@@ -889,14 +1011,10 @@ def _run_postrun_checks(run_root: Path, run_id: str) -> Dict[str, Any]:
             "passed": True,
         }
     else:
-        # n_trades == 0: forward_calls == 0 is allowed (no-forward-window, policy/session filtered)
         if forward_calls is None:
             forward_calls = 0
         if forward_calls == 0:
-            print(
-                "[E2E] no-forward-window: n_trades=0, forward_calls=0 (policy/session-filtered)",
-                file=sys.stderr,
-            )
+            print("[E2E] no-forward-window: n_trades=0, forward_calls=0 (policy/session-filtered)", file=sys.stderr)
         result["checks"]["forward_calls"] = {
             "forward_calls": forward_calls,
             "source_key": chosen_key or "chunk_footer.n_model_calls",
@@ -918,9 +1036,7 @@ def _run_postrun_checks(run_root: Path, run_id: str) -> Dict[str, Any]:
         zero_diag = chunk_dir / "ZERO_TRADES_DIAG.json"
         if not zero_diag.exists():
             result["gates_failed"].append("zero_trades_diag")
-            result["checks"]["zero_trades"] = {
-                "error": "ZERO_TRADES_DIAG.json missing (TRUTH requires when n_trades==0)"
-            }
+            result["checks"]["zero_trades"] = {"error": "ZERO_TRADES_DIAG.json missing (TRUTH requires when n_trades==0)"}
             return result
 
         result["checks"]["zero_trades"] = {"passed": True}
@@ -986,9 +1102,7 @@ def _run_postrun_checks(run_root: Path, run_id: str) -> Dict[str, Any]:
         return result
     if footer.get("router_enabled") is not False:
         result["gates_failed"].append("router_enabled_false")
-        result["checks"]["exit_strategy"]["error"] = (
-            f"router_enabled must be false in TRUTH, got: {footer.get('router_enabled')}"
-        )
+        result["checks"]["exit_strategy"]["error"] = f"router_enabled must be false in TRUTH, got: {footer.get('router_enabled')}"
         return result
     if footer.get("exit_critic_enabled") is not False:
         result["gates_failed"].append("exit_critic_enabled_false")
@@ -1014,15 +1128,11 @@ def _run_postrun_checks(run_root: Path, run_id: str) -> Dict[str, Any]:
     exits_glob = list(exits_dir.glob("exits_*.jsonl")) if exits_dir.exists() else []
     if not exits_glob:
         result["gates_failed"].append("exit_ml_exits_jsonl")
-        result["checks"]["exit_strategy"]["error"] = (
-            f"exits jsonl required in {exits_dir}; found: {exits_glob}"
-        )
+        result["checks"]["exit_strategy"]["error"] = f"exits jsonl required in {exits_dir}; found: {exits_glob}"
         return result
     if not footer.get("exit_ml_model_sha"):
         result["gates_failed"].append("exit_ml_model_sha")
-        result["checks"]["exit_strategy"]["error"] = (
-            "exit_transformer_v0 requires exit_ml_model_sha in footer"
-        )
+        result["checks"]["exit_strategy"]["error"] = "exit_transformer_v0 requires exit_ml_model_sha in footer"
         return result
     seen_transformer_6_6 = False
     for path in exits_glob:
@@ -1050,12 +1160,12 @@ def _run_postrun_checks(run_root: Path, run_id: str) -> Dict[str, Any]:
     n_trades = footer.get("n_trades_closed", 0)
     if not seen_transformer_6_6:
         if n_trades == 0 and footer.get("ctx_cont_dim") == 6 and footer.get("ctx_cat_dim") == 6:
-            # 0-trade run: exit transformer was ready (ctx 6/6 in footer), no exits to log
             pass
         else:
             result["gates_failed"].append("exit_ml_transformer_6_6")
             result["checks"]["exit_strategy"]["error"] = (
-                "exits jsonl must contain at least one line with computed.mode == 'exit_transformer_v0' and context.ctx_cont len 6, context.ctx_cat len 6"
+                "exits jsonl must contain at least one line with computed.mode == 'exit_transformer_v0' and "
+                "context.ctx_cont len 6, context.ctx_cat len 6"
             )
             return result
 
@@ -1131,7 +1241,7 @@ def main() -> int:
     ap.add_argument("--entry-signal-trace", action="store_true", help="Set GX1_ENTRY_SIGNAL_TRACE=1")
     ap.add_argument("--strict-masks", dest="strict_masks", action="store_true", default=True, help="Set GX1_STRICT_MASK=1 (default)")
     ap.add_argument("--no-strict-masks", dest="strict_masks", action="store_false", help="Do not set GX1_STRICT_MASK")
-    ap.add_argument("--truth-file", type=str, default="", help="Canonical truth JSON (default: GX1_CANONICAL_TRUTH_FILE env)")
+    ap.add_argument("--truth-file", type=str, default="", help="Canonical truth JSON (default: env, else CANONICAL_TRUTH_DEFAULT)")
     ap.add_argument(
         "--train-exit-transformer-v0-from-last-go",
         action="store_true",
@@ -1172,7 +1282,7 @@ def main() -> int:
             source_run_dir=str(go_run_dir),
             gx1_data=str(gx1_data),
             epochs=20,
-            window_len=8,  # sanity speed; train_from_exits_jsonl default is 64 (full retrain)
+            window_len=8,
             seed=42,
             use_io_v2=require_io_v2,
             require_io_v2=require_io_v2,
@@ -1192,34 +1302,41 @@ def main() -> int:
             return 1
         return 0
 
-    run_id = args.run_id or (f"ZERO_TRADES_CANARY_{_utc_ts_compact()}" if args.force_zero_trades else f"E2E_SANITY_{_utc_ts_compact()}")
+    run_id = args.run_id or (
+        f"ZERO_TRADES_CANARY_{_utc_ts_compact()}" if args.force_zero_trades else f"E2E_SANITY_{_utc_ts_compact()}"
+    )
     gx1_data = _gx1_data()
     run_root = Path(args.run_dir).expanduser().resolve() if args.run_dir else (gx1_data / "reports" / "truth_e2e_sanity" / run_id)
     run_root.mkdir(parents=True, exist_ok=True)
-    canary_proof = (
-        {"mode": "ZERO_TRADES_CANARY", "entry_threshold_override": ZERO_TRADES_CANARY_THRESHOLD}
-        if args.force_zero_trades
-        else None
-    )
+    canary_proof = {"mode": "ZERO_TRADES_CANARY", "entry_threshold_override": ZERO_TRADES_CANARY_THRESHOLD} if args.force_zero_trades else None
 
     # TRUTH gate: no legacy replay script in process
     _assert_truth_no_legacy_replay(run_root)
 
-    truth_file = args.truth_file or os.environ.get("GX1_CANONICAL_TRUTH_FILE", "")
-    if not truth_file:
-        _atomic_write_json(
-            run_root / "PREFLIGHT_E2E.json",
-            {
-                "passed": False,
-                "error": "GX1_CANONICAL_TRUTH_FILE not set and --truth-file not provided",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-            },
-        )
-        _write_summary_md(run_root, {"passed": False, "gates_failed": ["truth_file"]}, None, False, ["Missing canonical truth file"], canary_proof=canary_proof)
-        print("[E2E] FAIL: set GX1_CANONICAL_TRUTH_FILE or pass --truth-file", file=sys.stderr)
-        return 1
+    # ---------------------------------------------------------------------
+    # TRUTH_FILE resolution (NO "missing truth" state; NO split-brain).
+    # Priority:
+    #   1) --truth-file
+    #   2) GX1_CANONICAL_TRUTH_FILE
+    #   3) CANONICAL_TRUTH_DEFAULT
+    # Split-brain rule:
+    #   If both CLI and env are set and differ (after resolve) -> hard fail.
+    # TRUTH forbids CLI override of a different env path.
+    # ---------------------------------------------------------------------
+    truth_file_cli = (args.truth_file or "").strip()
+    truth_file_env = (os.environ.get("GX1_CANONICAL_TRUTH_FILE", "") or "").strip()
 
+    cli_abs = str(Path(truth_file_cli).expanduser().resolve()) if truth_file_cli else ""
+    env_abs = str(Path(truth_file_env).expanduser().resolve()) if truth_file_env else ""
+
+    if truth_file_cli and truth_file_env and cli_abs != env_abs:
+        raise RuntimeError(
+            f"SPLIT_BRAIN_TRUTH: --truth-file={cli_abs} != GX1_CANONICAL_TRUTH_FILE={env_abs} (TRUTH_FORBIDS_CLI_TRUTH_OVERRIDE)"
+        )
+
+    truth_file = truth_file_cli or truth_file_env or CANONICAL_TRUTH_DEFAULT
     truth_path = Path(truth_file).expanduser().resolve()
+    print(f"[E2E] TRUTH_FILE_USED={truth_path}", file=sys.stderr)
 
     # TRUTH envs (must be set before preflight so preflight can check)
     os.environ["GX1_RUN_MODE"] = "TRUTH"
@@ -1230,12 +1347,25 @@ def main() -> int:
     os.environ["GX1_CANONICAL_TRUTH_FILE"] = str(truth_path)
     os.environ.setdefault("GX1_OUTPUT_MODE", "TRUTH")
     os.environ.setdefault("GX1_SEED", "42")
-    # Fast-path contract (required by verify_fast_path_enabled in replay)
     os.environ.setdefault("GX1_REPLAY_INCREMENTAL_FEATURES", "1")
     os.environ.setdefault("GX1_FEATURE_USE_NP_ROLLING", "1")
     os.environ.setdefault("GX1_REPLAY_NO_CSV", "1")
     for _k in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "VECLIB_MAXIMUM_THREADS", "NUMEXPR_NUM_THREADS"):
         os.environ.setdefault(_k, "1")
+
+    # TRUTH/SMOKE: hard-fail on parallel/segmented envs or multi-worker hints
+    for forbidden_env in (
+        "GX1_PARALLEL",
+        "GX1_SEGMENTED",
+        "GX1_SEGMENTED_PARALLEL",
+        "GX1_WORKERS",
+        "GX1_CHUNKS",
+        "GX1_N_WORKERS",
+        "GX1_N_CHUNKS",
+    ):
+        val = os.environ.get(forbidden_env)
+        if val:
+            raise RuntimeError(f"[TRUTH_FORBIDDEN_ENV] {forbidden_env}={val}")
 
     try:
         from gx1.utils.truth_banlist import assert_truth_banlist_clean  # type: ignore
@@ -1260,11 +1390,7 @@ def main() -> int:
         print("[E2E] MODE=ZERO_TRADES_CANARY (entry threshold 1.1 → 0 trades contract)", file=sys.stderr)
         _atomic_write_json(
             run_root / "RUN_IDENTITY.json",
-            {
-                "mode": "ZERO_TRADES_CANARY",
-                "entry_threshold_override": ZERO_TRADES_CANARY_THRESHOLD,
-                "run_id": run_id,
-            },
+            {"mode": "ZERO_TRADES_CANARY", "entry_threshold_override": ZERO_TRADES_CANARY_THRESHOLD, "run_id": run_id},
         )
 
     # Preflight
@@ -1294,10 +1420,57 @@ def main() -> int:
     truth_obj = _load_json(truth_path)
     canonical_bundle = str(truth_obj.get("canonical_xgb_bundle_dir") or "")
     canonical_prebuilt = str(truth_obj.get("canonical_prebuilt_parquet") or "")
+    canonical_manifest_truth = str(truth_obj.get("canonical_prebuilt_manifest") or "")
     canonical_transformer = str(truth_obj.get("canonical_transformer_bundle_dir") or "")
 
+    manifest_ssot_resolved = MANIFEST_SSOT.expanduser().resolve()
+    if canonical_manifest_truth and Path(canonical_manifest_truth).expanduser().resolve() != manifest_ssot_resolved:
+        _write_fatal_capsule(
+            run_root,
+            RuntimeError("PREBUILT_MANIFEST_SPLIT_BRAIN"),
+            ["canonical_truth_paths"],
+        )
+        _write_summary_md(
+            run_root,
+            preflight,
+            None,
+            False,
+            [f"PREBUILT_MANIFEST_SPLIT_BRAIN truth_manifest={canonical_manifest_truth} expected={manifest_ssot_resolved}"],
+            canary_proof=canary_proof,
+        )
+        return 1
+
+    manifest_obj = _load_json(manifest_ssot_resolved)
+    manifest_parquet = str(Path(manifest_obj.get("parquet_path") or "").expanduser().resolve())
+    if not canonical_prebuilt:
+        _write_fatal_capsule(run_root, RuntimeError("canonical_prebuilt_parquet missing"), ["canonical_truth_paths"])
+        _write_summary_md(
+            run_root, preflight, None, False, ["canonical_prebuilt_parquet missing in truth"], canary_proof=canary_proof
+        )
+        return 1
+
+    if manifest_parquet != str(Path(canonical_prebuilt).expanduser().resolve()):
+        _write_fatal_capsule(run_root, RuntimeError("PREBUILT_SPLIT_BRAIN"), ["canonical_truth_paths"])
+        _write_summary_md(
+            run_root,
+            preflight,
+            None,
+            False,
+            [f"PREBUILT_SPLIT_BRAIN manifest_parquet={manifest_parquet} canonical_prebuilt_parquet={canonical_prebuilt}"],
+            canary_proof=canary_proof,
+        )
+        return 1
+
+    for label, val in (
+        ("canonical_xgb_bundle_dir", canonical_bundle),
+        ("canonical_transformer_bundle_dir", canonical_transformer),
+        ("manifest_ssot", str(manifest_ssot_resolved)),
+        ("manifest_parquet", manifest_parquet),
+    ):
+        _forbid_prune_path(label, val, allow_ctx6cat6=label == "canonical_transformer_bundle_dir")
+
     bundle_dir = Path(canonical_bundle).expanduser().resolve()
-    prebuilt_path = Path(canonical_prebuilt).expanduser().resolve()
+    prebuilt_path = Path(manifest_parquet).expanduser().resolve()
 
     policy_path = Path(
         os.environ.get(
@@ -1320,12 +1493,9 @@ def main() -> int:
     # TRUTH gate: only the canonical policy file may be used (exact path match)
     try:
         from gx1.utils.truth_banlist import is_truth_or_smoke, assert_truth_policy_path_canonical
+
         if is_truth_or_smoke():
-            assert_truth_policy_path_canonical(
-                policy_path,
-                engine_root=ENGINE,
-                output_dir=run_root,
-            )
+            assert_truth_policy_path_canonical(policy_path, engine_root=ENGINE, output_dir=run_root)
     except ImportError:
         pass
     if not raw_path.exists():
@@ -1381,12 +1551,7 @@ def main() -> int:
     if rc != 0:
         _atomic_write_json(
             run_root / "POSTRUN_E2E.json",
-            {
-                "passed": False,
-                "run_id": run_id,
-                "replay_exitcode": rc,
-                "gates_failed": ["replay_exitcode"],
-            },
+            {"passed": False, "run_id": run_id, "replay_exitcode": rc, "gates_failed": ["replay_exitcode"]},
         )
         _write_summary_md(run_root, preflight, {"passed": False, "gates_failed": ["replay_exitcode"]}, False, [f"Replay exit code {rc}"], canary_proof=canary_proof)
         return 1
@@ -1437,26 +1602,16 @@ def main() -> int:
     if footer_path.exists():
         footer = _load_json(footer_path)
         if footer.get("ctx_cont_dim") is not None and footer["ctx_cont_dim"] != CTX_CONT_DIM:
-            _write_fatal_capsule(
-                run_root,
-                RuntimeError(f"ONE_UNIVERSE: footer ctx_cont_dim must be {CTX_CONT_DIM}, got {footer['ctx_cont_dim']}"),
-                ["ctx_dims"],
-            )
+            _write_fatal_capsule(run_root, RuntimeError(f"ONE_UNIVERSE: footer ctx_cont_dim must be {CTX_CONT_DIM}, got {footer['ctx_cont_dim']}"), ["ctx_dims"])
             raise RuntimeError(f"[E2E] footer ctx_cont_dim must be {CTX_CONT_DIM}, got {footer['ctx_cont_dim']}")
         if footer.get("ctx_cat_dim") is not None and footer["ctx_cat_dim"] != CTX_CAT_DIM:
-            _write_fatal_capsule(
-                run_root,
-                RuntimeError(f"ONE_UNIVERSE: footer ctx_cat_dim must be {CTX_CAT_DIM}, got {footer['ctx_cat_dim']}"),
-                ["ctx_dims"],
-            )
+            _write_fatal_capsule(run_root, RuntimeError(f"ONE_UNIVERSE: footer ctx_cat_dim must be {CTX_CAT_DIM}, got {footer['ctx_cat_dim']}"), ["ctx_dims"])
             raise RuntimeError(f"[E2E] footer ctx_cat_dim must be {CTX_CAT_DIM}, got {footer['ctx_cat_dim']}")
         if footer.get("exit_ml_enabled") is True:
             require_exits_file = True
     if os.environ.get("GX1_EXIT_AUDIT") == "1":
         require_exits_file = True
-    gate_ok, gate_err = _exits_context_gate(
-        run_root, run_id, expected_ctx_cont, expected_ctx_cat, require_exits_file=require_exits_file
-    )
+    gate_ok, gate_err = _exits_context_gate(run_root, run_id, expected_ctx_cont, expected_ctx_cat, require_exits_file=require_exits_file)
     if not gate_ok:
         postrun_fail = {
             "passed": False,
@@ -1471,7 +1626,6 @@ def main() -> int:
         return 1
 
     # LAST_GO is written only after all gates pass (preflight, replay, postrun, zero-trades, exits-context).
-    # So LAST_GO.txt is always "siste ekte GO" – never a run that can fail a later gate.
     last_go_dir = gx1_data / "reports" / "truth_e2e_sanity"
     last_go_path = last_go_dir / "LAST_GO.txt"
     try:

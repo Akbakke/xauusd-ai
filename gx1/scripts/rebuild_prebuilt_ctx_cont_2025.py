@@ -29,6 +29,11 @@ GX1_DATA/data/data/prebuilt/ctx{cont}cat{cat}_{timestamp}/).
 
 from __future__ import annotations
 
+raise RuntimeError(
+    "LEGACY_DISABLED: manifest-only TRUTH/SMOKE via BASE28_CANONICAL/CURRENT_MANIFEST.json. "
+    "CTX6CAT6/refined3 rebuild helpers are disabled."
+)  # noqa: E702
+
 import argparse
 import json
 import os

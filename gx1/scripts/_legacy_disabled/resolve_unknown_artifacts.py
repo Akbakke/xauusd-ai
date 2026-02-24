@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+raise RuntimeError("LEGACY_DISABLED: Use gx1/scripts/README_TRUTH_XGB.md (TRUTH XGB lane only).")
 """
 Resolve UNKNOWN artifacts to KEEP/ARCHIVE/DELETE_LATER/NEEDS_DECISION.
 

@@ -20,6 +20,11 @@ No fallback: if bundle metadata missing or expected_ctx_cont_dim invalid, hard-f
 
 from __future__ import annotations
 
+raise RuntimeError(
+    "LEGACY_DISABLED: manifest-only TRUTH/SMOKE. Use BASE28_CANONICAL/CURRENT_MANIFEST.json; "
+    "CTX6CAT6/refined3 helpers are disabled."
+)  # noqa: E702
+
 import argparse
 import json
 import sys

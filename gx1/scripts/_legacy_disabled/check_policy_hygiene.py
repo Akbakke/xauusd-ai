@@ -1,4 +1,5 @@
 #!/home/andre2/venvs/gx1/bin/python
+raise RuntimeError("LEGACY_DISABLED: Use gx1/scripts/README_TRUTH_XGB.md (TRUTH XGB lane only).")
 """
 Repo policy hygiene gate: ensures only the canonical policy and its KEEP dependencies exist,
 and that Python code does not hardcode other policy paths.

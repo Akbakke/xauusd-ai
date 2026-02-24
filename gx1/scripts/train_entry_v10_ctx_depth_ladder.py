@@ -86,6 +86,81 @@ def compute_bundle_sha256(bundle_dir: Path) -> str:
     return hasher.hexdigest()[:16]  # First 16 chars
 
 
+def _copy_into_bundle(bundle_dir: Path, src: Path, dest_name: str, fatal_label: str) -> str:
+    if not src.exists():
+        raise RuntimeError(f"{fatal_label}: {src}")
+    dest = bundle_dir / dest_name
+    shutil.copy2(src, dest)
+    return dest.name
+
+
+def finalize_bundle_with_meta_and_scalers(
+    bundle_dir: Path,
+    feature_meta_path: Path,
+    seq_scaler_path: Optional[Path],
+    snap_scaler_path: Optional[Path],
+) -> None:
+    """Make bundle self-sufficient: copy feature_meta/scalers and update bundle_metadata.json."""
+    bundle_dir = bundle_dir.resolve()
+    meta_json = bundle_dir / "bundle_metadata.json"
+    model_path = bundle_dir / "model_state_dict.pt"
+    lock_path = bundle_dir / "MASTER_TRANSFORMER_LOCK.json"
+
+    if not model_path.exists():
+        raise RuntimeError(f"BUNDLE_PACKAGING_MISSING_MODEL: {model_path}")
+    if not meta_json.exists():
+        raise RuntimeError(f"BUNDLE_PACKAGING_MISSING_METADATA: {meta_json}")
+    if not lock_path.exists():
+        raise RuntimeError(f"BUNDLE_PACKAGING_MISSING_LOCK: {lock_path}")
+
+    # Copy artifacts
+    feature_meta_rel = _copy_into_bundle(
+        bundle_dir,
+        feature_meta_path,
+        "entry_v10_ctx_feature_meta.json",
+        "BUNDLE_PACKAGING_MISSING_FEATURE_META",
+    )
+
+    seq_scaler_rel = None
+    snap_scaler_rel = None
+    if seq_scaler_path:
+        seq_scaler_rel = _copy_into_bundle(
+            bundle_dir,
+            seq_scaler_path,
+            seq_scaler_path.name,
+            "BUNDLE_PACKAGING_MISSING_SCALER",
+        )
+    if snap_scaler_path:
+        snap_scaler_rel = _copy_into_bundle(
+            bundle_dir,
+            snap_scaler_path,
+            snap_scaler_path.name,
+            "BUNDLE_PACKAGING_MISSING_SCALER",
+        )
+
+    # Update metadata (relative paths)
+    meta = json.loads(meta_json.read_text(encoding="utf-8"))
+    meta["feature_meta_path"] = feature_meta_rel
+    if seq_scaler_rel:
+        meta["seq_scaler_path"] = seq_scaler_rel
+    if snap_scaler_rel:
+        meta["snap_scaler_path"] = snap_scaler_rel
+    meta_json.write_text(json.dumps(meta, indent=2), encoding="utf-8")
+
+    # Optional: also store in lock if present
+    try:
+        lock = json.loads(lock_path.read_text(encoding="utf-8"))
+        lock["feature_meta_path"] = feature_meta_rel
+        if seq_scaler_rel:
+            lock["seq_scaler_path"] = seq_scaler_rel
+        if snap_scaler_rel:
+            lock["snap_scaler_path"] = snap_scaler_rel
+        lock_path.write_text(json.dumps(lock, indent=2), encoding="utf-8")
+    except Exception:
+        # Do not mask errors if lock is malformed; re-raise
+        raise
+
+
 def validate_config_diff(baseline_cfg: Dict, variant_cfg: Dict, allowed_diff: set) -> None:
     """
     FATAL if config differs beyond allowed parameters.
@@ -297,16 +372,27 @@ def train_depth_ladder_variant(
         log.info(f"Training command (with depth_ladder_mode):")
         log.info(f"  GX1_DEPTH_LADDER_MODE=1 GX1_DEPTH_LADDER_VARIANT={variant} GX1_DEPTH_LADDER_NUM_LAYERS={config['num_layers']} {cmd_str}")
         
-        # For now, return command string
-        # User will need to run this manually or we modify entry_v10_ctx_train.py
-        
-        return {
-            "variant": variant,
-            "config": config,
-            "out_dir": str(variant_out_dir),
-            "command": cmd_str,
-            "status": "command_generated",
-        }
+    # At this point training is expected to have produced model_state_dict.pt and bundle_metadata.json
+    # If they exist, make bundle self-sufficient by copying feature_meta/scalers and updating metadata
+    try:
+        finalize_bundle_with_meta_and_scalers(
+            bundle_dir=variant_out_dir,
+            feature_meta_path=feature_meta_path,
+            seq_scaler_path=seq_scaler_path,
+            snap_scaler_path=snap_scaler_path,
+        )
+        bundle_sha = compute_bundle_sha256(variant_out_dir)
+    except Exception as e:
+        raise RuntimeError(f"BUNDLE_PACKAGING_FAIL: {e}") from e
+    
+    return {
+        "variant": variant,
+        "config": config,
+        "out_dir": str(variant_out_dir),
+        "command": cmd_str,
+        "status": "command_generated",
+        "bundle_sha": bundle_sha,
+    }
         
     finally:
         sys.argv = original_argv

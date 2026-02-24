@@ -1,3 +1,5 @@
+echo "LEGACY_DISABLED: manifest-only TRUTH/SMOKE; PRUNE/refined3 scripts are frozen."
+exit 1
 #!/usr/bin/env bash
 set -euo pipefail
 

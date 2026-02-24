@@ -630,14 +630,10 @@ def process_chunk(
             attribution_path = chunk_output_dir / f"attribution_{run_id}.json"
             if not attribution_path.exists():
                 _write_minimal_attribution(chunk_output_dir, run_id)
+            log.info("[TRUTH] skip legacy flush_replay_eval_collectors (forbidden import path)")
         else:
-            try:
-                if runner and getattr(runner, "replay_eval_collectors", None):
-                    from gx1.scripts.replay_eval_gated import flush_replay_eval_collectors  # type: ignore
-
-                    flush_replay_eval_collectors(runner, runner.replay_eval_collectors, output_dir=chunk_output_dir)
-            except Exception as e:
-                log.warning("[FLUSH] [CHUNK %s] non-TRUTH flush failed: %s", chunk_idx, e)
+            # Legacy flush path is forbidden; skip to avoid gx1.scripts.* import in TRUTH/SMOKE contexts.
+            log.info("[REPLAY_EVAL] skip legacy flush_replay_eval_collectors (forbidden import path)")
 
         # ---------------------------------------------------------------------
         # PHASE 5b: Optional observability (never fatal)

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+raise RuntimeError("LEGACY_DISABLED: Use gx1/scripts/README_TRUTH_XGB.md (TRUTH XGB lane only).")
 """
 Find and verify raw candle parquets (XAUUSD M5 2020-2025).
 Output: CANDLES_AUDIT.md, candles_paths.json, install_candles_canonical.sh

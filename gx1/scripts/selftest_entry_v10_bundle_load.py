@@ -158,7 +158,7 @@ def test_bundle_load(bundle_dir: Path, policy_path: Optional[Path] = None) -> Di
         # Try to load bundle
         from gx1.models.entry_v10.entry_v10_bundle import load_entry_v10_ctx_bundle
         
-        # Get feature_meta_path from policy or use default
+        # Get feature_meta_path from policy or bundle metadata (no v9 fallback)
         feature_meta_path = None
         if policy_path and policy_path.exists():
             import yaml
@@ -167,12 +167,22 @@ def test_bundle_load(bundle_dir: Path, policy_path: Optional[Path] = None) -> Di
             if "entry_models" in policy and "v10_ctx" in policy["entry_models"]:
                 feature_meta_path_str = policy["entry_models"]["v10_ctx"].get("feature_meta_path")
                 if feature_meta_path_str:
-                    feature_meta_path = (workspace_root / feature_meta_path_str).resolve()
-        
+                    candidate = Path(feature_meta_path_str)
+                    if not candidate.is_absolute():
+                        candidate = (workspace_root / candidate).resolve()
+                    feature_meta_path = candidate
+
         if feature_meta_path is None:
-            # Use default
-            feature_meta_path = workspace_root / "gx1/models/entry_v9/nextgen_2020_2025_clean/entry_v9_feature_meta.json"
-        
+            meta_feat = metadata.get("feature_meta_path")
+            if meta_feat:
+                candidate = Path(meta_feat)
+                if not candidate.is_absolute():
+                    candidate = (bundle_dir / candidate).resolve()
+                feature_meta_path = candidate
+
+        if feature_meta_path is None:
+            raise RuntimeError("feature_meta_path missing (policy entry_models.v10_ctx.feature_meta_path or bundle_metadata.feature_meta_path required)")
+
         if not feature_meta_path.exists():
             raise FileNotFoundError(f"feature_meta_path not found: {feature_meta_path}")
         

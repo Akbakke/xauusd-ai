@@ -115,9 +115,6 @@ entry_models:
   v10:
     enabled: true
     model_path: "models/entry_v10/entry_v10_transformer.pt"
-    feature_meta_path: "gx1/models/entry_v9/nextgen_2020_2025_clean/entry_v9_feature_meta.json"
-    seq_scaler_path: "gx1/models/entry_v9/nextgen_2020_2025_clean/seq_scaler.joblib"
-    snap_scaler_path: "gx1/models/entry_v9/nextgen_2020_2025_clean/snap_scaler.joblib"
   
   # XGB models (required for V10 hybrid) - migrated to entry_v10_ctx bundle
   # Mode: "universal" (single model) or "session" (EU/US/OVERLAP/ASIA split)
@@ -134,9 +131,6 @@ entry_models:
   v10_ctx:
     enabled: true
     bundle_dir: "models/entry_v10_ctx/FULLYEAR_2025_GATED_FUSION"
-    feature_meta_path: "gx1/models/entry_v9/nextgen_2020_2025_clean/entry_v9_feature_meta.json"
-    seq_scaler_path: "gx1/models/entry_v9/nextgen_2020_2025_clean/seq_scaler.joblib"
-    snap_scaler_path: "gx1/models/entry_v9/nextgen_2020_2025_clean/snap_scaler.joblib"
     xgb:
       enabled: true
       mode: "session"  # Change to "universal" when ready
