@@ -34,6 +34,7 @@ from typing import Dict, List, Optional
 import joblib
 import numpy as np
 import pandas as pd
+from gx1.xgb.multihead.xgb_multihead_model_v1 import proba_to_signal_bridge_v1
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)
@@ -193,46 +194,10 @@ def run_xgb_inference(
             model = models[session]
             proba = model.predict_proba(X)  # [N, n_classes]
 
-            # Map probabilities based on model classes
-            classes = model.classes_
-            n_classes = len(classes)
-
-            if n_classes == 2:
-                # Binary classification: [class_0, class_1]
-                # Assume class_1 is LONG, class_0 is SHORT
-                if "LONG" in str(classes[1]).upper() or "1" in str(classes[1]):
-                    p_long = proba[:, 1]
-                    p_short = proba[:, 0]
-                else:
-                    p_long = proba[:, 0]
-                    p_short = proba[:, 1]
-                p_neutral = np.zeros(len(session_rows))
-            elif n_classes == 3:
-                # Multi-class: [NEUTRAL, SHORT, LONG] or similar
-                # Find indices
-                long_idx = None
-                short_idx = None
-                neutral_idx = None
-                for i, cls in enumerate(classes):
-                    cls_str = str(cls).upper()
-                    if "LONG" in cls_str or "1" in cls_str:
-                        long_idx = i
-                    elif "SHORT" in cls_str or "-1" in cls_str or "0" in cls_str:
-                        short_idx = i
-                    else:
-                        neutral_idx = i
-
-                if long_idx is None or short_idx is None:
-                    # Fallback: assume order is [NEUTRAL, SHORT, LONG]
-                    neutral_idx = 0
-                    short_idx = 1
-                    long_idx = 2
-
-                p_long = proba[:, long_idx] if long_idx is not None else np.zeros(len(session_rows))
-                p_short = proba[:, short_idx] if short_idx is not None else np.zeros(len(session_rows))
-                p_neutral = proba[:, neutral_idx] if neutral_idx is not None else np.zeros(len(session_rows))
-            else:
-                raise ValueError(f"Unexpected number of classes: {n_classes}, classes: {classes}")
+            bridge = proba_to_signal_bridge_v1(proba)
+            p_long = bridge[:, 0]
+            p_short = bridge[:, 1]
+            p_neutral = bridge[:, 2]
 
             # Compute derived metrics
             margin_xgb = np.abs(p_long - p_short)

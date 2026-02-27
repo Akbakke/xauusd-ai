@@ -10,13 +10,23 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, Optional
 
-from gx1.rl.exit_critic.integrate_exit_critic_runtime_v1 import (
-    ExitCriticRuntimeV1,
-    ACTION_EXIT_NOW,
-    ACTION_SCALP_PROFIT,
-    ACTION_HOLD,
-)
-from gx1.rl.exit_critic.exit_snapshot_v1 import make_exit_snapshot
+def make_exit_snapshot(*_args, **_kwargs):
+    raise RuntimeError("RL_DISABLED: exit_snapshot is archived.")
+
+
+def integrate_exit_critic_runtime_v1(*_args, **_kwargs):
+    raise RuntimeError("RL_DISABLED: exit_critic runtime is archived.")
+
+
+# Stub action constants so callers don't crash on import, but runtime is disabled.
+ACTION_EXIT_NOW = "RL_DISABLED_EXIT_NOW"
+ACTION_SCALP_PROFIT = "RL_DISABLED_SCALP_PROFIT"
+ACTION_HOLD = "RL_DISABLED_HOLD"
+
+# Legacy class alias to keep type references from exploding; will raise on use.
+class ExitCriticRuntimeV1:  # type: ignore
+    def __init__(self, *args, **kwargs):
+        raise RuntimeError("RL_DISABLED: exit_critic runtime is archived.")
 
 log = logging.getLogger(__name__)
 

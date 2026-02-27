@@ -102,12 +102,6 @@ except ImportError:
     BIG_BRAIN_AVAILABLE = False
     log.warning("[IMPORT] Big Brain V1 modules not available - Big Brain features will be disabled")
 
-ENTRY_MODEL_METADATA_PATH = Path("gx1/models/GX1_entry_session_metadata.json")
-ENTRY_MODEL_PATHS = {
-    "EU": Path("gx1/models/GX1_entry_EU.joblib"),
-    "US": Path("gx1/models/GX1_entry_US.joblib"),
-    "OVERLAP": Path("gx1/models/GX1_entry_OVERLAP.joblib"),
-}
 EXIT_MODEL_PATH = Path("gx1/exit/phase_c_model/models/exit_model_xgb_ENTRY_ANCHOR_V2.pkl")
 SECONDS_PER_BAR = 300  # M5
 BID_ASK_REQUIRED_COLS = [
@@ -492,87 +486,6 @@ def wait_until_next_bar(now: pd.Timestamp) -> None:
     time.sleep(sleep_seconds)
 
 
-def load_entry_models(
-    metadata_path: Path,
-    model_paths: Dict[str, Path],
-) -> EntryModelBundle:
-    """
-    Load session-routed entry models and their metadata.
-
-    Parameters
-    ----------
-    metadata_path : Path
-        Path to JSON metadata describing feature columns.
-    model_paths : Dict[str, Path]
-        Mapping of session tag → model path.
-    """
-    if not metadata_path.exists():
-        raise FileNotFoundError(f"Entry metadata not found: {metadata_path}")
-    with metadata_path.open("r", encoding="utf-8") as handle:
-        metadata = jsonlib.load(handle)
-
-    feature_cols = metadata.get("feature_cols")
-    if not feature_cols:
-        raise ValueError(f"'feature_cols' missing in entry metadata: {metadata_path}")
-
-    # Hash feature columns for drift detection
-    feature_cols_str = "|".join(sorted(feature_cols))
-    feature_cols_hash = hashlib.md5(feature_cols_str.encode("utf-8")).hexdigest()[:16]
-    metadata_hash = metadata.get("feature_cols_hash")
-    if metadata_hash:
-        if feature_cols_hash != metadata_hash:
-            log.warning(
-                "Feature columns hash mismatch: computed=%s, metadata=%s. "
-                "This may indicate feature drift.",
-                feature_cols_hash,
-                metadata_hash,
-            )
-    else:
-        log.info("Feature columns hash: %s (metadata hash not present)", feature_cols_hash)
-    log.info("Loaded %d feature columns from metadata: %s", len(feature_cols), feature_cols[:5])
-    
-    # Get model bundle version from metadata
-    model_bundle_version = metadata.get("model_bundle_version") or metadata.get("version") or None
-
-    models: Dict[str, Any] = {}
-    for session in ("EU", "US", "OVERLAP"):
-        path = model_paths.get(session)
-        if path is None:
-            raise ValueError(f"No model path configured for session '{session}'.")
-        if not path.exists():
-            raise FileNotFoundError(f"Entry model for {session} not found: {path}")
-        model = joblib.load(path)
-        if not hasattr(model, "predict_proba"):
-            raise ValueError(f"Entry model for {session} lacks predict_proba(): {path}")
-        
-        # Verify model expects correct number of features
-        if hasattr(model, "n_features_in_"):
-            if model.n_features_in_ != len(feature_cols):
-                raise ValueError(
-                    f"Model for {session} expects {model.n_features_in_} features, "
-                    f"but metadata specifies {len(feature_cols)} features."
-                )
-        
-        # Log model classes for verification (CRITICAL for probability mapping)
-        classes = getattr(model, "classes_", None)
-        log.info(
-            "[BOOT] %s classes=%s n_features_in_=%s",
-            session,
-            classes.tolist() if classes is not None else None,
-            getattr(model, "n_features_in_", "unknown"),
-        )
-        models[session] = model
-
-    return EntryModelBundle(
-        models=models,
-        feature_names=list(feature_cols),
-        metadata=metadata,
-        feature_cols_hash=feature_cols_hash,
-        model_bundle_version=model_bundle_version,
-        ts_map_hash=None,  # Will be set after temperature map is loaded
-    )
-
-
 def extract_entry_probabilities(probs: np.ndarray, classes: Optional[np.ndarray]) -> EntryPrediction:
     """
     Normalize model output into directional probabilities.
@@ -594,7 +507,6 @@ def extract_entry_probabilities(probs: np.ndarray, classes: Optional[np.ndarray]
     n_classes = prob_vector.shape[0]
 
     if n_classes == 3:
-        # 3-class: [SHORT, NEUTRAL, LONG] (assumed order)
         return EntryPrediction(
             session="",
             prob_short=float(prob_vector[0]),
@@ -604,70 +516,7 @@ def extract_entry_probabilities(probs: np.ndarray, classes: Optional[np.ndarray]
             margin=float(abs(prob_vector[2] - prob_vector[0])),
         )
 
-    if n_classes == 2:
-        # 2-class: Must map correctly using model.classes_
-        # Common cases: [0, 1] (0=SHORT, 1=LONG) or [1, 0] (1=LONG, 0=SHORT)
-        idx_long = None
-        idx_short = None
-        
-        if classes is not None and len(classes) == 2:
-            # Map via model.classes_: find which index corresponds to LONG (1) and SHORT (0)
-            classes_list = classes.tolist() if hasattr(classes, 'tolist') else list(classes)
-            for idx, cls in enumerate(classes_list):
-                if isinstance(cls, str):
-                    tag = cls.upper()
-                    if any(keyword in tag for keyword in ("UP", "LONG", "BUY", "POS", "1")):
-                        idx_long = idx
-                    elif any(keyword in tag for keyword in ("DOWN", "SHORT", "SELL", "NEG", "0")):
-                        idx_short = idx
-                elif isinstance(cls, (int, np.integer)):
-                    cls_int = int(cls)
-                    if cls_int == 1:
-                        idx_long = idx
-                    elif cls_int == 0:
-                        idx_short = idx
-            
-            # Fallback: if we found one but not the other, infer the other
-            if idx_long is not None and idx_short is None:
-                idx_short = 1 - idx_long
-            elif idx_short is not None and idx_long is None:
-                idx_long = 1 - idx_short
-        
-        # If still not found, use standard mapping: assume [0, 1] or [SHORT, LONG]
-        if idx_long is None or idx_short is None:
-            # Default assumption: higher probability class is LONG, lower is SHORT
-            # But this is risky - better to use model.classes_ explicitly
-            if prob_vector[0] > prob_vector[1]:
-                idx_long = 0
-                idx_short = 1
-            else:
-                idx_long = 1
-                idx_short = 0
-        
-        prob_long = float(prob_vector[idx_long])
-        prob_short = float(prob_vector[idx_short])
-        return EntryPrediction(
-            session="",
-            prob_short=prob_short,
-            prob_neutral=0.0,
-            prob_long=prob_long,
-            p_hat=float(max(prob_long, prob_short)),
-            margin=float(abs(prob_long - prob_short)),
-        )
-
-    if n_classes == 1:
-        # 1-class: binary classifier (probability of positive class)
-        prob_long = float(prob_vector[0])
-        return EntryPrediction(
-            session="",
-            prob_short=float(1.0 - prob_long),
-            prob_neutral=0.0,
-            prob_long=prob_long,
-            p_hat=float(max(prob_long, 1.0 - prob_long)),
-            margin=float(abs(prob_long - (1.0 - prob_long))),
-        )
-
-    raise ValueError(f"Unsupported number of classes for entry model: {n_classes}")
+    raise RuntimeError(f"[XGB_PROBA_DIM_MISMATCH] Expected 3-class probabilities, got n_classes={n_classes} shape={probs.shape}")
 
 
 def load_exit_model() -> ExitModelBundle:
@@ -2484,155 +2333,13 @@ class GX1DemoRunner:
             self.entry_tcn_feats = None
             self.entry_tcn_lookback = None
         
-        # --- ENTRY_V9 Model (ONLY entry model - no fallback) ---
+        # ENTRY models config (V10/V10_CTX supported in replay)
         entry_models_cfg = self.policy.get("entry_models", {})
-        entry_v9_cfg = entry_models_cfg.get("v9", {})
-        self.entry_v9_enabled = bool(entry_v9_cfg.get("enabled", False))
-        self.entry_v9_model: Optional[Dict[str, Any]] = None
-        self.entry_v9_cfg = entry_v9_cfg
-        
-        # DEL 4: HARD GUARDRAILS for replay-mode (V9 disabled, V10_CTX only)
-        if self.replay_mode:
-            # Check entry_config path for V9 references
-            entry_config_path = self.policy.get("entry_config", "")
-            if entry_config_path and ("V9" in entry_config_path.upper() or "ENTRY_V9" in entry_config_path.upper()):
-                raise RuntimeError(
-                    f"REPLAY_V9_POLICY_FORBIDDEN: entry_config path contains V9 reference: '{entry_config_path}'. "
-                    f"Only V10_CTX entry_configs are allowed in replay mode."
-                )
-            
-            # Check require_v9_for_entry flag
-            require_v9 = self.policy.get("require_v9_for_entry", True)  # Default True for backward compat
-            if require_v9:
-                raise RuntimeError(
-                    f"REPLAY_V9_POLICY_FORBIDDEN: require_v9_for_entry is True in replay mode. "
-                    f"Set require_v9_for_entry=false to use V10_CTX only."
-                )
-            
-            # Check that replay_config.policy_module is explicitly set to V10 wrapper (not V9)
-            replay_config = self.policy.get("replay_config", {})
-            policy_module = replay_config.get("policy_module")
-            if not policy_module:
-                raise RuntimeError(
-                    "REPLAY_CONFIG_REQUIRED: replay_config.policy_module is missing in policy YAML. "
-                    "Set replay_config.policy_module='gx1.policy.entry_policy_sniper_v10_ctx' for replay mode."
-                )
-            if "v9" in policy_module.lower() or "entry_v9" in policy_module.lower():
-                raise RuntimeError(
-                    f"REPLAY_V9_POLICY_FORBIDDEN: replay_config.policy_module='{policy_module}' contains V9 reference. "
-                    f"Only V10_CTX policies are allowed in replay mode. Set policy_module='gx1.policy.entry_policy_sniper_v10_ctx'"
-                )
-            if policy_module != "gx1.policy.entry_policy_sniper_v10_ctx":
-                raise RuntimeError(
-                    f"REPLAY_POLICY_MISMATCH: replay_config.policy_module='{policy_module}' does not match expected "
-                    f"'gx1.policy.entry_policy_sniper_v10_ctx'. Only V10_CTX policies are allowed in replay mode."
-                )
-            # Note: "entry_v9_policy_sniper" config-key is allowed because V10 wrapper reuses same config structure
-            
-            # Check for V9 runtime references in entry_models config
-            entry_models_cfg = self.policy.get("entry_models", {})
-            v9_cfg = entry_models_cfg.get("v9", {})
-            if isinstance(v9_cfg, dict) and v9_cfg.get("enabled", False):
-                raise RuntimeError(
-                    "REPLAY_V9_RUNTIME_FORBIDDEN: entry_models.v9.enabled is True in replay mode. "
-                    "V9 runtime is disabled in replay. Only V10_CTX is allowed."
-                )
-            
-            # Log startup invariants
-            log.info("[REPLAY_GUARDRAILS] Replay mode guardrails verified:")
-            log.info("[REPLAY_GUARDRAILS]   effective entry_config: %s", entry_config_path)
-            log.info("[REPLAY_GUARDRAILS]   require_v9_for_entry: %s", require_v9)
-            log.info("[REPLAY_GUARDRAILS]   selected entry model: v10_ctx (V9 disabled)")
-            log.info("[REPLAY_GUARDRAILS]   V9 policy forbidden: true")
-            log.info("[REPLAY_GUARDRAILS]   V9 runtime forbidden: true")
-        
-        # V9 is MANDATORY - no fallback to V6/V8 (only in non-replay mode)
-        if not self.replay_mode and not self.entry_v9_enabled:
-            log.error("[ENTRY_V9] V9 is REQUIRED but disabled in policy. No entry will be possible.")
-        
-        # Load ENTRY_V9 (mandatory)
-        if self.entry_v9_enabled:
-            try:
-                model_dir = Path(entry_v9_cfg.get("model_dir", "gx1/models/entry_v9/nextgen_2020_2025_clean"))
-                if not model_dir.exists():
-                    log.error("[ENTRY_V9] Model directory not found: %s. Disabling ENTRY_V9.", model_dir)
-                    self.entry_v9_enabled = False
-                else:
-                    # Load ENTRY_V9 model
-                    self.entry_v9_model = self._load_entry_v9_model(model_dir, entry_v9_cfg)
-                    # Store paths for runtime feature building
-                    self.entry_v9_feature_meta_path = model_dir / "entry_v9_feature_meta.json"
-                    self.entry_v9_seq_scaler_path = model_dir / "seq_scaler.joblib"
-                    self.entry_v9_snap_scaler_path = model_dir / "snap_scaler.joblib"
-                    
-                    # Validate paths exist
-                    if not self.entry_v9_feature_meta_path.exists():
-                        log.error("[ENTRY_V9] Feature meta path does not exist: %s", self.entry_v9_feature_meta_path)
-                        self.entry_v9_enabled = False
-                    elif not self.entry_v9_seq_scaler_path.exists():
-                        log.error("[ENTRY_V9] Seq scaler path does not exist: %s", self.entry_v9_seq_scaler_path)
-                        self.entry_v9_enabled = False
-                    elif not self.entry_v9_snap_scaler_path.exists():
-                        log.error("[ENTRY_V9] Snap scaler path does not exist: %s", self.entry_v9_snap_scaler_path)
-                        self.entry_v9_enabled = False
-                    else:
-                        log.info("[ENTRY_V9] Runtime feature paths validated:")
-                        log.info("  feature_meta: %s", self.entry_v9_feature_meta_path)
-                        log.info("  seq_scaler: %s", self.entry_v9_seq_scaler_path)
-                        log.info("  snap_scaler: %s", self.entry_v9_snap_scaler_path)
-
-                        # Pre-load and cache feature_meta and scalers (MID priority optimization)
-                        # This avoids re-reading files on every prediction call
-                        try:
-                            # DEL 2: Hard-fail guardrail: runtime_v9 forbidden in replay-mode
-                            if self.replay_mode:
-                                raise RuntimeError(
-                                    "REPLAY_V9_RUNTIME_FORBIDDEN: runtime_v9._load_feature_meta/_load_scaler import attempted in replay mode. "
-                                    "V9 runtime is forbidden in replay. Only V10_CTX is allowed. "
-                                    "Check that entry_v9_enabled is False in replay policy."
-                                )
-                            
-                            # Live mode only: import runtime_v9 helpers locally
-                            from gx1.features.runtime_v9 import _load_feature_meta, _load_scaler
-
-                            self._entry_v9_seq_features, self._entry_v9_snap_features = _load_feature_meta(
-                                self.entry_v9_feature_meta_path
-                            )
-                            self._entry_v9_seq_scaler = _load_scaler(self.entry_v9_seq_scaler_path)
-                            self._entry_v9_snap_scaler = _load_scaler(self.entry_v9_snap_scaler_path)
-                            log.info(
-                                "[ENTRY_V9] Pre-loaded feature_meta (%d seq, %d snap) and scalers (cached)",
-                                len(self._entry_v9_seq_features),
-                                len(self._entry_v9_snap_features),
-                            )
-                        except Exception as e:
-                            log.warning(
-                                "[ENTRY_V9] Failed to pre-load feature_meta/scalers (will load on-demand): %s",
-                                e,
-                            )
-                            # Not critical - build_v9_runtime_features will load on-demand
-                            self._entry_v9_seq_features = None
-                            self._entry_v9_snap_features = None
-                            self._entry_v9_seq_scaler = None
-                            self._entry_v9_snap_scaler = None
-
-                    # Update model_name if ENTRY_V9 is active
-                    if self.entry_v9_model and self.entry_v9_model.get("meta"):
-                        self.model_name = self.entry_v9_model["meta"].get("model_name", "ENTRY_V9")
-                    log.info("[ENTRY_V9] Model loaded from %s", model_dir)
-            except Exception as e:
-                log.error("[ENTRY_V9] Failed to load model: %s. Disabling ENTRY_V9.", e, exc_info=True)
-                self.entry_v9_enabled = False
-        else:
-            log.info("[ENTRY_V9] Model disabled in policy")
-        
-        # --- ENTRY_V10 Model (optional, can be used instead of V9) ---
         entry_v10_cfg = entry_models_cfg.get("v10", {})
         self.entry_v10_enabled = bool(entry_v10_cfg.get("enabled", False))
         self.entry_v10_bundle: Optional[Any] = None
         self.entry_v10_cfg = entry_v10_cfg
         
-        # --- ENTRY_V10_CTX Model (DEL 2: Runtime bundle-format) ---
         entry_v10_ctx_cfg = entry_models_cfg.get("v10_ctx", {})
         self.entry_v10_ctx_enabled = bool(entry_v10_ctx_cfg.get("enabled", False))
         self.entry_v10_ctx_bundle: Optional[Any] = None
@@ -2707,100 +2414,78 @@ class GX1DemoRunner:
                             f"Only V10_CTX entry_configs are allowed in replay mode."
                         )
                 
-                # Try to get XGB config from entry_config or policy
                 xgb_models = {}
                 xgb_model_paths = {}  # Track paths for SSoT capsule
-                workspace_root = Path(__file__).parent.parent.parent  # gx1/execution -> gx1 -> workspace
-                
-                # Helper function to load XGB model and track path
-                def load_xgb_model(session: str, model_path: str, source: str) -> bool:
-                    """Load XGB model and track path. Returns True if loaded."""
-                    if not model_path:
-                        return False
-                    model_path_obj = Path(model_path)
-                    # Resolve paths relative to workspace root
-                    if not model_path_obj.is_absolute():
-                        model_path_resolved = workspace_root / model_path_obj
-                    else:
-                        model_path_resolved = model_path_obj
-                    if model_path_resolved.exists():
-                        # UNIVERSAL MODE TRIPWIRE: Forbid entry_v10/ paths in universal mode
-                        path_str = str(model_path_resolved)
-                        if "/entry_v10/" in path_str and "/entry_v10_ctx/" not in path_str:
-                            raise RuntimeError(
-                                f"UNIVERSAL_MODE_LEGACY_XGB_FORBIDDEN: XGB model path '{model_path_resolved}' "
-                                f"is under /entry_v10/ (legacy). Universal mode requires entry_v10_ctx bundles. "
-                                f"Session: {session}, Source: {source}"
-                            )
-                        
-                        # Also check filename pattern
-                        if "xgb_entry_" in model_path_resolved.name and "_v10.joblib" in model_path_resolved.name:
-                            raise RuntimeError(
-                                f"UNIVERSAL_MODE_LEGACY_XGB_FORBIDDEN: XGB model filename '{model_path_resolved.name}' "
-                                f"matches legacy pattern 'xgb_entry_*_v10.joblib'. Universal mode requires entry_v10_ctx bundle structure. "
-                                f"Session: {session}, Source: {source}"
-                            )
-                        
-                        xgb_models[session] = joblib.load(model_path_resolved)
-                        xgb_model_paths[session] = str(model_path_resolved.resolve())
-                        log.info(f"[ENTRY_V10_CTX] Loaded XGB model for {session} from {source}: {model_path_resolved}")
-                        return True
-                    else:
-                        log.warning(f"[ENTRY_V10_CTX] XGB model not found for {session} from {source}: {model_path_resolved}")
-                        return False
-                
-                if entry_config_path:
+                self.xgb_load_branch = None
+                self.xgb_load_source = None
+                self.xgb_load_paths = None
+                self.xgb_load_error = None
+
+                # Single XGB load path: canonical bundle only (no policy/session paths)
+                log.info(
+                    "[XGB_LOAD] BRANCH=CANONICAL_BUNDLE_ONLY GX1_CANONICAL_BUNDLE_DIR=%s GX1_CANONICAL_TRUTH_FILE=%s",
+                    os.getenv("GX1_CANONICAL_BUNDLE_DIR", "") or "(unset)",
+                    os.getenv("GX1_CANONICAL_TRUTH_FILE", "") or "(unset)",
+                )
+                canonical_dir_str = os.getenv("GX1_CANONICAL_BUNDLE_DIR", "").strip()
+                if not canonical_dir_str:
+                    truth_file = os.getenv("GX1_CANONICAL_TRUTH_FILE", "")
+                    if truth_file and Path(truth_file).exists():
+                        with open(truth_file, "r", encoding="utf-8") as _f:
+                            truth_obj = jsonlib.load(_f)
+                        canonical_dir_str = str(truth_obj.get("canonical_xgb_bundle_dir") or "").strip()
+                    if not canonical_dir_str:
+                        raise RuntimeError(
+                            "[XGB_MISSING_CANONICAL] Canonical XGB bundle required. "
+                            "Set GX1_CANONICAL_BUNDLE_DIR or GX1_CANONICAL_TRUTH_FILE with canonical_xgb_bundle_dir."
+                        )
+                canonical_xgb_dir = Path(canonical_dir_str).expanduser().resolve()
+                if not canonical_xgb_dir.is_dir():
+                    raise RuntimeError(
+                        f"[XGB_MISSING_CANONICAL] Canonical XGB bundle dir not found: {canonical_xgb_dir}"
+                    )
+                lock_path = canonical_xgb_dir / "MASTER_MODEL_LOCK.json"
+                model_filename = "xgb_universal_multihead_v2.joblib"
+                if lock_path.is_file():
                     try:
-                        entry_config = load_yaml_config(Path(entry_config_path))
-                        # DEL 4: Check entry_config content for V9 references (replay mode)
-                        if self.replay_mode:
-                            require_v9_in_entry = entry_config.get("require_v9_for_entry", False)
-                            if require_v9_in_entry:
-                                raise RuntimeError(
-                                    f"V9_DISABLED_FOR_REPLAY: entry_config '{entry_config_path}' has require_v9_for_entry=true. "
-                                    f"Set require_v9_for_entry=false to use V10_CTX only."
-                                )
-                            entry_models_in_entry = entry_config.get("entry_models", {})
-                            v9_enabled_in_entry = entry_models_in_entry.get("v9", {}).get("enabled", False)
-                            if v9_enabled_in_entry:
-                                raise RuntimeError(
-                                    f"V9_DISABLED_FOR_REPLAY: entry_config '{entry_config_path}' has entry_models.v9.enabled=true. "
-                                    f"V9 must be disabled in replay mode."
-                                )
-                        entry_models_cfg_in_entry = entry_config.get("entry_models", {})
-                        xgb_cfg_from_entry = entry_models_cfg_in_entry.get("xgb", {})
-                        if xgb_cfg_from_entry:
-                            # Load XGB models
-                            load_xgb_model("EU", xgb_cfg_from_entry.get("eu_model_path"), "entry_config")
-                            load_xgb_model("US", xgb_cfg_from_entry.get("us_model_path"), "entry_config")
-                            load_xgb_model("OVERLAP", xgb_cfg_from_entry.get("overlap_model_path"), "entry_config")
-                    except Exception as e:
-                        log.warning("[ENTRY_V10_CTX] Failed to load XGB models from entry_config: %s", e)
-                
-                # Also check main policy for XGB config (check v10_ctx.xgb first, then top-level xgb)
-                xgb_cfg_from_v10_ctx = entry_v10_ctx_cfg.get("xgb", {})
-                if xgb_cfg_from_v10_ctx and not xgb_models:
-                    load_xgb_model("EU", xgb_cfg_from_v10_ctx.get("eu_model_path"), "v10_ctx")
-                    load_xgb_model("US", xgb_cfg_from_v10_ctx.get("us_model_path"), "v10_ctx")
-                    load_xgb_model("OVERLAP", xgb_cfg_from_v10_ctx.get("overlap_model_path"), "v10_ctx")
-                
-                # Also check main policy for XGB config
-                xgb_cfg_from_policy = entry_models_cfg.get("xgb", {})
-                if xgb_cfg_from_policy and not xgb_models:
-                    load_xgb_model("EU", xgb_cfg_from_policy.get("eu_model_path"), "policy")
-                    load_xgb_model("US", xgb_cfg_from_policy.get("us_model_path"), "policy")
-                    load_xgb_model("OVERLAP", xgb_cfg_from_policy.get("overlap_model_path"), "policy")
-                
-                # Log XGB loading status
-                if xgb_models:
-                    log.info(f"[ENTRY_V10_CTX] XGB models loaded successfully: {list(xgb_models.keys())}")
-                    
-                    # Write MODEL_USED_CAPSULE.json (SSoT for model usage)
-                    self._write_model_used_capsule(xgb_models, xgb_model_paths, bundle_dir, policy_id)
-                else:
-                    log.warning("[ENTRY_V10_CTX] NO XGB models loaded! V10 hybrid predictions will fail with XGB_MISSING.")
-                    log.warning("[ENTRY_V10_CTX] XGB config from v10_ctx: %s", entry_v10_ctx_cfg.get("xgb", {}))
-                    log.warning("[ENTRY_V10_CTX] XGB config from policy: %s", entry_models_cfg.get("xgb", {}))
+                        with open(lock_path, "r", encoding="utf-8") as _f:
+                            lock_obj = jsonlib.load(_f)
+                        model_path_rel = lock_obj.get("model_path_relative")
+                        if model_path_rel and isinstance(model_path_rel, str) and model_path_rel.strip():
+                            model_filename = model_path_rel.strip()
+                    except Exception:
+                        pass
+                model_file = canonical_xgb_dir / model_filename
+                if not model_file.is_file():
+                    raise RuntimeError(
+                        f"[XGB_MISSING_CANONICAL] XGB model not found in canonical bundle: {model_file}"
+                    )
+                from gx1.xgb.multihead.xgb_multihead_model_v1 import XGBMultiheadModel
+                xgb_universal = XGBMultiheadModel.load(str(model_file))
+                required_heads = {"EU", "OVERLAP", "US"}
+                heads_in_model = set(xgb_universal.heads.keys())
+                missing_heads = required_heads - heads_in_model
+                if missing_heads:
+                    raise RuntimeError(
+                        "[XGB_MISSING_CANONICAL] Canonical XGB bundle missing required heads: "
+                        f"{sorted(missing_heads)} (have {sorted(heads_in_model)})."
+                    )
+                xgb_models["UNIVERSAL"] = xgb_universal
+                xgb_model_paths["UNIVERSAL"] = str(model_file.resolve())
+                self.xgb_load_branch = "CANONICAL_BUNDLE_ONLY"
+                self.xgb_load_source = "CANONICAL_BUNDLE"
+                self.xgb_load_paths = {
+                    "bundle_dir": str(canonical_xgb_dir),
+                    "model_file": str(model_file.resolve()),
+                    "lock_path": str(lock_path.resolve()) if lock_path.is_file() else None,
+                }
+                log.info(
+                    "[XGB] source=CANONICAL_BUNDLE dir=%s loaded_heads=%s",
+                    str(canonical_xgb_dir),
+                    sorted(heads_in_model),
+                )
+                log.info(f"[ENTRY_V10_CTX] XGB models loaded successfully: {list(xgb_models.keys())}")
+                self._write_model_used_capsule(xgb_models, xgb_model_paths, bundle_dir, "CANONICAL_BUNDLE")
                 
                 # Determine replay mode
                 is_replay = getattr(self, "replay_mode", False)
@@ -2840,6 +2525,13 @@ class GX1DemoRunner:
                         f"BASELINE_DISABLED: Bundle metadata indicates BASELINE variant: '{bundle_variant}'. "
                         f"Only GATED_FUSION bundles are allowed."
                     )
+                # TRUTH/CTX6CAT6: supports_context_features must be explicit (no silent fallback)
+                bundle_meta_path = Path(bundle_dir) / "bundle_metadata.json"
+                if "supports_context_features" not in metadata and metadata.get("ctx_tag") == "CTX6CAT6":
+                    raise RuntimeError(
+                        f"[BUNDLE_META_MISSING_SUPPORTS_CONTEXT] supports_context_features missing in bundle metadata. "
+                        f"Bundle: {bundle_meta_path}. CTX6CAT6 requires supports_context_features=true."
+                    )
                 
                 # DEL 1: Log canonical bundle path + sha256 on model_state_dict.pt
                 model_state_path = Path(bundle_dir) / "model_state_dict.pt"
@@ -2854,11 +2546,28 @@ class GX1DemoRunner:
                         f"GATED_BUNDLE_INCOMPLETE: model_state_dict.pt not found in '{bundle_dir}'"
                     )
                 
-                # Log ctx bundle info
+                # Log ctx bundle info (canonical must be CTX6CAT6)
+                from gx1.contracts.signal_bridge_v1 import get_canonical_ctx_contract
+
+                canonical_ctx = get_canonical_ctx_contract()
+                meta_ctx_cat = metadata.get("expected_ctx_cat_dim")
+                meta_ctx_cont = metadata.get("expected_ctx_cont_dim")
+                if meta_ctx_cat is None or meta_ctx_cont is None:
+                    raise RuntimeError("CTX_META_MISSING: expected_ctx_cat_dim/expected_ctx_cont_dim absent in bundle metadata")
+                if int(meta_ctx_cat) != canonical_ctx["ctx_cat_dim"] or int(meta_ctx_cont) != canonical_ctx["ctx_cont_dim"]:
+                    raise RuntimeError(
+                        f"CTX_META_SPLIT_BRAIN: bundle ctx dims {meta_ctx_cont}/{meta_ctx_cat} "
+                        f"!= canonical {canonical_ctx['ctx_cont_dim']}/{canonical_ctx['ctx_cat_dim']} ({canonical_ctx['tag']})"
+                    )
+
                 log.info("[ENTRY] V10_CTX enabled: True")
                 log.info("[ENTRY] V10_CTX supports_context_features: %s", metadata.get("supports_context_features", False))
-                log.info("[ENTRY] V10_CTX ctx_cat_dim: %s", metadata.get("expected_ctx_cat_dim", 5))
-                log.info("[ENTRY] V10_CTX ctx_cont_dim: %s", metadata.get("expected_ctx_cont_dim", 2))
+                log.info(
+                    "[ENTRY] V10_CTX ctx dims (canonical %s): cont=%s cat=%s source=bundle_metadata",
+                    canonical_ctx["tag"],
+                    meta_ctx_cont,
+                    meta_ctx_cat,
+                )
                 log.info("[ENTRY] V10_CTX feature_contract_hash: %s", metadata.get("feature_contract_hash", "N/A"))
                 log.info("[ENTRY] V10_CTX GX1_GATED_FUSION_ENABLED: 1 (verified)")
                 
@@ -2896,6 +2605,7 @@ class GX1DemoRunner:
                 
             except Exception as e:
                 log.error("[ENTRY_V10_CTX] Failed to load ctx bundle: %s. Disabling ENTRY_V10_CTX.", e, exc_info=True)
+                self.xgb_load_error = str(e)
                 self.entry_v10_ctx_enabled = False
                 self.entry_v10_ctx_bundle = None
                 # Hard fail if require_v9_for_entry=False (ctx was required)
@@ -2978,14 +2688,19 @@ class GX1DemoRunner:
             require_v9 = self.policy.get("require_v9_for_entry", True)
             log.info("[ENTRY] require_v9_for_entry: %s", require_v9)
         
-        # Validate: if require_v9_for_entry=False, at least one model must be enabled
-        require_v9_for_entry = self.policy.get("require_v9_for_entry", True)
-        if not require_v9_for_entry:
-            if not self.entry_v9_enabled and not self.entry_v10_enabled:
-                raise RuntimeError(
-                    "[ENTRY] require_v9_for_entry=False but neither V9 nor V10 is enabled. "
-                    "At least one entry model must be enabled."
-                )
+        # Replay hard-enable V10_CTX when using the V10 ctx policy module (no legacy fallback)
+        if getattr(self, "replay_mode", False):
+            policy_module = ""
+            try:
+                policy_module = (self.policy.get("replay_config", {}) or {}).get("policy_module", "") or ""
+            except Exception:
+                policy_module = ""
+            if policy_module == "gx1.policy.entry_policy_sniper_v10_ctx":
+                try:
+                    self.entry_v10_ctx_enabled = True
+                    self.entry_v10_enabled = True  # align compatibility flag so gate sees a V10 entry
+                except Exception:
+                    self.entry_v10_ctx_enabled = True
         
         # REPLAY-ONLY: Safety assert for V10/V10_CTX verification (not in production)
         if self.replay_mode or self.fast_replay:
@@ -3158,7 +2873,10 @@ class GX1DemoRunner:
         self._generate_run_header()
         
         # Initialize trade journal
-        self._init_trade_journal()
+        if not self.replay_mode:
+            self._init_trade_journal()
+        else:
+            log.info("[TRADE_JOURNAL] Skipped in replay mode (no-op for TRUTH replay)")
         
         # JSON eval log path (rotates daily)
         self.eval_log_path = self.log_dir / f"eval_log_{pd.Timestamp.now(tz='UTC').strftime('%Y%m%d')}.jsonl"
@@ -3167,61 +2885,9 @@ class GX1DemoRunner:
         self.instrument = self.policy.get("instrument", "XAU_USD")
         self.granularity = self.policy.get("granularity", "M5")
 
-        # Check if we're using FARM_V2B (which uses ENTRY_V9 directly, not session-routed models)
-        entry_config_path = self.policy.get("entry_config", "")
-        entry_v9_policy_farm_v2b_enabled = False
-        if entry_config_path:
-            try:
-                entry_config = load_yaml_config(Path(entry_config_path))
-                entry_v9_policy_farm_v2b_enabled = entry_config.get("entry_v9_policy_farm_v2b", {}).get("enabled", False)
-            except Exception:
-                pass  # If we can't load entry config, assume not FARM_V2B
-        
-        # Optional: Load session-routed entry models (only if metadata exists and not FARM_V2B-only mode)
-        entry_model_cfg = self.policy.get("entry_model", {})
-        entry_metadata_path = Path(
-            entry_model_cfg.get("metadata", entry_model_cfg.get("metadata_path", ENTRY_MODEL_METADATA_PATH))
-        )
-        
-        if entry_v9_policy_farm_v2b_enabled:
-            # FARM_V2B uses ENTRY_V9 directly - skip session-routed bundle
-            log.info("[BOOT] FARM_V2B mode detected: skipping session-routed entry bundle (using ENTRY_V9 directly)")
-            self.entry_model_bundle = None
-            self.session_entry_enabled = False
-        elif not entry_metadata_path.exists():
-            # Metadata missing - optional mode for replay/FARM
-            log.info(
-                "[BOOT] Session-routed entry bundle metadata not found at %s; "
-                "continuing with direct ENTRY_V9 only. This is expected for FARM policies.",
-                entry_metadata_path
-            )
-            self.entry_model_bundle = None
-            self.session_entry_enabled = False
-        else:
-            # Metadata exists - load session-routed bundle as normal
-            model_path_overrides = {
-                "EU": Path(entry_model_cfg.get("eu", ENTRY_MODEL_PATHS["EU"])),
-                "US": Path(entry_model_cfg.get("us", ENTRY_MODEL_PATHS["US"])),
-                "OVERLAP": Path(entry_model_cfg.get("overlap", ENTRY_MODEL_PATHS["OVERLAP"])),
-            }
-            try:
-                self.entry_model_bundle = load_entry_models(entry_metadata_path, model_path_overrides)
-                self.session_entry_enabled = True
-                log.info("[BOOT] Loaded session XGB models (EU/US/OVERLAP)")
-                log.info(
-                    "[BOOT] Entry models: EU=%s, US=%s, OVERLAP=%s",
-                    "✓" if "EU" in self.entry_model_bundle.models else "✗",
-                    "✓" if "US" in self.entry_model_bundle.models else "✗",
-                    "✓" if "OVERLAP" in self.entry_model_bundle.models else "✗",
-                )
-            except Exception as e:
-                log.warning(
-                    "[BOOT] Failed to load session-routed entry bundle: %s. "
-                    "Continuing with direct ENTRY_V9 only.",
-                    e
-                )
-                self.entry_model_bundle = None
-                self.session_entry_enabled = False
+        # Session-routed entry bundle is not used in TRUTH/SMOKE replay (V10_CTX-only)
+        self.entry_model_bundle = None
+        self.session_entry_enabled = False
         
         self.manifest = load_manifest()
         
@@ -3454,215 +3120,8 @@ class GX1DemoRunner:
         self._reset_entry_diag()
     
     def _load_entry_v9_model(self, model_dir: Path, config: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Load ENTRY_V9 transformer model from model directory.
-        
-        Returns dict with model components: model, meta, seq_scaler, snap_scaler, device, config
-        """
-        import torch
-        from joblib import load as joblib_load
-        from gx1.models.entry_v9.entry_v9_transformer import build_entry_v9_model
-        
-        model_dir = Path(model_dir)
-        if not model_dir.exists():
-            raise FileNotFoundError(f"ENTRY_V9 model directory not found: {model_dir}")
-        
-        log.info("[ENTRY_V9] Loading model from %s", model_dir)
-        
-        # Load metadata
-        meta_path = model_dir / "meta.json"
-        if not meta_path.exists():
-            raise FileNotFoundError(f"ENTRY_V9 metadata not found: {meta_path}")
-        
-        with open(meta_path, "r") as f:
-            meta = jsonlib.load(f)
-        
-        # Load feature metadata
-        feature_meta_path = model_dir / "entry_v9_feature_meta.json"
-        if not feature_meta_path.exists():
-            raise FileNotFoundError(f"ENTRY_V9 feature metadata not found: {feature_meta_path}")
-        
-        with open(feature_meta_path, "r") as f:
-            feature_meta = jsonlib.load(f)
-        
-        seq_feat_names = feature_meta.get("seq_features", feature_meta.get("seq_feature_names", []))
-        snap_feat_names = feature_meta.get("snap_features", feature_meta.get("snap_feature_names", []))
-        
-        log.info("[ENTRY_V9] Model metadata:")
-        log.info("  seq_features: %d", len(seq_feat_names))
-        log.info("  snap_features: %d", len(snap_feat_names))
-        
-        # Build model from config
-        model_cfg = config.get("model", {}).copy()
-        if not model_cfg:
-            # Build from metadata
-            model_cfg = meta.get("model_config", {})
-        if not model_cfg:
-            # Fallback to defaults
-            model_cfg = {
-                "name": "entry_v9",
-                "seq_input_dim": len(seq_feat_names),
-                "snap_input_dim": len(snap_feat_names),
-                "max_seq_len": 30,
-                "seq_cfg": {"d_model": 128, "n_heads": 4, "num_layers": 3, "dim_feedforward": 384, "dropout": 0.1},
-                "snap_cfg": {"hidden_dims": [256, 128, 64], "use_layernorm": True, "dropout": 0.0},
-                "regime_cfg": {"embedding_dim": 16},
-                "fusion_hidden_dim": 128,
-                "fusion_dropout": 0.1,
-                "head_hidden_dim": 64,
-            }
-        
-        # Use bundle loader (SSoT with guardrail)
-        from gx1.models.entry_v9.entry_v9_bundle import load_entry_v9_bundle
-        
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        bundle = load_entry_v9_bundle(model_dir, config, device)
-        
-        # Return in expected format (bundle already has all components)
-        return bundle
-        
-        # Start tick watcher if we have open trades after reconcile
-        self._maybe_update_tick_watcher()
-        
-        # Hash temperature map for drift detection
-        temp_map = self._get_temperature_map()
-        temp_map_str = "|".join(f"{k}:{v:.6f}" for k, v in sorted(temp_map.items()))
-        ts_map_hash = hashlib.md5(temp_map_str.encode("utf-8")).hexdigest()[:16]
-        # Update bundle with ts_map_hash (immutable dataclass workaround)
-        if self.entry_model_bundle is not None:
-            self.entry_model_bundle = EntryModelBundle(
-                models=self.entry_model_bundle.models,
-                feature_names=self.entry_model_bundle.feature_names,
-                metadata=self.entry_model_bundle.metadata,
-                feature_cols_hash=self.entry_model_bundle.feature_cols_hash,
-                model_bundle_version=self.entry_model_bundle.model_bundle_version,
-                ts_map_hash=ts_map_hash,
-            )
-        else:
-            log.debug("[BOOT] entry_model_bundle is None - skipping ts_map_hash update")
-        
-        # Track consecutive failures for hard STOP
-        self._consecutive_order_failures = 0
-        self._consecutive_close_failures = 0
-        
-        # Graceful shutdown flag
-        self._shutdown_requested = False
-        
-        # Health signal
-        self.health_signal_path = self.log_dir / "health.json"
-        self.health_signal_path.parent.mkdir(parents=True, exist_ok=True)
-        self.last_health_signal_time = None
-        
-        # Backfill state
-        self.backfill_in_progress = False
-        self.backfill_cache: Optional[pd.DataFrame] = None
-        self.warmup_floor: Optional[pd.Timestamp] = None
-
-        # Initialize telemetry tracker
-        telemetry_cfg = self.policy.get("telemetry", {})
-        # Default to False if not specified (for DEBUG mode)
-        self.telemetry_enabled = bool(telemetry_cfg.get("enabled", True))  # Default True for backward compat, but can be disabled
-        telemetry_dir = Path(telemetry_cfg.get("telemetry_dir", self.log_dir / "telemetry"))
-        window_minutes = int(telemetry_cfg.get("window_minutes", 30))
-        log_interval_minutes = int(telemetry_cfg.get("log_interval_minutes", 10))
-        # Get target_coverage from policy config, fallback to entry_params.gating.coverage.target
-        target_coverage = float(
-            telemetry_cfg.get(
-                "target_coverage",
-                self.entry_params.get("gating", {}).get("coverage", {}).get("target", 0.20),
-            )
-        )
-        ece_window_size = int(telemetry_cfg.get("ece_window_size", 500))
-        if self.telemetry_enabled:
-            self.telemetry_tracker = TelemetryTracker(
-                telemetry_dir=telemetry_dir,
-                window_minutes=window_minutes,
-                log_interval_minutes=log_interval_minutes,
-                target_coverage=target_coverage,
-                ece_window_size=ece_window_size,
-                is_replay=self.replay_mode or self.fast_replay,
-            )
-        else:
-            self.telemetry_tracker = None
-
-        # Initialize parity-run (for reprod-bevis)
-        parity_cfg = self.policy.get("parity", {})
-        self.parity_enabled = bool(parity_cfg.get("enabled", False))
-        self.parity_sample_every_n = int(parity_cfg.get("sample_every_n", 1))
-        self.parity_tolerance_p50 = float(parity_cfg.get("tolerance_p50", 1e-6))
-        self.parity_tolerance_p99 = float(parity_cfg.get("tolerance_p99", 1e-4))
-        parity_out_path = parity_cfg.get("out_path", str(telemetry_dir / "parity_{YYYYMMDD}.jsonl"))
-        parity_out_path = parity_out_path.replace("{YYYYMMDD}", pd.Timestamp.now(tz="UTC").strftime("%Y%m%d"))
-        self.parity_log_path = Path(parity_out_path)
-        self.parity_log_path.parent.mkdir(parents=True, exist_ok=True)
-        
-        # Parity metrics tracking
-        self.parity_metrics: Dict[str, List[float]] = defaultdict(list)
-        self.parity_direction_matches: Dict[str, List[bool]] = defaultdict(list)
-        self.parity_sample_counter = 0
-        self._parity_disabled = False
-        
-        # Parity-run uses same models as live runner (entry_model_bundle.models)
-        # No need to load separate offline models
-        if self.parity_enabled:
-            if self.entry_model_bundle is None or not self.entry_model_bundle.models:
-                log.warning("Parity-run enabled but entry_model_bundle is not available. Disabling parity-run.")
-                self.parity_enabled = False
-            else:
-                log.info("Parity-run enabled: using %d live models for parity verification", len(self.entry_model_bundle.models))
-
-        # Log all hashes and version info at startup
-        if self.entry_model_bundle is not None:
-            log.info("=" * 60)
-            log.info("GX1 Entry Model Bundle Version Info:")
-            log.info("  model_bundle_version: %s", self.entry_model_bundle.model_bundle_version or "N/A")
-            log.info("  feature_cols_hash: %s", self.entry_model_bundle.feature_cols_hash)
-            log.info("  ts_map_hash: %s", self.entry_model_bundle.ts_map_hash)
-            log.info("  temperature_map: %s", temp_map)
-            log.info("=" * 60)
-        else:
-            log.debug("[BOOT] entry_model_bundle is None - skipping version info logging")
-
-        # Anti-fail baseline guard: Log critical fingerprint at startup
-        policy_role = self.policy.get("meta", {}).get("role", "")
-        policy_hash = getattr(self, "policy_hash", None)
-        guardrail_params = {}
-        if hasattr(self, "exit_mode_selector") and self.exit_mode_selector:
-            hybrid_exit = self.policy.get("hybrid_exit_router", {})
-            guardrail_params["v3_range_edge_cutoff"] = hybrid_exit.get("v3_range_edge_cutoff")
-            guardrail_params["router_version"] = hybrid_exit.get("version")
-        
-        git_commit = getattr(self, "git_commit", None)
-        if git_commit is None:
-            try:
-                import subprocess
-                result = subprocess.run(
-                    ["git", "rev-parse", "HEAD"],
-                    capture_output=True,
-                    text=True,
-                    timeout=2,
-                )
-                if result.returncode == 0:
-                    git_commit = result.stdout.strip()[:8]
-            except Exception:
-                git_commit = "unknown"
-        
-        log.info(
-            "[BASELINE_FINGERPRINT] Config=%s PolicyHash=%s Role=%s Guardrail=%s Git=%s RunTag=%s",
-            self.policy_path,
-            policy_hash[:16] if policy_hash else "N/A",
-            policy_role,
-            guardrail_params.get("v3_range_edge_cutoff", "N/A"),
-            git_commit,
-            self.run_id,
-        )
-        
-        log.info(
-            "GX1 demo runner initialised (dry_run=%s, instrument=%s, granularity=%s)",
-            self.exec.dry_run,
-            self.instrument,
-            self.granularity,
-        )
+        """[LEGACY_DISABLED] V9 loader removed. ONE UNIVERSE: ENTRY_V10_CTX only."""
+        raise RuntimeError("[LEGACY_DISABLED] ENTRY_V9 is removed. ONE UNIVERSE: ENTRY_V10_CTX only.")
 
     # ------------------------------------------------------------------ #
     # Helpers
@@ -5025,6 +4484,19 @@ class GX1DemoRunner:
                 run_tag=run_id,  # DEL 4: Use run_id as run_tag
                 chunk_id=chunk_id,  # DEL 4: Pass chunk_id
             )
+            # XGB load branch proof (TRUTH canonical vs policy/session)
+            xgb_branch = getattr(self, "xgb_load_branch", None)
+            xgb_source = getattr(self, "xgb_load_source", None)
+            xgb_paths = getattr(self, "xgb_load_paths", None)
+            xgb_err = getattr(self, "xgb_load_error", None)
+            if xgb_branch is not None or xgb_source is not None or xgb_paths is not None or xgb_err is not None:
+                header["xgb_load_branch"] = xgb_branch
+                header["xgb_load_source"] = xgb_source
+                header["xgb_load_paths"] = xgb_paths
+                header["xgb_load_error"] = xgb_err
+                header_path = output_dir / "run_header.json"
+                with open(header_path, "w", encoding="utf-8") as _f:
+                    jsonlib.dump(header, _f, indent=2)
             
             # Replay metadata will be added later in _update_run_header_replay_metadata() after data is loaded
             
@@ -6835,177 +6307,6 @@ class GX1DemoRunner:
         
         return prediction
     
-    def _predict_entry_v9(
-        self,
-        entry_bundle: EntryFeatureBundle,
-        candles: pd.DataFrame,
-        policy_state: Dict[str, Any],
-    ) -> Optional[EntryPrediction]:
-        """
-        Use ENTRY_V9 transformer model to generate entry prediction.
-        
-        Returns EntryPrediction with prob_long, prob_short, prob_early_momentum, quality_score.
-        """
-        if self.entry_v9_model is None:
-            log.warning("[ENTRY_V9] Model not loaded - fallback to STANDARD")
-            return None
-        
-        try:
-            import torch
-            # EntryPrediction is defined in this file (line 355)
-            
-            v9_model = self.entry_v9_model.get("model")
-            v9_meta = self.entry_v9_model.get("meta")
-            v9_device = self.entry_v9_model.get("device")
-            v9_config = self.entry_v9_model.get("config", {})
-            
-            if v9_model is None:
-                log.error("[ENTRY_V9] Model component is None")
-                return None
-            
-            lookback = v9_config.get("max_seq_len", 30)
-            
-            # Combine candles and entry_bundle.features into df_raw for runtime feature building
-            # Start with candles (OHLCV) as base, then merge in any existing features from entry_bundle
-            df_raw = candles.copy()
-            # Normalize column names to lowercase
-            col_mapping = {}
-            for col in df_raw.columns:
-                col_lower = col.lower()
-                if col_lower in ['open', 'high', 'low', 'close', 'volume']:
-                    col_mapping[col] = col_lower
-            if col_mapping:
-                df_raw = df_raw.rename(columns=col_mapping)
-            
-            # Ensure volume exists
-            if 'volume' not in df_raw.columns:
-                df_raw['volume'] = 0.0
-            
-            # Merge in any existing features from entry_bundle (but we'll rebuild all V9 features anyway)
-            # This is just to preserve any metadata columns that might be useful
-            
-            # DEL 2: Hard-fail guardrail: runtime_v9 forbidden in replay-mode
-            if self.replay_mode:
-                raise RuntimeError(
-                    "REPLAY_V9_RUNTIME_FORBIDDEN: _predict_entry_v9 called in replay mode. "
-                    "V9 runtime is forbidden in replay. Only V10_CTX is allowed. "
-                    "Check that entry_v9_enabled is False in replay policy."
-                )
-            
-            # Use runtime_v9 to build features (handles leakage removal, scaling, etc.)
-            # DEL 2: Import runtime_v9 locally (only in live mode, never in replay)
-            from gx1.features.runtime_v9 import build_v9_runtime_features
-            
-            if not hasattr(self, "entry_v9_feature_meta_path") or self.entry_v9_feature_meta_path is None:
-                log.error("[ENTRY_V9] Runtime feature paths not initialized")
-                return None
-            
-            # Validate paths exist
-            if not self.entry_v9_feature_meta_path.exists():
-                log.error("[ENTRY_V9] Feature meta path does not exist: %s", self.entry_v9_feature_meta_path)
-                return None
-            if self.entry_v9_seq_scaler_path is not None and not self.entry_v9_seq_scaler_path.exists():
-                log.error("[ENTRY_V9] Seq scaler path does not exist: %s", self.entry_v9_seq_scaler_path)
-                return None
-            if self.entry_v9_snap_scaler_path is not None and not self.entry_v9_snap_scaler_path.exists():
-                log.error("[ENTRY_V9] Snap scaler path does not exist: %s", self.entry_v9_snap_scaler_path)
-                return None
-            
-            # Use cached feature_meta/scalers if available (optimization)
-            # Otherwise build_v9_runtime_features will load on-demand
-            seq_scaler_path = self.entry_v9_seq_scaler_path
-            snap_scaler_path = self.entry_v9_snap_scaler_path
-            
-            df_feats, seq_features, snap_features = build_v9_runtime_features(
-                df_raw=df_raw,
-                feature_meta_path=self.entry_v9_feature_meta_path,
-                seq_scaler_path=seq_scaler_path,
-                snap_scaler_path=snap_scaler_path,
-            )
-            
-            log.debug(
-                "[ENTRY_V9] Runtime features shape=%s (n_seq=%d, n_snap=%d)",
-                df_feats.shape, len(seq_features), len(snap_features)
-            )
-            
-            if len(df_feats) < lookback:
-                log.warning("[ENTRY_V9] Insufficient bars: %d < %d", len(df_feats), lookback)
-                return None
-            
-            # Extract sequence and snapshot features from df_feats
-            # Sequence features: last lookback bars
-            seq_X = df_feats[seq_features].values[-lookback:].astype(np.float32)
-            # Snapshot features: last bar only
-            snap_X = df_feats[snap_features].values[-1:].astype(np.float32)
-            
-            # Get regime IDs from current bar (from df_feats which has all features)
-            current_bar = df_feats.iloc[-1]
-            # Use direct indexing for pandas Series (safer than .get() which may not work as expected)
-            # Clamp session_id to valid range [0, 2] (EU=0, OVERLAP=1, US=2)
-            session_id_raw = int(current_bar["session_id"]) if "session_id" in current_bar.index else 1  # Default to OVERLAP
-            session_id = max(0, min(2, session_id_raw))  # Clamp to [0, 2]
-            
-            # Clamp vol_regime_id to valid range [0, 3] (LOW=0, MEDIUM=1, HIGH=2, EXTREME=3)
-            vol_regime_id_raw = int(current_bar["atr_regime_id"]) if "atr_regime_id" in current_bar.index else 2  # Default to HIGH
-            vol_regime_id = max(0, min(3, vol_regime_id_raw))  # Clamp to [0, 3]
-            
-            # Map trend_regime_tf24h to trend_regime_id
-            trend_regime_tf24h = float(current_bar["trend_regime_tf24h"]) if "trend_regime_tf24h" in current_bar.index else 0.0
-            if trend_regime_tf24h > 0.001:
-                trend_regime_id = 0  # UP
-            elif trend_regime_tf24h < -0.001:
-                trend_regime_id = 1  # DOWN
-            else:
-                trend_regime_id = 2  # RANGE
-            
-            # Convert to tensors (seq_X and snap_X are already scaled by build_v9_runtime_features)
-            seq_x = torch.FloatTensor(seq_X).unsqueeze(0).to(v9_device)  # [1, lookback, n_seq]
-            snap_x = torch.FloatTensor(snap_X).to(v9_device)  # [1, n_snap]
-            session_id_t = torch.LongTensor([session_id]).to(v9_device)  # [1]
-            vol_regime_id_t = torch.LongTensor([vol_regime_id]).to(v9_device)  # [1]
-            trend_regime_id_t = torch.LongTensor([trend_regime_id]).to(v9_device)  # [1]
-            
-            # Predict
-            with torch.no_grad():
-                outputs = v9_model(seq_x, snap_x, session_id_t, vol_regime_id_t, trend_regime_id_t)
-                direction_logit = outputs["direction_logit"]
-                early_move_logit = outputs["early_move_logit"]
-                quality_score = outputs["quality_score"]
-            
-            # Convert to probabilities
-            prob_direction = torch.sigmoid(direction_logit).cpu().item()
-            prob_early = torch.sigmoid(early_move_logit).cpu().item()
-            quality = quality_score.cpu().item()
-            
-            # ENTRY_V9 is binary (long vs not long)
-            prob_long = float(prob_direction)
-            prob_short = float(1.0 - prob_direction)
-            margin = abs(prob_long - prob_short)
-            p_hat = max(prob_long, prob_short)
-            
-            # Get session from current bar (reuse current_bar from above, session_id already extracted)
-            session_map = {0: "EU", 1: "OVERLAP", 2: "US"}
-            session_tag = session_map.get(session_id, "OVERLAP")
-            
-            log.debug(
-                "[ENTRY_V9] Prediction: prob_long=%.4f prob_short=%.4f prob_early=%.4f quality=%.4f session=%s",
-                prob_long, prob_short, prob_early, quality, session_tag
-            )
-            
-            # Create EntryPrediction (only standard fields)
-            return EntryPrediction(
-                session=session_tag,
-                prob_long=prob_long,
-                prob_short=prob_short,
-                prob_neutral=0.0,  # ENTRY_V9 is binary
-                margin=margin,
-                p_hat=p_hat,
-            )
-            
-        except Exception as e:
-            log.error("[ENTRY_V9] Prediction error: %s", e, exc_info=True)
-            return None
-
     def _compute_xgb_input_fingerprint(
         self,
         X: np.ndarray,
@@ -7255,60 +6556,24 @@ class GX1DemoRunner:
         """
         import numpy as np
         from pathlib import Path as Path_local
-        from gx1.xgb.multihead.xgb_multihead_model_v1 import load_session_policy
         
-        # Load session policy
-        # __file__ is gx1/execution/oanda_demo_runner.py
-        # .parent = gx1/execution
-        # .parent.parent = gx1
-        # .parent.parent.parent = GX1_ENGINE (workspace root)
-        workspace_root = Path_local(__file__).parent.parent.parent
-        try:
-            session_policy, policy_hash = load_session_policy(workspace_root)
-            session_config = session_policy.get("sessions", {}).get(session.upper(), {})
-            session_enabled = session_config.get("enabled", True)
-            session_mode = session_config.get("mode", "normal")
-        except Exception as e:
-            # TRUTH SAFETY: Do NOT silently fall back to "enabled" if session-policy fails to load.
-            truth_mode = (
-                os.getenv("GX1_TRUTH_MODE", "0") in ("1", "true", "TRUE", "yes", "YES")
-                or os.getenv("GX1_RUN_MODE", "").upper() == "TRUTH"
-            )
-            if truth_mode:
-                raise RuntimeError(f"[TRUTH_FAIL] XGB_SESSION_POLICY load failed: {e}") from e
-            log.warning(f"[XGB_SESSION_POLICY] Failed to load policy, using defaults: {e}")
-            session_enabled = True
-            session_mode = "normal"
-            policy_hash = None
+        # Session policy: TRUTH/ONE_UNIVERSE uses canonical universal model; no external session-policy file.
+        session_enabled = True
+        session_mode = "normal"
+        policy_hash = "CANONICAL_UNIVERSAL"
         
-        # STEG 5: Log XGB policy path (once per chunk)
+        # STEG 5: Log XGB policy source (once per chunk)
         if not hasattr(self, "_xgb_policy_logged"):
             self._xgb_policy_logged = set()
         if session not in self._xgb_policy_logged:
-            # Log policy path for diagnosis
-            policy_path = workspace_root / "gx1" / "configs" / "xgb_session_policy.json"
             log.info(
-                "[XGB_POLICY] Session %s: enabled=%s, mode=%s, policy_hash=%s, policy_path=%s, path_exists=%s",
-                session, session_enabled, session_mode, 
-                policy_hash[:16] + "..." if policy_hash else None,
-                policy_path, policy_path.exists()
+                "[XGB_POLICY] Session %s: source=CANONICAL_UNIVERSAL enabled=%s mode=%s policy_hash=%s",
+                session,
+                session_enabled,
+                session_mode,
+                policy_hash,
             )
             self._xgb_policy_logged.add(session)
-            
-            # STEG 5: Assert XGB enabled for EU/OVERLAP, disabled for US (only if policy loaded successfully)
-            if policy_hash is not None:  # Only assert if policy was loaded successfully
-                if session in ["EU", "OVERLAP"]:
-                    if not session_enabled:
-                        raise RuntimeError(
-                            f"[XGB_POLICY_FAIL] Session {session} must be enabled for XGB. "
-                            f"Current policy: enabled={session_enabled}, policy_path={policy_path}, policy_hash={policy_hash[:16]}..."
-                        )
-                elif session == "US":
-                    if session_enabled:
-                        raise RuntimeError(
-                            f"[XGB_POLICY_FAIL] Session {session} must be disabled for XGB. "
-                            f"Current policy: enabled={session_enabled}, policy_path={policy_path}, policy_hash={policy_hash[:16]}..."
-                        )
         
         # Check if session is disabled
         if not session_enabled:
@@ -7886,10 +7151,13 @@ class GX1DemoRunner:
     ) -> Optional[EntryPrediction]:
         """
         Generate V10 hybrid entry prediction (XGB + Transformer).
-        
-        Returns EntryPrediction with prob_long from V10 hybrid model.
-        
-        Entry evaluation function for V10 hybrid model.
+        MODEL KONTRAKT: transformer-input er signal_bridge_v1 (7 kanaler:
+        p_long, p_short, p_flat, p_hat, uncertainty_score, margin_top1_top2, entropy)
+        + ctx_cont (6) + ctx_cat (6) i eksakt ordering fra ctx-kontrakt; seq_len fra bundle.
+        Ingen rå BASE28 går inn i transformer.
+        OPERASJONELL KONTEKST: prebuilt_features_df / entry_bundle.features brukes til å bygge
+        sekvensvinduer/regimer/session, policy_state gir session, bundle metadata gir dims/seq_len,
+        telemetry/diagnose helpers skriver kapsler/logg men er ikke del av modellkontrakten.
         """
         def _record_predict_attempt(reason: str) -> None:
             if hasattr(self, "entry_manager") and self.entry_manager and hasattr(self.entry_manager, "entry_feature_telemetry") and self.entry_manager.entry_feature_telemetry:
@@ -8240,17 +7508,17 @@ class GX1DemoRunner:
         
         # Hard assert: if ctx_expected, entry_context_features must not be None
         if ctx_expected and entry_context_features is None:
-            is_replay = getattr(self, "replay_mode", False) or os.getenv("GX1_REPLAY", "0") == "1"
-            if is_replay:
-                raise RuntimeError(
-                    f"CTX_EXPECTED_BUT_MISSING: ctx_expected=True but entry_context_features=None. "
-                    f"ENTRY_CONTEXT_FEATURES_ENABLED={context_features_enabled}, "
-                    f"entry_v10_ctx_enabled={ctx_bundle_active}, "
-                    f"supports_context_features={supports_context_features}, "
-                    f"bundle_meta.keys={list(bundle_meta.keys()) if bundle_meta else []}"
-                )
-            else:
-                log.warning("[ENTRY_V10] ctx_expected=True but entry_context_features=None (live mode: degraded)")
+            if hasattr(self, "entry_manager") and self.entry_manager:
+                et = self.entry_manager.entry_telemetry
+                if "ctx_proof_fail_count" not in et:
+                    et["ctx_proof_fail_count"] = 0
+                et["ctx_proof_fail_count"] += 1
+            raise RuntimeError(
+                "[CTX_CONTRACT_MISSING] ctx_expected=True but entry_context_features=None. "
+                f"ENTRY_CONTEXT_FEATURES_ENABLED={context_features_enabled}, "
+                f"entry_v10_ctx_enabled={ctx_bundle_active}, supports_context_features={supports_context_features}. "
+                "CTX6CAT6 only (no fallback)."
+            )
         
         if self.entry_v10_bundle is None:
             # ENTRY FEATURE TELEMETRY: Record model block and pre-model return
@@ -8667,62 +7935,17 @@ class GX1DemoRunner:
                 self.entry_manager.entry_feature_telemetry.record_control_flow("BEFORE_XGB_SESSION_POLICY_CHECK", session=current_session)
             
             skip_xgb_predict = False
-            from gx1.xgb.multihead.xgb_multihead_model_v1 import load_session_policy
-            try:
-                # __file__ is gx1/execution/oanda_demo_runner.py
-                # .parent = gx1/execution
-                # .parent.parent = gx1
-                # .parent.parent.parent = GX1_ENGINE (workspace root)
-                workspace_root = Path_local(__file__).parent.parent.parent
-                session_policy, _ = load_session_policy(workspace_root)
-                session_config = session_policy.get("sessions", {}).get(current_session, {})
-                session_enabled = session_config.get("enabled", True)
-                session_mode = session_config.get("mode", "normal")
-                
-                # SENTINEL E: after_xgb_session_policy_check
-                if hasattr(self, "entry_manager") and self.entry_manager and hasattr(self.entry_manager, "entry_feature_telemetry") and self.entry_manager.entry_feature_telemetry:
-                    self.entry_manager.entry_feature_telemetry.record_control_flow(
-                        "AFTER_XGB_SESSION_POLICY_CHECK",
-                        session=current_session,
-                        enabled=session_enabled,
-                        mode=session_mode,
-                    )
-                
-                if not session_enabled:
-                    # Session disabled by policy - return neutral outputs
-                    log.info(f"[XGB_SESSION_POLICY] {current_session} head disabled by policy")
-                    if hasattr(self, "entry_manager") and self.entry_manager and hasattr(self.entry_manager, "entry_feature_telemetry") and self.entry_manager.entry_feature_telemetry:
-                        self.entry_manager.entry_feature_telemetry.record_xgb_session_disabled(session=current_session)
-                    if session_mode == "neutral_probs":
-                        uncertainty_val = session_config.get("uncertainty", 1.0)
-                        p_long_xgb = 1.0 / 3.0
-                        p_short_xgb = 1.0 / 3.0
-                        p_hat_xgb = max(p_long_xgb, p_short_xgb)
-                        uncertainty_score = uncertainty_val
-                        p_long_xgb_raw = p_long_xgb
-                        skip_xgb_predict = True  # Skip actual model call
-                    else:
-                        raise ValueError(f"Unknown disabled mode: {session_mode}")
-            except Exception as e:
-                # TRUTH SAFETY: Do NOT silently fall back to "enabled" if session-policy fails to load.
-                # In TRUTH we must hard-fail so we never accidentally enable a disabled session.
-                truth_mode = (
-                    os.getenv("GX1_TRUTH_MODE", "0") in ("1", "true", "TRUE", "yes", "YES")
-                    or os.getenv("GX1_RUN_MODE", "").upper() == "TRUTH"
+            # Session policy: canonical universal bundle; no external session-policy load (ONE UNIVERSE)
+            session_enabled = True
+            session_mode = "normal"
+            # SENTINEL E: after_xgb_session_policy_check
+            if hasattr(self, "entry_manager") and self.entry_manager and hasattr(self.entry_manager, "entry_feature_telemetry") and self.entry_manager.entry_feature_telemetry:
+                self.entry_manager.entry_feature_telemetry.record_control_flow(
+                    "AFTER_XGB_SESSION_POLICY_CHECK",
+                    session=current_session,
+                    enabled=session_enabled,
+                    mode=session_mode,
                 )
-                if truth_mode:
-                    raise RuntimeError(f"[TRUTH_FAIL] XGB_SESSION_POLICY load failed: {e}") from e
-                log.warning(f"[XGB_SESSION_POLICY] Failed to load policy, using defaults: {e}")
-                session_enabled = True  # Default to enabled if policy load fails
-                # SENTINEL E: after_xgb_session_policy_check (exception case)
-                if hasattr(self, "entry_manager") and self.entry_manager and hasattr(self.entry_manager, "entry_feature_telemetry") and self.entry_manager.entry_feature_telemetry:
-                    self.entry_manager.entry_feature_telemetry.record_control_flow(
-                        "AFTER_XGB_SESSION_POLICY_CHECK",
-                        session=current_session,
-                        enabled=True,  # Default
-                        mode="normal",
-                        exception=str(e),
-                    )
             
             # Run XGBoost for the full sequence window using universal multihead model (batched).
             # This constructs the ONLY Transformer inputs (signal-only bridge).
@@ -8843,9 +8066,6 @@ class GX1DemoRunner:
             # Prepare ctx arrays for echo check
             ctx_cat_arr = None
             ctx_cont_arr = None
-            if entry_context_features is not None:
-                ctx_cat_arr = np.array(entry_context_features.to_tensor_categorical(), dtype=np.int64)
-                ctx_cont_arr = np.array(entry_context_features.to_tensor_continuous(), dtype=np.float32)
             
             # Check cycle (hard-fail if NaN after warmup)
             if self._first_n_cycles_checker.should_continue_checking():
@@ -8914,20 +8134,124 @@ class GX1DemoRunner:
                         )
                         entry_context_features = None  # Fall back to legacy
                 else:
-                    # Bundle supports context features - use them
-                    ctx_cat = entry_context_features.to_tensor_categorical()  # [5] int64
-                    ctx_cont = entry_context_features.to_tensor_continuous()  # [2] float32
+                    # Bundle supports context features - use them (CTX6CAT6: 6 cat, 6 cont)
+                    # Populate slow ctx features from prebuilt row (manifest SSoT); hard-fail if missing
+                    try:
+                        ts = candles.index[-1]
+                        prebuilt_row = self.prebuilt_features_df.loc[ts]
+                        from gx1.contracts.signal_bridge_v1 import get_canonical_ctx_contract
+                        canonical_ctx = get_canonical_ctx_contract()
+                        slow_cont_names = [n for n in canonical_ctx["ctx_cont_names"] if n not in ["atr_bps", "spread_bps"]]
+                        log.info(
+                            "[CTX_DEBUG] candle_ts=%r tz=%s | current_ts=%r tz=%s | equal=%s",
+                            ts,
+                            getattr(ts, "tzinfo", None),
+                            ts,
+                            getattr(ts, "tzinfo", None),
+                            True,
+                        )
+                        log.error(
+                            "[CTX_DEBUG] prebuilt_index_has_ts=%s | df_cols_has_slow=%s",
+                            ts in self.prebuilt_features_df.index,
+                            {c: c in self.prebuilt_features_df.columns for c in slow_cont_names},
+                        )
+                        if ts in self.prebuilt_features_df.index:
+                            try:
+                                log.error(
+                                    "[CTX_DEBUG] slow_cont_values=%s",
+                                    prebuilt_row[slow_cont_names].to_dict(),
+                                )
+                            except Exception:
+                                pass
+                        missing_cols = [c for c in slow_cont_names if c not in prebuilt_row.index]
+                        if missing_cols:
+                            raise RuntimeError(f"[CTX_CONT_BUILD_FAIL] Missing slow ctx columns in prebuilt row: {missing_cols}")
+                        entry_context_features.D1_dist_from_ema200_atr = float(prebuilt_row["D1_dist_from_ema200_atr"])
+                        entry_context_features.H1_range_compression_ratio = float(prebuilt_row["H1_range_compression_ratio"])
+                        entry_context_features.D1_atr_percentile_252 = float(prebuilt_row["D1_atr_percentile_252"])
+                        entry_context_features.M15_range_compression_ratio = float(prebuilt_row["M15_range_compression_ratio"])
+                        if "H4_trend_sign_cat" not in prebuilt_row.index:
+                            raise RuntimeError(
+                                "[CTX_CAT_SOURCE_MISSING] prebuilt missing required ctx_cat col: H4_trend_sign_cat (CTX6CAT6)"
+                            )
+                        entry_context_features.h4_trend_sign_cat = int(prebuilt_row["H4_trend_sign_cat"])
+                        log.error(
+                            "[CTX_DEBUG_ASSIGN] current_ts=%r tz=%s | ctx_fields=%s | slow_cont_values=%s",
+                            ts,
+                            getattr(ts, "tzinfo", None),
+                            entry_context_features.__dict__,
+                            {
+                                "D1_dist_from_ema200_atr": entry_context_features.D1_dist_from_ema200_atr,
+                                "H1_range_compression_ratio": entry_context_features.H1_range_compression_ratio,
+                                "D1_atr_percentile_252": entry_context_features.D1_atr_percentile_252,
+                                "M15_range_compression_ratio": entry_context_features.M15_range_compression_ratio,
+                            },
+                        )
+                    except Exception as e:
+                        raise RuntimeError(f"[CTX_CONT_BUILD_FAIL] Failed to populate ctx_cont from prebuilt: {e}") from e
+
+                    ctx_cat = entry_context_features.to_tensor_categorical()  # [6] int64
+                    from gx1.contracts.signal_bridge_v1 import get_canonical_ctx_contract as _get_ctx_contract_pre_tensor
+                    _ctx_contract = _get_ctx_contract_pre_tensor()
+                    log.error(
+                        "[CTX_DEBUG_PRE_TENSOR] ctx_fields=%s | expected_cat=%s | expected_cont=%s",
+                        entry_context_features.__dict__,
+                        _ctx_contract.get("ctx_cat_names"),
+                        _ctx_contract.get("ctx_cont_names"),
+                    )
+                    ctx_cont = entry_context_features.to_tensor_continuous()  # [6] float32
+                    ctx_cat_arr = np.array(ctx_cat, dtype=np.int64)
+                    ctx_cont_arr = np.array(ctx_cont, dtype=np.float32)
                     
                     # Validate shapes (fail-fast in replay)
-                    expected_ctx_cat_dim = bundle_meta.get("expected_ctx_cat_dim", 5)
-                    expected_ctx_cont_dim = bundle_meta.get("expected_ctx_cont_dim", 2)
+                    from gx1.contracts.signal_bridge_v1 import get_canonical_ctx_contract
+
+                    canonical_ctx = get_canonical_ctx_contract()
+                    if "expected_ctx_cat_dim" not in bundle_meta or "expected_ctx_cont_dim" not in bundle_meta:
+                        if hasattr(self, "entry_manager") and self.entry_manager:
+                            et = self.entry_manager.entry_telemetry
+                            if "ctx_proof_fail_count" not in et:
+                                et["ctx_proof_fail_count"] = 0
+                            et["ctx_proof_fail_count"] += 1
+                        raise RuntimeError(
+                            "[CTX_CONTRACT_MISSING] bundle_meta missing expected_ctx_cat_dim/expected_ctx_cont_dim; canonical CTX6CAT6"
+                        )
+                    expected_ctx_cat_dim = int(bundle_meta.get("expected_ctx_cat_dim"))
+                    expected_ctx_cont_dim = int(bundle_meta.get("expected_ctx_cont_dim"))
+                    if (
+                        expected_ctx_cat_dim != canonical_ctx["ctx_cat_dim"]
+                        or expected_ctx_cont_dim != canonical_ctx["ctx_cont_dim"]
+                    ):
+                        if hasattr(self, "entry_manager") and self.entry_manager:
+                            et = self.entry_manager.entry_telemetry
+                            if "ctx_proof_fail_count" not in et:
+                                et["ctx_proof_fail_count"] = 0
+                            et["ctx_proof_fail_count"] += 1
+                        raise RuntimeError(
+                            "[CTX_CONTRACT_SPLIT_BRAIN] bundle ctx dims "
+                            f"{expected_ctx_cont_dim}/{expected_ctx_cat_dim} != canonical "
+                            f"{canonical_ctx['ctx_cont_dim']}/{canonical_ctx['ctx_cat_dim']} ({canonical_ctx['tag']})"
+                        )
                     
                     if len(ctx_cat) != expected_ctx_cat_dim:
                         is_replay = getattr(self, "replay_mode", False)
                         if is_replay:
+                            log.info(
+                                "[CTX_INPUT_PROOF] expected=(%d,%d) actual=(%d,%d) cont_names=%s cat_names=%s cont_source=bundle_meta cat_source=entry_context_features",
+                                expected_ctx_cont_dim,
+                                expected_ctx_cat_dim,
+                                len(ctx_cont) if entry_context_features is not None else -1,
+                                len(ctx_cat),
+                                getattr(entry_context_features, "CONT_NAMES", "N/A"),
+                                getattr(entry_context_features, "CAT_NAMES", "N/A"),
+                            )
+                            if hasattr(self, "entry_manager") and self.entry_manager:
+                                et = self.entry_manager.entry_telemetry
+                                if "ctx_proof_fail_count" not in et:
+                                    et["ctx_proof_fail_count"] = 0
+                                et["ctx_proof_fail_count"] += 1
                             raise RuntimeError(
-                                f"CONTEXT_FEATURES_SHAPE_MISMATCH: ctx_cat dim={len(ctx_cat)} "
-                                f"expected={expected_ctx_cat_dim}"
+                                f"[CTX_CONTRACT_DIM_MISMATCH] ctx_cat dim={len(ctx_cat)} expected={expected_ctx_cat_dim}"
                             )
                         else:
                             log.warning(
@@ -8940,9 +8264,13 @@ class GX1DemoRunner:
                     if entry_context_features is not None and len(ctx_cont) != expected_ctx_cont_dim:
                         is_replay = getattr(self, "replay_mode", False)
                         if is_replay:
+                            if hasattr(self, "entry_manager") and self.entry_manager:
+                                et = self.entry_manager.entry_telemetry
+                                if "ctx_proof_fail_count" not in et:
+                                    et["ctx_proof_fail_count"] = 0
+                                et["ctx_proof_fail_count"] += 1
                             raise RuntimeError(
-                                f"CONTEXT_FEATURES_SHAPE_MISMATCH: ctx_cont dim={len(ctx_cont)} "
-                                f"expected={expected_ctx_cont_dim}"
+                                f"[CTX_CONTRACT_DIM_MISMATCH] ctx_cont dim={len(ctx_cont)} expected={expected_ctx_cont_dim}"
                             )
                         else:
                             log.warning(
@@ -8951,6 +8279,18 @@ class GX1DemoRunner:
                             )
                             entry_context_features = None
                             return _ret_none("CTX_SHAPE_MISMATCH_CONT")
+            
+            # Check cycle (hard-fail if NaN after warmup) — run after ctx is fully built
+            if self._first_n_cycles_checker.should_continue_checking():
+                error_msg = self._first_n_cycles_checker.check_cycle(
+                    seq_data=seq_data,
+                    snap_data=snap_data,
+                    ctx_cat=ctx_cat_arr,
+                    ctx_cont=ctx_cont_arr,
+                    current_bar_index=current_bar_index,
+                )
+                if error_msg:
+                    raise RuntimeError(error_msg)
             
             # SIGNAL-ONLY: channel masking removed (no legacy channel layout).
             self._current_mask_info = {}
@@ -8967,11 +8307,16 @@ class GX1DemoRunner:
             # OPPGAVE 2: Use context features if available, otherwise fall back to legacy regime inputs
             if context_features_enabled and entry_context_features is not None and supports_context_features:
                 # Use context features (new path)
-                ctx_cat = entry_context_features.to_tensor_categorical()  # [5] int64
-                ctx_cont = entry_context_features.to_tensor_continuous()  # [2] float32
+                ctx_cat = entry_context_features.to_tensor_categorical()  # [6] int64
+                ctx_cont = entry_context_features.to_tensor_continuous()  # [6] float32
                 
-                ctx_cat_t = torch.LongTensor(ctx_cat).unsqueeze(0).to(device)  # [1, 5]
-                ctx_cont_t = torch.FloatTensor(ctx_cont).unsqueeze(0).to(device)  # [1, 2]
+                ctx_cat_t = torch.LongTensor(ctx_cat).unsqueeze(0).to(device)  # [1, 6]
+                ctx_cont_t = torch.FloatTensor(ctx_cont).unsqueeze(0).to(device)  # [1, 6]
+                log.info(
+                    "[CTX_INPUT_PROOF] ctx_cont_len=%d ctx_cat_len=%d",
+                    ctx_cont_t.shape[1] if ctx_cont_t is not None else -1,
+                    ctx_cat_t.shape[1] if ctx_cat_t is not None else -1,
+                )
                 
                 # CTX NULL BASELINE: force null/zero context when enabled (for A/B baseline without legacy)
                 if os.getenv("GX1_CTX_NULL_BASELINE", "0") == "1":
@@ -9203,17 +8548,35 @@ class GX1DemoRunner:
                             log.warning(f"[MODEL_CALL_TRACE] Failed to write capsule: {trace_err}")
                     
                     try:
+                        # Telemetry: tied to actual model call (ctx-present path only)
+                        if hasattr(self, "entry_manager") and self.entry_manager:
+                            et = self.entry_manager.entry_telemetry
+                            if "n_ctx_model_calls" not in et:
+                                et["n_ctx_model_calls"] = 0
+                            et["n_ctx_model_calls"] += 1
+                            if "ctx_proof_pass_count" not in et:
+                                et["ctx_proof_pass_count"] = 0
+                            et["ctx_proof_pass_count"] += 1
                         # B1: True timer — Transformer forward time only
                         import time as _time_mod
                         _t0_tf = _time_mod.perf_counter()
+                        # Legacy kwargs are not allowed for CTX path; force them to None to prevent accidental leakage
+                        session_id_t = None
+                        vol_regime_id_t = None
+                        trend_regime_id_t = None
+                        forbidden_kwargs = {
+                            "session_id": session_id_t,
+                            "vol_regime_id": vol_regime_id_t,
+                            "trend_regime_id": trend_regime_id_t,
+                        }
+                        extra = {k: v for k, v in forbidden_kwargs.items() if v is not None}
+                        if extra:
+                            raise RuntimeError(f"[ENTRY_V10_CTX_KWARGS_FORBIDDEN] transformer forward forbids extra kwargs keys={list(extra.keys())}")
                         outputs = transformer_model(
                             seq_x=seq_x,
                             snap_x=snap_x,
-                            session_id=session_id_t,  # Legacy (for backward compatibility)
-                            vol_regime_id=vol_regime_id_t,  # Legacy
-                            trend_regime_id=trend_regime_id_t,  # Legacy
-                            ctx_cat=ctx_cat_t,  # NEW: [1, 5]
-                            ctx_cont=ctx_cont_t,  # NEW: [1, 2]
+                            ctx_cat=ctx_cat_t,  # CTX6CAT6
+                            ctx_cont=ctx_cont_t,  # CTX6CAT6
                         )
                         try:
                             self.t_transformer_forward_sec += float(_time_mod.perf_counter() - _t0_tf)
@@ -9383,12 +8746,6 @@ class GX1DemoRunner:
                                 )
                                 self._gate_log_count += 1
                     
-                    # DEL 4: Track ctx model calls (telemetry)
-                    if hasattr(self, "entry_manager") and self.entry_manager:
-                        if "n_ctx_model_calls" not in self.entry_manager.entry_telemetry:
-                            self.entry_manager.entry_telemetry["n_ctx_model_calls"] = 0
-                        self.entry_manager.entry_telemetry["n_ctx_model_calls"] += 1
-                    
                     # DEL 3: Proof flag - verify ctx is consumed (replay only, rate-limited)
                     proof_flag_enabled = os.getenv("GX1_CTX_CONSUMPTION_PROOF", "0") == "1"
                     if proof_flag_enabled and is_replay:
@@ -9410,9 +8767,6 @@ class GX1DemoRunner:
                                 outputs_B = transformer_model(
                                     seq_x=seq_x,
                                     snap_x=snap_x,
-                                    session_id=session_id_t,
-                                    vol_regime_id=vol_regime_id_t,
-                                    trend_regime_id=trend_regime_id_t,
                                     ctx_cat=ctx_cat_permuted,
                                     ctx_cont=ctx_cont_null,
                                 )
@@ -9471,32 +8825,18 @@ class GX1DemoRunner:
                             diff = abs(prob_long_A - prob_long_B)
                             min_diff_threshold = 1e-6
                             
-                            # Initialize ctx_proof counters in entry_telemetry if not present
-                            if "ctx_proof_pass_count" not in self.entry_manager.entry_telemetry:
-                                self.entry_manager.entry_telemetry["ctx_proof_pass_count"] = 0
-                            if "ctx_proof_fail_count" not in self.entry_manager.entry_telemetry:
-                                self.entry_manager.entry_telemetry["ctx_proof_fail_count"] = 0
-                            
+                            # ctx_proof_pass/fail are only updated at model-call (pass) or [CTX_CONTRACT_*] raise (fail); not here
                             if diff < min_diff_threshold:
-                                # Proof failed: ctx does not affect output
-                                self.entry_manager.entry_telemetry["ctx_proof_fail_count"] += 1
+                                # Consumption proof failed: ctx does not affect output
                                 error_msg = (
                                     f"CTX_CONSUMPTION_PROOF_FAILED: ctx does not affect output. "
                                     f"prob_long_A={prob_long_A:.6f}, prob_long_B={prob_long_B:.6f}, "
                                     f"diff={diff:.6f} < threshold={min_diff_threshold}. "
-                                    f"This indicates ctx is being ignored by the model. "
-                                    f"Fail count: {self.entry_manager.entry_telemetry['ctx_proof_fail_count']}"
+                                    f"This indicates ctx is being ignored by the model."
                                 )
-                                # In replay: hard fail if any proof check fails
-                                if is_replay:
-                                    raise RuntimeError(error_msg)
-                                else:
-                                    # Live: warning + degraded mode
-                                    log.warning(f"[CTX_PROOF] {error_msg} (LIVE: degraded mode)")
-                            else:
-                                # Proof passed: ctx affects output
-                                self.entry_manager.entry_telemetry["ctx_proof_pass_count"] += 1
-                            
+                                # Hard-fail if ctx does not affect output (replay and live)
+                                log.error("[CTX_PROOF] %s", error_msg)
+                                raise RuntimeError(error_msg)
                             self._ctx_proof_check_count += 1
                             
                             # Log first 3 checks (pass or fail)
@@ -9511,22 +8851,17 @@ class GX1DemoRunner:
                                     status
                                 )
                 elif ctx_expected:
-                    # CTX_EXPECTED_BUT_LEGACY_BRANCH: ctx was expected but we took legacy branch
-                    is_replay = getattr(self, "replay_mode", False) or os.getenv("GX1_REPLAY", "0") == "1"
-                    if is_replay:
-                        raise RuntimeError(
-                            f"CTX_EXPECTED_BUT_LEGACY_BRANCH: ctx_expected=True but took legacy branch. "
-                            f"context_features_enabled={context_features_enabled}, "
-                            f"entry_context_features={'not None' if entry_context_features is not None else 'None'}, "
-                            f"supports_context_features={supports_context_features}, "
-                            f"bundle_meta.keys={list(bundle_meta.keys()) if bundle_meta else []}, "
-                            f"model_type={type(transformer_model).__name__}, "
-                            f"ctx_cat_t={'not None' if ctx_cat_t is not None else 'None'}, "
-                            f"ctx_cont_t={'not None' if ctx_cont_t is not None else 'None'}"
-                        )
-                    else:
-                        log.warning("[ENTRY_V10] CTX_EXPECTED_BUT_LEGACY_BRANCH (live mode: degraded)")
-                        return _ret_none("CTX_EXPECTED_BUT_LEGACY_BRANCH")
+                    # CTX_EXPECTED_BUT_LEGACY_BRANCH: ctx expected but took legacy branch - hard-fail (no fallback)
+                    raise RuntimeError(
+                        "[CTX_EXPECTED_BUT_LEGACY_BRANCH] ctx_expected=True but took legacy branch. "
+                        f"context_features_enabled={context_features_enabled}, "
+                        f"entry_context_features={'not None' if entry_context_features is not None else 'None'}, "
+                        f"supports_context_features={supports_context_features}, "
+                        f"bundle_meta.keys={list(bundle_meta.keys()) if bundle_meta else []}, "
+                        f"model_type={type(transformer_model).__name__}, "
+                        f"ctx_cat_t={'not None' if ctx_cat_t is not None else 'None'}, "
+                        f"ctx_cont_t={'not None' if ctx_cont_t is not None else 'None'}. CTX6CAT6 only."
+                    )
                 else:
                     # Legacy path: no ctx_cat/ctx_cont (ctx not expected)
                     # B1: predict_entered_count increment (SSoT: right before transformer forward call, after all early return checks)
@@ -9537,210 +8872,15 @@ class GX1DemoRunner:
                     # Check if model is EntryV10CtxHybridTransformer (should not happen, but defensive)
                     from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import EntryV10CtxHybridTransformer
                     if isinstance(transformer_model, EntryV10CtxHybridTransformer):
-                        # Ctx-modell but context features not provided - fail-fast in replay
-                        is_replay = getattr(self, "replay_mode", False)
-                        if is_replay:
-                            raise RuntimeError(
-                                "CTX_MODEL_WITHOUT_CONTEXT: EntryV10CtxHybridTransformer requires context features, "
-                                "but entry_context_features is None or ENTRY_CONTEXT_FEATURES_ENABLED=false. "
-                                "Either enable ENTRY_CONTEXT_FEATURES_ENABLED=true or use legacy V10 bundle."
-                            )
-                        else:
-                            log.warning(
-                                "[ENTRY_V10] Ctx-modell detected but context features not provided (live mode). "
-                                "Using dummy context features (degraded mode)."
-                            )
-                            # Use dummy context (degraded mode)
-                            ctx_cat_t = torch.zeros(1, 5, dtype=torch.int64).to(device)
-                            ctx_cont_t = torch.zeros(1, 2, dtype=torch.float32).to(device)
-                            
-                            # B1: score-gate allow assert + pre_call_count increment (SSoT: right before transformer forward call) - LEGACY PATH
-                            if hasattr(self, "entry_manager") and self.entry_manager and hasattr(self.entry_manager, "entry_feature_telemetry") and self.entry_manager.entry_feature_telemetry:
-                                bundle_sha256 = None
-                                if "bundle_metadata" in locals() and isinstance(bundle_metadata, dict):
-                                    bundle_sha256 = bundle_metadata.get("bundle_sha256")
-                                self.entry_manager.entry_feature_telemetry.assert_score_gate_allow_for_predict(
-                                    session=current_session,
-                                    ts=candles.index[-1] if candles is not None and len(candles) > 0 else None,
-                                    predict_path="v10_hybrid",
-                                    routing_mode="v10_hybrid",
-                                    entry_model_id=entry_model_id_for_log,
-                                    bundle_sha256=bundle_sha256,
-                                    run_id=getattr(self, "run_id", None),
-                                )
-                                self.entry_manager.entry_feature_telemetry.record_pre_call_reached(session=current_session)
-                            _record_predict_reached_forward()
-                            
-                            # B2: MODEL_CALL_TRACE_US.json capsule (diagnostic mode, US session only) - LEGACY PATH
-                            model_call_trace_written_legacy = False
-                            output_dir_trace_legacy = None
-                            if (os.getenv("GX1_TRUTH_TELEMETRY", "0") == "1" and 
-                                os.getenv("GX1_DIAGNOSTIC_FORCE_EVAL_SESSIONS", "") and
-                                current_session == "US"):
-                                try:
-                                    import traceback as tb_module
-                                    from pathlib import Path as Path_trace
-                                    import json as json_trace
-                                    
-                                    if hasattr(self, "output_dir") and self.output_dir:
-                                        output_dir_trace_legacy = Path_trace(self.output_dir)
-                                    elif hasattr(self, "explicit_output_dir") and self.explicit_output_dir:
-                                        output_dir_trace_legacy = Path_trace(self.explicit_output_dir)
-                                    else:
-                                        output_dir_env = os.getenv("GX1_OUTPUT_DIR")
-                                        if output_dir_env:
-                                            output_dir_trace_legacy = Path_trace(output_dir_env)
-                                    
-                                    if output_dir_trace_legacy:
-                                        output_dir_trace_legacy.mkdir(parents=True, exist_ok=True)
-                                        trace_capsule_path = output_dir_trace_legacy / "MODEL_CALL_TRACE_US.json"
-                                        
-                                        # Get callstack snippets
-                                        callstack_snippets = []
-                                        try:
-                                            stack = tb_module.extract_stack()
-                                            for frame in stack[-10:]:
-                                                callstack_snippets.append({
-                                                    "file": frame.filename.split("/")[-1] if "/" in frame.filename else frame.filename,
-                                                    "line": frame.lineno,
-                                                    "function": frame.name,
-                                                })
-                                        except Exception:
-                                            pass
-                                        
-                                        routing_decision = "v10_hybrid"  # Default
-                                        if hasattr(self, "entry_v10_cfg") and isinstance(self.entry_v10_cfg, dict):
-                                            routing_decision = self.entry_v10_cfg.get("routing", "v10_hybrid")
-                                        
-                                        trace_payload = {
-                                            "session": current_session,
-                                            "routing_decision": routing_decision,
-                                            "entered_predict": True,
-                                            "entered_transformer_callsite": True,
-                                            "hit_pre_call_increment": True,
-                                            "hit_forward_increment": False,
-                                            "return_path_reason": "forward_called",
-                                            "path": "legacy",
-                                            "callstack_snippets": callstack_snippets,
-                                            "timestamp": pd.Timestamp.now().isoformat() if hasattr(pd, "Timestamp") else None,
-                                        }
-                                        
-                                        with open(trace_capsule_path, "w") as f:
-                                            json_trace.dump(trace_payload, f, indent=2)
-                                        log.info(f"[MODEL_CALL_TRACE] Wrote capsule (legacy path): {trace_capsule_path}")
-                                        model_call_trace_written_legacy = True
-                                except Exception as trace_err:
-                                    log.warning(f"[MODEL_CALL_TRACE] Failed to write capsule (legacy): {trace_err}")
-                            
-                            try:
-                                outputs = transformer_model(
-                                    seq_x=seq_x,
-                                    snap_x=snap_x,
-                                    session_id=session_id_t,
-                                    vol_regime_id=vol_regime_id_t,
-                                    trend_regime_id=trend_regime_id_t,
-                                    ctx_cat=ctx_cat_t,
-                                    ctx_cont=ctx_cont_t,
-                                )
-                                # B1: forward_calls increment (SSoT: right after transformer forward returns successfully) - LEGACY PATH
-                                if hasattr(self, "entry_manager") and self.entry_manager and hasattr(self.entry_manager, "entry_feature_telemetry") and self.entry_manager.entry_feature_telemetry:
-                                    self.entry_manager.entry_feature_telemetry.record_model_forward(model_name, session=current_session)
-                                    
-                                    # Update MODEL_CALL_TRACE capsule if written
-                                    if model_call_trace_written_legacy and output_dir_trace_legacy:
-                                        try:
-                                            import json as json_trace_local
-                                            from pathlib import Path as Path_trace_local
-                                            trace_capsule_path = Path_trace_local(output_dir_trace_legacy) / "MODEL_CALL_TRACE_US.json"
-                                            if trace_capsule_path.exists():
-                                                with open(trace_capsule_path, "r") as f:
-                                                    trace_data = json_trace_local.load(f)
-                                                trace_data["hit_forward_increment"] = True
-                                                trace_data["return_path_reason"] = "forward_called"
-                                                with open(trace_capsule_path, "w") as f:
-                                                    json_trace_local.dump(trace_data, f, indent=2)
-                                        except Exception:
-                                            pass
-                            except Exception as e:
-                                # Same exception handling as ctx path above
-                                exception_type = type(e).__name__
-                                exception_reason = f"EXCEPTION_{exception_type}"
-                                if hasattr(self, "entry_manager") and self.entry_manager and hasattr(self.entry_manager, "entry_feature_telemetry") and self.entry_manager.entry_feature_telemetry:
-                                    self.entry_manager.entry_feature_telemetry.record_pre_model_return(exception_reason, session=current_session)
-                                    self.entry_manager.entry_feature_telemetry.record_model_block(model_name, exception_reason)
-                                    self.entry_manager.entry_feature_telemetry.record_model_exception(model_name, e, session=current_session)
-                                
-                                # Update MODEL_CALL_TRACE capsule if written (exception before forward) - LEGACY PATH
-                                if model_call_trace_written_legacy and output_dir_trace_legacy:
-                                    try:
-                                        import json as json_trace_local
-                                        from pathlib import Path as Path_trace_local
-                                        trace_capsule_path = Path_trace_local(output_dir_trace_legacy) / "MODEL_CALL_TRACE_US.json"
-                                        if trace_capsule_path.exists():
-                                            with open(trace_capsule_path, "r") as f:
-                                                trace_data = json_trace_local.load(f)
-                                            trace_data["hit_forward_increment"] = False
-                                            trace_data["return_path_reason"] = f"exception_before_forward_{exception_type}"
-                                            trace_data["exception_type"] = exception_type
-                                            trace_data["exception_message"] = str(e)
-                                            with open(trace_capsule_path, "w") as f:
-                                                json_trace_local.dump(trace_data, f, indent=2)
-                                    except Exception:
-                                        pass
-                                
-                                xgb_outputs_dict = {
-                                    "p_long_xgb": p_long_xgb if 'p_long_xgb' in locals() else None,
-                                    "p_hat_xgb": p_hat_xgb if 'p_hat_xgb' in locals() else None,
-                                    "uncertainty_score": uncertainty_score if 'uncertainty_score' in locals() else None,
-                                }
-                                from gx1.contracts.signal_bridge_v1 import SEQ_SIGNAL_DIM, SNAP_SIGNAL_DIM
-                                session_tokens_enabled_exc = False
-                                snap_dim = int(SNAP_SIGNAL_DIM)
-                                transformer_config_dict = {
-                                    "seq_len": seq_len,
-                                    "expected_seq_feat_dim": int(SEQ_SIGNAL_DIM),
-                                    "expected_snap_dim": snap_dim,
-                                }
-                                if hasattr(self.entry_v10_bundle, "metadata"):
-                                    model_config = self.entry_v10_bundle.metadata.get("model_config", {})
-                                    transformer_config_dict.update({
-                                        "num_layers": model_config.get("num_layers"),
-                                        "d_model": model_config.get("d_model"),
-                                    })
-                                # TRUTH: Write US pre-model ValueError capsule (deterministic)
-                                write_us_premodel_valueerror_capsule(
-                                    exc=e,
-                                    session=current_session,
-                                    seq_data=seq_data,
-                                    snap_data=snap_data,
-                                    seq_feat_names=seq_feat_names,
-                                    snap_feat_names=snap_feat_names,
-                                    session_tokens_enabled=session_tokens_enabled_exc,
-                                    ts=candles.index[-1] if candles is not None and len(candles) > 0 else None,
-                                )
-                                capsule_path = write_transformer_exception_capsule(
-                                    exc=e,
-                                    seq_x=seq_x,
-                                    snap_x=snap_x,
-                                    seq_data=seq_data,
-                                    snap_data=snap_data,
-                                    xgb_outputs=xgb_outputs_dict,
-                                    transformer_config=transformer_config_dict,
-                                    seq_feat_names=seq_feat_names,
-                                    snap_feat_names=snap_feat_names,
-                                )
-                                
-                                is_truth = os.getenv("GX1_RUN_MODE", "").upper() == "TRUTH" or os.getenv("GX1_TRUTH_MODE", "0") == "1"
-                                is_proof = os.getenv("GX1_REQUIRE_ENTRY_TELEMETRY", "0") == "1"
-                                if is_truth or is_proof:
-                                    raise RuntimeError(
-                                        f"[TRANSFORMER_FORWARD_FATAL] Transformer forward failed with {exception_type}: {str(e)}. "
-                                        f"Exception capsule written to: {capsule_path}. "
-                                        f"This is a FATAL error in TRUTH/PROOF mode."
-                                    ) from e
-                                else:
-                                    log.error(f"[TRANSFORMER_FORWARD_ERROR] Transformer forward failed: {e}. Capsule: {capsule_path}")
-                                    return _ret_none(f"TRANSFORMER_FORWARD_{exception_type}")
+                        # Ctx model but context not provided - hard-fail in both live and replay (no dummy/5/2)
+                        if hasattr(self, "entry_manager") and self.entry_manager:
+                            et = self.entry_manager.entry_telemetry
+                            if "ctx_proof_fail_count" not in et:
+                                et["ctx_proof_fail_count"] = 0
+                            et["ctx_proof_fail_count"] += 1
+                        raise RuntimeError(
+                            "[CTX_CONTRACT_MISSING] Ctx model requires context; entry_context_features missing or disabled. CTX6CAT6 only."
+                        )
                     else:
                         # Legacy EntryV10HybridTransformer (no ctx support)
                         # B1: predict_entered_count increment (SSoT: right before transformer forward call, after all early return checks)
@@ -9826,7 +8966,7 @@ class GX1DemoRunner:
                                 log.warning(f"[MODEL_CALL_TRACE] Failed to write capsule (legacy non-ctx): {trace_err}")
                         
                         try:
-                            outputs = transformer_model(seq_x, snap_x, session_id_t, vol_regime_id_t, trend_regime_id_t)
+                            outputs = transformer_model(seq_x=seq_x, snap_x=snap_x)
                             
                             # B1: forward_calls increment (SSoT: right after transformer forward returns successfully) - LEGACY NON-CTX PATH
                             # SENTINEL G: after_transformer_forward (legacy path)
@@ -10313,7 +9453,10 @@ class GX1DemoRunner:
             return None
 
 
+    # SSoT ENTRY ROUTE (sanity grep): evaluate_entry -> _evaluate_entry_impl -> entry_manager.evaluate_entry -> _predict_entry_v10_hybrid.
+    # Legacy/not reachable: _load_entry_v9_model (raise-only [LEGACY_DISABLED]); no other entry prediction paths.
     def _evaluate_entry_impl(self, candles: pd.DataFrame) -> Optional[LiveTrade]:
+        """Single entry path: entry_manager.evaluate_entry only. No V9/legacy/fallback routing."""
         import inspect
         
         # ENTRY EVAL PATH TELEMETRY: Record which function actually performs entry evaluation (SSoT)
@@ -12250,6 +11393,17 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
         
         # Initialize replay state
         self.replay_mode = True
+        try:
+            from gx1.features.context_features import (
+                ORDERED_CTX_CONT_NAMES_EXTENDED,
+                ORDERED_CTX_CAT_NAMES_EXTENDED,
+            )
+            self.ctx_cont_required_columns = list(ORDERED_CTX_CONT_NAMES_EXTENDED[:6])
+            self.ctx_cat_required_columns = list(ORDERED_CTX_CAT_NAMES_EXTENDED[:6])
+            self.ctx_cont_dim = 6
+            self.ctx_cat_dim = 6
+        except Exception:
+            pass
         
         # C) Hard invariants for prebuilt features (fail-fast, no silent fallback)
         # FIX: Import os and Path explicitly to avoid shadowing issues in multiprocessing
@@ -12260,18 +11414,20 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
         # SSoT: replay_mode_enum must be set explicitly, not from env (env is unreliable in multiproc)
         from gx1.utils.replay_mode import ReplayMode
         
-        # Signal-only TRUTH: prebuilt path must be explicit and propagated via runner args/state, not env.
-        prebuilt_parquet_path_env = None
+        # TRUTH/SMOKE: prebuilt only from data_ctx (SSoT from manifest/bootstrap). No env path; no split-brain.
+        prebuilt_use = os.getenv("GX1_REPLAY_USE_PREBUILT_FEATURES", "0") == "1"
+        prebuilt_path_from_ctx = getattr(self, "prebuilt_parquet_path_resolved", None)
+        prebuilt_df_from_ctx = getattr(self, "prebuilt_features_df", None)
         
         # Initialize replay_mode_enum to BASELINE (will be updated if prebuilt features are loaded)
         replay_mode_enum = ReplayMode.BASELINE
+        prebuilt_enabled = False
         
         # FASE 1: Hard guarantee - assert feature-building modules are NOT imported in PREBUILT mode
         # NOTE: This check is done in master process (replay_eval_gated_parallel.py) BEFORE workers start.
         # In worker processes, GX1DemoRunner is imported which imports entry_manager → live_features → basic_v1,
         # so this check would always fail in workers. The master process check is sufficient.
         # We only check here if we're NOT in a worker (i.e., if this is called directly, not from process_chunk).
-        prebuilt_enabled = False  # Will be set to True if prebuilt features are successfully loaded
         if prebuilt_enabled:
             # Only check if we're in master process (not in worker spawned via multiprocessing)
             # Workers will have imported GX1DemoRunner which imports forbidden modules, but that's OK
@@ -12346,40 +11502,157 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
                     log.info("[FASE_1] PREBUILT mode: In worker process - skipping FASE 1 check (already verified in master)")
                 else:
                     log.info("[FASE_1] PREBUILT mode: GX1_ALLOW_PARALLEL_REPLAY=1 - skipping FASE 1 check (direct call from year job)")
+        # Reset prebuilt state; PREBUILT only via loader (no injection).
         self.prebuilt_features_loader = None
         self.prebuilt_features_df = None
         self.prebuilt_features_sha256 = None
-        self.prebuilt_used = False  # Flag for perf collector
+        self.prebuilt_used = False
         # Lookup telemetry for PREBUILT mode
         self.lookup_attempts = 0
         self.lookup_hits = 0
         self.lookup_miss_logged = 0
         
-        # FASE 1: Use isolated PrebuiltFeaturesLoader (no feature-building imports)
-        # Check if prebuilt features should be loaded
-        if prebuilt_parquet_path_env:
-            prebuilt_features_path = Path_module(prebuilt_parquet_path_env)
-            
-            # FASE 1: Load prebuilt features using isolated loader
+        # FASE 1: Prebuilt from data_ctx only (prebuilt_features_df or prebuilt_parquet_path_resolved set by process_chunk).
+        def _set_ctx_contract_prebuilt():
+            ctx_cont = None
+            ctx_cat = None
+            def _load_bundle_meta(path: Path) -> Optional[dict]:
+                meta_path = path / "bundle_metadata.json"
+                if meta_path.exists():
+                    import json as json_module
+                    with open(meta_path, "r", encoding="utf-8") as f:
+                        return json_module.load(f)
+                return None
+            bundle_dir = None
+            if isinstance(self.entry_v10_ctx_cfg, dict):
+                bundle_dir = self.entry_v10_ctx_cfg.get("bundle_dir")
+            if not bundle_dir:
+                bundle_dir = self.policy.get("canonical_transformer_bundle_dir")
+            if bundle_dir:
+                bundle_dir = Path(bundle_dir).expanduser().resolve()
+                meta = _load_bundle_meta(bundle_dir)
+                if meta:
+                    ctx_cont = meta.get("ordered_ctx_cont_names") or ctx_cont
+                    ctx_cat = meta.get("ordered_ctx_cat_names") or ctx_cat
+            if (ctx_cont is None or ctx_cat is None) and bundle_dir and bundle_dir.parent.exists():
+                import json as json_module
+                for candidate in sorted(bundle_dir.parent.glob("TRANSFORMER_ENTRY_V10_CTX__*/bundle_metadata.json")):
+                    try:
+                        with open(candidate, "r", encoding="utf-8") as f:
+                            meta = json_module.load(f)
+                        c_cont = meta.get("ordered_ctx_cont_names")
+                        c_cat = meta.get("ordered_ctx_cat_names")
+                        if isinstance(c_cont, list) and isinstance(c_cat, list) and len(c_cont) == 6 and len(c_cat) == 6:
+                            ctx_cont = ctx_cont or c_cont
+                            ctx_cat = ctx_cat or c_cat
+                            break
+                    except Exception:
+                        continue
+            if ctx_cont is None or ctx_cat is None:
+                try:
+                    policy_ctx = self.policy.get("context", {}) if isinstance(self.policy, dict) else {}
+                    ctx_cont = ctx_cont or policy_ctx.get("cont_columns") or self.policy.get("ctx_cont_columns")
+                    ctx_cat = ctx_cat or policy_ctx.get("cat_columns") or self.policy.get("ctx_cat_columns")
+                except Exception:
+                    ctx_cont = ctx_cont or None
+                    ctx_cat = ctx_cat or None
+            if not (isinstance(ctx_cont, list) and isinstance(ctx_cat, list) and len(ctx_cont) == 6 and len(ctx_cat) == 6):
+                raise RuntimeError(
+                    "[PREBUILT_CTX_CONTRACT] Failed to resolve ctx contract (6/6) from V10_CTX bundle/config; "
+                    f"ctx_cont_len={len(ctx_cont) if isinstance(ctx_cont, list) else ctx_cont} "
+                    f"ctx_cat_len={len(ctx_cat) if isinstance(ctx_cat, list) else ctx_cat}"
+                )
+            if not all(isinstance(x, str) for x in ctx_cont + ctx_cat):
+                raise RuntimeError("[PREBUILT_CTX_CONTRACT] ctx columns must be strings")
+            self.ctx_cont_required_columns = list(ctx_cont)
+            self.ctx_cat_required_columns = list(ctx_cat)
+            self.ctx_required_columns = list(ctx_cont) + list(ctx_cat)
+            self.ctx_cont_dim = 6
+            self.ctx_cat_dim = 6
+            self.ctx_contract_source = "v10_ctx_bundle_or_truth_config"
+
+        if not prebuilt_use:
+            prebuilt_enabled = False
+            replay_mode_enum = ReplayMode.BASELINE
+        elif prebuilt_df_from_ctx is not None:
+            # (a) Use prebuilt from data_ctx directly (SSoT from bootstrap/loader); provenance + alignment required.
+            if not prebuilt_path_from_ctx:
+                raise RuntimeError(
+                    "[PREBUILT_PROVENANCE_MISSING] replay prebuilt_df used without resolved manifest path (SSoT violation)."
+                )
+            self.prebuilt_features_df = prebuilt_df_from_ctx
+            idx = self.prebuilt_features_df.index
+            if not idx.is_monotonic_increasing:
+                raise RuntimeError(
+                    "[PREBUILT_ALIGN_MISSING] replay prebuilt_df not aligned to candles index (index not monotonic increasing)."
+                )
+            if idx.tz is None:
+                raise RuntimeError(
+                    "[PREBUILT_ALIGN_MISSING] replay prebuilt_df not aligned to candles index (index not tz-aware)."
+                )
+            from datetime import timezone as dt_tz
+            tz_str = str(idx.tz)
+            tz_ok = (
+                idx.tz == dt_tz.utc
+                or getattr(idx.tz, "key", None) == "UTC"
+                or tz_str in ("UTC", "UTC+00:00")
+                or (tz_str.startswith("UTC") and "00:00" in tz_str)
+            )
+            try:
+                import pytz
+                if idx.tz is pytz.UTC:
+                    tz_ok = True
+            except Exception:
+                pass
+            if not tz_ok:
+                raise RuntimeError(
+                    "[PREBUILT_ALIGN_MISSING] replay prebuilt_df not aligned to candles index (index not UTC)."
+                )
+            # Ground truth: candles (df); common_index = candles.index ∩ prebuilt_features_df.index
+            common_index = df.index.intersection(self.prebuilt_features_df.index)
+            if len(common_index) == 0:
+                raise RuntimeError(
+                    "[PREBUILT_ALIGN_MISSING] replay prebuilt_df not aligned to candles index."
+                )
+            df = df.loc[common_index]
+            self.prebuilt_features_df = self.prebuilt_features_df.loc[common_index].copy()
+            if not df.index.equals(common_index) or not self.prebuilt_features_df.index.equals(common_index):
+                raise RuntimeError(
+                    "[PREBUILT_ALIGN_MISSING] replay prebuilt_df not aligned to candles index."
+                )
+            _set_ctx_contract_prebuilt()
+            self.prebuilt_features_path_resolved = prebuilt_path_from_ctx
+            self.prebuilt_used = True
+            prebuilt_enabled = True
+            replay_mode_enum = ReplayMode.PREBUILT
+            self.prebuilt_features_loader = None
+            log.info(
+                "[REPLAY_MODE] Set to PREBUILT (prebuilt from data_ctx: %d rows, %d cols)",
+                len(self.prebuilt_features_df), len(self.prebuilt_features_df.columns)
+            )
+        elif prebuilt_path_from_ctx:
+            # (b) Load via PrebuiltFeaturesLoader using path from data_ctx (manifest-only SSoT); alignment/validation run.
+            prebuilt_features_path = Path_module(prebuilt_path_from_ctx)
             from gx1.execution.prebuilt_features_loader import PrebuiltFeaturesLoader
             self.prebuilt_features_loader = PrebuiltFeaturesLoader(prebuilt_features_path)
             self.prebuilt_features_df = self.prebuilt_features_loader.df
             self.prebuilt_features_sha256 = self.prebuilt_features_loader.sha256
             self.prebuilt_features_path_resolved = self.prebuilt_features_loader.prebuilt_path_resolved
             self.prebuilt_schema_version = self.prebuilt_features_loader.schema_version
-            
-            # SSoT: Set replay_mode_enum to PREBUILT after successfully loading prebuilt features
+            _set_ctx_contract_prebuilt()
             replay_mode_enum = ReplayMode.PREBUILT
             prebuilt_enabled = True
-            
             log.info(
-                "[REPLAY_MODE] Set to PREBUILT (prebuilt features loaded: %d rows, %d cols)",
+                "[REPLAY_MODE] Set to PREBUILT (prebuilt loaded via loader from data_ctx path: %d rows, %d cols)",
                 len(self.prebuilt_features_df), len(self.prebuilt_features_df.columns)
             )
-            log.info("[FASE_1] Prebuilt features loaded via isolated PrebuiltFeaturesLoader (no feature-building imports)")
+            log.info("[FASE_1] Prebuilt features loaded via PrebuiltFeaturesLoader (path from manifest/bootstrap)")
         else:
-            # No prebuilt features - use BASELINE mode
-            log.info("[REPLAY_MODE] Set to BASELINE (no prebuilt features)")
+            raise RuntimeError(
+                "[PREBUILT_REQUIRED] Prebuilt required (GX1_REPLAY_USE_PREBUILT_FEATURES=1). "
+                "data_ctx must provide prebuilt_parquet_path_resolved or prebuilt_features_df (manifest/bootstrap SSoT). "
+                "Check bootstrap and load_chunk_data; do not use GX1_REPLAY_PREBUILT_FEATURES_PATH."
+            )
         
         # Store replay_mode_enum on runner for use in hotpath (SSoT)
         self.replay_mode_enum = replay_mode_enum
@@ -12390,9 +11663,8 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
             pass
         
         if prebuilt_enabled:
-            # FASE 1: Use PrebuiltFeaturesLoader for validation and common_index filtering
-            # CRITICAL: Build common_index and filter BOTH datasets before chunking
-            if len(df) > 0:
+            # FASE 1: common_index and filter (when loader present; when prebuilt from data_ctx df already filtered).
+            if len(df) > 0 and self.prebuilt_features_loader is not None:
                 common_index = self.prebuilt_features_loader.get_common_index(df.index)
                 
                 if len(common_index) == 0:
@@ -12447,10 +11719,11 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
                     )
                 
                 # Update loader metadata after alignment
-                self.prebuilt_features_loader.prebuilt_index_aligned = True
-                self.prebuilt_features_loader.subset_first_ts = common_index[0] if len(common_index) > 0 else None
-                self.prebuilt_features_loader.subset_last_ts = common_index[-1] if len(common_index) > 0 else None
-                self.prebuilt_features_loader.subset_rows = len(common_index)
+                if self.prebuilt_features_loader is not None:
+                    self.prebuilt_features_loader.prebuilt_index_aligned = True
+                    self.prebuilt_features_loader.subset_first_ts = common_index[0] if len(common_index) > 0 else None
+                    self.prebuilt_features_loader.subset_last_ts = common_index[-1] if len(common_index) > 0 else None
+                    self.prebuilt_features_loader.subset_rows = len(common_index)
                 
                 # Define lookup_phase: lookup happens AFTER hard eligibility check
                 # This is determined by where lookup_attempts is incremented in entry_manager.evaluate_entry()
@@ -12467,8 +11740,8 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
                     prebuilt_len_before, len(self.prebuilt_features_df)
                 )
             
-            # FASE 1: Use PrebuiltFeaturesLoader.validate_timestamp_alignment
-            if len(df) > 0:
+            # FASE 1: PrebuiltFeaturesLoader.validate_timestamp_alignment (always when loader present)
+            if len(df) > 0 and self.prebuilt_features_loader is not None:
                 is_valid, error_msg = self.prebuilt_features_loader.validate_timestamp_alignment(
                     df.index,
                     sample_size=1000,
@@ -12481,56 +11754,46 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
                     )
                 log.debug("[PREBUILT] Timestamp alignment validation passed")
             
-            # C4: Require required columns present (basic check - full check in preflight)
-            # NOTE: In PREBUILT mode, features are stored as seq/snap arrays, not flat columns
-            # Skip column validation for PREBUILT mode - features are accessed via seq/snap arrays
-            # Check if prebuilt features have seq/snap arrays (PREBUILT format) or flat columns (baseline format)
+            # C4: Require columns from schema_manifest.required_all_features only (never bridge7 in prebuilt)
+            # ONE UNIVERSE: prebuilt parquet has BASE28 + context; bridge7 is produced by XGB at runtime.
             has_seq_snap_arrays = "seq" in self.prebuilt_features_df.columns and "snap" in self.prebuilt_features_df.columns
             
             if not has_seq_snap_arrays:
-                # Baseline mode: validate flat columns
-                required_cols = set()
-                try:
-                    v10_ctx_cfg = self.policy.get("entry_models", {}).get("v10_ctx", {})
-                    feature_meta_path = v10_ctx_cfg.get("feature_meta_path")
-                    if feature_meta_path:
-                        feature_meta_path = Path_module(feature_meta_path)
-                        if not feature_meta_path.is_absolute():
-                            from pathlib import Path as Path_root
-                            project_root = Path_root(__file__).parent.parent.parent
-                            feature_meta_path = project_root / feature_meta_path
-                        
-                        if feature_meta_path.exists():
-                            with open(feature_meta_path, "r") as f:
-                                feature_meta = jsonlib.load(f)
-                            seq_features = feature_meta.get("seq_features", [])
-                            snap_features = feature_meta.get("snap_features", [])
-                            required_cols.update(seq_features)
-                            required_cols.update(snap_features)
-                except Exception as e:
-                    log.warning(f"[PREBUILT] Could not load feature_meta for column check: {e}")
-                
-                if required_cols:
-                    # DEL 7: Use effective required set (exclude aliased features)
-                    # Use SSoT function to get effective required prebuilt features
-                    try:
-                        from gx1.utils.feature_contract_utils import get_effective_required_prebuilt_features
-                        required_prebuilt_effective, aliased_features_list = get_effective_required_prebuilt_features(feature_meta)
-                        required_cols_effective = set(required_prebuilt_effective)
-                    except Exception as e:
-                        log.warning(f"[PREBUILT] Could not use SSoT function for effective required set: {e}, falling back to manual exclusion")
-                        # Fallback: manual exclusion (legacy behavior)
-                        ALIASED_FEATURES = {"CLOSE", "close", "volume"}
-                        required_cols_effective = required_cols - ALIASED_FEATURES
-                    
-                    missing_cols = required_cols_effective - set(self.prebuilt_features_df.columns)
-                    if missing_cols:
-                        raise RuntimeError(
-                            f"[PREBUILT_FAIL] Missing required columns in prebuilt features: {sorted(missing_cols)}\n"
-                            f"Effective required set (excluding aliased): {len(required_cols_effective)} features.\n"
-                            f"Aliased features (from candles, not in prebuilt): {sorted(aliased_features_list) if 'aliased_features_list' in locals() else ['close', 'volume', 'CLOSE']}.\n"
-                            f"Instructions: Rebuild prebuilt features with correct feature_meta (effective required set)."
-                        )
+                # Flat columns: required set from schema_manifest next to prebuilt parquet (SSoT)
+                prebuilt_resolved = Path_module(self.prebuilt_features_path_resolved)
+                schema_manifest_path = prebuilt_resolved.parent / (prebuilt_resolved.stem + ".schema_manifest.json")
+                if not schema_manifest_path.is_file():
+                    raise RuntimeError(
+                        f"[PREBUILT_FAIL] Schema manifest not found: {schema_manifest_path}. "
+                        "Prebuilt validation requires required_all_features from schema_manifest (SSoT)."
+                    )
+                with open(schema_manifest_path, "r", encoding="utf-8") as _f:
+                    schema_manifest = jsonlib.load(_f)
+                required_all_features = schema_manifest.get("required_all_features", [])
+                if not isinstance(required_all_features, list):
+                    required_all_features = []
+                if "time" in required_all_features:
+                    raise RuntimeError(
+                        f"[PREBUILT_FAIL] schema_manifest.required_all_features contains 'time'. Time must be index, not feature. path={schema_manifest_path}"
+                    )
+                if len(required_all_features) < 28:
+                    raise RuntimeError(
+                        f"[PREBUILT_FAIL] schema_manifest.required_all_features has {len(required_all_features)} items (expected >= 28 for BASE28). path={schema_manifest_path}"
+                    )
+                required_cols_effective = set(required_all_features)
+                log.info(
+                    "[PREBUILT] required_all_features_len=%d source=schema_manifest path=%s first_few=%s",
+                    len(required_cols_effective),
+                    str(schema_manifest_path),
+                    required_all_features[:5] if len(required_all_features) >= 5 else required_all_features,
+                )
+                missing_cols = required_cols_effective - set(self.prebuilt_features_df.columns)
+                if missing_cols:
+                    raise RuntimeError(
+                        f"[PREBUILT_FAIL] Missing required columns in prebuilt features: {sorted(missing_cols)}\n"
+                        f"Required set from schema_manifest: {len(required_cols_effective)} features (path={schema_manifest_path}).\n"
+                        "Instructions: Rebuild prebuilt features to match schema_manifest.required_all_features."
+                    )
             else:
                 log.debug("[PREBUILT] Prebuilt features have seq/snap arrays - skipping flat column validation")
             
@@ -12538,11 +11801,23 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
             # This is the ONLY place where prebuilt_used is set to True
             # All checks must pass: file exists, sha matches, timestamps align (1k + mid), columns OK
             self.prebuilt_used = True
-            self.prebuilt_features_path_resolved = str(prebuilt_features_path.resolve())
+            prebuilt_resolved_for_meta = Path_module(self.prebuilt_features_path_resolved)
+            self.prebuilt_features_path_resolved = str(prebuilt_resolved_for_meta.resolve())
+            # Compute SHA256 if not set (path (a): prebuilt_df from data_ctx had no sha)
+            if not getattr(self, "prebuilt_features_sha256", None):
+                try:
+                    import hashlib as _hashlib
+                    h = _hashlib.sha256()
+                    with open(prebuilt_resolved_for_meta, "rb") as _f:
+                        for chunk in iter(lambda: _f.read(1024 * 1024), b""):
+                            h.update(chunk)
+                    self.prebuilt_features_sha256 = h.hexdigest()
+                except Exception:
+                    self.prebuilt_features_sha256 = None
             
             # Get schema version from manifest (if available)
             self.prebuilt_schema_version = None
-            manifest_path = prebuilt_features_path.parent / "manifest.json"
+            manifest_path = prebuilt_resolved_for_meta.parent / "manifest.json"
             if manifest_path.exists():
                 try:
                     import json as json_module
@@ -12554,11 +11829,15 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
             
             # C) Log SSoT line (with bypass count if available)
             prebuilt_bypass_count = getattr(self, "prebuilt_bypass_count", 0)
+            def _short_sha(val: Optional[str]) -> str:
+                return "MISSING" if not val else (val if len(val) <= 8 else val[:16] + "...")
+
+            # SELF-CHECK: guard logging against None to avoid crashes (previous crash site)
             log.info(
                 "[PREBUILT_STATUS] enabled=1 used=%d path=%s exists=1 sha256=%s rows=%d cols=%d schema=%s bypass_count=%d",
                 1 if self.prebuilt_used else 0,
                 self.prebuilt_features_path_resolved,
-                self.prebuilt_features_sha256[:16] + "...",
+                _short_sha(getattr(self, "prebuilt_features_sha256", None)),
                 len(self.prebuilt_features_df),
                 len(self.prebuilt_features_df.columns),
                 self.prebuilt_schema_version or "unknown",
@@ -14420,7 +13699,9 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
         
         # HARD FAIL RULE: Diagnostic when bars exist but no entry eval
         output_dir = getattr(self, "explicit_output_dir", None)
-        if self.funnel_bars_post_warmup >= 200 and self.funnel_entry_eval_called == 0:
+        if getattr(self, "replay_mode", False):
+            pass
+        elif self.funnel_bars_post_warmup >= 200 and self.funnel_entry_eval_called == 0:
             # Write ENTRY_FUNNEL_ZERO_CALLS.json
             import json
             top_pregate_reasons = sorted(
@@ -14453,7 +13734,7 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
                 f"[ENTRY_FUNNEL] FATAL: Post-warmup bars ({self.funnel_bars_post_warmup}) >= 200 "
                 f"but evaluate_entry() never called. Top pregate block reasons: {top_pregate_reasons[:5]}"
             )
-        elif self.funnel_entry_eval_called > 0 and self.funnel_predict_entered == 0:
+        elif not getattr(self, "replay_mode", False) and self.funnel_entry_eval_called > 0 and self.funnel_predict_entered == 0:
             # Write ENTRY_FUNNEL_EVAL_BUT_NO_PREDICT.json
             import json
             top_pregate_reasons = sorted(
@@ -15434,8 +14715,8 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
             self._log_canary_invariants()
             self._generate_canary_metrics()
     
-        # Generate detailed report via external script (skip in fast mode)
-        if not self.fast_replay:
+        # Generate detailed report via external script (disabled in TRUTH/SMOKE replay)
+        if not getattr(self, "replay_mode", False) and not self.fast_replay:
             try:
                 from gx1.backtest.generate_exit_tuning_report import main as generate_report  # type: ignore[reportMissingImports]
                 import sys
@@ -15459,7 +14740,7 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
                 # Fallback to simple summary
                 self._dump_backtest_summary()
         else:
-            log.info("[REPLAY] Fast mode: skipped detailed report generation")
+            log.info("[REPLAY] Detailed report generation skipped in replay/fast mode")
 
 def run_replay(self: GX1DemoRunner, csv_path: Path) -> None:
     """

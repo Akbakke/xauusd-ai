@@ -130,7 +130,8 @@ entry_models:
   # V10_CTX (context features) - ENABLED FOR REPLAY VERIFICATION
   v10_ctx:
     enabled: true
-    bundle_dir: "models/entry_v10_ctx/FULLYEAR_2025_GATED_FUSION"
+    bundle_dir: "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/PROOF"
+    feature_meta_path: "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/PROOF/feature_meta.json"
     xgb:
       enabled: true
       mode: "session"  # Change to "universal" when ready

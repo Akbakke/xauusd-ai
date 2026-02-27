@@ -1,18 +1,9 @@
 #!/usr/bin/env python3
 """
-ENTRY_V10 Label Quality Analysis
-
-Analyzes V10 p_long predictions vs actual trade PnL from replay results.
-Divides predictions into quantiles and shows real trade outcomes.
-
-Usage:
-    python -m gx1.tools.debug.analyze_entry_v10_label_quality \
-        --v10-dataset data/entry_v10/entry_v10_dataset_val.parquet \
-        --v10-model models/entry_v10/entry_v10_transformer.pt \
-        --v10-meta models/entry_v10/entry_v10_transformer_meta.json \
-        --replay-trade-log runs/replay_shadow/SNIPER_P4_1_V10_HYBRID/trade_log_entry_v9_exit_v3_adaptive_3SEG_merged.csv \
-        --output-report reports/rl/entry_v10/ENTRY_V10_LABEL_QUALITY.md
+LEGACY DISABLED: use canonical ENTRY_V10_CTX pipeline only.
 """
+
+raise RuntimeError("LEGACY_DISABLED: analyze_entry_v10_label_quality is archived.")
 
 import argparse
 import json

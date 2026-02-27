@@ -7,6 +7,11 @@ Trains a multiclass classifier to predict timing_quality before entry.
 """
 from __future__ import annotations
 
+raise RuntimeError(
+    "RL_DISABLED: Reinforcement Learning is explicitly disabled. "
+    "Focus is ENTRY/EXIT transformer + live trade plumbing only."
+)
+
 import argparse
 import json
 import logging

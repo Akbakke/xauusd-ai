@@ -25,12 +25,81 @@ import signal
 import tempfile
 import time
 import traceback
+import sys
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
 import pandas as pd
 
 from gx1.utils.dt_module import now_iso as dt_now_iso
+import hashlib
+
+
+def _file_sha256(path: str, chunk_size: int = 1024 * 1024) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(chunk_size), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def _write_import_proof_if_needed(
+    chunk_output_dir: Path,
+    run_id: str,
+    chunk_idx: int,
+    truth_artifacts: Optional[Dict[str, Any]],
+) -> Tuple[Optional[Path], list]:
+    """Write IMPORT_PROOF.json when required by truth_artifacts. Returns (path, forbidden_hits)."""
+    cfg = (truth_artifacts or {}).get("replay_config", {}).get("truth_artifacts", {}) or {}
+    if not cfg.get("require_import_proof"):
+        return None, []
+    fname = cfg.get("import_proof_filename") or "IMPORT_PROOF.json"
+    target = chunk_output_dir / fname
+    forbidden_exact = [
+        "gx1.inference.model_loader_worker",
+        "gx1.scripts.replay_eval_gated_parallel",
+    ]
+    forbidden_patterns = ["runtime_v9"]
+    modules_sorted = sorted(sys.modules.keys())
+    hits = []
+    for mod in modules_sorted:
+        if mod in forbidden_exact:
+            hits.append({"module": mod, "reason": "exact"})
+        else:
+            for pat in forbidden_patterns:
+                if pat in mod:
+                    hits.append({"module": mod, "reason": f"pattern:{pat}"})
+                    break
+    joined = "\n".join(modules_sorted)
+    sha = hashlib.sha256(joined.encode("utf-8")).hexdigest()
+    payload = {
+        "run_id": run_id,
+        "chunk_idx": int(chunk_idx),
+        "created_utc": dt_now_iso(),
+        "truth_file_used": os.getenv("GX1_CANONICAL_TRUTH_FILE") or None,
+        "banlist": {
+            "forbidden_exact": forbidden_exact,
+            "forbidden_patterns": forbidden_patterns,
+        },
+        "forbidden_hits": hits,
+        "sys_modules_count": len(modules_sorted),
+        "sys_modules_sha256": sha,
+        "sys_modules_sample": modules_sorted[:200],
+    }
+    target.parent.mkdir(parents=True, exist_ok=True)
+    atomic_write_json_safe(target, payload)
+    return target, hits
+
+
+def _write_prefork_freeze(
+    output_dir: Path,
+    payload: Dict[str, Any],
+) -> None:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    tmp = output_dir / "PRE_FORK_FREEZE.json.tmp"
+    final = output_dir / "PRE_FORK_FREEZE.json"
+    atomic_write_json_safe(tmp, payload)
+    os.replace(tmp, final)
 
 log = logging.getLogger(__name__)
 
@@ -227,27 +296,7 @@ def _try_write_optional_observability(
     except Exception as e:
         log.warning("[OBS] [CHUNK %s] signal_autopsy failed: %s", chunk_idx, e)
 
-    # ZERO_TRADES_DIAG (optional)
-    try:
-        if _is_truth_or_smoke():
-            n_trades_closed = _safe_int(getattr(runner, "perf_n_trades_created", 0), 0)
-            if n_trades_closed == 0:
-                from gx1.execution.zero_trades_diag import write_zero_trades_diag  # type: ignore
-
-                thresh_override = "override" if os.environ.get("GX1_ENTRY_THRESHOLD_OVERRIDE") else None
-                write_zero_trades_diag(
-                    chunk_output_dir=chunk_output_dir,
-                    run_id=run_id,
-                    chunk_idx=chunk_idx,
-                    n_trades_closed=int(n_trades_closed),
-                    runner=runner,
-                    bars_processed=int(bars_processed),
-                    total_bars=int(total_bars),
-                    n_model_calls=_safe_int(getattr(runner, "perf_n_model_calls", 0), 0),
-                    threshold_source_override=thresh_override,
-                )
-    except Exception as e:
-        log.warning("[OBS] [CHUNK %s] zero_trades_diag failed: %s", chunk_idx, e)
+    # ZERO_TRADES_DIAG disabled in TRUTH/SMOKE replay (module may be missing)
 
 
 def _compute_basic_bar_counters_snapshot(runner: Any, bars_processed: int) -> Dict[str, Any]:
@@ -315,6 +364,7 @@ def process_chunk(
     prebuilt_parquet_path: Optional[str] = None,  # may be str/Path upstream
     bundle_dir: Optional[Path] = None,
     chunk_local_padding_days: int = 0,
+    truth_artifacts: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
     Process a single replay chunk.
@@ -328,6 +378,7 @@ def process_chunk(
     """
     _assert_truth_ban_envs()
     is_truth_or_smoke_worker = _is_truth_or_smoke()
+    truth_artifacts = truth_artifacts or {}
 
     # Always-initialized locals (finally/except safe)
     status: str = "ok"
@@ -470,8 +521,13 @@ def process_chunk(
         # ---------------------------------------------------------------------
         from gx1.execution.oanda_demo_runner import GX1DemoRunner
 
-        canonical_bundle_dir = os.getenv("GX1_CANONICAL_BUNDLE_DIR")
-        if canonical_bundle_dir:
+        # TRUTH: entry v10_ctx loads from GX1_BUNDLE_DIR; prefer transformer bundle when set
+        canonical_transformer = os.getenv("GX1_CANONICAL_TRANSFORMER_BUNDLE_DIR")
+        if canonical_transformer:
+            os.environ["GX1_BUNDLE_DIR"] = canonical_transformer
+            log.info("[CHUNK %s] GX1_BUNDLE_DIR=%s (canonical transformer)", chunk_idx, canonical_transformer)
+        elif os.getenv("GX1_CANONICAL_BUNDLE_DIR"):
+            canonical_bundle_dir = os.getenv("GX1_CANONICAL_BUNDLE_DIR")
             os.environ["GX1_BUNDLE_DIR"] = canonical_bundle_dir
             log.info("[CHUNK %s] GX1_BUNDLE_DIR=%s (canonical)", chunk_idx, canonical_bundle_dir)
         elif bundle_dir:
@@ -549,16 +605,9 @@ def process_chunk(
         if not chunk_data_path_abs:
             raise RuntimeError("[DATA_FAIL] chunk_data_path_abs missing after load_chunk_data()")
 
-        # Prebuilt plumbing: loader state -> runner (before first on_bar)
-        try:
-            if getattr(data_ctx, "prebuilt_used", False) and getattr(data_ctx, "prebuilt_features_df", None) is not None:
-                runner.prebuilt_features_df = data_ctx.prebuilt_features_df
-                runner.prebuilt_used = True
-                if getattr(data_ctx, "prebuilt_parquet_path_resolved", None):
-                    runner.prebuilt_parquet_path = data_ctx.prebuilt_parquet_path_resolved
-                    runner.prebuilt_features_path_resolved = data_ctx.prebuilt_parquet_path_resolved
-        except Exception:
-            pass
+        # Pass data_ctx SSoT to runner (manifest/bootstrap); runner uses these instead of env path (no split-brain).
+        runner.prebuilt_parquet_path_resolved = getattr(data_ctx, "prebuilt_parquet_path_resolved", None)
+        runner.prebuilt_features_df = getattr(data_ctx, "prebuilt_features_df", None)
 
         log.info(
             "[CHUNK %s] [REPLAY_MODE] env_prebuilt=%s prebuilt_path=%s",
@@ -745,6 +794,18 @@ def process_chunk(
         # PHASE 9: Write chunk_footer.json (DUMB WRITER; payload-only)
         # ---------------------------------------------------------------------
         try:
+            import_proof_path, forbidden_hits = _write_import_proof_if_needed(
+                chunk_output_dir=chunk_output_dir,
+                run_id=run_id,
+                chunk_idx=chunk_idx,
+                truth_artifacts=truth_artifacts,
+            )
+            if forbidden_hits:
+                raise RuntimeError(
+                    "[TRUTH_FORBIDDEN_SYMBOL_IMPORTS] Forbidden modules in sys.modules after replay: "
+                    + ", ".join(sorted({h.get('module') for h in forbidden_hits}))
+                )
+
             prebuilt_used_runner = _safe_bool(getattr(runner, "prebuilt_used", False), False)
             prebuilt_path_str = str(prebuilt_parquet_path_resolved) if prebuilt_parquet_path_resolved else None
 
@@ -901,6 +962,21 @@ def process_chunk(
                 "ctx_cat_mask_id": getattr(runner, "ctx_cat_mask_id", None),
                 "ctx_cont_mask": getattr(runner, "ctx_cont_mask", None),
                 "ctx_cat_mask": getattr(runner, "ctx_cat_mask", None),
+                # ctx telemetry (entry_manager.entry_telemetry)
+                "n_ctx_model_calls": _safe_int(
+                    (getattr(getattr(runner, "entry_manager", None), "entry_telemetry", None) or {}).get("n_ctx_model_calls", 0), 0
+                ),
+                "ctx_proof_pass_count": _safe_int(
+                    (getattr(getattr(runner, "entry_manager", None), "entry_telemetry", None) or {}).get("ctx_proof_pass_count", 0), 0
+                ),
+                "ctx_proof_fail_count": _safe_int(
+                    (getattr(getattr(runner, "entry_manager", None), "entry_telemetry", None) or {}).get("ctx_proof_fail_count", 0), 0
+                ),
+                # XGB load branch proof (TRUTH canonical vs policy/session)
+                "xgb_load_branch": getattr(runner, "xgb_load_branch", None),
+                "xgb_load_source": getattr(runner, "xgb_load_source", None),
+                "xgb_load_paths": getattr(runner, "xgb_load_paths", None),
+                "xgb_load_error": getattr(runner, "xgb_load_error", None),
             }
 
             footer_ctx = ChunkFooterContext(
@@ -1099,3 +1175,128 @@ def process_chunk(
                     atomic_write_json_safe(tmp_path, payload)
         except Exception as e:
             log.error("[CHUNK %s] [SKIP_LEDGER] finally error: %s", chunk_idx, e, exc_info=True)
+
+
+# ----------------------------------------------------------------------------- #
+# CLI wrapper                                                                  #
+# ----------------------------------------------------------------------------- #
+def _default_output_root() -> Path:
+    gx1_data = os.environ.get("GX1_DATA") or os.environ.get("GX1_DATA_DIR") or os.environ.get("GX1_DATA_ROOT")
+    if gx1_data:
+        return Path(gx1_data).expanduser().resolve() / "reports" / "replay_chunk"
+    return Path.home() / "GX1_DATA" / "reports" / "replay_chunk"
+
+
+def main(argv: Optional[list[str]] = None) -> int:
+    import argparse
+    import json
+    import sys
+    import pandas as pd
+
+    parser = argparse.ArgumentParser(description="Run a single TRUTH/SMOKE replay chunk (1W1C).")
+    parser.add_argument("--config", required=True, help="Truth config (e.g. canonical_truth_signal_only.json)")
+    parser.add_argument("--session", required=True, help="Session (EU/OVERLAP/US)")
+    parser.add_argument("--workers", type=int, required=True)
+    parser.add_argument("--chunks", type=int, required=True)
+    parser.add_argument("--chunk-idx", type=int, required=True)
+    parser.add_argument("--start", required=True, help="ISO8601 start (UTC)")
+    parser.add_argument("--end", required=True, help="ISO8601 end (UTC)")
+    parser.add_argument("--chunk-local-padding-days", type=int, default=0)
+    parser.add_argument("--output-root", type=str, default=None, help="Optional output root (default: GX1_DATA/reports/replay_chunk)")
+    parser.add_argument("--run-id", type=str, default=None, help="Optional run_id override")
+    args = parser.parse_args(argv)
+
+    if args.workers != 1 or args.chunks != 1:
+        raise RuntimeError("[TRUTH_1W1C_ONLY] workers and chunks must be 1 in replay_chunk CLI")
+
+    chunk_start = pd.Timestamp(args.start, tz="UTC")
+    chunk_end = pd.Timestamp(args.end, tz="UTC")
+    if chunk_start >= chunk_end:
+        raise RuntimeError("[TS_FAIL] start >= end")
+
+    config_path = Path(args.config).expanduser().resolve()
+    if not config_path.exists():
+        raise FileNotFoundError(f"config not found: {config_path}")
+    with config_path.open() as f:
+        cfg = json.load(f)
+
+    policy_path = config_path
+    bundle_dir = Path(cfg["canonical_xgb_bundle_dir"]).expanduser().resolve()
+    # TRUTH manifest-only: never pass a parquet path from CLI/config
+    prebuilt_parquet_path = None
+    prebuilt_manifest_path = cfg.get("canonical_prebuilt_manifest")
+
+    lock_path = bundle_dir / "MASTER_MODEL_LOCK.json"
+    if not lock_path.exists():
+        raise RuntimeError(f"[BUNDLE_LOCK_MISSING] {lock_path}")
+    bundle_sha256 = _file_sha256(lock_path)
+
+    tape_root = os.environ.get(
+        "GX1_CANONICAL_TAPE_ROOT",
+        "/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m5_bid_ask__CANONICAL",
+    )
+    year = chunk_start.year
+    data_path = Path(tape_root) / f"year={year}" / "part-000.parquet"
+    if not data_path.exists():
+        raise FileNotFoundError(f"[TAPE_NOT_FOUND] {data_path}")
+
+    run_id = args.run_id or f"REPLAY_{chunk_start.strftime('%Y%m%d_%H%M%S')}"
+    output_root = Path(args.output_root).expanduser().resolve() if args.output_root else _default_output_root()
+    output_dir = output_root / run_id
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    os.environ["GX1_RUN_MODE"] = os.environ.get("GX1_RUN_MODE", "TRUTH")
+    os.environ["GX1_TRUTH_MODE"] = os.environ.get("GX1_TRUTH_MODE", "1")
+    os.environ["GX1_REPLAY_USE_PREBUILT_FEATURES"] = "1"
+    os.environ["GX1_FEATURE_BUILD_DISABLED"] = "1"
+    os.environ["GX1_GATED_FUSION_ENABLED"] = "1"
+    os.environ["GX1_REPLAY_INCREMENTAL_FEATURES"] = "1"
+    os.environ["GX1_REPLAY_NO_CSV"] = "1"
+    os.environ["GX1_FEATURE_USE_NP_ROLLING"] = "1"
+
+    prefork_payload = {
+        "schema_version": "pre_fork_freeze_v1",
+        "created_utc": dt_now_iso(),
+        "run_id": run_id,
+        "session": args.session,
+        "workers": args.workers,
+        "chunks": args.chunks,
+        "chunk_idx": args.chunk_idx,
+        "start_utc": args.start,
+        "end_utc": args.end,
+        "config_path": str(config_path),
+        "python_exe": sys.executable,
+        "gx1_engine": os.environ.get("GX1_ENGINE"),
+        "gx1_data": os.environ.get("GX1_DATA"),
+        "bundle_path": str(bundle_dir),
+        "bundle_master_lock_sha256": bundle_sha256,
+        "prebuilt_manifest_path": prebuilt_manifest_path,
+        "canonical_tape_root": tape_root,
+    }
+    _write_prefork_freeze(output_dir, prefork_payload)
+
+    if prebuilt_parquet_path is not None:
+        raise RuntimeError("TRUTH requires manifest-only: prebuilt_parquet_path must be None in CLI")
+
+    try:
+        _ = process_chunk(
+            chunk_idx=int(args.chunk_idx),
+            chunk_start=chunk_start,
+            chunk_end=chunk_end,
+            data_path=data_path,
+            policy_path=policy_path,
+            run_id=run_id,
+            output_dir=output_dir,
+            bundle_sha256=bundle_sha256,
+            prebuilt_parquet_path=prebuilt_parquet_path,
+            bundle_dir=bundle_dir,
+            chunk_local_padding_days=int(args.chunk_local_padding_days),
+        )
+        return 0
+    except Exception as e:
+        print(f"[replay_chunk] failed: {e}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

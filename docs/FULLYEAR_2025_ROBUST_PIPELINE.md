@@ -1,5 +1,7 @@
 # FULLYEAR_2025 Robust Pipeline
 
+> OUTDATED: Canonical context contract is CTX6CAT6 (ctx_cont_dim=6, ctx_cat_dim=6). Canonical truth lives in `gx1/configs/canonical_truth_signal_only.json` and transformer bundle metadata. Any 5/2 or 5/4 references below are legacy and not valid for TRUTH/SMOKE.
+
 **Date:** 2026-01-07  
 **Status:** ✅ Implemented
 

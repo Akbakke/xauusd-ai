@@ -10,7 +10,7 @@ import logging
 
 log = logging.getLogger(__name__)
 
-def verify_fast_path_enabled(is_replay: bool = False) -> dict:
+def verify_fast_path_enabled(is_replay: bool = False, **kwargs) -> dict:
     """
     Verify fast path is enabled.
     

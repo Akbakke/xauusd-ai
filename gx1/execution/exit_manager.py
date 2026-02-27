@@ -10,10 +10,15 @@ import pandas as pd
 # These functions are used at runtime, so we import them locally where needed
 from gx1.utils.pnl import compute_pnl_bps
 from gx1.execution.exit_critic_controller import ExitCriticController
-from gx1.rl.exit_critic.integrate_exit_critic_runtime_v1 import (
-    ACTION_EXIT_NOW,
-    ACTION_SCALP_PROFIT,
-)
+
+# RL exit critic is disabled; keep stub constants to avoid runtime surprises.
+def _rl_disabled(*_args, **_kwargs):
+    raise RuntimeError(
+        "RL_DISABLED: exit_critic is archived. ENTRY/EXIT transformer + replay plumbing only."
+    )
+
+ACTION_EXIT_NOW = "RL_DISABLED_EXIT_NOW"
+ACTION_SCALP_PROFIT = "RL_DISABLED_SCALP_PROFIT"
 
 # Exit Policy V2 (optional)
 try:

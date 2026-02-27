@@ -21,6 +21,8 @@ GX1 har **ÉN** gyldig XGB-lane i TRUTH/SMOKE:
 
 Alt annet er **legacy**, **eksperiment**, eller **arkiv**.
 
+Canonical context contract (ONE UNIVERSE): **CTX6CAT6** (ctx_cont_dim=6, ctx_cat_dim=6) from bundle metadata + `signal_bridge_v1`. Alle referanser til 5/2 eller 5/4 er legacy og skal ikke brukes i TRUTH/SMOKE.
+
 ---
 
 ## ✅ DETTE ER TRUTH (IKKE DISKUTERBART)

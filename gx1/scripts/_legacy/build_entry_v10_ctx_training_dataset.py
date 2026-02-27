@@ -1,18 +1,9 @@
 #!/usr/bin/env python3
 """
-Build ENTRY_V10_CTX training dataset with calibrated XGB features.
-
-This script builds a pre-processed dataset with:
-- Base features (V9)
-- HTF features (H1/H4)
-- XGB inference (per session)
-- XGB calibration (Platt/Isotonic)
-- Uncertainty signals (entropy, uncertainty_score)
-- Sequence/snapshot/context feature packing
-- Metadata with calibration_applied=true
-
-Output: Parquet file ready for training (no feature building in training loop).
+LEGACY DISABLED: use gx1/scripts/build_entry_v10_ctx_training_dataset.py (truth) only.
 """
+
+raise RuntimeError("LEGACY_DISABLED: use gx1/scripts/build_entry_v10_ctx_training_dataset.py (truth) only.")
 
 import argparse
 import copy

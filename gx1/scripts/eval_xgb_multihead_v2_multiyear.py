@@ -99,6 +99,11 @@ CLIP_RATE_THRESHOLD = 6.0
 MIN_CLASS_RATE = 0.02  # Heuristic: no mean prob below 2%
 
 QUANTILE_GRID = np.linspace(0.0, 1.0, 1025)
+DECISION_THRESHOLDS = (0.60, 0.65, 0.70)
+US_MOVE_THRESHOLD = 0.65
+US_MOVE_HORIZONS = (6, 24)  # in M5 bars
+TAPE_CANONICAL_ROOT = Path("/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m5_bid_ask__CANONICAL")
+TAPE_REQUIRED_COLS = ["time", "high", "low", "close"]
 
 GX1_DATA_REQUIRED = require_truth_xgb_lane(__file__)
 
@@ -170,6 +175,32 @@ def _get_time_series_utc(df: pd.DataFrame) -> pd.Series:
     if str(idx.tz) != "UTC":
         raise RuntimeError(f"INDEX_NOT_UTC: got tz={idx.tz}")
     return pd.Series(idx, index=df.index, name="time")
+
+
+def _load_tape_year(year: int) -> pd.DataFrame:
+    path = TAPE_CANONICAL_ROOT / f"year={year}" / "part-000.parquet"
+    if not path.exists():
+        raise FileNotFoundError(f"TAPE_NOT_FOUND: {path}")
+    df = pd.read_parquet(path, columns=TAPE_REQUIRED_COLS)
+    if "time" not in df.columns:
+        raise RuntimeError(f"TAPE_MISSING_TIME: {path}")
+    ts = df["time"]
+    if not pd.api.types.is_datetime64tz_dtype(ts.dtype):
+        raise RuntimeError(f"TAPE_TIME_NOT_TZ: {path}")
+    if str(ts.dt.tz) != "UTC":
+        raise RuntimeError(f"TAPE_TIME_NOT_UTC: {path} tz={ts.dt.tz}")
+    if ts.isnull().any():
+        raise RuntimeError(f"TAPE_TIME_NAN: {path}")
+    if ts.duplicated().any():
+        raise RuntimeError(f"TAPE_TIME_DUPLICATES: {path}")
+    if not ts.is_monotonic_increasing:
+        raise RuntimeError(f"TAPE_TIME_NOT_SORTED: {path}")
+    for col in ["high", "low", "close"]:
+        if df[col].isnull().any():
+            raise RuntimeError(f"TAPE_COL_NAN: {col} {path}")
+        if np.isinf(df[col]).any():
+            raise RuntimeError(f"TAPE_COL_INF: {col} {path}")
+    return df
 
 
 def resolve_base28_canonical_parquet(gx1_data: Path) -> Tuple[Path, Dict[str, Any]]:
@@ -348,6 +379,150 @@ def _margin_stats(margins: np.ndarray) -> Dict[str, float]:
     }
 
 
+def _decision_rate_stats(p_long: np.ndarray, p_short: np.ndarray, thresholds: Tuple[float, ...]) -> Dict[str, Dict[str, float]]:
+    """Compute decision-rate proxies for given thresholds."""
+    stats: Dict[str, Dict[str, float]] = {}
+    if p_long.size == 0 or p_short.size == 0:
+        for t in thresholds:
+            key = f"{t}"
+            stats[key] = {
+                "rate_max_side_ge_T": 0.0,
+                "rate_long_ge_T": 0.0,
+                "rate_short_ge_T": 0.0,
+                "rate_conflict_ge_T": 0.0,
+            }
+        return stats
+
+    max_side = np.maximum(p_long, p_short)
+    for t in thresholds:
+        t_val = float(t)
+        key = f"{t_val}"
+        mask_long = p_long >= t_val
+        mask_short = p_short >= t_val
+        denom = float(len(p_long))
+        stats[key] = {
+            "rate_max_side_ge_T": float(np.sum(max_side >= t_val) / denom),
+            "rate_long_ge_T": float(np.sum(mask_long) / denom),
+            "rate_short_ge_T": float(np.sum(mask_short) / denom),
+            "rate_conflict_ge_T": float(np.sum(mask_long & mask_short) / denom),
+        }
+    return stats
+
+
+def _compute_us_move_stats(
+    *,
+    p_long: np.ndarray,
+    p_short: np.ndarray,
+    close: np.ndarray,
+    high: np.ndarray,
+    low: np.ndarray,
+    horizons: Tuple[int, ...],
+    threshold: float,
+) -> Dict[str, Any]:
+    """
+    Compute MFE/MAE per side for US session, conditioned on high-confidence bars.
+    """
+    res: Dict[str, Any] = {
+        "threshold": float(threshold),
+        "horizons": {},
+        "n_us_bars_total": int(len(close)),
+        "n_us_signals_threshold": 0,
+        "signal_rate_us": 0.0,
+        "n_skipped_no_horizon_h6": 0,
+        "n_skipped_no_horizon_h24": 0,
+    }
+    if (
+        p_long.size == 0
+        or p_short.size == 0
+        or close.size == 0
+        or high.size == 0
+        or low.size == 0
+        or len(close) != len(high)
+        or len(close) != len(low)
+        or len(close) != len(p_long)
+        or len(close) != len(p_short)
+    ):
+        for h in horizons:
+            res["horizons"][str(h)] = {
+                "LONG": {"mfe_p50": 0.0, "mfe_p90": 0.0, "mae_p50": 0.0, "mae_p90": 0.0, "n": 0},
+                "SHORT": {"mfe_p50": 0.0, "mfe_p90": 0.0, "mae_p50": 0.0, "mae_p90": 0.0, "n": 0},
+            }
+        return res
+
+    max_side = np.maximum(p_long, p_short)
+    high_conf_mask = max_side >= float(threshold)
+    res["n_us_signals_threshold"] = int(high_conf_mask.sum())
+    res["signal_rate_us"] = float(res["n_us_signals_threshold"] / max(len(close), 1))
+    if not np.any(high_conf_mask):
+        for h in horizons:
+            res["horizons"][str(h)] = {
+                "LONG": {"mfe_p50": 0.0, "mfe_p90": 0.0, "mae_p50": 0.0, "mae_p90": 0.0, "n": 0},
+                "SHORT": {"mfe_p50": 0.0, "mfe_p90": 0.0, "mae_p50": 0.0, "mae_p90": 0.0, "n": 0},
+            }
+        return res
+
+    n = len(close)
+    res["horizons"] = {}
+    skipped: Dict[int, int] = {int(h): 0 for h in horizons}
+    for h in horizons:
+        h_int = int(h)
+        long_mfe: List[float] = []
+        long_mae: List[float] = []
+        short_mfe: List[float] = []
+        short_mae: List[float] = []
+
+        for idx in np.where(high_conf_mask)[0]:
+            if idx + h_int >= n:
+                skipped[h_int] = skipped.get(h_int, 0) + 1
+                continue  # skip incomplete horizon
+            side_long = p_long[idx] >= p_short[idx]
+            window_high = high[idx + 1 : idx + h_int + 1]
+            window_low = low[idx + 1 : idx + h_int + 1]
+            c0 = close[idx]
+
+            if side_long:
+                mfe = float((np.max(window_high) - c0) / c0 * 10000.0)
+                mae = float((c0 - np.min(window_low)) / c0 * 10000.0)
+                long_mfe.append(mfe)
+                long_mae.append(mae)
+            else:
+                mfe = float((c0 - np.min(window_low)) / c0 * 10000.0)
+                mae = float((np.max(window_high) - c0) / c0 * 10000.0)
+                short_mfe.append(mfe)
+                short_mae.append(mae)
+
+        def _agg(arr: List[float]) -> Tuple[float, float]:
+            if not arr:
+                return 0.0, 0.0
+            a = np.asarray(arr, dtype=float)
+            return float(np.percentile(a, 50)), float(np.percentile(a, 90))
+
+        long_mfe_p50, long_mfe_p90 = _agg(long_mfe)
+        long_mae_p50, long_mae_p90 = _agg(long_mae)
+        short_mfe_p50, short_mfe_p90 = _agg(short_mfe)
+        short_mae_p50, short_mae_p90 = _agg(short_mae)
+
+        res["horizons"][str(h_int)] = {
+            "LONG": {
+                "n": len(long_mfe),
+                "mfe_p50": long_mfe_p50,
+                "mfe_p90": long_mfe_p90,
+                "mae_p50": long_mae_p50,
+                "mae_p90": long_mae_p90,
+            },
+            "SHORT": {
+                "n": len(short_mfe),
+                "mfe_p50": short_mfe_p50,
+                "mfe_p90": short_mfe_p90,
+                "mae_p50": short_mae_p50,
+                "mae_p90": short_mae_p90,
+            },
+        }
+
+    res["n_skipped_no_horizon_h6"] = int(skipped.get(6, 0))
+    res["n_skipped_no_horizon_h24"] = int(skipped.get(24, 0))
+
+    return res
 def main() -> int:
     parser = argparse.ArgumentParser(description="Evaluate Universal Multi-head XGB v2 (BASE28_CANONICAL)")
     parser.add_argument("--years", type=int, nargs="+", default=[2020, 2021, 2022, 2023, 2024, 2025], help="Years to evaluate")
@@ -458,6 +633,20 @@ def main() -> int:
         print(f"\n  {year}:")
         print(f"    Rows: {len(df_year)}")
 
+        # Join with canonical market tape for price series (high/low/close)
+        tape_df = _load_tape_year(year)
+        df_year_with_time = df_year.reset_index().rename(columns={"index": "time"})
+        joined = df_year_with_time.merge(tape_df, on="time", how="inner", validate="many_to_one")
+        join_ratio_base = len(joined) / len(df_year_with_time)
+        join_ratio_tape = len(joined) / len(tape_df)
+        print(
+            f"    Market tape join: base_hit={join_ratio_base:.6f} tape_hit={join_ratio_tape:.6f} "
+            f"(joined={len(joined)} base={len(df_year_with_time)} tape={len(tape_df)})"
+        )
+        if join_ratio_base < 0.995:
+            raise RuntimeError(f"TAPE_JOIN_RATIO_TOO_LOW: {join_ratio_base:.6f} year={year}")
+        tape_price_by_time = joined.set_index("time")[["high", "low", "close"]]
+
         # Session detection (use canonical time, not forbidden cols)
         df_year = df_year.copy()
         df_year["_session"] = get_session_vectorized(ts_year)
@@ -485,6 +674,8 @@ def main() -> int:
         }
 
         margins_all: List[float] = []
+
+        us_prices: Optional[Dict[str, np.ndarray]] = None
 
         # Evaluate each head on its session-filtered data
         for session in model.sessions:
@@ -581,6 +772,29 @@ def main() -> int:
                     "uncertainty_values": outputs.uncertainty,
                 }
 
+                if session == "US":
+                    # Keep aligned price arrays for US move stats from tape join
+                    times_us = df_session.index
+                    try:
+                        prices_df = tape_price_by_time.loc[times_us]
+                    except KeyError as e:
+                        raise RuntimeError(f"TAPE_US_LOOKUP_FAIL: {e}")
+                    if prices_df.isnull().any().any():
+                        missing_rows = prices_df[prices_df.isnull().any(axis=1)]
+                        raise RuntimeError(f"TAPE_US_PRICE_NAN: missing_rows={len(missing_rows)}")
+                    close_arr = np.asarray(prices_df["close"], dtype=float)
+                    high_arr = np.asarray(prices_df["high"], dtype=float)
+                    low_arr = np.asarray(prices_df["low"], dtype=float)
+                    if np.isinf(close_arr).any() or np.isinf(high_arr).any() or np.isinf(low_arr).any():
+                        raise RuntimeError("TAPE_US_PRICE_INF")
+                    us_prices = {
+                        "p_long": p_long,
+                        "p_short": p_short,
+                        "close": close_arr,
+                        "high": high_arr,
+                        "low": low_arr,
+                    }
+
                 probs_stack = np.stack([p_long, p_short, p_flat], axis=1)
                 margins_all.extend(_compute_margin(probs_stack).tolist())
 
@@ -594,6 +808,8 @@ def main() -> int:
 
             except Exception as e:
                 print(f"    {session}: ERROR - {e}")
+
+        year_results[year]["_us_prices"] = us_prices
 
     if not year_results:
         print("\nERROR: No years evaluated successfully")
@@ -628,14 +844,95 @@ def main() -> int:
         print(f"Wrote: {summary_path}")
         return 0
 
-        # Margin stats per year (post-normalizer if applied)
-        margins_np = np.asarray(margins_all, dtype=float)
-        year_results[year]["margin_stats"] = _margin_stats(margins_np)
+    # Margin stats per year (post-normalizer if applied) + decision rates + US move stats
+    for year, year_obj in year_results.items():
+        # Recompute margins if not kept
+        margins_np = np.asarray(year_obj.get("margins_all", []), dtype=float)
+        head_margins: List[float] = []
+        global_p_long: List[np.ndarray] = []
+        global_p_short: List[np.ndarray] = []
+        for session_name, head_vals in year_obj.get("heads", {}).items():
+            p_long_vals = np.asarray(head_vals.get("p_long_values"), dtype=float)
+            p_short_vals = np.asarray(head_vals.get("p_short_values"), dtype=float)
+            p_flat_vals = np.asarray(head_vals.get("p_flat_values"), dtype=float)
+            if p_long_vals.size and p_short_vals.size and p_flat_vals.size:
+                if margins_np.size == 0:
+                    head_margins.extend(
+                        _compute_margin(np.stack([p_long_vals, p_short_vals, p_flat_vals], axis=1)).tolist()
+                    )
+                global_p_long.append(p_long_vals)
+                global_p_short.append(p_short_vals)
+        if margins_np.size == 0:
+            margins_np = np.asarray(head_margins, dtype=float)
+
+        year_obj["margin_stats"] = _margin_stats(margins_np)
         print(
-            f"    margin_mean={year_results[year]['margin_stats']['margin_mean']:.3f} "
-            f"margin_p50={year_results[year]['margin_stats']['margin_p50']:.3f} "
-            f"frac_lt_0.05={year_results[year]['margin_stats']['margin_frac_lt_0p05']:.3f}"
+            f"[{year}] margin_mean={year_obj['margin_stats']['margin_mean']:.3f} "
+            f"margin_p50={year_obj['margin_stats']['margin_p50']:.3f} "
+            f"frac_lt_0.05={year_obj['margin_stats']['margin_frac_lt_0p05']:.3f}"
         )
+
+        # Decision-rate proxies
+        per_session_decision: Dict[str, Dict[str, Dict[str, float]]] = {}
+        for session_name, head_vals in year_obj.get("heads", {}).items():
+            p_long_vals = np.asarray(head_vals.get("p_long_values"), dtype=float)
+            p_short_vals = np.asarray(head_vals.get("p_short_values"), dtype=float)
+            if p_long_vals.size and p_short_vals.size:
+                per_session_decision[session_name] = _decision_rate_stats(
+                    p_long_vals, p_short_vals, DECISION_THRESHOLDS
+                )
+        if global_p_long and global_p_short:
+            global_p_long_arr = np.concatenate(global_p_long)
+            global_p_short_arr = np.concatenate(global_p_short)
+        else:
+            global_p_long_arr = np.asarray([], dtype=float)
+            global_p_short_arr = np.asarray([], dtype=float)
+
+        year_obj["decision_rate"] = {
+            "thresholds": [float(t) for t in DECISION_THRESHOLDS],
+            "global": _decision_rate_stats(global_p_long_arr, global_p_short_arr, DECISION_THRESHOLDS),
+            "per_session": per_session_decision,
+        }
+
+        # US move stats (high-confidence US bars only)
+        us_prices = year_obj.get("_us_prices")
+        if isinstance(us_prices, dict):
+            us_p_long = np.asarray(us_prices.get("p_long"), dtype=float)
+            us_p_short = np.asarray(us_prices.get("p_short"), dtype=float)
+            us_close = np.asarray(us_prices.get("close"), dtype=float)
+            us_high = np.asarray(us_prices.get("high"), dtype=float)
+            us_low = np.asarray(us_prices.get("low"), dtype=float)
+            if (
+                not np.isnan(us_close).any()
+                and not np.isnan(us_high).any()
+                and not np.isnan(us_low).any()
+                and not np.isinf(us_close).any()
+                and not np.isinf(us_high).any()
+                and not np.isinf(us_low).any()
+            ):
+                year_obj["us_move_stats"] = _compute_us_move_stats(
+                    p_long=us_p_long,
+                    p_short=us_p_short,
+                    close=us_close,
+                    high=us_high,
+                    low=us_low,
+                    horizons=US_MOVE_HORIZONS,
+                    threshold=US_MOVE_THRESHOLD,
+                )
+            else:
+                year_obj["us_move_stats"] = {
+                    "threshold": float(US_MOVE_THRESHOLD),
+                    "horizons": {str(h): {"LONG": {}, "SHORT": {}} for h in US_MOVE_HORIZONS},
+                    "error": "NaN_INF_IN_US_PRICES",
+                }
+        else:
+            year_obj["us_move_stats"] = {
+                "threshold": float(US_MOVE_THRESHOLD),
+                "horizons": {str(h): {"LONG": {}, "SHORT": {}} for h in US_MOVE_HORIZONS},
+                "error": "US_PRICE_COLUMNS_MISSING",
+            }
+        # Drop temp
+        year_obj.pop("_us_prices", None)
 
     # Drift analysis
     print("\n" + "=" * 60)

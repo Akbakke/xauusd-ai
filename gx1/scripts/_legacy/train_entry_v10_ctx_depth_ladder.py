@@ -1,21 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-ENTRY_V10_CTX Depth Ladder Training Script
-
-Trains ENTRY_V10_CTX with depth ladder variants (baseline vs L+1).
-
-⚠️  DO NOT MODIFY TRADING LOGIC - ONLY ARCHITECTURE DEPTH
-
-Usage:
-    python gx1/scripts/train_entry_v10_ctx_depth_ladder.py \
-        --variant baseline|lplus1 \
-        --data <parquet> \
-        --out-dir checkpoints/entry_v10_ctx_depth_ladder/ \
-        --seed 42 \
-        --epochs 10 \
-        --device auto
+LEGACY DISABLED: Use gx1/scripts/train_entry_v10_ctx_depth_ladder.py (truth) only.
 """
+
+raise RuntimeError("LEGACY_DISABLED: use gx1/scripts/train_entry_v10_ctx_depth_ladder.py (truth) only.")
 
 import argparse
 import hashlib

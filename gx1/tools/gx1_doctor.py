@@ -179,65 +179,20 @@ def check_dual_data_root(strict: bool = False) -> CheckResult:
 
 
 def check_prebuilt_existence() -> CheckResult:
-    """Check 4: Prebuilt existence (SOFT/BLOCKING with flag)."""
+    """Check 4: Prebuilt (TRUTH: resolved via manifest/bootstrap only; no env path)."""
     replay_mode = os.getenv("GX1_REPLAY_MODE", "").upper()
     use_prebuilt = os.getenv("GX1_REPLAY_USE_PREBUILT_FEATURES", "").lower() in ("1", "true", "yes")
-    prebuilt_path_env = os.getenv("GX1_REPLAY_PREBUILT_FEATURES_PATH")
-    
-    # Check if we're in PREBUILT mode (either via env or flag)
     is_prebuilt_mode = replay_mode == "PREBUILT" or use_prebuilt
-    
+
+    # TRUTH: prebuilt resolved via manifest/bootstrap (data_ctx); no runtime read of GX1_REPLAY_PREBUILT_FEATURES_PATH
     if is_prebuilt_mode:
-        if not prebuilt_path_env:
-            return CheckResult(
-                name="Prebuilt existence",
-                status="WARN",
-                message="PREBUILT mode but no prebuilt path set",
-                blocking=False,
-                fix="Set GX1_REPLAY_PREBUILT_FEATURES_PATH=/path/to/prebuilt.parquet"
-            )
-        
-        try:
-            prebuilt_path = Path(prebuilt_path_env).expanduser().resolve()
-            if not prebuilt_path.exists():
-                return CheckResult(
-                    name="Prebuilt existence",
-                    status="FAIL",
-                    message=f"Prebuilt path does not exist: {prebuilt_path}",
-                    blocking=True,
-                    fix=f"Ensure prebuilt file exists: {prebuilt_path}"
-                )
-            
-            return CheckResult(
-                name="Prebuilt existence",
-                status="OK",
-                message=f"Prebuilt found: {prebuilt_path}",
-                blocking=False,
-            )
-        except Exception as e:
-            return CheckResult(
-                name="Prebuilt existence",
-                status="WARN",
-                message=f"Prebuilt path invalid: {prebuilt_path_env} ({e})",
-                blocking=False,
-                fix="Set GX1_REPLAY_PREBUILT_FEATURES_PATH to a valid path"
-            )
-    
-    # Not PREBUILT mode - just info
-    if prebuilt_path_env:
-        try:
-            prebuilt_path = Path(prebuilt_path_env).expanduser().resolve()
-            exists = prebuilt_path.exists()
-            return CheckResult(
-                name="Prebuilt existence",
-                status="OK" if exists else "WARN",
-                message=f"Prebuilt path set but not required: {prebuilt_path} (exists: {exists})",
-                blocking=False,
-            )
-        except Exception:
-            # Invalid path but not required, so just OK
-            pass
-    
+        return CheckResult(
+            name="Prebuilt existence",
+            status="OK",
+            message="Prebuilt resolved via manifest/bootstrap (data_ctx); no env path",
+            blocking=False,
+        )
+
     return CheckResult(
         name="Prebuilt existence",
         status="OK",

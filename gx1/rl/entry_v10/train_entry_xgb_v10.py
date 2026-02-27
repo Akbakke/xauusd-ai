@@ -21,6 +21,11 @@ Usage:
         --model-out-dir models/entry_v10
 """
 
+raise RuntimeError(
+    "RL_DISABLED: Reinforcement Learning is explicitly disabled. "
+    "Focus is ENTRY/EXIT transformer + live trade plumbing only."
+)
+
 import argparse
 import json
 import logging

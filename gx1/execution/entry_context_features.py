@@ -30,16 +30,24 @@ class EntryContextFeatures:
     
     All features are validated and normalized according to contract.
     """
-    # Categorical features (integer IDs)
-    session_id: int  # 0=ASIA, 1=EU, 2=US, 3=OVERLAP
-    trend_regime_id: int  # 0=TREND_DOWN, 1=TREND_NEUTRAL, 2=TREND_UP
-    vol_regime_id: int  # 0=LOW, 1=MEDIUM, 2=HIGH, 3=EXTREME
-    atr_bucket: int  # 0=LOW, 1=MEDIUM, 2=HIGH, 3=EXTREME
-    spread_bucket: int  # 0=LOW, 1=MEDIUM, 2=HIGH
+    # Categorical features (integer IDs) - all explicit; None means missing -> hard fail
+    session_id: Optional[int] = None  # 0=ASIA, 1=EU, 2=US, 3=OVERLAP
+    trend_regime_id: Optional[int] = None  # 0=TREND_DOWN, 1=TREND_NEUTRAL, 2=TREND_UP
+    vol_regime_id: Optional[int] = None  # 0=LOW, 1=MEDIUM, 2=HIGH, 3=EXTREME
+    atr_bucket: Optional[int] = None  # 0=LOW, 1=MEDIUM, 2=HIGH, 3=EXTREME
+    spread_bucket: Optional[int] = None  # 0=LOW, 1=MEDIUM, 2=HIGH
+    h4_trend_sign_cat: Optional[int] = None  # -1/0/+1 mapped to {0,1,2}; must be explicitly set
     
-    # Continuous features (normalized)
-    atr_bps: float  # ATR in basis points, clipped [0, 1000]
-    spread_bps: float  # Spread in basis points, clipped [0, 500]
+    # Continuous features (normalized) - CTX6CAT6 requires 6 continuous dims; all explicit
+    atr_bps: Optional[float] = None  # ATR in basis points, clipped [0, 1000]
+    spread_bps: Optional[float] = None  # Spread in basis points, clipped [0, 500]
+    D1_dist_from_ema200_atr: Optional[float] = None
+    H1_range_compression_ratio: Optional[float] = None
+    D1_atr_percentile_252: Optional[float] = None
+    M15_range_compression_ratio: Optional[float] = None
+    
+    CAT_NAMES = ["session_id", "trend_regime_id", "vol_regime_id", "atr_bucket", "spread_bucket", "h4_trend_sign_cat"]
+    CONT_NAMES = ["atr_bps", "spread_bps", "D1_dist_from_ema200_atr", "H1_range_compression_ratio", "D1_atr_percentile_252", "M15_range_compression_ratio"]
     
     # Metadata (for validation/debugging)
     _atr_bps_raw: Optional[float] = None  # Raw ATR before clipping
@@ -48,33 +56,51 @@ class EntryContextFeatures:
     
     def to_tensor_categorical(self) -> np.ndarray:
         """
-        Convert categorical features to int64 tensor.
-        
-        Returns:
-            int64 array: [session_id, trend_regime_id, vol_regime_id, atr_bucket, spread_bucket]
+        Convert categorical features to int64 tensor using canonical contract order.
         """
-        return np.array([
-            self.session_id,
-            self.trend_regime_id,
-            self.vol_regime_id,
-            self.atr_bucket,
-            self.spread_bucket,
-        ], dtype=np.int64)
+        from gx1.contracts.signal_bridge_v1 import get_canonical_ctx_contract
+        canonical = get_canonical_ctx_contract()
+        names = canonical.get("ctx_cat_names", [])
+        if len(names) != 6:
+            raise RuntimeError(f"[CTX_CAT_BUILD_FAIL] canonical ctx_cat_names unexpected len={len(names)} (expected 6)")
+        CANON_TO_ATTR = {
+            "H4_trend_sign_cat": "h4_trend_sign_cat",
+        }
+        vals = []
+        for name in names:
+            attr = CANON_TO_ATTR.get(name, name)
+            if not hasattr(self, attr):
+                raise RuntimeError(f"[CTX_CAT_ATTR_MISSING] canonical={name} attr={attr}")
+            val = getattr(self, attr)
+            if val is None:
+                raise RuntimeError(f"[CTX_CAT_BUILD_FAIL] missing ctx_cat feature: {name} (attr={attr})")
+            if not np.isfinite(val):
+                raise RuntimeError(f"[CTX_CAT_BUILD_FAIL] non-finite ctx_cat feature: {name}={val}")
+            vals.append(int(val))
+        arr = np.array(vals, dtype=np.int64)
+        if not np.isfinite(arr).all():
+            raise RuntimeError(f"[CTX_CAT_BUILD_FAIL] non-finite values in ctx_cat: {vals}")
+        return arr
     
     def to_tensor_continuous(self) -> np.ndarray:
         """
-        Convert continuous features to float32 tensor (normalized).
-        
-        Note: Normalization (Z-score) is applied by model/bundle, not here.
-        This returns raw values (will be normalized by model).
-        
-        Returns:
-            float32 array: [atr_bps, spread_bps]
+        Convert continuous features to float32 tensor using canonical contract order (6 dims).
         """
-        return np.array([
-            self.atr_bps,
-            self.spread_bps,
-        ], dtype=np.float32)
+        from gx1.contracts.signal_bridge_v1 import get_canonical_ctx_contract
+        canonical = get_canonical_ctx_contract()
+        names = canonical.get("ctx_cont_names", [])
+        if len(names) != 6:
+            raise RuntimeError(f"[CTX_CONT_BUILD_FAIL] canonical ctx_cont_names unexpected len={len(names)} (expected 6)")
+        vals = []
+        for name in names:
+            val = getattr(self, name, None)
+            if val is None:
+                raise RuntimeError(f"[CTX_CONT_BUILD_FAIL] missing continuous feature: {name} (need 6/6)")
+            if not np.isfinite(val):
+                raise RuntimeError(f"[CTX_CONT_BUILD_FAIL] invalid continuous feature (non-finite): {name}={val}")
+            vals.append(val)
+        arr = np.array(vals, dtype=np.float32)
+        return arr
     
     def validate(self, is_replay: bool = True) -> tuple[bool, Optional[str]]:
         """
@@ -101,6 +127,8 @@ class EntryContextFeatures:
         
         if not (0 <= self.spread_bucket <= 2):
             return False, f"spread_bucket out of range: {self.spread_bucket} (expected 0-2)"
+        if not (0 <= self.h4_trend_sign_cat <= 2):
+            return False, f"h4_trend_sign_cat out of range: {self.h4_trend_sign_cat} (expected 0-2)"
         
         # Validate continuous features (must be finite)
         if not np.isfinite(self.atr_bps):
@@ -241,6 +269,9 @@ def build_entry_context_features(
     }
     trend_regime_id = trend_map.get(trend_regime, 1)  # Default to NEUTRAL if UNKNOWN
     
+    # 8. h4_trend_sign_cat (missing in runtime; set deterministic neutral=1 for CTX6CAT6 contract)
+    h4_trend_sign_cat = 1
+    
     # Build context features object
     ctx = EntryContextFeatures(
         session_id=session_id,
@@ -250,6 +281,7 @@ def build_entry_context_features(
         spread_bucket=spread_bucket,
         atr_bps=atr_bps,
         spread_bps=spread_bps,
+        h4_trend_sign_cat=h4_trend_sign_cat,
         _atr_bps_raw=atr_bps_raw,
         _spread_bps_raw=spread_bps_raw,
         _source="computed",

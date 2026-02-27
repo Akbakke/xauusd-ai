@@ -43,17 +43,14 @@ One-liner commands (canonical short-window TRUTH replay; XGB BASE28 → XGB_SIGN
 
   6/6 rollout (ONE UNIVERSE: ctx_cont_dim=6, ctx_cat_dim=6; no CLI override):
 
-    1) Train entry 6/6 (from scratch; bundle under GX1_DATA/models/models/entry_v10_ctx/...):
-       python -m gx1.rl.entry_v10.train_entry_transformer_v10 --train-parquet <path> --val-parquet <path>
-
-    2) E2E short window (exits must have context.ctx_cont/ctx_cat len 6/6):
+    1) E2E short window (exits must have context.ctx_cont/ctx_cat len 6/6):
        python -m gx1.scripts.run_truth_e2e_sanity --truth-file <canonical_truth> --start-ts 2025-06-03 --end-ts 2025-06-10
        (LAST_GO oppdateres kun når exits har 6/6; postrun gate.)
 
-    3) Train exit 6/6 from LAST_GO:
+    2) Train exit 6/6 from LAST_GO:
        python -m gx1.scripts.run_truth_e2e_sanity --train-exit-transformer-v0-from-last-go --require-io-v2
 
-    4) E2E full-year 6/6 (run_fullyear_2025_truth_proof eller tilsvarende).
+    3) E2E full-year 6/6 (run_fullyear_2025_truth_proof eller tilsvarende).
 """
 
 from __future__ import annotations
@@ -122,6 +119,31 @@ REQUIRED_TRUTH_ENVS = {
     "GX1_FEATURE_BUILD_DISABLED": "1",
     "GX1_GATED_FUSION_ENABLED": "1",
 }
+
+
+def _assert_no_forbidden_symbol_imports_after_replay(run_root: Path) -> None:
+    """TRUTH gate: hard-fail if forbidden modules are in sys.modules after replay (stricter than IMPORT_PROOF/banlist).
+    Only explicitly banned names and runtime_v9 pattern; no broad baseline/fallback pattern (avoids false positives)."""
+    forbidden_exact = [
+        "gx1.inference.model_loader_worker",
+        "gx1.scripts.replay_eval_gated_parallel",
+    ]
+    hits: List[str] = []
+    for mod in forbidden_exact:
+        if mod in sys.modules:
+            hits.append(mod)
+    for name in sys.modules:
+        if "runtime_v9" in name:
+            hits.append(name)
+    hits = sorted(set(hits))
+    if hits:
+        msg = (
+            "[TRUTH_FORBIDDEN_SYMBOL_IMPORTS] Forbidden modules in sys.modules after replay: "
+            + ", ".join(hits)
+            + ". Banned: model_loader_worker, replay_eval_gated_parallel, runtime_v9."
+        )
+        _write_fatal_capsule(run_root, RuntimeError(msg), ["forbidden_symbol_imports"])
+        raise RuntimeError(msg)
 
 
 def _assert_truth_no_legacy_replay(run_root: Path) -> None:
@@ -719,6 +741,11 @@ def _run_replay(
     from gx1.execution.replay_chunk import process_chunk
     from gx1.execution.replay_merge import merge_artifacts_1w1c
 
+    try:
+        truth_obj_run = _load_json(truth_path)
+    except Exception:
+        truth_obj_run = {}
+
     result = process_chunk(
         chunk_idx=0,
         chunk_start=chunk_start_ts,
@@ -731,6 +758,7 @@ def _run_replay(
         prebuilt_parquet_path=None,
         bundle_dir=bundle_dir,
         chunk_local_padding_days=0,
+        truth_artifacts=truth_obj_run,
     )
 
     if result.get("status") != "ok":
@@ -746,7 +774,7 @@ def _run_replay(
     return 0
 
 
-def _run_postrun_checks(run_root: Path, run_id: str) -> Dict[str, Any]:
+def _run_postrun_checks(run_root: Path, run_id: str, truth_artifacts: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """Post-run: required files, chunk_footer status, invariants, ctx dims, forward_calls, zero-trades, exit journal.
     Root artifacts (MERGED, RUN_COMPLETED, etc.) live in run_root; chunk artifacts in run_root/replay/chunk_0."""
     result: Dict[str, Any] = {
@@ -757,6 +785,9 @@ def _run_postrun_checks(run_root: Path, run_id: str) -> Dict[str, Any]:
         "gates_failed": [],
         "checks": {},
     }
+
+    # Hard gate: forbidden symbol-imports after replay (stricter than IMPORT_PROOF/banlist)
+    _assert_no_forbidden_symbol_imports_after_replay(run_root)
 
     chunk_dir = run_root / "replay" / "chunk_0"
     footer_path = chunk_dir / "chunk_footer.json"
@@ -774,6 +805,43 @@ def _run_postrun_checks(run_root: Path, run_id: str) -> Dict[str, Any]:
         f"MERGE_PROOF_{run_id}.json",
         "RUN_COMPLETED.json",
     ]
+    truth_artifacts = truth_artifacts or {}
+    replay_truth_artifacts = truth_artifacts.get("replay_config", {}).get("truth_artifacts", {})
+    if replay_truth_artifacts.get("require_import_proof"):
+        fname = replay_truth_artifacts.get("import_proof_filename") or "IMPORT_PROOF.json"
+        required_chunk.append(fname)
+
+    # Diagnostics: log required list and present files (deterministic, bounded)
+    required_files = [f"replay/chunk_0/{name}" for name in required_chunk] + required_root
+    required_files = list(dict.fromkeys(required_files))  # de-dupe deterministically
+    print(
+        "[POSTRUN_REQUIRED_SOURCE] run_root=%s chunk_root=%s required_files_count=%d source=_run_postrun_checks"
+        % (run_root, chunk_dir, len(required_files))
+    )
+    for req in required_files:
+        print("[POSTRUN_REQUIRED_FILE] %s" % req)
+
+    present_files: List[str] = []
+    try:
+        present_files = sorted(
+            [
+                str(p.relative_to(chunk_dir))
+                for p in chunk_dir.rglob("*")
+                if p.is_file()
+            ]
+        )
+    except Exception:
+        present_files = []
+    present_limit = 200
+    if len(present_files) > present_limit:
+        head = present_files[:present_limit]
+        print("[POSTRUN_PRESENT_FILES_TRUNCATED] count=%d limit=%d" % (len(present_files), present_limit))
+        for pf in head:
+            print("[POSTRUN_PRESENT_FILE] %s" % pf)
+    else:
+        print("[POSTRUN_PRESENT_FILES] count=%d" % len(present_files))
+        for pf in present_files:
+            print("[POSTRUN_PRESENT_FILE] %s" % pf)
 
     missing: List[str] = []
     for name in required_chunk:
@@ -786,8 +854,20 @@ def _run_postrun_checks(run_root: Path, run_id: str) -> Dict[str, Any]:
     if missing:
         result["gates_failed"].append("required_files")
         result["checks"]["required_files"] = {"missing": missing}
+        print("[POSTRUN_REQUIRED] required_count=%d missing_count=%d" % (len(required_files), len(missing)))
+        for m in missing:
+            print("[POSTRUN_REQUIRED_MISSING] %s" % m)
         return result
     result["checks"]["required_files"] = {"passed": True}
+
+    # Zero-trades diagnostics (for visibility on skipped artifacts)
+    n_trades = None
+    try:
+        footer_obj = _load_json(footer_path)
+        n_trades = footer_obj.get("n_trades") or footer_obj.get("trades_closed") or footer_obj.get("n_trades_closed")
+    except Exception:
+        footer_obj = None
+    print("[POSTRUN_ZERO_TRADES_INFO] n_trades=%s footer_path=%s footer_loaded=%s" % (n_trades, footer_path, footer_obj is not None))
 
     # Gate: IMPORT_PROOF.json must exist and forbidden_hits must be empty (no ghost imports)
     import_proof_path = chunk_dir / "IMPORT_PROOF.json"
@@ -808,36 +888,41 @@ def _run_postrun_checks(run_root: Path, run_id: str) -> Dict[str, Any]:
         result["checks"]["import_ghosts"] = {"error": str(e)}
         return result
 
-    # Gate: policy snapshot sha256 must match run_header (no disk drift)
+    # Gate: policy snapshot sha256 must match run_header (no disk drift) unless disabled by truth_artifacts
+    replay_truth_artifacts = truth_artifacts.get("replay_config", {}).get("truth_artifacts", {}) if truth_artifacts else {}
+    require_policy_snapshot = replay_truth_artifacts.get("require_policy_snapshot", True)
     header_path = chunk_dir / "run_header.json"
     if not header_path.exists():
         result["gates_failed"].append("run_header")
         result["checks"]["policy_snapshot"] = {"error": "run_header.json missing"}
         return result
     header = _load_json(header_path)
-    expected_sha256 = header.get("policy_snapshot_sha256")
-    if not expected_sha256:
-        result["gates_failed"].append("policy_snapshot_sha256")
-        result["checks"]["policy_snapshot"] = {
-            "error": "run_header missing policy_snapshot_sha256 (run must use snapshot runner)"
-        }
-        return result
-    snapshot_name = header.get("policy_snapshot_path") or "RUN_POLICY_USED.yaml"
-    snapshot_file = chunk_dir / snapshot_name
-    if not snapshot_file.exists():
-        result["gates_failed"].append("policy_snapshot_sha256")
-        result["checks"]["policy_snapshot"] = {"error": f"{snapshot_name} missing in chunk dir"}
-        return result
-    actual_sha256 = _sha256_file(snapshot_file)
-    if actual_sha256 != expected_sha256:
-        result["gates_failed"].append("policy_snapshot_sha256")
-        result["checks"]["policy_snapshot"] = {
-            "error": "RUN_POLICY_USED.yaml sha256 does not match run_header.policy_snapshot_sha256",
-            "expected": expected_sha256,
-            "actual": actual_sha256,
-        }
-        return result
-    result["checks"]["policy_snapshot"] = {"passed": True, "sha256": actual_sha256}
+    if require_policy_snapshot:
+        expected_sha256 = header.get("policy_snapshot_sha256")
+        if not expected_sha256:
+            result["gates_failed"].append("policy_snapshot_sha256")
+            result["checks"]["policy_snapshot"] = {
+                "error": "run_header missing policy_snapshot_sha256 (run must use snapshot runner)"
+            }
+            return result
+        snapshot_name = header.get("policy_snapshot_path") or replay_truth_artifacts.get("policy_snapshot_filename") or "RUN_POLICY_USED.yaml"
+        snapshot_file = chunk_dir / snapshot_name
+        if not snapshot_file.exists():
+            result["gates_failed"].append("policy_snapshot_sha256")
+            result["checks"]["policy_snapshot"] = {"error": f"{snapshot_name} missing in chunk dir"}
+            return result
+        actual_sha256 = _sha256_file(snapshot_file)
+        if actual_sha256 != expected_sha256:
+            result["gates_failed"].append("policy_snapshot_sha256")
+            result["checks"]["policy_snapshot"] = {
+                "error": f"{snapshot_name} sha256 does not match run_header.policy_snapshot_sha256",
+                "expected": expected_sha256,
+                "actual": actual_sha256,
+            }
+            return result
+        result["checks"]["policy_snapshot"] = {"passed": True, "sha256": actual_sha256}
+    else:
+        result["checks"]["policy_snapshot"] = {"skipped": True, "reason": "disabled_by_truth_config"}
 
     if not footer_path.exists():
         result["gates_failed"].append("chunk_footer")
@@ -1023,25 +1108,81 @@ def _run_postrun_checks(run_root: Path, run_id: str) -> Dict[str, Any]:
         }
 
     # ---------------------------------------------------------------------
+    # ctx telemetry (when ctx 6/6: n_ctx_model_calls > 0, ctx_proof_pass == n_ctx_model_calls, ctx_proof_fail == 0)
+    # ---------------------------------------------------------------------
+    ctx_cat_dim = int(footer.get("ctx_cat_dim") or 0)
+    ctx_cont_dim = int(footer.get("ctx_cont_dim") or 0)
+    if ctx_cat_dim == 6 and ctx_cont_dim == 6:
+        n_ctx = int(footer.get("n_ctx_model_calls") or 0)
+        ctx_pass = int(footer.get("ctx_proof_pass_count") or 0)
+        ctx_fail = int(footer.get("ctx_proof_fail_count") or 0)
+        if n_ctx <= 0:
+            result["gates_failed"].append("ctx_telemetry")
+            result["checks"]["ctx_telemetry"] = {
+                "error": "ctx 6/6 but n_ctx_model_calls <= 0",
+                "n_ctx_model_calls": n_ctx,
+                "ctx_proof_pass_count": ctx_pass,
+                "ctx_proof_fail_count": ctx_fail,
+            }
+            return result
+        if ctx_pass != n_ctx:
+            result["gates_failed"].append("ctx_telemetry")
+            result["checks"]["ctx_telemetry"] = {
+                "error": f"ctx_proof_pass_count ({ctx_pass}) != n_ctx_model_calls ({n_ctx})",
+                "n_ctx_model_calls": n_ctx,
+                "ctx_proof_pass_count": ctx_pass,
+                "ctx_proof_fail_count": ctx_fail,
+            }
+            return result
+        if ctx_fail != 0:
+            result["gates_failed"].append("ctx_telemetry")
+            result["checks"]["ctx_telemetry"] = {
+                "error": f"ctx_proof_fail_count must be 0 when ctx present, got {ctx_fail}",
+                "n_ctx_model_calls": n_ctx,
+                "ctx_proof_pass_count": ctx_pass,
+                "ctx_proof_fail_count": ctx_fail,
+            }
+            return result
+        result["checks"]["ctx_telemetry"] = {
+            "n_ctx_model_calls": n_ctx,
+            "ctx_proof_pass_count": ctx_pass,
+            "ctx_proof_fail_count": ctx_fail,
+            "passed": True,
+        }
+
+    # ---------------------------------------------------------------------
     # zero-trades contract: trade_outcomes exists (empty parquet) + ZERO_TRADES_DIAG if n_trades==0
     # ---------------------------------------------------------------------
     n_trades = int(metrics.get("n_trades", 0)) if metrics else -1
+    replay_truth_artifacts = truth_artifacts.get("replay_config", {}).get("truth_artifacts", {}) if truth_artifacts else {}
+    min_trades = int(replay_truth_artifacts.get("min_trades", 1 if replay_truth_artifacts.get("require_nonzero_trades", True) else 0))
+    if n_trades < min_trades:
+        result["gates_failed"].append("zero_trades_diag")
+        result["checks"]["zero_trades"] = {
+            "error": f"n_trades={n_trades} < min_trades={min_trades} (truth-config)",
+            "n_trades": n_trades,
+            "min_trades": min_trades,
+        }
+        return result
     if n_trades == 0:
-        to_path = chunk_dir / f"trade_outcomes_{run_id}.parquet"
-        if not to_path.exists():
-            result["gates_failed"].append("trade_outcomes_zero_trades")
-            result["checks"]["zero_trades"] = {"error": "trade_outcomes parquet missing when n_trades==0"}
-            return result
+        if min_trades == 0:
+            result["checks"]["zero_trades"] = {"skipped": True, "reason": "disabled_by_truth_config", "n_trades": n_trades}
+        else:
+            to_path = chunk_dir / f"trade_outcomes_{run_id}.parquet"
+            if not to_path.exists():
+                result["gates_failed"].append("trade_outcomes_zero_trades")
+                result["checks"]["zero_trades"] = {"error": "trade_outcomes parquet missing when n_trades==0"}
+                return result
 
-        zero_diag = chunk_dir / "ZERO_TRADES_DIAG.json"
-        if not zero_diag.exists():
-            result["gates_failed"].append("zero_trades_diag")
-            result["checks"]["zero_trades"] = {"error": "ZERO_TRADES_DIAG.json missing (TRUTH requires when n_trades==0)"}
-            return result
+            zero_diag = chunk_dir / "ZERO_TRADES_DIAG.json"
+            if not zero_diag.exists():
+                result["gates_failed"].append("zero_trades_diag")
+                result["checks"]["zero_trades"] = {"error": "ZERO_TRADES_DIAG.json missing (TRUTH requires when n_trades==0)"}
+                return result
 
-        result["checks"]["zero_trades"] = {"passed": True}
+            result["checks"]["zero_trades"] = {"passed": True, "n_trades": n_trades, "min_trades": min_trades}
     else:
-        result["checks"]["zero_trades"] = {"n_trades": n_trades, "passed": True}
+        result["checks"]["zero_trades"] = {"n_trades": n_trades, "passed": True, "min_trades": min_trades}
 
     # ---------------------------------------------------------------------
     # Exit coverage: truth_exit_journal_ok==true if EXIT_COVERAGE_SUMMARY exists (replay or root)
@@ -1093,81 +1234,89 @@ def _run_postrun_checks(run_root: Path, run_id: str) -> Dict[str, Any]:
         "exit_ml_config_hash": footer.get("exit_ml_config_hash"),
     }
 
-    # TRUTH gate: EXIT_TRANSFORMER_V0 only (ONE UNIVERSE ML exit); no router, no exit_critic
-    if footer.get("exit_type") != "EXIT_TRANSFORMER_V0":
-        result["gates_failed"].append("exit_type_transformer")
-        result["checks"]["exit_strategy"]["error"] = (
-            f"exit_type must be EXIT_TRANSFORMER_V0 in TRUTH (ONE UNIVERSE ML-only), got: {footer.get('exit_type')!r}"
-        )
-        return result
-    if footer.get("router_enabled") is not False:
-        result["gates_failed"].append("router_enabled_false")
-        result["checks"]["exit_strategy"]["error"] = f"router_enabled must be false in TRUTH, got: {footer.get('router_enabled')}"
-        return result
-    if footer.get("exit_critic_enabled") is not False:
-        result["gates_failed"].append("exit_critic_enabled_false")
-        result["checks"]["exit_strategy"]["error"] = (
-            f"exit_critic_enabled must be false in TRUTH, got: {footer.get('exit_critic_enabled')}"
-        )
-        return result
-    if footer.get("exit_ml_enabled") is not True:
-        result["gates_failed"].append("exit_ml_enabled_true")
-        result["checks"]["exit_strategy"]["error"] = (
-            f"exit_ml_enabled must be true in TRUTH (EXIT_TRANSFORMER_V0), got: {footer.get('exit_ml_enabled')}"
-        )
-        return result
-    if footer.get("exit_ml_decision_mode") != "exit_transformer_v0":
-        result["gates_failed"].append("exit_ml_decision_mode_transformer")
-        result["checks"]["exit_strategy"]["error"] = (
-            f"exit_ml_decision_mode must be 'exit_transformer_v0' in TRUTH, got: {footer.get('exit_ml_decision_mode')!r}"
-        )
-        return result
+    replay_truth_artifacts = truth_artifacts.get("replay_config", {}).get("truth_artifacts", {}) if truth_artifacts else {}
+    require_exit_transformer = replay_truth_artifacts.get("require_exit_type_transformer", True)
 
-    # TRUTH gate: exits jsonl must exist and contain at least one line with computed.mode == exit_transformer_v0 and context 6/6
-    exits_dir = chunk_dir / "logs" / "exits"
-    exits_glob = list(exits_dir.glob("exits_*.jsonl")) if exits_dir.exists() else []
-    if not exits_glob:
-        result["gates_failed"].append("exit_ml_exits_jsonl")
-        result["checks"]["exit_strategy"]["error"] = f"exits jsonl required in {exits_dir}; found: {exits_glob}"
-        return result
-    if not footer.get("exit_ml_model_sha"):
-        result["gates_failed"].append("exit_ml_model_sha")
-        result["checks"]["exit_strategy"]["error"] = "exit_transformer_v0 requires exit_ml_model_sha in footer"
-        return result
-    seen_transformer_6_6 = False
-    for path in exits_glob:
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                for line in f:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    rec = json.loads(line)
-                    comp = rec.get("computed") or {}
-                    if comp.get("mode") != "exit_transformer_v0":
-                        continue
-                    ctx = rec.get("context") or {}
-                    ctx_cont = ctx.get("ctx_cont") if isinstance(ctx.get("ctx_cont"), (list, tuple)) else []
-                    ctx_cat = ctx.get("ctx_cat") if isinstance(ctx.get("ctx_cat"), (list, tuple)) else []
-                    if len(ctx_cont) == 6 and len(ctx_cat) == 6:
-                        seen_transformer_6_6 = True
-                        break
-        except Exception:
-            pass
-        if seen_transformer_6_6:
-            break
-    # When n_trades_closed == 0, no exit decisions were logged; allow pass if file exists and footer dims are 6/6
-    n_trades = footer.get("n_trades_closed", 0)
-    if not seen_transformer_6_6:
-        if n_trades == 0 and footer.get("ctx_cont_dim") == 6 and footer.get("ctx_cat_dim") == 6:
-            pass
-        else:
-            result["gates_failed"].append("exit_ml_transformer_6_6")
+    # TRUTH gate: EXIT_TRANSFORMER_V0 only (ONE UNIVERSE ML exit); no router, no exit_critic
+    if not require_exit_transformer:
+        result["checks"]["exit_strategy"]["skipped"] = True
+        result["checks"]["exit_strategy"]["reason"] = "exit ML disabled (fixed bar close per truth_config)"
+    else:
+        if footer.get("exit_type") != "EXIT_TRANSFORMER_V0":
+            result["gates_failed"].append("exit_type_transformer")
             result["checks"]["exit_strategy"]["error"] = (
-                "exits jsonl must contain at least one line with computed.mode == 'exit_transformer_v0' and "
-                "context.ctx_cont len 6, context.ctx_cat len 6"
+                f"exit_type must be EXIT_TRANSFORMER_V0 in TRUTH (ONE UNIVERSE ML-only), got: {footer.get('exit_type')!r}"
             )
             return result
+        if footer.get("router_enabled") is not False:
+            result["gates_failed"].append("router_enabled_false")
+            result["checks"]["exit_strategy"]["error"] = f"router_enabled must be false in TRUTH, got: {footer.get('router_enabled')}"
+            return result
+        if footer.get("exit_critic_enabled") is not False:
+            result["gates_failed"].append("exit_critic_enabled_false")
+            result["checks"]["exit_strategy"]["error"] = (
+                f"exit_critic_enabled must be false in TRUTH, got: {footer.get('exit_critic_enabled')}"
+            )
+            return result
+        if footer.get("exit_ml_enabled") is not True:
+            result["gates_failed"].append("exit_ml_enabled_true")
+            result["checks"]["exit_strategy"]["error"] = (
+                f"exit_ml_enabled must be true in TRUTH (EXIT_TRANSFORMER_V0), got: {footer.get('exit_ml_enabled')}"
+            )
+            return result
+        if footer.get("exit_ml_decision_mode") != "exit_transformer_v0":
+            result["gates_failed"].append("exit_ml_decision_mode_transformer")
+            result["checks"]["exit_strategy"]["error"] = (
+                f"exit_ml_decision_mode must be 'exit_transformer_v0' in TRUTH, got: {footer.get('exit_ml_decision_mode')!r}"
+            )
+            return result
+
+    if require_exit_transformer:
+        # TRUTH gate: exits jsonl must exist and contain at least one line with computed.mode == exit_transformer_v0 and context 6/6
+        exits_dir = chunk_dir / "logs" / "exits"
+        exits_glob = list(exits_dir.glob("exits_*.jsonl")) if exits_dir.exists() else []
+        if not exits_glob:
+            result["gates_failed"].append("exit_ml_exits_jsonl")
+            result["checks"]["exit_strategy"]["error"] = f"exits jsonl required in {exits_dir}; found: {exits_glob}"
+            return result
+        if not footer.get("exit_ml_model_sha"):
+            result["gates_failed"].append("exit_ml_model_sha")
+            result["checks"]["exit_strategy"]["error"] = "exit_transformer_v0 requires exit_ml_model_sha in footer"
+            return result
+        seen_transformer_6_6 = False
+        for path in exits_glob:
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        rec = json.loads(line)
+                        comp = rec.get("computed") or {}
+                        if comp.get("mode") != "exit_transformer_v0":
+                            continue
+                        ctx = rec.get("context") or {}
+                        ctx_cont = ctx.get("ctx_cont") if isinstance(ctx.get("ctx_cont"), (list, tuple)) else []
+                        ctx_cat = ctx.get("ctx_cat") if isinstance(ctx.get("ctx_cat"), (list, tuple)) else []
+                        if len(ctx_cont) == 6 and len(ctx_cat) == 6:
+                            seen_transformer_6_6 = True
+                            break
+            except Exception:
+                pass
+            if seen_transformer_6_6:
+                break
+        # When n_trades_closed == 0, no exit decisions were logged; allow pass if file exists and footer dims are 6/6
+        n_trades = footer.get("n_trades_closed", 0)
+        if not seen_transformer_6_6:
+            if n_trades == 0 and footer.get("ctx_cont_dim") == 6 and footer.get("ctx_cat_dim") == 6:
+                pass
+            else:
+                result["gates_failed"].append("exit_ml_transformer_6_6")
+                result["checks"]["exit_strategy"]["error"] = (
+                    "exits jsonl must contain at least one line with computed.mode == 'exit_transformer_v0' and "
+                    "context.ctx_cont len 6, context.ctx_cat len 6"
+                )
+                return result
 
     result["passed"] = True
     return result
@@ -1558,7 +1707,11 @@ def main() -> int:
 
     # Postrun checks
     try:
-        postrun = _run_postrun_checks(run_root, run_id)
+        try:
+            truth_obj_postrun = _load_json(truth_path)
+        except Exception:
+            truth_obj_postrun = {}
+        postrun = _run_postrun_checks(run_root, run_id, truth_obj_postrun)
         _atomic_write_json(run_root / "POSTRUN_E2E.json", postrun)
         if not postrun.get("passed", False):
             _write_fatal_capsule(run_root, RuntimeError(str(postrun.get("gates_failed"))), postrun.get("gates_failed", []))

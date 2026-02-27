@@ -25,6 +25,120 @@ import pandas as pd
 log = logging.getLogger(__name__)
 
 
+def proba_to_signal_bridge_v1(proba: np.ndarray) -> np.ndarray:
+    """
+    Normalize XGB predict_proba output to canonical 7-dim XGB_SIGNAL_BRIDGE_V1.
+
+    Allowed shapes:
+    - (N, 7): already bridge; validated for finiteness and basic bounds
+    - (N, 3): map to bridge:
+        0 p_long  = proba[:,0]
+        1 p_short = proba[:,1]
+        2 p_flat  = proba[:,2]
+        3 p_hat   = max(row)
+        4 uncertainty_score = 1 - p_hat
+        5 margin_top1_top2  = top1 - top2 (row-wise)
+        6 entropy = -sum(p_i * log(p_i)), eps=1e-12
+    Any other shape → RuntimeError [XGB_PROBA_DIM_MISMATCH].
+    """
+    arr = np.asarray(proba)
+    if arr.ndim != 2:
+        raise RuntimeError(f"[XGB_PROBA_DIM_MISMATCH] Expected 2-D proba, got shape={arr.shape}")
+    n_rows, n_cols = arr.shape
+    if n_cols not in (3, 7):
+        raise RuntimeError(
+            f"[XGB_PROBA_DIM_MISMATCH] Expected proba dim in {{3,7}}, got {n_cols} with shape={arr.shape}"
+        )
+    if not np.isfinite(arr).all():
+        raise RuntimeError("[XGB_PROBA_INVALID] Non-finite values in proba output")
+
+    if n_cols == 7:
+        first3 = arr[:, :3]
+        if (first3 < -1e-6).any() or (first3 > 1 + 1e-6).any():
+            raise RuntimeError("[XGB_PROBA_INVALID] Bridge proba outside [0,1]")
+        return arr.astype(np.float32, copy=False)
+
+    # n_cols == 3 -> build bridge
+    p_long = arr[:, 0]
+    p_short = arr[:, 1]
+    p_flat = arr[:, 2]
+    p_hat = np.maximum.reduce([p_long, p_short, p_flat])
+    top_two = np.sort(arr, axis=1)[:, ::-1][:, :2]
+    margin_top1_top2 = top_two[:, 0] - top_two[:, 1]
+    eps = 1e-12
+    probs = np.clip(arr[:, :3], eps, 1.0)
+    entropy = -np.sum(probs * np.log(probs), axis=1)
+    bridge = np.column_stack(
+        [
+            p_long,
+            p_short,
+            p_flat,
+            p_hat,
+            1.0 - p_hat,
+            margin_top1_top2,
+            entropy,
+        ]
+    ).astype(np.float32)
+    return bridge
+
+
+def proba_to_signal_bridge_v1(proba: np.ndarray) -> np.ndarray:
+    """
+    Normalize XGB predict_proba output to canonical 7-dim XGB_SIGNAL_BRIDGE_V1.
+
+    Allowed shapes:
+    - (N, 7): already bridge; validated for finiteness and basic bounds
+    - (N, 3): map to bridge:
+        0 p_long  = proba[:,0]
+        1 p_short = proba[:,1]
+        2 p_flat  = proba[:,2]
+        3 p_hat   = max(row)
+        4 uncertainty_score = 1 - p_hat
+        5 margin_top1_top2  = top1 - top2 (row-wise)
+        6 entropy = -sum(p_i * log(p_i)), eps=1e-12
+    Any other shape → RuntimeError [XGB_PROBA_DIM_MISMATCH].
+    """
+    arr = np.asarray(proba)
+    if arr.ndim != 2:
+        raise RuntimeError(f"[XGB_PROBA_DIM_MISMATCH] Expected 2-D proba, got shape={arr.shape}")
+    n_rows, n_cols = arr.shape
+    if n_cols not in (3, 7):
+        raise RuntimeError(
+            f"[XGB_PROBA_DIM_MISMATCH] Expected proba dim in {{3,7}}, got {n_cols} with shape={arr.shape}"
+        )
+    if not np.isfinite(arr).all():
+        raise RuntimeError("[XGB_PROBA_INVALID] Non-finite values in proba output")
+
+    if n_cols == 7:
+        first3 = arr[:, :3]
+        if (first3 < -1e-6).any() or (first3 > 1 + 1e-6).any():
+            raise RuntimeError("[XGB_PROBA_INVALID] Bridge proba outside [0,1]")
+        return arr.astype(np.float32, copy=False)
+
+    # n_cols == 3 -> build bridge
+    p_long = arr[:, 0]
+    p_short = arr[:, 1]
+    p_flat = arr[:, 2]
+    p_hat = np.maximum.reduce([p_long, p_short, p_flat])
+    top_two = np.sort(arr, axis=1)[:, ::-1][:, :2]
+    margin_top1_top2 = top_two[:, 0] - top_two[:, 1]
+    eps = 1e-12
+    probs = np.clip(arr[:, :3], eps, 1.0)
+    entropy = -np.sum(probs * np.log(probs), axis=1)
+    bridge = np.column_stack(
+        [
+            p_long,
+            p_short,
+            p_flat,
+            p_hat,
+            1.0 - p_hat,
+            margin_top1_top2,
+            entropy,
+        ]
+    ).astype(np.float32)
+    return bridge
+
+
 @dataclass
 class MultiheadOutputs:
     """Outputs from a single head prediction."""
@@ -286,27 +400,22 @@ class XGBMultiheadModel:
             proba = head.predict_proba(X)
         else:
             raise ValueError("Model does not support predict_proba")
-        
-        # Extract 3-class probabilities
-        if proba.shape[1] == 3:
-            p_long = proba[:, 0]  # Class 0 = LONG
-            p_short = proba[:, 1]  # Class 1 = SHORT
-            p_flat = proba[:, 2]  # Class 2 = FLAT
-        elif proba.shape[1] == 2:
-            # Fallback for binary models (shouldn't happen)
-            p_long = proba[:, 1]
-            p_short = 1 - proba[:, 1]
-            p_flat = np.zeros_like(p_long)
-        else:
-            raise ValueError(f"Unexpected proba shape: {proba.shape}")
-        
-        # Compute uncertainty (normalized entropy)
-        eps = 1e-10
-        probs = np.column_stack([p_long, p_short, p_flat])
-        probs = np.clip(probs, eps, 1.0)
-        entropy = -np.sum(probs * np.log(probs), axis=1)
-        max_entropy = np.log(3)  # Maximum entropy for 3 classes
-        uncertainty = entropy / max_entropy
+
+        bridge = proba_to_signal_bridge_v1(proba)
+        if not hasattr(self, "_bridge_logged"):
+            self._bridge_logged = set()
+        if session not in self._bridge_logged:
+            log.info(
+                "[XGB_BRIDGE] proba_dim=%d -> bridge_dim=7 source=CANONICAL_BUNDLE head=%s",
+                proba.shape[1],
+                session,
+            )
+            self._bridge_logged.add(session)
+
+        p_long = bridge[:, 0]
+        p_short = bridge[:, 1]
+        p_flat = bridge[:, 2]
+        uncertainty = bridge[:, 4]
         
         outputs = MultiheadOutputs(
             p_long=p_long.astype(np.float32),

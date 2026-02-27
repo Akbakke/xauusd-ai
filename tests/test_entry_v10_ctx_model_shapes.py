@@ -3,6 +3,9 @@
 Unit tests for ENTRY_V10_CTX model shapes and contract validation.
 
 STEP 3A: Tests for EntryV10CtxHybridTransformer and ContextEncoder.
+
+Canonical runtime contract is CTX6CAT6 (ctx_cat_dim=6, ctx_cont_dim=6). Tests are
+updated to assert 6/6 to match the SSoT.
 """
 
 import pytest
@@ -18,22 +21,22 @@ from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
 def test_context_encoder_forward_pass():
     """Test ContextEncoder forward pass with valid dimensions."""
     encoder = ContextEncoder(
-        ctx_cat_dim=5,
-        ctx_cont_dim=2,
+        ctx_cat_dim=6,
+        ctx_cont_dim=6,
         ctx_emb_dim=42,
         embedding_dim=8,
     )
     
     batch_size = 4
     # Generate valid categorical values:
-    # session_id: 0-3, trend_regime_id: 0-2, vol_regime_id: 0-3, atr_bucket: 0-3, spread_bucket: 0-2
+    # session_id: 0-3, trend_regime_id: 0-2, vol_regime_id: 0-3, atr_bucket: 0-3, spread_bucket: 0-2, H4_trend_sign_cat
     ctx_cat = torch.tensor([
-        [0, 0, 0, 0, 0],  # Valid: ASIA, TREND_DOWN, LOW, LOW, LOW
-        [1, 1, 1, 1, 1],  # Valid: EU, TREND_NEUTRAL, MEDIUM, MEDIUM, MEDIUM
-        [2, 2, 2, 2, 2],  # Valid: US, TREND_UP, HIGH, HIGH, HIGH
-        [3, 1, 3, 3, 2],  # Valid: OVERLAP, TREND_NEUTRAL, EXTREME, EXTREME, HIGH
-    ], dtype=torch.int64)  # [B, 5]
-    ctx_cont = torch.randn(batch_size, 2, dtype=torch.float32)  # [B, 2]
+        [0, 0, 0, 0, 0, 0],
+        [1, 1, 1, 1, 1, 1],
+        [2, 2, 2, 2, 2, 2],
+        [3, 1, 3, 3, 2, 0],
+    ], dtype=torch.int64)  # [B, 6]
+    ctx_cont = torch.randn(batch_size, 6, dtype=torch.float32)  # [B, 6]
     
     # Forward pass
     ctx_emb = encoder(ctx_cat, ctx_cont)
@@ -50,10 +53,10 @@ def test_context_encoder_forward_pass():
 def test_context_encoder_fail_fast_wrong_cat_dim():
     """Test ContextEncoder fails fast on wrong ctx_cat_dim."""
     # Should fail at init
-    with pytest.raises(AssertionError, match="ctx_cat_dim must be 5"):
+    with pytest.raises(AssertionError, match="ctx_cat_dim must be 6"):
         ContextEncoder(
             ctx_cat_dim=4,  # Wrong dimension
-            ctx_cont_dim=2,
+            ctx_cont_dim=6,
             ctx_emb_dim=42,
             embedding_dim=8,
         )
@@ -62,9 +65,9 @@ def test_context_encoder_fail_fast_wrong_cat_dim():
 def test_context_encoder_fail_fast_wrong_cont_dim():
     """Test ContextEncoder fails fast on wrong ctx_cont_dim."""
     # Should fail at init
-    with pytest.raises(AssertionError, match="ctx_cont_dim must be 2"):
+    with pytest.raises(AssertionError, match="ctx_cont_dim must be 6"):
         ContextEncoder(
-            ctx_cat_dim=5,
+            ctx_cat_dim=6,
             ctx_cont_dim=3,  # Wrong dimension
             ctx_emb_dim=42,
             embedding_dim=8,
@@ -74,15 +77,15 @@ def test_context_encoder_fail_fast_wrong_cont_dim():
 def test_context_encoder_fail_fast_wrong_input_shape():
     """Test ContextEncoder fails fast on wrong input shape in forward."""
     encoder = ContextEncoder(
-        ctx_cat_dim=5,
-        ctx_cont_dim=2,
+        ctx_cat_dim=6,
+        ctx_cont_dim=6,
         ctx_emb_dim=42,
         embedding_dim=8,
     )
     
     batch_size = 4
-    ctx_cat = torch.randint(0, 4, (batch_size, 4), dtype=torch.int64)  # Wrong: [B, 4] instead of [B, 5]
-    ctx_cont = torch.randn(batch_size, 2, dtype=torch.float32)
+    ctx_cat = torch.randint(0, 4, (batch_size, 5), dtype=torch.int64)  # Wrong: [B,5] instead of [B,6]
+    ctx_cont = torch.randn(batch_size, 6, dtype=torch.float32)
     
     # Should fail at forward
     with pytest.raises(AssertionError, match="ctx_cat size\\(1\\) must be 5"):
@@ -96,8 +99,8 @@ def test_entry_v10_ctx_forward_pass():
         snap_input_dim=88,
         max_seq_len=30,
         variant="v10_ctx",
-        ctx_cat_dim=5,
-        ctx_cont_dim=2,
+        ctx_cat_dim=6,
+        ctx_cont_dim=6,
         ctx_emb_dim=42,
         ctx_embedding_dim=8,
     )
@@ -111,12 +114,12 @@ def test_entry_v10_ctx_forward_pass():
     vol_regime_id = torch.randint(0, 4, (batch_size,), dtype=torch.int64)  # [B] (0-3: LOW, MEDIUM, HIGH, EXTREME)
     trend_regime_id = torch.randint(0, 3, (batch_size,), dtype=torch.int64)  # [B] (0-2: UP, DOWN, NEUTRAL)
     # Generate valid categorical values:
-    # session_id: 0-3, trend_regime_id: 0-2, vol_regime_id: 0-3, atr_bucket: 0-3, spread_bucket: 0-2
+    # session_id: 0-3, trend_regime_id: 0-2, vol_regime_id: 0-3, atr_bucket: 0-3, spread_bucket: 0-2, H4_trend_sign_cat
     ctx_cat = torch.tensor([
-        [0, 0, 0, 0, 0],  # Valid
-        [1, 1, 1, 1, 1],  # Valid
-    ], dtype=torch.int64)  # [B, 5]
-    ctx_cont = torch.randn(batch_size, 2, dtype=torch.float32)  # [B, 2]
+        [0, 0, 0, 0, 0, 0],  # Valid
+        [1, 1, 1, 1, 1, 1],  # Valid
+    ], dtype=torch.int64)  # [B, 6]
+    ctx_cont = torch.randn(batch_size, 6, dtype=torch.float32)  # [B, 6]
     
     # Forward pass
     outputs = model(
@@ -148,19 +151,19 @@ def test_entry_v10_ctx_forward_pass():
 
 def test_entry_v10_ctx_fail_fast_wrong_ctx_cat_dim():
     """Test EntryV10CtxHybridTransformer fails fast on wrong ctx_cat_dim."""
-    with pytest.raises(AssertionError, match="ctx_cat_dim must be 5"):
+    with pytest.raises(AssertionError, match="ctx_cat_dim must be 6"):
         EntryV10CtxHybridTransformer(
             ctx_cat_dim=4,  # Wrong dimension
-            ctx_cont_dim=2,
+            ctx_cont_dim=6,
             ctx_emb_dim=42,
         )
 
 
 def test_entry_v10_ctx_fail_fast_wrong_ctx_cont_dim():
     """Test EntryV10CtxHybridTransformer fails fast on wrong ctx_cont_dim."""
-    with pytest.raises(AssertionError, match="ctx_cont_dim must be 2"):
+    with pytest.raises(AssertionError, match="ctx_cont_dim must be 6"):
         EntryV10CtxHybridTransformer(
-            ctx_cat_dim=5,
+            ctx_cat_dim=6,
             ctx_cont_dim=3,  # Wrong dimension
             ctx_emb_dim=42,
         )
@@ -169,8 +172,8 @@ def test_entry_v10_ctx_fail_fast_wrong_ctx_cont_dim():
 def test_entry_v10_ctx_fail_fast_wrong_input_shape():
     """Test EntryV10CtxHybridTransformer fails fast on wrong input shape in forward."""
     model = EntryV10CtxHybridTransformer(
-        ctx_cat_dim=5,
-        ctx_cont_dim=2,
+        ctx_cat_dim=6,
+        ctx_cont_dim=6,
         ctx_emb_dim=42,
     )
     
@@ -182,8 +185,8 @@ def test_entry_v10_ctx_fail_fast_wrong_input_shape():
     session_id = torch.randint(0, 3, (batch_size,), dtype=torch.int64)
     vol_regime_id = torch.randint(0, 4, (batch_size,), dtype=torch.int64)
     trend_regime_id = torch.randint(0, 3, (batch_size,), dtype=torch.int64)
-    ctx_cat = torch.randint(0, 4, (batch_size, 4), dtype=torch.int64)  # Wrong: [B, 4] instead of [B, 5]
-    ctx_cont = torch.randn(batch_size, 2, dtype=torch.float32)
+    ctx_cat = torch.randint(0, 4, (batch_size, 5), dtype=torch.int64)  # Wrong: [B,5] instead of [B,6]
+    ctx_cont = torch.randn(batch_size, 6, dtype=torch.float32)
     
     # Should fail at forward
     with pytest.raises(AssertionError, match="ctx_cat size\\(1\\) must be 5"):
@@ -237,8 +240,8 @@ def test_backward_compatibility_old_model_unaffected():
 def test_context_encoder_determinism():
     """Test that ContextEncoder is deterministic (no dropout in context path)."""
     encoder = ContextEncoder(
-        ctx_cat_dim=5,
-        ctx_cont_dim=2,
+        ctx_cat_dim=6,
+        ctx_cont_dim=6,
         ctx_emb_dim=42,
         embedding_dim=8,
     )
@@ -249,10 +252,10 @@ def test_context_encoder_determinism():
     # Generate valid categorical values:
     # session_id: 0-3, trend_regime_id: 0-2, vol_regime_id: 0-3, atr_bucket: 0-3, spread_bucket: 0-2
     ctx_cat = torch.tensor([
-        [0, 0, 0, 0, 0],  # Valid
-        [1, 1, 1, 1, 1],  # Valid
-    ], dtype=torch.int64)  # [B, 5]
-    ctx_cont = torch.randn(batch_size, 2, dtype=torch.float32)
+        [0, 0, 0, 0, 0, 0],  # Valid
+        [1, 1, 1, 1, 1, 1],  # Valid
+    ], dtype=torch.int64)  # [B, 6]
+    ctx_cont = torch.randn(batch_size, 6, dtype=torch.float32)
     
     # Forward pass 1
     output1 = encoder(ctx_cat, ctx_cont)

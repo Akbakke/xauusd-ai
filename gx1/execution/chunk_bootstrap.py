@@ -25,6 +25,7 @@ from gx1.contracts.signal_bridge_v1 import (
     ORDERED_CTX_CONT_NAMES_EXTENDED,
     SEQ_SIGNAL_DIM,
     SNAP_SIGNAL_DIM,
+    get_canonical_ctx_contract,
 )
 from gx1.utils.canonical_prebuilt_resolver import resolve_base28_canonical_from_manifest
 from gx1.execution.chunk_failure import (
@@ -785,6 +786,15 @@ def bootstrap_chunk_environment(
             expected_ctx_cont_dim = int(contract["expected_ctx_cont_dim"])
             expected_ctx_cat_dim = int(contract["expected_ctx_cat_dim"])
 
+            # ONE SSoT: ctx dims must be 6/6 (CTX6CAT6), sourced from bundle/truth.
+            canonical_ctx = get_canonical_ctx_contract()
+            if expected_ctx_cont_dim != canonical_ctx["ctx_cont_dim"] or expected_ctx_cat_dim != canonical_ctx["ctx_cat_dim"]:
+                raise RuntimeError(
+                    f"[CTX_CONTRACT_SPLIT_BRAIN] expected_ctx_cont_dim={expected_ctx_cont_dim} "
+                    f"expected_ctx_cat_dim={expected_ctx_cat_dim} canonical={canonical_ctx['ctx_cont_dim']}/{canonical_ctx['ctx_cat_dim']} "
+                    f"source={contract.get('ctx_contract_source','unknown')}"
+                )
+
             # Fix #4: bundle_dir split-brain guard in TRUTH/SMOKE
             if is_truth_or_smoke_worker and bundle_dir is not None:
                 caller_bundle = str(Path(bundle_dir).expanduser().resolve())
@@ -882,6 +892,7 @@ def bootstrap_chunk_environment(
         "canonical_transformer_bundle_dir": canonical_transformer_bundle_dir_str,
         "expected_ctx_cont_dim": expected_ctx_cont_dim,
         "expected_ctx_cat_dim": expected_ctx_cat_dim,
+        "canonical_ctx_contract": get_canonical_ctx_contract(),
         "prebuilt_required_columns": prebuilt_required_columns_val,
     }
     worker_boot_payload.update(_read_proc_mem_watermark_best_effort())

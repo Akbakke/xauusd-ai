@@ -211,6 +211,24 @@ def validate_contract_in_truth() -> None:
         )
 
 
+def get_canonical_ctx_contract() -> Dict[str, object]:
+    """
+    Return the canonical ONE-UNIVERSE ctx contract for ENTRY_V10_CTX.
+    
+    Canonical tag: CTX6CAT6
+    ctx_cont_dim = 6 (ORDERED_CTX_CONT_NAMES_EXTENDED)
+    ctx_cat_dim  = 6 (ORDERED_CTX_CAT_NAMES_EXTENDED)
+    """
+    return {
+        "ctx_cont_dim": int(N_CTX_CONT_EXTENDED),
+        "ctx_cat_dim": int(N_CTX_CAT_EXTENDED),
+        "ctx_cont_names": list(ORDERED_CTX_CONT_NAMES_EXTENDED),
+        "ctx_cat_names": list(ORDERED_CTX_CAT_NAMES_EXTENDED),
+        "tag": "CTX6CAT6",
+        "source": "signal_bridge_v1_contract",
+    }
+
+
 def validate_bundle_ctx_contract_in_strict(
     expected_ctx_cont_dim: int,
     expected_ctx_cat_dim: int,
