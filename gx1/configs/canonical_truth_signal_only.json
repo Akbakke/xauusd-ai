@@ -1,32 +1,34 @@
 {
-  "truth_id": "CANONICAL_TRUTH_SIGNAL_ONLY_V1",
-  "canonical_xgb_bundle_dir": "/home/andre2/GX1_DATA/models/models/xgb_universal_multihead_v2__CANONICAL",
+  "canonical_entry_transformer_bundle_dir": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_CTX__BASELINE__DS_2025_0603_0610_N5000",
+  "canonical_entry_v10_ctx_bundle_dir": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_CTX__BASELINE__DS_2025_0603_0610_N5000",
   "canonical_prebuilt_manifest": "/home/andre2/GX1_DATA/data/data/prebuilt/BASE28_CANONICAL/CURRENT_MANIFEST.json",
   "canonical_prebuilt_parquet": "/home/andre2/GX1_DATA/data/data/prebuilt/BASE28_CANONICAL/xauusd_m5_BASE28_2020_2025.parquet",
   "canonical_transformer_bundle_dir": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/PROOF",
-
-  "signal_bridge_id": "XGB_SIGNAL_BRIDGE_V1",
-  "signal_bridge_contract_sha256": "dde7271db04cf51608bf18cfd1cbdbb7dc631556be4be64e9c82f21ed328f2aa",
-
-  "ctx_contract": { "tag": "CTX6CAT6", "ctx_cont_dim": 6, "ctx_cat_dim": 6 },
-
-  "require_v9_for_entry": false,
-
+  "canonical_xgb_bundle_dir": "/home/andre2/GX1_DATA/models/models/xgb_universal_multihead_v2__CANONICAL",
+  "ctx_contract": {
+    "ctx_cat_dim": 6,
+    "ctx_cont_dim": 6,
+    "tag": "CTX6CAT6"
+  },
   "replay_config": {
-    "policy_module": "gx1.policy.entry_policy_sniper_v10_ctx",
-    "entry_model_id": "ENTRY_V10_CTX",
-    "runtime_feature_module": "gx1.features.runtime_v10_ctx",
-    "use_prebuilt_features": true,
-    "require_prebuilt_features": true,
     "allow_baseline_features": false,
+    "entry_model_id": "ENTRY_V10_CTX",
+    "policy_module": "gx1.policy.entry_policy_sniper_v10_ctx",
+    "require_prebuilt_features": true,
+    "runtime_feature_module": "gx1.features.runtime_v10_ctx",
     "truth_artifacts": {
-      "require_import_proof": true,
       "import_proof_filename": "IMPORT_PROOF.json",
-      "require_policy_snapshot": false,
-      "policy_snapshot_filename": "RUN_POLICY_USED.yaml",
-      "require_nonzero_trades": false,
       "min_trades": 0,
-      "require_exit_type_transformer": false
-    }
-  }
+      "policy_snapshot_filename": "RUN_POLICY_USED.yaml",
+      "require_exit_type_transformer": false,
+      "require_import_proof": true,
+      "require_nonzero_trades": false,
+      "require_policy_snapshot": false
+    },
+    "use_prebuilt_features": true
+  },
+  "require_v9_for_entry": false,
+  "signal_bridge_contract_sha256": "dde7271db04cf51608bf18cfd1cbdbb7dc631556be4be64e9c82f21ed328f2aa",
+  "signal_bridge_id": "XGB_SIGNAL_BRIDGE_V1",
+  "truth_id": "CANONICAL_TRUTH_SIGNAL_ONLY_V1"
 }
