@@ -77,5 +77,28 @@ def assert_truth_banlist_clean(*, output_dir: Optional[Path], stage: str) -> Non
         raise RuntimeError(f"[TRUTH_BANLIST_HIT] stage={stage} imported={imported_hits} env={env_hits}")
 
 
-__all__ = ["BANLIST", "is_truth_or_smoke", "assert_truth_banlist_clean"]
+def assert_truth_policy_path_canonical(policy_path: Path, *, engine_root: Path, output_dir: Optional[Path]) -> None:
+    """
+    TRUTH gate: policy_path must be in the canonical allowlist for TRUTH/SMOKE runs.
+    """
+    if not is_truth_or_smoke():
+        return
+    allowlist = {
+        (engine_root / "gx1" / "configs" / "policies" / "canonical_truth" / "GX1_TRUTH_REPLAY_V10_CTX.yaml").resolve()
+    }
+    policy_resolved = policy_path.resolve()
+    if policy_resolved not in allowlist:
+        payload = {
+            "status": "FAIL",
+            "error": "TRUTH_POLICY_PATH_NOT_CANONICAL",
+            "allowed": sorted([str(p) for p in allowlist]),
+            "policy_path": str(policy_resolved),
+        }
+        _write_capsule(output_dir, payload)
+        raise RuntimeError(
+            f"[TRUTH_POLICY_PATH_NOT_CANONICAL] policy_path={policy_resolved} not in allowlist"
+        )
+
+
+__all__ = ["BANLIST", "is_truth_or_smoke", "assert_truth_banlist_clean", "assert_truth_policy_path_canonical"]
 

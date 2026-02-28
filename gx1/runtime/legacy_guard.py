@@ -107,7 +107,8 @@ def assert_no_legacy_mode_enabled(
     legacy_env_vars = [
         'GX1_V9_MODE',
         'GX1_ENTRY_V9_ENABLED',
-        'GX1_SNIPER_NY_MODE',
+        # legacy alias; kept for backward detection
+        'GX1_LEGACY_NY_MODE',
     ]
     
     for var in legacy_env_vars:

@@ -1,0 +1,70 @@
+[1mdiff --git a/docs/FULLYEAR_2025_ROBUST_PIPELINE.md b/docs/FULLYEAR_2025_ROBUST_PIPELINE.md[m
+[1mindex c600e571..cabd623c 100644[m
+[1m--- a/docs/FULLYEAR_2025_ROBUST_PIPELINE.md[m
+[1m+++ b/docs/FULLYEAR_2025_ROBUST_PIPELINE.md[m
+[36m@@ -1,5 +1,7 @@[m
+ # FULLYEAR_2025 Robust Pipeline[m
+ [m
+[32m+[m[32m> OUTDATED: Canonical context contract is CTX6CAT6 (ctx_cont_dim=6, ctx_cat_dim=6). Canonical truth lives in `gx1/configs/canonical_truth_signal_only.json` and transformer bundle metadata. Any 5/2 or 5/4 references below are legacy and not valid for TRUTH/SMOKE.[m
+[32m+[m
+ **Date:** 2026-01-07  [m
+ **Status:** ✅ Implemented[m
+ [m
+[1mdiff --git a/gx1/configs/canonical_truth_signal_only.json b/gx1/configs/canonical_truth_signal_only.json[m
+[1mindex 2d86843a..74142f6a 100644[m
+[1m--- a/gx1/configs/canonical_truth_signal_only.json[m
+[1m+++ b/gx1/configs/canonical_truth_signal_only.json[m
+[36m@@ -1,8 +1,32 @@[m
+ {[m
+   "truth_id": "CANONICAL_TRUTH_SIGNAL_ONLY_V1",[m
+   "canonical_xgb_bundle_dir": "/home/andre2/GX1_DATA/models/models/xgb_universal_multihead_v2__CANONICAL",[m
+[31m-  "canonical_prebuilt_parquet": "/home/andre2/GX1_DATA/data/data/prebuilt/BASE28_CANONICAL/xauusd_m5_BASE28_2020_2025.parquet",[m
+   "canonical_prebuilt_manifest": "/home/andre2/GX1_DATA/data/data/prebuilt/BASE28_CANONICAL/CURRENT_MANIFEST.json",[m
+[31m-  "canonical_transformer_bundle_dir": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/TRANSFORMER_ENTRY_V10_CTX__IOV1_CTX6CAT6_20260220_204938",[m
+[31m-  "signal_bridge_contract_sha256": "dde7271db04cf51608bf18cfd1cbdbb7dc631556be4be64e9c82f21ed328f2aa"[m
+[31m-}[m
+[32m+[m[32m  "canonical_prebuilt_parquet": "/home/andre2/GX1_DATA/data/data/prebuilt/BASE28_CANONICAL/xauusd_m5_BASE28_2020_2025.parquet",[m
+[32m+[m[32m  "canonical_transformer_bundle_dir": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/PROOF",[m
+[32m+[m
+[32m+[m[32m  "signal_bridge_id": "XGB_SIGNAL_BRIDGE_V1",[m
+[32m+[m[32m  "signal_bridge_contract_sha256": "dde7271db04cf51608bf18cfd1cbdbb7dc631556be4be64e9c82f21ed328f2aa",[m
+[32m+[m
+[32m+[m[32m  "ctx_contract": { "tag": "CTX6CAT6", "ctx_cont_dim": 6, "ctx_cat_dim": 6 },[m
+[32m+[m
+[32m+[m[32m  "require_v9_for_entry": false,[m
+[32m+[m
+[32m+[m[32m  "replay_config": {[m
+[32m+[m[32m    "policy_module": "gx1.policy.entry_policy_sniper_v10_ctx",[m
+[32m+[m[32m    "entry_model_id": "ENTRY_V10_CTX",[m
+[32m+[m[32m    "runtime_feature_module": "gx1.features.runtime_v10_ctx",[m
+[32m+[m[32m    "use_prebuilt_features": true,[m
+[32m+[m[32m    "require_prebuilt_features": true,[m
+[32m+[m[32m    "allow_baseline_features": false,[m
+[32m+[m[32m    "truth_artifacts": {[m
+[32m+[m[32m      "require_import_proof": true,[m
+[32m+[m[32m      "import_proof_filename": "IMPORT_PROOF.json",[m
+[32m+[m[32m      "require_policy_snapshot": false,[m
+[32m+[m[32m      "policy_snapshot_filename": "RUN_POLICY_USED.yaml",[m
+[32m+[m[32m      "require_nonzero_trades": false,[m
+[32m+[m[32m      "min_trades": 0,[m
+[32m+[m[32m      "require_exit_type_transformer": false[m
+[32m+[m[32m    }[m
+[32m+[m[32m  }[m
+[32m+[m[32m}[m
+\ No newline at end of file[m
+[1mdiff --git a/gx1/configs/exits/FARM_EXIT_FIXED_BARS.yaml b/gx1/configs/exits/FARM_EXIT_FIXED_BARS.yaml[m
+[1mindex 58036751..a422d8a8 100644[m
+[1m--- a/gx1/configs/exits/FARM_EXIT_FIXED_BARS.yaml[m
+[1m+++ b/gx1/configs/exits/FARM_EXIT_FIXED_BARS.yaml[m
+[36m@@ -2,8 +2,8 @@[m
+ exit:[m
+   type: "FIXED_BAR_CLOSE"[m
+   params:[m
+[31m-    mode: "random"   # "fixed" or "random"[m
+[31m-    bars: 3          # used when mode=fixed[m
+[32m+[m[32m    mode: "fixed"   # "fixed" or "random"[m
+[32m+[m[32m    bars: 3          # close after 3x M5 bars[m
+     min_bars: 1      # lower bound when mode=random[m
+     max_bars: 8      # upper bound when mode=random[m
+     seed: 1337       # optional seed for reproducibility[m
+[1mdiff --git a/gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/GX1_SNIPER_REPLAY_V10_CTX_VERIFY.yaml b/

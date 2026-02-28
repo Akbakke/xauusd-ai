@@ -471,7 +471,7 @@ def check_policy_sanity(policy_path: Path) -> None:
         raise RuntimeError(
             f"[POLICY_SANITY] FATAL: Policy {policy_path} does not have entry_models.v10_ctx configured. "
             f"This is required for XGB flow ablation tests. "
-            f"Use a policy with v10_ctx enabled (e.g., GX1_SNIPER_REPLAY_V10_CTX_VERIFY.yaml)."
+            f"Use a policy with v10_ctx enabled (e.g., gx1/configs/policies/canonical_truth/GX1_TRUTH_REPLAY_V10_CTX.yaml)."
         )
     
     if not v10_ctx_cfg.get("enabled", False):

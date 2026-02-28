@@ -61,13 +61,6 @@ class RunIdentity:
     feature_build_disabled: bool
     windows_sha: Optional[str]
     feature_schema_fingerprint: Optional[str] = None  # Feature fingerprint hash
-    # Exit Policy V2 fields
-    exit_v2_enabled: bool = False
-    exit_v2_yaml_path: Optional[str] = None
-    exit_v2_yaml_sha256: Optional[str] = None
-    exit_v2_params_summary: Optional[Dict[str, Any]] = None
-    exit_v2_counters: Optional[Dict[str, int]] = None
-    
     # DEL 3: Pre-Entry Wait Gate telemetry
     pre_entry_wait_enabled: bool = False
     pre_entry_wait_counters: Optional[Dict[str, int]] = None
@@ -249,14 +242,6 @@ class RunIdentity:
             result["depth_ladder_delta"] = self.depth_ladder_delta
         if self.dt_module_version:
             result["dt_module_version"] = self.dt_module_version
-        if self.exit_v2_yaml_path:
-            result["exit_v2_yaml_path"] = self.exit_v2_yaml_path
-        if self.exit_v2_yaml_sha256:
-            result["exit_v2_yaml_sha256"] = self.exit_v2_yaml_sha256
-        if self.exit_v2_params_summary:
-            result["exit_v2_params_summary"] = self.exit_v2_params_summary
-        if self.exit_v2_counters:
-            result["exit_v2_counters"] = self.exit_v2_counters
         if self.pre_entry_wait_counters:
             result["pre_entry_wait_counters"] = self.pre_entry_wait_counters
         if self.overlap_overlay_config:
@@ -616,21 +601,6 @@ def create_run_identity(
     # Get windows SHA
     windows_sha = _get_windows_sha(windows_path)
     
-    # Get Exit Policy V2 info (if available from env)
-    exit_v2_enabled = os.getenv("GX1_EXIT_POLICY_V2", "0") == "1"
-    exit_v2_yaml_path = os.getenv("GX1_EXIT_POLICY_V2_YAML")
-    exit_v2_yaml_sha256 = None
-    exit_v2_params_summary = None
-    exit_v2_counters = None
-    
-    if exit_v2_enabled and exit_v2_yaml_path:
-        exit_v2_yaml_path_obj = Path(exit_v2_yaml_path)
-        if not exit_v2_yaml_path_obj.is_absolute():
-            exit_v2_yaml_path_obj = repo_root / exit_v2_yaml_path_obj
-        if exit_v2_yaml_path_obj.exists():
-            exit_v2_yaml_sha256 = _compute_file_sha256(exit_v2_yaml_path_obj)
-            exit_v2_yaml_path = str(exit_v2_yaml_path_obj.resolve())
-    
     # DEL 3: Get Pre-Entry Wait Gate info (if available from env)
     pre_entry_wait_enabled = os.getenv("GX1_PRE_ENTRY_WAIT_GATE_ENABLED", "0") == "1"
     pre_entry_wait_counters = None  # Will be updated by EntryManager after replay
@@ -733,11 +703,6 @@ def create_run_identity(
         feature_build_disabled=feature_build_disabled,
         windows_sha=windows_sha,
         feature_schema_fingerprint=feature_schema_fingerprint,
-        exit_v2_enabled=exit_v2_enabled,
-        exit_v2_yaml_path=exit_v2_yaml_path,
-        exit_v2_yaml_sha256=exit_v2_yaml_sha256,
-        exit_v2_params_summary=exit_v2_params_summary,
-        exit_v2_counters=exit_v2_counters,
         pre_entry_wait_enabled=pre_entry_wait_enabled,
         pre_entry_wait_counters=pre_entry_wait_counters,
         overlap_overlay_enabled=overlap_overlay_enabled,
@@ -865,11 +830,6 @@ def load_run_identity(identity_path: Path) -> RunIdentity:
         feature_build_disabled=data["feature_build_disabled"],
         windows_sha=data.get("windows_sha"),
         feature_schema_fingerprint=data.get("feature_schema_fingerprint"),
-        exit_v2_enabled=data.get("exit_v2_enabled", False),
-        exit_v2_yaml_path=data.get("exit_v2_yaml_path"),
-        exit_v2_yaml_sha256=data.get("exit_v2_yaml_sha256"),
-        exit_v2_params_summary=data.get("exit_v2_params_summary"),
-        exit_v2_counters=data.get("exit_v2_counters"),
         pre_entry_wait_enabled=data.get("pre_entry_wait_enabled", False),
         pre_entry_wait_counters=data.get("pre_entry_wait_counters"),
         overlap_overlay_enabled=data.get("overlap_overlay_enabled", False),

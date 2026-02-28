@@ -19,6 +19,11 @@ import pandas as pd
 
 log = logging.getLogger(__name__)
 
+# IMPORTANT:
+# ctx_cat and ctx_cont order is sourced exclusively from
+# get_canonical_ctx_contract() (SSoT).
+# Do not hardcode or reorder features here.
+
 
 @dataclass
 class EntryContextFeatures:

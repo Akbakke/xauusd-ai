@@ -24,10 +24,8 @@ log = logging.getLogger(__name__)
 
 # Canonical policy configs (currently used)
 CANONICAL_POLICIES = [
-    "gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/GX1_SNIPER_TRAIN_V10_CTX_GATED.yaml",
-    "gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/GX1_SNIPER_REPLAY_V10_CTX_VERIFY.yaml",
-    "gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/GX1_V11_OANDA_PRACTICE_LIVE_SNIPER_LONDON_NY.yaml",
-    "gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/ENTRY_V9_SNIPER_LONDON_NY.yaml",
+    "gx1/configs/policies/canonical_truth/GX1_TRUTH_REPLAY_V10_CTX.yaml",
+    "gx1/configs/policies/canonical_truth/exits/EXIT_TRANSFORMER_ONLY_V0.yaml",
 ]
 
 # Entrypoint patterns

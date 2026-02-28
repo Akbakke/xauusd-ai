@@ -16,11 +16,11 @@ import re
 import sys
 from pathlib import Path
 
-# SSoT: must match truth_banlist and DELETE_PLAN KEEP
+# SSoT: must match truth allowlist
 KEEP_YAML_RELATIVE = [
-    "gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/GX1_SNIPER_REPLAY_V10_CTX_VERIFY.yaml",
-    "gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/exits/MASTER_EXIT_V1_A.yaml",
-    "gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/SNIPER_RISK_GUARD_V1.yaml",
+    "gx1/configs/policies/canonical_truth/GX1_TRUTH_REPLAY_V10_CTX.yaml",
+    "gx1/configs/policies/canonical_truth/exits/EXIT_TRANSFORMER_ONLY_V0.yaml",
+    "gx1/configs/policies/canonical_truth/guards/RISK_GUARD_V1.yaml",
 ]
 
 # Paths allowed in Python source (must match KEEP or be reference to constant)

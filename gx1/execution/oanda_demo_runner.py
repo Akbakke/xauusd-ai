@@ -67,11 +67,15 @@ if TYPE_CHECKING:
 from gx1.execution.broker_client import BrokerClient
 from gx1.execution.entry_manager import EntryManager
 from gx1.execution.exit_manager import ExitManager
+from gx1.exits.contracts.exit_io_v0_ctx19 import (
+    EXIT_IO_V0_CTX19_FEATURE_NAMES_HASH,
+)
 from gx1.execution.telemetry import TelemetryTracker
 from gx1.execution.oanda_backfill import backfill_m5_candles_until_target
 from gx1.tuning.feature_manifest import load_manifest  # type: ignore[reportMissingImports]
 from gx1.utils.env_loader import load_dotenv_if_present
 from gx1.utils.pnl import compute_pnl_bps
+from gx1.policy.exit_transformer_v0 import load_exit_transformer_decider
 
 log = logging.getLogger(__name__)
 
@@ -102,7 +106,6 @@ except ImportError:
     BIG_BRAIN_AVAILABLE = False
     log.warning("[IMPORT] Big Brain V1 modules not available - Big Brain features will be disabled")
 
-EXIT_MODEL_PATH = Path("gx1/exit/phase_c_model/models/exit_model_xgb_ENTRY_ANCHOR_V2.pkl")
 SECONDS_PER_BAR = 300  # M5
 BID_ASK_REQUIRED_COLS = [
     "bid_open",
@@ -517,17 +520,6 @@ def extract_entry_probabilities(probs: np.ndarray, classes: Optional[np.ndarray]
         )
 
     raise RuntimeError(f"[XGB_PROBA_DIM_MISMATCH] Expected 3-class probabilities, got n_classes={n_classes} shape={probs.shape}")
-
-
-def load_exit_model() -> ExitModelBundle:
-    if not EXIT_MODEL_PATH.exists():
-        raise FileNotFoundError(f"Exit model not found: {EXIT_MODEL_PATH}")
-    bundle = joblib.load(EXIT_MODEL_PATH)
-    model = bundle.get("model")
-    features = bundle.get("features")
-    if model is None or features is None:
-        raise ValueError("Exit model bundle missing 'model' or 'features'")
-    return ExitModelBundle(model=model, feature_names=features)
 
 
 def compute_daily_key(ts: pd.Timestamp) -> str:
@@ -1302,7 +1294,7 @@ class GX1DemoRunner:
         md_lines.append(f"- **n_constant_features**: `{n_constant}` (fraction=`{constant_frac:.4f}`)")
         md_lines.append(f"- **n_all_zero_features**: `{n_all_zero}`")
         md_lines.append("")
-        md_lines.append("## Ordered feature list (n=91)")
+        md_lines.append("## Ordered feature list (n=28)")
         for n in feat_names:
             md_lines.append(f"- `{n}`")
         md_lines.append("")
@@ -1415,6 +1407,27 @@ class GX1DemoRunner:
         self.perf_n_bars_processed = 0
         self.perf_n_trades_created = 0
         self.perf_bars_total = 0  # Del 1: Total bars to process (set in _run_replay_impl)
+        # Side counters (entry/exit) for observability
+        self.entry_attempt_long = 0
+        self.entry_attempt_short = 0
+        self.entry_accept_long = 0
+        self.entry_accept_short = 0
+        self.exit_eval_long = 0
+        self.exit_eval_short = 0
+        self.exit_close_long = 0
+        self.exit_close_short = 0
+
+        # Exit transformer metadata (populated if enabled)
+        self.exit_ml_enabled = False
+        self.exit_ml_decision_mode = None
+        self.exit_ml_input_dim = None
+        self.exit_ml_io_version = None
+        self.exit_ml_config_hash = None
+        self.exit_ml_model_sha = None
+        self.exit_transformer_decider = None
+        self.exit_transformer_window_len = None
+        self.exit_transformer_input_dim = None
+        self.exit_transformer_feature_hash = None
         
         # Entry stage telemetry: initialize early (will be reset in _run_replay_impl before loop)
         # These are persistent attributes on runner-self (not local variables)
@@ -1683,61 +1696,6 @@ class GX1DemoRunner:
             log.info("[BOOT] broker_side_tp_sl disabled (REN EXIT_V2 mode)")
         self.exit_params = exit_cfg  # Store exit config for shadow-exit A/B
         
-        # Check for EXIT_POLICY_V2 (pre-empts all other exit rules if enabled)
-        self.exit_policy_v2 = None
-        exit_v2_enabled = os.environ.get("GX1_EXIT_POLICY_V2", "0") == "1"
-        if exit_v2_enabled:
-            try:
-                from gx1.exits.exit_policy_v2 import ExitPolicyV2, load_exit_policy_v2_config
-                
-                # Load Exit Policy V2 config
-                exit_v2_yaml_path = os.environ.get("GX1_EXIT_POLICY_V2_YAML", "gx1/configs/exits/EXIT_POLICY_V2_TRIAL160.yaml")
-                exit_v2_yaml_path = Path(exit_v2_yaml_path)
-                if not exit_v2_yaml_path.is_absolute():
-                    # Try relative to workspace root
-                    workspace_root = Path(__file__).parent.parent.parent
-                    exit_v2_yaml_path = workspace_root / exit_v2_yaml_path
-                
-                if not exit_v2_yaml_path.exists():
-                    raise FileNotFoundError(f"Exit Policy V2 YAML not found: {exit_v2_yaml_path}")
-                
-                # Load config
-                exit_v2_config = load_exit_policy_v2_config(config_path=exit_v2_yaml_path)
-                
-                if exit_v2_config.enabled:
-                    self.exit_policy_v2 = ExitPolicyV2(exit_v2_config)
-                    
-                    # Calculate YAML SHA256 (hashlib already imported at top level)
-                    with open(exit_v2_yaml_path, "rb") as f:
-                        exit_v2_yaml_sha256 = hashlib.sha256(f.read()).hexdigest()
-                    
-                    # Store for RUN_IDENTITY
-                    self.exit_v2_yaml_path = str(exit_v2_yaml_path.resolve())
-                    self.exit_v2_yaml_sha256 = exit_v2_yaml_sha256
-                    self.exit_v2_params_summary = {
-                        "mae_kill_atr": exit_v2_config.mae_kill_mae_atr_ge,
-                        "time_stop_bars": exit_v2_config.time_stop_t1_bars,
-                        "time_stop_mfe_atr": exit_v2_config.time_stop_require_mfe_atr_ge,
-                        "trail_activate_mfe_atr": exit_v2_config.profit_trail_activate_mfe_atr_ge,
-                        "trail_giveback_frac": exit_v2_config.profit_trail_giveback_frac,
-                    }
-                    
-                    log.info(
-                        "[BOOT] EXIT_POLICY_V2 enabled: YAML=%s SHA256=%s",
-                        self.exit_v2_yaml_path,
-                        exit_v2_yaml_sha256[:16],
-                    )
-                else:
-                    log.warning("[BOOT] EXIT_POLICY_V2 YAML found but enabled=false")
-            except Exception as e:
-                log.error("[BOOT] Failed to initialize EXIT_POLICY_V2: %s", e, exc_info=True)
-                raise RuntimeError(f"EXIT_POLICY_V2 initialization failed: {e}") from e
-        else:
-            log.info("[BOOT] EXIT_POLICY_V2 disabled (GX1_EXIT_POLICY_V2 != 1)")
-            self.exit_v2_yaml_path = None
-            self.exit_v2_yaml_sha256 = None
-            self.exit_v2_params_summary = None
-        
         # Check for EXIT_V2_DRIFT, EXIT_V3_ADAPTIVE, EXIT_FARM_V1, or EXIT_FARM_V2_RULES configuration
         exit_type = exit_cfg.get("exit", {}).get("type") if isinstance(exit_cfg.get("exit"), dict) else None
         self.exit_farm_v1_policy = None
@@ -1746,9 +1704,68 @@ class GX1DemoRunner:
         self.exit_farm_v2_rules_states: Dict[str, Any] = {}
         self.exit_verbose_logging = False
         self.exit_fixed_bar_policy = None
+        self.exit_ml_mode = (
+            exit_cfg.get("exit", {}).get("params", {}).get("exit_ml", {}).get("mode")
+            if isinstance(exit_cfg.get("exit"), dict)
+            else None
+        )
         self.farm_v1_mode = False  # Track if we're in FARM_V1 mode
         self.farm_v2_mode = False  # Track if we're in FARM_V2 mode
         self.farm_v2b_mode = False  # Track if we're in FARM_V2B mode
+        # Load exit transformer decider if configured
+        if self.exit_ml_mode == "exit_transformer_v0":
+            exit_tf_cfg = (
+                exit_cfg.get("exit", {})
+                .get("params", {})
+                .get("exit_ml", {})
+                .get("exit_transformer", {})
+                if isinstance(exit_cfg.get("exit"), dict)
+                else {}
+            )
+            model_path_raw = exit_tf_cfg.get("model_path")
+            if not model_path_raw:
+                raise RuntimeError("[EXIT_MODEL_REQUIRED] Exit transformer model is required for configured exit policy")
+            model_path = Path(model_path_raw)
+            if not model_path.is_absolute():
+                gx1_data_root = Path(os.environ["GX1_DATA"]).expanduser().resolve()
+                model_path = (gx1_data_root / model_path).resolve()
+            decider = load_exit_transformer_decider(model_path)
+            # Hard validation
+            if int(getattr(decider, "input_dim", -1)) != 19:
+                raise RuntimeError(f"[EXIT_IO_CONTRACT_VIOLATION] expected input_dim=19, got {getattr(decider, 'input_dim', None)}")
+            if int(getattr(decider, "window_len", -1)) != 8:
+                raise RuntimeError(f"[EXIT_IO_CONTRACT_VIOLATION] expected window_len=8, got {getattr(decider, 'window_len', None)}")
+            cfg_io_ver = getattr(decider, "config", {}).get("exit_ml_io_version")
+            if cfg_io_ver and cfg_io_ver != "EXIT_IO_V0_CTX19":
+                raise RuntimeError(
+                    f"[EXIT_IO_CONTRACT_VIOLATION] expected exit_ml_io_version=EXIT_IO_V0_CTX19, got {cfg_io_ver}"
+                )
+            feat_hash = str(getattr(decider, "config", {}).get("feature_names_hash", "")).strip()
+            if feat_hash and feat_hash != EXIT_IO_V0_CTX19_FEATURE_NAMES_HASH:
+                raise RuntimeError(
+                    f"[EXIT_IO_CONTRACT_VIOLATION] expected feature_names_hash={EXIT_IO_V0_CTX19_FEATURE_NAMES_HASH}, got {feat_hash}"
+                )
+            self.exit_transformer_decider = decider
+            self.exit_ml_enabled = True
+            self.exit_ml_decision_mode = "exit_transformer_v0"
+            self.exit_ml_input_dim = decider.input_dim
+            self.exit_ml_io_version = decider.config.get("exit_ml_io_version")
+            self.exit_ml_config_hash = decider.config.get("feature_names_hash")
+            self.exit_ml_model_sha = getattr(decider, "model_sha", None)
+            self.exit_transformer_window_len = decider.window_len
+            self.exit_transformer_input_dim = decider.input_dim
+            self.exit_transformer_feature_hash = feat_hash
+            log.info(
+                "[EXIT_T8_PROOF_BOOT] mode=%s model_path=%s window_len=%s input_dim=%s feature_hash=%s",
+                "exit_transformer_v0",
+                model_path,
+                decider.window_len,
+                decider.input_dim,
+                feat_hash,
+            )
+        elif self.exit_ml_mode:
+            # Other modes currently unsupported in this path
+            raise RuntimeError(f"[EXIT_MODEL_REQUIRED] Exit transformer model is required for configured exit policy (mode={self.exit_ml_mode})")
         
         if exit_type == "FARM_V2_RULES":
             # FARM_V2_RULES mode: Rule-based exit for FARM_V2B
@@ -1804,20 +1821,6 @@ class GX1DemoRunner:
             log.info("[BOOT] FARM_V2_RULES mode: All non-FARM exits disabled")
             self.exit_only_v2_drift = True
         
-        elif exit_type == "FIXED_BAR_CLOSE":
-            from gx1.policy.exit_fixed_bar import FixedBarExitPolicy
-            params = exit_cfg.get("exit", {}).get("params", {})
-            self.exit_fixed_bar_policy = FixedBarExitPolicy(
-                mode=params.get("mode", "fixed"),
-                bars=int(params.get("bars", 3)),
-                min_bars=int(params.get("min_bars", 1)),
-                max_bars=int(params.get("max_bars", 6)),
-                seed=params.get("seed"),
-            )
-            log.info("[BOOT] FIXED_BAR_CLOSE exit enabled: params=%s", params)
-            self.exit_only_v2_drift = True
-            self.policy.setdefault("tick_exit", {})["enabled"] = False
-            self.policy["broker_side_tp_sl"] = False
         elif exit_type == "FARM_V1":
             # FARM_V1 mode: Only FARM exits allowed, disable all other exits
             self.farm_v1_mode = True
@@ -2389,14 +2392,13 @@ class GX1DemoRunner:
                         f"(resolved from {bundle_dir_source})"
                     )
                 
-                # Get feature_meta_path (required)
-                feature_meta_path = entry_v10_ctx_cfg.get("feature_meta_path")
-                if not feature_meta_path:
-                    raise ValueError("[ENTRY_V10_CTX] feature_meta_path is required in entry_models.v10_ctx config")
-                
-                feature_meta_path = Path(feature_meta_path)
-                if not feature_meta_path.exists():
-                    raise FileNotFoundError(f"[ENTRY_V10_CTX] Feature metadata not found: {feature_meta_path}")
+                # Get bundle metadata (required, canonical contract)
+                bundle_dir_p = Path(bundle_dir)
+                bundle_metadata_path = bundle_dir_p / "bundle_metadata.json"
+                if not bundle_metadata_path.exists():
+                    raise FileNotFoundError(
+                        f"[ENTRY_V10_CTX] bundle_metadata.json not found in bundle_dir: {bundle_dir_p}"
+                    )
                 
                 # Get scaler paths (optional)
                 seq_scaler_path = entry_v10_ctx_cfg.get("seq_scaler_path")
@@ -2490,26 +2492,9 @@ class GX1DemoRunner:
                 # Determine replay mode
                 is_replay = getattr(self, "replay_mode", False)
                 
-                # DEL 1: Verify GX1_GATED_FUSION_ENABLED=1 before loading
-                gated_fusion_enabled = os.getenv("GX1_GATED_FUSION_ENABLED", "0") == "1"
-                if not gated_fusion_enabled:
-                    raise RuntimeError(
-                        "BASELINE_DISABLED: GX1_GATED_FUSION_ENABLED is not set to '1'. "
-                        "BASELINE is disabled. Set GX1_GATED_FUSION_ENABLED=1 to use GATED_FUSION bundle."
-                    )
-                
-                # DEL 1: Verify bundle_dir does not contain BASELINE
-                bundle_dir_str = str(bundle_dir)
-                if "BASELINE_NO_GATE" in bundle_dir_str or "BASELINE" in bundle_dir_str.upper():
-                    raise RuntimeError(
-                        f"BASELINE_DISABLED: bundle_dir contains BASELINE reference: '{bundle_dir}'. "
-                        f"Only GATED_FUSION bundles are allowed."
-                    )
-                
                 # Load ctx bundle
                 self.entry_v10_ctx_bundle = load_entry_v10_ctx_bundle(
                     bundle_dir=bundle_dir,
-                    feature_meta_path=feature_meta_path,
                     seq_scaler_path=seq_scaler_path,
                     snap_scaler_path=snap_scaler_path,
                     xgb_models=xgb_models,
@@ -2519,12 +2504,6 @@ class GX1DemoRunner:
                 
                 # DEL 1: Verify bundle metadata matches expected variant
                 metadata = self.entry_v10_ctx_bundle.metadata or {}
-                bundle_variant = metadata.get("model_variant", "").upper()
-                if "BASELINE" in bundle_variant:
-                    raise RuntimeError(
-                        f"BASELINE_DISABLED: Bundle metadata indicates BASELINE variant: '{bundle_variant}'. "
-                        f"Only GATED_FUSION bundles are allowed."
-                    )
                 # TRUTH/CTX6CAT6: supports_context_features must be explicit (no silent fallback)
                 bundle_meta_path = Path(bundle_dir) / "bundle_metadata.json"
                 if "supports_context_features" not in metadata and metadata.get("ctx_tag") == "CTX6CAT6":
@@ -2597,7 +2576,7 @@ class GX1DemoRunner:
                 # Set entry_v10_enabled=True when ctx is active (for compatibility)
                 self.entry_v10_enabled = True
                 self.entry_v10_bundle = self.entry_v10_ctx_bundle  # Use ctx bundle as main bundle
-                # Also set entry_v10_cfg to ctx config (needed for feature_meta_path, scaler paths in _predict_entry_v10_hybrid)
+                # Also set entry_v10_cfg to ctx config (needed for scaler paths in _predict_entry_v10_hybrid)
                 self.entry_v10_cfg = entry_v10_ctx_cfg
                 
                 # Update model_name
@@ -2656,8 +2635,6 @@ class GX1DemoRunner:
                 # Ensure required fields exist
                 if not v10_cfg.get("model_path"):
                     raise ValueError("[ENTRY_V10] model_path is required in entry_models.v10 config")
-                if not v10_cfg.get("feature_meta_path"):
-                    raise ValueError("[ENTRY_V10] feature_meta_path is required in entry_models.v10 config")
                 
                 # Validate model_path exists
                 model_path = Path(v10_cfg.get("model_path"))
@@ -2891,21 +2868,19 @@ class GX1DemoRunner:
         
         self.manifest = load_manifest()
         
-        # Optional: Load exit model (only if it exists and not using FARM exit rules)
-        if self.exit_only_v2_drift or (hasattr(self, "farm_v2b_mode") and self.farm_v2b_mode):
-            # FARM_V2_RULES or FARM_V2B mode - exit model not needed
+        # Exit model bundle must be explicit; no legacy XGB fallback (unless transformer decider already loaded)
+        if self.exit_ml_mode == "exit_transformer_v0":
+            self.exit_bundle = None  # Transformer decider already loaded
+        elif self.exit_only_v2_drift or (hasattr(self, "farm_v2b_mode") and self.farm_v2b_mode):
             log.info("[BOOT] FARM exit mode detected: skipping exit model bundle (using rule-based exits)")
             self.exit_bundle = None
         else:
-            try:
-                self.exit_bundle = load_exit_model()
-            except FileNotFoundError as e:
-                log.info(
-                    "[BOOT] Exit model bundle not found: %s. Continuing without exit model bundle. "
-                    "This is expected for FARM policies using rule-based exits.",
-                    e
+            self.exit_bundle = None
+            if self.replay_mode or self.fast_replay or self.policy.get("exit_policy"):
+                raise RuntimeError(
+                    "[EXIT_MODEL_REQUIRED] Exit model bundle is required for configured exit policy; "
+                    "legacy XGB bundle path has been removed. Provide an explicit exit bundle."
                 )
-                self.exit_bundle = None
         
         # Optional: Initialize broker client (only needed for live mode, not replay)
         if self.replay_mode or self.fast_replay:
@@ -2981,6 +2956,18 @@ class GX1DemoRunner:
         self._exited_trade_ids: set[str] = set()  # trade_id -> True if already exited
         self._exit_monotonicity_violations: int = 0  # Counter for exit_time < entry_time
         self._duplicate_exit_attempts: int = 0  # Counter for duplicate exit attempts
+
+        # Entry gate counters (TRUTH observability; populated in entry_manager and logged per chunk)
+        self.entry_gate_counters: Dict[str, int] = {
+            "p_threshold": 0,
+            "margin_threshold": 0,
+            "ratio_threshold": 0,
+            "pregate_session": 0,
+            "pregate_spread": 0,
+            "pregate_atr": 0,
+            "warmup_not_ready": 0,
+            "guard_veto": 0,
+        }
 
         # TRUTH-only (but safe everywhere) exit coverage counters for replay observability.
         # Exported into chunk_footer.json by replay_eval_gated_parallel.py worker.
@@ -4462,13 +4449,6 @@ class GX1DemoRunner:
                 # This is approximate - full implementation would track all model files
                 pass
             
-            # Get feature manifest path
-            feature_manifest_path = None
-            if hasattr(self, "entry_v9_feature_meta_path") and self.entry_v9_feature_meta_path:
-                manifest_candidate = self.entry_v9_feature_meta_path.parent / "feature_manifest.json"
-                if manifest_candidate.exists():
-                    feature_manifest_path = manifest_candidate
-            
             # DEL 4: Get run_id and chunk_id for run_header
             run_id = getattr(self, "run_id", None)
             chunk_id = getattr(self, "chunk_id", None) or os.getenv("GX1_CHUNK_ID")
@@ -4479,7 +4459,7 @@ class GX1DemoRunner:
                 policy_path=self.policy_path,
                 router_model_path=router_model_path,
                 entry_model_paths=entry_model_paths if entry_model_paths else None,
-                feature_manifest_path=feature_manifest_path,
+                feature_manifest_path=None,
                 output_dir=output_dir,
                 run_tag=run_id,  # DEL 4: Use run_id as run_tag
                 chunk_id=chunk_id,  # DEL 4: Pass chunk_id
@@ -4622,6 +4602,32 @@ class GX1DemoRunner:
             git_commit = get_git_commit_hash()
             
             # Build capsule
+            guards_info = {}
+            try:
+                if hasattr(self, "entry_manager") and getattr(self.entry_manager, "risk_guard_identity", None):
+                    guards_info["risk_guard_v1"] = self.entry_manager.risk_guard_identity
+                # If entry manager has not yet populated identity (e.g., no eval cycle),
+                # derive it directly from the policy risk_guard config to preserve TRUTH
+                # auditability of the guard implementation used for this run.
+                if not guards_info:
+                    policy_obj = getattr(self, "policy", None) or {}
+                    guard_cfg_path = ((policy_obj.get("risk_guard") or {}).get("config_path") if isinstance(policy_obj, dict) else None)
+                    if guard_cfg_path:
+                        import yaml
+                        from gx1.policy.risk_guard_v1 import RiskGuardV1
+
+                        guard_path = Path(guard_cfg_path)
+                        if not guard_path.is_absolute():
+                            guard_path = Path(__file__).resolve().parent.parent.parent / guard_path
+                        if not guard_path.exists():
+                            raise FileNotFoundError(str(guard_path))
+                        with open(guard_path, "r", encoding="utf-8") as f:
+                            guard_cfg = yaml.safe_load(f) or {}
+                        rg = RiskGuardV1(guard_cfg)
+                        guards_info["risk_guard_v1"] = rg.get_guard_id()
+            except Exception:
+                guards_info = {}
+
             capsule = {
                 "timestamp": datetime.now(tz=timezone.utc).isoformat(),
                 "run_id": getattr(self, "run_id", None),
@@ -4630,6 +4636,7 @@ class GX1DemoRunner:
                 "bundle_dir": str(Path(bundle_dir).resolve()),
                 "bundle_sha256": bundle_sha256,
                 "xgb_models": xgb_models_info,
+                "guards": guards_info or None,
                 "provenance": {
                     "git_commit": git_commit,
                     "worker_pid": os.getpid(),
@@ -6709,6 +6716,15 @@ class GX1DemoRunner:
         # Build exact XGB input matrix (same values as predict_proba uses)
         # PERF: avoid DataFrame slicing + astype copy; build directly from the list.
         X = np.asarray(xgb_feat_values, dtype=np.float64).reshape(1, -1)
+        # One-shot proof of BASE28 shape/hash
+        if not hasattr(self, "_xgb_base28_proof_logged") or not self._xgb_base28_proof_logged:
+            feat_hash = None
+            try:
+                feat_hash = getattr(self, "_xgb_feature_names_ssot_details", {}).get("feature_names_hash")
+            except Exception:
+                feat_hash = None
+            log.info("[XGB_BASE28_PROOF] shape=%s feature_names_hash=%s", X.shape, feat_hash)
+            self._xgb_base28_proof_logged = True
 
         # ============================================================
         # XGB INPUT TRUTH DUMP (TRUTH/PREBUILT only, replay-only, no impact on predictions)
@@ -6757,8 +6773,8 @@ class GX1DemoRunner:
                         "[TRUTH_FAIL] XGB input dim mismatch vs SSoT feature list: "
                         f"X.shape[1]={int(X.shape[1])} names_len={int(len(self._xgb_feature_names_ordered))}"
                     )
-                if int(X.shape[1]) != 91:
-                    raise RuntimeError(f"[TRUTH_FAIL] XGB input dim expected 91, got {int(X.shape[1])}")
+                if int(X.shape[1]) != 28:
+                    raise RuntimeError(f"[TRUTH_FAIL] XGB input dim expected 28, got {int(X.shape[1])}")
 
                 if not hasattr(self, "_xgb_truth_dump_done"):
                     self._xgb_truth_dump_done = False
@@ -7363,25 +7379,9 @@ class GX1DemoRunner:
                 except Exception:
                     pass
                 
-                # Get feature_meta snap count
+                # Get feature_meta snap count (unused for CTX bundle; rely on bundle_metadata if needed)
                 feature_meta_snap_count = None
                 feature_meta_snap_names = []
-                try:
-                    feature_meta_path = None
-                    if hasattr(self, "entry_v10_cfg") and isinstance(self.entry_v10_cfg, dict):
-                        feature_meta_path = self.entry_v10_cfg.get("feature_meta_path")
-                    if feature_meta_path is None and hasattr(self, "entry_v10_bundle") and hasattr(self.entry_v10_bundle, "bundle_dir"):
-                        candidate_path = Path_local(self.entry_v10_bundle.bundle_dir) / "entry_v10_ctx_feature_meta.json"
-                        if candidate_path.exists():
-                            feature_meta_path = str(candidate_path)
-                    if feature_meta_path:
-                        import json as _json
-                        with open(feature_meta_path, "r") as f:
-                            meta = _json.load(f)
-                        feature_meta_snap_names = meta.get("snap_features", [])
-                        feature_meta_snap_count = len(feature_meta_snap_names)
-                except Exception:
-                    pass
                 
                 # Get actual snap feature names (if instrumented)
                 actual_snap_feature_names = getattr(self, "_actual_snap_feature_names", None)
@@ -7778,29 +7778,8 @@ class GX1DemoRunner:
                         )
                         # TODO: Escalate to data integrity flag/kill-switch if this becomes frequent
                 
-                # Build V9 features
-                # Get feature_meta_path from config (same as used during loading)
-                feature_meta_path = Path_local(self.entry_v10_cfg.get("feature_meta_path"))
-                if not feature_meta_path.exists():
-                    # ENTRY FEATURE TELEMETRY: Record model block and pre-model return
-                    if hasattr(self, "entry_manager") and self.entry_manager and hasattr(self.entry_manager, "entry_feature_telemetry") and self.entry_manager.entry_feature_telemetry:
-                        current_session_debug = policy_state.get("session", "OVERLAP")
-                        self.entry_manager.entry_feature_telemetry.record_model_block(model_name, "FEATURE_META_PATH_MISSING")
-                        self.entry_manager.entry_feature_telemetry.record_pre_model_return("FEATURE_META_PATH_MISSING", session=current_session_debug)
-                    
-                    run_mode = getattr(self, "replay_mode", False) and "REPLAY" or "LIVE"
-                    current_session_debug = policy_state.get("session", "OVERLAP")
-                    is_sniper = getattr(self, "is_sniper", False)
-                    log.error(
-                        "[ENTRY_DEBUG] Early return in _predict_entry_v10_hybrid | "
-                        f"reason=FEATURE_META_PATH_MISSING | "
-                        f"run_mode={run_mode} | "
-                        f"session={current_session_debug} | "
-                        f"is_sniper={is_sniper}"
-                    )
-                    log.error("[ENTRY_V10] Feature meta path not found: %s", feature_meta_path)
-                    return _ret_none("FEATURE_META_PATH_MISSING")
-                
+                # Build V9 features (CTX path uses bundle metadata; legacy feature_meta.json removed)
+                bundle_metadata_path = Path_local(self.entry_v10_bundle.bundle_dir) / "bundle_metadata.json"
                 # Get scaler paths from config (bundles hold scaler objects, but we need paths for build_v9_runtime_features)
                 seq_scaler_path = self.entry_v10_cfg.get("seq_scaler_path")
                 snap_scaler_path = self.entry_v10_cfg.get("snap_scaler_path")
@@ -7832,7 +7811,7 @@ class GX1DemoRunner:
                         
                         df_v9_feats, seq_feat_names, snap_feat_names = build_v10_ctx_runtime_features(
                             df_raw,
-                            feature_meta_path,
+                            bundle_metadata_path,
                             seq_scaler_path=seq_scaler_path,
                             snap_scaler_path=snap_scaler_path,
                         )
@@ -7861,7 +7840,7 @@ class GX1DemoRunner:
                         
                         df_v9_feats, seq_feat_names, snap_feat_names = build_v9_runtime_features(
                             df_raw,
-                            feature_meta_path,
+                            bundle_metadata_path,
                             seq_scaler_path=seq_scaler_path,
                             snap_scaler_path=snap_scaler_path,
                         )
@@ -8582,6 +8561,13 @@ class GX1DemoRunner:
                             self.t_transformer_forward_sec += float(_time_mod.perf_counter() - _t0_tf)
                         except Exception:
                             pass
+                        # Counter: track successful transformer forwards for perf/footers
+                        try:
+                            if not hasattr(self, "perf_n_model_calls"):
+                                self.perf_n_model_calls = 0
+                            self.perf_n_model_calls += 1
+                        except Exception:
+                            pass
                         
                         # B1: forward_calls increment (SSoT: right after transformer forward returns successfully)
                         # SENTINEL G: after_transformer_forward
@@ -9120,6 +9106,27 @@ class GX1DemoRunner:
                 f"run_mode={run_mode} | "
                 f"is_sniper={is_sniper}"
             )
+            # Push signal7 snapshot to shared exit history (single source of truth, per bar)
+            try:
+                from collections import deque
+                from gx1.xgb.multihead.xgb_multihead_model_v1 import proba_to_signal_bridge_v1
+
+                proba_row = np.asarray([[float(prob_long), float(prob_short), float(prob_flat)]], dtype=float)
+                bridge = proba_to_signal_bridge_v1(proba_row)[0].tolist()
+                signal7_now = {
+                    "p_long": float(bridge[0]),
+                    "p_short": float(bridge[1]),
+                    "p_flat": float(bridge[2]),
+                    "p_hat": float(bridge[3]),
+                    "uncertainty_score": float(bridge[4]),
+                    "margin_top1_top2": float(bridge[5]),
+                    "entropy": float(bridge[6]),
+                }
+                if not hasattr(self, "exit_signal7_history") or not isinstance(getattr(self, "exit_signal7_history", None), deque):
+                    self.exit_signal7_history = deque(maxlen=8)
+                self.exit_signal7_history.append(signal7_now)
+            except Exception as e:
+                log.warning("[EXIT_SIGNAL7] Failed to append signal7 history: %s", e, exc_info=True)
             return EntryPrediction(
                 session=current_session,
                 prob_long=float(prob_long),
@@ -12135,13 +12142,15 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
         # NEW: Calculate first_valid_eval_idx based on HTF warmup requirements
         # This ensures we don't evaluate entries before HTF bars are available
         first_valid_eval_idx = self._calculate_first_valid_eval_idx(df, min_bars_for_features)
+        if first_valid_eval_idx > total_bars - 1 and total_bars > 0:
+            first_valid_eval_idx = max(0, total_bars - 1)
         log.info(
             "[REPLAY] first_valid_eval_idx=%d (out of %d total bars). "
             "Skipping first %d bars due to HTF warmup requirements.",
             first_valid_eval_idx, total_bars, first_valid_eval_idx
         )
         
-        bars_to_process = total_bars - first_valid_eval_idx
+        bars_to_process = max(0, total_bars - first_valid_eval_idx)
         
         # Del 1: Set perf_bars_total (bars that will actually be processed)
         self.perf_bars_total = bars_to_process
@@ -12273,25 +12282,7 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
         replay_start_time = time.time()
         last_progress_log_time = replay_start_time
         
-        # DEL 1: Invariant check - verify no BASELINE references
-        if hasattr(self, 'entry_v10_ctx_bundle') and self.entry_v10_ctx_bundle:
-            bundle_dir = getattr(self, 'entry_v10_ctx_cfg', {}).get('bundle_dir', '')
-            if 'BASELINE' in str(bundle_dir).upper():
-                raise RuntimeError(
-                    f"BASELINE_DISABLED: Replay detected BASELINE bundle_dir: '{bundle_dir}'. "
-                    f"Only GATED_FUSION bundles are allowed in replay."
-                )
-        
-        # DEL 1: Verify GX1_GATED_FUSION_ENABLED=1
-        # Note: os is imported at module level, but check if there's a local shadow
-        gated_fusion_enabled = os.getenv("GX1_GATED_FUSION_ENABLED", "0") == "1"
-        if not gated_fusion_enabled:
-            raise RuntimeError(
-                "BASELINE_DISABLED: GX1_GATED_FUSION_ENABLED is not '1' in replay mode. "
-                "BASELINE is disabled. Set GX1_GATED_FUSION_ENABLED=1."
-            )
-        
-        log.info("[REPLAY] GATED_FUSION mode verified: GX1_GATED_FUSION_ENABLED=1")
+        # DEL 1: Invariant check removed (bundle name heuristics)
         
         # DEL 1: Log [REPLAY_PROVENANCE] blokk (explicit configuration from YAML)
         replay_config = self.policy.get("replay_config", {})
@@ -14485,49 +14476,6 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
                     break
         except Exception as e:
             log.warning(f"[REPLAY] Failed to update RUN_IDENTITY with temperature scaling: {e}")
-        
-        # Update RUN_IDENTITY with Exit Policy V2 counters (if enabled)
-        if hasattr(self, "exit_policy_v2") and self.exit_policy_v2:
-            try:
-                exit_v2_counters = self.exit_policy_v2.get_counters()
-                # Update RUN_IDENTITY.json with counters
-                from gx1.runtime.run_identity import load_run_identity
-                identity_paths_to_try = []
-                if hasattr(self, "output_dir") and self.output_dir:
-                    identity_paths_to_try.append(Path(self.output_dir) / "RUN_IDENTITY.json")
-                if hasattr(self, "explicit_output_dir") and self.explicit_output_dir:
-                    identity_paths_to_try.append(Path(self.explicit_output_dir) / "RUN_IDENTITY.json")
-                    # Also try parent directory (for chunk workers)
-                    parent_dir = Path(self.explicit_output_dir).parent
-                    identity_paths_to_try.append(parent_dir / "RUN_IDENTITY.json")
-                # Try environment variable for output dir (used in replay_eval_gated_parallel)
-                output_dir_env = os.getenv("GX1_OUTPUT_DIR")
-                if output_dir_env:
-                    identity_paths_to_try.append(Path(output_dir_env) / "RUN_IDENTITY.json")
-                
-                updated = False
-                for identity_path in identity_paths_to_try:
-                    if identity_path.exists():
-                        try:
-                            identity = load_run_identity(identity_path)
-                            identity.exit_v2_enabled = True  # Mark as enabled
-                            identity.exit_v2_counters = exit_v2_counters
-                            # Write updated identity (atomic write)
-                            import json
-                            temp_path = identity_path.with_suffix(".json.tmp")
-                            with open(temp_path, "w", encoding="utf-8") as f:
-                                json.dump(identity.to_dict(), f, indent=2, sort_keys=True)
-                            temp_path.replace(identity_path)
-                            log.info(f"[EXIT_POLICY_V2] Updated RUN_IDENTITY.json with counters: {identity_path}")
-                            updated = True
-                            break
-                        except Exception as e:
-                            log.warning(f"[EXIT_POLICY_V2] Failed to update {identity_path}: {e}", exc_info=True)
-                
-                if not updated:
-                    log.warning(f"[EXIT_POLICY_V2] Could not find RUN_IDENTITY.json in any of: {identity_paths_to_try}")
-            except Exception as e:
-                log.warning(f"[EXIT_POLICY_V2] Failed to update RUN_IDENTITY with counters: {e}", exc_info=True)
         
         # DEL 3: Update RUN_IDENTITY with Pre-Entry Wait Gate counters (if enabled)
         if hasattr(self, "entry_manager") and self.entry_manager and hasattr(self.entry_manager, "pre_entry_wait_gate") and self.entry_manager.pre_entry_wait_gate:

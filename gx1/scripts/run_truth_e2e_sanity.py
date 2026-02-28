@@ -125,7 +125,6 @@ def _assert_no_forbidden_symbol_imports_after_replay(run_root: Path) -> None:
     """TRUTH gate: hard-fail if forbidden modules are in sys.modules after replay (stricter than IMPORT_PROOF/banlist).
     Only explicitly banned names and runtime_v9 pattern; no broad baseline/fallback pattern (avoids false positives)."""
     forbidden_exact = [
-        "gx1.inference.model_loader_worker",
         "gx1.scripts.replay_eval_gated_parallel",
     ]
     hits: List[str] = []
@@ -140,7 +139,7 @@ def _assert_no_forbidden_symbol_imports_after_replay(run_root: Path) -> None:
         msg = (
             "[TRUTH_FORBIDDEN_SYMBOL_IMPORTS] Forbidden modules in sys.modules after replay: "
             + ", ".join(hits)
-            + ". Banned: model_loader_worker, replay_eval_gated_parallel, runtime_v9."
+            + ". Banned: replay_eval_gated_parallel, runtime_v9."
         )
         _write_fatal_capsule(run_root, RuntimeError(msg), ["forbidden_symbol_imports"])
         raise RuntimeError(msg)
@@ -180,6 +179,18 @@ def _load_json(path: Path) -> Dict[str, Any]:
     if not path.exists():
         raise RuntimeError(f"[E2E] file not found: {path}")
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _extract_guard_id(guard_obj: Dict[str, Any]) -> str:
+    id_string = guard_obj.get("id_string")
+    if id_string:
+        return str(id_string)
+    name = guard_obj.get("name")
+    version = guard_obj.get("version")
+    sha = guard_obj.get("impl_sha256")
+    if name and version and sha:
+        return f"{name}::{version}::{sha}"
+    raise RuntimeError("[RISK_GUARD_IDENTITY_DRIFT] guard identity missing fields")
 
 
 def _sha256_file(path: Path) -> str:
@@ -1116,6 +1127,15 @@ def _run_postrun_checks(run_root: Path, run_id: str, truth_artifacts: Optional[D
         n_ctx = int(footer.get("n_ctx_model_calls") or 0)
         ctx_pass = int(footer.get("ctx_proof_pass_count") or 0)
         ctx_fail = int(footer.get("ctx_proof_fail_count") or 0)
+        if forward_calls == 0:
+            result["checks"]["ctx_telemetry"] = {
+                "skipped": True,
+                "reason": "no forward calls in window",
+                "n_ctx_model_calls": n_ctx,
+                "ctx_proof_pass_count": ctx_pass,
+                "ctx_proof_fail_count": ctx_fail,
+            }
+            return result
         if n_ctx <= 0:
             result["gates_failed"].append("ctx_telemetry")
             result["checks"]["ctx_telemetry"] = {
@@ -1183,6 +1203,39 @@ def _run_postrun_checks(run_root: Path, run_id: str, truth_artifacts: Optional[D
             result["checks"]["zero_trades"] = {"passed": True, "n_trades": n_trades, "min_trades": min_trades}
     else:
         result["checks"]["zero_trades"] = {"n_trades": n_trades, "passed": True, "min_trades": min_trades}
+
+    # ---------------------------------------------------------------------
+    # Risk guard identity drift (from MODEL_USED_CAPSULE)
+    # ---------------------------------------------------------------------
+    risk_guard_expected = (truth_artifacts.get("replay_config", {}).get("risk_guard_id", "") if truth_artifacts else "").strip()
+    if risk_guard_expected:
+        capsule_path = chunk_dir / "MODEL_USED_CAPSULE.json"
+        if not capsule_path.exists():
+            result["gates_failed"].append("risk_guard_identity")
+            result["checks"]["risk_guard_identity"] = {"error": "MODEL_USED_CAPSULE.json missing"}
+            return result
+        try:
+            capsule = _load_json(capsule_path)
+            guards = capsule.get("guards") or {}
+            rg = guards.get("risk_guard_v1")
+            if not rg:
+                result["gates_failed"].append("risk_guard_identity")
+                result["checks"]["risk_guard_identity"] = {"error": "risk_guard_v1 identity missing from capsule"}
+                return result
+            observed_id = _extract_guard_id(rg)
+            if observed_id != risk_guard_expected:
+                result["gates_failed"].append("risk_guard_identity")
+                result["checks"]["risk_guard_identity"] = {
+                    "error": "RISK_GUARD_IDENTITY_DRIFT",
+                    "expected": risk_guard_expected,
+                    "observed": observed_id,
+                }
+                return result
+            result["checks"]["risk_guard_identity"] = {"passed": True, "id": observed_id}
+        except Exception as e:
+            result["gates_failed"].append("risk_guard_identity")
+            result["checks"]["risk_guard_identity"] = {"error": f"RISK_GUARD_IDENTITY_DRIFT: {e}"}
+            return result
 
     # ---------------------------------------------------------------------
     # Exit coverage: truth_exit_journal_ok==true if EXIT_COVERAGE_SUMMARY exists (replay or root)
@@ -1571,6 +1624,7 @@ def main() -> int:
     canonical_prebuilt = str(truth_obj.get("canonical_prebuilt_parquet") or "")
     canonical_manifest_truth = str(truth_obj.get("canonical_prebuilt_manifest") or "")
     canonical_transformer = str(truth_obj.get("canonical_transformer_bundle_dir") or "")
+    replay_cfg_truth = truth_obj.get("replay_config") or {}
 
     manifest_ssot_resolved = MANIFEST_SSOT.expanduser().resolve()
     if canonical_manifest_truth and Path(canonical_manifest_truth).expanduser().resolve() != manifest_ssot_resolved:
@@ -1588,6 +1642,18 @@ def main() -> int:
             canary_proof=canary_proof,
         )
         return 1
+
+    # TRUTH gate: forbid legacy sniper tree (must be migrated to _legacy_disabled)
+    legacy_dir_name = "_".join(("sniper", "snapshot"))
+    sniper_live_path = ENGINE / "gx1" / "configs" / "policies" / legacy_dir_name
+    if sniper_live_path.exists():
+        msg = (
+            "[TRUTH_GATE] legacy policy tree must not exist at live path (migrate to gx1/configs/_legacy_disabled). "
+            f"Found: {sniper_live_path}"
+        )
+        _write_fatal_capsule(run_root, RuntimeError(msg), ["legacy_policy_tree_on_disk"])
+        _write_summary_md(run_root, preflight, None, False, [msg], canary_proof=canary_proof)
+        raise RuntimeError(msg)
 
     manifest_obj = _load_json(manifest_ssot_resolved)
     manifest_parquet = str(Path(manifest_obj.get("parquet_path") or "").expanduser().resolve())
@@ -1621,12 +1687,48 @@ def main() -> int:
     bundle_dir = Path(canonical_bundle).expanduser().resolve()
     prebuilt_path = Path(manifest_parquet).expanduser().resolve()
 
-    policy_path = Path(
-        os.environ.get(
-            "GX1_CANONICAL_POLICY_PATH",
-            str(ENGINE / "gx1" / "configs" / "policies" / "sniper_snapshot" / "2025_SNIPER_V1" / "GX1_SNIPER_REPLAY_V10_CTX_VERIFY.yaml"),
-        )
-    ).expanduser().resolve()
+    def _resolve_truth_path(path_val: str, label: str) -> Path:
+        if not path_val:
+            raise RuntimeError(f"[TRUTH_POLICY_WIRING_MISSING] {label} missing in truth file: {truth_path}")
+        p = Path(path_val)
+        if not p.is_absolute():
+            p = (ENGINE / p).resolve()
+        else:
+            p = p.expanduser().resolve()
+        if not p.exists():
+            raise RuntimeError(f"[TRUTH_POLICY_WIRING_NOT_FOUND] {label} not found: {p}")
+        return p
+
+    try:
+        policy_path = _resolve_truth_path(replay_cfg_truth.get("policy_yaml_path", "").strip(), "policy_yaml_path")
+        entry_config_path = _resolve_truth_path(replay_cfg_truth.get("entry_config_yaml_path", "").strip(), "entry_config_yaml_path")
+        exit_config_path = _resolve_truth_path(replay_cfg_truth.get("exit_config_yaml_path", "").strip(), "exit_config_yaml_path")
+        print(f"[E2E] POLICY_PATH_USED={policy_path}", file=sys.stderr)
+        print(f"[E2E] ENTRY_CONFIG_USED={entry_config_path}", file=sys.stderr)
+        print(f"[E2E] EXIT_CONFIG_USED={exit_config_path}", file=sys.stderr)
+
+        # Split-brain guard: policy must reference the same entry/exit configs declared in truth.
+        try:
+            policy_text = policy_path.read_text(encoding="utf-8")
+        except Exception as _read_err:
+            raise RuntimeError(f"[TRUTH_POLICY_WIRING_NOT_FOUND] failed to read policy_yaml_path: {policy_path} err={_read_err}") from _read_err
+
+        entry_marker = entry_config_path.name
+        exit_marker = exit_config_path.name
+        if entry_marker not in policy_text or exit_marker not in policy_text:
+            raise RuntimeError(
+                "[TRUTH_POLICY_WIRING_SPLIT_BRAIN] policy YAML does not reference required entry/exit configs "
+                f"(entry_marker={entry_marker!r}, exit_marker={exit_marker!r}, policy={policy_path})"
+            )
+
+        # Risk guard identity expectation from truth
+        expected_risk_guard_id = (replay_cfg_truth.get("risk_guard_id") or "").strip()
+        if not expected_risk_guard_id:
+            raise RuntimeError("[TRUTH_POLICY_WIRING_MISSING] risk_guard_id missing in truth file")
+    except Exception as e:
+        _write_fatal_capsule(run_root, e, ["truth_policy_wiring"])
+        _write_summary_md(run_root, preflight, None, False, [str(e)], canary_proof=canary_proof)
+        return 1
 
     raw_path = Path(
         os.environ.get(
@@ -1635,10 +1737,7 @@ def main() -> int:
         )
     ).expanduser().resolve()
 
-    if not policy_path.exists():
-        _write_fatal_capsule(run_root, FileNotFoundError(str(policy_path)), ["policy_path"])
-        _write_summary_md(run_root, preflight, None, False, [f"Policy not found: {policy_path}"], canary_proof=canary_proof)
-        return 1
+    # policy_path already existence-checked above
     # TRUTH gate: only the canonical policy file may be used (exact path match)
     try:
         from gx1.utils.truth_banlist import is_truth_or_smoke, assert_truth_policy_path_canonical

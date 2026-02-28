@@ -48,6 +48,16 @@ def replay_pregate_should_skip(
     if policy_config is None:
         policy_config = {}
     
+    # Map numeric session IDs to names (TRUTH pregate observability)
+    SESSION_ID_TO_NAME = {0: "ASIA", 1: "EU", 2: "OVERLAP", 3: "US"}
+    session_raw = session
+    mapped_session = session
+    if isinstance(mapped_session, (int,)) or (isinstance(mapped_session, float) and float(mapped_session).is_integer()):
+        mapped_session = SESSION_ID_TO_NAME.get(int(mapped_session), "UNKNOWN")
+    elif mapped_session is not None:
+        mapped_session = str(mapped_session)
+    session = mapped_session
+
     # Get pregate config (defaults to conservative if not configured)
     pregate_cfg = policy_config.get("replay_pregate", {})
     if not isinstance(pregate_cfg, dict):
@@ -80,6 +90,9 @@ def replay_pregate_should_skip(
     allowed_sessions = pregate_cfg.get("allow_sessions", [])
     if allowed_sessions and session:
         if session not in allowed_sessions:
+            if not hasattr(replay_pregate_should_skip, "_logged_session_map"):
+                log.info("[PREGATE_SESSION_MAP] session_id=%s -> %s allow_sessions=%s", session_raw, session, allowed_sessions)
+                replay_pregate_should_skip._logged_session_map = True
             return True, f"replay_pregate_skip:session_not_allowed:{session}"
     
     # DEL A1: Check warmup requirement (cheap - just boolean)

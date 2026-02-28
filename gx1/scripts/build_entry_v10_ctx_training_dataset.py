@@ -16,8 +16,8 @@ Outputs (advanced structure, compatible with "old idea"):
 - snap: ndarray shaped [7]              (signal bridge snapshot)
 - ctx_cont: ndarray shaped [6]
 - ctx_cat: ndarray shaped [6]
-- y_direction: float32 (0/1)            (label computed from tape with fixed-hold exit)
-- y_early_move: float32 (0/1)           (label computed from tape within horizon)
+- y_direction: float32 (0/1)            (label computed from tape with fixed-hold exit; hold-bars configurable)
+- y_early_move: float32 (0/1)           (label computed from tape within horizon=hold_bars)
 - y_quality_score: float32              (e.g. abs pnl bps over horizon)
 
 NO FALLBACKS unless explicitly allowed by CLI flags.
@@ -49,7 +49,7 @@ from gx1.contracts.signal_bridge_v1 import (
     CONTRACT_SHA256 as SIGNAL_CONTRACT_SHA256,
 )
 from gx1.utils.canonical_prebuilt_resolver import resolve_base28_canonical_from_manifest
-from gx1.xgb.multihead.xgb_multihead_model_v1 import XGBMultiheadModel
+from gx1.xgb.multihead.xgb_multihead_model_v1 import XGBMultiheadModel, proba_to_signal_bridge_v1
 from gx1.xgb.preprocess.xgb_input_sanitizer import XGBInputSanitizer
 
 log = logging.getLogger(__name__)
@@ -428,16 +428,15 @@ def build_dataset_canonical(
     # sanitize (contract-ordered)
     x_array, _stats = sanitizer.sanitize(df_features, feature_list=features, allow_nan_fill=False)
     if x_array is None or len(df_features) != len(df):
-        # df_features derived from df; should match
         raise RuntimeError("SANITIZER_OUTPUT_INVALID")
+    if np.isnan(x_array).any() or np.isinf(x_array).any():
+        raise RuntimeError("SANITIZER_FAIL_NONFINITE: sanitized features contain NaN/Inf")
 
     # 5) Predict per session head (if session_id exists) else US
     session_series = df["session_id"].fillna(2).astype(int) if "session_id" in df.columns else None
     session_map = {0: "EU", 1: "OVERLAP", 2: "US"}
 
-    p_long = np.zeros(len(df), dtype=np.float64)
-    p_short = np.zeros(len(df), dtype=np.float64)
-    p_flat = np.zeros(len(df), dtype=np.float64)
+    bridge_all = np.zeros((len(df), 7), dtype=np.float64)
 
     def _run_for_session(sess_name: str, idx: np.ndarray) -> None:
         if idx.size == 0:
@@ -445,13 +444,18 @@ def build_dataset_canonical(
         probs = model.predict_proba(df_features.iloc[idx], session=sess_name, feature_list=features)
         # Expect attributes or dict-like; support both
         if hasattr(probs, "p_long"):
-            p_long[idx] = np.asarray(probs.p_long, dtype=np.float64)
-            p_short[idx] = np.asarray(probs.p_short, dtype=np.float64)
-            p_flat[idx] = np.asarray(probs.p_flat, dtype=np.float64)
+            pl = np.asarray(probs.p_long, dtype=np.float64)
+            ps = np.asarray(probs.p_short, dtype=np.float64)
+            pf = np.asarray(probs.p_flat, dtype=np.float64)
         else:
-            p_long[idx] = np.asarray(probs["p_long"], dtype=np.float64)
-            p_short[idx] = np.asarray(probs["p_short"], dtype=np.float64)
-            p_flat[idx] = np.asarray(probs["p_flat"], dtype=np.float64)
+            pl = np.asarray(probs["p_long"], dtype=np.float64)
+            ps = np.asarray(probs["p_short"], dtype=np.float64)
+            pf = np.asarray(probs["p_flat"], dtype=np.float64)
+        bridge_input = np.column_stack([pl, ps, pf])
+        bridge = proba_to_signal_bridge_v1(bridge_input)
+        if bridge.shape[1] != 7:
+            raise RuntimeError(f"[BRIDGE_DIM_MISMATCH] expected bridge_dim=7, got shape={bridge.shape}")
+        bridge_all[idx, :] = bridge
 
     if session_series is not None:
         for sid, name in session_map.items():
@@ -461,16 +465,8 @@ def build_dataset_canonical(
     else:
         _run_for_session("US", np.arange(len(df), dtype=np.int64))
 
-    eps = 1e-12
-    p_hat = np.maximum(p_long, p_short)
-    top2 = np.sort(np.stack([p_long, p_short, p_flat], axis=0), axis=0)
-    margin_top1_top2 = top2[-1] - top2[-2]
-    entropy = -(
-        p_long * np.log(np.clip(p_long, eps, 1.0))
-        + p_short * np.log(np.clip(p_short, eps, 1.0))
-        + p_flat * np.log(np.clip(p_flat, eps, 1.0))
-    )
-    uncertainty_score = entropy
+    # Bridge proof log/meta
+    log.info("[BRIDGE_PROOF] proba_dim=%d -> bridge_dim=%d rows=%d", 3, 7, bridge_all.shape[0])
 
     # 6) Build ctx features
     ctx_cont_names = list(ctx["ctx_cont_names"])
@@ -495,23 +491,8 @@ def build_dataset_canonical(
 
     # 7) Assemble per-bar signal dataframe (time aligned)
     df_sig = pd.DataFrame({"time": df["time"].to_numpy()})
-    for field in SIGNAL_FIELDS:
-        if field == "p_long":
-            df_sig[field] = p_long
-        elif field == "p_short":
-            df_sig[field] = p_short
-        elif field == "p_flat":
-            df_sig[field] = p_flat
-        elif field == "p_hat":
-            df_sig[field] = p_hat
-        elif field == "uncertainty_score":
-            df_sig[field] = uncertainty_score
-        elif field == "margin_top1_top2":
-            df_sig[field] = margin_top1_top2
-        elif field == "entropy":
-            df_sig[field] = entropy
-        else:
-            raise RuntimeError(f"SIGNAL_FIELD_UNKNOWN: {field}")
+    for i, field in enumerate(SIGNAL_FIELDS):
+        df_sig[field] = bridge_all[:, i]
 
     # 8) Labels from canonical tape lane (join by time)
     t_min = pd.Timestamp(df_sig["time"].min()).tz_convert("UTC")
@@ -593,16 +574,28 @@ def build_dataset_canonical(
         raise RuntimeError("BUILD_EMPTY_OUTPUT")
 
     # Parquet can only serialize list-like columns (PyArrow); convert arrays to lists
-    df_out["seq"] = df_out["seq"].apply(lambda a: a.tolist() if hasattr(a, "tolist") else list(a))
-    df_out["snap"] = df_out["snap"].apply(lambda a: a.tolist() if hasattr(a, "tolist") else list(a))
-    df_out["ctx_cont"] = df_out["ctx_cont"].apply(lambda a: a.tolist() if hasattr(a, "tolist") else list(a))
-    df_out["ctx_cat"] = df_out["ctx_cat"].apply(lambda a: a.tolist() if hasattr(a, "tolist") else list(a))
+    # -------------------------------------------------------------------------
+    # Parquet-safe serialization: enforce pure Python lists (no numpy arrays)
+    # -------------------------------------------------------------------------
+    def _to_list(x):
+        # Handles numpy arrays, lists, tuples; returns pure Python list (deep)
+        if hasattr(x, "tolist"):
+            return x.tolist()
+        if isinstance(x, (list, tuple)):
+            return [_to_list(v) for v in x]
+        return x
+
+    df_out["seq"] = df_out["seq"].apply(_to_list)
+    df_out["snap"] = df_out["snap"].apply(_to_list)
+    df_out["ctx_cont"] = df_out["ctx_cont"].apply(_to_list)
+    df_out["ctx_cat"] = df_out["ctx_cat"].apply(_to_list)
 
     # 10) Metadata
+    _hold_bars = int(horizon_bars)
     meta: Dict[str, Any] = {
         "rows": int(len(df_out)),
         "seq_len": int(seq_len),
-        "horizon_bars": int(horizon_bars),
+        "hold_bars": _hold_bars,
         "early_move_threshold_bps": float(early_move_threshold_bps),
         "base28_manifest": {
             "path": str(base28_manifest_path),
@@ -616,6 +609,8 @@ def build_dataset_canonical(
             "id": "XGB_SIGNAL_BRIDGE_V1",
             "fields": list(SIGNAL_FIELDS),
             "contract_sha256": SIGNAL_CONTRACT_SHA256,
+            "proba_dim_seen": 3,
+            "bridge_dim": 7,
         },
         "ctx_contract": {
             "tag": ctx["tag"],
@@ -644,16 +639,22 @@ def main() -> None:
     )
 
     parser.add_argument(
+        "--truth-config",
+        type=str,
+        required=False,
+        help="Path to canonical truth config JSON. If provided, base28_manifest and xgb_bundle are resolved from it.",
+    )
+    parser.add_argument(
         "--base28_manifest",
         type=str,
-        required=True,
-        help="Path to BASE28_CANONICAL CURRENT_MANIFEST.json (manifest-only resolution).",
+        required=False,
+        help="Path to BASE28_CANONICAL CURRENT_MANIFEST.json (manifest-only resolution). Optional when --truth-config is set.",
     )
     parser.add_argument(
         "--xgb_bundle",
         type=str,
-        required=True,
-        help="Path to canonical XGB bundle directory (universal multihead v2; locked).",
+        required=False,
+        help="Path to canonical XGB bundle directory (universal multihead v2; locked). Optional when --truth-config is set.",
     )
     parser.add_argument("--output", type=str, required=True, help="Output dataset path (.parquet).")
 
@@ -666,7 +667,7 @@ def main() -> None:
     parser.add_argument("--seq_len", type=int, default=30, help="Sequence length for seq feature (default: 30).")
 
     # Labels (fixed-hold)
-    parser.add_argument("--horizon_bars", type=int, default=3, help="Label horizon in M5 bars (default: 3).")
+    parser.add_argument("--hold-bars", dest="hold_bars", type=int, default=3, help="Fixed-hold label horizon in M5 bars (default: 3). Must be between 1 and 50.")
     parser.add_argument("--early_move_threshold_bps", type=float, default=4.0, help="Early-move threshold in bps (default: 4.0).")
 
     # Tape lane
@@ -702,12 +703,82 @@ def main() -> None:
     ctx = _hard_gate_ctx6cat6()
     log.info(f"[CTX_CONTRACT] OK: tag={ctx['tag']} cont={ctx['ctx_cont_dim']} cat={ctx['ctx_cat_dim']}")
 
-    base28_manifest_path = Path(args.base28_manifest).resolve()
-    xgb_bundle_path = Path(args.xgb_bundle).resolve()
+    hold_bars = int(args.hold_bars)
+    if hold_bars < 1 or hold_bars > 50:
+        raise ValueError(f"HOLD_BARS_INVALID: {hold_bars} (must be 1..50)")
+    log.info("[LABEL_HOLD] hold_bars=%d", hold_bars)
+
+    # Dataset build proof (will be written after output_path resolved)
+    proof_payload = {
+        "ctx_tag": ctx.get("tag"),
+        "ctx_cont_dim": int(ctx.get("ctx_cont_dim", -1)),
+        "ctx_cat_dim": int(ctx.get("ctx_cat_dim", -1)),
+        "signal_bridge_id": "XGB_SIGNAL_BRIDGE_V1",
+        "signal_bridge_contract_sha256": str(SIGNAL_CONTRACT_SHA256),
+        "hold_bars": hold_bars,
+    }
+
+    # Resolve SSoT inputs (truth-config or manual)
+    truth_config_path: Optional[Path] = None
+    if args.truth_config:
+        truth_config_path = Path(args.truth_config).expanduser().resolve()
+        if args.base28_manifest or args.xgb_bundle:
+            raise SystemExit("[SPLIT_BRAIN_ARGS] truth-config provided but base28_manifest/xgb_bundle also supplied")
+        if not truth_config_path.exists():
+            raise RuntimeError(f"TRUTH_CONFIG_MISSING: {truth_config_path}")
+        truth_obj = json.loads(truth_config_path.read_text())
+        base28_manifest_path = Path(
+            truth_obj.get(
+                "canonical_prebuilt_manifest",
+                "/home/andre2/GX1_DATA/data/data/prebuilt/BASE28_CANONICAL/CURRENT_MANIFEST.json",
+            )
+        ).expanduser().resolve()
+        xgb_bundle_path = Path(
+            truth_obj.get(
+                "canonical_xgb_bundle_dir",
+                "/home/andre2/GX1_DATA/models/models/xgb_universal_multihead_v2__CANONICAL",
+            )
+        ).expanduser().resolve()
+        log.info(
+            "[TRUTH_CONFIG] Using truth-config %s -> base28_manifest=%s xgb_bundle=%s",
+            truth_config_path,
+            base28_manifest_path,
+            xgb_bundle_path,
+        )
+        proof_payload.update(
+            {
+                "truth_config_path": str(truth_config_path),
+                "truth_source": "truth_config",
+            }
+        )
+    else:
+        if not args.base28_manifest or not args.xgb_bundle:
+            raise SystemExit("Both --base28_manifest and --xgb_bundle are required when --truth-config is not provided")
+        base28_manifest_path = Path(args.base28_manifest).resolve()
+        xgb_bundle_path = Path(args.xgb_bundle).resolve()
+        proof_payload.update({"truth_config_path": None, "truth_source": "manual_args"})
     _ensure_inputs_exist(base28_manifest_path, xgb_bundle_path)
 
     output_path = Path(args.output).resolve()
+    hold_suffix = f"HOLD_{hold_bars:02d}B"
+    if hold_suffix not in output_path.stem:
+        output_path = output_path.with_name(f"{output_path.stem}__{hold_suffix}{output_path.suffix}")
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    # Write proof payload
+    try:
+        proof_path = output_path.parent / "DATASET_BUILD_PROOF.json"
+        with open(proof_path, "w") as f:
+            json.dump(proof_payload, f, indent=2)
+        log.info("[DATASET_BUILD_PROOF] wrote %s", proof_path)
+    except Exception as e:
+        log.warning("[DATASET_BUILD_PROOF] failed to write proof file: %s", e)
+    proof_payload.update(
+        {
+            "base28_manifest_path": str(base28_manifest_path),
+            "xgb_bundle_path": str(xgb_bundle_path),
+            "output_path": str(output_path),
+        }
+    )
 
     start = _parse_ts(args.start)
     end = _parse_ts(args.end)
@@ -734,7 +805,7 @@ def main() -> None:
                 "max_rows": args.max_rows,
                 "time_split": bool(args.time_split),
                 "seq_len": int(args.seq_len),
-                "horizon_bars": int(args.horizon_bars),
+                "hold_bars": int(hold_bars),
                 "early_move_threshold_bps": float(args.early_move_threshold_bps),
                 "allow_zero_ctx": bool(args.allow_zero_ctx),
             },
@@ -776,7 +847,7 @@ def main() -> None:
                 end=s1,
                 max_rows=args.max_rows,
                 seq_len=int(args.seq_len),
-                horizon_bars=int(args.horizon_bars),
+                horizon_bars=int(hold_bars),
                 early_move_threshold_bps=float(args.early_move_threshold_bps),
                 allow_zero_ctx=bool(args.allow_zero_ctx),
             )
@@ -810,7 +881,7 @@ def main() -> None:
         end=end,
         max_rows=args.max_rows,
         seq_len=int(args.seq_len),
-        horizon_bars=int(args.horizon_bars),
+        horizon_bars=int(hold_bars),
         early_move_threshold_bps=float(args.early_move_threshold_bps),
         allow_zero_ctx=bool(args.allow_zero_ctx),
     )

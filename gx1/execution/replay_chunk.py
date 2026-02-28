@@ -325,6 +325,10 @@ def _extract_runner_perf(runner: Any, chunk_df: Optional[pd.DataFrame]) -> Tuple
 
     bars_seen = _safe_int(getattr(runner, "bars_seen", None), default=total_bars)
     bars_processed = _safe_int(getattr(runner, "perf_n_bars_processed", None), default=bars_seen)
+    if bars_processed < 0:
+        bars_processed = 0
+    if bars_processed > total_bars:
+        bars_processed = total_bars
 
     bars_evaluated = _safe_int(
         getattr(runner, "perf_n_model_calls", None),
@@ -333,6 +337,8 @@ def _extract_runner_perf(runner: Any, chunk_df: Optional[pd.DataFrame]) -> Tuple
             default=_safe_int(getattr(runner, "n_model_calls", None), default=0),
         ),
     )
+    if bars_evaluated < 0:
+        bars_evaluated = 0
 
     warmup_holdback_bars = _safe_int(getattr(runner, "first_valid_eval_idx_stored", 0), 0)
 
@@ -769,21 +775,23 @@ def process_chunk(
         from gx1.execution.chunk_footer_invariants import check_bars_invariant  # local import
 
         bars_total_input = int(total_bars)
+        # Clamp warmup to available bars to avoid negative processed counts on short windows
+        effective_warmup_holdback = int(min(warmup_holdback_bars, bars_total_input))
         bars_invariant_gap = int(bars_total_input - int(bars_processed))
-        bars_invariant_expected_gap = int(warmup_holdback_bars + tail_holdback_bars)
+        bars_invariant_expected_gap = int(effective_warmup_holdback + tail_holdback_bars)
 
         bars_invariant_ok = check_bars_invariant(
             bars_total_input=bars_total_input,
             bars_processed=int(bars_processed),
             tail_holdback_bars=int(tail_holdback_bars),
             status=status,
-            warmup_holdback_bars=int(warmup_holdback_bars),
+            warmup_holdback_bars=effective_warmup_holdback,
         )
 
         if not bars_invariant_ok:
             msg = (
                 f"[BARS_INVARIANT] gap={bars_invariant_gap} != expected={bars_invariant_expected_gap} "
-                f"(warmup={warmup_holdback_bars} tail={tail_holdback_bars})"
+                f"(warmup={effective_warmup_holdback} tail={tail_holdback_bars})"
             )
             if is_truth_or_smoke_worker:
                 log.error("%s; will raise after footer write", msg)
@@ -823,6 +831,22 @@ def process_chunk(
             pregate_passes = _safe_int(getattr(runner, "pregate_passes", 0), 0)
             pregate_missing_inputs = _safe_int(getattr(runner, "pregate_missing_inputs", 0), 0)
 
+            # Entry gate counters (deterministic reasons for entry rejection)
+            gate_counts = getattr(runner, "entry_gate_counters", {}) or {}
+            gate_order = [
+                "p_threshold",
+                "margin_threshold",
+                "ratio_threshold",
+                "pregate_session",
+                "pregate_spread",
+                "pregate_atr",
+                "warmup_not_ready",
+                "guard_veto",
+            ]
+            for reason in gate_order:
+                val = _safe_int(gate_counts.get(reason, 0), 0)
+                log.info("[ENTRY_GATE_COUNTER] %s=%d", reason, val)
+
             # timers
             t_pregate_total_sec = _safe_float(getattr(runner, "t_pregate_total_sec", 0.0), 0.0)
             t_xgb_predict_sec = _safe_float(getattr(runner, "t_xgb_predict_sec", 0.0), 0.0)
@@ -849,6 +873,17 @@ def process_chunk(
             htf_h4_warns = _safe_int(getattr(runner, "htf_h4_warns", 0), 0)
             htf_last_m5_ts = getattr(runner, "htf_last_m5_ts", None)
             htf_last_j = getattr(runner, "htf_last_j", None)
+
+            # TRUTH/SMOKE hard gate: forward time > 0 but no model calls -> fail invariant
+            if (
+                is_truth_or_smoke_worker
+                and status == "ok"
+                and float(t_transformer_forward_sec or 0.0) > 0.0
+                and int(bars_evaluated or 0) == 0
+            ):
+                status = "failed_invariant"
+                error = "[COUNTER_INVARIANT] transformer_forward_sec>0 but bars_evaluated==0"
+                error_traceback = None
 
             payload: Dict[str, Any] = {
                 "run_id": run_id,
@@ -953,6 +988,14 @@ def process_chunk(
                 "exit_ml_model_sha": getattr(runner, "exit_ml_model_sha", None),
                 "exit_ml_input_dim": getattr(runner, "exit_ml_input_dim", None),
                 "exit_ml_io_version": getattr(runner, "exit_ml_io_version", None),
+                "entry_attempt_long": getattr(runner, "entry_attempt_long", None),
+                "entry_attempt_short": getattr(runner, "entry_attempt_short", None),
+                "entry_accept_long": getattr(runner, "entry_accept_long", None),
+                "entry_accept_short": getattr(runner, "entry_accept_short", None),
+                "exit_eval_long": getattr(runner, "exit_eval_long", None),
+                "exit_eval_short": getattr(runner, "exit_eval_short", None),
+                "exit_close_long": getattr(runner, "exit_close_long", None),
+                "exit_close_short": getattr(runner, "exit_close_short", None),
                 # ssot
                 "ssot": {"bundle_sha256": bundle_sha256},
                 # ctx masks (diagnostics)

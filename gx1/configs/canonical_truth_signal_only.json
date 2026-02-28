@@ -6,9 +6,9 @@
 
   "canonical_xgb_bundle_dir": "/home/andre2/GX1_DATA/models/models/xgb_universal_multihead_v2__CANONICAL",
 
-  "canonical_entry_v10_ctx_bundle_dir": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_CTX__BASELINE__DS_2025_0603_0610_N5000",
-  "canonical_entry_transformer_bundle_dir": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_CTX__BASELINE__DS_2025_0603_0610_N5000",
-  "canonical_transformer_bundle_dir": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_CTX__BASELINE__DS_2025_0603_0610_N5000",
+  "canonical_entry_v10_ctx_bundle_dir": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_CTX__BASELINE__DS_2025_0520_0620_N50000",
+  "canonical_entry_transformer_bundle_dir": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_CTX__BASELINE__DS_2025_0520_0620_N50000",
+  "canonical_transformer_bundle_dir": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_CTX__BASELINE__DS_2025_0520_0620_N50000",
 
   "signal_bridge_id": "XGB_SIGNAL_BRIDGE_V1",
   "signal_bridge_contract_sha256": "dde7271db04cf51608bf18cfd1cbdbb7dc631556be4be64e9c82f21ed328f2aa",
@@ -29,6 +29,11 @@
     "use_prebuilt_features": true,
     "require_prebuilt_features": true,
     "allow_baseline_features": false,
+
+    "policy_yaml_path": "gx1/configs/policies/canonical_truth/GX1_TRUTH_REPLAY_V10_CTX.yaml",
+    "entry_config_yaml_path": "gx1/configs/entry_configs/ENTRY_V10_CTX_TRUTH_REPLAY.yaml",
+    "exit_config_yaml_path": "gx1/configs/policies/canonical_truth/exits/EXIT_TRANSFORMER_ONLY_V0.yaml",
+    "risk_guard_id": "RISK_GUARD_V1::1.0.0::33a4a83e2949abb102f3ee86a3746bb0320f69f244ebe186a17b18ae50e77e45",
 
     "truth_artifacts": {
       "require_import_proof": true,

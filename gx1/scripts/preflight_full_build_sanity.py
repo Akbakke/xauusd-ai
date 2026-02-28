@@ -261,7 +261,7 @@ def check_contract(
 
     # Check calibration
     if require_calibration:
-        policy_id = policy_config.get("policy_name", "GX1_SNIPER_TRAIN_V10_CTX_GATED")
+        policy_id = policy_config.get("policy_name", "GX1_TRUTH_REPLAY_V10_CTX")
         calibrators = load_xgb_calibrators(
             calibration_dir=calibration_dir,
             policy_id=policy_id,

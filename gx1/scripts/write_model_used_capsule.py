@@ -152,10 +152,7 @@ def main():
     if args.policy_path is None:
         # Try to find active policy with v10_ctx config
         policy_candidates = [
-            WORKSPACE_ROOT / "gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1" / "GX1_SNIPER_REPLAY_V10_CTX_VERIFY.yaml",
-            WORKSPACE_ROOT / "gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1" / "GX1_SNIPER_TRAIN_V10_CTX_GATED.yaml",
-            WORKSPACE_ROOT / "gx1/configs/policies/active" / "GX1_V11_OANDA_PRACTICE_LIVE_SNIPER_LONDON_NY.yaml",
-            WORKSPACE_ROOT / "gx1/configs/policies" / "sniper_trial160_prod.json",
+            WORKSPACE_ROOT / "gx1/configs/policies/canonical_truth" / "GX1_TRUTH_REPLAY_V10_CTX.yaml",
         ]
         
         for candidate in policy_candidates:
@@ -166,7 +163,7 @@ def main():
         if args.policy_path is None:
             print("ERROR: No policy path provided and no default policy found")
             print("  Use --policy-path to specify policy file")
-            print("  Example: --policy-path gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/GX1_SNIPER_REPLAY_V10_CTX_VERIFY.yaml")
+            print("  Example: --policy-path gx1/configs/policies/canonical_truth/GX1_TRUTH_REPLAY_V10_CTX.yaml")
             return 1
     
     print(f"Loading policy: {args.policy_path}")

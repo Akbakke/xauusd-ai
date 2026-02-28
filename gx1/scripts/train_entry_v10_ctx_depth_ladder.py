@@ -1,28 +1,20 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-ENTRY_V10_CTX Depth Ladder Training Script (baseline vs L+1)
-
-Goal:
-- Train ENTRY_V10_CTX with a depth-ladder variant where ONLY transformer depth changes.
+ENTRY_V10_CTX canonical baseline training entrypoint (ONE UNIVERSE only).
 
 Non-negotiables:
-- CTX contract is ONE UNIVERSE: CTX6CAT6 (6/6)
-- DO NOT modify trading logic; ONLY architecture depth (num_layers)
-- Fail-fast if the training backend does not actually apply the requested depth
-  (prevents silent baseline training).
+- Baseline-only (no depth ladder / no L+1). Any other variant must hard-fail.
+- CTX contract locked: CTX6CAT6 (6/6), signal_bridge_id=XGB_SIGNAL_BRIDGE_V1 (7-dim).
+- Deterministic, fail-fast, no fallback paths.
 
-Usage:
-    python gx1/scripts/train_entry_v10_ctx_depth_ladder.py \
-        --variant baseline|lplus1 \
-        --data <parquet> \
-        --out-dir checkpoints/entry_v10_ctx_depth_ladder/ \
-        --feature-meta-path <json> \
-        --seq-scaler-path <path optional> \
-        --snap-scaler-path <path optional> \
-        --seed 42 \
-        --epochs 10 \
-        --device auto
+Usage (canonical):
+    python gx1/scripts/train_entry_v10_ctx_depth_ladder.py \\
+        --variant baseline \\
+        --data <train parquet or manifest> \\
+        --feature-meta-path <json> \\
+        --out-dir <bundle output dir> \\
+        --epochs 10 --batch_size 256 --lr 3e-4 --seq_len 30 --seed 42
 """
 
 import argparse
@@ -34,7 +26,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict, Optional, Set
+from typing import Any, Dict, Optional
 
 import torch
 
@@ -45,23 +37,17 @@ sys.path.insert(0, str(workspace_root))
 from gx1.contracts.signal_bridge_v1 import get_canonical_ctx_contract
 
 try:
+    import gx1.models.entry_v10.entry_v10_ctx_train as train_mod
     from gx1.models.entry_v10.entry_v10_ctx_train import (
         main as train_main,
         set_seed,
         set_thread_limits,
     )
-except ImportError:
-    def _missing_train(*_args, **_kwargs):
-        raise RuntimeError(
-            "ENTRY_V10_CTX train module is missing; depth ladder wrapper cannot run training."
-        )
-    train_main = _missing_train
-
-    def set_seed(*_args, **_kwargs):
-        raise RuntimeError("ENTRY_V10_CTX train module is missing; set_seed unavailable.")
-
-    def set_thread_limits(*_args, **_kwargs):
-        raise RuntimeError("ENTRY_V10_CTX train module is missing; set_thread_limits unavailable.")
+except Exception as e:
+    # Fail fast with the real import error (no fallback)
+    raise RuntimeError(
+        f"[TRAIN_IMPORT_FAIL] Failed to import entry_v10_ctx_train: {type(e).__name__}: {e}"
+    ) from e
 
 
 logging.basicConfig(level=logging.INFO)
@@ -99,32 +85,6 @@ BASELINE_CONFIG: Dict[str, Any] = {
     "ctx_emb_dim": 42,
     "ctx_embedding_dim": 8,
 }
-
-LPLUS1_CONFIG: Dict[str, Any] = {
-    **BASELINE_CONFIG,
-    "num_layers": 4,  # baseline + 1
-    "depth_ladder_delta": +1,
-}
-
-
-def validate_config_diff(baseline_cfg: Dict[str, Any], variant_cfg: Dict[str, Any], allowed_diff: Set[str]) -> None:
-    """
-    FATAL if config differs beyond allowed parameters.
-    This ensures we only change depth.
-    """
-    all_keys = set(baseline_cfg.keys()) | set(variant_cfg.keys())
-    diff_keys = set()
-
-    for key in all_keys:
-        if baseline_cfg.get(key) != variant_cfg.get(key):
-            if key not in allowed_diff:
-                diff_keys.add(key)
-
-    if diff_keys:
-        raise RuntimeError(
-            "DEPTH_LADDER_ILLEGAL_DIFF: Config differs beyond allowed parameters. "
-            f"diff_keys={sorted(diff_keys)} allowed_diff={sorted(allowed_diff)}"
-        )
 
 
 def get_git_commit() -> str:
@@ -197,6 +157,7 @@ def finalize_bundle_with_meta_and_scalers(
         "entry_v10_ctx_feature_meta.json",
         "BUNDLE_PACKAGING_MISSING_FEATURE_META",
     )
+    feature_meta_sha = hashlib.sha256(feature_meta_path.read_bytes()).hexdigest()
 
     seq_scaler_rel = None
     snap_scaler_rel = None
@@ -218,6 +179,7 @@ def finalize_bundle_with_meta_and_scalers(
     # Update metadata (relative paths)
     meta = json.loads(meta_json.read_text(encoding="utf-8"))
     meta["feature_meta_path"] = feature_meta_rel
+    meta["feature_meta_sha256"] = feature_meta_sha
     if seq_scaler_rel:
         meta["seq_scaler_path"] = seq_scaler_rel
     if snap_scaler_rel:
@@ -242,65 +204,28 @@ def _read_json_if_exists(p: Path) -> Optional[Dict[str, Any]]:
     return json.loads(p.read_text(encoding="utf-8"))
 
 
-def _extract_num_layers_from_bundle(bundle_dir: Path) -> Optional[int]:
-    """
-    Best-effort extraction of num_layers from bundle_metadata.json or lock.
-    If training backend doesn't write it, we can't verify -> hard fail upstream.
-    """
-    meta = _read_json_if_exists(bundle_dir / "bundle_metadata.json") or {}
-    lock = _read_json_if_exists(bundle_dir / "MASTER_TRANSFORMER_LOCK.json") or {}
-
-    # common places
-    candidates = [
-        meta.get("num_layers"),
-        meta.get("model", {}).get("num_layers") if isinstance(meta.get("model"), dict) else None,
-        meta.get("seq_cfg", {}).get("num_layers") if isinstance(meta.get("seq_cfg"), dict) else None,
-        lock.get("num_layers"),
-        lock.get("model", {}).get("num_layers") if isinstance(lock.get("model"), dict) else None,
-        lock.get("seq_cfg", {}).get("num_layers") if isinstance(lock.get("seq_cfg"), dict) else None,
-    ]
-    for c in candidates:
-        if c is None:
-            continue
-        try:
-            return int(c)
-        except Exception:
-            continue
-    return None
-
-
 def train_depth_ladder_variant(
     *,
     variant: str,
     data_path: Path,
     out_dir: Path,
     feature_meta_path: Path,
-    seq_scaler_path: Optional[Path],
-    snap_scaler_path: Optional[Path],
     epochs: int,
     batch_size: int,
-    learning_rate: float,
+    lr: float,
     seed: int,
     device: str,
     seq_len: int,
 ) -> Dict[str, Any]:
     """
-    Train a depth ladder variant by calling the existing ENTRY_V10_CTX training entrypoint,
-    while requesting a depth override through environment variables.
-
-    After training:
-    - bundle must exist (model_state_dict.pt + bundle_metadata.json + MASTER_TRANSFORMER_LOCK.json)
-    - bundle metadata/lock must reflect the requested num_layers (otherwise hard-fail)
+    Train ENTRY_V10_CTX (baseline only) via canonical trainer.
+    Uses dataset_dir derived from data_path (parquet -> parent dir; manifest -> manifest path).
     """
     _hard_gate_ctx6cat6()
 
-    if variant == "baseline":
-        config = BASELINE_CONFIG.copy()
-    elif variant == "lplus1":
-        config = LPLUS1_CONFIG.copy()
-        validate_config_diff(BASELINE_CONFIG, config, allowed_diff={"num_layers", "depth_ladder_delta"})
-    else:
-        raise ValueError("variant must be baseline|lplus1")
+    if variant != "baseline":
+        raise ValueError("variant must be baseline (depth ladder disabled)")
+    config = BASELINE_CONFIG.copy()
 
     variant_out_dir = (out_dir / variant.upper()).resolve()
     variant_out_dir.mkdir(parents=True, exist_ok=True)
@@ -321,7 +246,7 @@ def train_depth_ladder_variant(
         resolved_device = device
 
     log.info(f"\n{'='*80}")
-    log.info(f"DEPTH_LADDER TRAIN: {variant.upper()} (num_layers={config['num_layers']})")
+    log.info(f"CANONICAL TRAIN: {variant.upper()} (num_layers={config['num_layers']})")
     log.info(f"{'='*80}")
     log.info(f"Data: {data_path}")
     log.info(f"Out : {variant_out_dir}")
@@ -333,38 +258,59 @@ def train_depth_ladder_variant(
     original_env = dict(os.environ)
 
     try:
-        # Depth ladder request (backend MUST honor these; we verify after)
-        os.environ["GX1_DEPTH_LADDER_MODE"] = "1"
-        os.environ["GX1_DEPTH_LADDER_VARIANT"] = variant
-        os.environ["GX1_DEPTH_LADDER_NUM_LAYERS"] = str(config["num_layers"])
+        # Derive dataset args for canonical trainer (no --data)
+        dataset_manifest: Optional[Path] = None
+        dataset_dir: Optional[Path] = None
+        if str(data_path).endswith(".manifest.json"):
+            dataset_manifest = data_path
+            dataset_dir = data_path.parent
+        elif str(data_path).endswith(".parquet"):
+            dataset_manifest = None
+            dataset_dir = data_path.parent
+        else:
+            raise RuntimeError(f"Unsupported data path (expect .parquet or .manifest.json): {data_path}")
 
-        # Build args for backend trainer
+        # Build args for backend trainer (canonical CLI)
         train_args = [
-            "--data", str(data_path),
-            "--out_dir", str(variant_out_dir),
-            "--feature_meta_path", str(feature_meta_path),
+            "--train",
+            "--dataset_dir", str(dataset_dir),
+            "--out_bundle_dir", str(variant_out_dir),
+        ]
+        train_path_log = None
+        val_path_log = None
+        if data_path.suffix.lower() == ".parquet":
+            train_args.extend(["--dataset_train_parquet", str(data_path.resolve())])
+            if data_path.stem.endswith("_train"):
+                val_path_log = data_path.with_name(data_path.stem[: -len("_train")] + "_val.parquet").resolve()
+            train_path_log = data_path.resolve()
+        train_args.extend([
             "--seq_len", str(seq_len),
             "--batch_size", str(batch_size),
             "--epochs", str(epochs),
-            "--learning_rate", str(learning_rate),
+            "--lr", str(lr),
             "--seed", str(seed),
             "--device", str(resolved_device),
-        ]
-        if seq_scaler_path is not None:
-            train_args.extend(["--seq_scaler_path", str(seq_scaler_path)])
-        if snap_scaler_path is not None:
-            train_args.extend(["--snap_scaler_path", str(snap_scaler_path)])
+        ])
+        if dataset_manifest is not None:
+            train_args.extend(["--dataset_manifest", str(dataset_manifest)])
 
-        sys.argv = ["-m", "gx1.models.entry_v10.entry_v10_ctx_train"] + train_args
+        sys.argv = ["gx1.models.entry_v10.entry_v10_ctx_train"] + train_args
 
+        log.info(
+            "[CANONICAL_TRAIN_ENTRYPOINT] data=%s out=%s train=%s val=%s",
+            data_path,
+            variant_out_dir,
+            train_path_log or "infer-via-trainer",
+            val_path_log or "infer-via-trainer",
+        )
         log.info("[TRAIN] Calling ENTRY_V10_CTX trainer...")
         train_main()  # must perform training and write bundle artifacts
 
-        # Post-run: required artifacts
+        # Post-run: required artifacts (baseline; lock optional for verification)
         model_path = variant_out_dir / "model_state_dict.pt"
         meta_path = variant_out_dir / "bundle_metadata.json"
         lock_path = variant_out_dir / "MASTER_TRANSFORMER_LOCK.json"
-        missing = [str(p) for p in [model_path, meta_path, lock_path] if not p.exists()]
+        missing = [str(p) for p in [model_path, meta_path] if not p.exists()]
         if missing:
             raise RuntimeError(f"TRAIN_OUTPUT_MISSING: expected bundle files missing: {missing}")
 
@@ -372,32 +318,30 @@ def train_depth_ladder_variant(
         finalize_bundle_with_meta_and_scalers(
             bundle_dir=variant_out_dir,
             feature_meta_path=feature_meta_path,
-            seq_scaler_path=seq_scaler_path,
-            snap_scaler_path=snap_scaler_path,
+            seq_scaler_path=None,
+            snap_scaler_path=None,
         )
 
-        # Verify depth override was actually applied (prevent silent baseline)
-        got_layers = _extract_num_layers_from_bundle(variant_out_dir)
-        if got_layers is None:
+        # Baseline verification: contract/dims only (no num_layers requirement)
+        meta_json = _read_json_if_exists(meta_path) or {}
+        if not meta_json:
+            raise RuntimeError("BASELINE_VERIFY_FAILED: bundle_metadata.json empty or unreadable")
+        if meta_json.get("signal_bridge_id") != "XGB_SIGNAL_BRIDGE_V1":
             raise RuntimeError(
-                "DEPTH_LADDER_VERIFY_FAILED: Could not find num_layers in bundle metadata/lock. "
-                "Backend trainer must write num_layers (or seq_cfg.num_layers) into bundle_metadata.json "
-                "or MASTER_TRANSFORMER_LOCK.json, otherwise this wrapper cannot verify correctness."
+                f"BASELINE_VERIFY_FAILED: signal_bridge_id mismatch: {meta_json.get('signal_bridge_id')}"
             )
-        if int(got_layers) != int(config["num_layers"]):
-            raise RuntimeError(
-                "DEPTH_LADDER_VERIFY_FAILED: Backend did not apply requested depth. "
-                f"requested_num_layers={config['num_layers']} got_num_layers={got_layers}. "
-                "This would be silent corruption; failing hard."
-            )
+        if meta_json.get("ctx_tag") != "CTX6CAT6":
+            raise RuntimeError(f"BASELINE_VERIFY_FAILED: ctx_tag mismatch: {meta_json.get('ctx_tag')}")
+        if int(meta_json.get("ctx_cont_dim") or -1) != 6:
+            raise RuntimeError(f"BASELINE_VERIFY_FAILED: ctx_cont_dim mismatch: {meta_json.get('ctx_cont_dim')}")
+        if int(meta_json.get("ctx_cat_dim") or -1) != 6:
+            raise RuntimeError(f"BASELINE_VERIFY_FAILED: ctx_cat_dim mismatch: {meta_json.get('ctx_cat_dim')}")
 
         bundle_sha = compute_bundle_sha256(variant_out_dir)
-        log.info(f"[OK] bundle_sha={bundle_sha} num_layers={got_layers}")
+        log.info(f"[OK] bundle_sha={bundle_sha}")
 
         return {
             "variant": variant,
-            "requested_num_layers": int(config["num_layers"]),
-            "verified_num_layers": int(got_layers),
             "out_dir": str(variant_out_dir),
             "bundle_sha": bundle_sha,
             "device": resolved_device,
@@ -411,19 +355,17 @@ def train_depth_ladder_variant(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Train ENTRY_V10_CTX Depth Ladder variants (baseline vs L+1)")
-    parser.add_argument("--variant", type=str, required=True, choices=["baseline", "lplus1"])
-    parser.add_argument("--data", type=Path, required=True, help="Path to training dataset (parquet)")
+    parser = argparse.ArgumentParser(description="Train ENTRY_V10_CTX baseline (canonical entrypoint)")
+    parser.add_argument("--variant", type=str, required=True, choices=["baseline"])
+    parser.add_argument("--data", type=Path, required=True, help="Path to training dataset (.parquet or .manifest.json)")
     parser.add_argument("--out-dir", type=Path, required=True, help="Output directory for checkpoints")
-    parser.add_argument("--feature-meta-path", type=Path, required=True, help="Path to feature_meta.json")
-    parser.add_argument("--seq-scaler-path", type=Path, default=None, help="Path to seq scaler (optional)")
-    parser.add_argument("--snap-scaler-path", type=Path, default=None, help="Path to snap scaler (optional)")
+    parser.add_argument("--feature-meta-path", type=Path, required=True, help="Canonical feature_meta.json to copy into bundle")
     parser.add_argument("--epochs", type=int, default=10)
-    parser.add_argument("--batch-size", type=int, default=64)
-    parser.add_argument("--learning-rate", type=float, default=1e-4)
+    parser.add_argument("--batch_size", type=int, default=64)
+    parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--device", type=str, default="auto")
-    parser.add_argument("--seq-len", type=int, default=30)
+    parser.add_argument("--seq_len", type=int, default=30)
 
     args = parser.parse_args()
 
@@ -432,18 +374,16 @@ def main() -> None:
         data_path=args.data,
         out_dir=args.out_dir,
         feature_meta_path=args.feature_meta_path,
-        seq_scaler_path=args.seq_scaler_path,
-        snap_scaler_path=args.snap_scaler_path,
         epochs=args.epochs,
         batch_size=args.batch_size,
-        learning_rate=args.learning_rate,
+        lr=args.lr,
         seed=args.seed,
         device=args.device,
         seq_len=args.seq_len,
     )
 
     log.info("\n✅ DEPTH_LADDER DONE")
-    log.info(f"   variant={res['variant']} requested_layers={res['requested_num_layers']} verified_layers={res['verified_num_layers']}")
+    log.info(f"   variant={res['variant']}")
     log.info(f"   out_dir={res['out_dir']}")
     log.info(f"   bundle_sha={res['bundle_sha']}")
 

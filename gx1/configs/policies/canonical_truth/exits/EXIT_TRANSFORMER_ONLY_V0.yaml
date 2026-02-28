@@ -1,0 +1,21 @@
+# EXIT_TRANSFORMER_ONLY_V0 - ONE UNIVERSE: ML exit only (no rule-based exit)
+#
+# No router, no exit_critic, no MASTER_EXIT_V1 / FARM_V2_RULES / rules.
+# Exit decision is ONLY from exit-transformer forward (IOV2: 19 + ctx 6/6 = 31).
+# If model_path is missing or model fails to load: hard fail (no fallback).
+
+exit:
+  type: EXIT_TRANSFORMER_V0
+  params:
+    verbose_logging: false
+    # Mandatory ML exit decider (no score_v1, no rules)
+    exit_ml:
+      decider_enabled: true
+      mode: exit_transformer_v0
+      exit_transformer:
+        enabled: true
+        # Path relative to GX1_DATA or absolute; required (no optional)
+        model_path: "models/exit_transformer_v0/f3f5d2941612274c931559b84952ca05cd46ab21c08826b6d52e7227e1910aa3"
+        model_sha: ""  # Optional verification; set after training
+        threshold: 0.5
+        window_len: 8

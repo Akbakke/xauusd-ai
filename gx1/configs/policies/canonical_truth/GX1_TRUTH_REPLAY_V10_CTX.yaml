@@ -1,0 +1,128 @@
+# CANONICAL TRUTH POLICY — DO NOT DUPLICATE
+#
+# GX1 v1.1 → TRUTH entry policy (EU/London/NY) - REPLAY V10 VERIFICATION
+#
+# Entry: SNIPER-style gates (EU/OVERLAP/US + HIGH volatility allowed) with V10_CTX enabled
+# Exit: EXIT_TRANSFORMER_V0 only (ML exit only; no router, no exit_critic, no rules)
+# Status: TRUTH replay verification policy (not production)
+#
+# Purpose: Verify that V10_CTX is actually called in replay under TRUTH wiring.
+# All gates/thresholds/risk settings are identical to the existing replay policy.
+
+meta:
+  router_version: V3_RANGE
+  role: REPLAY_VERIFICATION  # REPLAY-ONLY, not PROD
+  description: >
+    TRUTH entry policy for EU/London/NY sessions with V10_CTX enabled for replay verification.
+    This is a verification policy to ensure V10/V10_CTX is actually called in replay.
+    All gates/thresholds/risk settings are identical to the SNIPER replay policy.
+  bundle_location: canonical_truth
+
+policy_name: GX1_TRUTH_REPLAY_V10_CTX
+version: "GX1_TRUTH_REPLAY_V10_CTX"
+mode: "REPLAY"  # REPLAY mode for verification
+run_mode: "PROD"  # PROD mode (trades are journaled, but no real orders in replay)
+instrument: "XAU_USD"
+timeframe: "M5"
+warmup_bars: 288
+
+# Entry config (V10_CTX only, V9 disabled)
+entry_config: gx1/configs/entry_configs/ENTRY_V10_CTX_TRUTH_REPLAY.yaml
+
+# Explicit replay configuration (SSoT - source of truth in YAML)
+replay_config:
+  # Policy module (explicit - no auto-switch)
+  policy_module: "gx1.policy.entry_policy_sniper_v10_ctx"
+  policy_class: "EntryPolicySniperV10Ctx"
+  policy_id: "entry_policy_sniper_v10_ctx"
+
+  # Entry model identifier
+  entry_model_id: "ENTRY_V10_CTX_GATED_FUSION"
+
+  # Runtime feature implementation (must NOT be runtime_v9 in replay)
+  runtime_feature_impl: "v10_ctx"
+  # Explicit runtime module path (for provenance)
+  runtime_feature_module: "gx1.features.runtime_v10_ctx"
+
+  # Guardrails: V9 forbidden in replay
+  v9_forbidden: true
+
+  # Replay PreGate - early skip before expensive feature building
+  replay_pregate:
+    enabled: true  # Enable pregate optimization (replay-only)
+    allow_sessions: ["EU", "OVERLAP", "US"]  # Only allow these sessions (ASIA blocked)
+    max_spread_bps: 100.0  # Skip if spread > 100 bps (same as hard eligibility)
+    min_atr_bps: null      # Optional: skip if ATR too low
+    max_atr_bps: 200.0     # Skip if ATR > 200 bps (EXTREME vol, same as soft eligibility)
+    require_warmup_ready: true  # Skip if warmup not ready
+    allow_degraded: false       # Don't allow degraded warmup in pregate (strict)
+
+# EXIT_TRANSFORMER_V0 only (ONE UNIVERSE: ML exit only; no rule-based exit)
+exit_config: gx1/configs/policies/canonical_truth/exits/EXIT_TRANSFORMER_ONLY_V0.yaml
+
+execution:
+  dry_run: false
+  max_open_trades: 10  # Same as baseline
+
+# Risk Guard V1 configuration (same thresholds as replay policy)
+risk_guard:
+  config_path: gx1/configs/policies/canonical_truth/guards/RISK_GUARD_V1.yaml
+
+logging:
+  level: INFO
+
+backfill:
+  enabled: true
+  overlap_bars: 6
+  lookback_padding: 100
+  target_bars_padding: 100
+
+# Exit control (ExitArbiter) - EXIT_TRANSFORMER_V0 (ML only)
+exit_control:
+  allowed_loss_closers:
+    - ML_EXIT_TRANSFORMER
+    - BROKER_SL
+    - SL_TICK
+    - REPLAY_EOF
+  require_trade_open: true
+
+# Replay-specific configuration
+replay:
+  close_open_trades_at_end: true
+  eof_close_reason: "REPLAY_EOF"
+  eof_price_source: "mid"
+
+sniper_q4_cchop_overlay:
+  enabled: true
+  multipliers:
+    EU: 1.00
+    OVERLAP: 1.00
+    US: 0.50
+  default_multiplier: 1.00
+
+# Entry models configuration - V10 ENABLED FOR VERIFICATION
+# CRITICAL: Set require_v9_for_entry=false to allow V10-only mode
+require_v9_for_entry: false
+entry_models:
+  v9:
+    enabled: false
+
+  v10:
+    enabled: true
+    model_path: "models/entry_v10/entry_v10_transformer.pt"
+
+  xgb:
+    enabled: true
+    mode: "session"  # Change to "universal" when ready
+    universal_model_path: "models/entry_v10_ctx/FULLYEAR_2025_GATED_FUSION/xgb_universal_v1.joblib"
+    eu_model_path: "models/entry_v10_ctx/FULLYEAR_2025_GATED_FUSION/xgb_EU.joblib"
+    us_model_path: "models/entry_v10_ctx/FULLYEAR_2025_GATED_FUSION/xgb_US.joblib"
+    overlap_model_path: "models/entry_v10_ctx/FULLYEAR_2025_GATED_FUSION/xgb_OVERLAP.joblib"
+    asia_model_path: "models/entry_v10_ctx/FULLYEAR_2025_GATED_FUSION/xgb_ASIA.joblib"
+
+  v10_ctx:
+    enabled: true
+    bundle_dir: "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_CTX__BASELINE__DS_2025_0603_0610_N5000"
+
+# Context features must be enabled for V10_CTX
+ENTRY_CONTEXT_FEATURES_ENABLED: true
