@@ -722,6 +722,8 @@ class ExitManager:
                     )
                     continue
                 window_arr = self._build_exit_ctx19_window(trade, candles, window_len)
+                if window_arr is None:
+                    continue
                 prob_close, _, _ = decider.predict(window_arr)
                 if not hasattr(trade, "prob_close_history") or trade.prob_close_history is None:
                     trade.prob_close_history = deque(maxlen=int(self.exit_require_consecutive) * 4)
@@ -837,15 +839,22 @@ class ExitManager:
         # Update tick watcher (stop if no more open trades)
         self._maybe_update_tick_watcher()
     
-    def _build_exit_ctx19_window(self, trade: Any, candles: pd.DataFrame, window_len: int) -> np.ndarray:
+    def _build_exit_ctx19_window(self, trade: Any, candles: pd.DataFrame, window_len: int) -> Optional[np.ndarray]:
         """
         Build (T,19) exit transformer input window for a single trade.
         """
         signal_history = list(getattr(self._runner, "exit_signal7_history", []))
         if len(signal_history) < window_len:
-            raise RuntimeError(
-                f"[EXIT_IO_CONTRACT_VIOLATION] insufficient signal7 history: have {len(signal_history)}, need {window_len}"
-            )
+            if not getattr(trade, "_exit_warmup_logged", False):
+                log.info(
+                    "[EXIT_WARMUP_SKIP] insufficient signal7 history: have=%d need=%d trade_uid=%s trade_id=%s",
+                    len(signal_history),
+                    window_len,
+                    getattr(trade, "trade_uid", None),
+                    getattr(trade, "trade_id", None),
+                )
+                trade._exit_warmup_logged = True
+            return None
         candle_tail = candles.tail(window_len)
         if len(candle_tail) < window_len:
             raise RuntimeError(

@@ -10544,6 +10544,8 @@ def _run_once_impl(self) -> None:
                 trade_log_row["farm_guard_version"] = trade_extra["farm_guard_version"]
         append_trade_log(self.trade_log_path, trade_log_row)
 
+    # TODO(TRUTH_EXIT_SIGNAL7_STREAM): Append per-bar signal7_now to self.exit_signal7_history (deque maxlen=8)
+    # BEFORE exit evaluation, so EXIT T=8 has pre-entry history and no warmup/padding is needed.
     # Always evaluate exits even if no new entry
     self.evaluate_and_close_trades(candles)
     
@@ -13214,6 +13216,8 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
                                 trade_log_row["farm_guard_version"] = trade_extra["farm_guard_version"]
                         append_trade_log(self.trade_log_path, trade_log_row)
             
+            # TODO(TRUTH_EXIT_SIGNAL7_STREAM): Append per-bar signal7_now to self.exit_signal7_history (deque maxlen=8)
+            # BEFORE exit evaluation, so EXIT T=8 has pre-entry history and no warmup/padding is needed.
             # Evaluate exits (skip in ENTRY_ONLY mode)
             if self.mode != "ENTRY_ONLY":
                 self.evaluate_and_close_trades(candles_history)
