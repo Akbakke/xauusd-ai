@@ -436,6 +436,31 @@ class EntryManager:
         if getattr(self, "entry_feature_telemetry", None):
             self.entry_feature_telemetry.reset_routing_for_next_bar()
 
+        # One-shot gap config log
+        if not getattr(self, "_entry_gap_cfg_logged", False):
+            cooldown_env = os.getenv("GX1_ENTRY_GAP_COOLDOWN_BARS")
+            try:
+                self._entry_gap_cooldown_bars = int(cooldown_env) if cooldown_env is not None else 3
+            except Exception:
+                self._entry_gap_cooldown_bars = 3
+            self._gap_spacing_threshold_sec = 600
+            log.info(
+                "[ENTRY_GAP_CFG] cooldown_bars=%d gap_threshold_sec=%d",
+                self._entry_gap_cooldown_bars,
+                self._gap_spacing_threshold_sec,
+            )
+            self._entry_gap_cfg_logged = True
+            if not hasattr(self, "_last_gap_bar_index"):
+                self._last_gap_bar_index = None
+
+        # Initialize attempt counter
+        try:
+            if not hasattr(self._runner, "entry_attempts_total"):
+                self._runner.entry_attempts_total = 0
+            self._runner.entry_attempts_total += 1
+        except Exception:
+            pass
+
         # Canonical hard-fail: legacy V9 policy key must not be present
         if hasattr(self, "policy") and isinstance(self.policy, dict):
             if "entry_v9_policy_sniper" in self.policy:
@@ -465,6 +490,46 @@ class EntryManager:
         current_ts = candles.index[-1] if len(candles) > 0 else pd.Timestamp.now(tz="UTC")
         current_session = infer_session_tag(current_ts).upper()
         policy_state["session"] = current_session
+        current_bar_index = len(candles)
+
+        # Gap guard (policy-level, deterministic; no synthetic bars)
+        if len(candles) > 0:
+            if "session_id" not in candles.columns:
+                raise RuntimeError("[ENTRY_GAP_GUARD] session_id column missing in candles")
+            if len(candles) >= 2:
+                spacing_sec = (candles.index[-1] - candles.index[-2]).total_seconds()
+                if spacing_sec > self._gap_spacing_threshold_sec:
+                    self._last_gap_bar_index = current_bar_index
+                    try:
+                        if not hasattr(self._runner, "entry_gap_guard_hits"):
+                            self._runner.entry_gap_guard_hits = 0
+                        self._runner.entry_gap_guard_hits += 1
+                    except Exception:
+                        pass
+                    log.info(
+                        "[ENTRY_GAP_GUARD] spacing_sec=%.1f bars_since_gap=0 cooldown=%d ts=%s",
+                        spacing_sec,
+                        self._entry_gap_cooldown_bars,
+                        current_ts,
+                    )
+                    return None
+            if getattr(self, "_last_gap_bar_index", None) is not None:
+                bars_since_gap = current_bar_index - int(self._last_gap_bar_index)
+                if bars_since_gap < self._entry_gap_cooldown_bars:
+                    try:
+                        if not hasattr(self._runner, "entry_gap_guard_hits"):
+                            self._runner.entry_gap_guard_hits = 0
+                        self._runner.entry_gap_guard_hits += 1
+                    except Exception:
+                        pass
+                    log.info(
+                        "[ENTRY_GAP_GUARD] spacing_sec=%.1f bars_since_gap=%d cooldown=%d ts=%s",
+                        (candles.index[-1] - candles.index[-2]).total_seconds() if len(candles) >= 2 else -1.0,
+                        bars_since_gap,
+                        self._entry_gap_cooldown_bars,
+                        current_ts,
+                    )
+                    return None
 
         def _inc_gate(reason: str) -> None:
             try:

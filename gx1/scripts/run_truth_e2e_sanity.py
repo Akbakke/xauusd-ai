@@ -61,11 +61,13 @@ import json
 import os
 import sys
 import traceback
+import logging
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 ENGINE = Path(__file__).resolve().parents[2]
+log = logging.getLogger(__name__)
 
 # TRUTH/SMOKE SSoT allowlist (entrypoints that may run in TRUTH/SMOKE):
 # - gx1/scripts/run_truth_e2e_sanity.py (this orchestrator)
@@ -1765,6 +1767,14 @@ def main() -> int:
 
     start_ts = FULLYEAR_START_TS if args.full_year else args.start_ts
     end_ts = FULLYEAR_END_TS if args.full_year else args.end_ts
+    env_start = os.getenv("GX1_TRUTH_START_TS")
+    env_end = os.getenv("GX1_TRUTH_END_TS")
+    if env_start:
+        start_ts = env_start
+    if env_end:
+        end_ts = env_end
+    if env_start or env_end:
+        log.info("[TRUTH_WINDOW_OVERRIDE] start_ts=%s end_ts=%s (env override)", start_ts, end_ts)
 
     env_overrides: Dict[str, str] = {}
     if args.threshold_override:
