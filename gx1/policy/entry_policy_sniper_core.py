@@ -115,8 +115,11 @@ def run_sniper_policy(
                 df["session"] = df[col]
                 break
         if "session" not in df.columns and "session_id" in df.columns:
-            session_map = {0: "EU", 1: "OVERLAP", 2: "US"}
+            session_map = {0: "EU", 1: "OVERLAP", 2: "US", 3: "US"}
             df["session"] = df["session_id"].map(session_map).fillna("UNKNOWN")
+
+    # Restrict to documented edge universe: US session only (session_id==3 maps to US)
+    df = df[df["session"] == "US"].copy()
     
     if "vol_regime" not in df.columns:
         if "atr_regime" in df.columns:
