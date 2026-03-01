@@ -256,6 +256,20 @@ class ExitManager:
         now_ts = candles.index[-1]
         current_bid = float(candles["bid_close"].iloc[-1])
         current_ask = float(candles["ask_close"].iloc[-1])
+        current_bar_index = len(candles)
+        if len(candles) >= 2:
+            prev_ts = candles.index[-2]
+            spacing_sec = (now_ts - prev_ts).total_seconds()
+            if getattr(self, "replay_mode", False) and spacing_sec > 600:
+                log.error(
+                    "[CANDLE_GAP_DETECTED] spacing_sec=%.1f prev_ts=%s now_ts=%s",
+                    spacing_sec,
+                    prev_ts,
+                    now_ts,
+                )
+                raise RuntimeError(
+                    f"[CANDLE_GAP] spacing_sec={spacing_sec} prev_ts={prev_ts} now_ts={now_ts}"
+                )
         runtime_atr_bps = self._compute_runtime_atr_bps(candles)
         # Update per-bar extrema once per bar for determinism
         self._update_trade_extremes_current_bar(open_trades_copy, now_ts, current_bid, current_ask)
@@ -781,8 +795,8 @@ class ExitManager:
                 if trade not in self.open_trades:
                     continue
                 min_hold_bars = 2
-                delta_seconds = (now_ts - trade.entry_time).total_seconds()
-                bars_in_trade_min = int(max(0, delta_seconds // 300.0))
+                entry_bar_index = int(getattr(trade, "entry_bar_index", current_bar_index))
+                bars_in_trade_min = max(0, int(current_bar_index) - entry_bar_index)
                 if bars_in_trade_min < min_hold_bars:
                     log.debug(
                         "[EXIT] Skipping exit model evaluation for trade %s: bars_in_trade=%d < min_hold_bars=%d (trade too new)",
@@ -797,6 +811,34 @@ class ExitManager:
                     entry_ask = float(getattr(trade, "entry_ask", trade.entry_price))
                     exit_price = current_bid if trade.side == "long" else current_ask
                     pnl_bps = compute_pnl_bps(entry_bid, entry_ask, current_bid, current_ask, trade.side)
+                    if (
+                        bars_in_trade_min > (self._exit_max_bars_held + 1)
+                        and not getattr(trade, "_exit_max_bars_audit_logged", False)
+                    ):
+                        try:
+                            candle_ts = candles.index[-1]
+                            prev_ts = candles.index[-2] if len(candles) >= 2 else None
+                            spacing_sec = (candle_ts - prev_ts).total_seconds() if prev_ts is not None else None
+                            log.info(
+                                "[EXIT_MAX_BARS_AUDIT] max_bars=%d bars_held=%d entry_time=%s now_ts=%s candle_ts=%s prev_ts=%s spacing_sec=%s trade_uid=%s trade_id=%s side=%s entry_time_type=%s now_ts_type=%s entry_bar_index=%s current_bar_index=%s",
+                                self._exit_max_bars_held,
+                                bars_in_trade_min,
+                                getattr(trade, "entry_time", None),
+                                now_ts,
+                                candle_ts,
+                                prev_ts,
+                                spacing_sec,
+                                getattr(trade, "trade_uid", None),
+                                trade.trade_id,
+                                getattr(trade, "side", None),
+                                type(getattr(trade, "entry_time", None)),
+                                type(now_ts),
+                                getattr(trade, "entry_bar_index", None),
+                                current_bar_index,
+                            )
+                        except Exception:
+                            pass
+                        trade._exit_max_bars_audit_logged = True
                     if not getattr(trade, "_exit_max_bars_logged", False):
                         log.info(
                             "[EXIT_MAX_BARS_CLOSE] max_bars=%d bars_held=%d trade_uid=%s trade_id=%s",
@@ -1298,6 +1340,9 @@ class ExitManager:
         local_mfe = float(getattr(trade, "mfe_bps", 0.0))
         local_mae = float(getattr(trade, "mae_bps", 0.0))
         local_mfe_last_bar = int(getattr(trade, "_mfe_last_bar", 0))
+        current_bar_index = len(candles)
+        entry_bar_index = int(getattr(trade, "entry_bar_index", current_bar_index))
+        base_bar_index = current_bar_index - window_len
 
         window_rows: List[List[float]] = []
         pre_entry_count = 0
@@ -1310,11 +1355,11 @@ class ExitManager:
             except Exception as e:
                 raise RuntimeError(f"[EXIT_IO_CONTRACT_VIOLATION] missing bid/ask or ts in candle row: {e}") from e
 
-            is_post_entry = bar_ts >= trade.entry_time
+            bar_index_for_row = base_bar_index + idx + 1
+            is_post_entry = bar_index_for_row >= entry_bar_index
             if is_post_entry:
                 pnl_bps_now = compute_pnl_bps(entry_bid, entry_ask, bid_now, ask_now, trade.side)
-                bars_held_raw = int(round((bar_ts - trade.entry_time).total_seconds() / 300.0))
-                bars_held = max(0, bars_held_raw)
+                bars_held = max(0, bar_index_for_row - entry_bar_index)
                 if pnl_bps_now > local_mfe:
                     local_mfe = pnl_bps_now
                     local_mfe_last_bar = bars_held

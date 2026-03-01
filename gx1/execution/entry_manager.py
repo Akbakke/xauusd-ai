@@ -972,6 +972,7 @@ class EntryManager:
         # Construct LiveTrade
         from gx1.execution.oanda_demo_runner import LiveTrade
 
+        current_bar_index = int(len(candles)) if candles is not None else 0
         trade = LiveTrade(
             trade_id=trade_id,
             trade_uid=trade_uid,
@@ -997,6 +998,8 @@ class EntryManager:
         trade.mfe_bps = 0.0
         trade.mae_bps = 0.0
         trade._mfe_last_bar = 0
+        # Bar-based entry index for exit timing (bar-count, not wall clock)
+        trade.entry_bar_index = current_bar_index
 
         self.entry_telemetry["n_trades_created"] += 1
         self.killchain_n_trade_create_attempts += 1
