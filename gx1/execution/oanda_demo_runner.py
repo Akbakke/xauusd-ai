@@ -3960,9 +3960,25 @@ class GX1DemoRunner:
             # Get TP/SL state before close
             tp_sl_state = self._get_tp_sl_state(trade_id)
             
+            override_max_bars = reason == "MAX_BARS_HELD" or source == "EXIT_MAX_BARS"
+            if override_max_bars:
+                trade_uid = None
+                try:
+                    for t in self.open_trades:
+                        if t.trade_id == trade_id:
+                            trade_uid = getattr(t, "trade_uid", None)
+                            break
+                except Exception:
+                    trade_uid = None
+                log.info(
+                    "[EXIT_ARBITER_OVERRIDE] accept reason=MAX_BARS_HELD trade_id=%s trade_uid=%s",
+                    trade_id,
+                    trade_uid,
+                )
+            
             # ---------------------------------------------------
             # Verify trade is still open (if required) - with grace period for "closing" trades
-            if self.exit_control.require_trade_open:
+            if not override_max_bars and self.exit_control.require_trade_open:
                 trade_exists = any(t.trade_id == trade_id for t in self.open_trades)
                 if not trade_exists:
                     # Trade is not in open_trades, but it might be in closing state (reconcile grace)
@@ -3978,7 +3994,7 @@ class GX1DemoRunner:
                         return False
             
             # Additional checks for MODEL_EXIT (check before loss-close check for clearer messages)
-            if source == "MODEL_EXIT":
+            if not override_max_bars and source == "MODEL_EXIT":
                 min_bars = self.exit_control.allow_model_exit_when.get("min_bars", 2)
                 min_pnl_bps = self.exit_control.allow_model_exit_when.get("min_pnl_bps", -5)
                 min_exit_prob = self.exit_control.allow_model_exit_when.get("min_exit_prob", 0.70)
@@ -4065,7 +4081,9 @@ class GX1DemoRunner:
                     return False
             
             # REPLAY_EOF is always allowed in replay mode (end-of-simulation liquidation)
-            if reason == "REPLAY_EOF" and hasattr(self, "is_replay") and self.is_replay:
+            if override_max_bars:
+                pass
+            elif reason == "REPLAY_EOF" and hasattr(self, "is_replay") and self.is_replay:
                 # Always allow REPLAY_EOF in replay mode, bypass normal checks
                 pass
             # Check if this is a loss close (skip this check for MODEL_EXIT at moderate loss, already handled above)
