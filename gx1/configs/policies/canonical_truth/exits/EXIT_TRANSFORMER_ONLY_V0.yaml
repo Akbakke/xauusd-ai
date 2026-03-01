@@ -15,7 +15,8 @@ exit:
       exit_transformer:
         enabled: true
         # Path relative to GX1_DATA or absolute; required (no optional)
-        model_path: "models/exit_transformer_v0/f3f5d2941612274c931559b84952ca05cd46ab21c08826b6d52e7227e1910aa3"
+        model_path: "models/exit_transformer_v0/ba2f7222df034ebca526b1ca235bf9eeebf9b10ae01d910c865177a6f0ff6a1e"
         model_sha: ""  # Optional verification; set after training
-        threshold: 0.5
+        threshold: 0.01
+        exit_require_consecutive: 3
         window_len: 8

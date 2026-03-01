@@ -36,20 +36,16 @@ entry_models:
     overlap_model_path: "../GX1_DATA/models/models/entry_v10_ctx/FULLYEAR_2025_GATED_FUSION/xgb_OVERLAP.joblib"
     asia_model_path: "../GX1_DATA/models/models/entry_v10_ctx/FULLYEAR_2025_GATED_FUSION/xgb_ASIA.joblib"
 
-# SNIPER entry policy (same thresholds as ENTRY_V9_SNIPER_LONDON_NY)
-entry_v9_policy_sniper:
+# Canonical V10_CTX policy block (consumed by entry_manager)
+entry_policy_v10_ctx:
   enabled: true
   min_prob_long: 0.67
-  min_prob_profitable: 0.0
-  enable_profitable_filter: false
-  require_trend_up: false
-  
-  allow_low_vol: true
-  allow_medium_vol: true
+  min_prob_short: 0.72
+  allow_short: true
   allow_high_vol: true
   allow_extreme_vol: false
-  
-  allow_short: false  # Long-only
+  require_trend_up: false
+  enable_profitable_filter: false
 
 # Meta-model (same as ENTRY_V9_SNIPER_LONDON_NY)
 meta_model:

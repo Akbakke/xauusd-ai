@@ -436,6 +436,13 @@ class EntryManager:
         if getattr(self, "entry_feature_telemetry", None):
             self.entry_feature_telemetry.reset_routing_for_next_bar()
 
+        # Canonical hard-fail: legacy V9 policy key must not be present
+        if hasattr(self, "policy") and isinstance(self.policy, dict):
+            if "entry_v9_policy_sniper" in self.policy:
+                raise RuntimeError(
+                    "[FORBIDDEN_CONFIG] entry_v9_policy_sniper is deprecated; use entry_policy_v10_ctx"
+                )
+
         # Always load risk guard early so identity is available for capsules, even if
         # later gates short-circuit the evaluation in replay.
         self._maybe_load_risk_guard()

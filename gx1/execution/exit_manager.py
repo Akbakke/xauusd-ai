@@ -22,17 +22,6 @@ from gx1.exits.contracts.exit_io_v0_ctx19 import (
 # live_features is forbidden in PREBUILT mode, so we only import it when needed (live mode only)
 # These functions are used at runtime, so we import them locally where needed
 from gx1.utils.pnl import compute_pnl_bps
-from gx1.execution.exit_critic_controller import ExitCriticController
-
-# RL exit critic is disabled; keep stub constants to avoid runtime surprises.
-def _rl_disabled(*_args, **_kwargs):
-    raise RuntimeError(
-        "RL_DISABLED: exit_critic is archived. ENTRY/EXIT transformer + replay plumbing only."
-    )
-
-ACTION_EXIT_NOW = "RL_DISABLED_EXIT_NOW"
-ACTION_SCALP_PROFIT = "RL_DISABLED_SCALP_PROFIT"
-
 if TYPE_CHECKING:
     from gx1.execution.oanda_demo_runner import GX1DemoRunner
 
@@ -46,6 +35,22 @@ class ExitManager:
         except Exception:
             # Propagate to fail fast; ensures contract checked even if import guard skipped
             raise
+        self._exit_input_audit_logged_once = False
+        self._exit_input_audit_samples_count = 0
+        self._exit_ctx_audit_logged_once = False
+        self._exit_effective_cfg_logged = False
+        self._exit_prob_n = 0
+        self._exit_prob_ge_thr = 0
+        self._exit_prob_min = float("inf")
+        self._exit_prob_max = float("-inf")
+        self._exit_prob_buckets = {
+            "<0.001": 0,
+            "<0.01": 0,
+            "<0.05": 0,
+            "<0.1": 0,
+            "<0.2": 0,
+            ">=0.2": 0,
+        }
 
     def __getattr__(self, name: str):
         return getattr(self._runner, name)
@@ -68,6 +73,21 @@ class ExitManager:
         # Skip exit evaluation in ENTRY_ONLY mode (no trades to close)
         if self.mode == "ENTRY_ONLY":
             return
+        
+        if not self._exit_effective_cfg_logged:
+            runner = self._runner
+            arb = getattr(runner, "exit_control", None) or {}
+            arb_allow = getattr(arb, "allow_model_exit_when", {}) if hasattr(arb, "allow_model_exit_when") else arb.get("allow_model_exit_when", {}) if isinstance(arb, dict) else {}
+            log.info(
+                "[EXIT_EFFECTIVE_CFG] threshold=%.4f require_consecutive=%d arb_min_pnl_bps=%s arb_min_exit_prob=%s arb_exit_prob_hysteresis=%s arb_min_bars=%s",
+                float(getattr(runner, "exit_threshold", 0.0)),
+                int(getattr(runner, "exit_require_consecutive", 1)),
+                arb_allow.get("min_pnl_bps"),
+                arb_allow.get("min_exit_prob"),
+                arb_allow.get("exit_prob_hysteresis"),
+                arb_allow.get("min_bars"),
+            )
+            self._exit_effective_cfg_logged = True
         
         exit_mode = (
             (getattr(self, "exit_params", {}) or {})
@@ -233,6 +253,50 @@ class ExitManager:
         runtime_atr_bps = self._compute_runtime_atr_bps(candles)
         # Update per-bar extrema once per bar for determinism
         self._update_trade_extremes_current_bar(open_trades_copy, now_ts, current_bid, current_ask)
+        # Snapshot ctx once per bar using the same prebuilt row as entry ctx (if available)
+        ctx_cont_snapshot: Optional[List[float]] = None
+        ctx_cat_snapshot: Optional[List[int]] = None
+        audit_strict = os.environ.get("GX1_EXIT_AUDIT_STRICT") == "1"
+        try:
+            prebuilt_df = getattr(self._runner, "prebuilt_features_df", None)
+            ctx_cont_cols = getattr(self._runner, "ctx_cont_required_columns", None)
+            ctx_all_cols = getattr(self._runner, "ctx_required_columns", None)
+            if prebuilt_df is not None:
+                if ctx_cont_cols is None or ctx_all_cols is None:
+                    from gx1.contracts.signal_bridge_v1 import get_canonical_ctx_contract
+                    ctx_contract = get_canonical_ctx_contract()
+                    ctx_cont_cols = ctx_contract.get("ctx_cont_names")
+                    ctx_all_cols = (ctx_contract.get("ctx_cont_names") or []) + (ctx_contract.get("ctx_cat_names") or [])
+                ctx_cont_cols = list(ctx_cont_cols or [])
+                ctx_all_cols = list(ctx_all_cols or [])
+                if len(ctx_cont_cols) == 6 and len(ctx_all_cols) >= 12 and now_ts in prebuilt_df.index:
+                    row = prebuilt_df.loc[now_ts]
+                    def _extract(cols):
+                        out = []
+                        for c in cols:
+                            if c not in row.index:
+                                return None
+                            out.append(float(row[c]))
+                        return out
+                    ctx_cont_snapshot = _extract(ctx_cont_cols)
+                    ctx_cat_raw = _extract(ctx_all_cols[len(ctx_cont_cols):len(ctx_cont_cols)+6])
+                    if ctx_cont_snapshot is not None and ctx_cat_raw is not None and len(ctx_cat_raw) == 6:
+                        ctx_cat_snapshot = [int(x) for x in ctx_cat_raw]
+                    elif audit_strict:
+                        raise RuntimeError("[EXIT_CTX_AUDIT] ctx 6/6 missing for ts with prebuilt row present")
+        except Exception:
+            ctx_cont_snapshot = None
+            ctx_cat_snapshot = None
+            if audit_strict:
+                raise
+        if not getattr(self, "_exit_ctx_audit_logged_once", False):
+            log.info(
+                "[EXIT_CTX_AUDIT] have_ctx_cont=%s have_ctx_cat=%s ts=%s",
+                bool(ctx_cont_snapshot and len(ctx_cont_snapshot) == 6),
+                bool(ctx_cat_snapshot and len(ctx_cat_snapshot) == 6),
+                now_ts,
+            )
+            self._exit_ctx_audit_logged_once = True
         if self.exit_verbose_logging:
             log.info(
                 "[EXIT] Evaluating %d open trades on bar %s (replay=%s)",
@@ -725,8 +789,57 @@ class ExitManager:
                 if window_arr is None:
                     continue
                 prob_close, _, _ = decider.predict(window_arr)
-                if not hasattr(trade, "prob_close_history") or trade.prob_close_history is None:
-                    trade.prob_close_history = deque(maxlen=int(self.exit_require_consecutive) * 4)
+                # Track probability stats
+                self._exit_prob_n += 1
+                if prob_close >= self.exit_threshold:
+                    self._exit_prob_ge_thr += 1
+                self._exit_prob_min = min(self._exit_prob_min, prob_close)
+                self._exit_prob_max = max(self._exit_prob_max, prob_close)
+                b = self._exit_prob_buckets
+                if prob_close < 0.001:
+                    b["<0.001"] += 1
+                elif prob_close < 0.01:
+                    b["<0.01"] += 1
+                elif prob_close < 0.05:
+                    b["<0.05"] += 1
+                elif prob_close < 0.1:
+                    b["<0.1"] += 1
+                elif prob_close < 0.2:
+                    b["<0.2"] += 1
+                else:
+                    b[">=0.2"] += 1
+                try:
+                    should_log_io = self.replay_mode
+                    if not should_log_io:
+                        try:
+                            exit_cfg = getattr(self, "exit_params", {}) or {}
+                            log_flag = (
+                                exit_cfg.get("exit", {})
+                                .get("params", {})
+                                .get("exit_ml", {})
+                                .get("exit_transformer", {})
+                                .get("log_io_features", False)
+                            )
+                            should_log_io = bool(log_flag)
+                        except Exception:
+                            should_log_io = False
+                    if should_log_io:
+                        self._append_exit_io_record(
+                            event_ts=now_ts,
+                            trade=trade,
+                            prob_close=prob_close,
+                            window_arr=window_arr,
+                            ctx_cont=ctx_cont_snapshot,
+                            ctx_cat=ctx_cat_snapshot,
+                        )
+                except Exception:
+                    pass
+                if not hasattr(self, "_exit_runtime_gt_count"):
+                    self._exit_runtime_gt_count = 0
+                if not hasattr(self, "_exit_hysteresis_dbg_count"):
+                    self._exit_hysteresis_dbg_count = 0
+                hist = self._ensure_prob_history(trade)
+                hist_before = list(hist)
                 try:
                     if trade.side == "long":
                         self._runner.exit_eval_long += 1
@@ -734,7 +847,64 @@ class ExitManager:
                         self._runner.exit_eval_short += 1
                 except Exception:
                     pass
-                trade.prob_close_history.append(prob_close)
+                len_before = len(hist)
+                hist.append(float(prob_close))
+                len_after = len(hist)
+                if self._exit_hysteresis_dbg_count < 30:
+                    recent = list(hist)[-self.exit_require_consecutive:]
+                    recent_f = [float(x) for x in recent]
+                    should_exit_dbg = (
+                        len_after >= self.exit_require_consecutive
+                        and all(x >= float(self.exit_threshold) for x in recent_f)
+                    )
+                    log.info(
+                        "[EXIT_HYSTERESIS_DBG] trade_uid=%s trade_id=%s side=%s trade_obj_id=%s hist_type=%s maxlen=%s len_before=%d len_after=%d thr=%.6f req=%d history=%s recent=%s recent_f=%s should_exit=%s",
+                        getattr(trade, "trade_uid", None) or getattr(trade, "trade_id", None),
+                        getattr(trade, "trade_id", None),
+                        getattr(trade, "side", None),
+                        id(trade),
+                        type(hist).__name__,
+                        getattr(hist, "maxlen", None),
+                        len_before,
+                        len_after,
+                        float(self.exit_threshold),
+                        int(self.exit_require_consecutive),
+                        list(hist),
+                        recent,
+                        recent_f,
+                        should_exit_dbg,
+                    )
+                    self._exit_hysteresis_dbg_count += 1
+                if self._exit_runtime_gt_count < 5:
+                    hist_after = list(hist)
+                    log.info(
+                        "[EXIT_RUNTIME_GROUND_TRUTH] trade_uid=%s trade_id=%s side=%s prob_close=%.6f threshold=%.6f require_consecutive=%d hist_before=%s hist_after=%s model_path=%s model_sha=%s window_len=%s input_dim=%s bars_held=%s",
+                        getattr(trade, "trade_uid", None) or getattr(trade, "trade_id", None),
+                        getattr(trade, "trade_id", None),
+                        getattr(trade, "side", None),
+                        prob_close,
+                        self.exit_threshold,
+                        self.exit_require_consecutive,
+                        [f"{p:.6f}" for p in hist_before],
+                        [f"{p:.6f}" for p in hist_after],
+                        getattr(decider, "model_path", getattr(decider, "bundle_dir", None)),
+                        getattr(decider, "model_sha", None),
+                        getattr(decider, "window_len", None),
+                        getattr(decider, "input_dim", None),
+                        bars_in_trade_min,
+                    )
+                    self._exit_runtime_gt_count += 1
+
+                # Best-effort: log one context-bearing exit ML event (ensures exits jsonl has ctx 6/6)
+                if not getattr(self, "_exit_ml_ctx_logged_once", False) and ctx_cont_snapshot and ctx_cat_snapshot:
+                    self._maybe_log_exit_ml_event(
+                        event_ts=now_ts,
+                        prob_close=prob_close,
+                        trade=trade,
+                        ctx_cont=ctx_cont_snapshot,
+                        ctx_cat=ctx_cat_snapshot,
+                    )
+                    self._exit_ml_ctx_logged_once = True
 
                 log.debug(
                     "[EXIT] Trade %s: bars_in_trade=%d prob_close=%.4f threshold=%.4f history=%s (require_consecutive=%d)",
@@ -748,7 +918,7 @@ class ExitManager:
 
                 should_exit = False
                 if len(trade.prob_close_history) >= self.exit_require_consecutive:
-                    recent_bars = list(trade.prob_close_history)[-self.exit_require_consecutive:]
+                    recent_bars = [float(p) for p in list(trade.prob_close_history)][-self.exit_require_consecutive:]
                     should_exit = all(p >= self.exit_threshold for p in recent_bars)
                     if should_exit:
                         log.info(
@@ -780,10 +950,36 @@ class ExitManager:
                     )
 
                 if should_exit:
-                    if trade not in self.open_trades:
-                        continue
                     entry_bid = float(getattr(trade, "entry_bid", trade.entry_price))
                     entry_ask = float(getattr(trade, "entry_ask", trade.entry_price))
+                    pnl_bps = compute_pnl_bps(entry_bid, entry_ask, current_bid, current_ask, trade.side)
+                    mark_price = current_bid if trade.side == "long" else current_ask
+                    delta_minutes = (now_ts - trade.entry_time).total_seconds() / 60.0
+                    bars_in_trade = int(round(delta_minutes / 5.0))
+                    did_eval_any = True
+                    if not hasattr(self, "_exit_decision_logged"):
+                        self._exit_decision_logged = set()
+                    tuid = getattr(trade, "trade_uid", None) or getattr(trade, "trade_id", None)
+                    if tuid not in self._exit_decision_logged:
+                        arb_allow = getattr(getattr(self._runner, "exit_control", None), "allow_model_exit_when", {}) or {}
+                        log.info(
+                            "[EXIT_DECISION_PROOF] trade_uid=%s trade_id=%s side=%s prob_close=%.6f threshold=%.6f require_consecutive=%d prob_history=%s arb_cfg={min_exit_prob=%s, exit_prob_hysteresis=%s, min_pnl_bps=%s} bars_held=%s pnl_bps=%s will_call_request_close=true",
+                            tuid,
+                            getattr(trade, "trade_id", None),
+                            getattr(trade, "side", None),
+                            prob_close,
+                            self.exit_threshold,
+                            self.exit_require_consecutive,
+                            [f"{p:.6f}" for p in list(trade.prob_close_history)],
+                            arb_allow.get("min_exit_prob"),
+                            arb_allow.get("exit_prob_hysteresis"),
+                            arb_allow.get("min_pnl_bps"),
+                            bars_in_trade,
+                            pnl_bps,
+                        )
+                        self._exit_decision_logged.add(tuid)
+                    if trade not in self.open_trades:
+                        continue
                     if not hasattr(self, "_exit_mgr_pnl_log_count"):
                         self._exit_mgr_pnl_log_count = 0
                     if self._exit_mgr_pnl_log_count < 5:
@@ -796,10 +992,6 @@ class ExitManager:
                             trade.side,
                         )
                         self._exit_mgr_pnl_log_count += 1
-                    pnl_bps = compute_pnl_bps(entry_bid, entry_ask, current_bid, current_ask, trade.side)
-                    mark_price = current_bid if trade.side == "long" else current_ask
-                    delta_minutes = (now_ts - trade.entry_time).total_seconds() / 60.0
-                    bars_in_trade = int(round(delta_minutes / 5.0))
                     log.info("[EXIT] propose close reason=THRESHOLD pnl=%.1f bars_in_trade=%d", pnl_bps, bars_in_trade)
                     accepted = self.request_close(
                         trade_id=trade.trade_id,
@@ -813,10 +1005,22 @@ class ExitManager:
                     if not accepted:
                         log.warning("[EXIT] close rejected by ExitArbiter for trade %s", trade.trade_id)
                         log.error("Exit signaled but not applied for trade %s", trade.trade_id)
+                        log.error(
+                            "[EXIT_DECISION_RESULT] trade_uid=%s trade_id=%s accepted=False reject_reason=arbiter_reject still_in_open_trades=%s",
+                            tuid,
+                            getattr(trade, "trade_id", None),
+                            trade in self.open_trades,
+                        )
                         continue
                     closes_accepted += 1
                     if trade in self.open_trades:
                         self.open_trades.remove(trade)
+                    log.info(
+                        "[EXIT_DECISION_RESULT] trade_uid=%s trade_id=%s accepted=True reject_reason=None still_in_open_trades=%s",
+                        tuid,
+                        getattr(trade, "trade_id", None),
+                        trade in self.open_trades,
+                    )
                     self.record_realized_pnl(now_ts, pnl_bps)
                     self._log_trade_close_with_metrics(
                         trade=trade,
@@ -826,6 +1030,7 @@ class ExitManager:
                         realized_pnl_bps=pnl_bps,
                         bars_held=bars_in_trade,
                     )
+            self._maybe_log_exit_prob_audit(decider=decider)
             return
 
         if closes_requested:
@@ -838,7 +1043,171 @@ class ExitManager:
         
         # Update tick watcher (stop if no more open trades)
         self._maybe_update_tick_watcher()
-    
+        self._maybe_log_exit_prob_audit(decider=decider)
+
+    def _ensure_prob_history(self, trade: Any) -> deque:
+        """
+        Ensure trade.prob_close_history exists and has sufficient maxlen for hysteresis.
+        """
+        req = int(getattr(self, "exit_require_consecutive", 1))
+        target = max(req * 4, req, 8)
+        h = getattr(trade, "prob_close_history", None)
+        if h is None:
+            h = deque(maxlen=target)
+            trade.prob_close_history = h
+            return h
+        cur_maxlen = getattr(h, "maxlen", None)
+        if cur_maxlen is None or int(cur_maxlen) < target:
+            old = []
+            try:
+                old = list(h)
+            except Exception:
+                old = []
+            new = deque(old[-target:], maxlen=target)
+            trade.prob_close_history = new
+            return new
+        return h
+
+    def _maybe_log_exit_prob_audit(self, decider: Any = None) -> None:
+        """
+        One-shot probability audit log for exit transformer evaluations.
+        """
+        try:
+            if getattr(self, "_exit_prob_audit_logged", False):
+                return
+            n = int(getattr(self, "_exit_prob_n", 0))
+            if n <= 0:
+                return
+            b = getattr(self, "_exit_prob_buckets", {})
+            model_dir = None
+            if decider is not None:
+                model_dir = getattr(decider, "bundle_dir", None) or getattr(decider, "model_path", None)
+            if model_dir is None:
+                model_dir = getattr(getattr(self._runner, "exit_model_decider", None), "bundle_dir", None)
+            log.info(
+                "[EXIT_PROB_AUDIT] n=%d ge_thr=%d thr=%.4f min=%.4f max=%.4f buckets=%s model_dir=%s",
+                n,
+                int(getattr(self, "_exit_prob_ge_thr", 0)),
+                float(getattr(self._runner, "exit_threshold", getattr(self, "exit_threshold", 0.0))),
+                float(self._exit_prob_min if getattr(self, "_exit_prob_min", float("inf")) != float("inf") else 0.0),
+                float(self._exit_prob_max if getattr(self, "_exit_prob_max", float("-inf")) != float("-inf") else 0.0),
+                b,
+                model_dir,
+            )
+            self._exit_prob_audit_logged = True
+        except Exception:
+            return
+
+    def _maybe_log_exit_ml_event(
+        self,
+        event_ts: pd.Timestamp,
+        prob_close: float,
+        trade: Any,
+        ctx_cont: Optional[List[float]] = None,
+        ctx_cat: Optional[List[int]] = None,
+    ) -> None:
+        """
+        Append one exit ML event to exits_<run_id>.jsonl with ctx_cont/ctx_cat (6/6).
+        Does nothing if required context columns are missing or dims mismatch.
+        """
+        try:
+            runner = self._runner
+            log_dir = getattr(runner, "log_dir", None)
+            run_id = getattr(runner, "run_id", None)
+            if log_dir is None or run_id is None:
+                return
+            if ctx_cont is None or ctx_cat is None:
+                return
+            if len(ctx_cont) != 6 or len(ctx_cat) != 6:
+                return
+            exits_path = Path(log_dir) / "exits" / f"exits_{run_id}.jsonl"
+            exits_path.parent.mkdir(parents=True, exist_ok=True)
+            record = {
+                "ts": event_ts.isoformat() if hasattr(event_ts, "isoformat") else str(event_ts),
+                "trade_id": getattr(trade, "trade_id", None),
+                "computed": {"mode": "exit_transformer_v0", "prob_close": float(prob_close)},
+                "context": {"ctx_cont": ctx_cont, "ctx_cat": ctx_cat},
+            }
+            with exits_path.open("a", encoding="utf-8") as f:
+                f.write(json.dumps(record, separators=(",", ":")) + "\n")
+        except Exception:
+            return
+
+    def _append_exit_io_record(
+        self,
+        *,
+        event_ts: pd.Timestamp,
+        trade: Any,
+        prob_close: float,
+        window_arr: Any,
+        ctx_cont: Optional[List[float]],
+        ctx_cat: Optional[List[int]],
+    ) -> None:
+        """
+        Append full IO (T=8, D=19) for exit transformer evaluation to exits_<run_id>.jsonl.
+        """
+        try:
+            runner = self._runner
+            log_dir = getattr(runner, "log_dir", None)
+            run_id = getattr(runner, "run_id", None)
+            if log_dir is None or run_id is None:
+                return
+
+            exits_path = Path(log_dir) / "exits" / f"exits_{run_id}.jsonl"
+            exits_path.parent.mkdir(parents=True, exist_ok=True)
+
+            # Normalize window to float list
+            arr = np.asarray(window_arr, dtype=np.float32)
+            if arr.shape != (8, 19):
+                raise RuntimeError(f"[EXIT_IO_SHAPE] expected (8,19), got {arr.shape}")
+
+            # Index map for scalars
+            idx = {name: i for i, name in enumerate(EXIT_IO_V0_CTX19_FEATURES)}
+            last = arr[-1]
+            try:
+                scalars = {
+                    "pnl_bps_now": float(last[idx["pnl_bps_now"]]),
+                    "mfe_bps": float(last[idx["mfe_bps"]]),
+                    "mae_bps": float(last[idx["mae_bps"]]),
+                    "dd_from_mfe_bps": float(last[idx["dd_from_mfe_bps"]]),
+                    "bars_held": float(last[idx["bars_held"]]),
+                    "time_since_mfe_bars": float(last[idx["time_since_mfe_bars"]]),
+                    "atr_bps_now": float(last[idx["atr_bps_now"]]),
+                }
+            except KeyError as e:
+                raise RuntimeError(f"[EXIT_IO_INDEX_MISSING] {e}")
+
+            ctx_payload = None
+            if ctx_cont and ctx_cat and len(ctx_cont) == 6 and len(ctx_cat) == 6:
+                ctx_payload = {"ctx_cont": ctx_cont, "ctx_cat": ctx_cat}
+
+            record = {
+                "ts": event_ts.isoformat() if hasattr(event_ts, "isoformat") else str(event_ts),
+                "run_id": run_id,
+                "trade_uid": getattr(trade, "trade_uid", None),
+                "trade_id": getattr(trade, "trade_id", None),
+                "side": getattr(trade, "side", None),
+                "computed": {
+                    "mode": "exit_transformer_v0",
+                    "prob_close": float(prob_close),
+                    "threshold": float(self.exit_threshold),
+                },
+                "context": ctx_payload,
+                "io": {
+                    "io_version": EXIT_IO_V0_CTX19_IO_VERSION,
+                    "feature_names_hash": EXIT_IO_V0_CTX19_FEATURE_NAMES_HASH,
+                    "window_len": 8,
+                    "input_dim": 19,
+                    "io_features": arr.tolist(),
+                },
+                "scalars": scalars,
+            }
+
+            with exits_path.open("a", encoding="utf-8") as f:
+                f.write(json.dumps(record, separators=(",", ":")) + "\n")
+        except Exception:
+            return
+
     def _build_exit_ctx19_window(self, trade: Any, candles: pd.DataFrame, window_len: int) -> Optional[np.ndarray]:
         """
         Build (T,19) exit transformer input window for a single trade.
@@ -876,6 +1245,7 @@ class ExitManager:
         local_mfe_last_bar = int(getattr(trade, "_mfe_last_bar", 0))
 
         window_rows: List[List[float]] = []
+        pre_entry_count = 0
         for idx, signal_dict in enumerate(signal_slice):
             candle_row = candle_rows[idx]
             try:
@@ -885,15 +1255,29 @@ class ExitManager:
             except Exception as e:
                 raise RuntimeError(f"[EXIT_IO_CONTRACT_VIOLATION] missing bid/ask or ts in candle row: {e}") from e
 
-            pnl_bps_now = compute_pnl_bps(entry_bid, entry_ask, bid_now, ask_now, trade.side)
-            bars_held = int(round((bar_ts - trade.entry_time).total_seconds() / 300.0))
-            if pnl_bps_now > local_mfe:
-                local_mfe = pnl_bps_now
-                local_mfe_last_bar = bars_held
-            if pnl_bps_now < local_mae:
-                local_mae = pnl_bps_now
-            dd_from_mfe = local_mfe - pnl_bps_now
-            time_since_mfe_bars = bars_held - local_mfe_last_bar
+            is_post_entry = bar_ts >= trade.entry_time
+            if is_post_entry:
+                pnl_bps_now = compute_pnl_bps(entry_bid, entry_ask, bid_now, ask_now, trade.side)
+                bars_held_raw = int(round((bar_ts - trade.entry_time).total_seconds() / 300.0))
+                bars_held = max(0, bars_held_raw)
+                if pnl_bps_now > local_mfe:
+                    local_mfe = pnl_bps_now
+                    local_mfe_last_bar = bars_held
+                if pnl_bps_now < local_mae:
+                    local_mae = pnl_bps_now
+                dd_from_mfe = max(0.0, local_mfe - pnl_bps_now)
+                time_since_mfe_bars = max(0.0, bars_held - local_mfe_last_bar)
+                local_mfe_for_row = local_mfe
+                local_mae_for_row = local_mae
+                bars_held_for_row = float(bars_held)
+            else:
+                pre_entry_count += 1
+                pnl_bps_now = 0.0
+                local_mfe_for_row = 0.0
+                local_mae_for_row = 0.0
+                dd_from_mfe = 0.0
+                bars_held_for_row = 0.0
+                time_since_mfe_bars = 0.0
 
             row = [
                 float(signal_dict["p_long"]),
@@ -909,10 +1293,10 @@ class ExitManager:
                 float(trade.entropy_entry),
                 float(trade.margin_entry),
                 float(pnl_bps_now),
-                float(local_mfe),
-                float(local_mae),
+                float(local_mfe_for_row),
+                float(local_mae_for_row),
                 float(dd_from_mfe),
-                float(bars_held),
+                float(bars_held_for_row),
                 float(time_since_mfe_bars),
                 float(runtime_atr_bps),
             ]
@@ -926,6 +1310,109 @@ class ExitManager:
             )
         if not np.isfinite(window_arr).all():
             raise RuntimeError("[EXIT_IO_CONTRACT_VIOLATION] non-finite values in exit transformer window")
+
+        idx = {name: i for i, name in enumerate(EXIT_IO_V0_CTX19_FEATURES)}
+        strict = os.environ.get("GX1_EXIT_AUDIT_STRICT") == "1"
+        eps = 1e-6
+
+        # One-shot audit log with snapshots
+        if not getattr(self, "_exit_input_audit_logged_once", False):
+            first_row_first7 = window_arr[0, :7].tolist()
+            last_row_first7 = window_arr[-1, :7].tolist()
+            entry_snapshots = {
+                "p_long_entry": float(window_arr[0, idx["p_long_entry"]]),
+                "p_hat_entry": float(window_arr[0, idx["p_hat_entry"]]),
+                "uncertainty_entry": float(window_arr[0, idx["uncertainty_entry"]]),
+                "entropy_entry": float(window_arr[0, idx["entropy_entry"]]),
+                "margin_entry": float(window_arr[0, idx["margin_entry"]]),
+            }
+            last_row_scalars = {
+                "pnl_bps_now": float(window_arr[-1, idx["pnl_bps_now"]]),
+                "mfe_bps": float(window_arr[-1, idx["mfe_bps"]]),
+                "mae_bps": float(window_arr[-1, idx["mae_bps"]]),
+                "dd_from_mfe_bps": float(window_arr[-1, idx["dd_from_mfe_bps"]]),
+                "bars_held": float(window_arr[-1, idx["bars_held"]]),
+                "time_since_mfe_bars": float(window_arr[-1, idx["time_since_mfe_bars"]]),
+                "atr_bps_now": float(window_arr[-1, idx["atr_bps_now"]]),
+            }
+            log.info(
+                "[EXIT_INPUT_AUDIT_ONESHOT] io_version=%s feature_hash=%s window_len=%d input_dim=%d first_row_first7=%s last_row_first7=%s entry_snapshots=%s last_row_scalars=%s pre_entry_count=%d",
+                EXIT_IO_V0_CTX19_IO_VERSION,
+                EXIT_IO_V0_CTX19_FEATURE_NAMES_HASH,
+                window_len,
+                window_arr.shape[1],
+                first_row_first7,
+                last_row_first7,
+                entry_snapshots,
+                last_row_scalars,
+                pre_entry_count,
+            )
+            self._exit_input_audit_logged_once = True
+
+        # Sample a few windows for additional visibility
+        if getattr(self, "_exit_input_audit_samples_count", 0) < 5:
+            bars_series = window_arr[:, idx["bars_held"]]
+            pnl_series = window_arr[:, idx["pnl_bps_now"]]
+            mfe_series = window_arr[:, idx["mfe_bps"]]
+            dd_series = window_arr[:, idx["dd_from_mfe_bps"]]
+            ts_mfe_series = window_arr[:, idx["time_since_mfe_bars"]]
+            atr_series = window_arr[:, idx["atr_bps_now"]]
+            log.info(
+                "[EXIT_INPUT_AUDIT_SAMPLE] trade_uid=%s side=%s bars_last=%.3f pnl_last=%.3f mfe_last=%.3f dd_last=%.3f ts_mfe_last=%.3f atr_last=%.3f pnl_min_max=%.3f/%.3f mfe_min_max=%.3f/%.3f dd_min_max=%.3f/%.3f bars_min_max=%.3f/%.3f",
+                getattr(trade, "trade_uid", None),
+                getattr(trade, "side", None),
+                float(bars_series[-1]),
+                float(pnl_series[-1]),
+                float(mfe_series[-1]),
+                float(dd_series[-1]),
+                float(ts_mfe_series[-1]),
+                float(atr_series[-1]),
+                float(pnl_series.min()),
+                float(pnl_series.max()),
+                float(mfe_series.min()),
+                float(mfe_series.max()),
+                float(dd_series.min()),
+                float(dd_series.max()),
+                float(bars_series.min()),
+                float(bars_series.max()),
+            )
+            self._exit_input_audit_samples_count += 1
+
+        if strict:
+            bars_series = window_arr[:, idx["bars_held"]]
+            if not np.all(np.diff(bars_series) >= -eps):
+                raise RuntimeError("[EXIT_INPUT_AUDIT_ASSERT] bars_held not non-decreasing")
+            ts_mfe_series = window_arr[:, idx["time_since_mfe_bars"]]
+            if not np.all(ts_mfe_series >= -eps):
+                raise RuntimeError("[EXIT_INPUT_AUDIT_ASSERT] time_since_mfe_bars negative")
+            pnl_series = window_arr[:, idx["pnl_bps_now"]]
+            mfe_series = window_arr[:, idx["mfe_bps"]]
+            dd_series = window_arr[:, idx["dd_from_mfe_bps"]]
+            if not np.all(mfe_series + eps >= pnl_series):
+                raise RuntimeError("[EXIT_INPUT_AUDIT_ASSERT] mfe_bps < pnl_bps_now")
+            if not np.all(dd_series + eps >= 0):
+                raise RuntimeError("[EXIT_INPUT_AUDIT_ASSERT] dd_from_mfe_bps negative beyond eps")
+            atr_series = window_arr[:, idx["atr_bps_now"]]
+            if not np.all(atr_series >= 0):
+                raise RuntimeError("[EXIT_INPUT_AUDIT_ASSERT] atr_bps_now negative")
+            # signal7 sanity: probabilities in [0,1] and sum≈1; other channels finite & >=0
+            sig = window_arr[:, :7]
+            if not np.isfinite(sig).all():
+                raise RuntimeError("[EXIT_INPUT_AUDIT_ASSERT] non-finite signal7")
+            tol = 1e-3
+            proba = sig[:, :3]
+            if not np.all((proba >= -tol) & (proba <= 1 + tol)):
+                raise RuntimeError("[EXIT_INPUT_AUDIT_ASSERT] p_long/p_short/p_flat out of [0,1]")
+            sums = proba.sum(axis=1)
+            if not np.all(np.abs(sums - 1.0) <= tol):
+                raise RuntimeError("[EXIT_INPUT_AUDIT_ASSERT] p_long+p_short+p_flat != 1")
+            p_hat = sig[:, 3]
+            if not np.all((p_hat >= -tol) & (p_hat <= 1 + tol)):
+                raise RuntimeError("[EXIT_INPUT_AUDIT_ASSERT] p_hat out of [0,1]")
+            others = sig[:, 4:]
+            if not np.all(others >= -tol):
+                raise RuntimeError("[EXIT_INPUT_AUDIT_ASSERT] signal7 other channels negative")
+
         return window_arr
 
     def _collect_price_trace(self, candles: pd.DataFrame, now_ts: pd.Timestamp, open_trades: List[Any]) -> None:

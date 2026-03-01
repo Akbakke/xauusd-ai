@@ -1,8 +1,12 @@
 """
 GX1 v1.1 → OANDA practice demo runner.
 
-This module wires the frozen ENTRY_V3 + EXIT_V2 models to the OANDA
-practice API with strong safety defaults (dry-run, risk guards).
+Canonical TRUTH/SMOKE stack:
+- Entry: ENTRY_V10_CTX (signal7 + CTX6CAT6 only)
+- Exit: exit_transformer_v0 ONLY (EXIT_IO_V0_CTX19, T=8, D=19)
+- Features: BASE28 → XGB → XGB_SIGNAL_BRIDGE_V1 (7-dim)
+- Mode: TRUTH/SMOKE = 1W1C, no fallbacks; mismatch => RuntimeError
+- Forbidden in canonical truth: FARM, EXIT_POLICY_V2/V3, drift-modes
 """
 
 from __future__ import annotations
@@ -47,8 +51,8 @@ except ImportError:
 import joblib
 import numpy as np
 import pandas as pd
-import requests
 import yaml
+from gx1.execution.tick_watcher import OpenPos, TickWatcher
 
 # DEL 2: Runtime V9 import moved to local scope (not top-level)
 # runtime_v9 is forbidden in replay-mode, so we only import it when needed (live mode only)
@@ -92,20 +96,6 @@ except ImportError:
     MODEL_STATUS_AVAILABLE = False
     log.warning("[IMPORT] model_status module not available - model validation will be skipped")
 
-# Big Brain V0 removed - using V1 only
-# Optional import - Big Brain may not be available in all environments
-try:
-    from gx1.big_brain.v1.runtime_v1 import BigBrainV1Runtime  # type: ignore[reportMissingImports]
-    from gx1.big_brain.v1.entry_gater import BigBrainV1EntryGater, load_entry_gater, EntryAction  # type: ignore[reportMissingImports]
-    BIG_BRAIN_AVAILABLE = True
-except ImportError:
-    BigBrainV1Runtime = None
-    BigBrainV1EntryGater = None
-    load_entry_gater = None
-    EntryAction = None
-    BIG_BRAIN_AVAILABLE = False
-    log.warning("[IMPORT] Big Brain V1 modules not available - Big Brain features will be disabled")
-
 SECONDS_PER_BAR = 300  # M5
 BID_ASK_REQUIRED_COLS = [
     "bid_open",
@@ -117,257 +107,6 @@ BID_ASK_REQUIRED_COLS = [
     "ask_low",
     "ask_close",
 ]
-
-
-# --------------------------------------------------------------------------- #
-# TickWatcher for TP/SL/BE on tick
-# --------------------------------------------------------------------------- #
-
-
-@dataclass
-class OpenPos:
-    trade_id: str
-    direction: str  # "LONG" or "SHORT"
-    entry_px: float
-    entry_bid: float
-    entry_ask: float
-    units: int
-    entry_ts: datetime
-    tp_bps: int
-    sl_bps: int
-    be_active: bool = False
-    be_price: float | None = None  # if BE price is already set
-    early_stop_bps: int = 0  # optional, e.g., 40 bps first 10-12 min
-    bb_exit: dict | None = None  # Big Brain V1 adjusted exit parameters (if available)
-
-
-class TickWatcher:
-    def __init__(self, *, host, stream_host, account_id, api_key, instrument, cfg, logger, close_cb, get_positions_cb):
-        """
-        close_cb(pos, reason, px, pnl_bps) -> should close position immediately
-        get_positions_cb() -> List[OpenPos]
-        """
-        self.host = host.rstrip("/")
-        self.stream_host = stream_host.rstrip("/")
-        self.account_id = account_id
-        self.api_key = api_key
-        self.instrument = instrument
-        self.cfg = cfg
-        self.logger = logger
-        self.close_cb = close_cb
-        self.get_positions_cb = get_positions_cb
-        self.update_be_callback = None  # Callback to update trade.extra when BE is activated
-
-        self._stop = threading.Event()
-        self._t = None
-        self._last_check = datetime.now(timezone.utc)
-
-    # ---------- public API ----------
-    def start(self):
-        if not self.cfg.get("enabled", False):
-            self.logger.info("[TICK] disabled in policy")
-            return
-        if self._t and self._t.is_alive():
-            return
-        self._stop.clear()
-        self._t = threading.Thread(target=self._run_loop, name="TickWatcher", daemon=True)
-        self._t.start()
-        self.logger.info("[TICK] watcher started")
-
-    def stop(self):
-        self._stop.set()
-        if self._t:
-            self._t.join(timeout=2.0)
-        self.logger.info("[TICK] watcher stopped")
-
-    # ---------- internals ----------
-    def _run_loop(self):
-        # loop: try stream first (using stream_host), fall back to snapshot-polling
-        backoff = 0.2
-        while not self._stop.is_set():
-            try:
-                if self.cfg.get("stream", True):
-                    # Try stream first (using stream_host for pricing stream endpoint)
-                    try:
-                        self._stream_pricing()
-                        # If stream works, it will loop indefinitely until _stop is set
-                        # If stream fails (404), it will return and fall through to snapshot
-                    except Exception as stream_error:
-                        # Stream failed, fall back to snapshot polling
-                        self.logger.warning(f"[TICK] Stream failed: {stream_error!r}, falling back to snapshot polling")
-                        self.cfg["stream"] = False  # Disable stream mode, use snapshot instead
-                
-                # Use snapshot polling (always works with OANDA v3 API)
-                if not self.cfg.get("stream", True):
-                    self._poll_snapshot()
-            except Exception as e:
-                self.logger.warning(f"[TICK] loop error: {e!r}")
-                time.sleep(min(backoff, float(self.cfg.get("max_backoff_s", 5))))
-                backoff = min(backoff * 2.0, float(self.cfg.get("max_backoff_s", 5)))
-            else:
-                backoff = 0.2  # reset if normal return
-
-    def _headers(self):
-        return {"Authorization": f"Bearer {self.api_key}"}
-
-    def _stream_pricing(self):
-        # OANDA pricing stream endpoint (uses stream_host, not REST host)
-        # URL: https://stream-fxpractice.oanda.com/v3/accounts/{accountID}/pricing/stream
-        url = f"{self.stream_host}/v3/accounts/{self.account_id}/pricing/stream"
-        params = {"instruments": self.instrument}
-        with requests.get(url, headers=self._headers(), params=params, stream=True, timeout=30) as r:
-            r.raise_for_status()
-            self.logger.info("[TICK] Pricing stream connected (using stream_host)")
-            for line in r.iter_lines(decode_unicode=True):
-                if self._stop.is_set():
-                    return
-                if not line:
-                    continue
-                try:
-                    data = jsonlib.loads(line)
-                except jsonlib.JSONDecodeError:
-                    continue
-                if data.get("type") not in ("PRICE", "HEARTBEAT"):
-                    continue
-                if data.get("type") == "HEARTBEAT":
-                    continue
-                bids = data.get("bids") or []
-                asks = data.get("asks") or []
-                if not bids or not asks:
-                    continue
-                # use bid/ask for exits
-                bid = float(bids[0]["price"])
-                ask = float(asks[0]["price"])
-                ts = self._iso_to_utc(data.get("time"))
-                self._on_tick(ts, bid, ask)
-
-    def _poll_snapshot(self):
-        # fallback: snapshot every N ms
-        url = f"{self.host}/v3/accounts/{self.account_id}/pricing"
-        period = float(self.cfg.get("snapshot_ms", 400)) / 1000.0
-        while not self._stop.is_set():
-            try:
-                r = requests.get(url, headers=self._headers(), params={"instruments": self.instrument}, timeout=10)
-                r.raise_for_status()
-                prices = r.json().get("prices", [])
-                if prices:
-                    p = prices[0]
-                    bid = float(p["bids"][0]["price"])
-                    ask = float(p["asks"][0]["price"])
-                    ts = self._iso_to_utc(p.get("time"))
-                    self._on_tick(ts, bid, ask)
-            except Exception as e:
-                self.logger.warning(f"[TICK] snapshot error: {e!r}")
-                # let run_loop handle backoff next round
-                return
-            time.sleep(period)
-
-    def _iso_to_utc(self, s):
-        try:
-            return datetime.fromisoformat(s.replace("Z", "+00:00")).astimezone(timezone.utc)
-        except Exception:
-            return datetime.now(timezone.utc)
-
-    def _on_tick(self, ts_utc, bid, ask):
-        # debounce
-        debounce_ms = int(self.cfg.get("debounce_ms", 120))
-        if (ts_utc - self._last_check).total_seconds() * 1000.0 < debounce_ms:
-            return
-        self._last_check = ts_utc
-
-        open_pos = self.get_positions_cb()
-        if not open_pos:
-            return  # nothing to do
-
-        for pos in list(open_pos):
-            # price that applies for exit (conservative: LONG -> bid, SHORT -> ask)
-            px = bid if pos.direction == "LONG" else ask
-            pnl_bps = self._pnl_bps(pos, bid, ask)
-
-            # Break-even activation on tick (when profit >= activate_at_bps)
-            be_cfg = self.cfg.get("be", {})
-            be_enabled = be_cfg.get("enabled", False)
-            # Check for Big Brain V1 adjusted BE trigger
-            if pos.bb_exit and isinstance(pos.bb_exit, dict):
-                be_activate_at_bps = int(pos.bb_exit.get("be_trigger_bps_adj", be_cfg.get("activate_at_bps", 50)))
-            else:
-                be_activate_at_bps = int(be_cfg.get("activate_at_bps", 50))
-            be_bias_price = float(be_cfg.get("bias_price", 0.3))
-            
-            if be_enabled and not pos.be_active and pnl_bps >= be_activate_at_bps:
-                # Activate break-even: set BE price = entry_price + bias (lock in small profit)
-                if pos.direction == "LONG":
-                    be_price = pos.entry_px + be_bias_price
-                else:  # SHORT
-                    be_price = pos.entry_px - be_bias_price
-                
-                # Update position BE status (will be synced back to trade.extra in _get_open_positions_for_tick)
-                pos.be_active = True
-                pos.be_price = be_price
-                
-                # Log BE activation
-                self.logger.info(
-                    "[TICK] BE activated for trade %s: pnl_bps=%.2f >= %d, BE_price=%.3f (entry=%.3f + bias=%.3f)",
-                    pos.trade_id,
-                    pnl_bps,
-                    be_activate_at_bps,
-                    be_price,
-                    pos.entry_px,
-                    be_bias_price,
-                )
-                
-                # Sync BE status back to trade.extra (so it persists across cycles)
-                # Call callback to update trade.extra (thread-safe)
-                try:
-                    if self.update_be_callback:
-                        self.update_be_callback(pos.trade_id, be_active=True, be_price=be_price)
-                except Exception as e:
-                    self.logger.warning(f"[TICK] Failed to sync BE status to trade.extra: {e!r}")
-            
-            # Break-even check (if already active)
-            if pos.be_active and pos.be_price is not None:
-                # if we've fallen back to BE or below (for LONG) – or above for SHORT
-                if (pos.direction == "LONG" and px <= pos.be_price) or (pos.direction == "SHORT" and px >= pos.be_price):
-                    self._try_close(pos, "BE_TICK", px, pnl_bps)
-                    continue
-
-            # TP/SL
-            if pnl_bps >= pos.tp_bps:
-                self._try_close(pos, "TP_TICK", px, pnl_bps)
-                continue
-            if pnl_bps <= -pos.sl_bps:
-                self._try_close(pos, "SL_TICK", px, pnl_bps)
-                continue
-            
-            # Soft-stop: cut losing trades early (anytime, not time-based)
-            # Check for Big Brain V1 adjusted soft stop (with asymmetry if available)
-            if pos.bb_exit and isinstance(pos.bb_exit, dict):
-                # Priority: bb_exit_asym > bb_exit (risk shaping only)
-                soft_stop_bps = int(pos.bb_exit.get("soft_stop_bps_adj", self.cfg.get("soft_stop_bps", 0)))
-            else:
-                soft_stop_bps = int(self.cfg.get("soft_stop_bps", 0))
-            if soft_stop_bps > 0 and pnl_bps <= -soft_stop_bps:
-                self._try_close(pos, "SOFT_STOP_TICK", px, pnl_bps)
-                continue
-
-    def _pnl_bps(self, pos: OpenPos, bid_now: float, ask_now: float) -> float:
-        side = "long" if pos.direction.upper() == "LONG" else "short"
-        # Add defensive logging for first N calls
-        if not hasattr(self, "_pnl_log_count"):
-            self._pnl_log_count = 0
-        if self._pnl_log_count < 5:
-            log.debug(
-                "[PNL] Using bid/ask PnL: entry_bid=%.5f entry_ask=%.5f exit_bid=%.5f exit_ask=%.5f side=%s",
-                pos.entry_bid, pos.entry_ask, bid_now, ask_now, side
-            )
-            self._pnl_log_count += 1
-        return compute_pnl_bps(pos.entry_bid, pos.entry_ask, bid_now, ask_now, side)
-
-    def _try_close(self, pos: OpenPos, reason: str, px: float, pnl_bps: float):
-        try:
-            self.close_cb(pos, reason, px, pnl_bps)
-        except Exception as e:
-            self.logger.error(f"[TICK] close_cb error trade_id={pos.trade_id} reason={reason}: {e!r}")
 
 
 # --------------------------------------------------------------------------- #
@@ -1036,324 +775,14 @@ def append_eval_log(eval_log_path: Path, eval_record: Dict[str, Any]) -> None:
 
 
 # --------------------------------------------------------------------------- #
-# Parity-run adapter
-# --------------------------------------------------------------------------- #
-
-
-def mirror_offline_predict(
-    feat_row: pd.Series,
-    session_tag: str,
-    models: Dict[str, any],
-    feature_cols: List[str],
-    temperature_map: Dict[str, float],
-    manifest: Dict,
-) -> Tuple[float, float, str]:
-    """
-    Mirror offline prediction for parity verification.
-    Uses same model and logic as live runner.
-    
-    Parameters
-    ----------
-    feat_row : pd.Series
-        Feature row (single row from feature DataFrame, already aligned).
-    session_tag : str
-        Session tag (EU, US, OVERLAP).
-    models : Dict[str, any]
-        Session-routed models dictionary.
-    feature_cols : List[str]
-        Feature column names.
-    temperature_map : Dict[str, float]
-        Temperature map for calibration.
-    manifest : Dict
-        Feature manifest for alignment.
-    
-    Returns
-    -------
-    Tuple[float, float, str]
-        (p_hat_off, margin_off, dir_off)
-    """
-    # Get model for this session
-    model = models.get(session_tag)
-    if model is None:
-        raise ValueError(f"Model for session '{session_tag}' not found")
-    
-    # Convert feature row to numpy array (same format as live)
-    row = feat_row[feature_cols].astype(np.float32).to_numpy().reshape(1, -1)
-    
-    # Predict probabilities (same as live)
-    probs = model.predict_proba(row)
-    classes = getattr(model, "classes_", None)
-    
-    # Extract probabilities (same logic as extract_entry_probabilities)
-    prediction_off = extract_entry_probabilities(probs, classes)
-    
-    # Apply temperature scaling (same as live)
-    T = float(temperature_map.get(session_tag, 1.0))
-    if T != 1.0:
-        prediction_off.prob_long = _apply_temperature_static(prediction_off.prob_long, T)
-        prediction_off.prob_short = _apply_temperature_static(prediction_off.prob_short, T)
-        prediction_off.p_hat = float(max(prediction_off.prob_long, prediction_off.prob_short))
-        prediction_off.margin = float(abs(prediction_off.prob_long - prediction_off.prob_short))
-    
-    # Determine direction (same logic as live)
-    if prediction_off.prob_long >= prediction_off.prob_short:
-        dir_off = "LONG"
-    else:
-        dir_off = "SHORT"
-    
-    return prediction_off.p_hat, prediction_off.margin, dir_off
-
-
-def _apply_temperature_static(p: float, T: float) -> float:
-    """Apply temperature scaling (static version for parity-run)."""
-    eps = 1e-8
-    p = min(max(p, eps), 1.0 - eps)
-    logit_p = np.log(p) - np.log(1.0 - p)
-    logit_T = logit_p / max(T, 1e-6)
-    return 1.0 / (1.0 + np.exp(-logit_T))
-
-
-# --------------------------------------------------------------------------- #
 # Live runner
 # --------------------------------------------------------------------------- #
 
 
 class GX1DemoRunner:
     def _write_xgb_input_truth_dump_if_ready(self, force: bool = False) -> None:
-        """
-        Write XGB input truth dump once per run (TRUTH/PREBUILT only, chunk_0 only).
-
-        - If force=False: writes only when captured rows >= target (default 2000)
-        - If force=True: writes with whatever rows were captured (if any) at end of replay
-
-        Hard truth check (TRUTH): if >50% of features are constant in the sampled matrix,
-        write XGB_INPUT_DEGENERATE_FATAL.json and raise RuntimeError.
-        """
-        import numpy as np
-        import json as _json
-        from pathlib import Path as Path_local
-
-        is_truth_run = os.getenv("GX1_RUN_MODE", "").upper() == "TRUTH" or os.getenv("GX1_TRUTH_MODE", "0") == "1"
-        is_prebuilt = os.getenv("GX1_REPLAY_USE_PREBUILT_FEATURES", "0") == "1" and os.getenv("GX1_FEATURE_BUILD_DISABLED", "0") == "1"
-        chunk_id_env = os.getenv("GX1_CHUNK_ID", "")
-        if not (is_truth_run and is_prebuilt and str(chunk_id_env) == "0"):
-            return
-
-        if not hasattr(self, "_xgb_truth_dump_done"):
-            self._xgb_truth_dump_done = False
-        if self._xgb_truth_dump_done:
-            return
-
-        rows = getattr(self, "_xgb_truth_dump_rows", None)
-        feat_names = getattr(self, "_xgb_truth_dump_feature_names", None)
-        ssot_details = getattr(self, "_xgb_feature_names_ssot_details", None)
-        n_target = int(getattr(self, "_xgb_truth_dump_n_target", 2000))
-        if not rows or not feat_names:
-            return
-        if not force and len(rows) < n_target:
-            return
-
-        # Resolve run_root from explicit_output_dir if present (chunk dir -> parent)
-        run_root = None
-        if getattr(self, "explicit_output_dir", None):
-            try:
-                p = Path_local(str(self.explicit_output_dir))
-                run_root = p.parent if p.name.startswith("chunk_") else p
-            except Exception:
-                run_root = None
-        if run_root is None:
-            raise RuntimeError("[TRUTH_FAIL] XGB_INPUT_TRUTH_DUMP cannot resolve run_root for writing artifacts")
-
-        dump_json_path = run_root / "XGB_INPUT_TRUTH_DUMP.json"
-        dump_md_path = run_root / "XGB_INPUT_TRUTH_DUMP.md"
-        fatal_path = run_root / "XGB_INPUT_DEGENERATE_FATAL.json"
-
-        if dump_json_path.exists():
-            self._xgb_truth_dump_done = True
-            return
-
-        M = np.stack(rows, axis=0)
-        feat_names = list(feat_names)
-        n_rows_s, n_feat_s = int(M.shape[0]), int(M.shape[1])
-        if n_feat_s != len(feat_names):
-            raise RuntimeError(
-                "[TRUTH_FAIL] XGB_INPUT_TRUTH_DUMP feature_names length mismatch: "
-                f"n_feat={n_feat_s} names_len={len(feat_names)}"
-            )
-
-        per_col = []
-        per_feature_stats_by_name: Dict[str, Any] = {}
-        constant_names = []
-        all_zero_names = []
-        std_pairs = []
-        for j, name in enumerate(feat_names):
-            col = M[:, j]
-            min_v = float(np.min(col))
-            max_v = float(np.max(col))
-            mean_v = float(np.mean(col))
-            std_v = float(np.std(col))
-            uniq = np.unique(col)
-            unique_count = int(uniq.shape[0])
-            pct_zero = float(np.mean(col == 0.0))
-            is_constant = unique_count == 1
-            const_value = float(uniq[0]) if is_constant else None
-            if is_constant:
-                constant_names.append(name)
-            if pct_zero >= 1.0:
-                all_zero_names.append(name)
-            std_pairs.append((std_v, name))
-            per_col.append(
-                {
-                    "feature": name,
-                    "min": min_v,
-                    "max": max_v,
-                    "mean": mean_v,
-                    "std": std_v,
-                    "unique_count": unique_count,
-                    "percent_zero": pct_zero,
-                    "is_constant": is_constant,
-                    "const_value": const_value,
-                }
-            )
-            per_feature_stats_by_name[name] = {
-                "min": min_v,
-                "max": max_v,
-                "mean": mean_v,
-                "std": std_v,
-                "unique_count": unique_count,
-                "percent_zero": pct_zero,
-                "is_constant": is_constant,
-                "const_value": const_value,
-            }
-
-        std_pairs_sorted = sorted(std_pairs, key=lambda x: (-x[0], x[1]))
-        top20_by_std = [{"feature": n, "std": float(s)} for (s, n) in std_pairs_sorted[:20]]
-
-        n_constant = int(len(constant_names))
-        n_all_zero = int(len(all_zero_names))
-        constant_frac = float(n_constant) / float(n_feat_s) if n_feat_s else 0.0
-        varying_names = [n for n in feat_names if n not in constant_names]
-        first5 = np.round(M[:5, :], 6).tolist()
-        first5_rows_by_name = []
-        for row in first5:
-            first5_rows_by_name.append({name: row[i] for i, name in enumerate(feat_names)})
-
-        payload = {
-            "run_id": os.getenv("GX1_RUN_ID"),
-            "chunk_id": os.getenv("GX1_CHUNK_ID"),
-            "generated_utc": datetime.now(timezone.utc).isoformat(),
-            "n_rows_sampled": n_rows_s,
-            "n_features": n_feat_s,
-            "X_shape": [n_rows_s, n_feat_s],
-            "feature_names_ordered": feat_names,
-            "feature_names_ssot": ssot_details,
-            "degeneracy_summary": {
-                "n_constant_features": n_constant,
-                "constant_fraction": constant_frac,
-                "n_all_zero_features": n_all_zero,
-                "constant_feature_names": constant_names,
-                "all_zero_feature_names": all_zero_names,
-                "varying_feature_names": varying_names,
-            },
-            "per_feature_stats_by_name": per_feature_stats_by_name,
-            "per_feature_stats_rows": per_col,
-            "top20_features_by_std": [
-                {
-                    "feature": r["feature"],
-                    "std": r["std"],
-                    "min": per_feature_stats_by_name.get(r["feature"], {}).get("min"),
-                    "max": per_feature_stats_by_name.get(r["feature"], {}).get("max"),
-                    "percent_zero": per_feature_stats_by_name.get(r["feature"], {}).get("percent_zero"),
-                }
-                for r in top20_by_std
-            ],
-            "first5_rows_preview_by_name": first5_rows_by_name,
-            "notes": [
-                "Captured from the exact XGB input vector right before predict_proba().",
-                "TRUTH/PREBUILT only; chunk_0 only; first N rows only (or force finalize at end).",
-            ],
-        }
-
-        tmp_json = dump_json_path.with_suffix(dump_json_path.suffix + f".tmp.{os.getpid()}")
-        with open(tmp_json, "w", encoding="utf-8") as f:
-            _json.dump(payload, f, indent=2, ensure_ascii=False, default=str)
-        os.replace(tmp_json, dump_json_path)
-
-        md_lines = []
-        md_lines.append("## XGB INPUT TRUTH DUMP")
-        md_lines.append("")
-        md_lines.append(f"- **run_id**: `{payload.get('run_id')}`")
-        md_lines.append(f"- **chunk_id**: `{payload.get('chunk_id')}`")
-        md_lines.append(f"- **generated_utc**: `{payload.get('generated_utc')}`")
-        md_lines.append("")
-        md_lines.append("## Section 1 — Shape")
-        md_lines.append(f"- **n_rows_sampled**: `{n_rows_s}`")
-        md_lines.append(f"- **n_features**: `{n_feat_s}`")
-        md_lines.append("")
-        md_lines.append("## Section 2 — Degeneracy Summary")
-        md_lines.append(f"- **n_constant_features**: `{n_constant}` (fraction=`{constant_frac:.4f}`)")
-        md_lines.append(f"- **n_all_zero_features**: `{n_all_zero}`")
-        md_lines.append("")
-        md_lines.append("## Ordered feature list (n=28)")
-        for n in feat_names:
-            md_lines.append(f"- `{n}`")
-        md_lines.append("")
-        md_lines.append(f"## Varying features (n={len(varying_names)})")
-        for n in varying_names:
-            md_lines.append(f"- `{n}`")
-        md_lines.append("")
-        md_lines.append("### Constant features (names)")
-        for n in constant_names[:120]:
-            md_lines.append(f"- `{n}`")
-        md_lines.append("")
-        md_lines.append("## Section 3 — Top 20 Features by Std")
-        for r in payload.get("top20_features_by_std") or []:
-            md_lines.append(
-                f"- `{r['feature']}` std={float(r['std']):.8f} min={r.get('min')} max={r.get('max')} percent_zero={r.get('percent_zero')}"
-            )
-        md_lines.append("")
-        md_lines.append("## Section 4 — First 5 rows (matrix preview)")
-        md_lines.append("```")
-        for row in first5_rows_by_name:
-            md_lines.append(str(row))
-        md_lines.append("```")
-        md_text = "\n".join(md_lines) + "\n"
-        tmp_md = dump_md_path.with_suffix(dump_md_path.suffix + f".tmp.{os.getpid()}")
-        with open(tmp_md, "w", encoding="utf-8") as f:
-            f.write(md_text)
-        os.replace(tmp_md, dump_md_path)
-
-        if constant_frac > 0.50:
-            fatal = {
-                "error_type": "XGB_INPUT_DEGENERATE_FATAL",
-                "run_id": payload.get("run_id"),
-                "chunk_id": payload.get("chunk_id"),
-                "generated_utc": datetime.now(timezone.utc).isoformat(),
-                "n_rows_sampled": n_rows_s,
-                "n_features": n_feat_s,
-                "n_constant_features": n_constant,
-                "constant_fraction": constant_frac,
-                "threshold": 0.50,
-                "dump_json_path": str(dump_json_path),
-                "constant_feature_names": constant_names,
-                "all_zero_feature_names": all_zero_names,
-                "varying_feature_names": varying_names,
-            }
-            tmp_f = fatal_path.with_suffix(fatal_path.suffix + f".tmp.{os.getpid()}")
-            with open(tmp_f, "w", encoding="utf-8") as f:
-                _json.dump(fatal, f, indent=2)
-            os.replace(tmp_f, fatal_path)
-            raise RuntimeError(
-                "XGB input matrix degenerate: "
-                f"constant_fraction={constant_frac:.4f} "
-                f"all_zero_first20={all_zero_names[:20]} varying_first20={varying_names[:20]}"
-            )
-
-        self._xgb_truth_dump_done = True
-        try:
-            self._xgb_truth_dump_rows = []  # type: ignore[attr-defined]
-        except Exception:
-            pass
+        """LEGACY no-op: XGB input truth dump disabled (archived)."""
+        log.debug("[LEGACY] XGB input truth dump disabled (force=%s)", force)
 
     def __init__(
         self,
@@ -1416,6 +845,9 @@ class GX1DemoRunner:
         self.exit_eval_short = 0
         self.exit_close_long = 0
         self.exit_close_short = 0
+        self._tick_exit_triggered_any = False
+        self._last_closed_candles: Optional[pd.DataFrame] = None
+        self._tick_exit_last_eval_ts: Optional[pd.Timestamp] = None
 
         # Exit transformer metadata (populated if enabled)
         self.exit_ml_enabled = False
@@ -1557,23 +989,8 @@ class GX1DemoRunner:
         
         log.info("[BOOT] mode=%s, run_mode=%s", self.mode, self.run_mode)
         
-        # Initialize entry-only log path if in ENTRY_ONLY mode
         if self.mode == "ENTRY_ONLY":
-            # Use chunk_id from environment if available (for parallel replay)
-            chunk_id = os.getenv("GX1_CHUNK_ID", "")
-            if chunk_id:
-                entry_only_log_path = Path(f"gx1/live/entry_only_log_v9_test_chunk_{chunk_id}.csv")
-            else:
-                entry_only_log_path = Path("gx1/live/entry_only_log_v9_test.csv")
-            entry_only_log_path.parent.mkdir(parents=True, exist_ok=True)
-            self.entry_only_log_path = entry_only_log_path
-            # Initialize buffer for efficient batch writes (reduces I/O bottleneck)
-            self._entry_only_log_buffer = []
-            self._entry_only_log_buffer_size = 500  # Flush every 500 entries (increased for better performance)
-            log.info("[ENTRY_ONLY] Entry-only logging enabled: %s (buffered, flush every %d entries)", 
-                     self.entry_only_log_path, self._entry_only_log_buffer_size)
-        else:
-            self.entry_only_log_path = None
+            raise RuntimeError("[FORBIDDEN] ENTRY_ONLY is non-canonical and has been archived.")
         
         # Initialize model_name tracking (will be set when models are loaded)
         self.model_name = self.policy.get("entry_models", {}).get("default", {}).get("version", "UNKNOWN")
@@ -1682,36 +1099,18 @@ class GX1DemoRunner:
                     self.policy[key] = value
             log.debug("[BOOT] Merged entry_config into self.policy (for entry policy access)")
         
-        # Check for REN EXIT_V2 mode (only_v2_drift flag)
-        self.exit_only_v2_drift = bool(exit_cfg.get("exit", {}).get("only_v2_drift", False))
-        if self.exit_only_v2_drift:
-            log.info("[BOOT] REN EXIT_V2 mode enabled: only_v2_drift=true - disabling other exit mechanisms")
-            # Disable tick_exit
-            tick_exit_cfg = self.policy.get("tick_exit", {})
-            tick_exit_cfg["enabled"] = False
-            self.policy["tick_exit"] = tick_exit_cfg
-            # Disable broker-side TP/SL
-            self.policy["broker_side_tp_sl"] = False
-            log.info("[BOOT] tick_exit disabled (REN EXIT_V2 mode)")
-            log.info("[BOOT] broker_side_tp_sl disabled (REN EXIT_V2 mode)")
+        exit_section = exit_cfg.get("exit", {}) if isinstance(exit_cfg.get("exit"), dict) else {}
+        exit_type = exit_section.get("type") if isinstance(exit_section, dict) else None
+        exit_ml_params = exit_section.get("params", {}).get("exit_ml", {}) if isinstance(exit_section, dict) else {}
+        exit_mode = exit_ml_params.get("mode")
+        if exit_type not in (None, "", "EXIT_TRANSFORMER_V0"):
+            raise RuntimeError(f"[FORBIDDEN] exit.type={exit_type} is not allowed in CANONICAL_TRUTH_SIGNAL_ONLY_V1; use exit_transformer_v0 only.")
+        if exit_mode not in ("exit_transformer_v0",):
+            raise RuntimeError(f"[FORBIDDEN] exit_mode={exit_mode} is not allowed in CANONICAL_TRUTH_SIGNAL_ONLY_V1; use exit_transformer_v0 only.")
         self.exit_params = exit_cfg  # Store exit config for shadow-exit A/B
-        
-        # Check for EXIT_V2_DRIFT, EXIT_V3_ADAPTIVE, EXIT_FARM_V1, or EXIT_FARM_V2_RULES configuration
-        exit_type = exit_cfg.get("exit", {}).get("type") if isinstance(exit_cfg.get("exit"), dict) else None
-        self.exit_farm_v1_policy = None
-        self.exit_farm_v2_rules_policy = None
-        self.exit_farm_v2_rules_factory = None
-        self.exit_farm_v2_rules_states: Dict[str, Any] = {}
         self.exit_verbose_logging = False
         self.exit_fixed_bar_policy = None
-        self.exit_ml_mode = (
-            exit_cfg.get("exit", {}).get("params", {}).get("exit_ml", {}).get("mode")
-            if isinstance(exit_cfg.get("exit"), dict)
-            else None
-        )
-        self.farm_v1_mode = False  # Track if we're in FARM_V1 mode
-        self.farm_v2_mode = False  # Track if we're in FARM_V2 mode
-        self.farm_v2b_mode = False  # Track if we're in FARM_V2B mode
+        self.exit_ml_mode = exit_mode
         # Load exit transformer decider if configured
         if self.exit_ml_mode == "exit_transformer_v0":
             exit_tf_cfg = (
@@ -1767,265 +1166,50 @@ class GX1DemoRunner:
             # Other modes currently unsupported in this path
             raise RuntimeError(f"[EXIT_MODEL_REQUIRED] Exit transformer model is required for configured exit policy (mode={self.exit_ml_mode})")
         
-        if exit_type == "FARM_V2_RULES":
-            # FARM_V2_RULES mode: Rule-based exit for FARM_V2B
-            from gx1.policy.exit_farm_v2_rules import get_exit_policy_farm_v2_rules
-            exit_params = exit_cfg.get("exit", {}).get("params", {})
-            self.exit_verbose_logging = bool(exit_params.get("verbose_logging", False))
-            
-            def _build_exit_farm_v2_rules_policy():
-                return get_exit_policy_farm_v2_rules(
-                    enable_rule_a=exit_params.get("enable_rule_a", False),
-                    enable_rule_b=exit_params.get("enable_rule_b", False),
-                    enable_rule_c=exit_params.get("enable_rule_c", False),
-                    rule_a_profit_min_bps=exit_params.get("rule_a_profit_min_bps", 6.0),
-                    rule_a_profit_max_bps=exit_params.get("rule_a_profit_max_bps", 9.0),
-                    rule_a_adaptive_threshold_bps=exit_params.get("rule_a_adaptive_threshold_bps", 4.0),
-                    rule_a_trailing_stop_bps=exit_params.get("rule_a_trailing_stop_bps", 2.0),
-                    rule_a_adaptive_bars=exit_params.get("rule_a_adaptive_bars", 3),
-                    rule_b_mae_threshold_bps=exit_params.get("rule_b_mae_threshold_bps", -4.0),
-                    rule_b_max_bars=exit_params.get("rule_b_max_bars", 6),
-                    rule_c_timeout_bars=exit_params.get("rule_c_timeout_bars", 8),
-                    rule_c_min_profit_bps=exit_params.get("rule_c_min_profit_bps", 2.0),
-                    debug_trade_ids=exit_params.get("debug_trade_ids", []),
-                    force_exit_bars=exit_params.get("force_exit_bars"),
-                    verbose_logging=exit_params.get("verbose_logging", False),
-                    log_every_n_bars=exit_params.get("log_every_n_bars", 5),
-                )
-
-            self.exit_farm_v2_rules_factory = _build_exit_farm_v2_rules_policy
-            self.exit_farm_v2_rules_policy = self.exit_farm_v2_rules_factory()
-            self.exit_farm_v2_rules_states = {}
-            
-            rules_str = []
-            if exit_params.get("enable_rule_a", False):
-                rules_str.append("A")
-            if exit_params.get("enable_rule_b", False):
-                rules_str.append("B")
-            if exit_params.get("enable_rule_c", False):
-                rules_str.append("C")
-            
-            log.info(
-                f"[BOOT] EXIT_FARM_V2_RULES enabled: Rules={'+'.join(rules_str) if rules_str else 'NONE'}"
-            )
-            
-            # Force disable all other exit mechanisms
-            self.exit_farm_v1_policy = None
-            tick_exit_cfg = self.policy.get("tick_exit", {})
-            tick_exit_cfg["enabled"] = False
-            self.policy["tick_exit"] = tick_exit_cfg
-            self.policy["broker_side_tp_sl"] = False
-            if hasattr(self, "tick_cfg"):
-                self.tick_cfg["enabled"] = False
-            
-            log.info("[BOOT] FARM_V2_RULES mode: All non-FARM exits disabled")
-            self.exit_only_v2_drift = True
-        
-        elif exit_type == "FARM_V1":
-            # FARM_V1 mode: Only FARM exits allowed, disable all other exits
-            self.farm_v1_mode = True
-            
-            # FARM_BASELINE_VERSION: Frozen baseline version (final)
-            FARM_BASELINE_VERSION = "FARM_V1_STABLE_FINAL_2025_12_05"
-            self.farm_baseline_version = FARM_BASELINE_VERSION
-            
-            # Check entry policy to see if FARM_V2B or FARM_V2 is enabled (before guardrail check)
-            entry_farm_v2b_cfg = self.policy.get("entry_v9_policy_farm_v2b", {})
-            entry_farm_v2_cfg = self.policy.get("entry_v9_policy_farm_v2", {})
-            if entry_farm_v2b_cfg.get("enabled", False):
-                self.farm_v2_mode = True  # V2B uses same exit as V2
-                self.farm_v2b_mode = True
-            elif entry_farm_v2_cfg.get("enabled", False):
-                self.farm_v2_mode = True
-                self.farm_v2b_mode = False
-            else:
-                self.farm_v2b_mode = False
-            
-            # Runtime guardrail: Check exit profile based on mode
-            exit_config_name = exit_cfg_path.stem
-            if self.farm_v2_mode or (hasattr(self, "farm_v2b_mode") and self.farm_v2b_mode):
-                # FARM_V2/V2B mode MUST use FARM_EXIT_V2_AGGRO
-                if exit_config_name != "FARM_EXIT_V2_AGGRO":
-                    raise RuntimeError(
-                        f"FARM_V2/V2B mode MUST use FARM_EXIT_V2_AGGRO exit policy. "
-                        f"Found: {exit_config_name}. "
-                        f"FARM_V2/V2B must use FARM_EXIT_V2_AGGRO."
-                    )
-            else:
-                # FARM_V1 mode MUST use FARM_EXIT_V1_STABLE
-                if exit_config_name != "FARM_EXIT_V1_STABLE":
-                    raise RuntimeError(
-                        f"FARM_V1 mode MUST use FARM_EXIT_V1_STABLE exit policy. "
-                        f"Found: {exit_config_name}. "
-                        f"This is a frozen baseline (version {FARM_BASELINE_VERSION}). "
-                        f"Changes require explicit approval and new major version."
-                    )
-            
-            from gx1.policy.exit_farm_v1_policy import get_exit_policy_farm_v1  # type: ignore[reportMissingImports]
-            exit_params = exit_cfg.get("exit", {}).get("params", {})
-            
-            # Verify parameters match FARM_EXIT_V1_STABLE baseline
-            expected_sl = -20.0
-            expected_tp = 8.0
-            expected_timeout = 8
-            actual_sl = exit_params.get("sl_bps", -6.0)
-            actual_tp = exit_params.get("tp1_bps", 6.0)
-            actual_timeout = exit_params.get("timeout_bars", 8)
-            
-            if abs(actual_sl - expected_sl) > 0.01 or abs(actual_tp - expected_tp) > 0.01 or actual_timeout != expected_timeout:
-                log.warning(
-                    "[BOOT] FARM_EXIT_V1_STABLE parameter mismatch: "
-                    f"Expected SL={expected_sl}, TP={expected_tp}, TIMEOUT={expected_timeout}, "
-                    f"Found SL={actual_sl}, TP={actual_tp}, TIMEOUT={actual_timeout}. "
-                    f"Baseline version: {FARM_BASELINE_VERSION}"
-                )
-            
-            self.exit_farm_v1_policy = get_exit_policy_farm_v1(
-                sl_bps=exit_params.get("sl_bps", -6.0),
-                tp1_bps=exit_params.get("tp1_bps", 6.0),
-                tp2_bps=exit_params.get("tp2_bps", 6.0),
-                timeout_bars=exit_params.get("timeout_bars", 8),
-            )
-            log.info(
-                "[BOOT] EXIT_FARM_V1 enabled: SL=%.0f bps, TP1=%.0f bps, TP2=%.0f bps, TIMEOUT=%d bars (Baseline: %s)",
-                exit_params.get("sl_bps", -6.0),
-                exit_params.get("tp1_bps", 6.0),
-                exit_params.get("tp2_bps", 6.0),
-                exit_params.get("timeout_bars", 8),
-                FARM_BASELINE_VERSION,
-            )
-            
-            # Force disable all other exit mechanisms in FARM_V1 mode
-            tick_exit_cfg = self.policy.get("tick_exit", {})
-            tick_exit_cfg["enabled"] = False
-            self.policy["tick_exit"] = tick_exit_cfg
-            self.policy["broker_side_tp_sl"] = False
-            
-            # Also disable tick_exit in self.tick_cfg (used by TickWatcher)
-            # This must be done BEFORE TickWatcher is initialized
-            if hasattr(self, "tick_cfg"):
-                self.tick_cfg["enabled"] = False
-            
-            log.info("[BOOT] FARM_V1 mode: All non-FARM exits disabled (tick_exit, broker TP/SL)")
-            
-            # Log FARM_V2 mode status (already set above)
-            if self.farm_v2_mode:
-                log.info("[BOOT] FARM_V2 entry policy enabled - using FARM_EXIT_V2_AGGRO exit")
-                
-                # Load FARM_V2 meta-model for p_profitable prediction
-                self.farm_entry_meta_model = None
-                self.farm_entry_meta_feature_cols = None
-                
-                # Get meta-model config
-                meta_cfg = self.policy.get("meta_model", {})
-                if not meta_cfg:
-                    meta_cfg = entry_farm_v2_cfg.get("meta_model", {})
-                
-                model_path = meta_cfg.get("model_path")
-                if not model_path or model_path == "null":
-                    # Try default path
-                    model_path = "gx1/models/farm_entry_meta/baseline_model.pkl"
-                    # Also try alternative paths
-                    alt_paths = [
-                        "gx1/models/farm_entry_meta_baseline.joblib",
-                        "gx1/models/farm_entry_meta/baseline_model.joblib",
-                    ]
-                    for alt_path in alt_paths:
-                        if Path(alt_path).exists():
-                            model_path = alt_path
-                            break
-                
-                # Load model
-                if model_path and Path(model_path).exists():
-                    try:
-                        # joblib is already imported at module level (line 26)
-                        self.farm_entry_meta_model = joblib.load(model_path)
-                        log.info(f"[BOOT] Loaded FARM entry meta-model from {model_path}")
-                        
-                        # Load feature columns
-                        feature_cols_path = meta_cfg.get("feature_cols_path")
-                        if not feature_cols_path or feature_cols_path == "null":
-                            # Try default paths
-                            feature_cols_paths = [
-                                Path(model_path).parent / "feature_cols.json",
-                                Path(model_path).parent / "feature_cols.txt",
-                                Path("gx1/models/farm_entry_meta/feature_cols.json"),
-                            ]
-                            for fcp in feature_cols_paths:
-                                if fcp.exists():
-                                    feature_cols_path = str(fcp)
-                                    break
-                        
-                        if feature_cols_path and Path(feature_cols_path).exists():
-                            if Path(feature_cols_path).suffix == ".json":
-                                with open(feature_cols_path, 'r') as f:
-                                    feature_data = jsonlib.load(f)
-                                    if isinstance(feature_data, list):
-                                        self.farm_entry_meta_feature_cols = feature_data
-                                    elif isinstance(feature_data, dict) and "feature_cols" in feature_data:
-                                        self.farm_entry_meta_feature_cols = feature_data["feature_cols"]
-                                    else:
-                                        log.warning(f"[BOOT] Unexpected feature_cols format in {feature_cols_path}")
-                            else:
-                                # Assume text file with one column per line
-                                with open(feature_cols_path, 'r') as f:
-                                    self.farm_entry_meta_feature_cols = [line.strip() for line in f if line.strip()]
-                            
-                            if self.farm_entry_meta_feature_cols:
-                                log.info(f"[BOOT] Loaded {len(self.farm_entry_meta_feature_cols)} feature columns from {feature_cols_path}")
-                            else:
-                                log.warning("[BOOT] No feature columns loaded - will auto-detect at runtime")
-                        else:
-                            log.warning("[BOOT] Feature columns file not found - will auto-detect at runtime")
-                    except Exception as e:
-                        log.error(f"[BOOT] Failed to load FARM entry meta-model: {e}")
-                        raise RuntimeError(
-                            f"FARM_V2 requires meta-model but loading failed: {e}. "
-                            f"Model path: {model_path}. "
-                            f"FARM_V2 cannot run without meta-model."
-                        )
-                else:
-                    raise RuntimeError(
-                        f"FARM_V2 requires meta-model but file not found: {model_path}. "
-                        f"FARM_V2 cannot run without meta-model. "
-                        f"Please train and save the model first."
-                    )
-            
-            # Runtime guard: AI exit overlay is disabled for FARM_V1
-            # AI exit overlay was evaluated and rejected (see gx1/docs/FARM_EXIT_V1_FINAL.md)
-            exit_model_cfg = self.policy.get("exit_model", {})
-            if exit_model_cfg.get("enabled", False) or exit_model_cfg.get("ai_overlay", False):
-                raise RuntimeError(
-                    "AI exit overlay is disabled for FARM_V1. "
-                    "FARM_V1 uses FARM_EXIT_V1_STABLE only (frozen baseline). "
-                    "See gx1/docs/FARM_EXIT_V1_FINAL.md for details."
-            )
-            
-            # If only_v2_drift_mode is active, update exit_control config for FARM_V1
-            if self.exit_only_v2_drift:
-                exit_control_cfg = self.policy.get("exit_control", {})
-                exit_control_cfg["allowed_loss_closers"] = [
-                    "EXIT_FARM_SL",
-                    "EXIT_FARM_SL_BREAKEVEN",
-                    "EXIT_FARM_TP",
-                    "EXIT_FARM_TIMEOUT",
-                ]
-                exit_control_cfg.setdefault("allow_model_exit_when", {})["min_bars"] = 1
-                exit_control_cfg.setdefault("allow_model_exit_when", {})["min_pnl_bps"] = -100
-                exit_control_cfg.setdefault("allow_model_exit_when", {})["min_exit_prob"] = 0.0
-                self.policy["exit_control"] = exit_control_cfg
-        # Note: FARM_V1 initialization is handled above (lines 1471-1518)
-        # Duplicate elif block removed - FARM_V1 is initialized in the first if block
-        
         # Get exit model config (hysteresis settings)
         exit_model_cfg = self.policy.get("exit_model", {})
-        self.exit_threshold = float(exit_model_cfg.get("threshold", self.policy.get("exit_threshold", exit_cfg.get("threshold", 0.686))))
-        self.exit_require_consecutive = int(exit_model_cfg.get("require_consecutive", 1))  # Default: 1 (no hysteresis)
-        # Log exit model config at boot
+        env_thr = os.getenv("GX1_EXIT_THRESHOLD")
+        env_req = os.getenv("GX1_EXIT_REQUIRE_CONSECUTIVE")
+        yaml_thr = exit_model_cfg.get("threshold", self.policy.get("exit_threshold", exit_cfg.get("threshold", 0.686)))
+        yaml_req = exit_model_cfg.get("require_consecutive", 1)
+        if env_thr is not None:
+            try:
+                self.exit_threshold = float(env_thr)
+                src_thr = "ENV"
+            except Exception:
+                self.exit_threshold = float(yaml_thr)
+                src_thr = "YAML:exit_model.threshold"
+        else:
+            self.exit_threshold = float(yaml_thr)
+            src_thr = "YAML:exit_model.threshold"
+
+        if env_req is not None:
+            try:
+                self.exit_require_consecutive = int(env_req)
+                src_req = "ENV"
+            except Exception:
+                self.exit_require_consecutive = int(yaml_req)
+                src_req = "YAML:exit_model.require_consecutive"
+        else:
+            self.exit_require_consecutive = int(yaml_req)
+            src_req = "YAML:exit_model.require_consecutive"
+
+        arb_cfg = getattr(self, "exit_control", None) or {}
+        arb_allow = getattr(arb_cfg, "allow_model_exit_when", {}) if hasattr(arb_cfg, "allow_model_exit_when") else arb_cfg.get("allow_model_exit_when", {}) if isinstance(arb_cfg, dict) else {}
+        arb_min_pnl = arb_allow.get("min_pnl_bps", None)
+        arb_min_prob = arb_allow.get("min_exit_prob", None)
+        arb_prob_hys = arb_allow.get("exit_prob_hysteresis", None)
+        arb_min_bars = arb_allow.get("min_bars", None)
         log.info(
-            "[BOOT] exit_model: threshold=%.4f require_consecutive=%d (hysteresis)",
+            "[EXIT_EFFECTIVE_CFG] threshold=%.4f require_consecutive=%d src_threshold=%s src_consecutive=%s arb_min_pnl_bps=%s arb_min_exit_prob=%s arb_exit_prob_hysteresis=%s arb_min_bars=%s",
             self.exit_threshold,
             self.exit_require_consecutive,
+            src_thr,
+            src_req,
+            arb_min_pnl,
+            arb_min_prob,
+            arb_prob_hys,
+            arb_min_bars,
         )
         
         # Konsolider "effektiv" dry_run ett sted
@@ -2154,187 +1338,15 @@ class GX1DemoRunner:
         else:
             log.info("[BOOT] gates: momentum_veto=OFF volatility_brake=OFF")
         
-        # Big Brain V0 removed - using V1 only (regime inference + entry gating)
-        
-        # Initialize Big Brain V1 Runtime (observe-only)
-        # CRITICAL: Must be loaded at startup, not lazy-loaded
-        # Check if Big Brain V1 is enabled in policy
-        bb_v1_config = self.policy.get("big_brain_v1", {})
-        bb_v1_enabled = bb_v1_config.get("enabled", False)  # Default to False - require explicit enable
-        
-        if bb_v1_enabled and BIG_BRAIN_AVAILABLE:
-            # Get model paths from policy (or use defaults)
-            model_path = bb_v1_config.get("model_path", "models/BIG_BRAIN_V1/model.pt")
-            meta_path = bb_v1_config.get("meta_path", "models/BIG_BRAIN_V1/meta.json")
-            
-            # Convert to Path objects
-            model_path = Path(model_path)
-            meta_path = Path(meta_path)
-            
-            # Fail hard if model files don't exist
-            if not model_path.exists():
-                raise FileNotFoundError(
-                    f"[BIG_BRAIN_V1] Model file not found: {model_path}. "
-                    "Big Brain V1 is enabled but model is missing. Aborting startup."
-                )
-            if not meta_path.exists():
-                raise FileNotFoundError(
-                    f"[BIG_BRAIN_V1] Meta file not found: {meta_path}. "
-                    "Big Brain V1 is enabled but meta is missing. Aborting startup."
-                )
-            
-            # Load runtime (fail hard on any error)
-            if not BIG_BRAIN_AVAILABLE:
-                log.error(
-                    "[BIG_BRAIN_V1] Big Brain V1 is enabled but modules are not available. "
-                    "Aborting startup."
-                )
-                raise RuntimeError("Big Brain V1 is enabled but modules are not available")
-            try:
-                self.big_brain_v1 = BigBrainV1Runtime(model_path=model_path, meta_path=meta_path)
-                self.big_brain_v1.load()
-                log.info("[BIG_BRAIN_V1] Runtime loaded successfully (observe-only mode) from %s", model_path)
-            except Exception as e:
-                log.error(
-                    "[BIG_BRAIN_V1] Failed to load runtime: %s. "
-                    "Big Brain V1 is enabled but failed to initialize. Aborting startup.",
-                    e,
-                    exc_info=True,
-                )
-                raise RuntimeError(f"Big Brain V1 initialization failed: {e}") from e
-        elif bb_v1_enabled and not BIG_BRAIN_AVAILABLE:
-            log.warning("[BIG_BRAIN_V1] Big Brain V1 is enabled in policy but modules are not available. Disabling Big Brain V1.")
-            self.big_brain_v1 = None
-        else:
-            log.info("[BIG_BRAIN_V1] Big Brain V1 shaping disabled in policy")
-            self.big_brain_v1 = None
-        
-        # Initialize Big Brain V1 Entry Gater (hard gating)
-        bb_v1_entry_gates_config = bb_v1_config.get("entry_gates", {})
-        bb_v1_entry_gates_enabled = bb_v1_entry_gates_config.get("enabled", False)  # Default to False
-        
-        if bb_v1_entry_gates_enabled:
-            if not BIG_BRAIN_AVAILABLE:
-                log.warning("[BIG_BRAIN_V1_ENTRY] Entry gating enabled but Big Brain modules not available. Disabling entry gating.")
-                self.big_brain_v1_entry_gater = None
-            else:
-                entry_gates_config_path = bb_v1_entry_gates_config.get("config_path", "gx1/configs/big_brain_v1_entry_gates.yaml")
-                entry_gates_config_path = Path(entry_gates_config_path)
-
-                try:
-                    self.big_brain_v1_entry_gater = load_entry_gater(entry_gates_config_path)
-                    log.info("[BIG_BRAIN_V1_ENTRY] Entry gater loaded from %s", entry_gates_config_path)
-                except Exception as e:
-                    log.warning("[BIG_BRAIN_V1_ENTRY] Failed to load entry gater: %s. Continuing without V1 entry gating.", e)
-                    self.big_brain_v1_entry_gater = None
-        else:
-            log.info("[BIG_BRAIN_V1_ENTRY] Entry gating disabled in policy")
-            self.big_brain_v1_entry_gater = None
-        
-        # Initialize TCN Entry Model (for hybrid blending)
         hybrid_entry_cfg = self.policy.get("hybrid_entry", {})
-        hybrid_entry_enabled = hybrid_entry_cfg.get("enabled", False)
-        
-        if hybrid_entry_enabled:
-            # Load TCN entry model
-            tcn_cfg = self.policy.get("tcn", {})
-            tcn_model_path = Path(tcn_cfg.get("model_path", "gx1/models/seq/entry_fast_tcn_2025Q3.pt"))
-            tcn_meta_path = Path(tcn_cfg.get("meta_path", "gx1/models/seq/entry_fast_tcn_2025Q3.meta.json"))
-            
-            if not tcn_model_path.exists():
-                log.warning("[HYBRID_ENTRY] TCN model not found: %s. Hybrid entry disabled.", tcn_model_path)
-                self.entry_tcn_model = None
-                self.entry_tcn_meta = None
-                self.entry_tcn_scaler = None
-                self.entry_tcn_feats = None
-                self.entry_tcn_lookback = None
-            elif not tcn_meta_path.exists():
-                log.warning("[HYBRID_ENTRY] TCN meta not found: %s. Hybrid entry disabled.", tcn_meta_path)
-                self.entry_tcn_model = None
-                self.entry_tcn_meta = None
-                self.entry_tcn_scaler = None
-                self.entry_tcn_feats = None
-                self.entry_tcn_lookback = None
-            else:
-                try:
-                    import torch
-                    from gx1.seq.model_tcn import TempCNN, TempCNNConfig  # type: ignore[reportMissingImports]
-                    from sklearn.preprocessing import RobustScaler
-                    
-                    # Load meta
-                    with open(tcn_meta_path, "r") as f:
-                        meta = jsonlib.load(f)
-                    
-                    self.entry_tcn_feats = meta["feats"]
-                    self.entry_tcn_lookback = meta.get("lookback", 864)
-                    
-                    # Reconstruct scaler
-                    scaler_dict = meta["scaler"]
-                    scaler = RobustScaler()
-                    if scaler_dict.get("center_") is not None:
-                        scaler.center_ = np.array(scaler_dict["center_"])
-                    if scaler_dict.get("scale_") is not None:
-                        scaler.scale_ = np.array(scaler_dict["scale_"])
-                    scaler.quantile_range = tuple(scaler_dict.get("quantile_range", [25, 75]))
-                    scaler.with_centering = scaler_dict.get("with_centering", True)
-                    scaler.with_scaling = scaler_dict.get("with_scaling", True)
-                    self.entry_tcn_scaler = scaler
-                    
-                    # Build model config
-                    arch_cfg = meta.get("seq_cfg", {})
-                    tcn_config = TempCNNConfig(
-                        in_features=len(self.entry_tcn_feats),
-                        hidden=arch_cfg.get("hidden", 64),
-                        depth=arch_cfg.get("depth", 3),
-                        kernel=arch_cfg.get("kernel", 3),
-                        dilations=tuple(arch_cfg.get("dilations", (1, 2, 4))),
-                        dropout=arch_cfg.get("dropout", 0.10),
-                        head_dropout=arch_cfg.get("head_dropout", 0.10),
-                        pool=arch_cfg.get("pool", "avg"),
-                        attn_heads=arch_cfg.get("attn_heads", 4),
-                    )
-                    
-                    # Load model
-                    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-                    self.entry_tcn_model = TempCNN(tcn_config)
-                    
-                    # Load state dict (handle both direct state_dict and wrapped dict)
-                    state_dict = torch.load(tcn_model_path, map_location=device)
-                    if isinstance(state_dict, dict) and "state_dict" in state_dict:
-                        # Wrapped dict with "state_dict" key
-                        state_dict_to_load = state_dict["state_dict"]
-                    else:
-                        # Direct state_dict
-                        state_dict_to_load = state_dict
-                    
-                    self.entry_tcn_model.load_state_dict(state_dict_to_load, strict=False)
-                    self.entry_tcn_model.to(device)
-                    self.entry_tcn_model.eval()
-                    self.entry_tcn_device = device
-                    self.entry_tcn_meta = meta
-                    
-                    log.info(
-                        "[TCN ENTRY LOADED] model_path=%s meta_path=%s lookback=%d features=%d device=%s",
-                        tcn_model_path,
-                        tcn_meta_path,
-                        self.entry_tcn_lookback,
-                        len(self.entry_tcn_feats),
-                        device,
-                    )
-                except Exception as e:
-                    log.error("[HYBRID_ENTRY] Failed to load TCN model: %s. Hybrid entry disabled.", e, exc_info=True)
-                    self.entry_tcn_model = None
-                    self.entry_tcn_meta = None
-                    self.entry_tcn_scaler = None
-                    self.entry_tcn_feats = None
-                    self.entry_tcn_lookback = None
-        else:
-            log.info("[HYBRID_ENTRY] Hybrid entry disabled in policy")
-            self.entry_tcn_model = None
-            self.entry_tcn_meta = None
-            self.entry_tcn_scaler = None
-            self.entry_tcn_feats = None
-            self.entry_tcn_lookback = None
+        if hybrid_entry_cfg.get("enabled", False):
+            raise RuntimeError("[FORBIDDEN] HYBRID_ENTRY/TCN is non-canonical and has been archived; use ENTRY_V10_CTX only.")
+        self.entry_tcn_model = None
+        self.entry_tcn_meta = None
+        self.entry_tcn_scaler = None
+        self.entry_tcn_feats = None
+        self.entry_tcn_lookback = None
+        self.entry_tcn_device = None
         
         # ENTRY models config (V10/V10_CTX supported in replay)
         entry_models_cfg = self.policy.get("entry_models", {})
@@ -2774,57 +1786,45 @@ class GX1DemoRunner:
         
         # Load exit_control config (ExitArbiter)
         exit_control_cfg = self.policy.get("exit_control", {})
+        arb_allow_cfg = exit_control_cfg.get("allow_model_exit_when", {}) or {}
+        env_min_pnl = os.getenv("GX1_ARB_MIN_PNL_BPS")
+        env_min_prob = os.getenv("GX1_ARB_MIN_EXIT_PROB")
+        env_prob_hys = os.getenv("GX1_ARB_EXIT_PROB_HYSTERESIS")
+        min_pnl_bps_src = "YAML"
+        min_exit_prob_src = "YAML"
+        prob_hys_src = "YAML"
+        if env_min_pnl is not None:
+            try:
+                arb_allow_cfg["min_pnl_bps"] = float(env_min_pnl)
+                min_pnl_bps_src = "ENV"
+            except Exception:
+                pass
+        if env_min_prob is not None:
+            try:
+                arb_allow_cfg["min_exit_prob"] = float(env_min_prob)
+                min_exit_prob_src = "ENV"
+            except Exception:
+                pass
+        if env_prob_hys is not None:
+            try:
+                arb_allow_cfg["exit_prob_hysteresis"] = int(env_prob_hys)
+                prob_hys_src = "ENV"
+            except Exception:
+                pass
+
         self.exit_control = SimpleNamespace(
             allowed_loss_closers=list(exit_control_cfg.get("allowed_loss_closers", ["BROKER_SL", "SOFT_STOP_TICK"])),
-            allow_model_exit_when=exit_control_cfg.get("allow_model_exit_when", {}),
+            allow_model_exit_when=arb_allow_cfg,
             require_trade_open=bool(exit_control_cfg.get("require_trade_open", True)),
         )
         
-        # Post-initialization: Update exit_control for EXIT_V3_ADAPTIVE or EXIT_FARM_V1 if needed
-        if hasattr(self, "exit_v3_drift_adaptive_policy") and self.exit_v3_drift_adaptive_policy is not None and self.exit_only_v2_drift:
-            self.exit_control.allowed_loss_closers = [
-                "EXIT_V3_ADAPTIVE_SL",
-                "EXIT_V3_ADAPTIVE_SL_BREAKEVEN",
-                "EXIT_V3_ADAPTIVE_TP2",
-                "EXIT_V3_ADAPTIVE_TIMEOUT",
-            ]
-            self.exit_control.allow_model_exit_when["min_bars"] = 1
-            self.exit_control.allow_model_exit_when["min_pnl_bps"] = -100
-            self.exit_control.allow_model_exit_when["min_exit_prob"] = 0.0
-            log.info("[BOOT] ExitArbiter configured for EXIT_V3_ADAPTIVE")
-        elif hasattr(self, "exit_farm_v2_rules_policy") and self.exit_farm_v2_rules_policy is not None and self.exit_only_v2_drift:
-            # Only override if exit_control was not explicitly set in policy
-            if not exit_control_cfg.get("allowed_loss_closers"):
-                self.exit_control.allowed_loss_closers = [
-                    "RULE_A_PROFIT",
-                    "RULE_A_TRAILING",
-                    "RULE_B_FAST_LOSS",
-                    "RULE_C_TIMEOUT",
-                ]
-            else:
-                # Policy has explicit exit_control config, use it (e.g., SNIPER with SL_TICK)
-                log.info("[BOOT] Using exit_control from policy: allowed_loss_closers=%s", self.exit_control.allowed_loss_closers)
-            self.exit_control.allow_model_exit_when["min_bars"] = 1
-            self.exit_control.allow_model_exit_when["min_pnl_bps"] = -100
-            self.exit_control.allow_model_exit_when["min_exit_prob"] = 0.0
-            log.info("[BOOT] ExitArbiter configured for EXIT_FARM_V2_RULES: allowed_loss_closers=%s", self.exit_control.allowed_loss_closers)
-        elif hasattr(self, "exit_farm_v1_policy") and self.exit_farm_v1_policy is not None and self.exit_only_v2_drift:
-            self.exit_control.allowed_loss_closers = [
-                "EXIT_FARM_SL",
-                "EXIT_FARM_SL_BREAKEVEN",
-                "EXIT_FARM_TP",
-                "EXIT_FARM_TIMEOUT",
-            ]
-            self.exit_control.allow_model_exit_when["min_bars"] = 1
-            self.exit_control.allow_model_exit_when["min_pnl_bps"] = -100
-            self.exit_control.allow_model_exit_when["min_exit_prob"] = 0.0
-            log.info("[BOOT] ExitArbiter configured for EXIT_FARM_V1")
         log.info(
-            "[BOOT] exit_control: allowed_loss_closers=%s min_bars=%d min_pnl_bps=%.1f require_trade_open=%s",
+            "[BOOT] exit_control: allowed_loss_closers=%s min_bars=%d min_pnl_bps=%.1f require_trade_open=%s (min_pnl_src=%s)",
             self.exit_control.allowed_loss_closers,
             self.exit_control.allow_model_exit_when.get("min_bars", 2),
             self.exit_control.allow_model_exit_when.get("min_pnl_bps", -5),
             self.exit_control.require_trade_open,
+            min_pnl_bps_src,
         )
         
         # Initialize exit-audit logging (JSONL file, rotates daily)
@@ -2868,19 +1868,8 @@ class GX1DemoRunner:
         
         self.manifest = load_manifest()
         
-        # Exit model bundle must be explicit; no legacy XGB fallback (unless transformer decider already loaded)
-        if self.exit_ml_mode == "exit_transformer_v0":
-            self.exit_bundle = None  # Transformer decider already loaded
-        elif self.exit_only_v2_drift or (hasattr(self, "farm_v2b_mode") and self.farm_v2b_mode):
-            log.info("[BOOT] FARM exit mode detected: skipping exit model bundle (using rule-based exits)")
-            self.exit_bundle = None
-        else:
-            self.exit_bundle = None
-            if self.replay_mode or self.fast_replay or self.policy.get("exit_policy"):
-                raise RuntimeError(
-                    "[EXIT_MODEL_REQUIRED] Exit model bundle is required for configured exit policy; "
-                    "legacy XGB bundle path has been removed. Provide an explicit exit bundle."
-                )
+        # Exit transformer decider already loaded; no legacy XGB fallback
+        self.exit_bundle = None
         
         # Optional: Initialize broker client (only needed for live mode, not replay)
         if self.replay_mode or self.fast_replay:
@@ -2937,11 +1926,8 @@ class GX1DemoRunner:
                 self.oanda_stream_host = "https://stream-fxpractice.oanda.com"
                 self.oanda_env = "practice"
         
-        # Initialize tick-exit config (for TickWatcher)
-        # In REN EXIT_V2 mode or FARM_V1 mode, tick_exit is disabled
+        # Tick-exit config (TickWatcher live-only; canonical truth uses transformer-only exits)
         self.tick_cfg = self.policy.get("tick_exit", {}) or {}
-        if self.exit_only_v2_drift or (hasattr(self, "farm_v1_mode") and self.farm_v1_mode):
-            self.tick_cfg["enabled"] = False
         
         # Initialize open_trades BEFORE reconcile (so reconcile can populate it)
         self.open_trades: List[LiveTrade] = []
@@ -2995,10 +1981,10 @@ class GX1DemoRunner:
         self.last_session_timestamp: Optional[pd.Timestamp] = None
         self.session_sticky_minutes: int = 60  # Don't change session during an hour  # Track last entry side for sticky-side logic
         
-        # Initialize TickWatcher (after client is ready)
-        # In REN EXIT_V2 mode or FARM_V1 mode, TickWatcher is disabled
+        # Initialize TickWatcher (live tick triggers; canonical truth uses bar-level exits only)
         self._be_update_lock = threading.Lock()
-        if not self.exit_only_v2_drift and not (hasattr(self, "farm_v1_mode") and self.farm_v1_mode):
+        tick_enabled = bool(self.tick_cfg.get("enabled", False)) and not self.replay_mode
+        if tick_enabled:
             self.tick_watcher = TickWatcher(
                 host=self.oanda_host,
                 stream_host=self.oanda_stream_host,
@@ -3014,10 +2000,7 @@ class GX1DemoRunner:
             self.tick_watcher.update_be_callback = self._update_be_status
         else:
             self.tick_watcher = None
-            if hasattr(self, "farm_v1_mode") and self.farm_v1_mode:
-                log.info("[BOOT] TickWatcher disabled (FARM_V1 mode)")
-            else:
-                log.info("[BOOT] TickWatcher disabled (REN EXIT_V2 mode)")
+            log.info("[BOOT] TickWatcher disabled (tick_exit disabled or replay mode)")
         
         # Reconcile: Load open trades from OANDA and bind to internal entry_id
         self._reconcile_open_trades()
@@ -3223,75 +2206,9 @@ class GX1DemoRunner:
             log.warning("Reconcile failed: %s", e, exc_info=True)
             # Don't fail startup if reconcile fails - just log warning
 
-    def _init_farm_v2_rules_state(self, trade: LiveTrade, *, context: str) -> None:
-        """Create/reset the per-trade FARM_V2_RULES policy state."""
-        if not getattr(self, "exit_farm_v2_rules_factory", None):
-            raise RuntimeError("FARM_V2_RULES factory not configured, cannot initialize exit state")
-        if trade.entry_bid is None or trade.entry_ask is None:
-            raise ValueError(
-                f"[EXIT_PROFILE] Missing bid/ask for FARM_V2_RULES init trade_id={trade.trade_id} context={context}"
-            )
-        policy = self.exit_farm_v2_rules_states.get(trade.trade_id)
-        if policy is None:
-            policy = self.exit_farm_v2_rules_factory()
-            self.exit_farm_v2_rules_states[trade.trade_id] = policy
-        policy.reset_on_entry(
-            entry_bid=trade.entry_bid,
-            entry_ask=trade.entry_ask,
-            entry_ts=trade.entry_time,
-            side=trade.side,
-            trade_id=trade.trade_id,
-        )
-        if not getattr(trade, "extra", None):
-            trade.extra = {}
-        trade.extra["exit_farm_v2_rules_initialized"] = True
-        
-        # Log exit configuration to trade journal
-        if hasattr(self, "trade_journal") and self.trade_journal:
-            try:
-                exit_profile = trade.extra.get("exit_profile", "FARM_EXIT_V2_RULES")
-                # Extract TP/SL levels from policy if available
-                tp_levels = None
-                sl = None
-                trailing_enabled = False
-                be_rules = None
-                
-                if hasattr(policy, "rule_a_profit_min_bps") and hasattr(policy, "rule_a_profit_max_bps"):
-                    tp_levels = [policy.rule_a_profit_min_bps, policy.rule_a_profit_max_bps]
-                if hasattr(policy, "rule_b_mae_threshold_bps"):
-                    sl = abs(policy.rule_b_mae_threshold_bps)  # Convert to positive
-                if hasattr(policy, "rule_a_trailing_stop_bps"):
-                    trailing_enabled = True
-                if hasattr(policy, "rule_a_adaptive_threshold_bps"):
-                    be_rules = {
-                        "adaptive_threshold_bps": policy.rule_a_adaptive_threshold_bps,
-                        "trailing_stop_bps": policy.rule_a_trailing_stop_bps if hasattr(policy, "rule_a_trailing_stop_bps") else None,
-                    }
-                
-                self.trade_journal.log_exit_configuration(
-                    exit_profile=exit_profile,
-                    trade_uid=trade.trade_uid,  # Primary key (COMMIT C)
-                    trade_id=trade.trade_id,  # Display ID (backward compatibility)
-                    tp_levels=tp_levels,
-                    sl=sl,
-                    trailing_enabled=trailing_enabled,
-                    be_rules=be_rules,
-                )
-            except Exception as e:
-                log.warning("[TRADE_JOURNAL] Failed to log exit configuration: %s", e)
-        
-        log.debug(
-            "[EXIT_PROFILE] FARM_V2_RULES state reset for trade %s (context=%s)",
-            trade.trade_id,
-            context,
-        )
-
     def _teardown_exit_state(self, trade_id: str) -> None:
         """Remove any per-trade exit state objects when a trade is closed."""
-        if hasattr(self, "exit_farm_v2_rules_states"):
-            if trade_id in self.exit_farm_v2_rules_states:
-                self.exit_farm_v2_rules_states.pop(trade_id, None)
-                log.debug("[EXIT_PROFILE] Cleared FARM_V2_RULES state for trade %s", trade_id)
+        return
 
     def _ensure_exit_profile(self, trade: LiveTrade, *, context: str = "unknown") -> None:
         """
@@ -3379,23 +2296,6 @@ class GX1DemoRunner:
                     context,
                 )
 
-        # Initialize FARM_V2_RULES exit state if needed
-        if (
-            exit_profile.startswith("FARM_EXIT_V2_RULES")
-            and getattr(self, "exit_farm_v2_rules_factory", None)
-            and trade.side == "long"
-            and not trade.extra.get("exit_farm_v2_rules_initialized")
-        ):
-            try:
-                self._init_farm_v2_rules_state(trade, context=context)
-            except Exception as exc:
-                log.warning(
-                    "[EXIT_PROFILE] Failed to init FARM_V2_RULES for trade %s (context=%s): %s",
-                    trade.trade_id,
-                    context,
-                    exc,
-                )
-    
     def _load_backfill_state(self) -> Optional[Dict[str, Any]]:
         """
         Load backfill state from state file.
@@ -4428,20 +3328,6 @@ class GX1DemoRunner:
             # Ensure output_dir exists
             output_dir.mkdir(parents=True, exist_ok=True)
             
-            # Get router model path
-            router_model_path = None
-            exit_hybrid_enabled = getattr(self, "exit_hybrid_enabled", False)
-            exit_mode_selector = getattr(self, "exit_mode_selector", None)
-            if exit_hybrid_enabled and exit_mode_selector:
-                router_cfg = self.policy.get("hybrid_exit_router", {})
-                model_path_str = router_cfg.get("model_path")
-                if model_path_str:
-                    router_model_path = Path(model_path_str)
-                    prod_baseline = getattr(self, "prod_baseline", False)
-                    if not router_model_path.is_absolute() and prod_baseline:
-                        from gx1.prod.path_resolver import PROD_CURRENT_DIR
-                        router_model_path = PROD_CURRENT_DIR / router_model_path
-            
             # Get entry model paths (if available)
             entry_model_paths = []
             if hasattr(self, "entry_v9_model") and self.entry_v9_model:
@@ -4455,14 +3341,14 @@ class GX1DemoRunner:
             
             # Generate header
             header = generate_run_header(
-                policy_dict=self.policy,  # Pass policy dict for meta.role extraction
-                policy_path=self.policy_path,
-                router_model_path=router_model_path,
-                entry_model_paths=entry_model_paths if entry_model_paths else None,
-                feature_manifest_path=None,
-                output_dir=output_dir,
-                run_tag=run_id,  # DEL 4: Use run_id as run_tag
-                chunk_id=chunk_id,  # DEL 4: Pass chunk_id
+                self.policy_path,
+                None,
+                entry_model_paths if entry_model_paths else None,
+                None,
+                output_dir,
+                run_id,  # DEL 4: Use run_id as run_tag
+                self.policy,  # Pass policy dict for meta.role extraction
+                chunk_id,  # DEL 4: Pass chunk_id
             )
             # XGB load branch proof (TRUTH canonical vs policy/session)
             xgb_branch = getattr(self, "xgb_load_branch", None)
@@ -4668,16 +3554,7 @@ class GX1DemoRunner:
         
         # Check range features availability
         if hasattr(self, "entry_manager"):
-            log.info("[CANARY] ✅ Range features computed before router (EntryManager)")
-        
-        # Check guardrail
-        if hasattr(self, "exit_mode_selector") and self.exit_mode_selector:
-            log.info("[CANARY] ✅ Guardrail active (ExitModeSelector)")
-        
-        # Check model loading
-        if hasattr(self, "exit_mode_selector") and self.exit_mode_selector:
-            if self.exit_mode_selector.version == "HYBRID_ROUTER_V3":
-                log.info("[CANARY] ✅ Router model loading verified")
+            log.info("[CANARY] ✅ Range features computed before entry decisions (EntryManager)")
         
         # Check feature manifest validation
         log.info("[CANARY] ✅ Feature manifest validation passed (if enabled)")
@@ -4792,33 +3669,12 @@ class GX1DemoRunner:
                 entry_dt = datetime.fromisoformat(str(entry_ts).replace("Z", "+00:00")).astimezone(timezone.utc)
             
             # Get TP/SL/BE from trade.extra (set at entry from exit policy) or use defaults
-            # Check for Big Brain V1 adjusted exit parameters first (with asymmetry)
-            bb_exit_asym = trade.extra.get("bb_exit_asym", {}) if hasattr(trade, "extra") and trade.extra else {}
-            bb_exit = trade.extra.get("bb_exit", {}) if hasattr(trade, "extra") and trade.extra else {}
-            
-            # Priority: bb_exit_asym > bb_exit > regular values
-            if bb_exit_asym and isinstance(bb_exit_asym, dict):
-                # Use Big Brain adjusted values with asymmetry
-                tp_bps = int(bb_exit_asym.get("tp_bps_adj", bb_exit.get("tp_bps_adj", trade.extra.get("tp_bps", tp_bps_default))))
-            elif bb_exit and isinstance(bb_exit, dict):
-                # Use Big Brain adjusted values (risk shaping only, no asymmetry)
-                tp_bps = int(bb_exit.get("tp_bps_adj", trade.extra.get("tp_bps", tp_bps_default)))
-            else:
-                # Fall back to regular values
-                tp_bps = int(trade.extra.get("tp_bps", tp_bps_default)) if hasattr(trade, "extra") and trade.extra else tp_bps_default
-            
-            # Also check for asymmetry-adjusted SL if available
-            if bb_exit_asym and isinstance(bb_exit_asym, dict) and "sl_bps_adj" in bb_exit_asym:
-                sl_bps = int(bb_exit_asym.get("sl_bps_adj", sl_bps_default))
-            else:
-                sl_bps = int(trade.extra.get("sl_bps", sl_bps_default)) if hasattr(trade, "extra") and trade.extra else sl_bps_default
+            tp_bps = int(trade.extra.get("tp_bps", tp_bps_default)) if hasattr(trade, "extra") and trade.extra else tp_bps_default
+            sl_bps = int(trade.extra.get("sl_bps", sl_bps_default)) if hasattr(trade, "extra") and trade.extra else sl_bps_default
             
             # BE status is synced from TickWatcher to trade.extra via _update_be_status callback
             be_active = trade.extra.get("be_active", False) if hasattr(trade, "extra") and trade.extra else False
             be_price = trade.extra.get("be_price", None) if hasattr(trade, "extra") and trade.extra else None
-            
-            # Store bb_exit data (prioritize bb_exit_asym if available)
-            bb_exit_data = bb_exit_asym if bb_exit_asym and isinstance(bb_exit_asym, dict) else (bb_exit if bb_exit and isinstance(bb_exit, dict) else None)
             
             out.append(OpenPos(
                 trade_id=trade.trade_id,
@@ -4833,7 +3689,6 @@ class GX1DemoRunner:
                 be_active=be_active,
                 be_price=be_price,
                 early_stop_bps=0,  # Not used (soft_stop_bps is handled in TickWatcher config)
-                bb_exit=bb_exit_data,  # Store Big Brain exit adjustments (with asymmetry if available)
             ))
         return out
     
@@ -4853,111 +3708,35 @@ class GX1DemoRunner:
                     break
     
     def _tick_close_now(self, pos: OpenPos, reason: str, px: float, pnl_bps: float) -> None:
-        """Close position immediately on tick (called by TickWatcher)."""
-        from gx1.execution.live_features import infer_session_tag
+        """TickWatcher trigger: mark trade for exit evaluation (no immediate close)."""
         try:
             trade_id = pos.trade_id
-            
-            # Find trade in open_trades
             trade = None
             for t in self.open_trades:
                 if t.trade_id == trade_id:
                     trade = t
                     break
-            
             if not trade:
                 log.warning("[TICK] Trade %s not found in open_trades (already closed?)", trade_id)
                 return
-            
-            # Map TickWatcher reason to ExitArbiter reason
-            reason_map = {
-                "TP_TICK": "TP_TICK",
-                "SL_TICK": "SL_TICK",
-                "BE_TICK": "BE_TICK",
-                "SOFT_STOP_TICK": "SOFT_STOP_TICK",
-            }
-            arbiter_reason = reason_map.get(reason, "TICK")
-            
-            # Log tick-watcher propose close
-            log.info("[TICK] propose close reason=%s pnl=%.1f", reason, pnl_bps)
-            
-            # Request close via ExitArbiter
-            accepted = self.request_close(
-                trade_id=trade_id,
-                source="TICK",
-                reason=arbiter_reason,
-                px=px,
-                pnl_bps=pnl_bps,
-                bars_in_trade=None,  # Tick-watcher doesn't track bars
-            )
-            
-            if not accepted:
-                log.warning("[TICK] close rejected by ExitArbiter for trade %s", trade_id)
-                return
-            
-            # Remove from open_trades (after successful close)
-            if trade in self.open_trades:
-                self.open_trades.remove(trade)
-            self._teardown_exit_state(trade_id)
-            
-            # Update tick watcher (only if not in replay mode)
-            if not self.replay_mode:
-                self._maybe_update_tick_watcher()
-            
-            # Record closed trade to telemetry
-            # In replay mode, use current bar timestamp (stored in replay_context)
-            # In live mode, use now()
-            if self.replay_mode:
-                # In replay mode, use current timestamp from replay context
-                # If replay_context is not set, fall back to now() (shouldn't happen)
-                now_ts_utc = getattr(self, '_replay_current_ts', pd.Timestamp.now(tz="UTC"))
-            else:
-                now_ts_utc = pd.Timestamp.now(tz="UTC")
-            entry_ts_utc = trade.entry_time.tz_convert("UTC") if trade.entry_time.tzinfo else pd.Timestamp(trade.entry_time, tz="UTC")
-            entry_p_hat = max(trade.entry_prob_long, trade.entry_prob_short)
-            entry_session = infer_session_tag(trade.entry_time)
-            session_key = self._resolve_session_key(entry_session)
-            
-            # Record closed trade to telemetry (with guard)
-            if hasattr(self, "telemetry_tracker") and self.telemetry_tracker is not None:
-                try:
-                    self.telemetry_tracker.record_closed_trade(
-                        entry_id=trade_id,
-                        session=session_key,
-                        entry_time=entry_ts_utc,
-                        exit_time=now_ts_utc,
-                        p_hat=entry_p_hat,
-                        side=trade.side,
-                        pnl_bps=pnl_bps,
-                    )
-                except Exception as e:
-                    log.warning("[TICK] Failed to record closed trade in telemetry: %s", e)
-            else:
-                # Log warning only once per session to avoid spam
-                if not hasattr(self, "_telemetry_warned"):
-                    log.warning("[TICK] telemetry_tracker not available - telemetry disabled")
-                    self._telemetry_warned = True
-            
-            # Record exit latency
-            hold_time_s = (now_ts_utc - entry_ts_utc).total_seconds()
-            if hasattr(self, "telemetry_tracker") and self.telemetry_tracker is not None:
-                try:
-                    self.telemetry_tracker.record_exit_latency(session_key, "EXIT_V2", hold_time_s)
-                except Exception as e:
-                    log.warning("[TICK] Failed to record exit latency in telemetry: %s", e)
-            
-            # Record realized PnL
-            self.record_realized_pnl(now_ts_utc, pnl_bps)
-            
-            # Log trade closure
-            log.info(
-                "[LIVE] TICK EXIT trade_id=%s reason=%s price=%.3f pnl_bps=%.1f",
-                trade_id, reason, px, pnl_bps
-            )
-            
-            # Update tick watcher (stop if no more open trades)
-            self._maybe_update_tick_watcher()
-            
+            setattr(trade, "_exit_triggered", True)
+            self._tick_exit_triggered_any = True
+            log.info("[TICK_TRIGGER] reason=%s trade_id=%s pnl=%.1f px=%.5f", reason, trade_id, pnl_bps, px)
+
+            # Live-only: trigger exit evaluation using last closed M5 candles (rate-limited)
+            if not getattr(self, "replay_mode", False) and not getattr(self, "fast_replay", False):
+                candles = getattr(self, "_last_closed_candles", None)
+                if candles is not None:
+                    now_ts = pd.Timestamp.now(tz="UTC")
+                    last_eval_ts = getattr(self, "_tick_exit_last_eval_ts", None)
+                    min_interval_s = float(self.tick_cfg.get("eval_min_interval_s", 1.0))
+                    if last_eval_ts is None or (now_ts - last_eval_ts).total_seconds() >= min_interval_s:
+                        self._tick_exit_last_eval_ts = now_ts
+                        log.debug("[LIVE_TICK_EXIT_EVAL] using_last_closed_m5=1 bars=%d", len(candles))
+                        try:
+                            self.evaluate_and_close_trades(candles)
+                        except Exception as eval_err:
+                            log.error("[LIVE_TICK_EXIT_EVAL] failed: %s", eval_err, exc_info=True)
         except Exception as e:
             log.error(f"[TICK] close_cb error trade_id={pos.trade_id} reason={reason}: {e!r}", exc_info=True)
 
@@ -5178,402 +3957,10 @@ class GX1DemoRunner:
             self._closing_trades[trade_id] = True
         
         try:
-            # HARD ASSERT: FARM_V1 mode must only use FARM exit reasons
-            if hasattr(self, "farm_v1_mode") and self.farm_v1_mode:
-                if not reason.startswith("EXIT_FARM"):
-                    raise RuntimeError(
-                        f"[FARM_V1_ASSERT] Non-FARM exit reason in request_close: {reason} "
-                        f"(source={source}, trade_id={trade_id}). "
-                        f"FARM_V1 mode only allows EXIT_FARM_* reasons."
-                    )
-            
             # Get TP/SL state before close
             tp_sl_state = self._get_tp_sl_state(trade_id)
             
             # ---------------------------------------------------
-            # Big Brain V1 – Step 4: Exit-Aware Risk Shaping
-            # ---------------------------------------------------
-            # Get trade object to access brain_risk and brain_trend
-            trade_obj = None
-            for t in self.open_trades:
-                if t.trade_id == trade_id:
-                    trade_obj = t
-                    break
-            
-            # Get Big Brain V1 data from trade.extra
-            brain_risk = None
-            brain_trend = None
-            if trade_obj and hasattr(trade_obj, "extra") and trade_obj.extra:
-                # Try new format (directly in trade.extra)
-                brain_risk = trade_obj.extra.get("brain_risk_score", None)
-                brain_trend = trade_obj.extra.get("brain_trend_regime", None)
-                
-                # Fallback to old format (nested in big_brain_v1 dict)
-                if brain_risk is None:
-                    bb_v1_data = trade_obj.extra.get("big_brain_v1", {})
-                    if isinstance(bb_v1_data, dict):
-                        brain_risk = bb_v1_data.get("brain_risk_score", None)
-                        brain_trend = bb_v1_data.get("brain_trend_regime", None)
-            
-            # Fallback hvis ingen Big Brain-data
-            if brain_risk is None:
-                brain_risk = 0.5
-            
-            # Apply Big Brain risk shaping to tick_exit config (create adjusted copy)
-            # Note: We adjust tick_cfg values that affect exit behavior, but don't modify self.tick_cfg directly
-            # Instead, we'll adjust the values that TickWatcher uses when checking exits
-            be_cfg = self.tick_cfg.get("be", {})
-            be_trigger_bps_original = int(be_cfg.get("activate_at_bps", 50))
-            
-            # 1. BE sensitivity shaping
-            #    risk=1.0 → BE trigges 20% tidligere
-            #    risk=0.0 → BE trigges 0% tidligere
-            be_adjust = 0.20 * brain_risk
-            be_trigger_bps_adjusted = max(
-                int(be_trigger_bps_original * (1.0 - be_adjust)),
-                int(be_trigger_bps_original * 0.10),  # sikkerhetsgrense: min 10% of original
-            )
-            
-            # 2. TP1 dynamic distance (adjust tp_bps)
-            #    risk=1.0 → TP1 blir 10% nærmere
-            #    risk=0.0 → ingen endring
-            tp_bps_original = int(self.tick_cfg.get("tp_bps", 180))
-            tp1_adjust = 0.10 * brain_risk
-            tp_bps_adjusted = max(
-                int(tp_bps_original * (1.0 - tp1_adjust)),
-                int(tp_bps_original * 0.005),  # minimum TP1 avstand: min 0.5% of original
-            )
-            
-            # 3. Trailing/soft stop aggressivitet (adjust soft_stop_bps)
-            #    risk=1.0 → trailing strammes 15%
-            #    risk=0.0 → trailing slakkes 0%
-            soft_stop_bps_original = int(self.tick_cfg.get("soft_stop_bps", 25))
-            if soft_stop_bps_original > 0:
-                trail_adjust = 0.15 * brain_risk
-                soft_stop_bps_adjusted = max(
-                    int(soft_stop_bps_original * (1.0 - trail_adjust)),
-                    int(soft_stop_bps_original * 0.003),  # trygg nedre grense: min 0.3% of original
-                )
-            else:
-                soft_stop_bps_adjusted = soft_stop_bps_original
-            
-            # ---------------------------------------------------
-            # Big Brain V1 – Step 5: Trend-Aware TP/SL Asymmetry
-            # ---------------------------------------------------
-            # Get brain_trend (already retrieved above, but ensure we have it)
-            brain_trend_asym = brain_trend
-            if brain_trend_asym is None and trade_obj and hasattr(trade_obj, "extra") and trade_obj.extra:
-                # Fallback: try to get from trade.extra directly
-                brain_trend_asym = trade_obj.extra.get("brain_trend_regime", None)
-            
-            # Pull values already adjusted by risk shaping
-            tp_bps_asym = tp_bps_adjusted
-            sl_bps_asym = int(self.tick_cfg.get("sl_bps", 95))  # SL is not adjusted by risk shaping, get from config
-            soft_stop_bps_asym = soft_stop_bps_adjusted
-            
-            # Asymmetry strengths (konservative og trygge)
-            tp_boost = 0.10  # +10% TP i trend-retning
-            sl_tight = 0.10  # -10% SL mot trend (strammere)
-            
-            # Apply asymmetry based on trade side and trend
-            if trade_obj:
-                trade_side = trade_obj.side.upper() if hasattr(trade_obj, "side") else None
-                
-                # LONG trade
-                if trade_side == "LONG":
-                    if brain_trend_asym == "TREND_UP":
-                        # Gi mer profittpotensial i opptrend
-                        tp_bps_asym = int(tp_bps_asym * (1.0 + tp_boost))
-                    elif brain_trend_asym == "TREND_DOWN":
-                        # Trend imot → strammere SL og soft stop
-                        sl_bps_asym = int(sl_bps_asym * (1.0 - sl_tight))
-                        if soft_stop_bps_asym > 0:
-                            soft_stop_bps_asym = int(soft_stop_bps_asym * (1.0 - sl_tight))
-                
-                # SHORT trade
-                elif trade_side == "SHORT":
-                    if brain_trend_asym == "TREND_DOWN":
-                        # Gi mer profittpotensial i nedtrend
-                        tp_bps_asym = int(tp_bps_asym * (1.0 + tp_boost))
-                    elif brain_trend_asym == "TREND_UP":
-                        # Trend imot → strammere SL og soft stop
-                        sl_bps_asym = int(sl_bps_asym * (1.0 - sl_tight))
-                        if soft_stop_bps_asym > 0:
-                            soft_stop_bps_asym = int(soft_stop_bps_asym * (1.0 - sl_tight))
-                
-                # MR (mean-reversion) regime: ingen asymmetri
-                # (keep values as is from risk shaping)
-                
-                # Sikkerhetsgrenser
-                tp_bps_asym = max(tp_bps_asym, 5)  # minimum 5 bps
-                soft_stop_bps_asym = max(soft_stop_bps_asym, 3)
-                sl_bps_asym = max(sl_bps_asym, 3)
-                
-                # Update the adjusted values with asymmetry
-                tp_bps_adjusted = tp_bps_asym
-                soft_stop_bps_adjusted = soft_stop_bps_asym
-            
-            # ---------------------------------------------------
-            # Big Brain V1 – Step 6: Exit Hysterese Dynamics
-            # ---------------------------------------------------
-            # Get brain_trend and brain_risk (already retrieved above)
-            brain_trend_hyst = brain_trend_asym if 'brain_trend_asym' in locals() else brain_trend
-            brain_risk_hyst = brain_risk
-            
-            if brain_trend_hyst is None and trade_obj and hasattr(trade_obj, "extra") and trade_obj.extra:
-                brain_trend_hyst = trade_obj.extra.get("brain_trend_regime", None)
-            if brain_risk_hyst is None:
-                brain_risk_hyst = 0.5
-            
-            # Pull base hysterese parameters (default values - these are placeholders until hysterese is implemented)
-            # Note: These will be used when hysterese functionality is implemented
-            early_hold_default = 10  # Default early exit hold ticks
-            soft_delay_default = 5   # Default soft stop delay ticks
-            tp_delay_default = 3     # Default TP protection delay ticks
-            
-            early_hold = early_hold_default
-            soft_delay = soft_delay_default
-            tp_delay = tp_delay_default
-            
-            # Scaling strengths (konservative)
-            trend_boost = 0.20    # +20% hysterese i trendretning
-            trend_cut = 0.20      # -20% hysterese mot trend
-            risk_cut_max = 0.30   # risikofaktor kan kutte opptil 30%
-            
-            # Apply hysterese adjustments based on trade side and trend
-            if trade_obj and brain_trend_hyst is not None:
-                trade_side = trade_obj.side.upper() if hasattr(trade_obj, "side") else None
-                
-                # 1. Trend-based hysterese
-                if trade_side == "LONG":
-                    if brain_trend_hyst == "TREND_UP":
-                        # Med trenden → øk hysterese
-                        early_hold = int(early_hold * (1.0 + trend_boost))
-                        soft_delay = int(soft_delay * (1.0 + trend_boost))
-                        tp_delay = int(tp_delay * (1.0 + trend_boost))
-                    elif brain_trend_hyst == "TREND_DOWN":
-                        # Mot trenden → kutt hysterese
-                        early_hold = int(early_hold * (1.0 - trend_cut))
-                        soft_delay = int(soft_delay * (1.0 - trend_cut))
-                        tp_delay = int(tp_delay * (1.0 - trend_cut))
-                
-                elif trade_side == "SHORT":
-                    if brain_trend_hyst == "TREND_DOWN":
-                        # Med trenden → øk hysterese
-                        early_hold = int(early_hold * (1.0 + trend_boost))
-                        soft_delay = int(soft_delay * (1.0 + trend_boost))
-                        tp_delay = int(tp_delay * (1.0 + trend_boost))
-                    elif brain_trend_hyst == "TREND_UP":
-                        # Mot trenden → kutt hysterese
-                        early_hold = int(early_hold * (1.0 - trend_cut))
-                        soft_delay = int(soft_delay * (1.0 - trend_cut))
-                        tp_delay = int(tp_delay * (1.0 - trend_cut))
-                
-                # 2. Risk-based hysterese dampening
-                risk_cut = risk_cut_max * brain_risk_hyst
-                early_hold = int(early_hold * (1.0 - risk_cut))
-                soft_delay = int(soft_delay * (1.0 - risk_cut))
-                tp_delay = int(tp_delay * (1.0 - risk_cut))
-                
-                # Sikkerhetsgrenser
-                early_hold = max(int(early_hold), 1)
-                soft_delay = max(int(soft_delay), 1)
-                tp_delay = max(int(tp_delay), 1)
-                
-                # Store hysterese adjustments in trade.extra for logging/analysis
-                # Note: These values can be used when hysterese functionality is implemented
-                if not hasattr(trade_obj, "extra") or trade_obj.extra is None:
-                    trade_obj.extra = {}
-                trade_obj.extra["bb_exit_hyst"] = {
-                    "trend": brain_trend_hyst,
-                    "risk": brain_risk_hyst,
-                    "early_hold_adj": early_hold,
-                    "early_hold_original": early_hold_default,
-                    "soft_delay_adj": soft_delay,
-                    "soft_delay_original": soft_delay_default,
-                    "tp_delay_adj": tp_delay,
-                    "tp_delay_original": tp_delay_default,
-                }
-            
-            # ---------------------------------------------------
-            # Big Brain V1 – Step 7: Adaptive TP2/TP3 Extension
-            # ---------------------------------------------------
-            # Get brain_trend and brain_risk (already retrieved above)
-            brain_trend_tp = brain_trend_hyst if 'brain_trend_hyst' in locals() else brain_trend
-            brain_risk_tp = brain_risk_hyst if 'brain_risk_hyst' in locals() else brain_risk
-            
-            if brain_trend_tp is None and trade_obj and hasattr(trade_obj, "extra") and trade_obj.extra:
-                brain_trend_tp = trade_obj.extra.get("brain_trend_regime", None)
-            if brain_risk_tp is None:
-                brain_risk_tp = 0.5
-            
-            # Base TP1 (allerede justert fram til nå med risk shaping og asymmetry)
-            tp1 = tp_bps_adjusted if 'tp_bps_adjusted' in locals() else tp_bps_original
-            
-            # Sikre at TP2 og TP3 finnes (hent fra trade.extra eller beregn fra TP1)
-            if trade_obj and hasattr(trade_obj, "extra") and trade_obj.extra:
-                tp2_base = trade_obj.extra.get("tp2_bps", None)
-                tp3_base = trade_obj.extra.get("tp3_bps", None)
-            else:
-                tp2_base = None
-                tp3_base = None
-            
-            if tp2_base is None:
-                tp2_base = int(tp1 * 1.5)  # Default: TP2 = 1.5x TP1
-            if tp3_base is None:
-                tp3_base = int(tp1 * 2.0)  # Default: TP3 = 2.0x TP1
-            
-            tp2 = tp2_base
-            tp3 = tp3_base
-            
-            # Styrke på extension (konservativ)
-            ext_strong = 0.25    # +25% i sterk trend
-            ext_medium = 0.10    # +10% i moderat trend
-            risk_cut = 0.20 * brain_risk_tp  # redusere extension ved høy risk
-            
-            # Apply TP2/TP3 extension based on trade side and trend
-            if trade_obj:
-                trade_side = trade_obj.side.upper() if hasattr(trade_obj, "side") else None
-                
-                # LONG trade
-                if trade_side == "LONG":
-                    if brain_trend_tp == "TREND_UP":
-                        # Sterk trend → legg til 25% - risk
-                        tp2 = int(tp2 * (1.0 + ext_strong - risk_cut))
-                        tp3 = int(tp3 * (1.0 + ext_strong - risk_cut))
-                    elif brain_trend_tp == "MR":
-                        # Moderat → 10% extension
-                        tp2 = int(tp2 * (1.0 + ext_medium - risk_cut))
-                        tp3 = int(tp3 * (1.0 + ext_medium - risk_cut))
-                    elif brain_trend_tp == "TREND_DOWN":
-                        # Mot trend → ingen extension
-                        pass
-                
-                # SHORT trade
-                elif trade_side == "SHORT":
-                    if brain_trend_tp == "TREND_DOWN":
-                        # Sterk trend → legg til 25% - risk
-                        tp2 = int(tp2 * (1.0 + ext_strong - risk_cut))
-                        tp3 = int(tp3 * (1.0 + ext_strong - risk_cut))
-                    elif brain_trend_tp == "MR":
-                        # Moderat → 10% extension
-                        tp2 = int(tp2 * (1.0 + ext_medium - risk_cut))
-                        tp3 = int(tp3 * (1.0 + ext_medium - risk_cut))
-                    elif brain_trend_tp == "TREND_UP":
-                        # Mot trend → ingen extension
-                        pass
-                
-                # Sikkerhetsgrenser
-                tp2 = max(int(tp2), int(tp1) + 3)  # TP2 må alltid være minst litt over TP1
-                tp3 = max(int(tp3), int(tp2) + 3)  # TP3 må være over TP2
-                
-                # Lagre TP2/TP3 extension i trade.extra
-                if not hasattr(trade_obj, "extra") or trade_obj.extra is None:
-                    trade_obj.extra = {}
-                trade_obj.extra["bb_exit_tp_ext"] = {
-                    "trend": brain_trend_tp,
-                    "risk": brain_risk_tp,
-                    "tp1": tp1,
-                    "tp2_base": tp2_base,
-                    "tp2_adj": tp2,
-                    "tp3_base": tp3_base,
-                    "tp3_adj": tp3,
-                }
-                
-                # Store TP2/TP3 in trade.extra for use by exit logic
-                trade_obj.extra["tp2_bps"] = tp2
-                trade_obj.extra["tp3_bps"] = tp3
-            
-            # Store adjusted values in trade.extra for logging (if trade exists)
-            if trade_obj:
-                if not hasattr(trade_obj, "extra") or trade_obj.extra is None:
-                    trade_obj.extra = {}
-                trade_obj.extra["bb_exit"] = {
-                    "be_trigger_bps_adj": be_trigger_bps_adjusted,
-                    "be_trigger_bps_original": be_trigger_bps_original,
-                    "tp_bps_adj": tp_bps_adjusted,
-                    "tp_bps_original": tp_bps_original,
-                    "soft_stop_bps_adj": soft_stop_bps_adjusted,
-                    "soft_stop_bps_original": soft_stop_bps_original,
-                    "brain_risk": brain_risk,
-                    "brain_trend": brain_trend,
-                }
-                
-                # Store asymmetry adjustments separately for analysis
-                trade_obj.extra["bb_exit_asym"] = {
-                    "trend": brain_trend_asym,
-                    "tp_bps_adj": tp_bps_asym,
-                    "tp_bps_risk_shaped": tp_bps_adjusted,  # before asymmetry
-                    "sl_bps_adj": sl_bps_asym,
-                    "soft_stop_bps_adj": soft_stop_bps_asym,
-                    "soft_stop_bps_risk_shaped": soft_stop_bps_adjusted,  # before asymmetry
-                }
-                
-                # Log Big Brain exit shaping (debug level)
-                if be_trigger_bps_adjusted != be_trigger_bps_original or tp_bps_adjusted != tp_bps_original or soft_stop_bps_adjusted != soft_stop_bps_original:
-                    log.debug(
-                        "[BIG_BRAIN_V1] Exit shaping applied: risk=%.3f be=%d→%d tp=%d→%d soft_stop=%d→%d",
-                        brain_risk,
-                        be_trigger_bps_original,
-                        be_trigger_bps_adjusted,
-                        tp_bps_original,
-                        tp_bps_adjusted,
-                        soft_stop_bps_original,
-                        soft_stop_bps_adjusted,
-                    )
-                
-                # Log asymmetry adjustments (debug level)
-                if tp_bps_asym != tp_bps_adjusted or soft_stop_bps_asym != soft_stop_bps_adjusted or sl_bps_asym != int(self.tick_cfg.get("sl_bps", 95)):
-                    log.debug(
-                        "[BIG_BRAIN_V1] Asymmetry applied: trend=%s tp=%d→%d sl=%d→%d soft_stop=%d→%d",
-                        brain_trend_asym or "UNKNOWN",
-                        tp_bps_adjusted,  # before asymmetry
-                        tp_bps_asym,
-                        int(self.tick_cfg.get("sl_bps", 95)),
-                        sl_bps_asym,
-                        soft_stop_bps_adjusted,  # before asymmetry
-                        soft_stop_bps_asym,
-                    )
-                
-                # Log hysterese adjustments (debug level)
-                if "bb_exit_hyst" in trade_obj.extra:
-                    hyst_data = trade_obj.extra["bb_exit_hyst"]
-                    if (hyst_data.get("early_hold_adj", early_hold_default) != early_hold_default or
-                        hyst_data.get("soft_delay_adj", soft_delay_default) != soft_delay_default or
-                        hyst_data.get("tp_delay_adj", tp_delay_default) != tp_delay_default):
-                        log.debug(
-                            "[BIG_BRAIN_V1] Hysterese applied: trend=%s risk=%.3f early_hold=%d→%d soft_delay=%d→%d tp_delay=%d→%d",
-                            brain_trend_hyst or "UNKNOWN",
-                            brain_risk_hyst,
-                            early_hold_default,
-                            hyst_data.get("early_hold_adj", early_hold_default),
-                            soft_delay_default,
-                            hyst_data.get("soft_delay_adj", soft_delay_default),
-                            tp_delay_default,
-                            hyst_data.get("tp_delay_adj", tp_delay_default),
-                        )
-                
-                # Log TP2/TP3 extension adjustments (debug level)
-                if "bb_exit_tp_ext" in trade_obj.extra:
-                    tp_ext_data = trade_obj.extra["bb_exit_tp_ext"]
-                    if (tp_ext_data.get("tp2_adj", tp_ext_data.get("tp2_base", 0)) != tp_ext_data.get("tp2_base", 0) or
-                        tp_ext_data.get("tp3_adj", tp_ext_data.get("tp3_base", 0)) != tp_ext_data.get("tp3_base", 0)):
-                        log.debug(
-                            "[BIG_BRAIN_V1] TP2/TP3 extension applied: trend=%s risk=%.3f tp2=%d→%d tp3=%d→%d",
-                            brain_trend_tp or "UNKNOWN",
-                            brain_risk_tp,
-                            tp_ext_data.get("tp2_base", 0),
-                            tp_ext_data.get("tp2_adj", 0),
-                            tp_ext_data.get("tp3_base", 0),
-                            tp_ext_data.get("tp3_adj", 0),
-                        )
-            
-            # Note: The adjusted values are stored in trade.extra for logging,
-            # but TickWatcher will continue using self.tick_cfg for actual exit checks.
-            # If we want to apply these adjustments in real-time, we would need to
-            # modify TickWatcher to check trade.extra["bb_exit"] values, but for now
-            # this provides logging/analysis capability.
-            
             # Verify trade is still open (if required) - with grace period for "closing" trades
             if self.exit_control.require_trade_open:
                 trade_exists = any(t.trade_id == trade_id for t in self.open_trades)
@@ -5964,7 +4351,7 @@ class GX1DemoRunner:
                         session = session_entry
                         vol_regime = vol_regime_entry
                         
-                        trend_regime = trade_extra.get("brain_trend_regime") or (trade_extra.get("big_brain_v1", {}).get("brain_trend_regime") if isinstance(trade_extra.get("big_brain_v1"), dict) else None)
+                        trend_regime = trade_extra.get("brain_trend_regime")
                         # Check if primary_exit_reason already exists (from previous exit attempt)
                         if "primary_exit_reason" in trade_extra:
                             primary_exit_reason = trade_extra["primary_exit_reason"]
@@ -6357,76 +4744,8 @@ class GX1DemoRunner:
         X: np.ndarray,
         missing_features: List[str],
     ) -> None:
-        """Log per-feature debug stats for XGB input (sampled, TRUTH/SMOKE only)."""
-        if not self.xgb_input_debug_enabled or not self.xgb_input_debug_jsonl_path:
-            return
-        
-        session_upper = session.upper()
-        if session_upper not in ["EU", "OVERLAP"]:
-            return
-        
-        self.xgb_input_debug_call_counts[session_upper] += 1
-        call_count = self.xgb_input_debug_call_counts[session_upper]
-        logged_count = self.xgb_input_debug_logged_counts[session_upper]
-        
-        if logged_count >= self.xgb_input_debug_max_per_session:
-            return
-        if call_count % self.xgb_input_debug_sample_n != 0:
-            return
-        
-        # Extract vector
-        vec = X[0] if X.shape[0] == 1 else X.flatten()
-        finite_mask = np.isfinite(vec)
-        n_nonfinite = int(np.sum(~finite_mask))
-        n_zero = int(np.sum(vec == 0.0))
-        
-        # Per-feature stats (single value -> min=max=value, std=0.0)
-        feature_stats = {}
-        for idx, feat_name in enumerate(feature_list):
-            if idx >= len(vec):
-                break
-            val = vec[idx]
-            if not np.isfinite(val):
-                feature_stats[feat_name] = {"min": None, "max": None, "std": None}
-            else:
-                feature_stats[feat_name] = {"min": float(val), "max": float(val), "std": 0.0}
-        
-        # Update flat-input counter (std == 0)
-        std_val = float(np.std(vec[finite_mask])) if np.any(finite_mask) else 0.0
-        if std_val == 0.0:
-            self.xgb_input_debug_flat_counts[session_upper] += 1
-        else:
-            self.xgb_input_debug_flat_counts[session_upper] = 0
-        
-        # Optional debug-assert (TRUTH/SMOKE): K consecutive flat inputs
-        run_mode = os.getenv("GX1_RUN_MODE", "").upper()
-        is_truth = run_mode in ["TRUTH", "SMOKE"] or os.getenv("GX1_TRUTH_TELEMETRY", "0") == "1"
-        if is_truth and self.xgb_input_debug_flat_counts[session_upper] >= self.xgb_input_debug_flat_k:
-            raise RuntimeError(
-                f"[XGB_INPUT_DEBUG_FLAT] Session={session_upper} input std==0 for "
-                f"{self.xgb_input_debug_flat_counts[session_upper]} sampled calls (K={self.xgb_input_debug_flat_k}). "
-                f"Input appears flat at XGB input build step."
-            )
-        
-        log_entry = {
-            "ts": timestamp,
-            "session": session_upper,
-            "n_features": len(feature_list),
-            "n_nonfinite": n_nonfinite,
-            "n_zero": n_zero,
-            "missing_features_count": len(missing_features),
-            "missing_features_sample": missing_features[:10],
-            "feature_stats": feature_stats,
-        }
-        
-        try:
-            with open(self.xgb_input_debug_jsonl_path, "a", encoding="utf-8") as f:
-                f.write(jsonlib.dumps(log_entry, sort_keys=True) + "\n")
-                f.flush()
-                os.fsync(f.fileno())
-            self.xgb_input_debug_logged_counts[session_upper] += 1
-        except Exception as e:
-            log.warning(f"[XGB_INPUT_DEBUG] Failed to write debug log: {e}")
+        """LEGACY no-op: XGB input debug logging disabled (archived)."""
+        log.debug("[LEGACY] XGB input debug disabled session=%s", session)
 
     def _resolve_xgb_feature_names(
         self,
@@ -6928,169 +5247,13 @@ class GX1DemoRunner:
         chunk_id: Optional[str] = None,
         min_logged: int = 50,
     ) -> None:
-        """Static method to write XGB fingerprint summary (can be called from master without runner instance)."""
-        # Glob all per-process JSONL files (include chunk subdirs)
-        jsonl_files = list(output_dir.rglob("XGB_INPUT_FINGERPRINT.*.jsonl"))
-        
-        if not jsonl_files:
-            log.warning("[XGB_FINGERPRINT] No JSONL files found, skipping summary")
-            return
-        
-        # Read all logged entries from all per-process files
-        entries: List[Dict[str, Any]] = []
-        for jsonl_file in jsonl_files:
-            try:
-                with open(jsonl_file, "r", encoding="utf-8") as f:
-                    for line in f:
-                        line = line.strip()
-                        if line:
-                            entries.append(jsonlib.loads(line))
-            except Exception as e:
-                log.warning(f"[XGB_FINGERPRINT] Failed to read {jsonl_file}: {e}")
-                continue
-        
-        if not entries:
-            log.warning("[XGB_FINGERPRINT] No entries found in JSONL files")
-            return
-        
-        # Analyze per session
-        summary: Dict[str, Any] = {
-            "generated_at": datetime.utcnow().isoformat() + "Z",
-            "output_dir": str(output_dir),
-            "run_id": run_id,
-            "chunk_id": chunk_id,
-            "sessions": {},
-        }
-        
-        by_session: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
-        for entry in entries:
-            sess = entry.get("session", "UNKNOWN")
-            by_session[sess].append(entry)
-        
-        run_mode = os.getenv("GX1_RUN_MODE", "").upper()
-        is_truth = run_mode in ["TRUTH", "SMOKE"] or os.getenv("GX1_TRUTH_TELEMETRY", "0") == "1"
-        
-        for session, sess_entries in by_session.items():
-            n_logged = len(sess_entries)
-            fingerprints = [e.get("fingerprint") for e in sess_entries if e.get("fingerprint")]
-            n_unique_fingerprints = len(set(fingerprints))
-            unique_ratio = n_unique_fingerprints / n_logged if n_logged > 0 else 0.0
-            
-            # Compute input/output stats
-            input_stds = [e.get("input_std") for e in sess_entries if e.get("input_std") is not None]
-            input_mins = [e.get("input_min") for e in sess_entries if e.get("input_min") is not None]
-            input_maxs = [e.get("input_max") for e in sess_entries if e.get("input_max") is not None]
-            p_long_raws = [e.get("p_long_raw") for e in sess_entries if e.get("p_long_raw") is not None]
-            uncertainties = [e.get("uncertainty") for e in sess_entries if e.get("uncertainty") is not None]
-            
-            sess_summary: Dict[str, Any] = {
-                "n_logged": n_logged,
-                "n_unique_fingerprints": n_unique_fingerprints,
-                "unique_ratio": unique_ratio,
-                "inputs_std_min": float(np.min(input_stds)) if input_stds else None,
-                "inputs_std_max": float(np.max(input_stds)) if input_stds else None,
-                "outputs_min": float(np.min(p_long_raws)) if p_long_raws else None,
-                "outputs_max": float(np.max(p_long_raws)) if p_long_raws else None,
-                "outputs_std": float(np.std(p_long_raws)) if p_long_raws else None,
-                "uncertainty_min": float(np.min(uncertainties)) if uncertainties else None,
-                "uncertainty_max": float(np.max(uncertainties)) if uncertainties else None,
-                "uncertainty_std": float(np.std(uncertainties)) if uncertainties else None,
-            }
-            
-            # Determine verdict
-            if n_logged >= min_logged:
-                if n_unique_fingerprints == 1:
-                    sess_summary["verdict"] = "IDENTICAL_INPUTS"
-                    # TRUTH invariant: FATAL if EU/OVERLAP have identical inputs
-                    if is_truth and session in ["EU", "OVERLAP"]:
-                        ts_range = {
-                            "first": sess_entries[0].get("ts"),
-                            "last": sess_entries[-1].get("ts"),
-                        }
-                        capsule = {
-                            "generated_at": datetime.utcnow().isoformat() + "Z",
-                            "session": session,
-                            "n_logged": n_logged,
-                            "n_unique_fingerprints": n_unique_fingerprints,
-                            "fingerprint": fingerprints[0] if fingerprints else None,
-                            "ts_range": ts_range,
-                            "input_stats": {
-                                "std_min": sess_summary["inputs_std_min"],
-                                "std_max": sess_summary["inputs_std_max"],
-                            },
-                            "output_stats": {
-                                "min": sess_summary["outputs_min"],
-                                "max": sess_summary["outputs_max"],
-                                "std": sess_summary["outputs_std"],
-                            },
-                            "run_id": run_id,
-                            "chunk_id": chunk_id,
-                        }
-                        capsule_path = output_dir / "XGB_INPUT_IDENTICAL_FATAL.json"
-                        try:
-                            with open(capsule_path, "w", encoding="utf-8") as f:
-                                jsonlib.dump(capsule, f, indent=2, sort_keys=True)
-                            log.error(f"[XGB_FINGERPRINT] FATAL: {session} has identical inputs (n_logged={n_logged}, fingerprint={fingerprints[0][:16] if fingerprints else 'N/A'}...)")
-                            raise RuntimeError(
-                                f"[XGB_INPUT_IDENTICAL_FATAL] Session {session} has identical XGB inputs across {n_logged} logged calls. "
-                                f"This indicates a feature feed/sanitizer/prebuilt mapping bug. "
-                                f"Capsule written to: {capsule_path}"
-                            )
-                        except RuntimeError:
-                            raise
-                        except Exception as e:
-                            log.error(f"[XGB_FINGERPRINT] Failed to write FATAL capsule: {e}")
-                else:
-                    sess_summary["verdict"] = "VARIABLE_INPUTS"
-            else:
-                sess_summary["verdict"] = "INSUFFICIENT_SAMPLES"
-            
-            summary["sessions"][session] = sess_summary
-        
-        # Write summary JSON
-        summary_path = output_dir / "XGB_INPUT_FINGERPRINT_SUMMARY.json"
-        try:
-            with open(summary_path, "w", encoding="utf-8") as f:
-                jsonlib.dump(summary, f, indent=2, sort_keys=True)
-            log.info(f"[XGB_FINGERPRINT] Wrote summary to {summary_path}")
-        except Exception as e:
-            log.error(f"[XGB_FINGERPRINT] Failed to write summary: {e}")
-        
-        # Write summary MD
-        md_path = output_dir / "XGB_INPUT_FINGERPRINT_SUMMARY.md"
-        try:
-            with open(md_path, "w", encoding="utf-8") as f:
-                f.write("# XGB Input Fingerprint Summary\n\n")
-                f.write(f"- Generated at: `{summary['generated_at']}`\n")
-                f.write(f"- Output dir: `{summary['output_dir']}`\n")
-                f.write(f"- Run ID: `{summary['run_id']}`\n")
-                f.write(f"- Chunk ID: `{summary['chunk_id']}`\n\n")
-                for session, sess_summary in sorted(summary["sessions"].items()):
-                    f.write(f"## Session {session}\n\n")
-                    f.write(f"- n_logged: {sess_summary['n_logged']}\n")
-                    f.write(f"- n_unique_fingerprints: {sess_summary['n_unique_fingerprints']}\n")
-                    f.write(f"- unique_ratio: {sess_summary['unique_ratio']:.4f}\n")
-                    f.write(f"- verdict: **{sess_summary['verdict']}**\n")
-                    if sess_summary.get('inputs_std_min') is not None:
-                        f.write(f"- inputs_std: min={sess_summary['inputs_std_min']:.6f}, max={sess_summary['inputs_std_max']:.6f}\n")
-                    if sess_summary.get('outputs_std') is not None:
-                        f.write(f"- outputs_std: {sess_summary['outputs_std']:.6f}\n")
-                    f.write("\n")
-            log.info(f"[XGB_FINGERPRINT] Wrote summary MD to {md_path}")
-        except Exception as e:
-            log.error(f"[XGB_FINGERPRINT] Failed to write summary MD: {e}")
-    
+        """LEGACY no-op: XGB fingerprint summary disabled (archived)."""
+        log.debug("[LEGACY] XGB fingerprint summary disabled run_id=%s chunk_id=%s min_logged=%s", run_id, chunk_id, min_logged)
+
     def _write_xgb_fingerprint_summary(self) -> None:
-        """Write XGB input fingerprint summary and check TRUTH invariants (instance method)."""
-        if not self.xgb_fingerprint_enabled or not self.explicit_output_dir:
-            return
-        GX1DemoRunner.write_xgb_fingerprint_summary_static(
-            output_dir=self.explicit_output_dir,
-            run_id=getattr(self, "run_id", None),
-            chunk_id=getattr(self, "chunk_id", None),
-            min_logged=self.xgb_fingerprint_min_logged,
-        )
-    
+        """LEGACY no-op: XGB fingerprint summary disabled (archived)."""
+        log.debug("[LEGACY] XGB fingerprint summary disabled for runner")
+
     def _write_import_fail_capsule(self, import_err: Exception, module_name: str, symbol_name: Optional[str] = None) -> Path:
         """Write IMPORT_FAIL.json capsule with full diagnostic info."""
         import traceback
@@ -8121,27 +6284,28 @@ class GX1DemoRunner:
                         from gx1.contracts.signal_bridge_v1 import get_canonical_ctx_contract
                         canonical_ctx = get_canonical_ctx_contract()
                         slow_cont_names = [n for n in canonical_ctx["ctx_cont_names"] if n not in ["atr_bps", "spread_bps"]]
-                        log.info(
-                            "[CTX_DEBUG] candle_ts=%r tz=%s | current_ts=%r tz=%s | equal=%s",
-                            ts,
-                            getattr(ts, "tzinfo", None),
-                            ts,
-                            getattr(ts, "tzinfo", None),
-                            True,
-                        )
-                        log.error(
-                            "[CTX_DEBUG] prebuilt_index_has_ts=%s | df_cols_has_slow=%s",
-                            ts in self.prebuilt_features_df.index,
-                            {c: c in self.prebuilt_features_df.columns for c in slow_cont_names},
-                        )
-                        if ts in self.prebuilt_features_df.index:
-                            try:
-                                log.error(
-                                    "[CTX_DEBUG] slow_cont_values=%s",
-                                    prebuilt_row[slow_cont_names].to_dict(),
-                                )
-                            except Exception:
-                                pass
+                        if not getattr(self, "_ctx_debug_logged_once", False):
+                            log.info(
+                                "[CTX_DEBUG] candle_ts=%r tz=%s | current_ts=%r tz=%s | equal=%s",
+                                ts,
+                                getattr(ts, "tzinfo", None),
+                                ts,
+                                getattr(ts, "tzinfo", None),
+                                True,
+                            )
+                            log.error(
+                                "[CTX_DEBUG] prebuilt_index_has_ts=%s | df_cols_has_slow=%s",
+                                ts in self.prebuilt_features_df.index,
+                                {c: c in self.prebuilt_features_df.columns for c in slow_cont_names},
+                            )
+                            if ts in self.prebuilt_features_df.index:
+                                try:
+                                    log.error(
+                                        "[CTX_DEBUG] slow_cont_values=%s",
+                                        prebuilt_row[slow_cont_names].to_dict(),
+                                    )
+                                except Exception:
+                                    pass
                         missing_cols = [c for c in slow_cont_names if c not in prebuilt_row.index]
                         if missing_cols:
                             raise RuntimeError(f"[CTX_CONT_BUILD_FAIL] Missing slow ctx columns in prebuilt row: {missing_cols}")
@@ -8154,30 +6318,33 @@ class GX1DemoRunner:
                                 "[CTX_CAT_SOURCE_MISSING] prebuilt missing required ctx_cat col: H4_trend_sign_cat (CTX6CAT6)"
                             )
                         entry_context_features.h4_trend_sign_cat = int(prebuilt_row["H4_trend_sign_cat"])
-                        log.error(
-                            "[CTX_DEBUG_ASSIGN] current_ts=%r tz=%s | ctx_fields=%s | slow_cont_values=%s",
-                            ts,
-                            getattr(ts, "tzinfo", None),
-                            entry_context_features.__dict__,
-                            {
-                                "D1_dist_from_ema200_atr": entry_context_features.D1_dist_from_ema200_atr,
-                                "H1_range_compression_ratio": entry_context_features.H1_range_compression_ratio,
-                                "D1_atr_percentile_252": entry_context_features.D1_atr_percentile_252,
-                                "M15_range_compression_ratio": entry_context_features.M15_range_compression_ratio,
-                            },
-                        )
+                        if not getattr(self, "_ctx_debug_logged_once", False):
+                            log.error(
+                                "[CTX_DEBUG_ASSIGN] current_ts=%r tz=%s | ctx_fields=%s | slow_cont_values=%s",
+                                ts,
+                                getattr(ts, "tzinfo", None),
+                                entry_context_features.__dict__,
+                                {
+                                    "D1_dist_from_ema200_atr": entry_context_features.D1_dist_from_ema200_atr,
+                                    "H1_range_compression_ratio": entry_context_features.H1_range_compression_ratio,
+                                    "D1_atr_percentile_252": entry_context_features.D1_atr_percentile_252,
+                                    "M15_range_compression_ratio": entry_context_features.M15_range_compression_ratio,
+                                },
+                            )
                     except Exception as e:
                         raise RuntimeError(f"[CTX_CONT_BUILD_FAIL] Failed to populate ctx_cont from prebuilt: {e}") from e
 
                     ctx_cat = entry_context_features.to_tensor_categorical()  # [6] int64
                     from gx1.contracts.signal_bridge_v1 import get_canonical_ctx_contract as _get_ctx_contract_pre_tensor
                     _ctx_contract = _get_ctx_contract_pre_tensor()
-                    log.error(
-                        "[CTX_DEBUG_PRE_TENSOR] ctx_fields=%s | expected_cat=%s | expected_cont=%s",
-                        entry_context_features.__dict__,
-                        _ctx_contract.get("ctx_cat_names"),
-                        _ctx_contract.get("ctx_cont_names"),
-                    )
+                    if not getattr(self, "_ctx_debug_logged_once", False):
+                        log.error(
+                            "[CTX_DEBUG_PRE_TENSOR] ctx_fields=%s | expected_cat=%s | expected_cont=%s",
+                            entry_context_features.__dict__,
+                            _ctx_contract.get("ctx_cat_names"),
+                            _ctx_contract.get("ctx_cont_names"),
+                        )
+                        self._ctx_debug_logged_once = True
                     ctx_cont = entry_context_features.to_tensor_continuous()  # [6] float32
                     ctx_cat_arr = np.array(ctx_cat, dtype=np.int64)
                     ctx_cont_arr = np.array(ctx_cont, dtype=np.float32)
@@ -9108,7 +7275,6 @@ class GX1DemoRunner:
             )
             # Push signal7 snapshot to shared exit history (single source of truth, per bar)
             try:
-                from collections import deque
                 from gx1.xgb.multihead.xgb_multihead_model_v1 import proba_to_signal_bridge_v1
 
                 proba_row = np.asarray([[float(prob_long), float(prob_short), float(prob_flat)]], dtype=float)
@@ -9122,9 +7288,6 @@ class GX1DemoRunner:
                     "margin_top1_top2": float(bridge[5]),
                     "entropy": float(bridge[6]),
                 }
-                if not hasattr(self, "exit_signal7_history") or not isinstance(getattr(self, "exit_signal7_history", None), deque):
-                    self.exit_signal7_history = deque(maxlen=8)
-                self.exit_signal7_history.append(signal7_now)
             except Exception as e:
                 log.warning("[EXIT_SIGNAL7] Failed to append signal7 history: %s", e, exc_info=True)
             return EntryPrediction(
@@ -9259,216 +7422,16 @@ class GX1DemoRunner:
             # DEL 1: Re-raise exception (ikke swallow)
             raise
 
-    def _predict_entry_tcn(
-        self,
-        candles: pd.DataFrame,
-        entry_bundle: EntryFeatureBundle,
-    ) -> Optional[EntryPrediction]:
-        """
-        Generate TCN entry probabilities from sequence data.
-        
-        Returns EntryPrediction with prob_long and prob_short derived from TCN model.
-        """
-        if self.entry_tcn_model is None or self.entry_tcn_feats is None:
-            log.warning("[TCN_PREDICT] Model or features not loaded - model=%s features=%s", 
-                       self.entry_tcn_model is not None, self.entry_tcn_feats is not None)
-            return None
-        
-        try:
-            log.debug("[TCN_PREDICT] Starting prediction - candles=%d bars lookback=%d", 
-                     len(candles), self.entry_tcn_lookback)
-            import torch
-            from gx1.seq.sequence_features import build_sequence_features
-            from gx1.seq.dataset import SeqWindowDataset  # type: ignore[reportMissingImports]
-            
-            # Build features from candles for the entire sequence window
-            # TCN model expects features like _v1_r1, _v1_body_share_1, _v1_wick_imbalance, etc.
-            # These come from basic_v1.build_basic_v1() (called by build_live_entry_features)
-            candles_seq = candles.copy()
-            
-            # Ensure we have required columns (OHLCV)
-            # CSV might have lowercase or uppercase column names
-            required_cols_lower = ['open', 'high', 'low', 'close', 'volume']
-            
-            # Normalize column names to lowercase (handle both OPEN/HIGH/LOW/CLOSE and open/high/low/close)
-            col_mapping = {}
-            for col in candles_seq.columns:
-                col_upper = col.upper()
-                if col_upper == 'OPEN':
-                    col_mapping[col] = 'open'
-                elif col_upper == 'HIGH':
-                    col_mapping[col] = 'high'
-                elif col_upper == 'LOW':
-                    col_mapping[col] = 'low'
-                elif col_upper == 'CLOSE':
-                    col_mapping[col] = 'close'
-                elif col_upper == 'VOLUME':
-                    col_mapping[col] = 'volume'
-            
-            # Rename columns to lowercase
-            if col_mapping:
-                candles_seq = candles_seq.rename(columns=col_mapping)
-            
-            # Check what columns we have
-            missing_cols = [c for c in required_cols_lower if c not in candles_seq.columns]
-            if missing_cols:
-                log.error("[TCN_PREDICT] Missing required columns after normalization: %s", missing_cols)
-                log.error("[TCN_PREDICT] Available columns: %s", list(candles_seq.columns)[:15])
-                log.error("[TCN_PREDICT] candles DataFrame shape: %s, index type: %s", candles_seq.shape, type(candles_seq.index))
-                return None
-            
-            # CRITICAL: build_sequence_features needs OHLCV columns!
-            # So we must call it BEFORE building features with build_basic_v1
-            # (which removes OHLCV columns and adds feature columns)
-            
-            # First, ensure session column exists (needed by build_sequence_features for session_id)
-            if "session" not in candles_seq.columns:
-                # Infer session from timestamp
-                from gx1.execution.live_features import infer_session_tag
-                candles_seq["session"] = candles_seq.index.map(lambda ts: infer_session_tag(ts))
-            
-            # Build sequence features FIRST (while we still have OHLCV columns)
-            # This adds: ema20_slope, ema100_slope, pos_vs_ema200, std50, atr50, atr_z, roc20, roc100, body_pct, wick_asym
-            # Plus environmental context: session_id, atr_regime_id, trend_regime_tf24h
-            candles_seq_with_seq_features = build_sequence_features(candles_seq.copy())
-            
-            # Extract sequence features we need (calculated on original OHLCV data)
-            seq_feat_cols = ['ema20_slope', 'ema100_slope', 'pos_vs_ema200', 'std50', 'atr50', 'atr_z', 
-                            'roc20', 'roc100', 'body_pct', 'wick_asym', 'session_id', 'atr_regime_id', 'trend_regime_tf24h']
-            seq_features = candles_seq_with_seq_features[seq_feat_cols].copy() if all(c in candles_seq_with_seq_features.columns for c in seq_feat_cols) else None
-            
-            # Now build features using basic_v1 (generates _v1_r1, _v1_body_share_1, etc.)
-            # basic_v1.build_basic_v1 returns a DataFrame with features for all bars
-            from gx1.features.basic_v1 import build_basic_v1
-            from gx1.utils.ts_utils import ensure_ts_column
-            
-            # Ensure 'ts' column exists (required by basic_v1)
-            # This handles cases where prebuilt data already has "ts" column
-            candles_with_ts = ensure_ts_column(candles_seq.copy(), context="TCN_PREDICT")
-            
-            # Build features using basic_v1 (generates _v1_r1, _v1_body_share_1, etc.)
-            feature_df, _ = build_basic_v1(candles_with_ts)
-            
-            # Extract only _v1_* feature columns (drop OHLC and ts)
-            feature_cols = [c for c in feature_df.columns if c.startswith("_v1_")]
-            candles_seq = feature_df[feature_cols].copy()
-            candles_seq.index = candles.index
-            
-            # Add sequence features back (they were calculated on original OHLCV data)
-            if seq_features is not None:
-                for col in seq_feat_cols:
-                    if col in seq_features.columns:
-                        candles_seq[col] = seq_features[col].values
-            
-            # Align features with manifest (same as build_live_entry_features does)
-            manifest = load_manifest()
-            from gx1.tuning.feature_manifest import align_features  # type: ignore[reportMissingImports]
-            candles_seq = align_features(candles_seq, manifest=manifest, training_stats=manifest.get("training_stats"))
-            
-            # Check if we have enough bars for lookback
-            if len(candles_seq) < self.entry_tcn_lookback:
-                log.warning("[TCN_PREDICT] Insufficient bars: %d < %d (lookback required)", 
-                           len(candles_seq), self.entry_tcn_lookback)
-                return None
-            
-            # Extract sequence window (last lookback bars)
-            seq_window = candles_seq.tail(self.entry_tcn_lookback).copy()
-            
-            # Select features in correct order
-            missing_feats = [f for f in self.entry_tcn_feats if f not in seq_window.columns]
-            if missing_feats:
-                log.warning("[HYBRID_ENTRY] Missing TCN features: %s. Using zeros.", missing_feats[:5])
-                for feat in missing_feats:
-                    seq_window[feat] = 0.0
-            
-            # Extract feature matrix [lookback, n_features]
-            X_seq = seq_window[self.entry_tcn_feats].values.astype(np.float32)
-            
-            # PHASE 1 FIX: Hard-fail on NaN/Inf in sequence features in replay mode
-            is_replay = getattr(self, "replay_mode", False) or getattr(self, "fast_replay", False)
-            if is_replay:
-                if not np.all(np.isfinite(X_seq)):
-                    nan_count = np.isnan(X_seq).sum()
-                    inf_count = np.isinf(X_seq).sum()
-                    raise RuntimeError(
-                        f"[NAN_INF_INPUT_FATAL] Sequence features contain NaN/Inf: "
-                        f"NaN count={nan_count}, Inf count={inf_count}, shape={X_seq.shape}. "
-                        f"This violates input-finiteness invariant (replay mode)."
-                    )
-            # In live mode, allow nan_to_num but log counter
-            if not is_replay and not np.all(np.isfinite(X_seq)):
-                if not hasattr(self, "_seq_nan_inf_count"):
-                    self._seq_nan_inf_count = 0
-                self._seq_nan_inf_count += 1
-                if self._seq_nan_inf_count <= 3:
-                    log.warning(
-                        "[NAN_INF_INPUT] Sequence features contain NaN/Inf (live mode: converting to 0.0): "
-                        f"NaN count={np.isnan(X_seq).sum()}, Inf count={np.isinf(X_seq).sum()}"
-                    )
-            X_seq = np.nan_to_num(X_seq, nan=0.0, posinf=0.0, neginf=0.0)
-            
-            # Scale
-            if self.entry_tcn_scaler is not None:
-                X_seq = self.entry_tcn_scaler.transform(X_seq)
-                # PHASE 1 FIX: Check again after scaling (scaler may introduce NaN/Inf)
-                if is_replay:
-                    if not np.all(np.isfinite(X_seq)):
-                        nan_count = np.isnan(X_seq).sum()
-                        inf_count = np.isinf(X_seq).sum()
-                        raise RuntimeError(
-                            f"[NAN_INF_INPUT_FATAL] Sequence features after scaling contain NaN/Inf: "
-                            f"NaN count={nan_count}, Inf count={inf_count}, shape={X_seq.shape}. "
-                            f"This violates input-finiteness invariant (replay mode)."
-                        )
-                X_seq = np.nan_to_num(X_seq, nan=0.0, posinf=0.0, neginf=0.0)
-            
-            # Convert to tensor [1, lookback, n_features]
-            X_tensor = torch.from_numpy(X_seq).unsqueeze(0).to(self.entry_tcn_device)
-            
-            # Predict (returns logits for fast-hit probability)
-            with torch.no_grad():
-                logits = self.entry_tcn_model(X_tensor)
-                prob_fast_hit = torch.sigmoid(logits).cpu().item()
-            
-            log.debug("[TCN_PREDICT] X_seq shape=%s logits=%.6f prob_fast_hit=%.6f", 
-                     X_seq.shape, logits.item() if hasattr(logits, 'item') else float(logits), prob_fast_hit)
-            
-            # Convert fast-hit probability to prob_long and prob_short
-            # TCN predicts "fast hit" (MFE within horizon), not direction
-            # For now, use a simple heuristic: if prob_fast_hit > 0.5, assume LONG bias
-            # TODO: Train TCN with direction labels or use separate LONG/SHORT models
-            prob_long = prob_fast_hit
-            prob_short = 1.0 - prob_fast_hit
-            
-            # Create EntryPrediction
-            prediction = EntryPrediction(
-                session="TCN",  # TCN doesn't use session routing
-                prob_short=float(prob_short),
-                prob_neutral=0.0,
-                prob_long=float(prob_long),
-                p_hat=float(max(prob_long, prob_short)),
-                margin=float(abs(prob_long - prob_short)),
-            )
-            
-            log.debug("[TCN_PREDICT] Prediction: prob_long=%.4f prob_short=%.4f margin=%.4f", 
-                     prob_long, prob_short, prediction.margin)
-            
-            return prediction
-            
-        except Exception as e:
-            log.error("[TCN_PREDICT] TCN prediction error: %s", e, exc_info=True)
-            return None
-
-
-    # SSoT ENTRY ROUTE (sanity grep): evaluate_entry -> _evaluate_entry_impl -> entry_manager.evaluate_entry -> _predict_entry_v10_hybrid.
-    # Legacy/not reachable: _load_entry_v9_model (raise-only [LEGACY_DISABLED]); no other entry prediction paths.
     def _evaluate_entry_impl(self, candles: pd.DataFrame) -> Optional[LiveTrade]:
         """Single entry path: entry_manager.evaluate_entry only. No V9/legacy/fallback routing."""
         import inspect
         
-        # ENTRY EVAL PATH TELEMETRY: Record which function actually performs entry evaluation (SSoT)
-        # This MUST be the very first thing in the function to identify the actual code path
-        if hasattr(self, "entry_manager") and self.entry_manager and hasattr(self.entry_manager, "entry_feature_telemetry") and self.entry_manager.entry_feature_telemetry:
+        if (
+            hasattr(self, "entry_manager")
+            and self.entry_manager
+            and hasattr(self.entry_manager, "entry_feature_telemetry")
+            and self.entry_manager.entry_feature_telemetry
+        ):
             current_frame = inspect.currentframe()
             frame = current_frame if current_frame else None
             lineno = frame.f_lineno if frame else 0
@@ -9479,7 +7442,7 @@ class GX1DemoRunner:
             )
         
         return self.entry_manager.evaluate_entry(candles)
-    
+
     def get_pre_entry_funnel_snapshot(self) -> Dict[str, Any]:
         """
         Get pre-entry funnel snapshot (SSoT for where bars die before entry evaluation).
@@ -9515,124 +7478,12 @@ class GX1DemoRunner:
         }
 
     
-    def _log_entry_only_event_impl(
-        self,
-        timestamp: pd.Timestamp,
-        side: str,
-        price: float,
-        prediction: Any,  # EntryPrediction-like object
-        policy_state: Dict[str, Any],
-    ) -> None:
-        """
-        Log a hypothetical entry event in ENTRY_ONLY mode.
-        Does NOT create a LiveTrade or run exits.
-        
-        Uses buffered writes (batch of 100 entries) to avoid I/O bottleneck.
-        
-        Parameters
-        ----------
-        timestamp : pd.Timestamp
-            Entry timestamp
-        side : str
-            Entry side ("long" or "short")
-        price : float
-            Entry price
-        prediction : Any
-            Entry prediction object with prob_long, prob_short, margin, p_hat
-        policy_state : Dict[str, Any]
-            Policy state containing regime info and V7_HIGH predictions
-        """
-        if self.entry_only_log_path is None:
-            return
-        
-        # Extract regime info
-        trend_regime = policy_state.get("brain_trend_regime", "UNKNOWN")
-        vol_regime = policy_state.get("brain_vol_regime", "UNKNOWN")
-        session = policy_state.get("session", "UNKNOWN")
-        
-        # Prepare row
-        row = {
-            "run_id": self.run_id,
-            "timestamp": timestamp.isoformat() if hasattr(timestamp, "isoformat") else str(timestamp),
-            "side": side.lower(),
-            "entry_price": f"{price:.3f}",
-            "session": session,
-            "trend_regime": trend_regime,
-            "vol_regime": vol_regime,
-            "p_long_entry": f"{prediction.prob_long:.4f}" if hasattr(prediction, "prob_long") else "",
-            "p_short_entry": f"{prediction.prob_short:.4f}" if hasattr(prediction, "prob_short") else "",
-            "margin_entry": f"{prediction.margin:.4f}" if hasattr(prediction, "margin") else "",
-            "p_hat_entry": f"{prediction.p_hat:.4f}" if hasattr(prediction, "p_hat") else "",
-        }
-        
-        # Initialize buffer if not exists
-        if not hasattr(self, "_entry_only_log_buffer"):
-            self._entry_only_log_buffer = []
-            self._entry_only_log_buffer_size = 100  # Flush every 100 entries
-        
-        # Add to buffer
-        self._entry_only_log_buffer.append(row)
-        
-        # Flush buffer if full
-        if len(self._entry_only_log_buffer) >= self._entry_only_log_buffer_size:
-            self._flush_entry_only_log_buffer()
-        
-        # Removed debug logging to reduce I/O overhead (only log on flush)
-    
-    
-    def _flush_entry_only_log_buffer_impl(self) -> None:
-        """Flush buffered entry-only log entries to CSV file."""
-        if not hasattr(self, "_entry_only_log_buffer") or len(self._entry_only_log_buffer) == 0:
-            return
-        
-        if self.entry_only_log_path is None:
-            return
-        
-        fieldnames = [
-            "run_id",
-            "timestamp",
-            "side",
-            "entry_price",
-            "session",
-            "trend_regime",
-            "vol_regime",
-            "p_long_entry",
-            "p_short_entry",
-            "margin_entry",
-            "p_hat_entry",
-            "p_long_v7",
-            "p_short_v7",
-            "margin_v7",
-            "p_hat_v7",
-        ]
-        
-        file_exists = self.entry_only_log_path.exists()
-        
-        # Write all buffered rows in one I/O operation
-        with self.entry_only_log_path.open("a", newline="", encoding="utf-8", buffering=8192) as f:
-            writer = csv.DictWriter(f, fieldnames=fieldnames)
-            if not file_exists:
-                writer.writeheader()
-            writer.writerows(self._entry_only_log_buffer)
-        
-        # Clear buffer
-        buffer_size = len(self._entry_only_log_buffer)
-        self._entry_only_log_buffer = []
-        
-        # Only log flush every 10th time to reduce I/O overhead
-        if not hasattr(self, "_flush_count"):
-            self._flush_count = 0
-        self._flush_count += 1
-        if self._flush_count % 10 == 0:
-            log.debug(f"[ENTRY_ONLY] Flushed {buffer_size} entries to CSV (total flushes: {self._flush_count})")
-    
     def _ensure_bid_ask_columns(self, df: pd.DataFrame, context: str) -> None:
         """Validate bid/ask columns exist before running bid-aware logic."""
         missing = [col for col in BID_ASK_REQUIRED_COLS if col not in df.columns]
         if missing:
             raise ValueError(
-                f"Bid/ask required for FARM_V2B 2025 replay, but missing in candles "
-                f"(context={context}): {missing}"
+                f"Bid/ask data required but missing in candles (context={context}): {missing}"
             )
 
     def _calculate_unrealized_portfolio_bps(self, current_bid: float, current_ask: float) -> float:
@@ -9953,25 +7804,6 @@ def _build_notes_string(self, trade: LiveTrade) -> str:
         atr_regime = trade.extra.get("atr_regime")
         if atr_regime:
             notes_parts.append(f"atr_regime={atr_regime}")
-        
-        # Add Big Brain V1 data if available (try nested dict first, fallback to top-level)
-        brain_v1_data = trade.extra.get("big_brain_v1", {})
-        if isinstance(brain_v1_data, dict):
-            brain_trend = brain_v1_data.get("brain_trend_regime") or trade.extra.get("brain_trend_regime")
-            brain_vol = brain_v1_data.get("brain_vol_regime") or trade.extra.get("brain_vol_regime")
-            brain_risk = brain_v1_data.get("brain_risk_score") if "brain_risk_score" in brain_v1_data else trade.extra.get("brain_risk_score")
-        else:
-            # Fallback to top-level fields (backward compatibility)
-            brain_trend = trade.extra.get("brain_trend_regime")
-            brain_vol = trade.extra.get("brain_vol_regime")
-            brain_risk = trade.extra.get("brain_risk_score")
-        
-        if brain_trend and brain_trend != "UNKNOWN":
-            notes_parts.append(f"brain_trend_regime={brain_trend}")
-        if brain_vol and brain_vol != "UNKNOWN":
-            notes_parts.append(f"brain_vol_regime={brain_vol}")
-        if brain_risk is not None:
-            notes_parts.append(f"brain_risk_score={brain_risk:.3f}")
     
     return ";".join(notes_parts) if notes_parts else ""
 
@@ -10014,7 +7846,7 @@ def _execute_entry_impl(self, trade: LiveTrade) -> None:
             # In live mode: raise exception (fail-fast)
             raise ValueError(f"Invalid trade.side: got {side_val!r}, expected 'long' or 'short'")
     
-    # Check for guard blocks (KILL_SWITCH_ON, parity/ECE/coverage)
+        # Check for guard blocks (KILL_SWITCH_ON, parity/ECE/coverage)  # LEGACY parity: diagnostics only, non-canonical
     guard_blocked = False
     block_reason = None
     
@@ -10104,8 +7936,7 @@ def _execute_entry_impl(self, trade: LiveTrade) -> None:
                     log.warning("[TRADE_JOURNAL] Failed to log ORDER_SUBMITTED: %s", e)
             
             # Place order with broker-side TP/SL (failsafe) if enabled
-            # In REN EXIT_V2 mode, broker-side TP/SL is disabled
-            broker_side_tp_sl = bool(self.policy.get("broker_side_tp_sl", True)) and not self.exit_only_v2_drift
+            broker_side_tp_sl = bool(self.policy.get("broker_side_tp_sl", True))
             
             # In replay mode, broker is None - simulate order execution
             if self.replay_mode and self.broker is None:
@@ -10507,6 +8338,8 @@ def _run_once_impl(self) -> None:
         return
 
     self._ensure_bid_ask_columns(candles, context="run_once")
+    # Cache last closed M5 candles for tick-triggered exit evaluation (live only)
+    self._last_closed_candles = candles.copy()
 
     trade = self.evaluate_entry(candles)
     if trade and self.can_enter(candles.index[-1]):
@@ -11937,172 +9770,10 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
             self.tick_watcher.stop()
         log.info("[REPLAY] Tick watcher disabled (simulating ticks from M5 candles)")
         
-        # Load warmup prices for Big Brain V1 (MUST be from same period as replay)
-        # CRITICAL: Warmup data MUST match replay period - no mixing 2020 data with 2025 replay!
-        warmup_prices_path = None
-        lookback_bars = None
-        if self.big_brain_v1 is not None:
-            bb_v1_config = self.policy.get("big_brain_v1", {})
-            warmup_prices_path = bb_v1_config.get("warmup_prices_path")
-            lookback_bars = self.big_brain_v1.lookback
-        
-        # Try to load warmup from external file ONLY if it has data in the correct period
-        warmup_loaded = False
-        if warmup_prices_path:
-            warmup_prices_path = Path_module(warmup_prices_path)
-            try:
-                log.info("[BIG_BRAIN_V1] Checking warmup prices from %s", warmup_prices_path)
-                
-                # Load warmup prices
-                if warmup_prices_path.suffix.lower() == ".parquet":
-                    warmup_df = pd.read_parquet(warmup_prices_path)
-                else:
-                    warmup_df = pd.read_csv(warmup_prices_path, nrows=1000)  # Just check first 1000 rows
-                
-                # Ensure time column is datetime and set as index
-                if "time" in warmup_df.columns:
-                    warmup_df["time"] = pd.to_datetime(warmup_df["time"], utc=True)
-                    warmup_df = warmup_df.set_index("time").sort_index()
-                elif "ts" in warmup_df.columns:
-                    warmup_df["ts"] = pd.to_datetime(warmup_df["ts"], utc=True)
-                    warmup_df = warmup_df.set_index("ts").sort_index()
-                elif not isinstance(warmup_df.index, pd.DatetimeIndex):
-                    warmup_df.index = pd.to_datetime(warmup_df.index, utc=True)
-                
-                # Ensure index is timezone-aware UTC
-                if warmup_df.index.tz is None:
-                    warmup_df.index = warmup_df.index.tz_localize("UTC")
-                else:
-                    warmup_df.index = warmup_df.index.tz_convert("UTC")
-                
-                # Check if warmup file has data in the correct period (before replay start)
-                warmup_end_ts = self.replay_start_ts - pd.Timedelta(minutes=5)
-                warmup_start_ts = warmup_end_ts - pd.Timedelta(minutes=5 * lookback_bars)
-                
-                # Check if warmup file covers the required period
-                warmup_file_has_period = (
-                    warmup_df.index.min() <= warmup_start_ts and
-                    warmup_df.index.max() >= warmup_end_ts
-                )
-                
-                if warmup_file_has_period:
-                    # Warmup file has data in correct period - use it
-                    log.info(
-                        "[BIG_BRAIN_V1] Warmup file has data in correct period (%s to %s). Using warmup file.",
-                        warmup_df.index.min().isoformat(),
-                        warmup_df.index.max().isoformat(),
-                    )
-                    
-                    # Reload full file for warmup
-                    if warmup_prices_path.suffix.lower() == ".parquet":
-                        warmup_df_full = pd.read_parquet(warmup_prices_path)
-                    else:
-                        warmup_df_full = pd.read_csv(warmup_prices_path)
-                    
-                    # Process full file same way
-                    if "time" in warmup_df_full.columns:
-                        warmup_df_full["time"] = pd.to_datetime(warmup_df_full["time"], utc=True)
-                        warmup_df_full = warmup_df_full.set_index("time").sort_index()
-                    elif "ts" in warmup_df_full.columns:
-                        warmup_df_full["ts"] = pd.to_datetime(warmup_df_full["ts"], utc=True)
-                        warmup_df_full = warmup_df_full.set_index("ts").sort_index()
-                    elif not isinstance(warmup_df_full.index, pd.DatetimeIndex):
-                        warmup_df_full.index = pd.to_datetime(warmup_df_full.index, utc=True)
-                    
-                    if warmup_df_full.index.tz is None:
-                        warmup_df_full.index = warmup_df_full.index.tz_localize("UTC")
-                    else:
-                        warmup_df_full.index = warmup_df_full.index.tz_convert("UTC")
-                    
-                    # Filter to bars before replay start
-                    mask = (warmup_df_full.index >= warmup_start_ts) & (warmup_df_full.index < warmup_end_ts)
-                    warmup_filtered = warmup_df_full[mask].copy()
-                    
-                    # Ensure required columns
-                    required_cols = ['open', 'high', 'low', 'close', 'volume']
-                    missing_cols = [c for c in required_cols if c not in warmup_filtered.columns]
-                    if not missing_cols:
-                        # Calculate ATR if missing
-                        if 'atr' not in warmup_filtered.columns:
-                            high_low = warmup_filtered['high'] - warmup_filtered['low']
-                            high_close = (warmup_filtered['high'] - warmup_filtered['close'].shift(1)).abs()
-                            low_close = (warmup_filtered['low'] - warmup_filtered['close'].shift(1)).abs()
-                            tr = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
-                            warmup_filtered['atr'] = tr.rolling(window=14, min_periods=1).mean()
-                        
-                        if len(warmup_filtered) >= lookback_bars:
-                            self.big_brain_v1.feed_warmup(warmup_filtered)
-                            warmup_loaded = True
-                            log.info(
-                                "[BIG_BRAIN_V1] Warmup complete (from external file): fed %d bars (lookback=%d) from %s to %s",
-                                len(warmup_filtered),
-                                lookback_bars,
-                                warmup_filtered.index.min().isoformat(),
-                                warmup_filtered.index.max().isoformat(),
-                            )
-                        else:
-                            # Warmup file does NOT have data in correct period - skip it
-                            log.info(
-                                "[BIG_BRAIN_V1] Warmup file does NOT have data in required period (%s to %s). "
-                                "Warmup file period: %s to %s. Will use replay file itself for warmup.",
-                                warmup_start_ts.isoformat(),
-                                warmup_end_ts.isoformat(),
-                                warmup_df.index.min().isoformat(),
-                                warmup_df.index.max().isoformat(),
-                            )
-            except Exception as e:
-                log.warning(
-                    "[BIG_BRAIN_V1] Failed to check warmup prices from %s: %s. "
-                    "Will use replay file itself for warmup.",
-                    warmup_prices_path,
-                    e,
-                )
-        
-        # If warmup not loaded from external file, use replay file itself
-        # But we need to wait until we have enough bars before evaluating trades
-        if not warmup_loaded:
-            if lookback_bars is not None and len(df) >= lookback_bars:
-                log.info(
-                    "[BIG_BRAIN_V1] Using first %d bars from replay file itself as warmup "
-                    "(ensuring period consistency - no mixing different time periods).",
-                    lookback_bars,
-                )
-                # Use first lookback_bars from replay file as warmup
-                replay_warmup = df.iloc[:lookback_bars].copy()
-                # Ensure required columns for Big Brain V1
-                if 'atr' not in replay_warmup.columns:
-                    high_low = replay_warmup['high'] - replay_warmup['low']
-                    high_close = (replay_warmup['high'] - replay_warmup['close'].shift(1)).abs()
-                    low_close = (replay_warmup['low'] - replay_warmup['close'].shift(1)).abs()
-                    tr = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
-                    replay_warmup['atr'] = tr.rolling(window=14, min_periods=1).mean()
-                
-                self.big_brain_v1.feed_warmup(replay_warmup)
-                log.info(
-                    "[BIG_BRAIN_V1] Warmup complete (from replay file): fed %d bars from %s to %s",
-                    len(replay_warmup),
-                    replay_warmup.index.min().isoformat(),
-                    replay_warmup.index.max().isoformat(),
-                )
-            else:
-                lookback_str = str(lookback_bars) if lookback_bars is not None else "unknown"
-                log.warning(
-                    "[BIG_BRAIN_V1] Replay file has insufficient bars (%d, need %s). "
-                    "First trades may have UNKNOWN regimes. "
-                    "Consider using a replay file with at least %s bars.",
-                    len(df),
-                    lookback_str,
-                    lookback_str,
-                )
-        
         # Process each bar sequentially
         # Skip first N bars to ensure features are stable (need lookback for ATR, ADR, etc.)
         # build_live_entry_features needs at least ATR_PERIOD (14) bars for ATR
         # ADR_WINDOW is 288 bars (1 day), but we can start earlier with partial ADR
-        # Big Brain V1 needs 288 bars for warmup (if using replay file itself)
-        # ENTRY-TCN needs 864 bars for lookback (3 days M5)
-        # Use max(100, lookback_bars_bb, entry_tcn_lookback) to ensure all models have enough warmup bars
-        
         # PREFLIGHT-ONLY: Allow override for sanity/smoke tests (reduces warmup to allow entry-stage)
         # Gate-SSoT: This is where warmup requirement is determined (used in bar loop at line 9914, 9919)
         preflight_warmup_override = os.getenv("GX1_PREFLIGHT_WARMUP_BARS")
@@ -12121,18 +9792,7 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
             warmup_override_applied = False
         
         if preflight_warmup_override is None or not is_preflight_run:
-            lookback_requirements = [100]  # Minimum for stable features
-            
-            if self.big_brain_v1 is not None:
-                lookback_bars_bb = self.big_brain_v1.lookback
-                lookback_requirements.append(lookback_bars_bb)
-            
-            # Check for ENTRY-TCN lookback requirement
-            entry_tcn_lookback = self.policy.get("tcn", {}).get("lookback_bars", None)
-            if entry_tcn_lookback is not None:
-                lookback_requirements.append(entry_tcn_lookback)
-            
-            min_bars_for_features_effective = max(lookback_requirements)
+            min_bars_for_features_effective = 100  # Minimum for stable features
         
         # Store effective warmup value and override flag on runner (for footer export)
         self.warmup_required_effective = min_bars_for_features_effective
@@ -12642,6 +10302,8 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
         self.last_iterated_ts = None  # Last timestamp iterated
         self.last_i = None  # Last index iterated
         
+        # CANONICAL HAPPY PATH (per-bar replay loop):
+        # push_exit_signal7_for_bar -> evaluate_entry -> evaluate_and_close_trades (bar-level exits)
         for i, (ts, row) in enumerate(df.iterrows()):
             # A) CANONICAL LOOP COUNTERS: increment loop_iters_total every iteration (SSoT)
             self.loop_iters_total += 1
@@ -12852,8 +10514,7 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
                 candles_history.index = pd.to_datetime(candles_history.index, utc=True)
             
             # Simulate tick-based exit for open trades (before processing new bar)
-            # Skip in ENTRY_ONLY mode
-            if self.mode != "ENTRY_ONLY" and self.open_trades:
+            if self.open_trades:
                 candle_row = pd.Series({
                 "open": float(row["open"]),
                 "high": float(row["high"]),
@@ -13046,6 +10707,9 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
             # FUNNEL LEDGER: Track evaluate_entry call (exactly when called)
             self.funnel_entry_eval_called += 1
             
+            # Push per-bar exit signal context for TRUTH/XGB
+            self._push_exit_signal7_for_bar(candles_history)
+            
             # Evaluate entry (only if pregate didn't skip)
             trade = self.evaluate_entry(candles_history)
             
@@ -13059,168 +10723,47 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
             # and model/policy time separately if available
             self.t_feature_build_total_sec += (t_feature_end - t_feature_start)
             if trade and self.can_enter(ts):  # can_enter takes timestamp, not DataFrame
-                    # In ENTRY_ONLY mode, log entry signal but don't execute trades
-                    if self.mode == "ENTRY_ONLY":
-                        # Log entry signal to entry_only_log with extended features
-                        if hasattr(self, "entry_only_log_path") and self.entry_only_log_path:
-                                import csv
-                                file_exists = self.entry_only_log_path.exists()
-                    
-                                # Extended fieldnames for policy analysis
-                                fieldnames = [
-                                "run_id", "timestamp", "side", "entry_price",
-                                "session", "session_id", "trend_regime", "atr_regime", "vol_regime",
-                                "hour_of_day", "day_of_week",
-                                "p_long_entry", "p_short_entry", "margin_entry", "p_hat_entry",
-                                "body_pct", "wick_asym", "bar_range", "atr_bps",
-                                "htf_context_h1", "htf_context_h4",
-                                "mfe_5b", "mae_5b", "t_mfe", "t_mae",
-                                "next_vol_regime", "next_session",
-                                ]
-                    
-                                with open(self.entry_only_log_path, "a", newline="") as f:
-                                    writer = csv.DictWriter(f, fieldnames=fieldnames)
-                                    if not file_exists:
-                                        writer.writeheader()
-                        
-                                        # Extract features from current_bar and trade.extra
-                                        current_bar = candles_history.iloc[-1]
-                                        extra = trade.extra if hasattr(trade, "extra") and trade.extra else {}
-                        
-                                        # Session info
-                                        session = extra.get("session", current_bar.get("session", "UNKNOWN"))
-                                        session_id = current_bar.get("session_id", current_bar.get("_v1_session_tag", "UNKNOWN"))
-                        
-                                        # Regime info
-                                        atr_regime = extra.get("atr_regime", current_bar.get("atr_regime", "UNKNOWN"))
-                                        vol_regime = extra.get("brain_vol_regime", atr_regime)
-                                        trend_regime = extra.get("brain_trend_regime", current_bar.get("trend_regime_tf24h", "UNKNOWN"))
-                        
-                                        # Time features
-                                        hour_of_day = ts.hour
-                                        day_of_week = ts.dayofweek  # 0=Monday, 6=Sunday
-                        
-                                        # Bar features
-                                        body_pct = current_bar.get("body_pct", current_bar.get("_v1_body_tr", 0.0))
-                                        wick_asym = current_bar.get("wick_asym", 0.0)
-                                        bar_range = (current_bar.get("high", 0) - current_bar.get("low", 0)) / current_bar.get("close", 1) * 10000 if "high" in current_bar.index and "low" in current_bar.index else 0.0
-                        
-                                        # HTF context (H1/H4 slopes if available)
-                                        htf_h1 = current_bar.get("_v1_int_slope_h1_us", 0.0)
-                                        htf_h4 = current_bar.get("_v1_int_slope_h4_atr", 0.0)
-                        
-                                        # Calculate MFE/MAE for next 5 bars (lookahead)
-                                        mfe_5b = np.nan
-                                        mae_5b = np.nan
-                                        t_mfe = np.nan
-                                        t_mae = np.nan
-                        
-                                        # Look ahead 5 bars for MFE/MAE calculation
-                                        if i + 5 < len(df):
-                                            future_bars = df.iloc[i+1:i+6]
-                                            if len(future_bars) > 0 and "high" in future_bars.columns and "low" in future_bars.columns:
-                                                entry_price = float(current_bar["close"])
-                                
-                                                # For LONG: MFE = max high - entry, MAE = entry - min low
-                                                # TODO: Feature engineering MFE/MAE uses mid prices (high/low)
-                                                # This is for feature engineering only, not actual PnL calculation
-                                                # Consider using bid_high/ask_low for LONG and bid_low/ask_high for SHORT in future
-                                                highs = future_bars["high"].values
-                                                lows = future_bars["low"].values
-                                
-                                                mfe_5b = (np.max(highs) - entry_price) / entry_price * 10000.0
-                                                mae_5b = (entry_price - np.min(lows)) / entry_price * 10000.0
-                                
-                                                # Time to MFE/MAE (in bars)
-                                                mfe_idx = np.argmax(highs)
-                                                mae_idx = np.argmin(lows)
-                                                t_mfe = float(mfe_idx + 1)  # +1 because we start from next bar
-                                                t_mae = float(mae_idx + 1)
-                        
-                                                # Next regime/session (from next bar if available)
-                                                next_vol_regime = "UNKNOWN"
-                                                next_session = "UNKNOWN"
-                                                if i + 1 < len(df):
-                                                    next_bar = df.iloc[i+1]
-                                                    next_vol_regime = next_bar.get("atr_regime", next_bar.get("brain_vol_regime", "UNKNOWN"))
-                                                    next_session = next_bar.get("session", next_bar.get("_v1_session_tag", "UNKNOWN"))
-                        
-                                                    writer.writerow({
-                                                    "run_id": self.run_id,
-                                                    "timestamp": ts.isoformat(),
-                                                    "side": trade.side,
-                                                    "entry_price": f"{trade.entry_price:.3f}",
-                                                    "session": session,
-                                                    "session_id": str(session_id),
-                                                    "trend_regime": trend_regime,
-                                                    "atr_regime": atr_regime,
-                                                    "vol_regime": vol_regime,
-                                                    "hour_of_day": hour_of_day,
-                                                    "day_of_week": day_of_week,
-                                                    "p_long_entry": f"{trade.entry_prob_long:.4f}",
-                                                    "p_short_entry": f"{trade.entry_prob_short:.4f}",
-                                                    "margin_entry": f"{trade.margin:.4f}" if hasattr(trade, "margin") else "",
-                                                    "p_hat_entry": f"{trade.p_hat:.4f}" if hasattr(trade, "p_hat") else "",
-                                                    "body_pct": f"{body_pct:.4f}" if not np.isnan(body_pct) else "",
-                                                    "wick_asym": f"{wick_asym:.4f}" if not np.isnan(wick_asym) else "",
-                                                    "bar_range": f"{bar_range:.2f}" if not np.isnan(bar_range) else "",
-                                                    "atr_bps": f"{trade.atr_bps:.2f}",
-                                                    "htf_context_h1": f"{htf_h1:.4f}" if not np.isnan(htf_h1) else "",
-                                                    "htf_context_h4": f"{htf_h4:.4f}" if not np.isnan(htf_h4) else "",
-                                                    "mfe_5b": f"{mfe_5b:.2f}" if not np.isnan(mfe_5b) else "",
-                                                    "mae_5b": f"{mae_5b:.2f}" if not np.isnan(mae_5b) else "",
-                                                    "t_mfe": f"{t_mfe:.1f}" if not np.isnan(t_mfe) else "",
-                                                    "t_mae": f"{t_mae:.1f}" if not np.isnan(t_mae) else "",
-                                                    "next_vol_regime": next_vol_regime,
-                                                    "next_session": next_session,
-                                                    })
-                    else:
-                        # Normal mode: execute trade and log to trade_log
-                        self.execute_entry(trade)
-                        # Fix 3: Increment trade counter
-                        self.perf_n_trades_created += 1
-                        log.info(
-                            "[ENTRY_DIAG] open_trades_after_execute=%d",
-                            len(self.open_trades),
-                        )
-                        # Build trade log row with FARM fields from trade.extra
-                        trade_extra = trade.extra if hasattr(trade, "extra") and trade.extra else {}
-                        trade_log_row = {
-                            "trade_id": trade.trade_id,
-                            "entry_time": trade.entry_time.isoformat(),
-                            "entry_price": f"{trade.entry_price:.3f}",
-                            "side": trade.side,
-                            "units": trade.units,
-                            "exit_time": "",
-                            "exit_price": "",
-                            "pnl_bps": "",
-                            "pnl_currency": "",
-                            "entry_prob_long": f"{trade.entry_prob_long:.4f}",
-                            "entry_prob_short": f"{trade.entry_prob_short:.4f}",
-                            "exit_prob_close": "",
-                            "vol_bucket": trade.vol_bucket,
-                            "atr_bps": f"{trade.atr_bps:.2f}",
-                            "notes": self._build_notes_string(trade),
-                            "run_id": self.run_id,
-                            "policy_name": self.policy_name,
-                            "model_name": self.model_name,
-                            "extra": trade_extra,
-                        }
-                        # Extract FARM fields from trade.extra (append_trade_log will handle extraction, but set explicitly for clarity)
-                        if trade_extra:
-                            if "farm_entry_session" in trade_extra:
-                                trade_log_row["farm_entry_session"] = trade_extra["farm_entry_session"]
-                            if "farm_entry_vol_regime" in trade_extra:
-                                trade_log_row["farm_entry_vol_regime"] = trade_extra["farm_entry_vol_regime"]
-                            if "farm_guard_version" in trade_extra:
-                                trade_log_row["farm_guard_version"] = trade_extra["farm_guard_version"]
-                        append_trade_log(self.trade_log_path, trade_log_row)
+                    self.execute_entry(trade)
+                    self.perf_n_trades_created += 1
+                    log.info(
+                        "[ENTRY_DIAG] open_trades_after_execute=%d",
+                        len(self.open_trades),
+                    )
+                    trade_extra = trade.extra if hasattr(trade, "extra") and trade.extra else {}
+                    trade_log_row = {
+                        "trade_id": trade.trade_id,
+                        "entry_time": trade.entry_time.isoformat(),
+                        "entry_price": f"{trade.entry_price:.3f}",
+                        "side": trade.side,
+                        "units": trade.units,
+                        "exit_time": "",
+                        "exit_price": "",
+                        "pnl_bps": "",
+                        "pnl_currency": "",
+                        "entry_prob_long": f"{trade.entry_prob_long:.4f}",
+                        "entry_prob_short": f"{trade.entry_prob_short:.4f}",
+                        "exit_prob_close": "",
+                        "vol_bucket": trade.vol_bucket,
+                        "atr_bps": f"{trade.atr_bps:.2f}",
+                        "notes": self._build_notes_string(trade),
+                        "run_id": self.run_id,
+                        "policy_name": self.policy_name,
+                        "model_name": self.model_name,
+                        "extra": trade_extra,
+                    }
+                    if trade_extra:
+                        if "farm_entry_session" in trade_extra:
+                            trade_log_row["farm_entry_session"] = trade_extra["farm_entry_session"]
+                        if "farm_entry_vol_regime" in trade_extra:
+                            trade_log_row["farm_entry_vol_regime"] = trade_extra["farm_entry_vol_regime"]
+                        if "farm_guard_version" in trade_extra:
+                            trade_log_row["farm_guard_version"] = trade_extra["farm_guard_version"]
+                    append_trade_log(self.trade_log_path, trade_log_row)
             
             # TODO(TRUTH_EXIT_SIGNAL7_STREAM): Append per-bar signal7_now to self.exit_signal7_history (deque maxlen=8)
             # BEFORE exit evaluation, so EXIT T=8 has pre-entry history and no warmup/padding is needed.
-            # Evaluate exits (skip in ENTRY_ONLY mode)
-            if self.mode != "ENTRY_ONLY":
-                self.evaluate_and_close_trades(candles_history)
+            # Evaluate exits
+            self.evaluate_and_close_trades(candles_history)
             
             # Log progress every 100 bars
             if (i + 1) % 100 == 0:
@@ -13574,51 +11117,6 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
                 log.info("[STAGE0] Wrote reason report to %s", report_path)
             except Exception as e:
                 log.warning("[STAGE0] Failed to write reason report: %s", e)
-        
-        # Dump FARM_V2B diagnostic if available (before closing remaining trades)
-        if hasattr(self, "entry_manager") and hasattr(self.entry_manager, "farm_diag"):
-            farm_diag = self.entry_manager.farm_diag
-            if farm_diag.get("n_bars", 0) > 0:
-                # Create diagnostic output path
-                from datetime import datetime
-                diag_filename = f"farm_entry_diag_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-                diag_path = self.log_dir / diag_filename
-                
-                # Convert numpy types to native Python types for JSON serialization
-                diag_serializable = {
-                    "n_bars": int(farm_diag["n_bars"]),
-                    "n_raw_candidates": int(farm_diag["n_raw_candidates"]),
-                    "n_after_stage0": int(farm_diag["n_after_stage0"]),
-                    "n_after_farm_regime": int(farm_diag["n_after_farm_regime"]),
-                    "n_after_brutal_guard": int(farm_diag["n_after_brutal_guard"]),
-                    "n_after_policy_thresholds": int(farm_diag["n_after_policy_thresholds"]),
-                    "p_long_values": [float(x) for x in farm_diag["p_long_values"]],
-                    "sessions": {str(k): int(v) for k, v in farm_diag["sessions"].items()},
-                    "atr_regimes": {str(k): int(v) for k, v in farm_diag["atr_regimes"].items()},
-                    "farm_regimes": {str(k): int(v) for k, v in farm_diag["farm_regimes"].items()},
-                }
-                
-                # Add statistics for p_long_values
-                if len(diag_serializable["p_long_values"]) > 0:
-                    p_long_arr = np.array(diag_serializable["p_long_values"])
-                    diag_serializable["p_long_stats"] = {
-                        "min": float(np.min(p_long_arr)),
-                        "max": float(np.max(p_long_arr)),
-                        "mean": float(np.mean(p_long_arr)),
-                        "median": float(np.median(p_long_arr)),
-                        "p5": float(np.percentile(p_long_arr, 5)),
-                        "p50": float(np.percentile(p_long_arr, 50)),
-                        "p95": float(np.percentile(p_long_arr, 95)),
-                        "p99": float(np.percentile(p_long_arr, 99)),
-                    }
-                else:
-                    diag_serializable["p_long_stats"] = {}
-                
-                # Write to JSON
-                with open(diag_path, "w") as f:
-                    jsonlib.dump(diag_serializable, f, indent=2)
-                
-                log.info(f"[FARM_DIAG] Dumped FARM_V2B entry diagnostic to {diag_path}")
         
         # B) After loop: verify canonical loop counters (SSoT)
         # Calculate expected values
@@ -14415,11 +11913,6 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
         if not self.fast_replay:
             self._dump_backtest_summary()
     
-        # Flush any remaining entry-only log buffer
-        if hasattr(self, "_entry_only_log_buffer") and len(self._entry_only_log_buffer) > 0:
-            self._flush_entry_only_log_buffer()
-            log.info("[ENTRY_ONLY] Flushed final buffer (%d entries)", len(getattr(self, "_entry_only_log_buffer", [])))
-
         self._log_entry_diag_summary()
     
         # Write Stage-0 reason breakdown report (if EntryManager has tracking)
@@ -14719,7 +12212,7 @@ def _simulate_tick_exits_for_bar_impl(self, bar_ts: pd.Timestamp, candle_row: pd
     Simulate tick-based exits for a single M5 bar.
     
     Uses high/low of the bar to check if TP/SL/BE/soft-stop would have triggered.
-    Also calls exit policies (FIXED_BAR, FARM_V2_RULES) with bid/ask prices.
+    Also calls exit policies with bid/ask prices.
     
     Parameters
     ----------
@@ -14902,7 +12395,7 @@ def _simulate_tick_exits_for_bar_impl(self, bar_ts: pd.Timestamp, candle_row: pd
             continue
         
         # ============================================================================
-        # EXIT POLICIES: Call on_bar() for exit_fixed_bar_policy and exit_farm_v2_rules_policy
+        # EXIT POLICIES: Call on_bar() for fixed-bar exit policy if configured
         # ============================================================================
         # After tick-based exits, process exit policies for remaining open trades
         # Get current bar prices (use close prices for exit policy evaluation)
@@ -14973,64 +12466,6 @@ def _simulate_tick_exits_for_bar_impl(self, bar_ts: pd.Timestamp, candle_row: pd
                         trade.trade_id
                     )
             
-            # ========================================================================
-            # FARM_V2_RULES exit policy
-            # ========================================================================
-            elif (getattr(self, "exit_farm_v2_rules_factory", None) and
-                  exit_profile and exit_profile.startswith("FARM_EXIT_V2_RULES")):
-                
-                policy = self.exit_farm_v2_rules_states.get(trade.trade_id)
-                if policy is None:
-                    log.debug(
-                        "[REPLAY] FARM_V2_RULES state missing for trade %s, reinitializing",
-                        trade.trade_id,
-                    )
-                    try:
-                        self._init_farm_v2_rules_state(trade, context="replay_exit_loop")
-                        policy = self.exit_farm_v2_rules_states.get(trade.trade_id)
-                    except Exception as e:
-                        log.warning(
-                            "[REPLAY] Unable to initialize FARM_V2_RULES state for trade %s: %s",
-                            trade.trade_id,
-                            e,
-                        )
-                        continue
-                
-                try:
-                    log.debug(
-                        "[REPLAY] Calling FARM_V2_RULES.on_bar() for trade %s: price_bid=%.5f price_ask=%.5f ts=%s",
-                        trade.trade_id,
-                        price_bid,
-                        price_ask,
-                        bar_ts,
-                    )
-                    decision = policy.on_bar(
-                        price_bid=price_bid,
-                        price_ask=price_ask,
-                        ts=bar_ts,
-                    )
-                    
-                    if decision is not None:
-                        log.info(
-                            "[REPLAY] FARM_V2_RULES exit triggered for trade %s: reason=%s bars_held=%d pnl=%.2f bps mae=%.2f mfe=%.2f "
-                            "(price_bid=%.5f price_ask=%.5f)",
-                            trade.trade_id, decision.reason, decision.bars_held, decision.pnl_bps, decision.mae_bps, decision.mfe_bps,
-                            price_bid, price_ask
-                        )
-                        self.request_close(
-                            trade_id=trade.trade_id,
-                            source="EXIT_POLICY",
-                            reason=decision.reason,
-                            px=decision.exit_price,
-                            pnl_bps=decision.pnl_bps,
-                            bars_in_trade=decision.bars_held,
-                        )
-                except Exception as e:
-                    log.warning(
-                        "[REPLAY] Error calling FARM_V2_RULES.on_bar() for trade %s: %s",
-                        trade.trade_id, e
-                    )
-
 def _dump_backtest_summary_impl(self) -> None:
     """
     Dump backtest summary after replay.
@@ -15128,6 +12563,127 @@ def _dump_backtest_summary_impl(self) -> None:
     log.info("=" * 60)
 
 
+def _push_exit_signal7_for_bar_impl(self, candles_history: pd.DataFrame) -> None:
+    """
+    Build XGB BASE28 row for current bar (prebuilt-only), bridge to signal7, append to exit_signal7_history.
+    """
+    from collections import deque
+    import math
+    from gx1.xgb.multihead.xgb_multihead_model_v1 import proba_to_signal_bridge_v1
+    from gx1.execution.live_features import infer_session_tag
+    strict = os.environ.get("GX1_EXIT_AUDIT_STRICT") == "1"
+
+    if candles_history.empty:
+        raise RuntimeError("[EXIT_SIGNAL7] candles_history is empty")
+
+    current_ts = candles_history.index[-1]
+    if not hasattr(self, "prebuilt_features_df") or self.prebuilt_features_df is None:
+        raise RuntimeError("[EXIT_SIGNAL7] prebuilt_features_df is missing")
+    if current_ts not in self.prebuilt_features_df.index:
+        raise RuntimeError(f"[EXIT_SIGNAL7] current_ts {current_ts} not in prebuilt_features_df index")
+
+    prebuilt_row = self.prebuilt_features_df.loc[current_ts]
+
+    xgb_model = getattr(self, "entry_v10_bundle", None)
+    xgb_model = getattr(xgb_model, "xgb_model_universal", None)
+    if xgb_model is None:
+        raise RuntimeError("[EXIT_SIGNAL7] xgb_model_universal is None")
+
+    feature_list = xgb_model.feature_list if hasattr(xgb_model, "feature_list") else list(prebuilt_row.index)
+    missing = [f for f in feature_list if f not in prebuilt_row.index]
+    if missing:
+        raise RuntimeError(f"[EXIT_SIGNAL7] Missing BASE28 features in prebuilt row: {missing[:5]}")
+
+    # Enforce canonical BASE28 ordering from model.feature_list
+    row_values = prebuilt_row.loc[feature_list].to_numpy(dtype=float, copy=True)
+    xgb_input_df = pd.DataFrame([row_values], columns=feature_list)
+
+    # Deterministic session selection (same as bar session tagging)
+    try:
+        current_session = infer_session_tag(current_ts).upper()
+    except Exception:
+        current_session = "OVERLAP"
+
+    allowed_heads = getattr(xgb_model, "heads", ["EU", "US", "OVERLAP"])
+    if current_session not in allowed_heads:
+        current_session = "OVERLAP"
+
+    probs = xgb_model.predict_proba(xgb_input_df, session=current_session)
+    if hasattr(probs, "p_long") and hasattr(probs, "p_short") and hasattr(probs, "p_flat"):
+        proba_row = np.stack(
+            [
+                np.asarray(probs.p_long, dtype=float),
+                np.asarray(probs.p_short, dtype=float),
+                np.asarray(probs.p_flat, dtype=float),
+            ],
+            axis=1,
+        )
+    else:
+        probs_arr = np.asarray(probs, dtype=float)
+        if probs_arr.ndim != 2 or probs_arr.shape[0] < 1 or probs_arr.shape[1] < 3:
+            raise RuntimeError(f"[EXIT_SIGNAL7] Unexpected prob shape from XGB: {probs_arr.shape}")
+        proba_row = probs_arr[:1, :3]
+
+    bridge = proba_to_signal_bridge_v1(proba_row)[0].tolist()
+    if len(bridge) != 7:
+        raise RuntimeError(f"[EXIT_SIGNAL7] bridge length expected 7, got {len(bridge)}")
+    if not all(math.isfinite(v) for v in bridge):
+        raise RuntimeError("[EXIT_SIGNAL7] Non-finite values in signal7 bridge")
+
+    signal7_now = {
+        "p_long": float(bridge[0]),
+        "p_short": float(bridge[1]),
+        "p_flat": float(bridge[2]),
+        "p_hat": float(bridge[3]),
+        "uncertainty_score": float(bridge[4]),
+        "margin_top1_top2": float(bridge[5]),
+        "entropy": float(bridge[6]),
+    }
+
+    if not hasattr(self, "exit_signal7_history") or not isinstance(getattr(self, "exit_signal7_history", None), deque):
+        self.exit_signal7_history = deque(maxlen=8)
+    self.exit_signal7_history.append(signal7_now)
+
+    deque_len_after = len(self.exit_signal7_history)
+    if not getattr(self, "_exit_signal7_audit_logged", False):
+        log.info(
+            "[EXIT_SIGNAL7_AUDIT] ts=%s session=%s first7_keys=%s deque_len_after=%d",
+            current_ts.isoformat() if hasattr(current_ts, "isoformat") else str(current_ts),
+            current_session,
+            list(signal7_now.keys())[:7],
+            deque_len_after,
+        )
+        self._exit_signal7_audit_logged = True
+
+    if strict:
+        if deque_len_after > 8:
+            raise RuntimeError("[EXIT_SIGNAL7_AUDIT_ASSERT] deque_len_after exceeds 8")
+        required_keys = ["p_long", "p_short", "p_flat", "p_hat", "uncertainty_score", "margin_top1_top2", "entropy"]
+        tol = 1e-3
+        for k in required_keys:
+            if k not in signal7_now:
+                raise RuntimeError(f"[EXIT_SIGNAL7_AUDIT_ASSERT] missing key {k}")
+            if not math.isfinite(signal7_now[k]):
+                raise RuntimeError(f"[EXIT_SIGNAL7_AUDIT_ASSERT] non-finite {k}")
+        proba_keys = ["p_long", "p_short", "p_flat"]
+        sig_vals = np.array([signal7_now[k] for k in proba_keys], dtype=float)
+        if not np.all((sig_vals >= -tol) & (sig_vals <= 1 + tol)):
+            raise RuntimeError("[EXIT_SIGNAL7_AUDIT_ASSERT] p_long/p_short/p_flat out of [0,1]")
+        if not math.isfinite(sig_vals.sum()) or abs(sig_vals.sum() - 1.0) > tol:
+            raise RuntimeError("[EXIT_SIGNAL7_AUDIT_ASSERT] p_long+p_short+p_flat != 1")
+        if not (-tol <= signal7_now["p_hat"] <= 1 + tol):
+            raise RuntimeError("[EXIT_SIGNAL7_AUDIT_ASSERT] p_hat out of [0,1]")
+
+    if not hasattr(self, "_exit_signal7_stream_proof_logged") or not self._exit_signal7_stream_proof_logged:
+        log.info(
+            "[EXIT_SIGNAL7_STREAM_PROOF] first_ts=%s session=%s bridge_dim=%d",
+            current_ts.isoformat() if hasattr(current_ts, "isoformat") else str(current_ts),
+            current_session,
+            len(bridge),
+        )
+        self._exit_signal7_stream_proof_logged = True
+
+
 # --------------------------------------------------------------------------- #
 # Module-level wrappers for late-bound GX1DemoRunner methods
 # --------------------------------------------------------------------------- #
@@ -15151,27 +12707,24 @@ def evaluate_entry(self: GX1DemoRunner, candles: pd.DataFrame) -> Optional[LiveT
     return self._evaluate_entry_impl(candles)
 
 
-def _log_entry_only_event(
-    self: GX1DemoRunner,
-    timestamp: pd.Timestamp,
-    side: str,
-    price: float,
-    prediction: Any,
-    policy_state: Dict[str, Any],
-) -> None:
-    return self._log_entry_only_event_impl(timestamp, side, price, prediction, policy_state)
-
-
-def _flush_entry_only_log_buffer(self: GX1DemoRunner) -> None:
-    return self._flush_entry_only_log_buffer_impl()
-
-
 def execute_entry(self: GX1DemoRunner, trade: LiveTrade) -> None:
     return self._execute_entry_impl(trade)
 
 
 def evaluate_and_close_trades(self: GX1DemoRunner, candles: pd.DataFrame) -> None:
-    return self._evaluate_and_close_trades_impl(candles)
+    triggered = getattr(self, "_tick_exit_triggered_any", False) or any(
+        getattr(t, "_exit_triggered", False) for t in getattr(self, "open_trades", [])
+    )
+    if triggered:
+        log.debug("[TICK_TRIGGER] exit evaluation triggered by tick watcher")
+    try:
+        return self._evaluate_and_close_trades_impl(candles)
+    finally:
+        if triggered:
+            self._tick_exit_triggered_any = False
+            for t in getattr(self, "open_trades", []):
+                if hasattr(t, "_exit_triggered"):
+                    t._exit_triggered = False
 
 
 def run_once(self: GX1DemoRunner) -> None:
@@ -15210,6 +12763,10 @@ def _simulate_tick_exits_for_bar(
     candle_row: pd.Series,
 ) -> None:
     return self._simulate_tick_exits_for_bar_impl(bar_ts, candle_row)
+
+
+def _push_exit_signal7_for_bar(self: GX1DemoRunner, candles_history: pd.DataFrame) -> None:
+    return self._push_exit_signal7_for_bar_impl(candles_history)
 
 
 def _dump_backtest_summary(self: GX1DemoRunner) -> None:
@@ -15261,8 +12818,6 @@ def parse_args() -> argparse.Namespace:
 
 # Bind module-level helpers back onto GX1DemoRunner
 GX1DemoRunner.evaluate_entry = evaluate_entry  # type: ignore[attr-defined]
-GX1DemoRunner._log_entry_only_event = _log_entry_only_event  # type: ignore[attr-defined]
-GX1DemoRunner._flush_entry_only_log_buffer = _flush_entry_only_log_buffer  # type: ignore[attr-defined]
 # _ensure_bid_ask_columns, _calculate_unrealized_portfolio_bps, _reset_entry_diag, _record_entry_diag, and _log_entry_diag_summary are now methods of GX1DemoRunner class
 # No need to assign them here
 GX1DemoRunner._generate_client_order_id = _generate_client_order_id  # type: ignore[attr-defined]
@@ -15345,6 +12900,8 @@ GX1DemoRunner._run_replay_impl = _run_replay_impl  # type: ignore[attr-defined]
 GX1DemoRunner._replay_force_close_open_trades_at_end = _replay_force_close_open_trades_at_end  # type: ignore[attr-defined]
 GX1DemoRunner._simulate_tick_exits_for_bar = _simulate_tick_exits_for_bar  # type: ignore[attr-defined]
 GX1DemoRunner._simulate_tick_exits_for_bar_impl = _simulate_tick_exits_for_bar_impl  # type: ignore[attr-defined]
+GX1DemoRunner._push_exit_signal7_for_bar = _push_exit_signal7_for_bar  # type: ignore[attr-defined]
+GX1DemoRunner._push_exit_signal7_for_bar_impl = _push_exit_signal7_for_bar_impl  # type: ignore[attr-defined]
 GX1DemoRunner._dump_backtest_summary = _dump_backtest_summary  # type: ignore[attr-defined]
 GX1DemoRunner._dump_backtest_summary_impl = _dump_backtest_summary_impl  # type: ignore[attr-defined]
 
