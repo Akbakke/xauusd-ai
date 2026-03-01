@@ -781,8 +781,8 @@ class ExitManager:
                 if trade not in self.open_trades:
                     continue
                 min_hold_bars = 2
-                delta_minutes = (now_ts - trade.entry_time).total_seconds() / 60.0
-                bars_in_trade_min = int(round(delta_minutes / 5.0))
+                delta_seconds = (now_ts - trade.entry_time).total_seconds()
+                bars_in_trade_min = int(max(0, delta_seconds // 300.0))
                 if bars_in_trade_min < min_hold_bars:
                     log.debug(
                         "[EXIT] Skipping exit model evaluation for trade %s: bars_in_trade=%d < min_hold_bars=%d (trade too new)",
