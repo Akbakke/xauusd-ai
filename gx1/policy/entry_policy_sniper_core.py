@@ -118,8 +118,10 @@ def run_sniper_policy(
             session_map = {0: "EU", 1: "OVERLAP", 2: "US", 3: "US"}
             df["session"] = df["session_id"].map(session_map).fillna("UNKNOWN")
 
-    # Restrict to documented edge universe: US session only (session_id==3 maps to US)
-    df = df[df["session"] == "US"].copy()
+    # Restrict to documented edge universe: US session only (must have session_id)
+    if "session_id" not in df.columns:
+        raise AssertionError("[POLICY_SNIPER_CORE] session_id missing for gating")
+    df = df[df["session_id"] == 3].copy()
     
     if "vol_regime" not in df.columns:
         if "atr_regime" in df.columns:
