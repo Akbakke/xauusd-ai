@@ -51,6 +51,12 @@ class ExitManager:
             "<0.2": 0,
             ">=0.2": 0,
         }
+        # Optional time stop cap (bars held); <=0 disables
+        env_max_bars = os.environ.get("GX1_EXIT_MAX_BARS_HELD")
+        try:
+            self._exit_max_bars_held = int(env_max_bars) if env_max_bars is not None else 0
+        except Exception:
+            self._exit_max_bars_held = 0
 
     def __getattr__(self, name: str):
         return getattr(self._runner, name)
@@ -784,6 +790,55 @@ class ExitManager:
                         bars_in_trade_min,
                         min_hold_bars,
                     )
+                    continue
+                # Time-stop cap: force close if bars held exceed configured max (deterministic)
+                if self._exit_max_bars_held > 0 and bars_in_trade_min >= self._exit_max_bars_held:
+                    entry_bid = float(getattr(trade, "entry_bid", trade.entry_price))
+                    entry_ask = float(getattr(trade, "entry_ask", trade.entry_price))
+                    exit_price = current_bid if trade.side == "long" else current_ask
+                    pnl_bps = compute_pnl_bps(entry_bid, entry_ask, current_bid, current_ask, trade.side)
+                    if not getattr(trade, "_exit_max_bars_logged", False):
+                        log.info(
+                            "[EXIT_MAX_BARS_CLOSE] max_bars=%d bars_held=%d trade_uid=%s trade_id=%s",
+                            self._exit_max_bars_held,
+                            bars_in_trade_min,
+                            getattr(trade, "trade_uid", None),
+                            trade.trade_id,
+                        )
+                        trade._exit_max_bars_logged = True
+                    accepted = self.request_close(
+                        trade_id=trade.trade_id,
+                        source="EXIT_MAX_BARS",
+                        reason="MAX_BARS_HELD",
+                        px=exit_price,
+                        pnl_bps=pnl_bps,
+                        bars_in_trade=bars_in_trade_min,
+                    )
+                    closes_requested += 1
+                    if accepted and trade in self.open_trades:
+                        self.open_trades.remove(trade)
+                        if not self.replay_mode:
+                            self._maybe_update_tick_watcher()
+                        closes_accepted += 1
+                        self.record_realized_pnl(now_ts, pnl_bps)
+                        self._log_trade_close_with_metrics(
+                            trade=trade,
+                            exit_time=now_ts,
+                            exit_price=exit_price,
+                            exit_reason="MAX_BARS_HELD",
+                            realized_pnl_bps=pnl_bps,
+                            bars_held=bars_in_trade_min,
+                        )
+                        self._update_trade_log_on_close(
+                            trade.trade_id,
+                            exit_price,
+                            pnl_bps,
+                            "MAX_BARS_HELD",
+                            now_ts,
+                            bars_in_trade=bars_in_trade_min,
+                        )
+                    elif not accepted:
+                        log.error("[EXIT_MAX_BARS_CLOSE] close rejected by ExitArbiter for trade %s", trade.trade_id)
                     continue
                 window_arr = self._build_exit_ctx19_window(trade, candles, window_len)
                 if window_arr is None:
