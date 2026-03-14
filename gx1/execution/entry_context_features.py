@@ -36,14 +36,14 @@ class EntryContextFeatures:
     All features are validated and normalized according to contract.
     """
     # Categorical features (integer IDs) - all explicit; None means missing -> hard fail
-    session_id: Optional[int] = None  # 0=ASIA, 1=EU, 2=US, 3=OVERLAP
+    session_id: Optional[int] = None  # 0=ASIA, 1=EU, 2=OVERLAP, 3=US
     trend_regime_id: Optional[int] = None  # 0=TREND_DOWN, 1=TREND_NEUTRAL, 2=TREND_UP
     vol_regime_id: Optional[int] = None  # 0=LOW, 1=MEDIUM, 2=HIGH, 3=EXTREME
     atr_bucket: Optional[int] = None  # 0=LOW, 1=MEDIUM, 2=HIGH, 3=EXTREME
     spread_bucket: Optional[int] = None  # 0=LOW, 1=MEDIUM, 2=HIGH
     h4_trend_sign_cat: Optional[int] = None  # -1/0/+1 mapped to {0,1,2}; must be explicitly set
     
-    # Continuous features (normalized) - CTX6CAT6 requires 6 continuous dims; all explicit
+    # Continuous features (normalized) - base ctx_cont is 6 (canonical contract)
     atr_bps: Optional[float] = None  # ATR in basis points, clipped [0, 1000]
     spread_bps: Optional[float] = None  # Spread in basis points, clipped [0, 500]
     D1_dist_from_ema200_atr: Optional[float] = None
@@ -59,15 +59,18 @@ class EntryContextFeatures:
     _spread_bps_raw: Optional[float] = None  # Raw spread before clipping
     _source: str = "computed"  # Source of features (for debugging)
     
-    def to_tensor_categorical(self) -> np.ndarray:
+    def to_tensor_categorical(self, ordered_names: Optional[list[str]] = None) -> np.ndarray:
         """
-        Convert categorical features to int64 tensor using canonical contract order.
+        Convert categorical features to int64 tensor using ordered contract names.
+        If ordered_names is None, uses canonical contract order (CTX6CAT6).
         """
-        from gx1.contracts.signal_bridge_v1 import get_canonical_ctx_contract
-        canonical = get_canonical_ctx_contract()
-        names = canonical.get("ctx_cat_names", [])
-        if len(names) != 6:
-            raise RuntimeError(f"[CTX_CAT_BUILD_FAIL] canonical ctx_cat_names unexpected len={len(names)} (expected 6)")
+        names = ordered_names
+        if names is None:
+            from gx1.contracts.signal_bridge_v1 import get_canonical_ctx_contract
+            canonical = get_canonical_ctx_contract()
+            names = canonical.get("ctx_cat_names", [])
+            if len(names) != 6:
+                raise RuntimeError(f"[CTX_CAT_BUILD_FAIL] canonical ctx_cat_names unexpected len={len(names)} (expected 6)")
         CANON_TO_ATTR = {
             "H4_trend_sign_cat": "h4_trend_sign_cat",
         }
@@ -87,20 +90,23 @@ class EntryContextFeatures:
             raise RuntimeError(f"[CTX_CAT_BUILD_FAIL] non-finite values in ctx_cat: {vals}")
         return arr
     
-    def to_tensor_continuous(self) -> np.ndarray:
+    def to_tensor_continuous(self, ordered_names: Optional[list[str]] = None) -> np.ndarray:
         """
-        Convert continuous features to float32 tensor using canonical contract order (6 dims).
+        Convert continuous features to float32 tensor using ordered contract names.
+        If ordered_names is None, uses canonical contract order (base ctx_cont=6).
         """
-        from gx1.contracts.signal_bridge_v1 import get_canonical_ctx_contract
-        canonical = get_canonical_ctx_contract()
-        names = canonical.get("ctx_cont_names", [])
-        if len(names) != 6:
-            raise RuntimeError(f"[CTX_CONT_BUILD_FAIL] canonical ctx_cont_names unexpected len={len(names)} (expected 6)")
+        names = ordered_names
+        if names is None:
+            from gx1.contracts.signal_bridge_v1 import get_canonical_ctx_contract
+            canonical = get_canonical_ctx_contract()
+            names = canonical.get("ctx_cont_names", [])
+            if len(names) != 6:
+                raise RuntimeError(f"[CTX_CONT_BUILD_FAIL] canonical ctx_cont_names unexpected len={len(names)} (expected 6)")
         vals = []
         for name in names:
             val = getattr(self, name, None)
             if val is None:
-                raise RuntimeError(f"[CTX_CONT_BUILD_FAIL] missing continuous feature: {name} (need 6/6)")
+                raise RuntimeError(f"[CTX_CONT_BUILD_FAIL] missing continuous feature: {name} (need base ctx_cont=6)")
             if not np.isfinite(val):
                 raise RuntimeError(f"[CTX_CONT_BUILD_FAIL] invalid continuous feature (non-finite): {name}={val}")
             vals.append(val)
@@ -188,7 +194,7 @@ def build_entry_context_features(
         current_session = infer_session_tag(current_ts).upper()
         policy_state["session"] = current_session
     
-    session_map = {"ASIA": 0, "EU": 1, "US": 2, "OVERLAP": 3}
+    session_map = {"ASIA": 0, "EU": 1, "OVERLAP": 2, "US": 3}
     session_id = session_map.get(current_session, 0)  # Default to ASIA if unknown
     
     # 2. spread_bps (from hard eligibility or compute)
@@ -340,4 +346,3 @@ def _compute_cheap_atr_proxy(candles: pd.DataFrame, window: int = 14) -> Optiona
         return float(atr)
     except Exception:
         return None
-

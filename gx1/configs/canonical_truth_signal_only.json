@@ -1,51 +1,51 @@
 {
-  "truth_id": "CANONICAL_TRUTH_SIGNAL_ONLY_V1",
-
+  "canonical_entry_transformer_bundle_dir": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_CTX__RETRAIN_20260313_1630__CTX21_VNEXT/BASELINE",
+  "canonical_entry_v10_ctx_bundle_dir": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_CTX__RETRAIN_20260313_1630__CTX21_VNEXT/BASELINE",
+  "canonical_exit_transformer_bundle_dir": "/home/andre2/GX1_DATA/models/exit_transformer_v0/a4dba18d12b5b4ae8da44ec9af2c2ada4aac5f4408f238ceda1056928f94c960",
   "canonical_prebuilt_manifest": "/home/andre2/GX1_DATA/data/data/prebuilt/BASE28_CANONICAL/CURRENT_MANIFEST.json",
-  "canonical_prebuilt_parquet": "/home/andre2/GX1_DATA/data/data/prebuilt/BASE28_CANONICAL/xauusd_m5_BASE28_2020_2025.parquet",
-
-  "canonical_xgb_bundle_dir": "/home/andre2/GX1_DATA/models/models/xgb_universal_multihead_v2__CANONICAL",
-
-  "canonical_entry_v10_ctx_bundle_dir": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_CTX__BASELINE__DS_2025_0520_0620_N50000",
-  "canonical_entry_transformer_bundle_dir": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_CTX__BASELINE__DS_2025_0520_0620_N50000",
-  "canonical_transformer_bundle_dir": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_CTX__BASELINE__DS_2025_0520_0620_N50000",
-
-  "signal_bridge_id": "XGB_SIGNAL_BRIDGE_V1",
-  "signal_bridge_contract_sha256": "dde7271db04cf51608bf18cfd1cbdbb7dc631556be4be64e9c82f21ed328f2aa",
-
+  "canonical_prebuilt_parquet": "/home/andre2/GX1_DATA/data/data/prebuilt/ctx16cat6_20260309_160211/xauusd_m5_BASE28_2020_2025__CTX_CONT16_CAT6_20260309_160211.parquet",
+  "canonical_transformer_bundle_dir": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_CTX__RETRAIN_20260313_1630__CTX21_VNEXT/BASELINE",
+  "canonical_xgb_bundle_dir": "/home/andre2/GX1_DATA/models/models/xgb_universal_multihead_v2__SESSION_CONTEXT_34F__4HEADS_CALIB_ISO_INTERP_20260313_1525",
   "ctx_contract": {
-    "tag": "CTX6CAT6",
-    "ctx_cont_dim": 6,
-    "ctx_cat_dim": 6
+    "ctx_cat_dim": 6,
+    "ctx_cont_dim": 16,
+    "tag": "CTX16CAT6"
   },
-
-  "require_v9_for_entry": false,
-
+  "pred_trace_head": "OVERLAP",
+  "pred_trace_horizon_bars": 24,
   "replay_config": {
-    "entry_model_id": "ENTRY_V10_CTX",
-    "policy_module": "gx1.policy.entry_policy_sniper_v10_ctx",
-    "runtime_feature_module": "gx1.features.runtime_v10_ctx",
-
-    "use_prebuilt_features": true,
-    "require_prebuilt_features": true,
     "allow_baseline_features": false,
-
-    "policy_yaml_path": "gx1/configs/policies/canonical_truth/GX1_TRUTH_REPLAY_V10_CTX.yaml",
     "entry_config_yaml_path": "gx1/configs/entry_configs/ENTRY_V10_CTX_TRUTH_REPLAY.yaml",
+    "entry_model_id": "ENTRY_V10_CTX",
     "exit_config_yaml_path": "gx1/configs/policies/canonical_truth/exits/EXIT_TRANSFORMER_ONLY_V0.yaml",
+    "policy_module": "gx1.policy.entry_policy_sniper_v10_ctx",
+    "policy_yaml_path": "gx1/configs/policies/canonical_truth/GX1_TRUTH_REPLAY_V10_CTX.yaml",
+    "require_prebuilt_features": true,
     "risk_guard_id": "RISK_GUARD_V1::1.0.0::33a4a83e2949abb102f3ee86a3746bb0320f69f244ebe186a17b18ae50e77e45",
-
+    "runtime_feature_module": "gx1.features.runtime_v10_ctx",
     "truth_artifacts": {
-      "require_import_proof": true,
       "import_proof_filename": "IMPORT_PROOF.json",
-
-      "require_policy_snapshot": false,
-      "policy_snapshot_filename": "RUN_POLICY_USED.yaml",
-
-      "require_nonzero_trades": false,
       "min_trades": 0,
-
-      "require_exit_type_transformer": false
-    }
+      "policy_snapshot_filename": "RUN_POLICY_USED.yaml",
+      "require_exit_type_transformer": false,
+      "require_import_proof": true,
+      "require_nonzero_trades": false,
+      "require_policy_snapshot": false
+    },
+    "use_prebuilt_features": true
+  },
+  "require_v9_for_entry": false,
+  "signal_bridge_contract_sha256": "dde7271db04cf51608bf18cfd1cbdbb7dc631556be4be64e9c82f21ed328f2aa",
+  "signal_bridge_id": "XGB_SIGNAL_BRIDGE_V1",
+  "truth_id": "CANONICAL_TRUTH_SIGNAL_ONLY_V1",
+  "truth_window_end_ts": "2025-06-07T23:59:59+00:00",
+  "truth_window_start_ts": "2025-06-01T00:00:00+00:00",
+  "xgb_bundle_notes": {
+    "calibration_runtime": "supported via isotonic_interp; default OFF unless explicitly enabled",
+    "baseline_reference": "28F bundle is baseline reference only (do not use for truth runs)"
+  },
+  "entry_bundle_notes": {
+    "ctx_contract": "CTX_CONTRACT=V_NEXT (ctx_cont_dim=21)",
+    "proof_run_id": "CTX_VNEXT_TRUTH_20260313_1725"
   }
 }

@@ -162,6 +162,42 @@ class EntryFeatureTelemetryCollector:
         # Sample collection (first N samples)
         self.max_samples = 100
         self.sample_count = 0
+
+        # Bar-level funnel counters
+        self.bar_seen_total = 0
+        self.bar_seen_by_session: Dict[str, int] = defaultdict(int)
+        self.bar_after_warmup_total = 0
+        self.bar_after_warmup_by_session: Dict[str, int] = defaultdict(int)
+
+        # Pregate + pre-eval counters
+        self.pregate_pass_total = 0
+        self.pregate_block_total = 0
+        self.pregate_block_reason_counts: Dict[str, int] = defaultdict(int)
+        self.pre_eval_enter_total = 0
+        self.post_pregate_enter_total = 0
+
+        # Predict / model funnel counters
+        self.entry_eval_entered_total = 0
+        self.predict_attempt_total = 0
+        self.predict_attempt_reason_counts: Dict[str, int] = defaultdict(int)
+        self.predict_reached_forward_total = 0
+        self.pre_call_reached_total = 0
+        self.pre_model_return_counts: Dict[str, int] = defaultdict(int)
+        self.pre_model_return_last: Optional[Dict[str, Any]] = None
+        self.model_exception_counts: Dict[str, int] = defaultdict(int)
+
+        # Diagnostic bypass counters
+        self.diagnostic_bypass_counts: Dict[str, int] = defaultdict(int)
+
+        # XGB predict call counters
+        self.xgb_predict_call_count = 0
+        self.xgb_predict_session_counts: Dict[str, int] = defaultdict(int)
+
+        # Transformer output counters
+        self.transformer_output_count = 0
+        self.transformer_output_last: Optional[Dict[str, Any]] = None
+        self.score_gate_allow_total = 0
+        self.score_gate_allow_last: Optional[Dict[str, Any]] = None
     
     def record_gate(
         self,
@@ -214,6 +250,8 @@ class EntryFeatureTelemetryCollector:
         xgb_seq_values: Optional[Dict[str, float]] = None,
         xgb_snap_values: Optional[Dict[str, float]] = None,
         input_aliases_applied: Optional[Dict[str, str]] = None,  # DEL 2: CLOSE -> candles.close
+        session: Optional[str] = None,
+        **_kwargs: Any,
     ) -> None:
         """Record transformer input.
         
@@ -348,7 +386,7 @@ class EntryFeatureTelemetryCollector:
         """Record that a model entry was attempted."""
         self.model_attempt_calls[model_name] += 1
     
-    def record_model_forward(self, model_name: str) -> None:
+    def record_model_forward(self, model_name: str, session: Optional[str] = None, **_kwargs: Any) -> None:
         """Record that a model forward pass was executed."""
         self.model_forward_calls[model_name] += 1
         # Also increment transformer_forward_calls for backward compatibility
@@ -358,6 +396,18 @@ class EntryFeatureTelemetryCollector:
     def record_model_block(self, model_name: str, reason: str) -> None:
         """Record that a model entry was blocked with a specific reason."""
         self.model_block_counts[model_name][reason] += 1
+
+    def record_model_exception(self, model_name: str, exc: Exception, session: Optional[str] = None) -> None:
+        """Record a model exception (counts by exception type)."""
+        exc_type = type(exc).__name__
+        self.model_exception_counts[exc_type] += 1
+        self.control_flow_last = {
+            "event": "MODEL_EXCEPTION",
+            "model_name": model_name,
+            "exception_type": exc_type,
+            "session": session,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
     
     def record_entry_routing(self, selected_model: Optional[str], reason: str) -> None:
         """
@@ -482,6 +532,90 @@ class EntryFeatureTelemetryCollector:
             "path_id": path_id,
             **meta,
         }
+
+    def record_bar_seen(self, session_tag: str, ts: Any) -> None:
+        self.bar_seen_total += 1
+        self.bar_seen_by_session[str(session_tag)] += 1
+
+    def record_bar_after_warmup(self, session: str) -> None:
+        self.bar_after_warmup_total += 1
+        self.bar_after_warmup_by_session[str(session)] += 1
+
+    def record_pregate_block(self, reason: str, session: Optional[str] = None) -> None:
+        self.pregate_block_total += 1
+        self.pregate_block_reason_counts[str(reason)] += 1
+        if session:
+            self.control_flow_counts[f"pregate_block:{session}"] += 1
+
+    def record_pregate_pass(self, session: Optional[str] = None) -> None:
+        self.pregate_pass_total += 1
+        if session:
+            self.control_flow_counts[f"pregate_pass:{session}"] += 1
+
+    def record_post_pregate_enter(self, session: Optional[str] = None, ts: Any = None) -> None:
+        self.post_pregate_enter_total += 1
+
+    def record_pre_eval_enter(self, session: Optional[str] = None, ts: Any = None) -> None:
+        self.pre_eval_enter_total += 1
+
+    def record_diagnostic_bypass(self, gate_name: str, session: Optional[str] = None) -> None:
+        self.diagnostic_bypass_counts[str(gate_name)] += 1
+
+    def record_predict_attempt(self, session: Optional[str] = None, reason: Optional[str] = None) -> None:
+        self.predict_attempt_total += 1
+        if reason:
+            self.predict_attempt_reason_counts[str(reason)] += 1
+
+    def record_predict_reached_forward(self, session: Optional[str] = None) -> None:
+        self.predict_reached_forward_total += 1
+
+    def record_post_model_call_reached(self, session: Optional[str] = None) -> None:
+        self.entry_eval_entered_total += 1
+
+    def record_pre_call_reached(self, session: Optional[str] = None) -> None:
+        self.pre_call_reached_total += 1
+
+    def record_pre_model_return(self, reason: str, session: Optional[str] = None) -> None:
+        self.pre_model_return_counts[str(reason)] += 1
+        self.pre_model_return_last = {
+            "reason": reason,
+            "session": session,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+
+    def record_xgb_predict_call(self, session: Optional[str] = None) -> None:
+        self.xgb_predict_call_count += 1
+        if session:
+            self.xgb_predict_session_counts[str(session)] += 1
+
+    def assert_score_gate_allow_for_predict(
+        self,
+        session: Optional[str] = None,
+        ts: Any = None,
+        predict_path: Optional[str] = None,
+        routing_mode: Optional[str] = None,
+        entry_model_id: Optional[str] = None,
+        bundle_sha256: Optional[str] = None,
+        run_id: Optional[str] = None,
+    ) -> None:
+        self.score_gate_allow_total += 1
+        self.score_gate_allow_last = {
+            "session": session,
+            "ts": str(ts) if ts is not None else None,
+            "predict_path": predict_path,
+            "routing_mode": routing_mode,
+            "entry_model_id": entry_model_id,
+            "bundle_sha256": bundle_sha256,
+            "run_id": run_id,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+
+    def record_transformer_output(self, **meta: Any) -> None:
+        self.transformer_output_count += 1
+        self.transformer_output_last = {
+            "timestamp": datetime.utcnow().isoformat(),
+            **meta,
+        }
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert telemetry to dictionary."""
@@ -509,6 +643,34 @@ class EntryFeatureTelemetryCollector:
                 "xgb_post_predict_count": self.xgb_post_predict_count,
                 "xgb_veto_applied_count": self.xgb_veto_applied_count,
             },
+            "bar_seen_total": self.bar_seen_total,
+            "bar_seen_by_session": dict(self.bar_seen_by_session),
+            "bar_after_warmup_total": self.bar_after_warmup_total,
+            "bar_after_warmup_by_session": dict(self.bar_after_warmup_by_session),
+            "pregate_pass_total": self.pregate_pass_total,
+            "pregate_block_total": self.pregate_block_total,
+            "pregate_block_reason_counts": dict(self.pregate_block_reason_counts),
+            "pre_eval_enter_total": self.pre_eval_enter_total,
+            "post_pregate_enter_total": self.post_pregate_enter_total,
+            "entry_eval_entered_total": self.entry_eval_entered_total,
+            "predict_attempt_total": self.predict_attempt_total,
+            "predict_attempt_reason_counts": dict(self.predict_attempt_reason_counts),
+            "predict_reached_forward_total": self.predict_reached_forward_total,
+            "pre_call_reached_total": self.pre_call_reached_total,
+            "pre_model_return_counts": dict(self.pre_model_return_counts),
+            "pre_model_return_last": self.pre_model_return_last,
+            "model_exception_counts": dict(self.model_exception_counts),
+            "diagnostic_bypass_counts": dict(self.diagnostic_bypass_counts),
+            "xgb_predict_call_count": self.xgb_predict_call_count,
+            "xgb_predict_session_counts": dict(self.xgb_predict_session_counts),
+            "transformer_output_count": self.transformer_output_count,
+            "transformer_output_last": self.transformer_output_last,
+            "score_gate_allow_total": self.score_gate_allow_total,
+            "score_gate_allow_last": self.score_gate_allow_last,
+            "control_flow_counts": dict(self.control_flow_counts),
+            "control_flow_last": self.control_flow_last,
+            "entry_eval_path_counts": dict(self.entry_eval_path_counts),
+            "entry_eval_path_last": self.entry_eval_path_last,
         }
     
     def write_entry_features_used(self, output_path: Path) -> None:

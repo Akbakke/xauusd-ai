@@ -13,73 +13,24 @@ Usage:
 """
 
 import hashlib
-import json
 import logging
+import json
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
+from gx1.contracts.signal_bridge_v1 import XGB_PROB_FIELDS_ORDERED
 
 log = logging.getLogger(__name__)
 
-
-def proba_to_signal_bridge_v1(proba: np.ndarray) -> np.ndarray:
-    """
-    Normalize XGB predict_proba output to canonical 7-dim XGB_SIGNAL_BRIDGE_V1.
-
-    Allowed shapes:
-    - (N, 7): already bridge; validated for finiteness and basic bounds
-    - (N, 3): map to bridge:
-        0 p_long  = proba[:,0]
-        1 p_short = proba[:,1]
-        2 p_flat  = proba[:,2]
-        3 p_hat   = max(row)
-        4 uncertainty_score = 1 - p_hat
-        5 margin_top1_top2  = top1 - top2 (row-wise)
-        6 entropy = -sum(p_i * log(p_i)), eps=1e-12
-    Any other shape → RuntimeError [XGB_PROBA_DIM_MISMATCH].
-    """
-    arr = np.asarray(proba)
-    if arr.ndim != 2:
-        raise RuntimeError(f"[XGB_PROBA_DIM_MISMATCH] Expected 2-D proba, got shape={arr.shape}")
-    n_rows, n_cols = arr.shape
-    if n_cols not in (3, 7):
-        raise RuntimeError(
-            f"[XGB_PROBA_DIM_MISMATCH] Expected proba dim in {{3,7}}, got {n_cols} with shape={arr.shape}"
-        )
-    if not np.isfinite(arr).all():
-        raise RuntimeError("[XGB_PROBA_INVALID] Non-finite values in proba output")
-
-    if n_cols == 7:
-        first3 = arr[:, :3]
-        if (first3 < -1e-6).any() or (first3 > 1 + 1e-6).any():
-            raise RuntimeError("[XGB_PROBA_INVALID] Bridge proba outside [0,1]")
-        return arr.astype(np.float32, copy=False)
-
-    # n_cols == 3 -> build bridge
-    p_long = arr[:, 0]
-    p_short = arr[:, 1]
-    p_flat = arr[:, 2]
-    p_hat = np.maximum.reduce([p_long, p_short, p_flat])
-    top_two = np.sort(arr, axis=1)[:, ::-1][:, :2]
-    margin_top1_top2 = top_two[:, 0] - top_two[:, 1]
-    eps = 1e-12
-    probs = np.clip(arr[:, :3], eps, 1.0)
-    entropy = -np.sum(probs * np.log(probs), axis=1)
-    bridge = np.column_stack(
-        [
-            p_long,
-            p_short,
-            p_flat,
-            p_hat,
-            1.0 - p_hat,
-            margin_top1_top2,
-            entropy,
-        ]
-    ).astype(np.float32)
-    return bridge
+def _bool_env(name: str, default: bool = False) -> bool:
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on", "y"}
 
 
 def proba_to_signal_bridge_v1(proba: np.ndarray) -> np.ndarray:
@@ -96,15 +47,23 @@ def proba_to_signal_bridge_v1(proba: np.ndarray) -> np.ndarray:
         4 uncertainty_score = 1 - p_hat
         5 margin_top1_top2  = top1 - top2 (row-wise)
         6 entropy = -sum(p_i * log(p_i)), eps=1e-12
+    - (N, 2): map to bridge:
+        0 p_long  = proba[:,0]
+        1 p_short = proba[:,1]
+        2 p_flat  = 0.0
+        3 p_hat   = max(row)
+        4 uncertainty_score = 1 - p_hat
+        5 margin_top1_top2  = top1 - top2 (row-wise)
+        6 entropy = -sum(p_i * log(p_i)), eps=1e-12
     Any other shape → RuntimeError [XGB_PROBA_DIM_MISMATCH].
     """
     arr = np.asarray(proba)
     if arr.ndim != 2:
         raise RuntimeError(f"[XGB_PROBA_DIM_MISMATCH] Expected 2-D proba, got shape={arr.shape}")
     n_rows, n_cols = arr.shape
-    if n_cols not in (3, 7):
+    if n_cols not in (2, 3, 7):
         raise RuntimeError(
-            f"[XGB_PROBA_DIM_MISMATCH] Expected proba dim in {{3,7}}, got {n_cols} with shape={arr.shape}"
+            f"[XGB_PROBA_DIM_MISMATCH] Expected proba dim in {{2,3,7}}, got {n_cols} with shape={arr.shape}"
         )
     if not np.isfinite(arr).all():
         raise RuntimeError("[XGB_PROBA_INVALID] Non-finite values in proba output")
@@ -116,14 +75,24 @@ def proba_to_signal_bridge_v1(proba: np.ndarray) -> np.ndarray:
         return arr.astype(np.float32, copy=False)
 
     # n_cols == 3 -> build bridge
-    p_long = arr[:, 0]
-    p_short = arr[:, 1]
-    p_flat = arr[:, 2]
+    if n_cols == 3:
+        p_long = arr[:, 0]
+        p_short = arr[:, 1]
+        p_flat = arr[:, 2]
+    else:
+        # n_cols == 2 -> build bridge, no FLAT
+        log.info("[XGB_BRIDGE_2CLASS_MODE] enabled=True")
+        p_long = arr[:, 0]
+        p_short = arr[:, 1]
+        p_flat = np.zeros_like(p_long)
     p_hat = np.maximum.reduce([p_long, p_short, p_flat])
-    top_two = np.sort(arr, axis=1)[:, ::-1][:, :2]
+    if n_cols == 2:
+        top_two = np.sort(arr, axis=1)[:, ::-1][:, :2]
+    else:
+        top_two = np.sort(arr, axis=1)[:, ::-1][:, :2]
     margin_top1_top2 = top_two[:, 0] - top_two[:, 1]
     eps = 1e-12
-    probs = np.clip(arr[:, :3], eps, 1.0)
+    probs = np.clip(arr[:, :3] if n_cols == 3 else np.column_stack([p_long, p_short, p_flat]), eps, 1.0)
     entropy = -np.sum(probs * np.log(probs), axis=1)
     bridge = np.column_stack(
         [
@@ -205,10 +174,14 @@ class XGBMultiheadModel:
         heads: Dict[str, Any],  # session -> xgb model
         feature_list: List[str],
         meta: Dict[str, Any],
+        calibrators: Optional[Dict[str, Any]] = None,
+        calibration_method: Optional[str] = None,
     ):
         self.heads = heads
         self.feature_list = feature_list
         self.meta = meta
+        self.calibrators = calibrators or {}
+        self.calibration_method = calibration_method
         
         # Extract key info from meta
         self.schema_hash = meta.get("schema_hash", "unknown")
@@ -286,10 +259,63 @@ class XGBMultiheadModel:
                     f"HOW TO FIX: Retrain model with correct feature contract"
                 )
         
+        calibrators = None
+        calibration_method = None
+        if _bool_env("GX1_XGB_HEAD_CALIBRATE", False):
+            calibration_method = (
+                meta.get("calibration", {}).get("method")
+                or os.getenv("GX1_XGB_CALIBRATOR", "isotonic")
+            ).lower()
+            calib_path = model_path.parent / "CALIBRATION.json"
+            if calib_path.exists():
+                try:
+                    raw_state = json.loads(calib_path.read_text(encoding="utf-8"))
+                    if isinstance(raw_state, dict) and "method" in raw_state and "heads" in raw_state:
+                        calibration_method = str(raw_state.get("method") or calibration_method).lower()
+                        heads_state = raw_state.get("heads") or {}
+                    else:
+                        heads_state = raw_state
+                    if calibration_method == "platt":
+                        from gx1.xgb.calibration.platt_scaler import PlattScaler
+                        CalibCls = PlattScaler
+                    elif calibration_method == "isotonic_interp":
+                        CalibCls = None
+                    else:
+                        from gx1.xgb.calibration.isotonic_scaler import IsotonicScaler
+                        CalibCls = IsotonicScaler
+                    calibrators = {}
+                    for head, state in heads_state.items():
+                        if calibration_method == "isotonic_interp":
+                            calibrators[head] = {"x": state.get("x", []), "y": state.get("y", [])}
+                        else:
+                            cal = CalibCls(name=calibration_method)
+                            cal.set_state(state)
+                            calibrators[head] = cal
+                    log.info(
+                        "[XGB_HEAD_CALIBRATION] enabled=True method=%s heads=%s source=%s",
+                        calibration_method,
+                        list(calibrators.keys()),
+                        calib_path,
+                    )
+                except Exception as e:
+                    log.warning(
+                        "[XGB_HEAD_CALIBRATION] enabled=True but failed to load CALIBRATION.json error=%s path=%s",
+                        e,
+                        calib_path,
+                    )
+                    calibrators = None
+            else:
+                log.info(
+                    "[XGB_HEAD_CALIBRATION] enabled=True but CALIBRATION.json missing path=%s",
+                    calib_path,
+                )
+
         return cls(
             heads=data["heads"],
             feature_list=feature_list,
             meta=meta,
+            calibrators=calibrators,
+            calibration_method=calibration_method,
         )
     
     def save(self, model_path: str) -> str:
@@ -371,6 +397,37 @@ class XGBMultiheadModel:
         
         # Get head
         head = self.get_head(session)
+        if not hasattr(self, "_class_order_logged") or session not in getattr(self, "_class_order_logged", set()):
+            contract_class_order = list(XGB_PROB_FIELDS_ORDERED)
+            bridge_mapping = ["p_long", "p_short", "p_flat"]
+            meta_class_order = self.meta.get("class_labels") or self.meta.get("class_order")
+            head_classes_raw = getattr(head, "classes_", None)
+            if head_classes_raw is not None:
+                if hasattr(head_classes_raw, "tolist"):
+                    head_classes_order = head_classes_raw.tolist()
+                else:
+                    head_classes_order = list(head_classes_raw)
+            else:
+                head_classes_order = None
+
+            print(f"[XGB_CLASS_ORDER_PROOF] contract_class_order={contract_class_order}", flush=True)
+            print(f"[XGB_CLASS_ORDER_PROOF] bridge_interpretation={{'p_long': 0, 'p_short': 1, 'p_flat': 2}}", flush=True)
+            print(f"[XGB_CLASS_ORDER_PROOF] model_meta_class_order={meta_class_order}", flush=True)
+            print(f"[XGB_CLASS_ORDER_PROOF] head_classes_order={head_classes_order}", flush=True)
+
+            if bridge_mapping != contract_class_order:
+                raise RuntimeError("[XGB_CLASS_ORDER_FAIL] bridge mapping != contract order")
+            if meta_class_order is not None:
+                meta_as_list = list(meta_class_order)
+                if meta_as_list != contract_class_order:
+                    raise RuntimeError(
+                        "[XGB_CLASS_ORDER_FAIL] model meta class order != contract order "
+                        f"(meta={meta_as_list} contract={contract_class_order})"
+                    )
+
+            if not hasattr(self, "_class_order_logged"):
+                self._class_order_logged = set()
+            self._class_order_logged.add(session)
         
         # Extract feature matrix
         missing = [f for f in features if f not in df.columns]
@@ -401,7 +458,126 @@ class XGBMultiheadModel:
         else:
             raise ValueError("Model does not support predict_proba")
 
+        if not hasattr(self, "_raw_proba_runtime_logged"):
+            self._raw_proba_runtime_logged = {}
+        if self._raw_proba_runtime_logged.get(session, 0) < 10:
+            head_classes_raw = getattr(head, "classes_", None)
+            if head_classes_raw is not None:
+                if hasattr(head_classes_raw, "tolist"):
+                    head_classes_order = head_classes_raw.tolist()
+                else:
+                    head_classes_order = list(head_classes_raw)
+            else:
+                head_classes_order = None
+            sample_rows = proba[: min(10, len(proba))].tolist()
+            log.info(
+                "[XGB_RAW_PROBA_RUNTIME] head=%s proba_dim=%s classes_order=%s sample_rows=%s",
+                session,
+                proba.shape[1] if hasattr(proba, "shape") and len(proba.shape) > 1 else None,
+                head_classes_order,
+                sample_rows,
+            )
+            self._raw_proba_runtime_logged[session] = self._raw_proba_runtime_logged.get(session, 0) + len(sample_rows)
+
+        if not hasattr(self, "_proba_logged"):
+            self._proba_logged = set()
+        if session not in self._proba_logged:
+            try:
+                arr = np.asarray(proba)
+                n_cols = arr.shape[1] if arr.ndim == 2 else None
+                if n_cols == 2:
+                    p_long = arr[:, 0]
+                    p_short = arr[:, 1]
+                    p_flat = np.zeros_like(p_long)
+                    mapping = "proba[:,0]->p_long proba[:,1]->p_short p_flat=0.0"
+                elif n_cols == 3:
+                    p_long = arr[:, 0]
+                    p_short = arr[:, 1]
+                    p_flat = arr[:, 2]
+                    mapping = "proba[:,0]->p_long proba[:,1]->p_short proba[:,2]->p_flat"
+                else:
+                    p_long = None
+                    p_short = None
+                    p_flat = None
+                    mapping = f"proba_dim={n_cols}"
+                if p_long is not None and p_short is not None:
+                    prefer_long = int(np.sum(p_long > p_short))
+                    prefer_short = int(np.sum(p_short > p_long))
+                    prefer_equal = int(np.sum(p_long == p_short))
+                    def _q(vals: np.ndarray, q: float) -> float:
+                        return float(np.quantile(vals, q)) if vals.size else float("nan")
+                    log.info(
+                        "[XGB_RAW_PROBA] session=%s proba_dim=%s p_long_mean=%.6f p_short_mean=%.6f p_flat_mean=%.6f "
+                        "p_long_p10=%.6f p_long_p50=%.6f p_long_p90=%.6f "
+                        "p_short_p10=%.6f p_short_p50=%.6f p_short_p90=%.6f "
+                        "p_flat_p10=%.6f p_flat_p50=%.6f p_flat_p90=%.6f "
+                        "prefer_long=%d prefer_short=%d prefer_equal=%d",
+                        session,
+                        n_cols,
+                        float(np.mean(p_long)),
+                        float(np.mean(p_short)),
+                        float(np.mean(p_flat)),
+                        _q(p_long, 0.10),
+                        _q(p_long, 0.50),
+                        _q(p_long, 0.90),
+                        _q(p_short, 0.10),
+                        _q(p_short, 0.50),
+                        _q(p_short, 0.90),
+                        _q(p_flat, 0.10),
+                        _q(p_flat, 0.50),
+                        _q(p_flat, 0.90),
+                        prefer_long,
+                        prefer_short,
+                        prefer_equal,
+                    )
+                    log.info(
+                        "[XGB_RAW_PROBA_MAPPING] session=%s mapping=%s",
+                        session,
+                        mapping,
+                    )
+                    log.info("[NO_RUNTIME_CALIBRATION] session=%s stage=predict_proba->bridge", session)
+            except Exception as e:
+                log.warning("[XGB_RAW_PROBA] failed session=%s error=%s", session, e)
+            self._proba_logged.add(session)
+
+        log.info(
+            "[XGB_BRIDGE_INPUT] head=%s proba_dim=%s",
+            session,
+            proba.shape[1] if hasattr(proba, "shape") and len(proba.shape) > 1 else None,
+        )
         bridge = proba_to_signal_bridge_v1(proba)
+        calibrator = self.calibrators.get(session) if self.calibrators else None
+        if calibrator is not None:
+            try:
+                p_hat_raw = bridge[:, 3]
+                if self.calibration_method == "isotonic_interp":
+                    x = np.asarray(calibrator.get("x", []), dtype=np.float32)
+                    y = np.asarray(calibrator.get("y", []), dtype=np.float32)
+                    if x.size < 2 or y.size < 2:
+                        raise RuntimeError("isotonic_interp requires x/y with at least 2 points")
+                    p_hat_cal = np.interp(p_hat_raw, x, y)
+                else:
+                    p_hat_cal = calibrator.transform(p_hat_raw)
+                p_hat_cal = np.clip(p_hat_cal, 0.0, 1.0)
+                bridge[:, 3] = p_hat_cal
+                bridge[:, 4] = 1.0 - p_hat_cal
+                if not hasattr(self, "_calibration_logged"):
+                    self._calibration_logged = set()
+                if session not in self._calibration_logged:
+                    log.info(
+                        "[XGB_HEAD_CALIBRATION_APPLIED] session=%s method=%s",
+                        session,
+                        self.calibration_method or "unknown",
+                    )
+                    self._calibration_logged.add(session)
+            except Exception as e:
+                log.warning("[XGB_HEAD_CALIBRATION_FAILED] session=%s error=%s", session, e)
+        log.info(
+            "[XGB_BRIDGE_OUTPUT] head=%s bridge_shape=%s p_flat_zero_rate=%.6f",
+            session,
+            bridge.shape,
+            float(np.mean(bridge[:, 2] == 0.0)) if bridge.size else 0.0,
+        )
         if not hasattr(self, "_bridge_logged"):
             self._bridge_logged = set()
         if session not in self._bridge_logged:
@@ -411,6 +587,18 @@ class XGBMultiheadModel:
                 session,
             )
             self._bridge_logged.add(session)
+        if not hasattr(self, "_signal7_logged"):
+            self._signal7_logged = set()
+        if session not in self._signal7_logged:
+            p_flat = bridge[:, 2]
+            zero_rate = float(np.mean(p_flat == 0.0)) if p_flat.size else 0.0
+            log.info(
+                "[XGB_SIGNAL7_PROOF] head=%s shape=%s p_flat_zero_rate=%.6f",
+                session,
+                bridge.shape,
+                zero_rate,
+            )
+            self._signal7_logged.add(session)
 
         p_long = bridge[:, 0]
         p_short = bridge[:, 1]

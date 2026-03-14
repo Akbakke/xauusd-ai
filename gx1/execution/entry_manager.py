@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional, Tuple, TYPE_CHECKING
 from collections import deque, defaultdict
+import json
+from pathlib import Path
 
 import logging
 import os
@@ -45,12 +47,20 @@ class EntryManager:
 
         # Optional telemetry collector (only if explicitly required)
         object.__setattr__(self, "entry_feature_telemetry", None)
-        require_telemetry = os.environ.get("GX1_REQUIRE_ENTRY_TELEMETRY", "0") == "1"
+        require_telemetry = (
+            os.environ.get("GX1_REQUIRE_ENTRY_TELEMETRY", "0") == "1"
+            or bool(getattr(runner, "replay_mode", False))
+            or os.environ.get("GX1_TRUTH_TELEMETRY", "0") == "1"
+        )
         if require_telemetry:
             from gx1.execution.entry_feature_telemetry import EntryFeatureTelemetryCollector
 
             output_dir = getattr(runner, "output_dir", None)
             object.__setattr__(self, "entry_feature_telemetry", EntryFeatureTelemetryCollector(output_dir=output_dir))
+
+        # Wire eval_log_path from runner for deterministic eval logging
+        if hasattr(runner, "eval_log_path"):
+            object.__setattr__(self, "eval_log_path", getattr(runner, "eval_log_path"))
 
         object.__setattr__(
             self,
@@ -75,6 +85,8 @@ class EntryManager:
                 "ctx_proof_pass_count": 0,
                 "ctx_proof_fail_count": 0,
                 "vol_regime_unknown_count": 0,
+                "entry_persistence_pass": 0,
+                "entry_persistence_blocked": 0,
             },
         )
 
@@ -166,6 +178,21 @@ class EntryManager:
         # parity (kept; used by existing tooling)
         object.__setattr__(self, "parity_sample_counter", 0)
         object.__setattr__(self, "parity_sample_every_n", 10)
+
+        # Persistence gate (optional; default 1 => disabled)
+        try:
+            persistence_bars = int(os.environ.get("GX1_ENTRY_PERSISTENCE_BARS", "1"))
+        except Exception:
+            persistence_bars = 1
+        if persistence_bars < 1:
+            persistence_bars = 1
+        object.__setattr__(self, "entry_persistence_bars", int(persistence_bars))
+        object.__setattr__(self, "_entry_persistence_hist", deque(maxlen=max(0, int(persistence_bars) - 1)))
+        object.__setattr__(self, "_entry_persistence_log_count", 0)
+        log.info(
+            "[ENTRY_PERSISTENCE_PROOF] persistence_bars=%d pass=0 blocked=0",
+            int(persistence_bars),
+        )
 
         # Load risk guard immediately so identity is captured for capsules even if
         # no evaluation cycle runs (e.g., warmup-only windows).
@@ -275,6 +302,41 @@ class EntryManager:
             return float(atr)
         except Exception:
             return None
+        return None
+
+    # -------------------------
+    # Closed window (hard no-trade)
+    # -------------------------
+
+    @staticmethod
+    def _is_closed_window_A(ts: pd.Timestamp) -> bool:
+        """
+        Closed window A: 21:55–23:00 UTC.
+        """
+        if ts is None or ts.tzinfo is None:
+            return False
+        h = ts.hour
+        m = ts.minute
+        return (h == 21 and m >= 55) or (h == 22)
+
+    @staticmethod
+    def _is_closed_window_B(ts: pd.Timestamp) -> bool:
+        """
+        Closed window B: 20:55–22:00 UTC.
+        """
+        if ts is None or ts.tzinfo is None:
+            return False
+        h = ts.hour
+        m = ts.minute
+        return (h == 20 and m >= 55) or (h == 21)
+
+    @classmethod
+    def _closed_window_kind(cls, ts: pd.Timestamp) -> Optional[str]:
+        if cls._is_closed_window_A(ts):
+            return "A"
+        if cls._is_closed_window_B(ts):
+            return "B"
+        return None
 
     # -------------------------
     # Eligibility gates
@@ -299,7 +361,8 @@ class EntryManager:
             policy_state["session"] = current_session
 
         allowed_sessions = policy_cfg.get("allowed_sessions", ["EU", "OVERLAP", "US"])
-        if current_session not in allowed_sessions:
+        allow_all_sessions = os.getenv("GX1_ENTRY_ALLOW_ALL_SESSIONS", "0") == "1"
+        if (not allow_all_sessions) and current_session not in allowed_sessions:
             return False, self.HARD_ELIGIBILITY_SESSION_BLOCK
 
         spread_bps = self._get_spread_bps_before_features(candles)
@@ -472,6 +535,25 @@ class EntryManager:
         # later gates short-circuit the evaluation in replay.
         self._maybe_load_risk_guard()
 
+        # Replay hard-fail: legacy/debug entry overrides are forbidden
+        if getattr(self._runner, "replay_mode", False):
+            legacy_envs = [
+                "GX1_ENTRY_MINIMAL_POLICY",
+                "GX1_ENTRY_MINIMAL_CONFIDENCE_MIN",
+                "GX1_ENTRY_PFLAT_GATE",
+                "GX1_ENTRY_PFLAT_MARGIN",
+                "GX1_ENTRY_RUNNER_UP_MARGIN",
+                "GX1_ENTRY_GATING_P_SIDE_MIN_LONG",
+                "GX1_ENTRY_GATING_P_SIDE_MIN_SHORT",
+                "GX1_ENTRY_GATING_SIDE_RATIO_MIN",
+                "GX1_ENTRY_GATING_DISABLE_RATIO",
+                "GX1_ENTRY_THRESHOLD_OVERRIDE",
+                "GX1_ENTRY_MARGIN_MIN",
+            ]
+            for key in legacy_envs:
+                if key in os.environ and str(os.environ.get(key, "")).strip() not in ("", "0", "false", "False"):
+                    raise RuntimeError(f"[LEGACY_ENTRY_OVERRIDE_FORBIDDEN] {key} is set in replay")
+
         self.eval_calls_total += 1
         self.entry_telemetry["n_cycles"] += 1
 
@@ -491,6 +573,18 @@ class EntryManager:
         current_session = infer_session_tag(current_ts).upper()
         policy_state["session"] = current_session
         current_bar_index = len(candles)
+
+        # Hard no-trade gate for expected closed market windows (A/B)
+        closed_kind = self._closed_window_kind(current_ts)
+        if closed_kind is not None:
+            window = "21:55-23:00" if closed_kind == "A" else "20:55-22:00"
+            log.info(
+                "[ENTRY_NO_TRADE_CLOSED_WINDOW_PROOF] ts=%s window=%s pattern=%s reason=closed_market",
+                current_ts.isoformat(),
+                window,
+                closed_kind,
+            )
+            return None
 
         # Gap guard (policy-level, deterministic; no synthetic bars)
         if len(candles) > 0:
@@ -575,21 +669,24 @@ class EntryManager:
 
         self.entry_telemetry["n_eligible_hard"] += 1
 
-        # Soft eligibility gate
-        soft_eligible, soft_reason = self._check_soft_eligibility(candles, policy_state, is_replay=is_replay)
-        if getattr(self, "entry_feature_telemetry", None):
-            self.entry_feature_telemetry.record_gate(
-                gate_name="soft_eligibility",
-                executed=True,
-                blocked=not soft_eligible,
-                passed=bool(soft_eligible),
-                reason=None if soft_eligible else soft_reason,
-            )
-        if not soft_eligible:
-            if soft_reason == self.SOFT_ELIGIBILITY_VOL_REGIME_EXTREME:
-                self.veto_soft["veto_soft_vol_regime_extreme"] += 1
-                _inc_gate("pregate_atr")
-            return None
+        # Soft eligibility gate (legacy; disabled in replay for slim policy)
+        if not is_replay:
+            soft_eligible, soft_reason = self._check_soft_eligibility(candles, policy_state, is_replay=is_replay)
+            if getattr(self, "entry_feature_telemetry", None):
+                self.entry_feature_telemetry.record_gate(
+                    gate_name="soft_eligibility",
+                    executed=True,
+                    blocked=not soft_eligible,
+                    passed=bool(soft_eligible),
+                    reason=None if soft_eligible else soft_reason,
+                )
+            if not soft_eligible:
+                if soft_reason == self.SOFT_ELIGIBILITY_VOL_REGIME_EXTREME:
+                    self.veto_soft["veto_soft_vol_regime_extreme"] += 1
+                    _inc_gate("pregate_atr")
+                return None
+        else:
+            soft_eligible = True
 
         self.entry_telemetry["n_eligible_cycles"] += 1
 
@@ -658,6 +755,89 @@ class EntryManager:
                     f"[PREBUILT_LOOKUP_MISS] Timestamp {ts} not found in prebuilt features. "
                     f"Prebuilt range: {idx.min()} to {idx.max()}."
                 )
+
+            # Replay-only regime filter (explicit; configured in policy)
+            if is_replay:
+                try:
+                    regime_cfg = self.policy.get("replay_regime_filter", {}) if hasattr(self, "policy") else {}
+                    if isinstance(regime_cfg, dict) and regime_cfg.get("enabled", False):
+                        # Optional session allowlist for replay-only regime filters
+                        session_allow = regime_cfg.get("sessions", None)
+                        current_session = infer_session_tag(ts).upper() if ts is not None else "UNKNOWN"
+                        if session_allow and current_session not in set(session_allow):
+                            # Session not in scope for this filter
+                            pass
+                        else:
+                            triggered = []
+                            # H1 compression: block when inside configured bucket
+                            h1_cfg = regime_cfg.get("h1_range_compression_ratio", {}) or {}
+                            if isinstance(h1_cfg, dict) and h1_cfg.get("enabled", False):
+                                h1_val = features_row.get("H1_range_compression_ratio", None)
+                                h1_min = h1_cfg.get("min", None)
+                                h1_max = h1_cfg.get("max", None)
+                                if h1_val is not None and np.isfinite(h1_val):
+                                    in_bucket = True
+                                    if h1_min is not None:
+                                        in_bucket = in_bucket and (h1_val >= float(h1_min))
+                                    if h1_max is not None:
+                                        in_bucket = in_bucket and (h1_val <= float(h1_max))
+                                    if in_bucket:
+                                        triggered.append(("H1_RANGE_COMPRESSION_Q0_20", float(h1_val), h1_min, h1_max))
+                                        _inc_gate("pregate_h1_compression")
+
+                            # M15 compression: block when inside configured bucket
+                            m15_cfg = regime_cfg.get("m15_range_compression_ratio", {}) or {}
+                            if isinstance(m15_cfg, dict) and m15_cfg.get("enabled", False):
+                                m15_val = features_row.get("M15_range_compression_ratio", None)
+                                m15_min = m15_cfg.get("min", None)
+                                m15_max = m15_cfg.get("max", None)
+                                if m15_val is not None and np.isfinite(m15_val):
+                                    in_bucket = True
+                                    if m15_min is not None:
+                                        in_bucket = in_bucket and (m15_val >= float(m15_min))
+                                    if m15_max is not None:
+                                        in_bucket = in_bucket and (m15_val <= float(m15_max))
+                                    if in_bucket:
+                                        triggered.append(("M15_RANGE_COMPRESSION_Q0_20", float(m15_val), m15_min, m15_max))
+                                        _inc_gate("pregate_m15_compression")
+
+                            # D1 ATR percentile: block when inside configured bucket (session-scoped)
+                            d1_cfg = regime_cfg.get("d1_atr_percentile_252", {}) or {}
+                            if isinstance(d1_cfg, dict) and d1_cfg.get("enabled", False):
+                                d1_val = features_row.get("D1_atr_percentile_252", None)
+                                d1_min = d1_cfg.get("min", None)
+                                d1_max = d1_cfg.get("max", None)
+                                if d1_val is not None and np.isfinite(d1_val):
+                                    in_bucket = True
+                                    if d1_min is not None:
+                                        in_bucket = in_bucket and (d1_val >= float(d1_min))
+                                    if d1_max is not None:
+                                        in_bucket = in_bucket and (d1_val <= float(d1_max))
+                                    if in_bucket:
+                                        triggered.append(("D1_ATR_PERCENTILE_Q80_100", float(d1_val), d1_min, d1_max))
+                                        _inc_gate("pregate_d1_atr_eu")
+
+                            if triggered:
+                                _inc_gate("pregate_regime_filter")
+                                try:
+                                    if not hasattr(self._runner, "entry_regime_filter_blocked"):
+                                        self._runner.entry_regime_filter_blocked = 0
+                                    self._runner.entry_regime_filter_blocked += 1
+                                except Exception:
+                                    pass
+                                details = " | ".join(
+                                    f"{name}:value={val:.6f} min={mn} max={mx}"
+                                    for name, val, mn, mx in triggered
+                                )
+                                log.info(
+                                    "[ENTRY_REGIME_FILTER_BLOCK] reason=REGIME_FILTER %s session=%s ts=%s",
+                                    details,
+                                    current_session,
+                                    ts,
+                                )
+                                return None
+                except Exception as e:
+                    raise RuntimeError(f"[REPLAY_REGIME_FILTER_FAIL] {e}") from e
 
             from gx1.execution.live_features import EntryFeatureBundle, compute_atr_bps, infer_vol_bucket
             from gx1.tuning.feature_manifest import align_features, load_manifest
@@ -788,8 +968,260 @@ class EntryManager:
         min_prob_long = float(policy_cfg.get("min_prob_long", 0.67))
         min_prob_short = float(policy_cfg.get("min_prob_short", 0.72))
         allow_short = bool(policy_cfg.get("allow_short", False))
+
+        # Replay: enforce a single confidence source and forbid legacy entry_gating
+        if is_replay and abs(min_prob_long - min_prob_short) > 1e-9:
+            raise RuntimeError(
+                f"[REPLAY_THRESHOLD_MISMATCH] min_prob_long={min_prob_long} min_prob_short={min_prob_short} must match"
+            )
+        if is_replay and isinstance(entry_gating_cfg, dict) and entry_gating_cfg:
+            raise RuntimeError("[LEGACY_ENTRY_GATING_FORBIDDEN] entry_gating is not allowed in replay")
+
+        p_long = float(entry_pred.prob_long)
+        p_short = float(entry_pred.prob_short)
+        p_flat = float(entry_pred.prob_neutral)
+        margin_top1_top2 = float(signal7_now.get("margin_top1_top2", np.nan))
+        # Flat gate disabled in slim policy
+        flat_gate = 0.0
+        flat_margin = 0.0
+
+        threshold_long = float(min_prob_long)
+        threshold_short = float(min_prob_short)
+        # Proof: effective candidate thresholds
+        try:
+            if not hasattr(self, "_threshold_proof_log_count"):
+                self._threshold_proof_log_count = 0
+            self._threshold_proof_log_count += 1
+            if self._threshold_proof_log_count <= 5 or (self._threshold_proof_log_count % 5000) == 0:
+                log.info(
+                    "[ENTRY_THRESHOLD_EFFECTIVE_PROOF] threshold_long=%.4f threshold_short=%.4f env_override=%s policy_min_long=%.4f policy_min_short=%.4f",
+                    threshold_long,
+                    threshold_short,
+                    None,
+                    float(policy_cfg.get("min_prob_long", 0.67)),
+                    float(policy_cfg.get("min_prob_short", 0.72)),
+                )
+        except Exception:
+            pass
+
+        # Snapshot gate config (for replay proof)
+        try:
+            p_side_min_long = None
+            p_side_min_short = None
+            if not hasattr(self._runner, "entry_gate_config_snapshot") or not isinstance(
+                self._runner.entry_gate_config_snapshot, dict
+            ):
+                self._runner.entry_gate_config_snapshot = {}
+            self._runner.entry_gate_config_snapshot.update(
+                {
+                    "p_side_min_long": p_side_min_long,
+                    "p_side_min_short": p_side_min_short,
+                    "p_flat_gate": flat_gate,
+                    "p_flat_margin": flat_margin,
+                    "candidate_threshold_long": threshold_long,
+                    "candidate_threshold_short": threshold_short,
+                    "runner_up_margin": None,
+                }
+            )
+        except Exception:
+            pass
+
+        # Pre-gate preference (argmax long/short only)
+        if p_long >= p_short:
+            pre_gate_pref = "long"
+        else:
+            pre_gate_pref = "short"
+
+        long_candidate = bool(p_long >= threshold_long)
+        short_candidate = bool(p_short >= threshold_short)
+        chosen_side = None
+        reason = "none"
+        winner = pre_gate_pref
+        pass_for_winner = long_candidate if winner == "long" else short_candidate
+
+        if winner == "short" and not allow_short:
+            chosen_side = None
+            reason = "short_disabled"
+        elif winner == "long":
+            chosen_side = "long" if long_candidate else None
+            reason = "confidence_gate_pass" if chosen_side else "below_threshold"
+        else:
+            chosen_side = "short" if short_candidate else None
+            reason = "confidence_gate_pass" if chosen_side else "below_threshold"
+
+        # Persistence gate: require same-side winner + threshold pass across N consecutive bars
+        persistence_bars = int(getattr(self, "entry_persistence_bars", 1))
+        if persistence_bars > 1:
+            hist = getattr(self, "_entry_persistence_hist", deque())
+            if len(hist) >= (persistence_bars - 1):
+                prev_ok = all((h.get("winner") == winner and h.get("pass") is True) for h in hist)
+            else:
+                prev_ok = False
+            persistence_ok = bool(prev_ok and pass_for_winner)
+            if chosen_side is not None and not persistence_ok:
+                chosen_side = None
+                reason = "persistence_gate"
+                if hasattr(self, "entry_telemetry"):
+                    self.entry_telemetry["entry_persistence_blocked"] += 1
+                _inc_gate("candidate_persistence_blocked")
+            elif chosen_side is not None and persistence_ok:
+                if hasattr(self, "entry_telemetry"):
+                    self.entry_telemetry["entry_persistence_pass"] += 1
+            try:
+                # log proof (rate-limited)
+                self._entry_persistence_log_count += 1
+                if self._entry_persistence_log_count <= 5 or (self._entry_persistence_log_count % 5000) == 0:
+                    log.info(
+                        "[ENTRY_PERSISTENCE_PROOF] persistence_bars=%d pass=%d blocked=%d",
+                        int(persistence_bars),
+                        int(self.entry_telemetry.get("entry_persistence_pass", 0)),
+                        int(self.entry_telemetry.get("entry_persistence_blocked", 0)),
+                    )
+            except Exception:
+                pass
+            # Update history after computing gate
+            try:
+                hist.append({"winner": winner, "pass": bool(pass_for_winner)})
+            except Exception:
+                pass
+        else:
+            # Keep history in sync even when disabled
+            try:
+                hist = getattr(self, "_entry_persistence_hist", deque())
+                hist.append({"winner": winner, "pass": bool(pass_for_winner)})
+            except Exception:
+                pass
+
+        try:
+            if not hasattr(self._runner, "signal_candidate_long"):
+                self._runner.signal_candidate_long = 0
+                self._runner.signal_candidate_short = 0
+                self._runner.signal_candidate_none = 0
+            if long_candidate:
+                self._runner.signal_candidate_long += 1
+            if short_candidate:
+                self._runner.signal_candidate_short += 1
+            if not long_candidate and not short_candidate:
+                self._runner.signal_candidate_none += 1
+                _inc_gate("candidate_below_threshold")
+        except Exception:
+            pass
+
+        try:
+            if not hasattr(self._runner, "entry_pref_pre_long"):
+                self._runner.entry_pref_pre_long = 0
+                self._runner.entry_pref_pre_short = 0
+                self._runner.entry_pref_pre_flat = 0
+            if pre_gate_pref == "long":
+                self._runner.entry_pref_pre_long += 1
+            elif pre_gate_pref == "short":
+                self._runner.entry_pref_pre_short += 1
+            else:
+                self._runner.entry_pref_pre_flat += 1
+        except Exception:
+            pass
+
+        try:
+            if not hasattr(self._runner, "entry_pref_post_long"):
+                self._runner.entry_pref_post_long = 0
+                self._runner.entry_pref_post_short = 0
+                self._runner.entry_pref_post_none = 0
+            if chosen_side == "long":
+                self._runner.entry_pref_post_long += 1
+            elif chosen_side == "short":
+                self._runner.entry_pref_post_short += 1
+            else:
+                self._runner.entry_pref_post_none += 1
+        except Exception:
+            pass
+
+        try:
+            if not hasattr(self, "_signal_side_log_count"):
+                self._signal_side_log_count = 0
+            self._signal_side_log_count += 1
+            if self._signal_side_log_count <= 5 or (self._signal_side_log_count % 5000) == 0:
+                log.warning(
+                    "[SIGNAL_SIDE_DECISION] p_long=%.6f p_short=%.6f p_flat=%.6f margin_top1_top2=%.6f "
+                    "chosen_side=%s threshold_long=%.4f threshold_short=%.4f long_candidate=%s short_candidate=%s reason=%s",
+                    p_long,
+                    p_short,
+                    p_flat,
+                    margin_top1_top2,
+                    (chosen_side or "NONE"),
+                    threshold_long,
+                    threshold_short,
+                    long_candidate,
+                    short_candidate,
+                    reason,
+                )
+        except Exception:
+            pass
+
+        # Flat gate disabled: no config log
+
+        # Ensure timestamp is defined for audit logging even if no trade is taken.
+        now_ts = current_ts
+        if chosen_side is None:
+            # Even if no trade is taken, emit eval_log for audit (decision=NONE)
+            eval_log_path = getattr(self, "eval_log_path", None) or getattr(self._runner, "eval_log_path", None)
+            if eval_log_path:
+                try:
+                    from gx1.execution.oanda_demo_runner import append_eval_log
+
+                    xgb_signal7 = getattr(self._runner, "_last_xgb_signal7", None)
+                    if not isinstance(xgb_signal7, dict):
+                        xgb_signal7 = {}
+
+                    safe_price = np.nan
+                    try:
+                        safe_price = float(getattr(entry_bundle, "close_price", np.nan))
+                    except Exception:
+                        safe_price = np.nan
+
+                    eval_record = {
+                        "ts_utc": now_ts.isoformat(),
+                        "session": str(getattr(entry_pred, "session", policy_state.get("session", "UNKNOWN"))),
+                        "p_long": float(entry_pred.prob_long),
+                        "p_short": float(entry_pred.prob_short),
+                        "p_flat": float(getattr(entry_pred, "prob_neutral", np.nan)),
+                        "p_hat": float(getattr(entry_pred, "p_hat", np.nan)),
+                        "uncertainty_score": float(signal7_now.get("uncertainty_score", np.nan)),
+                        "margin": float(getattr(entry_pred, "margin", np.nan)),
+                        "margin_top1_top2": float(signal7_now.get("margin_top1_top2", np.nan)),
+                        "entropy": float(signal7_now.get("entropy", np.nan)),
+                        # Raw XGB signal7 (pre-ENTRY) for audit
+                        "xgb_p_long": float(xgb_signal7.get("p_long", np.nan)),
+                        "xgb_p_short": float(xgb_signal7.get("p_short", np.nan)),
+                        "xgb_p_flat": float(xgb_signal7.get("p_flat", np.nan)),
+                        "xgb_p_hat": float(xgb_signal7.get("p_hat", np.nan)),
+                        "xgb_uncertainty_score": float(xgb_signal7.get("uncertainty_score", np.nan)),
+                        "xgb_margin_top1_top2": float(xgb_signal7.get("margin_top1_top2", np.nan)),
+                        "xgb_entropy": float(xgb_signal7.get("entropy", np.nan)),
+                        # Entry signal7 (post-ENTRY transformer) for audit
+                        "entry_p_long": float(signal7_now.get("p_long", np.nan)),
+                        "entry_p_short": float(signal7_now.get("p_short", np.nan)),
+                        "entry_p_flat": float(signal7_now.get("p_flat", np.nan)),
+                        "entry_p_hat": float(signal7_now.get("p_hat", np.nan)),
+                        "entry_uncertainty_score": float(signal7_now.get("uncertainty_score", np.nan)),
+                        "entry_margin_top1_top2": float(signal7_now.get("margin_top1_top2", np.nan)),
+                        "entry_entropy": float(signal7_now.get("entropy", np.nan)),
+                        "pre_gate_pref": pre_gate_pref,
+                        "decision_reason": reason,
+                        "flat_gate": flat_gate,
+                        "flat_margin": flat_margin,
+                        "decision": "NONE",
+                        "price": safe_price,
+                        "units": 0,
+                    }
+                    append_eval_log(eval_log_path, eval_record)
+                except Exception as e:
+                    if getattr(self, "is_replay", False):
+                        raise RuntimeError(f"EVAL_LOG_APPEND_FAILED(no_trade): {e}") from e
+                    log.warning("[EVAL_LOG_APPEND_FAILED] no_trade: %s", e)
+            return None
+
         # Use side-aware probability for threshold (p_side) rather than always prob_long
-        side = "long" if float(entry_pred.prob_long) >= float(entry_pred.prob_short) else "short"
+        side = chosen_side
         try:
             if not hasattr(self._runner, "entry_attempt_long"):
                 self._runner.entry_attempt_long = 0
@@ -802,76 +1234,70 @@ class EntryManager:
                 self._runner.entry_attempt_short += 1
         except Exception:
             pass
-        p_side = float(entry_pred.prob_long) if side == "long" else float(entry_pred.prob_short)
-        p_other = float(entry_pred.prob_short) if side == "long" else float(entry_pred.prob_long)
+        p_side = p_long if side == "long" else p_short
+        p_other = p_short if side == "long" else p_long
 
-        # Analysis override (explicit and opt-in)
-        if os.getenv("GX1_ANALYSIS_MODE") == "1" and os.getenv("GX1_ENTRY_THRESHOLD_OVERRIDE"):
-            try:
-                override = float(os.getenv("GX1_ENTRY_THRESHOLD_OVERRIDE"))
-                min_prob_long = override
-                min_prob_short = override
-            except Exception:
-                pass
-
+        # Slim policy: single confidence source only
         self.threshold_used = f"long={min_prob_long},short={min_prob_short}"
 
-        self.killchain_n_entry_pred_total += 1
-        p_side_min_cfg = entry_gating_cfg.get("p_side_min", {}) if isinstance(entry_gating_cfg, dict) else {}
-        threshold_used_val = (
-            float(p_side_min_cfg.get(side, min_prob_long if side == "long" else min_prob_short))
-            if p_side_min_cfg
-            else (min_prob_long if side == "long" else min_prob_short)
-        )
-        above_threshold = bool(p_side >= threshold_used_val)
-        if above_threshold:
-            self.killchain_n_above_threshold += 1
-        else:
-            self.veto_cand["veto_cand_threshold"] += 1
-            self._killchain_inc_reason("BLOCK_BELOW_THRESHOLD")
-            _inc_gate("p_threshold")
-            if not getattr(self, "_p_threshold_proof_logged", False):
+        def _append_eval_log_block(decision: str, reason_str: str) -> None:
+            eval_log_path = getattr(self, "eval_log_path", None) or getattr(self._runner, "eval_log_path", None)
+            if not eval_log_path:
+                return
+            try:
+                from gx1.execution.oanda_demo_runner import append_eval_log
+
+                xgb_signal7 = getattr(self._runner, "_last_xgb_signal7", None)
+                if not isinstance(xgb_signal7, dict):
+                    xgb_signal7 = {}
+
+                safe_price = np.nan
                 try:
-                    log.info(
-                        "[P_THRESHOLD_PROOF] prob_long=%.4f prob_short=%.4f side=%s p_used=%.4f min_prob=%.4f pass=%s",
-                        float(entry_pred.prob_long),
-                        float(entry_pred.prob_short),
-                        side.upper(),
-                        p_side,
-                        threshold_used_val,
-                        False,
-                    )
-                finally:
-                    self._p_threshold_proof_logged = True
-            return None
+                    safe_price = float(getattr(entry_bundle, "close_price", np.nan))
+                except Exception:
+                    safe_price = np.nan
 
-        # Optional entry_gating (policy-driven; TRUTH counters)
-        entry_gating_cfg = self.policy.get("entry_gating", {}) if getattr(self._runner, "guard_enabled", True) else {}
-        if entry_gating_cfg:
-            side = "long" if float(entry_pred.prob_long) >= float(entry_pred.prob_short) else "short"
-            p_side = float(entry_pred.prob_long) if side == "long" else float(entry_pred.prob_short)
-            p_other = float(entry_pred.prob_short) if side == "long" else float(entry_pred.prob_long)
-            margin_val = float(getattr(entry_pred, "margin", np.nan))
+                eval_record = {
+                    "ts_utc": now_ts.isoformat(),
+                    "session": str(getattr(entry_pred, "session", policy_state.get("session", "UNKNOWN"))),
+                    "p_long": float(entry_pred.prob_long),
+                    "p_short": float(entry_pred.prob_short),
+                    "p_flat": float(signal7_now.get("p_flat", np.nan)),
+                    "p_hat": float(getattr(entry_pred, "p_hat", np.nan)),
+                    "uncertainty_score": float(signal7_now.get("uncertainty_score", np.nan)),
+                    "margin": float(getattr(entry_pred, "margin", np.nan)),
+                    "margin_top1_top2": float(signal7_now.get("margin_top1_top2", np.nan)),
+                    "entropy": float(signal7_now.get("entropy", np.nan)),
+                    "xgb_p_long": float(xgb_signal7.get("p_long", np.nan)),
+                    "xgb_p_short": float(xgb_signal7.get("p_short", np.nan)),
+                    "xgb_p_flat": float(xgb_signal7.get("p_flat", np.nan)),
+                    "xgb_p_hat": float(xgb_signal7.get("p_hat", np.nan)),
+                    "xgb_uncertainty_score": float(xgb_signal7.get("uncertainty_score", np.nan)),
+                    "xgb_margin_top1_top2": float(xgb_signal7.get("margin_top1_top2", np.nan)),
+                    "xgb_entropy": float(xgb_signal7.get("entropy", np.nan)),
+                    "entry_p_long": float(signal7_now.get("p_long", np.nan)),
+                    "entry_p_short": float(signal7_now.get("p_short", np.nan)),
+                    "entry_p_flat": float(signal7_now.get("p_flat", np.nan)),
+                    "entry_p_hat": float(signal7_now.get("p_hat", np.nan)),
+                    "entry_uncertainty_score": float(signal7_now.get("uncertainty_score", np.nan)),
+                    "entry_margin_top1_top2": float(signal7_now.get("margin_top1_top2", np.nan)),
+                    "entry_entropy": float(signal7_now.get("entropy", np.nan)),
+                    "pre_gate_pref": pre_gate_pref,
+                    "decision_reason": reason_str,
+                    "flat_gate": flat_gate,
+                    "flat_margin": flat_margin,
+                    "decision": decision,
+                    "price": safe_price,
+                    "units": 0,
+                }
+                append_eval_log(eval_log_path, eval_record)
+            except Exception as e:
+                if getattr(self, "is_replay", False):
+                    raise RuntimeError(f"EVAL_LOG_APPEND_FAILED(block): {e}") from e
+                log.warning("[EVAL_LOG_APPEND_FAILED] block: %s", e)
 
-            p_side_min_cfg = entry_gating_cfg.get("p_side_min", {})
-            margin_min_cfg = entry_gating_cfg.get("margin_min", {})
-            side_ratio_min = float(entry_gating_cfg.get("side_ratio_min", 1.25))
-
-            p_side_min = float(p_side_min_cfg.get(side, 0.55))
-            margin_min = float(margin_min_cfg.get(side, 0.08))
-
-            if p_side < p_side_min:
-                _inc_gate("p_threshold")
-                return None
-
-            if np.isfinite(margin_val) and margin_val < margin_min:
-                _inc_gate("margin_threshold")
-                return None
-
-            ratio_val = p_side / max(p_other, 1e-6)
-            if ratio_val < side_ratio_min:
-                _inc_gate("ratio_threshold")
-                return None
+        self.killchain_n_entry_pred_total += 1
+        self.killchain_n_above_threshold += 1
 
         # Build current_row for guards/journal (deterministic)
         current_row = entry_bundle.features.iloc[-1:].copy()
@@ -885,44 +1311,41 @@ class EntryManager:
             if "session" not in current_row.columns or str(current_row["session"].iloc[0]) in ("", "UNKNOWN", "nan"):
                 current_row.loc[current_row.index[0], "session"] = policy_state.get("session", current_session)
 
-        # Session/vol guard (local)
-        allow_high_vol = bool(policy_cfg.get("allow_high_vol", True))
-        allow_extreme_vol = bool(policy_cfg.get("allow_extreme_vol", False))
-        allowed_vol = ("LOW", "MEDIUM") + (("HIGH",) if allow_high_vol else tuple()) + (("EXTREME",) if allow_extreme_vol else tuple())
-        if is_replay:
-            allowed_vol = ("LOW", "MEDIUM", "HIGH", "EXTREME", "UNKNOWN")
-
-        try:
-            if above_threshold:
+        # Session/vol guard (legacy; disabled in replay for slim policy)
+        if not is_replay:
+            allow_high_vol = bool(policy_cfg.get("allow_high_vol", True))
+            allow_extreme_vol = bool(policy_cfg.get("allow_extreme_vol", False))
+            allowed_vol = ("LOW", "MEDIUM") + (("HIGH",) if allow_high_vol else tuple()) + (("EXTREME",) if allow_extreme_vol else tuple())
+            try:
                 sess, vol_reg = self._extract_session_and_vol_regime(current_row.iloc[0])
                 if sess in ("EU", "OVERLAP", "US"):
                     self.killchain_n_after_session_guard += 1
                 if vol_reg in allowed_vol:
                     self.killchain_n_after_vol_guard += 1
-            self._assert_session_vol_allowed(
-                current_row.iloc[0],
-                allowed_sessions=("EU", "OVERLAP", "US"),
-                allowed_vol_regimes=allowed_vol,
-            )
-        except AssertionError as e:
-            err = str(e)
-            if "vol_regime=UNKNOWN" in err:
-                self.entry_telemetry["vol_regime_unknown_count"] += 1
-            if "session=" in err:
-                self._killchain_inc_reason("BLOCK_SESSION")
-                _inc_gate("pregate_session")
-            elif "vol_regime=" in err:
-                self._killchain_inc_reason("BLOCK_VOL")
-                _inc_gate("pregate_atr")
-            else:
-                self._killchain_inc_reason("BLOCK_UNKNOWN")
-                try:
-                    self._killchain_record_unknown(
-                        {"where": "SESSION_VOL_GUARD", "ts": current_ts.isoformat(), "error": err[:300]}
-                    )
-                except Exception:
-                    pass
-            return None
+                self._assert_session_vol_allowed(
+                    current_row.iloc[0],
+                    allowed_sessions=("EU", "OVERLAP", "US"),
+                    allowed_vol_regimes=allowed_vol,
+                )
+            except AssertionError as e:
+                err = str(e)
+                if "vol_regime=UNKNOWN" in err:
+                    self.entry_telemetry["vol_regime_unknown_count"] += 1
+                if "session=" in err:
+                    self._killchain_inc_reason("BLOCK_SESSION")
+                    _inc_gate("pregate_session")
+                elif "vol_regime=" in err:
+                    self._killchain_inc_reason("BLOCK_VOL")
+                    _inc_gate("pregate_atr")
+                else:
+                    self._killchain_inc_reason("BLOCK_UNKNOWN")
+                    try:
+                        self._killchain_record_unknown(
+                            {"where": "SESSION_VOL_GUARD", "ts": current_ts.isoformat(), "error": err[:300]}
+                        )
+                    except Exception:
+                        pass
+                return None
 
         # Risk guard (canonical)
         self._maybe_load_risk_guard()
@@ -951,6 +1374,7 @@ class EntryManager:
                 else:
                     self._killchain_inc_reason("BLOCK_RISK")
                 _inc_gate("guard_veto")
+                _inc_gate("candidate_risk_guard")
                 return None
 
             session_for_clamp = entry_snapshot.get("session") or policy_state.get("session")
@@ -975,12 +1399,14 @@ class EntryManager:
                 ):
                     self.veto_cand["veto_cand_risk_guard"] += 1
                     self._killchain_inc_reason("BLOCK_RISK")
+                    _inc_gate("candidate_risk_guard")
                     return None
             except Exception:
                 pass
 
         # Units (canonical: keep base units; no sniper overlays)
-        side = "long" if entry_pred.prob_long >= entry_pred.prob_short else "short"
+        # Use side selection (chosen_side)
+        side = chosen_side
         base_units = self.exec.default_units if side == "long" else -self.exec.default_units
         units_out = int(base_units)
 
@@ -988,11 +1414,27 @@ class EntryManager:
             self._killchain_inc_reason("BLOCK_RISK")
             return None
 
+        # Proof: side selection
+        try:
+            if not hasattr(self, "_side_selection_log_count"):
+                self._side_selection_log_count = 0
+            self._side_selection_log_count += 1
+            if self._side_selection_log_count <= 5 or (self._side_selection_log_count % 5000) == 0:
+                log.info(
+                    "[ENTRY_SIDE_SELECTION_PROOF] p_long=%.6f p_short=%.6f p_flat=%.6f winner=%s selected_side=%s",
+                    float(entry_pred.prob_long),
+                    float(entry_pred.prob_short),
+                    float(entry_pred.prob_flat),
+                    winner,
+                    side,
+                )
+        except Exception:
+            pass
+
         self.killchain_n_after_risk_sizing += 1
         self.entry_telemetry["n_candidate_pass"] += 1
 
         # ENTRY_ONLY mode: log and stop
-        now_ts = current_ts
         if getattr(self, "mode", None) == "ENTRY_ONLY":
             try:
                 self._log_entry_only_event(
@@ -1176,6 +1618,10 @@ class EntryManager:
                     instrument=instrument_val,
                     side=trade.side,
                     entry_price=trade.entry_price,
+                    entry_bid=float(entry_bid_price) if entry_bid_price is not None else None,
+                    entry_ask=float(entry_ask_price) if entry_ask_price is not None else None,
+                    entry_spread_bps=spread_bps,
+                    entry_price_used=trade.entry_price,
                     units=units_out,
                     base_units=base_units,
                     session=policy_state.get("session", "UNKNOWN"),
@@ -1228,22 +1674,127 @@ class EntryManager:
                 log.warning("[TRADE_JOURNAL] Failed to log structured entry snapshot: %s", e)
 
         # Eval log append (kept)
-        if hasattr(self, "eval_log_path") and self.eval_log_path:
+        eval_log_path = getattr(self, "eval_log_path", None) or getattr(self._runner, "eval_log_path", None)
+        if eval_log_path:
             try:
                 from gx1.execution.oanda_demo_runner import append_eval_log
+
+                xgb_signal7 = getattr(self._runner, "_last_xgb_signal7", None)
+                if not isinstance(xgb_signal7, dict):
+                    xgb_signal7 = {}
+
+                safe_price = np.nan
+                try:
+                    safe_price = float(getattr(entry_bundle, "close_price", np.nan))
+                except Exception:
+                    safe_price = np.nan
 
                 eval_record = {
                     "ts_utc": now_ts.isoformat(),
                     "session": str(getattr(entry_pred, "session", policy_state.get("session", "UNKNOWN"))),
                     "p_long": float(entry_pred.prob_long),
                     "p_short": float(entry_pred.prob_short),
+                    "p_flat": float(signal7_now.get("p_flat", np.nan)),
                     "p_hat": float(getattr(entry_pred, "p_hat", np.nan)),
+                    "uncertainty_score": float(signal7_now.get("uncertainty_score", np.nan)),
                     "margin": float(getattr(entry_pred, "margin", np.nan)),
+                    "margin_top1_top2": float(signal7_now.get("margin_top1_top2", np.nan)),
+                    "entropy": float(signal7_now.get("entropy", np.nan)),
+                    # Raw XGB signal7 (pre-ENTRY) for audit
+                    "xgb_p_long": float(xgb_signal7.get("p_long", np.nan)),
+                    "xgb_p_short": float(xgb_signal7.get("p_short", np.nan)),
+                    "xgb_p_flat": float(xgb_signal7.get("p_flat", np.nan)),
+                    "xgb_p_hat": float(xgb_signal7.get("p_hat", np.nan)),
+                    "xgb_uncertainty_score": float(xgb_signal7.get("uncertainty_score", np.nan)),
+                    "xgb_margin_top1_top2": float(xgb_signal7.get("margin_top1_top2", np.nan)),
+                    "xgb_entropy": float(xgb_signal7.get("entropy", np.nan)),
+                    # Entry signal7 (post-ENTRY transformer) for audit
+                    "entry_p_long": float(signal7_now.get("p_long", np.nan)),
+                    "entry_p_short": float(signal7_now.get("p_short", np.nan)),
+                    "entry_p_flat": float(signal7_now.get("p_flat", np.nan)),
+                    "entry_p_hat": float(signal7_now.get("p_hat", np.nan)),
+                    "entry_uncertainty_score": float(signal7_now.get("uncertainty_score", np.nan)),
+                    "entry_margin_top1_top2": float(signal7_now.get("margin_top1_top2", np.nan)),
+                    "entry_entropy": float(signal7_now.get("entropy", np.nan)),
+                    "pre_gate_pref": pre_gate_pref,
+                    "decision_reason": reason,
+                    "flat_gate": flat_gate,
+                    "flat_margin": flat_margin,
                     "decision": side.upper(),
-                    "price": float(entry_bundle.close_price),
+                    "price": safe_price,
                     "units": int(base_units),
                 }
-                append_eval_log(self.eval_log_path, eval_record)
+                append_eval_log(eval_log_path, eval_record)
+
+                # Proof line (first 3 samples) to ensure xgb_* and entry_* are both present and differ
+                if not hasattr(self, "_xgb_entry_signal7_log_count"):
+                    self._xgb_entry_signal7_log_count = 0
+                if self._xgb_entry_signal7_log_count < 3:
+                    self._xgb_entry_signal7_log_count += 1
+                    log.info(
+                        "[XGB_SIGNAL7_LOGGED] xgb_p_long=%.6f entry_p_long=%.6f xgb_p_flat=%.6f entry_p_flat=%.6f",
+                        eval_record.get("xgb_p_long", float("nan")),
+                        eval_record.get("entry_p_long", float("nan")),
+                        eval_record.get("xgb_p_flat", float("nan")),
+                        eval_record.get("entry_p_flat", float("nan")),
+                    )
+                    log.info(
+                        "[ENTRY_SIGNAL7_CHAIN] xgb_margin=%.6f entry_margin=%.6f entry_prob_neutral=%.6f",
+                        eval_record.get("xgb_margin_top1_top2", float("nan")),
+                        eval_record.get("entry_margin_top1_top2", float("nan")),
+                        float(getattr(entry_pred, "prob_neutral", np.nan)),
+                    )
+
+                pred_trace_path_str = os.environ.get("GX1_PRED_TRACE_PATH", "")
+                if pred_trace_path_str:
+                    head_val = os.environ.get("GX1_PRED_TRACE_HEAD", "").strip()
+                    horizon_val = os.environ.get("GX1_PRED_TRACE_HORIZON", "").strip()
+                    if not head_val or not horizon_val:
+                        raise RuntimeError("[PRED_TRACE] missing GX1_PRED_TRACE_HEAD or GX1_PRED_TRACE_HORIZON env")
+                    try:
+                        horizon_int = int(horizon_val)
+                    except Exception:
+                        raise RuntimeError(f"[PRED_TRACE] invalid GX1_PRED_TRACE_HORIZON={horizon_val!r}")
+
+                    p_long = float(entry_pred.prob_long)
+                    p_short = float(entry_pred.prob_short)
+                    p_flat = float(
+                        getattr(
+                            entry_pred,
+                            "prob_neutral",
+                            getattr(entry_pred, "prob_flat", max(0.0, 1.0 - p_long - p_short)),
+                        )
+                    )
+
+                    trace_row = {
+                        "ts_utc": eval_record["ts_utc"],
+                        "head": head_val,
+                        "horizon_bars": horizon_int,
+                        "session": eval_record["session"],
+                        "p_long": p_long,
+                        "p_short": p_short,
+                        "p_flat": p_flat,
+                        "xgb_p_long": float(eval_record.get("xgb_p_long", float("nan"))),
+                        "xgb_p_short": float(eval_record.get("xgb_p_short", float("nan"))),
+                        "xgb_p_flat": float(eval_record.get("xgb_p_flat", float("nan"))),
+                        "entry_p_long": float(eval_record.get("entry_p_long", float("nan"))),
+                        "entry_p_short": float(eval_record.get("entry_p_short", float("nan"))),
+                        "entry_p_flat": float(eval_record.get("entry_p_flat", float("nan"))),
+                        "p_hat": eval_record["p_hat"],
+                        "uncertainty_score": eval_record["uncertainty_score"],
+                        "margin": eval_record["margin"],
+                        "margin_top1_top2": eval_record["margin_top1_top2"],
+                        "entropy": eval_record["entropy"],
+                        "xgb_short_minus_long": float(eval_record.get("xgb_p_short", float("nan")))
+                        - float(eval_record.get("xgb_p_long", float("nan"))),
+                        "entry_short_minus_long": float(eval_record.get("entry_p_short", float("nan")))
+                        - float(eval_record.get("entry_p_long", float("nan"))),
+                        "decision": eval_record["decision"],
+                    }
+                    pred_trace_path = Path(pred_trace_path_str)
+                    pred_trace_path.parent.mkdir(parents=True, exist_ok=True)
+                    with pred_trace_path.open("a", encoding="utf-8") as handle:
+                        handle.write(json.dumps(trace_row, separators=(",", ":")) + "\n")
             except Exception:
                 pass
 

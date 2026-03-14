@@ -39,8 +39,8 @@ entry_models:
 # Canonical V10_CTX policy block (consumed by entry_manager)
 entry_policy_v10_ctx:
   enabled: true
-  min_prob_long: 0.67
-  min_prob_short: 0.72
+  min_prob_long: 0.40
+  min_prob_short: 0.40
   allow_short: true
   allow_high_vol: true
   allow_extreme_vol: false
@@ -60,21 +60,3 @@ allowed_trend_regimes: []
 
 guard:
   enabled: true
-
-entry_gating:
-  p_side_min:
-    long: 0.50
-    short: 0.50
-  margin_min:
-    long: 0.00
-    short: 0.00
-  side_ratio_min: 1.00
-  sticky_bars: 1
-  # FORCE_TRADES: debug-only for TRUTH replay to generate trades, tighten later
-  
-  # Stage-0 configuration
-  stage0:
-    enabled: true
-    allowed_sessions: ["EU", "OVERLAP", "US"]
-    allowed_vol_regimes: ["LOW", "MEDIUM", "HIGH"]
-    block_trend_vol_combos: []
