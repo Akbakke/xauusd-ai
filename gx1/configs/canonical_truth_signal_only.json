@@ -1,15 +1,23 @@
 {
-  "canonical_entry_transformer_bundle_dir": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_CTX__RETRAIN_20260313_1630__CTX21_VNEXT/BASELINE",
-  "canonical_entry_v10_ctx_bundle_dir": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_CTX__RETRAIN_20260313_1630__CTX21_VNEXT/BASELINE",
-  "canonical_exit_transformer_bundle_dir": "/home/andre2/GX1_DATA/models/exit_transformer_v0/a4dba18d12b5b4ae8da44ec9af2c2ada4aac5f4408f238ceda1056928f94c960",
+  "canonical_exit_transformer_bundle_dir": "/home/andre2/GX1_DATA/models/exit_transformer_v0/0c28d1a2e9cbd844c006655f823ca62c619d47627f72189b9bf0e5f5554b2510",
   "canonical_prebuilt_manifest": "/home/andre2/GX1_DATA/data/data/prebuilt/BASE28_CANONICAL/CURRENT_MANIFEST.json",
-  "canonical_prebuilt_parquet": "/home/andre2/GX1_DATA/data/data/prebuilt/ctx16cat6_20260309_160211/xauusd_m5_BASE28_2020_2025__CTX_CONT16_CAT6_20260309_160211.parquet",
-  "canonical_transformer_bundle_dir": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_CTX__RETRAIN_20260313_1630__CTX21_VNEXT/BASELINE",
+  "canonical_prebuilt_parquet": "/home/andre2/GX1_DATA/data/data/prebuilt/ctx16cat6_20260315_210518/xauusd_m5_BASE28_2020_2026__CTX_CONT16_CAT6_20260315_210518.parquet",
+  "canonical_transformer_bundle_dir": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_CTX__RETRAIN_20260327_V4_OL_LONG_B1_QF",
   "canonical_xgb_bundle_dir": "/home/andre2/GX1_DATA/models/models/xgb_universal_multihead_v2__SESSION_CONTEXT_34F__4HEADS_CALIB_ISO_INTERP_20260313_1525",
   "ctx_contract": {
     "ctx_cat_dim": 6,
-    "ctx_cont_dim": 16,
-    "tag": "CTX16CAT6"
+    "ctx_cont_dim": 21,
+    "tag": "CTX6CAT6"
+  },
+  "entry_bundle_notes": {
+    "best_epoch": 21,
+    "best_val_loss": 0.917669460322953,
+    "ctx_contract": "CTX_CONTRACT=V_NEXT (ctx_cont_dim=21)",
+    "previous_bundle": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_CTX__RETRAIN_20260326_V4_OL_LONG_B1_TRADABLE_V2_QUALITYSHIFT",
+    "proof_run_id": "RETRAIN_20260327_V4_OL_LONG_B1_QF",
+    "test_scope": "2025-12-01 -> 2025-12-31",
+    "train_scope": "2025-01-01 -> 2025-09-30",
+    "val_scope": "2025-10-01 -> 2025-11-30"
   },
   "pred_trace_head": "OVERLAP",
   "pred_trace_horizon_bars": 24,
@@ -27,7 +35,7 @@
       "import_proof_filename": "IMPORT_PROOF.json",
       "min_trades": 0,
       "policy_snapshot_filename": "RUN_POLICY_USED.yaml",
-      "require_exit_type_transformer": false,
+      "require_exit_type_transformer": true,
       "require_import_proof": true,
       "require_nonzero_trades": false,
       "require_policy_snapshot": false
@@ -38,14 +46,10 @@
   "signal_bridge_contract_sha256": "dde7271db04cf51608bf18cfd1cbdbb7dc631556be4be64e9c82f21ed328f2aa",
   "signal_bridge_id": "XGB_SIGNAL_BRIDGE_V1",
   "truth_id": "CANONICAL_TRUTH_SIGNAL_ONLY_V1",
-  "truth_window_end_ts": "2025-06-07T23:59:59+00:00",
-  "truth_window_start_ts": "2025-06-01T00:00:00+00:00",
+  "truth_window_end_ts": "2026-03-13T23:59:59+00:00",
+  "truth_window_start_ts": "2025-01-01T00:00:00+00:00",
   "xgb_bundle_notes": {
-    "calibration_runtime": "supported via isotonic_interp; default OFF unless explicitly enabled",
-    "baseline_reference": "28F bundle is baseline reference only (do not use for truth runs)"
-  },
-  "entry_bundle_notes": {
-    "ctx_contract": "CTX_CONTRACT=V_NEXT (ctx_cont_dim=21)",
-    "proof_run_id": "CTX_VNEXT_TRUTH_20260313_1725"
+    "baseline_reference": "28F bundle is baseline reference only (do not use for truth runs)",
+    "calibration_runtime": "supported via isotonic_interp; default OFF unless explicitly enabled"
   }
 }

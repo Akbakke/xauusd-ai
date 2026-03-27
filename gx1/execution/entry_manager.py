@@ -537,6 +537,12 @@ class EntryManager:
 
         # Replay hard-fail: legacy/debug entry overrides are forbidden
         if getattr(self._runner, "replay_mode", False):
+            diagnostic_threshold = os.getenv("GX1_DIAGNOSTIC_THRESHOLD_SWEEP", "").strip().lower() in {
+                "1",
+                "true",
+                "yes",
+                "on",
+            }
             legacy_envs = [
                 "GX1_ENTRY_MINIMAL_POLICY",
                 "GX1_ENTRY_MINIMAL_CONFIDENCE_MIN",
@@ -551,8 +557,15 @@ class EntryManager:
                 "GX1_ENTRY_MARGIN_MIN",
             ]
             for key in legacy_envs:
+                if key == "GX1_ENTRY_THRESHOLD_OVERRIDE" and diagnostic_threshold:
+                    continue
                 if key in os.environ and str(os.environ.get(key, "")).strip() not in ("", "0", "false", "False"):
                     raise RuntimeError(f"[LEGACY_ENTRY_OVERRIDE_FORBIDDEN] {key} is set in replay")
+            if diagnostic_threshold and os.getenv("GX1_ENTRY_THRESHOLD_OVERRIDE", "").strip():
+                log.warning(
+                    "[NON_CANONICAL_DIAGNOSTIC] GX1_ENTRY_THRESHOLD_OVERRIDE=%s (diagnostic sweep enabled)",
+                    os.getenv("GX1_ENTRY_THRESHOLD_OVERRIDE", ""),
+                )
 
         self.eval_calls_total += 1
         self.entry_telemetry["n_cycles"] += 1
@@ -689,6 +702,7 @@ class EntryManager:
             soft_eligible = True
 
         self.entry_telemetry["n_eligible_cycles"] += 1
+        entry_input_prep_start = time.perf_counter()
 
         # Optional context features (STRICT in replay if enabled and builder fails)
         entry_context_features = None
@@ -914,6 +928,16 @@ class EntryManager:
 
         # Model predict (canonical)
         self.n_v10_calls += 1
+        entry_input_prep_dt = time.perf_counter() - entry_input_prep_start
+        try:
+            self._runner.t_entry_input_prep_sec = float(
+                getattr(self._runner, "t_entry_input_prep_sec", 0.0) + entry_input_prep_dt
+            )
+            self._runner.n_entry_input_prep_calls = int(
+                getattr(self._runner, "n_entry_input_prep_calls", 0) + 1
+            )
+        except Exception:
+            pass
         model_start = time.perf_counter()
         entry_pred = self._runner._predict_entry_v10_hybrid(
             entry_bundle,
@@ -922,6 +946,15 @@ class EntryManager:
             entry_context_features=entry_context_features,
         )
         model_time = time.perf_counter() - model_start
+        try:
+            self._runner.t_entry_model_infer_sec = float(
+                getattr(self._runner, "t_entry_model_infer_sec", 0.0) + model_time
+            )
+            self._runner.n_entry_model_infer_calls = int(
+                getattr(self._runner, "n_entry_model_infer_calls", 0) + 1
+            )
+        except Exception:
+            pass
         if hasattr(self._runner, "perf_model_time"):
             self._runner.perf_model_time += model_time
         else:
@@ -987,6 +1020,23 @@ class EntryManager:
 
         threshold_long = float(min_prob_long)
         threshold_short = float(min_prob_short)
+        # Diagnostic threshold override (replay-only guard is enforced earlier)
+        env_override = None
+        try:
+            diagnostic_threshold = os.getenv("GX1_DIAGNOSTIC_THRESHOLD_SWEEP", "").strip().lower() in {
+                "1",
+                "true",
+                "yes",
+                "on",
+            }
+            override_raw = os.getenv("GX1_ENTRY_THRESHOLD_OVERRIDE", "").strip()
+            if diagnostic_threshold and override_raw:
+                env_override = float(override_raw)
+                threshold_long = env_override
+                threshold_short = env_override
+        except Exception:
+            # Keep policy thresholds if override parsing fails; guard will still surface elsewhere
+            env_override = None
         # Proof: effective candidate thresholds
         try:
             if not hasattr(self, "_threshold_proof_log_count"):
@@ -997,7 +1047,7 @@ class EntryManager:
                     "[ENTRY_THRESHOLD_EFFECTIVE_PROOF] threshold_long=%.4f threshold_short=%.4f env_override=%s policy_min_long=%.4f policy_min_short=%.4f",
                     threshold_long,
                     threshold_short,
-                    None,
+                    env_override,
                     float(policy_cfg.get("min_prob_long", 0.67)),
                     float(policy_cfg.get("min_prob_short", 0.72)),
                 )
@@ -1032,22 +1082,161 @@ class EntryManager:
         else:
             pre_gate_pref = "short"
 
-        long_candidate = bool(p_long >= threshold_long)
-        short_candidate = bool(p_short >= threshold_short)
         chosen_side = None
         reason = "none"
         winner = pre_gate_pref
-        pass_for_winner = long_candidate if winner == "long" else short_candidate
-
         if winner == "short" and not allow_short:
             chosen_side = None
             reason = "short_disabled"
-        elif winner == "long":
-            chosen_side = "long" if long_candidate else None
-            reason = "confidence_gate_pass" if chosen_side else "below_threshold"
         else:
-            chosen_side = "short" if short_candidate else None
-            reason = "confidence_gate_pass" if chosen_side else "below_threshold"
+            chosen_side = winner
+            reason = "pre_quality"
+
+        # Optional tradable gate (uses auxiliary tradable head if available)
+        tradable_gate_enabled = False
+        tradable_min_prob = None
+        tradable_min_prob_long = None
+        tradable_min_prob_short = None
+        try:
+            tradable_gate_enabled = bool(policy_cfg.get("tradable_gate_enabled", False))
+            tradable_min_prob = float(policy_cfg.get("tradable_min_prob", 0.55))
+            # Optional side-specific overrides
+            if "tradable_min_prob_long" in policy_cfg:
+                tradable_min_prob_long = float(policy_cfg.get("tradable_min_prob_long"))
+            if "tradable_min_prob_short" in policy_cfg:
+                tradable_min_prob_short = float(policy_cfg.get("tradable_min_prob_short"))
+            env_flag = os.getenv("GX1_ENTRY_TRADABLE_GATE", "").strip().lower()
+            if env_flag in {"1", "true", "yes", "on"}:
+                tradable_gate_enabled = True
+            env_min = os.getenv("GX1_ENTRY_TRADABLE_MIN_PROB", "").strip()
+            if env_min:
+                tradable_min_prob = float(env_min)
+            env_min_long = os.getenv("GX1_ENTRY_TRADABLE_MIN_PROB_LONG", "").strip()
+            if env_min_long:
+                tradable_min_prob_long = float(env_min_long)
+            env_min_short = os.getenv("GX1_ENTRY_TRADABLE_MIN_PROB_SHORT", "").strip()
+            if env_min_short:
+                tradable_min_prob_short = float(env_min_short)
+        except Exception:
+            pass
+
+        if tradable_gate_enabled and chosen_side is not None:
+            tradable_prob = getattr(entry_pred, "tradable_prob", None)
+            side_min_prob = tradable_min_prob
+            if chosen_side == "long" and tradable_min_prob_long is not None:
+                side_min_prob = tradable_min_prob_long
+            elif chosen_side == "short" and tradable_min_prob_short is not None:
+                side_min_prob = tradable_min_prob_short
+            if tradable_prob is None:
+                chosen_side = None
+                reason = "tradable_missing"
+                _inc_gate("candidate_tradable_gate")
+            elif side_min_prob is not None and float(tradable_prob) < float(side_min_prob):
+                chosen_side = None
+                reason = "tradable_gate"
+                _inc_gate("candidate_tradable_gate")
+            try:
+                if not hasattr(self, "_tradable_gate_log_count"):
+                    self._tradable_gate_log_count = 0
+                self._tradable_gate_log_count += 1
+                if self._tradable_gate_log_count <= 5 or (self._tradable_gate_log_count % 5000) == 0:
+                    log.info(
+                        "[ENTRY_TRADABLE_GATE_PROOF] enabled=%s tradable_prob=%s min_prob=%s pass=%s",
+                        tradable_gate_enabled,
+                        f"{tradable_prob:.6f}" if tradable_prob is not None else "None",
+                        f"{side_min_prob:.6f}" if side_min_prob is not None else "None",
+                        chosen_side is not None,
+                    )
+            except Exception:
+                pass
+
+        # Optional quality gate (post-tradable): enforce minimum predicted MFE / path-quality
+        quality_gate_enabled = False
+        quality_min_mfe_first_n = None
+        quality_min_path_quality = None
+        quality_min_score = None
+        try:
+            quality_gate_enabled = bool(policy_cfg.get("quality_gate_enabled", False))
+            if "quality_min_mfe_first_n" in policy_cfg:
+                quality_min_mfe_first_n = float(policy_cfg.get("quality_min_mfe_first_n"))
+            if "quality_min_path_quality" in policy_cfg:
+                quality_min_path_quality = float(policy_cfg.get("quality_min_path_quality"))
+            if "quality_min_score" in policy_cfg:
+                quality_min_score = float(policy_cfg.get("quality_min_score"))
+        except Exception:
+            pass
+
+        if quality_gate_enabled and chosen_side is not None:
+            mfe_first_n_pred = getattr(entry_pred, "mfe_first_n_pred", None)
+            path_quality_pred = getattr(entry_pred, "path_quality_pred", None)
+            quality_score_pred = getattr(entry_pred, "quality_score_pred", None)
+            missing = (
+                (quality_min_mfe_first_n is not None and mfe_first_n_pred is None)
+                or (quality_min_path_quality is not None and path_quality_pred is None)
+                or (quality_min_score is not None and quality_score_pred is None)
+            )
+            if missing:
+                chosen_side = None
+                reason = "quality_missing"
+                _inc_gate("candidate_quality_gate")
+            else:
+                if quality_min_mfe_first_n is not None and float(mfe_first_n_pred) < float(quality_min_mfe_first_n):
+                    chosen_side = None
+                    reason = "quality_gate"
+                    _inc_gate("candidate_quality_gate")
+                if chosen_side is not None and quality_min_path_quality is not None and float(path_quality_pred) < float(quality_min_path_quality):
+                    chosen_side = None
+                    reason = "quality_gate"
+                    _inc_gate("candidate_quality_gate")
+                if chosen_side is not None and quality_min_score is not None and float(quality_score_pred) < float(quality_min_score):
+                    chosen_side = None
+                    reason = "quality_gate"
+                    _inc_gate("candidate_quality_gate")
+            try:
+                if not hasattr(self, "_quality_gate_log_count"):
+                    self._quality_gate_log_count = 0
+                self._quality_gate_log_count += 1
+                if self._quality_gate_log_count <= 5 or (self._quality_gate_log_count % 5000) == 0:
+                    log.info(
+                        "[ENTRY_QUALITY_GATE_PROOF] enabled=%s mfe_first_n=%s path_quality=%s quality_score=%s min_mfe=%s min_path=%s min_score=%s pass=%s",
+                        quality_gate_enabled,
+                        f"{mfe_first_n_pred:.4f}" if mfe_first_n_pred is not None else "None",
+                        f"{path_quality_pred:.4f}" if path_quality_pred is not None else "None",
+                        f"{quality_score_pred:.4f}" if quality_score_pred is not None else "None",
+                        f"{quality_min_mfe_first_n:.4f}" if quality_min_mfe_first_n is not None else "None",
+                        f"{quality_min_path_quality:.4f}" if quality_min_path_quality is not None else "None",
+                        f"{quality_min_score:.4f}" if quality_min_score is not None else "None",
+                        chosen_side is not None,
+                    )
+            except Exception:
+                pass
+
+        try:
+            if not hasattr(self._runner, "signal_candidate_long"):
+                self._runner.signal_candidate_long = 0
+                self._runner.signal_candidate_short = 0
+                self._runner.signal_candidate_none = 0
+            if long_candidate:
+                self._runner.signal_candidate_long += 1
+            if short_candidate:
+                self._runner.signal_candidate_short += 1
+            if not long_candidate and not short_candidate:
+                self._runner.signal_candidate_none += 1
+                _inc_gate("candidate_below_threshold")
+        except Exception:
+            pass
+
+        # Direction threshold applied after quality gates (quality-first ordering)
+        long_candidate = bool(p_long >= threshold_long)
+        short_candidate = bool(p_short >= threshold_short)
+        pass_for_winner = long_candidate if winner == "long" else short_candidate
+
+        if chosen_side == "long" and not long_candidate:
+            chosen_side = None
+            reason = "below_threshold"
+        elif chosen_side == "short" and not short_candidate:
+            chosen_side = None
+            reason = "below_threshold"
 
         # Persistence gate: require same-side winner + threshold pass across N consecutive bars
         persistence_bars = int(getattr(self, "entry_persistence_bars", 1))
@@ -1091,21 +1280,6 @@ class EntryManager:
                 hist.append({"winner": winner, "pass": bool(pass_for_winner)})
             except Exception:
                 pass
-
-        try:
-            if not hasattr(self._runner, "signal_candidate_long"):
-                self._runner.signal_candidate_long = 0
-                self._runner.signal_candidate_short = 0
-                self._runner.signal_candidate_none = 0
-            if long_candidate:
-                self._runner.signal_candidate_long += 1
-            if short_candidate:
-                self._runner.signal_candidate_short += 1
-            if not long_candidate and not short_candidate:
-                self._runner.signal_candidate_none += 1
-                _inc_gate("candidate_below_threshold")
-        except Exception:
-            pass
 
         try:
             if not hasattr(self._runner, "entry_pref_pre_long"):
@@ -1353,6 +1527,7 @@ class EntryManager:
         risk_guard_reason = None
         risk_guard_details: Dict[str, Any] = {}
         risk_guard_clamp = None
+        risk_guard_clamp_side = None
 
         if self._risk_guard is not None and getattr(self._risk_guard, "enabled", False):
             entry_snapshot = {
@@ -1381,21 +1556,41 @@ class EntryManager:
             clamp = self._risk_guard.get_session_clamp(session_for_clamp)
             if clamp is not None and clamp > 0:
                 risk_guard_clamp = clamp
-                policy_state["risk_guard_min_prob_long_clamp"] = clamp
+                risk_guard_clamp_side = "short"
+                policy_state["risk_guard_min_prob_short_clamp"] = clamp
 
         policy_state["risk_guard_blocked"] = risk_guard_blocked
         policy_state["risk_guard_reason"] = risk_guard_reason
         policy_state["risk_guard_details"] = risk_guard_details
         policy_state["risk_guard_clamp"] = risk_guard_clamp
+        policy_state["risk_guard_clamp_side"] = risk_guard_clamp_side
 
-        # If a clamp exists, apply it deterministically to min_prob_long
+        # If a clamp exists, apply it additively to the effective short threshold.
+        # Note: this is applied after diagnostic override so the clamp stacks on top of the override.
         if risk_guard_clamp is not None:
             try:
-                min_prob_long = max(min_prob_long, float(risk_guard_clamp))
-                self.threshold_used = f"long={min_prob_long},short={min_prob_short}" if allow_short else f"long={min_prob_long}"
+                if allow_short:
+                    base_short = float(threshold_short)
+                    threshold_short = base_short + float(risk_guard_clamp)
+                    # Keep min_prob_short aligned for downstream proofs
+                    min_prob_short = threshold_short
+                    # Proof: show effective short threshold after clamp
+                    try:
+                        log.info(
+                            "[ENTRY_SHORT_CLAMP_PROOF] base_short=%.4f clamp=%.4f effective_short=%.4f session=%s",
+                            float(base_short),
+                            float(risk_guard_clamp),
+                            float(threshold_short),
+                            policy_state.get("session"),
+                        )
+                    except Exception:
+                        pass
+                self.threshold_used = (
+                    f"long={threshold_long},short={threshold_short}" if allow_short else f"long={threshold_long}"
+                )
                 if not (
-                    (float(entry_pred.prob_long) >= min_prob_long)
-                    or (allow_short and float(entry_pred.prob_short) >= min_prob_short)
+                    (float(entry_pred.prob_long) >= threshold_long)
+                    or (allow_short and float(entry_pred.prob_short) >= threshold_short)
                 ):
                     self.veto_cand["veto_cand_risk_guard"] += 1
                     self._killchain_inc_reason("BLOCK_RISK")
@@ -1634,6 +1829,11 @@ class EntryManager:
                         "p_short": float(entry_pred.prob_short),
                         "p_hat": float(getattr(entry_pred, "p_hat", np.nan)),
                         "margin": float(getattr(entry_pred, "margin", np.nan)),
+                        "tradable_prob": (
+                            float(getattr(entry_pred, "tradable_prob", np.nan))
+                            if getattr(entry_pred, "tradable_prob", None) is not None
+                            else None
+                        ),
                     },
                     entry_filters_passed=[],
                     entry_filters_blocked=[],
