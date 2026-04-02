@@ -92,6 +92,11 @@ def generate_run_header(
         "output_dir": str(output_dir.resolve()),
         "pid": os.getpid(),
     }
+
+    # Entry decision engine mode (policy vs minimal)
+    minimal_policy = os.getenv("GX1_ENTRY_MINIMAL_POLICY", "0") == "1"
+    header["entry_decision_engine"] = {"mode": "minimal" if minimal_policy else "policy"}
+    logger.info("[ENTRY_DECISION_ENGINE] mode=%s", header["entry_decision_engine"]["mode"])
     
     # DEL 2: Add chunk_id if provided (for parallel replay)
     if chunk_id is not None:
@@ -212,4 +217,3 @@ def load_run_header(run_dir: Path) -> Optional[Dict[str, Any]]:
     except Exception as e:
         logger.warning(f"Failed to load run_header.json: {e}")
         return None
-

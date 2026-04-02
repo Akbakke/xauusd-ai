@@ -25,20 +25,8 @@ replay_config:
   runtime_feature_module: gx1.features.runtime_v10_ctx
   v9_forbidden: true
   replay_pregate:
-    enabled: true
-    allow_sessions:
-    - EU
-    - OVERLAP
-    - US
-    max_spread_bps: 100.0
-    min_atr_bps: null
-    max_atr_bps: 200.0
-    require_warmup_ready: true
-    allow_degraded: false
+    enabled: false
 exit_config: gx1/configs/policies/canonical_truth/exits/EXIT_TRANSFORMER_ONLY_V0.yaml
-exit_model:
-  threshold: 0.48
-  exit_logit_temperature: 1.0
 execution:
   dry_run: true
   max_open_trades: 10
@@ -57,6 +45,9 @@ exit_control:
   - BROKER_SL
   - SL_TICK
   - REPLAY_EOF
+  allow_model_exit_when:
+    min_bars: 2
+    min_pnl_bps: -5.0
   require_trade_open: true
 replay:
   close_open_trades_at_end: true
@@ -82,13 +73,8 @@ entry_models:
   v9:
     enabled: false
   v10:
-    enabled: true
-    model_path: models/entry_v10/entry_v10_transformer.pt
-  xgb:
-    enabled: true
-    mode: universal
-    universal_model_path: /home/andre2/GX1_DATA/models/models/xgb_universal_multihead_v2__ATR_TB_FLATLESS_20260307_101838/xgb_universal_multihead_v2.joblib
+    enabled: false
   v10_ctx:
     enabled: true
-    bundle_dir: /home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_CTX__RETRAIN_20260313_1630__CTX21_VNEXT/BASELINE
+    bundle_dir: /home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_CTX__RETRAIN_20260402_REPLACE_ON_SHORT_STRICT_CLEAN_RECIPE_2025
 ENTRY_CONTEXT_FEATURES_ENABLED: true

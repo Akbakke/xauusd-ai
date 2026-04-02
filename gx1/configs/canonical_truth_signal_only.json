@@ -1,23 +1,24 @@
 {
-  "canonical_exit_transformer_bundle_dir": "/home/andre2/GX1_DATA/models/exit_transformer_v0/0c28d1a2e9cbd844c006655f823ca62c619d47627f72189b9bf0e5f5554b2510",
+  "canonical_exit_transformer_bundle_dir": "/home/andre2/GX1_DATA/models/exit_transformer_v0/EXIT_TRANSFORMER__RETRAIN_20260402_EARNED_EDGE_FLOOR_V1",
+  "canonical_market_tape_root_raw": "/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m1_bid_ask__CANONICAL",
+  "canonical_market_tape_root_model": "/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m5_bid_ask__CANONICAL",
   "canonical_prebuilt_manifest": "/home/andre2/GX1_DATA/data/data/prebuilt/BASE28_CANONICAL/CURRENT_MANIFEST.json",
-  "canonical_prebuilt_parquet": "/home/andre2/GX1_DATA/data/data/prebuilt/ctx16cat6_20260315_210518/xauusd_m5_BASE28_2020_2026__CTX_CONT16_CAT6_20260315_210518.parquet",
-  "canonical_transformer_bundle_dir": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_CTX__RETRAIN_20260327_V4_OL_LONG_B1_QF",
-  "canonical_xgb_bundle_dir": "/home/andre2/GX1_DATA/models/models/xgb_universal_multihead_v2__SESSION_CONTEXT_34F__4HEADS_CALIB_ISO_INTERP_20260313_1525",
+  "canonical_prebuilt_parquet": "/home/andre2/GX1_DATA/data/data/prebuilt/ctx16cat6_20260402_163322/xauusd_m5_BASE28_2020_2026__CTX_CONT16_CAT6_20260402_163322.parquet",
+  "canonical_prebuilt_contract_note": "Prebuilt filename may retain historical ctx16cat6 naming. Active canonical context contract is defined by ctx_contract plus bundle metadata and manifest-backed column validation, not by the parquet basename.",
+  "canonical_transformer_bundle_dir": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_CTX__RETRAIN_20260402_REPLACE_ON_SHORT_STRICT_CLEAN_RECIPE_2025",
+  "canonical_xgb_bundle_dir": "/home/andre2/GX1_DATA/models/models/xgb_universal_multihead_v2__RETRAIN_20260329_SANFIX_2020_2025",
   "ctx_contract": {
     "ctx_cat_dim": 6,
     "ctx_cont_dim": 21,
     "tag": "CTX6CAT6"
   },
   "entry_bundle_notes": {
-    "best_epoch": 21,
-    "best_val_loss": 0.917669460322953,
-    "ctx_contract": "CTX_CONTRACT=V_NEXT (ctx_cont_dim=21)",
-    "previous_bundle": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_CTX__RETRAIN_20260326_V4_OL_LONG_B1_TRADABLE_V2_QUALITYSHIFT",
-    "proof_run_id": "RETRAIN_20260327_V4_OL_LONG_B1_QF",
-    "test_scope": "2025-12-01 -> 2025-12-31",
-    "train_scope": "2025-01-01 -> 2025-09-30",
-    "val_scope": "2025-10-01 -> 2025-11-30"
+    "best_epoch": 25,
+    "best_val_loss": 1.2291624340415006,
+    "canonical_reason": "REPLACE_ON lane retrain with short-stricter canonical recipe; active heads remain direction, tradable, path_quality, and mfe_first_n.",
+    "previous_bundle": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_CTX__RETRAIN_20260402_REPLACE_ON_CANONICAL_CLEAN_RECIPE_2025",
+    "admission_policy": "replace_oldest_overlap_short_with_overlap_long_when_full",
+    "admission_policy_scope": "capacity full, pending OVERLAP long, active OVERLAP short present"
   },
   "pred_trace_head": "OVERLAP",
   "pred_trace_horizon_bars": 24,
@@ -50,6 +51,7 @@
   "truth_window_start_ts": "2025-01-01T00:00:00+00:00",
   "xgb_bundle_notes": {
     "baseline_reference": "28F bundle is baseline reference only (do not use for truth runs)",
-    "calibration_runtime": "supported via isotonic_interp; default OFF unless explicitly enabled"
+    "calibration_runtime": "supported via isotonic_interp; default OFF unless explicitly enabled",
+    "previous_bundle": "/home/andre2/GX1_DATA/models/models/xgb_universal_multihead_v2__SESSION_CONTEXT_34F__4HEADS_CALIB_ISO_INTERP_20260313_1525"
   }
 }

@@ -728,8 +728,8 @@ def _check_policy_lock(self) -> bool:
 
 7. **2024 Data Availability** (P0)
    - Location: Data pipeline
-   - Verify: 2024 M5 data available for validation
-   - How: Check M5_DATA env var or data directory
+   - Verify: 2024 M5 model-view data available for validation
+   - How: Check M5_DATA env var or data directory (model view), plus canonical raw M1 root in truth config
 
 8. **Parallel Replay Robustness** (P2)
    - Location: `scripts/active/replay_entry_exit_parallel.py`
@@ -750,4 +750,3 @@ def _check_policy_lock(self) -> bool:
 
 **Document Status:** ✅ Complete (with UKJENT markers where verification needed)  
 **Next Review:** After 2024 validation completes
-

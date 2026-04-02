@@ -51,7 +51,7 @@ def _truth_xgb_guard() -> None:
             "TRUTH_XGB_GUARD: Forbidden legacy lane detected in argv: "
             + ",".join(hit)
             + "\n"
-            + "This XGB lane is BASE28_CANONICAL + xgb_universal_multihead_v2__CANONICAL only.\n"
+            + "This XGB lane is BASE28_CANONICAL + canonical_truth_signal_only.json::canonical_xgb_bundle_dir only.\n"
             + f"Read: {readme}"
         )
 
@@ -79,11 +79,16 @@ from scipy import stats as scipy_stats
 WORKSPACE_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(WORKSPACE_ROOT))
 
-from gx1.scripts._truth_lane import require_truth_xgb_lane, truth_readme_path
+from gx1.scripts._truth_lane import require_truth_xgb_lane, resolve_truth_xgb_bundle_dir, truth_readme_path
 
 from gx1.xgb.preprocess.xgb_input_sanitizer import XGBInputSanitizer
 from gx1.xgb.multihead.xgb_multihead_model_v1 import XGBMultiheadModel
-from gx1.time.session_detector import get_session_vectorized, get_session_stats
+from gx1.time.session_detector import (
+    get_session_minutes_since_open_vectorized,
+    get_session_minutes_to_next_boundary_vectorized,
+    get_session_stats,
+    get_session_vectorized,
+)
 
 # Optional: canonical resolver (preferred if present)
 try:
@@ -177,8 +182,8 @@ def _get_time_series_utc(df: pd.DataFrame) -> pd.Series:
     return pd.Series(idx, index=df.index, name="time")
 
 
-def _load_tape_year(year: int) -> pd.DataFrame:
-    path = TAPE_CANONICAL_ROOT / f"year={year}" / "part-000.parquet"
+def _load_tape_year(year: int, tape_root: Path) -> pd.DataFrame:
+    path = tape_root / f"year={year}" / "part-000.parquet"
     if not path.exists():
         raise FileNotFoundError(f"TAPE_NOT_FOUND: {path}")
     df = pd.read_parquet(path, columns=TAPE_REQUIRED_COLS)
@@ -201,6 +206,98 @@ def _load_tape_year(year: int) -> pd.DataFrame:
         if np.isinf(df[col]).any():
             raise RuntimeError(f"TAPE_COL_INF: {col} {path}")
     return df
+
+
+def _margin_top1_top2(p_long: np.ndarray, p_short: np.ndarray, p_flat: np.ndarray) -> np.ndarray:
+    probs = np.column_stack([p_long, p_short, p_flat])
+    top_two = np.sort(probs, axis=1)[:, ::-1][:, :2]
+    return top_two[:, 0] - top_two[:, 1]
+
+
+def _entropy(p_long: np.ndarray, p_short: np.ndarray, p_flat: np.ndarray) -> np.ndarray:
+    eps = 1e-12
+    probs = np.clip(np.column_stack([p_long, p_short, p_flat]), eps, 1.0)
+    return -np.sum(probs * np.log(probs), axis=1)
+
+
+def _build_decile_table(
+    margin: np.ndarray,
+    signed_return_bps: np.ndarray,
+    side_pred: np.ndarray,
+    session: str,
+    n_bins: int = 10,
+) -> pd.DataFrame:
+    df = pd.DataFrame(
+        {
+            "margin": margin,
+            "signed_return_bps": signed_return_bps,
+            "side_pred": side_pred,
+        }
+    )
+    df = df.replace([np.inf, -np.inf], np.nan).dropna()
+    if df.empty:
+        return pd.DataFrame()
+
+    try:
+        df["decile"] = pd.qcut(df["margin"], q=n_bins, labels=False, duplicates="drop")
+    except ValueError:
+        return pd.DataFrame()
+
+    grp = df.groupby("decile", dropna=True)
+    out = grp.agg(
+        n=("signed_return_bps", "size"),
+        mean_return_bps=("signed_return_bps", "mean"),
+        median_return_bps=("signed_return_bps", "median"),
+        win_rate=("signed_return_bps", lambda x: float(np.mean(x > 0.0))),
+    ).reset_index()
+
+    out["long_share"] = grp["side_pred"].apply(lambda x: float(np.mean(x == 0))).values
+    out["short_share"] = grp["side_pred"].apply(lambda x: float(np.mean(x == 1))).values
+    out["flat_share"] = grp["side_pred"].apply(lambda x: float(np.mean(x == 2))).values
+    out["session"] = session
+    return out
+
+
+def _side_summary(
+    signed_return_bps: np.ndarray,
+    side_pred: np.ndarray,
+    session: str,
+) -> pd.DataFrame:
+    df = pd.DataFrame(
+        {
+            "signed_return_bps": signed_return_bps,
+            "side_pred": side_pred,
+        }
+    ).replace([np.inf, -np.inf], np.nan).dropna()
+    if df.empty:
+        return pd.DataFrame()
+
+    rows = []
+    for side_name, side_label in [("LONG", 0), ("SHORT", 1)]:
+        sub = df[df["side_pred"] == side_label]
+        if sub.empty:
+            rows.append(
+                {
+                    "session": session,
+                    "side": side_name,
+                    "n": 0,
+                    "mean_return_bps": float("nan"),
+                    "median_return_bps": float("nan"),
+                    "win_rate": float("nan"),
+                }
+            )
+            continue
+        rows.append(
+            {
+                "session": session,
+                "side": side_name,
+                "n": int(len(sub)),
+                "mean_return_bps": float(sub["signed_return_bps"].mean()),
+                "median_return_bps": float(sub["signed_return_bps"].median()),
+                "win_rate": float(np.mean(sub["signed_return_bps"] > 0.0)),
+            }
+        )
+    return pd.DataFrame(rows)
 
 
 def resolve_base28_canonical_parquet(gx1_data: Path) -> Tuple[Path, Dict[str, Any]]:
@@ -296,12 +393,9 @@ def load_sanitizer_and_features() -> Tuple[XGBInputSanitizer, List[str], str, Pa
 def load_multihead_model(gx1_data: Path, bundle_dir: Optional[Path] = None) -> Tuple[XGBMultiheadModel, Path, str]:
     """
     Load canonical multihead model (SSoT).
-
-    Default bundle dir:
-      /home/andre2/GX1_DATA/models/models/xgb_universal_multihead_v2__CANONICAL
     """
     if bundle_dir is None:
-        bundle_dir = gx1_data / "models" / "models" / "xgb_universal_multihead_v2__CANONICAL"
+        bundle_dir = resolve_truth_xgb_bundle_dir(__file__)
 
     model_path = bundle_dir / "xgb_universal_multihead_v2.joblib"
     if not model_path.exists():
@@ -531,6 +625,14 @@ def main() -> int:
     parser.add_argument("--output-dir", type=Path, default=None, help="Output directory")
     parser.add_argument("--allow-high-clip", action="store_true", help="Allow high clip rate without failing")
     parser.add_argument("--bundle-dir", type=Path, default=None, help="Override canonical XGB bundle dir (rare)")
+    parser.add_argument("--tape-root", type=Path, default=TAPE_CANONICAL_ROOT, help="Canonical tape root (SSoT)")
+    parser.add_argument("--lookahead-bars", type=int, default=12, help="Lookahead bars for payoff/return")
+    parser.add_argument("--spread-bps", type=float, default=0.0, help="Optional spread cost in bps for return calc")
+    parser.add_argument(
+        "--signal7-analysis",
+        action="store_true",
+        help="Run signal7-only analysis (margin ranking vs future return) and skip GO/NO-GO markers.",
+    )
     parser.add_argument(
         "--apply-drift-normalizer",
         action="store_true",
@@ -547,6 +649,7 @@ def main() -> int:
         raise RuntimeError("--apply-drift-normalizer and --build-drift-normalizer-only are mutually exclusive")
 
     promotion_lane = "NORM" if args.apply_drift_normalizer else "RAW"
+    tape_root = args.tape_root.expanduser().resolve()
 
     print("=" * 60)
     print("EVAL UNIVERSAL MULTI-HEAD XGB V2 (BASE28_CANONICAL)")
@@ -603,6 +706,7 @@ def main() -> int:
         output_dir = WORKSPACE_ROOT / "reports" / "xgb_eval" / f"MULTIHEAD_V2_EVAL_{timestamp}"
     output_dir.mkdir(parents=True, exist_ok=True)
     print(f"\nOutput: {output_dir}")
+    print(f"Tape root: {tape_root}")
 
     # Load full canonical parquet once
     print("\nLoading BASE28_CANONICAL parquet (single source)...")
@@ -620,6 +724,13 @@ def main() -> int:
     if args.build_drift_normalizer_only:
         years_to_eval = [args.reference_year]
 
+    signal7_rows: Dict[str, Dict[str, List[np.ndarray]]] = {
+        "EU": {"margin": [], "signed_return_bps": [], "side_pred": []},
+        "US": {"margin": [], "signed_return_bps": [], "side_pred": []},
+        "OVERLAP": {"margin": [], "signed_return_bps": [], "side_pred": []},
+    }
+    signal7_overall: Dict[str, List[np.ndarray]] = {"margin": [], "signed_return_bps": [], "side_pred": [], "session": []}
+
     for year in years_to_eval:
         df_year = _filter_year(df_all, ts_all, year)
         if df_year.empty:
@@ -634,7 +745,7 @@ def main() -> int:
         print(f"    Rows: {len(df_year)}")
 
         # Join with canonical market tape for price series (high/low/close)
-        tape_df = _load_tape_year(year)
+        tape_df = _load_tape_year(year, tape_root)
         df_year_with_time = df_year.reset_index().rename(columns={"index": "time"})
         joined = df_year_with_time.merge(tape_df, on="time", how="inner", validate="many_to_one")
         join_ratio_base = len(joined) / len(df_year_with_time)
@@ -647,9 +758,52 @@ def main() -> int:
             raise RuntimeError(f"TAPE_JOIN_RATIO_TOO_LOW: {join_ratio_base:.6f} year={year}")
         tape_price_by_time = joined.set_index("time")[["high", "low", "close"]]
 
-        # Session detection (use canonical time, not forbidden cols)
+        # Strict 1:1 join for signal7 analysis (close-only)
+        if args.signal7_analysis:
+            df_year = df_year.copy()
+            df_year["_base_pos"] = np.arange(len(df_year), dtype=np.int64)
+            df_year_time = df_year[["_base_pos"]].copy().reset_index(drop=True)
+            df_year_time["time"] = ts_year.reset_index(drop=True)
+            base_rows = len(df_year_time)
+            joined_strict = df_year_time.merge(
+                tape_df[["time", "close"]],
+                on="time",
+                how="inner",
+                validate="one_to_one",
+                sort=False,
+            )
+            joined_rows = len(joined_strict)
+            exact_match = int(joined_rows == base_rows)
+            print(
+                "    [XGB_TAPE_JOIN_STRICT] "
+                f"rows_base28={base_rows} rows_tape={len(tape_df)} rows_joined={joined_rows} exact_match={exact_match}"
+            )
+            if exact_match != 1:
+                raise RuntimeError(
+                    f"TAPE_JOIN_STRICT_FAIL: year={year} base={base_rows} joined={joined_rows} tape={len(tape_df)}"
+                )
+            if joined_strict["close"].isna().any():
+                raise RuntimeError(f"TAPE_JOIN_STRICT_NAN_CLOSE: year={year}")
+            joined_strict = joined_strict.sort_values("_base_pos", kind="stable").reset_index(drop=True)
+            close_all = joined_strict["close"].to_numpy(dtype=np.float64)
+            future_close = np.roll(close_all, -args.lookahead_bars)
+            spread_cost = close_all * (args.spread_bps / 10_000.0)
+            return_bps = (future_close - close_all - spread_cost) / close_all * 10_000.0
+            valid_mask = np.ones(len(close_all), dtype=bool)
+            if args.lookahead_bars > 0:
+                valid_mask[-args.lookahead_bars:] = False
+
+        # Session detection + derived session-context features from canonical timestamps
         df_year = df_year.copy()
         df_year["_session"] = get_session_vectorized(ts_year)
+        session_map = {"ASIA": 0, "EU": 1, "OVERLAP": 2, "US": 3}
+        sid = df_year["_session"].map(session_map).astype(np.int32)
+        df_year["session_id"] = sid
+        df_year["is_ASIA"] = (sid == 0).astype(np.int8)
+        df_year["minutes_since_session_open"] = get_session_minutes_since_open_vectorized(ts_year).astype(np.float32)
+        df_year["minutes_to_next_session_boundary"] = get_session_minutes_to_next_boundary_vectorized(ts_year).astype(np.float32)
+        df_year["session_change_flag"] = (sid.diff().fillna(0) != 0).astype(np.int8)
+        df_year["session_tradable"] = (sid != 0).astype(np.int8)
         session_stats = get_session_stats(df_year["_session"])
         print(f"    Session distribution: {session_stats.get('percentages', {})}")
 
@@ -771,6 +925,34 @@ def main() -> int:
                     "p_flat_values": p_flat,
                     "uncertainty_values": outputs.uncertainty,
                 }
+
+                if args.signal7_analysis:
+                    margin = _margin_top1_top2(p_long, p_short, p_flat)
+                    side_pred = np.argmax(np.column_stack([p_long, p_short, p_flat]), axis=1).astype(np.int8)
+
+                    base_pos_session = df_year.loc[session_mask, "_base_pos"].to_numpy()
+                    if len(base_pos_session) != len(margin):
+                        raise RuntimeError(f"SIGNAL7_INDEX_MISMATCH: year={year} session={session}")
+
+                    mask_valid = valid_mask[base_pos_session]
+                    if not mask_valid.any():
+                        raise RuntimeError(f"SIGNAL7_NO_VALID_ROWS: year={year} session={session}")
+
+                    margin_v = margin[mask_valid]
+                    side_v = side_pred[mask_valid]
+                    ret_v = return_bps[base_pos_session][mask_valid]
+                    signed_ret = ret_v.copy()
+                    signed_ret[side_v == 1] = -signed_ret[side_v == 1]
+                    signed_ret[side_v == 2] = 0.0
+
+                    signal7_rows[session]["margin"].append(margin_v)
+                    signal7_rows[session]["signed_return_bps"].append(signed_ret)
+                    signal7_rows[session]["side_pred"].append(side_v)
+
+                    signal7_overall["margin"].append(margin_v)
+                    signal7_overall["signed_return_bps"].append(signed_ret)
+                    signal7_overall["side_pred"].append(side_v)
+                    signal7_overall["session"].append(np.full(len(margin_v), session, dtype=object))
 
                 if session == "US":
                     # Keep aligned price arrays for US move stats from tape join
@@ -933,6 +1115,163 @@ def main() -> int:
             }
         # Drop temp
         year_obj.pop("_us_prices", None)
+
+    if args.signal7_analysis:
+        print("\n" + "=" * 60)
+        print("SIGNAL7 ANALYSIS (margin ranking vs future return)")
+        print("=" * 60)
+        print(f"Lookahead bars: {args.lookahead_bars}  Spread bps: {args.spread_bps:.2f}")
+
+        def _cat(arrs: List[np.ndarray]) -> np.ndarray:
+            return np.concatenate(arrs) if arrs else np.asarray([], dtype=float)
+
+        overall_margin = _cat(signal7_overall["margin"])
+        overall_signed = _cat(signal7_overall["signed_return_bps"])
+        overall_side = _cat(signal7_overall["side_pred"]).astype(np.int8) if signal7_overall["side_pred"] else np.asarray([], dtype=np.int8)
+        overall_session = (
+            np.concatenate(signal7_overall["session"]) if signal7_overall["session"] else np.asarray([], dtype=object)
+        )
+
+        if overall_margin.size == 0:
+            raise RuntimeError("SIGNAL7_EMPTY: no rows collected")
+
+        decile_tables: List[pd.DataFrame] = []
+        side_tables: List[pd.DataFrame] = []
+        session_summary_rows: List[Dict[str, Any]] = []
+
+        overall_deciles = _build_decile_table(overall_margin, overall_signed, overall_side, "ALL")
+        if not overall_deciles.empty:
+            decile_tables.append(overall_deciles)
+
+        overall_side_summary = _side_summary(overall_signed, overall_side, "ALL")
+        if not overall_side_summary.empty:
+            side_tables.append(overall_side_summary)
+
+        for session in model.sessions:
+            m = _cat(signal7_rows[session]["margin"])
+            sret = _cat(signal7_rows[session]["signed_return_bps"])
+            side = _cat(signal7_rows[session]["side_pred"]).astype(np.int8) if signal7_rows[session]["side_pred"] else np.asarray([], dtype=np.int8)
+            if m.size == 0:
+                continue
+
+            dec = _build_decile_table(m, sret, side, session)
+            if not dec.empty:
+                decile_tables.append(dec)
+
+            ss = _side_summary(sret, side, session)
+            if not ss.empty:
+                side_tables.append(ss)
+
+            spearman = float("nan")
+            if len(m) > 2 and np.std(m) > 0 and np.std(sret) > 0:
+                spearman = float(scipy_stats.spearmanr(m, sret).correlation)
+
+            session_summary_rows.append(
+                {
+                    "session": session,
+                    "n": int(len(m)),
+                    "mean_return_bps": float(np.mean(sret)),
+                    "median_return_bps": float(np.median(sret)),
+                    "win_rate": float(np.mean(sret > 0.0)),
+                    "long_share": float(np.mean(side == 0)),
+                    "short_share": float(np.mean(side == 1)),
+                    "flat_share": float(np.mean(side == 2)),
+                    "margin_mean": float(np.mean(m)),
+                    "margin_p95": float(np.percentile(m, 95)),
+                    "spearman_margin_return": spearman,
+                }
+            )
+
+        deciles_df = pd.concat(decile_tables, ignore_index=True) if decile_tables else pd.DataFrame()
+        side_df = pd.concat(side_tables, ignore_index=True) if side_tables else pd.DataFrame()
+        session_df = pd.DataFrame(session_summary_rows)
+
+        # Side x decile (overall margin bins)
+        try:
+            overall_decile_idx = pd.qcut(overall_margin, q=10, labels=False, duplicates="drop")
+            side_decile_df = pd.DataFrame(
+                {
+                    "decile": overall_decile_idx,
+                    "side_pred": overall_side,
+                    "signed_return_bps": overall_signed,
+                }
+            ).dropna()
+            side_decile_summary = (
+                side_decile_df.groupby(["decile", "side_pred"], dropna=True)
+                .agg(
+                    n=("signed_return_bps", "size"),
+                    mean_return_bps=("signed_return_bps", "mean"),
+                    win_rate=("signed_return_bps", lambda x: float(np.mean(x > 0.0))),
+                )
+                .reset_index()
+            )
+        except Exception:
+            side_decile_summary = pd.DataFrame()
+
+        # Top-confidence slices (overall)
+        top_rows: List[Dict[str, Any]] = []
+        for pct in (0.95, 0.90, 0.80):
+            thr = float(np.quantile(overall_margin, pct))
+            mask = overall_margin >= thr
+            if not mask.any():
+                continue
+            sess_vals, sess_counts = np.unique(overall_session[mask], return_counts=True)
+            sess_dist = {str(k): int(v) for k, v in zip(sess_vals, sess_counts)}
+            top_rows.append(
+                {
+                    "slice": f"top_{int((1.0 - pct) * 100)}pct",
+                    "threshold": thr,
+                    "n": int(mask.sum()),
+                    "mean_return_bps": float(np.mean(overall_signed[mask])),
+                    "win_rate": float(np.mean(overall_signed[mask] > 0.0)),
+                    "session_dist": sess_dist,
+                }
+            )
+        top_df = pd.DataFrame(top_rows)
+
+        # Write artifacts
+        deciles_path = output_dir / "SIGNAL7_DECILES_BY_SESSION.csv"
+        side_path = output_dir / "SIGNAL7_SIDE_SUMMARY.csv"
+        side_decile_path = output_dir / "SIGNAL7_SIDE_DECILES.csv"
+        session_path = output_dir / "SIGNAL7_SESSION_SUMMARY.csv"
+        top_path = output_dir / "SIGNAL7_TOP_CONFIDENCE.csv"
+
+        if not deciles_df.empty:
+            deciles_df.to_csv(deciles_path, index=False)
+        if not side_df.empty:
+            side_df.to_csv(side_path, index=False)
+        if not side_decile_summary.empty:
+            side_decile_summary.to_csv(side_decile_path, index=False)
+        if not session_df.empty:
+            session_df.to_csv(session_path, index=False)
+        if not top_df.empty:
+            top_df.to_csv(top_path, index=False)
+
+        # Terminal summary
+        print("\nSIGNAL7 SUMMARY (overall deciles)")
+        if not overall_deciles.empty:
+            print(overall_deciles[["decile", "n", "mean_return_bps", "median_return_bps", "win_rate"]].to_string(index=False))
+        else:
+            print("No decile output")
+
+        print("\nSIGNAL7 SUMMARY (per side, overall)")
+        if not overall_side_summary.empty:
+            print(overall_side_summary.to_string(index=False))
+        else:
+            print("No side summary")
+
+        print("\nSIGNAL7 SUMMARY (per session)")
+        if not session_df.empty:
+            print(session_df[["session", "n", "mean_return_bps", "win_rate", "margin_mean", "margin_p95", "spearman_margin_return"]].to_string(index=False))
+        else:
+            print("No session summary")
+
+        print("\nSIGNAL7 OUTPUTS")
+        for p in [deciles_path, side_path, side_decile_path, session_path, top_path]:
+            if p.exists():
+                print(f"  {p}")
+
+        return 0
 
     # Drift analysis
     print("\n" + "=" * 60)

@@ -33,6 +33,7 @@ fi
 echo "[1/2] Creating GX1DemoRunner and loading V10.1..."
 python3 -B << PYEOF 2>&1 | tee "$LOG_FILE"
 import sys
+import os
 from pathlib import Path
 from gx1.execution.oanda_demo_runner import GX1DemoRunner
 import pandas as pd
@@ -81,7 +82,11 @@ try:
     sys.stdout.flush()
     
     # Load a small sample of data for one inference
-    data_file = Path("data/raw/xauusd_m5_2025_bid_ask.parquet")
+    tape_root = os.environ.get(
+        "GX1_CANONICAL_TAPE_ROOT",
+        "/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m5_bid_ask__CANONICAL",
+    )
+    data_file = Path(tape_root) / "year=2025" / "part-000.parquet"
     if not data_file.exists():
         print(f"❌ ERROR: Data file not found: {data_file}")
         sys.exit(1)
@@ -152,4 +157,3 @@ echo ""
 echo "Log file: $LOG_FILE"
 
 exit $EXIT_CODE
-

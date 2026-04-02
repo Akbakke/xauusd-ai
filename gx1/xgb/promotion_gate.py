@@ -138,10 +138,10 @@ def verify_xgb_promotion_gate(
                 raise PromotionGateError(
                     f"XGB_UNIVERSAL_NOT_PROMOTED: No GO marker found at {go_marker_path}\n\n"
                     f"HOW TO FIX:\n"
-                    f"1. Train universal model: python3 gx1/scripts/train_xgb_universal_v1_multiyear.py\n"
-                    f"2. Evaluate model: python3 gx1/scripts/eval_xgb_universal_multiyear.py\n"
-                    f"3. If GO verdict: marker will be written automatically\n"
-                    f"4. If NO-GO: fix issues and re-train"
+                    f"1. Legacy universal-v1 training path has been removed\n"
+                    f"2. Use the canonical multihead v2 lane instead: python3 gx1/scripts/train_xgb_universal_multihead_v2.py\n"
+                    f"3. Evaluate with: python3 gx1/scripts/eval_xgb_multihead_v2_multiyear.py\n"
+                    f"4. If GO verdict: marker will be written automatically"
                 )
         
         result["go_marker_found"] = True

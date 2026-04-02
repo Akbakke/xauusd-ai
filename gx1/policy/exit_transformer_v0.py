@@ -71,6 +71,30 @@ DEFAULT_THRESHOLD = 0.5
 
 LAST_GO_FILENAME = "LAST_GO.txt"
 TRUTH_E2E_REPORTS = "reports/truth_e2e_sanity"
+EXIT_LABEL_FAMILY_NAMES: List[str] = [
+    "HARD_DETERIORATION_EDGE_DEATH",
+    "BREAK_EVEN_RED_PROTECTION",
+    "PROFIT_GIVEBACK_PROTECTION",
+    "NO_EDGE_ADVERSE_COLLAPSE",
+]
+EXIT_LABEL_FAMILY_TO_ID: Dict[str, int] = {name: idx for idx, name in enumerate(EXIT_LABEL_FAMILY_NAMES)}
+EXIT_LABEL_FAMILY_IGNORE_INDEX = -100
+EXIT_AUX_FAMILY_NAMES: List[str] = [
+    "HARD_DETERIORATION_EDGE_DEATH",
+    "BREAK_EVEN_RED_PROTECTION",
+    "NO_EDGE_ADVERSE_COLLAPSE",
+]
+EXIT_AUX_FAMILY_TO_ID: Dict[str, int] = {name: idx for idx, name in enumerate(EXIT_AUX_FAMILY_NAMES)}
+EXIT_AUX_FAMILY_IGNORE_INDEX = -100
+EXIT_PROFIT_HEAD_BUCKET_NAMES: List[str] = [
+    "PROFIT_PROTECT_LIKE",
+    "HARD_DETERIORATION_LIKE",
+    "BREAK_EVEN_RED_LIKE",
+    "EARLY_WEAK_ADVERSE",
+    "NORMAL_THRESHOLD_MASS",
+]
+DEFAULT_FAMILY_AUX_LOSS_WEIGHT = 0.0
+DEFAULT_PROFIT_PROTECT_HEAD_LOSS_WEIGHT = 0.50
 
 # -----------------------------------------------------------------------------
 # LAST_GO resolver
@@ -146,83 +170,78 @@ def _make_deterministic(seed: int = 42) -> None:
     random.seed(seed)
 
 
-# -----------------------------------------------------------------------------
-# Deterministic EXIT LABELER (V0)
-# -----------------------------------------------------------------------------
-def _label_exit_deterministic_v0(
-    *,
-    idx: int,
-    pnl_bps: np.ndarray,
-    mfe_bps: np.ndarray,
-    mae_bps: np.ndarray,
-    dd_from_mfe_bps: np.ndarray,
-    bars_held: np.ndarray,
-    horizon: int = 12,
-    min_hold_bars: int = 2,
-    loss_bps: float = 40.0,
-    recovery_bps: float = 20.0,
-    mfe_arm_bps: float = 35.0,
-    giveback_bps: float = 18.0,
-) -> int:
-    """
-    Deterministic binary exit label.
-
-    Rules:
-    1) Respect min_hold_bars
-    2) Cut-loser: future MAE <= -loss_bps before any recovery >= +recovery_bps
-    3) Giveback: already reached MFE >= mfe_arm_bps AND dd_from_mfe_now >= giveback_bps
-    """
-    if bars_held[idx] < min_hold_bars:
-        return 0
-
-    # Giveback protector (uses info available "now")
-    if mfe_bps[idx] >= mfe_arm_bps and dd_from_mfe_bps[idx] >= giveback_bps:
-        return 1
-
-    # Cut-loser lookahead (deterministic horizon)
-    end = min(idx + horizon + 1, pnl_bps.size)
-    future_pnl = pnl_bps[idx:end]
-
-    hit_loss = np.any(future_pnl <= -loss_bps)
-    hit_recovery = np.any(future_pnl >= recovery_bps)
-
-    if hit_loss and not hit_recovery:
-        return 1
-
-    return 0
-
-
 def _attach_labels_to_exit_records(
     records: List[Dict[str, Any]],
     *,
-    lookahead_h_bars: int = 10,
-    uplift_eps_bps: float = 20.0,
     min_hold_bars: int = 2,
-    max_pos_per_trade: int = 10,
-    hazard_band_bars: int = 10,
-    max_positive_fraction_per_trade: float = 0.25,
     capture_ratio_threshold: float = 0.8,
-    det_mfe_bps: float = 2.0,
-    det_dd_from_mfe_bps: float = 80.0,
-    det_giveback_ratio: float = 1.0,
-    det_time_since_mfe_bars: float = 150.0,
-    det_giveback_accel_min: float = 0.02,
-    det_dd_accel_min: float = 3.0,
-    det_stagnation_bars: int = 20,
-    det_pnl_max_bps: float = 5.0,
-    det_pnl_frac_of_mfe: float = 0.5,
-    det_min_bars_held: int = 300,
-    det_regret_ratio: float = 0.5,
-    det_max_per_trade: int = 3,
+    enable_capture_label: bool = False,
+    det_max_per_trade: int = 4,
+    postprog_mfe_min_long: float = 6.0,
+    postprog_mfe_min_short: float = 5.0,
+    postprog_dd_min_long: float = 20.0,
+    postprog_dd_min_short: float = 15.0,
+    postprog_giveback_ratio_min_long: float = 0.50,
+    postprog_giveback_ratio_min_short: float = 0.45,
+    postprog_giveback_ratio_floor: float = 0.10,
+    postprog_pnl_frac_floor_long: float = 0.35,
+    postprog_pnl_frac_floor_short: float = 0.35,
+    postprog_pnl_abs_floor_long: float = 0.5,
+    postprog_pnl_abs_floor_short: float = 1.0,
+    early_long_recovery_max_bars: float = 3.0,
+    early_long_recovery_mfe_cap_bps: float = 1.0,
+    early_long_recovery_future_max_bps: float = 10.0,
+    early_long_recovery_negative_weight: float = 1.75,
+    no_edge_adverse_mfe_cap_bps: float = 1.0,
+    no_edge_adverse_dd_min_bps: float = 18.0,
+    no_edge_adverse_pnl_min_bps: float = -12.0,
+    no_edge_adverse_slope_max: float = -4.0,
+    no_edge_adverse_pflat_max: float = 0.22,
+    no_edge_adverse_margin_max: float = 0.16,
+    no_edge_adverse_unc_min: float = 0.55,
+    profit_protect_mfe_min_long: float = 30.0,
+    profit_protect_mfe_min_short: float = 20.0,
+    profit_protect_dd_min_bps: float = 20.0,
+    profit_protect_giveback_ratio_min: float = 0.30,
+    profit_protect_pnl_min_bps: float = 0.0,
+    profit_protect_pnl_max_bps: float = 120.0,
+    profit_protect_pnl_frac_mfe_max: float = 0.70,
+    profit_protect_time_since_mfe_min_bars: float = 2.0,
+    profit_protect_future_headroom_abs_max_bps: float = 10.0,
+    profit_protect_future_headroom_frac_max: float = 0.25,
+    profit_protect_mask_signal_pflat_min: float = 0.35,
+    profit_protect_mask_signal_unc_min: float = 0.52,
+    profit_protect_mask_signal_margin_max: float = 0.22,
 ) -> None:
     """
-    Profit-capture labels based on peak proximity.
+    Edge-death / giveback labels with protect-earned-MFE semantics.
+
+    Primary truth:
+      - trade had edge (MFE arm),
+      - edge is deteriorating now (giveback/stale/back-to-flat),
+      - should exit to protect earned MFE.
+
+    Secondary truth (optional, disabled by default):
+      - profit-capture based on peak proximity.
+
+    Redesign note:
+      - Profit-protect labels are hindsight-aware and should teach
+        deterioration after earned MFE, not generic early close.
+      - A profit-protect positive is therefore suppressed when the same
+        state still has meaningful future recovery left from current pnl.
+
     For each trade bar i:
       - future_max_pnl = max(pnl_bps_now from i to trade end)
       - capture_ratio = pnl_bps_now / future_max_pnl
-      - exit_label = 1 if capture_ratio >= capture_ratio_threshold (default 0.8)
+      - optional capture label = 1 if capture_ratio >= capture_ratio_threshold
     NaN/inf-safe: non-finite values or non-positive future_max_pnl -> label 0.
-    Adds post-peak deterioration labels when a strong winner shows structural giveback.
+    Adds deterministic post-progress deterioration labels (relabel-truth) when a trade:
+      1) has meaningful progress (MFE arm),
+      2) then shows clear deterioration by one of:
+         - giveback after progress,
+         - stale after peak,
+         - back to near-flat/red.
+    Side asymmetry is explicit (short can trigger earlier than long).
     """
     if not records:
         return
@@ -257,6 +276,115 @@ def _attach_labels_to_exit_records(
         return out
 
     label_variant = os.environ.get("GX1_EXIT_LABEL_VARIANT", "EXIT_LABEL_DET_V1").strip().upper()
+    sweep_profile = os.environ.get("GX1_EXIT_LABEL_SWEEP_PROFILE", "").strip().upper()
+    main_label_profile = os.environ.get("GX1_EXIT_MAIN_LABEL_PROFILE", "MAIN_V1_CONTROL").strip().upper()
+    profit_dd_extra_bps = 0.0
+    profit_gb_extra = 0.0
+    be_de_max = -0.03
+    be_require_signal_extreme = False
+    suppress_weak_band_max = 0.02
+    suppress_flat_min = 0.44
+    suppress_mild_dd_max = 14.0
+    suppress_mild_gb_max = 0.85
+    signal_not_supportive_de_max = 0.02
+    signal_not_supportive_pflat_min = 0.40
+    signal_not_supportive_margin_max = 0.20
+    signal_not_supportive_unc_min = 0.55
+    signal_not_supportive_phat_max = 0.60
+    signal_dead_strong_de_max = 0.0
+    signal_dead_strong_pflat_min = 0.45
+    signal_dead_strong_margin_max = 0.12
+    signal_dead_strong_unc_min = 0.60
+    no_edge_adverse_enabled = True
+    if sweep_profile in {"A_PROFIT_STRICT", "EXIT_LABEL_SWEEP_A_PROFIT_STRICT"}:
+        profit_dd_extra_bps = 2.0
+        profit_gb_extra = 0.05
+    elif sweep_profile in {"B_BE_STRICT", "EXIT_LABEL_SWEEP_B_BE_STRICT"}:
+        be_de_max = -0.05
+        be_require_signal_extreme = True
+    elif sweep_profile in {"C_EARLY_SUPPRESS", "EXIT_LABEL_SWEEP_C_EARLY_SUPPRESS"}:
+        suppress_weak_band_max = 0.03
+        suppress_flat_min = 0.40
+        suppress_mild_dd_max = 16.0
+        suppress_mild_gb_max = 0.90
+    elif sweep_profile in {"D_HYBRID", "EXIT_LABEL_SWEEP_D_HYBRID"}:
+        profit_dd_extra_bps = 2.0
+        profit_gb_extra = 0.05
+        suppress_weak_band_max = 0.03
+        suppress_flat_min = 0.40
+        suppress_mild_dd_max = 16.0
+        suppress_mild_gb_max = 0.90
+    if main_label_profile == "MAIN_V1_CONTROL":
+        pass
+    elif main_label_profile == "MAIN_V2_PROGRESS_STRICT":
+        min_hold_bars = max(int(min_hold_bars), 3)
+        postprog_mfe_min_long = 10.0
+        postprog_mfe_min_short = 8.0
+        postprog_dd_min_long = 24.0
+        postprog_dd_min_short = 18.0
+        postprog_giveback_ratio_min_long = 0.60
+        postprog_giveback_ratio_min_short = 0.55
+        det_max_per_trade = min(int(det_max_per_trade), 3)
+    elif main_label_profile == "MAIN_V3_SIGNAL_STRICT":
+        min_hold_bars = max(int(min_hold_bars), 3)
+        be_de_max = -0.06
+        be_require_signal_extreme = True
+        signal_not_supportive_de_max = 0.0
+        signal_not_supportive_pflat_min = 0.44
+        signal_not_supportive_margin_max = 0.16
+        signal_not_supportive_unc_min = 0.58
+        signal_not_supportive_phat_max = 0.58
+        signal_dead_strong_de_max = -0.02
+        signal_dead_strong_pflat_min = 0.50
+        signal_dead_strong_margin_max = 0.10
+        signal_dead_strong_unc_min = 0.62
+        suppress_weak_band_max = 0.01
+        suppress_flat_min = 0.48
+        suppress_mild_dd_max = 12.0
+        suppress_mild_gb_max = 0.75
+    elif main_label_profile == "MAIN_V4_NO_EDGE_STRICT":
+        min_hold_bars = max(int(min_hold_bars), 3)
+        no_edge_adverse_mfe_cap_bps = 0.5
+        no_edge_adverse_dd_min_bps = 24.0
+        no_edge_adverse_pnl_min_bps = -20.0
+        no_edge_adverse_slope_max = -6.0
+        no_edge_adverse_pflat_max = 0.18
+        no_edge_adverse_margin_max = 0.12
+        no_edge_adverse_unc_min = 0.60
+        det_max_per_trade = min(int(det_max_per_trade), 3)
+    elif main_label_profile == "MAIN_V5_HYBRID_STRICT":
+        min_hold_bars = max(int(min_hold_bars), 3)
+        postprog_mfe_min_long = 10.0
+        postprog_mfe_min_short = 8.0
+        postprog_dd_min_long = 24.0
+        postprog_dd_min_short = 18.0
+        postprog_giveback_ratio_min_long = 0.60
+        postprog_giveback_ratio_min_short = 0.55
+        be_de_max = -0.06
+        be_require_signal_extreme = True
+        signal_not_supportive_de_max = 0.0
+        signal_not_supportive_pflat_min = 0.44
+        signal_not_supportive_margin_max = 0.16
+        signal_not_supportive_unc_min = 0.58
+        signal_not_supportive_phat_max = 0.58
+        signal_dead_strong_de_max = -0.02
+        signal_dead_strong_pflat_min = 0.50
+        signal_dead_strong_margin_max = 0.10
+        signal_dead_strong_unc_min = 0.62
+        no_edge_adverse_mfe_cap_bps = 0.5
+        no_edge_adverse_dd_min_bps = 24.0
+        no_edge_adverse_pnl_min_bps = -20.0
+        no_edge_adverse_slope_max = -6.0
+        no_edge_adverse_pflat_max = 0.18
+        no_edge_adverse_margin_max = 0.12
+        no_edge_adverse_unc_min = 0.60
+        suppress_weak_band_max = 0.01
+        suppress_flat_min = 0.48
+        suppress_mild_dd_max = 12.0
+        suppress_mild_gb_max = 0.75
+        det_max_per_trade = min(int(det_max_per_trade), 3)
+    else:
+        raise RuntimeError(f"[EXIT_MAIN_LABEL_PROFILE_FAIL] unsupported profile={main_label_profile!r}")
     intraday_variants = {"EXIT_LABEL_INTRADAY_H30", "EXIT_LABEL_INTRADAY_FAILFAST_H30"}
     intraday_h = 30 if label_variant in intraday_variants else None
     failfast = label_variant == "EXIT_LABEL_INTRADAY_FAILFAST_H30"
@@ -267,15 +395,53 @@ def _attach_labels_to_exit_records(
     boundary_minutes = 60.0
     boundary_pnl_floor = -2.0
     log.info(
-        "[EXIT_LABEL_VARIANT] variant=%s intraday_h=%s failfast=%s loss_bps=%.1f grace_bars=%d",
+        "[EXIT_LABEL_VARIANT] variant=%s sweep_profile=%s main_label_profile=%s intraday_h=%s failfast=%s loss_bps=%.1f grace_bars=%d "
+        "profit_dd_extra=%.1f profit_gb_extra=%.2f be_de_max=%.2f be_extreme=%s "
+        "signal={ns_de<=%.2f,ns_pflat>=%.2f,ns_margin<=%.2f,ns_unc>=%.2f,ns_phat<=%.2f,dead_de<=%.2f,dead_pflat>=%.2f,dead_margin<=%.2f,dead_unc>=%.2f} "
+        "suppress={weak_band_max=%.2f,flat_min=%.2f,dd_max=%.1f,gb_max=%.2f} "
+        "postprog={hold>=%d,long(mfe>=%.1f,dd>=%.1f,gb>=%.2f),short(mfe>=%.1f,dd>=%.1f,gb>=%.2f)} "
+        "no_edge={enabled=%s,mfe<=%.1f,dd>=%.1f,pnl<=%.1f,slope<=%.1f,pflat<=%.2f,margin<=%.2f,unc>=%.2f}",
         label_variant,
+        sweep_profile,
+        main_label_profile,
         intraday_h,
         failfast,
         failfast_loss_bps,
         failfast_grace_bars,
+        profit_dd_extra_bps,
+        profit_gb_extra,
+        be_de_max,
+        be_require_signal_extreme,
+        signal_not_supportive_de_max,
+        signal_not_supportive_pflat_min,
+        signal_not_supportive_margin_max,
+        signal_not_supportive_unc_min,
+        signal_not_supportive_phat_max,
+        signal_dead_strong_de_max,
+        signal_dead_strong_pflat_min,
+        signal_dead_strong_margin_max,
+        signal_dead_strong_unc_min,
+        suppress_weak_band_max,
+        suppress_flat_min,
+        suppress_mild_dd_max,
+        suppress_mild_gb_max,
+        int(min_hold_bars),
+        postprog_mfe_min_long,
+        postprog_dd_min_long,
+        postprog_giveback_ratio_min_long,
+        postprog_mfe_min_short,
+        postprog_dd_min_short,
+        postprog_giveback_ratio_min_short,
+        no_edge_adverse_enabled,
+        no_edge_adverse_mfe_cap_bps,
+        no_edge_adverse_dd_min_bps,
+        no_edge_adverse_pnl_min_bps,
+        no_edge_adverse_slope_max,
+        no_edge_adverse_pflat_max,
+        no_edge_adverse_margin_max,
+        no_edge_adverse_unc_min,
     )
 
-    # Group by trade_uid (fallback trade_id)
     trades: Dict[str, List[Dict[str, Any]]] = {}
     for rec in records:
         if "should_exit" in rec:
@@ -291,16 +457,46 @@ def _attach_labels_to_exit_records(
             continue
         trades.setdefault(tid, []).append(rec)
 
-    n_pos = 0
+    n_main_pos = 0
+    n_profit_pos = 0
+    n_profit_mask = 0
     n_pos_capture = 0
-    n_pos_deterioration = 0
+    n_main_pos_deterioration = 0
     n_pos_both = 0
-    n_trades_with_pos = 0
+    n_trades_with_main_pos = 0
+    n_trades_with_profit_pos = 0
     bars_per_trade: List[int] = []
     pos_bars: List[float] = []
     pos_counts_per_trade: List[int] = []
     capture_ratios: List[float] = []
     det_counts_per_trade: List[int] = []
+    det_reason_counts: Dict[str, int] = {
+        "HARD_DETERIORATION_EDGE_DEATH": 0,
+        "BREAK_EVEN_RED_PROTECTION": 0,
+        "PROFIT_GIVEBACK_PROTECTION": 0,
+        "NO_EDGE_ADVERSE_COLLAPSE": 0,
+        "OTHER_DETERMINISTIC": 0,
+    }
+    det_suppressed_early_rest_signature = 0
+    det_suppressed_near_early_family_total = 0
+    det_suppressed_near_early_family_by_reason: Dict[str, int] = {
+        "HARD_DETERIORATION_EDGE_DEATH": 0,
+        "BREAK_EVEN_RED_PROTECTION": 0,
+        "PROFIT_GIVEBACK_PROTECTION": 0,
+    }
+    profit_protect_future_recovery_suppressed = 0
+    profit_protect_normal_threshold_suppressed = 0
+    early_long_recovery_signature_seen = 0
+    early_long_recovery_signature_positive_pre = 0
+    early_long_recovery_signature_positive_suppressed = 0
+    early_long_recovery_signature_downweighted = 0
+    no_edge_adverse_collapse_seen = 0
+    no_edge_adverse_collapse_pos = 0
+    be_pos_pre_strict = 0
+    be_pos_post_strict = 0
+    no_edge_pos_pre_strict = 0
+    total_pos_pre_be_strict = 0
+    total_pos_post_be_strict = 0
 
     for tid, recs in trades.items():
         if not recs:
@@ -308,26 +504,83 @@ def _attach_labels_to_exit_records(
         if any("should_exit" in r for r in recs):
             continue
 
-        # Deterministic ordering: sort by bars_held then ts string
-        def _sort_key(r):
+        def _sort_key(r: Dict[str, Any]) -> Tuple[float, str]:
             bars_val = (r.get("scalars") or {}).get("bars_held", r.get("bars_held", 0))
             ts_val = r.get("ts") or ""
             return (float(bars_val) if math.isfinite(float(bars_val)) else 0.0, str(ts_val))
-        recs = sorted(recs, key=_sort_key)
 
+        recs = sorted(recs, key=_sort_key)
         pnl = np.array([_get_scalar(r, "pnl_bps_now") for r in recs], dtype=np.float32)
         bars = np.array([_get_scalar(r, "bars_held") for r in recs], dtype=np.float32)
         mfe = np.array([_get_scalar(r, "mfe_bps") for r in recs], dtype=np.float32)
-        dd_from_mfe = np.array([_get_scalar(r, "dd_from_mfe_bps") for r in recs], dtype=np.float32)
-        distance_from_peak = []
-        for r in recs:
-            try:
-                distance_from_peak.append(_get_scalar(r, "distance_from_peak_mfe_bps"))
-            except Exception:
-                distance_from_peak.append(_get_scalar(r, "dd_from_mfe_bps"))
-        distance_from_peak = np.array(distance_from_peak, dtype=np.float32)
+        distance_from_peak = np.array(
+            [
+                _get_scalar_optional(r, "distance_from_peak_mfe_bps")
+                if _get_scalar_optional(r, "distance_from_peak_mfe_bps") is not None
+                else _get_scalar(r, "dd_from_mfe_bps")
+                for r in recs
+            ],
+            dtype=np.float32,
+        )
         giveback_ratio = np.array([_get_scalar(r, "giveback_ratio") for r in recs], dtype=np.float32)
         time_since_mfe = np.array([_get_scalar(r, "time_since_mfe_bars") for r in recs], dtype=np.float32)
+        side_norm = str(recs[0].get("side") or "").strip().lower()
+        is_short = side_norm == "short"
+
+        directional_edge_sig = np.full(len(recs), np.nan, dtype=np.float32)
+        p_flat_sig = np.full(len(recs), np.nan, dtype=np.float32)
+        margin_sig = np.full(len(recs), np.nan, dtype=np.float32)
+        uncertainty_sig = np.full(len(recs), np.nan, dtype=np.float32)
+        p_hat_sig = np.full(len(recs), np.nan, dtype=np.float32)
+        slope_sig = np.full(len(recs), np.nan, dtype=np.float32)
+        try:
+            feat_idx = {name: i for i, name in enumerate(EXIT_IO_V1_CTX36_FEATURES)}
+            required = {
+                "p_long": feat_idx.get("p_long"),
+                "p_short": feat_idx.get("p_short"),
+                "p_flat": feat_idx.get("p_flat"),
+                "margin_top1_top2": feat_idx.get("margin_top1_top2"),
+                "uncertainty_score": feat_idx.get("uncertainty_score"),
+                "p_hat": feat_idx.get("p_hat"),
+                "rolling_slope_since_entry": feat_idx.get("rolling_slope_since_entry"),
+            }
+            if all(v is not None for v in required.values()):
+                i_pl = int(required["p_long"])
+                i_ps = int(required["p_short"])
+                i_pf = int(required["p_flat"])
+                i_margin = int(required["margin_top1_top2"])
+                i_unc = int(required["uncertainty_score"])
+                i_phat = int(required["p_hat"])
+                i_slope = int(required["rolling_slope_since_entry"])
+                for i, rec in enumerate(recs):
+                    io = rec.get("io_features") or (rec.get("io") or {}).get("io_features")
+                    if io is None:
+                        continue
+                    arr = np.asarray(io, dtype=np.float32)
+                    row = arr[-1] if arr.ndim == 2 else arr if arr.ndim == 1 else None
+                    if row is None or int(row.shape[-1]) <= max(i_pl, i_ps, i_pf):
+                        continue
+                    p_long_i = float(row[i_pl])
+                    p_short_i = float(row[i_ps])
+                    p_flat_i = float(row[i_pf])
+                    margin_i = float(row[i_margin])
+                    uncertainty_i = float(row[i_unc])
+                    p_hat_i = float(row[i_phat])
+                    slope_i = float(row[i_slope])
+                    if not all(
+                        math.isfinite(v)
+                        for v in (p_long_i, p_short_i, p_flat_i, margin_i, uncertainty_i, p_hat_i, slope_i)
+                    ):
+                        continue
+                    directional_edge_sig[i] = float(p_short_i - p_long_i) if is_short else float(p_long_i - p_short_i)
+                    p_flat_sig[i] = float(p_flat_i)
+                    margin_sig[i] = float(margin_i)
+                    uncertainty_sig[i] = float(uncertainty_i)
+                    p_hat_sig[i] = float(p_hat_i)
+                    slope_sig[i] = float(slope_i)
+        except Exception:
+            pass
+
         minutes_to_boundary = np.array(
             [
                 _get_scalar_optional(r, "minutes_to_next_session_boundary")
@@ -341,6 +594,12 @@ def _attach_labels_to_exit_records(
         bars_per_trade.append(len(recs))
         for r in recs:
             r["should_exit"] = 0.0
+            r["profit_protect_should_exit"] = 0.0
+            r["profit_protect_train_mask"] = 0.0
+            r["sample_weight"] = 1.0
+            r["exit_label_family"] = "NEGATIVE"
+            r["exit_aux_family"] = "NEGATIVE"
+            r["profit_head_bucket"] = "OTHER"
 
         n = len(recs)
         if intraday_h is None:
@@ -350,17 +609,9 @@ def _attach_labels_to_exit_records(
             for i in range(n):
                 end = min(n, i + intraday_h + 1)
                 future_max[i] = float(np.nanmax(pnl[i:end])) if end > i else float(pnl[i])
-        # Track last time a new pnl high was made (stagnation proxy)
-        max_so_far = -float("inf")
-        last_high_idx = -1
-        last_high_idx_arr = np.zeros(n, dtype=np.int32)
-        for i in range(n):
-            val = float(pnl[i])
-            if math.isfinite(val) and val >= max_so_far:
-                max_so_far = val
-                last_high_idx = i
-            last_high_idx_arr[i] = last_high_idx
-        pos_count = 0
+
+        main_pos_count = 0
+        profit_pos_count = 0
         det_count = 0
         failfast_trigger_idx: Optional[int] = None
         if failfast:
@@ -369,6 +620,7 @@ def _attach_labels_to_exit_records(
                 if math.isfinite(cur) and cur <= failfast_loss_bps:
                     failfast_trigger_idx = i
                     break
+
         for i in range(n):
             if bars[i] < min_hold_bars:
                 continue
@@ -376,9 +628,13 @@ def _attach_labels_to_exit_records(
             fmax = float(future_max[i])
             if not (math.isfinite(cur) and math.isfinite(fmax)):
                 continue
+            de_now = float("nan")
+            p_flat_now = float("nan")
+            margin_now = float("nan")
+            unc_now = float("nan")
             capture_ratio = None
             is_capture = False
-            if fmax > 0.0:
+            if enable_capture_label and fmax > 0.0:
                 capture_ratio = cur / fmax
                 if math.isfinite(capture_ratio):
                     threshold = capture_ratio_threshold
@@ -387,9 +643,8 @@ def _attach_labels_to_exit_records(
                     is_capture = capture_ratio >= threshold
 
             late_exit = False
-            if intraday_h is not None and float(bars[i]) >= intraday_h:
-                if math.isfinite(cur) and cur >= late_exit_pnl_floor:
-                    late_exit = True
+            if intraday_h is not None and float(bars[i]) >= intraday_h and math.isfinite(cur) and cur >= late_exit_pnl_floor:
+                late_exit = True
 
             boundary_exit = False
             if intraday_h is not None:
@@ -402,60 +657,333 @@ def _attach_labels_to_exit_records(
                 if i >= (failfast_trigger_idx + failfast_grace_bars) and float(bars[i]) <= intraday_h:
                     failfast_exit = True
 
-            # Post-peak deterioration detection (profit-protection / regret minimization)
             det = False
+            det_reason: Optional[str] = None
+            profit_train_mask = False
+            profit_positive = False
             try:
+                mfe_now = float(mfe[i])
+                dd_now = float(distance_from_peak[i])
+                gb_now = float(giveback_ratio[i])
+                tsm_now = float(time_since_mfe[i])
                 if (
-                    math.isfinite(float(mfe[i]))
-                    and math.isfinite(float(distance_from_peak[i]))
-                    and math.isfinite(float(giveback_ratio[i]))
-                    and math.isfinite(float(time_since_mfe[i]))
+                    math.isfinite(mfe_now)
+                    and math.isfinite(dd_now)
+                    and math.isfinite(gb_now)
+                    and math.isfinite(tsm_now)
                 ):
-                    stagnation = (i - int(last_high_idx_arr[i])) >= det_stagnation_bars
-                    pnl_limit = min(det_pnl_max_bps, float(det_pnl_frac_of_mfe) * float(mfe[i]))
-                    regret_ratio = float(distance_from_peak[i]) / max(1.0, float(mfe[i]))
-                    det = (
-                        float(bars[i]) >= det_min_bars_held
-                        and float(mfe[i]) >= det_mfe_bps
-                        and float(distance_from_peak[i]) >= det_dd_from_mfe_bps
-                        and float(giveback_ratio[i]) >= det_giveback_ratio
-                        and float(time_since_mfe[i]) >= det_time_since_mfe_bars
-                        and regret_ratio >= det_regret_ratio
-                        and stagnation
-                        and float(cur) <= pnl_limit
+                    mfe_min = float(postprog_mfe_min_short if is_short else postprog_mfe_min_long)
+                    dd_min = float(postprog_dd_min_short if is_short else postprog_dd_min_long)
+                    gb_min = float(postprog_giveback_ratio_min_short if is_short else postprog_giveback_ratio_min_long)
+                    pnl_frac_floor = float(postprog_pnl_frac_floor_short if is_short else postprog_pnl_frac_floor_long)
+                    pnl_abs_floor = float(postprog_pnl_abs_floor_short if is_short else postprog_pnl_abs_floor_long)
+                    de_now = float(directional_edge_sig[i]) if i < len(directional_edge_sig) else float("nan")
+                    p_flat_now = float(p_flat_sig[i]) if i < len(p_flat_sig) else float("nan")
+                    margin_now = float(margin_sig[i]) if i < len(margin_sig) else float("nan")
+                    unc_now = float(uncertainty_sig[i]) if i < len(uncertainty_sig) else float("nan")
+                    p_hat_now = float(p_hat_sig[i]) if i < len(p_hat_sig) else float("nan")
+                    slope_now = float(slope_sig[i]) if i < len(slope_sig) else float("nan")
+                    if not math.isfinite(slope_now):
+                        slope_now_opt = _get_scalar_optional(recs[i], "rolling_slope_since_entry")
+                        slope_now = float(slope_now_opt) if slope_now_opt is not None else 0.0
+                    has_progress = mfe_now >= mfe_min
+                    has_actual_giveback = gb_now >= float(postprog_giveback_ratio_floor)
+                    pnl_frac_limit = float(mfe_now * pnl_frac_floor)
+                    near_flat_or_red_limit = float(min(pnl_abs_floor, pnl_frac_limit))
+                    future_headroom = float(max(0.0, fmax - cur))
+                    future_headroom_frac = float(future_headroom / mfe_now) if mfe_now > 0.0 else float("inf")
+                    signal_not_supportive = (
+                        math.isfinite(de_now)
+                        and de_now <= float(signal_not_supportive_de_max)
+                        and (
+                            (math.isfinite(p_flat_now) and p_flat_now >= float(signal_not_supportive_pflat_min))
+                            or (math.isfinite(margin_now) and margin_now <= float(signal_not_supportive_margin_max))
+                            or (math.isfinite(unc_now) and unc_now >= float(signal_not_supportive_unc_min))
+                            or (math.isfinite(p_hat_now) and p_hat_now <= float(signal_not_supportive_phat_max))
+                        )
                     )
+                    signal_dead_strong = (
+                        math.isfinite(de_now)
+                        and de_now <= float(signal_dead_strong_de_max)
+                        and (
+                            (math.isfinite(p_flat_now) and p_flat_now >= float(signal_dead_strong_pflat_min))
+                            or (math.isfinite(margin_now) and margin_now <= float(signal_dead_strong_margin_max))
+                            or (math.isfinite(unc_now) and unc_now >= float(signal_dead_strong_unc_min))
+                        )
+                    )
+                    hard_deterioration = (
+                        has_progress
+                        and has_actual_giveback
+                        and signal_dead_strong
+                        and (
+                            (dd_now >= (dd_min + 5.0) and gb_now >= (gb_min + 0.10))
+                            or (dd_now >= max(12.0, dd_min * 0.8) and gb_now >= 0.85)
+                        )
+                    )
+                    break_even_red_pre = (
+                        has_progress
+                        and has_actual_giveback
+                        and signal_not_supportive
+                        and cur <= near_flat_or_red_limit
+                    )
+                    break_even_red = (
+                        break_even_red_pre
+                        and signal_dead_strong
+                        and math.isfinite(de_now)
+                        and de_now <= be_de_max
+                    )
+                    if break_even_red and be_require_signal_extreme:
+                        break_even_red = (
+                            (math.isfinite(p_flat_now) and p_flat_now >= 0.50)
+                            or (math.isfinite(margin_now) and margin_now <= 0.10)
+                            or (math.isfinite(unc_now) and unc_now >= 0.62)
+                        )
+                    profit_mfe_min = float(profit_protect_mfe_min_short if is_short else profit_protect_mfe_min_long)
+                    profit_dd_min = max(float(profit_protect_dd_min_bps), float(dd_min + profit_dd_extra_bps))
+                    profit_gb_min = max(float(profit_protect_giveback_ratio_min), float(gb_min + profit_gb_extra))
+                    profit_pnl_cap = min(float(profit_protect_pnl_max_bps), float(mfe_now * profit_protect_pnl_frac_mfe_max))
+                    profit_state = (
+                        has_progress
+                        and has_actual_giveback
+                        and mfe_now >= profit_mfe_min
+                        and dd_now >= profit_dd_min
+                        and gb_now >= profit_gb_min
+                        and tsm_now >= float(profit_protect_time_since_mfe_min_bars)
+                        and cur >= float(profit_protect_pnl_min_bps)
+                        and cur <= profit_pnl_cap
+                    )
+                    no_edge_adverse_collapse = (
+                        bool(no_edge_adverse_enabled)
+                        and (not is_short)
+                        and mfe_now <= float(no_edge_adverse_mfe_cap_bps)
+                        and dd_now >= float(no_edge_adverse_dd_min_bps)
+                        and cur <= float(no_edge_adverse_pnl_min_bps)
+                        and slope_now <= float(no_edge_adverse_slope_max)
+                        and math.isfinite(de_now)
+                        and de_now <= 0.02
+                        and math.isfinite(p_flat_now)
+                        and p_flat_now <= float(no_edge_adverse_pflat_max)
+                        and (
+                            (math.isfinite(margin_now) and margin_now <= float(no_edge_adverse_margin_max))
+                            or (math.isfinite(unc_now) and unc_now >= float(no_edge_adverse_unc_min))
+                        )
+                    )
+                    if no_edge_adverse_collapse:
+                        no_edge_adverse_collapse_seen += 1
+                        no_edge_pos_pre_strict += 1
+                    if break_even_red_pre:
+                        be_pos_pre_strict += 1
+
+                    profit_signal_not_supportive = (
+                        math.isfinite(de_now)
+                        and de_now <= 0.05
+                        and (
+                            (math.isfinite(p_flat_now) and p_flat_now >= float(profit_protect_mask_signal_pflat_min))
+                            or (math.isfinite(unc_now) and unc_now >= float(profit_protect_mask_signal_unc_min))
+                            or (math.isfinite(margin_now) and margin_now <= float(profit_protect_mask_signal_margin_max))
+                        )
+                    )
+                    break_even_red_floor = bool(
+                        break_even_red_pre
+                        and (
+                            future_headroom <= float(profit_protect_future_headroom_abs_max_bps)
+                            and future_headroom_frac <= float(profit_protect_future_headroom_frac_max)
+                        )
+                    )
+                    profit_giveback = bool(profit_state and profit_signal_not_supportive)
+                    if profit_giveback and (
+                        future_headroom > float(profit_protect_future_headroom_abs_max_bps)
+                        or future_headroom_frac > float(profit_protect_future_headroom_frac_max)
+                    ):
+                        profit_giveback = False
+                        profit_protect_future_recovery_suppressed += 1
+
+                    normal_threshold_mass = bool(
+                        has_progress
+                        and cur > profit_pnl_cap
+                        and dd_now < profit_dd_min
+                        and gb_now < profit_gb_min
+                    )
+                    if has_progress and has_actual_giveback and normal_threshold_mass:
+                        profit_protect_normal_threshold_suppressed += 1
+                    profit_train_mask = bool(profit_state)
+                    profit_positive = bool(profit_train_mask and (profit_giveback or break_even_red_floor))
+
+                    det_pre_strict = hard_deterioration or break_even_red_pre or no_edge_adverse_collapse
+                    should_label_pre_be_strict = bool(det_pre_strict or late_exit or boundary_exit or failfast_exit or is_capture)
+                    if should_label_pre_be_strict:
+                        total_pos_pre_be_strict += 1
+                    det = hard_deterioration or break_even_red or no_edge_adverse_collapse
+                    if break_even_red:
+                        be_pos_post_strict += 1
+
+                    pre_suppress_reason: Optional[str] = None
+                    if det:
+                        if hard_deterioration:
+                            pre_suppress_reason = "HARD_DETERIORATION_EDGE_DEATH"
+                        elif break_even_red:
+                            pre_suppress_reason = "BREAK_EVEN_RED_PROTECTION"
+                        else:
+                            pre_suppress_reason = "NO_EDGE_ADVERSE_COLLAPSE"
+                    if det:
+                        weak_misalign_band = math.isfinite(de_now) and (-0.03 < de_now <= 0.02)
+                        flat_dominant = math.isfinite(p_flat_now) and p_flat_now >= 0.44
+                        moderate_deterioration = dd_now <= 10.0 and gb_now <= 0.65
+                        still_above_near_flat_floor = cur > near_flat_or_red_limit
+                        indecision_dominant = (
+                            (math.isfinite(p_flat_now) and p_flat_now >= 0.42)
+                            or (math.isfinite(unc_now) and unc_now >= 0.58)
+                        )
+                        if weak_misalign_band and flat_dominant and moderate_deterioration and still_above_near_flat_floor:
+                            det = False
+                            det_reason = None
+                            det_suppressed_early_rest_signature += 1
+                        elif (
+                            (math.isfinite(de_now) and (-0.03 < de_now <= suppress_weak_band_max))
+                            and ((math.isfinite(p_flat_now) and p_flat_now >= suppress_flat_min) or indecision_dominant)
+                            and dd_now <= suppress_mild_dd_max
+                            and gb_now <= suppress_mild_gb_max
+                            and still_above_near_flat_floor
+                        ):
+                            det = False
+                            det_reason = None
+                            det_suppressed_near_early_family_total += 1
+                            if pre_suppress_reason:
+                                det_suppressed_near_early_family_by_reason[pre_suppress_reason] = int(
+                                    det_suppressed_near_early_family_by_reason.get(pre_suppress_reason, 0) + 1
+                                )
+                    if det:
+                        if hard_deterioration:
+                            det_reason = "HARD_DETERIORATION_EDGE_DEATH"
+                        elif break_even_red:
+                            det_reason = "BREAK_EVEN_RED_PROTECTION"
+                        else:
+                            det_reason = "NO_EDGE_ADVERSE_COLLAPSE"
                     if det and det_count >= det_max_per_trade:
                         det = False
+                        det_reason = None
             except Exception:
                 det = False
+                det_reason = None
+                profit_train_mask = False
+                profit_positive = False
+                hard_deterioration = False
+                break_even_red_pre = False
+                no_edge_adverse_collapse = False
+                normal_threshold_mass = False
 
-            if is_capture or det or late_exit or boundary_exit or failfast_exit:
+            should_label = bool(det or late_exit or boundary_exit or failfast_exit or is_capture)
+            if should_label:
+                total_pos_post_be_strict += 1
+
+            weak_directional_long = math.isfinite(de_now) and de_now <= 0.05
+            indecision_like = (
+                (math.isfinite(p_flat_now) and p_flat_now >= 0.28)
+                or (math.isfinite(unc_now) and unc_now >= 0.54)
+                or (math.isfinite(margin_now) and margin_now <= 0.12)
+            )
+            early_long_recovery_signature = (
+                (not is_short)
+                and float(bars[i]) <= float(early_long_recovery_max_bars)
+                and float(mfe[i]) <= float(early_long_recovery_mfe_cap_bps)
+                and cur < 0.0
+                and (
+                    fmax >= float(early_long_recovery_future_max_bps)
+                    or (weak_directional_long and indecision_like)
+                )
+            )
+            if early_long_recovery_signature:
+                early_long_recovery_signature_seen += 1
+                if should_label:
+                    early_long_recovery_signature_positive_pre += 1
+                    det = False
+                    det_reason = None
+                    late_exit = False
+                    boundary_exit = False
+                    failfast_exit = False
+                    is_capture = False
+                    should_label = False
+                    early_long_recovery_signature_positive_suppressed += 1
+                profit_train_mask = False
+                profit_positive = False
+                recs[i]["sample_weight"] = float(max(float(recs[i].get("sample_weight", 1.0)), float(early_long_recovery_negative_weight)))
+                early_long_recovery_signature_downweighted += 1
+
+            recs[i]["profit_protect_train_mask"] = 1.0 if profit_train_mask else 0.0
+            recs[i]["profit_protect_should_exit"] = 1.0 if profit_positive else 0.0
+            recs[i]["exit_label_family"] = "PROFIT_GIVEBACK_PROTECTION" if profit_positive else recs[i].get("exit_label_family", "NEGATIVE")
+            if profit_positive:
+                if break_even_red_floor and not profit_giveback:
+                    recs[i]["profit_head_bucket"] = "BREAK_EVEN_RED_LIKE"
+                else:
+                    recs[i]["profit_head_bucket"] = "PROFIT_PROTECT_LIKE"
+            elif hard_deterioration:
+                recs[i]["profit_head_bucket"] = "HARD_DETERIORATION_LIKE"
+            elif break_even_red_pre:
+                recs[i]["profit_head_bucket"] = "BREAK_EVEN_RED_LIKE"
+            elif no_edge_adverse_collapse:
+                recs[i]["profit_head_bucket"] = "EARLY_WEAK_ADVERSE"
+            elif normal_threshold_mass:
+                recs[i]["profit_head_bucket"] = "NORMAL_THRESHOLD_MASS"
+            else:
+                recs[i]["profit_head_bucket"] = "OTHER"
+            if profit_train_mask:
+                n_profit_mask += 1
+            if profit_positive:
+                profit_pos_count += 1
+                n_profit_pos += 1
+                recs[i]["exit_label_family"] = "PROFIT_GIVEBACK_PROTECTION"
+
+            if should_label:
                 recs[i]["should_exit"] = 1.0
-                pos_count += 1
-                n_pos += 1
+                recs[i]["exit_label_family"] = det_reason if det and det_reason else "OTHER_DETERMINISTIC"
+                recs[i]["exit_aux_family"] = det_reason if det and det_reason else "NEGATIVE"
+                main_pos_count += 1
+                n_main_pos += 1
                 pos_bars.append(float(bars[i]))
                 if is_capture and capture_ratio is not None:
                     n_pos_capture += 1
                     capture_ratios.append(float(capture_ratio))
                 if det:
-                    n_pos_deterioration += 1
+                    n_main_pos_deterioration += 1
                     det_count += 1
+                    if det_reason:
+                        det_reason_counts[det_reason] = int(det_reason_counts.get(det_reason, 0) + 1)
+                        if det_reason == "NO_EDGE_ADVERSE_COLLAPSE":
+                            no_edge_adverse_collapse_pos += 1
+                elif late_exit or boundary_exit or failfast_exit or is_capture:
+                    det_reason_counts["OTHER_DETERMINISTIC"] = int(det_reason_counts.get("OTHER_DETERMINISTIC", 0) + 1)
                 if is_capture and det:
                     n_pos_both += 1
-        if pos_count > 0:
-            n_trades_with_pos += 1
-        pos_counts_per_trade.append(int(pos_count))
+
+            if not should_label and not profit_positive:
+                recs[i]["exit_label_family"] = "NEGATIVE"
+
+        if main_pos_count > 0:
+            n_trades_with_main_pos += 1
+        if profit_pos_count > 0:
+            n_trades_with_profit_pos += 1
+        pos_counts_per_trade.append(int(main_pos_count))
         det_counts_per_trade.append(int(det_count))
 
-        # write back to original list objects
         for src, new in zip(trades[tid], recs):
-            src["should_exit"] = new["should_exit"]
+            src["should_exit"] = new.get("should_exit", 0.0)
+            src["sample_weight"] = new.get("sample_weight", 1.0)
+            src["profit_protect_should_exit"] = new.get("profit_protect_should_exit", 0.0)
+            src["profit_protect_train_mask"] = new.get("profit_protect_train_mask", 0.0)
+            src["exit_label_family"] = new.get("exit_label_family", "NEGATIVE")
+            src["exit_aux_family"] = new.get("exit_aux_family", "NEGATIVE")
+            src["profit_head_bucket"] = new.get("profit_head_bucket", "OTHER")
 
     total_records = len(records)
     n_trades = len(trades)
-    n_positive = sum(1 for r in records if r.get("should_exit", 0) == 1.0)
-    exit_rate = n_positive / total_records if total_records else 0.0
-    avg_pos_per_pos_trade = (n_positive / n_trades_with_pos) if n_trades_with_pos else 0.0
+    n_main_positive = sum(1 for r in records if r.get("should_exit", 0) == 1.0)
+    n_profit_positive = sum(1 for r in records if r.get("profit_protect_should_exit", 0) == 1.0)
+    n_profit_mask_total = sum(1 for r in records if r.get("profit_protect_train_mask", 0) == 1.0)
+    exit_rate = n_main_positive / total_records if total_records else 0.0
+    profit_rate = n_profit_positive / total_records if total_records else 0.0
+    profit_mask_rate = n_profit_mask_total / total_records if total_records else 0.0
+    avg_pos_per_pos_trade = (n_main_positive / n_trades_with_main_pos) if n_trades_with_main_pos else 0.0
     bars_min = min(bars_per_trade) if bars_per_trade else 0
     bars_med = int(np.median(bars_per_trade)) if bars_per_trade else 0
     bars_max = max(bars_per_trade) if bars_per_trade else 0
@@ -470,14 +998,14 @@ def _attach_labels_to_exit_records(
     det_counts_p90 = float(np.quantile(det_counts_per_trade, 0.9)) if det_counts_per_trade else 0.0
 
     log.info(
-        "[EXIT_LABELER_PROOF] io=EXIT_IO_V1_CTX36 total_records=%d n_trades=%d n_trades_with_pos=%d n_pos=%d exit_rate=%.6f avg_pos_per_pos_trade=%.3f pct_trades_with_pos=%.3f bars_per_trade(min/med/max)=%d/%d/%d pos_bars(min/med/max)=%.2f/%.2f/%.2f pos_counts(p50/p90/p99)=%.2f/%.2f/%.2f capture_ratio_med=%.3f capture_ratio_threshold=%.2f det_pos=%d det_pos_rate=%.6f det_counts(p50/p90)=%.2f/%.2f min_hold_bars=%d",
+        "[EXIT_LABELER_PROOF] io=EXIT_IO_V1_CTX36 total_records=%d n_trades=%d n_trades_with_main_pos=%d n_main_pos=%d exit_rate=%.6f avg_pos_per_pos_trade=%.3f pct_trades_with_main_pos=%.3f bars_per_trade(min/med/max)=%d/%d/%d pos_bars(min/med/max)=%.2f/%.2f/%.2f pos_counts(p50/p90/p99)=%.2f/%.2f/%.2f capture_ratio_med=%.3f capture_ratio_threshold=%.2f det_pos=%d det_pos_rate=%.6f det_counts(p50/p90)=%.2f/%.2f min_hold_bars=%d",
         total_records,
         n_trades,
-        n_trades_with_pos,
-        n_positive,
+        n_trades_with_main_pos,
+        n_main_positive,
         exit_rate,
         avg_pos_per_pos_trade,
-        (n_trades_with_pos / n_trades) if n_trades else 0.0,
+        (n_trades_with_main_pos / n_trades) if n_trades else 0.0,
         bars_min,
         bars_med,
         bars_max,
@@ -489,28 +1017,74 @@ def _attach_labels_to_exit_records(
         pos_counts_p99,
         capture_ratio_med,
         capture_ratio_threshold,
-        n_pos_deterioration,
-        (n_pos_deterioration / total_records) if total_records else 0.0,
+        n_main_pos_deterioration,
+        (n_main_pos_deterioration / total_records) if total_records else 0.0,
         det_counts_med,
         det_counts_p90,
         min_hold_bars,
     )
     log.info(
-        "[EXIT_LABELER_DET_PROOF] capture_pos=%d det_pos=%d both=%d det_thresholds={mfe_bps=%.1f dd_bps=%.1f giveback_ratio=%.2f time_since_mfe_bars=%.1f regret_ratio=%.2f giveback_accel_min=%.2f dd_accel_min=%.1f stagnation_bars=%d pnl_max=%.1f pnl_frac_of_mfe=%.2f min_bars=%d max_per_trade=%d}",
+        "[EXIT_LABELER_PROFIT_HEAD_PROOF] profit_pos=%d profit_rate=%.6f profit_mask=%d profit_mask_rate=%.6f trades_with_profit_pos=%d",
+        n_profit_positive,
+        profit_rate,
+        n_profit_mask_total,
+        profit_mask_rate,
+        n_trades_with_profit_pos,
+    )
+    log.info(
+        "[EXIT_LABELER_DET_PROOF] capture_pos=%d det_pos=%d both=%d family_counts=%s det_suppressed_early_rest_signature=%d det_suppressed_near_early_family_total=%d det_suppressed_near_early_family_by_reason=%s profit_protect_future_recovery_suppressed=%d profit_protect_normal_threshold_suppressed=%d early_long_recovery_signature={seen=%d,pos_pre=%d,pos_suppressed=%d,downweighted=%d,max_bars=%.1f,mfe_cap_bps=%.1f,future_max_bps=%.1f,neg_weight=%.2f} be_strict_proof={be_pos_pre=%d,be_pos_post=%d,total_pos_pre=%d,total_pos_post=%d} no_edge_adverse_collapse={seen=%d,pos_pre=%d,pos=%d,mfe_cap=%.1f,dd_min=%.1f,pnl_min=%.1f,slope_max=%.1f,pflat_max=%.2f,margin_max=%.2f,unc_min=%.2f} edge_family_thresholds={long:{mfe_bps=%.1f,dd_bps=%.1f,gb=%.2f,pnl_frac=%.2f,pnl_abs=%.1f},short:{mfe_bps=%.1f,dd_bps=%.1f,gb=%.2f,pnl_frac=%.2f,pnl_abs=%.1f},gb_floor=%.2f} profit_protect_thresholds={long_mfe=%.1f,short_mfe=%.1f,dd_bps=%.1f,gb=%.2f,pnl_min=%.1f,pnl_max=%.1f,pnl_frac_max=%.2f,time_since_mfe=%.1f,future_headroom_abs=%.1f,future_headroom_frac=%.2f} max_per_trade=%d",
         n_pos_capture,
-        n_pos_deterioration,
+        n_main_pos_deterioration,
         n_pos_both,
-        det_mfe_bps,
-        det_dd_from_mfe_bps,
-        det_giveback_ratio,
-        det_time_since_mfe_bars,
-        det_regret_ratio,
-        det_giveback_accel_min,
-        det_dd_accel_min,
-        det_stagnation_bars,
-        det_pnl_max_bps,
-        det_pnl_frac_of_mfe,
-        det_min_bars_held,
+        det_reason_counts,
+        int(det_suppressed_early_rest_signature),
+        int(det_suppressed_near_early_family_total),
+        det_suppressed_near_early_family_by_reason,
+        int(profit_protect_future_recovery_suppressed),
+        int(profit_protect_normal_threshold_suppressed),
+        int(early_long_recovery_signature_seen),
+        int(early_long_recovery_signature_positive_pre),
+        int(early_long_recovery_signature_positive_suppressed),
+        int(early_long_recovery_signature_downweighted),
+        float(early_long_recovery_max_bars),
+        float(early_long_recovery_mfe_cap_bps),
+        float(early_long_recovery_future_max_bps),
+        float(early_long_recovery_negative_weight),
+        int(be_pos_pre_strict),
+        int(be_pos_post_strict),
+        int(total_pos_pre_be_strict),
+        int(total_pos_post_be_strict),
+        int(no_edge_adverse_collapse_seen),
+        int(no_edge_pos_pre_strict),
+        int(no_edge_adverse_collapse_pos),
+        float(no_edge_adverse_mfe_cap_bps),
+        float(no_edge_adverse_dd_min_bps),
+        float(no_edge_adverse_pnl_min_bps),
+        float(no_edge_adverse_slope_max),
+        float(no_edge_adverse_pflat_max),
+        float(no_edge_adverse_margin_max),
+        float(no_edge_adverse_unc_min),
+        postprog_mfe_min_long,
+        postprog_dd_min_long,
+        postprog_giveback_ratio_min_long,
+        postprog_pnl_frac_floor_long,
+        postprog_pnl_abs_floor_long,
+        postprog_mfe_min_short,
+        postprog_dd_min_short,
+        postprog_giveback_ratio_min_short,
+        postprog_pnl_frac_floor_short,
+        postprog_pnl_abs_floor_short,
+        postprog_giveback_ratio_floor,
+        profit_protect_mfe_min_long,
+        profit_protect_mfe_min_short,
+        profit_protect_dd_min_bps,
+        profit_protect_giveback_ratio_min,
+        profit_protect_pnl_min_bps,
+        profit_protect_pnl_max_bps,
+        profit_protect_pnl_frac_mfe_max,
+        profit_protect_time_since_mfe_min_bars,
+        profit_protect_future_headroom_abs_max_bps,
+        profit_protect_future_headroom_frac_max,
         det_max_per_trade,
     )
     if exit_rate < 0.02:
@@ -537,11 +1111,15 @@ if TORCH_AVAILABLE:
             n_heads: int = DEFAULT_N_HEADS,
             n_layers: int = DEFAULT_N_LAYERS,
             dropout: float = 0.1,
+            family_head_dim: int = len(EXIT_AUX_FAMILY_NAMES),
+            profit_protect_head_dim: int = 1,
         ):
             super().__init__()
             self.input_dim = input_dim
             self.window_len = window_len
             self.d_model = d_model
+            self.family_head_dim = int(family_head_dim)
+            self.profit_protect_head_dim = int(profit_protect_head_dim)
             self.proj = nn.Linear(input_dim, d_model)
             enc = nn.TransformerEncoderLayer(
                 d_model=d_model,
@@ -553,14 +1131,25 @@ if TORCH_AVAILABLE:
             )
             self.transformer = nn.TransformerEncoder(enc, num_layers=n_layers)
             self.head = nn.Linear(d_model, 1)
+            self.profit_protect_head = nn.Linear(d_model, self.profit_protect_head_dim)
+            self.family_head = nn.Linear(d_model, self.family_head_dim)
 
         def forward(self, x: "torch.Tensor") -> "torch.Tensor":
             return torch.sigmoid(self.forward_logits(x))
 
-        def forward_logits(self, x: "torch.Tensor") -> "torch.Tensor":
+        def _encode(self, x: "torch.Tensor") -> "torch.Tensor":
             h = self.proj(x)
             h = self.transformer(h)
-            return self.head(h[:, -1]).squeeze(-1)
+            return h[:, -1]
+
+        def forward_logits(self, x: "torch.Tensor") -> "torch.Tensor":
+            return self.head(self._encode(x)).squeeze(-1)
+
+        def forward_profit_protect_logits(self, x: "torch.Tensor") -> "torch.Tensor":
+            return self.profit_protect_head(self._encode(x)).squeeze(-1)
+
+        def forward_family_logits(self, x: "torch.Tensor") -> "torch.Tensor":
+            return self.family_head(self._encode(x))
 
 else:
     ExitTransformerV0 = None  # type: ignore
@@ -595,6 +1184,9 @@ def save_exit_transformer_artifacts(
         "n_layers": int(n_layers),
         "n_heads": int(DEFAULT_N_HEADS),
         "dropout": 0.1,
+        "family_head_dim": int(len(EXIT_AUX_FAMILY_NAMES)),
+        "family_head_names": list(EXIT_AUX_FAMILY_NAMES),
+        "profit_protect_head_dim": 1,
         "exit_ml_io_version": EXIT_IO_VERSION,
         "feature_names_hash": feature_names_hash,
     }
@@ -608,46 +1200,78 @@ def save_exit_transformer_artifacts(
 class ExitTransformerDecider:
     """Lightweight inference wrapper."""
 
-    def __init__(self, model: Any, config: Dict[str, Any], model_sha: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        model: Any,
+        config: Dict[str, Any],
+        model_sha: Optional[str] = None,
+        *,
+        profit_protect_head_available: bool = False,
+        family_head_available: bool = False,
+        family_head_names: Optional[List[str]] = None,
+    ) -> None:
         self.model = model
         self.config = config
         self.window_len = int(config.get("window_len", DEFAULT_WINDOW_LEN))
         self.input_dim = int(config.get("input_dim", EXIT_IO_FEATURE_COUNT))
         self.model_sha = model_sha
         self.feature_names_hash = config.get("feature_names_hash")
-        try:
-            cfg_temp = float(config.get("exit_logit_temperature", 1.0))
-        except Exception:
-            cfg_temp = 1.0
-        env_temp = os.environ.get("GX1_EXIT_LOGIT_TEMPERATURE", "").strip()
-        try:
-            env_temp_val = float(env_temp) if env_temp else None
-        except Exception:
-            env_temp_val = None
-        self.logit_temperature = float(env_temp_val if env_temp_val is not None else cfg_temp)
-        if not math.isfinite(self.logit_temperature) or self.logit_temperature <= 0.0:
-            self.logit_temperature = 1.0
+        self.profit_protect_head_available = bool(profit_protect_head_available)
+        self.family_head_available = bool(family_head_available)
+        self.family_head_names = list(family_head_names or [])
 
     def predict(self, window: Any) -> Tuple[float, Optional[float], Optional[float]]:
+        details = self.predict_details(window)
+        return (
+            float(details["prob_close"]),
+            details.get("logit"),
+            details.get("raw_score"),
+        )
+
+    def predict_details(self, window: Any) -> Dict[str, Any]:
         arr = np.asarray(window, dtype=np.float32)
         validate_window_v3(arr, self.window_len, self.input_dim, context="inference")
         if not TORCH_AVAILABLE:
             raise RuntimeError("PyTorch required for inference")
+        out: Dict[str, Any] = {
+            "prob_close": None,
+            "logit": None,
+            "raw_score": None,
+            "profit_protect_prob": None,
+            "family_probs": None,
+            "family_top_name": None,
+        }
         with torch.no_grad():
             x = torch.from_numpy(arr).unsqueeze(0)
             if hasattr(self.model, "forward_logits"):
                 logit = float(self.model.forward_logits(x).detach().cpu().numpy().reshape(-1)[0])
-                temp = self.logit_temperature
-                if not math.isfinite(temp) or temp <= 0.0:
-                    temp = 1.0
-                logit_scaled = logit / temp
                 try:
-                    prob = 1.0 / (1.0 + math.exp(-logit_scaled))
+                    prob = 1.0 / (1.0 + math.exp(-logit))
                 except OverflowError:
-                    prob = 0.0 if logit_scaled < 0 else 1.0
-                return float(prob), logit, logit_scaled
+                    prob = 0.0 if logit < 0 else 1.0
+                out["prob_close"] = float(prob)
+                out["logit"] = logit
+                out["raw_score"] = logit
+                if self.profit_protect_head_available and hasattr(self.model, "forward_profit_protect_logits"):
+                    profit_logit = float(self.model.forward_profit_protect_logits(x).detach().cpu().numpy().reshape(-1)[0])
+                    try:
+                        out["profit_protect_prob"] = float(1.0 / (1.0 + math.exp(-profit_logit)))
+                    except OverflowError:
+                        out["profit_protect_prob"] = 0.0 if profit_logit < 0 else 1.0
+                if self.family_head_available and hasattr(self.model, "forward_family_logits"):
+                    family_logits = self.model.forward_family_logits(x).detach().cpu().numpy().reshape(-1)
+                    if family_logits.size > 0:
+                        max_logit = float(np.max(family_logits))
+                        exp_logits = np.exp(family_logits - max_logit)
+                        probs = exp_logits / max(float(np.sum(exp_logits)), 1e-12)
+                        out["family_probs"] = [float(v) for v in probs.tolist()]
+                        top_idx = int(np.argmax(probs))
+                        if 0 <= top_idx < len(self.family_head_names):
+                            out["family_top_name"] = self.family_head_names[top_idx]
+                return out
             prob = float(self.model(x).detach().cpu().numpy().reshape(-1)[0])
-        return prob, None, None
+            out["prob_close"] = prob
+        return out
 
 
 def load_exit_transformer_decider(model_path: Path) -> ExitTransformerDecider:
@@ -695,15 +1319,36 @@ def load_exit_transformer_decider(model_path: Path) -> ExitTransformerDecider:
         n_heads=int(cfg.get("n_heads", DEFAULT_N_HEADS)),
         n_layers=int(cfg.get("n_layers", DEFAULT_N_LAYERS)),
         dropout=float(cfg.get("dropout", 0.1)),
+        family_head_dim=int(cfg.get("family_head_dim", len(EXIT_AUX_FAMILY_NAMES))),
+        profit_protect_head_dim=int(cfg.get("profit_protect_head_dim", 1)),
     )
     state = torch.load(model_file, map_location="cpu")
-    model.load_state_dict(state)
+    load_result = model.load_state_dict(state, strict=False)
+    missing_keys = set(load_result.missing_keys)
+    unexpected_keys = set(load_result.unexpected_keys)
+    allowed_missing = {
+        "family_head.weight",
+        "family_head.bias",
+        "profit_protect_head.weight",
+        "profit_protect_head.bias",
+    }
+    if unexpected_keys:
+        raise RuntimeError(f"[EXIT_MODEL_LOAD_UNEXPECTED_KEYS] unexpected={sorted(unexpected_keys)}")
+    if missing_keys and not missing_keys.issubset(allowed_missing):
+        raise RuntimeError(f"[EXIT_MODEL_LOAD_MISSING_KEYS] missing={sorted(missing_keys)}")
     model.eval()
 
     with open(model_file, "rb") as f:
         model_sha = hashlib.sha256(f.read()).hexdigest()
 
-    return ExitTransformerDecider(model=model, config=cfg, model_sha=model_sha)
+    return ExitTransformerDecider(
+        model=model,
+        config=cfg,
+        model_sha=model_sha,
+        profit_protect_head_available=("profit_protect_head.weight" in state and "profit_protect_head.bias" in state),
+        family_head_available=("family_head.weight" in state and "family_head.bias" in state),
+        family_head_names=list(cfg.get("family_head_names", EXIT_AUX_FAMILY_NAMES)),
+    )
 
 
 def verify_exit_transformer_artifacts(model_dir: Path) -> Dict[str, Any]:
@@ -760,14 +1405,105 @@ def _load_exits_jsonl(path: Path) -> List[Dict[str, Any]]:
     return rows
 
 
+def _focus_exit_training_records(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Keep all positive labels and prune obviously uninteresting negative hold states.
+
+    This keeps the training universe focused on actual decision neighborhoods:
+    trades with real progress, deterioration, or non-trivial live PnL. Fully dead
+    hold bars add a lot of class imbalance but little exit signal.
+    """
+    focused: List[Dict[str, Any]] = []
+    kept_pos = 0
+    kept_neg = 0
+    sampled_background_neg = 0
+    dropped_neg = 0
+    negative_counter = 0
+
+    for rec in records:
+        should_exit = float(rec.get("should_exit", 0.0) or 0.0)
+        profit_exit = float(rec.get("profit_protect_should_exit", 0.0) or 0.0)
+        if should_exit > 0.5 or profit_exit > 0.5:
+            focused.append(rec)
+            kept_pos += 1
+            continue
+
+        io = rec.get("io_features")
+        if io is None:
+            io = (rec.get("io") or {}).get("io_features")
+        if io is None:
+            dropped_neg += 1
+            continue
+        arr = np.asarray(io, dtype=np.float32)
+        if arr.ndim == 2:
+            row = arr[-1]
+        elif arr.ndim == 1:
+            row = arr
+        else:
+            dropped_neg += 1
+            continue
+        try:
+            mfe_bps = float(row[exit_feature_index_v1_ctx36("mfe_bps")])
+            dd_bps = float(row[exit_feature_index_v1_ctx36("dd_from_mfe_bps")])
+            giveback_ratio = float(row[exit_feature_index_v1_ctx36("giveback_ratio")])
+            pnl_bps_now = float(row[exit_feature_index_v1_ctx36("pnl_bps_now")])
+            bars_held = float(row[exit_feature_index_v1_ctx36("bars_held")])
+        except Exception:
+            dropped_neg += 1
+            continue
+        if not all(math.isfinite(v) for v in (mfe_bps, dd_bps, giveback_ratio, pnl_bps_now, bars_held)):
+            dropped_neg += 1
+            continue
+
+        in_decision_neighborhood = bool(
+            bars_held >= 2.0
+            and (
+                mfe_bps >= 8.0
+                or dd_bps >= 8.0
+                or giveback_ratio >= 0.20
+                or abs(pnl_bps_now) >= 4.0
+            )
+        )
+        if in_decision_neighborhood:
+            focused.append(rec)
+            kept_neg += 1
+        else:
+            negative_counter += 1
+            if bars_held >= 2.0 and (negative_counter % 20) == 0:
+                focused.append(rec)
+                sampled_background_neg += 1
+            else:
+                dropped_neg += 1
+
+    log.info(
+        "[EXIT_TRAIN_FOCUS] total=%d kept=%d kept_pos=%d kept_neg=%d sampled_background_neg=%d dropped_neg=%d keep_rate=%.6f",
+        len(records),
+        len(focused),
+        kept_pos,
+        kept_neg,
+        sampled_background_neg,
+        dropped_neg,
+        float(len(focused) / len(records)) if records else math.nan,
+    )
+    return focused
+
+
 def _build_windows_from_exits(
     records: List[Dict[str, Any]],
     window_len: int,
     stride: int,
-) -> Tuple[np.ndarray, np.ndarray, List[pd.Timestamp]]:
+    return_targets: bool = False,
+) -> Tuple[Any, ...]:
     feats: List[np.ndarray] = []
-    labels: List[float] = []
+    main_labels: List[float] = []
+    profit_labels: List[float] = []
+    profit_masks: List[float] = []
     ts_list: List[pd.Timestamp] = []
+    weights: List[float] = []
+    family_ids: List[int] = []
+    aux_family_names: List[str] = []
+    label_family_names: List[str] = []
+    profit_bucket_names: List[str] = []
 
     for r in records:
         io = r.get("io_features")
@@ -776,11 +1512,26 @@ def _build_windows_from_exits(
         label = r.get("should_exit")
         if io is None or label is None:
             continue
+        sample_weight = r.get("sample_weight", 1.0)
+        try:
+            sample_weight_f = float(sample_weight)
+        except Exception:
+            sample_weight_f = 1.0
+        if not math.isfinite(sample_weight_f) or sample_weight_f <= 0.0:
+            sample_weight_f = 1.0
+        aux_fam_name = str(r.get("exit_aux_family") or "NEGATIVE").strip().upper()
+        fam_id = EXIT_AUX_FAMILY_TO_ID.get(aux_fam_name, EXIT_AUX_FAMILY_IGNORE_INDEX)
+        label_fam_name = str(r.get("exit_label_family") or "NEGATIVE").strip().upper()
+        profit_bucket_name = str(r.get("profit_head_bucket") or "OTHER").strip().upper()
+        profit_label = float(r.get("profit_protect_should_exit", 0.0) or 0.0)
+        profit_mask = float(r.get("profit_protect_train_mask", 0.0) or 0.0)
         arr = np.asarray(io, dtype=np.float32)
         if arr.ndim == 1:
             arr = arr.reshape(1, -1)
         if arr.shape[-1] != EXIT_IO_FEATURE_COUNT:
-            raise RuntimeError("EXIT_IO_DIM_MISMATCH")
+            raise RuntimeError(
+                f"EXIT_IO_DIM_MISMATCH expected_input_dim={EXIT_IO_FEATURE_COUNT} got_input_dim={int(arr.shape[-1])}"
+            )
         if arr.shape[0] < window_len:
             continue
         ts_raw = r.get("ts") or r.get("event_ts") or r.get("time")
@@ -790,17 +1541,52 @@ def _build_windows_from_exits(
             ts_val = pd.NaT
         for s in range(0, arr.shape[0] - window_len + 1, stride):
             feats.append(arr[s : s + window_len])
-            labels.append(float(label))
+            main_labels.append(float(label))
+            profit_labels.append(float(profit_label))
+            profit_masks.append(float(profit_mask))
             ts_list.append(ts_val)
+            weights.append(sample_weight_f)
+            family_ids.append(int(fam_id))
+            aux_family_names.append(aux_fam_name)
+            label_family_names.append(label_fam_name)
+            profit_bucket_names.append(profit_bucket_name)
 
     if not feats:
-        return (
+        base = (
             np.zeros((0, window_len, EXIT_IO_FEATURE_COUNT), dtype=np.float32),
             np.zeros(0, dtype=np.float32),
+            np.zeros(0, dtype=np.float32),
+            np.zeros(0, dtype=np.float32),
             [],
+            np.zeros(0, dtype=np.float32),
         )
+        if not return_targets:
+            return base
+        return base + (np.zeros(0, dtype=np.int64), [], [], [])
 
-    return np.stack(feats), np.asarray(labels, dtype=np.float32), ts_list
+    base = (
+        np.stack(feats),
+        np.asarray(main_labels, dtype=np.float32),
+        np.asarray(profit_labels, dtype=np.float32),
+        np.asarray(profit_masks, dtype=np.float32),
+        ts_list,
+        np.asarray(weights, dtype=np.float32),
+    )
+    if not return_targets:
+        return base
+    return base + (np.asarray(family_ids, dtype=np.int64), aux_family_names, label_family_names, profit_bucket_names)
+
+
+def _family_distribution(values: List[str], known_names: List[str]) -> Dict[str, int]:
+    counts: Dict[str, int] = {name: 0 for name in known_names}
+    counts["NEGATIVE_OR_OTHER"] = 0
+    for val in values:
+        name = str(val).strip().upper()
+        if name in counts:
+            counts[name] = int(counts.get(name, 0) + 1)
+        else:
+            counts["NEGATIVE_OR_OTHER"] = int(counts.get("NEGATIVE_OR_OTHER", 0) + 1)
+    return counts
 
 
 # -----------------------------------------------------------------------------
@@ -817,29 +1603,48 @@ def _score_stats(arr: np.ndarray) -> Dict[str, float]:
     }
 
 
-def _audit_score_compression(
+def _audit_one_head(
+    *,
+    head_name: str,
     model: "ExitTransformerV0",
     X_tr: np.ndarray,
     y_tr: np.ndarray,
     X_va: np.ndarray,
     y_va: np.ndarray,
+    train_mask: Optional[np.ndarray] = None,
+    val_mask: Optional[np.ndarray] = None,
 ) -> Dict[str, Any]:
     model.eval()
     device = next(model.parameters()).device
-    with torch.no_grad():
-        logits_tr = model.forward_logits(torch.from_numpy(X_tr).to(device)).detach().cpu().numpy()
-        probs_tr = 1.0 / (1.0 + np.exp(-logits_tr))
-        logits_va = (
-            model.forward_logits(torch.from_numpy(X_va).to(device)).detach().cpu().numpy()
-            if X_va.size
-            else np.zeros(0)
-        )
-        probs_va = 1.0 / (1.0 + np.exp(-logits_va)) if X_va.size else np.zeros(0)
+    train_mask_arr = np.ones_like(y_tr, dtype=np.float32) if train_mask is None else np.asarray(train_mask, dtype=np.float32)
+    val_mask_arr = np.ones_like(y_va, dtype=np.float32) if val_mask is None else np.asarray(val_mask, dtype=np.float32)
+    train_keep = train_mask_arr > 0.5
+    val_keep = val_mask_arr > 0.5
+    X_tr_eff = X_tr[train_keep]
+    y_tr_eff = y_tr[train_keep]
+    X_va_eff = X_va[val_keep]
+    y_va_eff = y_va[val_keep]
 
-    label_rate = float(np.mean(np.concatenate([y_tr, y_va])) if (y_tr.size or y_va.size) else math.nan)
-    train_pos_rate = float(np.mean(y_tr)) if y_tr.size else math.nan
-    val_pos_rate = float(np.mean(y_va)) if y_va.size else math.nan
+    def _forward(arr: np.ndarray) -> np.ndarray:
+        if arr.size == 0:
+            return np.zeros(0, dtype=np.float32)
+        with torch.no_grad():
+            x = torch.from_numpy(arr).to(device)
+            if head_name == "main_head":
+                return model.forward_logits(x).detach().cpu().numpy()
+            if head_name == "profit_protect_head":
+                return model.forward_profit_protect_logits(x).detach().cpu().numpy()
+            raise RuntimeError(f"[EXIT_AUDIT_UNKNOWN_HEAD] head={head_name}")
 
+    logits_tr = _forward(X_tr_eff)
+    logits_va = _forward(X_va_eff)
+    probs_tr = 1.0 / (1.0 + np.exp(-logits_tr)) if logits_tr.size else np.zeros(0)
+    probs_va = 1.0 / (1.0 + np.exp(-logits_va)) if logits_va.size else np.zeros(0)
+
+    combined_y = np.concatenate([y_tr_eff, y_va_eff]) if (y_tr_eff.size or y_va_eff.size) else np.zeros(0)
+    label_rate = float(np.mean(combined_y)) if combined_y.size else math.nan
+    train_pos_rate = float(np.mean(y_tr_eff)) if y_tr_eff.size else math.nan
+    val_pos_rate = float(np.mean(y_va_eff)) if y_va_eff.size else math.nan
     prob_stats = _score_stats(probs_va if probs_va.size else probs_tr)
     logit_stats = _score_stats(logits_va if logits_va.size else logits_tr)
 
@@ -848,6 +1653,14 @@ def _audit_score_compression(
         suspected_root_cause = "class_imbalance_unweighted_bce"
 
     return {
+        "head_name": head_name,
+        "scope": "training_windows_val_split_or_train_fallback",
+        "score_source": "validation" if X_va_eff.size else "train_fallback",
+        "n_train_windows": int(X_tr_eff.shape[0]),
+        "n_val_windows": int(X_va_eff.shape[0]),
+        "window_len": int(DEFAULT_WINDOW_LEN),
+        "input_dim": int(EXIT_IO_FEATURE_COUNT),
+        "feature_names_hash": EXIT_FEATURE_NAMES_HASH,
         "label_rate": label_rate,
         "train_pos_rate": train_pos_rate,
         "val_pos_rate": val_pos_rate,
@@ -856,6 +1669,77 @@ def _audit_score_compression(
         "prob_mean": prob_stats["mean"],
         "prob_std": prob_stats["std"],
         "suspected_root_cause": suspected_root_cause,
+        "train_mask_rate": float(np.mean(train_keep.astype(np.float32))) if train_mask_arr.size else math.nan,
+        "val_mask_rate": float(np.mean(val_keep.astype(np.float32))) if val_mask_arr.size else math.nan,
+    }
+
+
+def _audit_score_compression(
+    model: "ExitTransformerV0",
+    X_tr: np.ndarray,
+    y_main_tr: np.ndarray,
+    y_profit_tr: np.ndarray,
+    profit_mask_tr: np.ndarray,
+    profit_buckets_tr: List[str],
+    X_va: np.ndarray,
+    y_main_va: np.ndarray,
+    y_profit_va: np.ndarray,
+    profit_mask_va: np.ndarray,
+    profit_buckets_va: List[str],
+) -> Dict[str, Any]:
+    def _audit_profit_head_buckets() -> Dict[str, Any]:
+        model.eval()
+        device = next(model.parameters()).device
+        if X_va.size:
+            X_eval = X_va
+            buckets_eval = profit_buckets_va
+            scope = "validation"
+        else:
+            X_eval = X_tr
+            buckets_eval = profit_buckets_tr
+            scope = "train_fallback"
+        if X_eval.size == 0:
+            return {"scope": scope, "buckets": {}}
+        with torch.no_grad():
+            logits = model.forward_profit_protect_logits(torch.from_numpy(X_eval).to(device)).detach().cpu().numpy()
+        probs = 1.0 / (1.0 + np.exp(-logits))
+        bucket_stats: Dict[str, Any] = {}
+        for bucket in list(EXIT_PROFIT_HEAD_BUCKET_NAMES) + ["OTHER"]:
+            idx = [i for i, name in enumerate(buckets_eval) if str(name).strip().upper() == bucket]
+            if not idx:
+                bucket_stats[bucket] = {"count": 0}
+                continue
+            arr = probs[np.asarray(idx, dtype=np.int64)]
+            bucket_stats[bucket] = {
+                "count": int(arr.size),
+                "prob_mean": float(np.mean(arr)),
+                "prob_std": float(np.std(arr)),
+                "prob_p90": float(np.quantile(arr, 0.90)),
+                "ge_0_5_count": int(np.sum(arr >= 0.5)),
+                "ge_0_5_rate": float(np.mean(arr >= 0.5)),
+            }
+        return {"scope": scope, "buckets": bucket_stats}
+
+    return {
+        "main_head": _audit_one_head(
+            head_name="main_head",
+            model=model,
+            X_tr=X_tr,
+            y_tr=y_main_tr,
+            X_va=X_va,
+            y_va=y_main_va,
+        ),
+        "profit_protect_head": _audit_one_head(
+            head_name="profit_protect_head",
+            model=model,
+            X_tr=X_tr,
+            y_tr=y_profit_tr,
+            X_va=X_va,
+            y_va=y_profit_va,
+            train_mask=profit_mask_tr,
+            val_mask=profit_mask_va,
+        ),
+        "profit_protect_head_bucket_audit": _audit_profit_head_buckets(),
     }
 
 
@@ -876,7 +1760,10 @@ def audit_score_compression_from_exits_jsonl(
     exits_jsonl_path = Path(exits_jsonl_path)
     records = _load_exits_jsonl(exits_jsonl_path)
     _attach_labels_to_exit_records(records)
-    X, y, _ = _build_windows_from_exits(records, window_len, stride)
+    records = _focus_exit_training_records(records)
+    X, y_main, y_profit, profit_mask, _, _, _, _, profit_bucket_names = _build_windows_from_exits(
+        records, window_len, stride, return_targets=True
+    )
     if X.size == 0:
         raise RuntimeError("No audit windows produced")
 
@@ -885,10 +1772,24 @@ def audit_score_compression_from_exits_jsonl(
 
     n = X.shape[0]
     split = max(1, n * 9 // 10)
-    X_tr, y_tr = X[:split], y[:split]
-    X_va, y_va = X[split:], y[split:]
+    X_tr, y_main_tr, y_profit_tr, profit_mask_tr = X[:split], y_main[:split], y_profit[:split], profit_mask[:split]
+    X_va, y_main_va, y_profit_va, profit_mask_va = X[split:], y_main[split:], y_profit[split:], profit_mask[split:]
+    profit_buckets_tr = profit_bucket_names[:split]
+    profit_buckets_va = profit_bucket_names[split:]
 
-    audit = _audit_score_compression(model, X_tr, y_tr, X_va, y_va)
+    audit = _audit_score_compression(
+        model,
+        X_tr,
+        y_main_tr,
+        y_profit_tr,
+        profit_mask_tr,
+        profit_buckets_tr,
+        X_va,
+        y_main_va,
+        y_profit_va,
+        profit_mask_va,
+        profit_buckets_va,
+    )
     if out_dir is None:
         out_dir = model_path if model_path.is_dir() else model_path.parent
     out_dir = Path(out_dir)
@@ -898,15 +1799,13 @@ def audit_score_compression_from_exits_jsonl(
         json.dump(audit, f, indent=2)
 
     log.info(
-        "[EXIT_SCORE_COMPRESSION_AUDIT] label_rate=%.6f logit_mean=%.6f logit_std=%.6f prob_mean=%.6f prob_std=%.6f train_pos_rate=%.6f val_pos_rate=%.6f suspected_root_cause=%s",
-        audit["label_rate"],
-        audit["logit_mean"],
-        audit["logit_std"],
-        audit["prob_mean"],
-        audit["prob_std"],
-        audit["train_pos_rate"],
-        audit["val_pos_rate"],
-        audit["suspected_root_cause"],
+        "[EXIT_SCORE_COMPRESSION_AUDIT] main_label_rate=%.6f main_prob_mean=%.6f main_prob_std=%.6f profit_label_rate=%.6f profit_prob_mean=%.6f profit_prob_std=%.6f",
+        audit["main_head"]["label_rate"],
+        audit["main_head"]["prob_mean"],
+        audit["main_head"]["prob_std"],
+        audit["profit_protect_head"]["label_rate"],
+        audit["profit_protect_head"]["prob_mean"],
+        audit["profit_protect_head"]["prob_std"],
     )
     return audit
 
@@ -938,9 +1837,15 @@ def train_from_exits_jsonl(
 
     # Attach deterministic labels if missing
     _attach_labels_to_exit_records(records)
+    records = _focus_exit_training_records(records)
 
     _make_deterministic(seed)
-    X, y, ts_list = _build_windows_from_exits(records, window_len, stride)
+    X, y_main, y_profit, profit_mask, ts_list, w, family_y, aux_family_names, label_family_names, profit_bucket_names = _build_windows_from_exits(
+        records,
+        window_len,
+        stride,
+        return_targets=True,
+    )
     if X.size == 0:
         raise RuntimeError("No training windows produced")
 
@@ -948,7 +1853,7 @@ def train_from_exits_jsonl(
     n = X.shape[0]
     if n < 3:
         raise RuntimeError("[EXIT_SPLIT_FAIL] insufficient windows for train/val/test split")
-    pos_idx = np.where(y > 0)[0]
+    pos_idx = np.where(y_main > 0)[0]
     if pos_idx.size == 0:
         raise RuntimeError("[EXIT_SPLIT_FAIL] no positive labels in dataset")
     last_pos_idx = int(pos_idx[-1])
@@ -963,8 +1868,15 @@ def train_from_exits_jsonl(
         )
         n = last_pos_idx + 1
         X = X[:n]
-        y = y[:n]
+        y_main = y_main[:n]
+        y_profit = y_profit[:n]
+        profit_mask = profit_mask[:n]
         ts_list = ts_list[:n]
+        w = w[:n]
+        family_y = family_y[:n]
+        aux_family_names = aux_family_names[:n]
+        label_family_names = label_family_names[:n]
+        profit_bucket_names = profit_bucket_names[:n]
     val_frac = 1.0 / float(val_fold + 1)
     try:
         test_frac = float(os.environ.get("GX1_EXIT_TRAIN_TEST_FRACTION", "0.05"))
@@ -988,41 +1900,98 @@ def train_from_exits_jsonl(
         return (str(min(ts_clean)), str(max(ts_clean)))
 
     # Ensure test has positives (expand test backward if needed)
-    while val_end > train_end + 1 and _pos_count(y[val_end:]) == 0:
+    while val_end > train_end + 1 and _pos_count(y_main[val_end:]) == 0:
         val_end -= 1
-    if _pos_count(y[val_end:]) == 0:
+    if _pos_count(y_main[val_end:]) == 0:
         raise RuntimeError("[EXIT_SPLIT_FAIL] test split has 0 positive labels")
 
     # Ensure val has positives (expand val backward if needed)
-    while train_end > 1 and _pos_count(y[train_end:val_end]) == 0:
+    while train_end > 1 and _pos_count(y_main[train_end:val_end]) == 0:
         train_end -= 1
-    if _pos_count(y[train_end:val_end]) == 0:
+    if _pos_count(y_main[train_end:val_end]) == 0:
         raise RuntimeError("[EXIT_SPLIT_FAIL] val split has 0 positive labels")
 
-    X_tr, y_tr = X[:train_end], y[:train_end]
-    X_va, y_va = X[train_end:val_end], y[train_end:val_end]
-    X_te, y_te = X[val_end:], y[val_end:]
+    X_tr = X[:train_end]
+    y_main_tr = y_main[:train_end]
+    y_profit_tr = y_profit[:train_end]
+    profit_mask_tr = profit_mask[:train_end]
+    w_tr = w[:train_end]
+    fy_tr = family_y[:train_end]
+    profit_buckets_tr = profit_bucket_names[:train_end]
 
-    def _log_split(name: str, y_split: np.ndarray, ts_split: List[pd.Timestamp]) -> None:
-        total = int(y_split.size)
-        pos = _pos_count(y_split)
-        neg = total - pos
-        pos_rate = float(pos / total) if total else math.nan
+    X_va = X[train_end:val_end]
+    y_main_va = y_main[train_end:val_end]
+    y_profit_va = y_profit[train_end:val_end]
+    profit_mask_va = profit_mask[train_end:val_end]
+    w_va = w[train_end:val_end]
+    fy_va = family_y[train_end:val_end]
+    profit_buckets_va = profit_bucket_names[train_end:val_end]
+
+    X_te = X[val_end:]
+    y_main_te = y_main[val_end:]
+    y_profit_te = y_profit[val_end:]
+    profit_mask_te = profit_mask[val_end:]
+    w_te = w[val_end:]
+    fy_te = family_y[val_end:]
+
+    def _log_split(
+        name: str,
+        y_main_split: np.ndarray,
+        y_profit_split: np.ndarray,
+        profit_mask_split: np.ndarray,
+        ts_split: List[pd.Timestamp],
+    ) -> None:
+        total = int(y_main_split.size)
+        main_pos = _pos_count(y_main_split)
+        profit_keep = profit_mask_split > 0.5
+        profit_keep_count = int(np.sum(profit_keep))
+        profit_pos = int(np.sum(y_profit_split[profit_keep])) if profit_keep_count else 0
         t_min, t_max = _time_range(ts_split)
         log.info(
-            "[EXIT_TRAIN_SPLIT] split=%s total=%d pos=%d neg=%d pos_rate=%.6f time_range=%s..%s",
+            "[EXIT_TRAIN_SPLIT] split=%s total=%d main_pos=%d main_pos_rate=%.6f profit_mask=%d profit_mask_rate=%.6f profit_pos=%d profit_pos_rate=%.6f time_range=%s..%s",
             name,
             total,
-            pos,
-            neg,
-            pos_rate,
+            main_pos,
+            float(main_pos / total) if total else math.nan,
+            profit_keep_count,
+            float(profit_keep_count / total) if total else math.nan,
+            profit_pos,
+            float(profit_pos / profit_keep_count) if profit_keep_count else math.nan,
             t_min,
             t_max,
         )
 
-    _log_split("train", y_tr, ts_list[:train_end])
-    _log_split("val", y_va, ts_list[train_end:val_end])
-    _log_split("test", y_te, ts_list[val_end:])
+    _log_split("train", y_main_tr, y_profit_tr, profit_mask_tr, ts_list[:train_end])
+    _log_split("val", y_main_va, y_profit_va, profit_mask_va, ts_list[train_end:val_end])
+    _log_split("test", y_main_te, y_profit_te, profit_mask_te, ts_list[val_end:])
+    log.info(
+        "[EXIT_TRAIN_FAMILY_DISTRIBUTION] total=%s train=%s val=%s test=%s",
+        _family_distribution(aux_family_names, EXIT_AUX_FAMILY_NAMES),
+        _family_distribution(
+            [EXIT_AUX_FAMILY_NAMES[int(i)] if 0 <= int(i) < len(EXIT_AUX_FAMILY_NAMES) else "NEGATIVE_OR_OTHER" for i in fy_tr],
+            EXIT_AUX_FAMILY_NAMES,
+        ),
+        _family_distribution(
+            [EXIT_AUX_FAMILY_NAMES[int(i)] if 0 <= int(i) < len(EXIT_AUX_FAMILY_NAMES) else "NEGATIVE_OR_OTHER" for i in fy_va],
+            EXIT_AUX_FAMILY_NAMES,
+        ),
+        _family_distribution(
+            [EXIT_AUX_FAMILY_NAMES[int(i)] if 0 <= int(i) < len(EXIT_AUX_FAMILY_NAMES) else "NEGATIVE_OR_OTHER" for i in fy_te],
+            EXIT_AUX_FAMILY_NAMES,
+        ),
+    )
+    log.info(
+        "[EXIT_TRAIN_SAMPLE_WEIGHT_PROOF] train(mean/med/max)=%.3f/%.3f/%.3f val(mean/med/max)=%.3f/%.3f/%.3f test(mean/med/max)=%.3f/%.3f/%.3f",
+        float(np.mean(w_tr)) if w_tr.size else 1.0,
+        float(np.median(w_tr)) if w_tr.size else 1.0,
+        float(np.max(w_tr)) if w_tr.size else 1.0,
+        float(np.mean(w_va)) if w_va.size else 1.0,
+        float(np.median(w_va)) if w_va.size else 1.0,
+        float(np.max(w_va)) if w_va.size else 1.0,
+        float(np.mean(w_te)) if w_te.size else 1.0,
+        float(np.median(w_te)) if w_te.size else 1.0,
+        float(np.max(w_te)) if w_te.size else 1.0,
+    )
 
     device_pref = os.environ.get("GX1_EXIT_TRAIN_DEVICE", "").strip().lower()
     if device_pref in ("cuda", "cuda:0", "gpu"):
@@ -1039,6 +2008,8 @@ def train_from_exits_jsonl(
         d_model=d_model,
         n_heads=n_heads,
         n_layers=n_layers,
+        family_head_dim=len(EXIT_AUX_FAMILY_NAMES),
+        profit_protect_head_dim=1,
     ).to(device)
     log.info(
         "[EXIT_TRAIN_DEVICE] device=%s input_dim=%d window_len=%d feature_hash=%s feature_names=%s",
@@ -1050,10 +2021,29 @@ def train_from_exits_jsonl(
     )
 
     opt = torch.optim.Adam(model.parameters(), lr=lr)
-    n_pos = float(np.sum(y_tr))
-    n_neg = float(max(0.0, y_tr.size - n_pos))
-    pos_weight = torch.tensor(n_neg / max(1.0, n_pos), dtype=torch.float32)
-    loss_fn = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    n_main_pos = float(np.sum(y_main_tr))
+    n_main_neg = float(max(0.0, y_main_tr.size - n_main_pos))
+    main_pos_weight = torch.tensor(n_main_neg / max(1.0, n_main_pos), dtype=torch.float32)
+    profit_keep_train = profit_mask_tr > 0.5
+    n_profit_train = int(np.sum(profit_keep_train))
+    n_profit_pos = float(np.sum(y_profit_tr[profit_keep_train])) if n_profit_train else 0.0
+    n_profit_neg = float(max(0.0, n_profit_train - n_profit_pos))
+    profit_pos_weight = torch.tensor(n_profit_neg / max(1.0, n_profit_pos), dtype=torch.float32)
+    loss_fn = nn.BCEWithLogitsLoss(pos_weight=main_pos_weight, reduction="none")
+    profit_loss_fn = nn.BCEWithLogitsLoss(pos_weight=profit_pos_weight, reduction="none")
+    family_loss_fn = nn.CrossEntropyLoss(ignore_index=EXIT_AUX_FAMILY_IGNORE_INDEX, reduction="none")
+    try:
+        family_aux_loss_weight = float(
+            os.environ.get("GX1_EXIT_FAMILY_AUX_LOSS_WEIGHT", str(DEFAULT_FAMILY_AUX_LOSS_WEIGHT))
+        )
+    except Exception:
+        family_aux_loss_weight = float(DEFAULT_FAMILY_AUX_LOSS_WEIGHT)
+    try:
+        profit_protect_head_loss_weight = float(
+            os.environ.get("GX1_EXIT_PROFIT_PROTECT_HEAD_LOSS_WEIGHT", str(DEFAULT_PROFIT_PROTECT_HEAD_LOSS_WEIGHT))
+        )
+    except Exception:
+        profit_protect_head_loss_weight = float(DEFAULT_PROFIT_PROTECT_HEAD_LOSS_WEIGHT)
 
     early_stop = os.environ.get("GX1_EXIT_TRAIN_EARLY_STOP", "0").strip() == "1"
     try:
@@ -1068,25 +2058,100 @@ def train_from_exits_jsonl(
     best_state = None
     best_vloss = float("inf")
     bad_epochs = 0
+    train_main_loss_last = math.nan
+    train_profit_loss_last = math.nan
+    train_aux_loss_last = math.nan
+    val_main_loss_last = math.nan
+    val_profit_loss_last = math.nan
+    val_aux_loss_last = math.nan
 
     for epoch in range(epochs):
         model.train()
+        epoch_main_loss_sum = 0.0
+        epoch_profit_loss_sum = 0.0
+        epoch_aux_loss_sum = 0.0
+        epoch_sample_count = 0
         for i in range(0, X_tr.shape[0], batch_size):
             bx = torch.from_numpy(X_tr[i : i + batch_size]).to(device)
-            by = torch.from_numpy(y_tr[i : i + batch_size]).to(device)
+            by = torch.from_numpy(y_main_tr[i : i + batch_size]).to(device)
+            bp = torch.from_numpy(y_profit_tr[i : i + batch_size]).to(device)
+            bpm = torch.from_numpy(profit_mask_tr[i : i + batch_size]).to(device)
+            bw = torch.from_numpy(w_tr[i : i + batch_size]).to(device)
+            bf = torch.from_numpy(fy_tr[i : i + batch_size]).to(device)
             opt.zero_grad()
             logits = model.forward_logits(bx)
-            loss = loss_fn(logits, by)
+            profit_logits = model.forward_profit_protect_logits(bx)
+            family_logits = model.forward_family_logits(bx)
+            main_loss = (loss_fn(logits, by) * bw).mean()
+            profit_mask_batch = (bpm > 0.5).float()
+            if float((bw * profit_mask_batch).sum().detach().cpu().item()) > 0.0:
+                profit_raw = profit_loss_fn(profit_logits, bp)
+                profit_loss = ((profit_raw * bw) * profit_mask_batch).sum() / (
+                    ((bw * profit_mask_batch).sum()) + 1e-8
+                )
+            else:
+                profit_loss = torch.zeros((), dtype=main_loss.dtype, device=main_loss.device)
+            family_raw = family_loss_fn(family_logits, bf)
+            family_mask = (bf != EXIT_AUX_FAMILY_IGNORE_INDEX).float()
+            if float((bw * family_mask).sum().detach().cpu().item()) > 0.0:
+                aux_loss = ((family_raw * bw) * family_mask).sum() / (((bw * family_mask).sum()) + 1e-8)
+            else:
+                aux_loss = torch.zeros((), dtype=main_loss.dtype, device=main_loss.device)
+            loss = (
+                main_loss
+                + (float(profit_protect_head_loss_weight) * profit_loss)
+                + (float(family_aux_loss_weight) * aux_loss)
+            )
             loss.backward()
             opt.step()
+            bs = int(by.shape[0])
+            epoch_sample_count += bs
+            epoch_main_loss_sum += float(main_loss.detach().cpu().item()) * bs
+            epoch_profit_loss_sum += float(profit_loss.detach().cpu().item()) * bs
+            epoch_aux_loss_sum += float(aux_loss.detach().cpu().item()) * bs
+
+        train_main_loss_last = epoch_main_loss_sum / max(1, epoch_sample_count)
+        train_profit_loss_last = epoch_profit_loss_sum / max(1, epoch_sample_count)
+        train_aux_loss_last = epoch_aux_loss_sum / max(1, epoch_sample_count)
 
         if early_stop and X_va.size:
             model.eval()
             with torch.no_grad():
-                vloss_epoch = float(
-                    np.mean(
-                        (model(torch.from_numpy(X_va).to(device)).detach().cpu().numpy() - y_va) ** 2
+                va_tensor = torch.from_numpy(X_va).to(device)
+                ya_tensor = torch.from_numpy(y_main_va).to(device)
+                yp_tensor = torch.from_numpy(y_profit_va).to(device)
+                ypm_tensor = torch.from_numpy(profit_mask_va).to(device)
+                wa_tensor = torch.from_numpy(w_va).to(device)
+                yfa_tensor = torch.from_numpy(fy_va).to(device)
+                va_logits = model.forward_logits(va_tensor)
+                va_profit_logits = model.forward_profit_protect_logits(va_tensor)
+                va_family_logits = model.forward_family_logits(va_tensor)
+                va_main_loss = (loss_fn(va_logits, ya_tensor) * wa_tensor).mean()
+                va_profit_mask = (ypm_tensor > 0.5).float()
+                if float((wa_tensor * va_profit_mask).sum().detach().cpu().item()) > 0.0:
+                    va_profit_raw = profit_loss_fn(va_profit_logits, yp_tensor)
+                    va_profit_loss = ((va_profit_raw * wa_tensor) * va_profit_mask).sum() / (
+                        ((wa_tensor * va_profit_mask).sum()) + 1e-8
                     )
+                else:
+                    va_profit_loss = torch.zeros((), dtype=va_main_loss.dtype, device=va_main_loss.device)
+                va_family_raw = family_loss_fn(va_family_logits, yfa_tensor)
+                va_family_mask = (yfa_tensor != EXIT_AUX_FAMILY_IGNORE_INDEX).float()
+                if float((wa_tensor * va_family_mask).sum().detach().cpu().item()) > 0.0:
+                    va_aux_loss = ((va_family_raw * wa_tensor) * va_family_mask).sum() / (
+                        ((wa_tensor * va_family_mask).sum()) + 1e-8
+                    )
+                else:
+                    va_aux_loss = torch.zeros((), dtype=va_main_loss.dtype, device=va_main_loss.device)
+                val_main_loss_last = float(va_main_loss.detach().cpu().item())
+                val_profit_loss_last = float(va_profit_loss.detach().cpu().item())
+                val_aux_loss_last = float(va_aux_loss.detach().cpu().item())
+                vloss_epoch = float(
+                    (
+                        va_main_loss
+                        + (float(profit_protect_head_loss_weight) * va_profit_loss)
+                        + (float(family_aux_loss_weight) * va_aux_loss)
+                    ).detach().cpu().item()
                 )
             if vloss_epoch + early_stop_min_delta < best_vloss:
                 best_vloss = vloss_epoch
@@ -1109,17 +2174,62 @@ def train_from_exits_jsonl(
     else:
         model.eval()
         with torch.no_grad():
-            vloss = (
-                float(
-                    np.mean(
-                        (model(torch.from_numpy(X_va).to(device)).detach().cpu().numpy() - y_va) ** 2
+            if X_va.size:
+                va_tensor = torch.from_numpy(X_va).to(device)
+                ya_tensor = torch.from_numpy(y_main_va).to(device)
+                yp_tensor = torch.from_numpy(y_profit_va).to(device)
+                ypm_tensor = torch.from_numpy(profit_mask_va).to(device)
+                wa_tensor = torch.from_numpy(w_va).to(device)
+                yfa_tensor = torch.from_numpy(fy_va).to(device)
+                va_logits = model.forward_logits(va_tensor)
+                va_profit_logits = model.forward_profit_protect_logits(va_tensor)
+                va_family_logits = model.forward_family_logits(va_tensor)
+                va_main_loss = (loss_fn(va_logits, ya_tensor) * wa_tensor).mean()
+                va_profit_mask = (ypm_tensor > 0.5).float()
+                if float((wa_tensor * va_profit_mask).sum().detach().cpu().item()) > 0.0:
+                    va_profit_raw = profit_loss_fn(va_profit_logits, yp_tensor)
+                    va_profit_loss = ((va_profit_raw * wa_tensor) * va_profit_mask).sum() / (
+                        ((wa_tensor * va_profit_mask).sum()) + 1e-8
                     )
+                else:
+                    va_profit_loss = torch.zeros((), dtype=va_main_loss.dtype, device=va_main_loss.device)
+                va_family_raw = family_loss_fn(va_family_logits, yfa_tensor)
+                va_family_mask = (yfa_tensor != EXIT_AUX_FAMILY_IGNORE_INDEX).float()
+                if float((wa_tensor * va_family_mask).sum().detach().cpu().item()) > 0.0:
+                    va_aux_loss = ((va_family_raw * wa_tensor) * va_family_mask).sum() / (
+                        ((wa_tensor * va_family_mask).sum()) + 1e-8
+                    )
+                else:
+                    va_aux_loss = torch.zeros((), dtype=va_main_loss.dtype, device=va_main_loss.device)
+                val_main_loss_last = float(va_main_loss.detach().cpu().item())
+                val_profit_loss_last = float(va_profit_loss.detach().cpu().item())
+                val_aux_loss_last = float(va_aux_loss.detach().cpu().item())
+                vloss = float(
+                    (
+                        va_main_loss
+                        + (float(profit_protect_head_loss_weight) * va_profit_loss)
+                        + (float(family_aux_loss_weight) * va_aux_loss)
+                    ).detach().cpu().item()
                 )
-                if X_va.size
-                else math.nan
-            )
+            else:
+                vloss = math.nan
+                val_main_loss_last = math.nan
+                val_profit_loss_last = math.nan
+                val_aux_loss_last = math.nan
 
-    audit = _audit_score_compression(model, X_tr, y_tr, X_va, y_va)
+    audit = _audit_score_compression(
+        model,
+        X_tr,
+        y_main_tr,
+        y_profit_tr,
+        profit_mask_tr,
+        profit_buckets_tr,
+        X_va,
+        y_main_va,
+        y_profit_va,
+        profit_mask_va,
+        profit_buckets_va,
+    )
 
     base = Path(gx1_data or os.environ["GX1_DATA"])
     if out_dir is None:
@@ -1137,47 +2247,109 @@ def train_from_exits_jsonl(
     )
 
     train_report_path = out_dir / "TRAIN_REPORT.json"
+    family_distribution_total = _family_distribution(label_family_names, EXIT_LABEL_FAMILY_NAMES)
+    family_distribution_positive_only = _family_distribution(
+        [name for name in label_family_names if name in EXIT_LABEL_FAMILY_TO_ID],
+        EXIT_LABEL_FAMILY_NAMES,
+    )
+    aux_family_distribution_total = _family_distribution(aux_family_names, EXIT_AUX_FAMILY_NAMES)
+    aux_family_distribution_splits = {
+        "train": _family_distribution(
+            [EXIT_AUX_FAMILY_NAMES[int(i)] if 0 <= int(i) < len(EXIT_AUX_FAMILY_NAMES) else "NEGATIVE_OR_OTHER" for i in fy_tr],
+            EXIT_AUX_FAMILY_NAMES,
+        ),
+        "val": _family_distribution(
+            [EXIT_AUX_FAMILY_NAMES[int(i)] if 0 <= int(i) < len(EXIT_AUX_FAMILY_NAMES) else "NEGATIVE_OR_OTHER" for i in fy_va],
+            EXIT_AUX_FAMILY_NAMES,
+        ),
+        "test": _family_distribution(
+            [EXIT_AUX_FAMILY_NAMES[int(i)] if 0 <= int(i) < len(EXIT_AUX_FAMILY_NAMES) else "NEGATIVE_OR_OTHER" for i in fy_te],
+            EXIT_AUX_FAMILY_NAMES,
+        ),
+    }
     report = {
         "dataset": str(exits_jsonl_path),
         "dataset_sha256": dataset_sha,
+        "main_label_profile": str(os.environ.get("GX1_EXIT_MAIN_LABEL_PROFILE", "MAIN_V1_CONTROL")).strip().upper() or "MAIN_V1_CONTROL",
         "n_samples": int(X.shape[0]),
-        "exit_rate": float(np.mean(y)),
+        "main_label_rate": float(np.mean(y_main)),
+        "exit_rate": float(np.mean(y_main)),
+        "profit_protect_label_rate": float(np.mean(y_profit)),
+        "profit_protect_train_mask_rate": float(np.mean(profit_mask)),
+        "family_label_distribution_total": family_distribution_total,
+        "family_label_distribution_positive_only": family_distribution_positive_only,
+        "aux_family_distribution_total": aux_family_distribution_total,
+        "profit_head_bucket_distribution_total": _family_distribution(profit_bucket_names, EXIT_PROFIT_HEAD_BUCKET_NAMES),
+        "family_label_distribution_splits": {
+            "train": _family_distribution(
+                [name for name in label_family_names[:train_end]],
+                EXIT_LABEL_FAMILY_NAMES,
+            ),
+            "val": _family_distribution(
+                [name for name in label_family_names[train_end:val_end]],
+                EXIT_LABEL_FAMILY_NAMES,
+            ),
+            "test": _family_distribution(
+                [name for name in label_family_names[val_end:]],
+                EXIT_LABEL_FAMILY_NAMES,
+            ),
+        },
+        "aux_family_distribution_splits": aux_family_distribution_splits,
+        "profit_head_bucket_distribution_splits": {
+            "train": _family_distribution(profit_buckets_tr, EXIT_PROFIT_HEAD_BUCKET_NAMES),
+            "val": _family_distribution(profit_buckets_va, EXIT_PROFIT_HEAD_BUCKET_NAMES),
+            "test": _family_distribution(profit_bucket_names[val_end:], EXIT_PROFIT_HEAD_BUCKET_NAMES),
+        },
+        "losses": {
+            "main_head_train_loss": float(train_main_loss_last),
+            "profit_protect_head_train_loss": float(train_profit_loss_last),
+            "family_aux_train_loss": float(train_aux_loss_last),
+            "main_head_val_loss": float(val_main_loss_last),
+            "profit_protect_head_val_loss": float(val_profit_loss_last),
+            "family_aux_val_loss": float(val_aux_loss_last),
+            "profit_protect_head_loss_weight": float(profit_protect_head_loss_weight),
+            "family_aux_loss_weight": float(family_aux_loss_weight),
+            "total_val_loss": float(vloss),
+        },
         "val_loss": vloss,
         "score_compression_audit": audit,
+        "profit_protect_head_normal_threshold_mass_activation": audit.get("profit_protect_head_bucket_audit", {}).get("buckets", {}).get("NORMAL_THRESHOLD_MASS", {}),
         "model_path": str(model_path),
         "config_path": str(cfg_path),
         "model_sha256": sha,
     }
 
-    with open(train_report_path, "w", encoding="utf-8") as f:
-        json.dump(report, f, indent=2)
-
     with open(out_dir / "SCORE_COMPRESSION_AUDIT.json", "w", encoding="utf-8") as f:
         json.dump(audit, f, indent=2)
+    report["config_sha256"] = hashlib.sha256(cfg_path.read_bytes()).hexdigest()
+    report["score_compression_audit_sha256"] = hashlib.sha256((out_dir / "SCORE_COMPRESSION_AUDIT.json").read_bytes()).hexdigest()
 
     log.info(
-        "[EXIT_SCORE_COMPRESSION_AUDIT] label_rate=%.6f logit_mean=%.6f logit_std=%.6f prob_mean=%.6f prob_std=%.6f train_pos_rate=%.6f val_pos_rate=%.6f suspected_root_cause=%s",
-        audit["label_rate"],
-        audit["logit_mean"],
-        audit["logit_std"],
-        audit["prob_mean"],
-        audit["prob_std"],
-        audit["train_pos_rate"],
-        audit["val_pos_rate"],
-        audit["suspected_root_cause"],
+        "[EXIT_SCORE_COMPRESSION_AUDIT] main_label_rate=%.6f main_prob_mean=%.6f main_prob_std=%.6f profit_label_rate=%.6f profit_prob_mean=%.6f profit_prob_std=%.6f",
+        audit["main_head"]["label_rate"],
+        audit["main_head"]["prob_mean"],
+        audit["main_head"]["prob_std"],
+        audit["profit_protect_head"]["label_rate"],
+        audit["profit_protect_head"]["prob_mean"],
+        audit["profit_protect_head"]["prob_std"],
     )
     log.info(
-        "[EXIT_TRAINING_PROOF] input_dim=%d feature_hash=%s train_pos_rate=%.6f val_pos_rate=%.6f logit_mean=%.6f logit_std=%.6f prob_mean=%.6f prob_std=%.6f",
+        "[EXIT_TRAINING_PROOF] input_dim=%d feature_hash=%s main_train_pos_rate=%.6f main_val_pos_rate=%.6f profit_train_pos_rate=%.6f profit_val_pos_rate=%.6f main_prob_mean=%.6f main_prob_std=%.6f profit_prob_mean=%.6f profit_prob_std=%.6f",
         int(EXIT_IO_FEATURE_COUNT),
         EXIT_FEATURE_NAMES_HASH,
-        audit["train_pos_rate"],
-        audit["val_pos_rate"],
-        audit["logit_mean"],
-        audit["logit_std"],
-        audit["prob_mean"],
-        audit["prob_std"],
+        audit["main_head"]["train_pos_rate"],
+        audit["main_head"]["val_pos_rate"],
+        audit["profit_protect_head"]["train_pos_rate"],
+        audit["profit_protect_head"]["val_pos_rate"],
+        audit["main_head"]["prob_mean"],
+        audit["main_head"]["prob_std"],
+        audit["profit_protect_head"]["prob_mean"],
+        audit["profit_protect_head"]["prob_std"],
     )
-    return dict(report, train_report_path=train_report_path)
-
     log.info("[EXIT_TRAIN_DONE] out_dir=%s val_loss=%s", out_dir, vloss)
-    return report
+    with open(train_report_path, "w", encoding="utf-8") as f:
+        json.dump(report, f, indent=2)
+    report["artifact_verify"] = verify_exit_transformer_artifacts(out_dir)
+    with open(train_report_path, "w", encoding="utf-8") as f:
+        json.dump(report, f, indent=2)
+    return dict(report, train_report_path=train_report_path)

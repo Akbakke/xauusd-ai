@@ -30,6 +30,11 @@ def load_dotenv_if_present(dotenv_path: Optional[str] = None) -> None:
     This function is idempotent and silently ignores missing files.
     """
 
+    # Replay-safe guard: allow disabling .env load explicitly (no OANDA in replay)
+    if os.environ.get("GX1_DISABLE_DOTENV", "0") == "1":
+        log.info("[DOTENV_SKIP_PROOF] reason=GX1_DISABLE_DOTENV")
+        return
+
     if dotenv_path is None:
         candidate = Path(".env")
     else:
@@ -56,6 +61,9 @@ def load_dotenv_if_present(dotenv_path: Optional[str] = None) -> None:
         key = key.strip()
         value = _strip_quotes(value.strip())
         if not key:
+            continue
+        # Do not override existing environment variables
+        if key in os.environ:
             continue
         os.environ[key] = value
 

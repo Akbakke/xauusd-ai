@@ -70,55 +70,66 @@ def _guard_no_rl() -> None:
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)
 
+
+def _env_str(name: str, default: str) -> str:
+    return str(os.getenv(name, default)).strip()
+
 # -----------------------------------------------------------------------------
 # SHORT collapse countermeasures (training-only)
+# Canonical lane keeps these parked unless we have clear evidence they help more
+# than they complicate the recipe.
 # -----------------------------------------------------------------------------
-SHORT_CLASS_WEIGHT = float(os.getenv("ENTRY_SHORT_CLASS_WEIGHT", "1.0"))
-XGB_SHORT_LEAD_MARGIN = float(os.getenv("ENTRY_XGB_SHORT_LEAD_MARGIN", "0.02"))
-XGB_SHORT_LONG_PENALTY = float(os.getenv("ENTRY_XGB_SHORT_LONG_PENALTY", "0.10"))
+SHORT_CLASS_WEIGHT = float(_env_str("ENTRY_SHORT_CLASS_WEIGHT", "0.90"))
+XGB_SHORT_LEAD_MARGIN = float(_env_str("ENTRY_XGB_SHORT_LEAD_MARGIN", "0.0"))
+XGB_SHORT_LONG_PENALTY = float(_env_str("ENTRY_XGB_SHORT_LONG_PENALTY", "0.0"))
 
 # -----------------------------------------------------------------------------
 # Cost-sensitive loss (ENTRY 3-class)
 # -----------------------------------------------------------------------------
 # Defaults are deliberately moderate: wrong-side (LONG<->SHORT) costs clearly more
 # than LONG/SHORT->FLAT, while FLAT->LONG/SHORT remains moderate.
-ENTRY_COST_SENSITIVE_ENABLED = int(os.getenv("ENTRY_COST_SENSITIVE_LOSS", "1"))
-ENTRY_COST_SENSITIVE_SCALE = float(os.getenv("ENTRY_COST_SENSITIVE_SCALE", "0.50"))
-ENTRY_COST_LONG_TO_SHORT = float(os.getenv("ENTRY_COST_LONG_TO_SHORT", "1.50"))
-ENTRY_COST_LONG_TO_FLAT = float(os.getenv("ENTRY_COST_LONG_TO_FLAT", "0.60"))
-ENTRY_COST_SHORT_TO_LONG = float(os.getenv("ENTRY_COST_SHORT_TO_LONG", "1.50"))
-ENTRY_COST_SHORT_TO_FLAT = float(os.getenv("ENTRY_COST_SHORT_TO_FLAT", "0.60"))
-ENTRY_COST_FLAT_TO_LONG = float(os.getenv("ENTRY_COST_FLAT_TO_LONG", "0.80"))
-ENTRY_COST_FLAT_TO_SHORT = float(os.getenv("ENTRY_COST_FLAT_TO_SHORT", "0.80"))
+ENTRY_COST_SENSITIVE_ENABLED = int(_env_str("ENTRY_COST_SENSITIVE_LOSS", "0"))
+ENTRY_COST_SENSITIVE_SCALE = float(_env_str("ENTRY_COST_SENSITIVE_SCALE", "0.0"))
+ENTRY_COST_LONG_TO_SHORT = float(_env_str("ENTRY_COST_LONG_TO_SHORT", "1.50"))
+ENTRY_COST_LONG_TO_FLAT = float(_env_str("ENTRY_COST_LONG_TO_FLAT", "0.60"))
+ENTRY_COST_SHORT_TO_LONG = float(_env_str("ENTRY_COST_SHORT_TO_LONG", "1.50"))
+ENTRY_COST_SHORT_TO_FLAT = float(_env_str("ENTRY_COST_SHORT_TO_FLAT", "0.60"))
+ENTRY_COST_FLAT_TO_LONG = float(_env_str("ENTRY_COST_FLAT_TO_LONG", "0.80"))
+ENTRY_COST_FLAT_TO_SHORT = float(_env_str("ENTRY_COST_FLAT_TO_SHORT", "0.80"))
 
 # -----------------------------------------------------------------------------
 # Prediction balance regularizer (anti-collapse; training/eval loss only)
 # -----------------------------------------------------------------------------
 # Default is mild and label-aligned: nudges mean predicted distribution toward
 # the batch label distribution (not uniform), to reduce single-side collapse.
-ENTRY_PRED_BALANCE_ALPHA = float(os.getenv("ENTRY_PRED_BALANCE_ALPHA", "0.05"))
-ENTRY_PRED_BALANCE_TARGET = str(os.getenv("ENTRY_PRED_BALANCE_TARGET", "label")).strip().lower()
-ENTRY_RESIDUAL_SIDE_BIAS_ALPHA = float(os.getenv("ENTRY_RESIDUAL_SIDE_BIAS_ALPHA", "0.01"))
-ENTRY_DIRECTION_CE_SCALE = float(os.getenv("ENTRY_DIRECTION_CE_SCALE", "0.50"))
+ENTRY_PRED_BALANCE_ALPHA = float(_env_str("ENTRY_PRED_BALANCE_ALPHA", "0.0"))
+ENTRY_PRED_BALANCE_TARGET = _env_str("ENTRY_PRED_BALANCE_TARGET", "label").lower()
+ENTRY_RESIDUAL_SIDE_BIAS_ALPHA = float(_env_str("ENTRY_RESIDUAL_SIDE_BIAS_ALPHA", "0.0"))
+ENTRY_DIRECTION_CE_SCALE = float(_env_str("ENTRY_DIRECTION_CE_SCALE", "1.0"))
 
 # -----------------------------------------------------------------------------
 # Timing loss (early adverse move penalty)
 # -----------------------------------------------------------------------------
-ENTRY_TIMING_TARGET_BPS = float(os.getenv("ENTRY_TIMING_TARGET_BPS", "3.0"))
-ENTRY_TIMING_LOSS_SCALE = float(os.getenv("ENTRY_TIMING_LOSS_SCALE", "1.00"))
+ENTRY_TIMING_TARGET_BPS = float(_env_str("ENTRY_TIMING_TARGET_BPS", "3.0"))
+ENTRY_TIMING_LOSS_SCALE = float(_env_str("ENTRY_TIMING_LOSS_SCALE", "0.0"))
 
 # -----------------------------------------------------------------------------
 # Auxiliary losses (use existing dataset targets)
 # -----------------------------------------------------------------------------
-ENTRY_AUX_EARLY_WEIGHT = float(os.getenv("ENTRY_AUX_EARLY_WEIGHT", "0.10"))
-ENTRY_AUX_QUALITY_WEIGHT = float(os.getenv("ENTRY_AUX_QUALITY_WEIGHT", "0.35"))
-ENTRY_AUX_PATH_WEIGHT = float(os.getenv("ENTRY_AUX_PATH_WEIGHT", "0.35"))
-ENTRY_AUX_MFE_WEIGHT = float(os.getenv("ENTRY_AUX_MFE_WEIGHT", "0.25"))
-ENTRY_AUX_TRADABLE_WEIGHT = float(os.getenv("ENTRY_AUX_TRADABLE_WEIGHT", "0.50"))
+# Canonical lane keeps only the auxiliary heads that directly support runtime
+# gates (tradable, mfe_first_n, path_quality). Early/quality-score/bad-path stay parked.
+ENTRY_AUX_EARLY_WEIGHT = float(_env_str("ENTRY_AUX_EARLY_WEIGHT", "0.0"))
+ENTRY_AUX_QUALITY_WEIGHT = float(_env_str("ENTRY_AUX_QUALITY_WEIGHT", "0.0"))
+ENTRY_AUX_PATH_WEIGHT = float(_env_str("ENTRY_AUX_PATH_WEIGHT", "0.35"))
+ENTRY_AUX_MFE_WEIGHT = float(_env_str("ENTRY_AUX_MFE_WEIGHT", "0.25"))
+ENTRY_AUX_TRADABLE_WEIGHT = float(_env_str("ENTRY_AUX_TRADABLE_WEIGHT", "0.50"))
+# Canonical lane keeps bad-path parked until it shows clean incremental value.
+ENTRY_AUX_BAD_PATH_WEIGHT = float(_env_str("ENTRY_AUX_BAD_PATH_WEIGHT", "0.0"))
+ENTRY_AUX_BAD_PATH_POS_WEIGHT_CAP = float(_env_str("ENTRY_AUX_BAD_PATH_POS_WEIGHT_CAP", "20.0"))
 # Scale bps targets to keep regression losses in a stable range
-ENTRY_AUX_QUALITY_SCALE_BPS = float(os.getenv("ENTRY_AUX_QUALITY_SCALE_BPS", "50.0"))
-ENTRY_AUX_PATH_SCALE_BPS = float(os.getenv("ENTRY_AUX_PATH_SCALE_BPS", "50.0"))
-ENTRY_AUX_MFE_SCALE_BPS = float(os.getenv("ENTRY_AUX_MFE_SCALE_BPS", "20.0"))
+ENTRY_AUX_QUALITY_SCALE_BPS = float(_env_str("ENTRY_AUX_QUALITY_SCALE_BPS", "50.0"))
+ENTRY_AUX_PATH_SCALE_BPS = float(_env_str("ENTRY_AUX_PATH_SCALE_BPS", "50.0"))
+ENTRY_AUX_MFE_SCALE_BPS = float(_env_str("ENTRY_AUX_MFE_SCALE_BPS", "20.0"))
 
 # -----------------------------------------------------------------------------
 # Micro features (ctx_cont extension)
@@ -144,7 +155,7 @@ EXT_CTX_FEATURE_NAMES = list(MICRO_FEATURE_NAMES) + list(SWING_FEATURE_NAMES)
 # Canonical default is V_NEXT (CTX21). Explicitly set GX1_CTX_CONTRACT=V_CURRENT
 # only for legacy/debug use. Training without this env set now defaults to CTX21.
 # -----------------------------------------------------------------------------
-_CTX_CONTRACT_MODE = os.getenv("GX1_CTX_CONTRACT", "V_NEXT").upper()
+_CTX_CONTRACT_MODE = _env_str("GX1_CTX_CONTRACT", "V_NEXT").upper()
 V_NEXT_EXTRA_CTX_CONT = [
     "is_ASIA",
     "minutes_since_session_open",
@@ -170,8 +181,69 @@ def _build_ordered_ctx_cont_names(ctx_cont_dim: int, base_names: List[str]) -> L
 # -----------------------------------------------------------------------------
 # Anchored ENTRY (residual over XGB signal7 probs)
 # -----------------------------------------------------------------------------
-ENTRY_RESIDUAL_SCALE = float(os.getenv("ENTRY_RESIDUAL_SCALE", "0.35"))
-ENTRY_ANCHOR_EPS = float(os.getenv("ENTRY_ANCHOR_EPS", "1e-6"))
+# Keep the canonical anchor mix unchanged for this bad-path candidate so replay
+# deltas reflect the new adverse-first supervision rather than a different anchor.
+ENTRY_RESIDUAL_SCALE = float(_env_str("ENTRY_RESIDUAL_SCALE", "0.35"))
+ENTRY_ANCHOR_EPS = float(_env_str("ENTRY_ANCHOR_EPS", "1e-6"))
+
+_CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
+    "ENTRY_SHORT_CLASS_WEIGHT": "0.90",
+    "ENTRY_XGB_SHORT_LEAD_MARGIN": "0.0",
+    "ENTRY_XGB_SHORT_LONG_PENALTY": "0.0",
+    "ENTRY_COST_SENSITIVE_LOSS": "0",
+    "ENTRY_COST_SENSITIVE_SCALE": "0.0",
+    "ENTRY_COST_LONG_TO_SHORT": "1.50",
+    "ENTRY_COST_LONG_TO_FLAT": "0.60",
+    "ENTRY_COST_SHORT_TO_LONG": "1.50",
+    "ENTRY_COST_SHORT_TO_FLAT": "0.60",
+    "ENTRY_COST_FLAT_TO_LONG": "0.80",
+    "ENTRY_COST_FLAT_TO_SHORT": "0.80",
+    "ENTRY_PRED_BALANCE_ALPHA": "0.0",
+    "ENTRY_PRED_BALANCE_TARGET": "label",
+    "ENTRY_RESIDUAL_SIDE_BIAS_ALPHA": "0.0",
+    "ENTRY_DIRECTION_CE_SCALE": "1.0",
+    "ENTRY_TIMING_TARGET_BPS": "3.0",
+    "ENTRY_TIMING_LOSS_SCALE": "0.0",
+    "ENTRY_AUX_EARLY_WEIGHT": "0.0",
+    "ENTRY_AUX_QUALITY_WEIGHT": "0.0",
+    "ENTRY_AUX_PATH_WEIGHT": "0.35",
+    "ENTRY_AUX_MFE_WEIGHT": "0.25",
+    "ENTRY_AUX_TRADABLE_WEIGHT": "0.50",
+    "ENTRY_AUX_BAD_PATH_WEIGHT": "0.0",
+    "ENTRY_AUX_BAD_PATH_POS_WEIGHT_CAP": "20.0",
+    "ENTRY_AUX_QUALITY_SCALE_BPS": "50.0",
+    "ENTRY_AUX_PATH_SCALE_BPS": "50.0",
+    "ENTRY_AUX_MFE_SCALE_BPS": "20.0",
+    "GX1_CTX_CONTRACT": "V_NEXT",
+    "ENTRY_RESIDUAL_SCALE": "0.35",
+    "ENTRY_ANCHOR_EPS": "1e-6",
+}
+
+
+def _enforce_canonical_train_env_contract() -> None:
+    """
+    Canonical ENTRY training must not be silently steered by ad-hoc env knobs.
+    Non-canonical experimentation may opt in explicitly.
+    """
+    allow_noncanonical = _env_str("GX1_NON_CANONICAL_DIAGNOSTIC", "0") in {"1", "true", "yes", "on"} or _env_str(
+        "GX1_ENTRY_ALLOW_TRAIN_ENV_OVERRIDES", "0"
+    ) in {"1", "true", "yes", "on"}
+    if allow_noncanonical:
+        log.warning("[ENTRY_CANONICAL_TRAIN_ENV] non-canonical env overrides explicitly enabled")
+        return
+
+    tripped: List[str] = []
+    for name, default in _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS.items():
+        if name not in os.environ:
+            continue
+        actual = str(os.environ.get(name, "")).strip()
+        if actual != str(default):
+            tripped.append(f"{name}={actual!r} (default={default!r})")
+    if tripped:
+        raise RuntimeError(
+            "[ENTRY_CANONICAL_TRAIN_ENV_FORBIDDEN] canonical entry training forbids non-default env overrides: "
+            + ", ".join(sorted(tripped))
+        )
 
 # --- Determinism utilities (SSoT training API) ---------------------------------
 # NOTE: These functions are part of the stable training-module API.
@@ -623,6 +695,7 @@ class EntryV10CtxDataset(Dataset):
                 "y_tradable",
                 "mfe_first_n_bps",
                 "path_quality_bps",
+                "y_bad_path",
             ]
             missing = [c for c in required_advanced if c not in df.columns]
             _require(not missing, f"[ENTRY_V10_CTX_SCHEMA_MISSING] advanced {missing}")
@@ -807,9 +880,6 @@ class EntryV10CtxDataset(Dataset):
                 "ctx_cont": torch.tensor(ctx_cont),
                 "ctx_cat": torch.tensor(ctx_cat),
                 "y": torch.tensor(y, dtype=torch.long),
-                "mae_first_n_bps": torch.tensor(float(row["mae_first_n_bps"]), dtype=torch.float32),
-                "y_early_move": torch.tensor(float(row["y_early_move"]), dtype=torch.float32),
-                "y_quality_score": torch.tensor(float(row["y_quality_score"]), dtype=torch.float32),
                 "y_tradable": torch.tensor(float(row["y_tradable"]), dtype=torch.float32),
                 "mfe_first_n_bps": torch.tensor(float(row["mfe_first_n_bps"]), dtype=torch.float32),
                 "path_quality_bps": torch.tensor(float(row["path_quality_bps"]), dtype=torch.float32),
@@ -835,9 +905,6 @@ class EntryV10CtxDataset(Dataset):
                 "ctx_cont": torch.tensor(ctx_cont),
                 "ctx_cat": torch.tensor(ctx_cat),
                 "y": torch.tensor(y, dtype=torch.long),
-                "mae_first_n_bps": torch.tensor(0.0, dtype=torch.float32),
-                "y_early_move": torch.tensor(0.0, dtype=torch.float32),
-                "y_quality_score": torch.tensor(0.0, dtype=torch.float32),
                 "y_tradable": torch.tensor(0.0, dtype=torch.float32),
                 "mfe_first_n_bps": torch.tensor(0.0, dtype=torch.float32),
                 "path_quality_bps": torch.tensor(0.0, dtype=torch.float32),
@@ -947,6 +1014,7 @@ def train_epoch(
     aux_quality_scale_bps: float,
     aux_path_scale_bps: float,
     aux_mfe_scale_bps: float,
+    bad_path_pos_weight: float,
 ):
     model.train()
     total = 0.0
@@ -959,6 +1027,7 @@ def train_epoch(
     total_aux_path = 0.0
     total_aux_mfe = 0.0
     total_aux_tradable = 0.0
+    total_aux_bad_path = 0.0
     n = 0
     short_total = 0
     short_pred_long = 0
@@ -975,6 +1044,7 @@ def train_epoch(
     path_loss_sum = 0.0
     mfe_loss_sum = 0.0
     tradable_loss_sum = 0.0
+    bad_path_loss_sum = 0.0
 
     for batch in loader:
         non_blocking = device.type == "cuda"
@@ -983,18 +1053,13 @@ def train_epoch(
         ctx_cont = batch["ctx_cont"].to(device, non_blocking=non_blocking)
         ctx_cat = batch["ctx_cat"].to(device, non_blocking=non_blocking)
         y = batch["y"].to(device, non_blocking=non_blocking)
-        early_mae = batch["mae_first_n_bps"].to(device, non_blocking=non_blocking)
-        y_early = batch["y_early_move"].to(device, non_blocking=non_blocking)
-        y_quality = batch["y_quality_score"].to(device, non_blocking=non_blocking)
         y_mfe_first = batch["mfe_first_n_bps"].to(device, non_blocking=non_blocking)
         y_path_quality = batch["path_quality_bps"].to(device, non_blocking=non_blocking)
-        y_tradable = batch.get("y_tradable", torch.zeros_like(y_early)).to(device, non_blocking=non_blocking)
+        y_tradable = batch["y_tradable"].to(device, non_blocking=non_blocking)
 
         optimizer.zero_grad(set_to_none=True)
         out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont)
         logits = out["direction_logits"]
-        early_move_logit = out.get("early_move_logit")
-        quality_pred = out.get("quality_score")
         path_pred = out.get("path_quality")
         mfe_pred = out.get("mfe_first_n")
         tradable_logit = out.get("tradable_logit")
@@ -1028,34 +1093,12 @@ def train_epoch(
             residual_side_bias_loss = residual_gap.mean().pow(2)
             loss = loss + (float(residual_side_bias_alpha) * residual_side_bias_loss)
 
-        if timing_loss_scale > 0.0:
-            timing_penalty = torch.relu(early_mae - float(timing_target_bps))
-            timing_loss = float(timing_loss_scale) * timing_penalty.mean()
-            loss = loss + timing_loss
-            timing_mae_sum += float(early_mae.mean().item()) * y.shape[0]
-            timing_penalty_sum += float(timing_penalty.mean().item()) * y.shape[0]
-
-        # Auxiliary targets (existing dataset labels)
-        if aux_early_weight > 0.0 and early_move_logit is not None:
-            early_loss = nn.functional.binary_cross_entropy_with_logits(
-                early_move_logit.squeeze(1), y_early.float()
-            )
-            early_loss = float(aux_early_weight) * early_loss
-            loss = loss + early_loss
-            early_loss_sum += float(early_loss.item()) * y.shape[0]
         tradable_loss = torch.tensor(0.0, device=device)
-        if aux_quality_weight > 0.0 and quality_pred is not None:
-            q_scale = max(1.0, float(aux_quality_scale_bps))
-            quality_target = (y_quality / q_scale).clamp(min=0.0)
-            quality_loss = nn.functional.smooth_l1_loss(
-                quality_pred.squeeze(1), quality_target.float()
-            )
-            quality_loss = float(aux_quality_weight) * quality_loss
-            loss = loss + quality_loss
-            quality_loss_sum += float(quality_loss.item()) * y.shape[0]
         if aux_path_weight > 0.0 and path_pred is not None:
             p_scale = max(1.0, float(aux_path_scale_bps))
-            path_target = (y_path_quality / p_scale)
+            # Runtime only uses path_quality as a positive minimum gate, so train
+            # this head on the non-negative quality floor rather than signed path.
+            path_target = (y_path_quality / p_scale).clamp(min=0.0)
             path_loss = nn.functional.smooth_l1_loss(
                 path_pred.squeeze(1), path_target.float()
             )
@@ -1107,12 +1150,6 @@ def train_epoch(
         total_ce += float(ce_loss) * bs
         total_cost += float(cost_term) * bs
         total_balance += float(balance_term) * bs
-        if timing_loss_scale > 0.0:
-            total_timing += float(timing_loss) * bs
-        if aux_early_weight > 0.0:
-            total_aux_early += float(early_loss) * bs
-        if aux_quality_weight > 0.0:
-            total_aux_quality += float(quality_loss) * bs
         if aux_path_weight > 0.0:
             total_aux_path += float(path_loss) * bs
         if aux_mfe_weight > 0.0:
@@ -1125,9 +1162,6 @@ def train_epoch(
         "ce_loss_mean": (total_ce / max(1, n)),
         "cost_loss_mean": (total_cost / max(1, n)),
         "balance_loss_mean": (total_balance / max(1, n)),
-        "timing_loss_mean": (total_timing / max(1, n)),
-        "aux_early_loss_mean": (total_aux_early / max(1, n)),
-        "aux_quality_loss_mean": (total_aux_quality / max(1, n)),
         "aux_path_loss_mean": (total_aux_path / max(1, n)),
         "aux_mfe_loss_mean": (total_aux_mfe / max(1, n)),
         "aux_tradable_loss_mean": (total_aux_tradable / max(1, n)),
@@ -1138,10 +1172,6 @@ def train_epoch(
         "delta_abs_mean": (delta_abs_sum / max(1, n)),
         "scaled_delta_abs_mean": (scaled_delta_abs_sum / max(1, n)),
         "final_minus_anchor_abs_mean": (final_minus_anchor_abs_sum / max(1, n)),
-        "timing_mae_mean": (timing_mae_sum / max(1, n)),
-        "timing_penalty_mean": (timing_penalty_sum / max(1, n)),
-        "aux_early_loss_mean": (early_loss_sum / max(1, n)),
-        "aux_quality_loss_mean": (quality_loss_sum / max(1, n)),
         "aux_path_loss_mean": (path_loss_sum / max(1, n)),
         "aux_mfe_loss_mean": (mfe_loss_sum / max(1, n)),
         "aux_tradable_loss_mean": (tradable_loss_sum / max(1, n)),
@@ -1161,6 +1191,7 @@ def validate(
     aux_quality_scale_bps: float,
     aux_path_scale_bps: float,
     aux_mfe_scale_bps: float,
+    bad_path_pos_weight: float,
 ):
     model.eval()
     total = 0.0
@@ -1180,6 +1211,7 @@ def validate(
     path_loss_sum = 0.0
     mfe_loss_sum = 0.0
     tradable_loss_sum = 0.0
+    bad_path_loss_sum = 0.0
 
     with torch.no_grad():
         for batch in loader:
@@ -1189,16 +1221,12 @@ def validate(
             ctx_cont = batch["ctx_cont"].to(device, non_blocking=non_blocking)
             ctx_cat = batch["ctx_cat"].to(device, non_blocking=non_blocking)
             y = batch["y"].to(device, non_blocking=non_blocking)
-            y_early = batch["y_early_move"].to(device, non_blocking=non_blocking)
-            y_quality = batch["y_quality_score"].to(device, non_blocking=non_blocking)
             y_mfe_first = batch["mfe_first_n_bps"].to(device, non_blocking=non_blocking)
             y_path_quality = batch["path_quality_bps"].to(device, non_blocking=non_blocking)
-            y_tradable = batch.get("y_tradable", torch.zeros_like(y_early)).to(device, non_blocking=non_blocking)
+            y_tradable = batch["y_tradable"].to(device, non_blocking=non_blocking)
 
             out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont)
             logits = out["direction_logits"]
-            early_move_logit = out.get("early_move_logit")
-            quality_pred = out.get("quality_score")
             path_pred = out.get("path_quality")
             mfe_pred = out.get("mfe_first_n")
             tradable_logit = out.get("tradable_logit")
@@ -1232,25 +1260,10 @@ def validate(
                 residual_side_bias_loss = residual_gap.mean().pow(2)
                 loss = loss + (float(residual_side_bias_alpha) * residual_side_bias_loss)
 
-            # Auxiliary targets (existing dataset labels)
-            if aux_early_weight > 0.0 and early_move_logit is not None:
-                early_loss = nn.functional.binary_cross_entropy_with_logits(
-                    early_move_logit.squeeze(1), y_early.float()
-                )
-                loss = loss + (float(aux_early_weight) * early_loss)
-                early_loss_sum += float(early_loss.item()) * y.shape[0]
             tradable_loss = torch.tensor(0.0, device=device)
-            if aux_quality_weight > 0.0 and quality_pred is not None:
-                q_scale = max(1.0, float(aux_quality_scale_bps))
-                quality_target = (y_quality / q_scale).clamp(min=0.0)
-                quality_loss = nn.functional.smooth_l1_loss(
-                    quality_pred.squeeze(1), quality_target.float()
-                )
-                loss = loss + (float(aux_quality_weight) * quality_loss)
-                quality_loss_sum += float(quality_loss.item()) * y.shape[0]
             if aux_path_weight > 0.0 and path_pred is not None:
                 p_scale = max(1.0, float(aux_path_scale_bps))
-                path_target = (y_path_quality / p_scale)
+                path_target = (y_path_quality / p_scale).clamp(min=0.0)
                 path_loss = nn.functional.smooth_l1_loss(
                     path_pred.squeeze(1), path_target.float()
                 )
@@ -1303,8 +1316,6 @@ def validate(
         "delta_abs_mean": (delta_abs_sum / max(1, n)),
         "scaled_delta_abs_mean": (scaled_delta_abs_sum / max(1, n)),
         "final_minus_anchor_abs_mean": (final_minus_anchor_abs_sum / max(1, n)),
-        "aux_early_loss_mean": (early_loss_sum / max(1, n)),
-        "aux_quality_loss_mean": (quality_loss_sum / max(1, n)),
         "aux_path_loss_mean": (path_loss_sum / max(1, n)),
         "aux_mfe_loss_mean": (mfe_loss_sum / max(1, n)),
         "aux_tradable_loss_mean": (tradable_loss_sum / max(1, n)),
@@ -1781,6 +1792,23 @@ def run_train(
         seq_len=seq_len,
         allow_constant_labels=True,
     )
+    train_bad_path_rate = float(train_ds.df["y_bad_path"].astype(float).mean()) if "y_bad_path" in train_ds.df.columns else 0.0
+    val_bad_path_rate = float(val_ds.df["y_bad_path"].astype(float).mean()) if "y_bad_path" in val_ds.df.columns else 0.0
+    if train_bad_path_rate > 0.0:
+        raw_bad_path_pos_weight = (1.0 - train_bad_path_rate) / max(train_bad_path_rate, 1e-9)
+    else:
+        raw_bad_path_pos_weight = 1.0
+    bad_path_pos_weight = float(
+        min(float(ENTRY_AUX_BAD_PATH_POS_WEIGHT_CAP), max(1.0, raw_bad_path_pos_weight))
+    )
+    log.info(
+        "[ENTRY_BAD_PATH_BALANCE_PROOF] train_rate=%.6f val_rate=%.6f raw_pos_weight=%.6f capped_pos_weight=%.6f cap=%.3f",
+        train_bad_path_rate,
+        val_bad_path_rate,
+        raw_bad_path_pos_weight,
+        bad_path_pos_weight,
+        float(ENTRY_AUX_BAD_PATH_POS_WEIGHT_CAP),
+    )
 
     use_cuda = device.type == "cuda"
     if use_cuda and num_workers == 0:
@@ -1911,67 +1939,26 @@ def run_train(
         balance_target=str(ENTRY_PRED_BALANCE_TARGET),
     )
     log.info(
-        "[ENTRY_CLASS_WEIGHTS] LONG=1.0 SHORT=%.3f FLAT=1.0",
-        float(SHORT_CLASS_WEIGHT),
-    )
-    log.info(
-        "[ENTRY_XGB_SHORT_PENALTY] margin>=%.3f penalty_weight=%.3f",
-        float(XGB_SHORT_LEAD_MARGIN),
-        float(XGB_SHORT_LONG_PENALTY),
-    )
-    log.info(
-        "[ENTRY_COST_SENSITIVE_LOSS_PROOF] enabled=%d variant=ce+expected_cost scale=%.3f "
-        "class_weights=1 xgb_short_penalty=%d",
-        int(bool(ENTRY_COST_SENSITIVE_ENABLED)),
-        float(ENTRY_COST_SENSITIVE_SCALE),
-        int(float(XGB_SHORT_LONG_PENALTY) > 0.0),
-    )
-    log.info(
-        "[ENTRY_COST_MATRIX] L->S=%.3f L->F=%.3f S->L=%.3f S->F=%.3f F->L=%.3f F->S=%.3f",
-        float(ENTRY_COST_LONG_TO_SHORT),
-        float(ENTRY_COST_LONG_TO_FLAT),
-        float(ENTRY_COST_SHORT_TO_LONG),
-        float(ENTRY_COST_SHORT_TO_FLAT),
-        float(ENTRY_COST_FLAT_TO_LONG),
-        float(ENTRY_COST_FLAT_TO_SHORT),
-    )
-    log.info(
-        "[ENTRY_BALANCE_TUNING_PROOF] short_class_weight=%.3f xgb_short_long_penalty=%.3f "
-        "cost_scale=%.3f balance_alpha=%.3f balance_target=%s residual_side_bias_alpha=%.4f",
-        float(SHORT_CLASS_WEIGHT),
-        float(XGB_SHORT_LONG_PENALTY),
-        float(ENTRY_COST_SENSITIVE_SCALE),
-        float(ENTRY_PRED_BALANCE_ALPHA),
-        str(ENTRY_PRED_BALANCE_TARGET),
-        float(ENTRY_RESIDUAL_SIDE_BIAS_ALPHA),
-    )
-    log.info(
-        "[ENTRY_LOSS_COMPONENTS_PROOF] ce=1 cost_sensitive=%d cost_scale=%.3f "
-        "pred_balance_alpha=%.4f timing_target_bps=%.3f timing_scale=%.3f "
-        "residual_side_bias_alpha=%.4f xgb_short_penalty=%.3f",
-        int(bool(ENTRY_COST_SENSITIVE_ENABLED)),
-        float(ENTRY_COST_SENSITIVE_SCALE),
-        float(ENTRY_PRED_BALANCE_ALPHA),
-        float(ENTRY_TIMING_TARGET_BPS),
-        float(ENTRY_TIMING_LOSS_SCALE),
-        float(ENTRY_RESIDUAL_SIDE_BIAS_ALPHA),
-        float(XGB_SHORT_LONG_PENALTY),
-    )
-    log.info(
-        "[ENTRY_DIR_CE_SCALE_PROOF] direction_ce_scale=%.3f",
+        "[ENTRY_TRAIN_RECIPE] direction_ce_scale=%.3f residual_scale=%.3f tradable_w=%.3f path_w=%.3f mfe_w=%.3f",
         float(ENTRY_DIRECTION_CE_SCALE),
-    )
-    log.info(
-        "[ENTRY_AUX_LOSS_PROOF] early_w=%.3f quality_w=%.3f path_w=%.3f mfe_w=%.3f tradable_w=%.3f "
-        "quality_scale_bps=%.1f path_scale_bps=%.1f mfe_scale_bps=%.1f",
-        float(ENTRY_AUX_EARLY_WEIGHT),
-        float(ENTRY_AUX_QUALITY_WEIGHT),
+        float(ENTRY_RESIDUAL_SCALE),
+        float(ENTRY_AUX_TRADABLE_WEIGHT),
         float(ENTRY_AUX_PATH_WEIGHT),
         float(ENTRY_AUX_MFE_WEIGHT),
-        float(ENTRY_AUX_TRADABLE_WEIGHT),
-        float(ENTRY_AUX_QUALITY_SCALE_BPS),
-        float(ENTRY_AUX_PATH_SCALE_BPS),
-        float(ENTRY_AUX_MFE_SCALE_BPS),
+    )
+    log.info(
+        "[ENTRY_TRAIN_PARKED] cost_sensitive=%d cost_scale=%.3f pred_balance_alpha=%.3f residual_side_bias_alpha=%.3f "
+        "timing_scale=%.3f early_w=%.3f quality_w=%.3f bad_path_w=%.3f xgb_short_penalty=%.3f short_class_weight=%.3f",
+        int(bool(ENTRY_COST_SENSITIVE_ENABLED)),
+        float(ENTRY_COST_SENSITIVE_SCALE),
+        float(ENTRY_PRED_BALANCE_ALPHA),
+        float(ENTRY_RESIDUAL_SIDE_BIAS_ALPHA),
+        float(ENTRY_TIMING_LOSS_SCALE),
+        float(ENTRY_AUX_EARLY_WEIGHT),
+        float(ENTRY_AUX_QUALITY_WEIGHT),
+        float(ENTRY_AUX_BAD_PATH_WEIGHT),
+        float(XGB_SHORT_LONG_PENALTY),
+        float(SHORT_CLASS_WEIGHT),
     )
     optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-5)
 
@@ -2003,6 +1990,7 @@ def run_train(
             aux_quality_scale_bps=ENTRY_AUX_QUALITY_SCALE_BPS,
             aux_path_scale_bps=ENTRY_AUX_PATH_SCALE_BPS,
             aux_mfe_scale_bps=ENTRY_AUX_MFE_SCALE_BPS,
+            bad_path_pos_weight=bad_path_pos_weight,
         )
         va_loss, auc, acc, val_short_to_long, val_stats = validate(
             model,
@@ -2018,6 +2006,7 @@ def run_train(
             aux_quality_scale_bps=ENTRY_AUX_QUALITY_SCALE_BPS,
             aux_path_scale_bps=ENTRY_AUX_PATH_SCALE_BPS,
             aux_mfe_scale_bps=ENTRY_AUX_MFE_SCALE_BPS,
+            bad_path_pos_weight=bad_path_pos_weight,
         )
         auc_display = "DISABLED" if not np.isfinite(auc) else f"{auc:.4f}"
         log.info(
@@ -2060,13 +2049,9 @@ def run_train(
                 ratio,
             )
             log.info(
-                "[ENTRY_LOSS_COMPONENTS_PROOF] split=val epoch=%d ce=%.6f cost=%.6f balance=%.6f early=%.6f quality=%.6f path=%.6f mfe=%.6f tradable=%.6f total=%.6f",
+                "[ENTRY_LOSS_SUMMARY] split=val epoch=%d ce=%.6f path=%.6f mfe=%.6f tradable=%.6f total=%.6f",
                 epoch + 1,
                 float(val_stats.get("ce_loss_mean", 0.0)),
-                float(val_stats.get("cost_loss_mean", 0.0)),
-                float(val_stats.get("balance_loss_mean", 0.0)),
-                float(val_stats.get("aux_early_loss_mean", 0.0)),
-                float(val_stats.get("aux_quality_loss_mean", 0.0)),
                 float(val_stats.get("aux_path_loss_mean", 0.0)),
                 float(val_stats.get("aux_mfe_loss_mean", 0.0)),
                 float(val_stats.get("aux_tradable_loss_mean", 0.0)),
@@ -2080,20 +2065,9 @@ def run_train(
         )
         if tr_stats:
             log.info(
-                "[ENTRY_TIMING_LOSS_PROOF] mae_mean=%.6f penalty_mean=%.6f target_bps=%.3f scale=%.3f",
-                float(tr_stats.get("timing_mae_mean", 0.0)),
-                float(tr_stats.get("timing_penalty_mean", 0.0)),
-                float(ENTRY_TIMING_TARGET_BPS),
-                float(ENTRY_TIMING_LOSS_SCALE),
-            )
-            log.info(
-                "[ENTRY_LOSS_COMPONENTS_PROOF] ce=%.6f cost=%.6f balance=%.6f timing=%.6f early=%.6f quality=%.6f path=%.6f mfe=%.6f tradable=%.6f total=%.6f",
+                "[ENTRY_LOSS_SUMMARY] split=train epoch=%d ce=%.6f path=%.6f mfe=%.6f tradable=%.6f total=%.6f",
+                epoch + 1,
                 float(tr_stats.get("ce_loss_mean", 0.0)),
-                float(tr_stats.get("cost_loss_mean", 0.0)),
-                float(tr_stats.get("balance_loss_mean", 0.0)),
-                float(tr_stats.get("timing_loss_mean", 0.0)),
-                float(tr_stats.get("aux_early_loss_mean", 0.0)),
-                float(tr_stats.get("aux_quality_loss_mean", 0.0)),
                 float(tr_stats.get("aux_path_loss_mean", 0.0)),
                 float(tr_stats.get("aux_mfe_loss_mean", 0.0)),
                 float(tr_stats.get("aux_tradable_loss_mean", 0.0)),
@@ -2196,25 +2170,33 @@ def run_train(
         "anchor_source": "signal7_p_long_short_flat",
         "residual_scale": float(ENTRY_RESIDUAL_SCALE),
         "anchor_eps": float(ENTRY_ANCHOR_EPS),
-        "residual_side_bias_alpha": float(ENTRY_RESIDUAL_SIDE_BIAS_ALPHA),
-        "cost_sensitive_loss_enabled": bool(ENTRY_COST_SENSITIVE_ENABLED),
-        "cost_sensitive_loss_variant": "ce+expected_cost",
-        "cost_sensitive_loss_scale": float(ENTRY_COST_SENSITIVE_SCALE),
-        "cost_matrix": {
-            "long_to_short": float(ENTRY_COST_LONG_TO_SHORT),
-            "long_to_flat": float(ENTRY_COST_LONG_TO_FLAT),
-            "short_to_long": float(ENTRY_COST_SHORT_TO_LONG),
-            "short_to_flat": float(ENTRY_COST_SHORT_TO_FLAT),
-            "flat_to_long": float(ENTRY_COST_FLAT_TO_LONG),
-            "flat_to_short": float(ENTRY_COST_FLAT_TO_SHORT),
+        "train_recipe": {
+            "direction_ce_scale": float(ENTRY_DIRECTION_CE_SCALE),
+            "residual_scale": float(ENTRY_RESIDUAL_SCALE),
+            "tradable_weight": float(ENTRY_AUX_TRADABLE_WEIGHT),
+            "path_weight": float(ENTRY_AUX_PATH_WEIGHT),
+            "mfe_weight": float(ENTRY_AUX_MFE_WEIGHT),
+            "active_heads": [
+                "direction",
+                "tradable",
+                "path_quality",
+                "mfe_first_n",
+            ],
         },
-        "class_weights": {"long": 1.0, "short": float(SHORT_CLASS_WEIGHT), "flat": 1.0},
-        "xgb_short_penalty": {
-            "lead_margin": float(XGB_SHORT_LEAD_MARGIN),
-            "long_penalty_weight": float(XGB_SHORT_LONG_PENALTY),
+        "lane_contract": {
+            "entry_admission_policy": "OVERLAP_LONG_REPLACES_OLDEST_OVERLAP_SHORT_WHEN_FULL",
+            "max_open_trades": 10,
         },
-        "pred_balance_alpha": float(ENTRY_PRED_BALANCE_ALPHA),
-        "pred_balance_target": str(ENTRY_PRED_BALANCE_TARGET),
+        "parked_features": {
+            "cost_sensitive_loss_enabled": bool(ENTRY_COST_SENSITIVE_ENABLED),
+            "pred_balance_alpha": float(ENTRY_PRED_BALANCE_ALPHA),
+            "residual_side_bias_alpha": float(ENTRY_RESIDUAL_SIDE_BIAS_ALPHA),
+            "timing_loss_scale": float(ENTRY_TIMING_LOSS_SCALE),
+            "aux_early_weight": float(ENTRY_AUX_EARLY_WEIGHT),
+            "aux_quality_weight": float(ENTRY_AUX_QUALITY_WEIGHT),
+            "aux_bad_path_weight": float(ENTRY_AUX_BAD_PATH_WEIGHT),
+            "xgb_short_penalty_weight": float(XGB_SHORT_LONG_PENALTY),
+        },
     }
     (out_bundle_dir / "bundle_metadata.json").write_text(json.dumps(meta, indent=2))
 
@@ -2734,6 +2716,8 @@ def _run_entry_training_bias_audit(
 # Main
 # -----------------------------------------------------------------------------
 def main() -> None:
+    _enforce_canonical_train_env_contract()
+
     parser = argparse.ArgumentParser("ENTRY_V10_CTX canonical trainer")
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--sanity", action="store_true", help="Run sanity check only and exit 0/1")

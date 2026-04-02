@@ -113,10 +113,10 @@ def build_entry_v10_dataset(
         # Infer from session tags
         if "_v1_session_tag_EU" in df.columns:
             df["session_id"] = (
-                df["_v1_session_tag_EU"].apply(lambda x: 0 if x > 0.5 else None)
-                .fillna(df["_v1_session_tag_OVERLAP"].apply(lambda x: 1 if x > 0.5 else None))
-                .fillna(df["_v1_session_tag_US"].apply(lambda x: 2 if x > 0.5 else None))
-                .fillna(1)  # Default to OVERLAP
+                df["_v1_session_tag_EU"].apply(lambda x: 1 if x > 0.5 else None)
+                .fillna(df["_v1_session_tag_OVERLAP"].apply(lambda x: 2 if x > 0.5 else None))
+                .fillna(df["_v1_session_tag_US"].apply(lambda x: 3 if x > 0.5 else None))
+                .fillna(0)  # Default to ASIA (observerable)
             )
         else:
             raise ValueError("Cannot infer session_id - missing session columns")
@@ -303,4 +303,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

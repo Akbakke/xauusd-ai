@@ -20,9 +20,10 @@ import pandas as pd
 log = logging.getLogger(__name__)
 
 # IMPORTANT:
-# ctx_cat and ctx_cont order is sourced exclusively from
-# get_canonical_ctx_contract() (SSoT).
-# Do not hardcode or reorder features here.
+# The 6/6 BASE ctx prefix is sourced from get_canonical_ctx_contract().
+# Active runtime/training bundles may expand ctx_cont beyond this prefix and must
+# pass explicit ordered_names from bundle metadata. Do not hardcode or reorder
+# features here.
 
 
 @dataclass
@@ -43,7 +44,7 @@ class EntryContextFeatures:
     spread_bucket: Optional[int] = None  # 0=LOW, 1=MEDIUM, 2=HIGH
     h4_trend_sign_cat: Optional[int] = None  # -1/0/+1 mapped to {0,1,2}; must be explicitly set
     
-    # Continuous features (normalized) - base ctx_cont is 6 (canonical contract)
+    # Continuous features (normalized) - base ctx_cont prefix is 6
     atr_bps: Optional[float] = None  # ATR in basis points, clipped [0, 1000]
     spread_bps: Optional[float] = None  # Spread in basis points, clipped [0, 500]
     D1_dist_from_ema200_atr: Optional[float] = None
@@ -62,7 +63,7 @@ class EntryContextFeatures:
     def to_tensor_categorical(self, ordered_names: Optional[list[str]] = None) -> np.ndarray:
         """
         Convert categorical features to int64 tensor using ordered contract names.
-        If ordered_names is None, uses canonical contract order (CTX6CAT6).
+        If ordered_names is None, uses the canonical 6-dim base ctx_cat order.
         """
         names = ordered_names
         if names is None:
@@ -93,7 +94,7 @@ class EntryContextFeatures:
     def to_tensor_continuous(self, ordered_names: Optional[list[str]] = None) -> np.ndarray:
         """
         Convert continuous features to float32 tensor using ordered contract names.
-        If ordered_names is None, uses canonical contract order (base ctx_cont=6).
+        If ordered_names is None, uses the canonical 6-dim base ctx_cont order.
         """
         names = ordered_names
         if names is None:

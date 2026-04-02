@@ -251,8 +251,17 @@ class TradeOutcomeCollector:
         mae_bps: Optional[float] = None,
         mfe_bps: Optional[float] = None,
         duration_bars: Optional[int] = None,
+        side: Optional[str] = None,
         session: Optional[str] = None,
         exit_reason: Optional[str] = None,
+        entry_bid: Optional[float] = None,
+        entry_ask: Optional[float] = None,
+        exit_bid: Optional[float] = None,
+        exit_ask: Optional[float] = None,
+        entry_spread_bps: Optional[float] = None,
+        exit_spread_bps: Optional[float] = None,
+        entry_price_used: Optional[float] = None,
+        exit_price_used: Optional[float] = None,
     ):
         """
         Collect trade outcome.
@@ -272,8 +281,17 @@ class TradeOutcomeCollector:
             "mae_bps": float(mae_bps) if mae_bps is not None else None,
             "mfe_bps": float(mfe_bps) if mfe_bps is not None else None,
             "duration_bars": int(duration_bars) if duration_bars is not None else None,
+            "side": side,
             "session": session,
             "exit_reason": exit_reason,
+            "entry_bid": float(entry_bid) if entry_bid is not None else None,
+            "entry_ask": float(entry_ask) if entry_ask is not None else None,
+            "exit_bid": float(exit_bid) if exit_bid is not None else None,
+            "exit_ask": float(exit_ask) if exit_ask is not None else None,
+            "entry_spread_bps": float(entry_spread_bps) if entry_spread_bps is not None else None,
+            "exit_spread_bps": float(exit_spread_bps) if exit_spread_bps is not None else None,
+            "entry_price_used": float(entry_price_used) if entry_price_used is not None else None,
+            "exit_price_used": float(exit_price_used) if exit_price_used is not None else None,
         })
     
     def to_dataframe(self) -> pd.DataFrame:

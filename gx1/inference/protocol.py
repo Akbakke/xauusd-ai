@@ -16,7 +16,7 @@ class InferenceRequest:
     """Request for batch inference."""
     seq_features: np.ndarray  # [batch_size, seq_len, seq_dim] float32
     snap_features: np.ndarray  # [batch_size, snap_dim] float32
-    session_ids: np.ndarray  # [batch_size] int32 (0=EU, 1=OVERLAP, 2=US)
+    session_ids: np.ndarray  # [batch_size] int32 (0=ASIA, 1=EU, 2=OVERLAP, 3=US)
     vol_regime_ids: np.ndarray  # [batch_size] int32 (0=LOW, 1=MEDIUM, 2=HIGH, 3=EXTREME)
     trend_regime_ids: np.ndarray  # [batch_size] int32 (0=UP, 1=DOWN, 2=NEUTRAL)
     request_id: int  # Unique request ID for tracking
@@ -41,4 +41,3 @@ class WorkerConfig:
     variant: str = "v10_1"
     device: str = "cpu"  # Always "cpu" for now
     timeout_seconds: float = 30.0  # Timeout for inference operations
-

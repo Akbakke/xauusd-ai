@@ -344,15 +344,15 @@ def main():
     except Exception:
         pass
     
-    # Load contract SHAs for provenance
+    # Load contract SHAs for provenance (canonical BASE28 lane; legacy v1 is gx1/xgb/contracts/xgb_input_sanitizer_v1.json)
     feature_contract_sha = None
     sanitizer_sha = None
     try:
-        feature_contract_path = WORKSPACE_ROOT / "gx1" / "xgb" / "contracts" / "xgb_input_features_v1.json"
+        feature_contract_path = WORKSPACE_ROOT / "gx1" / "xgb" / "contracts" / "xgb_input_features_base28_v1.json"
         if feature_contract_path.exists():
             feature_contract_sha = compute_file_sha256(feature_contract_path)
-        
-        sanitizer_path = WORKSPACE_ROOT / "gx1" / "xgb" / "contracts" / "xgb_input_sanitizer_v1.json"
+
+        sanitizer_path = WORKSPACE_ROOT / "gx1" / "xgb" / "contracts" / "xgb_input_sanitizer_base28_v1.json"
         if sanitizer_path.exists():
             sanitizer_sha = compute_file_sha256(sanitizer_path)
     except Exception:

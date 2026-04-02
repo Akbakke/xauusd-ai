@@ -19,7 +19,7 @@ cd "$PROJECT_ROOT"
 
 # Use V10 verification policy for replay
 POLICY="${1:-gx1/configs/policies/sniper_snapshot/2025_SNIPER_V1/GX1_SNIPER_REPLAY_V10_CTX_VERIFY.yaml}"
-DATA_FILE="data/raw/xauusd_m5_2025_bid_ask.parquet"
+DATA_FILE="${GX1_CANONICAL_TAPE_ROOT:-/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m5_bid_ask__CANONICAL}/year=2025/part-000.parquet"
 
 # EVAL window: 1 week for evaluation
 # Start on H4 bucket boundary (00:00, 04:00, 08:00, 12:00, 16:00, 20:00 UTC)

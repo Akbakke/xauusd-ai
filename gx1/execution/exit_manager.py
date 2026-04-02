@@ -5,10 +5,11 @@ import json
 import math
 import csv
 import hashlib
+import time
 from collections import deque
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 from pathlib import Path
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date, time as dtime
 
 import logging
 import pandas as pd
@@ -19,6 +20,7 @@ from gx1.exits.contracts.exit_io_v1_ctx36 import (
     EXIT_IO_V1_CTX36_IO_VERSION,
     assert_exit_io_v1_ctx36_contract,
     compute_feature_names_hash,
+    exit_feature_index_v1_ctx36,
 )
 
 # DEL 3: PREBUILT mode fix - move live_features imports to lazy imports
@@ -48,13 +50,24 @@ EXIT_FEATURE_GROUP_TRADE_STATE = [
     "atr_bps_now",
 ]
 EXIT_FEATURE_GROUP_EXIT_SPECIFIC = ["giveback_ratio", "giveback_acceleration"]
-EXIT_FEATURE_GROUP_CTX_CONT = EXIT_IO_V1_CTX36_FEATURES[
+EXIT_FEATURE_GROUP_CTX_CAT = [
+    "session_id",
+    "trend_regime_id",
+    "vol_regime_id",
+    "atr_bucket",
+    "spread_bucket",
+    "H4_trend_sign_cat",
+]
+_ctx_start = (
     len(EXIT_FEATURE_GROUP_SIGNAL)
     + len(EXIT_FEATURE_GROUP_ENTRY_SNAPSHOT)
     + len(EXIT_FEATURE_GROUP_TRADE_STATE)
-    + len(EXIT_FEATURE_GROUP_EXIT_SPECIFIC) :
+    + len(EXIT_FEATURE_GROUP_EXIT_SPECIFIC)
+)
+_ctx_end = len(EXIT_IO_V1_CTX36_FEATURES) - len(EXIT_FEATURE_GROUP_CTX_CAT)
+EXIT_FEATURE_GROUP_CTX_CONT = EXIT_IO_V1_CTX36_FEATURES[
+    _ctx_start:_ctx_end
 ]
-EXIT_FEATURE_GROUP_CTX_CAT: list[str] = []
 _EXIT_FEATURE_GROUPS = {
     "signal": EXIT_FEATURE_GROUP_SIGNAL,
     "entry_snapshot": EXIT_FEATURE_GROUP_ENTRY_SNAPSHOT,
@@ -74,14 +87,71 @@ def _is_closed_window_utc(ts: pd.Timestamp) -> bool:
     return (h == 21 and m >= 55) or (h == 22)
 
 
+_M1_EXPECTED_GAP_WINDOWS = {
+    # Early-close / holiday reopen windows observed in the raw M1 lane
+    date(2025, 1, 20): [(dtime(18, 25), dtime(23, 5), 12_000.0, 13_100.0, "EARLY_CLOSE_2025_01_20")],
+    date(2025, 2, 17): [(dtime(18, 25), dtime(23, 5), 12_000.0, 13_100.0, "EARLY_CLOSE_2025_02_17")],
+    date(2025, 5, 26): [(dtime(18, 25), dtime(22, 5), 12_000.0, 13_100.0, "EARLY_CLOSE_2025_05_26")],
+    date(2025, 6, 19): [(dtime(18, 25), dtime(22, 5), 12_000.0, 13_100.0, "EARLY_CLOSE_2025_06_19")],
+    date(2025, 9, 1): [(dtime(18, 25), dtime(22, 5), 12_000.0, 13_100.0, "EARLY_CLOSE_2025_09_01")],
+    date(2026, 1, 19): [(dtime(18, 25), dtime(23, 5), 12_000.0, 13_100.0, "EARLY_CLOSE_2026_01_19")],
+    date(2026, 2, 16): [(dtime(18, 25), dtime(23, 5), 12_000.0, 13_100.0, "EARLY_CLOSE_2026_02_16")],
+    # Maintenance windows / micro-holes seen in raw M1
+    date(2025, 3, 20): [(dtime(22, 35), dtime(22, 45), 60.0, 600.0, "MAINT_2025_03_20_2237")],
+    date(2025, 4, 6): [(dtime(22, 5), dtime(22, 15), 60.0, 600.0, "MAINT_2025_04_06_2207")],
+    date(2025, 4, 24): [(dtime(22, 0), dtime(22, 20), 60.0, 1_200.0, "MAINT_2025_04_24_2200")],
+    date(2025, 5, 11): [(dtime(22, 0), dtime(22, 10), 60.0, 600.0, "MAINT_2025_05_11_2205")],
+    date(2025, 7, 3): [(dtime(20, 15), dtime(20, 30), 60.0, 600.0, "MAINT_2025_07_03_2021")],
+    date(2025, 8, 27): [(dtime(22, 50), dtime(23, 0), 60.0, 600.0, "MAINT_2025_08_27_2253")],
+    date(2025, 8, 28): [(dtime(23, 20), dtime(23, 30), 60.0, 600.0, "MAINT_2025_08_28_2323")],
+    date(2025, 11, 27): [
+        (dtime(18, 45), dtime(22, 0), 60.0, 900.0, "MAINT_2025_11_27_EVENING"),
+    ],
+    date(2025, 11, 28): [
+        (dtime(3, 0), dtime(10, 0), 60.0, 900.0, "MAINT_2025_11_28_MORNING"),
+    ],
+    date(2025, 12, 7): [(dtime(23, 30), dtime(23, 45), 60.0, 600.0, "MAINT_2025_12_07")],
+    date(2026, 3, 27): [(dtime(16, 40), dtime(17, 10), 60.0, 1_800.0, "MAINT_2026_03_27")],
+}
+
+
+def _is_expected_m1_calendar_gap(prev_ts: pd.Timestamp, now_ts: pd.Timestamp, spacing_sec: float) -> Optional[str]:
+    """
+    Raw M1 expected gaps that should behave like the historical M5 allowance:
+    daily close/reopen windows, early closes, and measured maintenance holes.
+    """
+    if prev_ts is None or now_ts is None:
+        return None
+    prev_d = prev_ts.date()
+    if prev_d in _M1_EXPECTED_GAP_WINDOWS:
+        prev_t = prev_ts.time()
+        now_t = now_ts.time()
+        for start_t, end_t, min_spacing, max_spacing, label in _M1_EXPECTED_GAP_WINDOWS[prev_d]:
+            if min_spacing <= float(spacing_sec) <= max_spacing and start_t <= prev_t <= end_t and start_t <= now_t <= end_t:
+                return label
+    return None
+
+
 def _is_expected_closed_gap(prev_ts: pd.Timestamp, now_ts: pd.Timestamp, spacing_sec: float) -> Optional[str]:
     """
     Expected daily closed-window gaps. Pattern B (20:55-22:00 UTC) often has no
     candles for 20:55 and 21:00, so raw/prebuilt can show 20:50 -> 21:05 (900s)
     instead of the full 20:55 -> 22:00 (3900s). Both are treated as expected.
+
+    The raw M1 lane can surface slightly different close/reopen stamps than the
+    canonical M5 view, so we also allow a small M1-compatible closed-window band
+    around the same market-close windows.
     """
     if prev_ts is None or now_ts is None:
         return None
+    m1_calendar = _is_expected_m1_calendar_gap(prev_ts, now_ts, spacing_sec)
+    if m1_calendar:
+        return m1_calendar
+    if 3500 <= spacing_sec <= 4300:
+        if prev_ts.hour == 21 and prev_ts.minute >= 55 and now_ts.hour == 23 and now_ts.minute <= 5:
+            return "A_M1"
+        if prev_ts.hour == 20 and prev_ts.minute >= 55 and now_ts.hour == 22 and now_ts.minute <= 5:
+            return "B_M1"
     if spacing_sec == 3900 and prev_ts.hour == 21 and prev_ts.minute == 55 and now_ts.hour == 23 and now_ts.minute == 0:
         return "A"
     if spacing_sec == 3900 and prev_ts.hour == 20 and prev_ts.minute == 55 and now_ts.hour == 22 and now_ts.minute == 0:
@@ -122,13 +192,9 @@ def _is_holiday_gap(prev_ts: pd.Timestamp, now_ts: pd.Timestamp, spacing_sec: fl
         prev_ts.year == 2025
         and prev_ts.month == 4
         and prev_ts.day == 17
-        and prev_ts.hour == 20
-        and prev_ts.minute == 55
         and now_ts.year == 2025
         and now_ts.month == 4
         and now_ts.day == 20
-        and now_ts.hour == 22
-        and now_ts.minute == 0
         and spacing_sec >= 48 * 3600
     ):
         return "EASTER_2025"
@@ -177,6 +243,9 @@ def _holiday_or_maint_gap_name(prev_ts: pd.Timestamp, now_ts: pd.Timestamp) -> O
         (2025, 11, 28, 8, 50, 2025, 11, 28, 9, 0): "MAINT_2025_11_28_AM_GAP_0850",
         (2025, 11, 28, 9, 30, 2025, 11, 28, 9, 40): "MAINT_2025_11_28_AM_GAP_0930",
         (2025, 11, 28, 19, 45, 2025, 11, 30, 23, 0): "WEEKEND_2025_11_28",
+        (2026, 1, 19, 19, 25, 2026, 1, 19, 23, 0): "EARLY_CLOSE_2026_01_19",
+        (2026, 2, 16, 19, 25, 2026, 2, 16, 23, 0): "EARLY_CLOSE_2026_02_16",
+        (2025, 12, 29, 9, 10, 2026, 1, 1, 23, 0): "NEW_YEAR_2025_2026",
     }
     return allow.get(key)
 
@@ -234,7 +303,6 @@ class ExitManager:
         self._exit_prob_score_audit_written = False
         self._exit_runtime_sample_proof_logged = False
         self._exit_prob_sample_proof_logged = False
-        self._exit_logit_temperature_logged = False
         self._exit_eval_trace_header_written = False
         self._exit_eval_trace_path: Optional[Path] = None
         self._exit_prob_bars_before_exit: dict[str, list[float]] = {
@@ -256,41 +324,55 @@ class ExitManager:
             "threshold_check_count": 0,
         }
         self._exit_eval_blocked_reasons: dict[str, int] = {}
-        # Optional time stop cap (bars held); <=0 disables
-        env_max_bars = os.environ.get("GX1_EXIT_MAX_BARS_HELD")
-        try:
-            self._exit_max_bars_held = int(env_max_bars) if env_max_bars is not None else 0
-        except Exception:
-            self._exit_max_bars_held = 0
-        # Catastrophic-loss guard (secondary safety; tight thresholds)
-        def _get_float_env(key: str, default: float) -> float:
-            val = os.environ.get(key)
-            if val is None or str(val).strip() == "":
-                return float(default)
-            try:
-                return float(val)
-            except Exception:
-                return float(default)
-        def _get_int_env(key: str, default: int) -> int:
-            val = os.environ.get(key)
-            if val is None or str(val).strip() == "":
-                return int(default)
-            try:
-                return int(float(val))
-            except Exception:
-                return int(default)
-        self._exit_cat_guard_enabled = bool(int(_get_int_env("GX1_EXIT_CATA_GUARD", 1)))
-        self._exit_cat_guard_bars = _get_int_env("GX1_EXIT_CATA_GUARD_BARS", 1000)
+        # Time-stop is explicitly disabled in active EXIT path: exits are edge/event driven.
+        self._exit_max_bars_held = 0
+        # Catastrophic-loss guard (runtime safety exception) is config-owned in the
+        # active canonical lane; keep the same numeric defaults as final fallback.
+        self._exit_cat_guard_enabled = bool(getattr(self._runner, "exit_cat_guard_enabled", True))
         # MFE in exit scalars is often near-zero on catastrophic givebacks; keep this permissive.
-        self._exit_cat_guard_mfe_bps = _get_float_env("GX1_EXIT_CATA_GUARD_MFE_BPS", 1.0)
-        self._exit_cat_guard_dd_bps = _get_float_env("GX1_EXIT_CATA_GUARD_DD_BPS", 60.0)
-        self._exit_cat_guard_giveback_ratio = _get_float_env("GX1_EXIT_CATA_GUARD_GB_RATIO", 1.0)
-        self._exit_cat_guard_time_since_mfe = _get_float_env("GX1_EXIT_CATA_GUARD_TS_MFE", 1000.0)
-        # Do not hard-require decay; keep in payload for audit only.
-        self._exit_cat_guard_decay_min = _get_float_env("GX1_EXIT_CATA_GUARD_DECAY_MIN", 0.0)
-        self._exit_cat_guard_pnl_max = _get_float_env("GX1_EXIT_CATA_GUARD_PNL_MAX", 0.0)
-        self._exit_cat_guard_pnl_frac_mfe = _get_float_env("GX1_EXIT_CATA_GUARD_PNL_FRAC_MFE", 0.0)
+        self._exit_cat_guard_mfe_bps = float(getattr(self._runner, "exit_cat_guard_mfe_bps", 1.0))
+        self._exit_cat_guard_dd_bps = float(getattr(self._runner, "exit_cat_guard_dd_bps", 60.0))
+        self._exit_cat_guard_giveback_ratio = float(getattr(self._runner, "exit_cat_guard_giveback_ratio", 1.0))
+        self._exit_cat_guard_pnl_max = float(getattr(self._runner, "exit_cat_guard_pnl_max", 0.0))
+        self._exit_cat_guard_pnl_frac_mfe = float(getattr(self._runner, "exit_cat_guard_pnl_frac_mfe", 0.0))
         self._exit_cat_guard_triggers = 0
+        # Threshold event-arm knobs (used for observability + event arming only).
+        self._exit_edge_death_mfe_min_short = float(getattr(self._runner, "exit_edge_death_mfe_min_short", 6.0))
+        self._exit_edge_death_mfe_min_long = float(getattr(self._runner, "exit_edge_death_mfe_min_long", 8.0))
+        self._exit_edge_death_dd_min_short = float(getattr(self._runner, "exit_edge_death_dd_min_short", 8.0))
+        self._exit_edge_death_dd_min_long = float(getattr(self._runner, "exit_edge_death_dd_min_long", 10.0))
+        self._exit_edge_death_gb_min_short = float(getattr(self._runner, "exit_edge_death_gb_min_short", 0.45))
+        self._exit_edge_death_gb_min_long = float(getattr(self._runner, "exit_edge_death_gb_min_long", 0.50))
+        exit_cfg = getattr(self, "exit_params", {}) or {}
+        exit_tf_cfg = (
+            (exit_cfg.get("exit", {}) or {})
+            .get("params", {})
+            .get("exit_ml", {})
+            .get("exit_transformer", {})
+        ) if isinstance(exit_cfg, dict) else {}
+        post_edge_cfg = (exit_tf_cfg.get("selective_post_edge_separator", {}) or {}) if isinstance(exit_tf_cfg, dict) else {}
+        self._exit_post_edge_enabled = bool(post_edge_cfg.get("enabled", False))
+        self._exit_post_edge_score_source = str(post_edge_cfg.get("score_source", "exit_prob") or "exit_prob").strip()
+        self._exit_post_edge_score_min = float(post_edge_cfg.get("score_min", 0.70))
+        self._exit_post_edge_require_model_below_main_threshold = bool(
+            post_edge_cfg.get("require_model_below_main_threshold", True)
+        )
+        self._exit_post_edge_require_threshold_event = bool(post_edge_cfg.get("require_threshold_event", True))
+        self._exit_post_edge_allowed_sides = {
+            str(x).strip().lower() for x in (post_edge_cfg.get("allowed_sides", ["long"]) or ["long"])
+        }
+        self._exit_post_edge_allowed_sessions = {
+            str(x).strip().upper() for x in (post_edge_cfg.get("allowed_sessions", ["OVERLAP"]) or ["OVERLAP"])
+        }
+        self._exit_post_edge_mfe_min = float(post_edge_cfg.get("mfe_bps_min", 60.0))
+        self._exit_post_edge_dd_min = float(post_edge_cfg.get("dd_from_mfe_bps_min", 55.0))
+        self._exit_post_edge_gb_min = float(post_edge_cfg.get("giveback_ratio_min", 0.75))
+        self._exit_post_edge_pnl_min = float(post_edge_cfg.get("pnl_bps_min", 2.0))
+        self._exit_post_edge_pnl_max = float(post_edge_cfg.get("pnl_bps_max", 10.0))
+        self._exit_post_edge_pnl_frac_mfe_max = float(post_edge_cfg.get("pnl_frac_mfe_max", 0.45))
+        self._exit_post_edge_time_since_mfe_min = float(post_edge_cfg.get("time_since_mfe_bars_min", 8.0))
+        self._exit_post_edge_directional_edge_max = float(post_edge_cfg.get("directional_edge_max", 0.02))
+        self._exit_post_edge_triggers = 0
 
     def __getattr__(self, name: str):
         return getattr(self._runner, name)
@@ -316,6 +398,10 @@ class ExitManager:
             except Exception:
                 pass
         if cont is None or cat is None:
+            if bool(getattr(runner, "replay_mode", False)) or os.getenv("GX1_RUN_MODE", "").upper() == "TRUTH":
+                raise RuntimeError(
+                    "[EXIT_CTX_DIM_RESOLVE_FAIL] missing ctx dims from runner/bundle metadata in active replay/truth path"
+                )
             from gx1.contracts.signal_bridge_v1 import get_canonical_ctx_contract
             canonical = get_canonical_ctx_contract()
             cont = len(canonical.get("ctx_cont_names") or [])
@@ -363,6 +449,42 @@ class ExitManager:
                 arb_allow.get("exit_prob_hysteresis"),
                 arb_allow.get("min_bars"),
             )
+            log.info(
+                "[EXIT_GUARD_CFG] cata={mfe>=%.1f dd>=%.1f gb>=%.2f pnl_max<=%.2f pnl_frac<=%.2f} threshold_event={long:mfe>=%.1f dd>=%.1f gb>=%.2f,short:mfe>=%.1f dd>=%.1f gb>=%.2f}",
+                float(self._exit_cat_guard_mfe_bps),
+                float(self._exit_cat_guard_dd_bps),
+                float(self._exit_cat_guard_giveback_ratio),
+                float(self._exit_cat_guard_pnl_max),
+                float(self._exit_cat_guard_pnl_frac_mfe),
+                float(self._exit_edge_death_mfe_min_long),
+                float(self._exit_edge_death_dd_min_long),
+                float(self._exit_edge_death_gb_min_long),
+                float(self._exit_edge_death_mfe_min_short),
+                float(self._exit_edge_death_dd_min_short),
+                float(self._exit_edge_death_gb_min_short),
+            )
+            log.info(
+                "[EXIT_GUARD_MODE] model_owned_normal_exits=1 runtime_safety_only=1 sideguards_active=0 cata_active=%s",
+                bool(getattr(self, "_exit_cat_guard_enabled", False)),
+            )
+            log.info(
+                "[EXIT_POST_EDGE_CFG] enabled=%s score_source=%s score_min=%.3f require_model_below_main_threshold=%s require_threshold_event=%s allowed_sides=%s allowed_sessions=%s mfe>=%.1f dd>=%.1f gb>=%.2f pnl_range=%.1f..%.1f pnl_frac_mfe<=%.2f tsm>=%.1f directional_edge<=%.3f",
+                bool(getattr(self, "_exit_post_edge_enabled", False)),
+                str(getattr(self, "_exit_post_edge_score_source", "exit_prob")),
+                float(getattr(self, "_exit_post_edge_score_min", 0.70)),
+                bool(getattr(self, "_exit_post_edge_require_model_below_main_threshold", True)),
+                bool(getattr(self, "_exit_post_edge_require_threshold_event", True)),
+                sorted(getattr(self, "_exit_post_edge_allowed_sides", {"long"})),
+                sorted(getattr(self, "_exit_post_edge_allowed_sessions", {"OVERLAP"})),
+                float(getattr(self, "_exit_post_edge_mfe_min", 60.0)),
+                float(getattr(self, "_exit_post_edge_dd_min", 55.0)),
+                float(getattr(self, "_exit_post_edge_gb_min", 0.75)),
+                float(getattr(self, "_exit_post_edge_pnl_min", 2.0)),
+                float(getattr(self, "_exit_post_edge_pnl_max", 10.0)),
+                float(getattr(self, "_exit_post_edge_pnl_frac_mfe_max", 0.45)),
+                float(getattr(self, "_exit_post_edge_time_since_mfe_min", 8.0)),
+                float(getattr(self, "_exit_post_edge_directional_edge_max", 0.02)),
+            )
             self._exit_effective_cfg_logged = True
         
         exit_mode = (
@@ -387,6 +509,16 @@ class ExitManager:
         if not self.open_trades:
             return
         open_trades_copy = list(self.open_trades)
+        runner_obj = getattr(self, "_runner", None)
+
+        def _accum_runner_metric(sec_name: str, count_name: str, dt: float) -> None:
+            try:
+                if runner_obj is None:
+                    return
+                setattr(runner_obj, sec_name, float(getattr(runner_obj, sec_name, 0.0) + float(dt)))
+                setattr(runner_obj, count_name, int(getattr(runner_obj, count_name, 0) + 1))
+            except Exception:
+                return
         
         # One-shot exit window_len report (observability only; no behavior change)
         def _maybe_log_exit_windowlen_once() -> None:
@@ -580,7 +712,6 @@ class ExitManager:
                         raise RuntimeError(
                             f"[CANDLE_GAP] spacing_sec={spacing_sec} prev_ts={prev_ts} now_ts={now_ts}"
                         )
-        runtime_atr_bps = self._compute_runtime_atr_bps(candles)
         # Update per-bar extrema once per bar for determinism
         self._update_trade_extremes_current_bar(open_trades_copy, now_ts, current_bid, current_ask)
         # Snapshot ctx once per bar using the same prebuilt row as entry ctx (if available)
@@ -600,7 +731,7 @@ class ExitManager:
                 ctx_cont_cols = list(ctx_cont_cols or [])
                 ctx_cat_cols = list(ctx_cat_cols or [])
                 expected_cont_dim, expected_cat_dim = self._get_expected_ctx_dims()
-                ctx_contract_mode = os.environ.get("GX1_CTX_CONTRACT", "V_CURRENT").upper()
+                ctx_contract_mode = os.environ.get("GX1_CTX_CONTRACT", "V_NEXT").upper()
                 if ctx_contract_mode == "V_NEXT":
                     extra_ctx_cont = [
                         "is_ASIA",
@@ -734,421 +865,8 @@ class ExitManager:
         # Collect price trace for open trades (for intratrade metrics)
         self._collect_price_trace(candles, now_ts, open_trades_copy)
 
-        # FARM paths disabled in canonical truth
-        if False and hasattr(self, "farm_v1_mode") and self.farm_v1_mode:
-            pass
-
-        if False and getattr(self, "exit_farm_v2_rules_factory", None):
-            # Use EXIT_FARM_V2_RULES bar-based exit logic
-            for trade in open_trades_copy:
-                # Thread-safe check: skip if trade was already closed by tick-exit
-                if trade not in self.open_trades:
-                    continue
-                
-                # EXIT_FARM_V2_RULES only supports LONG positions
-                if trade.side != "long":
-                    log.debug(
-                        "[EXIT_FARM_V2_RULES] Skipping SHORT trade %s (EXIT_FARM_V2_RULES only supports LONG)",
-                        trade.trade_id
-                    )
-                    continue
-                delta_minutes = (now_ts - trade.entry_time).total_seconds() / 60.0
-                est_bars = max(1, int(round(delta_minutes / 5.0)))
-                entry_bid = float(getattr(trade, "entry_bid", trade.entry_price))
-                entry_ask = float(getattr(trade, "entry_ask", trade.entry_price))
-                est_pnl = compute_pnl_bps(entry_bid, entry_ask, current_bid, current_ask, trade.side)
-                log.debug(
-                    "[EXIT] Trade %s profile=%s bars=%d pnl=%.2f -> evaluate FARM_V2_RULES",
-                    trade.trade_id,
-                    trade.extra.get("exit_profile"),
-                    est_bars,
-                    est_pnl,
-                )
-                
-                # Build exit snapshot for ExitCritic (if enabled)
-                exit_snapshot = None
-                critic_action = None
-                if hasattr(self, "exit_critic_controller") and self.exit_critic_controller:
-                    try:
-                        from gx1.execution.live_features import build_live_exit_snapshot
-                        exit_snapshot = build_live_exit_snapshot(
-                            {
-                                "trade_id": trade.trade_id,
-                                "entry_time": trade.entry_time,
-                                "entry_price": trade.entry_price,
-                                "side": trade.side,
-                                "units": trade.units,
-                                "cost_bps": 0.0,
-                            },
-                            candles,
-                        )
-                        # Get regime info from trade if available
-                        session = getattr(trade, "session", None) or exit_snapshot["session_tag"].iloc[0] if len(exit_snapshot) > 0 else None
-                        vol_regime = getattr(trade, "vol_regime", None) or exit_snapshot["vol_bucket"].iloc[0] if len(exit_snapshot) > 0 else None
-                        trend_regime = getattr(trade, "trend_regime", None) or None
-                        
-                        critic_action = self.exit_critic_controller.maybe_apply_exit_critic(
-                            trade_snapshot=exit_snapshot.iloc[0].to_dict() if len(exit_snapshot) > 0 else {},
-                            bars_held=est_bars,
-                            current_pnl_bps=est_pnl,
-                            session=session,
-                            vol_regime=vol_regime,
-                            trend_regime=trend_regime,
-                        )
-                    except Exception as e:
-                        log.warning("[EXIT_CRITIC] Failed to evaluate: %s", e, exc_info=True)
-                
-                # ExitCritic override: EXIT_NOW
-                if critic_action == ACTION_EXIT_NOW:
-                    exit_price = current_bid if trade.side == "long" else current_ask
-                    accepted = self.request_close(
-                        trade_id=trade.trade_id,
-                        source="EXIT_CRITIC",
-                        reason="EXIT_CRITIC_EXIT_NOW",
-                        px=exit_price,
-                        pnl_bps=est_pnl,
-                        exit_bid=current_bid,
-                        exit_ask=current_ask,
-                        bars_in_trade=est_bars,
-                    )
-                    if accepted:
-                        if trade in self.open_trades:
-                            self.open_trades.remove(trade)
-                        self._teardown_exit_state(trade.trade_id)
-                        self.record_realized_pnl(now_ts, est_pnl)
-                        log.info(
-                            "[LIVE] CLOSED TRADE (EXIT_CRITIC_EXIT_NOW) %s %s @ %.3f | pnl=%.1f bps | bars=%d",
-                            trade.side.upper(),
-                            trade.trade_id,
-                            exit_price,
-                            est_pnl,
-                            est_bars,
-                        )
-                        self._log_trade_close_with_metrics(
-                            trade=trade,
-                            exit_time=now_ts,
-                            exit_price=exit_price,
-                            exit_reason="EXIT_CRITIC_EXIT_NOW",
-                            realized_pnl_bps=est_pnl,
-                            bars_held=est_bars,
-                        )
-                        self._update_trade_log_on_close(
-                            trade.trade_id,
-                            exit_price,
-                            est_pnl,
-                            "EXIT_CRITIC_EXIT_NOW",
-                            now_ts,
-                            bars_in_trade=est_bars,
-                        )
-                        continue
-                
-                # ExitCritic override: SCALP_PROFIT (partial exit)
-                if critic_action == ACTION_SCALP_PROFIT:
-                    # Partial exit: close 50% of position
-                    exit_price = current_bid if trade.side == "long" else current_ask
-                    partial_units = abs(trade.units) // 2
-                    if partial_units > 0:
-                        # Note: request_close doesn't support partial closes directly
-                        # For now, we'll log and let normal exit logic handle it
-                        # TODO: Implement partial close support
-                        log.info(
-                            "[EXIT_CRITIC] SCALP_PROFIT signal for trade %s (pnl=%.2f bps) - partial exit not yet implemented, continuing with normal exit",
-                            trade.trade_id,
-                            est_pnl,
-                        )
-                
-                policy = self.exit_farm_v2_rules_states.get(trade.trade_id)
-                if policy is None:
-                    try:
-                        self._init_farm_v2_rules_state(trade, context="exit_manager")
-                        policy = self.exit_farm_v2_rules_states.get(trade.trade_id)
-                    except Exception as exc:
-                        log.error(
-                            "[EXIT_FARM_V2_RULES] Failed to initialize state for trade %s: %s",
-                            trade.trade_id,
-                            exc,
-                        )
-                        continue
-
-                # Check for exit on current bar
-                if len(candles) == 0:
-                    continue
-                exit_decision = policy.on_bar(
-                    price_bid=current_bid,
-                    price_ask=current_ask,
-                    ts=now_ts,
-                    atr_bps=runtime_atr_bps,
-                )
-                
-                if exit_decision is None:
-                    log.debug(
-                        "[EXIT] Trade %s profile=%s bars=%d pnl=%.2f -> HOLD (farm rules)",
-                        trade.trade_id,
-                        trade.extra.get("exit_profile"),
-                        est_bars,
-                        est_pnl,
-                    )
-                    continue
-                
-                if exit_decision is not None:
-                    # Exit triggered
-                    exit_reason = exit_decision.reason
-                    pnl_bps = exit_decision.pnl_bps
-                    bars_in_trade = exit_decision.bars_held
-                    
-                    # Log exit triggered to trade journal
-                    if hasattr(self._runner, "trade_journal") and self._runner.trade_journal:
-                        try:
-                            from gx1.monitoring.trade_journal import EVENT_EXIT_TRIGGERED
-                            
-                            exit_state = self.exit_farm_v2_rules_states.get(trade.trade_id)
-                            exit_state_fields = {}
-                            if exit_state and hasattr(exit_state, "trail_level"):
-                                exit_state_fields["trail_level"] = getattr(exit_state, "trail_level", None)
-                            if exit_state and hasattr(exit_state, "tp_level"):
-                                exit_state_fields["tp_level"] = getattr(exit_state, "tp_level", None)
-                            if exit_state and hasattr(exit_state, "sl_level"):
-                                exit_state_fields["sl_level"] = getattr(exit_state, "sl_level", None)
-                            
-                            # Log exit event (structured)
-                            exit_time_iso = now_ts.isoformat() if hasattr(now_ts, "isoformat") else str(now_ts)
-                            self._runner.trade_journal.log_exit_event(
-                                timestamp=exit_time_iso,
-                                trade_uid=trade.trade_uid,  # Primary key (COMMIT C)
-                                trade_id=trade.trade_id,  # Display ID (backward compatibility)
-                                event_type="EXIT_TRIGGERED",
-                                price=exit_decision.exit_price,
-                                pnl_bps=pnl_bps,
-                                bars_held=bars_in_trade,
-                            )
-                            
-                            # Log exit event (backward compatibility JSONL)
-                            self._runner.trade_journal.log(
-                                EVENT_EXIT_TRIGGERED,
-                                {
-                                    "exit_time": exit_time_iso,
-                                    "exit_price": exit_decision.exit_price,
-                                    "exit_profile": trade.extra.get("exit_profile", "UNKNOWN"),
-                                    "exit_reason": exit_reason,
-                                    "bars_held": bars_in_trade,
-                                    "pnl_bps": pnl_bps,
-                                    "exit_state_fields": exit_state_fields,
-                                },
-                                trade_key={
-                                    "entry_time": trade.entry_time.isoformat() if hasattr(trade.entry_time, "isoformat") else str(trade.entry_time),
-                                    "entry_price": trade.entry_price,
-                                    "side": trade.side,
-                                },
-                                trade_id=trade.trade_id,
-                            )
-                        except Exception as e:
-                            log.warning("[TRADE_JOURNAL] Failed to log EXIT_TRIGGERED: %s", e)
-                    
-                    # Request close
-                    accepted = self.request_close(
-                        trade_id=trade.trade_id,
-                        source="EXIT_FARM_V2_RULES",
-                        reason=exit_reason,
-                        px=exit_decision.exit_price,
-                        pnl_bps=pnl_bps,
-                        exit_bid=current_bid,
-                        exit_ask=current_ask,
-                        bars_in_trade=bars_in_trade,
-                    )
-                    closes_requested += 1
-                    
-                    if not accepted:
-                        log.warning("[EXIT] close rejected by ExitArbiter for trade %s", trade.trade_id)
-                        log.error("Exit signaled but not applied for trade %s", trade.trade_id)
-                        continue
-                    closes_accepted += 1
-                    
-                    # Remove from open_trades
-                    if trade in self.open_trades:
-                        self.open_trades.remove(trade)
-                    self._teardown_exit_state(trade.trade_id)
-                    
-                    # Record realized PnL
-                    self.record_realized_pnl(now_ts, pnl_bps)
-                    
-                    # Log trade closure
-                    log.info(
-                        "[LIVE] CLOSED TRADE (FARM_V2_RULES) %s %s @ %.3f | pnl=%.1f bps | reason=%s | bars=%d",
-                        trade.side.upper(),
-                        trade.trade_id,
-                        exit_decision.exit_price,
-                        pnl_bps,
-                        exit_reason,
-                        bars_in_trade,
-                    )
-                    
-                    # Log trade closed to trade journal (with intratrade metrics)
-                    self._log_trade_close_with_metrics(
-                        trade=trade,
-                        exit_time=now_ts,
-                        exit_price=exit_decision.exit_price,
-                        exit_reason=exit_reason,
-                        realized_pnl_bps=pnl_bps,
-                        bars_held=bars_in_trade,
-                    )
-                    
-                    # Record exit in trade log
-                    self._update_trade_log_on_close(
-                        trade.trade_id,
-                        exit_decision.exit_price,
-                        pnl_bps,
-                        exit_reason,
-                        now_ts,
-                        bars_in_trade=bars_in_trade,
-                    )
-            
-            # If FARM_V2_RULES mode is active, return early (no other exits allowed)
-            if self.exit_only_v2_drift:
-                return
+        # Legacy FARM/critic paths are intentionally removed from canonical EXIT flow.
         
-        # Check if EXIT_FARM_V1 is enabled
-        if hasattr(self, "exit_farm_v1_policy") and self.exit_farm_v1_policy is not None:
-            # Use EXIT_FARM_V1 bar-based exit logic
-            for trade in open_trades_copy:
-                # Thread-safe check: skip if trade was already closed by tick-exit
-                if trade not in self.open_trades:
-                    continue
-                
-                # EXIT_FARM_V1 only supports LONG positions
-                if trade.side != "long":
-                    log.debug(
-                        "[EXIT_FARM_V1] Skipping SHORT trade %s (EXIT_FARM_V1 only supports LONG)",
-                        trade.trade_id,
-                    )
-                    continue
-                
-                # Initialize exit policy for this trade if not already done
-                if "exit_farm_v1_initialized" not in trade.extra:
-                    # GUARDRAIL: FARM_V2 entry MUST use FARM_EXIT_V1_STABLE exit
-                    if hasattr(self, "farm_v2_mode") and self.farm_v2_mode:
-                        if not hasattr(self, "exit_farm_v1_policy") or self.exit_farm_v1_policy is None:
-                            raise RuntimeError(
-                                "[FARM_EXIT_GUARDRAIL] FARM exit policy not initialized. This should never happen."
-                            )
-                        
-                        # Determine expected exit_profile based on FARM mode
-                        if hasattr(self, "farm_v2_mode") and self.farm_v2_mode:
-                            expected_exit_profile = "FARM_EXIT_V2_AGGRO"
-                            log.info(
-                                "[FARM_V2_GUARDRAIL] FARM_V2 entry detected - enforcing exit_profile=%s",
-                                expected_exit_profile
-                            )
-                        elif hasattr(self, "farm_v1_mode") and self.farm_v1_mode:
-                            expected_exit_profile = "FARM_EXIT_V1_STABLE"
-                            log.info(
-                                "[FARM_V1_GUARDRAIL] FARM_V1 entry detected - enforcing exit_profile=%s",
-                                expected_exit_profile
-                            )
-                        else:
-                            # Fallback: use FARM_EXIT_V1_STABLE for backward compatibility
-                            expected_exit_profile = "FARM_EXIT_V1_STABLE"
-                            log.warning(
-                                "[FARM_EXIT_GUARDRAIL] Unknown FARM mode - defaulting to exit_profile=%s",
-                                expected_exit_profile
-                            )
-                    
-                    self.exit_farm_v1_policy.reset_on_entry(
-                        trade.entry_price,
-                        trade.entry_time,
-                        side="long",  # Always "long" for EXIT_FARM_V1
-                    )
-                    trade.extra["exit_farm_v1_initialized"] = True
-                    # Set exit_profile for traceability
-                    trade.extra["exit_profile"] = expected_exit_profile
-                    # Set baseline version for traceability
-                    if hasattr(self, "farm_baseline_version"):
-                        trade.extra["farm_baseline_version"] = self.farm_baseline_version
-                    
-                    # GUARDRAIL: Final check - reject if exit_profile doesn't match mode
-                    if hasattr(self, "farm_v2_mode") and self.farm_v2_mode:
-                        if trade.extra.get("exit_profile") != "FARM_EXIT_V2_AGGRO":
-                            raise RuntimeError(
-                                f"[FARM_V2_GUARDRAIL] FARM_V2 entry requires exit_profile='FARM_EXIT_V2_AGGRO'. "
-                                f"Found: {trade.extra.get('exit_profile')}. "
-                                f"FARM_V2 must use FARM_EXIT_V2_AGGRO."
-                            )
-                    elif hasattr(self, "farm_v1_mode") and self.farm_v1_mode:
-                        if trade.extra.get("exit_profile") != "FARM_EXIT_V1_STABLE":
-                            raise RuntimeError(
-                                f"[FARM_V1_GUARDRAIL] FARM_V1 entry requires exit_profile='FARM_EXIT_V1_STABLE'. "
-                                f"Found: {trade.extra.get('exit_profile')}. "
-                                f"FARM_V1 must use FARM_EXIT_V1_STABLE."
-                            )
-                
-                # Evaluate exit on current bar
-                exit_decision = self.exit_farm_v1_policy.on_bar(current_bid, now_ts)
-                
-                if exit_decision is not None:
-                    # Exit triggered
-                    reason_map = {
-                        "EXIT_FARM_SL": "EXIT_FARM_SL",
-                        "EXIT_FARM_SL_BREAKEVEN": "EXIT_FARM_SL_BREAKEVEN",
-                        "EXIT_FARM_TP": "EXIT_FARM_TP",
-                        "EXIT_FARM_TIMEOUT": "EXIT_FARM_TIMEOUT",
-                    }
-                    exit_reason = reason_map.get(exit_decision.reason, exit_decision.reason)
-                    
-                    log.info(
-                        "[EXIT_FARM_V1] Trade %s: %s triggered at bar %d, price=%.5f, pnl_bps=%.2f",
-                        trade.trade_id,
-                        exit_decision.reason,
-                        exit_decision.bars_held,
-                        exit_decision.exit_price,
-                        exit_decision.pnl_bps,
-                    )
-                    
-                    # HARD ASSERT: FARM_V1 mode must only use FARM exit reasons
-                    if self.farm_v1_mode and not exit_reason.startswith("EXIT_FARM"):
-                        raise RuntimeError(
-                            f"[FARM_V1_ASSERT] Non-FARM exit reason in FARM_V1 mode: {exit_reason}. "
-                            f"Trade: {trade.trade_id}"
-                        )
-                    
-                    # Request close via ExitArbiter
-                    accepted = self.request_close(
-                        trade_id=trade.trade_id,
-                        source="EXIT_FARM_V1",
-                        reason=exit_reason,
-                        px=exit_decision.exit_price,
-                        pnl_bps=exit_decision.pnl_bps,
-                        exit_bid=current_bid,
-                        exit_ask=current_ask,
-                        bars_in_trade=exit_decision.bars_held,
-                    )
-                    closes_requested += 1
-                    
-                    if accepted and trade in self.open_trades:
-                        self.open_trades.remove(trade)
-                        if not self.replay_mode:
-                            self._maybe_update_tick_watcher()
-                        closes_accepted += 1
-                        
-                        # Log trade closed to trade journal (with intratrade metrics)
-                        self._log_trade_close_with_metrics(
-                            trade=trade,
-                            exit_time=now_ts,
-                            exit_price=exit_decision.exit_price,
-                            exit_reason=exit_reason,
-                            realized_pnl_bps=exit_decision.pnl_bps,
-                            bars_held=exit_decision.bars_held,
-                        )
-                    elif not accepted:
-                        log.error("Exit signaled but not applied for trade %s", trade.trade_id)
-                    continue  # Continue to next trade, do not fall through
-            
-            # If FARM_V1 mode is active, return early (no other exits allowed)
-            if self.farm_v1_mode:
-                return
-            
-            # If only_v2_drift_mode is active (or equivalent for FARM_V1), return early
-            if self.exit_only_v2_drift:
-                return
-
         # Exit transformer path (single supported mode)
         exit_mode = (
             (getattr(self, "exit_params", {}) or {})
@@ -1176,13 +894,22 @@ class ExitManager:
                 raise RuntimeError(
                     "[EXIT_MODEL_REQUIRED] Exit transformer model is required for configured exit policy; decider missing."
                 )
+            if (
+                decider is not None
+                and bool(getattr(self, "_exit_post_edge_enabled", False))
+                and str(getattr(self, "_exit_post_edge_score_source", "exit_prob")) == "profit_protect_prob"
+                and not bool(getattr(decider, "profit_protect_head_available", False))
+            ):
+                raise RuntimeError(
+                    "[EXIT_POST_EDGE_HEAD_MISSING] score_source=profit_protect_prob requested but active exit bundle has no trained profit_protect head"
+                )
             window_len = int(getattr(decider, "window_len", -1))
             input_dim = int(getattr(decider, "input_dim", -1))
             if io_only:
                 window_len = 8
                 input_dim = len(EXIT_IO_V1_CTX36_FEATURES)
             if window_len != 8 or input_dim != len(EXIT_IO_V1_CTX36_FEATURES):
-                if os.getenv("GX1_EXIT_HASH_GUARD_BYPASS") == "1":
+                if bool(getattr(self._runner, "exit_hash_guard_bypass_enabled", False)):
                     log.warning(
                         "[EXIT_IO_CONTRACT_GUARD_BYPASS] expected window_len=8,input_dim=%d got window_len=%d,input_dim=%d",
                         len(EXIT_IO_V1_CTX36_FEATURES),
@@ -1279,7 +1006,13 @@ class ExitManager:
                     self._exit_eval_blocked_reasons["io_only_replay"] = (
                         self._exit_eval_blocked_reasons.get("io_only_replay", 0) + 1
                     )
+                    t_exit_input_start = time.perf_counter()
                     window_arr = self._build_exit_ctx19_window(trade, candles, window_len)
+                    _accum_runner_metric(
+                        "t_exit_input_prep_sec",
+                        "n_exit_input_prep_calls",
+                        time.perf_counter() - t_exit_input_start,
+                    )
                     if window_arr is None:
                         self._exit_eval_blocked_reasons["window_build_failed"] = (
                             self._exit_eval_blocked_reasons.get("window_build_failed", 0) + 1
@@ -1296,90 +1029,14 @@ class ExitManager:
                     )
                     _emit_exit_eval_trace(False, float("nan"), "none")
                     continue
-                # No min-hold guard: evaluate exit model on all bars after entry
-                # Time-stop cap: force close if bars held exceed configured max (deterministic)
-                if self._exit_max_bars_held > 0 and bars_in_trade_min >= self._exit_max_bars_held:
-                    self._exit_eval_flow["blocked_pre_eval_count"] += 1
-                    self._exit_eval_blocked_reasons["max_bars_held"] = (
-                        self._exit_eval_blocked_reasons.get("max_bars_held", 0) + 1
-                    )
-                    exit_price = current_bid if trade.side == "long" else current_ask
-                    pnl_bps = compute_pnl_bps(entry_bid, entry_ask, current_bid, current_ask, trade.side)
-                    _emit_exit_eval_trace(False, float("nan"), "none")
-                    if (
-                        bars_in_trade_min > (self._exit_max_bars_held + 1)
-                        and not getattr(trade, "_exit_max_bars_audit_logged", False)
-                    ):
-                        try:
-                            candle_ts = candles.index[-1]
-                            prev_ts = candles.index[-2] if len(candles) >= 2 else None
-                            spacing_sec = (candle_ts - prev_ts).total_seconds() if prev_ts is not None else None
-                            log.info(
-                                "[EXIT_MAX_BARS_AUDIT] max_bars=%d bars_held=%d entry_time=%s now_ts=%s candle_ts=%s prev_ts=%s spacing_sec=%s trade_uid=%s trade_id=%s side=%s entry_time_type=%s now_ts_type=%s entry_bar_index=%s current_bar_index=%s",
-                                self._exit_max_bars_held,
-                                bars_in_trade_min,
-                                getattr(trade, "entry_time", None),
-                                now_ts,
-                                candle_ts,
-                                prev_ts,
-                                spacing_sec,
-                                getattr(trade, "trade_uid", None),
-                                trade.trade_id,
-                                getattr(trade, "side", None),
-                                type(getattr(trade, "entry_time", None)),
-                                type(now_ts),
-                                getattr(trade, "entry_bar_index", None),
-                                current_bar_index,
-                            )
-                        except Exception:
-                            pass
-                        trade._exit_max_bars_audit_logged = True
-                    if not getattr(trade, "_exit_max_bars_logged", False):
-                        log.info(
-                            "[EXIT_MAX_BARS_CLOSE] max_bars=%d bars_held=%d trade_uid=%s trade_id=%s",
-                            self._exit_max_bars_held,
-                            bars_in_trade_min,
-                            getattr(trade, "trade_uid", None),
-                            trade.trade_id,
-                        )
-                        trade._exit_max_bars_logged = True
-                    accepted = self.request_close(
-                        trade_id=trade.trade_id,
-                        source="EXIT_MAX_BARS",
-                        reason="MAX_BARS_HELD",
-                        px=exit_price,
-                        pnl_bps=pnl_bps,
-                        exit_bid=current_bid,
-                        exit_ask=current_ask,
-                        bars_in_trade=bars_in_trade_min,
-                    )
-                    closes_requested += 1
-                    if accepted and trade in self.open_trades:
-                        self.open_trades.remove(trade)
-                        if not self.replay_mode:
-                            self._maybe_update_tick_watcher()
-                        closes_accepted += 1
-                        self.record_realized_pnl(now_ts, pnl_bps)
-                        self._log_trade_close_with_metrics(
-                            trade=trade,
-                            exit_time=now_ts,
-                            exit_price=exit_price,
-                            exit_reason="MAX_BARS_HELD",
-                            realized_pnl_bps=pnl_bps,
-                            bars_held=bars_in_trade_min,
-                        )
-                        self._update_trade_log_on_close(
-                            trade.trade_id,
-                            exit_price,
-                            pnl_bps,
-                            "MAX_BARS_HELD",
-                            now_ts,
-                            bars_in_trade=bars_in_trade_min,
-                        )
-                    elif not accepted:
-                        log.error("[EXIT_MAX_BARS_CLOSE] close rejected by ExitArbiter for trade %s", trade.trade_id)
-                    continue
+                # No min-hold/time-stop guards in active path; decisions are edge/event-driven.
+                t_exit_input_start = time.perf_counter()
                 window_arr = self._build_exit_ctx19_window(trade, candles, window_len)
+                _accum_runner_metric(
+                    "t_exit_input_prep_sec",
+                    "n_exit_input_prep_calls",
+                    time.perf_counter() - t_exit_input_start,
+                )
                 if window_arr is None:
                     self._exit_eval_flow["blocked_pre_eval_count"] += 1
                     self._exit_eval_blocked_reasons["window_build_failed"] = (
@@ -1388,17 +1045,58 @@ class ExitManager:
                     _emit_exit_eval_trace(False, float("nan"), "none")
                     continue
                 self._exit_eval_flow["eligible_count"] += 1
+                threshold_event = self._threshold_event_state(
+                    window_arr=window_arr,
+                    side=trade.side,
+                )
+                threshold_event_armed = threshold_event is not None
+                if not hasattr(self, "_threshold_eval_reached_log_count"):
+                    self._threshold_eval_reached_log_count = 0
+                self._threshold_eval_reached_log_count += 1
+                if self._threshold_eval_reached_log_count <= 5 or (self._threshold_eval_reached_log_count % 5000) == 0:
+                    log.info(
+                        "[THRESHOLD_EVAL_REACHED] trade_id=%s side=%s bars_held=%d event_armed=%s",
+                        getattr(trade, "trade_id", None),
+                        getattr(trade, "side", None),
+                        bars_in_trade_min,
+                        bool(threshold_event_armed),
+                    )
+                if threshold_event_armed:
+                    if not hasattr(self, "_threshold_event_armed_log_count"):
+                        self._threshold_event_armed_log_count = 0
+                    self._threshold_event_armed_log_count += 1
+                    if (
+                        self._threshold_event_armed_log_count <= 5
+                        or (self._threshold_event_armed_log_count % 5000) == 0
+                    ):
+                        log.info(
+                            "[THRESHOLD_EVENT_ARMED] trade_id=%s side=%s bars_held=%d mfe_bps=%.2f dd_from_mfe_bps=%.2f giveback_ratio=%.3f directional_edge=%.4f",
+                            getattr(trade, "trade_id", None),
+                            getattr(trade, "side", None),
+                            bars_in_trade_min,
+                            float(threshold_event["mfe_bps"]),
+                            float(threshold_event["dd_from_mfe_bps"]),
+                            float(threshold_event["giveback_ratio"]),
+                            float(threshold_event["directional_edge"]),
+                        )
+                # Sideguards are intentionally disabled in active canonical path.
+                # Keep event-arm logs above for observability; runtime safety remains CATA-only.
                 guard_payload = self._should_trigger_cat_guard(
                     window_arr=window_arr,
-                    bars_in_trade_min=bars_in_trade_min,
                     pnl_bps_now=float(pnl_bps_now),
                 )
                 if guard_payload is not None:
+                    log.info(
+                        "[THRESHOLD_SKIPPED_BECAUSE_PRIOR_GUARD] trade_id=%s side=%s bars_held=%d guard=CATASTROPHIC_GUARD",
+                        getattr(trade, "trade_id", None),
+                        getattr(trade, "side", None),
+                        bars_in_trade_min,
+                    )
                     mark_price = current_bid if trade.side == "long" else current_ask
                     self._exit_cat_guard_triggers += 1
                     _emit_exit_eval_trace(False, float("nan"), "guard")
                     log.info(
-                        "[EXIT_CATA_GUARD_TRIGGER] trade_uid=%s trade_id=%s side=%s bars_held=%d pnl_bps=%.2f mfe_bps=%.2f dd_from_mfe_bps=%.2f giveback_ratio=%.3f time_since_mfe_bars=%.1f mfe_decay_rate=%.3f pnl_limit=%.2f thresholds={bars>=%d mfe>=%.1f dd>=%.1f gb>=%.2f ts_mfe>=%.1f decay>=%.2f pnl_max<=%.2f pnl_frac<=%.2f}",
+                        "[EXIT_CATA_GUARD_TRIGGER] trade_uid=%s trade_id=%s side=%s bars_held=%d pnl_bps=%.2f mfe_bps=%.2f dd_from_mfe_bps=%.2f giveback_ratio=%.3f mfe_decay_rate=%.3f pnl_limit=%.2f thresholds={mfe>=%.1f dd>=%.1f gb>=%.2f pnl_max<=%.2f pnl_frac<=%.2f}",
                         getattr(trade, "trade_uid", None),
                         getattr(trade, "trade_id", None),
                         getattr(trade, "side", None),
@@ -1407,15 +1105,11 @@ class ExitManager:
                         float(guard_payload["mfe_bps"]),
                         float(guard_payload["dd_from_mfe_bps"]),
                         float(guard_payload["giveback_ratio"]),
-                        float(guard_payload["time_since_mfe_bars"]),
                         float(guard_payload["mfe_decay_rate"]),
                         float(guard_payload["pnl_limit"]),
-                        int(self._exit_cat_guard_bars),
                         float(self._exit_cat_guard_mfe_bps),
                         float(self._exit_cat_guard_dd_bps),
                         float(self._exit_cat_guard_giveback_ratio),
-                        float(self._exit_cat_guard_time_since_mfe),
-                        float(self._exit_cat_guard_decay_min),
                         float(self._exit_cat_guard_pnl_max),
                         float(self._exit_cat_guard_pnl_frac_mfe),
                     )
@@ -1430,6 +1124,13 @@ class ExitManager:
                     log.info(
                         "[EXIT_CATA_GUARD_TO_ARBITER] trade_id=%s reason=CATASTROPHIC_GUARD pnl_bps=%.2f bars_held=%d",
                         getattr(trade, "trade_id", None),
+                        float(pnl_bps_now),
+                        bars_in_trade_min,
+                    )
+                    log.info(
+                        "[EXIT_RUNTIME_SAFETY_EXIT] trade_id=%s side=%s reason=CATASTROPHIC_GUARD pnl_bps=%.2f bars_held=%d",
+                        getattr(trade, "trade_id", None),
+                        getattr(trade, "side", None),
                         float(pnl_bps_now),
                         bars_in_trade_min,
                     )
@@ -1480,51 +1181,42 @@ class ExitManager:
                             bars_in_trade_min,
                         )
                     continue
-                logit_val = None
-                if decider is not None:
-                    if os.getenv("GX1_EXIT_HASH_GUARD_BYPASS") == "1":
-                        expected_dim = getattr(decider, "input_dim", None)
-                        if expected_dim is not None:
-                            try:
-                                arr = np.asarray(window_arr, dtype=np.float32)
-                                if arr.ndim == 2 and arr.shape[1] != int(expected_dim):
-                                    got_dim = int(arr.shape[1])
-                                    if got_dim > int(expected_dim):
-                                        arr = arr[:, : int(expected_dim)]
-                                        window_arr = arr
-                                        log.warning(
-                                            "[EXIT_IO_CONTRACT_TRUNCATE] expected_input_dim=%d got_input_dim=%d action=truncate",
-                                            int(expected_dim),
-                                            got_dim,
-                                        )
-                                    else:
-                                        log.warning(
-                                            "[EXIT_IO_CONTRACT_TRUNCATE] expected_input_dim=%d got_input_dim=%d action=none",
-                                            int(expected_dim),
-                                            got_dim,
-                                        )
-                            except Exception:
-                                pass
-                    model = getattr(decider, "model", None)
-                    if model is not None and hasattr(model, "forward_logits"):
+                if decider is not None and bool(getattr(self._runner, "exit_hash_guard_bypass_enabled", False)):
+                    expected_dim = getattr(decider, "input_dim", None)
+                    if expected_dim is not None:
                         try:
-                            import torch  # optional if torch is installed
-                            with torch.no_grad():
-                                x = torch.from_numpy(np.asarray(window_arr, dtype=np.float32)).unsqueeze(0)
-                                logit_val = float(model.forward_logits(x).detach().cpu().numpy().reshape(-1)[0])
+                            arr = np.asarray(window_arr, dtype=np.float32)
+                            if arr.ndim == 2 and arr.shape[1] != int(expected_dim):
+                                got_dim = int(arr.shape[1])
+                                if got_dim > int(expected_dim):
+                                    arr = arr[:, : int(expected_dim)]
+                                    window_arr = arr
+                                    log.warning(
+                                        "[EXIT_IO_CONTRACT_TRUNCATE] expected_input_dim=%d got_input_dim=%d action=truncate",
+                                        int(expected_dim),
+                                        got_dim,
+                                    )
+                                else:
+                                    log.warning(
+                                        "[EXIT_IO_CONTRACT_TRUNCATE] expected_input_dim=%d got_input_dim=%d action=none",
+                                        int(expected_dim),
+                                        got_dim,
+                                    )
                         except Exception:
-                            logit_val = None
+                            pass
                 self._exit_eval_flow["model_eval_attempt_count"] += 1
-                prob_close, _, _ = decider.predict(window_arr)
+                t_exit_model_start = time.perf_counter()
+                pred_details = decider.predict_details(window_arr)
+                _accum_runner_metric(
+                    "t_exit_model_infer_sec",
+                    "n_exit_model_infer_calls",
+                    time.perf_counter() - t_exit_model_start,
+                )
                 self._exit_eval_flow["model_eval_complete_count"] += 1
-                if not self._exit_logit_temperature_logged:
-                    try:
-                        temp = getattr(decider, "logit_temperature", None)
-                        if temp is not None:
-                            log.info("[EXIT_LOGIT_TEMPERATURE_PROOF] temperature=%.6f", float(temp))
-                            self._exit_logit_temperature_logged = True
-                    except Exception:
-                        pass
+                prob_close = float(pred_details.get("prob_close") or 0.0)
+                logit_val = pred_details.get("logit")
+                profit_protect_prob = pred_details.get("profit_protect_prob")
+                family_top_name = pred_details.get("family_top_name")
                 try:
                     last_row = np.asarray(window_arr, dtype=np.float32)[-1].tolist()
                     if isinstance(last_row, list):
@@ -1603,7 +1295,7 @@ class ExitManager:
                 if self._exit_hysteresis_dbg_count < 30:
                     recent = list(hist)[-self.exit_require_consecutive:]
                     recent_f = [float(x) for x in recent]
-                    should_exit_dbg = (
+                    model_decided_exit_dbg = (
                         len_after >= self.exit_require_consecutive
                         and all(x >= float(self.exit_threshold) for x in recent_f)
                     )
@@ -1622,7 +1314,7 @@ class ExitManager:
                         list(hist),
                         recent,
                         recent_f,
-                        should_exit_dbg,
+                        model_decided_exit_dbg,
                     )
                     self._exit_hysteresis_dbg_count += 1
                 if self._exit_runtime_gt_count < 5:
@@ -1666,40 +1358,149 @@ class ExitManager:
                     self.exit_require_consecutive,
                 )
 
-                should_exit = False
-                if len(trade.prob_close_history) >= self.exit_require_consecutive:
-                    recent_bars = [float(p) for p in list(trade.prob_close_history)][-self.exit_require_consecutive:]
-                    should_exit = all(p >= self.exit_threshold for p in recent_bars)
-                    if should_exit:
-                        log.info(
-                            "[EXIT] Trade %s: prob_close >= threshold in %d consecutive bars: %s (hysteresis passed)",
-                            trade.trade_id,
-                            self.exit_require_consecutive,
-                            [f"{p:.4f}" for p in recent_bars],
+                event_armed = bool(threshold_event_armed)
+                recent_req = list(hist)[-self.exit_require_consecutive:]
+                recent_req_f = [float(x) for x in recent_req]
+                model_decided_exit = bool(
+                    len_after >= self.exit_require_consecutive
+                    and all(x >= float(self.exit_threshold) for x in recent_req_f)
+                )
+                residual_state = self._canonical_residual_exit_state(window_arr=window_arr)
+                residual_should_exit = False
+                if (
+                    bool(getattr(self._runner, "exit_residual_enabled", False))
+                    and not model_decided_exit
+                    and residual_state is not None
+                ):
+                    residual_prob_gate_ok = True
+                    if bool(getattr(self._runner, "exit_residual_require_prob_below_threshold", True)):
+                        residual_prob_gate_ok = float(prob_close) < float(self.exit_threshold)
+                    residual_pnl_gate_ok = True
+                    if bool(getattr(self._runner, "exit_residual_require_nonpositive_pnl", False)):
+                        residual_pnl_gate_ok = float(pnl_bps_now) <= 0.0
+                    residual_late_or_boundary = (
+                        float(residual_state["minutes_since_session_open"])
+                        >= float(getattr(self._runner, "exit_residual_minutes_since_session_open_min", 120.0))
+                    ) or (
+                        float(residual_state["minutes_to_next_session_boundary"])
+                        <= float(getattr(self._runner, "exit_residual_minutes_to_next_session_boundary_max", 120.0))
+                    )
+                    residual_deterioration_ok = (
+                        float(residual_state["distance_from_peak_mfe_bps"])
+                        >= float(getattr(self._runner, "exit_residual_distance_from_peak_mfe_bps_min", 40.0))
+                    )
+                    residual_should_exit = bool(
+                        residual_prob_gate_ok
+                        and residual_pnl_gate_ok
+                        and residual_late_or_boundary
+                        and residual_deterioration_ok
+                    )
+                post_edge_state = self._selective_post_edge_separator_state(
+                    window_arr=window_arr,
+                    side=getattr(trade, "side", ""),
+                    session_current=session_current,
+                    pnl_bps_now=float(pnl_bps_now),
+                    threshold_event=threshold_event,
+                    threshold_event_armed=threshold_event_armed,
+                    exit_prob=float(prob_close),
+                    profit_protect_prob=profit_protect_prob,
+                )
+                post_edge_should_exit = False
+                if (
+                    post_edge_state is not None
+                    and not model_decided_exit
+                    and not residual_should_exit
+                ):
+                    if (
+                        post_edge_state["score_source"] == "profit_protect_prob"
+                        and profit_protect_prob is None
+                        and (bool(getattr(self, "replay_mode", False)) or os.getenv("GX1_RUN_MODE", "").upper() == "TRUTH")
+                    ):
+                        raise RuntimeError(
+                            "[EXIT_POST_EDGE_HEAD_MISSING] score_source=profit_protect_prob requested but active exit bundle has no trained profit_protect head"
                         )
-                        try:
-                            if trade.side == "long":
-                                self._runner.exit_close_long += 1
-                            else:
-                                self._runner.exit_close_short += 1
-                        except Exception:
-                            pass
-                    else:
-                        log.debug(
-                            "[EXIT] Trade %s: prob_close < threshold in some bars: %s (hysteresis: need %d consecutive)",
-                            trade.trade_id,
-                            [f"{p:.4f}" for p in recent_bars],
-                            self.exit_require_consecutive,
-                        )
-                else:
-                    log.debug(
-                        "[EXIT] Trade %s: not enough bars for hysteresis check: %d < %d",
-                        trade.trade_id,
-                        len(trade.prob_close_history),
-                        self.exit_require_consecutive,
+                    below_main_threshold_ok = True
+                    if bool(getattr(self, "_exit_post_edge_require_model_below_main_threshold", True)):
+                        below_main_threshold_ok = float(prob_close) < float(self.exit_threshold)
+                    post_edge_should_exit = bool(below_main_threshold_ok)
+                if not hasattr(self, "_exit_model_decision_log_count"):
+                    self._exit_model_decision_log_count = 0
+                self._exit_model_decision_log_count += 1
+                if self._exit_model_decision_log_count <= 5 or (self._exit_model_decision_log_count % 5000) == 0:
+                    log.info(
+                        "[EXIT_MODEL_DECISION] trade_id=%s side=%s bars_held=%d model_decided_exit=%s residual_decided_exit=%s post_edge_decided_exit=%s event_armed=%s prob_close=%.6f threshold=%.6f require_consecutive=%d pnl_bps_now=%.2f recent=%s residual_state=%s post_edge_state=%s family_top_name=%s",
+                        getattr(trade, "trade_id", None),
+                        getattr(trade, "side", None),
+                        bars_in_trade_min,
+                        bool(model_decided_exit),
+                        bool(residual_should_exit),
+                        bool(post_edge_should_exit),
+                        bool(event_armed),
+                        float(prob_close),
+                        float(self.exit_threshold),
+                        int(self.exit_require_consecutive),
+                        float(pnl_bps_now),
+                        [f"{p:.6f}" for p in recent_req_f],
+                        residual_state,
+                        post_edge_state,
+                        family_top_name,
                     )
 
-                _emit_exit_eval_trace(True, float(prob_close), "threshold" if should_exit else "none")
+                should_exit = bool(model_decided_exit or residual_should_exit or post_edge_should_exit)
+                exit_reason = (
+                    "THRESHOLD" if bool(model_decided_exit)
+                    else "RESIDUAL_CANONICAL" if bool(residual_should_exit)
+                    else "POST_EDGE_SEPARATOR" if bool(post_edge_should_exit)
+                    else None
+                )
+                if should_exit:
+                    ev = threshold_event or {}
+                    log.info(
+                        "[EXIT_MODEL_DECIDED_EXIT] trade_id=%s side=%s bars_held=%d exit_reason=%s prob_close=%.6f profit_protect_prob=%s family_top_name=%s event_armed=%s mfe_bps=%.2f dd_from_mfe_bps=%.2f giveback_ratio=%.3f directional_edge=%.4f p_hat=%.4f p_flat=%.4f margin=%.4f uncertainty=%.4f residual_distance_from_peak_mfe_bps=%.2f residual_minutes_since_session_open=%.2f residual_minutes_to_next_session_boundary=%.2f post_edge_state=%s",
+                        trade.trade_id,
+                        trade.side,
+                        bars_in_trade_min,
+                        exit_reason,
+                        float(prob_close),
+                        None if profit_protect_prob is None else round(float(profit_protect_prob), 6),
+                        family_top_name,
+                        bool(event_armed),
+                        float(ev.get("mfe_bps", float("nan"))),
+                        float(ev.get("dd_from_mfe_bps", float("nan"))),
+                        float(ev.get("giveback_ratio", float("nan"))),
+                        float(ev.get("directional_edge", float("nan"))),
+                        float(ev.get("p_hat", float("nan"))),
+                        float(ev.get("p_flat", float("nan"))),
+                        float(ev.get("margin_top1_top2", float("nan"))),
+                        float(ev.get("uncertainty_score", float("nan"))),
+                        float((residual_state or {}).get("distance_from_peak_mfe_bps", float("nan"))),
+                        float((residual_state or {}).get("minutes_since_session_open", float("nan"))),
+                        float((residual_state or {}).get("minutes_to_next_session_boundary", float("nan"))),
+                        post_edge_state,
+                    )
+                    if bool(post_edge_should_exit):
+                        self._exit_post_edge_triggers += 1
+                    try:
+                        if trade.side == "long":
+                            self._runner.exit_close_long += 1
+                        else:
+                            self._runner.exit_close_short += 1
+                    except Exception:
+                        pass
+                else:
+                    log.debug(
+                        "[EXIT] Trade %s: model_blocked model_decided_exit=%s event_armed=%s prob_close=%.4f",
+                        trade.trade_id,
+                        bool(model_decided_exit),
+                        bool(event_armed),
+                        float(prob_close),
+                    )
+
+                _emit_exit_eval_trace(
+                    True,
+                    float(prob_close),
+                    "threshold" if bool(model_decided_exit) else "residual" if bool(residual_should_exit) else "post_edge_separator" if bool(post_edge_should_exit) else "none",
+                )
 
                 if should_exit:
                     entry_bid = float(getattr(trade, "entry_bid", trade.entry_price))
@@ -1715,10 +1516,11 @@ class ExitManager:
                     if tuid not in self._exit_decision_logged:
                         arb_allow = getattr(getattr(self._runner, "exit_control", None), "allow_model_exit_when", {}) or {}
                         log.info(
-                            "[EXIT_DECISION_PROOF] trade_uid=%s trade_id=%s side=%s prob_close=%.6f threshold=%.6f require_consecutive=%d prob_history=%s arb_cfg={min_exit_prob=%s, exit_prob_hysteresis=%s, min_pnl_bps=%s} bars_held=%s pnl_bps=%s will_call_request_close=true",
+                            "[EXIT_DECISION_PROOF] trade_uid=%s trade_id=%s side=%s exit_reason=%s prob_close=%.6f threshold=%.6f require_consecutive=%d prob_history=%s arb_cfg={min_exit_prob=%s, exit_prob_hysteresis=%s, min_pnl_bps=%s} bars_held=%s pnl_bps=%s will_call_request_close=true",
                             tuid,
                             getattr(trade, "trade_id", None),
                             getattr(trade, "side", None),
+                            exit_reason,
                             prob_close,
                             self.exit_threshold,
                             self.exit_require_consecutive,
@@ -1744,11 +1546,11 @@ class ExitManager:
                             trade.side,
                         )
                         self._exit_mgr_pnl_log_count += 1
-                    log.info("[EXIT] propose close reason=THRESHOLD pnl=%.1f bars_in_trade=%d", pnl_bps, bars_in_trade)
+                    log.info("[EXIT] propose close reason=%s pnl=%.1f bars_in_trade=%d", exit_reason, pnl_bps, bars_in_trade)
                     accepted = self.request_close(
                         trade_id=trade.trade_id,
                         source="MODEL_EXIT",
-                        reason="THRESHOLD",
+                        reason=str(exit_reason),
                         px=mark_price,
                         pnl_bps=pnl_bps,
                         exit_bid=current_bid,
@@ -1767,7 +1569,8 @@ class ExitManager:
                         )
                         continue
                     closes_accepted += 1
-                    self._record_exit_prob_on_close(trade, bars_in_trade, prob_close, exit_reason="THRESHOLD")
+                    if str(exit_reason) == "THRESHOLD":
+                        self._record_exit_prob_on_close(trade, bars_in_trade, prob_close, exit_reason="THRESHOLD")
                     if trade in self.open_trades:
                         self.open_trades.remove(trade)
                     log.info(
@@ -1781,7 +1584,7 @@ class ExitManager:
                         trade=trade,
                         exit_time=now_ts,
                         exit_price=mark_price,
-                        exit_reason="THRESHOLD",
+                        exit_reason=str(exit_reason),
                         realized_pnl_bps=pnl_bps,
                         bars_held=bars_in_trade,
                     )
@@ -1940,6 +1743,12 @@ class ExitManager:
             if write_header:
                 writer.writeheader()
             writer.writerow(row)
+        try:
+            runner = getattr(self, "_runner", None)
+            if runner is not None:
+                runner.perf_exit_eval_trace_rows = int(getattr(runner, "perf_exit_eval_trace_rows", 0) + 1)
+        except Exception:
+            pass
 
     def _maybe_log_exit_prob_audit(self, decider: Any = None, force: bool = False) -> None:
         """
@@ -1966,16 +1775,20 @@ class ExitManager:
                 feature_hash = feature_hash or cfg.get("feature_names_hash")
                 if getattr(decider, "model", None) is not None and hasattr(decider.model, "forward_logits"):
                     uses_logits_path = 1
-            log.info(
-                "[EXIT_RUNTIME_MODEL_PROOF] model_path=%s model_dir=%s config_path=%s io_version=%s input_dim=%s feature_hash=%s uses_logits_path=%d",
-                model_path,
-                model_dir,
-                config_path,
-                io_version,
-                input_dim,
-                feature_hash,
-                uses_logits_path,
-            )
+            if not hasattr(self, "_exit_runtime_model_proof_log_count"):
+                self._exit_runtime_model_proof_log_count = 0
+            self._exit_runtime_model_proof_log_count += 1
+            if self._exit_runtime_model_proof_log_count <= 5 or (self._exit_runtime_model_proof_log_count % 5000) == 0:
+                log.info(
+                    "[EXIT_RUNTIME_MODEL_PROOF] model_path=%s model_dir=%s config_path=%s io_version=%s input_dim=%s feature_hash=%s uses_logits_path=%d",
+                    model_path,
+                    model_dir,
+                    config_path,
+                    io_version,
+                    input_dim,
+                    feature_hash,
+                    uses_logits_path,
+                )
             if not model_path or not model_dir:
                 log.warning(
                     "[EXIT_RUNTIME_MODEL_PROOF_WARN] model_missing=1 model_path=%s model_dir=%s",
@@ -2426,7 +2239,12 @@ class ExitManager:
                                     existing = json.load(f) or {}
                             except Exception:
                                 existing = {}
-                        # Preserve runtime feature/sample stats written earlier
+                        # Preserve runtime stats written by the earlier score-audit pass.
+                        if "runtime_score_stats" in existing and "runtime_score_stats" not in audit:
+                            audit["runtime_score_stats"] = existing["runtime_score_stats"]
+                        if "eval_flow_proof" in existing and "eval_flow_proof" not in audit:
+                            audit["eval_flow_proof"] = existing["eval_flow_proof"]
+                        # Preserve runtime feature/sample stats written earlier.
                         if "runtime_feature_stats" in existing and "runtime_feature_stats" not in audit:
                             audit["runtime_feature_stats"] = existing["runtime_feature_stats"]
                         if "runtime_sample_proof" in existing and "runtime_sample_proof" not in audit:
@@ -2441,17 +2259,50 @@ class ExitManager:
                                 train_audit_path = Path(model_dir) / "SCORE_COMPRESSION_AUDIT.json"
                                 if train_audit_path.exists():
                                     with train_audit_path.open("r", encoding="utf-8") as tf:
-                                        train_audit = json.load(tf)
-                                    train_prob_mean = float(train_audit.get("prob_mean", 0.0))
-                                    runtime_prob_mean = float(dist.get("mean", 0.0))
-                                    delta_prob = abs(runtime_prob_mean - train_prob_mean)
-                                    if delta_prob > 0.1:
-                                        log.warning(
-                                            "[EXIT_RUNTIME_PROB_MISMATCH_WARN] train_prob_mean=%.6f runtime_prob_mean=%.6f delta=%.6f",
-                                            train_prob_mean,
-                                            runtime_prob_mean,
-                                            delta_prob,
+                                        train_audit = json.load(tf) or {}
+                                    train_scope = str(train_audit.get("scope") or "").strip()
+                                    runtime_scope = "replay_open_trade_eval_windows"
+                                    n_a = int(len(full_group_a))
+                                    n_b = int(len(full_group_b))
+                                    if not train_scope:
+                                        log.info(
+                                            "[EXIT_RUNTIME_PROB_COMPARISON_SKIPPED] "
+                                            "reason=train_audit_scope_missing runtime_scope=%s n_A=%d n_B=%d model_dir=%s",
+                                            runtime_scope,
+                                            n_a,
+                                            n_b,
+                                            model_dir,
                                         )
+                                    elif train_scope != runtime_scope:
+                                        log.info(
+                                            "[EXIT_RUNTIME_PROB_COMPARISON_SKIPPED] "
+                                            "reason=scope_mismatch train_scope=%s runtime_scope=%s n_A=%d n_B=%d model_dir=%s",
+                                            train_scope,
+                                            runtime_scope,
+                                            n_a,
+                                            n_b,
+                                            model_dir,
+                                        )
+                                    elif n_a <= 0 or n_b <= 0:
+                                        log.info(
+                                            "[EXIT_RUNTIME_PROB_COMPARISON_SKIPPED] "
+                                            "reason=runtime_sample_not_bi_modal runtime_scope=%s n_A=%d n_B=%d model_dir=%s",
+                                            runtime_scope,
+                                            n_a,
+                                            n_b,
+                                            model_dir,
+                                        )
+                                    else:
+                                        train_prob_mean = float(train_audit.get("prob_mean", 0.0))
+                                        runtime_prob_mean = float(dist.get("mean", 0.0))
+                                        delta_prob = abs(runtime_prob_mean - train_prob_mean)
+                                        if delta_prob > 0.1:
+                                            log.warning(
+                                                "[EXIT_RUNTIME_PROB_MISMATCH_WARN] train_prob_mean=%.6f runtime_prob_mean=%.6f delta=%.6f",
+                                                train_prob_mean,
+                                                runtime_prob_mean,
+                                                delta_prob,
+                                            )
                         except Exception:
                             pass
                 except Exception:
@@ -2466,7 +2317,6 @@ class ExitManager:
         self,
         *,
         window_arr: Any,
-        bars_in_trade_min: int,
         pnl_bps_now: float,
     ) -> Optional[dict]:
         if not getattr(self, "_exit_cat_guard_enabled", False):
@@ -2478,21 +2328,16 @@ class ExitManager:
             mfe_bps = float(last[idx["mfe_bps"]])
             dd_from_mfe_bps = float(last[idx["dd_from_mfe_bps"]])
             giveback_ratio = float(last[idx["giveback_ratio"]])
-            time_since_mfe = float(last[idx["time_since_mfe_bars"]])
             mfe_decay_rate = float(last[idx["mfe_decay_rate"]])
         except Exception:
             return None
-        if not all(map(math.isfinite, [mfe_bps, dd_from_mfe_bps, giveback_ratio, time_since_mfe])):
-            return None
-        if bars_in_trade_min < int(self._exit_cat_guard_bars):
+        if not all(map(math.isfinite, [mfe_bps, dd_from_mfe_bps, giveback_ratio])):
             return None
         if mfe_bps < float(self._exit_cat_guard_mfe_bps):
             return None
         if dd_from_mfe_bps < float(self._exit_cat_guard_dd_bps):
             return None
         if giveback_ratio < float(self._exit_cat_guard_giveback_ratio):
-            return None
-        if time_since_mfe < float(self._exit_cat_guard_time_since_mfe):
             return None
         pnl_limit = min(float(self._exit_cat_guard_pnl_max), float(self._exit_cat_guard_pnl_frac_mfe) * mfe_bps)
         if pnl_bps_now > pnl_limit:
@@ -2501,9 +2346,181 @@ class ExitManager:
             "mfe_bps": mfe_bps,
             "dd_from_mfe_bps": dd_from_mfe_bps,
             "giveback_ratio": giveback_ratio,
-            "time_since_mfe_bars": time_since_mfe,
             "mfe_decay_rate": mfe_decay_rate,
             "pnl_limit": pnl_limit,
+        }
+
+    def _threshold_event_state(
+        self,
+        *,
+        window_arr: Any,
+        side: str,
+    ) -> Optional[dict]:
+        """
+        Event-driven threshold arm:
+        - proven edge (MFE)
+        - clear deterioration from peak (DD/giveback)
+        - signal direction no longer supports holding
+        """
+        side_norm = str(side or "").lower()
+        if side_norm not in ("short", "long"):
+            return None
+        try:
+            arr = np.asarray(window_arr, dtype=np.float32)
+            idx = {name: i for i, name in enumerate(EXIT_IO_V1_CTX36_FEATURES)}
+            last = arr[-1]
+            mfe_bps = float(last[idx["mfe_bps"]])
+            dd_from_mfe_bps = float(last[idx["dd_from_mfe_bps"]])
+            giveback_ratio = float(last[idx["giveback_ratio"]])
+            p_long = float(last[idx["p_long"]])
+            p_short = float(last[idx["p_short"]])
+            p_flat = float(last[idx["p_flat"]])
+            p_hat = float(last[idx["p_hat"]])
+            margin_top1_top2 = float(last[idx["margin_top1_top2"]])
+            uncertainty_score = float(last[idx["uncertainty_score"]])
+        except Exception:
+            return None
+        values = [
+            mfe_bps,
+            dd_from_mfe_bps,
+            giveback_ratio,
+            p_long,
+            p_short,
+            p_flat,
+            p_hat,
+            margin_top1_top2,
+            uncertainty_score,
+        ]
+        if not all(map(math.isfinite, values)):
+            return None
+        is_short = side_norm == "short"
+        mfe_min = float(self._exit_edge_death_mfe_min_short if is_short else self._exit_edge_death_mfe_min_long)
+        dd_min = float(self._exit_edge_death_dd_min_short if is_short else self._exit_edge_death_dd_min_long)
+        gb_min = float(self._exit_edge_death_gb_min_short if is_short else self._exit_edge_death_gb_min_long)
+        if mfe_bps < mfe_min:
+            return None
+        if dd_from_mfe_bps < dd_min and giveback_ratio < gb_min:
+            return None
+        # Use direction-misalignment as the primary signal test for threshold arming.
+        directional_edge = (p_long - p_short) if side_norm == "long" else (p_short - p_long)
+        if directional_edge > 0.02:
+            return None
+        return {
+            "mfe_bps": mfe_bps,
+            "dd_from_mfe_bps": dd_from_mfe_bps,
+            "giveback_ratio": giveback_ratio,
+            "p_long": p_long,
+            "p_short": p_short,
+            "p_flat": p_flat,
+            "p_hat": p_hat,
+            "margin_top1_top2": margin_top1_top2,
+            "uncertainty_score": uncertainty_score,
+            "directional_edge": directional_edge,
+        }
+
+    def _selective_post_edge_separator_state(
+        self,
+        *,
+        window_arr: Any,
+        side: str,
+        session_current: str,
+        pnl_bps_now: float,
+        threshold_event: Optional[dict],
+        threshold_event_armed: bool,
+        exit_prob: float,
+        profit_protect_prob: Optional[float] = None,
+    ) -> Optional[dict]:
+        if not bool(getattr(self, "_exit_post_edge_enabled", False)):
+            return None
+        side_norm = str(side or "").strip().lower()
+        if side_norm not in getattr(self, "_exit_post_edge_allowed_sides", {"long"}):
+            return None
+        if str(session_current or "").strip().upper() not in getattr(self, "_exit_post_edge_allowed_sessions", {"OVERLAP"}):
+            return None
+        if bool(getattr(self, "_exit_post_edge_require_threshold_event", True)) and not bool(threshold_event_armed):
+            return None
+        arr = np.asarray(window_arr, dtype=np.float32)
+        last = arr[-1]
+        try:
+            mfe_bps = float(last[exit_feature_index_v1_ctx36("mfe_bps")])
+            dd_from_mfe_bps = float(last[exit_feature_index_v1_ctx36("dd_from_mfe_bps")])
+            giveback_ratio = float(last[exit_feature_index_v1_ctx36("giveback_ratio")])
+            time_since_mfe_bars = float(last[exit_feature_index_v1_ctx36("time_since_mfe_bars")])
+        except Exception:
+            return None
+        directional_edge = float((threshold_event or {}).get("directional_edge", 0.0))
+        values = [
+            mfe_bps,
+            dd_from_mfe_bps,
+            giveback_ratio,
+            time_since_mfe_bars,
+            pnl_bps_now,
+            directional_edge,
+            exit_prob,
+        ]
+        if not all(map(math.isfinite, values)):
+            return None
+        if mfe_bps < float(getattr(self, "_exit_post_edge_mfe_min", 60.0)):
+            return None
+        if dd_from_mfe_bps < float(getattr(self, "_exit_post_edge_dd_min", 55.0)):
+            return None
+        if giveback_ratio < float(getattr(self, "_exit_post_edge_gb_min", 0.75)):
+            return None
+        if time_since_mfe_bars < float(getattr(self, "_exit_post_edge_time_since_mfe_min", 8.0)):
+            return None
+        pnl_cap = min(
+            float(getattr(self, "_exit_post_edge_pnl_max", 10.0)),
+            float(getattr(self, "_exit_post_edge_pnl_frac_mfe_max", 0.45)) * float(mfe_bps),
+        )
+        if pnl_bps_now < float(getattr(self, "_exit_post_edge_pnl_min", 2.0)):
+            return None
+        if pnl_bps_now > pnl_cap:
+            return None
+        if directional_edge > float(getattr(self, "_exit_post_edge_directional_edge_max", 0.02)):
+            return None
+        score_source = str(getattr(self, "_exit_post_edge_score_source", "exit_prob"))
+        score_value: Optional[float]
+        if score_source == "profit_protect_prob":
+            score_value = profit_protect_prob
+        else:
+            score_value = exit_prob
+        if score_value is None or not math.isfinite(float(score_value)):
+            return None
+        if float(score_value) < float(getattr(self, "_exit_post_edge_score_min", 0.70)):
+            return None
+        return {
+            "score_source": score_source,
+            "score_value": float(score_value),
+            "mfe_bps": mfe_bps,
+            "dd_from_mfe_bps": dd_from_mfe_bps,
+            "giveback_ratio": giveback_ratio,
+            "time_since_mfe_bars": time_since_mfe_bars,
+            "pnl_cap": float(pnl_cap),
+            "directional_edge": directional_edge,
+            "profit_protect_prob": None if profit_protect_prob is None else float(profit_protect_prob),
+        }
+
+    def _canonical_residual_exit_state(self, *, window_arr: Any) -> Optional[dict]:
+        try:
+            arr = np.asarray(window_arr, dtype=np.float32)
+            idx = {name: i for i, name in enumerate(EXIT_IO_V1_CTX36_FEATURES)}
+            last = arr[-1]
+            distance_from_peak_mfe_bps = float(last[idx["distance_from_peak_mfe_bps"]])
+            minutes_since_session_open = float(last[idx["minutes_since_session_open"]])
+            minutes_to_next_session_boundary = float(last[idx["minutes_to_next_session_boundary"]])
+        except Exception:
+            return None
+        values = [
+            distance_from_peak_mfe_bps,
+            minutes_since_session_open,
+            minutes_to_next_session_boundary,
+        ]
+        if not all(map(math.isfinite, values)):
+            return None
+        return {
+            "distance_from_peak_mfe_bps": distance_from_peak_mfe_bps,
+            "minutes_since_session_open": minutes_since_session_open,
+            "minutes_to_next_session_boundary": minutes_to_next_session_boundary,
         }
 
     def _maybe_log_exit_ml_event(
@@ -2539,6 +2556,11 @@ class ExitManager:
             }
             with exits_path.open("a", encoding="utf-8") as f:
                 f.write(json.dumps(record, separators=(",", ":")) + "\n")
+            try:
+                if runner is not None:
+                    runner.perf_exit_ml_event_rows = int(getattr(runner, "perf_exit_ml_event_rows", 0) + 1)
+            except Exception:
+                pass
             self._log_exit_ctx_event_proof("exit_ml_event", ctx_cont, ctx_cat)
         except Exception:
             return
@@ -2554,7 +2576,7 @@ class ExitManager:
         ctx_cat: Optional[List[int]],
     ) -> None:
         """
-        Append full IO (T=8, D=36) for exit transformer evaluation to exits_<run_id>.jsonl.
+        Append full IO (T=8, D=53) for exit transformer evaluation to exits_<run_id>.jsonl.
         """
         try:
             runner = self._runner
@@ -2595,12 +2617,16 @@ class ExitManager:
                 if len(ctx_cont) == expected_cont_dim and len(ctx_cat) == expected_cat_dim:
                     ctx_payload = {"ctx_cont": ctx_cont, "ctx_cat": ctx_cat}
 
+            entry_time = getattr(trade, "entry_time", None)
+            entry_time_iso = entry_time.isoformat() if hasattr(entry_time, "isoformat") else (str(entry_time) if entry_time is not None else None)
             record = {
                 "ts": event_ts.isoformat() if hasattr(event_ts, "isoformat") else str(event_ts),
                 "run_id": run_id,
                 "trade_uid": getattr(trade, "trade_uid", None),
                 "trade_id": getattr(trade, "trade_id", None),
                 "side": getattr(trade, "side", None),
+                "entry_time": entry_time_iso,
+                "open_ts_utc": entry_time_iso,
                 "computed": {
                     "mode": "exit_transformer_v0",
                     "prob_close": float(prob_close),
@@ -2619,6 +2645,11 @@ class ExitManager:
 
             with exits_path.open("a", encoding="utf-8") as f:
                 f.write(json.dumps(record, separators=(",", ":")) + "\n")
+            try:
+                if runner is not None:
+                    runner.perf_exit_io_rows = int(getattr(runner, "perf_exit_io_rows", 0) + 1)
+            except Exception:
+                pass
             if ctx_payload is not None:
                 self._log_exit_ctx_event_proof("exit_io_event", ctx_payload["ctx_cont"], ctx_payload["ctx_cat"])
         except Exception:
@@ -2626,8 +2657,19 @@ class ExitManager:
 
     def _build_exit_ctx19_window(self, trade: Any, candles: pd.DataFrame, window_len: int) -> Optional[np.ndarray]:
         """
-        Build (T,20) exit transformer input window for a single trade.
+        Build (T,53) EXIT_IO_V1_CTX36 transformer input window for a single trade.
         """
+        runner_obj = getattr(self, "_runner", None)
+
+        def _accum_input_prep_metric(sec_name: str, dt: float) -> None:
+            try:
+                if runner_obj is None:
+                    return
+                setattr(runner_obj, sec_name, float(getattr(runner_obj, sec_name, 0.0) + float(dt)))
+            except Exception:
+                return
+
+        t_hist_start = time.perf_counter()
         signal_history = list(getattr(self._runner, "exit_signal7_history", []))
         if len(signal_history) < window_len:
             if not getattr(trade, "_exit_warmup_logged", False):
@@ -2647,26 +2689,23 @@ class ExitManager:
             )
         candle_rows = list(candle_tail.itertuples(index=True, name="CandleRow"))
         signal_slice = signal_history[-window_len:]
+        _accum_input_prep_metric("t_exit_input_hist_select_sec", time.perf_counter() - t_hist_start)
+
+        t_atr_start = time.perf_counter()
         runtime_atr_bps = self._compute_runtime_atr_bps(candles, period=5)
         if runtime_atr_bps is None:
             raise RuntimeError("[EXIT_IO_CONTRACT_VIOLATION] atr_bps_now unavailable")
-        # ctx_cont per-bar snapshot (prebuilt SSoT)
+        _accum_input_prep_metric("t_exit_input_runtime_atr_sec", time.perf_counter() - t_atr_start)
+
+        # ctx_cont + ctx_cat per-bar snapshot (prebuilt SSoT, ENTRY-parity context base)
+        t_ctx_contract_start = time.perf_counter()
         prebuilt_df = getattr(self._runner, "prebuilt_features_df", None)
-        ctx_cont_cols = getattr(self._runner, "ctx_cont_required_columns", None)
-        if ctx_cont_cols is None:
-            from gx1.contracts.signal_bridge_v1 import get_canonical_ctx_contract
-            ctx_cont_cols = get_canonical_ctx_contract().get("ctx_cont_names")
-        ctx_cont_cols = list(ctx_cont_cols or [])
-        ctx_cont_start = (
-            len(EXIT_FEATURE_GROUP_SIGNAL)
-            + len(EXIT_FEATURE_GROUP_ENTRY_SNAPSHOT)
-            + len(EXIT_FEATURE_GROUP_TRADE_STATE)
-            + len(EXIT_FEATURE_GROUP_EXIT_SPECIFIC)
-        )
-        expected_ctx_cont = EXIT_IO_V1_CTX36_FEATURES[ctx_cont_start:]
+        expected_ctx_cont = list(EXIT_FEATURE_GROUP_CTX_CONT)
+        expected_ctx_cat = list(EXIT_FEATURE_GROUP_CTX_CAT)
         expected_cont_dim = len(expected_ctx_cont)
+        expected_cat_dim = len(expected_ctx_cat)
         if prebuilt_df is None:
-            raise RuntimeError("[EXIT_IO_CONTRACT_VIOLATION] prebuilt_features_df missing for ctx_cont")
+            raise RuntimeError("[EXIT_IO_CONTRACT_VIOLATION] prebuilt_features_df missing for ctx_cont/ctx_cat")
         session_keys = {
             "is_ASIA",
             "minutes_since_session_open",
@@ -2675,22 +2714,33 @@ class ExitManager:
             "session_tradable",
         }
         missing_prebuilt = [c for c in expected_ctx_cont if c not in session_keys and c not in prebuilt_df.columns]
+        missing_prebuilt.extend([c for c in expected_ctx_cat if c not in prebuilt_df.columns])
         if missing_prebuilt:
             raise RuntimeError(
-                f"[EXIT_IO_CONTRACT_VIOLATION] ctx_cont missing in prebuilt: {missing_prebuilt}"
+                f"[EXIT_IO_CONTRACT_VIOLATION] ctx_cont/ctx_cat missing in prebuilt: {missing_prebuilt}"
             )
+        _accum_input_prep_metric("t_exit_input_ctx_contract_sec", time.perf_counter() - t_ctx_contract_start)
+
+        t_prebuilt_window_start = time.perf_counter()
+        ts_index = pd.Index([row.Index for row in candle_rows])
+        missing_ts = ts_index.difference(prebuilt_df.index)
+        if len(missing_ts) > 0:
+            raise RuntimeError(f"[EXIT_IO_CONTRACT_VIOLATION] ctx_cont/ctx_cat missing for ts={missing_ts[0]}")
+        prebuilt_window_df = prebuilt_df.reindex(ts_index)
+        _accum_input_prep_metric("t_exit_input_prebuilt_window_resolve_sec", time.perf_counter() - t_prebuilt_window_start)
 
         # Precompute session features for window (vectorized)
+        t_session_start = time.perf_counter()
         try:
             from gx1.time.session_detector import (
                 get_session_id_vectorized,
                 get_session_minutes_since_open_vectorized,
                 get_session_minutes_to_next_boundary_vectorized,
             )
-            ts_index = pd.Series([row.Index for row in candle_rows])
-            sess_ids = get_session_id_vectorized(ts_index)
-            minutes_since = get_session_minutes_since_open_vectorized(ts_index)
-            minutes_to = get_session_minutes_to_next_boundary_vectorized(ts_index)
+            ts_series = pd.Series(ts_index)
+            sess_ids = get_session_id_vectorized(ts_series)
+            minutes_since = get_session_minutes_since_open_vectorized(ts_series)
+            minutes_to = get_session_minutes_to_next_boundary_vectorized(ts_series)
             sess_change = (sess_ids.diff().fillna(0) != 0).astype(int)
             sess_tradable = (sess_ids != 0).astype(int)
         except Exception:
@@ -2699,6 +2749,7 @@ class ExitManager:
             minutes_to = None
             sess_change = None
             sess_tradable = None
+        _accum_input_prep_metric("t_exit_input_session_features_sec", time.perf_counter() - t_session_start)
         for attr in ("p_long_entry", "p_hat_entry", "uncertainty_entry", "entropy_entry", "margin_entry"):
             if not hasattr(trade, attr):
                 raise RuntimeError(f"[EXIT_IO_CONTRACT_VIOLATION] trade missing {attr} snapshot")
@@ -2739,6 +2790,7 @@ class ExitManager:
         prev_velocity: Optional[float] = None
         prev_giveback: Optional[float] = None
         pnl_history_post_entry: List[float] = []
+        t_row_loop_start = time.perf_counter()
         for idx, signal_dict in enumerate(signal_slice):
             candle_row = candle_rows[idx]
             try:
@@ -2748,12 +2800,14 @@ class ExitManager:
             except Exception as e:
                 raise RuntimeError(f"[EXIT_IO_CONTRACT_VIOLATION] missing bid/ask or ts in candle row: {e}") from e
 
-            if bar_ts not in prebuilt_df.index:
-                raise RuntimeError(f"[EXIT_IO_CONTRACT_VIOLATION] ctx_cont missing for ts={bar_ts}")
-            prebuilt_row = prebuilt_df.loc[bar_ts]
+            t_lookup_start = time.perf_counter()
+            prebuilt_row = prebuilt_window_df.iloc[idx]
+            _accum_input_prep_metric("t_exit_input_prebuilt_lookup_sec", time.perf_counter() - t_lookup_start)
             ctx_cont_row = []
+            ctx_cat_row = []
+            t_ctx_pack_start = time.perf_counter()
             for c in expected_ctx_cont:
-                if c in prebuilt_row.index:
+                if c not in session_keys:
                     ctx_cont_row.append(float(prebuilt_row[c]))
                     continue
                 if c in session_keys:
@@ -2768,7 +2822,7 @@ class ExitManager:
                             sess_id_one = int(get_session_id_vectorized(ts_one).iloc[0])
                             minutes_since_one = float(get_session_minutes_since_open_vectorized(ts_one).iloc[0])
                             minutes_to_one = float(get_session_minutes_to_next_boundary_vectorized(ts_one).iloc[0])
-                            prev_ts = candle_rows[idx - 1].Index if idx > 0 else None
+                            prev_ts = ts_index[idx - 1] if idx > 0 else None
                             prev_sess = None
                             if prev_ts is not None:
                                 prev_sess = int(get_session_id_vectorized(pd.Series([prev_ts])).iloc[0])
@@ -2803,17 +2857,25 @@ class ExitManager:
                         raise RuntimeError(f"[EXIT_IO_CONTRACT_VIOLATION] session key unknown: {c}")
                     continue
                 raise RuntimeError(f"[EXIT_IO_CONTRACT_VIOLATION] ctx_cont col missing: {c}")
+            for c in expected_ctx_cat:
+                try:
+                    ctx_cat_row.append(float(prebuilt_row[c]))
+                except Exception as e:
+                    raise RuntimeError(f"[EXIT_IO_CONTRACT_VIOLATION] ctx_cat col missing: {c}") from e
+            if len(ctx_cont_row) != expected_cont_dim:
+                raise RuntimeError(
+                    f"[EXIT_IO_CONTRACT_VIOLATION] ctx_cont dim mismatch: got={len(ctx_cont_row)} expected={expected_cont_dim}"
+                )
+            if len(ctx_cat_row) != expected_cat_dim:
+                raise RuntimeError(
+                    f"[EXIT_IO_CONTRACT_VIOLATION] ctx_cat dim mismatch: got={len(ctx_cat_row)} expected={expected_cat_dim}"
+                )
+            _accum_input_prep_metric("t_exit_input_ctx_pack_sec", time.perf_counter() - t_ctx_pack_start)
 
             # Prefer absolute bar index from candles index (stable across windows)
             bar_index_for_row = base_bar_index + idx + 1
-            try:
-                if bar_ts in candles.index:
-                    loc = candles.index.get_indexer([bar_ts])[0]
-                    if loc >= 0:
-                        bar_index_for_row = int(loc)
-            except Exception:
-                pass
             is_post_entry = bar_index_for_row >= entry_bar_index
+            t_state_start = time.perf_counter()
             if is_post_entry:
                 pnl_bps_now = compute_pnl_bps(entry_bid, entry_ask, bid_now, ask_now, trade.side)
                 bars_held = max(0, bar_index_for_row - entry_bar_index)
@@ -2857,6 +2919,7 @@ class ExitManager:
                 distance_from_peak_mfe_bps = 0.0
                 mfe_decay_rate = 0.0
                 rolling_slope_since_entry = 0.0
+            _accum_input_prep_metric("t_exit_input_trade_state_compute_sec", time.perf_counter() - t_state_start)
 
             # MODEL OBSERVABILITY AUDIT (EXIT trade-state) - gated, first pre/post per trade
             if os.getenv("GX1_MODEL_OBS_AUDIT", "0") == "1":
@@ -2945,6 +3008,7 @@ class ExitManager:
                 except Exception as e:
                     log.warning("[EXIT_TRADE_STATE_AUDIT] failed: %s", e)
 
+            t_pack_start = time.perf_counter()
             row = [
                 float(signal_dict["p_long"]),
                 float(signal_dict["p_short"]),
@@ -2972,13 +3036,16 @@ class ExitManager:
                 float(runtime_atr_bps),
                 float(giveback_ratio),
                 float(giveback_acceleration),
-            ] + ctx_cont_row
+            ] + ctx_cont_row + ctx_cat_row
             window_rows.append(row)
+            _accum_input_prep_metric("t_exit_input_feature_pack_sec", time.perf_counter() - t_pack_start)
 
             prev_pnl = float(pnl_bps_now)
             prev_velocity = float(pnl_velocity)
             prev_giveback = float(giveback_ratio)
+        _accum_input_prep_metric("t_exit_input_row_loop_sec", time.perf_counter() - t_row_loop_start)
 
+        t_numpy_start = time.perf_counter()
         window_arr = np.asarray(window_rows, dtype=np.float32)
         expected_shape = (window_len, len(EXIT_IO_V1_CTX36_FEATURES))
         if window_arr.shape != expected_shape:
@@ -2987,7 +3054,9 @@ class ExitManager:
             )
         if not np.isfinite(window_arr).all():
             raise RuntimeError("[EXIT_IO_CONTRACT_VIOLATION] non-finite values in exit transformer window")
+        _accum_input_prep_metric("t_exit_input_numpy_finalize_sec", time.perf_counter() - t_numpy_start)
 
+        t_contract_checks_start = time.perf_counter()
         idx = {name: i for i, name in enumerate(EXIT_IO_V1_CTX36_FEATURES)}
         strict = os.environ.get("GX1_EXIT_AUDIT_STRICT") == "1"
         eps = 1e-6
@@ -3275,6 +3344,35 @@ class ExitManager:
             others = sig[:, 4:]
             if not np.all(others >= -tol):
                 raise RuntimeError("[EXIT_INPUT_AUDIT_ASSERT] signal7 other channels negative")
+        _accum_input_prep_metric("t_exit_input_contract_checks_sec", time.perf_counter() - t_contract_checks_start)
+
+        try:
+            if runner_obj is not None:
+                runner_obj.n_exit_input_windows_built = int(getattr(runner_obj, "n_exit_input_windows_built", 0) + 1)
+                n_windows = int(getattr(runner_obj, "n_exit_input_windows_built", 0))
+                if n_windows == 1 or (n_windows % 2000) == 0:
+                    breakdown = {
+                        "history_selection_sec": float(getattr(runner_obj, "t_exit_input_hist_select_sec", 0.0)),
+                        "runtime_atr_sec": float(getattr(runner_obj, "t_exit_input_runtime_atr_sec", 0.0)),
+                        "ctx_contract_sec": float(getattr(runner_obj, "t_exit_input_ctx_contract_sec", 0.0)),
+                        "prebuilt_window_resolve_sec": float(getattr(runner_obj, "t_exit_input_prebuilt_window_resolve_sec", 0.0)),
+                        "session_features_sec": float(getattr(runner_obj, "t_exit_input_session_features_sec", 0.0)),
+                        "row_loop_sec": float(getattr(runner_obj, "t_exit_input_row_loop_sec", 0.0)),
+                        "prebuilt_lookup_sec": float(getattr(runner_obj, "t_exit_input_prebuilt_lookup_sec", 0.0)),
+                        "ctx_pack_sec": float(getattr(runner_obj, "t_exit_input_ctx_pack_sec", 0.0)),
+                        "trade_state_compute_sec": float(getattr(runner_obj, "t_exit_input_trade_state_compute_sec", 0.0)),
+                        "feature_pack_sec": float(getattr(runner_obj, "t_exit_input_feature_pack_sec", 0.0)),
+                        "numpy_finalize_sec": float(getattr(runner_obj, "t_exit_input_numpy_finalize_sec", 0.0)),
+                        "contract_checks_sec": float(getattr(runner_obj, "t_exit_input_contract_checks_sec", 0.0)),
+                    }
+                    log.info(
+                        "[EXIT_INPUT_PREP_BREAKDOWN] windows=%d total_sec=%.6f breakdown=%s",
+                        n_windows,
+                        float(getattr(runner_obj, "t_exit_input_prep_sec", 0.0)),
+                        breakdown,
+                    )
+        except Exception:
+            pass
 
         return window_arr
 

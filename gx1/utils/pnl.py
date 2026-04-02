@@ -4,7 +4,7 @@ PnL utility helpers shared across execution and policy modules.
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Literal, Optional
 
 
 def compute_pnl_bps(
@@ -13,6 +13,8 @@ def compute_pnl_bps(
     exit_bid: float,
     exit_ask: float,
     side: Literal["long", "short"],
+    ts: Optional[str] = None,
+    trade_id: Optional[str] = None,
 ) -> float:
     """
     Compute trade PnL in basis points using realistic bid/ask fill prices.
@@ -48,10 +50,13 @@ def compute_pnl_bps(
         raise ValueError(f"exit_ask must be > 0, got {exit_ask}")
     
     # Validate ask >= bid (spread should be non-negative)
+    context = ""
+    if ts or trade_id:
+        context = f" ts={ts} trade_id={trade_id}"
     if entry_ask < entry_bid:
-        raise ValueError(f"entry_ask ({entry_ask}) must be >= entry_bid ({entry_bid})")
+        raise ValueError(f"entry_ask ({entry_ask}) must be >= entry_bid ({entry_bid}){context}")
     if exit_ask < exit_bid:
-        raise ValueError(f"exit_ask ({exit_ask}) must be >= exit_bid ({exit_bid})")
+        raise ValueError(f"exit_ask ({exit_ask}) must be >= exit_bid ({exit_bid}){context}")
     
     # Spread-aware calculation
     if side.lower() == "long":
@@ -65,5 +70,9 @@ def compute_pnl_bps(
     else:
         raise ValueError(f"side must be 'long' or 'short', got {side}")
     
-    pnl_bps = (actual_exit - actual_entry) / actual_entry * 10000.0
+    if side.lower() == "long":
+        pnl_bps = (actual_exit - actual_entry) / actual_entry * 10000.0
+    else:
+        # SHORT: profit when exit (buy-back ask) is below entry (sell bid)
+        pnl_bps = (actual_entry - actual_exit) / actual_entry * 10000.0
     return float(pnl_bps)

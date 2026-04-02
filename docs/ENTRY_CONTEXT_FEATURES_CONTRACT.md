@@ -11,7 +11,7 @@
 ### 1.1 `session_id` (categorical)
 
 - **Type:** Categorical (integer ID)
-- **Values:** `0=ASIA, 1=EU, 2=US, 3=OVERLAP`
+- **Values:** `0=ASIA, 1=EU, 2=OVERLAP, 3=US`
 - **Source:** `infer_session_tag(timestamp)` from `gx1.execution.live_features`
 - **Normalization:** None (categorical)
 - **Default/Fallback:** `0` (ASIA) if timestamp invalid
@@ -126,7 +126,16 @@
 
 ---
 
-## 3. Embedding Design
+## 3. Canonical Tape Split
+
+The entry context contract stays on the M5 model-view:
+- XGB and entry continue to consume canonical M5 bars
+- the canonical M5 view is derived from the raw M1 source-of-truth
+- exit may consume the raw M1 stream for finer-grain post-edge handling
+
+---
+
+## 4. Embedding Design
 
 ### 3.1 Categorical Embeddings
 
@@ -332,6 +341,3 @@ contract_hash = hashlib.sha256(contract_json.encode()).hexdigest()[:16]
 - Implement `build_entry_context_features()` method
 - Integrate into `evaluate_entry()` flow
 - Update model interface (with fallback)
-
-
-

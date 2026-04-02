@@ -367,6 +367,10 @@ class TradeJournal:
         instrument: str,
         side: str,
         entry_price: float,
+        entry_bid: Optional[float] = None,
+        entry_ask: Optional[float] = None,
+        entry_spread_bps: Optional[float] = None,
+        entry_price_used: Optional[float] = None,
         trade_uid: Optional[str] = None,  # Globally unique ID (COMMIT C)
         trade_id: Optional[str] = None,  # Legacy display ID (backward compatibility)
         session: Optional[str] = None,
@@ -427,6 +431,10 @@ class TradeJournal:
                 "instrument": instrument,
                 "side": side,
                 "entry_price": entry_price,
+                "entry_bid": entry_bid,
+                "entry_ask": entry_ask,
+                "entry_spread_bps": entry_spread_bps,
+                "entry_price_used": entry_price_used,
                 "session": session,
                 "regime": regime,  # Legacy field
                 "vol_regime": vol_regime_final,
@@ -709,6 +717,10 @@ class TradeJournal:
         exit_price: float,
         exit_reason: str,
         realized_pnl_bps: float,
+        exit_bid: Optional[float] = None,
+        exit_ask: Optional[float] = None,
+        exit_spread_bps: Optional[float] = None,
+        exit_price_used: Optional[float] = None,
         trade_uid: Optional[str] = None,
         trade_id: Optional[str] = None,
         max_mfe_bps: Optional[float] = None,
@@ -773,6 +785,10 @@ class TradeJournal:
             trade_journal["exit_summary"] = {
                 "exit_time": exit_time,
                 "exit_price": exit_price,
+                "exit_bid": exit_bid,
+                "exit_ask": exit_ask,
+                "exit_spread_bps": exit_spread_bps,
+                "exit_price_used": exit_price_used,
                 "exit_reason": exit_reason,
                 "realized_pnl_bps": realized_pnl_bps,
                 "max_mfe_bps": max_mfe_bps,

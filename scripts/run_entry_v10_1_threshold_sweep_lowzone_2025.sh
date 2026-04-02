@@ -30,7 +30,7 @@ cd "$PROJECT_ROOT"
 
 # Thresholds to test (LOWZONE: under 0.18)
 THRESHOLDS=(0.10 0.12 0.14 0.16)
-DATA_FILE="data/raw/xauusd_m5_2025_bid_ask.parquet"
+DATA_FILE="${GX1_CANONICAL_TAPE_ROOT:-/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m5_bid_ask__CANONICAL}/year=2025/part-000.parquet"
 START_TS="2025-01-01T00:00:00Z"
 END_TS="2026-01-01T00:00:00Z"
 

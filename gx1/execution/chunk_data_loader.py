@@ -143,6 +143,12 @@ def _drop_time_column_if_present(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def _is_closed_window_utc(ts: pd.Timestamp) -> bool:
+    h = ts.hour
+    m = ts.minute
+    return (h == 21 and m >= 55) or (h == 22)
+
+
 # -----------------------------
 # Main loader
 # -----------------------------
@@ -217,6 +223,30 @@ def load_chunk_data(
         ],
     )
     if raw_df.empty:
+        # Detailed diagnostics before failing
+        raw_df_diag = pd.read_parquet(bootstrap_ctx.data_path, columns=raw_load_cols)
+        time_is_index = int(raw_df_diag.index.name == RAW_TIME_COL)
+        time_col = RAW_TIME_COL if RAW_TIME_COL in raw_df_diag.columns else ("index" if time_is_index else "missing")
+        parsed_ts = pd.to_datetime(
+            raw_df_diag[time_col] if time_col in raw_df_diag.columns else raw_df_diag.index,
+            utc=True,
+            errors="coerce",
+        )
+        n_nat = int(parsed_ts.isna().sum())
+        parsed_ts_min = parsed_ts.min()
+        parsed_ts_max = parsed_ts.max()
+        n_before = len(raw_df_diag)
+        mask = (parsed_ts >= actual_chunk_start) & (parsed_ts <= eval_end)
+        n_after = int(mask.sum())
+        print(
+            "[RAW_EMPTY_DIAG_PROOF] "
+            f"path={bootstrap_ctx.data_path} "
+            f"time_col={time_col} time_is_index={time_is_index} "
+            f"parsed_ts_min={parsed_ts_min} parsed_ts_max={parsed_ts_max} "
+            f"n_nat={n_nat} n_before={n_before} n_after={n_after} "
+            f"filter_min={actual_chunk_start} filter_max={eval_end}",
+            flush=True,
+        )
         raise RuntimeError(f"[CHUNK {chunk_idx}] RAW empty in range [{actual_chunk_start}, {eval_end}]")
 
     raw_df = ensure_ts_column(raw_df, context=f"RAW chunk_{chunk_idx}")
@@ -302,7 +332,22 @@ def load_chunk_data(
 
     # Eval join diagnostics (SSoT)
     join_eval = chunk_df.loc[(chunk_df.index >= eval_start) & (chunk_df.index <= eval_end)]
-    join_ratio_eval = len(join_eval) / len(raw_eval) if len(raw_eval) > 0 else 0.0
+    join_ratio_raw = len(join_eval) / len(raw_eval) if len(raw_eval) > 0 else 0.0
+
+    closed_mask = raw_eval.index.to_series().map(_is_closed_window_utc).to_numpy()
+    eligible_mask = ~closed_mask
+    eligible_total = int(eligible_mask.sum())
+    excluded_closed = int(closed_mask.sum())
+    join_eval_eligible = join_eval.loc[~join_eval.index.map(_is_closed_window_utc)]
+    join_ratio_eval = len(join_eval_eligible) / eligible_total if eligible_total > 0 else 0.0
+
+    print(
+        "[JOIN_RATIO_CLOSED_WINDOW_FILTER_PROOF] "
+        f"total={len(raw_eval)} eligible={eligible_total} excluded_closed={excluded_closed} "
+        f"join_ratio_raw={join_ratio_raw:.6f} join_ratio_eligible={join_ratio_eval:.6f} "
+        f"threshold=0.995",
+        flush=True,
+    )
 
     JOIN_RATIO_TRUTH = 0.995
     join_metrics_path = Path(bootstrap_ctx.chunk_output_dir) / "RAW_PREBUILT_JOIN.json"
@@ -318,6 +363,10 @@ def load_chunk_data(
         # Stable key name(s)
         "join_ratio": float(join_ratio_eval),
         "join_ratio_eval": float(join_ratio_eval),
+        "join_ratio_raw": float(join_ratio_raw),
+        "join_ratio_eligible": float(join_ratio_eval),
+        "join_ratio_eval_excluded_closed": int(excluded_closed),
+        "join_ratio_eval_eligible_total": int(eligible_total),
         "join_ratio_threshold_truth": float(JOIN_RATIO_TRUTH),
         "ts_min_eval": str(raw_eval.index.min()),
         "ts_max_eval": str(raw_eval.index.max()),

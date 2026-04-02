@@ -31,8 +31,17 @@ TRADE_OUTCOMES_REQUIRED_COLUMNS = [
     "post_exit_mfe_12b_bps",
     "post_exit_mae_12b_bps",
     "duration_bars",
+    "side",
     "session",
     "exit_reason",
+    "entry_bid",
+    "entry_ask",
+    "exit_bid",
+    "exit_ask",
+    "entry_spread_bps",
+    "exit_spread_bps",
+    "entry_price_used",
+    "exit_price_used",
 ]
 
 
@@ -53,8 +62,17 @@ def empty_trade_outcomes_dataframe() -> pd.DataFrame:
         "post_exit_mfe_12b_bps": pd.Series(dtype="float64"),
         "post_exit_mae_12b_bps": pd.Series(dtype="float64"),
         "duration_bars": pd.Series(dtype="int64"),
+        "side": pd.Series(dtype="string"),
         "session": pd.Series(dtype="string"),
         "exit_reason": pd.Series(dtype="string"),
+        "entry_bid": pd.Series(dtype="float64"),
+        "entry_ask": pd.Series(dtype="float64"),
+        "exit_bid": pd.Series(dtype="float64"),
+        "exit_ask": pd.Series(dtype="float64"),
+        "entry_spread_bps": pd.Series(dtype="float64"),
+        "exit_spread_bps": pd.Series(dtype="float64"),
+        "entry_price_used": pd.Series(dtype="float64"),
+        "exit_price_used": pd.Series(dtype="float64"),
     })
 
 

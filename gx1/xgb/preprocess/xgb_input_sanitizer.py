@@ -7,7 +7,7 @@ Hard-fails on NaN/Inf in truth mode to prevent garbage-in-garbage-out.
 Usage:
     from gx1.xgb.preprocess.xgb_input_sanitizer import XGBInputSanitizer
     
-    sanitizer = XGBInputSanitizer.from_config("gx1/xgb/contracts/xgb_input_sanitizer_v1.json")
+    sanitizer = XGBInputSanitizer.from_config("gx1/xgb/contracts/xgb_input_sanitizer_base28_v1.json")
     X_clean, stats = sanitizer.sanitize(df, feature_list)
 """
 
@@ -125,7 +125,16 @@ class XGBInputSanitizer:
             if isinstance(bound_info, list) and len(bound_info) == 2:
                 bounds[feature] = tuple(bound_info)
             elif isinstance(bound_info, dict):
-                bounds[feature] = (bound_info.get("lower", -np.inf), bound_info.get("upper", np.inf))
+                lower = bound_info.get("lower")
+                upper = bound_info.get("upper")
+                if lower is None and "min" in bound_info:
+                    lower = bound_info.get("min")
+                if upper is None and "max" in bound_info:
+                    upper = bound_info.get("max")
+                bounds[feature] = (
+                    -np.inf if lower is None else lower,
+                    np.inf if upper is None else upper,
+                )
         
         return cls(
             feature_list=feature_list,
@@ -262,10 +271,14 @@ class XGBInputSanitizer:
         
         # Log summary
         if stats.n_clipped_total > 0:
-            log.info(
-                f"[SANITIZER] Clipped {stats.n_clipped_total} values ({stats.clip_rate_pct:.2f}%) "
-                f"across {len(stats.n_clipped_by_feature)} features"
-            )
+            if not hasattr(self, "_clip_log_count"):
+                self._clip_log_count = 0
+            self._clip_log_count += 1
+            if self._clip_log_count <= 5 or (self._clip_log_count % 5000) == 0:
+                log.info(
+                    f"[SANITIZER] Clipped {stats.n_clipped_total} values ({stats.clip_rate_pct:.2f}%) "
+                    f"across {len(stats.n_clipped_by_feature)} features"
+                )
         
         return X, stats
     

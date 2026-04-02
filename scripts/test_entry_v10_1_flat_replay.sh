@@ -13,7 +13,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
 
 POLICY="gx1/configs/policies/sniper_snapshot/2025_SNIPER_V10_1/GX1_V12_SNIPER_ENTRY_V10_1_FLAT.yaml"
-DATA_FILE="data/raw/xauusd_m5_2025_bid_ask.parquet"
+DATA_FILE="${GX1_CANONICAL_TAPE_ROOT:-/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m5_bid_ask__CANONICAL}/year=2025/part-000.parquet"
 
 # Test period: One week (2025-01-06 to 2025-01-13)
 START_TS="2025-01-06T00:00:00Z"

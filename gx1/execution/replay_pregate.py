@@ -1,15 +1,21 @@
 """
 Replay PreGate - Early skip before expensive feature building.
 
-DEL A: Skip bars that will definitely result in NO-TRADE before building features.
-Uses only cheap inputs (no pandas, no HTF, no rolling).
-
-This is a replay-only optimization. Does not affect trading logic.
+Important:
+- In canonical truth, pregate must stay semantically passive unless it is proven
+  to mirror actual runtime/risk decisions exactly.
+- This helper therefore exists primarily for optional replay acceleration, not
+  as an alternate decision layer.
 """
 
 import logging
+import os
 from typing import Dict, Any, Optional, Tuple
 from datetime import datetime
+
+import pandas as pd
+
+from gx1.time.session_detector import get_session
 
 log = logging.getLogger(__name__)
 
@@ -44,6 +50,10 @@ def replay_pregate_should_skip(
         - If should_skip=True: reason contains skip reason (for attribution)
         - If should_skip=False: reason is empty string (continue to feature build)
     """
+    # Canonical truth replay must not have its own pre-risk truth layer.
+    if os.getenv("GX1_TRUTH_MODE", "0") == "1" or bool(os.getenv("GX1_CANONICAL_TRUTH_FILE", "").strip()):
+        return False, ""
+
     # Default: conservative (don't skip if data missing)
     if policy_config is None:
         policy_config = {}
@@ -68,21 +78,15 @@ def replay_pregate_should_skip(
     if not enabled:
         return False, ""
     
-    # DEL A1: Infer session if missing (cheap operation - just time-based)
+    # Infer session via the canonical SSoT session detector.
     if session is None and ts is not None:
         try:
-            # Use hour of day (UTC) to infer session (cheap, no pandas)
-            hour = ts.hour if hasattr(ts, "hour") else ts.hour if hasattr(ts, "hour") else None
-            if hour is not None:
-                # EU: 7-15, US: 13-20, OVERLAP: 7-20 overlap, ASIA: 0-7, 20-24
-                if 7 <= hour <= 15:
-                    session = "EU"
-                elif 13 <= hour <= 20:
-                    session = "US"
-                elif 7 <= hour <= 20:
-                    session = "OVERLAP"
-                else:
-                    session = "ASIA"
+            ts_utc = pd.Timestamp(ts)
+            if ts_utc.tzinfo is None:
+                ts_utc = ts_utc.tz_localize("UTC")
+            else:
+                ts_utc = ts_utc.tz_convert("UTC")
+            session = get_session(ts_utc)
         except Exception:
             pass  # Keep session as None if inference fails
     

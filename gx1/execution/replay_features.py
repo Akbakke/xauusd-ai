@@ -93,7 +93,7 @@ def ensure_replay_tags(
         from gx1.execution.live_features import infer_session_tag
         session_tag = infer_session_tag(current_ts)
         policy_state["session"] = session_tag
-        policy_state["session_id"] = {"EU": 0, "OVERLAP": 1, "US": 2, "ASIA": 3}.get(session_tag, 0)
+        policy_state["session_id"] = {"ASIA": 0, "EU": 1, "OVERLAP": 2, "US": 3}.get(session_tag, 0)
         
         # Also update row
         if isinstance(row, pd.Series):
@@ -267,4 +267,3 @@ def ensure_replay_tags(
             log.warning("[REPLAY_TAGS] Failed to compute trend_regime from candles: %s", e)
     
     return row, policy_state
-

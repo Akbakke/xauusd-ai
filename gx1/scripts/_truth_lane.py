@@ -2,16 +2,17 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
+import json
 import os
 import sys
 
 @dataclass(frozen=True)
 class TruthXGBLane:
     readme_rel: str = "gx1/scripts/README_TRUTH_XGB.md"
+    truth_config_rel: str = "gx1/configs/canonical_truth_signal_only.json"
     required_env: str = "GX1_DATA_ROOT"
     required_gx1_data: str = "/home/andre2/GX1_DATA"
     required_manifest_rel: str = "data/data/prebuilt/BASE28_CANONICAL/CURRENT_MANIFEST.json"
-    required_xgb_bundle_rel: str = "models/models/xgb_universal_multihead_v2__CANONICAL"
 
     banned_tokens = (
         "TRIAL160",
@@ -30,6 +31,31 @@ def _workspace_root_from_file(file: str) -> Path:
 def truth_readme_path(file: str) -> Path:
     root = _workspace_root_from_file(file)
     return root / TruthXGBLane().readme_rel
+
+def canonical_truth_path(file: str) -> Path:
+    root = _workspace_root_from_file(file)
+    return root / TruthXGBLane().truth_config_rel
+
+def resolve_truth_xgb_bundle_dir(file: str) -> Path:
+    override = os.environ.get("GX1_XGB_BUNDLE_DIR", "").strip()
+    if override:
+        return Path(override).expanduser().resolve()
+
+    truth_path = canonical_truth_path(file)
+    if not truth_path.exists():
+        raise RuntimeError(f"TRUTH_LANE_VIOLATION: missing canonical truth file:\n  {truth_path}")
+
+    try:
+        truth_obj = json.loads(truth_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        raise RuntimeError(f"TRUTH_LANE_VIOLATION: invalid canonical truth json at {truth_path}: {exc}") from exc
+
+    bundle_dir = str(truth_obj.get("canonical_xgb_bundle_dir") or "").strip()
+    if not bundle_dir:
+        raise RuntimeError(
+            f"TRUTH_LANE_VIOLATION: canonical_xgb_bundle_dir missing in truth file:\n  {truth_path}"
+        )
+    return Path(bundle_dir).expanduser().resolve()
 
 def require_truth_xgb_lane(file: str, extra_context: str = "") -> Path:
     """
@@ -61,7 +87,7 @@ def require_truth_xgb_lane(file: str, extra_context: str = "") -> Path:
             f"Read: {readme}"
         )
 
-    bundle = gx1_data_path / lane.required_xgb_bundle_rel
+    bundle = resolve_truth_xgb_bundle_dir(file)
     if not bundle.exists():
         raise RuntimeError(
             f"TRUTH_LANE_VIOLATION: missing canonical XGB bundle at:\n  {bundle}\n"

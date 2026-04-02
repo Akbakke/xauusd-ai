@@ -3,7 +3,7 @@
 Write MASTER_MODEL_LOCK.json - the single source of truth for model authorization.
 
 TRUTH XGB LANE (CANONICAL)
-- This script is intended for BASE28_CANONICAL + xgb_universal_multihead_v2__CANONICAL.
+- This script is intended for BASE28_CANONICAL + canonical_truth_signal_only.json::canonical_xgb_bundle_dir.
 - Read: gx1/scripts/README_TRUTH_XGB.md
 - Anything else is legacy / wrong lane.
 
@@ -21,10 +21,12 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 WORKSPACE_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(WORKSPACE_ROOT))
+
+from gx1.scripts._truth_lane import resolve_truth_xgb_bundle_dir
 
 
 # --- TRUTH XGB guard (inline, no external imports) ----------------------------
@@ -76,6 +78,31 @@ def compute_file_sha256(filepath: Path) -> Optional[str]:
         for byte_block in iter(lambda: f.read(4096), b""):
             sha256_hash.update(byte_block)
     return sha256_hash.hexdigest()
+
+
+def compute_feature_list_sha256(features: List[str]) -> str:
+    return hashlib.sha256("|".join(features).encode("utf-8")).hexdigest()
+
+
+def load_model_feature_list(model_path: Path, meta_path: Path) -> List[str]:
+    if meta_path.exists():
+        meta_obj = json.loads(meta_path.read_text(encoding="utf-8"))
+        meta_features = meta_obj.get("feature_names_ordered") or meta_obj.get("ordered_features") or []
+        if isinstance(meta_features, list) and meta_features and all(isinstance(x, str) for x in meta_features):
+            return list(meta_features)
+
+    try:
+        from joblib import load as joblib_load
+    except Exception as exc:
+        raise RuntimeError(f"JOBLIB_IMPORT_FAIL: {exc}") from exc
+
+    model_obj = joblib_load(model_path)
+    model_features = model_obj.get("feature_list") if isinstance(model_obj, dict) else None
+    if not isinstance(model_features, list) or not model_features or not all(isinstance(x, str) for x in model_features):
+        raise RuntimeError(
+            f"MODEL_FEATURE_LIST_MISSING: could not resolve feature_list from {model_path}"
+        )
+    return list(model_features)
 
 
 def resolve_gx1_data_dir() -> Path:
@@ -145,7 +172,7 @@ def main() -> int:
         "--bundle-dir",
         type=Path,
         default=None,
-        help="Bundle directory (default: GX1_DATA/models/models/xgb_universal_multihead_v2__CANONICAL/)",
+        help="Bundle directory (default: canonical_truth_signal_only.json::canonical_xgb_bundle_dir)",
     )
     parser.add_argument(
         "--xgb-mode",
@@ -182,8 +209,7 @@ def main() -> int:
     if args.bundle_dir:
         bundle_dir = args.bundle_dir
     else:
-        # Canonical default for this lane
-        bundle_dir = gx1_data / "models" / "models" / "xgb_universal_multihead_v2__CANONICAL"
+        bundle_dir = resolve_truth_xgb_bundle_dir(__file__)
 
     print(f"Bundle dir: {bundle_dir}")
     print(f"XGB mode:   {args.xgb_mode}")
@@ -254,9 +280,17 @@ def main() -> int:
 
     with open(feature_contract_path, "r", encoding="utf-8") as f:
         feature_contract_obj = json.load(f)
-    features = feature_contract_obj.get("features", [])
-    if not isinstance(features, list) or not features:
+    contract_features = feature_contract_obj.get("features", [])
+    if not isinstance(contract_features, list) or not contract_features:
         raise RuntimeError("FEATURE_CONTRACT_INVALID: features missing or empty")
+    model_features = load_model_feature_list(model_path, meta_path)
+    if model_features != list(contract_features):
+        raise RuntimeError(
+            "MODEL_CONTRACT_SPLIT_BRAIN: model.feature_list != feature contract. "
+            f"model_len={len(model_features)} contract_len={len(contract_features)}"
+        )
+    features = list(model_features)
+    feature_list_sha256 = compute_feature_list_sha256(features)
 
     schema_payload = {
         "features": features,
@@ -341,6 +375,8 @@ def main() -> int:
             "no_go_marker_sha256": no_go_marker_sha,
         },
         "contracts": contracts,
+        "ordered_features": features,
+        "feature_list_sha256": feature_list_sha256,
         "injection_contract": {
             "mode": injection_mode,
             "channels": injection_channels,

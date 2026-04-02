@@ -2,11 +2,10 @@
 Trading Session Detector - SSoT for session classification.
 
 Defines trading sessions based on UTC time:
-- ASIA: 00:00-07:00 UTC
-- EU: 07:00-13:00 UTC  
-- OVERLAP: 13:00-17:00 UTC (EU + US overlap)
-- US: 17:00-21:00 UTC
-- ASIA (late): 21:00-00:00 UTC
+- ASIA: 22:00-07:00 UTC
+- EU: 07:00-12:00 UTC
+- OVERLAP: 12:00-16:00 UTC
+- US: 16:00-22:00 UTC
 
 Usage:
     from gx1.time.session_detector import get_session, get_session_vectorized
@@ -23,14 +22,21 @@ import pandas as pd
 from typing import Union
 
 
-# Session boundaries in UTC hours
+# Session boundaries in UTC hours (SSoT)
+# ASIA: 22:00-07:00 UTC (spans midnight)
+# EU: 07:00-12:00 UTC
+# OVERLAP: 12:00-16:00 UTC
+# US: 16:00-22:00 UTC
 SESSION_BOUNDARIES = {
-    "ASIA_EARLY": (0, 7),   # 00:00-07:00 UTC
-    "EU": (7, 13),          # 07:00-13:00 UTC
-    "OVERLAP": (13, 17),    # 13:00-17:00 UTC
-    "US": (17, 21),         # 17:00-21:00 UTC
-    "ASIA_LATE": (21, 24),  # 21:00-00:00 UTC
+    "ASIA": (22, 7),      # 22:00-07:00 UTC (wrap)
+    "EU": (7, 12),        # 07:00-12:00 UTC
+    "OVERLAP": (12, 16),  # 12:00-16:00 UTC
+    "US": (16, 22),       # 16:00-22:00 UTC
 }
+
+# Canonical session_id mapping (observerable context)
+SESSION_ID_MAP = {"ASIA": 0, "EU": 1, "OVERLAP": 2, "US": 3}
+SESSION_ID_INV = {v: k for k, v in SESSION_ID_MAP.items()}
 
 
 def get_session(ts: pd.Timestamp) -> str:
@@ -54,15 +60,13 @@ def get_session(ts: pd.Timestamp) -> str:
     ts_utc = ts.tz_convert("UTC")
     hour = ts_utc.hour
     
-    if 0 <= hour < 7:
-        return "ASIA"
-    elif 7 <= hour < 13:
+    if 7 <= hour < 12:
         return "EU"
-    elif 13 <= hour < 17:
+    elif 12 <= hour < 16:
         return "OVERLAP"
-    elif 17 <= hour < 21:
+    elif 16 <= hour < 22:
         return "US"
-    else:  # 21-24
+    else:  # 22-07
         return "ASIA"
 
 
@@ -91,13 +95,109 @@ def get_session_vectorized(timestamps: Union[pd.Series, pd.DatetimeIndex, np.nda
     
     # Vectorized session assignment
     sessions = pd.Series(index=hours.index, dtype=str)
-    sessions[(hours >= 0) & (hours < 7)] = "ASIA"
-    sessions[(hours >= 7) & (hours < 13)] = "EU"
-    sessions[(hours >= 13) & (hours < 17)] = "OVERLAP"
-    sessions[(hours >= 17) & (hours < 21)] = "US"
-    sessions[(hours >= 21) & (hours < 24)] = "ASIA"
+    sessions[(hours >= 7) & (hours < 12)] = "EU"
+    sessions[(hours >= 12) & (hours < 16)] = "OVERLAP"
+    sessions[(hours >= 16) & (hours < 22)] = "US"
+    sessions[(hours >= 22) | (hours < 7)] = "ASIA"
     
     return sessions
+
+
+def get_session_id(ts: pd.Timestamp) -> int:
+    """
+    Get canonical session_id for a single timestamp.
+    Mapping: ASIA=0, EU=1, OVERLAP=2, US=3.
+    """
+    session = get_session(ts)
+    return SESSION_ID_MAP.get(session, 0)
+
+
+def get_session_id_vectorized(timestamps: Union[pd.Series, pd.DatetimeIndex, np.ndarray]) -> pd.Series:
+    """
+    Vectorized session_id for timestamps.
+    Mapping: ASIA=0, EU=1, OVERLAP=2, US=3.
+    """
+    sessions = get_session_vectorized(timestamps)
+    return sessions.map(SESSION_ID_MAP).fillna(0).astype("int32")
+
+
+def get_session_minutes_since_open_vectorized(
+    timestamps: Union[pd.Series, pd.DatetimeIndex, np.ndarray]
+) -> pd.Series:
+    """
+    Minutes since session open (UTC).
+    ASIA open = 22:00, EU open = 07:00, OVERLAP open = 12:00, US open = 16:00.
+    """
+    if isinstance(timestamps, np.ndarray):
+        timestamps = pd.Series(timestamps)
+    if not pd.api.types.is_datetime64_any_dtype(timestamps):
+        timestamps = pd.to_datetime(timestamps)
+    hours = timestamps.dt.hour
+    minutes = timestamps.dt.minute
+    minute_of_day = hours * 60 + minutes
+
+    # ASIA: 22:00-07:00 (wrap)
+    asia = (minute_of_day >= 22 * 60) | (minute_of_day < 7 * 60)
+    # If after 22:00 -> since open = minute_of_day - 1320
+    # If before 07:00 -> since open = minute_of_day + 120
+    since_open = pd.Series(0.0, index=timestamps.index, dtype=float)
+    since_open[asia & (minute_of_day >= 22 * 60)] = (minute_of_day[asia & (minute_of_day >= 22 * 60)] - 22 * 60).astype(float)
+    since_open[asia & (minute_of_day < 7 * 60)] = (minute_of_day[asia & (minute_of_day < 7 * 60)] + 120).astype(float)
+
+    # EU: 07:00-12:00
+    eu = (minute_of_day >= 7 * 60) & (minute_of_day < 12 * 60)
+    since_open[eu] = (minute_of_day[eu] - 7 * 60).astype(float)
+
+    # OVERLAP: 12:00-16:00
+    overlap = (minute_of_day >= 12 * 60) & (minute_of_day < 16 * 60)
+    since_open[overlap] = (minute_of_day[overlap] - 12 * 60).astype(float)
+
+    # US: 16:00-22:00
+    us = (minute_of_day >= 16 * 60) & (minute_of_day < 22 * 60)
+    since_open[us] = (minute_of_day[us] - 16 * 60).astype(float)
+
+    return since_open
+
+
+def get_session_minutes_to_next_boundary_vectorized(
+    timestamps: Union[pd.Series, pd.DatetimeIndex, np.ndarray]
+) -> pd.Series:
+    """
+    Minutes to next session boundary (UTC).
+    Boundaries at 07:00, 12:00, 16:00, 22:00.
+    """
+    if isinstance(timestamps, np.ndarray):
+        timestamps = pd.Series(timestamps)
+    if not pd.api.types.is_datetime64_any_dtype(timestamps):
+        timestamps = pd.to_datetime(timestamps)
+    hours = timestamps.dt.hour
+    minutes = timestamps.dt.minute
+    minute_of_day = hours * 60 + minutes
+
+    to_next = pd.Series(0.0, index=timestamps.index, dtype=float)
+
+    # ASIA: 22:00-07:00
+    asia = (minute_of_day >= 22 * 60) | (minute_of_day < 7 * 60)
+    # If after 22:00 -> next boundary at 07:00 next day
+    to_next[asia & (minute_of_day >= 22 * 60)] = (
+        (24 * 60 - minute_of_day[asia & (minute_of_day >= 22 * 60)]) + 7 * 60
+    ).astype(float)
+    # If before 07:00 -> next boundary at 07:00 same day
+    to_next[asia & (minute_of_day < 7 * 60)] = (7 * 60 - minute_of_day[asia & (minute_of_day < 7 * 60)]).astype(float)
+
+    # EU: 07:00-12:00
+    eu = (minute_of_day >= 7 * 60) & (minute_of_day < 12 * 60)
+    to_next[eu] = (12 * 60 - minute_of_day[eu]).astype(float)
+
+    # OVERLAP: 12:00-16:00
+    overlap = (minute_of_day >= 12 * 60) & (minute_of_day < 16 * 60)
+    to_next[overlap] = (16 * 60 - minute_of_day[overlap]).astype(float)
+
+    # US: 16:00-22:00
+    us = (minute_of_day >= 16 * 60) & (minute_of_day < 22 * 60)
+    to_next[us] = (22 * 60 - minute_of_day[us]).astype(float)
+
+    return to_next
 
 
 def validate_timestamps_monotonic(timestamps: pd.Series) -> bool:

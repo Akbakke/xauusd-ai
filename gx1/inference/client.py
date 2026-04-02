@@ -82,7 +82,7 @@ class ModelWorkerClient:
         self,
         seq_features: np.ndarray,  # [batch_size, seq_len, seq_dim]
         snap_features: np.ndarray,  # [batch_size, snap_dim]
-        session_ids: np.ndarray,  # [batch_size] int32 (0=EU, 1=OVERLAP, 2=US)
+        session_ids: np.ndarray,  # [batch_size] int32 (0=ASIA, 1=EU, 2=OVERLAP, 3=US)
         vol_regime_ids: np.ndarray,  # [batch_size] int32 (0=LOW, 1=MEDIUM, 2=HIGH, 3=EXTREME)
         trend_regime_ids: np.ndarray,  # [batch_size] int32 (0=UP, 1=DOWN, 2=NEUTRAL)
         timeout_seconds: Optional[float] = None,
@@ -226,4 +226,3 @@ class ModelWorkerClient:
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Context manager exit."""
         self.shutdown()
-

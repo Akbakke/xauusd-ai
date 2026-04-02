@@ -1270,6 +1270,102 @@
       "how_computed": "Computed by gx1.features.runtime_sniper_core (see FEATURE_MAP.md for details)"
     },
     {
+      "name": "is_ASIA",
+      "family": "session",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "flag",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "GATE_ONLY"
+      ],
+      "source_module": "gx1.features.runtime_sniper_core",
+      "how_computed": "Computed by gx1.features.runtime_sniper_core (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "is_OVERLAP",
+      "family": "session",
+      "timeframe": "M5",
+      "lookback_bars": null,
+      "units": "flag",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "GATE_ONLY"
+      ],
+      "source_module": "gx1.features.runtime_sniper_core",
+      "how_computed": "Computed by gx1.features.runtime_sniper_core (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "minutes_since_session_open",
+      "family": "session",
+      "timeframe": "M5",
+      "lookback_bars": 1,
+      "units": "minutes",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.runtime_sniper_core",
+      "how_computed": "Computed by gx1.features.runtime_sniper_core (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "minutes_to_next_session_boundary",
+      "family": "session",
+      "timeframe": "M5",
+      "lookback_bars": 1,
+      "units": "minutes",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.runtime_sniper_core",
+      "how_computed": "Computed by gx1.features.runtime_sniper_core (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "session_change_flag",
+      "family": "session",
+      "timeframe": "M5",
+      "lookback_bars": 1,
+      "units": "flag",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "TRANSFORMER"
+      ],
+      "source_module": "gx1.features.runtime_sniper_core",
+      "how_computed": "Computed by gx1.features.runtime_sniper_core (see FEATURE_MAP.md for details)"
+    },
+    {
+      "name": "session_tradable",
+      "family": "session",
+      "timeframe": "M5",
+      "lookback_bars": 1,
+      "units": "flag",
+      "normalization": "none",
+      "safe_in_prebuilt": true,
+      "live_only": false,
+      "leakage_risk_notes": null,
+      "consumers": [
+        "GATE_ONLY"
+      ],
+      "source_module": "gx1.features.runtime_sniper_core",
+      "how_computed": "Computed by gx1.features.runtime_sniper_core (see FEATURE_MAP.md for details)"
+    },
+    {
       "name": "mid",
       "family": "unknown",
       "timeframe": "M5",
@@ -1492,7 +1588,7 @@
         "TRANSFORMER"
       ],
       "source_module": "gx1.seq.sequence_features",
-      "how_computed": "Computed by gx1.seq.sequence_features (see FEATURE_MAP.md for details)"
+      "how_computed": "Computed by gx1.seq.sequence_features (ASIA=0, EU=1, OVERLAP=2, US=3)"
     },
     {
       "name": "side",

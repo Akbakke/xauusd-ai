@@ -3,9 +3,14 @@
 **Date:** 2026-01-16  
 **Status:** CANONICAL
 
-## 2025 Dataset (Source of Truth)
+## Canonical XAUUSD Tape
 
-**File:** `data/raw/xauusd_m5_2025_bid_ask.parquet`
+The canonical lane is now split by responsibility:
+- raw M1 tape is the source-of-truth for exit and full-resolution replay
+- canonical M5 is the model view used by XGB and entry
+
+**Raw source-of-truth:** `data/oanda/canonical/xauusd_m1_bid_ask__CANONICAL`
+**Model view:** `data/oanda/canonical/xauusd_m5_bid_ask__CANONICAL`
 
 ### Schema
 
@@ -30,11 +35,7 @@
 12. `ask_low` - Ask price low
 13. `ask_close` - Ask price close
 
-**Shape:** (70217, 13) for 2025
-
-**Time Range:** 2025-01-01 23:00:00 UTC to 2025-12-31 (approx)
-
-**Granularity:** M5 (5-minute bars)
+**Granularity:** M1 for the raw source-of-truth, M5 for the model view
 
 **Timestamp Alignment:**
 - All timestamps are on 5-minute boundaries (00:00, 00:05, 00:10, ...)
@@ -51,7 +52,7 @@
 
 **Instrument:** `XAU_USD`
 
-**Granularity:** `M5`
+**Granularity:** `M1` for the raw source-of-truth, `M5` for the model-view tape
 
 **Price Type:** `MBA` (Mid + Bid + Ask)
 
@@ -88,11 +89,18 @@
 ## Data Processing Rules
 
 1. **Complete Bars Only:** Only include candles where `complete=True`
-2. **Timestamp Normalization:** Floor to 5-minute boundary (e.g., 23:03:45 → 23:00:00)
+2. **Timestamp Normalization:** Floor to the relevant bar boundary for the target view (M1 or M5)
 3. **Duplicate Handling:** Keep last occurrence if duplicate timestamps found
 4. **Missing Fields:** Hard-fail if any bid/ask field is missing (no fallback to mid)
 5. **Monotonic Index:** Sort by timestamp ascending, verify monotonic increasing
-6. **M5 Grid Validation:** Verify 5-minute step between consecutive bars (except market gaps)
+6. **Grid Validation:** Verify 1-minute step for raw M1 and 5-minute step for model-view M5, except market gaps
+
+## Canonical View Split
+
+- Raw canonical store: `xauusd_m1_bid_ask__CANONICAL`
+- Model-view store: `xauusd_m5_bid_ask__CANONICAL`
+- Replay/runtime exit consumes raw M1 bars
+- XGB/entry consume the model-view M5 bars derived from the raw tape
 
 ## Source Script
 

@@ -540,11 +540,16 @@ class XGBMultiheadModel:
                 log.warning("[XGB_RAW_PROBA] failed session=%s error=%s", session, e)
             self._proba_logged.add(session)
 
-        log.info(
-            "[XGB_BRIDGE_INPUT] head=%s proba_dim=%s",
-            session,
-            proba.shape[1] if hasattr(proba, "shape") and len(proba.shape) > 1 else None,
-        )
+        if os.getenv("GX1_REPLAY_QUIET", "").strip().lower() not in {"1", "true", "yes", "on"}:
+            if not hasattr(self, "_bridge_input_log_count"):
+                self._bridge_input_log_count = 0
+            self._bridge_input_log_count += 1
+            if self._bridge_input_log_count <= 5 or (self._bridge_input_log_count % 5000) == 0:
+                log.info(
+                    "[XGB_BRIDGE_INPUT] head=%s proba_dim=%s",
+                    session,
+                    proba.shape[1] if hasattr(proba, "shape") and len(proba.shape) > 1 else None,
+                )
         bridge = proba_to_signal_bridge_v1(proba)
         calibrator = self.calibrators.get(session) if self.calibrators else None
         if calibrator is not None:
@@ -572,12 +577,17 @@ class XGBMultiheadModel:
                     self._calibration_logged.add(session)
             except Exception as e:
                 log.warning("[XGB_HEAD_CALIBRATION_FAILED] session=%s error=%s", session, e)
-        log.info(
-            "[XGB_BRIDGE_OUTPUT] head=%s bridge_shape=%s p_flat_zero_rate=%.6f",
-            session,
-            bridge.shape,
-            float(np.mean(bridge[:, 2] == 0.0)) if bridge.size else 0.0,
-        )
+        if os.getenv("GX1_REPLAY_QUIET", "").strip().lower() not in {"1", "true", "yes", "on"}:
+            if not hasattr(self, "_bridge_output_log_count"):
+                self._bridge_output_log_count = 0
+            self._bridge_output_log_count += 1
+            if self._bridge_output_log_count <= 5 or (self._bridge_output_log_count % 5000) == 0:
+                log.info(
+                    "[XGB_BRIDGE_OUTPUT] head=%s bridge_shape=%s p_flat_zero_rate=%.6f",
+                    session,
+                    bridge.shape,
+                    float(np.mean(bridge[:, 2] == 0.0)) if bridge.size else 0.0,
+                )
         if not hasattr(self, "_bridge_logged"):
             self._bridge_logged = set()
         if session not in self._bridge_logged:

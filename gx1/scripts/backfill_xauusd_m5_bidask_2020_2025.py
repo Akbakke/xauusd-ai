@@ -4,7 +4,7 @@
 OANDA XAUUSD M5 Bid/Ask Backfill (2020-2025)
 
 Backfills XAUUSD M5 candles with bid/ask prices from OANDA API for years 2020-2025.
-Schema matches exactly with existing 2025 dataset (data/raw/xauusd_m5_2025_bid_ask.parquet).
+Schema matches canonical tape lane (year=YYYY/part-000.parquet).
 
 Usage:
     # Backfill 2020-2024 (2025 already exists)
@@ -13,9 +13,9 @@ Usage:
         --end 2025-01-01T00:00:00Z \
         --out data/oanda/XAUUSD_M5_2020_2024_bidask.parquet
 
-    # Verify against 2025 sample
+    # Verify against 2025 canonical tape sample
     python gx1/scripts/backfill_xauusd_m5_bidask_2020_2025.py \
-        --verify-against data/raw/xauusd_m5_2025_bid_ask.parquet \
+        --verify-against /home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m5_bid_ask__CANONICAL/year=2025/part-000.parquet \
         --verify-window-days 7
 
 Dependencies (explicit install line):
@@ -28,6 +28,7 @@ import argparse
 import hashlib
 import json
 import logging
+import os
 import sys
 import time
 from datetime import datetime, timedelta, timezone
@@ -43,6 +44,7 @@ sys.path.insert(0, str(workspace_root))
 
 from gx1.execution.oanda_client import OandaClient, OandaClientConfig, OandaAPIError
 from gx1.execution.oanda_credentials import load_oanda_credentials
+from gx1.utils.granularity import granularity_to_minutes, granularity_to_pandas_freq, granularity_to_timedelta
 from gx1.utils.env_loader import load_dotenv_if_present
 
 logging.basicConfig(
@@ -71,7 +73,7 @@ CANONICAL_DTYPES = {col: "float64" for col in CANONICAL_COLUMNS}
 INSTRUMENT = "XAU_USD"
 GRANULARITY = "M5"
 MAX_CANDLES_PER_REQUEST = 5000
-CHUNK_DAYS = 15  # ~4320 bars (safe margin under 5000 limit)
+DEFAULT_CHUNK_DAYS = {"M1": 3, "M5": 15}
 
 
 def fetch_candles_chunk(
@@ -144,13 +146,13 @@ def fetch_candles_chunk(
         ask = candle.get("ask", {})
         volume = candle.get("volume", 0)
         
-        # Normalize timestamp to UTC and floor to 5-minute boundary
+        # Normalize timestamp to UTC and floor to granularity boundary
         raw_time = pd.to_datetime(time_str)
         if raw_time.tzinfo is None:
             raw_time = raw_time.tz_localize("UTC")
         else:
             raw_time = raw_time.tz_convert("UTC")
-        normalized_time = raw_time.floor("5min")
+        normalized_time = raw_time.floor(granularity_to_pandas_freq(granularity))
         
         # Hard-fail if bid/ask fields are missing
         if not bid:
@@ -208,7 +210,7 @@ def fetch_candles_chunk(
     return df
 
 
-def validate_schema(df: pd.DataFrame, context: str = "") -> None:
+def validate_schema(df: pd.DataFrame, context: str = "", granularity: str = "M5") -> None:
     """
     Validate DataFrame schema matches canonical 2025 schema.
     Hard-fails on mismatch.
@@ -253,31 +255,28 @@ def validate_schema(df: pd.DataFrame, context: str = "") -> None:
     if not df.index.is_monotonic_increasing:
         errors.append("Index is not monotonic increasing (not sorted)")
     
-    # Check M5 grid (5-minute step, except for gaps)
-    # Note: OANDA may return 1:05:00 (65 min) gaps during market transitions (legitimate)
-    # We only flag steps that are clearly wrong (not 5min, not a multiple of 5min, or too large)
+    # Check grid for the chosen granularity (allow gaps, but non-gap steps must align)
     if len(df) > 1:
         time_diffs = df.index.to_series().diff().dropna()
-        expected_diff = pd.Timedelta(minutes=5)
-        # Allow gaps (market closures) but verify all non-gap steps are multiples of 5 minutes
+        step_minutes = granularity_to_minutes(granularity)
+        expected_diff = pd.Timedelta(minutes=step_minutes)
+        # Allow gaps (market closures) but verify all non-gap steps are multiples of the granularity
         # Ignore gaps > 24h (weekend/market closures)
         non_gap_diffs = time_diffs[time_diffs <= pd.Timedelta(hours=24)]
         if len(non_gap_diffs) > 0:
-            # Check if each step is a multiple of 5 minutes
-            # Allow any multiple of 5 minutes (5, 10, 15, 20, 25, 30, ... up to 24h)
+            # Check if each step is a multiple of the granularity minutes
             # This accounts for legitimate market gaps (e.g., 65min = 13*5min, 305min = 61*5min)
             invalid_steps = []
             for diff in non_gap_diffs:
                 if diff != expected_diff:
-                    # Check if it's a multiple of 5 minutes
                     minutes = diff.total_seconds() / 60
                     # Use small epsilon for floating-point comparison
-                    if abs(minutes % 5) > 0.001:
+                    if abs(minutes % step_minutes) > 0.001:
                         invalid_steps.append(diff)
             
             if len(invalid_steps) > 0:
                 errors.append(
-                    f"M5 grid broken: {len(invalid_steps)} invalid steps found (not multiple of 5min). "
+                    f"{granularity} grid broken: {len(invalid_steps)} invalid steps found (not multiple of {step_minutes}min). "
                     f"Examples: {invalid_steps[:5]}"
                 )
     
@@ -297,6 +296,7 @@ def backfill_range(
     client: OandaClient,
     start: pd.Timestamp,
     end: pd.Timestamp,
+    granularity: str = "M5",
     checkpoint_dir: Optional[Path] = None,
 ) -> Tuple[pd.DataFrame, Dict[str, Any]]:
     """
@@ -320,7 +320,7 @@ def backfill_range(
     if checkpoint_dir:
         checkpoint_dir.mkdir(parents=True, exist_ok=True)
         # Use unique checkpoint filename based on start/end to avoid conflicts in parallel runs
-        checkpoint_name = f"XAUUSD_M5_{start.strftime('%Y%m%d')}_{end.strftime('%Y%m%d')}_checkpoint.json"
+        checkpoint_name = f"XAUUSD_{granularity}_{start.strftime('%Y%m%d')}_{end.strftime('%Y%m%d')}_checkpoint.json"
         checkpoint_path = checkpoint_dir / checkpoint_name
     
     # Load checkpoint if exists
@@ -339,14 +339,15 @@ def backfill_range(
                     f"Resuming from checkpoint: last_success_ts={last_success_ts}, "
                     f"n_rows={total_rows}"
                 )
-                current_start = last_success_ts + pd.Timedelta(minutes=5)
+                current_start = last_success_ts + granularity_to_timedelta(granularity)
         except Exception as e:
             log.warning(f"Failed to load checkpoint: {e}. Starting from beginning.")
     
     chunk_num = 0
     while current_start < end:
         chunk_num += 1
-        current_end = min(current_start + pd.Timedelta(days=CHUNK_DAYS), end)
+        chunk_days = DEFAULT_CHUNK_DAYS.get(granularity.upper(), 15)
+        current_end = min(current_start + pd.Timedelta(days=chunk_days), end)
         
         log.info(
             f"[BACKFILL] Chunk {chunk_num}: {current_start.date()} to {current_end.date()} "
@@ -359,16 +360,16 @@ def backfill_range(
                 instrument=INSTRUMENT,
                 start=current_start,
                 end=current_end,
-                granularity=GRANULARITY,
+                granularity=granularity,
             )
             
             if chunk_df.empty:
                 log.warning(f"  No candles for chunk {chunk_num}")
                 current_start = current_end
                 continue
-            
+
             # Validate chunk schema
-            validate_schema(chunk_df, context=f"chunk {chunk_num}")
+            validate_schema(chunk_df, context=f"chunk {chunk_num}", granularity=granularity)
             
             all_chunks.append(chunk_df)
             total_rows += len(chunk_df)
@@ -411,7 +412,7 @@ def backfill_range(
     df = df[~df.index.duplicated(keep="last")]
     
     # Final validation
-    validate_schema(df, context="final combined dataset")
+    validate_schema(df, context="final combined dataset", granularity=granularity)
     
     metadata = {
         "total_rows": len(df),
@@ -427,6 +428,7 @@ def verify_against_sample(
     client: OandaClient,
     sample_path: Path,
     window_days: int = 7,
+    granularity: str = "M5",
 ) -> bool:
     """
     Verify backfill against a sample from existing dataset.
@@ -457,7 +459,7 @@ def verify_against_sample(
     
     # Validate sample schema
     try:
-        validate_schema(sample_df, context="sample dataset")
+        validate_schema(sample_df, context="sample dataset", granularity=granularity)
         log.info("✅ Sample schema validated")
     except RuntimeError as e:
         log.error(f"❌ Sample schema validation failed: {e}")
@@ -484,7 +486,8 @@ def verify_against_sample(
         oanda_df, _ = backfill_range(
             client=client,
             start=window_start,
-            end=window_end + pd.Timedelta(minutes=5),  # Include end bar
+            end=window_end + granularity_to_timedelta(granularity),  # Include end bar
+            granularity=granularity,
         )
     except Exception as e:
         log.error(f"Failed to fetch from OANDA: {e}")
@@ -566,6 +569,7 @@ def verify_against_sample(
 def generate_manifest(
     df: pd.DataFrame,
     output_path: Path,
+    granularity: str = "M5",
 ) -> Path:
     """
     Generate manifest JSON file for dataset.
@@ -588,7 +592,7 @@ def generate_manifest(
     
     manifest = {
         "instrument": INSTRUMENT,
-        "granularity": GRANULARITY,
+        "granularity": granularity,
         "prices": "MBA",  # Mid + Bid + Ask
         "time_range_start": df.index.min().isoformat(),
         "time_range_end": df.index.max().isoformat(),
@@ -613,6 +617,12 @@ def generate_manifest(
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Backfill XAUUSD M5 candles with bid/ask from OANDA (2020-2025)"
+    )
+    parser.add_argument(
+        "--granularity",
+        type=str,
+        default=GRANULARITY,
+        help="Candle granularity (e.g. M1 or M5)",
     )
     parser.add_argument(
         "--start",
@@ -652,6 +662,8 @@ def main() -> int:
     
     # Load environment
     load_dotenv_if_present()
+    if os.environ.get("GX1_RAW_2025", "").strip():
+        raise RuntimeError("[RAW_LANE_FORBIDDEN] GX1_RAW_2025 is set; raw lane is retired")
     
     # Load OANDA credentials
     try:
@@ -677,10 +689,14 @@ def main() -> int:
     # Verification mode
     if args.verify_against:
         sample_path = Path(args.verify_against)
+        sample_str = str(sample_path)
+        if "/data/data/raw/" in sample_str or "xauusd_m5_2025_bid_ask.parquet" in sample_str:
+            raise RuntimeError(f"[RAW_LANE_FORBIDDEN] verify-against points to raw lane: {sample_path}")
         success = verify_against_sample(
             client=client,
             sample_path=sample_path,
             window_days=args.verify_window_days,
+            granularity=args.granularity,
         )
         return 0 if success else 1
     
@@ -702,10 +718,10 @@ def main() -> int:
         end = end_dt.tz_convert("UTC")
     
     log.info("=" * 60)
-    log.info("OANDA XAUUSD M5 Bid/Ask Backfill (2020-2025)")
+    log.info(f"OANDA XAUUSD {args.granularity} Bid/Ask Backfill (2020-2025)")
     log.info("=" * 60)
     log.info(f"Instrument: {INSTRUMENT}")
-    log.info(f"Granularity: {GRANULARITY}")
+    log.info(f"Granularity: {args.granularity}")
     log.info(f"Time range: {start.date()} to {end.date()}")
     log.info(f"Output: {args.out}")
     log.info("")
@@ -717,6 +733,7 @@ def main() -> int:
             client=client,
             start=start,
             end=end,
+            granularity=args.granularity,
             checkpoint_dir=checkpoint_dir,
         )
     except Exception as e:
@@ -726,7 +743,7 @@ def main() -> int:
     # Validate final dataset
     log.info("Validating final dataset...")
     try:
-        validate_schema(df, context="final output")
+        validate_schema(df, context="final output", granularity=args.granularity)
         log.info("✅ Final schema validation passed")
     except RuntimeError as e:
         log.error(f"❌ Final schema validation failed: {e}")
@@ -741,7 +758,7 @@ def main() -> int:
     log.info("✅ Dataset written")
     
     # Generate manifest
-    manifest_path = generate_manifest(df, output_path)
+    manifest_path = generate_manifest(df, output_path, granularity=args.granularity)
     
     # Summary
     log.info("=" * 60)

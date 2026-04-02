@@ -3,22 +3,24 @@
 Build ENTRY_V10_CTX training dataset (canonical, CTX6CAT6 base with optional ctx_cont extensions).
 
 SSoT / ONE UNIVERSE:
-- ctx contract: CTX6CAT6 base (ctx_cat=6 fixed; ctx_cont base=6, may extend via micro features)
+- ctx contract: CTX6CAT6 base (ctx_cat=6 fixed; ctx_cont base=6, extended here to the
+  active canonical 21-dim runtime contract via micro + swing + session timing features)
 - signal bridge: XGB_SIGNAL_BRIDGE_V1 (7-dim)
 - Inputs must be canonical:
   - BASE28 prebuilt via CURRENT_MANIFEST.json (manifest-only resolution; sha256 verify; no direct parquet path)
-  - canonical XGB bundle (universal multihead v2; ordered_features=BASE28; locked sessions)
+  - canonical XGB bundle (universal multihead v2; ordered_features must match the active 34-feature contract)
   - canonical market tape lane (bid/ask) for deterministic label building (close after N bars)
 
-Outputs (advanced structure, compatible with "old idea"):
+Outputs:
 - time: tz-aware UTC timestamp
 - seq: list/ndarray shaped [seq_len, 7]  (signal bridge sequence)
 - snap: ndarray shaped [7]              (signal bridge snapshot)
-- ctx_cont: ndarray shaped [6]
+- ctx_cont: ndarray shaped [dynamic canonical ctx_cont dim; active path = 21]
 - ctx_cat: ndarray shaped [6]
 - y_direction: int32 (0/1/2)            (label computed from tape with fixed-hold exit; hold-bars configurable)
 - y_early_move: float32 (0/1)           (label computed from tape within horizon=hold_bars)
 - y_quality_score: float32              (e.g. abs pnl bps over horizon)
+- y_bad_path: float32 (0/1, parked in canonical train recipe)
 
 NO FALLBACKS unless explicitly allowed by CLI flags.
 """
@@ -62,6 +64,9 @@ log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
 PATH_QUALITY_HORIZON_BARS = 10
+BAD_PATH_HORIZON_BARS = PATH_QUALITY_HORIZON_BARS
+BAD_PATH_MAE_THRESHOLD_BPS = 6.0
+BAD_PATH_MFE_THRESHOLD_BPS = 4.0
 MICRO_FEATURE_NAMES = [
     "micro_momentum_3",
     "micro_momentum_5",
@@ -75,6 +80,13 @@ SWING_FEATURE_NAMES = [
     "bars_since_swing_high",
     "bars_since_swing_low",
     "retracement_from_last_impulse",
+]
+SESSION_CTX_CONT_NAMES = [
+    "is_ASIA",
+    "minutes_since_session_open",
+    "minutes_to_next_session_boundary",
+    "session_change_flag",
+    "session_tradable",
 ]
 SWING_ATR_PERIOD = 14
 
@@ -416,6 +428,74 @@ def _compute_path_quality_first_n(
     return out
 
 
+def _compute_bad_path_first_n(
+    *,
+    tape: pd.DataFrame,
+    horizon_bars: int,
+    adverse_threshold_bps: float,
+    favorable_threshold_bps: float,
+) -> pd.DataFrame:
+    if horizon_bars < 1:
+        raise RuntimeError("BAD_PATH_HORIZON_INVALID")
+
+    cols = list(tape.columns)
+    bid_col = "bid_close" if "bid_close" in cols else ("bid" if "bid" in cols else None)
+    ask_col = "ask_close" if "ask_close" in cols else ("ask" if "ask" in cols else None)
+    if bid_col is None or ask_col is None:
+        raise RuntimeError(f"BAD_PATH_BID_ASK_MISSING: have={sorted(cols)[:60]}...")
+
+    bid = tape[bid_col].astype(float).to_numpy()
+    ask = tape[ask_col].astype(float).to_numpy()
+
+    n = len(tape)
+    if n <= horizon_bars:
+        raise RuntimeError("BAD_PATH_TAPE_TOO_SHORT")
+
+    entry_ask = ask[:-horizon_bars]
+    entry_bid = bid[:-horizon_bars]
+    thr_adv = float(adverse_threshold_bps)
+    thr_fav = float(favorable_threshold_bps)
+    out_long = np.zeros(n - horizon_bars, dtype=np.float32)
+    out_short = np.zeros(n - horizon_bars, dtype=np.float32)
+
+    for i in range(0, n - horizon_bars):
+        w_bid = bid[i : i + horizon_bars + 1]
+        w_ask = ask[i : i + horizon_bars + 1]
+
+        long_fav = (w_bid - entry_ask[i]) / np.clip(entry_ask[i], 1e-12, None) * 1e4
+        long_adv = (entry_ask[i] - w_bid) / np.clip(entry_ask[i], 1e-12, None) * 1e4
+        short_fav = (entry_bid[i] - w_ask) / np.clip(entry_bid[i], 1e-12, None) * 1e4
+        short_adv = (w_ask - entry_bid[i]) / np.clip(entry_bid[i], 1e-12, None) * 1e4
+
+        long_fav_idx = np.flatnonzero(long_fav >= thr_fav)
+        long_adv_idx = np.flatnonzero(long_adv >= thr_adv)
+        short_fav_idx = np.flatnonzero(short_fav >= thr_fav)
+        short_adv_idx = np.flatnonzero(short_adv >= thr_adv)
+
+        first_long_fav = int(long_fav_idx[0]) if len(long_fav_idx) else None
+        first_long_adv = int(long_adv_idx[0]) if len(long_adv_idx) else None
+        first_short_fav = int(short_fav_idx[0]) if len(short_fav_idx) else None
+        first_short_adv = int(short_adv_idx[0]) if len(short_adv_idx) else None
+
+        out_long[i] = float(
+            first_long_adv is not None and (first_long_fav is None or first_long_adv < first_long_fav)
+        )
+        out_short[i] = float(
+            first_short_adv is not None and (first_short_fav is None or first_short_adv < first_short_fav)
+        )
+
+    return pd.DataFrame(
+        {
+            "time": tape["time"].iloc[:-horizon_bars].to_numpy(),
+            "bad_path_long_first_n": out_long,
+            "bad_path_short_first_n": out_short,
+            "bad_path_horizon_bars": np.int32(horizon_bars),
+            "bad_path_mae_threshold_bps": np.float32(adverse_threshold_bps),
+            "bad_path_mfe_threshold_bps": np.float32(favorable_threshold_bps),
+        }
+    )
+
+
 # -----------------------------------------------------------------------------
 # Manifest writing
 # -----------------------------------------------------------------------------
@@ -668,6 +748,12 @@ def build_dataset_canonical(
     log.info("[XGB_MODEL_SHA256] %s %s", model_path, xgb_model_sha256)
 
     model = XGBMultiheadModel.load(str(model_path))
+    model_features = list(getattr(model, "feature_list", []) or [])
+    if model_features != features:
+        raise RuntimeError(
+            "XGB_FEATURE_CONTRACT_MISMATCH: contract features != model.feature_list "
+            f"(contract_len={len(features)} model_len={len(model_features)})"
+        )
     sanitizer = XGBInputSanitizer.from_config(str(sanitizer_cfg))
 
     # sanitize (contract-ordered)
@@ -676,6 +762,11 @@ def build_dataset_canonical(
         raise RuntimeError("SANITIZER_OUTPUT_INVALID")
     if np.isnan(x_array).any() or np.isinf(x_array).any():
         raise RuntimeError("SANITIZER_FAIL_NONFINITE: sanitized features contain NaN/Inf")
+    df_features_sanitized = pd.DataFrame(
+        x_array,
+        columns=features,
+        index=df_features.index,
+    )
 
     # 5) Predict per session head (ASIA routes to OVERLAP if no ASIA head exists)
     session_series = df["session_id"].fillna(2).astype(int) if "session_id" in df.columns else None
@@ -686,7 +777,11 @@ def build_dataset_canonical(
     def _run_for_session(sess_name: str, idx: np.ndarray) -> None:
         if idx.size == 0:
             return
-        probs = model.predict_proba(df_features.iloc[idx], session=sess_name, feature_list=features)
+        probs = model.predict_proba(
+            df_features_sanitized.iloc[idx],
+            session=sess_name,
+            feature_list=features,
+        )
         # Expect attributes or dict-like; support both
         if hasattr(probs, "p_long"):
             pl = np.asarray(probs.p_long, dtype=np.float64)
@@ -858,7 +953,12 @@ def build_dataset_canonical(
             df[name] = df[tape_name]
             df.drop(columns=[tape_name], inplace=True)
 
-    ctx_cont_names = ctx_cont_names + list(MICRO_FEATURE_NAMES) + list(SWING_FEATURE_NAMES)
+    ctx_cont_names = (
+        ctx_cont_names
+        + list(MICRO_FEATURE_NAMES)
+        + list(SWING_FEATURE_NAMES)
+        + list(SESSION_CTX_CONT_NAMES)
+    )
     log.info(
         "[ENTRY_MICRO_FEATURES_PROOF] names=%s count=%d",
         list(MICRO_FEATURE_NAMES),
@@ -868,6 +968,11 @@ def build_dataset_canonical(
         "[ENTRY_SWING_FEATURES_PROOF] names=%s count=%d",
         list(SWING_FEATURE_NAMES),
         len(SWING_FEATURE_NAMES),
+    )
+    log.info(
+        "[ENTRY_SESSION_CTX_PROOF] names=%s count=%d",
+        list(SESSION_CTX_CONT_NAMES),
+        len(SESSION_CTX_CONT_NAMES),
     )
 
     for name in ctx_cont_names:
@@ -898,6 +1003,12 @@ def build_dataset_canonical(
         tape=merged[["time"] + [c for c in merged.columns if c in ("bid_close", "ask_close", "bid", "ask")]].copy(),
         horizon_bars=PATH_QUALITY_HORIZON_BARS,
     )
+    bad_path = _compute_bad_path_first_n(
+        tape=merged[["time"] + [c for c in merged.columns if c in ("bid_close", "ask_close", "bid", "ask")]].copy(),
+        horizon_bars=BAD_PATH_HORIZON_BARS,
+        adverse_threshold_bps=BAD_PATH_MAE_THRESHOLD_BPS,
+        favorable_threshold_bps=BAD_PATH_MFE_THRESHOLD_BPS,
+    )
 
     # Align signals to labels (labels are shorter by horizon_bars)
     merged2 = merged.merge(
@@ -915,6 +1026,21 @@ def build_dataset_canonical(
                 "mfe_short_first_n_bps",
                 "mae_short_first_n_bps",
                 "path_quality_horizon_bars",
+            ]
+        ],
+        on="time",
+        how="inner",
+        validate="one_to_one",
+    )
+    merged2 = merged2.merge(
+        bad_path[
+            [
+                "time",
+                "bad_path_long_first_n",
+                "bad_path_short_first_n",
+                "bad_path_horizon_bars",
+                "bad_path_mae_threshold_bps",
+                "bad_path_mfe_threshold_bps",
             ]
         ],
         on="time",
@@ -939,6 +1065,12 @@ def build_dataset_canonical(
     merged2["mae_first_n_bps"] = mae_first_n.astype(np.float32)
     merged2["mfe_first_n_bps"] = mfe_first_n.astype(np.float32)
     merged2["path_quality_bps"] = (merged2["mfe_first_n_bps"] - merged2["mae_first_n_bps"]).astype(np.float32)
+    bad_path_dir = np.where(
+        y_dir == 0,
+        merged2["bad_path_long_first_n"].to_numpy(),
+        np.where(y_dir == 1, merged2["bad_path_short_first_n"].to_numpy(), 0.0),
+    )
+    merged2["y_bad_path"] = bad_path_dir.astype(np.float32)
 
     # Re-attach ctx to merged2 (align by time)
     df_ctx = pd.DataFrame({"time": df["time"].to_numpy()})
@@ -967,6 +1099,7 @@ def build_dataset_canonical(
     y_mae_first_n = merged3["mae_first_n_bps"].astype(np.float32).to_numpy()
     y_mfe_first_n = merged3["mfe_first_n_bps"].astype(np.float32).to_numpy()
     y_path_quality = merged3["path_quality_bps"].astype(np.float32).to_numpy()
+    y_bad_path = merged3["y_bad_path"].astype(np.float32).to_numpy()
     y_label_horizon = merged3["label_horizon_bars"].astype(np.int32).to_numpy()
     y_path_horizon = merged3["path_quality_horizon_bars"].astype(np.int32).to_numpy()
 
@@ -1391,13 +1524,12 @@ def build_dataset_canonical(
         )
 
     # ---------------------------------------------------------------------------
-    # OVERLAP long pocket relabel variants (V4 base): configurable via env var.
-    # Env: GX1_OVERLAP_LONG_VARIANT = {V4_OL_LONG_A2, V4_OL_LONG_A4, V4_OL_LONG_B1, V4_OL_LONG_C2,
-    #                                 V4_OL_LONG_S4, V4_OL_LONG_S5, V4_OL_LONG_T1, V4_OL_LONG_T2,
-    #                                 V4_OL_LONG_T3, V4_OL_LONG_T4, V4_OL_LONG_T5, V4_OL_LONG_BASELINE}
-    # Action (when matched): y_direction=2 (FLAT), y_quality_score=0, y_early_move=0
+    # OVERLAP long relabel
     #
-    # Baseline (B1) criteria, explicitly:
+    # Canonical lane keeps exactly one general relabel profile here:
+    #   V4_OL_LONG_B1
+    #
+    # B1 criteria, explicitly:
     # - session_id == OVERLAP
     # - y_direction == LONG
     # - H4_trend_sign_cat == 0
@@ -1416,35 +1548,6 @@ def build_dataset_canonical(
         "micro_momentum_5",
         "distance_ema_fast",
     )
-    # Default to B1 as the current baseline unless explicitly overridden.
-    _variant_raw = os.getenv("GX1_OVERLAP_LONG_VARIANT", "V4_OL_LONG_B1")
-    _variant_norm = _variant_raw.strip().upper()
-    _overlap_allowed = [
-        "V4_OL_LONG_A2",
-        "V4_OL_LONG_A4",
-        "V4_OL_LONG_B1",
-        "V4_OL_LONG_C2",
-        "V4_OL_LONG_S4",
-        "V4_OL_LONG_S5",
-        "V4_OL_LONG_T1",
-        "V4_OL_LONG_T2",
-        "V4_OL_LONG_T3",
-        "V4_OL_LONG_T4",
-        "V4_OL_LONG_T5",
-        "V4_OL_LONG_BASELINE",
-    ]
-    _overlap_allowed_map = {v.upper(): v for v in _overlap_allowed}
-    if _variant_norm in _overlap_allowed_map:
-        _variant = _overlap_allowed_map[_variant_norm]
-    else:
-        raise RuntimeError(
-            f"[OVERLAP_LONG_RELABEL_UNKNOWN] raw={_variant_raw!r} normalized={_variant_norm!r} not in allowed set"
-        )
-    log.info(
-        "[OVERLAP_LONG_VARIANT_SELECTED] raw=%s normalized=%s",
-        _variant_raw,
-        _variant,
-    )
     if all(c in merged3.columns for c in _OVERLAP_LONG_COLS):
         _sess = merged3["session_id"].astype(np.int64).to_numpy()
         _h4 = merged3["H4_trend_sign_cat"].astype(np.int64).to_numpy()
@@ -1458,87 +1561,13 @@ def build_dataset_canonical(
         _is_long = (y_dir == 0)     # LONG (effective, after earlier relabels)
         _is_long_raw = (y_dir_raw == 0)  # LONG (raw, before any relabels)
         _h4_0 = (_h4 == 0)
-        _h4_0_2 = (_h4 == 0) | (_h4 == 2)
-        _atr_4 = (_atr_bucket == 4)
         _atr_34 = (_atr_bucket == 3) | (_atr_bucket == 4)
-        _atr_234 = (_atr_bucket == 2) | (_atr_bucket == 3) | (_atr_bucket == 4)
-        _d1_high = (_d1_atr >= 0.8254)
         _d1_mid_high = (_d1_atr >= 0.5)
         _mom_neg = (_mom3 < 0.0) & (_mom5 < 0.0)
-        _mom5_le0 = (_mom5 <= 0.0)
-        _dist_neg = (_dist_ema < 0.0)
         # Use existing natural cutoff for "clearly negative" distance_ema_fast.
         _dist_neg_strong = (_dist_ema < -0.3)
-        _dist_pos = (_dist_ema > 0.2)
-        _dist_pos_strong = (_dist_ema > 0.35)
-
-        _raw_mask = np.zeros(len(merged3), dtype=bool)
-        _mask = np.zeros(len(merged3), dtype=bool)
-        if _variant == "V4_OL_LONG_A2":
-            _raw_mask = _is_overlap & _is_long_raw & _h4_0 & _atr_4 & _mom_neg & _dist_neg
-            _mask = _is_overlap & _is_long & _h4_0 & _atr_4 & _mom_neg & _dist_neg
-        elif _variant == "V4_OL_LONG_A4":
-            _raw_mask = _is_overlap & _is_long_raw & _h4_0 & _atr_34 & _d1_mid_high & _mom_neg & _dist_neg
-            _mask = _is_overlap & _is_long & _h4_0 & _atr_34 & _d1_mid_high & _mom_neg & _dist_neg
-        elif _variant == "V4_OL_LONG_B1":
-            _raw_mask = _is_overlap & _is_long_raw & _h4_0 & _atr_34 & _d1_mid_high & _mom_neg & _dist_neg_strong
-            _mask = _is_overlap & _is_long & _h4_0 & _atr_34 & _d1_mid_high & _mom_neg & _dist_neg_strong
-        elif _variant == "V4_OL_LONG_S4":
-            _mom_one_neg = (_mom3 < 0.0) | (_mom5 < 0.0)
-            _raw_mask = _is_overlap & _is_long_raw & _h4_0 & _atr_4 & _d1_high & _mom_one_neg & _dist_neg
-            _mask = _is_overlap & _is_long & _h4_0 & _atr_4 & _d1_high & _mom_one_neg & _dist_neg
-        elif _variant == "V4_OL_LONG_S5":
-            _atr3 = (_atr_bucket == 3)
-            _raw_mask = (
-                _is_overlap
-                & _is_long_raw
-                & _h4_0
-                & _atr_34
-                & _d1_mid_high
-                & _mom_neg
-                & _dist_neg
-                & (~_atr3 | _d1_high)
-            )
-            _mask = (
-                _is_overlap
-                & _is_long
-                & _h4_0
-                & _atr_34
-                & _d1_mid_high
-                & _mom_neg
-                & _dist_neg
-                & (~_atr3 | _d1_high)
-            )
-        elif _variant == "V4_OL_LONG_C2":
-            _raw_mask = _is_overlap & _is_long_raw & _h4_0 & _atr_234 & _d1_mid_high & _mom_neg & _dist_neg
-            _mask = _is_overlap & _is_long & _h4_0 & _atr_234 & _d1_mid_high & _mom_neg & _dist_neg
-        elif _variant == "V4_OL_LONG_T1":
-            _raw_mask = _is_overlap & _is_long_raw & _h4_0_2 & (_h4 == 2) & _atr_4 & _d1_high & _mom_neg & _dist_pos
-            _mask = _is_overlap & _is_long & _h4_0_2 & (_h4 == 2) & _atr_4 & _d1_high & _mom_neg & _dist_pos
-        elif _variant == "V4_OL_LONG_T2":
-            _raw_mask = _is_overlap & _is_long_raw & _h4_0_2 & (_h4 == 2) & _atr_4 & _d1_mid_high & _mom_neg & _dist_pos
-            _mask = _is_overlap & _is_long & _h4_0_2 & (_h4 == 2) & _atr_4 & _d1_mid_high & _mom_neg & _dist_pos
-        elif _variant == "V4_OL_LONG_T3":
-            _raw_mask = _is_overlap & _is_long_raw & _h4_0_2 & (_h4 == 2) & _atr_34 & _d1_high & _mom_neg & _dist_pos
-            _mask = _is_overlap & _is_long & _h4_0_2 & (_h4 == 2) & _atr_34 & _d1_high & _mom_neg & _dist_pos
-        elif _variant == "V4_OL_LONG_T4":
-            _raw_mask = _is_overlap & _is_long_raw & _h4_0_2 & (_h4 == 2) & _atr_34 & _d1_mid_high & _mom_neg & _dist_pos_strong
-            _mask = _is_overlap & _is_long & _h4_0_2 & (_h4 == 2) & _atr_34 & _d1_mid_high & _mom_neg & _dist_pos_strong
-        elif _variant == "V4_OL_LONG_T5":
-            _raw_mask = _is_overlap & _is_long_raw & _h4_0_2 & (_h4 == 2) & _atr_34 & _d1_mid_high & (_mom3 < 0.0) & _mom5_le0 & _dist_pos
-            _mask = _is_overlap & _is_long & _h4_0_2 & (_h4 == 2) & _atr_34 & _d1_mid_high & (_mom3 < 0.0) & _mom5_le0 & _dist_pos
-        elif _variant == "V4_OL_LONG_BASELINE":
-            _raw_mask = np.zeros(len(merged3), dtype=bool)
-            _mask = np.zeros(len(merged3), dtype=bool)
-        elif _variant in {"V4_OL_LONG_A1", "V4_OL_LONG_A3", "V4_OL_LONG_B2", "V4_OL_LONG_B3",
-                          "V4_OL_LONG_S1", "V4_OL_LONG_S2", "V4_OL_LONG_S3", "V4_OL_LONG_C1"}:
-            raise RuntimeError(
-                f"[OVERLAP_LONG_RELABEL_FORBIDDEN] variant={_variant} has been removed"
-            )
-        else:
-            raise RuntimeError(
-                f"[OVERLAP_LONG_RELABEL_UNKNOWN] variant={_variant} not in allowed set"
-            )
+        _raw_mask = _is_overlap & _is_long_raw & _h4_0 & _atr_34 & _d1_mid_high & _mom_neg & _dist_neg_strong
+        _mask = _is_overlap & _is_long & _h4_0 & _atr_34 & _d1_mid_high & _mom_neg & _dist_neg_strong
 
         _n_overlap_long_raw = int(_raw_mask.sum())
         _n_overlap_long_eff = int(_mask.sum())
@@ -1551,20 +1580,13 @@ def build_dataset_canonical(
             y_qual[_mask] = 0.0
             y_early[_mask] = 0.0
         log.info(
-            "[OVERLAP_LONG_VARIANT_RAW_PROOF] variant=%s n_rows=%d n_raw_match=%d "
-            "criteria=OVERLAP_LONG_variant_specific",
-            _variant,
+            "[OVERLAP_LONG_RELABEL_PROOF] variant=%s n_rows=%d n_raw_match=%d "
+            "n_effective_relabel=%d share_of_overlap_long=%.6f",
+            "V4_OL_LONG_B1",
             len(merged3),
             _n_overlap_long_raw,
-        )
-        log.info(
-            "[OVERLAP_LONG_VARIANT_EFFECTIVE_PROOF] variant=%s n_rows=%d n_effective_relabel=%d "
-            "share_of_overlap_long=%.6f baseline_semantics=%s",
-            _variant,
-            len(merged3),
             _n_overlap_long_eff,
             (_n_overlap_long_eff / _overlap_long_total) if _overlap_long_total > 0 else 0.0,
-            "NO_RELABEL" if _variant == "V4_OL_LONG_BASELINE" else "RELABEL",
         )
     else:
         log.warning(
@@ -1573,10 +1595,9 @@ def build_dataset_canonical(
         )
 
     # ---------------------------------------------------------------------------
-    # US short pocket relabel variants (tail leakage): configurable via env var.
-    # Env: GX1_US_SHORT_VARIANT = {V4_US_SHORT_T1, V4_US_SHORT_T2, V4_US_SHORT_T3, V4_US_SHORT_T4,
-    #                              V4_US_SHORT_T5, V4_US_SHORT_BASELINE}
-    # Action (when matched): y_direction=2 (FLAT), y_quality_score=0, y_early_move=0
+    # US short relabel
+    #
+    # Canonical lane keeps this parked at BASELINE (no relabel).
     # ---------------------------------------------------------------------------
     _US_SHORT_COLS = (
         "session_id",
@@ -1587,101 +1608,24 @@ def build_dataset_canonical(
         "micro_momentum_5",
         "distance_ema_fast",
     )
-    _us_variant_raw = os.getenv("GX1_US_SHORT_VARIANT", "V4_US_SHORT_BASELINE")
-    _us_variant_norm = _us_variant_raw.strip().upper()
-    _us_allowed = [
-        "V4_US_SHORT_T1",
-        "V4_US_SHORT_T2",
-        "V4_US_SHORT_T3",
-        "V4_US_SHORT_T4",
-        "V4_US_SHORT_T5",
-        "V4_US_SHORT_BASELINE",
-    ]
-    _us_allowed_map = {v.upper(): v for v in _us_allowed}
-    if _us_variant_norm in _us_allowed_map:
-        _us_variant = _us_allowed_map[_us_variant_norm]
-    else:
-        raise RuntimeError(
-            f"[US_SHORT_RELABEL_UNKNOWN] raw={_us_variant_raw!r} normalized={_us_variant_norm!r} not in allowed set"
-        )
-    log.info(
-        "[US_SHORT_VARIANT_SELECTED] raw=%s normalized=%s",
-        _us_variant_raw,
-        _us_variant,
-    )
     if all(c in merged3.columns for c in _US_SHORT_COLS):
         _sess = merged3["session_id"].astype(np.int64).to_numpy()
-        _h4 = merged3["H4_trend_sign_cat"].astype(np.int64).to_numpy()
-        _atr_bucket = merged3["atr_bucket"].astype(np.int64).to_numpy()
-        _d1_atr = merged3["D1_atr_percentile_252"].astype(np.float32).to_numpy()
-        _mom3 = merged3["micro_momentum_3"].astype(np.float32).to_numpy()
-        _mom5 = merged3["micro_momentum_5"].astype(np.float32).to_numpy()
-        _dist_ema = merged3["distance_ema_fast"].astype(np.float32).to_numpy()
 
         _is_us = (_sess == 3)
         _is_short = (y_dir == 1)
-        _is_short_raw = (y_dir_raw == 1)
-        _h4_0 = (_h4 == 0)
-        _h4_2 = (_h4 == 2)
-        _h4_0_2 = _h4_0 | _h4_2
-        _atr_4 = (_atr_bucket == 4)
-        _atr_34 = (_atr_bucket == 3) | (_atr_bucket == 4)
-        _d1_high = (_d1_atr >= 0.8254)
-        _mom_neg = (_mom3 < 0.0) & (_mom5 < 0.0)
-        _mom5_le0 = (_mom5 <= 0.0)
-        _dist_pos = (_dist_ema > 0.2)
-        _dist_pos_strong = (_dist_ema > 0.35)
-
         _raw_mask = np.zeros(len(merged3), dtype=bool)
         _mask = np.zeros(len(merged3), dtype=bool)
-        if _us_variant == "V4_US_SHORT_T1":
-            _raw_mask = _is_us & _is_short_raw & _h4_0 & _atr_4 & _d1_high & _mom_neg & _dist_pos
-            _mask = _is_us & _is_short & _h4_0 & _atr_4 & _d1_high & _mom_neg & _dist_pos
-        elif _us_variant == "V4_US_SHORT_T2":
-            _raw_mask = _is_us & _is_short_raw & _h4_2 & _atr_4 & _d1_high & _mom_neg & _dist_pos
-            _mask = _is_us & _is_short & _h4_2 & _atr_4 & _d1_high & _mom_neg & _dist_pos
-        elif _us_variant == "V4_US_SHORT_T3":
-            _raw_mask = _is_us & _is_short_raw & _h4_0_2 & _atr_4 & _d1_high & _mom_neg & _dist_pos
-            _mask = _is_us & _is_short & _h4_0_2 & _atr_4 & _d1_high & _mom_neg & _dist_pos
-        elif _us_variant == "V4_US_SHORT_T4":
-            _raw_mask = _is_us & _is_short_raw & _h4_0_2 & _atr_34 & _d1_high & _mom_neg & _dist_pos
-            _mask = _is_us & _is_short & _h4_0_2 & _atr_34 & _d1_high & _mom_neg & _dist_pos
-        elif _us_variant == "V4_US_SHORT_T5":
-            _raw_mask = _is_us & _is_short_raw & _h4_0_2 & _atr_34 & _d1_high & (_mom3 < 0.0) & _mom5_le0 & _dist_pos_strong
-            _mask = _is_us & _is_short & _h4_0_2 & _atr_34 & _d1_high & (_mom3 < 0.0) & _mom5_le0 & _dist_pos_strong
-        elif _us_variant == "V4_US_SHORT_BASELINE":
-            _raw_mask = np.zeros(len(merged3), dtype=bool)
-            _mask = np.zeros(len(merged3), dtype=bool)
-        else:
-            raise RuntimeError(
-                f"[US_SHORT_RELABEL_UNKNOWN] variant={_us_variant} not in allowed set"
-            )
-
         _n_us_short_raw = int(_raw_mask.sum())
         _n_us_short_eff = int(_mask.sum())
         _us_short_total = int((_is_us & _is_short).sum())
-        if _n_us_short_eff > 0:
-            y_dir = y_dir.copy()
-            y_qual = y_qual.copy()
-            y_early = y_early.copy()
-            y_dir[_mask] = 2
-            y_qual[_mask] = 0.0
-            y_early[_mask] = 0.0
         log.info(
-            "[US_SHORT_VARIANT_RAW_PROOF] variant=%s n_rows=%d n_raw_match=%d "
-            "criteria=US_SHORT_variant_specific",
-            _us_variant,
+            "[US_SHORT_RELABEL_PROOF] variant=%s n_rows=%d n_raw_match=%d n_effective_relabel=%d "
+            "share_of_us_short=%.6f",
+            "V4_US_SHORT_BASELINE",
             len(merged3),
             _n_us_short_raw,
-        )
-        log.info(
-            "[US_SHORT_VARIANT_EFFECTIVE_PROOF] variant=%s n_rows=%d n_effective_relabel=%d "
-            "share_of_us_short=%.6f baseline_semantics=%s",
-            _us_variant,
-            len(merged3),
             _n_us_short_eff,
             (_n_us_short_eff / _us_short_total) if _us_short_total > 0 else 0.0,
-            "NO_RELABEL" if _us_variant == "V4_US_SHORT_BASELINE" else "RELABEL",
         )
     else:
         log.warning(
@@ -1690,13 +1634,15 @@ def build_dataset_canonical(
         )
 
     # ---------------------------------------------------------------------------
-    # Quality-first primary labeling (post-relabel):
-    # - Use first-N MFE/MAE/path quality as the primary axis.
-    # - Direction becomes secondary (chosen side with best quality).
-    # - Any relabel-to-FLAT remains a hard veto.
+    # Quality/tradability targets (post-relabel):
+    # - Main direction label remains directional truth after explicit relabel vetoes.
+    # - Early-path quality decides y_tradable and auxiliary quality targets.
+    # - This keeps "direction" separate from "should we actually take it now?",
+    #   which is already handled by the tradable / quality heads in runtime.
     # ---------------------------------------------------------------------------
     # Relabel veto = any rule that flipped y_dir from raw label (all relabels only force FLAT)
     relabel_veto = (y_dir != y_dir_raw)
+    y_dir_directional = y_dir.copy()
 
     _mfe_long = merged3["mfe_long_first_n_bps"].astype(np.float32).to_numpy()
     _mae_long = merged3["mae_long_first_n_bps"].astype(np.float32).to_numpy()
@@ -1725,34 +1671,52 @@ def build_dataset_canonical(
             _side[_tie & (_mfe_long >= _mfe_short)] = 0
             _side[_tie & (_mfe_short > _mfe_long)] = 1
 
-    # Apply relabel veto: force FLAT regardless of quality
+    # Apply relabel veto to tradability as well: explicit poison pockets stay non-tradable
     _side[relabel_veto] = -1
 
-    # Final quality-first targets
+    # Final tradability / quality targets
     y_tradable = (_side != -1).astype(np.int32)
-    y_dir = np.full_like(y_dir, 2, dtype=np.int32)
-    y_dir[_side == 0] = 0
-    y_dir[_side == 1] = 1
+    y_dir = y_dir_directional
+
+    # Quality auxiliaries align to the post-relabel directional side, not the stricter
+    # tradable side. This keeps the main direction truth and the quality heads in the
+    # same semantic world while preserving tradability as its own, stricter runtime gate.
+    _quality_side = np.full(len(merged3), -1, dtype=np.int8)  # -1 none, 0 long, 1 short
+    _quality_side[y_dir_directional == 0] = 0
+    _quality_side[y_dir_directional == 1] = 1
 
     y_mfe_first_n = np.zeros_like(y_mfe_first_n)
     y_mae_first_n = np.zeros_like(y_mae_first_n)
     y_path_quality = np.zeros_like(y_path_quality)
-    y_mfe_first_n[_side == 0] = _mfe_long[_side == 0]
-    y_mfe_first_n[_side == 1] = _mfe_short[_side == 1]
-    y_mae_first_n[_side == 0] = _mae_long[_side == 0]
-    y_mae_first_n[_side == 1] = _mae_short[_side == 1]
-    y_path_quality[_side == 0] = _path_long[_side == 0]
-    y_path_quality[_side == 1] = _path_short[_side == 1]
+    y_mfe_first_n[_quality_side == 0] = _mfe_long[_quality_side == 0]
+    y_mfe_first_n[_quality_side == 1] = _mfe_short[_quality_side == 1]
+    y_mae_first_n[_quality_side == 0] = _mae_long[_quality_side == 0]
+    y_mae_first_n[_quality_side == 1] = _mae_short[_quality_side == 1]
+    y_path_quality[_quality_side == 0] = _path_long[_quality_side == 0]
+    y_path_quality[_quality_side == 1] = _path_short[_quality_side == 1]
 
-    # Early move: align to chosen side quality (using same threshold)
+    # Early move: align to the directional-quality side instead of tradability side.
     y_early = np.zeros_like(y_early)
-    y_early[_side != -1] = (
-        y_mfe_first_n[_side != -1] >= float(early_move_threshold_bps)
+    y_early[_quality_side != -1] = (
+        y_mfe_first_n[_quality_side != -1] >= float(early_move_threshold_bps)
     ).astype(np.float32)
 
-    # Quality score becomes path-quality-aligned (non-negative, quality-first)
+    # Quality score stays non-negative but now reflects directional path quality.
     y_qual = np.zeros_like(y_qual)
-    y_qual[_side != -1] = np.maximum(0.0, y_path_quality[_side != -1]).astype(np.float32)
+    y_qual[_quality_side != -1] = np.maximum(0.0, y_path_quality[_quality_side != -1]).astype(np.float32)
+
+    _directional_long_rate = float(np.mean(y_dir == 0)) if len(y_dir) else 0.0
+    _directional_short_rate = float(np.mean(y_dir == 1)) if len(y_dir) else 0.0
+    _directional_flat_rate = float(np.mean(y_dir == 2)) if len(y_dir) else 0.0
+    log.info(
+        "[ENTRY_DIRECTION_TARGET_SEMANTICS] split=%s source=post_relabel_directional "
+        "long_rate=%.6f short_rate=%.6f flat_rate=%.6f relabel_veto_rate=%.6f",
+        split_name or "full",
+        _directional_long_rate,
+        _directional_short_rate,
+        _directional_flat_rate,
+        float(np.mean(relabel_veto)) if len(relabel_veto) else 0.0,
+    )
 
     # Tradable rate proof (split-aware)
     _split_tag = split_name or "full"
@@ -1762,6 +1726,13 @@ def build_dataset_canonical(
         _split_tag,
         len(y_tradable),
         _tradable_rate,
+    )
+    _quality_side_rate = float(np.mean(_quality_side != -1)) if len(_quality_side) else 0.0
+    log.info(
+        "[ENTRY_QUALITY_SIDE_RATE_PROOF] split=%s n_rows=%d quality_side_rate=%.6f",
+        _split_tag,
+        len(_quality_side),
+        _quality_side_rate,
     )
     _side_long = (y_dir == 0)
     _side_short = (y_dir == 1)
@@ -1806,6 +1777,7 @@ def build_dataset_canonical(
                 "y_direction": y_dir[i],
                 "y_early_move": y_early[i],
                 "y_quality_score": y_qual[i],
+                "y_bad_path": y_bad_path[i],
                 "y_tradable": y_tradable[i],
                 "mae_first_n_bps": y_mae_first_n[i],
                 "mfe_first_n_bps": y_mfe_first_n[i],
@@ -1883,6 +1855,23 @@ def build_dataset_canonical(
             "ctx_cont_base_dim": int(ctx["ctx_cont_dim"]),
             "ctx_cont_micro_features": list(MICRO_FEATURE_NAMES),
             "ctx_cont_swing_features": list(SWING_FEATURE_NAMES),
+            "ctx_cont_session_features": list(SESSION_CTX_CONT_NAMES),
+        },
+        "lane_contract": {
+            "entry_admission_policy": "OVERLAP_LONG_REPLACES_OLDEST_OVERLAP_SHORT_WHEN_FULL",
+            "entry_runtime_gates": [
+                "flat_veto",
+                "tradable_gate",
+                "quality_gate",
+            ],
+            "max_open_trades": 10,
+        },
+        "parked_targets": {
+            "bad_path": {
+                "horizon_bars": int(BAD_PATH_HORIZON_BARS),
+                "mae_threshold_bps": float(BAD_PATH_MAE_THRESHOLD_BPS),
+                "mfe_threshold_bps": float(BAD_PATH_MFE_THRESHOLD_BPS),
+            }
         },
         "base28_feature_contract": {
             "features": list(features),
@@ -2003,12 +1992,12 @@ def main() -> None:
                 "/home/andre2/GX1_DATA/data/data/prebuilt/BASE28_CANONICAL/CURRENT_MANIFEST.json",
             )
         ).expanduser().resolve()
-        xgb_bundle_path = Path(
-            truth_obj.get(
-                "canonical_xgb_bundle_dir",
-                "/home/andre2/GX1_DATA/models/models/xgb_universal_multihead_v2__CANONICAL",
+        canonical_xgb_bundle_dir = str(truth_obj.get("canonical_xgb_bundle_dir") or "").strip()
+        if not canonical_xgb_bundle_dir:
+            raise RuntimeError(
+                f"TRUTH_CONFIG_MISSING_CANONICAL_XGB_BUNDLE: canonical_xgb_bundle_dir missing in {truth_config_path}"
             )
-        ).expanduser().resolve()
+        xgb_bundle_path = Path(canonical_xgb_bundle_dir).expanduser().resolve()
         xgb_override = os.environ.get("GX1_XGB_BUNDLE_DIR", "").strip()
         if xgb_override:
             override_path = Path(xgb_override).expanduser().resolve()

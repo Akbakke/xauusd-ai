@@ -244,6 +244,11 @@ gx1/wf_runs/
 - Columns: `time` (index), `open`, `high`, `low`, `close`, `volume`
 - Bid/Ask columns: `bid_open`, `bid_high`, `bid_low`, `bid_close`, `ask_open`, `ask_high`, `ask_low`, `ask_close`
 
+**Canonical Split Note:**
+- `M5_DATA` is the model-view tape used by XGB and entry
+- the raw M1 source-of-truth lives under the canonical raw tape root configured in `canonical_truth_signal_only.json`
+- replay exit may read the raw M1 stream directly while the model/entry path remains on M5
+
 **Filtered Data:**
 - `gx1/wf_runs/<tag>/price_data_filtered.parquet`
   - Filtered to date range by `scripts/run_replay.sh`
@@ -294,4 +299,3 @@ gx1/wf_runs/
 - **Trade Log Schema:** See `gx1/execution/trade_log_schema.py` (if exists)
 - **Parallel Chunks:** Each chunk writes separate trade log, merged at end
 - **Price Data:** Filtered to date range before parallel execution
-

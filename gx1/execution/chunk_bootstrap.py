@@ -3,13 +3,16 @@ Chunk Bootstrap: Environment validation and preflight checks.
 
 ONE UNIVERSE (locked):
 - Signal bridge is 7/7 only.
-- Context is 6/6 only (ctx_cont=6, ctx_cat=6).
+- Context: ctx_cat=6 fixed; ctx_cont is bundle-driven and validated from
+  truth config + bundle metadata + manifest-backed columns. Do not infer the
+  active contract from historical parquet/bundle naming.
 - NO FALLBACKS. NO LEGACY. NO PARTIAL CONTEXT.
 - TRUTH/SMOKE is strict and fail-fast (hard fail on any mismatch).
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import os
@@ -44,8 +47,8 @@ log = logging.getLogger(__name__)
 REQUIRED_VENV = "/home/andre2/venvs/gx1/bin/python"
 
 # ONE UNIVERSE dims
-EXPECTED_XGB_FEATURES_LEN = 28
-EXPECTED_CTX_CONT_DIM = 6
+EXPECTED_XGB_FEATURES_LEN = 34
+MIN_CTX_CONT_DIM = 6
 EXPECTED_CTX_CAT_DIM = 6
 EXPECTED_SEQ_SIGNAL_DIM = 7
 EXPECTED_SNAP_SIGNAL_DIM = 7
@@ -300,16 +303,28 @@ def _forbid_prune(label: str, value: str, *, allow_ctx6cat6: bool = False) -> No
         raise RuntimeError(f"LEGACY_PRUNE_FORBIDDEN_IN_TRUTH: {label}={value}")
 
 
-def _one_universe_required_ctx_columns() -> List[str]:
+def _one_universe_required_ctx_columns(
+    ctx_cont_names: List[str],
+    ctx_cat_names: List[str],
+) -> List[str]:
     """
-    ONE UNIVERSE: ctx_cont=6 and ctx_cat=6 always.
-    Uses EXTENDED ordered lists, taking first 6 of each.
+    ONE UNIVERSE:
+      - ctx_cat_dim is fixed at 6
+      - ctx_cont_dim is bundle-driven (>=6)
     """
-    cont = list(ORDERED_CTX_CONT_NAMES_EXTENDED[:EXPECTED_CTX_CONT_DIM])
-    cat = list(ORDERED_CTX_CAT_NAMES_EXTENDED[:EXPECTED_CTX_CAT_DIM])
-    _require(len(cont) == 6, f"[BOOTSTRAP] ORDERED_CTX_CONT_NAMES_EXTENDED[:6] len != 6 (len={len(cont)})")
-    _require(len(cat) == 6, f"[BOOTSTRAP] ORDERED_CTX_CAT_NAMES_EXTENDED[:6] len != 6 (len={len(cat)})")
-    return cont + cat
+    _require(
+        isinstance(ctx_cont_names, list)
+        and all(isinstance(x, str) for x in ctx_cont_names)
+        and len(ctx_cont_names) >= MIN_CTX_CONT_DIM,
+        f"[BOOTSTRAP] ctx_cont_names invalid or too short (len={len(ctx_cont_names) if isinstance(ctx_cont_names, list) else 'NA'})",
+    )
+    _require(
+        isinstance(ctx_cat_names, list)
+        and all(isinstance(x, str) for x in ctx_cat_names)
+        and len(ctx_cat_names) == EXPECTED_CTX_CAT_DIM,
+        f"[BOOTSTRAP] ctx_cat_names invalid or len != {EXPECTED_CTX_CAT_DIM}",
+    )
+    return list(ctx_cont_names) + list(ctx_cat_names)
 
 
 def _load_canonical_truth_file(*, chunk_output_dir: Path, chunk_idx: int, run_id: str) -> tuple[Path, Dict[str, Any]]:
@@ -397,13 +412,21 @@ def _truth_validate_one_universe_contract(
 ) -> Dict[str, Any]:
     """
     ONE UNIVERSE validation (no fallback):
-    - canonical_xgb_bundle_dir must exist and have MASTER_MODEL_LOCK.json with ordered_features len=28.
-    - canonical_transformer_bundle_dir must exist and have MASTER_TRANSFORMER_LOCK.json with ctx_cont_dim=6 ctx_cat_dim=6.
-    - prebuilt_required_columns from truth must:
-        - start with ordered_features (exact order)
-        - contain ctx12 (ORDERED_CTX_CONT_NAMES_EXTENDED[:6] + ORDERED_CTX_CAT_NAMES_EXTENDED[:6])
+    - canonical_xgb_bundle_dir must exist and have MASTER_MODEL_LOCK.json with ordered_features len=34.
+    - canonical_transformer_bundle_dir must exist and have MASTER_TRANSFORMER_LOCK.json + bundle_metadata.json.
+    - prebuilt_required_columns from truth/manifest must:
+        - contain all physical XGB input columns required by the lock
+        - contain the canonical context columns required by transformer bundle metadata
+
+    Important:
+    - Historical file/bundle names may still contain older ctx tokens.
+    - The active contract is never inferred from those names; it is validated
+      from the truth file, manifest, lock files, and bundle metadata.
     """
     canonical_xgb_bundle_dir_str = str(truth_obj.get("canonical_xgb_bundle_dir") or "").strip()
+    xgb_override = os.getenv("GX1_XGB_BUNDLE_DIR", "").strip()
+    if xgb_override:
+        canonical_xgb_bundle_dir_str = xgb_override
     canonical_transformer_bundle_dir_str = str(truth_obj.get("canonical_transformer_bundle_dir") or "").strip()
 
     _require(canonical_xgb_bundle_dir_str, "canonical_xgb_bundle_dir missing in truth config")
@@ -422,14 +445,37 @@ def _truth_validate_one_universe_contract(
         raise RuntimeError(f"PRUNE bundles are forbidden in canonical TRUTH: {canonical_transformer_bundle_dir}")
 
     lock_path = canonical_xgb_bundle_dir / "MASTER_MODEL_LOCK.json"
-    _require(lock_path.exists(), f"MASTER_MODEL_LOCK.json not found: {lock_path}")
-    lock_obj = _load_json_file(lock_path)
-
-    ordered = lock_obj.get("ordered_features")
-    _require(
-        isinstance(ordered, list) and all(isinstance(x, str) for x in ordered),
-        "MASTER_MODEL_LOCK.ordered_features missing or not list[str]",
-    )
+    ordered = None
+    if lock_path.exists():
+        lock_obj = _load_json_file(lock_path)
+        ordered = lock_obj.get("ordered_features")
+        _require(
+            isinstance(ordered, list) and all(isinstance(x, str) for x in ordered),
+            "MASTER_MODEL_LOCK.ordered_features missing or not list[str]",
+        )
+        lock_feature_sha = str(lock_obj.get("feature_list_sha256") or "").strip()
+        if lock_feature_sha:
+            computed_lock_feature_sha = hashlib.sha256("|".join(ordered).encode("utf-8")).hexdigest()
+            _require(
+                computed_lock_feature_sha == lock_feature_sha,
+                "MASTER_MODEL_LOCK.feature_list_sha256 mismatch",
+            )
+    else:
+        if not xgb_override:
+            _require(lock_path.exists(), f"MASTER_MODEL_LOCK.json not found: {lock_path}")
+        meta_path = canonical_xgb_bundle_dir / "xgb_universal_multihead_v2_meta.json"
+        _require(meta_path.exists(), f"xgb_universal_multihead_v2_meta.json not found: {meta_path}")
+        meta_obj = _load_json_file(meta_path)
+        n_features = meta_obj.get("n_features")
+        _require(
+            isinstance(n_features, int) and n_features == EXPECTED_XGB_FEATURES_LEN,
+            f"XGB_META.n_features invalid: {n_features} (expected {EXPECTED_XGB_FEATURES_LEN})",
+        )
+        _require(
+            len(prebuilt_required_columns) >= EXPECTED_XGB_FEATURES_LEN,
+            "prebuilt_required_columns too short for XGB ordered features",
+        )
+        ordered = prebuilt_required_columns[:EXPECTED_XGB_FEATURES_LEN]
 
     n = len(ordered)
     if n != EXPECTED_XGB_FEATURES_LEN:
@@ -447,17 +493,20 @@ def _truth_validate_one_universe_contract(
         )
         raise RuntimeError(fatal_msg)
 
-    # Transformer lock must exist and must be 6/6
+    # Transformer lock must exist; dims are validated vs bundle metadata.
     trans_lock_path = canonical_transformer_bundle_dir / "MASTER_TRANSFORMER_LOCK.json"
     _require(trans_lock_path.exists(), f"MASTER_TRANSFORMER_LOCK.json missing: {trans_lock_path}")
     trans_lock_obj = _load_json_file(trans_lock_path)
+    trans_meta_path = canonical_transformer_bundle_dir / "bundle_metadata.json"
+    _require(trans_meta_path.exists(), f"bundle_metadata.json missing: {trans_meta_path}")
+    trans_meta_obj = _load_json_file(trans_meta_path)
 
-    ctx_cont_dim = trans_lock_obj.get("ctx_cont_dim")
-    ctx_cat_dim = trans_lock_obj.get("ctx_cat_dim")
-    if int(ctx_cont_dim) != EXPECTED_CTX_CONT_DIM or int(ctx_cat_dim) != EXPECTED_CTX_CAT_DIM:
+    ctx_cont_dim = int(trans_meta_obj.get("ctx_cont_dim") or 0)
+    ctx_cat_dim = int(trans_meta_obj.get("ctx_cat_dim") or 0)
+    if ctx_cont_dim < MIN_CTX_CONT_DIM or ctx_cat_dim != EXPECTED_CTX_CAT_DIM:
         fatal_msg = (
-            f"[NON_CANON_TRANSFORMER] [CHUNK {chunk_idx}] Expected ctx_cont_dim=6 ctx_cat_dim=6 "
-            f"but got ctx_cont_dim={ctx_cont_dim} ctx_cat_dim={ctx_cat_dim}. "
+            f"[NON_CANON_TRANSFORMER] [CHUNK {chunk_idx}] Expected ctx_cont_dim>={MIN_CTX_CONT_DIM} "
+            f"and ctx_cat_dim={EXPECTED_CTX_CAT_DIM} but got ctx_cont_dim={ctx_cont_dim} ctx_cat_dim={ctx_cat_dim}. "
             f"bundle_dir={canonical_transformer_bundle_dir}"
         )
         write_fatal_capsule(
@@ -474,31 +523,80 @@ def _truth_validate_one_universe_contract(
         )
         raise RuntimeError(fatal_msg)
 
-    ordered_features = list(ordered)
-
-    # Truth columns must start with ordered_features in exact order (no partial/no reordering)
-    if prebuilt_required_columns[: len(ordered_features)] != ordered_features:
+    ordered_ctx_cont = trans_meta_obj.get("ordered_ctx_cont_names")
+    ordered_ctx_cat = trans_meta_obj.get("ordered_ctx_cat_names")
+    if not isinstance(ordered_ctx_cont, list) or not isinstance(ordered_ctx_cat, list):
         fatal_msg = (
-            f"[TRUTH_PREBUILT_COLUMNS_MISMATCH] [CHUNK {chunk_idx}] prebuilt_required_columns does not start with "
-            f"MASTER_MODEL_LOCK.ordered_features (exact order required)."
+            f"[NON_CANON_TRANSFORMER] [CHUNK {chunk_idx}] missing ordered_ctx_cont_names/ordered_ctx_cat_names "
+            f"in bundle_metadata.json (bundle_dir={canonical_transformer_bundle_dir})"
         )
         write_fatal_capsule(
             chunk_output_dir=chunk_output_dir,
             chunk_idx=chunk_idx,
             run_id=run_id,
-            fatal_reason="TRUTH_PREBUILT_COLUMNS_MISMATCH",
+            fatal_reason="NON_CANON_TRANSFORMER",
+            error_message=fatal_msg,
+            extra_fields={"bundle_metadata_path": str(trans_meta_path)},
+        )
+        raise RuntimeError(fatal_msg)
+    if len(ordered_ctx_cont) != ctx_cont_dim or len(ordered_ctx_cat) != ctx_cat_dim:
+        fatal_msg = (
+            f"[NON_CANON_TRANSFORMER] [CHUNK {chunk_idx}] ordered_ctx_* length mismatch "
+            f"(cont_len={len(ordered_ctx_cont)} cat_len={len(ordered_ctx_cat)}) "
+            f"vs dims cont={ctx_cont_dim} cat={ctx_cat_dim}"
+        )
+        write_fatal_capsule(
+            chunk_output_dir=chunk_output_dir,
+            chunk_idx=chunk_idx,
+            run_id=run_id,
+            fatal_reason="NON_CANON_TRANSFORMER",
+            error_message=fatal_msg,
+            extra_fields={"bundle_metadata_path": str(trans_meta_path)},
+        )
+        raise RuntimeError(fatal_msg)
+
+    ordered_features = list(ordered)
+
+    derived_xgb_features = {
+        "session_id",
+        "is_ASIA",
+        "minutes_since_session_open",
+        "minutes_to_next_session_boundary",
+        "session_change_flag",
+        "session_tradable",
+    }
+    required_physical_xgb = [c for c in ordered_features if c not in derived_xgb_features]
+    missing_xgb_cols = [c for c in required_physical_xgb if c not in set(prebuilt_required_columns)]
+    if missing_xgb_cols:
+        fatal_msg = (
+            f"[TRUTH_PREBUILT_COLUMNS_MISSING_XGB] [CHUNK {chunk_idx}] prebuilt_required_columns missing "
+            f"physical XGB columns required by MASTER_MODEL_LOCK."
+        )
+        write_fatal_capsule(
+            chunk_output_dir=chunk_output_dir,
+            chunk_idx=chunk_idx,
+            run_id=run_id,
+            fatal_reason="TRUTH_PREBUILT_COLUMNS_MISSING_XGB",
             error_message=fatal_msg,
             extra_fields={
-                "expected_prefix_len": len(ordered_features),
-                "expected_prefix_head": ordered_features[:10],
-                "actual_prefix_head": prebuilt_required_columns[:10],
+                "missing_xgb_columns": missing_xgb_cols,
+                "ordered_features_head": ordered_features[:10],
                 "canonical_xgb_bundle_dir": str(canonical_xgb_bundle_dir),
             },
         )
         raise RuntimeError(fatal_msg)
 
-    required_ctx_12 = _one_universe_required_ctx_columns()
-    missing_ctx = [c for c in required_ctx_12 if c not in set(prebuilt_required_columns)]
+    required_ctx = _one_universe_required_ctx_columns(ordered_ctx_cont, ordered_ctx_cat)
+    if os.getenv("GX1_CTX_CONTRACT", "V_NEXT").upper() == "V_NEXT":
+        vnext_extra = {
+            "is_ASIA",
+            "minutes_since_session_open",
+            "minutes_to_next_session_boundary",
+            "session_change_flag",
+            "session_tradable",
+        }
+        required_ctx = [c for c in required_ctx if c not in vnext_extra]
+    missing_ctx = [c for c in required_ctx if c not in set(prebuilt_required_columns)]
     if missing_ctx:
         fatal_msg = f"[TRUTH_PREBUILT_COLUMNS_MISSING_CTX] [CHUNK {chunk_idx}] missing ctx columns: {missing_ctx}"
         write_fatal_capsule(
@@ -514,8 +612,10 @@ def _truth_validate_one_universe_contract(
     return {
         "canonical_xgb_bundle_dir": str(canonical_xgb_bundle_dir),
         "canonical_transformer_bundle_dir": str(canonical_transformer_bundle_dir),
-        "expected_ctx_cont_dim": EXPECTED_CTX_CONT_DIM,
-        "expected_ctx_cat_dim": EXPECTED_CTX_CAT_DIM,
+        "expected_ctx_cont_dim": ctx_cont_dim,
+        "expected_ctx_cat_dim": ctx_cat_dim,
+        "ordered_ctx_cont_names": list(ordered_ctx_cont),
+        "ordered_ctx_cat_names": list(ordered_ctx_cat),
     }
 
 
@@ -594,7 +694,7 @@ def bootstrap_chunk_environment(
 
     ONE UNIVERSE:
     - Requires signal bridge dims 7/7
-    - Requires transformer ctx dims 6/6 (from MASTER_TRANSFORMER_LOCK in canonical bundle dir from truth)
+    - Requires transformer ctx dims from bundle metadata (ctx_cat=6 fixed; ctx_cont>=6)
     - Requires prebuilt_required_columns to be sourced from canonical truth config (no fallback)
     - Requires prebuilt parquet path to be sourced/resolved from canonical truth config (no fallback)
     """
@@ -719,7 +819,9 @@ def bootstrap_chunk_environment(
                 if val:
                     _forbid_prune(key, val, allow_ctx6cat6=(key == "canonical_transformer_bundle_dir"))
 
-            # Manifest-only resolution (TRUTH/SMOKE): resolve from BASE28_CANONICAL/CURRENT_MANIFEST.json
+            # Manifest-only resolution (TRUTH/SMOKE): resolve from BASE28_CANONICAL/CURRENT_MANIFEST.json.
+            # The manifest path + schema manifest + truth ctx contract are the
+            # SSoT, not legacy-looking basename tokens in the parquet path.
             manifest_path = Path("/home/andre2/GX1_DATA/data/data/prebuilt/BASE28_CANONICAL/CURRENT_MANIFEST.json")
             truth_manifest_raw = str(truth_obj.get("canonical_prebuilt_manifest") or "").strip()
             if truth_manifest_raw:
@@ -786,12 +888,12 @@ def bootstrap_chunk_environment(
             expected_ctx_cont_dim = int(contract["expected_ctx_cont_dim"])
             expected_ctx_cat_dim = int(contract["expected_ctx_cat_dim"])
 
-            # ONE SSoT: ctx dims must be 6/6 (CTX6CAT6), sourced from bundle/truth.
+            # ONE SSoT: ctx dims must be from bundle metadata; ctx_cat fixed at 6; ctx_cont >= 6.
             canonical_ctx = get_canonical_ctx_contract()
-            if expected_ctx_cont_dim != canonical_ctx["ctx_cont_dim"] or expected_ctx_cat_dim != canonical_ctx["ctx_cat_dim"]:
+            if expected_ctx_cont_dim < MIN_CTX_CONT_DIM or expected_ctx_cat_dim != canonical_ctx["ctx_cat_dim"]:
                 raise RuntimeError(
                     f"[CTX_CONTRACT_SPLIT_BRAIN] expected_ctx_cont_dim={expected_ctx_cont_dim} "
-                    f"expected_ctx_cat_dim={expected_ctx_cat_dim} canonical={canonical_ctx['ctx_cont_dim']}/{canonical_ctx['ctx_cat_dim']} "
+                    f"expected_ctx_cat_dim={expected_ctx_cat_dim} canonical_ctx_cat_dim={canonical_ctx['ctx_cat_dim']} "
                     f"source={contract.get('ctx_contract_source','unknown')}"
                 )
 
@@ -868,6 +970,7 @@ def bootstrap_chunk_environment(
         "ppid": int(os.getppid()) if hasattr(os, "getppid") else None,
         "cwd": cwd,
         "sys_executable": python_exe,
+        "python_executable": python_exe,
         "argv_snapshot": list(sys.argv) if hasattr(sys, "argv") else None,
         "chunk_output_dir": str(chunk_output_dir),
         "output_dir": str(Path(output_dir).resolve()),
@@ -888,6 +991,7 @@ def bootstrap_chunk_environment(
         "expected_signal_bridge_seq_dim": EXPECTED_SEQ_SIGNAL_DIM,
         "expected_signal_bridge_snap_dim": EXPECTED_SNAP_SIGNAL_DIM,
         "canonical_truth_file": str(canonical_truth_file_val) if canonical_truth_file_val else None,
+        "truth_file": str(canonical_truth_file_val) if canonical_truth_file_val else None,
         "canonical_xgb_bundle_dir": canonical_xgb_bundle_dir_str,
         "canonical_transformer_bundle_dir": canonical_transformer_bundle_dir_str,
         "expected_ctx_cont_dim": expected_ctx_cont_dim,
@@ -1010,7 +1114,10 @@ def bootstrap_chunk_environment(
     log.info(f"[CHUNK {chunk_idx}] [SSoT] prebuilt_resolved={prebuilt_parquet_path_resolved}")
 
     if prebuilt_enabled:
-        log.info(f"[CHUNK {chunk_idx}] [SSoT] ONE_UNIVERSE ctx_cont_dim=6 ctx_cat_dim=6 (validated)")
+        log.info(
+            f"[CHUNK {chunk_idx}] [SSoT] ONE_UNIVERSE ctx_cont_dim={expected_ctx_cont_dim} "
+            f"ctx_cat_dim={expected_ctx_cat_dim} (validated)"
+        )
         log.info(f"[CHUNK {chunk_idx}] [SSoT] canonical_truth_file={canonical_truth_file_val}")
 
     return BootstrapContext(

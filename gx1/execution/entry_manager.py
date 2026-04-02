@@ -23,6 +23,13 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
+def _is_canonical_truth_runtime() -> bool:
+    return (
+        os.environ.get("GX1_TRUTH_MODE", "0") == "1"
+        or bool(os.environ.get("GX1_CANONICAL_TRUTH_FILE", "").strip())
+    )
+
+
 class EntryManager:
     """
     Canonical ENTRY manager (V10_CTX-only).
@@ -1076,21 +1083,50 @@ class EntryManager:
         except Exception:
             pass
 
-        # Pre-gate preference (argmax long/short only)
-        if p_long >= p_short:
+        # Pre-gate preference (argmax over LONG/SHORT/FLAT for observability).
+        # FLAT can act as a hard no-trade veto when it is clearly dominant.
+        if p_flat >= p_long and p_flat >= p_short:
+            pre_gate_pref = "flat"
+        elif p_long >= p_short:
             pre_gate_pref = "long"
         else:
             pre_gate_pref = "short"
 
         chosen_side = None
         reason = "none"
-        winner = pre_gate_pref
+        winner = "long" if p_long >= p_short else "short"
         if winner == "short" and not allow_short:
             chosen_side = None
             reason = "short_disabled"
         else:
             chosen_side = winner
             reason = "pre_quality"
+
+        # Active, selective FLAT gate: block only clearly FLAT-dominant + weak-side candidates.
+        flat_veto_margin = 0.12
+        flat_top = (p_flat >= p_long) and (p_flat >= p_short)
+        flat_edge = p_flat - max(p_long, p_short)
+        chosen_side_prob = max(p_long, p_short)
+        flat_veto = bool(
+            flat_top
+            and np.isfinite(flat_edge)
+            and (
+                # Extreme FLAT dominance (rare): very high p_flat and large edge over directional classes.
+                (p_flat >= 0.93 and flat_edge >= 0.25)
+                # Typical adverse/no-edge candidate: FLAT clearly ahead while directional side confidence is weak.
+                or (flat_edge >= flat_veto_margin and chosen_side_prob <= 0.06)
+            )
+        )
+        if flat_veto:
+            chosen_side = None
+            reason = "flat_veto"
+            _inc_gate("candidate_flat_veto")
+            try:
+                if not hasattr(self._runner, "entry_flat_veto_blocked"):
+                    self._runner.entry_flat_veto_blocked = 0
+                self._runner.entry_flat_veto_blocked += 1
+            except Exception:
+                pass
 
         # Optional tradable gate (uses auxiliary tradable head if available)
         tradable_gate_enabled = False
@@ -1106,18 +1142,25 @@ class EntryManager:
             if "tradable_min_prob_short" in policy_cfg:
                 tradable_min_prob_short = float(policy_cfg.get("tradable_min_prob_short"))
             env_flag = os.getenv("GX1_ENTRY_TRADABLE_GATE", "").strip().lower()
+            env_min = os.getenv("GX1_ENTRY_TRADABLE_MIN_PROB", "").strip()
+            env_min_long = os.getenv("GX1_ENTRY_TRADABLE_MIN_PROB_LONG", "").strip()
+            env_min_short = os.getenv("GX1_ENTRY_TRADABLE_MIN_PROB_SHORT", "").strip()
+            if _is_canonical_truth_runtime() and any((env_flag, env_min, env_min_long, env_min_short)):
+                raise RuntimeError(
+                    "ENTRY_TRADABLE_ENV_OVERRIDE_FORBIDDEN: canonical truth runtime forbids "
+                    "GX1_ENTRY_TRADABLE_* overrides"
+                )
             if env_flag in {"1", "true", "yes", "on"}:
                 tradable_gate_enabled = True
-            env_min = os.getenv("GX1_ENTRY_TRADABLE_MIN_PROB", "").strip()
             if env_min:
                 tradable_min_prob = float(env_min)
-            env_min_long = os.getenv("GX1_ENTRY_TRADABLE_MIN_PROB_LONG", "").strip()
             if env_min_long:
                 tradable_min_prob_long = float(env_min_long)
-            env_min_short = os.getenv("GX1_ENTRY_TRADABLE_MIN_PROB_SHORT", "").strip()
             if env_min_short:
                 tradable_min_prob_short = float(env_min_short)
         except Exception:
+            if _is_canonical_truth_runtime():
+                raise
             pass
 
         if tradable_gate_enabled and chosen_side is not None:
@@ -1154,6 +1197,8 @@ class EntryManager:
         quality_gate_enabled = False
         quality_min_mfe_first_n = None
         quality_min_path_quality = None
+        quality_min_path_quality_long = None
+        quality_min_path_quality_short = None
         quality_min_score = None
         try:
             quality_gate_enabled = bool(policy_cfg.get("quality_gate_enabled", False))
@@ -1161,18 +1206,40 @@ class EntryManager:
                 quality_min_mfe_first_n = float(policy_cfg.get("quality_min_mfe_first_n"))
             if "quality_min_path_quality" in policy_cfg:
                 quality_min_path_quality = float(policy_cfg.get("quality_min_path_quality"))
+            if "quality_min_path_quality_long" in policy_cfg:
+                quality_min_path_quality_long = float(policy_cfg.get("quality_min_path_quality_long"))
+            if "quality_min_path_quality_short" in policy_cfg:
+                quality_min_path_quality_short = float(policy_cfg.get("quality_min_path_quality_short"))
             if "quality_min_score" in policy_cfg:
                 quality_min_score = float(policy_cfg.get("quality_min_score"))
+            if _is_canonical_truth_runtime() and quality_min_score is not None:
+                raise RuntimeError(
+                    "ENTRY_QUALITY_EXPERIMENTAL_KNOBS_FORBIDDEN: canonical truth runtime only allows "
+                    "general/side-specific path-quality thresholds plus quality_min_mfe_first_n. Remove "
+                    "quality_min_score from active canonical config."
+                )
+            if "quality_max_bad_path_prob" in policy_cfg:
+                raise RuntimeError(
+                    "ENTRY_BAD_PATH_GATE_UNSUPPORTED: quality_max_bad_path_prob is set in policy config "
+                    "but runtime does not implement this gate. Remove it from the active canonical lane "
+                    "or implement runtime support explicitly before enabling it."
+                )
         except Exception:
-            pass
+            raise
 
         if quality_gate_enabled and chosen_side is not None:
             mfe_first_n_pred = getattr(entry_pred, "mfe_first_n_pred", None)
             path_quality_pred = getattr(entry_pred, "path_quality_pred", None)
             quality_score_pred = getattr(entry_pred, "quality_score_pred", None)
+            bad_path_prob = getattr(entry_pred, "bad_path_prob", None)
+            effective_quality_min_path_quality = quality_min_path_quality
+            if chosen_side == "long" and quality_min_path_quality_long is not None:
+                effective_quality_min_path_quality = quality_min_path_quality_long
+            elif chosen_side == "short" and quality_min_path_quality_short is not None:
+                effective_quality_min_path_quality = quality_min_path_quality_short
             missing = (
                 (quality_min_mfe_first_n is not None and mfe_first_n_pred is None)
-                or (quality_min_path_quality is not None and path_quality_pred is None)
+                or (effective_quality_min_path_quality is not None and path_quality_pred is None)
                 or (quality_min_score is not None and quality_score_pred is None)
             )
             if missing:
@@ -1184,7 +1251,11 @@ class EntryManager:
                     chosen_side = None
                     reason = "quality_gate"
                     _inc_gate("candidate_quality_gate")
-                if chosen_side is not None and quality_min_path_quality is not None and float(path_quality_pred) < float(quality_min_path_quality):
+                if (
+                    chosen_side is not None
+                    and effective_quality_min_path_quality is not None
+                    and float(path_quality_pred) < float(effective_quality_min_path_quality)
+                ):
                     chosen_side = None
                     reason = "quality_gate"
                     _inc_gate("candidate_quality_gate")
@@ -1198,14 +1269,16 @@ class EntryManager:
                 self._quality_gate_log_count += 1
                 if self._quality_gate_log_count <= 5 or (self._quality_gate_log_count % 5000) == 0:
                     log.info(
-                        "[ENTRY_QUALITY_GATE_PROOF] enabled=%s mfe_first_n=%s path_quality=%s quality_score=%s min_mfe=%s min_path=%s min_score=%s pass=%s",
+                        "[ENTRY_QUALITY_GATE_PROOF] enabled=%s mfe_first_n=%s path_quality=%s quality_score=%s bad_path_prob=%s min_mfe=%s min_path=%s min_score=%s max_bad_path=%s pass=%s",
                         quality_gate_enabled,
                         f"{mfe_first_n_pred:.4f}" if mfe_first_n_pred is not None else "None",
                         f"{path_quality_pred:.4f}" if path_quality_pred is not None else "None",
                         f"{quality_score_pred:.4f}" if quality_score_pred is not None else "None",
+                        f"{bad_path_prob:.4f}" if bad_path_prob is not None else "None",
                         f"{quality_min_mfe_first_n:.4f}" if quality_min_mfe_first_n is not None else "None",
-                        f"{quality_min_path_quality:.4f}" if quality_min_path_quality is not None else "None",
+                        f"{effective_quality_min_path_quality:.4f}" if effective_quality_min_path_quality is not None else "None",
                         f"{quality_min_score:.4f}" if quality_min_score is not None else "None",
+                        "UNSUPPORTED",
                         chosen_side is not None,
                     )
             except Exception:
@@ -1357,8 +1430,8 @@ class EntryManager:
                         "session": str(getattr(entry_pred, "session", policy_state.get("session", "UNKNOWN"))),
                         "p_long": float(entry_pred.prob_long),
                         "p_short": float(entry_pred.prob_short),
-                        "p_flat": float(getattr(entry_pred, "prob_neutral", np.nan)),
-                        "p_hat": float(getattr(entry_pred, "p_hat", np.nan)),
+                        "p_flat": float(signal7_now.get("p_flat", np.nan)),
+                        "p_hat": float(signal7_now.get("p_hat", np.nan)),
                         "uncertainty_score": float(signal7_now.get("uncertainty_score", np.nan)),
                         "margin": float(getattr(entry_pred, "margin", np.nan)),
                         "margin_top1_top2": float(signal7_now.get("margin_top1_top2", np.nan)),
@@ -1383,6 +1456,21 @@ class EntryManager:
                         "decision_reason": reason,
                         "flat_gate": flat_gate,
                         "flat_margin": flat_margin,
+                        "tradable_prob": float(getattr(entry_pred, "tradable_prob", np.nan))
+                        if getattr(entry_pred, "tradable_prob", None) is not None
+                        else np.nan,
+                        "mfe_first_n_pred": float(getattr(entry_pred, "mfe_first_n_pred", np.nan))
+                        if getattr(entry_pred, "mfe_first_n_pred", None) is not None
+                        else np.nan,
+                        "path_quality_pred": float(getattr(entry_pred, "path_quality_pred", np.nan))
+                        if getattr(entry_pred, "path_quality_pred", None) is not None
+                        else np.nan,
+                        "quality_score_pred": float(getattr(entry_pred, "quality_score_pred", np.nan))
+                        if getattr(entry_pred, "quality_score_pred", None) is not None
+                        else np.nan,
+                        "bad_path_prob": float(getattr(entry_pred, "bad_path_prob", np.nan))
+                        if getattr(entry_pred, "bad_path_prob", None) is not None
+                        else np.nan,
                         "decision": "NONE",
                         "price": safe_price,
                         "units": 0,
@@ -1437,7 +1525,7 @@ class EntryManager:
                     "p_long": float(entry_pred.prob_long),
                     "p_short": float(entry_pred.prob_short),
                     "p_flat": float(signal7_now.get("p_flat", np.nan)),
-                    "p_hat": float(getattr(entry_pred, "p_hat", np.nan)),
+                    "p_hat": float(signal7_now.get("p_hat", np.nan)),
                     "uncertainty_score": float(signal7_now.get("uncertainty_score", np.nan)),
                     "margin": float(getattr(entry_pred, "margin", np.nan)),
                     "margin_top1_top2": float(signal7_now.get("margin_top1_top2", np.nan)),
@@ -1460,6 +1548,18 @@ class EntryManager:
                     "decision_reason": reason_str,
                     "flat_gate": flat_gate,
                     "flat_margin": flat_margin,
+                    "tradable_prob": float(getattr(entry_pred, "tradable_prob", np.nan))
+                    if getattr(entry_pred, "tradable_prob", None) is not None
+                    else np.nan,
+                    "mfe_first_n_pred": float(getattr(entry_pred, "mfe_first_n_pred", np.nan))
+                    if getattr(entry_pred, "mfe_first_n_pred", None) is not None
+                    else np.nan,
+                    "path_quality_pred": float(getattr(entry_pred, "path_quality_pred", np.nan))
+                    if getattr(entry_pred, "path_quality_pred", None) is not None
+                    else np.nan,
+                    "quality_score_pred": float(getattr(entry_pred, "quality_score_pred", np.nan))
+                    if getattr(entry_pred, "quality_score_pred", None) is not None
+                    else np.nan,
                     "decision": decision,
                     "price": safe_price,
                     "units": 0,
@@ -1834,6 +1934,16 @@ class EntryManager:
                             if getattr(entry_pred, "tradable_prob", None) is not None
                             else None
                         ),
+                        "mfe_first_n_pred": (
+                            float(getattr(entry_pred, "mfe_first_n_pred", np.nan))
+                            if getattr(entry_pred, "mfe_first_n_pred", None) is not None
+                            else None
+                        ),
+                        "path_quality_pred": (
+                            float(getattr(entry_pred, "path_quality_pred", np.nan))
+                            if getattr(entry_pred, "path_quality_pred", None) is not None
+                            else None
+                        ),
                     },
                     entry_filters_passed=[],
                     entry_filters_blocked=[],
@@ -1895,7 +2005,7 @@ class EntryManager:
                     "p_long": float(entry_pred.prob_long),
                     "p_short": float(entry_pred.prob_short),
                     "p_flat": float(signal7_now.get("p_flat", np.nan)),
-                    "p_hat": float(getattr(entry_pred, "p_hat", np.nan)),
+                    "p_hat": float(signal7_now.get("p_hat", np.nan)),
                     "uncertainty_score": float(signal7_now.get("uncertainty_score", np.nan)),
                     "margin": float(getattr(entry_pred, "margin", np.nan)),
                     "margin_top1_top2": float(signal7_now.get("margin_top1_top2", np.nan)),
@@ -1923,6 +2033,22 @@ class EntryManager:
                     "decision": side.upper(),
                     "price": safe_price,
                     "units": int(base_units),
+                    "trade_id": getattr(trade, "trade_id", None),
+                    "mfe_first_n_pred": (
+                        float(getattr(entry_pred, "mfe_first_n_pred", np.nan))
+                        if getattr(entry_pred, "mfe_first_n_pred", None) is not None
+                        else None
+                    ),
+                    "path_quality_pred": (
+                        float(getattr(entry_pred, "path_quality_pred", np.nan))
+                        if getattr(entry_pred, "path_quality_pred", None) is not None
+                        else None
+                    ),
+                    "bad_path_prob": (
+                        float(getattr(entry_pred, "bad_path_prob", np.nan))
+                        if getattr(entry_pred, "bad_path_prob", None) is not None
+                        else None
+                    ),
                 }
                 append_eval_log(eval_log_path, eval_record)
 

@@ -29,6 +29,7 @@ import optuna
 import pandas as pd
 
 from gx1.time.session_detector import get_session_vectorized
+from gx1.scripts._truth_lane import resolve_truth_xgb_bundle_dir
 from gx1.xgb.multihead.xgb_multihead_model_v1 import XGBMultiheadModel
 from gx1.xgb.preprocess.xgb_input_sanitizer import XGBInputSanitizer
 
@@ -70,8 +71,8 @@ BUCKET_POLICY_V2 = {
     },
 }
 
-# Hardcoded canonical paths (SSoT-style)
-BUNDLE_DIR = Path("/home/andre2/GX1_DATA/models/models/xgb_universal_multihead_v2__CANONICAL")
+# Canonical truth path (SSoT-style)
+BUNDLE_DIR = resolve_truth_xgb_bundle_dir(__file__)
 BASE28_MANIFEST = Path("/home/andre2/GX1_DATA/data/data/prebuilt/BASE28_CANONICAL/CURRENT_MANIFEST.json")
 TAPE_ROOT = Path("/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m5_bid_ask__CANONICAL")
 

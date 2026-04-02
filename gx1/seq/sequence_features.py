@@ -42,7 +42,7 @@ def build_sequence_features(df: pd.DataFrame) -> pd.DataFrame:
         - wick_asym: (upper_wick - lower_wick)/(range+1e-8)
     
       Miljøkontekst (broadcastes over hele sekvensen):
-        - session_id: int (0=EU, 1=OVERLAP, 2=US)
+        - session_id: int (0=ASIA, 1=EU, 2=OVERLAP, 3=US)
         - atr_regime_id: int (0=LOW, 1=MID, 2=HIGH, 3=EXTREME)
         - trend_regime_tf24h: float (EMA100 slope over 24h / ATR100, normalisert)
     """
@@ -153,13 +153,20 @@ def build_sequence_features(df: pd.DataFrame) -> pd.DataFrame:
     # Miljøkontekst (broadcastes over hele sekvensen)
     # ============================================================
     
-    # session_id: 0=EU, 1=OVERLAP, 2=US
+    # session_id: 0=ASIA, 1=EU, 2=OVERLAP, 3=US
+    from gx1.time.session_detector import get_session_vectorized, get_session_id_vectorized
     if "session" in df.columns:
-        session_map = {"EU": 0, "OVERLAP": 1, "US": 2}
-        df["session_id"] = df["session"].map(lambda x: session_map.get(str(x).upper(), 1)).fillna(1).astype(np.int32)
+        sess = df["session"].astype(str).str.upper()
+        session_map = {"ASIA": 0, "EU": 1, "OVERLAP": 2, "US": 3}
+        df["session_id"] = sess.map(session_map).fillna(0).astype(np.int32)
     else:
-        # Default to OVERLAP if session not available
-        df["session_id"] = 1
+        # Infer from timestamp index if session not available
+        if isinstance(df.index, pd.DatetimeIndex):
+            df["session_id"] = get_session_id_vectorized(df.index).astype(np.int32)
+        elif "ts" in df.columns:
+            df["session_id"] = get_session_id_vectorized(df["ts"]).astype(np.int32)
+        else:
+            df["session_id"] = 0
     
     # atr_regime_id: 0=LOW, 1=MID, 2=HIGH, 3=EXTREME
     if "_v1_atr_regime_id" in df.columns:
@@ -311,4 +318,3 @@ def build_snap_features_for_v8(df: pd.DataFrame, config: Dict[str, Any]) -> Tupl
     
     X_snap, feat_names = prepare_tabular_features(df, config)
     return X_snap, feat_names
-

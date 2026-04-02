@@ -28,51 +28,42 @@ mkdir -p "$OUTPUT_DIR"
 LOG_DIR="$OUTPUT_DIR/logs"
 mkdir -p "$LOG_DIR"
 
-# Resolve M5_DATA path: check env var first, then search for bid/ask datasets
+# Resolve M5_DATA path: canonical tape only (no raw lane)
 if [[ -n "${M5_DATA:-}" ]]; then
-    # Use explicit M5_DATA if set
     RESOLVED_M5_DATA="$M5_DATA"
-    echo "[DATA] Using M5_DATA from environment: $RESOLVED_M5_DATA"
-else
-    # Search for M5 bid/ask datasets
-    echo "[DATA] M5_DATA not set, searching for M5 bid/ask datasets..."
-    
-    # Search patterns (in order of preference)
-    SEARCH_PATHS=(
-        "data/raw/xauusd*m5*bid*ask*.parquet"
-        "data/raw/*xauusd*m5*.parquet"
-        "data/raw/*m5*bid*ask*.parquet"
-        "data/xauusd*m5*bid*ask*.parquet"
-        "data/*xauusd*m5*.parquet"
-        "gx1/data/xauusd*m5*bid*ask*.parquet"
-        "gx1/data/*xauusd*m5*.parquet"
-        "gx1/wf_runs/*/test_data*2025*.parquet"
-        "gx1/wf_runs/*/*bid*ask*.parquet"
-        "gx1/wf_runs/TEST_REPLAY/*.parquet"
-    )
-    
-    RESOLVED_M5_DATA=""
-    for pattern in "${SEARCH_PATHS[@]}"; do
-        # Use find to handle glob patterns safely
-        found=$(find . -path "./$pattern" -type f 2>/dev/null | head -1)
-        if [[ -n "$found" ]]; then
-            # Prefer files with "2025" or longer names (more recent/comprehensive)
-            if [[ "$found" == *"2025"* ]] || [[ -z "$RESOLVED_M5_DATA" ]]; then
-                RESOLVED_M5_DATA="$found"
-            fi
-        fi
-    done
-    
-    if [[ -z "$RESOLVED_M5_DATA" ]]; then
-        echo "ERROR: No M5 bid/ask dataset found."
-        echo "  Set M5_DATA environment variable, e.g.:"
-        echo "    export M5_DATA='data/raw/xauusd_m5_2025_bid_ask.parquet'"
-        echo "  Or place a file matching one of these patterns:"
-        printf "    - %s\n" "${SEARCH_PATHS[@]}"
+    if [[ "$RESOLVED_M5_DATA" == *"/data/data/raw/"* ]] || [[ "$RESOLVED_M5_DATA" == *"xauusd_m5_2025_bid_ask.parquet"* ]]; then
+        echo "ERROR: M5_DATA points to legacy raw lane: $RESOLVED_M5_DATA" >&2
         exit 1
     fi
-    
-    echo "[DATA] Found M5 dataset: $RESOLVED_M5_DATA"
+    echo "[DATA] Using M5_DATA from environment: $RESOLVED_M5_DATA"
+else
+    TAPE_ROOT="${GX1_CANONICAL_TAPE_ROOT:-/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m5_bid_ask__CANONICAL}"
+    TAPE_YEAR="$(python3 - <<'PY'
+import os
+from datetime import datetime, timezone
+
+start_ts = os.environ.get("START_DATE", "").strip()
+end_ts = os.environ.get("END_DATE", "").strip()
+if not start_ts or not end_ts:
+    raise SystemExit("ERROR: START_DATE/END_DATE must be set to resolve canonical tape year")
+
+def parse_year(ts: str) -> int:
+    if ts.endswith("Z"):
+        ts = ts[:-1] + "+00:00"
+    dt = datetime.fromisoformat(ts)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc).year
+
+ys = parse_year(start_ts)
+ye = parse_year(end_ts)
+if ys != ye:
+    raise SystemExit(f"ERROR: start/end span multiple years (start_year={ys}, end_year={ye})")
+print(ys)
+PY
+)"
+    RESOLVED_M5_DATA="$TAPE_ROOT/year=$TAPE_YEAR/part-000.parquet"
+    echo "[DATA] Resolved canonical tape: $RESOLVED_M5_DATA"
 fi
 
 # Verify file exists

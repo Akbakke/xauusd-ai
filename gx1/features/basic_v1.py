@@ -449,7 +449,7 @@ def _parkinson_sigma(high, low):
 
 def add_session_features(df, tz_offset_minutes=0):
     """
-    Deriver EU/US session features fra timestamp.
+    Deriver session features fra timestamp (ASIA/EU/OVERLAP/US).
     Del 2: Uses DatetimeIndex directly, no pd.to_datetime in hot path.
     
     Expects either:
@@ -489,18 +489,41 @@ def add_session_features(df, tz_offset_minutes=0):
         df["is_US"] = 0
         return df
     
-    # Del 2: Extract hour directly from DatetimeIndex (no pd.to_datetime per bar)
-    # idx.hour is a numpy array when accessed on DatetimeIndex
-    hour = idx.hour
+    # Del 2: Session inference (SSoT)
+    from gx1.time.session_detector import (
+        get_session_vectorized,
+        get_session_id_vectorized,
+        get_session_minutes_since_open_vectorized,
+        get_session_minutes_to_next_boundary_vectorized,
+    )
+    
+    sessions = get_session_vectorized(idx)
+    session_id = get_session_id_vectorized(idx)
     
     # Del 3: Create boolean masks directly (NumPy-friendly)
-    # EU ~ 07–15 UTC, US ~ 13–20 UTC
-    is_eu_mask = (hour >= 7) & (hour <= 15)
-    is_us_mask = (hour >= 13) & (hour <= 20)
+    is_asia_mask = sessions == "ASIA"
+    is_eu_mask = sessions == "EU"
+    is_overlap_mask = sessions == "OVERLAP"
+    is_us_mask = sessions == "US"
     
     # Assign as integer (0/1) arrays directly
+    df["is_ASIA"] = is_asia_mask.astype(int)
     df["is_EU"] = is_eu_mask.astype(int)
+    df["is_OVERLAP"] = is_overlap_mask.astype(int)
     df["is_US"] = is_us_mask.astype(int)
+    
+    # Canonical session_id (observerable context)
+    df["session_id"] = session_id
+    
+    # Session timing features (minutes)
+    df["minutes_since_session_open"] = get_session_minutes_since_open_vectorized(idx).astype(np.float32)
+    df["minutes_to_next_session_boundary"] = get_session_minutes_to_next_boundary_vectorized(idx).astype(np.float32)
+    
+    # Session change flag (1 if session changes vs previous bar)
+    df["session_change_flag"] = (pd.Series(session_id, index=df.index).diff().fillna(0) != 0).astype(int).to_numpy()
+    
+    # Tradable flag (policy can still restrict to EU/OVERLAP/US)
+    df["session_tradable"] = (df["session_id"] != 0).astype(int)
     
     return df
 

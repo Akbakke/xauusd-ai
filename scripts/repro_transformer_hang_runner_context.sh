@@ -11,7 +11,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
 
 POLICY_THRESHOLD018="gx1/configs/policies/sniper_snapshot/2025_SNIPER_V10_1/GX1_V12_SNIPER_ENTRY_V10_1_FLAT_THRESHOLD_0_18.yaml"
-DATA_FILE="data/raw/xauusd_m5_2025_bid_ask.parquet"
+DATA_FILE="${GX1_CANONICAL_TAPE_ROOT:-/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m5_bid_ask__CANONICAL}/year=2025/part-000.parquet"
 
 # Minimal test data (2 days UTC) - just enough to trigger model loading
 START_TS="2025-01-01T00:00:00Z"

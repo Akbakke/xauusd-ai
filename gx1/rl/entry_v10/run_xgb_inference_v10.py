@@ -87,13 +87,15 @@ def infer_session(row: pd.Series) -> str:
         row: DataFrame row with session indicators
 
     Returns:
-        Session string: "EU", "US", or "OVERLAP"
+        Session string: "EU", "US", or "OVERLAP" (ASIA routes to OVERLAP for inference)
     """
     # Try explicit session column
     if "session" in row.index:
         session = str(row["session"]).upper()
         if session in ["EU", "US", "OVERLAP"]:
             return session
+        if session == "ASIA":
+            return "OVERLAP"
 
     # Try session tag columns
     if "_v1_session_tag_EU" in row.index and row.get("_v1_session_tag_EU", 0) > 0.5:
@@ -103,15 +105,17 @@ def infer_session(row: pd.Series) -> str:
     if "_v1_session_tag_OVERLAP" in row.index and row.get("_v1_session_tag_OVERLAP", 0) > 0.5:
         return "OVERLAP"
 
-    # Try session_id (0=EU, 1=OVERLAP, 2=US)
+    # Try session_id (0=ASIA, 1=EU, 2=OVERLAP, 3=US)
     if "session_id" in row.index:
         session_id = int(row["session_id"])
-        if session_id == 0:
+        if session_id == 1:
             return "EU"
-        elif session_id == 1:
-            return "OVERLAP"
         elif session_id == 2:
+            return "OVERLAP"
+        elif session_id == 3:
             return "US"
+        elif session_id == 0:
+            return "OVERLAP"
 
     # Default to OVERLAP if uncertain
     log.warning(f"Could not infer session for row, defaulting to OVERLAP")
@@ -281,4 +285,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

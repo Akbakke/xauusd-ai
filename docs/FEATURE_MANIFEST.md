@@ -99,6 +99,12 @@ If CLOSE appears in this manifest, the prebuilt parquet schema is contaminated a
 | `ema20_slope` | sequence | M5 | 20 | unknown | none | True | False | TRANSFORMER | `gx1.seq.sequence_features` |
 | `is_EU` | session | M5 | N/A | flag | none | True | False | GATE_ONLY | `gx1.features.runtime_sniper_core` |
 | `is_US` | session | M5 | N/A | flag | none | True | False | GATE_ONLY | `gx1.features.runtime_sniper_core` |
+| `is_ASIA` | session | M5 | N/A | flag | none | True | False | GATE_ONLY | `gx1.features.runtime_sniper_core` |
+| `is_OVERLAP` | session | M5 | N/A | flag | none | True | False | GATE_ONLY | `gx1.features.runtime_sniper_core` |
+| `minutes_since_session_open` | session | M5 | 1 | minutes | none | True | False | TRANSFORMER | `gx1.features.runtime_sniper_core` |
+| `minutes_to_next_session_boundary` | session | M5 | 1 | minutes | none | True | False | TRANSFORMER | `gx1.features.runtime_sniper_core` |
+| `session_change_flag` | session | M5 | 1 | flag | none | True | False | TRANSFORMER | `gx1.features.runtime_sniper_core` |
+| `session_tradable` | session | M5 | 1 | flag | none | True | False | GATE_ONLY | `gx1.features.runtime_sniper_core` |
 | `mid` | unknown | M5 | N/A | int | none | True | False | TRANSFORMER | `gx1.features.runtime_sniper_core` |
 | `pos_vs_ema200` | sequence | M5 | 20 | unknown | none | True | False | TRANSFORMER | `gx1.seq.sequence_features` |
 | `prob_long` | unknown | M5 | N/A | unknown | none | True | False | LOG_ONLY | `gx1.features.runtime_sniper_core` |
@@ -137,9 +143,9 @@ If CLOSE appears in this manifest, the prebuilt parquet schema is contaminated a
 
 `ema100_slope`, `ema20_slope`, `pos_vs_ema200`, `roc100`, `roc20`, `std50`, `trend_regime_tf24h`
 
-### Session (3 features)
+### Session (9 features)
 
-`is_EU`, `is_US`, `session_id`
+`is_ASIA`, `is_EU`, `is_OVERLAP`, `is_US`, `session_id`, `minutes_since_session_open`, `minutes_to_next_session_boundary`, `session_change_flag`, `session_tradable`
 
 ### Unknown (25 features)
 

@@ -43,7 +43,7 @@ XGB models produce raw probabilities that need calibration to match empirical fr
 
 | Key | Type | Source | Values | Stability |
 |-----|------|--------|--------|-----------|
-| `session_id` | int | `policy_state["session"]` | 0=ASIA, 1=EU, 2=US, 3=OVERLAP | ✅ Stable |
+| `session_id` | int | `policy_state["session"]` | 0=ASIA, 1=EU, 2=OVERLAP, 3=US | ✅ Stable |
 | `trend_regime_id` | int | `ctx_cat[1]` or `policy_state` | 0=UP, 1=DOWN, 2=NEUTRAL | ✅ Stable |
 | `vol_regime_id` | int | `ctx_cat[2]` or `atr_regime_id` | 0=LOW, 1=MEDIUM, 2=HIGH, 3=EXTREME | ✅ Stable |
 | `atr_bucket` | int | `ctx_cat[3]` | 0=LOW, 1=MEDIUM, 2=HIGH, 3=EXTREME | ✅ Stable |

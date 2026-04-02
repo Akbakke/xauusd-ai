@@ -52,6 +52,14 @@ REQUIRED_TIME_COLUMN = "time"
 FORBIDDEN_INDEX_ARTIFACTS = {"__index_level_0__", "index_level_0", "timestamp", "datetime"}
 
 ARCHIVE_DIR = Path("/home/andre2/GX1_DATA/_ARCHIVE_BASE28_MANIFESTS")
+DERIVED_XGB_SESSION_FEATURES = {
+    "session_id",
+    "is_ASIA",
+    "minutes_since_session_open",
+    "minutes_to_next_session_boundary",
+    "session_change_flag",
+    "session_tradable",
+}
 
 
 def _sha256(path: Path) -> str:
@@ -75,9 +83,14 @@ def _load_base28_contract() -> List[str]:
         raise RuntimeError(f"BASE28_CONTRACT_MISSING: {contract_path}")
     data = json.loads(contract_path.read_text(encoding="utf-8"))
     feats = data.get("features") or []
-    if not isinstance(feats, list) or len(feats) != 28 or not all(isinstance(x, str) for x in feats):
-        raise RuntimeError(f"BASE28_CONTRACT_INVALID: expected 28 features, got {len(feats)} at {contract_path}")
-    return list(feats)
+    if not isinstance(feats, list) or not feats or not all(isinstance(x, str) for x in feats):
+        raise RuntimeError(f"BASE28_CONTRACT_INVALID: expected non-empty feature list at {contract_path}")
+    physical_feats = [f for f in feats if f not in DERIVED_XGB_SESSION_FEATURES]
+    if len(physical_feats) < 28:
+        raise RuntimeError(
+            f"BASE28_CONTRACT_INVALID: expected at least 28 physical features, got {len(physical_feats)} at {contract_path}"
+        )
+    return physical_feats
 
 
 def _extract_time_series(df: pd.DataFrame) -> Tuple[pd.Series, List[str]]:
@@ -143,10 +156,12 @@ def rebuild_base28_parquet(src_parquet: Path, out_dir: Path) -> Dict[str, object
 
     sha = _sha256(src_parquet)
 
-    # Load BASE28 contract for required_all_features prefix
+    # required_all_features must reflect the physical parquet columns only.
     base28_features = _load_base28_contract()
-    extra_cols = [c for c in schema_names if c not in base28_features]
-    required_all_features = base28_features + extra_cols
+    missing_base28 = [c for c in base28_features if c not in schema_names]
+    if missing_base28:
+        raise RuntimeError(f"REBUILD_FAIL: parquet missing required physical BASE28 columns: {missing_base28}")
+    required_all_features = [c for c in schema_names if c != REQUIRED_TIME_COLUMN]
 
     # Manifest (immutable, timestamped)
     manifest_path = out_dir / f"xauusd_m5_BASE28_2020_2025_REBUILT_{ts}.manifest.json"

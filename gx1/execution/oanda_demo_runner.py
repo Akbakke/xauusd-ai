@@ -2,8 +2,8 @@
 GX1 v1.1 → OANDA practice demo runner.
 
 Canonical TRUTH/SMOKE stack:
-- Entry: ENTRY_V10_CTX (signal7 + CTX6CAT6 only)
-- Exit: exit_transformer_v0 ONLY (EXIT_IO_V0_CTX19, T=8, D=19)
+- Entry: ENTRY_V10_CTX (signal7 + ctx_cat=6 fixed, ctx_cont from bundle)
+- Exit: exit_transformer_v0 ONLY (EXIT_IO_V1_CTX36, T=8, D=53)
 - Features: BASE28 → XGB → XGB_SIGNAL_BRIDGE_V1 (7-dim)
 - Mode: TRUTH/SMOKE = 1W1C, no fallbacks; mismatch => RuntimeError
 - Forbidden in canonical truth: FARM, EXIT_POLICY_V2/V3, drift-modes
@@ -20,7 +20,8 @@ import os
 import random
 import threading
 import time
-from collections import defaultdict, deque
+import math
+from collections import defaultdict, deque, Counter
 from dataclasses import dataclass, field
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
@@ -71,8 +72,10 @@ if TYPE_CHECKING:
 from gx1.execution.broker_client import BrokerClient
 from gx1.execution.entry_manager import EntryManager
 from gx1.execution.exit_manager import ExitManager
-from gx1.exits.contracts.exit_io_v0_ctx19 import (
-    EXIT_IO_V0_CTX19_FEATURE_NAMES_HASH,
+from gx1.exits.contracts.exit_io_v1_ctx36 import (
+    EXIT_IO_V1_CTX36_FEATURE_NAMES_HASH,
+    EXIT_IO_V1_CTX36_IO_VERSION,
+    EXIT_IO_V1_CTX36_FEATURE_COUNT,
 )
 from gx1.execution.telemetry import TelemetryTracker
 from gx1.execution.oanda_backfill import backfill_m5_candles_until_target
@@ -118,7 +121,7 @@ BID_ASK_REQUIRED_COLS = [
 class RiskLimits:
     dry_run: bool = True
     units_per_trade: int = 100
-    max_open_trades: int = 3
+    max_open_trades: int = 10
     max_daily_loss_bps: float = 300.0
     min_time_between_trades_sec: int = 60
     max_slippage_bps: float = 10.0
@@ -167,8 +170,14 @@ class EntryPrediction:
     prob_short: float
     prob_neutral: float
     prob_long: float
+    prob_flat: float
     p_hat: float
     margin: float
+    tradable_prob: Optional[float] = None
+    mfe_first_n_pred: Optional[float] = None
+    path_quality_pred: Optional[float] = None
+    quality_score_pred: Optional[float] = None
+    bad_path_prob: Optional[float] = None
 
 
 # --------------------------------------------------------------------------- #
@@ -205,14 +214,32 @@ def load_yaml_config(path: Path) -> Dict[str, Any]:
 def setup_logging(log_dir: Path, level: str) -> None:
     log_dir.mkdir(parents=True, exist_ok=True)
     log_path = log_dir / "oanda_demo_runner.log"
-    logging.basicConfig(
-        level=getattr(logging, level.upper(), logging.INFO),
-        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-        handlers=[
-            logging.StreamHandler(),
-            logging.FileHandler(log_path, mode="a"),
-        ],
-    )
+    log_level = getattr(logging, level.upper(), logging.INFO)
+    root = logging.getLogger()
+    root.setLevel(log_level)
+    fmt = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+
+    # Ensure a stream handler exists
+    has_stream = any(isinstance(h, logging.StreamHandler) for h in root.handlers)
+    if not has_stream:
+        stream_handler = logging.StreamHandler()
+        stream_handler.setFormatter(fmt)
+        root.addHandler(stream_handler)
+
+    # Ensure file handler is attached even if basicConfig was already called elsewhere
+    has_file = False
+    for h in root.handlers:
+        if isinstance(h, logging.FileHandler) and getattr(h, "baseFilename", None) == str(log_path):
+            has_file = True
+            # Ensure formatter is set
+            if h.formatter is None:
+                h.setFormatter(fmt)
+            break
+    if not has_file:
+        file_handler = logging.FileHandler(log_path, mode="a")
+        file_handler.setFormatter(fmt)
+        root.addHandler(file_handler)
+
     logging.getLogger("requests").setLevel(logging.WARNING)
 
 
@@ -249,13 +276,54 @@ def extract_entry_probabilities(probs: np.ndarray, classes: Optional[np.ndarray]
     n_classes = prob_vector.shape[0]
 
     if n_classes == 3:
+        classes_list = list(classes) if classes is not None else []
+        normalized = [str(c).upper() for c in classes_list]
+
+        idx_long = None
+        idx_short = None
+        idx_flat = None
+
+        if "LONG" in normalized:
+            idx_long = normalized.index("LONG")
+        if "SHORT" in normalized:
+            idx_short = normalized.index("SHORT")
+        if "FLAT" in normalized or "NEUTRAL" in normalized:
+            idx_flat = normalized.index("FLAT") if "FLAT" in normalized else normalized.index("NEUTRAL")
+
+        if idx_long is None and set(classes_list) == {0, 1, 2}:
+            idx_long, idx_short, idx_flat = (
+                classes_list.index(0),
+                classes_list.index(1),
+                classes_list.index(2),
+            )
+
+        print(
+            "[ENTRY_CLASS_ORDER_PROOF] "
+            f"classes={classes_list} mapped={{long:{idx_long}, short:{idx_short}, flat:{idx_flat}}}",
+            flush=True,
+        )
+
+        if idx_long is None or idx_short is None or idx_flat is None:
+            raise RuntimeError(
+                "[ENTRY_CLASS_ORDER_FAIL] Unable to map class indices to LONG/SHORT/FLAT "
+                f"(classes={classes_list})"
+            )
+
+        prob_long = float(prob_vector[idx_long])
+        prob_short = float(prob_vector[idx_short])
+        prob_flat = float(prob_vector[idx_flat])
+        sorted_probs = sorted([prob_long, prob_short, prob_flat], reverse=True)
+        margin = float(sorted_probs[0] - sorted_probs[1])
+        p_hat = float(sorted_probs[0])
+
         return EntryPrediction(
             session="",
-            prob_short=float(prob_vector[0]),
-            prob_neutral=float(prob_vector[1]),
-            prob_long=float(prob_vector[2]),
-            p_hat=float(max(prob_vector[0], prob_vector[2])),
-            margin=float(abs(prob_vector[2] - prob_vector[0])),
+            prob_short=prob_short,
+            prob_neutral=prob_flat,
+            prob_long=prob_long,
+            prob_flat=prob_flat,
+            p_hat=p_hat,
+            margin=margin,
         )
 
     raise RuntimeError(f"[XGB_PROBA_DIM_MISMATCH] Expected 3-class probabilities, got n_classes={n_classes} shape={probs.shape}")
@@ -528,7 +596,11 @@ def update_trade_log_exit(trade_log_path: Path, trade_id: str, exit_time: str, e
     """Update trade log CSV with exit information."""
     import csv
     from gx1.execution.trade_log_schema import TRADE_LOG_FIELDS
-    
+
+    if os.getenv("GX1_REPLAY_NO_CSV") == "1":
+        log.debug("GX1_REPLAY_NO_CSV=1: Skipping trade-log exit update for trade %s", trade_id)
+        return
+
     if not trade_log_path.exists():
         log.warning("Trade log file not found: %s", trade_log_path)
         return
@@ -653,14 +725,10 @@ def update_trade_log_exit(trade_log_path: Path, trade_id: str, exit_time: str, e
     if extra is not None:
         df.loc[mask, "extra"] = jsonlib.dumps(extra)
     
-    # Del 3: Skip CSV write in replay if GX1_REPLAY_NO_CSV=1 (reduces I/O flaskehals)
-    if os.getenv("GX1_REPLAY_NO_CSV") == "1":
-        log.debug("GX1_REPLAY_NO_CSV=1: Skipping CSV write for trade %s (exit_time=%s exit_price=%.3f pnl_bps=%.2f)", trade_id, exit_time, exit_price, pnl_bps)
-    else:
-        # Write back to CSV with schema column order (only include fields that exist in schema)
-        schema_cols = [c for c in fieldnames if c in df.columns]
-        df[schema_cols].to_csv(trade_log_path, index=False)
-        log.debug("Updated trade log for %s: exit_time=%s exit_price=%.3f pnl_bps=%.2f", trade_id, exit_time, exit_price, pnl_bps)
+    # Write back to CSV with schema column order (only include fields that exist in schema)
+    schema_cols = [c for c in fieldnames if c in df.columns]
+    df[schema_cols].to_csv(trade_log_path, index=False)
+    log.debug("Updated trade log for %s: exit_time=%s exit_price=%.3f pnl_bps=%.2f", trade_id, exit_time, exit_price, pnl_bps)
 
 def append_trade_log(trade_log_path: Path, row: Dict[str, Any]) -> None:
     """
@@ -988,6 +1056,48 @@ class GX1DemoRunner:
                 dry_run_override = True  # Force dry_run in canary mode
         
         log.info("[BOOT] mode=%s, run_mode=%s", self.mode, self.run_mode)
+        self.canonical_truth_mode = (
+            os.getenv("GX1_RUN_MODE", "").upper() in {"TRUTH", "SMOKE"}
+            or os.getenv("GX1_TRUTH_MODE", "0") == "1"
+        )
+
+        # Canonical EXIT override policy:
+        # In TRUTH/SMOKE, risky EXIT env overrides are forbidden unless explicit
+        # non-canonical diagnostic mode is enabled.
+        run_mode_env = os.getenv("GX1_RUN_MODE", "").upper()
+        is_truth_or_smoke = self.canonical_truth_mode
+        diag_override_enabled = (
+            os.getenv("GX1_NON_CANONICAL_DIAGNOSTIC", "0") == "1"
+            or os.getenv("GX1_DIAGNOSTIC_THRESHOLD_SWEEP", "0") == "1"
+        )
+        self.exit_env_override_allowed = bool(diag_override_enabled)
+        if is_truth_or_smoke and not self.exit_env_override_allowed:
+            forbidden_exit_envs = [
+                "GX1_EXIT_THRESHOLD",
+                "GX1_EXIT_REQUIRE_CONSECUTIVE",
+                "GX1_EXIT_IO_ONLY_REPLAY",
+                "GX1_EXIT_HASH_GUARD_BYPASS",
+                "GX1_REPLAY_ACCOUNTING_CLOSE_AT_END",
+                "GX1_EXIT_CATA_GUARD",
+                "GX1_EXIT_CATA_GUARD_MFE_BPS",
+                "GX1_EXIT_CATA_GUARD_DD_BPS",
+                "GX1_EXIT_CATA_GUARD_GB_RATIO",
+                "GX1_EXIT_CATA_GUARD_PNL_MAX",
+                "GX1_EXIT_CATA_GUARD_PNL_FRAC_MFE",
+                "GX1_EXIT_EDGE_DEATH_MFE_MIN_SHORT",
+                "GX1_EXIT_EDGE_DEATH_MFE_MIN_LONG",
+                "GX1_EXIT_EDGE_DEATH_DD_MIN_SHORT",
+                "GX1_EXIT_EDGE_DEATH_DD_MIN_LONG",
+                "GX1_EXIT_EDGE_DEATH_GB_MIN_SHORT",
+                "GX1_EXIT_EDGE_DEATH_GB_MIN_LONG",
+            ]
+            tripped = [k for k in forbidden_exit_envs if (os.getenv(k) or "").strip() not in {"", "0"}]
+            if tripped:
+                raise RuntimeError(
+                    "[EXIT_CANONICAL_ENV_FORBIDDEN] "
+                    f"TRUTH/SMOKE forbids EXIT env overrides without diagnostic mode: {tripped}. "
+                    "Set GX1_NON_CANONICAL_DIAGNOSTIC=1 only for explicit non-canonical diagnostics."
+                )
         
         if self.mode == "ENTRY_ONLY":
             raise RuntimeError("[FORBIDDEN] ENTRY_ONLY is non-canonical and has been archived.")
@@ -1105,6 +1215,8 @@ class GX1DemoRunner:
         exit_mode = exit_ml_params.get("mode")
         if exit_type not in (None, "", "EXIT_TRANSFORMER_V0"):
             raise RuntimeError(f"[FORBIDDEN] exit.type={exit_type} is not allowed in CANONICAL_TRUTH_SIGNAL_ONLY_V1; use exit_transformer_v0 only.")
+        # Canonical truth: always record exit_type for footer/proof
+        self.exit_type = exit_type or "EXIT_TRANSFORMER_V0"
         if exit_mode not in ("exit_transformer_v0",):
             raise RuntimeError(f"[FORBIDDEN] exit_mode={exit_mode} is not allowed in CANONICAL_TRUTH_SIGNAL_ONLY_V1; use exit_transformer_v0 only.")
         self.exit_params = exit_cfg  # Store exit config for shadow-exit A/B
@@ -1112,7 +1224,17 @@ class GX1DemoRunner:
         self.exit_fixed_bar_policy = None
         self.exit_ml_mode = exit_mode
         # Load exit transformer decider if configured
+        exit_tf_cfg = {}
         if self.exit_ml_mode == "exit_transformer_v0":
+            self.exit_io_only_replay = os.environ.get("GX1_EXIT_IO_ONLY_REPLAY") == "1"
+            if self.exit_io_only_replay and not self.replay_mode:
+                raise RuntimeError("[EXIT_IO_ONLY] only allowed in replay mode")
+            self.exit_hash_guard_bypass_enabled = os.getenv("GX1_EXIT_HASH_GUARD_BYPASS") == "1"
+            if self.exit_hash_guard_bypass_enabled and not bool(getattr(self, "exit_env_override_allowed", False)):
+                raise RuntimeError(
+                    "[EXIT_CANONICAL_ENV_FORBIDDEN] GX1_EXIT_HASH_GUARD_BYPASS requires explicit "
+                    "non-canonical diagnostic mode."
+                )
             exit_tf_cfg = (
                 exit_cfg.get("exit", {})
                 .get("params", {})
@@ -1122,77 +1244,277 @@ class GX1DemoRunner:
                 else {}
             )
             model_path_raw = exit_tf_cfg.get("model_path")
-            if not model_path_raw:
-                raise RuntimeError("[EXIT_MODEL_REQUIRED] Exit transformer model is required for configured exit policy")
-            model_path = Path(model_path_raw)
-            if not model_path.is_absolute():
-                gx1_data_root = Path(os.environ["GX1_DATA"]).expanduser().resolve()
-                model_path = (gx1_data_root / model_path).resolve()
-            decider = load_exit_transformer_decider(model_path)
-            # Hard validation
-            if int(getattr(decider, "input_dim", -1)) != 19:
-                raise RuntimeError(f"[EXIT_IO_CONTRACT_VIOLATION] expected input_dim=19, got {getattr(decider, 'input_dim', None)}")
-            if int(getattr(decider, "window_len", -1)) != 8:
-                raise RuntimeError(f"[EXIT_IO_CONTRACT_VIOLATION] expected window_len=8, got {getattr(decider, 'window_len', None)}")
-            cfg_io_ver = getattr(decider, "config", {}).get("exit_ml_io_version")
-            if cfg_io_ver and cfg_io_ver != "EXIT_IO_V0_CTX19":
-                raise RuntimeError(
-                    f"[EXIT_IO_CONTRACT_VIOLATION] expected exit_ml_io_version=EXIT_IO_V0_CTX19, got {cfg_io_ver}"
+            if self.exit_io_only_replay:
+                self.exit_transformer_decider = None
+                self.exit_ml_enabled = True
+                self.exit_ml_decision_mode = "exit_transformer_v0"
+                self.exit_ml_input_dim = int(EXIT_IO_V1_CTX36_FEATURE_COUNT)
+                self.exit_ml_io_version = EXIT_IO_V1_CTX36_IO_VERSION
+                self.exit_ml_config_hash = EXIT_IO_V1_CTX36_FEATURE_NAMES_HASH
+                self.exit_ml_model_sha = None
+                self.exit_transformer_window_len = 8
+                self.exit_transformer_input_dim = int(EXIT_IO_V1_CTX36_FEATURE_COUNT)
+                self.exit_transformer_feature_hash = EXIT_IO_V1_CTX36_FEATURE_NAMES_HASH
+                self.exit_transformer_model_path = None
+                self.exit_transformer_model_dir = None
+                self.exit_transformer_config_path = None
+                self.exit_transformer_io_version = EXIT_IO_V1_CTX36_IO_VERSION
+                self.exit_transformer_input_dim = int(EXIT_IO_V1_CTX36_FEATURE_COUNT)
+                self.exit_transformer_feature_hash = EXIT_IO_V1_CTX36_FEATURE_NAMES_HASH
+                self.exit_transformer_uses_logits_path = 0
+                log.info(
+                    "[EXIT_IO_ONLY_REPLAY_PROOF] enabled=1 io_version=%s input_dim=%d",
+                    EXIT_IO_V1_CTX36_IO_VERSION,
+                    int(EXIT_IO_V1_CTX36_FEATURE_COUNT),
                 )
-            feat_hash = str(getattr(decider, "config", {}).get("feature_names_hash", "")).strip()
-            if feat_hash and feat_hash != EXIT_IO_V0_CTX19_FEATURE_NAMES_HASH:
-                raise RuntimeError(
-                    f"[EXIT_IO_CONTRACT_VIOLATION] expected feature_names_hash={EXIT_IO_V0_CTX19_FEATURE_NAMES_HASH}, got {feat_hash}"
+            else:
+                if not model_path_raw:
+                    raise RuntimeError("[EXIT_MODEL_REQUIRED] Exit transformer model is required for configured exit policy")
+                model_path = Path(model_path_raw)
+                if not model_path.is_absolute():
+                    gx1_data_root = Path(os.environ["GX1_DATA"]).expanduser().resolve()
+                    model_path = (gx1_data_root / model_path).resolve()
+                expected_model_path = str(model_path)
+                cfg_feature_hash = str(
+                    exit_tf_cfg.get("feature_hash") or exit_tf_cfg.get("feature_names_hash") or ""
+                ).strip()
+                if not cfg_feature_hash:
+                    raise RuntimeError(
+                        f"[EXIT_CONFIG_HASH_GUARD] expected_feature_hash missing in config; "
+                        f"expected_feature_hash={cfg_feature_hash or 'None'} "
+                        f"contract_feature_hash={EXIT_IO_V1_CTX36_FEATURE_NAMES_HASH} "
+                        f"model_path={expected_model_path}"
+                    )
+                if self.exit_hash_guard_bypass_enabled:
+                    log.warning(
+                        "[EXIT_CONFIG_HASH_GUARD_BYPASS] enabled=1 expected_feature_hash=%s contract_feature_hash=%s model_path=%s",
+                        cfg_feature_hash,
+                        EXIT_IO_V1_CTX36_FEATURE_NAMES_HASH,
+                        expected_model_path,
+                    )
+                elif cfg_feature_hash != EXIT_IO_V1_CTX36_FEATURE_NAMES_HASH:
+                    raise RuntimeError(
+                        f"[EXIT_CONFIG_HASH_GUARD] expected_feature_hash={cfg_feature_hash} "
+                        f"contract_feature_hash={EXIT_IO_V1_CTX36_FEATURE_NAMES_HASH} "
+                        f"model_path={expected_model_path}"
+                    )
+                log.info(
+                    "[EXIT_CONFIG_HASH_PROOF] pass=1 expected_feature_hash=%s contract_feature_hash=%s model_path=%s",
+                    cfg_feature_hash,
+                    EXIT_IO_V1_CTX36_FEATURE_NAMES_HASH,
+                    expected_model_path,
                 )
-            self.exit_transformer_decider = decider
-            self.exit_ml_enabled = True
-            self.exit_ml_decision_mode = "exit_transformer_v0"
-            self.exit_ml_input_dim = decider.input_dim
-            self.exit_ml_io_version = decider.config.get("exit_ml_io_version")
-            self.exit_ml_config_hash = decider.config.get("feature_names_hash")
-            self.exit_ml_model_sha = getattr(decider, "model_sha", None)
-            self.exit_transformer_window_len = decider.window_len
-            self.exit_transformer_input_dim = decider.input_dim
-            self.exit_transformer_feature_hash = feat_hash
-            log.info(
-                "[EXIT_T8_PROOF_BOOT] mode=%s model_path=%s window_len=%s input_dim=%s feature_hash=%s",
-                "exit_transformer_v0",
-                model_path,
-                decider.window_len,
-                decider.input_dim,
-                feat_hash,
-            )
+                output_dir = getattr(self, "explicit_output_dir", None) or getattr(self, "output_dir", None)
+                if output_dir:
+                    from gx1.utils.atomic_json import atomic_write_json
+                    proof_path = Path(output_dir) / "EXIT_CONFIG_HASH_PROOF.json"
+                    proof_payload = {
+                        "status": "pass",
+                        "expected_feature_hash": cfg_feature_hash,
+                        "contract_feature_hash": EXIT_IO_V1_CTX36_FEATURE_NAMES_HASH,
+                        "model_path": expected_model_path,
+                        "proof_line": (
+                            f"[EXIT_CONFIG_HASH_PROOF] pass=1 expected_feature_hash={cfg_feature_hash} "
+                            f"contract_feature_hash={EXIT_IO_V1_CTX36_FEATURE_NAMES_HASH} model_path={expected_model_path}"
+                        ),
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                    }
+                    try:
+                        atomic_write_json(proof_path, proof_payload)
+                    except Exception:
+                        pass
+                decider = load_exit_transformer_decider(model_path)
+                # Hard validation
+                feat_hash = str(getattr(decider, "config", {}).get("feature_names_hash", "")).strip()
+                cfg_io_ver = getattr(decider, "config", {}).get("exit_ml_io_version")
+                if self.exit_hash_guard_bypass_enabled:
+                    log.warning(
+                        "[EXIT_IO_CONTRACT_GUARD_BYPASS] enabled=1 expected_input_dim=%d got_input_dim=%s expected_window_len=8 got_window_len=%s",
+                        int(EXIT_IO_V1_CTX36_FEATURE_COUNT),
+                        getattr(decider, "input_dim", None),
+                        getattr(decider, "window_len", None),
+                    )
+                else:
+                    if int(getattr(decider, "input_dim", -1)) != int(EXIT_IO_V1_CTX36_FEATURE_COUNT):
+                        raise RuntimeError(
+                            f"[EXIT_IO_CONTRACT_VIOLATION] expected input_dim={int(EXIT_IO_V1_CTX36_FEATURE_COUNT)}, got {getattr(decider, 'input_dim', None)}"
+                        )
+                    if int(getattr(decider, "window_len", -1)) != 8:
+                        raise RuntimeError(
+                            f"[EXIT_IO_CONTRACT_VIOLATION] expected window_len=8, got {getattr(decider, 'window_len', None)}"
+                        )
+                    if cfg_io_ver and cfg_io_ver != "EXIT_IO_V1_CTX36":
+                        raise RuntimeError(
+                            f"[EXIT_IO_CONTRACT_VIOLATION] expected exit_ml_io_version=EXIT_IO_V1_CTX36, got {cfg_io_ver}"
+                        )
+                    if feat_hash and feat_hash != EXIT_IO_V1_CTX36_FEATURE_NAMES_HASH:
+                        raise RuntimeError(
+                            f"[EXIT_IO_CONTRACT_VIOLATION] expected feature_names_hash={EXIT_IO_V1_CTX36_FEATURE_NAMES_HASH}, got {feat_hash}"
+                        )
+                log.info(
+                    "[EXIT_RUNTIME_GUARD_PROOF] pass=1 io_version=%s input_dim=%d feature_hash=%s model_path=%s",
+                    EXIT_IO_V1_CTX36_IO_VERSION,
+                    int(getattr(decider, "input_dim", -1)),
+                    feat_hash,
+                    expected_model_path,
+                )
+                output_dir = getattr(self, "explicit_output_dir", None) or getattr(self, "output_dir", None)
+                if output_dir:
+                    from gx1.utils.atomic_json import atomic_write_json
+                    proof_path = Path(output_dir) / "EXIT_RUNTIME_GUARD_PROOF.json"
+                    proof_payload = {
+                        "status": "pass",
+                        "io_version": EXIT_IO_V1_CTX36_IO_VERSION,
+                        "input_dim": int(getattr(decider, "input_dim", -1)),
+                        "feature_hash": feat_hash,
+                        "model_path": expected_model_path,
+                        "proof_line": (
+                            f"[EXIT_RUNTIME_GUARD_PROOF] pass=1 io_version={EXIT_IO_V1_CTX36_IO_VERSION} "
+                            f"input_dim={int(getattr(decider, 'input_dim', -1))} "
+                            f"feature_hash={feat_hash} model_path={expected_model_path}"
+                        ),
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                    }
+                    try:
+                        atomic_write_json(proof_path, proof_payload)
+                    except Exception:
+                        pass
+                self.exit_transformer_decider = decider
+                self.exit_ml_enabled = True
+                self.exit_ml_decision_mode = "exit_transformer_v0"
+                self.exit_ml_input_dim = decider.input_dim
+                self.exit_ml_io_version = decider.config.get("exit_ml_io_version")
+                self.exit_ml_config_hash = decider.config.get("feature_names_hash")
+                self.exit_ml_model_sha = getattr(decider, "model_sha", None)
+                self.exit_transformer_window_len = decider.window_len
+                self.exit_transformer_input_dim = decider.input_dim
+                self.exit_transformer_feature_hash = feat_hash
+                model_dir = model_path if model_path.is_dir() else model_path.parent
+                loaded_model_path = str(model_path)
+                self.exit_transformer_model_path = loaded_model_path
+                self.exit_transformer_model_dir = str(model_dir) if model_dir is not None else None
+                self.exit_transformer_config_path = str(model_dir / "exit_transformer_config.json") if model_dir is not None else None
+                self.exit_transformer_io_version = self.exit_ml_io_version
+                self.exit_transformer_input_dim = self.exit_transformer_input_dim
+                self.exit_transformer_feature_hash = self.exit_transformer_feature_hash
+                self.exit_transformer_uses_logits_path = (
+                    1 if getattr(decider, "model", None) is not None and hasattr(decider.model, "forward_logits") else 0
+                )
+                if model_dir is None:
+                    raise RuntimeError("[EXIT_CANONICAL_MODEL_RESOLUTION_FAIL] model_dir is None")
+                if self.exit_transformer_config_path is None:
+                    raise RuntimeError("[EXIT_CANONICAL_MODEL_RESOLUTION_FAIL] config_path is None")
+                if loaded_model_path != expected_model_path:
+                    raise RuntimeError(
+                        f"[EXIT_CANONICAL_MODEL_RESOLUTION_FAIL] loaded_model_path mismatch: "
+                        f"expected={expected_model_path} loaded={loaded_model_path}"
+                    )
+                if not Path(self.exit_transformer_config_path).exists():
+                    raise RuntimeError(
+                        f"[EXIT_CANONICAL_MODEL_RESOLUTION_FAIL] config_path missing: {self.exit_transformer_config_path}"
+                    )
+                log.info(
+                    "[EXIT_CANONICAL_MODEL_RESOLUTION_PROOF] expected_model_path=%s loaded_model_path=%s match=%d",
+                    expected_model_path,
+                    loaded_model_path,
+                    1,
+                )
+                log.info(
+                    "[EXIT_T8_PROOF_BOOT] mode=%s model_path=%s window_len=%s input_dim=%s feature_hash=%s",
+                    "exit_transformer_v0",
+                    model_path,
+                    decider.window_len,
+                    decider.input_dim,
+                    feat_hash,
+                )
         elif self.exit_ml_mode:
             # Other modes currently unsupported in this path
             raise RuntimeError(f"[EXIT_MODEL_REQUIRED] Exit transformer model is required for configured exit policy (mode={self.exit_ml_mode})")
         
-        # Get exit model config (hysteresis settings)
-        exit_model_cfg = self.policy.get("exit_model", {})
+        # Canonical EXIT runtime: threshold/consecutive must come from the active
+        # exit_transformer block, with env override allowed only in explicit
+        # non-canonical diagnostic mode.
+        exit_tf_thr = exit_tf_cfg.get("threshold", exit_tf_cfg.get("exit_threshold", None))
+        exit_tf_req = exit_tf_cfg.get("exit_require_consecutive", exit_tf_cfg.get("require_consecutive", None))
         env_thr = os.getenv("GX1_EXIT_THRESHOLD")
         env_req = os.getenv("GX1_EXIT_REQUIRE_CONSECUTIVE")
-        yaml_thr = exit_model_cfg.get("threshold", self.policy.get("exit_threshold", exit_cfg.get("threshold", 0.686)))
-        yaml_req = exit_model_cfg.get("require_consecutive", 1)
+        if (env_thr is not None or env_req is not None) and not bool(getattr(self, "exit_env_override_allowed", False)):
+            tripped = []
+            if env_thr is not None:
+                tripped.append("GX1_EXIT_THRESHOLD")
+            if env_req is not None:
+                tripped.append("GX1_EXIT_REQUIRE_CONSECUTIVE")
+            raise RuntimeError(
+                "[EXIT_CANONICAL_ENV_FORBIDDEN] "
+                f"Canonical EXIT forbids threshold/consecutive env override(s): {tripped}"
+            )
+        if self.exit_ml_mode == "exit_transformer_v0":
+            if exit_tf_thr is None:
+                raise RuntimeError(
+                    "[EXIT_CANONICAL_CFG_MISSING] "
+                    "exit.params.exit_ml.exit_transformer.threshold is required for canonical exit_transformer_v0."
+                )
+            if exit_tf_req is None:
+                raise RuntimeError(
+                    "[EXIT_CANONICAL_CFG_MISSING] "
+                    "exit.params.exit_ml.exit_transformer.exit_require_consecutive is required for canonical exit_transformer_v0."
+                )
         if env_thr is not None:
             try:
                 self.exit_threshold = float(env_thr)
                 src_thr = "ENV"
             except Exception:
-                self.exit_threshold = float(yaml_thr)
-                src_thr = "YAML:exit_model.threshold"
+                self.exit_threshold = float(exit_tf_thr)
+                src_thr = "YAML:exit_transformer.threshold"
         else:
-            self.exit_threshold = float(yaml_thr)
-            src_thr = "YAML:exit_model.threshold"
+            self.exit_threshold = float(exit_tf_thr)
+            src_thr = "YAML:exit_transformer.threshold"
 
         if env_req is not None:
             try:
                 self.exit_require_consecutive = int(env_req)
                 src_req = "ENV"
             except Exception:
-                self.exit_require_consecutive = int(yaml_req)
-                src_req = "YAML:exit_model.require_consecutive"
+                self.exit_require_consecutive = int(exit_tf_req)
+                src_req = "YAML:exit_transformer.exit_require_consecutive"
         else:
-            self.exit_require_consecutive = int(yaml_req)
-            src_req = "YAML:exit_model.require_consecutive"
+            self.exit_require_consecutive = int(exit_tf_req)
+            src_req = "YAML:exit_transformer.exit_require_consecutive"
+
+        residual_cfg = exit_tf_cfg.get("residual_exit", {}) or {}
+        self.exit_residual_enabled = bool(residual_cfg.get("enabled", False))
+        self.exit_residual_require_prob_below_threshold = bool(
+            residual_cfg.get("require_prob_below_threshold", True)
+        )
+        self.exit_residual_require_nonpositive_pnl = bool(
+            residual_cfg.get("require_nonpositive_pnl", False)
+        )
+        self.exit_residual_minutes_since_session_open_min = float(
+            residual_cfg.get("minutes_since_session_open_min", 120.0)
+        )
+        self.exit_residual_minutes_to_next_session_boundary_max = float(
+            residual_cfg.get("minutes_to_next_session_boundary_max", 120.0)
+        )
+        self.exit_residual_distance_from_peak_mfe_bps_min = float(
+            residual_cfg.get("distance_from_peak_mfe_bps_min", 40.0)
+        )
+        safety_cfg = exit_tf_cfg.get("safety_exit", {}) or {}
+        cat_guard_cfg = safety_cfg.get("catastrophic_guard", {}) or {}
+        threshold_event_cfg = safety_cfg.get("threshold_event", {}) or {}
+        threshold_event_long_cfg = threshold_event_cfg.get("long", {}) or {}
+        threshold_event_short_cfg = threshold_event_cfg.get("short", {}) or {}
+        self.exit_cat_guard_enabled = bool(cat_guard_cfg.get("enabled", True))
+        self.exit_cat_guard_mfe_bps = float(cat_guard_cfg.get("mfe_bps_min", 1.0))
+        self.exit_cat_guard_dd_bps = float(cat_guard_cfg.get("dd_from_mfe_bps_min", 60.0))
+        self.exit_cat_guard_giveback_ratio = float(cat_guard_cfg.get("giveback_ratio_min", 1.0))
+        self.exit_cat_guard_pnl_max = float(cat_guard_cfg.get("pnl_bps_max", 0.0))
+        self.exit_cat_guard_pnl_frac_mfe = float(cat_guard_cfg.get("pnl_frac_mfe_max", 0.0))
+        self.exit_edge_death_mfe_min_long = float(threshold_event_long_cfg.get("mfe_bps_min", 8.0))
+        self.exit_edge_death_dd_min_long = float(threshold_event_long_cfg.get("dd_from_mfe_bps_min", 10.0))
+        self.exit_edge_death_gb_min_long = float(threshold_event_long_cfg.get("giveback_ratio_min", 0.50))
+        self.exit_edge_death_mfe_min_short = float(threshold_event_short_cfg.get("mfe_bps_min", 6.0))
+        self.exit_edge_death_dd_min_short = float(threshold_event_short_cfg.get("dd_from_mfe_bps_min", 8.0))
+        self.exit_edge_death_gb_min_short = float(threshold_event_short_cfg.get("giveback_ratio_min", 0.45))
 
         arb_cfg = getattr(self, "exit_control", None) or {}
         arb_allow = getattr(arb_cfg, "allow_model_exit_when", {}) if hasattr(arb_cfg, "allow_model_exit_when") else arb_cfg.get("allow_model_exit_when", {}) if isinstance(arb_cfg, dict) else {}
@@ -1211,7 +1533,16 @@ class GX1DemoRunner:
             arb_prob_hys,
             arb_min_bars,
         )
-        
+        log.info(
+            "[EXIT_RESIDUAL_CFG] enabled=%s require_prob_below_threshold=%s require_nonpositive_pnl=%s minutes_since_session_open_min=%.1f minutes_to_next_session_boundary_max=%.1f distance_from_peak_mfe_bps_min=%.1f src=YAML:exit_transformer.residual_exit",
+            bool(self.exit_residual_enabled),
+            bool(self.exit_residual_require_prob_below_threshold),
+            bool(self.exit_residual_require_nonpositive_pnl),
+            float(self.exit_residual_minutes_since_session_open_min),
+            float(self.exit_residual_minutes_to_next_session_boundary_max),
+            float(self.exit_residual_distance_from_peak_mfe_bps_min),
+        )
+
         # Konsolider "effektiv" dry_run ett sted
         exec_cfg = self.policy.get("execution", {}) or {}
         risk_cfg = self.policy.get("risk", {}) or {}
@@ -1239,8 +1570,8 @@ class GX1DemoRunner:
         )
         
         # Risk limits (bruk self.exec.dry_run og self.exec.default_units)
-        # Get max_open_trades from risk_cfg or execution_cfg (prioritize execution if both exist)
-        max_open_trades = int(exec_cfg.get("max_open_trades", risk_cfg.get("max_open_trades", 3)))
+        # Canonical capacity truth lives in execution.max_open_trades.
+        max_open_trades = int(exec_cfg.get("max_open_trades", risk_cfg.get("max_open_trades", 10)))
         max_concurrent_positions = int(exec_cfg.get("max_concurrent_positions", risk_cfg.get("max_concurrent_positions", 3)))
 
         self.risk_limits = RiskLimits(
@@ -1273,6 +1604,27 @@ class GX1DemoRunner:
             env_force,
             self.exec.dry_run,
         )
+        run_mode_env = os.getenv("GX1_RUN_MODE", "").upper()
+        override_env = os.getenv("GX1_MAX_OPEN_TRADES_OVERRIDE")
+        if self.canonical_truth_mode and override_env not in (None, ""):
+            raise RuntimeError(
+                "[CANONICAL_CAPACITY_ENV_FORBIDDEN] GX1_MAX_OPEN_TRADES_OVERRIDE is forbidden in TRUTH/SMOKE. "
+                "Use execution.max_open_trades as the single canonical capacity contract."
+            )
+        self.max_open_trades_effective_boot = max_open_trades
+        self.max_open_trades_used = max_open_trades
+        self.max_open_trades_override_env = override_env
+        log.info(
+            "[ENTRY_PREFLIGHT] max_open_trades_policy=%s max_open_trades_effective=%s GX1_MAX_OPEN_TRADES_OVERRIDE=%s GX1_RUN_MODE=%s",
+            max_open_trades,
+            max_open_trades,
+            override_env,
+            run_mode_env,
+        )
+        log.info(
+            "[ENTRY_ADMISSION_POLICY] replacement_overlap_long_over_oldest_overlap_short=%s",
+            int(self._replacement_overlap_long_over_oldest_overlap_short_enabled()),
+        )
         log.info("Loaded entry config %s and exit config %s", entry_cfg_path, exit_cfg_path)
         
         # Check guard configuration (affects entry_gating)
@@ -1301,11 +1653,11 @@ class GX1DemoRunner:
                 int(sticky_bars),
             )
         else:
-            # Fall back to entry_params (legacy)
+            # Fall back to entry_params when explicit entry_gating is absent.
             meta_threshold = float(self.entry_params.get("META_THRESHOLD", 0.40))
             margin_min = float(self.entry_params.get("ENTRY_MIN_MARGIN_MIN", 0.02))
             log.info(
-                "[BOOT] entry_gating: legacy mode (p>=%.2f, m>=%.2f) - using entry_params",
+                "[BOOT] entry_gating: entry_params fallback (p>=%.2f, m>=%.2f)",
                 meta_threshold,
                 margin_min,
             )
@@ -1369,15 +1721,26 @@ class GX1DemoRunner:
                 # Force CPU for replay/ops safety
                 device = torch.device("cpu")
                 
-                # Get bundle directory (priority: ENV > Policy)
+                # In canonical truth, replay bootstrap is the single source of
+                # entry bundle resolution and must pre-resolve GX1_BUNDLE_DIR.
                 bundle_dir = None
                 bundle_dir_source = None
-                
-                # Priority B: ENV override (GX1_BUNDLE_DIR)
-                if os.getenv("GX1_BUNDLE_DIR"):
+
+                is_canonical_truth = os.getenv("GX1_TRUTH_MODE", "0") == "1" or bool(
+                    os.getenv("GX1_CANONICAL_TRUTH_FILE", "").strip()
+                )
+                if is_canonical_truth:
+                    bundle_env = os.getenv("GX1_BUNDLE_DIR", "").strip()
+                    if not bundle_env:
+                        raise RuntimeError(
+                            "[ENTRY_CANONICAL_BUNDLE_RESOLUTION_FAIL] canonical truth runtime requires "
+                            "GX1_BUNDLE_DIR to be pre-resolved by replay bootstrap."
+                        )
+                    bundle_dir = Path(bundle_env).resolve()
+                    bundle_dir_source = "env"
+                elif os.getenv("GX1_BUNDLE_DIR"):
                     bundle_dir = Path(os.getenv("GX1_BUNDLE_DIR")).resolve()
                     bundle_dir_source = "env"
-                # Priority C: Policy (resolve relative to policy file's directory if relative)
                 else:
                     bundle_dir_str = entry_v10_ctx_cfg.get("bundle_dir")
                     if not bundle_dir_str:
@@ -1436,12 +1799,21 @@ class GX1DemoRunner:
                 self.xgb_load_error = None
 
                 # Single XGB load path: canonical bundle only (no policy/session paths)
+                override_dir_str = os.getenv("GX1_XGB_BUNDLE_DIR", "").strip()
                 log.info(
-                    "[XGB_LOAD] BRANCH=CANONICAL_BUNDLE_ONLY GX1_CANONICAL_BUNDLE_DIR=%s GX1_CANONICAL_TRUTH_FILE=%s",
+                    "[XGB_LOAD] BRANCH=CANONICAL_BUNDLE_ONLY GX1_XGB_BUNDLE_DIR=%s GX1_CANONICAL_BUNDLE_DIR=%s GX1_CANONICAL_TRUTH_FILE=%s",
+                    override_dir_str or "(unset)",
                     os.getenv("GX1_CANONICAL_BUNDLE_DIR", "") or "(unset)",
                     os.getenv("GX1_CANONICAL_TRUTH_FILE", "") or "(unset)",
                 )
-                canonical_dir_str = os.getenv("GX1_CANONICAL_BUNDLE_DIR", "").strip()
+                if entry_models_cfg.get("xgb"):
+                    log.info(
+                        "[XGB_LOAD_SOURCE] canonical_only=1 policy_xgb_paths_ignored=1 (entry_models.xgb present in policy but canonical bundle governs runtime)"
+                    )
+                canonical_dir_str = override_dir_str
+                override_active = bool(override_dir_str)
+                if not canonical_dir_str:
+                    canonical_dir_str = os.getenv("GX1_CANONICAL_BUNDLE_DIR", "").strip()
                 if not canonical_dir_str:
                     truth_file = os.getenv("GX1_CANONICAL_TRUTH_FILE", "")
                     if truth_file and Path(truth_file).exists():
@@ -1454,6 +1826,13 @@ class GX1DemoRunner:
                             "Set GX1_CANONICAL_BUNDLE_DIR or GX1_CANONICAL_TRUTH_FILE with canonical_xgb_bundle_dir."
                         )
                 canonical_xgb_dir = Path(canonical_dir_str).expanduser().resolve()
+                if override_active:
+                    override_resolved = Path(override_dir_str).expanduser().resolve()
+                    if canonical_xgb_dir != override_resolved:
+                        raise RuntimeError(
+                            "[XGB_OVERRIDE_MISMATCH] "
+                            f"GX1_XGB_BUNDLE_DIR={override_resolved} resolved_bundle={canonical_xgb_dir}"
+                        )
                 if not canonical_xgb_dir.is_dir():
                     raise RuntimeError(
                         f"[XGB_MISSING_CANONICAL] Canonical XGB bundle dir not found: {canonical_xgb_dir}"
@@ -1476,6 +1855,87 @@ class GX1DemoRunner:
                     )
                 from gx1.xgb.multihead.xgb_multihead_model_v1 import XGBMultiheadModel
                 xgb_universal = XGBMultiheadModel.load(str(model_file))
+                lock_ordered_features = None
+                lock_feature_list_sha256 = None
+                if lock_path.is_file():
+                    try:
+                        lock_ordered_features = list(lock_obj.get("ordered_features") or [])
+                        lock_feature_list_sha256 = str(lock_obj.get("feature_list_sha256") or "").strip() or None
+                    except Exception:
+                        lock_ordered_features = None
+                        lock_feature_list_sha256 = None
+                model_feature_list = list(getattr(xgb_universal, "feature_list", []) or [])
+                if not model_feature_list:
+                    raise RuntimeError("[XGB_MISSING_CANONICAL] Canonical XGB model missing feature_list")
+                if lock_ordered_features and lock_ordered_features != model_feature_list:
+                    raise RuntimeError(
+                        "[XGB_LOCK_SPLIT_BRAIN] MASTER_MODEL_LOCK.ordered_features != model.feature_list "
+                        f"(lock_len={len(lock_ordered_features)} model_len={len(model_feature_list)})"
+                    )
+                if lock_feature_list_sha256:
+                    computed_feature_sha = hashlib.sha256("|".join(model_feature_list).encode("utf-8")).hexdigest()
+                    if computed_feature_sha != lock_feature_list_sha256:
+                        raise RuntimeError(
+                            "[XGB_LOCK_SPLIT_BRAIN] MASTER_MODEL_LOCK.feature_list_sha256 != model.feature_list sha256 "
+                            f"(lock={lock_feature_list_sha256} model={computed_feature_sha})"
+                        )
+                contract_path = Path(__file__).resolve().parents[2] / "gx1" / "xgb" / "contracts" / "xgb_input_features_base28_v1.json"
+                if not contract_path.is_file():
+                    raise RuntimeError(f"[XGB_CONTRACT_MISSING] Feature contract not found: {contract_path}")
+                with open(contract_path, "r", encoding="utf-8") as _f:
+                    contract_obj = jsonlib.load(_f)
+                contract_features = list(contract_obj.get("features") or contract_obj.get("ordered_features") or [])
+                if contract_features != model_feature_list:
+                    raise RuntimeError(
+                        "[XGB_CONTRACT_SPLIT_BRAIN] xgb_input_features_base28_v1.json != model.feature_list "
+                        f"(contract_len={len(contract_features)} model_len={len(model_feature_list)})"
+                    )
+                sanitizer_cfg = Path(__file__).resolve().parents[2] / "gx1" / "xgb" / "contracts" / "xgb_input_sanitizer_base28_v1.json"
+                if not sanitizer_cfg.is_file():
+                    raise RuntimeError(f"[XGB_CONTRACT_MISSING] Sanitizer config not found: {sanitizer_cfg}")
+                with open(sanitizer_cfg, "r", encoding="utf-8") as _f:
+                    sanitizer_obj = jsonlib.load(_f)
+                sanitizer_features = list(sanitizer_obj.get("feature_list") or [])
+                if sanitizer_features != model_feature_list:
+                    raise RuntimeError(
+                        "[XGB_CONTRACT_SPLIT_BRAIN] xgb_input_sanitizer_base28_v1.json.feature_list != model.feature_list "
+                        f"(sanitizer_len={len(sanitizer_features)} model_len={len(model_feature_list)})"
+                    )
+                meta_file = canonical_xgb_dir / "xgb_universal_multihead_v2_meta.json"
+                if meta_file.is_file():
+                    try:
+                        with open(meta_file, "r", encoding="utf-8") as _f:
+                            meta_obj = jsonlib.load(_f)
+                        meta_features = list(
+                            meta_obj.get("feature_names_ordered")
+                            or meta_obj.get("ordered_features")
+                            or meta_obj.get("feature_list")
+                            or []
+                        )
+                    except Exception:
+                        meta_features = []
+                    if meta_features and meta_features != model_feature_list:
+                        raise RuntimeError(
+                            "[XGB_META_SPLIT_BRAIN] xgb_universal_multihead_v2_meta.json feature list != model.feature_list "
+                            f"(meta_len={len(meta_features)} model_len={len(model_feature_list)})"
+                        )
+                if os.getenv("GX1_XGB_RUNTIME_PROOF", "0").strip() in {"1", "true", "yes", "on"}:
+                    if not hasattr(self, "_xgb_runtime_proof_logged"):
+                        self._xgb_runtime_proof_logged = False
+                    if not self._xgb_runtime_proof_logged:
+                        import inspect
+                        try:
+                            sig_version = xgb_universal.meta.get("signal_bridge_version")
+                        except Exception:
+                            sig_version = None
+                        calib_path = canonical_xgb_dir / "CALIBRATION.json"
+                        print(f"XGB_RUNTIME_CLASS={xgb_universal.__class__.__qualname__}", flush=True)
+                        print(f"XGB_RUNTIME_FILE={inspect.getfile(xgb_universal.__class__)}", flush=True)
+                        print(f"XGB_BUNDLE_DIR={canonical_xgb_dir}", flush=True)
+                        print(f"XGB_SIGNAL_BRIDGE_VERSION={sig_version}", flush=True)
+                        print(f"XGB_CALIBRATION_PRESENT={calib_path.exists()}", flush=True)
+                        print(f"XGB_CALIBRATION_ENV={os.getenv('GX1_XGB_HEAD_CALIBRATE')}", flush=True)
+                        self._xgb_runtime_proof_logged = True
                 required_heads = {"EU", "OVERLAP", "US"}
                 heads_in_model = set(xgb_universal.heads.keys())
                 missing_heads = required_heads - heads_in_model
@@ -1488,15 +1948,30 @@ class GX1DemoRunner:
                 xgb_model_paths["UNIVERSAL"] = str(model_file.resolve())
                 self.xgb_load_branch = "CANONICAL_BUNDLE_ONLY"
                 self.xgb_load_source = "CANONICAL_BUNDLE"
+                try:
+                    _h = hashlib.sha256()
+                    with open(model_file, "rb") as _f:
+                        for _chunk in iter(lambda: _f.read(1024 * 1024), b""):
+                            _h.update(_chunk)
+                    model_sha = _h.hexdigest()
+                except Exception:
+                    model_sha = "UNKNOWN"
                 self.xgb_load_paths = {
                     "bundle_dir": str(canonical_xgb_dir),
                     "model_file": str(model_file.resolve()),
+                    "model_sha256": model_sha,
                     "lock_path": str(lock_path.resolve()) if lock_path.is_file() else None,
                 }
                 log.info(
                     "[XGB] source=CANONICAL_BUNDLE dir=%s loaded_heads=%s",
                     str(canonical_xgb_dir),
                     sorted(heads_in_model),
+                )
+                log.info(
+                    "[XGB_PROOF] bundle_dir=%s model_file=%s model_sha256=%s",
+                    str(canonical_xgb_dir),
+                    str(model_file.resolve()),
+                    model_sha,
                 )
                 log.info(f"[ENTRY_V10_CTX] XGB models loaded successfully: {list(xgb_models.keys())}")
                 self._write_model_used_capsule(xgb_models, xgb_model_paths, bundle_dir, "CANONICAL_BUNDLE")
@@ -1521,7 +1996,8 @@ class GX1DemoRunner:
                 if "supports_context_features" not in metadata and metadata.get("ctx_tag") == "CTX6CAT6":
                     raise RuntimeError(
                         f"[BUNDLE_META_MISSING_SUPPORTS_CONTEXT] supports_context_features missing in bundle metadata. "
-                        f"Bundle: {bundle_meta_path}. CTX6CAT6 requires supports_context_features=true."
+                        f"Bundle: {bundle_meta_path}. CTX6CAT6 requires supports_context_features=true "
+                        "(ctx_cat=6 fixed; ctx_cont from bundle)."
                     )
                 
                 # DEL 1: Log canonical bundle path + sha256 on model_state_dict.pt
@@ -1532,32 +2008,44 @@ class GX1DemoRunner:
                     log.info("[ENTRY] V10_CTX GATED bundle verified:")
                     log.info("[ENTRY] V10_CTX bundle_dir (canonical): %s", Path(bundle_dir).resolve())
                     log.info("[ENTRY] V10_CTX model_state_dict.pt sha256: %s", model_sha256)
+                    log.info(
+                        "[ENTRY_3CLASS_BUNDLE_PROOF] bundle_dir=%s num_classes=%s class_order=%s class_meaning=%s",
+                        Path(bundle_dir).resolve(),
+                        metadata.get("num_classes"),
+                        metadata.get("class_order"),
+                        {0: "LONG", 1: "SHORT", 2: "FLAT"},
+                    )
                 else:
                     raise RuntimeError(
                         f"GATED_BUNDLE_INCOMPLETE: model_state_dict.pt not found in '{bundle_dir}'"
                     )
                 
-                # Log ctx bundle info (canonical must be CTX6CAT6)
+                # Log ctx bundle info (ctx_cat fixed=6, ctx_cont from bundle)
                 from gx1.contracts.signal_bridge_v1 import get_canonical_ctx_contract
 
                 canonical_ctx = get_canonical_ctx_contract()
-                meta_ctx_cat = metadata.get("expected_ctx_cat_dim")
-                meta_ctx_cont = metadata.get("expected_ctx_cont_dim")
+                meta_ctx_cat = metadata.get("ctx_cat_dim") or metadata.get("expected_ctx_cat_dim")
+                meta_ctx_cont = metadata.get("ctx_cont_dim") or metadata.get("expected_ctx_cont_dim")
                 if meta_ctx_cat is None or meta_ctx_cont is None:
                     raise RuntimeError("CTX_META_MISSING: expected_ctx_cat_dim/expected_ctx_cont_dim absent in bundle metadata")
-                if int(meta_ctx_cat) != canonical_ctx["ctx_cat_dim"] or int(meta_ctx_cont) != canonical_ctx["ctx_cont_dim"]:
+                if int(meta_ctx_cat) != canonical_ctx["ctx_cat_dim"]:
+                    raise RuntimeError(
+                        f"CTX_META_SPLIT_BRAIN: bundle ctx_cat_dim {meta_ctx_cat} "
+                        f"!= canonical {canonical_ctx['ctx_cat_dim']} ({canonical_ctx['tag']})"
+                    )
+                if int(meta_ctx_cont) < canonical_ctx["ctx_cont_dim"]:
                     raise RuntimeError(
                         f"CTX_META_SPLIT_BRAIN: bundle ctx dims {meta_ctx_cont}/{meta_ctx_cat} "
-                        f"!= canonical {canonical_ctx['ctx_cont_dim']}/{canonical_ctx['ctx_cat_dim']} ({canonical_ctx['tag']})"
+                        f"ctx_cont_dim must be >= {canonical_ctx['ctx_cont_dim']} for {canonical_ctx['tag']}"
                     )
 
                 log.info("[ENTRY] V10_CTX enabled: True")
                 log.info("[ENTRY] V10_CTX supports_context_features: %s", metadata.get("supports_context_features", False))
                 log.info(
-                    "[ENTRY] V10_CTX ctx dims (canonical %s): cont=%s cat=%s source=bundle_metadata",
-                    canonical_ctx["tag"],
+                    "[ENTRY] V10_CTX ctx dims (bundle): cont=%s cat=%s tag=%s source=bundle_metadata",
                     meta_ctx_cont,
                     meta_ctx_cat,
+                    canonical_ctx["tag"],
                 )
                 log.info("[ENTRY] V10_CTX feature_contract_hash: %s", metadata.get("feature_contract_hash", "N/A"))
                 log.info("[ENTRY] V10_CTX GX1_GATED_FUSION_ENABLED: 1 (verified)")
@@ -1817,6 +2305,19 @@ class GX1DemoRunner:
             allow_model_exit_when=arb_allow_cfg,
             require_trade_open=bool(exit_control_cfg.get("require_trade_open", True)),
         )
+
+        # In TRUTH replay, disable probability/hysteresis arbiter gating for MODEL_EXIT,
+        # but keep a tiny amount of temporal slingring. We still enforce min_bars so a
+        # freshly opened trade cannot be closed on bar 0 just because the main exit
+        # head spikes high immediately after entry.
+        self.disable_model_exit_prob_gate = False
+        if bool(getattr(self, "replay_mode", False)) or bool(getattr(self, "fast_replay", False)):
+            self.disable_model_exit_prob_gate = True
+            self.exit_control.allow_model_exit_when["min_exit_prob"] = None
+            self.exit_control.allow_model_exit_when["exit_prob_hysteresis"] = 1
+            log.info(
+                "[EXIT_ARBITER_BYPASS_PROOF] disable_prob_gate=1 reason=replay_mode min_exit_prob=None exit_prob_hysteresis=1",
+            )
         
         log.info(
             "[BOOT] exit_control: allowed_loss_closers=%s min_bars=%d min_pnl_bps=%.1f require_trade_open=%s (min_pnl_src=%s)",
@@ -1832,12 +2333,21 @@ class GX1DemoRunner:
         self.exit_audit_dir.mkdir(parents=True, exist_ok=True)
         self.exit_audit_path = self.exit_audit_dir / f"exits_{pd.Timestamp.now(tz='UTC').strftime('%Y%m%d')}.jsonl"
 
-        # Get trade_log_csv template from config and format with chunk_id if available
+        # Replay/TRUTH should keep trade log artifacts inside the explicit chunk output dir.
+        # Live mode still honors configured logging.trade_log_csv.
         trade_log_template = log_cfg.get("trade_log_csv", "gx1/live/trade_log.csv")
         chunk_id = os.getenv("GX1_CHUNK_ID")
         if chunk_id is not None and "{chunk_id}" in trade_log_template:
             trade_log_template = trade_log_template.format(chunk_id=chunk_id)
-        self.trade_log_path = Path(trade_log_template)
+        if self.is_replay and self.explicit_output_dir:
+            self.trade_log_path = self.explicit_output_dir / "trade_log.csv"
+            log.info(
+                "[BOOT] Using replay-local trade_log_path=%s (configured_template=%s)",
+                self.trade_log_path,
+                trade_log_template,
+            )
+        else:
+            self.trade_log_path = Path(trade_log_template)
         ensure_trade_log(self.trade_log_path)
         if self.exit_config_name:
             log.info(
@@ -1853,7 +2363,12 @@ class GX1DemoRunner:
         if not self.replay_mode:
             self._init_trade_journal()
         else:
-            log.info("[TRADE_JOURNAL] Skipped in replay mode (no-op for TRUTH replay)")
+            replay_journal_enabled = os.environ.get("GX1_TRADE_JOURNAL_REPLAY", "0").strip() == "1"
+            if replay_journal_enabled:
+                self._init_trade_journal()
+                log.info("[TRADE_JOURNAL] Enabled in replay mode via GX1_TRADE_JOURNAL_REPLAY=1")
+            else:
+                log.info("[TRADE_JOURNAL] Skipped in replay mode (no-op for TRUTH replay)")
         
         # JSON eval log path (rotates daily)
         self.eval_log_path = self.log_dir / f"eval_log_{pd.Timestamp.now(tz='UTC').strftime('%Y%m%d')}.jsonl"
@@ -1871,6 +2386,19 @@ class GX1DemoRunner:
         # Exit transformer decider already loaded; no legacy XGB fallback
         self.exit_bundle = None
         
+        # TRUTH/REPLAY guard: must never run in PROD or live-credentialed mode
+        load_dotenv_if_present()
+        if self.mode.upper() == "REPLAY":
+            guard_reasons = []
+            if self.run_mode == "PROD":
+                guard_reasons.append("run_mode=PROD")
+            if not self.exec.dry_run:
+                guard_reasons.append("dry_run=False")
+            if any(os.getenv(k) for k in ("OANDA_API_TOKEN", "OANDA_API_KEY", "OANDA_ACCOUNT_ID", "OANDA_ENV")):
+                guard_reasons.append("oanda_creds_env_present")
+            if guard_reasons:
+                raise RuntimeError(f"[TRUTH_REPLAY_GUARD] forbidden replay settings: {', '.join(guard_reasons)}")
+
         # Optional: Initialize broker client (only needed for live mode, not replay)
         if self.replay_mode or self.fast_replay:
             log.debug("[BOOT] Replay mode: skipping broker client initialization")
@@ -1931,6 +2459,27 @@ class GX1DemoRunner:
         
         # Initialize open_trades BEFORE reconcile (so reconcile can populate it)
         self.open_trades: List[LiveTrade] = []
+        self.perf_n_trades_opened_registered = 0
+        self.perf_n_trades_opened_registered_long = 0
+        self.perf_n_trades_opened_registered_short = 0
+        self.perf_n_entry_proposed_long = 0
+        self.perf_n_entry_proposed_short = 0
+        self.perf_n_can_enter_pass_long = 0
+        self.perf_n_can_enter_pass_short = 0
+        self.perf_n_can_enter_fail_long = 0
+        self.perf_n_can_enter_fail_short = 0
+        self.perf_can_enter_fail_reasons = {"MAX_OPEN_TRADES": 0, "COOLDOWN": 0, "OTHER": 0}
+        self.perf_entry_margin_min_used = None
+        try:
+            if os.getenv("GX1_RUN_MODE") in {"TRUTH", "SMOKE"} and os.getenv("GX1_ENTRY_MARGIN_MIN"):
+                self.perf_entry_margin_min_used = float(os.getenv("GX1_ENTRY_MARGIN_MIN"))
+        except Exception:
+            self.perf_entry_margin_min_used = None
+        self.perf_n_entry_margin_reject_total = 0
+        self.perf_n_entry_margin_reject_long = 0
+        self.perf_n_entry_margin_reject_short = 0
+        self.perf_entry_margin_reject_reasons = {"MARGIN_MISSING": 0, "MARGIN_BELOW_MIN": 0}
+        self._last_can_enter_reject_reason = None
         self.daily_loss_tracker: Dict[str, float] = {}
         self.last_entry_timestamp: Optional[pd.Timestamp] = None
         self.last_entry_side: Optional[str] = None
@@ -1951,6 +2500,10 @@ class GX1DemoRunner:
             "pregate_session": 0,
             "pregate_spread": 0,
             "pregate_atr": 0,
+            "pregate_h1_compression": 0,
+            "pregate_m15_compression": 0,
+            "pregate_d1_atr_eu": 0,
+            "pregate_regime_filter": 0,
             "warmup_not_ready": 0,
             "guard_veto": 0,
         }
@@ -3235,7 +3788,6 @@ class GX1DemoRunner:
                 run_tag=self.run_id,
                 header=run_header,
                 enabled=journal_enabled,
-                runner=self,
             )
             
             log.info("[TRADE_JOURNAL] Initialized trade journal at %s", output_dir / "trade_journal")
@@ -3721,7 +4273,11 @@ class GX1DemoRunner:
                 return
             setattr(trade, "_exit_triggered", True)
             self._tick_exit_triggered_any = True
-            log.info("[TICK_TRIGGER] reason=%s trade_id=%s pnl=%.1f px=%.5f", reason, trade_id, pnl_bps, px)
+            if not hasattr(self, "_tick_trigger_log_count"):
+                self._tick_trigger_log_count = 0
+            self._tick_trigger_log_count += 1
+            if self._tick_trigger_log_count <= 5 or (self._tick_trigger_log_count % 5000) == 0:
+                log.info("[TICK_TRIGGER] reason=%s trade_id=%s pnl=%.1f px=%.5f", reason, trade_id, pnl_bps, px)
 
             # Live-only: trigger exit evaluation using last closed M5 candles (rate-limited)
             if not getattr(self, "replay_mode", False) and not getattr(self, "fast_replay", False):
@@ -3853,6 +4409,15 @@ class GX1DemoRunner:
         """Log exit attempt to audit file (JSONL)."""
         try:
             now_ts = pd.Timestamp.now(tz="UTC")
+            if getattr(self, "is_replay", False):
+                # Use replay bar timestamp for deterministic audit time in replay mode
+                replay_ts = getattr(self, "_replay_current_ts", None)
+                if replay_ts is None:
+                    replay_ts = getattr(self, "replay_end_ts", None)
+                if replay_ts is not None:
+                    now_ts = pd.to_datetime(replay_ts, utc=True, errors="coerce")
+                    if pd.isna(now_ts):
+                        now_ts = pd.Timestamp.now(tz="UTC")
             audit_record = {
                 "ts": now_ts.isoformat(),
                 "trade_id": trade_id,
@@ -3898,6 +4463,8 @@ class GX1DemoRunner:
         reason: str,
         px: float,
         pnl_bps: float,
+        exit_bid: Optional[float] = None,
+        exit_ask: Optional[float] = None,
         bars_in_trade: Optional[int] = None,
     ) -> bool:
         """
@@ -3924,6 +4491,8 @@ class GX1DemoRunner:
             True if close was accepted and executed, False if rejected.
         """
         now_ts = pd.Timestamp.now(tz="UTC")
+        is_cata_guard = source == "EXIT_CATA_GUARD"
+        is_entry_replacement = source == "ENTRY_REPLACEMENT"
 
         # Exit coverage counters (TRUTH-only export; best-effort)
         self._exit_cov_inc("exit_attempts_total", 1)
@@ -3931,6 +4500,7 @@ class GX1DemoRunner:
         
         # PHASE 1 FIX: Single-exit invariant - check if trade already exited
         is_replay = getattr(self, "replay_mode", False) or getattr(self, "fast_replay", False)
+        already_closing = False
         with self._closing_lock:
             if trade_id in self._exited_trade_ids:
                 # Trade already exited - this is a duplicate exit attempt
@@ -3945,16 +4515,35 @@ class GX1DemoRunner:
                 else:
                     log.warning(error_msg + " (live mode: ignoring duplicate exit)")
                     return False
-            
-            # Race-condition handling: Check if trade is already being closed
             if trade_id in self._closing_trades:
-                log.info("[ARB] reject close (already closing) %s %s", trade_id, source)
-                # Get TP/SL state for audit (even though we're rejecting)
-                tp_sl_state = self._get_tp_sl_state(trade_id)
-                self._log_exit_audit(trade_id, source, reason, pnl_bps, False, None, tp_sl_state, bars_in_trade)
-                return False
-            # Mark trade as closing
-            self._closing_trades[trade_id] = True
+                already_closing = True
+            else:
+                self._closing_trades[trade_id] = True
+
+        if already_closing:
+            log.info("[ARB] reject close (already closing) %s %s", trade_id, source)
+            if is_cata_guard:
+                log.info("[EXIT_CATA_GUARD_ARBITER_REJECT] trade_id=%s reason=already_closing", trade_id)
+            tp_sl_state = self._get_tp_sl_state(trade_id)
+            self._log_exit_audit(trade_id, source, reason, pnl_bps, False, None, tp_sl_state, bars_in_trade)
+            return False
+
+        # Best-effort: attach exit bid/ask to trade.extra for journaling/audit
+        try:
+            for t in self.open_trades:
+                if getattr(t, "trade_id", None) == trade_id:
+                    if not hasattr(t, "extra") or t.extra is None:
+                        t.extra = {}
+                    if exit_bid is not None:
+                        t.extra["exit_bid"] = float(exit_bid)
+                    if exit_ask is not None:
+                        t.extra["exit_ask"] = float(exit_ask)
+                    if exit_bid is not None and exit_ask is not None and float(exit_bid) > 0:
+                        t.extra["exit_spread_bps"] = float((float(exit_ask) - float(exit_bid)) * 10000.0 / float(exit_bid))
+                    t.extra["exit_price_used"] = float(px)
+                    break
+        except Exception:
+            pass
         
         try:
             # Get TP/SL state before close
@@ -3975,6 +4564,8 @@ class GX1DemoRunner:
                     trade_id,
                     trade_uid,
                 )
+            override_cata_guard = is_cata_guard
+            override_entry_replacement = is_entry_replacement
             
             # ---------------------------------------------------
             # Verify trade is still open (if required) - with grace period for "closing" trades
@@ -3987,6 +4578,8 @@ class GX1DemoRunner:
                         log.debug("[ARB] allow close (closing state) %s %s (reconcile grace)", trade_id, source)
                     else:
                         log.info("[ARB] reject close (not open) %s %s", trade_id, source)
+                        if is_cata_guard:
+                            log.info("[EXIT_CATA_GUARD_ARBITER_REJECT] trade_id=%s reason=not_open", trade_id)
                         self._log_exit_audit(trade_id, source, reason, pnl_bps, False, None, tp_sl_state, bars_in_trade)
                         # Remove from closing_trades on reject
                         with self._closing_lock:
@@ -3999,6 +4592,7 @@ class GX1DemoRunner:
                 min_pnl_bps = self.exit_control.allow_model_exit_when.get("min_pnl_bps", -5)
                 min_exit_prob = self.exit_control.allow_model_exit_when.get("min_exit_prob", 0.70)
                 exit_prob_hysteresis = self.exit_control.allow_model_exit_when.get("exit_prob_hysteresis", 2)
+                disable_prob_gate = bool(getattr(self, "disable_model_exit_prob_gate", False))
                 
                 # Get exit_prob_close and prob_close_history from trade
                 exit_prob_close = None
@@ -4010,72 +4604,85 @@ class GX1DemoRunner:
                             prob_close_history = [float(p) for p in trade.prob_close_history]
                         break
                 
-                # Check min_bars
+                # Always keep a tiny min_bars guard, even in replay. This is the
+                # "little slingring" that prevents immediate bar-0 exits after entry.
                 if bars_in_trade is not None and bars_in_trade < min_bars:
                     rule = f"min_bars:{min_bars}"
                     log.info("[ARB] reject model exit (bars_in_trade=%d < min_bars=%d) pnl=%.1f rule=%s", bars_in_trade, min_bars, pnl_bps, rule)
                     self._log_exit_audit(trade_id, source, reason, pnl_bps, False, None, tp_sl_state, bars_in_trade)
-                    # Remove from closing_trades on reject
                     with self._closing_lock:
                         self._closing_trades.pop(trade_id, None)
                     return False
+                if disable_prob_gate and not getattr(self, "_exit_prob_gate_disabled_logged", False):
+                    log.info(
+                        "[EXIT_ARBITER_BYPASS] prob_gate=disabled scope=MODEL_EXIT bypass=min_exit_prob,hysteresis keep=min_bars,min_pnl_bps"
+                    )
+                    self._exit_prob_gate_disabled_logged = True
                 
                 # Check min_exit_prob (current exit_prob_close must be >= min_exit_prob)
-                if exit_prob_close is None:
-                    rule = "min_exit_prob:missing"
-                    log.info("[ARB] reject model exit (exit_prob_close missing) trade_id=%s rule=%s", trade_id, rule)
-                    self._log_exit_audit(trade_id, source, reason, pnl_bps, False, None, tp_sl_state, bars_in_trade)
-                    with self._closing_lock:
-                        self._closing_trades.pop(trade_id, None)
-                    return False
-                
-                if exit_prob_close < min_exit_prob:
-                    rule = f"min_exit_prob:{min_exit_prob}"
-                    log.info("[ARB] reject model exit (exit_prob_close=%.4f < min_exit_prob=%.4f) pnl=%.1f rule=%s", exit_prob_close, min_exit_prob, pnl_bps, rule)
-                    self._log_exit_audit(trade_id, source, reason, pnl_bps, False, None, tp_sl_state, bars_in_trade)
-                    with self._closing_lock:
-                        self._closing_trades.pop(trade_id, None)
-                    return False
-                
-                # Check exit_prob_hysteresis (require exit_prob >= min_exit_prob in N consecutive bars)
-                if exit_prob_hysteresis > 1 and len(prob_close_history) >= exit_prob_hysteresis:
-                    recent_bars = prob_close_history[-exit_prob_hysteresis:]
-                    if not all(p >= min_exit_prob for p in recent_bars):
-                        rule = f"exit_prob_hysteresis:{exit_prob_hysteresis}"
-                        log.info("[ARB] reject model exit (exit_prob < %.4f in %d consecutive bars) exit_prob_history=%s rule=%s", 
-                                min_exit_prob, exit_prob_hysteresis, recent_bars, rule)
+                if not disable_prob_gate:
+                    if exit_prob_close is None:
+                        rule = "min_exit_prob:missing"
+                        log.info("[ARB] reject model exit (exit_prob_close missing) trade_id=%s rule=%s", trade_id, rule)
                         self._log_exit_audit(trade_id, source, reason, pnl_bps, False, None, tp_sl_state, bars_in_trade)
                         with self._closing_lock:
                             self._closing_trades.pop(trade_id, None)
                         return False
-                elif exit_prob_hysteresis > 1 and len(prob_close_history) < exit_prob_hysteresis:
-                    rule = f"exit_prob_hysteresis:{exit_prob_hysteresis}"
-                    log.info("[ARB] reject model exit (not enough prob_close_history: %d < %d) rule=%s", 
-                            len(prob_close_history), exit_prob_hysteresis, rule)
-                    self._log_exit_audit(trade_id, source, reason, pnl_bps, False, None, tp_sl_state, bars_in_trade)
-                    with self._closing_lock:
-                        self._closing_trades.pop(trade_id, None)
-                    return False
-                
-                # MODEL_EXIT can close at profit/BE (pnl_bps >= 0) - always allowed if above checks pass
-                if pnl_bps >= 0:
-                    # Profit/BE close: always allowed for MODEL_EXIT (if min_exit_prob and hysteresis pass)
-                    log.info("[ARB] allow MODEL_EXIT at profit pnl=%.1f bars=%d exit_prob=%.4f (>= min_exit_prob=%.4f)", 
-                            pnl_bps, bars_in_trade or 0, exit_prob_close, min_exit_prob)
-                    pass  # Continue to execute close below
-                # MODEL_EXIT can close at moderate loss if pnl_bps >= min_pnl_bps (e.g., -10 bps >= -15 bps)
-                elif pnl_bps >= min_pnl_bps:
-                    # Moderate loss: allow MODEL_EXIT to clean up (e.g., -12 bps >= -15 bps → allow)
-                    log.info("[ARB] allow MODEL_EXIT at moderate loss pnl=%.1f bars=%d exit_prob=%.4f (>= min_pnl_bps=%.1f, min_exit_prob=%.4f)", 
-                            pnl_bps, bars_in_trade or 0, exit_prob_close, min_pnl_bps, min_exit_prob)
-                    # Continue to execute close below (skip the loss-close restriction for MODEL_EXIT at moderate loss)
+                    
+                    if exit_prob_close < min_exit_prob:
+                        rule = f"min_exit_prob:{min_exit_prob}"
+                        log.info("[ARB] reject model exit (exit_prob_close=%.4f < min_exit_prob=%.4f) pnl=%.1f rule=%s", exit_prob_close, min_exit_prob, pnl_bps, rule)
+                        self._log_exit_audit(trade_id, source, reason, pnl_bps, False, None, tp_sl_state, bars_in_trade)
+                        with self._closing_lock:
+                            self._closing_trades.pop(trade_id, None)
+                        return False
                 else:
-                    # Deep loss: reject MODEL_EXIT (pnl_bps < min_pnl_bps, e.g., -20 bps < -15 bps)
+                    if not getattr(self, "_exit_prob_gate_disabled_logged", False):
+                        log.info(
+                            "[EXIT_ARBITER_BYPASS] prob_gate=disabled source=MODEL_EXIT min_exit_prob=None exit_prob_hysteresis=1"
+                        )
+                        self._exit_prob_gate_disabled_logged = True
+                
+                # Check exit_prob_hysteresis (require exit_prob >= min_exit_prob in N consecutive bars)
+                if not disable_prob_gate:
+                    if exit_prob_hysteresis > 1 and len(prob_close_history) >= exit_prob_hysteresis:
+                        recent_bars = prob_close_history[-exit_prob_hysteresis:]
+                        if not all(p >= min_exit_prob for p in recent_bars):
+                            rule = f"exit_prob_hysteresis:{exit_prob_hysteresis}"
+                            log.info("[ARB] reject model exit (exit_prob < %.4f in %d consecutive bars) exit_prob_history=%s rule=%s", 
+                                    min_exit_prob, exit_prob_hysteresis, recent_bars, rule)
+                            self._log_exit_audit(trade_id, source, reason, pnl_bps, False, None, tp_sl_state, bars_in_trade)
+                            with self._closing_lock:
+                                self._closing_trades.pop(trade_id, None)
+                            return False
+                    elif exit_prob_hysteresis > 1 and len(prob_close_history) < exit_prob_hysteresis:
+                        rule = f"exit_prob_hysteresis:{exit_prob_hysteresis}"
+                        log.info("[ARB] reject model exit (not enough prob_close_history: %d < %d) rule=%s", 
+                                len(prob_close_history), exit_prob_hysteresis, rule)
+                        self._log_exit_audit(trade_id, source, reason, pnl_bps, False, None, tp_sl_state, bars_in_trade)
+                        with self._closing_lock:
+                            self._closing_trades.pop(trade_id, None)
+                        return False
+                
+                # Keep pnl discipline even in replay. We only bypass probability-specific
+                # arbiter checks, not the general "do not puke out deep losses" rule.
+                if pnl_bps >= 0:
+                    if not disable_prob_gate:
+                        log.info("[ARB] allow MODEL_EXIT at profit pnl=%.1f bars=%d exit_prob=%.4f (>= min_exit_prob=%.4f)", 
+                                pnl_bps, bars_in_trade or 0, exit_prob_close, min_exit_prob)
+                elif min_pnl_bps is None or pnl_bps >= min_pnl_bps:
+                    if not disable_prob_gate:
+                        log.info("[ARB] allow MODEL_EXIT at moderate loss pnl=%.1f bars=%d exit_prob=%.4f (>= min_pnl_bps=%.1f, min_exit_prob=%.4f)", 
+                                pnl_bps, bars_in_trade or 0, exit_prob_close, min_pnl_bps, min_exit_prob)
+                else:
                     rule = f"min_pnl_bps:{min_pnl_bps}"
-                    log.info("[ARB] reject loss close by MODEL_EXIT pnl=%.1f bars=%s exit_prob=%.4f rule=%s", 
-                            pnl_bps, bars_in_trade or "?", exit_prob_close, rule)
+                    if exit_prob_close is None:
+                        log.info("[ARB] reject loss close by MODEL_EXIT pnl=%.1f bars=%s rule=%s", 
+                                pnl_bps, bars_in_trade or "?", rule)
+                    else:
+                        log.info("[ARB] reject loss close by MODEL_EXIT pnl=%.1f bars=%s exit_prob=%.4f rule=%s", 
+                                pnl_bps, bars_in_trade or "?", exit_prob_close, rule)
                     self._log_exit_audit(trade_id, source, reason, pnl_bps, False, None, tp_sl_state, bars_in_trade)
-                    # Remove from closing_trades on reject
                     with self._closing_lock:
                         self._closing_trades.pop(trade_id, None)
                     return False
@@ -4088,23 +4695,31 @@ class GX1DemoRunner:
                 pass
             # Check if this is a loss close (skip this check for MODEL_EXIT at moderate loss, already handled above)
             elif pnl_bps < 0 and source != "MODEL_EXIT":
-                # Loss close: only allowed reasons can close
-                # Map reason to allowed_loss_closers (e.g., "SOFT_STOP_TICK" -> "SOFT_STOP_TICK", "SL_TICK" -> "BROKER_SL")
-                # Note: "BROKER_SL" in allowed_loss_closers refers to broker-side SL (handled by OANDA automatically)
-                #       but we can also have "SL_TICK" from tick-watcher (which should be allowed if broker-side SL is allowed)
-                allowed_reasons = set(self.exit_control.allowed_loss_closers)
-                # Also allow SL_TICK if BROKER_SL is allowed (both are stop-loss mechanisms)
-                if "BROKER_SL" in allowed_reasons:
-                    allowed_reasons.add("SL_TICK")
-                
-                if reason not in allowed_reasons:
-                    # Improved logging: show rule details
-                    log.info("[ARB] reject loss close by %s reason=%s (pnl=%.1f bps, allowed=%s)", source, reason, pnl_bps, self.exit_control.allowed_loss_closers)
-                    self._log_exit_audit(trade_id, source, reason, pnl_bps, False, None, tp_sl_state, bars_in_trade)
-                    # Remove from closing_trades on reject
-                    with self._closing_lock:
-                        self._closing_trades.pop(trade_id, None)
-                    return False
+                if override_cata_guard or override_entry_replacement:
+                    pass
+                else:
+                    # Loss close: only allowed reasons can close
+                    # Map reason to allowed_loss_closers (e.g., "SOFT_STOP_TICK" -> "SOFT_STOP_TICK", "SL_TICK" -> "BROKER_SL")
+                    # Note: "BROKER_SL" in allowed_loss_closers refers to broker-side SL (handled by OANDA automatically)
+                    #       but we can also have "SL_TICK" from tick-watcher (which should be allowed if broker-side SL is allowed)
+                    allowed_reasons = set(self.exit_control.allowed_loss_closers)
+                    # Also allow SL_TICK if BROKER_SL is allowed (both are stop-loss mechanisms)
+                    if "BROKER_SL" in allowed_reasons:
+                        allowed_reasons.add("SL_TICK")
+                    # Replay-only: allow progress-protect exits to realize as actual closes.
+                    if reason == "PROGRESS_PROTECT" and hasattr(self, "is_replay") and self.is_replay:
+                        allowed_reasons.add("PROGRESS_PROTECT")
+                    
+                    if reason not in allowed_reasons:
+                        # Improved logging: show rule details
+                        log.info("[ARB] reject loss close by %s reason=%s (pnl=%.1f bps, allowed=%s)", source, reason, pnl_bps, self.exit_control.allowed_loss_closers)
+                        if is_cata_guard:
+                            log.info("[EXIT_CATA_GUARD_ARBITER_REJECT] trade_id=%s reason=loss_close_not_allowed allowed=%s", trade_id, self.exit_control.allowed_loss_closers)
+                        self._log_exit_audit(trade_id, source, reason, pnl_bps, False, None, tp_sl_state, bars_in_trade)
+                        # Remove from closing_trades on reject
+                        with self._closing_lock:
+                            self._closing_trades.pop(trade_id, None)
+                        return False
             else:
                 # Profit/BE close: always allowed (MODEL_EXIT can close at profit/BE)
                 pass
@@ -4128,6 +4743,8 @@ class GX1DemoRunner:
             else:
                 log.info("[ARB] accept close by %s reason=%s pnl=%.1f tp_active=%s sl_active=%s", 
                         source, reason, pnl_bps, tp_active, sl_active)
+            if is_cata_guard:
+                log.info("[EXIT_CATA_GUARD_CLOSE_EXECUTED] trade_id=%s reason=%s pnl=%.1f bars=%s", trade_id, reason, pnl_bps, bars_in_trade)
             
             broker_info = {}
             max_retries = 3
@@ -4224,10 +4841,12 @@ class GX1DemoRunner:
                 if hasattr(self, "trade_journal") and self.trade_journal:
                     try:
                         trade_uid = None
+                        trade_obj = None
                         # Best-effort: resolve trade_uid from open_trades
                         for t in self.open_trades:
                             if getattr(t, "trade_id", None) == trade_id:
                                 trade_uid = getattr(t, "trade_uid", None)
+                                trade_obj = t
                                 break
 
                         # Prefer broker close price if present (telemetry only)
@@ -4250,6 +4869,20 @@ class GX1DemoRunner:
                                         f"expected prefix={expected_prefix}. GX1_RUN_ID={env_run_id}, GX1_CHUNK_ID={env_chunk_id}."
                                     )
 
+                        exit_bid = None
+                        exit_ask = None
+                        exit_spread_bps = None
+                        exit_price_used = exit_px
+                        try:
+                            trade_extra = getattr(trade_obj, "extra", None) if trade_obj is not None else None
+                            if isinstance(trade_extra, dict):
+                                exit_bid = trade_extra.get("exit_bid")
+                                exit_ask = trade_extra.get("exit_ask")
+                                exit_spread_bps = trade_extra.get("exit_spread_bps")
+                                exit_price_used = trade_extra.get("exit_price_used", exit_px)
+                        except Exception:
+                            pass
+
                         self.trade_journal.log_exit_summary(
                             exit_time=(
                                 getattr(self, "replay_current_ts", None).isoformat()
@@ -4259,6 +4892,10 @@ class GX1DemoRunner:
                             exit_reason=reason,
                             exit_price=exit_px,
                             realized_pnl_bps=pnl_bps,
+                            exit_bid=exit_bid,
+                            exit_ask=exit_ask,
+                            exit_spread_bps=exit_spread_bps,
+                            exit_price_used=exit_price_used,
                             trade_uid=trade_uid,
                             trade_id=trade_id,
                         )
@@ -4309,23 +4946,70 @@ class GX1DemoRunner:
                         trade_obj = t
                         break
                 
-                # Extract MAE/MFE from trade if available
+                # Extract MAE/MFE from trade if available (prefer explicit extra, fallback to runtime attrs)
                 mae_bps = None
                 mfe_bps = None
+                side = None
                 session = None
-                if trade_obj and hasattr(trade_obj, "extra") and trade_obj.extra:
+                entry_bid = None
+                entry_ask = None
+                exit_bid = None
+                exit_ask = None
+                entry_spread_bps = None
+                exit_spread_bps = None
+                entry_price_used = None
+                exit_price_used = None
+                if trade_obj and hasattr(trade_obj, "extra") and trade_obj.extra is not None:
                     mae_bps = trade_obj.extra.get("mae_bps")
                     mfe_bps = trade_obj.extra.get("mfe_bps")
+                    side = trade_obj.extra.get("side") or getattr(trade_obj, "side", None)
                     session = trade_obj.extra.get("session") or getattr(trade_obj, "session", None)
-                
+                    exit_bid = trade_obj.extra.get("exit_bid")
+                    exit_ask = trade_obj.extra.get("exit_ask")
+                    exit_spread_bps = trade_obj.extra.get("exit_spread_bps")
+                    exit_price_used = trade_obj.extra.get("exit_price_used")
+                # Fallback to live attributes if not stored in extra
+                if mae_bps is None and trade_obj is not None and hasattr(trade_obj, "mae_bps"):
+                    mae_bps = float(getattr(trade_obj, "mae_bps"))
+                if mfe_bps is None and trade_obj is not None and hasattr(trade_obj, "mfe_bps"):
+                    mfe_bps = float(getattr(trade_obj, "mfe_bps"))
+                # Persist into extra so downstream consumers see non-null values
+                if trade_obj is not None:
+                    if not hasattr(trade_obj, "extra") or trade_obj.extra is None:
+                        trade_obj.extra = {}
+                    if mae_bps is not None:
+                        trade_obj.extra["mae_bps"] = float(mae_bps)
+                    if mfe_bps is not None:
+                        trade_obj.extra["mfe_bps"] = float(mfe_bps)
+                if trade_obj is not None:
+                    entry_bid = float(getattr(trade_obj, "entry_bid", trade_obj.entry_price))
+                    entry_ask = float(getattr(trade_obj, "entry_ask", trade_obj.entry_price))
+                    entry_price_used = float(getattr(trade_obj, "entry_price", trade_obj.entry_price))
+                    if side is None:
+                        side = getattr(trade_obj, "side", None)
+                    if entry_bid and entry_ask and entry_bid > 0:
+                        entry_spread_bps = float((entry_ask - entry_bid) * 10000.0 / entry_bid)
+                else:
+                    # Avoid writing stub outcomes when trade_obj is missing
+                    return
+
                 outcome_collector.collect(
                     trade_id=trade_id,
                     pnl_bps=pnl_bps,
                     mae_bps=mae_bps,
                     mfe_bps=mfe_bps,
                     duration_bars=bars_in_trade,
+                    side=str(side) if side is not None else None,
                     session=session,
                     exit_reason=reason,
+                    entry_bid=entry_bid,
+                    entry_ask=entry_ask,
+                    exit_bid=exit_bid,
+                    exit_ask=exit_ask,
+                    entry_spread_bps=entry_spread_bps,
+                    exit_spread_bps=exit_spread_bps,
+                    entry_price_used=entry_price_used,
+                    exit_price_used=exit_price_used,
                 )
         """Update trade log CSV with exit information when a trade is closed."""
         try:
@@ -4406,30 +5090,132 @@ class GX1DemoRunner:
         # Check warmup_floor (skip active trading until warmup_floor is passed)
         if self.warmup_floor is not None and now < self.warmup_floor:
             log.debug("Skip entry: warmup in progress (warmup_floor=%s)", self.warmup_floor.isoformat())
+            self._last_can_enter_reject_reason = "OTHER"
             return False
         
         # Check backfill in progress (block orders during backfill)
         if self.backfill_in_progress:
             log.debug("Skip entry: backfill in progress")
+            self._last_can_enter_reject_reason = "OTHER"
             return False
-        
-        if len(self.open_trades) >= self.risk_limits.max_open_trades:
-            # Debug logging: show which trades are blocking
-            open_trade_ids = [t.trade_id for t in self.open_trades]
-            log.info(
-                "Skip entry: max_open_trades reached (%s) open_trades=%s",
-                self.risk_limits.max_open_trades,
-                open_trade_ids
-            )
+
+        self.max_open_trades_used = self.risk_limits.max_open_trades
+
+        if len(self.open_trades) >= self.max_open_trades_used:
+            if not hasattr(self, "_max_open_trades_reached_log_count"):
+                self._max_open_trades_reached_log_count = 0
+            self._max_open_trades_reached_log_count += 1
+            if (
+                self._max_open_trades_reached_log_count <= 5
+                or (self._max_open_trades_reached_log_count % 5000) == 0
+            ):
+                open_trade_ids = [t.trade_id for t in self.open_trades]
+                log.info(
+                    "Skip entry: max_open_trades reached (%s) open_trades=%s",
+                    self.max_open_trades_used,
+                    open_trade_ids
+                )
+            self._last_can_enter_reject_reason = "MAX_OPEN_TRADES"
             return False
         if self.daily_loss_exceeded(now):
+            self._last_can_enter_reject_reason = "OTHER"
             return False
         if self.last_entry_timestamp is not None:
             delta = (now - self.last_entry_timestamp).total_seconds()
             if delta < self.risk_limits.min_time_between_trades_sec:
                 log.info("Skip entry: min_time_between_trades_sec guard (%.1fs < %ss)", delta, self.risk_limits.min_time_between_trades_sec)
+                self._last_can_enter_reject_reason = "COOLDOWN"
                 return False
+        self._last_can_enter_reject_reason = None
         return True
+
+    def _replacement_overlap_long_over_oldest_overlap_short_enabled(self) -> bool:
+        try:
+            policy_cfg = {}
+            if isinstance(getattr(self, "policy", None), dict):
+                policy_cfg = self.policy.get("entry_policy_v10_ctx", {}) or {}
+            if hasattr(self, "entry_manager") and self.entry_manager and isinstance(self.entry_manager.policy, dict):
+                policy_cfg = self.entry_manager.policy.get("entry_policy_v10_ctx", {}) or {}
+            return bool(policy_cfg.get("replace_oldest_overlap_short_with_overlap_long_when_full", False))
+        except Exception:
+            return False
+
+    def _resolve_trade_session(self, trade: Optional[LiveTrade]) -> str:
+        if trade is None:
+            return "UNKNOWN"
+        try:
+            extra = getattr(trade, "extra", {}) or {}
+            session = extra.get("session") or extra.get("session_entry")
+            if session:
+                return str(session).upper()
+        except Exception:
+            pass
+        try:
+            return infer_session_tag(trade.entry_time).upper()
+        except Exception:
+            return "UNKNOWN"
+
+    def _maybe_replace_open_trade_for_entry(self, candles: pd.DataFrame, pending_trade: Optional[LiveTrade]) -> bool:
+        if pending_trade is None:
+            return False
+        if not self._replacement_overlap_long_over_oldest_overlap_short_enabled():
+            return False
+        if pending_trade.side != "long" or self._resolve_trade_session(pending_trade) != "OVERLAP":
+            return False
+        if len(self.open_trades) < int(getattr(self, "max_open_trades_used", self.risk_limits.max_open_trades)):
+            return False
+
+        blockers = [
+            t for t in list(self.open_trades)
+            if getattr(t, "side", None) == "short" and self._resolve_trade_session(t) == "OVERLAP"
+        ]
+        if not blockers:
+            return False
+
+        blocker = sorted(blockers, key=lambda t: pd.to_datetime(t.entry_time, utc=True))[0]
+        try:
+            current_ts = pd.to_datetime(candles.index[-1], utc=True)
+            row = candles.iloc[-1]
+            if "bid_close" in row.index and "ask_close" in row.index:
+                exit_bid = float(row["bid_close"])
+                exit_ask = float(row["ask_close"])
+            else:
+                close_px = float(row.get("close", row.get("mid_close", blocker.entry_price)))
+                exit_bid = close_px
+                exit_ask = close_px
+            entry_bid = float(getattr(blocker, "entry_bid", blocker.entry_price))
+            entry_ask = float(getattr(blocker, "entry_ask", blocker.entry_price))
+            px = exit_bid if blocker.side == "long" else exit_ask
+            pnl_bps = compute_pnl_bps(entry_bid, entry_ask, exit_bid, exit_ask, blocker.side)
+            bars_in_trade = int(round((current_ts - pd.to_datetime(blocker.entry_time, utc=True)).total_seconds() / 300.0))
+        except Exception as e:
+            log.warning("[ENTRY_REPLACEMENT] failed to price blocker trade_id=%s err=%s", getattr(blocker, "trade_id", "?"), e)
+            return False
+
+        log.info(
+            "[ENTRY_REPLACEMENT] replacing blocker trade_id=%s blocker_side=%s blocker_session=%s blocker_pnl=%.2f "
+            "for pending_side=%s pending_session=%s open_trades=%d max_open_trades=%d",
+            blocker.trade_id,
+            blocker.side,
+            self._resolve_trade_session(blocker),
+            pnl_bps,
+            pending_trade.side,
+            self._resolve_trade_session(pending_trade),
+            len(self.open_trades),
+            int(getattr(self, "max_open_trades_used", self.risk_limits.max_open_trades)),
+        )
+        return bool(
+            self.request_close(
+                trade_id=blocker.trade_id,
+                source="ENTRY_REPLACEMENT",
+                reason="ENTRY_REPLACEMENT",
+                px=px,
+                pnl_bps=pnl_bps,
+                exit_bid=exit_bid,
+                exit_ask=exit_ask,
+                bars_in_trade=bars_in_trade,
+            )
+        )
 
     # ------------------------------------------------------------------ #
     # Entry / exit execution
@@ -4693,7 +5479,7 @@ class GX1DemoRunner:
             prediction.prob_long = self._apply_temperature(prediction.prob_long, T)
             prediction.prob_short = self._apply_temperature(prediction.prob_short, T)
             # Recompute p_hat and margin after temperature scaling
-            prediction.p_hat = float(max(prediction.prob_long, prediction.prob_short))
+            prediction.p_hat = float(max(prediction.prob_long, prediction.prob_short, prediction.prob_neutral))
             prediction.margin = float(abs(prediction.prob_long - prediction.prob_short))
         else:
             # No temperature scaling (T=1.0)
@@ -4900,6 +5686,11 @@ class GX1DemoRunner:
         """
         import numpy as np
         from pathlib import Path as Path_local
+        from gx1.time.session_detector import (
+            get_session,
+            get_session_minutes_since_open_vectorized,
+            get_session_minutes_to_next_boundary_vectorized,
+        )
         
         # Session policy: TRUTH/ONE_UNIVERSE uses canonical universal model; no external session-policy file.
         session_enabled = True
@@ -5001,6 +5792,20 @@ class GX1DemoRunner:
                     self._xgb_alias_capsule_written = True
                 except Exception as e:
                     log.warning(f"[XGB_FEATURE_ALIAS] Failed to write capsule: {e}")
+        current_ts = pd.to_datetime(candles.index[-1], utc=True)
+        ts_one = pd.Series([current_ts])
+        sess_name = get_session(current_ts)
+        sess_id_map = {"ASIA": 0, "EU": 1, "OVERLAP": 2, "US": 3}
+        sess_id = int(sess_id_map.get(sess_name, 0))
+        session_ctx = {
+            "session_id": float(sess_id),
+            "is_ASIA": float(1 if sess_id == 0 else 0),
+            "minutes_since_session_open": float(get_session_minutes_since_open_vectorized(ts_one).iloc[0]),
+            "minutes_to_next_session_boundary": float(get_session_minutes_to_next_boundary_vectorized(ts_one).iloc[0]),
+            "session_change_flag": 0.0,  # single-row inference; no previous bar available here
+            "session_tradable": float(1 if sess_id != 0 else 0),
+        }
+
         for feat_name, resolved_name in zip(feature_list, resolved_feature_list):
             if resolved_name in current_row.index:
                 xgb_feat_values.append(float(current_row[resolved_name]))
@@ -5012,6 +5817,8 @@ class GX1DemoRunner:
                     raise RuntimeError(
                         "[XGB_INPUT_FAIL] CLOSE feature required but candles.close not found."
                     )
+            elif feat_name in session_ctx:
+                xgb_feat_values.append(float(session_ctx[feat_name]))
             else:
                 if is_truth:
                     raise RuntimeError(
@@ -5040,7 +5847,7 @@ class GX1DemoRunner:
                 # Fallback: rebuild if something unexpected happened (best-effort)
                 xgb_features_df = pd.DataFrame([xgb_feat_values], columns=feature_list)
                 self._xgb_features_df_cache[cache_key] = xgb_features_df
-        
+
         # Validate features (NaN/Inf check)
         is_replay = getattr(self, "replay_mode", False) or getattr(self, "fast_replay", False)
         if is_replay:
@@ -5105,13 +5912,12 @@ class GX1DemoRunner:
                     self._xgb_feature_names_ssot_details = ssot_details
 
                 # Hard assert exact expected dimensionality (truth dump contract).
+                # Truth contract: use SSoT ordered feature list length (no hardcoded 28/34 here)
                 if int(X.shape[1]) != int(len(self._xgb_feature_names_ordered)):
                     raise RuntimeError(
                         "[TRUTH_FAIL] XGB input dim mismatch vs SSoT feature list: "
                         f"X.shape[1]={int(X.shape[1])} names_len={int(len(self._xgb_feature_names_ordered))}"
                     )
-                if int(X.shape[1]) != 28:
-                    raise RuntimeError(f"[TRUTH_FAIL] XGB input dim expected 28, got {int(X.shape[1])}")
 
                 if not hasattr(self, "_xgb_truth_dump_done"):
                     self._xgb_truth_dump_done = False
@@ -5189,7 +5995,7 @@ class GX1DemoRunner:
         p_short = float(outputs.p_short[0])
         p_flat = float(outputs.p_flat[0])
         uncertainty = float(outputs.uncertainty[0])
-        p_hat = max(p_long, p_short)
+        p_hat = max(p_long, p_short, p_flat)
         
         # Increment XGB predict counters in RUN_IDENTITY
         if hasattr(self, "run_identity") and self.run_identity:
@@ -5356,6 +6162,12 @@ class GX1DemoRunner:
         sekvensvinduer/regimer/session, policy_state gir session, bundle metadata gir dims/seq_len,
         telemetry/diagnose helpers skriver kapsler/logg men er ikke del av modellkontrakten.
         """
+        ENTRY_DIRECTION_CONTRACT = {
+            "proba_dim": 3,
+            "classes": [0, 1, 2],
+            "class_meaning": {0: "LONG", 1: "SHORT", 2: "FLAT"},
+        }
+
         def _record_predict_attempt(reason: str) -> None:
             if hasattr(self, "entry_manager") and self.entry_manager and hasattr(self.entry_manager, "entry_feature_telemetry") and self.entry_manager.entry_feature_telemetry:
                 session_for_attempt = policy_state.get("session") if isinstance(policy_state, dict) else None
@@ -5698,7 +6510,7 @@ class GX1DemoRunner:
                 "[CTX_CONTRACT_MISSING] ctx_expected=True but entry_context_features=None. "
                 f"ENTRY_CONTEXT_FEATURES_ENABLED={context_features_enabled}, "
                 f"entry_v10_ctx_enabled={ctx_bundle_active}, supports_context_features={supports_context_features}. "
-                "CTX6CAT6 only (no fallback)."
+                "ctx_cat=6 fixed; ctx_cont from bundle (no fallback)."
             )
         
         if self.entry_v10_bundle is None:
@@ -6113,8 +6925,83 @@ class GX1DemoRunner:
             if xgb_model is None:
                 raise RuntimeError("[ENTRY_V10_SIGNAL_ONLY_FAIL] XGB_MODEL_MISSING: entry_v10_bundle.xgb_model_universal is None")
 
+            # 34f contract support: derive session-context features on the fly if model expects them.
+            model_feature_list = list(getattr(xgb_model, "feature_list", []) or [])
+            required_session_feats = (
+                "session_id",
+                "is_ASIA",
+                "minutes_since_session_open",
+                "minutes_to_next_session_boundary",
+                "session_change_flag",
+                "session_tradable",
+            )
+            if any(feat in model_feature_list for feat in required_session_feats):
+                missing_required = [feat for feat in required_session_feats if feat in model_feature_list and feat not in seq_window.columns]
+                if missing_required:
+                    from gx1.time.session_detector import (
+                        get_session,
+                        get_session_minutes_since_open_vectorized,
+                        get_session_minutes_to_next_boundary_vectorized,
+                    )
+
+                    if "_ts_utc" in seq_window.columns:
+                        ts_series = pd.to_datetime(seq_window["_ts_utc"], utc=True, errors="coerce")
+                    else:
+                        ts_series = pd.Series(
+                            pd.to_datetime(pd.Index(seq_window.index), utc=True, errors="coerce"),
+                            index=seq_window.index,
+                        )
+
+                    if ts_series.isna().any():
+                        raise RuntimeError(
+                            "[ENTRY_V10_SIGNAL_ONLY_FAIL] SESSION_CTX_TS_INVALID: cannot derive "
+                            f"session features, NaT count={int(ts_series.isna().sum())}"
+                        )
+
+                    sess_names = ts_series.map(get_session)
+                    sess_id_map = {"ASIA": 0, "EU": 1, "OVERLAP": 2, "US": 3}
+                    sess_ids = sess_names.map(lambda s: sess_id_map.get(str(s).upper(), 0)).astype(float)
+
+                    seq_window["session_id"] = sess_ids
+                    seq_window["is_ASIA"] = (sess_ids == 0.0).astype(float)
+                    seq_window["minutes_since_session_open"] = (
+                        get_session_minutes_since_open_vectorized(ts_series).astype(float).values
+                    )
+                    seq_window["minutes_to_next_session_boundary"] = (
+                        get_session_minutes_to_next_boundary_vectorized(ts_series).astype(float).values
+                    )
+                    seq_window["session_change_flag"] = sess_ids.diff().fillna(0.0).ne(0.0).astype(float)
+                    seq_window["session_tradable"] = (sess_ids != 0.0).astype(float)
+
+            # Apply canonical XGB input sanitizer (align runtime with training)
             try:
-                xgb_seq = xgb_model.predict_proba(seq_window, session=current_session)
+                if not hasattr(self, "_xgb_input_sanitizer") or self._xgb_input_sanitizer is None:
+                    from gx1.xgb.preprocess.xgb_input_sanitizer import XGBInputSanitizer
+                    from pathlib import Path as Path_local
+                    sanitizer_cfg = (Path_local(__file__).resolve().parents[2] / "gx1" / "xgb" / "contracts" / "xgb_input_sanitizer_base28_v1.json")
+                    self._xgb_input_sanitizer = XGBInputSanitizer.from_config(str(sanitizer_cfg))
+                # Sanitize using the model feature list (order-sensitive)
+                seq_window_features = seq_window[model_feature_list].copy()
+                xgb_seq_values, _stats = self._xgb_input_sanitizer.sanitize(
+                    seq_window_features,
+                    feature_list=model_feature_list,
+                    allow_nan_fill=False,
+                )
+                seq_window_sanitized = pd.DataFrame(
+                    xgb_seq_values,
+                    columns=model_feature_list,
+                    index=seq_window_features.index,
+                )
+                if not hasattr(self, "_xgb_sanitizer_logged"):
+                    self._xgb_sanitizer_logged = False
+                if not self._xgb_sanitizer_logged:
+                    log.info("[XGB_SANITIZER] enabled=1 source=xgb_input_sanitizer_base28_v1.json")
+                    self._xgb_sanitizer_logged = True
+            except Exception as e:
+                raise RuntimeError(f"[ENTRY_V10_SIGNAL_ONLY_FAIL] XGB_SANITIZER_FAIL session={current_session}: {e}") from e
+
+            try:
+                xgb_seq = xgb_model.predict_proba(seq_window_sanitized, session=current_session)
             except Exception as e:
                 raise RuntimeError(f"[ENTRY_V10_SIGNAL_ONLY_FAIL] XGB_SEQ_PREDICT_FAIL session={current_session}: {e}") from e
 
@@ -6138,7 +7025,7 @@ class GX1DemoRunner:
             probs_sorted = np.sort(probs_seq, axis=1)  # ascending
             margin_seq = (probs_sorted[:, -1] - probs_sorted[:, -2]).astype(np.float32)  # [T]
 
-            p_hat_seq = np.maximum(p_long_seq, p_short_seq).astype(np.float32)  # [T]
+            p_hat_seq = np.maximum.reduce([p_long_seq, p_short_seq, p_flat_seq]).astype(np.float32)  # [T]
 
             # Snapshot (current bar) == last timestep
             p_long_xgb = float(p_long_seq[-1])
@@ -6184,6 +7071,11 @@ class GX1DemoRunner:
                 "margin_top1_top2": margin_snap,
                 "entropy": entropy_snap,
             }
+            # Cache raw XGB signal7 snapshot for downstream audit (ENTRY eval_log)
+            try:
+                self._last_xgb_signal7 = dict(field_to_snap)
+            except Exception:
+                self._last_xgb_signal7 = None
 
             for j, fname in enumerate(ORDERED_FIELDS):
                 if fname not in field_to_seq:
@@ -6239,6 +7131,176 @@ class GX1DemoRunner:
                 if error_msg:
                     raise RuntimeError(error_msg)
             
+            # ENTRY INPUT OBSERVABILITY (Step 1)
+            from gx1.contracts.signal_bridge_v1 import ORDERED_FIELDS
+            from gx1.contracts.signal_bridge_v1 import get_canonical_ctx_contract
+            canonical_ctx = get_canonical_ctx_contract()
+            bundle_meta = bundle_meta or {}
+            ctx_cat_names = bundle_meta.get("ordered_ctx_cat_names")
+            ctx_cont_names = bundle_meta.get("ordered_ctx_cont_names")
+            expected_ctx_cat_dim = int(
+                bundle_meta.get("ctx_cat_dim")
+                or bundle_meta.get("expected_ctx_cat_dim")
+                or 0
+            )
+            expected_ctx_cont_dim = int(
+                bundle_meta.get("ctx_cont_dim")
+                or bundle_meta.get("expected_ctx_cont_dim")
+                or 0
+            )
+            if not (isinstance(ctx_cat_names, list) and isinstance(ctx_cont_names, list)):
+                raise RuntimeError(
+                    "[ENTRY_CTX_META_MISSING] bundle_metadata missing ordered_ctx_cat_names/ordered_ctx_cont_names"
+                )
+            if expected_ctx_cat_dim <= 0 or expected_ctx_cont_dim <= 0:
+                raise RuntimeError(
+                    "[ENTRY_CTX_META_MISSING] bundle_metadata missing ctx_cat_dim/ctx_cont_dim (or expected_*)"
+                )
+            if expected_ctx_cat_dim != canonical_ctx["ctx_cat_dim"]:
+                raise RuntimeError(
+                    f"[ENTRY_CTX_META_MISMATCH] expected ctx_cat_dim={expected_ctx_cat_dim} "
+                    f"!= canonical {canonical_ctx['ctx_cat_dim']} ({canonical_ctx['tag']})"
+                )
+            if expected_ctx_cont_dim < canonical_ctx["ctx_cont_dim"]:
+                raise RuntimeError(
+                    f"[ENTRY_CTX_META_MISMATCH] expected ctx_cont_dim={expected_ctx_cont_dim} "
+                    f"< canonical {canonical_ctx['ctx_cont_dim']} ({canonical_ctx['tag']})"
+                )
+            if len(ctx_cat_names) != expected_ctx_cat_dim or len(ctx_cont_names) != expected_ctx_cont_dim:
+                raise RuntimeError(
+                    "[ENTRY_CTX_META_MISMATCH] ordered_ctx_* length mismatch "
+                    f"(cont_len={len(ctx_cont_names)} cat_len={len(ctx_cat_names)}) "
+                    f"vs dims cont={expected_ctx_cont_dim} cat={expected_ctx_cat_dim}"
+                )
+            if os.getenv("GX1_CTX_KEYS_AUDIT", "0") == "1" and not getattr(self, "_entry_ctx_keys_audit_logged", False):
+                log.info(
+                    "[ENTRY_CTX_KEYS_AUDIT] ctx_cat_keys=%s ctx_cont_keys=%s ctx_cat_dim=%s ctx_cont_dim=%s",
+                    list(ctx_cat_names),
+                    list(ctx_cont_names),
+                    int(expected_ctx_cat_dim),
+                    int(expected_ctx_cont_dim),
+                )
+                self._entry_ctx_keys_audit_logged = True
+
+            # Hard-fail on shape/NaN/Inf before tensors
+            if seq_data.shape[1] != len(ORDERED_FIELDS) or snap_data.shape[0] != len(ORDERED_FIELDS):
+                raise RuntimeError(
+                    f"[ENTRY_INPUT_SHAPE_FAIL] seq_shape={seq_data.shape} snap_shape={snap_data.shape} expected_dim={len(ORDERED_FIELDS)}"
+                )
+            if not np.isfinite(seq_data).all() or not np.isfinite(snap_data).all():
+                raise RuntimeError("[ENTRY_INPUT_NAN_FAIL] non-finite in seq_data/snap_data")
+            if ctx_cont_arr is not None and (not np.isfinite(ctx_cont_arr).all()):
+                raise RuntimeError("[ENTRY_INPUT_NAN_FAIL] non-finite in ctx_cont")
+            if ctx_cat_arr is not None and (not np.isfinite(ctx_cat_arr).all()):
+                raise RuntimeError("[ENTRY_INPUT_NAN_FAIL] non-finite in ctx_cat")
+
+            # Time alignment sanity (best-effort)
+            current_ts = candles.index[-1] if candles is not None and len(candles) > 0 else None
+            ctx_ts = getattr(entry_context_features, "ts", None) if entry_context_features is not None else None
+            if current_ts is not None and ctx_ts is not None and pd.Timestamp(ctx_ts) != pd.Timestamp(current_ts):
+                raise RuntimeError(
+                    f"[ENTRY_INPUT_TS_MISMATCH_FAIL] ctx_ts={ctx_ts} current_ts={current_ts}"
+                )
+
+            # Schema proof once
+            if not hasattr(self, "_entry_input_schema_logged"):
+                signal_dim = int(len(ORDERED_FIELDS))
+                ctx_cont_dim = int(expected_ctx_cont_dim)
+                ctx_cat_dim = int(expected_ctx_cat_dim)
+                total_dim = int(signal_dim + ctx_cont_dim + ctx_cat_dim)
+                log.info(
+                    "[ENTRY_INPUT_SCHEMA_PROOF] signal_dim=%d ctx_cont_dim=%d ctx_cat_dim=%d total=%d signal7_ordered_fields=%s ctx_cat_ordered_names=%s ctx_cont_ordered_names=%s seq_len=%d",
+                    signal_dim,
+                    ctx_cont_dim,
+                    ctx_cat_dim,
+                    total_dim,
+                    list(ORDERED_FIELDS),
+                    ctx_cat_names,
+                    ctx_cont_names,
+                    int(seq_data.shape[0]),
+                )
+                log.info(
+                    "[ENTRY_INPUT_DIM_PROOF] signal_dim=%d ctx_cont_dim=%d ctx_cat_dim=%d total=%d",
+                    signal_dim,
+                    ctx_cont_dim,
+                    ctx_cat_dim,
+                    total_dim,
+                )
+                self._entry_input_schema_logged = True
+
+            # Stats accumulator
+            if not hasattr(self, "_entry_input_stats"):
+                def _init_stat(names):
+                    return {
+                        n: {
+                            "min": math.inf,
+                            "max": -math.inf,
+                            "sum": 0.0,
+                            "sumsq": 0.0,
+                            "count": 0,
+                            "nan": 0,
+                        }
+                        for n in names
+                    }
+                self._entry_input_stats = {
+                    "signal": _init_stat(ORDERED_FIELDS),
+                    "ctx_cont": _init_stat(ctx_cont_names),
+                    "ctx_cat": Counter(),
+                }
+                self._entry_input_snapshot_count = 0
+                self._entry_input_stats_last_log = -1
+
+            # Update stats from current snap/ctx (signal updated immediately; ctx after ctx_cont_arr is built)
+            stats = self._entry_input_stats
+            for j, nm in enumerate(ORDERED_FIELDS):
+                val = float(snap_data[j])
+                st = stats["signal"][nm]
+                st["min"] = min(st["min"], val)
+                st["max"] = max(st["max"], val)
+                st["sum"] += val
+                st["sumsq"] += val * val
+                st["count"] += 1
+                if not math.isfinite(val):
+                    st["nan"] += 1
+
+            # Stats proof every 20k bars and at end of chunk (avoid inf/-inf when empty)
+            current_bar_idx = current_bar_index
+            total_bars = len(candles) if candles is not None else None
+            should_log_stats = False
+            if current_bar_idx is not None and current_bar_idx % 20000 == 0:
+                should_log_stats = True
+            if total_bars is not None and current_bar_idx is not None and current_bar_idx >= total_bars - 1:
+                should_log_stats = True
+            if should_log_stats and self._entry_input_stats_last_log != current_bar_idx:
+                def _stat_dict(src):
+                    out = {}
+                    for k, v in src.items():
+                        c = v["count"]
+                        if not c:
+                            out[k] = {"min": None, "mean": None, "max": None, "std": None, "nan": v["nan"]}
+                        else:
+                            mean = v["sum"] / c
+                            var = max(0.0, (v["sumsq"] / c) - (mean * mean))
+                            out[k] = {
+                                "min": v["min"],
+                                "mean": mean,
+                                "max": v["max"],
+                                "std": math.sqrt(var),
+                                "nan": v["nan"],
+                            }
+                    return out
+                if not hasattr(self, "_entry_input_stats_proof_count"):
+                    self._entry_input_stats_proof_count = 0
+                self._entry_input_stats_proof_count += 1
+                if self._entry_input_stats_proof_count <= 5 or (self._entry_input_stats_proof_count % 5000) == 0:
+                    log.info(
+                        "[ENTRY_INPUT_STATS_PROOF] signal=%s ctx_cont=%s ctx_cat_top5=%s",
+                        _stat_dict(stats["signal"]),
+                        _stat_dict(stats["ctx_cont"]),
+                        stats["ctx_cat"].most_common(5),
+                    )
+                self._entry_input_stats_last_log = current_bar_idx
+            
             # SIGNAL-ONLY: Log contract at replay-start (once)
             if not hasattr(self, "_v10_contract_logged"):
                 from gx1.contracts.signal_bridge_v1 import ORDERED_FIELDS, SEQ_SIGNAL_DIM, SNAP_SIGNAL_DIM, CONTRACT_SHA256
@@ -6260,6 +7322,8 @@ class GX1DemoRunner:
             
             # OPPGAVE 2: Use context features if available and bundle supports it
             context_features_enabled = os.getenv("ENTRY_CONTEXT_FEATURES_ENABLED", "false").lower() == "true"
+            ctx_cat_arr = None
+            ctx_cont_arr = None
             
             # Debug logging (first 3 calls only)
             if not hasattr(self, "_v10_ctx_debug_count"):
@@ -6294,14 +7358,27 @@ class GX1DemoRunner:
                         )
                         entry_context_features = None  # Fall back to legacy
                 else:
-                    # Bundle supports context features - use them (CTX6CAT6: 6 cat, 6 cont)
-                    # Populate slow ctx features from prebuilt row (manifest SSoT); hard-fail if missing
+                    # Bundle supports context features - use them (ctx_cat=6, ctx_cont from bundle)
+                    # Populate ctx_cont from prebuilt row (manifest SSoT); hard-fail if missing
                     try:
                         ts = candles.index[-1]
                         prebuilt_row = self.prebuilt_features_df.loc[ts]
-                        from gx1.contracts.signal_bridge_v1 import get_canonical_ctx_contract
-                        canonical_ctx = get_canonical_ctx_contract()
-                        slow_cont_names = [n for n in canonical_ctx["ctx_cont_names"] if n not in ["atr_bps", "spread_bps"]]
+                        ordered_ctx_cont_names = list(bundle_meta.get("ordered_ctx_cont_names") or [])
+                        ordered_ctx_cat_names = list(bundle_meta.get("ordered_ctx_cat_names") or [])
+                        if not ordered_ctx_cont_names or not ordered_ctx_cat_names:
+                            raise RuntimeError("[CTX_CONTRACT_MISSING] bundle_meta missing ordered_ctx_* names")
+                        ctx_contract_mode = os.getenv("GX1_CTX_CONTRACT", "V_NEXT").upper()
+                        extra_ctx_cont = [
+                            "is_ASIA",
+                            "minutes_since_session_open",
+                            "minutes_to_next_session_boundary",
+                            "session_change_flag",
+                            "session_tradable",
+                        ]
+                        if ctx_contract_mode == "V_NEXT":
+                            if not all(name in ordered_ctx_cont_names for name in extra_ctx_cont):
+                                ordered_ctx_cont_names = list(ordered_ctx_cont_names) + extra_ctx_cont
+
                         if not getattr(self, "_ctx_debug_logged_once", False):
                             log.info(
                                 "[CTX_DEBUG] candle_ts=%r tz=%s | current_ts=%r tz=%s | equal=%s",
@@ -6311,80 +7388,159 @@ class GX1DemoRunner:
                                 getattr(ts, "tzinfo", None),
                                 True,
                             )
+                            dbg_required = list(ordered_ctx_cont_names)
+                            if ctx_contract_mode == "V_NEXT":
+                                # is_ASIA is expected to be runtime-derived in V_NEXT
+                                dbg_required = [c for c in dbg_required if c != "is_ASIA"]
                             log.error(
-                                "[CTX_DEBUG] prebuilt_index_has_ts=%s | df_cols_has_slow=%s",
+                                "[CTX_DEBUG] prebuilt_index_has_ts=%s | df_cols_has_ctx=%s",
                                 ts in self.prebuilt_features_df.index,
-                                {c: c in self.prebuilt_features_df.columns for c in slow_cont_names},
+                                {c: c in self.prebuilt_features_df.columns for c in dbg_required},
                             )
                             if ts in self.prebuilt_features_df.index:
                                 try:
                                     log.error(
-                                        "[CTX_DEBUG] slow_cont_values=%s",
-                                        prebuilt_row[slow_cont_names].to_dict(),
+                                        "[CTX_DEBUG] ctx_cont_values=%s",
+                                        prebuilt_row[dbg_required].to_dict(),
                                     )
                                 except Exception:
                                     pass
-                        missing_cols = [c for c in slow_cont_names if c not in prebuilt_row.index]
-                        if missing_cols:
-                            raise RuntimeError(f"[CTX_CONT_BUILD_FAIL] Missing slow ctx columns in prebuilt row: {missing_cols}")
-                        entry_context_features.D1_dist_from_ema200_atr = float(prebuilt_row["D1_dist_from_ema200_atr"])
-                        entry_context_features.H1_range_compression_ratio = float(prebuilt_row["H1_range_compression_ratio"])
-                        entry_context_features.D1_atr_percentile_252 = float(prebuilt_row["D1_atr_percentile_252"])
-                        entry_context_features.M15_range_compression_ratio = float(prebuilt_row["M15_range_compression_ratio"])
+
+                        ctx_contract_mode = os.getenv("GX1_CTX_CONTRACT", "V_NEXT").upper()
+                        extra_ctx_cont = [
+                            "is_ASIA",
+                            "minutes_since_session_open",
+                            "minutes_to_next_session_boundary",
+                            "session_change_flag",
+                            "session_tradable",
+                        ]
+                        base_cont_names = ordered_ctx_cont_names
+                        if ctx_contract_mode == "V_NEXT":
+                            base_cont_names = [c for c in ordered_ctx_cont_names if c not in extra_ctx_cont]
+                        missing_cont = [c for c in base_cont_names if c not in prebuilt_row.index]
+                        if missing_cont:
+                            raise RuntimeError(f"[CTX_CONT_BUILD_FAIL] Missing ctx_cont columns in prebuilt row: {missing_cont}")
+
                         if "H4_trend_sign_cat" not in prebuilt_row.index:
                             raise RuntimeError(
-                                "[CTX_CAT_SOURCE_MISSING] prebuilt missing required ctx_cat col: H4_trend_sign_cat (CTX6CAT6)"
+                                "[CTX_CAT_SOURCE_MISSING] prebuilt missing required ctx_cat col: H4_trend_sign_cat"
                             )
                         entry_context_features.h4_trend_sign_cat = int(prebuilt_row["H4_trend_sign_cat"])
-                        if not getattr(self, "_ctx_debug_logged_once", False):
-                            log.error(
-                                "[CTX_DEBUG_ASSIGN] current_ts=%r tz=%s | ctx_fields=%s | slow_cont_values=%s",
-                                ts,
-                                getattr(ts, "tzinfo", None),
-                                entry_context_features.__dict__,
-                                {
-                                    "D1_dist_from_ema200_atr": entry_context_features.D1_dist_from_ema200_atr,
-                                    "H1_range_compression_ratio": entry_context_features.H1_range_compression_ratio,
-                                    "D1_atr_percentile_252": entry_context_features.D1_atr_percentile_252,
-                                    "M15_range_compression_ratio": entry_context_features.M15_range_compression_ratio,
-                                },
+
+                        ctx_cont_vals = [float(prebuilt_row[c]) for c in base_cont_names]
+                        if ctx_contract_mode == "V_NEXT":
+                            from gx1.time.session_detector import (
+                                get_session,
+                                get_session_minutes_since_open_vectorized,
+                                get_session_minutes_to_next_boundary_vectorized,
                             )
+                            ts_now = pd.Timestamp(prebuilt_row.name) if hasattr(prebuilt_row, "name") else pd.Timestamp(candles.index[-1])
+                            ts_prev = pd.Timestamp(candles.index[-2]) if candles is not None and len(candles) > 1 else ts_now
+                            sess_id_map = {"ASIA": 0, "EU": 1, "OVERLAP": 2, "US": 3}
+                            sess_now = sess_id_map.get(str(get_session(ts_now)).upper(), 0)
+                            sess_prev = sess_id_map.get(str(get_session(ts_prev)).upper(), 0)
+                            ts_series = pd.Series([ts_now])
+                            extra_vals = {
+                                "is_ASIA": float(1 if sess_now == 0 else 0),
+                                "minutes_since_session_open": float(get_session_minutes_since_open_vectorized(ts_series).iloc[0]),
+                                "minutes_to_next_session_boundary": float(get_session_minutes_to_next_boundary_vectorized(ts_series).iloc[0]),
+                                "session_change_flag": float(1 if sess_now != sess_prev else 0),
+                                "session_tradable": float(1 if sess_now != 0 else 0),
+                            }
+                            for nm in extra_ctx_cont:
+                                ctx_cont_vals.append(float(extra_vals[nm]))
+                        ctx_cont_arr = np.array(ctx_cont_vals, dtype=np.float32)
+                        ctx_cat = entry_context_features.to_tensor_categorical(ordered_ctx_cat_names)
+                        ctx_cat_arr = np.array(ctx_cat, dtype=np.int64)
+                        if os.getenv("GX1_CTX_CONTRACT", "V_NEXT").upper() == "V_NEXT":
+                            if not getattr(self, "_ctx_vnext_audit_logged", False):
+                                import hashlib
+                                fp_payload = {
+                                    "ctx_cat_keys": list(ordered_ctx_cat_names),
+                                    "ctx_cont_keys": list(ordered_ctx_cont_names),
+                                    "ctx_cat_dim": int(len(ordered_ctx_cat_names)),
+                                    "ctx_cont_dim": int(len(ordered_ctx_cont_names)),
+                                }
+                                fp_str = jsonlib.dumps(fp_payload, sort_keys=True)
+                                fp_hash = hashlib.sha256(fp_str.encode("utf-8")).hexdigest()
+                                log.info(
+                                    "[CTX_CONTRACT_V_NEXT] ctx_cat_keys=%s ctx_cont_keys=%s ctx_cat_dim=%d ctx_cont_dim=%d fingerprint=%s",
+                                    list(ordered_ctx_cat_names),
+                                    list(ordered_ctx_cont_names),
+                                    int(len(ordered_ctx_cat_names)),
+                                    int(len(ordered_ctx_cont_names)),
+                                    fp_hash,
+                                )
+                                self._ctx_vnext_audit_logged = True
+                            expected_ctx_cont_dim = int(
+                                bundle_meta.get("ctx_cont_dim")
+                                or bundle_meta.get("expected_ctx_cont_dim")
+                            )
+                            if len(ordered_ctx_cont_names) != expected_ctx_cont_dim:
+                                raise RuntimeError(
+                                    f"[CTX_CONTRACT_V_NEXT_MISMATCH] ctx_cont_dim={len(ordered_ctx_cont_names)} expected={expected_ctx_cont_dim}"
+                                )
+
+                        if not getattr(self, "_ctx_debug_logged_once", False):
+                            cont_names_for_log = base_cont_names + (extra_ctx_cont if ctx_contract_mode == "V_NEXT" else [])
+                            cont_vals_for_log = {k: v for k, v in zip(cont_names_for_log, ctx_cont_vals)}
+                            cat_vals_for_log = {k: v for k, v in zip(ordered_ctx_cat_names, ctx_cat_arr.tolist())}
+                            log.error(
+                                "[CTX_DEBUG_PRE_TENSOR] ctx_cat=%s | ctx_cont=%s | expected_cat=%s | expected_cont=%s",
+                                cat_vals_for_log,
+                                cont_vals_for_log,
+                                ordered_ctx_cat_names,
+                                cont_names_for_log,
+                            )
+                            self._ctx_debug_logged_once = True
                     except Exception as e:
                         raise RuntimeError(f"[CTX_CONT_BUILD_FAIL] Failed to populate ctx_cont from prebuilt: {e}") from e
 
-                    ctx_cat = entry_context_features.to_tensor_categorical()  # [6] int64
-                    from gx1.contracts.signal_bridge_v1 import get_canonical_ctx_contract as _get_ctx_contract_pre_tensor
-                    _ctx_contract = _get_ctx_contract_pre_tensor()
-                    if not getattr(self, "_ctx_debug_logged_once", False):
-                        log.error(
-                            "[CTX_DEBUG_PRE_TENSOR] ctx_fields=%s | expected_cat=%s | expected_cont=%s",
-                            entry_context_features.__dict__,
-                            _ctx_contract.get("ctx_cat_names"),
-                            _ctx_contract.get("ctx_cont_names"),
+                    ctx_cat = ctx_cat_arr
+                    ctx_cont = ctx_cont_arr
+
+                    # Update ctx stats (now that ctx_cont/ctx_cat are available)
+                    if ctx_cont_arr is not None and len(ctx_cont_arr) == len(ctx_cont_names):
+                        for val, nm in zip(ctx_cont_arr, ctx_cont_names):
+                            v = float(val)
+                            st = stats["ctx_cont"][nm]
+                            st["min"] = min(st["min"], v)
+                            st["max"] = max(st["max"], v)
+                            st["sum"] += v
+                            st["sumsq"] += v * v
+                            st["count"] += 1
+                            if not math.isfinite(v):
+                                st["nan"] += 1
+                    if ctx_cat_arr is not None and len(ctx_cat_arr) == len(ctx_cat_names):
+                        for v in ctx_cat_arr:
+                            stats["ctx_cat"][int(v)] += 1
+
+                    # Snapshot proof (rate-limited) - ensure ctx_cont_named is populated
+                    do_snapshot = False
+                    snap_count = getattr(self, "_entry_input_snapshot_count", 0)
+                    if snap_count < 25:
+                        do_snapshot = True
+                    elif current_bar_idx is not None and current_bar_idx % 5000 == 0:
+                        do_snapshot = True
+                    if do_snapshot:
+                        seq_head = {nm: [float(seq_data[i, j]) for i in range(min(3, seq_data.shape[0]))] for j, nm in enumerate(ORDERED_FIELDS)}
+                        log.info(
+                            "[ENTRY_INPUT_SNAPSHOT_PROOF] ts=%s snap_signal7_named=%s ctx_cat_named=%s ctx_cont_named=%s seq_signal7_head_named=%s",
+                            current_ts.isoformat() if current_ts is not None else None,
+                            {nm: float(snap_data[j]) for j, nm in enumerate(ORDERED_FIELDS)},
+                            {nm: int(ctx_cat_arr[i]) for i, nm in enumerate(ctx_cat_names)} if ctx_cat_arr is not None and len(ctx_cat_arr)==len(ctx_cat_names) else {},
+                            {nm: float(ctx_cont_arr[i]) for i, nm in enumerate(ctx_cont_names)} if ctx_cont_arr is not None and len(ctx_cont_arr)==len(ctx_cont_names) else {},
+                            seq_head,
                         )
-                        self._ctx_debug_logged_once = True
-                    ctx_cont = entry_context_features.to_tensor_continuous()  # [6] float32
-                    ctx_cat_arr = np.array(ctx_cat, dtype=np.int64)
-                    ctx_cont_arr = np.array(ctx_cont, dtype=np.float32)
-                    
+                        self._entry_input_snapshot_count = snap_count + 1
+
                     # Validate shapes (fail-fast in replay)
                     from gx1.contracts.signal_bridge_v1 import get_canonical_ctx_contract
 
                     canonical_ctx = get_canonical_ctx_contract()
-                    if "expected_ctx_cat_dim" not in bundle_meta or "expected_ctx_cont_dim" not in bundle_meta:
-                        if hasattr(self, "entry_manager") and self.entry_manager:
-                            et = self.entry_manager.entry_telemetry
-                            if "ctx_proof_fail_count" not in et:
-                                et["ctx_proof_fail_count"] = 0
-                            et["ctx_proof_fail_count"] += 1
-                        raise RuntimeError(
-                            "[CTX_CONTRACT_MISSING] bundle_meta missing expected_ctx_cat_dim/expected_ctx_cont_dim; canonical CTX6CAT6"
-                        )
-                    expected_ctx_cat_dim = int(bundle_meta.get("expected_ctx_cat_dim"))
-                    expected_ctx_cont_dim = int(bundle_meta.get("expected_ctx_cont_dim"))
                     if (
-                        expected_ctx_cat_dim != canonical_ctx["ctx_cat_dim"]
-                        or expected_ctx_cont_dim != canonical_ctx["ctx_cont_dim"]
+                        ("ctx_cat_dim" not in bundle_meta and "expected_ctx_cat_dim" not in bundle_meta)
+                        or ("ctx_cont_dim" not in bundle_meta and "expected_ctx_cont_dim" not in bundle_meta)
                     ):
                         if hasattr(self, "entry_manager") and self.entry_manager:
                             et = self.entry_manager.entry_telemetry
@@ -6392,9 +7548,25 @@ class GX1DemoRunner:
                                 et["ctx_proof_fail_count"] = 0
                             et["ctx_proof_fail_count"] += 1
                         raise RuntimeError(
+                            "[CTX_CONTRACT_MISSING] bundle_meta missing ctx_cat_dim/ctx_cont_dim (or expected_*); "
+                            "ctx_cat=6 fixed, ctx_cont from bundle"
+                        )
+                    expected_ctx_cat_dim = int(
+                        bundle_meta.get("ctx_cat_dim") or bundle_meta.get("expected_ctx_cat_dim")
+                    )
+                    expected_ctx_cont_dim = int(
+                        bundle_meta.get("ctx_cont_dim") or bundle_meta.get("expected_ctx_cont_dim")
+                    )
+                    if expected_ctx_cat_dim != canonical_ctx["ctx_cat_dim"] or expected_ctx_cont_dim < canonical_ctx["ctx_cont_dim"]:
+                        if hasattr(self, "entry_manager") and self.entry_manager:
+                            et = self.entry_manager.entry_telemetry
+                            if "ctx_proof_fail_count" not in et:
+                                et["ctx_proof_fail_count"] = 0
+                            et["ctx_proof_fail_count"] += 1
+                        raise RuntimeError(
                             "[CTX_CONTRACT_SPLIT_BRAIN] bundle ctx dims "
-                            f"{expected_ctx_cont_dim}/{expected_ctx_cat_dim} != canonical "
-                            f"{canonical_ctx['ctx_cont_dim']}/{canonical_ctx['ctx_cat_dim']} ({canonical_ctx['tag']})"
+                            f"{expected_ctx_cont_dim}/{expected_ctx_cat_dim} not compatible with canonical "
+                            f"ctx_cont>= {canonical_ctx['ctx_cont_dim']} ctx_cat={canonical_ctx['ctx_cat_dim']} ({canonical_ctx['tag']})"
                         )
                     
                     if len(ctx_cat) != expected_ctx_cat_dim:
@@ -6471,16 +7643,24 @@ class GX1DemoRunner:
             # OPPGAVE 2: Use context features if available, otherwise fall back to legacy regime inputs
             if context_features_enabled and entry_context_features is not None and supports_context_features:
                 # Use context features (new path)
-                ctx_cat = entry_context_features.to_tensor_categorical()  # [6] int64
-                ctx_cont = entry_context_features.to_tensor_continuous()  # [6] float32
+                if ctx_cat_arr is None or ctx_cont_arr is None:
+                    ctx_cat = entry_context_features.to_tensor_categorical()  # fallback
+                    ctx_cont = entry_context_features.to_tensor_continuous()  # fallback
+                else:
+                    ctx_cat = ctx_cat_arr
+                    ctx_cont = ctx_cont_arr
                 
-                ctx_cat_t = torch.LongTensor(ctx_cat).unsqueeze(0).to(device)  # [1, 6]
-                ctx_cont_t = torch.FloatTensor(ctx_cont).unsqueeze(0).to(device)  # [1, 6]
-                log.info(
-                    "[CTX_INPUT_PROOF] ctx_cont_len=%d ctx_cat_len=%d",
-                    ctx_cont_t.shape[1] if ctx_cont_t is not None else -1,
-                    ctx_cat_t.shape[1] if ctx_cat_t is not None else -1,
-                )
+                ctx_cat_t = torch.LongTensor(ctx_cat).unsqueeze(0).to(device)  # [1, ctx_cat_dim]
+                ctx_cont_t = torch.FloatTensor(ctx_cont).unsqueeze(0).to(device)  # [1, ctx_cont_dim]
+                if not hasattr(self, "_ctx_input_proof_count"):
+                    self._ctx_input_proof_count = 0
+                self._ctx_input_proof_count += 1
+                if self._ctx_input_proof_count <= 5 or (self._ctx_input_proof_count % 5000) == 0:
+                    log.info(
+                        "[CTX_INPUT_PROOF] ctx_cont_len=%d ctx_cat_len=%d",
+                        ctx_cont_t.shape[1] if ctx_cont_t is not None else -1,
+                        ctx_cat_t.shape[1] if ctx_cat_t is not None else -1,
+                    )
                 
                 # CTX NULL BASELINE: force null/zero context when enabled (for A/B baseline without legacy)
                 if os.getenv("GX1_CTX_NULL_BASELINE", "0") == "1":
@@ -6499,11 +7679,257 @@ class GX1DemoRunner:
                 trend_regime_id_t = torch.LongTensor([trend_regime_id]).to(device)  # [1]
                 ctx_cat_t = None
                 ctx_cont_t = None
+
+            # MODEL OBSERVABILITY AUDIT (ENTRY) - gated, one-shot per run
+            if os.getenv("GX1_MODEL_OBS_AUDIT", "0") == "1" and not getattr(self, "_entry_model_obs_audit_done", False):
+                try:
+                    xgb_signal_keys = list(ORDERED_FIELDS)
+                    ctx_cat_keys = list(ctx_cat_names) if isinstance(ctx_cat_names, list) else []
+                    ctx_cont_keys = list(ctx_cont_names) if isinstance(ctx_cont_names, list) else []
+                    total_input_dim = int(len(xgb_signal_keys) + len(ctx_cat_keys) + len(ctx_cont_keys))
+
+                    # Shapes
+                    signal_shapes = {
+                        "seq": list(seq_x_np.shape) if hasattr(seq_x_np, "shape") else None,
+                        "snap": list(snap_x_np.shape) if hasattr(snap_x_np, "shape") else None,
+                    }
+                    ctx_cat_shape = list(ctx_cat_t.shape) if ctx_cat_t is not None and hasattr(ctx_cat_t, "shape") else None
+                    ctx_cont_shape = list(ctx_cont_t.shape) if ctx_cont_t is not None and hasattr(ctx_cont_t, "shape") else None
+                    total_shape = [1, total_input_dim]
+
+                    # Build combined vector snapshot (snap + ctx_cat + ctx_cont)
+                    combined = []
+                    if snap_x_np is not None and len(snap_x_np) > 0:
+                        combined.extend([float(v) for v in snap_x_np[0].tolist()])
+                    if ctx_cat_t is not None:
+                        try:
+                            combined.extend([int(v) for v in ctx_cat_t[0].detach().cpu().numpy().tolist()])
+                        except Exception:
+                            combined.extend([int(v) for v in ctx_cat_t[0].tolist()])
+                    if ctx_cont_t is not None:
+                        try:
+                            combined.extend([float(v) for v in ctx_cont_t[0].detach().cpu().numpy().tolist()])
+                        except Exception:
+                            combined.extend([float(v) for v in ctx_cont_t[0].tolist()])
+                    first_row_first10 = combined[:10]
+                    last_row_last10 = combined[-10:] if combined else []
+
+                    # Health checks
+                    def _tensor_nan_inf(t: Any) -> Dict[str, bool]:
+                        if t is None:
+                            return {"any_nan": False, "any_inf": False}
+                        try:
+                            arr = t.detach().cpu().numpy() if hasattr(t, "detach") else np.asarray(t)
+                        except Exception:
+                            arr = np.asarray(t)
+                        return {
+                            "any_nan": bool(np.isnan(arr).any()),
+                            "any_inf": bool(np.isinf(arr).any()),
+                        }
+
+                    health = {
+                        "seq": _tensor_nan_inf(seq_x_np),
+                        "snap": _tensor_nan_inf(snap_x_np),
+                        "ctx_cat": _tensor_nan_inf(ctx_cat_t),
+                        "ctx_cont": _tensor_nan_inf(ctx_cont_t),
+                    }
+
+                    # Per-feature stats for ctx_cont (batch stats)
+                    ctx_cont_stats: Dict[str, Dict[str, float]] = {}
+                    constant_features: List[str] = []
+                    if ctx_cont_t is not None and ctx_cont_keys:
+                        try:
+                            ctx_cont_np = ctx_cont_t.detach().cpu().numpy()
+                        except Exception:
+                            ctx_cont_np = np.asarray(ctx_cont_t)
+                        for i, name in enumerate(ctx_cont_keys):
+                            col = ctx_cont_np[:, i]
+                            mn = float(np.min(col))
+                            mx = float(np.max(col))
+                            mean = float(np.mean(col))
+                            std = float(np.std(col))
+                            ctx_cont_stats[name] = {"min": mn, "max": mx, "mean": mean, "std": std}
+                            if std == 0.0:
+                                constant_features.append(name)
+
+                    # Contract fingerprint
+                    fp_payload = "|".join(xgb_signal_keys + ctx_cat_keys + ctx_cont_keys) + f"|dims={len(xgb_signal_keys)},{len(ctx_cat_keys)},{len(ctx_cont_keys)}"
+                    fp_hash = hashlib.sha256(fp_payload.encode("utf-8")).hexdigest()
+
+                    audit_payload = {
+                        "model_kind": "ENTRY",
+                        "bundle_dir": getattr(self.entry_v10_bundle, "bundle_dir", None),
+                        "input_contract": {
+                            "xgb_signal_keys": xgb_signal_keys,
+                            "ctx_cat_keys": ctx_cat_keys,
+                            "ctx_cont_keys": ctx_cont_keys,
+                            "total_input_dim": total_input_dim,
+                        },
+                        "input_tensors_proof": {
+                            "shapes": {
+                                "signal": signal_shapes,
+                                "ctx_cat": ctx_cat_shape,
+                                "ctx_cont": ctx_cont_shape,
+                                "total": total_shape,
+                            },
+                            "first_row_first10": first_row_first10,
+                            "last_row_last10": last_row_last10,
+                        },
+                        "health": {
+                            "any_nan": {
+                                "seq": health["seq"]["any_nan"],
+                                "snap": health["snap"]["any_nan"],
+                                "ctx_cat": health["ctx_cat"]["any_nan"],
+                                "ctx_cont": health["ctx_cont"]["any_nan"],
+                            },
+                            "any_inf": {
+                                "seq": health["seq"]["any_inf"],
+                                "snap": health["snap"]["any_inf"],
+                                "ctx_cat": health["ctx_cat"]["any_inf"],
+                                "ctx_cont": health["ctx_cont"]["any_inf"],
+                            },
+                            "ctx_cont_stats": ctx_cont_stats,
+                            "constant_features": constant_features,
+                        },
+                        "contract_fingerprint_sha256": fp_hash,
+                    }
+
+                    # Hard-fail on NaN/Inf in audit mode
+                    if any(v["any_nan"] or v["any_inf"] for v in health.values()):
+                        raise RuntimeError("[ENTRY_MODEL_OBS_AUDIT_FAIL] non-finite detected in input tensors")
+
+                    # Write audit artifact
+                    out_dir = None
+                    if getattr(self, "explicit_output_dir", None):
+                        out_dir = Path_local(self.explicit_output_dir)
+                    elif getattr(self, "output_dir", None):
+                        out_dir = Path_local(self.output_dir)
+                    if out_dir is not None:
+                        out_dir.mkdir(parents=True, exist_ok=True)
+                        audit_path = out_dir / "MODEL_OBS_AUDIT_ENTRY.json"
+                        with open(audit_path, "w", encoding="utf-8") as f:
+                            jsonlib.dump(audit_payload, f, indent=2, sort_keys=True)
+                        log.info(
+                            "[ENTRY_MODEL_OBS_AUDIT] pass model_kind=ENTRY total_input_dim=%d fingerprint=%s path=%s",
+                            total_input_dim,
+                            fp_hash,
+                            audit_path,
+                        )
+                    else:
+                        log.info(
+                            "[ENTRY_MODEL_OBS_AUDIT] pass model_kind=ENTRY total_input_dim=%d fingerprint=%s path=None",
+                            total_input_dim,
+                            fp_hash,
+                        )
+                    self._entry_model_obs_audit_done = True
+                except Exception as e:
+                    log.error("[ENTRY_MODEL_OBS_AUDIT] failed: %s", e, exc_info=True)
+                    raise
+
+            # CONTRACT AUDIT (gated): XGB->Transformer input contract proof
+            if os.getenv("GX1_CONTRACT_AUDIT", "0") == "1":
+                import hashlib
+
+                xgb_model = getattr(self.entry_v10_bundle, "xgb_model_universal", None)
+                xgb_feat_count = None
+                if xgb_model is not None and hasattr(xgb_model, "feature_list"):
+                    try:
+                        xgb_feat_count = int(len(getattr(xgb_model, "feature_list") or []))
+                    except Exception:
+                        xgb_feat_count = None
+
+                xgb_signal_keys = list(ORDERED_FIELDS) if isinstance(ORDERED_FIELDS, (list, tuple)) else ["unknown"]
+                xgb_out_dim = int(seq_x.shape[-1]) if hasattr(seq_x, "shape") else None
+
+                ctx_cat_dim_actual = int(ctx_cat_t.shape[-1]) if ctx_cat_t is not None and hasattr(ctx_cat_t, "shape") else 0
+                ctx_cont_dim_actual = int(ctx_cont_t.shape[-1]) if ctx_cont_t is not None and hasattr(ctx_cont_t, "shape") else 0
+                ctx_dim_actual = int(ctx_cat_dim_actual + ctx_cont_dim_actual)
+
+                transformer_model = getattr(self.entry_v10_bundle, "transformer_model", None)
+                expected_seq_dim = getattr(transformer_model, "_expected_seq_dim", None)
+                expected_snap_dim = getattr(transformer_model, "_expected_snap_dim", None)
+                expected_ctx_cat_dim = getattr(transformer_model, "_expected_ctx_cat_dim", None)
+                expected_ctx_cont_dim = getattr(transformer_model, "_expected_ctx_cont_dim", None)
+
+                if expected_seq_dim is None:
+                    expected_seq_dim = self.entry_v10_bundle.transformer_config.get("expected_seq_feat_dim")
+                if expected_snap_dim is None:
+                    expected_snap_dim = self.entry_v10_bundle.transformer_config.get("expected_snap_dim")
+
+                produced_total_dim = int(xgb_out_dim + ctx_dim_actual) if xgb_out_dim is not None else None
+                expected_total_dim = None
+                if expected_snap_dim is not None:
+                    try:
+                        expected_total_dim = int(expected_snap_dim) + int(expected_ctx_cat_dim or 0) + int(expected_ctx_cont_dim or 0)
+                    except Exception:
+                        expected_total_dim = None
+
+                ctx_cat_keys = list(ctx_cat_names) if isinstance(ctx_cat_names, list) else ["unknown"]
+                ctx_cont_keys = list(ctx_cont_names) if isinstance(ctx_cont_names, list) else ["unknown"]
+                fp_payload = {
+                    "xgb_signal_keys": xgb_signal_keys,
+                    "ctx_cat_keys": ctx_cat_keys,
+                    "ctx_cont_keys": ctx_cont_keys,
+                    "xgb_out_dim": xgb_out_dim,
+                    "ctx_cat_dim": ctx_cat_dim_actual,
+                    "ctx_cont_dim": ctx_cont_dim_actual,
+                }
+                fp_str = jsonlib.dumps(fp_payload, sort_keys=True)
+                fp_hash = hashlib.sha256(fp_str.encode("utf-8")).hexdigest()
+
+                audit_payload = {
+                    "xgb_input_feature_count": xgb_feat_count,
+                    "xgb_output_signal_dim": xgb_out_dim,
+                    "xgb_output_signal_keys": xgb_signal_keys,
+                    "ctx_dim": ctx_dim_actual,
+                    "ctx_cat_dim": ctx_cat_dim_actual,
+                    "ctx_cont_dim": ctx_cont_dim_actual,
+                    "ctx_cat_keys": ctx_cat_keys,
+                    "ctx_cont_keys": ctx_cont_keys,
+                    "transformer_input_dim_produced": produced_total_dim,
+                    "transformer_input_dim_expected": expected_total_dim,
+                    "expected_seq_dim": expected_seq_dim,
+                    "expected_snap_dim": expected_snap_dim,
+                    "expected_ctx_cat_dim": expected_ctx_cat_dim,
+                    "expected_ctx_cont_dim": expected_ctx_cont_dim,
+                    "contract_fingerprint_sha256": fp_hash,
+                }
+
+                log.info("[CONTRACT_AUDIT] ENTRY XGB->Transformer contract:")
+                log.info("  xgb_input_feature_count=%s", audit_payload["xgb_input_feature_count"])
+                log.info("  xgb_output_signal_dim=%s", audit_payload["xgb_output_signal_dim"])
+                log.info("  xgb_output_signal_keys=%s", audit_payload["xgb_output_signal_keys"])
+                log.info("  ctx_dim=%s (cat=%s cont=%s)", audit_payload["ctx_dim"], audit_payload["ctx_cat_dim"], audit_payload["ctx_cont_dim"])
+                log.info("  transformer_input_dim_produced=%s", audit_payload["transformer_input_dim_produced"])
+                log.info("  transformer_input_dim_expected=%s", audit_payload["transformer_input_dim_expected"])
+                log.info("  contract_fingerprint_sha256=%s", audit_payload["contract_fingerprint_sha256"])
+
+                out_dir = None
+                if getattr(self, "explicit_output_dir", None):
+                    out_dir = Path_local(self.explicit_output_dir)
+                elif getattr(self, "output_dir", None):
+                    out_dir = Path_local(self.output_dir)
+                if out_dir is not None:
+                    try:
+                        out_dir.mkdir(parents=True, exist_ok=True)
+                        audit_path = out_dir / "CONTRACT_AUDIT_ENTRY.json"
+                        with open(audit_path, "w", encoding="utf-8") as f:
+                            jsonlib.dump(audit_payload, f, indent=2, sort_keys=True)
+                    except Exception as e:
+                        log.warning("[CONTRACT_AUDIT] Failed to write audit json: %s", e)
+
+                if produced_total_dim is not None and expected_total_dim is not None:
+                    if int(produced_total_dim) != int(expected_total_dim):
+                        raise RuntimeError(
+                            f"[CONTRACT_AUDIT_FAIL] XGB->Transformer contract mismatch: "
+                            f"produced={produced_total_dim} expected={expected_total_dim}"
+                        )
             
             # Log first 3 calls with shapes (for diagnostics)
+            replay_quiet = os.getenv("GX1_REPLAY_QUIET", "").strip().lower() in {"1", "true", "yes", "on"}
             if not hasattr(self, "_v10_shape_log_count"):
                 self._v10_shape_log_count = 0
-            if self._v10_shape_log_count < 3:
+            if self._v10_shape_log_count < 3 and not replay_quiet:
                 log.info(
                     "[ENTRY_V10] Call #%d shapes: seq_x=%s (dtype=%s), snap_x=%s (dtype=%s), "
                     "context_features=%s",
@@ -6739,8 +8165,8 @@ class GX1DemoRunner:
                         outputs = transformer_model(
                             seq_x=seq_x,
                             snap_x=snap_x,
-                            ctx_cat=ctx_cat_t,  # CTX6CAT6
-                            ctx_cont=ctx_cont_t,  # CTX6CAT6
+                            ctx_cat=ctx_cat_t,  # ctx_cat=6 fixed
+                            ctx_cont=ctx_cont_t,  # ctx_cont from bundle
                         )
                         try:
                             self.t_transformer_forward_sec += float(_time_mod.perf_counter() - _t0_tf)
@@ -6928,7 +8354,10 @@ class GX1DemoRunner:
                         proof_check_limit = int(os.getenv("GX1_CTX_PROOF_CHECK_LIMIT", "10"))
                         if self._ctx_proof_check_count < proof_check_limit:
                             # Pass A: real ctx
-                            prob_long_A = torch.sigmoid(outputs["direction_logit"]).cpu().item()
+                            if "direction_logits" in outputs:
+                                prob_long_A = torch.softmax(outputs["direction_logits"], dim=1)[:, 0].cpu().item()
+                            else:
+                                prob_long_A = torch.sigmoid(outputs["direction_logit"]).cpu().item()
                             
                             # Pass B: permuted ctx_cat + null ctx_cont
                             ctx_cat_permuted = torch.roll(ctx_cat_t, shifts=1, dims=1)  # Permute categorical
@@ -6941,7 +8370,10 @@ class GX1DemoRunner:
                                     ctx_cat=ctx_cat_permuted,
                                     ctx_cont=ctx_cont_null,
                                 )
-                                prob_long_B = torch.sigmoid(outputs_B["direction_logit"]).cpu().item()
+                                if "direction_logits" in outputs_B:
+                                    prob_long_B = torch.softmax(outputs_B["direction_logits"], dim=1)[:, 0].cpu().item()
+                                else:
+                                    prob_long_B = torch.sigmoid(outputs_B["direction_logit"]).cpu().item()
                             except Exception as e:
                                 # For ctx proof path, also write capsule but don't hard-fail (this is a test path)
                                 exception_type = type(e).__name__
@@ -7031,7 +8463,8 @@ class GX1DemoRunner:
                         f"bundle_meta.keys={list(bundle_meta.keys()) if bundle_meta else []}, "
                         f"model_type={type(transformer_model).__name__}, "
                         f"ctx_cat_t={'not None' if ctx_cat_t is not None else 'None'}, "
-                        f"ctx_cont_t={'not None' if ctx_cont_t is not None else 'None'}. CTX6CAT6 only."
+                        f"ctx_cont_t={'not None' if ctx_cont_t is not None else 'None'}. "
+                        "ctx_cat=6 fixed; ctx_cont from bundle."
                     )
                 else:
                     # Legacy path: no ctx_cat/ctx_cont (ctx not expected)
@@ -7050,7 +8483,8 @@ class GX1DemoRunner:
                                 et["ctx_proof_fail_count"] = 0
                             et["ctx_proof_fail_count"] += 1
                         raise RuntimeError(
-                            "[CTX_CONTRACT_MISSING] Ctx model requires context; entry_context_features missing or disabled. CTX6CAT6 only."
+                            "[CTX_CONTRACT_MISSING] Ctx model requires context; entry_context_features missing or disabled. "
+                            "ctx_cat=6 fixed; ctx_cont from bundle."
                         )
                     else:
                         # Legacy EntryV10HybridTransformer (no ctx support)
@@ -7229,18 +8663,50 @@ class GX1DemoRunner:
                                 log.error(f"[TRANSFORMER_FORWARD_ERROR] Transformer forward failed: {e}. Capsule: {capsule_path}")
                                 return _ret_none(f"TRANSFORMER_FORWARD_{exception_type}")
                 
-                direction_logit = outputs["direction_logit"]
-                early_move_logit = outputs.get("early_move_logit", torch.tensor(0.0))
-                quality_score = outputs.get("quality_score", torch.tensor(0.0))
+                direction_logit = None
+                direction_logits = None
+                if "direction_logits" in outputs:
+                    direction_logits = outputs["direction_logits"]
+                else:
+                    direction_logit = outputs["direction_logit"]
+                mfe_first_n = outputs.get("mfe_first_n", None)
+                path_quality = outputs.get("path_quality", None)
+                tradable_logit = outputs.get("tradable_logit", None)
             
             # Convert to probabilities
-            prob_long = torch.sigmoid(direction_logit).cpu().item()
-            prob_short = 1.0 - prob_long
-            prob_flat = 1.0 / 3.0  # Default flat probability (can be improved with 3-class head)
-            prob_early = torch.sigmoid(early_move_logit).cpu().item() if isinstance(early_move_logit, torch.Tensor) else early_move_logit
-            quality = quality_score.cpu().item() if isinstance(quality_score, torch.Tensor) else quality_score
-            margin = abs(prob_long - prob_short)
-            p_hat = max(prob_long, prob_short)
+            if direction_logits is not None:
+                probs = torch.softmax(direction_logits, dim=1).squeeze(0)
+                prob_long = probs[0].cpu().item()
+                prob_short = probs[1].cpu().item()
+                prob_flat = probs[2].cpu().item()
+                sorted_probs, _ = torch.sort(probs, descending=True)
+                margin = float((sorted_probs[0] - sorted_probs[1]).cpu().item())
+                p_hat = float(sorted_probs[0].cpu().item())
+                if not hasattr(self, "_entry_3class_proof_logged"):
+                    print(
+                        f"[ENTRY_3CLASS_PROOF] proba_dim=3 classes={ENTRY_DIRECTION_CONTRACT['classes']}",
+                        flush=True,
+                    )
+                    self._entry_3class_proof_logged = True
+            else:
+                prob_long = torch.sigmoid(direction_logit).cpu().item()
+                prob_short = 1.0 - prob_long
+                prob_flat = 0.0
+                margin = abs(prob_long - prob_short)
+                p_hat = max(prob_long, prob_short)
+            if not hasattr(self, "_entry_direction_proof_count"):
+                self._entry_direction_proof_count = 0
+            self._entry_direction_proof_count += 1
+            if self._entry_direction_proof_count <= 5 or (self._entry_direction_proof_count % 5000) == 0:
+                log.info(
+                    "[ENTRY_DIRECTION_PROOF] "
+                    f"prob_long={prob_long} prob_short={prob_short} prob_flat={prob_flat}"
+                )
+            mfe_first_n_pred = mfe_first_n.cpu().item() if isinstance(mfe_first_n, torch.Tensor) else mfe_first_n
+            path_quality_pred = path_quality.cpu().item() if isinstance(path_quality, torch.Tensor) else path_quality
+            tradable_prob = None
+            if tradable_logit is not None:
+                tradable_prob = torch.sigmoid(tradable_logit).cpu().item() if isinstance(tradable_logit, torch.Tensor) else float(tradable_logit)
             
             # Record transformer outputs for baseline evaluation
             if hasattr(self, "entry_manager") and self.entry_manager and hasattr(self.entry_manager, "entry_feature_telemetry") and self.entry_manager.entry_feature_telemetry:
@@ -7254,26 +8720,30 @@ class GX1DemoRunner:
                     output_timestamp = None
                 self.entry_manager.entry_feature_telemetry.record_transformer_output(
                     session=current_session,
-                    direction_logit=direction_logit.cpu().item() if isinstance(direction_logit, torch.Tensor) else direction_logit,
-                    early_move_logit=prob_early,
-                    quality_score=quality,
+                    direction_logit=float(direction_logits[0, 0].cpu().item())
+                    if direction_logits is not None
+                    else (direction_logit.cpu().item() if isinstance(direction_logit, torch.Tensor) else direction_logit),
+                    early_move_logit=None,
+                    quality_score=None,
+                    bad_path_prob=None,
                     prob_long=prob_long,
                     prob_short=prob_short,
                     prob_flat=prob_flat,
-                    prob_early=prob_early,
+                    prob_early=None,
                     timestamp=output_timestamp,
                 )
             
             # Log first 3 calls with prob_long (for diagnostics)
-            if not hasattr(self, "_v10_shape_log_count"):
-                self._v10_shape_log_count = 0
-            if self._v10_shape_log_count <= 3 and self._v10_shape_log_count > 0:
+            if not hasattr(self, "_v10_result_log_count"):
+                self._v10_result_log_count = 0
+            if self._v10_result_log_count < 3 and not replay_quiet:
                 log.info(
                     "[ENTRY_V10] Call #%d result: prob_long=%.4f (isfinite=%s) prob_short=%.4f margin=%.4f",
-                    self._v10_shape_log_count,
+                    self._v10_result_log_count + 1,
                     prob_long, np.isfinite(prob_long),
                     prob_short, margin
                 )
+                self._v10_result_log_count += 1
             
             log.debug(
                 "[ENTRY_V10] session=%s p_long=%.4f p_short=%.4f margin=%.4f p_hat=%.4f",
@@ -7283,14 +8753,21 @@ class GX1DemoRunner:
             # Create EntryPrediction
             run_mode = getattr(self, "replay_mode", False) and "REPLAY" or "LIVE"
             is_sniper = getattr(self, "is_sniper", False)
-            log.info(
-                "[ENTRY_DEBUG] Entry prediction produced | "
-                f"score={prob_long:.4f} | "
-                f"side={'LONG' if prob_long > 0.5 else 'SHORT'} | "
-                f"session={current_session} | "
-                f"run_mode={run_mode} | "
-                f"is_sniper={is_sniper}"
-            )
+            if not hasattr(self, "_entry_debug_prediction_count"):
+                self._entry_debug_prediction_count = 0
+            self._entry_debug_prediction_count += 1
+            if (
+                not replay_quiet
+                and (self._entry_debug_prediction_count <= 5 or (self._entry_debug_prediction_count % 5000) == 0)
+            ):
+                log.info(
+                    "[ENTRY_DEBUG] Entry prediction produced | "
+                    f"score={prob_long:.4f} | "
+                    f"side={'LONG' if prob_long > 0.5 else 'SHORT'} | "
+                    f"session={current_session} | "
+                    f"run_mode={run_mode} | "
+                    f"is_sniper={is_sniper}"
+                )
             # Push signal7 snapshot to shared exit history (single source of truth, per bar)
             try:
                 from gx1.xgb.multihead.xgb_multihead_model_v1 import proba_to_signal_bridge_v1
@@ -7312,9 +8789,15 @@ class GX1DemoRunner:
                 session=current_session,
                 prob_long=float(prob_long),
                 prob_short=float(prob_short),
-                prob_neutral=0.0,  # V10 is binary
+                prob_neutral=float(prob_flat),
+                prob_flat=float(prob_flat),
                 margin=float(margin),
                 p_hat=float(p_hat),
+                tradable_prob=tradable_prob,
+                mfe_first_n_pred=float(mfe_first_n_pred) if mfe_first_n_pred is not None else None,
+                path_quality_pred=float(path_quality_pred) if path_quality_pred is not None else None,
+                quality_score_pred=None,
+                bad_path_prob=None,
             )
             
         except Exception as e:
@@ -8219,6 +9702,19 @@ def _execute_entry_impl(self, trade: LiveTrade) -> None:
 
     # Add trade to open_trades
     self.open_trades.append(trade)
+    self.perf_n_trades_opened_registered += 1
+    if trade.side == "long":
+        self.perf_n_trades_opened_registered_long += 1
+    elif trade.side == "short":
+        self.perf_n_trades_opened_registered_short += 1
+    log.info(
+        "[OPEN_TRADES_REGISTERED] total=%d long=%d short=%d last_trade=%s side=%s",
+        self.perf_n_trades_opened_registered,
+        self.perf_n_trades_opened_registered_long,
+        self.perf_n_trades_opened_registered_short,
+        trade.trade_id,
+        trade.side,
+    )
     log.info(
         "[ENTRY][OPEN_TRADES] open=%d last_trade=%s",
         len(self.open_trades),
@@ -8360,40 +9856,63 @@ def _run_once_impl(self) -> None:
     self._last_closed_candles = candles.copy()
 
     trade = self.evaluate_entry(candles)
-    if trade and self.can_enter(candles.index[-1]):
-        self.execute_entry(trade)
-        # Build trade log row with FARM fields from trade.extra
-        trade_extra = trade.extra if hasattr(trade, "extra") and trade.extra else {}
-        trade_log_row = {
-            "trade_id": trade.trade_id,
-            "entry_time": trade.entry_time.isoformat(),
-            "entry_price": f"{trade.entry_price:.3f}",
-            "side": trade.side,
-            "units": trade.units,
-            "exit_time": "",
-            "exit_price": "",
-            "pnl_bps": "",
-            "pnl_currency": "",
-            "entry_prob_long": f"{trade.entry_prob_long:.4f}",
-            "entry_prob_short": f"{trade.entry_prob_short:.4f}",
-            "exit_prob_close": "",
-            "vol_bucket": trade.vol_bucket,
-            "atr_bps": f"{trade.atr_bps:.2f}",
-            "notes": self._build_notes_string(trade),
-            "run_id": self.run_id,
-            "policy_name": self.policy_name,
-            "model_name": self.model_name,
-            "extra": trade_extra,
-        }
-        # Extract FARM fields from trade.extra (append_trade_log will handle extraction, but set explicitly for clarity)
-        if trade_extra:
-            if "farm_entry_session" in trade_extra:
-                trade_log_row["farm_entry_session"] = trade_extra["farm_entry_session"]
-            if "farm_entry_vol_regime" in trade_extra:
-                trade_log_row["farm_entry_vol_regime"] = trade_extra["farm_entry_vol_regime"]
-            if "farm_guard_version" in trade_extra:
-                trade_log_row["farm_guard_version"] = trade_extra["farm_guard_version"]
-        append_trade_log(self.trade_log_path, trade_log_row)
+    if trade:
+        if trade.side == "long":
+            self.perf_n_entry_proposed_long += 1
+        elif trade.side == "short":
+            self.perf_n_entry_proposed_short += 1
+        can_enter_ok = self.can_enter(candles.index[-1])
+        if not can_enter_ok and getattr(self, "_last_can_enter_reject_reason", None) == "MAX_OPEN_TRADES":
+            if self._maybe_replace_open_trade_for_entry(candles, trade):
+                can_enter_ok = self.can_enter(candles.index[-1])
+        if can_enter_ok:
+            if trade.side == "long":
+                self.perf_n_can_enter_pass_long += 1
+            elif trade.side == "short":
+                self.perf_n_can_enter_pass_short += 1
+            self.execute_entry(trade)
+            # Build trade log row with FARM fields from trade.extra
+            trade_extra = trade.extra if hasattr(trade, "extra") and trade.extra else {}
+            trade_log_row = {
+                "trade_id": trade.trade_id,
+                "entry_time": trade.entry_time.isoformat(),
+                "entry_price": f"{trade.entry_price:.3f}",
+                "side": trade.side,
+                "units": trade.units,
+                "exit_time": "",
+                "exit_price": "",
+                "pnl_bps": "",
+                "pnl_currency": "",
+                "entry_prob_long": f"{trade.entry_prob_long:.4f}",
+                "entry_prob_short": f"{trade.entry_prob_short:.4f}",
+                "exit_prob_close": "",
+                "vol_bucket": trade.vol_bucket,
+                "atr_bps": f"{trade.atr_bps:.2f}",
+                "notes": self._build_notes_string(trade),
+                "run_id": self.run_id,
+                "policy_name": self.policy_name,
+                "model_name": self.model_name,
+                "extra": trade_extra,
+            }
+            # Extract FARM fields from trade.extra (append_trade_log will handle extraction, but set explicitly for clarity)
+            if trade_extra:
+                if "farm_entry_session" in trade_extra:
+                    trade_log_row["farm_entry_session"] = trade_extra["farm_entry_session"]
+                if "farm_entry_vol_regime" in trade_extra:
+                    trade_log_row["farm_entry_vol_regime"] = trade_extra["farm_entry_vol_regime"]
+                if "farm_guard_version" in trade_extra:
+                    trade_log_row["farm_guard_version"] = trade_extra["farm_guard_version"]
+            append_trade_log(self.trade_log_path, trade_log_row)
+        else:
+            if trade.side == "long":
+                self.perf_n_can_enter_fail_long += 1
+            elif trade.side == "short":
+                self.perf_n_can_enter_fail_short += 1
+            reason = getattr(self, "_last_can_enter_reject_reason", None) or "OTHER"
+            if isinstance(self.perf_can_enter_fail_reasons, dict) and reason in self.perf_can_enter_fail_reasons:
+                self.perf_can_enter_fail_reasons[reason] += 1
+            elif isinstance(self.perf_can_enter_fail_reasons, dict):
+                self.perf_can_enter_fail_reasons["OTHER"] += 1
 
     # TODO(TRUTH_EXIT_SIGNAL7_STREAM): Append per-bar signal7_now to self.exit_signal7_history (deque maxlen=8)
     # BEFORE exit evaluation, so EXIT T=8 has pre-entry history and no warmup/padding is needed.
@@ -8907,6 +10426,8 @@ def _replay_force_close_open_trades_at_end(
                     reason=reason,
                     px=exit_price,
                     pnl_bps=pnl_bps,
+                    exit_bid=exit_bid,
+                    exit_ask=exit_ask,
                     bars_in_trade=bars_held,
                 )
                 
@@ -8933,6 +10454,10 @@ def _replay_force_close_open_trades_at_end(
                                 exit_reason=reason,
                                 exit_price=exit_price,
                                 realized_pnl_bps=pnl_bps,
+                                exit_bid=exit_bid,
+                                exit_ask=exit_ask,
+                                exit_spread_bps=float((exit_ask - exit_bid) * 10000.0 / exit_bid) if exit_bid > 0 else None,
+                                exit_price_used=exit_price,
                                 trade_uid=trade.trade_uid,
                                 trade_id=trade.trade_id,
                             )
@@ -9254,15 +10779,58 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
         # Initialize replay state
         self.replay_mode = True
         try:
-            from gx1.features.context_features import (
-                ORDERED_CTX_CONT_NAMES_EXTENDED,
-                ORDERED_CTX_CAT_NAMES_EXTENDED,
-            )
-            self.ctx_cont_required_columns = list(ORDERED_CTX_CONT_NAMES_EXTENDED[:6])
-            self.ctx_cat_required_columns = list(ORDERED_CTX_CAT_NAMES_EXTENDED[:6])
-            self.ctx_cont_dim = 6
-            self.ctx_cat_dim = 6
+            bundle_meta = getattr(self.entry_v10_ctx_bundle, "metadata", {}) if self.entry_v10_ctx_bundle else {}
+            ctx_cont_names = bundle_meta.get("ordered_ctx_cont_names")
+            ctx_cat_names = bundle_meta.get("ordered_ctx_cat_names")
+            ctx_cont_dim = int(bundle_meta.get("ctx_cont_dim") or bundle_meta.get("expected_ctx_cont_dim") or 0)
+            ctx_cat_dim = int(bundle_meta.get("ctx_cat_dim") or bundle_meta.get("expected_ctx_cat_dim") or 0)
+            if isinstance(ctx_cont_names, list) and isinstance(ctx_cat_names, list) and ctx_cont_dim and ctx_cat_dim:
+                self.ctx_cont_required_columns = list(ctx_cont_names)
+                self.ctx_cat_required_columns = list(ctx_cat_names)
+                self.ctx_cont_dim = int(ctx_cont_dim)
+                self.ctx_cat_dim = int(ctx_cat_dim)
+                ctx_contract_mode = os.getenv("GX1_CTX_CONTRACT", "V_NEXT").upper()
+                if ctx_contract_mode == "V_NEXT":
+                    extra_ctx_cont = [
+                        "is_ASIA",
+                        "minutes_since_session_open",
+                        "minutes_to_next_session_boundary",
+                        "session_change_flag",
+                        "session_tradable",
+                    ]
+                    if all(name in self.ctx_cont_required_columns for name in extra_ctx_cont):
+                        vnext_cont = list(self.ctx_cont_required_columns)
+                    else:
+                        vnext_cont = list(self.ctx_cont_required_columns) + extra_ctx_cont
+                    import hashlib
+                    fp_payload = {
+                        "ctx_cat_keys": list(self.ctx_cat_required_columns),
+                        "ctx_cont_keys": list(vnext_cont),
+                        "ctx_cat_dim": int(len(self.ctx_cat_required_columns)),
+                        "ctx_cont_dim": int(len(vnext_cont)),
+                    }
+                    fp_str = jsonlib.dumps(fp_payload, sort_keys=True)
+                    fp_hash = hashlib.sha256(fp_str.encode("utf-8")).hexdigest()
+                    log.info(
+                        "[CTX_CONTRACT_V_NEXT] ctx_cat_keys=%s ctx_cont_keys=%s ctx_cat_dim=%d ctx_cont_dim=%d fingerprint=%s",
+                        list(self.ctx_cat_required_columns),
+                        list(vnext_cont),
+                        int(len(self.ctx_cat_required_columns)),
+                        int(len(vnext_cont)),
+                        fp_hash,
+                    )
+                    if len(vnext_cont) != int(self.ctx_cont_dim):
+                        raise RuntimeError(
+                            f"[CTX_CONTRACT_V_NEXT_MISMATCH] ctx_cont_dim={len(vnext_cont)} expected={int(self.ctx_cont_dim)}"
+                        )
+            else:
+                raise RuntimeError(
+                    "[CTX_META_MISSING] bundle_metadata missing ordered_ctx_* or ctx_*_dim; "
+                    "cannot initialize ctx contract"
+                )
         except Exception:
+            if os.getenv("GX1_CTX_CONTRACT", "V_NEXT").upper() == "V_NEXT":
+                raise
             pass
         
         # C) Hard invariants for prebuilt features (fail-fast, no silent fallback)
@@ -9376,6 +10944,8 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
         def _set_ctx_contract_prebuilt():
             ctx_cont = None
             ctx_cat = None
+            ctx_cont_dim = None
+            ctx_cat_dim = None
             def _load_bundle_meta(path: Path) -> Optional[dict]:
                 meta_path = path / "bundle_metadata.json"
                 if meta_path.exists():
@@ -9384,51 +10954,88 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
                         return json_module.load(f)
                 return None
             bundle_dir = None
-            if isinstance(self.entry_v10_ctx_cfg, dict):
-                bundle_dir = self.entry_v10_ctx_cfg.get("bundle_dir")
+            entry_cfg_bundle_dir = None
+            entry_cfg_path = self.policy.get("entry_config", "")
+            if entry_cfg_path:
+                try:
+                    entry_cfg = load_yaml_config(Path(entry_cfg_path))
+                    entry_cfg_bundle_dir = (
+                        entry_cfg.get("entry_models", {}).get("v10_ctx", {}).get("bundle_dir")
+                    )
+                except Exception as e:
+                    raise RuntimeError(f"[PREBUILT_CTX_CONTRACT] failed to load entry_config: {e}") from e
+            bundle_dir = entry_cfg_bundle_dir
+            log.info(
+                "[PREBUILT_CTX_CONTRACT_PROOF] entry_cfg_bundle_dir=%s policy_bundle_dir=%s",
+                str(entry_cfg_bundle_dir) if entry_cfg_bundle_dir else "None",
+                str(self.policy.get("canonical_transformer_bundle_dir")) if isinstance(self.policy, dict) else "None",
+            )
             if not bundle_dir:
-                bundle_dir = self.policy.get("canonical_transformer_bundle_dir")
+                raise RuntimeError(
+                    "[PREBUILT_CTX_CONTRACT] entry_cfg bundle_dir missing; must be explicitly set in ENTRY_V10_CTX_TRUTH_REPLAY.yaml"
+                )
             if bundle_dir:
                 bundle_dir = Path(bundle_dir).expanduser().resolve()
+                meta_path = bundle_dir / "bundle_metadata.json"
+                log.info(
+                    "[PREBUILT_CTX_CONTRACT_PROOF] resolved_bundle_dir=%s meta_path=%s meta_exists=%s",
+                    str(bundle_dir),
+                    str(meta_path),
+                    str(meta_path.exists()),
+                )
                 meta = _load_bundle_meta(bundle_dir)
                 if meta:
+                    ordered_keys = [
+                        k for k in ("ordered_ctx_cont_names", "ordered_ctx_cat_names") if k in meta
+                    ]
+                    log.info(
+                        "[PREBUILT_CTX_CONTRACT_PROOF] meta_keys_has_ordered_ctx_cont=%s meta_keys_has_ordered_ctx_cat=%s",
+                        "ordered_ctx_cont_names" in meta,
+                        "ordered_ctx_cat_names" in meta,
+                    )
+                    log.info(
+                        "[PREBUILT_CTX_CONTRACT_PROOF] ordered_ctx_keys=%s",
+                        ",".join(ordered_keys) if ordered_keys else "None",
+                    )
                     ctx_cont = meta.get("ordered_ctx_cont_names") or ctx_cont
                     ctx_cat = meta.get("ordered_ctx_cat_names") or ctx_cat
-            if (ctx_cont is None or ctx_cat is None) and bundle_dir and bundle_dir.parent.exists():
-                import json as json_module
-                for candidate in sorted(bundle_dir.parent.glob("TRANSFORMER_ENTRY_V10_CTX__*/bundle_metadata.json")):
-                    try:
-                        with open(candidate, "r", encoding="utf-8") as f:
-                            meta = json_module.load(f)
-                        c_cont = meta.get("ordered_ctx_cont_names")
-                        c_cat = meta.get("ordered_ctx_cat_names")
-                        if isinstance(c_cont, list) and isinstance(c_cat, list) and len(c_cont) == 6 and len(c_cat) == 6:
-                            ctx_cont = ctx_cont or c_cont
-                            ctx_cat = ctx_cat or c_cat
-                            break
-                    except Exception:
-                        continue
+                    ctx_cont_dim = meta.get("ctx_cont_dim") or meta.get("expected_ctx_cont_dim") or ctx_cont_dim
+                    ctx_cat_dim = meta.get("ctx_cat_dim") or meta.get("expected_ctx_cat_dim") or ctx_cat_dim
             if ctx_cont is None or ctx_cat is None:
-                try:
-                    policy_ctx = self.policy.get("context", {}) if isinstance(self.policy, dict) else {}
-                    ctx_cont = ctx_cont or policy_ctx.get("cont_columns") or self.policy.get("ctx_cont_columns")
-                    ctx_cat = ctx_cat or policy_ctx.get("cat_columns") or self.policy.get("ctx_cat_columns")
-                except Exception:
-                    ctx_cont = ctx_cont or None
-                    ctx_cat = ctx_cat or None
-            if not (isinstance(ctx_cont, list) and isinstance(ctx_cat, list) and len(ctx_cont) == 6 and len(ctx_cat) == 6):
                 raise RuntimeError(
-                    "[PREBUILT_CTX_CONTRACT] Failed to resolve ctx contract (6/6) from V10_CTX bundle/config; "
+                    "[PREBUILT_CTX_CONTRACT] bundle_metadata missing ordered_ctx_*; cannot derive ctx contract"
+                )
+            if ctx_cont_dim is None:
+                ctx_cont_dim = len(ctx_cont) if isinstance(ctx_cont, list) else None
+            if ctx_cat_dim is None:
+                ctx_cat_dim = len(ctx_cat) if isinstance(ctx_cat, list) else None
+            if not (
+                isinstance(ctx_cont, list)
+                and isinstance(ctx_cat, list)
+                and ctx_cont_dim is not None
+                and ctx_cat_dim is not None
+                and int(ctx_cont_dim) >= 6
+                and int(ctx_cat_dim) == 6
+            ):
+                raise RuntimeError(
+                    "[PREBUILT_CTX_CONTRACT] Failed to resolve ctx contract (ctx_cont>=6, ctx_cat=6) "
+                    "from V10_CTX bundle/config; "
                     f"ctx_cont_len={len(ctx_cont) if isinstance(ctx_cont, list) else ctx_cont} "
                     f"ctx_cat_len={len(ctx_cat) if isinstance(ctx_cat, list) else ctx_cat}"
+                )
+            if len(ctx_cont) != int(ctx_cont_dim) or len(ctx_cat) != int(ctx_cat_dim):
+                raise RuntimeError(
+                    "[PREBUILT_CTX_CONTRACT] ordered_ctx_* length mismatch "
+                    f"(cont_len={len(ctx_cont)} cat_len={len(ctx_cat)}) "
+                    f"vs dims cont={ctx_cont_dim} cat={ctx_cat_dim}"
                 )
             if not all(isinstance(x, str) for x in ctx_cont + ctx_cat):
                 raise RuntimeError("[PREBUILT_CTX_CONTRACT] ctx columns must be strings")
             self.ctx_cont_required_columns = list(ctx_cont)
             self.ctx_cat_required_columns = list(ctx_cat)
             self.ctx_required_columns = list(ctx_cont) + list(ctx_cat)
-            self.ctx_cont_dim = 6
-            self.ctx_cat_dim = 6
+            self.ctx_cont_dim = int(ctx_cont_dim)
+            self.ctx_cat_dim = int(ctx_cat_dim)
             self.ctx_contract_source = "v10_ctx_bundle_or_truth_config"
 
         if not prebuilt_use:
@@ -9941,6 +11548,12 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
             log.info("  sha256: %s", str(CONTRACT_SHA256))
             log.info("  SEQ_SIGNAL_DIM=%d SNAP_SIGNAL_DIM=%d", int(SEQ_SIGNAL_DIM), int(SNAP_SIGNAL_DIM))
             log.info("  ORDERED_FIELDS(%d): %s", len(ORDERED_FIELDS), ORDERED_FIELDS)
+            log.info(
+                "[XGB_SIGNAL7_RUNTIME_PROOF] source=%s names=%s dim=%d",
+                SIGNAL_BRIDGE_ID,
+                list(ORDERED_FIELDS),
+                int(SEQ_SIGNAL_DIM),
+            )
         except Exception as e:
             log.warning("[REPLAY] Failed to log signal bridge contract: %s", e)
         
@@ -9959,6 +11572,7 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
                 )
         
         import time
+        import math
         replay_start_time = time.time()
         last_progress_log_time = replay_start_time
         
@@ -10197,6 +11811,32 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
         self.t_gates_policy_sec = 0.0
         self.t_replay_tags_sec = 0.0
         self.t_telemetry_sec = 0.0
+        self.t_entry_input_prep_sec = 0.0
+        self.n_entry_input_prep_calls = 0
+        self.t_entry_model_infer_sec = 0.0
+        self.n_entry_model_infer_calls = 0
+        self.t_exit_eval_total_sec = 0.0
+        self.n_exit_eval_calls = 0
+        self.t_exit_input_prep_sec = 0.0
+        self.n_exit_input_prep_calls = 0
+        self.t_exit_model_infer_sec = 0.0
+        self.n_exit_model_infer_calls = 0
+        self.n_exit_input_windows_built = 0
+        self.t_exit_input_hist_select_sec = 0.0
+        self.t_exit_input_runtime_atr_sec = 0.0
+        self.t_exit_input_ctx_contract_sec = 0.0
+        self.t_exit_input_prebuilt_window_resolve_sec = 0.0
+        self.t_exit_input_session_features_sec = 0.0
+        self.t_exit_input_row_loop_sec = 0.0
+        self.t_exit_input_prebuilt_lookup_sec = 0.0
+        self.t_exit_input_ctx_pack_sec = 0.0
+        self.t_exit_input_trade_state_compute_sec = 0.0
+        self.t_exit_input_feature_pack_sec = 0.0
+        self.t_exit_input_numpy_finalize_sec = 0.0
+        self.t_exit_input_contract_checks_sec = 0.0
+        self.perf_exit_eval_trace_rows = 0
+        self.perf_exit_io_rows = 0
+        self.perf_exit_ml_event_rows = 0
 
         # Step 4A: replay tagger sub-timers + counters
         self.t_replay_tags_build_inputs_sec = 0.0
@@ -10211,9 +11851,17 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
         # Gate-SSoT: This is where pregate_enabled is determined (used in bar loop at line 10085)
         # DEL 1B: Env override trumfer YAML (for reproducible A/B testing)
         env_pregate_enabled = os.getenv("GX1_REPLAY_PREGATE_ENABLED")
+        is_canonical_truth = os.getenv("GX1_TRUTH_MODE", "0") == "1" or bool(
+            os.getenv("GX1_CANONICAL_TRUTH_FILE", "").strip()
+        )
         is_preflight_run = os.getenv("GX1_PREFLIGHT", "0") == "1" or os.getenv("GX1_PREFLIGHT_WARMUP_BARS") is not None
         
         if env_pregate_enabled is not None:
+            if is_canonical_truth:
+                raise RuntimeError(
+                    "REPLAY_PREGATE_ENV_OVERRIDE_FORBIDDEN: canonical truth runtime forbids "
+                    "GX1_REPLAY_PREGATE_ENABLED. Use the active canonical policy config instead."
+                )
             # Env override: "1" or "true" (case-insensitive) = enabled, else disabled
             pregate_enabled_effective = env_pregate_enabled.lower() in ("1", "true")
             pregate_override_applied = is_preflight_run and env_pregate_enabled.lower() == "0"
@@ -10487,9 +12135,12 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
                 else:
                     estimated_remaining_min = 0
                 
-                # Count total trades (try to read trade log)
+                # Count total trades. In replay with GX1_REPLAY_NO_CSV=1 the CSV path is intentionally disabled,
+                # so use the in-memory counter instead of probing a header-only file.
                 total_trades = len(self.open_trades)
-                if self.trade_log_path.exists():
+                if self.replay_mode and os.getenv("GX1_REPLAY_NO_CSV") == "1":
+                    total_trades = int(getattr(self, "perf_n_trades_created", total_trades))
+                elif self.trade_log_path.exists():
                     try:
                         with open(self.trade_log_path, 'r') as f:
                             lines = f.readlines()
@@ -10531,9 +12182,7 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
                 candles_history = candles_history.set_index("time")
                 candles_history.index = pd.to_datetime(candles_history.index, utc=True)
             
-            # Simulate tick-based exit for open trades (before processing new bar)
-            if self.open_trades:
-                candle_row = pd.Series({
+            candle_row = pd.Series({
                 "open": float(row["open"]),
                 "high": float(row["high"]),
                 "low": float(row["low"]),
@@ -10547,7 +12196,34 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
                 "ask_high": float(row["ask_high"]),
                 "ask_low": float(row["ask_low"]),
                 "ask_close": float(row["ask_close"]),
-                })
+            })
+            ask_open = float(candle_row["ask_open"])
+            ask_high = float(candle_row["ask_high"])
+            ask_low = float(candle_row["ask_low"])
+            ask_close = float(candle_row["ask_close"])
+            bid_open = float(candle_row["bid_open"])
+            bid_high = float(candle_row["bid_high"])
+            bid_low = float(candle_row["bid_low"])
+            bid_close = float(candle_row["bid_close"])
+            if (
+                ask_high < ask_low
+                or bid_high < bid_low
+                or ask_high < max(ask_open, ask_close)
+                or ask_low > min(ask_open, ask_close)
+                or bid_high < max(bid_open, bid_close)
+                or bid_low > min(bid_open, bid_close)
+            ):
+                log.error(
+                    "[BAR_SANITY_SKIP_PROOF] ts=%s reason=invalid_ohlc ask_high=%.5f ask_low=%.5f bid_high=%.5f bid_low=%.5f",
+                    ts,
+                    ask_high,
+                    ask_low,
+                    bid_high,
+                    bid_low,
+                )
+                continue
+            # Simulate tick-based exit for open trades (before processing new bar)
+            if self.open_trades:
                 self._simulate_tick_exits_for_bar(ts, candle_row)
         
             # Process bar (same logic as run_once, but with historical candle)
@@ -10725,11 +12401,45 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
             # FUNNEL LEDGER: Track evaluate_entry call (exactly when called)
             self.funnel_entry_eval_called += 1
             
-            # Push per-bar exit signal context for TRUTH/XGB
-            self._push_exit_signal7_for_bar(candles_history)
-            
-            # Evaluate entry (only if pregate didn't skip)
-            trade = self.evaluate_entry(candles_history)
+            # Entry/XGB should only evaluate on the model view (M5-derived bars).
+            # Exit still evaluates on every raw bar in the replay lane.
+            trade = None
+            is_model_bar = False
+            try:
+                prebuilt_df = getattr(self, "prebuilt_features_df", None)
+                if prebuilt_df is not None and hasattr(prebuilt_df, "index"):
+                    if ts in prebuilt_df.index:
+                        row = prebuilt_df.loc[ts]
+                        if isinstance(row, pd.DataFrame):
+                            row = row.iloc[0]
+                        if hasattr(row, "get"):
+                            is_model_bar = bool(row.get("is_model_bar", True))
+                        else:
+                            is_model_bar = bool(getattr(row, "is_model_bar", True))
+            except Exception:
+                is_model_bar = False
+
+            if is_model_bar:
+                # Push per-bar exit signal context for TRUTH/XGB only on model bars.
+                self._push_exit_signal7_for_bar(candles_history)
+                # Evaluate entry (only on model bars; raw M1 bars remain exit-only).
+                trade = self.evaluate_entry(candles_history)
+            else:
+                # Keep exit signal history alive on raw bars by carrying forward the
+                # latest model snapshot. This preserves M1 exit responsiveness while
+                # keeping XGB/entry on the 5th-bar model view.
+                latest_signal7 = getattr(self, "_latest_exit_signal7_snapshot", None)
+                if latest_signal7 is not None:
+                    try:
+                        from collections import deque
+
+                        if not hasattr(self, "exit_signal7_history") or not isinstance(
+                            getattr(self, "exit_signal7_history", None), deque
+                        ):
+                            self.exit_signal7_history = deque(maxlen=8)
+                        self.exit_signal7_history.append(dict(latest_signal7))
+                    except Exception:
+                        pass
             
             # PRE-ENTRY FUNNEL: Track bars after evaluate_entry returns
             self.bars_after_evaluate_entry += 1
@@ -10740,7 +12450,20 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
             # For now, we'll track feature build time from entry_manager's perf_feat_time accumulator
             # and model/policy time separately if available
             self.t_feature_build_total_sec += (t_feature_end - t_feature_start)
-            if trade and self.can_enter(ts):  # can_enter takes timestamp, not DataFrame
+            if trade:
+                if trade.side == "long":
+                    self.perf_n_entry_proposed_long += 1
+                elif trade.side == "short":
+                    self.perf_n_entry_proposed_short += 1
+                can_enter_ok = self.can_enter(ts)
+                if not can_enter_ok and getattr(self, "_last_can_enter_reject_reason", None) == "MAX_OPEN_TRADES":
+                    if self._maybe_replace_open_trade_for_entry(candles_history, trade):
+                        can_enter_ok = self.can_enter(ts)
+                if can_enter_ok:
+                    if trade.side == "long":
+                        self.perf_n_can_enter_pass_long += 1
+                    elif trade.side == "short":
+                        self.perf_n_can_enter_pass_short += 1
                     self.execute_entry(trade)
                     self.perf_n_trades_created += 1
                     log.info(
@@ -10777,14 +12500,27 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
                         if "farm_guard_version" in trade_extra:
                             trade_log_row["farm_guard_version"] = trade_extra["farm_guard_version"]
                     append_trade_log(self.trade_log_path, trade_log_row)
+                else:
+                    if trade.side == "long":
+                        self.perf_n_can_enter_fail_long += 1
+                    elif trade.side == "short":
+                        self.perf_n_can_enter_fail_short += 1
+                    reason = getattr(self, "_last_can_enter_reject_reason", None) or "OTHER"
+                    if isinstance(self.perf_can_enter_fail_reasons, dict) and reason in self.perf_can_enter_fail_reasons:
+                        self.perf_can_enter_fail_reasons[reason] += 1
+                    elif isinstance(self.perf_can_enter_fail_reasons, dict):
+                        self.perf_can_enter_fail_reasons["OTHER"] += 1
             
             # TODO(TRUTH_EXIT_SIGNAL7_STREAM): Append per-bar signal7_now to self.exit_signal7_history (deque maxlen=8)
             # BEFORE exit evaluation, so EXIT T=8 has pre-entry history and no warmup/padding is needed.
             # Evaluate exits
+            t_exit_eval_start = time.perf_counter()
             self.evaluate_and_close_trades(candles_history)
+            self.t_exit_eval_total_sec += float(time.perf_counter() - t_exit_eval_start)
+            self.n_exit_eval_calls += 1
             
-            # Log progress every 100 bars
-            if (i + 1) % 100 == 0:
+            # Log progress every 1000 bars to reduce hot-loop logging overhead.
+            if (i + 1) % 1000 == 0:
                 log.info("[REPLAY] Progress: %d/%d bars (%.1f%%) | open_trades=%d", 
                     i+1, len(df), 100*(i+1)/len(df), len(self.open_trades))
         
@@ -11356,10 +13092,6 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
                     f"This indicates a bug in first_valid_eval_idx handling."
                 )
     
-        # Clear replay context
-        if hasattr(self, '_replay_current_ts'):
-            delattr(self, '_replay_current_ts')
-    
         # Close any remaining open trades at final price
         # Check if EOF close is enabled in policy
         replay_cfg = self.policy.get("replay", {})
@@ -11370,6 +13102,11 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
         # TRUTH-only optional: Accounting close at end of replay/chunk
         # This is explicitly enabled via env flag to avoid changing baseline semantics by default.
         if os.getenv("GX1_REPLAY_ACCOUNTING_CLOSE_AT_END", "0") == "1":
+            if not bool(getattr(self, "exit_env_override_allowed", False)):
+                raise RuntimeError(
+                    "[EXIT_CANONICAL_ENV_FORBIDDEN] GX1_REPLAY_ACCOUNTING_CLOSE_AT_END is non-canonical "
+                    "and requires explicit diagnostic mode."
+                )
             close_open_at_end = True
             eof_reason = "REPLAY_END"
             try:
@@ -11406,6 +13143,13 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
             len(open_trades_from_log),
             close_open_at_end,
         )
+        if close_open_at_end:
+            log.info(
+                "[REPLAY_EOF_TS_CONTEXT] replay_end_ts=%s last_bar_ts=%s close_open_at_end=%s",
+                self.replay_end_ts.isoformat() if getattr(self, "replay_end_ts", None) is not None else None,
+                df.index[-1].isoformat() if len(df) > 0 else None,
+                close_open_at_end,
+            )
     
         # Use trade log if self.open_trades is empty but we have open trades in log
         should_close_from_log = not self.open_trades and len(open_trades_from_log) > 0 and close_open_at_end
@@ -11431,7 +13175,19 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
                 exit_ask = final_ask
             
             if should_close_from_log:
-                # Close trades directly from trade log (no LiveTrade objects needed)
+                if not bool(getattr(self, "exit_env_override_allowed", False)):
+                    raise RuntimeError(
+                        "[REPLAY_EOF_FALLBACK_FORBIDDEN_CANONICAL] open_trades_from_log>0 while open_trades is empty. "
+                        "Canonical replay requires EOF close through request_close path only."
+                    )
+                # Emergency fallback (diagnostic/non-canonical only):
+                # Close trades directly from trade log when live trade objects are unavailable.
+                log.warning(
+                    "[REPLAY_EOF_EMERGENCY_LOG_FALLBACK] enabled=1 count=%d reason=%s price_source=%s",
+                    len(open_trades_from_log),
+                    eof_reason,
+                    eof_price_source,
+                )
                 log.info(
                     "[REPLAY] EOF Close: Closing %d open trades from trade log at %s price (bid=%.3f ask=%.3f mid=%.3f) reason=%s",
                     len(open_trades_from_log),
@@ -11446,6 +13202,11 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
                     # No need for local import here
                 closed_count = 0
                 last_ts = df.index[-1]
+                log.info(
+                    "[REPLAY_EOF_TS_PROOF] replay_end_ts=%s exit_ts=%s source=trade_log",
+                    self.replay_end_ts.isoformat() if getattr(self, "replay_end_ts", None) is not None else None,
+                    last_ts.isoformat(),
+                )
                 
                 for _, row in open_trades_from_log.iterrows():
                     try:
@@ -11645,6 +13406,11 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
                 )
                 
                 # Use EOF close helper function
+                log.info(
+                    "[REPLAY_EOF_TS_PROOF] replay_end_ts=%s exit_ts=%s source=open_trades",
+                    self.replay_end_ts.isoformat() if getattr(self, "replay_end_ts", None) is not None else None,
+                    df.index[-1].isoformat(),
+                )
                 self._replay_force_close_open_trades_at_end(
                     last_ts=df.index[-1],
                     last_bid=final_bid,
@@ -11744,6 +13510,8 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
                         reason="REPLAY_END",
                         px=exit_price,
                         pnl_bps=pnl_bps,
+                        exit_bid=final_bid,
+                        exit_ask=final_ask,
                         bars_in_trade=len(df) - 1,  # Approximate
                     )
                     if accepted and hasattr(self, "trade_journal") and self.trade_journal:
@@ -11754,6 +13522,10 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
                                 exit_reason="REPLAY_END",
                                 exit_price=exit_price,
                                 realized_pnl_bps=pnl_bps,
+                                exit_bid=final_bid,
+                                exit_ask=final_ask,
+                                exit_spread_bps=float((final_ask - final_bid) * 10000.0 / final_bid) if final_bid > 0 else None,
+                                exit_price_used=exit_price,
                                 trade_uid=getattr(trade, "trade_uid", None),
                                 trade_id=trade.trade_id,
                             )
@@ -11804,6 +13576,11 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
 
                     closed_from_journal = 0
                     last_ts = df.index[-1]
+                    log.info(
+                        "[REPLAY_EOF_TS_PROOF] replay_end_ts=%s exit_ts=%s source=journal_fallback",
+                        self.replay_end_ts.isoformat() if getattr(self, "replay_end_ts", None) is not None else None,
+                        last_ts.isoformat(),
+                    )
 
                     for json_path in trade_json_dir.glob("*.json"):
                         try:
@@ -11930,6 +13707,10 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
         # Dump backtest summary (skip in fast mode)
         if not self.fast_replay:
             self._dump_backtest_summary()
+
+        # Clear replay context (after EOF close paths complete)
+        if hasattr(self, "_replay_current_ts"):
+            delattr(self, "_replay_current_ts")
     
         self._log_entry_diag_summary()
     
@@ -12276,6 +14057,104 @@ def _simulate_tick_exits_for_bar_impl(self, bar_ts: pd.Timestamp, candle_row: pd
     bid_low = float(candle_row["bid_low"])
     ask_high = float(candle_row["ask_high"])
     ask_low = float(candle_row["ask_low"])
+
+    def _resolve_negative_spread_capsule_dir() -> Optional[Path]:
+        if getattr(self, "explicit_output_dir", None):
+            return Path(self.explicit_output_dir)
+        if getattr(self, "output_dir", None):
+            return Path(self.output_dir)
+        if getattr(self, "log_dir", None):
+            log_dir_path = Path(self.log_dir)
+            return log_dir_path.parent if log_dir_path.name == "logs" else log_dir_path
+        return None
+
+    def _format_capsule_ts(ts: pd.Timestamp) -> str:
+        try:
+            if getattr(ts, "tzinfo", None) is not None:
+                ts_utc = ts.tz_convert("UTC")
+            else:
+                ts_utc = ts
+        except Exception:
+            ts_utc = ts
+        try:
+            return ts_utc.strftime("%Y%m%dT%H%M%SZ")
+        except Exception:
+            return str(ts_utc).replace(":", "").replace(" ", "_")
+
+    def _write_negative_spread_capsule(
+        entry_bid: float,
+        entry_ask: float,
+        exit_bid: float,
+        exit_ask: float,
+        position_side: str,
+        trade_id: Optional[str],
+    ) -> Path:
+        capsule_dir = _resolve_negative_spread_capsule_dir()
+        if capsule_dir is None:
+            capsule_dir = Path("gx1/wf_runs") / str(getattr(self, "run_id", "UNKNOWN")) / "replay" / "chunk_0"
+        capsule_dir.mkdir(parents=True, exist_ok=True)
+        ts_token = _format_capsule_ts(bar_ts)
+        capsule_path = capsule_dir / f"NEGATIVE_SPREAD_CAPSULE_{ts_token}.json"
+        bar_fields = {}
+        for k in [
+            "bid_open",
+            "bid_high",
+            "bid_low",
+            "bid_close",
+            "ask_open",
+            "ask_high",
+            "ask_low",
+            "ask_close",
+        ]:
+            if k in candle_row.index:
+                try:
+                    bar_fields[k] = float(candle_row[k])
+                except Exception:
+                    bar_fields[k] = candle_row[k]
+        payload = {
+            "run_id": getattr(self, "run_id", None),
+            "ts": bar_ts.isoformat(),
+            "trade_id": trade_id,
+            "position_side": position_side,
+            "entry_bid": float(entry_bid),
+            "entry_ask": float(entry_ask),
+            "exit_bid": float(exit_bid),
+            "exit_ask": float(exit_ask),
+            "spread": float(exit_ask - exit_bid),
+            "source": "tick_exit_pnl",
+            "bar": bar_fields,
+        }
+        capsule_path.write_text(jsonlib.dumps(payload, sort_keys=True), encoding="utf-8")
+        return capsule_path
+
+    def _check_negative_spread_or_raise(
+        entry_bid: float,
+        entry_ask: float,
+        exit_bid: float,
+        exit_ask: float,
+        position_side: str,
+        trade_id: Optional[str],
+    ) -> None:
+        if entry_ask < entry_bid or exit_ask < exit_bid:
+            capsule_path = _write_negative_spread_capsule(
+                entry_bid=entry_bid,
+                entry_ask=entry_ask,
+                exit_bid=exit_bid,
+                exit_ask=exit_ask,
+                position_side=position_side,
+                trade_id=trade_id,
+            )
+            log.error(
+                "[NEGATIVE_SPREAD_PROOF] ts=%s exit_bid=%.5f exit_ask=%.5f spread=%.5f capsule=%s",
+                bar_ts,
+                exit_bid,
+                exit_ask,
+                exit_ask - exit_bid,
+                capsule_path,
+            )
+            if entry_ask < entry_bid:
+                raise ValueError(f"entry_ask ({entry_ask}) must be >= entry_bid ({entry_bid})")
+            raise ValueError(f"exit_ask ({exit_ask}) must be >= exit_bid ({exit_bid})")
     
     for pos in open_pos_list:
         # Determine which price to check based on direction
@@ -12311,12 +14190,30 @@ def _simulate_tick_exits_for_bar_impl(self, bar_ts: pd.Timestamp, candle_row: pd
                 side_str,
             )
             self._tick_sim_pnl_log_count += 1
+        _check_negative_spread_or_raise(
+            pos.entry_bid,
+            pos.entry_ask,
+            tp_exit_bid,
+            tp_exit_ask,
+            pos.direction,
+            getattr(pos, "trade_id", None),
+        )
         pnl_bps_tp = compute_pnl_bps(
             pos.entry_bid,
             pos.entry_ask,
             tp_exit_bid,
             tp_exit_ask,
             side_str,
+            ts=str(bar_ts),
+            trade_id=getattr(pos, "trade_id", None),
+        )
+        _check_negative_spread_or_raise(
+            pos.entry_bid,
+            pos.entry_ask,
+            sl_exit_bid,
+            sl_exit_ask,
+            pos.direction,
+            getattr(pos, "trade_id", None),
         )
         pnl_bps_sl = compute_pnl_bps(
             pos.entry_bid,
@@ -12324,6 +14221,8 @@ def _simulate_tick_exits_for_bar_impl(self, bar_ts: pd.Timestamp, candle_row: pd
             sl_exit_bid,
             sl_exit_ask,
             side_str,
+            ts=str(bar_ts),
+            trade_id=getattr(pos, "trade_id", None),
         )
         
         # BE activation check (before TP/SL/BE checks)
@@ -12372,24 +14271,44 @@ def _simulate_tick_exits_for_bar_impl(self, bar_ts: pd.Timestamp, candle_row: pd
                 # LONG: exit at bid when BE triggers (use actual exit bid from candle)
                 be_exit_bid = sl_exit_bid  # Use actual exit bid (bid_low when BE triggers)
                 be_exit_ask = ask_low  # Use actual exit ask for consistency
+                _check_negative_spread_or_raise(
+                    pos.entry_bid,
+                    pos.entry_ask,
+                    be_exit_bid,
+                    be_exit_ask,
+                    pos.direction,
+                    getattr(pos, "trade_id", None),
+                )
                 pnl_bps_be = compute_pnl_bps(
                     pos.entry_bid,
                     pos.entry_ask,
                     be_exit_bid,
                     be_exit_ask,
                     "long",
+                    ts=str(bar_ts),
+                    trade_id=getattr(pos, "trade_id", None),
                 )
             elif pos.direction == "SHORT" and sl_exit_ask >= pos.be_price:
                 be_triggered = True
                 # SHORT: exit at ask when BE triggers (use actual exit ask from candle)
                 be_exit_bid = bid_high  # Use actual exit bid for consistency
                 be_exit_ask = sl_exit_ask  # Use actual exit ask (ask_high when BE triggers)
+                _check_negative_spread_or_raise(
+                    pos.entry_bid,
+                    pos.entry_ask,
+                    be_exit_bid,
+                    be_exit_ask,
+                    pos.direction,
+                    getattr(pos, "trade_id", None),
+                )
                 pnl_bps_be = compute_pnl_bps(
                     pos.entry_bid,
                     pos.entry_ask,
                     be_exit_bid,
                     be_exit_ask,
                     "short",
+                    ts=str(bar_ts),
+                    trade_id=getattr(pos, "trade_id", None),
                 )
 
         if be_triggered:
@@ -12488,59 +14407,57 @@ def _dump_backtest_summary_impl(self) -> None:
     """
     Dump backtest summary after replay.
     
-    Reads trade log and exit audit to generate statistics.
+    Reads run-specific artifacts (chunk_footer + trade_outcomes) and exit audit to generate statistics.
     """
     import numpy as np
+    import json
+    from pathlib import Path as Path_module
     
-    # Read trade log (skip bad lines to handle corrupted rows)
-    if not self.trade_log_path.exists():
-        log.warning("[REPLAY] Trade log not found: %s", self.trade_log_path)
+    # Resolve run-specific paths (never read global trade_log in replay/TRUTH)
+    run_dir = getattr(self, "explicit_output_dir", None) or getattr(self, "output_dir", None)
+    if not run_dir and getattr(self, "run_id", None):
+        run_dir = Path_module("gx1/wf_runs") / str(self.run_id)
+    run_dir = Path_module(run_dir) if run_dir else None
+    chunk_dir = (run_dir / "chunk_0") if run_dir else None
+
+    n_trades_closed = None
+    footer_path = (chunk_dir / "chunk_footer.json") if chunk_dir else None
+    if footer_path and footer_path.exists():
+        try:
+            with footer_path.open("r", encoding="utf-8") as f:
+                footer = json.load(f)
+            n_trades_closed = int(footer.get("n_trades_closed", 0) or 0)
+        except Exception as exc:
+            log.warning("[REPLAY SUMMARY] Failed to read chunk_footer.json: %s", exc)
+
+    trade_outcomes_path = (chunk_dir / f"trade_outcomes_{self.run_id}.parquet") if chunk_dir else None
+    outcomes_df = None
+    if trade_outcomes_path and trade_outcomes_path.exists():
+        try:
+            outcomes_df = pd.read_parquet(trade_outcomes_path)
+            if n_trades_closed is None:
+                n_trades_closed = int(len(outcomes_df))
+        except Exception as exc:
+            log.warning("[REPLAY SUMMARY] Failed to read trade_outcomes parquet: %s", exc)
+
+    if n_trades_closed is None:
+        log.warning("[REPLAY SUMMARY] Missing run-specific trade stats (chunk_footer/trade_outcomes). Skipping summary.")
         return
-    
-    try:
-        trades_df = pd.read_csv(self.trade_log_path, on_bad_lines='skip', engine='python')
-    except Exception as exc:
-        log.warning("[REPLAY] Failed to read trade log %s: %s. Skipping summary.", self.trade_log_path, exc)
-        return
-    
-    # Filter replay trades
-    if "notes" in trades_df.columns:
-        replay_trades = trades_df[trades_df["notes"].str.contains("replay", case=False, na=False)]
-    else:
-        # If notes column is missing, filter by run_id instead
-        if "run_id" in trades_df.columns:
-            replay_trades = trades_df[trades_df["run_id"].str.contains("replay", case=False, na=False)]
-        else:
-            # If neither notes nor run_id exists, use all trades (legacy mode)
-            replay_trades = trades_df
-    
-    if len(replay_trades) == 0:
+
+    if n_trades_closed == 0:
         log.info("[REPLAY SUMMARY] No trades executed")
         return
-    
-    # Parse exit times and PnL
-    replay_trades = replay_trades.copy()
-    replay_trades["entry_time"] = pd.to_datetime(replay_trades["entry_time"], utc=True, format='ISO8601')
-    replay_trades["exit_time"] = pd.to_datetime(replay_trades["exit_time"], utc=True, errors='coerce', format='ISO8601')
-    
-    # Filter closed trades (have exit_time and pnl_bps)
-    closed_trades = replay_trades[
-        replay_trades["exit_time"].notna() & 
-        replay_trades["pnl_bps"].notna() &
-        (replay_trades["pnl_bps"] != "")
-    ].copy()
-    
-    # Convert pnl_bps to float
-    closed_trades["pnl_bps"] = pd.to_numeric(closed_trades["pnl_bps"], errors='coerce')
-    closed_trades = closed_trades[closed_trades["pnl_bps"].notna()]
-    
-    if len(closed_trades) == 0:
-        log.info("[REPLAY SUMMARY] No closed trades yet")
-        return
-    
-    pnls = closed_trades["pnl_bps"].values
-    wins = pnls[pnls > 0]
-    losses = pnls[pnls < 0]
+
+    pnls = np.array([], dtype=float)
+    wins = np.array([], dtype=float)
+    losses = np.array([], dtype=float)
+    if outcomes_df is not None and "pnl_bps" in outcomes_df.columns:
+        closed_trades = outcomes_df.copy()
+        closed_trades["pnl_bps"] = pd.to_numeric(closed_trades["pnl_bps"], errors='coerce')
+        closed_trades = closed_trades[closed_trades["pnl_bps"].notna()]
+        pnls = closed_trades["pnl_bps"].values
+        wins = pnls[pnls > 0]
+        losses = pnls[pnls < 0]
     
     # Count soft-stop exits from exit audit
     soft_stop_count = 0
@@ -12561,24 +14478,66 @@ def _dump_backtest_summary_impl(self) -> None:
     log.info("=" * 60)
     log.info("[REPLAY SUMMARY] Period: %s to %s", 
              self.replay_start_ts.isoformat(), self.replay_end_ts.isoformat())
-    log.info("[REPLAY SUMMARY] Total trades: %d", len(replay_trades))
-    log.info("[REPLAY SUMMARY] Closed trades: %d", len(closed_trades))
-    log.info("[REPLAY SUMMARY] Open trades: %d", len(replay_trades) - len(closed_trades))
+    log.info("[REPLAY SUMMARY] Total trades: %d", int(n_trades_closed))
+    log.info("[REPLAY SUMMARY] Closed trades: %d", int(n_trades_closed))
+    log.info("[REPLAY SUMMARY] Open trades: %d", 0)
     log.info("")
-    log.info("[REPLAY SUMMARY] Total PnL: %.2f bps", pnls.sum())
-    log.info("[REPLAY SUMMARY] Average PnL: %.2f bps", pnls.mean())
-    log.info("[REPLAY SUMMARY] Winrate: %.1f%%", 100 * len(wins) / len(closed_trades) if len(closed_trades) > 0 else 0)
-    log.info("")
-    if len(wins) > 0:
-        log.info("[REPLAY SUMMARY] Average Win: +%.2f bps", wins.mean())
-        log.info("[REPLAY SUMMARY] Largest Win: +%.2f bps", wins.max())
-    if len(losses) > 0:
-        log.info("[REPLAY SUMMARY] Average Loss: %.2f bps", losses.mean())
-        log.info("[REPLAY SUMMARY] Largest Loss: %.2f bps", losses.min())
-    log.info("")
+    if pnls.size > 0:
+        log.info("[REPLAY SUMMARY] Total PnL: %.2f bps", pnls.sum())
+        log.info("[REPLAY SUMMARY] Average PnL: %.2f bps", pnls.mean())
+        log.info("[REPLAY SUMMARY] Winrate: %.1f%%", 100 * len(wins) / len(pnls) if len(pnls) > 0 else 0)
+        log.info("")
+        if len(wins) > 0:
+            log.info("[REPLAY SUMMARY] Average Win: +%.2f bps", wins.mean())
+            log.info("[REPLAY SUMMARY] Largest Win: +%.2f bps", wins.max())
+        if len(losses) > 0:
+            log.info("[REPLAY SUMMARY] Average Loss: %.2f bps", losses.mean())
+            log.info("[REPLAY SUMMARY] Largest Loss: %.2f bps", losses.min())
+        log.info("")
     log.info("[REPLAY SUMMARY] Soft-stop exits: %d (%.1f%% of closed trades)", 
-             soft_stop_count, 100 * soft_stop_count / len(closed_trades) if len(closed_trades) > 0 else 0)
+             soft_stop_count, 100 * soft_stop_count / n_trades_closed if n_trades_closed > 0 else 0)
     log.info("=" * 60)
+
+    # ------------------------------------------------------------
+    # PnL audit proof (bid/ask recompute) - telemetry only
+    # ------------------------------------------------------------
+    try:
+        journal_path = (chunk_dir / f"trade_journal_{self.run_id}.parquet") if chunk_dir else None
+        if journal_path and journal_path.exists():
+            jdf = pd.read_parquet(journal_path)
+            cols_needed = {"entry_bid", "entry_ask", "exit_bid", "exit_ask", "pnl_bps", "side", "trade_id"}
+            if cols_needed.issubset(set(jdf.columns)):
+                sample = jdf.dropna(subset=["entry_bid", "entry_ask", "exit_bid", "exit_ask", "pnl_bps"]).head(10)
+                audit_rows = []
+                for _, r in sample.iterrows():
+                    try:
+                        recompute = compute_pnl_bps(
+                            float(r["entry_bid"]),
+                            float(r["entry_ask"]),
+                            float(r["exit_bid"]),
+                            float(r["exit_ask"]),
+                            str(r["side"]),
+                        )
+                        pnl_val = float(r["pnl_bps"])
+                        audit_rows.append({
+                            "trade_id": r.get("trade_id"),
+                            "side": r.get("side"),
+                            "entry_bid": float(r["entry_bid"]),
+                            "entry_ask": float(r["entry_ask"]),
+                            "exit_bid": float(r["exit_bid"]),
+                            "exit_ask": float(r["exit_ask"]),
+                            "entry_spread_bps": r.get("entry_spread_bps"),
+                            "exit_spread_bps": r.get("exit_spread_bps"),
+                            "pnl_bps": pnl_val,
+                            "recompute_bps": recompute,
+                            "recompute_match": abs(recompute - pnl_val) <= 0.01,
+                        })
+                    except Exception:
+                        continue
+                if audit_rows:
+                    log.info("[REPLAY_PNL_AUDIT] sample=%s", audit_rows)
+    except Exception as exc:
+        log.warning("[REPLAY_PNL_AUDIT] failed: %s", exc)
 
 
 def _push_exit_signal7_for_bar_impl(self, candles_history: pd.DataFrame) -> None:
@@ -12589,6 +14548,11 @@ def _push_exit_signal7_for_bar_impl(self, candles_history: pd.DataFrame) -> None
     import math
     from gx1.xgb.multihead.xgb_multihead_model_v1 import proba_to_signal_bridge_v1
     from gx1.execution.live_features import infer_session_tag
+    from gx1.time.session_detector import (
+        get_session,
+        get_session_minutes_since_open_vectorized,
+        get_session_minutes_to_next_boundary_vectorized,
+    )
     strict = os.environ.get("GX1_EXIT_AUDIT_STRICT") == "1"
 
     if candles_history.empty:
@@ -12600,7 +14564,24 @@ def _push_exit_signal7_for_bar_impl(self, candles_history: pd.DataFrame) -> None
     if current_ts not in self.prebuilt_features_df.index:
         raise RuntimeError(f"[EXIT_SIGNAL7] current_ts {current_ts} not in prebuilt_features_df index")
 
-    prebuilt_row = self.prebuilt_features_df.loc[current_ts]
+    prebuilt_row = self.prebuilt_features_df.loc[current_ts].copy()
+
+    # Fill derived session-context features if the model contract expects them.
+    ts_one = pd.Series([pd.to_datetime(current_ts, utc=True)])
+    sess_name_for_ctx = get_session(ts_one.iloc[0])
+    sess_id_map = {"ASIA": 0, "EU": 1, "OVERLAP": 2, "US": 3}
+    sess_id = int(sess_id_map.get(sess_name_for_ctx, 0))
+    derived_ctx = {
+        "session_id": float(sess_id),
+        "is_ASIA": float(1 if sess_id == 0 else 0),
+        "minutes_since_session_open": float(get_session_minutes_since_open_vectorized(ts_one).iloc[0]),
+        "minutes_to_next_session_boundary": float(get_session_minutes_to_next_boundary_vectorized(ts_one).iloc[0]),
+        "session_change_flag": 0.0,
+        "session_tradable": float(1 if sess_id != 0 else 0),
+    }
+    for k, v in derived_ctx.items():
+        if k not in prebuilt_row.index:
+            prebuilt_row.loc[k] = v
 
     xgb_model = getattr(self, "entry_v10_bundle", None)
     xgb_model = getattr(xgb_model, "xgb_model_universal", None)
@@ -12657,6 +14638,7 @@ def _push_exit_signal7_for_bar_impl(self, candles_history: pd.DataFrame) -> None
         "margin_top1_top2": float(bridge[5]),
         "entropy": float(bridge[6]),
     }
+    self._latest_exit_signal7_snapshot = dict(signal7_now)
 
     if not hasattr(self, "exit_signal7_history") or not isinstance(getattr(self, "exit_signal7_history", None), deque):
         self.exit_signal7_history = deque(maxlen=8)

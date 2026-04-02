@@ -1,5 +1,5 @@
 """
-Canonical EXIT_IO_V1_CTX36 feature list (ordered, length = 47).
+Canonical EXIT_IO_V1_CTX36 feature list (ordered).
 This list is the single source of truth for runtime and artifact packaging.
 """
 
@@ -56,6 +56,16 @@ EXIT_IO_V1_CTX36_FEATURES = [
     "minutes_to_next_session_boundary",
     "session_change_flag",
     "session_tradable",
+    # --- ctx_cat (ENTRY parity, encoded as numeric ids in EXIT tensors) ---
+    "session_id",
+    "trend_regime_id",
+    "vol_regime_id",
+    "atr_bucket",
+    "spread_bucket",
+    "H4_trend_sign_cat",
 ]
 
-EXIT_IO_V1_CTX36_FEATURE_COUNT = 47
+EXIT_IO_V1_CTX36_FEATURE_COUNT = 53
+EXIT_IO_V1_CTX36_FEATURE_TO_INDEX = {
+    name: idx for idx, name in enumerate(EXIT_IO_V1_CTX36_FEATURES)
+}

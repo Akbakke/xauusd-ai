@@ -5,7 +5,7 @@ ENTRY_V10_CTX canonical baseline training entrypoint (ONE UNIVERSE only).
 
 Non-negotiables:
 - Baseline-only (no depth ladder / no L+1). Any other variant must hard-fail.
-- CTX contract locked: CTX6CAT6 (6/6), signal_bridge_id=XGB_SIGNAL_BRIDGE_V1 (7-dim).
+- CTX contract locked: CTX6CAT6 base (ctx_cat=6 fixed; ctx_cont>=6), signal_bridge_id=XGB_SIGNAL_BRIDGE_V1 (7-dim).
 - Deterministic, fail-fast, no fallback paths.
 
 Usage (canonical):
@@ -61,12 +61,15 @@ _CTX = get_canonical_ctx_contract()
 _CTX_CAT_DIM = int(_CTX["ctx_cat_dim"])
 _CTX_CONT_DIM = int(_CTX["ctx_cont_dim"])
 _CTX_TAG = str(_CTX["tag"])
+_CTX_CONTRACT_MODE = os.getenv("GX1_CTX_CONTRACT", "V_NEXT").upper()
+if _CTX_CONTRACT_MODE == "V_NEXT":
+    _CTX_CONT_DIM = 21
 
 
 def _hard_gate_ctx6cat6() -> None:
-    if _CTX_TAG != "CTX6CAT6" or _CTX_CAT_DIM != 6 or _CTX_CONT_DIM != 6:
+    if _CTX_TAG != "CTX6CAT6" or _CTX_CAT_DIM != 6 or _CTX_CONT_DIM < 6:
         raise RuntimeError(
-            f"CTX_CONTRACT_SPLIT_BRAIN: expected CTX6CAT6 (6/6) but got tag={_CTX_TAG} "
+            f"CTX_CONTRACT_SPLIT_BRAIN: expected CTX6CAT6 (ctx_cat=6, ctx_cont>=6) but got tag={_CTX_TAG} "
             f"ctx_cat_dim={_CTX_CAT_DIM} ctx_cont_dim={_CTX_CONT_DIM}"
         )
 
@@ -211,6 +214,8 @@ def train_depth_ladder_variant(
     out_dir: Path,
     feature_meta_path: Path,
     epochs: int,
+    early_stopping_patience: int,
+    early_stopping_min_delta: float,
     batch_size: int,
     lr: float,
     seed: int,
@@ -227,7 +232,8 @@ def train_depth_ladder_variant(
         raise ValueError("variant must be baseline (depth ladder disabled)")
     config = BASELINE_CONFIG.copy()
 
-    variant_out_dir = (out_dir / variant.upper()).resolve()
+    # Baseline is the only supported variant, so the canonical bundle root is the output dir itself.
+    variant_out_dir = out_dir.resolve()
     variant_out_dir.mkdir(parents=True, exist_ok=True)
 
     # determinism
@@ -287,6 +293,8 @@ def train_depth_ladder_variant(
             "--seq_len", str(seq_len),
             "--batch_size", str(batch_size),
             "--epochs", str(epochs),
+            "--early-stopping-patience", str(early_stopping_patience),
+            "--early-stopping-min-delta", str(early_stopping_min_delta),
             "--lr", str(lr),
             "--seed", str(seed),
             "--device", str(resolved_device),
@@ -332,8 +340,10 @@ def train_depth_ladder_variant(
             )
         if meta_json.get("ctx_tag") != "CTX6CAT6":
             raise RuntimeError(f"BASELINE_VERIFY_FAILED: ctx_tag mismatch: {meta_json.get('ctx_tag')}")
-        if int(meta_json.get("ctx_cont_dim") or -1) != 6:
-            raise RuntimeError(f"BASELINE_VERIFY_FAILED: ctx_cont_dim mismatch: {meta_json.get('ctx_cont_dim')}")
+        if int(meta_json.get("ctx_cont_dim") or -1) != _CTX_CONT_DIM:
+            raise RuntimeError(
+                f"BASELINE_VERIFY_FAILED: ctx_cont_dim mismatch: {meta_json.get('ctx_cont_dim')} expected={_CTX_CONT_DIM}"
+            )
         if int(meta_json.get("ctx_cat_dim") or -1) != 6:
             raise RuntimeError(f"BASELINE_VERIFY_FAILED: ctx_cat_dim mismatch: {meta_json.get('ctx_cat_dim')}")
 
@@ -361,6 +371,8 @@ def main() -> None:
     parser.add_argument("--out-dir", type=Path, required=True, help="Output directory for checkpoints")
     parser.add_argument("--feature-meta-path", type=Path, required=True, help="Canonical feature_meta.json to copy into bundle")
     parser.add_argument("--epochs", type=int, default=10)
+    parser.add_argument("--early-stopping-patience", type=int, default=10)
+    parser.add_argument("--early-stopping-min-delta", type=float, default=1e-4)
     parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--seed", type=int, default=42)
@@ -375,6 +387,8 @@ def main() -> None:
         out_dir=args.out_dir,
         feature_meta_path=args.feature_meta_path,
         epochs=args.epochs,
+        early_stopping_patience=args.early_stopping_patience,
+        early_stopping_min_delta=args.early_stopping_min_delta,
         batch_size=args.batch_size,
         lr=args.lr,
         seed=args.seed,

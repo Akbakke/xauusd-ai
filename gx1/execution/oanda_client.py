@@ -14,6 +14,7 @@ import pandas as pd
 import requests
 
 from gx1.utils.env_loader import load_dotenv_if_present
+from gx1.utils.granularity import granularity_to_pandas_freq, granularity_to_timedelta
 
 
 log = logging.getLogger(__name__)
@@ -317,15 +318,14 @@ class OandaClient:
             mid = item.get("mid", {})
             bid = item.get("bid", {})
             ask = item.get("ask", {})
-            # Normalize timestamp to closed M5 bar (floor to 5-minute boundary)
+            # Normalize timestamp to the candle's own closed boundary
             raw_time = pd.to_datetime(item["time"])
             # Normalize to UTC and floor to 5-minute boundary
             if raw_time.tzinfo is None:
                 raw_time = raw_time.tz_localize("UTC")
             else:
                 raw_time = raw_time.tz_convert("UTC")
-            # Floor to 5-minute boundary (closed bar)
-            normalized_time = raw_time.floor("5min")
+            normalized_time = raw_time.floor(granularity_to_pandas_freq(granularity))
             
             # Skip if normalized_time >= to_ts (half-open interval)
             if to_ts is not None and normalized_time >= to_ts:
@@ -417,8 +417,8 @@ class OandaClient:
         pd.DataFrame
             DataFrame with all fetched candles.
         """
-        # Calculate chunk duration (5 minutes per bar for M5)
-        chunk_duration = pd.Timedelta(minutes=5 * chunk_size)
+        # Calculate chunk duration from candle granularity
+        chunk_duration = granularity_to_timedelta(granularity) * chunk_size
         
         all_candles = []
         current_from = from_ts

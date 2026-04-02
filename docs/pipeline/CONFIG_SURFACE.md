@@ -19,7 +19,7 @@ policy_name: GX1_V11_OANDA_DEMO_V9_FARM_V2B_EXIT_HYBRID_V3_RANGE_PROD
 version: "GX1_V11_OANDA_DEMO_V9_FARM_V2B_EXIT_HYBRID_V3_RANGE_PROD"
 mode: "REPLAY"  # or "LIVE", "ENTRY_ONLY"
 instrument: "XAU_USD"
-timeframe: "M5"
+    timeframe: "M5"
 warmup_bars: 288
 
 entry_config: gx1/configs/policies/prod_snapshot/2025_FARM_V2B_HYBRID/ENTRY_V9_FARM_V2B_PROD.yaml
@@ -250,7 +250,7 @@ bash scripts/run_replay.sh <policy_yaml> <start_date> <end_date> [n_workers] [ou
 - `output_dir`: Output directory (default: `gx1/wf_runs/<policy_name>`)
 
 **Environment Variables:**
-- `M5_DATA`: Path to M5 price data (parquet/CSV)
+- `M5_DATA`: Path to M5 model-view price data (parquet/CSV). The raw M1 source-of-truth is configured separately in `canonical_truth_signal_only.json`.
 - `GX1_RUN_ID`: Custom run ID (optional, for testing)
 
 **Example:**
@@ -412,4 +412,3 @@ python gx1/analysis/compare_exit_routers_fullyear.py \
 - **Default Values:** Most parameters have defaults (see code locations above)
 - **Environment Overrides:** Some parameters can be overridden via environment variables
 - **Runtime Changes:** Config changes require restart (policy lock prevents mid-run changes)
-

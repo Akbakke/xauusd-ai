@@ -59,8 +59,11 @@ CONTRACT_SHA256 = hashlib.sha256(("|".join(ORDERED_FIELDS)).encode("utf-8")).hex
 # ---------------------------------------------------------------------------
 # ctx_cont (Transformer continuous context) - order-sensitive, no fallback
 # ---------------------------------------------------------------------------
-# Baseline: 2 dims [atr_bps, spread_bps]. Extended: +4 slow core = 6 dims (append only).
-# Slow core is SLOW_CTX_CORE; each can be toggled via runtime ctx feature mask (ablation/ops).
+# Baseline: 2 dims [atr_bps, spread_bps]. Extended base: +4 slow core = 6 dims
+# (append only). This module intentionally defines the canonical BASE ctx prefix.
+# The active ENTRY/EXIT runtime bundle may append more ctx_cont features after this
+# prefix (for example micro/swing/session features) and must carry the full ordered
+# list in bundle metadata.
 ORDERED_CTX_CONT_NAMES_BASELINE: List[str] = ["atr_bps", "spread_bps"]
 CTX_CONT_COL_D1_DIST = "D1_dist_from_ema200_atr"
 CTX_CONT_COL_H1_COMP = "H1_range_compression_ratio"
@@ -77,13 +80,16 @@ ORDERED_CTX_CONT_NAMES_EXTENDED: List[str] = (
 )
 N_CTX_CONT_BASELINE = 2
 N_CTX_CONT_EXTENDED = len(ORDERED_CTX_CONT_NAMES_EXTENDED)  # 6
-# No global "default" dim: bundle-meta expected_ctx_cont_dim / expected_ctx_cat_dim and validate prefix.
+# No global "default" full dim: bundle-meta drives the active full ctx dim and must
+# validate this BASE prefix deterministically.
 
 # ---------------------------------------------------------------------------
 # ctx_cat (Transformer categorical context) - order-sensitive, no fallback
 # ---------------------------------------------------------------------------
-# Baseline: 5 dims [session_id, trend_regime_id, vol_regime_id, atr_bucket, spread_bucket].
-# Extended: +1 = 6 dims (append H4_trend_sign_cat, values 0/1/2).
+# Baseline: 5 dims [session_id, trend_regime_id, vol_regime_id, atr_bucket,
+# spread_bucket]. Extended base: +1 = 6 dims (append H4_trend_sign_cat,
+# values 0/1/2). Active bundles may carry additional ctx_cont features, but ctx_cat
+# stays fixed at this 6-dim base.
 ORDERED_CTX_CAT_NAMES_BASELINE: List[str] = [
     "session_id",
     "trend_regime_id",
@@ -99,8 +105,11 @@ N_CTX_CAT_BASELINE = 5
 N_CTX_CAT_EXTENDED = len(ORDERED_CTX_CAT_NAMES_EXTENDED)  # 6
 # No global "default" dim: bundle-meta drives expected dims; validate prefix against EXTENDED lists.
 
-# ONE UNIVERSE: only 6/6
-ALLOWED_CTX_CONT_DIMS = (6,)
+# ONE UNIVERSE base contract:
+# - ctx_cat is fixed at 6
+# - ctx_cont must include at least the canonical 6-dim prefix, but active
+#   bundles may extend ctx_cont beyond that (current canonical runtime: 21/6)
+ALLOWED_CTX_CONT_DIMS = tuple(range(6, 65))
 ALLOWED_CTX_CAT_DIMS = (6,)
 
 
@@ -213,11 +222,11 @@ def validate_contract_in_truth() -> None:
 
 def get_canonical_ctx_contract() -> Dict[str, object]:
     """
-    Return the canonical ONE-UNIVERSE ctx contract for ENTRY_V10_CTX.
-    
-    Canonical tag: CTX6CAT6
-    ctx_cont_dim = 6 (ORDERED_CTX_CONT_NAMES_EXTENDED)
-    ctx_cat_dim  = 6 (ORDERED_CTX_CAT_NAMES_EXTENDED)
+    Return the canonical ONE-UNIVERSE BASE ctx contract for ENTRY_V10_CTX.
+
+    This is the locked 6/6 prefix contract used for validation and stable feature
+    ordering. The active ENTRY/EXIT runtime path is bundle-driven and may expand
+    ctx_cont beyond this base prefix; current canonical bundles use 21/6.
     """
     return {
         "ctx_cont_dim": int(N_CTX_CONT_EXTENDED),
@@ -225,7 +234,9 @@ def get_canonical_ctx_contract() -> Dict[str, object]:
         "ctx_cont_names": list(ORDERED_CTX_CONT_NAMES_EXTENDED),
         "ctx_cat_names": list(ORDERED_CTX_CAT_NAMES_EXTENDED),
         "tag": "CTX6CAT6",
-        "source": "signal_bridge_v1_contract",
+        "source": "signal_bridge_v1_base_prefix_contract",
+        "ctx_cont_rule": "bundle-driven ctx_cont_dim must be >= 6 and share the canonical 6-dim prefix",
+        "ctx_cat_rule": "bundle-driven ctx_cat_dim must be exactly 6 and match the canonical 6-dim contract",
     }
 
 
@@ -238,35 +249,21 @@ def validate_bundle_ctx_contract_in_strict(
     context: str = "bundle_meta",
 ) -> None:
     """
-    TRUTH/SMOKE hard-gate: ONE UNIVERSE 6/6 only; meta list length >= dim; ordered names match contract prefix.
-    - ctx_cont_dim must be 6, ctx_cat_dim must be 6; RuntimeError otherwise.
+    TRUTH/SMOKE hard-gate for the 6/6 BASE prefix contract.
+    - ctx_cont_dim must be >= 6, ctx_cat_dim must be 6; RuntimeError otherwise.
     - meta ordered_ctx_cont_names / ordered_ctx_cat_names must have length >= expected dim, else RuntimeError with meta_cont_len / meta_cat_len.
-    - meta_*[:dim] must equal contract ORDERED_CTX_*_EXTENDED[:dim] (always, including baseline 2/5).
+    - meta ctx_cont prefix [:6] must equal the canonical BASE contract prefix.
+    - meta ctx_cat [:6] must equal the canonical BASE cat contract.
     """
     if not _is_truth_or_smoke():
         return
-    if expected_ctx_cont_dim not in ALLOWED_CTX_CONT_DIMS:
+    if expected_ctx_cont_dim < N_CTX_CONT_EXTENDED:
         raise RuntimeError(
-            f"[SIGNAL_BRIDGE_FAIL] {context} expected_ctx_cont_dim={expected_ctx_cont_dim} not in {ALLOWED_CTX_CONT_DIMS}"
+            f"[SIGNAL_BRIDGE_FAIL] {context} expected_ctx_cont_dim={expected_ctx_cont_dim} < canonical_prefix_dim={N_CTX_CONT_EXTENDED}"
         )
     if expected_ctx_cat_dim not in ALLOWED_CTX_CAT_DIMS:
         raise RuntimeError(
             f"[SIGNAL_BRIDGE_FAIL] {context} expected_ctx_cat_dim={expected_ctx_cat_dim} not in {ALLOWED_CTX_CAT_DIMS}"
-        )
-    if _is_truth_or_smoke() and len(ordered_ctx_cont_names) > len(ORDERED_CTX_CONT_NAMES_EXTENDED):
-        raise RuntimeError(
-            f"[SIGNAL_BRIDGE_FAIL] {context} ordered_ctx_cont_names longer than contract: "
-            f"meta_len={len(ordered_ctx_cont_names)} contract_len={len(ORDERED_CTX_CONT_NAMES_EXTENDED)}"
-        )
-    if _is_truth_or_smoke() and len(ordered_ctx_cat_names) > len(ORDERED_CTX_CAT_NAMES_EXTENDED):
-        raise RuntimeError(
-            f"[SIGNAL_BRIDGE_FAIL] {context} ordered_ctx_cat_names longer than contract: "
-            f"meta_len={len(ordered_ctx_cat_names)} contract_len={len(ORDERED_CTX_CAT_NAMES_EXTENDED)}"
-        )
-    if expected_ctx_cont_dim > len(ORDERED_CTX_CONT_NAMES_EXTENDED):
-        raise RuntimeError(
-            f"[SIGNAL_BRIDGE_FAIL] {context} expected_ctx_cont_dim={expected_ctx_cont_dim} > "
-            f"len(ORDERED_CTX_CONT_NAMES_EXTENDED)={len(ORDERED_CTX_CONT_NAMES_EXTENDED)}"
         )
     if expected_ctx_cat_dim > len(ORDERED_CTX_CAT_NAMES_EXTENDED):
         raise RuntimeError(
@@ -285,12 +282,12 @@ def validate_bundle_ctx_contract_in_strict(
             f"[SIGNAL_BRIDGE_FAIL] {context} ordered_ctx_cat_names too short: "
             f"meta_cat_len={meta_cat_len} expected_ctx_cat_dim={expected_ctx_cat_dim}"
         )
-    contract_cont = ORDERED_CTX_CONT_NAMES_EXTENDED[:expected_ctx_cont_dim]
-    meta_cont = list(ordered_ctx_cont_names)[:expected_ctx_cont_dim]
+    contract_cont = ORDERED_CTX_CONT_NAMES_EXTENDED
+    meta_cont = list(ordered_ctx_cont_names)[:N_CTX_CONT_EXTENDED]
     if meta_cont != contract_cont:
         raise RuntimeError(
             f"[SIGNAL_BRIDGE_FAIL] bundle {context} ordered_ctx_cont_names does not match "
-            f"contract (expected_ctx_cont_dim={expected_ctx_cont_dim}): "
+            f"canonical 6-dim prefix (expected_ctx_cont_dim={expected_ctx_cont_dim}): "
             f"contract_prefix={contract_cont!r} meta_prefix={meta_cont!r}"
         )
     contract_cat = ORDERED_CTX_CAT_NAMES_EXTENDED[:expected_ctx_cat_dim]

@@ -204,7 +204,7 @@ fused = self.fusion(fused)  # [B, fusion_hidden_dim]
 ### Dataset Building Flow
 
 ```
-1. Load raw candles (M5 bars)
+1. Load raw M1 candles, then derive the M5 model view for XGB/entry
    ↓
 2. Apply Hard Eligibility Filter
    - Warmup check
@@ -325,6 +325,5 @@ p_long_by_trend_regime = {
 ---
 
 **Status:** Design complete, ready for implementation
-
 
 

@@ -12,6 +12,7 @@ This repository now contains only the components that power the current GX1 FARM
 - **Exit:** `FARM_EXIT_V2_RULES_A` plus the fixed/random sanity exits, orchestrated via `ExitManager`.
 - **Exit Router:** `HYBRID_ROUTER_V3_RANGE` with guardrail – ML decision tree with range features. RULE6A er en edge-spesialisert exit, kun aktivert når range_edge_dist_atr < 1.0. I øvrige regimer gir den ingen målbar forbedring i PnL eller risiko og er derfor deaktivert.
 - **Runtime:** `gx1/execution/oanda_demo_runner.py` with the broker, entry, exit, and replay helpers.
+- **Tape contract:** raw canonical M1 is the source-of-truth for exit; canonical M5 is the model view used by XGB/entry.
 - **Features:** `gx1/features/basic_v1.py`, `gx1/features/runtime_v9.py`, and `gx1/seq/sequence_features.py`.
 - **Policies & Configs:** `gx1/configs/policies/active/*.yaml` (only the three active bundles) and the matching exits in `gx1/configs/exits/`.
 - **Docs:** `gx1/docs/FARM_V2B_EXIT_A_audit.md` and `gx1/docs/GX1_ACTIVE_PIPELINE.md`.
@@ -22,7 +23,7 @@ Everything else (legacy entries/exits, historical reports, experiments, wf runs,
 
 ## Quick start
 
-Create a Python 3.11+ environment, install your dependencies, and set the required environment variables (`OANDA_API_KEY`, `OANDA_ACCOUNT_ID`, `M5_DATA`, etc.).
+Create a Python 3.10+ environment (canonical venv uses 3.10.12), install your dependencies, and set the required environment variables (`OANDA_API_KEY`, `OANDA_ACCOUNT_ID`, `M5_DATA`, etc.).
 
 Run a short replay:
 
@@ -34,7 +35,7 @@ bash scripts/run_replay.sh \
   1
 ```
 
-`M5_DATA` must point to the local XAUUSD M5 dataset (parquet or CSV). Results are written under `gx1/wf_runs/<policy-name>/`.
+`M5_DATA` must point to the local XAUUSD M5 model-view dataset (parquet or CSV). Results are written under `gx1/wf_runs/<policy-name>/`.
 
 For random/fixed-bar sanity checks, swap the policy path for the `_RANDOM_EXIT` or `_FIXED_EXIT` bundles.
 

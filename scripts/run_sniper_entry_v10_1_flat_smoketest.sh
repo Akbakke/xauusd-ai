@@ -36,7 +36,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 POLICY="gx1/configs/policies/sniper_snapshot/2025_SNIPER_V10_1/GX1_V12_SNIPER_ENTRY_V10_1_FLAT.yaml"
-DATA_FILE="data/raw/xauusd_m5_2025_bid_ask.parquet"
+DATA_FILE="${GX1_CANONICAL_TAPE_ROOT:-/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m5_bid_ask__CANONICAL}/year=2025/part-000.parquet"
 
 # Smoketest period: 2 months (January + February 2025)
 START_TS="2025-01-01T00:00:00Z"
