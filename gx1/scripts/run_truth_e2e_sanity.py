@@ -47,8 +47,8 @@ One-liner commands (canonical short-window TRUTH replay; XGB BASE28 → XGB_SIGN
        python -m gx1.scripts.run_truth_e2e_sanity --truth-file <canonical_truth> --start-ts 2025-06-03 --end-ts 2025-06-10
        (LAST_GO oppdateres kun når exits matcher bundle dims; postrun gate.)
 
-    2) Train exit from LAST_GO (ctx dims must match bundle):
-       python -m gx1.scripts.run_truth_e2e_sanity --train-exit-transformer-v0-from-last-go --require-io-v2
+    2) Train exit from LAST_GO (phase5 contract only; ctx dims must match bundle):
+       python -m gx1.scripts.run_truth_e2e_sanity --train-exit-transformer-v0-from-last-go
 
     3) E2E full-year (run_fullyear_2025_truth_proof eller tilsvarende).
 """
@@ -2453,11 +2453,6 @@ def main() -> int:
         help="Train Exit Transformer V0 from LAST_GO exits jsonl. LAST_GO is reserved for canonical 2025 full-year replay only.",
     )
     ap.add_argument(
-        "--require-io-v2",
-        action="store_true",
-        help="With --train-exit-transformer-v0-from-last-go: use IOV2 and require context (hard fail if missing).",
-    )
-    ap.add_argument(
         "--exit-window-len",
         type=int,
         default=0,
@@ -2487,9 +2482,8 @@ def main() -> int:
         go_run_dir = ds["go_run_dir"]
         go_run_id = ds["go_run_id"]
         print(f"[train-exit-transformer-v0] Source: {exits_path} (run_id={go_run_id})", file=sys.stderr)
-        require_io_v2 = getattr(args, "require_io_v2", False)
-        train_exit_io_version = "EXIT_IO_V2_CTX36_M1L512" if require_io_v2 else "EXIT_IO_V1_CTX36"
-        train_window_len = int(getattr(args, "exit_window_len", 0) or (512 if require_io_v2 else 8))
+        train_exit_io_version = "EXIT_IO_V3_CTX36_M1L512_PHASE5"
+        train_window_len = int(getattr(args, "exit_window_len", 0) or 512)
         try:
             train_epochs = int(os.environ.get("GX1_EXIT_TRAIN_EPOCHS", "20"))
         except Exception:
@@ -2504,8 +2498,6 @@ def main() -> int:
             window_len=train_window_len,
             seed=42,
             exit_io_version=train_exit_io_version,
-            use_io_v2=require_io_v2,
-            require_io_v2=require_io_v2,
             ctx_cont_dim=CTX_CONT_DIM,
             ctx_cat_dim=CTX_CAT_DIM,
         )

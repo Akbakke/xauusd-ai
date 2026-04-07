@@ -1135,7 +1135,7 @@ def main() -> int:
     ap.add_argument("--dataset", required=True)
     ap.add_argument("--work-dir", required=True)
     ap.add_argument("--out-dir", required=True)
-    ap.add_argument("--exit-io-version", default="EXIT_IO_V2_CTX36_M1L512")
+    ap.add_argument("--exit-io-version", default="EXIT_IO_V3_CTX36_M1L512_PHASE5")
     ap.add_argument("--window-len", type=int, default=512)
     ap.add_argument("--num-buckets", type=int, default=256)
     ap.add_argument("--stride", type=int, default=1)

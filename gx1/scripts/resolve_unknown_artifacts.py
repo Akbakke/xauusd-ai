@@ -25,7 +25,7 @@ log = logging.getLogger(__name__)
 # Canonical policy configs (currently used)
 CANONICAL_POLICIES = [
     "gx1/configs/policies/canonical_truth/GX1_TRUTH_REPLAY_V10_CTX.yaml",
-    "gx1/configs/policies/canonical_truth/exits/EXIT_TRANSFORMER_ONLY_V0.yaml",
+    "gx1/configs/policies/canonical_truth/exits/EXIT_TRANSFORMER_ONLY_V3_M1L512_PHASE5.yaml",
 ]
 
 # Entrypoint patterns

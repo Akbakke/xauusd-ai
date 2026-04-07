@@ -1,10 +1,8 @@
 meta:
   router_version: V3_RANGE
   role: REPLAY_VERIFICATION
-  description: 'TRUTH entry policy for EU/London/NY sessions with V10_CTX enabled
-    for replay verification. This is a verification policy to ensure V10/V10_CTX is
-    actually called in replay. All gates/thresholds/risk settings are identical to
-    the SNIPER replay policy.
+  description: 'Canonical TRUTH replay policy with ENTRY_V10_CTX and the active
+    EXIT_IO_V3_CTX36_M1L512_PHASE5 exit contract.
 
     '
   bundle_location: canonical_truth
@@ -26,7 +24,7 @@ replay_config:
   v9_forbidden: true
   replay_pregate:
     enabled: false
-exit_config: gx1/configs/policies/canonical_truth/exits/EXIT_TRANSFORMER_ONLY_V0.yaml
+exit_config: gx1/configs/policies/canonical_truth/exits/EXIT_TRANSFORMER_ONLY_V3_M1L512_PHASE5.yaml
 execution:
   dry_run: true
   max_open_trades: 10

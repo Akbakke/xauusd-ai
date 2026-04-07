@@ -1,5 +1,5 @@
 {
-  "canonical_exit_transformer_bundle_dir": "/home/andre2/GX1_DATA/models/exit_transformer_v0/EXIT_TRANSFORMER__RETRAIN_20260402_EARNED_EDGE_FLOOR_V1",
+  "canonical_exit_transformer_bundle_dir": "/home/andre2/GX1_DATA/models/exit_transformer_v0/EXIT_IO_V3_CTX36_M1L512_PHASE5__WL512__PENDING_RETRAIN",
   "canonical_market_tape_root_raw": "/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m1_bid_ask__CANONICAL",
   "canonical_market_tape_root_model": "/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m5_bid_ask__CANONICAL",
   "canonical_prebuilt_manifest": "/home/andre2/GX1_DATA/data/data/prebuilt/BASE28_CANONICAL/CURRENT_MANIFEST.json",
@@ -26,7 +26,7 @@
     "allow_baseline_features": false,
     "entry_config_yaml_path": "gx1/configs/entry_configs/ENTRY_V10_CTX_TRUTH_REPLAY.yaml",
     "entry_model_id": "ENTRY_V10_CTX",
-    "exit_config_yaml_path": "gx1/configs/policies/canonical_truth/exits/EXIT_TRANSFORMER_ONLY_V0.yaml",
+    "exit_config_yaml_path": "gx1/configs/policies/canonical_truth/exits/EXIT_TRANSFORMER_ONLY_V3_M1L512_PHASE5.yaml",
     "policy_module": "gx1.policy.entry_policy_sniper_v10_ctx",
     "policy_yaml_path": "gx1/configs/policies/canonical_truth/GX1_TRUTH_REPLAY_V10_CTX.yaml",
     "require_prebuilt_features": true,

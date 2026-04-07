@@ -33,13 +33,15 @@ from gx1.exits.contracts.exit_io_v1_ctx36 import (
     compute_feature_names_hash,
     assert_exit_io_v1_ctx36_contract,
 )
-from gx1.exits.contracts.exit_io_v2_ctx36_m1l512 import EXIT_IO_V2_CTX36_M1L512_IO_VERSION
+from gx1.exits.contracts.exit_io_v3_ctx36_m1l512_phase5 import (
+    EXIT_IO_V3_CTX36_M1L512_PHASE5_IO_VERSION,
+)
 from gx1.exits.contracts.registry import get_exit_io_contract
 
 # -----------------------------------------------------------------------------
 # IO CONTRACT
 # -----------------------------------------------------------------------------
-_DEFAULT_EXIT_CONTRACT = get_exit_io_contract(EXIT_IO_V1_CTX36_IO_VERSION)
+_DEFAULT_EXIT_CONTRACT = get_exit_io_contract(EXIT_IO_V3_CTX36_M1L512_PHASE5_IO_VERSION)
 EXIT_IO_FEATURE_COUNT = int(_DEFAULT_EXIT_CONTRACT["feature_count"])
 EXIT_IO_VERSION = str(_DEFAULT_EXIT_CONTRACT["io_version"])
 EXIT_FEATURE_NAMES_HASH = str(_DEFAULT_EXIT_CONTRACT["feature_hash"])
@@ -2056,8 +2058,7 @@ def train_from_exits_jsonl(
 
     extra = dict(_)
     requested_io_version = str(extra.get("exit_io_version", "") or "").strip()
-    use_io_v2 = bool(extra.get("use_io_v2", False) or extra.get("require_io_v2", False))
-    exit_io_version = requested_io_version or (EXIT_IO_V2_CTX36_M1L512_IO_VERSION if use_io_v2 else EXIT_IO_VERSION)
+    exit_io_version = requested_io_version or EXIT_IO_VERSION
     contract = get_exit_io_contract(exit_io_version)
     if window_len is None:
         window_len = int(contract["default_window_len"])
