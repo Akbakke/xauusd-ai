@@ -16,12 +16,15 @@ import pandas as pd
 import numpy as np
 from gx1.exits.contracts.exit_io_v1_ctx36 import (
     EXIT_IO_V1_CTX36_FEATURES,
-    EXIT_IO_V1_CTX36_FEATURE_NAMES_HASH,
-    EXIT_IO_V1_CTX36_IO_VERSION,
     assert_exit_io_v1_ctx36_contract,
     compute_feature_names_hash,
     exit_feature_index_v1_ctx36,
 )
+from gx1.exits.contracts.exit_io_v3_ctx36_m1l512_phase5 import (
+    EXIT_IO_V3_CTX36_M1L512_PHASE5_EXTRA_FEATURES,
+    compute_m5_phase_onehot,
+)
+from gx1.exits.contracts.registry import get_exit_io_contract
 
 # DEL 3: PREBUILT mode fix - move live_features imports to lazy imports
 # live_features is forbidden in PREBUILT mode, so we only import it when needed (live mode only)
@@ -81,6 +84,24 @@ _EXIT_FEATURE_GROUP_COUNTS = {grp: len(names) for grp, names in _EXIT_FEATURE_GR
 _EXIT_FEATURE_GROUP_COUNTS["input_dim"] = len(EXIT_IO_V1_CTX36_FEATURES)
 
 
+def _build_active_exit_feature_groups(feature_names: List[str]) -> Dict[str, List[str]]:
+    groups = {
+        "signal": list(EXIT_FEATURE_GROUP_SIGNAL),
+        "entry_snapshot": list(EXIT_FEATURE_GROUP_ENTRY_SNAPSHOT),
+        "trade_state": list(EXIT_FEATURE_GROUP_TRADE_STATE),
+        "exit_specific": list(EXIT_FEATURE_GROUP_EXIT_SPECIFIC),
+        "ctx_cont": list(EXIT_FEATURE_GROUP_CTX_CONT),
+        "ctx_cat": list(EXIT_FEATURE_GROUP_CTX_CAT),
+    }
+    extras = [name for name in feature_names if name not in _EXIT_FEATURE_GROUP_LOOKUP]
+    if extras:
+        if all(name in EXIT_IO_V3_CTX36_M1L512_PHASE5_EXTRA_FEATURES for name in extras):
+            groups["m5_phase"] = extras
+        else:
+            groups["extra"] = extras
+    return groups
+
+
 def _is_closed_window_utc(ts: pd.Timestamp) -> bool:
     h = ts.hour
     m = ts.minute
@@ -105,7 +126,7 @@ _M1_EXPECTED_GAP_WINDOWS = {
     date(2025, 8, 27): [(dtime(22, 50), dtime(23, 0), 60.0, 600.0, "MAINT_2025_08_27_2253")],
     date(2025, 8, 28): [(dtime(23, 20), dtime(23, 30), 60.0, 600.0, "MAINT_2025_08_28_2323")],
     date(2025, 11, 27): [
-        (dtime(18, 45), dtime(22, 0), 60.0, 900.0, "MAINT_2025_11_27_EVENING"),
+        (dtime(18, 45), dtime(22, 0), 60.0, 2_400.0, "MAINT_2025_11_27_EVENING"),
     ],
     date(2025, 11, 28): [
         (dtime(3, 0), dtime(10, 0), 60.0, 900.0, "MAINT_2025_11_28_MORNING"),
@@ -257,13 +278,29 @@ class ExitManager:
         except Exception:
             # Propagate to fail fast; ensures contract checked even if import guard skipped
             raise
+        exit_contract = get_exit_io_contract(getattr(self._runner, "exit_transformer_io_version", None))
+        self._exit_io_version = str(exit_contract["io_version"])
+        self._exit_feature_names = list(exit_contract["feature_names"])
+        self._exit_feature_to_index = {name: idx for idx, name in enumerate(self._exit_feature_names)}
+        self._exit_feature_groups = _build_active_exit_feature_groups(self._exit_feature_names)
+        self._exit_feature_group_lookup = {
+            name: grp for grp, names in self._exit_feature_groups.items() for name in names
+        }
+        self._exit_feature_group_counts = {
+            grp: len(names) for grp, names in self._exit_feature_groups.items()
+        }
+        self._exit_feature_group_counts["input_dim"] = len(self._exit_feature_names)
+        self._exit_input_dim = int(exit_contract["feature_count"])
+        self._exit_feature_hash = str(exit_contract["feature_hash"])
+        self._exit_window_len = int(getattr(self._runner, "exit_transformer_window_len", exit_contract["default_window_len"]))
         if not getattr(self, "_exit_io_contract_proof_logged", False):
-            computed_hash = compute_feature_names_hash(EXIT_IO_V1_CTX36_FEATURES)
+            computed_hash = compute_feature_names_hash(self._exit_feature_names)
             log.info(
-                "[EXIT_IO_CONTRACT_PROOF] io_version=%s input_dim=%d feature_hash=%s",
-                EXIT_IO_V1_CTX36_IO_VERSION,
-                len(EXIT_IO_V1_CTX36_FEATURES),
+                "[EXIT_IO_CONTRACT_PROOF] io_version=%s input_dim=%d feature_hash=%s window_len=%d",
+                self._exit_io_version,
+                self._exit_input_dim,
                 computed_hash,
+                self._exit_window_len,
             )
             self._exit_io_contract_proof_logged = True
         self._exit_input_audit_logged_once = False
@@ -407,6 +444,12 @@ class ExitManager:
             cont = len(canonical.get("ctx_cont_names") or [])
             cat = len(canonical.get("ctx_cat_names") or [])
         return int(cont), int(cat)
+
+    def _exit_feature_index(self, name: str) -> int:
+        try:
+            return int(self._exit_feature_to_index[name])
+        except KeyError as exc:
+            raise KeyError(f"[EXIT_CONTRACT] unknown active exit feature: {name}") from exc
 
     def _log_exit_ctx_event_proof(self, event_type: str, ctx_cont: List[float], ctx_cat: List[int]) -> None:
         try:
@@ -886,8 +929,8 @@ class ExitManager:
             if io_only:
                 log.info(
                     "[EXIT_IO_ONLY_REPLAY_PROOF] enabled=1 io_version=%s input_dim=%d",
-                    EXIT_IO_V1_CTX36_IO_VERSION,
-                    len(EXIT_IO_V1_CTX36_FEATURES),
+                    self._exit_io_version,
+                    self._exit_input_dim,
                 )
             decider = getattr(self, "exit_transformer_decider", None)
             if decider is None and not io_only:
@@ -906,19 +949,21 @@ class ExitManager:
             window_len = int(getattr(decider, "window_len", -1))
             input_dim = int(getattr(decider, "input_dim", -1))
             if io_only:
-                window_len = 8
-                input_dim = len(EXIT_IO_V1_CTX36_FEATURES)
-            if window_len != 8 or input_dim != len(EXIT_IO_V1_CTX36_FEATURES):
+                window_len = self._exit_window_len
+                input_dim = self._exit_input_dim
+            if window_len != self._exit_window_len or input_dim != self._exit_input_dim:
                 if bool(getattr(self._runner, "exit_hash_guard_bypass_enabled", False)):
                     log.warning(
-                        "[EXIT_IO_CONTRACT_GUARD_BYPASS] expected window_len=8,input_dim=%d got window_len=%d,input_dim=%d",
-                        len(EXIT_IO_V1_CTX36_FEATURES),
+                        "[EXIT_IO_CONTRACT_GUARD_BYPASS] expected io_version=%s window_len=%d,input_dim=%d got window_len=%d,input_dim=%d",
+                        self._exit_io_version,
+                        self._exit_window_len,
+                        self._exit_input_dim,
                         window_len,
                         input_dim,
                     )
                 else:
                     raise RuntimeError(
-                        f"[EXIT_IO_CONTRACT_VIOLATION] expected window_len=8,input_dim={len(EXIT_IO_V1_CTX36_FEATURES)} got window_len={window_len},input_dim={input_dim}"
+                        f"[EXIT_IO_CONTRACT_VIOLATION] expected io_version={self._exit_io_version} window_len={self._exit_window_len},input_dim={self._exit_input_dim} got window_len={window_len},input_dim={input_dim}"
                     )
             if not getattr(self, "_exit_input_dim_proof_logged", False):
                 log.info(
@@ -928,22 +973,22 @@ class ExitManager:
                 )
                 self._exit_input_dim_proof_logged = True
             if not getattr(self, "_exit_feature_vector_proof_logged", False):
-                computed_hash = compute_feature_names_hash(EXIT_IO_V1_CTX36_FEATURES)
+                computed_hash = compute_feature_names_hash(self._exit_feature_names)
                 log.info(
                     "[EXIT_FEATURE_VECTOR_PROOF] io_version=%s input_dim=%d feature_hash=%s feature_names=%s expected_hash=%s signal_count=%d ctx_cont_count=%d ctx_cat_count=%d trade_state_count=%d entry_snapshot_count=%d exit_specific_count=%d first3=%s last3=%s",
-                    EXIT_IO_V1_CTX36_IO_VERSION,
-                    len(EXIT_IO_V1_CTX36_FEATURES),
+                    self._exit_io_version,
+                    self._exit_input_dim,
                     computed_hash,
-                    EXIT_IO_V1_CTX36_FEATURES,
-                    EXIT_IO_V1_CTX36_FEATURE_NAMES_HASH,
-                    _EXIT_FEATURE_GROUP_COUNTS.get("signal", 0),
-                    _EXIT_FEATURE_GROUP_COUNTS.get("ctx_cont", 0),
-                    _EXIT_FEATURE_GROUP_COUNTS.get("ctx_cat", 0),
-                    _EXIT_FEATURE_GROUP_COUNTS.get("trade_state", 0),
-                    _EXIT_FEATURE_GROUP_COUNTS.get("entry_snapshot", 0),
-                    _EXIT_FEATURE_GROUP_COUNTS.get("exit_specific", 0),
-                    EXIT_IO_V1_CTX36_FEATURES[:3],
-                    EXIT_IO_V1_CTX36_FEATURES[-3:],
+                    self._exit_feature_names,
+                    self._exit_feature_hash,
+                    self._exit_feature_group_counts.get("signal", 0),
+                    self._exit_feature_group_counts.get("ctx_cont", 0),
+                    self._exit_feature_group_counts.get("ctx_cat", 0),
+                    self._exit_feature_group_counts.get("trade_state", 0),
+                    self._exit_feature_group_counts.get("entry_snapshot", 0),
+                    self._exit_feature_group_counts.get("exit_specific", 0),
+                    self._exit_feature_names[:3],
+                    self._exit_feature_names[-3:],
                 )
                 self._exit_feature_vector_proof_logged = True
             if not getattr(self, "_exit_t8_forward_logged", False):
@@ -1926,20 +1971,20 @@ class ExitManager:
                     feature_vector_path = out_dir / "EXIT_FEATURE_VECTOR_PROOF.json"
                     feature_groups_payload = {
                         grp: {"count": len(names), "features": list(names)}
-                        for grp, names in _EXIT_FEATURE_GROUPS.items()
+                        for grp, names in self._exit_feature_groups.items()
                     }
                     feature_list_payload = [
-                        {"name": name, "group": _EXIT_FEATURE_GROUP_LOOKUP.get(name, "unknown")}
-                        for name in EXIT_IO_V1_CTX36_FEATURES
+                        {"name": name, "group": self._exit_feature_group_lookup.get(name, "unknown")}
+                        for name in self._exit_feature_names
                     ]
                     feature_vector_proof = {
-                        "io_version": EXIT_IO_V1_CTX36_IO_VERSION,
-                        "input_dim": len(EXIT_IO_V1_CTX36_FEATURES),
-                        "feature_hash": compute_feature_names_hash(EXIT_IO_V1_CTX36_FEATURES),
-                        "expected_hash": EXIT_IO_V1_CTX36_FEATURE_NAMES_HASH,
-                        "feature_names": list(EXIT_IO_V1_CTX36_FEATURES),
+                        "io_version": self._exit_io_version,
+                        "input_dim": self._exit_input_dim,
+                        "feature_hash": compute_feature_names_hash(self._exit_feature_names),
+                        "expected_hash": self._exit_feature_hash,
+                        "feature_names": list(self._exit_feature_names),
                         "feature_groups": feature_groups_payload,
-                        "feature_group_counts": _EXIT_FEATURE_GROUP_COUNTS,
+                        "feature_group_counts": self._exit_feature_group_counts,
                         "feature_list": feature_list_payload,
                     }
                     with model_proof_path.open("w", encoding="utf-8") as f:
@@ -1952,7 +1997,7 @@ class ExitManager:
                                 "input_dim": input_dim,
                                 "feature_hash": feature_hash,
                                 "uses_logits_path": int(uses_logits_path),
-                                "feature_group_counts": _EXIT_FEATURE_GROUP_COUNTS,
+                                "feature_group_counts": self._exit_feature_group_counts,
                             },
                             f,
                             indent=2,
@@ -1975,7 +2020,7 @@ class ExitManager:
                         "input_dim": input_dim,
                         "feature_hash": feature_hash,
                         "uses_logits_path": int(uses_logits_path),
-                        "feature_group_counts": _EXIT_FEATURE_GROUP_COUNTS,
+                        "feature_group_counts": self._exit_feature_group_counts,
                     }
                     audit["runtime_feature_vector_proof"] = feature_vector_proof
                     audit["runtime_score_stats"] = {
@@ -2323,7 +2368,7 @@ class ExitManager:
             return None
         try:
             arr = np.asarray(window_arr, dtype=np.float32)
-            idx = {name: i for i, name in enumerate(EXIT_IO_V1_CTX36_FEATURES)}
+            idx = dict(self._exit_feature_to_index)
             last = arr[-1]
             mfe_bps = float(last[idx["mfe_bps"]])
             dd_from_mfe_bps = float(last[idx["dd_from_mfe_bps"]])
@@ -2367,7 +2412,7 @@ class ExitManager:
             return None
         try:
             arr = np.asarray(window_arr, dtype=np.float32)
-            idx = {name: i for i, name in enumerate(EXIT_IO_V1_CTX36_FEATURES)}
+            idx = dict(self._exit_feature_to_index)
             last = arr[-1]
             mfe_bps = float(last[idx["mfe_bps"]])
             dd_from_mfe_bps = float(last[idx["dd_from_mfe_bps"]])
@@ -2442,10 +2487,10 @@ class ExitManager:
         arr = np.asarray(window_arr, dtype=np.float32)
         last = arr[-1]
         try:
-            mfe_bps = float(last[exit_feature_index_v1_ctx36("mfe_bps")])
-            dd_from_mfe_bps = float(last[exit_feature_index_v1_ctx36("dd_from_mfe_bps")])
-            giveback_ratio = float(last[exit_feature_index_v1_ctx36("giveback_ratio")])
-            time_since_mfe_bars = float(last[exit_feature_index_v1_ctx36("time_since_mfe_bars")])
+            mfe_bps = float(last[self._exit_feature_index("mfe_bps")])
+            dd_from_mfe_bps = float(last[self._exit_feature_index("dd_from_mfe_bps")])
+            giveback_ratio = float(last[self._exit_feature_index("giveback_ratio")])
+            time_since_mfe_bars = float(last[self._exit_feature_index("time_since_mfe_bars")])
         except Exception:
             return None
         directional_edge = float((threshold_event or {}).get("directional_edge", 0.0))
@@ -2503,7 +2548,7 @@ class ExitManager:
     def _canonical_residual_exit_state(self, *, window_arr: Any) -> Optional[dict]:
         try:
             arr = np.asarray(window_arr, dtype=np.float32)
-            idx = {name: i for i, name in enumerate(EXIT_IO_V1_CTX36_FEATURES)}
+            idx = dict(self._exit_feature_to_index)
             last = arr[-1]
             distance_from_peak_mfe_bps = float(last[idx["distance_from_peak_mfe_bps"]])
             minutes_since_session_open = float(last[idx["minutes_since_session_open"]])
@@ -2576,7 +2621,7 @@ class ExitManager:
         ctx_cat: Optional[List[int]],
     ) -> None:
         """
-        Append full IO (T=8, D=53) for exit transformer evaluation to exits_<run_id>.jsonl.
+        Append full IO (T,D) for exit transformer evaluation to exits_<run_id>.jsonl.
         """
         try:
             runner = self._runner
@@ -2584,18 +2629,19 @@ class ExitManager:
             run_id = getattr(runner, "run_id", None)
             if log_dir is None or run_id is None:
                 return
+            window_len = int(self._exit_window_len)
+            feature_dim = int(self._exit_input_dim)
 
             exits_path = Path(log_dir) / "exits" / f"exits_{run_id}.jsonl"
             exits_path.parent.mkdir(parents=True, exist_ok=True)
 
             # Normalize window to float list
             arr = np.asarray(window_arr, dtype=np.float32)
-            feature_dim = len(EXIT_IO_V1_CTX36_FEATURES)
-            if arr.shape != (8, feature_dim):
-                raise RuntimeError(f"[EXIT_IO_SHAPE] expected (8,{feature_dim}), got {arr.shape}")
+            if arr.shape != (window_len, feature_dim):
+                raise RuntimeError(f"[EXIT_IO_SHAPE] expected ({window_len},{feature_dim}), got {arr.shape}")
 
             # Index map for scalars
-            idx = {name: i for i, name in enumerate(EXIT_IO_V1_CTX36_FEATURES)}
+            idx = dict(self._exit_feature_to_index)
             last = arr[-1]
             try:
                 scalars = {
@@ -2634,9 +2680,9 @@ class ExitManager:
                 },
                 "context": ctx_payload,
                 "io": {
-                    "io_version": EXIT_IO_V1_CTX36_IO_VERSION,
-                    "feature_names_hash": EXIT_IO_V1_CTX36_FEATURE_NAMES_HASH,
-                    "window_len": 8,
+                    "io_version": self._exit_io_version,
+                    "feature_names_hash": self._exit_feature_hash,
+                    "window_len": window_len,
                     "input_dim": feature_dim,
                     "io_features": arr.tolist(),
                 },
@@ -2657,7 +2703,7 @@ class ExitManager:
 
     def _build_exit_ctx19_window(self, trade: Any, candles: pd.DataFrame, window_len: int) -> Optional[np.ndarray]:
         """
-        Build (T,53) EXIT_IO_V1_CTX36 transformer input window for a single trade.
+        Build (T,D) exit transformer input window for a single trade.
         """
         runner_obj = getattr(self, "_runner", None)
 
@@ -3037,6 +3083,17 @@ class ExitManager:
                 float(giveback_ratio),
                 float(giveback_acceleration),
             ] + ctx_cont_row + ctx_cat_row
+            extra_feature_names = self._exit_feature_names[len(EXIT_IO_V1_CTX36_FEATURES):]
+            if extra_feature_names:
+                phase_onehot = compute_m5_phase_onehot(bar_ts)
+                for feat_name in extra_feature_names:
+                    if feat_name in EXIT_IO_V3_CTX36_M1L512_PHASE5_EXTRA_FEATURES:
+                        phase_idx = int(feat_name.rsplit("_", 1)[1])
+                        row.append(float(phase_onehot[phase_idx]))
+                    else:
+                        raise RuntimeError(
+                            f"[EXIT_IO_CONTRACT_VIOLATION] unsupported extra feature in active contract: {feat_name}"
+                        )
             window_rows.append(row)
             _accum_input_prep_metric("t_exit_input_feature_pack_sec", time.perf_counter() - t_pack_start)
 
@@ -3047,7 +3104,7 @@ class ExitManager:
 
         t_numpy_start = time.perf_counter()
         window_arr = np.asarray(window_rows, dtype=np.float32)
-        expected_shape = (window_len, len(EXIT_IO_V1_CTX36_FEATURES))
+        expected_shape = (window_len, self._exit_input_dim)
         if window_arr.shape != expected_shape:
             raise RuntimeError(
                 f"[EXIT_TRANSFORMER_INPUT] bad shape built: {window_arr.shape}, expected {expected_shape}"
@@ -3057,15 +3114,15 @@ class ExitManager:
         _accum_input_prep_metric("t_exit_input_numpy_finalize_sec", time.perf_counter() - t_numpy_start)
 
         t_contract_checks_start = time.perf_counter()
-        idx = {name: i for i, name in enumerate(EXIT_IO_V1_CTX36_FEATURES)}
+        idx = dict(self._exit_feature_to_index)
         strict = os.environ.get("GX1_EXIT_AUDIT_STRICT") == "1"
         eps = 1e-6
 
         # MODEL OBSERVABILITY AUDIT (EXIT) - gated, one-shot per run
         if os.getenv("GX1_MODEL_OBS_AUDIT", "0") == "1" and not getattr(self, "_exit_model_obs_audit_done", False):
             try:
-                exit_feature_keys = list(EXIT_IO_V1_CTX36_FEATURES)
-                io_version = EXIT_IO_V1_CTX36_IO_VERSION
+                exit_feature_keys = list(self._exit_feature_names)
+                io_version = self._exit_io_version
                 feature_hash = compute_feature_names_hash(exit_feature_keys)
 
                 def _classify(name: str) -> str:
@@ -3249,8 +3306,8 @@ class ExitManager:
             }
             log.info(
                 "[EXIT_INPUT_AUDIT_ONESHOT] io_version=%s feature_hash=%s window_len=%d input_dim=%d first_row_first7=%s last_row_first7=%s entry_snapshots=%s last_row_scalars=%s pre_entry_count=%d",
-                EXIT_IO_V1_CTX36_IO_VERSION,
-                EXIT_IO_V1_CTX36_FEATURE_NAMES_HASH,
+                self._exit_io_version,
+                self._exit_feature_hash,
                 window_len,
                 window_arr.shape[1],
                 first_row_first7,

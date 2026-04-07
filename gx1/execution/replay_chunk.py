@@ -3767,11 +3767,14 @@ def _log_replay_summary_proof(chunk_output_dir: Path, run_id: str) -> Dict[str, 
             )
             gate_cfg_line = (
                 "[ENTRY_GATE_CONFIG_PROOF] run_id=%s p_side_min_long=%s p_side_min_short=%s "
-                "p_flat_gate=%s p_flat_margin=%s candidate_threshold=%s runner_up_margin=%s"
+                "margin_min_long=%s margin_min_short=%s p_flat_gate=%s p_flat_margin=%s "
+                "candidate_threshold=%s runner_up_margin=%s"
                 % (
                     run_id,
                     entry_gate_cfg.get("p_side_min_long"),
                     entry_gate_cfg.get("p_side_min_short"),
+                    entry_gate_cfg.get("margin_min_long"),
+                    entry_gate_cfg.get("margin_min_short"),
                     entry_gate_cfg.get("p_flat_gate"),
                     entry_gate_cfg.get("p_flat_margin"),
                     candidate_threshold,

@@ -2,8 +2,8 @@
 GX1 v1.1 → OANDA practice demo runner.
 
 Canonical TRUTH/SMOKE stack:
-- Entry: ENTRY_V10_CTX (signal7 + ctx_cat=6 fixed, ctx_cont from bundle)
-- Exit: exit_transformer_v0 ONLY (EXIT_IO_V1_CTX36, T=8, D=53)
+- Entry: ENTRY_V10_CTX (signal7 + ctx_cat=6 fixed, ctx_cont from bundle, seq_len on M5 model bars)
+- Exit: exit_transformer_v0 ONLY (contract-configured raw M1 window; V1=T8, V2=M1L512)
 - Features: BASE28 → XGB → XGB_SIGNAL_BRIDGE_V1 (7-dim)
 - Mode: TRUTH/SMOKE = 1W1C, no fallbacks; mismatch => RuntimeError
 - Forbidden in canonical truth: FARM, EXIT_POLICY_V2/V3, drift-modes
@@ -72,11 +72,8 @@ if TYPE_CHECKING:
 from gx1.execution.broker_client import BrokerClient
 from gx1.execution.entry_manager import EntryManager
 from gx1.execution.exit_manager import ExitManager
-from gx1.exits.contracts.exit_io_v1_ctx36 import (
-    EXIT_IO_V1_CTX36_FEATURE_NAMES_HASH,
-    EXIT_IO_V1_CTX36_IO_VERSION,
-    EXIT_IO_V1_CTX36_FEATURE_COUNT,
-)
+from gx1.exits.contracts.exit_io_v1_ctx36 import EXIT_IO_V1_CTX36_IO_VERSION
+from gx1.exits.contracts.registry import get_exit_io_contract
 from gx1.execution.telemetry import TelemetryTracker
 from gx1.execution.oanda_backfill import backfill_m5_candles_until_target
 from gx1.tuning.feature_manifest import load_manifest  # type: ignore[reportMissingImports]
@@ -1105,6 +1102,9 @@ class GX1DemoRunner:
         # Initialize model_name tracking (will be set when models are loaded)
         self.model_name = self.policy.get("entry_models", {}).get("default", {}).get("version", "UNKNOWN")
         
+        # Resolve relative config paths against the engine workspace root once.
+        workspace_root = Path(__file__).parent.parent.parent
+
         # Resolve entry_config path (optional - if None, skip loading)
         entry_config_raw = self.policy.get("entry_config")
         entry_cfg_path = None
@@ -1115,7 +1115,6 @@ class GX1DemoRunner:
             entry_cfg_path = Path(entry_config_raw)
             if not entry_cfg_path.is_absolute():
                 # Resolve relative to workspace root
-                workspace_root = Path(__file__).parent.parent.parent
                 entry_cfg_path = workspace_root / entry_cfg_path
             entry_cfg = load_yaml_config(entry_cfg_path)
         
@@ -1129,7 +1128,6 @@ class GX1DemoRunner:
             exit_cfg_path = Path(exit_config_raw)
             if not exit_cfg_path.is_absolute():
                 # Resolve relative to workspace root
-                workspace_root = Path(__file__).parent.parent.parent
                 exit_cfg_path = workspace_root / exit_cfg_path
             
             # TRUTH-only: Write EXIT_CONFIG_RESOLVE_PROOF.json for forensics
@@ -1244,28 +1242,38 @@ class GX1DemoRunner:
                 else {}
             )
             model_path_raw = exit_tf_cfg.get("model_path")
+            expected_exit_io_version = str(
+                exit_tf_cfg.get("exit_ml_io_version") or exit_tf_cfg.get("io_version") or EXIT_IO_V1_CTX36_IO_VERSION
+            ).strip() or EXIT_IO_V1_CTX36_IO_VERSION
+            exit_contract = get_exit_io_contract(expected_exit_io_version)
+            expected_exit_feature_hash = str(
+                exit_tf_cfg.get("feature_hash") or exit_tf_cfg.get("feature_names_hash") or exit_contract["feature_hash"]
+            ).strip() or str(exit_contract["feature_hash"])
+            expected_exit_window_len = int(exit_tf_cfg.get("window_len") or exit_contract["default_window_len"])
+            expected_exit_input_dim = int(exit_contract["feature_count"])
             if self.exit_io_only_replay:
                 self.exit_transformer_decider = None
                 self.exit_ml_enabled = True
                 self.exit_ml_decision_mode = "exit_transformer_v0"
-                self.exit_ml_input_dim = int(EXIT_IO_V1_CTX36_FEATURE_COUNT)
-                self.exit_ml_io_version = EXIT_IO_V1_CTX36_IO_VERSION
-                self.exit_ml_config_hash = EXIT_IO_V1_CTX36_FEATURE_NAMES_HASH
+                self.exit_ml_input_dim = expected_exit_input_dim
+                self.exit_ml_io_version = expected_exit_io_version
+                self.exit_ml_config_hash = expected_exit_feature_hash
                 self.exit_ml_model_sha = None
-                self.exit_transformer_window_len = 8
-                self.exit_transformer_input_dim = int(EXIT_IO_V1_CTX36_FEATURE_COUNT)
-                self.exit_transformer_feature_hash = EXIT_IO_V1_CTX36_FEATURE_NAMES_HASH
+                self.exit_transformer_window_len = expected_exit_window_len
+                self.exit_transformer_input_dim = expected_exit_input_dim
+                self.exit_transformer_feature_hash = expected_exit_feature_hash
                 self.exit_transformer_model_path = None
                 self.exit_transformer_model_dir = None
                 self.exit_transformer_config_path = None
-                self.exit_transformer_io_version = EXIT_IO_V1_CTX36_IO_VERSION
-                self.exit_transformer_input_dim = int(EXIT_IO_V1_CTX36_FEATURE_COUNT)
-                self.exit_transformer_feature_hash = EXIT_IO_V1_CTX36_FEATURE_NAMES_HASH
+                self.exit_transformer_io_version = expected_exit_io_version
+                self.exit_transformer_input_dim = expected_exit_input_dim
+                self.exit_transformer_feature_hash = expected_exit_feature_hash
                 self.exit_transformer_uses_logits_path = 0
                 log.info(
-                    "[EXIT_IO_ONLY_REPLAY_PROOF] enabled=1 io_version=%s input_dim=%d",
-                    EXIT_IO_V1_CTX36_IO_VERSION,
-                    int(EXIT_IO_V1_CTX36_FEATURE_COUNT),
+                    "[EXIT_IO_ONLY_REPLAY_PROOF] enabled=1 io_version=%s input_dim=%d window_len=%d",
+                    expected_exit_io_version,
+                    expected_exit_input_dim,
+                    expected_exit_window_len,
                 )
             else:
                 if not model_path_raw:
@@ -1275,33 +1283,23 @@ class GX1DemoRunner:
                     gx1_data_root = Path(os.environ["GX1_DATA"]).expanduser().resolve()
                     model_path = (gx1_data_root / model_path).resolve()
                 expected_model_path = str(model_path)
-                cfg_feature_hash = str(
-                    exit_tf_cfg.get("feature_hash") or exit_tf_cfg.get("feature_names_hash") or ""
-                ).strip()
-                if not cfg_feature_hash:
-                    raise RuntimeError(
-                        f"[EXIT_CONFIG_HASH_GUARD] expected_feature_hash missing in config; "
-                        f"expected_feature_hash={cfg_feature_hash or 'None'} "
-                        f"contract_feature_hash={EXIT_IO_V1_CTX36_FEATURE_NAMES_HASH} "
-                        f"model_path={expected_model_path}"
-                    )
                 if self.exit_hash_guard_bypass_enabled:
                     log.warning(
                         "[EXIT_CONFIG_HASH_GUARD_BYPASS] enabled=1 expected_feature_hash=%s contract_feature_hash=%s model_path=%s",
-                        cfg_feature_hash,
-                        EXIT_IO_V1_CTX36_FEATURE_NAMES_HASH,
+                        expected_exit_feature_hash,
+                        exit_contract["feature_hash"],
                         expected_model_path,
                     )
-                elif cfg_feature_hash != EXIT_IO_V1_CTX36_FEATURE_NAMES_HASH:
+                elif expected_exit_feature_hash != str(exit_contract["feature_hash"]):
                     raise RuntimeError(
-                        f"[EXIT_CONFIG_HASH_GUARD] expected_feature_hash={cfg_feature_hash} "
-                        f"contract_feature_hash={EXIT_IO_V1_CTX36_FEATURE_NAMES_HASH} "
+                        f"[EXIT_CONFIG_HASH_GUARD] expected_feature_hash={expected_exit_feature_hash} "
+                        f"contract_feature_hash={exit_contract['feature_hash']} "
                         f"model_path={expected_model_path}"
                     )
                 log.info(
                     "[EXIT_CONFIG_HASH_PROOF] pass=1 expected_feature_hash=%s contract_feature_hash=%s model_path=%s",
-                    cfg_feature_hash,
-                    EXIT_IO_V1_CTX36_FEATURE_NAMES_HASH,
+                    expected_exit_feature_hash,
+                    exit_contract["feature_hash"],
                     expected_model_path,
                 )
                 output_dir = getattr(self, "explicit_output_dir", None) or getattr(self, "output_dir", None)
@@ -1310,12 +1308,12 @@ class GX1DemoRunner:
                     proof_path = Path(output_dir) / "EXIT_CONFIG_HASH_PROOF.json"
                     proof_payload = {
                         "status": "pass",
-                        "expected_feature_hash": cfg_feature_hash,
-                        "contract_feature_hash": EXIT_IO_V1_CTX36_FEATURE_NAMES_HASH,
+                        "expected_feature_hash": expected_exit_feature_hash,
+                        "contract_feature_hash": str(exit_contract["feature_hash"]),
                         "model_path": expected_model_path,
                         "proof_line": (
-                            f"[EXIT_CONFIG_HASH_PROOF] pass=1 expected_feature_hash={cfg_feature_hash} "
-                            f"contract_feature_hash={EXIT_IO_V1_CTX36_FEATURE_NAMES_HASH} model_path={expected_model_path}"
+                            f"[EXIT_CONFIG_HASH_PROOF] pass=1 expected_feature_hash={expected_exit_feature_hash} "
+                            f"contract_feature_hash={exit_contract['feature_hash']} model_path={expected_model_path}"
                         ),
                         "timestamp": datetime.now(timezone.utc).isoformat(),
                     }
@@ -1326,34 +1324,37 @@ class GX1DemoRunner:
                 decider = load_exit_transformer_decider(model_path)
                 # Hard validation
                 feat_hash = str(getattr(decider, "config", {}).get("feature_names_hash", "")).strip()
-                cfg_io_ver = getattr(decider, "config", {}).get("exit_ml_io_version")
+                cfg_io_ver = str(getattr(decider, "config", {}).get("exit_ml_io_version", "") or expected_exit_io_version).strip()
+                decider_contract = get_exit_io_contract(cfg_io_ver)
                 if self.exit_hash_guard_bypass_enabled:
                     log.warning(
-                        "[EXIT_IO_CONTRACT_GUARD_BYPASS] enabled=1 expected_input_dim=%d got_input_dim=%s expected_window_len=8 got_window_len=%s",
-                        int(EXIT_IO_V1_CTX36_FEATURE_COUNT),
+                        "[EXIT_IO_CONTRACT_GUARD_BYPASS] enabled=1 expected_input_dim=%d got_input_dim=%s expected_window_len=%d got_window_len=%s expected_io_version=%s",
+                        int(decider_contract["feature_count"]),
                         getattr(decider, "input_dim", None),
+                        expected_exit_window_len,
                         getattr(decider, "window_len", None),
+                        cfg_io_ver,
                     )
                 else:
-                    if int(getattr(decider, "input_dim", -1)) != int(EXIT_IO_V1_CTX36_FEATURE_COUNT):
+                    if int(getattr(decider, "input_dim", -1)) != int(decider_contract["feature_count"]):
                         raise RuntimeError(
-                            f"[EXIT_IO_CONTRACT_VIOLATION] expected input_dim={int(EXIT_IO_V1_CTX36_FEATURE_COUNT)}, got {getattr(decider, 'input_dim', None)}"
+                            f"[EXIT_IO_CONTRACT_VIOLATION] expected input_dim={int(decider_contract['feature_count'])}, got {getattr(decider, 'input_dim', None)}"
                         )
-                    if int(getattr(decider, "window_len", -1)) != 8:
+                    if int(getattr(decider, "window_len", -1)) != int(expected_exit_window_len):
                         raise RuntimeError(
-                            f"[EXIT_IO_CONTRACT_VIOLATION] expected window_len=8, got {getattr(decider, 'window_len', None)}"
+                            f"[EXIT_IO_CONTRACT_VIOLATION] expected window_len={expected_exit_window_len}, got {getattr(decider, 'window_len', None)}"
                         )
-                    if cfg_io_ver and cfg_io_ver != "EXIT_IO_V1_CTX36":
+                    if cfg_io_ver and cfg_io_ver != expected_exit_io_version:
                         raise RuntimeError(
-                            f"[EXIT_IO_CONTRACT_VIOLATION] expected exit_ml_io_version=EXIT_IO_V1_CTX36, got {cfg_io_ver}"
+                            f"[EXIT_IO_CONTRACT_VIOLATION] expected exit_ml_io_version={expected_exit_io_version}, got {cfg_io_ver}"
                         )
-                    if feat_hash and feat_hash != EXIT_IO_V1_CTX36_FEATURE_NAMES_HASH:
+                    if feat_hash and feat_hash != str(decider_contract["feature_hash"]):
                         raise RuntimeError(
-                            f"[EXIT_IO_CONTRACT_VIOLATION] expected feature_names_hash={EXIT_IO_V1_CTX36_FEATURE_NAMES_HASH}, got {feat_hash}"
+                            f"[EXIT_IO_CONTRACT_VIOLATION] expected feature_names_hash={decider_contract['feature_hash']}, got {feat_hash}"
                         )
                 log.info(
                     "[EXIT_RUNTIME_GUARD_PROOF] pass=1 io_version=%s input_dim=%d feature_hash=%s model_path=%s",
-                    EXIT_IO_V1_CTX36_IO_VERSION,
+                    cfg_io_ver,
                     int(getattr(decider, "input_dim", -1)),
                     feat_hash,
                     expected_model_path,
@@ -1364,12 +1365,12 @@ class GX1DemoRunner:
                     proof_path = Path(output_dir) / "EXIT_RUNTIME_GUARD_PROOF.json"
                     proof_payload = {
                         "status": "pass",
-                        "io_version": EXIT_IO_V1_CTX36_IO_VERSION,
+                        "io_version": cfg_io_ver,
                         "input_dim": int(getattr(decider, "input_dim", -1)),
                         "feature_hash": feat_hash,
                         "model_path": expected_model_path,
                         "proof_line": (
-                            f"[EXIT_RUNTIME_GUARD_PROOF] pass=1 io_version={EXIT_IO_V1_CTX36_IO_VERSION} "
+                            f"[EXIT_RUNTIME_GUARD_PROOF] pass=1 io_version={cfg_io_ver} "
                             f"input_dim={int(getattr(decider, 'input_dim', -1))} "
                             f"feature_hash={feat_hash} model_path={expected_model_path}"
                         ),
@@ -8760,10 +8761,19 @@ class GX1DemoRunner:
                 not replay_quiet
                 and (self._entry_debug_prediction_count <= 5 or (self._entry_debug_prediction_count % 5000) == 0)
             ):
+                if prob_flat >= prob_long and prob_flat >= prob_short:
+                    debug_side = "FLAT"
+                elif prob_long >= prob_short:
+                    debug_side = "LONG"
+                else:
+                    debug_side = "SHORT"
                 log.info(
                     "[ENTRY_DEBUG] Entry prediction produced | "
-                    f"score={prob_long:.4f} | "
-                    f"side={'LONG' if prob_long > 0.5 else 'SHORT'} | "
+                    f"score={p_hat:.4f} | "
+                    f"side={debug_side} | "
+                    f"p_long={prob_long:.4f} | "
+                    f"p_short={prob_short:.4f} | "
+                    f"p_flat={prob_flat:.4f} | "
                     f"session={current_session} | "
                     f"run_mode={run_mode} | "
                     f"is_sniper={is_sniper}"
@@ -9058,8 +9068,12 @@ class GX1DemoRunner:
         # 3. H1 warmup (first H1 bar must be completed)
         # 4. H4 warmup (first H4 bar must be completed)
         
-        # Calculate M5 warmup time
-        m5_warmup_time = eval_start_ts + pd.Timedelta(minutes=5 * min_bars_for_features)
+        # If padded history already provides enough bars before eval_start, do not
+        # push warmup forward into the trading window. Only missing pre-eval bars
+        # should delay evaluation.
+        bars_before_eval_start = int(df.index.searchsorted(eval_start_ts, side="left"))
+        missing_pre_eval_bars = max(0, int(min_bars_for_features) - bars_before_eval_start)
+        m5_warmup_time = eval_start_ts + pd.Timedelta(minutes=5 * missing_pre_eval_bars)
         
         # Build HTF bars from first part of df to find first H1/H4 close times
         # Use first 1000 bars (enough for several H4 bars)
@@ -9104,17 +9118,17 @@ class GX1DemoRunner:
             # Find first index in df where timestamp >= first_valid_eval_time
             first_valid_eval_idx = df.index.searchsorted(first_valid_eval_time, side='left')
             
-            # Ensure we have at least:
-            # 1. min_bars_for_features (M5 warmup, typically 288 bars)
-            # 2. 48 bars for H4 warmup (minimum needed for first H4 bar)
-            # 3. 12 bars for H1 warmup (minimum needed for first H1 bar)
-            first_valid_eval_idx = max(first_valid_eval_idx, min_bars_for_features, 48, 12)
+            # Never start before the eval boundary itself.
+            first_valid_eval_idx = max(first_valid_eval_idx, bars_before_eval_start)
             
             log.info(
                 "[REPLAY] HTF warmup calculation: "
-                "eval_start=%s, first_h1_close=%s, first_h4_close=%s, m5_warmup=%s, "
+                "eval_start=%s, bars_before_eval_start=%d missing_pre_eval_bars=%d "
+                "first_h1_close=%s, first_h4_close=%s, m5_warmup=%s, "
                 "first_valid_eval_time=%s, first_valid_eval_idx=%d",
                 eval_start_ts.isoformat(),
+                bars_before_eval_start,
+                missing_pre_eval_bars,
                 first_h1_close_time.isoformat() if first_h1_close_time else "N/A",
                 first_h4_close_time.isoformat() if first_h4_close_time else "N/A",
                 m5_warmup_time.isoformat() if m5_warmup_time else "N/A",
@@ -9914,8 +9928,8 @@ def _run_once_impl(self) -> None:
             elif isinstance(self.perf_can_enter_fail_reasons, dict):
                 self.perf_can_enter_fail_reasons["OTHER"] += 1
 
-    # TODO(TRUTH_EXIT_SIGNAL7_STREAM): Append per-bar signal7_now to self.exit_signal7_history (deque maxlen=8)
-    # BEFORE exit evaluation, so EXIT T=8 has pre-entry history and no warmup/padding is needed.
+    # TODO(TRUTH_EXIT_SIGNAL7_STREAM): Append per-bar signal7_now to self.exit_signal7_history
+    # with the active exit contract window length BEFORE exit evaluation.
     # Always evaluate exits even if no new entry
     self.evaluate_and_close_trades(candles)
     
@@ -11349,9 +11363,20 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
         warmup_bars = int(self.policy.get("warmup_bars", 288))
         warmup_padding = max(warmup_bars, 288)  # At least 1 day of warmup
         
+        # Preserve explicit eval window from replay_chunk when padded history is loaded.
+        # If no explicit eval window was provided, fall back to the full dataframe span.
+        explicit_eval_start = getattr(self, "replay_eval_start_ts", None)
+        explicit_eval_end = getattr(self, "replay_eval_end_ts", None)
+        df_min_ts = df.index.min()
+        df_max_ts = df.index.max()
+        if explicit_eval_start is None or explicit_eval_start < df_min_ts or explicit_eval_start > df_max_ts:
+            explicit_eval_start = df_min_ts
+        if explicit_eval_end is None or explicit_eval_end < df_min_ts or explicit_eval_end > df_max_ts:
+            explicit_eval_end = df_max_ts
+
         # Set evaluation window (actual period to evaluate trades/metrics)
-        self.replay_eval_start_ts = df.index.min()
-        self.replay_eval_end_ts = df.index.max()
+        self.replay_eval_start_ts = explicit_eval_start
+        self.replay_eval_end_ts = explicit_eval_end
         
         # Update run_header.json with replay metadata (now that timestamps are set)
         self._update_run_header_replay_metadata()
@@ -11364,8 +11389,10 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
             self.replay_end_ts = df.index.max()
             warmup_bars_actual = warmup_padding
             log.info(
-                "[REPLAY] Warmup: Using first %d bars as warmup (evaluation window: %s to %s)",
+                "[REPLAY] Warmup: Using first %d bars as warmup (data window: %s to %s, evaluation window: %s to %s)",
                 warmup_bars_actual,
+                self.replay_start_ts.isoformat(),
+                self.replay_end_ts.isoformat(),
                 self.replay_eval_start_ts.isoformat(),
                 self.replay_eval_end_ts.isoformat()
             )
@@ -11376,9 +11403,11 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
             warmup_bars_actual = len(df)
             log.warning(
                 "[REPLAY] Warmup: Only %d bars available (less than %d requested). "
-                "Evaluation window: %s to %s",
+                "Data window: %s to %s. Evaluation window: %s to %s",
                 warmup_bars_actual,
                 warmup_padding,
+                self.replay_start_ts.isoformat(),
+                self.replay_end_ts.isoformat(),
                 self.replay_eval_start_ts.isoformat(),
                 self.replay_eval_end_ts.isoformat()
             )
@@ -12035,12 +12064,8 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
                 self.funnel_first_ts_post_warmup = ts
             self.funnel_last_ts_post_warmup = ts
             
-            # Skip first N bars (not enough history for stable features) - now relative to first_valid_eval_idx
-            if i < first_valid_eval_idx + min_bars_for_features:
-                self.bars_skipped_warmup += 1
-                self.warmup_skipped += 1
-                # Do NOT set last_stop_reason here - warmup skip is not a stop condition
-                continue
+            # first_valid_eval_idx already accounts for required replay warmup.
+            # Do not apply a second hidden holdback inside the trading window.
             
             # Fix 3: Increment bar counter
             self.perf_n_bars_processed += 1
@@ -12436,7 +12461,7 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
                         if not hasattr(self, "exit_signal7_history") or not isinstance(
                             getattr(self, "exit_signal7_history", None), deque
                         ):
-                            self.exit_signal7_history = deque(maxlen=8)
+                            self.exit_signal7_history = deque(maxlen=int(getattr(self, "exit_transformer_window_len", 8)))
                         self.exit_signal7_history.append(dict(latest_signal7))
                     except Exception:
                         pass
@@ -12511,8 +12536,11 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
                     elif isinstance(self.perf_can_enter_fail_reasons, dict):
                         self.perf_can_enter_fail_reasons["OTHER"] += 1
             
-            # TODO(TRUTH_EXIT_SIGNAL7_STREAM): Append per-bar signal7_now to self.exit_signal7_history (deque maxlen=8)
-            # BEFORE exit evaluation, so EXIT T=8 has pre-entry history and no warmup/padding is needed.
+            # EXIT contract reminder:
+            # - Entry decisions run on M5 model bars only.
+            # - Exit transformer runs on raw M1 bars with a contract-owned window length.
+            # Any move to a wider M1 context is a new exit contract/retrain direction,
+            # not a safe runtime-only knob flip on this existing bundle.
             # Evaluate exits
             t_exit_eval_start = time.perf_counter()
             self.evaluate_and_close_trades(candles_history)
@@ -14641,7 +14669,7 @@ def _push_exit_signal7_for_bar_impl(self, candles_history: pd.DataFrame) -> None
     self._latest_exit_signal7_snapshot = dict(signal7_now)
 
     if not hasattr(self, "exit_signal7_history") or not isinstance(getattr(self, "exit_signal7_history", None), deque):
-        self.exit_signal7_history = deque(maxlen=8)
+        self.exit_signal7_history = deque(maxlen=int(getattr(self, "exit_transformer_window_len", 8)))
     self.exit_signal7_history.append(signal7_now)
 
     deque_len_after = len(self.exit_signal7_history)
@@ -14656,8 +14684,11 @@ def _push_exit_signal7_for_bar_impl(self, candles_history: pd.DataFrame) -> None
         self._exit_signal7_audit_logged = True
 
     if strict:
-        if deque_len_after > 8:
-            raise RuntimeError("[EXIT_SIGNAL7_AUDIT_ASSERT] deque_len_after exceeds 8")
+        expected_window_len = int(getattr(self, "exit_transformer_window_len", 8))
+        if deque_len_after > expected_window_len:
+            raise RuntimeError(
+                f"[EXIT_SIGNAL7_AUDIT_ASSERT] deque_len_after exceeds {expected_window_len}"
+            )
         required_keys = ["p_long", "p_short", "p_flat", "p_hat", "uncertainty_score", "margin_top1_top2", "entropy"]
         tol = 1e-3
         for k in required_keys:

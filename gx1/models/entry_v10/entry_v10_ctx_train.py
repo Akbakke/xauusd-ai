@@ -74,6 +74,13 @@ log = logging.getLogger(__name__)
 def _env_str(name: str, default: str) -> str:
     return str(os.getenv(name, default)).strip()
 
+
+def _running_in_wsl() -> bool:
+    try:
+        return "microsoft" in Path("/proc/version").read_text(encoding="utf-8").lower()
+    except Exception:
+        return False
+
 # -----------------------------------------------------------------------------
 # SHORT collapse countermeasures (training-only)
 # Canonical lane keeps these parked unless we have clear evidence they help more
@@ -88,14 +95,14 @@ XGB_SHORT_LONG_PENALTY = float(_env_str("ENTRY_XGB_SHORT_LONG_PENALTY", "0.0"))
 # -----------------------------------------------------------------------------
 # Defaults are deliberately moderate: wrong-side (LONG<->SHORT) costs clearly more
 # than LONG/SHORT->FLAT, while FLAT->LONG/SHORT remains moderate.
-ENTRY_COST_SENSITIVE_ENABLED = int(_env_str("ENTRY_COST_SENSITIVE_LOSS", "0"))
-ENTRY_COST_SENSITIVE_SCALE = float(_env_str("ENTRY_COST_SENSITIVE_SCALE", "0.0"))
-ENTRY_COST_LONG_TO_SHORT = float(_env_str("ENTRY_COST_LONG_TO_SHORT", "1.50"))
-ENTRY_COST_LONG_TO_FLAT = float(_env_str("ENTRY_COST_LONG_TO_FLAT", "0.60"))
-ENTRY_COST_SHORT_TO_LONG = float(_env_str("ENTRY_COST_SHORT_TO_LONG", "1.50"))
-ENTRY_COST_SHORT_TO_FLAT = float(_env_str("ENTRY_COST_SHORT_TO_FLAT", "0.60"))
-ENTRY_COST_FLAT_TO_LONG = float(_env_str("ENTRY_COST_FLAT_TO_LONG", "0.80"))
-ENTRY_COST_FLAT_TO_SHORT = float(_env_str("ENTRY_COST_FLAT_TO_SHORT", "0.80"))
+ENTRY_COST_SENSITIVE_ENABLED = int(_env_str("ENTRY_COST_SENSITIVE_LOSS", "1"))
+ENTRY_COST_SENSITIVE_SCALE = float(_env_str("ENTRY_COST_SENSITIVE_SCALE", "0.25"))
+ENTRY_COST_LONG_TO_SHORT = float(_env_str("ENTRY_COST_LONG_TO_SHORT", "2.00"))
+ENTRY_COST_LONG_TO_FLAT = float(_env_str("ENTRY_COST_LONG_TO_FLAT", "0.45"))
+ENTRY_COST_SHORT_TO_LONG = float(_env_str("ENTRY_COST_SHORT_TO_LONG", "2.00"))
+ENTRY_COST_SHORT_TO_FLAT = float(_env_str("ENTRY_COST_SHORT_TO_FLAT", "0.45"))
+ENTRY_COST_FLAT_TO_LONG = float(_env_str("ENTRY_COST_FLAT_TO_LONG", "1.60"))
+ENTRY_COST_FLAT_TO_SHORT = float(_env_str("ENTRY_COST_FLAT_TO_SHORT", "1.60"))
 
 # -----------------------------------------------------------------------------
 # Prediction balance regularizer (anti-collapse; training/eval loss only)
@@ -105,7 +112,7 @@ ENTRY_COST_FLAT_TO_SHORT = float(_env_str("ENTRY_COST_FLAT_TO_SHORT", "0.80"))
 ENTRY_PRED_BALANCE_ALPHA = float(_env_str("ENTRY_PRED_BALANCE_ALPHA", "0.0"))
 ENTRY_PRED_BALANCE_TARGET = _env_str("ENTRY_PRED_BALANCE_TARGET", "label").lower()
 ENTRY_RESIDUAL_SIDE_BIAS_ALPHA = float(_env_str("ENTRY_RESIDUAL_SIDE_BIAS_ALPHA", "0.0"))
-ENTRY_DIRECTION_CE_SCALE = float(_env_str("ENTRY_DIRECTION_CE_SCALE", "1.0"))
+ENTRY_DIRECTION_CE_SCALE = float(_env_str("ENTRY_DIRECTION_CE_SCALE", "1.10"))
 
 # -----------------------------------------------------------------------------
 # Timing loss (early adverse move penalty)
@@ -120,9 +127,9 @@ ENTRY_TIMING_LOSS_SCALE = float(_env_str("ENTRY_TIMING_LOSS_SCALE", "0.0"))
 # gates (tradable, mfe_first_n, path_quality). Early/quality-score/bad-path stay parked.
 ENTRY_AUX_EARLY_WEIGHT = float(_env_str("ENTRY_AUX_EARLY_WEIGHT", "0.0"))
 ENTRY_AUX_QUALITY_WEIGHT = float(_env_str("ENTRY_AUX_QUALITY_WEIGHT", "0.0"))
-ENTRY_AUX_PATH_WEIGHT = float(_env_str("ENTRY_AUX_PATH_WEIGHT", "0.35"))
-ENTRY_AUX_MFE_WEIGHT = float(_env_str("ENTRY_AUX_MFE_WEIGHT", "0.25"))
-ENTRY_AUX_TRADABLE_WEIGHT = float(_env_str("ENTRY_AUX_TRADABLE_WEIGHT", "0.50"))
+ENTRY_AUX_PATH_WEIGHT = float(_env_str("ENTRY_AUX_PATH_WEIGHT", "0.55"))
+ENTRY_AUX_MFE_WEIGHT = float(_env_str("ENTRY_AUX_MFE_WEIGHT", "0.40"))
+ENTRY_AUX_TRADABLE_WEIGHT = float(_env_str("ENTRY_AUX_TRADABLE_WEIGHT", "0.90"))
 # Canonical lane keeps bad-path parked until it shows clean incremental value.
 ENTRY_AUX_BAD_PATH_WEIGHT = float(_env_str("ENTRY_AUX_BAD_PATH_WEIGHT", "0.0"))
 ENTRY_AUX_BAD_PATH_POS_WEIGHT_CAP = float(_env_str("ENTRY_AUX_BAD_PATH_POS_WEIGHT_CAP", "20.0"))
@@ -190,25 +197,25 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_SHORT_CLASS_WEIGHT": "0.90",
     "ENTRY_XGB_SHORT_LEAD_MARGIN": "0.0",
     "ENTRY_XGB_SHORT_LONG_PENALTY": "0.0",
-    "ENTRY_COST_SENSITIVE_LOSS": "0",
-    "ENTRY_COST_SENSITIVE_SCALE": "0.0",
-    "ENTRY_COST_LONG_TO_SHORT": "1.50",
-    "ENTRY_COST_LONG_TO_FLAT": "0.60",
-    "ENTRY_COST_SHORT_TO_LONG": "1.50",
-    "ENTRY_COST_SHORT_TO_FLAT": "0.60",
-    "ENTRY_COST_FLAT_TO_LONG": "0.80",
-    "ENTRY_COST_FLAT_TO_SHORT": "0.80",
+    "ENTRY_COST_SENSITIVE_LOSS": "1",
+    "ENTRY_COST_SENSITIVE_SCALE": "0.25",
+    "ENTRY_COST_LONG_TO_SHORT": "2.00",
+    "ENTRY_COST_LONG_TO_FLAT": "0.45",
+    "ENTRY_COST_SHORT_TO_LONG": "2.00",
+    "ENTRY_COST_SHORT_TO_FLAT": "0.45",
+    "ENTRY_COST_FLAT_TO_LONG": "1.60",
+    "ENTRY_COST_FLAT_TO_SHORT": "1.60",
     "ENTRY_PRED_BALANCE_ALPHA": "0.0",
     "ENTRY_PRED_BALANCE_TARGET": "label",
     "ENTRY_RESIDUAL_SIDE_BIAS_ALPHA": "0.0",
-    "ENTRY_DIRECTION_CE_SCALE": "1.0",
+    "ENTRY_DIRECTION_CE_SCALE": "1.10",
     "ENTRY_TIMING_TARGET_BPS": "3.0",
     "ENTRY_TIMING_LOSS_SCALE": "0.0",
     "ENTRY_AUX_EARLY_WEIGHT": "0.0",
     "ENTRY_AUX_QUALITY_WEIGHT": "0.0",
-    "ENTRY_AUX_PATH_WEIGHT": "0.35",
-    "ENTRY_AUX_MFE_WEIGHT": "0.25",
-    "ENTRY_AUX_TRADABLE_WEIGHT": "0.50",
+    "ENTRY_AUX_PATH_WEIGHT": "0.55",
+    "ENTRY_AUX_MFE_WEIGHT": "0.40",
+    "ENTRY_AUX_TRADABLE_WEIGHT": "0.90",
     "ENTRY_AUX_BAD_PATH_WEIGHT": "0.0",
     "ENTRY_AUX_BAD_PATH_POS_WEIGHT_CAP": "20.0",
     "ENTRY_AUX_QUALITY_SCALE_BPS": "50.0",
@@ -1814,6 +1821,8 @@ def run_train(
     if use_cuda and num_workers == 0:
         num_workers = max(2, min(8, (os.cpu_count() or 4)))
     pin_memory = bool(use_cuda)
+    if _running_in_wsl():
+        pin_memory = False
     persistent_workers = bool(num_workers > 0)
     prefetch_factor = 2 if num_workers > 0 else None
     log.info(

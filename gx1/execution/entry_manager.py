@@ -1027,6 +1027,15 @@ class EntryManager:
 
         threshold_long = float(min_prob_long)
         threshold_short = float(min_prob_short)
+        try:
+            configured_persistence_bars = int(policy_cfg.get("persistence_bars", self.entry_persistence_bars))
+        except Exception as e:
+            raise RuntimeError(f"[ENTRY_PERSISTENCE_CONFIG_INVALID] {e}") from e
+        if configured_persistence_bars < 1:
+            configured_persistence_bars = 1
+        if configured_persistence_bars != int(getattr(self, "entry_persistence_bars", 1)):
+            self.entry_persistence_bars = int(configured_persistence_bars)
+            self._entry_persistence_hist = deque(maxlen=max(0, int(configured_persistence_bars) - 1))
         # Diagnostic threshold override (replay-only guard is enforced earlier)
         env_override = None
         try:
@@ -1065,6 +1074,8 @@ class EntryManager:
         try:
             p_side_min_long = None
             p_side_min_short = None
+            margin_min_long = None
+            margin_min_short = None
             if not hasattr(self._runner, "entry_gate_config_snapshot") or not isinstance(
                 self._runner.entry_gate_config_snapshot, dict
             ):
@@ -1073,6 +1084,8 @@ class EntryManager:
                 {
                     "p_side_min_long": p_side_min_long,
                     "p_side_min_short": p_side_min_short,
+                    "margin_min_long": margin_min_long,
+                    "margin_min_short": margin_min_short,
                     "p_flat_gate": flat_gate,
                     "p_flat_margin": flat_margin,
                     "candidate_threshold_long": threshold_long,
@@ -1502,6 +1515,40 @@ class EntryManager:
         # Slim policy: single confidence source only
         self.threshold_used = f"long={min_prob_long},short={min_prob_short}"
 
+        margin_gate_min = None
+        margin_gate_min_long = None
+        margin_gate_min_short = None
+        runner_up_margin_min = None
+        try:
+            if "margin_min" in policy_cfg:
+                margin_gate_min = float(policy_cfg.get("margin_min"))
+            if "margin_min_long" in policy_cfg:
+                margin_gate_min_long = float(policy_cfg.get("margin_min_long"))
+            if "margin_min_short" in policy_cfg:
+                margin_gate_min_short = float(policy_cfg.get("margin_min_short"))
+            if "runner_up_margin_min" in policy_cfg:
+                runner_up_margin_min = float(policy_cfg.get("runner_up_margin_min"))
+        except Exception as e:
+            raise RuntimeError(f"[ENTRY_MARGIN_GATE_CONFIG_INVALID] {e}") from e
+        effective_margin_min = margin_gate_min
+        if side == "long" and margin_gate_min_long is not None:
+            effective_margin_min = margin_gate_min_long
+        elif side == "short" and margin_gate_min_short is not None:
+            effective_margin_min = margin_gate_min_short
+        try:
+            self._runner.entry_gate_config_snapshot.update(
+                {
+                    "margin_min_long": margin_gate_min_long if margin_gate_min_long is not None else margin_gate_min,
+                    "margin_min_short": margin_gate_min_short if margin_gate_min_short is not None else margin_gate_min,
+                    "runner_up_margin": runner_up_margin_min,
+                }
+            )
+        except Exception:
+            pass
+        try:
+            self._runner.perf_entry_margin_min_used = effective_margin_min
+        except Exception:
+            pass
         def _append_eval_log_block(decision: str, reason_str: str) -> None:
             eval_log_path = getattr(self, "eval_log_path", None) or getattr(self._runner, "eval_log_path", None)
             if not eval_log_path:
@@ -1569,6 +1616,46 @@ class EntryManager:
                 if getattr(self, "is_replay", False):
                     raise RuntimeError(f"EVAL_LOG_APPEND_FAILED(block): {e}") from e
                 log.warning("[EVAL_LOG_APPEND_FAILED] block: %s", e)
+
+        margin_value = float(signal7_now.get("margin_top1_top2", np.nan))
+        if effective_margin_min is not None:
+            if not np.isfinite(margin_value):
+                try:
+                    self._runner.perf_n_entry_margin_reject_total += 1
+                    if side == "long":
+                        self._runner.perf_n_entry_margin_reject_long += 1
+                    else:
+                        self._runner.perf_n_entry_margin_reject_short += 1
+                    self._runner.perf_entry_margin_reject_reasons["MARGIN_MISSING"] += 1
+                    self._runner.entry_gate_counters["margin_threshold"] += 1
+                except Exception:
+                    pass
+                _append_eval_log_block("NONE", "margin_missing")
+                return None
+            if margin_value < float(effective_margin_min):
+                try:
+                    self._runner.perf_n_entry_margin_reject_total += 1
+                    if side == "long":
+                        self._runner.perf_n_entry_margin_reject_long += 1
+                    else:
+                        self._runner.perf_n_entry_margin_reject_short += 1
+                    self._runner.perf_entry_margin_reject_reasons["MARGIN_BELOW_MIN"] += 1
+                    self._runner.entry_gate_counters["margin_threshold"] += 1
+                except Exception:
+                    pass
+                _inc_gate("candidate_margin_gate")
+                _append_eval_log_block("NONE", "margin_gate")
+                return None
+        if runner_up_margin_min is not None and (
+            not np.isfinite(margin_top1_top2) or float(margin_top1_top2) < float(runner_up_margin_min)
+        ):
+            try:
+                self._runner.entry_gate_counters["margin_threshold"] += 1
+            except Exception:
+                pass
+            _inc_gate("candidate_runner_up_margin_gate")
+            _append_eval_log_block("NONE", "runner_up_margin_gate")
+            return None
 
         self.killchain_n_entry_pred_total += 1
         self.killchain_n_above_threshold += 1

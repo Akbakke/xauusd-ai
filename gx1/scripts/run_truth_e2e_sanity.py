@@ -1389,6 +1389,7 @@ def _run_replay(
     env_overrides: Dict[str, str],
     bundle_dir: Path,
     merge_output_dir: Path,
+    chunk_local_padding_days: int = 0,
 ) -> int:
     """Run 1W1C replay in-process via replay_chunk.process_chunk + replay_merge.merge_artifacts_1w1c (no legacy script import).
     Chunk artifacts go to replay_output_dir/chunk_0; MERGED/RUN_COMPLETED go to merge_output_dir (run_root)."""
@@ -1442,7 +1443,7 @@ def _run_replay(
         bundle_sha256=bundle_sha,
         prebuilt_parquet_path=None,
         bundle_dir=bundle_dir,
-        chunk_local_padding_days=0,
+        chunk_local_padding_days=int(chunk_local_padding_days or 0),
         truth_artifacts=truth_obj_run,
     )
 
@@ -2418,6 +2419,12 @@ def main() -> int:
     )
     ap.add_argument("--start-ts", type=str, default=DEFAULT_START_TS, help="Start timestamp (ISO)")
     ap.add_argument("--end-ts", type=str, default=DEFAULT_END_TS, help="End timestamp (ISO)")
+    ap.add_argument(
+        "--chunk-local-padding-days",
+        type=int,
+        default=0,
+        help="Load this many extra days before start-ts as replay warmup while keeping evaluation/trading window at start-ts..end-ts.",
+    )
     ap.add_argument("--full-year", action="store_true", help="Use 2025-01-01 to 2025-12-31")
     ap.add_argument("--validate-only", action="store_true", help="Only preflight, no replay")
     ap.add_argument(
@@ -2450,6 +2457,12 @@ def main() -> int:
         action="store_true",
         help="With --train-exit-transformer-v0-from-last-go: use IOV2 and require context (hard fail if missing).",
     )
+    ap.add_argument(
+        "--exit-window-len",
+        type=int,
+        default=0,
+        help="With --train-exit-transformer-v0-from-last-go: override exit window length. 0 means contract default.",
+    )
     ap.add_argument("--postrun-only", action="store_true", help="Skip replay and run postrun hooks against an existing run_root")
     ap.add_argument("--run-root", type=str, default="", help="Existing run_root to use with --postrun-only")
     args = ap.parse_args()
@@ -2475,6 +2488,8 @@ def main() -> int:
         go_run_id = ds["go_run_id"]
         print(f"[train-exit-transformer-v0] Source: {exits_path} (run_id={go_run_id})", file=sys.stderr)
         require_io_v2 = getattr(args, "require_io_v2", False)
+        train_exit_io_version = "EXIT_IO_V2_CTX36_M1L512" if require_io_v2 else "EXIT_IO_V1_CTX36"
+        train_window_len = int(getattr(args, "exit_window_len", 0) or (512 if require_io_v2 else 8))
         try:
             train_epochs = int(os.environ.get("GX1_EXIT_TRAIN_EPOCHS", "20"))
         except Exception:
@@ -2486,8 +2501,9 @@ def main() -> int:
             source_run_dir=str(go_run_dir),
             gx1_data=str(gx1_data),
             epochs=train_epochs,
-            window_len=8,
+            window_len=train_window_len,
             seed=42,
+            exit_io_version=train_exit_io_version,
             use_io_v2=require_io_v2,
             require_io_v2=require_io_v2,
             ctx_cont_dim=CTX_CONT_DIM,
@@ -2987,6 +3003,7 @@ def main() -> int:
             env_overrides,
             bundle_dir,
             merge_output_dir=run_root,
+            chunk_local_padding_days=int(args.chunk_local_padding_days or 0),
         )
     except Exception as e:
         _write_fatal_capsule(run_root, e, ["replay_exception"])
@@ -3021,13 +3038,17 @@ def main() -> int:
         _write_summary_md(run_root, preflight, None, False, [str(e)], canary_proof=canary_proof)
         raise
 
-    # Write predictions artifact (requires replay outputs + ctx); hard-fail on missing inputs.
+    # Write predictions artifact when pred_trace exists. Some pure entry sweeps do not
+    # emit pred_trace; that should not invalidate the replay/trade accounting itself.
     try:
         _write_multi_horizon_predictions(run_root, run_id)
     except Exception as e:
-        _write_fatal_capsule(run_root, e, ["predictions_writer"])
-        _write_summary_md(run_root, preflight, postrun, False, [str(e)], canary_proof=canary_proof)
-        raise
+        if "[PRED_WRITE] pred_trace missing" in str(e):
+            print(f"[PRED_WRITE_SKIP] {e}", flush=True)
+        else:
+            _write_fatal_capsule(run_root, e, ["predictions_writer"])
+            _write_summary_md(run_root, preflight, postrun, False, [str(e)], canary_proof=canary_proof)
+            raise
 
     # ZERO_TRADES_CANARY: hard-fail if we expected 0 trades but got any
     if args.force_zero_trades:

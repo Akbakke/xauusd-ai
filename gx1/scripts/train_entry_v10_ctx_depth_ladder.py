@@ -221,6 +221,7 @@ def train_depth_ladder_variant(
     seed: int,
     device: str,
     seq_len: int,
+    num_workers: int,
 ) -> Dict[str, Any]:
     """
     Train ENTRY_V10_CTX (baseline only) via canonical trainer.
@@ -292,6 +293,7 @@ def train_depth_ladder_variant(
         train_args.extend([
             "--seq_len", str(seq_len),
             "--batch_size", str(batch_size),
+            "--num-workers", str(num_workers),
             "--epochs", str(epochs),
             "--early-stopping-patience", str(early_stopping_patience),
             "--early-stopping-min-delta", str(early_stopping_min_delta),
@@ -378,6 +380,7 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--device", type=str, default="auto")
     parser.add_argument("--seq_len", type=int, default=30)
+    parser.add_argument("--num-workers", type=int, default=0)
 
     args = parser.parse_args()
 
@@ -394,6 +397,7 @@ def main() -> None:
         seed=args.seed,
         device=args.device,
         seq_len=args.seq_len,
+        num_workers=args.num_workers,
     )
 
     log.info("\n✅ DEPTH_LADDER DONE")

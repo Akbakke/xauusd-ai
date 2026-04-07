@@ -67,6 +67,11 @@ PATH_QUALITY_HORIZON_BARS = 10
 BAD_PATH_HORIZON_BARS = PATH_QUALITY_HORIZON_BARS
 BAD_PATH_MAE_THRESHOLD_BPS = 6.0
 BAD_PATH_MFE_THRESHOLD_BPS = 4.0
+STRICT_TRADABLE_MFE_MIN_BPS = 24.0
+STRICT_TRADABLE_MAE_MAX_BPS = 2.5
+STRICT_TRADABLE_PATH_MIN_BPS = 10.0
+STRICT_TRADABLE_PATH_LEAD_MIN_BPS = 4.0
+STRICT_TRADABLE_MFE_LEAD_MIN_BPS = 4.0
 MICRO_FEATURE_NAMES = [
     "micro_momentum_3",
     "micro_momentum_5",
@@ -1635,10 +1640,10 @@ def build_dataset_canonical(
 
     # ---------------------------------------------------------------------------
     # Quality/tradability targets (post-relabel):
-    # - Main direction label remains directional truth after explicit relabel vetoes.
-    # - Early-path quality decides y_tradable and auxiliary quality targets.
-    # - This keeps "direction" separate from "should we actually take it now?",
-    #   which is already handled by the tradable / quality heads in runtime.
+    # - We now intentionally collapse weak/ambiguous directional labels into FLAT.
+    # - Main direction label follows the strict tradable side, not raw directional truth.
+    # - This makes the dataset teach "only obvious edge" instead of "direction exists
+    #   but maybe don't take it", which was too permissive for the current goal.
     # ---------------------------------------------------------------------------
     # Relabel veto = any rule that flipped y_dir from raw label (all relabels only force FLAT)
     relabel_veto = (y_dir != y_dir_raw)
@@ -1650,9 +1655,25 @@ def build_dataset_canonical(
     _mae_short = merged3["mae_short_first_n_bps"].astype(np.float32).to_numpy()
     _path_long = (_mfe_long - _mae_long).astype(np.float32)
     _path_short = (_mfe_short - _mae_short).astype(np.float32)
+    _path_lead_long = (_path_long - _path_short).astype(np.float32)
+    _path_lead_short = (_path_short - _path_long).astype(np.float32)
+    _mfe_lead_long = (_mfe_long - _mfe_short).astype(np.float32)
+    _mfe_lead_short = (_mfe_short - _mfe_long).astype(np.float32)
 
-    _tradable_long = (_mfe_long >= 16.0) & (_mae_long <= 3.0) & (_path_long >= 6.0)
-    _tradable_short = (_mfe_short >= 16.0) & (_mae_short <= 3.0) & (_path_short >= 6.0)
+    _tradable_long = (
+        (_mfe_long >= STRICT_TRADABLE_MFE_MIN_BPS)
+        & (_mae_long <= STRICT_TRADABLE_MAE_MAX_BPS)
+        & (_path_long >= STRICT_TRADABLE_PATH_MIN_BPS)
+        & (_path_lead_long >= STRICT_TRADABLE_PATH_LEAD_MIN_BPS)
+        & (_mfe_lead_long >= STRICT_TRADABLE_MFE_LEAD_MIN_BPS)
+    )
+    _tradable_short = (
+        (_mfe_short >= STRICT_TRADABLE_MFE_MIN_BPS)
+        & (_mae_short <= STRICT_TRADABLE_MAE_MAX_BPS)
+        & (_path_short >= STRICT_TRADABLE_PATH_MIN_BPS)
+        & (_path_lead_short >= STRICT_TRADABLE_PATH_LEAD_MIN_BPS)
+        & (_mfe_lead_short >= STRICT_TRADABLE_MFE_LEAD_MIN_BPS)
+    )
 
     # Choose side based on best path quality (tie-break by MFE)
     _side = np.full(len(merged3), -1, dtype=np.int8)  # -1 none, 0 long, 1 short
@@ -1676,14 +1697,13 @@ def build_dataset_canonical(
 
     # Final tradability / quality targets
     y_tradable = (_side != -1).astype(np.int32)
-    y_dir = y_dir_directional
+    y_dir = np.full(len(merged3), 2, dtype=np.int32)
+    y_dir[_side == 0] = 0
+    y_dir[_side == 1] = 1
 
-    # Quality auxiliaries align to the post-relabel directional side, not the stricter
-    # tradable side. This keeps the main direction truth and the quality heads in the
-    # same semantic world while preserving tradability as its own, stricter runtime gate.
-    _quality_side = np.full(len(merged3), -1, dtype=np.int8)  # -1 none, 0 long, 1 short
-    _quality_side[y_dir_directional == 0] = 0
-    _quality_side[y_dir_directional == 1] = 1
+    # Quality auxiliaries align to the strict tradable side. Non-obvious labels are
+    # intentionally parked to zero/FLAT.
+    _quality_side = _side.copy()
 
     y_mfe_first_n = np.zeros_like(y_mfe_first_n)
     y_mae_first_n = np.zeros_like(y_mae_first_n)
@@ -1705,21 +1725,30 @@ def build_dataset_canonical(
     y_qual = np.zeros_like(y_qual)
     y_qual[_quality_side != -1] = np.maximum(0.0, y_path_quality[_quality_side != -1]).astype(np.float32)
 
+    _split_tag = split_name or "full"
     _directional_long_rate = float(np.mean(y_dir == 0)) if len(y_dir) else 0.0
     _directional_short_rate = float(np.mean(y_dir == 1)) if len(y_dir) else 0.0
     _directional_flat_rate = float(np.mean(y_dir == 2)) if len(y_dir) else 0.0
     log.info(
         "[ENTRY_DIRECTION_TARGET_SEMANTICS] split=%s source=post_relabel_directional "
         "long_rate=%.6f short_rate=%.6f flat_rate=%.6f relabel_veto_rate=%.6f",
-        split_name or "full",
+        _split_tag,
         _directional_long_rate,
         _directional_short_rate,
         _directional_flat_rate,
         float(np.mean(relabel_veto)) if len(relabel_veto) else 0.0,
     )
+    log.info(
+        "[ENTRY_STRICT_TRADABLE_RULES] split=%s mfe_min=%.2f mae_max=%.2f path_min=%.2f path_lead_min=%.2f mfe_lead_min=%.2f",
+        _split_tag,
+        float(STRICT_TRADABLE_MFE_MIN_BPS),
+        float(STRICT_TRADABLE_MAE_MAX_BPS),
+        float(STRICT_TRADABLE_PATH_MIN_BPS),
+        float(STRICT_TRADABLE_PATH_LEAD_MIN_BPS),
+        float(STRICT_TRADABLE_MFE_LEAD_MIN_BPS),
+    )
 
     # Tradable rate proof (split-aware)
-    _split_tag = split_name or "full"
     _tradable_rate = float(np.mean(y_tradable)) if len(y_tradable) else 0.0
     log.info(
         "[ENTRY_TRADABLE_RATE_PROOF] split=%s n_rows=%d tradable_rate=%.6f",
@@ -1865,6 +1894,14 @@ def build_dataset_canonical(
                 "quality_gate",
             ],
             "max_open_trades": 10,
+        },
+        "strict_entry_labels": {
+            "tradable_mfe_min_bps": float(STRICT_TRADABLE_MFE_MIN_BPS),
+            "tradable_mae_max_bps": float(STRICT_TRADABLE_MAE_MAX_BPS),
+            "tradable_path_min_bps": float(STRICT_TRADABLE_PATH_MIN_BPS),
+            "tradable_path_lead_min_bps": float(STRICT_TRADABLE_PATH_LEAD_MIN_BPS),
+            "tradable_mfe_lead_min_bps": float(STRICT_TRADABLE_MFE_LEAD_MIN_BPS),
+            "direction_follows_tradable_side": True,
         },
         "parked_targets": {
             "bad_path": {

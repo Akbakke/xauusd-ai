@@ -29,19 +29,20 @@ import numpy as np
 import pandas as pd
 from gx1.exits.contracts.exit_io_v1_ctx36 import (
     EXIT_IO_V1_CTX36_FEATURES,
-    EXIT_IO_V1_CTX36_FEATURE_NAMES_HASH,
     EXIT_IO_V1_CTX36_IO_VERSION,
-    EXIT_IO_V1_CTX36_FEATURE_COUNT,
     compute_feature_names_hash,
     assert_exit_io_v1_ctx36_contract,
 )
+from gx1.exits.contracts.exit_io_v2_ctx36_m1l512 import EXIT_IO_V2_CTX36_M1L512_IO_VERSION
+from gx1.exits.contracts.registry import get_exit_io_contract
 
 # -----------------------------------------------------------------------------
 # IO CONTRACT
 # -----------------------------------------------------------------------------
-EXIT_IO_FEATURE_COUNT = EXIT_IO_V1_CTX36_FEATURE_COUNT
-EXIT_IO_VERSION = EXIT_IO_V1_CTX36_IO_VERSION
-EXIT_FEATURE_NAMES_HASH = EXIT_IO_V1_CTX36_FEATURE_NAMES_HASH
+_DEFAULT_EXIT_CONTRACT = get_exit_io_contract(EXIT_IO_V1_CTX36_IO_VERSION)
+EXIT_IO_FEATURE_COUNT = int(_DEFAULT_EXIT_CONTRACT["feature_count"])
+EXIT_IO_VERSION = str(_DEFAULT_EXIT_CONTRACT["io_version"])
+EXIT_FEATURE_NAMES_HASH = str(_DEFAULT_EXIT_CONTRACT["feature_hash"])
 
 log = logging.getLogger(__name__)
 _exit_features_proof_logged = False
@@ -63,7 +64,7 @@ except Exception:
 # -----------------------------------------------------------------------------
 # Defaults
 # -----------------------------------------------------------------------------
-DEFAULT_WINDOW_LEN = 8
+DEFAULT_WINDOW_LEN = int(_DEFAULT_EXIT_CONTRACT["default_window_len"])
 DEFAULT_D_MODEL = 64
 DEFAULT_N_LAYERS = 2
 DEFAULT_N_HEADS = 4
@@ -296,6 +297,18 @@ def _attach_labels_to_exit_records(
     signal_dead_strong_margin_max = 0.12
     signal_dead_strong_unc_min = 0.60
     no_edge_adverse_enabled = True
+    main_use_profit_positive = False
+    main_allow_hard_deterioration = True
+    main_allow_break_even_red = True
+    main_allow_no_edge_adverse = True
+    main_allow_late_exit = True
+    main_allow_boundary_exit = True
+    main_allow_failfast_exit = True
+    main_allow_capture = True
+    main_profit_min_pnl_bps = 0.0
+    main_hard_det_min_pnl_bps = -9999.0
+    main_break_even_min_pnl_bps = -9999.0
+    main_no_edge_min_pnl_bps = -9999.0
     if sweep_profile in {"A_PROFIT_STRICT", "EXIT_LABEL_SWEEP_A_PROFIT_STRICT"}:
         profit_dd_extra_bps = 2.0
         profit_gb_extra = 0.05
@@ -383,6 +396,136 @@ def _attach_labels_to_exit_records(
         suppress_mild_dd_max = 12.0
         suppress_mild_gb_max = 0.75
         det_max_per_trade = min(int(det_max_per_trade), 3)
+    elif main_label_profile == "MAIN_R4_PROFIT_ONLY":
+        min_hold_bars = max(int(min_hold_bars), 3)
+        main_use_profit_positive = True
+        main_allow_hard_deterioration = False
+        main_allow_break_even_red = False
+        main_allow_no_edge_adverse = False
+        main_allow_late_exit = False
+        main_allow_boundary_exit = False
+        main_allow_failfast_exit = False
+        main_allow_capture = False
+        main_profit_min_pnl_bps = 0.5
+        profit_protect_mfe_min_long = 22.0
+        profit_protect_mfe_min_short = 18.0
+        profit_protect_dd_min_bps = 16.0
+        profit_protect_giveback_ratio_min = 0.22
+        profit_protect_time_since_mfe_min_bars = 1.5
+        profit_protect_future_headroom_abs_max_bps = 6.0
+        profit_protect_future_headroom_frac_max = 0.16
+        det_max_per_trade = min(int(det_max_per_trade), 2)
+    elif main_label_profile == "MAIN_R4_PROFIT_FAILFAST":
+        min_hold_bars = max(int(min_hold_bars), 3)
+        main_use_profit_positive = True
+        main_allow_hard_deterioration = False
+        main_allow_break_even_red = False
+        main_allow_no_edge_adverse = True
+        main_allow_late_exit = False
+        main_allow_boundary_exit = False
+        main_allow_failfast_exit = False
+        main_allow_capture = False
+        main_profit_min_pnl_bps = 0.0
+        main_no_edge_min_pnl_bps = -14.0
+        profit_protect_mfe_min_long = 20.0
+        profit_protect_mfe_min_short = 16.0
+        profit_protect_dd_min_bps = 14.0
+        profit_protect_giveback_ratio_min = 0.20
+        profit_protect_time_since_mfe_min_bars = 1.0
+        profit_protect_future_headroom_abs_max_bps = 8.0
+        profit_protect_future_headroom_frac_max = 0.22
+        no_edge_adverse_mfe_cap_bps = 0.75
+        no_edge_adverse_dd_min_bps = 20.0
+        no_edge_adverse_pnl_min_bps = -10.0
+        no_edge_adverse_slope_max = -5.0
+        no_edge_adverse_pflat_max = 0.20
+        no_edge_adverse_margin_max = 0.14
+        no_edge_adverse_unc_min = 0.58
+        det_max_per_trade = min(int(det_max_per_trade), 2)
+    elif main_label_profile == "MAIN_R4_GIVEBACK_STRICT":
+        min_hold_bars = max(int(min_hold_bars), 3)
+        main_use_profit_positive = True
+        main_allow_hard_deterioration = True
+        main_allow_break_even_red = True
+        main_allow_no_edge_adverse = True
+        main_allow_late_exit = False
+        main_allow_boundary_exit = False
+        main_allow_failfast_exit = False
+        main_allow_capture = False
+        main_profit_min_pnl_bps = 0.0
+        main_hard_det_min_pnl_bps = 1.0
+        main_break_even_min_pnl_bps = -1.0
+        main_no_edge_min_pnl_bps = -14.0
+        postprog_mfe_min_long = 9.0
+        postprog_mfe_min_short = 7.0
+        postprog_dd_min_long = 20.0
+        postprog_dd_min_short = 16.0
+        postprog_giveback_ratio_min_long = 0.50
+        postprog_giveback_ratio_min_short = 0.45
+        profit_protect_mfe_min_long = 18.0
+        profit_protect_mfe_min_short = 14.0
+        profit_protect_dd_min_bps = 12.0
+        profit_protect_giveback_ratio_min = 0.18
+        profit_protect_time_since_mfe_min_bars = 1.0
+        profit_protect_future_headroom_abs_max_bps = 8.0
+        profit_protect_future_headroom_frac_max = 0.20
+        det_max_per_trade = min(int(det_max_per_trade), 3)
+    elif main_label_profile == "MAIN_R4_HYBRID_BALANCED":
+        min_hold_bars = max(int(min_hold_bars), 3)
+        main_use_profit_positive = True
+        main_allow_hard_deterioration = True
+        main_allow_break_even_red = True
+        main_allow_no_edge_adverse = True
+        main_allow_late_exit = False
+        main_allow_boundary_exit = False
+        main_allow_failfast_exit = False
+        main_allow_capture = False
+        main_profit_min_pnl_bps = 0.0
+        main_hard_det_min_pnl_bps = 0.0
+        main_break_even_min_pnl_bps = -2.0
+        main_no_edge_min_pnl_bps = -16.0
+        postprog_mfe_min_long = 8.0
+        postprog_mfe_min_short = 6.0
+        postprog_dd_min_long = 18.0
+        postprog_dd_min_short = 14.0
+        postprog_giveback_ratio_min_long = 0.45
+        postprog_giveback_ratio_min_short = 0.40
+        profit_protect_mfe_min_long = 16.0
+        profit_protect_mfe_min_short = 12.0
+        profit_protect_dd_min_bps = 10.0
+        profit_protect_giveback_ratio_min = 0.15
+        profit_protect_time_since_mfe_min_bars = 1.0
+        profit_protect_future_headroom_abs_max_bps = 10.0
+        profit_protect_future_headroom_frac_max = 0.25
+        det_max_per_trade = min(int(det_max_per_trade), 3)
+    elif main_label_profile == "MAIN_R4_HYBRID_WIDE":
+        min_hold_bars = max(int(min_hold_bars), 2)
+        main_use_profit_positive = True
+        main_allow_hard_deterioration = True
+        main_allow_break_even_red = True
+        main_allow_no_edge_adverse = True
+        main_allow_late_exit = False
+        main_allow_boundary_exit = False
+        main_allow_failfast_exit = False
+        main_allow_capture = False
+        main_profit_min_pnl_bps = -0.25
+        main_hard_det_min_pnl_bps = -0.5
+        main_break_even_min_pnl_bps = -3.0
+        main_no_edge_min_pnl_bps = -18.0
+        postprog_mfe_min_long = 7.0
+        postprog_mfe_min_short = 5.0
+        postprog_dd_min_long = 16.0
+        postprog_dd_min_short = 12.0
+        postprog_giveback_ratio_min_long = 0.40
+        postprog_giveback_ratio_min_short = 0.35
+        profit_protect_mfe_min_long = 14.0
+        profit_protect_mfe_min_short = 10.0
+        profit_protect_dd_min_bps = 8.0
+        profit_protect_giveback_ratio_min = 0.12
+        profit_protect_time_since_mfe_min_bars = 1.0
+        profit_protect_future_headroom_abs_max_bps = 12.0
+        profit_protect_future_headroom_frac_max = 0.30
+        det_max_per_trade = min(int(det_max_per_trade), 4)
     else:
         raise RuntimeError(f"[EXIT_MAIN_LABEL_PROFILE_FAIL] unsupported profile={main_label_profile!r}")
     intraday_variants = {"EXIT_LABEL_INTRADAY_H30", "EXIT_LABEL_INTRADAY_FAILFAST_H30"}
@@ -497,6 +640,7 @@ def _attach_labels_to_exit_records(
     no_edge_pos_pre_strict = 0
     total_pos_pre_be_strict = 0
     total_pos_post_be_strict = 0
+    active_io_version = str(EXIT_IO_VERSION)
 
     for tid, recs in trades.items():
         if not recs:
@@ -533,8 +677,21 @@ def _attach_labels_to_exit_records(
         uncertainty_sig = np.full(len(recs), np.nan, dtype=np.float32)
         p_hat_sig = np.full(len(recs), np.nan, dtype=np.float32)
         slope_sig = np.full(len(recs), np.nan, dtype=np.float32)
+        active_io_version = str(EXIT_IO_VERSION)
         try:
-            feat_idx = {name: i for i, name in enumerate(EXIT_IO_V1_CTX36_FEATURES)}
+            active_contract = None
+            first_rec = recs[0] if recs else {}
+            active_io_version = str(first_rec.get("io_version") or first_rec.get("exit_ml_io_version") or EXIT_IO_VERSION)
+            try:
+                active_contract = get_exit_io_contract(active_io_version)
+            except Exception:
+                active_contract = None
+            active_feature_names = (
+                list(active_contract.get("feature_names") or [])
+                if isinstance(active_contract, dict)
+                else list(EXIT_IO_V1_CTX36_FEATURES)
+            )
+            feat_idx = {name: i for i, name in enumerate(active_feature_names)}
             required = {
                 "p_long": feat_idx.get("p_long"),
                 "p_short": feat_idx.get("p_short"),
@@ -872,10 +1029,6 @@ def _attach_labels_to_exit_records(
                 no_edge_adverse_collapse = False
                 normal_threshold_mass = False
 
-            should_label = bool(det or late_exit or boundary_exit or failfast_exit or is_capture)
-            if should_label:
-                total_pos_post_be_strict += 1
-
             weak_directional_long = math.isfinite(de_now) and de_now <= 0.05
             indecision_like = (
                 (math.isfinite(p_flat_now) and p_flat_now >= 0.28)
@@ -909,6 +1062,28 @@ def _attach_labels_to_exit_records(
                 recs[i]["sample_weight"] = float(max(float(recs[i].get("sample_weight", 1.0)), float(early_long_recovery_negative_weight)))
                 early_long_recovery_signature_downweighted += 1
 
+            main_reason: Optional[str] = None
+            if bool(main_use_profit_positive) and profit_positive and math.isfinite(cur) and cur >= float(main_profit_min_pnl_bps):
+                main_reason = "PROFIT_GIVEBACK_PROTECTION"
+            elif bool(main_allow_hard_deterioration) and hard_deterioration and math.isfinite(cur) and cur >= float(main_hard_det_min_pnl_bps):
+                main_reason = "HARD_DETERIORATION_EDGE_DEATH"
+            elif bool(main_allow_break_even_red) and break_even_red and math.isfinite(cur) and cur >= float(main_break_even_min_pnl_bps):
+                main_reason = "BREAK_EVEN_RED_PROTECTION"
+            elif bool(main_allow_no_edge_adverse) and no_edge_adverse_collapse and math.isfinite(cur) and cur >= float(main_no_edge_min_pnl_bps):
+                main_reason = "NO_EDGE_ADVERSE_COLLAPSE"
+            elif bool(main_allow_late_exit) and late_exit:
+                main_reason = "OTHER_DETERMINISTIC"
+            elif bool(main_allow_boundary_exit) and boundary_exit:
+                main_reason = "OTHER_DETERMINISTIC"
+            elif bool(main_allow_failfast_exit) and failfast_exit:
+                main_reason = "OTHER_DETERMINISTIC"
+            elif bool(main_allow_capture) and is_capture:
+                main_reason = "OTHER_DETERMINISTIC"
+
+            should_label = bool(main_reason)
+            if should_label:
+                total_pos_post_be_strict += 1
+
             recs[i]["profit_protect_train_mask"] = 1.0 if profit_train_mask else 0.0
             recs[i]["profit_protect_should_exit"] = 1.0 if profit_positive else 0.0
             recs[i]["exit_label_family"] = "PROFIT_GIVEBACK_PROTECTION" if profit_positive else recs[i].get("exit_label_family", "NEGATIVE")
@@ -936,20 +1111,26 @@ def _attach_labels_to_exit_records(
 
             if should_label:
                 recs[i]["should_exit"] = 1.0
-                recs[i]["exit_label_family"] = det_reason if det and det_reason else "OTHER_DETERMINISTIC"
-                recs[i]["exit_aux_family"] = det_reason if det and det_reason else "NEGATIVE"
+                recs[i]["exit_label_family"] = str(main_reason or "OTHER_DETERMINISTIC")
+                recs[i]["exit_aux_family"] = str(main_reason or "NEGATIVE")
                 main_pos_count += 1
                 n_main_pos += 1
                 pos_bars.append(float(bars[i]))
                 if is_capture and capture_ratio is not None:
                     n_pos_capture += 1
                     capture_ratios.append(float(capture_ratio))
-                if det:
+                if str(main_reason or "").upper() in {
+                    "HARD_DETERIORATION_EDGE_DEATH",
+                    "BREAK_EVEN_RED_PROTECTION",
+                    "NO_EDGE_ADVERSE_COLLAPSE",
+                    "PROFIT_GIVEBACK_PROTECTION",
+                }:
                     n_main_pos_deterioration += 1
-                    det_count += 1
-                    if det_reason:
-                        det_reason_counts[det_reason] = int(det_reason_counts.get(det_reason, 0) + 1)
-                        if det_reason == "NO_EDGE_ADVERSE_COLLAPSE":
+                    if str(main_reason) != "PROFIT_GIVEBACK_PROTECTION":
+                        det_count += 1
+                    if main_reason:
+                        det_reason_counts[str(main_reason)] = int(det_reason_counts.get(str(main_reason), 0) + 1)
+                        if main_reason == "NO_EDGE_ADVERSE_COLLAPSE":
                             no_edge_adverse_collapse_pos += 1
                 elif late_exit or boundary_exit or failfast_exit or is_capture:
                     det_reason_counts["OTHER_DETERMINISTIC"] = int(det_reason_counts.get("OTHER_DETERMINISTIC", 0) + 1)
@@ -998,7 +1179,8 @@ def _attach_labels_to_exit_records(
     det_counts_p90 = float(np.quantile(det_counts_per_trade, 0.9)) if det_counts_per_trade else 0.0
 
     log.info(
-        "[EXIT_LABELER_PROOF] io=EXIT_IO_V1_CTX36 total_records=%d n_trades=%d n_trades_with_main_pos=%d n_main_pos=%d exit_rate=%.6f avg_pos_per_pos_trade=%.3f pct_trades_with_main_pos=%.3f bars_per_trade(min/med/max)=%d/%d/%d pos_bars(min/med/max)=%.2f/%.2f/%.2f pos_counts(p50/p90/p99)=%.2f/%.2f/%.2f capture_ratio_med=%.3f capture_ratio_threshold=%.2f det_pos=%d det_pos_rate=%.6f det_counts(p50/p90)=%.2f/%.2f min_hold_bars=%d",
+        "[EXIT_LABELER_PROOF] io=%s total_records=%d n_trades=%d n_trades_with_main_pos=%d n_main_pos=%d exit_rate=%.6f avg_pos_per_pos_trade=%.3f pct_trades_with_main_pos=%.3f bars_per_trade(min/med/max)=%d/%d/%d pos_bars(min/med/max)=%.2f/%.2f/%.2f pos_counts(p50/p90/p99)=%.2f/%.2f/%.2f capture_ratio_med=%.3f capture_ratio_threshold=%.2f det_pos=%d det_pos_rate=%.6f det_counts(p50/p90)=%.2f/%.2f min_hold_bars=%d",
+        active_io_version,
         total_records,
         n_trades,
         n_trades_with_main_pos,
@@ -1164,8 +1346,9 @@ def save_exit_transformer_artifacts(
     window_len: int,
     d_model: int,
     n_layers: int,
-    feature_names_hash: str = EXIT_FEATURE_NAMES_HASH,
+    feature_names_hash: Optional[str] = None,
     input_dim: Optional[int] = None,
+    exit_io_version: str = EXIT_IO_VERSION,
 ) -> Tuple[Path, Path, str]:
     if not TORCH_AVAILABLE or model is None:
         raise RuntimeError("PyTorch and model required to save")
@@ -1177,9 +1360,10 @@ def save_exit_transformer_artifacts(
     with open(model_path, "rb") as f:
         model_sha = hashlib.sha256(f.read()).hexdigest()
 
+    contract = get_exit_io_contract(exit_io_version)
     cfg = {
         "window_len": int(window_len),
-        "input_dim": int(input_dim if input_dim is not None else EXIT_IO_FEATURE_COUNT),
+        "input_dim": int(input_dim if input_dim is not None else contract["feature_count"]),
         "d_model": int(d_model),
         "n_layers": int(n_layers),
         "n_heads": int(DEFAULT_N_HEADS),
@@ -1187,8 +1371,8 @@ def save_exit_transformer_artifacts(
         "family_head_dim": int(len(EXIT_AUX_FAMILY_NAMES)),
         "family_head_names": list(EXIT_AUX_FAMILY_NAMES),
         "profit_protect_head_dim": 1,
-        "exit_ml_io_version": EXIT_IO_VERSION,
-        "feature_names_hash": feature_names_hash,
+        "exit_ml_io_version": str(contract["io_version"]),
+        "feature_names_hash": str(feature_names_hash or contract["feature_hash"]),
     }
     cfg_path = out_dir / "exit_transformer_config.json"
     with open(cfg_path, "w", encoding="utf-8") as f:
@@ -1295,22 +1479,25 @@ def load_exit_transformer_decider(model_path: Path) -> ExitTransformerDecider:
         cfg = json.load(f)
 
     window_len = int(cfg.get("window_len", DEFAULT_WINDOW_LEN))
-    input_dim = int(cfg.get("input_dim", EXIT_IO_FEATURE_COUNT))
+    io_ver = str(cfg.get("exit_ml_io_version", "") or EXIT_IO_VERSION).strip() or EXIT_IO_VERSION
+    contract = get_exit_io_contract(io_ver)
+    input_dim = int(cfg.get("input_dim", contract["feature_count"]))
     feat_hash = cfg.get("feature_names_hash", "")
-    io_ver = cfg.get("exit_ml_io_version", "")
-    if io_ver and io_ver != EXIT_IO_VERSION:
-        raise RuntimeError(f"[EXIT_IO_CONTRACT_VIOLATION] exit_ml_io_version mismatch: {io_ver} != {EXIT_IO_VERSION}")
-    if feat_hash and feat_hash != EXIT_FEATURE_NAMES_HASH:
+    if feat_hash and feat_hash != contract["feature_hash"]:
         if os.getenv("GX1_EXIT_HASH_GUARD_BYPASS") == "1":
             log.warning(
                 "[EXIT_IO_CONTRACT_BYPASS] enabled=1 feature_names_hash=%s contract_feature_hash=%s",
                 feat_hash,
-                EXIT_FEATURE_NAMES_HASH,
+                contract["feature_hash"],
             )
         else:
             raise RuntimeError(
-                f"[EXIT_IO_CONTRACT_VIOLATION] feature_names_hash mismatch: {feat_hash} != {EXIT_FEATURE_NAMES_HASH}"
+                f"[EXIT_IO_CONTRACT_VIOLATION] feature_names_hash mismatch: {feat_hash} != {contract['feature_hash']}"
             )
+    if input_dim != int(contract["feature_count"]):
+        raise RuntimeError(
+            f"[EXIT_IO_CONTRACT_VIOLATION] input_dim mismatch: {input_dim} != {int(contract['feature_count'])}"
+        )
 
     model = ExitTransformerV0(
         input_dim=input_dim,
@@ -1371,15 +1558,14 @@ def verify_exit_transformer_artifacts(model_dir: Path) -> Dict[str, Any]:
         except Exception as exc:
             failures.append(f"config_read_failed:{exc}")
     if cfg:
-        io_ver = cfg.get("exit_ml_io_version")
-        if io_ver and io_ver != EXIT_IO_VERSION:
-            failures.append(f"io_version_mismatch:{io_ver}!={EXIT_IO_VERSION}")
+        io_ver = str(cfg.get("exit_ml_io_version", "") or EXIT_IO_VERSION).strip() or EXIT_IO_VERSION
+        contract = get_exit_io_contract(io_ver)
         feat_hash = cfg.get("feature_names_hash")
-        if feat_hash and feat_hash != EXIT_FEATURE_NAMES_HASH:
-            failures.append(f"feature_hash_mismatch:{feat_hash}!={EXIT_FEATURE_NAMES_HASH}")
+        if feat_hash and feat_hash != contract["feature_hash"]:
+            failures.append(f"feature_hash_mismatch:{feat_hash}!={contract['feature_hash']}")
         input_dim = int(cfg.get("input_dim", -1))
-        if input_dim != EXIT_IO_FEATURE_COUNT:
-            failures.append(f"input_dim_mismatch:{input_dim}!={EXIT_IO_FEATURE_COUNT}")
+        if input_dim != int(contract["feature_count"]):
+            failures.append(f"input_dim_mismatch:{input_dim}!={int(contract['feature_count'])}")
     if model_file.exists() and cfg_path.exists():
         try:
             load_exit_transformer_decider(model_dir)
@@ -1413,6 +1599,36 @@ def _focus_exit_training_records(records: List[Dict[str, Any]]) -> List[Dict[str
     trades with real progress, deterioration, or non-trivial live PnL. Fully dead
     hold bars add a lot of class imbalance but little exit signal.
     """
+    try:
+        focus_mfe_min = float(os.environ.get("GX1_EXIT_FOCUS_MFE_MIN", "8.0"))
+    except Exception:
+        focus_mfe_min = 8.0
+    try:
+        focus_dd_min = float(os.environ.get("GX1_EXIT_FOCUS_DD_MIN", "8.0"))
+    except Exception:
+        focus_dd_min = 8.0
+    try:
+        focus_gb_min = float(os.environ.get("GX1_EXIT_FOCUS_GB_MIN", "0.20"))
+    except Exception:
+        focus_gb_min = 0.20
+    try:
+        focus_abs_pnl_min = float(os.environ.get("GX1_EXIT_FOCUS_ABS_PNL_MIN", "4.0"))
+    except Exception:
+        focus_abs_pnl_min = 4.0
+    try:
+        focus_bg_stride = max(1, int(os.environ.get("GX1_EXIT_FOCUS_BG_STRIDE", "20")))
+    except Exception:
+        focus_bg_stride = 20
+
+    log.info(
+        "[EXIT_TRAIN_FOCUS_CFG] mfe_min=%.2f dd_min=%.2f gb_min=%.2f abs_pnl_min=%.2f bg_stride=%d",
+        float(focus_mfe_min),
+        float(focus_dd_min),
+        float(focus_gb_min),
+        float(focus_abs_pnl_min),
+        int(focus_bg_stride),
+    )
+
     focused: List[Dict[str, Any]] = []
     kept_pos = 0
     kept_neg = 0
@@ -1458,10 +1674,10 @@ def _focus_exit_training_records(records: List[Dict[str, Any]]) -> List[Dict[str
         in_decision_neighborhood = bool(
             bars_held >= 2.0
             and (
-                mfe_bps >= 8.0
-                or dd_bps >= 8.0
-                or giveback_ratio >= 0.20
-                or abs(pnl_bps_now) >= 4.0
+                mfe_bps >= float(focus_mfe_min)
+                or dd_bps >= float(focus_dd_min)
+                or giveback_ratio >= float(focus_gb_min)
+                or abs(pnl_bps_now) >= float(focus_abs_pnl_min)
             )
         )
         if in_decision_neighborhood:
@@ -1469,7 +1685,7 @@ def _focus_exit_training_records(records: List[Dict[str, Any]]) -> List[Dict[str
             kept_neg += 1
         else:
             negative_counter += 1
-            if bars_held >= 2.0 and (negative_counter % 20) == 0:
+            if bars_held >= 2.0 and (negative_counter % int(focus_bg_stride)) == 0:
                 focused.append(rec)
                 sampled_background_neg += 1
             else:
@@ -1492,8 +1708,11 @@ def _build_windows_from_exits(
     records: List[Dict[str, Any]],
     window_len: int,
     stride: int,
+    exit_io_version: str = EXIT_IO_VERSION,
     return_targets: bool = False,
 ) -> Tuple[Any, ...]:
+    contract = get_exit_io_contract(exit_io_version)
+    feature_count = int(contract["feature_count"])
     feats: List[np.ndarray] = []
     main_labels: List[float] = []
     profit_labels: List[float] = []
@@ -1528,9 +1747,9 @@ def _build_windows_from_exits(
         arr = np.asarray(io, dtype=np.float32)
         if arr.ndim == 1:
             arr = arr.reshape(1, -1)
-        if arr.shape[-1] != EXIT_IO_FEATURE_COUNT:
+        if arr.shape[-1] != feature_count:
             raise RuntimeError(
-                f"EXIT_IO_DIM_MISMATCH expected_input_dim={EXIT_IO_FEATURE_COUNT} got_input_dim={int(arr.shape[-1])}"
+                f"EXIT_IO_DIM_MISMATCH expected_input_dim={feature_count} got_input_dim={int(arr.shape[-1])}"
             )
         if arr.shape[0] < window_len:
             continue
@@ -1553,7 +1772,7 @@ def _build_windows_from_exits(
 
     if not feats:
         base = (
-            np.zeros((0, window_len, EXIT_IO_FEATURE_COUNT), dtype=np.float32),
+            np.zeros((0, window_len, feature_count), dtype=np.float32),
             np.zeros(0, dtype=np.float32),
             np.zeros(0, dtype=np.float32),
             np.zeros(0, dtype=np.float32),
@@ -1651,6 +1870,9 @@ def _audit_one_head(
     suspected_root_cause = "unknown"
     if math.isfinite(label_rate) and label_rate < 0.05 and prob_stats["std"] < 0.002:
         suspected_root_cause = "class_imbalance_unweighted_bce"
+    effective_X = X_va_eff if X_va_eff.size else X_tr_eff
+    effective_window_len = int(effective_X.shape[1]) if effective_X.ndim == 3 and effective_X.shape[0] > 0 else int(DEFAULT_WINDOW_LEN)
+    effective_input_dim = int(effective_X.shape[2]) if effective_X.ndim == 3 and effective_X.shape[0] > 0 else int(EXIT_IO_FEATURE_COUNT)
 
     return {
         "head_name": head_name,
@@ -1658,8 +1880,8 @@ def _audit_one_head(
         "score_source": "validation" if X_va_eff.size else "train_fallback",
         "n_train_windows": int(X_tr_eff.shape[0]),
         "n_val_windows": int(X_va_eff.shape[0]),
-        "window_len": int(DEFAULT_WINDOW_LEN),
-        "input_dim": int(EXIT_IO_FEATURE_COUNT),
+        "window_len": int(effective_window_len),
+        "input_dim": int(effective_input_dim),
         "feature_names_hash": EXIT_FEATURE_NAMES_HASH,
         "label_rate": label_rate,
         "train_pos_rate": train_pos_rate,
@@ -1816,7 +2038,7 @@ def audit_score_compression_from_exits_jsonl(
 def train_from_exits_jsonl(
     exits_jsonl_path: Path,
     out_dir: Optional[Path] = None,
-    window_len: int = DEFAULT_WINDOW_LEN,
+    window_len: Optional[int] = None,
     d_model: int = DEFAULT_D_MODEL,
     n_layers: int = DEFAULT_N_LAYERS,
     n_heads: int = DEFAULT_N_HEADS,
@@ -1832,6 +2054,15 @@ def train_from_exits_jsonl(
     if not TORCH_AVAILABLE:
         raise RuntimeError("PyTorch required")
 
+    extra = dict(_)
+    requested_io_version = str(extra.get("exit_io_version", "") or "").strip()
+    use_io_v2 = bool(extra.get("use_io_v2", False) or extra.get("require_io_v2", False))
+    exit_io_version = requested_io_version or (EXIT_IO_V2_CTX36_M1L512_IO_VERSION if use_io_v2 else EXIT_IO_VERSION)
+    contract = get_exit_io_contract(exit_io_version)
+    if window_len is None:
+        window_len = int(contract["default_window_len"])
+    window_len = int(window_len)
+
     exits_jsonl_path = Path(exits_jsonl_path)
     records = _load_exits_jsonl(exits_jsonl_path)
 
@@ -1844,6 +2075,7 @@ def train_from_exits_jsonl(
         records,
         window_len,
         stride,
+        exit_io_version=exit_io_version,
         return_targets=True,
     )
     if X.size == 0:
@@ -2003,7 +2235,7 @@ def train_from_exits_jsonl(
     else:
         device = torch.device(device_pref)
     model = ExitTransformerV0(
-        input_dim=EXIT_IO_FEATURE_COUNT,
+        input_dim=int(contract["feature_count"]),
         window_len=window_len,
         d_model=d_model,
         n_heads=n_heads,
@@ -2014,10 +2246,10 @@ def train_from_exits_jsonl(
     log.info(
         "[EXIT_TRAIN_DEVICE] device=%s input_dim=%d window_len=%d feature_hash=%s feature_names=%s",
         str(device),
-        int(EXIT_IO_FEATURE_COUNT),
+        int(contract["feature_count"]),
         int(window_len),
-        EXIT_FEATURE_NAMES_HASH,
-        list(EXIT_IO_V1_CTX36_FEATURES),
+        str(contract["feature_hash"]),
+        list(contract["feature_names"]),
     )
 
     opt = torch.optim.Adam(model.parameters(), lr=lr)
@@ -2233,7 +2465,7 @@ def train_from_exits_jsonl(
 
     base = Path(gx1_data or os.environ["GX1_DATA"])
     if out_dir is None:
-        out_dir = base / "models" / "exit_transformer_v0" / dataset_sha
+        out_dir = base / "models" / "exit_transformer_v0" / f"{exit_io_version}__WL{window_len}__{dataset_sha}"
     out_dir.mkdir(parents=True, exist_ok=True)
 
     model_path, cfg_path, sha = save_exit_transformer_artifacts(
@@ -2242,8 +2474,9 @@ def train_from_exits_jsonl(
         window_len,
         d_model,
         n_layers,
-        feature_names_hash=EXIT_FEATURE_NAMES_HASH,
-        input_dim=EXIT_IO_FEATURE_COUNT,
+        feature_names_hash=str(contract["feature_hash"]),
+        input_dim=int(contract["feature_count"]),
+        exit_io_version=exit_io_version,
     )
 
     train_report_path = out_dir / "TRAIN_REPORT.json"
@@ -2270,6 +2503,9 @@ def train_from_exits_jsonl(
     report = {
         "dataset": str(exits_jsonl_path),
         "dataset_sha256": dataset_sha,
+        "exit_ml_io_version": exit_io_version,
+        "window_len": int(window_len),
+        "feature_names_hash": str(contract["feature_hash"]),
         "main_label_profile": str(os.environ.get("GX1_EXIT_MAIN_LABEL_PROFILE", "MAIN_V1_CONTROL")).strip().upper() or "MAIN_V1_CONTROL",
         "n_samples": int(X.shape[0]),
         "main_label_rate": float(np.mean(y_main)),

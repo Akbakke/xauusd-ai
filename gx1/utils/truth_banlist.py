@@ -92,6 +92,7 @@ def assert_truth_policy_path_canonical(policy_path: Path, *, engine_root: Path, 
             sweep_root = None
     allowlist = {
         (engine_root / "gx1" / "configs" / "policies" / "canonical_truth" / "GX1_TRUTH_REPLAY_V10_CTX.yaml").resolve(),
+        (engine_root / "gx1" / "configs" / "policies" / "canonical_truth" / "GX1_TRUTH_REPLAY_V10_CTX__EXIT_V2_M1L512.yaml").resolve(),
         # TEMP BASELINE A/B – remove after run
         Path(
             "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/BASELINE_PRE_VNEXT_20260313_2405/"
@@ -121,6 +122,11 @@ def assert_truth_policy_path_canonical(policy_path: Path, *, engine_root: Path, 
         Path(
             "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/EXIT_INTRADAY_FAILFAST_H30_EVAL_20260313_173600/"
             "GX1_TRUTH_REPLAY_V10_CTX__EXIT_INTRADAY_FAILFAST_H30.yaml"
+        ).resolve(),
+        # TEMP RECOVERY ENTRY VERIFY – remove after run
+        Path(
+            "/home/andre2/GX1_DATA/tmp/recovery_entry_verify_exact_20260403_203000/"
+            "POLICY_RECOVERY_ENTRY__WINNER_EXIT_VERIFY.yaml"
         ).resolve(),
     }
     policy_resolved = policy_path.resolve()

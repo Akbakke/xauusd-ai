@@ -1,0 +1,15 @@
+exit:
+  type: EXIT_TRANSFORMER_V0
+  params:
+    verbose_logging: false
+    exit_ml:
+      decider_enabled: true
+      mode: exit_transformer_v0
+      exit_transformer:
+        enabled: true
+        model_path: models/exit_transformer_v0/EXIT_IO_V2_CTX36_M1L512__WL512__PENDING_RETRAIN
+        feature_hash: 1be2fe5a6150e8c1
+        exit_ml_io_version: EXIT_IO_V2_CTX36_M1L512
+        threshold: 0.961242
+        exit_require_consecutive: 3
+        window_len: 512

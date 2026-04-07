@@ -11,7 +11,7 @@ exit:
         model_sha: 6fad3a86c144869b251b26b5b3fa8fd442323bc500ac32d00ff9a39cc93df17b
         feature_hash: 1be2fe5a6150e8c1
         threshold: 0.961242
-        exit_require_consecutive: 4
+        exit_require_consecutive: 3
         window_len: 8
         residual_exit:
           enabled: false
@@ -33,14 +33,14 @@ exit:
           - OVERLAP
           - EU
           - US
-          mfe_bps_min: 8.0
+          mfe_bps_min: 10.0
           dd_from_mfe_bps_min: 8.0
-          giveback_ratio_min: 0.20
-          pnl_bps_min: -4.0
-          pnl_bps_max: 3.0
-          pnl_frac_mfe_max: 0.25
-          time_since_mfe_bars_min: 1.0
-          directional_edge_max: 0.05
+          giveback_ratio_min: 0.30
+          pnl_bps_min: -1.0
+          pnl_bps_max: 4.0
+          pnl_frac_mfe_max: 0.20
+          time_since_mfe_bars_min: 2.0
+          directional_edge_max: 1.00
         safety_exit:
           catastrophic_guard:
             enabled: true

@@ -44,7 +44,9 @@ log = logging.getLogger(__name__)
 # ============================================================================
 
 # Canonical interpreter (SSoT)
+# Compare resolved paths so symlinked venv launchers do not fail TRUTH/SMOKE.
 REQUIRED_VENV = "/home/andre2/venvs/gx1/bin/python"
+REQUIRED_VENV_RESOLVED = Path(REQUIRED_VENV).resolve()
 
 # ONE UNIVERSE dims
 EXPECTED_XGB_FEATURES_LEN = 34
@@ -124,15 +126,25 @@ def _assert_truth_python_identity(*, chunk_output_dir: Path, chunk_idx: int, run
     """
     TRUTH/SMOKE: enforce canonical python interpreter.
     """
-    if python_exe != REQUIRED_VENV:
-        fatal_msg = f"[ENV_IDENTITY_FAIL] Wrong python interpreter. Expected: {REQUIRED_VENV}, Actual: {python_exe}"
+    python_exe_resolved = Path(python_exe).resolve()
+    if python_exe_resolved != REQUIRED_VENV_RESOLVED:
+        fatal_msg = (
+            f"[ENV_IDENTITY_FAIL] Wrong python interpreter. "
+            f"Expected: {REQUIRED_VENV_RESOLVED} (raw={REQUIRED_VENV}), "
+            f"Actual: {python_exe_resolved} (raw={python_exe})"
+        )
         write_fatal_capsule(
             chunk_output_dir=chunk_output_dir,
             chunk_idx=chunk_idx,
             run_id=run_id,
             fatal_reason="ENV_IDENTITY_FAIL",
             error_message=fatal_msg,
-            extra_fields={"expected_python": REQUIRED_VENV, "actual_python": python_exe},
+            extra_fields={
+                "expected_python_raw": REQUIRED_VENV,
+                "expected_python_resolved": str(REQUIRED_VENV_RESOLVED),
+                "actual_python_raw": python_exe,
+                "actual_python_resolved": str(python_exe_resolved),
+            },
         )
         raise RuntimeError(fatal_msg)
 
