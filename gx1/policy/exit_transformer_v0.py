@@ -278,6 +278,105 @@ def _attach_labels_to_exit_records(
             return None
         return out
 
+    def _get_trade_teacher_state(recs_for_trade: List[Dict[str, Any]]) -> Dict[str, Any]:
+        first = recs_for_trade[0] if recs_for_trade else {}
+        final_reason = str(
+            first.get("teacher_final_exit_reason")
+            or first.get("teacher_exit_reason")
+            or first.get("final_exit_reason")
+            or ""
+        ).strip().upper()
+        final_pnl = _get_scalar_optional(first, "teacher_final_pnl_bps")
+        final_mfe = _get_scalar_optional(first, "teacher_final_mfe_bps")
+        final_mae = _get_scalar_optional(first, "teacher_final_mae_bps")
+        final_duration_bars = _get_scalar_optional(first, "teacher_duration_bars")
+        post_exit_mfe = _get_scalar_optional(first, "teacher_post_exit_mfe_bps")
+        post_exit_mfe_replay_end = _get_scalar_optional(first, "teacher_post_exit_mfe_bps_replay_end_obs")
+        if post_exit_mfe is None:
+            post_exit_mfe = post_exit_mfe_replay_end
+        if not final_reason and final_pnl is None and final_mfe is None:
+            return {
+                "available": False,
+                "final_reason": "",
+                "final_pnl_bps": math.nan,
+                "final_mfe_bps": math.nan,
+                "final_mae_bps": math.nan,
+                "final_duration_bars": math.nan,
+                "post_exit_mfe_bps": math.nan,
+                "retention_frac": math.nan,
+                "profit_eligible": False,
+                "is_cata": False,
+                "is_eof_positive": False,
+                "is_eof_negative": False,
+                "is_policy_positive": False,
+                "is_negative_close": False,
+                "good_close": False,
+                "bad_rot": False,
+            }
+        final_pnl_f = float(final_pnl) if final_pnl is not None else math.nan
+        final_mfe_f = float(final_mfe) if final_mfe is not None else math.nan
+        final_mae_f = float(final_mae) if final_mae is not None else math.nan
+        final_duration_bars_f = float(final_duration_bars) if final_duration_bars is not None else math.nan
+        post_exit_mfe_f = float(post_exit_mfe) if post_exit_mfe is not None else math.nan
+        retention_frac = (
+            float(final_pnl_f / final_mfe_f)
+            if math.isfinite(final_pnl_f) and math.isfinite(final_mfe_f) and final_mfe_f > 0.0
+            else math.nan
+        )
+        profit_eligible = bool(math.isfinite(final_mfe_f) and final_mfe_f >= teacher_trade_profit_mfe_min)
+        is_cata = final_reason == "CATASTROPHIC_GUARD"
+        is_eof_positive = final_reason == "REPLAY_EOF" and math.isfinite(final_pnl_f) and final_pnl_f > 0.0
+        is_eof_negative = final_reason == "REPLAY_EOF" and math.isfinite(final_pnl_f) and final_pnl_f < 0.0
+        is_policy_positive = final_reason in {"POLICY_FRIDAY_FLAT", "POLICY_WEEK_FLAT"} and math.isfinite(final_pnl_f) and final_pnl_f > 0.0
+        is_negative_close = math.isfinite(final_pnl_f) and final_pnl_f < 0.0
+        good_close = bool(
+            profit_eligible
+            and math.isfinite(final_pnl_f)
+            and final_pnl_f >= teacher_positive_close_min_pnl_bps
+            and math.isfinite(retention_frac)
+            and retention_frac >= teacher_positive_retention_min
+            and (
+                not math.isfinite(post_exit_mfe_f)
+                or post_exit_mfe_f <= teacher_positive_post_exit_headroom_max_bps
+            )
+            and (
+                final_reason in {"MODEL_EXIT", "POLICY_FRIDAY_FLAT", "POLICY_WEEK_FLAT", "REPLAY_EOF"}
+                or final_reason == ""
+            )
+        )
+        bad_rot = bool(
+            profit_eligible
+            and (
+                is_cata
+                or is_eof_negative
+                or is_negative_close
+                or (
+                    math.isfinite(retention_frac)
+                    and retention_frac <= teacher_rot_retention_max
+                    and math.isfinite(final_pnl_f)
+                    and final_pnl_f <= teacher_rot_final_pnl_max_bps
+                )
+            )
+        )
+        return {
+            "available": True,
+            "final_reason": final_reason,
+            "final_pnl_bps": final_pnl_f,
+            "final_mfe_bps": final_mfe_f,
+            "final_mae_bps": final_mae_f,
+            "final_duration_bars": final_duration_bars_f,
+            "post_exit_mfe_bps": post_exit_mfe_f,
+            "retention_frac": retention_frac,
+            "profit_eligible": profit_eligible,
+            "is_cata": is_cata,
+            "is_eof_positive": is_eof_positive,
+            "is_eof_negative": is_eof_negative,
+            "is_policy_positive": is_policy_positive,
+            "is_negative_close": is_negative_close,
+            "good_close": good_close,
+            "bad_rot": bad_rot,
+        }
+
     label_variant = os.environ.get("GX1_EXIT_LABEL_VARIANT", "EXIT_LABEL_DET_V1").strip().upper()
     sweep_profile = os.environ.get("GX1_EXIT_LABEL_SWEEP_PROFILE", "").strip().upper()
     main_label_profile = os.environ.get("GX1_EXIT_MAIN_LABEL_PROFILE", "MAIN_V1_CONTROL").strip().upper()
@@ -311,6 +410,39 @@ def _attach_labels_to_exit_records(
     main_hard_det_min_pnl_bps = -9999.0
     main_break_even_min_pnl_bps = -9999.0
     main_no_edge_min_pnl_bps = -9999.0
+    weekly_teacher_mode = False
+    try:
+        teacher_trade_profit_mfe_min = float(os.environ.get("GX1_EXIT_WEEKLY_TEACHER_MFE_MIN", "8.0"))
+    except Exception:
+        teacher_trade_profit_mfe_min = 8.0
+    try:
+        teacher_positive_close_min_pnl_bps = float(os.environ.get("GX1_EXIT_WEEKLY_TEACHER_POS_PNL_MIN", "8.0"))
+    except Exception:
+        teacher_positive_close_min_pnl_bps = 8.0
+    try:
+        teacher_positive_retention_min = float(os.environ.get("GX1_EXIT_WEEKLY_TEACHER_POS_RETENTION_MIN", "0.45"))
+    except Exception:
+        teacher_positive_retention_min = 0.45
+    try:
+        teacher_positive_post_exit_headroom_max_bps = float(os.environ.get("GX1_EXIT_WEEKLY_TEACHER_POS_HEADROOM_MAX", "12.0"))
+    except Exception:
+        teacher_positive_post_exit_headroom_max_bps = 12.0
+    try:
+        teacher_rot_retention_max = float(os.environ.get("GX1_EXIT_WEEKLY_TEACHER_ROT_RETENTION_MAX", "0.20"))
+    except Exception:
+        teacher_rot_retention_max = 0.20
+    try:
+        teacher_rot_final_pnl_max_bps = float(os.environ.get("GX1_EXIT_WEEKLY_TEACHER_ROT_PNL_MAX", "6.0"))
+    except Exception:
+        teacher_rot_final_pnl_max_bps = 6.0
+    try:
+        weekly_teacher_positive_weight = float(os.environ.get("GX1_EXIT_WEEKLY_TEACHER_POS_WEIGHT", "1.50"))
+    except Exception:
+        weekly_teacher_positive_weight = 1.50
+    try:
+        weekly_teacher_good_hold_weight = float(os.environ.get("GX1_EXIT_WEEKLY_TEACHER_GOOD_HOLD_WEIGHT", "1.15"))
+    except Exception:
+        weekly_teacher_good_hold_weight = 1.15
     if sweep_profile in {"A_PROFIT_STRICT", "EXIT_LABEL_SWEEP_A_PROFIT_STRICT"}:
         profit_dd_extra_bps = 2.0
         profit_gb_extra = 0.05
@@ -528,6 +660,35 @@ def _attach_labels_to_exit_records(
         profit_protect_future_headroom_abs_max_bps = 12.0
         profit_protect_future_headroom_frac_max = 0.30
         det_max_per_trade = min(int(det_max_per_trade), 4)
+    elif main_label_profile == "MAIN_R5_WEEKLY_MONETIZE_ROT":
+        min_hold_bars = max(int(min_hold_bars), 3)
+        weekly_teacher_mode = True
+        main_use_profit_positive = True
+        main_allow_hard_deterioration = False
+        main_allow_break_even_red = False
+        main_allow_no_edge_adverse = False
+        main_allow_late_exit = False
+        main_allow_boundary_exit = False
+        main_allow_failfast_exit = False
+        main_allow_capture = False
+        main_profit_min_pnl_bps = 0.0
+        postprog_mfe_min_long = 10.0
+        postprog_mfe_min_short = 8.0
+        postprog_dd_min_long = 16.0
+        postprog_dd_min_short = 12.0
+        postprog_giveback_ratio_min_long = 0.35
+        postprog_giveback_ratio_min_short = 0.30
+        profit_protect_mfe_min_long = 12.0
+        profit_protect_mfe_min_short = 10.0
+        profit_protect_dd_min_bps = 8.0
+        profit_protect_giveback_ratio_min = 0.15
+        profit_protect_pnl_min_bps = 2.0
+        profit_protect_pnl_max_bps = 90.0
+        profit_protect_pnl_frac_mfe_max = 0.75
+        profit_protect_time_since_mfe_min_bars = 4.0
+        profit_protect_future_headroom_abs_max_bps = 12.0
+        profit_protect_future_headroom_frac_max = 0.22
+        det_max_per_trade = min(int(det_max_per_trade), 2)
     else:
         raise RuntimeError(f"[EXIT_MAIN_LABEL_PROFILE_FAIL] unsupported profile={main_label_profile!r}")
     intraday_variants = {"EXIT_LABEL_INTRADAY_H30", "EXIT_LABEL_INTRADAY_FAILFAST_H30"}
@@ -642,6 +803,10 @@ def _attach_labels_to_exit_records(
     no_edge_pos_pre_strict = 0
     total_pos_pre_be_strict = 0
     total_pos_post_be_strict = 0
+    teacher_trade_available = 0
+    teacher_trade_profit_eligible = 0
+    teacher_trade_good_close = 0
+    teacher_trade_bad_rot = 0
     active_io_version = str(EXIT_IO_VERSION)
 
     for tid, recs in trades.items():
@@ -656,6 +821,15 @@ def _attach_labels_to_exit_records(
             return (float(bars_val) if math.isfinite(float(bars_val)) else 0.0, str(ts_val))
 
         recs = sorted(recs, key=_sort_key)
+        teacher_state = _get_trade_teacher_state(recs)
+        if teacher_state.get("available"):
+            teacher_trade_available += 1
+            if bool(teacher_state.get("profit_eligible")):
+                teacher_trade_profit_eligible += 1
+            if bool(teacher_state.get("good_close")):
+                teacher_trade_good_close += 1
+            if bool(teacher_state.get("bad_rot")):
+                teacher_trade_bad_rot += 1
         pnl = np.array([_get_scalar(r, "pnl_bps_now") for r in recs], dtype=np.float32)
         bars = np.array([_get_scalar(r, "bars_held") for r in recs], dtype=np.float32)
         mfe = np.array([_get_scalar(r, "mfe_bps") for r in recs], dtype=np.float32)
@@ -967,6 +1141,23 @@ def _attach_labels_to_exit_records(
                         profit_protect_normal_threshold_suppressed += 1
                     profit_train_mask = bool(profit_state)
                     profit_positive = bool(profit_train_mask and (profit_giveback or break_even_red_floor))
+                    if weekly_teacher_mode and bool(teacher_state.get("available")):
+                        if not bool(teacher_state.get("profit_eligible")):
+                            profit_train_mask = False
+                            profit_positive = False
+                        elif bool(teacher_state.get("good_close")):
+                            profit_train_mask = bool(profit_state)
+                            profit_positive = False
+                            recs[i]["sample_weight"] = float(
+                                max(float(recs[i].get("sample_weight", 1.0)), float(weekly_teacher_good_hold_weight))
+                            )
+                        elif bool(teacher_state.get("bad_rot")):
+                            profit_train_mask = bool(profit_state)
+                            profit_positive = bool(profit_train_mask and (profit_giveback or break_even_red_floor))
+                            if profit_positive:
+                                recs[i]["sample_weight"] = float(
+                                    max(float(recs[i].get("sample_weight", 1.0)), float(weekly_teacher_positive_weight))
+                                )
 
                     det_pre_strict = hard_deterioration or break_even_red_pre or no_edge_adverse_collapse
                     should_label_pre_be_strict = bool(det_pre_strict or late_exit or boundary_exit or failfast_exit or is_capture)
@@ -1021,9 +1212,13 @@ def _attach_labels_to_exit_records(
                     if det and det_count >= det_max_per_trade:
                         det = False
                         det_reason = None
+                    # Early suppression operates on the pre-strict deterministic label state,
+                    # before the final main_reason is derived below.
+                    should_label = bool(should_label_pre_be_strict)
             except Exception:
                 det = False
                 det_reason = None
+                should_label = False
                 profit_train_mask = False
                 profit_positive = False
                 hard_deterioration = False
@@ -1270,6 +1465,22 @@ def _attach_labels_to_exit_records(
         profit_protect_future_headroom_abs_max_bps,
         profit_protect_future_headroom_frac_max,
         det_max_per_trade,
+    )
+    log.info(
+        "[EXIT_LABELER_WEEKLY_TEACHER_PROOF] enabled=%s trade_available=%d trade_profit_eligible=%d trade_good_close=%d trade_bad_rot=%d teacher={profit_mfe_min=%.1f,pos_pnl_min=%.1f,pos_retention_min=%.2f,pos_headroom_max=%.1f,rot_retention_max=%.2f,rot_pnl_max=%.1f,pos_weight=%.2f,good_hold_weight=%.2f}",
+        bool(weekly_teacher_mode),
+        int(teacher_trade_available),
+        int(teacher_trade_profit_eligible),
+        int(teacher_trade_good_close),
+        int(teacher_trade_bad_rot),
+        float(teacher_trade_profit_mfe_min),
+        float(teacher_positive_close_min_pnl_bps),
+        float(teacher_positive_retention_min),
+        float(teacher_positive_post_exit_headroom_max_bps),
+        float(teacher_rot_retention_max),
+        float(teacher_rot_final_pnl_max_bps),
+        float(weekly_teacher_positive_weight),
+        float(weekly_teacher_good_hold_weight),
     )
     if exit_rate < 0.02:
         log.warning("[EXIT_LABELER_TOO_SPARSE] exit_rate=%.6f", exit_rate)

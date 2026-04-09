@@ -70,7 +70,7 @@ if TYPE_CHECKING:
         infer_session_tag,
     )
 from gx1.execution.broker_client import BrokerClient
-from gx1.execution.entry_manager import EntryManager
+from gx1.execution.entry_manager import EntryManager, resolve_entry_admission_contract
 from gx1.execution.exit_manager import ExitManager
 from gx1.exits.contracts.exit_io_v1_ctx36 import EXIT_IO_V1_CTX36_IO_VERSION
 from gx1.exits.contracts.registry import get_exit_io_contract
@@ -107,6 +107,52 @@ BID_ASK_REQUIRED_COLS = [
     "ask_low",
     "ask_close",
 ]
+
+_EXIT_WEEKDAY_NAMES = {
+    0: "MONDAY",
+    1: "TUESDAY",
+    2: "WEDNESDAY",
+    3: "THURSDAY",
+    4: "FRIDAY",
+    5: "SATURDAY",
+    6: "SUNDAY",
+}
+
+
+def _as_clean_weekday_tuple(values: Any, *, label: str) -> Tuple[int, ...]:
+    if values is None:
+        raise RuntimeError(f"[EXIT_CONFIG_INVALID] {label} is required")
+    if not isinstance(values, (list, tuple)):
+        raise RuntimeError(f"[EXIT_CONFIG_INVALID] {label} must be a list/tuple")
+    cleaned: List[int] = []
+    for raw in values:
+        try:
+            val = int(raw)
+        except Exception as exc:
+            raise RuntimeError(f"[EXIT_CONFIG_INVALID] {label} contains non-int weekday={raw!r}") from exc
+        if val < 0 or val > 6:
+            raise RuntimeError(f"[EXIT_CONFIG_INVALID] {label} weekday must be in [0,6], got {val}")
+        cleaned.append(val)
+    if not cleaned:
+        raise RuntimeError(f"[EXIT_CONFIG_INVALID] {label} must not be empty")
+    return tuple(sorted(set(cleaned)))
+
+
+def _parse_hhmm_utc(value: Any, *, label: str) -> Tuple[int, int]:
+    if not isinstance(value, str):
+        raise RuntimeError(f"[EXIT_CONFIG_INVALID] {label} must be a HH:MM string")
+    raw = value.strip()
+    parts = raw.split(":")
+    if len(parts) != 2:
+        raise RuntimeError(f"[EXIT_CONFIG_INVALID] {label} must be formatted as HH:MM, got {value!r}")
+    try:
+        hour = int(parts[0])
+        minute = int(parts[1])
+    except Exception as exc:
+        raise RuntimeError(f"[EXIT_CONFIG_INVALID] {label} must contain numeric HH:MM, got {value!r}") from exc
+    if hour < 0 or hour > 23 or minute < 0 or minute > 59:
+        raise RuntimeError(f"[EXIT_CONFIG_INVALID] {label} invalid HH:MM={value!r}")
+    return hour, minute
 
 
 # --------------------------------------------------------------------------- #
@@ -173,8 +219,9 @@ class EntryPrediction:
     tradable_prob: Optional[float] = None
     mfe_first_n_pred: Optional[float] = None
     path_quality_pred: Optional[float] = None
-    quality_score_pred: Optional[float] = None
-    bad_path_prob: Optional[float] = None
+    clean_edge_prob: Optional[float] = None
+    survival_prob: Optional[float] = None
+    supported_heads: Tuple[str, ...] = ()
 
 
 # --------------------------------------------------------------------------- #
@@ -939,10 +986,18 @@ class GX1DemoRunner:
         
         # Persistent feature state for caching across build_basic_v1 calls
         from gx1.features.feature_state import FeatureState
-        from gx1.features.rolling_state_numba import RollingR1Quantiles48State
         self.feature_state = FeatureState()
-        # Initialize incremental quantile state for replay/live
-        self.feature_state.r1_quantiles_state = RollingR1Quantiles48State()
+        # Initialize incremental quantile state for replay/live when optional numba backend exists.
+        # Fallback to None if numba is unavailable so replay can proceed deterministically.
+        try:
+            from gx1.features.rolling_state_numba import RollingR1Quantiles48State
+            self.feature_state.r1_quantiles_state = RollingR1Quantiles48State()
+        except Exception as exc:
+            self.feature_state.r1_quantiles_state = None
+            log.warning(
+                "[BOOT] incremental r1 quantile state disabled (numba backend unavailable): %r",
+                exc,
+            )
         
         # Store explicit output_dir if provided (for parallel chunk workers)
         # If set, trade journals will be written to this directory
@@ -1072,6 +1127,9 @@ class GX1DemoRunner:
             forbidden_exit_envs = [
                 "GX1_EXIT_THRESHOLD",
                 "GX1_EXIT_REQUIRE_CONSECUTIVE",
+                "GX1_ARB_MIN_PNL_BPS",
+                "GX1_ARB_MIN_EXIT_PROB",
+                "GX1_ARB_EXIT_PROB_HYSTERESIS",
                 "GX1_EXIT_IO_ONLY_REPLAY",
                 "GX1_EXIT_HASH_GUARD_BYPASS",
                 "GX1_REPLAY_ACCOUNTING_CLOSE_AT_END",
@@ -1194,16 +1252,18 @@ class GX1DemoRunner:
             exit_cfg = load_yaml_config(exit_cfg_path)
         self.entry_params = entry_cfg.get("params", entry_cfg)
         
-        # Merge entry_config into self.policy so entry policies can access their configs
-        # This is critical for entry_v9_policy_farm_v1, entry_v9_policy_v1, etc.
-        # IMPORTANT: Don't override entry_models if already in policy (policy takes precedence)
+        # Merge entry_config into self.policy so the active V10_CTX lane has a single source of truth.
         if entry_cfg:
+            entry_cfg_entry_models = entry_cfg.get("entry_models", {})
+            if not isinstance(entry_cfg_entry_models, dict):
+                entry_cfg_entry_models = {}
+            if entry_cfg_entry_models and "entry_models" in self.policy:
+                raise RuntimeError(
+                    "[ENTRY_CONFIG_DUPLICATE_SOURCE] entry_models must live in entry_config only for the active "
+                    "ENTRY_V10_CTX lane. Remove top-level policy.entry_models duplicates."
+                )
             for key, value in entry_cfg.items():
-                if key == "entry_models":
-                    # Don't override entry_models if already in policy (policy takes precedence)
-                    if "entry_models" not in self.policy:
-                        self.policy[key] = value
-                elif key not in self.policy:
+                if key not in self.policy:
                     self.policy[key] = value
             log.debug("[BOOT] Merged entry_config into self.policy (for entry policy access)")
         
@@ -1517,19 +1577,39 @@ class GX1DemoRunner:
         self.exit_edge_death_dd_min_short = float(threshold_event_short_cfg.get("dd_from_mfe_bps_min", 8.0))
         self.exit_edge_death_gb_min_short = float(threshold_event_short_cfg.get("giveback_ratio_min", 0.45))
 
-        arb_cfg = getattr(self, "exit_control", None) or {}
-        arb_allow = getattr(arb_cfg, "allow_model_exit_when", {}) if hasattr(arb_cfg, "allow_model_exit_when") else arb_cfg.get("allow_model_exit_when", {}) if isinstance(arb_cfg, dict) else {}
+        policy_exit_control_cfg = self.policy.get("exit_control", {}) or {}
+        arb_allow = (policy_exit_control_cfg.get("allow_model_exit_when", {}) or {}) if isinstance(policy_exit_control_cfg, dict) else {}
         arb_min_pnl = arb_allow.get("min_pnl_bps", None)
+        arb_min_realized_pnl = arb_allow.get("min_realized_pnl_bps", None)
+        arb_require_positive_mfe = arb_allow.get("require_positive_mfe_before_model_exit", None)
+        arb_min_mfe = arb_allow.get("min_mfe_bps_for_model_exit", None)
+        arb_max_giveback_frac = arb_allow.get("max_giveback_frac_from_mfe", None)
+        arb_max_giveback_bps = arb_allow.get("max_giveback_bps_from_mfe", None)
         arb_min_prob = arb_allow.get("min_exit_prob", None)
         arb_prob_hys = arb_allow.get("exit_prob_hysteresis", None)
         arb_min_bars = arb_allow.get("min_bars", None)
+        weekly_mgmt_cfg_for_log = (
+            policy_exit_control_cfg.get("weekly_management", {}) or {}
+            if isinstance(policy_exit_control_cfg, dict)
+            else {}
+        )
+        friday_flat_cfg_for_log = weekly_mgmt_cfg_for_log.get("friday_flat", {}) or {}
+        post_edge_cfg = exit_tf_cfg.get("selective_post_edge_separator", {}) or {}
+        post_edge_enabled = bool(post_edge_cfg.get("enabled", False))
+        post_edge_score_source = str(post_edge_cfg.get("score_source", "exit_prob") or "exit_prob").strip()
         log.info(
-            "[EXIT_EFFECTIVE_CFG] threshold=%.4f require_consecutive=%d src_threshold=%s src_consecutive=%s arb_min_pnl_bps=%s arb_min_exit_prob=%s arb_exit_prob_hysteresis=%s arb_min_bars=%s",
+            "[EXIT_EFFECTIVE_CFG] threshold=%.4f require_consecutive=%d src_threshold=%s src_consecutive=%s arb_min_pnl_bps=%s arb_min_realized_pnl_bps=%s be_plus_floor_bps=%s arb_require_positive_mfe=%s arb_min_mfe_bps=%s arb_max_giveback_frac=%s arb_max_giveback_bps=%s arb_min_exit_prob=%s arb_exit_prob_hysteresis=%s arb_min_bars=%s",
             self.exit_threshold,
             self.exit_require_consecutive,
             src_thr,
             src_req,
             arb_min_pnl,
+            arb_min_realized_pnl,
+            arb_min_realized_pnl if arb_min_realized_pnl is not None else arb_min_pnl,
+            arb_require_positive_mfe,
+            arb_min_mfe,
+            arb_max_giveback_frac,
+            arb_max_giveback_bps,
             arb_min_prob,
             arb_prob_hys,
             arb_min_bars,
@@ -1543,6 +1623,97 @@ class GX1DemoRunner:
             float(self.exit_residual_minutes_to_next_session_boundary_max),
             float(self.exit_residual_distance_from_peak_mfe_bps_min),
         )
+        exit_supported_heads = ["prob_close"]
+        exit_active_heads = ["prob_close"]
+        family_head_names = []
+        if getattr(self, "exit_transformer_decider", None) is not None:
+            decider = self.exit_transformer_decider
+            family_head_names = list(getattr(decider, "family_head_names", []) or [])
+            if bool(getattr(decider, "profit_protect_head_available", False)):
+                exit_supported_heads.append("profit_protect_prob")
+            if bool(getattr(decider, "family_head_available", False)):
+                exit_supported_heads.append("family_probs")
+                exit_supported_heads.append("family_top_name")
+            if post_edge_enabled and post_edge_score_source == "profit_protect_prob":
+                if "profit_protect_prob" not in exit_supported_heads:
+                    raise RuntimeError(
+                        "[EXIT_HEAD_UNSUPPORTED] active post-edge selector requests profit_protect_prob but bundle does not support it"
+                    )
+                exit_active_heads.append("profit_protect_prob")
+            if bool(getattr(decider, "family_head_available", False)):
+                exit_active_heads.append("family_top_name")
+        exit_active_gates = [
+            "model_threshold",
+            "arbiter_min_bars",
+            "arbiter_profit_floor",
+            "arbiter_positive_mfe",
+            "arbiter_giveback_guard",
+            "catastrophic_guard",
+            "replay_eof",
+        ]
+        if post_edge_enabled:
+            exit_active_gates.append("selective_post_edge_separator")
+        if bool(weekly_mgmt_cfg_for_log.get("enabled", False)) and bool(friday_flat_cfg_for_log.get("enabled", False)):
+            exit_active_gates.append("policy_friday_flat")
+        exit_sources = {
+            "bundle_path": "exit.params.exit_ml.exit_transformer.model_path",
+            "contract": "exit.params.exit_ml.exit_transformer.exit_ml_io_version",
+            "window_len": "exit.params.exit_ml.exit_transformer.window_len",
+            "threshold": "exit.params.exit_ml.exit_transformer.threshold",
+            "exit_require_consecutive": "exit.params.exit_ml.exit_transformer.exit_require_consecutive",
+            "allow_model_exit_when": "policy.exit_control.allow_model_exit_when",
+            "weekly_management": "policy.exit_control.weekly_management",
+            "replay_eof": "policy.replay",
+        }
+        log.info(
+            "[EXIT_CONTRACT_BOOT] bundle_path=%s io_version=%s window_len=%s input_dim=%s supported_heads=%s active_heads=%s family_head_names=%s active_gates=%s source_of_truth=%s profit_only_model_exit=%s",
+            getattr(self, "exit_transformer_model_path", None),
+            getattr(self, "exit_transformer_io_version", None),
+            getattr(self, "exit_transformer_window_len", None),
+            getattr(self, "exit_transformer_input_dim", None),
+            sorted(set(exit_supported_heads)),
+            sorted(set(exit_active_heads)),
+            family_head_names,
+            exit_active_gates,
+            exit_sources,
+            True,
+        )
+        output_dir = getattr(self, "explicit_output_dir", None) or getattr(self, "output_dir", None)
+        if output_dir:
+            try:
+                from gx1.utils.atomic_json import atomic_write_json
+
+                atomic_write_json(
+                    Path(output_dir) / "EXIT_RUNTIME_SOURCE_OF_TRUTH.json",
+                    {
+                        "bundle_path": getattr(self, "exit_transformer_model_path", None),
+                        "io_version": getattr(self, "exit_transformer_io_version", None),
+                        "window_len": getattr(self, "exit_transformer_window_len", None),
+                        "input_dim": getattr(self, "exit_transformer_input_dim", None),
+                        "supported_heads": sorted(set(exit_supported_heads)),
+                        "active_heads": sorted(set(exit_active_heads)),
+                        "family_head_names": family_head_names,
+                        "active_gates": exit_active_gates,
+                        "source_of_truth": exit_sources,
+                        "threshold": float(getattr(self, "exit_threshold", 0.0)),
+                        "exit_require_consecutive": int(getattr(self, "exit_require_consecutive", 1)),
+                        "allow_model_exit_when": dict(arb_allow),
+                        "weekly_management": {
+                            "enabled": bool(weekly_mgmt_cfg_for_log.get("enabled", False)),
+                            "friday_flat_enabled": bool(friday_flat_cfg_for_log.get("enabled", False)),
+                            "friday_flat_weekdays": list(friday_flat_cfg_for_log.get("weekdays", [4]) or [4]),
+                            "friday_flat_cutoff_hhmm_utc": friday_flat_cfg_for_log.get("cutoff_hhmm_utc", "20:55"),
+                            "friday_flat_reason": friday_flat_cfg_for_log.get("reason", "POLICY_FRIDAY_FLAT"),
+                        },
+                        "replay_eof": {
+                            "close_open_trades_at_end": bool((self.policy.get("replay", {}) or {}).get("close_open_trades_at_end", False)),
+                            "eof_close_reason": (self.policy.get("replay", {}) or {}).get("eof_close_reason", "REPLAY_EOF"),
+                            "eof_price_source": (self.policy.get("replay", {}) or {}).get("eof_price_source", "mid"),
+                        },
+                    },
+                )
+            except Exception as exc:
+                log.warning("[EXIT_RUNTIME_SOURCE_OF_TRUTH] failed to write json proof: %s", exc)
 
         # Konsolider "effektiv" dry_run ett sted
         exec_cfg = self.policy.get("execution", {}) or {}
@@ -1640,27 +1811,39 @@ class GX1DemoRunner:
         else:
             entry_gating = self.policy.get("entry_gating", None)
         if entry_gating:
-            p_side_min = entry_gating.get("p_side_min", {})
-            margin_min = entry_gating.get("margin_min", {})
-            side_ratio_min = entry_gating.get("side_ratio_min", 1.25)
-            sticky_bars = entry_gating.get("sticky_bars", 1)
+            raise RuntimeError(
+                "[LEGACY_ENTRY_GATING_FORBIDDEN] entry_gating is not part of the active ENTRY_V10_CTX lane. "
+                "Use entry_policy_v10_ctx only."
+            )
+        policy_entry_cfg = self.policy.get("entry_policy_v10_ctx", {}) or {}
+        if policy_entry_cfg:
             log.info(
-                "[BOOT] entry_gating: long(p≥%.2f,m≥%.2f) short(p≥%.2f,m≥%.2f) ratio≥%.2f sticky=%d",
-                float(p_side_min.get("long", 0.55)),
-                float(margin_min.get("long", 0.08)),
-                float(p_side_min.get("short", 0.60)),
-                float(margin_min.get("short", 0.10)),
-                float(side_ratio_min),
-                int(sticky_bars),
+                "[BOOT] entry_policy_v10_ctx source-of-truth "
+                "(min_prob_long=%s min_prob_short=%s tradable_gate=%s tradable_min_prob=%s "
+                "quality_gate=%s quality_min_mfe_first_n=%s quality_min_path_quality=%s "
+                "clean_edge_gate=%s clean_edge_min_prob=%s survival_gate=%s survival_min_prob=%s "
+                "allow_short=%s require_directional_over_flat=%s persistence_bars=%s "
+                "allowed_sessions=%s allowed_vol_regimes=%s)",
+                policy_entry_cfg.get("min_prob_long"),
+                policy_entry_cfg.get("min_prob_short"),
+                policy_entry_cfg.get("tradable_gate_enabled"),
+                policy_entry_cfg.get("tradable_min_prob"),
+                policy_entry_cfg.get("quality_gate_enabled"),
+                policy_entry_cfg.get("quality_min_mfe_first_n"),
+                policy_entry_cfg.get("quality_min_path_quality"),
+                policy_entry_cfg.get("clean_edge_gate_enabled", False),
+                policy_entry_cfg.get("clean_edge_min_prob"),
+                policy_entry_cfg.get("survival_gate_enabled", False),
+                policy_entry_cfg.get("survival_min_prob"),
+                policy_entry_cfg.get("allow_short"),
+                policy_entry_cfg.get("require_directional_over_flat"),
+                policy_entry_cfg.get("persistence_bars"),
+                policy_entry_cfg.get("allowed_sessions"),
+                policy_entry_cfg.get("allowed_vol_regimes"),
             )
         else:
-            # Fall back to entry_params when explicit entry_gating is absent.
-            meta_threshold = float(self.entry_params.get("META_THRESHOLD", 0.40))
-            margin_min = float(self.entry_params.get("ENTRY_MIN_MARGIN_MIN", 0.02))
-            log.info(
-                "[BOOT] entry_gating: entry_params fallback (p>=%.2f, m>=%.2f)",
-                meta_threshold,
-                margin_min,
+            raise RuntimeError(
+                "[ENTRY_POLICY_MISSING] entry_policy_v10_ctx is required for the active ENTRY_V10_CTX lane"
             )
         
         # Stage-0 configuration (opportunity filter)
@@ -2050,7 +2233,26 @@ class GX1DemoRunner:
                 )
                 log.info("[ENTRY] V10_CTX feature_contract_hash: %s", metadata.get("feature_contract_hash", "N/A"))
                 log.info("[ENTRY] V10_CTX GX1_GATED_FUSION_ENABLED: 1 (verified)")
-                
+                self.entry_contract = resolve_entry_admission_contract(self.policy, self.entry_v10_ctx_bundle)
+                bundle_caps = getattr(self.entry_v10_ctx_bundle, "capabilities", {}) or {}
+                for head_name in ("direction", "tradable", "mfe_first_n", "path_quality", "clean_edge", "survival"):
+                    status = "UNSUPPORTED"
+                    if head_name in set(bundle_caps.get("supported_heads", []) or []):
+                        if head_name in set(self.entry_contract.get("required_heads", []) or []):
+                            status = "SUPPORTED+ACTIVE"
+                        else:
+                            status = "SUPPORTED+INACTIVE"
+                    log.info("[ENTRY_HEAD_STATUS] %s=%s", head_name, status)
+                log.info("[ENTRY_HEAD_STATUS] quality_score=UNSUPPORTED")
+                log.info("[ENTRY_HEAD_STATUS] bad_path=UNSUPPORTED")
+                log.info(
+                    "[ENTRY_GATE_STATUS] supported_heads=%s active_gates=%s source_sessions=%s source_vol_regimes=%s",
+                    bundle_caps.get("supported_heads"),
+                    list(self.entry_contract.get("active_gates", [])),
+                    self.entry_contract["source_of_truth"]["sessions"],
+                    self.entry_contract["source_of_truth"]["vol_regimes"],
+                )
+
                 # DEL 2: Hard guardrails for V10_CTX + context features
                 context_features_enabled = os.getenv("ENTRY_CONTEXT_FEATURES_ENABLED", "false").lower() == "true"
                 if metadata.get("supports_context_features", False) and not context_features_enabled:
@@ -2276,12 +2478,27 @@ class GX1DemoRunner:
         # Load exit_control config (ExitArbiter)
         exit_control_cfg = self.policy.get("exit_control", {})
         arb_allow_cfg = exit_control_cfg.get("allow_model_exit_when", {}) or {}
+        weekly_mgmt_cfg = exit_control_cfg.get("weekly_management", {}) or {}
+        if not isinstance(weekly_mgmt_cfg, dict):
+            raise RuntimeError("[EXIT_CONFIG_INVALID] exit_control.weekly_management must be a dict")
         env_min_pnl = os.getenv("GX1_ARB_MIN_PNL_BPS")
         env_min_prob = os.getenv("GX1_ARB_MIN_EXIT_PROB")
         env_prob_hys = os.getenv("GX1_ARB_EXIT_PROB_HYSTERESIS")
         min_pnl_bps_src = "YAML"
         min_exit_prob_src = "YAML"
         prob_hys_src = "YAML"
+        if env_min_pnl is not None and not bool(getattr(self, "exit_env_override_allowed", False)):
+            raise RuntimeError(
+                "[EXIT_CANONICAL_ENV_FORBIDDEN] Canonical EXIT forbids GX1_ARB_MIN_PNL_BPS without explicit diagnostic mode."
+            )
+        if env_min_prob is not None and not bool(getattr(self, "exit_env_override_allowed", False)):
+            raise RuntimeError(
+                "[EXIT_CANONICAL_ENV_FORBIDDEN] Canonical EXIT forbids GX1_ARB_MIN_EXIT_PROB without explicit diagnostic mode."
+            )
+        if env_prob_hys is not None and not bool(getattr(self, "exit_env_override_allowed", False)):
+            raise RuntimeError(
+                "[EXIT_CANONICAL_ENV_FORBIDDEN] Canonical EXIT forbids GX1_ARB_EXIT_PROB_HYSTERESIS without explicit diagnostic mode."
+            )
         if env_min_pnl is not None:
             try:
                 arb_allow_cfg["min_pnl_bps"] = float(env_min_pnl)
@@ -2300,11 +2517,64 @@ class GX1DemoRunner:
                 prob_hys_src = "ENV"
             except Exception:
                 pass
+        min_pnl_floor = arb_allow_cfg.get("min_pnl_bps")
+        min_realized_pnl_floor = arb_allow_cfg.get("min_realized_pnl_bps")
+        post_edge_enabled = bool((exit_tf_cfg.get("selective_post_edge_separator", {}) or {}).get("enabled", False)) if isinstance(exit_tf_cfg, dict) else False
+        if min_pnl_floor is not None:
+            min_pnl_floor = float(min_pnl_floor)
+            if min_pnl_floor < 0.0:
+                raise RuntimeError(
+                    f"[EXIT_MODEL_NEGATIVE_FLOOR_FORBIDDEN] allow_model_exit_when.min_pnl_bps={min_pnl_floor}"
+                )
+            arb_allow_cfg["min_pnl_bps"] = min_pnl_floor
+        if min_realized_pnl_floor is not None:
+            min_realized_pnl_floor = float(min_realized_pnl_floor)
+            if post_edge_enabled and min_realized_pnl_floor <= 0.0:
+                raise RuntimeError(
+                    "[EXIT_PROTECTED_PROFIT_FLOOR_REQUIRED] "
+                    "selective_post_edge_separator is enabled but allow_model_exit_when.min_realized_pnl_bps <= 0.0"
+                )
+            if min_realized_pnl_floor < 0.0:
+                raise RuntimeError(
+                    "[EXIT_MODEL_NEGATIVE_FLOOR_FORBIDDEN] "
+                    f"allow_model_exit_when.min_realized_pnl_bps={min_realized_pnl_floor}"
+                )
+            arb_allow_cfg["min_realized_pnl_bps"] = min_realized_pnl_floor
 
         self.exit_control = SimpleNamespace(
             allowed_loss_closers=list(exit_control_cfg.get("allowed_loss_closers", ["BROKER_SL", "SOFT_STOP_TICK"])),
             allow_model_exit_when=arb_allow_cfg,
             require_trade_open=bool(exit_control_cfg.get("require_trade_open", True)),
+        )
+
+        friday_flat_cfg = weekly_mgmt_cfg.get("friday_flat", {}) or {}
+        if not isinstance(friday_flat_cfg, dict):
+            raise RuntimeError("[EXIT_CONFIG_INVALID] exit_control.weekly_management.friday_flat must be a dict")
+        weekly_mgmt_enabled = bool(weekly_mgmt_cfg.get("enabled", False))
+        friday_flat_enabled = bool(friday_flat_cfg.get("enabled", False))
+        friday_flat_weekdays: Tuple[int, ...] = tuple()
+        friday_flat_cutoff_hhmm_utc: Optional[Tuple[int, int]] = None
+        friday_flat_reason = "POLICY_FRIDAY_FLAT"
+        if weekly_mgmt_enabled and friday_flat_enabled:
+            friday_flat_weekdays = _as_clean_weekday_tuple(
+                friday_flat_cfg.get("weekdays", [4]),
+                label="exit_control.weekly_management.friday_flat.weekdays",
+            )
+            friday_flat_cutoff_hhmm_utc = _parse_hhmm_utc(
+                friday_flat_cfg.get("cutoff_hhmm_utc", "20:55"),
+                label="exit_control.weekly_management.friday_flat.cutoff_hhmm_utc",
+            )
+            friday_flat_reason = str(friday_flat_cfg.get("reason", "POLICY_FRIDAY_FLAT") or "POLICY_FRIDAY_FLAT").strip().upper()
+            if not friday_flat_reason:
+                raise RuntimeError(
+                    "[EXIT_CONFIG_INVALID] exit_control.weekly_management.friday_flat.reason must not be empty"
+                )
+        self.exit_weekly_management = SimpleNamespace(
+            enabled=bool(weekly_mgmt_enabled),
+            friday_flat_enabled=bool(weekly_mgmt_enabled and friday_flat_enabled),
+            friday_flat_weekdays=tuple(friday_flat_weekdays),
+            friday_flat_cutoff_hhmm_utc=friday_flat_cutoff_hhmm_utc,
+            friday_flat_reason=str(friday_flat_reason),
         )
 
         # In TRUTH replay, disable probability/hysteresis arbiter gating for MODEL_EXIT,
@@ -2317,16 +2587,32 @@ class GX1DemoRunner:
             self.exit_control.allow_model_exit_when["min_exit_prob"] = None
             self.exit_control.allow_model_exit_when["exit_prob_hysteresis"] = 1
             log.info(
-                "[EXIT_ARBITER_BYPASS_PROOF] disable_prob_gate=1 reason=replay_mode min_exit_prob=None exit_prob_hysteresis=1",
+                "[EXIT_ARBITER_BYPASS_PROOF] disable_prob_gate=1 reason=replay_mode min_exit_prob=None exit_prob_hysteresis=1 keep=min_bars,min_pnl_bps,min_realized_pnl_bps,mfe_giveback_guards",
             )
-        
+
         log.info(
-            "[BOOT] exit_control: allowed_loss_closers=%s min_bars=%d min_pnl_bps=%.1f require_trade_open=%s (min_pnl_src=%s)",
+            "[BOOT] exit_control: allowed_loss_closers=%s min_bars=%d min_pnl_bps=%s min_realized_pnl_bps=%s be_plus_floor_bps=%s require_positive_mfe_before_model_exit=%s min_mfe_bps_for_model_exit=%s max_giveback_frac_from_mfe=%s max_giveback_bps_from_mfe=%s require_trade_open=%s (min_pnl_src=%s min_exit_prob_src=%s exit_prob_hys_src=%s)",
             self.exit_control.allowed_loss_closers,
             self.exit_control.allow_model_exit_when.get("min_bars", 2),
             self.exit_control.allow_model_exit_when.get("min_pnl_bps", -5),
+            self.exit_control.allow_model_exit_when.get("min_realized_pnl_bps"),
+            self.exit_control.allow_model_exit_when.get("min_realized_pnl_bps", self.exit_control.allow_model_exit_when.get("min_pnl_bps")),
+            self.exit_control.allow_model_exit_when.get("require_positive_mfe_before_model_exit", False),
+            self.exit_control.allow_model_exit_when.get("min_mfe_bps_for_model_exit"),
+            self.exit_control.allow_model_exit_when.get("max_giveback_frac_from_mfe"),
+            self.exit_control.allow_model_exit_when.get("max_giveback_bps_from_mfe"),
             self.exit_control.require_trade_open,
             min_pnl_bps_src,
+            min_exit_prob_src,
+            prob_hys_src,
+        )
+        log.info(
+            "[EXIT_WEEKLY_MGMT_CFG] enabled=%s friday_flat_enabled=%s friday_flat_weekdays=%s friday_flat_cutoff_hhmm_utc=%s friday_flat_reason=%s src=YAML:exit_control.weekly_management",
+            bool(self.exit_weekly_management.enabled),
+            bool(self.exit_weekly_management.friday_flat_enabled),
+            list(self.exit_weekly_management.friday_flat_weekdays),
+            None if self.exit_weekly_management.friday_flat_cutoff_hhmm_utc is None else f"{self.exit_weekly_management.friday_flat_cutoff_hhmm_utc[0]:02d}:{self.exit_weekly_management.friday_flat_cutoff_hhmm_utc[1]:02d}",
+            self.exit_weekly_management.friday_flat_reason,
         )
         
         # Initialize exit-audit logging (JSONL file, rotates daily)
@@ -4406,6 +4692,7 @@ class GX1DemoRunner:
         broker_info: Optional[Dict[str, Any]] = None,
         tp_sl_state: Optional[Dict[str, Any]] = None,
         bars_in_trade: Optional[int] = None,
+        arbiter_details: Optional[Dict[str, Any]] = None,
     ) -> None:
         """Log exit attempt to audit file (JSONL)."""
         try:
@@ -4429,12 +4716,54 @@ class GX1DemoRunner:
                 "broker": broker_info or {},
                 "tp_sl_state": tp_sl_state or {},
                 "bars_in_trade": bars_in_trade,
+                "arbiter": arbiter_details or {},
             }
             
             with self.exit_audit_path.open("a", encoding="utf-8") as f:
                 f.write(jsonlib.dumps(audit_record, separators=(",", ":")) + "\n")
         except Exception as e:
             log.error("[ARB] Failed to log exit audit: %s", e)
+
+    def _build_model_exit_context(self, trade_id: str, pnl_bps: float) -> Dict[str, Any]:
+        """Collect current trade-state needed by the MODEL_EXIT arbiter."""
+        trade_obj = None
+        for trade in self.open_trades:
+            if trade.trade_id == trade_id:
+                trade_obj = trade
+                break
+
+        exit_prob_close = None
+        prob_close_history: List[float] = []
+        mfe_bps = 0.0
+        if trade_obj is not None:
+            if hasattr(trade_obj, "prob_close_history") and len(trade_obj.prob_close_history) > 0:
+                exit_prob_close = float(trade_obj.prob_close_history[-1])
+                prob_close_history = [float(p) for p in trade_obj.prob_close_history]
+            if hasattr(trade_obj, "extra") and isinstance(trade_obj.extra, dict):
+                raw_mfe = trade_obj.extra.get("mfe_bps")
+                if raw_mfe is not None:
+                    try:
+                        mfe_bps = float(raw_mfe)
+                    except Exception:
+                        mfe_bps = 0.0
+            if (not math.isfinite(mfe_bps) or mfe_bps == 0.0) and hasattr(trade_obj, "mfe_bps"):
+                try:
+                    mfe_bps = float(getattr(trade_obj, "mfe_bps"))
+                except Exception:
+                    mfe_bps = 0.0
+
+        realized_pnl_bps = float(pnl_bps)
+        dd_from_mfe_bps = max(0.0, float(mfe_bps) - realized_pnl_bps)
+        giveback_ratio = (dd_from_mfe_bps / float(mfe_bps)) if float(mfe_bps) > 0.0 else 0.0
+        return {
+            "trade": trade_obj,
+            "exit_prob_close": exit_prob_close,
+            "prob_close_history": prob_close_history,
+            "mfe_bps": float(mfe_bps),
+            "dd_from_mfe_bps": float(dd_from_mfe_bps),
+            "giveback_ratio": float(giveback_ratio),
+            "realized_pnl_bps": realized_pnl_bps,
+        }
 
     def _exit_cov_inc(self, key: str, n: int = 1) -> None:
         """Best-effort increment for exit coverage counters."""
@@ -4593,30 +4922,68 @@ class GX1DemoRunner:
                 min_pnl_bps = self.exit_control.allow_model_exit_when.get("min_pnl_bps", -5)
                 min_exit_prob = self.exit_control.allow_model_exit_when.get("min_exit_prob", 0.70)
                 exit_prob_hysteresis = self.exit_control.allow_model_exit_when.get("exit_prob_hysteresis", 2)
+                require_positive_mfe = bool(
+                    self.exit_control.allow_model_exit_when.get("require_positive_mfe_before_model_exit", False)
+                )
+                min_mfe_bps = float(
+                    self.exit_control.allow_model_exit_when.get("min_mfe_bps_for_model_exit", 0.0) or 0.0
+                )
+                max_giveback_frac = self.exit_control.allow_model_exit_when.get("max_giveback_frac_from_mfe")
+                max_giveback_bps = self.exit_control.allow_model_exit_when.get("max_giveback_bps_from_mfe")
+                min_realized_pnl_bps = self.exit_control.allow_model_exit_when.get("min_realized_pnl_bps")
+                if min_realized_pnl_bps is None and min_pnl_bps is not None:
+                    min_realized_pnl_bps = min_pnl_bps
+                if max_giveback_frac is not None:
+                    max_giveback_frac = float(max_giveback_frac)
+                if max_giveback_bps is not None:
+                    max_giveback_bps = float(max_giveback_bps)
+                if min_realized_pnl_bps is not None:
+                    min_realized_pnl_bps = float(min_realized_pnl_bps)
                 disable_prob_gate = bool(getattr(self, "disable_model_exit_prob_gate", False))
-                
-                # Get exit_prob_close and prob_close_history from trade
-                exit_prob_close = None
-                prob_close_history = []
-                for trade in self.open_trades:
-                    if trade.trade_id == trade_id:
-                        if hasattr(trade, 'prob_close_history') and len(trade.prob_close_history) > 0:
-                            exit_prob_close = float(trade.prob_close_history[-1])
-                            prob_close_history = [float(p) for p in trade.prob_close_history]
-                        break
+                ctx = self._build_model_exit_context(trade_id, pnl_bps)
+                exit_prob_close = ctx["exit_prob_close"]
+                prob_close_history = ctx["prob_close_history"]
+                mfe_bps = float(ctx["mfe_bps"])
+                dd_from_mfe_bps = float(ctx["dd_from_mfe_bps"])
+                giveback_ratio = float(ctx["giveback_ratio"])
+                arbiter_state = {
+                    "realized_pnl_bps": float(ctx["realized_pnl_bps"]),
+                    "mfe_bps": mfe_bps,
+                    "dd_from_mfe_bps": dd_from_mfe_bps,
+                    "giveback_ratio": giveback_ratio,
+                    "exit_prob_close": exit_prob_close,
+                    "prob_close_history": prob_close_history,
+                    "min_bars": int(min_bars),
+                    "min_pnl_bps": None if min_pnl_bps is None else float(min_pnl_bps),
+                    "min_realized_pnl_bps": min_realized_pnl_bps,
+                    "require_positive_mfe_before_model_exit": bool(require_positive_mfe),
+                    "min_mfe_bps_for_model_exit": float(min_mfe_bps),
+                    "max_giveback_frac_from_mfe": max_giveback_frac,
+                    "max_giveback_bps_from_mfe": max_giveback_bps,
+                }
                 
                 # Always keep a tiny min_bars guard, even in replay. This is the
                 # "little slingring" that prevents immediate bar-0 exits after entry.
                 if bars_in_trade is not None and bars_in_trade < min_bars:
                     rule = f"min_bars:{min_bars}"
                     log.info("[ARB] reject model exit (bars_in_trade=%d < min_bars=%d) pnl=%.1f rule=%s", bars_in_trade, min_bars, pnl_bps, rule)
-                    self._log_exit_audit(trade_id, source, reason, pnl_bps, False, None, tp_sl_state, bars_in_trade)
+                    self._log_exit_audit(
+                        trade_id,
+                        source,
+                        reason,
+                        pnl_bps,
+                        False,
+                        None,
+                        tp_sl_state,
+                        bars_in_trade,
+                        {**arbiter_state, "rule": rule, "decision": "reject"},
+                    )
                     with self._closing_lock:
                         self._closing_trades.pop(trade_id, None)
                     return False
                 if disable_prob_gate and not getattr(self, "_exit_prob_gate_disabled_logged", False):
                     log.info(
-                        "[EXIT_ARBITER_BYPASS] prob_gate=disabled scope=MODEL_EXIT bypass=min_exit_prob,hysteresis keep=min_bars,min_pnl_bps"
+                        "[EXIT_ARBITER_BYPASS] prob_gate=disabled scope=MODEL_EXIT bypass=min_exit_prob,hysteresis keep=min_bars,min_pnl_bps,min_realized_pnl_bps,mfe_giveback_guards"
                     )
                     self._exit_prob_gate_disabled_logged = True
                 
@@ -4625,7 +4992,17 @@ class GX1DemoRunner:
                     if exit_prob_close is None:
                         rule = "min_exit_prob:missing"
                         log.info("[ARB] reject model exit (exit_prob_close missing) trade_id=%s rule=%s", trade_id, rule)
-                        self._log_exit_audit(trade_id, source, reason, pnl_bps, False, None, tp_sl_state, bars_in_trade)
+                        self._log_exit_audit(
+                            trade_id,
+                            source,
+                            reason,
+                            pnl_bps,
+                            False,
+                            None,
+                            tp_sl_state,
+                            bars_in_trade,
+                            {**arbiter_state, "rule": rule, "decision": "reject"},
+                        )
                         with self._closing_lock:
                             self._closing_trades.pop(trade_id, None)
                         return False
@@ -4633,7 +5010,17 @@ class GX1DemoRunner:
                     if exit_prob_close < min_exit_prob:
                         rule = f"min_exit_prob:{min_exit_prob}"
                         log.info("[ARB] reject model exit (exit_prob_close=%.4f < min_exit_prob=%.4f) pnl=%.1f rule=%s", exit_prob_close, min_exit_prob, pnl_bps, rule)
-                        self._log_exit_audit(trade_id, source, reason, pnl_bps, False, None, tp_sl_state, bars_in_trade)
+                        self._log_exit_audit(
+                            trade_id,
+                            source,
+                            reason,
+                            pnl_bps,
+                            False,
+                            None,
+                            tp_sl_state,
+                            bars_in_trade,
+                            {**arbiter_state, "rule": rule, "decision": "reject"},
+                        )
                         with self._closing_lock:
                             self._closing_trades.pop(trade_id, None)
                         return False
@@ -4652,7 +5039,17 @@ class GX1DemoRunner:
                             rule = f"exit_prob_hysteresis:{exit_prob_hysteresis}"
                             log.info("[ARB] reject model exit (exit_prob < %.4f in %d consecutive bars) exit_prob_history=%s rule=%s", 
                                     min_exit_prob, exit_prob_hysteresis, recent_bars, rule)
-                            self._log_exit_audit(trade_id, source, reason, pnl_bps, False, None, tp_sl_state, bars_in_trade)
+                            self._log_exit_audit(
+                                trade_id,
+                                source,
+                                reason,
+                                pnl_bps,
+                                False,
+                                None,
+                                tp_sl_state,
+                                bars_in_trade,
+                                {**arbiter_state, "rule": rule, "decision": "reject"},
+                            )
                             with self._closing_lock:
                                 self._closing_trades.pop(trade_id, None)
                             return False
@@ -4660,33 +5057,133 @@ class GX1DemoRunner:
                         rule = f"exit_prob_hysteresis:{exit_prob_hysteresis}"
                         log.info("[ARB] reject model exit (not enough prob_close_history: %d < %d) rule=%s", 
                                 len(prob_close_history), exit_prob_hysteresis, rule)
-                        self._log_exit_audit(trade_id, source, reason, pnl_bps, False, None, tp_sl_state, bars_in_trade)
+                        self._log_exit_audit(
+                            trade_id,
+                            source,
+                            reason,
+                            pnl_bps,
+                            False,
+                            None,
+                            tp_sl_state,
+                            bars_in_trade,
+                            {**arbiter_state, "rule": rule, "decision": "reject"},
+                        )
                         with self._closing_lock:
                             self._closing_trades.pop(trade_id, None)
                         return False
-                
-                # Keep pnl discipline even in replay. We only bypass probability-specific
-                # arbiter checks, not the general "do not puke out deep losses" rule.
-                if pnl_bps >= 0:
-                    if not disable_prob_gate:
-                        log.info("[ARB] allow MODEL_EXIT at profit pnl=%.1f bars=%d exit_prob=%.4f (>= min_exit_prob=%.4f)", 
-                                pnl_bps, bars_in_trade or 0, exit_prob_close, min_exit_prob)
-                elif min_pnl_bps is None or pnl_bps >= min_pnl_bps:
-                    if not disable_prob_gate:
-                        log.info("[ARB] allow MODEL_EXIT at moderate loss pnl=%.1f bars=%d exit_prob=%.4f (>= min_pnl_bps=%.1f, min_exit_prob=%.4f)", 
-                                pnl_bps, bars_in_trade or 0, exit_prob_close, min_pnl_bps, min_exit_prob)
-                else:
-                    rule = f"min_pnl_bps:{min_pnl_bps}"
-                    if exit_prob_close is None:
-                        log.info("[ARB] reject loss close by MODEL_EXIT pnl=%.1f bars=%s rule=%s", 
-                                pnl_bps, bars_in_trade or "?", rule)
-                    else:
-                        log.info("[ARB] reject loss close by MODEL_EXIT pnl=%.1f bars=%s exit_prob=%.4f rule=%s", 
-                                pnl_bps, bars_in_trade or "?", exit_prob_close, rule)
-                    self._log_exit_audit(trade_id, source, reason, pnl_bps, False, None, tp_sl_state, bars_in_trade)
+
+                if require_positive_mfe and not (mfe_bps > float(min_mfe_bps)):
+                    rule = f"positive_mfe_required:{min_mfe_bps}"
+                    log.info(
+                        "[ARB] reject model exit (mfe_bps=%.2f <= min_mfe_bps=%.2f) pnl=%.1f dd_from_mfe=%.2f giveback_ratio=%.3f rule=%s",
+                        mfe_bps,
+                        float(min_mfe_bps),
+                        pnl_bps,
+                        dd_from_mfe_bps,
+                        giveback_ratio,
+                        rule,
+                    )
+                    self._log_exit_audit(
+                        trade_id,
+                        source,
+                        reason,
+                        pnl_bps,
+                        False,
+                        None,
+                        tp_sl_state,
+                        bars_in_trade,
+                        {**arbiter_state, "rule": rule, "decision": "reject"},
+                    )
                     with self._closing_lock:
                         self._closing_trades.pop(trade_id, None)
                     return False
+
+                giveback_rule = None
+                giveback_ratio_hit = bool(max_giveback_frac is not None and giveback_ratio >= float(max_giveback_frac))
+                giveback_bps_hit = bool(max_giveback_bps is not None and dd_from_mfe_bps >= float(max_giveback_bps))
+                if max_giveback_frac is not None or max_giveback_bps is not None:
+                    if giveback_ratio_hit and giveback_bps_hit:
+                        giveback_rule = f"giveback_frac:{max_giveback_frac}+giveback_bps:{max_giveback_bps}"
+                    elif giveback_ratio_hit:
+                        giveback_rule = f"giveback_frac:{max_giveback_frac}"
+                    elif giveback_bps_hit:
+                        giveback_rule = f"giveback_bps:{max_giveback_bps}"
+                    else:
+                        rule = "giveback_guard:not_triggered"
+                        log.info(
+                            "[ARB] reject model exit (giveback not threatened) pnl=%.1f mfe_bps=%.2f dd_from_mfe=%.2f giveback_ratio=%.3f need_giveback_frac=%s need_giveback_bps=%s rule=%s",
+                            pnl_bps,
+                            mfe_bps,
+                            dd_from_mfe_bps,
+                            giveback_ratio,
+                            max_giveback_frac,
+                            max_giveback_bps,
+                            rule,
+                        )
+                        self._log_exit_audit(
+                            trade_id,
+                            source,
+                            reason,
+                            pnl_bps,
+                            False,
+                            None,
+                            tp_sl_state,
+                            bars_in_trade,
+                            {**arbiter_state, "rule": rule, "decision": "reject"},
+                        )
+                        with self._closing_lock:
+                            self._closing_trades.pop(trade_id, None)
+                        return False
+
+                if min_realized_pnl_bps is not None and pnl_bps < float(min_realized_pnl_bps):
+                    rule = f"min_realized_pnl_bps:{min_realized_pnl_bps}"
+                    log.info(
+                        "[ARB] reject model exit (realized_pnl_bps=%.1f < min_realized_pnl_bps=%.1f) mfe_bps=%.2f dd_from_mfe=%.2f giveback_ratio=%.3f rule=%s",
+                        pnl_bps,
+                        float(min_realized_pnl_bps),
+                        mfe_bps,
+                        dd_from_mfe_bps,
+                        giveback_ratio,
+                        rule,
+                    )
+                    self._log_exit_audit(
+                        trade_id,
+                        source,
+                        reason,
+                        pnl_bps,
+                        False,
+                        None,
+                        tp_sl_state,
+                        bars_in_trade,
+                        {**arbiter_state, "rule": rule, "decision": "reject"},
+                    )
+                    with self._closing_lock:
+                        self._closing_trades.pop(trade_id, None)
+                    return False
+
+                allow_rule = giveback_rule or "model_exit_profit_guard"
+                if disable_prob_gate:
+                    log.info(
+                        "[ARB] allow MODEL_EXIT pnl=%.1f bars=%d mfe_bps=%.2f dd_from_mfe=%.2f giveback_ratio=%.3f trigger=%s prob_gate=disabled",
+                        pnl_bps,
+                        bars_in_trade or 0,
+                        mfe_bps,
+                        dd_from_mfe_bps,
+                        giveback_ratio,
+                        allow_rule,
+                    )
+                else:
+                    log.info(
+                        "[ARB] allow MODEL_EXIT pnl=%.1f bars=%d exit_prob=%.4f mfe_bps=%.2f dd_from_mfe=%.2f giveback_ratio=%.3f trigger=%s min_exit_prob=%.4f",
+                        pnl_bps,
+                        bars_in_trade or 0,
+                        exit_prob_close,
+                        mfe_bps,
+                        dd_from_mfe_bps,
+                        giveback_ratio,
+                        allow_rule,
+                        min_exit_prob,
+                    )
             
             # REPLAY_EOF is always allowed in replay mode (end-of-simulation liquidation)
             if override_max_bars:
@@ -4813,7 +5310,20 @@ class GX1DemoRunner:
                 self._exited_trade_ids.add(trade_id)
             
             # Log accepted close
-            self._log_exit_audit(trade_id, source, reason, pnl_bps, True, broker_info, tp_sl_state, bars_in_trade)
+            audit_details = None
+            if source == "MODEL_EXIT":
+                ctx = self._build_model_exit_context(trade_id, pnl_bps)
+                audit_details = {
+                    "rule": "accepted",
+                    "decision": "accept",
+                    "realized_pnl_bps": float(ctx["realized_pnl_bps"]),
+                    "mfe_bps": float(ctx["mfe_bps"]),
+                    "dd_from_mfe_bps": float(ctx["dd_from_mfe_bps"]),
+                    "giveback_ratio": float(ctx["giveback_ratio"]),
+                    "exit_prob_close": ctx["exit_prob_close"],
+                    "prob_close_history": ctx["prob_close_history"],
+                }
+            self._log_exit_audit(trade_id, source, reason, pnl_bps, True, broker_info, tp_sl_state, bars_in_trade, audit_details)
             
             # Update trade log CSV with exit information
             self._update_trade_log_on_close(trade_id, px, pnl_bps, reason, now_ts, bars_in_trade=bars_in_trade)
@@ -8664,15 +9174,31 @@ class GX1DemoRunner:
                                 log.error(f"[TRANSFORMER_FORWARD_ERROR] Transformer forward failed: {e}. Capsule: {capsule_path}")
                                 return _ret_none(f"TRANSFORMER_FORWARD_{exception_type}")
                 
+                bundle_caps = getattr(self.entry_v10_bundle, "capabilities", {}) or {}
+                supported_heads = set(bundle_caps.get("supported_heads") or [])
                 direction_logit = None
                 direction_logits = None
                 if "direction_logits" in outputs:
                     direction_logits = outputs["direction_logits"]
                 else:
                     direction_logit = outputs["direction_logit"]
-                mfe_first_n = outputs.get("mfe_first_n", None)
-                path_quality = outputs.get("path_quality", None)
+                if "direction" not in supported_heads:
+                    raise RuntimeError("[ENTRY_BUNDLE_HEAD_UNSUPPORTED] direction head missing from bundle capabilities")
                 tradable_logit = outputs.get("tradable_logit", None)
+                if "tradable" in supported_heads and tradable_logit is None:
+                    raise RuntimeError("[ENTRY_OUTPUT_MISSING] tradable_logit missing for supported tradable head")
+                path_quality = outputs.get("path_quality", None)
+                if "path_quality" in supported_heads and path_quality is None:
+                    raise RuntimeError("[ENTRY_OUTPUT_MISSING] path_quality missing for supported path_quality head")
+                mfe_first_n = outputs.get("mfe_first_n", None)
+                if "mfe_first_n" in supported_heads and mfe_first_n is None:
+                    raise RuntimeError("[ENTRY_OUTPUT_MISSING] mfe_first_n missing for supported mfe_first_n head")
+                clean_edge_logit = outputs.get("clean_edge_logit", None)
+                if "clean_edge" in supported_heads and clean_edge_logit is None:
+                    raise RuntimeError("[ENTRY_OUTPUT_MISSING] clean_edge_logit missing for supported clean_edge head")
+                survival_logit = outputs.get("survival_logit", None)
+                if "survival" in supported_heads and survival_logit is None:
+                    raise RuntimeError("[ENTRY_OUTPUT_MISSING] survival_logit missing for supported survival head")
             
             # Convert to probabilities
             if direction_logits is not None:
@@ -8708,6 +9234,20 @@ class GX1DemoRunner:
             tradable_prob = None
             if tradable_logit is not None:
                 tradable_prob = torch.sigmoid(tradable_logit).cpu().item() if isinstance(tradable_logit, torch.Tensor) else float(tradable_logit)
+            clean_edge_prob = None
+            if clean_edge_logit is not None:
+                clean_edge_prob = (
+                    torch.sigmoid(clean_edge_logit).cpu().item()
+                    if isinstance(clean_edge_logit, torch.Tensor)
+                    else float(clean_edge_logit)
+                )
+            survival_prob = None
+            if survival_logit is not None:
+                survival_prob = (
+                    torch.sigmoid(survival_logit).cpu().item()
+                    if isinstance(survival_logit, torch.Tensor)
+                    else float(survival_logit)
+                )
             
             # Record transformer outputs for baseline evaluation
             if hasattr(self, "entry_manager") and self.entry_manager and hasattr(self.entry_manager, "entry_feature_telemetry") and self.entry_manager.entry_feature_telemetry:
@@ -8725,8 +9265,6 @@ class GX1DemoRunner:
                     if direction_logits is not None
                     else (direction_logit.cpu().item() if isinstance(direction_logit, torch.Tensor) else direction_logit),
                     early_move_logit=None,
-                    quality_score=None,
-                    bad_path_prob=None,
                     prob_long=prob_long,
                     prob_short=prob_short,
                     prob_flat=prob_flat,
@@ -8806,8 +9344,9 @@ class GX1DemoRunner:
                 tradable_prob=tradable_prob,
                 mfe_first_n_pred=float(mfe_first_n_pred) if mfe_first_n_pred is not None else None,
                 path_quality_pred=float(path_quality_pred) if path_quality_pred is not None else None,
-                quality_score_pred=None,
-                bad_path_prob=None,
+                clean_edge_prob=float(clean_edge_prob) if clean_edge_prob is not None else None,
+                survival_prob=float(survival_prob) if survival_prob is not None else None,
+                supported_heads=tuple(sorted(supported_heads)),
             )
             
         except Exception as e:
@@ -10860,6 +11399,14 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
         prebuilt_use = os.getenv("GX1_REPLAY_USE_PREBUILT_FEATURES", "0") == "1"
         prebuilt_path_from_ctx = getattr(self, "prebuilt_parquet_path_resolved", None)
         prebuilt_df_from_ctx = getattr(self, "prebuilt_features_df", None)
+
+        replay_cfg_for_prebuilt = (self.policy.get("replay_config", {}) or {}) if hasattr(self, "policy") else {}
+        require_prebuilt_features = bool(replay_cfg_for_prebuilt.get("require_prebuilt_features", False))
+        if require_prebuilt_features and not prebuilt_use:
+            raise RuntimeError(
+                "[PREBUILT_REQUIRED_FOR_POLICY] replay_config.require_prebuilt_features=true but "
+                "GX1_REPLAY_USE_PREBUILT_FEATURES!=1. This lane must run on the prebuilt truth path."
+            )
         
         # Initialize replay_mode_enum to BASELINE (will be updated if prebuilt features are loaded)
         replay_mode_enum = ReplayMode.BASELINE
@@ -10986,7 +11533,7 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
             )
             if not bundle_dir:
                 raise RuntimeError(
-                    "[PREBUILT_CTX_CONTRACT] entry_cfg bundle_dir missing; must be explicitly set in ENTRY_V10_CTX_TRUTH_REPLAY.yaml"
+                    "[PREBUILT_CTX_CONTRACT] entry_cfg bundle_dir missing; must be explicitly set in active V10_CTX replay entry config"
                 )
             if bundle_dir:
                 bundle_dir = Path(bundle_dir).expanduser().resolve()

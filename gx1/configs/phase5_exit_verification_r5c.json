@@ -1,10 +1,10 @@
 {
-  "canonical_exit_transformer_bundle_dir": "/home/andre2/GX1_DATA/models/exit_transformer_v0/EXIT_IO_V3_CTX36_M1L512_PHASE5__WL512__PENDING_RETRAIN",
+  "canonical_exit_transformer_bundle_dir": "/home/andre2/GX1_DATA/models/exit_transformer_v0/EXIT_IO_V3_CTX36_M1L512_PHASE5__WL512__E_R5E_20260409_WEEKLY_MONETIZE",
   "canonical_market_tape_root_raw": "/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m1_bid_ask__CANONICAL",
   "canonical_market_tape_root_model": "/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m5_bid_ask__CANONICAL_STAGING_2026",
   "canonical_prebuilt_manifest": "/home/andre2/GX1_DATA/data/data/prebuilt/BASE28_CANONICAL/CURRENT_MANIFEST.json",
   "canonical_prebuilt_parquet": "/home/andre2/GX1_DATA/data/data/prebuilt/ctx16cat6_20260402_163322/xauusd_m5_BASE28_2020_2026__CTX_CONT16_CAT6_20260402_163322.parquet",
-  "canonical_prebuilt_contract_note": "Prebuilt filename may retain historical ctx16cat6 naming. Active canonical context contract is defined by ctx_contract plus bundle metadata and manifest-backed column validation, not by the parquet basename.",
+  "canonical_prebuilt_contract_note": "Phase5 exit verification lane for R5C aligned to the weekly-monetize R5E bundle. Entry remains canonical; exit verification uses MFE/giveback arbiter rules.",
   "canonical_transformer_bundle_dir": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_CTX__RETRAIN_20260407_PREMIUM_LONG_ONLY_V6",
   "canonical_xgb_bundle_dir": "/home/andre2/GX1_DATA/models/models/xgb_universal_multihead_v2__RETRAIN_20260329_SANFIX_2020_2025",
   "ctx_contract": {
@@ -12,21 +12,15 @@
     "ctx_cont_dim": 21,
     "tag": "CTX6CAT6"
   },
-  "entry_bundle_notes": {
-    "canonical_reason": "Canonical entry now aligns to the active strict V6 long-only baseline until a newer entry bundle passes strict replay.",
-    "active_bundle": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_CTX__RETRAIN_20260407_PREMIUM_LONG_ONLY_V6",
-    "admission_policy": "strict_replay_fail_closed",
-    "admission_policy_scope": "quality-first entry baseline; verification and canonical remain separated by exit lane, not stale entry bundle drift"
-  },
   "pred_trace_head": "OVERLAP",
   "pred_trace_horizon_bars": 24,
   "replay_config": {
     "allow_baseline_features": false,
     "entry_config_yaml_path": "gx1/configs/entry_configs/ENTRY_V10_CTX_STRICT_REPLAY.yaml",
     "entry_model_id": "ENTRY_V10_CTX",
-    "exit_config_yaml_path": "gx1/configs/policies/canonical_truth/exits/EXIT_TRANSFORMER_ONLY_V3_M1L512_PHASE5.yaml",
+    "exit_config_yaml_path": "gx1/configs/policies/phase5_exit_verification/exits/EXIT_TRANSFORMER_ONLY_V3_M1L512_PHASE5__R5C.yaml",
     "policy_module": "gx1.policy.entry_policy_sniper_v10_ctx",
-    "policy_yaml_path": "gx1/configs/policies/canonical_truth/GX1_TRUTH_REPLAY_V10_CTX.yaml",
+    "policy_yaml_path": "gx1/configs/policies/phase5_exit_verification/PHASE5_EXIT_VERIFICATION_V10_CTX__R5C.yaml",
     "require_prebuilt_features": true,
     "risk_guard_id": "RISK_GUARD_V1::1.0.0::33a4a83e2949abb102f3ee86a3746bb0320f69f244ebe186a17b18ae50e77e45",
     "runtime_feature_module": "gx1.features.runtime_v10_ctx",
@@ -44,12 +38,7 @@
   "require_v9_for_entry": false,
   "signal_bridge_contract_sha256": "dde7271db04cf51608bf18cfd1cbdbb7dc631556be4be64e9c82f21ed328f2aa",
   "signal_bridge_id": "XGB_SIGNAL_BRIDGE_V1",
-  "truth_id": "CANONICAL_TRUTH_SIGNAL_ONLY_V1",
+  "truth_id": "PHASE5_EXIT_VERIFICATION_R5C",
   "truth_window_end_ts": "2026-03-13T23:59:59+00:00",
-  "truth_window_start_ts": "2025-01-01T00:00:00+00:00",
-  "xgb_bundle_notes": {
-    "baseline_reference": "28F bundle is baseline reference only (do not use for truth runs)",
-    "calibration_runtime": "supported via isotonic_interp; default OFF unless explicitly enabled",
-    "previous_bundle": "/home/andre2/GX1_DATA/models/models/xgb_universal_multihead_v2__SESSION_CONTEXT_34F__4HEADS_CALIB_ISO_INTERP_20260313_1525"
-  }
+  "truth_window_start_ts": "2025-01-01T00:00:00+00:00"
 }

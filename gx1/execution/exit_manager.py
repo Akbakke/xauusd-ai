@@ -410,6 +410,7 @@ class ExitManager:
         self._exit_post_edge_time_since_mfe_min = float(post_edge_cfg.get("time_since_mfe_bars_min", 8.0))
         self._exit_post_edge_directional_edge_max = float(post_edge_cfg.get("directional_edge_max", 0.02))
         self._exit_post_edge_triggers = 0
+        self._exit_protected_profit_close_triggers = 0
 
     def __getattr__(self, name: str):
         return getattr(self._runner, name)
@@ -483,11 +484,16 @@ class ExitManager:
             runner = self._runner
             arb = getattr(runner, "exit_control", None) or {}
             arb_allow = getattr(arb, "allow_model_exit_when", {}) if hasattr(arb, "allow_model_exit_when") else arb.get("allow_model_exit_when", {}) if isinstance(arb, dict) else {}
+            protected_profit_floor_bps = None
+            if isinstance(arb_allow, dict):
+                protected_profit_floor_bps = arb_allow.get("min_realized_pnl_bps", arb_allow.get("min_pnl_bps"))
             log.info(
-                "[EXIT_EFFECTIVE_CFG] threshold=%.4f require_consecutive=%d arb_min_pnl_bps=%s arb_min_exit_prob=%s arb_exit_prob_hysteresis=%s arb_min_bars=%s",
+                "[EXIT_EFFECTIVE_CFG] threshold=%.4f require_consecutive=%d arb_min_pnl_bps=%s arb_min_realized_pnl_bps=%s be_plus_floor_bps=%s arb_min_exit_prob=%s arb_exit_prob_hysteresis=%s arb_min_bars=%s",
                 float(getattr(runner, "exit_threshold", 0.0)),
                 int(getattr(runner, "exit_require_consecutive", 1)),
                 arb_allow.get("min_pnl_bps"),
+                arb_allow.get("min_realized_pnl_bps"),
+                protected_profit_floor_bps,
                 arb_allow.get("min_exit_prob"),
                 arb_allow.get("exit_prob_hysteresis"),
                 arb_allow.get("min_bars"),
@@ -510,8 +516,18 @@ class ExitManager:
                 "[EXIT_GUARD_MODE] model_owned_normal_exits=1 runtime_safety_only=1 sideguards_active=0 cata_active=%s",
                 bool(getattr(self, "_exit_cat_guard_enabled", False)),
             )
+            weekly_mgmt = getattr(runner, "exit_weekly_management", None)
             log.info(
-                "[EXIT_POST_EDGE_CFG] enabled=%s score_source=%s score_min=%.3f require_model_below_main_threshold=%s require_threshold_event=%s allowed_sides=%s allowed_sessions=%s mfe>=%.1f dd>=%.1f gb>=%.2f pnl_range=%.1f..%.1f pnl_frac_mfe<=%.2f tsm>=%.1f directional_edge<=%.3f",
+                "[EXIT_POLICY_MGMT_CFG] friday_flat_enabled=%s friday_flat_weekdays=%s friday_flat_cutoff_hhmm_utc=%s friday_flat_reason=%s",
+                bool(getattr(weekly_mgmt, "friday_flat_enabled", False)) if weekly_mgmt is not None else False,
+                list(getattr(weekly_mgmt, "friday_flat_weekdays", ()) or ()) if weekly_mgmt is not None else [],
+                None
+                if weekly_mgmt is None or getattr(weekly_mgmt, "friday_flat_cutoff_hhmm_utc", None) is None
+                else f"{weekly_mgmt.friday_flat_cutoff_hhmm_utc[0]:02d}:{weekly_mgmt.friday_flat_cutoff_hhmm_utc[1]:02d}",
+                None if weekly_mgmt is None else getattr(weekly_mgmt, "friday_flat_reason", None),
+            )
+            log.info(
+                "[EXIT_POST_EDGE_CFG] enabled=%s score_source=%s score_min=%.3f require_model_below_main_threshold=%s require_threshold_event=%s allowed_sides=%s allowed_sessions=%s mfe>=%.1f dd>=%.1f gb>=%.2f pnl_range=%.1f..%.1f pnl_frac_mfe<=%.2f tsm>=%.1f directional_edge<=%.3f be_plus_floor_bps=%s",
                 bool(getattr(self, "_exit_post_edge_enabled", False)),
                 str(getattr(self, "_exit_post_edge_score_source", "exit_prob")),
                 float(getattr(self, "_exit_post_edge_score_min", 0.70)),
@@ -527,6 +543,7 @@ class ExitManager:
                 float(getattr(self, "_exit_post_edge_pnl_frac_mfe_max", 0.45)),
                 float(getattr(self, "_exit_post_edge_time_since_mfe_min", 8.0)),
                 float(getattr(self, "_exit_post_edge_directional_edge_max", 0.02)),
+                protected_profit_floor_bps,
             )
             self._exit_effective_cfg_logged = True
         
@@ -1090,42 +1107,8 @@ class ExitManager:
                     _emit_exit_eval_trace(False, float("nan"), "none")
                     continue
                 self._exit_eval_flow["eligible_count"] += 1
-                threshold_event = self._threshold_event_state(
-                    window_arr=window_arr,
-                    side=trade.side,
-                )
-                threshold_event_armed = threshold_event is not None
-                if not hasattr(self, "_threshold_eval_reached_log_count"):
-                    self._threshold_eval_reached_log_count = 0
-                self._threshold_eval_reached_log_count += 1
-                if self._threshold_eval_reached_log_count <= 5 or (self._threshold_eval_reached_log_count % 5000) == 0:
-                    log.info(
-                        "[THRESHOLD_EVAL_REACHED] trade_id=%s side=%s bars_held=%d event_armed=%s",
-                        getattr(trade, "trade_id", None),
-                        getattr(trade, "side", None),
-                        bars_in_trade_min,
-                        bool(threshold_event_armed),
-                    )
-                if threshold_event_armed:
-                    if not hasattr(self, "_threshold_event_armed_log_count"):
-                        self._threshold_event_armed_log_count = 0
-                    self._threshold_event_armed_log_count += 1
-                    if (
-                        self._threshold_event_armed_log_count <= 5
-                        or (self._threshold_event_armed_log_count % 5000) == 0
-                    ):
-                        log.info(
-                            "[THRESHOLD_EVENT_ARMED] trade_id=%s side=%s bars_held=%d mfe_bps=%.2f dd_from_mfe_bps=%.2f giveback_ratio=%.3f directional_edge=%.4f",
-                            getattr(trade, "trade_id", None),
-                            getattr(trade, "side", None),
-                            bars_in_trade_min,
-                            float(threshold_event["mfe_bps"]),
-                            float(threshold_event["dd_from_mfe_bps"]),
-                            float(threshold_event["giveback_ratio"]),
-                            float(threshold_event["directional_edge"]),
-                        )
                 # Sideguards are intentionally disabled in active canonical path.
-                # Keep event-arm logs above for observability; runtime safety remains CATA-only.
+                # Keep event-arm logs below for observability; runtime safety remains CATA-only.
                 guard_payload = self._should_trigger_cat_guard(
                     window_arr=window_arr,
                     pnl_bps_now=float(pnl_bps_now),
@@ -1226,6 +1209,75 @@ class ExitManager:
                             bars_in_trade_min,
                         )
                     continue
+                policy_flat_state = self._policy_friday_flat_state(
+                    now_ts=now_ts,
+                    window_arr=window_arr,
+                    pnl_bps_now=float(pnl_bps_now),
+                )
+                if policy_flat_state is not None:
+                    mark_price = current_bid if trade.side == "long" else current_ask
+                    _emit_exit_eval_trace(False, float("nan"), "policy_friday_flat")
+                    log.info(
+                        "[EXIT_POLICY_FRIDAY_FLAT_TRIGGER] trade_id=%s side=%s bars_held=%d pnl_bps=%.2f mfe_bps=%s dd_from_mfe_bps=%s giveback_ratio=%s time_since_mfe_bars=%s weekday=%s cutoff_hhmm_utc=%s reason=%s",
+                        getattr(trade, "trade_id", None),
+                        getattr(trade, "side", None),
+                        bars_in_trade_min,
+                        float(pnl_bps_now),
+                        policy_flat_state["mfe_bps"],
+                        policy_flat_state["dd_from_mfe_bps"],
+                        policy_flat_state["giveback_ratio"],
+                        policy_flat_state["time_since_mfe_bars"],
+                        policy_flat_state["weekday_name"],
+                        policy_flat_state["cutoff_hhmm_utc"],
+                        policy_flat_state["reason"],
+                    )
+                    accepted = self.request_close(
+                        trade_id=trade.trade_id,
+                        source="POLICY_FLAT",
+                        reason=str(policy_flat_state["reason"]),
+                        px=mark_price,
+                        pnl_bps=pnl_bps_now,
+                        exit_bid=current_bid,
+                        exit_ask=current_ask,
+                        bars_in_trade=bars_in_trade_min,
+                    )
+                    closes_requested += 1
+                    if accepted:
+                        closes_accepted += 1
+                        self._record_exit_prob_on_close(
+                            trade,
+                            bars_in_trade_min,
+                            prob_close=None,
+                            exit_reason=str(policy_flat_state["reason"]),
+                        )
+                        if trade in self.open_trades:
+                            self.open_trades.remove(trade)
+                        self.record_realized_pnl(now_ts, pnl_bps_now)
+                        self._log_trade_close_with_metrics(
+                            trade=trade,
+                            exit_time=now_ts,
+                            exit_price=mark_price,
+                            exit_reason=str(policy_flat_state["reason"]),
+                            realized_pnl_bps=pnl_bps_now,
+                            bars_held=bars_in_trade_min,
+                        )
+                        self._update_trade_log_on_close(
+                            trade.trade_id,
+                            mark_price,
+                            pnl_bps_now,
+                            str(policy_flat_state["reason"]),
+                            now_ts,
+                            bars_in_trade=bars_in_trade_min,
+                        )
+                    else:
+                        log.error(
+                            "[EXIT_POLICY_FRIDAY_FLAT_REJECT] trade_id=%s pnl_bps=%.2f bars_held=%d reason=%s",
+                            getattr(trade, "trade_id", None),
+                            float(pnl_bps_now),
+                            bars_in_trade_min,
+                            policy_flat_state["reason"],
+                        )
+                    continue
                 if decider is not None and bool(getattr(self._runner, "exit_hash_guard_bypass_enabled", False)):
                     expected_dim = getattr(decider, "input_dim", None)
                     if expected_dim is not None:
@@ -1275,6 +1327,42 @@ class ExitManager:
                 entry_ask = float(getattr(trade, "entry_ask", trade.entry_price))
                 pnl_bps_now = float(pnl_bps_now)
                 self._record_exit_prob_state(trade, bars_in_trade_min, prob_close, pnl_bps_now, logit=logit_val)
+                threshold_event = self._threshold_event_state(
+                    window_arr=window_arr,
+                    side=trade.side,
+                    family_top_name=family_top_name,
+                )
+                threshold_event_armed = threshold_event is not None
+                if not hasattr(self, "_threshold_eval_reached_log_count"):
+                    self._threshold_eval_reached_log_count = 0
+                self._threshold_eval_reached_log_count += 1
+                if self._threshold_eval_reached_log_count <= 5 or (self._threshold_eval_reached_log_count % 5000) == 0:
+                    log.info(
+                        "[THRESHOLD_EVAL_REACHED] trade_id=%s side=%s bars_held=%d event_armed=%s",
+                        getattr(trade, "trade_id", None),
+                        getattr(trade, "side", None),
+                        bars_in_trade_min,
+                        bool(threshold_event_armed),
+                    )
+                if threshold_event_armed:
+                    if not hasattr(self, "_threshold_event_armed_log_count"):
+                        self._threshold_event_armed_log_count = 0
+                    self._threshold_event_armed_log_count += 1
+                    if (
+                        self._threshold_event_armed_log_count <= 5
+                        or (self._threshold_event_armed_log_count % 5000) == 0
+                    ):
+                        log.info(
+                            "[THRESHOLD_EVENT_ARMED] trade_id=%s side=%s bars_held=%d mfe_bps=%.2f dd_from_mfe_bps=%.2f giveback_ratio=%.3f directional_edge=%.4f family_top_name=%s",
+                            getattr(trade, "trade_id", None),
+                            getattr(trade, "side", None),
+                            bars_in_trade_min,
+                            float(threshold_event["mfe_bps"]),
+                            float(threshold_event["dd_from_mfe_bps"]),
+                            float(threshold_event["giveback_ratio"]),
+                            float(threshold_event["directional_edge"]),
+                            threshold_event.get("family_top_name"),
+                        )
                 # Track probability stats
                 self._exit_prob_n += 1
                 self._exit_eval_flow["threshold_check_count"] += 1
@@ -1450,6 +1538,64 @@ class ExitManager:
                     exit_prob=float(prob_close),
                     profit_protect_prob=profit_protect_prob,
                 )
+                protected_profit_state = self._protected_profit_state(
+                    trade=trade,
+                    window_arr=window_arr,
+                    side=getattr(trade, "side", ""),
+                    session_current=session_current,
+                    pnl_bps_now=float(pnl_bps_now),
+                    threshold_event=threshold_event,
+                    threshold_event_armed=threshold_event_armed,
+                    post_edge_state=post_edge_state,
+                    profit_protect_prob=profit_protect_prob,
+                    bars_in_trade_min=bars_in_trade_min,
+                )
+                if protected_profit_state is not None:
+                    if bool(protected_profit_state.get("newly_armed", False)):
+                        if not hasattr(self, "_exit_protected_profit_armed_count"):
+                            self._exit_protected_profit_armed_count = 0
+                        self._exit_protected_profit_armed_count += 1
+                        if (
+                            self._exit_protected_profit_armed_count <= 5
+                            or (self._exit_protected_profit_armed_count % 5000) == 0
+                        ):
+                            log.info(
+                                "[EXIT_PROTECTED_PROFIT_ARMED] trade_id=%s side=%s bars_held=%d floor_bps=%.2f pnl_bps_now=%.2f mfe_bps=%.2f dd_from_mfe_bps=%.2f giveback_ratio=%.3f time_since_mfe_bars=%.2f score_source=%s score_value=%.6f",
+                                getattr(trade, "trade_id", None),
+                                getattr(trade, "side", None),
+                                bars_in_trade_min,
+                                float(protected_profit_state["be_plus_floor_bps"]),
+                                float(pnl_bps_now),
+                                float(protected_profit_state["mfe_bps"]),
+                                float(protected_profit_state["dd_from_mfe_bps"]),
+                                float(protected_profit_state["giveback_ratio"]),
+                                float(protected_profit_state["time_since_mfe_bars"]),
+                                str(protected_profit_state["score_source"]),
+                                float(protected_profit_state["score_value"]),
+                            )
+                protected_profit_should_exit = bool(protected_profit_state and protected_profit_state.get("should_exit", False))
+                if protected_profit_should_exit:
+                    if not hasattr(self, "_exit_protected_profit_close_count"):
+                        self._exit_protected_profit_close_count = 0
+                    self._exit_protected_profit_close_count += 1
+                    if (
+                        self._exit_protected_profit_close_count <= 5
+                        or (self._exit_protected_profit_close_count % 5000) == 0
+                    ):
+                        log.info(
+                            "[EXIT_PROTECTED_PROFIT_CLOSE_TRIGGER] trade_id=%s side=%s bars_held=%d floor_bps=%.2f pnl_bps_now=%.2f mfe_bps=%.2f dd_from_mfe_bps=%.2f giveback_ratio=%.3f time_since_mfe_bars=%.2f score_source=%s score_value=%.6f",
+                            getattr(trade, "trade_id", None),
+                            getattr(trade, "side", None),
+                            bars_in_trade_min,
+                            float(protected_profit_state["be_plus_floor_bps"]),
+                            float(pnl_bps_now),
+                            float(protected_profit_state["mfe_bps"]),
+                            float(protected_profit_state["dd_from_mfe_bps"]),
+                            float(protected_profit_state["giveback_ratio"]),
+                            float(protected_profit_state["time_since_mfe_bars"]),
+                            str(protected_profit_state["score_source"]),
+                            float(protected_profit_state["score_value"]),
+                        )
                 post_edge_should_exit = False
                 if (
                     post_edge_state is not None
@@ -1473,7 +1619,7 @@ class ExitManager:
                 self._exit_model_decision_log_count += 1
                 if self._exit_model_decision_log_count <= 5 or (self._exit_model_decision_log_count % 5000) == 0:
                     log.info(
-                        "[EXIT_MODEL_DECISION] trade_id=%s side=%s bars_held=%d model_decided_exit=%s residual_decided_exit=%s post_edge_decided_exit=%s event_armed=%s prob_close=%.6f threshold=%.6f require_consecutive=%d pnl_bps_now=%.2f recent=%s residual_state=%s post_edge_state=%s family_top_name=%s",
+                        "[EXIT_MODEL_DECISION] trade_id=%s side=%s bars_held=%d model_decided_exit=%s residual_decided_exit=%s post_edge_decided_exit=%s event_armed=%s protected_profit_state=%s prob_close=%.6f threshold=%.6f require_consecutive=%d pnl_bps_now=%.2f recent=%s residual_state=%s post_edge_state=%s family_top_name=%s",
                         getattr(trade, "trade_id", None),
                         getattr(trade, "side", None),
                         bars_in_trade_min,
@@ -1481,6 +1627,7 @@ class ExitManager:
                         bool(residual_should_exit),
                         bool(post_edge_should_exit),
                         bool(event_armed),
+                        bool(protected_profit_state),
                         float(prob_close),
                         float(self.exit_threshold),
                         int(self.exit_require_consecutive),
@@ -1491,17 +1638,18 @@ class ExitManager:
                         family_top_name,
                     )
 
-                should_exit = bool(model_decided_exit or residual_should_exit or post_edge_should_exit)
+                should_exit = bool(model_decided_exit or residual_should_exit or post_edge_should_exit or protected_profit_should_exit)
                 exit_reason = (
                     "THRESHOLD" if bool(model_decided_exit)
                     else "RESIDUAL_CANONICAL" if bool(residual_should_exit)
+                    else "PROTECTED_PROFIT" if bool(protected_profit_should_exit)
                     else "POST_EDGE_SEPARATOR" if bool(post_edge_should_exit)
                     else None
                 )
                 if should_exit:
                     ev = threshold_event or {}
                     log.info(
-                        "[EXIT_MODEL_DECIDED_EXIT] trade_id=%s side=%s bars_held=%d exit_reason=%s prob_close=%.6f profit_protect_prob=%s family_top_name=%s event_armed=%s mfe_bps=%.2f dd_from_mfe_bps=%.2f giveback_ratio=%.3f directional_edge=%.4f p_hat=%.4f p_flat=%.4f margin=%.4f uncertainty=%.4f residual_distance_from_peak_mfe_bps=%.2f residual_minutes_since_session_open=%.2f residual_minutes_to_next_session_boundary=%.2f post_edge_state=%s",
+                        "[EXIT_MODEL_DECIDED_EXIT] trade_id=%s side=%s bars_held=%d exit_reason=%s prob_close=%.6f profit_protect_prob=%s family_top_name=%s event_armed=%s protected_profit_state=%s mfe_bps=%.2f dd_from_mfe_bps=%.2f giveback_ratio=%.3f directional_edge=%.4f p_hat=%.4f p_flat=%.4f margin=%.4f uncertainty=%.4f residual_distance_from_peak_mfe_bps=%.2f residual_minutes_since_session_open=%.2f residual_minutes_to_next_session_boundary=%.2f post_edge_state=%s",
                         trade.trade_id,
                         trade.side,
                         bars_in_trade_min,
@@ -1510,6 +1658,7 @@ class ExitManager:
                         None if profit_protect_prob is None else round(float(profit_protect_prob), 6),
                         family_top_name,
                         bool(event_armed),
+                        bool(protected_profit_state),
                         float(ev.get("mfe_bps", float("nan"))),
                         float(ev.get("dd_from_mfe_bps", float("nan"))),
                         float(ev.get("giveback_ratio", float("nan"))),
@@ -1525,6 +1674,8 @@ class ExitManager:
                     )
                     if bool(post_edge_should_exit):
                         self._exit_post_edge_triggers += 1
+                    if bool(protected_profit_should_exit):
+                        self._exit_protected_profit_close_triggers += 1
                     try:
                         if trade.side == "long":
                             self._runner.exit_close_long += 1
@@ -1561,7 +1712,7 @@ class ExitManager:
                     if tuid not in self._exit_decision_logged:
                         arb_allow = getattr(getattr(self._runner, "exit_control", None), "allow_model_exit_when", {}) or {}
                         log.info(
-                            "[EXIT_DECISION_PROOF] trade_uid=%s trade_id=%s side=%s exit_reason=%s prob_close=%.6f threshold=%.6f require_consecutive=%d prob_history=%s arb_cfg={min_exit_prob=%s, exit_prob_hysteresis=%s, min_pnl_bps=%s} bars_held=%s pnl_bps=%s will_call_request_close=true",
+                            "[EXIT_DECISION_PROOF] trade_uid=%s trade_id=%s side=%s exit_reason=%s prob_close=%.6f threshold=%.6f require_consecutive=%d prob_history=%s arb_cfg={min_exit_prob=%s, exit_prob_hysteresis=%s, min_pnl_bps=%s, min_realized_pnl_bps=%s, require_positive_mfe_before_model_exit=%s, min_mfe_bps_for_model_exit=%s, max_giveback_frac_from_mfe=%s, max_giveback_bps_from_mfe=%s} bars_held=%s pnl_bps=%s will_call_request_close=true",
                             tuid,
                             getattr(trade, "trade_id", None),
                             getattr(trade, "side", None),
@@ -1573,6 +1724,11 @@ class ExitManager:
                             arb_allow.get("min_exit_prob"),
                             arb_allow.get("exit_prob_hysteresis"),
                             arb_allow.get("min_pnl_bps"),
+                            arb_allow.get("min_realized_pnl_bps"),
+                            arb_allow.get("require_positive_mfe_before_model_exit"),
+                            arb_allow.get("min_mfe_bps_for_model_exit"),
+                            arb_allow.get("max_giveback_frac_from_mfe"),
+                            arb_allow.get("max_giveback_bps_from_mfe"),
                             bars_in_trade,
                             pnl_bps,
                         )
@@ -1592,10 +1748,15 @@ class ExitManager:
                         )
                         self._exit_mgr_pnl_log_count += 1
                     log.info("[EXIT] propose close reason=%s pnl=%.1f bars_in_trade=%d", exit_reason, pnl_bps, bars_in_trade)
+                    close_source = "MODEL_EXIT"
+                    close_reason = str(exit_reason)
+                    if bool(protected_profit_should_exit):
+                        close_source = "PROTECTED_PROFIT"
+                        close_reason = "BE_PLUS_FLOOR"
                     accepted = self.request_close(
                         trade_id=trade.trade_id,
-                        source="MODEL_EXIT",
-                        reason=str(exit_reason),
+                        source=close_source,
+                        reason=close_reason,
                         px=mark_price,
                         pnl_bps=pnl_bps,
                         exit_bid=current_bid,
@@ -2400,6 +2561,7 @@ class ExitManager:
         *,
         window_arr: Any,
         side: str,
+        family_top_name: Optional[str] = None,
     ) -> Optional[dict]:
         """
         Event-driven threshold arm:
@@ -2446,9 +2608,20 @@ class ExitManager:
             return None
         if dd_from_mfe_bps < dd_min and giveback_ratio < gb_min:
             return None
-        # Use direction-misalignment as the primary signal test for threshold arming.
+        # Use deterioration family as a support signal; do not let direction alone
+        # suppress protected-profit once edge death is already evident.
         directional_edge = (p_long - p_short) if side_norm == "long" else (p_short - p_long)
-        if directional_edge > 0.02:
+        family_norm = str(family_top_name or "").strip().upper()
+        family_supports_protect = any(
+            token in family_norm
+            for token in (
+                "DETERIORATION",
+                "DEATH",
+                "COLLAPSE",
+                "ROT",
+            )
+        )
+        if directional_edge > 0.02 and not family_supports_protect:
             return None
         return {
             "mfe_bps": mfe_bps,
@@ -2461,6 +2634,7 @@ class ExitManager:
             "margin_top1_top2": margin_top1_top2,
             "uncertainty_score": uncertainty_score,
             "directional_edge": directional_edge,
+            "family_top_name": family_norm or None,
         }
 
     def _selective_post_edge_separator_state(
@@ -2545,6 +2719,150 @@ class ExitManager:
             "profit_protect_prob": None if profit_protect_prob is None else float(profit_protect_prob),
         }
 
+    def _protected_profit_floor_bps(self) -> float:
+        runner = getattr(self, "_runner", None)
+        exit_control = getattr(runner, "exit_control", None) if runner is not None else None
+        allow_model_exit_when = getattr(exit_control, "allow_model_exit_when", None) if exit_control is not None else None
+        floor_bps = None
+        if isinstance(allow_model_exit_when, dict):
+            floor_bps = allow_model_exit_when.get("min_realized_pnl_bps")
+            if floor_bps is None:
+                floor_bps = allow_model_exit_when.get("min_pnl_bps")
+        elif allow_model_exit_when is not None:
+            floor_bps = getattr(allow_model_exit_when, "min_realized_pnl_bps", None)
+            if floor_bps is None:
+                floor_bps = getattr(allow_model_exit_when, "min_pnl_bps", None)
+        try:
+            return float(floor_bps)
+        except Exception:
+            return float("nan")
+
+    def _get_protected_profit_state(self, trade: Any) -> Optional[dict]:
+        try:
+            extra = getattr(trade, "extra", None)
+            if not isinstance(extra, dict):
+                return None
+            state = extra.get("_protected_profit_state")
+            if isinstance(state, dict) and bool(state.get("armed", False)):
+                return dict(state)
+        except Exception:
+            return None
+        return None
+
+    def _set_protected_profit_state(self, trade: Any, state: dict) -> None:
+        try:
+            if not hasattr(trade, "extra") or trade.extra is None:
+                trade.extra = {}
+            trade.extra["_protected_profit_state"] = dict(state)
+        except Exception:
+            return
+
+    def _protected_profit_state(
+        self,
+        *,
+        trade: Any,
+        window_arr: Any,
+        side: str,
+        session_current: str,
+        pnl_bps_now: float,
+        threshold_event: Optional[dict],
+        threshold_event_armed: bool,
+        post_edge_state: Optional[dict],
+        profit_protect_prob: Optional[float],
+        bars_in_trade_min: int,
+    ) -> Optional[dict]:
+        floor_bps = float(self._protected_profit_floor_bps())
+        if not math.isfinite(floor_bps):
+            return None
+
+        current_state = self._get_protected_profit_state(trade)
+        armed_state: Optional[dict] = dict(current_state) if current_state is not None else None
+        newly_armed = False
+
+        side_norm = str(side or "").strip().lower()
+        if side_norm not in getattr(self, "_exit_post_edge_allowed_sides", {"long"}):
+            return armed_state
+        if armed_state is None and str(session_current or "").strip().upper() not in getattr(self, "_exit_post_edge_allowed_sessions", {"OVERLAP"}):
+            return None
+
+        # Arm only on proven edge + deterioration signals. The threshold_event is the
+        # earlier arming signal; the strict post-edge separator can still be used as a
+        # later fallback, but protected-profit must not depend on it exclusively.
+        score_value = None
+        score_source = None
+        if profit_protect_prob is not None and math.isfinite(float(profit_protect_prob)):
+            score_value = float(profit_protect_prob)
+            score_source = "profit_protect_prob"
+        elif post_edge_state is not None:
+            score_value = float(post_edge_state.get("score_value", float("nan")))
+            score_source = str(post_edge_state.get("score_source", "exit_prob"))
+
+        if (
+            armed_state is None
+            and bool(threshold_event_armed)
+            and threshold_event is not None
+            and score_value is not None
+            and math.isfinite(score_value)
+            and score_value >= float(getattr(self, "_exit_post_edge_score_min", 0.70))
+            and float(pnl_bps_now) >= floor_bps
+        ):
+            armed_state = {
+                "armed": True,
+                "armed_ts": None,
+                "armed_bars_held": int(bars_in_trade_min),
+                "armed_pnl_bps_now": float(pnl_bps_now),
+                "be_plus_floor_bps": float(floor_bps),
+                "score_source": str(score_source or "profit_protect_prob"),
+                "score_value": float(score_value),
+                "mfe_bps": float(threshold_event.get("mfe_bps", float("nan"))),
+                "dd_from_mfe_bps": float(threshold_event.get("dd_from_mfe_bps", float("nan"))),
+                "giveback_ratio": float(threshold_event.get("giveback_ratio", float("nan"))),
+                "time_since_mfe_bars": float(threshold_event.get("time_since_mfe_bars", float("nan"))),
+                "side": str(side),
+                "session_current": str(session_current),
+                "source": "THRESHOLD_EVENT",
+                "should_exit": False,
+                "newly_armed": True,
+            }
+            self._set_protected_profit_state(trade, armed_state)
+            newly_armed = True
+
+        if armed_state is None:
+            return None
+
+        try:
+            arr = np.asarray(window_arr, dtype=np.float32)
+            last = arr[-1]
+            mfe_bps = float(last[self._exit_feature_index("mfe_bps")])
+            dd_from_mfe_bps = float(last[self._exit_feature_index("dd_from_mfe_bps")])
+            giveback_ratio = float(last[self._exit_feature_index("giveback_ratio")])
+            time_since_mfe_bars = float(last[self._exit_feature_index("time_since_mfe_bars")])
+        except Exception:
+            mfe_bps = float(armed_state.get("mfe_bps", float("nan")))
+            dd_from_mfe_bps = float(armed_state.get("dd_from_mfe_bps", float("nan")))
+            giveback_ratio = float(armed_state.get("giveback_ratio", float("nan")))
+            time_since_mfe_bars = float(armed_state.get("time_since_mfe_bars", float("nan")))
+
+        if math.isfinite(mfe_bps):
+            armed_state["mfe_bps"] = float(mfe_bps)
+        if math.isfinite(dd_from_mfe_bps):
+            armed_state["dd_from_mfe_bps"] = float(dd_from_mfe_bps)
+        if math.isfinite(giveback_ratio):
+            armed_state["giveback_ratio"] = float(giveback_ratio)
+        if math.isfinite(time_since_mfe_bars):
+            armed_state["time_since_mfe_bars"] = float(time_since_mfe_bars)
+        armed_state["pnl_bps_now"] = float(pnl_bps_now)
+        armed_state["be_plus_floor_bps"] = float(floor_bps)
+        armed_state["score_value"] = float(score_value) if score_value is not None and math.isfinite(float(score_value)) else float(armed_state.get("score_value", float("nan")))
+        armed_state["score_source"] = str(score_source or armed_state.get("score_source", "profit_protect_prob"))
+        armed_state["armed"] = True
+        armed_state["newly_armed"] = bool(newly_armed)
+        armed_state["should_exit"] = bool(float(pnl_bps_now) <= float(floor_bps))
+        if armed_state["should_exit"]:
+            armed_state["exit_reason"] = "BE_PLUS_FLOOR"
+        self._set_protected_profit_state(trade, armed_state)
+        return armed_state
+
     def _canonical_residual_exit_state(self, *, window_arr: Any) -> Optional[dict]:
         try:
             arr = np.asarray(window_arr, dtype=np.float32)
@@ -2566,6 +2884,54 @@ class ExitManager:
             "distance_from_peak_mfe_bps": distance_from_peak_mfe_bps,
             "minutes_since_session_open": minutes_since_session_open,
             "minutes_to_next_session_boundary": minutes_to_next_session_boundary,
+        }
+
+    def _policy_friday_flat_state(
+        self,
+        *,
+        now_ts: pd.Timestamp,
+        window_arr: Any,
+        pnl_bps_now: float,
+    ) -> Optional[dict]:
+        cfg = getattr(self._runner, "exit_weekly_management", None)
+        if cfg is None or not bool(getattr(cfg, "friday_flat_enabled", False)):
+            return None
+        ts_utc = pd.Timestamp(now_ts)
+        if ts_utc.tzinfo is None:
+            ts_utc = ts_utc.tz_localize("UTC")
+        else:
+            ts_utc = ts_utc.tz_convert("UTC")
+        weekday = int(ts_utc.weekday())
+        if weekday not in tuple(getattr(cfg, "friday_flat_weekdays", ()) or ()):
+            return None
+        cutoff = getattr(cfg, "friday_flat_cutoff_hhmm_utc", None)
+        if cutoff is None:
+            return None
+        cutoff_hour, cutoff_minute = int(cutoff[0]), int(cutoff[1])
+        if (ts_utc.hour, ts_utc.minute) < (cutoff_hour, cutoff_minute):
+            return None
+        try:
+            arr = np.asarray(window_arr, dtype=np.float32)
+            last = arr[-1]
+            mfe_bps = float(last[self._exit_feature_index("mfe_bps")])
+            dd_from_mfe_bps = float(last[self._exit_feature_index("dd_from_mfe_bps")])
+            giveback_ratio = float(last[self._exit_feature_index("giveback_ratio")])
+            time_since_mfe_bars = float(last[self._exit_feature_index("time_since_mfe_bars")])
+        except Exception:
+            mfe_bps = float("nan")
+            dd_from_mfe_bps = float("nan")
+            giveback_ratio = float("nan")
+            time_since_mfe_bars = float("nan")
+        return {
+            "reason": str(getattr(cfg, "friday_flat_reason", "POLICY_FRIDAY_FLAT")),
+            "weekday": weekday,
+            "weekday_name": ts_utc.day_name().upper(),
+            "cutoff_hhmm_utc": f"{cutoff_hour:02d}:{cutoff_minute:02d}",
+            "pnl_bps_now": float(pnl_bps_now),
+            "mfe_bps": mfe_bps,
+            "dd_from_mfe_bps": dd_from_mfe_bps,
+            "giveback_ratio": giveback_ratio,
+            "time_since_mfe_bars": time_since_mfe_bars,
         }
 
     def _maybe_log_exit_ml_event(

@@ -24,6 +24,8 @@ END_DATE="$3"
 N_WORKERS="${4:-6}"
 OUTPUT_DIR="${5:-gx1/wf_runs/$(basename "${POLICY_PATH%.*}")}"
 
+export START_DATE END_DATE
+
 mkdir -p "$OUTPUT_DIR"
 LOG_DIR="$OUTPUT_DIR/logs"
 mkdir -p "$LOG_DIR"
@@ -73,7 +75,49 @@ if [[ ! -f "$RESOLVED_M5_DATA" ]]; then
 fi
 
 LIMITED_DATA="$OUTPUT_DIR/price_data_filtered.parquet"
+DEFAULT_CANONICAL_TRUTH_FILE="$PROJECT_ROOT/gx1/configs/canonical_truth_signal_only.json"
+if [[ -z "${GX1_CANONICAL_TRUTH_FILE:-}" && -f "$DEFAULT_CANONICAL_TRUTH_FILE" ]]; then
+    export GX1_CANONICAL_TRUTH_FILE="$DEFAULT_CANONICAL_TRUTH_FILE"
+fi
+if [[ -z "${GX1_CANONICAL_BUNDLE_DIR:-}" && -n "${GX1_CANONICAL_TRUTH_FILE:-}" && -f "$GX1_CANONICAL_TRUTH_FILE" ]]; then
+    export GX1_CANONICAL_BUNDLE_DIR="$(python3 - <<'PY'
+import json
+import os
+from pathlib import Path
+
+truth_file = Path(os.environ["GX1_CANONICAL_TRUTH_FILE"])
+with truth_file.open("r", encoding="utf-8") as fh:
+    truth = json.load(fh)
+bundle = str(truth.get("canonical_xgb_bundle_dir") or "").strip()
+if not bundle:
+    raise SystemExit("ERROR: canonical_xgb_bundle_dir missing from truth file")
+print(bundle)
+PY
+)"
+fi
+if [[ -z "${GX1_BUNDLE_DIR:-}" && -n "${GX1_CANONICAL_TRUTH_FILE:-}" && -f "$GX1_CANONICAL_TRUTH_FILE" ]]; then
+    export GX1_BUNDLE_DIR="$(python3 - <<'PY'
+import json
+import os
+from pathlib import Path
+
+truth_file = Path(os.environ["GX1_CANONICAL_TRUTH_FILE"])
+with truth_file.open("r", encoding="utf-8") as fh:
+    truth = json.load(fh)
+bundle = str(truth.get("canonical_transformer_bundle_dir") or "").strip()
+if not bundle:
+    raise SystemExit("ERROR: canonical_transformer_bundle_dir missing from truth file")
+print(bundle)
+PY
+)"
+fi
+
 export M5_DATA="$RESOLVED_M5_DATA" START_DATE END_DATE LIMITED_DATA
+export GX1_DATA="${GX1_DATA:-/home/andre2/GX1_DATA}"
+export GX1_DISABLE_DOTENV="${GX1_DISABLE_DOTENV:-1}"
+export GX1_REPLAY_INCREMENTAL_FEATURES="${GX1_REPLAY_INCREMENTAL_FEATURES:-1}"
+export GX1_REPLAY_NO_CSV="${GX1_REPLAY_NO_CSV:-1}"
+export GX1_FEATURE_USE_NP_ROLLING="${GX1_FEATURE_USE_NP_ROLLING:-1}"
 
 python3 - <<'PY'
 import pandas as pd
@@ -109,8 +153,34 @@ filtered.to_parquet(output_path)
 print(f"Filtered {len(filtered):,} bars → {output_path}")
 PY
 
-python scripts/active/replay_entry_exit_parallel.py \
-  --price-data "$LIMITED_DATA" \
-  --base-policy "$POLICY_PATH" \
-  --n-workers "$N_WORKERS" \
-  --output "$OUTPUT_DIR/results.json" 2>&1 | tee "$LOG_DIR/replay.log"
+POLICY_BASENAME="$(basename "$POLICY_PATH")"
+TRUTH_FILE=""
+USE_TRUTH_REPLAY=0
+case "$POLICY_BASENAME" in
+  PHASE5_EXIT_VERIFICATION_V10_CTX__R5C.yaml)
+    TRUTH_FILE="$PROJECT_ROOT/gx1/configs/phase5_exit_verification_r5c.json"
+    USE_TRUTH_REPLAY=1
+    ;;
+  PHASE5_EXIT_VERIFICATION_V10_CTX__R5D.yaml)
+    TRUTH_FILE="$PROJECT_ROOT/gx1/configs/phase5_exit_verification_r5d.json"
+    USE_TRUTH_REPLAY=1
+    ;;
+esac
+
+if [[ "$USE_TRUTH_REPLAY" == "1" ]]; then
+    echo "[REPLAY] Using truth-grade prebuilt replay lane: $TRUTH_FILE"
+    export GX1_CANONICAL_TRUTH_FILE="$TRUTH_FILE"
+    export GX1_REPLAY_USE_PREBUILT_FEATURES=1
+    export GX1_FEATURE_BUILD_DISABLED=1
+    python3 -m gx1.scripts.run_truth_e2e_sanity \
+      --truth-file "$TRUTH_FILE" \
+      --start-ts "$START_DATE" \
+      --end-ts "$END_DATE" \
+      --run-dir "$OUTPUT_DIR" 2>&1 | tee "$LOG_DIR/replay.log"
+else
+    python3 scripts/active/replay_entry_exit_parallel.py \
+      --price-data "$LIMITED_DATA" \
+      --base-policy "$POLICY_PATH" \
+      --n-workers "$N_WORKERS" \
+      --output "$OUTPUT_DIR/results.json" 2>&1 | tee "$LOG_DIR/replay.log"
+fi

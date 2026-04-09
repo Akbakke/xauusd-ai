@@ -14,7 +14,7 @@ This note is the repo truth for how `seq_len` and `window_len` should be read in
 - Policy timeframe is `M5` in [GX1_TRUTH_REPLAY_V10_CTX.yaml](/home/andre2/src/GX1_ENGINE/gx1/configs/policies/canonical_truth/GX1_TRUTH_REPLAY_V10_CTX.yaml#L16).
 - Canonical truth roots split raw and model data in [canonical_truth_signal_only.json](/home/andre2/src/GX1_ENGINE/gx1/configs/canonical_truth_signal_only.json#L3).
   Raw root is M1 and model root is M5.
-- Current entry bundles declare `seq_len: 30` in [bundle_metadata.json](/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_CTX__RETRAIN_20260402_REPLACE_ON_SHORT_STRICT_CLEAN_RECIPE_2025/bundle_metadata.json#L20).
+- Current strict entry bundles declare `seq_len: 30` in [bundle_metadata.json](/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_CTX__RETRAIN_20260407_PREMIUM_LONG_ONLY_V6/bundle_metadata.json#L20).
 - Training dataset builder constructs entry samples as `seq = ...  # [seq_len, 7]` in [build_entry_v10_ctx_training_dataset.py](/home/andre2/src/GX1_ENGINE/gx1/scripts/build_entry_v10_ctx_training_dataset.py#L1766).
 - Replay only calls `evaluate_entry(...)` on model bars in [oanda_demo_runner.py](/home/andre2/src/GX1_ENGINE/gx1/execution/oanda_demo_runner.py#L12447).
 

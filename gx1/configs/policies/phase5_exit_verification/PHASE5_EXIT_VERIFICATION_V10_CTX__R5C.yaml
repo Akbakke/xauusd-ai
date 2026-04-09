@@ -1,13 +1,10 @@
 meta:
   router_version: V3_RANGE
   role: REPLAY_VERIFICATION
-  description: 'Canonical TRUTH replay policy with ENTRY_V10_CTX and the active
-    EXIT_IO_V3_CTX36_M1L512_PHASE5 exit contract.
-
-    '
-  bundle_location: canonical_truth
-policy_name: GX1_TRUTH_REPLAY_V10_CTX
-version: GX1_TRUTH_REPLAY_V10_CTX
+  description: "Phase5 exit verification lane for ENTRY_V10_CTX with EXIT_IO_V3_CTX36_M1L512_PHASE5 bundle R5C."
+  bundle_location: phase5_exit_verification
+policy_name: PHASE5_EXIT_VERIFICATION_V10_CTX__R5C
+version: PHASE5_EXIT_VERIFICATION_V10_CTX__R5C
 mode: REPLAY
 run_mode: SHADOW
 instrument: XAU_USD
@@ -24,7 +21,7 @@ replay_config:
   v9_forbidden: true
   replay_pregate:
     enabled: false
-exit_config: gx1/configs/policies/canonical_truth/exits/EXIT_TRANSFORMER_ONLY_V3_M1L512_PHASE5.yaml
+exit_config: gx1/configs/policies/phase5_exit_verification/exits/EXIT_TRANSFORMER_ONLY_V3_M1L512_PHASE5__R5C.yaml
 execution:
   dry_run: true
   max_open_trades: 10
@@ -46,8 +43,8 @@ exit_control:
   - REPLAY_EOF
   allow_model_exit_when:
     min_bars: 2
-    min_pnl_bps: 0.0
-    min_realized_pnl_bps: 0.0
+    min_pnl_bps: 1.0
+    min_realized_pnl_bps: 1.0
     require_positive_mfe_before_model_exit: true
     min_mfe_bps_for_model_exit: 0.0
     max_giveback_frac_from_mfe: 0.5
@@ -69,6 +66,8 @@ replay_regime_filter:
   enabled: true
   sessions:
   - EU
+  - OVERLAP
+  - US
   d1_atr_percentile_252:
     enabled: true
     min: 0.8650793650793651

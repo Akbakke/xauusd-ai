@@ -30,6 +30,227 @@ def _is_canonical_truth_runtime() -> bool:
     )
 
 
+_ENTRY_POLICY_DUPLICATE_TOP_LEVEL_KEYS = ("allowed_sessions", "allowed_vol_regimes")
+_ENTRY_POLICY_REMOVED_KEYS = ("require_trend_up", "enable_profitable_filter")
+_ENTRY_POLICY_OPTIONAL_HEAD_KEYS = {
+    "clean_edge": ("clean_edge_gate_enabled", "clean_edge_min_prob"),
+    "survival": ("survival_gate_enabled", "survival_min_prob"),
+}
+_ENTRY_WEEKDAY_NAMES = {
+    0: "MONDAY",
+    1: "TUESDAY",
+    2: "WEDNESDAY",
+    3: "THURSDAY",
+    4: "FRIDAY",
+    5: "SATURDAY",
+    6: "SUNDAY",
+}
+_ENTRY_HEAD_FIELD_BY_NAME = {
+    "direction": "direction_logits",
+    "tradable": "tradable_logit",
+    "path_quality": "path_quality",
+    "mfe_first_n": "mfe_first_n",
+    "clean_edge": "clean_edge_logit",
+    "survival": "survival_logit",
+}
+
+
+def _as_clean_upper_list(values: Any, *, label: str) -> Tuple[str, ...]:
+    if values is None:
+        return tuple()
+    if not isinstance(values, (list, tuple)):
+        raise RuntimeError(f"[ENTRY_CONFIG_INVALID] {label} must be a list/tuple, got {type(values).__name__}")
+    cleaned = tuple(str(v).strip().upper() for v in values if str(v).strip())
+    if not cleaned:
+        raise RuntimeError(f"[ENTRY_CONFIG_INVALID] {label} must not be empty")
+    return cleaned
+
+
+def _as_clean_weekday_list(values: Any, *, label: str) -> Tuple[int, ...]:
+    if values is None:
+        return tuple()
+    if not isinstance(values, (list, tuple)):
+        raise RuntimeError(f"[ENTRY_CONFIG_INVALID] {label} must be a list/tuple, got {type(values).__name__}")
+    out = []
+    for raw in values:
+        try:
+            val = int(raw)
+        except Exception as exc:
+            raise RuntimeError(f"[ENTRY_CONFIG_INVALID] {label} contains non-int weekday={raw!r}") from exc
+        if val < 0 or val > 6:
+            raise RuntimeError(f"[ENTRY_CONFIG_INVALID] {label} weekday must be in [0,6], got {val}")
+        out.append(val)
+    cleaned = tuple(sorted(set(out)))
+    if not cleaned:
+        raise RuntimeError(f"[ENTRY_CONFIG_INVALID] {label} must not be empty")
+    return cleaned
+
+
+def resolve_entry_bundle_capabilities(bundle: Any) -> Dict[str, Any]:
+    caps = getattr(bundle, "capabilities", None)
+    if isinstance(caps, dict) and caps.get("supported_heads"):
+        return caps
+    meta = getattr(bundle, "metadata", {}) or {}
+    caps = meta.get("capabilities")
+    if isinstance(caps, dict) and caps.get("supported_heads"):
+        return caps
+    raise RuntimeError("[ENTRY_BUNDLE_CAPABILITIES_MISSING] bundle loader did not attach capabilities")
+
+
+def resolve_entry_admission_contract(policy: Dict[str, Any], bundle: Any) -> Dict[str, Any]:
+    if not isinstance(policy, dict):
+        raise RuntimeError("[ENTRY_POLICY_INVALID] policy must be a dict")
+    duplicate_top_level = [k for k in _ENTRY_POLICY_DUPLICATE_TOP_LEVEL_KEYS if k in policy]
+    if duplicate_top_level:
+        raise RuntimeError(
+            "[ENTRY_CONFIG_DUPLICATE_SOURCE] top-level session/vol keys are forbidden; "
+            f"move them into entry_policy_v10_ctx: {duplicate_top_level}"
+        )
+    if "meta_model" in policy:
+        raise RuntimeError(
+            "[ENTRY_CONFIG_UNSUPPORTED] meta_model is not part of the active ENTRY_V10_CTX admission lane"
+        )
+    policy_cfg = policy.get("entry_policy_v10_ctx", {})
+    if not isinstance(policy_cfg, dict) or not policy_cfg:
+        raise RuntimeError("[ENTRY_POLICY_INVALID] entry_policy_v10_ctx must exist and be non-empty")
+    removed_keys = [k for k in _ENTRY_POLICY_REMOVED_KEYS if k in policy_cfg]
+    if removed_keys:
+        raise RuntimeError(
+            "[ENTRY_CONFIG_UNSUPPORTED] removed entry knobs found in active lane: "
+            f"{sorted(removed_keys)}"
+        )
+    if "quality_min_score" in policy_cfg:
+        raise RuntimeError(
+            "[ENTRY_CONFIG_UNSUPPORTED] quality_min_score is not supported in the active ENTRY_V10_CTX lane"
+        )
+    if "quality_max_bad_path_prob" in policy_cfg:
+        raise RuntimeError(
+            "[ENTRY_CONFIG_UNSUPPORTED] quality_max_bad_path_prob is not supported in the active ENTRY_V10_CTX lane"
+        )
+
+    caps = resolve_entry_bundle_capabilities(bundle)
+    supported_heads = set(caps.get("supported_heads") or [])
+
+    allowed_sessions = _as_clean_upper_list(
+        policy_cfg.get("allowed_sessions", ["EU", "OVERLAP", "US"]),
+        label="entry_policy_v10_ctx.allowed_sessions",
+    )
+    allowed_vol_regimes = _as_clean_upper_list(
+        policy_cfg.get("allowed_vol_regimes", ["LOW", "MEDIUM", "HIGH"]),
+        label="entry_policy_v10_ctx.allowed_vol_regimes",
+    )
+    weekly_entry_window_cfg = policy_cfg.get("weekly_entry_window", {}) or {}
+    if not isinstance(weekly_entry_window_cfg, dict):
+        raise RuntimeError(
+            "[ENTRY_CONFIG_INVALID] entry_policy_v10_ctx.weekly_entry_window must be a dict"
+        )
+    weekly_entry_window_enabled = bool(weekly_entry_window_cfg.get("enabled", False))
+    weekly_allowed_entry_weekdays: Tuple[int, ...] = tuple()
+    if weekly_entry_window_enabled:
+        weekly_allowed_entry_weekdays = _as_clean_weekday_list(
+            weekly_entry_window_cfg.get("allowed_entry_weekdays"),
+            label="entry_policy_v10_ctx.weekly_entry_window.allowed_entry_weekdays",
+        )
+
+    required_heads = {"direction"}
+    active_gates = ["direction_over_flat", "threshold"]
+    tradable_gate_enabled = bool(policy_cfg.get("tradable_gate_enabled", False))
+    if not tradable_gate_enabled and any(
+        key in policy_cfg for key in ("tradable_min_prob", "tradable_min_prob_long", "tradable_min_prob_short")
+    ):
+        raise RuntimeError(
+            "[ENTRY_CONFIG_INVALID] tradable_min_prob* requires tradable_gate_enabled=true"
+        )
+    if tradable_gate_enabled:
+        required_heads.add("tradable")
+        active_gates.append("tradable")
+    quality_gate_enabled = bool(policy_cfg.get("quality_gate_enabled", False))
+    quality_threshold_keys = (
+        "quality_min_mfe_first_n",
+        "quality_min_path_quality",
+        "quality_min_path_quality_long",
+        "quality_min_path_quality_short",
+    )
+    if not quality_gate_enabled and any(key in policy_cfg for key in quality_threshold_keys):
+        raise RuntimeError(
+            "[ENTRY_CONFIG_INVALID] quality_min_* thresholds require quality_gate_enabled=true"
+        )
+    if "quality_min_mfe_first_n" in policy_cfg:
+        required_heads.add("mfe_first_n")
+    if "quality_min_path_quality" in policy_cfg or "quality_min_path_quality_long" in policy_cfg or "quality_min_path_quality_short" in policy_cfg:
+        required_heads.add("path_quality")
+    if quality_gate_enabled:
+        if "quality_min_mfe_first_n" in policy_cfg:
+            active_gates.append("mfe_first_n")
+        if (
+            "quality_min_path_quality" in policy_cfg
+            or "quality_min_path_quality_long" in policy_cfg
+            or "quality_min_path_quality_short" in policy_cfg
+        ):
+            active_gates.append("path_quality")
+
+    optional_head_gates: Dict[str, Dict[str, Any]] = {}
+    for head_name, (flag_key, min_key) in _ENTRY_POLICY_OPTIONAL_HEAD_KEYS.items():
+        gate_enabled = bool(policy_cfg.get(flag_key, False))
+        gate_min = policy_cfg.get(min_key, None)
+        if gate_min is not None and not gate_enabled:
+            raise RuntimeError(
+                f"[ENTRY_CONFIG_INVALID] {min_key} requires {flag_key}=true"
+            )
+        if gate_enabled or gate_min is not None:
+            if head_name not in supported_heads:
+                raise RuntimeError(
+                    f"[ENTRY_BUNDLE_HEAD_UNSUPPORTED] config requests {head_name} gate but bundle does not support it"
+                )
+            optional_head_gates[head_name] = {
+                "enabled": gate_enabled,
+                "min_prob": None if gate_min is None else float(gate_min),
+            }
+            if gate_enabled:
+                active_gates.append(head_name)
+                required_heads.add(head_name)
+
+    missing_heads = required_heads - supported_heads
+    if missing_heads:
+        raise RuntimeError(
+            "[ENTRY_BUNDLE_HEAD_UNSUPPORTED] bundle missing required heads for active config: "
+            f"{sorted(missing_heads)}"
+        )
+
+    persistence_bars = int(policy_cfg.get("persistence_bars", 1) or 1)
+    if persistence_bars > 1:
+        active_gates.append("persistence")
+    if weekly_entry_window_enabled:
+        active_gates.append("weekly_entry_window")
+    active_gates.append("session_guard")
+    if bool((policy.get("replay_regime_filter", {}) or {}).get("enabled", False)):
+        active_gates.append("replay_regime_filter")
+    if bool((policy.get("guard", {}) or {}).get("enabled", False)) or bool(policy.get("risk_guard")):
+        active_gates.append("risk_guard")
+
+    return {
+        "policy_cfg": policy_cfg,
+        "allowed_sessions": allowed_sessions,
+        "allowed_vol_regimes": allowed_vol_regimes,
+        "supported_heads": sorted(supported_heads),
+        "required_heads": sorted(required_heads),
+        "active_gates": tuple(active_gates),
+        "optional_head_gates": optional_head_gates,
+        "weekly_entry_window": {
+            "enabled": weekly_entry_window_enabled,
+            "allowed_entry_weekdays": weekly_allowed_entry_weekdays,
+        },
+        "head_field_map": dict(_ENTRY_HEAD_FIELD_BY_NAME),
+        "source_of_truth": {
+            "sessions": "entry_policy_v10_ctx.allowed_sessions",
+            "vol_regimes": "entry_policy_v10_ctx.allowed_vol_regimes",
+            "weekly_entry_window": "entry_policy_v10_ctx.weekly_entry_window",
+            "heads": "bundle_metadata.train_recipe.active_heads + state_dict capability proof",
+            "admission_gates": "entry_policy_v10_ctx + bundle capabilities",
+        },
+    }
+
+
 class EntryManager:
     """
     Canonical ENTRY manager (V10_CTX-only).
@@ -43,6 +264,7 @@ class EntryManager:
 
     HARD_ELIGIBILITY_WARMUP = "HARD_WARMUP"
     HARD_ELIGIBILITY_SESSION_BLOCK = "HARD_SESSION_BLOCK"
+    HARD_ELIGIBILITY_WEEKLY_ENTRY_BLOCK = "HARD_WEEKLY_ENTRY_BLOCK"
     HARD_ELIGIBILITY_SPREAD_CAP = "HARD_SPREAD_CAP"
     HARD_ELIGIBILITY_KILLSWITCH = "HARD_KILLSWITCH"
 
@@ -132,6 +354,7 @@ class EntryManager:
             {
                 "veto_hard_warmup": 0,
                 "veto_hard_session": 0,
+                "veto_hard_weekly_entry_window": 0,
                 "veto_hard_spread": 0,
                 "veto_hard_killswitch": 0,
             },
@@ -209,6 +432,23 @@ class EntryManager:
             # Let replay surface failures later when guard is required; identity
             # remains None if load failed here.
             pass
+
+        contract_bundle = getattr(runner, "entry_v10_bundle", None)
+        if contract_bundle is not None:
+            entry_contract = resolve_entry_admission_contract(getattr(runner, "policy", {}) or {}, contract_bundle)
+            object.__setattr__(self, "entry_contract", entry_contract)
+            log.info(
+                "[ENTRY_CONTRACT_BOOT] bundle=%s supported_heads=%s required_heads=%s active_gates=%s "
+                "sessions_source=%s vol_source=%s",
+                getattr(contract_bundle, "bundle_dir", None),
+                entry_contract["supported_heads"],
+                entry_contract["required_heads"],
+                list(entry_contract["active_gates"]),
+                entry_contract["source_of_truth"]["sessions"],
+                entry_contract["source_of_truth"]["vol_regimes"],
+            )
+        else:
+            object.__setattr__(self, "entry_contract", None)
 
     def __getattr__(self, name: str):
         # only called if attribute not found on self
@@ -355,7 +595,10 @@ class EntryManager:
             return False, self.HARD_ELIGIBILITY_WARMUP
 
         # Canonical key
-        policy_cfg = self.policy.get("entry_policy_v10_ctx", {})
+        entry_contract = getattr(self, "entry_contract", None)
+        if entry_contract is None:
+            raise RuntimeError("[ENTRY_CONTRACT_MISSING] Entry contract was not initialized")
+        policy_cfg = entry_contract["policy_cfg"]
 
         # Strict legacy key ban (this file is supposed to be clean)
         if "entry_policy_sniper_v10_ctx" in self.policy:
@@ -367,10 +610,26 @@ class EntryManager:
             current_session = infer_session_tag(current_ts).upper() if current_ts is not None else "UNKNOWN"
             policy_state["session"] = current_session
 
-        allowed_sessions = policy_cfg.get("allowed_sessions", ["EU", "OVERLAP", "US"])
+        allowed_sessions = entry_contract["allowed_sessions"]
         allow_all_sessions = os.getenv("GX1_ENTRY_ALLOW_ALL_SESSIONS", "0") == "1"
-        if (not allow_all_sessions) and current_session not in allowed_sessions:
+        if (not allow_all_sessions) and current_session not in set(allowed_sessions):
             return False, self.HARD_ELIGIBILITY_SESSION_BLOCK
+
+        weekly_entry_window = entry_contract.get("weekly_entry_window") or {}
+        if bool(weekly_entry_window.get("enabled", False)):
+            if current_ts is None:
+                raise RuntimeError("[ENTRY_WEEKLY_WINDOW_INVALID] current_ts missing while weekly_entry_window is enabled")
+            current_ts_utc = pd.Timestamp(current_ts)
+            if current_ts_utc.tzinfo is None:
+                current_ts_utc = current_ts_utc.tz_localize("UTC")
+            else:
+                current_ts_utc = current_ts_utc.tz_convert("UTC")
+            weekday = int(current_ts_utc.weekday())
+            allowed_entry_weekdays = tuple(weekly_entry_window.get("allowed_entry_weekdays") or ())
+            if weekday not in allowed_entry_weekdays:
+                policy_state["weekly_entry_window_weekday"] = weekday
+                policy_state["weekly_entry_window_weekday_name"] = _ENTRY_WEEKDAY_NAMES.get(weekday, str(weekday))
+                return False, self.HARD_ELIGIBILITY_WEEKLY_ENTRY_BLOCK
 
         spread_bps = self._get_spread_bps_before_features(candles)
         if spread_bps is not None:
@@ -670,6 +929,8 @@ class EntryManager:
                 _inc_gate("warmup_not_ready")
             elif eligibility_reason == self.HARD_ELIGIBILITY_SESSION_BLOCK:
                 _inc_gate("pregate_session")
+            elif eligibility_reason == self.HARD_ELIGIBILITY_WEEKLY_ENTRY_BLOCK:
+                _inc_gate("pregate_weekly_entry_window")
             elif eligibility_reason == self.HARD_ELIGIBILITY_SPREAD_CAP:
                 _inc_gate("pregate_spread")
             elif eligibility_reason == self.HARD_ELIGIBILITY_KILLSWITCH:
@@ -679,6 +940,7 @@ class EntryManager:
             reason_to_veto_key = {
                 self.HARD_ELIGIBILITY_WARMUP: "veto_hard_warmup",
                 self.HARD_ELIGIBILITY_SESSION_BLOCK: "veto_hard_session",
+                self.HARD_ELIGIBILITY_WEEKLY_ENTRY_BLOCK: "veto_hard_weekly_entry_window",
                 self.HARD_ELIGIBILITY_SPREAD_CAP: "veto_hard_spread",
                 self.HARD_ELIGIBILITY_KILLSWITCH: "veto_hard_killswitch",
             }
@@ -1003,11 +1265,15 @@ class EntryManager:
             raise RuntimeError(f"[EXIT_IO_CONTRACT_VIOLATION] signal7 unavailable: {e}") from e
 
         # Threshold gate (canonical policy key)
-        policy_cfg = self.policy.get("entry_policy_v10_ctx", {})
+        entry_contract = getattr(self, "entry_contract", None)
+        if entry_contract is None:
+            raise RuntimeError("[ENTRY_CONTRACT_MISSING] Entry contract was not initialized")
+        policy_cfg = entry_contract["policy_cfg"]
         entry_gating_cfg = self.policy.get("entry_gating", {}) if getattr(self._runner, "guard_enabled", True) else {}
         min_prob_long = float(policy_cfg.get("min_prob_long", 0.67))
         min_prob_short = float(policy_cfg.get("min_prob_short", 0.72))
         allow_short = bool(policy_cfg.get("allow_short", False))
+        require_directional_over_flat = bool(policy_cfg.get("require_directional_over_flat", False))
 
         # Replay: enforce a single confidence source and forbid legacy entry_gating
         if is_replay and abs(min_prob_long - min_prob_short) > 1e-9:
@@ -1053,6 +1319,9 @@ class EntryManager:
         except Exception:
             # Keep policy thresholds if override parsing fails; guard will still surface elsewhere
             env_override = None
+        # Persist the effective thresholds even if no candidate survives later gates.
+        self.threshold_used = f"long={threshold_long},short={threshold_short}"
+
         # Proof: effective candidate thresholds
         try:
             if not hasattr(self, "_threshold_proof_log_count"):
@@ -1140,6 +1409,17 @@ class EntryManager:
                 self._runner.entry_flat_veto_blocked += 1
             except Exception:
                 pass
+        elif require_directional_over_flat and chosen_side is not None and p_flat >= chosen_side_prob:
+            chosen_side = None
+            reason = "flat_dominant"
+            _inc_gate("candidate_flat_veto")
+
+        supported_heads = set(getattr(entry_pred, "supported_heads", ()) or ())
+        tradable_prob = getattr(entry_pred, "tradable_prob", None)
+        mfe_first_n_pred = getattr(entry_pred, "mfe_first_n_pred", None)
+        path_quality_pred = getattr(entry_pred, "path_quality_pred", None)
+        clean_edge_prob = getattr(entry_pred, "clean_edge_prob", None)
+        survival_prob = getattr(entry_pred, "survival_prob", None)
 
         # Optional tradable gate (uses auxiliary tradable head if available)
         tradable_gate_enabled = False
@@ -1177,7 +1457,6 @@ class EntryManager:
             pass
 
         if tradable_gate_enabled and chosen_side is not None:
-            tradable_prob = getattr(entry_pred, "tradable_prob", None)
             side_min_prob = tradable_min_prob
             if chosen_side == "long" and tradable_min_prob_long is not None:
                 side_min_prob = tradable_min_prob_long
@@ -1212,7 +1491,6 @@ class EntryManager:
         quality_min_path_quality = None
         quality_min_path_quality_long = None
         quality_min_path_quality_short = None
-        quality_min_score = None
         try:
             quality_gate_enabled = bool(policy_cfg.get("quality_gate_enabled", False))
             if "quality_min_mfe_first_n" in policy_cfg:
@@ -1223,28 +1501,10 @@ class EntryManager:
                 quality_min_path_quality_long = float(policy_cfg.get("quality_min_path_quality_long"))
             if "quality_min_path_quality_short" in policy_cfg:
                 quality_min_path_quality_short = float(policy_cfg.get("quality_min_path_quality_short"))
-            if "quality_min_score" in policy_cfg:
-                quality_min_score = float(policy_cfg.get("quality_min_score"))
-            if _is_canonical_truth_runtime() and quality_min_score is not None:
-                raise RuntimeError(
-                    "ENTRY_QUALITY_EXPERIMENTAL_KNOBS_FORBIDDEN: canonical truth runtime only allows "
-                    "general/side-specific path-quality thresholds plus quality_min_mfe_first_n. Remove "
-                    "quality_min_score from active canonical config."
-                )
-            if "quality_max_bad_path_prob" in policy_cfg:
-                raise RuntimeError(
-                    "ENTRY_BAD_PATH_GATE_UNSUPPORTED: quality_max_bad_path_prob is set in policy config "
-                    "but runtime does not implement this gate. Remove it from the active canonical lane "
-                    "or implement runtime support explicitly before enabling it."
-                )
         except Exception:
             raise
 
         if quality_gate_enabled and chosen_side is not None:
-            mfe_first_n_pred = getattr(entry_pred, "mfe_first_n_pred", None)
-            path_quality_pred = getattr(entry_pred, "path_quality_pred", None)
-            quality_score_pred = getattr(entry_pred, "quality_score_pred", None)
-            bad_path_prob = getattr(entry_pred, "bad_path_prob", None)
             effective_quality_min_path_quality = quality_min_path_quality
             if chosen_side == "long" and quality_min_path_quality_long is not None:
                 effective_quality_min_path_quality = quality_min_path_quality_long
@@ -1253,7 +1513,6 @@ class EntryManager:
             missing = (
                 (quality_min_mfe_first_n is not None and mfe_first_n_pred is None)
                 or (effective_quality_min_path_quality is not None and path_quality_pred is None)
-                or (quality_min_score is not None and quality_score_pred is None)
             )
             if missing:
                 chosen_side = None
@@ -1272,30 +1531,28 @@ class EntryManager:
                     chosen_side = None
                     reason = "quality_gate"
                     _inc_gate("candidate_quality_gate")
-                if chosen_side is not None and quality_min_score is not None and float(quality_score_pred) < float(quality_min_score):
-                    chosen_side = None
-                    reason = "quality_gate"
-                    _inc_gate("candidate_quality_gate")
             try:
                 if not hasattr(self, "_quality_gate_log_count"):
                     self._quality_gate_log_count = 0
                 self._quality_gate_log_count += 1
                 if self._quality_gate_log_count <= 5 or (self._quality_gate_log_count % 5000) == 0:
                     log.info(
-                        "[ENTRY_QUALITY_GATE_PROOF] enabled=%s mfe_first_n=%s path_quality=%s quality_score=%s bad_path_prob=%s min_mfe=%s min_path=%s min_score=%s max_bad_path=%s pass=%s",
+                        "[ENTRY_QUALITY_GATE_PROOF] enabled=%s mfe_first_n=%s path_quality=%s min_mfe=%s min_path=%s pass=%s",
                         quality_gate_enabled,
                         f"{mfe_first_n_pred:.4f}" if mfe_first_n_pred is not None else "None",
                         f"{path_quality_pred:.4f}" if path_quality_pred is not None else "None",
-                        f"{quality_score_pred:.4f}" if quality_score_pred is not None else "None",
-                        f"{bad_path_prob:.4f}" if bad_path_prob is not None else "None",
                         f"{quality_min_mfe_first_n:.4f}" if quality_min_mfe_first_n is not None else "None",
                         f"{effective_quality_min_path_quality:.4f}" if effective_quality_min_path_quality is not None else "None",
-                        f"{quality_min_score:.4f}" if quality_min_score is not None else "None",
-                        "UNSUPPORTED",
                         chosen_side is not None,
                     )
             except Exception:
                 pass
+
+        # Threshold gate comes before learned quality gates. Quality heads refine a direction
+        # candidate; they do not create one.
+        long_candidate = bool(p_long >= threshold_long)
+        short_candidate = bool(p_short >= threshold_short)
+        pass_for_winner = long_candidate if winner == "long" else short_candidate
 
         try:
             if not hasattr(self._runner, "signal_candidate_long"):
@@ -1312,17 +1569,37 @@ class EntryManager:
         except Exception:
             pass
 
-        # Direction threshold applied after quality gates (quality-first ordering)
-        long_candidate = bool(p_long >= threshold_long)
-        short_candidate = bool(p_short >= threshold_short)
-        pass_for_winner = long_candidate if winner == "long" else short_candidate
-
         if chosen_side == "long" and not long_candidate:
             chosen_side = None
             reason = "below_threshold"
         elif chosen_side == "short" and not short_candidate:
             chosen_side = None
             reason = "below_threshold"
+
+        optional_head_gates = entry_contract.get("optional_head_gates", {})
+        if chosen_side == "long":
+            clean_edge_gate_cfg = optional_head_gates.get("clean_edge")
+            if clean_edge_gate_cfg and clean_edge_gate_cfg.get("enabled", False):
+                clean_edge_min_prob = clean_edge_gate_cfg.get("min_prob")
+                if clean_edge_prob is None:
+                    chosen_side = None
+                    reason = "clean_edge_missing"
+                    _inc_gate("candidate_clean_edge_gate")
+                elif clean_edge_min_prob is not None and float(clean_edge_prob) < float(clean_edge_min_prob):
+                    chosen_side = None
+                    reason = "clean_edge_gate"
+                    _inc_gate("candidate_clean_edge_gate")
+            survival_gate_cfg = optional_head_gates.get("survival")
+            if chosen_side is not None and survival_gate_cfg and survival_gate_cfg.get("enabled", False):
+                survival_min_prob = survival_gate_cfg.get("min_prob")
+                if survival_prob is None:
+                    chosen_side = None
+                    reason = "survival_missing"
+                    _inc_gate("candidate_survival_gate")
+                elif survival_min_prob is not None and float(survival_prob) < float(survival_min_prob):
+                    chosen_side = None
+                    reason = "survival_gate"
+                    _inc_gate("candidate_survival_gate")
 
         # Persistence gate: require same-side winner + threshold pass across N consecutive bars
         persistence_bars = int(getattr(self, "entry_persistence_bars", 1))
@@ -1417,6 +1694,175 @@ class EntryManager:
         except Exception:
             pass
 
+        long_tradable_min_prob = (
+            tradable_min_prob_long if tradable_min_prob_long is not None else tradable_min_prob
+        )
+        long_quality_min_path = (
+            quality_min_path_quality_long
+            if quality_min_path_quality_long is not None
+            else quality_min_path_quality
+        )
+        long_direction_over_flat_pass = bool(
+            pre_gate_pref == "long"
+            and not flat_veto
+            and (not require_directional_over_flat or p_long > p_flat)
+        )
+        long_threshold_pass = bool(long_direction_over_flat_pass and long_candidate)
+        long_tradable_pass = bool(
+            long_threshold_pass
+            and (
+                not tradable_gate_enabled
+                or (
+                    tradable_prob is not None
+                    and (
+                        long_tradable_min_prob is None
+                        or float(tradable_prob) >= float(long_tradable_min_prob)
+                    )
+                )
+            )
+        )
+        long_mfe_first_n_pass = bool(
+            long_tradable_pass
+            and (
+                not quality_gate_enabled
+                or quality_min_mfe_first_n is None
+                or (
+                    mfe_first_n_pred is not None
+                    and float(mfe_first_n_pred) >= float(quality_min_mfe_first_n)
+                )
+            )
+        )
+        long_path_quality_pass = bool(
+            long_mfe_first_n_pass
+            and (
+                not quality_gate_enabled
+                or long_quality_min_path is None
+                or (
+                    path_quality_pred is not None
+                    and float(path_quality_pred) >= float(long_quality_min_path)
+                )
+            )
+        )
+        clean_edge_gate_cfg = optional_head_gates.get("clean_edge")
+        clean_edge_gate_enabled = bool(clean_edge_gate_cfg and clean_edge_gate_cfg.get("enabled", False))
+        clean_edge_min_prob = clean_edge_gate_cfg.get("min_prob") if clean_edge_gate_cfg else None
+        long_clean_edge_pass = bool(
+            long_path_quality_pass
+            and (
+                not clean_edge_gate_enabled
+                or (
+                    clean_edge_prob is not None
+                    and (
+                        clean_edge_min_prob is None
+                        or float(clean_edge_prob) >= float(clean_edge_min_prob)
+                    )
+                )
+            )
+        )
+        survival_gate_cfg = optional_head_gates.get("survival")
+        survival_gate_enabled = bool(survival_gate_cfg and survival_gate_cfg.get("enabled", False))
+        survival_min_prob = survival_gate_cfg.get("min_prob") if survival_gate_cfg else None
+        long_survival_pass = bool(
+            long_clean_edge_pass
+            and (
+                not survival_gate_enabled
+                or (
+                    survival_prob is not None
+                    and (
+                        survival_min_prob is None
+                        or float(survival_prob) >= float(survival_min_prob)
+                    )
+                )
+            )
+        )
+        long_persistence_pass = bool(
+            long_survival_pass
+            and (
+                persistence_bars <= 1
+                or (winner == "long" and pass_for_winner and prev_ok)
+            )
+        )
+
+        def _supported_pred_value(head_name: str, value: Any) -> Any:
+            if head_name not in supported_heads:
+                return np.nan
+            if value is None:
+                return np.nan
+            return float(value)
+
+        def _build_eval_record(
+            *,
+            decision: str,
+            reason_str: str,
+            units_value: int,
+            trade_id_value: Optional[str] = None,
+            risk_guard_pass: Optional[bool] = None,
+        ) -> Dict[str, Any]:
+            xgb_signal7 = getattr(self._runner, "_last_xgb_signal7", None)
+            if not isinstance(xgb_signal7, dict):
+                xgb_signal7 = {}
+
+            safe_price = np.nan
+            try:
+                safe_price = float(getattr(entry_bundle, "close_price", np.nan))
+            except Exception:
+                safe_price = np.nan
+
+            return {
+                "ts_utc": now_ts.isoformat(),
+                "session": str(getattr(entry_pred, "session", policy_state.get("session", "UNKNOWN"))),
+                "p_long": float(entry_pred.prob_long),
+                "p_short": float(entry_pred.prob_short),
+                "p_flat": float(signal7_now.get("p_flat", np.nan)),
+                "p_hat": float(signal7_now.get("p_hat", np.nan)),
+                "uncertainty_score": float(signal7_now.get("uncertainty_score", np.nan)),
+                "margin": float(getattr(entry_pred, "margin", np.nan)),
+                "margin_top1_top2": float(signal7_now.get("margin_top1_top2", np.nan)),
+                "entropy": float(signal7_now.get("entropy", np.nan)),
+                "xgb_p_long": float(xgb_signal7.get("p_long", np.nan)),
+                "xgb_p_short": float(xgb_signal7.get("p_short", np.nan)),
+                "xgb_p_flat": float(xgb_signal7.get("p_flat", np.nan)),
+                "xgb_p_hat": float(xgb_signal7.get("p_hat", np.nan)),
+                "xgb_uncertainty_score": float(xgb_signal7.get("uncertainty_score", np.nan)),
+                "xgb_margin_top1_top2": float(xgb_signal7.get("margin_top1_top2", np.nan)),
+                "xgb_entropy": float(xgb_signal7.get("entropy", np.nan)),
+                "entry_p_long": float(signal7_now.get("p_long", np.nan)),
+                "entry_p_short": float(signal7_now.get("p_short", np.nan)),
+                "entry_p_flat": float(signal7_now.get("p_flat", np.nan)),
+                "entry_p_hat": float(signal7_now.get("p_hat", np.nan)),
+                "entry_uncertainty_score": float(signal7_now.get("uncertainty_score", np.nan)),
+                "entry_margin_top1_top2": float(signal7_now.get("margin_top1_top2", np.nan)),
+                "entry_entropy": float(signal7_now.get("entropy", np.nan)),
+                "pre_gate_pref": pre_gate_pref,
+                "decision_reason": reason_str,
+                "flat_gate": flat_gate,
+                "flat_margin": flat_margin,
+                "tradable_prob": float(tradable_prob) if tradable_prob is not None else np.nan,
+                "mfe_first_n_pred": float(mfe_first_n_pred) if mfe_first_n_pred is not None else np.nan,
+                "path_quality_pred": float(path_quality_pred) if path_quality_pred is not None else np.nan,
+                "clean_edge_pred": _supported_pred_value("clean_edge", clean_edge_prob),
+                "survival_pred": _supported_pred_value("survival", survival_prob),
+                "clean_edge_prob": _supported_pred_value("clean_edge", clean_edge_prob),
+                "survival_prob": _supported_pred_value("survival", survival_prob),
+                "clean_edge_supported": "clean_edge" in supported_heads,
+                "survival_supported": "survival" in supported_heads,
+                "gate_pass_direction_over_flat_long": long_direction_over_flat_pass,
+                "gate_pass_threshold_long": long_threshold_pass,
+                "gate_pass_tradable_long": long_tradable_pass,
+                "gate_pass_mfe_first_n_long": long_mfe_first_n_pass,
+                "gate_pass_path_quality_long": long_path_quality_pass,
+                "gate_pass_clean_edge_long": long_clean_edge_pass,
+                "gate_pass_survival_long": long_survival_pass,
+                "gate_pass_persistence_long": long_persistence_pass,
+                "gate_pass_session_guard": None,
+                "gate_pass_replay_regime_filter": None,
+                "gate_pass_risk_guard": risk_guard_pass,
+                "decision": decision,
+                "price": safe_price,
+                "units": units_value,
+                "trade_id": trade_id_value,
+            }
+
         # Flat gate disabled: no config log
 
         # Ensure timestamp is defined for audit logging even if no trade is taken.
@@ -1428,66 +1874,13 @@ class EntryManager:
                 try:
                     from gx1.execution.oanda_demo_runner import append_eval_log
 
-                    xgb_signal7 = getattr(self._runner, "_last_xgb_signal7", None)
-                    if not isinstance(xgb_signal7, dict):
-                        xgb_signal7 = {}
-
-                    safe_price = np.nan
-                    try:
-                        safe_price = float(getattr(entry_bundle, "close_price", np.nan))
-                    except Exception:
-                        safe_price = np.nan
-
-                    eval_record = {
-                        "ts_utc": now_ts.isoformat(),
-                        "session": str(getattr(entry_pred, "session", policy_state.get("session", "UNKNOWN"))),
-                        "p_long": float(entry_pred.prob_long),
-                        "p_short": float(entry_pred.prob_short),
-                        "p_flat": float(signal7_now.get("p_flat", np.nan)),
-                        "p_hat": float(signal7_now.get("p_hat", np.nan)),
-                        "uncertainty_score": float(signal7_now.get("uncertainty_score", np.nan)),
-                        "margin": float(getattr(entry_pred, "margin", np.nan)),
-                        "margin_top1_top2": float(signal7_now.get("margin_top1_top2", np.nan)),
-                        "entropy": float(signal7_now.get("entropy", np.nan)),
-                        # Raw XGB signal7 (pre-ENTRY) for audit
-                        "xgb_p_long": float(xgb_signal7.get("p_long", np.nan)),
-                        "xgb_p_short": float(xgb_signal7.get("p_short", np.nan)),
-                        "xgb_p_flat": float(xgb_signal7.get("p_flat", np.nan)),
-                        "xgb_p_hat": float(xgb_signal7.get("p_hat", np.nan)),
-                        "xgb_uncertainty_score": float(xgb_signal7.get("uncertainty_score", np.nan)),
-                        "xgb_margin_top1_top2": float(xgb_signal7.get("margin_top1_top2", np.nan)),
-                        "xgb_entropy": float(xgb_signal7.get("entropy", np.nan)),
-                        # Entry signal7 (post-ENTRY transformer) for audit
-                        "entry_p_long": float(signal7_now.get("p_long", np.nan)),
-                        "entry_p_short": float(signal7_now.get("p_short", np.nan)),
-                        "entry_p_flat": float(signal7_now.get("p_flat", np.nan)),
-                        "entry_p_hat": float(signal7_now.get("p_hat", np.nan)),
-                        "entry_uncertainty_score": float(signal7_now.get("uncertainty_score", np.nan)),
-                        "entry_margin_top1_top2": float(signal7_now.get("margin_top1_top2", np.nan)),
-                        "entry_entropy": float(signal7_now.get("entropy", np.nan)),
-                        "pre_gate_pref": pre_gate_pref,
-                        "decision_reason": reason,
-                        "flat_gate": flat_gate,
-                        "flat_margin": flat_margin,
-                        "tradable_prob": float(getattr(entry_pred, "tradable_prob", np.nan))
-                        if getattr(entry_pred, "tradable_prob", None) is not None
-                        else np.nan,
-                        "mfe_first_n_pred": float(getattr(entry_pred, "mfe_first_n_pred", np.nan))
-                        if getattr(entry_pred, "mfe_first_n_pred", None) is not None
-                        else np.nan,
-                        "path_quality_pred": float(getattr(entry_pred, "path_quality_pred", np.nan))
-                        if getattr(entry_pred, "path_quality_pred", None) is not None
-                        else np.nan,
-                        "quality_score_pred": float(getattr(entry_pred, "quality_score_pred", np.nan))
-                        if getattr(entry_pred, "quality_score_pred", None) is not None
-                        else np.nan,
-                        "bad_path_prob": float(getattr(entry_pred, "bad_path_prob", np.nan))
-                        if getattr(entry_pred, "bad_path_prob", None) is not None
-                        else np.nan,
-                        "decision": "NONE",
-                        "price": safe_price,
-                        "units": 0,
-                    }
+                    eval_record = _build_eval_record(
+                        decision="NONE",
+                        reason_str=reason,
+                        units_value=0,
+                        trade_id_value=None,
+                        risk_guard_pass=None,
+                    )
                     append_eval_log(eval_log_path, eval_record)
                 except Exception as e:
                     if getattr(self, "is_replay", False):
@@ -1511,9 +1904,6 @@ class EntryManager:
             pass
         p_side = p_long if side == "long" else p_short
         p_other = p_short if side == "long" else p_long
-
-        # Slim policy: single confidence source only
-        self.threshold_used = f"long={min_prob_long},short={min_prob_short}"
 
         margin_gate_min = None
         margin_gate_min_long = None
@@ -1556,61 +1946,13 @@ class EntryManager:
             try:
                 from gx1.execution.oanda_demo_runner import append_eval_log
 
-                xgb_signal7 = getattr(self._runner, "_last_xgb_signal7", None)
-                if not isinstance(xgb_signal7, dict):
-                    xgb_signal7 = {}
-
-                safe_price = np.nan
-                try:
-                    safe_price = float(getattr(entry_bundle, "close_price", np.nan))
-                except Exception:
-                    safe_price = np.nan
-
-                eval_record = {
-                    "ts_utc": now_ts.isoformat(),
-                    "session": str(getattr(entry_pred, "session", policy_state.get("session", "UNKNOWN"))),
-                    "p_long": float(entry_pred.prob_long),
-                    "p_short": float(entry_pred.prob_short),
-                    "p_flat": float(signal7_now.get("p_flat", np.nan)),
-                    "p_hat": float(signal7_now.get("p_hat", np.nan)),
-                    "uncertainty_score": float(signal7_now.get("uncertainty_score", np.nan)),
-                    "margin": float(getattr(entry_pred, "margin", np.nan)),
-                    "margin_top1_top2": float(signal7_now.get("margin_top1_top2", np.nan)),
-                    "entropy": float(signal7_now.get("entropy", np.nan)),
-                    "xgb_p_long": float(xgb_signal7.get("p_long", np.nan)),
-                    "xgb_p_short": float(xgb_signal7.get("p_short", np.nan)),
-                    "xgb_p_flat": float(xgb_signal7.get("p_flat", np.nan)),
-                    "xgb_p_hat": float(xgb_signal7.get("p_hat", np.nan)),
-                    "xgb_uncertainty_score": float(xgb_signal7.get("uncertainty_score", np.nan)),
-                    "xgb_margin_top1_top2": float(xgb_signal7.get("margin_top1_top2", np.nan)),
-                    "xgb_entropy": float(xgb_signal7.get("entropy", np.nan)),
-                    "entry_p_long": float(signal7_now.get("p_long", np.nan)),
-                    "entry_p_short": float(signal7_now.get("p_short", np.nan)),
-                    "entry_p_flat": float(signal7_now.get("p_flat", np.nan)),
-                    "entry_p_hat": float(signal7_now.get("p_hat", np.nan)),
-                    "entry_uncertainty_score": float(signal7_now.get("uncertainty_score", np.nan)),
-                    "entry_margin_top1_top2": float(signal7_now.get("margin_top1_top2", np.nan)),
-                    "entry_entropy": float(signal7_now.get("entropy", np.nan)),
-                    "pre_gate_pref": pre_gate_pref,
-                    "decision_reason": reason_str,
-                    "flat_gate": flat_gate,
-                    "flat_margin": flat_margin,
-                    "tradable_prob": float(getattr(entry_pred, "tradable_prob", np.nan))
-                    if getattr(entry_pred, "tradable_prob", None) is not None
-                    else np.nan,
-                    "mfe_first_n_pred": float(getattr(entry_pred, "mfe_first_n_pred", np.nan))
-                    if getattr(entry_pred, "mfe_first_n_pred", None) is not None
-                    else np.nan,
-                    "path_quality_pred": float(getattr(entry_pred, "path_quality_pred", np.nan))
-                    if getattr(entry_pred, "path_quality_pred", None) is not None
-                    else np.nan,
-                    "quality_score_pred": float(getattr(entry_pred, "quality_score_pred", np.nan))
-                    if getattr(entry_pred, "quality_score_pred", None) is not None
-                    else np.nan,
-                    "decision": decision,
-                    "price": safe_price,
-                    "units": 0,
-                }
+                eval_record = _build_eval_record(
+                    decision=decision,
+                    reason_str=reason_str,
+                    units_value=0,
+                    trade_id_value=None,
+                    risk_guard_pass=None,
+                )
                 append_eval_log(eval_log_path, eval_record)
             except Exception as e:
                 if getattr(self, "is_replay", False):
@@ -1674,9 +2016,7 @@ class EntryManager:
 
         # Session/vol guard (legacy; disabled in replay for slim policy)
         if not is_replay:
-            allow_high_vol = bool(policy_cfg.get("allow_high_vol", True))
-            allow_extreme_vol = bool(policy_cfg.get("allow_extreme_vol", False))
-            allowed_vol = ("LOW", "MEDIUM") + (("HIGH",) if allow_high_vol else tuple()) + (("EXTREME",) if allow_extreme_vol else tuple())
+            allowed_vol = tuple(entry_contract["allowed_vol_regimes"])
             try:
                 sess, vol_reg = self._extract_session_and_vol_regime(current_row.iloc[0])
                 if sess in ("EU", "OVERLAP", "US"):
@@ -1685,7 +2025,7 @@ class EntryManager:
                     self.killchain_n_after_vol_guard += 1
                 self._assert_session_vol_allowed(
                     current_row.iloc[0],
-                    allowed_sessions=("EU", "OVERLAP", "US"),
+                    allowed_sessions=tuple(entry_contract["allowed_sessions"]),
                     allowed_vol_regimes=allowed_vol,
                 )
             except AssertionError as e:
@@ -2076,67 +2416,13 @@ class EntryManager:
             try:
                 from gx1.execution.oanda_demo_runner import append_eval_log
 
-                xgb_signal7 = getattr(self._runner, "_last_xgb_signal7", None)
-                if not isinstance(xgb_signal7, dict):
-                    xgb_signal7 = {}
-
-                safe_price = np.nan
-                try:
-                    safe_price = float(getattr(entry_bundle, "close_price", np.nan))
-                except Exception:
-                    safe_price = np.nan
-
-                eval_record = {
-                    "ts_utc": now_ts.isoformat(),
-                    "session": str(getattr(entry_pred, "session", policy_state.get("session", "UNKNOWN"))),
-                    "p_long": float(entry_pred.prob_long),
-                    "p_short": float(entry_pred.prob_short),
-                    "p_flat": float(signal7_now.get("p_flat", np.nan)),
-                    "p_hat": float(signal7_now.get("p_hat", np.nan)),
-                    "uncertainty_score": float(signal7_now.get("uncertainty_score", np.nan)),
-                    "margin": float(getattr(entry_pred, "margin", np.nan)),
-                    "margin_top1_top2": float(signal7_now.get("margin_top1_top2", np.nan)),
-                    "entropy": float(signal7_now.get("entropy", np.nan)),
-                    # Raw XGB signal7 (pre-ENTRY) for audit
-                    "xgb_p_long": float(xgb_signal7.get("p_long", np.nan)),
-                    "xgb_p_short": float(xgb_signal7.get("p_short", np.nan)),
-                    "xgb_p_flat": float(xgb_signal7.get("p_flat", np.nan)),
-                    "xgb_p_hat": float(xgb_signal7.get("p_hat", np.nan)),
-                    "xgb_uncertainty_score": float(xgb_signal7.get("uncertainty_score", np.nan)),
-                    "xgb_margin_top1_top2": float(xgb_signal7.get("margin_top1_top2", np.nan)),
-                    "xgb_entropy": float(xgb_signal7.get("entropy", np.nan)),
-                    # Entry signal7 (post-ENTRY transformer) for audit
-                    "entry_p_long": float(signal7_now.get("p_long", np.nan)),
-                    "entry_p_short": float(signal7_now.get("p_short", np.nan)),
-                    "entry_p_flat": float(signal7_now.get("p_flat", np.nan)),
-                    "entry_p_hat": float(signal7_now.get("p_hat", np.nan)),
-                    "entry_uncertainty_score": float(signal7_now.get("uncertainty_score", np.nan)),
-                    "entry_margin_top1_top2": float(signal7_now.get("margin_top1_top2", np.nan)),
-                    "entry_entropy": float(signal7_now.get("entropy", np.nan)),
-                    "pre_gate_pref": pre_gate_pref,
-                    "decision_reason": reason,
-                    "flat_gate": flat_gate,
-                    "flat_margin": flat_margin,
-                    "decision": side.upper(),
-                    "price": safe_price,
-                    "units": int(base_units),
-                    "trade_id": getattr(trade, "trade_id", None),
-                    "mfe_first_n_pred": (
-                        float(getattr(entry_pred, "mfe_first_n_pred", np.nan))
-                        if getattr(entry_pred, "mfe_first_n_pred", None) is not None
-                        else None
-                    ),
-                    "path_quality_pred": (
-                        float(getattr(entry_pred, "path_quality_pred", np.nan))
-                        if getattr(entry_pred, "path_quality_pred", None) is not None
-                        else None
-                    ),
-                    "bad_path_prob": (
-                        float(getattr(entry_pred, "bad_path_prob", np.nan))
-                        if getattr(entry_pred, "bad_path_prob", None) is not None
-                        else None
-                    ),
-                }
+                eval_record = _build_eval_record(
+                    decision=side.upper(),
+                    reason_str=reason,
+                    units_value=int(base_units),
+                    trade_id_value=getattr(trade, "trade_id", None),
+                    risk_guard_pass=not risk_guard_blocked,
+                )
                 append_eval_log(eval_log_path, eval_record)
 
                 # Proof line (first 3 samples) to ensure xgb_* and entry_* are both present and differ

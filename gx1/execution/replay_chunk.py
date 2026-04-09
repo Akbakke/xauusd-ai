@@ -4862,7 +4862,13 @@ def process_chunk(
                 "threshold_used": (getattr(getattr(runner, "entry_manager", None), "threshold_used", None) if runner else None),
                 "threshold_source": (
                     "override"
-                    if (os.environ.get("GX1_ANALYSIS_MODE") == "1" and os.environ.get("GX1_ENTRY_THRESHOLD_OVERRIDE"))
+                    if (
+                        os.environ.get("GX1_ENTRY_THRESHOLD_OVERRIDE")
+                        and (
+                            os.environ.get("GX1_ANALYSIS_MODE") == "1"
+                            or os.environ.get("GX1_DIAGNOSTIC_THRESHOLD_SWEEP") == "1"
+                        )
+                    )
                     else "canonical"
                 ),
                 # exit strategy observability

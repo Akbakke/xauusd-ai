@@ -67,11 +67,66 @@ PATH_QUALITY_HORIZON_BARS = 10
 BAD_PATH_HORIZON_BARS = PATH_QUALITY_HORIZON_BARS
 BAD_PATH_MAE_THRESHOLD_BPS = 6.0
 BAD_PATH_MFE_THRESHOLD_BPS = 4.0
-STRICT_TRADABLE_MFE_MIN_BPS = 24.0
-STRICT_TRADABLE_MAE_MAX_BPS = 2.5
-STRICT_TRADABLE_PATH_MIN_BPS = 10.0
-STRICT_TRADABLE_PATH_LEAD_MIN_BPS = 4.0
-STRICT_TRADABLE_MFE_LEAD_MIN_BPS = 4.0
+STRICT_TRADABLE_MFE_MIN_BPS = 28.0
+STRICT_TRADABLE_MAE_MAX_BPS = 2.0
+STRICT_TRADABLE_PATH_MIN_BPS = 14.0
+STRICT_TRADABLE_PATH_LEAD_MIN_BPS = 7.0
+STRICT_TRADABLE_MFE_LEAD_MIN_BPS = 6.0
+HARD_NEG_LONG_MIN_XGB_P_LONG = 0.30
+HARD_NEG_LONG_MIN_MFE_BPS = 10.0
+HARD_NEG_LONG_MIN_MAE_BPS = 6.0
+HARD_NEG_LONG_MAX_PATH_BPS = 8.0
+DEAD_LONG_MAX_MFE_BPS = 0.5
+DEAD_LONG_MIN_MAE_BPS = 6.0
+TEASER_LONG_MIN_MFE_BPS = 0.5
+TEASER_LONG_MAX_MFE_BPS = 10.0
+TEASER_LONG_MIN_MAE_BPS = 6.0
+TEASER_LONG_MAX_PATH_BPS = 4.0
+CLEAN_EDGE_LONG_MFE_MIN_BPS = 14.0
+CLEAN_EDGE_LONG_MAE_MAX_BPS = 4.0
+CLEAN_EDGE_LONG_PATH_MIN_BPS = 16.0
+SURVIVAL_LONG_MFE_MIN_BPS = 8.0
+SURVIVAL_LONG_MAE_MAX_BPS = 6.0
+SURVIVAL_LONG_PATH_MIN_BPS = 8.0
+CANONICAL_PREMIUM_LONG_ONLY = True
+LONG_WINDOW_TEACHER_RUN_SPECS = [
+    {
+        "label": "v6_strong_weekly",
+        "source_model": "V6",
+        "run_root": Path("/home/andre2/GX1_DATA/reports/truth_e2e_sanity/ENTRY_WEEKLY_AUDIT_V6_STRONG_20250512_20260408"),
+    },
+    {
+        "label": "v12_strong_weekly",
+        "source_model": "V12",
+        "run_root": Path("/home/andre2/GX1_DATA/reports/truth_e2e_sanity/ENTRY_WEEKLY_AUDIT_V12_STRONG_20250512_20260408"),
+    },
+    {
+        "label": "v6_normal_weekly",
+        "source_model": "V6",
+        "run_root": Path("/home/andre2/GX1_DATA/reports/truth_e2e_sanity/ENTRY_WEEKLY_AUDIT_V6_NORMAL_20250604_20260408"),
+    },
+    {
+        "label": "v12_normal_weekly",
+        "source_model": "V12",
+        "run_root": Path("/home/andre2/GX1_DATA/reports/truth_e2e_sanity/ENTRY_WEEKLY_AUDIT_V12_NORMAL_20250604_20260408"),
+    },
+]
+LONG_WINDOW_TEACHER_BAD_EXIT_REASONS = {"CATASTROPHIC_GUARD"}
+LONG_WINDOW_TEACHER_MEANINGFUL_MFE_BPS = 8.0
+LONG_WINDOW_TEACHER_COLLAPSE_MIN_MFE_BPS = 18.0
+LONG_WINDOW_TEACHER_COLLAPSE_MAX_RETAIN_FRAC = 0.25
+LONG_WINDOW_TEACHER_COLLAPSE_MAX_PNL_BPS = 5.0
+LONG_WINDOW_TEACHER_AGED_ROT_MIN_BARS = 96
+LONG_WINDOW_TEACHER_AGED_ROT_MIN_TIME_SINCE_MFE_BARS = 36
+LONG_WINDOW_TEACHER_AGED_ROT_MIN_DD_FROM_MFE_BPS = 18.0
+LONG_WINDOW_TEACHER_AGED_ROT_MAX_RETAIN_FRAC = 0.35
+LONG_WINDOW_TEACHER_AGED_ROT_MAX_PNL_BPS = 8.0
+LONG_WINDOW_TEACHER_PREMIUM_MIN_PNL_BPS = 20.0
+LONG_WINDOW_TEACHER_PREMIUM_MIN_MFE_BPS = 25.0
+LONG_WINDOW_TEACHER_PREMIUM_MIN_RETAIN_FRAC = 0.45
+LONG_WINDOW_TEACHER_EOF_PREMIUM_MIN_PNL_BPS = 18.0
+LONG_WINDOW_TEACHER_EOF_PREMIUM_MIN_MFE_BPS = 22.0
+LONG_WINDOW_TEACHER_EOF_PREMIUM_MIN_RETAIN_FRAC = 0.45
 MICRO_FEATURE_NAMES = [
     "micro_momentum_3",
     "micro_momentum_5",
@@ -205,6 +260,253 @@ def _resolve_gx1_data_root() -> Path:
     if not root.is_dir():
         raise RuntimeError(f"GX1_DATA invalid dir: {root}")
     return root
+
+
+def _resolve_single_existing(paths: List[Path], *, label: str) -> Path:
+    existing = [p for p in paths if p.exists()]
+    if len(existing) != 1:
+        raise RuntimeError(
+            f"[ENTRY_LONG_WINDOW_TEACHER_SOURCE_INVALID] label={label} expected exactly one existing path, got={existing}"
+        )
+    return existing[0]
+
+
+def _resolve_teacher_journal(run_root: Path, *, label: str) -> Path:
+    merged = sorted(run_root.glob("trade_journal_*_MERGED.parquet"))
+    if merged:
+        return _resolve_single_existing(merged, label=f"{label}:trade_journal_merged")
+    chunk = sorted((run_root / "replay" / "chunk_0").glob("trade_journal_*.parquet"))
+    return _resolve_single_existing(chunk, label=f"{label}:trade_journal_chunk")
+
+
+def _require_completed_teacher_run(run_root: Path, *, label: str) -> None:
+    if not (run_root / "RUN_COMPLETED.json").exists():
+        raise RuntimeError(
+            f"[ENTRY_LONG_WINDOW_TEACHER_INCOMPLETE] label={label} run_root={run_root} missing RUN_COMPLETED.json"
+        )
+
+
+def _load_long_window_teacher_long_m5_labels() -> pd.DataFrame:
+    """
+    Mine accepted long bars as teacher supervision on the same M5 grid as the
+    entry dataset.
+
+    Teacher bad:
+    - CATA exits
+    - EOF-negative
+    - meaningful-edge longs that still collapse back to non-positive realized outcome
+
+    Teacher winner:
+    - positive closes with healthy retained edge
+    - EOF-positive only when retention is strong enough to look harvestable on a longer window
+    """
+
+    def _load_run(run_root: Path, *, label: str, source_model: str) -> pd.DataFrame:
+        _require_completed_teacher_run(run_root, label=label)
+        eval_path = _resolve_single_existing(
+            list((run_root / "replay" / "chunk_0" / "logs").glob("eval_log_*.jsonl")),
+            label=f"{label}:eval_log",
+        )
+        journal_path = _resolve_teacher_journal(run_root, label=label)
+        eval_df = pd.read_json(eval_path, lines=True)
+        required_eval = {"ts_utc", "decision", "trade_id"}
+        missing_eval = sorted(required_eval - set(eval_df.columns))
+        if missing_eval:
+            raise RuntimeError(
+                f"[ENTRY_LONG_WINDOW_TEACHER_EVAL_SCHEMA] label={label} missing_eval_cols={missing_eval}"
+            )
+        accepted = eval_df.loc[eval_df["decision"] == "LONG", ["ts_utc", "trade_id"]].copy()
+        if accepted.empty:
+            raise RuntimeError(f"[ENTRY_LONG_WINDOW_TEACHER_EMPTY] label={label} no LONG decisions in {eval_path}")
+        accepted["time"] = pd.to_datetime(accepted["ts_utc"], utc=True, errors="coerce").dt.floor("5min")
+        if accepted["time"].isna().any():
+            raise RuntimeError(f"[ENTRY_LONG_WINDOW_TEACHER_TIME_PARSE] label={label} eval ts parse failed")
+
+        journal_df = pd.read_parquet(journal_path)
+        required_journal = {"trade_id", "exit_reason", "pnl_bps"}
+        missing_journal = sorted(required_journal - set(journal_df.columns))
+        if missing_journal:
+            raise RuntimeError(
+                f"[ENTRY_LONG_WINDOW_TEACHER_JOURNAL_SCHEMA] label={label} missing_journal_cols={missing_journal}"
+            )
+        merged = accepted.merge(
+            journal_df[
+                [
+                    c
+                    for c in [
+                        "trade_id",
+                        "exit_reason",
+                        "pnl_bps",
+                        "mfe_bps",
+                        "mae_bps",
+                        "tradable_prob",
+                        "mfe_first_n_pred",
+                        "path_quality_pred",
+                        "bars_in_trade",
+                        "bars_held_exit_state",
+                        "first_meaningful_mfe_bar_index",
+                        "peak_mfe_bar_index",
+                        "time_since_mfe_bars_exit",
+                        "dd_from_mfe_bps_exit",
+                        "distance_from_peak_mfe_bps_exit",
+                    ]
+                    if c in journal_df.columns
+                ]
+            ],
+            on="trade_id",
+            how="left",
+            validate="one_to_one",
+        )
+        missing_join = merged["exit_reason"].isna() | merged["pnl_bps"].isna()
+        if bool(missing_join.any()):
+            missing_count = int(missing_join.sum())
+            log.warning(
+                "[ENTRY_LONG_WINDOW_TEACHER_JOIN_PARTIAL] label=%s missing_journal_rows=%d action=drop_non_realized_accepts",
+                label,
+                missing_count,
+            )
+            merged = merged.loc[~missing_join].copy()
+        if merged.empty:
+            raise RuntimeError(f"[ENTRY_LONG_WINDOW_TEACHER_EMPTY_AFTER_JOIN] label={label}")
+        pnl = merged["pnl_bps"].astype(float)
+        mfe = merged.get("mfe_bps", pd.Series(np.zeros(len(merged), dtype=float))).astype(float)
+        bars_in_trade = merged.get("bars_in_trade", pd.Series(np.zeros(len(merged), dtype=float))).astype(float)
+        time_since_mfe_bars_exit = (
+            merged.get("time_since_mfe_bars_exit", pd.Series(np.zeros(len(merged), dtype=float))).astype(float)
+        )
+        dd_from_mfe_bps_exit = (
+            merged.get("dd_from_mfe_bps_exit", pd.Series(np.zeros(len(merged), dtype=float))).astype(float)
+        )
+        retained_frac = np.where(
+            mfe > 1e-6,
+            pnl / np.maximum(mfe, 1e-6),
+            np.where(pnl > 0.0, 1.0, -1.0),
+        )
+        meaningful_edge = mfe >= float(LONG_WINDOW_TEACHER_MEANINGFUL_MFE_BPS)
+        eof_positive = merged["exit_reason"].eq("REPLAY_EOF") & (pnl > 0.0)
+        eof_negative = merged["exit_reason"].eq("REPLAY_EOF") & (pnl < 0.0)
+        collapse_bad = (
+            (mfe >= float(LONG_WINDOW_TEACHER_COLLAPSE_MIN_MFE_BPS))
+            & (retained_frac <= float(LONG_WINDOW_TEACHER_COLLAPSE_MAX_RETAIN_FRAC))
+            & (pnl <= float(LONG_WINDOW_TEACHER_COLLAPSE_MAX_PNL_BPS))
+        )
+        aged_rot_bad = (
+            meaningful_edge
+            & (bars_in_trade >= float(LONG_WINDOW_TEACHER_AGED_ROT_MIN_BARS))
+            & (time_since_mfe_bars_exit >= float(LONG_WINDOW_TEACHER_AGED_ROT_MIN_TIME_SINCE_MFE_BARS))
+            & (dd_from_mfe_bps_exit >= float(LONG_WINDOW_TEACHER_AGED_ROT_MIN_DD_FROM_MFE_BPS))
+            & (
+                (retained_frac <= float(LONG_WINDOW_TEACHER_AGED_ROT_MAX_RETAIN_FRAC))
+                | (pnl <= float(LONG_WINDOW_TEACHER_AGED_ROT_MAX_PNL_BPS))
+            )
+        )
+        premium_eof_positive = eof_positive & (
+            (mfe >= float(LONG_WINDOW_TEACHER_EOF_PREMIUM_MIN_MFE_BPS))
+            & (pnl >= float(LONG_WINDOW_TEACHER_EOF_PREMIUM_MIN_PNL_BPS))
+            & (retained_frac >= float(LONG_WINDOW_TEACHER_EOF_PREMIUM_MIN_RETAIN_FRAC))
+        )
+        premium_closed_positive = (
+            ~merged["exit_reason"].isin(LONG_WINDOW_TEACHER_BAD_EXIT_REASONS)
+            & ~merged["exit_reason"].eq("REPLAY_EOF")
+            & (pnl >= float(LONG_WINDOW_TEACHER_PREMIUM_MIN_PNL_BPS))
+            & (mfe >= float(LONG_WINDOW_TEACHER_PREMIUM_MIN_MFE_BPS))
+            & (retained_frac >= float(LONG_WINDOW_TEACHER_PREMIUM_MIN_RETAIN_FRAC))
+        )
+        merged["teacher_bad_long"] = (
+            merged["exit_reason"].isin(LONG_WINDOW_TEACHER_BAD_EXIT_REASONS)
+            | eof_negative
+            | collapse_bad
+            | aged_rot_bad
+        )
+        merged["teacher_winner_long"] = premium_closed_positive | premium_eof_positive
+        merged["teacher_eof_positive_long"] = premium_eof_positive
+        merged["teacher_negative_eof_long"] = eof_negative
+        merged["teacher_collapse_long"] = collapse_bad
+        merged["teacher_aged_rot_long"] = aged_rot_bad
+        grouped = (
+            merged.groupby("time", as_index=False)
+            .agg(
+                teacher_bad_long=("teacher_bad_long", "max"),
+                teacher_winner_long=("teacher_winner_long", "max"),
+                teacher_trade_count=("trade_id", "count"),
+                teacher_mean_pnl_bps=("pnl_bps", "mean"),
+                teacher_eof_positive_long=("teacher_eof_positive_long", "max"),
+                teacher_negative_eof_long=("teacher_negative_eof_long", "max"),
+                teacher_collapse_long=("teacher_collapse_long", "max"),
+                teacher_aged_rot_long=("teacher_aged_rot_long", "max"),
+            )
+            .sort_values("time")
+            .reset_index(drop=True)
+        )
+        overlap = grouped["teacher_bad_long"] & grouped["teacher_winner_long"]
+        if bool(overlap.any()):
+            conflict_count = int(overlap.sum())
+            log.warning(
+                "[ENTRY_LONG_WINDOW_TEACHER_CONFLICT_DROP] label=%s conflicting_good_bad_rows=%d action=drop_ambiguous_teacher_rows",
+                label,
+                conflict_count,
+            )
+            grouped = grouped.loc[~overlap].copy()
+            if grouped.empty:
+                raise RuntimeError(
+                    f"[ENTRY_LONG_WINDOW_TEACHER_EMPTY_AFTER_CONFLICT_DROP] label={label}"
+                )
+        grouped["teacher_label"] = label
+        grouped["teacher_source_model"] = source_model
+        log.info(
+            "[ENTRY_LONG_WINDOW_TEACHER_PROOF] label=%s source_model=%s run_root=%s eval_path=%s journal_path=%s long_rows=%d unique_m5=%d bad_m5=%d good_m5=%d eof_pos_m5=%d eof_neg_m5=%d collapse_m5=%d aged_rot_m5=%d",
+            label,
+            source_model,
+            run_root,
+            eval_path,
+            journal_path,
+            int(len(accepted)),
+            int(grouped["time"].nunique()),
+            int(grouped["teacher_bad_long"].sum()),
+            int(grouped["teacher_winner_long"].sum()),
+            int(grouped["teacher_eof_positive_long"].sum()),
+            int(grouped["teacher_negative_eof_long"].sum()),
+            int(grouped["teacher_collapse_long"].sum()),
+            int(grouped["teacher_aged_rot_long"].sum()),
+        )
+        return grouped
+
+    teacher_parts: List[pd.DataFrame] = []
+    for spec in LONG_WINDOW_TEACHER_RUN_SPECS:
+        teacher_parts.append(
+            _load_run(
+                Path(spec["run_root"]),
+                label=str(spec["label"]),
+                source_model=str(spec["source_model"]),
+            )
+        )
+    teacher = pd.concat(teacher_parts, ignore_index=True)
+    teacher = (
+        teacher.groupby("time", as_index=False)
+        .agg(
+            teacher_bad_long=("teacher_bad_long", "max"),
+            teacher_winner_long=("teacher_winner_long", "max"),
+            teacher_trade_count=("teacher_trade_count", "sum"),
+            teacher_mean_pnl_bps=("teacher_mean_pnl_bps", "mean"),
+            teacher_eof_positive_long=("teacher_eof_positive_long", "max"),
+            teacher_negative_eof_long=("teacher_negative_eof_long", "max"),
+            teacher_collapse_long=("teacher_collapse_long", "max"),
+            teacher_aged_rot_long=("teacher_aged_rot_long", "max"),
+        )
+        .sort_values("time")
+        .reset_index(drop=True)
+    )
+    overlap = teacher["teacher_bad_long"] & teacher["teacher_winner_long"]
+    if bool(overlap.any()):
+        conflict_count = int(overlap.sum())
+        log.warning(
+            "[ENTRY_LONG_WINDOW_TEACHER_COMBINED_CONFLICT_DROP] conflicting_good_bad_rows=%d action=drop_ambiguous_teacher_rows",
+            conflict_count,
+        )
+        teacher = teacher.loc[~overlap].copy()
+        if teacher.empty:
+            raise RuntimeError("[ENTRY_LONG_WINDOW_TEACHER_EMPTY_AFTER_COMBINED_CONFLICT_DROP]")
+    return teacher
 
 
 # -----------------------------------------------------------------------------
@@ -675,6 +977,21 @@ def build_dataset_canonical(
     time_col = _detect_time_col(df)
     df = _normalize_time_utc(df, time_col)
 
+    # Canonical BASE28 may be expanded to raw M1 rows with an explicit model-bar marker.
+    # Entry training remains defined on the M5 model-bar lane, so filter here instead of
+    # letting the later tape join fail on a mixed-granularity input.
+    if "is_model_bar" in df.columns:
+        model_bar_mask = pd.Series(df["is_model_bar"]).fillna(False).astype(bool)
+        rows_before_model_bar = int(len(df))
+        rows_model_bar = int(model_bar_mask.sum())
+        df = df.loc[model_bar_mask].copy()
+        log.info(
+            "[BASE28_MODEL_BAR_FILTER] rows_before=%d rows_after=%d dropped=%d",
+            rows_before_model_bar,
+            rows_model_bar,
+            rows_before_model_bar - rows_model_bar,
+        )
+
     # filter by start/end
     if start is not None:
         df = df[df["time"] >= start]
@@ -833,21 +1150,22 @@ def build_dataset_canonical(
         required_cols=["bid_close", "ask_close", "open", "high", "low", "close"],
     )
 
-    # Inner join tape to BASE28 by time
-    # We keep only matching times (deterministic). Require strict 1:1 match.
+    # Inner join tape to BASE28 by time.
+    # Determinism requirement is "every BASE28 model-bar timestamp must resolve to exactly one
+    # tape row". Tape is allowed to contain extra timestamps outside the BASE28 model-bar lane.
     merged = df_sig.merge(tape, on="time", how="inner", validate="one_to_one")
     rows_base28 = int(len(df_sig))
     rows_tape = int(len(tape))
     rows_joined = int(len(merged))
-    exact_match = int(rows_base28 == rows_tape == rows_joined)
+    full_base28_match = int(rows_base28 == rows_joined)
     log.info(
-        "[ENTRY_TAPE_JOIN_PROOF] rows_base28=%d rows_tape=%d rows_joined=%d exact_match=%d",
+        "[ENTRY_TAPE_JOIN_PROOF] rows_base28=%d rows_tape=%d rows_joined=%d full_base28_match=%d",
         rows_base28,
         rows_tape,
         rows_joined,
-        exact_match,
+        full_base28_match,
     )
-    if not exact_match:
+    if not full_base28_match:
         raise RuntimeError(
             f"TAPE_JOIN_STRICT_FAIL: rows_base28={rows_base28} rows_tape={rows_tape} rows_joined={rows_joined}"
         )
@@ -1653,6 +1971,7 @@ def build_dataset_canonical(
     _mae_long = merged3["mae_long_first_n_bps"].astype(np.float32).to_numpy()
     _mfe_short = merged3["mfe_short_first_n_bps"].astype(np.float32).to_numpy()
     _mae_short = merged3["mae_short_first_n_bps"].astype(np.float32).to_numpy()
+    _bad_path_long = (merged3["bad_path_long_first_n"].astype(np.float32).to_numpy() > 0.5)
     _path_long = (_mfe_long - _mae_long).astype(np.float32)
     _path_short = (_mfe_short - _mae_short).astype(np.float32)
     _path_lead_long = (_path_long - _path_short).astype(np.float32)
@@ -1666,6 +1985,7 @@ def build_dataset_canonical(
         & (_path_long >= STRICT_TRADABLE_PATH_MIN_BPS)
         & (_path_lead_long >= STRICT_TRADABLE_PATH_LEAD_MIN_BPS)
         & (_mfe_lead_long >= STRICT_TRADABLE_MFE_LEAD_MIN_BPS)
+        & (~_bad_path_long)
     )
     _tradable_short = (
         (_mfe_short >= STRICT_TRADABLE_MFE_MIN_BPS)
@@ -1674,6 +1994,8 @@ def build_dataset_canonical(
         & (_path_lead_short >= STRICT_TRADABLE_PATH_LEAD_MIN_BPS)
         & (_mfe_lead_short >= STRICT_TRADABLE_MFE_LEAD_MIN_BPS)
     )
+    if CANONICAL_PREMIUM_LONG_ONLY:
+        _tradable_short = np.zeros_like(_tradable_short, dtype=bool)
 
     # Choose side based on best path quality (tie-break by MFE)
     _side = np.full(len(merged3), -1, dtype=np.int8)  # -1 none, 0 long, 1 short
@@ -1694,16 +2016,118 @@ def build_dataset_canonical(
 
     # Apply relabel veto to tradability as well: explicit poison pockets stay non-tradable
     _side[relabel_veto] = -1
+    _direction_side = _side.copy()
+
+    teacher_df = _load_long_window_teacher_long_m5_labels()
+    teacher_join = pd.DataFrame({"time": pd.to_datetime(times, utc=True)}).merge(
+        teacher_df,
+        on="time",
+        how="left",
+    )
+    _teacher_bad_long = (
+        teacher_join.get("teacher_bad_long", pd.Series(np.zeros(len(teacher_join), dtype=bool)))
+        .fillna(False)
+        .astype(bool)
+        .to_numpy()
+    )
+    _teacher_winner_long = (
+        teacher_join.get("teacher_winner_long", pd.Series(np.zeros(len(teacher_join), dtype=bool)))
+        .fillna(False)
+        .astype(bool)
+        .to_numpy()
+    )
+    _teacher_known_long = _teacher_bad_long | _teacher_winner_long
+    if bool((_teacher_bad_long & _teacher_winner_long).any()):
+        raise RuntimeError("[ENTRY_LONG_WINDOW_TEACHER_LABEL_CONFLICT] same row marked both good and bad")
+
+    _harvest_side = _direction_side.copy()
+    _harvest_side[_teacher_bad_long & (_direction_side == 0)] = -1
+    _harvest_side[_teacher_winner_long] = 0
+
+    # Hard-negative longs:
+    # XGB points long, but forward path is too weak / too adverse to be premium.
+    # These rows are the important "say no" examples for the anchored residual model.
+    _p_long = merged3["p_long"].astype(np.float32).to_numpy()
+    _p_short = merged3["p_short"].astype(np.float32).to_numpy()
+    _p_flat = merged3["p_flat"].astype(np.float32).to_numpy()
+    _xgb_long_candidate = (
+        (_p_long >= float(HARD_NEG_LONG_MIN_XGB_P_LONG))
+        & (_p_long >= _p_short)
+        & (_p_long >= _p_flat)
+    )
+    _dead_negative_long = (
+        _xgb_long_candidate
+        & (_side != 0)
+        & (_mfe_long <= float(DEAD_LONG_MAX_MFE_BPS))
+        & (_mae_long >= float(DEAD_LONG_MIN_MAE_BPS))
+    )
+    _teaser_negative_long = (
+        _xgb_long_candidate
+        & (_side != 0)
+        & (_mfe_long > float(TEASER_LONG_MIN_MFE_BPS))
+        & (_mfe_long <= float(TEASER_LONG_MAX_MFE_BPS))
+        & (
+            _bad_path_long
+            | (_mae_long >= float(TEASER_LONG_MIN_MAE_BPS))
+            | (_path_long <= float(TEASER_LONG_MAX_PATH_BPS))
+        )
+    )
+    _hard_negative_long = (
+        _xgb_long_candidate
+        & (_side != 0)
+        & ~_dead_negative_long
+        & ~_teaser_negative_long
+        & (
+            _bad_path_long
+            | (
+                (_mfe_long >= float(HARD_NEG_LONG_MIN_MFE_BPS))
+                & (
+                    (_mae_long >= float(HARD_NEG_LONG_MIN_MAE_BPS))
+                    | (_path_long <= float(HARD_NEG_LONG_MAX_PATH_BPS))
+                )
+            )
+        )
+    )
+    _hard_negative_long = _hard_negative_long | _teacher_bad_long
+    y_dead_negative_long = _dead_negative_long.astype(np.float32)
+    y_teaser_negative_long = _teaser_negative_long.astype(np.float32)
+    y_hard_negative_long = _hard_negative_long.astype(np.float32)
+    _clean_edge_intrinsic = (
+        (_direction_side == 0)
+        & (_mfe_long >= float(CLEAN_EDGE_LONG_MFE_MIN_BPS))
+        & (_mae_long <= float(CLEAN_EDGE_LONG_MAE_MAX_BPS))
+        & (_path_long >= float(CLEAN_EDGE_LONG_PATH_MIN_BPS))
+        & (~_bad_path_long)
+    )
+    y_clean_edge_long = _clean_edge_intrinsic.astype(np.float32)
+    y_clean_edge_long[_teacher_bad_long] = 0.0
+    y_clean_edge_long[_teacher_winner_long] = 1.0
+    _survival_intrinsic = (
+        (_direction_side == 0)
+        & (_mfe_long >= float(SURVIVAL_LONG_MFE_MIN_BPS))
+        & (_mae_long <= float(SURVIVAL_LONG_MAE_MAX_BPS))
+        & (_path_long >= float(SURVIVAL_LONG_PATH_MIN_BPS))
+    )
+    y_survival_long = _survival_intrinsic.astype(np.float32)
+    y_survival_long[_teacher_bad_long] = 0.0
+    y_survival_long[_teacher_winner_long] = 1.0
+    y_teacher_bad_long = _teacher_bad_long.astype(np.float32)
+    y_teacher_winner_long = _teacher_winner_long.astype(np.float32)
+    y_selector_long_mask = (
+        _xgb_long_candidate
+        | (_direction_side == 0)
+        | _teacher_known_long
+    ).astype(np.float32)
 
     # Final tradability / quality targets
-    y_tradable = (_side != -1).astype(np.int32)
+    y_tradable = (_harvest_side != -1).astype(np.int32)
     y_dir = np.full(len(merged3), 2, dtype=np.int32)
-    y_dir[_side == 0] = 0
-    y_dir[_side == 1] = 1
+    y_dir[_direction_side == 0] = 0
+    y_dir[_direction_side == 1] = 1
 
     # Quality auxiliaries align to the strict tradable side. Non-obvious labels are
     # intentionally parked to zero/FLAT.
-    _quality_side = _side.copy()
+    _quality_side = _harvest_side.copy()
 
     y_mfe_first_n = np.zeros_like(y_mfe_first_n)
     y_mae_first_n = np.zeros_like(y_mae_first_n)
@@ -1746,6 +2170,59 @@ def build_dataset_canonical(
         float(STRICT_TRADABLE_PATH_MIN_BPS),
         float(STRICT_TRADABLE_PATH_LEAD_MIN_BPS),
         float(STRICT_TRADABLE_MFE_LEAD_MIN_BPS),
+    )
+    log.info(
+        "[ENTRY_DIRECTION_LANE_PROOF] split=%s canonical_premium_long_only=%s",
+        _split_tag,
+        bool(CANONICAL_PREMIUM_LONG_ONLY),
+    )
+    log.info(
+        "[ENTRY_DEAD_LONG_RULES] split=%s mfe_max=%.2f mae_min=%.2f rate=%.6f",
+        _split_tag,
+        float(DEAD_LONG_MAX_MFE_BPS),
+        float(DEAD_LONG_MIN_MAE_BPS),
+        float(np.mean(y_dead_negative_long)) if len(y_dead_negative_long) else 0.0,
+    )
+    log.info(
+        "[ENTRY_TEASER_LONG_RULES] split=%s mfe_min=%.2f mfe_max=%.2f mae_min=%.2f path_max=%.2f rate=%.6f",
+        _split_tag,
+        float(TEASER_LONG_MIN_MFE_BPS),
+        float(TEASER_LONG_MAX_MFE_BPS),
+        float(TEASER_LONG_MIN_MAE_BPS),
+        float(TEASER_LONG_MAX_PATH_BPS),
+        float(np.mean(y_teaser_negative_long)) if len(y_teaser_negative_long) else 0.0,
+    )
+    log.info(
+        "[ENTRY_HARD_NEG_LONG_RULES] split=%s xgb_p_long_min=%.2f mfe_min=%.2f mae_min=%.2f path_max=%.2f rate=%.6f",
+        _split_tag,
+        float(HARD_NEG_LONG_MIN_XGB_P_LONG),
+        float(HARD_NEG_LONG_MIN_MFE_BPS),
+        float(HARD_NEG_LONG_MIN_MAE_BPS),
+        float(HARD_NEG_LONG_MAX_PATH_BPS),
+        float(np.mean(y_hard_negative_long)) if len(y_hard_negative_long) else 0.0,
+    )
+    log.info(
+        "[ENTRY_CLEAN_EDGE_LONG_RULES] split=%s mfe_min=%.2f mae_max=%.2f path_min=%.2f rate=%.6f",
+        _split_tag,
+        float(CLEAN_EDGE_LONG_MFE_MIN_BPS),
+        float(CLEAN_EDGE_LONG_MAE_MAX_BPS),
+        float(CLEAN_EDGE_LONG_PATH_MIN_BPS),
+        float(np.mean(y_clean_edge_long)) if len(y_clean_edge_long) else 0.0,
+    )
+    log.info(
+        "[ENTRY_SURVIVAL_LONG_RULES] split=%s mfe_min=%.2f mae_max=%.2f path_min=%.2f rate=%.6f",
+        _split_tag,
+        float(SURVIVAL_LONG_MFE_MIN_BPS),
+        float(SURVIVAL_LONG_MAE_MAX_BPS),
+        float(SURVIVAL_LONG_PATH_MIN_BPS),
+        float(np.mean(y_survival_long)) if len(y_survival_long) else 0.0,
+    )
+    log.info(
+        "[ENTRY_LONG_WINDOW_TEACHER_LABELS] split=%s bad_rate=%.6f winner_rate=%.6f selector_mask_rate=%.6f",
+        _split_tag,
+        float(np.mean(y_teacher_bad_long)) if len(y_teacher_bad_long) else 0.0,
+        float(np.mean(y_teacher_winner_long)) if len(y_teacher_winner_long) else 0.0,
+        float(np.mean(y_selector_long_mask)) if len(y_selector_long_mask) else 0.0,
     )
 
     # Tradable rate proof (split-aware)
@@ -1811,6 +2288,14 @@ def build_dataset_canonical(
                 "mae_first_n_bps": y_mae_first_n[i],
                 "mfe_first_n_bps": y_mfe_first_n[i],
                 "path_quality_bps": y_path_quality[i],
+                "y_dead_negative_long": y_dead_negative_long[i],
+                "y_teaser_negative_long": y_teaser_negative_long[i],
+                "y_hard_negative_long": y_hard_negative_long[i],
+                "y_clean_edge_long": y_clean_edge_long[i],
+                "y_survival_long": y_survival_long[i],
+                "y_teacher_bad_long": y_teacher_bad_long[i],
+                "y_teacher_winner_long": y_teacher_winner_long[i],
+                "y_selector_long_mask": y_selector_long_mask[i],
                 "label_horizon_bars": y_label_horizon[i],
                 "path_quality_horizon_bars": y_path_horizon[i],
             }
@@ -1887,6 +2372,7 @@ def build_dataset_canonical(
             "ctx_cont_session_features": list(SESSION_CTX_CONT_NAMES),
         },
         "lane_contract": {
+            "direction_policy": "LONG_ONLY_PREMIUM" if CANONICAL_PREMIUM_LONG_ONLY else "BIDIRECTIONAL_PREMIUM",
             "entry_admission_policy": "OVERLAP_LONG_REPLACES_OLDEST_OVERLAP_SHORT_WHEN_FULL",
             "entry_runtime_gates": [
                 "flat_veto",
@@ -1902,6 +2388,52 @@ def build_dataset_canonical(
             "tradable_path_lead_min_bps": float(STRICT_TRADABLE_PATH_LEAD_MIN_BPS),
             "tradable_mfe_lead_min_bps": float(STRICT_TRADABLE_MFE_LEAD_MIN_BPS),
             "direction_follows_tradable_side": True,
+            "canonical_premium_long_only": bool(CANONICAL_PREMIUM_LONG_ONLY),
+            "hard_negative_long_xgb_p_long_min": float(HARD_NEG_LONG_MIN_XGB_P_LONG),
+            "hard_negative_long_mfe_min_bps": float(HARD_NEG_LONG_MIN_MFE_BPS),
+            "hard_negative_long_mae_min_bps": float(HARD_NEG_LONG_MIN_MAE_BPS),
+            "hard_negative_long_path_max_bps": float(HARD_NEG_LONG_MAX_PATH_BPS),
+            "dead_long_mfe_max_bps": float(DEAD_LONG_MAX_MFE_BPS),
+            "dead_long_mae_min_bps": float(DEAD_LONG_MIN_MAE_BPS),
+            "teaser_long_mfe_min_bps": float(TEASER_LONG_MIN_MFE_BPS),
+            "teaser_long_mfe_max_bps": float(TEASER_LONG_MAX_MFE_BPS),
+            "teaser_long_mae_min_bps": float(TEASER_LONG_MIN_MAE_BPS),
+            "teaser_long_path_max_bps": float(TEASER_LONG_MAX_PATH_BPS),
+            "clean_edge_long_mfe_min_bps": float(CLEAN_EDGE_LONG_MFE_MIN_BPS),
+            "clean_edge_long_mae_max_bps": float(CLEAN_EDGE_LONG_MAE_MAX_BPS),
+            "clean_edge_long_path_min_bps": float(CLEAN_EDGE_LONG_PATH_MIN_BPS),
+            "survival_long_mfe_min_bps": float(SURVIVAL_LONG_MFE_MIN_BPS),
+            "survival_long_mae_max_bps": float(SURVIVAL_LONG_MAE_MAX_BPS),
+            "survival_long_path_min_bps": float(SURVIVAL_LONG_PATH_MIN_BPS),
+            "tradable_excludes_bad_path": True,
+            "teacher_source": {
+                "run_specs": [
+                    {
+                        "label": str(spec["label"]),
+                        "source_model": str(spec["source_model"]),
+                        "run_root": str(spec["run_root"]),
+                    }
+                    for spec in LONG_WINDOW_TEACHER_RUN_SPECS
+                ],
+                "teacher_bad_exit_reasons": sorted(LONG_WINDOW_TEACHER_BAD_EXIT_REASONS),
+                "meaningful_mfe_bps": float(LONG_WINDOW_TEACHER_MEANINGFUL_MFE_BPS),
+                "collapse_min_mfe_bps": float(LONG_WINDOW_TEACHER_COLLAPSE_MIN_MFE_BPS),
+                "collapse_max_retain_frac": float(LONG_WINDOW_TEACHER_COLLAPSE_MAX_RETAIN_FRAC),
+                "collapse_max_pnl_bps": float(LONG_WINDOW_TEACHER_COLLAPSE_MAX_PNL_BPS),
+                "aged_rot_min_bars": int(LONG_WINDOW_TEACHER_AGED_ROT_MIN_BARS),
+                "aged_rot_min_time_since_mfe_bars": int(LONG_WINDOW_TEACHER_AGED_ROT_MIN_TIME_SINCE_MFE_BARS),
+                "aged_rot_min_dd_from_mfe_bps": float(LONG_WINDOW_TEACHER_AGED_ROT_MIN_DD_FROM_MFE_BPS),
+                "aged_rot_max_retain_frac": float(LONG_WINDOW_TEACHER_AGED_ROT_MAX_RETAIN_FRAC),
+                "aged_rot_max_pnl_bps": float(LONG_WINDOW_TEACHER_AGED_ROT_MAX_PNL_BPS),
+                "premium_min_pnl_bps": float(LONG_WINDOW_TEACHER_PREMIUM_MIN_PNL_BPS),
+                "premium_min_mfe_bps": float(LONG_WINDOW_TEACHER_PREMIUM_MIN_MFE_BPS),
+                "premium_min_retain_frac": float(LONG_WINDOW_TEACHER_PREMIUM_MIN_RETAIN_FRAC),
+                "eof_premium_min_pnl_bps": float(LONG_WINDOW_TEACHER_EOF_PREMIUM_MIN_PNL_BPS),
+                "eof_premium_min_mfe_bps": float(LONG_WINDOW_TEACHER_EOF_PREMIUM_MIN_MFE_BPS),
+                "eof_premium_min_retain_frac": float(LONG_WINDOW_TEACHER_EOF_PREMIUM_MIN_RETAIN_FRAC),
+                "teacher_bad_m5_rows": int(np.sum(y_teacher_bad_long)),
+                "teacher_winner_m5_rows": int(np.sum(y_teacher_winner_long)),
+            },
         },
         "parked_targets": {
             "bad_path": {
@@ -2016,6 +2548,7 @@ def main() -> None:
 
     # Resolve SSoT inputs (truth-config or manual)
     truth_config_path: Optional[Path] = None
+    truth_tape_root_model: Optional[Path] = None
     if args.truth_config:
         truth_config_path = Path(args.truth_config).expanduser().resolve()
         if args.base28_manifest or args.xgb_bundle:
@@ -2034,6 +2567,9 @@ def main() -> None:
             raise RuntimeError(
                 f"TRUTH_CONFIG_MISSING_CANONICAL_XGB_BUNDLE: canonical_xgb_bundle_dir missing in {truth_config_path}"
             )
+        canonical_tape_root_model = str(truth_obj.get("canonical_market_tape_root_model") or "").strip()
+        if canonical_tape_root_model:
+            truth_tape_root_model = Path(canonical_tape_root_model).expanduser().resolve()
         xgb_bundle_path = Path(canonical_xgb_bundle_dir).expanduser().resolve()
         xgb_override = os.environ.get("GX1_XGB_BUNDLE_DIR", "").strip()
         if xgb_override:
@@ -2046,15 +2582,17 @@ def main() -> None:
                 )
             xgb_bundle_path = override_path
         log.info(
-            "[TRUTH_CONFIG] Using truth-config %s -> base28_manifest=%s xgb_bundle=%s",
+            "[TRUTH_CONFIG] Using truth-config %s -> base28_manifest=%s xgb_bundle=%s tape_root_model=%s",
             truth_config_path,
             base28_manifest_path,
             xgb_bundle_path,
+            truth_tape_root_model,
         )
         proof_payload.update(
             {
                 "truth_config_path": str(truth_config_path),
                 "truth_source": "truth_config",
+                "truth_tape_root_model": str(truth_tape_root_model) if truth_tape_root_model is not None else None,
             }
         )
     else:
@@ -2112,6 +2650,8 @@ def main() -> None:
     # Tape root resolution
     if args.tape_root.strip():
         tape_root = Path(args.tape_root).expanduser().resolve()
+    elif truth_tape_root_model is not None:
+        tape_root = truth_tape_root_model
     else:
         gx1_data = _resolve_gx1_data_root()
         tape_root = gx1_data / "data" / "oanda" / "canonical" / "xauusd_m5_bid_ask__CANONICAL"

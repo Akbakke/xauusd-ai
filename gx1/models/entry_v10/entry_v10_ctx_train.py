@@ -81,12 +81,41 @@ def _running_in_wsl() -> bool:
     except Exception:
         return False
 
+
+_ENTRY_ALLOWED_COMPAT_STATE_KEYS = {
+    "head_early_move.weight",
+    "head_early_move.bias",
+    "head_quality.weight",
+    "head_quality.bias",
+    "head_bad_path.weight",
+    "head_bad_path.bias",
+    "head_clean_edge.weight",
+    "head_clean_edge.bias",
+    "head_survival.weight",
+    "head_survival.bias",
+}
+
+
+def _load_entry_model_state_compat(model: nn.Module, state: Dict[str, Any], *, label: str) -> None:
+    incompatible = model.load_state_dict(state, strict=False)
+    missing = set(getattr(incompatible, "missing_keys", []) or [])
+    unexpected = set(getattr(incompatible, "unexpected_keys", []) or [])
+    unexpected_active = unexpected - _ENTRY_ALLOWED_COMPAT_STATE_KEYS
+    if unexpected_active:
+        raise RuntimeError(f"[ENTRY_V10_CTX_UNEXPECTED_KEYS] {label}: {sorted(unexpected_active)}")
+    missing_active = missing - _ENTRY_ALLOWED_COMPAT_STATE_KEYS
+    if missing_active:
+        raise RuntimeError(f"[ENTRY_V10_CTX_MISSING_KEYS] {label}: {sorted(missing_active)}")
+
 # -----------------------------------------------------------------------------
 # SHORT collapse countermeasures (training-only)
 # Canonical lane keeps these parked unless we have clear evidence they help more
 # than they complicate the recipe.
 # -----------------------------------------------------------------------------
 SHORT_CLASS_WEIGHT = float(_env_str("ENTRY_SHORT_CLASS_WEIGHT", "0.90"))
+ENTRY_LONG_CLASS_WEIGHT_CAP = float(_env_str("ENTRY_LONG_CLASS_WEIGHT_CAP", "20.0"))
+ENTRY_SHORT_CLASS_WEIGHT_CAP = float(_env_str("ENTRY_SHORT_CLASS_WEIGHT_CAP", "8.0"))
+ENTRY_FLAT_CLASS_WEIGHT_FLOOR = float(_env_str("ENTRY_FLAT_CLASS_WEIGHT_FLOOR", "1.0"))
 XGB_SHORT_LEAD_MARGIN = float(_env_str("ENTRY_XGB_SHORT_LEAD_MARGIN", "0.0"))
 XGB_SHORT_LONG_PENALTY = float(_env_str("ENTRY_XGB_SHORT_LONG_PENALTY", "0.0"))
 
@@ -99,9 +128,9 @@ ENTRY_COST_SENSITIVE_ENABLED = int(_env_str("ENTRY_COST_SENSITIVE_LOSS", "1"))
 ENTRY_COST_SENSITIVE_SCALE = float(_env_str("ENTRY_COST_SENSITIVE_SCALE", "0.25"))
 ENTRY_COST_LONG_TO_SHORT = float(_env_str("ENTRY_COST_LONG_TO_SHORT", "2.00"))
 ENTRY_COST_LONG_TO_FLAT = float(_env_str("ENTRY_COST_LONG_TO_FLAT", "0.45"))
-ENTRY_COST_SHORT_TO_LONG = float(_env_str("ENTRY_COST_SHORT_TO_LONG", "2.00"))
+ENTRY_COST_SHORT_TO_LONG = float(_env_str("ENTRY_COST_SHORT_TO_LONG", "3.00"))
 ENTRY_COST_SHORT_TO_FLAT = float(_env_str("ENTRY_COST_SHORT_TO_FLAT", "0.45"))
-ENTRY_COST_FLAT_TO_LONG = float(_env_str("ENTRY_COST_FLAT_TO_LONG", "1.60"))
+ENTRY_COST_FLAT_TO_LONG = float(_env_str("ENTRY_COST_FLAT_TO_LONG", "2.75"))
 ENTRY_COST_FLAT_TO_SHORT = float(_env_str("ENTRY_COST_FLAT_TO_SHORT", "1.60"))
 
 # -----------------------------------------------------------------------------
@@ -112,7 +141,7 @@ ENTRY_COST_FLAT_TO_SHORT = float(_env_str("ENTRY_COST_FLAT_TO_SHORT", "1.60"))
 ENTRY_PRED_BALANCE_ALPHA = float(_env_str("ENTRY_PRED_BALANCE_ALPHA", "0.0"))
 ENTRY_PRED_BALANCE_TARGET = _env_str("ENTRY_PRED_BALANCE_TARGET", "label").lower()
 ENTRY_RESIDUAL_SIDE_BIAS_ALPHA = float(_env_str("ENTRY_RESIDUAL_SIDE_BIAS_ALPHA", "0.0"))
-ENTRY_DIRECTION_CE_SCALE = float(_env_str("ENTRY_DIRECTION_CE_SCALE", "1.10"))
+ENTRY_DIRECTION_CE_SCALE = float(_env_str("ENTRY_DIRECTION_CE_SCALE", "1.40"))
 
 # -----------------------------------------------------------------------------
 # Timing loss (early adverse move penalty)
@@ -127,9 +156,9 @@ ENTRY_TIMING_LOSS_SCALE = float(_env_str("ENTRY_TIMING_LOSS_SCALE", "0.0"))
 # gates (tradable, mfe_first_n, path_quality). Early/quality-score/bad-path stay parked.
 ENTRY_AUX_EARLY_WEIGHT = float(_env_str("ENTRY_AUX_EARLY_WEIGHT", "0.0"))
 ENTRY_AUX_QUALITY_WEIGHT = float(_env_str("ENTRY_AUX_QUALITY_WEIGHT", "0.0"))
-ENTRY_AUX_PATH_WEIGHT = float(_env_str("ENTRY_AUX_PATH_WEIGHT", "0.55"))
-ENTRY_AUX_MFE_WEIGHT = float(_env_str("ENTRY_AUX_MFE_WEIGHT", "0.40"))
-ENTRY_AUX_TRADABLE_WEIGHT = float(_env_str("ENTRY_AUX_TRADABLE_WEIGHT", "0.90"))
+ENTRY_AUX_PATH_WEIGHT = float(_env_str("ENTRY_AUX_PATH_WEIGHT", "0.90"))
+ENTRY_AUX_MFE_WEIGHT = float(_env_str("ENTRY_AUX_MFE_WEIGHT", "0.25"))
+ENTRY_AUX_TRADABLE_WEIGHT = float(_env_str("ENTRY_AUX_TRADABLE_WEIGHT", "1.20"))
 # Canonical lane keeps bad-path parked until it shows clean incremental value.
 ENTRY_AUX_BAD_PATH_WEIGHT = float(_env_str("ENTRY_AUX_BAD_PATH_WEIGHT", "0.0"))
 ENTRY_AUX_BAD_PATH_POS_WEIGHT_CAP = float(_env_str("ENTRY_AUX_BAD_PATH_POS_WEIGHT_CAP", "20.0"))
@@ -137,6 +166,19 @@ ENTRY_AUX_BAD_PATH_POS_WEIGHT_CAP = float(_env_str("ENTRY_AUX_BAD_PATH_POS_WEIGH
 ENTRY_AUX_QUALITY_SCALE_BPS = float(_env_str("ENTRY_AUX_QUALITY_SCALE_BPS", "50.0"))
 ENTRY_AUX_PATH_SCALE_BPS = float(_env_str("ENTRY_AUX_PATH_SCALE_BPS", "50.0"))
 ENTRY_AUX_MFE_SCALE_BPS = float(_env_str("ENTRY_AUX_MFE_SCALE_BPS", "20.0"))
+ENTRY_AUX_TRADABLE_POS_WEIGHT_CAP = float(_env_str("ENTRY_AUX_TRADABLE_POS_WEIGHT_CAP", "12.0"))
+ENTRY_HARD_NEG_LONG_CE_MULTIPLIER = float(_env_str("ENTRY_HARD_NEG_LONG_CE_MULTIPLIER", "1.35"))
+ENTRY_HARD_NEG_LONG_PROB_PENALTY = float(_env_str("ENTRY_HARD_NEG_LONG_PROB_PENALTY", "0.20"))
+ENTRY_DEAD_LONG_CE_MULTIPLIER = float(_env_str("ENTRY_DEAD_LONG_CE_MULTIPLIER", "1.60"))
+ENTRY_DEAD_LONG_PROB_PENALTY = float(_env_str("ENTRY_DEAD_LONG_PROB_PENALTY", "0.35"))
+ENTRY_TEASER_LONG_CE_MULTIPLIER = float(_env_str("ENTRY_TEASER_LONG_CE_MULTIPLIER", "1.20"))
+ENTRY_TEASER_LONG_PROB_PENALTY = float(_env_str("ENTRY_TEASER_LONG_PROB_PENALTY", "0.12"))
+ENTRY_AUX_CLEAN_EDGE_WEIGHT = float(_env_str("ENTRY_AUX_CLEAN_EDGE_WEIGHT", "0.55"))
+ENTRY_AUX_SURVIVAL_WEIGHT = float(_env_str("ENTRY_AUX_SURVIVAL_WEIGHT", "0.08"))
+ENTRY_AUX_CLEAN_EDGE_POS_WEIGHT_CAP = float(_env_str("ENTRY_AUX_CLEAN_EDGE_POS_WEIGHT_CAP", "16.0"))
+ENTRY_AUX_SURVIVAL_POS_WEIGHT_CAP = float(_env_str("ENTRY_AUX_SURVIVAL_POS_WEIGHT_CAP", "10.0"))
+ENTRY_CLEAN_EDGE_RANKING_WEIGHT = float(_env_str("ENTRY_CLEAN_EDGE_RANKING_WEIGHT", "0.35"))
+ENTRY_CLEAN_EDGE_RANKING_MARGIN = float(_env_str("ENTRY_CLEAN_EDGE_RANKING_MARGIN", "0.14"))
 
 # -----------------------------------------------------------------------------
 # Micro features (ctx_cont extension)
@@ -195,32 +237,48 @@ ENTRY_ANCHOR_EPS = float(_env_str("ENTRY_ANCHOR_EPS", "1e-6"))
 
 _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_SHORT_CLASS_WEIGHT": "0.90",
+    "ENTRY_LONG_CLASS_WEIGHT_CAP": "20.0",
+    "ENTRY_SHORT_CLASS_WEIGHT_CAP": "8.0",
+    "ENTRY_FLAT_CLASS_WEIGHT_FLOOR": "1.0",
     "ENTRY_XGB_SHORT_LEAD_MARGIN": "0.0",
     "ENTRY_XGB_SHORT_LONG_PENALTY": "0.0",
     "ENTRY_COST_SENSITIVE_LOSS": "1",
     "ENTRY_COST_SENSITIVE_SCALE": "0.25",
     "ENTRY_COST_LONG_TO_SHORT": "2.00",
     "ENTRY_COST_LONG_TO_FLAT": "0.45",
-    "ENTRY_COST_SHORT_TO_LONG": "2.00",
+    "ENTRY_COST_SHORT_TO_LONG": "3.00",
     "ENTRY_COST_SHORT_TO_FLAT": "0.45",
-    "ENTRY_COST_FLAT_TO_LONG": "1.60",
+    "ENTRY_COST_FLAT_TO_LONG": "2.75",
     "ENTRY_COST_FLAT_TO_SHORT": "1.60",
     "ENTRY_PRED_BALANCE_ALPHA": "0.0",
     "ENTRY_PRED_BALANCE_TARGET": "label",
     "ENTRY_RESIDUAL_SIDE_BIAS_ALPHA": "0.0",
-    "ENTRY_DIRECTION_CE_SCALE": "1.10",
+    "ENTRY_DIRECTION_CE_SCALE": "1.30",
     "ENTRY_TIMING_TARGET_BPS": "3.0",
     "ENTRY_TIMING_LOSS_SCALE": "0.0",
     "ENTRY_AUX_EARLY_WEIGHT": "0.0",
     "ENTRY_AUX_QUALITY_WEIGHT": "0.0",
-    "ENTRY_AUX_PATH_WEIGHT": "0.55",
-    "ENTRY_AUX_MFE_WEIGHT": "0.40",
-    "ENTRY_AUX_TRADABLE_WEIGHT": "0.90",
+    "ENTRY_AUX_PATH_WEIGHT": "0.90",
+    "ENTRY_AUX_MFE_WEIGHT": "0.25",
+    "ENTRY_AUX_TRADABLE_WEIGHT": "1.15",
     "ENTRY_AUX_BAD_PATH_WEIGHT": "0.0",
     "ENTRY_AUX_BAD_PATH_POS_WEIGHT_CAP": "20.0",
     "ENTRY_AUX_QUALITY_SCALE_BPS": "50.0",
     "ENTRY_AUX_PATH_SCALE_BPS": "50.0",
     "ENTRY_AUX_MFE_SCALE_BPS": "20.0",
+    "ENTRY_AUX_TRADABLE_POS_WEIGHT_CAP": "12.0",
+    "ENTRY_HARD_NEG_LONG_CE_MULTIPLIER": "1.35",
+    "ENTRY_HARD_NEG_LONG_PROB_PENALTY": "0.20",
+    "ENTRY_DEAD_LONG_CE_MULTIPLIER": "1.60",
+    "ENTRY_DEAD_LONG_PROB_PENALTY": "0.35",
+    "ENTRY_TEASER_LONG_CE_MULTIPLIER": "1.20",
+    "ENTRY_TEASER_LONG_PROB_PENALTY": "0.12",
+    "ENTRY_AUX_CLEAN_EDGE_WEIGHT": "0.45",
+    "ENTRY_AUX_SURVIVAL_WEIGHT": "0.10",
+    "ENTRY_AUX_CLEAN_EDGE_POS_WEIGHT_CAP": "16.0",
+    "ENTRY_AUX_SURVIVAL_POS_WEIGHT_CAP": "10.0",
+    "ENTRY_CLEAN_EDGE_RANKING_WEIGHT": "0.25",
+    "ENTRY_CLEAN_EDGE_RANKING_MARGIN": "0.12",
     "GX1_CTX_CONTRACT": "V_NEXT",
     "ENTRY_RESIDUAL_SCALE": "0.35",
     "ENTRY_ANCHOR_EPS": "1e-6",
@@ -689,6 +747,10 @@ class EntryV10CtxDataset(Dataset):
 
         if "seq" in df.columns:
             # ---- advanced schema: builder has prebuilt samples
+            if "y_teacher_bad_long" not in df.columns and "y_v6_teacher_bad_long" in df.columns:
+                df["y_teacher_bad_long"] = df["y_v6_teacher_bad_long"]
+            if "y_teacher_winner_long" not in df.columns and "y_v6_teacher_winner_long" in df.columns:
+                df["y_teacher_winner_long"] = df["y_v6_teacher_winner_long"]
             required_advanced = [
                 "time",
                 "seq",
@@ -703,7 +765,28 @@ class EntryV10CtxDataset(Dataset):
                 "mfe_first_n_bps",
                 "path_quality_bps",
                 "y_bad_path",
+                "y_dead_negative_long",
+                "y_teaser_negative_long",
+                "y_hard_negative_long",
+                "y_clean_edge_long",
+                "y_survival_long",
+                "y_teacher_bad_long",
+                "y_teacher_winner_long",
+                "y_selector_long_mask",
             ]
+            optional_defaults = {
+                "y_dead_negative_long": 0.0,
+                "y_teaser_negative_long": 0.0,
+                "y_hard_negative_long": 0.0,
+                "y_clean_edge_long": 0.0,
+                "y_survival_long": 0.0,
+                "y_teacher_bad_long": 0.0,
+                "y_teacher_winner_long": 0.0,
+                "y_selector_long_mask": 0.0,
+            }
+            for col, default in optional_defaults.items():
+                if col not in df.columns:
+                    df[col] = default
             missing = [c for c in required_advanced if c not in df.columns]
             _require(not missing, f"[ENTRY_V10_CTX_SCHEMA_MISSING] advanced {missing}")
 
@@ -890,6 +973,14 @@ class EntryV10CtxDataset(Dataset):
                 "y_tradable": torch.tensor(float(row["y_tradable"]), dtype=torch.float32),
                 "mfe_first_n_bps": torch.tensor(float(row["mfe_first_n_bps"]), dtype=torch.float32),
                 "path_quality_bps": torch.tensor(float(row["path_quality_bps"]), dtype=torch.float32),
+                "y_dead_negative_long": torch.tensor(float(row.get("y_dead_negative_long", 0.0)), dtype=torch.float32),
+                "y_teaser_negative_long": torch.tensor(float(row.get("y_teaser_negative_long", 0.0)), dtype=torch.float32),
+                "y_hard_negative_long": torch.tensor(float(row.get("y_hard_negative_long", 0.0)), dtype=torch.float32),
+                "y_clean_edge_long": torch.tensor(float(row.get("y_clean_edge_long", 0.0)), dtype=torch.float32),
+                "y_survival_long": torch.tensor(float(row.get("y_survival_long", 0.0)), dtype=torch.float32),
+                "y_teacher_bad_long": torch.tensor(float(row.get("y_teacher_bad_long", row.get("y_v6_teacher_bad_long", 0.0))), dtype=torch.float32),
+                "y_teacher_winner_long": torch.tensor(float(row.get("y_teacher_winner_long", row.get("y_v6_teacher_winner_long", 0.0))), dtype=torch.float32),
+                "y_selector_long_mask": torch.tensor(float(row.get("y_selector_long_mask", 0.0)), dtype=torch.float32),
             }
         else:
             t = self.indices[i]
@@ -915,6 +1006,14 @@ class EntryV10CtxDataset(Dataset):
                 "y_tradable": torch.tensor(0.0, dtype=torch.float32),
                 "mfe_first_n_bps": torch.tensor(0.0, dtype=torch.float32),
                 "path_quality_bps": torch.tensor(0.0, dtype=torch.float32),
+                "y_dead_negative_long": torch.tensor(0.0, dtype=torch.float32),
+                "y_teaser_negative_long": torch.tensor(0.0, dtype=torch.float32),
+                "y_hard_negative_long": torch.tensor(0.0, dtype=torch.float32),
+                "y_clean_edge_long": torch.tensor(0.0, dtype=torch.float32),
+                "y_survival_long": torch.tensor(0.0, dtype=torch.float32),
+                "y_teacher_bad_long": torch.tensor(0.0, dtype=torch.float32),
+                "y_teacher_winner_long": torch.tensor(0.0, dtype=torch.float32),
+                "y_selector_long_mask": torch.tensor(0.0, dtype=torch.float32),
             }
 
 # -----------------------------------------------------------------------------
@@ -1021,6 +1120,9 @@ def train_epoch(
     aux_quality_scale_bps: float,
     aux_path_scale_bps: float,
     aux_mfe_scale_bps: float,
+    tradable_pos_weight: float,
+    clean_edge_pos_weight: float,
+    survival_pos_weight: float,
     bad_path_pos_weight: float,
 ):
     model.train()
@@ -1034,6 +1136,9 @@ def train_epoch(
     total_aux_path = 0.0
     total_aux_mfe = 0.0
     total_aux_tradable = 0.0
+    total_aux_clean_edge = 0.0
+    total_aux_survival = 0.0
+    total_clean_edge_rank = 0.0
     total_aux_bad_path = 0.0
     n = 0
     short_total = 0
@@ -1051,7 +1156,11 @@ def train_epoch(
     path_loss_sum = 0.0
     mfe_loss_sum = 0.0
     tradable_loss_sum = 0.0
+    clean_edge_loss_sum = 0.0
+    survival_loss_sum = 0.0
+    clean_edge_rank_loss_sum = 0.0
     bad_path_loss_sum = 0.0
+    hard_neg_prob_loss_sum = 0.0
 
     for batch in loader:
         non_blocking = device.type == "cuda"
@@ -1063,6 +1172,14 @@ def train_epoch(
         y_mfe_first = batch["mfe_first_n_bps"].to(device, non_blocking=non_blocking)
         y_path_quality = batch["path_quality_bps"].to(device, non_blocking=non_blocking)
         y_tradable = batch["y_tradable"].to(device, non_blocking=non_blocking)
+        y_dead_negative_long = batch["y_dead_negative_long"].to(device, non_blocking=non_blocking)
+        y_teaser_negative_long = batch["y_teaser_negative_long"].to(device, non_blocking=non_blocking)
+        y_hard_negative_long = batch["y_hard_negative_long"].to(device, non_blocking=non_blocking)
+        y_clean_edge_long = batch["y_clean_edge_long"].to(device, non_blocking=non_blocking)
+        y_survival_long = batch["y_survival_long"].to(device, non_blocking=non_blocking)
+        y_teacher_bad_long = batch["y_teacher_bad_long"].to(device, non_blocking=non_blocking)
+        y_teacher_winner_long = batch["y_teacher_winner_long"].to(device, non_blocking=non_blocking)
+        y_selector_long_mask = batch["y_selector_long_mask"].to(device, non_blocking=non_blocking)
 
         optimizer.zero_grad(set_to_none=True)
         out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont)
@@ -1070,10 +1187,31 @@ def train_epoch(
         path_pred = out.get("path_quality")
         mfe_pred = out.get("mfe_first_n")
         tradable_logit = out.get("tradable_logit")
+        clean_edge_logit = out.get("clean_edge_logit")
+        survival_logit = out.get("survival_logit")
         anchor_logits = out.get("anchor_logits")
         delta_logits = out.get("delta_logits")
 
-        ce_loss_raw = criterion.ce(logits, y).mean()
+        residual_hard_neg_long = torch.clamp(
+            y_hard_negative_long.float() - y_dead_negative_long.float() - y_teaser_negative_long.float(),
+            min=0.0,
+            max=1.0,
+        )
+        ce_per = criterion.ce(logits, y)
+        ce_sample_weight = torch.ones_like(ce_per)
+        if float(ENTRY_DEAD_LONG_CE_MULTIPLIER) > 1.0:
+            ce_sample_weight = ce_sample_weight + (
+                (float(ENTRY_DEAD_LONG_CE_MULTIPLIER) - 1.0) * y_dead_negative_long.float()
+            )
+        if float(ENTRY_TEASER_LONG_CE_MULTIPLIER) > 1.0:
+            ce_sample_weight = ce_sample_weight + (
+                (float(ENTRY_TEASER_LONG_CE_MULTIPLIER) - 1.0) * y_teaser_negative_long.float()
+            )
+        if float(ENTRY_HARD_NEG_LONG_CE_MULTIPLIER) > 1.0:
+            ce_sample_weight = ce_sample_weight + (
+                (float(ENTRY_HARD_NEG_LONG_CE_MULTIPLIER) - 1.0) * residual_hard_neg_long
+            )
+        ce_loss_raw = (ce_per * ce_sample_weight).mean()
         ce_loss = float(ENTRY_DIRECTION_CE_SCALE) * ce_loss_raw
         probs = torch.softmax(logits, dim=1)
 
@@ -1095,39 +1233,107 @@ def train_epoch(
                 balance_term = float(getattr(criterion, "balance_alpha", 0.0)) * balance_loss
 
         loss = ce_loss + cost_term + balance_term
+        hard_neg_prob_loss = torch.tensor(0.0, device=device)
+        dead_neg_prob_loss = torch.tensor(0.0, device=device)
+        teaser_neg_prob_loss = torch.tensor(0.0, device=device)
         if residual_side_bias_alpha > 0.0 and delta_logits is not None:
             residual_gap = delta_logits[:, 0] - delta_logits[:, 1]
             residual_side_bias_loss = residual_gap.mean().pow(2)
             loss = loss + (float(residual_side_bias_alpha) * residual_side_bias_loss)
+        dead_neg_mask = y_dead_negative_long.float() > 0.5
+        teaser_neg_mask = y_teaser_negative_long.float() > 0.5
+        hard_neg_mask = residual_hard_neg_long > 0.5
+        if float(ENTRY_DEAD_LONG_PROB_PENALTY) > 0.0 and dead_neg_mask.any():
+            dead_neg_prob_loss = float(ENTRY_DEAD_LONG_PROB_PENALTY) * probs[dead_neg_mask, 0].mean()
+            loss = loss + dead_neg_prob_loss
+        if float(ENTRY_TEASER_LONG_PROB_PENALTY) > 0.0 and teaser_neg_mask.any():
+            teaser_neg_prob_loss = float(ENTRY_TEASER_LONG_PROB_PENALTY) * probs[teaser_neg_mask, 0].mean()
+            loss = loss + teaser_neg_prob_loss
+        if float(ENTRY_HARD_NEG_LONG_PROB_PENALTY) > 0.0 and hard_neg_mask.any():
+            hard_neg_prob_loss = float(ENTRY_HARD_NEG_LONG_PROB_PENALTY) * probs[hard_neg_mask, 0].mean()
+            loss = loss + hard_neg_prob_loss
 
         tradable_loss = torch.tensor(0.0, device=device)
+        clean_edge_loss = torch.tensor(0.0, device=device)
+        survival_loss = torch.tensor(0.0, device=device)
+        clean_edge_rank_loss = torch.tensor(0.0, device=device)
+        positive_mask = y_tradable.float() > 0.5
+        selector_mask = y_selector_long_mask.float() > 0.5
         if aux_path_weight > 0.0 and path_pred is not None:
-            p_scale = max(1.0, float(aux_path_scale_bps))
-            # Runtime only uses path_quality as a positive minimum gate, so train
-            # this head on the non-negative quality floor rather than signed path.
-            path_target = (y_path_quality / p_scale).clamp(min=0.0)
-            path_loss = nn.functional.smooth_l1_loss(
-                path_pred.squeeze(1), path_target.float()
-            )
-            path_loss = float(aux_path_weight) * path_loss
-            loss = loss + path_loss
-            path_loss_sum += float(path_loss.item()) * y.shape[0]
+            if positive_mask.any():
+                p_scale = max(1.0, float(aux_path_scale_bps))
+                # Path-quality should be learned from premium tradable rows, not diluted by parked zeros.
+                path_target = (y_path_quality[positive_mask] / p_scale).clamp(min=0.0)
+                path_loss = nn.functional.smooth_l1_loss(
+                    path_pred.squeeze(1)[positive_mask], path_target.float()
+                )
+                path_loss = float(aux_path_weight) * path_loss
+                loss = loss + path_loss
+                path_loss_sum += float(path_loss.item()) * y.shape[0]
         if aux_mfe_weight > 0.0 and mfe_pred is not None:
-            m_scale = max(1.0, float(aux_mfe_scale_bps))
-            mfe_target = (y_mfe_first / m_scale).clamp(min=0.0)
-            mfe_loss = nn.functional.smooth_l1_loss(
-                mfe_pred.squeeze(1), mfe_target.float()
-            )
-            mfe_loss = float(aux_mfe_weight) * mfe_loss
-            loss = loss + mfe_loss
-            mfe_loss_sum += float(mfe_loss.item()) * y.shape[0]
+            if positive_mask.any():
+                m_scale = max(1.0, float(aux_mfe_scale_bps))
+                mfe_target = (y_mfe_first[positive_mask] / m_scale).clamp(min=0.0)
+                mfe_loss = nn.functional.smooth_l1_loss(
+                    mfe_pred.squeeze(1)[positive_mask], mfe_target.float()
+                )
+                mfe_loss = float(aux_mfe_weight) * mfe_loss
+                loss = loss + mfe_loss
+                mfe_loss_sum += float(mfe_loss.item()) * y.shape[0]
         if aux_tradable_weight > 0.0 and tradable_logit is not None:
-            tradable_loss = nn.functional.binary_cross_entropy_with_logits(
-                tradable_logit.squeeze(1), y_tradable.float()
+            if selector_mask.any():
+                tradable_loss = nn.functional.binary_cross_entropy_with_logits(
+                    tradable_logit.squeeze(1)[selector_mask],
+                    y_tradable.float()[selector_mask],
+                    pos_weight=torch.tensor(float(tradable_pos_weight), device=device, dtype=tradable_logit.dtype),
+                )
+                tradable_loss = float(aux_tradable_weight) * tradable_loss
+                loss = loss + tradable_loss
+                tradable_loss_sum += float(tradable_loss.item()) * y.shape[0]
+        if float(ENTRY_AUX_CLEAN_EDGE_WEIGHT) > 0.0 and clean_edge_logit is not None:
+            if selector_mask.any():
+                clean_edge_loss = nn.functional.binary_cross_entropy_with_logits(
+                    clean_edge_logit.squeeze(1)[selector_mask],
+                    y_clean_edge_long.float()[selector_mask],
+                    pos_weight=torch.tensor(float(clean_edge_pos_weight), device=device, dtype=clean_edge_logit.dtype),
+                )
+                clean_edge_loss = float(ENTRY_AUX_CLEAN_EDGE_WEIGHT) * clean_edge_loss
+                loss = loss + clean_edge_loss
+                clean_edge_loss_sum += float(clean_edge_loss.item()) * y.shape[0]
+        if float(ENTRY_AUX_SURVIVAL_WEIGHT) > 0.0 and survival_logit is not None:
+            if selector_mask.any():
+                survival_loss = nn.functional.binary_cross_entropy_with_logits(
+                    survival_logit.squeeze(1)[selector_mask],
+                    y_survival_long.float()[selector_mask],
+                    pos_weight=torch.tensor(float(survival_pos_weight), device=device, dtype=survival_logit.dtype),
+                )
+                survival_loss = float(ENTRY_AUX_SURVIVAL_WEIGHT) * survival_loss
+                loss = loss + survival_loss
+                survival_loss_sum += float(survival_loss.item()) * y.shape[0]
+        if float(ENTRY_CLEAN_EDGE_RANKING_WEIGHT) > 0.0:
+            clean_edge_prob = (
+                torch.sigmoid(clean_edge_logit.squeeze(1))
+                if clean_edge_logit is not None
+                else probs[:, 0]
             )
-            tradable_loss = float(aux_tradable_weight) * tradable_loss
-            loss = loss + tradable_loss
-            tradable_loss_sum += float(tradable_loss.item()) * y.shape[0]
+            clean_pos = y_teacher_winner_long.float() > 0.5
+            ranked_neg = y_teacher_bad_long.float() > 0.5
+            if not clean_pos.any() or not ranked_neg.any():
+                clean_pos = y_clean_edge_long.float() > 0.5
+                ranked_neg = (
+                    (y_teacher_bad_long.float() > 0.5)
+                    | (y_dead_negative_long.float() > 0.5)
+                    | (y_teaser_negative_long.float() > 0.5)
+                )
+            if clean_pos.any() and ranked_neg.any():
+                pos_long = clean_edge_prob[clean_pos].mean()
+                neg_long = clean_edge_prob[ranked_neg].mean()
+                clean_edge_rank_loss = float(ENTRY_CLEAN_EDGE_RANKING_WEIGHT) * torch.relu(
+                    torch.tensor(float(ENTRY_CLEAN_EDGE_RANKING_MARGIN), device=device, dtype=probs.dtype)
+                    - (pos_long - neg_long)
+                )
+                loss = loss + clean_edge_rank_loss
+                clean_edge_rank_loss_sum += float(clean_edge_rank_loss.item()) * y.shape[0]
         if long_penalty_weight > 0.0:
             short_lead_mask = (snap_x[:, 1] - snap_x[:, 0]) >= float(short_lead_margin)
             if short_lead_mask.any():
@@ -1157,21 +1363,32 @@ def train_epoch(
         total_ce += float(ce_loss) * bs
         total_cost += float(cost_term) * bs
         total_balance += float(balance_term) * bs
+        hard_neg_prob_loss_sum += float(hard_neg_prob_loss) * bs
         if aux_path_weight > 0.0:
             total_aux_path += float(path_loss) * bs
         if aux_mfe_weight > 0.0:
             total_aux_mfe += float(mfe_loss) * bs
         if aux_tradable_weight > 0.0:
             total_aux_tradable += float(tradable_loss) * bs
+        if float(ENTRY_AUX_CLEAN_EDGE_WEIGHT) > 0.0:
+            total_aux_clean_edge += float(clean_edge_loss) * bs
+        if float(ENTRY_AUX_SURVIVAL_WEIGHT) > 0.0:
+            total_aux_survival += float(survival_loss) * bs
+        if float(ENTRY_CLEAN_EDGE_RANKING_WEIGHT) > 0.0:
+            total_clean_edge_rank += float(clean_edge_rank_loss) * bs
         n += bs
 
     return total / max(1, n), {
         "ce_loss_mean": (total_ce / max(1, n)),
         "cost_loss_mean": (total_cost / max(1, n)),
         "balance_loss_mean": (total_balance / max(1, n)),
+        "hard_neg_prob_loss_mean": (hard_neg_prob_loss_sum / max(1, n)),
         "aux_path_loss_mean": (total_aux_path / max(1, n)),
         "aux_mfe_loss_mean": (total_aux_mfe / max(1, n)),
         "aux_tradable_loss_mean": (total_aux_tradable / max(1, n)),
+        "aux_clean_edge_loss_mean": (total_aux_clean_edge / max(1, n)),
+        "aux_survival_loss_mean": (total_aux_survival / max(1, n)),
+        "clean_edge_rank_loss_mean": (total_clean_edge_rank / max(1, n)),
         "short_pred_long_rate": (short_pred_long / short_total if short_total > 0 else 0.0),
         "short_lead_count": short_lead_count,
         "short_lead_long_prob_mean": (short_lead_long_prob_sum / short_lead_count if short_lead_count > 0 else 0.0),
@@ -1182,6 +1399,9 @@ def train_epoch(
         "aux_path_loss_mean": (path_loss_sum / max(1, n)),
         "aux_mfe_loss_mean": (mfe_loss_sum / max(1, n)),
         "aux_tradable_loss_mean": (tradable_loss_sum / max(1, n)),
+        "aux_clean_edge_loss_mean": (clean_edge_loss_sum / max(1, n)),
+        "aux_survival_loss_mean": (survival_loss_sum / max(1, n)),
+        "clean_edge_rank_loss_mean": (clean_edge_rank_loss_sum / max(1, n)),
     }
 
 def validate(
@@ -1198,6 +1418,9 @@ def validate(
     aux_quality_scale_bps: float,
     aux_path_scale_bps: float,
     aux_mfe_scale_bps: float,
+    tradable_pos_weight: float,
+    clean_edge_pos_weight: float,
+    survival_pos_weight: float,
     bad_path_pos_weight: float,
 ):
     model.eval()
@@ -1218,7 +1441,11 @@ def validate(
     path_loss_sum = 0.0
     mfe_loss_sum = 0.0
     tradable_loss_sum = 0.0
+    clean_edge_loss_sum = 0.0
+    survival_loss_sum = 0.0
+    clean_edge_rank_loss_sum = 0.0
     bad_path_loss_sum = 0.0
+    hard_neg_prob_loss_sum = 0.0
 
     with torch.no_grad():
         for batch in loader:
@@ -1231,16 +1458,45 @@ def validate(
             y_mfe_first = batch["mfe_first_n_bps"].to(device, non_blocking=non_blocking)
             y_path_quality = batch["path_quality_bps"].to(device, non_blocking=non_blocking)
             y_tradable = batch["y_tradable"].to(device, non_blocking=non_blocking)
+            y_dead_negative_long = batch["y_dead_negative_long"].to(device, non_blocking=non_blocking)
+            y_teaser_negative_long = batch["y_teaser_negative_long"].to(device, non_blocking=non_blocking)
+            y_hard_negative_long = batch["y_hard_negative_long"].to(device, non_blocking=non_blocking)
+            y_clean_edge_long = batch["y_clean_edge_long"].to(device, non_blocking=non_blocking)
+            y_survival_long = batch["y_survival_long"].to(device, non_blocking=non_blocking)
+            y_teacher_bad_long = batch["y_teacher_bad_long"].to(device, non_blocking=non_blocking)
+            y_teacher_winner_long = batch["y_teacher_winner_long"].to(device, non_blocking=non_blocking)
+            y_selector_long_mask = batch["y_selector_long_mask"].to(device, non_blocking=non_blocking)
 
             out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont)
             logits = out["direction_logits"]
             path_pred = out.get("path_quality")
             mfe_pred = out.get("mfe_first_n")
             tradable_logit = out.get("tradable_logit")
+            clean_edge_logit = out.get("clean_edge_logit")
+            survival_logit = out.get("survival_logit")
             anchor_logits = out.get("anchor_logits")
             delta_logits = out.get("delta_logits")
 
-            ce_loss_raw = criterion.ce(logits, y).mean()
+            residual_hard_neg_long = torch.clamp(
+                y_hard_negative_long.float() - y_dead_negative_long.float() - y_teaser_negative_long.float(),
+                min=0.0,
+                max=1.0,
+            )
+            ce_per = criterion.ce(logits, y)
+            ce_sample_weight = torch.ones_like(ce_per)
+            if float(ENTRY_DEAD_LONG_CE_MULTIPLIER) > 1.0:
+                ce_sample_weight = ce_sample_weight + (
+                    (float(ENTRY_DEAD_LONG_CE_MULTIPLIER) - 1.0) * y_dead_negative_long.float()
+                )
+            if float(ENTRY_TEASER_LONG_CE_MULTIPLIER) > 1.0:
+                ce_sample_weight = ce_sample_weight + (
+                    (float(ENTRY_TEASER_LONG_CE_MULTIPLIER) - 1.0) * y_teaser_negative_long.float()
+                )
+            if float(ENTRY_HARD_NEG_LONG_CE_MULTIPLIER) > 1.0:
+                ce_sample_weight = ce_sample_weight + (
+                    (float(ENTRY_HARD_NEG_LONG_CE_MULTIPLIER) - 1.0) * residual_hard_neg_long
+                )
+            ce_loss_raw = (ce_per * ce_sample_weight).mean()
             ce_loss = float(ENTRY_DIRECTION_CE_SCALE) * ce_loss_raw
             probs = torch.softmax(logits, dim=1)
 
@@ -1262,39 +1518,107 @@ def validate(
                     balance_term = float(getattr(criterion, "balance_alpha", 0.0)) * balance_loss
 
             loss = ce_loss + cost_term + balance_term
+            hard_neg_prob_loss = torch.tensor(0.0, device=device)
+            dead_neg_prob_loss = torch.tensor(0.0, device=device)
+            teaser_neg_prob_loss = torch.tensor(0.0, device=device)
             if residual_side_bias_alpha > 0.0 and delta_logits is not None:
                 residual_gap = delta_logits[:, 0] - delta_logits[:, 1]
                 residual_side_bias_loss = residual_gap.mean().pow(2)
                 loss = loss + (float(residual_side_bias_alpha) * residual_side_bias_loss)
+            dead_neg_mask = y_dead_negative_long.float() > 0.5
+            teaser_neg_mask = y_teaser_negative_long.float() > 0.5
+            hard_neg_mask = residual_hard_neg_long > 0.5
+            if float(ENTRY_DEAD_LONG_PROB_PENALTY) > 0.0 and dead_neg_mask.any():
+                dead_neg_prob_loss = float(ENTRY_DEAD_LONG_PROB_PENALTY) * probs[dead_neg_mask, 0].mean()
+                loss = loss + dead_neg_prob_loss
+            if float(ENTRY_TEASER_LONG_PROB_PENALTY) > 0.0 and teaser_neg_mask.any():
+                teaser_neg_prob_loss = float(ENTRY_TEASER_LONG_PROB_PENALTY) * probs[teaser_neg_mask, 0].mean()
+                loss = loss + teaser_neg_prob_loss
+            if float(ENTRY_HARD_NEG_LONG_PROB_PENALTY) > 0.0 and hard_neg_mask.any():
+                hard_neg_prob_loss = float(ENTRY_HARD_NEG_LONG_PROB_PENALTY) * probs[hard_neg_mask, 0].mean()
+                loss = loss + hard_neg_prob_loss
 
             tradable_loss = torch.tensor(0.0, device=device)
+            clean_edge_loss = torch.tensor(0.0, device=device)
+            survival_loss = torch.tensor(0.0, device=device)
+            clean_edge_rank_loss = torch.tensor(0.0, device=device)
+            positive_mask = y_tradable.float() > 0.5
+            selector_mask = y_selector_long_mask.float() > 0.5
             if aux_path_weight > 0.0 and path_pred is not None:
-                p_scale = max(1.0, float(aux_path_scale_bps))
-                path_target = (y_path_quality / p_scale).clamp(min=0.0)
-                path_loss = nn.functional.smooth_l1_loss(
-                    path_pred.squeeze(1), path_target.float()
-                )
-                loss = loss + (float(aux_path_weight) * path_loss)
-                path_loss_sum += float(path_loss.item()) * y.shape[0]
+                if positive_mask.any():
+                    p_scale = max(1.0, float(aux_path_scale_bps))
+                    path_target = (y_path_quality[positive_mask] / p_scale).clamp(min=0.0)
+                    path_loss = nn.functional.smooth_l1_loss(
+                        path_pred.squeeze(1)[positive_mask], path_target.float()
+                    )
+                    loss = loss + (float(aux_path_weight) * path_loss)
+                    path_loss_sum += float(path_loss.item()) * y.shape[0]
             if aux_mfe_weight > 0.0 and mfe_pred is not None:
-                m_scale = max(1.0, float(aux_mfe_scale_bps))
-                mfe_target = (y_mfe_first / m_scale).clamp(min=0.0)
-                mfe_loss = nn.functional.smooth_l1_loss(
-                    mfe_pred.squeeze(1), mfe_target.float()
-                )
-                loss = loss + (float(aux_mfe_weight) * mfe_loss)
-                mfe_loss_sum += float(mfe_loss.item()) * y.shape[0]
+                if positive_mask.any():
+                    m_scale = max(1.0, float(aux_mfe_scale_bps))
+                    mfe_target = (y_mfe_first[positive_mask] / m_scale).clamp(min=0.0)
+                    mfe_loss = nn.functional.smooth_l1_loss(
+                        mfe_pred.squeeze(1)[positive_mask], mfe_target.float()
+                    )
+                    loss = loss + (float(aux_mfe_weight) * mfe_loss)
+                    mfe_loss_sum += float(mfe_loss.item()) * y.shape[0]
             if aux_tradable_weight > 0.0 and tradable_logit is not None:
-                tradable_loss = nn.functional.binary_cross_entropy_with_logits(
-                    tradable_logit.squeeze(1), y_tradable.float()
+                if selector_mask.any():
+                    tradable_loss = nn.functional.binary_cross_entropy_with_logits(
+                        tradable_logit.squeeze(1)[selector_mask],
+                        y_tradable.float()[selector_mask],
+                        pos_weight=torch.tensor(float(tradable_pos_weight), device=device, dtype=tradable_logit.dtype),
+                    )
+                    loss = loss + (float(aux_tradable_weight) * tradable_loss)
+                    tradable_loss_sum += float(tradable_loss.item()) * y.shape[0]
+            if float(ENTRY_AUX_CLEAN_EDGE_WEIGHT) > 0.0 and clean_edge_logit is not None:
+                if selector_mask.any():
+                    clean_edge_loss = nn.functional.binary_cross_entropy_with_logits(
+                        clean_edge_logit.squeeze(1)[selector_mask],
+                        y_clean_edge_long.float()[selector_mask],
+                        pos_weight=torch.tensor(float(clean_edge_pos_weight), device=device, dtype=clean_edge_logit.dtype),
+                    )
+                    loss = loss + (float(ENTRY_AUX_CLEAN_EDGE_WEIGHT) * clean_edge_loss)
+                    clean_edge_loss_sum += float(clean_edge_loss.item()) * y.shape[0]
+            if float(ENTRY_AUX_SURVIVAL_WEIGHT) > 0.0 and survival_logit is not None:
+                if selector_mask.any():
+                    survival_loss = nn.functional.binary_cross_entropy_with_logits(
+                        survival_logit.squeeze(1)[selector_mask],
+                        y_survival_long.float()[selector_mask],
+                        pos_weight=torch.tensor(float(survival_pos_weight), device=device, dtype=survival_logit.dtype),
+                    )
+                    loss = loss + (float(ENTRY_AUX_SURVIVAL_WEIGHT) * survival_loss)
+                    survival_loss_sum += float(survival_loss.item()) * y.shape[0]
+            if float(ENTRY_CLEAN_EDGE_RANKING_WEIGHT) > 0.0:
+                clean_edge_prob = (
+                    torch.sigmoid(clean_edge_logit.squeeze(1))
+                    if clean_edge_logit is not None
+                    else probs[:, 0]
                 )
-                loss = loss + (float(aux_tradable_weight) * tradable_loss)
-                tradable_loss_sum += float(tradable_loss.item()) * y.shape[0]
+                clean_pos = y_teacher_winner_long.float() > 0.5
+                ranked_neg = y_teacher_bad_long.float() > 0.5
+                if not clean_pos.any() or not ranked_neg.any():
+                    clean_pos = y_clean_edge_long.float() > 0.5
+                    ranked_neg = (
+                        (y_teacher_bad_long.float() > 0.5)
+                        | (y_dead_negative_long.float() > 0.5)
+                        | (y_teaser_negative_long.float() > 0.5)
+                    )
+                if clean_pos.any() and ranked_neg.any():
+                    pos_long = clean_edge_prob[clean_pos].mean()
+                    neg_long = clean_edge_prob[ranked_neg].mean()
+                    clean_edge_rank_loss = float(ENTRY_CLEAN_EDGE_RANKING_WEIGHT) * torch.relu(
+                        torch.tensor(float(ENTRY_CLEAN_EDGE_RANKING_MARGIN), device=device, dtype=probs.dtype)
+                        - (pos_long - neg_long)
+                    )
+                    loss = loss + clean_edge_rank_loss
+                    clean_edge_rank_loss_sum += float(clean_edge_rank_loss.item()) * y.shape[0]
             bs = y.shape[0]
             total += float(loss) * bs
             total_ce += float(ce_loss) * bs
             total_cost += float(cost_term) * bs
             total_balance += float(balance_term) * bs
+            hard_neg_prob_loss_sum += float(hard_neg_prob_loss) * bs
             n += bs
 
             p = probs.cpu().numpy()
@@ -1326,9 +1650,13 @@ def validate(
         "aux_path_loss_mean": (path_loss_sum / max(1, n)),
         "aux_mfe_loss_mean": (mfe_loss_sum / max(1, n)),
         "aux_tradable_loss_mean": (tradable_loss_sum / max(1, n)),
+        "aux_clean_edge_loss_mean": (clean_edge_loss_sum / max(1, n)),
+        "aux_survival_loss_mean": (survival_loss_sum / max(1, n)),
+        "clean_edge_rank_loss_mean": (clean_edge_rank_loss_sum / max(1, n)),
         "ce_loss_mean": (total_ce / max(1, n)),
         "cost_loss_mean": (total_cost / max(1, n)),
         "balance_loss_mean": (total_balance / max(1, n)),
+        "hard_neg_prob_loss_mean": (hard_neg_prob_loss_sum / max(1, n)),
     }
     # AUC is intentionally disabled for this 3-class path (previously hardcoded 0.0)
     return total / max(1, n), float("nan"), acc, short_pred_long_rate, stats
@@ -1801,13 +2129,58 @@ def run_train(
     )
     train_bad_path_rate = float(train_ds.df["y_bad_path"].astype(float).mean()) if "y_bad_path" in train_ds.df.columns else 0.0
     val_bad_path_rate = float(val_ds.df["y_bad_path"].astype(float).mean()) if "y_bad_path" in val_ds.df.columns else 0.0
+    train_tradable_rate = float(train_ds.df["y_tradable"].astype(float).mean()) if "y_tradable" in train_ds.df.columns else 0.0
+    val_tradable_rate = float(val_ds.df["y_tradable"].astype(float).mean()) if "y_tradable" in val_ds.df.columns else 0.0
+    train_hard_neg_long_rate = float(train_ds.df["y_hard_negative_long"].astype(float).mean()) if "y_hard_negative_long" in train_ds.df.columns else 0.0
+    val_hard_neg_long_rate = float(val_ds.df["y_hard_negative_long"].astype(float).mean()) if "y_hard_negative_long" in val_ds.df.columns else 0.0
+    train_dead_neg_long_rate = float(train_ds.df["y_dead_negative_long"].astype(float).mean()) if "y_dead_negative_long" in train_ds.df.columns else 0.0
+    val_dead_neg_long_rate = float(val_ds.df["y_dead_negative_long"].astype(float).mean()) if "y_dead_negative_long" in val_ds.df.columns else 0.0
+    train_teaser_neg_long_rate = float(train_ds.df["y_teaser_negative_long"].astype(float).mean()) if "y_teaser_negative_long" in train_ds.df.columns else 0.0
+    val_teaser_neg_long_rate = float(val_ds.df["y_teaser_negative_long"].astype(float).mean()) if "y_teaser_negative_long" in val_ds.df.columns else 0.0
+    train_clean_edge_rate = float(train_ds.df["y_clean_edge_long"].astype(float).mean()) if "y_clean_edge_long" in train_ds.df.columns else 0.0
+    val_clean_edge_rate = float(val_ds.df["y_clean_edge_long"].astype(float).mean()) if "y_clean_edge_long" in val_ds.df.columns else 0.0
+    train_survival_rate = float(train_ds.df["y_survival_long"].astype(float).mean()) if "y_survival_long" in train_ds.df.columns else 0.0
+    val_survival_rate = float(val_ds.df["y_survival_long"].astype(float).mean()) if "y_survival_long" in val_ds.df.columns else 0.0
+    train_teacher_bad_rate = float(train_ds.df["y_teacher_bad_long"].astype(float).mean()) if "y_teacher_bad_long" in train_ds.df.columns else 0.0
+    val_teacher_bad_rate = float(val_ds.df["y_teacher_bad_long"].astype(float).mean()) if "y_teacher_bad_long" in val_ds.df.columns else 0.0
+    train_teacher_winner_rate = float(train_ds.df["y_teacher_winner_long"].astype(float).mean()) if "y_teacher_winner_long" in train_ds.df.columns else 0.0
+    val_teacher_winner_rate = float(val_ds.df["y_teacher_winner_long"].astype(float).mean()) if "y_teacher_winner_long" in val_ds.df.columns else 0.0
+    train_selector_long_mask_rate = float(train_ds.df["y_selector_long_mask"].astype(float).mean()) if "y_selector_long_mask" in train_ds.df.columns else 0.0
+    val_selector_long_mask_rate = float(val_ds.df["y_selector_long_mask"].astype(float).mean()) if "y_selector_long_mask" in val_ds.df.columns else 0.0
+    train_label_counts = train_ds.df["y_direction"].value_counts().to_dict()
+    train_long_rate = float(train_label_counts.get(0, 0) / max(len(train_ds.df), 1))
+    train_short_rate = float(train_label_counts.get(1, 0) / max(len(train_ds.df), 1))
+    train_flat_rate = float(train_label_counts.get(2, 0) / max(len(train_ds.df), 1))
     if train_bad_path_rate > 0.0:
         raw_bad_path_pos_weight = (1.0 - train_bad_path_rate) / max(train_bad_path_rate, 1e-9)
     else:
         raw_bad_path_pos_weight = 1.0
+    if train_tradable_rate > 0.0:
+        raw_tradable_pos_weight = (1.0 - train_tradable_rate) / max(train_tradable_rate, 1e-9)
+    else:
+        raw_tradable_pos_weight = 1.0
     bad_path_pos_weight = float(
         min(float(ENTRY_AUX_BAD_PATH_POS_WEIGHT_CAP), max(1.0, raw_bad_path_pos_weight))
     )
+    tradable_pos_weight = float(
+        min(float(ENTRY_AUX_TRADABLE_POS_WEIGHT_CAP), max(1.0, raw_tradable_pos_weight))
+    )
+    raw_clean_edge_pos_weight = ((1.0 - train_clean_edge_rate) / max(train_clean_edge_rate, 1e-9)) if train_clean_edge_rate > 0.0 else 1.0
+    clean_edge_pos_weight = float(
+        min(float(ENTRY_AUX_CLEAN_EDGE_POS_WEIGHT_CAP), max(1.0, raw_clean_edge_pos_weight))
+    )
+    raw_survival_pos_weight = ((1.0 - train_survival_rate) / max(train_survival_rate, 1e-9)) if train_survival_rate > 0.0 else 1.0
+    survival_pos_weight = float(
+        min(float(ENTRY_AUX_SURVIVAL_POS_WEIGHT_CAP), max(1.0, raw_survival_pos_weight))
+    )
+    raw_long_class_weight = ((1.0 - train_long_rate) / max(train_long_rate, 1e-9)) if train_long_rate > 0.0 else 1.0
+    raw_short_class_weight = ((1.0 - train_short_rate) / max(train_short_rate, 1e-9)) if train_short_rate > 0.0 else 0.0
+    long_class_weight = float(min(float(ENTRY_LONG_CLASS_WEIGHT_CAP), max(1.0, raw_long_class_weight)))
+    if train_short_rate > 0.0:
+        short_class_weight = float(min(float(ENTRY_SHORT_CLASS_WEIGHT_CAP), max(1.0, raw_short_class_weight)))
+    else:
+        short_class_weight = 0.0
+    flat_class_weight = float(max(float(ENTRY_FLAT_CLASS_WEIGHT_FLOOR), 1.0))
     log.info(
         "[ENTRY_BAD_PATH_BALANCE_PROOF] train_rate=%.6f val_rate=%.6f raw_pos_weight=%.6f capped_pos_weight=%.6f cap=%.3f",
         train_bad_path_rate,
@@ -1815,6 +2188,72 @@ def run_train(
         raw_bad_path_pos_weight,
         bad_path_pos_weight,
         float(ENTRY_AUX_BAD_PATH_POS_WEIGHT_CAP),
+    )
+    log.info(
+        "[ENTRY_TRADABLE_BALANCE_PROOF] train_rate=%.6f val_rate=%.6f raw_pos_weight=%.6f capped_pos_weight=%.6f cap=%.3f",
+        train_tradable_rate,
+        val_tradable_rate,
+        raw_tradable_pos_weight,
+        tradable_pos_weight,
+        float(ENTRY_AUX_TRADABLE_POS_WEIGHT_CAP),
+    )
+    log.info(
+        "[ENTRY_DEAD_LONG_RATE_PROOF] train_rate=%.6f val_rate=%.6f ce_multiplier=%.3f prob_penalty=%.3f",
+        train_dead_neg_long_rate,
+        val_dead_neg_long_rate,
+        float(ENTRY_DEAD_LONG_CE_MULTIPLIER),
+        float(ENTRY_DEAD_LONG_PROB_PENALTY),
+    )
+    log.info(
+        "[ENTRY_TEASER_LONG_RATE_PROOF] train_rate=%.6f val_rate=%.6f ce_multiplier=%.3f prob_penalty=%.3f",
+        train_teaser_neg_long_rate,
+        val_teaser_neg_long_rate,
+        float(ENTRY_TEASER_LONG_CE_MULTIPLIER),
+        float(ENTRY_TEASER_LONG_PROB_PENALTY),
+    )
+    log.info(
+        "[ENTRY_HARD_NEG_LONG_RATE_PROOF] train_rate=%.6f val_rate=%.6f ce_multiplier=%.3f prob_penalty=%.3f",
+        train_hard_neg_long_rate,
+        val_hard_neg_long_rate,
+        float(ENTRY_HARD_NEG_LONG_CE_MULTIPLIER),
+        float(ENTRY_HARD_NEG_LONG_PROB_PENALTY),
+    )
+    log.info(
+        "[ENTRY_CLEAN_EDGE_RATE_PROOF] train_rate=%.6f val_rate=%.6f raw_pos_weight=%.6f capped_pos_weight=%.6f cap=%.3f",
+        train_clean_edge_rate,
+        val_clean_edge_rate,
+        raw_clean_edge_pos_weight,
+        clean_edge_pos_weight,
+        float(ENTRY_AUX_CLEAN_EDGE_POS_WEIGHT_CAP),
+    )
+    log.info(
+        "[ENTRY_SURVIVAL_RATE_PROOF] train_rate=%.6f val_rate=%.6f raw_pos_weight=%.6f capped_pos_weight=%.6f cap=%.3f",
+        train_survival_rate,
+        val_survival_rate,
+        raw_survival_pos_weight,
+        survival_pos_weight,
+        float(ENTRY_AUX_SURVIVAL_POS_WEIGHT_CAP),
+    )
+    log.info(
+        "[ENTRY_TEACHER_RATE_PROOF] train_bad=%.6f val_bad=%.6f train_winner=%.6f val_winner=%.6f selector_mask_train=%.6f selector_mask_val=%.6f",
+        train_teacher_bad_rate,
+        val_teacher_bad_rate,
+        train_teacher_winner_rate,
+        val_teacher_winner_rate,
+        train_selector_long_mask_rate,
+        val_selector_long_mask_rate,
+    )
+    log.info(
+        "[ENTRY_DIRECTION_BALANCE_PROOF] train_long_rate=%.6f train_short_rate=%.6f train_flat_rate=%.6f "
+        "raw_long_class_weight=%.6f raw_short_class_weight=%.6f long_class_weight=%.6f short_class_weight=%.6f flat_class_weight=%.6f",
+        train_long_rate,
+        train_short_rate,
+        train_flat_rate,
+        raw_long_class_weight,
+        raw_short_class_weight,
+        long_class_weight,
+        short_class_weight,
+        flat_class_weight,
     )
 
     use_cuda = device.type == "cuda"
@@ -1932,7 +2371,10 @@ def run_train(
             "expected 'label' or 'uniform'"
         )
 
-    class_weights = torch.tensor([1.0, float(SHORT_CLASS_WEIGHT), 1.0], device=device)
+    class_weights = torch.tensor(
+        [float(long_class_weight), float(short_class_weight), float(flat_class_weight)],
+        device=device,
+    )
     criterion, cost_matrix = _build_cost_sensitive_criterion(
         device=device,
         class_weights=class_weights,
@@ -1948,12 +2390,19 @@ def run_train(
         balance_target=str(ENTRY_PRED_BALANCE_TARGET),
     )
     log.info(
-        "[ENTRY_TRAIN_RECIPE] direction_ce_scale=%.3f residual_scale=%.3f tradable_w=%.3f path_w=%.3f mfe_w=%.3f",
+        "[ENTRY_TRAIN_RECIPE] direction_ce_scale=%.3f residual_scale=%.3f tradable_w=%.3f path_w=%.3f mfe_w=%.3f tradable_pos_weight=%.3f clean_edge_w=%.3f clean_edge_pos_weight=%.3f survival_w=%.3f survival_pos_weight=%.3f rank_w=%.3f rank_margin=%.3f",
         float(ENTRY_DIRECTION_CE_SCALE),
         float(ENTRY_RESIDUAL_SCALE),
         float(ENTRY_AUX_TRADABLE_WEIGHT),
         float(ENTRY_AUX_PATH_WEIGHT),
         float(ENTRY_AUX_MFE_WEIGHT),
+        float(tradable_pos_weight),
+        float(ENTRY_AUX_CLEAN_EDGE_WEIGHT),
+        float(clean_edge_pos_weight),
+        float(ENTRY_AUX_SURVIVAL_WEIGHT),
+        float(survival_pos_weight),
+        float(ENTRY_CLEAN_EDGE_RANKING_WEIGHT),
+        float(ENTRY_CLEAN_EDGE_RANKING_MARGIN),
     )
     log.info(
         "[ENTRY_TRAIN_PARKED] cost_sensitive=%d cost_scale=%.3f pred_balance_alpha=%.3f residual_side_bias_alpha=%.3f "
@@ -1968,6 +2417,15 @@ def run_train(
         float(ENTRY_AUX_BAD_PATH_WEIGHT),
         float(XGB_SHORT_LONG_PENALTY),
         float(SHORT_CLASS_WEIGHT),
+    )
+    log.info(
+        "[ENTRY_HARD_NEG_RECIPE] dead_long_ce_multiplier=%.3f dead_long_prob_penalty=%.3f teaser_long_ce_multiplier=%.3f teaser_long_prob_penalty=%.3f hard_neg_long_ce_multiplier=%.3f hard_neg_long_prob_penalty=%.3f",
+        float(ENTRY_DEAD_LONG_CE_MULTIPLIER),
+        float(ENTRY_DEAD_LONG_PROB_PENALTY),
+        float(ENTRY_TEASER_LONG_CE_MULTIPLIER),
+        float(ENTRY_TEASER_LONG_PROB_PENALTY),
+        float(ENTRY_HARD_NEG_LONG_CE_MULTIPLIER),
+        float(ENTRY_HARD_NEG_LONG_PROB_PENALTY),
     )
     optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-5)
 
@@ -1999,6 +2457,9 @@ def run_train(
             aux_quality_scale_bps=ENTRY_AUX_QUALITY_SCALE_BPS,
             aux_path_scale_bps=ENTRY_AUX_PATH_SCALE_BPS,
             aux_mfe_scale_bps=ENTRY_AUX_MFE_SCALE_BPS,
+            tradable_pos_weight=tradable_pos_weight,
+            clean_edge_pos_weight=clean_edge_pos_weight,
+            survival_pos_weight=survival_pos_weight,
             bad_path_pos_weight=bad_path_pos_weight,
         )
         va_loss, auc, acc, val_short_to_long, val_stats = validate(
@@ -2015,6 +2476,9 @@ def run_train(
             aux_quality_scale_bps=ENTRY_AUX_QUALITY_SCALE_BPS,
             aux_path_scale_bps=ENTRY_AUX_PATH_SCALE_BPS,
             aux_mfe_scale_bps=ENTRY_AUX_MFE_SCALE_BPS,
+            tradable_pos_weight=tradable_pos_weight,
+            clean_edge_pos_weight=clean_edge_pos_weight,
+            survival_pos_weight=survival_pos_weight,
             bad_path_pos_weight=bad_path_pos_weight,
         )
         auc_display = "DISABLED" if not np.isfinite(auc) else f"{auc:.4f}"
@@ -2183,16 +2647,35 @@ def run_train(
             "direction_ce_scale": float(ENTRY_DIRECTION_CE_SCALE),
             "residual_scale": float(ENTRY_RESIDUAL_SCALE),
             "tradable_weight": float(ENTRY_AUX_TRADABLE_WEIGHT),
+            "tradable_pos_weight": float(tradable_pos_weight),
             "path_weight": float(ENTRY_AUX_PATH_WEIGHT),
             "mfe_weight": float(ENTRY_AUX_MFE_WEIGHT),
+            "dead_long_ce_multiplier": float(ENTRY_DEAD_LONG_CE_MULTIPLIER),
+            "dead_long_prob_penalty": float(ENTRY_DEAD_LONG_PROB_PENALTY),
+            "teaser_long_ce_multiplier": float(ENTRY_TEASER_LONG_CE_MULTIPLIER),
+            "teaser_long_prob_penalty": float(ENTRY_TEASER_LONG_PROB_PENALTY),
+            "hard_neg_long_ce_multiplier": float(ENTRY_HARD_NEG_LONG_CE_MULTIPLIER),
+            "hard_neg_long_prob_penalty": float(ENTRY_HARD_NEG_LONG_PROB_PENALTY),
+            "clean_edge_weight": float(ENTRY_AUX_CLEAN_EDGE_WEIGHT),
+            "clean_edge_pos_weight": float(clean_edge_pos_weight),
+            "survival_weight": float(ENTRY_AUX_SURVIVAL_WEIGHT),
+            "survival_pos_weight": float(survival_pos_weight),
+            "clean_edge_ranking_weight": float(ENTRY_CLEAN_EDGE_RANKING_WEIGHT),
+            "clean_edge_ranking_margin": float(ENTRY_CLEAN_EDGE_RANKING_MARGIN),
+            "selector_masked_aux": True,
+            "teacher_v6_mined": True,
+            "aux_regression_positive_only": True,
             "active_heads": [
                 "direction",
                 "tradable",
                 "path_quality",
                 "mfe_first_n",
+                "clean_edge",
+                "survival",
             ],
         },
         "lane_contract": {
+            "direction_policy": "LONG_ONLY_PREMIUM",
             "entry_admission_policy": "OVERLAP_LONG_REPLACES_OLDEST_OVERLAP_SHORT_WHEN_FULL",
             "max_open_trades": 10,
         },
@@ -2205,6 +2688,7 @@ def run_train(
             "aux_quality_weight": float(ENTRY_AUX_QUALITY_WEIGHT),
             "aux_bad_path_weight": float(ENTRY_AUX_BAD_PATH_WEIGHT),
             "xgb_short_penalty_weight": float(XGB_SHORT_LONG_PENALTY),
+            "tradable_pos_weight_cap": float(ENTRY_AUX_TRADABLE_POS_WEIGHT_CAP),
         },
     }
     (out_bundle_dir / "bundle_metadata.json").write_text(json.dumps(meta, indent=2))
@@ -2217,7 +2701,7 @@ def run_train(
         ctx_cont_dim=ctx_cont_dim,
         ctx_cat_dim=ctx_cat_dim,
     )
-    model2.load_state_dict(torch.load(model_path, map_location="cpu"), strict=True)
+    _load_entry_model_state_compat(model2, torch.load(model_path, map_location="cpu"), label="post_export_verify")
     model2.eval()
     with torch.no_grad():
         B = 2
@@ -2291,7 +2775,7 @@ def run_eval(
         ctx_cat_dim=ctx_cat_dim,
     )
     state = torch.load(model_path, map_location="cpu")
-    model.load_state_dict(state, strict=True)
+    _load_entry_model_state_compat(model, state, label="run_eval")
     model = model.to(device)
 
     dataset = EntryV10CtxDataset(
@@ -2467,12 +2951,15 @@ def _compute_bias_stats(
     totals_by_session: Dict[str, int] = {}
     total_samples = 0
     total_label_long_short = 0
-    label_short_total = 0
-    label_short_pred_long = 0
-    label_short_margin_ge_002 = 0
-    label_short_margin_ge_005 = 0
+    label_long_total = 0
+    label_long_pred_long = 0
+    label_long_pred_short = 0
+    label_long_pred_flat = 0
+    label_long_margin_ge_000 = 0
+    label_long_margin_ge_002 = 0
+    label_long_margin_ge_005 = 0
 
-    label_short_by_session: Dict[str, Dict[str, int]] = {}
+    label_long_by_session: Dict[str, Dict[str, int]] = {}
 
     model.eval()
     with torch.no_grad():
@@ -2506,34 +2993,40 @@ def _compute_bias_stats(
                 totals_by_session[sess_name] = totals_by_session.get(sess_name, 0) + 1
                 if sess_name not in conf_by_session:
                     conf_by_session[sess_name] = _init_confusion_bucket()
-                    label_short_by_session[sess_name] = {
+                    label_long_by_session[sess_name] = {
                         "total": 0,
                         "pred_long": 0,
                         "pred_short": 0,
                         "pred_flat": 0,
+                        "margin_ge_000": 0,
                         "margin_ge_002": 0,
                         "margin_ge_005": 0,
                     }
 
                 if label in (0, 1):
                     total_label_long_short += 1
-                    if label == 1:
-                        label_short_total += 1
-                        label_short_by_session[sess_name]["total"] += 1
+                    if label == 0:
+                        label_long_total += 1
+                        label_long_by_session[sess_name]["total"] += 1
                         if pred == 0:
-                            label_short_pred_long += 1
-                            label_short_by_session[sess_name]["pred_long"] += 1
+                            label_long_pred_long += 1
+                            label_long_by_session[sess_name]["pred_long"] += 1
                         if pred == 1:
-                            label_short_by_session[sess_name]["pred_short"] += 1
+                            label_long_pred_short += 1
+                            label_long_by_session[sess_name]["pred_short"] += 1
                         if pred == 2:
-                            label_short_by_session[sess_name]["pred_flat"] += 1
-                        margin = float(p_long[i] - p_short[i])
+                            label_long_pred_flat += 1
+                            label_long_by_session[sess_name]["pred_flat"] += 1
+                        margin = float(p_long[i] - p_flat[i])
+                        if margin >= 0.00:
+                            label_long_margin_ge_000 += 1
+                            label_long_by_session[sess_name]["margin_ge_000"] += 1
                         if margin >= 0.02:
-                            label_short_margin_ge_002 += 1
-                            label_short_by_session[sess_name]["margin_ge_002"] += 1
+                            label_long_margin_ge_002 += 1
+                            label_long_by_session[sess_name]["margin_ge_002"] += 1
                         if margin >= 0.05:
-                            label_short_margin_ge_005 += 1
-                            label_short_by_session[sess_name]["margin_ge_005"] += 1
+                            label_long_margin_ge_005 += 1
+                            label_long_by_session[sess_name]["margin_ge_005"] += 1
 
                     if label == 1 and pred == 0:
                         key = "label_SHORT__pred_LONG"
@@ -2562,37 +3055,41 @@ def _compute_bias_stats(
 
     session_stats = {}
     for sess_name, conf in conf_by_session.items():
-        session_label_short = label_short_by_session.get(sess_name, {})
+        session_label_long = label_long_by_session.get(sess_name, {})
         session_total = totals_by_session.get(sess_name, 0)
         session_conf_counts = {k: len(v["p_long"]) for k, v in conf.items()}
         session_conf_rates = {
             k: (count / sum(session_conf_counts.values()) if sum(session_conf_counts.values()) > 0 else 0.0)
             for k, count in session_conf_counts.items()
         }
-        short_total = session_label_short.get("total", 0)
-        pred_long = session_label_short.get("pred_long", 0)
-        pred_short = session_label_short.get("pred_short", 0)
-        pred_flat = session_label_short.get("pred_flat", 0)
+        long_total = session_label_long.get("total", 0)
+        pred_long = session_label_long.get("pred_long", 0)
+        pred_short = session_label_long.get("pred_short", 0)
+        pred_flat = session_label_long.get("pred_flat", 0)
         session_stats[sess_name] = {
             "total_samples": session_total,
             "confusion_counts": session_conf_counts,
             "confusion_rates": session_conf_rates,
             "prob_stats": _finalize_confusion(conf),
-            "label_short": {
-                "total": short_total,
+            "label_long": {
+                "total": long_total,
                 "pred_long_count": pred_long,
                 "pred_short_count": pred_short,
                 "pred_flat_count": pred_flat,
-                "pred_long_rate": (pred_long / short_total if short_total > 0 else 0.0),
-                "pred_short_rate": (pred_short / short_total if short_total > 0 else 0.0),
-                "pred_flat_rate": (pred_flat / short_total if short_total > 0 else 0.0),
-                "p_long_minus_p_short_ge_0.02_count": session_label_short.get("margin_ge_002", 0),
-                "p_long_minus_p_short_ge_0.02_rate": (
-                    session_label_short.get("margin_ge_002", 0) / short_total if short_total > 0 else 0.0
+                "pred_long_rate": (pred_long / long_total if long_total > 0 else 0.0),
+                "pred_short_rate": (pred_short / long_total if long_total > 0 else 0.0),
+                "pred_flat_rate": (pred_flat / long_total if long_total > 0 else 0.0),
+                "p_long_minus_p_flat_ge_0.00_count": session_label_long.get("margin_ge_000", 0),
+                "p_long_minus_p_flat_ge_0.00_rate": (
+                    session_label_long.get("margin_ge_000", 0) / long_total if long_total > 0 else 0.0
                 ),
-                "p_long_minus_p_short_ge_0.05_count": session_label_short.get("margin_ge_005", 0),
-                "p_long_minus_p_short_ge_0.05_rate": (
-                    session_label_short.get("margin_ge_005", 0) / short_total if short_total > 0 else 0.0
+                "p_long_minus_p_flat_ge_0.02_count": session_label_long.get("margin_ge_002", 0),
+                "p_long_minus_p_flat_ge_0.02_rate": (
+                    session_label_long.get("margin_ge_002", 0) / long_total if long_total > 0 else 0.0
+                ),
+                "p_long_minus_p_flat_ge_0.05_count": session_label_long.get("margin_ge_005", 0),
+                "p_long_minus_p_flat_ge_0.05_rate": (
+                    session_label_long.get("margin_ge_005", 0) / long_total if long_total > 0 else 0.0
                 ),
             },
         }
@@ -2603,17 +3100,25 @@ def _compute_bias_stats(
         "confusion_counts": confusion_counts,
         "confusion_rates": confusion_rates,
         "prob_stats": _finalize_confusion(conf_global),
-        "label_short": {
-            "total": label_short_total,
-            "pred_long_count": label_short_pred_long,
-            "pred_long_rate": (label_short_pred_long / label_short_total if label_short_total > 0 else 0.0),
-            "p_long_minus_p_short_ge_0.02_count": label_short_margin_ge_002,
-            "p_long_minus_p_short_ge_0.02_rate": (
-                label_short_margin_ge_002 / label_short_total if label_short_total > 0 else 0.0
+        "label_long": {
+            "total": label_long_total,
+            "pred_long_count": label_long_pred_long,
+            "pred_short_count": label_long_pred_short,
+            "pred_flat_count": label_long_pred_flat,
+            "pred_long_rate": (label_long_pred_long / label_long_total if label_long_total > 0 else 0.0),
+            "pred_short_rate": (label_long_pred_short / label_long_total if label_long_total > 0 else 0.0),
+            "pred_flat_rate": (label_long_pred_flat / label_long_total if label_long_total > 0 else 0.0),
+            "p_long_minus_p_flat_ge_0.00_count": label_long_margin_ge_000,
+            "p_long_minus_p_flat_ge_0.00_rate": (
+                label_long_margin_ge_000 / label_long_total if label_long_total > 0 else 0.0
             ),
-            "p_long_minus_p_short_ge_0.05_count": label_short_margin_ge_005,
-            "p_long_minus_p_short_ge_0.05_rate": (
-                label_short_margin_ge_005 / label_short_total if label_short_total > 0 else 0.0
+            "p_long_minus_p_flat_ge_0.02_count": label_long_margin_ge_002,
+            "p_long_minus_p_flat_ge_0.02_rate": (
+                label_long_margin_ge_002 / label_long_total if label_long_total > 0 else 0.0
+            ),
+            "p_long_minus_p_flat_ge_0.05_count": label_long_margin_ge_005,
+            "p_long_minus_p_flat_ge_0.05_rate": (
+                label_long_margin_ge_005 / label_long_total if label_long_total > 0 else 0.0
             ),
         },
         "sessions": session_stats,
@@ -2676,16 +3181,17 @@ def _run_entry_training_bias_audit(
     for split_name, split_stats in results.get("splits", {}).items():
         split_sessions = split_stats.get("sessions", {})
         session_bias["splits"][split_name] = {}
-        for session_name in ["EU", "OVERLAP", "US", "US_LATE"]:
+        for session_name in ["ASIA", "EU", "OVERLAP", "US"]:
             sess_stats = split_sessions.get(session_name, {})
-            label_short = sess_stats.get("label_short", {})
+            label_long = sess_stats.get("label_long", {})
             session_bias["splits"][split_name][session_name] = {
-                "label_short_total": label_short.get("total", 0),
-                "pred_long_rate": label_short.get("pred_long_rate", 0.0),
-                "pred_short_rate": label_short.get("pred_short_rate", 0.0),
-                "pred_flat_rate": label_short.get("pred_flat_rate", 0.0),
-                "margin_ge_0.02_rate": label_short.get("p_long_minus_p_short_ge_0.02_rate", 0.0),
-                "margin_ge_0.05_rate": label_short.get("p_long_minus_p_short_ge_0.05_rate", 0.0),
+                "label_long_total": label_long.get("total", 0),
+                "pred_long_rate": label_long.get("pred_long_rate", 0.0),
+                "pred_short_rate": label_long.get("pred_short_rate", 0.0),
+                "pred_flat_rate": label_long.get("pred_flat_rate", 0.0),
+                "margin_ge_0.00_rate": label_long.get("p_long_minus_p_flat_ge_0.00_rate", 0.0),
+                "margin_ge_0.02_rate": label_long.get("p_long_minus_p_flat_ge_0.02_rate", 0.0),
+                "margin_ge_0.05_rate": label_long.get("p_long_minus_p_flat_ge_0.05_rate", 0.0),
             }
 
     session_bias_path = Path(bundle_dir) / "ENTRY_SESSION_BIAS_AUDIT.json"
@@ -2695,14 +3201,16 @@ def _run_entry_training_bias_audit(
     log.info("bundle_dir=%s", bundle_dir)
     log.info("splits=%s", json.dumps(list(results.get("splits", {}).keys())))
     for split_name, split_stats in results.get("splits", {}).items():
-        short_stats = split_stats.get("label_short", {})
+        long_stats = split_stats.get("label_long", {})
         log.info(
-            "[ENTRY_TRAINING_BIAS_AUDIT] split=%s label_short_total=%s pred_long_rate=%.6f margin_ge_0.02_rate=%.6f margin_ge_0.05_rate=%.6f",
+            "[ENTRY_TRAINING_BIAS_AUDIT] split=%s label_long_total=%s pred_long_rate=%.6f pred_flat_rate=%.6f margin_ge_0.00_rate=%.6f margin_ge_0.02_rate=%.6f margin_ge_0.05_rate=%.6f",
             split_name,
-            short_stats.get("total"),
-            float(short_stats.get("pred_long_rate") or 0.0),
-            float(short_stats.get("p_long_minus_p_short_ge_0.02_rate") or 0.0),
-            float(short_stats.get("p_long_minus_p_short_ge_0.05_rate") or 0.0),
+            long_stats.get("total"),
+            float(long_stats.get("pred_long_rate") or 0.0),
+            float(long_stats.get("pred_flat_rate") or 0.0),
+            float(long_stats.get("p_long_minus_p_flat_ge_0.00_rate") or 0.0),
+            float(long_stats.get("p_long_minus_p_flat_ge_0.02_rate") or 0.0),
+            float(long_stats.get("p_long_minus_p_flat_ge_0.05_rate") or 0.0),
         )
 
     log.info("[ENTRY_SESSION_BIAS_AUDIT]")
@@ -2710,13 +3218,14 @@ def _run_entry_training_bias_audit(
     for split_name, split_sessions in session_bias.get("splits", {}).items():
         for session_name, metrics in split_sessions.items():
             log.info(
-                "[ENTRY_SESSION_BIAS_AUDIT] split=%s session=%s label_short_total=%s pred_long_rate=%.6f pred_short_rate=%.6f pred_flat_rate=%.6f margin_ge_0.02_rate=%.6f margin_ge_0.05_rate=%.6f",
+                "[ENTRY_SESSION_BIAS_AUDIT] split=%s session=%s label_long_total=%s pred_long_rate=%.6f pred_short_rate=%.6f pred_flat_rate=%.6f margin_ge_0.00_rate=%.6f margin_ge_0.02_rate=%.6f margin_ge_0.05_rate=%.6f",
                 split_name,
                 session_name,
-                metrics.get("label_short_total"),
+                metrics.get("label_long_total"),
                 float(metrics.get("pred_long_rate") or 0.0),
                 float(metrics.get("pred_short_rate") or 0.0),
                 float(metrics.get("pred_flat_rate") or 0.0),
+                float(metrics.get("margin_ge_0.00_rate") or 0.0),
                 float(metrics.get("margin_ge_0.02_rate") or 0.0),
                 float(metrics.get("margin_ge_0.05_rate") or 0.0),
             )

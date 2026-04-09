@@ -7,7 +7,7 @@ exit:
       mode: exit_transformer_v0
       exit_transformer:
         enabled: true
-        model_path: models/exit_transformer_v0/EXIT_IO_V3_CTX36_M1L512_PHASE5__WL512__PENDING_RETRAIN
+        model_path: /home/andre2/GX1_DATA/models/exit_transformer_v0/EXIT_IO_V3_CTX36_M1L512_PHASE5__WL512__E_R5E_20260409_WEEKLY_MONETIZE
         feature_hash: 9f3c06390f215b83
         exit_ml_io_version: EXIT_IO_V3_CTX36_M1L512_PHASE5
         threshold: 0.961242
@@ -35,7 +35,7 @@ exit:
           mfe_bps_min: 18.0
           dd_from_mfe_bps_min: 12.0
           giveback_ratio_min: 0.35
-          pnl_bps_min: 4.0
+          pnl_bps_min: 1.0
           pnl_bps_max: 30.0
           pnl_frac_mfe_max: 0.7
           time_since_mfe_bars_min: 6.0
