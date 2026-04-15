@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-Guardrail: canonical entry bundle must declare ctx dims 6/6 (no silent drift).
+Guardrail: canonical entry bundle must declare ctx dims 21/6 (no silent drift).
 
 Reads GX1_CANONICAL_TRUTH_FILE (or canonical_truth_signal_only.json), resolves
 canonical_transformer_bundle_dir, and verifies bundle_metadata.json has
-ctx_cont_dim=6 and ctx_cat_dim=6 (or expected_* equivalents).
+ctx_cont_dim=21 and ctx_cat_dim=6 (or expected_* equivalents).
 Does not load torch checkpoint (metadata only).
 """
 
@@ -46,15 +46,15 @@ def _get_bundle_metadata(bundle_dir: Path) -> dict:
 
 
 def test_canonical_entry_bundle_ctx_dims_6_6():
-    """Canonical entry bundle metadata must declare ctx_cont_dim=6 and ctx_cat_dim=6."""
+    """Canonical entry bundle metadata must declare ctx_cont_dim=21 and ctx_cat_dim=6."""
     bundle_dir = _get_canonical_entry_bundle_dir()
     if not bundle_dir.exists():
         pytest.skip(f"Bundle dir not present (GX1_DATA): {bundle_dir}")
     meta = _get_bundle_metadata(bundle_dir)
     ctx_cont = meta.get("expected_ctx_cont_dim") or meta.get("ctx_cont_dim")
     ctx_cat = meta.get("expected_ctx_cat_dim") or meta.get("ctx_cat_dim")
-    assert ctx_cont == 6, (
-        f"Entry bundle must have ctx_cont_dim=6 (no drift). "
+    assert ctx_cont == 21, (
+        f"Entry bundle must have ctx_cont_dim=21 (no drift). "
         f"Got ctx_cont_dim={ctx_cont} in {bundle_dir}"
     )
     assert ctx_cat == 6, (

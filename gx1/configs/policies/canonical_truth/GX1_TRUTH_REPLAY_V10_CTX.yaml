@@ -1,8 +1,9 @@
 meta:
   router_version: V3_RANGE
   role: REPLAY_VERIFICATION
-  description: 'Canonical TRUTH replay policy with ENTRY_V10_CTX and the active
-    EXIT_IO_V3_CTX36_M1L512_PHASE5 exit contract.
+  description: 'Canonical TRUTH replay policy with V13_BADPATH as the active
+    ENTRY_V10_CTX working lane and the weekly-monetize EXIT_IO_V3_CTX36_M1L512_PHASE5
+    exit contract; frozen legacy benchmark remains comparison-only.
 
     '
   bundle_location: canonical_truth
@@ -46,8 +47,8 @@ exit_control:
   - REPLAY_EOF
   allow_model_exit_when:
     min_bars: 2
-    min_pnl_bps: 0.0
-    min_realized_pnl_bps: 0.0
+    min_pnl_bps: 1.0
+    min_realized_pnl_bps: 1.0
     require_positive_mfe_before_model_exit: true
     min_mfe_bps_for_model_exit: 0.0
     max_giveback_frac_from_mfe: 0.5

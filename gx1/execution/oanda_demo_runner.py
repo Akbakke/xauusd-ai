@@ -184,6 +184,7 @@ class LiveTrade:
     vol_bucket: str
     entry_prob_long: float
     entry_prob_short: float
+    candidate_uid: Optional[str] = None  # Candidate decision identity for shadow/meta joins
     dry_run: bool = True
     client_order_id: Optional[str] = None  # For idempotency
     extra: Dict[str, Any] = field(default_factory=dict)
@@ -219,6 +220,7 @@ class EntryPrediction:
     tradable_prob: Optional[float] = None
     mfe_first_n_pred: Optional[float] = None
     path_quality_pred: Optional[float] = None
+    bad_path_prob: Optional[float] = None
     clean_edge_prob: Optional[float] = None
     survival_prob: Optional[float] = None
     supported_heads: Tuple[str, ...] = ()
@@ -2202,7 +2204,17 @@ class GX1DemoRunner:
                 else:
                     raise RuntimeError(
                         f"GATED_BUNDLE_INCOMPLETE: model_state_dict.pt not found in '{bundle_dir}'"
-                    )
+                )
+                self.entry_v10_ctx_resolved_bundle_dir = str(Path(bundle_dir).resolve())
+                self.entry_v10_ctx_bundle_source = str(bundle_dir_source or "unknown")
+                self.entry_v10_ctx_lane_name = str(self.policy.get("truth_id") or self.policy.get("policy_name") or "UNKNOWN")
+                log.info(
+                    "[PHASE5_VERIFY_BOOT] lane=%s entry_bundle=%s entry_source=%s exit_bundle=%s",
+                    self.entry_v10_ctx_lane_name,
+                    self.entry_v10_ctx_resolved_bundle_dir,
+                    self.entry_v10_ctx_bundle_source,
+                    getattr(self, "exit_transformer_model_path", None),
+                )
                 
                 # Log ctx bundle info (ctx_cat fixed=6, ctx_cont from bundle)
                 from gx1.contracts.signal_bridge_v1 import get_canonical_ctx_contract
@@ -2244,7 +2256,13 @@ class GX1DemoRunner:
                             status = "SUPPORTED+INACTIVE"
                     log.info("[ENTRY_HEAD_STATUS] %s=%s", head_name, status)
                 log.info("[ENTRY_HEAD_STATUS] quality_score=UNSUPPORTED")
-                log.info("[ENTRY_HEAD_STATUS] bad_path=UNSUPPORTED")
+                bad_path_status = "UNSUPPORTED"
+                if "bad_path" in set(bundle_caps.get("supported_heads", []) or []):
+                    if "bad_path" in set(self.entry_contract.get("required_heads", []) or []):
+                        bad_path_status = "SUPPORTED+ACTIVE"
+                    else:
+                        bad_path_status = "SUPPORTED+INACTIVE"
+                log.info("[ENTRY_HEAD_STATUS] bad_path=%s", bad_path_status)
                 log.info(
                     "[ENTRY_GATE_STATUS] supported_heads=%s active_gates=%s source_sessions=%s source_vol_regimes=%s",
                     bundle_caps.get("supported_heads"),
@@ -2660,6 +2678,16 @@ class GX1DemoRunner:
         # JSON eval log path (rotates daily)
         self.eval_log_path = self.log_dir / f"eval_log_{pd.Timestamp.now(tz='UTC').strftime('%Y%m%d')}.jsonl"
         self.eval_log_path.parent.mkdir(parents=True, exist_ok=True)
+        if getattr(self, "explicit_output_dir", None):
+            shadow_meta_root = Path(self.explicit_output_dir)
+            if "parallel_chunks" in str(shadow_meta_root):
+                shadow_meta_root = shadow_meta_root.parent.parent
+        elif getattr(self, "output_dir", None):
+            shadow_meta_root = Path(self.output_dir)
+        else:
+            shadow_meta_root = Path("gx1/wf_runs") / self.run_id
+        self.shadow_meta_candidates_path = shadow_meta_root / f"shadow_meta_candidates_{self.run_id}_MERGED.parquet"
+        log.info("[BOOT] shadow_meta_candidates_path=%s", self.shadow_meta_candidates_path)
 
         self.instrument = self.policy.get("instrument", "XAU_USD")
         self.granularity = self.policy.get("granularity", "M5")
@@ -5506,6 +5534,8 @@ class GX1DemoRunner:
 
                 outcome_collector.collect(
                     trade_id=trade_id,
+                    trade_uid=getattr(trade_obj, "trade_uid", None) if trade_obj is not None else None,
+                    candidate_uid=getattr(trade_obj, "candidate_uid", None) if trade_obj is not None else None,
                     pnl_bps=pnl_bps,
                     mae_bps=mae_bps,
                     mfe_bps=mfe_bps,
@@ -5513,6 +5543,12 @@ class GX1DemoRunner:
                     side=str(side) if side is not None else None,
                     session=session,
                     exit_reason=reason,
+                    open_ts_utc=(
+                        trade_obj.entry_time.isoformat()
+                        if trade_obj is not None and getattr(trade_obj, "entry_time", None) is not None
+                        else None
+                    ),
+                    close_ts_utc=exit_ts.isoformat() if hasattr(exit_ts, "isoformat") else str(exit_ts),
                     entry_bid=entry_bid,
                     entry_ask=entry_ask,
                     exit_bid=exit_bid,
@@ -9193,6 +9229,9 @@ class GX1DemoRunner:
                 mfe_first_n = outputs.get("mfe_first_n", None)
                 if "mfe_first_n" in supported_heads and mfe_first_n is None:
                     raise RuntimeError("[ENTRY_OUTPUT_MISSING] mfe_first_n missing for supported mfe_first_n head")
+                bad_path_logit = outputs.get("bad_path_logit", None)
+                if "bad_path" in supported_heads and bad_path_logit is None:
+                    raise RuntimeError("[ENTRY_OUTPUT_MISSING] bad_path_logit missing for supported bad_path head")
                 clean_edge_logit = outputs.get("clean_edge_logit", None)
                 if "clean_edge" in supported_heads and clean_edge_logit is None:
                     raise RuntimeError("[ENTRY_OUTPUT_MISSING] clean_edge_logit missing for supported clean_edge head")
@@ -9240,6 +9279,13 @@ class GX1DemoRunner:
                     torch.sigmoid(clean_edge_logit).cpu().item()
                     if isinstance(clean_edge_logit, torch.Tensor)
                     else float(clean_edge_logit)
+                )
+            bad_path_prob = None
+            if bad_path_logit is not None:
+                bad_path_prob = (
+                    torch.sigmoid(bad_path_logit).cpu().item()
+                    if isinstance(bad_path_logit, torch.Tensor)
+                    else float(bad_path_logit)
                 )
             survival_prob = None
             if survival_logit is not None:
@@ -9344,6 +9390,7 @@ class GX1DemoRunner:
                 tradable_prob=tradable_prob,
                 mfe_first_n_pred=float(mfe_first_n_pred) if mfe_first_n_pred is not None else None,
                 path_quality_pred=float(path_quality_pred) if path_quality_pred is not None else None,
+                bad_path_prob=float(bad_path_prob) if bad_path_prob is not None else None,
                 clean_edge_prob=float(clean_edge_prob) if clean_edge_prob is not None else None,
                 survival_prob=float(survival_prob) if survival_prob is not None else None,
                 supported_heads=tuple(sorted(supported_heads)),
@@ -10283,6 +10330,7 @@ def _execute_entry_impl(self, trade: LiveTrade) -> None:
             entry_kwargs = trade.extra.get("_journal_entry_snapshot_kwargs")
             if isinstance(entry_kwargs, dict):
                 # Ensure the identifiers reflect the opened trade
+                entry_kwargs["candidate_uid"] = getattr(trade, "candidate_uid", entry_kwargs.get("candidate_uid"))
                 entry_kwargs["trade_uid"] = getattr(trade, "trade_uid", entry_kwargs.get("trade_uid"))
                 entry_kwargs["trade_id"] = getattr(trade, "trade_id", entry_kwargs.get("trade_id"))
                 self.trade_journal.log_entry_snapshot(**entry_kwargs)

@@ -22,15 +22,981 @@ import pandas as pd
 
 from gx1.execution.chunk_failure import write_fatal_capsule
 from gx1.time.session_detector import get_session_vectorized
+from gx1.prod.run_header import load_run_header
 from gx1.utils.empty_trade_outcomes import write_empty_trade_outcomes_parquet
 from gx1.utils.pnl import compute_pnl_bps
 
 log = logging.getLogger(__name__)
 
+_BUNDLE_SHA256_CACHE: Dict[str, str] = {}
+_TREND_REGIME_ID_TO_LABEL = {
+    0: "TREND_DOWN",
+    1: "TREND_NEUTRAL",
+    2: "TREND_UP",
+}
+# Prebuilt uses a 0..4 percentile bucket for volatility. We normalize back to the
+# runtime-facing label contract here, while preserving the exact raw source in the
+# provenance summary.
+_VOL_REGIME_ID_TO_LABEL = {
+    0: "LOW",
+    1: "LOW",
+    2: "MEDIUM",
+    3: "HIGH",
+    4: "EXTREME",
+}
+
 
 def _load_json(path: Path) -> Dict[str, Any]:
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
+
+
+def _load_json_optional(path: Path) -> Dict[str, Any]:
+    if not path.exists():
+        return {}
+    try:
+        return _load_json(path)
+    except Exception as e:
+        raise RuntimeError(f"[SHADOW_META_PROVENANCE] failed to load json {path}: {e}") from e
+
+
+def _resolve_chunk_run_header(chunk_dir: Path) -> Dict[str, Any]:
+    for rel in ("run_header.json", "logs/run_header.json"):
+        path = chunk_dir / rel
+        if path.exists():
+            return _load_json(path)
+    return {}
+
+
+def _sha256_file(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        while True:
+            block = f.read(1024 * 1024)
+            if not block:
+                break
+            h.update(block)
+    return h.hexdigest()
+
+
+def _sha256_directory(path: Path) -> str:
+    cache_key = str(path.resolve())
+    cached = _BUNDLE_SHA256_CACHE.get(cache_key)
+    if cached:
+        return cached
+    if not path.exists() or not path.is_dir():
+        raise RuntimeError(f"[SHADOW_META_PROVENANCE] bundle directory missing: {path}")
+    h = hashlib.sha256()
+    files = sorted([p for p in path.rglob("*") if p.is_file()])
+    if not files:
+        raise RuntimeError(f"[SHADOW_META_PROVENANCE] bundle directory empty: {path}")
+    for file_path in files:
+        rel = file_path.relative_to(path).as_posix().encode("utf-8")
+        h.update(rel)
+        h.update(b"\0")
+        with file_path.open("rb") as f:
+            while True:
+                block = f.read(1024 * 1024)
+                if not block:
+                    break
+                h.update(block)
+        h.update(b"\0")
+    digest = h.hexdigest()
+    _BUNDLE_SHA256_CACHE[cache_key] = digest
+    return digest
+
+
+def _extract_v1_provenance(
+    *,
+    chunk_dir: Path,
+    run_header: Dict[str, Any],
+    footer: Dict[str, Any],
+) -> Dict[str, Optional[str]]:
+    artifacts = run_header.get("artifacts") if isinstance(run_header, dict) else {}
+    policy_hash = None
+    policy_lane = None
+    entry_bundle_sha256 = None
+    exit_bundle_sha256 = None
+    source_files: Dict[str, Optional[str]] = {
+        "policy_hash": None,
+        "entry_bundle_sha256": None,
+        "exit_bundle_sha256": None,
+    }
+
+    if isinstance(artifacts, dict):
+        policy_hash = (artifacts.get("policy") or {}).get("sha256")
+        if policy_hash is not None:
+            source_files["policy_hash"] = str(chunk_dir / "run_header.json")
+
+    model_used_capsule = _load_json_optional(chunk_dir / "MODEL_USED_CAPSULE.json")
+    if model_used_capsule:
+        entry_bundle_sha256 = model_used_capsule.get("bundle_sha256")
+        if entry_bundle_sha256 is not None:
+            source_files["entry_bundle_sha256"] = str(chunk_dir / "MODEL_USED_CAPSULE.json")
+
+    exit_runtime_sot = _load_json_optional(chunk_dir / "EXIT_RUNTIME_SOURCE_OF_TRUTH.json")
+    if exit_runtime_sot:
+        bundle_path = exit_runtime_sot.get("bundle_path")
+        if bundle_path:
+            exit_bundle_sha256 = _sha256_directory(Path(str(bundle_path)))
+            source_files["exit_bundle_sha256"] = str(chunk_dir / "EXIT_RUNTIME_SOURCE_OF_TRUTH.json")
+
+    policy_lane = (
+        run_header.get("policy_lane")
+        or run_header.get("entry_decision_engine", {}).get("mode")
+        or run_header.get("meta", {}).get("role")
+        or run_header.get("run_tag")
+        or footer.get("policy_lane")
+    )
+
+    if not policy_hash:
+        raise RuntimeError("[SHADOW_META_PROVENANCE] missing policy_hash in run_header.json")
+    if not entry_bundle_sha256:
+        raise RuntimeError("[SHADOW_META_PROVENANCE] missing entry_bundle_sha256 in MODEL_USED_CAPSULE.json")
+    if not exit_bundle_sha256:
+        raise RuntimeError("[SHADOW_META_PROVENANCE] missing exit_bundle_sha256 from EXIT_RUNTIME_SOURCE_OF_TRUTH bundle path")
+
+    return {
+        "policy_lane": str(policy_lane) if policy_lane is not None else None,
+        "policy_hash": str(policy_hash),
+        "entry_bundle_sha256": str(entry_bundle_sha256),
+        "exit_bundle_sha256": str(exit_bundle_sha256),
+        "source_policy_hash": source_files["policy_hash"],
+        "source_entry_bundle_sha256": source_files["entry_bundle_sha256"],
+        "source_exit_bundle_sha256": source_files["exit_bundle_sha256"],
+    }
+
+
+def _load_context_backfill_table(chunk_dir: Path) -> pd.DataFrame:
+    chunk_data_path = chunk_dir / "chunk_0_data.parquet"
+    if not chunk_data_path.exists():
+        raise RuntimeError(f"[SHADOW_META_PROVENANCE] missing chunk_0_data.parquet: {chunk_data_path}")
+    df = pd.read_parquet(chunk_data_path)
+    required_cols = {"time", "atr_bps", "trend_regime_id", "vol_regime_id"}
+    missing = sorted(required_cols - set(df.columns))
+    if missing:
+        raise RuntimeError(f"[SHADOW_META_PROVENANCE] chunk_0_data missing required cols: {missing}")
+    df = df[["time", "atr_bps", "trend_regime_id", "vol_regime_id"]].copy()
+    df["time"] = pd.to_datetime(df["time"], utc=True, errors="coerce")
+    if df["time"].isna().any():
+        raise RuntimeError("[SHADOW_META_PROVENANCE] chunk_0_data.time contains null timestamps")
+    if df["time"].duplicated().any():
+        dupes = df.loc[df["time"].duplicated(keep=False), "time"].astype(str).head(10).tolist()
+        raise RuntimeError(f"[SHADOW_META_PROVENANCE] chunk_0_data time index is not unique: {dupes}")
+
+    trend_ids = sorted(pd.Series(df["trend_regime_id"]).dropna().astype(int).unique().tolist())
+    vol_ids = sorted(pd.Series(df["vol_regime_id"]).dropna().astype(int).unique().tolist())
+    bad_trend = [x for x in trend_ids if x not in _TREND_REGIME_ID_TO_LABEL]
+    bad_vol = [x for x in vol_ids if x not in _VOL_REGIME_ID_TO_LABEL]
+    if bad_trend:
+        raise RuntimeError(f"[SHADOW_META_PROVENANCE] unexpected trend_regime_id values: {bad_trend}")
+    if bad_vol:
+        raise RuntimeError(f"[SHADOW_META_PROVENANCE] unexpected vol_regime_id values: {bad_vol}")
+
+    out = pd.DataFrame({"decision_ts_utc_join": df["time"]})
+    out["atr_bps_backfill"] = pd.to_numeric(df["atr_bps"], errors="coerce").astype("float64")
+    out["trend_regime_backfill"] = (
+        pd.to_numeric(df["trend_regime_id"], errors="coerce")
+        .astype("Int64")
+        .map(_TREND_REGIME_ID_TO_LABEL)
+        .astype("string")
+    )
+    out["vol_regime_backfill"] = (
+        pd.to_numeric(df["vol_regime_id"], errors="coerce")
+        .astype("Int64")
+        .map(_VOL_REGIME_ID_TO_LABEL)
+        .astype("string")
+    )
+    out["trend_regime_id_backfill"] = pd.to_numeric(df["trend_regime_id"], errors="coerce").astype("Int64")
+    out["vol_regime_id_backfill"] = pd.to_numeric(df["vol_regime_id"], errors="coerce").astype("Int64")
+    return out
+
+
+def _load_shadow_candidate_events(chunk_dir: Path, run_id: str) -> pd.DataFrame:
+    """
+    Load entry decision rows from eval_log JSONL files.
+
+    This is the canonical shadow/meta-controller source table:
+    one row per decision moment, including accepted, blocked, and no-trade rows.
+    """
+    rows: List[Dict[str, Any]] = []
+    seen_paths: set[Path] = set()
+    for root in (chunk_dir, chunk_dir.parent):
+        if not root.exists():
+            continue
+        for path in sorted(root.rglob("eval_log_*.jsonl")):
+            if path in seen_paths:
+                continue
+            seen_paths.add(path)
+            try:
+                with path.open("r", encoding="utf-8") as handle:
+                    for idx, line in enumerate(handle, start=1):
+                        raw = line.strip()
+                        if not raw:
+                            continue
+                        try:
+                            rec = json.loads(raw)
+                        except Exception:
+                            continue
+                        if not isinstance(rec, dict):
+                            continue
+                        rec = dict(rec)
+                        rec["source_eval_log"] = str(path)
+                        rec["source_eval_log_row"] = idx
+                        candidate_uid = rec.get("candidate_uid")
+                        if not candidate_uid:
+                            ts = str(rec.get("ts_utc") or rec.get("ts") or "")
+                            decision = str(rec.get("decision") or "UNKNOWN")
+                            trade_id = str(rec.get("trade_id") or "")
+                            fallback_seed = f"{run_id}|{ts}|{decision}|{trade_id}|{idx}"
+                            candidate_uid = (
+                                f"{run_id}:fallback::{idx:06d}:"
+                                f"{hashlib.sha256(fallback_seed.encode('utf-8')).hexdigest()[:12]}"
+                            )
+                            rec["candidate_uid"] = candidate_uid
+                            rec["candidate_uid_source"] = "fallback"
+                        else:
+                            rec["candidate_uid_source"] = "log"
+                        rows.append(rec)
+            except Exception as e:
+                log.warning("[SHADOW_META] failed to read eval_log %s: %s", path, e)
+    if not rows:
+        return pd.DataFrame()
+    df = pd.DataFrame(rows)
+    if "ts_utc" in df.columns:
+        df["ts_utc"] = pd.to_datetime(df["ts_utc"], utc=True, errors="coerce")
+    if "accepted" in df.columns:
+        df["accepted"] = df["accepted"].fillna(False).astype(bool)
+    if "decision" in df.columns:
+        df["decision"] = df["decision"].astype(str)
+    if "candidate_uid" in df.columns:
+        df["candidate_uid"] = df["candidate_uid"].astype(str)
+    return df
+
+
+def _join_key_for_trade_id_or_uid(df: pd.DataFrame) -> pd.Series:
+    if df is None or df.empty:
+        return pd.Series(dtype="object")
+    trade_uid = df["trade_uid"] if "trade_uid" in df.columns else pd.Series([None] * len(df), index=df.index)
+    trade_id = df["trade_id"] if "trade_id" in df.columns else pd.Series([None] * len(df), index=df.index)
+    return trade_uid.where(trade_uid.notna() & (trade_uid.astype(str).str.strip() != ""), trade_id).astype("object")
+
+
+def _dedupe_keep_order(values: List[str]) -> List[str]:
+    seen = set()
+    out: List[str] = []
+    for value in values:
+        if value in seen:
+            continue
+        seen.add(value)
+        out.append(value)
+    return out
+
+
+def _safe_str_series(series: pd.Series) -> pd.Series:
+    return series.astype("string") if not series.empty else series.astype("string")
+
+
+def _safe_bool_series(series: pd.Series) -> pd.Series:
+    return series.astype("boolean") if not series.empty else series.astype("boolean")
+
+
+def _safe_float_series(series: pd.Series) -> pd.Series:
+    return pd.to_numeric(series, errors="coerce").astype("float64")
+
+
+def _load_run_header_optional(run_root: Path) -> Dict[str, Any]:
+    try:
+        header = load_run_header(run_root)
+        return header or {}
+    except Exception as e:
+        log.info("[SHADOW_META] run_header load skipped: %s", e)
+        return {}
+
+
+FEATURE_COLS = [
+    "side",
+    "session",
+    "weekday_utc",
+    "hour_utc",
+    "atr_bps",
+    "entry_spread_bps",
+    "p_long",
+    "p_short",
+    "p_flat",
+    "p_hat",
+    "margin",
+    "uncertainty_score",
+    "tradable_prob",
+    "mfe_first_n_pred",
+    "path_quality_pred",
+    "vol_regime",
+    "trend_regime",
+]
+
+AUDIT_COLS = [
+    "run_id",
+    "candidate_uid",
+    "trade_uid",
+    "trade_id",
+    "decision_ts_utc",
+    "source_eval_log",
+    "source_eval_log_row",
+    "decision",
+    "accepted",
+    "decision_reason",
+    "policy_lane",
+    "policy_hash",
+    "entry_bundle_sha256",
+    "exit_bundle_sha256",
+    "open_ts_utc",
+    "close_ts_utc",
+]
+
+LABEL_COLS = [
+    "mfe_threshold_bps",
+    "positive_exit",
+    "cata",
+    "never_mfe",
+    "good_mfe_then_rot",
+    "trainable_mask_v1",
+    "meta_allow_label_v1",
+    "pnl_bps",
+    "mfe_bps",
+    "mae_bps",
+    "bars_in_trade",
+    "exit_reason",
+]
+
+REQUIRED_COLS = _dedupe_keep_order(FEATURE_COLS + AUDIT_COLS + LABEL_COLS)
+
+NULLABLE_COLS = [
+    "trade_uid",
+    "trade_id",
+    "decision_reason",
+    "policy_lane",
+    "policy_hash",
+    "entry_bundle_sha256",
+    "exit_bundle_sha256",
+    "atr_bps",
+    "entry_spread_bps",
+    "tradable_prob",
+    "mfe_first_n_pred",
+    "path_quality_pred",
+    "vol_regime",
+    "trend_regime",
+    "open_ts_utc",
+    "close_ts_utc",
+    "mfe_threshold_bps",
+    "positive_exit",
+    "cata",
+    "never_mfe",
+    "good_mfe_then_rot",
+    "trainable_mask_v1",
+    "meta_allow_label_v1",
+    "pnl_bps",
+    "mfe_bps",
+    "mae_bps",
+    "bars_in_trade",
+    "exit_reason",
+]
+
+COL_DTYPE_MAP = {
+    "run_id": "string",
+    "candidate_uid": "string",
+    "trade_uid": "string",
+    "trade_id": "string",
+    "decision_ts_utc": "string",
+    "source_eval_log": "string",
+    "source_eval_log_row": "int64",
+    "decision": "string",
+    "accepted": "boolean",
+    "decision_reason": "string",
+    "side": "string",
+    "session": "string",
+    "weekday_utc": "int64",
+    "hour_utc": "int64",
+    "atr_bps": "float64",
+    "entry_spread_bps": "float64",
+    "p_long": "float64",
+    "p_short": "float64",
+    "p_flat": "float64",
+    "p_hat": "float64",
+    "margin": "float64",
+    "uncertainty_score": "float64",
+    "tradable_prob": "float64",
+    "mfe_first_n_pred": "float64",
+    "path_quality_pred": "float64",
+    "vol_regime": "string",
+    "trend_regime": "string",
+    "policy_lane": "string",
+    "policy_hash": "string",
+    "entry_bundle_sha256": "string",
+    "exit_bundle_sha256": "string",
+    "open_ts_utc": "string",
+    "close_ts_utc": "string",
+    "mfe_threshold_bps": "float64",
+    "positive_exit": "boolean",
+    "cata": "boolean",
+    "never_mfe": "boolean",
+    "good_mfe_then_rot": "boolean",
+    "trainable_mask_v1": "boolean",
+    "meta_allow_label_v1": "boolean",
+    "pnl_bps": "float64",
+    "mfe_bps": "float64",
+    "mae_bps": "float64",
+    "bars_in_trade": "float64",
+    "exit_reason": "string",
+}
+
+ACCEPTED_TRUE_REQUIRED_COLS = [
+    "run_id",
+    "candidate_uid",
+    "trade_uid",
+    "trade_id",
+    "decision_ts_utc",
+    "source_eval_log",
+    "source_eval_log_row",
+    "decision",
+    "accepted",
+    "decision_reason",
+    "side",
+    "session",
+    "weekday_utc",
+    "hour_utc",
+    "entry_spread_bps",
+    "p_long",
+    "p_short",
+    "p_flat",
+    "p_hat",
+    "margin",
+    "uncertainty_score",
+    "open_ts_utc",
+    "close_ts_utc",
+    "pnl_bps",
+    "mfe_bps",
+    "mae_bps",
+    "bars_in_trade",
+    "exit_reason",
+    "mfe_threshold_bps",
+    "positive_exit",
+    "cata",
+    "never_mfe",
+    "good_mfe_then_rot",
+    "trainable_mask_v1",
+    "meta_allow_label_v1",
+]
+
+ACCEPTED_FALSE_MUST_BE_NULL_COLS = [
+    "trade_uid",
+    "trade_id",
+    "open_ts_utc",
+    "close_ts_utc",
+    "pnl_bps",
+    "mfe_bps",
+    "mae_bps",
+    "bars_in_trade",
+    "exit_reason",
+    "positive_exit",
+    "cata",
+    "never_mfe",
+    "good_mfe_then_rot",
+    "meta_allow_label_v1",
+]
+
+DERIVED_COLS = [
+    "weekday_utc",
+    "hour_utc",
+    "mfe_threshold_bps",
+    "positive_exit",
+    "cata",
+    "never_mfe",
+    "good_mfe_then_rot",
+    "trainable_mask_v1",
+    "meta_allow_label_v1",
+]
+
+FIELD_SOURCES = {
+    "run_id": "merge_args",
+    "candidate_uid": "eval_log",
+    "trade_uid": "eval_log|trade_journal",
+    "trade_id": "eval_log|trade_journal|trade_outcomes",
+    "decision_ts_utc": "eval_log",
+    "source_eval_log": "eval_log",
+    "source_eval_log_row": "eval_log",
+    "decision": "eval_log",
+    "accepted": "eval_log",
+    "decision_reason": "eval_log",
+    "side": "eval_log|trade_journal|trade_outcomes",
+    "session": "eval_log|trade_journal|trade_outcomes",
+    "weekday_utc": "derived",
+    "hour_utc": "derived",
+    "atr_bps": "chunk_0_data.parquet@decision_ts_utc|trade_journal.entry_snapshot|optional",
+    "entry_spread_bps": "trade_outcomes|trade_journal|optional",
+    "p_long": "eval_log",
+    "p_short": "eval_log",
+    "p_flat": "eval_log",
+    "p_hat": "eval_log",
+    "margin": "eval_log",
+    "uncertainty_score": "eval_log",
+    "tradable_prob": "eval_log",
+    "mfe_first_n_pred": "eval_log",
+    "path_quality_pred": "eval_log",
+    "vol_regime": "chunk_0_data.parquet.vol_regime_id@decision_ts_utc|trade_journal",
+    "trend_regime": "chunk_0_data.parquet.trend_regime_id@decision_ts_utc|trade_journal",
+    "policy_lane": "run_header|footer",
+    "policy_hash": "run_header.json",
+    "entry_bundle_sha256": "MODEL_USED_CAPSULE.json",
+    "exit_bundle_sha256": "EXIT_RUNTIME_SOURCE_OF_TRUTH.json.bundle_path->bundle_sha256",
+    "open_ts_utc": "trade_journal|trade_outcomes",
+    "close_ts_utc": "trade_journal|trade_outcomes",
+    "mfe_threshold_bps": "derived",
+    "positive_exit": "derived",
+    "cata": "derived",
+    "never_mfe": "derived",
+    "good_mfe_then_rot": "derived",
+    "trainable_mask_v1": "derived",
+    "meta_allow_label_v1": "derived",
+    "pnl_bps": "trade_journal|trade_outcomes",
+    "mfe_bps": "trade_journal|trade_outcomes",
+    "mae_bps": "trade_journal|trade_outcomes",
+    "bars_in_trade": "trade_journal|trade_outcomes",
+    "exit_reason": "trade_journal|trade_outcomes",
+}
+
+SANITY_CHECKS = [
+    "candidate_uid is unique per row",
+    "accepted=True rows must have trade_uid and final outcome fields",
+    "accepted=False rows must have outcome/label fields null",
+    "feature_cols must not include post-entry leakage fields",
+    "all REQUIRED_COLS must exist before write",
+    "accepted row join coverage to trade_outcomes/trade_journal must be complete",
+    "label columns must be derived only from accepted rows",
+]
+
+V1_SCHEMA_CONTRACT = {
+    "feature_cols": FEATURE_COLS,
+    "audit_cols": AUDIT_COLS,
+    "label_cols": LABEL_COLS,
+    "required_cols": REQUIRED_COLS,
+    "nullable_cols": NULLABLE_COLS,
+    "col_dtype_map": COL_DTYPE_MAP,
+    "accepted_true_required_cols": ACCEPTED_TRUE_REQUIRED_COLS,
+    "accepted_false_must_be_null_cols": ACCEPTED_FALSE_MUST_BE_NULL_COLS,
+    "derived_cols": DERIVED_COLS,
+    "field_sources": FIELD_SOURCES,
+    "sanity_checks": SANITY_CHECKS,
+}
+
+_PROVENANCE_FIELD_RULES: Dict[str, Dict[str, str]] = {
+    "policy_hash": {
+        "source_file": "run_header.json",
+        "join_key": "run_constant",
+        "fallback_rule": "none",
+        "fail_condition": "missing or inconsistent within run",
+    },
+    "entry_bundle_sha256": {
+        "source_file": "MODEL_USED_CAPSULE.json",
+        "join_key": "run_constant",
+        "fallback_rule": "none",
+        "fail_condition": "missing or inconsistent within run",
+    },
+    "exit_bundle_sha256": {
+        "source_file": "EXIT_RUNTIME_SOURCE_OF_TRUTH.json -> bundle_path",
+        "join_key": "run_constant",
+        "fallback_rule": "hash bundle directory recursively",
+        "fail_condition": "bundle_path missing or hash unavailable",
+    },
+    "atr_bps": {
+        "source_file": "chunk_0_data.parquet",
+        "join_key": "decision_ts_utc",
+        "fallback_rule": "first_non_null(existing, chunk_0_data join)",
+        "fail_condition": "join not unique or fill rate below threshold",
+    },
+    "vol_regime": {
+        "source_file": "chunk_0_data.parquet.vol_regime_id",
+        "join_key": "decision_ts_utc",
+        "fallback_rule": "normalize raw id to runtime label contract",
+        "fail_condition": "join not unique, unexpected ids, or fill rate below threshold",
+    },
+    "trend_regime": {
+        "source_file": "chunk_0_data.parquet.trend_regime_id",
+        "join_key": "decision_ts_utc",
+        "fallback_rule": "map raw id to runtime label contract",
+        "fail_condition": "join not unique, unexpected ids, or fill rate below threshold",
+    },
+}
+
+
+def compute_mfe_threshold_bps(row: pd.Series) -> float:
+    entry_spread_bps = row.get("entry_spread_bps")
+    try:
+        if pd.notna(entry_spread_bps):
+            return float(max(1.0, float(entry_spread_bps)))
+    except Exception:
+        pass
+    return 1.0
+
+
+def compute_positive_exit(row: pd.Series) -> Optional[bool]:
+    if not bool(row.get("accepted", False)):
+        return None
+    pnl_bps = row.get("pnl_bps")
+    if pd.isna(pnl_bps):
+        return None
+    return bool(float(pnl_bps) > 0.0)
+
+
+def compute_cata(row: pd.Series) -> Optional[bool]:
+    if not bool(row.get("accepted", False)):
+        return None
+    exit_reason = row.get("exit_reason")
+    if pd.isna(exit_reason):
+        return None
+    return str(exit_reason) == "CATASTROPHIC_GUARD"
+
+
+def compute_never_mfe(row: pd.Series) -> Optional[bool]:
+    if not bool(row.get("accepted", False)):
+        return None
+    peak_mfe_bps = row.get("peak_mfe_bps_exit_state")
+    mfe_bps = peak_mfe_bps if pd.notna(peak_mfe_bps) else row.get("mfe_bps")
+    if pd.isna(mfe_bps):
+        return None
+    return bool(float(mfe_bps) < float(row.get("mfe_threshold_bps", 1.0)))
+
+
+def compute_good_mfe_then_rot(row: pd.Series) -> Optional[bool]:
+    if not bool(row.get("accepted", False)):
+        return None
+    positive_exit = compute_positive_exit(row)
+    cata = compute_cata(row)
+    never_mfe = compute_never_mfe(row)
+    peak_mfe_bps = row.get("peak_mfe_bps_exit_state")
+    mfe_bps = peak_mfe_bps if pd.notna(peak_mfe_bps) else row.get("mfe_bps")
+    threshold = float(row.get("mfe_threshold_bps", 1.0))
+    if pd.isna(mfe_bps) or positive_exit is None or cata is None or never_mfe is None:
+        return None
+    return bool((float(mfe_bps) >= threshold) and (positive_exit is False) and (cata is False) and (never_mfe is False))
+
+
+def compute_trainable_mask_v1(row: pd.Series) -> Optional[bool]:
+    if not bool(row.get("accepted", False)):
+        return False
+    required = [
+        "run_id",
+        "candidate_uid",
+        "trade_uid",
+        "trade_id",
+        "decision_ts_utc",
+        "decision",
+        "accepted",
+        "side",
+        "session",
+        "p_long",
+        "p_short",
+        "p_flat",
+        "p_hat",
+        "margin",
+        "uncertainty_score",
+        "entry_spread_bps",
+        "open_ts_utc",
+        "close_ts_utc",
+        "pnl_bps",
+        "mfe_bps",
+        "mae_bps",
+        "bars_in_trade",
+        "exit_reason",
+    ]
+    for col in required:
+        if pd.isna(row.get(col)):
+            return False
+    return bool(str(row.get("side", "")).lower() == "long")
+
+
+def compute_meta_allow_label_v1(row: pd.Series) -> Optional[bool]:
+    if not compute_trainable_mask_v1(row):
+        return None
+    positive_exit = compute_positive_exit(row)
+    cata = compute_cata(row)
+    never_mfe = compute_never_mfe(row)
+    if positive_exit is None or cata is None or never_mfe is None:
+        return None
+    return bool(positive_exit and (not cata) and (not never_mfe))
+
+
+def _finalize_shadow_meta_v1(
+    merged_shadow: pd.DataFrame,
+    *,
+    run_id: str,
+    chunk_dir: Path,
+    run_header: Dict[str, Any],
+    footer: Dict[str, Any],
+) -> pd.DataFrame:
+    if merged_shadow is None or merged_shadow.empty:
+        return pd.DataFrame(columns=REQUIRED_COLS)
+
+    df = merged_shadow.copy()
+    direct_run_header = _resolve_chunk_run_header(chunk_dir)
+    provenance = _extract_v1_provenance(
+        chunk_dir=chunk_dir,
+        run_header=direct_run_header or run_header or {},
+        footer=footer,
+    )
+    provenance_summary: Dict[str, Dict[str, Any]] = {}
+
+    df["run_id"] = run_id
+    df["candidate_uid"] = _first_non_null_series(df, ["candidate_uid"])
+    df["trade_uid"] = _first_non_null_series(df, ["trade_uid", "trade_uid_journal", "trade_uid_outcome"])
+    df["trade_id"] = _first_non_null_series(df, ["trade_id", "trade_id_journal", "trade_id_outcome"])
+    df["decision_ts_utc"] = _normalize_utc_series(_first_non_null_series(df, ["decision_ts_utc", "ts_utc"]))
+    df["source_eval_log"] = _first_non_null_series(df, ["source_eval_log"])
+    df["source_eval_log_row"] = pd.to_numeric(
+        _first_non_null_series(df, ["source_eval_log_row"]), errors="coerce"
+    ).fillna(-1).astype("int64")
+    df["decision"] = _first_non_null_series(df, ["decision"]).astype("string")
+    df["accepted"] = _safe_bool_series(_first_non_null_series(df, ["accepted", "accepted_bool"], default=False))
+    df["decision_reason"] = _first_non_null_series(df, ["decision_reason"])
+    df["side"] = _normalize_side_series(
+        _first_non_null_series(df, ["side", "side_journal", "side_outcome", "side_pre", "decision"])
+    )
+    df["session"] = _first_non_null_series(df, ["session", "session_journal", "session_outcome"])
+
+    decision_dt = pd.to_datetime(df["decision_ts_utc"], utc=True, errors="coerce")
+    df["weekday_utc"] = decision_dt.dt.dayofweek.fillna(-1).astype("int64")
+    df["hour_utc"] = decision_dt.dt.hour.fillna(-1).astype("int64")
+
+    context_backfill = _load_context_backfill_table(chunk_dir)
+    if context_backfill["decision_ts_utc_join"].duplicated().any():
+        dupes = context_backfill.loc[
+            context_backfill["decision_ts_utc_join"].duplicated(keep=False),
+            "decision_ts_utc_join",
+        ].astype(str).head(10).tolist()
+        raise RuntimeError(f"[SHADOW_META_PROVENANCE] context backfill join key not unique: {dupes}")
+    df["_decision_ts_join"] = decision_dt
+    df = df.merge(
+        context_backfill,
+        left_on="_decision_ts_join",
+        right_on="decision_ts_utc_join",
+        how="left",
+        validate="many_to_one",
+    )
+
+    df["atr_bps"] = _safe_float_series(_first_non_null_series(df, ["atr_bps", "atr_bps_journal", "atr_bps_backfill"]))
+    df["entry_spread_bps"] = _safe_float_series(
+        _first_non_null_series(df, ["entry_spread_bps", "entry_spread_bps_outcome", "entry_spread_bps_journal"])
+    )
+    df["p_long"] = _safe_float_series(_first_non_null_series(df, ["p_long"]))
+    df["p_short"] = _safe_float_series(_first_non_null_series(df, ["p_short"]))
+    df["p_flat"] = _safe_float_series(_first_non_null_series(df, ["p_flat"]))
+    df["p_hat"] = _safe_float_series(_first_non_null_series(df, ["p_hat"]))
+    df["margin"] = _safe_float_series(_first_non_null_series(df, ["margin", "margin_top1_top2", "margin_top1_top2_journal"]))
+    df["uncertainty_score"] = _safe_float_series(_first_non_null_series(df, ["uncertainty_score"]))
+    df["tradable_prob"] = _safe_float_series(_first_non_null_series(df, ["tradable_prob"]))
+    df["mfe_first_n_pred"] = _safe_float_series(_first_non_null_series(df, ["mfe_first_n_pred"]))
+    df["path_quality_pred"] = _safe_float_series(_first_non_null_series(df, ["path_quality_pred"]))
+    df["vol_regime"] = _first_non_null_series(df, ["vol_regime", "vol_regime_journal", "vol_regime_backfill"])
+    df["trend_regime"] = _first_non_null_series(df, ["trend_regime", "trend_regime_journal", "trend_regime_backfill"])
+    df["policy_lane"] = provenance.get("policy_lane")
+    df["policy_hash"] = provenance.get("policy_hash")
+    df["entry_bundle_sha256"] = provenance.get("entry_bundle_sha256")
+    df["exit_bundle_sha256"] = provenance.get("exit_bundle_sha256")
+    df["open_ts_utc"] = _normalize_utc_series(_first_non_null_series(df, ["open_ts_utc", "open_ts_utc_journal", "entry_time"]))
+    df["close_ts_utc"] = _normalize_utc_series(
+        _first_non_null_series(df, ["close_ts_utc", "close_ts_utc_journal", "exit_time"])
+    )
+    df["pnl_bps"] = _safe_float_series(_first_non_null_series(df, ["pnl_bps", "pnl_bps_journal"]))
+    df["mfe_bps"] = _safe_float_series(_first_non_null_series(df, ["mfe_bps", "mfe_bps_journal"]))
+    df["mae_bps"] = _safe_float_series(_first_non_null_series(df, ["mae_bps", "mae_bps_journal"]))
+    df["bars_in_trade"] = _safe_float_series(
+        _first_non_null_series(df, ["bars_in_trade", "duration_bars", "bars_in_trade_journal", "duration_bars_outcome"])
+    )
+    df["exit_reason"] = _first_non_null_series(df, ["exit_reason", "exit_reason_journal", "exit_reason_outcome"])
+
+    df["mfe_threshold_bps"] = df.apply(compute_mfe_threshold_bps, axis=1)
+    df["positive_exit"] = df.apply(compute_positive_exit, axis=1)
+    df["cata"] = df.apply(compute_cata, axis=1)
+    df["never_mfe"] = df.apply(compute_never_mfe, axis=1)
+    df["good_mfe_then_rot"] = df.apply(compute_good_mfe_then_rot, axis=1)
+    df["trainable_mask_v1"] = df.apply(compute_trainable_mask_v1, axis=1)
+    df["meta_allow_label_v1"] = df.apply(compute_meta_allow_label_v1, axis=1)
+
+    _enforce_provenance_coverage(df=df, summaries=provenance_summary)
+    _validate_shadow_meta_v1(df)
+
+    final_df = df.reindex(columns=REQUIRED_COLS).copy()
+    for col, dtype in COL_DTYPE_MAP.items():
+        if col not in final_df.columns:
+            continue
+        if dtype == "string":
+            final_df[col] = final_df[col].astype("string")
+        elif dtype == "boolean":
+            final_df[col] = final_df[col].astype("boolean")
+        elif dtype == "float64":
+            final_df[col] = pd.to_numeric(final_df[col], errors="coerce").astype("float64")
+        elif dtype == "int64":
+            final_df[col] = pd.to_numeric(final_df[col], errors="coerce").astype("int64")
+
+    sort_cols = [c for c in ["decision_ts_utc", "candidate_uid"] if c in final_df.columns]
+    if sort_cols:
+        final_df = final_df.sort_values(sort_cols, kind="mergesort").reset_index(drop=True)
+
+    final_df.attrs["shadow_meta_provenance_summary"] = {
+        "run_id": run_id,
+        "fields": provenance_summary,
+        "provenance_sources": {
+            "policy_hash": provenance.get("source_policy_hash"),
+            "entry_bundle_sha256": provenance.get("source_entry_bundle_sha256"),
+            "exit_bundle_sha256": provenance.get("source_exit_bundle_sha256"),
+            "atr_bps": str(chunk_dir / "chunk_0_data.parquet"),
+            "vol_regime": str(chunk_dir / "chunk_0_data.parquet"),
+            "trend_regime": str(chunk_dir / "chunk_0_data.parquet"),
+        },
+    }
+    return final_df
+
+
+def _first_non_null_series(df: pd.DataFrame, candidate_cols: List[str], default: Any = None) -> pd.Series:
+    if df is None or df.empty:
+        return pd.Series(dtype="object")
+    result: Optional[pd.Series] = None
+    for col in candidate_cols:
+        if col not in df.columns:
+            continue
+        series = df[col]
+        if result is None:
+            result = series.copy()
+        else:
+            result = result.combine_first(series)
+    if result is None:
+        return pd.Series([default] * len(df), index=df.index)
+    if default is not None:
+        result = result.where(result.notna(), default)
+    return result
+
+
+def _normalize_side_series(series: pd.Series) -> pd.Series:
+    if series is None or series.empty:
+        return pd.Series(dtype="string")
+    out = series.astype("string")
+    out = out.str.strip().str.lower()
+    out = out.replace({"none": None, "nan": None, "<na>": None})
+    return out
+
+
+def _normalize_utc_series(series: pd.Series) -> pd.Series:
+    if series is None or series.empty:
+        return pd.Series(dtype="string")
+    dt = pd.to_datetime(series, utc=True, errors="coerce")
+    return dt.dt.strftime("%Y-%m-%dT%H:%M:%S%z").astype("string").str.replace(r"(\+|\-)(\d{2})(\d{2})$", r"\1\2:\3", regex=True)
+
+
+def _summarize_provenance_field(
+    *,
+    field_name: str,
+    series: pd.Series,
+    total_rows: int,
+    run_id: str,
+) -> Dict[str, Any]:
+    filled = int(series.notna().sum())
+    fill_rate = float(filled / total_rows) if total_rows > 0 else 1.0
+    rule = _PROVENANCE_FIELD_RULES[field_name]
+    return {
+        "field": field_name,
+        "total_rows": int(total_rows),
+        "filled_rows": filled,
+        "fill_rate": fill_rate,
+        "runs_covered": 1 if filled > 0 else 0,
+        "runs_failed": [] if filled > 0 else [run_id],
+        "source_file": rule["source_file"],
+        "join_key": rule["join_key"],
+        "fallback_rule": rule["fallback_rule"],
+        "fail_condition": rule["fail_condition"],
+    }
+
+
+def _enforce_provenance_coverage(
+    *,
+    df: pd.DataFrame,
+    summaries: Dict[str, Dict[str, Any]],
+) -> None:
+    total_rows = len(df)
+    if total_rows <= 0:
+        return
+    for field in ("policy_hash", "entry_bundle_sha256", "exit_bundle_sha256"):
+        if field not in df.columns or df[field].isna().any():
+            raise RuntimeError(f"[SHADOW_META_PROVENANCE] {field} must be filled for all rows")
+        uniq = sorted({str(x) for x in df[field].dropna().tolist()})
+        if len(uniq) != 1:
+            raise RuntimeError(f"[SHADOW_META_PROVENANCE] {field} inconsistent within run: {uniq[:5]}")
+        summaries[field] = _summarize_provenance_field(field_name=field, series=df[field], total_rows=total_rows, run_id=str(df['run_id'].iloc[0]))
+
+    for field in ("atr_bps", "vol_regime", "trend_regime"):
+        if field not in df.columns:
+            raise RuntimeError(f"[SHADOW_META_PROVENANCE] missing backfill field {field}")
+        series = df[field]
+        summary = _summarize_provenance_field(field_name=field, series=series, total_rows=total_rows, run_id=str(df["run_id"].iloc[0]))
+        summaries[field] = summary
+        if summary["fill_rate"] < 0.999:
+            raise RuntimeError(
+                f"[SHADOW_META_PROVENANCE] {field} fill_rate too low: {summary['fill_rate']:.6f}"
+            )
+
+
+def _validate_shadow_meta_v1(df: pd.DataFrame) -> None:
+    missing = [c for c in REQUIRED_COLS if c not in df.columns]
+    if missing:
+        raise RuntimeError(f"[SHADOW_META_V1] missing required cols: {missing}")
+
+    if "candidate_uid" in df.columns and not df["candidate_uid"].is_unique:
+        dupes = df.loc[df["candidate_uid"].duplicated(keep=False), "candidate_uid"].astype(str).head(10).tolist()
+        raise RuntimeError(f"[SHADOW_META_V1] candidate_uid must be unique; dupes={dupes}")
+
+    for col in ("run_id", "candidate_uid", "decision_ts_utc", "accepted"):
+        if col in df.columns and df[col].isna().any():
+            bad = df.loc[df[col].isna(), "candidate_uid"].astype(str).head(10).tolist()
+            raise RuntimeError(f"[SHADOW_META_V1] required column has nulls: {col}; candidate_uid={bad}")
+
+    accepted_mask = df["accepted"].fillna(False).astype(bool) if "accepted" in df.columns else pd.Series(False, index=df.index)
+    blocked_df = df.loc[~accepted_mask].copy()
+
+    # Only fully materialized trades are allowed to carry the strict V1 outcome contract.
+    # Accepted audit-only rows may exist when the candidate was accepted but never produced
+    # a complete open/fill/outcome snapshot; those rows stay non-trainable and must not fail
+    # the run.
+    trainable_mask = df["trainable_mask_v1"].fillna(False).astype(bool) if "trainable_mask_v1" in df.columns else pd.Series(False, index=df.index)
+    accepted_trainable_df = df.loc[accepted_mask & trainable_mask].copy()
+
+    if not accepted_trainable_df.empty:
+        for col in ACCEPTED_TRUE_REQUIRED_COLS:
+            if col not in accepted_trainable_df.columns:
+                raise RuntimeError(f"[SHADOW_META_V1] accepted row missing col={col}")
+            if accepted_trainable_df[col].isna().any():
+                bad = accepted_trainable_df.loc[accepted_trainable_df[col].isna(), "candidate_uid"].astype(str).head(10).tolist()
+                raise RuntimeError(f"[SHADOW_META_V1] accepted row has null {col}; candidate_uid={bad}")
+
+    if not blocked_df.empty:
+        for col in ACCEPTED_FALSE_MUST_BE_NULL_COLS:
+            if col not in blocked_df.columns:
+                continue
+            if not blocked_df[col].isna().all():
+                bad = blocked_df.loc[blocked_df[col].notna(), "candidate_uid"].astype(str).head(10).tolist()
+                raise RuntimeError(f"[SHADOW_META_V1] blocked row must null {col}; candidate_uid={bad}")
+
+    leakage_cols = set(AUDIT_COLS + LABEL_COLS)
+    leakage_cols.discard("mfe_threshold_bps")
+    leakage_cols.discard("trainable_mask_v1")
+    leakage_cols.discard("meta_allow_label_v1")
+    bad_features = sorted(set(FEATURE_COLS) & leakage_cols)
+    if bad_features:
+        raise RuntimeError(f"[SHADOW_META_V1] feature leakage detected: {bad_features}")
+
+    accepted_join_coverage = float(accepted_trainable_df["trade_uid"].notna().mean()) if not accepted_trainable_df.empty else 1.0
+    if accepted_join_coverage < 1.0:
+        raise RuntimeError(
+            f"[SHADOW_META_V1] accepted row join coverage incomplete: trade_uid_coverage={accepted_join_coverage:.3f}"
+        )
+
 
 
 def _pnl_profile_summary(outcomes_df: pd.DataFrame) -> Dict[str, Any]:
@@ -565,6 +1531,21 @@ def _write_postrun_trade_reports(
         ]
         return [header] + rows
 
+    def _safe_sort_values(df: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
+        """
+        Sort on stringified keys so mixed None/str object columns do not crash postrun summaries.
+        """
+        if not columns:
+            return df
+        sort_df = df.copy()
+        sort_cols = []
+        for col in columns:
+            key_col = f"__sort_{col}"
+            sort_df[key_col] = sort_df[col].map(lambda x: "<NA>" if pd.isna(x) else str(x))
+            sort_cols.append(key_col)
+        out = sort_df.sort_values(sort_cols).reset_index(drop=True)
+        return out.drop(columns=sort_cols)
+
     def _format_counts(counts: Optional[Dict[Any, Any]]) -> str:
         if not counts:
             return "<EMPTY>"
@@ -613,7 +1594,7 @@ def _write_postrun_trade_reports(
                 pnl_bps_p95=lambda x: x.quantile(0.95, interpolation="linear"),
                 win_rate=lambda x: (x > 0).mean(),
             )
-            agg = agg.reset_index().sort_values(["session", "side"]).reset_index(drop=True)
+            agg = _safe_sort_values(agg.reset_index(), ["session", "side"])
             out_parquet = out_root / f"trade_report_session_side_{run_id}.parquet"
             out_csv = out_root / f"trade_report_session_side_{run_id}.csv"
             agg.to_parquet(out_parquet, index=False)
@@ -774,7 +1755,7 @@ def _write_postrun_trade_reports(
                 pnl_bps_median="median",
                 win_rate=lambda x: (x > 0).mean(),
             )
-            agg = agg.reset_index().sort_values(["holding_bin", "session"]).reset_index(drop=True)
+            agg = _safe_sort_values(agg.reset_index(), ["holding_bin", "session"])
             out_parquet = out_root / f"trade_report_holding_bins_{run_id}.parquet"
             out_csv = out_root / f"trade_report_holding_bins_{run_id}.csv"
             agg.to_parquet(out_parquet, index=False)
@@ -800,7 +1781,10 @@ def _write_postrun_trade_reports(
         if journal is not None:
             ssot_total = int(len(journal))
             if "side" in journal.columns:
-                ssot_by_side = journal["side"].value_counts(dropna=False).to_dict()
+                ssot_by_side = {
+                    str(k): int(v)
+                    for k, v in journal["side"].value_counts(dropna=False).to_dict().items()
+                }
             if "session" in journal.columns and "side" in journal.columns:
                 ssot_by_session_side = (
                     journal.groupby(["session", "side"], dropna=False)
@@ -1695,6 +2679,7 @@ def merge_artifacts_1w1c(run_dir: Path, run_id: str, output_dir: Optional[Path] 
     footer = _load_json(footer_path)
     if footer.get("status") != "ok":
         raise RuntimeError(f"[REPLAY_MERGE] chunk_footer status != ok: {footer.get('status')}")
+    run_header = _load_run_header_optional(run_dir)
 
     n_trades_closed = int(footer.get("n_trades_closed", 0) or 0)
     trade_src = chunk_dir / f"trade_outcomes_{run_id}.parquet"
@@ -1731,6 +2716,134 @@ def merge_artifacts_1w1c(run_dir: Path, run_id: str, output_dir: Optional[Path] 
         log.info("[REPLAY_MERGE] Wrote %s", trade_journal_dst.name)
     else:
         log.info("[REPLAY_MERGE] trade_journal not found: %s (optional)", trade_journal_src)
+
+    # shadow/meta candidate table from eval_log (observability only)
+    shadow_candidates_dst = out_root / f"shadow_meta_candidates_{run_id}_MERGED.parquet"
+    shadow_candidates_df = _load_shadow_candidate_events(chunk_dir, run_id)
+    if shadow_candidates_df.empty:
+        log.info("[SHADOW_META] eval_log not found or empty; skipping %s", shadow_candidates_dst.name)
+    else:
+        merged_shadow = shadow_candidates_df.copy()
+        merged_shadow["join_key"] = _join_key_for_trade_id_or_uid(merged_shadow)
+        if "accepted" not in merged_shadow.columns:
+            merged_shadow["accepted"] = False
+        merged_shadow["accepted_bool"] = merged_shadow["accepted"].fillna(False).astype(bool)
+        merged_shadow["blocked_bool"] = ~merged_shadow["accepted_bool"]
+
+        if trade_journal_dst.exists():
+            try:
+                journal_df = pd.read_parquet(trade_journal_dst)
+                if not journal_df.empty:
+                    journal_df = journal_df.copy()
+                    journal_df["join_key"] = _join_key_for_trade_id_or_uid(journal_df)
+                    journal_keep = [
+                        c for c in [
+                            "join_key",
+                            "trade_uid",
+                            "trade_id",
+                            "open_ts_utc",
+                            "close_ts_utc",
+                            "pnl_bps",
+                            "bars_in_trade",
+                            "exit_reason",
+                            "side",
+                            "session",
+                            "prob_close",
+                            "threshold",
+                            "mfe_bps",
+                            "mae_bps",
+                            "mfe_first_n_pred",
+                            "path_quality_pred",
+                            "adverse_first",
+                            "peak_mfe_bps_exit_state",
+                            "bars_held_exit_state",
+                            "time_since_mfe_bars_exit",
+                            "dd_from_mfe_bps_exit",
+                            "distance_from_peak_mfe_bps_exit",
+                        ]
+                        if c in journal_df.columns
+                    ]
+                    journal_df = journal_df[journal_keep].drop_duplicates(subset=["join_key"], keep="last")
+                    merged_shadow = merged_shadow.merge(journal_df, on="join_key", how="left", suffixes=("", "_journal"))
+            except Exception as e:
+                log.warning("[SHADOW_META] failed to merge trade_journal: %s", e)
+
+        trade_outcomes_path = out_root / f"trade_outcomes_{run_id}_MERGED.parquet"
+        if trade_outcomes_path.exists():
+            try:
+                outcomes_df = pd.read_parquet(trade_outcomes_path)
+                if not outcomes_df.empty:
+                    outcomes_df = outcomes_df.copy()
+                    outcomes_df["join_key"] = _join_key_for_trade_id_or_uid(outcomes_df)
+                    outcome_keep = [
+                        c for c in [
+                            "join_key",
+                            "trade_uid",
+                            "candidate_uid",
+                            "pnl_bps",
+                            "mae_bps",
+                            "mfe_bps",
+                            "duration_bars",
+                            "side",
+                            "session",
+                            "exit_reason",
+                            "open_ts_utc",
+                            "close_ts_utc",
+                            "entry_bid",
+                            "entry_ask",
+                            "exit_bid",
+                            "exit_ask",
+                            "entry_spread_bps",
+                            "exit_spread_bps",
+                            "entry_price_used",
+                            "exit_price_used",
+                        ]
+                        if c in outcomes_df.columns
+                    ]
+                    outcomes_df = outcomes_df[outcome_keep].drop_duplicates(subset=["join_key"], keep="last")
+                    merged_shadow = merged_shadow.merge(outcomes_df, on="join_key", how="left", suffixes=("", "_outcome"))
+            except Exception as e:
+                log.warning("[SHADOW_META] failed to merge trade_outcomes: %s", e)
+
+        try:
+            shadow_meta_df = _finalize_shadow_meta_v1(
+                merged_shadow,
+                run_id=run_id,
+                chunk_dir=chunk_dir,
+                run_header=run_header,
+                footer=footer,
+            )
+            shadow_meta_df.to_parquet(shadow_candidates_dst, index=False)
+            provenance_summary_path = out_root / f"shadow_meta_provenance_{run_id}.json"
+            provenance_summary = shadow_meta_df.attrs.get("shadow_meta_provenance_summary")
+            if provenance_summary:
+                provenance_summary_path.write_text(
+                    json.dumps(provenance_summary, indent=2, sort_keys=True) + "\n",
+                    encoding="utf-8",
+                )
+            log.info(
+                "[SHADOW_META] Wrote %s rows=%d cols=%d",
+                shadow_candidates_dst.name,
+                len(shadow_meta_df),
+                len(shadow_meta_df.columns),
+            )
+            fatal_path = out_root / "FATAL_ERROR.txt"
+            if fatal_path.exists():
+                try:
+                    fatal_path.unlink()
+                    log.info("[SHADOW_META] Cleared stale %s after successful finalize", fatal_path.name)
+                except Exception as fatal_cleanup_error:
+                    log.warning("[SHADOW_META] failed to clear stale fatal capsule: %s", fatal_cleanup_error)
+        except Exception as e:
+            write_fatal_capsule(
+                chunk_output_dir=out_root,
+                chunk_idx=0,
+                run_id=run_id,
+                fatal_reason="SHADOW_META_V1_MERGE_FAILED",
+                error_message=f"[SHADOW_META_V1] failed to finalize shadow meta dataset: {e}",
+                extra_fields={"shadow_candidates_dst": str(shadow_candidates_dst)},
+            )
+            raise
 
     # replay summary proof (optional): copy if present
     proof_src = chunk_dir / "REPLAY_SUMMARY_PROOF.log"
@@ -1821,6 +2934,10 @@ def merge_artifacts_1w1c(run_dir: Path, run_id: str, output_dir: Optional[Path] 
     return {
         "trade_outcomes_merged": str(trade_dst),
         "trade_journal_merged": str(trade_journal_dst) if trade_journal_dst.exists() else None,
+        "shadow_meta_candidates_merged": str(shadow_candidates_dst) if shadow_candidates_dst.exists() else None,
+        "shadow_meta_provenance_summary": str(out_root / f"shadow_meta_provenance_{run_id}.json")
+        if (out_root / f"shadow_meta_provenance_{run_id}.json").exists()
+        else None,
         "metrics_merged": str(metrics_path),
         "merge_proof": str(merge_proof_path),
         "run_completed": str(run_completed_path),

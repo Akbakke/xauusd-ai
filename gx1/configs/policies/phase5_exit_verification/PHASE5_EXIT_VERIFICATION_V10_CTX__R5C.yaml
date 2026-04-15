@@ -1,7 +1,7 @@
 meta:
   router_version: V3_RANGE
   role: REPLAY_VERIFICATION
-  description: "Phase5 exit verification lane for ENTRY_V10_CTX with EXIT_IO_V3_CTX36_M1L512_PHASE5 bundle R5C."
+  description: "Phase5 exit verification lane for ENTRY_V10_CTX V13_BADPATH working lane with EXIT_IO_V3_CTX36_M1L512_PHASE5 bundle R5C; frozen legacy benchmark remains comparison-only."
   bundle_location: phase5_exit_verification
 policy_name: PHASE5_EXIT_VERIFICATION_V10_CTX__R5C
 version: PHASE5_EXIT_VERIFICATION_V10_CTX__R5C

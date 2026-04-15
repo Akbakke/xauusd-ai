@@ -7,7 +7,7 @@ exit:
       mode: exit_transformer_v0
       exit_transformer:
         enabled: true
-        model_path: models/exit_transformer_v0/EXIT_IO_V3_CTX36_M1L512_PHASE5__WL512__PENDING_RETRAIN
+        model_path: models/exit_transformer_v0/EXIT_IO_V3_CTX36_M1L512_PHASE5__WL512__E_R5E_20260409_WEEKLY_MONETIZE
         feature_hash: 9f3c06390f215b83
         exit_ml_io_version: EXIT_IO_V3_CTX36_M1L512_PHASE5
         threshold: 0.961242

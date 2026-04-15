@@ -6,7 +6,7 @@ entry_models:
     enabled: false
   v10_ctx:
     enabled: true
-    bundle_dir: /home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_CTX__RETRAIN_20260407_PREMIUM_LONG_ONLY_V6
+    bundle_dir: /home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_CTX__RETRAIN_20260409_PREMIUM_LONG_ONLY_V13_BADPATH
 entry_policy_v10_ctx:
   enabled: true
   min_prob_long: 0.42

@@ -4,8 +4,8 @@
   "canonical_market_tape_root_model": "/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m5_bid_ask__CANONICAL_STAGING_2026",
   "canonical_prebuilt_manifest": "/home/andre2/GX1_DATA/data/data/prebuilt/BASE28_CANONICAL/CURRENT_MANIFEST.json",
   "canonical_prebuilt_parquet": "/home/andre2/GX1_DATA/data/data/prebuilt/ctx16cat6_20260402_163322/xauusd_m5_BASE28_2020_2026__CTX_CONT16_CAT6_20260402_163322.parquet",
-  "canonical_prebuilt_contract_note": "Phase5 exit verification lane for R5C aligned to the weekly-monetize R5E bundle. Entry remains canonical; exit verification uses MFE/giveback arbiter rules.",
-  "canonical_transformer_bundle_dir": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_CTX__RETRAIN_20260407_PREMIUM_LONG_ONLY_V6",
+  "canonical_prebuilt_contract_note": "Phase5 exit verification lane for R5C aligned to the weekly-monetize R5E bundle and the V13_BADPATH working entry lane; frozen legacy benchmark remains comparison-only.",
+  "canonical_transformer_bundle_dir": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_CTX__RETRAIN_20260409_PREMIUM_LONG_ONLY_V13_BADPATH",
   "canonical_xgb_bundle_dir": "/home/andre2/GX1_DATA/models/models/xgb_universal_multihead_v2__RETRAIN_20260329_SANFIX_2020_2025",
   "ctx_contract": {
     "ctx_cat_dim": 6,

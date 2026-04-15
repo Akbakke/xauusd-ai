@@ -160,8 +160,8 @@ ENTRY_AUX_PATH_WEIGHT = float(_env_str("ENTRY_AUX_PATH_WEIGHT", "0.90"))
 ENTRY_AUX_MFE_WEIGHT = float(_env_str("ENTRY_AUX_MFE_WEIGHT", "0.25"))
 ENTRY_AUX_TRADABLE_WEIGHT = float(_env_str("ENTRY_AUX_TRADABLE_WEIGHT", "1.20"))
 # Canonical lane keeps bad-path parked until it shows clean incremental value.
-ENTRY_AUX_BAD_PATH_WEIGHT = float(_env_str("ENTRY_AUX_BAD_PATH_WEIGHT", "0.0"))
-ENTRY_AUX_BAD_PATH_POS_WEIGHT_CAP = float(_env_str("ENTRY_AUX_BAD_PATH_POS_WEIGHT_CAP", "20.0"))
+ENTRY_AUX_BAD_PATH_WEIGHT = float(_env_str("ENTRY_AUX_BAD_PATH_WEIGHT", "0.30"))
+ENTRY_AUX_BAD_PATH_POS_WEIGHT_CAP = float(_env_str("ENTRY_AUX_BAD_PATH_POS_WEIGHT_CAP", "18.0"))
 # Scale bps targets to keep regression losses in a stable range
 ENTRY_AUX_QUALITY_SCALE_BPS = float(_env_str("ENTRY_AUX_QUALITY_SCALE_BPS", "50.0"))
 ENTRY_AUX_PATH_SCALE_BPS = float(_env_str("ENTRY_AUX_PATH_SCALE_BPS", "50.0"))
@@ -169,10 +169,12 @@ ENTRY_AUX_MFE_SCALE_BPS = float(_env_str("ENTRY_AUX_MFE_SCALE_BPS", "20.0"))
 ENTRY_AUX_TRADABLE_POS_WEIGHT_CAP = float(_env_str("ENTRY_AUX_TRADABLE_POS_WEIGHT_CAP", "12.0"))
 ENTRY_HARD_NEG_LONG_CE_MULTIPLIER = float(_env_str("ENTRY_HARD_NEG_LONG_CE_MULTIPLIER", "1.35"))
 ENTRY_HARD_NEG_LONG_PROB_PENALTY = float(_env_str("ENTRY_HARD_NEG_LONG_PROB_PENALTY", "0.20"))
-ENTRY_DEAD_LONG_CE_MULTIPLIER = float(_env_str("ENTRY_DEAD_LONG_CE_MULTIPLIER", "1.60"))
-ENTRY_DEAD_LONG_PROB_PENALTY = float(_env_str("ENTRY_DEAD_LONG_PROB_PENALTY", "0.35"))
-ENTRY_TEASER_LONG_CE_MULTIPLIER = float(_env_str("ENTRY_TEASER_LONG_CE_MULTIPLIER", "1.20"))
-ENTRY_TEASER_LONG_PROB_PENALTY = float(_env_str("ENTRY_TEASER_LONG_PROB_PENALTY", "0.12"))
+ENTRY_DEAD_LONG_CE_MULTIPLIER = float(_env_str("ENTRY_DEAD_LONG_CE_MULTIPLIER", "1.80"))
+ENTRY_DEAD_LONG_PROB_PENALTY = float(_env_str("ENTRY_DEAD_LONG_PROB_PENALTY", "0.40"))
+ENTRY_TEASER_LONG_CE_MULTIPLIER = float(_env_str("ENTRY_TEASER_LONG_CE_MULTIPLIER", "1.35"))
+ENTRY_TEASER_LONG_PROB_PENALTY = float(_env_str("ENTRY_TEASER_LONG_PROB_PENALTY", "0.16"))
+ENTRY_BAD_PATH_CE_MULTIPLIER = float(_env_str("ENTRY_BAD_PATH_CE_MULTIPLIER", "1.50"))
+ENTRY_BAD_PATH_PROB_PENALTY = float(_env_str("ENTRY_BAD_PATH_PROB_PENALTY", "0.24"))
 ENTRY_AUX_CLEAN_EDGE_WEIGHT = float(_env_str("ENTRY_AUX_CLEAN_EDGE_WEIGHT", "0.55"))
 ENTRY_AUX_SURVIVAL_WEIGHT = float(_env_str("ENTRY_AUX_SURVIVAL_WEIGHT", "0.08"))
 ENTRY_AUX_CLEAN_EDGE_POS_WEIGHT_CAP = float(_env_str("ENTRY_AUX_CLEAN_EDGE_POS_WEIGHT_CAP", "16.0"))
@@ -269,10 +271,12 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_AUX_TRADABLE_POS_WEIGHT_CAP": "12.0",
     "ENTRY_HARD_NEG_LONG_CE_MULTIPLIER": "1.35",
     "ENTRY_HARD_NEG_LONG_PROB_PENALTY": "0.20",
-    "ENTRY_DEAD_LONG_CE_MULTIPLIER": "1.60",
-    "ENTRY_DEAD_LONG_PROB_PENALTY": "0.35",
-    "ENTRY_TEASER_LONG_CE_MULTIPLIER": "1.20",
-    "ENTRY_TEASER_LONG_PROB_PENALTY": "0.12",
+    "ENTRY_DEAD_LONG_CE_MULTIPLIER": "1.80",
+    "ENTRY_DEAD_LONG_PROB_PENALTY": "0.40",
+    "ENTRY_TEASER_LONG_CE_MULTIPLIER": "1.35",
+    "ENTRY_TEASER_LONG_PROB_PENALTY": "0.16",
+    "ENTRY_BAD_PATH_CE_MULTIPLIER": "1.50",
+    "ENTRY_BAD_PATH_PROB_PENALTY": "0.24",
     "ENTRY_AUX_CLEAN_EDGE_WEIGHT": "0.45",
     "ENTRY_AUX_SURVIVAL_WEIGHT": "0.10",
     "ENTRY_AUX_CLEAN_EDGE_POS_WEIGHT_CAP": "16.0",
@@ -973,6 +977,7 @@ class EntryV10CtxDataset(Dataset):
                 "y_tradable": torch.tensor(float(row["y_tradable"]), dtype=torch.float32),
                 "mfe_first_n_bps": torch.tensor(float(row["mfe_first_n_bps"]), dtype=torch.float32),
                 "path_quality_bps": torch.tensor(float(row["path_quality_bps"]), dtype=torch.float32),
+                "y_bad_path": torch.tensor(float(row.get("y_bad_path", 0.0)), dtype=torch.float32),
                 "y_dead_negative_long": torch.tensor(float(row.get("y_dead_negative_long", 0.0)), dtype=torch.float32),
                 "y_teaser_negative_long": torch.tensor(float(row.get("y_teaser_negative_long", 0.0)), dtype=torch.float32),
                 "y_hard_negative_long": torch.tensor(float(row.get("y_hard_negative_long", 0.0)), dtype=torch.float32),
@@ -1006,6 +1011,7 @@ class EntryV10CtxDataset(Dataset):
                 "y_tradable": torch.tensor(0.0, dtype=torch.float32),
                 "mfe_first_n_bps": torch.tensor(0.0, dtype=torch.float32),
                 "path_quality_bps": torch.tensor(0.0, dtype=torch.float32),
+                "y_bad_path": torch.tensor(0.0, dtype=torch.float32),
                 "y_dead_negative_long": torch.tensor(0.0, dtype=torch.float32),
                 "y_teaser_negative_long": torch.tensor(0.0, dtype=torch.float32),
                 "y_hard_negative_long": torch.tensor(0.0, dtype=torch.float32),
@@ -1172,6 +1178,7 @@ def train_epoch(
         y_mfe_first = batch["mfe_first_n_bps"].to(device, non_blocking=non_blocking)
         y_path_quality = batch["path_quality_bps"].to(device, non_blocking=non_blocking)
         y_tradable = batch["y_tradable"].to(device, non_blocking=non_blocking)
+        y_bad_path = batch["y_bad_path"].to(device, non_blocking=non_blocking)
         y_dead_negative_long = batch["y_dead_negative_long"].to(device, non_blocking=non_blocking)
         y_teaser_negative_long = batch["y_teaser_negative_long"].to(device, non_blocking=non_blocking)
         y_hard_negative_long = batch["y_hard_negative_long"].to(device, non_blocking=non_blocking)
@@ -1187,6 +1194,7 @@ def train_epoch(
         path_pred = out.get("path_quality")
         mfe_pred = out.get("mfe_first_n")
         tradable_logit = out.get("tradable_logit")
+        bad_path_logit = out.get("bad_path_logit")
         clean_edge_logit = out.get("clean_edge_logit")
         survival_logit = out.get("survival_logit")
         anchor_logits = out.get("anchor_logits")
@@ -1206,6 +1214,10 @@ def train_epoch(
         if float(ENTRY_TEASER_LONG_CE_MULTIPLIER) > 1.0:
             ce_sample_weight = ce_sample_weight + (
                 (float(ENTRY_TEASER_LONG_CE_MULTIPLIER) - 1.0) * y_teaser_negative_long.float()
+            )
+        if float(ENTRY_BAD_PATH_CE_MULTIPLIER) > 1.0:
+            ce_sample_weight = ce_sample_weight + (
+                (float(ENTRY_BAD_PATH_CE_MULTIPLIER) - 1.0) * y_bad_path.float()
             )
         if float(ENTRY_HARD_NEG_LONG_CE_MULTIPLIER) > 1.0:
             ce_sample_weight = ce_sample_weight + (
@@ -1236,12 +1248,14 @@ def train_epoch(
         hard_neg_prob_loss = torch.tensor(0.0, device=device)
         dead_neg_prob_loss = torch.tensor(0.0, device=device)
         teaser_neg_prob_loss = torch.tensor(0.0, device=device)
+        bad_path_prob_loss = torch.tensor(0.0, device=device)
         if residual_side_bias_alpha > 0.0 and delta_logits is not None:
             residual_gap = delta_logits[:, 0] - delta_logits[:, 1]
             residual_side_bias_loss = residual_gap.mean().pow(2)
             loss = loss + (float(residual_side_bias_alpha) * residual_side_bias_loss)
         dead_neg_mask = y_dead_negative_long.float() > 0.5
         teaser_neg_mask = y_teaser_negative_long.float() > 0.5
+        bad_path_neg_mask = y_bad_path.float() > 0.5
         hard_neg_mask = residual_hard_neg_long > 0.5
         if float(ENTRY_DEAD_LONG_PROB_PENALTY) > 0.0 and dead_neg_mask.any():
             dead_neg_prob_loss = float(ENTRY_DEAD_LONG_PROB_PENALTY) * probs[dead_neg_mask, 0].mean()
@@ -1249,6 +1263,9 @@ def train_epoch(
         if float(ENTRY_TEASER_LONG_PROB_PENALTY) > 0.0 and teaser_neg_mask.any():
             teaser_neg_prob_loss = float(ENTRY_TEASER_LONG_PROB_PENALTY) * probs[teaser_neg_mask, 0].mean()
             loss = loss + teaser_neg_prob_loss
+        if float(ENTRY_BAD_PATH_PROB_PENALTY) > 0.0 and bad_path_neg_mask.any():
+            bad_path_prob_loss = float(ENTRY_BAD_PATH_PROB_PENALTY) * probs[bad_path_neg_mask, 0].mean()
+            loss = loss + bad_path_prob_loss
         if float(ENTRY_HARD_NEG_LONG_PROB_PENALTY) > 0.0 and hard_neg_mask.any():
             hard_neg_prob_loss = float(ENTRY_HARD_NEG_LONG_PROB_PENALTY) * probs[hard_neg_mask, 0].mean()
             loss = loss + hard_neg_prob_loss
@@ -1257,6 +1274,8 @@ def train_epoch(
         clean_edge_loss = torch.tensor(0.0, device=device)
         survival_loss = torch.tensor(0.0, device=device)
         clean_edge_rank_loss = torch.tensor(0.0, device=device)
+        path_loss = torch.tensor(0.0, device=device)
+        mfe_loss = torch.tensor(0.0, device=device)
         positive_mask = y_tradable.float() > 0.5
         selector_mask = y_selector_long_mask.float() > 0.5
         if aux_path_weight > 0.0 and path_pred is not None:
@@ -1290,6 +1309,16 @@ def train_epoch(
                 tradable_loss = float(aux_tradable_weight) * tradable_loss
                 loss = loss + tradable_loss
                 tradable_loss_sum += float(tradable_loss.item()) * y.shape[0]
+        if float(ENTRY_AUX_BAD_PATH_WEIGHT) > 0.0 and bad_path_logit is not None:
+            if selector_mask.any():
+                bad_path_loss = nn.functional.binary_cross_entropy_with_logits(
+                    bad_path_logit.squeeze(1)[selector_mask],
+                    y_bad_path.float()[selector_mask],
+                    pos_weight=torch.tensor(float(bad_path_pos_weight), device=device, dtype=bad_path_logit.dtype),
+                )
+                bad_path_loss = float(ENTRY_AUX_BAD_PATH_WEIGHT) * bad_path_loss
+                loss = loss + bad_path_loss
+                bad_path_loss_sum += float(bad_path_loss.item()) * y.shape[0]
         if float(ENTRY_AUX_CLEAN_EDGE_WEIGHT) > 0.0 and clean_edge_logit is not None:
             if selector_mask.any():
                 clean_edge_loss = nn.functional.binary_cross_entropy_with_logits(
@@ -1364,6 +1393,7 @@ def train_epoch(
         total_cost += float(cost_term) * bs
         total_balance += float(balance_term) * bs
         hard_neg_prob_loss_sum += float(hard_neg_prob_loss) * bs
+        bad_path_loss_sum += float(bad_path_prob_loss) * bs
         if aux_path_weight > 0.0:
             total_aux_path += float(path_loss) * bs
         if aux_mfe_weight > 0.0:
@@ -1383,6 +1413,7 @@ def train_epoch(
         "cost_loss_mean": (total_cost / max(1, n)),
         "balance_loss_mean": (total_balance / max(1, n)),
         "hard_neg_prob_loss_mean": (hard_neg_prob_loss_sum / max(1, n)),
+        "bad_path_prob_loss_mean": (bad_path_loss_sum / max(1, n)),
         "aux_path_loss_mean": (total_aux_path / max(1, n)),
         "aux_mfe_loss_mean": (total_aux_mfe / max(1, n)),
         "aux_tradable_loss_mean": (total_aux_tradable / max(1, n)),
@@ -1458,6 +1489,7 @@ def validate(
             y_mfe_first = batch["mfe_first_n_bps"].to(device, non_blocking=non_blocking)
             y_path_quality = batch["path_quality_bps"].to(device, non_blocking=non_blocking)
             y_tradable = batch["y_tradable"].to(device, non_blocking=non_blocking)
+            y_bad_path = batch["y_bad_path"].to(device, non_blocking=non_blocking)
             y_dead_negative_long = batch["y_dead_negative_long"].to(device, non_blocking=non_blocking)
             y_teaser_negative_long = batch["y_teaser_negative_long"].to(device, non_blocking=non_blocking)
             y_hard_negative_long = batch["y_hard_negative_long"].to(device, non_blocking=non_blocking)
@@ -1472,6 +1504,7 @@ def validate(
             path_pred = out.get("path_quality")
             mfe_pred = out.get("mfe_first_n")
             tradable_logit = out.get("tradable_logit")
+            bad_path_logit = out.get("bad_path_logit")
             clean_edge_logit = out.get("clean_edge_logit")
             survival_logit = out.get("survival_logit")
             anchor_logits = out.get("anchor_logits")
@@ -1542,6 +1575,9 @@ def validate(
             clean_edge_loss = torch.tensor(0.0, device=device)
             survival_loss = torch.tensor(0.0, device=device)
             clean_edge_rank_loss = torch.tensor(0.0, device=device)
+            bad_path_loss = torch.tensor(0.0, device=device)
+            path_loss = torch.tensor(0.0, device=device)
+            mfe_loss = torch.tensor(0.0, device=device)
             positive_mask = y_tradable.float() > 0.5
             selector_mask = y_selector_long_mask.float() > 0.5
             if aux_path_weight > 0.0 and path_pred is not None:
@@ -1571,6 +1607,15 @@ def validate(
                     )
                     loss = loss + (float(aux_tradable_weight) * tradable_loss)
                     tradable_loss_sum += float(tradable_loss.item()) * y.shape[0]
+            if float(ENTRY_AUX_BAD_PATH_WEIGHT) > 0.0 and bad_path_logit is not None:
+                if selector_mask.any():
+                    bad_path_loss = nn.functional.binary_cross_entropy_with_logits(
+                        bad_path_logit.squeeze(1)[selector_mask],
+                        y_bad_path.float()[selector_mask],
+                        pos_weight=torch.tensor(float(bad_path_pos_weight), device=device, dtype=bad_path_logit.dtype),
+                    )
+                    loss = loss + (float(ENTRY_AUX_BAD_PATH_WEIGHT) * bad_path_loss)
+                    bad_path_loss_sum += float(bad_path_loss.item()) * y.shape[0]
             if float(ENTRY_AUX_CLEAN_EDGE_WEIGHT) > 0.0 and clean_edge_logit is not None:
                 if selector_mask.any():
                     clean_edge_loss = nn.functional.binary_cross_entropy_with_logits(
@@ -1650,6 +1695,7 @@ def validate(
         "aux_path_loss_mean": (path_loss_sum / max(1, n)),
         "aux_mfe_loss_mean": (mfe_loss_sum / max(1, n)),
         "aux_tradable_loss_mean": (tradable_loss_sum / max(1, n)),
+        "bad_path_prob_loss_mean": (bad_path_loss_sum / max(1, n)),
         "aux_clean_edge_loss_mean": (clean_edge_loss_sum / max(1, n)),
         "aux_survival_loss_mean": (survival_loss_sum / max(1, n)),
         "clean_edge_rank_loss_mean": (clean_edge_rank_loss_sum / max(1, n)),
@@ -2390,13 +2436,15 @@ def run_train(
         balance_target=str(ENTRY_PRED_BALANCE_TARGET),
     )
     log.info(
-        "[ENTRY_TRAIN_RECIPE] direction_ce_scale=%.3f residual_scale=%.3f tradable_w=%.3f path_w=%.3f mfe_w=%.3f tradable_pos_weight=%.3f clean_edge_w=%.3f clean_edge_pos_weight=%.3f survival_w=%.3f survival_pos_weight=%.3f rank_w=%.3f rank_margin=%.3f",
+        "[ENTRY_TRAIN_RECIPE] direction_ce_scale=%.3f residual_scale=%.3f tradable_w=%.3f path_w=%.3f mfe_w=%.3f tradable_pos_weight=%.3f bad_path_w=%.3f bad_path_pos_weight=%.3f clean_edge_w=%.3f clean_edge_pos_weight=%.3f survival_w=%.3f survival_pos_weight=%.3f rank_w=%.3f rank_margin=%.3f",
         float(ENTRY_DIRECTION_CE_SCALE),
         float(ENTRY_RESIDUAL_SCALE),
         float(ENTRY_AUX_TRADABLE_WEIGHT),
         float(ENTRY_AUX_PATH_WEIGHT),
         float(ENTRY_AUX_MFE_WEIGHT),
         float(tradable_pos_weight),
+        float(ENTRY_AUX_BAD_PATH_WEIGHT),
+        float(bad_path_pos_weight),
         float(ENTRY_AUX_CLEAN_EDGE_WEIGHT),
         float(clean_edge_pos_weight),
         float(ENTRY_AUX_SURVIVAL_WEIGHT),
@@ -2648,6 +2696,8 @@ def run_train(
             "residual_scale": float(ENTRY_RESIDUAL_SCALE),
             "tradable_weight": float(ENTRY_AUX_TRADABLE_WEIGHT),
             "tradable_pos_weight": float(tradable_pos_weight),
+            "bad_path_weight": float(ENTRY_AUX_BAD_PATH_WEIGHT),
+            "bad_path_pos_weight": float(bad_path_pos_weight),
             "path_weight": float(ENTRY_AUX_PATH_WEIGHT),
             "mfe_weight": float(ENTRY_AUX_MFE_WEIGHT),
             "dead_long_ce_multiplier": float(ENTRY_DEAD_LONG_CE_MULTIPLIER),
@@ -2670,6 +2720,7 @@ def run_train(
                 "tradable",
                 "path_quality",
                 "mfe_first_n",
+                "bad_path",
                 "clean_edge",
                 "survival",
             ],

@@ -254,6 +254,10 @@ class TradeOutcomeCollector:
         side: Optional[str] = None,
         session: Optional[str] = None,
         exit_reason: Optional[str] = None,
+        trade_uid: Optional[str] = None,
+        candidate_uid: Optional[str] = None,
+        open_ts_utc: Optional[str] = None,
+        close_ts_utc: Optional[str] = None,
         entry_bid: Optional[float] = None,
         entry_ask: Optional[float] = None,
         exit_bid: Optional[float] = None,
@@ -277,6 +281,8 @@ class TradeOutcomeCollector:
         """
         self.outcomes.append({
             "trade_id": trade_id,
+            "trade_uid": trade_uid,
+            "candidate_uid": candidate_uid,
             "pnl_bps": float(pnl_bps),
             "mae_bps": float(mae_bps) if mae_bps is not None else None,
             "mfe_bps": float(mfe_bps) if mfe_bps is not None else None,
@@ -284,6 +290,8 @@ class TradeOutcomeCollector:
             "side": side,
             "session": session,
             "exit_reason": exit_reason,
+            "open_ts_utc": open_ts_utc,
+            "close_ts_utc": close_ts_utc,
             "entry_bid": float(entry_bid) if entry_bid is not None else None,
             "entry_ask": float(entry_ask) if entry_ask is not None else None,
             "exit_bid": float(exit_bid) if exit_bid is not None else None,

@@ -371,6 +371,7 @@ class TradeJournal:
         entry_ask: Optional[float] = None,
         entry_spread_bps: Optional[float] = None,
         entry_price_used: Optional[float] = None,
+        candidate_uid: Optional[str] = None,
         trade_uid: Optional[str] = None,  # Globally unique ID (COMMIT C)
         trade_id: Optional[str] = None,  # Legacy display ID (backward compatibility)
         session: Optional[str] = None,
@@ -435,6 +436,7 @@ class TradeJournal:
                 "entry_ask": entry_ask,
                 "entry_spread_bps": entry_spread_bps,
                 "entry_price_used": entry_price_used,
+                "candidate_uid": candidate_uid,
                 "session": session,
                 "regime": regime,  # Legacy field
                 "vol_regime": vol_regime_final,

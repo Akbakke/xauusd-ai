@@ -32,9 +32,22 @@ def _is_canonical_truth_runtime() -> bool:
 
 _ENTRY_POLICY_DUPLICATE_TOP_LEVEL_KEYS = ("allowed_sessions", "allowed_vol_regimes")
 _ENTRY_POLICY_REMOVED_KEYS = ("require_trend_up", "enable_profitable_filter")
-_ENTRY_POLICY_OPTIONAL_HEAD_KEYS = {
-    "clean_edge": ("clean_edge_gate_enabled", "clean_edge_min_prob"),
-    "survival": ("survival_gate_enabled", "survival_min_prob"),
+_ENTRY_POLICY_OPTIONAL_HEAD_GATES = {
+    "clean_edge": {
+        "flag_key": "clean_edge_gate_enabled",
+        "threshold_key": "clean_edge_min_prob",
+        "mode": "min",
+    },
+    "survival": {
+        "flag_key": "survival_gate_enabled",
+        "threshold_key": "survival_min_prob",
+        "mode": "min",
+    },
+    "bad_path": {
+        "flag_key": "bad_path_gate_enabled",
+        "threshold_key": "quality_max_bad_path_prob",
+        "mode": "max",
+    },
 }
 _ENTRY_WEEKDAY_NAMES = {
     0: "MONDAY",
@@ -50,6 +63,7 @@ _ENTRY_HEAD_FIELD_BY_NAME = {
     "tradable": "tradable_logit",
     "path_quality": "path_quality",
     "mfe_first_n": "mfe_first_n",
+    "bad_path": "bad_path_logit",
     "clean_edge": "clean_edge_logit",
     "survival": "survival_logit",
 }
@@ -123,11 +137,6 @@ def resolve_entry_admission_contract(policy: Dict[str, Any], bundle: Any) -> Dic
         raise RuntimeError(
             "[ENTRY_CONFIG_UNSUPPORTED] quality_min_score is not supported in the active ENTRY_V10_CTX lane"
         )
-    if "quality_max_bad_path_prob" in policy_cfg:
-        raise RuntimeError(
-            "[ENTRY_CONFIG_UNSUPPORTED] quality_max_bad_path_prob is not supported in the active ENTRY_V10_CTX lane"
-        )
-
     caps = resolve_entry_bundle_capabilities(bundle)
     supported_heads = set(caps.get("supported_heads") or [])
 
@@ -190,21 +199,25 @@ def resolve_entry_admission_contract(policy: Dict[str, Any], bundle: Any) -> Dic
             active_gates.append("path_quality")
 
     optional_head_gates: Dict[str, Dict[str, Any]] = {}
-    for head_name, (flag_key, min_key) in _ENTRY_POLICY_OPTIONAL_HEAD_KEYS.items():
+    for head_name, gate_spec in _ENTRY_POLICY_OPTIONAL_HEAD_GATES.items():
+        flag_key = str(gate_spec["flag_key"])
+        threshold_key = str(gate_spec["threshold_key"])
+        gate_mode = str(gate_spec["mode"])
         gate_enabled = bool(policy_cfg.get(flag_key, False))
-        gate_min = policy_cfg.get(min_key, None)
-        if gate_min is not None and not gate_enabled:
+        gate_threshold = policy_cfg.get(threshold_key, None)
+        if gate_threshold is not None and not gate_enabled:
             raise RuntimeError(
-                f"[ENTRY_CONFIG_INVALID] {min_key} requires {flag_key}=true"
+                f"[ENTRY_CONFIG_INVALID] {threshold_key} requires {flag_key}=true"
             )
-        if gate_enabled or gate_min is not None:
+        if gate_enabled or gate_threshold is not None:
             if head_name not in supported_heads:
                 raise RuntimeError(
                     f"[ENTRY_BUNDLE_HEAD_UNSUPPORTED] config requests {head_name} gate but bundle does not support it"
                 )
             optional_head_gates[head_name] = {
                 "enabled": gate_enabled,
-                "min_prob": None if gate_min is None else float(gate_min),
+                "threshold": None if gate_threshold is None else float(gate_threshold),
+                "mode": gate_mode,
             }
             if gate_enabled:
                 active_gates.append(head_name)
@@ -1418,6 +1431,7 @@ class EntryManager:
         tradable_prob = getattr(entry_pred, "tradable_prob", None)
         mfe_first_n_pred = getattr(entry_pred, "mfe_first_n_pred", None)
         path_quality_pred = getattr(entry_pred, "path_quality_pred", None)
+        bad_path_prob = getattr(entry_pred, "bad_path_prob", None)
         clean_edge_prob = getattr(entry_pred, "clean_edge_prob", None)
         survival_prob = getattr(entry_pred, "survival_prob", None)
 
@@ -1578,9 +1592,20 @@ class EntryManager:
 
         optional_head_gates = entry_contract.get("optional_head_gates", {})
         if chosen_side == "long":
+            bad_path_gate_cfg = optional_head_gates.get("bad_path")
+            if bad_path_gate_cfg and bad_path_gate_cfg.get("enabled", False):
+                bad_path_max_prob = bad_path_gate_cfg.get("threshold")
+                if bad_path_prob is None:
+                    chosen_side = None
+                    reason = "bad_path_missing"
+                    _inc_gate("candidate_bad_path_gate")
+                elif bad_path_max_prob is not None and float(bad_path_prob) > float(bad_path_max_prob):
+                    chosen_side = None
+                    reason = "bad_path_gate"
+                    _inc_gate("candidate_bad_path_gate")
             clean_edge_gate_cfg = optional_head_gates.get("clean_edge")
             if clean_edge_gate_cfg and clean_edge_gate_cfg.get("enabled", False):
-                clean_edge_min_prob = clean_edge_gate_cfg.get("min_prob")
+                clean_edge_min_prob = clean_edge_gate_cfg.get("threshold")
                 if clean_edge_prob is None:
                     chosen_side = None
                     reason = "clean_edge_missing"
@@ -1591,7 +1616,7 @@ class EntryManager:
                     _inc_gate("candidate_clean_edge_gate")
             survival_gate_cfg = optional_head_gates.get("survival")
             if chosen_side is not None and survival_gate_cfg and survival_gate_cfg.get("enabled", False):
-                survival_min_prob = survival_gate_cfg.get("min_prob")
+                survival_min_prob = survival_gate_cfg.get("threshold")
                 if survival_prob is None:
                     chosen_side = None
                     reason = "survival_missing"
@@ -1745,7 +1770,10 @@ class EntryManager:
         )
         clean_edge_gate_cfg = optional_head_gates.get("clean_edge")
         clean_edge_gate_enabled = bool(clean_edge_gate_cfg and clean_edge_gate_cfg.get("enabled", False))
-        clean_edge_min_prob = clean_edge_gate_cfg.get("min_prob") if clean_edge_gate_cfg else None
+        clean_edge_min_prob = clean_edge_gate_cfg.get("threshold") if clean_edge_gate_cfg else None
+        bad_path_gate_cfg = optional_head_gates.get("bad_path")
+        bad_path_gate_enabled = bool(bad_path_gate_cfg and bad_path_gate_cfg.get("enabled", False))
+        bad_path_max_prob = bad_path_gate_cfg.get("threshold") if bad_path_gate_cfg else None
         long_clean_edge_pass = bool(
             long_path_quality_pass
             and (
@@ -1759,9 +1787,22 @@ class EntryManager:
                 )
             )
         )
+        long_bad_path_pass = bool(
+            long_path_quality_pass
+            and (
+                not bad_path_gate_enabled
+                or (
+                    bad_path_prob is not None
+                    and (
+                        bad_path_max_prob is None
+                        or float(bad_path_prob) <= float(bad_path_max_prob)
+                    )
+                )
+            )
+        )
         survival_gate_cfg = optional_head_gates.get("survival")
         survival_gate_enabled = bool(survival_gate_cfg and survival_gate_cfg.get("enabled", False))
-        survival_min_prob = survival_gate_cfg.get("min_prob") if survival_gate_cfg else None
+        survival_min_prob = survival_gate_cfg.get("threshold") if survival_gate_cfg else None
         long_survival_pass = bool(
             long_clean_edge_pass
             and (
@@ -1795,7 +1836,10 @@ class EntryManager:
             decision: str,
             reason_str: str,
             units_value: int,
+            candidate_uid_value: Optional[str] = None,
             trade_id_value: Optional[str] = None,
+            trade_uid_value: Optional[str] = None,
+            accepted_bool: Optional[bool] = None,
             risk_guard_pass: Optional[bool] = None,
         ) -> Dict[str, Any]:
             xgb_signal7 = getattr(self._runner, "_last_xgb_signal7", None)
@@ -1843,14 +1887,18 @@ class EntryManager:
                 "clean_edge_pred": _supported_pred_value("clean_edge", clean_edge_prob),
                 "survival_pred": _supported_pred_value("survival", survival_prob),
                 "clean_edge_prob": _supported_pred_value("clean_edge", clean_edge_prob),
+                "bad_path_pred": _supported_pred_value("bad_path", bad_path_prob),
+                "bad_path_prob": _supported_pred_value("bad_path", bad_path_prob),
                 "survival_prob": _supported_pred_value("survival", survival_prob),
                 "clean_edge_supported": "clean_edge" in supported_heads,
+                "bad_path_supported": "bad_path" in supported_heads,
                 "survival_supported": "survival" in supported_heads,
                 "gate_pass_direction_over_flat_long": long_direction_over_flat_pass,
                 "gate_pass_threshold_long": long_threshold_pass,
                 "gate_pass_tradable_long": long_tradable_pass,
                 "gate_pass_mfe_first_n_long": long_mfe_first_n_pass,
                 "gate_pass_path_quality_long": long_path_quality_pass,
+                "gate_pass_bad_path_long": long_bad_path_pass,
                 "gate_pass_clean_edge_long": long_clean_edge_pass,
                 "gate_pass_survival_long": long_survival_pass,
                 "gate_pass_persistence_long": long_persistence_pass,
@@ -1860,13 +1908,22 @@ class EntryManager:
                 "decision": decision,
                 "price": safe_price,
                 "units": units_value,
+                "candidate_uid": candidate_uid_value,
+                "trade_uid": trade_uid_value,
                 "trade_id": trade_id_value,
+                "accepted": accepted_bool,
             }
 
         # Flat gate disabled: no config log
 
         # Ensure timestamp is defined for audit logging even if no trade is taken.
         now_ts = current_ts
+        run_id = getattr(self._runner, "run_id", "unknown")
+        chunk_id = getattr(self._runner, "chunk_id", "single")
+        if not hasattr(self, "_next_entry_candidate_seq"):
+            self._next_entry_candidate_seq = 0
+        self._next_entry_candidate_seq += 1
+        candidate_uid = f"{run_id}:{chunk_id}:cand::{self._next_entry_candidate_seq:06d}:{uuid.uuid4().hex[:12]}"
         if chosen_side is None:
             # Even if no trade is taken, emit eval_log for audit (decision=NONE)
             eval_log_path = getattr(self, "eval_log_path", None) or getattr(self._runner, "eval_log_path", None)
@@ -1878,7 +1935,10 @@ class EntryManager:
                         decision="NONE",
                         reason_str=reason,
                         units_value=0,
+                        candidate_uid_value=candidate_uid,
                         trade_id_value=None,
+                        trade_uid_value=None,
+                        accepted_bool=False,
                         risk_guard_pass=None,
                     )
                     append_eval_log(eval_log_path, eval_record)
@@ -1950,7 +2010,10 @@ class EntryManager:
                     decision=decision,
                     reason_str=reason_str,
                     units_value=0,
+                    candidate_uid_value=candidate_uid,
                     trade_id_value=None,
+                    trade_uid_value=None,
+                    accepted_bool=False,
                     risk_guard_pass=None,
                 )
                 append_eval_log(eval_log_path, eval_record)
@@ -2205,6 +2268,7 @@ class EntryManager:
         trade = LiveTrade(
             trade_id=trade_id,
             trade_uid=trade_uid,
+            candidate_uid=candidate_uid,
             entry_time=now_ts,
             side=side,
             units=units_out,
@@ -2335,6 +2399,7 @@ class EntryManager:
 
                 self._runner.trade_journal.log_entry_snapshot(
                     entry_time=entry_time_iso,
+                    candidate_uid=getattr(trade, "candidate_uid", None),
                     trade_uid=trade.trade_uid,
                     trade_id=trade.trade_id,
                     instrument=instrument_val,
@@ -2420,7 +2485,10 @@ class EntryManager:
                     decision=side.upper(),
                     reason_str=reason,
                     units_value=int(base_units),
+                    candidate_uid_value=candidate_uid,
                     trade_id_value=getattr(trade, "trade_id", None),
+                    trade_uid_value=getattr(trade, "trade_uid", None),
+                    accepted_bool=True,
                     risk_guard_pass=not risk_guard_blocked,
                 )
                 append_eval_log(eval_log_path, eval_record)
@@ -2501,6 +2569,7 @@ class EntryManager:
         trade.extra["session"] = session_key
         trade.extra["session_entry"] = session_key
         trade.extra["trade_id"] = trade.trade_id
+        trade.extra["candidate_uid"] = candidate_uid
         trade.extra["risk_guard_identity"] = self.risk_guard_identity
 
         return trade

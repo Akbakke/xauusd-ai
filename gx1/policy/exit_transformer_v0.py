@@ -1745,11 +1745,10 @@ def load_exit_transformer_decider(model_path: Path) -> ExitTransformerDecider:
         model=model,
         config=cfg,
         model_sha=model_sha,
-        profit_protect_head_available=("profit_protect_head.weight" in state and "profit_protect_head.bias" in state),
-        family_head_available=("family_head.weight" in state and "family_head.bias" in state),
-        family_head_names=list(cfg.get("family_head_names", EXIT_AUX_FAMILY_NAMES)),
+        profit_protect_head_available=hasattr(model, "forward_profit_protect_logits"),
+        family_head_available=hasattr(model, "forward_family_logits"),
+        family_head_names=list(cfg.get("family_head_names", []) or []),
     )
-
 
 def verify_exit_transformer_artifacts(model_dir: Path) -> Dict[str, Any]:
     """

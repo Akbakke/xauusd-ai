@@ -89,27 +89,40 @@ SURVIVAL_LONG_MFE_MIN_BPS = 8.0
 SURVIVAL_LONG_MAE_MAX_BPS = 6.0
 SURVIVAL_LONG_PATH_MIN_BPS = 8.0
 CANONICAL_PREMIUM_LONG_ONLY = True
-LONG_WINDOW_TEACHER_RUN_SPECS = [
-    {
-        "label": "v6_strong_weekly",
-        "source_model": "V6",
-        "run_root": Path("/home/andre2/GX1_DATA/reports/truth_e2e_sanity/ENTRY_WEEKLY_AUDIT_V6_STRONG_20250512_20260408"),
-    },
+# Active teacher runs used by the builder.
+ACTIVE_V12_STRONG_RUN_ROOT = Path("/home/andre2/GX1_DATA/reports/truth_e2e_sanity/ENTRY_WEEKLY_AUDIT_V12_STRONG_20250512_20260408")
+ACTIVE_V12_NORMAL_RUN_ROOT = Path("/home/andre2/GX1_DATA/reports/truth_e2e_sanity/ENTRY_WEEKLY_AUDIT_V12_NORMAL_20250604_20260408")
+ACTIVE_LONG_WINDOW_TEACHER_RUN_SPECS = [
     {
         "label": "v12_strong_weekly",
         "source_model": "V12",
-        "run_root": Path("/home/andre2/GX1_DATA/reports/truth_e2e_sanity/ENTRY_WEEKLY_AUDIT_V12_STRONG_20250512_20260408"),
-    },
-    {
-        "label": "v6_normal_weekly",
-        "source_model": "V6",
-        "run_root": Path("/home/andre2/GX1_DATA/reports/truth_e2e_sanity/ENTRY_WEEKLY_AUDIT_V6_NORMAL_20250604_20260408"),
+        "run_root": ACTIVE_V12_STRONG_RUN_ROOT,
     },
     {
         "label": "v12_normal_weekly",
         "source_model": "V12",
-        "run_root": Path("/home/andre2/GX1_DATA/reports/truth_e2e_sanity/ENTRY_WEEKLY_AUDIT_V12_NORMAL_20250604_20260408"),
+        "run_root": ACTIVE_V12_NORMAL_RUN_ROOT,
     },
+]
+# Frozen legacy benchmark runs kept for comparison/provenance only.
+LEGACY_BENCHMARK_V6_STRONG_RUN_ROOT = Path("/home/andre2/GX1_DATA/reports/truth_e2e_sanity/ENTRY_WEEKLY_AUDIT_V6_STRONG_20250512_20260408")
+LEGACY_BENCHMARK_V6_NORMAL_RUN_ROOT = Path("/home/andre2/GX1_DATA/reports/truth_e2e_sanity/ENTRY_WEEKLY_AUDIT_V6_NORMAL_20250604_20260408")
+LEGACY_LONG_WINDOW_TEACHER_RUN_SPECS = [
+    {
+        "label": "legacy_benchmark_strong_weekly_v6",
+        "source_model": "legacy_benchmark_v6",
+        "run_root": LEGACY_BENCHMARK_V6_STRONG_RUN_ROOT,
+    },
+    {
+        "label": "legacy_benchmark_normal_weekly_v6",
+        "source_model": "legacy_benchmark_v6",
+        "run_root": LEGACY_BENCHMARK_V6_NORMAL_RUN_ROOT,
+    },
+]
+# Combined set preserved for the existing builder path.
+LONG_WINDOW_TEACHER_RUN_SPECS = [
+    *ACTIVE_LONG_WINDOW_TEACHER_RUN_SPECS,
+    *LEGACY_LONG_WINDOW_TEACHER_RUN_SPECS,
 ]
 LONG_WINDOW_TEACHER_BAD_EXIT_REASONS = {"CATASTROPHIC_GUARD"}
 LONG_WINDOW_TEACHER_MEANINGFUL_MFE_BPS = 8.0
