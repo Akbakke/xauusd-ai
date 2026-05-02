@@ -161,11 +161,119 @@ SESSION_CTX_CONT_NAMES = [
     "session_change_flag",
     "session_tradable",
 ]
+EXPECTED_SESSION_TAGS = ("ASIA", "EU", "OVERLAP", "US", "UNKNOWN")
 SWING_ATR_PERIOD = 14
 
 # -----------------------------------------------------------------------------
 # Misc helpers
 # -----------------------------------------------------------------------------
+def compute_session_histogram(
+    df: pd.DataFrame,
+    ts_col: str = "ts",
+    session_col: str = "session_id",
+    session_override: Optional[pd.Series] = None,
+) -> Dict[str, Any]:
+    """Compute a robust session histogram for dataset/audit logging."""
+    n_rows = int(len(df))
+    out: Dict[str, Any] = {"n_rows": n_rows}
+
+    if ts_col in df.columns:
+        ts = pd.to_datetime(df[ts_col], utc=True, errors="coerce")
+        out["n_ts_na"] = int(ts.isna().sum())
+        out["ts_min"] = None if ts.dropna().empty else str(ts.dropna().min())
+        out["ts_max"] = None if ts.dropna().empty else str(ts.dropna().max())
+    else:
+        ts = None
+        out["n_ts_na"] = n_rows
+        out["ts_min"] = None
+        out["ts_max"] = None
+
+    unexpected_values: List[str] = []
+
+    def normalize_tag(value: Any) -> str:
+        try:
+            tag = str(value).upper()
+        except Exception:
+            return "UNKNOWN"
+        if tag in {"ASIA", "EU", "OVERLAP", "US"}:
+            return tag
+        return "UNKNOWN"
+
+    def infer_from_timestamp() -> pd.Series:
+        if ts is None:
+            return pd.Series(["UNKNOWN"] * n_rows, index=df.index)
+        inferred = get_session_vectorized(ts)
+        return inferred.reindex(df.index).fillna("UNKNOWN").astype(str).str.upper()
+
+    if session_override is not None:
+        tags = pd.Series(session_override, index=df.index).map(normalize_tag)
+    elif session_col in df.columns:
+        ser = df[session_col]
+        if pd.api.types.is_object_dtype(ser) or pd.api.types.is_string_dtype(ser):
+            tags = ser.map(normalize_tag)
+            unexpected_values = [
+                str(v)
+                for v in ser.dropna().astype(str).unique().tolist()
+                if str(v).upper() not in {"ASIA", "EU", "OVERLAP", "US"}
+            ][:5]
+        else:
+            ser_num = pd.to_numeric(ser, errors="coerce")
+            non_na = ser_num.dropna()
+            numeric_values = non_na.to_numpy(dtype=float)
+            looks_like_session_id = (
+                len(numeric_values) > 0
+                and np.isfinite(numeric_values).all()
+                and np.isclose(numeric_values, np.round(numeric_values)).all()
+                and set(np.round(numeric_values).astype(int).tolist()).issubset({0, 1, 2, 3})
+            )
+            if looks_like_session_id:
+                mapping = {0: "ASIA", 1: "EU", 2: "OVERLAP", 3: "US"}
+                tags = ser_num.map(lambda v: mapping.get(int(v), "UNKNOWN") if pd.notna(v) else "UNKNOWN")
+            else:
+                unexpected_values = [str(v) for v in ser.dropna().unique().tolist()[:5]]
+                tags = infer_from_timestamp()
+    else:
+        tags = infer_from_timestamp()
+
+    counts = {tag: 0 for tag in EXPECTED_SESSION_TAGS}
+    for key, value in tags.value_counts(dropna=False).to_dict().items():
+        tag = str(key).upper()
+        counts[tag if tag in counts else "UNKNOWN"] += int(value)
+
+    out["counts"] = counts
+    out["pct"] = {tag: (count / n_rows * 100.0) if n_rows > 0 else 0.0 for tag, count in counts.items()}
+    if unexpected_values:
+        out["unexpected_session_values_top5"] = unexpected_values
+    out["counts_sum"] = int(sum(counts.values()))
+    return out
+
+
+def log_session_histogram(
+    df: pd.DataFrame,
+    label: str,
+    ts_col: str = "ts",
+    session_col: str = "session_id",
+    session_override: Optional[pd.Series] = None,
+) -> Dict[str, Any]:
+    """Log and return the session histogram used by dataset build audits."""
+    histogram = compute_session_histogram(
+        df=df,
+        ts_col=ts_col,
+        session_col=session_col,
+        session_override=session_override,
+    )
+    log.info(
+        "[SESSION_HIST] %s: n_rows=%s n_ts_na=%s ts_min=%s ts_max=%s counts=%s",
+        label,
+        histogram["n_rows"],
+        histogram["n_ts_na"],
+        histogram["ts_min"],
+        histogram["ts_max"],
+        histogram["counts"],
+    )
+    return histogram
+
+
 def get_git_commit() -> str:
     """Get current git commit hash (best-effort)."""
     try:

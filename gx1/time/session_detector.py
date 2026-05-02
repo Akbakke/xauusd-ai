@@ -39,6 +39,22 @@ SESSION_ID_MAP = {"ASIA": 0, "EU": 1, "OVERLAP": 2, "US": 3}
 SESSION_ID_INV = {v: k for k, v in SESSION_ID_MAP.items()}
 
 
+def _as_datetime_series(timestamps: Union[pd.Series, pd.DatetimeIndex, np.ndarray]) -> pd.Series:
+    """Normalize timestamp-like input while preserving DatetimeIndex alignment."""
+    if isinstance(timestamps, pd.Series):
+        out = timestamps
+    elif isinstance(timestamps, pd.DatetimeIndex):
+        out = pd.Series(timestamps, index=timestamps)
+    elif isinstance(timestamps, np.ndarray):
+        out = pd.Series(timestamps)
+    else:
+        out = pd.Series(timestamps)
+    if not pd.api.types.is_datetime64_any_dtype(out):
+        converted = pd.to_datetime(out)
+        out = converted if isinstance(converted, pd.Series) else pd.Series(converted)
+    return out
+
+
 def get_session(ts: pd.Timestamp) -> str:
     """
     Get trading session for a single timestamp.
@@ -80,18 +96,8 @@ def get_session_vectorized(timestamps: Union[pd.Series, pd.DatetimeIndex, np.nda
     Returns:
         Series of session labels
     """
-    if isinstance(timestamps, np.ndarray):
-        timestamps = pd.Series(timestamps)
-    
-    # Convert to datetime if needed
-    if not pd.api.types.is_datetime64_any_dtype(timestamps):
-        timestamps = pd.to_datetime(timestamps)
-    
-    # Extract hour (assumes UTC or uses local hour if naive)
-    if hasattr(timestamps, 'dt'):
-        hours = timestamps.dt.hour
-    else:
-        hours = pd.Series(timestamps).dt.hour
+    ts_series = _as_datetime_series(timestamps)
+    hours = ts_series.dt.hour
     
     # Vectorized session assignment
     sessions = pd.Series(index=hours.index, dtype=str)
@@ -128,19 +134,16 @@ def get_session_minutes_since_open_vectorized(
     Minutes since session open (UTC).
     ASIA open = 22:00, EU open = 07:00, OVERLAP open = 12:00, US open = 16:00.
     """
-    if isinstance(timestamps, np.ndarray):
-        timestamps = pd.Series(timestamps)
-    if not pd.api.types.is_datetime64_any_dtype(timestamps):
-        timestamps = pd.to_datetime(timestamps)
-    hours = timestamps.dt.hour
-    minutes = timestamps.dt.minute
+    ts_series = _as_datetime_series(timestamps)
+    hours = ts_series.dt.hour
+    minutes = ts_series.dt.minute
     minute_of_day = hours * 60 + minutes
 
     # ASIA: 22:00-07:00 (wrap)
     asia = (minute_of_day >= 22 * 60) | (minute_of_day < 7 * 60)
     # If after 22:00 -> since open = minute_of_day - 1320
     # If before 07:00 -> since open = minute_of_day + 120
-    since_open = pd.Series(0.0, index=timestamps.index, dtype=float)
+    since_open = pd.Series(0.0, index=ts_series.index, dtype=float)
     since_open[asia & (minute_of_day >= 22 * 60)] = (minute_of_day[asia & (minute_of_day >= 22 * 60)] - 22 * 60).astype(float)
     since_open[asia & (minute_of_day < 7 * 60)] = (minute_of_day[asia & (minute_of_day < 7 * 60)] + 120).astype(float)
 
@@ -166,15 +169,12 @@ def get_session_minutes_to_next_boundary_vectorized(
     Minutes to next session boundary (UTC).
     Boundaries at 07:00, 12:00, 16:00, 22:00.
     """
-    if isinstance(timestamps, np.ndarray):
-        timestamps = pd.Series(timestamps)
-    if not pd.api.types.is_datetime64_any_dtype(timestamps):
-        timestamps = pd.to_datetime(timestamps)
-    hours = timestamps.dt.hour
-    minutes = timestamps.dt.minute
+    ts_series = _as_datetime_series(timestamps)
+    hours = ts_series.dt.hour
+    minutes = ts_series.dt.minute
     minute_of_day = hours * 60 + minutes
 
-    to_next = pd.Series(0.0, index=timestamps.index, dtype=float)
+    to_next = pd.Series(0.0, index=ts_series.index, dtype=float)
 
     # ASIA: 22:00-07:00
     asia = (minute_of_day >= 22 * 60) | (minute_of_day < 7 * 60)

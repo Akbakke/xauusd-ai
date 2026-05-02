@@ -87,34 +87,33 @@ class TestEntryV10CtxProof:
         model = EntryV10CtxHybridTransformer(
             seq_input_dim=16,
             snap_input_dim=88,
-            max_seq_len=30,
-            variant="v10_ctx",
+            seq_len=30,
         )
         model.eval()
         
         # Create dummy inputs
         batch_size = 1
         seq_x = torch.randn(batch_size, 30, 16)  # [1, 30, 16]
-        snap_x = torch.randn(batch_size, 88)  # [1, 88]
+        snap_x = torch.zeros(batch_size, 88)  # [1, 88]
+        from gx1.contracts.signal_bridge_v1 import ORDERED_FIELDS
+        for field in ("p_long", "p_short", "p_flat"):
+            snap_x[:, ORDERED_FIELDS.index(field)] = 1.0 / 3.0
         session_id = torch.LongTensor([1])  # [1]
         vol_regime_id = torch.LongTensor([1])  # [1]
         trend_regime_id = torch.LongTensor([1])  # [1]
         
         # Pass A: Real ctx
-        ctx_cat_A = torch.LongTensor([[1, 1, 1, 1, 1]])  # [1, 5]
-        ctx_cont_A = torch.FloatTensor([[50.0, 10.0]])  # [1, 2]
+        ctx_cat_A = torch.LongTensor([[1, 1, 1, 1, 1, 1]])  # [1, 6]
+        ctx_cont_A = torch.FloatTensor([[50.0, 10.0, 0.0, 1.0, 0.5, 1.0]])  # [1, 6]
         
         with torch.no_grad():
             outputs_A = model(
                 seq_x=seq_x,
                 snap_x=snap_x,
-                session_id=session_id,
-                vol_regime_id=vol_regime_id,
-                trend_regime_id=trend_regime_id,
                 ctx_cat=ctx_cat_A,
                 ctx_cont=ctx_cont_A,
             )
-            prob_long_A = torch.sigmoid(outputs_A["direction_logit"]).item()
+            prob_long_A = torch.softmax(outputs_A["direction_logits"], dim=1)[0, 0].item()
         
         # Pass B: Permuted ctx_cat + null ctx_cont
         ctx_cat_B = torch.roll(ctx_cat_A, shifts=1, dims=1)  # Permute categorical
@@ -124,13 +123,10 @@ class TestEntryV10CtxProof:
             outputs_B = model(
                 seq_x=seq_x,
                 snap_x=snap_x,
-                session_id=session_id,
-                vol_regime_id=vol_regime_id,
-                trend_regime_id=trend_regime_id,
                 ctx_cat=ctx_cat_B,
                 ctx_cont=ctx_cont_B,
             )
-            prob_long_B = torch.sigmoid(outputs_B["direction_logit"]).item()
+            prob_long_B = torch.softmax(outputs_B["direction_logits"], dim=1)[0, 0].item()
         
         # Assert: ctx must affect output
         diff = abs(prob_long_A - prob_long_B)
@@ -147,4 +143,3 @@ class TestEntryV10CtxProof:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
-

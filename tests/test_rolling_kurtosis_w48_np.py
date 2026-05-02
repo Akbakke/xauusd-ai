@@ -129,11 +129,12 @@ def test_rolling_kurtosis_w48_min_periods():
     x = np.random.randn(n).astype(np.float64)
     
     result = rolling_kurtosis_w48(x, min_periods=12, fisher=True, bias=True)
-    
+    min_periods = 12
+
     window = 48
     # First min_periods-1 values should be NaN
-    for i in range(min(12, len(result))):
-        assert np.isnan(result[i]), f"Expected NaN at index {i} (min_periods={12})"
+    for i in range(min(min_periods - 1, len(result))):
+        assert np.isnan(result[i]), f"Expected NaN at index {i} (min_periods={min_periods})"
     
     # Values after min_periods should be computed (if window is large enough)
     for i in range(min_periods, min(window, len(result))):
@@ -165,4 +166,3 @@ def test_rolling_kurtosis_w48_fisher_correction():
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
-

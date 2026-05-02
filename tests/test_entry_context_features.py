@@ -28,8 +28,13 @@ def test_entry_context_features_validation():
         vol_regime_id=1,
         atr_bucket=1,
         spread_bucket=0,
+        h4_trend_sign_cat=1,
         atr_bps=50.0,
         spread_bps=10.0,
+        D1_dist_from_ema200_atr=0.0,
+        H1_range_compression_ratio=1.0,
+        D1_atr_percentile_252=0.5,
+        M15_range_compression_ratio=1.0,
     )
     
     valid, error = ctx.validate(is_replay=True)
@@ -42,8 +47,13 @@ def test_entry_context_features_validation():
         vol_regime_id=1,
         atr_bucket=1,
         spread_bucket=0,
+        h4_trend_sign_cat=1,
         atr_bps=50.0,
         spread_bps=10.0,
+        D1_dist_from_ema200_atr=0.0,
+        H1_range_compression_ratio=1.0,
+        D1_atr_percentile_252=0.5,
+        M15_range_compression_ratio=1.0,
     )
     
     valid, error = ctx_invalid.validate(is_replay=True)
@@ -57,8 +67,13 @@ def test_entry_context_features_validation():
         vol_regime_id=1,
         atr_bucket=1,
         spread_bucket=0,
+        h4_trend_sign_cat=1,
         atr_bps=float('nan'),
         spread_bps=10.0,
+        D1_dist_from_ema200_atr=0.0,
+        H1_range_compression_ratio=1.0,
+        D1_atr_percentile_252=0.5,
+        M15_range_compression_ratio=1.0,
     )
     
     valid, error = ctx_nan.validate(is_replay=True)
@@ -74,24 +89,31 @@ def test_entry_context_features_tensor_conversion():
         vol_regime_id=1,
         atr_bucket=1,
         spread_bucket=0,
+        h4_trend_sign_cat=1,
         atr_bps=50.0,
         spread_bps=10.0,
+        D1_dist_from_ema200_atr=0.0,
+        H1_range_compression_ratio=1.0,
+        D1_atr_percentile_252=0.5,
+        M15_range_compression_ratio=1.0,
     )
     
     # Test categorical tensor
     ctx_cat = ctx.to_tensor_categorical()
     assert ctx_cat.dtype == np.int64, f"Expected int64, got {ctx_cat.dtype}"
-    assert ctx_cat.shape == (5,), f"Expected shape (5,), got {ctx_cat.shape}"
+    assert ctx_cat.shape == (6,), f"Expected shape (6,), got {ctx_cat.shape}"
     assert ctx_cat[0] == 1, "session_id should be 1"
     assert ctx_cat[1] == 0, "trend_regime_id should be 0"
     assert ctx_cat[2] == 1, "vol_regime_id should be 1"
     assert ctx_cat[3] == 1, "atr_bucket should be 1"
     assert ctx_cat[4] == 0, "spread_bucket should be 0"
     
+    assert ctx_cat[5] == 1, "h4_trend_sign_cat should be 1"
+
     # Test continuous tensor
     ctx_cont = ctx.to_tensor_continuous()
     assert ctx_cont.dtype == np.float32, f"Expected float32, got {ctx_cont.dtype}"
-    assert ctx_cont.shape == (2,), f"Expected shape (2,), got {ctx_cont.shape}"
+    assert ctx_cont.shape == (6,), f"Expected shape (6,), got {ctx_cont.shape}"
     assert ctx_cont[0] == 50.0, "atr_bps should be 50.0"
     assert ctx_cont[1] == 10.0, "spread_bps should be 10.0"
 
@@ -216,4 +238,3 @@ def test_build_entry_context_features_missing_atr():
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
-

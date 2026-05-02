@@ -137,6 +137,8 @@ class TradeJournal:
         
         # JSONL file path (for backward compatibility)
         self.journal_path = self.journal_dir / "trade_journal.jsonl"
+        self.legacy_journal_dir = self.run_dir / "journal"
+        self.legacy_journal_path = self.legacy_journal_dir / "trade_journal.jsonl"
         
         # Extract artifact hashes from header
         artifacts = self.header.get("artifacts", {})
@@ -152,16 +154,43 @@ class TradeJournal:
         
         # Open JSONL file in append mode (for backward compatibility)
         self._file_handle = None
+        self._legacy_file_handle = None
         if self.enabled:
             try:
                 self._file_handle = open(self.journal_path, "a", encoding="utf-8")
+                if self.legacy_journal_path != self.journal_path:
+                    self.legacy_journal_dir.mkdir(parents=True, exist_ok=True)
+                    self._legacy_file_handle = open(self.legacy_journal_path, "a", encoding="utf-8")
             except Exception as e:
                 logger.warning(f"[TRADE_JOURNAL] Failed to open JSONL file: {e}")
                 self._file_handle = None
+                self._legacy_file_handle = None
         
         # Initialize index CSV if it doesn't exist
         if self.enabled and not self.index_path.exists():
             self._write_index_header()
+
+    def _is_replay_context(self) -> bool:
+        """Replay hard-fail guards are driven by replay env/tag, not generic TEST names."""
+        tag = str(self.run_tag or "").upper()
+        return (
+            os.getenv("GX1_REPLAY") == "1"
+            or os.getenv("REPLAY_MODE") == "1"
+            or tag.startswith("REPLAY_")
+            or "REPLAY" in tag
+        )
+
+    def _normalize_ids(
+        self,
+        trade_uid: Optional[str] = None,
+        trade_id: Optional[str] = None,
+    ) -> tuple[Optional[str], Optional[str]]:
+        """Support legacy positional calls where the first argument was trade_id."""
+        if trade_id is None and trade_uid:
+            value = str(trade_uid)
+            if ":" not in value:
+                return None, value
+        return trade_uid, trade_id
     
     def _key(self, trade_uid: Optional[str] = None, trade_id: Optional[str] = None) -> str:
         """
@@ -184,6 +213,7 @@ class TradeJournal:
         str
             Internal key for storage/indexing
         """
+        trade_uid, trade_id = self._normalize_ids(trade_uid=trade_uid, trade_id=trade_id)
         if trade_uid:
             return trade_uid
         elif trade_id:
@@ -248,14 +278,9 @@ class TradeJournal:
         Dict[str, Any]
             Trade journal dict
         """
+        trade_uid, trade_id = self._normalize_ids(trade_uid=trade_uid, trade_id=trade_id)
         # GUARD 1: Replay-only fail-fast - trade_uid format invariant
-        is_replay = (
-            os.getenv("GX1_REPLAY") == "1" or 
-            os.getenv("REPLAY_MODE") == "1" or 
-            self.run_tag.startswith("REPLAY_") or 
-            "REPLAY" in self.run_tag.upper() or
-            (self.run_tag and ("MINI" in self.run_tag.upper() or "TEST" in self.run_tag.upper()))
-        )
+        is_replay = self._is_replay_context()
         
         if is_replay and trade_uid:
             # In replay, trade_uid must start with GX1_RUN_ID:GX1_CHUNK_ID:
@@ -318,15 +343,10 @@ class TradeJournal:
         
         if not self.enabled:
             return
+        trade_uid, trade_id = self._normalize_ids(trade_uid=trade_uid, trade_id=trade_id)
         
         # GUARD 1: Replay-only fail-fast - trade_uid format invariant when writing
-        is_replay = (
-            os.getenv("GX1_REPLAY") == "1" or 
-            os.getenv("REPLAY_MODE") == "1" or 
-            self.run_tag.startswith("REPLAY_") or 
-            "REPLAY" in self.run_tag.upper() or
-            (self.run_tag and ("MINI" in self.run_tag.upper() or "TEST" in self.run_tag.upper()))
-        )
+        is_replay = self._is_replay_context()
         
         if is_replay and trade_uid:
             env_run_id = os.getenv("GX1_RUN_ID")
@@ -343,7 +363,8 @@ class TradeJournal:
         
         key = self._key(trade_uid=trade_uid, trade_id=trade_id)
         trade_journal = self._get_trade_journal(trade_uid=trade_uid, trade_id=trade_id)
-        trade_json_path = self.trade_json_dir / f"{key}.json"
+        file_stem = trade_id if trade_uid is None and trade_id else key
+        trade_json_path = self.trade_json_dir / f"{file_stem}.json"
         
         try:
             # Time the actual I/O operation
@@ -595,6 +616,7 @@ class TradeJournal:
         router_version: str,
         router_raw_decision: str,
         final_exit_profile: str,
+        trade_uid: Optional[str] = None,
         router_model_hash: Optional[str] = None,
         router_features_used: Optional[Dict[str, Any]] = None,
         guardrail_applied: bool = False,
@@ -642,6 +664,7 @@ class TradeJournal:
         self,
         trade_id: str,
         exit_profile: str,
+        trade_uid: Optional[str] = None,
         tp_levels: Optional[List[float]] = None,
         sl: Optional[float] = None,
         trailing_enabled: bool = False,
@@ -680,6 +703,7 @@ class TradeJournal:
         trade_id: str,
         timestamp: str,
         event_type: str,
+        trade_uid: Optional[str] = None,
         price: Optional[float] = None,
         pnl_bps: Optional[float] = None,
         bars_held: Optional[int] = None,
@@ -748,15 +772,7 @@ class TradeJournal:
         
         try:
             # GUARD 2: Replay-only fail-fast - exit logging must not create journals
-            is_replay = (
-                os.getenv("GX1_REPLAY") == "1" or 
-                os.getenv("REPLAY_MODE") == "1" or 
-                self.run_tag.startswith("REPLAY_") or 
-                "REPLAY" in self.run_tag.upper() or
-                (trade_uid and ":" in trade_uid and "chunk" in trade_uid.lower()) or
-                (trade_uid and trade_uid.startswith("MINI_")) or
-                (self.run_tag and ("MINI" in self.run_tag.upper() or "TEST" in self.run_tag.upper()))
-            )
+            is_replay = self._is_replay_context() or (trade_uid and ":" in trade_uid and "chunk" in trade_uid.lower())
             
             key = self._key(trade_uid=trade_uid, trade_id=trade_id)
             
@@ -1000,6 +1016,9 @@ class TradeJournal:
             json_line = json.dumps(event, ensure_ascii=False, default=str)
             self._file_handle.write(json_line + "\n")
             self._file_handle.flush()  # Crash safety: flush immediately
+            if self._legacy_file_handle is not None:
+                self._legacy_file_handle.write(json_line + "\n")
+                self._legacy_file_handle.flush()
             
         except Exception as e:
             # Never break trading due to journal failure
@@ -1012,6 +1031,7 @@ class TradeJournal:
         side: str,
         units: int,
         order_type: str,
+        trade_uid: Optional[str] = None,
         client_order_id: Optional[str] = None,
         client_ext_id: Optional[str] = None,
         client_ext_tag: Optional[str] = None,
@@ -1045,7 +1065,7 @@ class TradeJournal:
             return
         
         try:
-            trade_journal = self._get_trade_journal(trade_id)
+            trade_journal = self._get_trade_journal(trade_uid=trade_uid, trade_id=trade_id)
             if "execution_events" not in trade_journal:
                 trade_journal["execution_events"] = []
             
@@ -1078,6 +1098,7 @@ class TradeJournal:
     def log_order_rejected(
         self,
         trade_id: str,
+        trade_uid: Optional[str] = None,
         client_order_id: Optional[str] = None,
         status_code: Optional[int] = None,
         reject_reason: Optional[str] = None,
@@ -1097,7 +1118,7 @@ class TradeJournal:
             return
         
         try:
-            trade_journal = self._get_trade_journal(trade_id)
+            trade_journal = self._get_trade_journal(trade_uid=trade_uid, trade_id=trade_id)
             if "execution_events" not in trade_journal:
                 trade_journal["execution_events"] = []
             
@@ -1119,6 +1140,7 @@ class TradeJournal:
     def log_order_filled(
         self,
         trade_id: str,
+        trade_uid: Optional[str] = None,
         oanda_order_id: Optional[str] = None,
         oanda_trade_id: Optional[str] = None,
         oanda_transaction_id: Optional[str] = None,
@@ -1148,7 +1170,7 @@ class TradeJournal:
             return
         
         try:
-            trade_journal = self._get_trade_journal(trade_id)
+            trade_journal = self._get_trade_journal(trade_uid=trade_uid, trade_id=trade_id)
             if "execution_events" not in trade_journal:
                 trade_journal["execution_events"] = []
             
@@ -1176,6 +1198,7 @@ class TradeJournal:
         self,
         trade_id: str,
         event_type: str,  # TRADE_OPENED_OANDA or TRADE_CLOSED_OANDA
+        trade_uid: Optional[str] = None,
         oanda_trade_id: Optional[str] = None,
         oanda_transaction_id: Optional[str] = None,
         price: Optional[float] = None,
@@ -1200,7 +1223,7 @@ class TradeJournal:
             return
         
         try:
-            trade_journal = self._get_trade_journal(trade_id)
+            trade_journal = self._get_trade_journal(trade_uid=trade_uid, trade_id=trade_id)
             if "execution_events" not in trade_journal:
                 trade_journal["execution_events"] = []
             
@@ -1224,8 +1247,11 @@ class TradeJournal:
     def close(self) -> None:
         """Close journal and flush all pending writes."""
         # Write any remaining trade JSONs
-        for trade_id in list(self._trade_journals.keys()):
-            self._write_trade_json(trade_id)
+        for key, trade_journal in list(self._trade_journals.items()):
+            self._write_trade_json(
+                trade_uid=trade_journal.get("trade_uid") or (key if not str(key).startswith("LEGACY:") else None),
+                trade_id=trade_journal.get("trade_id"),
+            )
         
         # Close JSONL file
         if self._file_handle:
@@ -1234,6 +1260,12 @@ class TradeJournal:
             except Exception:
                 pass
             self._file_handle = None
+        if self._legacy_file_handle:
+            try:
+                self._legacy_file_handle.close()
+            except Exception:
+                pass
+            self._legacy_file_handle = None
     
     def __enter__(self):
         """Context manager entry."""

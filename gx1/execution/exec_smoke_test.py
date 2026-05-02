@@ -10,10 +10,10 @@ eller:
     python gx1/tools/exec_smoke_test.py
 """
 from gx1.tools.exec_smoke_test import main, run_smoke_test
+from gx1.tools.exec_smoke_test import create_client_ext_id, create_test_trade_id
 
 if __name__ == "__main__":
     exit(main())
-
 
 
 

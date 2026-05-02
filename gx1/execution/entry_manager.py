@@ -773,6 +773,23 @@ class EntryManager:
     # Main entry evaluation
     # -------------------------
 
+    def _record_runner_observability_event(self, family: str, **kwargs: Any) -> bool:
+        runner = getattr(self, "_runner", None)
+        recorder = getattr(runner, "_record_replay_observability_event", None)
+        if callable(recorder):
+            return bool(recorder(family, **kwargs))
+        return True
+
+    @staticmethod
+    def _closed_window_observability_key(ts: pd.Timestamp, closed_kind: str) -> str:
+        if not isinstance(ts, pd.Timestamp):
+            stamp = pd.Timestamp(ts, tz="UTC")
+        elif ts.tzinfo is None:
+            stamp = ts.tz_localize("UTC")
+        else:
+            stamp = ts.tz_convert("UTC")
+        return f"{str(closed_kind).strip().upper()}::{stamp.strftime('%Y-%m-%d')}"
+
     def evaluate_entry(self, candles: pd.DataFrame) -> Optional["LiveTrade"]:
         # Reset routing for telemetry collector
         if getattr(self, "entry_feature_telemetry", None):
@@ -870,12 +887,25 @@ class EntryManager:
         closed_kind = self._closed_window_kind(current_ts)
         if closed_kind is not None:
             window = "21:55-23:00" if closed_kind == "A" else "20:55-22:00"
-            log.info(
-                "[ENTRY_NO_TRADE_CLOSED_WINDOW_PROOF] ts=%s window=%s pattern=%s reason=closed_market",
-                current_ts.isoformat(),
-                window,
-                closed_kind,
+            emit_info = self._record_runner_observability_event(
+                "ENTRY_NO_TRADE_CLOSED_WINDOW_PROOF",
+                reason=f"PATTERN_{closed_kind}",
+                ts=current_ts,
+                key=self._closed_window_observability_key(current_ts, closed_kind),
+                payload={
+                    "ts": current_ts.isoformat(),
+                    "window": window,
+                    "pattern": closed_kind,
+                    "reason": "closed_market",
+                },
             )
+            if emit_info:
+                log.info(
+                    "[ENTRY_NO_TRADE_CLOSED_WINDOW_PROOF] ts=%s window=%s pattern=%s reason=closed_market",
+                    current_ts.isoformat(),
+                    window,
+                    closed_kind,
+                )
             return None
 
         # Gap guard (policy-level, deterministic; no synthetic bars)
@@ -886,18 +916,33 @@ class EntryManager:
                 spacing_sec = (candles.index[-1] - candles.index[-2]).total_seconds()
                 if spacing_sec > self._gap_spacing_threshold_sec:
                     self._last_gap_bar_index = current_bar_index
+                    self._last_gap_event_key = f"{current_ts.isoformat()}::gap_start"
                     try:
                         if not hasattr(self._runner, "entry_gap_guard_hits"):
                             self._runner.entry_gap_guard_hits = 0
                         self._runner.entry_gap_guard_hits += 1
                     except Exception:
                         pass
-                    log.info(
-                        "[ENTRY_GAP_GUARD] spacing_sec=%.1f bars_since_gap=0 cooldown=%d ts=%s",
-                        spacing_sec,
-                        self._entry_gap_cooldown_bars,
-                        current_ts,
+                    emit_info = self._record_runner_observability_event(
+                        "ENTRY_GAP_GUARD",
+                        reason="GAP_DETECTED",
+                        ts=current_ts,
+                        key=str(getattr(self, "_last_gap_event_key", current_ts.isoformat())),
+                        payload={
+                            "spacing_sec": float(spacing_sec),
+                            "bars_since_gap": 0,
+                            "cooldown_bars": int(self._entry_gap_cooldown_bars),
+                            "ts": str(current_ts),
+                        },
+                        info_policy="FIRST_ONLY",
                     )
+                    if emit_info:
+                        log.info(
+                            "[ENTRY_GAP_GUARD] spacing_sec=%.1f bars_since_gap=0 cooldown=%d ts=%s",
+                            spacing_sec,
+                            self._entry_gap_cooldown_bars,
+                            current_ts,
+                        )
                     return None
             if getattr(self, "_last_gap_bar_index", None) is not None:
                 bars_since_gap = current_bar_index - int(self._last_gap_bar_index)
@@ -908,12 +953,18 @@ class EntryManager:
                         self._runner.entry_gap_guard_hits += 1
                     except Exception:
                         pass
-                    log.info(
-                        "[ENTRY_GAP_GUARD] spacing_sec=%.1f bars_since_gap=%d cooldown=%d ts=%s",
-                        (candles.index[-1] - candles.index[-2]).total_seconds() if len(candles) >= 2 else -1.0,
-                        bars_since_gap,
-                        self._entry_gap_cooldown_bars,
-                        current_ts,
+                    self._record_runner_observability_event(
+                        "ENTRY_GAP_GUARD",
+                        reason="GAP_COOLDOWN_BLOCK",
+                        ts=current_ts,
+                        key=str(getattr(self, "_last_gap_event_key", current_ts.isoformat())),
+                        payload={
+                            "spacing_sec": float((candles.index[-1] - candles.index[-2]).total_seconds()) if len(candles) >= 2 else -1.0,
+                            "bars_since_gap": int(bars_since_gap),
+                            "cooldown_bars": int(self._entry_gap_cooldown_bars),
+                            "ts": str(current_ts),
+                        },
+                        info_policy="SUMMARY_ONLY",
                     )
                     return None
 

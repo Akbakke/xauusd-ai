@@ -113,27 +113,27 @@ def test_intratrade_metrics_invariants():
         # Test MFE < 0 violation
         exit_mgr._validate_intratrade_metrics(
             trade_id="TEST-002",
-            metrics={"max_mfe_bps": -10.0, "max_mae_bps": -5.0, "intratrade_drawdown_bps": -2.0},
+            metrics={"max_mfe_bps": -10.0, "max_mae_bps": 5.0, "intratrade_drawdown_bps": 2.0},
         )
         
         # Should log warning
         assert any("MFE violation" in w for w in warnings)
         
-        # Test MAE > 0 violation
+        # Test MAE magnitude < 0 violation
         warnings.clear()
         exit_mgr._validate_intratrade_metrics(
             trade_id="TEST-003",
-            metrics={"max_mfe_bps": 10.0, "max_mae_bps": 5.0, "intratrade_drawdown_bps": -2.0},
+            metrics={"max_mfe_bps": 10.0, "max_mae_bps": -5.0, "intratrade_drawdown_bps": 2.0},
         )
         
         # Should log warning
         assert any("MAE violation" in w for w in warnings)
         
-        # Test DD > 0 violation
+        # Test DD magnitude < 0 violation
         warnings.clear()
         exit_mgr._validate_intratrade_metrics(
             trade_id="TEST-004",
-            metrics={"max_mfe_bps": 10.0, "max_mae_bps": -5.0, "intratrade_drawdown_bps": 2.0},
+            metrics={"max_mfe_bps": 10.0, "max_mae_bps": 5.0, "intratrade_drawdown_bps": -2.0},
         )
         
         # Should log warning
@@ -143,7 +143,7 @@ def test_intratrade_metrics_invariants():
         warnings.clear()
         exit_mgr._validate_intratrade_metrics(
             trade_id="TEST-005",
-            metrics={"max_mfe_bps": 10.0, "max_mae_bps": -5.0, "intratrade_drawdown_bps": -2.0},
+            metrics={"max_mfe_bps": 10.0, "max_mae_bps": 5.0, "intratrade_drawdown_bps": 2.0},
             realized_pnl_bps=20.0,
         )
         
@@ -160,4 +160,3 @@ if __name__ == "__main__":
     test_all_exit_paths_log_metrics()
     test_intratrade_metrics_invariants()
     print("✓ All tests passed!")
-

@@ -258,8 +258,11 @@ def hybrid_exit_router_v3(ctx: ExitRouterContext) -> ExitPolicyName:
             f"[ROUTER_V3] ⚠️  Loading from non-canonical path (GX1_ALLOW_NON_CANONICAL_EXIT_ROUTER=1): {model_path}"
         )
     
-    # Lazy load trained model (cache after first load)
-    if not hasattr(hybrid_exit_router_v3, "_model_cache"):
+    # Lazy load trained model. The cache is scoped by resolved model path so a
+    # later call cannot accidentally reuse a previously loaded model for a
+    # different path and bypass PROD_BASELINE fail-closed checks.
+    cached_path = getattr(hybrid_exit_router_v3, "_model_cache_path", None)
+    if not hasattr(hybrid_exit_router_v3, "_model_cache") or cached_path != model_path_resolved:
         import logging
         logger = logging.getLogger(__name__)
         
@@ -282,6 +285,7 @@ def hybrid_exit_router_v3(ctx: ExitRouterContext) -> ExitPolicyName:
                 
                 # Load model
                 hybrid_exit_router_v3._model_cache = joblib.load(model_path)
+                hybrid_exit_router_v3._model_cache_path = model_path_resolved
                 logger.info("[ROUTER_V3] Model loaded successfully")
                 
             except Exception as e:
@@ -296,6 +300,7 @@ def hybrid_exit_router_v3(ctx: ExitRouterContext) -> ExitPolicyName:
                     logger.warning(error_msg)
                     logger.warning("[ROUTER_V3] Falling back to hardcoded tree logic")
                     hybrid_exit_router_v3._model_cache = None
+                    hybrid_exit_router_v3._model_cache_path = model_path_resolved
         else:
             error_msg = f"[ROUTER_V3] Model file not found: {model_path}"
             if ctx.prod_baseline:
@@ -308,6 +313,7 @@ def hybrid_exit_router_v3(ctx: ExitRouterContext) -> ExitPolicyName:
                 logger.warning(error_msg)
                 logger.warning("[ROUTER_V3] Falling back to hardcoded tree logic")
                 hybrid_exit_router_v3._model_cache = None
+                hybrid_exit_router_v3._model_cache_path = model_path_resolved
     
     model = hybrid_exit_router_v3._model_cache
     
@@ -346,6 +352,8 @@ def hybrid_exit_router_v3(ctx: ExitRouterContext) -> ExitPolicyName:
             
         except Exception as e:
             import logging
+            if ctx.prod_baseline:
+                raise RuntimeError(f"Router model prediction failed in PROD_BASELINE mode: {e}") from e
             logging.getLogger(__name__).warning(f"[ROUTER_V3] Prediction failed: {e}, falling back to hardcoded logic")
     
     # Fallback: hardcoded tree logic (from training)
@@ -418,4 +426,3 @@ def hybrid_exit_router_adaptive(
     else:
         # Otherwise → use V2B (conservative)
         return hybrid_exit_router_v2b(ctx)
-

@@ -90,6 +90,7 @@ class TestEntryTelemetryStage1:
             prob_long=0.40,  # Below threshold (0.55)
             prob_short=0.60,
             prob_neutral=0.0,
+            prob_flat=0.0,
             margin=0.20,
             p_hat=0.60,
         )
@@ -143,4 +144,3 @@ class TestEntryTelemetryStage1:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
-

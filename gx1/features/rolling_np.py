@@ -246,7 +246,14 @@ def rolling_kurtosis_w48(x: np.ndarray, min_periods: int = 12, fisher: bool = Tr
         float64 array with Fisher's excess kurtosis, NaN where not enough finite periods
     """
     x = np.asarray(x, dtype=np.float64)
-    return rolling_kurtosis_w48_numba(x, min_periods)
+    result = rolling_kurtosis_w48_numba(x, min_periods)
+    finite = np.isfinite(x)
+    window = 48
+    for i in range(len(x)):
+        start = max(0, i - window + 1)
+        if (i + 1) < min_periods or not np.all(finite[start : i + 1]):
+            result[i] = np.nan
+    return result
 
 
 def rolling_mean_w48_nanaware(x: np.ndarray, min_periods: int = 48) -> np.ndarray:

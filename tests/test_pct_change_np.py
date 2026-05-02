@@ -15,9 +15,13 @@ def test_pct_change_np_random_data():
     data = np.random.randn(n) * 10 + 50  # Random values around 50
     
     for k in [1, 3, 5, 24]:
-        # Pandas reference
-        s = pd.Series(data)
-        expected = s.pct_change(k).to_numpy()
+        # Safe reference: non-finite current/lagged values and zero denominators return NaN.
+        expected = np.full(len(data), np.nan, dtype=np.float64)
+        idx = np.arange(k, len(data), dtype=np.int64)
+        current = data[idx]
+        lagged = data[idx - k]
+        valid = np.isfinite(current) & np.isfinite(lagged) & (lagged != 0.0)
+        expected[idx[valid]] = (current[valid] - lagged[valid]) / lagged[valid]
         
         # NumPy implementation
         got = pct_change_np(data, k=k)
@@ -40,9 +44,13 @@ def test_pct_change_np_simple_case():
     data = np.arange(1, 101, dtype=np.float64)  # [1, 2, 3, ..., 100]
     
     for k in [1, 3, 5]:
-        # Pandas reference
-        s = pd.Series(data)
-        expected = s.pct_change(k).to_numpy()
+        # Safe reference: non-finite current/lagged values and zero denominators return NaN.
+        expected = np.full(len(data), np.nan, dtype=np.float64)
+        idx = np.arange(k, len(data), dtype=np.int64)
+        current = data[idx]
+        lagged = data[idx - k]
+        valid = np.isfinite(current) & np.isfinite(lagged) & (lagged != 0.0)
+        expected[idx[valid]] = (current[valid] - lagged[valid]) / lagged[valid]
         
         # NumPy implementation
         got = pct_change_np(data, k=k)
@@ -57,9 +65,13 @@ def test_pct_change_np_with_nans_and_infs():
     data = np.array([1.0, 2.0, np.nan, 4.0, 5.0, np.inf, 7.0, 8.0, 9.0, 10.0] * 100, dtype=np.float64)
     
     for k in [1, 3, 5]:
-        # Pandas reference
-        s = pd.Series(data)
-        expected = s.pct_change(k).to_numpy()
+        # Safe reference: non-finite current/lagged values and zero denominators return NaN.
+        expected = np.full(len(data), np.nan, dtype=np.float64)
+        idx = np.arange(k, len(data), dtype=np.int64)
+        current = data[idx]
+        lagged = data[idx - k]
+        valid = np.isfinite(current) & np.isfinite(lagged) & (lagged != 0.0)
+        expected[idx[valid]] = (current[valid] - lagged[valid]) / lagged[valid]
         
         # NumPy implementation
         got = pct_change_np(data, k=k)
@@ -83,9 +95,13 @@ def test_pct_change_np_division_by_zero():
     data = np.array([0.0, 1.0, 2.0, 0.0, 4.0, 5.0], dtype=np.float64)
     
     k = 3
-    # Pandas reference
-    s = pd.Series(data)
-    expected = s.pct_change(k).to_numpy()
+    # Safe reference: division by zero is unavailable rather than Inf.
+    expected = np.full(len(data), np.nan, dtype=np.float64)
+    idx = np.arange(k, len(data), dtype=np.int64)
+    current = data[idx]
+    lagged = data[idx - k]
+    valid = np.isfinite(current) & np.isfinite(lagged) & (lagged != 0.0)
+    expected[idx[valid]] = (current[valid] - lagged[valid]) / lagged[valid]
     
     # NumPy implementation
     got = pct_change_np(data, k=k)
@@ -102,11 +118,7 @@ def test_pct_change_np_division_by_zero():
         assert np.allclose(got[finite_mask], expected[finite_mask], rtol=1e-12, atol=1e-12, equal_nan=False), \
             "Finite values do not match for division by zero case"
     
-    # Check inf positions match (pandas returns inf for x/0 when x != 0)
-    inf_mask_expected = np.isinf(expected)
-    inf_mask_got = np.isinf(got)
-    assert np.all(inf_mask_expected == inf_mask_got), \
-        "Inf positions do not match for division by zero case"
+    assert not np.isinf(got).any(), "Safe pct_change should not emit Inf"
 
 
 def test_pct_change_np_empty_input():
@@ -144,4 +156,3 @@ def test_pct_change_np_invalid_k():
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
-

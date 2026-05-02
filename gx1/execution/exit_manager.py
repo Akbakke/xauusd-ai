@@ -25,6 +25,7 @@ from gx1.exits.contracts.exit_io_v3_ctx36_m1l512_phase5 import (
     compute_m5_phase_onehot,
 )
 from gx1.exits.contracts.registry import get_exit_io_contract
+from gx1.execution.logging_transport_v1 import is_mid_edge_unexpected
 
 # DEL 3: PREBUILT mode fix - move live_features imports to lazy imports
 # live_features is forbidden in PREBUILT mode, so we only import it when needed (live mode only)
@@ -82,6 +83,37 @@ _EXIT_FEATURE_GROUPS = {
 _EXIT_FEATURE_GROUP_LOOKUP = {name: grp for grp, names in _EXIT_FEATURE_GROUPS.items() for name in names}
 _EXIT_FEATURE_GROUP_COUNTS = {grp: len(names) for grp, names in _EXIT_FEATURE_GROUPS.items()}
 _EXIT_FEATURE_GROUP_COUNTS["input_dim"] = len(EXIT_IO_V1_CTX36_FEATURES)
+
+EXIT_EVAL_TRACE_V2_FIELDS = [
+    "trade_id",
+    "timestamp",
+    "bars_held",
+    "session_current",
+    "session_entry",
+    "exit_model_evaluated",
+    "exit_prob",
+    "exit_threshold",
+    "exit_decision",
+    "pnl_bps",
+    "mfe_bps",
+    "mae_bps",
+    "distance_from_peak_mfe_bps",
+    "time_since_mfe_bars",
+    "giveback_ratio",
+    "last_peak_ts_utc",
+    "last_mfe_ts_utc",
+    "peak_price",
+    "anchor_price",
+    "mfe_bps_at_anchor",
+    "last_peak_mfe_bps",
+    "max_mfe_without_mae_bps",
+    "mfe_mae_sequence_order",
+    "last_peak_ts_utc_null_reason",
+    "last_mfe_ts_utc_null_reason",
+    "last_peak_mfe_bps_null_reason",
+    "max_mfe_without_mae_bps_null_reason",
+    "mfe_mae_sequence_order_null_reason",
+]
 
 
 def _build_active_exit_feature_groups(feature_names: List[str]) -> Dict[str, List[str]]:
@@ -278,7 +310,10 @@ class ExitManager:
         except Exception:
             # Propagate to fail fast; ensures contract checked even if import guard skipped
             raise
-        exit_contract = get_exit_io_contract(getattr(self._runner, "exit_transformer_io_version", None))
+        io_version = getattr(self._runner, "exit_transformer_io_version", None)
+        if io_version is not None and not isinstance(io_version, str):
+            io_version = None
+        exit_contract = get_exit_io_contract(io_version)
         self._exit_io_version = str(exit_contract["io_version"])
         self._exit_feature_names = list(exit_contract["feature_names"])
         self._exit_feature_to_index = {name: idx for idx, name in enumerate(self._exit_feature_names)}
@@ -292,7 +327,10 @@ class ExitManager:
         self._exit_feature_group_counts["input_dim"] = len(self._exit_feature_names)
         self._exit_input_dim = int(exit_contract["feature_count"])
         self._exit_feature_hash = str(exit_contract["feature_hash"])
-        self._exit_window_len = int(getattr(self._runner, "exit_transformer_window_len", exit_contract["default_window_len"]))
+        window_len = getattr(self._runner, "exit_transformer_window_len", exit_contract["default_window_len"])
+        if not isinstance(window_len, (int, float, str)):
+            window_len = exit_contract["default_window_len"]
+        self._exit_window_len = int(window_len)
         if not getattr(self, "_exit_io_contract_proof_logged", False):
             computed_hash = compute_feature_names_hash(self._exit_feature_names)
             log.info(
@@ -365,21 +403,36 @@ class ExitManager:
         self._exit_max_bars_held = 0
         # Catastrophic-loss guard (runtime safety exception) is config-owned in the
         # active canonical lane; keep the same numeric defaults as final fallback.
-        self._exit_cat_guard_enabled = bool(getattr(self._runner, "exit_cat_guard_enabled", True))
+        def _runner_float_attr(name: str, default: float) -> float:
+            value = getattr(self._runner, name, default)
+            if not isinstance(value, (int, float, str)):
+                return float(default)
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return float(default)
+
+        def _runner_bool_attr(name: str, default: bool) -> bool:
+            value = getattr(self._runner, name, default)
+            if not isinstance(value, (bool, int, float, str)):
+                return bool(default)
+            return bool(value)
+
+        self._exit_cat_guard_enabled = _runner_bool_attr("exit_cat_guard_enabled", True)
         # MFE in exit scalars is often near-zero on catastrophic givebacks; keep this permissive.
-        self._exit_cat_guard_mfe_bps = float(getattr(self._runner, "exit_cat_guard_mfe_bps", 1.0))
-        self._exit_cat_guard_dd_bps = float(getattr(self._runner, "exit_cat_guard_dd_bps", 60.0))
-        self._exit_cat_guard_giveback_ratio = float(getattr(self._runner, "exit_cat_guard_giveback_ratio", 1.0))
-        self._exit_cat_guard_pnl_max = float(getattr(self._runner, "exit_cat_guard_pnl_max", 0.0))
-        self._exit_cat_guard_pnl_frac_mfe = float(getattr(self._runner, "exit_cat_guard_pnl_frac_mfe", 0.0))
+        self._exit_cat_guard_mfe_bps = _runner_float_attr("exit_cat_guard_mfe_bps", 1.0)
+        self._exit_cat_guard_dd_bps = _runner_float_attr("exit_cat_guard_dd_bps", 60.0)
+        self._exit_cat_guard_giveback_ratio = _runner_float_attr("exit_cat_guard_giveback_ratio", 1.0)
+        self._exit_cat_guard_pnl_max = _runner_float_attr("exit_cat_guard_pnl_max", 0.0)
+        self._exit_cat_guard_pnl_frac_mfe = _runner_float_attr("exit_cat_guard_pnl_frac_mfe", 0.0)
         self._exit_cat_guard_triggers = 0
         # Threshold event-arm knobs (used for observability + event arming only).
-        self._exit_edge_death_mfe_min_short = float(getattr(self._runner, "exit_edge_death_mfe_min_short", 6.0))
-        self._exit_edge_death_mfe_min_long = float(getattr(self._runner, "exit_edge_death_mfe_min_long", 8.0))
-        self._exit_edge_death_dd_min_short = float(getattr(self._runner, "exit_edge_death_dd_min_short", 8.0))
-        self._exit_edge_death_dd_min_long = float(getattr(self._runner, "exit_edge_death_dd_min_long", 10.0))
-        self._exit_edge_death_gb_min_short = float(getattr(self._runner, "exit_edge_death_gb_min_short", 0.45))
-        self._exit_edge_death_gb_min_long = float(getattr(self._runner, "exit_edge_death_gb_min_long", 0.50))
+        self._exit_edge_death_mfe_min_short = _runner_float_attr("exit_edge_death_mfe_min_short", 6.0)
+        self._exit_edge_death_mfe_min_long = _runner_float_attr("exit_edge_death_mfe_min_long", 8.0)
+        self._exit_edge_death_dd_min_short = _runner_float_attr("exit_edge_death_dd_min_short", 8.0)
+        self._exit_edge_death_dd_min_long = _runner_float_attr("exit_edge_death_dd_min_long", 10.0)
+        self._exit_edge_death_gb_min_short = _runner_float_attr("exit_edge_death_gb_min_short", 0.45)
+        self._exit_edge_death_gb_min_long = _runner_float_attr("exit_edge_death_gb_min_long", 0.50)
         exit_cfg = getattr(self, "exit_params", {}) or {}
         exit_tf_cfg = (
             (exit_cfg.get("exit", {}) or {})
@@ -422,6 +475,204 @@ class ExitManager:
             return
         setattr(self._runner, name, value)
 
+    def _replay_rate_limited_log_allowed(
+        self,
+        bucket: str,
+        key: tuple[Any, ...],
+        *,
+        first: int = 3,
+        every: int = 1000,
+    ) -> bool:
+        """Keep replay hot-loop diagnostics without flooding long truth runs."""
+        is_replay = (
+            bool(getattr(self._runner, "replay_mode", False))
+            or bool(getattr(self._runner, "fast_replay", False))
+            or os.getenv("GX1_RUN_MODE", "").upper() == "TRUTH"
+        )
+        if not is_replay:
+            return True
+        counts = getattr(self, "_replay_rate_limited_log_counts", None)
+        if counts is None:
+            counts = {}
+            object.__setattr__(self, "_replay_rate_limited_log_counts", counts)
+        full_key = (str(bucket),) + tuple(str(part) for part in key)
+        count = int(counts.get(full_key, 0)) + 1
+        counts[full_key] = count
+        return count <= int(first) or (int(every) > 0 and count % int(every) == 0)
+
+    def _replay_deterministic_arbiter_reject_reason(
+        self,
+        *,
+        source: str,
+        reason: str,
+        pnl_bps: float,
+        bars_in_trade: Optional[int],
+    ) -> Optional[str]:
+        """Predict arbiter rejects that are guaranteed by static replay rules.
+
+        This is replay-only and only skips the expensive request_close/audit path
+        when the same request cannot be accepted on this bar. It must never turn
+        a rejected close into an accepted close, and it must stop bypassing as
+        soon as the dynamic condition can pass.
+        """
+        is_replay = (
+            bool(getattr(self._runner, "replay_mode", False))
+            or bool(getattr(self._runner, "fast_replay", False))
+            or os.getenv("GX1_RUN_MODE", "").upper() == "TRUTH"
+        )
+        if not is_replay:
+            return None
+
+        source_s = str(source or "")
+        reason_s = str(reason or "")
+        if source_s in {"EXIT_CATA_GUARD", "ENTRY_REPLACEMENT"}:
+            return None
+        if reason_s in {"MAX_BARS_HELD", "REPLAY_EOF"} or source_s == "EXIT_MAX_BARS":
+            return None
+
+        exit_control = getattr(self._runner, "exit_control", None)
+        if exit_control is None:
+            return None
+
+        if source_s == "MODEL_EXIT":
+            allow = getattr(exit_control, "allow_model_exit_when", {}) or {}
+            min_bars = int(allow.get("min_bars", 2) or 0)
+            if bars_in_trade is not None and int(bars_in_trade) < min_bars:
+                return f"MODEL_EXIT_MIN_BARS:{min_bars}"
+
+            min_realized = allow.get("min_realized_pnl_bps")
+            if min_realized is None:
+                min_realized = allow.get("min_pnl_bps")
+            if min_realized is not None and float(pnl_bps) < float(min_realized):
+                return f"MODEL_EXIT_MIN_REALIZED_PNL_BPS:{float(min_realized):.6g}"
+            return None
+
+        if float(pnl_bps) < 0.0:
+            allowed_reasons = set(getattr(exit_control, "allowed_loss_closers", []) or [])
+            if "BROKER_SL" in allowed_reasons:
+                allowed_reasons.add("SL_TICK")
+            if reason_s == "PROGRESS_PROTECT":
+                allowed_reasons.add("PROGRESS_PROTECT")
+            if reason_s not in allowed_reasons:
+                return f"LOSS_CLOSE_NOT_ALLOWED:{source_s}:{reason_s}"
+
+        return None
+
+    def _record_replay_deterministic_reject_bypass(
+        self,
+        *,
+        trade_id: Any,
+        source: str,
+        reason: str,
+        reject_reason: str,
+    ) -> None:
+        counts = getattr(self, "_replay_deterministic_reject_bypass_counts", None)
+        if counts is None:
+            counts = {}
+            object.__setattr__(self, "_replay_deterministic_reject_bypass_counts", counts)
+        key = (str(source), str(reason), str(reject_reason))
+        counts[key] = int(counts.get(key, 0)) + 1
+        try:
+            runner = getattr(self, "_runner", None)
+            if runner is not None:
+                runner.perf_exit_replay_deterministic_reject_bypasses = int(
+                    getattr(runner, "perf_exit_replay_deterministic_reject_bypasses", 0) + 1
+                )
+                inc = getattr(runner, "_exit_cov_inc", None)
+                if callable(inc):
+                    inc("exit_request_close_deterministic_reject_bypassed", 1)
+        except Exception:
+            pass
+
+    def _replay_model_exit_path_deterministically_blocked(
+        self,
+        *,
+        pnl_bps: float,
+        bars_in_trade: Optional[int],
+    ) -> Optional[str]:
+        """Return a reason when every model-driven close source must be rejected.
+
+        This is stronger than request-level memoization: it can skip the
+        expensive exit-transformer inference on bars where any resulting
+        MODEL_EXIT/PROTECTED_PROFIT request would be rejected by static arbiter
+        rules. Keep it opt-in only because skipping inference can alter
+        per-trade model state such as probability history and protected-profit
+        arming. Canonical truth replays must preserve full model evaluation.
+        """
+        if os.getenv("GX1_REPLAY_MODEL_PATH_DETERMINISTIC_BLOCK", "0") != "1":
+            return None
+        if float(pnl_bps) >= 0.0:
+            return None
+
+        model_reason = self._replay_deterministic_arbiter_reject_reason(
+            source="MODEL_EXIT",
+            reason="THRESHOLD",
+            pnl_bps=float(pnl_bps),
+            bars_in_trade=bars_in_trade,
+        )
+        protected_reason = self._replay_deterministic_arbiter_reject_reason(
+            source="PROTECTED_PROFIT",
+            reason="BE_PLUS_FLOOR",
+            pnl_bps=float(pnl_bps),
+            bars_in_trade=bars_in_trade,
+        )
+        if model_reason is not None and protected_reason is not None:
+            return f"MODEL_EXIT_PATH_BLOCKED:{model_reason}+{protected_reason}"
+        return None
+
+    def _replay_threshold_reject_hold_fastpath_allowed(
+        self,
+        *,
+        trade: Any,
+        pnl_bps: float,
+        bars_in_trade: Optional[int],
+    ) -> Optional[str]:
+        """Skip repeated inference only after threshold state is already proven.
+
+        Pathological truth weeks can spend tens of minutes repeatedly evaluating
+        trades whose exit probability history is already saturated above the
+        threshold while the arbiter must reject the close because realized PnL is
+        below the canonical floor. This fastpath is replay-only, opt-in, and does
+        not synthesize model probabilities: it emits an AS_OF trace row with
+        exit_model_evaluated=0 and resumes full inference as soon as the arbiter
+        reject is no longer deterministic.
+        """
+        if os.getenv("GX1_REPLAY_THRESHOLD_REJECT_HOLD_FASTPATH", "0") != "1":
+            return None
+        is_replay = (
+            bool(getattr(self._runner, "replay_mode", False))
+            or bool(getattr(self._runner, "fast_replay", False))
+            or os.getenv("GX1_RUN_MODE", "").upper() == "TRUTH"
+        )
+        if not is_replay:
+            return None
+        reject_reason = self._replay_deterministic_arbiter_reject_reason(
+            source="MODEL_EXIT",
+            reason="THRESHOLD",
+            pnl_bps=float(pnl_bps),
+            bars_in_trade=bars_in_trade,
+        )
+        if reject_reason is None:
+            return None
+        if self._get_protected_profit_state(trade) is not None:
+            return None
+        try:
+            hist = [float(v) for v in list(self._ensure_prob_history(trade))]
+        except Exception:
+            return None
+        req = max(1, int(getattr(self, "exit_require_consecutive", 1) or 1))
+        min_history = max(req, int(os.getenv("GX1_REPLAY_THRESHOLD_REJECT_HOLD_MIN_HISTORY", "12") or "12"))
+        if len(hist) < min_history:
+            return None
+        recent = hist[-min_history:]
+        if not all(math.isfinite(v) for v in recent):
+            return None
+        margin = float(os.getenv("GX1_REPLAY_THRESHOLD_REJECT_HOLD_MARGIN", "0.02") or "0.02")
+        floor = float(getattr(self, "exit_threshold", 0.0)) + margin
+        if not all(v >= floor for v in recent):
+            return None
+        return f"THRESHOLD_REJECT_HOLD:{reject_reason}:history_ge_{floor:.6f}_n_{min_history}"
+
     def _get_expected_ctx_dims(self) -> tuple[int, int]:
         runner = self._runner
         cont = getattr(runner, "ctx_cont_dim", None)
@@ -445,6 +696,13 @@ class ExitManager:
             cont = len(canonical.get("ctx_cont_names") or [])
             cat = len(canonical.get("ctx_cat_names") or [])
         return int(cont), int(cat)
+
+    def _record_runner_observability_event(self, family: str, **kwargs: Any) -> bool:
+        runner = getattr(self, "_runner", None)
+        recorder = getattr(runner, "_record_replay_observability_event", None)
+        if callable(recorder):
+            return bool(recorder(family, **kwargs))
+        return True
 
     def _exit_feature_index(self, name: str) -> int:
         try:
@@ -1045,8 +1303,20 @@ class ExitManager:
                     time_since_mfe_bars = max(0.0, float(bars_in_trade_min) - float(mfe_last_bar))
                     giveback_ratio = (distance_from_peak_mfe_bps / mfe_bps) if mfe_bps > 0 else 0.0
                     anchor_price = float(current_bid) if str(getattr(trade, "side", "")).lower() == "long" else float(current_ask)
-                    peak_price = getattr(trade, "_mfe_last_price", float("nan"))
-                    last_peak_ts = getattr(trade, "_mfe_last_ts_utc", None)
+                    peak_price = getattr(trade, "_peak_last_price", float("nan"))
+                    last_peak_ts = getattr(trade, "_peak_last_ts_utc", None)
+                    last_mfe_ts = getattr(trade, "_mfe_last_ts_utc", None)
+                    last_peak_mfe_bps = getattr(trade, "_last_peak_mfe_bps", None)
+                    max_mfe_without_mae_bps = getattr(trade, "_max_mfe_without_mae_bps", None)
+                    mfe_mae_sequence_order = str(getattr(trade, "_mfe_mae_sequence_order", "") or "")
+
+                    def _finite_or_nan(value: Any) -> float:
+                        try:
+                            out = float(value)
+                        except Exception:
+                            return float("nan")
+                        return out if math.isfinite(out) else float("nan")
+
                     if last_peak_ts is None:
                         last_peak_ts_str = ""
                     else:
@@ -1054,6 +1324,15 @@ class ExitManager:
                             last_peak_ts_str = last_peak_ts.isoformat()
                         except Exception:
                             last_peak_ts_str = str(last_peak_ts)
+                    if last_mfe_ts is None:
+                        last_mfe_ts_str = ""
+                    else:
+                        try:
+                            last_mfe_ts_str = last_mfe_ts.isoformat()
+                        except Exception:
+                            last_mfe_ts_str = str(last_mfe_ts)
+                    last_peak_mfe_value = _finite_or_nan(last_peak_mfe_bps)
+                    max_mfe_without_mae_value = _finite_or_nan(max_mfe_without_mae_bps)
                     self._append_exit_eval_trace(
                         {
                             "trade_id": getattr(trade, "trade_id", None),
@@ -1072,10 +1351,24 @@ class ExitManager:
                             "time_since_mfe_bars": float(time_since_mfe_bars),
                             "giveback_ratio": float(giveback_ratio),
                             "last_peak_ts_utc": last_peak_ts_str,
-                            "last_mfe_ts_utc": last_peak_ts_str,
+                            "last_mfe_ts_utc": last_mfe_ts_str,
                             "peak_price": float(peak_price) if peak_price is not None else float("nan"),
                             "anchor_price": float(anchor_price),
                             "mfe_bps_at_anchor": float(mfe_bps),
+                            "last_peak_mfe_bps": last_peak_mfe_value,
+                            "max_mfe_without_mae_bps": max_mfe_without_mae_value,
+                            "mfe_mae_sequence_order": mfe_mae_sequence_order,
+                            "last_peak_ts_utc_null_reason": "" if last_peak_ts_str else "NO_PRICE_PEAK_OBSERVED_YET",
+                            "last_mfe_ts_utc_null_reason": "" if last_mfe_ts_str else "NO_MFE_OBSERVED_YET",
+                            "last_peak_mfe_bps_null_reason": ""
+                            if math.isfinite(last_peak_mfe_value)
+                            else "NO_MFE_PEAK_OBSERVED_YET",
+                            "max_mfe_without_mae_bps_null_reason": ""
+                            if math.isfinite(max_mfe_without_mae_value)
+                            else "NO_PRE_MAE_MFE_STATE_OBSERVED_YET",
+                            "mfe_mae_sequence_order_null_reason": ""
+                            if mfe_mae_sequence_order
+                            else "NO_PATH_SEQUENCE_STATE_OBSERVED_YET",
                         }
                     )
                 if io_only:
@@ -1197,6 +1490,39 @@ class ExitManager:
                             policy_flat_state["reason"],
                         )
                     continue
+                model_path_block_reason = None
+                if guard_payload is None:
+                    model_path_block_reason = self._replay_model_exit_path_deterministically_blocked(
+                        pnl_bps=float(pnl_bps_now),
+                        bars_in_trade=bars_in_trade_min,
+                    )
+                if model_path_block_reason is not None:
+                    self._exit_eval_flow["blocked_pre_eval_count"] += 1
+                    self._exit_eval_blocked_reasons["deterministic_arbiter_model_path_block"] = (
+                        self._exit_eval_blocked_reasons.get("deterministic_arbiter_model_path_block", 0) + 1
+                    )
+                    self._record_replay_deterministic_reject_bypass(
+                        trade_id=getattr(trade, "trade_id", None),
+                        source="MODEL_EXIT_PATH",
+                        reason="ANY_MODEL_DRIVEN_EXIT",
+                        reject_reason=model_path_block_reason,
+                    )
+                    if self._replay_rate_limited_log_allowed(
+                        "exit_model_path_deterministic_arbiter_block",
+                        (model_path_block_reason,),
+                        first=2,
+                        every=5000,
+                    ):
+                        log.info(
+                            "[EXIT_REPLAY_MODEL_PATH_DETERMINISTIC_ARBITER_BLOCK] trade_uid=%s trade_id=%s reason=%s pnl_bps=%.1f bars_in_trade=%d",
+                            getattr(trade, "trade_uid", None),
+                            getattr(trade, "trade_id", None),
+                            model_path_block_reason,
+                            float(pnl_bps_now),
+                            bars_in_trade_min,
+                        )
+                    _emit_exit_eval_trace(False, float("nan"), "deterministic_arbiter_block")
+                    continue
                 if decider is not None and bool(getattr(self._runner, "exit_hash_guard_bypass_enabled", False)):
                     expected_dim = getattr(decider, "input_dim", None)
                     if expected_dim is not None:
@@ -1220,6 +1546,38 @@ class ExitManager:
                                     )
                         except Exception:
                             pass
+                threshold_reject_hold_reason = self._replay_threshold_reject_hold_fastpath_allowed(
+                    trade=trade,
+                    pnl_bps=float(pnl_bps_now),
+                    bars_in_trade=bars_in_trade_min,
+                )
+                if threshold_reject_hold_reason is not None:
+                    self._exit_eval_flow["blocked_pre_eval_count"] += 1
+                    self._exit_eval_blocked_reasons["threshold_reject_hold_fastpath"] = (
+                        self._exit_eval_blocked_reasons.get("threshold_reject_hold_fastpath", 0) + 1
+                    )
+                    self._record_replay_deterministic_reject_bypass(
+                        trade_id=getattr(trade, "trade_id", None),
+                        source="MODEL_EXIT_THRESHOLD_HOLD",
+                        reason="THRESHOLD",
+                        reject_reason=threshold_reject_hold_reason,
+                    )
+                    if self._replay_rate_limited_log_allowed(
+                        "exit_threshold_reject_hold_fastpath",
+                        (getattr(trade, "trade_id", None), threshold_reject_hold_reason),
+                        first=2,
+                        every=5000,
+                    ):
+                        log.info(
+                            "[EXIT_REPLAY_THRESHOLD_REJECT_HOLD_FASTPATH] trade_uid=%s trade_id=%s reason=%s pnl_bps=%.1f bars_in_trade=%d",
+                            getattr(trade, "trade_uid", None),
+                            getattr(trade, "trade_id", None),
+                            threshold_reject_hold_reason,
+                            float(pnl_bps_now),
+                            bars_in_trade_min,
+                        )
+                    _emit_exit_eval_trace(False, float("nan"), "threshold_reject_hold_fastpath")
+                    continue
                 self._exit_eval_flow["model_eval_attempt_count"] += 1
                 t_exit_model_start = time.perf_counter()
                 pred_details = decider.predict_details(window_arr)
@@ -1317,6 +1675,16 @@ class ExitManager:
                             should_log_io = bool(log_flag)
                         except Exception:
                             should_log_io = False
+                    if (
+                        should_log_io
+                        and bool(getattr(self._runner, "replay_mode", False))
+                        and os.getenv("GX1_REPLAY_EXIT_IO_FULL_RECORDS", "1") == "0"
+                    ):
+                        # Path-dynamics replay needs EXIT_EVAL_TRACE as the AS_OF
+                        # source. Full 512xD IO records are still available by
+                        # default, but can be disabled for pathological weeks to
+                        # avoid turning rejected-exit hot loops into huge JSONL IO.
+                        should_log_io = False
                     if should_log_io:
                         self._append_exit_io_record(
                             event_ts=now_ts,
@@ -1540,54 +1908,57 @@ class ExitManager:
                 if guard_payload is not None and not bool(
                     model_decided_exit or residual_should_exit or post_edge_should_exit or protected_profit_should_exit
                 ):
-                    log.info(
-                        "[THRESHOLD_SKIPPED_BECAUSE_PRIOR_GUARD] trade_id=%s side=%s bars_held=%d guard=CATASTROPHIC_GUARD",
-                        getattr(trade, "trade_id", None),
-                        getattr(trade, "side", None),
-                        bars_in_trade_min,
-                    )
                     mark_price = current_bid if trade.side == "long" else current_ask
                     self._exit_cat_guard_triggers += 1
                     _emit_exit_eval_trace(False, float("nan"), "guard")
-                    log.info(
-                        "[EXIT_CATA_GUARD_TRIGGER] trade_uid=%s trade_id=%s side=%s bars_held=%d pnl_bps=%.2f mfe_bps=%.2f dd_from_mfe_bps=%.2f giveback_ratio=%.3f mfe_decay_rate=%.3f pnl_limit=%.2f thresholds={mfe>=%.1f dd>=%.1f gb>=%.2f pnl_max<=%.2f pnl_frac<=%.2f}",
-                        getattr(trade, "trade_uid", None),
-                        getattr(trade, "trade_id", None),
-                        getattr(trade, "side", None),
-                        bars_in_trade_min,
-                        float(pnl_bps_now),
-                        float(guard_payload["mfe_bps"]),
-                        float(guard_payload["dd_from_mfe_bps"]),
-                        float(guard_payload["giveback_ratio"]),
-                        float(guard_payload["mfe_decay_rate"]),
-                        float(guard_payload["pnl_limit"]),
-                        float(self._exit_cat_guard_mfe_bps),
-                        float(self._exit_cat_guard_dd_bps),
-                        float(self._exit_cat_guard_giveback_ratio),
-                        float(self._exit_cat_guard_pnl_max),
-                        float(self._exit_cat_guard_pnl_frac_mfe),
+                    emit_info = self._record_runner_observability_event(
+                        "EXIT_CATA_GUARD_EVENT",
+                        reason="CATASTROPHIC_GUARD",
+                        ts=now_ts,
+                        trade_id=str(getattr(trade, "trade_id", None)),
+                        key=f"{getattr(trade, 'trade_id', None)}::CATASTROPHIC_GUARD::{bars_in_trade_min}",
+                        payload={
+                            "trade_uid": getattr(trade, "trade_uid", None),
+                            "side": getattr(trade, "side", None),
+                            "bars_held": int(bars_in_trade_min),
+                            "pnl_bps": float(pnl_bps_now),
+                            "mfe_bps": float(guard_payload["mfe_bps"]),
+                            "dd_from_mfe_bps": float(guard_payload["dd_from_mfe_bps"]),
+                            "giveback_ratio": float(guard_payload["giveback_ratio"]),
+                            "mfe_decay_rate": float(guard_payload["mfe_decay_rate"]),
+                            "pnl_limit": float(guard_payload["pnl_limit"]),
+                            "threshold_preempted": True,
+                            "thresholds": {
+                                "mfe_bps_min": float(self._exit_cat_guard_mfe_bps),
+                                "dd_bps_min": float(self._exit_cat_guard_dd_bps),
+                                "giveback_ratio_min": float(self._exit_cat_guard_giveback_ratio),
+                                "pnl_max": float(self._exit_cat_guard_pnl_max),
+                                "pnl_frac_mfe": float(self._exit_cat_guard_pnl_frac_mfe),
+                            },
+                        },
+                        info_policy="KEEP_INFO",
+                        abnormal=True,
                     )
-                    log.info(
-                        "[EXIT_CATA_GUARD_SIGNAL] trade_id=%s bars_held=%d pnl_bps=%.2f dd_from_mfe_bps=%.2f giveback_ratio=%.3f",
-                        getattr(trade, "trade_id", None),
-                        bars_in_trade_min,
-                        float(pnl_bps_now),
-                        float(guard_payload["dd_from_mfe_bps"]),
-                        float(guard_payload["giveback_ratio"]),
-                    )
-                    log.info(
-                        "[EXIT_CATA_GUARD_TO_ARBITER] trade_id=%s reason=CATASTROPHIC_GUARD pnl_bps=%.2f bars_held=%d",
-                        getattr(trade, "trade_id", None),
-                        float(pnl_bps_now),
-                        bars_in_trade_min,
-                    )
-                    log.info(
-                        "[EXIT_RUNTIME_SAFETY_EXIT] trade_id=%s side=%s reason=CATASTROPHIC_GUARD pnl_bps=%.2f bars_held=%d",
-                        getattr(trade, "trade_id", None),
-                        getattr(trade, "side", None),
-                        float(pnl_bps_now),
-                        bars_in_trade_min,
-                    )
+                    if emit_info:
+                        log.info(
+                            "[EXIT_CATA_GUARD_EVENT] trade_uid=%s trade_id=%s side=%s bars_held=%d pnl_bps=%.2f mfe_bps=%.2f dd_from_mfe_bps=%.2f giveback_ratio=%.3f mfe_decay_rate=%.3f pnl_limit=%.2f threshold_preempted=%s thresholds={mfe>=%.1f dd>=%.1f gb>=%.2f pnl_max<=%.2f pnl_frac<=%.2f}",
+                            getattr(trade, "trade_uid", None),
+                            getattr(trade, "trade_id", None),
+                            getattr(trade, "side", None),
+                            bars_in_trade_min,
+                            float(pnl_bps_now),
+                            float(guard_payload["mfe_bps"]),
+                            float(guard_payload["dd_from_mfe_bps"]),
+                            float(guard_payload["giveback_ratio"]),
+                            float(guard_payload["mfe_decay_rate"]),
+                            float(guard_payload["pnl_limit"]),
+                            True,
+                            float(self._exit_cat_guard_mfe_bps),
+                            float(self._exit_cat_guard_dd_bps),
+                            float(self._exit_cat_guard_giveback_ratio),
+                            float(self._exit_cat_guard_pnl_max),
+                            float(self._exit_cat_guard_pnl_frac_mfe),
+                        )
                     accepted = self.request_close(
                         trade_id=trade.trade_id,
                         source="EXIT_CATA_GUARD",
@@ -1669,30 +2040,34 @@ class ExitManager:
                 )
                 if should_exit:
                     ev = threshold_event or {}
-                    log.info(
-                        "[EXIT_MODEL_DECIDED_EXIT] trade_id=%s side=%s bars_held=%d exit_reason=%s prob_close=%.6f profit_protect_prob=%s family_top_name=%s event_armed=%s protected_profit_state=%s mfe_bps=%.2f dd_from_mfe_bps=%.2f giveback_ratio=%.3f directional_edge=%.4f p_hat=%.4f p_flat=%.4f margin=%.4f uncertainty=%.4f residual_distance_from_peak_mfe_bps=%.2f residual_minutes_since_session_open=%.2f residual_minutes_to_next_session_boundary=%.2f post_edge_state=%s",
-                        trade.trade_id,
-                        trade.side,
-                        bars_in_trade_min,
-                        exit_reason,
-                        float(prob_close),
-                        None if profit_protect_prob is None else round(float(profit_protect_prob), 6),
-                        family_top_name,
-                        bool(event_armed),
-                        bool(protected_profit_state),
-                        float(ev.get("mfe_bps", float("nan"))),
-                        float(ev.get("dd_from_mfe_bps", float("nan"))),
-                        float(ev.get("giveback_ratio", float("nan"))),
-                        float(ev.get("directional_edge", float("nan"))),
-                        float(ev.get("p_hat", float("nan"))),
-                        float(ev.get("p_flat", float("nan"))),
-                        float(ev.get("margin_top1_top2", float("nan"))),
-                        float(ev.get("uncertainty_score", float("nan"))),
-                        float((residual_state or {}).get("distance_from_peak_mfe_bps", float("nan"))),
-                        float((residual_state or {}).get("minutes_since_session_open", float("nan"))),
-                        float((residual_state or {}).get("minutes_to_next_session_boundary", float("nan"))),
-                        post_edge_state,
-                    )
+                    if self._replay_rate_limited_log_allowed(
+                        "exit_model_decided_exit",
+                        (getattr(trade, "trade_id", None), exit_reason),
+                    ):
+                        log.info(
+                            "[EXIT_MODEL_DECIDED_EXIT] trade_id=%s side=%s bars_held=%d exit_reason=%s prob_close=%.6f profit_protect_prob=%s family_top_name=%s event_armed=%s protected_profit_state=%s mfe_bps=%.2f dd_from_mfe_bps=%.2f giveback_ratio=%.3f directional_edge=%.4f p_hat=%.4f p_flat=%.4f margin=%.4f uncertainty=%.4f residual_distance_from_peak_mfe_bps=%.2f residual_minutes_since_session_open=%.2f residual_minutes_to_next_session_boundary=%.2f post_edge_state=%s",
+                            trade.trade_id,
+                            trade.side,
+                            bars_in_trade_min,
+                            exit_reason,
+                            float(prob_close),
+                            None if profit_protect_prob is None else round(float(profit_protect_prob), 6),
+                            family_top_name,
+                            bool(event_armed),
+                            bool(protected_profit_state),
+                            float(ev.get("mfe_bps", float("nan"))),
+                            float(ev.get("dd_from_mfe_bps", float("nan"))),
+                            float(ev.get("giveback_ratio", float("nan"))),
+                            float(ev.get("directional_edge", float("nan"))),
+                            float(ev.get("p_hat", float("nan"))),
+                            float(ev.get("p_flat", float("nan"))),
+                            float(ev.get("margin_top1_top2", float("nan"))),
+                            float(ev.get("uncertainty_score", float("nan"))),
+                            float((residual_state or {}).get("distance_from_peak_mfe_bps", float("nan"))),
+                            float((residual_state or {}).get("minutes_since_session_open", float("nan"))),
+                            float((residual_state or {}).get("minutes_to_next_session_boundary", float("nan"))),
+                            post_edge_state,
+                        )
                     if bool(post_edge_should_exit):
                         self._exit_post_edge_triggers += 1
                     if bool(protected_profit_should_exit):
@@ -1768,12 +2143,46 @@ class ExitManager:
                             trade.side,
                         )
                         self._exit_mgr_pnl_log_count += 1
-                    log.info("[EXIT] propose close reason=%s pnl=%.1f bars_in_trade=%d", exit_reason, pnl_bps, bars_in_trade)
                     close_source = "MODEL_EXIT"
                     close_reason = str(exit_reason)
                     if bool(protected_profit_should_exit):
                         close_source = "PROTECTED_PROFIT"
                         close_reason = "BE_PLUS_FLOOR"
+                    close_log_key = (getattr(trade, "trade_id", None), close_source, close_reason)
+                    deterministic_reject_reason = self._replay_deterministic_arbiter_reject_reason(
+                        source=close_source,
+                        reason=close_reason,
+                        pnl_bps=pnl_bps,
+                        bars_in_trade=bars_in_trade,
+                    )
+                    if deterministic_reject_reason is not None:
+                        closes_requested += 1
+                        self._record_replay_deterministic_reject_bypass(
+                            trade_id=getattr(trade, "trade_id", None),
+                            source=close_source,
+                            reason=close_reason,
+                            reject_reason=deterministic_reject_reason,
+                        )
+                        if self._replay_rate_limited_log_allowed(
+                            "exit_deterministic_arbiter_reject_bypass",
+                            close_log_key + (deterministic_reject_reason,),
+                            first=2,
+                            every=5000,
+                        ):
+                            log.info(
+                                "[EXIT_REPLAY_DETERMINISTIC_ARBITER_REJECT_BYPASS] trade_uid=%s trade_id=%s source=%s reason=%s reject_reason=%s pnl_bps=%.1f bars_in_trade=%d still_in_open_trades=%s",
+                                tuid,
+                                getattr(trade, "trade_id", None),
+                                close_source,
+                                close_reason,
+                                deterministic_reject_reason,
+                                pnl_bps,
+                                bars_in_trade,
+                                trade in self.open_trades,
+                            )
+                        continue
+                    if self._replay_rate_limited_log_allowed("exit_close_attempt", close_log_key):
+                        log.info("[EXIT] propose close reason=%s pnl=%.1f bars_in_trade=%d", exit_reason, pnl_bps, bars_in_trade)
                     accepted = self.request_close(
                         trade_id=trade.trade_id,
                         source=close_source,
@@ -1786,14 +2195,15 @@ class ExitManager:
                     )
                     closes_requested += 1
                     if not accepted:
-                        log.warning("[EXIT] close rejected by ExitArbiter for trade %s", trade.trade_id)
-                        log.error("Exit signaled but not applied for trade %s", trade.trade_id)
-                        log.error(
-                            "[EXIT_DECISION_RESULT] trade_uid=%s trade_id=%s accepted=False reject_reason=arbiter_reject still_in_open_trades=%s",
-                            tuid,
-                            getattr(trade, "trade_id", None),
-                            trade in self.open_trades,
-                        )
+                        if self._replay_rate_limited_log_allowed("exit_arbiter_reject", close_log_key):
+                            log.warning("[EXIT] close rejected by ExitArbiter for trade %s", trade.trade_id)
+                            log.error("Exit signaled but not applied for trade %s", trade.trade_id)
+                            log.error(
+                                "[EXIT_DECISION_RESULT] trade_uid=%s trade_id=%s accepted=False reject_reason=arbiter_reject still_in_open_trades=%s",
+                                tuid,
+                                getattr(trade, "trade_id", None),
+                                trade in self.open_trades,
+                            )
                         continue
                     closes_accepted += 1
                     if str(exit_reason) == "THRESHOLD":
@@ -1960,16 +2370,33 @@ class ExitManager:
         path = self._resolve_exit_eval_trace_path()
         if not path:
             return
+        fieldnames = list(EXIT_EVAL_TRACE_V2_FIELDS)
+        extra_fields = [field for field in row.keys() if field not in fieldnames]
+        if extra_fields:
+            fieldnames.extend(extra_fields)
+        complete_row = {field: row.get(field, "") for field in fieldnames}
         write_header = False
         if not self._exit_eval_trace_header_written:
             if not path.exists():
                 write_header = True
+            elif path.stat().st_size == 0:
+                write_header = True
+            else:
+                with open(path, "r", encoding="utf-8", newline="") as existing_f:
+                    existing_header = next(csv.reader(existing_f), [])
+                if existing_header != fieldnames:
+                    missing = [field for field in fieldnames if field not in existing_header]
+                    extra = [field for field in existing_header if field not in fieldnames]
+                    raise RuntimeError(
+                        "[EXIT_EVAL_TRACE_HEADER_MISMATCH] refusing to append trace row with a different schema; "
+                        f"path={path} missing={missing} extra={extra}"
+                    )
             self._exit_eval_trace_header_written = True
         with open(path, "a", encoding="utf-8", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=list(row.keys()))
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
             if write_header:
                 writer.writeheader()
-            writer.writerow(row)
+            writer.writerow(complete_row)
         try:
             runner = getattr(self, "_runner", None)
             if runner is not None:
@@ -2812,29 +3239,65 @@ class ExitManager:
                     hour_utc = int(pd.Timestamp(now_ts).hour)
                 except Exception:
                     hour_utc = None
-            log.info(
-                "[MID_EDGE_10_50_PROBE] trade_id=%s trade_uid=%s reason=%s branch_winner=%s side=%s session=%s hour_utc=%s pnl_bps_now=%.2f mfe_bps=%.2f peak_mfe_bps_exit_state=%.2f dd_from_mfe_bps_exit=%.2f distance_from_peak_mfe_bps_exit=%.2f time_since_mfe_bars_exit=%.2f prob_close=%s profit_protect_prob=%s threshold_event_armed=%s current_state=%s post_edge_state=%s floor_bps=%.2f note=%s",
-                getattr(trade, "trade_id", None),
-                getattr(trade, "trade_uid", None),
-                str(reason),
-                str(branch_winner),
-                str(side),
-                str(session_current),
-                hour_utc,
-                float(pnl_bps_now),
-                float(mfe_bps),
-                float(peak_mfe_bps_exit_state),
-                float(dd_from_mfe_bps_exit),
-                float(distance_from_peak_mfe_bps_exit),
-                float(time_since_mfe_bars_exit),
-                "nan" if prob_close is None else f"{float(prob_close):.6f}",
-                "nan" if profit_protect_prob is None else f"{float(profit_protect_prob):.6f}",
-                bool(threshold_event_armed),
-                str(bool(self._get_protected_profit_state(trade))),
-                str(post_edge_state.get("source") if isinstance(post_edge_state, dict) else None),
-                float(floor_bps),
-                str(note or ""),
+            unexpected = is_mid_edge_unexpected(str(reason))
+            info_policy = "SUMMARY_ONLY"
+            if str(reason) == "ARMED":
+                info_policy = "FIRST_ONLY"
+            elif unexpected:
+                info_policy = "FIRST_ONLY"
+            emit_info = self._record_runner_observability_event(
+                "MID_EDGE_10_50_PROBE",
+                reason=str(reason),
+                ts=now_ts,
+                trade_id=str(getattr(trade, "trade_id", None)),
+                key=f"{getattr(trade, 'trade_id', None)}::{str(reason)}::{str(branch_winner)}",
+                payload={
+                    "trade_uid": getattr(trade, "trade_uid", None),
+                    "branch_winner": str(branch_winner),
+                    "side": str(side),
+                    "session": str(session_current),
+                    "hour_utc": hour_utc,
+                    "pnl_bps_now": float(pnl_bps_now),
+                    "mfe_bps": float(mfe_bps),
+                    "peak_mfe_bps_exit_state": float(peak_mfe_bps_exit_state),
+                    "dd_from_mfe_bps_exit": float(dd_from_mfe_bps_exit),
+                    "distance_from_peak_mfe_bps_exit": float(distance_from_peak_mfe_bps_exit),
+                    "time_since_mfe_bars_exit": float(time_since_mfe_bars_exit),
+                    "prob_close": "nan" if prob_close is None else f"{float(prob_close):.6f}",
+                    "profit_protect_prob": "nan" if profit_protect_prob is None else f"{float(profit_protect_prob):.6f}",
+                    "threshold_event_armed": bool(threshold_event_armed),
+                    "current_state": str(bool(self._get_protected_profit_state(trade))),
+                    "post_edge_state": str(post_edge_state.get("source") if isinstance(post_edge_state, dict) else None),
+                    "floor_bps": float(floor_bps),
+                    "note": str(note or ""),
+                },
+                info_policy=info_policy,
+                abnormal=bool(unexpected or str(reason) == "ARMED"),
             )
+            if emit_info:
+                log.info(
+                    "[MID_EDGE_10_50_PROBE] trade_id=%s trade_uid=%s reason=%s branch_winner=%s side=%s session=%s hour_utc=%s pnl_bps_now=%.2f mfe_bps=%.2f peak_mfe_bps_exit_state=%.2f dd_from_mfe_bps_exit=%.2f distance_from_peak_mfe_bps_exit=%.2f time_since_mfe_bars_exit=%.2f prob_close=%s profit_protect_prob=%s threshold_event_armed=%s current_state=%s post_edge_state=%s floor_bps=%.2f note=%s",
+                    getattr(trade, "trade_id", None),
+                    getattr(trade, "trade_uid", None),
+                    str(reason),
+                    str(branch_winner),
+                    str(side),
+                    str(session_current),
+                    hour_utc,
+                    float(pnl_bps_now),
+                    float(mfe_bps),
+                    float(peak_mfe_bps_exit_state),
+                    float(dd_from_mfe_bps_exit),
+                    float(distance_from_peak_mfe_bps_exit),
+                    float(time_since_mfe_bars_exit),
+                    "nan" if prob_close is None else f"{float(prob_close):.6f}",
+                    "nan" if profit_protect_prob is None else f"{float(profit_protect_prob):.6f}",
+                    bool(threshold_event_armed),
+                    str(bool(self._get_protected_profit_state(trade))),
+                    str(post_edge_state.get("source") if isinstance(post_edge_state, dict) else None),
+                    float(floor_bps),
+                    str(note or ""),
+                )
             if isinstance(extra, dict):
                 extra["_mid_edge_10_50_last_reason"] = str(reason)
                 extra["_mid_edge_10_50_last_branch"] = str(branch_winner)
@@ -4082,12 +4545,28 @@ class ExitManager:
                         "numpy_finalize_sec": float(getattr(runner_obj, "t_exit_input_numpy_finalize_sec", 0.0)),
                         "contract_checks_sec": float(getattr(runner_obj, "t_exit_input_contract_checks_sec", 0.0)),
                     }
-                    log.info(
-                        "[EXIT_INPUT_PREP_BREAKDOWN] windows=%d total_sec=%.6f breakdown=%s",
-                        n_windows,
-                        float(getattr(runner_obj, "t_exit_input_prep_sec", 0.0)),
-                        breakdown,
+                    total_sec = float(getattr(runner_obj, "t_exit_input_prep_sec", 0.0))
+                    emit_info = self._record_runner_observability_event(
+                        "EXIT_INPUT_PREP_BREAKDOWN",
+                        reason="PROFILE_SNAPSHOT",
+                        ts=getattr(runner_obj, "_replay_current_ts", None),
+                        key="EXIT_INPUT_PREP_BREAKDOWN",
+                        payload={
+                            "windows": int(n_windows),
+                            "total_sec": float(total_sec),
+                            "breakdown": breakdown,
+                        },
+                        info_policy="FIRST_EVERY_N_FINAL",
+                        every_n=5,
+                        severity=float(total_sec),
                     )
+                    if emit_info:
+                        log.info(
+                            "[EXIT_INPUT_PREP_BREAKDOWN] windows=%d total_sec=%.6f breakdown=%s",
+                            n_windows,
+                            float(total_sec),
+                            breakdown,
+                        )
         except Exception:
             pass
 
@@ -4173,13 +4652,60 @@ class ExitManager:
                 trade._mfe_last_bar = bars_held
             if not hasattr(trade, "_mfe_last_ts_utc"):
                 trade._mfe_last_ts_utc = now_ts
+            if not hasattr(trade, "_peak_last_ts_utc"):
+                trade._peak_last_ts_utc = now_ts
             if not hasattr(trade, "_mfe_last_price"):
                 trade._mfe_last_price = anchor_price
+            if not hasattr(trade, "_peak_last_price"):
+                trade._peak_last_price = anchor_price
+            if not hasattr(trade, "_last_peak_mfe_bps"):
+                trade._last_peak_mfe_bps = float(getattr(trade, "mfe_bps", pnl_now))
+            if not hasattr(trade, "_max_mfe_without_mae_bps"):
+                trade._max_mfe_without_mae_bps = max(0.0, float(pnl_now))
+            if not hasattr(trade, "_mfe_first_ts_utc"):
+                trade._mfe_first_ts_utc = now_ts if float(pnl_now) > 0.0 else None
+            if not hasattr(trade, "_mae_first_ts_utc"):
+                trade._mae_first_ts_utc = now_ts if float(pnl_now) < 0.0 else None
+            if not hasattr(trade, "_mfe_mae_sequence_order"):
+                trade._mfe_mae_sequence_order = "NEITHER"
+            prior_peak_price = float(getattr(trade, "_peak_last_price", anchor_price))
+            is_new_price_peak = (
+                anchor_price > prior_peak_price
+                if str(getattr(trade, "side", "")).lower() == "long"
+                else anchor_price < prior_peak_price
+            )
+            if is_new_price_peak:
+                trade._peak_last_price = anchor_price
+                trade._peak_last_ts_utc = now_ts
+            if float(pnl_now) > 0.0 and getattr(trade, "_mfe_first_ts_utc", None) is None:
+                trade._mfe_first_ts_utc = now_ts
+            if float(pnl_now) < 0.0 and getattr(trade, "_mae_first_ts_utc", None) is None:
+                trade._mae_first_ts_utc = now_ts
+            if getattr(trade, "_mae_first_ts_utc", None) is None:
+                trade._max_mfe_without_mae_bps = max(
+                    float(getattr(trade, "_max_mfe_without_mae_bps", 0.0)),
+                    max(0.0, float(pnl_now)),
+                )
+            mfe_first_ts = getattr(trade, "_mfe_first_ts_utc", None)
+            mae_first_ts = getattr(trade, "_mae_first_ts_utc", None)
+            if mfe_first_ts is None and mae_first_ts is None:
+                trade._mfe_mae_sequence_order = "NEITHER"
+            elif mfe_first_ts is not None and mae_first_ts is None:
+                trade._mfe_mae_sequence_order = "MFE_ONLY_SO_FAR"
+            elif mfe_first_ts is None and mae_first_ts is not None:
+                trade._mfe_mae_sequence_order = "MAE_ONLY_SO_FAR"
+            elif pd.Timestamp(mfe_first_ts) == pd.Timestamp(mae_first_ts):
+                trade._mfe_mae_sequence_order = "SAME_ANCHOR"
+            elif pd.Timestamp(mfe_first_ts) < pd.Timestamp(mae_first_ts):
+                trade._mfe_mae_sequence_order = "MFE_BEFORE_MAE"
+            else:
+                trade._mfe_mae_sequence_order = "MAE_BEFORE_MFE"
             if pnl_now > trade.mfe_bps:
                 trade.mfe_bps = pnl_now
                 trade._mfe_last_bar = bars_held
                 trade._mfe_last_ts_utc = now_ts
                 trade._mfe_last_price = anchor_price
+                trade._last_peak_mfe_bps = float(trade.mfe_bps)
             if pnl_now < trade.mae_bps:
                 trade.mae_bps = pnl_now
     
@@ -4227,8 +4753,8 @@ class ExitManager:
             # Log exit summary (structured)
             self._runner.trade_journal.log_exit_summary(
                 exit_time=exit_time_iso,
-                trade_uid=trade.trade_uid,  # Primary key (COMMIT C)
-                trade_id=trade.trade_id,  # Display ID (backward compatibility)
+                trade_uid=getattr(trade, "trade_uid", None),  # Primary key when available
+                trade_id=getattr(trade, "trade_id", None),  # Display ID (backward compatibility)
                 exit_price=exit_price,
                 exit_reason=exit_reason,
                 realized_pnl_bps=realized_pnl_bps,
@@ -4254,7 +4780,7 @@ class ExitManager:
                     "entry_price": trade.entry_price,
                     "side": trade.side,
                 },
-                trade_id=trade.trade_id,
+                trade_id=getattr(trade, "trade_id", None),
             )
         except Exception as e:
             log.warning("[TRADE_JOURNAL] Failed to log TRADE_CLOSED: %s", e)

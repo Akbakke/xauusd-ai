@@ -10,6 +10,7 @@ import time
 import unittest
 from pathlib import Path
 from unittest.mock import patch, MagicMock
+import pytest
 
 import sys
 
@@ -18,12 +19,17 @@ test_dir = Path(__file__).parent
 project_root = test_dir.parent
 sys.path.insert(0, str(project_root))
 
-from gx1.inference.model_loader_worker import (
-    ModelLoadConfig,
-    ModelLoadResult,
-    load_model_with_timeout,
-    _load_model_worker_impl,
-)
+try:
+    from gx1.inference.model_loader_worker import (
+        ModelLoadConfig,
+        ModelLoadResult,
+        load_model_with_timeout,
+        _load_model_worker_impl,
+    )
+except RuntimeError as exc:
+    if "LEGACY_DISABLED" in str(exc):
+        pytest.skip("legacy model_loader_worker is intentionally disabled in this repo", allow_module_level=True)
+    raise
 
 
 class TestModelLoaderWorker(unittest.TestCase):
@@ -214,4 +220,3 @@ class TestCTXInvariants(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

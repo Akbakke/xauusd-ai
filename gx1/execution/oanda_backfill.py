@@ -12,6 +12,12 @@ from datetime import datetime, timezone
 log = logging.getLogger(__name__)
 
 
+def _sort_and_dedupe_index(df: pd.DataFrame) -> pd.DataFrame:
+    """Sort candles by timestamp and dedupe by timestamp, not identical OHLC rows."""
+    out = df.sort_index()
+    return out[~out.index.duplicated(keep="last")]
+
+
 def backfill_m5_candles_until_target(
     oanda_client,
     instrument: str,
@@ -114,7 +120,7 @@ def backfill_m5_candles_until_target(
         if len(candles_df) >= target_bars:
             logger.info("[BACKFILL] Target reached in first iteration: %d >= %d", len(candles_df), target_bars)
             stop_reason = "target_reached"
-            combined_df = candles_df.sort_index().drop_duplicates(keep="last")
+            combined_df = _sort_and_dedupe_index(candles_df)
             return combined_df, {
                 "total_bars": len(combined_df),
                 "iterations": iterations,
@@ -137,7 +143,7 @@ def backfill_m5_candles_until_target(
     for iter_num in range(2, max_iters + 1):
         if len(all_candles) > 0:
             # Combine all candles so far to find earliest time
-            combined_df = pd.concat(all_candles).sort_index().drop_duplicates(keep="last")
+            combined_df = _sort_and_dedupe_index(pd.concat(all_candles))
             earliest_time = combined_df.index.min()
             current_total = len(combined_df)
             
@@ -182,8 +188,8 @@ def backfill_m5_candles_until_target(
             
             # Check how many new candles we got
             if len(all_candles) > 0:
-                combined_before = pd.concat(all_candles).sort_index().drop_duplicates(keep="last")
-                combined_after = pd.concat(all_candles + [candles_df]).sort_index().drop_duplicates(keep="last")
+                combined_before = _sort_and_dedupe_index(pd.concat(all_candles))
+                combined_after = _sort_and_dedupe_index(pd.concat(all_candles + [candles_df]))
                 new_rows = len(combined_after) - len(combined_before)
             else:
                 new_rows = len(candles_df)
@@ -209,7 +215,7 @@ def backfill_m5_candles_until_target(
             iterations = iter_num
             
             # Check if we have enough total
-            combined_df = pd.concat(all_candles).sort_index().drop_duplicates(keep="last")
+            combined_df = _sort_and_dedupe_index(pd.concat(all_candles))
             if len(combined_df) >= target_bars:
                 logger.info(
                     "[BACKFILL] Target reached after iteration %d: %d >= %d",
@@ -240,7 +246,7 @@ def backfill_m5_candles_until_target(
             "latest_time": None,
         }
     
-    combined_df = pd.concat(all_candles).sort_index().drop_duplicates(keep="last")
+    combined_df = _sort_and_dedupe_index(pd.concat(all_candles))
     latest_time = combined_df.index.max()
     
     logger.info(
@@ -257,4 +263,3 @@ def backfill_m5_candles_until_target(
         "earliest_time": earliest_time,
         "latest_time": latest_time,
     }
-

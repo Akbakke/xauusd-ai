@@ -114,48 +114,90 @@ class EntryContextFeatures:
         arr = np.array(vals, dtype=np.float32)
         return arr
     
+    # HTF features (5 fields) are computed on-the-fly from M5 candles when the
+    # buffer has enough warmup, otherwise left None. They may also be filled in
+    # by a downstream prebuilt-row overwrite (replay path in oanda_demo_runner).
+    # validate() therefore only requires non-HTF fields. Fail-closed for HTF
+    # happens at tensor-build time (to_tensor_continuous / to_tensor_categorical
+    # both raise on None).
+    HTF_OPTIONAL_FIELDS = {
+        "h4_trend_sign_cat",
+        "D1_dist_from_ema200_atr",
+        "H1_range_compression_ratio",
+        "D1_atr_percentile_252",
+        "M15_range_compression_ratio",
+    }
+
     def validate(self, is_replay: bool = True) -> tuple[bool, Optional[str]]:
         """
-        Validate context features according to contract.
-        
+        Validate non-HTF context features according to contract.
+
+        HTF fields (h4_trend_sign_cat, D1_dist_from_ema200_atr,
+        H1_range_compression_ratio, D1_atr_percentile_252,
+        M15_range_compression_ratio) are allowed to be None at this stage:
+        they may not yet be computed (insufficient M5 warmup) or may be
+        filled in by a prebuilt-row overwrite later in the pipeline. The
+        tensor-build methods (to_tensor_continuous / to_tensor_categorical)
+        provide the final fail-closed check.
+
         Args:
-            is_replay: If True, hard fail on invalid features
-        
+            is_replay: If True, hard fail on invalid features.
+
         Returns:
             (valid: bool, error_message: Optional[str])
         """
-        # Validate categorical IDs
+        # Required (non-HTF) categorical IDs
+        for name in self.CAT_NAMES:
+            if name in self.HTF_OPTIONAL_FIELDS:
+                continue
+            if getattr(self, name) is None:
+                return False, f"{name} is missing"
+        # Required (non-HTF) continuous fields
+        for name in self.CONT_NAMES:
+            if name in self.HTF_OPTIONAL_FIELDS:
+                continue
+            if getattr(self, name) is None:
+                return False, f"{name} is missing"
+
         if not (0 <= self.session_id <= 3):
             return False, f"session_id out of range: {self.session_id} (expected 0-3)"
-        
+
         if not (0 <= self.trend_regime_id <= 2):
             return False, f"trend_regime_id out of range: {self.trend_regime_id} (expected 0-2)"
-        
+
         if not (0 <= self.vol_regime_id <= 3):
             return False, f"vol_regime_id out of range: {self.vol_regime_id} (expected 0-3)"
-        
+
         if not (0 <= self.atr_bucket <= 3):
             return False, f"atr_bucket out of range: {self.atr_bucket} (expected 0-3)"
-        
+
         if not (0 <= self.spread_bucket <= 2):
             return False, f"spread_bucket out of range: {self.spread_bucket} (expected 0-2)"
-        if not (0 <= self.h4_trend_sign_cat <= 2):
-            return False, f"h4_trend_sign_cat out of range: {self.h4_trend_sign_cat} (expected 0-2)"
-        
-        # Validate continuous features (must be finite)
+        # h4_trend_sign_cat: validate only if set (HTF optional)
+        if self.h4_trend_sign_cat is not None:
+            if not (0 <= self.h4_trend_sign_cat <= 2):
+                return False, f"h4_trend_sign_cat out of range: {self.h4_trend_sign_cat} (expected 0-2)"
+
+        # Validate continuous features (must be finite when set)
         if not np.isfinite(self.atr_bps):
             return False, f"atr_bps is not finite: {self.atr_bps}"
-        
+
         if not np.isfinite(self.spread_bps):
             return False, f"spread_bps is not finite: {self.spread_bps}"
-        
+
+        # HTF continuous fields: validate only if set (HTF optional)
+        for name in ("D1_dist_from_ema200_atr", "H1_range_compression_ratio", "D1_atr_percentile_252", "M15_range_compression_ratio"):
+            val = getattr(self, name)
+            if val is not None and not np.isfinite(val):
+                return False, f"{name} is not finite: {val}"
+
         # Validate ranges (should be clipped, but double-check)
         if not (0.0 <= self.atr_bps <= 1000.0):
             return False, f"atr_bps out of range: {self.atr_bps} (expected [0, 1000])"
-        
+
         if not (0.0 <= self.spread_bps <= 500.0):
             return False, f"spread_bps out of range: {self.spread_bps} (expected [0, 500])"
-        
+
         return True, None
 
 
@@ -280,10 +322,34 @@ def build_entry_context_features(
         "TREND_UP": 2,
     }
     trend_regime_id = trend_map.get(trend_regime, 1)  # Default to NEUTRAL if UNKNOWN
-    
-    # 8. h4_trend_sign_cat (missing in runtime; set deterministic neutral=1 for CTX6CAT6 contract)
-    h4_trend_sign_cat = 1
-    
+
+    # 8. HTF features (D1/H1/M15/H4): compute on-the-fly from M5 candles when
+    # the buffer has enough warmup. If insufficient, leave None - the caller's
+    # prebuilt-overwrite (oanda_demo_runner.py:7999/8001 in replay mode) will
+    # populate them, or to_tensor_continuous/categorical will fail-closed at
+    # the tensor-build step. No hardcoded constants - they would only mask the
+    # fact that XGB is being fed unrelated values.
+    from gx1.features.htf_features import compute_htf_features
+    try:
+        htf = compute_htf_features(candles, current_ts=current_ts)
+        d1_dist_v = htf.d1_dist_from_ema200_atr
+        h1_comp_v = htf.h1_range_compression_ratio
+        d1_pctl_v = htf.d1_atr_percentile_252
+        m15_comp_v = htf.m15_range_compression_ratio
+        h4_trend_sign_cat_v = htf.h4_trend_sign_cat
+        if htf.insufficient_warmup_for_v1:
+            log.debug(
+                "[CONTEXT_FEATURES] HTF insufficient warmup, fields=%s (will rely on prebuilt overwrite or fail-closed at tensor-build)",
+                htf.insufficient_warmup_for_v1,
+            )
+    except Exception as e:
+        log.warning("[CONTEXT_FEATURES] HTF compute failed: %s; leaving HTF fields None", e)
+        d1_dist_v = None
+        h1_comp_v = None
+        d1_pctl_v = None
+        m15_comp_v = None
+        h4_trend_sign_cat_v = None
+
     # Build context features object
     ctx = EntryContextFeatures(
         session_id=session_id,
@@ -293,7 +359,11 @@ def build_entry_context_features(
         spread_bucket=spread_bucket,
         atr_bps=atr_bps,
         spread_bps=spread_bps,
-        h4_trend_sign_cat=h4_trend_sign_cat,
+        h4_trend_sign_cat=h4_trend_sign_cat_v,
+        D1_dist_from_ema200_atr=d1_dist_v,
+        H1_range_compression_ratio=h1_comp_v,
+        D1_atr_percentile_252=d1_pctl_v,
+        M15_range_compression_ratio=m15_comp_v,
         _atr_bps_raw=atr_bps_raw,
         _spread_bps_raw=spread_bps_raw,
         _source="computed",

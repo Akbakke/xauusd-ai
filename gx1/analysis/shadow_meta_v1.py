@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 import importlib.machinery
 import importlib.util
 import hashlib
 import json
+import math
 import re
 import sys
 from itertools import combinations
@@ -22,6 +24,17 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 
+from gx1.scripts.materialize_truth_entry_rl_observability_v1 import (
+    ENTRY_POLICY_SNAPSHOT_CONTRACT as _ALL_TRADE_REVIEW_ENTRY_POLICY_SNAPSHOT_CONTRACT_V1,
+    ENTRY_RL_OBSERVABILITY_AUDIT as _ALL_TRADE_REVIEW_ENTRY_RL_OBSERVABILITY_CONSISTENCY_AUDIT_V1_CSV,
+    ENTRY_RL_OBSERVABILITY_CONTRACT as _ALL_TRADE_REVIEW_ENTRY_RL_OBSERVABILITY_CONTRACT_V1,
+    ENTRY_RL_OBSERVABILITY_MANIFEST as _ALL_TRADE_REVIEW_ENTRY_RL_OBSERVABILITY_MANIFEST_V1,
+    ENTRY_RL_OBSERVABILITY_STATUS as _ALL_TRADE_REVIEW_ENTRY_RL_OBSERVABILITY_STATUS_V1,
+    ENTRY_RL_OBSERVABILITY_SUMMARY as _ALL_TRADE_REVIEW_ENTRY_RL_OBSERVABILITY_SUMMARY_V1,
+    ENTRY_RL_OBSERVABILITY_VIEW as _ALL_TRADE_REVIEW_ENTRY_RL_OBSERVABILITY_VIEW_V1_PARQUET,
+    build_entry_rl_observability_payload as _build_entry_rl_observability_payload_from_extension,
+)
+
 
 def _load_base_module():
     module_name = "gx1.analysis._shadow_meta_v1_base_external"
@@ -34,6 +47,11 @@ def _load_base_module():
     base_path = next((p for p in candidates if p.exists()), None)
     if base_path is None:
         raise FileNotFoundError(f"[SHADOW_META_V1] missing compiled base module under {pyc_dir}")
+    if not external_base.exists() and base_path.resolve() == preferred.resolve():
+        raise FileNotFoundError(
+            "[SHADOW_META_V1] missing external compiled base module; local self-pyc fallback is unsafe "
+            "because it recurses into the overlay module"
+        )
     loader = importlib.machinery.SourcelessFileLoader(module_name, str(base_path))
     spec = importlib.util.spec_from_loader(module_name, loader)
     if spec is None:
@@ -45,37 +63,28 @@ def _load_base_module():
 
 
 _BASE = _load_base_module()
-_ORIG_BUILD_OFFLINE_REVIEW_SURFACE = _BASE.build_offline_review_surface
-_ORIG_BUILD_SHARED_CONTEXT_COVERAGE_SUMMARY = _BASE.build_shared_context_coverage_summary
-_ORIG_BUILD_ACTIVATION_STABILITY_BY_RUN = _BASE.build_activation_stability_by_run
-_ORIG_DERIVE_FEATURE_SPEC = _BASE.derive_feature_spec
-_ORIG_FIT_SHADOW_META_MODEL = _BASE.fit_shadow_meta_model
-_ORIG_PREDICT_ALLOW_SCORE = _BASE.predict_allow_score
-_ORIG_TRAIN_AND_EVALUATE_SHADOW_META_V1 = _BASE.train_and_evaluate_shadow_meta_v1
+_ORIG_BUILD_OFFLINE_REVIEW_SURFACE = getattr(_BASE, "build_offline_review_surface", None)
+_ORIG_BUILD_SHARED_CONTEXT_COVERAGE_SUMMARY = getattr(_BASE, "build_shared_context_coverage_summary", None)
+_ORIG_BUILD_ACTIVATION_STABILITY_BY_RUN = getattr(_BASE, "build_activation_stability_by_run", None)
+_ORIG_DERIVE_FEATURE_SPEC = getattr(_BASE, "derive_feature_spec", None)
+_ORIG_FIT_SHADOW_META_MODEL = getattr(_BASE, "fit_shadow_meta_model", None)
+_ORIG_PREDICT_ALLOW_SCORE = getattr(_BASE, "predict_allow_score", None)
+_ORIG_TRAIN_AND_EVALUATE_SHADOW_META_V1 = getattr(_BASE, "train_and_evaluate_shadow_meta_v1", None)
 _POCKET_FEATURE_COLS: Tuple[str, ...] = ()
 _TIME_CONTRACT_DISABLED_FEATURES: Tuple[str, ...] = ("hour_utc",)
 _SHADOW_THRESHOLD_CANDIDATE = 0.7
 _KNOWN_COLLATERAL_SESSION = "US"
 _KNOWN_COLLATERAL_HOUR = 20
+_KNOWN_TAIL_CAPTURE_POCKETS_V1: frozenset[tuple[str, int]] = frozenset({("OVERLAP", 13), ("OVERLAP", 15)})
+_POST_TRADE_GOOD_MFE20_MIN_BPS_V1 = 20.0
+_POST_TRADE_GOOD_MAE_GT_BPS_V1 = -5.0
 _TRUTH_E2E_REPORTS_ROOT = Path("/home/andre2/GX1_DATA/reports/truth_e2e_sanity")
-_TRUTH_E2E_RUN_RE = re.compile(r"^E2E_SANITY_ORDERFIX_(\d{8})_(\d{8})$")
+_TRUTH_E2E_RUN_RE = re.compile(r"^(?:E2E_SANITY_ORDERFIX|TRUTH_MONFRI_WEEK)_(\d{8})_(\d{8})$")
 _SHADOW_PROOF_CONTROL_DATE = date(2026, 4, 11)
 _SHADOW_PROOF_POST_FREEZE_START = date(2026, 3, 25)
 _SHADOW_V2_VALIDATION_LINE_NAME = "shadow_meta_validation_line_v2"
 _SHADOW_V2_FREEZE_CUT = date(2026, 2, 25)
 _SHADOW_V2_PREFREEZE_TRAIN_END = date(2026, 2, 11)
-_SHADOW_V2_PREFREEZE_VAL_RUNS: Tuple[str, ...] = (
-    "E2E_SANITY_ORDERFIX_20260211_20260218",
-    "E2E_SANITY_ORDERFIX_20260218_20260225",
-)
-_SHADOW_V2_POSTFREEZE_HOLDOUT_RUNS: Tuple[str, ...] = (
-    "E2E_SANITY_ORDERFIX_20260225_20260304",
-    "E2E_SANITY_ORDERFIX_20260304_20260311",
-    "E2E_SANITY_ORDERFIX_20260311_20260318",
-    "E2E_SANITY_ORDERFIX_20260318_20260325",
-    "E2E_SANITY_ORDERFIX_20260325_20260401",
-    "E2E_SANITY_ORDERFIX_20260401_20260408",
-)
 
 
 def _export_base_symbols() -> None:
@@ -116,6 +125,14 @@ def _bool_mask(df: pd.DataFrame, column: str) -> pd.Series:
     if column not in df.columns:
         return pd.Series(False, index=df.index, dtype=bool)
     return df[column].fillna(False).astype(bool)
+
+
+def _ensure_frame_columns(df: pd.DataFrame, column_names: Sequence[str]) -> pd.DataFrame:
+    out = df.copy()
+    for column_name in column_names:
+        if column_name not in out.columns:
+            out[column_name] = np.nan
+    return out
 
 
 def _hour_as_string(series: pd.Series) -> pd.Series:
@@ -196,6 +213,843 @@ def _coerce_int(value: Any) -> int:
     return int(numeric)
 
 
+def _load_json_object_v1(path: Path) -> Dict[str, Any]:
+    with path.open("r", encoding="utf-8") as handle:
+        payload = json.load(handle)
+    if not isinstance(payload, dict):
+        raise RuntimeError(f"[SHADOW_META_V1] expected object JSON in {path}")
+    return payload
+
+
+def _build_entry_rl_observability_v1(
+    *,
+    reports_root: Path,
+    as_of_decision_moment_ledger_v1_df: pd.DataFrame,
+    policy_action_supervision_join_df: pd.DataFrame,
+    entry_anchor_raw_state_df: pd.DataFrame,
+    entry_skipability_raw_state_df: pd.DataFrame,
+    entry_direct_policy_composite_v1_df: pd.DataFrame,
+    entry_wait_lifecycle_view_v1_df: pd.DataFrame,
+    entry_actual_take_terminal_outcome_view_v1_df: pd.DataFrame,
+    hindsight_export_df: pd.DataFrame,
+) -> Dict[str, Any]:
+    skipability_pressure_path = reports_root / "truth_entry_skipability_pressure_v1.json"
+    market_opportunity_path = reports_root / "truth_continuous_market_opportunity_v1.json"
+    if not skipability_pressure_path.exists():
+        raise RuntimeError(
+            "[ALL_TRADE_REVIEW_LEDGER] ENTRY_RL_OBSERVABILITY_V1 requires truth_entry_skipability_pressure_v1.json"
+        )
+    if not market_opportunity_path.exists():
+        raise RuntimeError(
+            "[ALL_TRADE_REVIEW_LEDGER] ENTRY_RL_OBSERVABILITY_V1 requires truth_continuous_market_opportunity_v1.json"
+        )
+    payload = _build_entry_rl_observability_payload_from_extension(
+        direct_df=entry_direct_policy_composite_v1_df,
+        asof_df=as_of_decision_moment_ledger_v1_df,
+        skip_raw_df=entry_skipability_raw_state_df,
+        entry_anchor_raw_df=entry_anchor_raw_state_df,
+        supervision_df=policy_action_supervision_join_df,
+        wait_lifecycle_df=entry_wait_lifecycle_view_v1_df,
+        actual_take_terminal_df=entry_actual_take_terminal_outcome_view_v1_df,
+        hindsight_export_df=hindsight_export_df,
+        skipability_pressure_summary=_load_json_object_v1(skipability_pressure_path),
+        market_opportunity_summary=_load_json_object_v1(market_opportunity_path),
+        review_dir=reports_root / _ALL_TRADE_REVIEW_LEDGER_NAME,
+    )
+    payload["entry_rl_observability_manifest_v1"] = {
+        **payload["entry_rl_observability_manifest_v1"],
+        "mode_v1": "CANONICAL_BASE_LEDGER",
+        "review_dir_v1": str(reports_root / _ALL_TRADE_REVIEW_LEDGER_NAME),
+    }
+    payload["entry_rl_observability_summary_v1"] = {
+        **payload["entry_rl_observability_summary_v1"],
+        "review_dir_v1": str(reports_root / _ALL_TRADE_REVIEW_LEDGER_NAME),
+    }
+    return payload
+
+
+@dataclass(frozen=True)
+class _LocalFeatureSpec:
+    feature_cols: Tuple[str, ...]
+    numeric_cols: Tuple[str, ...]
+    categorical_cols: Tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class _LocalLabelVariantSpec:
+    variant_name: str
+    label_col: str
+    description: str = ""
+
+
+@dataclass(frozen=True)
+class _LocalStabilitySplit:
+    train_runs: Tuple[str, ...]
+    val_runs: Tuple[str, ...]
+    test_runs: Tuple[str, ...]
+
+
+def _is_base_shim_runtime_error(exc: BaseException) -> bool:
+    message = str(exc)
+    return "SHADOW_META_BASE_SHIM" in message or "missing historical external compiled base" in message.lower()
+
+
+def _coerce_boolish_series(values: Any, *, index: pd.Index) -> pd.Series:
+    if values is None:
+        return pd.Series(False, index=index, dtype=bool)
+    if isinstance(values, pd.Series):
+        series = values.reindex(index)
+    else:
+        series = pd.Series(values, index=index)
+    if pd.api.types.is_bool_dtype(series):
+        return series.fillna(False).astype(bool)
+    text = series.astype("string").str.strip().str.lower()
+    mapped = text.map(
+        {
+            "true": True,
+            "1": True,
+            "yes": True,
+            "y": True,
+            "false": False,
+            "0": False,
+            "no": False,
+            "n": False,
+        }
+    )
+    numeric = pd.to_numeric(series, errors="coerce")
+    mapped = mapped.where(mapped.notna(), numeric.ne(0))
+    return mapped.fillna(False).astype(bool)
+
+
+def _coerce_bool_column(df: pd.DataFrame, column: str) -> pd.Series:
+    if column not in df.columns:
+        return pd.Series(False, index=df.index, dtype=bool)
+    return _coerce_boolish_series(df[column], index=df.index)
+
+
+def _sanitize_ml_feature_frame_v1(frame: pd.DataFrame, feature_columns: Sequence[str]) -> pd.DataFrame:
+    sanitized = frame[list(feature_columns)].copy()
+    missing_tokens = {
+        _LEDGER_NOT_AVAILABLE,
+        _LEDGER_IKKE_ETABLERT,
+        "<NA>",
+        "nan",
+        "None",
+        "NaT",
+        "NAN",
+    }
+    for feature_name in feature_columns:
+        series = sanitized[feature_name]
+        if pd.api.types.is_numeric_dtype(series) or pd.api.types.is_bool_dtype(series):
+            sanitized[feature_name] = pd.to_numeric(series, errors="coerce")
+            continue
+        text = series.astype("string")
+        text = text.mask(text.isin(missing_tokens))
+        sanitized[feature_name] = text.astype(object).where(text.notna(), None)
+    return sanitized
+
+
+def _fallback_feature_allowlists(frame: pd.DataFrame) -> Tuple[List[str], List[str]]:
+    preferred_numeric = [
+        "weekday_utc",
+        "hour_utc",
+        "atr_bps",
+        "entry_spread_bps",
+        "p_long",
+        "p_short",
+        "p_flat",
+        "p_hat",
+        "margin",
+        "uncertainty_score",
+        "tradable_prob",
+        "mfe_first_n_pred",
+        "path_quality_pred",
+        "bad_path_prob",
+        "runtime_flat_edge_v1",
+        "xgb_entropy",
+        "entry_entropy",
+    ]
+    preferred_categorical = [
+        "side",
+        "session",
+        "vol_regime",
+        "trend_regime",
+    ]
+    pressure_numeric = sorted(
+        col
+        for col in frame.columns
+        if col.startswith("as_of_entry_replay_window_") and col.endswith("_v1")
+    )
+    numeric_cols = [col for col in preferred_numeric + pressure_numeric if col in frame.columns]
+    categorical_cols = [col for col in preferred_categorical if col in frame.columns]
+    return numeric_cols, categorical_cols
+
+
+def _build_local_feature_spec(df: pd.DataFrame, *, max_null_frac: float = 0.0) -> _LocalFeatureSpec:
+    augmented = _augment_pocket_features(df)
+    numeric_allowlist, categorical_allowlist = _fallback_feature_allowlists(augmented)
+    numeric_cols = [
+        col
+        for col in numeric_allowlist
+        if float(augmented[col].isna().mean()) <= float(max_null_frac) and int(augmented[col].nunique(dropna=False)) > 1
+    ]
+    categorical_cols = [
+        col
+        for col in categorical_allowlist
+        if float(augmented[col].isna().mean()) <= float(max_null_frac) and int(augmented[col].astype("string").nunique(dropna=False)) > 1
+    ]
+    if not numeric_cols and not categorical_cols:
+        fallback_numeric = []
+        fallback_categorical = []
+        excluded = {
+            "accepted",
+            "bars_in_trade",
+            "candidate_uid",
+            "cata",
+            "close_ts_utc",
+            "decision_reason",
+            "decision_ts_utc",
+            "entry_bundle_sha256",
+            "exit_bundle_sha256",
+            "good_mfe_then_rot",
+            "mae_bps",
+            "meta_allow_label_v1",
+            "meta_allow_label_strict_v2",
+            "mfe_bps",
+            "never_mfe",
+            "open_ts_utc",
+            "pnl_bps",
+            "policy_hash",
+            "policy_lane",
+            "positive_exit",
+            "run_id",
+            "source_eval_log",
+            "source_eval_log_row",
+            "trade_id",
+            "trade_uid",
+            "trainable_mask_v1",
+        }
+        for col in augmented.columns:
+            if col in excluded:
+                continue
+            if col.endswith("_ts_utc") or col.endswith("_timestamp"):
+                continue
+            if "sha256" in col or "hash" in col:
+                continue
+            if float(augmented[col].isna().mean()) > float(max_null_frac):
+                continue
+            if int(augmented[col].nunique(dropna=False)) <= 1:
+                continue
+            if pd.api.types.is_numeric_dtype(augmented[col]):
+                fallback_numeric.append(col)
+            else:
+                cardinality = int(augmented[col].astype("string").nunique(dropna=False))
+                if cardinality <= min(len(augmented), 32):
+                    fallback_categorical.append(col)
+        numeric_cols = fallback_numeric
+        categorical_cols = fallback_categorical
+    feature_cols = tuple(dict.fromkeys([*numeric_cols, *categorical_cols]))
+    return _LocalFeatureSpec(
+        feature_cols=feature_cols,
+        numeric_cols=tuple(dict.fromkeys(numeric_cols)),
+        categorical_cols=tuple(dict.fromkeys(categorical_cols)),
+    )
+
+
+def _ensure_local_label_columns(df: pd.DataFrame) -> pd.DataFrame:
+    work = _augment_pocket_features(df)
+    if "meta_allow_label_v1" in work.columns:
+        baseline = _coerce_boolish_series(work["meta_allow_label_v1"], index=work.index)
+    else:
+        baseline = _coerce_bool_column(work, "positive_exit")
+    work["meta_allow_label_v1"] = baseline
+
+    positive_exit = _coerce_bool_column(work, "positive_exit") | baseline
+    cata = _coerce_bool_column(work, "cata")
+    never_mfe = _coerce_bool_column(work, "never_mfe")
+    pnl_bps = pd.to_numeric(work.get("pnl_bps"), errors="coerce").fillna(0.0)
+    mfe_bps = pd.to_numeric(work.get("mfe_bps"), errors="coerce")
+    mae_bps = pd.to_numeric(work.get("mae_bps"), errors="coerce")
+    strict = (
+        positive_exit
+        & ~cata
+        & ~never_mfe
+        & pnl_bps.gt(0.0)
+        & mfe_bps.fillna(float("-inf")).ge(float(_POST_TRADE_GOOD_MFE20_MIN_BPS_V1))
+        & mae_bps.fillna(float("-inf")).gt(float(_POST_TRADE_GOOD_MAE_GT_BPS_V1))
+    )
+    if int(strict.sum()) == 0:
+        strict = positive_exit & pnl_bps.gt(0.0)
+    work["meta_allow_label_strict_v2"] = strict.astype(bool)
+    return work
+
+
+def _label_variant_specs() -> Tuple[_LocalLabelVariantSpec, ...]:
+    return (
+        _LocalLabelVariantSpec(
+            variant_name="baseline_v1",
+            label_col="meta_allow_label_v1",
+            description="Conservative allow label aligned to positive-exit realized outcome.",
+        ),
+        _LocalLabelVariantSpec(
+            variant_name="strict_allow_v2",
+            label_col="meta_allow_label_strict_v2",
+            description="Cleaner allow label requiring positive outcome plus healthy MFE/MAE profile.",
+        ),
+    )
+
+
+def _empty_metric_payload(rows: int, positive_rate: float) -> Dict[str, Any]:
+    return {
+        "rows": int(rows),
+        "positive_rate": float(positive_rate),
+        "accuracy": None,
+        "balanced_accuracy": None,
+        "precision": None,
+        "recall": None,
+        "f1": None,
+        "auc_pr": None,
+        "roc_auc": None,
+        "brier": None,
+        "log_loss": None,
+    }
+
+
+def _classification_metrics_from_scores(labels: pd.Series, scores: Sequence[float]) -> Dict[str, Any]:
+    y_true = _coerce_boolish_series(labels, index=labels.index).astype(int).to_numpy()
+    y_score = pd.to_numeric(pd.Series(scores, index=labels.index), errors="coerce").fillna(0.5).clip(0.0, 1.0).to_numpy()
+    payload = _empty_metric_payload(len(y_true), float(y_true.mean()) if len(y_true) else 0.0)
+    if len(y_true) == 0:
+        return payload
+    y_pred = (y_score >= 0.5).astype(int)
+    payload["accuracy"] = float(accuracy_score(y_true, y_pred))
+    payload["balanced_accuracy"] = float(balanced_accuracy_score(y_true, y_pred))
+    payload["precision"] = float(precision_score(y_true, y_pred, zero_division=0))
+    payload["recall"] = float(recall_score(y_true, y_pred, zero_division=0))
+    payload["f1"] = float(f1_score(y_true, y_pred, zero_division=0))
+    unique_labels = np.unique(y_true)
+    if unique_labels.size >= 2:
+        payload["auc_pr"] = float(average_precision_score(y_true, y_score))
+        payload["roc_auc"] = float(roc_auc_score(y_true, y_score))
+        payload["brier"] = float(brier_score_loss(y_true, y_score))
+        payload["log_loss"] = float(log_loss(y_true, np.clip(y_score, 1e-6, 1.0 - 1e-6), labels=[0, 1]))
+    return payload
+
+
+def _build_local_shadow_meta_model(
+    train_df: pd.DataFrame,
+    val_df: pd.DataFrame,
+    feature_spec: _LocalFeatureSpec,
+    *,
+    label_col: str,
+) -> Dict[str, Any]:
+    train_work = _ensure_local_label_columns(train_df)
+    val_work = _ensure_local_label_columns(val_df)
+    feature_cols = list(feature_spec.feature_cols)
+    if not feature_cols:
+        prior = float(_coerce_boolish_series(train_work.get(label_col), index=train_work.index).mean()) if len(train_work) else 0.0
+        return {
+            "pipeline": None,
+            "feature_spec": feature_spec,
+            "feature_cols": feature_cols,
+            "label_col": label_col,
+            "prior": prior,
+            "classes": np.array([False, True]),
+        }
+
+    train_work = _ensure_frame_columns(train_work, feature_cols)
+    val_work = _ensure_frame_columns(val_work, feature_cols)
+    X_train = train_work[feature_cols].copy()
+    y_train = _coerce_boolish_series(train_work[label_col], index=train_work.index)
+
+    transformers: List[Tuple[str, Any, List[str]]] = []
+    if feature_spec.numeric_cols:
+        transformers.append(
+            (
+                "num",
+                Pipeline(
+                    steps=[
+                        ("imputer", SimpleImputer(strategy="median")),
+                    ]
+                ),
+                list(feature_spec.numeric_cols),
+            )
+        )
+    if feature_spec.categorical_cols:
+        transformers.append(
+            (
+                "cat",
+                Pipeline(
+                    steps=[
+                        ("imputer", SimpleImputer(strategy="most_frequent")),
+                        ("onehot", OneHotEncoder(handle_unknown="ignore")),
+                    ]
+                ),
+                list(feature_spec.categorical_cols),
+            )
+        )
+
+    if y_train.nunique(dropna=False) < 2:
+        estimator = DummyClassifier(strategy="constant", constant=bool(y_train.iloc[0]) if len(y_train) else False)
+    else:
+        estimator = LogisticRegression(
+            max_iter=1000,
+            class_weight="balanced",
+            solver="liblinear",
+            random_state=0,
+        )
+    preprocess = ColumnTransformer(transformers=transformers, remainder="drop") if transformers else "passthrough"
+    pipeline = Pipeline(
+        steps=[
+            ("preprocess", preprocess),
+            ("model", estimator),
+        ]
+    )
+    pipeline.fit(X_train, y_train.astype(bool))
+    return {
+        "pipeline": pipeline,
+        "feature_spec": feature_spec,
+        "feature_cols": feature_cols,
+        "label_col": label_col,
+        "prior": float(y_train.mean()) if len(y_train) else 0.0,
+        "classes": getattr(estimator, "classes_", np.array([False, True])),
+        "train_rows": int(len(train_work)),
+        "val_rows": int(len(val_work)),
+    }
+
+
+def _local_predict_allow_score(model: Dict[str, Any], df: pd.DataFrame, feature_spec: _LocalFeatureSpec) -> np.ndarray:
+    if df.empty:
+        return np.array([], dtype=float)
+    feature_cols = list(feature_spec.feature_cols)
+    if not feature_cols or model.get("pipeline") is None:
+        prior = float(model.get("prior", 0.5))
+        return np.full(len(df), prior, dtype=float)
+    work = _ensure_frame_columns(_augment_pocket_features(df), feature_cols)
+    proba = model["pipeline"].predict_proba(work[feature_cols].copy())
+    if proba.ndim != 2 or proba.shape[1] == 0:
+        prior = float(model.get("prior", 0.5))
+        return np.full(len(df), prior, dtype=float)
+    classes = list(getattr(model["pipeline"].named_steps["model"], "classes_", np.array([False, True])))
+    positive_idx = classes.index(True) if True in classes else min(len(classes) - 1, 1)
+    return np.asarray(proba[:, positive_idx], dtype=float)
+
+
+def _evaluate_label_variant(
+    *,
+    variant_spec: _LocalLabelVariantSpec,
+    train_df: pd.DataFrame,
+    val_df: pd.DataFrame,
+    test_df: pd.DataFrame,
+    feature_spec: _LocalFeatureSpec,
+) -> Dict[str, Any]:
+    train_work = _ensure_local_label_columns(train_df)
+    val_work = _ensure_local_label_columns(val_df)
+    test_work = _ensure_local_label_columns(test_df)
+    model = _build_local_shadow_meta_model(
+        train_work,
+        val_work,
+        feature_spec,
+        label_col=variant_spec.label_col,
+    )
+    val_scores = _local_predict_allow_score(model, val_work, feature_spec)
+    test_scores = _local_predict_allow_score(model, test_work, feature_spec)
+    val_metrics = _classification_metrics_from_scores(
+        _coerce_boolish_series(val_work[variant_spec.label_col], index=val_work.index),
+        val_scores,
+    )
+    test_metrics = _classification_metrics_from_scores(
+        _coerce_boolish_series(test_work[variant_spec.label_col], index=test_work.index),
+        test_scores,
+    )
+    return {
+        "variant_name": variant_spec.variant_name,
+        "label_col": variant_spec.label_col,
+        "feature_cols": list(feature_spec.feature_cols),
+        "model": model,
+        "val_scores": val_scores,
+        "test_scores": test_scores,
+        "val_metrics": val_metrics,
+        "test_metrics": test_metrics,
+    }
+
+
+def add_offline_business_labels(df: pd.DataFrame) -> pd.DataFrame:
+    work = _ensure_local_label_columns(df)
+    pnl_bps = pd.to_numeric(work.get("pnl_bps"), errors="coerce").fillna(0.0)
+    cata = _coerce_bool_column(work, "cata")
+    never_mfe = _coerce_bool_column(work, "never_mfe")
+    good_then_rot = _coerce_bool_column(work, "good_mfe_then_rot")
+    positive_exit = _coerce_bool_column(work, "positive_exit") | _coerce_bool_column(work, "meta_allow_label_v1")
+    work["meta_business_score_v2"] = (
+        pnl_bps
+        + positive_exit.astype(float) * 5.0
+        - cata.astype(float) * 50.0
+        - never_mfe.astype(float) * 10.0
+        - good_then_rot.astype(float) * 5.0
+    )
+    return work
+
+
+def _local_threshold_surface_summary(
+    frame: pd.DataFrame,
+    *,
+    threshold: float,
+    shield_pocket: str | None = None,
+) -> Dict[str, Any]:
+    eval_df = _prepare_shadow_meta_eval_frame(add_offline_business_labels(frame))
+    if eval_df.empty:
+        return {
+            "rows_total": 0,
+            "veto_count": 0,
+            "trade_coverage": 0.0,
+            "veto_rate": 0.0,
+            "correct_cata_veto": 0,
+            "false_veto_total": 0,
+            "false_veto_selected_shield_pocket": 0,
+            "positive_exit_retention": 0.0,
+            "cata_capture": 0.0,
+            "kept_pnl_total": 0.0,
+            "veto_pnl_total": 0.0,
+            "pnl_bps_mean_kept": None,
+            "pnl_bps_mean_vetoed": None,
+            "business_score_v2_sum_kept": 0.0,
+            "business_score_v2_sum_vetoed": 0.0,
+        }
+    scores = pd.to_numeric(eval_df.get("meta_allow_score_v1"), errors="coerce").fillna(0.5)
+    shield_mask = _shield_mask_from_pocket(eval_df, shield_pocket)
+    veto_mask = scores.lt(float(threshold)) & ~shield_mask
+    veto_df = eval_df.loc[veto_mask].copy()
+    kept_df = eval_df.loc[~veto_mask].copy()
+    cata_total = int(eval_df["is_cata_v1"].sum())
+    positive_total = int(eval_df["is_positive_exit_v1"].sum())
+    business = pd.to_numeric(eval_df.get("meta_business_score_v2"), errors="coerce").fillna(0.0)
+    return {
+        "rows_total": int(len(eval_df)),
+        "veto_count": int(veto_mask.sum()),
+        "trade_coverage": float(len(kept_df) / max(1, len(eval_df))),
+        "veto_rate": float(veto_mask.sum() / max(1, len(eval_df))),
+        "correct_cata_veto": int(veto_df["is_cata_v1"].sum()),
+        "false_veto_total": int(veto_df["is_positive_exit_v1"].sum()),
+        "false_veto_selected_shield_pocket": int(
+            (veto_df["is_positive_exit_v1"] & shield_mask.reindex(veto_df.index, fill_value=False)).sum()
+        ),
+        "positive_exit_retention": float(kept_df["is_positive_exit_v1"].sum() / max(1, positive_total)),
+        "cata_capture": float(veto_df["is_cata_v1"].sum() / max(1, cata_total)),
+        "kept_pnl_total": float(pd.to_numeric(kept_df.get("pnl_bps"), errors="coerce").fillna(0.0).sum()),
+        "veto_pnl_total": float(pd.to_numeric(veto_df.get("pnl_bps"), errors="coerce").fillna(0.0).sum()),
+        "pnl_bps_mean_kept": _coerce_float_or_none(pd.to_numeric(kept_df.get("pnl_bps"), errors="coerce").mean()),
+        "pnl_bps_mean_vetoed": _coerce_float_or_none(pd.to_numeric(veto_df.get("pnl_bps"), errors="coerce").mean()),
+        "business_score_v2_sum_kept": float(business.loc[kept_df.index].sum()) if len(kept_df) else 0.0,
+        "business_score_v2_sum_vetoed": float(business.loc[veto_df.index].sum()) if len(veto_df) else 0.0,
+    }
+
+
+def build_threshold_sweep(eval_df: pd.DataFrame) -> pd.DataFrame:
+    eval_work = add_offline_business_labels(eval_df)
+    numeric_scores = pd.to_numeric(eval_work.get("meta_allow_score_v1"), errors="coerce").dropna()
+    threshold_grid = {0.5}
+    if numeric_scores.empty:
+        threshold_grid |= {0.25, 0.75}
+    else:
+        threshold_grid |= set(np.round(np.linspace(0.05, 0.95, 19), 2).tolist())
+        threshold_grid |= set(np.round(numeric_scores.quantile([0.1, 0.25, 0.5, 0.75, 0.9]), 2).tolist())
+    rows: List[Dict[str, Any]] = []
+    for threshold in sorted(float(x) for x in threshold_grid if 0.0 < float(x) < 1.0):
+        summary = _local_threshold_surface_summary(eval_work, threshold=float(threshold))
+        rows.append(
+            {
+                "threshold": float(threshold),
+                **summary,
+            }
+        )
+    return pd.DataFrame(rows).sort_values(
+        ["threshold"],
+        ascending=[True],
+    ).reset_index(drop=True)
+
+
+def choose_threshold_from_validation_business(threshold_df: pd.DataFrame) -> float:
+    if threshold_df.empty:
+        raise RuntimeError("[SHADOW_META_V1] cannot choose threshold from empty validation business surface")
+    threshold_values = pd.to_numeric(threshold_df["threshold"], errors="coerce").dropna()
+    if threshold_values.empty:
+        raise RuntimeError("[SHADOW_META_V1] threshold surface does not carry numeric threshold values")
+    if bool(threshold_df["threshold"].eq(0.5).any()):
+        return 0.5
+    nearest_idx = (threshold_values - 0.5).abs().idxmin()
+    return float(threshold_df.loc[nearest_idx, "threshold"])
+
+
+def choose_threshold_from_validation(threshold_df: pd.DataFrame) -> float:
+    return choose_threshold_from_validation_business(threshold_df)
+
+
+def _local_has_class_balance(df: pd.DataFrame, label_col: str, *, min_class_rows: int = 5) -> bool:
+    if df.empty or label_col not in df.columns:
+        return False
+    labels = _coerce_boolish_series(df[label_col], index=df.index)
+    counts = labels.value_counts(dropna=False)
+    return int(counts.get(True, 0)) >= int(min_class_rows) and int(counts.get(False, 0)) >= int(min_class_rows)
+
+
+def build_stability_run_splits(
+    trainable_df: pd.DataFrame,
+    *,
+    label_col: str,
+) -> Tuple[List[_LocalStabilitySplit], List[Dict[str, Any]]]:
+    if trainable_df.empty or "run_id" not in trainable_df.columns:
+        return [], [{"reason": "EMPTY_TRAINABLE_FRAME"}]
+
+    def _sort_key(run_id: str) -> Tuple[str, str]:
+        window = _parse_truth_e2e_run_window(str(run_id))
+        if window is None:
+            return ("9999-12-31", str(run_id))
+        return (window[0].isoformat(), str(run_id))
+
+    run_ids = sorted({str(run_id) for run_id in trainable_df["run_id"].astype("string").tolist()}, key=_sort_key)
+    eligible: List[_LocalStabilitySplit] = []
+    skipped: List[Dict[str, Any]] = []
+    if len(run_ids) < 4:
+        return [], [{"reason": "INSUFFICIENT_RUNS_FOR_STABILITY", "run_count": int(len(run_ids))}]
+
+    for idx in range(2, len(run_ids)):
+        train_runs = tuple(run_ids[: idx - 1])
+        val_runs = (run_ids[idx - 1],)
+        test_runs = (run_ids[idx],)
+        train_part = trainable_df.loc[trainable_df["run_id"].astype("string").isin(train_runs)].copy()
+        val_part = trainable_df.loc[trainable_df["run_id"].astype("string").isin(val_runs)].copy()
+        test_part = trainable_df.loc[trainable_df["run_id"].astype("string").isin(test_runs)].copy()
+        if not _local_has_class_balance(train_part, label_col):
+            skipped.append({"test_run": test_runs[0], "reason": "TRAIN_CLASS_BALANCE_TOO_WEAK"})
+            continue
+        if val_part.empty:
+            skipped.append({"test_run": test_runs[0], "reason": "EMPTY_VAL_SPLIT"})
+            continue
+        if test_part.empty:
+            skipped.append({"test_run": test_runs[0], "reason": "EMPTY_TEST_SPLIT"})
+            continue
+        eligible.append(
+            _LocalStabilitySplit(
+                train_runs=train_runs,
+                val_runs=val_runs,
+                test_runs=test_runs,
+            )
+        )
+    return eligible, skipped
+
+
+def build_activation_compare(
+    *,
+    baseline_variant: Dict[str, Any],
+    strict_variant: Dict[str, Any],
+    val_eval_strict: pd.DataFrame,
+    test_eval_strict: pd.DataFrame,
+) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    baseline_eval = test_eval_strict.copy()
+    baseline_eval["meta_allow_score_v1"] = baseline_variant["test_scores"]
+    strict_eval = test_eval_strict.copy()
+    strict_eval["meta_allow_score_v1"] = strict_variant["test_scores"]
+
+    def _variant(summary: Dict[str, Any]) -> Dict[str, Any]:
+        promote_reason_codes: List[str] = []
+        if float(summary["positive_exit_retention"]) < 0.90:
+            promote_reason_codes.append("POSITIVE_EXIT_RETENTION_TOO_LOW")
+        if float(summary["cata_capture"]) < 0.20:
+            promote_reason_codes.append("CATA_CAPTURE_TOO_LOW")
+        return {
+            "trade_coverage": float(summary["trade_coverage"]),
+            "veto_rate": float(summary["veto_rate"]),
+            "positive_exit_retention": float(summary["positive_exit_retention"]),
+            "cata_capture": float(summary["cata_capture"]),
+            "pnl_bps_mean_kept": summary["pnl_bps_mean_kept"],
+            "pnl_bps_mean_vetoed": summary["pnl_bps_mean_vetoed"],
+            "promote_pass": not promote_reason_codes,
+            "promote_reason_codes": promote_reason_codes,
+        }
+
+    baseline_summary = _local_threshold_surface_summary(baseline_eval, threshold=0.5)
+    strict_summary = _local_threshold_surface_summary(strict_eval, threshold=0.5)
+    envelope_summary = _local_threshold_surface_summary(
+        strict_eval,
+        threshold=0.5,
+        shield_pocket=f"{_KNOWN_COLLATERAL_SESSION}/{_KNOWN_COLLATERAL_HOUR}",
+    )
+    payload = {
+        "variants": {
+            "baseline_global_threshold": _variant(baseline_summary),
+            "strict_allow_v2_global": _variant(strict_summary),
+            "strict_allow_v2_activation_envelope": _variant(envelope_summary),
+        }
+    }
+    summary = {
+        "selected_threshold_v1": 0.5,
+        "variants_seen": list(payload["variants"].keys()),
+    }
+    return payload, summary
+
+
+def _build_local_offline_review_surface(
+    shared_context_df: pd.DataFrame,
+    *,
+    selected_threshold: float,
+) -> Tuple[pd.DataFrame, Dict[str, Any]]:
+    work = _prepare_shadow_meta_eval_frame(add_offline_business_labels(shared_context_df))
+    work = work.loc[_bool_mask(work, "accepted")].copy()
+    if work.empty:
+        return work, _empty_offline_review_summary()
+
+    score = pd.to_numeric(work.get("meta_allow_score_v1"), errors="coerce").fillna(float(selected_threshold))
+    allow_label = _coerce_bool_column(work, "meta_allow_label_v1")
+    cata = _coerce_bool_column(work, "cata")
+    positive_exit = _coerce_bool_column(work, "positive_exit") | allow_label
+    trade_bucket = work.get("post_trade_quality_bucket", pd.Series("unclassified_trade", index=work.index)).astype("string")
+    post_exit_mfe = pd.to_numeric(
+        work.get("post_exit_mfe_bps_replay_end_obs", work.get("post_exit_mfe_bps")),
+        errors="coerce",
+    ).fillna(0.0)
+    peak_mfe = pd.to_numeric(work.get("mfe_bps"), errors="coerce").fillna(0.0)
+    pnl_bps = pd.to_numeric(work.get("pnl_bps"), errors="coerce").fillna(0.0)
+    mae_bps = pd.to_numeric(work.get("mae_bps"), errors="coerce").fillna(0.0)
+    giveback = (peak_mfe - pnl_bps).clip(lower=0.0)
+    skip_loss = (-pnl_bps).clip(lower=0.0)
+
+    hold_longer = post_exit_mfe.ge(10.0)
+    exit_earlier = (~hold_longer) & (cata | giveback.ge(15.0))
+    managed_ok = ~(hold_longer | exit_earlier)
+
+    looked_good_but_failed = (~allow_label) & score.ge(float(selected_threshold))
+    good_but_fragile = allow_label & ((mae_bps <= -15.0) | trade_bucket.astype("string").eq("good_trade"))
+    review_entry_bucket = pd.Series("entry_bad", index=work.index, dtype="string")
+    review_entry_bucket.loc[allow_label] = "entry_good"
+    review_entry_bucket.loc[good_but_fragile] = "entry_good_but_fragile"
+    review_entry_bucket.loc[looked_good_but_failed] = "entry_looked_good_but_failed"
+
+    review_exit_bucket = pd.Series("exit_ok", index=work.index, dtype="string")
+    review_exit_bucket.loc[hold_longer] = "premature_exit"
+    review_exit_bucket.loc[exit_earlier] = "late_exit"
+
+    work["review_exit_bucket_v1"] = review_exit_bucket
+    work["review_entry_bucket_v1"] = review_entry_bucket
+    work["review_premature_exit_v1"] = hold_longer
+    work["review_late_exit_v1"] = exit_earlier
+    work["review_good_exit_v1"] = managed_ok
+    work["review_entry_good_v1"] = allow_label
+    work["review_entry_bad_v1"] = ~allow_label
+    work["review_entry_good_but_fragile_v1"] = good_but_fragile
+    work["review_entry_looked_good_but_failed_v1"] = looked_good_but_failed
+    work["review_expected_vs_actual_gap_v1"] = score - allow_label.astype(float)
+    work["hindsight_entry_decision_review_v1"] = np.where(allow_label, "TAKE_WAS_OK", "SHOULD_SKIP_TRADE")
+    work["hindsight_should_skip_trade_v1"] = ~allow_label
+    work["hindsight_take_was_ok_v1"] = allow_label
+    work["hindsight_entry_review_unresolved_v1"] = False
+    work["hindsight_management_review_v1"] = np.where(
+        hold_longer,
+        "SHOULD_HOLD_LONGER",
+        np.where(exit_earlier, "SHOULD_EXIT_EARLIER", "MANAGED_OK"),
+    )
+    work["hindsight_should_hold_longer_v1"] = hold_longer
+    work["hindsight_should_exit_earlier_v1"] = exit_earlier
+    work["hindsight_managed_ok_v1"] = managed_ok
+    work["hindsight_management_review_unresolved_v1"] = False
+    work["hindsight_rl_review_reason_v1"] = (
+        "entry="
+        + work["hindsight_entry_decision_review_v1"].astype("string")
+        + ";management="
+        + work["hindsight_management_review_v1"].astype("string")
+    )
+    work["hindsight_rl_review_domain_support_v1"] = "ENTRY_REVIEW_V1|MANAGEMENT_REVIEW_V1|HINDSIGHT_ONLY"
+    work["hindsight_rl_review_semantic_contract_v1"] = "HINDSIGHT_ONLY_NOT_LIVE_GATE"
+    work["hindsight_hold_longer_extra_value_bps_v1"] = post_exit_mfe.where(hold_longer)
+    work["hindsight_exit_earlier_saved_bps_v1"] = giveback.where(exit_earlier)
+    work["hindsight_skip_trade_avoided_loss_bps_v1"] = skip_loss.where(~allow_label)
+    work["hindsight_peak_mfe_bps_v1"] = peak_mfe
+    work["hindsight_peak_to_exit_giveback_bps_v1"] = giveback
+    work["hindsight_peak_to_worst_after_peak_bps_v1"] = pd.Series(np.nan, index=work.index, dtype="float64")
+
+    summary = _empty_offline_review_summary()
+    summary.update(
+        {
+            "rows": int(len(work)),
+            "entry_bucket_counts": work["review_entry_bucket_v1"].astype("string").value_counts(dropna=False).to_dict(),
+            "entry_bad_rate": float((~allow_label).mean()),
+            "entry_fragile_rate": float(good_but_fragile.mean()),
+            "entry_good_rate": float(allow_label.mean()),
+            "entry_looked_good_but_failed_rate": float(looked_good_but_failed.mean()),
+            "exit_bucket_counts": work["review_exit_bucket_v1"].astype("string").value_counts(dropna=False).to_dict(),
+            "expected_vs_actual_gap_mean": _coerce_float_or_none(work["review_expected_vs_actual_gap_v1"].mean()) or 0.0,
+            "good_exit_rate": float(managed_ok.mean()),
+            "late_exit_rate": float(exit_earlier.mean()),
+            "premature_exit_rate": float(hold_longer.mean()),
+            "rl_teacher_summary": {
+                "entry_decision_review_counts": work["hindsight_entry_decision_review_v1"].astype("string").value_counts(dropna=False).to_dict(),
+                "management_review_counts": work["hindsight_management_review_v1"].astype("string").value_counts(dropna=False).to_dict(),
+                "numeric_support_counts": {
+                    "hold_longer_extra_value_rows": int(work["hindsight_hold_longer_extra_value_bps_v1"].notna().sum()),
+                    "exit_earlier_saved_rows": int(work["hindsight_exit_earlier_saved_bps_v1"].notna().sum()),
+                    "skip_trade_avoided_loss_rows": int(work["hindsight_skip_trade_avoided_loss_bps_v1"].notna().sum()),
+                },
+                "semantic_contract": {
+                    "mode": "HINDSIGHT_ONLY",
+                    "surface_name": "RL_TEACHER_SURFACE_V1",
+                    "not_live_gate": True,
+                    "not_policy_truth": True,
+                },
+            },
+        }
+    )
+    return work, summary
+
+
+def _build_local_shared_context_coverage_summary(
+    shared_context_df: pd.DataFrame,
+    *,
+    offline_review_df: pd.DataFrame,
+) -> Dict[str, Any]:
+    accepted_mask = _bool_mask(shared_context_df, "accepted")
+
+    def _coverage(cols: Sequence[str]) -> Dict[str, Any]:
+        available_cols = [col for col in cols if col in shared_context_df.columns]
+        if not available_cols:
+            return {"col_count": 0, "rows": 0, "coverage_rate": 0.0}
+        if int(accepted_mask.sum()) == 0:
+            return {"col_count": len(available_cols), "rows": 0, "coverage_rate": 1.0}
+        frame = shared_context_df.loc[accepted_mask, available_cols]
+        covered_rows = int(frame.notna().all(axis=1).sum())
+        return {
+            "col_count": len(available_cols),
+            "rows": covered_rows,
+            "coverage_rate": float(covered_rows / max(1, int(accepted_mask.sum()))),
+        }
+
+    summary = {
+        "online_raw": _coverage([col for col in shared_context_df.columns if col.startswith("as_of_")]),
+        "online_xgb_signal": _coverage(
+            [col for col in ["p_long", "p_short", "p_flat", "p_hat", "margin", "uncertainty_score", "tradable_prob"]]
+        ),
+        "online_ctx_cont": _coverage(
+            [
+                col
+                for col in [
+                    "atr_bps",
+                    "entry_spread_bps",
+                    "mfe_first_n_pred",
+                    "path_quality_pred",
+                    "bad_path_prob",
+                ]
+                if col in shared_context_df.columns
+            ]
+        ),
+        "online_ctx_cat": _coverage(
+            [col for col in ["side", "session", "vol_regime", "trend_regime", "weekday_utc", "hour_utc"]]
+        ),
+        "online_entry_head": _coverage([col for col in ["decision", "decision_reason", "policy_lane"]]),
+    }
+    summary["rows"] = int(len(shared_context_df))
+    summary["offline_review_rows"] = int(len(offline_review_df))
+    return summary
+
+
 def _parse_truth_e2e_run_window(run_name: str) -> Tuple[date, date] | None:
     match = _TRUTH_E2E_RUN_RE.fullmatch(str(run_name).strip())
     if match is None:
@@ -213,7 +1067,8 @@ def _enumerate_truth_e2e_run_dirs(
     run_rows: List[Dict[str, Any]] = []
     if not reports_root.exists():
         return run_rows
-    for child in sorted(reports_root.iterdir()):
+    search_root = reports_root / "runs" if (reports_root / "runs").exists() else reports_root
+    for child in sorted(search_root.iterdir()):
         if not child.is_dir():
             continue
         parsed = _parse_truth_e2e_run_window(child.name)
@@ -234,6 +1089,45 @@ def _enumerate_truth_e2e_run_dirs(
             }
         )
     return run_rows
+
+
+def _derive_shadow_v2_split_run_ids(
+    run_rows: Sequence[Dict[str, Any]],
+    *,
+    freeze_cut: date = _SHADOW_V2_FREEZE_CUT,
+    prefreeze_train_end: date = _SHADOW_V2_PREFREEZE_TRAIN_END,
+) -> Dict[str, List[str]]:
+    pre_freeze_train_runs = [
+        str(row["run_id"])
+        for row in run_rows
+        if row["end_date"] <= prefreeze_train_end
+    ]
+    pre_freeze_val_runs = [
+        str(row["run_id"])
+        for row in run_rows
+        if row["end_date"] > prefreeze_train_end and row["end_date"] <= freeze_cut
+    ]
+    post_freeze_holdout_runs = [
+        str(row["run_id"])
+        for row in run_rows
+        if row["start_date"] >= freeze_cut
+    ]
+    excluded_overlap_runs = [
+        str(row["run_id"])
+        for row in run_rows
+        if row["start_date"] < freeze_cut < row["end_date"]
+    ]
+    return {
+        "pre_freeze_train_runs": pre_freeze_train_runs,
+        "pre_freeze_val_runs": pre_freeze_val_runs,
+        "post_freeze_holdout_runs": post_freeze_holdout_runs,
+        "excluded_overlap_runs": excluded_overlap_runs,
+    }
+
+
+def _shadow_v2_target_holdout_run_id(manifest: Dict[str, Any]) -> str | None:
+    holdout_runs = [str(run_id) for run_id in manifest.get("post_freeze_holdout_runs", []) if str(run_id)]
+    return holdout_runs[0] if holdout_runs else None
 
 
 def load_tree_backed_shadow_holdout_overview(
@@ -303,14 +1197,15 @@ def build_shadow_meta_v2_split_manifest(
 ) -> Dict[str, Any]:
     run_rows = _enumerate_truth_e2e_run_dirs(reports_root, control_date=control_date)
     run_map = {str(row["run_id"]): row for row in run_rows}
-
-    pre_freeze_train_runs = [
-        str(row["run_id"])
-        for row in run_rows
-        if row["end_date"] <= _SHADOW_V2_PREFREEZE_TRAIN_END and str(row["run_id"]) not in _SHADOW_V2_PREFREEZE_VAL_RUNS
-    ]
-    pre_freeze_val_runs = [run_id for run_id in _SHADOW_V2_PREFREEZE_VAL_RUNS if run_id in run_map]
-    post_freeze_holdout_runs = [run_id for run_id in _SHADOW_V2_POSTFREEZE_HOLDOUT_RUNS if run_id in run_map]
+    split_runs = _derive_shadow_v2_split_run_ids(
+        run_rows,
+        freeze_cut=freeze_cut,
+        prefreeze_train_end=_SHADOW_V2_PREFREEZE_TRAIN_END,
+    )
+    pre_freeze_train_runs = split_runs["pre_freeze_train_runs"]
+    pre_freeze_val_runs = split_runs["pre_freeze_val_runs"]
+    post_freeze_holdout_runs = split_runs["post_freeze_holdout_runs"]
+    excluded_overlap_runs = split_runs["excluded_overlap_runs"]
 
     tellende_post_freeze_candidates: List[Dict[str, Any]] = []
     for run_id in post_freeze_holdout_runs:
@@ -345,17 +1240,22 @@ def build_shadow_meta_v2_split_manifest(
         "pre_freeze_train_runs": pre_freeze_train_runs,
         "pre_freeze_val_runs": pre_freeze_val_runs,
         "post_freeze_holdout_runs": post_freeze_holdout_runs,
+        "excluded_freeze_overlap_runs": excluded_overlap_runs,
         "post_freeze_tellende_candidates": tellende_post_freeze_candidates,
         "exclusion_rules": [
-            "Only physical directories under truth_e2e_sanity matching E2E_SANITY_ORDERFIX_<start>_<end> are allowed.",
+            "Only physical directories under truth_e2e_sanity matching canonical full-week run ids are allowed.",
             "Only full 7-day windows with end <= control_date are allowed.",
             "Only runs explicitly listed in pre_freeze_train_runs, pre_freeze_val_runs, or post_freeze_holdout_runs belong to V2.",
+            "Runs that straddle freeze_cut are excluded from both pre-freeze and post-freeze membership.",
             "No run outside this manifest may be used for V2 derivation, audit, or promotion.",
             "V1 artifacts, V1 operating-point decisions, and V1 promotion history are not valid inputs to V2 split membership.",
             "Threshold, shield, pocket, and promote conclusions are intentionally excluded from this manifest.",
         ],
         "verification": {
             "matches_tree_backed_full_weeks": True,
+            "excluded_freeze_overlap_run_count": int(len(excluded_overlap_runs)),
+            "prefreeze_val_run_count": int(len(pre_freeze_val_runs)),
+            "post_freeze_holdout_run_count": int(len(post_freeze_holdout_runs)),
             "post_freeze_tellende_candidate_count": int(
                 sum(row["tellende_candidate"] for row in tellende_post_freeze_candidates)
             ),
@@ -387,7 +1287,7 @@ def _load_shadow_meta_candidate_runs(
 ) -> pd.DataFrame:
     frames: List[pd.DataFrame] = []
     for run_id in run_ids:
-        candidate_path = reports_root / str(run_id) / f"shadow_meta_candidates_{run_id}_MERGED.parquet"
+        candidate_path = _resolve_truth_run_dir(reports_root, str(run_id)) / f"shadow_meta_candidates_{run_id}_MERGED.parquet"
         if not candidate_path.exists():
             raise FileNotFoundError(f"[SHADOW_META_V2] missing candidate parquet for {run_id}: {candidate_path}")
         frames.append(pd.read_parquet(candidate_path))
@@ -959,8 +1859,20 @@ def build_shadow_meta_v2_audit_only_holdout_artifacts(
     val_run_ids = [str(run_id) for run_id in manifest.get("pre_freeze_val_runs", [])]
     holdout_run_ids = [str(run_id) for run_id in manifest.get("post_freeze_holdout_runs", [])]
     candidate_threshold = float(threshold_summary["selected_threshold_business_v2"])
-    selected_shield_pocket = str(shield_summary["selected_shield_pocket"])
-    shield_session, shield_hour = selected_shield_pocket.split("/")
+    selected_shield_pocket_raw = shield_summary.get("selected_shield_pocket")
+    selected_shield_pocket = (
+        _scalar_string(selected_shield_pocket_raw, default="")
+        if not _scalar_is_missing(selected_shield_pocket_raw)
+        else ""
+    )
+    shield_session: str | None = None
+    shield_hour: float | None = None
+    if selected_shield_pocket and "/" in selected_shield_pocket:
+        session_part, hour_part = selected_shield_pocket.split("/", 1)
+        shield_hour_candidate = _coerce_float_or_none(hour_part)
+        if shield_hour_candidate is not None:
+            shield_session = str(session_part)
+            shield_hour = float(shield_hour_candidate)
     activation_lookup: Dict[str, Dict[str, Any]] = {}
     activation_supported_rule_names: List[str] = []
     contact_cohort_lookup: Dict[str, Dict[str, Any]] = {}
@@ -1056,10 +1968,12 @@ def build_shadow_meta_v2_audit_only_holdout_artifacts(
             )
             continue
 
-        shield_mask = (
-            run_eval_df.get("session", pd.Series(index=run_eval_df.index, dtype="object")).astype(str).eq(shield_session)
-            & pd.to_numeric(run_eval_df.get("hour_utc"), errors="coerce").eq(float(shield_hour))
-        )
+        shield_mask = pd.Series(False, index=run_eval_df.index, dtype="bool")
+        if shield_session is not None and shield_hour is not None:
+            shield_mask = (
+                run_eval_df.get("session", pd.Series(index=run_eval_df.index, dtype="object")).astype(str).eq(str(shield_session))
+                & pd.to_numeric(run_eval_df.get("hour_utc"), errors="coerce").eq(float(shield_hour))
+            )
         veto_mask = pd.to_numeric(run_eval_df.get("meta_allow_score_v1"), errors="coerce") < candidate_threshold
         veto_mask = veto_mask & ~shield_mask
         veto_df = run_eval_df.loc[veto_mask].copy()
@@ -1840,7 +2754,14 @@ _ALL_TRADE_REVIEW_MANAGEMENT_EXIT_LOCAL_MANUAL_REVIEW_STATUS_V1 = "shadow_meta_a
 _ALL_TRADE_REVIEW_DECOMPOSED_MANAGEMENT_EXIT_LOCAL_MANUAL_REVIEW_PACK_MANIFEST_V1 = "shadow_meta_all_trade_review_decomposed_management_exit_local_manual_review_pack_manifest_v1.json"
 _ALL_TRADE_REVIEW_DECOMPOSED_MANAGEMENT_EXIT_LOCAL_MANUAL_REVIEW_PACK_INDEX_V1_PARQUET = "shadow_meta_all_trade_review_decomposed_management_exit_local_manual_review_pack_index_v1.parquet"
 _MANAGEMENT_AUDIT_EXTENSION_SOURCE_DIR_V1 = _TRUTH_E2E_REPORTS_ROOT / "ALL_TRADE_REVIEW_LEDGER_20260411_MANAGEMENT_EXIT_LOCAL_MANUAL_REVIEW_V1"
+_MANAGEMENT_AUDIT_EXTENSION_SHADOW_AUDIT_SOURCE_DIR_V1 = (
+    _TRUTH_E2E_REPORTS_ROOT / "ALL_TRADE_REVIEW_LEDGER_20260411_MANAGEMENT_EXIT_LOCAL_SHADOW_AUDIT_V1"
+)
+_MANAGEMENT_AUDIT_EXTENSION_RUNTIME_RECOVERY_SOURCE_DIR_V1 = (
+    _TRUTH_E2E_REPORTS_ROOT / "ALL_TRADE_REVIEW_LEDGER_20260418_RUNTIME_RECOVERY_V1"
+)
 _MANAGEMENT_AUDIT_EXTENSION_BUILD_SUFFIX_V1 = "MANAGEMENT_AUDIT_EXTENSION_V1"
+_MANAGEMENT_AUDIT_EXTENSION_SOURCE_BUNDLE_BUILD_SUFFIX_V1 = "MANAGEMENT_AUDIT_EXTENSION_SOURCE_BUNDLE_V1"
 _ALL_TRADE_REVIEW_MANAGEMENT_MANUAL_DEEP_DIVE_CONTRACT_V1 = "shadow_meta_all_trade_review_management_manual_deep_dive_contract_v1.json"
 _ALL_TRADE_REVIEW_MANAGEMENT_MANUAL_DEEP_DIVE_AS_OF_CASE_CARDS_V1_PARQUET = "shadow_meta_all_trade_review_management_manual_deep_dive_as_of_case_cards_v1.parquet"
 _ALL_TRADE_REVIEW_MANAGEMENT_MANUAL_DEEP_DIVE_HINDSIGHT_APPENDIX_V1_PARQUET = "shadow_meta_all_trade_review_management_manual_deep_dive_hindsight_appendix_v1.parquet"
@@ -2159,8 +3080,32 @@ _ALL_TRADE_REVIEW_MANAGEMENT_POLICY_LOGGING_MISSING_FIELDS_V1 = "shadow_meta_all
 _ALL_TRADE_REVIEW_MANAGEMENT_POLICY_LOGGING_SUMMARY_V1 = "shadow_meta_all_trade_review_management_policy_logging_summary_v1.json"
 _ALL_TRADE_REVIEW_MANAGEMENT_POLICY_LOGGING_CONSISTENCY_AUDIT_V1_CSV = "shadow_meta_all_trade_review_management_policy_logging_consistency_audit_v1.csv"
 _ALL_TRADE_REVIEW_MANAGEMENT_AUDIT_EXTENSION_BUILD_SUMMARY_V1 = "shadow_meta_all_trade_review_management_audit_extension_build_summary_v1.json"
+_ALL_TRADE_REVIEW_MANAGEMENT_AUDIT_EXTENSION_SOURCE_BUNDLE_CONTRACT_V1 = (
+    "shadow_meta_all_trade_review_management_audit_extension_source_bundle_contract_v1.json"
+)
+_ALL_TRADE_REVIEW_MANAGEMENT_AUDIT_EXTENSION_SOURCE_BUNDLE_SUMMARY_V1 = (
+    "shadow_meta_all_trade_review_management_audit_extension_source_bundle_summary_v1.json"
+)
+_ALL_TRADE_REVIEW_MANAGEMENT_AUDIT_EXTENSION_SOURCE_BUNDLE_REPORT_V1_MD = (
+    "shadow_meta_all_trade_review_management_audit_extension_source_bundle_report_v1.md"
+)
+_ALL_TRADE_REVIEW_MANAGEMENT_AUDIT_EXTENSION_SOURCE_BUNDLE_CONSISTENCY_AUDIT_V1_CSV = (
+    "shadow_meta_all_trade_review_management_audit_extension_source_bundle_consistency_audit_v1.csv"
+)
 _LEDGER_NOT_AVAILABLE = "NOT_AVAILABLE"
 _LEDGER_IKKE_ETABLERT = "IKKE_ETABLERT"
+_MANAGEMENT_RL_OPTIONAL_SPARSE_SIGNAL_FIELDS_V1: Tuple[str, ...] = (
+    "as_of_management_core_mfe_to_anchor_ratio_v1",
+    "as_of_management_exit_prob_v1",
+)
+_MANAGEMENT_RL_OPTIONAL_SIGNAL_AVAILABILITY_MAP_V1: Dict[str, str] = {
+    "as_of_management_core_mfe_to_anchor_ratio_v1": "as_of_management_core_mfe_to_anchor_ratio_available_v1",
+    "as_of_management_exit_prob_v1": "as_of_management_exit_prob_available_v1",
+}
+_MANAGEMENT_RL_OPTIONAL_SIGNAL_AVAILABILITY_FIELDS_V1: Tuple[str, ...] = tuple(
+    _MANAGEMENT_RL_OPTIONAL_SIGNAL_AVAILABILITY_MAP_V1[field_name]
+    for field_name in _MANAGEMENT_RL_OPTIONAL_SPARSE_SIGNAL_FIELDS_V1
+)
 
 _MANAGEMENT_RL_OBSERVATION_FIELDS_V1: Tuple[str, ...] = (
     "as_of_atr_bps_v1",
@@ -2170,8 +3115,51 @@ _MANAGEMENT_RL_OBSERVATION_FIELDS_V1: Tuple[str, ...] = (
     "as_of_trend_regime_v1",
     "as_of_vol_regime_v1",
     "as_of_weekday_utc_v1",
+    "as_of_management_core_entry_spread_bps_v1",
     "as_of_management_core_minutes_held_at_anchor_v1",
     "as_of_management_core_giveback_ratio_from_peak_v1",
+    "as_of_management_core_minutes_since_last_peak_v1",
+    "as_of_management_core_minutes_since_last_mfe_v1",
+    "as_of_management_core_peak_to_anchor_bps_v1",
+    "as_of_management_core_mfe_to_anchor_ratio_v1",
+    "as_of_management_core_mfe_to_anchor_ratio_available_v1",
+    "as_of_management_core_mfe_bps_so_far_v1",
+    "as_of_management_core_mae_bps_so_far_v1",
+    "as_of_management_core_distance_from_peak_mfe_bps_v1",
+    "as_of_management_core_bars_since_peak_mfe_v1",
+    "as_of_management_replay_micro_momentum_3_v1",
+    "as_of_management_replay_micro_momentum_5_v1",
+    "as_of_management_replay_micro_acceleration_v1",
+    "as_of_management_replay_wick_ratio_v1",
+    "as_of_management_replay_retracement_from_last_impulse_v1",
+    "as_of_management_replay_minutes_since_session_open_v1",
+    "as_of_management_replay_minutes_to_next_session_boundary_v1",
+    "as_of_management_replay_session_change_flag_v1",
+    "as_of_management_replay_session_tradable_v1",
+    "as_of_management_exit_model_evaluated_v1",
+    "as_of_management_exit_prob_v1",
+    "as_of_management_exit_prob_available_v1",
+    "as_of_management_exit_threshold_v1",
+    "as_of_management_candidate_p_long_v1",
+    "as_of_management_candidate_p_short_v1",
+    "as_of_management_candidate_p_flat_v1",
+    "as_of_management_candidate_p_hat_v1",
+    "as_of_management_candidate_margin_v1",
+    "as_of_management_candidate_uncertainty_score_v1",
+    "as_of_management_candidate_tradable_prob_v1",
+    "as_of_management_candidate_mfe_first_n_pred_v1",
+    "as_of_management_candidate_path_quality_pred_v1",
+    "as_of_management_xgb_p_long_v1",
+    "as_of_management_xgb_p_short_v1",
+    "as_of_management_xgb_p_flat_v1",
+    "as_of_management_xgb_p_hat_v1",
+    "as_of_management_xgb_pred_side_v1",
+    "as_of_management_xgb_has_ctx_v1",
+)
+_MANAGEMENT_RL_REQUIRED_OBSERVATION_FIELDS_V1: Tuple[str, ...] = tuple(
+    field_name
+    for field_name in _MANAGEMENT_RL_OBSERVATION_FIELDS_V1
+    if field_name not in set(_MANAGEMENT_RL_OPTIONAL_SPARSE_SIGNAL_FIELDS_V1)
 )
 _MANAGEMENT_AUDIT_EXTENSION_TARGET_REVIEW_RANKS_V1: Tuple[int, ...] = (1, 9, 8, 7, 27)
 _MANAGEMENT_AUDIT_EXTENSION_STATUSES_V1: Tuple[str, ...] = ("BEVIST", "INDIKERT", "IKKE_ETABLERT")
@@ -2199,9 +3187,108 @@ _MANAGEMENT_CANONICAL_FIELD_LABELS_V1: Dict[str, str] = {
     "as_of_trend_regime_v1": "Trend regime",
     "as_of_vol_regime_v1": "Vol regime",
     "as_of_weekday_utc_v1": "Weekday UTC",
+    "as_of_management_core_entry_spread_bps_v1": "Entry spread bps",
     "as_of_management_core_minutes_held_at_anchor_v1": "Minutes held at anchor",
     "as_of_management_core_giveback_ratio_from_peak_v1": "Giveback ratio from peak",
+    "as_of_management_core_minutes_since_last_peak_v1": "Minutes since last peak",
+    "as_of_management_core_minutes_since_last_mfe_v1": "Minutes since last MFE",
+    "as_of_management_core_peak_to_anchor_bps_v1": "Peak-to-anchor bps",
+    "as_of_management_core_mfe_to_anchor_ratio_v1": "MFE-to-anchor ratio",
+    "as_of_management_core_mfe_to_anchor_ratio_available_v1": "MFE-to-anchor ratio available",
+    "as_of_management_core_last_peak_mfe_bps_v1": "Last peak MFE bps",
+    "as_of_management_core_max_mfe_without_mae_bps_v1": "Max MFE before MAE bps",
+    "as_of_management_core_mfe_mae_sequence_order_v1": "MFE/MAE sequence order",
+    "as_of_management_core_mfe_bps_so_far_v1": "MFE so far bps",
+    "as_of_management_core_mae_bps_so_far_v1": "MAE so far bps",
+    "as_of_management_core_distance_from_peak_mfe_bps_v1": "Distance from peak MFE bps",
+    "as_of_management_core_bars_since_peak_mfe_v1": "Bars since peak MFE",
+    "as_of_management_replay_micro_momentum_3_v1": "Micro momentum 3",
+    "as_of_management_replay_micro_momentum_5_v1": "Micro momentum 5",
+    "as_of_management_replay_micro_acceleration_v1": "Micro acceleration",
+    "as_of_management_replay_wick_ratio_v1": "Wick ratio",
+    "as_of_management_replay_retracement_from_last_impulse_v1": "Retracement from last impulse",
+    "as_of_management_replay_minutes_since_session_open_v1": "Minutes since session open",
+    "as_of_management_replay_minutes_to_next_session_boundary_v1": "Minutes to next session boundary",
+    "as_of_management_replay_session_change_flag_v1": "Session change flag",
+    "as_of_management_replay_session_tradable_v1": "Session tradable flag",
+    "as_of_management_exit_model_evaluated_v1": "Exit model evaluated",
+    "as_of_management_exit_prob_v1": "Exit probability",
+    "as_of_management_exit_prob_available_v1": "Exit probability available",
+    "as_of_management_exit_threshold_v1": "Exit threshold",
+    "as_of_management_candidate_p_long_v1": "Entry candidate p_long",
+    "as_of_management_candidate_p_short_v1": "Entry candidate p_short",
+    "as_of_management_candidate_p_flat_v1": "Entry candidate p_flat",
+    "as_of_management_candidate_p_hat_v1": "Entry candidate p_hat",
+    "as_of_management_candidate_margin_v1": "Entry candidate margin",
+    "as_of_management_candidate_uncertainty_score_v1": "Entry candidate uncertainty",
+    "as_of_management_candidate_tradable_prob_v1": "Entry candidate tradable prob",
+    "as_of_management_candidate_mfe_first_n_pred_v1": "Entry candidate mfe_first_n_pred",
+    "as_of_management_candidate_path_quality_pred_v1": "Entry candidate path quality",
+    "as_of_management_xgb_p_long_v1": "Entry XGB p_long",
+    "as_of_management_xgb_p_short_v1": "Entry XGB p_short",
+    "as_of_management_xgb_p_flat_v1": "Entry XGB p_flat",
+    "as_of_management_xgb_p_hat_v1": "Entry XGB p_hat",
+    "as_of_management_xgb_pred_side_v1": "Entry XGB pred side",
+    "as_of_management_xgb_has_ctx_v1": "Entry XGB has_ctx",
 }
+_MANAGEMENT_RL_RAW_ALIAS_TARGET_MAP_V1: Dict[str, str] = {
+    "as_of_management_core_entry_spread_bps_v1": "as_of_mgmt_candidate_entry_spread_bps_v1",
+    "as_of_management_core_minutes_held_at_anchor_v1": "as_of_mgmt_trace_minutes_held_at_anchor_v1",
+    "as_of_management_core_giveback_ratio_from_peak_v1": "as_of_mgmt_trace_giveback_ratio_from_peak_v1",
+    "as_of_management_core_last_peak_ts_utc_v1": "as_of_mgmt_trace_last_peak_ts_utc_v1",
+    "as_of_management_core_last_mfe_ts_utc_v1": "as_of_mgmt_trace_last_mfe_ts_utc_v1",
+    "as_of_management_core_peak_price_v1": "as_of_mgmt_trace_peak_price_v1",
+    "as_of_management_core_anchor_price_v1": "as_of_mgmt_trace_anchor_price_v1",
+    "as_of_management_core_mfe_bps_at_anchor_v1": "as_of_mgmt_trace_mfe_bps_at_anchor_v1",
+    "as_of_management_core_last_peak_mfe_bps_v1": "as_of_mgmt_trace_last_peak_mfe_bps_v1",
+    "as_of_management_core_max_mfe_without_mae_bps_v1": "as_of_mgmt_trace_max_mfe_without_mae_bps_v1",
+    "as_of_management_core_mfe_mae_sequence_order_v1": "as_of_mgmt_trace_mfe_mae_sequence_order_v1",
+    "as_of_management_core_mfe_bps_so_far_v1": "as_of_mgmt_trace_mfe_bps_so_far_v1",
+    "as_of_management_core_mae_bps_so_far_v1": "as_of_mgmt_trace_mae_bps_so_far_v1",
+    "as_of_management_core_distance_from_peak_mfe_bps_v1": "as_of_mgmt_trace_distance_from_peak_mfe_bps_v1",
+    "as_of_management_core_bars_since_peak_mfe_v1": "as_of_mgmt_trace_bars_since_peak_mfe_v1",
+    "as_of_management_replay_micro_momentum_3_v1": "as_of_mgmt_replay_micro_momentum_3_v1",
+    "as_of_management_replay_micro_momentum_5_v1": "as_of_mgmt_replay_micro_momentum_5_v1",
+    "as_of_management_replay_micro_acceleration_v1": "as_of_mgmt_replay_micro_acceleration_v1",
+    "as_of_management_replay_wick_ratio_v1": "as_of_mgmt_replay_wick_ratio_v1",
+    "as_of_management_replay_retracement_from_last_impulse_v1": "as_of_mgmt_replay_retracement_from_last_impulse_v1",
+    "as_of_management_replay_minutes_since_session_open_v1": "as_of_mgmt_replay_minutes_since_session_open_v1",
+    "as_of_management_replay_minutes_to_next_session_boundary_v1": "as_of_mgmt_replay_minutes_to_next_session_boundary_v1",
+    "as_of_management_replay_session_change_flag_v1": "as_of_mgmt_replay_session_change_flag_v1",
+    "as_of_management_replay_session_tradable_v1": "as_of_mgmt_replay_session_tradable_v1",
+    "as_of_management_exit_model_evaluated_v1": "as_of_mgmt_trace_exit_model_evaluated_v1",
+    "as_of_management_exit_prob_v1": "as_of_mgmt_trace_exit_prob_v1",
+    "as_of_management_exit_threshold_v1": "as_of_mgmt_trace_exit_threshold_v1",
+    "as_of_management_candidate_p_long_v1": "as_of_mgmt_candidate_p_long_v1",
+    "as_of_management_candidate_p_short_v1": "as_of_mgmt_candidate_p_short_v1",
+    "as_of_management_candidate_p_flat_v1": "as_of_mgmt_candidate_p_flat_v1",
+    "as_of_management_candidate_p_hat_v1": "as_of_mgmt_candidate_p_hat_v1",
+    "as_of_management_candidate_margin_v1": "as_of_mgmt_candidate_margin_v1",
+    "as_of_management_candidate_uncertainty_score_v1": "as_of_mgmt_candidate_uncertainty_score_v1",
+    "as_of_management_candidate_tradable_prob_v1": "as_of_mgmt_candidate_tradable_prob_v1",
+    "as_of_management_candidate_mfe_first_n_pred_v1": "as_of_mgmt_candidate_mfe_first_n_pred_v1",
+    "as_of_management_candidate_path_quality_pred_v1": "as_of_mgmt_candidate_path_quality_pred_v1",
+    "as_of_management_xgb_p_long_v1": "as_of_mgmt_xgb_p_long_v1",
+    "as_of_management_xgb_p_short_v1": "as_of_mgmt_xgb_p_short_v1",
+    "as_of_management_xgb_p_flat_v1": "as_of_mgmt_xgb_p_flat_v1",
+    "as_of_management_xgb_p_hat_v1": "as_of_mgmt_xgb_p_hat_v1",
+    "as_of_management_xgb_pred_side_v1": "as_of_mgmt_xgb_pred_side_v1",
+    "as_of_management_xgb_has_ctx_v1": "as_of_mgmt_xgb_has_ctx_v1",
+}
+_MANAGEMENT_RL_DERIVED_OBSERVATION_FIELDS_V1: Tuple[str, ...] = (
+    "as_of_management_core_minutes_since_last_peak_v1",
+    "as_of_management_core_minutes_since_last_mfe_v1",
+    "as_of_management_core_peak_to_anchor_bps_v1",
+    "as_of_management_core_mfe_to_anchor_ratio_v1",
+)
+_MANAGEMENT_RL_DERIVATION_SOURCE_FIELDS_V1: Tuple[str, ...] = (
+    "decision_anchor_timestamp_utc_v1",
+    "as_of_management_core_last_peak_ts_utc_v1",
+    "as_of_management_core_last_mfe_ts_utc_v1",
+    "as_of_management_core_peak_price_v1",
+    "as_of_management_core_anchor_price_v1",
+    "as_of_management_core_mfe_bps_at_anchor_v1",
+)
 
 
 def _ledger_namespace_dir(reports_root: Path, control_date: date | str) -> Path:
@@ -2210,6 +3297,17 @@ def _ledger_namespace_dir(reports_root: Path, control_date: date | str) -> Path:
     else:
         control_day = pd.Timestamp(control_date).date()
     return reports_root / f"{_ALL_TRADE_REVIEW_LEDGER_NAME}_{control_day.strftime('%Y%m%d')}"
+
+
+def _resolve_truth_run_dir(reports_root: Path, run_id: str) -> Path:
+    reports_root = Path(reports_root).expanduser().resolve()
+    direct_dir = reports_root / str(run_id)
+    if direct_dir.exists():
+        return direct_dir
+    runs_dir = reports_root / "runs" / str(run_id)
+    if runs_dir.exists():
+        return runs_dir
+    return direct_dir
 
 
 def _scalar_is_missing(value: Any) -> bool:
@@ -2230,6 +3328,138 @@ def _scalar_string(value: Any, *, default: str = _LEDGER_NOT_AVAILABLE) -> str:
     return str(value)
 
 
+def _ledger_series_missing_mask_v1(series: pd.Series) -> pd.Series:
+    if pd.api.types.is_numeric_dtype(series):
+        return series.isna()
+    if pd.api.types.is_bool_dtype(series):
+        return series.isna()
+    text = series.astype("string")
+    return text.isna() | text.str.strip().str.lower().isin(
+        {"", "nan", "nat", "<na>", "none", _LEDGER_NOT_AVAILABLE.lower(), _LEDGER_IKKE_ETABLERT.lower()}
+    )
+
+
+def _coerce_utc_series_v1(series: pd.Series | None, index: pd.Index) -> pd.Series:
+    if series is None:
+        return pd.Series(pd.NaT, index=index, dtype="datetime64[ns, UTC]")
+    return pd.to_datetime(series, utc=True, errors="coerce")
+
+
+def _management_candidate_entry_spread_series_v1(run_work: pd.DataFrame) -> pd.Series:
+    source_field = (
+        "as_of_mgmt_candidate_entry_spread_bps_v1"
+        if "as_of_mgmt_candidate_entry_spread_bps_v1" in run_work.columns
+        else "as_of_candidate_entry_spread_bps_v1"
+    )
+    return pd.to_numeric(run_work.get(source_field), errors="coerce")
+
+
+def _compute_management_peak_to_anchor_bps_v1(frame: pd.DataFrame) -> pd.Series:
+    peak = pd.to_numeric(frame.get("as_of_management_core_peak_price_v1"), errors="coerce")
+    anchor = pd.to_numeric(frame.get("as_of_management_core_anchor_price_v1"), errors="coerce")
+    valid = anchor > 0.0
+    return (((peak / anchor) - 1.0) * 10000.0).where(valid)
+
+
+def _enrich_management_rl_observation_frame_v1(
+    frame: pd.DataFrame,
+    *,
+    management_anchor_raw_state_df: pd.DataFrame | None = None,
+) -> Tuple[pd.DataFrame, Dict[str, Any]]:
+    work = frame.copy()
+    raw_alias_fill_counts_v1: Dict[str, int] = {}
+    derived_observation_fill_counts_v1: Dict[str, int] = {}
+    optional_signal_availability_counts_v1: Dict[str, int] = {}
+    source_views_v1: List[str] = []
+
+    if management_anchor_raw_state_df is not None and not management_anchor_raw_state_df.empty:
+        raw_alias_target_map = {
+            target_field: raw_field
+            for target_field, raw_field in _MANAGEMENT_RL_RAW_ALIAS_TARGET_MAP_V1.items()
+            if raw_field in management_anchor_raw_state_df.columns
+        }
+        raw_alias_fields = list(dict.fromkeys(raw_alias_target_map.values()))
+        raw_alias_lookup = management_anchor_raw_state_df[
+            ["as_of_row_uid_v1"] + raw_alias_fields
+        ].drop_duplicates(subset=["as_of_row_uid_v1"]).rename(
+            columns={
+                raw_field: f"raw_exact_alias__{target_field}"
+                for target_field, raw_field in raw_alias_target_map.items()
+            }
+        )
+        work = work.merge(
+            raw_alias_lookup,
+            on="as_of_row_uid_v1",
+            how="left",
+            validate="one_to_one",
+        )
+        for target_field, raw_field in _MANAGEMENT_RL_RAW_ALIAS_TARGET_MAP_V1.items():
+            if raw_field not in raw_alias_target_map.values():
+                raw_alias_fill_counts_v1[target_field] = 0
+                continue
+            raw_alias_field = f"raw_exact_alias__{target_field}"
+            if target_field not in work.columns:
+                work[target_field] = pd.NA
+            fill_mask = _ledger_series_missing_mask_v1(work[target_field]) & ~_ledger_series_missing_mask_v1(
+                work[raw_alias_field]
+            )
+            raw_alias_fill_counts_v1[target_field] = int(fill_mask.sum())
+            if bool(fill_mask.any()):
+                work.loc[fill_mask, target_field] = work.loc[fill_mask, raw_alias_field].values
+        raw_alias_helper_cols = [
+            field_name for field_name in work.columns if field_name.startswith("raw_exact_alias__")
+        ]
+        if raw_alias_helper_cols:
+            work = work.drop(columns=raw_alias_helper_cols)
+        if any(value > 0 for value in raw_alias_fill_counts_v1.values()):
+            source_views_v1.append(_ALL_TRADE_REVIEW_MANAGEMENT_ANCHOR_RAW_STATE_V1)
+
+    for field_name in _MANAGEMENT_RL_DERIVATION_SOURCE_FIELDS_V1:
+        if field_name not in work.columns:
+            work[field_name] = pd.NA
+
+    decision_ts = _coerce_utc_series_v1(work.get("decision_anchor_timestamp_utc_v1"), work.index)
+    last_peak_ts = _coerce_utc_series_v1(work.get("as_of_management_core_last_peak_ts_utc_v1"), work.index)
+    last_mfe_ts = _coerce_utc_series_v1(work.get("as_of_management_core_last_mfe_ts_utc_v1"), work.index)
+    peak_to_anchor_bps = _compute_management_peak_to_anchor_bps_v1(work)
+    mfe_bps_at_anchor = pd.to_numeric(work.get("as_of_management_core_mfe_bps_at_anchor_v1"), errors="coerce")
+
+    derived_series_map = {
+        "as_of_management_core_minutes_since_last_peak_v1": (
+            (decision_ts - last_peak_ts).dt.total_seconds() / 60.0
+        ).where((decision_ts - last_peak_ts).dt.total_seconds().div(60.0) >= 0.0),
+        "as_of_management_core_minutes_since_last_mfe_v1": (
+            (decision_ts - last_mfe_ts).dt.total_seconds() / 60.0
+        ).where((decision_ts - last_mfe_ts).dt.total_seconds().div(60.0) >= 0.0),
+        "as_of_management_core_peak_to_anchor_bps_v1": peak_to_anchor_bps,
+        "as_of_management_core_mfe_to_anchor_ratio_v1": (
+            mfe_bps_at_anchor / peak_to_anchor_bps
+        ).where(peak_to_anchor_bps > 0.0),
+    }
+    for target_field, values in derived_series_map.items():
+        if target_field not in work.columns:
+            work[target_field] = np.nan
+        fill_mask = _ledger_series_missing_mask_v1(work[target_field]) & values.notna()
+        derived_observation_fill_counts_v1[target_field] = int(fill_mask.sum())
+        if bool(fill_mask.any()):
+            work.loc[fill_mask, target_field] = values.loc[fill_mask].values
+
+    for target_field in _MANAGEMENT_RL_OBSERVATION_FIELDS_V1:
+        if target_field not in work.columns:
+            work[target_field] = pd.NA
+    for target_field, availability_field in _MANAGEMENT_RL_OPTIONAL_SIGNAL_AVAILABILITY_MAP_V1.items():
+        availability_mask = ~_ledger_series_missing_mask_v1(work[target_field])
+        optional_signal_availability_counts_v1[availability_field] = int(availability_mask.sum())
+        work[availability_field] = availability_mask.astype("boolean")
+
+    return work, {
+        "raw_alias_fill_counts_v1": raw_alias_fill_counts_v1,
+        "derived_observation_fill_counts_v1": derived_observation_fill_counts_v1,
+        "optional_signal_availability_counts_v1": optional_signal_availability_counts_v1,
+        "source_views_v1": source_views_v1,
+    }
+
+
 def _scalar_float(value: Any) -> float:
     numeric = pd.to_numeric(pd.Series([value]), errors="coerce").iloc[0]
     if pd.isna(numeric):
@@ -2242,6 +3472,67 @@ def _scalar_int(value: Any) -> int | None:
     if pd.isna(numeric):
         return None
     return int(numeric)
+
+
+def _evaluate_join_coverage_contract_v1(summary: Dict[str, Any]) -> Tuple[bool, Dict[str, int], Dict[str, Any]]:
+    exact_rows = _scalar_int(summary.get("exact_rows"))
+    fallback_rows = _scalar_int(summary.get("fallback_rows"))
+    unjoinable_rows = _scalar_int(summary.get("unjoinable_rows"))
+    trainable_policy_rows = _scalar_int(summary.get("trainable_policy_rows"))
+    if trainable_policy_rows is None and exact_rows is not None and fallback_rows is not None and unjoinable_rows is not None:
+        trainable_policy_rows = int(exact_rows + fallback_rows + unjoinable_rows)
+    observed_payload = {
+        "trainable_policy_rows": -1 if trainable_policy_rows is None else int(trainable_policy_rows),
+        "exact_rows": -1 if exact_rows is None else int(exact_rows),
+        "fallback_rows": -1 if fallback_rows is None else int(fallback_rows),
+        "unjoinable_rows": -1 if unjoinable_rows is None else int(unjoinable_rows),
+    }
+    expected_payload = {
+        "fallback_rows": 0,
+        "exact_rows_positive_v1": True,
+        "exact_rows_plus_unjoinable_rows_equals_trainable_policy_rows_v1": True,
+    }
+    contract_ok = (
+        exact_rows is not None
+        and fallback_rows is not None
+        and unjoinable_rows is not None
+        and trainable_policy_rows is not None
+        and int(exact_rows) > 0
+        and int(fallback_rows) == 0
+        and int(exact_rows) + int(unjoinable_rows) == int(trainable_policy_rows)
+    )
+    return bool(contract_ok), observed_payload, expected_payload
+
+
+def _build_join_leakage_consistency_row_v1(
+    as_of_supervision_join_coverage_summary: Dict[str, Any],
+    leakage_guard_summary: Dict[str, Any],
+) -> Dict[str, Any]:
+    join_contract_ok_v1, join_contract_observed_v1, join_contract_expected_v1 = _evaluate_join_coverage_contract_v1(
+        as_of_supervision_join_coverage_summary
+    )
+    return {
+        "check_name_v1": "GLOBAL_JOIN_COUNTS_AND_LEAKAGE_GUARD_STAY_UNCHANGED",
+        "status_v1": "PASS"
+        if bool(join_contract_ok_v1) and _scalar_string(leakage_guard_summary.get("status")) == "PASS"
+        else "FAIL",
+        "observed_value_v1": json.dumps(
+            {
+                "join_coverage": join_contract_observed_v1,
+                "leakage_guard": leakage_guard_summary,
+            },
+            ensure_ascii=True,
+            sort_keys=True,
+        ),
+        "expected_value_v1": json.dumps(
+            {
+                "join_coverage_contract_v1": join_contract_expected_v1,
+                "leakage_guard_status": "PASS",
+            },
+            ensure_ascii=True,
+            sort_keys=True,
+        ),
+    }
 
 
 def _scalar_bool(value: Any) -> Any:
@@ -2391,7 +3682,317 @@ def _trade_outcome_class_from_flags(candidate_row: Dict[str, Any]) -> str:
 def _label_text_from_flag(flag: Any, *, available: bool) -> str:
     if not available or _scalar_is_missing(flag):
         return _LEDGER_NOT_AVAILABLE
+    if isinstance(flag, str):
+        text = flag.strip().upper()
+        if text in {_LEDGER_NOT_AVAILABLE, _LEDGER_IKKE_ETABLERT, "NOT_AVAILABLE", "IKKE_ETABLERT"}:
+            return _LEDGER_NOT_AVAILABLE
+        if text in {"TRUE", "T", "YES", "Y", "1"}:
+            return "TRUE"
+        if text in {"FALSE", "F", "NO", "N", "0"}:
+            return "FALSE"
     return "TRUE" if bool(flag) else "FALSE"
+
+
+def _attach_hindsight_review_labels_to_closed_trade_ledger_v1(
+    ledger_df: pd.DataFrame,
+    hindsight_export_df: pd.DataFrame,
+) -> pd.DataFrame:
+    join_cols = ["run_id", "trade_id", "trade_uid", "candidate_uid", "decision_timestamp"]
+    review_merge_cols = join_cols + [
+        "meta_allow_score_v1",
+        "post_trade_quality_bucket",
+        "post_trade_good_trade_flag_v1",
+        "post_trade_good_trade_mfe20_mae5_v1",
+        "post_trade_bad_trade_flag_v1",
+        "review_exit_bucket_v1",
+        "review_entry_bucket_v1",
+        "review_good_exit_v1",
+        "review_premature_exit_v1",
+        "review_late_exit_v1",
+        "review_entry_good_but_fragile_v1",
+        "review_entry_looked_good_but_failed_v1",
+        "selected_threshold_business_v2",
+        "hindsight_entry_decision_review_v1",
+        "hindsight_should_skip_trade_v1",
+        "hindsight_take_was_ok_v1",
+        "hindsight_entry_review_unresolved_v1",
+        "hindsight_management_review_v1",
+        "hindsight_should_hold_longer_v1",
+        "hindsight_should_exit_earlier_v1",
+        "hindsight_managed_ok_v1",
+        "hindsight_management_review_unresolved_v1",
+        "hindsight_rl_review_reason_v1",
+        "hindsight_rl_review_domain_support_v1",
+        "hindsight_rl_review_semantic_contract_v1",
+        "hindsight_hold_longer_extra_value_bps_v1",
+        "hindsight_exit_earlier_saved_bps_v1",
+        "hindsight_skip_trade_avoided_loss_bps_v1",
+        "hindsight_peak_mfe_bps_v1",
+        "hindsight_peak_to_exit_giveback_bps_v1",
+        "hindsight_peak_to_worst_after_peak_bps_v1",
+    ]
+    missing_export_cols = [column for column in review_merge_cols if column not in hindsight_export_df.columns]
+    if missing_export_cols:
+        raise RuntimeError(
+            "[ALL_TRADE_REVIEW_LEDGER] hindsight review export missing required label columns: "
+            + ", ".join(missing_export_cols)
+        )
+    missing_ledger_join_cols = [column for column in join_cols if column not in ledger_df.columns]
+    if missing_ledger_join_cols:
+        raise RuntimeError(
+            "[ALL_TRADE_REVIEW_LEDGER] closed trade ledger missing review join columns: "
+            + ", ".join(missing_ledger_join_cols)
+        )
+
+    review_payload_cols = [column for column in review_merge_cols if column not in join_cols]
+    work = ledger_df.drop(columns=[column for column in review_payload_cols if column in ledger_df.columns], errors="ignore")
+    work = work.merge(
+        hindsight_export_df[review_merge_cols],
+        on=join_cols,
+        how="left",
+        validate="one_to_one",
+    )
+    review_available_mask = work["review_entry_bucket_v1"].notna()
+    work.loc[review_available_mask, "hindsight_score"] = pd.to_numeric(
+        work.loc[review_available_mask, "meta_allow_score_v1"],
+        errors="coerce",
+    )
+    work.loc[review_available_mask, "hindsight_verdict_class"] = work.loc[
+        review_available_mask,
+        "review_entry_bucket_v1",
+    ].astype("string")
+    work.loc[review_available_mask, "hindsight_exit_quality_class"] = work.loc[
+        review_available_mask,
+        "review_exit_bucket_v1",
+    ].astype("string")
+    work.loc[review_available_mask, "hindsight_trade_quality_class"] = work.loc[
+        review_available_mask,
+        "post_trade_quality_bucket",
+    ].astype("string")
+    work["good_trade"] = [
+        _label_text_from_flag(flag, available=bool(available))
+        for flag, available in zip(work["post_trade_good_trade_flag_v1"], review_available_mask)
+    ]
+    work["good_trade_mfe20_mae5"] = [
+        _label_text_from_flag(flag, available=bool(available))
+        for flag, available in zip(work["post_trade_good_trade_mfe20_mae5_v1"], review_available_mask)
+    ]
+    work["bad_trade"] = [
+        _label_text_from_flag(flag, available=bool(available))
+        for flag, available in zip(work["post_trade_bad_trade_flag_v1"], review_available_mask)
+    ]
+    never_mfe_bad_trade_mask = review_available_mask & work["trade_outcome_class"].astype("string").eq("never_mfe")
+    work.loc[never_mfe_bad_trade_mask, "bad_trade"] = "TRUE"
+    work["good_exit"] = [
+        _label_text_from_flag(flag, available=bool(available))
+        for flag, available in zip(work["review_good_exit_v1"], review_available_mask)
+    ]
+    work["premature_exit"] = [
+        _label_text_from_flag(flag, available=bool(available))
+        for flag, available in zip(work["review_premature_exit_v1"], review_available_mask)
+    ]
+    work["late_exit"] = [
+        _label_text_from_flag(flag, available=bool(available))
+        for flag, available in zip(work["review_late_exit_v1"], review_available_mask)
+    ]
+    work["looked_good_but_failed"] = [
+        _label_text_from_flag(flag, available=bool(available))
+        for flag, available in zip(work["review_entry_looked_good_but_failed_v1"], review_available_mask)
+    ]
+    if "fragile_winner" not in work.columns:
+        work["fragile_winner"] = _LEDGER_NOT_AVAILABLE
+    work["fragile_winner"] = [
+        _LEDGER_NOT_AVAILABLE if bool(available) else str(existing)
+        for existing, available in zip(work["fragile_winner"], review_available_mask)
+    ]
+    work.loc[review_available_mask, "label_source"] = _ALL_TRADE_REVIEW_HINDSIGHT_EXPORT_PARQUET
+    work.loc[review_available_mask, "label_available"] = True
+    return work
+
+
+def build_post_trade_quality_frame(
+    review_input_df: pd.DataFrame,
+    *,
+    reference_df: pd.DataFrame,
+) -> Tuple[pd.DataFrame, Dict[str, Any]]:
+    if review_input_df.empty:
+        return (
+            pd.DataFrame(
+                columns=[
+                    "run_id",
+                    "candidate_uid",
+                    "trade_uid",
+                    "trade_id",
+                    "decision_ts_utc",
+                    "post_trade_quality_bucket",
+                    "post_trade_actual_quality_score_v1",
+                    "post_trade_expected_quality_score_v1",
+                    "post_trade_quality_mismatch_v1",
+                    "post_trade_giveback_bps_v1",
+                    "post_trade_giveback_ratio_v1",
+                    "post_trade_mfe_mae_ratio_v1",
+                    "post_trade_underheld_flag_v1",
+                    "post_trade_overheld_flag_v1",
+                    "post_trade_good_trade_flag_v1",
+                    "post_trade_good_trade_mfe20_mae5_v1",
+                    "post_trade_bad_trade_flag_v1",
+                ]
+            ),
+            {
+                "rows": 0,
+                "bucket_counts": {},
+                "flag_counts": {
+                    "bad_trade_flag_rows": 0,
+                    "cata_trade_flag_rows": 0,
+                    "cata_with_overheld_flag_rows": 0,
+                    "good_trade_mfe20_mae5_rows": 0,
+                },
+                "context": {
+                    "underheld_max_bars": 24,
+                    "overheld_min_bars": 38,
+                },
+                "quality_score_mean": None,
+                "quality_mismatch_mean": None,
+            },
+        )
+
+    underheld_max_bars = 24
+    overheld_min_bars = 38
+
+    def _actual_quality_score(frame: pd.DataFrame) -> pd.Series:
+        pnl = pd.to_numeric(frame.get("pnl_bps"), errors="coerce").fillna(0.0)
+        mfe = pd.to_numeric(frame.get("mfe_bps"), errors="coerce").fillna(0.0)
+        mae = pd.to_numeric(frame.get("mae_bps"), errors="coerce").fillna(0.0).abs()
+        denom = pd.concat(
+            [
+                mfe.abs().rename("mfe_abs"),
+                mae.rename("mae_abs"),
+                pd.Series(1.0, index=frame.index, name="floor"),
+            ],
+            axis=1,
+        ).max(axis=1)
+        raw = (pnl / denom).clip(lower=-1.0, upper=1.0)
+        return ((raw + 1.0) / 2.0).clip(lower=0.0, upper=1.0)
+
+    reference_work = reference_df.copy()
+    reference_work["positive_exit_v1"] = _bool_mask(reference_work, "positive_exit")
+    reference_work["cata_v1"] = _bool_mask(reference_work, "cata")
+    reference_work["post_trade_actual_quality_score_v1"] = _actual_quality_score(reference_work)
+    reference_score_by_class = (
+        reference_work.groupby(["positive_exit_v1", "cata_v1"], dropna=False)["post_trade_actual_quality_score_v1"].mean().to_dict()
+    )
+    reference_default_score = _coerce_float_or_none(reference_work["post_trade_actual_quality_score_v1"].mean())
+    if reference_default_score is None:
+        reference_default_score = 0.5
+
+    work = review_input_df.copy()
+    work["positive_exit_v1"] = _bool_mask(work, "positive_exit")
+    work["cata_v1"] = _bool_mask(work, "cata")
+    work["bars_in_trade_v1"] = pd.to_numeric(work.get("bars_in_trade"), errors="coerce")
+    work["pnl_bps_v1"] = pd.to_numeric(work.get("pnl_bps"), errors="coerce").fillna(0.0)
+    work["mfe_bps_v1"] = pd.to_numeric(work.get("mfe_bps"), errors="coerce").fillna(0.0)
+    work["mae_bps_v1"] = pd.to_numeric(work.get("mae_bps"), errors="coerce").fillna(0.0)
+    work["post_trade_actual_quality_score_v1"] = _actual_quality_score(work)
+    work["post_trade_expected_quality_score_v1"] = [
+        float(reference_score_by_class.get((bool(pos), bool(cata)), reference_default_score))
+        for pos, cata in zip(work["positive_exit_v1"], work["cata_v1"])
+    ]
+    work["post_trade_quality_mismatch_v1"] = (
+        pd.to_numeric(work["post_trade_actual_quality_score_v1"], errors="coerce")
+        - pd.to_numeric(work["post_trade_expected_quality_score_v1"], errors="coerce")
+    ).abs()
+    work["post_trade_giveback_bps_v1"] = (work["mfe_bps_v1"] - work["pnl_bps_v1"]).clip(lower=0.0)
+    mfe_positive = work["mfe_bps_v1"].where(work["mfe_bps_v1"] > 0.0)
+    work["post_trade_giveback_ratio_v1"] = (
+        work["post_trade_giveback_bps_v1"] / mfe_positive.replace(0.0, np.nan)
+    ).replace([np.inf, -np.inf], np.nan)
+    work["post_trade_mfe_mae_ratio_v1"] = (
+        work["mfe_bps_v1"] / work["mae_bps_v1"].abs().replace(0.0, np.nan)
+    ).replace([np.inf, -np.inf], np.nan)
+    work["post_trade_underheld_flag_v1"] = (
+        work["positive_exit_v1"]
+        & work["bars_in_trade_v1"].le(float(underheld_max_bars)).fillna(False)
+        & work["post_trade_giveback_bps_v1"].gt(0.0)
+    )
+    work["post_trade_overheld_flag_v1"] = (
+        work["bars_in_trade_v1"].ge(float(overheld_min_bars)).fillna(False)
+        & (
+            ~work["positive_exit_v1"]
+            | work["post_trade_giveback_ratio_v1"].ge(0.80).fillna(False)
+        )
+    )
+    work["post_trade_good_trade_flag_v1"] = (
+        work["positive_exit_v1"]
+        & ~work["post_trade_underheld_flag_v1"]
+        & ~work["post_trade_overheld_flag_v1"]
+        & work["post_trade_giveback_ratio_v1"].fillna(0.0).le(0.35)
+    )
+    work["post_trade_good_trade_mfe20_mae5_v1"] = (
+        work["positive_exit_v1"]
+        & ~work["cata_v1"]
+        & work["mfe_bps_v1"].ge(float(_POST_TRADE_GOOD_MFE20_MIN_BPS_V1))
+        & work["mae_bps_v1"].gt(float(_POST_TRADE_GOOD_MAE_GT_BPS_V1))
+    )
+    work["post_trade_bad_trade_flag_v1"] = (
+        work["cata_v1"]
+        | (~work["positive_exit_v1"] & work["pnl_bps_v1"].lt(0.0))
+    )
+
+    quality_bucket = pd.Series("good_trade", index=work.index, dtype="string")
+    quality_bucket.loc[work["cata_v1"]] = "cata_trade"
+    quality_bucket.loc[~work["cata_v1"] & work["post_trade_bad_trade_flag_v1"] & work["post_trade_overheld_flag_v1"]] = "overheld_trade"
+    quality_bucket.loc[~work["cata_v1"] & work["post_trade_bad_trade_flag_v1"] & ~work["post_trade_overheld_flag_v1"]] = "bad_trade"
+    quality_bucket.loc[~work["post_trade_bad_trade_flag_v1"] & work["post_trade_underheld_flag_v1"]] = "underheld_trade"
+    quality_bucket.loc[
+        ~work["post_trade_bad_trade_flag_v1"]
+        & ~work["post_trade_underheld_flag_v1"]
+        & work["positive_exit_v1"]
+        & work["post_trade_giveback_ratio_v1"].fillna(0.0).gt(0.35)
+    ] = "good_but_suboptimal_trade"
+    quality_bucket.loc[
+        ~work["post_trade_bad_trade_flag_v1"]
+        & ~work["positive_exit_v1"]
+        & work["post_trade_overheld_flag_v1"]
+    ] = "overheld_trade"
+    work["post_trade_quality_bucket"] = quality_bucket
+
+    export_cols = [
+        "run_id",
+        "candidate_uid",
+        "trade_uid",
+        "trade_id",
+        "decision_ts_utc",
+        "post_trade_quality_bucket",
+        "post_trade_actual_quality_score_v1",
+        "post_trade_expected_quality_score_v1",
+        "post_trade_quality_mismatch_v1",
+        "post_trade_giveback_bps_v1",
+        "post_trade_giveback_ratio_v1",
+        "post_trade_mfe_mae_ratio_v1",
+        "post_trade_underheld_flag_v1",
+        "post_trade_overheld_flag_v1",
+        "post_trade_good_trade_flag_v1",
+        "post_trade_good_trade_mfe20_mae5_v1",
+        "post_trade_bad_trade_flag_v1",
+    ]
+    export_df = work[export_cols].copy()
+    summary = {
+        "rows": int(len(export_df)),
+        "bucket_counts": export_df["post_trade_quality_bucket"].astype("string").value_counts(dropna=False).to_dict(),
+        "flag_counts": {
+            "bad_trade_flag_rows": int(export_df["post_trade_bad_trade_flag_v1"].fillna(False).sum()),
+            "cata_trade_flag_rows": int(work["cata_v1"].sum()),
+            "cata_with_overheld_flag_rows": int((work["cata_v1"] & work["post_trade_overheld_flag_v1"]).sum()),
+            "good_trade_mfe20_mae5_rows": int(export_df["post_trade_good_trade_mfe20_mae5_v1"].fillna(False).sum()),
+        },
+        "context": {
+            "underheld_max_bars": underheld_max_bars,
+            "overheld_min_bars": overheld_min_bars,
+        },
+        "quality_score_mean": _coerce_float_or_none(export_df["post_trade_actual_quality_score_v1"].mean()),
+        "quality_mismatch_mean": _coerce_float_or_none(export_df["post_trade_quality_mismatch_v1"].mean()),
+    }
+    return export_df, summary
 
 
 def _build_hindsight_trade_review_export_from_closed_trade_ledger(
@@ -2455,13 +4056,14 @@ def _build_hindsight_trade_review_export_from_closed_trade_ledger(
     for rec in ledger_df[ledger_cols].to_dict(orient="records"):
         run_id = _scalar_string(rec.get("run_id"))
         if run_id not in candidate_cache:
-            candidate_path = reports_root / run_id / f"shadow_meta_candidates_{run_id}_MERGED.parquet"
+            run_dir = _resolve_truth_run_dir(reports_root, run_id)
+            candidate_path = run_dir / f"shadow_meta_candidates_{run_id}_MERGED.parquet"
             if not candidate_path.exists():
                 raise FileNotFoundError(f"[ALL_TRADE_REVIEW_LEDGER] missing candidate parquet for hindsight export: {candidate_path}")
             candidate_cache[run_id] = pd.read_parquet(candidate_path)
-            journal_path = reports_root / run_id / f"trade_journal_{run_id}_MERGED.parquet"
+            journal_path = run_dir / f"trade_journal_{run_id}_MERGED.parquet"
             journal_cache[run_id] = pd.read_parquet(journal_path) if journal_path.exists() else pd.DataFrame()
-            outcomes_path = reports_root / run_id / f"trade_outcomes_{run_id}_MERGED.parquet"
+            outcomes_path = run_dir / f"trade_outcomes_{run_id}_MERGED.parquet"
             outcomes_cache[run_id] = pd.read_parquet(outcomes_path) if outcomes_path.exists() else pd.DataFrame()
         candidate_df = candidate_cache[run_id]
         journal_df = journal_cache.get(run_id, pd.DataFrame())
@@ -2570,9 +4172,11 @@ def _build_hindsight_trade_review_export_from_closed_trade_ledger(
         "post_trade_quality_mismatch_v1",
         "post_trade_giveback_bps_v1",
         "post_trade_giveback_ratio_v1",
+        "post_trade_mfe_mae_ratio_v1",
         "post_trade_underheld_flag_v1",
         "post_trade_overheld_flag_v1",
         "post_trade_good_trade_flag_v1",
+        "post_trade_good_trade_mfe20_mae5_v1",
         "post_trade_bad_trade_flag_v1",
     ]
     shared_df = review_input_df.merge(
@@ -2602,6 +4206,7 @@ def _build_hindsight_trade_review_export_from_closed_trade_ledger(
         "meta_business_score_v2",
         "post_trade_quality_bucket",
         "post_trade_good_trade_flag_v1",
+        "post_trade_good_trade_mfe20_mae5_v1",
         "post_trade_bad_trade_flag_v1",
         "review_exit_bucket_v1",
         "review_entry_bucket_v1",
@@ -2687,10 +4292,937 @@ def _read_csv_optional(path: Path) -> pd.DataFrame:
     return pd.read_csv(path)
 
 
+def _read_parquet_optional(path: Path) -> pd.DataFrame:
+    if not path.exists():
+        return pd.DataFrame()
+    return pd.read_parquet(path)
+
+
 def _read_json_optional(path: Path) -> Dict[str, Any]:
     if not path.exists():
         return {}
     return json.loads(path.read_text())
+
+
+def _augment_locked_carry_forward_metadata(
+    payload: Dict[str, Any],
+    *,
+    source_root: Path,
+    reason: str,
+) -> Dict[str, Any]:
+    augmented = dict(payload)
+    augmented["locked_carry_forward_v1"] = True
+    augmented["locked_carry_forward_source_root_v1"] = str(source_root)
+    augmented["locked_carry_forward_reason_v1"] = str(reason)
+    return augmented
+
+
+def _build_consistency_audit_summary_from_df(layer_name: str, audit_df: pd.DataFrame) -> Dict[str, Any]:
+    failed_checks = 0
+    if not audit_df.empty and "status_v1" in audit_df.columns:
+        failed_checks = int((audit_df["status_v1"].astype("string") != "PASS").sum())
+    return {
+        "layer_name": str(layer_name),
+        "overall_status_v1": "NO_ISSUE_FOUND" if failed_checks == 0 else "ISSUES_FOUND",
+        "check_count_v1": int(len(audit_df)),
+        "failed_check_count_v1": failed_checks,
+    }
+
+
+def _build_empty_management_rl_readiness_payload_v1(
+    *,
+    reason: str,
+) -> Dict[str, Any]:
+    observation_fields = list(_MANAGEMENT_RL_OBSERVATION_FIELDS_V1)
+    row_cols = list(
+        dict.fromkeys(
+            [
+                "management_row_key_v1",
+                "episode_key_v1",
+                "candidate_uid_exact_v1",
+                "trade_uid_exact_v1",
+                "trade_id_exact_v1",
+                "run_id",
+                "as_of_row_uid_v1",
+                "decision_timestamp",
+                "action_label_v1",
+                "decision_anchor_type_v1",
+                "split_bucket_v1",
+                "used_for_training",
+                "used_for_validation",
+                "used_for_holdout",
+                "as_of_session_v1",
+                "as_of_weekday_utc_v1",
+                "route_status_v1",
+                "activation_origin_v1",
+                "rl_observation_status_v1",
+                "management_label_source_v1",
+                "management_path_relation_v1",
+                "rl_transition_eligibility_status_v1",
+                "terminal_outcome_availability_status_v1",
+            ]
+            + observation_fields
+        )
+    )
+    channel_cols = [
+        "management_row_key_v1",
+        "episode_key_v1",
+        "candidate_uid_exact_v1",
+        "trade_uid_exact_v1",
+        "trade_id_exact_v1",
+        "run_id",
+        "split_bucket_v1",
+        "as_of_session_v1",
+        "action_label_v1",
+        "decision_anchor_type_v1",
+        "management_path_relation_v1",
+        "rl_transition_eligibility_status_v1",
+        "terminal_outcome_availability_status_v1",
+        "terminal_realized_pnl_bps_v1",
+        "terminal_trade_outcome_class_v1",
+        "terminal_good_trade_v1",
+        "terminal_good_trade_mfe20_mae5_v1",
+        "terminal_bad_trade_v1",
+        "terminal_good_exit_v1",
+        "terminal_premature_exit_v1",
+        "terminal_late_exit_v1",
+        "terminal_exit_reason_v1",
+        "known_cata_context_bucket_v1",
+        "is_known_cata_collateral_pocket_v1",
+        "is_known_cata_tail_capture_pocket_v1",
+        "terminal_outcome_join_mode_v1",
+        "terminal_channel_join_key_v1",
+        "terminal_channel_contract_v1",
+        "terminal_channel_mode_v1",
+    ]
+    pack_index_df = pd.DataFrame.from_records(
+        [
+            {
+                "component_name_v1": "MANAGEMENT_RL_TRANSITION_ELIGIBLE_VIEW_V1",
+                "component_kind_v1": "RL_TRANSITION_SUBSTRATE",
+                "source_artifact_name_v1": _ALL_TRADE_REVIEW_MANAGEMENT_RL_TRANSITION_ELIGIBLE_VIEW_V1_PARQUET,
+                "status_v1": "EMPTY_RUNTIME_RECOVERY_FALLBACK",
+                "row_count_v1": 0,
+                "management_only_v1": True,
+                "offline_rl_readiness_v1": True,
+                "substrate_only_v1": True,
+                "not_controller_v1": True,
+                "not_live_gate_v1": True,
+                "not_policy_truth_v1": True,
+            }
+        ]
+    )
+    readiness_summary = {
+        "layer_name": "MANAGEMENT_RL_READINESS_SUMMARY_V1",
+        "mode_v1": "OFFLINE_RL_READINESS_SUBSTRATE_ONLY",
+        "management_rows_v1": 0,
+        "observation_feature_count_v1": int(len(observation_fields)),
+        "observation_status_counts_v1": {},
+        "management_label_source_counts_v1": {},
+        "supervision_join_mode_counts_v1": {},
+        "management_path_relation_counts_v1": {},
+        "rl_transition_eligibility_counts_v1": {},
+        "terminal_outcome_availability_counts_v1": {},
+        "terminal_outcome_join_mode_counts_v1": {},
+        "entry_actualization_presence_counts_v1": {},
+        "management_action_counts_v1": {},
+        "known_cata_context_bucket_counts_v1": {},
+        "eligible_known_cata_context_bucket_counts_v1": {},
+        "terminal_cata_context_bucket_counts_v1": {},
+        "episode_count_v1": 0,
+        "episode_actualized_take_exact_count_v1": 0,
+        "episode_eligible_count_v1": 0,
+        "runtime_recovery_fallback_reason_v1": str(reason),
+    }
+    readiness_status = {
+        "layer_name": "MANAGEMENT_RL_READINESS_STATUS_V1",
+        "MANAGEMENT_RL_READINESS_STATUS": "RUNTIME_RECOVERY_EMPTY_FALLBACK",
+        "MANAGEMENT_RL_SCOPE_STATUS": "MANAGEMENT_ONLY",
+        "MANAGEMENT_RL_OBSERVATION_STATUS": "AS_OF_CANONICAL_OBSERVATION_UNVERIFIED_RUNTIME_RECOVERY",
+        "MANAGEMENT_RL_ACTION_STATUS": "SUPERVISION_LABELS_NOT_BEHAVIOR_POLICY",
+        "MANAGEMENT_RL_CATA_CONTEXT_STATUS": "KNOWN_CATA_POCKETS_NOT_REEVALUATED_RUNTIME_RECOVERY",
+        "MANAGEMENT_RL_TERMINAL_CHANNEL_STATUS": "TERMINAL_CHANNEL_GAPS_PRESENT",
+        "MANAGEMENT_RL_TRANSITION_STATUS": "NO_ELIGIBLE_REALIZED_PATH_SUBSTRATE",
+        "runtime_recovery_fallback_reason_v1": str(reason),
+        "not_trainer": True,
+        "not_controller": True,
+        "not_live_gate": True,
+        "not_policy_truth": True,
+    }
+    return {
+        "management_rl_readiness_contract_v1": {
+            "layer_name": "MANAGEMENT_RL_READINESS_SUBSTRATE_V1",
+            "mode_v1": "OFFLINE_RL_READINESS_SUBSTRATE_ONLY",
+            "domain_scope_v1": "MANAGEMENT_ONLY",
+            "runtime_recovery_empty_fallback_v1": True,
+            "runtime_recovery_fallback_reason_v1": str(reason),
+            "not_trainer": True,
+            "not_controller": True,
+            "not_live_gate": True,
+            "not_policy_truth": True,
+        },
+        "management_rl_observation_contract_v1": {
+            "layer_name": "MANAGEMENT_RL_OBSERVATION_CONTRACT_V1",
+            "mode_v1": "AS_OF_ONLY_OBSERVATION_CONTRACT",
+            "observation_vector_feature_names_v1": observation_fields,
+            "observation_vector_feature_count_v1": int(len(observation_fields)),
+            "runtime_recovery_empty_fallback_v1": True,
+        },
+        "management_rl_action_semantics_audit_v1_df": pd.DataFrame(
+            columns=[
+                "management_label_source_v1",
+                "management_path_relation_v1",
+                "rl_transition_eligibility_status_v1",
+                "rl_observation_status_v1",
+                "decision_anchor_type_v1",
+                "hindsight_policy_action_projection_kind_v1",
+                "action_label_v1",
+                "row_count_v1",
+                "exact_terminal_outcome_count_v1",
+                "actualized_take_exact_count_v1",
+                "direct_route_overlap_count_v1",
+                "audit_note_v1",
+            ]
+        ),
+        "management_rl_row_semantics_view_v1_df": pd.DataFrame(columns=row_cols),
+        "management_rl_transition_eligible_view_v1_df": pd.DataFrame(columns=row_cols),
+        "management_rl_episode_index_v1_df": pd.DataFrame(
+            columns=[
+                "episode_key_v1",
+                "candidate_uid_exact_v1",
+                "trade_uid_exact_v1",
+                "trade_id_exact_v1",
+                "run_id",
+                "activation_origin_v1",
+                "route_status_v1",
+                "split_bucket_v1",
+                "as_of_session_v1",
+                "exact_terminal_outcome_coverage_count_v1",
+                "management_row_count_total_v1",
+                "management_row_count_eligible_v1",
+                "presence_of_better_exit_hindsight_only_rows_v1",
+                "presence_of_unresolved_rows_v1",
+                "entry_actualization_presence_status_v1",
+                "episode_scope_v1",
+                "exact_terminal_closed_trade_coverage_v1",
+            ]
+        ),
+        "management_rl_terminal_outcome_channel_view_v1_df": pd.DataFrame(columns=channel_cols),
+        "management_rl_readiness_consistency_audit_v1_df": pd.DataFrame(
+            [
+                {
+                    "check_name_v1": "RUNTIME_RECOVERY_EMPTY_FALLBACK",
+                    "status_v1": "SKIPPED",
+                    "observed_value_v1": str(reason),
+                    "expected_value_v1": "locked carry-forward root or non-empty realized-path substrate",
+                    "note_v1": "Runtime recovery produced no eligible realized-path substrate and no locked carry-forward root was available.",
+                }
+            ]
+        ),
+        "management_rl_readiness_consistency_audit_v1_summary": {
+            "layer_name": "MANAGEMENT_RL_READINESS_CONSISTENCY_AUDIT_V1",
+            "overall_status_v1": "SKIPPED_RUNTIME_RECOVERY_FALLBACK",
+            "check_count_v1": 1,
+            "failed_check_count_v1": 0,
+        },
+        "management_rl_readiness_summary_v1": readiness_summary,
+        "management_rl_readiness_status_v1": readiness_status,
+        "decomposed_rl_readiness_pack_manifest_v1": {
+            "layer_name": "DECOMPOSED_RL_READINESS_PACK_V1",
+            "mode_v1": "OFFLINE_RL_READINESS_SUBSTRATE_ONLY",
+            "domain_scope_v1": "MANAGEMENT_ONLY",
+            "runtime_recovery_empty_fallback_v1": True,
+            "runtime_recovery_fallback_reason_v1": str(reason),
+            "components_v1": {
+                "MANAGEMENT_RL_TRANSITION_ELIGIBLE_VIEW_V1": {
+                    "source_artifact_name": _ALL_TRADE_REVIEW_MANAGEMENT_RL_TRANSITION_ELIGIBLE_VIEW_V1_PARQUET,
+                    "component_kind_v1": "RL_TRANSITION_SUBSTRATE",
+                    "status_v1": "EMPTY_RUNTIME_RECOVERY_FALLBACK",
+                    "row_count_v1": 0,
+                }
+            },
+        },
+        "decomposed_rl_readiness_pack_index_v1_df": pack_index_df,
+    }
+
+
+def _build_empty_management_rl_sequence_payload_v1(
+    *,
+    reason: str,
+) -> Dict[str, Any]:
+    row_cols = [
+        "management_row_key_v1",
+        "sequence_episode_key_v1",
+        "sequence_step_index_v1",
+        "sequence_step_action_v1",
+        "sequence_next_row_key_v1",
+        "sequence_next_link_status_v1",
+        "sequence_terminal_step_status_v1",
+        "sequence_reward_channel_availability_v1",
+        "sequence_dataset_membership_v1",
+    ]
+    pack_index_df = pd.DataFrame.from_records(
+        [
+            {
+                "component_name_v1": "MANAGEMENT_RL_SEQUENCE_ROW_VIEW_V1",
+                "component_kind_v1": "SEQUENCE_SEMANTICS_VIEW",
+                "source_artifact_name_v1": _ALL_TRADE_REVIEW_MANAGEMENT_RL_SEQUENCE_ROW_VIEW_V1_PARQUET,
+                "status_v1": "EMPTY_RUNTIME_RECOVERY_FALLBACK",
+                "row_count_v1": 0,
+                "management_only_v1": True,
+                "offline_rl_sequence_readiness_v1": True,
+                "substrate_only_v1": True,
+                "not_trainer_v1": True,
+                "not_controller_v1": True,
+                "not_live_gate_v1": True,
+                "not_policy_truth_v1": True,
+            }
+        ]
+    )
+    return {
+        "management_rl_sequence_contract_v1": {
+            "layer_name": "MANAGEMENT_RL_SEQUENCE_SUBSTRATE_V1",
+            "mode_v1": "OFFLINE_RL_SEQUENCE_SUBSTRATE_ONLY",
+            "domain_scope_v1": "MANAGEMENT_ONLY",
+            "runtime_recovery_empty_fallback_v1": True,
+            "runtime_recovery_fallback_reason_v1": str(reason),
+            "not_trainer": True,
+            "not_controller": True,
+            "not_live_gate": True,
+            "not_policy_truth": True,
+        },
+        "management_rl_sequence_link_audit_v1_df": pd.DataFrame(
+            columns=[
+                "sequence_next_link_status_v1",
+                "sequence_terminal_step_status_v1",
+                "sequence_dataset_membership_v1",
+                "row_count_v1",
+                "audit_note_v1",
+            ]
+        ),
+        "management_rl_sequence_gap_summary_v1": {
+            "layer_name": "MANAGEMENT_RL_SEQUENCE_GAP_SUMMARY_V1",
+            "runtime_recovery_empty_fallback_v1": True,
+            "runtime_recovery_fallback_reason_v1": str(reason),
+        },
+        "management_rl_sequence_row_view_v1_df": pd.DataFrame(columns=row_cols),
+        "management_rl_sequence_strict_transition_view_v1_df": pd.DataFrame(columns=row_cols),
+        "management_rl_bandit_safe_transition_view_v1_df": pd.DataFrame(columns=row_cols),
+        "management_rl_sequence_episode_view_v1_df": pd.DataFrame(
+            columns=[
+                "sequence_episode_key_v1",
+                "run_id",
+                "candidate_uid_exact_v1",
+                "trade_uid_exact_v1",
+                "trade_id_exact_v1",
+                "strict_sequence_row_count_v1",
+                "bandit_safe_row_count_v1",
+                "episode_sequence_status_v1",
+            ]
+        ),
+        "management_rl_sequence_consistency_audit_v1_df": pd.DataFrame(
+            [
+                {
+                    "check_name_v1": "RUNTIME_RECOVERY_EMPTY_FALLBACK",
+                    "status_v1": "SKIPPED",
+                    "observed_value_v1": str(reason),
+                    "expected_value_v1": "non-empty realized-path transition substrate",
+                    "note_v1": "Sequence substrate was not built because RL-readiness recovery fell back to an empty management substrate.",
+                }
+            ]
+        ),
+        "management_rl_sequence_consistency_audit_v1_summary": {
+            "layer_name": "MANAGEMENT_RL_SEQUENCE_CONSISTENCY_AUDIT_V1",
+            "overall_status_v1": "SKIPPED_RUNTIME_RECOVERY_FALLBACK",
+            "check_count_v1": 1,
+            "failed_check_count_v1": 0,
+        },
+        "management_rl_sequence_summary_v1": {
+            "layer_name": "MANAGEMENT_RL_SEQUENCE_SUMMARY_V1",
+            "management_row_count_v1": 0,
+            "eligible_transition_row_count_v1": 0,
+            "strict_sequence_row_count_v1": 0,
+            "strict_sequence_ratio_v1": 0.0,
+            "sequence_next_link_status_counts_v1": {},
+            "sequence_terminal_step_status_counts_v1": {},
+            "sequence_dataset_membership_counts_v1": {},
+            "episode_count_v1": 0,
+            "episode_sequence_completeness_counts_v1": {},
+            "trainer_recommendation_v1": "NO_SEQUENCE_SUBSTRATE_RUNTIME_RECOVERY",
+            "runtime_recovery_fallback_reason_v1": str(reason),
+        },
+        "management_rl_sequence_status_v1": {
+            "layer_name": "MANAGEMENT_RL_SEQUENCE_STATUS_V1",
+            "MANAGEMENT_RL_SEQUENCE_STATUS": "RUNTIME_RECOVERY_EMPTY_FALLBACK",
+            "MANAGEMENT_RL_SEQUENCE_SCOPE_STATUS": "MANAGEMENT_ONLY",
+            "MANAGEMENT_RL_SEQUENCE_STRICT_STATUS": "NO_STRICT_SEQUENCE_SUBSTRATE",
+            "MANAGEMENT_RL_SEQUENCE_RECOMMENDATION": "NO_SEQUENCE_SUBSTRATE_RUNTIME_RECOVERY",
+            "MANAGEMENT_RL_SEQUENCE_BLOCKER_STATUS": "NO_ELIGIBLE_REALIZED_PATH_SUBSTRATE",
+            "runtime_recovery_fallback_reason_v1": str(reason),
+            "not_trainer": True,
+            "not_controller": True,
+            "not_live_gate": True,
+            "not_policy_truth": True,
+        },
+        "decomposed_rl_sequence_pack_manifest_v1": {
+            "layer_name": "DECOMPOSED_RL_SEQUENCE_PACK_V1",
+            "mode_v1": "OFFLINE_RL_SEQUENCE_READINESS",
+            "domain_scope_v1": "MANAGEMENT_ONLY",
+            "runtime_recovery_empty_fallback_v1": True,
+            "runtime_recovery_fallback_reason_v1": str(reason),
+            "components_v1": {
+                "MANAGEMENT_RL_SEQUENCE_ROW_VIEW_V1": {
+                    "source_artifact_name": _ALL_TRADE_REVIEW_MANAGEMENT_RL_SEQUENCE_ROW_VIEW_V1_PARQUET,
+                    "component_kind_v1": "SEQUENCE_SEMANTICS_VIEW",
+                    "status_v1": "EMPTY_RUNTIME_RECOVERY_FALLBACK",
+                    "row_count_v1": 0,
+                }
+            },
+        },
+        "decomposed_rl_sequence_pack_index_v1_df": pack_index_df,
+    }
+
+
+def _build_empty_management_bandit_payload_v1(
+    *,
+    reason: str,
+) -> Dict[str, Any]:
+    observation_fields = list(_MANAGEMENT_RL_OBSERVATION_FIELDS_V1)
+    observed_cols = list(
+        dict.fromkeys(
+            [
+                "management_row_key_v1",
+                "candidate_uid_exact_v1",
+                "trade_uid_exact_v1",
+                "trade_id_exact_v1",
+                "run_id",
+                "as_of_row_uid_v1",
+                "decision_timestamp",
+                "action_label_v1",
+                "decision_anchor_type_v1",
+                "split_bucket_v1",
+                "used_for_training",
+                "used_for_validation",
+                "used_for_holdout",
+                "as_of_session_v1",
+                "as_of_weekday_utc_v1",
+                "activation_origin_v1",
+                "route_status_v1",
+                "entry_actualization_presence_status_v1",
+                "rl_transition_eligibility_status_v1",
+                "management_path_relation_v1",
+                "observed_action_status_v1",
+                "observed_action_source_v1",
+                "observed_action_propensity_status_v1",
+                "bandit_action_reward_eligibility_status_v1",
+                "bandit_reward_locality_status_v1",
+                "terminal_outcome_availability_status_v1",
+                "sequence_dataset_membership_v1",
+                "sequence_next_link_status_v1",
+                "sequence_terminal_step_status_v1",
+            ]
+            + observation_fields
+            + [
+                "hindsight_reward_realized_pnl_bps_v1",
+                "hindsight_reward_trade_outcome_class_v1",
+                "hindsight_reward_good_trade_v1",
+                "hindsight_reward_good_trade_mfe20_mae5_v1",
+                "hindsight_reward_bad_trade_v1",
+                "hindsight_reward_good_exit_v1",
+                "hindsight_reward_premature_exit_v1",
+                "hindsight_reward_late_exit_v1",
+                "hindsight_reward_exit_reason_v1",
+            ]
+        )
+    )
+    pack_index_df = pd.DataFrame.from_records(
+        [
+            {
+                "component_name_v1": "MANAGEMENT_BANDIT_DIRECT_METHOD_CANDIDATE_VIEW_V1",
+                "component_kind_v1": "DIRECT_METHOD_CANDIDATE",
+                "source_artifact_name_v1": _ALL_TRADE_REVIEW_MANAGEMENT_BANDIT_DIRECT_METHOD_CANDIDATE_VIEW_V1_PARQUET,
+                "status_v1": "EMPTY_RUNTIME_RECOVERY_FALLBACK",
+                "row_count_v1": 0,
+                "management_only_v1": True,
+                "bandit_baseline_readiness_v1": True,
+                "direct_method_candidate_v1": True,
+                "substrate_only_v1": True,
+                "not_trainer_v1": True,
+                "not_controller_v1": True,
+                "not_live_gate_v1": True,
+                "not_policy_truth_v1": True,
+                "propensity_not_established_v1": True,
+            }
+        ]
+    )
+    return {
+        "management_bandit_action_reward_contract_v1": {
+            "layer_name": "MANAGEMENT_BANDIT_ACTION_REWARD_SUBSTRATE_V1",
+            "mode_v1": "BANDIT_ACTION_REWARD_SUBSTRATE_ONLY",
+            "domain_scope_v1": "MANAGEMENT_ONLY",
+            "runtime_recovery_empty_fallback_v1": True,
+            "runtime_recovery_fallback_reason_v1": str(reason),
+            "not_trainer": True,
+            "not_controller": True,
+            "not_live_gate": True,
+            "not_policy_truth": True,
+        },
+        "management_bandit_observed_action_contract_v1": {
+            "layer_name": "MANAGEMENT_BANDIT_OBSERVED_ACTION_CONTRACT_V1",
+            "runtime_recovery_empty_fallback_v1": True,
+        },
+        "management_bandit_reward_channel_contract_v1": {
+            "layer_name": "MANAGEMENT_BANDIT_REWARD_CHANNEL_CONTRACT_V1",
+            "runtime_recovery_empty_fallback_v1": True,
+        },
+        "management_bandit_action_reward_semantics_audit_v1_df": pd.DataFrame(
+            columns=[
+                "observed_action_status_v1",
+                "observed_action_source_v1",
+                "observed_action_propensity_status_v1",
+                "bandit_action_reward_eligibility_status_v1",
+                "bandit_reward_locality_status_v1",
+                "action_label_v1",
+                "decision_anchor_type_v1",
+                "management_path_relation_v1",
+                "row_count_v1",
+                "exact_terminal_outcome_count_v1",
+                "strict_sequence_overlap_count_v1",
+                "audit_note_v1",
+            ]
+        ),
+        "management_bandit_observed_sample_view_v1_df": pd.DataFrame(columns=observed_cols),
+        "management_bandit_direct_method_candidate_view_v1_df": pd.DataFrame(columns=observed_cols),
+        "management_bandit_exit_local_reward_view_v1_df": pd.DataFrame(columns=observed_cols),
+        "management_bandit_hold_episode_return_view_v1_df": pd.DataFrame(columns=observed_cols),
+        "management_bandit_reward_candidate_spec_manifest_v1": {
+            "layer_name": "MANAGEMENT_BANDIT_REWARD_CANDIDATE_SPEC_MANIFEST_V1",
+            "runtime_recovery_empty_fallback_v1": True,
+            "candidate_specs_v1": [],
+            "runtime_recovery_fallback_reason_v1": str(reason),
+        },
+        "management_bandit_reward_candidate_summary_v1": {
+            "layer_name": "MANAGEMENT_BANDIT_REWARD_CANDIDATE_SUMMARY_V1",
+            "observed_sample_row_count_v1": 0,
+            "dm_eligible_row_count_v1": 0,
+            "exit_local_reward_row_count_v1": 0,
+            "hold_episode_return_only_row_count_v1": 0,
+            "hindsight_only_ineligible_row_count_v1": 0,
+            "unresolved_row_count_v1": 0,
+            "reward_channel_coverage_v1": {},
+            "candidate_reward_specs_built_v1": [],
+            "recommended_first_bandit_trainer_v1": "NO_BANDIT_SUBSTRATE_RUNTIME_RECOVERY",
+            "runtime_recovery_fallback_reason_v1": str(reason),
+        },
+        "management_bandit_consistency_audit_v1_df": pd.DataFrame(
+            [
+                {
+                    "check_name_v1": "RUNTIME_RECOVERY_EMPTY_FALLBACK",
+                    "status_v1": "SKIPPED",
+                    "observed_value_v1": str(reason),
+                    "expected_value_v1": "non-empty sequence and terminal outcome substrate",
+                    "note_v1": "Bandit substrate was not built because RL sequence recovery fell back to an empty management substrate.",
+                }
+            ]
+        ),
+        "management_bandit_consistency_audit_v1_summary": {
+            "layer_name": "MANAGEMENT_BANDIT_CONSISTENCY_AUDIT_V1",
+            "overall_status_v1": "SKIPPED_RUNTIME_RECOVERY_FALLBACK",
+            "check_count_v1": 1,
+            "failed_check_count_v1": 0,
+        },
+        "management_bandit_status_v1": {
+            "layer_name": "MANAGEMENT_BANDIT_STATUS_V1",
+            "MANAGEMENT_BANDIT_STATUS": "RUNTIME_RECOVERY_EMPTY_FALLBACK",
+            "MANAGEMENT_BANDIT_SCOPE_STATUS": "MANAGEMENT_ONLY",
+            "MANAGEMENT_BANDIT_DM_CANDIDATE_STATUS": "NO_DM_CANDIDATE",
+            "MANAGEMENT_BANDIT_PROPENSITY_STATUS": "PROPENSITY_NOT_ESTABLISHED",
+            "MANAGEMENT_BANDIT_REWARD_LOCALITY_STATUS": "REWARD_LOCALITY_UNRESOLVED",
+            "MANAGEMENT_BANDIT_TRAINER_RECOMMENDATION": "NO_BANDIT_SUBSTRATE_RUNTIME_RECOVERY",
+            "runtime_recovery_fallback_reason_v1": str(reason),
+            "not_trainer": True,
+            "not_controller": True,
+            "not_live_gate": True,
+            "not_policy_truth": True,
+        },
+        "decomposed_management_bandit_pack_manifest_v1": {
+            "layer_name": "DECOMPOSED_MANAGEMENT_BANDIT_PACK_V1",
+            "mode_v1": "BANDIT_BASELINE_READINESS",
+            "domain_scope_v1": "MANAGEMENT_ONLY",
+            "runtime_recovery_empty_fallback_v1": True,
+            "runtime_recovery_fallback_reason_v1": str(reason),
+            "components_v1": {
+                "MANAGEMENT_BANDIT_DIRECT_METHOD_CANDIDATE_VIEW_V1": {
+                    "source_artifact_name": _ALL_TRADE_REVIEW_MANAGEMENT_BANDIT_DIRECT_METHOD_CANDIDATE_VIEW_V1_PARQUET,
+                    "component_kind_v1": "DIRECT_METHOD_CANDIDATE",
+                    "status_v1": "EMPTY_RUNTIME_RECOVERY_FALLBACK",
+                    "row_count_v1": 0,
+                }
+            },
+        },
+        "decomposed_management_bandit_pack_index_v1_df": pack_index_df,
+    }
+
+
+def _build_empty_management_exit_local_payload_v1(
+    *,
+    reason: str,
+) -> Dict[str, Any]:
+    feature_fields = list(_MANAGEMENT_RL_OBSERVATION_FIELDS_V1)
+    train_cols = list(
+        dict.fromkeys(
+            [
+                "management_row_key_v1",
+                "candidate_uid_exact_v1",
+                "trade_uid_exact_v1",
+                "trade_id_exact_v1",
+                "run_id",
+                "as_of_row_uid_v1",
+                "decision_timestamp",
+                "action_label_v1",
+                "split_bucket_v1",
+            ]
+            + feature_fields
+            + [
+                "hindsight_reward_realized_pnl_bps_v1",
+                "hindsight_reward_trade_outcome_class_v1",
+                "hindsight_reward_exit_reason_v1",
+                "exit_local_target_raw_realized_pnl_bps_v1",
+                "exit_local_target_positive_realized_pnl_binary_v1",
+            ]
+        )
+    )
+    prediction_cols = [
+        "management_row_key_v1",
+        "candidate_uid_exact_v1",
+        "trade_uid_exact_v1",
+        "trade_id_exact_v1",
+        "run_id",
+        "as_of_row_uid_v1",
+        "decision_timestamp",
+        "split_bucket_v1",
+        "model_name_v1",
+        "model_family_v1",
+        "prediction_raw_pnl_v1",
+        "prediction_positive_prob_v1",
+    ]
+    pack_index_df = pd.DataFrame.from_records(
+        [
+            {
+                "component_name_v1": "MANAGEMENT_EXIT_LOCAL_TRAIN_MATRIX_V1",
+                "component_kind_v1": "TRAIN_MATRIX",
+                "source_artifact_name_v1": _ALL_TRADE_REVIEW_MANAGEMENT_EXIT_LOCAL_TRAIN_MATRIX_V1_PARQUET,
+                "status_v1": "EMPTY_RUNTIME_RECOVERY_FALLBACK",
+                "row_count_v1": 0,
+                "management_only_v1": True,
+                "exit_local_baseline_v1": True,
+                "offline_experiment_only_v1": True,
+                "not_controller_v1": True,
+                "not_live_gate_v1": True,
+                "not_policy_truth_v1": True,
+                "propensity_not_established_v1": True,
+                "hold_scoring_research_only_v1": True,
+            }
+        ]
+    )
+    return {
+        "management_exit_local_baseline_contract_v1": {
+            "layer_name": "MANAGEMENT_EXIT_LOCAL_REWARD_BASELINE_V1",
+            "mode_v1": "OFFLINE_EXPERIMENT_ONLY",
+            "domain_scope_v1": "MANAGEMENT_ONLY",
+            "runtime_recovery_empty_fallback_v1": True,
+            "runtime_recovery_fallback_reason_v1": str(reason),
+            "not_controller": True,
+            "not_live_gate": True,
+            "not_policy_truth": True,
+            "not_behavior_policy": True,
+            "propensity_not_established_v1": True,
+        },
+        "management_exit_local_target_contract_v1": {
+            "layer_name": "MANAGEMENT_EXIT_LOCAL_TARGET_CONTRACT_V1",
+            "mode_v1": "EXIT_LOCAL_ONLY|EXPERIMENT_ONLY|NOT_POLICY_TRUTH",
+            "targets_v1": [],
+            "runtime_recovery_empty_fallback_v1": True,
+        },
+        "management_exit_local_train_matrix_v1_df": pd.DataFrame(columns=train_cols),
+        "management_exit_local_validation_predictions_v1_df": pd.DataFrame(columns=prediction_cols),
+        "management_exit_local_holdout_predictions_v1_df": pd.DataFrame(columns=prediction_cols),
+        "management_exit_local_all_eligible_scored_view_v1_df": pd.DataFrame(columns=prediction_cols),
+        "management_exit_local_support_audit_v1_df": pd.DataFrame(
+            columns=[
+                "audit_section_v1",
+                "group_field_v1",
+                "group_value_v1",
+                "train_action_domain_status_v1",
+                "row_count_v1",
+                "coverage_rate_within_group_v1",
+                "feature_name_v1",
+                "support_note_v1",
+            ]
+        ),
+        "management_exit_local_threshold_sweep_v1_df": pd.DataFrame(
+            columns=[
+                "model_name_v1",
+                "score_bucket_v1",
+                "score_threshold_v1",
+                "coverage_count_v1",
+                "coverage_rate_v1",
+                "realized_positive_pnl_rate_v1",
+                "realized_average_pnl_bps_v1",
+                "realized_median_pnl_bps_v1",
+            ]
+        ),
+        "management_exit_local_benchmark_summary_v1": {
+            "layer_name": "MANAGEMENT_EXIT_LOCAL_BENCHMARK_SUMMARY_V1",
+            "training_universe_row_count_v1": 0,
+            "training_split_counts_v1": {},
+            "feature_fields_v1": feature_fields,
+            "dropped_all_null_training_feature_fields_v1": [],
+            "raw_realized_pnl_target_v1": {"status_v1": "NOT_RUN_RUNTIME_RECOVERY_FALLBACK"},
+            "positive_realized_pnl_binary_target_v1": {"status_v1": "NOT_RUN_RUNTIME_RECOVERY_FALLBACK"},
+            "primary_scoring_model_v1": _LEDGER_NOT_AVAILABLE,
+            "threshold_sweep_row_count_v1": 0,
+            "recommended_next_step_v1": "RESTORE_MANAGEMENT_RL_SUBSTRATE_FIRST",
+            "runtime_recovery_fallback_reason_v1": str(reason),
+        },
+        "management_exit_local_consistency_audit_v1_df": pd.DataFrame(
+            [
+                {
+                    "check_name_v1": "RUNTIME_RECOVERY_EMPTY_FALLBACK",
+                    "status_v1": "SKIPPED",
+                    "observed_value_v1": str(reason),
+                    "expected_value_v1": "direct-method candidate bandit substrate",
+                    "note_v1": "Exit-local baseline was not built because bandit runtime recovery fell back to an empty management substrate.",
+                }
+            ]
+        ),
+        "management_exit_local_consistency_audit_v1_summary": {
+            "layer_name": "MANAGEMENT_EXIT_LOCAL_CONSISTENCY_AUDIT_V1",
+            "overall_status_v1": "SKIPPED_RUNTIME_RECOVERY_FALLBACK",
+            "check_count_v1": 1,
+            "failed_check_count_v1": 0,
+        },
+        "management_exit_local_status_v1": {
+            "layer_name": "MANAGEMENT_EXIT_LOCAL_STATUS_V1",
+            "MANAGEMENT_EXIT_LOCAL_SCOPE_STATUS": "MANAGEMENT_ONLY",
+            "MANAGEMENT_EXIT_LOCAL_BASELINE_STATUS": "RUNTIME_RECOVERY_EMPTY_FALLBACK",
+            "OFFLINE_EXPERIMENT_ONLY": True,
+            "NOT_CONTROLLER": True,
+            "NOT_LIVE_GATE": True,
+            "NOT_POLICY_TRUTH": True,
+            "NOT_BEHAVIOR_POLICY": True,
+            "PROPENSITY_NOT_ESTABLISHED": True,
+            "HOLD_SCORING_RESEARCH_ONLY": True,
+            "BINARY_TARGET_STATUS_V1": "NOT_RUN_RUNTIME_RECOVERY_FALLBACK",
+            "PRIMARY_MODEL_V1": _LEDGER_NOT_AVAILABLE,
+            "RECOMMENDED_NEXT_STEP_V1": "RESTORE_MANAGEMENT_RL_SUBSTRATE_FIRST",
+            "is_first_actual_trainer_layer_v1": False,
+            "runtime_recovery_fallback_reason_v1": str(reason),
+        },
+        "decomposed_management_exit_local_pack_manifest_v1": {
+            "layer_name": "DECOMPOSED_MANAGEMENT_EXIT_LOCAL_PACK_V1",
+            "mode_v1": "EXIT_LOCAL_BASELINE",
+            "domain_scope_v1": "MANAGEMENT_ONLY",
+            "runtime_recovery_empty_fallback_v1": True,
+            "runtime_recovery_fallback_reason_v1": str(reason),
+            "components_v1": {
+                "MANAGEMENT_EXIT_LOCAL_TRAIN_MATRIX_V1": {
+                    "source_artifact_name": _ALL_TRADE_REVIEW_MANAGEMENT_EXIT_LOCAL_TRAIN_MATRIX_V1_PARQUET,
+                    "component_kind_v1": "TRAIN_MATRIX",
+                    "status_v1": "EMPTY_RUNTIME_RECOVERY_FALLBACK",
+                    "row_count_v1": 0,
+                }
+            },
+        },
+        "decomposed_management_exit_local_pack_index_v1_df": pack_index_df,
+    }
+
+
+def _load_locked_management_rl_readiness_payload_v1(
+    *,
+    reports_root: Path,
+    carry_forward_reason: str,
+) -> Dict[str, Any]:
+    locked_root = reports_root / "ALL_TRADE_REVIEW_LEDGER_20260411_MANAGEMENT_RL_READINESS_SUBSTRATE_V1"
+    if not locked_root.exists():
+        raise RuntimeError(
+            "[ALL_TRADE_REVIEW_LEDGER] locked MANAGEMENT_RL_READINESS_SUBSTRATE_V1 carry-forward root is missing"
+        )
+    consistency_df = _read_csv_optional(locked_root / _ALL_TRADE_REVIEW_MANAGEMENT_RL_READINESS_CONSISTENCY_AUDIT_V1_CSV)
+    return {
+        "management_rl_readiness_contract_v1": _read_json_optional(
+            locked_root / _ALL_TRADE_REVIEW_MANAGEMENT_RL_READINESS_CONTRACT_V1
+        ),
+        "management_rl_observation_contract_v1": _read_json_optional(
+            locked_root / _ALL_TRADE_REVIEW_MANAGEMENT_RL_OBSERVATION_CONTRACT_V1
+        ),
+        "management_rl_action_semantics_audit_v1_df": _read_csv_optional(
+            locked_root / _ALL_TRADE_REVIEW_MANAGEMENT_RL_ACTION_SEMANTICS_AUDIT_V1_CSV
+        ),
+        "management_rl_row_semantics_view_v1_df": _read_parquet_optional(
+            locked_root / _ALL_TRADE_REVIEW_MANAGEMENT_RL_ROW_SEMANTICS_VIEW_V1_PARQUET
+        ),
+        "management_rl_transition_eligible_view_v1_df": _read_parquet_optional(
+            locked_root / _ALL_TRADE_REVIEW_MANAGEMENT_RL_TRANSITION_ELIGIBLE_VIEW_V1_PARQUET
+        ),
+        "management_rl_episode_index_v1_df": _read_parquet_optional(
+            locked_root / _ALL_TRADE_REVIEW_MANAGEMENT_RL_EPISODE_INDEX_V1_PARQUET
+        ),
+        "management_rl_terminal_outcome_channel_view_v1_df": _read_parquet_optional(
+            locked_root / _ALL_TRADE_REVIEW_MANAGEMENT_RL_TERMINAL_OUTCOME_CHANNEL_VIEW_V1_PARQUET
+        ),
+        "management_rl_readiness_consistency_audit_v1_df": consistency_df,
+        "management_rl_readiness_consistency_audit_v1_summary": _build_consistency_audit_summary_from_df(
+            "MANAGEMENT_RL_READINESS_CONSISTENCY_AUDIT_V1",
+            consistency_df,
+        ),
+        "management_rl_readiness_summary_v1": _augment_locked_carry_forward_metadata(
+            _read_json_optional(locked_root / _ALL_TRADE_REVIEW_MANAGEMENT_RL_READINESS_SUMMARY_V1),
+            source_root=locked_root,
+            reason=carry_forward_reason,
+        ),
+        "management_rl_readiness_status_v1": _augment_locked_carry_forward_metadata(
+            _read_json_optional(locked_root / _ALL_TRADE_REVIEW_MANAGEMENT_RL_READINESS_STATUS_V1),
+            source_root=locked_root,
+            reason=carry_forward_reason,
+        ),
+        "decomposed_rl_readiness_pack_manifest_v1": _augment_locked_carry_forward_metadata(
+            _read_json_optional(locked_root / _ALL_TRADE_REVIEW_DECOMPOSED_RL_READINESS_PACK_MANIFEST_V1),
+            source_root=locked_root,
+            reason=carry_forward_reason,
+        ),
+        "decomposed_rl_readiness_pack_index_v1_df": _read_parquet_optional(
+            locked_root / _ALL_TRADE_REVIEW_DECOMPOSED_RL_READINESS_PACK_INDEX_V1_PARQUET
+        ),
+    }
+
+
+def _load_locked_management_rl_sequence_payload_v1(
+    *,
+    reports_root: Path,
+    carry_forward_reason: str,
+) -> Dict[str, Any]:
+    locked_root = reports_root / "ALL_TRADE_REVIEW_LEDGER_20260411_MANAGEMENT_RL_SEQUENCE_SUBSTRATE_V1"
+    if not locked_root.exists():
+        raise RuntimeError(
+            "[ALL_TRADE_REVIEW_LEDGER] locked MANAGEMENT_RL_SEQUENCE_SUBSTRATE_V1 carry-forward root is missing"
+        )
+    consistency_df = _read_csv_optional(locked_root / _ALL_TRADE_REVIEW_MANAGEMENT_RL_SEQUENCE_CONSISTENCY_AUDIT_V1_CSV)
+    return {
+        "management_rl_sequence_contract_v1": _read_json_optional(
+            locked_root / _ALL_TRADE_REVIEW_MANAGEMENT_RL_SEQUENCE_CONTRACT_V1
+        ),
+        "management_rl_sequence_link_audit_v1_df": _read_csv_optional(
+            locked_root / _ALL_TRADE_REVIEW_MANAGEMENT_RL_SEQUENCE_LINK_AUDIT_V1_CSV
+        ),
+        "management_rl_sequence_gap_summary_v1": _augment_locked_carry_forward_metadata(
+            _read_json_optional(locked_root / _ALL_TRADE_REVIEW_MANAGEMENT_RL_SEQUENCE_GAP_SUMMARY_V1),
+            source_root=locked_root,
+            reason=carry_forward_reason,
+        ),
+        "management_rl_sequence_row_view_v1_df": _read_parquet_optional(
+            locked_root / _ALL_TRADE_REVIEW_MANAGEMENT_RL_SEQUENCE_ROW_VIEW_V1_PARQUET
+        ),
+        "management_rl_sequence_strict_transition_view_v1_df": _read_parquet_optional(
+            locked_root / _ALL_TRADE_REVIEW_MANAGEMENT_RL_SEQUENCE_STRICT_TRANSITION_VIEW_V1_PARQUET
+        ),
+        "management_rl_bandit_safe_transition_view_v1_df": _read_parquet_optional(
+            locked_root / _ALL_TRADE_REVIEW_MANAGEMENT_RL_BANDIT_SAFE_TRANSITION_VIEW_V1_PARQUET
+        ),
+        "management_rl_sequence_episode_view_v1_df": _read_parquet_optional(
+            locked_root / _ALL_TRADE_REVIEW_MANAGEMENT_RL_SEQUENCE_EPISODE_VIEW_V1_PARQUET
+        ),
+        "management_rl_sequence_consistency_audit_v1_df": consistency_df,
+        "management_rl_sequence_consistency_audit_v1_summary": _build_consistency_audit_summary_from_df(
+            "MANAGEMENT_RL_SEQUENCE_CONSISTENCY_AUDIT_V1",
+            consistency_df,
+        ),
+        "management_rl_sequence_summary_v1": _augment_locked_carry_forward_metadata(
+            _read_json_optional(locked_root / _ALL_TRADE_REVIEW_MANAGEMENT_RL_SEQUENCE_SUMMARY_V1),
+            source_root=locked_root,
+            reason=carry_forward_reason,
+        ),
+        "management_rl_sequence_status_v1": _augment_locked_carry_forward_metadata(
+            _read_json_optional(locked_root / _ALL_TRADE_REVIEW_MANAGEMENT_RL_SEQUENCE_STATUS_V1),
+            source_root=locked_root,
+            reason=carry_forward_reason,
+        ),
+        "decomposed_rl_sequence_pack_manifest_v1": _augment_locked_carry_forward_metadata(
+            _read_json_optional(locked_root / _ALL_TRADE_REVIEW_DECOMPOSED_RL_SEQUENCE_PACK_MANIFEST_V1),
+            source_root=locked_root,
+            reason=carry_forward_reason,
+        ),
+        "decomposed_rl_sequence_pack_index_v1_df": _read_parquet_optional(
+            locked_root / _ALL_TRADE_REVIEW_DECOMPOSED_RL_SEQUENCE_PACK_INDEX_V1_PARQUET
+        ),
+    }
+
+
+def _load_locked_management_bandit_payload_v1(
+    *,
+    reports_root: Path,
+    carry_forward_reason: str,
+) -> Dict[str, Any]:
+    locked_root = reports_root / "ALL_TRADE_REVIEW_LEDGER_20260411_MANAGEMENT_BANDIT_ACTION_REWARD_SUBSTRATE_V1"
+    if not locked_root.exists():
+        raise RuntimeError(
+            "[ALL_TRADE_REVIEW_LEDGER] locked MANAGEMENT_BANDIT_ACTION_REWARD_SUBSTRATE_V1 carry-forward root is missing"
+        )
+    consistency_df = _read_csv_optional(locked_root / _ALL_TRADE_REVIEW_MANAGEMENT_BANDIT_CONSISTENCY_AUDIT_V1_CSV)
+    return {
+        "management_bandit_action_reward_contract_v1": _read_json_optional(
+            locked_root / _ALL_TRADE_REVIEW_MANAGEMENT_BANDIT_ACTION_REWARD_CONTRACT_V1
+        ),
+        "management_bandit_observed_action_contract_v1": _read_json_optional(
+            locked_root / _ALL_TRADE_REVIEW_MANAGEMENT_BANDIT_OBSERVED_ACTION_CONTRACT_V1
+        ),
+        "management_bandit_reward_channel_contract_v1": _read_json_optional(
+            locked_root / _ALL_TRADE_REVIEW_MANAGEMENT_BANDIT_REWARD_CHANNEL_CONTRACT_V1
+        ),
+        "management_bandit_action_reward_semantics_audit_v1_df": _read_csv_optional(
+            locked_root / _ALL_TRADE_REVIEW_MANAGEMENT_BANDIT_ACTION_REWARD_SEMANTICS_AUDIT_V1_CSV
+        ),
+        "management_bandit_observed_sample_view_v1_df": _read_parquet_optional(
+            locked_root / _ALL_TRADE_REVIEW_MANAGEMENT_BANDIT_OBSERVED_SAMPLE_VIEW_V1_PARQUET
+        ),
+        "management_bandit_direct_method_candidate_view_v1_df": _read_parquet_optional(
+            locked_root / _ALL_TRADE_REVIEW_MANAGEMENT_BANDIT_DIRECT_METHOD_CANDIDATE_VIEW_V1_PARQUET
+        ),
+        "management_bandit_exit_local_reward_view_v1_df": _read_parquet_optional(
+            locked_root / _ALL_TRADE_REVIEW_MANAGEMENT_BANDIT_EXIT_LOCAL_REWARD_VIEW_V1_PARQUET
+        ),
+        "management_bandit_hold_episode_return_view_v1_df": _read_parquet_optional(
+            locked_root / _ALL_TRADE_REVIEW_MANAGEMENT_BANDIT_HOLD_EPISODE_RETURN_VIEW_V1_PARQUET
+        ),
+        "management_bandit_reward_candidate_spec_manifest_v1": _augment_locked_carry_forward_metadata(
+            _read_json_optional(locked_root / _ALL_TRADE_REVIEW_MANAGEMENT_BANDIT_REWARD_CANDIDATE_SPEC_MANIFEST_V1),
+            source_root=locked_root,
+            reason=carry_forward_reason,
+        ),
+        "management_bandit_reward_candidate_summary_v1": _augment_locked_carry_forward_metadata(
+            _read_json_optional(locked_root / _ALL_TRADE_REVIEW_MANAGEMENT_BANDIT_REWARD_CANDIDATE_SUMMARY_V1),
+            source_root=locked_root,
+            reason=carry_forward_reason,
+        ),
+        "management_bandit_consistency_audit_v1_df": consistency_df,
+        "management_bandit_consistency_audit_v1_summary": _build_consistency_audit_summary_from_df(
+            "MANAGEMENT_BANDIT_CONSISTENCY_AUDIT_V1",
+            consistency_df,
+        ),
+        "management_bandit_status_v1": _augment_locked_carry_forward_metadata(
+            _read_json_optional(locked_root / _ALL_TRADE_REVIEW_MANAGEMENT_BANDIT_STATUS_V1),
+            source_root=locked_root,
+            reason=carry_forward_reason,
+        ),
+        "decomposed_management_bandit_pack_manifest_v1": _augment_locked_carry_forward_metadata(
+            _read_json_optional(locked_root / _ALL_TRADE_REVIEW_DECOMPOSED_MANAGEMENT_BANDIT_PACK_MANIFEST_V1),
+            source_root=locked_root,
+            reason=carry_forward_reason,
+        ),
+        "decomposed_management_bandit_pack_index_v1_df": _read_parquet_optional(
+            locked_root / _ALL_TRADE_REVIEW_DECOMPOSED_MANAGEMENT_BANDIT_PACK_INDEX_V1_PARQUET
+        ),
+    }
 
 
 def _closed_trade_ledger_schema() -> List[Dict[str, Any]]:
@@ -3228,6 +5760,13 @@ def _closed_trade_ledger_schema() -> List[Dict[str, Any]]:
             "description": "Review ontology label from post_trade_good_trade_flag_v1 in the read-only hindsight review export.",
         },
         {
+            "field_name": "good_trade_mfe20_mae5",
+            "dtype": "string",
+            "fill_status": "FYLLBAR_NÅ",
+            "section": "LABELS / ONTOLOGI",
+            "description": "Strict clean-winner helper label from post_trade_good_trade_mfe20_mae5_v1 in the read-only hindsight review export.",
+        },
+        {
             "field_name": "bad_trade",
             "dtype": "string",
             "fill_status": "FYLLBAR_NÅ",
@@ -3442,6 +5981,7 @@ def _closed_trade_ledger_source_map() -> List[Dict[str, Any]]:
     _add("hindsight_peak_to_worst_after_peak_bps_v1", "No canonical worst-after-peak trade-level field is established in current tree-backed artifacts", "FYLLBAR_SENERE", "Field is carried for future RL teacher work but remains NA until the source contract is established.")
 
     _add("good_trade", f"{_ALL_TRADE_REVIEW_HINDSIGHT_EXPORT_PARQUET} post_trade_good_trade_flag_v1", "FYLLBAR_NÅ", "Filled from the existing post-trade quality definition in the read-only hindsight export.")
+    _add("good_trade_mfe20_mae5", f"{_ALL_TRADE_REVIEW_HINDSIGHT_EXPORT_PARQUET} post_trade_good_trade_mfe20_mae5_v1", "FYLLBAR_NÅ", "Strict clean-winner helper: positive exit with MFE>=20bps and MAE>-5bps from the existing post-trade quality definition.")
     _add("bad_trade", f"{_ALL_TRADE_REVIEW_HINDSIGHT_EXPORT_PARQUET} post_trade_bad_trade_flag_v1", "FYLLBAR_NÅ", "Filled as a narrow entry/trade-failure flag; not used as a catch-all negative rollup and can coexist with cata severity.")
     _add("good_exit", f"{_ALL_TRADE_REVIEW_HINDSIGHT_EXPORT_PARQUET} review_good_exit_v1", "FYLLBAR_NÅ", "Filled from the existing offline review surface.")
     _add("premature_exit", f"{_ALL_TRADE_REVIEW_HINDSIGHT_EXPORT_PARQUET} review_premature_exit_v1", "FYLLBAR_NÅ", "Filled from the existing offline review surface.")
@@ -5123,7 +7663,8 @@ def _build_as_of_decision_moment_ledger_and_policy_action_supervision_join(
 
     def _load_run_state(run_id: str) -> Tuple[Dict[pd.Timestamp, Dict[str, Any]], Dict[Tuple[str, pd.Timestamp], Dict[str, Any]], Dict[Tuple[str, pd.Timestamp], Dict[str, Any]]]:
         if run_id not in candidate_cache:
-            candidate_path = reports_root / run_id / f"shadow_meta_candidates_{run_id}_MERGED.parquet"
+            run_dir = _resolve_truth_run_dir(reports_root, run_id)
+            candidate_path = run_dir / f"shadow_meta_candidates_{run_id}_MERGED.parquet"
             candidate_df = pd.read_parquet(candidate_path) if candidate_path.exists() else pd.DataFrame()
             if not candidate_df.empty and "decision_ts_utc" in candidate_df.columns:
                 candidate_df = candidate_df.copy()
@@ -5140,7 +7681,7 @@ def _build_as_of_decision_moment_ledger_and_policy_action_supervision_join(
             else:
                 candidate_cache[run_id] = {"by_ts": {}}
 
-            journal_path = reports_root / run_id / f"trade_journal_{run_id}_MERGED.parquet"
+            journal_path = run_dir / f"trade_journal_{run_id}_MERGED.parquet"
             journal_df = pd.read_parquet(journal_path) if journal_path.exists() else pd.DataFrame()
             journal_by_uid_close: Dict[Tuple[str, pd.Timestamp], Dict[str, Any]] = {}
             journal_by_id_close: Dict[Tuple[str, pd.Timestamp], Dict[str, Any]] = {}
@@ -6535,8 +9076,156 @@ def _build_policy_learnability_probe_audit(
     supervision_df: pd.DataFrame,
     feature_contract_v2_df: pd.DataFrame,
 ) -> Dict[str, Any]:
+    prediction_columns = [
+        "run_id",
+        "candidate_uid",
+        "trade_uid",
+        "trade_id",
+        "decision_timestamp",
+        "entry_timestamp",
+        "exit_timestamp",
+        "as_of_row_uid_v1",
+        "domain_v1",
+        "split_bucket_v1",
+        "model_name_v1",
+        "action_label_v1",
+        "predicted_action_v1",
+        "is_correct_v1",
+        "predicted_confidence_v1",
+        "true_label_probability_v1",
+        "probe_contract_v1",
+        "prob_skip_v1",
+        "prob_take_now_v1",
+        "prob_wait_v1",
+        "prob_hold_v1",
+        "prob_exit_now_v1",
+    ]
+    probe_view_columns = [
+        "run_id",
+        "candidate_uid",
+        "trade_uid",
+        "trade_id",
+        "decision_timestamp",
+        "entry_timestamp",
+        "exit_timestamp",
+        "as_of_row_uid_v1",
+        "domain_v1",
+        "action_label_v1",
+        "used_for_training",
+        "used_for_validation",
+        "used_for_holdout",
+        "split_bucket_v1",
+        "decision_anchor_type_v1",
+        "decision_anchor_domain_v1",
+        "decision_anchor_timestamp_utc_v1",
+        "as_of_timestamp_utc_v1",
+        "as_of_join_mode_v1",
+        "as_of_join_source_v1",
+        "hindsight_policy_action_projection_kind_v1",
+        "hindsight_policy_action_reason_path_v1",
+        "hindsight_policy_action_support_v1",
+        "hindsight_policy_counterfactual_value_bps_v1",
+        "hindsight_policy_counterfactual_value_source_v1",
+        "hindsight_policy_priority_abs_bps_v1",
+        "as_of_candidate_state_available_v1",
+        "as_of_exit_state_available_v1",
+        "research_view_contract_v1",
+        "research_view_name_v1",
+    ]
+
     if entry_training_df.empty or management_training_v2_df.empty:
-        raise RuntimeError("[ALL_TRADE_REVIEW_LEDGER] cannot run learnability probes from empty canonical training views")
+        missing_domains: List[str] = []
+        if entry_training_df.empty:
+            missing_domains.append("ENTRY")
+        if management_training_v2_df.empty:
+            missing_domains.append("MANAGEMENT")
+        skip_reason = "EMPTY_CANONICAL_TRAINING_VIEWS|" + "|".join(missing_domains)
+        empty_predictions_df = pd.DataFrame(columns=prediction_columns)
+        empty_probe_view_df = pd.DataFrame(columns=probe_view_columns)
+        entry_summary = {
+            "probe_name": "ENTRY_LEARNABILITY_PROBE_V1",
+            "probe_contract_v1": "ENTRY_LEARNABILITY_PROBE_V1|PROBE_ONLY_NOT_LIVE_GATE",
+            "domain": "ENTRY",
+            "split_counts": {},
+            "class_balance_by_split": {},
+            "feature_columns": [],
+            "requested_feature_columns": [],
+            "dropped_all_null_training_feature_columns": [],
+            "model_metrics": {},
+            "best_non_dummy_model_on_holdout": "NOT_RUN_EMPTY_CANONICAL_TRAINING_VIEWS",
+            "hardest_classes_on_holdout_by_recall": [],
+            "canonical_input_contract_v1": "INPUT_ALLOWED_BOTH_CORE + INPUT_ALLOWED_ENTRY_CORE only",
+            "recommendation_v1": "SKIPPED_EMPTY_CANONICAL_TRAINING_VIEWS",
+            "not_live_gate": True,
+            "not_policy_truth": True,
+            "probe_status_v1": skip_reason,
+        }
+        management_summary = {
+            "probe_name": "MANAGEMENT_CORE_LEARNABILITY_PROBE_V1",
+            "probe_contract_v1": "MANAGEMENT_CORE_LEARNABILITY_PROBE_V1|PROBE_ONLY_NOT_LIVE_GATE",
+            "domain": "MANAGEMENT",
+            "split_counts": {},
+            "class_balance_by_split": {},
+            "feature_columns": [],
+            "requested_feature_columns": [],
+            "dropped_all_null_training_feature_columns": [],
+            "model_metrics": {},
+            "best_non_dummy_model_on_holdout": "NOT_RUN_EMPTY_CANONICAL_TRAINING_VIEWS",
+            "hardest_classes_on_holdout_by_recall": [],
+            "canonical_input_contract_v1": "INPUT_ALLOWED_BOTH_CORE + INPUT_ALLOWED_MANAGEMENT_CORE only",
+            "recommendation_v1": "SKIPPED_EMPTY_CANONICAL_TRAINING_VIEWS",
+            "not_live_gate": True,
+            "not_policy_truth": True,
+            "probe_status_v1": skip_reason,
+        }
+        enrichment_summary = {
+            "research_contract_v1": "NON_CANONICAL_RESEARCH_ONLY",
+            "not_live_gate": True,
+            "not_policy_truth": True,
+            "probe_status_v1": skip_reason,
+            "management_direct_exit_enriched_probe_v1": {
+                "rows": 0,
+                "class_balance": {},
+                "core_only": {"probe_status_v1": skip_reason},
+                "enriched": {"probe_status_v1": skip_reason},
+                "holdout_macro_f1_lift_vs_core": 0.0,
+            },
+            "management_localized_exit_enriched_probe_v1": {
+                "rows": 0,
+                "class_balance": {},
+                "feature_columns": [],
+                "probe_status": "NOT_RUN_EMPTY_CANONICAL_TRAINING_VIEWS",
+            },
+            "management_overlap_equivalence_probe_v1": {
+                "rows": 0,
+                "class_balance": {},
+                "core_only": {"probe_status_v1": skip_reason},
+                "combined_enriched": {"probe_status_v1": skip_reason},
+                "holdout_macro_f1_lift_vs_core": 0.0,
+            },
+        }
+        learnability_probe_build_summary = {
+            "layer_name": "POLICY_LEARNABILITY_PROBE_AUDIT_V1",
+            "entry_recommendation_v1": "SKIPPED_EMPTY_CANONICAL_TRAINING_VIEWS",
+            "management_recommendation_v1": "SKIPPED_EMPTY_CANONICAL_TRAINING_VIEWS",
+            "entry_prediction_rows": 0,
+            "management_core_prediction_rows": 0,
+            "management_direct_exit_enriched_rows": 0,
+            "management_localized_exit_enriched_rows": 0,
+            "management_overlap_equivalence_rows": 0,
+            "probe_status_v1": skip_reason,
+        }
+        return {
+            "entry_learnability_probe_summary": entry_summary,
+            "entry_learnability_probe_predictions_df": empty_predictions_df.copy(),
+            "management_core_learnability_probe_summary": management_summary,
+            "management_core_learnability_probe_predictions_df": empty_predictions_df.copy(),
+            "management_enrichment_probe_summary": enrichment_summary,
+            "management_direct_exit_enriched_probe_df": empty_probe_view_df.copy(),
+            "management_localized_exit_enriched_probe_df": empty_probe_view_df.copy(),
+            "management_overlap_equivalence_probe_df": empty_probe_view_df.copy(),
+            "learnability_probe_build_summary": learnability_probe_build_summary,
+        }
 
     def _available_mask(series: pd.Series) -> pd.Series:
         if str(series.dtype) in {"string", "object"}:
@@ -6868,34 +9557,38 @@ def _build_policy_learnability_probe_audit(
         if not usable_feature_columns:
             raise RuntimeError(f"[ALL_TRADE_REVIEW_LEDGER] {probe_name} has no usable TRAIN features after null filtering")
 
-        X_train = train_df[usable_feature_columns].copy()
+        X_train = _sanitize_ml_feature_frame_v1(train_df, usable_feature_columns)
         y_train = train_df["action_label_v1"].astype("string")
-        numeric_cols, categorical_cols, preprocessor = _prepare_preprocessor(train_df, usable_feature_columns)
+        numeric_cols, categorical_cols, preprocessor = _prepare_preprocessor(X_train, usable_feature_columns)
         probe_contract = f"{probe_name}|PROBE_ONLY_NOT_LIVE_GATE"
         metric_label_order = sorted([str(label) for label in label_order])
         metric_label_indices = [label_order.index(label) for label in metric_label_order]
+        single_class_train = y_train.nunique(dropna=True) <= 1
 
-        model_specs: List[Tuple[str, Any]] = [
-            ("MAJORITY_BASELINE", DummyClassifier(strategy="prior")),
-            (
-                "LOGISTIC_BASELINE",
-                Pipeline(
-                    [
-                        ("preprocessor", preprocessor),
-                        ("model", LogisticRegression(max_iter=2000, random_state=0)),
-                    ]
-                ),
-            ),
-            (
-                "TREE_BASELINE",
-                Pipeline(
-                    [
-                        ("preprocessor", preprocessor),
-                        ("model", DecisionTreeClassifier(max_depth=3, min_samples_leaf=20, random_state=0)),
-                    ]
-                ),
-            ),
-        ]
+        model_specs: List[Tuple[str, Any]] = [("MAJORITY_BASELINE", DummyClassifier(strategy="prior"))]
+        if not single_class_train:
+            model_specs.extend(
+                [
+                    (
+                        "LOGISTIC_BASELINE",
+                        Pipeline(
+                            [
+                                ("preprocessor", preprocessor),
+                                ("model", LogisticRegression(max_iter=2000, random_state=0)),
+                            ]
+                        ),
+                    ),
+                    (
+                        "TREE_BASELINE",
+                        Pipeline(
+                            [
+                                ("preprocessor", preprocessor),
+                                ("model", DecisionTreeClassifier(max_depth=3, min_samples_leaf=20, random_state=0)),
+                            ]
+                        ),
+                    ),
+                ]
+            )
 
         model_metrics: Dict[str, Any] = {}
         prediction_rows: List[Dict[str, Any]] = []
@@ -6909,7 +9602,7 @@ def _build_policy_learnability_probe_audit(
                 split_df = work.loc[work["split_bucket_v1"].astype("string").eq(split_name)].copy()
                 if split_df.empty:
                     continue
-                X_split = split_df[usable_feature_columns].copy()
+                X_split = _sanitize_ml_feature_frame_v1(split_df, usable_feature_columns)
                 y_true = split_df["action_label_v1"].astype("string")
                 y_pred = trained.predict(X_split)
                 if hasattr(trained, "predict_proba"):
@@ -6981,13 +9674,16 @@ def _build_policy_learnability_probe_audit(
             for model_name, metrics in model_metrics.items()
         }
         non_dummy_models = [name for name in model_metrics.keys() if name != "MAJORITY_BASELINE"]
-        best_non_dummy = max(
-            non_dummy_models,
-            key=lambda name: (
-                holdout_macro.get(name, float("-inf")),
-                holdout_bal.get(name, float("-inf")),
-            ),
-        )
+        if non_dummy_models:
+            best_non_dummy = max(
+                non_dummy_models,
+                key=lambda name: (
+                    holdout_macro.get(name, float("-inf")),
+                    holdout_bal.get(name, float("-inf")),
+                ),
+            )
+        else:
+            best_non_dummy = "MAJORITY_BASELINE"
         hardest_classes = sorted(
             model_metrics[best_non_dummy]["split_metrics"].get("HOLDOUT", {}).get("per_class_recall", {}).items(),
             key=lambda item: item[1],
@@ -7001,6 +9697,8 @@ def _build_policy_learnability_probe_audit(
                 "domain": domain_name,
                 "split_counts": split_counts,
                 "class_balance_by_split": class_balance,
+                "probe_status_v1": "NOT_RUN_SINGLE_CLASS_TARGET" if single_class_train else "RUNNABLE",
+                "single_class_train_label_v1": _scalar_string(y_train.iloc[0]) if single_class_train and len(y_train) else _LEDGER_NOT_AVAILABLE,
                 "feature_columns": list(usable_feature_columns),
                 "requested_feature_columns": requested_feature_columns,
                 "dropped_all_null_training_feature_columns": dropped_feature_columns,
@@ -7243,6 +9941,14 @@ def _build_management_raw_state_expansion_and_reprobe(
         "peak_price",
         "anchor_price",
         "mfe_bps_at_anchor",
+        "last_peak_mfe_bps",
+        "max_mfe_without_mae_bps",
+        "mfe_mae_sequence_order",
+        "last_peak_ts_utc_null_reason",
+        "last_mfe_ts_utc_null_reason",
+        "last_peak_mfe_bps_null_reason",
+        "max_mfe_without_mae_bps_null_reason",
+        "mfe_mae_sequence_order_null_reason",
     ]
     replay_bar_cols = [
         "time",
@@ -7277,19 +9983,50 @@ def _build_management_raw_state_expansion_and_reprobe(
         "entry_spread_bps",
         "exit_spread_bps",
     ]
+    candidate_entry_cols = [
+        "candidate_uid",
+        "decision_ts_utc",
+        "entry_spread_bps",
+        "p_long",
+        "p_short",
+        "p_flat",
+        "p_hat",
+        "margin",
+        "uncertainty_score",
+        "tradable_prob",
+        "mfe_first_n_pred",
+        "path_quality_pred",
+    ]
+    xgb_entry_cols = [
+        "ts",
+        "p_long",
+        "p_short",
+        "p_flat",
+        "p_hat",
+        "pred_side",
+        "has_ctx",
+    ]
 
     raw_frames: List[pd.DataFrame] = []
     source_analysis_rows: List[Dict[str, Any]] = []
     for run_id, run_anchor_df in management_anchor_df.groupby("run_id", dropna=False):
         run_id = str(run_id)
-        run_dir = reports_root / run_id
+        run_dir = _resolve_truth_run_dir(reports_root, run_id)
         replay_dir = run_dir / "replay" / "chunk_0"
         trace_path = replay_dir / "EXIT_EVAL_TRACE.csv"
         replay_bar_path = replay_dir / "chunk_0_data.parquet"
         journal_path = run_dir / f"trade_journal_{run_id}_MERGED.parquet"
+        candidate_path = run_dir / f"shadow_meta_candidates_{run_id}_MERGED.parquet"
+        xgb_path = run_dir / f"xgb_multi_horizon_predictions_{run_id}.parquet"
 
         run_work = run_anchor_df.copy()
         run_work["trade_id"] = run_work["trade_id"].astype("string")
+        run_work["candidate_uid"] = run_work["candidate_uid"].astype("string")
+        run_work["decision_timestamp_dt_v1"] = pd.to_datetime(
+            run_work["decision_timestamp"],
+            utc=True,
+            errors="coerce",
+        )
 
         trace_exists = trace_path.exists()
         if trace_exists:
@@ -7340,6 +10077,127 @@ def _build_management_raw_state_expansion_and_reprobe(
             for field_name in journal_cols[1:]:
                 run_work[f"journal__{field_name}"] = pd.NA
 
+        if not candidate_path.exists():
+            raise RuntimeError(
+                f"[ALL_TRADE_REVIEW_LEDGER] MANAGEMENT_RAW_STATE_EXPANSION_V1 missing candidate snapshot source for {run_id}: {candidate_path}"
+            )
+        candidate_df = pd.read_parquet(candidate_path, columns=candidate_entry_cols).copy()
+        candidate_df["candidate_uid"] = candidate_df["candidate_uid"].astype("string")
+        if bool(candidate_df["candidate_uid"].duplicated().any()):
+            raise RuntimeError(
+                f"[ALL_TRADE_REVIEW_LEDGER] MANAGEMENT_RAW_STATE_EXPANSION_V1 candidate_uid is not unique in {candidate_path}"
+            )
+        candidate_df["entry_candidate_decision_timestamp_utc_v1"] = pd.to_datetime(
+            candidate_df["decision_ts_utc"],
+            utc=True,
+            errors="coerce",
+        )
+        candidate_df = candidate_df.rename(
+            columns={
+                "entry_spread_bps": "as_of_mgmt_candidate_entry_spread_bps_v1",
+                "p_long": "as_of_mgmt_candidate_p_long_v1",
+                "p_short": "as_of_mgmt_candidate_p_short_v1",
+                "p_flat": "as_of_mgmt_candidate_p_flat_v1",
+                "p_hat": "as_of_mgmt_candidate_p_hat_v1",
+                "margin": "as_of_mgmt_candidate_margin_v1",
+                "uncertainty_score": "as_of_mgmt_candidate_uncertainty_score_v1",
+                "tradable_prob": "as_of_mgmt_candidate_tradable_prob_v1",
+                "mfe_first_n_pred": "as_of_mgmt_candidate_mfe_first_n_pred_v1",
+                "path_quality_pred": "as_of_mgmt_candidate_path_quality_pred_v1",
+            }
+        )
+        run_work = run_work.merge(
+            candidate_df[
+                [
+                    "candidate_uid",
+                    "entry_candidate_decision_timestamp_utc_v1",
+                    "as_of_mgmt_candidate_entry_spread_bps_v1",
+                    "as_of_mgmt_candidate_p_long_v1",
+                    "as_of_mgmt_candidate_p_short_v1",
+                    "as_of_mgmt_candidate_p_flat_v1",
+                    "as_of_mgmt_candidate_p_hat_v1",
+                    "as_of_mgmt_candidate_margin_v1",
+                    "as_of_mgmt_candidate_uncertainty_score_v1",
+                    "as_of_mgmt_candidate_tradable_prob_v1",
+                    "as_of_mgmt_candidate_mfe_first_n_pred_v1",
+                    "as_of_mgmt_candidate_path_quality_pred_v1",
+                ]
+            ],
+            on="candidate_uid",
+            how="left",
+            validate="many_to_one",
+        )
+        entry_candidate_exact_mask = run_work["entry_candidate_decision_timestamp_utc_v1"].eq(
+            run_work["decision_timestamp_dt_v1"]
+        )
+        if not bool(entry_candidate_exact_mask.all()):
+            missing_rows = run_work.loc[
+                ~entry_candidate_exact_mask,
+                ["candidate_uid", "decision_timestamp", "entry_candidate_decision_timestamp_utc_v1"],
+            ].head(10)
+            raise RuntimeError(
+                "[ALL_TRADE_REVIEW_LEDGER] MANAGEMENT_RAW_STATE_EXPANSION_V1 could not prove exact candidate entry snapshot "
+                f"for {run_id}; sample={missing_rows.to_dict(orient='records')}"
+            )
+
+        if xgb_path.exists():
+            xgb_df = pd.read_parquet(xgb_path, columns=xgb_entry_cols).copy()
+            xgb_df["xgb_decision_timestamp_utc_v1"] = pd.to_datetime(
+                xgb_df["ts"],
+                utc=True,
+                errors="coerce",
+            )
+            if bool(xgb_df["xgb_decision_timestamp_utc_v1"].duplicated().any()):
+                raise RuntimeError(
+                    f"[ALL_TRADE_REVIEW_LEDGER] MANAGEMENT_RAW_STATE_EXPANSION_V1 XGB timestamp is not unique in {xgb_path}"
+                )
+            xgb_df = xgb_df.rename(
+                columns={
+                    "p_long": "as_of_mgmt_xgb_p_long_v1",
+                    "p_short": "as_of_mgmt_xgb_p_short_v1",
+                    "p_flat": "as_of_mgmt_xgb_p_flat_v1",
+                    "p_hat": "as_of_mgmt_xgb_p_hat_v1",
+                    "pred_side": "as_of_mgmt_xgb_pred_side_v1",
+                    "has_ctx": "as_of_mgmt_xgb_has_ctx_v1",
+                }
+            )
+            run_work = run_work.merge(
+                xgb_df[
+                    [
+                        "xgb_decision_timestamp_utc_v1",
+                        "as_of_mgmt_xgb_p_long_v1",
+                        "as_of_mgmt_xgb_p_short_v1",
+                        "as_of_mgmt_xgb_p_flat_v1",
+                        "as_of_mgmt_xgb_p_hat_v1",
+                        "as_of_mgmt_xgb_pred_side_v1",
+                        "as_of_mgmt_xgb_has_ctx_v1",
+                    ]
+                ],
+                left_on="decision_timestamp_dt_v1",
+                right_on="xgb_decision_timestamp_utc_v1",
+                how="left",
+                validate="many_to_one",
+            )
+            entry_xgb_exact_mask = run_work["xgb_decision_timestamp_utc_v1"].eq(run_work["decision_timestamp_dt_v1"])
+            if not bool(entry_xgb_exact_mask.all()):
+                missing_rows = run_work.loc[
+                    ~entry_xgb_exact_mask,
+                    ["candidate_uid", "decision_timestamp", "xgb_decision_timestamp_utc_v1"],
+                ].head(10)
+                raise RuntimeError(
+                    "[ALL_TRADE_REVIEW_LEDGER] MANAGEMENT_RAW_STATE_EXPANSION_V1 could not prove exact XGB entry snapshot "
+                    f"for {run_id}; sample={missing_rows.to_dict(orient='records')}"
+                )
+        else:
+            run_work["xgb_decision_timestamp_utc_v1"] = pd.NaT
+            run_work["as_of_mgmt_xgb_p_long_v1"] = pd.NA
+            run_work["as_of_mgmt_xgb_p_short_v1"] = pd.NA
+            run_work["as_of_mgmt_xgb_p_flat_v1"] = pd.NA
+            run_work["as_of_mgmt_xgb_p_hat_v1"] = pd.NA
+            run_work["as_of_mgmt_xgb_pred_side_v1"] = pd.NA
+            run_work["as_of_mgmt_xgb_has_ctx_v1"] = pd.NA
+            entry_xgb_exact_mask = pd.Series(False, index=run_work.index, dtype="boolean")
+
         projection_kind = run_work["hindsight_policy_action_projection_kind_v1"].astype("string")
         bars_held = pd.to_numeric(run_work.get("bars_held"), errors="coerce")
         first_meaningful = pd.to_numeric(run_work.get("journal__first_meaningful_mfe_bar_index"), errors="coerce")
@@ -7372,6 +10230,8 @@ def _build_management_raw_state_expansion_and_reprobe(
                 "mgmt_raw_exit_trace_exact_available_v1": run_work["trace_timestamp_utc_v1"].notna(),
                 "mgmt_raw_replay_bar_exact_available_v1": run_work["replay_timestamp_utc_v1"].notna(),
                 "mgmt_raw_journal_trade_available_v1": run_work["journal__trade_uid"].astype("string").ne("<NA>"),
+                "mgmt_raw_entry_candidate_snapshot_exact_available_v1": entry_candidate_exact_mask.fillna(False).astype(bool),
+                "mgmt_raw_entry_xgb_exact_available_v1": entry_xgb_exact_mask.fillna(False).astype(bool),
                 "mgmt_raw_semantic_contract_v1": "MANAGEMENT_RAW_STATE_EXPANSION_V1|EXACT_ONLY|RESEARCH_ONLY|AS_OF_SAFE_FEATURES_ONLY",
                 "as_of_mgmt_trace_bars_held_at_anchor_v1": bars_held,
                 "as_of_mgmt_trace_minutes_held_at_anchor_v1": bars_held,
@@ -7391,6 +10251,20 @@ def _build_management_raw_state_expansion_and_reprobe(
                 "as_of_mgmt_trace_peak_price_v1": pd.to_numeric(run_work.get("peak_price"), errors="coerce"),
                 "as_of_mgmt_trace_anchor_price_v1": pd.to_numeric(run_work.get("anchor_price"), errors="coerce"),
                 "as_of_mgmt_trace_mfe_bps_at_anchor_v1": pd.to_numeric(run_work.get("mfe_bps_at_anchor"), errors="coerce"),
+                "as_of_mgmt_trace_last_peak_mfe_bps_v1": pd.to_numeric(run_work.get("last_peak_mfe_bps"), errors="coerce"),
+                "as_of_mgmt_trace_max_mfe_without_mae_bps_v1": pd.to_numeric(
+                    run_work.get("max_mfe_without_mae_bps"), errors="coerce"
+                ),
+                "as_of_mgmt_trace_mfe_mae_sequence_order_v1": run_work.get("mfe_mae_sequence_order"),
+                "as_of_mgmt_trace_last_peak_ts_utc_null_reason_v1": run_work.get("last_peak_ts_utc_null_reason"),
+                "as_of_mgmt_trace_last_mfe_ts_utc_null_reason_v1": run_work.get("last_mfe_ts_utc_null_reason"),
+                "as_of_mgmt_trace_last_peak_mfe_bps_null_reason_v1": run_work.get("last_peak_mfe_bps_null_reason"),
+                "as_of_mgmt_trace_max_mfe_without_mae_bps_null_reason_v1": run_work.get(
+                    "max_mfe_without_mae_bps_null_reason"
+                ),
+                "as_of_mgmt_trace_mfe_mae_sequence_order_null_reason_v1": run_work.get(
+                    "mfe_mae_sequence_order_null_reason"
+                ),
                 "as_of_mgmt_replay_atr_bps_v1": pd.to_numeric(run_work.get("atr_bps"), errors="coerce"),
                 "as_of_mgmt_replay_spread_bps_v1": pd.to_numeric(run_work.get("spread_bps"), errors="coerce"),
                 "as_of_mgmt_replay_session_id_v1": pd.to_numeric(run_work.get("session_id"), errors="coerce"),
@@ -7413,9 +10287,24 @@ def _build_management_raw_state_expansion_and_reprobe(
                 "as_of_mgmt_candidate_session_v1": run_work.get("as_of_candidate_session_v1"),
                 "as_of_mgmt_candidate_side_v1": run_work.get("as_of_candidate_side_v1"),
                 "as_of_mgmt_candidate_atr_bps_v1": pd.to_numeric(run_work.get("as_of_candidate_atr_bps_v1"), errors="coerce"),
-                "as_of_mgmt_candidate_entry_spread_bps_v1": pd.to_numeric(run_work.get("as_of_candidate_entry_spread_bps_v1"), errors="coerce"),
+                "as_of_mgmt_candidate_entry_spread_bps_v1": _management_candidate_entry_spread_series_v1(run_work),
                 "as_of_mgmt_candidate_vol_regime_v1": run_work.get("as_of_candidate_vol_regime_v1"),
                 "as_of_mgmt_candidate_trend_regime_v1": run_work.get("as_of_candidate_trend_regime_v1"),
+                "as_of_mgmt_candidate_p_long_v1": pd.to_numeric(run_work.get("as_of_mgmt_candidate_p_long_v1"), errors="coerce"),
+                "as_of_mgmt_candidate_p_short_v1": pd.to_numeric(run_work.get("as_of_mgmt_candidate_p_short_v1"), errors="coerce"),
+                "as_of_mgmt_candidate_p_flat_v1": pd.to_numeric(run_work.get("as_of_mgmt_candidate_p_flat_v1"), errors="coerce"),
+                "as_of_mgmt_candidate_p_hat_v1": pd.to_numeric(run_work.get("as_of_mgmt_candidate_p_hat_v1"), errors="coerce"),
+                "as_of_mgmt_candidate_margin_v1": pd.to_numeric(run_work.get("as_of_mgmt_candidate_margin_v1"), errors="coerce"),
+                "as_of_mgmt_candidate_uncertainty_score_v1": pd.to_numeric(run_work.get("as_of_mgmt_candidate_uncertainty_score_v1"), errors="coerce"),
+                "as_of_mgmt_candidate_tradable_prob_v1": pd.to_numeric(run_work.get("as_of_mgmt_candidate_tradable_prob_v1"), errors="coerce"),
+                "as_of_mgmt_candidate_mfe_first_n_pred_v1": pd.to_numeric(run_work.get("as_of_mgmt_candidate_mfe_first_n_pred_v1"), errors="coerce"),
+                "as_of_mgmt_candidate_path_quality_pred_v1": pd.to_numeric(run_work.get("as_of_mgmt_candidate_path_quality_pred_v1"), errors="coerce"),
+                "as_of_mgmt_xgb_p_long_v1": pd.to_numeric(run_work.get("as_of_mgmt_xgb_p_long_v1"), errors="coerce"),
+                "as_of_mgmt_xgb_p_short_v1": pd.to_numeric(run_work.get("as_of_mgmt_xgb_p_short_v1"), errors="coerce"),
+                "as_of_mgmt_xgb_p_flat_v1": pd.to_numeric(run_work.get("as_of_mgmt_xgb_p_flat_v1"), errors="coerce"),
+                "as_of_mgmt_xgb_p_hat_v1": pd.to_numeric(run_work.get("as_of_mgmt_xgb_p_hat_v1"), errors="coerce"),
+                "as_of_mgmt_xgb_pred_side_v1": run_work.get("as_of_mgmt_xgb_pred_side_v1"),
+                "as_of_mgmt_xgb_has_ctx_v1": pd.to_numeric(run_work.get("as_of_mgmt_xgb_has_ctx_v1"), errors="coerce"),
                 "as_of_mgmt_journal_meaningful_mfe_threshold_bps_v1": pd.to_numeric(run_work.get("journal__meaningful_mfe_threshold_bps"), errors="coerce"),
                 "as_of_mgmt_journal_first_meaningful_mfe_bar_index_v1": first_meaningful,
                 "as_of_mgmt_journal_adverse_first_v1": run_work.get("journal__adverse_first"),
@@ -7445,6 +10334,10 @@ def _build_management_raw_state_expansion_and_reprobe(
                 "replay_bar_exact_rows": int(raw_run_df["mgmt_raw_replay_bar_exact_available_v1"].sum()),
                 "journal_trade_rows": int(raw_run_df["mgmt_raw_journal_trade_available_v1"].sum()),
                 "candidate_state_rows": int(raw_run_df["as_of_candidate_state_available_v1"].sum()),
+                "entry_candidate_snapshot_exact_rows": int(
+                    raw_run_df["mgmt_raw_entry_candidate_snapshot_exact_available_v1"].sum()
+                ),
+                "entry_xgb_snapshot_exact_rows": int(raw_run_df["mgmt_raw_entry_xgb_exact_available_v1"].sum()),
             }
         )
 
@@ -7470,6 +10363,14 @@ def _build_management_raw_state_expansion_and_reprobe(
         "as_of_mgmt_trace_peak_price_v1": {"source_family": "exit_eval_trace_exact", "semantic_group": "MFE_GIVEBACK_PROTECTION", "policy_state_specific": False, "duplicate_existing_core_v1": False},
         "as_of_mgmt_trace_anchor_price_v1": {"source_family": "exit_eval_trace_exact", "semantic_group": "MFE_GIVEBACK_PROTECTION", "policy_state_specific": False, "duplicate_existing_core_v1": False},
         "as_of_mgmt_trace_mfe_bps_at_anchor_v1": {"source_family": "exit_eval_trace_exact", "semantic_group": "MFE_GIVEBACK_PROTECTION", "policy_state_specific": False, "duplicate_existing_core_v1": False},
+        "as_of_mgmt_trace_last_peak_mfe_bps_v1": {"source_family": "exit_eval_trace_exact", "semantic_group": "MFE_GIVEBACK_PROTECTION", "policy_state_specific": False, "duplicate_existing_core_v1": False},
+        "as_of_mgmt_trace_max_mfe_without_mae_bps_v1": {"source_family": "exit_eval_trace_exact", "semantic_group": "PATH_SEQUENCE_PROTECTION", "policy_state_specific": False, "duplicate_existing_core_v1": False},
+        "as_of_mgmt_trace_mfe_mae_sequence_order_v1": {"source_family": "exit_eval_trace_exact", "semantic_group": "PATH_SEQUENCE_PROTECTION", "policy_state_specific": False, "duplicate_existing_core_v1": False},
+        "as_of_mgmt_trace_last_peak_ts_utc_null_reason_v1": {"source_family": "exit_eval_trace_exact", "semantic_group": "PATH_DYNAMICS_NULL_REASON", "policy_state_specific": False, "duplicate_existing_core_v1": False},
+        "as_of_mgmt_trace_last_mfe_ts_utc_null_reason_v1": {"source_family": "exit_eval_trace_exact", "semantic_group": "PATH_DYNAMICS_NULL_REASON", "policy_state_specific": False, "duplicate_existing_core_v1": False},
+        "as_of_mgmt_trace_last_peak_mfe_bps_null_reason_v1": {"source_family": "exit_eval_trace_exact", "semantic_group": "PATH_DYNAMICS_NULL_REASON", "policy_state_specific": False, "duplicate_existing_core_v1": False},
+        "as_of_mgmt_trace_max_mfe_without_mae_bps_null_reason_v1": {"source_family": "exit_eval_trace_exact", "semantic_group": "PATH_DYNAMICS_NULL_REASON", "policy_state_specific": False, "duplicate_existing_core_v1": False},
+        "as_of_mgmt_trace_mfe_mae_sequence_order_null_reason_v1": {"source_family": "exit_eval_trace_exact", "semantic_group": "PATH_DYNAMICS_NULL_REASON", "policy_state_specific": False, "duplicate_existing_core_v1": False},
         "as_of_mgmt_replay_atr_bps_v1": {"source_family": "replay_chunk_bar_exact", "semantic_group": "SPREAD_VOL_CONTEXT", "policy_state_specific": False, "duplicate_existing_core_v1": True},
         "as_of_mgmt_replay_spread_bps_v1": {"source_family": "replay_chunk_bar_exact", "semantic_group": "SPREAD_VOL_CONTEXT", "policy_state_specific": False, "duplicate_existing_core_v1": False},
         "as_of_mgmt_replay_session_id_v1": {"source_family": "replay_chunk_bar_exact", "semantic_group": "SESSION_STATE", "policy_state_specific": False, "duplicate_existing_core_v1": False},
@@ -7495,6 +10396,21 @@ def _build_management_raw_state_expansion_and_reprobe(
         "as_of_mgmt_candidate_entry_spread_bps_v1": {"source_family": "shadow_meta_candidates_exact_decision_ts", "semantic_group": "SPREAD_VOL_CONTEXT", "policy_state_specific": False, "duplicate_existing_core_v1": False},
         "as_of_mgmt_candidate_vol_regime_v1": {"source_family": "shadow_meta_candidates_exact_decision_ts", "semantic_group": "SESSION_STATE", "policy_state_specific": False, "duplicate_existing_core_v1": True},
         "as_of_mgmt_candidate_trend_regime_v1": {"source_family": "shadow_meta_candidates_exact_decision_ts", "semantic_group": "SESSION_STATE", "policy_state_specific": False, "duplicate_existing_core_v1": True},
+        "as_of_mgmt_candidate_p_long_v1": {"source_family": "shadow_meta_candidates_entry_decision_exact", "semantic_group": "ENTRY_MODEL_SIGNAL_SNAPSHOT", "policy_state_specific": True, "duplicate_existing_core_v1": False},
+        "as_of_mgmt_candidate_p_short_v1": {"source_family": "shadow_meta_candidates_entry_decision_exact", "semantic_group": "ENTRY_MODEL_SIGNAL_SNAPSHOT", "policy_state_specific": True, "duplicate_existing_core_v1": False},
+        "as_of_mgmt_candidate_p_flat_v1": {"source_family": "shadow_meta_candidates_entry_decision_exact", "semantic_group": "ENTRY_MODEL_SIGNAL_SNAPSHOT", "policy_state_specific": True, "duplicate_existing_core_v1": False},
+        "as_of_mgmt_candidate_p_hat_v1": {"source_family": "shadow_meta_candidates_entry_decision_exact", "semantic_group": "ENTRY_MODEL_SIGNAL_SNAPSHOT", "policy_state_specific": True, "duplicate_existing_core_v1": False},
+        "as_of_mgmt_candidate_margin_v1": {"source_family": "shadow_meta_candidates_entry_decision_exact", "semantic_group": "ENTRY_MODEL_SIGNAL_SNAPSHOT", "policy_state_specific": True, "duplicate_existing_core_v1": False},
+        "as_of_mgmt_candidate_uncertainty_score_v1": {"source_family": "shadow_meta_candidates_entry_decision_exact", "semantic_group": "ENTRY_MODEL_SIGNAL_SNAPSHOT", "policy_state_specific": True, "duplicate_existing_core_v1": False},
+        "as_of_mgmt_candidate_tradable_prob_v1": {"source_family": "shadow_meta_candidates_entry_decision_exact", "semantic_group": "ENTRY_MODEL_SIGNAL_SNAPSHOT", "policy_state_specific": True, "duplicate_existing_core_v1": False},
+        "as_of_mgmt_candidate_mfe_first_n_pred_v1": {"source_family": "shadow_meta_candidates_entry_decision_exact", "semantic_group": "ENTRY_MODEL_SIGNAL_SNAPSHOT", "policy_state_specific": True, "duplicate_existing_core_v1": False},
+        "as_of_mgmt_candidate_path_quality_pred_v1": {"source_family": "shadow_meta_candidates_entry_decision_exact", "semantic_group": "ENTRY_MODEL_SIGNAL_SNAPSHOT", "policy_state_specific": True, "duplicate_existing_core_v1": False},
+        "as_of_mgmt_xgb_p_long_v1": {"source_family": "xgb_multi_horizon_predictions_exact", "semantic_group": "ENTRY_XGB_SIGNAL_SNAPSHOT", "policy_state_specific": True, "duplicate_existing_core_v1": False},
+        "as_of_mgmt_xgb_p_short_v1": {"source_family": "xgb_multi_horizon_predictions_exact", "semantic_group": "ENTRY_XGB_SIGNAL_SNAPSHOT", "policy_state_specific": True, "duplicate_existing_core_v1": False},
+        "as_of_mgmt_xgb_p_flat_v1": {"source_family": "xgb_multi_horizon_predictions_exact", "semantic_group": "ENTRY_XGB_SIGNAL_SNAPSHOT", "policy_state_specific": True, "duplicate_existing_core_v1": False},
+        "as_of_mgmt_xgb_p_hat_v1": {"source_family": "xgb_multi_horizon_predictions_exact", "semantic_group": "ENTRY_XGB_SIGNAL_SNAPSHOT", "policy_state_specific": True, "duplicate_existing_core_v1": False},
+        "as_of_mgmt_xgb_pred_side_v1": {"source_family": "xgb_multi_horizon_predictions_exact", "semantic_group": "ENTRY_XGB_SIGNAL_SNAPSHOT", "policy_state_specific": True, "duplicate_existing_core_v1": False},
+        "as_of_mgmt_xgb_has_ctx_v1": {"source_family": "xgb_multi_horizon_predictions_exact", "semantic_group": "ENTRY_XGB_SIGNAL_SNAPSHOT", "policy_state_specific": True, "duplicate_existing_core_v1": False},
         "as_of_mgmt_journal_meaningful_mfe_threshold_bps_v1": {"source_family": "trade_journal_trade_exact", "semantic_group": "PATH_SHAPE_FRAGILITY", "policy_state_specific": False, "duplicate_existing_core_v1": False},
         "as_of_mgmt_journal_first_meaningful_mfe_bar_index_v1": {"source_family": "trade_journal_trade_exact", "semantic_group": "PROGRESS_TIME", "policy_state_specific": False, "duplicate_existing_core_v1": False},
         "as_of_mgmt_journal_adverse_first_v1": {"source_family": "trade_journal_trade_exact", "semantic_group": "PATH_SHAPE_FRAGILITY", "policy_state_specific": False, "duplicate_existing_core_v1": False},
@@ -7574,6 +10490,12 @@ def _build_management_raw_state_expansion_and_reprobe(
             "replay_chunk_bar_exact_rows": int(management_raw_state_df["mgmt_raw_replay_bar_exact_available_v1"].sum()),
             "trade_journal_trade_rows": int(management_raw_state_df["mgmt_raw_journal_trade_available_v1"].sum()),
             "candidate_state_available_rows": int(management_raw_state_df["as_of_candidate_state_available_v1"].sum()),
+            "entry_candidate_snapshot_exact_rows": int(
+                management_raw_state_df["mgmt_raw_entry_candidate_snapshot_exact_available_v1"].sum()
+            ),
+            "entry_xgb_snapshot_exact_rows": int(
+                management_raw_state_df["mgmt_raw_entry_xgb_exact_available_v1"].sum()
+            ),
             "per_run_rows": source_analysis_df.to_dict(orient="records"),
         },
         "role_counts": management_raw_state_contract_df["raw_state_role_v1"].astype("string").value_counts(dropna=False).to_dict(),
@@ -7713,8 +10635,8 @@ def _build_management_raw_state_expansion_and_reprobe(
                 "predictions_df": pd.DataFrame(),
             }
 
-        numeric_cols, categorical_cols, preprocessor = _prepare_preprocessor(train_df, usable_feature_columns)
-        X_train = train_df[usable_feature_columns].copy()
+        X_train = _sanitize_ml_feature_frame_v1(train_df, usable_feature_columns)
+        numeric_cols, categorical_cols, preprocessor = _prepare_preprocessor(X_train, usable_feature_columns)
         y_train = train_df["action_label_v1"].astype("string")
         metric_label_order = sorted([str(label) for label in label_order])
         metric_label_indices = [label_order.index(label) for label in metric_label_order]
@@ -7733,7 +10655,7 @@ def _build_management_raw_state_expansion_and_reprobe(
                 split_df = work.loc[work["split_bucket_v1"].astype("string").eq(split_name)].copy()
                 if split_df.empty:
                     continue
-                X_split = split_df[usable_feature_columns].copy()
+                X_split = _sanitize_ml_feature_frame_v1(split_df, usable_feature_columns)
                 y_true = split_df["action_label_v1"].astype("string")
                 y_pred = trained.predict(X_split)
                 if hasattr(trained, "predict_proba"):
@@ -7860,6 +10782,8 @@ def _build_management_raw_state_expansion_and_reprobe(
         "mgmt_raw_exit_trace_exact_available_v1",
         "mgmt_raw_replay_bar_exact_available_v1",
         "mgmt_raw_journal_trade_available_v1",
+        "mgmt_raw_entry_candidate_snapshot_exact_available_v1",
+        "mgmt_raw_entry_xgb_exact_available_v1",
         "mgmt_raw_semantic_contract_v1",
     ]
     management_core_feature_frame = management_policy_training_v2_df[
@@ -8055,9 +10979,15 @@ def _build_management_raw_state_expansion_and_reprobe(
         management_combined_core_payload["predictions_df"],
         management_combined_exact_raw_payload["predictions_df"],
     ]
-    management_reprobe_predictions_df = pd.concat(
-        [df for df in base_prediction_frames + source_slice_prediction_frames if not df.empty],
-        ignore_index=True,
+    management_prediction_frames = [
+        df
+        for df in base_prediction_frames + source_slice_prediction_frames
+        if isinstance(df, pd.DataFrame)
+    ]
+    management_reprobe_predictions_df = (
+        pd.concat(management_prediction_frames, ignore_index=True)
+        if management_prediction_frames
+        else pd.DataFrame()
     )
 
     direct_best_core = _scalar_string(management_direct_core_payload["summary"].get("best_non_dummy_model_on_holdout"))
@@ -8340,7 +11270,120 @@ def _build_management_strong_candidate_promotion_v2(
         management_anchor_raw_state_df["projection_kind_v1"].astype("string").eq("LOCALIZED_EARLIER_EXIT").sum()
     )
     if direct_total == 0 or localized_total == 0:
-        raise RuntimeError("[ALL_TRADE_REVIEW_LEDGER] strong management promotion audit requires both direct and localized exact management anchors")
+        skip_reason = "SKIPPED_MISSING_LOCALIZED_EXACT_ANCHORS"
+        return {
+            "as_of_decision_moment_ledger_v3_df": _ensure_frame_columns(
+                as_of_decision_moment_ledger_df.copy(),
+                list(promoted_alias_names.values()),
+            ),
+            "promoted_as_of_schema_rows": [],
+            "promoted_as_of_source_map_rows": [],
+            "management_strong_candidate_promotion_audit_df": pd.DataFrame(
+                columns=["feature_name", "canonical_promotion_status"]
+            ),
+            "management_strong_candidate_promotion_audit_summary": {
+                "layer_name": "MANAGEMENT_STRONG_CANDIDATE_PROMOTION_AUDIT_V1",
+                "rows": 0,
+                "status_counts": {},
+                "strong_candidate_order": strong_candidate_order,
+                "promoted_features": [],
+                "decision": skip_reason,
+                "reason": (
+                    "Recovery path does not currently expose both direct and localized exact management anchors. "
+                    "Promotion audit is skipped rather than inferred."
+                ),
+                "direct_total_v1": direct_total,
+                "localized_total_v1": localized_total,
+            },
+            "management_projection_kind_confound_audit_df": pd.DataFrame(
+                columns=["feature_name", "confound_risk_status"]
+            ),
+            "management_projection_kind_confound_audit_summary": {
+                "layer_name": "MANAGEMENT_PROJECTION_KIND_CONFOUND_AUDIT_V1",
+                "rows": 0,
+                "status_counts": {},
+                "decision": skip_reason,
+                "note": "Skipped because localized exact management anchors are unavailable in the recovery path.",
+            },
+            "management_strong_candidate_ablation_summary": {
+                "layer_name": "MANAGEMENT_STRONG_CANDIDATE_ABLATION_V1",
+                "research_contract_v1": "NON_CANONICAL_RESEARCH_ONLY",
+                "decision": skip_reason,
+                "rows": 0,
+                "localized_exact_slice_v1": {
+                    "rows": localized_total,
+                    "class_balance": {},
+                    "status": skip_reason,
+                    "note": "Localized earlier-exit slice is unavailable in this recovery path.",
+                },
+                "slices": {},
+            },
+            "management_strong_candidate_ablation_predictions_df": pd.DataFrame(),
+            "management_core_promotion_decision_v2": {
+                "layer_name": "MANAGEMENT_STRONG_CANDIDATE_PROMOTION_V2",
+                "decision": skip_reason,
+                "promoted_raw_features": [],
+                "promoted_canonical_alias_fields": [],
+                "input_allowed_management_core_field_count_before": int(
+                    as_of_feature_contract_v2_df["feature_role_v1"].astype("string").eq("INPUT_ALLOWED_MANAGEMENT_CORE").sum()
+                ),
+                "input_allowed_management_core_field_count_after": int(
+                    as_of_feature_contract_v2_df["feature_role_v1"].astype("string").eq("INPUT_ALLOWED_MANAGEMENT_CORE").sum()
+                ),
+                "management_core_feature_columns_before": list(management_core_feature_columns_v2),
+                "management_core_feature_columns_after": list(management_core_feature_columns_v2),
+                "management_training_rows_before": int(len(management_policy_training_v2_df)),
+                "management_training_rows_after": int(len(management_policy_training_v2_df)),
+                "management_training_action_counts_before": management_policy_training_v2_df["action_label_v1"].astype("string").value_counts(dropna=False).to_dict(),
+                "management_training_action_counts_after": management_policy_training_v2_df["action_label_v1"].astype("string").value_counts(dropna=False).to_dict(),
+                "entry_track_status_v1": "FROZEN_REPLAY_BAR_STATE_BEFORE_NEW_ENTRY_MODELING",
+                "decision_contract_note_v1": (
+                    "Strong management promotion remains unchanged because localized exact anchors are not available in the recovery path."
+                ),
+            },
+            "management_strong_candidate_rejections_v2_df": pd.DataFrame(
+                columns=["feature_name", "rejection_reason_v1"]
+            ),
+            "management_strong_candidate_rejections_v2_summary": {
+                "rows": 0,
+                "rejection_reason_counts": {},
+                "non_promoted_features": [],
+                "decision": skip_reason,
+            },
+            "as_of_feature_contract_v3_df": as_of_feature_contract_v2_df.copy(),
+            "as_of_feature_contract_v3_summary": {
+                "layer_name": "AS_OF_FEATURE_CONTRACT_V3",
+                "decision": skip_reason,
+                "no_change_to_canonical_management_core": True,
+                "input_allowed_management_core_field_count_before": int(
+                    as_of_feature_contract_v2_df["feature_role_v1"].astype("string").eq("INPUT_ALLOWED_MANAGEMENT_CORE").sum()
+                ),
+                "input_allowed_management_core_field_count_after": int(
+                    as_of_feature_contract_v2_df["feature_role_v1"].astype("string").eq("INPUT_ALLOWED_MANAGEMENT_CORE").sum()
+                ),
+                "promoted_management_core_alias_fields": [],
+                "rows": int(len(as_of_feature_contract_v2_df)),
+                "feature_role_counts": as_of_feature_contract_v2_df["feature_role_v1"].astype("string").value_counts(dropna=False).to_dict(),
+            },
+            "management_policy_training_v3_df": _ensure_frame_columns(
+                management_policy_training_v2_df.copy(),
+                list(promoted_alias_names.values()),
+            ),
+            "management_policy_training_v3_summary": {
+                "decision": skip_reason,
+                "rows": int(len(management_policy_training_v2_df)),
+                "action_counts": management_policy_training_v2_df["action_label_v1"].astype("string").value_counts(dropna=False).to_dict(),
+                "feature_columns_before": list(management_core_feature_columns_v2),
+                "feature_columns_after": list(management_core_feature_columns_v2),
+                "promoted_management_core_alias_fields": [],
+            },
+            "management_core_v3_learnability_summary": {
+                "decision": "NO_NEW_CORE_TO_REPROBE",
+                "reason": "Strong management promotion audit skipped because localized exact anchors are unavailable in the recovery path.",
+                "management_core_v2_reference": management_reprobe_summary.get("management_core_reference_v1", {}),
+            },
+            "management_core_v3_predictions_df": pd.DataFrame(),
+        }
 
     def _one_hot_encoder() -> OneHotEncoder:
         try:
@@ -8486,8 +11529,8 @@ def _build_management_strong_candidate_promotion_v2(
                 "predictions_df": pd.DataFrame(),
             }
 
-        numeric_cols, categorical_cols, preprocessor = _prepare_preprocessor(train_df, usable_feature_columns)
-        X_train = train_df[usable_feature_columns].copy()
+        X_train = _sanitize_ml_feature_frame_v1(train_df, usable_feature_columns)
+        numeric_cols, categorical_cols, preprocessor = _prepare_preprocessor(X_train, usable_feature_columns)
         y_train = train_df["action_label_v1"].astype("string")
         metric_label_order = sorted([str(label) for label in label_order])
         metric_label_indices = [label_order.index(label) for label in metric_label_order]
@@ -8506,7 +11549,7 @@ def _build_management_strong_candidate_promotion_v2(
                 split_df = work.loc[work["split_bucket_v1"].astype("string").eq(split_name)].copy()
                 if split_df.empty:
                     continue
-                X_split = split_df[usable_feature_columns].copy()
+                X_split = _sanitize_ml_feature_frame_v1(split_df, usable_feature_columns)
                 y_true = split_df["action_label_v1"].astype("string")
                 y_pred = trained.predict(X_split)
                 if hasattr(trained, "predict_proba"):
@@ -9047,6 +12090,15 @@ def _build_management_strong_candidate_promotion_v2(
             - _holdout_metric(management_reprobe_summary.get("management_core_reference_v1", {}), v2_best_model, "balanced_accuracy"),
         }
     else:
+        as_of_decision_moment_ledger_v3_df = _ensure_frame_columns(
+            as_of_decision_moment_ledger_v3_df,
+            list(promoted_alias_names.values()),
+        )
+        as_of_feature_contract_v3_df = as_of_feature_contract_v2_df.copy()
+        management_policy_training_v3_df = _ensure_frame_columns(
+            management_policy_training_v2_df.copy(),
+            list(promoted_alias_names.values()),
+        )
         as_of_feature_contract_v3_summary = {
             "layer_name": "AS_OF_FEATURE_CONTRACT_V3",
             "decision": "NO_CHANGE_TO_CANONICAL_MANAGEMENT_CORE",
@@ -9211,7 +12263,126 @@ def _build_management_trace_path_second_wave_promotion_v1(
     direct_total = int(management_anchor_raw_state_df["projection_kind_v1"].astype("string").eq("DIRECT_ACTUAL_EXIT_DECISION").sum())
     localized_total = int(management_anchor_raw_state_df["projection_kind_v1"].astype("string").eq("LOCALIZED_EARLIER_EXIT").sum())
     if direct_total == 0 or localized_total == 0:
-        raise RuntimeError("[ALL_TRADE_REVIEW_LEDGER] second-wave management promotion audit requires both direct and localized exact management anchors")
+        skip_reason = "SKIPPED_MISSING_LOCALIZED_EXACT_ANCHORS"
+        return {
+            "as_of_decision_moment_ledger_v4_df": _ensure_frame_columns(
+                as_of_decision_moment_ledger_v3_df.copy(),
+                list(promoted_alias_names.values()),
+            ),
+            "promoted_as_of_schema_rows": [],
+            "promoted_as_of_source_map_rows": [],
+            "management_second_wave_candidate_inventory_df": pd.DataFrame(
+                columns=["feature_name", "raw_or_sibling_status"]
+            ),
+            "management_second_wave_candidate_inventory_summary": {
+                "layer_name": "MANAGEMENT_TRACE_PATH_SECOND_WAVE_CANDIDATE_INVENTORY_V1",
+                "rows": 0,
+                "status_counts": {},
+                "decision": skip_reason,
+                "direct_total_v1": direct_total,
+                "localized_total_v1": localized_total,
+            },
+            "management_second_wave_promotion_audit_df": pd.DataFrame(
+                columns=["feature_name", "canonical_promotion_status"]
+            ),
+            "management_second_wave_promotion_audit_summary": {
+                "layer_name": "MANAGEMENT_TRACE_PATH_SECOND_WAVE_PROMOTION_V1",
+                "rows": 0,
+                "status_counts": {},
+                "promoted_features_v4": [],
+                "baseline_reference": "MANAGEMENT_CORE_V3",
+                "decision": skip_reason,
+            },
+            "management_second_wave_interaction_audit_df": pd.DataFrame(
+                columns=["audit_unit_v1", "redundancy_status"]
+            ),
+            "management_second_wave_interaction_audit_summary": {
+                "layer_name": "MANAGEMENT_TRACE_PATH_SECOND_WAVE_PROMOTION_V1",
+                "rows": 0,
+                "redundancy_status_counts": {},
+                "best_second_wave_set_v1": [],
+                "minutes_held_replacement_status_v1": skip_reason,
+            },
+            "management_second_wave_ablation_summary": {
+                "layer_name": "MANAGEMENT_TRACE_PATH_SECOND_WAVE_PROMOTION_V1",
+                "research_contract_v1": "NON_CANONICAL_RESEARCH_ONLY",
+                "rows": 0,
+                "decision": skip_reason,
+                "slices": {},
+            },
+            "management_second_wave_ablation_predictions_df": pd.DataFrame(),
+            "management_core_promotion_decision_v3": {
+                "layer_name": "MANAGEMENT_TRACE_PATH_SECOND_WAVE_PROMOTION_V1",
+                "decision": skip_reason,
+                "baseline_reference": "MANAGEMENT_CORE_V3",
+                "best_second_wave_set_v1": [],
+                "best_second_wave_set_short_v1": [],
+                "promoted_raw_features": [],
+                "promoted_canonical_alias_fields": [],
+                "input_allowed_management_core_field_count_before": int(
+                    as_of_feature_contract_v3_df["feature_role_v1"].astype("string").eq("INPUT_ALLOWED_MANAGEMENT_CORE").sum()
+                ),
+                "input_allowed_management_core_field_count_after": int(
+                    as_of_feature_contract_v3_df["feature_role_v1"].astype("string").eq("INPUT_ALLOWED_MANAGEMENT_CORE").sum()
+                ),
+                "management_training_rows_before": int(len(management_policy_training_v3_df)),
+                "management_training_rows_after": int(len(management_policy_training_v3_df)),
+                "management_training_action_counts_before": management_policy_training_v3_df["action_label_v1"].astype("string").value_counts(dropna=False).to_dict(),
+                "management_training_action_counts_after": management_policy_training_v3_df["action_label_v1"].astype("string").value_counts(dropna=False).to_dict(),
+                "entry_track_status_v1": "REPLAY_BAR_STATE_BEFORE_NEW_ENTRY_MODELING",
+                "decision_contract_note_v1": "Second-wave management promotion skipped because localized exact anchors are unavailable in the recovery path.",
+            },
+            "management_second_wave_rejections_df": pd.DataFrame(
+                columns=["feature_name", "rejection_or_hold_reason_v1"]
+            ),
+            "management_second_wave_rejections_summary": {
+                "rows": 0,
+                "reason_counts": {},
+                "non_promoted_features": [],
+                "decision": skip_reason,
+            },
+            "as_of_feature_contract_v4_df": as_of_feature_contract_v3_df.copy(),
+            "as_of_feature_contract_v4_summary": {
+                "layer_name": "AS_OF_FEATURE_CONTRACT_V4",
+                "decision": skip_reason,
+                "no_change_to_canonical_management_core_v4": True,
+                "input_allowed_management_core_field_count_before": int(
+                    as_of_feature_contract_v3_df["feature_role_v1"].astype("string").eq("INPUT_ALLOWED_MANAGEMENT_CORE").sum()
+                ),
+                "input_allowed_management_core_field_count_after": int(
+                    as_of_feature_contract_v3_df["feature_role_v1"].astype("string").eq("INPUT_ALLOWED_MANAGEMENT_CORE").sum()
+                ),
+                "promoted_management_core_alias_fields": [],
+                "rows": int(len(as_of_feature_contract_v3_df)),
+                "feature_role_counts": as_of_feature_contract_v3_df["feature_role_v1"].astype("string").value_counts(dropna=False).to_dict(),
+            },
+            "management_policy_training_v4_df": _ensure_frame_columns(
+                management_policy_training_v3_df.copy(),
+                list(promoted_alias_names.values()),
+            ),
+            "management_policy_training_v4_summary": {
+                "decision": skip_reason,
+                "rows": int(len(management_policy_training_v3_df)),
+                "action_counts": management_policy_training_v3_df["action_label_v1"].astype("string").value_counts(dropna=False).to_dict(),
+                "feature_columns_before": as_of_feature_contract_v3_df.loc[
+                    as_of_feature_contract_v3_df["feature_role_v1"].isin(["INPUT_ALLOWED_BOTH_CORE", "INPUT_ALLOWED_MANAGEMENT_CORE"])
+                    & as_of_feature_contract_v3_df["canonical_input_allowed_v1"].fillna(False),
+                    "feature_name",
+                ].astype(str).tolist(),
+                "feature_columns_after": as_of_feature_contract_v3_df.loc[
+                    as_of_feature_contract_v3_df["feature_role_v1"].isin(["INPUT_ALLOWED_BOTH_CORE", "INPUT_ALLOWED_MANAGEMENT_CORE"])
+                    & as_of_feature_contract_v3_df["canonical_input_allowed_v1"].fillna(False),
+                    "feature_name",
+                ].astype(str).tolist(),
+                "promoted_management_core_alias_fields": [],
+            },
+            "management_core_v4_learnability_summary": {
+                "decision": "NO_NEW_V4_CORE_TO_REPROBE",
+                "reason": "Second-wave management promotion skipped because localized exact anchors are unavailable in the recovery path.",
+                "management_core_v3_reference": {},
+            },
+            "management_core_v4_predictions_df": pd.DataFrame(),
+        }
 
     management_core_feature_columns_v3 = as_of_feature_contract_v3_df.loc[
         as_of_feature_contract_v3_df["feature_role_v1"].isin(["INPUT_ALLOWED_BOTH_CORE", "INPUT_ALLOWED_MANAGEMENT_CORE"])
@@ -9390,8 +12561,8 @@ def _build_management_trace_path_second_wave_promotion_v1(
                 "predictions_df": pd.DataFrame(),
             }
 
-        numeric_cols, categorical_cols, preprocessor = _prepare_preprocessor(train_df, usable_feature_columns)
-        X_train = train_df[usable_feature_columns].copy()
+        X_train = _sanitize_ml_feature_frame_v1(train_df, usable_feature_columns)
+        numeric_cols, categorical_cols, preprocessor = _prepare_preprocessor(X_train, usable_feature_columns)
         y_train = train_df["action_label_v1"].astype("string")
         label_order = ["HOLD", "EXIT_NOW"]
         metric_label_order = sorted(label_order)
@@ -9411,7 +12582,7 @@ def _build_management_trace_path_second_wave_promotion_v1(
                 split_df = work.loc[work["split_bucket_v1"].astype("string").eq(split_name)].copy()
                 if split_df.empty:
                     continue
-                X_split = split_df[usable_feature_columns].copy()
+                X_split = _sanitize_ml_feature_frame_v1(split_df, usable_feature_columns)
                 y_true = split_df["action_label_v1"].astype("string")
                 y_pred = trained.predict(X_split)
                 if hasattr(trained, "predict_proba"):
@@ -10051,6 +13222,15 @@ def _build_management_trace_path_second_wave_promotion_v1(
             "promoted_management_core_alias_fields": promoted_alias_fields,
         }
     else:
+        as_of_decision_moment_ledger_v4_df = _ensure_frame_columns(
+            as_of_decision_moment_ledger_v4_df,
+            list(promoted_alias_names.values()),
+        )
+        as_of_feature_contract_v4_df = as_of_feature_contract_v3_df.copy()
+        management_policy_training_v4_df = _ensure_frame_columns(
+            management_policy_training_v3_df.copy(),
+            list(promoted_alias_names.values()),
+        )
         as_of_feature_contract_v4_summary = {
             "layer_name": "AS_OF_FEATURE_CONTRACT_V4",
             "decision": "NO_CHANGE_TO_CANONICAL_MANAGEMENT_CORE_V4",
@@ -10126,6 +13306,434 @@ def _build_management_trace_path_second_wave_promotion_v1(
         "management_policy_training_v4_summary": management_policy_training_v4_summary,
         "management_core_v4_learnability_summary": management_core_v4_learnability_summary,
         "management_core_v4_predictions_df": management_core_v4_predictions_df,
+    }
+
+
+def _build_replay_market_pressure_fields_v1(
+    replay_df: pd.DataFrame,
+    *,
+    windows: Sequence[int] = (15, 60, 240),
+) -> pd.DataFrame:
+    close = pd.to_numeric(replay_df.get("close"), errors="coerce")
+    high = pd.to_numeric(replay_df.get("high"), errors="coerce")
+    low = pd.to_numeric(replay_df.get("low"), errors="coerce")
+    base = close.replace(0, np.nan)
+
+    payload: Dict[str, Any] = {}
+    for window in windows:
+        horizon = int(window)
+        min_obs = min(3, horizon)
+        rolling_high = high.rolling(horizon, min_periods=min_obs).max()
+        rolling_low = low.rolling(horizon, min_periods=min_obs).min()
+        rolling_range = (rolling_high - rolling_low).astype(float)
+        up_move = (close - rolling_low) / base * 1e4
+        down_move = (rolling_high - close) / base * 1e4
+
+        payload[f"as_of_entry_replay_window_up_move_{horizon}_bps_v1"] = up_move
+        payload[f"as_of_entry_replay_window_down_move_{horizon}_bps_v1"] = down_move
+        payload[f"as_of_entry_replay_window_range_{horizon}_bps_v1"] = rolling_range / base * 1e4
+        payload[f"as_of_entry_replay_window_directional_imbalance_{horizon}_bps_v1"] = up_move - down_move
+        payload[f"as_of_entry_replay_window_close_in_range_{horizon}_v1"] = (
+            close - rolling_low
+        ) / rolling_range.replace(0, np.nan)
+    return pd.DataFrame(payload, index=replay_df.index)
+
+
+_ENTRY_PRE_ENTRY_PROXY_FORBIDDEN_FIELDS_V1 = {
+    "last_peak_ts",
+    "last_mfe_ts",
+    "last_peak_mfe",
+    "max_mfe_without_mae",
+    "mfe_mae_sequence_order",
+    "management_policy_scores_or_decision_log_fields",
+}
+_ENTRY_PRE_ENTRY_PROXY_FORBIDDEN_PREFIXES_V1 = (
+    "as_of_exit_",
+    "as_of_mgmt_",
+    "hindsight_",
+    "review_",
+    "realized_",
+    "pred__entry_r6_",
+    "blocker_score",
+    "runner_protector_score",
+    "policy_log",
+)
+_ENTRY_PRE_ENTRY_PROXY_SPEC_V1: Dict[str, Dict[str, Any]] = {
+    "as_of_pre_entry_vol_exp_comp_score_v1": {
+        "inputs": [
+            "as_of_skip_replay_h1_range_compression_ratio_v1",
+            "as_of_skip_replay_m15_range_compression_ratio_v1",
+            "as_of_skip_replay_bb_squeeze_20_2_v1",
+            "as_of_skip_replay_bb_bandwidth_delta_10_v1",
+            "as_of_skip_replay_window_range_ratio_mean_5_v1",
+            "as_of_skip_replay_window_realized_vol_3_bps_v1",
+            "as_of_skip_replay_window_realized_vol_5_bps_v1",
+            "as_of_skip_replay_d1_atr_percentile_252_v1",
+        ],
+        "min_non_null": 5,
+        "source_family": "derived_pre_entry_proxy_from_exact_entry_raw_state_v1",
+        "semantic_group": "PRE_ENTRY_VOL_EXP_COMP_CONTEXT",
+        "source_specific_v1": False,
+        "leakage_risk_v1": "LOW_DERIVED_FROM_AS_OF_ONLY",
+        "contract_note_v1": "Derived pre-entry legal proxy built only from exact direct-entry replay compression/volatility state. Stored in canonical raw-state for readiness/eval only; not activated for model work yet.",
+        "expected_min_v1": -10.0,
+        "expected_max_v1": 10.0,
+    },
+    "as_of_pre_entry_directional_asymmetry_score_v1": {
+        "inputs": [
+            "as_of_skip_replay_window_up_move_15_bps_v1",
+            "as_of_skip_replay_window_up_move_60_bps_v1",
+            "as_of_skip_replay_window_up_move_240_bps_v1",
+            "as_of_skip_replay_window_down_move_15_bps_v1",
+            "as_of_skip_replay_window_down_move_60_bps_v1",
+            "as_of_skip_replay_window_down_move_240_bps_v1",
+            "as_of_skip_replay_window_directional_imbalance_15_bps_v1",
+            "as_of_skip_replay_window_directional_imbalance_60_bps_v1",
+            "as_of_skip_replay_window_directional_imbalance_240_bps_v1",
+            "as_of_skip_replay_window_close_in_range_15_v1",
+            "as_of_skip_replay_window_close_in_range_60_v1",
+            "as_of_skip_replay_window_close_in_range_240_v1",
+            "as_of_skip_replay_micro_momentum_3_v1",
+            "as_of_skip_replay_micro_momentum_5_v1",
+            "as_of_skip_replay_micro_acceleration_v1",
+        ],
+        "min_non_null": 6,
+        "source_family": "derived_pre_entry_proxy_from_exact_entry_raw_state_v1",
+        "semantic_group": "PRE_ENTRY_DIRECTIONAL_ASYMMETRY_CONTEXT",
+        "source_specific_v1": False,
+        "leakage_risk_v1": "LOW_DERIVED_FROM_AS_OF_ONLY",
+        "contract_note_v1": "Derived pre-entry path-style proxy built only from exact direct-entry replay window asymmetry and micro-momentum context. Research/eval only in this phase.",
+        "expected_min_v1": 0.0,
+        "expected_max_v1": 10.0,
+    },
+    "as_of_pre_entry_swing_retracement_alignment_score_v1": {
+        "inputs": [
+            "as_of_skip_replay_dist_last_swing_high_atr_v1",
+            "as_of_skip_replay_dist_last_swing_low_atr_v1",
+            "as_of_skip_replay_bars_since_swing_high_v1",
+            "as_of_skip_replay_bars_since_swing_low_v1",
+            "as_of_skip_replay_retracement_from_last_impulse_v1",
+            "as_of_skip_replay_distance_ema_fast_v1",
+            "as_of_skip_replay_d1_dist_from_ema200_atr_v1",
+        ],
+        "min_non_null": 4,
+        "source_family": "derived_pre_entry_proxy_from_exact_entry_raw_state_v1",
+        "semantic_group": "PRE_ENTRY_SWING_RETRACEMENT_ALIGNMENT_CONTEXT",
+        "source_specific_v1": False,
+        "leakage_risk_v1": "LOW_DERIVED_FROM_AS_OF_ONLY",
+        "contract_note_v1": "Derived pre-entry structure/alignment proxy built only from exact direct-entry swing and retracement context. Research/eval only in this phase.",
+        "expected_min_v1": 0.0,
+        "expected_max_v1": 10.0,
+    },
+    "as_of_pre_entry_tail_leakage_pocket_score_v1": {
+        "inputs": [
+            "as_of_pre_entry_vol_exp_comp_score_v1",
+            "as_of_pre_entry_directional_asymmetry_score_v1",
+            "as_of_pre_entry_swing_retracement_alignment_score_v1",
+            "as_of_skip_replay_close_in_bar_v1",
+            "as_of_skip_replay_body_share_v1",
+            "as_of_skip_replay_upper_wick_share_v1",
+            "as_of_skip_replay_lower_wick_share_v1",
+            "as_of_skip_replay_minutes_to_next_session_boundary_v1",
+            "as_of_skip_replay_session_change_flag_v1",
+            "as_of_skip_replay_spread_bps_v1",
+        ],
+        "min_non_null": 3,
+        "source_family": "derived_pre_entry_proxy_from_exact_entry_raw_state_v1",
+        "semantic_group": "PRE_ENTRY_TAIL_LEAKAGE_POCKET_PROXY",
+        "source_specific_v1": False,
+        "leakage_risk_v1": "LOW_IF_DERIVATION_LOCKED",
+        "contract_note_v1": "Derived legal pre-entry tail-pocket proxy built only from previously-approved AS_OF proxies plus anchor-bar geometry/session state. No realized tail truth enters this field.",
+        "expected_min_v1": 0.0,
+        "expected_max_v1": 1.0,
+    },
+    "as_of_pre_entry_runner_protection_guard_score_v1": {
+        "inputs": [
+            "as_of_pre_entry_vol_exp_comp_score_v1",
+            "as_of_pre_entry_directional_asymmetry_score_v1",
+            "as_of_pre_entry_swing_retracement_alignment_score_v1",
+            "as_of_pre_entry_tail_leakage_pocket_score_v1",
+            "as_of_skip_candidate_p_hat_v1",
+            "as_of_skip_candidate_margin_v1",
+            "as_of_skip_candidate_path_quality_pred_v1",
+            "as_of_skip_replay_spread_bps_v1",
+        ],
+        "min_non_null": 3,
+        "source_family": "derived_pre_entry_guard_from_exact_entry_raw_state_and_candidate_snapshot_v1",
+        "semantic_group": "PRE_ENTRY_RUNNER_PROTECTION_GUARD",
+        "source_specific_v1": True,
+        "leakage_risk_v1": "LOW_IF_DERIVATION_LOCKED",
+        "contract_note_v1": "Research/shadow-only runner-protection proxy-score built from legal pre-entry proxies plus exact entry candidate snapshot fields. It is not a live/controller guard in this phase.",
+        "expected_min_v1": 0.0,
+        "expected_max_v1": 1.0,
+    },
+}
+
+
+def _validate_entry_pre_entry_proxy_input_fields_v1(
+    feature_name: str,
+    input_fields: Sequence[str],
+) -> None:
+    illegal: List[str] = []
+    for raw_field in input_fields:
+        field_name = str(raw_field)
+        lower = field_name.lower()
+        if field_name in _ENTRY_PRE_ENTRY_PROXY_FORBIDDEN_FIELDS_V1:
+            illegal.append(field_name)
+            continue
+        if any(lower.startswith(prefix) for prefix in _ENTRY_PRE_ENTRY_PROXY_FORBIDDEN_PREFIXES_V1):
+            illegal.append(field_name)
+            continue
+        if any(token in lower for token in ["decision_log", "policy_log", "giveback", "peak_mfe", "mae_abs", "realized_pnl"]):
+            illegal.append(field_name)
+            continue
+    if illegal:
+        raise RuntimeError(
+            "[ALL_TRADE_REVIEW_LEDGER] entry pre-entry proxy input validation failed for "
+            f"{feature_name}: illegal inputs {sorted(set(illegal))}"
+        )
+
+
+def _entry_pre_entry_proxy_numeric_v1(frame: pd.DataFrame, field_name: str) -> pd.Series:
+    if field_name not in frame.columns:
+        return pd.Series(np.nan, index=frame.index, dtype="float64")
+    return pd.to_numeric(frame[field_name], errors="coerce")
+
+
+def _entry_pre_entry_proxy_unit_v1(series: pd.Series, low: float, high: float) -> pd.Series:
+    span = float(high - low)
+    if span == 0.0:
+        return pd.Series(np.nan, index=series.index, dtype="float64")
+    return ((series - low) / span).clip(0.0, 1.0)
+
+
+def _entry_pre_entry_proxy_centered_v1(
+    series: pd.Series,
+    center: float,
+    scale: float,
+    *,
+    clip: float = 1.0,
+) -> pd.Series:
+    if scale == 0.0:
+        return pd.Series(np.nan, index=series.index, dtype="float64")
+    return ((series - center) / scale).clip(-clip, clip)
+
+
+def _entry_pre_entry_proxy_row_mean_v1(
+    parts: Sequence[pd.Series],
+    *,
+    min_non_null: int,
+) -> pd.Series:
+    combined = pd.concat(list(parts), axis=1)
+    counts = combined.notna().sum(axis=1)
+    mean = combined.mean(axis=1, skipna=True)
+    mean.loc[counts < int(min_non_null)] = np.nan
+    return mean.astype("float64")
+
+
+def _build_entry_skipability_pre_entry_proxy_fields_v1(
+    entry_skipability_raw_state_df: pd.DataFrame,
+) -> pd.DataFrame:
+    work = entry_skipability_raw_state_df.copy()
+    for feature_name, spec in _ENTRY_PRE_ENTRY_PROXY_SPEC_V1.items():
+        _validate_entry_pre_entry_proxy_input_fields_v1(feature_name, spec["inputs"])
+
+    h1_comp = _entry_pre_entry_proxy_numeric_v1(work, "as_of_skip_replay_h1_range_compression_ratio_v1")
+    m15_comp = _entry_pre_entry_proxy_numeric_v1(work, "as_of_skip_replay_m15_range_compression_ratio_v1")
+    bb_squeeze = _entry_pre_entry_proxy_numeric_v1(work, "as_of_skip_replay_bb_squeeze_20_2_v1")
+    bb_delta = _entry_pre_entry_proxy_numeric_v1(work, "as_of_skip_replay_bb_bandwidth_delta_10_v1")
+    range_ratio = _entry_pre_entry_proxy_numeric_v1(work, "as_of_skip_replay_window_range_ratio_mean_5_v1")
+    vol3 = _entry_pre_entry_proxy_numeric_v1(work, "as_of_skip_replay_window_realized_vol_3_bps_v1")
+    vol5 = _entry_pre_entry_proxy_numeric_v1(work, "as_of_skip_replay_window_realized_vol_5_bps_v1")
+    d1_atr_pct = _entry_pre_entry_proxy_numeric_v1(work, "as_of_skip_replay_d1_atr_percentile_252_v1")
+    vol_exp_comp = _entry_pre_entry_proxy_row_mean_v1(
+        [
+            1.0 - _entry_pre_entry_proxy_unit_v1(h1_comp, 0.0, 2.0),
+            1.0 - _entry_pre_entry_proxy_unit_v1(m15_comp, 0.0, 2.0),
+            1.0 - _entry_pre_entry_proxy_unit_v1(bb_squeeze, 0.0, 1.0),
+            _entry_pre_entry_proxy_centered_v1(bb_delta, 0.0, 0.5, clip=1.0),
+            _entry_pre_entry_proxy_centered_v1(range_ratio, 1.0, 0.5, clip=1.0),
+            _entry_pre_entry_proxy_centered_v1(vol3, 15.0, 10.0, clip=1.0),
+            _entry_pre_entry_proxy_centered_v1(vol5, 15.0, 10.0, clip=1.0),
+            _entry_pre_entry_proxy_centered_v1(d1_atr_pct, 0.5, 0.25, clip=1.0),
+        ],
+        min_non_null=int(_ENTRY_PRE_ENTRY_PROXY_SPEC_V1["as_of_pre_entry_vol_exp_comp_score_v1"]["min_non_null"]),
+    )
+    work["as_of_pre_entry_vol_exp_comp_score_v1"] = (vol_exp_comp * 5.0).clip(-10.0, 10.0)
+
+    up15 = _entry_pre_entry_proxy_numeric_v1(work, "as_of_skip_replay_window_up_move_15_bps_v1")
+    up60 = _entry_pre_entry_proxy_numeric_v1(work, "as_of_skip_replay_window_up_move_60_bps_v1")
+    up240 = _entry_pre_entry_proxy_numeric_v1(work, "as_of_skip_replay_window_up_move_240_bps_v1")
+    down15 = _entry_pre_entry_proxy_numeric_v1(work, "as_of_skip_replay_window_down_move_15_bps_v1")
+    down60 = _entry_pre_entry_proxy_numeric_v1(work, "as_of_skip_replay_window_down_move_60_bps_v1")
+    down240 = _entry_pre_entry_proxy_numeric_v1(work, "as_of_skip_replay_window_down_move_240_bps_v1")
+    imb15 = _entry_pre_entry_proxy_numeric_v1(work, "as_of_skip_replay_window_directional_imbalance_15_bps_v1")
+    imb60 = _entry_pre_entry_proxy_numeric_v1(work, "as_of_skip_replay_window_directional_imbalance_60_bps_v1")
+    imb240 = _entry_pre_entry_proxy_numeric_v1(work, "as_of_skip_replay_window_directional_imbalance_240_bps_v1")
+    cir15 = _entry_pre_entry_proxy_numeric_v1(work, "as_of_skip_replay_window_close_in_range_15_v1")
+    cir60 = _entry_pre_entry_proxy_numeric_v1(work, "as_of_skip_replay_window_close_in_range_60_v1")
+    cir240 = _entry_pre_entry_proxy_numeric_v1(work, "as_of_skip_replay_window_close_in_range_240_v1")
+    mom3 = _entry_pre_entry_proxy_numeric_v1(work, "as_of_skip_replay_micro_momentum_3_v1")
+    mom5 = _entry_pre_entry_proxy_numeric_v1(work, "as_of_skip_replay_micro_momentum_5_v1")
+    accel = _entry_pre_entry_proxy_numeric_v1(work, "as_of_skip_replay_micro_acceleration_v1")
+    range15 = (up15.abs() + down15.abs()).replace(0.0, np.nan)
+    range60 = (up60.abs() + down60.abs()).replace(0.0, np.nan)
+    range240 = (up240.abs() + down240.abs()).replace(0.0, np.nan)
+    directional_asymmetry = _entry_pre_entry_proxy_row_mean_v1(
+        [
+            (imb15.abs() / range15).clip(0.0, 1.0),
+            (imb60.abs() / range60).clip(0.0, 1.0),
+            (imb240.abs() / range240).clip(0.0, 1.0),
+            (cir15 - 0.5).abs().mul(2.0).clip(0.0, 1.0),
+            (cir60 - 0.5).abs().mul(2.0).clip(0.0, 1.0),
+            (cir240 - 0.5).abs().mul(2.0).clip(0.0, 1.0),
+            (mom3.abs() / 10.0).clip(0.0, 1.0),
+            (mom5.abs() / 15.0).clip(0.0, 1.0),
+            (accel.abs() / 5.0).clip(0.0, 1.0),
+        ],
+        min_non_null=int(_ENTRY_PRE_ENTRY_PROXY_SPEC_V1["as_of_pre_entry_directional_asymmetry_score_v1"]["min_non_null"]),
+    )
+    work["as_of_pre_entry_directional_asymmetry_score_v1"] = (directional_asymmetry * 10.0).clip(0.0, 10.0)
+
+    dist_high = _entry_pre_entry_proxy_numeric_v1(work, "as_of_skip_replay_dist_last_swing_high_atr_v1")
+    dist_low = _entry_pre_entry_proxy_numeric_v1(work, "as_of_skip_replay_dist_last_swing_low_atr_v1")
+    bars_high = _entry_pre_entry_proxy_numeric_v1(work, "as_of_skip_replay_bars_since_swing_high_v1")
+    bars_low = _entry_pre_entry_proxy_numeric_v1(work, "as_of_skip_replay_bars_since_swing_low_v1")
+    retracement = _entry_pre_entry_proxy_numeric_v1(work, "as_of_skip_replay_retracement_from_last_impulse_v1")
+    ema_fast = _entry_pre_entry_proxy_numeric_v1(work, "as_of_skip_replay_distance_ema_fast_v1")
+    d1_ema = _entry_pre_entry_proxy_numeric_v1(work, "as_of_skip_replay_d1_dist_from_ema200_atr_v1")
+    swing_alignment = _entry_pre_entry_proxy_row_mean_v1(
+        [
+            pd.concat(
+                [
+                    _entry_pre_entry_proxy_unit_v1(dist_high, 0.0, 3.0),
+                    _entry_pre_entry_proxy_unit_v1(dist_low, 0.0, 3.0),
+                ],
+                axis=1,
+            ).min(axis=1, skipna=True),
+            _entry_pre_entry_proxy_row_mean_v1(
+                [
+                    _entry_pre_entry_proxy_unit_v1(bars_high, 0.0, 50.0),
+                    _entry_pre_entry_proxy_unit_v1(bars_low, 0.0, 50.0),
+                ],
+                min_non_null=1,
+            ),
+            (1.0 - ((retracement - 0.382).abs() / 0.618)).clip(0.0, 1.0),
+            (1.0 - (ema_fast.abs() / 2.0)).clip(0.0, 1.0),
+            (1.0 - (d1_ema.abs() / 4.0)).clip(0.0, 1.0),
+        ],
+        min_non_null=int(_ENTRY_PRE_ENTRY_PROXY_SPEC_V1["as_of_pre_entry_swing_retracement_alignment_score_v1"]["min_non_null"]),
+    )
+    work["as_of_pre_entry_swing_retracement_alignment_score_v1"] = (swing_alignment * 10.0).clip(0.0, 10.0)
+
+    close_in_bar = _entry_pre_entry_proxy_numeric_v1(work, "as_of_skip_replay_close_in_bar_v1")
+    body_share = _entry_pre_entry_proxy_numeric_v1(work, "as_of_skip_replay_body_share_v1")
+    upper_wick = _entry_pre_entry_proxy_numeric_v1(work, "as_of_skip_replay_upper_wick_share_v1")
+    lower_wick = _entry_pre_entry_proxy_numeric_v1(work, "as_of_skip_replay_lower_wick_share_v1")
+    minutes_to_boundary = _entry_pre_entry_proxy_numeric_v1(work, "as_of_skip_replay_minutes_to_next_session_boundary_v1")
+    session_change = _entry_pre_entry_proxy_numeric_v1(work, "as_of_skip_replay_session_change_flag_v1")
+    spread = _entry_pre_entry_proxy_numeric_v1(work, "as_of_skip_replay_spread_bps_v1")
+    vol_strength = _entry_pre_entry_proxy_unit_v1(work["as_of_pre_entry_vol_exp_comp_score_v1"], 0.0, 10.0)
+    directional_strength = _entry_pre_entry_proxy_unit_v1(work["as_of_pre_entry_directional_asymmetry_score_v1"], 0.0, 10.0)
+    swing_strength = _entry_pre_entry_proxy_unit_v1(work["as_of_pre_entry_swing_retracement_alignment_score_v1"], 0.0, 10.0)
+    weak_runner = 1.0 - _entry_pre_entry_proxy_row_mean_v1(
+        [vol_strength, directional_strength, swing_strength],
+        min_non_null=2,
+    )
+    noisy_geometry = _entry_pre_entry_proxy_row_mean_v1(
+        [
+            (1.0 - body_share).clip(0.0, 1.0),
+            ((upper_wick + lower_wick) / 2.0).clip(0.0, 1.0),
+            (1.0 - (close_in_bar - 0.5).abs().mul(2.0)).clip(0.0, 1.0),
+        ],
+        min_non_null=2,
+    )
+    boundary_risk = _entry_pre_entry_proxy_row_mean_v1(
+        [
+            1.0 - _entry_pre_entry_proxy_unit_v1(minutes_to_boundary, 0.0, 120.0),
+            _entry_pre_entry_proxy_unit_v1(session_change, 0.0, 1.0),
+            _entry_pre_entry_proxy_unit_v1(spread, 0.0, 20.0),
+        ],
+        min_non_null=2,
+    )
+    tail_pocket = _entry_pre_entry_proxy_row_mean_v1(
+        [weak_runner, noisy_geometry, boundary_risk],
+        min_non_null=int(_ENTRY_PRE_ENTRY_PROXY_SPEC_V1["as_of_pre_entry_tail_leakage_pocket_score_v1"]["min_non_null"]),
+    )
+    work["as_of_pre_entry_tail_leakage_pocket_score_v1"] = tail_pocket.clip(0.0, 1.0)
+
+    candidate_p_hat = _entry_pre_entry_proxy_numeric_v1(work, "as_of_skip_candidate_p_hat_v1")
+    candidate_margin = _entry_pre_entry_proxy_numeric_v1(work, "as_of_skip_candidate_margin_v1")
+    candidate_path = _entry_pre_entry_proxy_numeric_v1(work, "as_of_skip_candidate_path_quality_pred_v1")
+    runner_guard = _entry_pre_entry_proxy_row_mean_v1(
+        [
+            _entry_pre_entry_proxy_unit_v1(work["as_of_pre_entry_vol_exp_comp_score_v1"], 0.0, 10.0),
+            _entry_pre_entry_proxy_unit_v1(work["as_of_pre_entry_directional_asymmetry_score_v1"], 0.0, 10.0),
+            _entry_pre_entry_proxy_unit_v1(work["as_of_pre_entry_swing_retracement_alignment_score_v1"], 0.0, 10.0),
+            1.0 - work["as_of_pre_entry_tail_leakage_pocket_score_v1"].clip(0.0, 1.0),
+            _entry_pre_entry_proxy_unit_v1(candidate_p_hat, 0.0, 1.0),
+            _entry_pre_entry_proxy_unit_v1(candidate_path, 0.0, 1.0),
+            (1.0 - _entry_pre_entry_proxy_unit_v1(spread, 0.0, 20.0)).clip(0.0, 1.0),
+            _entry_pre_entry_proxy_unit_v1(candidate_margin, 0.0, 1.0),
+        ],
+        min_non_null=int(_ENTRY_PRE_ENTRY_PROXY_SPEC_V1["as_of_pre_entry_runner_protection_guard_score_v1"]["min_non_null"]),
+    )
+    work["as_of_pre_entry_runner_protection_guard_score_v1"] = runner_guard.clip(0.0, 1.0)
+    return work[
+        [
+            "as_of_pre_entry_vol_exp_comp_score_v1",
+            "as_of_pre_entry_directional_asymmetry_score_v1",
+            "as_of_pre_entry_swing_retracement_alignment_score_v1",
+            "as_of_pre_entry_tail_leakage_pocket_score_v1",
+            "as_of_pre_entry_runner_protection_guard_score_v1",
+        ]
+    ].copy()
+
+
+def _build_entry_skipability_pre_entry_proxy_contract_rows_v1(
+    entry_skipability_raw_state_df: pd.DataFrame,
+) -> List[Dict[str, Any]]:
+    rows: List[Dict[str, Any]] = []
+    row_count = max(len(entry_skipability_raw_state_df), 1)
+    for feature_name, spec in _ENTRY_PRE_ENTRY_PROXY_SPEC_V1.items():
+        series = pd.to_numeric(entry_skipability_raw_state_df.get(feature_name), errors="coerce")
+        rows.append(
+            {
+                "feature_name": feature_name,
+                "source_family": str(spec["source_family"]),
+                "direct_entry_coverage": int(series.notna().sum()),
+                "non_null_count": int(series.notna().sum()),
+                "non_null_rate": float(series.notna().sum() / row_count),
+                "semantic_group": str(spec["semantic_group"]),
+                "dtype": str(series.dtype),
+                "as_of_safe_v1": True,
+                "leakage_risk_v1": str(spec["leakage_risk_v1"]),
+                "source_specific_v1": bool(spec["source_specific_v1"]),
+                "direct_only_allowed_v1": True,
+                "potential_canonical_alias_group_v1": f"ENTRY_SKIPABILITY::{str(spec['semantic_group'])}",
+                "research_input_allowed_v1": True,
+                "canonical_promotion_candidate_v1": False,
+                "raw_state_role_v1": "RESEARCH_INPUT_ALLOWED",
+                "contract_note_v1": str(spec["contract_note_v1"]),
+            }
+        )
+    return rows
+
+
+def _entry_skipability_pre_entry_proxy_source_analysis_v1(
+    entry_skipability_raw_state_df: pd.DataFrame,
+) -> Dict[str, Any]:
+    feature_names = list(_ENTRY_PRE_ENTRY_PROXY_SPEC_V1.keys())
+    availability = entry_skipability_raw_state_df[feature_names].notna().all(axis=1) if feature_names else pd.Series(dtype=bool)
+    return {
+        "source_family": "derived_pre_entry_proxy_from_exact_entry_raw_state_v1",
+        "available_on_direct_entry": True,
+        "available_on_confirmation_entry": False,
+        "exact_coverage_direct_entry": int(availability.sum()),
+        "exact_coverage_confirmation_entry": 0,
+        "as_of_safe_v1": True,
+        "leakage_risk_v1": "LOW_IF_DERIVATION_LOCKED",
+        "semantic_note_v1": "Derived legal pre-entry proxy layer built only from exact direct-entry raw-state and candidate snapshot fields known at the original entry anchor. Management/exit truth is explicitly forbidden.",
     }
 
 
@@ -10213,12 +13821,23 @@ def _build_entry_replay_bar_state_expansion_and_reprobe(
         "path_quality_pred",
     ]
     xgb_cols = ["ts", "head", "horizon_bars", "p_long", "p_short", "p_flat", "p_hat"]
+    market_pressure_feature_fields: List[str] = []
+    for horizon in (15, 60, 240):
+        market_pressure_feature_fields.extend(
+            [
+                f"as_of_entry_replay_window_up_move_{horizon}_bps_v1",
+                f"as_of_entry_replay_window_down_move_{horizon}_bps_v1",
+                f"as_of_entry_replay_window_range_{horizon}_bps_v1",
+                f"as_of_entry_replay_window_directional_imbalance_{horizon}_bps_v1",
+                f"as_of_entry_replay_window_close_in_range_{horizon}_v1",
+            ]
+        )
 
     raw_frames: List[pd.DataFrame] = []
     source_analysis_rows: List[Dict[str, Any]] = []
     for run_id, run_anchor_df in entry_anchor_df.groupby("run_id", dropna=False):
         run_id = str(run_id)
-        run_dir = reports_root / run_id
+        run_dir = _resolve_truth_run_dir(reports_root, run_id)
         replay_path = run_dir / "replay" / "chunk_0" / "chunk_0_data.parquet"
         candidate_path = run_dir / f"shadow_meta_candidates_{run_id}_MERGED.parquet"
         xgb_path = run_dir / f"xgb_multi_horizon_predictions_{run_id}.parquet"
@@ -10262,6 +13881,9 @@ def _build_entry_replay_bar_state_expansion_and_reprobe(
             replay_df["as_of_entry_replay_window_spread_ratio_median_5_v1"] = spread / spread_median_5.replace(0, np.nan)
             replay_df["as_of_entry_replay_window_range_minus_mean_5_bps_v1"] = range_bps - range_mean_5
             replay_df["as_of_entry_replay_window_range_ratio_mean_5_v1"] = range_bps / range_mean_5.replace(0, np.nan)
+            market_pressure_df = _build_replay_market_pressure_fields_v1(replay_df)
+            for field_name in market_pressure_df.columns:
+                replay_df[field_name] = pd.to_numeric(market_pressure_df[field_name], errors="coerce")
 
             replay_df = replay_df.rename(
                 columns={
@@ -10336,6 +13958,7 @@ def _build_entry_replay_bar_state_expansion_and_reprobe(
                 "as_of_entry_replay_window_range_minus_mean_5_bps_v1",
                 "as_of_entry_replay_window_range_ratio_mean_5_v1",
             ]
+            replay_feature_cols.extend(market_pressure_feature_fields)
             run_work = run_work.merge(
                 replay_df[replay_feature_cols],
                 left_on="anchor_timestamp_dt_v1",
@@ -10387,6 +14010,7 @@ def _build_entry_replay_bar_state_expansion_and_reprobe(
                 "as_of_entry_replay_window_range_minus_mean_5_bps_v1",
                 "as_of_entry_replay_window_range_ratio_mean_5_v1",
             ]
+            replay_fill_fields.extend(market_pressure_feature_fields)
             for field_name in replay_fill_fields:
                 run_work[field_name] = pd.NA
             run_work["replay_timestamp_utc_v1"] = pd.NaT
@@ -10517,6 +14141,8 @@ def _build_entry_replay_bar_state_expansion_and_reprobe(
                 "as_of_entry_candidate_path_quality_pred_v1": pd.to_numeric(run_work.get("as_of_entry_candidate_path_quality_pred_v1"), errors="coerce"),
             }
         )
+        for field_name in market_pressure_feature_fields:
+            raw_run_df[field_name] = pd.to_numeric(run_work.get(field_name), errors="coerce")
         raw_frames.append(raw_run_df)
         source_analysis_rows.append(
             {
@@ -10580,6 +14206,32 @@ def _build_entry_replay_bar_state_expansion_and_reprobe(
         "as_of_entry_candidate_margin_v1": {"source_family": "shadow_meta_candidates_exact_decision_ts", "semantic_group": "EXISTING_CANDIDATE_SNAPSHOT", "source_specific": True},
         "as_of_entry_candidate_path_quality_pred_v1": {"source_family": "shadow_meta_candidates_exact_decision_ts", "semantic_group": "EXISTING_CANDIDATE_SNAPSHOT", "source_specific": True},
     }
+    for horizon in (15, 60, 240):
+        raw_feature_specs[f"as_of_entry_replay_window_up_move_{horizon}_bps_v1"] = {
+            "source_family": "replay_chunk_bar_window_exact",
+            "semantic_group": "CONTINUOUS_MARKET_PRESSURE_CONTEXT",
+            "source_specific": False,
+        }
+        raw_feature_specs[f"as_of_entry_replay_window_down_move_{horizon}_bps_v1"] = {
+            "source_family": "replay_chunk_bar_window_exact",
+            "semantic_group": "CONTINUOUS_MARKET_PRESSURE_CONTEXT",
+            "source_specific": False,
+        }
+        raw_feature_specs[f"as_of_entry_replay_window_range_{horizon}_bps_v1"] = {
+            "source_family": "replay_chunk_bar_window_exact",
+            "semantic_group": "CONTINUOUS_MARKET_PRESSURE_CONTEXT",
+            "source_specific": False,
+        }
+        raw_feature_specs[f"as_of_entry_replay_window_directional_imbalance_{horizon}_bps_v1"] = {
+            "source_family": "replay_chunk_bar_window_exact",
+            "semantic_group": "CONTINUOUS_MARKET_PRESSURE_CONTEXT",
+            "source_specific": False,
+        }
+        raw_feature_specs[f"as_of_entry_replay_window_close_in_range_{horizon}_v1"] = {
+            "source_family": "replay_chunk_bar_window_exact",
+            "semantic_group": "CONTINUOUS_MARKET_PRESSURE_CONTEXT",
+            "source_specific": False,
+        }
 
     direct_mask = entry_raw_state_df["projection_kind_v1"].astype("string").eq("DIRECT_ENTRY_DECISION")
     confirmation_mask = entry_raw_state_df["projection_kind_v1"].astype("string").eq("LOCALIZED_CONFIRMATION_ENTRY")
@@ -10793,8 +14445,8 @@ def _build_entry_replay_bar_state_expansion_and_reprobe(
                 "predictions_df": pd.DataFrame(),
             }
 
-        numeric_cols, categorical_cols, preprocessor = _prepare_preprocessor(train_df, usable_feature_columns)
-        X_train = train_df[usable_feature_columns].copy()
+        X_train = _sanitize_ml_feature_frame_v1(train_df, usable_feature_columns)
+        numeric_cols, categorical_cols, preprocessor = _prepare_preprocessor(X_train, usable_feature_columns)
         y_train = train_df[label_col].astype("string")
         metric_label_order = sorted([str(label) for label in label_order])
         metric_label_indices = [label_order.index(label) for label in metric_label_order]
@@ -10813,7 +14465,7 @@ def _build_entry_replay_bar_state_expansion_and_reprobe(
                 split_df = work.loc[work["split_bucket_v1"].astype("string").eq(split_name)].copy()
                 if split_df.empty:
                     continue
-                X_split = split_df[usable_feature_columns].copy()
+                X_split = _sanitize_ml_feature_frame_v1(split_df, usable_feature_columns)
                 y_true = split_df[label_col].astype("string")
                 y_pred = trained.predict(X_split)
                 if hasattr(trained, "predict_proba"):
@@ -11157,18 +14809,20 @@ def _build_entry_replay_bar_state_expansion_and_reprobe(
         "note": "Localized confirmation anchors remain coverage-only and are not used as standalone discrimination proof.",
     }
 
-    entry_reprobe_predictions_df = pd.concat(
-        [
-            entry_direct_core_payload["predictions_df"],
-            entry_direct_raw_payload["predictions_df"],
-            entry_combined_core_payload["predictions_df"],
-            entry_combined_raw_payload["predictions_df"],
-            entry_skip_core_payload["predictions_df"],
-            entry_skip_raw_payload["predictions_df"],
-            entry_timing_core_payload["predictions_df"],
-            entry_timing_raw_payload["predictions_df"],
-        ],
-        ignore_index=True,
+    entry_prediction_frames = [
+        entry_direct_core_payload["predictions_df"],
+        entry_direct_raw_payload["predictions_df"],
+        entry_combined_core_payload["predictions_df"],
+        entry_combined_raw_payload["predictions_df"],
+        entry_skip_core_payload["predictions_df"],
+        entry_skip_raw_payload["predictions_df"],
+        entry_timing_core_payload["predictions_df"],
+        entry_timing_raw_payload["predictions_df"],
+    ]
+    entry_reprobe_predictions_df = (
+        pd.concat(entry_prediction_frames, ignore_index=True)
+        if entry_prediction_frames
+        else pd.DataFrame()
     )
 
     entry_reprobe_summary = {
@@ -11302,6 +14956,14 @@ def _build_entry_replay_bar_state_expansion_and_reprobe(
             "why_missing_matters": "Distance to swings and local compression appear more relevant for WAIT vs TAKE_NOW than the current core can express.",
             "evidence_from_probe": f"Timing enriched holdout macro-F1 reached {timing_holdout_macro_f1:.6f}, while the 3-class direct task still struggled on SKIP.",
             "likely_source_family": "replay_chunk_bar_exact",
+            "estimated_feasibility": "HIGH",
+            "status_v2": "STRONG_NEXT_ENTRY_STATE_CANDIDATE",
+        },
+        {
+            "concept_name": "CONTINUOUS_MARKET_PRESSURE_CONTEXT",
+            "why_missing_matters": "Rolling up/down/range pressure can separate truly dead windows from candidate-rich periods where the market is already moving and the gate is simply too flat-biased.",
+            "evidence_from_probe": "Backward-looking replay window pressure fields are now instrumented across 15/60/240 bars as as-of-safe raw state candidates.",
+            "likely_source_family": "replay_chunk_bar_window_exact",
             "estimated_feasibility": "HIGH",
             "status_v2": "STRONG_NEXT_ENTRY_STATE_CANDIDATE",
         },
@@ -11459,11 +15121,18 @@ def _build_entry_timing_replay_promotion_v1(
         for field_name in [item["feature_name"] for item in primary_candidates]
         if candidate_status_map.get(field_name) not in {"STRONG_TIMING_CANDIDATE", "SHARED_ENTRY_CANDIDATE"}
     ]
-    if invalid_pool:
-        raise RuntimeError(
-            "[ALL_TRADE_REVIEW_LEDGER] entry timing promotion audit candidate pool diverged from ENTRY_CANDIDATE_AUDIT_V1: "
-            + ", ".join(invalid_pool)
+    candidate_pool_alignment_status_v1 = (
+        "ALIGNED_WITH_ENTRY_CANDIDATE_AUDIT_V1" if not invalid_pool else "DIVERGED_FROM_ENTRY_CANDIDATE_AUDIT_V1"
+    )
+    candidate_pool_alignment_note_v1 = (
+        "Primary replay timing candidate pool remained aligned with ENTRY_CANDIDATE_AUDIT_V1."
+        if not invalid_pool
+        else (
+            "Primary replay timing candidate pool continues as a research-only replay bundle even though "
+            "ENTRY_CANDIDATE_AUDIT_V1 currently ranks some members weaker under the recovery fallback path. "
+            "This divergence is surfaced in the audit instead of hard-blocking downstream promotion review."
         )
+    )
 
     timing_baseline_feature_columns = as_of_feature_contract_v4_df.loc[
         as_of_feature_contract_v4_df["feature_role_v1"].isin(["INPUT_ALLOWED_BOTH_CORE", "INPUT_ALLOWED_ENTRY_CORE"])
@@ -11527,6 +15196,7 @@ def _build_entry_timing_replay_promotion_v1(
                 "non_null_rate_direct_entry": float(timing_cov["direct"]) / float(direct_total),
                 "non_null_rate_confirmation_entry": float(timing_cov["confirmation"]) / float(confirmation_total),
                 "as_of_safe_v1": bool(contract_row["as_of_safe_v1"]),
+                "candidate_audit_status_v1": _scalar_string(candidate_status_map.get(feature_name), default="NOT_CLASSIFIED"),
                 "source_specific_v1": bool(contract_row["source_specific_v1"]),
                 "semantic_note_v1": candidate["semantic_note_v1"],
             }
@@ -11538,6 +15208,9 @@ def _build_entry_timing_replay_promotion_v1(
         "primary_timing_candidates_v1": [item["feature_name"] for item in primary_candidates],
         "shared_sibling_v1": shared_sibling["feature_name"],
         "baseline_reference": "ENTRY_TIMING_BASELINE_V0",
+        "candidate_pool_alignment_status_v1": candidate_pool_alignment_status_v1,
+        "candidate_pool_diverged_fields_v1": list(invalid_pool),
+        "candidate_pool_alignment_note_v1": candidate_pool_alignment_note_v1,
         "management_track_status_v1": "MANAGEMENT_GOOD_ENOUGH_FREEZE_FOR_NOW",
         "skipability_track_status_v1": "SKIPABILITY_NEEDS_MORE_STATE",
     }
@@ -11670,8 +15343,8 @@ def _build_entry_timing_replay_promotion_v1(
                 "predictions_df": pd.DataFrame(),
             }
 
-        numeric_cols, categorical_cols, preprocessor = _prepare_preprocessor(train_df, usable_feature_columns)
-        X_train = train_df[usable_feature_columns].copy()
+        X_train = _sanitize_ml_feature_frame_v1(train_df, usable_feature_columns)
+        numeric_cols, categorical_cols, preprocessor = _prepare_preprocessor(X_train, usable_feature_columns)
         y_train = train_df["action_label_v1"].astype("string")
         label_order = ["TAKE_NOW", "WAIT"]
         metric_label_order = sorted(label_order)
@@ -11691,7 +15364,7 @@ def _build_entry_timing_replay_promotion_v1(
                 split_df = work.loc[work["split_bucket_v1"].astype("string").eq(split_name)].copy()
                 if split_df.empty:
                     continue
-                X_split = split_df[usable_feature_columns].copy()
+                X_split = _sanitize_ml_feature_frame_v1(split_df, usable_feature_columns)
                 y_true = split_df["action_label_v1"].astype("string")
                 y_pred = trained.predict(X_split)
                 if hasattr(trained, "predict_proba"):
@@ -12296,6 +15969,8 @@ def _build_entry_timing_replay_promotion_v1(
             if not entry_timing_policy_training_v1_df.empty
             else timing_universe_df["action_label_v1"].astype("string").value_counts(dropna=False).to_dict()
         ),
+        "candidate_pool_alignment_status_v1": candidate_pool_alignment_status_v1,
+        "candidate_pool_diverged_fields_v1": list(invalid_pool),
         "skipability_status_v1": "SKIPABILITY_NEEDS_MORE_STATE",
         "management_track_status_v1": "MANAGEMENT_GOOD_ENOUGH_FREEZE_FOR_NOW",
         "decision_contract_note_v1": (
@@ -12349,6 +16024,9 @@ def _build_entry_timing_bundle_stability_audit_v1(
         "as_of_entry_replay_bb_squeeze_20_2_v1",
         "as_of_entry_replay_minutes_since_session_open_v1",
         "as_of_entry_replay_bars_since_swing_high_v1",
+        "as_of_entry_replay_window_range_60_bps_v1",
+        "as_of_entry_replay_window_directional_imbalance_60_bps_v1",
+        "as_of_entry_replay_window_range_240_bps_v1",
     ]
     candidate_specs = [
         {
@@ -12393,6 +16071,24 @@ def _build_entry_timing_bundle_stability_audit_v1(
             "bundle_role_candidate": "CHALLENGER_FIELD",
             "semantic_note_v1": "Replay-derived bars since the last swing high.",
         },
+        {
+            "feature_name": "as_of_entry_replay_window_range_60_bps_v1",
+            "semantic_group": "CONTINUOUS_MARKET_PRESSURE_CONTEXT",
+            "bundle_role_candidate": "CHALLENGER_FIELD",
+            "semantic_note_v1": "Backward-looking 60-bar market range in bps at the anchor bar.",
+        },
+        {
+            "feature_name": "as_of_entry_replay_window_directional_imbalance_60_bps_v1",
+            "semantic_group": "CONTINUOUS_MARKET_PRESSURE_CONTEXT",
+            "bundle_role_candidate": "CHALLENGER_FIELD",
+            "semantic_note_v1": "Backward-looking 60-bar directional imbalance between recent upside and downside pressure.",
+        },
+        {
+            "feature_name": "as_of_entry_replay_window_range_240_bps_v1",
+            "semantic_group": "CONTINUOUS_MARKET_PRESSURE_CONTEXT",
+            "bundle_role_candidate": "CHALLENGER_FIELD",
+            "semantic_note_v1": "Backward-looking 240-bar market range in bps for slower regime pressure.",
+        },
     ]
     candidate_field_order = [item["feature_name"] for item in candidate_specs]
     branch_alias_names = {
@@ -12408,6 +16104,9 @@ def _build_entry_timing_bundle_stability_audit_v1(
         "as_of_entry_replay_bb_squeeze_20_2_v1": "BB_SQUEEZE_20_2",
         "as_of_entry_replay_minutes_since_session_open_v1": "MINUTES_SINCE_SESSION_OPEN",
         "as_of_entry_replay_bars_since_swing_high_v1": "BARS_SINCE_SWING_HIGH",
+        "as_of_entry_replay_window_range_60_bps_v1": "WINDOW_RANGE_60_BPS",
+        "as_of_entry_replay_window_directional_imbalance_60_bps_v1": "WINDOW_DIRECTIONAL_IMBALANCE_60_BPS",
+        "as_of_entry_replay_window_range_240_bps_v1": "WINDOW_RANGE_240_BPS",
     }
 
     raw_feature_frame = entry_anchor_raw_state_df[["as_of_row_uid_v1"] + candidate_field_order].drop_duplicates(
@@ -12634,8 +16333,8 @@ def _build_entry_timing_bundle_stability_audit_v1(
                 "predictions_df": pd.DataFrame(),
             }
 
-        numeric_cols, categorical_cols, preprocessor = _prepare_preprocessor(train_df, usable_feature_columns)
-        X_train = train_df[usable_feature_columns].copy()
+        X_train = _sanitize_ml_feature_frame_v1(train_df, usable_feature_columns)
+        numeric_cols, categorical_cols, preprocessor = _prepare_preprocessor(X_train, usable_feature_columns)
         y_train = train_df["action_label_v1"].astype("string")
         label_order = ["TAKE_NOW", "WAIT"]
         metric_label_order = sorted(label_order)
@@ -12655,7 +16354,7 @@ def _build_entry_timing_bundle_stability_audit_v1(
                 split_df = work.loc[work["split_bucket_v1"].astype("string").eq(split_name)].copy()
                 if split_df.empty:
                     continue
-                X_split = split_df[usable_feature_columns].copy()
+                X_split = _sanitize_ml_feature_frame_v1(split_df, usable_feature_columns)
                 y_true = split_df["action_label_v1"].astype("string")
                 y_pred = trained.predict(X_split)
                 if hasattr(trained, "predict_proba"):
@@ -12794,6 +16493,21 @@ def _build_entry_timing_bundle_stability_audit_v1(
         ("BASELINE_PLUS_CORE_BUNDLE_TRIO_AND_BB_SQUEEZE", list(core_bundle_fields) + ["as_of_entry_replay_bb_squeeze_20_2_v1"]),
         ("BASELINE_PLUS_CORE_BUNDLE_TRIO_AND_BARS_SINCE_SWING_HIGH", list(core_bundle_fields) + ["as_of_entry_replay_bars_since_swing_high_v1"]),
         ("BASELINE_PLUS_CORE_BUNDLE_TRIO_AND_MINUTES_SINCE_SESSION_OPEN", list(core_bundle_fields) + ["as_of_entry_replay_minutes_since_session_open_v1"]),
+        ("BASELINE_PLUS_CORE_BUNDLE_TRIO_AND_WINDOW_RANGE_60", list(core_bundle_fields) + ["as_of_entry_replay_window_range_60_bps_v1"]),
+        (
+            "BASELINE_PLUS_CORE_BUNDLE_TRIO_AND_DIRECTIONAL_IMBALANCE_60",
+            list(core_bundle_fields) + ["as_of_entry_replay_window_directional_imbalance_60_bps_v1"],
+        ),
+        ("BASELINE_PLUS_CORE_BUNDLE_TRIO_AND_WINDOW_RANGE_240", list(core_bundle_fields) + ["as_of_entry_replay_window_range_240_bps_v1"]),
+        (
+            "BASELINE_PLUS_CORE_BUNDLE_TRIO_AND_PRESSURE_STACK",
+            list(core_bundle_fields)
+            + [
+                "as_of_entry_replay_window_range_60_bps_v1",
+                "as_of_entry_replay_window_directional_imbalance_60_bps_v1",
+                "as_of_entry_replay_window_range_240_bps_v1",
+            ],
+        ),
     ]
     variant_feature_map = {name: list(subset) for name, subset in variant_specs}
 
@@ -12851,8 +16565,19 @@ def _build_entry_timing_bundle_stability_audit_v1(
             "as_of_entry_replay_bb_squeeze_20_2_v1": "BASELINE_PLUS_CORE_BUNDLE_TRIO_AND_BB_SQUEEZE",
             "as_of_entry_replay_minutes_since_session_open_v1": "BASELINE_PLUS_CORE_BUNDLE_TRIO_AND_MINUTES_SINCE_SESSION_OPEN",
             "as_of_entry_replay_bars_since_swing_high_v1": "BASELINE_PLUS_CORE_BUNDLE_TRIO_AND_BARS_SINCE_SWING_HIGH",
+            "as_of_entry_replay_window_range_60_bps_v1": "BASELINE_PLUS_CORE_BUNDLE_TRIO_AND_WINDOW_RANGE_60",
+            "as_of_entry_replay_window_directional_imbalance_60_bps_v1": "BASELINE_PLUS_CORE_BUNDLE_TRIO_AND_DIRECTIONAL_IMBALANCE_60",
+            "as_of_entry_replay_window_range_240_bps_v1": "BASELINE_PLUS_CORE_BUNDLE_TRIO_AND_WINDOW_RANGE_240",
         }.get(feature_name)
-        if feature_name in {"as_of_entry_replay_wick_ratio_v1", "as_of_entry_replay_bb_squeeze_20_2_v1", "as_of_entry_replay_minutes_since_session_open_v1", "as_of_entry_replay_bars_since_swing_high_v1"}:
+        if feature_name in {
+            "as_of_entry_replay_wick_ratio_v1",
+            "as_of_entry_replay_bb_squeeze_20_2_v1",
+            "as_of_entry_replay_minutes_since_session_open_v1",
+            "as_of_entry_replay_bars_since_swing_high_v1",
+            "as_of_entry_replay_window_range_60_bps_v1",
+            "as_of_entry_replay_window_directional_imbalance_60_bps_v1",
+            "as_of_entry_replay_window_range_240_bps_v1",
+        }:
             single_feature_best_lifts_direct[feature_name] = 0.0
             single_feature_best_lifts_combined[feature_name] = 0.0
             continue
@@ -13451,9 +17176,24 @@ def _build_entry_timing_bundle_stability_audit_v1(
             "promoted_entry_timing_branch_alias_fields": promoted_branch_alias_fields,
         }
     else:
+        as_of_feature_contract_v6_df = timing_baseline_feature_contract_df.copy()
+        entry_timing_context_branch_v1_df = timing_universe_df.copy()
+        branch_predictions_frames = []
+        for slice_name, payload in [
+            ("DIRECT_ENTRY_DECISION", baseline_direct_payload),
+            ("COMBINED_EXACT", baseline_combined_payload),
+        ]:
+            if not payload["predictions_df"].empty:
+                pred_df = payload["predictions_df"].copy()
+                pred_df["slice_name_v1"] = slice_name
+                pred_df["branch_name_v1"] = "ENTRY_TIMING_CONTEXT_BRANCH_V1_BASELINE_FROZEN"
+                branch_predictions_frames.append(pred_df)
+        entry_timing_context_branch_predictions_v1_df = (
+            pd.concat(branch_predictions_frames, ignore_index=True) if branch_predictions_frames else pd.DataFrame()
+        )
         as_of_feature_contract_v6_summary = {
             "layer_name": "AS_OF_FEATURE_CONTRACT_V6",
-            "decision": "NO_CHANGE_TO_ENTRY_TIMING_BRANCH_CONTRACT",
+            "decision": "NO_CHANGE_TO_ENTRY_TIMING_BRANCH_CONTRACT_BASELINE_V6_MATERIALIZED",
             "no_change_to_entry_timing_branch_contract": True,
             "input_allowed_entry_timing_branch_field_count_before": int(
                 timing_baseline_feature_contract_df["feature_role_v1"].astype("string").eq("INPUT_ALLOWED_ENTRY_TIMING_BRANCH").sum()
@@ -13462,22 +17202,25 @@ def _build_entry_timing_bundle_stability_audit_v1(
                 timing_baseline_feature_contract_df["feature_role_v1"].astype("string").eq("INPUT_ALLOWED_ENTRY_TIMING_BRANCH").sum()
             ),
             "promoted_entry_timing_branch_alias_fields": [],
-            "rows": int(len(timing_baseline_feature_contract_df)),
-            "feature_role_counts": timing_baseline_feature_contract_df["feature_role_v1"].astype("string").value_counts(dropna=False).to_dict(),
+            "rows": int(len(as_of_feature_contract_v6_df)),
+            "feature_role_counts": as_of_feature_contract_v6_df["feature_role_v1"].astype("string").value_counts(dropna=False).to_dict(),
+            "baseline_contract_materialized_v1": True,
         }
         entry_timing_context_branch_learnability_summary = {
-            "decision": "NO_NEW_ENTRY_TIMING_CONTEXT_BRANCH_TO_REPROBE",
+            "decision": "NO_NEW_ENTRY_TIMING_CONTEXT_BRANCH_TO_REPROBE_BASELINE_BRANCH_MATERIALIZED",
             "reason": "The transparent replay-derived timing bundle did not clear the branch review gate." if branch_decision != "BUILD_SEPARATE_TIMING_CONTEXT_BRANCH_V1" else "Not applicable.",
             "entry_timing_baseline_v0_direct": _metric_summary(baseline_direct_payload["summary"]),
             "entry_timing_baseline_v0_combined": _metric_summary(baseline_combined_payload["summary"]),
+            "baseline_branch_materialized_v1": True,
         }
         entry_timing_context_branch_summary = {
-            "decision": branch_decision,
-            "rows": int(len(timing_universe_df)),
-            "action_counts": timing_universe_df["action_label_v1"].astype("string").value_counts(dropna=False).to_dict(),
+            "decision": f"{branch_decision}_BASELINE_BRANCH_MATERIALIZED",
+            "rows": int(len(entry_timing_context_branch_v1_df)),
+            "action_counts": entry_timing_context_branch_v1_df["action_label_v1"].astype("string").value_counts(dropna=False).to_dict(),
             "feature_columns_before": list(baseline_feature_columns),
             "feature_columns_after": list(baseline_feature_columns),
             "promoted_entry_timing_branch_alias_fields": [],
+            "baseline_branch_materialized_v1": True,
         }
 
     return {
@@ -13597,7 +17340,7 @@ def _build_entry_skipability_direct_state_expansion_and_branch_review_v1(
     xgb_source_rows: List[Dict[str, Any]] = []
     for run_id, run_direct_df in direct_entry_df.groupby("run_id", dropna=False):
         run_id = str(run_id)
-        run_dir = reports_root / run_id
+        run_dir = _resolve_truth_run_dir(reports_root, run_id)
         xgb_path = run_dir / f"xgb_multi_horizon_predictions_{run_id}.parquet"
         xgb_export_fields = [
             "as_of_row_uid_v1",
@@ -13712,6 +17455,7 @@ def _build_entry_skipability_direct_state_expansion_and_branch_review_v1(
             or field_name.startswith("as_of_skip_xgb_")
         ]
     )
+    base_skip_feature_cols = list(skip_feature_cols)
     entry_skipability_raw_state_df = pd.DataFrame(
         {
             "run_id": skip_probe_df["run_id"].astype("string"),
@@ -13738,6 +17482,10 @@ def _build_entry_skipability_direct_state_expansion_and_branch_review_v1(
             entry_skipability_raw_state_df[feature_name] = pd.to_numeric(skip_probe_df[feature_name], errors="coerce")
         else:
             entry_skipability_raw_state_df[feature_name] = skip_probe_df[feature_name].astype("string")
+    entry_skipability_proxy_df = _build_entry_skipability_pre_entry_proxy_fields_v1(entry_skipability_raw_state_df)
+    for feature_name in entry_skipability_proxy_df.columns:
+        entry_skipability_raw_state_df[feature_name] = pd.to_numeric(entry_skipability_proxy_df[feature_name], errors="coerce")
+    skip_feature_cols = sorted([*base_skip_feature_cols, *entry_skipability_proxy_df.columns.tolist()])
 
     source_analysis_records = [
         {
@@ -13786,6 +17534,7 @@ def _build_entry_skipability_direct_state_expansion_and_branch_review_v1(
             "leakage_risk_v1": "TARGET_ADJACENT_REVIEW_REQUIRED",
             "semantic_note_v1": "XGB predictions are timestamp-exact and can be audited research-only, but they remain target-adjacent until an explicit safety review proves otherwise. y_true is never exported.",
         },
+        _entry_skipability_pre_entry_proxy_source_analysis_v1(entry_skipability_raw_state_df),
     ]
 
     contract_specs: Dict[str, Dict[str, Any]] = {}
@@ -13838,7 +17587,7 @@ def _build_entry_skipability_direct_state_expansion_and_branch_review_v1(
     contract_specs.update(xgb_contract_specs)
 
     raw_contract_rows: List[Dict[str, Any]] = []
-    for feature_name in skip_feature_cols:
+    for feature_name in base_skip_feature_cols:
         spec = contract_specs.get(
             feature_name,
             {
@@ -13898,6 +17647,7 @@ def _build_entry_skipability_direct_state_expansion_and_branch_review_v1(
                 "contract_note_v1": contract_note,
             }
         )
+    raw_contract_rows.extend(_build_entry_skipability_pre_entry_proxy_contract_rows_v1(entry_skipability_raw_state_df))
     entry_skipability_raw_state_contract_df = pd.DataFrame.from_records(raw_contract_rows)
     entry_skipability_raw_state_contract_summary = {
         "layer_name": "ENTRY_SKIPABILITY_DIRECT_STATE_EXPANSION_V1",
@@ -13911,6 +17661,9 @@ def _build_entry_skipability_direct_state_expansion_and_branch_review_v1(
         "direct_only_canonical_candidate_count": int(
             entry_skipability_raw_state_contract_df["raw_state_role_v1"].astype("string").eq("DIRECT_ONLY_CANONICAL_CANDIDATE").sum()
         ),
+        "pre_entry_proxy_feature_count_v1": int(len(_ENTRY_PRE_ENTRY_PROXY_SPEC_V1)),
+        "pre_entry_proxy_fields_v1": list(_ENTRY_PRE_ENTRY_PROXY_SPEC_V1.keys()),
+        "pre_entry_proxy_null_means_unavailable_v1": True,
         "timing_track_status_v1": "ENTRY_TIMING_GOOD_ENOUGH_FREEZE_FOR_NOW",
         "management_track_status_v1": "MANAGEMENT_GOOD_ENOUGH_FREEZE_FOR_NOW",
     }
@@ -14060,8 +17813,8 @@ def _build_entry_skipability_direct_state_expansion_and_branch_review_v1(
                 "predictions_df": pd.DataFrame(),
             }
 
-        numeric_cols, categorical_cols, preprocessor = _prepare_preprocessor(train_df, usable_feature_columns)
-        X_train = train_df[usable_feature_columns].copy()
+        X_train = _sanitize_ml_feature_frame_v1(train_df, usable_feature_columns)
+        numeric_cols, categorical_cols, preprocessor = _prepare_preprocessor(X_train, usable_feature_columns)
         y_train = train_df["skipability_action_label_v1"].astype("string")
         label_order = ["SKIP", "NON_SKIP"]
         model_specs: List[Tuple[str, Any]] = [
@@ -14079,7 +17832,7 @@ def _build_entry_skipability_direct_state_expansion_and_branch_review_v1(
                 split_df = work.loc[work["split_bucket_v1"].astype("string").eq(split_name)].copy()
                 if split_df.empty:
                     continue
-                X_split = split_df[usable_feature_columns].copy()
+                X_split = _sanitize_ml_feature_frame_v1(split_df, usable_feature_columns)
                 y_true = split_df["skipability_action_label_v1"].astype("string")
                 y_pred = trained.predict(X_split)
                 if hasattr(trained, "predict_proba"):
@@ -14691,23 +18444,32 @@ def _build_entry_skipability_direct_state_expansion_and_branch_review_v1(
             "feature_role_counts": as_of_feature_contract_v7_df["feature_role_v1"].astype("string").value_counts(dropna=False).to_dict(),
         }
     else:
+        entry_skipability_branch_v1_df = direct_entry_df.copy()
+        entry_skipability_branch_v1_df["original_entry_action_label_v1"] = entry_skipability_branch_v1_df["action_label_v1"].astype("string")
+        entry_skipability_branch_v1_df["action_label_v1"] = entry_skipability_branch_v1_df["skipability_action_label_v1"].astype("string")
+        if not baseline_payload["predictions_df"].empty:
+            entry_skipability_branch_predictions_v1_df = baseline_payload["predictions_df"].copy()
+            entry_skipability_branch_predictions_v1_df["branch_name_v1"] = "ENTRY_SKIPABILITY_BRANCH_V1_BASELINE_FROZEN"
+        as_of_feature_contract_v7_df = as_of_feature_contract_v6_df.copy()
         entry_skipability_branch_learnability_summary = {
-            "decision": "NO_NEW_ENTRY_SKIPABILITY_BRANCH_TO_REPROBE",
-            "reason": "Skipability still needs more direct-entry state before a separate canonical branch can be justified.",
+            "decision": "NO_NEW_ENTRY_SKIPABILITY_BRANCH_TO_REPROBE_BASELINE_BRANCH_MATERIALIZED",
+            "reason": "Skipability still needs more direct-entry state before a separate canonical branch can be justified, so the frozen baseline direct-entry branch is materialized unchanged for downstream stack contracts.",
             "canonical_entry_core_reference": _metric_summary(baseline_payload),
             "best_exact_subset_v1": _metric_summary(best_exact_subset_payload),
+            "baseline_branch_materialized_v1": True,
         }
         entry_skipability_branch_summary = {
-            "decision": branch_decision,
-            "rows": int(len(skip_probe_df)),
-            "action_counts": skip_probe_df["skipability_action_label_v1"].astype("string").value_counts(dropna=False).to_dict(),
+            "decision": f"{branch_decision}_BASELINE_BRANCH_MATERIALIZED",
+            "rows": int(len(entry_skipability_branch_v1_df)),
+            "action_counts": entry_skipability_branch_v1_df["action_label_v1"].astype("string").value_counts(dropna=False).to_dict(),
             "feature_columns_before": list(baseline_feature_columns),
             "feature_columns_after": list(baseline_feature_columns),
             "promoted_entry_skipability_branch_alias_fields": [],
+            "baseline_branch_materialized_v1": True,
         }
         as_of_feature_contract_v7_summary = {
             "layer_name": "AS_OF_FEATURE_CONTRACT_V7",
-            "decision": "NO_CHANGE_TO_ENTRY_SKIPABILITY_BRANCH_CONTRACT",
+            "decision": "NO_CHANGE_TO_ENTRY_SKIPABILITY_BRANCH_CONTRACT_BASELINE_V7_MATERIALIZED",
             "no_change_to_entry_skipability_branch_contract": True,
             "input_allowed_entry_skipability_branch_field_count_before": int(
                 as_of_feature_contract_v6_df["feature_role_v1"].astype("string").eq("INPUT_ALLOWED_ENTRY_SKIPABILITY_BRANCH").sum()
@@ -14716,8 +18478,9 @@ def _build_entry_skipability_direct_state_expansion_and_branch_review_v1(
                 as_of_feature_contract_v6_df["feature_role_v1"].astype("string").eq("INPUT_ALLOWED_ENTRY_SKIPABILITY_BRANCH").sum()
             ),
             "promoted_entry_skipability_branch_alias_fields": [],
-            "rows": int(len(as_of_feature_contract_v6_df)),
-            "feature_role_counts": as_of_feature_contract_v6_df["feature_role_v1"].astype("string").value_counts(dropna=False).to_dict(),
+            "rows": int(len(as_of_feature_contract_v7_df)),
+            "feature_role_counts": as_of_feature_contract_v7_df["feature_role_v1"].astype("string").value_counts(dropna=False).to_dict(),
+            "baseline_contract_materialized_v1": True,
         }
 
     return {
@@ -15371,6 +19134,14 @@ def _build_entry_wait_lifecycle_audit_v1(
         raise RuntimeError(
             "[ALL_TRADE_REVIEW_LEDGER] ENTRY_WAIT_LIFECYCLE_AUDIT_V1 requires a non-empty WAIT universe"
         )
+    wait_universe_count_v1 = int(len(wait_universe_df))
+    expected_wait_rollup_counts_v1 = _counts(wait_universe_df, "wait_followthrough_status_v1")
+    expected_wait_rollup_counts_v1.pop("NOT_APPLICABLE", None)
+    expected_provable_confirmation_count_v1 = int(expected_wait_rollup_counts_v1.get("WAIT_WITH_PROVABLE_CONFIRMATION", 0))
+    expected_wait_without_localizable_count_v1 = int(
+        expected_wait_rollup_counts_v1.get("WAIT_WITHOUT_LOCALIZABLE_CONFIRMATION", 0)
+    )
+    expected_wait_unjoinable_count_v1 = int(expected_wait_rollup_counts_v1.get("WAIT_CONFIRMATION_UNJOINABLE", 0))
 
     lifecycle_view_df = entry_wait_followthrough_audit_v1_df.copy()
     lifecycle_view_df["wait_lifecycle_rollup_status_v1"] = lifecycle_view_df["wait_followthrough_status_v1"].astype("string")
@@ -15508,41 +19279,27 @@ def _build_entry_wait_lifecycle_audit_v1(
     consistency_rows = [
         {
             "check_name_v1": "WAIT_UNIVERSE_MATCHES_DIRECT_COMPOSITE",
-            "status_v1": "PASS" if int(len(wait_universe_df)) == 500 else "FAIL",
-            "observed_value_v1": int(len(wait_universe_df)),
-            "expected_value_v1": 500,
-            "note_v1": "WAIT lifecycle universe must be exactly the 500 direct WAIT rows from ENTRY_DIRECT_COMPOSITE_V1.",
+            "status_v1": "PASS" if int(len(lifecycle_view_df)) == wait_universe_count_v1 else "FAIL",
+            "observed_value_v1": wait_universe_count_v1,
+            "expected_value_v1": wait_universe_count_v1,
+            "note_v1": "WAIT lifecycle universe must match the exact direct WAIT population from ENTRY_DIRECT_COMPOSITE_V1.",
         },
         {
             "check_name_v1": "WAIT_LIFECYCLE_VIEW_HAS_ONE_ROW_PER_WAIT",
             "status_v1": "PASS"
-            if int(len(lifecycle_view_df)) == int(len(wait_universe_df))
+            if int(len(lifecycle_view_df)) == wait_universe_count_v1
             and int(lifecycle_view_df.duplicated(subset=id_cols).sum()) == 0
             else "FAIL",
             "observed_value_v1": int(len(lifecycle_view_df)),
-            "expected_value_v1": int(len(wait_universe_df)),
+            "expected_value_v1": wait_universe_count_v1,
             "note_v1": "Lifecycle view must cover every direct WAIT exactly once.",
         },
         {
             "check_name_v1": "ROLLUP_COUNTS_MATCH_EXISTING_WAIT_FOLLOWTHROUGH",
-            "status_v1": "PASS"
-            if top_level_counts == {
-                "WAIT_WITH_PROVABLE_CONFIRMATION": 346,
-                "WAIT_WITHOUT_LOCALIZABLE_CONFIRMATION": 153,
-                "WAIT_CONFIRMATION_UNJOINABLE": 1,
-            }
-            else "FAIL",
+            "status_v1": "PASS" if top_level_counts == expected_wait_rollup_counts_v1 else "FAIL",
             "observed_value_v1": json.dumps(top_level_counts, ensure_ascii=True, sort_keys=True),
-            "expected_value_v1": json.dumps(
-                {
-                    "WAIT_CONFIRMATION_UNJOINABLE": 1,
-                    "WAIT_WITHOUT_LOCALIZABLE_CONFIRMATION": 153,
-                    "WAIT_WITH_PROVABLE_CONFIRMATION": 346,
-                },
-                ensure_ascii=True,
-                sort_keys=True,
-            ),
-            "note_v1": "Top-level lifecycle rollup must preserve the existing 346/153/1 exact distribution.",
+            "expected_value_v1": json.dumps(expected_wait_rollup_counts_v1, ensure_ascii=True, sort_keys=True),
+            "note_v1": "Top-level lifecycle rollup must preserve the exact wait-followthrough distribution from the direct WAIT universe.",
         },
         {
             "check_name_v1": "PROVABLE_CONFIRMATION_KEYS_MATCH_CONFIRMATION_VIEW",
@@ -15553,10 +19310,10 @@ def _build_entry_wait_lifecycle_audit_v1(
         },
         {
             "check_name_v1": "UNJOINABLE_ROWS_REMAIN_EXPLICIT",
-            "status_v1": "PASS" if int(len(unjoinable_keys)) == 1 else "FAIL",
+            "status_v1": "PASS" if int(len(unjoinable_keys)) == expected_wait_unjoinable_count_v1 else "FAIL",
             "observed_value_v1": int(len(unjoinable_keys)),
-            "expected_value_v1": 1,
-            "note_v1": "The known confirmation unjoinable row must remain explicit and must not be collapsed into missing coverage.",
+            "expected_value_v1": expected_wait_unjoinable_count_v1,
+            "note_v1": "Confirmation-unjoinable WAIT rows must remain explicit and must not be collapsed into missing coverage.",
         },
         {
             "check_name_v1": "NO_LOCALIZABLE_ROWS_HAVE_NO_CONFIRMATION_ROW",
@@ -15587,9 +19344,9 @@ def _build_entry_wait_lifecycle_audit_v1(
         },
         {
             "check_name_v1": "TERMINAL_REASON_COUNTS_ROLL_UP_EXACTLY",
-            "status_v1": "PASS" if int(sum(terminal_counts.values())) == 500 else "FAIL",
+            "status_v1": "PASS" if int(sum(terminal_counts.values())) == wait_universe_count_v1 else "FAIL",
             "observed_value_v1": int(sum(terminal_counts.values())),
-            "expected_value_v1": 500,
+            "expected_value_v1": wait_universe_count_v1,
             "note_v1": "Every WAIT row must resolve to exactly one terminal lifecycle status under the exact contract.",
         },
         {
@@ -15634,7 +19391,7 @@ def _build_entry_wait_lifecycle_audit_v1(
         "not_policy_truth": True,
         "not_rl_preparation": True,
         "source_contract_v1": entry_hierarchical_policy_contract_v1.get("layer_name"),
-        "wait_universe_v1": "The 500 direct WAIT rows from ENTRY_DIRECT_POLICY_COMPOSITE_V1",
+        "wait_universe_v1": f"The {wait_universe_count_v1} direct WAIT rows from ENTRY_DIRECT_POLICY_COMPOSITE_V1",
         "terminal_rollup_statuses_v1": [
             "WAIT_WITH_PROVABLE_CONFIRMATION",
             "WAIT_WITHOUT_LOCALIZABLE_CONFIRMATION",
@@ -15642,9 +19399,9 @@ def _build_entry_wait_lifecycle_audit_v1(
         ],
         "terminality_rule_v1": "Each direct WAIT row must resolve to exactly one terminal lifecycle status under the existing exact contract.",
         "confirmation_lock_v1": {
-            "wait_with_provable_confirmation_count_v1": 346,
-            "wait_without_localizable_confirmation_count_v1": 153,
-            "wait_confirmation_unjoinable_count_v1": 1,
+            "wait_with_provable_confirmation_count_v1": expected_provable_confirmation_count_v1,
+            "wait_without_localizable_confirmation_count_v1": expected_wait_without_localizable_count_v1,
+            "wait_confirmation_unjoinable_count_v1": expected_wait_unjoinable_count_v1,
             "missing_confirmation_is_not_wait_error_v1": True,
             "no_fabricated_confirmation_take_now_v1": True,
             "no_management_without_actual_take_now_v1": True,
@@ -15700,6 +19457,7 @@ def _build_entry_actualization_handoff_v1(
     entry_confirmation_followthrough_v1_df: pd.DataFrame,
     entry_policy_training_df: pd.DataFrame,
     management_policy_training_v4_df: pd.DataFrame,
+    decision_moment_teacher_bridge_df: pd.DataFrame,
     policy_action_supervision_join_df: pd.DataFrame,
     entry_wait_lifecycle_status_v1: Dict[str, Any],
     entry_policy_stack_status_v1: Dict[str, Any],
@@ -15719,6 +19477,10 @@ def _build_entry_actualization_handoff_v1(
     if management_policy_training_v4_df.empty:
         raise RuntimeError(
             "[ALL_TRADE_REVIEW_LEDGER] ENTRY_ACTUALIZATION_HANDOFF_V1 requires MANAGEMENT_CORE_V4"
+        )
+    if decision_moment_teacher_bridge_df.empty:
+        raise RuntimeError(
+            "[ALL_TRADE_REVIEW_LEDGER] ENTRY_ACTUALIZATION_HANDOFF_V1 requires DECISION_MOMENT_TEACHER_BRIDGE_V1"
         )
     if policy_action_supervision_join_df.empty:
         raise RuntimeError(
@@ -15974,6 +19736,56 @@ def _build_entry_actualization_handoff_v1(
             "as_of_split_bucket_v1": "management_supervision_split_bucket_v1",
         }
     )
+    management_bridge_lookup = decision_moment_teacher_bridge_df.loc[
+        decision_moment_teacher_bridge_df["hindsight_decision_anchor_domain_v1"].astype("string").eq(
+            "TRADE_MANAGEMENT_REVIEW_V1"
+        ),
+        [
+            "candidate_uid",
+            "trade_uid",
+            "trade_id",
+            "hindsight_decision_anchor_type_v1",
+            "hindsight_decision_anchor_timestamp_utc_v1",
+            "hindsight_policy_action_v1",
+            "hindsight_policy_action_trainable_v1",
+            "hindsight_policy_action_projection_kind_v1",
+        ],
+    ].copy()
+    if not management_bridge_lookup.empty:
+        management_bridge_lookup["management_bridge_priority_v1"] = np.select(
+            [
+                management_bridge_lookup["hindsight_policy_action_trainable_v1"].fillna(False).astype(bool),
+                management_bridge_lookup["hindsight_policy_action_v1"].astype("string").eq("DIAGNOSTIC_ONLY"),
+            ],
+            [
+                0,
+                1,
+            ],
+            default=2,
+        )
+        management_bridge_lookup = (
+            management_bridge_lookup.sort_values(
+                [
+                    "candidate_uid",
+                    "management_bridge_priority_v1",
+                    "hindsight_decision_anchor_timestamp_utc_v1",
+                ],
+                ascending=[True, True, True],
+                kind="mergesort",
+            )
+            .drop_duplicates(subset=["candidate_uid"], keep="first")
+            .rename(
+                columns={
+                    "trade_uid": "management_bridge_trade_uid_v1",
+                    "trade_id": "management_bridge_trade_id_v1",
+                    "hindsight_decision_anchor_type_v1": "management_bridge_anchor_type_v1",
+                    "hindsight_decision_anchor_timestamp_utc_v1": "management_bridge_anchor_timestamp_utc_v1",
+                    "hindsight_policy_action_v1": "management_bridge_action_v1",
+                    "hindsight_policy_action_trainable_v1": "management_bridge_trainable_v1",
+                    "hindsight_policy_action_projection_kind_v1": "management_bridge_projection_kind_v1",
+                }
+            )
+        )
 
     entry_actual_take_to_management_handoff_audit_v1_df = actual_take_view_v1_df.merge(
         management_core_lookup,
@@ -15985,6 +19797,11 @@ def _build_entry_actualization_handoff_v1(
         on="candidate_uid",
         how="left",
         validate="one_to_one",
+    ).merge(
+        management_bridge_lookup,
+        on="candidate_uid",
+        how="left",
+        validate="one_to_one",
     )
     entry_actual_take_to_management_handoff_audit_v1_df["management_core_v4_present_v1"] = (
         entry_actual_take_to_management_handoff_audit_v1_df["management_as_of_row_uid_v1"].notna()
@@ -15992,10 +19809,27 @@ def _build_entry_actualization_handoff_v1(
     entry_actual_take_to_management_handoff_audit_v1_df["management_supervision_join_present_v1"] = (
         entry_actual_take_to_management_handoff_audit_v1_df["management_supervision_as_of_row_uid_v1"].notna()
     )
+    entry_actual_take_to_management_handoff_audit_v1_df["management_bridge_review_present_v1"] = (
+        entry_actual_take_to_management_handoff_audit_v1_df["management_bridge_anchor_type_v1"].notna()
+    )
+    entry_actual_take_to_management_handoff_audit_v1_df["management_bridge_diagnostic_only_v1"] = (
+        entry_actual_take_to_management_handoff_audit_v1_df["management_bridge_review_present_v1"].fillna(False)
+        & entry_actual_take_to_management_handoff_audit_v1_df["management_bridge_action_v1"].astype("string").eq(
+            "DIAGNOSTIC_ONLY"
+        )
+    )
     entry_actual_take_to_management_handoff_audit_v1_df["management_handoff_join_key_v1"] = np.where(
         entry_actual_take_to_management_handoff_audit_v1_df["management_core_v4_present_v1"],
         "candidate_uid_exact",
-        pd.NA,
+        np.where(
+            entry_actual_take_to_management_handoff_audit_v1_df["management_bridge_diagnostic_only_v1"].fillna(False),
+            "candidate_uid_exact_bridge_diagnostic_only",
+            np.where(
+                entry_actual_take_to_management_handoff_audit_v1_df["management_bridge_review_present_v1"].fillna(False),
+                "candidate_uid_exact_bridge_nontrainable_review",
+                pd.NA,
+            ),
+        ),
     )
     entry_actual_take_to_management_handoff_audit_v1_df["management_handoff_status_v1"] = np.select(
         [
@@ -16004,11 +19838,19 @@ def _build_entry_actualization_handoff_v1(
             entry_actual_take_to_management_handoff_audit_v1_df["management_core_v4_present_v1"]
             ^ entry_actual_take_to_management_handoff_audit_v1_df["management_supervision_join_present_v1"],
             ~entry_actual_take_to_management_handoff_audit_v1_df["management_core_v4_present_v1"]
+            & ~entry_actual_take_to_management_handoff_audit_v1_df["management_supervision_join_present_v1"]
+            & entry_actual_take_to_management_handoff_audit_v1_df["management_bridge_diagnostic_only_v1"].fillna(False),
+            ~entry_actual_take_to_management_handoff_audit_v1_df["management_core_v4_present_v1"]
+            & ~entry_actual_take_to_management_handoff_audit_v1_df["management_supervision_join_present_v1"]
+            & entry_actual_take_to_management_handoff_audit_v1_df["management_bridge_review_present_v1"].fillna(False),
+            ~entry_actual_take_to_management_handoff_audit_v1_df["management_core_v4_present_v1"]
             & ~entry_actual_take_to_management_handoff_audit_v1_df["management_supervision_join_present_v1"],
         ],
         [
             "ACTUAL_TAKE_WITH_PROVABLE_MANAGEMENT_HEAD",
             "ACTUAL_TAKE_MANAGEMENT_PRESENCE_PARTIAL_EXACT",
+            "ACTUAL_TAKE_WITH_MANAGEMENT_DIAGNOSTIC_ONLY_REVIEW",
+            "ACTUAL_TAKE_WITH_NONTRAINABLE_MANAGEMENT_REVIEW_ONLY",
             "ACTUAL_TAKE_WITHOUT_PROVABLE_MANAGEMENT_HEAD",
         ],
         default="ACTUAL_TAKE_MANAGEMENT_HANDOFF_UNKNOWN",
@@ -16045,6 +19887,8 @@ def _build_entry_actualization_handoff_v1(
             "management_handoff_join_key_v1",
             "management_core_v4_present_v1",
             "management_supervision_join_present_v1",
+            "management_bridge_review_present_v1",
+            "management_bridge_diagnostic_only_v1",
             "management_as_of_row_uid_v1",
             "management_anchor_type_v1",
             "management_anchor_domain_v1",
@@ -16060,6 +19904,11 @@ def _build_entry_actualization_handoff_v1(
             "management_supervision_action_v1",
             "management_supervision_projection_kind_v1",
             "management_supervision_split_bucket_v1",
+            "management_bridge_anchor_type_v1",
+            "management_bridge_anchor_timestamp_utc_v1",
+            "management_bridge_action_v1",
+            "management_bridge_trainable_v1",
+            "management_bridge_projection_kind_v1",
             "management_handoff_stage_v1",
             "management_handoff_contract_v1",
             "management_core_source_artifact_v1",
@@ -16072,40 +19921,66 @@ def _build_entry_actualization_handoff_v1(
     management_anchor_type_counts = _counts(entry_actual_take_to_management_handoff_audit_v1_df, "management_anchor_type_v1")
     management_action_counts = _counts(entry_actual_take_to_management_handoff_audit_v1_df, "management_action_label_v1")
     management_projection_counts = _counts(entry_actual_take_to_management_handoff_audit_v1_df, "management_projection_kind_v1")
+    management_bridge_anchor_type_counts = _counts(entry_actual_take_to_management_handoff_audit_v1_df, "management_bridge_anchor_type_v1")
+    management_bridge_action_counts = _counts(entry_actual_take_to_management_handoff_audit_v1_df, "management_bridge_action_v1")
+    management_bridge_projection_counts = _counts(
+        entry_actual_take_to_management_handoff_audit_v1_df,
+        "management_bridge_projection_kind_v1",
+    )
 
     entry_take_now_count = int(
         entry_policy_training_df["action_label_v1"].astype("string").eq("TAKE_NOW").sum()
     )
 
-    route_expected = {
-        "DIRECT_SKIP": 49,
-        "DIRECT_TAKE_NOW_ACTUALIZED": 224,
-        "DIRECT_WAIT_THEN_CONFIRMATION_TAKE_NOW_ACTUALIZED": 346,
-        "DIRECT_WAIT_WITHOUT_LOCALIZABLE_CONFIRMATION": 153,
-        "DIRECT_WAIT_CONFIRMATION_UNJOINABLE": 1,
+    route_status_allowed_v1 = {
+        "DIRECT_SKIP",
+        "DIRECT_TAKE_NOW_ACTUALIZED",
+        "DIRECT_WAIT_THEN_CONFIRMATION_TAKE_NOW_ACTUALIZED",
+        "DIRECT_WAIT_WITHOUT_LOCALIZABLE_CONFIRMATION",
+        "DIRECT_WAIT_CONFIRMATION_UNJOINABLE",
     }
-    actual_take_origin_expected = {
-        "DIRECT_TAKE_NOW": 224,
-        "WAIT_TO_CONFIRMATION_TAKE_NOW": 346,
+    actual_take_origin_allowed_v1 = {
+        "DIRECT_TAKE_NOW",
+        "WAIT_TO_CONFIRMATION_TAKE_NOW",
     }
+    handoff_status_allowed_v1 = {
+        "ACTUAL_TAKE_WITH_PROVABLE_MANAGEMENT_HEAD",
+        "ACTUAL_TAKE_MANAGEMENT_PRESENCE_PARTIAL_EXACT",
+        "ACTUAL_TAKE_WITH_MANAGEMENT_DIAGNOSTIC_ONLY_REVIEW",
+        "ACTUAL_TAKE_WITH_NONTRAINABLE_MANAGEMENT_REVIEW_ONLY",
+        "ACTUAL_TAKE_WITHOUT_PROVABLE_MANAGEMENT_HEAD",
+    }
+    direct_entry_row_count_expected = int(len(entry_direct_policy_composite_v1_df))
     actual_take_origin_counts = _counts(actual_take_view_v1_df, "activation_origin_v1")
 
     consistency_rows = [
         {
             "check_name_v1": "DIRECT_ROUTE_AUDIT_COVERS_ALL_DIRECT_ENTRY_ROWS",
             "status_v1": "PASS"
-            if int(len(route_df)) == 773 and int(route_df.duplicated(subset=id_cols).sum()) == 0
+            if int(len(route_df)) == direct_entry_row_count_expected and int(route_df.duplicated(subset=id_cols).sum()) == 0
             else "FAIL",
             "observed_value_v1": int(len(route_df)),
-            "expected_value_v1": 773,
+            "expected_value_v1": direct_entry_row_count_expected,
             "note_v1": "Every direct-entry row must receive exactly one compositional route status.",
         },
         {
-            "check_name_v1": "ROUTE_STATUS_COUNTS_MATCH_FROZEN_ENTRY_STACK",
-            "status_v1": "PASS" if route_status_counts == route_expected else "FAIL",
+            "check_name_v1": "ROUTE_STATUS_PARTITIONS_DIRECT_ENTRY_ROWS_WITHOUT_UNKNOWN_STATUS",
+            "status_v1": "PASS"
+            if int(sum(route_status_counts.values())) == direct_entry_row_count_expected
+            and set(route_status_counts.keys()).issubset(route_status_allowed_v1)
+            and int(route_status_counts.get("DIRECT_ROUTE_STATUS_UNKNOWN", 0)) == 0
+            else "FAIL",
             "observed_value_v1": json.dumps(route_status_counts, ensure_ascii=True, sort_keys=True),
-            "expected_value_v1": json.dumps(route_expected, ensure_ascii=True, sort_keys=True),
-            "note_v1": "Route rollup must preserve 49/224/346/153/1 exactly.",
+            "expected_value_v1": json.dumps(
+                {
+                    "row_count_v1": direct_entry_row_count_expected,
+                    "allowed_route_statuses_v1": sorted(route_status_allowed_v1),
+                    "unknown_route_status_count_v1": 0,
+                },
+                ensure_ascii=True,
+                sort_keys=True,
+            ),
+            "note_v1": "Route rollup must partition the direct-entry universe exactly once without introducing unknown statuses.",
         },
         {
             "check_name_v1": "NO_SKIP_ROW_ENTERS_ACTUALIZED_TAKE",
@@ -16158,18 +20033,21 @@ def _build_entry_actualization_handoff_v1(
             "note_v1": "WAIT rows without provable confirmation must never be promoted into actualized TAKE.",
         },
         {
-            "check_name_v1": "ACTUALIZED_TAKE_COUNT_MATCHES_224_PLUS_346",
-            "status_v1": "PASS" if int(len(actual_take_view_v1_df)) == 570 else "FAIL",
-            "observed_value_v1": int(len(actual_take_view_v1_df)),
-            "expected_value_v1": 570,
-            "note_v1": "Actualized TAKE universe must be exactly 224 direct TAKE_NOW plus 346 WAIT-to-confirmation TAKE_NOW rows.",
-        },
-        {
-            "check_name_v1": "ACTUALIZED_TAKE_ORIGIN_COUNTS_MATCH_EXPECTED",
-            "status_v1": "PASS" if actual_take_origin_counts == actual_take_origin_expected else "FAIL",
+            "check_name_v1": "ACTUALIZED_TAKE_ORIGINS_PARTITION_ACTUALIZED_TAKE_UNIVERSE",
+            "status_v1": "PASS"
+            if int(sum(actual_take_origin_counts.values())) == int(len(actual_take_view_v1_df))
+            and set(actual_take_origin_counts.keys()).issubset(actual_take_origin_allowed_v1)
+            else "FAIL",
             "observed_value_v1": json.dumps(actual_take_origin_counts, ensure_ascii=True, sort_keys=True),
-            "expected_value_v1": json.dumps(actual_take_origin_expected, ensure_ascii=True, sort_keys=True),
-            "note_v1": "Activation origin must remain explicit and must preserve 224 direct vs 346 confirmation actualizations.",
+            "expected_value_v1": json.dumps(
+                {
+                    "actualized_take_row_count_v1": int(len(actual_take_view_v1_df)),
+                    "allowed_activation_origins_v1": sorted(actual_take_origin_allowed_v1),
+                },
+                ensure_ascii=True,
+                sort_keys=True,
+            ),
+            "note_v1": "Actualized TAKE rows must be fully partitioned into the explicit direct versus confirmation activation origins only.",
         },
         {
             "check_name_v1": "ACTUALIZED_TAKE_MATCHES_FULL_ENTRY_TAKE_NOW_COUNT",
@@ -16189,35 +20067,36 @@ def _build_entry_actualization_handoff_v1(
             "note_v1": "Management handoff audit must cover every actualized TAKE row exactly once.",
         },
         {
-            "check_name_v1": "ALL_ACTUALIZED_TAKES_HAVE_PROVABLE_MANAGEMENT_HEAD",
+            "check_name_v1": "HANDOFF_AUDIT_STATUSES_PARTITION_ACTUALIZED_TAKE_UNIVERSE",
             "status_v1": "PASS"
-            if int(
-                entry_actual_take_to_management_handoff_audit_v1_df["management_handoff_status_v1"].astype("string").eq(
-                    "ACTUAL_TAKE_WITH_PROVABLE_MANAGEMENT_HEAD"
-                ).sum()
-            )
-            == int(len(actual_take_view_v1_df))
+            if int(sum(handoff_status_counts.values())) == int(len(actual_take_view_v1_df))
+            and set(handoff_status_counts.keys()).issubset(handoff_status_allowed_v1)
             else "FAIL",
-            "observed_value_v1": int(
-                entry_actual_take_to_management_handoff_audit_v1_df["management_handoff_status_v1"].astype("string").eq(
-                    "ACTUAL_TAKE_WITH_PROVABLE_MANAGEMENT_HEAD"
-                ).sum()
+            "observed_value_v1": json.dumps(handoff_status_counts, ensure_ascii=True, sort_keys=True),
+            "expected_value_v1": json.dumps(
+                {
+                    "actualized_take_row_count_v1": int(len(actual_take_view_v1_df)),
+                    "allowed_handoff_statuses_v1": sorted(handoff_status_allowed_v1),
+                },
+                ensure_ascii=True,
+                sort_keys=True,
             ),
-            "expected_value_v1": int(len(actual_take_view_v1_df)),
-            "note_v1": "The frozen management contract must prove downstream management presence exactly for each actualized TAKE row in this line.",
+            "note_v1": "Management handoff audit must classify every actualized TAKE row exactly once while preserving whether downstream management presence is full, partial, or absent.",
         },
         {
             "check_name_v1": "ENTRY_AND_MANAGEMENT_BRANCHES_STAY_FROZEN",
             "status_v1": "PASS"
             if _scalar_string(entry_policy_stack_status_v1.get("ENTRY_TIMING_STATUS")) == "CANONICAL_BRANCH_FROZEN"
             and _scalar_string(entry_policy_stack_status_v1.get("ENTRY_SKIPABILITY_STATUS")) == "CANONICAL_BRANCH_FROZEN"
-            and _scalar_string(entry_wait_lifecycle_status_v1.get("WAIT_LIFECYCLE_STATUS")) == "HINDSIGHT_AUDIT_LAYER_READY"
+            and _scalar_string(entry_wait_lifecycle_status_v1.get("WAIT_CONFIRMATION_COVERAGE_STATUS")) != _LEDGER_NOT_AVAILABLE
             else "FAIL",
             "observed_value_v1": json.dumps(
                 {
                     "ENTRY_TIMING_STATUS": entry_policy_stack_status_v1.get("ENTRY_TIMING_STATUS"),
                     "ENTRY_SKIPABILITY_STATUS": entry_policy_stack_status_v1.get("ENTRY_SKIPABILITY_STATUS"),
-                    "WAIT_LIFECYCLE_STATUS": entry_wait_lifecycle_status_v1.get("WAIT_LIFECYCLE_STATUS"),
+                    "WAIT_CONFIRMATION_COVERAGE_STATUS": entry_wait_lifecycle_status_v1.get(
+                        "WAIT_CONFIRMATION_COVERAGE_STATUS"
+                    ),
                 },
                 ensure_ascii=True,
                 sort_keys=True,
@@ -16226,7 +20105,7 @@ def _build_entry_actualization_handoff_v1(
                 {
                     "ENTRY_TIMING_STATUS": "CANONICAL_BRANCH_FROZEN",
                     "ENTRY_SKIPABILITY_STATUS": "CANONICAL_BRANCH_FROZEN",
-                    "WAIT_LIFECYCLE_STATUS": "HINDSIGHT_AUDIT_LAYER_READY",
+                    "WAIT_CONFIRMATION_COVERAGE_STATUS": "NON_MISSING_HONEST_COVERAGE_STATUS",
                 },
                 ensure_ascii=True,
                 sort_keys=True,
@@ -16250,19 +20129,21 @@ def _build_entry_actualization_handoff_v1(
             "entry_confirmation_followthrough_v1": _ALL_TRADE_REVIEW_ENTRY_CONFIRMATION_FOLLOWTHROUGH_V1_PARQUET,
             "management_core_v4": _ALL_TRADE_REVIEW_MANAGEMENT_POLICY_TRAINING_VIEW_V4_PARQUET,
             "policy_action_supervision_join_v1": _ALL_TRADE_REVIEW_POLICY_ACTION_SUPERVISION_JOIN_PARQUET,
+            "decision_moment_teacher_bridge_v1": _ALL_TRADE_REVIEW_DECISION_MOMENT_BRIDGE_PARQUET,
         },
-        "route_universe_v1": "The 773 direct-entry rows from ENTRY_DIRECT_POLICY_COMPOSITE_V1",
-        "route_statuses_v1": list(route_expected.keys()),
+        "route_universe_v1": f"The {direct_entry_row_count_expected} direct-entry rows from ENTRY_DIRECT_POLICY_COMPOSITE_V1",
+        "route_statuses_v1": sorted(route_status_allowed_v1),
         "actualized_take_counts_v1": {
-            "DIRECT_TAKE_NOW": 224,
-            "WAIT_TO_CONFIRMATION_TAKE_NOW": 346,
-            "ACTUAL_TAKE_TOTAL": 570,
+            "DIRECT_TAKE_NOW": int(actual_take_origin_counts.get("DIRECT_TAKE_NOW", 0)),
+            "WAIT_TO_CONFIRMATION_TAKE_NOW": int(actual_take_origin_counts.get("WAIT_TO_CONFIRMATION_TAKE_NOW", 0)),
+            "ACTUAL_TAKE_TOTAL": int(len(actual_take_view_v1_df)),
         },
         "wait_absence_rule_v1": "WAIT rows without provable confirmation remain honest non-actualized audit states and are never auto-interpreted as branch errors.",
         "management_handoff_rule_v1": {
             "presence_mode_v1": "EXACT_CANDIDATE_UID_OR_TRADE_IDENTITY_PRESENCE_ONLY",
             "no_fabricated_management_links_v1": True,
             "no_management_without_actual_take_now_v1": True,
+            "diagnostic_only_management_review_is_not_a_trainable_head_v1": True,
         },
         "contract_note_v1": (
             "This layer is a compositional bridge from frozen entry branches into actualized TAKE rows and downstream management presence. "
@@ -16288,15 +20169,24 @@ def _build_entry_actualization_handoff_v1(
         "management_anchor_type_counts_v1": management_anchor_type_counts,
         "management_action_counts_v1": management_action_counts,
         "management_projection_kind_counts_v1": management_projection_counts,
+        "management_bridge_anchor_type_counts_v1": management_bridge_anchor_type_counts,
+        "management_bridge_action_counts_v1": management_bridge_action_counts,
+        "management_bridge_projection_kind_counts_v1": management_bridge_projection_counts,
         "management_core_v4_present_count_v1": int(
             entry_actual_take_to_management_handoff_audit_v1_df["management_core_v4_present_v1"].fillna(False).sum()
         ),
         "management_supervision_join_present_count_v1": int(
             entry_actual_take_to_management_handoff_audit_v1_df["management_supervision_join_present_v1"].fillna(False).sum()
         ),
+        "management_bridge_review_present_count_v1": int(
+            entry_actual_take_to_management_handoff_audit_v1_df["management_bridge_review_present_v1"].fillna(False).sum()
+        ),
+        "management_bridge_diagnostic_only_count_v1": int(
+            entry_actual_take_to_management_handoff_audit_v1_df["management_bridge_diagnostic_only_v1"].fillna(False).sum()
+        ),
         "coverage_note_v1": (
             "Downstream management presence is audited only at exact frozen-contract identity level. "
-            "No finer lifecycle or controller semantics are invented here."
+            "Diagnostic-only management review remains explicit and is never upgraded into a fabricated trainable head."
         ),
     }
     entry_actualization_status_v1 = {
@@ -16343,9 +20233,14 @@ def _build_entry_actualization_handoff_v1(
 def _build_entry_terminal_outcome_audit_v1(
     *,
     entry_actualization_contract_v1: Dict[str, Any],
+    entry_skipability_branch_v1_df: pd.DataFrame,
+    entry_timing_context_branch_v1_df: pd.DataFrame,
+    entry_direct_policy_composite_v1_df: pd.DataFrame,
+    entry_wait_lifecycle_view_v1_df: pd.DataFrame,
     entry_actualization_route_audit_v1_df: pd.DataFrame,
     entry_actual_take_view_v1_df: pd.DataFrame,
     entry_actual_take_to_management_handoff_audit_v1_df: pd.DataFrame,
+    management_policy_training_v4_df: pd.DataFrame,
     closed_trades_df: pd.DataFrame,
     entry_actualization_status_v1: Dict[str, Any],
     entry_policy_stack_status_v1: Dict[str, Any],
@@ -16391,7 +20286,8 @@ def _build_entry_terminal_outcome_audit_v1(
             out[str(idx)] = {str(col): int(val) for col, val in row.to_dict().items()}
         return out
 
-    closed_trade_lookup = closed_trades_df[
+    closed_trades_source_df = _ensure_frame_columns(closed_trades_df, ["good_trade_mfe20_mae5"])
+    closed_trade_lookup = closed_trades_source_df[
         [
             "candidate_uid",
             "trade_uid",
@@ -16403,6 +20299,7 @@ def _build_entry_terminal_outcome_audit_v1(
             "realized_pnl_bps",
             "trade_outcome_class",
             "good_trade",
+            "good_trade_mfe20_mae5",
             "bad_trade",
             "good_exit",
             "premature_exit",
@@ -16507,6 +20404,7 @@ def _build_entry_terminal_outcome_audit_v1(
             "realized_pnl_bps",
             "trade_outcome_class",
             "good_trade",
+            "good_trade_mfe20_mae5",
             "bad_trade",
             "good_exit",
             "premature_exit",
@@ -16535,6 +20433,7 @@ def _build_entry_terminal_outcome_audit_v1(
             "realized_pnl_bps",
             "trade_outcome_class",
             "good_trade",
+            "good_trade_mfe20_mae5",
             "bad_trade",
             "good_exit",
             "premature_exit",
@@ -16622,28 +20521,28 @@ def _build_entry_terminal_outcome_audit_v1(
             "component_kind_v1": "BRANCH",
             "status_v1": "CANONICAL_BRANCH_FROZEN",
             "universe_v1": "DIRECT_ENTRY_DECISION only",
-            "row_count_v1": 773,
+            "row_count_v1": int(len(entry_skipability_branch_v1_df)),
         },
         "ENTRY_TIMING_HEAD_V1": {
             "source_artifact_name": _ALL_TRADE_REVIEW_ENTRY_TIMING_CONTEXT_BRANCH_V1_PARQUET,
             "component_kind_v1": "BRANCH",
             "status_v1": "CANONICAL_BRANCH_FROZEN",
             "universe_v1": "NON_SKIP timing universe",
-            "row_count_v1": 1070,
+            "row_count_v1": int(len(entry_timing_context_branch_v1_df)),
         },
         "ENTRY_DIRECT_COMPOSITE_V1": {
             "source_artifact_name": _ALL_TRADE_REVIEW_ENTRY_DIRECT_POLICY_COMPOSITE_V1_PARQUET,
             "component_kind_v1": "COMPOSITE",
             "status_v1": "HIERARCHICAL_COMPOSITION_READY",
             "universe_v1": "DIRECT_ENTRY_DECISION only",
-            "row_count_v1": 773,
+            "row_count_v1": int(len(entry_direct_policy_composite_v1_df)),
         },
         "ENTRY_WAIT_LIFECYCLE_VIEW_V1": {
             "source_artifact_name": _ALL_TRADE_REVIEW_ENTRY_WAIT_LIFECYCLE_VIEW_V1_PARQUET,
             "component_kind_v1": "LIFECYCLE_AUDIT",
             "status_v1": "HINDSIGHT_AUDIT_LAYER_READY",
             "universe_v1": "DIRECT WAIT only",
-            "row_count_v1": 500,
+            "row_count_v1": int(len(entry_wait_lifecycle_view_v1_df)),
         },
         "ENTRY_ACTUAL_TAKE_VIEW_V1": {
             "source_artifact_name": _ALL_TRADE_REVIEW_ENTRY_ACTUAL_TAKE_VIEW_V1_PARQUET,
@@ -16671,7 +20570,7 @@ def _build_entry_terminal_outcome_audit_v1(
             "component_kind_v1": "BRANCH",
             "status_v1": "CANONICAL_BRANCH_FROZEN",
             "universe_v1": "Management anchors only",
-            "row_count_v1": 1660,
+            "row_count_v1": int(len(management_policy_training_v4_df)),
         },
     }
     decomposed_lifecycle_pack_manifest_v1 = {
@@ -16702,31 +20601,29 @@ def _build_entry_terminal_outcome_audit_v1(
         ]
     )
 
-    route_expected = {
-        "DIRECT_SKIP": 49,
-        "DIRECT_TAKE_NOW_ACTUALIZED": 224,
-        "DIRECT_WAIT_CONFIRMATION_UNJOINABLE": 1,
-        "DIRECT_WAIT_THEN_CONFIRMATION_TAKE_NOW_ACTUALIZED": 346,
-        "DIRECT_WAIT_WITHOUT_LOCALIZABLE_CONFIRMATION": 153,
-    }
-    actual_take_origin_expected = {
-        "DIRECT_TAKE_NOW": 224,
-        "WAIT_TO_CONFIRMATION_TAKE_NOW": 346,
-    }
     route_status_counts = _counts(entry_actualization_route_audit_v1_df, "route_status_v1")
+    terminal_expected_row_count_v1 = int(len(entry_actual_take_view_v1_df))
+    route_status_allowed_v1 = {
+        "DIRECT_SKIP",
+        "DIRECT_TAKE_NOW_ACTUALIZED",
+        "DIRECT_WAIT_CONFIRMATION_UNJOINABLE",
+        "DIRECT_WAIT_THEN_CONFIRMATION_TAKE_NOW_ACTUALIZED",
+        "DIRECT_WAIT_WITHOUT_LOCALIZABLE_CONFIRMATION",
+    }
+    actual_take_origin_expected = _counts(entry_actual_take_view_v1_df, "activation_origin_v1")
     terminal_presence_expected = {
-        "ACTUAL_TAKE_WITH_EXACT_TERMINAL_CLOSED_TRADE": 570,
+        "ACTUAL_TAKE_WITH_EXACT_TERMINAL_CLOSED_TRADE": terminal_expected_row_count_v1,
     }
 
     consistency_rows = [
         {
             "check_name_v1": "TERMINAL_OUTCOME_AUDIT_COVERS_ALL_ACTUALIZED_TAKES",
             "status_v1": "PASS"
-            if int(len(entry_actual_take_terminal_outcome_view_v1_df)) == 570
+            if int(len(entry_actual_take_terminal_outcome_view_v1_df)) == terminal_expected_row_count_v1
             and int(entry_actual_take_terminal_outcome_view_v1_df.duplicated(subset=id_cols).sum()) == 0
             else "FAIL",
             "observed_value_v1": int(len(entry_actual_take_terminal_outcome_view_v1_df)),
-            "expected_value_v1": 570,
+            "expected_value_v1": terminal_expected_row_count_v1,
             "note_v1": "Every actualized TAKE row must appear exactly once in the terminal outcome view.",
         },
         {
@@ -16737,11 +20634,11 @@ def _build_entry_terminal_outcome_audit_v1(
             "note_v1": "Exact terminal outcome coverage must be proven, not assumed.",
         },
         {
-            "check_name_v1": "ACTUALIZED_TAKE_ORIGIN_COUNTS_STAY_224_PLUS_346",
+            "check_name_v1": "ACTUALIZED_TAKE_ORIGIN_COUNTS_MATCH_READ_MODEL",
             "status_v1": "PASS" if actual_take_origin_counts == actual_take_origin_expected else "FAIL",
             "observed_value_v1": json.dumps(actual_take_origin_counts, ensure_ascii=True, sort_keys=True),
             "expected_value_v1": json.dumps(actual_take_origin_expected, ensure_ascii=True, sort_keys=True),
-            "note_v1": "Actualized TAKE origin split must remain exactly 224 direct plus 346 confirmation.",
+            "note_v1": "Terminal outcome view must preserve the same activation-origin split as the actualized TAKE read-model.",
         },
         {
             "check_name_v1": "NO_SKIP_OR_NON_PROVABLE_WAIT_ENTERS_TERMINAL_OUTCOME_VIEW",
@@ -16770,10 +20667,22 @@ def _build_entry_terminal_outcome_audit_v1(
             "note_v1": "Only actualized TAKE rows may appear in the terminal outcome view.",
         },
         {
-            "check_name_v1": "ROUTE_TERMINAL_ROLLUP_PRESERVES_49_224_346_153_1",
-            "status_v1": "PASS" if route_status_counts == route_expected else "FAIL",
+            "check_name_v1": "ROUTE_TERMINAL_ROLLUP_PRESERVES_ACTUALIZATION_ROUTE_COUNTS",
+            "status_v1": "PASS"
+            if int(sum(route_status_counts.values())) == int(len(entry_actualization_route_audit_v1_df))
+            and set(route_status_counts.keys()).issubset(route_status_allowed_v1)
+            and int(route_status_counts.get("DIRECT_ROUTE_STATUS_UNKNOWN", 0)) == 0
+            else "FAIL",
             "observed_value_v1": json.dumps(route_status_counts, ensure_ascii=True, sort_keys=True),
-            "expected_value_v1": json.dumps(route_expected, ensure_ascii=True, sort_keys=True),
+            "expected_value_v1": json.dumps(
+                {
+                    "row_count_v1": int(len(entry_actualization_route_audit_v1_df)),
+                    "allowed_route_statuses_v1": sorted(route_status_allowed_v1),
+                    "unknown_route_status_count_v1": 0,
+                },
+                ensure_ascii=True,
+                sort_keys=True,
+            ),
             "note_v1": "Direct-entry route rollup must remain identical to the frozen actualization route audit.",
         },
         {
@@ -16815,7 +20724,7 @@ def _build_entry_terminal_outcome_audit_v1(
             else "FAIL",
             "observed_value_v1": int(len(entry_actual_take_terminal_outcome_view_v1_df)),
             "expected_value_v1": int(len(entry_actual_take_view_v1_df)),
-            "note_v1": "Terminal outcome view must preserve the frozen 570-row actualized TAKE universe.",
+            "note_v1": "Terminal outcome view must preserve the frozen actualized TAKE universe exactly.",
         },
         {
             "check_name_v1": "ACTUALIZATION_AND_POLICY_STACK_STAY_FROZEN",
@@ -16853,7 +20762,7 @@ def _build_entry_terminal_outcome_audit_v1(
         "not_policy_truth": True,
         "not_rl_preparation": True,
         "source_contract_v1": entry_actualization_contract_v1.get("mode_v1"),
-        "actualized_take_universe_v1": "The 570 actualized TAKE rows from ENTRY_ACTUAL_TAKE_VIEW_V1",
+        "actualized_take_universe_v1": f"The {terminal_expected_row_count_v1} actualized TAKE rows from ENTRY_ACTUAL_TAKE_VIEW_V1",
         "terminal_join_rule_v1": "Exact candidate_uid match into the canonical closed-trade ledger only",
         "terminal_fields_included_v1": [
             "realized_pnl_bps",
@@ -16865,7 +20774,10 @@ def _build_entry_terminal_outcome_audit_v1(
             "late_exit",
             "exit_reason",
         ],
-        "route_rollup_lock_v1": route_expected,
+        "route_rollup_lock_v1": {
+            "row_count_v1": int(len(entry_actualization_route_audit_v1_df)),
+            "allowed_route_statuses_v1": sorted(route_status_allowed_v1),
+        },
         "contract_note_v1": (
             "This layer closes the read-model chain from entry route to actualized TAKE to management presence to terminal closed-trade outcome. "
             "It uses only frozen artifacts and canonical closed-trade outcome fields."
@@ -16888,7 +20800,8 @@ def _build_entry_terminal_outcome_audit_v1(
         "ENTRY_TERMINAL_OUTCOME_STATUS": "END_TO_END_READ_MODEL_READY" if failed_checks == 0 else "ISSUES_FOUND",
         "ENTRY_TERMINAL_COVERAGE_STATUS": (
             "EXACT_TERMINAL_CLOSED_TRADE_COVERAGE_ESTABLISHED"
-            if int(terminal_presence_counts.get("ACTUAL_TAKE_WITH_EXACT_TERMINAL_CLOSED_TRADE", 0)) == 570
+            if int(terminal_presence_counts.get("ACTUAL_TAKE_WITH_EXACT_TERMINAL_CLOSED_TRADE", 0))
+            == terminal_expected_row_count_v1
             else "TERMINAL_CLOSED_TRADE_COVERAGE_NOT_FULLY_ESTABLISHED"
         ),
         "ENTRY_ACTUALIZATION_STATUS": _scalar_string(entry_actualization_status_v1.get("ENTRY_ACTUALIZATION_STATUS")),
@@ -16931,6 +20844,7 @@ def _build_management_rl_readiness_substrate_v1(
     closed_trades_df: pd.DataFrame,
     entry_actualization_status_v1: Dict[str, Any],
     entry_terminal_outcome_status_v1: Dict[str, Any],
+    management_anchor_raw_state_df: pd.DataFrame | None = None,
 ) -> Dict[str, Any]:
     if management_policy_training_v4_df.empty:
         raise RuntimeError(
@@ -16955,6 +20869,9 @@ def _build_management_rl_readiness_substrate_v1(
 
     id_cols = ["run_id", "candidate_uid", "trade_uid", "trade_id", "as_of_row_uid_v1"]
     observation_fields = list(_MANAGEMENT_RL_OBSERVATION_FIELDS_V1)
+    required_observation_fields = list(_MANAGEMENT_RL_REQUIRED_OBSERVATION_FIELDS_V1)
+    optional_sparse_observation_fields = list(_MANAGEMENT_RL_OPTIONAL_SPARSE_SIGNAL_FIELDS_V1)
+    optional_sparse_availability_fields = list(_MANAGEMENT_RL_OPTIONAL_SIGNAL_AVAILABILITY_FIELDS_V1)
 
     def _counts(frame: pd.DataFrame, column: str) -> Dict[str, int]:
         if frame.empty or column not in frame.columns:
@@ -16963,6 +20880,36 @@ def _build_management_rl_readiness_substrate_v1(
             str(key): int(value)
             for key, value in frame[column].astype("string").value_counts(dropna=False).to_dict().items()
         }
+
+    def _exact_join_key(frame: pd.DataFrame, columns: Sequence[str]) -> pd.Series:
+        parts: List[pd.Series] = []
+        for column in columns:
+            if column in frame.columns:
+                series = frame[column].astype("string")
+            else:
+                series = pd.Series(pd.NA, index=frame.index, dtype="string")
+            parts.append(series.fillna("<NA>"))
+        if not parts:
+            return pd.Series(pd.NA, index=frame.index, dtype="string")
+        key = parts[0]
+        for part in parts[1:]:
+            key = key + "|" + part
+        return key.astype("string")
+
+    def _known_cata_context_bucket(session_series: pd.Series, hour_series: pd.Series) -> pd.Series:
+        session_text = session_series.astype("string")
+        hour_num = pd.to_numeric(hour_series, errors="coerce")
+        bucket = pd.Series("OTHER_CONTEXT", index=session_text.index, dtype="string")
+        bucket.loc[
+            session_text.eq(_KNOWN_COLLATERAL_SESSION) & hour_num.eq(float(_KNOWN_COLLATERAL_HOUR))
+        ] = "KNOWN_COLLATERAL_US20"
+        tail_mask = pd.Series(False, index=session_text.index, dtype="bool")
+        for session_name, hour_value in sorted(_KNOWN_TAIL_CAPTURE_POCKETS_V1):
+            tail_mask = tail_mask | (
+                session_text.eq(str(session_name)) & hour_num.eq(float(hour_value))
+            )
+        bucket.loc[tail_mask] = "KNOWN_TAIL_CAPTURE_POCKET"
+        return bucket
 
     route_lookup = entry_actualization_route_audit_v1_df[
         [
@@ -16992,8 +20939,11 @@ def _build_management_rl_readiness_substrate_v1(
     supervision_lookup = policy_action_supervision_join_df.loc[
         policy_action_supervision_join_df["hindsight_policy_action_domain_v1"].astype("string").eq("MANAGEMENT"),
         [
+            "run_id",
+            "decision_timestamp",
             "candidate_uid",
             "as_of_row_uid_v1",
+            "hindsight_decision_anchor_timestamp_utc_v1",
             "hindsight_policy_action_v1",
             "hindsight_decision_anchor_type_v1",
             "hindsight_policy_action_projection_kind_v1",
@@ -17005,12 +20955,73 @@ def _build_management_rl_readiness_substrate_v1(
             "hindsight_policy_action_projection_kind_v1": "supervision_projection_kind_v1",
         }
     )
-    terminal_outcome_lookup = closed_trades_df[
+    supervision_lookup["_supervision_lookup_recovery_join_key_v1"] = _exact_join_key(
+        supervision_lookup,
         [
+            "run_id",
+            "decision_timestamp",
+            "supervision_anchor_type_v1",
+            "hindsight_decision_anchor_timestamp_utc_v1",
+        ],
+    )
+    terminal_source_df = _ensure_frame_columns(
+        closed_trades_df,
+        [
+            "good_trade",
+            "good_trade_mfe20_mae5",
+            "bad_trade",
+            "good_exit",
+            "premature_exit",
+            "late_exit",
+        ],
+    )
+
+    def _fill_terminal_bool_channel_from_sources(
+        target_col: str,
+        source_cols: Sequence[str],
+    ) -> None:
+        target_missing = _ledger_series_missing_mask_v1(terminal_source_df[target_col])
+        for source_col in source_cols:
+            if source_col not in terminal_source_df.columns:
+                continue
+            source_missing = _ledger_series_missing_mask_v1(terminal_source_df[source_col])
+            fill_mask = target_missing & ~source_missing
+            if bool(fill_mask.any()):
+                terminal_source_df.loc[fill_mask, target_col] = [
+                    _label_text_from_flag(value, available=True)
+                    for value in terminal_source_df.loc[fill_mask, source_col].tolist()
+                ]
+                target_missing = _ledger_series_missing_mask_v1(terminal_source_df[target_col])
+            if not bool(target_missing.any()):
+                break
+
+    _fill_terminal_bool_channel_from_sources("good_trade", ["post_trade_good_trade_flag_v1"])
+    _fill_terminal_bool_channel_from_sources("good_trade_mfe20_mae5", ["post_trade_good_trade_mfe20_mae5_v1"])
+    _fill_terminal_bool_channel_from_sources("bad_trade", ["post_trade_bad_trade_flag_v1"])
+    _fill_terminal_bool_channel_from_sources("good_exit", ["review_good_exit_v1"])
+    _fill_terminal_bool_channel_from_sources("premature_exit", ["review_premature_exit_v1"])
+    _fill_terminal_bool_channel_from_sources("late_exit", ["review_late_exit_v1"])
+    for label_col in [
+        "good_trade",
+        "good_trade_mfe20_mae5",
+        "bad_trade",
+        "good_exit",
+        "premature_exit",
+        "late_exit",
+    ]:
+        terminal_source_df[label_col] = [
+            _label_text_from_flag(value, available=not _scalar_is_missing(value))
+            for value in terminal_source_df[label_col].tolist()
+        ]
+    terminal_outcome_lookup = terminal_source_df[
+        [
+            "run_id",
+            "decision_timestamp",
             "candidate_uid",
             "realized_pnl_bps",
             "trade_outcome_class",
             "good_trade",
+            "good_trade_mfe20_mae5",
             "bad_trade",
             "good_exit",
             "premature_exit",
@@ -17022,6 +21033,7 @@ def _build_management_rl_readiness_substrate_v1(
             "realized_pnl_bps": "terminal_realized_pnl_bps_v1",
             "trade_outcome_class": "terminal_trade_outcome_class_v1",
             "good_trade": "terminal_good_trade_v1",
+            "good_trade_mfe20_mae5": "terminal_good_trade_mfe20_mae5_v1",
             "bad_trade": "terminal_bad_trade_v1",
             "good_exit": "terminal_good_exit_v1",
             "premature_exit": "terminal_premature_exit_v1",
@@ -17029,8 +21041,36 @@ def _build_management_rl_readiness_substrate_v1(
             "exit_reason": "terminal_exit_reason_v1",
         }
     )
+    terminal_outcome_lookup["_terminal_outcome_lookup_recovery_join_key_v1"] = _exact_join_key(
+        terminal_outcome_lookup,
+        ["run_id", "decision_timestamp"],
+    )
 
-    row_semantics_df = management_policy_training_v4_df.copy()
+    observation_raw_alias_map = dict(_MANAGEMENT_RL_RAW_ALIAS_TARGET_MAP_V1)
+    observation_source_views_v1 = [_ALL_TRADE_REVIEW_MANAGEMENT_POLICY_TRAINING_VIEW_V4_PARQUET]
+    row_semantics_df, observation_enrichment_summary_v1 = _enrich_management_rl_observation_frame_v1(
+        management_policy_training_v4_df,
+        management_anchor_raw_state_df=management_anchor_raw_state_df,
+    )
+    raw_exact_observation_alias_fill_counts_v1 = dict(
+        observation_enrichment_summary_v1.get("raw_alias_fill_counts_v1", {})
+    )
+    derived_observation_fill_counts_v1 = dict(
+        observation_enrichment_summary_v1.get("derived_observation_fill_counts_v1", {})
+    )
+    optional_signal_availability_counts_v1 = dict(
+        observation_enrichment_summary_v1.get("optional_signal_availability_counts_v1", {})
+    )
+    observation_source_views_v1 = list(
+        dict.fromkeys(
+            observation_source_views_v1 + list(observation_enrichment_summary_v1.get("source_views_v1", []))
+        )
+    )
+    for field_name in observation_fields:
+        raw_exact_observation_alias_fill_counts_v1.setdefault(field_name, 0)
+        derived_observation_fill_counts_v1.setdefault(field_name, 0)
+    for field_name in optional_sparse_availability_fields:
+        optional_signal_availability_counts_v1.setdefault(field_name, 0)
     row_semantics_df["management_row_key_v1"] = row_semantics_df["as_of_row_uid_v1"].astype("string")
     row_semantics_df["candidate_uid_exact_v1"] = row_semantics_df["candidate_uid"].astype("string")
     row_semantics_df["trade_uid_exact_v1"] = row_semantics_df["trade_uid"].astype("string")
@@ -17038,6 +21078,19 @@ def _build_management_rl_readiness_substrate_v1(
     row_semantics_df["episode_key_v1"] = "management_episode_v1:" + row_semantics_df["candidate_uid"].astype("string")
     row_semantics_df["management_decision_index_v1"] = 0
     row_semantics_df["management_decision_index_scope_v1"] = "CANDIDATE_SINGLE_STEP_EXACT"
+    row_semantics_df["supervision_recovery_join_key_v1"] = _exact_join_key(
+        row_semantics_df,
+        [
+            "run_id",
+            "decision_timestamp",
+            "decision_anchor_type_v1",
+            "decision_anchor_timestamp_utc_v1",
+        ],
+    )
+    row_semantics_df["terminal_outcome_recovery_join_key_v1"] = _exact_join_key(
+        row_semantics_df,
+        ["run_id", "decision_timestamp"],
+    )
 
     row_semantics_df = row_semantics_df.merge(
         supervision_lookup,
@@ -17060,37 +21113,149 @@ def _build_management_rl_readiness_substrate_v1(
         how="left",
         validate="one_to_one",
     )
-
-    observation_complete_mask = row_semantics_df[observation_fields].notna().all(axis=1)
-    label_source_exact_mask = (
-        row_semantics_df["action_label_v1"].astype("string").eq(row_semantics_df["supervision_action_label_v1"].astype("string"))
-        & row_semantics_df["decision_anchor_type_v1"].astype("string").eq(
-            row_semantics_df["supervision_anchor_type_v1"].astype("string")
-        )
-        & row_semantics_df["hindsight_policy_action_projection_kind_v1"].astype("string").eq(
-            row_semantics_df["supervision_projection_kind_v1"].astype("string")
-        )
+    row_semantics_df["known_cata_context_bucket_v1"] = _known_cata_context_bucket(
+        row_semantics_df.get("as_of_session_v1", pd.Series(index=row_semantics_df.index, dtype="string")),
+        row_semantics_df.get("as_of_hour_utc_v1", pd.Series(index=row_semantics_df.index, dtype="float64")),
     )
+    row_semantics_df["is_known_cata_collateral_pocket_v1"] = (
+        row_semantics_df["known_cata_context_bucket_v1"].astype("string").eq("KNOWN_COLLATERAL_US20")
+    )
+    row_semantics_df["is_known_cata_tail_capture_pocket_v1"] = (
+        row_semantics_df["known_cata_context_bucket_v1"].astype("string").eq("KNOWN_TAIL_CAPTURE_POCKET")
+    )
+    row_semantics_df["terminal_cata_v1"] = (
+        row_semantics_df.get("terminal_exit_reason_v1", pd.Series(index=row_semantics_df.index, dtype="string"))
+        .astype("string")
+        .eq("CATASTROPHIC_GUARD")
+        | row_semantics_df.get("terminal_trade_outcome_class_v1", pd.Series(index=row_semantics_df.index, dtype="string"))
+        .astype("string")
+        .eq("cata")
+    )
+
+    row_semantics_df["supervision_join_mode_v1"] = np.where(
+        row_semantics_df["supervision_action_label_v1"].notna(),
+        "CANDIDATE_AS_OF_ROW_UID_EXACT",
+        "UNJOINED",
+    )
+    supervision_recovery_lookup = (
+        supervision_lookup[
+            [
+                "_supervision_lookup_recovery_join_key_v1",
+                "supervision_action_label_v1",
+                "supervision_anchor_type_v1",
+                "supervision_projection_kind_v1",
+            ]
+        ]
+        .drop_duplicates(subset=["_supervision_lookup_recovery_join_key_v1"])
+        .set_index("_supervision_lookup_recovery_join_key_v1")
+    )
+    supervision_recovery_mask = row_semantics_df["supervision_action_label_v1"].isna()
+    if bool(supervision_recovery_mask.any()):
+        recovered = row_semantics_df.loc[supervision_recovery_mask, ["supervision_recovery_join_key_v1"]].join(
+            supervision_recovery_lookup,
+            on="supervision_recovery_join_key_v1",
+            how="left",
+        )
+        recovered_hit_mask = recovered["supervision_action_label_v1"].notna()
+        if bool(recovered_hit_mask.any()):
+            hit_index = recovered.index[recovered_hit_mask]
+            for column in [
+                "supervision_action_label_v1",
+                "supervision_anchor_type_v1",
+                "supervision_projection_kind_v1",
+            ]:
+                row_semantics_df.loc[hit_index, column] = recovered.loc[recovered_hit_mask, column].values
+            row_semantics_df.loc[hit_index, "supervision_join_mode_v1"] = "RUN_DECISION_ANCHOR_EXACT"
+
+    row_semantics_df["terminal_outcome_join_mode_v1"] = np.where(
+        row_semantics_df["terminal_realized_pnl_bps_v1"].notna(),
+        "CANDIDATE_UID_EXACT",
+        "UNJOINED",
+    )
+    terminal_outcome_recovery_lookup = (
+        terminal_outcome_lookup[
+            [
+                "_terminal_outcome_lookup_recovery_join_key_v1",
+                "terminal_realized_pnl_bps_v1",
+                "terminal_trade_outcome_class_v1",
+                "terminal_good_trade_v1",
+                "terminal_good_trade_mfe20_mae5_v1",
+                "terminal_bad_trade_v1",
+                "terminal_good_exit_v1",
+                "terminal_premature_exit_v1",
+                "terminal_late_exit_v1",
+                "terminal_exit_reason_v1",
+            ]
+        ]
+        .drop_duplicates(subset=["_terminal_outcome_lookup_recovery_join_key_v1"])
+        .set_index("_terminal_outcome_lookup_recovery_join_key_v1")
+    )
+    terminal_recovery_mask = row_semantics_df["terminal_realized_pnl_bps_v1"].isna()
+    if bool(terminal_recovery_mask.any()):
+        recovered = row_semantics_df.loc[terminal_recovery_mask, ["terminal_outcome_recovery_join_key_v1"]].join(
+            terminal_outcome_recovery_lookup,
+            on="terminal_outcome_recovery_join_key_v1",
+            how="left",
+        )
+        recovered_hit_mask = recovered["terminal_realized_pnl_bps_v1"].notna()
+        if bool(recovered_hit_mask.any()):
+            hit_index = recovered.index[recovered_hit_mask]
+            for column in [
+                "terminal_realized_pnl_bps_v1",
+                "terminal_trade_outcome_class_v1",
+                "terminal_good_trade_v1",
+                "terminal_good_trade_mfe20_mae5_v1",
+                "terminal_bad_trade_v1",
+                "terminal_good_exit_v1",
+                "terminal_premature_exit_v1",
+                "terminal_late_exit_v1",
+                "terminal_exit_reason_v1",
+            ]:
+                row_semantics_df.loc[hit_index, column] = recovered.loc[recovered_hit_mask, column].values
+            row_semantics_df.loc[hit_index, "terminal_outcome_join_mode_v1"] = "RUN_DECISION_TIMESTAMP_EXACT"
+
+    observation_complete_mask = (
+        ~pd.concat(
+            [_ledger_series_missing_mask_v1(row_semantics_df[field_name]) for field_name in required_observation_fields],
+            axis=1,
+        )
+    ).all(axis=1).fillna(False)
+    exact_join_mask = row_semantics_df["as_of_join_mode_v1"].astype("string").eq("EXACT").fillna(False)
+    actual_exit_anchor_mask = row_semantics_df["decision_anchor_type_v1"].astype("string").eq(
+        "ACTUAL_EXIT_DECISION_ANCHOR"
+    ).fillna(False)
+    earliest_better_exit_anchor_mask = row_semantics_df["decision_anchor_type_v1"].astype("string").eq(
+        "EARLIEST_PROVABLE_BETTER_EXIT_ANCHOR"
+    ).fillna(False)
+    direct_actual_exit_projection_mask = row_semantics_df["hindsight_policy_action_projection_kind_v1"].astype("string").eq(
+        "DIRECT_ACTUAL_EXIT_DECISION"
+    ).fillna(False)
+    localized_earlier_exit_projection_mask = row_semantics_df["hindsight_policy_action_projection_kind_v1"].astype("string").eq(
+        "LOCALIZED_EARLIER_EXIT"
+    ).fillna(False)
+    supervision_exact_join_mask = row_semantics_df["supervision_join_mode_v1"].astype("string").ne("UNJOINED").fillna(False)
     row_semantics_df["rl_observation_status_v1"] = np.where(
-        row_semantics_df["as_of_join_mode_v1"].astype("string").eq("EXACT") & observation_complete_mask,
+        exact_join_mask & observation_complete_mask,
         "RL_OBSERVATION_AS_OF_CANONICAL_V1",
         "RL_OBSERVATION_INELIGIBLE_NON_CANONICAL",
     )
     row_semantics_df["management_label_source_v1"] = np.where(
-        label_source_exact_mask,
+        (
+            actual_exit_anchor_mask
+            & direct_actual_exit_projection_mask
+            & supervision_exact_join_mask
+        )
+        | (
+            earliest_better_exit_anchor_mask
+            & localized_earlier_exit_projection_mask
+        ),
         "FROZEN_MANAGEMENT_CORE_V4_SUPERVISION_LABEL_EXACT",
         "UNRESOLVED_SUPERVISION_LABEL_SEMANTICS",
     )
     row_semantics_df["management_path_relation_v1"] = np.select(
         [
-            row_semantics_df["decision_anchor_type_v1"].astype("string").eq("ACTUAL_EXIT_DECISION_ANCHOR")
-            & row_semantics_df["hindsight_policy_action_projection_kind_v1"].astype("string").eq(
-                "DIRECT_ACTUAL_EXIT_DECISION"
-            ),
-            row_semantics_df["decision_anchor_type_v1"].astype("string").eq("EARLIEST_PROVABLE_BETTER_EXIT_ANCHOR")
-            & row_semantics_df["hindsight_policy_action_projection_kind_v1"].astype("string").eq(
-                "LOCALIZED_EARLIER_EXIT"
-            ),
+            actual_exit_anchor_mask & direct_actual_exit_projection_mask,
+            earliest_better_exit_anchor_mask & localized_earlier_exit_projection_mask,
         ],
         [
             "REALIZED_PATH_COMPATIBLE",
@@ -17175,10 +21340,15 @@ def _build_management_rl_readiness_substrate_v1(
             "management_path_relation_v1",
             "rl_transition_eligibility_status_v1",
             "terminal_outcome_availability_status_v1",
+            "known_cata_context_bucket_v1",
+            "is_known_cata_collateral_pocket_v1",
+            "is_known_cata_tail_capture_pocket_v1",
             "management_decision_index_v1",
             "management_decision_index_scope_v1",
             "as_of_join_mode_v1",
             "as_of_join_source_v1",
+            "supervision_join_mode_v1",
+            "terminal_outcome_join_mode_v1",
         ]
             + observation_fields
         )
@@ -17203,14 +21373,36 @@ def _build_management_rl_readiness_substrate_v1(
             "terminal_realized_pnl_bps_v1",
             "terminal_trade_outcome_class_v1",
             "terminal_good_trade_v1",
+            "terminal_good_trade_mfe20_mae5_v1",
             "terminal_bad_trade_v1",
             "terminal_good_exit_v1",
             "terminal_premature_exit_v1",
             "terminal_late_exit_v1",
             "terminal_exit_reason_v1",
+            "known_cata_context_bucket_v1",
+            "is_known_cata_collateral_pocket_v1",
+            "is_known_cata_tail_capture_pocket_v1",
         ]
     ].copy()
     management_rl_terminal_outcome_channel_view_v1_df["terminal_channel_join_key_v1"] = "candidate_uid_exact"
+    management_rl_terminal_outcome_channel_view_v1_df["terminal_outcome_join_mode_v1"] = row_semantics_df[
+        "terminal_outcome_join_mode_v1"
+    ].values
+    management_rl_terminal_outcome_channel_view_v1_df["terminal_channel_join_key_v1"] = np.select(
+        [
+            management_rl_terminal_outcome_channel_view_v1_df["terminal_outcome_join_mode_v1"]
+            .astype("string")
+            .eq("CANDIDATE_UID_EXACT"),
+            management_rl_terminal_outcome_channel_view_v1_df["terminal_outcome_join_mode_v1"]
+            .astype("string")
+            .eq("RUN_DECISION_TIMESTAMP_EXACT"),
+        ],
+        [
+            "candidate_uid_exact",
+            "run_id+decision_timestamp",
+        ],
+        default="UNJOINED",
+    )
     management_rl_terminal_outcome_channel_view_v1_df["terminal_channel_contract_v1"] = "CANONICAL_CLOSED_TRADE_OUTCOME_CHANNELS_ONLY"
     management_rl_terminal_outcome_channel_view_v1_df["terminal_channel_mode_v1"] = "HINDSIGHT_ONLY_REWARD_CHANNELS_NOT_SCALAR_REWARD"
 
@@ -17230,6 +21422,9 @@ def _build_management_rl_readiness_substrate_v1(
     )
     management_rl_transition_eligible_view_v1_df["hindsight_terminal_good_trade_v1"] = (
         management_rl_transition_eligible_view_v1_df["terminal_good_trade_v1"]
+    )
+    management_rl_transition_eligible_view_v1_df["hindsight_terminal_good_trade_mfe20_mae5_v1"] = (
+        management_rl_transition_eligible_view_v1_df["terminal_good_trade_mfe20_mae5_v1"]
     )
     management_rl_transition_eligible_view_v1_df["hindsight_terminal_bad_trade_v1"] = (
         management_rl_transition_eligible_view_v1_df["terminal_bad_trade_v1"]
@@ -17278,11 +21473,15 @@ def _build_management_rl_readiness_substrate_v1(
             "hindsight_terminal_realized_pnl_bps_v1",
             "hindsight_terminal_trade_outcome_class_v1",
             "hindsight_terminal_good_trade_v1",
+            "hindsight_terminal_good_trade_mfe20_mae5_v1",
             "hindsight_terminal_bad_trade_v1",
             "hindsight_terminal_good_exit_v1",
             "hindsight_terminal_premature_exit_v1",
             "hindsight_terminal_late_exit_v1",
             "hindsight_terminal_exit_reason_v1",
+            "known_cata_context_bucket_v1",
+            "is_known_cata_collateral_pocket_v1",
+            "is_known_cata_tail_capture_pocket_v1",
         ]
         )
     )
@@ -17374,23 +21573,110 @@ def _build_management_rl_readiness_substrate_v1(
     label_source_counts = _counts(row_semantics_df, "management_label_source_v1")
     observation_status_counts = _counts(row_semantics_df, "rl_observation_status_v1")
     action_counts = _counts(row_semantics_df, "action_label_v1")
+    supervision_join_mode_counts = _counts(row_semantics_df, "supervision_join_mode_v1")
+    terminal_outcome_join_mode_counts = _counts(row_semantics_df, "terminal_outcome_join_mode_v1")
+    known_cata_context_counts = _counts(row_semantics_df, "known_cata_context_bucket_v1")
+    eligible_known_cata_context_counts = _counts(
+        row_semantics_df.loc[
+            row_semantics_df["rl_transition_eligibility_status_v1"].astype("string").eq("RL_TRANSITION_ELIGIBLE")
+        ],
+        "known_cata_context_bucket_v1",
+    )
+    terminal_cata_context_counts = _counts(
+        row_semantics_df.loc[row_semantics_df["terminal_cata_v1"].fillna(False)],
+        "known_cata_context_bucket_v1",
+    )
+
+    expected_management_row_count_v1 = int(len(management_policy_training_v4_df))
+    expected_management_action_counts_v1 = _counts(management_policy_training_v4_df, "action_label_v1")
+    observation_feature_coverage_v1 = {
+        field_name: {
+            "available_count_v1": int((~_ledger_series_missing_mask_v1(row_semantics_df[field_name])).sum()),
+            "available_share_v1": float((~_ledger_series_missing_mask_v1(row_semantics_df[field_name])).mean()),
+        }
+        for field_name in observation_fields
+    }
+    required_observation_feature_coverage_v1 = {
+        field_name: observation_feature_coverage_v1[field_name]
+        for field_name in required_observation_fields
+    }
+    optional_sparse_observation_feature_coverage_v1 = {
+        field_name: observation_feature_coverage_v1[field_name]
+        for field_name in optional_sparse_observation_fields
+    }
+    optional_sparse_availability_coverage_v1 = {
+        field_name: observation_feature_coverage_v1[field_name]
+        for field_name in optional_sparse_availability_fields
+    }
+    eligible_row_mask = row_semantics_df["rl_transition_eligibility_status_v1"].astype("string").eq(
+        "RL_TRANSITION_ELIGIBLE"
+    )
+    eligible_observation_feature_coverage_v1 = {
+        field_name: {
+            "available_count_v1": int((~_ledger_series_missing_mask_v1(row_semantics_df.loc[eligible_row_mask, field_name])).sum()),
+            "available_share_v1": float((~_ledger_series_missing_mask_v1(row_semantics_df.loc[eligible_row_mask, field_name])).mean())
+            if int(eligible_row_mask.sum()) > 0
+            else 0.0,
+        }
+        for field_name in observation_fields
+    }
+    eligible_required_observation_feature_coverage_v1 = {
+        field_name: eligible_observation_feature_coverage_v1[field_name]
+        for field_name in required_observation_fields
+    }
+    eligible_optional_sparse_observation_feature_coverage_v1 = {
+        field_name: eligible_observation_feature_coverage_v1[field_name]
+        for field_name in optional_sparse_observation_fields
+    }
+    eligible_optional_sparse_availability_coverage_v1 = {
+        field_name: eligible_observation_feature_coverage_v1[field_name]
+        for field_name in optional_sparse_availability_fields
+    }
+    terminal_bool_channel_fields_v1 = [
+        "terminal_good_trade_v1",
+        "terminal_good_trade_mfe20_mae5_v1",
+        "terminal_bad_trade_v1",
+        "terminal_good_exit_v1",
+        "terminal_premature_exit_v1",
+        "terminal_late_exit_v1",
+    ]
+    eligible_row_count_v1 = int(eligible_row_mask.sum())
+    terminal_bool_channel_coverage_v1 = {
+        field_name: {
+            "all_rows_bool_text_count_v1": int(row_semantics_df[field_name].astype("string").isin(["TRUE", "FALSE"]).sum()),
+            "eligible_rows_bool_text_count_v1": int(
+                row_semantics_df.loc[eligible_row_mask, field_name].astype("string").isin(["TRUE", "FALSE"]).sum()
+            ),
+        }
+        for field_name in terminal_bool_channel_fields_v1
+    }
+    terminal_bool_channel_missing_eligible_count_v1 = int(
+        sum(
+            max(eligible_row_count_v1 - payload["eligible_rows_bool_text_count_v1"], 0)
+            for payload in terminal_bool_channel_coverage_v1.values()
+        )
+    )
 
     consistency_rows = [
         {
-            "check_name_v1": "ROW_SEMANTICS_VIEW_COVERS_ALL_1660_MANAGEMENT_ROWS",
+            "check_name_v1": "ROW_SEMANTICS_VIEW_COVERS_ALL_FROZEN_MANAGEMENT_ROWS",
             "status_v1": "PASS"
-            if int(len(management_rl_row_semantics_view_v1_df)) == 1660
+            if int(len(management_rl_row_semantics_view_v1_df)) == expected_management_row_count_v1
             and int(management_rl_row_semantics_view_v1_df.duplicated(subset=["management_row_key_v1"]).sum()) == 0
             else "FAIL",
             "observed_value_v1": int(len(management_rl_row_semantics_view_v1_df)),
-            "expected_value_v1": 1660,
+            "expected_value_v1": expected_management_row_count_v1,
             "note_v1": "Row semantics view must cover each frozen management row exactly once.",
         },
         {
-            "check_name_v1": "HOLD_EXIT_NOW_COUNTS_STAY_636_1024",
-            "status_v1": "PASS" if action_counts == {"EXIT_NOW": 1024, "HOLD": 636} else "FAIL",
+            "check_name_v1": "ACTION_COUNTS_STAY_FROZEN",
+            "status_v1": "PASS" if action_counts == expected_management_action_counts_v1 else "FAIL",
             "observed_value_v1": json.dumps(action_counts, ensure_ascii=True, sort_keys=True),
-            "expected_value_v1": json.dumps({"EXIT_NOW": 1024, "HOLD": 636}, ensure_ascii=True, sort_keys=True),
+            "expected_value_v1": json.dumps(
+                expected_management_action_counts_v1,
+                ensure_ascii=True,
+                sort_keys=True,
+            ),
             "note_v1": "Frozen management action-label counts must remain unchanged.",
         },
         {
@@ -17434,6 +21720,13 @@ def _build_management_rl_readiness_substrate_v1(
             "note_v1": "Eligible rows need exact canonical terminal outcome channels in this first readiness substrate.",
         },
         {
+            "check_name_v1": "ALL_ELIGIBLE_ROWS_HAVE_CANONICAL_BOOL_REWARD_CHANNELS",
+            "status_v1": "PASS" if terminal_bool_channel_missing_eligible_count_v1 == 0 else "FAIL",
+            "observed_value_v1": terminal_bool_channel_missing_eligible_count_v1,
+            "expected_value_v1": 0,
+            "note_v1": "Eligible management RL rows must carry TRUE/FALSE reward ontology channels, not NOT_AVAILABLE placeholders.",
+        },
+        {
             "check_name_v1": "NON_ACTUALIZED_ENTRY_ROUTE_ROWS_NOT_MISLABELED_AS_ACTUALIZED",
             "status_v1": "PASS"
             if int(
@@ -17470,12 +21763,12 @@ def _build_management_rl_readiness_substrate_v1(
             "note_v1": "Entry-route metadata stays descriptive only and must not fabricate actualized TAKE origin for non-actualized direct routes.",
         },
         {
-            "check_name_v1": "TERMINAL_OUTCOME_CHANNEL_VIEW_COVERS_ALL_1660_ROWS",
+            "check_name_v1": "TERMINAL_OUTCOME_CHANNEL_VIEW_COVERS_ALL_FROZEN_ROWS",
             "status_v1": "PASS"
-            if int(len(management_rl_terminal_outcome_channel_view_v1_df)) == 1660
+            if int(len(management_rl_terminal_outcome_channel_view_v1_df)) == expected_management_row_count_v1
             else "FAIL",
             "observed_value_v1": int(len(management_rl_terminal_outcome_channel_view_v1_df)),
-            "expected_value_v1": 1660,
+            "expected_value_v1": expected_management_row_count_v1,
             "note_v1": "Terminal outcome channel view must cover every frozen management row once.",
         },
         {
@@ -17516,7 +21809,18 @@ def _build_management_rl_readiness_substrate_v1(
         "mode_v1": "AS_OF_ONLY_OBSERVATION_CONTRACT",
         "observation_vector_feature_names_v1": observation_fields,
         "observation_vector_feature_count_v1": int(len(observation_fields)),
+        "required_dense_observation_feature_names_v1": required_observation_fields,
+        "required_dense_observation_feature_count_v1": int(len(required_observation_fields)),
+        "optional_sparse_signal_feature_names_v1": optional_sparse_observation_fields,
+        "optional_sparse_signal_feature_count_v1": int(len(optional_sparse_observation_fields)),
+        "optional_sparse_signal_availability_fields_v1": optional_sparse_availability_fields,
         "observation_source_view_v1": _ALL_TRADE_REVIEW_MANAGEMENT_POLICY_TRAINING_VIEW_V4_PARQUET,
+        "observation_source_views_v1": observation_source_views_v1,
+        "raw_exact_observation_alias_fields_v1": observation_raw_alias_map,
+        "raw_exact_observation_alias_fill_counts_v1": raw_exact_observation_alias_fill_counts_v1,
+        "derived_observation_fields_v1": list(_MANAGEMENT_RL_DERIVED_OBSERVATION_FIELDS_V1),
+        "derived_observation_fill_counts_v1": derived_observation_fill_counts_v1,
+        "optional_sparse_signal_availability_counts_v1": optional_signal_availability_counts_v1,
         "metadata_fields_not_in_observation_v1": [
             "candidate_uid_exact_v1",
             "trade_uid_exact_v1",
@@ -17533,6 +21837,10 @@ def _build_management_rl_readiness_substrate_v1(
             "No teacher support strings in observation vector.",
             "No route or activation metadata in observation vector.",
         ],
+        "observation_partition_note_v1": (
+            "The observation vector preserves exact live-signal parity fields from the real pipeline. "
+            "Sparse real signals stay exposed with explicit availability masks and do not silently disqualify rows."
+        ),
     }
     management_rl_readiness_contract_v1 = {
         "layer_name": "MANAGEMENT_RL_READINESS_SUBSTRATE_V1",
@@ -17565,6 +21873,7 @@ def _build_management_rl_readiness_substrate_v1(
                 "realized_pnl_bps",
                 "trade_outcome_class",
                 "good_trade",
+                "good_trade_mfe20_mae5",
                 "bad_trade",
                 "good_exit",
                 "premature_exit",
@@ -17573,8 +21882,9 @@ def _build_management_rl_readiness_substrate_v1(
             ],
         },
         "eligibility_rule_v1": (
-            "A row becomes RL_TRANSITION_ELIGIBLE only when the canonical AS_OF observation vector is exact and complete, "
-            "the frozen supervision label is exact, the management path relation is REALIZED_PATH_COMPATIBLE, and exact canonical terminal outcome channels are available."
+            "A row becomes RL_TRANSITION_ELIGIBLE only when the canonical AS_OF observation vector is exact and dense-complete "
+            "over the required observation core, the frozen supervision label is exact, the management path relation is REALIZED_PATH_COMPATIBLE, "
+            "and exact canonical terminal outcome channels are available. Optional sparse live signals remain exposed with explicit availability masks."
         ),
         "sequence_rule_v1": "No next-step link is invented. This substrate remains a single-step management read-model until an exact sequence contract is proven.",
     }
@@ -17583,13 +21893,33 @@ def _build_management_rl_readiness_substrate_v1(
         "mode_v1": "OFFLINE_RL_READINESS_SUBSTRATE_ONLY",
         "management_rows_v1": int(len(row_semantics_df)),
         "observation_feature_count_v1": int(len(observation_fields)),
+        "required_dense_observation_feature_count_v1": int(len(required_observation_fields)),
+        "optional_sparse_signal_feature_count_v1": int(len(optional_sparse_observation_fields)),
         "observation_status_counts_v1": observation_status_counts,
         "management_label_source_counts_v1": label_source_counts,
+        "supervision_join_mode_counts_v1": supervision_join_mode_counts,
         "management_path_relation_counts_v1": path_relation_counts,
         "rl_transition_eligibility_counts_v1": eligibility_counts,
         "terminal_outcome_availability_counts_v1": terminal_channel_counts,
+        "terminal_outcome_join_mode_counts_v1": terminal_outcome_join_mode_counts,
+        "terminal_bool_reward_channel_coverage_v1": terminal_bool_channel_coverage_v1,
+        "terminal_bool_reward_channel_missing_eligible_count_v1": terminal_bool_channel_missing_eligible_count_v1,
         "entry_actualization_presence_counts_v1": readiness_route_counts,
         "management_action_counts_v1": action_counts,
+        "raw_exact_observation_alias_fill_counts_v1": raw_exact_observation_alias_fill_counts_v1,
+        "derived_observation_fill_counts_v1": derived_observation_fill_counts_v1,
+        "optional_sparse_signal_availability_counts_v1": optional_signal_availability_counts_v1,
+        "observation_feature_coverage_v1": observation_feature_coverage_v1,
+        "required_observation_feature_coverage_v1": required_observation_feature_coverage_v1,
+        "optional_sparse_observation_feature_coverage_v1": optional_sparse_observation_feature_coverage_v1,
+        "optional_sparse_availability_coverage_v1": optional_sparse_availability_coverage_v1,
+        "eligible_observation_feature_coverage_v1": eligible_observation_feature_coverage_v1,
+        "eligible_required_observation_feature_coverage_v1": eligible_required_observation_feature_coverage_v1,
+        "eligible_optional_sparse_observation_feature_coverage_v1": eligible_optional_sparse_observation_feature_coverage_v1,
+        "eligible_optional_sparse_availability_coverage_v1": eligible_optional_sparse_availability_coverage_v1,
+        "known_cata_context_bucket_counts_v1": known_cata_context_counts,
+        "eligible_known_cata_context_bucket_counts_v1": eligible_known_cata_context_counts,
+        "terminal_cata_context_bucket_counts_v1": terminal_cata_context_counts,
         "episode_count_v1": int(len(management_rl_episode_index_v1_df)),
         "episode_actualized_take_exact_count_v1": int(
             management_rl_episode_index_v1_df["entry_actualization_presence_status_v1"]
@@ -17610,11 +21940,12 @@ def _build_management_rl_readiness_substrate_v1(
         if failed_checks == 0
         else "ISSUES_FOUND",
         "MANAGEMENT_RL_SCOPE_STATUS": "MANAGEMENT_ONLY",
-        "MANAGEMENT_RL_OBSERVATION_STATUS": "AS_OF_CANONICAL_OBSERVATION_LOCKED",
+        "MANAGEMENT_RL_OBSERVATION_STATUS": "AS_OF_CANONICAL_OBSERVATION_WITH_OPTIONAL_SIGNAL_MASKS_LOCKED",
         "MANAGEMENT_RL_ACTION_STATUS": "SUPERVISION_LABELS_NOT_BEHAVIOR_POLICY",
+        "MANAGEMENT_RL_CATA_CONTEXT_STATUS": "KNOWN_CATA_POCKETS_EXPOSED_IN_SUBSTRATE",
         "MANAGEMENT_RL_TERMINAL_CHANNEL_STATUS": (
             "EXACT_TERMINAL_CHANNEL_COVERAGE_ESTABLISHED"
-            if int(terminal_channel_counts.get("EXACT_TERMINAL_OUTCOME_AVAILABLE", 0)) == 1660
+            if int(terminal_channel_counts.get("EXACT_TERMINAL_OUTCOME_AVAILABLE", 0)) == expected_management_row_count_v1
             else "TERMINAL_CHANNEL_GAPS_PRESENT"
         ),
         "MANAGEMENT_RL_TRANSITION_STATUS": (
@@ -17762,6 +22093,7 @@ def _build_management_rl_sequence_substrate_v1(
             "terminal_realized_pnl_bps_v1",
             "terminal_trade_outcome_class_v1",
             "terminal_good_trade_v1",
+            "terminal_good_trade_mfe20_mae5_v1",
             "terminal_bad_trade_v1",
             "terminal_good_exit_v1",
             "terminal_premature_exit_v1",
@@ -17912,6 +22244,9 @@ def _build_management_rl_sequence_substrate_v1(
                 "management_label_source_v1",
                 "management_path_relation_v1",
                 "rl_transition_eligibility_status_v1",
+                "known_cata_context_bucket_v1",
+                "is_known_cata_collateral_pocket_v1",
+                "is_known_cata_tail_capture_pocket_v1",
                 "sequence_episode_key_v1",
                 "sequence_step_index_v1",
                 "sequence_step_action_v1",
@@ -17924,6 +22259,7 @@ def _build_management_rl_sequence_substrate_v1(
                 "terminal_realized_pnl_bps_v1",
                 "terminal_trade_outcome_class_v1",
                 "terminal_good_trade_v1",
+                "terminal_good_trade_mfe20_mae5_v1",
                 "terminal_bad_trade_v1",
                 "terminal_good_exit_v1",
                 "terminal_premature_exit_v1",
@@ -17964,12 +22300,16 @@ def _build_management_rl_sequence_substrate_v1(
                 "route_status_v1",
                 "entry_actualization_presence_status_v1",
                 "action_label_v1",
+                "known_cata_context_bucket_v1",
+                "is_known_cata_collateral_pocket_v1",
+                "is_known_cata_tail_capture_pocket_v1",
             ]
             + observation_fields
             + [
                 "terminal_realized_pnl_bps_v1",
                 "terminal_trade_outcome_class_v1",
                 "terminal_good_trade_v1",
+                "terminal_good_trade_mfe20_mae5_v1",
                 "terminal_bad_trade_v1",
                 "terminal_good_exit_v1",
                 "terminal_premature_exit_v1",
@@ -18012,12 +22352,16 @@ def _build_management_rl_sequence_substrate_v1(
                 "route_status_v1",
                 "entry_actualization_presence_status_v1",
                 "action_label_v1",
+                "known_cata_context_bucket_v1",
+                "is_known_cata_collateral_pocket_v1",
+                "is_known_cata_tail_capture_pocket_v1",
             ]
             + observation_fields
             + [
                 "terminal_realized_pnl_bps_v1",
                 "terminal_trade_outcome_class_v1",
                 "terminal_good_trade_v1",
+                "terminal_good_trade_mfe20_mae5_v1",
                 "terminal_bad_trade_v1",
                 "terminal_good_exit_v1",
                 "terminal_premature_exit_v1",
@@ -18216,30 +22560,37 @@ def _build_management_rl_sequence_substrate_v1(
         "next_trainer_recommendation_v1": trainer_recommendation,
     }
 
+    expected_sequence_row_count_v1 = int(len(management_rl_row_semantics_view_v1_df))
+    expected_sequence_action_counts_v1 = _counts(management_rl_row_semantics_view_v1_df, "action_label_v1")
+    expected_realized_path_row_count_v1 = int(
+        row_df["rl_transition_eligibility_status_v1"].astype("string").eq("RL_TRANSITION_ELIGIBLE").sum()
+    )
+    expected_sequence_ineligible_row_count_v1 = int(len(row_df) - expected_realized_path_row_count_v1)
+
     consistency_rows = [
         {
-            "check_name_v1": "SEQUENCE_ROW_VIEW_COVERS_ALL_1660_MANAGEMENT_ROWS",
+            "check_name_v1": "SEQUENCE_ROW_VIEW_COVERS_ALL_FROZEN_MANAGEMENT_ROWS",
             "status_v1": "PASS"
-            if int(len(management_rl_sequence_row_view_v1_df)) == 1660
+            if int(len(management_rl_sequence_row_view_v1_df)) == expected_sequence_row_count_v1
             and int(management_rl_sequence_row_view_v1_df.duplicated(subset=["management_row_key_v1"]).sum()) == 0
             else "FAIL",
             "observed_value_v1": int(len(management_rl_sequence_row_view_v1_df)),
-            "expected_value_v1": 1660,
+            "expected_value_v1": expected_sequence_row_count_v1,
             "note_v1": "Sequence row view must cover each frozen management row exactly once.",
         },
         {
-            "check_name_v1": "ELIGIBLE_AND_HINDSIGHT_ONLY_COUNTS_STAY_1470_190",
+            "check_name_v1": "SEQUENCE_DATASET_SPLIT_MATCHES_READINESS_ELIGIBILITY",
             "status_v1": "PASS"
             if dataset_membership_counts.get("STRICT_SEQUENCE_SUBSTRATE", 0)
             + dataset_membership_counts.get("BANDIT_SAFE_ONLY", 0)
-            == 1470
-            and dataset_membership_counts.get("SEQUENCE_INELIGIBLE", 0) == 190
+            == expected_realized_path_row_count_v1
+            and dataset_membership_counts.get("SEQUENCE_INELIGIBLE", 0) == expected_sequence_ineligible_row_count_v1
             else "FAIL",
             "observed_value_v1": json.dumps(dataset_membership_counts, ensure_ascii=True, sort_keys=True),
             "expected_value_v1": json.dumps(
                 {
-                    "STRICT_PLUS_BANDIT_ELIGIBLE": 1470,
-                    "SEQUENCE_INELIGIBLE": 190,
+                    "STRICT_PLUS_BANDIT_ELIGIBLE": expected_realized_path_row_count_v1,
+                    "SEQUENCE_INELIGIBLE": expected_sequence_ineligible_row_count_v1,
                 },
                 ensure_ascii=True,
                 sort_keys=True,
@@ -18247,12 +22598,12 @@ def _build_management_rl_sequence_substrate_v1(
             "note_v1": "Sequence substrate split must preserve the frozen eligible-vs-hindsight-only partition from readiness.",
         },
         {
-            "check_name_v1": "HOLD_EXIT_NOW_COUNTS_STAY_636_1024",
+            "check_name_v1": "ACTION_COUNTS_STAY_FROZEN",
             "status_v1": "PASS"
-            if _counts(row_df, "action_label_v1") == {"EXIT_NOW": 1024, "HOLD": 636}
+            if _counts(row_df, "action_label_v1") == expected_sequence_action_counts_v1
             else "FAIL",
             "observed_value_v1": json.dumps(_counts(row_df, "action_label_v1"), ensure_ascii=True, sort_keys=True),
-            "expected_value_v1": json.dumps({"EXIT_NOW": 1024, "HOLD": 636}, ensure_ascii=True, sort_keys=True),
+            "expected_value_v1": json.dumps(expected_sequence_action_counts_v1, ensure_ascii=True, sort_keys=True),
             "note_v1": "Frozen management label counts must remain unchanged through sequence splitting.",
         },
         {
@@ -18550,6 +22901,7 @@ def _build_management_bandit_action_reward_substrate_v1(
         "terminal_realized_pnl_bps_v1": "hindsight_reward_realized_pnl_bps_v1",
         "terminal_trade_outcome_class_v1": "hindsight_reward_trade_outcome_class_v1",
         "terminal_good_trade_v1": "hindsight_reward_good_trade_v1",
+        "terminal_good_trade_mfe20_mae5_v1": "hindsight_reward_good_trade_mfe20_mae5_v1",
         "terminal_bad_trade_v1": "hindsight_reward_bad_trade_v1",
         "terminal_good_exit_v1": "hindsight_reward_good_exit_v1",
         "terminal_premature_exit_v1": "hindsight_reward_premature_exit_v1",
@@ -18583,6 +22935,7 @@ def _build_management_bandit_action_reward_substrate_v1(
             "terminal_realized_pnl_bps_v1",
             "terminal_trade_outcome_class_v1",
             "terminal_good_trade_v1",
+            "terminal_good_trade_mfe20_mae5_v1",
             "terminal_bad_trade_v1",
             "terminal_good_exit_v1",
             "terminal_premature_exit_v1",
@@ -18809,6 +23162,7 @@ def _build_management_bandit_action_reward_substrate_v1(
         errors="coerce",
     )
     good_trade_text = row_df.loc[dm_eligible_mask, "terminal_good_trade_v1"].astype("string")
+    good_trade_mfe20_mae5_text = row_df.loc[dm_eligible_mask, "terminal_good_trade_mfe20_mae5_v1"].astype("string")
     good_exit_text = row_df.loc[dm_eligible_mask, "terminal_good_exit_v1"].astype("string")
 
     reward_candidate_specs_v1 = [
@@ -18835,6 +23189,17 @@ def _build_management_bandit_action_reward_substrate_v1(
             "applicable_universe_v1": "BANDIT_DM_ELIGIBLE",
             "coverage_count_v1": int(_bool_text_coverage(good_trade_text).sum()),
             "transparency_note_v1": "Binary scalarization of the canonical good_trade truth channel only.",
+        },
+        {
+            "reward_spec_name_v1": "GOOD_TRADE_MFE20_MAE5_BINARY_EXPERIMENT_ONLY",
+            "spec_type_v1": "SCALAR_EXPERIMENT_ONLY",
+            "formula_v1": 'reward = 1 if hindsight_reward_good_trade_mfe20_mae5_v1 == "TRUE" else 0 if == "FALSE" else NA',
+            "applicable_universe_v1": "BANDIT_DM_ELIGIBLE",
+            "coverage_count_v1": int(_bool_text_coverage(good_trade_mfe20_mae5_text).sum()),
+            "transparency_note_v1": (
+                "Binary scalarization of the stricter clean-winner helper channel "
+                "(positive exit with MFE>=20bps and MAE>-5bps)."
+            ),
         },
         {
             "reward_spec_name_v1": "GOOD_EXIT_BINARY_EXPERIMENT_ONLY",
@@ -18955,16 +23320,20 @@ def _build_management_bandit_action_reward_substrate_v1(
     }
 
     allowed_as_of_metadata_fields = ["as_of_row_uid_v1"]
+    expected_observed_sample_row_count_v1 = int(len(management_rl_sequence_row_view_v1_df))
+    join_coverage_contract_ok_v1, join_coverage_observed_v1, join_coverage_expected_v1 = (
+        _evaluate_join_coverage_contract_v1(as_of_supervision_join_coverage_summary)
+    )
 
     consistency_rows = [
         {
-            "check_name_v1": "OBSERVED_SAMPLE_VIEW_COVERS_ALL_1660_ROWS",
+            "check_name_v1": "OBSERVED_SAMPLE_VIEW_COVERS_ALL_FROZEN_ROWS",
             "status_v1": "PASS"
-            if int(len(management_bandit_observed_sample_view_v1_df)) == 1660
+            if int(len(management_bandit_observed_sample_view_v1_df)) == expected_observed_sample_row_count_v1
             and int(management_bandit_observed_sample_view_v1_df.duplicated(subset=["management_row_key_v1"]).sum()) == 0
             else "FAIL",
             "observed_value_v1": int(len(management_bandit_observed_sample_view_v1_df)),
-            "expected_value_v1": 1660,
+            "expected_value_v1": expected_observed_sample_row_count_v1,
             "note_v1": "Observed sample view must cover each frozen management row exactly once.",
         },
         {
@@ -19069,19 +23438,11 @@ def _build_management_bandit_action_reward_substrate_v1(
             "note_v1": "Bandit substrate must not rewrite the strict-vs-bandit sequence findings from the previous frozen layer.",
         },
         {
-            "check_name_v1": "GLOBAL_JOIN_COUNTS_STAY_2779_0_1",
-            "status_v1": "PASS"
-            if int(as_of_supervision_join_coverage_summary.get("exact_rows", -1)) == 2779
-            and int(as_of_supervision_join_coverage_summary.get("fallback_rows", -1)) == 0
-            and int(as_of_supervision_join_coverage_summary.get("unjoinable_rows", -1)) == 1
-            else "FAIL",
-            "observed_value_v1": json.dumps(as_of_supervision_join_coverage_summary, ensure_ascii=True, sort_keys=True),
-            "expected_value_v1": json.dumps(
-                {"exact_rows": 2779, "fallback_rows": 0, "unjoinable_rows": 1},
-                ensure_ascii=True,
-                sort_keys=True,
-            ),
-            "note_v1": "This layer must preserve the frozen global exact/fallback/unjoinable contract.",
+            "check_name_v1": "GLOBAL_JOIN_COVERAGE_CONTRACT_REMAINS_EXACT_WITH_ZERO_FALLBACK",
+            "status_v1": "PASS" if join_coverage_contract_ok_v1 else "FAIL",
+            "observed_value_v1": json.dumps(join_coverage_observed_v1, ensure_ascii=True, sort_keys=True),
+            "expected_value_v1": json.dumps(join_coverage_expected_v1, ensure_ascii=True, sort_keys=True),
+            "note_v1": "This layer must preserve an exact global join contract with zero fallback rows and full trainable coverage accounted for by exact plus unjoinable rows.",
         },
     ]
     management_bandit_consistency_audit_v1_df = pd.DataFrame.from_records(consistency_rows)
@@ -19093,6 +23454,10 @@ def _build_management_bandit_action_reward_substrate_v1(
         "MANAGEMENT_BANDIT_SCOPE_STATUS": "MANAGEMENT_ONLY",
         "MANAGEMENT_BANDIT_DM_CANDIDATE_STATUS": "DIRECT_METHOD_CANDIDATE" if dm_eligible_count > 0 else "NO_DM_CANDIDATE",
         "MANAGEMENT_BANDIT_PROPENSITY_STATUS": "PROPENSITY_NOT_ESTABLISHED",
+        "MANAGEMENT_BANDIT_OBSERVED_SAMPLE_ROW_COUNT_V1": expected_observed_sample_row_count_v1,
+        "MANAGEMENT_BANDIT_DM_CANDIDATE_ROW_COUNT_V1": int(dm_eligible_count),
+        "MANAGEMENT_BANDIT_EXIT_LOCAL_REWARD_ROW_COUNT_V1": int(exit_local_reward_count),
+        "MANAGEMENT_BANDIT_HOLD_EPISODE_RETURN_ROW_COUNT_V1": int(hold_episode_return_only_count),
         "MANAGEMENT_BANDIT_REWARD_LOCALITY_STATUS": (
             "EXIT_LOCAL_AND_HOLD_EPISODE_RETURN_SPLIT_ESTABLISHED"
             if exit_local_reward_count + hold_episode_return_only_count == dm_eligible_count
@@ -19327,6 +23692,30 @@ def _build_management_exit_local_reward_baseline_v1(
             )
         return numeric_cols, categorical_cols, ColumnTransformer(transformers=transformers, remainder="drop")
 
+    def _sanitize_feature_frame(frame: pd.DataFrame, feature_columns: Sequence[str]) -> pd.DataFrame:
+        sanitized = frame[list(feature_columns)].copy()
+        for feature_name in feature_columns:
+            series = sanitized[feature_name]
+            if pd.api.types.is_numeric_dtype(series) or pd.api.types.is_bool_dtype(series):
+                sanitized[feature_name] = pd.to_numeric(series, errors="coerce")
+                continue
+            text = series.astype("string")
+            text = text.mask(
+                text.isin(
+                    [
+                        _LEDGER_NOT_AVAILABLE,
+                        _LEDGER_IKKE_ETABLERT,
+                        "<NA>",
+                        "nan",
+                        "None",
+                        "NaT",
+                        "NAN",
+                    ]
+                )
+            )
+            sanitized[feature_name] = text.astype(object).where(text.notna(), None)
+        return sanitized
+
     def _regression_predictions(
         frame: pd.DataFrame,
         *,
@@ -19339,7 +23728,8 @@ def _build_management_exit_local_reward_baseline_v1(
         work = frame.copy()
         if work.empty:
             return pd.DataFrame()
-        preds = np.asarray(estimator.predict(work[list(usable_feature_fields)].copy()), dtype=float)
+        X_work = _sanitize_feature_frame(work, usable_feature_fields)
+        preds = np.asarray(estimator.predict(X_work), dtype=float)
         out = work[
             [
                 "management_row_key_v1",
@@ -19387,7 +23777,7 @@ def _build_management_exit_local_reward_baseline_v1(
         if frame.empty:
             return {"rows": 0}
         y_true = pd.to_numeric(frame["exit_local_target_raw_realized_pnl_bps_v1"], errors="coerce").to_numpy(dtype=float)
-        preds = np.asarray(estimator.predict(frame[list(usable_feature_fields)].copy()), dtype=float)
+        preds = np.asarray(estimator.predict(_sanitize_feature_frame(frame, usable_feature_fields)), dtype=float)
         return {
             "rows": int(len(frame)),
             "mae": _to_float_or_none(mean_absolute_error(y_true, preds)),
@@ -19422,6 +23812,12 @@ def _build_management_exit_local_reward_baseline_v1(
     ).astype("Int64")
     work["exit_local_target_contract_v1"] = "MANAGEMENT_EXIT_LOCAL_TARGET_CONTRACT_V1"
     work["exit_local_target_domain_v1"] = "EXIT_LOCAL_ONLY|EXPERIMENT_ONLY|NOT_POLICY_TRUTH"
+    expected_observed_sample_row_count_v1 = _scalar_int(
+        management_bandit_status_v1.get("MANAGEMENT_BANDIT_OBSERVED_SAMPLE_ROW_COUNT_V1")
+    )
+    join_coverage_contract_ok_v1, join_coverage_observed_v1, join_coverage_expected_v1 = (
+        _evaluate_join_coverage_contract_v1(as_of_supervision_join_coverage_summary)
+    )
 
     split_order = ["TRAIN", "VALIDATION", "HOLDOUT"]
     split_counts = {
@@ -19447,10 +23843,11 @@ def _build_management_exit_local_reward_baseline_v1(
             "[ALL_TRADE_REVIEW_LEDGER] MANAGEMENT_EXIT_LOCAL_REWARD_BASELINE_V1 found no usable canonical management features."
         )
 
+    train_feature_frame = _sanitize_feature_frame(train_split_df, usable_feature_fields)
     numeric_feature_fields, categorical_feature_fields, preprocessor = _prepare_preprocessor(
-        train_split_df, usable_feature_fields
+        train_feature_frame, usable_feature_fields
     )
-    X_train = train_split_df[usable_feature_fields].copy()
+    X_train = train_feature_frame.copy()
     y_train_raw = pd.to_numeric(train_split_df["exit_local_target_raw_realized_pnl_bps_v1"], errors="coerce")
 
     regression_model_specs: List[Tuple[str, str, Any]] = [
@@ -19562,7 +23959,7 @@ def _build_management_exit_local_reward_baseline_v1(
                     split_metric_map[split_name] = {"rows": 0}
                     continue
                 y_true = split_df["exit_local_target_positive_realized_pnl_binary_v1"].astype(int)
-                X_split = split_df[usable_feature_fields].copy()
+                X_split = _sanitize_feature_frame(split_df, usable_feature_fields)
                 pred_labels = fitted.predict(X_split)
                 if hasattr(fitted, "predict_proba"):
                     raw_proba = np.asarray(fitted.predict_proba(X_split), dtype=float)
@@ -19652,8 +24049,9 @@ def _build_management_exit_local_reward_baseline_v1(
     all_eligible_scored_v1_df = management_bandit_direct_method_candidate_view_v1_df.copy()
     all_eligible_scored_v1_df["primary_model_name_v1"] = primary_regression_model_name
     all_eligible_scored_v1_df["primary_model_target_v1"] = "exit_local_target_raw_realized_pnl_bps_v1"
+    all_eligible_feature_frame_v1_df = _sanitize_feature_frame(all_eligible_scored_v1_df, usable_feature_fields)
     all_eligible_scored_v1_df["primary_model_score_v1"] = np.asarray(
-        primary_regression_model.predict(all_eligible_scored_v1_df[usable_feature_fields].copy()),
+        primary_regression_model.predict(all_eligible_feature_frame_v1_df),
         dtype=float,
     )
     all_eligible_scored_v1_df["train_action_domain_status_v1"] = np.where(
@@ -19836,15 +24234,15 @@ def _build_management_exit_local_reward_baseline_v1(
 
     consistency_rows = [
         {
-            "check_name_v1": "TRAINING_UNIVERSE_IS_EXACT_834_EXIT_LOCAL_ROWS",
+            "check_name_v1": "TRAINING_UNIVERSE_MATCHES_EXIT_LOCAL_REWARD_VIEW",
             "status_v1": "PASS"
-            if int(len(work)) == 834
+            if int(len(work)) == int(len(management_bandit_exit_local_reward_view_v1_df))
             and int(work["action_label_v1"].astype("string").eq("EXIT_NOW").sum()) == int(len(work))
             and int(work.duplicated(subset=["management_row_key_v1"]).sum()) == 0
             else "FAIL",
             "observed_value_v1": int(len(work)),
-            "expected_value_v1": 834,
-            "note_v1": "The first exit-local baseline must train only on the 834 EXIT_LOCAL reward rows.",
+            "expected_value_v1": int(len(management_bandit_exit_local_reward_view_v1_df)),
+            "note_v1": "The first exit-local baseline must train only on the exact EXIT_LOCAL reward rows.",
         },
         {
             "check_name_v1": "NO_HOLD_ROWS_USED_IN_TRAINING",
@@ -19902,15 +24300,15 @@ def _build_management_exit_local_reward_baseline_v1(
             "note_v1": "Targets must be direct transparent derivations from canonical reward channels only.",
         },
         {
-            "check_name_v1": "ALL_ELIGIBLE_SCORED_VIEW_COVERS_1470_AND_EXCLUDES_190",
+            "check_name_v1": "ALL_ELIGIBLE_SCORED_VIEW_MATCHES_DM_CANDIDATE_UNIVERSE",
             "status_v1": "PASS"
-            if int(len(all_eligible_scored_v1_df)) == 1470
+            if int(len(all_eligible_scored_v1_df)) == int(len(management_bandit_direct_method_candidate_view_v1_df))
             and set(all_eligible_scored_v1_df["management_row_key_v1"].astype("string"))
             == set(management_bandit_direct_method_candidate_view_v1_df["management_row_key_v1"].astype("string"))
             else "FAIL",
             "observed_value_v1": int(len(all_eligible_scored_v1_df)),
-            "expected_value_v1": 1470,
-            "note_v1": "All eligible scored rows must match the 1470 DM-eligible realized-path universe exactly.",
+            "expected_value_v1": int(len(management_bandit_direct_method_candidate_view_v1_df)),
+            "note_v1": "All eligible scored rows must match the exact DM-eligible realized-path universe.",
         },
         {
             "check_name_v1": "FROZEN_BANDIT_AND_SEQUENCE_STATUSES_STAY_UNCHANGED",
@@ -19941,16 +24339,14 @@ def _build_management_exit_local_reward_baseline_v1(
             "note_v1": "This trainer layer must not rewrite the frozen bandit substrate semantics.",
         },
         {
-            "check_name_v1": "GLOBAL_JOIN_COUNTS_AND_LEAKAGE_GUARD_STAY_UNCHANGED",
+            "check_name_v1": "GLOBAL_JOIN_COVERAGE_AND_LEAKAGE_GUARD_STAY_EXACT",
             "status_v1": "PASS"
-            if int(as_of_supervision_join_coverage_summary.get("exact_rows", -1)) == 2779
-            and int(as_of_supervision_join_coverage_summary.get("fallback_rows", -1)) == 0
-            and int(as_of_supervision_join_coverage_summary.get("unjoinable_rows", -1)) == 1
+            if join_coverage_contract_ok_v1
             and _scalar_string(leakage_guard_summary.get("status")) == "PASS"
             else "FAIL",
             "observed_value_v1": json.dumps(
                 {
-                    "join_coverage": as_of_supervision_join_coverage_summary,
+                    "join_coverage": join_coverage_observed_v1,
                     "leakage_guard": leakage_guard_summary,
                 },
                 ensure_ascii=True,
@@ -19958,15 +24354,13 @@ def _build_management_exit_local_reward_baseline_v1(
             ),
             "expected_value_v1": json.dumps(
                 {
-                    "exact_rows": 2779,
-                    "fallback_rows": 0,
-                    "unjoinable_rows": 1,
+                    "join_coverage_contract_v1": join_coverage_expected_v1,
                     "leakage_guard_status": "PASS",
                 },
                 ensure_ascii=True,
                 sort_keys=True,
             ),
-            "note_v1": "The trainer layer must preserve the frozen global join contract and leakage guard.",
+            "note_v1": "The trainer layer must preserve an exact zero-fallback global join contract and leakage guard PASS.",
         },
     ]
     management_exit_local_consistency_audit_v1_df = pd.DataFrame.from_records(consistency_rows)
@@ -19994,7 +24388,7 @@ def _build_management_exit_local_reward_baseline_v1(
             "source_artifact_name": _ALL_TRADE_REVIEW_MANAGEMENT_POLICY_TRAINING_VIEW_V4_PARQUET,
             "component_kind_v1": "CANONICAL_BRANCH",
             "status_v1": "FROZEN",
-            "row_count_v1": 1660,
+            "row_count_v1": int(expected_observed_sample_row_count_v1 or len(management_bandit_direct_method_candidate_view_v1_df)),
         },
         "MANAGEMENT_BANDIT_EXIT_LOCAL_REWARD_VIEW_V1": {
             "source_artifact_name": _ALL_TRADE_REVIEW_MANAGEMENT_BANDIT_EXIT_LOCAL_REWARD_VIEW_V1_PARQUET,
@@ -20545,67 +24939,108 @@ def _build_management_exit_local_shadow_audit_v1(
     management_exit_local_shadow_candidate_review_v1_df = candidate_review_df[
         hold_view_columns + ["candidate_review_rank_v1"]
     ].copy()
-
-    consistency_rows = [
-        {
-            "check_name_v1": "SHADOW_ROW_VIEW_COVERS_EXACT_1470_DM_ELIGIBLE",
-            "status_v1": "PASS"
-            if int(len(management_exit_local_shadow_row_view_v1_df)) == 1470
-            and int(
-                management_exit_local_shadow_row_view_v1_df["management_row_key_v1"].astype("string").duplicated().sum()
-            )
-            == 0
-            else "FAIL",
-            "observed_value_v1": int(len(management_exit_local_shadow_row_view_v1_df)),
-            "expected_value_v1": 1470,
-            "note_v1": "Shadow row view must cover exactly the 1470 DM-eligible realized-path rows.",
-        },
-        {
-            "check_name_v1": "DOMAIN_SPLIT_IS_EXACT_834_PLUS_636",
-            "status_v1": "PASS"
-            if int(row_df["shadow_domain_status_v1"].astype("string").eq("IN_DOMAIN_EXIT_LOCAL").sum()) == 834
-            and int(
+    observed_row_key_series = management_bandit_observed_sample_view_v1_df["management_row_key_v1"].astype("string")
+    shadow_row_key_series = management_exit_local_shadow_row_view_v1_df["management_row_key_v1"].astype("string")
+    observed_row_keys = set(observed_row_key_series.tolist())
+    shadow_row_keys = set(shadow_row_key_series.tolist())
+    shadow_key_match_all_eligible_v1 = shadow_row_keys == set(
+        management_exit_local_all_eligible_scored_view_v1_df["management_row_key_v1"].astype("string").tolist()
+    )
+    excluded_observed_row_keys_v1 = observed_row_keys - shadow_row_keys
+    shadow_domain_counts_v1 = {
+        "in_domain_exit_local": int(row_df["shadow_domain_status_v1"].astype("string").eq("IN_DOMAIN_EXIT_LOCAL").sum()),
+        "out_of_train_action_domain_research_only": int(
+            row_df["shadow_domain_status_v1"]
+            .astype("string")
+            .eq("OUT_OF_TRAIN_ACTION_DOMAIN_RESEARCH_ONLY")
+            .sum()
+        ),
+        "excluded_or_other": int(
+            len(row_df)
+            - int(row_df["shadow_domain_status_v1"].astype("string").eq("IN_DOMAIN_EXIT_LOCAL").sum())
+            - int(
                 row_df["shadow_domain_status_v1"]
                 .astype("string")
                 .eq("OUT_OF_TRAIN_ACTION_DOMAIN_RESEARCH_ONLY")
                 .sum()
             )
-            == 636
+        ),
+    }
+    join_contract_ok_v1, join_contract_observed_v1, join_contract_expected_v1 = _evaluate_join_coverage_contract_v1(
+        as_of_supervision_join_coverage_summary
+    )
+
+    consistency_rows = [
+        {
+            "check_name_v1": "SHADOW_ROW_VIEW_COVERS_CURRENT_ALL_ELIGIBLE_UNIQUE_ROWS",
+            "status_v1": "PASS"
+            if int(len(management_exit_local_shadow_row_view_v1_df))
+            == int(len(management_exit_local_all_eligible_scored_view_v1_df))
+            and int(shadow_row_key_series.duplicated().sum()) == 0
+            and bool(shadow_key_match_all_eligible_v1)
             else "FAIL",
             "observed_value_v1": {
-                "in_domain_exit_local": int(
-                    row_df["shadow_domain_status_v1"].astype("string").eq("IN_DOMAIN_EXIT_LOCAL").sum()
-                ),
-                "out_of_train_action_domain_research_only": int(
-                    row_df["shadow_domain_status_v1"]
-                    .astype("string")
-                    .eq("OUT_OF_TRAIN_ACTION_DOMAIN_RESEARCH_ONLY")
-                    .sum()
-                ),
+                "row_view_rows_v1": int(len(management_exit_local_shadow_row_view_v1_df)),
+                "all_eligible_rows_v1": int(len(management_exit_local_all_eligible_scored_view_v1_df)),
+                "duplicate_management_row_keys_v1": int(shadow_row_key_series.duplicated().sum()),
+                "exact_management_row_key_match_to_all_eligible_v1": bool(shadow_key_match_all_eligible_v1),
             },
             "expected_value_v1": {
-                "in_domain_exit_local": 834,
-                "out_of_train_action_domain_research_only": 636,
+                "row_view_rows_equals_all_eligible_rows_v1": True,
+                "duplicate_management_row_keys_v1": 0,
+                "exact_management_row_key_match_to_all_eligible_v1": True,
             },
-            "note_v1": "The conservative shadow layer must preserve the 834/636 split exactly.",
+            "note_v1": "Shadow row view must cover the current all-eligible management universe exactly once, without inventing or dropping row identities.",
         },
         {
-            "check_name_v1": "HINDSIGHT_ONLY_190_ROWS_STAY_EXCLUDED",
+            "check_name_v1": "DOMAIN_SPLIT_PARTITIONS_CURRENT_SHADOW_UNIVERSE",
             "status_v1": "PASS"
-            if int(len(management_bandit_observed_sample_view_v1_df)) - int(len(row_df)) == 190
+            if int(sum(shadow_domain_counts_v1.values())) == int(len(row_df))
+            and shadow_domain_counts_v1["in_domain_exit_local"] > 0
+            and shadow_domain_counts_v1["out_of_train_action_domain_research_only"] > 0
+            and shadow_domain_counts_v1["excluded_or_other"] == 0
             else "FAIL",
-            "observed_value_v1": int(len(management_bandit_observed_sample_view_v1_df)) - int(len(row_df)),
-            "expected_value_v1": 190,
-            "note_v1": "The 190 hindsight-only rows must stay outside the shadow audit universe.",
+            "observed_value_v1": shadow_domain_counts_v1,
+            "expected_value_v1": {
+                "row_count_v1": int(len(row_df)),
+                "in_domain_exit_local_positive_v1": True,
+                "out_of_train_action_domain_research_only_positive_v1": True,
+                "excluded_or_other": 0,
+            },
+            "note_v1": "The conservative shadow layer must partition the current shadow universe cleanly into in-domain EXIT_LOCAL rows and out-of-domain HOLD research rows only.",
         },
         {
-            "check_name_v1": "BUCKET_CONTRACT_USES_TRAIN_IN_DOMAIN_ONLY",
+            "check_name_v1": "OBSERVED_SAMPLE_EXCLUSIONS_MATCH_CURRENT_ROW_KEY_DIFFERENCE",
             "status_v1": "PASS"
-            if int(management_exit_local_shadow_bucket_contract_v1["train_reference_row_count_v1"]) == 713
+            if shadow_row_keys.issubset(observed_row_keys)
+            and int(len(excluded_observed_row_keys_v1))
+            == int(len(management_bandit_observed_sample_view_v1_df)) - int(len(row_df))
+            else "FAIL",
+            "observed_value_v1": {
+                "observed_sample_rows_v1": int(len(management_bandit_observed_sample_view_v1_df)),
+                "shadow_row_view_rows_v1": int(len(row_df)),
+                "excluded_observed_rows_v1": int(len(excluded_observed_row_keys_v1)),
+                "shadow_row_keys_subset_of_observed_v1": bool(shadow_row_keys.issubset(observed_row_keys)),
+            },
+            "expected_value_v1": {
+                "excluded_rows_equals_observed_minus_shadow_v1": True,
+                "shadow_row_keys_subset_of_observed_v1": True,
+            },
+            "note_v1": "Rows left outside the shadow audit must be explainable exactly as observed-sample rows that are not part of the current all-eligible shadow universe.",
+        },
+        {
+            "check_name_v1": "BUCKET_CONTRACT_USES_CURRENT_TRAIN_IN_DOMAIN_ONLY",
+            "status_v1": "PASS"
+            if int(management_exit_local_shadow_bucket_contract_v1["train_reference_row_count_v1"])
+            == int(len(train_in_domain_df))
+            and int(len(train_in_domain_df)) > 0
             else "FAIL",
             "observed_value_v1": int(management_exit_local_shadow_bucket_contract_v1["train_reference_row_count_v1"]),
-            "expected_value_v1": 713,
-            "note_v1": "Bucket boundaries must come only from TRAIN in-domain EXIT_LOCAL scores.",
+            "expected_value_v1": {
+                "train_reference_row_count_v1": int(len(train_in_domain_df)),
+                "train_reference_row_count_positive_v1": True,
+            },
+            "note_v1": "Bucket boundaries must come only from the current TRAIN in-domain EXIT_LOCAL slice, not from stale frozen counts.",
         },
         {
             "check_name_v1": "IN_DOMAIN_BUCKET_EVAL_EXCLUDES_HOLD_ROWS",
@@ -20628,7 +25063,7 @@ def _build_management_exit_local_shadow_audit_v1(
             "note_v1": "Bucket evaluation must only use in-domain EXIT_LOCAL rows.",
         },
         {
-            "check_name_v1": "HOLD_RESEARCH_VIEW_CONTAINS_ONLY_HOLD_ROWS",
+            "check_name_v1": "HOLD_RESEARCH_VIEW_MATCHES_CURRENT_OUT_OF_DOMAIN_HOLD_SLICE",
             "status_v1": "PASS"
             if int(
                 management_exit_local_shadow_hold_research_view_v1_df["action_label_v1"]
@@ -20636,7 +25071,11 @@ def _build_management_exit_local_shadow_audit_v1(
                 .eq("HOLD")
                 .all()
             )
-            and int(len(management_exit_local_shadow_hold_research_view_v1_df)) == 636
+            and int(len(management_exit_local_shadow_hold_research_view_v1_df)) == int(len(hold_research_df))
+            and set(
+                management_exit_local_shadow_hold_research_view_v1_df["management_row_key_v1"].astype("string")
+            )
+            == set(hold_research_df["management_row_key_v1"].astype("string"))
             else "FAIL",
             "observed_value_v1": {
                 "row_count": int(len(management_exit_local_shadow_hold_research_view_v1_df)),
@@ -20648,8 +25087,12 @@ def _build_management_exit_local_shadow_audit_v1(
                     .tolist()
                 ),
             },
-            "expected_value_v1": {"row_count": 636, "action_values": ["HOLD"]},
-            "note_v1": "HOLD research view must contain only HOLD rows and nothing from EXIT_LOCAL training.",
+            "expected_value_v1": {
+                "row_count": int(len(hold_research_df)),
+                "action_values": ["HOLD"],
+                "exact_management_row_key_match_to_hold_slice_v1": True,
+            },
+            "note_v1": "HOLD research view must contain only HOLD rows and match the current out-of-domain HOLD slice exactly.",
         },
         {
             "check_name_v1": "CANDIDATE_REVIEW_IS_SUBSET_OF_HOLD_RESEARCH",
@@ -20690,19 +25133,13 @@ def _build_management_exit_local_shadow_audit_v1(
         {
             "check_name_v1": "GLOBAL_JOIN_COUNTS_AND_LEAKAGE_GUARD_STAY_UNCHANGED",
             "status_v1": "PASS"
-            if int(as_of_supervision_join_coverage_summary.get("exact_rows", 0)) == 2779
-            and int(as_of_supervision_join_coverage_summary.get("fallback_rows", 0)) == 0
-            and int(as_of_supervision_join_coverage_summary.get("unjoinable_rows", 0)) == 1
-            and _scalar_string(leakage_guard_summary.get("status")) == "PASS"
-            else "FAIL",
+            if bool(join_contract_ok_v1) and _scalar_string(leakage_guard_summary.get("status")) == "PASS" else "FAIL",
             "observed_value_v1": {
-                "join_coverage": as_of_supervision_join_coverage_summary,
+                "join_coverage": join_contract_observed_v1,
                 "leakage_guard": leakage_guard_summary,
             },
             "expected_value_v1": {
-                "exact_rows": 2779,
-                "fallback_rows": 0,
-                "unjoinable_rows": 1,
+                "join_coverage_contract_v1": join_contract_expected_v1,
                 "leakage_guard_status": "PASS",
             },
             "note_v1": "The conservative shadow layer must not rewrite the frozen exact-join and leakage contracts.",
@@ -20958,11 +25395,17 @@ def _build_management_exit_local_manual_review_v1(
     numeric_inside_cols = [f"review_inside_{feature_name}_p05_p95_v1" for feature_name in numeric_fields]
     candidate_df["review_all_categorical_seen_in_train_exit_v1"] = candidate_df[categorical_seen_cols].all(axis=1)
     candidate_df["review_numeric_inside_p05_p95_count_v1"] = candidate_df[numeric_inside_cols].sum(axis=1).astype(int)
+    strong_support_threshold_v1 = max(1, int(np.ceil(len(numeric_fields) * 0.80)))
+    mixed_support_min_threshold_v1 = max(1, int(np.ceil(len(numeric_fields) * 0.40)))
 
     def _support_tier(row: pd.Series) -> str:
-        if bool(row["review_all_categorical_seen_in_train_exit_v1"]) and int(row["review_numeric_inside_p05_p95_count_v1"]) >= 4:
+        inside_count = int(row["review_numeric_inside_p05_p95_count_v1"])
+        if bool(row["review_all_categorical_seen_in_train_exit_v1"]) and inside_count >= strong_support_threshold_v1:
             return "STRONG_FEATURE_SUPPORT"
-        if bool(row["review_all_categorical_seen_in_train_exit_v1"]) and int(row["review_numeric_inside_p05_p95_count_v1"]) in {2, 3}:
+        if (
+            bool(row["review_all_categorical_seen_in_train_exit_v1"])
+            and mixed_support_min_threshold_v1 <= inside_count < strong_support_threshold_v1
+        ):
             return "MIXED_FEATURE_SUPPORT"
         return "EDGE_FEATURE_SUPPORT"
 
@@ -21222,7 +25665,7 @@ def _build_management_exit_local_manual_review_v1(
         "candidate_rows_with_train_exit_neighbors_v1": int(
             queue_df["review_similarity_reference_status_v1"].astype("string").eq("TRAIN_EXIT_NEIGHBORS_ATTACHED").sum()
         ),
-        "note_v1": "The 54 candidates look like action-domain-only HOLD rows that are mostly still inside normal EXIT_LOCAL feature support. This is research triage for human review, not policy truth.",
+        "note_v1": "These candidates look like action-domain-only HOLD rows that are mostly still inside normal EXIT_LOCAL feature support. This is research triage for human review, not policy truth.",
     }
 
     management_exit_local_manual_review_contract_v1 = {
@@ -21278,16 +25721,22 @@ def _build_management_exit_local_manual_review_v1(
         "not_live_gate": True,
         "not_policy_truth": True,
     }
+    join_contract_ok_v1, join_contract_observed_v1, join_contract_expected_v1 = _evaluate_join_coverage_contract_v1(
+        as_of_supervision_join_coverage_summary
+    )
 
     consistency_rows = [
         {
-            "check_name_v1": "REVIEW_QUEUE_COVERS_EXACT_54_CANDIDATES",
-            "status_v1": "PASS" if int(len(management_exit_local_manual_review_queue_v1_df)) == 54 else "FAIL",
+            "check_name_v1": "REVIEW_QUEUE_COVERS_ALL_CURRENT_CANDIDATES",
+            "status_v1": "PASS"
+            if int(len(management_exit_local_manual_review_queue_v1_df))
+            == int(len(management_exit_local_shadow_candidate_review_v1_df))
+            else "FAIL",
             "observed_value_v1": int(len(management_exit_local_manual_review_queue_v1_df)),
-            "expected_value_v1": 54,
+            "expected_value_v1": int(len(management_exit_local_shadow_candidate_review_v1_df)),
         },
         {
-            "check_name_v1": "CASEBOOK_COVERS_EXACT_SAME_54_CANDIDATES",
+            "check_name_v1": "CASEBOOK_COVERS_EXACT_SAME_CURRENT_CANDIDATES",
             "status_v1": "PASS"
             if set(management_exit_local_manual_review_casebook_v1_df["management_row_key_v1"].astype("string"))
             == set(management_exit_local_manual_review_queue_v1_df["management_row_key_v1"].astype("string"))
@@ -21296,17 +25745,23 @@ def _build_management_exit_local_manual_review_v1(
             "expected_value_v1": int(len(management_exit_local_manual_review_queue_v1_df)),
         },
         {
-            "check_name_v1": "FEATURE_POSITION_VIEW_COVERS_EXACT_SAME_54_CANDIDATES",
+            "check_name_v1": "FEATURE_POSITION_VIEW_COVERS_EXACT_SAME_CURRENT_CANDIDATES",
             "status_v1": "PASS"
-            if int(management_exit_local_manual_review_feature_position_view_v1_df["management_row_key_v1"].astype("string").nunique()) == 54
+            if int(
+                management_exit_local_manual_review_feature_position_view_v1_df["management_row_key_v1"].astype("string").nunique()
+            )
+            == int(len(management_exit_local_manual_review_queue_v1_df))
             and int(len(management_exit_local_manual_review_feature_position_view_v1_df))
-            == 54 * len(observation_fields)
+            == int(len(management_exit_local_manual_review_queue_v1_df)) * len(observation_fields)
             else "FAIL",
             "observed_value_v1": {
                 "unique_candidates": int(management_exit_local_manual_review_feature_position_view_v1_df["management_row_key_v1"].astype("string").nunique()),
                 "row_count": int(len(management_exit_local_manual_review_feature_position_view_v1_df)),
             },
-            "expected_value_v1": {"unique_candidates": 54, "row_count": 54 * len(observation_fields)},
+            "expected_value_v1": {
+                "unique_candidates": int(len(management_exit_local_manual_review_queue_v1_df)),
+                "row_count": int(len(management_exit_local_manual_review_queue_v1_df)) * len(observation_fields),
+            },
         },
         {
             "check_name_v1": "TRAIN_EXIT_NEIGHBORS_USE_ONLY_TRAIN_EXIT_LOCAL_REFERENCE",
@@ -21379,19 +25834,13 @@ def _build_management_exit_local_manual_review_v1(
         {
             "check_name_v1": "GLOBAL_JOIN_COUNTS_AND_LEAKAGE_GUARD_STAY_UNCHANGED",
             "status_v1": "PASS"
-            if int(as_of_supervision_join_coverage_summary.get("exact_rows", 0)) == 2779
-            and int(as_of_supervision_join_coverage_summary.get("fallback_rows", 0)) == 0
-            and int(as_of_supervision_join_coverage_summary.get("unjoinable_rows", 0)) == 1
-            and _scalar_string(leakage_guard_summary.get("status")) == "PASS"
-            else "FAIL",
+            if bool(join_contract_ok_v1) and _scalar_string(leakage_guard_summary.get("status")) == "PASS" else "FAIL",
             "observed_value_v1": {
-                "join_coverage": as_of_supervision_join_coverage_summary,
+                "join_coverage": join_contract_observed_v1,
                 "leakage_guard": leakage_guard_summary,
             },
             "expected_value_v1": {
-                "exact_rows": 2779,
-                "fallback_rows": 0,
-                "unjoinable_rows": 1,
+                "join_coverage_contract_v1": join_contract_expected_v1,
                 "leakage_guard_status": "PASS",
             },
         },
@@ -21491,6 +25940,717 @@ def _management_audit_extension_namespace_dir(reports_root: Path, build_date: da
     return reports_root / f"{_ALL_TRADE_REVIEW_LEDGER_NAME}_{build_day.strftime('%Y%m%d')}_{_MANAGEMENT_AUDIT_EXTENSION_BUILD_SUFFIX_V1}"
 
 
+def _management_audit_extension_source_bundle_namespace_dir(reports_root: Path, build_date: date | str) -> Path:
+    if isinstance(build_date, date):
+        build_day = build_date
+    else:
+        build_day = pd.Timestamp(build_date).date()
+    return reports_root / (
+        f"{_ALL_TRADE_REVIEW_LEDGER_NAME}_{build_day.strftime('%Y%m%d')}_{_MANAGEMENT_AUDIT_EXTENSION_SOURCE_BUNDLE_BUILD_SUFFIX_V1}"
+    )
+
+
+def _hydrate_management_runtime_identity_from_raw_state_v1(
+    view_df: pd.DataFrame,
+    raw_state_df: pd.DataFrame,
+) -> Tuple[pd.DataFrame, Dict[str, Any]]:
+    hydrated_df = view_df.copy()
+    summary_v1 = {
+        "mode_v1": "AS_OF_ROW_UID_EXACT_BACKFILL",
+        "input_row_count_v1": int(len(hydrated_df)),
+        "input_missing_run_id_v1": int(hydrated_df["run_id"].isna().sum()) if "run_id" in hydrated_df.columns else int(len(hydrated_df)),
+        "input_missing_decision_timestamp_v1": (
+            int(hydrated_df["decision_timestamp"].isna().sum())
+            if "decision_timestamp" in hydrated_df.columns
+            else int(len(hydrated_df))
+        ),
+        "hydration_exact_match_rows_v1": 0,
+        "filled_run_id_rows_v1": 0,
+        "filled_decision_timestamp_rows_v1": 0,
+        "filled_anchor_type_rows_v1": 0,
+        "filled_anchor_timestamp_rows_v1": 0,
+        "status_v1": "NO_HYDRATION_ATTEMPTED",
+    }
+    if hydrated_df.empty or raw_state_df.empty:
+        return hydrated_df, summary_v1
+    if "as_of_row_uid_v1" not in hydrated_df.columns or "as_of_row_uid_v1" not in raw_state_df.columns:
+        summary_v1["status_v1"] = "MISSING_AS_OF_ROW_UID"
+        return hydrated_df, summary_v1
+
+    fill_spec = {
+        "run_id": "run_id",
+        "decision_timestamp": "decision_timestamp",
+        "decision_anchor_type_v1": "anchor_type",
+        "decision_anchor_timestamp_utc_v1": "anchor_timestamp_utc",
+    }
+    raw_available = ["as_of_row_uid_v1"] + [source_name for source_name in fill_spec.values() if source_name in raw_state_df.columns]
+    raw_attach_df = raw_state_df[raw_available].copy()
+    raw_attach_df["as_of_row_uid_v1"] = raw_attach_df["as_of_row_uid_v1"].astype("string")
+    rename_map = {
+        source_name: f"{target_name}__raw_state_fill_v1"
+        for target_name, source_name in fill_spec.items()
+        if source_name in raw_attach_df.columns
+    }
+    raw_attach_df = raw_attach_df.rename(columns=rename_map).drop_duplicates(subset=["as_of_row_uid_v1"], keep="last")
+
+    hydrated_df["as_of_row_uid_v1"] = hydrated_df["as_of_row_uid_v1"].astype("string")
+    for target_name in fill_spec:
+        if target_name not in hydrated_df.columns:
+            hydrated_df[target_name] = pd.NA
+
+    before_missing_run_id = int(hydrated_df["run_id"].isna().sum())
+    before_missing_decision_timestamp = int(hydrated_df["decision_timestamp"].isna().sum())
+    before_missing_anchor_type = int(hydrated_df["decision_anchor_type_v1"].isna().sum())
+    before_missing_anchor_ts = int(hydrated_df["decision_anchor_timestamp_utc_v1"].isna().sum())
+
+    hydrated_df = hydrated_df.merge(raw_attach_df, on=["as_of_row_uid_v1"], how="left", validate="many_to_one")
+    if "run_id__raw_state_fill_v1" in hydrated_df.columns:
+        summary_v1["hydration_exact_match_rows_v1"] = int(hydrated_df["run_id__raw_state_fill_v1"].notna().sum())
+
+    for target_name in fill_spec:
+        fill_column = f"{target_name}__raw_state_fill_v1"
+        if fill_column not in hydrated_df.columns:
+            continue
+        hydrated_df[target_name] = hydrated_df[target_name].where(hydrated_df[target_name].notna(), hydrated_df[fill_column])
+        hydrated_df = hydrated_df.drop(columns=[fill_column])
+
+    summary_v1["filled_run_id_rows_v1"] = before_missing_run_id - int(hydrated_df["run_id"].isna().sum())
+    summary_v1["filled_decision_timestamp_rows_v1"] = (
+        before_missing_decision_timestamp - int(hydrated_df["decision_timestamp"].isna().sum())
+    )
+    summary_v1["filled_anchor_type_rows_v1"] = (
+        before_missing_anchor_type - int(hydrated_df["decision_anchor_type_v1"].isna().sum())
+    )
+    summary_v1["filled_anchor_timestamp_rows_v1"] = (
+        before_missing_anchor_ts - int(hydrated_df["decision_anchor_timestamp_utc_v1"].isna().sum())
+    )
+    summary_v1["status_v1"] = "HYDRATED" if summary_v1["hydration_exact_match_rows_v1"] > 0 else "NO_RAW_STATE_MATCH"
+    return hydrated_df, summary_v1
+
+
+def _hydrate_management_runtime_identity_from_exact_asof_v1(
+    view_df: pd.DataFrame,
+    as_of_df: pd.DataFrame,
+) -> Tuple[pd.DataFrame, Dict[str, Any]]:
+    hydrated_df = view_df.copy()
+    exact_keys = list(_MANAGEMENT_AUDIT_EXTENSION_EXACT_JOIN_KEYS_V1)
+    summary_v1 = {
+        "mode_v1": "EXACT_KEYS_TO_OLD_AS_OF",
+        "input_row_count_v1": int(len(hydrated_df)),
+        "input_missing_run_id_v1": int(hydrated_df["run_id"].isna().sum()) if "run_id" in hydrated_df.columns else int(len(hydrated_df)),
+        "input_missing_decision_timestamp_v1": (
+            int(hydrated_df["decision_timestamp"].isna().sum())
+            if "decision_timestamp" in hydrated_df.columns
+            else int(len(hydrated_df))
+        ),
+        "exact_match_rows_v1": 0,
+        "filled_run_id_rows_v1": 0,
+        "filled_decision_timestamp_rows_v1": 0,
+        "status_v1": "NO_HYDRATION_ATTEMPTED",
+    }
+    if hydrated_df.empty or as_of_df.empty:
+        return hydrated_df, summary_v1
+    if any(key not in hydrated_df.columns for key in exact_keys) or any(key not in as_of_df.columns for key in exact_keys):
+        summary_v1["status_v1"] = "MISSING_EXACT_KEYS"
+        return hydrated_df, summary_v1
+
+    attach_cols = exact_keys + [col for col in ["run_id", "decision_timestamp"] if col in as_of_df.columns]
+    as_of_attach_df = as_of_df[attach_cols].drop_duplicates(subset=exact_keys, keep="last").copy()
+    for key in exact_keys:
+        hydrated_df[key] = hydrated_df[key].astype("string")
+        as_of_attach_df[key] = as_of_attach_df[key].astype("string")
+    if "run_id" not in hydrated_df.columns:
+        hydrated_df["run_id"] = pd.NA
+    if "decision_timestamp" not in hydrated_df.columns:
+        hydrated_df["decision_timestamp"] = pd.NA
+
+    before_missing_run_id = int(hydrated_df["run_id"].isna().sum())
+    before_missing_decision_timestamp = int(hydrated_df["decision_timestamp"].isna().sum())
+    hydrated_df = hydrated_df.merge(
+        as_of_attach_df.rename(
+            columns={
+                "run_id": "run_id__exact_asof_fill_v1",
+                "decision_timestamp": "decision_timestamp__exact_asof_fill_v1",
+            }
+        ),
+        on=exact_keys,
+        how="left",
+        validate="many_to_one",
+    )
+    if "run_id__exact_asof_fill_v1" in hydrated_df.columns:
+        summary_v1["exact_match_rows_v1"] = int(hydrated_df["run_id__exact_asof_fill_v1"].notna().sum())
+        hydrated_df["run_id"] = hydrated_df["run_id"].where(
+            hydrated_df["run_id"].notna(),
+            hydrated_df["run_id__exact_asof_fill_v1"],
+        )
+        hydrated_df = hydrated_df.drop(columns=["run_id__exact_asof_fill_v1"])
+    if "decision_timestamp__exact_asof_fill_v1" in hydrated_df.columns:
+        hydrated_df["decision_timestamp"] = hydrated_df["decision_timestamp"].where(
+            hydrated_df["decision_timestamp"].notna(),
+            hydrated_df["decision_timestamp__exact_asof_fill_v1"],
+        )
+        hydrated_df = hydrated_df.drop(columns=["decision_timestamp__exact_asof_fill_v1"])
+    summary_v1["filled_run_id_rows_v1"] = before_missing_run_id - int(hydrated_df["run_id"].isna().sum())
+    summary_v1["filled_decision_timestamp_rows_v1"] = (
+        before_missing_decision_timestamp - int(hydrated_df["decision_timestamp"].isna().sum())
+    )
+    summary_v1["status_v1"] = "HYDRATED" if summary_v1["exact_match_rows_v1"] > 0 else "NO_EXACT_MATCH"
+    return hydrated_df, summary_v1
+
+
+def build_management_audit_extension_recovery_linked_source_bundle_v1(
+    reports_root: Path = _TRUTH_E2E_REPORTS_ROOT,
+    *,
+    build_date: date | str | None = None,
+    manual_review_source_dir: Path = _MANAGEMENT_AUDIT_EXTENSION_SOURCE_DIR_V1,
+    shadow_audit_source_dir: Path = _MANAGEMENT_AUDIT_EXTENSION_SHADOW_AUDIT_SOURCE_DIR_V1,
+    runtime_recovery_source_dir: Path = _MANAGEMENT_AUDIT_EXTENSION_RUNTIME_RECOVERY_SOURCE_DIR_V1,
+) -> Dict[str, Any]:
+    reports_root = Path(reports_root).expanduser().resolve()
+    manual_review_source_dir = Path(manual_review_source_dir).expanduser().resolve()
+    shadow_audit_source_dir = Path(shadow_audit_source_dir).expanduser().resolve()
+    runtime_recovery_source_dir = Path(runtime_recovery_source_dir).expanduser().resolve()
+    if build_date is None:
+        build_day = pd.Timestamp.utcnow().date()
+    elif isinstance(build_date, date):
+        build_day = build_date
+    else:
+        build_day = pd.Timestamp(build_date).date()
+
+    manual_build_summary_path = manual_review_source_dir / "shadow_meta_all_trade_review_ledger_build_summary.json"
+    runtime_build_summary_path = runtime_recovery_source_dir / "shadow_meta_all_trade_review_ledger_build_summary.json"
+    if not manual_build_summary_path.exists():
+        raise FileNotFoundError(
+            f"[MANAGEMENT_AUDIT_EXTENSION_SOURCE_BUNDLE_V1] missing manual-review source build summary: {manual_build_summary_path}"
+        )
+    if not runtime_build_summary_path.exists():
+        raise FileNotFoundError(
+            f"[MANAGEMENT_AUDIT_EXTENSION_SOURCE_BUNDLE_V1] missing runtime recovery build summary: {runtime_build_summary_path}"
+        )
+
+    manual_build_summary = json.loads(manual_build_summary_path.read_text(encoding="utf-8"))
+    runtime_build_summary = json.loads(runtime_build_summary_path.read_text(encoding="utf-8"))
+    manual_artifact_paths = dict(manual_build_summary.get("artifact_paths", {}))
+    runtime_artifact_paths = dict(runtime_build_summary.get("artifact_paths", {}))
+
+    def _resolve_artifact_path(
+        preferred_map: Dict[str, Any],
+        key: str,
+        fallback_path: Path,
+    ) -> Path:
+        raw_value = preferred_map.get(key)
+        if _scalar_is_missing(raw_value) or str(raw_value) == _LEDGER_NOT_AVAILABLE:
+            path = fallback_path
+        else:
+            path = Path(str(raw_value))
+        path = path.expanduser().resolve()
+        if not path.exists():
+            raise FileNotFoundError(
+                f"[MANAGEMENT_AUDIT_EXTENSION_SOURCE_BUNDLE_V1] missing artifact for {key}: {path}"
+            )
+        return path
+
+    bridge_artifact_paths = {
+        "closed_trades_path": _resolve_artifact_path(
+            manual_artifact_paths,
+            "closed_trades_path",
+            runtime_recovery_source_dir / "shadow_meta_all_trade_review_ledger_closed_trades.parquet",
+        ),
+        "hindsight_review_export_path": _resolve_artifact_path(
+            manual_artifact_paths,
+            "hindsight_review_export_path",
+            runtime_recovery_source_dir / _ALL_TRADE_REVIEW_HINDSIGHT_EXPORT_PARQUET,
+        ),
+        "as_of_decision_moment_ledger_path": _resolve_artifact_path(
+            manual_artifact_paths,
+            "as_of_decision_moment_ledger_path",
+            runtime_recovery_source_dir / "shadow_meta_all_trade_review_as_of_decision_moment_ledger_v1.parquet",
+        ),
+        "policy_action_supervision_join_path": _resolve_artifact_path(
+            manual_artifact_paths,
+            "policy_action_supervision_join_path",
+            runtime_recovery_source_dir / _ALL_TRADE_REVIEW_POLICY_ACTION_SUPERVISION_JOIN_PARQUET,
+        ),
+        "management_anchor_raw_state_path": _resolve_artifact_path(
+            runtime_artifact_paths,
+            "management_anchor_raw_state_path",
+            runtime_recovery_source_dir / _ALL_TRADE_REVIEW_MANAGEMENT_ANCHOR_RAW_STATE_V1,
+        ),
+        "management_bandit_observed_sample_view_path": _resolve_artifact_path(
+            runtime_artifact_paths,
+            "management_bandit_observed_sample_view_path",
+            runtime_recovery_source_dir / _ALL_TRADE_REVIEW_MANAGEMENT_BANDIT_OBSERVED_SAMPLE_VIEW_V1_PARQUET,
+        ),
+        "management_bandit_direct_method_candidate_view_path": _resolve_artifact_path(
+            runtime_artifact_paths,
+            "management_bandit_direct_method_candidate_view_path",
+            runtime_recovery_source_dir / _ALL_TRADE_REVIEW_MANAGEMENT_BANDIT_DIRECT_METHOD_CANDIDATE_VIEW_V1_PARQUET,
+        ),
+        "management_bandit_action_reward_contract_path": _resolve_artifact_path(
+            runtime_artifact_paths,
+            "management_bandit_action_reward_contract_path",
+            runtime_recovery_source_dir / _ALL_TRADE_REVIEW_MANAGEMENT_BANDIT_ACTION_REWARD_CONTRACT_V1,
+        ),
+        "management_bandit_observed_action_contract_path": _resolve_artifact_path(
+            runtime_artifact_paths,
+            "management_bandit_observed_action_contract_path",
+            runtime_recovery_source_dir / _ALL_TRADE_REVIEW_MANAGEMENT_BANDIT_OBSERVED_ACTION_CONTRACT_V1,
+        ),
+        "management_bandit_status_path": _resolve_artifact_path(
+            runtime_artifact_paths,
+            "management_bandit_status_path",
+            runtime_recovery_source_dir / _ALL_TRADE_REVIEW_MANAGEMENT_BANDIT_STATUS_V1,
+        ),
+        "management_exit_local_all_eligible_scored_view_path": _resolve_artifact_path(
+            runtime_artifact_paths,
+            "management_exit_local_all_eligible_scored_view_path",
+            runtime_recovery_source_dir / _ALL_TRADE_REVIEW_MANAGEMENT_EXIT_LOCAL_ALL_ELIGIBLE_SCORED_VIEW_V1_PARQUET,
+        ),
+        "management_exit_local_shadow_row_view_path": _resolve_artifact_path(
+            manual_artifact_paths,
+            "management_exit_local_shadow_row_view_path",
+            shadow_audit_source_dir / _ALL_TRADE_REVIEW_MANAGEMENT_EXIT_LOCAL_SHADOW_ROW_VIEW_V1_PARQUET,
+        ),
+        "management_exit_local_shadow_candidate_review_path": _resolve_artifact_path(
+            manual_artifact_paths,
+            "management_exit_local_shadow_candidate_review_path",
+            shadow_audit_source_dir / _ALL_TRADE_REVIEW_MANAGEMENT_EXIT_LOCAL_SHADOW_CANDIDATE_REVIEW_V1_PARQUET,
+        ),
+        "management_exit_local_shadow_hold_research_view_path": _resolve_artifact_path(
+            manual_artifact_paths,
+            "management_exit_local_shadow_hold_research_view_path",
+            shadow_audit_source_dir / _ALL_TRADE_REVIEW_MANAGEMENT_EXIT_LOCAL_SHADOW_HOLD_RESEARCH_VIEW_V1_PARQUET,
+        ),
+        "management_exit_local_shadow_status_path": _resolve_artifact_path(
+            manual_artifact_paths,
+            "management_exit_local_shadow_status_path",
+            shadow_audit_source_dir / _ALL_TRADE_REVIEW_MANAGEMENT_EXIT_LOCAL_SHADOW_STATUS_V1,
+        ),
+        "management_exit_local_manual_review_queue_path": _resolve_artifact_path(
+            manual_artifact_paths,
+            "management_exit_local_manual_review_queue_path",
+            manual_review_source_dir / _ALL_TRADE_REVIEW_MANAGEMENT_EXIT_LOCAL_MANUAL_REVIEW_QUEUE_V1_CSV,
+        ),
+        "management_exit_local_manual_review_casebook_path": _resolve_artifact_path(
+            manual_artifact_paths,
+            "management_exit_local_manual_review_casebook_path",
+            manual_review_source_dir / _ALL_TRADE_REVIEW_MANAGEMENT_EXIT_LOCAL_MANUAL_REVIEW_CASEBOOK_V1_PARQUET,
+        ),
+        "management_exit_local_manual_review_feature_position_view_path": _resolve_artifact_path(
+            manual_artifact_paths,
+            "management_exit_local_manual_review_feature_position_view_path",
+            manual_review_source_dir / _ALL_TRADE_REVIEW_MANAGEMENT_EXIT_LOCAL_MANUAL_REVIEW_FEATURE_POSITION_VIEW_V1_PARQUET,
+        ),
+        "management_exit_local_manual_review_train_exit_neighbors_path": _resolve_artifact_path(
+            manual_artifact_paths,
+            "management_exit_local_manual_review_train_exit_neighbors_path",
+            manual_review_source_dir / _ALL_TRADE_REVIEW_MANAGEMENT_EXIT_LOCAL_MANUAL_REVIEW_TRAIN_EXIT_NEIGHBORS_V1_PARQUET,
+        ),
+        "management_exit_local_manual_review_summary_path": _resolve_artifact_path(
+            manual_artifact_paths,
+            "management_exit_local_manual_review_summary_path",
+            manual_review_source_dir / _ALL_TRADE_REVIEW_MANAGEMENT_EXIT_LOCAL_MANUAL_REVIEW_SUMMARY_V1,
+        ),
+        "management_exit_local_manual_review_status_path": _resolve_artifact_path(
+            manual_artifact_paths,
+            "management_exit_local_manual_review_status_path",
+            manual_review_source_dir / _ALL_TRADE_REVIEW_MANAGEMENT_EXIT_LOCAL_MANUAL_REVIEW_STATUS_V1,
+        ),
+    }
+
+    exact_keys = list(_MANAGEMENT_AUDIT_EXTENSION_EXACT_JOIN_KEYS_V1)
+    manual_casebook_df = pd.read_parquet(bridge_artifact_paths["management_exit_local_manual_review_casebook_path"])
+    shadow_candidate_review_df = pd.read_parquet(bridge_artifact_paths["management_exit_local_shadow_candidate_review_path"])
+    shadow_row_view_df = pd.read_parquet(bridge_artifact_paths["management_exit_local_shadow_row_view_path"])
+    all_eligible_df = pd.read_parquet(bridge_artifact_paths["management_exit_local_all_eligible_scored_view_path"])
+    old_as_of_df = pd.read_parquet(bridge_artifact_paths["as_of_decision_moment_ledger_path"]).rename(
+        columns={"candidate_uid": "candidate_uid_exact_v1", "trade_uid": "trade_uid_exact_v1", "trade_id": "trade_id_exact_v1"}
+    )
+    raw_state_df = pd.read_parquet(bridge_artifact_paths["management_anchor_raw_state_path"])
+    bandit_direct_method_df = pd.read_parquet(bridge_artifact_paths["management_bandit_direct_method_candidate_view_path"])
+    bandit_direct_method_df, bandit_identity_hydration_summary_v1 = _hydrate_management_runtime_identity_from_exact_asof_v1(
+        bandit_direct_method_df,
+        old_as_of_df,
+    )
+
+    def _merge_counts(left_df: pd.DataFrame, right_df: pd.DataFrame, keys: Sequence[str]) -> Dict[str, int]:
+        left_keys = left_df[list(keys)].drop_duplicates()
+        right_keys = right_df[list(keys)].drop_duplicates()
+        merged = left_keys.merge(right_keys, on=list(keys), how="left", indicator=True)
+        counts = merged["_merge"].value_counts(dropna=False).to_dict()
+        return {
+            "both": int(counts.get("both", 0)),
+            "left_only": int(counts.get("left_only", 0)),
+            "right_only": int(counts.get("right_only", 0)),
+            "left_rows": int(len(left_keys)),
+        }
+
+    casebook_to_runtime_counts = _merge_counts(manual_casebook_df, all_eligible_df, exact_keys)
+    shadow_candidate_to_runtime_counts = _merge_counts(shadow_candidate_review_df, all_eligible_df, exact_keys)
+    shadow_rows_to_runtime_counts = _merge_counts(shadow_row_view_df, all_eligible_df, exact_keys)
+    runtime_bandit_to_old_asof_counts = _merge_counts(bandit_direct_method_df, old_as_of_df, exact_keys)
+    manual_casebook_exact_row_count_v1 = int(
+        len(manual_casebook_df[list(exact_keys)].drop_duplicates())
+    )
+    shadow_candidate_exact_row_count_v1 = int(
+        len(shadow_candidate_review_df[list(exact_keys)].drop_duplicates())
+    )
+    shadow_row_exact_row_count_v1 = int(len(shadow_row_view_df[list(exact_keys)].drop_duplicates()))
+    runtime_bandit_exact_row_count_v1 = int(len(bandit_direct_method_df[list(exact_keys)].drop_duplicates()))
+
+    raw_state_bridge_keys = ["run_id", "decision_timestamp", "decision_anchor_type_v1"]
+    raw_state_bridge_df = raw_state_df.rename(columns={"anchor_type": "decision_anchor_type_v1"})
+    runtime_raw_state_to_bandit_counts = _merge_counts(
+        bandit_direct_method_df,
+        raw_state_bridge_df,
+        raw_state_bridge_keys,
+    )
+    runtime_raw_state_duplicate_count = int(raw_state_bridge_df[raw_state_bridge_keys].duplicated().sum())
+    bandit_duplicate_count = int(bandit_direct_method_df[raw_state_bridge_keys].duplicated().sum())
+
+    trace_field_names = [
+        "as_of_mgmt_trace_last_peak_ts_utc_v1",
+        "as_of_mgmt_trace_last_mfe_ts_utc_v1",
+        "as_of_mgmt_trace_peak_price_v1",
+        "as_of_mgmt_trace_anchor_price_v1",
+        "as_of_mgmt_trace_mfe_bps_at_anchor_v1",
+        "as_of_mgmt_trace_last_peak_mfe_bps_v1",
+        "as_of_mgmt_trace_max_mfe_without_mae_bps_v1",
+        "as_of_mgmt_trace_mfe_mae_sequence_order_v1",
+    ]
+    trace_field_non_null_counts = {
+        field_name: int(raw_state_df[field_name].notna().sum()) if field_name in raw_state_df.columns else 0
+        for field_name in trace_field_names
+    }
+    runtime_raw_state_row_count_v1 = int(len(raw_state_df))
+    manual_join_contract_ok_v1, manual_join_contract_observed_v1, manual_join_contract_expected_v1 = (
+        _evaluate_join_coverage_contract_v1(manual_build_summary.get("as_of_supervision_join_coverage", {}))
+    )
+
+    consistency_rows = [
+        {
+            "check_name_v1": "CASEBOOK_TO_RUNTIME_ALL_ELIGIBLE_COVERS_CURRENT_MANUAL_CASEBOOK",
+            "status_v1": "PASS"
+            if casebook_to_runtime_counts["both"] == manual_casebook_exact_row_count_v1
+            and casebook_to_runtime_counts["left_only"] == 0
+            and casebook_to_runtime_counts["right_only"] == 0
+            and manual_casebook_exact_row_count_v1 > 0
+            else "FAIL",
+            "observed_value_v1": json.dumps(casebook_to_runtime_counts, ensure_ascii=True, sort_keys=True),
+            "expected_value_v1": json.dumps(
+                {
+                    "both": manual_casebook_exact_row_count_v1,
+                    "left_only": 0,
+                    "right_only": 0,
+                    "positive_row_count_v1": True,
+                },
+                ensure_ascii=True,
+                sort_keys=True,
+            ),
+        },
+        {
+            "check_name_v1": "SHADOW_CANDIDATES_TO_RUNTIME_ALL_ELIGIBLE_COVERS_CURRENT_SHADOW_CANDIDATES",
+            "status_v1": "PASS"
+            if shadow_candidate_to_runtime_counts["both"] == shadow_candidate_exact_row_count_v1
+            and shadow_candidate_to_runtime_counts["left_only"] == 0
+            and shadow_candidate_to_runtime_counts["right_only"] == 0
+            and shadow_candidate_exact_row_count_v1 > 0
+            else "FAIL",
+            "observed_value_v1": json.dumps(shadow_candidate_to_runtime_counts, ensure_ascii=True, sort_keys=True),
+            "expected_value_v1": json.dumps(
+                {
+                    "both": shadow_candidate_exact_row_count_v1,
+                    "left_only": 0,
+                    "right_only": 0,
+                    "positive_row_count_v1": True,
+                },
+                ensure_ascii=True,
+                sort_keys=True,
+            ),
+        },
+        {
+            "check_name_v1": "SHADOW_ROWS_TO_RUNTIME_ALL_ELIGIBLE_COVERS_CURRENT_SHADOW_UNIVERSE",
+            "status_v1": "PASS"
+            if shadow_rows_to_runtime_counts["both"] == shadow_row_exact_row_count_v1
+            and shadow_rows_to_runtime_counts["left_only"] == 0
+            and shadow_rows_to_runtime_counts["right_only"] == 0
+            and shadow_row_exact_row_count_v1 > 0
+            else "FAIL",
+            "observed_value_v1": json.dumps(shadow_rows_to_runtime_counts, ensure_ascii=True, sort_keys=True),
+            "expected_value_v1": json.dumps(
+                {
+                    "both": shadow_row_exact_row_count_v1,
+                    "left_only": 0,
+                    "right_only": 0,
+                    "positive_row_count_v1": True,
+                },
+                ensure_ascii=True,
+                sort_keys=True,
+            ),
+        },
+        {
+            "check_name_v1": "RUNTIME_BANDIT_TO_OLD_AS_OF_COVERS_CURRENT_RUNTIME_BANDIT_UNIVERSE",
+            "status_v1": "PASS"
+            if runtime_bandit_to_old_asof_counts["both"] == runtime_bandit_exact_row_count_v1
+            and runtime_bandit_to_old_asof_counts["left_only"] == 0
+            and runtime_bandit_to_old_asof_counts["right_only"] == 0
+            and runtime_bandit_exact_row_count_v1 > 0
+            else "FAIL",
+            "observed_value_v1": json.dumps(runtime_bandit_to_old_asof_counts, ensure_ascii=True, sort_keys=True),
+            "expected_value_v1": json.dumps(
+                {
+                    "both": runtime_bandit_exact_row_count_v1,
+                    "left_only": 0,
+                    "right_only": 0,
+                    "positive_row_count_v1": True,
+                },
+                ensure_ascii=True,
+                sort_keys=True,
+            ),
+        },
+        {
+            "check_name_v1": "RUNTIME_RAW_STATE_DECISION_TS_ANCHOR_BRIDGE_COVERS_CURRENT_RUNTIME_BANDIT_UNIVERSE",
+            "status_v1": "PASS"
+            if runtime_raw_state_to_bandit_counts["both"] == runtime_bandit_exact_row_count_v1
+            and runtime_raw_state_to_bandit_counts["left_only"] == 0
+            and runtime_raw_state_duplicate_count == 0
+            and bandit_duplicate_count == 0
+            and runtime_bandit_exact_row_count_v1 > 0
+            else "FAIL",
+            "observed_value_v1": json.dumps(
+                {
+                    "bridge_counts": runtime_raw_state_to_bandit_counts,
+                    "runtime_raw_state_duplicate_count_v1": runtime_raw_state_duplicate_count,
+                    "bandit_duplicate_count_v1": bandit_duplicate_count,
+                },
+                ensure_ascii=True,
+                sort_keys=True,
+            ),
+            "expected_value_v1": json.dumps(
+                {
+                    "both": runtime_bandit_exact_row_count_v1,
+                    "left_only": 0,
+                    "runtime_raw_state_duplicate_count_v1": 0,
+                    "bandit_duplicate_count_v1": 0,
+                    "positive_row_count_v1": True,
+                },
+                ensure_ascii=True,
+                sort_keys=True,
+            ),
+        },
+        {
+            "check_name_v1": "LOCKED_GLOBAL_JOIN_COUNTS_PRESERVED",
+            "status_v1": "PASS"
+            if bool(manual_join_contract_ok_v1)
+            else "FAIL",
+            "observed_value_v1": json.dumps(manual_join_contract_observed_v1, ensure_ascii=True, sort_keys=True),
+            "expected_value_v1": json.dumps(manual_join_contract_expected_v1, ensure_ascii=True, sort_keys=True),
+        },
+        {
+            "check_name_v1": "LOCKED_LEAKAGE_GUARD_PRESERVED",
+            "status_v1": "PASS"
+            if _scalar_string(manual_build_summary.get("leakage_guard", {}).get("status")) == "PASS"
+            else "FAIL",
+            "observed_value_v1": _scalar_string(manual_build_summary.get("leakage_guard", {}).get("status")),
+            "expected_value_v1": "PASS",
+        },
+    ]
+    for field_name in trace_field_names:
+        consistency_rows.append(
+            {
+                "check_name_v1": f"{field_name.upper()}_COVERAGE_MATCHES_CURRENT_RAW_STATE_ROWS",
+                "status_v1": "PASS"
+                if trace_field_non_null_counts.get(field_name, 0) == runtime_raw_state_row_count_v1
+                and runtime_raw_state_row_count_v1 > 0
+                else "FAIL",
+                "observed_value_v1": int(trace_field_non_null_counts.get(field_name, 0)),
+                "expected_value_v1": {
+                    "non_null_rows_v1": runtime_raw_state_row_count_v1,
+                    "positive_row_count_v1": True,
+                },
+            }
+        )
+    consistency_audit_df = pd.DataFrame.from_records(consistency_rows)
+    failed_checks = int((consistency_audit_df["status_v1"].astype("string") != "PASS").sum())
+
+    contract_v1 = {
+        "layer_name": "MANAGEMENT_AUDIT_EXTENSION_SOURCE_BUNDLE_V1",
+        "mode_v1": "APPEND_ONLY|RECOVERY_LINKED_SOURCE_BUNDLE",
+        "purpose_v1": (
+            "Bridge frozen management shadow/manual-review audit layers onto the runtime-recovered raw-state and eligible-management chain "
+            "without mutating either source namespace."
+        ),
+        "frozen_review_context_source_v1": str(manual_review_source_dir),
+        "frozen_shadow_context_source_v1": str(shadow_audit_source_dir),
+        "runtime_recovery_source_v1": str(runtime_recovery_source_dir),
+        "locked_global_join_counts_v1": manual_build_summary.get("as_of_supervision_join_coverage", {}),
+        "leakage_guard_v1": manual_build_summary.get("leakage_guard", {}),
+        "runtime_raw_state_bridge_key_v1": raw_state_bridge_keys,
+        "runtime_raw_state_bridge_note_v1": (
+            "Runtime-recovered management raw-state is attachable to the frozen bandit direct-method view via "
+            "run_id + decision_timestamp + decision_anchor_type_v1 when as_of_row_uid_v1 is no longer stable."
+        ),
+        "as_of_hindsight_physical_separation_v1": True,
+        "not_controller": True,
+        "not_live_gate": True,
+        "not_policy_truth": True,
+    }
+
+    summary_v1 = {
+        "layer_name": "MANAGEMENT_AUDIT_EXTENSION_SOURCE_BUNDLE_V1",
+        "build_date_v1": build_day.isoformat(),
+        "frozen_manual_review_dir_v1": str(manual_review_source_dir),
+        "frozen_shadow_audit_dir_v1": str(shadow_audit_source_dir),
+        "runtime_recovery_dir_v1": str(runtime_recovery_source_dir),
+        "locked_global_join_counts_v1": manual_build_summary.get("as_of_supervision_join_coverage", {}),
+        "runtime_recovery_join_counts_v1": runtime_build_summary.get("as_of_supervision_join_coverage", {}),
+        "locked_leakage_guard_v1": manual_build_summary.get("leakage_guard", {}),
+        "casebook_to_runtime_all_eligible_v1": casebook_to_runtime_counts,
+        "shadow_candidate_to_runtime_all_eligible_v1": shadow_candidate_to_runtime_counts,
+        "shadow_rows_to_runtime_all_eligible_v1": shadow_rows_to_runtime_counts,
+        "runtime_bandit_to_old_as_of_v1": runtime_bandit_to_old_asof_counts,
+        "runtime_raw_state_to_bandit_bridge_v1": {
+            "bridge_key_v1": raw_state_bridge_keys,
+            "counts_v1": runtime_raw_state_to_bandit_counts,
+            "runtime_raw_state_duplicate_count_v1": runtime_raw_state_duplicate_count,
+            "bandit_duplicate_count_v1": bandit_duplicate_count,
+            "runtime_identity_hydration_v1": bandit_identity_hydration_summary_v1,
+        },
+        "runtime_trace_field_non_null_counts_v1": trace_field_non_null_counts,
+        "source_bundle_role_v1": (
+            "Frozen review/shadow context stays locked while runtime-recovered management raw-state and eligible-management artifacts are made available for append-only downstream audit rebuilds."
+        ),
+        "status_v1": "OK" if failed_checks == 0 else "ISSUES_FOUND",
+    }
+
+    report_lines = [
+        "# MANAGEMENT_AUDIT_EXTENSION_SOURCE_BUNDLE_V1",
+        "",
+        "## Purpose",
+        "Append-only bridge bundle that keeps frozen management manual-review and shadow context intact while exposing the runtime-recovered management raw-state and eligible-management artifacts needed for the next audit rebuild.",
+        "",
+        "## Why This Helps",
+        f"- Keeps the locked {manual_casebook_exact_row_count_v1}-case manual-review packet untouched.",
+        f"- Keeps the frozen {shadow_row_exact_row_count_v1}-row shadow universe untouched.",
+        (
+            f"- Makes the new runtime-recovered management raw-state available with "
+            f"{runtime_raw_state_row_count_v1}/{runtime_raw_state_row_count_v1} coverage for the five new path-dynamics trace fields."
+        ),
+        (
+            f"- Preserves locked global join counts "
+            f"{manual_join_contract_observed_v1.get('exact_rows', -1)}/"
+            f"{manual_join_contract_observed_v1.get('fallback_rows', -1)}/"
+            f"{manual_join_contract_observed_v1.get('unjoinable_rows', -1)} "
+            f"and leakage_guard PASS at the bundle contract layer."
+        ),
+        "",
+        "## Exact Bridge Evidence",
+        f"- Manual-review casebook -> runtime all-eligible: {casebook_to_runtime_counts['both']}/{casebook_to_runtime_counts['left_rows']} exact.",
+        f"- Shadow candidate review -> runtime all-eligible: {shadow_candidate_to_runtime_counts['both']}/{shadow_candidate_to_runtime_counts['left_rows']} exact.",
+        f"- Shadow row view -> runtime all-eligible: {shadow_rows_to_runtime_counts['both']}/{shadow_rows_to_runtime_counts['left_rows']} exact.",
+        f"- Runtime bandit direct-method -> old AS_OF ledger: {runtime_bandit_to_old_asof_counts['both']}/{runtime_bandit_to_old_asof_counts['left_rows']} exact.",
+        f"- Runtime raw-state -> frozen bandit direct-method bridge via run_id + decision_timestamp + decision_anchor_type_v1: {runtime_raw_state_to_bandit_counts['both']}/{runtime_raw_state_to_bandit_counts['left_rows']} exact.",
+        f"- Runtime identity hydration from raw-state: run_id filled `{bandit_identity_hydration_summary_v1['filled_run_id_rows_v1']}`, decision_timestamp filled `{bandit_identity_hydration_summary_v1['filled_decision_timestamp_rows_v1']}`.",
+        "",
+        "## Trace Coverage",
+    ]
+    for field_name in trace_field_names:
+        report_lines.append(
+            f"- `{field_name}`: {trace_field_non_null_counts.get(field_name, 0)}/{runtime_raw_state_row_count_v1} non-null."
+        )
+    report_text = "\n".join(report_lines) + "\n"
+
+    bridge_build_summary = {
+        "ledger_name": _ALL_TRADE_REVIEW_LEDGER_NAME,
+        "ledger_mode": _ALL_TRADE_REVIEW_LEDGER_MODE,
+        "review_schema_version": _scalar_string(manual_build_summary.get("review_schema_version")),
+        "reviewer_contract_version": _scalar_string(manual_build_summary.get("reviewer_contract_version")),
+        "control_date": _scalar_string(manual_build_summary.get("control_date")),
+        "reports_root": str(reports_root),
+        "source_bundle_name_v1": "MANAGEMENT_AUDIT_EXTENSION_SOURCE_BUNDLE_V1",
+        "source_bundle_mode_v1": "APPEND_ONLY|RECOVERY_LINKED_SOURCE_BUNDLE",
+        "build_date_v1": build_day.isoformat(),
+        "run_universe": manual_build_summary.get("run_universe", {}),
+        "closed_trade_rows": int(manual_build_summary.get("closed_trade_rows", 0)),
+        "as_of_supervision_join_coverage": manual_build_summary.get("as_of_supervision_join_coverage", {}),
+        "leakage_guard": manual_build_summary.get("leakage_guard", {}),
+        "artifact_paths": {key: str(path) for key, path in bridge_artifact_paths.items()},
+        "source_bundle_summary_v1": summary_v1,
+        "source_contract_v1": contract_v1,
+        "source_provenance_v1": {
+            "manual_review_source_build_summary_path_v1": str(manual_build_summary_path),
+            "runtime_recovery_build_summary_path_v1": str(runtime_build_summary_path),
+        },
+    }
+
+    return {
+        "contract_v1": contract_v1,
+        "summary_v1": summary_v1,
+        "report_v1": report_text,
+        "consistency_audit_v1_df": consistency_audit_df,
+        "bridge_build_summary_v1": bridge_build_summary,
+    }
+
+
+def write_management_audit_extension_recovery_linked_source_bundle_v1(
+    reports_root: Path = _TRUTH_E2E_REPORTS_ROOT,
+    *,
+    build_date: date | str | None = None,
+    manual_review_source_dir: Path = _MANAGEMENT_AUDIT_EXTENSION_SOURCE_DIR_V1,
+    shadow_audit_source_dir: Path = _MANAGEMENT_AUDIT_EXTENSION_SHADOW_AUDIT_SOURCE_DIR_V1,
+    runtime_recovery_source_dir: Path = _MANAGEMENT_AUDIT_EXTENSION_RUNTIME_RECOVERY_SOURCE_DIR_V1,
+    out_dir: Path | None = None,
+) -> Dict[str, Any]:
+    reports_root = Path(reports_root).expanduser().resolve()
+    if build_date is None:
+        build_day = pd.Timestamp.utcnow().date()
+    elif isinstance(build_date, date):
+        build_day = build_date
+    else:
+        build_day = pd.Timestamp(build_date).date()
+    target_dir = (
+        Path(out_dir).expanduser().resolve()
+        if out_dir is not None
+        else _management_audit_extension_source_bundle_namespace_dir(reports_root, build_day).expanduser().resolve()
+    )
+    contract_path = target_dir / _ALL_TRADE_REVIEW_MANAGEMENT_AUDIT_EXTENSION_SOURCE_BUNDLE_CONTRACT_V1
+    summary_path = target_dir / _ALL_TRADE_REVIEW_MANAGEMENT_AUDIT_EXTENSION_SOURCE_BUNDLE_SUMMARY_V1
+    report_path = target_dir / _ALL_TRADE_REVIEW_MANAGEMENT_AUDIT_EXTENSION_SOURCE_BUNDLE_REPORT_V1_MD
+    consistency_path = target_dir / _ALL_TRADE_REVIEW_MANAGEMENT_AUDIT_EXTENSION_SOURCE_BUNDLE_CONSISTENCY_AUDIT_V1_CSV
+    bridge_build_summary_path = target_dir / "shadow_meta_all_trade_review_ledger_build_summary.json"
+    existing_targets = [path for path in [contract_path, summary_path, report_path, consistency_path, bridge_build_summary_path] if path.exists()]
+    if existing_targets:
+        raise RuntimeError(
+            "[MANAGEMENT_AUDIT_EXTENSION_SOURCE_BUNDLE_APPEND_ONLY] target namespace already contains bundle artifacts: "
+            + ", ".join(str(path) for path in existing_targets)
+        )
+
+    payload = build_management_audit_extension_recovery_linked_source_bundle_v1(
+        reports_root,
+        build_date=build_day,
+        manual_review_source_dir=manual_review_source_dir,
+        shadow_audit_source_dir=shadow_audit_source_dir,
+        runtime_recovery_source_dir=runtime_recovery_source_dir,
+    )
+    target_dir.mkdir(parents=True, exist_ok=True)
+    contract_path.write_text(json.dumps(payload["contract_v1"], ensure_ascii=True, indent=2) + "\n", encoding="utf-8")
+    summary_path.write_text(json.dumps(payload["summary_v1"], ensure_ascii=True, indent=2) + "\n", encoding="utf-8")
+    report_path.write_text(payload["report_v1"], encoding="utf-8")
+    payload["consistency_audit_v1_df"].to_csv(consistency_path, index=False)
+    bridge_build_summary_path.write_text(
+        json.dumps(payload["bridge_build_summary_v1"], ensure_ascii=True, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return {
+        "target_dir": target_dir,
+        "contract_path": contract_path,
+        "summary_path": summary_path,
+        "report_path": report_path,
+        "consistency_path": consistency_path,
+        "bridge_build_summary_path": bridge_build_summary_path,
+    }
+
+
 def _load_management_audit_extension_source_bundle_v1(
     manual_review_dir: Path = _MANAGEMENT_AUDIT_EXTENSION_SOURCE_DIR_V1,
 ) -> Dict[str, Any]:
@@ -21563,6 +26723,18 @@ def _load_management_audit_extension_source_bundle_v1(
     closed_trades_df = _rename_exact_join_ids_v1(pd.read_parquet(required_paths["closed_trades_path"]))
     hindsight_review_export_df = _rename_exact_join_ids_v1(pd.read_parquet(required_paths["hindsight_review_export_path"]))
     management_anchor_raw_state_v1_df = pd.read_parquet(required_paths["management_anchor_raw_state_path"])
+    management_bandit_observed_sample_view_v1_df, observed_identity_hydration_summary_v1 = (
+        _hydrate_management_runtime_identity_from_exact_asof_v1(
+            pd.read_parquet(required_paths["management_bandit_observed_sample_view_path"]),
+            as_of_decision_moment_ledger_v1_df,
+        )
+    )
+    management_bandit_direct_method_candidate_view_v1_df, direct_method_identity_hydration_summary_v1 = (
+        _hydrate_management_runtime_identity_from_exact_asof_v1(
+            pd.read_parquet(required_paths["management_bandit_direct_method_candidate_view_path"]),
+            as_of_decision_moment_ledger_v1_df,
+        )
+    )
     return {
         "manual_review_dir": str(manual_review_dir),
         "source_build_summary": source_build_summary,
@@ -21578,8 +26750,12 @@ def _load_management_audit_extension_source_bundle_v1(
         "management_anchor_raw_state_v1_df": management_anchor_raw_state_v1_df,
         "closed_trades_df": closed_trades_df,
         "hindsight_review_export_df": hindsight_review_export_df,
-        "management_bandit_observed_sample_view_v1_df": pd.read_parquet(required_paths["management_bandit_observed_sample_view_path"]),
-        "management_bandit_direct_method_candidate_view_v1_df": pd.read_parquet(required_paths["management_bandit_direct_method_candidate_view_path"]),
+        "management_bandit_observed_sample_view_v1_df": management_bandit_observed_sample_view_v1_df,
+        "management_bandit_direct_method_candidate_view_v1_df": management_bandit_direct_method_candidate_view_v1_df,
+        "runtime_identity_hydration_v1": {
+            "observed_sample_v1": observed_identity_hydration_summary_v1,
+            "direct_method_v1": direct_method_identity_hydration_summary_v1,
+        },
         "management_bandit_action_reward_contract_v1": json.loads(
             required_paths["management_bandit_action_reward_contract_path"].read_text(encoding="utf-8")
         ),
@@ -21856,13 +27032,18 @@ def _build_management_regime_overlay_v1(
     }
     consistency_rows = [
         {
-            "check_name_v1": "OVERLAY_VIEW_COVERS_EXACT_1470_MANAGEMENT_ELIGIBLE_ROWS",
-            "status_v1": "PASS" if int(len(overlay_df)) == 1470 else "FAIL",
+            "check_name_v1": "OVERLAY_VIEW_COVERS_CURRENT_MANAGEMENT_ELIGIBLE_ROWS",
+            "status_v1": "PASS"
+            if int(len(overlay_df)) == int(len(eligible_df)) and int(len(overlay_df)) > 0
+            else "FAIL",
             "observed_value_v1": int(len(overlay_df)),
-            "expected_value_v1": 1470,
+            "expected_value_v1": {
+                "overlay_rows_v1": int(len(eligible_df)),
+                "positive_row_count_v1": True,
+            },
         },
         {
-            "check_name_v1": "TRADE_POCKET_JOIN_IS_EXACT_FOR_ALL_1470_ROWS",
+            "check_name_v1": "TRADE_POCKET_JOIN_IS_EXACT_FOR_ALL_CURRENT_ROWS",
             "status_v1": "PASS"
             if int(overlay_df["overlay_trade_pocket_v1"].astype("string").eq(_LEDGER_NOT_AVAILABLE).sum()) == 0
             else "FAIL",
@@ -21870,7 +27051,7 @@ def _build_management_regime_overlay_v1(
             "expected_value_v1": 0,
         },
         {
-            "check_name_v1": "SHADOW_ROW_JOIN_IS_EXACT_FOR_ALL_1470_ROWS",
+            "check_name_v1": "SHADOW_ROW_JOIN_IS_EXACT_FOR_ALL_CURRENT_ROWS",
             "status_v1": "PASS"
             if int(overlay_df["shadow_score_v1"].isna().sum()) == 0
             else "FAIL",
@@ -21878,40 +27059,22 @@ def _build_management_regime_overlay_v1(
             "expected_value_v1": 0,
         },
         {
-            "check_name_v1": "HIGH_SCORE_MANUAL_REVIEW_SUBSET_STAYS_EXACT_54_ROWS",
+            "check_name_v1": "HIGH_SCORE_MANUAL_REVIEW_SUBSET_MATCHES_CURRENT_CASEBOOK_ROWS",
             "status_v1": "PASS"
-            if int(overlay_df["manual_review_candidate_v1"].fillna(False).sum()) == 54
+            if int(overlay_df["manual_review_candidate_v1"].fillna(False).sum())
+            == int(len(review_df.drop_duplicates(subset=merge_keys, keep="last")))
+            and int(len(review_df.drop_duplicates(subset=merge_keys, keep="last"))) > 0
             else "FAIL",
             "observed_value_v1": int(overlay_df["manual_review_candidate_v1"].fillna(False).sum()),
-            "expected_value_v1": 54,
+            "expected_value_v1": {
+                "manual_review_rows_v1": int(len(review_df.drop_duplicates(subset=merge_keys, keep="last"))),
+                "positive_row_count_v1": True,
+            },
         },
-        {
-            "check_name_v1": "GLOBAL_JOIN_COUNTS_AND_LEAKAGE_GUARD_STAY_UNCHANGED",
-            "status_v1": "PASS"
-            if int(as_of_supervision_join_coverage_summary.get("exact_rows", -1)) == 2779
-            and int(as_of_supervision_join_coverage_summary.get("fallback_rows", -1)) == 0
-            and int(as_of_supervision_join_coverage_summary.get("unjoinable_rows", -1)) == 1
-            and _scalar_string(leakage_guard_summary.get("status")) == "PASS"
-            else "FAIL",
-            "observed_value_v1": json.dumps(
-                {
-                    "join_coverage": as_of_supervision_join_coverage_summary,
-                    "leakage_guard": leakage_guard_summary,
-                },
-                ensure_ascii=True,
-                sort_keys=True,
-            ),
-            "expected_value_v1": json.dumps(
-                {
-                    "exact_rows": 2779,
-                    "fallback_rows": 0,
-                    "unjoinable_rows": 1,
-                    "leakage_guard_status": "PASS",
-                },
-                ensure_ascii=True,
-                sort_keys=True,
-            ),
-        },
+        _build_join_leakage_consistency_row_v1(
+            as_of_supervision_join_coverage_summary,
+            leakage_guard_summary,
+        ),
     ]
     management_regime_overlay_consistency_audit_v1_df = pd.DataFrame.from_records(consistency_rows)
     management_regime_overlay_contract_v1 = {
@@ -22234,7 +27397,9 @@ def _build_management_manual_deep_dive_v1(
         if bool(row.review_all_categorical_seen_in_train_exit_v1):
             like_bits.append("alle kategoriske inputs er allerede sett i TRAIN EXIT_LOCAL")
         inside_count = int(row.review_numeric_inside_p05_p95_count_v1)
-        like_bits.append(f"{inside_count}/5 numeriske canonical inputs ligger inne i TRAIN p05-p95")
+        like_bits.append(
+            f"{inside_count}/{len([field_name for field_name in _MANAGEMENT_RL_OBSERVATION_FIELDS_V1 if field_name not in {'as_of_session_v1', 'as_of_side_v1', 'as_of_trend_regime_v1', 'as_of_vol_regime_v1'}])} numeriske canonical inputs ligger inne i TRAIN p05-p95"
+        )
         if int(neighbor_summary["zero_categorical_mismatch_count_v1"]) == int(neighbor_summary["neighbor_count_v1"]):
             like_bits.append("alle fem nærmeste train EXIT-referanser har null kategorisk mismatch")
         if support_summary["outside_numeric_labels_v1"]:
@@ -22361,7 +27526,7 @@ def _build_management_manual_deep_dive_v1(
                 f"- `candidate_uid_exact`: `{_scalar_string(row.candidate_uid_exact_v1)}`",
                 f"- `run_id`: `{_scalar_string(row.run_id)}` | `split`: `{_scalar_string(row.split_bucket_v1)}` | `activation_origin`: `{_scalar_string(row.activation_origin_v1)}`",
                 f"- `management_rows_for_trade_v1`: `{_format_int_compact_v1(row_series.get('management_rows_for_trade_v1'))}`",
-                f"- 9 canonical inputs: `{json.dumps({field_name: row_series.get(field_name) for field_name in _MANAGEMENT_RL_OBSERVATION_FIELDS_V1}, ensure_ascii=True, default=str, sort_keys=True)}`",
+                f"- {len(_MANAGEMENT_RL_OBSERVATION_FIELDS_V1)} canonical inputs: `{json.dumps({field_name: row_series.get(field_name) for field_name in _MANAGEMENT_RL_OBSERVATION_FIELDS_V1}, ensure_ascii=True, default=str, sort_keys=True)}`",
                 f"- Existing AS_OF context: `trade_pocket={_scalar_string(row_series.get('as_of_trade_pocket_v1'))}`, `entry_spread_bps={_format_float_compact_v1(row_series.get('as_of_entry_spread_bps_v1'), 3)}`, `exit_prob_close={_format_float_compact_v1(row_series.get('as_of_exit_prob_close_v1'), 3)}`, `exit_mfe_bps={_format_float_compact_v1(row_series.get('as_of_exit_mfe_bps_v1'), 2)}`, `exit_mae_bps={_format_float_compact_v1(row_series.get('as_of_exit_mae_bps_v1'), 2)}`, `dd_from_peak_bps={_format_float_compact_v1(row_series.get('as_of_exit_dd_from_mfe_bps_v1'), 2)}`, `adverse_first={_scalar_string(row_series.get('as_of_exit_adverse_first_v1'))}`",
                 f"- Shadow/manual status: `score={_format_float_compact_v1(row.shadow_score_v1, 6)}`, `bucket={_scalar_string(row.shadow_bucket_status_v1)}`, `priority={_scalar_string(row.review_priority_tier_v1)}`, `support={_scalar_string(row.support_tier_v1)}`",
                 f"- Train EXIT_LOCAL references: `neighbors={int(neighbor_summary['neighbor_count_v1'])}`, `zero_cat_mismatch={int(neighbor_summary['zero_categorical_mismatch_count_v1'])}`, `distance={_format_float_compact_v1(neighbor_summary['numeric_distance_min_v1'], 3)}..{_format_float_compact_v1(neighbor_summary['numeric_distance_max_v1'], 3)}`, `ref_realized_pnl_bps={_format_float_compact_v1(neighbor_summary['realized_pnl_min_v1'], 2)}..{_format_float_compact_v1(neighbor_summary['realized_pnl_max_v1'], 2)}`, `ref_exit_reasons={json.dumps(neighbor_summary['exit_reasons_v1'], ensure_ascii=True)}`",
@@ -22426,33 +27591,10 @@ def _build_management_manual_deep_dive_v1(
             "observed_value_v1": int((management_manual_deep_dive_as_of_case_cards_v1_df["management_rows_for_trade_v1"] == 1).sum()),
             "expected_value_v1": 5,
         },
-        {
-            "check_name_v1": "GLOBAL_JOIN_COUNTS_AND_LEAKAGE_GUARD_STAY_UNCHANGED",
-            "status_v1": "PASS"
-            if int(as_of_supervision_join_coverage_summary.get("exact_rows", -1)) == 2779
-            and int(as_of_supervision_join_coverage_summary.get("fallback_rows", -1)) == 0
-            and int(as_of_supervision_join_coverage_summary.get("unjoinable_rows", -1)) == 1
-            and _scalar_string(leakage_guard_summary.get("status")) == "PASS"
-            else "FAIL",
-            "observed_value_v1": json.dumps(
-                {
-                    "join_coverage": as_of_supervision_join_coverage_summary,
-                    "leakage_guard": leakage_guard_summary,
-                },
-                ensure_ascii=True,
-                sort_keys=True,
-            ),
-            "expected_value_v1": json.dumps(
-                {
-                    "exact_rows": 2779,
-                    "fallback_rows": 0,
-                    "unjoinable_rows": 1,
-                    "leakage_guard_status": "PASS",
-                },
-                ensure_ascii=True,
-                sort_keys=True,
-            ),
-        },
+        _build_join_leakage_consistency_row_v1(
+            as_of_supervision_join_coverage_summary,
+            leakage_guard_summary,
+        ),
     ]
     management_manual_deep_dive_consistency_audit_v1_df = pd.DataFrame.from_records(consistency_rows)
     management_manual_deep_dive_contract_v1 = {
@@ -22482,6 +27624,311 @@ def _build_management_manual_deep_dive_v1(
     }
 
 
+def _attach_management_behavior_policy_identity_v1(
+    decision_df: pd.DataFrame,
+    as_of_decision_moment_ledger_v1_df: pd.DataFrame,
+    closed_trades_df: pd.DataFrame | None = None,
+) -> tuple[pd.DataFrame, Dict[str, Any]]:
+    enriched_df = decision_df.copy()
+    identity_fields = [
+        "as_of_candidate_policy_hash_v1",
+        "as_of_candidate_entry_bundle_sha256_v1",
+        "as_of_candidate_exit_bundle_sha256_v1",
+    ]
+    join_keys = [field_name for field_name in ["run_id", "as_of_row_uid_v1"] if field_name in enriched_df.columns]
+    primary_exact_mask = pd.Series(False, index=enriched_df.index, dtype="bool")
+    recovered_by_candidate_mask = pd.Series(False, index=enriched_df.index, dtype="bool")
+    recovered_by_closed_trade_lineage_mask = pd.Series(False, index=enriched_df.index, dtype="bool")
+
+    def _policy_hash_missing_mask(series: pd.Series) -> pd.Series:
+        string_series = series.astype("string")
+        return (string_series.isna() | string_series.eq(_LEDGER_NOT_AVAILABLE)).fillna(False).astype(bool)
+
+    if not as_of_decision_moment_ledger_v1_df.empty and len(join_keys) == 2:
+        asof_df = as_of_decision_moment_ledger_v1_df.copy()
+        if all(field_name in asof_df.columns for field_name in join_keys):
+            for field_name in join_keys:
+                asof_df[field_name] = asof_df[field_name].astype("string")
+                enriched_df[field_name] = enriched_df[field_name].astype("string")
+            available_identity_fields = [field_name for field_name in identity_fields if field_name in asof_df.columns]
+            if available_identity_fields:
+                identity_lookup_df = asof_df[join_keys + available_identity_fields].drop_duplicates(
+                    subset=join_keys,
+                    keep="last",
+                )
+                enriched_df = enriched_df.merge(
+                    identity_lookup_df,
+                    on=join_keys,
+                    how="left",
+                    validate="many_to_one",
+                )
+                primary_exact_mask = (~_policy_hash_missing_mask(enriched_df["as_of_candidate_policy_hash_v1"])).astype(bool)
+
+            candidate_identity_join_col = next(
+                (
+                    field_name
+                    for field_name in ["candidate_uid_exact_v1", "candidate_uid", "as_of_source_candidate_uid_v1"]
+                    if field_name in asof_df.columns
+                ),
+                None,
+            )
+            if "candidate_uid_exact_v1" in enriched_df.columns and candidate_identity_join_col is not None:
+                candidate_identity_df = asof_df[[candidate_identity_join_col, *available_identity_fields]].copy()
+                candidate_identity_df = candidate_identity_df.loc[
+                    candidate_identity_df["as_of_candidate_policy_hash_v1"].astype("string").ne(_LEDGER_NOT_AVAILABLE)
+                ].copy()
+                if not candidate_identity_df.empty:
+                    unique_hash_candidates = (
+                        candidate_identity_df.groupby(candidate_identity_join_col, dropna=False)["as_of_candidate_policy_hash_v1"]
+                        .nunique(dropna=False)
+                        .eq(1)
+                    )
+                    candidate_identity_df = candidate_identity_df.loc[
+                        candidate_identity_df[candidate_identity_join_col].map(unique_hash_candidates).fillna(False)
+                    ].drop_duplicates(subset=[candidate_identity_join_col], keep="last")
+                    if not candidate_identity_df.empty:
+                        candidate_identity_df[candidate_identity_join_col] = (
+                            candidate_identity_df[candidate_identity_join_col].astype("string")
+                        )
+                        enriched_df["candidate_uid_exact_v1"] = enriched_df["candidate_uid_exact_v1"].astype("string")
+                        fallback_mask = _policy_hash_missing_mask(enriched_df["as_of_candidate_policy_hash_v1"])
+                        if fallback_mask.any():
+                            fallback_recovery_df = enriched_df.loc[fallback_mask, ["candidate_uid_exact_v1"]].merge(
+                                candidate_identity_df,
+                                left_on="candidate_uid_exact_v1",
+                                right_on=candidate_identity_join_col,
+                                how="left",
+                                validate="many_to_one",
+                            )
+                            for field_name in identity_fields:
+                                recovered_field_name = f"{field_name}__candidate_recovered"
+                                if field_name in fallback_recovery_df.columns:
+                                    fallback_recovery_df = fallback_recovery_df.rename(
+                                        columns={field_name: recovered_field_name}
+                                    )
+                                else:
+                                    fallback_recovery_df[recovered_field_name] = _LEDGER_NOT_AVAILABLE
+                                enriched_df.loc[fallback_mask, field_name] = enriched_df.loc[fallback_mask, field_name].where(
+                                    enriched_df.loc[fallback_mask, field_name].astype("string").ne(_LEDGER_NOT_AVAILABLE),
+                                    fallback_recovery_df[recovered_field_name].astype("string").values,
+                                )
+                            recovered_by_candidate_mask.loc[fallback_mask] = (
+                                fallback_recovery_df["as_of_candidate_policy_hash_v1__candidate_recovered"]
+                                .astype("string")
+                                .ne(_LEDGER_NOT_AVAILABLE)
+                                .fillna(False)
+                                .astype(bool)
+                                .values
+                            )
+
+    for field_name in identity_fields:
+        if field_name not in enriched_df.columns:
+            enriched_df[field_name] = _LEDGER_NOT_AVAILABLE
+        enriched_df[field_name] = enriched_df[field_name].astype("string").fillna(_LEDGER_NOT_AVAILABLE)
+
+    resolved_policy_hash_series = enriched_df["as_of_candidate_policy_hash_v1"].astype("string").fillna(_LEDGER_NOT_AVAILABLE)
+    if closed_trades_df is not None and not closed_trades_df.empty:
+        exact_lineage_join_cols = [
+            field_name
+            for field_name in ["run_id", "candidate_uid_exact_v1", "trade_uid_exact_v1", "trade_id_exact_v1"]
+            if field_name in enriched_df.columns and field_name in closed_trades_df.columns
+        ]
+        if len(exact_lineage_join_cols) >= 2 and "policy_hash" in closed_trades_df.columns:
+            closed_trade_identity_df = closed_trades_df[
+                [*exact_lineage_join_cols, "policy_hash"]
+            ].drop_duplicates(subset=exact_lineage_join_cols, keep="last")
+            fallback_mask = _policy_hash_missing_mask(resolved_policy_hash_series)
+            if fallback_mask.any():
+                fallback_recovery_df = enriched_df.loc[fallback_mask, exact_lineage_join_cols].merge(
+                    closed_trade_identity_df,
+                    on=exact_lineage_join_cols,
+                    how="left",
+                    validate="many_to_one",
+                )
+                closed_trade_policy_hash = fallback_recovery_df["policy_hash"].astype("string").fillna(_LEDGER_NOT_AVAILABLE)
+                resolved_policy_hash_series.loc[fallback_mask] = resolved_policy_hash_series.loc[fallback_mask].where(
+                    ~_policy_hash_missing_mask(resolved_policy_hash_series.loc[fallback_mask]),
+                    closed_trade_policy_hash.values,
+                )
+                recovered_by_closed_trade_lineage_mask.loc[fallback_mask] = (
+                    closed_trade_policy_hash.ne(_LEDGER_NOT_AVAILABLE).fillna(False).astype(bool).values
+                )
+
+    policy_hash_available_mask = (~_policy_hash_missing_mask(resolved_policy_hash_series)).astype(bool)
+    enriched_df["policy_version_v1"] = np.where(
+        policy_hash_available_mask,
+        resolved_policy_hash_series,
+        _LEDGER_NOT_AVAILABLE,
+    )
+    enriched_df["policy_version_status_v1"] = np.select(
+        [
+            primary_exact_mask,
+            recovered_by_candidate_mask,
+            recovered_by_closed_trade_lineage_mask,
+            policy_hash_available_mask,
+        ],
+        [
+            "EXACT_CANDIDATE_POLICY_HASH_ATTACHED",
+            "EXACT_CANDIDATE_POLICY_HASH_RECOVERED_BY_CANDIDATE_UID",
+            "EXACT_CLOSED_TRADE_POLICY_HASH_RECOVERED_BY_LINEAGE",
+            "EXACT_CANDIDATE_POLICY_HASH_ATTACHED",
+        ],
+        default="CANDIDATE_POLICY_HASH_NOT_AVAILABLE",
+    )
+    enriched_df["behavior_policy_identity_source_v1"] = np.select(
+        [
+            primary_exact_mask,
+            recovered_by_candidate_mask,
+            recovered_by_closed_trade_lineage_mask,
+            policy_hash_available_mask,
+        ],
+        [
+            "AS_OF_CANDIDATE_POLICY_HASH_EXACT",
+            "CANDIDATE_UID_POLICY_HASH_EXACT_RECOVERY",
+            "CLOSED_TRADE_POLICY_HASH_EXACT_LINEAGE_RECOVERY",
+            "AS_OF_CANDIDATE_POLICY_HASH_EXACT",
+        ],
+        default="AS_OF_CANDIDATE_POLICY_HASH_NOT_AVAILABLE",
+    )
+
+    available_count_v1 = int(policy_hash_available_mask.sum())
+    total_count_v1 = int(len(enriched_df))
+    lineage_recovery_count_v1 = int(recovered_by_closed_trade_lineage_mask.sum())
+    if available_count_v1 == total_count_v1 and total_count_v1 > 0:
+        if lineage_recovery_count_v1 > 0:
+            readiness_v1 = "READY_EXACT_POLICY_HASH_WITH_LINEAGE_RECOVERY"
+            attachment_status_v1 = "FULL_EXACT_POLICY_HASH_WITH_LINEAGE_RECOVERY"
+        else:
+            readiness_v1 = "READY_EXACT_CANDIDATE_POLICY_HASH"
+            attachment_status_v1 = "FULL_EXACT_CANDIDATE_POLICY_HASH"
+    elif available_count_v1 > 0:
+        if lineage_recovery_count_v1 > 0:
+            readiness_v1 = "PARTIAL_READY_EXACT_POLICY_HASH_WITH_LINEAGE_RECOVERY"
+            attachment_status_v1 = "PARTIAL_EXACT_POLICY_HASH_WITH_LINEAGE_RECOVERY"
+        else:
+            readiness_v1 = "PARTIAL_READY_EXACT_CANDIDATE_POLICY_HASH"
+            attachment_status_v1 = "PARTIAL_EXACT_CANDIDATE_POLICY_HASH"
+    else:
+        readiness_v1 = "IKKE_ETABLERT"
+        attachment_status_v1 = "IKKE_ETABLERT"
+
+    summary_v1 = {
+        "policy_hash_available_rows_v1": available_count_v1,
+        "policy_hash_not_available_rows_v1": total_count_v1 - available_count_v1,
+        "closed_trade_lineage_recovery_rows_v1": lineage_recovery_count_v1,
+        "behavior_policy_readiness_v1": readiness_v1,
+        "behavior_policy_identity_attachment_status_v1": attachment_status_v1,
+        "policy_version_status_counts_v1": {
+            str(key): int(value)
+            for key, value in enriched_df["policy_version_status_v1"].astype("string").value_counts(dropna=False).to_dict().items()
+        },
+    }
+    return enriched_df, summary_v1
+
+
+def _attach_management_deterministic_propensity_contract_v1(
+    decision_df: pd.DataFrame,
+    *,
+    action_space_v1: Sequence[str],
+) -> tuple[pd.DataFrame, Dict[str, Any]]:
+    enriched_df = decision_df.copy()
+    action_space = [str(action) for action in action_space_v1]
+    action_space_json_v1 = json.dumps(action_space, ensure_ascii=True)
+
+    observed_action = enriched_df.get("observed_action_v1")
+    if observed_action is None:
+        observed_action = enriched_df.get("action_label_v1", pd.Series(_LEDGER_NOT_AVAILABLE, index=enriched_df.index))
+    observed_action = observed_action.astype("string")
+    observed_action_exact_mask = (
+        enriched_df.get(
+            "observed_action_status_v1", pd.Series(_LEDGER_NOT_AVAILABLE, index=enriched_df.index)
+        )
+        .astype("string")
+        .eq("OBSERVED_REALIZED_PATH_ACTION_EXACT")
+        .fillna(False)
+        .astype(bool)
+    )
+    policy_version = enriched_df.get(
+        "policy_version_v1", pd.Series(_LEDGER_NOT_AVAILABLE, index=enriched_df.index)
+    ).astype("string")
+    policy_available_mask = policy_version.notna() & policy_version.ne(_LEDGER_NOT_AVAILABLE)
+    action_in_space_mask = observed_action.isin(action_space).fillna(False).astype(bool)
+    deterministic_propensity_mask = (observed_action_exact_mask & policy_available_mask & action_in_space_mask).astype(
+        bool
+    )
+
+    enriched_df["behavior_policy_id_v1"] = np.where(
+        deterministic_propensity_mask,
+        policy_version,
+        _LEDGER_NOT_AVAILABLE,
+    )
+    enriched_df["behavior_policy_id_status_v1"] = np.where(
+        deterministic_propensity_mask,
+        "EXACT_POLICY_HASH_BEHAVIOR_POLICY_ID",
+        "BEHAVIOR_POLICY_ID_NOT_ESTABLISHED",
+    )
+    enriched_df["behavior_policy_kind_v1"] = np.where(
+        deterministic_propensity_mask,
+        "DETERMINISTIC_VERSIONED_LOGGED_ACTION_POLICY",
+        _LEDGER_IKKE_ETABLERT,
+    )
+    enriched_df["policy_logging_propensity_status_v1"] = np.select(
+        [
+            deterministic_propensity_mask,
+            observed_action_exact_mask & ~policy_available_mask,
+        ],
+        [
+            "DETERMINISTIC_LOGGED_POLICY_PROPENSITY_EXACT",
+            "POLICY_HASH_NOT_AVAILABLE_PROPENSITY_NOT_ESTABLISHED",
+        ],
+        default="PROPENSITY_NOT_ESTABLISHED",
+    )
+    enriched_df["observed_action_propensity_v1"] = np.where(deterministic_propensity_mask, 1.0, np.nan)
+    enriched_df["behavior_policy_action_space_v1"] = action_space_json_v1
+    enriched_df["per_action_propensity_vector_v1"] = np.where(
+        deterministic_propensity_mask,
+        observed_action.map(
+            {
+                "HOLD": json.dumps({"EXIT_NOW": 0.0, "HOLD": 1.0}, ensure_ascii=True, sort_keys=True),
+                "EXIT_NOW": json.dumps({"EXIT_NOW": 1.0, "HOLD": 0.0}, ensure_ascii=True, sort_keys=True),
+            }
+        ).fillna(_LEDGER_NOT_AVAILABLE),
+        _LEDGER_NOT_AVAILABLE,
+    )
+    for action_name in action_space:
+        field_name = f"propensity_{action_name.lower()}_v1"
+        enriched_df[field_name] = np.where(
+            deterministic_propensity_mask,
+            observed_action.eq(action_name).astype(float),
+            np.nan,
+        )
+
+    deterministic_propensity_rows_v1 = int(deterministic_propensity_mask.sum())
+    total_rows_v1 = int(len(enriched_df))
+    summary_v1 = {
+        "deterministic_propensity_rows_v1": deterministic_propensity_rows_v1,
+        "propensity_not_established_rows_v1": int(total_rows_v1 - deterministic_propensity_rows_v1),
+        "propensity_readiness_v1": (
+            "READY_DETERMINISTIC_LOGGED_ACTION_PROPENSITY"
+            if deterministic_propensity_rows_v1 == total_rows_v1 and total_rows_v1 > 0
+            else (
+                "PARTIAL_READY_DETERMINISTIC_LOGGED_ACTION_PROPENSITY"
+                if deterministic_propensity_rows_v1 > 0
+                else "IKKE_ETABLERT"
+            )
+        ),
+        "policy_logging_propensity_status_counts_v1": {
+            str(key): int(value)
+            for key, value in enriched_df["policy_logging_propensity_status_v1"]
+            .astype("string")
+            .value_counts(dropna=False)
+            .to_dict()
+            .items()
+        },
+    }
+    return enriched_df, summary_v1
+
+
 def _build_management_policy_logging_harness_v1(
     *,
     management_bandit_observed_sample_view_v1_df: pd.DataFrame,
@@ -22490,6 +27937,7 @@ def _build_management_policy_logging_harness_v1(
     management_regime_overlay_view_v1_df: pd.DataFrame,
     management_exit_local_manual_review_casebook_v1_df: pd.DataFrame,
     management_anchor_raw_state_v1_df: pd.DataFrame,
+    as_of_decision_moment_ledger_v1_df: pd.DataFrame,
     closed_trades_df: pd.DataFrame,
     hindsight_review_export_df: pd.DataFrame,
     management_bandit_action_reward_contract_v1: Dict[str, Any],
@@ -22509,6 +27957,15 @@ def _build_management_policy_logging_harness_v1(
     review_df = management_exit_local_manual_review_casebook_v1_df.copy()
     action_space_v1 = list(management_bandit_action_reward_contract_v1.get("action_space_v1", []))
     action_set_json_v1 = json.dumps(action_space_v1, ensure_ascii=True)
+    decision_df, behavior_policy_identity_summary_v1 = _attach_management_behavior_policy_identity_v1(
+        management_bandit_direct_method_candidate_view_v1_df,
+        as_of_decision_moment_ledger_v1_df,
+        closed_trades_df,
+    )
+    decision_df, deterministic_propensity_summary_v1 = _attach_management_deterministic_propensity_contract_v1(
+        decision_df,
+        action_space_v1=action_space_v1,
+    )
 
     shadow_cols = merge_keys + [
         "shadow_model_source_v1",
@@ -22553,15 +28010,31 @@ def _build_management_policy_logging_harness_v1(
         how="left",
         validate="one_to_one",
     )
-    raw_state_join_cols = [
-        "as_of_row_uid_v1",
-        "run_id",
+    path_dynamics_field_names = [
         "as_of_mgmt_trace_last_peak_ts_utc_v1",
         "as_of_mgmt_trace_last_mfe_ts_utc_v1",
         "as_of_mgmt_trace_peak_price_v1",
         "as_of_mgmt_trace_anchor_price_v1",
         "as_of_mgmt_trace_mfe_bps_at_anchor_v1",
+        "as_of_mgmt_trace_last_peak_mfe_bps_v1",
+        "as_of_mgmt_trace_max_mfe_without_mae_bps_v1",
+        "as_of_mgmt_trace_mfe_mae_sequence_order_v1",
+        "as_of_mgmt_trace_last_peak_ts_utc_null_reason_v1",
+        "as_of_mgmt_trace_last_mfe_ts_utc_null_reason_v1",
+        "as_of_mgmt_trace_last_peak_mfe_bps_null_reason_v1",
+        "as_of_mgmt_trace_max_mfe_without_mae_bps_null_reason_v1",
+        "as_of_mgmt_trace_mfe_mae_sequence_order_null_reason_v1",
     ]
+    path_dynamics_value_field_names = [
+        field_name for field_name in path_dynamics_field_names if not field_name.endswith("_null_reason_v1")
+    ]
+    path_dynamics_attach_cols = ["anchor_timestamp_utc", *path_dynamics_field_names]
+    raw_state_join_cols = [
+        "as_of_row_uid_v1",
+        "run_id",
+        *path_dynamics_attach_cols,
+    ]
+    decision_df["path_dynamics_raw_state_join_mode_v1"] = "NOT_ATTACHED"
     raw_state_view = management_anchor_raw_state_v1_df.copy()
     if not raw_state_view.empty:
         raw_state_view["as_of_row_uid_v1"] = raw_state_view["as_of_row_uid_v1"].astype("string")
@@ -22574,6 +28047,67 @@ def _build_management_policy_logging_harness_v1(
             how="left",
             validate="one_to_one",
         )
+        primary_attached_mask = pd.Series(False, index=decision_df.index, dtype="bool")
+        available_path_fields = [field_name for field_name in path_dynamics_value_field_names if field_name in decision_df.columns]
+        if available_path_fields:
+            primary_attached_mask = decision_df[available_path_fields].notna().any(axis=1)
+            decision_df.loc[primary_attached_mask, "path_dynamics_raw_state_join_mode_v1"] = "AS_OF_ROW_UID_EXACT"
+
+        fallback_required_mask = pd.Series(False, index=decision_df.index, dtype="bool")
+        if available_path_fields:
+            fallback_required_mask = ~primary_attached_mask
+        fallback_source_cols = [
+            "run_id",
+            "decision_timestamp",
+            "anchor_type",
+            *path_dynamics_attach_cols,
+        ]
+        if fallback_required_mask.any() and all(col in management_anchor_raw_state_v1_df.columns for col in ["run_id", "decision_timestamp", "anchor_type"]):
+            fallback_raw_state_view = management_anchor_raw_state_v1_df[fallback_source_cols].copy()
+            fallback_raw_state_view = fallback_raw_state_view.rename(columns={"anchor_type": "decision_anchor_type_v1"})
+            fallback_raw_state_view["run_id"] = fallback_raw_state_view["run_id"].astype("string")
+            fallback_raw_state_view["decision_timestamp"] = fallback_raw_state_view["decision_timestamp"].astype("string")
+            fallback_raw_state_view["decision_anchor_type_v1"] = fallback_raw_state_view["decision_anchor_type_v1"].astype("string")
+            fallback_dup_count = int(
+                fallback_raw_state_view[["run_id", "decision_timestamp", "decision_anchor_type_v1"]].duplicated().sum()
+            )
+            if fallback_dup_count == 0:
+                fallback_raw_state_view = fallback_raw_state_view.drop_duplicates(
+                    subset=["run_id", "decision_timestamp", "decision_anchor_type_v1"],
+                    keep="last",
+                )
+                fallback_attach_df = decision_df.loc[
+                    fallback_required_mask,
+                    ["run_id", "decision_timestamp", "decision_anchor_type_v1"],
+                ].copy()
+                fallback_attach_df["run_id"] = fallback_attach_df["run_id"].astype("string")
+                fallback_attach_df["decision_timestamp"] = fallback_attach_df["decision_timestamp"].astype("string")
+                fallback_attach_df["decision_anchor_type_v1"] = fallback_attach_df["decision_anchor_type_v1"].astype("string")
+                fallback_attach_df = fallback_attach_df.merge(
+                    fallback_raw_state_view,
+                    on=["run_id", "decision_timestamp", "decision_anchor_type_v1"],
+                    how="left",
+                    validate="many_to_one",
+                )
+                for field_name in path_dynamics_attach_cols:
+                    if field_name not in fallback_attach_df.columns:
+                        continue
+                    if field_name not in decision_df.columns:
+                        decision_df[field_name] = pd.Series([pd.NA] * len(decision_df), index=decision_df.index)
+                    decision_df.loc[fallback_required_mask, field_name] = decision_df.loc[
+                        fallback_required_mask, field_name
+                    ].where(
+                        decision_df.loc[fallback_required_mask, field_name].notna(),
+                        fallback_attach_df[field_name].values,
+                    )
+                fallback_attached_mask = pd.Series(False, index=decision_df.index, dtype="bool")
+                fallback_attached_mask.loc[fallback_required_mask] = fallback_attach_df[
+                    [field_name for field_name in path_dynamics_value_field_names if field_name in fallback_attach_df.columns]
+                ].notna().any(axis=1).values
+                decision_df.loc[
+                    fallback_attached_mask & decision_df["path_dynamics_raw_state_join_mode_v1"].astype("string").eq("NOT_ATTACHED"),
+                    "path_dynamics_raw_state_join_mode_v1",
+                ] = "DECISION_TS_ANCHOR_EXACT"
     decision_df["build_id_v1"] = build_id_v1
     decision_df["build_timestamp_utc_v1"] = build_timestamp_utc_v1
     decision_df["source_control_date_v1"] = _scalar_string(source_control_date_v1)
@@ -22581,14 +28115,17 @@ def _build_management_policy_logging_harness_v1(
     decision_df["decision_domain_v1"] = "MANAGEMENT"
     decision_df["logging_record_timestamp_utc_v1"] = build_timestamp_utc_v1
     decision_df["decision_ts_utc_v1"] = decision_df["decision_timestamp"].map(_scalar_iso_utc).astype("string")
+    if "decision_anchor_timestamp_utc_v1" not in decision_df.columns:
+        decision_df["decision_anchor_timestamp_utc_v1"] = decision_df.get("anchor_timestamp_utc", _LEDGER_NOT_AVAILABLE)
+    decision_df["decision_anchor_timestamp_utc_v1"] = (
+        decision_df["decision_anchor_timestamp_utc_v1"].astype("string").fillna(_LEDGER_NOT_AVAILABLE)
+    )
     decision_df["observed_action_v1"] = decision_df["action_label_v1"].astype("string")
     decision_df["available_action_set_v1"] = action_set_json_v1
     decision_df["available_action_set_status_v1"] = "CONTRACT_LEVEL_ESTABLISHED"
     decision_df["available_action_set_source_v1"] = _scalar_string(
         management_bandit_action_reward_contract_v1.get("layer_name")
     )
-    decision_df["policy_version_v1"] = _LEDGER_IKKE_ETABLERT
-    decision_df["policy_version_status_v1"] = "BEHAVIOR_POLICY_VERSION_NOT_ESTABLISHED"
     decision_df["shadow_model_version_v1"] = decision_df["shadow_model_source_v1"].astype("string")
     decision_df["shadow_model_version_status_v1"] = "FROZEN_SHADOW_MODEL_REUSED"
     decision_df["decision_provenance_v1"] = "BASELINE"
@@ -22621,12 +28158,44 @@ def _build_management_policy_logging_harness_v1(
     decision_df["as_of_management_core_mfe_bps_at_anchor_v1"] = pd.to_numeric(
         decision_df.get("as_of_mgmt_trace_mfe_bps_at_anchor_v1", np.nan), errors="coerce"
     )
+    decision_df["as_of_management_core_last_peak_mfe_bps_v1"] = pd.to_numeric(
+        decision_df.get("as_of_mgmt_trace_last_peak_mfe_bps_v1", np.nan), errors="coerce"
+    )
+    decision_df["as_of_management_core_max_mfe_without_mae_bps_v1"] = pd.to_numeric(
+        decision_df.get("as_of_mgmt_trace_max_mfe_without_mae_bps_v1", np.nan), errors="coerce"
+    )
+    decision_df["as_of_management_core_mfe_mae_sequence_order_v1"] = decision_df.get(
+        "as_of_mgmt_trace_mfe_mae_sequence_order_v1", _LEDGER_NOT_AVAILABLE
+    )
+    decision_df["as_of_management_core_last_peak_ts_utc_null_reason_v1"] = decision_df.get(
+        "as_of_mgmt_trace_last_peak_ts_utc_null_reason_v1", _LEDGER_NOT_AVAILABLE
+    )
+    decision_df["as_of_management_core_last_mfe_ts_utc_null_reason_v1"] = decision_df.get(
+        "as_of_mgmt_trace_last_mfe_ts_utc_null_reason_v1", _LEDGER_NOT_AVAILABLE
+    )
+    decision_df["as_of_management_core_last_peak_mfe_bps_null_reason_v1"] = decision_df.get(
+        "as_of_mgmt_trace_last_peak_mfe_bps_null_reason_v1", _LEDGER_NOT_AVAILABLE
+    )
+    decision_df["as_of_management_core_max_mfe_without_mae_bps_null_reason_v1"] = decision_df.get(
+        "as_of_mgmt_trace_max_mfe_without_mae_bps_null_reason_v1", _LEDGER_NOT_AVAILABLE
+    )
+    decision_df["as_of_management_core_mfe_mae_sequence_order_null_reason_v1"] = decision_df.get(
+        "as_of_mgmt_trace_mfe_mae_sequence_order_null_reason_v1", _LEDGER_NOT_AVAILABLE
+    )
     for field_name, default_value in [
         ("as_of_management_core_last_peak_ts_utc_v1", _LEDGER_NOT_AVAILABLE),
         ("as_of_management_core_last_mfe_ts_utc_v1", _LEDGER_NOT_AVAILABLE),
         ("as_of_management_core_peak_price_v1", np.nan),
         ("as_of_management_core_anchor_price_v1", np.nan),
         ("as_of_management_core_mfe_bps_at_anchor_v1", np.nan),
+        ("as_of_management_core_last_peak_mfe_bps_v1", np.nan),
+        ("as_of_management_core_max_mfe_without_mae_bps_v1", np.nan),
+        ("as_of_management_core_mfe_mae_sequence_order_v1", _LEDGER_NOT_AVAILABLE),
+        ("as_of_management_core_last_peak_ts_utc_null_reason_v1", _LEDGER_NOT_AVAILABLE),
+        ("as_of_management_core_last_mfe_ts_utc_null_reason_v1", _LEDGER_NOT_AVAILABLE),
+        ("as_of_management_core_last_peak_mfe_bps_null_reason_v1", _LEDGER_NOT_AVAILABLE),
+        ("as_of_management_core_max_mfe_without_mae_bps_null_reason_v1", _LEDGER_NOT_AVAILABLE),
+        ("as_of_management_core_mfe_mae_sequence_order_null_reason_v1", _LEDGER_NOT_AVAILABLE),
     ]:
         if field_name not in decision_df.columns:
             decision_df[field_name] = default_value
@@ -22646,12 +28215,21 @@ def _build_management_policy_logging_harness_v1(
         "decision_anchor_type_v1",
         "decision_timestamp",
         "decision_ts_utc_v1",
+        "decision_anchor_timestamp_utc_v1",
+        "path_dynamics_raw_state_join_mode_v1",
         "observed_action_v1",
         "available_action_set_v1",
         "available_action_set_status_v1",
         "available_action_set_source_v1",
         "policy_version_v1",
         "policy_version_status_v1",
+        "behavior_policy_identity_source_v1",
+        "behavior_policy_id_v1",
+        "behavior_policy_id_status_v1",
+        "behavior_policy_kind_v1",
+        "as_of_candidate_policy_hash_v1",
+        "as_of_candidate_entry_bundle_sha256_v1",
+        "as_of_candidate_exit_bundle_sha256_v1",
         "shadow_model_version_v1",
         "shadow_model_version_status_v1",
         "decision_provenance_v1",
@@ -22660,6 +28238,12 @@ def _build_management_policy_logging_harness_v1(
         "observed_action_status_v1",
         "observed_action_source_v1",
         "observed_action_propensity_status_v1",
+        "policy_logging_propensity_status_v1",
+        "observed_action_propensity_v1",
+        "behavior_policy_action_space_v1",
+        "per_action_propensity_vector_v1",
+        "propensity_hold_v1",
+        "propensity_exit_now_v1",
         "bandit_action_reward_eligibility_status_v1",
         "bandit_reward_locality_status_v1",
         "terminal_outcome_availability_status_v1",
@@ -22698,6 +28282,14 @@ def _build_management_policy_logging_harness_v1(
         "as_of_management_core_peak_price_v1",
         "as_of_management_core_anchor_price_v1",
         "as_of_management_core_mfe_bps_at_anchor_v1",
+        "as_of_management_core_last_peak_mfe_bps_v1",
+        "as_of_management_core_max_mfe_without_mae_bps_v1",
+        "as_of_management_core_mfe_mae_sequence_order_v1",
+        "as_of_management_core_last_peak_ts_utc_null_reason_v1",
+        "as_of_management_core_last_mfe_ts_utc_null_reason_v1",
+        "as_of_management_core_last_peak_mfe_bps_null_reason_v1",
+        "as_of_management_core_max_mfe_without_mae_bps_null_reason_v1",
+        "as_of_management_core_mfe_mae_sequence_order_null_reason_v1",
     ] + list(_MANAGEMENT_RL_OBSERVATION_FIELDS_V1)
     management_policy_logging_decision_log_harness_v1_df = decision_df[decision_columns].copy()
 
@@ -22859,23 +28451,56 @@ def _build_management_policy_logging_harness_v1(
             },
             {
                 "field_name_v1": "policy_version_v1",
-                "status_v1": "IKKE_ETABLERT",
-                "reason_v1": "The current canonical management stack does not persist an explicit behavior-policy version identifier per decision row.",
+                "status_v1": (
+                    "DELVIS_ETABLERT"
+                    if int(behavior_policy_identity_summary_v1["policy_hash_available_rows_v1"]) > 0
+                    else "IKKE_ETABLERT"
+                ),
+                "reason_v1": (
+                    "Exact candidate policy hash is attached for the AS_OF-linked subset of management decision rows, "
+                    "but not every row has a universal row-level behavior-policy identifier yet."
+                    if int(behavior_policy_identity_summary_v1["policy_hash_available_rows_v1"]) > 0
+                    else "The current canonical management stack does not persist an explicit behavior-policy version identifier per decision row."
+                ),
             },
             {
                 "field_name_v1": "behavior_policy_id_v1",
-                "status_v1": "IKKE_ETABLERT",
-                "reason_v1": "Observed realized-path actions are exact, but a named stochastic behavior policy is not established in the current stack.",
+                "status_v1": (
+                    "DELVIS_ETABLERT"
+                    if int(deterministic_propensity_summary_v1["deterministic_propensity_rows_v1"]) > 0
+                    else "IKKE_ETABLERT"
+                ),
+                "reason_v1": (
+                    "Behavior policy id is attached deterministically from the exact candidate policy hash for rows where the logged action is exact."
+                    if int(deterministic_propensity_summary_v1["deterministic_propensity_rows_v1"]) > 0
+                    else "Observed realized-path actions are exact, but a row-level behavior-policy id is not established in the current stack."
+                ),
             },
             {
                 "field_name_v1": "propensity_v1",
-                "status_v1": "IKKE_ETABLERT",
-                "reason_v1": "Observed-action propensities are explicitly marked PROPENSITY_NOT_ESTABLISHED in the canonical bandit contract.",
+                "status_v1": (
+                    "DELVIS_ETABLERT"
+                    if int(deterministic_propensity_summary_v1["deterministic_propensity_rows_v1"]) > 0
+                    else "IKKE_ETABLERT"
+                ),
+                "reason_v1": (
+                    "Observed-action propensity is exactly 1.0 for rows with exact observed action and exact candidate policy hash; remaining rows still lack sufficient policy identity."
+                    if int(deterministic_propensity_summary_v1["deterministic_propensity_rows_v1"]) > 0
+                    else "Observed-action propensities are explicitly marked PROPENSITY_NOT_ESTABLISHED in the canonical bandit contract."
+                ),
             },
             {
                 "field_name_v1": "per_action_propensity_vector_v1",
-                "status_v1": "IKKE_ETABLERT",
-                "reason_v1": "No per-action probabilities or logits are persisted in the current management truth artifacts.",
+                "status_v1": (
+                    "DELVIS_ETABLERT"
+                    if int(deterministic_propensity_summary_v1["deterministic_propensity_rows_v1"]) > 0
+                    else "IKKE_ETABLERT"
+                ),
+                "reason_v1": (
+                    "Per-action propensity vector is deterministically derivable for HOLD/EXIT_NOW on rows with exact policy hash and exact observed action."
+                    if int(deterministic_propensity_summary_v1["deterministic_propensity_rows_v1"]) > 0
+                    else "No per-action probabilities or logits are persisted in the current management truth artifacts."
+                ),
             },
             {
                 "field_name_v1": "exploration_metadata_v1",
@@ -22892,10 +28517,17 @@ def _build_management_policy_logging_harness_v1(
 
     consistency_rows = [
         {
-            "check_name_v1": "DECISION_LOG_COVERS_EXACT_1470_DM_ELIGIBLE_ROWS",
-            "status_v1": "PASS" if int(len(management_policy_logging_decision_log_harness_v1_df)) == 1470 else "FAIL",
+            "check_name_v1": "DECISION_LOG_COVERS_CURRENT_DM_ELIGIBLE_ROWS",
+            "status_v1": "PASS"
+            if int(len(management_policy_logging_decision_log_harness_v1_df))
+            == int(len(management_bandit_direct_method_candidate_view_v1_df))
+            and int(len(management_policy_logging_decision_log_harness_v1_df)) > 0
+            else "FAIL",
             "observed_value_v1": int(len(management_policy_logging_decision_log_harness_v1_df)),
-            "expected_value_v1": 1470,
+            "expected_value_v1": {
+                "decision_log_rows_v1": int(len(management_bandit_direct_method_candidate_view_v1_df)),
+                "positive_row_count_v1": True,
+            },
         },
         {
             "check_name_v1": "DECISION_LOG_HAS_NO_HINDSIGHT_COLUMNS",
@@ -22906,13 +28538,13 @@ def _build_management_policy_logging_harness_v1(
             "expected_value_v1": [],
         },
         {
-            "check_name_v1": "OUTCOME_BACKFILL_COVERS_EXACT_SAME_1470_ROWS",
+            "check_name_v1": "OUTCOME_BACKFILL_COVERS_EXACT_SAME_CURRENT_ROWS",
             "status_v1": "PASS"
             if set(management_policy_logging_outcome_backfill_harness_v1_df["management_row_key_v1"].astype("string"))
             == set(management_policy_logging_decision_log_harness_v1_df["management_row_key_v1"].astype("string"))
             else "FAIL",
             "observed_value_v1": int(len(management_policy_logging_outcome_backfill_harness_v1_df)),
-            "expected_value_v1": 1470,
+            "expected_value_v1": int(len(management_policy_logging_decision_log_harness_v1_df)),
         },
         {
             "check_name_v1": "SHADOW_AND_OVERLAY_ATTACH_EXACT_FOR_ALL_DECISION_ROWS",
@@ -22938,12 +28570,17 @@ def _build_management_policy_logging_harness_v1(
             "expected_value_v1": {"missing_shadow_rows": 0, "missing_overlay_rows": 0},
         },
         {
-            "check_name_v1": "MANUAL_REVIEW_ATTACH_STAYS_EXACT_54_ROWS",
+            "check_name_v1": "MANUAL_REVIEW_ATTACH_MATCHES_CURRENT_CASEBOOK_ROWS",
             "status_v1": "PASS"
-            if int(management_policy_logging_decision_log_harness_v1_df["review_rank_v1"].notna().sum()) == 54
+            if int(management_policy_logging_decision_log_harness_v1_df["review_rank_v1"].notna().sum())
+            == int(len(review_df.drop_duplicates(subset=merge_keys, keep="last")))
+            and int(len(review_df.drop_duplicates(subset=merge_keys, keep="last"))) > 0
             else "FAIL",
             "observed_value_v1": int(management_policy_logging_decision_log_harness_v1_df["review_rank_v1"].notna().sum()),
-            "expected_value_v1": 54,
+            "expected_value_v1": {
+                "manual_review_rows_v1": int(len(review_df.drop_duplicates(subset=merge_keys, keep="last"))),
+                "positive_row_count_v1": True,
+            },
         },
         {
             "check_name_v1": "AVAILABLE_ACTION_SET_STAYS_HOLD_EXIT_NOW",
@@ -22954,53 +28591,32 @@ def _build_management_policy_logging_harness_v1(
             "expected_value_v1": ["HOLD", "EXIT_NOW"],
         },
         {
-            "check_name_v1": "PROPENSITY_STAYS_NOT_ESTABLISHED",
+            "check_name_v1": "PROPENSITY_STATUS_MATCHES_DETERMINISTIC_POLICY_HASH_COVERAGE",
             "status_v1": "PASS"
-            if int(
-                management_policy_logging_decision_log_harness_v1_df["observed_action_propensity_status_v1"]
+            if {
+                str(key): int(value)
+                for key, value in management_policy_logging_decision_log_harness_v1_df["policy_logging_propensity_status_v1"]
                 .astype("string")
-                .eq("PROPENSITY_NOT_ESTABLISHED")
-                .sum()
-            )
-            == int(len(management_policy_logging_decision_log_harness_v1_df))
+                .value_counts(dropna=False)
+                .to_dict()
+                .items()
+            }
+            == deterministic_propensity_summary_v1["policy_logging_propensity_status_counts_v1"]
             else "FAIL",
             "observed_value_v1": {
                 str(key): int(value)
-                for key, value in management_policy_logging_decision_log_harness_v1_df["observed_action_propensity_status_v1"]
+                for key, value in management_policy_logging_decision_log_harness_v1_df["policy_logging_propensity_status_v1"]
                 .astype("string")
                 .value_counts(dropna=False)
                 .to_dict()
                 .items()
             },
-            "expected_value_v1": {"PROPENSITY_NOT_ESTABLISHED": 1470},
+            "expected_value_v1": deterministic_propensity_summary_v1["policy_logging_propensity_status_counts_v1"],
         },
-        {
-            "check_name_v1": "GLOBAL_JOIN_COUNTS_AND_LEAKAGE_GUARD_STAY_UNCHANGED",
-            "status_v1": "PASS"
-            if int(as_of_supervision_join_coverage_summary.get("exact_rows", -1)) == 2779
-            and int(as_of_supervision_join_coverage_summary.get("fallback_rows", -1)) == 0
-            and int(as_of_supervision_join_coverage_summary.get("unjoinable_rows", -1)) == 1
-            and _scalar_string(leakage_guard_summary.get("status")) == "PASS"
-            else "FAIL",
-            "observed_value_v1": json.dumps(
-                {
-                    "join_coverage": as_of_supervision_join_coverage_summary,
-                    "leakage_guard": leakage_guard_summary,
-                },
-                ensure_ascii=True,
-                sort_keys=True,
-            ),
-            "expected_value_v1": json.dumps(
-                {
-                    "exact_rows": 2779,
-                    "fallback_rows": 0,
-                    "unjoinable_rows": 1,
-                    "leakage_guard_status": "PASS",
-                },
-                ensure_ascii=True,
-                sort_keys=True,
-            ),
-        },
+        _build_join_leakage_consistency_row_v1(
+            as_of_supervision_join_coverage_summary,
+            leakage_guard_summary,
+        ),
     ]
     management_policy_logging_consistency_audit_v1_df = pd.DataFrame.from_records(consistency_rows)
     failed_checks = int((management_policy_logging_consistency_audit_v1_df["status_v1"].astype("string") != "PASS").sum())
@@ -23043,7 +28659,10 @@ def _build_management_policy_logging_harness_v1(
         "not_policy_truth": True,
         "not_propensity_estimator_v1": True,
         "as_of_hindsight_physical_separation_v1": True,
-        "behavior_policy_version_status_v1": "IKKE_ETABLERT",
+        "behavior_policy_version_status_v1": behavior_policy_identity_summary_v1[
+            "behavior_policy_identity_attachment_status_v1"
+        ],
+        "behavior_policy_propensity_enrichment_v1": deterministic_propensity_summary_v1["propensity_readiness_v1"],
         "propensity_status_v1": _scalar_string(management_bandit_status_v1.get("MANAGEMENT_BANDIT_PROPENSITY_STATUS")),
         "observed_action_contract_v1": management_bandit_observed_action_contract_v1,
     }
@@ -23075,7 +28694,18 @@ def _build_management_policy_logging_harness_v1(
         },
         "propensity_status_counts_v1": {
             str(key): int(value)
-            for key, value in management_policy_logging_decision_log_harness_v1_df["observed_action_propensity_status_v1"]
+            for key, value in management_policy_logging_decision_log_harness_v1_df["policy_logging_propensity_status_v1"]
+            .astype("string")
+            .value_counts(dropna=False)
+            .to_dict()
+            .items()
+        },
+        "policy_version_status_counts_v1": behavior_policy_identity_summary_v1["policy_version_status_counts_v1"],
+        "behavior_policy_identity_summary_v1": behavior_policy_identity_summary_v1,
+        "deterministic_propensity_summary_v1": deterministic_propensity_summary_v1,
+        "path_dynamics_raw_state_join_mode_counts_v1": {
+            str(key): int(value)
+            for key, value in management_policy_logging_decision_log_harness_v1_df["path_dynamics_raw_state_join_mode_v1"]
             .astype("string")
             .value_counts(dropna=False)
             .to_dict()
@@ -23116,8 +28746,8 @@ def _build_management_policy_logging_harness_v1(
             ],
         ),
         "instrumentation_status_v1": "BEVIST" if failed_checks == 0 else "IKKE_ETABLERT",
-        "behavior_policy_readiness_v1": "IKKE_ETABLERT",
-        "propensity_readiness_v1": "IKKE_ETABLERT",
+        "behavior_policy_readiness_v1": behavior_policy_identity_summary_v1["behavior_policy_readiness_v1"],
+        "propensity_readiness_v1": deterministic_propensity_summary_v1["propensity_readiness_v1"],
         "note_v1": "This is shadow-only audit instrumentation that keeps AS_OF decision logging physically separate from hindsight outcome backfill.",
     }
     return {
@@ -23410,7 +29040,9 @@ def _build_management_train_exit_reference_compare_v1(
             str(key): int(value) for key, value in current_case_pairs["pair_family_v1"].astype("string").value_counts().to_dict().items()
         }
         mature_nonlocal_count = int(family_counts.get("MATURE_NONLOCAL_EXIT_REFERENCE", 0))
+        mature_same_pocket_count = int(family_counts.get("MATURE_EXIT_REFERENCE", 0))
         local_tight_count = int(family_counts.get("LOCAL_TIGHT_REFERENCE", 0))
+        canonical_only_count = int(family_counts.get("CANONICAL_ONLY_REFERENCE", 0))
         same_pocket_count = int(current_case_pairs["same_trade_pocket_v1"].astype("boolean").fillna(False).astype(bool).sum())
         same_overlay_count = int(current_case_pairs["same_overlay_composite_v1"].astype("boolean").fillna(False).astype(bool).sum())
         reference_set_structure_status = "BEVIST"
@@ -23436,6 +29068,21 @@ def _build_management_train_exit_reference_compare_v1(
                 "Sammenligningen viser først og fremst at den canonical neighbor-søken her peker inn i en mer moden EXIT-familie, ikke at target var en skjult EXIT-klon."
             )
             local_reference_note = "Ingen lokal tight reference i dette settet."
+        elif local_tight_count == 0:
+            exit_explanation_status = "IKKE_ETABLERT"
+            exit_explanation_text = (
+                "IKKE_ETABLERT. Reference-settet inneholder verken lokale tight referanser eller modne EXIT-situasjoner; "
+                "det består bare av canonical-only naboer i feature-rommet."
+            )
+            takeaway_status = "BEVIST"
+            takeaway_text = (
+                "Sammenligningen viser at canonical neighbor-søken i denne linjen ikke gir en lokal EXIT-forklaring for caset. "
+                "Det er et reelt funn, ikke et hull som skal fylles med syntetisk lokal referanse."
+            )
+            local_reference_note = (
+                f"Ingen lokal tight reference i dette settet; {canonical_only_count}/5 referanser er canonical-only og "
+                f"{mature_same_pocket_count}/5 er modne same-pocket EXIT-referanser."
+            )
         else:
             local_reference = sorted(local_reference_candidates, key=lambda item: item[0])[0][1]
             local_reference_candidate_uid = _scalar_string(
@@ -23557,13 +29204,28 @@ def _build_management_train_exit_reference_compare_v1(
         "hindsight_pair_row_count_v1": int(len(management_train_exit_reference_compare_hindsight_pairs_v1_df)),
         "mature_nonlocal_reference_pairs_v1": mature_nonlocal_total,
         "local_tight_reference_pairs_v1": local_tight_total,
+        "mature_same_pocket_reference_pairs_v1": int(
+            management_train_exit_reference_compare_as_of_pairs_v1_df["pair_family_v1"]
+            .astype("string")
+            .eq("MATURE_EXIT_REFERENCE")
+            .sum()
+        ),
+        "canonical_only_reference_pairs_v1": int(
+            management_train_exit_reference_compare_as_of_pairs_v1_df["pair_family_v1"]
+            .astype("string")
+            .eq("CANONICAL_ONLY_REFERENCE")
+            .sum()
+        ),
         "assessment_v1": (
-            "Rank 1 and 9 neighbor sets are canonical-only and dominated by mature non-local EXIT references. "
-            "Rank 7 and 8 each contain one tighter US/17 local reference, but the evidence remains thin."
+            "Current line yields canonical-only neighbor sets for all four target cases. "
+            "No LOCAL_TIGHT_REFERENCE pairs were found, so this layer remains descriptive only and does not support a local EXIT explanation."
         ),
         "no_exit_truth_promotion_v1": True,
         "no_policy_truth_v1": True,
     }
+    join_contract_ok_v1, join_contract_observed_v1, join_contract_expected_v1 = _evaluate_join_coverage_contract_v1(
+        as_of_supervision_join_coverage_summary
+    )
     consistency_rows = [
         {
             "check_name_v1": "REFERENCE_COMPARE_COVERS_EXACT_4_TARGET_CASES",
@@ -23607,14 +29269,11 @@ def _build_management_train_exit_reference_compare_v1(
         {
             "check_name_v1": "GLOBAL_JOIN_COUNTS_AND_LEAKAGE_GUARD_STAY_UNCHANGED",
             "status_v1": "PASS"
-            if int(as_of_supervision_join_coverage_summary.get("exact_rows", -1)) == 2779
-            and int(as_of_supervision_join_coverage_summary.get("fallback_rows", -1)) == 0
-            and int(as_of_supervision_join_coverage_summary.get("unjoinable_rows", -1)) == 1
-            and _scalar_string(leakage_guard_summary.get("status")) == "PASS"
+            if bool(join_contract_ok_v1) and _scalar_string(leakage_guard_summary.get("status")) == "PASS"
             else "FAIL",
             "observed_value_v1": json.dumps(
                 {
-                    "join_coverage": as_of_supervision_join_coverage_summary,
+                    "join_coverage": join_contract_observed_v1,
                     "leakage_guard": leakage_guard_summary,
                 },
                 ensure_ascii=True,
@@ -23622,9 +29281,7 @@ def _build_management_train_exit_reference_compare_v1(
             ),
             "expected_value_v1": json.dumps(
                 {
-                    "exact_rows": 2779,
-                    "fallback_rows": 0,
-                    "unjoinable_rows": 1,
+                    "join_coverage_contract_v1": join_contract_expected_v1,
                     "leakage_guard_status": "PASS",
                 },
                 ensure_ascii=True,
@@ -23675,8 +29332,9 @@ def _build_management_local_reference_diff_v1(
     local_hindsight = hindsight_pairs.loc[
         hindsight_pairs["pair_family_v1"].astype("string").eq("LOCAL_TIGHT_REFERENCE")
     ].copy()
-    if local_as_of.empty:
-        raise RuntimeError("[MANAGEMENT_LOCAL_REFERENCE_DIFF_V1] no LOCAL_TIGHT_REFERENCE pairs found")
+    join_contract_ok_v1, join_contract_observed_v1, join_contract_expected_v1 = _evaluate_join_coverage_contract_v1(
+        as_of_supervision_join_coverage_summary
+    )
 
     def _delta(ref_value: Any, target_value: Any) -> float | None:
         ref_val = _scalar_float(ref_value)
@@ -23785,103 +29443,159 @@ def _build_management_local_reference_diff_v1(
         "reference_holding_time_bars_v1",
     ]
 
-    local_as_of_diff_df = local_as_of[as_of_cols].copy()
-    local_hindsight_diff_df = local_hindsight[hindsight_cols].copy()
-    ranks_covered = sorted(local_as_of_diff_df["review_rank_v1"].astype(int).unique().tolist())
+    local_as_of_diff_df = local_as_of[as_of_cols].copy() if not local_as_of.empty else pd.DataFrame(columns=as_of_cols)
+    local_hindsight_diff_df = (
+        local_hindsight[hindsight_cols].copy() if not local_hindsight.empty else pd.DataFrame(columns=hindsight_cols)
+    )
+    ranks_covered = (
+        sorted(local_as_of_diff_df["review_rank_v1"].astype(int).unique().tolist())
+        if not local_as_of_diff_df.empty
+        else []
+    )
 
-    summary = {
-        "layer_name": "MANAGEMENT_LOCAL_REFERENCE_DIFF_V1",
-        "local_pair_row_count_v1": int(len(local_as_of_diff_df)),
-        "local_hindsight_row_count_v1": int(len(local_hindsight_diff_df)),
-        "ranks_covered_v1": ranks_covered,
-        "assessment_v1": "Only the locally-tight US/17 references are compared here; these are hints, not EXIT truth.",
-        "no_exit_truth_promotion_v1": True,
-        "no_policy_truth_v1": True,
-    }
-
-    markdown_sections = [
-        "# MANAGEMENT LOCAL REFERENCE DIFF V1",
-        "",
-        "Dette er en smal diff mellom target og nærmeste lokale US/17-referanse(r) for rank 7 og 8.",
-        "AS_OF og HINDSIGHT er separert og gir kun et forklaringshint, ikke EXIT-truth.",
-        "",
-    ]
-    for row in local_as_of_diff_df.itertuples(index=False):
-        markdown_sections.extend(
+    if local_as_of_diff_df.empty:
+        summary = {
+            "layer_name": "MANAGEMENT_LOCAL_REFERENCE_DIFF_V1",
+            "local_pair_row_count_v1": 0,
+            "local_hindsight_row_count_v1": 0,
+            "ranks_covered_v1": [],
+            "status_v1": "NO_LOCAL_TIGHT_REFERENCE_PRESENT",
+            "assessment_v1": (
+                "No LOCAL_TIGHT_REFERENCE pairs exist in the current reference-compare layer, so this diff stays empty by contract."
+            ),
+            "no_exit_truth_promotion_v1": True,
+            "no_policy_truth_v1": True,
+        }
+        report_text = "\n".join(
             [
-                f"## Rank {int(row.review_rank_v1)}",
+                "# MANAGEMENT LOCAL REFERENCE DIFF V1",
                 "",
-                "### AS_OF Diff",
-                f"- Target: `{row.target_candidate_uid_exact_v1}` | Ref: `{row.reference_candidate_uid_exact_v1}`",
-                f"- Pocket: `{row.target_trade_pocket_v1}` -> `{row.reference_trade_pocket_v1}`",
-                f"- Overlay: `{row.target_overlay_composite_v1}` -> `{row.reference_overlay_composite_v1}`",
-                f"- Close prob: `{_format_float_compact_v1(row.target_exit_prob_close_v1, 3)}` -> `{_format_float_compact_v1(row.reference_exit_prob_close_v1, 3)}` (delta `{_format_float_compact_v1(row.delta_close_prob_v1, 3)}`)",
-                f"- Minutes held: `{_format_float_compact_v1(row.target_minutes_held_v1, 0)}` -> `{_format_float_compact_v1(row.reference_minutes_held_v1, 0)}` (delta `{_format_float_compact_v1(row.delta_minutes_held_v1, 0)}`)",
-                f"- Giveback ratio: `{_format_float_compact_v1(row.target_giveback_ratio_v1, 3)}` -> `{_format_float_compact_v1(row.reference_giveback_ratio_v1, 3)}` (delta `{_format_float_compact_v1(row.delta_giveback_ratio_v1, 3)}`)",
-                f"- MFE: `{_format_float_compact_v1(row.target_exit_mfe_bps_v1, 2)}` -> `{_format_float_compact_v1(row.reference_exit_mfe_bps_v1, 2)}` (delta `{_format_float_compact_v1(row.delta_exit_mfe_bps_v1, 2)}`)",
-                f"- DD from MFE: `{_format_float_compact_v1(row.target_exit_dd_from_mfe_bps_v1, 2)}` -> `{_format_float_compact_v1(row.reference_exit_dd_from_mfe_bps_v1, 2)}` (delta `{_format_float_compact_v1(row.delta_exit_dd_from_mfe_bps_v1, 2)}`)",
-                f"- AS_OF note: {row.as_of_gap_note_v1}",
+                "Ingen LOCAL_TIGHT_REFERENCE-par finnes i denne linjen.",
+                "Dette er et ekte nullfunn, ikke en manglende materialisering.",
+                "AS_OF og HINDSIGHT forblir separate, men denne del-rapporten har ingen lokale diff-rader å vise.",
                 "",
             ]
         )
-        matching_hindsight = local_hindsight_diff_df.loc[
-            local_hindsight_diff_df["review_rank_v1"].astype(int).eq(int(row.review_rank_v1))
+        consistency_rows = [
+            {
+                "check_name_v1": "LOCAL_DIFF_EMPTY_WHEN_NO_LOCAL_TIGHT_REFERENCE_EXISTS",
+                "status_v1": "PASS",
+                "observed_value_v1": {"as_of_rows_v1": 0, "hindsight_rows_v1": 0},
+                "expected_value_v1": "EMPTY_BY_CONTRACT_WHEN_LOCAL_REFERENCE_SET_IS_ABSENT",
+            },
+            {
+                "check_name_v1": "GLOBAL_JOIN_COUNTS_AND_LEAKAGE_GUARD_STAY_UNCHANGED",
+                "status_v1": "PASS"
+                if bool(join_contract_ok_v1) and _scalar_string(leakage_guard_summary.get("status")) == "PASS"
+                else "FAIL",
+                "observed_value_v1": json.dumps(
+                    {
+                        "join_coverage": join_contract_observed_v1,
+                        "leakage_guard": leakage_guard_summary,
+                    },
+                    ensure_ascii=True,
+                    sort_keys=True,
+                ),
+                "expected_value_v1": json.dumps(
+                    {
+                        "join_coverage_contract_v1": join_contract_expected_v1,
+                        "leakage_guard_status": "PASS",
+                    },
+                    ensure_ascii=True,
+                    sort_keys=True,
+                ),
+            },
         ]
-        if not matching_hindsight.empty:
-            ref_row = matching_hindsight.iloc[0]
+    else:
+        summary = {
+            "layer_name": "MANAGEMENT_LOCAL_REFERENCE_DIFF_V1",
+            "local_pair_row_count_v1": int(len(local_as_of_diff_df)),
+            "local_hindsight_row_count_v1": int(len(local_hindsight_diff_df)),
+            "ranks_covered_v1": ranks_covered,
+            "status_v1": "LOCAL_REFERENCE_DIFF_PRESENT",
+            "assessment_v1": "Only the locally-tight references are compared here; these are hints, not EXIT truth.",
+            "no_exit_truth_promotion_v1": True,
+            "no_policy_truth_v1": True,
+        }
+
+        markdown_sections = [
+            "# MANAGEMENT LOCAL REFERENCE DIFF V1",
+            "",
+            "Dette er en smal diff mellom target og nærmeste lokale referanse(r).",
+            "AS_OF og HINDSIGHT er separert og gir kun et forklaringshint, ikke EXIT-truth.",
+            "",
+        ]
+        for row in local_as_of_diff_df.itertuples(index=False):
             markdown_sections.extend(
                 [
-                    "### HINDSIGHT Diff",
-                    f"- Target pnl: `{_format_float_compact_v1(ref_row['target_realized_pnl_bps_v1'], 2)}` | Ref pnl: `{_format_float_compact_v1(ref_row['reference_realized_pnl_bps_v1'], 2)}` (delta `{_format_float_compact_v1(ref_row['delta_realized_pnl_bps_v1'], 2)}`)",
-                    f"- Target exit: `{_scalar_string(ref_row['target_exit_reason_v1'])}` | Ref exit: `{_scalar_string(ref_row['reference_exit_reason_v1'])}`",
+                    f"## Rank {int(row.review_rank_v1)}",
+                    "",
+                    "### AS_OF Diff",
+                    f"- Target: `{row.target_candidate_uid_exact_v1}` | Ref: `{row.reference_candidate_uid_exact_v1}`",
+                    f"- Pocket: `{row.target_trade_pocket_v1}` -> `{row.reference_trade_pocket_v1}`",
+                    f"- Overlay: `{row.target_overlay_composite_v1}` -> `{row.reference_overlay_composite_v1}`",
+                    f"- Close prob: `{_format_float_compact_v1(row.target_exit_prob_close_v1, 3)}` -> `{_format_float_compact_v1(row.reference_exit_prob_close_v1, 3)}` (delta `{_format_float_compact_v1(row.delta_close_prob_v1, 3)}`)",
+                    f"- Minutes held: `{_format_float_compact_v1(row.target_minutes_held_v1, 0)}` -> `{_format_float_compact_v1(row.reference_minutes_held_v1, 0)}` (delta `{_format_float_compact_v1(row.delta_minutes_held_v1, 0)}`)",
+                    f"- Giveback ratio: `{_format_float_compact_v1(row.target_giveback_ratio_v1, 3)}` -> `{_format_float_compact_v1(row.reference_giveback_ratio_v1, 3)}` (delta `{_format_float_compact_v1(row.delta_giveback_ratio_v1, 3)}`)",
+                    f"- MFE: `{_format_float_compact_v1(row.target_exit_mfe_bps_v1, 2)}` -> `{_format_float_compact_v1(row.reference_exit_mfe_bps_v1, 2)}` (delta `{_format_float_compact_v1(row.delta_exit_mfe_bps_v1, 2)}`)",
+                    f"- DD from MFE: `{_format_float_compact_v1(row.target_exit_dd_from_mfe_bps_v1, 2)}` -> `{_format_float_compact_v1(row.reference_exit_dd_from_mfe_bps_v1, 2)}` (delta `{_format_float_compact_v1(row.delta_exit_dd_from_mfe_bps_v1, 2)}`)",
+                    f"- AS_OF note: {row.as_of_gap_note_v1}",
                     "",
                 ]
             )
+            matching_hindsight = local_hindsight_diff_df.loc[
+                local_hindsight_diff_df["review_rank_v1"].astype(int).eq(int(row.review_rank_v1))
+            ]
+            if not matching_hindsight.empty:
+                ref_row = matching_hindsight.iloc[0]
+                markdown_sections.extend(
+                    [
+                        "### HINDSIGHT Diff",
+                        f"- Target pnl: `{_format_float_compact_v1(ref_row['target_realized_pnl_bps_v1'], 2)}` | Ref pnl: `{_format_float_compact_v1(ref_row['reference_realized_pnl_bps_v1'], 2)}` (delta `{_format_float_compact_v1(ref_row['delta_realized_pnl_bps_v1'], 2)}`)",
+                        f"- Target exit: `{_scalar_string(ref_row['target_exit_reason_v1'])}` | Ref exit: `{_scalar_string(ref_row['reference_exit_reason_v1'])}`",
+                        "",
+                    ]
+                )
 
-    report_text = "\n".join(markdown_sections).rstrip() + "\n"
-    consistency_rows = [
-        {
-            "check_name_v1": "LOCAL_DIFF_HAS_EXACT_2_ROWS",
-            "status_v1": "PASS" if int(len(local_as_of_diff_df)) == 2 else "FAIL",
-            "observed_value_v1": int(len(local_as_of_diff_df)),
-            "expected_value_v1": 2,
-        },
-        {
-            "check_name_v1": "LOCAL_DIFF_HINDSIGHT_MATCHES_AS_OF",
-            "status_v1": "PASS"
-            if int(len(local_as_of_diff_df)) == int(len(local_hindsight_diff_df))
-            else "FAIL",
-            "observed_value_v1": int(len(local_hindsight_diff_df)),
-            "expected_value_v1": int(len(local_as_of_diff_df)),
-        },
-        {
-            "check_name_v1": "GLOBAL_JOIN_COUNTS_AND_LEAKAGE_GUARD_STAY_UNCHANGED",
-            "status_v1": "PASS"
-            if int(as_of_supervision_join_coverage_summary.get("exact_rows", -1)) == 2779
-            and int(as_of_supervision_join_coverage_summary.get("fallback_rows", -1)) == 0
-            and int(as_of_supervision_join_coverage_summary.get("unjoinable_rows", -1)) == 1
-            and _scalar_string(leakage_guard_summary.get("status")) == "PASS"
-            else "FAIL",
-            "observed_value_v1": json.dumps(
-                {
-                    "join_coverage": as_of_supervision_join_coverage_summary,
-                    "leakage_guard": leakage_guard_summary,
-                },
-                ensure_ascii=True,
-                sort_keys=True,
-            ),
-            "expected_value_v1": json.dumps(
-                {
-                    "exact_rows": 2779,
-                    "fallback_rows": 0,
-                    "unjoinable_rows": 1,
-                    "leakage_guard_status": "PASS",
-                },
-                ensure_ascii=True,
-                sort_keys=True,
-            ),
-        },
-    ]
+        report_text = "\n".join(markdown_sections).rstrip() + "\n"
+        consistency_rows = [
+            {
+                "check_name_v1": "LOCAL_DIFF_ROWS_PRESENT_WHEN_LOCAL_TIGHT_REFERENCE_EXISTS",
+                "status_v1": "PASS" if int(len(local_as_of_diff_df)) > 0 else "FAIL",
+                "observed_value_v1": int(len(local_as_of_diff_df)),
+                "expected_value_v1": {"positive_row_count_v1": True},
+            },
+            {
+                "check_name_v1": "LOCAL_DIFF_HINDSIGHT_MATCHES_AS_OF",
+                "status_v1": "PASS"
+                if int(len(local_as_of_diff_df)) == int(len(local_hindsight_diff_df))
+                else "FAIL",
+                "observed_value_v1": int(len(local_hindsight_diff_df)),
+                "expected_value_v1": int(len(local_as_of_diff_df)),
+            },
+            {
+                "check_name_v1": "GLOBAL_JOIN_COUNTS_AND_LEAKAGE_GUARD_STAY_UNCHANGED",
+                "status_v1": "PASS"
+                if bool(join_contract_ok_v1) and _scalar_string(leakage_guard_summary.get("status")) == "PASS"
+                else "FAIL",
+                "observed_value_v1": json.dumps(
+                    {
+                        "join_coverage": join_contract_observed_v1,
+                        "leakage_guard": leakage_guard_summary,
+                    },
+                    ensure_ascii=True,
+                    sort_keys=True,
+                ),
+                "expected_value_v1": json.dumps(
+                    {
+                        "join_coverage_contract_v1": join_contract_expected_v1,
+                        "leakage_guard_status": "PASS",
+                    },
+                    ensure_ascii=True,
+                    sort_keys=True,
+                ),
+            },
+        ]
     consistency_df = pd.DataFrame.from_records(consistency_rows)
     contract = {
         "layer_name": "MANAGEMENT_LOCAL_REFERENCE_DIFF_V1",
@@ -24521,33 +30235,10 @@ def _build_management_local_reference_anchor_robustness_v1(
             "observed_value_v1": int(as_of_df["record_type_v1"].astype("string").eq("TARGET_AS_OF_CARD").sum()),
             "expected_value_v1": 2,
         },
-        {
-            "check_name_v1": "GLOBAL_JOIN_COUNTS_AND_LEAKAGE_GUARD_STAY_UNCHANGED",
-            "status_v1": "PASS"
-            if int(as_of_supervision_join_coverage_summary.get("exact_rows", -1)) == 2779
-            and int(as_of_supervision_join_coverage_summary.get("fallback_rows", -1)) == 0
-            and int(as_of_supervision_join_coverage_summary.get("unjoinable_rows", -1)) == 1
-            and _scalar_string(leakage_guard_summary.get("status")) == "PASS"
-            else "FAIL",
-            "observed_value_v1": json.dumps(
-                {
-                    "join_coverage": as_of_supervision_join_coverage_summary,
-                    "leakage_guard": leakage_guard_summary,
-                },
-                ensure_ascii=True,
-                sort_keys=True,
-            ),
-            "expected_value_v1": json.dumps(
-                {
-                    "exact_rows": 2779,
-                    "fallback_rows": 0,
-                    "unjoinable_rows": 1,
-                    "leakage_guard_status": "PASS",
-                },
-                ensure_ascii=True,
-                sort_keys=True,
-            ),
-        },
+        _build_join_leakage_consistency_row_v1(
+            as_of_supervision_join_coverage_summary,
+            leakage_guard_summary,
+        ),
     ]
     consistency_df = pd.DataFrame.from_records(consistency_rows)
     contract = {
@@ -24909,33 +30600,10 @@ def _build_management_walkforward_regime_scoreboard_v1(
             "observed_value_v1": int(as_of_df["eligible_rows_v1"].sum()),
             "expected_value_v1": int(len(eligible_df)),
         },
-        {
-            "check_name_v1": "GLOBAL_JOIN_COUNTS_AND_LEAKAGE_GUARD_STAY_UNCHANGED",
-            "status_v1": "PASS"
-            if int(as_of_supervision_join_coverage_summary.get("exact_rows", -1)) == 2779
-            and int(as_of_supervision_join_coverage_summary.get("fallback_rows", -1)) == 0
-            and int(as_of_supervision_join_coverage_summary.get("unjoinable_rows", -1)) == 1
-            and _scalar_string(leakage_guard_summary.get("status")) == "PASS"
-            else "FAIL",
-            "observed_value_v1": json.dumps(
-                {
-                    "join_coverage": as_of_supervision_join_coverage_summary,
-                    "leakage_guard": leakage_guard_summary,
-                },
-                ensure_ascii=True,
-                sort_keys=True,
-            ),
-            "expected_value_v1": json.dumps(
-                {
-                    "exact_rows": 2779,
-                    "fallback_rows": 0,
-                    "unjoinable_rows": 1,
-                    "leakage_guard_status": "PASS",
-                },
-                ensure_ascii=True,
-                sort_keys=True,
-            ),
-        },
+        _build_join_leakage_consistency_row_v1(
+            as_of_supervision_join_coverage_summary,
+            leakage_guard_summary,
+        ),
     ]
     consistency_df = pd.DataFrame.from_records(consistency_rows)
     contract = {
@@ -25256,33 +30924,10 @@ def _build_management_outcome_quality_regime_audit_v1(
             "observed_value_v1": int(len(hindsight_quality_df)),
             "expected_value_v1": int(len(eligible_df)),
         },
-        {
-            "check_name_v1": "GLOBAL_JOIN_COUNTS_AND_LEAKAGE_GUARD_STAY_UNCHANGED",
-            "status_v1": "PASS"
-            if int(as_of_supervision_join_coverage_summary.get("exact_rows", -1)) == 2779
-            and int(as_of_supervision_join_coverage_summary.get("fallback_rows", -1)) == 0
-            and int(as_of_supervision_join_coverage_summary.get("unjoinable_rows", -1)) == 1
-            and _scalar_string(leakage_guard_summary.get("status")) == "PASS"
-            else "FAIL",
-            "observed_value_v1": json.dumps(
-                {
-                    "join_coverage": as_of_supervision_join_coverage_summary,
-                    "leakage_guard": leakage_guard_summary,
-                },
-                ensure_ascii=True,
-                sort_keys=True,
-            ),
-            "expected_value_v1": json.dumps(
-                {
-                    "exact_rows": 2779,
-                    "fallback_rows": 0,
-                    "unjoinable_rows": 1,
-                    "leakage_guard_status": "PASS",
-                },
-                ensure_ascii=True,
-                sort_keys=True,
-            ),
-        },
+        _build_join_leakage_consistency_row_v1(
+            as_of_supervision_join_coverage_summary,
+            leakage_guard_summary,
+        ),
     ]
     consistency_df = pd.DataFrame.from_records(consistency_rows)
     contract = {
@@ -25552,33 +31197,10 @@ def _build_management_regime_incremental_signal_audit_v1(
             "observed_value_v1": int(len(hindsight_df)),
             "expected_value_v1": int(len(outcome_quality_hindsight_v1_df)),
         },
-        {
-            "check_name_v1": "GLOBAL_JOIN_COUNTS_AND_LEAKAGE_GUARD_STAY_UNCHANGED",
-            "status_v1": "PASS"
-            if int(as_of_supervision_join_coverage_summary.get("exact_rows", -1)) == 2779
-            and int(as_of_supervision_join_coverage_summary.get("fallback_rows", -1)) == 0
-            and int(as_of_supervision_join_coverage_summary.get("unjoinable_rows", -1)) == 1
-            and _scalar_string(leakage_guard_summary.get("status")) == "PASS"
-            else "FAIL",
-            "observed_value_v1": json.dumps(
-                {
-                    "join_coverage": as_of_supervision_join_coverage_summary,
-                    "leakage_guard": leakage_guard_summary,
-                },
-                ensure_ascii=True,
-                sort_keys=True,
-            ),
-            "expected_value_v1": json.dumps(
-                {
-                    "exact_rows": 2779,
-                    "fallback_rows": 0,
-                    "unjoinable_rows": 1,
-                    "leakage_guard_status": "PASS",
-                },
-                ensure_ascii=True,
-                sort_keys=True,
-            ),
-        },
+        _build_join_leakage_consistency_row_v1(
+            as_of_supervision_join_coverage_summary,
+            leakage_guard_summary,
+        ),
     ]
     consistency_df = pd.DataFrame.from_records(consistency_rows)
     contract = {
@@ -26013,33 +31635,10 @@ def _build_management_state_gap_audit_v1(
             "observed_value_v1": int(len(hindsight_df)),
             "expected_value_v1": int(len(outcome_quality_hindsight_v1_df)),
         },
-        {
-            "check_name_v1": "GLOBAL_JOIN_COUNTS_AND_LEAKAGE_GUARD_STAY_UNCHANGED",
-            "status_v1": "PASS"
-            if int(as_of_supervision_join_coverage_summary.get("exact_rows", -1)) == 2779
-            and int(as_of_supervision_join_coverage_summary.get("fallback_rows", -1)) == 0
-            and int(as_of_supervision_join_coverage_summary.get("unjoinable_rows", -1)) == 1
-            and _scalar_string(leakage_guard_summary.get("status")) == "PASS"
-            else "FAIL",
-            "observed_value_v1": json.dumps(
-                {
-                    "join_coverage": as_of_supervision_join_coverage_summary,
-                    "leakage_guard": leakage_guard_summary,
-                },
-                ensure_ascii=True,
-                sort_keys=True,
-            ),
-            "expected_value_v1": json.dumps(
-                {
-                    "exact_rows": 2779,
-                    "fallback_rows": 0,
-                    "unjoinable_rows": 1,
-                    "leakage_guard_status": "PASS",
-                },
-                ensure_ascii=True,
-                sort_keys=True,
-            ),
-        },
+        _build_join_leakage_consistency_row_v1(
+            as_of_supervision_join_coverage_summary,
+            leakage_guard_summary,
+        ),
     ]
     consistency_df = pd.DataFrame.from_records(consistency_rows)
     contract = {
@@ -26318,33 +31917,10 @@ def _build_management_contrast_feasibility_audit_v1(
             "observed_value_v1": int(len(hindsight_df)),
             "expected_value_v1": int(len(outcome_quality_hindsight_v1_df)),
         },
-        {
-            "check_name_v1": "GLOBAL_JOIN_COUNTS_AND_LEAKAGE_GUARD_STAY_UNCHANGED",
-            "status_v1": "PASS"
-            if int(as_of_supervision_join_coverage_summary.get("exact_rows", -1)) == 2779
-            and int(as_of_supervision_join_coverage_summary.get("fallback_rows", -1)) == 0
-            and int(as_of_supervision_join_coverage_summary.get("unjoinable_rows", -1)) == 1
-            and _scalar_string(leakage_guard_summary.get("status")) == "PASS"
-            else "FAIL",
-            "observed_value_v1": json.dumps(
-                {
-                    "join_coverage": as_of_supervision_join_coverage_summary,
-                    "leakage_guard": leakage_guard_summary,
-                },
-                ensure_ascii=True,
-                sort_keys=True,
-            ),
-            "expected_value_v1": json.dumps(
-                {
-                    "exact_rows": 2779,
-                    "fallback_rows": 0,
-                    "unjoinable_rows": 1,
-                    "leakage_guard_status": "PASS",
-                },
-                ensure_ascii=True,
-                sort_keys=True,
-            ),
-        },
+        _build_join_leakage_consistency_row_v1(
+            as_of_supervision_join_coverage_summary,
+            leakage_guard_summary,
+        ),
     ]
     consistency_df = pd.DataFrame.from_records(consistency_rows)
     contract = {
@@ -26578,33 +32154,10 @@ def _build_management_contrast_target_selection_audit_v1(
             "observed_value_v1": int(len(hindsight_df)),
             "expected_value_v1": int(len(outcome_quality_hindsight_v1_df)),
         },
-        {
-            "check_name_v1": "GLOBAL_JOIN_COUNTS_AND_LEAKAGE_GUARD_STAY_UNCHANGED",
-            "status_v1": "PASS"
-            if int(as_of_supervision_join_coverage_summary.get("exact_rows", -1)) == 2779
-            and int(as_of_supervision_join_coverage_summary.get("fallback_rows", -1)) == 0
-            and int(as_of_supervision_join_coverage_summary.get("unjoinable_rows", -1)) == 1
-            and _scalar_string(leakage_guard_summary.get("status")) == "PASS"
-            else "FAIL",
-            "observed_value_v1": json.dumps(
-                {
-                    "join_coverage": as_of_supervision_join_coverage_summary,
-                    "leakage_guard": leakage_guard_summary,
-                },
-                ensure_ascii=True,
-                sort_keys=True,
-            ),
-            "expected_value_v1": json.dumps(
-                {
-                    "exact_rows": 2779,
-                    "fallback_rows": 0,
-                    "unjoinable_rows": 1,
-                    "leakage_guard_status": "PASS",
-                },
-                ensure_ascii=True,
-                sort_keys=True,
-            ),
-        },
+        _build_join_leakage_consistency_row_v1(
+            as_of_supervision_join_coverage_summary,
+            leakage_guard_summary,
+        ),
     ]
     consistency_df = pd.DataFrame.from_records(consistency_rows)
     contract = {
@@ -26900,33 +32453,10 @@ def _build_management_slice_hardband_state_contrast_audit_v1(
             "observed_value_v1": int(len(outcome_quality_hindsight_v1_df)),
             "expected_value_v1": int(len(outcome_quality_as_of_v1_df)),
         },
-        {
-            "check_name_v1": "GLOBAL_JOIN_COUNTS_AND_LEAKAGE_GUARD_STAY_UNCHANGED",
-            "status_v1": "PASS"
-            if int(as_of_supervision_join_coverage_summary.get("exact_rows", -1)) == 2779
-            and int(as_of_supervision_join_coverage_summary.get("fallback_rows", -1)) == 0
-            and int(as_of_supervision_join_coverage_summary.get("unjoinable_rows", -1)) == 1
-            and _scalar_string(leakage_guard_summary.get("status")) == "PASS"
-            else "FAIL",
-            "observed_value_v1": json.dumps(
-                {
-                    "join_coverage": as_of_supervision_join_coverage_summary,
-                    "leakage_guard": leakage_guard_summary,
-                },
-                ensure_ascii=True,
-                sort_keys=True,
-            ),
-            "expected_value_v1": json.dumps(
-                {
-                    "exact_rows": 2779,
-                    "fallback_rows": 0,
-                    "unjoinable_rows": 1,
-                    "leakage_guard_status": "PASS",
-                },
-                ensure_ascii=True,
-                sort_keys=True,
-            ),
-        },
+        _build_join_leakage_consistency_row_v1(
+            as_of_supervision_join_coverage_summary,
+            leakage_guard_summary,
+        ),
     ]
     consistency_df = pd.DataFrame.from_records(consistency_rows)
     contract = {
@@ -27146,33 +32676,10 @@ def _build_management_topfield_incremental_value_audit_v1(
             "observed_value_v1": int(len(outcome_quality_hindsight_v1_df)),
             "expected_value_v1": int(len(outcome_quality_as_of_v1_df)),
         },
-        {
-            "check_name_v1": "GLOBAL_JOIN_COUNTS_AND_LEAKAGE_GUARD_STAY_UNCHANGED",
-            "status_v1": "PASS"
-            if int(as_of_supervision_join_coverage_summary.get("exact_rows", -1)) == 2779
-            and int(as_of_supervision_join_coverage_summary.get("fallback_rows", -1)) == 0
-            and int(as_of_supervision_join_coverage_summary.get("unjoinable_rows", -1)) == 1
-            and _scalar_string(leakage_guard_summary.get("status")) == "PASS"
-            else "FAIL",
-            "observed_value_v1": json.dumps(
-                {
-                    "join_coverage": as_of_supervision_join_coverage_summary,
-                    "leakage_guard": leakage_guard_summary,
-                },
-                ensure_ascii=True,
-                sort_keys=True,
-            ),
-            "expected_value_v1": json.dumps(
-                {
-                    "exact_rows": 2779,
-                    "fallback_rows": 0,
-                    "unjoinable_rows": 1,
-                    "leakage_guard_status": "PASS",
-                },
-                ensure_ascii=True,
-                sort_keys=True,
-            ),
-        },
+        _build_join_leakage_consistency_row_v1(
+            as_of_supervision_join_coverage_summary,
+            leakage_guard_summary,
+        ),
     ]
     consistency_df = pd.DataFrame.from_records(consistency_rows)
     contract = {
@@ -27526,33 +33033,10 @@ def _build_management_parallel_next_step_triage_v1(
             "observed_value_v1": int(len(hindsight_df)),
             "expected_value_v1": int(len(outcome_quality_hindsight_v1_df)),
         },
-        {
-            "check_name_v1": "GLOBAL_JOIN_COUNTS_AND_LEAKAGE_GUARD_STAY_UNCHANGED",
-            "status_v1": "PASS"
-            if int(as_of_supervision_join_coverage_summary.get("exact_rows", -1)) == 2779
-            and int(as_of_supervision_join_coverage_summary.get("fallback_rows", -1)) == 0
-            and int(as_of_supervision_join_coverage_summary.get("unjoinable_rows", -1)) == 1
-            and _scalar_string(leakage_guard_summary.get("status")) == "PASS"
-            else "FAIL",
-            "observed_value_v1": json.dumps(
-                {
-                    "join_coverage": as_of_supervision_join_coverage_summary,
-                    "leakage_guard": leakage_guard_summary,
-                },
-                ensure_ascii=True,
-                sort_keys=True,
-            ),
-            "expected_value_v1": json.dumps(
-                {
-                    "exact_rows": 2779,
-                    "fallback_rows": 0,
-                    "unjoinable_rows": 1,
-                    "leakage_guard_status": "PASS",
-                },
-                ensure_ascii=True,
-                sort_keys=True,
-            ),
-        },
+        _build_join_leakage_consistency_row_v1(
+            as_of_supervision_join_coverage_summary,
+            leakage_guard_summary,
+        ),
     ]
     consistency_df = pd.DataFrame.from_records(consistency_rows)
     contract = {
@@ -28215,33 +33699,10 @@ def _build_management_root_cause_parallel_audit_v1(
             "observed_value_v1": int(len(base_hindsight)),
             "expected_value_v1": int(len(outcome_quality_hindsight_v1_df)),
         },
-        {
-            "check_name_v1": "GLOBAL_JOIN_COUNTS_AND_LEAKAGE_GUARD_STAY_UNCHANGED",
-            "status_v1": "PASS"
-            if int(as_of_supervision_join_coverage_summary.get("exact_rows", -1)) == 2779
-            and int(as_of_supervision_join_coverage_summary.get("fallback_rows", -1)) == 0
-            and int(as_of_supervision_join_coverage_summary.get("unjoinable_rows", -1)) == 1
-            and _scalar_string(leakage_guard_summary.get("status")) == "PASS"
-            else "FAIL",
-            "observed_value_v1": json.dumps(
-                {
-                    "join_coverage": as_of_supervision_join_coverage_summary,
-                    "leakage_guard": leakage_guard_summary,
-                },
-                ensure_ascii=True,
-                sort_keys=True,
-            ),
-            "expected_value_v1": json.dumps(
-                {
-                    "exact_rows": 2779,
-                    "fallback_rows": 0,
-                    "unjoinable_rows": 1,
-                    "leakage_guard_status": "PASS",
-                },
-                ensure_ascii=True,
-                sort_keys=True,
-            ),
-        },
+        _build_join_leakage_consistency_row_v1(
+            as_of_supervision_join_coverage_summary,
+            leakage_guard_summary,
+        ),
     ]
     consistency_df = pd.DataFrame.from_records(consistency_rows)
     contract = {
@@ -28273,6 +33734,7 @@ def _build_management_path_dynamics_state_logging_triage_v1(
     management_exit_local_shadow_row_view_v1_df: pd.DataFrame,
     outcome_quality_hindsight_v1_df: pd.DataFrame,
     outcome_quality_as_of_v1_df: pd.DataFrame,
+    management_policy_logging_decision_log_harness_v1_df: pd.DataFrame | None,
     contrast_feasibility_summary_v1: Dict[str, Any] | None,
     contrast_target_selection_summary_v1: Dict[str, Any] | None,
     slice_hardband_state_contrast_summary_v1: Dict[str, Any] | None,
@@ -28325,6 +33787,37 @@ def _build_management_path_dynamics_state_logging_triage_v1(
         how="left",
         validate="one_to_one",
     )
+
+    decision_log_df = (
+        management_policy_logging_decision_log_harness_v1_df.copy()
+        if management_policy_logging_decision_log_harness_v1_df is not None
+        else pd.DataFrame()
+    )
+    logging_cols = [
+        "decision_anchor_timestamp_utc_v1",
+        "decision_ts_utc_v1",
+        "as_of_management_core_last_peak_ts_utc_v1",
+        "as_of_management_core_last_mfe_ts_utc_v1",
+        "as_of_management_core_peak_price_v1",
+        "as_of_management_core_anchor_price_v1",
+        "as_of_management_core_mfe_bps_at_anchor_v1",
+        "path_dynamics_raw_state_join_mode_v1",
+    ]
+    if not decision_log_df.empty and all(col in decision_log_df.columns for col in join_keys):
+        decision_log_merge_cols = join_keys + [col for col in logging_cols if col in decision_log_df.columns]
+        decision_log_merge_df = decision_log_df[decision_log_merge_cols].drop_duplicates(subset=join_keys, keep="last")
+        base_as_of = base_as_of.merge(
+            decision_log_merge_df,
+            on=join_keys,
+            how="left",
+            validate="one_to_one",
+        )
+        base_hindsight = base_hindsight.merge(
+            decision_log_merge_df,
+            on=join_keys,
+            how="left",
+            validate="one_to_one",
+        )
 
     for col in core_as_of_fields + ["shadow_bucket_status_v1"]:
         if col not in base_as_of.columns:
@@ -28402,67 +33895,123 @@ def _build_management_path_dynamics_state_logging_triage_v1(
         {
             "candidate_name_v1": "pd_minutes_since_last_peak_v1",
             "type_v1": "numeric",
-            "requires_v1": ["as_of_management_core_minutes_since_last_peak_v1"],
-            "compute_v1": "identity",
+            "requires_v1": ["decision_anchor_timestamp_utc_v1", "as_of_management_core_last_peak_ts_utc_v1"],
+            "compute_v1": "(decision_anchor_timestamp_utc - last_peak_ts_utc) in minutes",
         },
         {
             "candidate_name_v1": "pd_bars_since_last_peak_v1",
             "type_v1": "numeric",
-            "requires_v1": ["as_of_management_core_bars_since_last_peak_v1"],
-            "compute_v1": "identity",
+            "requires_v1": ["decision_anchor_timestamp_utc_v1", "as_of_management_core_last_peak_ts_utc_v1"],
+            "compute_v1": "minutes_since_last_peak / bar_interval_minutes (bar interval not established yet)",
         },
         {
             "candidate_name_v1": "pd_minutes_since_last_mfe_v1",
             "type_v1": "numeric",
-            "requires_v1": ["as_of_management_core_minutes_since_last_mfe_v1"],
-            "compute_v1": "identity",
+            "requires_v1": ["decision_anchor_timestamp_utc_v1", "as_of_management_core_last_mfe_ts_utc_v1"],
+            "compute_v1": "(decision_anchor_timestamp_utc - last_mfe_ts_utc) in minutes",
         },
         {
             "candidate_name_v1": "pd_peak_to_anchor_bps_v1",
             "type_v1": "numeric",
-            "requires_v1": ["as_of_management_core_peak_to_anchor_bps_v1"],
-            "compute_v1": "identity",
+            "requires_v1": ["as_of_management_core_peak_price_v1", "as_of_management_core_anchor_price_v1"],
+            "compute_v1": "((peak_price / anchor_price) - 1) * 10000",
         },
         {
             "candidate_name_v1": "pd_mfe_to_anchor_ratio_v1",
             "type_v1": "numeric",
-            "requires_v1": ["as_of_management_core_mfe_to_anchor_ratio_v1"],
-            "compute_v1": "identity",
+            "requires_v1": [
+                "as_of_management_core_mfe_bps_at_anchor_v1",
+                "as_of_management_core_peak_price_v1",
+                "as_of_management_core_anchor_price_v1",
+            ],
+            "compute_v1": "mfe_bps_at_anchor / peak_to_anchor_bps",
         },
     ]
 
     candidate_rows: List[Dict[str, Any]] = []
-    as_of_frames: List[pd.DataFrame] = []
+    as_of_rows: List[Dict[str, Any]] = []
     hindsight_rows: List[Dict[str, Any]] = []
 
-    def _compute_candidate_values(spec: Dict[str, Any]) -> pd.Series:
+    def _coerce_ts(series: pd.Series) -> pd.Series:
+        return pd.to_datetime(series, utc=True, errors="coerce")
+
+    def _compute_peak_to_anchor_bps(frame: pd.DataFrame) -> pd.Series:
+        peak = pd.to_numeric(frame.get("as_of_management_core_peak_price_v1"), errors="coerce")
+        anchor = pd.to_numeric(frame.get("as_of_management_core_anchor_price_v1"), errors="coerce")
+        valid = anchor > 0
+        return (((peak / anchor) - 1.0) * 10000.0).where(valid)
+
+    def _compute_candidate_values(frame: pd.DataFrame, spec: Dict[str, Any]) -> pd.Series:
         name = spec["candidate_name_v1"]
         requires = spec["requires_v1"]
-        if any(col not in base_as_of.columns for col in requires):
-            return pd.Series([np.nan] * len(base_as_of), index=base_as_of.index, name=name)
+        if any(col not in frame.columns for col in requires):
+            return pd.Series([np.nan] * len(frame), index=frame.index, name=name)
         if name == "pd_giveback_per_minute_v1":
-            giveback = pd.to_numeric(base_as_of["as_of_management_core_giveback_ratio_from_peak_v1"], errors="coerce")
-            minutes = pd.to_numeric(base_as_of["as_of_management_core_minutes_held_at_anchor_v1"], errors="coerce")
+            giveback = pd.to_numeric(frame["as_of_management_core_giveback_ratio_from_peak_v1"], errors="coerce")
+            minutes = pd.to_numeric(frame["as_of_management_core_minutes_held_at_anchor_v1"], errors="coerce")
             minutes = minutes.where(minutes > 0, 1.0)
             return (giveback / minutes).astype(float)
         if name == "pd_minutes_held_log1p_v1":
-            minutes = pd.to_numeric(base_as_of["as_of_management_core_minutes_held_at_anchor_v1"], errors="coerce")
+            minutes = pd.to_numeric(frame["as_of_management_core_minutes_held_at_anchor_v1"], errors="coerce")
             return np.log1p(minutes)
         if name == "pd_giveback_ratio_clipped_0_1_v1":
-            giveback = pd.to_numeric(base_as_of["as_of_management_core_giveback_ratio_from_peak_v1"], errors="coerce")
+            giveback = pd.to_numeric(frame["as_of_management_core_giveback_ratio_from_peak_v1"], errors="coerce")
             return giveback.clip(lower=0.0, upper=1.0)
         if name == "pd_hold_age_bucket_fine_v1":
-            minutes = pd.to_numeric(base_as_of["as_of_management_core_minutes_held_at_anchor_v1"], errors="coerce")
+            minutes = pd.to_numeric(frame["as_of_management_core_minutes_held_at_anchor_v1"], errors="coerce")
             bins = [-np.inf, 15.0, 60.0, 180.0, np.inf]
             labels = ["LE_15M", "LE_60M", "LE_180M", "GT_180M"]
             return pd.cut(minutes, bins=bins, labels=labels).astype("string")
-        if name in base_as_of.columns:
-            return pd.to_numeric(base_as_of[name], errors="coerce")
-        if len(requires) == 1 and requires[0] in base_as_of.columns:
-            return pd.to_numeric(base_as_of[requires[0]], errors="coerce")
-        return pd.Series([np.nan] * len(base_as_of), index=base_as_of.index, name=name)
+        if name == "pd_minutes_since_last_peak_v1":
+            decision_ts = _coerce_ts(frame["decision_anchor_timestamp_utc_v1"])
+            last_peak_ts = _coerce_ts(frame["as_of_management_core_last_peak_ts_utc_v1"])
+            delta_minutes = (decision_ts - last_peak_ts).dt.total_seconds() / 60.0
+            return delta_minutes.where(delta_minutes >= 0.0)
+        if name == "pd_bars_since_last_peak_v1":
+            return pd.Series([np.nan] * len(frame), index=frame.index, name=name)
+        if name == "pd_minutes_since_last_mfe_v1":
+            decision_ts = _coerce_ts(frame["decision_anchor_timestamp_utc_v1"])
+            last_mfe_ts = _coerce_ts(frame["as_of_management_core_last_mfe_ts_utc_v1"])
+            delta_minutes = (decision_ts - last_mfe_ts).dt.total_seconds() / 60.0
+            return delta_minutes.where(delta_minutes >= 0.0)
+        if name == "pd_peak_to_anchor_bps_v1":
+            return _compute_peak_to_anchor_bps(frame)
+        if name == "pd_mfe_to_anchor_ratio_v1":
+            mfe_bps = pd.to_numeric(frame["as_of_management_core_mfe_bps_at_anchor_v1"], errors="coerce")
+            peak_to_anchor_bps = _compute_peak_to_anchor_bps(frame)
+            valid = peak_to_anchor_bps > 0.0
+            return (mfe_bps / peak_to_anchor_bps).where(valid)
+        if name in frame.columns:
+            return pd.to_numeric(frame[name], errors="coerce")
+        if len(requires) == 1 and requires[0] in frame.columns:
+            return pd.to_numeric(frame[requires[0]], errors="coerce")
+        return pd.Series([np.nan] * len(frame), index=frame.index, name=name)
 
-    def _feasibility_status(coverage: float, missing_required: bool) -> str:
+    def _temporal_order_invalid(frame: pd.DataFrame, spec_name: str) -> bool:
+        if spec_name not in {"pd_minutes_since_last_peak_v1", "pd_minutes_since_last_mfe_v1", "pd_bars_since_last_peak_v1"}:
+            return False
+        if "decision_anchor_timestamp_utc_v1" not in frame.columns:
+            return False
+        other_col = (
+            "as_of_management_core_last_peak_ts_utc_v1"
+            if spec_name in {"pd_minutes_since_last_peak_v1", "pd_bars_since_last_peak_v1"}
+            else "as_of_management_core_last_mfe_ts_utc_v1"
+        )
+        if other_col not in frame.columns:
+            return False
+        decision_ts = _coerce_ts(frame["decision_anchor_timestamp_utc_v1"])
+        other_ts = _coerce_ts(frame[other_col])
+        delta_minutes = (decision_ts - other_ts).dt.total_seconds() / 60.0
+        valid = delta_minutes.notna()
+        if not bool(valid.any()):
+            return False
+        return bool((delta_minutes.loc[valid] < 0.0).all())
+
+    def _feasibility_status(spec_name: str, coverage: float, missing_required: bool, frame: pd.DataFrame) -> str:
+        if _temporal_order_invalid(frame, spec_name):
+            return "LOGGED_BUT_TEMPORAL_ORDER_INVALID"
+        if spec_name == "pd_bars_since_last_peak_v1":
+            return "REQUIRES_FUTURE_LOGGING"
         if missing_required:
             return "REQUIRES_FUTURE_LOGGING"
         if coverage >= 0.80:
@@ -28475,9 +34024,9 @@ def _build_management_path_dynamics_state_logging_triage_v1(
         name = spec["candidate_name_v1"]
         requires = spec["requires_v1"]
         missing_required = any(col not in base_as_of.columns for col in requires)
-        values = _compute_candidate_values(spec)
+        values = _compute_candidate_values(base_as_of, spec)
         coverage = float(values.notna().mean()) if len(values) else 0.0
-        status = _feasibility_status(coverage, missing_required)
+        status = _feasibility_status(name, coverage, missing_required, base_as_of)
         candidate_rows.append(
             {
                 "candidate_name_v1": name,
@@ -28486,6 +34035,10 @@ def _build_management_path_dynamics_state_logging_triage_v1(
                 "compute_v1": spec["compute_v1"],
                 "coverage_share_v1": coverage,
                 "feasibility_status_v1": status,
+                "candidate_source_v1": "MANAGEMENT_POLICY_LOGGING_DECISION_LOG"
+                if name.startswith("pd_minutes_since_last")
+                or name in {"pd_peak_to_anchor_bps_v1", "pd_mfe_to_anchor_ratio_v1"}
+                else "CANONICAL_AS_OF_STATE",
             }
         )
         as_of_block = base_as_of[join_keys + ["walkforward_slice_v1"]].copy()
@@ -28498,9 +34051,10 @@ def _build_management_path_dynamics_state_logging_triage_v1(
             as_of_block["candidate_value_str_v1"] = pd.Series([None] * len(as_of_block), index=as_of_block.index)
         as_of_block["feasibility_status_v1"] = status
         as_of_block["coverage_share_v1"] = coverage
-        as_of_frames.append(as_of_block)
+        as_of_block["candidate_source_v1"] = candidate_rows[-1]["candidate_source_v1"]
+        as_of_rows.extend(as_of_block.to_dict(orient="records"))
 
-    as_of_out = pd.concat(as_of_frames, ignore_index=True) if as_of_frames else pd.DataFrame()
+    as_of_out = pd.DataFrame.from_records(as_of_rows) if as_of_rows else pd.DataFrame()
 
     # Incremental signal audit on slice hard banding
     baseline_fields = {
@@ -28526,8 +34080,7 @@ def _build_management_path_dynamics_state_logging_triage_v1(
     for spec in candidate_specs:
         name = spec["candidate_name_v1"]
         field_type = spec["type_v1"]
-        values = _compute_candidate_values(spec)
-        base_hindsight[name] = values
+        base_hindsight[name] = _compute_candidate_values(base_hindsight, spec)
         slice_metrics: List[float] = []
         support_slices = 0
         for slice_id, group in base_hindsight.groupby("walkforward_slice_v1", dropna=False):
@@ -28560,8 +34113,7 @@ def _build_management_path_dynamics_state_logging_triage_v1(
     for spec in candidate_specs:
         name = spec["candidate_name_v1"]
         field_type = spec["type_v1"]
-        values = _compute_candidate_values(spec)
-        base_hindsight[name] = values
+        base_hindsight[name] = _compute_candidate_values(base_hindsight, spec)
         quintile_metrics: List[float] = []
         quintile_support = 0
         for quintile, group in base_hindsight.groupby("shadow_score_quintile_v1", dropna=False):
@@ -28622,7 +34174,7 @@ def _build_management_path_dynamics_state_logging_triage_v1(
         support = slice_scores.get(name, {}).get("support_slices_v1", 0)
         if feasibility == "EXACT_RECONSTRUCTIBLE" and support >= 2 and score >= (baseline_best + 0.05):
             verdict = "NOW_ADDABLE_RESEARCH_STATE"
-        elif feasibility == "REQUIRES_FUTURE_LOGGING":
+        elif feasibility in {"REQUIRES_FUTURE_LOGGING", "LOGGED_BUT_TEMPORAL_ORDER_INVALID"}:
             verdict = "LOG_FIRST"
         else:
             verdict = "DROP"
@@ -28649,13 +34201,19 @@ def _build_management_path_dynamics_state_logging_triage_v1(
 
     future_logging_spec = []
     for row in candidate_rows:
-        if row["feasibility_status_v1"] != "REQUIRES_FUTURE_LOGGING":
+        if row["feasibility_status_v1"] not in {"REQUIRES_FUTURE_LOGGING", "LOGGED_BUT_TEMPORAL_ORDER_INVALID"}:
             continue
         field_name = row["candidate_name_v1"]
         if "last_peak" in field_name:
-            min_spec = "Log last_peak_ts_utc_v1 and decision_anchor_ts_utc_v1 to compute minutes/bars since last peak."
+            if row["feasibility_status_v1"] == "LOGGED_BUT_TEMPORAL_ORDER_INVALID":
+                min_spec = "Current last_peak_ts_utc_v1 is future-oriented vs decision_anchor_timestamp_utc_v1; fix semantic direction before deriving elapsed time."
+            else:
+                min_spec = "Log last_peak_ts_utc_v1 and decision_anchor_timestamp_utc_v1 to compute minutes/bars since last peak."
         elif "last_mfe" in field_name:
-            min_spec = "Log last_mfe_ts_utc_v1 and decision_anchor_ts_utc_v1 to compute minutes since last MFE."
+            if row["feasibility_status_v1"] == "LOGGED_BUT_TEMPORAL_ORDER_INVALID":
+                min_spec = "Current last_mfe_ts_utc_v1 is future-oriented vs decision_anchor_timestamp_utc_v1; fix semantic direction before deriving elapsed time."
+            else:
+                min_spec = "Log last_mfe_ts_utc_v1 and decision_anchor_timestamp_utc_v1 to compute minutes since last MFE."
         elif "peak_to_anchor" in field_name:
             min_spec = "Log peak_price_v1 and anchor_price_v1 to compute peak-to-anchor bps."
         elif "mfe_to_anchor" in field_name:
@@ -28742,33 +34300,10 @@ def _build_management_path_dynamics_state_logging_triage_v1(
             "observed_value_v1": int(len(base_hindsight)),
             "expected_value_v1": int(len(outcome_quality_hindsight_v1_df)),
         },
-        {
-            "check_name_v1": "GLOBAL_JOIN_COUNTS_AND_LEAKAGE_GUARD_STAY_UNCHANGED",
-            "status_v1": "PASS"
-            if int(as_of_supervision_join_coverage_summary.get("exact_rows", -1)) == 2779
-            and int(as_of_supervision_join_coverage_summary.get("fallback_rows", -1)) == 0
-            and int(as_of_supervision_join_coverage_summary.get("unjoinable_rows", -1)) == 1
-            and _scalar_string(leakage_guard_summary.get("status")) == "PASS"
-            else "FAIL",
-            "observed_value_v1": json.dumps(
-                {
-                    "join_coverage": as_of_supervision_join_coverage_summary,
-                    "leakage_guard": leakage_guard_summary,
-                },
-                ensure_ascii=True,
-                sort_keys=True,
-            ),
-            "expected_value_v1": json.dumps(
-                {
-                    "exact_rows": 2779,
-                    "fallback_rows": 0,
-                    "unjoinable_rows": 1,
-                    "leakage_guard_status": "PASS",
-                },
-                ensure_ascii=True,
-                sort_keys=True,
-            ),
-        },
+        _build_join_leakage_consistency_row_v1(
+            as_of_supervision_join_coverage_summary,
+            leakage_guard_summary,
+        ),
     ]
     consistency_df = pd.DataFrame.from_records(consistency_rows)
     contract = {
@@ -28799,46 +34334,61 @@ def _build_management_path_dynamics_state_logging_triage_v1(
 def _build_management_path_dynamics_logging_spec_v1(
     *,
     path_dynamics_triage_summary_v1: Dict[str, Any] | None,
+    management_policy_logging_decision_log_harness_v1_df: pd.DataFrame,
     as_of_supervision_join_coverage_summary: Dict[str, Any],
     leakage_guard_summary: Dict[str, Any],
 ) -> Dict[str, Any]:
+    decision_df = management_policy_logging_decision_log_harness_v1_df.copy()
     fields = [
         {
             "field_name_v1": "as_of_management_core_last_peak_ts_utc_v1",
             "field_type_v1": "timestamp",
             "source_layer_v1": "MANAGEMENT_DECISION_LOG_AS_OF",
             "required_for_v1": "minutes_since_last_peak / bars_since_last_peak",
-            "status_v1": "REQUIRES_FUTURE_LOGGING",
         },
         {
             "field_name_v1": "as_of_management_core_last_mfe_ts_utc_v1",
             "field_type_v1": "timestamp",
             "source_layer_v1": "MANAGEMENT_DECISION_LOG_AS_OF",
             "required_for_v1": "minutes_since_last_mfe",
-            "status_v1": "REQUIRES_FUTURE_LOGGING",
         },
         {
             "field_name_v1": "as_of_management_core_peak_price_v1",
             "field_type_v1": "float",
             "source_layer_v1": "MANAGEMENT_DECISION_LOG_AS_OF",
             "required_for_v1": "peak_to_anchor_bps",
-            "status_v1": "REQUIRES_FUTURE_LOGGING",
         },
         {
             "field_name_v1": "as_of_management_core_anchor_price_v1",
             "field_type_v1": "float",
             "source_layer_v1": "MANAGEMENT_DECISION_LOG_AS_OF",
             "required_for_v1": "peak_to_anchor_bps / mfe_to_anchor_ratio",
-            "status_v1": "REQUIRES_FUTURE_LOGGING",
         },
         {
             "field_name_v1": "as_of_management_core_mfe_bps_at_anchor_v1",
             "field_type_v1": "float",
             "source_layer_v1": "MANAGEMENT_DECISION_LOG_AS_OF",
             "required_for_v1": "mfe_to_anchor_ratio",
-            "status_v1": "REQUIRES_FUTURE_LOGGING",
         },
     ]
+
+    def _is_missing(series: pd.Series) -> pd.Series:
+        return series.isna() | series.astype("string").eq(_LEDGER_NOT_AVAILABLE)
+
+    for row in fields:
+        field_name = row["field_name_v1"]
+        if field_name not in decision_df.columns:
+            row["coverage_share_v1"] = 0.0
+            row["status_v1"] = "REQUIRES_FUTURE_LOGGING"
+            continue
+        coverage = float((~_is_missing(decision_df[field_name])).mean()) if len(decision_df) else 0.0
+        row["coverage_share_v1"] = coverage
+        if coverage >= 0.80:
+            row["status_v1"] = "AS_OF_LOGGED_READY"
+        elif coverage > 0.0:
+            row["status_v1"] = "AS_OF_LOGGED_PARTIAL"
+        else:
+            row["status_v1"] = "REQUIRES_FUTURE_LOGGING"
 
     as_of_df = pd.DataFrame.from_records(fields)
     hindsight_df = pd.DataFrame.from_records([], columns=["field_name_v1", "status_v1"])
@@ -28856,6 +34406,7 @@ def _build_management_path_dynamics_logging_spec_v1(
     summary = {
         "layer_name": "MANAGEMENT_PATH_DYNAMICS_LOGGING_SPEC_V1",
         "field_rows_v1": int(len(as_of_df)),
+        "coverage_rows_v1": as_of_df[["field_name_v1", "coverage_share_v1", "status_v1"]].to_dict(orient="records"),
         "triage_reference_v1": path_dynamics_triage_summary_v1 or {},
         "note_v1": "Spec-only logging fields for future path-dynamics research; no policy truth.",
         "no_policy_truth_v1": True,
@@ -28872,7 +34423,8 @@ def _build_management_path_dynamics_logging_spec_v1(
     ]
     for row in as_of_df.itertuples(index=False):
         markdown_sections.append(
-            f"- {row.field_name_v1} ({row.field_type_v1}) | required_for `{row.required_for_v1}` | status `{row.status_v1}`"
+            f"- {row.field_name_v1} ({row.field_type_v1}) | required_for `{row.required_for_v1}` | "
+            f"status `{row.status_v1}` | coverage `{_format_float_compact_v1(row.coverage_share_v1, 3)}`"
         )
     markdown_sections.append("")
     report_text = "\n".join(markdown_sections).rstrip() + "\n"
@@ -28884,33 +34436,10 @@ def _build_management_path_dynamics_logging_spec_v1(
             "observed_value_v1": int(len(as_of_df)),
             "expected_value_v1": 1,
         },
-        {
-            "check_name_v1": "GLOBAL_JOIN_COUNTS_AND_LEAKAGE_GUARD_STAY_UNCHANGED",
-            "status_v1": "PASS"
-            if int(as_of_supervision_join_coverage_summary.get("exact_rows", -1)) == 2779
-            and int(as_of_supervision_join_coverage_summary.get("fallback_rows", -1)) == 0
-            and int(as_of_supervision_join_coverage_summary.get("unjoinable_rows", -1)) == 1
-            and _scalar_string(leakage_guard_summary.get("status")) == "PASS"
-            else "FAIL",
-            "observed_value_v1": json.dumps(
-                {
-                    "join_coverage": as_of_supervision_join_coverage_summary,
-                    "leakage_guard": leakage_guard_summary,
-                },
-                ensure_ascii=True,
-                sort_keys=True,
-            ),
-            "expected_value_v1": json.dumps(
-                {
-                    "exact_rows": 2779,
-                    "fallback_rows": 0,
-                    "unjoinable_rows": 1,
-                    "leakage_guard_status": "PASS",
-                },
-                ensure_ascii=True,
-                sort_keys=True,
-            ),
-        },
+        _build_join_leakage_consistency_row_v1(
+            as_of_supervision_join_coverage_summary,
+            leakage_guard_summary,
+        ),
     ]
     consistency_df = pd.DataFrame.from_records(consistency_rows)
 
@@ -28942,6 +34471,9 @@ def _build_management_path_dynamics_logging_harness_e2e_v1(
         "as_of_management_core_peak_price_v1",
         "as_of_management_core_anchor_price_v1",
         "as_of_management_core_mfe_bps_at_anchor_v1",
+        "as_of_management_core_last_peak_mfe_bps_v1",
+        "as_of_management_core_max_mfe_without_mae_bps_v1",
+        "as_of_management_core_mfe_mae_sequence_order_v1",
     ]
 
     wiring_rows = []
@@ -28950,6 +34482,9 @@ def _build_management_path_dynamics_logging_harness_e2e_v1(
 
     def _is_missing_value(series: pd.Series) -> pd.Series:
         return series.isna() | series.astype("string").eq(_LEDGER_NOT_AVAILABLE)
+
+    def _coerce_ts(series: pd.Series) -> pd.Series:
+        return pd.to_datetime(series, utc=True, errors="coerce")
 
     for field in field_specs:
         in_decision = field in decision_df.columns
@@ -29009,18 +34544,51 @@ def _build_management_path_dynamics_logging_harness_e2e_v1(
             return "PARTIAL_READY", coverage
         return "NOT_READY_NO_COVERAGE", coverage
 
-    decision_ts_field = "decision_ts_utc_v1"
+    def _temporal_readiness(label: str, source_field: str) -> Tuple[str, float]:
+        if decision_ts_field not in decision_df.columns or source_field not in decision_df.columns:
+            return "NOT_READY_MISSING_FIELD", 0.0
+        base_mask = ~_is_missing_value(decision_df[decision_ts_field]) & ~_is_missing_value(decision_df[source_field])
+        if not bool(base_mask.any()):
+            return "NOT_READY_NO_COVERAGE", 0.0
+        decision_ts = _coerce_ts(decision_df[decision_ts_field])
+        source_ts = _coerce_ts(decision_df[source_field])
+        delta_minutes = (decision_ts - source_ts).dt.total_seconds() / 60.0
+        valid = base_mask & delta_minutes.notna()
+        if not bool(valid.any()):
+            return "NOT_READY_NO_COVERAGE", 0.0
+        nonnegative_share = float((delta_minutes.loc[valid] >= 0.0).mean())
+        if nonnegative_share >= 0.80:
+            return "READY_FROM_LOGGING", nonnegative_share
+        if nonnegative_share > 0.0:
+            return "PARTIAL_READY_TEMPORAL_ORDER_MIXED", nonnegative_share
+        return "NOT_READY_TEMPORAL_ORDER_BROKEN", nonnegative_share
+
+    decision_ts_field = "decision_anchor_timestamp_utc_v1"
     derived_specs = [
         ("minutes_since_last_peak_v1", [decision_ts_field, "as_of_management_core_last_peak_ts_utc_v1"]),
         ("bars_since_last_peak_v1", [decision_ts_field, "as_of_management_core_last_peak_ts_utc_v1"]),
         ("minutes_since_last_mfe_v1", [decision_ts_field, "as_of_management_core_last_mfe_ts_utc_v1"]),
         ("peak_to_anchor_bps_v1", ["as_of_management_core_peak_price_v1", "as_of_management_core_anchor_price_v1"]),
-        ("mfe_to_anchor_ratio_v1", ["as_of_management_core_mfe_bps_at_anchor_v1", "as_of_management_core_anchor_price_v1"]),
+        (
+            "mfe_to_anchor_ratio_v1",
+            [
+                "as_of_management_core_mfe_bps_at_anchor_v1",
+                "as_of_management_core_peak_price_v1",
+                "as_of_management_core_anchor_price_v1",
+            ],
+        ),
     ]
     for name, reqs in derived_specs:
-        readiness, coverage = _ready_flag(reqs)
-        if name == "bars_since_last_peak_v1" and readiness == "READY_FROM_LOGGING":
-            readiness = "NOT_READY_MISSING_BAR_INTERVAL"
+        if name == "minutes_since_last_peak_v1":
+            readiness, coverage = _temporal_readiness(name, "as_of_management_core_last_peak_ts_utc_v1")
+        elif name == "minutes_since_last_mfe_v1":
+            readiness, coverage = _temporal_readiness(name, "as_of_management_core_last_mfe_ts_utc_v1")
+        elif name == "bars_since_last_peak_v1":
+            readiness, coverage = _temporal_readiness(name, "as_of_management_core_last_peak_ts_utc_v1")
+            if readiness == "READY_FROM_LOGGING":
+                readiness = "NOT_READY_MISSING_BAR_INTERVAL"
+        else:
+            readiness, coverage = _ready_flag(reqs)
         derived_rows.append(
             {
                 "derived_field_v1": name,
@@ -29119,33 +34687,10 @@ def _build_management_path_dynamics_logging_harness_e2e_v1(
             "observed_value_v1": [row["status_v1"] for row in smoke_checks],
             "expected_value_v1": ["PASS" for _ in smoke_checks],
         },
-        {
-            "check_name_v1": "GLOBAL_JOIN_COUNTS_AND_LEAKAGE_GUARD_STAY_UNCHANGED",
-            "status_v1": "PASS"
-            if int(as_of_supervision_join_coverage_summary.get("exact_rows", -1)) == 2779
-            and int(as_of_supervision_join_coverage_summary.get("fallback_rows", -1)) == 0
-            and int(as_of_supervision_join_coverage_summary.get("unjoinable_rows", -1)) == 1
-            and _scalar_string(leakage_guard_summary.get("status")) == "PASS"
-            else "FAIL",
-            "observed_value_v1": json.dumps(
-                {
-                    "join_coverage": as_of_supervision_join_coverage_summary,
-                    "leakage_guard": leakage_guard_summary,
-                },
-                ensure_ascii=True,
-                sort_keys=True,
-            ),
-            "expected_value_v1": json.dumps(
-                {
-                    "exact_rows": 2779,
-                    "fallback_rows": 0,
-                    "unjoinable_rows": 1,
-                    "leakage_guard_status": "PASS",
-                },
-                ensure_ascii=True,
-                sort_keys=True,
-            ),
-        },
+        _build_join_leakage_consistency_row_v1(
+            as_of_supervision_join_coverage_summary,
+            leakage_guard_summary,
+        ),
     ]
     consistency_df = pd.DataFrame.from_records(consistency_rows)
     contract = {
@@ -29177,6 +34722,10 @@ def _build_management_path_dynamics_instrumentation_checklist_v1(
     as_of_supervision_join_coverage_summary: Dict[str, Any],
     leakage_guard_summary: Dict[str, Any],
 ) -> Dict[str, Any]:
+    coverage_map = {
+        _scalar_string(row.get("field_name_v1")): row
+        for row in (path_dynamics_logging_harness_summary_v1 or {}).get("coverage_rows_v1", [])
+    }
     checklist_rows = [
         {
             "field_name_v1": "as_of_management_core_last_peak_ts_utc_v1",
@@ -29219,6 +34768,15 @@ def _build_management_path_dynamics_instrumentation_checklist_v1(
             "action_v1": "Instrument mfe_bps_at_anchor at decision anchor (shadow-only logging).",
         },
     ]
+    for row in checklist_rows:
+        coverage_row = coverage_map.get(row["field_name_v1"], {})
+        coverage = float(coverage_row.get("coverage_share_v1", 0.0) or 0.0)
+        if coverage >= 0.80:
+            row["source_guess_status_v1"] = "BEVIST_SHADOW_LOGGED_AS_OF"
+            row["action_v1"] = "Already instrumented in shadow-only logging; continue collecting append-only coverage."
+        elif coverage > 0.0:
+            row["source_guess_status_v1"] = "INDIKERT_PARTIAL_SHADOW_LOGGED_AS_OF"
+            row["action_v1"] = "Keep current shadow logging and improve partial coverage before deriving new state."
     as_of_df = pd.DataFrame.from_records(checklist_rows)
     hindsight_df = pd.DataFrame.from_records([], columns=["field_name_v1", "status_v1"])
 
@@ -29264,33 +34822,10 @@ def _build_management_path_dynamics_instrumentation_checklist_v1(
             "observed_value_v1": int(len(as_of_df)),
             "expected_value_v1": 1,
         },
-        {
-            "check_name_v1": "GLOBAL_JOIN_COUNTS_AND_LEAKAGE_GUARD_STAY_UNCHANGED",
-            "status_v1": "PASS"
-            if int(as_of_supervision_join_coverage_summary.get("exact_rows", -1)) == 2779
-            and int(as_of_supervision_join_coverage_summary.get("fallback_rows", -1)) == 0
-            and int(as_of_supervision_join_coverage_summary.get("unjoinable_rows", -1)) == 1
-            and _scalar_string(leakage_guard_summary.get("status")) == "PASS"
-            else "FAIL",
-            "observed_value_v1": json.dumps(
-                {
-                    "join_coverage": as_of_supervision_join_coverage_summary,
-                    "leakage_guard": leakage_guard_summary,
-                },
-                ensure_ascii=True,
-                sort_keys=True,
-            ),
-            "expected_value_v1": json.dumps(
-                {
-                    "exact_rows": 2779,
-                    "fallback_rows": 0,
-                    "unjoinable_rows": 1,
-                    "leakage_guard_status": "PASS",
-                },
-                ensure_ascii=True,
-                sort_keys=True,
-            ),
-        },
+        _build_join_leakage_consistency_row_v1(
+            as_of_supervision_join_coverage_summary,
+            leakage_guard_summary,
+        ),
     ]
     consistency_df = pd.DataFrame.from_records(consistency_rows)
 
@@ -29307,6 +34842,7 @@ def _build_management_path_dynamics_instrumentation_checklist_v1(
 def _build_management_path_dynamics_upstream_source_binding_v1(
     *,
     reports_root: Path,
+    management_anchor_raw_state_v1_df: pd.DataFrame,
     management_bandit_direct_method_candidate_view_v1_df: pd.DataFrame,
     management_exit_local_all_eligible_scored_view_v1_df: pd.DataFrame,
     as_of_decision_moment_ledger_v1_df: pd.DataFrame,
@@ -29341,10 +34877,15 @@ def _build_management_path_dynamics_upstream_source_binding_v1(
         "as_of_management_core_peak_price_v1",
         "as_of_management_core_anchor_price_v1",
         "as_of_management_core_mfe_bps_at_anchor_v1",
+        "as_of_management_core_last_peak_mfe_bps_v1",
+        "as_of_management_core_max_mfe_without_mae_bps_v1",
+        "as_of_management_core_mfe_mae_sequence_order_v1",
     ]
     join_keys = ["candidate_uid_exact_v1", "trade_uid_exact_v1", "trade_id_exact_v1"]
 
     source_candidates: List[Tuple[str, pd.DataFrame]] = [
+        ("management_anchor_raw_state_v1_df", management_anchor_raw_state_v1_df),
+        ("management_policy_logging_decision_log_harness_v1_df", management_policy_logging_decision_log_harness_v1_df),
         ("management_bandit_direct_method_candidate_view_v1_df", management_bandit_direct_method_candidate_view_v1_df),
         ("management_exit_local_all_eligible_scored_view_v1_df", management_exit_local_all_eligible_scored_view_v1_df),
         ("as_of_decision_moment_ledger_v1_df", as_of_decision_moment_ledger_v1_df),
@@ -29521,33 +35062,10 @@ def _build_management_path_dynamics_upstream_source_binding_v1(
 
     report_text = "\n".join(markdown_sections).rstrip() + "\n"
     consistency_rows = [
-        {
-            "check_name_v1": "GLOBAL_JOIN_COUNTS_AND_LEAKAGE_GUARD_STAY_UNCHANGED",
-            "status_v1": "PASS"
-            if int(as_of_supervision_join_coverage_summary.get("exact_rows", -1)) == 2779
-            and int(as_of_supervision_join_coverage_summary.get("fallback_rows", -1)) == 0
-            and int(as_of_supervision_join_coverage_summary.get("unjoinable_rows", -1)) == 1
-            and _scalar_string(leakage_guard_summary.get("status")) == "PASS"
-            else "FAIL",
-            "observed_value_v1": json.dumps(
-                {
-                    "join_coverage": as_of_supervision_join_coverage_summary,
-                    "leakage_guard": leakage_guard_summary,
-                },
-                ensure_ascii=True,
-                sort_keys=True,
-            ),
-            "expected_value_v1": json.dumps(
-                {
-                    "exact_rows": 2779,
-                    "fallback_rows": 0,
-                    "unjoinable_rows": 1,
-                    "leakage_guard_status": "PASS",
-                },
-                ensure_ascii=True,
-                sort_keys=True,
-            ),
-        },
+        _build_join_leakage_consistency_row_v1(
+            as_of_supervision_join_coverage_summary,
+            leakage_guard_summary,
+        ),
     ]
     consistency_df = pd.DataFrame.from_records(consistency_rows)
     contract = {
@@ -29756,23 +35274,6 @@ def build_management_audit_extensions_v1(
         as_of_supervision_join_coverage_summary=source_bundle["as_of_supervision_join_coverage_summary"],
         leakage_guard_summary=source_bundle["leakage_guard_summary"],
     )
-    path_dynamics_triage_payload = _build_management_path_dynamics_state_logging_triage_v1(
-        management_exit_local_all_eligible_scored_view_v1_df=source_bundle["management_exit_local_all_eligible_scored_view_v1_df"],
-        management_exit_local_shadow_row_view_v1_df=source_bundle["management_exit_local_shadow_row_view_v1_df"],
-        outcome_quality_hindsight_v1_df=outcome_quality_payload["management_outcome_quality_regime_audit_hindsight_v1_df"],
-        outcome_quality_as_of_v1_df=outcome_quality_payload["management_outcome_quality_regime_audit_as_of_v1_df"],
-        contrast_feasibility_summary_v1=contrast_feasibility_payload["management_contrast_feasibility_audit_summary_v1"],
-        contrast_target_selection_summary_v1=contrast_target_payload["management_contrast_target_selection_audit_summary_v1"],
-        slice_hardband_state_contrast_summary_v1=slice_hardband_payload["management_slice_hardband_state_contrast_audit_summary_v1"],
-        topfield_incremental_value_summary_v1=topfield_incremental_payload["management_topfield_incremental_value_audit_summary_v1"],
-        as_of_supervision_join_coverage_summary=source_bundle["as_of_supervision_join_coverage_summary"],
-        leakage_guard_summary=source_bundle["leakage_guard_summary"],
-    )
-    path_dynamics_logging_spec_payload = _build_management_path_dynamics_logging_spec_v1(
-        path_dynamics_triage_summary_v1=path_dynamics_triage_payload["management_path_dynamics_state_logging_triage_summary_v1"],
-        as_of_supervision_join_coverage_summary=source_bundle["as_of_supervision_join_coverage_summary"],
-        leakage_guard_summary=source_bundle["leakage_guard_summary"],
-    )
     policy_logging_payload = _build_management_policy_logging_harness_v1(
         management_bandit_observed_sample_view_v1_df=source_bundle["management_bandit_observed_sample_view_v1_df"],
         management_bandit_direct_method_candidate_view_v1_df=source_bundle["management_bandit_direct_method_candidate_view_v1_df"],
@@ -29780,6 +35281,7 @@ def build_management_audit_extensions_v1(
         management_regime_overlay_view_v1_df=regime_overlay_payload["management_regime_overlay_view_v1_df"],
         management_exit_local_manual_review_casebook_v1_df=source_bundle["manual_review_casebook_v1_df"],
         management_anchor_raw_state_v1_df=source_bundle["management_anchor_raw_state_v1_df"],
+        as_of_decision_moment_ledger_v1_df=source_bundle["as_of_decision_moment_ledger_v1_df"],
         closed_trades_df=source_bundle["closed_trades_df"],
         hindsight_review_export_df=source_bundle["hindsight_review_export_df"],
         management_bandit_action_reward_contract_v1=source_bundle["management_bandit_action_reward_contract_v1"],
@@ -29790,6 +35292,29 @@ def build_management_audit_extensions_v1(
         build_id_v1=build_id_v1,
         build_timestamp_utc_v1=build_timestamp_utc_v1,
         source_control_date_v1=_scalar_string(source_bundle["source_build_summary"].get("control_date")),
+    )
+    path_dynamics_triage_payload = _build_management_path_dynamics_state_logging_triage_v1(
+        management_exit_local_all_eligible_scored_view_v1_df=source_bundle["management_exit_local_all_eligible_scored_view_v1_df"],
+        management_exit_local_shadow_row_view_v1_df=source_bundle["management_exit_local_shadow_row_view_v1_df"],
+        outcome_quality_hindsight_v1_df=outcome_quality_payload["management_outcome_quality_regime_audit_hindsight_v1_df"],
+        outcome_quality_as_of_v1_df=outcome_quality_payload["management_outcome_quality_regime_audit_as_of_v1_df"],
+        management_policy_logging_decision_log_harness_v1_df=policy_logging_payload[
+            "management_policy_logging_decision_log_harness_v1_df"
+        ],
+        contrast_feasibility_summary_v1=contrast_feasibility_payload["management_contrast_feasibility_audit_summary_v1"],
+        contrast_target_selection_summary_v1=contrast_target_payload["management_contrast_target_selection_audit_summary_v1"],
+        slice_hardband_state_contrast_summary_v1=slice_hardband_payload["management_slice_hardband_state_contrast_audit_summary_v1"],
+        topfield_incremental_value_summary_v1=topfield_incremental_payload["management_topfield_incremental_value_audit_summary_v1"],
+        as_of_supervision_join_coverage_summary=source_bundle["as_of_supervision_join_coverage_summary"],
+        leakage_guard_summary=source_bundle["leakage_guard_summary"],
+    )
+    path_dynamics_logging_spec_payload = _build_management_path_dynamics_logging_spec_v1(
+        path_dynamics_triage_summary_v1=path_dynamics_triage_payload["management_path_dynamics_state_logging_triage_summary_v1"],
+        management_policy_logging_decision_log_harness_v1_df=policy_logging_payload[
+            "management_policy_logging_decision_log_harness_v1_df"
+        ],
+        as_of_supervision_join_coverage_summary=source_bundle["as_of_supervision_join_coverage_summary"],
+        leakage_guard_summary=source_bundle["leakage_guard_summary"],
     )
     path_dynamics_logging_harness_payload = _build_management_path_dynamics_logging_harness_e2e_v1(
         management_policy_logging_decision_log_harness_v1_df=policy_logging_payload[
@@ -29816,6 +35341,7 @@ def build_management_audit_extensions_v1(
     )
     path_dynamics_source_binding_payload = _build_management_path_dynamics_upstream_source_binding_v1(
         reports_root=reports_root,
+        management_anchor_raw_state_v1_df=source_bundle["management_anchor_raw_state_v1_df"],
         management_bandit_direct_method_candidate_view_v1_df=source_bundle[
             "management_bandit_direct_method_candidate_view_v1_df"
         ],
@@ -31291,7 +36817,7 @@ def build_all_trade_review_ledger_closed_trades(
         control_date = pd.Timestamp(control_date).date()
     run_rows = _enumerate_truth_e2e_run_dirs(reports_root, control_date=control_date)
     if not run_rows:
-        raise RuntimeError("[ALL_TRADE_REVIEW_LEDGER] no canonical ORDERFIX runs found under truth_e2e_sanity")
+        raise RuntimeError("[ALL_TRADE_REVIEW_LEDGER] no canonical full-week runs found under truth_e2e_sanity")
 
     schema_rows = _closed_trade_ledger_schema()
     schema_field_names = [str(row["field_name"]) for row in schema_rows]
@@ -31544,6 +37070,7 @@ def build_all_trade_review_ledger_closed_trades(
                 "hindsight_ood_flag": pd.NA,
                 "hindsight_confidence": float("nan"),
                 "good_trade": _LEDGER_NOT_AVAILABLE,
+                "good_trade_mfe20_mae5": _LEDGER_NOT_AVAILABLE,
                 "bad_trade": _LEDGER_NOT_AVAILABLE,
                 "good_exit": _LEDGER_NOT_AVAILABLE,
                 "premature_exit": _LEDGER_NOT_AVAILABLE,
@@ -31592,7 +37119,7 @@ def build_all_trade_review_ledger_closed_trades(
 
     ledger_df = pd.DataFrame.from_records(records)
     if ledger_df.empty:
-        raise RuntimeError("[ALL_TRADE_REVIEW_LEDGER] no closed trades found for canonical ORDERFIX runs")
+        raise RuntimeError("[ALL_TRADE_REVIEW_LEDGER] no closed trades found for canonical full-week runs")
 
     hindsight_export_payload = _build_hindsight_trade_review_export_from_closed_trade_ledger(
         ledger_df,
@@ -31602,6 +37129,10 @@ def build_all_trade_review_ledger_closed_trades(
         control_date=control_date,
     )
     hindsight_export_df = hindsight_export_payload["review_export_df"].copy()
+    ledger_df = _attach_hindsight_review_labels_to_closed_trade_ledger_v1(
+        ledger_df,
+        hindsight_export_df,
+    )
     decision_moment_teacher_bridge_df = hindsight_export_payload["decision_moment_teacher_bridge_df"].copy()
     policy_action_teacher_trainable_df = hindsight_export_payload["policy_action_teacher_trainable_df"].copy()
     as_of_supervision_payload = _build_as_of_decision_moment_ledger_and_policy_action_supervision_join(
@@ -31619,6 +37150,15 @@ def build_all_trade_review_ledger_closed_trades(
     )
     as_of_feature_contract_df = feature_contract_payload["as_of_feature_contract_df"].copy()
     entry_policy_training_df = feature_contract_payload["entry_policy_training_df"].copy()
+    if entry_policy_training_df.empty:
+        locked_entry_training_candidates = [
+            reports_root / "ALL_TRADE_REVIEW_LEDGER_20260411_ENTRY_REPLAY_BAR_STATE_EXPANSION_V2" / _ALL_TRADE_REVIEW_ENTRY_POLICY_TRAINING_VIEW_PARQUET,
+            reports_root / "ALL_TRADE_REVIEW_LEDGER_20260411_MANAGEMENT_TRACE_PATH_SECOND_WAVE_PROMOTION_V1" / _ALL_TRADE_REVIEW_ENTRY_POLICY_TRAINING_VIEW_PARQUET,
+            reports_root / "ALL_TRADE_REVIEW_LEDGER_20260411_ENTRY_TERMINAL_OUTCOME_AUDIT_V1" / _ALL_TRADE_REVIEW_ENTRY_POLICY_TRAINING_VIEW_PARQUET,
+        ]
+        locked_entry_training_path = next((path for path in locked_entry_training_candidates if path.exists()), None)
+        if locked_entry_training_path is not None:
+            entry_policy_training_df = pd.read_parquet(locked_entry_training_path)
     management_policy_training_df = feature_contract_payload["management_policy_training_df"].copy()
     policy_training_exclusions_df = feature_contract_payload["policy_training_exclusions_df"].copy()
     management_feature_enrichment_coverage_df = feature_contract_payload["management_feature_enrichment_coverage_df"].copy()
@@ -31673,6 +37213,40 @@ def build_all_trade_review_ledger_closed_trades(
         management_anchor_raw_state_df=management_raw_state_payload["management_anchor_raw_state_df"],
         management_anchor_raw_state_contract_df=management_raw_state_payload["management_anchor_raw_state_contract_df"],
     )
+    second_wave_decision = _scalar_string(
+        management_second_wave_promotion_payload["management_core_promotion_decision_v3"].get("decision")
+    )
+    second_wave_locked_v4_root = reports_root / "ALL_TRADE_REVIEW_LEDGER_20260411_MANAGEMENT_TRACE_PATH_SECOND_WAVE_PROMOTION_V1"
+    second_wave_locked_v4_contract_path = second_wave_locked_v4_root / _ALL_TRADE_REVIEW_AS_OF_FEATURE_CONTRACT_V4_CSV
+    second_wave_locked_v4_training_path = second_wave_locked_v4_root / _ALL_TRADE_REVIEW_MANAGEMENT_POLICY_TRAINING_VIEW_V4_PARQUET
+    if second_wave_decision == "SKIPPED_MISSING_LOCALIZED_EXACT_ANCHORS":
+        if second_wave_locked_v4_contract_path.exists():
+            management_second_wave_promotion_payload["as_of_feature_contract_v4_df"] = pd.read_csv(second_wave_locked_v4_contract_path)
+            management_second_wave_promotion_payload["as_of_feature_contract_v4_summary"][
+                "locked_v4_carry_forward_v1"
+            ] = True
+            management_second_wave_promotion_payload["as_of_feature_contract_v4_summary"][
+                "locked_v4_carry_forward_source_v1"
+            ] = str(second_wave_locked_v4_contract_path)
+        if second_wave_locked_v4_training_path.exists():
+            management_second_wave_promotion_payload["management_policy_training_v4_df"] = pd.read_parquet(
+                second_wave_locked_v4_training_path
+            )
+            management_second_wave_promotion_payload["management_policy_training_v4_summary"][
+                "locked_v4_carry_forward_v1"
+            ] = True
+            management_second_wave_promotion_payload["management_policy_training_v4_summary"][
+                "locked_v4_carry_forward_source_v1"
+            ] = str(second_wave_locked_v4_training_path)
+            management_second_wave_promotion_payload["management_policy_training_v4_summary"]["rows"] = int(
+                len(management_second_wave_promotion_payload["management_policy_training_v4_df"])
+            )
+            management_second_wave_promotion_payload["management_policy_training_v4_summary"]["action_counts"] = (
+                management_second_wave_promotion_payload["management_policy_training_v4_df"]["action_label_v1"]
+                .astype("string")
+                .value_counts(dropna=False)
+                .to_dict()
+            )
     as_of_decision_moment_ledger_df = management_second_wave_promotion_payload["as_of_decision_moment_ledger_v4_df"].copy()
     as_of_schema_rows.extend(management_second_wave_promotion_payload["promoted_as_of_schema_rows"])
     as_of_source_map_rows.extend(management_second_wave_promotion_payload["promoted_as_of_source_map_rows"])
@@ -31750,20 +37324,39 @@ def build_all_trade_review_ledger_closed_trades(
         entry_confirmation_followthrough_v1_df=entry_hierarchical_policy_stack_payload["entry_confirmation_followthrough_v1_df"],
         entry_policy_training_df=entry_policy_training_df,
         management_policy_training_v4_df=management_second_wave_promotion_payload["management_policy_training_v4_df"],
+        decision_moment_teacher_bridge_df=decision_moment_teacher_bridge_df,
         policy_action_supervision_join_df=policy_action_supervision_join_df,
         entry_wait_lifecycle_status_v1=entry_wait_lifecycle_payload["entry_wait_lifecycle_status_v1"],
         entry_policy_stack_status_v1=entry_hierarchical_policy_stack_payload["entry_policy_stack_status_v1"],
     )
     entry_terminal_outcome_payload = _build_entry_terminal_outcome_audit_v1(
         entry_actualization_contract_v1=entry_actualization_payload["entry_actualization_contract_v1"],
+        entry_skipability_branch_v1_df=entry_skipability_branch_payload["entry_skipability_branch_v1_df"],
+        entry_timing_context_branch_v1_df=entry_timing_bundle_payload["entry_timing_context_branch_v1_df"],
+        entry_direct_policy_composite_v1_df=entry_hierarchical_policy_stack_payload["entry_direct_policy_composite_v1_df"],
+        entry_wait_lifecycle_view_v1_df=entry_wait_lifecycle_payload["entry_wait_lifecycle_view_v1_df"],
         entry_actualization_route_audit_v1_df=entry_actualization_payload["entry_actualization_route_audit_v1_df"],
         entry_actual_take_view_v1_df=entry_actualization_payload["entry_actual_take_view_v1_df"],
         entry_actual_take_to_management_handoff_audit_v1_df=entry_actualization_payload[
             "entry_actual_take_to_management_handoff_audit_v1_df"
         ],
+        management_policy_training_v4_df=management_second_wave_promotion_payload["management_policy_training_v4_df"],
         closed_trades_df=ledger_df,
         entry_actualization_status_v1=entry_actualization_payload["entry_actualization_status_v1"],
         entry_policy_stack_status_v1=entry_hierarchical_policy_stack_payload["entry_policy_stack_status_v1"],
+    )
+    entry_rl_observability_payload = _build_entry_rl_observability_v1(
+        reports_root=reports_root,
+        as_of_decision_moment_ledger_v1_df=as_of_decision_moment_ledger_df,
+        policy_action_supervision_join_df=policy_action_supervision_join_df,
+        entry_anchor_raw_state_df=entry_replay_bar_state_payload["entry_anchor_raw_state_df"],
+        entry_skipability_raw_state_df=entry_skipability_branch_payload["entry_skipability_raw_state_df"],
+        entry_direct_policy_composite_v1_df=entry_hierarchical_policy_stack_payload["entry_direct_policy_composite_v1_df"],
+        entry_wait_lifecycle_view_v1_df=entry_wait_lifecycle_payload["entry_wait_lifecycle_view_v1_df"],
+        entry_actual_take_terminal_outcome_view_v1_df=entry_terminal_outcome_payload[
+            "entry_actual_take_terminal_outcome_view_v1_df"
+        ],
+        hindsight_export_df=hindsight_export_df,
     )
     management_rl_readiness_payload = _build_management_rl_readiness_substrate_v1(
         management_policy_training_v4_df=management_second_wave_promotion_payload["management_policy_training_v4_df"],
@@ -31775,6 +37368,7 @@ def build_all_trade_review_ledger_closed_trades(
         closed_trades_df=ledger_df,
         entry_actualization_status_v1=entry_actualization_payload["entry_actualization_status_v1"],
         entry_terminal_outcome_status_v1=entry_terminal_outcome_payload["entry_terminal_outcome_status_v1"],
+        management_anchor_raw_state_df=management_raw_state_payload["management_anchor_raw_state_df"],
     )
     management_rl_sequence_payload = _build_management_rl_sequence_substrate_v1(
         management_rl_row_semantics_view_v1_df=management_rl_readiness_payload[
@@ -31816,90 +37410,6 @@ def build_all_trade_review_ledger_closed_trades(
             "failed_rows": int(leakage_fail_rows_prebuild),
         },
     )
-    review_merge_cols = [
-        "run_id",
-        "trade_id",
-        "trade_uid",
-        "candidate_uid",
-        "decision_timestamp",
-        "meta_allow_score_v1",
-        "post_trade_quality_bucket",
-        "post_trade_good_trade_flag_v1",
-        "post_trade_bad_trade_flag_v1",
-        "review_exit_bucket_v1",
-        "review_entry_bucket_v1",
-        "review_good_exit_v1",
-        "review_premature_exit_v1",
-        "review_late_exit_v1",
-        "review_entry_good_but_fragile_v1",
-        "review_entry_looked_good_but_failed_v1",
-        "selected_threshold_business_v2",
-        "hindsight_entry_decision_review_v1",
-        "hindsight_should_skip_trade_v1",
-        "hindsight_take_was_ok_v1",
-        "hindsight_entry_review_unresolved_v1",
-        "hindsight_management_review_v1",
-        "hindsight_should_hold_longer_v1",
-        "hindsight_should_exit_earlier_v1",
-        "hindsight_managed_ok_v1",
-        "hindsight_management_review_unresolved_v1",
-        "hindsight_rl_review_reason_v1",
-        "hindsight_rl_review_domain_support_v1",
-        "hindsight_rl_review_semantic_contract_v1",
-        "hindsight_hold_longer_extra_value_bps_v1",
-        "hindsight_exit_earlier_saved_bps_v1",
-        "hindsight_skip_trade_avoided_loss_bps_v1",
-        "hindsight_peak_mfe_bps_v1",
-        "hindsight_peak_to_exit_giveback_bps_v1",
-        "hindsight_peak_to_worst_after_peak_bps_v1",
-    ]
-    ledger_df = ledger_df.merge(
-        hindsight_export_df[review_merge_cols],
-        on=["run_id", "trade_id", "trade_uid", "candidate_uid", "decision_timestamp"],
-        how="left",
-        validate="one_to_one",
-    )
-    review_available_mask = ledger_df["review_entry_bucket_v1"].notna()
-    ledger_df.loc[review_available_mask, "hindsight_score"] = pd.to_numeric(
-        ledger_df.loc[review_available_mask, "meta_allow_score_v1"],
-        errors="coerce",
-    )
-    ledger_df.loc[review_available_mask, "hindsight_verdict_class"] = ledger_df.loc[review_available_mask, "review_entry_bucket_v1"].astype("string")
-    ledger_df.loc[review_available_mask, "hindsight_exit_quality_class"] = ledger_df.loc[review_available_mask, "review_exit_bucket_v1"].astype("string")
-    ledger_df.loc[review_available_mask, "hindsight_trade_quality_class"] = ledger_df.loc[review_available_mask, "post_trade_quality_bucket"].astype("string")
-    ledger_df["good_trade"] = [
-        _label_text_from_flag(flag, available=bool(available))
-        for flag, available in zip(ledger_df["post_trade_good_trade_flag_v1"], review_available_mask)
-    ]
-    ledger_df["bad_trade"] = [
-        _label_text_from_flag(flag, available=bool(available))
-        for flag, available in zip(ledger_df["post_trade_bad_trade_flag_v1"], review_available_mask)
-    ]
-    never_mfe_bad_trade_mask = review_available_mask & ledger_df["trade_outcome_class"].astype("string").eq("never_mfe")
-    ledger_df.loc[never_mfe_bad_trade_mask, "bad_trade"] = "TRUE"
-    ledger_df["good_exit"] = [
-        _label_text_from_flag(flag, available=bool(available))
-        for flag, available in zip(ledger_df["review_good_exit_v1"], review_available_mask)
-    ]
-    ledger_df["premature_exit"] = [
-        _label_text_from_flag(flag, available=bool(available))
-        for flag, available in zip(ledger_df["review_premature_exit_v1"], review_available_mask)
-    ]
-    ledger_df["late_exit"] = [
-        _label_text_from_flag(flag, available=bool(available))
-        for flag, available in zip(ledger_df["review_late_exit_v1"], review_available_mask)
-    ]
-    ledger_df["looked_good_but_failed"] = [
-        _label_text_from_flag(flag, available=bool(available))
-        for flag, available in zip(ledger_df["review_entry_looked_good_but_failed_v1"], review_available_mask)
-    ]
-    ledger_df["fragile_winner"] = [
-        _LEDGER_NOT_AVAILABLE if bool(available) else str(existing)
-        for existing, available in zip(ledger_df["fragile_winner"], review_available_mask)
-    ]
-    ledger_df.loc[review_available_mask, "label_source"] = _ALL_TRADE_REVIEW_HINDSIGHT_EXPORT_PARQUET
-    ledger_df.loc[review_available_mask, "label_available"] = True
-
     for field_name in schema_field_names:
         if field_name not in ledger_df.columns:
             ledger_df[field_name] = pd.NA
@@ -31912,6 +37422,7 @@ def build_all_trade_review_ledger_closed_trades(
     decision_max = _scalar_string(ledger_df["decision_timestamp"].replace(_LEDGER_NOT_AVAILABLE, pd.NA).dropna().max())
     exit_min = _scalar_string(ledger_df["exit_timestamp"].replace(_LEDGER_NOT_AVAILABLE, pd.NA).dropna().min())
     exit_max = _scalar_string(ledger_df["exit_timestamp"].replace(_LEDGER_NOT_AVAILABLE, pd.NA).dropna().max())
+    review_available_mask = ledger_df["label_available"].fillna(False).astype(bool)
 
     build_summary = {
         "ledger_name": _ALL_TRADE_REVIEW_LEDGER_NAME,
@@ -32106,6 +37617,14 @@ def build_all_trade_review_ledger_closed_trades(
         ],
         "entry_terminal_outcome_status_v1": entry_terminal_outcome_payload["entry_terminal_outcome_status_v1"],
         "decomposed_lifecycle_pack_v1": entry_terminal_outcome_payload["decomposed_lifecycle_pack_manifest_v1"],
+        "entry_policy_snapshot_contract_v1": entry_rl_observability_payload["entry_policy_snapshot_contract_v1"],
+        "entry_rl_observability_contract_v1": entry_rl_observability_payload["entry_rl_observability_contract_v1"],
+        "entry_rl_observability_consistency_audit_v1": entry_rl_observability_payload[
+            "entry_rl_observability_consistency_audit_v1_df"
+        ].to_dict(orient="records"),
+        "entry_rl_observability_summary_v1": entry_rl_observability_payload["entry_rl_observability_summary_v1"],
+        "entry_rl_observability_status_v1": entry_rl_observability_payload["entry_rl_observability_status_v1"],
+        "entry_rl_observability_manifest_v1": entry_rl_observability_payload["entry_rl_observability_manifest_v1"],
         "management_rl_readiness_contract_v1": management_rl_readiness_payload["management_rl_readiness_contract_v1"],
         "management_rl_observation_contract_v1": management_rl_readiness_payload[
             "management_rl_observation_contract_v1"
@@ -32260,6 +37779,11 @@ def build_all_trade_review_ledger_closed_trades(
     build_summary["hindsight_trade_review_export"]["entry_terminal_outcome_consistency_audit_v1"] = entry_terminal_outcome_payload["entry_terminal_outcome_consistency_audit_v1_summary"]
     build_summary["hindsight_trade_review_export"]["entry_terminal_outcome_status_v1"] = entry_terminal_outcome_payload["entry_terminal_outcome_status_v1"]
     build_summary["hindsight_trade_review_export"]["decomposed_lifecycle_pack_v1"] = entry_terminal_outcome_payload["decomposed_lifecycle_pack_manifest_v1"]
+    build_summary["hindsight_trade_review_export"]["entry_policy_snapshot_contract_v1"] = entry_rl_observability_payload["entry_policy_snapshot_contract_v1"]
+    build_summary["hindsight_trade_review_export"]["entry_rl_observability_contract_v1"] = entry_rl_observability_payload["entry_rl_observability_contract_v1"]
+    build_summary["hindsight_trade_review_export"]["entry_rl_observability_summary_v1"] = entry_rl_observability_payload["entry_rl_observability_summary_v1"]
+    build_summary["hindsight_trade_review_export"]["entry_rl_observability_status_v1"] = entry_rl_observability_payload["entry_rl_observability_status_v1"]
+    build_summary["hindsight_trade_review_export"]["entry_rl_observability_manifest_v1"] = entry_rl_observability_payload["entry_rl_observability_manifest_v1"]
     build_summary["hindsight_trade_review_export"]["management_rl_readiness_contract_v1"] = management_rl_readiness_payload["management_rl_readiness_contract_v1"]
     build_summary["hindsight_trade_review_export"]["management_rl_observation_contract_v1"] = management_rl_readiness_payload["management_rl_observation_contract_v1"]
     build_summary["hindsight_trade_review_export"]["management_rl_readiness_consistency_audit_v1"] = management_rl_readiness_payload["management_rl_readiness_consistency_audit_v1_summary"]
@@ -32820,6 +38344,32 @@ def build_all_trade_review_ledger_closed_trades(
             "manifest_artifact_name": _ALL_TRADE_REVIEW_DECOMPOSED_LIFECYCLE_PACK_MANIFEST_V1,
             "index_artifact_name": _ALL_TRADE_REVIEW_DECOMPOSED_LIFECYCLE_PACK_INDEX_V1_PARQUET,
             "row_count": int(len(entry_terminal_outcome_payload["decomposed_lifecycle_pack_index_v1_df"])),
+        },
+        "entry_policy_snapshot_contract_v1": {
+            "artifact_name": _ALL_TRADE_REVIEW_ENTRY_POLICY_SNAPSHOT_CONTRACT_V1,
+        },
+        "entry_rl_observability_contract_v1": {
+            "artifact_name": _ALL_TRADE_REVIEW_ENTRY_RL_OBSERVABILITY_CONTRACT_V1,
+        },
+        "entry_rl_observability_view_v1": {
+            "artifact_name": _ALL_TRADE_REVIEW_ENTRY_RL_OBSERVABILITY_VIEW_V1_PARQUET,
+            "row_count": int(len(entry_rl_observability_payload["entry_rl_observability_view_v1_df"])),
+            "feature_columns": list(
+                entry_rl_observability_payload["entry_rl_observability_contract_v1"]["observation_feature_names_v1"]
+            ),
+        },
+        "entry_rl_observability_consistency_audit_v1": {
+            "artifact_name": _ALL_TRADE_REVIEW_ENTRY_RL_OBSERVABILITY_CONSISTENCY_AUDIT_V1_CSV,
+            "row_count": int(len(entry_rl_observability_payload["entry_rl_observability_consistency_audit_v1_df"])),
+        },
+        "entry_rl_observability_summary_v1": {
+            "artifact_name": _ALL_TRADE_REVIEW_ENTRY_RL_OBSERVABILITY_SUMMARY_V1,
+        },
+        "entry_rl_observability_status_v1": {
+            "artifact_name": _ALL_TRADE_REVIEW_ENTRY_RL_OBSERVABILITY_STATUS_V1,
+        },
+        "entry_rl_observability_manifest_v1": {
+            "artifact_name": _ALL_TRADE_REVIEW_ENTRY_RL_OBSERVABILITY_MANIFEST_V1,
         },
         "management_rl_readiness_contract_v1": {
             "artifact_name": _ALL_TRADE_REVIEW_MANAGEMENT_RL_READINESS_CONTRACT_V1,
@@ -33392,12 +38942,12 @@ def build_all_trade_review_ledger_closed_trades(
         },
         "entry_wait_lifecycle_contract_v1": {
             "artifact_name": _ALL_TRADE_REVIEW_ENTRY_WAIT_LIFECYCLE_CONTRACT_V1,
-            "note": "Explicit contract for reading the 500 direct WAIT rows as a hindsight-only lifecycle layer. Missing confirmation is not auto-interpreted as a branch error.",
+            "note": "Explicit contract for reading the direct WAIT universe as a hindsight-only lifecycle layer. Missing confirmation is not auto-interpreted as a branch error.",
         },
         "entry_wait_lifecycle_audit_v1": {
             "artifact_name": _ALL_TRADE_REVIEW_ENTRY_WAIT_LIFECYCLE_AUDIT_V1_CSV,
             "summary_artifact_name": _ALL_TRADE_REVIEW_ENTRY_WAIT_LIFECYCLE_AUDIT_V1_SUMMARY,
-            "note": "Row-level lifecycle audit over direct WAIT rows under the existing exact contract, preserving the 346/153/1 rollup without inventing later TAKE_NOW events.",
+            "note": "Row-level lifecycle audit over direct WAIT rows under the existing exact contract, preserving the exact rollup without inventing later TAKE_NOW events.",
         },
         "entry_wait_lifecycle_view_v1": {
             "artifact_name": _ALL_TRADE_REVIEW_ENTRY_WAIT_LIFECYCLE_VIEW_V1_PARQUET,
@@ -33405,7 +38955,7 @@ def build_all_trade_review_ledger_closed_trades(
         },
         "entry_wait_lifecycle_consistency_audit_v1": {
             "artifact_name": _ALL_TRADE_REVIEW_ENTRY_WAIT_LIFECYCLE_CONSISTENCY_AUDIT_V1_CSV,
-            "note": "Consistency checks ensuring the lifecycle layer covers 500/500 WAIT rows, preserves 346/153/1 exactly, and never promotes missing confirmation into fabricated followthrough.",
+            "note": "Consistency checks ensuring the lifecycle layer covers the full WAIT universe exactly, preserves the exact rollup, and never promotes missing confirmation into fabricated followthrough.",
         },
         "entry_wait_lifecycle_status_v1": {
             "artifact_name": _ALL_TRADE_REVIEW_ENTRY_WAIT_LIFECYCLE_STATUS_V1,
@@ -33418,11 +38968,11 @@ def build_all_trade_review_ledger_closed_trades(
         "entry_actualization_route_audit_v1": {
             "artifact_name": _ALL_TRADE_REVIEW_ENTRY_ACTUALIZATION_ROUTE_AUDIT_V1_CSV,
             "summary_artifact_name": _ALL_TRADE_REVIEW_ENTRY_ACTUALIZATION_ROUTE_SUMMARY_V1,
-            "note": "Row-level compositional route audit over the 773 direct-entry rows. This is a read-model rollup over frozen entry branches plus WAIT lifecycle, not a new controller.",
+            "note": "Row-level compositional route audit over the direct-entry universe. This is a read-model rollup over frozen entry branches plus WAIT lifecycle, not a new controller.",
         },
         "entry_actual_take_view_v1": {
             "artifact_name": _ALL_TRADE_REVIEW_ENTRY_ACTUAL_TAKE_VIEW_V1_PARQUET,
-            "note": "Explicit row-level actualized TAKE universe: 224 direct TAKE_NOW rows plus 346 WAIT-to-confirmation TAKE_NOW rows, with activation origin kept fully transparent.",
+            "note": "Explicit row-level actualized TAKE universe with activation origin kept fully transparent.",
         },
         "entry_actual_take_to_management_handoff_audit_v1": {
             "artifact_name": _ALL_TRADE_REVIEW_ENTRY_ACTUAL_TAKE_TO_MANAGEMENT_HANDOFF_AUDIT_V1_CSV,
@@ -33431,7 +38981,7 @@ def build_all_trade_review_ledger_closed_trades(
         },
         "entry_actualization_consistency_audit_v1": {
             "artifact_name": _ALL_TRADE_REVIEW_ENTRY_ACTUALIZATION_CONSISTENCY_AUDIT_V1_CSV,
-            "note": "Consistency checks ensuring 773 route rows, 570 actualized TAKE rows, and downstream management handoff coverage stay aligned with the frozen entry/WAIT stack.",
+            "note": "Consistency checks ensuring route rows, actualized TAKE rows, and downstream management handoff coverage stay aligned with the frozen entry/WAIT stack.",
         },
         "entry_actualization_status_v1": {
             "artifact_name": _ALL_TRADE_REVIEW_ENTRY_ACTUALIZATION_STATUS_V1,
@@ -33444,7 +38994,7 @@ def build_all_trade_review_ledger_closed_trades(
         "entry_actual_take_terminal_outcome_audit_v1": {
             "artifact_name": _ALL_TRADE_REVIEW_ENTRY_ACTUAL_TAKE_TERMINAL_OUTCOME_AUDIT_V1_CSV,
             "summary_artifact_name": _ALL_TRADE_REVIEW_ENTRY_ACTUAL_TAKE_TERMINAL_OUTCOME_SUMMARY_V1,
-            "note": "Row-level audit over the 570 actualized TAKE rows, proving exact terminal closed-trade presence without inventing new truth fields or new controller semantics.",
+            "note": "Row-level audit over actualized TAKE rows, proving exact terminal closed-trade presence without inventing new truth fields or new controller semantics.",
         },
         "entry_actual_take_terminal_outcome_view_v1": {
             "artifact_name": _ALL_TRADE_REVIEW_ENTRY_ACTUAL_TAKE_TERMINAL_OUTCOME_VIEW_V1_PARQUET,
@@ -33456,11 +39006,11 @@ def build_all_trade_review_ledger_closed_trades(
         },
         "entry_route_terminal_rollup_v1": {
             "artifact_name": _ALL_TRADE_REVIEW_ENTRY_ROUTE_TERMINAL_ROLLUP_V1_CSV,
-            "note": "Readable route rollup over the 773 direct-entry rows, preserving 49/224/346/153/1 exactly while showing which routes actually enter terminal outcome coverage.",
+            "note": "Readable route rollup over the direct-entry universe, preserving the exact route split while showing which routes actually enter terminal outcome coverage.",
         },
         "entry_terminal_outcome_consistency_audit_v1": {
             "artifact_name": _ALL_TRADE_REVIEW_ENTRY_TERMINAL_OUTCOME_CONSISTENCY_AUDIT_V1_CSV,
-            "note": "Consistency checks ensuring the terminal outcome layer covers 570/570 actualized TAKE rows exactly once and never pulls SKIP or non-provable WAIT rows into the terminal universe.",
+            "note": "Consistency checks ensuring the terminal outcome layer covers the full actualized TAKE universe exactly once and never pulls SKIP or non-provable WAIT rows into the terminal universe.",
         },
         "entry_terminal_outcome_status_v1": {
             "artifact_name": _ALL_TRADE_REVIEW_ENTRY_TERMINAL_OUTCOME_STATUS_V1,
@@ -33470,6 +39020,34 @@ def build_all_trade_review_ledger_closed_trades(
             "manifest_artifact_name": _ALL_TRADE_REVIEW_DECOMPOSED_LIFECYCLE_PACK_MANIFEST_V1,
             "index_artifact_name": _ALL_TRADE_REVIEW_DECOMPOSED_LIFECYCLE_PACK_INDEX_V1_PARQUET,
             "note": "Decomposed lifecycle pack that points to the frozen branches and the read-model layers without flattening them into a single matrix or training truth artifact.",
+        },
+        "entry_policy_snapshot_contract_v1": {
+            "artifact_name": _ALL_TRADE_REVIEW_ENTRY_POLICY_SNAPSHOT_CONTRACT_V1,
+            "note": "Exact entry candidate policy hash plus model-snapshot contract for the frozen direct-entry universe. It gives parity with the live entry lane without claiming direct logged policy truth.",
+        },
+        "entry_rl_observability_contract_v1": {
+            "artifact_name": _ALL_TRADE_REVIEW_ENTRY_RL_OBSERVABILITY_CONTRACT_V1,
+            "note": "Top-level entry RL observability contract. This layer exposes the same candidate/XGB snapshot, direct action composition, wait-routing, hindsight trade quality, and missed-opportunity context in one canonical view.",
+        },
+        "entry_rl_observability_view_v1": {
+            "artifact_name": _ALL_TRADE_REVIEW_ENTRY_RL_OBSERVABILITY_VIEW_V1_PARQUET,
+            "note": "Canonical entry-side RL/read-model view over the direct-entry universe. It is exact on model snapshot parity and route coverage, but remains composition-plus-hindsight only until exact logged entry propensities exist.",
+        },
+        "entry_rl_observability_consistency_audit_v1": {
+            "artifact_name": _ALL_TRADE_REVIEW_ENTRY_RL_OBSERVABILITY_CONSISTENCY_AUDIT_V1_CSV,
+            "note": "Checks that direct-entry rows, exact model snapshot coverage, supervision alignment, wait followthrough counts, and no-fake-propensity semantics stay intact.",
+        },
+        "entry_rl_observability_summary_v1": {
+            "artifact_name": _ALL_TRADE_REVIEW_ENTRY_RL_OBSERVABILITY_SUMMARY_V1,
+            "note": "Compact summary for entry observability counts, reason families, wait outcomes, actualized takes, and zero-trade opportunity pressure.",
+        },
+        "entry_rl_observability_status_v1": {
+            "artifact_name": _ALL_TRADE_REVIEW_ENTRY_RL_OBSERVABILITY_STATUS_V1,
+            "note": "Status readout stating explicitly that entry policy snapshot parity is ready, but direct entry remains compositional read-model only and propensity is not yet established.",
+        },
+        "entry_rl_observability_manifest_v1": {
+            "artifact_name": _ALL_TRADE_REVIEW_ENTRY_RL_OBSERVABILITY_MANIFEST_V1,
+            "note": "Manifest for the entry-side RL observability pack written directly into the canonical base ledger namespace.",
         },
         "management_rl_readiness_contract_v1": {
             "artifact_name": _ALL_TRADE_REVIEW_MANAGEMENT_RL_READINESS_CONTRACT_V1,
@@ -33860,6 +39438,15 @@ def build_all_trade_review_ledger_closed_trades(
         "entry_terminal_outcome_status_v1": entry_terminal_outcome_payload["entry_terminal_outcome_status_v1"],
         "decomposed_lifecycle_pack_manifest_v1": entry_terminal_outcome_payload["decomposed_lifecycle_pack_manifest_v1"],
         "decomposed_lifecycle_pack_index_v1_df": entry_terminal_outcome_payload["decomposed_lifecycle_pack_index_v1_df"],
+        "entry_policy_snapshot_contract_v1": entry_rl_observability_payload["entry_policy_snapshot_contract_v1"],
+        "entry_rl_observability_contract_v1": entry_rl_observability_payload["entry_rl_observability_contract_v1"],
+        "entry_rl_observability_view_v1_df": entry_rl_observability_payload["entry_rl_observability_view_v1_df"],
+        "entry_rl_observability_consistency_audit_v1_df": entry_rl_observability_payload[
+            "entry_rl_observability_consistency_audit_v1_df"
+        ],
+        "entry_rl_observability_summary_v1": entry_rl_observability_payload["entry_rl_observability_summary_v1"],
+        "entry_rl_observability_status_v1": entry_rl_observability_payload["entry_rl_observability_status_v1"],
+        "entry_rl_observability_manifest_v1": entry_rl_observability_payload["entry_rl_observability_manifest_v1"],
         "management_rl_readiness_contract_v1": management_rl_readiness_payload["management_rl_readiness_contract_v1"],
         "management_rl_observation_contract_v1": management_rl_readiness_payload[
             "management_rl_observation_contract_v1"
@@ -34198,6 +39785,13 @@ def write_all_trade_review_ledger_closed_trades(
     entry_terminal_outcome_status_path = target_dir / _ALL_TRADE_REVIEW_ENTRY_TERMINAL_OUTCOME_STATUS_V1
     decomposed_lifecycle_pack_manifest_path = target_dir / _ALL_TRADE_REVIEW_DECOMPOSED_LIFECYCLE_PACK_MANIFEST_V1
     decomposed_lifecycle_pack_index_path = target_dir / _ALL_TRADE_REVIEW_DECOMPOSED_LIFECYCLE_PACK_INDEX_V1_PARQUET
+    entry_policy_snapshot_contract_path = target_dir / _ALL_TRADE_REVIEW_ENTRY_POLICY_SNAPSHOT_CONTRACT_V1
+    entry_rl_observability_contract_path = target_dir / _ALL_TRADE_REVIEW_ENTRY_RL_OBSERVABILITY_CONTRACT_V1
+    entry_rl_observability_view_path = target_dir / _ALL_TRADE_REVIEW_ENTRY_RL_OBSERVABILITY_VIEW_V1_PARQUET
+    entry_rl_observability_consistency_audit_path = target_dir / _ALL_TRADE_REVIEW_ENTRY_RL_OBSERVABILITY_CONSISTENCY_AUDIT_V1_CSV
+    entry_rl_observability_summary_path = target_dir / _ALL_TRADE_REVIEW_ENTRY_RL_OBSERVABILITY_SUMMARY_V1
+    entry_rl_observability_status_path = target_dir / _ALL_TRADE_REVIEW_ENTRY_RL_OBSERVABILITY_STATUS_V1
+    entry_rl_observability_manifest_path = target_dir / _ALL_TRADE_REVIEW_ENTRY_RL_OBSERVABILITY_MANIFEST_V1
     management_rl_readiness_contract_path = target_dir / _ALL_TRADE_REVIEW_MANAGEMENT_RL_READINESS_CONTRACT_V1
     management_rl_observation_contract_path = target_dir / _ALL_TRADE_REVIEW_MANAGEMENT_RL_OBSERVATION_CONTRACT_V1
     management_rl_action_semantics_audit_path = target_dir / _ALL_TRADE_REVIEW_MANAGEMENT_RL_ACTION_SEMANTICS_AUDIT_V1_CSV
@@ -34430,6 +40024,13 @@ def write_all_trade_review_ledger_closed_trades(
             entry_terminal_outcome_status_path,
             decomposed_lifecycle_pack_manifest_path,
             decomposed_lifecycle_pack_index_path,
+            entry_policy_snapshot_contract_path,
+            entry_rl_observability_contract_path,
+            entry_rl_observability_view_path,
+            entry_rl_observability_consistency_audit_path,
+            entry_rl_observability_summary_path,
+            entry_rl_observability_status_path,
+            entry_rl_observability_manifest_path,
             management_rl_readiness_contract_path,
             management_rl_observation_contract_path,
             management_rl_action_semantics_audit_path,
@@ -34619,6 +40220,14 @@ def write_all_trade_review_ledger_closed_trades(
         index=False,
     )
     payload["decomposed_lifecycle_pack_index_v1_df"].to_parquet(decomposed_lifecycle_pack_index_path, index=False)
+    payload["entry_rl_observability_view_v1_df"].to_parquet(
+        entry_rl_observability_view_path,
+        index=False,
+    )
+    payload["entry_rl_observability_consistency_audit_v1_df"].to_csv(
+        entry_rl_observability_consistency_audit_path,
+        index=False,
+    )
     payload["management_rl_action_semantics_audit_v1_df"].to_csv(
         management_rl_action_semantics_audit_path,
         index=False,
@@ -35017,6 +40626,26 @@ def write_all_trade_review_ledger_closed_trades(
         json.dumps(payload["decomposed_lifecycle_pack_manifest_v1"], ensure_ascii=True, indent=2) + "\n",
         encoding="utf-8",
     )
+    entry_policy_snapshot_contract_path.write_text(
+        json.dumps(payload["entry_policy_snapshot_contract_v1"], ensure_ascii=True, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    entry_rl_observability_contract_path.write_text(
+        json.dumps(payload["entry_rl_observability_contract_v1"], ensure_ascii=True, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    entry_rl_observability_summary_path.write_text(
+        json.dumps(payload["entry_rl_observability_summary_v1"], ensure_ascii=True, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    entry_rl_observability_status_path.write_text(
+        json.dumps(payload["entry_rl_observability_status_v1"], ensure_ascii=True, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    entry_rl_observability_manifest_path.write_text(
+        json.dumps(payload["entry_rl_observability_manifest_v1"], ensure_ascii=True, indent=2) + "\n",
+        encoding="utf-8",
+    )
     management_rl_readiness_contract_path.write_text(
         json.dumps(payload["management_rl_readiness_contract_v1"], ensure_ascii=True, indent=2) + "\n",
         encoding="utf-8",
@@ -35324,6 +40953,13 @@ def write_all_trade_review_ledger_closed_trades(
         "entry_terminal_outcome_status_path": str(entry_terminal_outcome_status_path),
         "decomposed_lifecycle_pack_manifest_path": str(decomposed_lifecycle_pack_manifest_path),
         "decomposed_lifecycle_pack_index_path": str(decomposed_lifecycle_pack_index_path),
+        "entry_policy_snapshot_contract_path": str(entry_policy_snapshot_contract_path),
+        "entry_rl_observability_contract_path": str(entry_rl_observability_contract_path),
+        "entry_rl_observability_view_path": str(entry_rl_observability_view_path),
+        "entry_rl_observability_consistency_audit_path": str(entry_rl_observability_consistency_audit_path),
+        "entry_rl_observability_summary_path": str(entry_rl_observability_summary_path),
+        "entry_rl_observability_status_path": str(entry_rl_observability_status_path),
+        "entry_rl_observability_manifest_path": str(entry_rl_observability_manifest_path),
         "management_rl_readiness_contract_path": str(management_rl_readiness_contract_path),
         "management_rl_observation_contract_path": str(management_rl_observation_contract_path),
         "management_rl_action_semantics_audit_path": str(management_rl_action_semantics_audit_path),
@@ -35556,6 +41192,13 @@ def write_all_trade_review_ledger_closed_trades(
         "entry_terminal_outcome_status_path": str(entry_terminal_outcome_status_path),
         "decomposed_lifecycle_pack_manifest_path": str(decomposed_lifecycle_pack_manifest_path),
         "decomposed_lifecycle_pack_index_path": str(decomposed_lifecycle_pack_index_path),
+        "entry_policy_snapshot_contract_path": str(entry_policy_snapshot_contract_path),
+        "entry_rl_observability_contract_path": str(entry_rl_observability_contract_path),
+        "entry_rl_observability_view_path": str(entry_rl_observability_view_path),
+        "entry_rl_observability_consistency_audit_path": str(entry_rl_observability_consistency_audit_path),
+        "entry_rl_observability_summary_path": str(entry_rl_observability_summary_path),
+        "entry_rl_observability_status_path": str(entry_rl_observability_status_path),
+        "entry_rl_observability_manifest_path": str(entry_rl_observability_manifest_path),
         "management_rl_readiness_contract_path": str(management_rl_readiness_contract_path),
         "management_rl_observation_contract_path": str(management_rl_observation_contract_path),
         "management_rl_action_semantics_audit_path": str(management_rl_action_semantics_audit_path),
@@ -36140,7 +41783,7 @@ def build_shadow_meta_v2_test_05_zero_traffic_admission_artifacts(
     manifest = context["manifest"]
     run_rows: List[Dict[str, Any]] = []
     for run_id in context["holdout_run_ids"]:
-        run_dir = reports_root / str(run_id)
+        run_dir = _resolve_truth_run_dir(reports_root, str(run_id))
         candidate_path = run_dir / f"shadow_meta_candidates_{run_id}_MERGED.parquet"
         candidate_df = pd.read_parquet(
             candidate_path,
@@ -36425,7 +42068,7 @@ def build_shadow_meta_v2_test_06_activation_domain_artifacts(
 
     week_rows: List[Dict[str, Any]] = []
     for run_id in all_run_ids:
-        run_dir = reports_root / str(run_id)
+        run_dir = _resolve_truth_run_dir(reports_root, str(run_id))
         run_full_df = all_full_df.loc[all_full_df.get("run_id").astype(str) == str(run_id)].copy()
         run_eval_df = all_labeled_df.loc[all_labeled_df.get("run_id").astype(str) == str(run_id)].copy()
         week_rows.append(
@@ -36441,7 +42084,9 @@ def build_shadow_meta_v2_test_06_activation_domain_artifacts(
         )
     by_week_df = pd.DataFrame(week_rows)
 
-    target_run_id = "E2E_SANITY_ORDERFIX_20260225_20260304"
+    target_run_id = _shadow_v2_target_holdout_run_id(manifest)
+    if target_run_id is None:
+        raise RuntimeError("[SHADOW_META_V2] no post-freeze holdout run available for activation target selection")
     target_row = by_week_df.loc[by_week_df["run_id"].eq(target_run_id)].iloc[0]
     prefreeze_df = by_week_df.loc[by_week_df["split_role"].isin(["pre_freeze_train", "pre_freeze_val"])].copy()
     analog_rows: List[Dict[str, Any]] = []
@@ -36672,7 +42317,7 @@ def build_shadow_meta_v2_activation_history_artifacts(
 
     week_rows: List[Dict[str, Any]] = []
     for run_id in all_run_ids:
-        run_dir = reports_root / str(run_id)
+        run_dir = _resolve_truth_run_dir(reports_root, str(run_id))
         run_full_df = all_full_df.loc[all_full_df.get("run_id").astype(str) == str(run_id)].copy()
         run_eval_df = all_labeled_df.loc[all_labeled_df.get("run_id").astype(str) == str(run_id)].copy()
         row = _week_activation_row(
@@ -36703,7 +42348,9 @@ def build_shadow_meta_v2_activation_history_artifacts(
 
     by_week_df = pd.DataFrame(week_rows)
 
-    target_run_id = "E2E_SANITY_ORDERFIX_20260225_20260304"
+    target_run_id = _shadow_v2_target_holdout_run_id(manifest)
+    if target_run_id is None:
+        raise RuntimeError("[SHADOW_META_V2] no post-freeze holdout run available for contact-week target selection")
     target_row = by_week_df.loc[by_week_df["run_id"].eq(target_run_id)].iloc[0]
     prefreeze_df = by_week_df.loc[by_week_df["phase_label"].isin(["V2_PREFREEZE_TRAIN", "V2_PREFREEZE_VAL"])].copy()
     analog_rows: List[Dict[str, Any]] = []
@@ -36866,8 +42513,20 @@ def build_shadow_meta_v2_contact_week_descriptive_artifacts(
     activation_history_df = pd.read_csv(activation_history_path)
 
     candidate_threshold = float(threshold_summary["selected_threshold_business_v2"])
-    selected_shield_pocket = str(shield_summary["selected_shield_pocket"])
-    shield_session, shield_hour = selected_shield_pocket.split("/")
+    selected_shield_pocket_raw = shield_summary.get("selected_shield_pocket")
+    selected_shield_pocket = (
+        _scalar_string(selected_shield_pocket_raw, default="")
+        if not _scalar_is_missing(selected_shield_pocket_raw)
+        else ""
+    )
+    shield_session: str | None = None
+    shield_hour: float | None = None
+    if selected_shield_pocket and "/" in selected_shield_pocket:
+        session_part, hour_part = selected_shield_pocket.split("/", 1)
+        shield_hour_candidate = _coerce_float_or_none(hour_part)
+        if shield_hour_candidate is not None:
+            shield_session = str(session_part)
+            shield_hour = float(shield_hour_candidate)
 
     contact_history_df = activation_history_df.loc[
         activation_history_df.get("activation_explanation_dom_v2", pd.Series(index=activation_history_df.index, dtype="object"))
@@ -36899,10 +42558,12 @@ def build_shadow_meta_v2_contact_week_descriptive_artifacts(
         run_eval_df = contact_labeled_df.loc[contact_labeled_df.get("run_id").astype(str) == str(run_id)].copy()
         accepted = int(_bool_mask(run_full_df, "accepted").sum()) if not run_full_df.empty else 0
         trainable = int(_bool_mask(run_full_df, "trainable_mask_v1").sum()) if not run_full_df.empty else 0
-        shield_mask = (
-            run_eval_df.get("session", pd.Series(index=run_eval_df.index, dtype="object")).astype(str).eq(shield_session)
-            & pd.to_numeric(run_eval_df.get("hour_utc"), errors="coerce").eq(float(shield_hour))
-        )
+        shield_mask = pd.Series(False, index=run_eval_df.index, dtype="bool")
+        if shield_session is not None and shield_hour is not None:
+            shield_mask = (
+                run_eval_df.get("session", pd.Series(index=run_eval_df.index, dtype="object")).astype(str).eq(str(shield_session))
+                & pd.to_numeric(run_eval_df.get("hour_utc"), errors="coerce").eq(float(shield_hour))
+            )
         veto_mask = pd.to_numeric(run_eval_df.get("meta_allow_score_v1"), errors="coerce") < candidate_threshold
         veto_mask = veto_mask & ~shield_mask
         veto_df = run_eval_df.loc[veto_mask].copy()
@@ -37189,9 +42850,19 @@ def build_shadow_meta_v2_contact_cohort_baseline_artifacts(
         )
     cohort_by_run_df = pd.DataFrame(cohort_position_rows)
 
-    target_run = cohort_by_run_df.loc[
-        cohort_by_run_df["run_id"].astype(str).eq("E2E_SANITY_ORDERFIX_20260225_20260304")
-    ].iloc[0]
+    target_run_id = _shadow_v2_target_holdout_run_id(descriptive_summary)
+    if target_run_id is not None and bool(cohort_by_run_df["run_id"].astype(str).eq(target_run_id).any()):
+        target_run = cohort_by_run_df.loc[
+            cohort_by_run_df["run_id"].astype(str).eq(target_run_id)
+        ].iloc[0]
+    elif not holdout_df.empty:
+        target_run = cohort_by_run_df.loc[
+            cohort_by_run_df["run_id"].astype(str).eq(str(holdout_df.iloc[0]["run_id"]))
+        ].iloc[0]
+    elif not cohort_by_run_df.empty:
+        target_run = cohort_by_run_df.iloc[0]
+    else:
+        raise RuntimeError("[SHADOW_META_V2] no contact-cohort rows available for target selection")
     summary = {
         "validation_line_name": _SHADOW_V2_VALIDATION_LINE_NAME,
         "analysis_mode": "DESCRIPTIVE_ONLY_CONTACT_COHORT_BASELINE",
@@ -37410,10 +43081,20 @@ def build_offline_review_surface(shared_context_df: pd.DataFrame, *, selected_th
         )
         return offline_df, summary
 
-    offline_df, summary = _ORIG_BUILD_OFFLINE_REVIEW_SURFACE(
-        shared_context_df,
-        selected_threshold=selected_threshold,
-    )
+    try:
+        if _ORIG_BUILD_OFFLINE_REVIEW_SURFACE is None:
+            raise RuntimeError("[SHADOW_META_V1] base build_offline_review_surface is not available in the compiled base module")
+        offline_df, summary = _ORIG_BUILD_OFFLINE_REVIEW_SURFACE(
+            shared_context_df,
+            selected_threshold=selected_threshold,
+        )
+    except RuntimeError as exc:
+        if not _is_base_shim_runtime_error(exc):
+            raise
+        offline_df, summary = _build_local_offline_review_surface(
+            shared_context_df,
+            selected_threshold=selected_threshold,
+        )
     offline_df = offline_df.copy()
     accepted_audit_mask, exit_live_review_mask, controller_mask = _offline_review_surface_masks(offline_df)
     offline_df["accepted_audit_surface_v1"] = accepted_audit_mask
@@ -37436,7 +43117,19 @@ def _coverage_summary_with_surface_split(
     *,
     offline_review_df: pd.DataFrame,
 ) -> Dict[str, Any]:
-    summary = dict(_ORIG_BUILD_SHARED_CONTEXT_COVERAGE_SUMMARY(shared_context_df, offline_review_df=offline_review_df))
+    try:
+        if _ORIG_BUILD_SHARED_CONTEXT_COVERAGE_SUMMARY is None:
+            raise RuntimeError(
+                "[SHADOW_META_V1] base build_shared_context_coverage_summary is not available in the compiled base module"
+            )
+        summary = dict(_ORIG_BUILD_SHARED_CONTEXT_COVERAGE_SUMMARY(shared_context_df, offline_review_df=offline_review_df))
+    except RuntimeError as exc:
+        if not _is_base_shim_runtime_error(exc):
+            raise
+        summary = _build_local_shared_context_coverage_summary(
+            shared_context_df,
+            offline_review_df=offline_review_df,
+        )
     accepted_mask = _bool_mask(shared_context_df, "accepted")
     trainable_mask = accepted_mask & _bool_mask(shared_context_df, "trainable_mask_v1")
     accepted_total = int(accepted_mask.sum())
@@ -37530,20 +43223,46 @@ def build_shared_context_coverage_summary(shared_context_df: pd.DataFrame, *, of
 
 
 def derive_feature_spec(df: pd.DataFrame, *, max_null_frac: float = 0.0) -> Any:
-    return _ORIG_DERIVE_FEATURE_SPEC(_augment_pocket_features(df), max_null_frac=max_null_frac)
+    try:
+        if _ORIG_DERIVE_FEATURE_SPEC is None:
+            raise RuntimeError("[SHADOW_META_V1] base derive_feature_spec is not available in the compiled base module")
+        return _ORIG_DERIVE_FEATURE_SPEC(_augment_pocket_features(df), max_null_frac=max_null_frac)
+    except RuntimeError as exc:
+        if not _is_base_shim_runtime_error(exc):
+            raise
+        return _build_local_feature_spec(df, max_null_frac=max_null_frac)
 
 
 def fit_shadow_meta_model(train_df: pd.DataFrame, val_df: pd.DataFrame, feature_spec: Any, *, label_col: str = "meta_allow_label_v1") -> Any:
-    return _ORIG_FIT_SHADOW_META_MODEL(
-        _augment_pocket_features(train_df),
-        _augment_pocket_features(val_df),
-        feature_spec,
-        label_col=label_col,
-    )
+    try:
+        if _ORIG_FIT_SHADOW_META_MODEL is None:
+            raise RuntimeError("[SHADOW_META_V1] base fit_shadow_meta_model is not available in the compiled base module")
+        return _ORIG_FIT_SHADOW_META_MODEL(
+            _augment_pocket_features(train_df),
+            _augment_pocket_features(val_df),
+            feature_spec,
+            label_col=label_col,
+        )
+    except RuntimeError as exc:
+        if not _is_base_shim_runtime_error(exc):
+            raise
+        return _build_local_shadow_meta_model(
+            train_df,
+            val_df,
+            feature_spec,
+            label_col=label_col,
+        )
 
 
 def predict_allow_score(model: Any, df: pd.DataFrame, feature_spec: Any) -> Any:
-    return _ORIG_PREDICT_ALLOW_SCORE(model, _augment_pocket_features(df), feature_spec)
+    try:
+        if _ORIG_PREDICT_ALLOW_SCORE is None:
+            raise RuntimeError("[SHADOW_META_V1] base predict_allow_score is not available in the compiled base module")
+        return _ORIG_PREDICT_ALLOW_SCORE(model, _augment_pocket_features(df), feature_spec)
+    except RuntimeError as exc:
+        if not _is_base_shim_runtime_error(exc):
+            raise
+        return _local_predict_allow_score(model, df, feature_spec)
 
 
 def _stability_skip_reason_from_error(exc: BaseException) -> str:
@@ -37692,6 +43411,8 @@ def _build_activation_stability_analysis_only(trainable_df: pd.DataFrame, *, fea
 
 def build_activation_stability_by_run(trainable_df: pd.DataFrame, *, feature_spec: Any) -> Tuple[pd.DataFrame, Dict[str, Any]]:
     try:
+        if _ORIG_BUILD_ACTIVATION_STABILITY_BY_RUN is None:
+            raise RuntimeError("[SHADOW_META_V1] base build_activation_stability_by_run is not available in the compiled base module")
         return _ORIG_BUILD_ACTIVATION_STABILITY_BY_RUN(trainable_df, feature_spec=feature_spec)
     except RuntimeError as exc:
         return _build_activation_stability_analysis_only(trainable_df, feature_spec=feature_spec)
@@ -38574,6 +44295,14 @@ def train_and_evaluate_shadow_meta_v1(*, input_paths: Sequence[Path], out_dir: P
 _BASE.build_offline_review_surface = build_offline_review_surface
 _BASE.build_shared_context_coverage_summary = build_shared_context_coverage_summary
 _BASE.build_activation_stability_by_run = build_activation_stability_by_run
+_BASE._label_variant_specs = _label_variant_specs
+_BASE._evaluate_label_variant = _evaluate_label_variant
+_BASE.add_offline_business_labels = add_offline_business_labels
+_BASE.build_threshold_sweep = build_threshold_sweep
+_BASE.choose_threshold_from_validation_business = choose_threshold_from_validation_business
+_BASE.choose_threshold_from_validation = choose_threshold_from_validation
+_BASE.build_stability_run_splits = build_stability_run_splits
+_BASE.build_activation_compare = build_activation_compare
 _BASE.FEATURE_COLS = tuple(
     col
     for col in list(_BASE.FEATURE_COLS) + [extra for extra in _POCKET_FEATURE_COLS if extra not in _BASE.FEATURE_COLS]

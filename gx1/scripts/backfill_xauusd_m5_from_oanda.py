@@ -33,6 +33,7 @@ sys.path.insert(0, str(script_dir.parent.parent))
 from gx1.execution.oanda_client import OandaClient, OandaClientConfig
 from gx1.execution.oanda_credentials import load_oanda_credentials
 from gx1.utils.env_loader import load_dotenv_if_present
+from gx1.utils.granularity import granularity_to_minutes, granularity_to_pandas_freq
 
 logging.basicConfig(
     level=logging.INFO,
@@ -86,6 +87,7 @@ def fetch_candles_bid_ask(
     """
     log.info(f"[FETCH] {instrument} {granularity} {start} -> {end}")
     all_chunks: List[pd.DataFrame] = []
+    freq = granularity_to_pandas_freq(granularity)
     if chunk_days <= 0:
         chunk_days = 1
     if chunk_days == 1:
@@ -115,7 +117,7 @@ def fetch_candles_bid_ask(
                 raw_time = raw_time.tz_localize("UTC")
             else:
                 raw_time = raw_time.tz_convert("UTC")
-            t = raw_time.floor("5min")
+            t = raw_time.floor(freq)
             mid = c.get("mid", {})
             bid = c.get("bid", mid)
             ask = c.get("ask", mid)
@@ -151,7 +153,8 @@ def fetch_candles_bid_ask(
 
 
 def merge_candles(existing: pd.DataFrame, new: pd.DataFrame) -> pd.DataFrame:
-    merged = pd.concat([existing, new]).sort_index().drop_duplicates(keep="last")
+    merged = pd.concat([existing, new]).sort_index()
+    merged = merged[~merged.index.duplicated(keep="last")]
     return merged
 
 
@@ -183,9 +186,11 @@ def _is_expected_closed_gap(prev_ts: pd.Timestamp, now_ts: pd.Timestamp) -> bool
 
 
 def _dukascopy_url(symbol: str, hour_start: pd.Timestamp) -> str:
+    # Dukascopy datafeed months are zero-based (January=00).
+    month_zero_based = int(hour_start.month) - 1
     return (
         "https://datafeed.dukascopy.com/datafeed/"
-        f"{symbol}/{hour_start:%Y/%m/%d}/{hour_start:%H}h_ticks.bi5"
+        f"{symbol}/{hour_start:%Y}/{month_zero_based:02d}/{hour_start:%d}/{hour_start:%H}h_ticks.bi5"
     )
 
 
@@ -225,6 +230,25 @@ def _download_dukascopy_bi5(
                 raise RuntimeError(f"download failed after {attempt} attempts: {e}")
             time.sleep(delay)
     raise RuntimeError("download failed")
+
+
+def _dukascopy_hour_probably_closed(symbol: str, hour_start: pd.Timestamp) -> bool:
+    symbol_upper = str(symbol or "").upper()
+    if symbol_upper not in {"XAUUSD", "XAU_USD"}:
+        return False
+    hour = pd.Timestamp(hour_start)
+    if hour.tzinfo is None:
+        hour = hour.tz_localize("UTC")
+    else:
+        hour = hour.tz_convert("UTC")
+    weekday = int(hour.weekday())
+    if weekday == 5:
+        return True
+    if weekday == 6 and int(hour.hour) < 22:
+        return True
+    if weekday == 4 and int(hour.hour) >= 22:
+        return True
+    return False
 
 
 def _parse_bi5_ticks(
@@ -282,20 +306,21 @@ def _autodetect_scale(
     return int(best_scale)
 
 
-def _resample_ticks_to_m5(df_ticks: pd.DataFrame) -> pd.DataFrame:
+def _resample_ticks_to_bars(df_ticks: pd.DataFrame, granularity: str = "M5") -> pd.DataFrame:
     df = df_ticks.copy()
     df = df.set_index("time").sort_index()
     df["bid"] = df["bid_i"]
     df["ask"] = df["ask_i"]
     df["mid"] = (df["bid"] + df["ask"]) / 2.0
+    freq = granularity_to_pandas_freq(granularity)
 
     def _ohlc(series: pd.Series) -> pd.DataFrame:
-        return series.resample("5min").agg(["first", "max", "min", "last"])
+        return series.resample(freq).agg(["first", "max", "min", "last"])
 
     bid_ohlc = _ohlc(df["bid"])
     ask_ohlc = _ohlc(df["ask"])
     mid_ohlc = _ohlc(df["mid"])
-    vol = (df["bid_vol"] + df["ask_vol"]).resample("5min").sum(min_count=1)
+    vol = (df["bid_vol"] + df["ask_vol"]).resample(freq).sum(min_count=1)
 
     out = pd.DataFrame(
         {
@@ -318,11 +343,17 @@ def _resample_ticks_to_m5(df_ticks: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+def _resample_ticks_to_m5(df_ticks: pd.DataFrame) -> pd.DataFrame:
+    return _resample_ticks_to_bars(df_ticks, "M5")
+
+
 def _dukascopy_patch(
     missing_ts: List[pd.Timestamp],
     symbol: str,
     cache_dir: Path,
     max_hours: int,
+    granularity: str = "M5",
+    allow_missing_hours: bool = False,
 ) -> pd.DataFrame:
     if not missing_ts:
         return pd.DataFrame()
@@ -337,12 +368,22 @@ def _dukascopy_patch(
 
     total_bytes = 0
     downloaded = 0
+    skipped_hours = 0
     tick_frames = []
     for hour in hours:
         url = _dukascopy_url(symbol, hour)
         rel = Path(symbol) / f"{hour:%Y/%m/%d}/{hour:%H}h_ticks.bi5"
         path = cache_dir / rel
-        size = _download_dukascopy_bi5(url, path)
+        if allow_missing_hours and _dukascopy_hour_probably_closed(symbol, hour):
+            skipped_hours += 1
+            continue
+        try:
+            size = _download_dukascopy_bi5(url, path)
+        except Exception:
+            if not allow_missing_hours:
+                raise
+            skipped_hours += 1
+            continue
         total_bytes += size
         downloaded += 1
         ticks = _parse_bi5_ticks(path, hour)
@@ -351,7 +392,7 @@ def _dukascopy_patch(
 
     print(
         "[RAW_DUKA_FETCH_PROOF] "
-        f"files_needed={len(hours)} files_downloaded={downloaded} bytes_total={total_bytes}",
+        f"files_needed={len(hours)} files_downloaded={downloaded} files_skipped={skipped_hours} bytes_total={total_bytes}",
         flush=True,
     )
 
@@ -387,8 +428,37 @@ def _dukascopy_patch(
         flush=True,
     )
 
-    df_m5 = _resample_ticks_to_m5(df_ticks)
-    return df_m5
+    bars = _resample_ticks_to_bars(df_ticks, granularity)
+    return bars
+
+
+def _dukascopy_fetch_range(
+    *,
+    start: pd.Timestamp,
+    end: pd.Timestamp,
+    symbol: str,
+    cache_dir: Path,
+    max_hours: int,
+    granularity: str,
+) -> pd.DataFrame:
+    step = pd.Timedelta(minutes=granularity_to_minutes(granularity))
+    if end <= start:
+        return pd.DataFrame()
+    expected = list(pd.date_range(start, end - step, freq=granularity_to_pandas_freq(granularity), tz="UTC"))
+    if not expected:
+        return pd.DataFrame()
+    bars = _dukascopy_patch(
+        missing_ts=expected,
+        symbol=symbol,
+        cache_dir=cache_dir,
+        max_hours=max_hours,
+        granularity=granularity,
+        allow_missing_hours=True,
+    )
+    if bars.empty:
+        return bars
+    bars = bars.loc[(bars.index >= start) & (bars.index < end)].sort_index()
+    return bars
 
 
 def _gap_check(
@@ -618,18 +688,47 @@ def _repair_raw_candles(
     return manifest
 
 
-def backfill_main(instrument: str, granularity: str) -> dict:
+def _floor_for_granularity(ts: pd.Timestamp, granularity: str) -> pd.Timestamp:
+    return ts.floor(granularity_to_pandas_freq(granularity))
+
+
+def _write_canonical_time_column(df: pd.DataFrame, candle_file: Path) -> None:
+    out = df.sort_index().copy()
+    if not isinstance(out.index, pd.DatetimeIndex):
+        raise RuntimeError("[BACKFILL_CANDLES] final dataframe must have DatetimeIndex")
+    if out.index.tz is None:
+        out.index = out.index.tz_localize("UTC")
+    else:
+        out.index = out.index.tz_convert("UTC")
+    out.index.name = "time"
+    out = out.reset_index()
+    out.to_parquet(candle_file, index=False)
+
+
+def backfill_main(
+    instrument: str,
+    granularity: str,
+    end_ts: str | None = None,
+    *,
+    dukascopy_enabled: bool = False,
+    dukascopy_cache_dir: Path = DEFAULT_DUKA_CACHE_DIR,
+    dukascopy_symbol: str = DEFAULT_DUKA_SYMBOL,
+    dukascopy_max_hours: int = 72,
+) -> dict:
     log.info("=" * 60)
     log.info("XAU_USD M5 Candle Backfill (Idempotent)")
     log.info("=" * 60)
 
     load_dotenv_if_present()
+    client = None
     try:
         client = _load_oanda_client(prod_baseline=False)
         log.info("Initialized OANDA client")
     except Exception as e:
-        log.error(f"Failed to initialize OANDA client: {e}")
-        return {"success": False, "error": str(e)}
+        if not dukascopy_enabled:
+            log.error(f"Failed to initialize OANDA client: {e}")
+            return {"success": False, "error": str(e)}
+        log.warning("[BACKFILL_CANDLES] OANDA client init failed; Dukascopy fallback enabled: %s", e)
 
     if os.environ.get("GX1_RAW_2025", "").strip():
         raise RuntimeError("[RAW_LANE_FORBIDDEN] GX1_RAW_2025 is set; raw lane is retired")
@@ -642,6 +741,7 @@ def backfill_main(instrument: str, granularity: str) -> dict:
     if candle_file.exists():
         try:
             existing_df = pd.read_parquet(candle_file)
+            existing_df, _ = _ensure_ts_index(existing_df)
             log.info(f"Loaded {len(existing_df):,} existing candles")
             if len(existing_df) > 0:
                 log.info(f"  Existing range: {existing_df.index.min()} to {existing_df.index.max()}")
@@ -652,7 +752,13 @@ def backfill_main(instrument: str, granularity: str) -> dict:
         log.info("Candle file does not exist - will create new file")
 
     now_utc = pd.Timestamp.now(tz="UTC")
-    now_utc_floor = now_utc.floor("5min")
+    target_utc = pd.Timestamp(end_ts) if end_ts else now_utc
+    if target_utc.tzinfo is None:
+        target_utc = target_utc.tz_localize("UTC")
+    else:
+        target_utc = target_utc.tz_convert("UTC")
+    now_utc_floor = _floor_for_granularity(target_utc, granularity)
+    step = pd.Timedelta(minutes=granularity_to_minutes(granularity))
 
     if existing_df.empty or len(existing_df) == 0:
         from_time = pd.Timestamp("2025-01-01", tz="UTC")
@@ -661,9 +767,9 @@ def backfill_main(instrument: str, granularity: str) -> dict:
     else:
         last_ts = existing_df.index.max()
         log.info(f"Last existing candle: {last_ts}")
-        next_bar = last_ts + pd.Timedelta(minutes=5)
+        next_bar = last_ts + step
 
-        if last_ts >= now_utc_floor - pd.Timedelta(minutes=5):
+        if last_ts >= now_utc_floor - step:
             log.info(f"[BACKFILL_CANDLES] No new candles to backfill (last_ts={last_ts}, now={now_utc_floor})")
             return {
                 "success": True,
@@ -678,6 +784,8 @@ def backfill_main(instrument: str, granularity: str) -> dict:
         log.info(f"Fetching candles from {from_time} to {to_time}")
 
     try:
+        if client is None:
+            raise RuntimeError("OANDA_CLIENT_UNAVAILABLE")
         new_df = fetch_candles_bid_ask(
             client=client,
             instrument=instrument,
@@ -686,18 +794,43 @@ def backfill_main(instrument: str, granularity: str) -> dict:
             granularity=granularity,
         )
     except Exception as e:
-        log.error(f"Failed to fetch candles: {e}")
-        return {"success": False, "error": str(e)}
+        if not dukascopy_enabled:
+            log.error(f"Failed to fetch candles: {e}")
+            return {"success": False, "error": str(e)}
+        log.warning("[BACKFILL_CANDLES] OANDA fetch failed; trying Dukascopy tick fallback: %s", e)
+        try:
+            new_df = _dukascopy_fetch_range(
+                start=from_time,
+                end=to_time,
+                symbol=dukascopy_symbol,
+                cache_dir=Path(dukascopy_cache_dir),
+                max_hours=int(dukascopy_max_hours),
+                granularity=granularity,
+            )
+        except Exception as duka_e:
+            log.error("[BACKFILL_CANDLES] Dukascopy fallback failed: %s", duka_e)
+            return {"success": False, "error": f"OANDA failed: {e}; Dukascopy failed: {duka_e}"}
 
     if new_df.empty:
-        log.info(f"[BACKFILL_CANDLES] No new candles fetched (API returned empty for {from_time} to {to_time})")
-        return {
-            "success": True,
-            "new_candles": 0,
-            "from_time": from_time,
-            "to_time": to_time,
-            "total_candles": len(existing_df),
-        }
+        if dukascopy_enabled:
+            log.info("[BACKFILL_CANDLES] OANDA returned empty; trying Dukascopy tick fallback")
+            new_df = _dukascopy_fetch_range(
+                start=from_time,
+                end=to_time,
+                symbol=dukascopy_symbol,
+                cache_dir=Path(dukascopy_cache_dir),
+                max_hours=int(dukascopy_max_hours),
+                granularity=granularity,
+            )
+        if new_df.empty:
+            log.info(f"[BACKFILL_CANDLES] No new candles fetched for {from_time} to {to_time}")
+            return {
+                "success": True,
+                "new_candles": 0,
+                "from_time": from_time,
+                "to_time": to_time,
+                "total_candles": len(existing_df),
+            }
 
     log.info(f"[BACKFILL_CANDLES] Fetched {len(new_df):,} new candles")
     log.info(f"[BACKFILL_CANDLES] New range: {new_df.index.min()} to {new_df.index.max()}")
@@ -710,7 +843,7 @@ def backfill_main(instrument: str, granularity: str) -> dict:
         log.info(f"Merged: {len(existing_df):,} existing + {len(new_df):,} new = {len(final_df):,} total")
 
     candle_file.parent.mkdir(parents=True, exist_ok=True)
-    final_df.to_parquet(candle_file)
+    _write_canonical_time_column(final_df, candle_file)
 
     log.info("=" * 60)
     log.info("✅ Candle Backfill Complete!")
@@ -791,7 +924,15 @@ def main() -> int:
         log.debug("Manifest: %s", manifest)
         return 0
 
-    result = backfill_main(instrument=args.instrument, granularity=args.granularity)
+    result = backfill_main(
+        instrument=args.instrument,
+        granularity=args.granularity,
+        end_ts=args.end_ts,
+        dukascopy_enabled=bool(args.dukascopy_enabled),
+        dukascopy_cache_dir=Path(args.dukascopy_cache_dir),
+        dukascopy_symbol=str(args.dukascopy_symbol),
+        dukascopy_max_hours=int(args.dukascopy_max_hours),
+    )
     if not result.get("success", False):
         return 1
     return 0

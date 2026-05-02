@@ -50,13 +50,13 @@ def test_intratrade_metrics_long_simple():
     
     # Expected:
     # MFE: max favorable = (101.0 - 100.0) / 100.0 * 10000 = 100.0 bps
-    # MAE: max adverse = (99.0 - 100.0) / 100.0 * 10000 = -100.0 bps
+    # MAE: max adverse magnitude = abs((99.0 - 100.0) / 100.0 * 10000) = 100.0 bps
     # DD: peak at bar 2 (100.8 bps), trough at bar 3 (99.5 -> -50 bps), DD = 100.8 - (-50) = 150.8 bps
     # But wait, let's recalculate: unrealized curve = [20, 80, -50, 50]
     # Peak = 80, trough after peak = -50, DD = 80 - (-50) = 130 bps
     
     assert abs(metrics["max_mfe_bps"] - 100.0) < 0.1
-    assert abs(metrics["max_mae_bps"] - (-100.0)) < 0.1
+    assert abs(metrics["max_mae_bps"] - 100.0) < 0.1
     assert abs(metrics["intratrade_drawdown_bps"] - 130.0) < 1.0
 
 
@@ -86,12 +86,12 @@ def test_intratrade_metrics_short_simple():
     
     # Expected:
     # MFE: max favorable = (100.0 - 99.0) / 100.0 * 10000 = 100.0 bps
-    # MAE: max adverse = (100.0 - 101.0) / 100.0 * 10000 = -100.0 bps
+    # MAE: max adverse magnitude = abs((100.0 - 101.0) / 100.0 * 10000) = 100.0 bps
     # DD: unrealized curve = [0, 50, -50, 50]
     # Peak = 50, trough after peak = -50, DD = 50 - (-50) = 100 bps
     
     assert abs(metrics["max_mfe_bps"] - 100.0) < 0.1
-    assert abs(metrics["max_mae_bps"] - (-100.0)) < 0.1
+    assert abs(metrics["max_mae_bps"] - 100.0) < 0.1
     assert abs(metrics["intratrade_drawdown_bps"] - 100.0) < 1.0
 
 
@@ -150,4 +150,3 @@ if __name__ == "__main__":
     test_intratrade_metrics_no_trace()
     test_intratrade_metrics_long_winning_trade()
     print("✓ All tests passed!")
-

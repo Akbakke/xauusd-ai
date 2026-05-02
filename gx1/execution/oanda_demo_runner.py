@@ -72,6 +72,14 @@ if TYPE_CHECKING:
 from gx1.execution.broker_client import BrokerClient
 from gx1.execution.entry_manager import EntryManager, resolve_entry_admission_contract
 from gx1.execution.exit_manager import ExitManager
+from gx1.execution.logging_transport_v1 import (
+    ReplayObservabilityTransport,
+    default_transport_output_dir,
+    transport_debug_mode_from_env,
+    transport_flush_interval_from_env,
+    transport_heavy_week_mode_from_env,
+    transport_ringbuffer_max_from_env,
+)
 from gx1.exits.contracts.exit_io_v1_ctx36 import EXIT_IO_V1_CTX36_IO_VERSION
 from gx1.exits.contracts.registry import get_exit_io_contract
 from gx1.execution.telemetry import TelemetryTracker
@@ -1768,6 +1776,7 @@ class GX1DemoRunner:
         else:
             self.log_dir = Path(log_cfg.get("log_dir", "gx1/live/logs"))
         setup_logging(self.log_dir, log_cfg.get("level", "INFO"))
+        self._init_replay_observability_transport()
         
         # BOOT-LOGG: vis kildene og hva som blir brukt (etter logging er satt opp)
         log.info("[BOOT] policy_path=%s policy_hash=%s", policy_path.resolve(), self.policy_hash)
@@ -4858,6 +4867,19 @@ class GX1DemoRunner:
         
         # PHASE 1 FIX: Single-exit invariant - check if trade already exited
         is_replay = getattr(self, "replay_mode", False) or getattr(self, "fast_replay", False)
+        def _replay_rate_limited_arbiter_log(bucket: str, key: tuple[Any, ...], *, first: int = 3, every: int = 1000) -> bool:
+            is_truth_replay = bool(is_replay) or os.getenv("GX1_RUN_MODE", "").upper() == "TRUTH"
+            if not is_truth_replay:
+                return True
+            counts = getattr(self, "_replay_arbiter_rate_limited_log_counts", None)
+            if counts is None:
+                counts = {}
+                setattr(self, "_replay_arbiter_rate_limited_log_counts", counts)
+            full_key = (str(bucket),) + tuple(str(part) for part in key)
+            count = int(counts.get(full_key, 0)) + 1
+            counts[full_key] = count
+            return count <= int(first) or (int(every) > 0 and count % int(every) == 0)
+
         already_closing = False
         with self._closing_lock:
             if trade_id in self._exited_trade_ids:
@@ -5165,15 +5187,16 @@ class GX1DemoRunner:
 
                 if min_realized_pnl_bps is not None and pnl_bps < float(min_realized_pnl_bps):
                     rule = f"min_realized_pnl_bps:{min_realized_pnl_bps}"
-                    log.info(
-                        "[ARB] reject model exit (realized_pnl_bps=%.1f < min_realized_pnl_bps=%.1f) mfe_bps=%.2f dd_from_mfe=%.2f giveback_ratio=%.3f rule=%s",
-                        pnl_bps,
-                        float(min_realized_pnl_bps),
-                        mfe_bps,
-                        dd_from_mfe_bps,
-                        giveback_ratio,
-                        rule,
-                    )
+                    if _replay_rate_limited_arbiter_log("model_exit_reject", (trade_id, rule)):
+                        log.info(
+                            "[ARB] reject model exit (realized_pnl_bps=%.1f < min_realized_pnl_bps=%.1f) mfe_bps=%.2f dd_from_mfe=%.2f giveback_ratio=%.3f rule=%s",
+                            pnl_bps,
+                            float(min_realized_pnl_bps),
+                            mfe_bps,
+                            dd_from_mfe_bps,
+                            giveback_ratio,
+                            rule,
+                        )
                     self._log_exit_audit(
                         trade_id,
                         source,
@@ -5238,7 +5261,8 @@ class GX1DemoRunner:
                     
                     if reason not in allowed_reasons:
                         # Improved logging: show rule details
-                        log.info("[ARB] reject loss close by %s reason=%s (pnl=%.1f bps, allowed=%s)", source, reason, pnl_bps, self.exit_control.allowed_loss_closers)
+                        if _replay_rate_limited_arbiter_log("loss_close_reject", (trade_id, source, reason)):
+                            log.info("[ARB] reject loss close by %s reason=%s (pnl=%.1f bps, allowed=%s)", source, reason, pnl_bps, self.exit_control.allowed_loss_closers)
                         if is_cata_guard:
                             log.info("[EXIT_CATA_GUARD_ARBITER_REJECT] trade_id=%s reason=loss_close_not_allowed allowed=%s", trade_id, self.exit_control.allowed_loss_closers)
                         self._log_exit_audit(trade_id, source, reason, pnl_bps, False, None, tp_sl_state, bars_in_trade)
@@ -12779,6 +12803,7 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
                     len(self.open_trades),
                     total_trades,
                 )
+                self._flush_replay_observability_transport(reason="replay_progress", force=False)
                 last_progress_log_time = current_time
             
             # Store current bar timestamp for replay context (used by _tick_close_now)
@@ -13144,9 +13169,10 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
             
             # Log progress every 1000 bars to reduce hot-loop logging overhead.
             if (i + 1) % 1000 == 0:
-                log.info("[REPLAY] Progress: %d/%d bars (%.1f%%) | open_trades=%d", 
+                log.debug("[REPLAY] Progress: %d/%d bars (%.1f%%) | open_trades=%d",
                     i+1, len(df), 100*(i+1)/len(df), len(self.open_trades))
         
+        self._flush_replay_observability_transport(reason="replay_finished", force=True)
         log.info("[REPLAY] Finished processing all bars")
         # CRITICAL: bars_seen is total bars loop iterated over (including warmup skips)
         # perf_n_bars_processed is bars that reached model call stage (after warmup/pregate)
@@ -14620,12 +14646,19 @@ def run_replay(self: GX1DemoRunner, csv_path: Path) -> None:
     """
     try:
         return self._run_replay_impl(csv_path)
+    except Exception as exc:
+        self._mark_replay_observability_failure(str(exc))
+        raise
     finally:
         # Replay-safe journal buffering: always flush buffered IO before leaving replay,
         # regardless of success/failure (RUN_COMPLETED / RUN_FAILED written after this returns).
         try:
             if hasattr(self, "_flush_journal_buffer"):
                 self._flush_journal_buffer(reason="run_replay_finally")
+        except Exception:
+            pass
+        try:
+            self._flush_replay_observability_transport(reason="run_replay_finally", force=True)
         except Exception:
             pass
 
@@ -15163,6 +15196,80 @@ def _dump_backtest_summary_impl(self) -> None:
         log.warning("[REPLAY_PNL_AUDIT] failed: %s", exc)
 
 
+def _init_replay_observability_transport(self: GX1DemoRunner) -> None:
+    try:
+        output_dir = default_transport_output_dir(
+            explicit_output_dir=getattr(self, "explicit_output_dir", None),
+            output_dir=getattr(self, "output_dir", None),
+            log_dir=getattr(self, "log_dir", None),
+        )
+        replay_like = bool(
+            getattr(self, "replay_mode", False)
+            or getattr(self, "fast_replay", False)
+            or getattr(self, "canonical_truth_mode", False)
+        )
+        if not replay_like or output_dir is None:
+            self.replay_observability_transport = None
+            return
+        self.replay_observability_transport = ReplayObservabilityTransport(
+            output_dir=Path(output_dir),
+            run_id=str(getattr(self, "run_id", "UNKNOWN_RUN")),
+            chunk_id=str(getattr(self, "chunk_id", "single")),
+            debug_mode=transport_debug_mode_from_env(canary_mode=bool(getattr(self, "canary_mode", False))),
+            heavy_week_mode=transport_heavy_week_mode_from_env(),
+            canary_mode=bool(getattr(self, "canary_mode", False)),
+            flush_interval_sec=transport_flush_interval_from_env(),
+            ringbuffer_max=transport_ringbuffer_max_from_env(),
+        )
+        log.info(
+            "[OBS_TRANSPORT] enabled=%s artifact_dir=%s debug=%s heavy_week=%s",
+            True,
+            getattr(self.replay_observability_transport, "artifact_dir", None),
+            bool(getattr(self.replay_observability_transport, "debug_mode", False)),
+            bool(getattr(self.replay_observability_transport, "heavy_week_mode", False)),
+        )
+    except Exception as exc:
+        self.replay_observability_transport = None
+        log.warning("[OBS_TRANSPORT] init failed: %s", exc)
+
+
+def _record_replay_observability_event(self: GX1DemoRunner, family: str, **kwargs: Any) -> bool:
+    transport = getattr(self, "replay_observability_transport", None)
+    if transport is None:
+        return True
+    try:
+        return bool(transport.record_event(family, **kwargs))
+    except Exception as exc:
+        log.warning("[OBS_TRANSPORT] record failed family=%s err=%s", family, exc)
+        return True
+
+
+def _flush_replay_observability_transport(
+    self: GX1DemoRunner,
+    *,
+    reason: str,
+    force: bool = False,
+) -> Optional[Path]:
+    transport = getattr(self, "replay_observability_transport", None)
+    if transport is None:
+        return None
+    try:
+        return transport.flush(reason=reason, force=force)
+    except Exception as exc:
+        log.warning("[OBS_TRANSPORT] flush failed reason=%s err=%s", reason, exc)
+        return None
+
+
+def _mark_replay_observability_failure(self: GX1DemoRunner, reason: str) -> None:
+    transport = getattr(self, "replay_observability_transport", None)
+    if transport is None:
+        return
+    try:
+        transport.mark_failure(str(reason))
+    except Exception as exc:
+        log.warning("[OBS_TRANSPORT] failure mark failed err=%s", exc)
+
+
 def _push_exit_signal7_for_bar_impl(self, candles_history: pd.DataFrame) -> None:
     """
     Build XGB BASE28 row for current bar (prebuilt-only), bridge to signal7, append to exit_signal7_history.
@@ -15519,6 +15626,10 @@ GX1DemoRunner._check_disk_space = _check_disk_space  # type: ignore[attr-defined
 GX1DemoRunner._check_disk_space_impl = _check_disk_space_impl  # type: ignore[attr-defined]
 GX1DemoRunner._rotate_logs = _rotate_logs  # type: ignore[attr-defined]
 GX1DemoRunner._rotate_logs_impl = _rotate_logs_impl  # type: ignore[attr-defined]
+GX1DemoRunner._init_replay_observability_transport = _init_replay_observability_transport  # type: ignore[attr-defined]
+GX1DemoRunner._record_replay_observability_event = _record_replay_observability_event  # type: ignore[attr-defined]
+GX1DemoRunner._flush_replay_observability_transport = _flush_replay_observability_transport  # type: ignore[attr-defined]
+GX1DemoRunner._mark_replay_observability_failure = _mark_replay_observability_failure  # type: ignore[attr-defined]
 GX1DemoRunner.run_forever = run_forever  # type: ignore[attr-defined]
 GX1DemoRunner._run_forever_impl = _run_forever_impl  # type: ignore[attr-defined]
 GX1DemoRunner.run_replay = run_replay  # type: ignore[attr-defined]

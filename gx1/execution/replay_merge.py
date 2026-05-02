@@ -282,6 +282,85 @@ def _join_key_for_trade_id_or_uid(df: pd.DataFrame) -> pd.Series:
     return trade_uid.where(trade_uid.notna() & (trade_uid.astype(str).str.strip() != ""), trade_id).astype("object")
 
 
+def _normalize_trade_identity_series(series: pd.Series | None, index: pd.Index | None = None) -> pd.Series:
+    if series is None:
+        return pd.Series(pd.NA, index=index, dtype="string")
+    out = series.astype("string").str.strip()
+    return out.replace(
+        {
+            "": pd.NA,
+            "nan": pd.NA,
+            "None": pd.NA,
+            "none": pd.NA,
+            "<NA>": pd.NA,
+            "NaT": pd.NA,
+        }
+    )
+
+
+def _merge_support_table_by_trade_identity(
+    left_df: pd.DataFrame,
+    support_df: pd.DataFrame,
+    *,
+    keep_cols: List[str],
+    support_label: str,
+) -> pd.DataFrame:
+    if left_df is None or left_df.empty or support_df is None or support_df.empty:
+        return left_df
+
+    out = left_df.copy()
+    support = support_df.copy()
+
+    left_trade_uid = _normalize_trade_identity_series(
+        out["trade_uid"] if "trade_uid" in out.columns else None,
+        index=out.index,
+    )
+    left_trade_id = _normalize_trade_identity_series(
+        out["trade_id"] if "trade_id" in out.columns else None,
+        index=out.index,
+    )
+    support_trade_uid = _normalize_trade_identity_series(
+        support["trade_uid"] if "trade_uid" in support.columns else None,
+        index=support.index,
+    )
+    support_trade_id = _normalize_trade_identity_series(
+        support["trade_id"] if "trade_id" in support.columns else None,
+        index=support.index,
+    )
+
+    for key_name, key_series in (("trade_uid", support_trade_uid), ("trade_id", support_trade_id)):
+        dupes = key_series[key_series.notna() & key_series.duplicated(keep=False)]
+        if not dupes.empty:
+            sample = dupes.astype(str).drop_duplicates().head(10).tolist()
+            raise RuntimeError(
+                f"[SHADOW_META] support identity key not unique for {support_label}:{key_name}; sample={sample}"
+            )
+
+    exact_support = support.loc[support_trade_uid.notna()].copy()
+    exact_support.index = support_trade_uid.loc[support_trade_uid.notna()]
+    fallback_support = support.loc[support_trade_id.notna()].copy()
+    fallback_support.index = support_trade_id.loc[support_trade_id.notna()]
+
+    for col in keep_cols:
+        if col == "join_key" or col not in support.columns:
+            continue
+        exact_values = (
+            left_trade_uid.map(exact_support[col])
+            if not exact_support.empty
+            else pd.Series(pd.NA, index=out.index, dtype="object")
+        )
+        fallback_values = (
+            left_trade_id.map(fallback_support[col])
+            if not fallback_support.empty
+            else pd.Series(pd.NA, index=out.index, dtype="object")
+        )
+        merged_values = exact_values.where(exact_values.notna(), fallback_values)
+        target_col = col if col not in out.columns else f"{col}_{support_label}"
+        out[target_col] = merged_values
+
+    return out
+
+
 def _dedupe_keep_order(values: List[str]) -> List[str]:
     seen = set()
     out: List[str] = []
@@ -368,7 +447,12 @@ LABEL_COLS = [
     "exit_reason",
 ]
 
-REQUIRED_COLS = _dedupe_keep_order(FEATURE_COLS + AUDIT_COLS + LABEL_COLS)
+QUALITY_HELPER_COLS = [
+    "good_trade_mfe20_mae5_v1",
+    "mfe_mae_ratio_v1",
+]
+
+REQUIRED_COLS = _dedupe_keep_order(FEATURE_COLS + AUDIT_COLS + LABEL_COLS + QUALITY_HELPER_COLS)
 
 NULLABLE_COLS = [
     "trade_uid",
@@ -399,6 +483,8 @@ NULLABLE_COLS = [
     "mae_bps",
     "bars_in_trade",
     "exit_reason",
+    "good_trade_mfe20_mae5_v1",
+    "mfe_mae_ratio_v1",
 ]
 
 COL_DTYPE_MAP = {
@@ -447,6 +533,8 @@ COL_DTYPE_MAP = {
     "mae_bps": "float64",
     "bars_in_trade": "float64",
     "exit_reason": "string",
+    "good_trade_mfe20_mae5_v1": "boolean",
+    "mfe_mae_ratio_v1": "float64",
 }
 
 ACCEPTED_TRUE_REQUIRED_COLS = [
@@ -485,6 +573,7 @@ ACCEPTED_TRUE_REQUIRED_COLS = [
     "good_mfe_then_rot",
     "trainable_mask_v1",
     "meta_allow_label_v1",
+    "good_trade_mfe20_mae5_v1",
 ]
 
 ACCEPTED_FALSE_MUST_BE_NULL_COLS = [
@@ -502,6 +591,8 @@ ACCEPTED_FALSE_MUST_BE_NULL_COLS = [
     "never_mfe",
     "good_mfe_then_rot",
     "meta_allow_label_v1",
+    "good_trade_mfe20_mae5_v1",
+    "mfe_mae_ratio_v1",
 ]
 
 DERIVED_COLS = [
@@ -514,6 +605,8 @@ DERIVED_COLS = [
     "good_mfe_then_rot",
     "trainable_mask_v1",
     "meta_allow_label_v1",
+    "good_trade_mfe20_mae5_v1",
+    "mfe_mae_ratio_v1",
 ]
 
 FIELD_SOURCES = {
@@ -562,6 +655,8 @@ FIELD_SOURCES = {
     "mae_bps": "trade_journal|trade_outcomes",
     "bars_in_trade": "trade_journal|trade_outcomes",
     "exit_reason": "trade_journal|trade_outcomes",
+    "good_trade_mfe20_mae5_v1": "derived",
+    "mfe_mae_ratio_v1": "derived",
 }
 
 SANITY_CHECKS = [
@@ -627,6 +722,9 @@ _PROVENANCE_FIELD_RULES: Dict[str, Dict[str, str]] = {
     },
 }
 
+_GOOD_TRADE_MFE20_MIN_BPS_V1 = 20.0
+_GOOD_TRADE_MAE_GT_BPS_V1 = -5.0
+
 
 def compute_mfe_threshold_bps(row: pd.Series) -> float:
     entry_spread_bps = row.get("entry_spread_bps")
@@ -678,6 +776,44 @@ def compute_good_mfe_then_rot(row: pd.Series) -> Optional[bool]:
     if pd.isna(mfe_bps) or positive_exit is None or cata is None or never_mfe is None:
         return None
     return bool((float(mfe_bps) >= threshold) and (positive_exit is False) and (cata is False) and (never_mfe is False))
+
+
+def compute_good_trade_mfe20_mae5_v1(row: pd.Series) -> Optional[bool]:
+    if not compute_trainable_mask_v1(row):
+        return None
+    positive_exit = compute_positive_exit(row)
+    cata = compute_cata(row)
+    never_mfe = compute_never_mfe(row)
+    mfe_bps = row.get("mfe_bps")
+    mae_bps = row.get("mae_bps")
+    if (
+        positive_exit is None
+        or cata is None
+        or never_mfe is None
+        or pd.isna(mfe_bps)
+        or pd.isna(mae_bps)
+    ):
+        return None
+    return bool(
+        positive_exit
+        and (not cata)
+        and (not never_mfe)
+        and float(mfe_bps) >= _GOOD_TRADE_MFE20_MIN_BPS_V1
+        and float(mae_bps) > _GOOD_TRADE_MAE_GT_BPS_V1
+    )
+
+
+def compute_mfe_mae_ratio_v1(row: pd.Series) -> Optional[float]:
+    if not bool(row.get("accepted", False)):
+        return None
+    mfe_bps = row.get("mfe_bps")
+    mae_bps = row.get("mae_bps")
+    if pd.isna(mfe_bps) or pd.isna(mae_bps):
+        return None
+    mae_abs = abs(float(mae_bps))
+    if mae_abs <= 0.0:
+        return None
+    return float(float(mfe_bps) / mae_abs)
 
 
 def compute_trainable_mask_v1(row: pd.Series) -> Optional[bool]:
@@ -801,13 +937,15 @@ def _finalize_shadow_meta_v1(
     df["policy_hash"] = provenance.get("policy_hash")
     df["entry_bundle_sha256"] = provenance.get("entry_bundle_sha256")
     df["exit_bundle_sha256"] = provenance.get("exit_bundle_sha256")
-    df["open_ts_utc"] = _normalize_utc_series(_first_non_null_series(df, ["open_ts_utc", "open_ts_utc_journal", "entry_time"]))
-    df["close_ts_utc"] = _normalize_utc_series(
-        _first_non_null_series(df, ["close_ts_utc", "close_ts_utc_journal", "exit_time"])
+    df["open_ts_utc"] = _normalize_utc_series(
+        _first_non_null_series(df, ["open_ts_utc", "open_ts_utc_journal", "open_ts_utc_outcome", "entry_time"])
     )
-    df["pnl_bps"] = _safe_float_series(_first_non_null_series(df, ["pnl_bps", "pnl_bps_journal"]))
-    df["mfe_bps"] = _safe_float_series(_first_non_null_series(df, ["mfe_bps", "mfe_bps_journal"]))
-    df["mae_bps"] = _safe_float_series(_first_non_null_series(df, ["mae_bps", "mae_bps_journal"]))
+    df["close_ts_utc"] = _normalize_utc_series(
+        _first_non_null_series(df, ["close_ts_utc", "close_ts_utc_journal", "close_ts_utc_outcome", "exit_time"])
+    )
+    df["pnl_bps"] = _safe_float_series(_first_non_null_series(df, ["pnl_bps", "pnl_bps_journal", "pnl_bps_outcome"]))
+    df["mfe_bps"] = _safe_float_series(_first_non_null_series(df, ["mfe_bps", "mfe_bps_journal", "mfe_bps_outcome"]))
+    df["mae_bps"] = _safe_float_series(_first_non_null_series(df, ["mae_bps", "mae_bps_journal", "mae_bps_outcome"]))
     df["bars_in_trade"] = _safe_float_series(
         _first_non_null_series(df, ["bars_in_trade", "duration_bars", "bars_in_trade_journal", "duration_bars_outcome"])
     )
@@ -820,6 +958,8 @@ def _finalize_shadow_meta_v1(
     df["good_mfe_then_rot"] = df.apply(compute_good_mfe_then_rot, axis=1)
     df["trainable_mask_v1"] = df.apply(compute_trainable_mask_v1, axis=1)
     df["meta_allow_label_v1"] = df.apply(compute_meta_allow_label_v1, axis=1)
+    df["good_trade_mfe20_mae5_v1"] = df.apply(compute_good_trade_mfe20_mae5_v1, axis=1)
+    df["mfe_mae_ratio_v1"] = df.apply(compute_mfe_mae_ratio_v1, axis=1)
 
     _enforce_provenance_coverage(df=df, summaries=provenance_summary)
     _validate_shadow_meta_v1(df)
@@ -1464,7 +1604,9 @@ def _write_postrun_trade_reports(
             log.info("[POSTRUN_TRADE_REPORT_SKIPPED] failed to read %s: %s", journal_path, e)
             journal = None
 
-    # Enrich trade_journal with price/spread fields from trade_outcomes if missing
+    # Enrich trade_journal with AS_OF/outcome identity fields from trade_outcomes.
+    # Some older journal writers emit the columns but leave them null; fill only
+    # from the canonical merged outcome rows keyed by trade_id, never synthetic.
     try:
         if journal is not None:
             outcomes_path = out_root / f"trade_outcomes_{run_id}_MERGED.parquet"
@@ -1474,7 +1616,12 @@ def _write_postrun_trade_reports(
                     outcomes_df["trade_id"] = outcomes_df["trade_id"].astype(str)
                 if "trade_id" in journal.columns:
                     journal["trade_id"] = journal["trade_id"].astype(str)
-                cols_to_add = [
+                cols_to_enrich = [
+                    "trade_uid",
+                    "side",
+                    "open_ts_utc",
+                    "mae_bps",
+                    "mfe_bps",
                     "entry_bid",
                     "entry_ask",
                     "exit_bid",
@@ -1484,16 +1631,38 @@ def _write_postrun_trade_reports(
                     "entry_price_used",
                     "exit_price_used",
                 ]
-                missing_cols = [c for c in cols_to_add if c not in journal.columns and c in outcomes_df.columns]
-                if missing_cols:
+                enrich_cols = [c for c in cols_to_enrich if c in outcomes_df.columns]
+                missing_cols = [c for c in enrich_cols if c not in journal.columns]
+                nullable_cols = [
+                    c
+                    for c in enrich_cols
+                    if c in journal.columns and int(journal[c].isna().sum()) > 0
+                ]
+                if missing_cols or nullable_cols:
+                    before_nulls = {c: int(journal[c].isna().sum()) for c in nullable_cols}
+                    merge_cols = ["trade_id"] + sorted(set(missing_cols + nullable_cols))
                     journal = journal.merge(
-                        outcomes_df[["trade_id"] + missing_cols],
+                        outcomes_df[merge_cols],
                         on="trade_id",
                         how="left",
                         suffixes=("", "_outcomes"),
                     )
+                    for col in nullable_cols:
+                        outcome_col = f"{col}_outcomes"
+                        if outcome_col in journal.columns:
+                            journal[col] = journal[col].where(journal[col].notna(), journal[outcome_col])
+                            journal = journal.drop(columns=[outcome_col])
+                    filled_nulls = {
+                        c: before_nulls[c] - int(journal[c].isna().sum())
+                        for c in nullable_cols
+                    }
                     journal.to_parquet(journal_path, index=False)
-                    log.info("[POSTRUN_TRADE_JOURNAL_ENRICH] added_cols=%s path=%s", missing_cols, journal_path)
+                    log.info(
+                        "[POSTRUN_TRADE_JOURNAL_ENRICH] added_cols=%s filled_nulls=%s path=%s",
+                        missing_cols,
+                        filled_nulls,
+                        journal_path,
+                    )
     except Exception as e:
         log.info("[POSTRUN_TRADE_JOURNAL_ENRICH_SKIPPED] %s", e)
 
@@ -2764,7 +2933,12 @@ def merge_artifacts_1w1c(run_dir: Path, run_id: str, output_dir: Optional[Path] 
                         if c in journal_df.columns
                     ]
                     journal_df = journal_df[journal_keep].drop_duplicates(subset=["join_key"], keep="last")
-                    merged_shadow = merged_shadow.merge(journal_df, on="join_key", how="left", suffixes=("", "_journal"))
+                    merged_shadow = _merge_support_table_by_trade_identity(
+                        merged_shadow,
+                        journal_df,
+                        keep_cols=journal_keep,
+                        support_label="journal",
+                    )
             except Exception as e:
                 log.warning("[SHADOW_META] failed to merge trade_journal: %s", e)
 
@@ -2801,7 +2975,12 @@ def merge_artifacts_1w1c(run_dir: Path, run_id: str, output_dir: Optional[Path] 
                         if c in outcomes_df.columns
                     ]
                     outcomes_df = outcomes_df[outcome_keep].drop_duplicates(subset=["join_key"], keep="last")
-                    merged_shadow = merged_shadow.merge(outcomes_df, on="join_key", how="left", suffixes=("", "_outcome"))
+                    merged_shadow = _merge_support_table_by_trade_identity(
+                        merged_shadow,
+                        outcomes_df,
+                        keep_cols=outcome_keep,
+                        support_label="outcome",
+                    )
             except Exception as e:
                 log.warning("[SHADOW_META] failed to merge trade_outcomes: %s", e)
 

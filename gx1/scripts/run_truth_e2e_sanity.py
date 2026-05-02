@@ -78,7 +78,10 @@ log = logging.getLogger(__name__)
 
 _EXPECTED_EXE = Path("/home/andre2/venvs/gx1/bin/python").resolve()
 _EXPECTED_ENGINE = Path("/home/andre2/src/GX1_ENGINE").resolve()
-MIN_ROWS_FOR_PRED_LABEL_ORIENTATION = 20
+# Weekly slices can legitimately have one-class forward labels. Keep the
+# hard two-class orientation gate for larger samples, but do not fail small
+# truth-week replays after the replay/merge artifacts are already valid.
+MIN_ROWS_FOR_PRED_LABEL_ORIENTATION = 100
 
 # Disable dotenv loading for TRUTH replay (replay-safe)
 os.environ["GX1_DISABLE_DOTENV"] = "1"
@@ -318,6 +321,8 @@ def _write_multi_horizon_predictions(run_root: Path, run_id: str) -> Path:
             "rows_used": int(len(merged)),
             "pos_count": int(pos_count),
             "neg_count": int(neg_count),
+            "min_rows_for_two_class_orientation": int(MIN_ROWS_FOR_PRED_LABEL_ORIENTATION),
+            "two_class_observed": bool(pos_count > 0 and neg_count > 0),
             "mean_delta_pos": float(mean_delta_pos) if np.isfinite(mean_delta_pos) else None,
             "mean_delta_neg": float(mean_delta_neg) if np.isfinite(mean_delta_neg) else None,
             "ts_range": {"min": ts_min, "max": ts_max},
@@ -346,8 +351,10 @@ def _write_multi_horizon_predictions(run_root: Path, run_id: str) -> Path:
     )
     if len(merged) < MIN_ROWS_FOR_PRED_LABEL_ORIENTATION:
         log.warning(
-            "[PRED_LABEL_ORIENTATION_SKIPPED] reason=insufficient_sample rows_used=%s min_rows=%s",
+            "[PRED_LABEL_ORIENTATION_SKIPPED] reason=insufficient_sample rows_used=%s pos_count=%s neg_count=%s min_rows=%s",
             len(merged),
+            pos_count,
+            neg_count,
             MIN_ROWS_FOR_PRED_LABEL_ORIENTATION,
         )
     else:

@@ -12,14 +12,18 @@ import tempfile
 import joblib
 from pathlib import Path
 import logging
-from sklearn.tree import DecisionTreeClassifier
-import numpy as np
+import pytest
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def test_router_model_loading():
+class StaticExitRouterModel:
+    def predict(self, features):
+        return ["RULE5"] * len(features)
+
+
+def test_router_model_loading(monkeypatch):
     """
     Test router model loading:
     1. Create test model file
@@ -28,15 +32,11 @@ def test_router_model_loading():
     4. Test loading with missing model in dev mode (should fallback)
     """
     from gx1.core.hybrid_exit_router import ExitRouterContext, hybrid_exit_router_v3
+    monkeypatch.setenv("GX1_ALLOW_NON_CANONICAL_EXIT_ROUTER", "1")
     
     # Create temporary model file
     with tempfile.NamedTemporaryFile(suffix='.pkl', delete=False) as f:
-        # Create minimal test model
-        model = DecisionTreeClassifier(max_depth=2)
-        X = np.array([[50.0, 30.0, 0.5, 1.0, 0.0, 0.0]])
-        y = np.array(["RULE5"])
-        model.fit(X, y)
-        joblib.dump(model, f.name)
+        joblib.dump(StaticExitRouterModel(), f.name)
         model_path = Path(f.name)
     
     try:
@@ -54,12 +54,8 @@ def test_router_model_loading():
         )
         
         logger.info("[TEST] Testing PROD_BASELINE mode with valid model...")
-        try:
-            result = hybrid_exit_router_v3(ctx_prod)
-            logger.info(f"[TEST] ✅ PROD_BASELINE mode succeeded: {result}")
-        except Exception as e:
-            logger.error(f"[TEST] ❌ PROD_BASELINE mode failed unexpectedly: {e}")
-            return False
+        result = hybrid_exit_router_v3(ctx_prod)
+        logger.info(f"[TEST] ✅ PROD_BASELINE mode succeeded: {result}")
         
         # Test 2: PROD_BASELINE mode with missing model (should fail closed)
         ctx_prod_missing = ExitRouterContext(
@@ -73,15 +69,8 @@ def test_router_model_loading():
         )
         
         logger.info("[TEST] Testing PROD_BASELINE mode with missing model...")
-        try:
-            result = hybrid_exit_router_v3(ctx_prod_missing)
-            logger.error("[TEST] ❌ PROD_BASELINE mode should have failed but didn't")
-            return False
-        except (FileNotFoundError, RuntimeError) as e:
-            logger.info(f"[TEST] ✅ PROD_BASELINE mode correctly failed closed: {e}")
-        except Exception as e:
-            logger.error(f"[TEST] ❌ PROD_BASELINE mode failed with wrong exception: {e}")
-            return False
+        with pytest.raises((FileNotFoundError, RuntimeError)):
+            hybrid_exit_router_v3(ctx_prod_missing)
         
         # Test 3: Dev mode with missing model (should fallback)
         ctx_dev = ExitRouterContext(
@@ -95,19 +84,14 @@ def test_router_model_loading():
         )
         
         logger.info("[TEST] Testing dev mode with missing model...")
-        try:
-            result = hybrid_exit_router_v3(ctx_dev)
-            logger.info(f"[TEST] ✅ Dev mode correctly fell back to hardcoded logic: {result}")
-        except Exception as e:
-            logger.error(f"[TEST] ❌ Dev mode should have fallen back but raised exception: {e}")
-            return False
+        result = hybrid_exit_router_v3(ctx_dev)
+        logger.info(f"[TEST] ✅ Dev mode correctly fell back to hardcoded logic: {result}")
         
         logger.info("[TEST] ✅ All router model loading tests passed")
-        return True
         
     except Exception as e:
         logger.error(f"[TEST] Router model loading test failed: {e}", exc_info=True)
-        return False
+        raise
         
     finally:
         # Cleanup
@@ -117,6 +101,4 @@ def test_router_model_loading():
 
 
 if __name__ == "__main__":
-    success = test_router_model_loading()
-    exit(0 if success else 1)
-
+    test_router_model_loading()
