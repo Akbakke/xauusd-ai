@@ -1,0 +1,51 @@
+meta:
+  router_version: V3_RANGE
+  role: REPLAY_VERIFICATION
+  description: '2026-Q2 V2 truth replay policy. Active ENTRY_V10_CTX V2 bundle
+    (BIDIR + SMC + 37/43 dims) running with XGB v4 (BIDIR + RSI fix + SMC + pruned).
+    Exit lane stays on the existing V3 transformer until V3 is retrained from
+    fresh V2 candidates.
+
+    '
+  bundle_location: canonical_truth
+policy_name: GX1_TRUTH_REPLAY_V10_CTX_V2
+version: GX1_TRUTH_REPLAY_V10_CTX_V2
+mode: REPLAY
+run_mode: SHADOW
+instrument: XAU_USD
+timeframe: M5
+warmup_bars: 288
+entry_config: gx1/configs/entry_configs/ENTRY_V10_CTX_STRICT_REPLAY_V2.yaml
+replay_config:
+  policy_module: gx1.policy.entry_policy_sniper_v10_ctx
+  policy_class: EntryPolicySniperV10Ctx
+  policy_id: entry_policy_sniper_v10_ctx
+  entry_model_id: ENTRY_V10_CTX_V2
+  runtime_feature_impl: v10_ctx
+  runtime_feature_module: gx1.features.runtime_v10_ctx
+  v9_forbidden: true
+  replay_pregate:
+    enabled: false
+exit_config: gx1/configs/policies/canonical_truth/exits/EXIT_TRANSFORMER_ONLY_V3_M1L512_PHASE5.yaml
+execution:
+  dry_run: true
+  max_open_trades: 10
+risk_guard:
+  config_path: gx1/configs/policies/canonical_truth/guards/RISK_GUARD_V1.yaml
+logging:
+  level: INFO
+backfill:
+  enabled: true
+  overlap_bars: 6
+  lookback_padding: 100
+  target_bars_padding: 100
+exit_control:
+  allowed_loss_closers:
+  - ML_EXIT_TRANSFORMER
+  - BROKER_SL
+  - SL_TICK
+  - POLICY_FRIDAY_FLAT
+  - REPLAY_EOF
+  allow_model_exit_when:
+    min_bars: 2
+    min_pnl_bps: 1.0

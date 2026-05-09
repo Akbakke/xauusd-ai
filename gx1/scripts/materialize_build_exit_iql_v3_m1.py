@@ -1,0 +1,527 @@
+#!/usr/bin/env python3
+"""Build exit-IQL V3-M1: 2-action multi-head Q(s, a, K) on per-M1-bar samples.
+
+Mission
+-------
+M1-cadence successor to ``materialize_build_exit_iql_v2.py``. The v2 trainer
+runs over M5-cadence per-bar samples (decision every 20 minutes); this v3-M1
+trainer runs over M1-cadence per-bar samples (decision every minute) so the
+override head can match V3 transformer's per-M1 inference cadence.
+
+Two architectural deltas vs v2:
+
+  1. K_HORIZONS = [5, 20, 60, 120, 240, 480] M1-bars
+     (same wall-clock horizons as v2's [1, 4, 12, 24, 48, 96] M5-bars).
+     K_PRIMARY = 120 (2h M1) ≡ v2's K_PRIMARY = 24 (2h M5).
+
+  2. LAZY-JOIN data loading. The v2_m1 builder writes thin per-week parquets
+     (~65 cols, no chunk_0 / canonical denorm). This trainer joins those at
+     load time via merge_asof on bar_ts_ns_v1 → floor_to_M5(bar_ts_ns_v1):
+       - chunk_0 features: per-week (one parquet per truth-week)
+       - canonical_features_v1: global (one parquet for all years)
+     The merge_asof direction is "backward" so each M1 bar gets the most
+     recent M5-aligned context — same semantics as the live exit_manager.
+
+Action space (2)
+----------------
+  HOLD, EXIT_NOW
+
+Reward variants
+---------------
+Inherited from v2: R_NET_REAL, R_GATED, R_REGRET (R_RAW + R_NET05 omitted —
+they degenerate to "always HOLD" because their HOLD reward = max future MFE
+with no realization cost).
+
+This is RESEARCH-ONLY. No runtime promotion.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+import pandas as pd
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from gx1.scripts import materialize_build_exit_iql_per_bar_dataset_v1 as exit_pipe_v1
+from gx1.scripts import materialize_build_exit_iql_per_bar_dataset_v2_m1 as exit_pipe_m1
+from gx1.scripts import materialize_build_candidate_forward_outcome_dataset_v1 as fwd_pipe
+from gx1.scripts import materialize_build_exit_iql_v2 as v2_train
+
+
+# ---------------------------------------------------------------------------
+# M1 configuration overrides
+# ---------------------------------------------------------------------------
+
+ACTION = "BUILD_EXIT_IQL_V3_M1"
+DEFAULT_REPORTS_ROOT = Path("/home/andre2/GX1_DATA/reports/truth_e2e_sanity")
+DEFAULT_CANONICAL_FEATURES_PATH = fwd_pipe.DEFAULT_CANONICAL_FEATURES_PATH
+
+# K horizons — M1 units (same wall-clock as v2's M5 [1,4,12,24,48,96]).
+K_HORIZONS = list(exit_pipe_m1.K_HORIZONS_EXIT_M1)  # [5, 20, 60, 120, 240, 480]
+N_K = len(K_HORIZONS)
+K_PRIMARY = 120  # 2h in M1 — same as v2's K_PRIMARY=24 (2h in M5)
+
+# M1-specific extra features written by the v2_m1 builder.
+M1_MICRO_COLS = [
+    "m1_last_5bar_return_bps_v1",
+    "m1_last_15bar_return_bps_v1",
+    "m1_last_60bar_return_bps_v1",
+    "m1_realized_vol_15bar_bps_v1",
+    "m1_realized_vol_60bar_bps_v1",
+]
+M5_PHASE_COLS = [f"m5_phase_{i}_v1" for i in range(5)]
+
+# V3 v8 transformer outputs (added by score_v3_v8_on_per_bar_v1.py).
+# These are present only in V8AUG per-bar datasets; build_state_matrix
+# gracefully handles missing columns by filling with 0.0. So including
+# them here is a no-op for V6 datasets but adds value for V8AUG.
+V3_V8_OUTPUT_COLS = [
+    "v3_v8_should_exit_prob",
+    "v3_v8_profit_protect_prob",
+    "v3_v8_family_argmax",
+    "v3_v8_family_logit_max",
+]
+
+# Per-bar trade-state columns — extends v2's list with M1-specific features
+# and V3 v8 transformer outputs.
+NUMERIC_STATE_COLS_PER_BAR = (
+    list(v2_train.NUMERIC_STATE_COLS_PER_BAR)
+    + M1_MICRO_COLS
+    + M5_PHASE_COLS
+    + V3_V8_OUTPUT_COLS
+)
+
+# Candidate / chunk0 / canonical / derivative / entry-snapshot column lists
+# come from v2 unchanged — chunk0 / canonical are populated by lazy-join.
+NUMERIC_STATE_COLS_CANDIDATE = list(v2_train.NUMERIC_STATE_COLS_CANDIDATE)
+ONE_HOT_COLS = list(v2_train.ONE_HOT_COLS)
+
+
+# ---------------------------------------------------------------------------
+# Lazy-join data loader
+# ---------------------------------------------------------------------------
+
+
+def _suffix_chunk0(chunk0: pd.DataFrame | None) -> pd.DataFrame | None:
+    """Rename chunk_0 feature columns to add CHUNK0_SUFFIX, ready for merge."""
+    if chunk0 is None or len(chunk0) == 0:
+        return None
+    rename_map = {
+        c: f"{c}{fwd_pipe.CHUNK0_SUFFIX}"
+        for c in fwd_pipe.CHUNK0_FEATURE_COLS
+        if c in chunk0.columns
+    }
+    cols = ["_time_ns"] + list(rename_map.keys())
+    out = chunk0[cols].rename(columns=rename_map).copy()
+    return out
+
+
+def _suffix_canonical(canonical: pd.DataFrame | None) -> pd.DataFrame | None:
+    """Rename canonical feature columns to add CANONICAL_FEATURES_SUFFIX."""
+    if canonical is None or len(canonical) == 0:
+        return None
+    feat_cols = [c for c in canonical.columns if c != "_time_ns"]
+    rename_map = {c: f"{c}{fwd_pipe.CANONICAL_FEATURES_SUFFIX}" for c in feat_cols}
+    cols = ["_time_ns"] + feat_cols
+    out = canonical[cols].rename(columns=rename_map).copy()
+    return out
+
+
+def _merge_asof_features(df: pd.DataFrame, feats: pd.DataFrame | None) -> pd.DataFrame:
+    """merge_asof df.bar_ts_ns_v1 ← feats._time_ns, direction backward."""
+    if feats is None or len(feats) == 0:
+        return df
+    df_sorted = df.sort_values("bar_ts_ns_v1", kind="mergesort").reset_index(drop=True)
+    feats_sorted = feats.sort_values("_time_ns", kind="mergesort").reset_index(drop=True)
+    merged = pd.merge_asof(
+        df_sorted,
+        feats_sorted,
+        left_on="bar_ts_ns_v1",
+        right_on="_time_ns",
+        direction="backward",
+    )
+    if "_time_ns" in merged.columns:
+        merged = merged.drop(columns=["_time_ns"])
+    return merged
+
+
+def load_per_bar_dataset_lazy_join(
+    per_week_dir: Path,
+    *,
+    reports_root: Path,
+    canonical_path: Path,
+    sample_n_rows: int | None = None,
+    seed: int = 20260501,
+) -> pd.DataFrame:
+    """Load per-week M1 parquets, sub-sample, lazy-join chunk_0 + canonical."""
+    parquets = sorted(per_week_dir.glob("exit_per_bar_m1_*.parquet"))
+    if not parquets:
+        raise RuntimeError(f"[{ACTION}] no exit_per_bar_m1_*.parquet found in {per_week_dir}")
+
+    print(f"[{ACTION}] loading canonical features from {canonical_path}", flush=True)
+    canonical = fwd_pipe._load_canonical_features(canonical_path)
+    canonical_suf = _suffix_canonical(canonical)
+    if canonical_suf is not None:
+        print(f"[{ACTION}] canonical: {len(canonical_suf):,} rows × "
+              f"{len(canonical_suf.columns) - 1} features (suffixed)", flush=True)
+    else:
+        print(f"[{ACTION}] WARNING: canonical features unavailable", flush=True)
+
+    rng = np.random.default_rng(seed)
+    per_file_target: int | None = None
+    if sample_n_rows is not None and sample_n_rows > 0:
+        per_file_target = max(1, int(sample_n_rows / len(parquets)) + 1)
+        print(f"[{ACTION}] sub-sample target: ~{per_file_target} rows per week × {len(parquets)} weeks", flush=True)
+
+    parts: list[pd.DataFrame] = []
+    weeks_with_chunk0 = 0
+    weeks_without_chunk0 = 0
+    for p_idx, p in enumerate(parquets, start=1):
+        df_p = pd.read_parquet(p)
+        if len(df_p) == 0:
+            continue
+        if per_file_target is not None and len(df_p) > per_file_target:
+            idx = rng.choice(len(df_p), size=per_file_target, replace=False)
+            df_p = df_p.iloc[idx].reset_index(drop=True)
+
+        # Derive week dir from parquet filename: exit_per_bar_m1_TRUTH_MONFRI_WEEK_*.parquet
+        week_name = p.stem.removeprefix("exit_per_bar_m1_")
+        week_dir = reports_root / week_name
+        chunk0 = fwd_pipe._load_chunk0_features(week_dir)
+        chunk0_suf = _suffix_chunk0(chunk0)
+        if chunk0_suf is not None:
+            df_p = _merge_asof_features(df_p, chunk0_suf)
+            weeks_with_chunk0 += 1
+        else:
+            weeks_without_chunk0 += 1
+            for col in v2_train.NUMERIC_STATE_COLS_CHUNK0:
+                df_p[col] = np.nan
+
+        if canonical_suf is not None:
+            df_p = _merge_asof_features(df_p, canonical_suf)
+
+        parts.append(df_p)
+        if p_idx % 25 == 0 or p_idx == len(parquets):
+            running = sum(len(part) for part in parts)
+            print(f"[{ACTION}] [{p_idx}/{len(parquets)}] loaded weeks; running rows={running:,}", flush=True)
+
+    print(f"[{ACTION}] weeks with chunk_0: {weeks_with_chunk0}, without: {weeks_without_chunk0}", flush=True)
+    df = pd.concat(parts, ignore_index=True)
+    if sample_n_rows is not None and len(df) > sample_n_rows:
+        df = df.sample(n=sample_n_rows, random_state=seed).reset_index(drop=True)
+    return df
+
+
+# ---------------------------------------------------------------------------
+# Reward / state matrices — reuse v2's logic but with M1 K_HORIZONS
+# ---------------------------------------------------------------------------
+
+
+def build_reward_matrix(df: pd.DataFrame, *, variant: str) -> np.ndarray:
+    """M1 reward matrix builder. Identical math to v2 but K_HORIZONS in M1 units."""
+    n = len(df)
+    R = np.zeros((n, v2_train.N_ACTIONS_EXIT, N_K), dtype=np.float32)
+
+    exit_now = pd.to_numeric(df["exit_now_reward_bps_v1"], errors="coerce").fillna(0.0).to_numpy()
+    current_mae = pd.to_numeric(df["current_mae_bps_v1"], errors="coerce").fillna(0.0).to_numpy()
+    drawdown = pd.to_numeric(df["pnl_drawdown_from_peak_v1"], errors="coerce").fillna(0.0).to_numpy()
+    spread = (
+        pd.to_numeric(df.get("entry_spread_bps"), errors="coerce")
+        .fillna(1.5).clip(lower=0.0).astype(float).to_numpy()
+        if "entry_spread_bps" in df.columns
+        else np.full(n, 1.5, dtype=float)
+    )
+    # V9 Issue C: bars_held for R_NET_V2 capital cost.
+    bars_held_v2 = (
+        pd.to_numeric(df.get("bars_in_trade_v1"), errors="coerce").fillna(0.0).to_numpy()
+        if "bars_in_trade_v1" in df.columns else np.zeros(n, dtype=float)
+    )
+
+    for ki, K in enumerate(K_HORIZONS):
+        hold_col = f"hold_max_pnl_K{K}_v1"
+        hold_K = (
+            pd.to_numeric(df[hold_col], errors="coerce").fillna(0.0).to_numpy()
+            if hold_col in df.columns else exit_now
+        )
+
+        if variant == "R_NET_REAL":
+            r_hold = (v2_train.R_NET_REAL_ALPHA * hold_K
+                      - v2_train.R_NET_REAL_BETA * np.abs(current_mae)
+                      - v2_train.R_NET_REAL_GAMMA * spread)
+            r_exit = exit_now - v2_train.R_NET_REAL_GAMMA * spread
+        elif variant == "R_NET_V2":
+            # R_NET_REAL + giveback + bars cost (incremental over R_NET_REAL).
+            r_hold = (
+                v2_train.R_NET_REAL_ALPHA * hold_K
+                - v2_train.R_NET_REAL_BETA * np.abs(current_mae)
+                - v2_train.R_NET_REAL_GAMMA * spread
+                - v2_train.R_NET_V2_GIVEBACK * drawdown
+                - v2_train.R_NET_V2_BARS_COST * bars_held_v2
+            )
+            r_exit = exit_now - v2_train.R_NET_REAL_GAMMA * spread
+        elif variant == "R_GATED":
+            r_hold = np.where(hold_K > v2_train.GATED_THRESHOLD_BPS, hold_K, 0.0)
+            r_exit = exit_now
+        elif variant == "R_REGRET":
+            oracle = np.maximum(exit_now, hold_K)
+            r_hold = hold_K - oracle
+            r_exit = exit_now - oracle
+        else:
+            raise ValueError(f"unknown reward variant for M1 trainer: {variant}")
+
+        r_hold = np.clip(r_hold, -500.0, 500.0)
+        r_exit = np.clip(r_exit, -500.0, 500.0)
+        R[:, v2_train.ACTION_HOLD_ID, ki] = r_hold.astype(np.float32)
+        R[:, v2_train.ACTION_EXIT_NOW_ID, ki] = r_exit.astype(np.float32)
+    return R
+
+
+def build_state_matrix(df: pd.DataFrame) -> tuple[np.ndarray, list[str]]:
+    """M1 state matrix builder. Drops v2's completion-flag filter (lazy-join always populates)."""
+    parts: list[pd.DataFrame] = []
+    feature_names: list[str] = []
+    nan_warnings: list[tuple[str, float]] = []
+    for c in NUMERIC_STATE_COLS_PER_BAR + NUMERIC_STATE_COLS_CANDIDATE:
+        if c in df.columns:
+            col = pd.to_numeric(df[c], errors="coerce")
+        else:
+            col = pd.Series(np.zeros(len(df)), index=df.index)
+        nan_frac = float(col.isna().mean()) if len(col) > 0 else 0.0
+        if nan_frac > 0.05:
+            nan_warnings.append((c, nan_frac))
+        parts.append(col.fillna(0.0).rename(c))
+        feature_names.append(c)
+    for c in ONE_HOT_COLS:
+        if c in df.columns:
+            dummies = pd.get_dummies(df[c].astype(str), prefix=c, dummy_na=False)
+            parts.append(dummies)
+            feature_names.extend(dummies.columns.tolist())
+    if nan_warnings:
+        print(f"[{ACTION}] feature NaN warnings (frac >5%):", flush=True)
+        for c, frac in nan_warnings[:20]:
+            print(f"    {c}: {frac:.2%}", flush=True)
+        if len(nan_warnings) > 20:
+            print(f"    ... +{len(nan_warnings) - 20} more", flush=True)
+    X = pd.concat(parts, axis=1).astype(np.float32).to_numpy()
+    return X, feature_names
+
+
+# ---------------------------------------------------------------------------
+# Orchestration — delegate fold-evaluation to v2 helpers, swap K_HORIZONS
+# ---------------------------------------------------------------------------
+
+
+def write_artifacts(
+    per_bar_dir: Path,
+    *,
+    reports_root: Path = DEFAULT_REPORTS_ROOT,
+    canonical_path: Path = DEFAULT_CANONICAL_FEATURES_PATH,
+    out_root: Path | None = None,
+    sample_n_rows: int | None = None,
+    variants_subset: list[str] | None = None,
+    built_at_utc: str | None = None,
+    k_primary_override: int | None = None,
+    exit_reward_multiplier: float = 1.0,
+) -> dict[str, Any]:
+    timestamp = built_at_utc or v2_train._stamp()
+    artifact_root = out_root or (DEFAULT_REPORTS_ROOT / f"{ACTION}_{timestamp}_LOCK")
+    artifact_root.mkdir(parents=True, exist_ok=True)
+
+    per_week_dir = per_bar_dir / "per_week"
+    if not per_week_dir.exists():
+        return {
+            "artifact_root": str(artifact_root),
+            "summary": {
+                "final_status_v1": "EXIT_IQL_V3_M1_BLOCKED_BY_INPUT_LOCK_MISSING",
+                "next_action_v1": "REPAIR_EXIT_IQL_V3_M1_BEFORE_FURTHER_WORK",
+                "missing_input_v1": str(per_week_dir),
+            },
+        }
+
+    print(f"[{ACTION}] loading per-bar M1 dataset from {per_week_dir} (lazy-join)", flush=True)
+    df = load_per_bar_dataset_lazy_join(
+        per_week_dir,
+        reports_root=reports_root,
+        canonical_path=canonical_path,
+        sample_n_rows=sample_n_rows,
+    )
+    print(f"[{ACTION}] loaded rows={len(df):,} cols={len(df.columns)}", flush=True)
+
+    X, feature_names = build_state_matrix(df)
+    print(f"[{ACTION}] state matrix: {X.shape}, features={len(feature_names)}", flush=True)
+
+    variants = variants_subset or v2_train.REWARD_VARIANTS
+    R_by_variant: dict[str, np.ndarray] = {}
+    for variant in variants:
+        R_by_variant[variant] = build_reward_matrix(df, variant=variant)
+        print(f"[{ACTION}] reward matrix {variant}: shape={R_by_variant[variant].shape} "
+              f"mean={float(R_by_variant[variant].mean()):.3f}", flush=True)
+
+    # V9 Issue 2: optional K_PRIMARY override (default 120 = 2h M1).
+    # Wave 2 final used K=120 and Exit-IQL was active only 3.8% — most trades hit
+    # forced terminal. Test K=240 (4h) to see if longer horizon lets Exit-IQL
+    # learn meaningful EXIT_NOW decisions on multi-hour trends.
+    effective_k_primary = int(k_primary_override) if k_primary_override is not None else K_PRIMARY
+    if effective_k_primary not in K_HORIZONS:
+        raise ValueError(f"k_primary_override={effective_k_primary} not in K_HORIZONS={K_HORIZONS}")
+
+    # V9 Issue 2: optional reward rebalance — boost EXIT_NOW reward to make it
+    # more attractive when the model is over-conservatively HOLD-biased.
+    if exit_reward_multiplier != 1.0:
+        for variant in variants:
+            R_by_variant[variant][:, v2_train.ACTION_EXIT_NOW_ID, :] *= float(exit_reward_multiplier)
+        print(f"[{ACTION}] applied exit_reward_multiplier={exit_reward_multiplier} to EXIT_NOW reward",
+              flush=True)
+
+    # Patch v2's K_HORIZONS / K_PRIMARY for the duration of this run so its
+    # downstream helpers (derive_oracle_action, evaluate_one_fold,
+    # build_stratified_folds, determine_status, write_*) operate over M1 K's.
+    saved_k_horizons = v2_train.K_HORIZONS
+    saved_n_k = v2_train.N_K
+    saved_k_primary = v2_train.K_PRIMARY
+    v2_train.K_HORIZONS = K_HORIZONS
+    v2_train.N_K = N_K
+    v2_train.K_PRIMARY = effective_k_primary
+    try:
+        R_for_strat = R_by_variant.get("R_NET_REAL", next(iter(R_by_variant.values())))
+        K_primary_idx = K_HORIZONS.index(effective_k_primary)
+        oracle_action = v2_train.derive_oracle_action(R_for_strat, K_primary_idx)
+        oracle_dist = {ai: int((oracle_action == ai).sum()) for ai in range(v2_train.N_ACTIONS_EXIT)}
+        print(f"[{ACTION}] oracle action (R_NET_REAL K={effective_k_primary}) distribution: {oracle_dist}", flush=True)
+
+        folds = v2_train.build_stratified_folds(n_rows=len(df), oracle_action=oracle_action)
+
+        per_fold_results: list[dict[str, Any]] = []
+        flat_evaluations: list[dict[str, Any]] = []
+        for variant in variants:
+            for fold in folds:
+                r = v2_train.evaluate_one_fold(
+                    fold, X, R_by_variant[variant], oracle_action,
+                    variant=variant, artifact_root=artifact_root,
+                )
+                per_fold_results.append(r)
+                flat_evaluations.extend(r.get("all_evaluations_v1", []))
+
+        v2_train._write_rows(artifact_root / "per_fold_per_variant_evaluations_v1.csv", flat_evaluations)
+        status, next_action, recommendation, headline = v2_train.determine_status(per_fold_results)
+    finally:
+        v2_train.K_HORIZONS = saved_k_horizons
+        v2_train.N_K = saved_n_k
+        v2_train.K_PRIMARY = saved_k_primary
+
+    # Re-label v2 status strings for the M1 layer (best-effort string substitution)
+    status = status.replace("EXIT_IQL_V2", "EXIT_IQL_V3_M1")
+    next_action = next_action.replace("EXIT_IQL_V2", "EXIT_IQL_V3_M1")
+
+    summary = {
+        "layer_name": "EXIT_IQL_V3_M1_SUMMARY_V1",
+        "action_v1": ACTION,
+        "artifact_root_v1": str(artifact_root),
+        "built_at_utc_v1": v2_train._utc_now(),
+        "cadence_v1": "M1",
+        "final_status_v1": status,
+        "next_action_v1": next_action,
+        "recommendation_v1": recommendation,
+        "headline_v1": headline,
+        "input_per_bar_dir_v1": str(per_bar_dir),
+        "n_rows_v1": int(len(df)),
+        "n_features_v1": int(X.shape[1]),
+        "feature_names_v1": feature_names,
+        "k_horizons_v1": K_HORIZONS,
+        "k_primary_v1": K_PRIMARY,
+        "n_actions_v1": v2_train.N_ACTIONS_EXIT,
+        "action_labels_v1": v2_train.ACTION_LABELS_EXIT,
+        "reward_variants_v1": list(R_by_variant.keys()),
+        "oracle_action_distribution_v1": oracle_dist,
+        "n_folds_v1": v2_train.N_FOLDS,
+        "seed_v1": v2_train.SEED_V1,
+        "per_fold_summary_v1": [
+            {"fold_id_v1": r["fold_id_v1"], "variant_v1": r["variant_v1"],
+             "best_combo_v1": r["best_combo_v1"], "best_test_metric_v1": r["best_test_metric_v1"],
+             "val_class_guard_status_v1": r["val_class_guard_status_v1"],
+             "val_action_counts_v1": r["val_action_counts_v1"],
+             "test_baselines_v1": r["test_baselines_v1"]}
+            for r in per_fold_results
+        ],
+        "research_only_v1": True,
+        "iql_production_allowed_v1": False,
+    }
+    v2_train._write_json(artifact_root / "summary_v1.json", summary)
+    v2_train._write_json(artifact_root / "status_v1.json", {
+        "layer_name": "EXIT_IQL_V3_M1_STATUS_V1",
+        "status_v1": "MATERIALIZED_RESEARCH_ONLY_GATE",
+        "final_status_v1": status, "next_action_v1": next_action,
+    })
+    v2_train._write_json(artifact_root / "manifest_v1.json", {
+        "layer_id_v1": ACTION,
+        "built_at_utc_v1": summary["built_at_utc_v1"],
+        "output_dir_v1": str(artifact_root),
+        "artifact_paths_v1": {
+            "summary": str(artifact_root / "summary_v1.json"),
+            "status": str(artifact_root / "status_v1.json"),
+            "per_fold_csv": str(artifact_root / "per_fold_per_variant_evaluations_v1.csv"),
+            "trained_models_dir": str(artifact_root / "trained_models_v1"),
+        },
+    })
+    return {"artifact_root": str(artifact_root), "summary": summary}
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=f"Materialize {ACTION}.")
+    parser.add_argument("--per-bar-dir", type=str, required=True,
+                        help="Path to BUILD_EXIT_IQL_PER_BAR_DATASET_V2_M1_*_LOCK directory")
+    parser.add_argument("--reports-root", type=str, default=str(DEFAULT_REPORTS_ROOT))
+    parser.add_argument("--canonical-features", type=str, default=str(DEFAULT_CANONICAL_FEATURES_PATH))
+    parser.add_argument("--out-root", type=str, default=None)
+    parser.add_argument("--sample-n-rows", type=int, default=None)
+    parser.add_argument("--variants", type=str, default=None,
+                        help="Comma-separated subset of REWARD_VARIANTS (R_NET_REAL,R_GATED,R_REGRET)")
+    parser.add_argument("--budget", type=str, default="fast",
+                        choices=list(v2_train.BUDGET_PRESETS.keys()))
+    parser.add_argument("--k-primary", type=int, default=None,
+                        help=f"V9 Issue 2: K_PRIMARY override in M1 bars. "
+                             f"Allowed values: {K_HORIZONS}. Default 120 (2h). "
+                             f"Try 240 (4h) or 480 (8h) for longer-trend trades.")
+    parser.add_argument("--exit-reward-multiplier", type=float, default=1.0,
+                        help="V9 Issue 2: multiply EXIT_NOW reward by this factor. "
+                             "Wave 2 final showed Exit-IQL active only 3.8%% (96.2%% forced "
+                             "terminal). Try 1.2-1.5 to push EXIT_NOW above HOLD when "
+                             "outcomes are similar.")
+    parser.add_argument("--built-at-utc", type=str, default=None)
+    args = parser.parse_args()
+
+    # Apply training budget into v2 globals (same pattern as v2 main).
+    preset = v2_train.BUDGET_PRESETS[args.budget]
+    v2_train.TRAIN_EPOCHS_Q = preset["epochs_q"]
+    v2_train.TRAIN_EPOCHS_V = preset["epochs_v"]
+    v2_train.TRAIN_K_VQ_ITERATIONS = preset["k_iter"]
+    v2_train.TRAIN_BATCH_SIZE = preset["batch"]
+    v2_train.TRAIN_HIDDEN_DIM = preset["hidden"]
+    v2_train.TRAIN_N_HIDDEN = preset["n_hidden"]
+    print(f"[{ACTION}] training budget '{args.budget}': {preset}", flush=True)
+
+    out_root = Path(args.out_root).expanduser().resolve() if args.out_root else None
+    variants_subset = args.variants.split(",") if args.variants else None
+    result = write_artifacts(
+        per_bar_dir=Path(args.per_bar_dir).expanduser().resolve(),
+        reports_root=Path(args.reports_root).expanduser().resolve(),
+        canonical_path=Path(args.canonical_features).expanduser().resolve(),
+        out_root=out_root,
+        sample_n_rows=args.sample_n_rows,
+        variants_subset=variants_subset,
+        built_at_utc=args.built_at_utc,
+        k_primary_override=args.k_primary,
+        exit_reward_multiplier=args.exit_reward_multiplier,
+    )
+    print(json.dumps(v2_train._jsonable(result["summary"]), ensure_ascii=True, indent=2, sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()

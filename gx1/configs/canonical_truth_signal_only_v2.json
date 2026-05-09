@@ -1,0 +1,55 @@
+{
+  "canonical_exit_transformer_bundle_dir": "/home/andre2/GX1_DATA/models/exit_transformer_v0/EXIT_IO_V3_CTX36_M1L512_PHASE5__WL512__E_R5E_20260409_WEEKLY_MONETIZE",
+  "canonical_market_tape_root_model": "/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m5_bid_ask__CANONICAL_STAGING_2026",
+  "canonical_market_tape_root_raw": "/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m1_bid_ask__CANONICAL",
+  "canonical_prebuilt_contract_note": "2026-Q2 V2 stack. canonical_v2 prebuilt = 314k M5 rows, 136 cols incl. 30 PER_BAR_PRICE_STATE + 22 V2 ctx_cont_ext + 9 SMC. V2 entry transformer (37/43 dims, 96 seq_len) + XGB v4. Research/IQL data collection only.",
+  "canonical_prebuilt_manifest": "/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V2_PREBUILT/CURRENT_MANIFEST.json",
+  "canonical_prebuilt_parquet": "/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V2_PREBUILT/xauusd_m5_CANONICAL_V2_2020_2026.parquet",
+  "canonical_transformer_bundle_dir": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_CTX__RETRAIN_2026Q2_BIDIR_SMC_20260503T134214Z",
+  "canonical_xgb_bundle_dir": "/home/andre2/GX1_DATA/models/models/xgb_universal_multihead_v4__BIDIR_RSI_SMC_PRUNED_20260503T103505Z",
+  "ctx_contract": {
+    "ctx_cat_dim": 6,
+    "ctx_cont_dim": 43,
+    "tag": "CTX43CAT6_V2"
+  },
+  "entry_bundle_notes": {
+    "active_bundle": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_CTX__RETRAIN_2026Q2_BIDIR_SMC_20260503T134214Z",
+    "admission_policy": "strict_replay_fail_closed",
+    "admission_policy_scope": "2026-Q2 V2 BIDIR rebuild — V10 v2 produces fresh shadow_meta_candidates for V3 retrain dataset.",
+    "canonical_reason": "V13_BADPATH quarantined; V2 BIDIR_SMC bundle is the new canonical."
+  },
+  "pred_trace_head": "OVERLAP",
+  "pred_trace_horizon_bars": 24,
+  "replay_config": {
+    "allow_baseline_features": false,
+    "entry_config_yaml_path": "gx1/configs/entry_configs/ENTRY_V10_CTX_STRICT_REPLAY_V2.yaml",
+    "entry_model_id": "ENTRY_V10_CTX_V2",
+    "exit_config_yaml_path": "gx1/configs/policies/canonical_truth/exits/EXIT_TRANSFORMER_ONLY_V3_M1L512_PHASE5.yaml",
+    "policy_module": "gx1.policy.entry_policy_sniper_v10_ctx",
+    "policy_yaml_path": "gx1/configs/policies/canonical_truth/GX1_TRUTH_REPLAY_V10_CTX_V2.yaml",
+    "require_prebuilt_features": true,
+    "risk_guard_id": "RISK_GUARD_V1::1.0.0::33a4a83e2949abb102f3ee86a3746bb0320f69f244ebe186a17b18ae50e77e45",
+    "runtime_feature_module": "gx1.features.runtime_v10_ctx",
+    "truth_artifacts": {
+      "import_proof_filename": "IMPORT_PROOF.json",
+      "min_trades": 0,
+      "policy_snapshot_filename": "RUN_POLICY_USED.yaml",
+      "require_exit_type_transformer": true,
+      "require_import_proof": true,
+      "require_nonzero_trades": false,
+      "require_policy_snapshot": false
+    },
+    "use_prebuilt_features": true
+  },
+  "require_v9_for_entry": false,
+  "signal_bridge_contract_sha256": "109397e430bb4405c6504868d3fa3e05867c7c1ed96c72734269a9997d7b4ef8",
+  "signal_bridge_id": "XGB_SIGNAL_BRIDGE_V2",
+  "truth_id": "CANONICAL_TRUTH_SIGNAL_ONLY_V2_2026Q2",
+  "truth_window_end_ts": "2026-04-20T00:00:00+00:00",
+  "truth_window_start_ts": "2020-11-09T00:00:00+00:00",
+  "xgb_bundle_notes": {
+    "baseline_reference": "XGB v4 = BIDIR + SMC + RSI fix + 8 features pruned (91 total)",
+    "calibration_runtime": "supported via isotonic_interp; default OFF unless explicitly enabled",
+    "previous_bundle": "/home/andre2/GX1_DATA/models/models/xgb_universal_multihead_v3__FULL_BIDIR_RSI_FIXED_20260503T095406Z"
+  }
+}
