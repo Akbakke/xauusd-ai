@@ -67,6 +67,7 @@ class ExitIQLV2Adapter:
     beta: float
     k_weights: np.ndarray | None
     artifact_root: Path
+    exit_margin: float = 0.0  # V9 Issue 2: relax decision threshold (>0 fires more, <0 fires less)
 
     @classmethod
     def load(
@@ -75,6 +76,7 @@ class ExitIQLV2Adapter:
         aggregator: str = DEFAULT_AGGREGATOR, beta: float = 1.0,
         k_weights: Sequence[float] | None = None,
         prefer_cuda: bool = True,
+        exit_margin: float = 0.0,
     ) -> "ExitIQLV2Adapter":
         if aggregator not in VALID_AGGREGATORS:
             raise ValueError(f"aggregator {aggregator!r} not in {VALID_AGGREGATORS}")
@@ -130,6 +132,7 @@ class ExitIQLV2Adapter:
             fold_id=str(ckpt.get("fold_id", fold_id)),
             aggregator=aggregator, beta=float(beta), k_weights=kw,
             artifact_root=artifact_root,
+            exit_margin=float(exit_margin),
         )
 
     def build_state_vector(self, bar_state: dict[str, Any]) -> np.ndarray:
@@ -164,7 +167,14 @@ class ExitIQLV2Adapter:
         else:
             raise AssertionError(f"unhandled aggregator {self.aggregator}")
 
-        actions = q_agg.argmax(axis=1)
+        # V9 Issue 2: threshold gate. Default exit_margin=0 = argmax (current).
+        # exit_margin > 0 → fire EXIT_NOW more aggressively (Q_EXIT_NOW > Q_HOLD - margin).
+        # exit_margin < 0 → require larger advantage for EXIT_NOW (more conservative).
+        if self.exit_margin == 0.0:
+            actions = q_agg.argmax(axis=1)
+        else:
+            adv_eh_all = q_agg[:, ACTION_EXIT_NOW_ID] - q_agg[:, ACTION_HOLD_ID]
+            actions = (adv_eh_all > -self.exit_margin).astype(np.int64)
         scaled = self.beta * q_agg
         scaled = scaled - scaled.max(axis=1, keepdims=True)
         soft = np.exp(scaled)

@@ -42,20 +42,20 @@ import torch
 from torch import nn
 
 
-# --- Action contract (5-action with explicit side) ---
+# --- Action contract (3-action: SKIP semantics = "re-evaluate next M5 bar") ---
+# Updated 2026-05-02: removed WAIT_LONG/WAIT_SHORT. SKIP now means "this M5 bar
+# is not good enough — re-evaluate at next M5 bar's candidate". The runtime
+# calls the entry-IQL adapter again on every fresh V10/Skip-V2 candidate, so
+# explicit delayed-entry actions are unnecessary.
 
 ACTION_SKIP_ID = 0
 ACTION_TAKE_LONG_NOW_ID = 1
 ACTION_TAKE_SHORT_NOW_ID = 2
-ACTION_WAIT_LONG_ID = 3
-ACTION_WAIT_SHORT_ID = 4
-N_ACTIONS_V1 = 5
+N_ACTIONS_V1 = 3
 ACTION_LABELS_V1 = {
     ACTION_SKIP_ID: "SKIP",
     ACTION_TAKE_LONG_NOW_ID: "TAKE_LONG_NOW",
     ACTION_TAKE_SHORT_NOW_ID: "TAKE_SHORT_NOW",
-    ACTION_WAIT_LONG_ID: "WAIT_LONG",
-    ACTION_WAIT_SHORT_ID: "WAIT_SHORT",
 }
 
 DEFAULT_HIDDEN_DIM = 256

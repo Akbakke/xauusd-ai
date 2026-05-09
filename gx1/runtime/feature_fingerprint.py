@@ -13,12 +13,22 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
+
+
+def _default_seq_len_v10_ctx() -> int:
+    """Pick the V10_CTX default seq_len based on signal-bridge version.
+
+    v2/v3 use 96 (DEFAULT_SEQ_LEN_V2/V3); v1 uses 30 (legacy).
+    Caller can still override via metadata["seq_len"].
+    """
+    return 30 if os.getenv("GX1_SIGNAL_BRIDGE_VERSION", "3").strip() == "1" else 96
 
 
 @dataclass
@@ -220,7 +230,7 @@ def load_expected_fingerprint(bundle_dir: Path) -> Optional[FeatureFingerprint]:
                 full_snap_features = snap_features + SNAP_XGB_CHANNEL_NAMES
                 
                 # Build fingerprint string (same format as compute_feature_fingerprint)
-                seq_len = 30  # Default seq_len for V10_CTX
+                seq_len = _default_seq_len_v10_ctx()  # Default seq_len for V10_CTX (env-gated v1/v2)
                 fingerprint_parts = [
                     f"seq_features:{','.join(sorted(full_seq_features))}",
                     f"snap_features:{','.join(sorted(full_snap_features))}",
@@ -258,7 +268,7 @@ def load_expected_fingerprint(bundle_dir: Path) -> Optional[FeatureFingerprint]:
     
     # Build fingerprint string (same format as compute_feature_fingerprint)
     # IMPORTANT: Must include XGB channels if they're not already in seq_features/snap_features
-    seq_len = metadata.get("seq_len", 30)
+    seq_len = metadata.get("seq_len", _default_seq_len_v10_ctx())
     seq_n_feat = len(seq_features)
     snap_n_feat = len(snap_features)
     

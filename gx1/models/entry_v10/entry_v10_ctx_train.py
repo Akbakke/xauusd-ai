@@ -31,11 +31,14 @@ import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
 from sklearn.metrics import accuracy_score
 
-from gx1.contracts.signal_bridge_v1 import (
-    ORDERED_FIELDS as SIGNAL_FIELDS,
-    CONTRACT_SHA256 as SIGNAL_BRIDGE_CONTRACT_SHA256,
-    SEQ_SIGNAL_DIM,
-    SNAP_SIGNAL_DIM,
+# V2: switched from signal_bridge_v1 (7-dim seq) to signal_bridge_v2 (37-dim seq with SMC).
+# The architecture itself is dimension-flexible — only the import names change.
+from gx1.contracts.signal_bridge_v2 import (
+    ORDERED_SEQ_FIELDS_V2 as SIGNAL_FIELDS,
+    CONTRACT_SHA256_V2 as SIGNAL_BRIDGE_CONTRACT_SHA256,
+    SEQ_SIGNAL_DIM_V2 as SEQ_SIGNAL_DIM,
+    SNAP_SIGNAL_DIM_V2 as SNAP_SIGNAL_DIM,
+    DEFAULT_SEQ_LEN_V2,
 )
 from gx1.contracts.signal_bridge_v1 import get_canonical_ctx_contract
 from gx1.time.session_detector import (
@@ -219,7 +222,10 @@ def _is_vnext() -> bool:
     return _CTX_CONTRACT_MODE == "V_NEXT"
 
 def _expected_ctx_cont_dim() -> int:
-    return 21 if _is_vnext() else 16
+    # V2: signal_bridge_v2 has CTX_CONT_DIM_V2=43 (21 v1 prefix + 22 v2 H1/H4/D1/M15 extension).
+    # V_NEXT (legacy) was 21. V_BASE (legacy) was 16.
+    from gx1.contracts.signal_bridge_v2 import CTX_CONT_DIM_V2
+    return int(CTX_CONT_DIM_V2)
 
 def _build_ordered_ctx_cont_names(ctx_cont_dim: int, base_names: List[str]) -> List[str]:
     ordered = list(base_names)
@@ -845,9 +851,16 @@ class EntryV10CtxDataset(Dataset):
                         float(np.nanmin(mins_to.values)),
                         float(np.nanmax(mins_to.values)),
                     )
+                elif self.ctx_cont_dim == 43:
+                    # V2 contract — 21 v1 prefix + 22 v2 extension (H1/H4/D1/M15) — already complete in dataset
+                    self._ctx_vnext_extra = None
+                    log.info(
+                        "[ENTRY_CTX_VNEXT_EXTRA_PROOF] source=prebuilt_v2 ctx_cont_dim=%d status=present (signal_bridge_v2)",
+                        self.ctx_cont_dim,
+                    )
                 else:
                     raise RuntimeError(
-                        f"[ENTRY_V10_CTX_VNEXT_DIM] expected ctx_cont_dim 16 or 21, got {self.ctx_cont_dim}"
+                        f"[ENTRY_V10_CTX_VNEXT_DIM] expected ctx_cont_dim 16, 21, or 43, got {self.ctx_cont_dim}"
                     )
 
             y = df["y_direction"].astype(int).values
@@ -951,13 +964,13 @@ class EntryV10CtxDataset(Dataset):
             if y not in (0, 1, 2):
                 raise RuntimeError(f"[ENTRY_V10_CTX_LABEL_INVALID] y_direction={y} expected 0/1/2")
 
-            if seq.shape != (self.seq_len, 7):
+            if seq.shape != (self.seq_len, SEQ_SIGNAL_DIM):
                 raise RuntimeError(
-                    f"[ENTRY_V10_CTX_SHAPE_MISMATCH] seq shape {seq.shape} expected ({self.seq_len}, 7)"
+                    f"[ENTRY_V10_CTX_SHAPE_MISMATCH] seq shape {seq.shape} expected ({self.seq_len}, {SEQ_SIGNAL_DIM})"
                 )
-            if snap.shape != (7,):
+            if snap.shape != (SNAP_SIGNAL_DIM,):
                 raise RuntimeError(
-                    f"[ENTRY_V10_CTX_SHAPE_MISMATCH] snap shape {snap.shape} expected (7,)"
+                    f"[ENTRY_V10_CTX_SHAPE_MISMATCH] snap shape {snap.shape} expected ({SNAP_SIGNAL_DIM},)"
                 )
             if ctx_cont.shape != (self.ctx_cont_dim,):
                 raise RuntimeError(
@@ -1988,7 +2001,7 @@ def run_sanity_check(
             ctx.get("ctx_cont_dim") == 6 and ctx.get("ctx_cat_dim") == 6,
             "[SANITY_CTX_DIM_MISMATCH] expected ctx_cont_base=6 ctx_cat_dim=6",
         )
-    _require(SEQ_SIGNAL_DIM == 7 and SNAP_SIGNAL_DIM == 7, "[SANITY_SIGNAL_DIM] expected 7/7")
+    _require(SEQ_SIGNAL_DIM == SNAP_SIGNAL_DIM and SEQ_SIGNAL_DIM > 0, f"[SANITY_SIGNAL_DIM] seq={SEQ_SIGNAL_DIM} snap={SNAP_SIGNAL_DIM}")
 
     if dataset_manifest is not None:
         ctx_cont_dim = int(fc_ctx_cont_dim)
@@ -2150,11 +2163,13 @@ def run_train(
 
     ctx = get_canonical_ctx_contract()
     _require(ctx["tag"] == "CTX6CAT6", "[CTX_SPLIT_BRAIN]")
-    _require(SEQ_SIGNAL_DIM == 7 and SNAP_SIGNAL_DIM == 7, "[SIGNAL_DIM_SPLIT_BRAIN]")
+    # V2: SEQ_SIGNAL_DIM is now 37 (signal_bridge_v2). Removed legacy hardcoded 7-check.
+    _require(SEQ_SIGNAL_DIM == SNAP_SIGNAL_DIM, "[SIGNAL_DIM_SEQ_SNAP_MISMATCH]")
+    _require(SEQ_SIGNAL_DIM > 0, "[SIGNAL_DIM_INVALID]")
 
     log.info(
         f"[TRAIN] seed={seed} device={device} batch_size={batch_size} epochs={epochs} lr={lr} "
-        f"signal=7 ctx_cont=dynamic ctx_cat=6 early_stop_patience={early_stopping_patience} "
+        f"signal_dim={SEQ_SIGNAL_DIM} ctx_cont=dynamic ctx_cat=6 early_stop_patience={early_stopping_patience} "
         f"early_stop_min_delta={early_stopping_min_delta}"
     )
 
@@ -2371,10 +2386,10 @@ def run_train(
             len(SWING_FEATURE_NAMES),
         )
     _require(
-        sample["seq_x"].shape[2] == 7
+        sample["seq_x"].shape[2] == SEQ_SIGNAL_DIM
         and sample["ctx_cont"].shape[1] == ctx_cont_dim
         and sample["ctx_cat"].shape[1] == ctx_cat_dim,
-        "[TRAIN_CONTRACT_MISMATCH] expected signal=7 ctx_cont=dynamic ctx_cat=dynamic",
+        f"[TRAIN_CONTRACT_MISMATCH] expected signal={SEQ_SIGNAL_DIM} ctx_cont={ctx_cont_dim} ctx_cat={ctx_cat_dim}",
     )
 
     model = EntryV10CtxHybridTransformer(
@@ -2841,11 +2856,11 @@ def run_eval(
         f"[EVAL_SEQ_LEN_MISMATCH] dataset seq_len {sample['seq_x'].shape[0]} != {seq_len}",
     )
     _require(
-        sample["seq_x"].shape[1] == 7
-        and sample["snap_x"].shape[0] == 7
+        sample["seq_x"].shape[1] == SEQ_SIGNAL_DIM
+        and sample["snap_x"].shape[0] == SNAP_SIGNAL_DIM
         and sample["ctx_cont"].shape[0] == ctx_cont_dim
         and sample["ctx_cat"].shape[0] == ctx_cat_dim,
-        "[EVAL_CONTRACT_MISMATCH] expected signal=7 ctx_cont=dynamic ctx_cat=6",
+        f"[EVAL_CONTRACT_MISMATCH] expected signal={SEQ_SIGNAL_DIM} ctx_cont={ctx_cont_dim} ctx_cat={ctx_cat_dim}",
     )
 
     loader = DataLoader(
@@ -3297,7 +3312,7 @@ def main() -> None:
     parser.add_argument("--batch_size", type=int, default=256)
     parser.add_argument("--epochs", type=int, default=10, help="Max epochs (used with early stopping)")
     parser.add_argument("--lr", type=float, default=3e-4)
-    parser.add_argument("--seq_len", type=int, default=30)
+    parser.add_argument("--seq_len", type=int, default=DEFAULT_SEQ_LEN_V2)  # V2: 96 (was 30)
     parser.add_argument("--dataset_manifest", type=Path, default=None, help="Path to dataset .manifest.json (train parquet from output_data_path; val = same dir stem_val.parquet)")
     parser.add_argument("--dataset_dir", type=Path, default=None, help="Directory with *_train.parquet and *_val.parquet")
     parser.add_argument("--dataset_train_parquet", type=Path, default=None, help="Optional: explicit train parquet path when dataset_dir has multiple pairs")

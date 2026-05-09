@@ -110,9 +110,13 @@ class PrebuiltFeaturesLoader:
             if "ts" in self.df.columns:
                 self.df["ts"] = pd.to_datetime(self.df["ts"])
                 self.df = self.df.set_index("ts")
+            elif "time" in self.df.columns:
+                # canonical_v2 prebuilt uses "time" as the timestamp column; accept it.
+                self.df["time"] = pd.to_datetime(self.df["time"], utc=True)
+                self.df = self.df.set_index("time")
             else:
                 raise ValueError(
-                    f"[PREBUILT_FAIL] Prebuilt features DataFrame must have DatetimeIndex or 'ts' column. "
+                    f"[PREBUILT_FAIL] Prebuilt features DataFrame must have DatetimeIndex or 'ts'/'time' column. "
                     f"Got index type: {type(self.df.index)}"
                 )
         

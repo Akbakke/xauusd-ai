@@ -87,8 +87,12 @@ DEFAULT_M5_TAPE_ROOT = Path(
 )
 DEFAULT_OUT_ROOT = DEFAULT_REPORTS_ROOT / "ALL_TRADE_REVIEW_LEDGER_20260411_CANDIDATE_FORWARD_OUTCOME_V1"
 DEFAULT_CANONICAL_FEATURES_PATH = Path(
-    "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/CANONICAL_FEATURES_V1/canonical_features_v1.parquet"
+    "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/CANONICAL_FEATURES_V3/canonical_features_v3.parquet"
 )
+# Suffix kept as `_canon_v1` for downstream-builder backward compatibility
+# (entry-IQL/exit-IQL state column lists hardcode this suffix). The V3 parquet
+# is canonical_v2 minus 11 pruned + 5 new (cyclic + smc_premium_state); same
+# column names for shared features, so the suffix is just a string convention.
 CANONICAL_FEATURES_SUFFIX = "_canon_v1"
 
 K_HORIZONS = [12, 24, 48, 96, 144, 192]
@@ -122,6 +126,11 @@ CANDIDATE_FEATURE_COLS = [
     "decision_reason",  # flat_dominant / flat_veto / pre_quality / ...
     "accepted",
     "policy_lane",
+    # 2026-Q2 V10 v2 BIDIR additions (entry-IQL state expects these)
+    "bad_path_prob",
+    "direction_logit_long",
+    "direction_logit_short",
+    "direction_logit_flat",
 ]
 
 # CANONICAL feature columns from each week's replay/chunk_0/chunk_0_data.parquet.

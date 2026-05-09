@@ -92,6 +92,7 @@ def assert_truth_policy_path_canonical(policy_path: Path, *, engine_root: Path, 
             sweep_root = None
     allowlist = {
         (engine_root / "gx1" / "configs" / "policies" / "canonical_truth" / "GX1_TRUTH_REPLAY_V10_CTX.yaml").resolve(),
+        (engine_root / "gx1" / "configs" / "policies" / "canonical_truth" / "GX1_TRUTH_REPLAY_V10_CTX_V2.yaml").resolve(),
         (engine_root / "gx1" / "configs" / "policies" / "phase5_exit_verification" / "PHASE5_EXIT_VERIFICATION_V10_CTX__R5C.yaml").resolve(),
         (engine_root / "gx1" / "configs" / "policies" / "phase5_exit_verification" / "PHASE5_EXIT_VERIFICATION_V10_CTX__R5D.yaml").resolve(),
     }

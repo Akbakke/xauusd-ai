@@ -691,7 +691,7 @@ class ExitManager:
                 raise RuntimeError(
                     "[EXIT_CTX_DIM_RESOLVE_FAIL] missing ctx dims from runner/bundle metadata in active replay/truth path"
                 )
-            from gx1.contracts.signal_bridge_v1 import get_canonical_ctx_contract
+            from gx1.contracts.signal_bridge_active import get_canonical_ctx_contract
             canonical = get_canonical_ctx_contract()
             cont = len(canonical.get("ctx_cont_names") or [])
             cat = len(canonical.get("ctx_cat_names") or [])
@@ -1042,7 +1042,7 @@ class ExitManager:
             ctx_cat_cols = getattr(self._runner, "ctx_cat_required_columns", None)
             if prebuilt_df is not None:
                 if ctx_cont_cols is None or ctx_cat_cols is None:
-                    from gx1.contracts.signal_bridge_v1 import get_canonical_ctx_contract
+                    from gx1.contracts.signal_bridge_active import get_canonical_ctx_contract
                     ctx_contract = get_canonical_ctx_contract()
                     ctx_cont_cols = ctx_contract.get("ctx_cont_names")
                     ctx_cat_cols = ctx_contract.get("ctx_cat_names")

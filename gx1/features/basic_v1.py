@@ -782,10 +782,13 @@ def build_basic_v1(df):
     close_arr = df["close"].to_numpy(dtype=np.float64)
     delta = np.diff(close_arr, prepend=close_arr[0])
     
-    # Clip: up = delta clipped at lower=0, dn = -delta clipped at upper=0
+    # Wilder RSI: avg_gain = mean(positive deltas), avg_loss = mean(|negative deltas|)
+    # Both must be POSITIVE for rs = up / dn to behave (rs in [0, +inf), rsi in [0, 100]).
     up = np.clip(delta, 0, np.inf)
     dn_neg = np.clip(-delta, 0, np.inf)
-    dn = -dn_neg  # This gives us -delta clipped at upper=0
+    dn = dn_neg  # FIX 2026-05-03: was `dn = -dn_neg`, which made rs negative and could
+    # produce rsi values up to 1e17 when (1 + rs) ≈ 0. Now dn is positive absolute loss
+    # per Wilder's classic formula. Affects: _v1_rsi14_z, _v1_rsi14, _v1_rsi2, _v1_rsi2_gt_rsi14.
     
     # Rolling mean w14: use timed_rolling (will use pandas fallback but timed)
     from gx1.features.rolling_timer import timed_rolling
@@ -1113,11 +1116,11 @@ def build_basic_v1(df):
                 h1_atr14 = _roll(h1_tr_series, 14, "mean")
                 h1_atr14_arr = h1_atr14.to_numpy(dtype=np.float64)
                 
-                # RSI on H1
+                # RSI on H1 (Wilder formula — dn must be POSITIVE absolute losses)
                 h1_delta = np.diff(h1_close, prepend=h1_close[0])
                 h1_up = np.clip(h1_delta, 0, np.inf)
                 h1_dn_neg = np.clip(-h1_delta, 0, np.inf)
-                h1_dn = -h1_dn_neg
+                h1_dn = h1_dn_neg  # FIX 2026-05-03: was `-h1_dn_neg` (same bug as M5 RSI)
                 from gx1.features.rolling_timer import timed_rolling
                 h1_up_series = pd.Series(h1_up, index=pd.to_datetime(h1_ts, unit='s', utc=True))
                 h1_dn_series = pd.Series(h1_dn, index=pd.to_datetime(h1_ts, unit='s', utc=True))
@@ -1281,7 +1284,7 @@ def build_basic_v1(df):
                 h4_delta = np.diff(h4_close, prepend=h4_close[0])
                 h4_up = np.clip(h4_delta, 0, np.inf)
                 h4_dn_neg = np.clip(-h4_delta, 0, np.inf)
-                h4_dn = -h4_dn_neg
+                h4_dn = h4_dn_neg  # FIX 2026-05-03: was `-h4_dn_neg` (same Wilder RSI sign bug)
                 from gx1.features.rolling_timer import timed_rolling
                 h4_up_series = pd.Series(h4_up, index=pd.to_datetime(h4_ts, unit='s', utc=True))
                 h4_dn_series = pd.Series(h4_dn, index=pd.to_datetime(h4_ts, unit='s', utc=True))

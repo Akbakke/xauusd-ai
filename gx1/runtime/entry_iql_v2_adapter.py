@@ -84,6 +84,7 @@ class EntryIQLV2Adapter:
     beta: float
     k_weights: np.ndarray | None
     artifact_root: Path
+    min_advantage_bps: float = 0.0  # V9 Issue A: skip trades with Q-advantage below this threshold
 
     # ------- Loading -------
 
@@ -98,6 +99,7 @@ class EntryIQLV2Adapter:
         beta: float = 1.0,
         k_weights: Sequence[float] | None = None,
         prefer_cuda: bool = True,
+        min_advantage_bps: float = 0.0,
     ) -> "EntryIQLV2Adapter":
         if aggregator not in VALID_AGGREGATORS:
             raise ValueError(f"aggregator {aggregator!r} not in {VALID_AGGREGATORS}")
@@ -155,6 +157,7 @@ class EntryIQLV2Adapter:
             beta=float(beta),
             k_weights=kw,
             artifact_root=artifact_root,
+            min_advantage_bps=float(min_advantage_bps),
         )
 
     # ------- State construction -------
@@ -215,6 +218,18 @@ class EntryIQLV2Adapter:
         soft = soft / soft.sum(axis=1, keepdims=True)
         # Advantages
         skip_id = iql_core.ACTION_SKIP_ID
+        # V9 Issue A: Q-advantage filter — override low-confidence trades to SKIP.
+        # Validation showed that filtering by entry_advantage_over_skip percentile
+        # gives massive PnL boost (P50: 37 → 61 bps; P90: 37 → 121 bps).
+        # When min_advantage_bps > 0, force chosen action to SKIP if the chosen
+        # action's Q-advantage over SKIP is below the threshold.
+        if self.min_advantage_bps > 0.0:
+            for i in range(n):
+                a = int(actions[i])
+                if a != skip_id:
+                    adv_over_skip = float(q_agg[i, a] - q_agg[i, skip_id])
+                    if adv_over_skip < self.min_advantage_bps:
+                        actions[i] = skip_id
         out: list[EntryRecommendation] = []
         for i in range(n):
             a = int(actions[i])

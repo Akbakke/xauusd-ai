@@ -245,20 +245,25 @@ def write_artifacts(
     forward_k_max: int = DEFAULT_FORWARD_K_MAX,
     forced_exit_bar: int = DEFAULT_FORCED_EXIT_BAR,
     built_at_utc: str | None = None,
+    exit_margin: float = 0.0,
+    min_entry_advantage_bps: float = 0.0,
 ) -> dict[str, Any]:
     timestamp = built_at_utc or _stamp()
     artifact_root = out_root or (DEFAULT_REPORTS_ROOT / f"{ACTION}_{timestamp}_LOCK")
     artifact_root.mkdir(parents=True, exist_ok=True)
 
-    print(f"[{ACTION}] loading entry adapter from {entry_iql_root}", flush=True)
+    print(f"[{ACTION}] loading entry adapter from {entry_iql_root} "
+          f"(min_advantage_bps={min_entry_advantage_bps})", flush=True)
     entry_adapter = EntryIQLV2Adapter.load(
         entry_iql_root, variant=entry_variant, fold_id=entry_fold,
         aggregator=aggregator, prefer_cuda=True,
+        min_advantage_bps=min_entry_advantage_bps,
     )
-    print(f"[{ACTION}] loading exit adapter from {exit_iql_root}", flush=True)
+    print(f"[{ACTION}] loading exit adapter from {exit_iql_root} (exit_margin={exit_margin})", flush=True)
     exit_adapter = ExitIQLV2Adapter.load(
         exit_iql_root, variant=exit_variant, fold_id=exit_fold,
         aggregator=aggregator, prefer_cuda=True,
+        exit_margin=exit_margin,
     )
 
     # Load test candidates from the forward-outcome dataset
@@ -281,9 +286,38 @@ def write_artifacts(
     df = pd.concat([pd.read_parquet(p) for p in parquets], ignore_index=True)
     print(f"[{ACTION}] full dataset rows={len(df):,}", flush=True)
 
-    # Subsample for test population (deterministic by seed)
+    # V9 Issue E1: Strat-balanced subsample over (vol_regime × session) instead
+    # of pure random. The earlier random sample collapsed to MEDIUM/ASIA only,
+    # which biased Phase 7 evaluation. Stratifying ensures all 4 sessions × 3
+    # regimes have proportional representation; if any stratum has fewer rows
+    # than its quota we take all available (fall back is graceful).
     if sample_n < len(df):
-        df = df.sample(n=sample_n, random_state=SEED_V1).reset_index(drop=True)
+        if "vol_regime" in df.columns and "session" in df.columns:
+            df_pre = len(df)
+            df["_strat_key"] = (
+                df["vol_regime"].astype(str).fillna("UNK")
+                + "|"
+                + df["session"].astype(str).fillna("UNK")
+            )
+            strat_counts = df["_strat_key"].value_counts()
+            n_strata = len(strat_counts)
+            per_strat = max(1, sample_n // n_strata)
+            print(f"[{ACTION}] strat-sampling: {n_strata} strata, ~{per_strat}/strat",
+                  flush=True)
+            sampled_parts = []
+            rng = np.random.default_rng(SEED_V1)
+            for key, n_avail in strat_counts.items():
+                take = int(min(per_strat, n_avail))
+                sub = df[df["_strat_key"] == key]
+                if take < len(sub):
+                    sub = sub.sample(n=take, random_state=int(rng.integers(0, 2**31 - 1)))
+                sampled_parts.append(sub)
+            df = pd.concat(sampled_parts, ignore_index=True)
+            df = df.drop(columns=["_strat_key"])
+            print(f"[{ACTION}] strat-sampled {len(df):,} rows from {df_pre:,} (target was {sample_n:,})",
+                  flush=True)
+        else:
+            df = df.sample(n=sample_n, random_state=SEED_V1).reset_index(drop=True)
     print(f"[{ACTION}] test population: {len(df):,} candidates", flush=True)
 
     # Build candidate records (dict per row)
@@ -455,6 +489,15 @@ def main() -> None:
     parser.add_argument("--aggregator", type=str, default="mean", choices=("mean", "max"))
     parser.add_argument("--forward-k-max", type=int, default=DEFAULT_FORWARD_K_MAX)
     parser.add_argument("--forced-exit-bar", type=int, default=DEFAULT_FORCED_EXIT_BAR)
+    parser.add_argument("--exit-margin", type=float, default=0.0,
+                        help="V9 Issue 2: relax Exit-IQL decision threshold. "
+                             "0.0 = argmax (current behavior). "
+                             ">0 = fire EXIT_NOW more aggressively (Q_EXIT_NOW > Q_HOLD - margin). "
+                             "<0 = require larger Q advantage. Try 1.0, 5.0, 10.0, 20.0.")
+    parser.add_argument("--min-entry-advantage-bps", type=float, default=0.0,
+                        help="V9 Issue A: Q-advantage filter for entry. Skip trades whose "
+                             "Q-advantage over SKIP is below this. Validation showed P50=10.4, "
+                             "P70=15.1, P90=25.5 give massive PnL boost (37 -> 61 -> 80 -> 121 bps).")
     parser.add_argument("--built-at-utc", type=str, default=None)
     args = parser.parse_args()
 
@@ -472,6 +515,8 @@ def main() -> None:
         forward_k_max=args.forward_k_max,
         forced_exit_bar=args.forced_exit_bar,
         built_at_utc=args.built_at_utc,
+        exit_margin=args.exit_margin,
+        min_entry_advantage_bps=args.min_entry_advantage_bps,
     )
     print(json.dumps(_jsonable(result["summary"]), ensure_ascii=True, indent=2, sort_keys=True))
 

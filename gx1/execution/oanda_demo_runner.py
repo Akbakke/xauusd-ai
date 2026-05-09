@@ -2226,7 +2226,7 @@ class GX1DemoRunner:
                 )
                 
                 # Log ctx bundle info (ctx_cat fixed=6, ctx_cont from bundle)
-                from gx1.contracts.signal_bridge_v1 import get_canonical_ctx_contract
+                from gx1.contracts.signal_bridge_active import get_canonical_ctx_contract
 
                 canonical_ctx = get_canonical_ctx_contract()
                 meta_ctx_cat = metadata.get("ctx_cat_dim") or metadata.get("expected_ctx_cat_dim")
@@ -6772,7 +6772,7 @@ class GX1DemoRunner:
             import traceback
             import json
             from datetime import datetime, timezone
-            from gx1.contracts.signal_bridge_v1 import ORDERED_FIELDS, SEQ_SIGNAL_DIM, SNAP_SIGNAL_DIM
+            from gx1.contracts.signal_bridge_active import ORDERED_FIELDS, SEQ_SIGNAL_DIM, SNAP_SIGNAL_DIM
             
             # Get output directory
             output_dir = None
@@ -6951,7 +6951,7 @@ class GX1DemoRunner:
                 actual_snap_feature_names = getattr(self, "_actual_snap_feature_names", None)
                 
                 # Build expected names reference (SSoT): signal-only bridge
-                from gx1.contracts.signal_bridge_v1 import ORDERED_FIELDS, SEQ_SIGNAL_DIM, SNAP_SIGNAL_DIM
+                from gx1.contracts.signal_bridge_active import ORDERED_FIELDS, SEQ_SIGNAL_DIM, SNAP_SIGNAL_DIM
                 expected_names_reference = list(ORDERED_FIELDS)
                 
                 # Compute missing/extra names
@@ -7608,7 +7608,8 @@ class GX1DemoRunner:
             margin_snap = float(margin_seq[-1])
 
             # Build signal-only tensors
-            from gx1.contracts.signal_bridge_v1 import (
+            from gx1.contracts.signal_bridge_active import (
+                ACTIVE_VERSION,
                 ORDERED_FIELDS,
                 SEQ_SIGNAL_DIM,
                 SNAP_SIGNAL_DIM,
@@ -7624,6 +7625,7 @@ class GX1DemoRunner:
             snap_data = np.zeros((SNAP_SIGNAL_DIM,), dtype=np.float32)
 
             # Fill per-field (explicit ordered schema)
+            # XGB-derived bridge fields (7) — present in both v1 and v2
             field_to_seq: Dict[str, np.ndarray] = {
                 "p_long": p_long_seq,
                 "p_short": p_short_seq,
@@ -7647,6 +7649,27 @@ class GX1DemoRunner:
                 self._last_xgb_signal7 = dict(field_to_snap)
             except Exception:
                 self._last_xgb_signal7 = None
+
+            # v2 extension: append the 30 PER_BAR_PRICE_STATE fields from canonical_v2
+            # prebuilt slice (`df_v9_feats`). These are sliced per-bar over the seq
+            # window and per-snapshot for the current bar.
+            if ACTIVE_VERSION == 2:
+                from gx1.contracts.signal_bridge_v2 import PER_BAR_PRICE_STATE_FIELDS_V2
+                _missing_pb_cols = [c for c in PER_BAR_PRICE_STATE_FIELDS_V2 if c not in df_v9_feats.columns]
+                if _missing_pb_cols:
+                    raise RuntimeError(
+                        f"[ENTRY_V10_SIGNAL_V2_FAIL] PER_BAR_PRICE_STATE columns missing in prebuilt: "
+                        f"{_missing_pb_cols}"
+                    )
+                for fname in PER_BAR_PRICE_STATE_FIELDS_V2:
+                    col_seq = df_v9_feats[fname].to_numpy(dtype=np.float32, copy=False)
+                    if int(col_seq.shape[0]) != int(seq_len):
+                        raise RuntimeError(
+                            f"[ENTRY_V10_SIGNAL_V2_FAIL] per-bar col '{fname}' len={col_seq.shape[0]} "
+                            f"!= seq_len={seq_len}"
+                        )
+                    field_to_seq[fname] = col_seq
+                    field_to_snap[fname] = float(col_seq[-1])
 
             for j, fname in enumerate(ORDERED_FIELDS):
                 if fname not in field_to_seq:
@@ -7703,8 +7726,8 @@ class GX1DemoRunner:
                     raise RuntimeError(error_msg)
             
             # ENTRY INPUT OBSERVABILITY (Step 1)
-            from gx1.contracts.signal_bridge_v1 import ORDERED_FIELDS
-            from gx1.contracts.signal_bridge_v1 import get_canonical_ctx_contract
+            from gx1.contracts.signal_bridge_active import ORDERED_FIELDS
+            from gx1.contracts.signal_bridge_active import get_canonical_ctx_contract
             canonical_ctx = get_canonical_ctx_contract()
             bundle_meta = bundle_meta or {}
             ctx_cat_names = bundle_meta.get("ordered_ctx_cat_names")
@@ -7874,7 +7897,7 @@ class GX1DemoRunner:
             
             # SIGNAL-ONLY: Log contract at replay-start (once)
             if not hasattr(self, "_v10_contract_logged"):
-                from gx1.contracts.signal_bridge_v1 import ORDERED_FIELDS, SEQ_SIGNAL_DIM, SNAP_SIGNAL_DIM, CONTRACT_SHA256
+                from gx1.contracts.signal_bridge_active import ORDERED_FIELDS, SEQ_SIGNAL_DIM, SNAP_SIGNAL_DIM, CONTRACT_SHA256
                 log.info("[ENTRY_V10] Signal Bridge Contract (V1):")
                 log.info("  bridge_id=%s sha256=%s", "XGB_SIGNAL_BRIDGE_V1", str(CONTRACT_SHA256)[:16])
                 log.info("  SEQ_SIGNAL_DIM=%d SNAP_SIGNAL_DIM=%d", int(SEQ_SIGNAL_DIM), int(SNAP_SIGNAL_DIM))
@@ -8106,7 +8129,7 @@ class GX1DemoRunner:
                         self._entry_input_snapshot_count = snap_count + 1
 
                     # Validate shapes (fail-fast in replay)
-                    from gx1.contracts.signal_bridge_v1 import get_canonical_ctx_contract
+                    from gx1.contracts.signal_bridge_active import get_canonical_ctx_contract
 
                     canonical_ctx = get_canonical_ctx_contract()
                     if (
@@ -8530,7 +8553,7 @@ class GX1DemoRunner:
                     # Record transformer input on first call only (if not already recorded)
                     # NOTE: This happens AFTER masking, so we use effective channels
                     if not telemetry.transformer_input_recorded:
-                        from gx1.contracts.signal_bridge_v1 import ORDERED_FIELDS
+                        from gx1.contracts.signal_bridge_active import ORDERED_FIELDS
 
                         # Signal-only: channels == ordered signal fields
                         effective_seq_channels = list(ORDERED_FIELDS)
@@ -8820,7 +8843,7 @@ class GX1DemoRunner:
                         )
                         
                         # Get transformer config
-                        from gx1.contracts.signal_bridge_v1 import SEQ_SIGNAL_DIM, SNAP_SIGNAL_DIM
+                        from gx1.contracts.signal_bridge_active import SEQ_SIGNAL_DIM, SNAP_SIGNAL_DIM
                         transformer_config_dict = {
                             "seq_len": seq_len,
                             "expected_seq_feat_dim": int(SEQ_SIGNAL_DIM),
@@ -8955,7 +8978,7 @@ class GX1DemoRunner:
                                     "p_hat_xgb": p_hat_xgb if 'p_hat_xgb' in locals() else None,
                                     "uncertainty_score": uncertainty_score if 'uncertainty_score' in locals() else None,
                                 }
-                                from gx1.contracts.signal_bridge_v1 import SEQ_SIGNAL_DIM, SNAP_SIGNAL_DIM
+                                from gx1.contracts.signal_bridge_active import SEQ_SIGNAL_DIM, SNAP_SIGNAL_DIM
                                 snap_dim = int(SNAP_SIGNAL_DIM)
                                 transformer_config_dict = {
                                     "seq_len": seq_len,
@@ -9198,7 +9221,7 @@ class GX1DemoRunner:
                                 "p_hat_xgb": p_hat_xgb if 'p_hat_xgb' in locals() else None,
                                 "uncertainty_score": uncertainty_score if 'uncertainty_score' in locals() else None,
                             }
-                            from gx1.contracts.signal_bridge_v1 import SEQ_SIGNAL_DIM, SNAP_SIGNAL_DIM
+                            from gx1.contracts.signal_bridge_active import SEQ_SIGNAL_DIM, SNAP_SIGNAL_DIM
                             transformer_config_dict = {
                                 "seq_len": seq_len,
                                 "expected_seq_feat_dim": int(SEQ_SIGNAL_DIM),
@@ -9450,7 +9473,7 @@ class GX1DemoRunner:
                         "p_hat_xgb": p_hat_xgb if 'p_hat_xgb' in locals() else None,
                         "uncertainty_score": uncertainty_score if 'uncertainty_score' in locals() else None,
                     }
-                    from gx1.contracts.signal_bridge_v1 import SEQ_SIGNAL_DIM, SNAP_SIGNAL_DIM
+                    from gx1.contracts.signal_bridge_active import SEQ_SIGNAL_DIM, SNAP_SIGNAL_DIM
                     session_tokens_enabled_exc = False
                     snap_dim = int(SNAP_SIGNAL_DIM)
                     transformer_config_dict = {
@@ -12190,7 +12213,7 @@ def _run_replay_impl(self: GX1DemoRunner, csv_path: Path) -> None:
         
         # Signal-only: Log signal bridge contract at replay-start
         try:
-            from gx1.contracts.signal_bridge_v1 import SIGNAL_BRIDGE_ID, CONTRACT_SHA256, SEQ_SIGNAL_DIM, SNAP_SIGNAL_DIM, ORDERED_FIELDS
+            from gx1.contracts.signal_bridge_active import SIGNAL_BRIDGE_ID, CONTRACT_SHA256, SEQ_SIGNAL_DIM, SNAP_SIGNAL_DIM, ORDERED_FIELDS
             log.info("[REPLAY] Signal Bridge Contract:")
             log.info("  id: %s", SIGNAL_BRIDGE_ID)
             log.info("  sha256: %s", str(CONTRACT_SHA256))

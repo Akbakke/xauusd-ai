@@ -486,7 +486,12 @@ def _write_multi_horizon_predictions(run_root: Path, run_id: str) -> Path:
 
 # KUN ÉN TRUTH (default) — used when neither CLI nor env provides truth-file.
 CANONICAL_TRUTH_DEFAULT = "/home/andre2/src/GX1_ENGINE/gx1/configs/canonical_truth_signal_only.json"
-MANIFEST_SSOT = Path("/home/andre2/GX1_DATA/data/data/prebuilt/BASE28_CANONICAL/CURRENT_MANIFEST.json")
+# Manifest SSOT depends on signal-bridge version. v2 uses CANONICAL_V2_PREBUILT;
+# v1 stays on legacy BASE28_CANONICAL.
+if os.getenv("GX1_SIGNAL_BRIDGE_VERSION", "1").strip() == "2":
+    MANIFEST_SSOT = Path("/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V2_PREBUILT/CURRENT_MANIFEST.json")
+else:
+    MANIFEST_SSOT = Path("/home/andre2/GX1_DATA/data/data/prebuilt/BASE28_CANONICAL/CURRENT_MANIFEST.json")
 
 DEFAULT_START_TS = "2025-06-03T00:00:00+00:00"
 DEFAULT_END_TS = "2025-06-10T23:59:59+00:00"
@@ -913,7 +918,7 @@ def _run_preflight(truth_path: Path, run_root: Path) -> Dict[str, Any]:
             "signal_bridge_contract_sha256_expected": None,
         }
         try:
-            from gx1.contracts.signal_bridge_v1 import CONTRACT_SHA256 as _EXP  # type: ignore
+            from gx1.contracts.signal_bridge_active import CONTRACT_SHA256 as _EXP  # type: ignore
 
             result["checks"]["canonical_truth"]["signal_bridge_contract_sha256_expected"] = _EXP
         except Exception:
@@ -929,7 +934,7 @@ def _run_preflight(truth_path: Path, run_root: Path) -> Dict[str, Any]:
             "signal_bridge_sha_match": False,
         }
         try:
-            from gx1.contracts.signal_bridge_v1 import CONTRACT_SHA256 as _EXP  # type: ignore
+            from gx1.contracts.signal_bridge_active import CONTRACT_SHA256 as _EXP  # type: ignore
 
             result["checks"]["canonical_truth"]["signal_bridge_contract_sha256_expected"] = _EXP
         except Exception:
@@ -937,23 +942,26 @@ def _run_preflight(truth_path: Path, run_root: Path) -> Dict[str, Any]:
         return result
 
     try:
-        from gx1.contracts.signal_bridge_v1 import CONTRACT_SHA256 as _BRIDGE_SHA  # type: ignore
+        from gx1.contracts.signal_bridge_active import CONTRACT_SHA256 as _BRIDGE_SHA, ACTIVE_VERSION as _BRIDGE_VER  # type: ignore
 
         match = bridge_sha == _BRIDGE_SHA
         if not match:
             result["gates_failed"].append("signal_bridge_sha")
             result["checks"]["canonical_truth"] = {
-                "error": "contract sha mismatch: truth file value != gx1/contracts/signal_bridge_v1.py:CONTRACT_SHA256",
+                "error": (
+                    f"contract sha mismatch: truth file value != gx1/contracts/signal_bridge_v{_BRIDGE_VER}.py:CONTRACT_SHA256"
+                ),
                 "signal_bridge_sha_match": False,
                 "signal_bridge_sha_key_used": key_used,
                 "signal_bridge_sha_value": bridge_sha[:16] + "..." if len(bridge_sha) > 16 else bridge_sha,
                 "signal_bridge_contract_sha256_expected": _BRIDGE_SHA,
+                "signal_bridge_active_version": _BRIDGE_VER,
             }
             return result
     except Exception as e:
         result["gates_failed"].append("signal_bridge_sha")
         result["checks"]["canonical_truth"] = {
-            "error": "contract sha mismatch: " + str(e) + " (expected gx1/contracts/signal_bridge_v1.py:CONTRACT_SHA256)",
+            "error": "contract sha mismatch: " + str(e) + " (expected gx1/contracts/signal_bridge_active.py:CONTRACT_SHA256)",
             "signal_bridge_sha_match": False,
             "signal_bridge_sha_key_used": key_used,
         }

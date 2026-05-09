@@ -5,18 +5,18 @@
   "canonical_prebuilt_contract_note": "Active canonical truth prebuilt points to unified 2020-11-09 -> 2026-04-20 extension. This is truth-replay SSoT for research/IQL data collection, NOT live gate.",
   "canonical_prebuilt_manifest": "/home/andre2/GX1_DATA/data/data/prebuilt/BASE28_CANONICAL/CURRENT_MANIFEST.json",
   "canonical_prebuilt_parquet": "/home/andre2/GX1_DATA/data/data/prebuilt/MONDAY_WEEK_EXTENSION_CANDIDATES/monday_week_prebuilt_extension_20260430_123100/xauusd_m1_EXPANDED_BASE34_CTX16CAT6_20201109_20260420_RAW_INDEX.parquet",
-  "canonical_transformer_bundle_dir": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_CTX__RETRAIN_20260409_PREMIUM_LONG_ONLY_V13_BADPATH",
-  "canonical_xgb_bundle_dir": "/home/andre2/GX1_DATA/models/models/xgb_universal_multihead_v2__RETRAIN_20260329_SANFIX_2020_2025",
+  "canonical_transformer_bundle_dir": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_CTX__RETRAIN_2026Q2_BIDIR_SMC_20260503T134214Z",
+  "canonical_xgb_bundle_dir": "/home/andre2/GX1_DATA/models/models/xgb_universal_multihead_v4__BIDIR_RSI_SMC_PRUNED_20260503T103505Z",
   "ctx_contract": {
     "ctx_cat_dim": 6,
     "ctx_cont_dim": 21,
     "tag": "CTX6CAT6"
   },
   "entry_bundle_notes": {
-    "active_bundle": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_CTX__RETRAIN_20260409_PREMIUM_LONG_ONLY_V13_BADPATH",
+    "active_bundle": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_CTX__RETRAIN_2026Q2_BIDIR_SMC_20260503T134214Z",
     "admission_policy": "strict_replay_fail_closed",
-    "admission_policy_scope": "quality-first working lane V13_BADPATH; frozen legacy benchmark remains comparison-only; verification and canonical remain separated by exit lane, not stale entry bundle drift",
-    "canonical_reason": "Active entry now aligns to the V13_BADPATH working lane; the frozen legacy benchmark remains comparison only."
+    "admission_policy_scope": "quality-first working lane V13_LEGACY_QUARANTINED; frozen legacy benchmark remains comparison-only; verification and canonical remain separated by exit lane, not stale entry bundle drift",
+    "canonical_reason": "Active entry now aligns to the V13_LEGACY_QUARANTINED working lane; the frozen legacy benchmark remains comparison only."
   },
   "pred_trace_head": "OVERLAP",
   "pred_trace_horizon_bars": 24,

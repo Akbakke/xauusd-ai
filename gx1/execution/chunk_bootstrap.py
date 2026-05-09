@@ -23,13 +23,36 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from gx1.contracts.signal_bridge_v1 import (
-    ORDERED_CTX_CAT_NAMES_EXTENDED,
-    ORDERED_CTX_CONT_NAMES_EXTENDED,
-    SEQ_SIGNAL_DIM,
-    SNAP_SIGNAL_DIM,
-    get_canonical_ctx_contract,
-)
+# Signal bridge: env-gated v1/v2/v3 selection.
+# v1 = legacy 7/7 canonical universe.
+# v2 = 2026-Q2 wave 1 rebuild contract (37/37 SEQ/SNAP, 43 ctx_cont, 6 ctx_cat).
+# v3 = 2026-Q2 wave 2 canonical_v3 contract (37/37 SEQ/SNAP, 45 ctx_cont, 6 ctx_cat).
+# Default = v3 (wave 2 is the active baseline as of 2026-05-06).
+_GX1_SIGNAL_BRIDGE_VERSION = os.getenv("GX1_SIGNAL_BRIDGE_VERSION", "3").strip()
+if _GX1_SIGNAL_BRIDGE_VERSION == "1":
+    from gx1.contracts.signal_bridge_v1 import (
+        ORDERED_CTX_CAT_NAMES_EXTENDED,
+        ORDERED_CTX_CONT_NAMES_EXTENDED,
+        SEQ_SIGNAL_DIM,
+        SNAP_SIGNAL_DIM,
+        get_canonical_ctx_contract,
+    )
+elif _GX1_SIGNAL_BRIDGE_VERSION == "2":
+    from gx1.contracts.signal_bridge_v2 import (
+        ORDERED_CTX_CAT_NAMES_EXTENDED,
+        ORDERED_CTX_CONT_NAMES_EXTENDED,
+        SEQ_SIGNAL_DIM,
+        SNAP_SIGNAL_DIM,
+        get_canonical_ctx_contract,
+    )
+else:
+    from gx1.contracts.signal_bridge_v3 import (
+        ORDERED_CTX_CAT_NAMES_EXTENDED,
+        ORDERED_CTX_CONT_NAMES_EXTENDED,
+        SEQ_SIGNAL_DIM,
+        SNAP_SIGNAL_DIM,
+        get_canonical_ctx_contract,
+    )
 from gx1.utils.canonical_prebuilt_resolver import resolve_base28_canonical_from_manifest
 from gx1.execution.chunk_failure import (
     atomic_write_json_safe,
@@ -48,12 +71,33 @@ log = logging.getLogger(__name__)
 REQUIRED_VENV = "/home/andre2/venvs/gx1/bin/python"
 REQUIRED_VENV_RESOLVED = Path(REQUIRED_VENV).resolve()
 
-# ONE UNIVERSE dims
-EXPECTED_XGB_FEATURES_LEN = 34
-MIN_CTX_CONT_DIM = 6
-EXPECTED_CTX_CAT_DIM = 6
-EXPECTED_SEQ_SIGNAL_DIM = 7
-EXPECTED_SNAP_SIGNAL_DIM = 7
+# ONE UNIVERSE dims (env-gated by GX1_SIGNAL_BRIDGE_VERSION)
+if _GX1_SIGNAL_BRIDGE_VERSION == "1":
+    EXPECTED_XGB_FEATURES_LEN = 34
+elif _GX1_SIGNAL_BRIDGE_VERSION == "2":
+    # v2 XGB v4: 91 features (84 v1 base + 7 — actually 91 total per the contract)
+    EXPECTED_XGB_FEATURES_LEN = 91
+else:
+    # v3 XGB v5: 92 features (canonical_v3: 91 - 4 v3-pruned + 5 new)
+    EXPECTED_XGB_FEATURES_LEN = 92
+if _GX1_SIGNAL_BRIDGE_VERSION == "1":
+    # Legacy v1 ONE-UNIVERSE: 7/7 SEQ/SNAP, 6-prefix ctx_cont, 6 ctx_cat
+    MIN_CTX_CONT_DIM = 6
+    EXPECTED_CTX_CAT_DIM = 6
+    EXPECTED_SEQ_SIGNAL_DIM = 7
+    EXPECTED_SNAP_SIGNAL_DIM = 7
+elif _GX1_SIGNAL_BRIDGE_VERSION == "2":
+    # 2026-Q2 v2 contract: ctx_cont expanded 21→43, SEQ/SNAP 7→37, ctx_cat unchanged
+    MIN_CTX_CONT_DIM = 43
+    EXPECTED_CTX_CAT_DIM = 6
+    EXPECTED_SEQ_SIGNAL_DIM = 37
+    EXPECTED_SNAP_SIGNAL_DIM = 37
+else:
+    # 2026-Q2 v3 contract (wave 2 canonical_v3): ctx_cont 45, SEQ/SNAP 37, ctx_cat 6
+    MIN_CTX_CONT_DIM = 45
+    EXPECTED_CTX_CAT_DIM = 6
+    EXPECTED_SEQ_SIGNAL_DIM = 37
+    EXPECTED_SNAP_SIGNAL_DIM = 37
 
 # Forbidden env vars (TRUTH/SMOKE: segmented/parallel must not exist)
 _FORBIDDEN_ENV_VARS_TRUTH = (
@@ -450,11 +494,15 @@ def _truth_validate_one_universe_contract(
     canonical_xgb_bundle_dir = Path(canonical_xgb_bundle_dir_str).expanduser().resolve()
     canonical_transformer_bundle_dir = Path(canonical_transformer_bundle_dir_str).expanduser().resolve()
 
-    # PRUNE kill-switch
-    if "PRUNE" in str(canonical_xgb_bundle_dir).upper():
-        raise RuntimeError(f"PRUNE bundles are forbidden in canonical TRUTH: {canonical_xgb_bundle_dir}")
-    if "PRUNE" in str(canonical_transformer_bundle_dir).upper():
-        raise RuntimeError(f"PRUNE bundles are forbidden in canonical TRUTH: {canonical_transformer_bundle_dir}")
+    # PRUNE kill-switch (legacy: V13 PRUNE14/PRUNE20 ablations were forbidden).
+    # v2/v3 bundles are allowed to carry "PRUNED" in their dir name (the 2026-Q2
+    # XGB v4/v5 dropped useless features; "PRUNED" is descriptive, not the legacy
+    # ablation).
+    if _GX1_SIGNAL_BRIDGE_VERSION == "1":
+        if "PRUNE" in str(canonical_xgb_bundle_dir).upper():
+            raise RuntimeError(f"PRUNE bundles are forbidden in canonical TRUTH: {canonical_xgb_bundle_dir}")
+        if "PRUNE" in str(canonical_transformer_bundle_dir).upper():
+            raise RuntimeError(f"PRUNE bundles are forbidden in canonical TRUTH: {canonical_transformer_bundle_dir}")
 
     lock_path = canonical_xgb_bundle_dir / "MASTER_MODEL_LOCK.json"
     ordered = None
@@ -831,10 +879,16 @@ def bootstrap_chunk_environment(
                 if val:
                     _forbid_prune(key, val, allow_ctx6cat6=(key == "canonical_transformer_bundle_dir"))
 
-            # Manifest-only resolution (TRUTH/SMOKE): resolve from BASE28_CANONICAL/CURRENT_MANIFEST.json.
-            # The manifest path + schema manifest + truth ctx contract are the
-            # SSoT, not legacy-looking basename tokens in the parquet path.
-            manifest_path = Path("/home/andre2/GX1_DATA/data/data/prebuilt/BASE28_CANONICAL/CURRENT_MANIFEST.json")
+            # Manifest-only resolution (TRUTH/SMOKE): env-gated by GX1_SIGNAL_BRIDGE_VERSION.
+            # v3 (default) → CANONICAL_V3_PREBUILT/CURRENT_MANIFEST.json
+            # v2 → CANONICAL_V2_PREBUILT/CURRENT_MANIFEST.json
+            # v1 → BASE28_CANONICAL/CURRENT_MANIFEST.json
+            if _GX1_SIGNAL_BRIDGE_VERSION == "1":
+                manifest_path = Path("/home/andre2/GX1_DATA/data/data/prebuilt/BASE28_CANONICAL/CURRENT_MANIFEST.json")
+            elif _GX1_SIGNAL_BRIDGE_VERSION == "2":
+                manifest_path = Path("/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V2_PREBUILT/CURRENT_MANIFEST.json")
+            else:
+                manifest_path = Path("/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_PREBUILT/CURRENT_MANIFEST.json")
             truth_manifest_raw = str(truth_obj.get("canonical_prebuilt_manifest") or "").strip()
             if truth_manifest_raw:
                 if Path(truth_manifest_raw).expanduser().resolve() != manifest_path.expanduser().resolve():

@@ -317,7 +317,10 @@ def _load_canonical_tape(tape_root: Path, years: Sequence[int]) -> pd.DataFrame:
     return tape_all
 
 
-def _load_feature_contracts() -> Tuple[
+def _load_feature_contracts(
+    feature_contract_path: Optional[Path] = None,
+    sanitizer_config_path: Optional[Path] = None,
+) -> Tuple[
     List[str],
     str,
     XGBInputSanitizer,
@@ -328,7 +331,8 @@ def _load_feature_contracts() -> Tuple[
     Path,
     Path,
 ]:
-    feature_contract_path = WORKSPACE_ROOT / "gx1" / "xgb" / "contracts" / "xgb_input_features_base28_v1.json"
+    if feature_contract_path is None:
+        feature_contract_path = WORKSPACE_ROOT / "gx1" / "xgb" / "contracts" / "xgb_input_features_base28_v1.json"
     if not feature_contract_path.exists():
         raise FileNotFoundError(f"Feature contract not found: {feature_contract_path}")
 
@@ -336,7 +340,8 @@ def _load_feature_contracts() -> Tuple[
     features = feature_contract.get("features", [])
     schema_hash = feature_contract.get("schema_hash", "unknown")
 
-    sanitizer_config_path = WORKSPACE_ROOT / "gx1" / "xgb" / "contracts" / "xgb_input_sanitizer_base28_v1.json"
+    if sanitizer_config_path is None:
+        sanitizer_config_path = WORKSPACE_ROOT / "gx1" / "xgb" / "contracts" / "xgb_input_sanitizer_base28_v1.json"
     if not sanitizer_config_path.exists():
         raise FileNotFoundError(f"Sanitizer config not found: {sanitizer_config_path}")
 
@@ -695,6 +700,14 @@ def main() -> int:
     parser.add_argument("--sessions", type=str, nargs="+", default=["ASIA", "EU", "OVERLAP", "US"])
     parser.add_argument("--canonical-prebuilt-manifest", type=Path, default=None)
     parser.add_argument("--canonical-prebuilt-parquet", type=Path, default=None)
+    parser.add_argument(
+        "--feature-contract-path", type=Path, default=None,
+        help="Override feature contract path. Default: gx1/xgb/contracts/xgb_input_features_base28_v1.json",
+    )
+    parser.add_argument(
+        "--sanitizer-config-path", type=Path, default=None,
+        help="Override sanitizer config path. Default: gx1/xgb/contracts/xgb_input_sanitizer_base28_v1.json",
+    )
     parser.add_argument("--output-dir", type=Path, default=None)
     parser.add_argument("--n-bars", type=int, default=None, help="Optional cap after year-filter, preserves chronological order")
     parser.add_argument("--val-split", type=float, default=0.20)
@@ -795,7 +808,10 @@ def main() -> int:
         feature_contract_path,
         sanitizer_config_path,
         output_contract_path,
-    ) = _load_feature_contracts()
+    ) = _load_feature_contracts(
+        feature_contract_path=args.feature_contract_path,
+        sanitizer_config_path=args.sanitizer_config_path,
+    )
 
     print(f"Feature contract:    {feature_contract_path}")
     print(f"Sanitizer config:    {sanitizer_config_path}")

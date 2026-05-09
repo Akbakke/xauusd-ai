@@ -41,7 +41,7 @@ def _load_base_module():
     if module_name in sys.modules:
         return sys.modules[module_name]
     pyc_dir = Path(__file__).with_name("__pycache__")
-    external_base = Path("/home/andre2/Desktop/EURUSD/RL/gx1/analysis/__pycache__/shadow_meta_v1.cpython-310.pyc")
+    external_base = Path("/home/andre2/.gx1_shim/RL/gx1/analysis/__pycache__/shadow_meta_v1.cpython-310.pyc")
     preferred = pyc_dir / f"{Path(__file__).stem}.cpython-{sys.version_info.major}{sys.version_info.minor}.pyc"
     candidates = [external_base, preferred] + sorted(pyc_dir.glob(f"{Path(__file__).stem}.cpython-*.pyc"))
     base_path = next((p for p in candidates if p.exists()), None)

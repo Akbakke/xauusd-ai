@@ -75,11 +75,27 @@ ACTION_LABELS_EXIT = {ACTION_HOLD_ID: "HOLD", ACTION_EXIT_NOW_ID: "EXIT_NOW"}
 K_HORIZONS = exit_pipe.K_HORIZONS_EXIT  # [1, 4, 12, 24, 48, 96]
 N_K = len(K_HORIZONS)
 K_PRIMARY = 24  # primary stratifier horizon (2h)
-REWARD_VARIANTS = ["R_RAW", "R_NET05", "R_NET_REAL", "R_GATED", "R_REGRET"]
+# NOTE: R_RAW and R_NET05 removed 2026-05-02 — they degenerate to "always HOLD"
+# because their HOLD reward = max future MFE has no realization cost. Oracle
+# itself becomes degenerate, the policy matches oracle perfectly (~99.6%) but
+# the policy is unusable in live trading (trades would never close).
+# R_NET_REAL is the production policy. R_GATED + R_REGRET are alternative
+# perspectives that all include realistic exit-cost framing.
+REWARD_VARIANTS = ["R_NET_REAL", "R_GATED", "R_REGRET", "R_NET_V2"]
 GATED_THRESHOLD_BPS = 10.0
 R_NET_REAL_ALPHA = 0.5
 R_NET_REAL_BETA = 0.5
 R_NET_REAL_GAMMA = 2.0
+
+# V9 Issue C: R_NET_V2 — improved reward shaping for Exit-IQL.
+# Adds explicit MFE-giveback penalty, asymmetric vol-aware MAE, and capital cost.
+# Designed to address: validation showed Exit-IQL active only 3.8% (over-conservative
+# HOLD bias) AND lose-rate 24% on FORCED_TERMINAL — model needs stronger signal that
+# "holding past peak is bad".
+# R_NET_V2 = R_NET_REAL + giveback penalty + bars cost (incremental change).
+# Calibrated so r_hold is ~15-25 bps worse than R_NET_REAL on avg — modest EXIT bias.
+R_NET_V2_GIVEBACK = 0.3         # mild MFE-giveback penalty
+R_NET_V2_BARS_COST = 0.02       # capital-binding cost per bar held
 
 # Cross-validation
 N_FOLDS = 3
@@ -206,14 +222,37 @@ _write_rows = contract_gate._write_rows
 # ---------------------------------------------------------------------------
 
 
-def load_per_bar_dataset(per_week_dir: Path) -> pd.DataFrame:
+def load_per_bar_dataset(per_week_dir: Path, sample_n_rows: int | None = None) -> pd.DataFrame:
+    """Load per-bar exit dataset, optionally pre-subsampling per file to bound memory.
+
+    For 20M+ row datasets, loading all weeks then subsampling causes OOM. When
+    sample_n_rows is given, we instead read each parquet and stratified-sample
+    proportionally — keeping ~sample_n_rows / n_files rows per file before concat.
+    """
     parts: list[pd.DataFrame] = []
     parquets = sorted(per_week_dir.glob("exit_per_bar_*.parquet"))
     if not parquets:
         raise RuntimeError(f"[{ACTION}] no exit_per_bar_*.parquet found in {per_week_dir}")
-    for p in parquets:
-        parts.append(pd.read_parquet(p))
-    df = pd.concat(parts, ignore_index=True)
+
+    if sample_n_rows is not None and sample_n_rows > 0:
+        # Subsample BEFORE concatenation to avoid OOM on large datasets.
+        per_file_target = max(1, int(sample_n_rows / len(parquets)) + 1)
+        print(f"[{ACTION}] streaming-subsample: target ~{per_file_target} rows per file × {len(parquets)} files", flush=True)
+        rng = np.random.default_rng(20260501)
+        for p in parquets:
+            df_p = pd.read_parquet(p)
+            if len(df_p) > per_file_target:
+                idx = rng.choice(len(df_p), size=per_file_target, replace=False)
+                df_p = df_p.iloc[idx].reset_index(drop=True)
+            parts.append(df_p)
+        df = pd.concat(parts, ignore_index=True)
+        # Final shuffle + cap to exact sample_n_rows
+        if len(df) > sample_n_rows:
+            df = df.sample(n=sample_n_rows, random_state=20260501).reset_index(drop=True)
+    else:
+        for p in parquets:
+            parts.append(pd.read_parquet(p))
+        df = pd.concat(parts, ignore_index=True)
     return df
 
 
@@ -235,6 +274,12 @@ def build_reward_matrix(df: pd.DataFrame, *, variant: str) -> np.ndarray:
         .fillna(1.5).clip(lower=0.0).astype(float).to_numpy()
         if "entry_spread_bps" in df.columns
         else np.full(n, 1.5, dtype=float)
+    )
+    # V9 Issue C: bars_held for R_NET_V2 capital cost.
+    bars_held_v2 = (
+        pd.to_numeric(df.get("bars_in_trade_v1"), errors="coerce").fillna(0.0).to_numpy()
+        if "bars_in_trade_v1" in df.columns
+        else np.zeros(n, dtype=float)
     )
 
     for ki, K in enumerate(K_HORIZONS):
@@ -262,6 +307,18 @@ def build_reward_matrix(df: pd.DataFrame, *, variant: str) -> np.ndarray:
             oracle = np.maximum(exit_now, hold_K)
             r_hold = hold_K - oracle  # ≤ 0
             r_exit = exit_now - oracle  # ≤ 0
+        elif variant == "R_NET_V2":
+            # V9 Issue C: R_NET_REAL + giveback + bars cost (incremental).
+            # - giveback: penalize holding past MFE peak (regression of unrealized profit)
+            # - bars_cost: small capital-binding cost (encourages closing stale positions)
+            r_hold = (
+                R_NET_REAL_ALPHA * hold_K
+                - R_NET_REAL_BETA * np.abs(current_mae)
+                - R_NET_REAL_GAMMA * spread
+                - R_NET_V2_GIVEBACK * drawdown
+                - R_NET_V2_BARS_COST * bars_held_v2
+            )
+            r_exit = exit_now - R_NET_REAL_GAMMA * spread
         else:
             raise ValueError(f"unknown reward variant: {variant}")
 
@@ -550,11 +607,8 @@ def write_artifacts(
         }
 
     print(f"[{ACTION}] loading per-bar exit dataset from {per_week_dir}", flush=True)
-    df = load_per_bar_dataset(per_week_dir)
+    df = load_per_bar_dataset(per_week_dir, sample_n_rows=sample_n_rows)
     print(f"[{ACTION}] loaded rows={len(df):,} cols={len(df.columns)}", flush=True)
-    if sample_n_rows is not None and sample_n_rows < len(df):
-        df = df.sample(n=sample_n_rows, random_state=SEED_V1).reset_index(drop=True)
-        print(f"[{ACTION}] subsampled to {len(df):,} rows", flush=True)
 
     X, feature_names = build_state_matrix(df)
     print(f"[{ACTION}] state matrix: {X.shape}, features={len(feature_names)}", flush=True)

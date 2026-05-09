@@ -67,7 +67,7 @@ class EntryContextFeatures:
         """
         names = ordered_names
         if names is None:
-            from gx1.contracts.signal_bridge_v1 import get_canonical_ctx_contract
+            from gx1.contracts.signal_bridge_active import get_canonical_ctx_contract
             canonical = get_canonical_ctx_contract()
             names = canonical.get("ctx_cat_names", [])
             if len(names) != 6:
@@ -98,7 +98,7 @@ class EntryContextFeatures:
         """
         names = ordered_names
         if names is None:
-            from gx1.contracts.signal_bridge_v1 import get_canonical_ctx_contract
+            from gx1.contracts.signal_bridge_active import get_canonical_ctx_contract
             canonical = get_canonical_ctx_contract()
             names = canonical.get("ctx_cont_names", [])
             if len(names) != 6:

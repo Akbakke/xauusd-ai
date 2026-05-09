@@ -87,7 +87,14 @@ K_HORIZONS = [12, 24, 48, 96, 144, 192]
 N_K = len(K_HORIZONS)
 K_PRIMARY = 96  # used to derive oracle_action_label_v1 for stratification
 
-REWARD_VARIANTS = ["R_RAW", "R_NET05", "R_NET10", "R_GATED", "R_PATH", "R_NET_REAL"]
+# NOTE: R_RAW, R_NET05, R_NET10, R_GATED, R_PATH removed 2026-05-02 — they all
+# degenerate to "never SKIP" because their rewards are based on raw MFE / mild
+# MAE-penalties, which never let SKIP=0 win against trade-action MFE > 0.
+# Verified empirically: 5 of these 6 variants had min_action_frac = 0.0000 in
+# the V3 training run. Only R_NET_REAL (alpha=0.5 MFE realisation + beta=0.5
+# MAE penalty + gamma=2.0 spread cost) produces an action distribution where
+# SKIP can win — the realistic production-deployable policy.
+REWARD_VARIANTS = ["R_NET_REAL"]
 GATED_THRESHOLD_BPS = 30.0
 
 # R_NET_REAL parameters: realistic-net reward.
@@ -143,6 +150,15 @@ NUMERIC_STATE_COLS_CANDIDATE = [
     "tradable_prob",
     "mfe_first_n_pred",
     "path_quality_pred",
+    # 2026-Q2 BIDIR additions: V10 v2 aux outputs needed for symmetric entry decisions.
+    # `bad_path_prob` enables hard reward penalty when V10 says trade goes bad.
+    # `direction_logit_*` are raw (pre-softmax) logits; complementary to the softmaxed
+    # `p_long/p_short/p_flat` already in state — give the IQL access to V10's confidence
+    # before normalization.
+    "bad_path_prob",
+    "direction_logit_long",
+    "direction_logit_short",
+    "direction_logit_flat",
 ]
 
 # CANONICAL V10/V3 features at decision_ts (from chunk_0_data.parquet).
@@ -184,31 +200,40 @@ NUMERIC_STATE_COLS_CHUNK0 = [
 NUMERIC_STATE_COLS_CANONICAL = [
     f"{c}{fwd_pipe.CANONICAL_FEATURES_SUFFIX}"
     for c in [
-        # 49 _v1_* basic_v1 features (superset of chunk_0's 28)
+        # _v1_* basic_v1 features — canonical_v3 keeps the non-pruned subset.
+        # Removed (canonical_v3 prunes): _v1_int_r5_atr, _v1_int_slope_h4_atr,
+        # _v1_int_clv_atr, _v1_body_tr, _v1_vwap_drift48 (5 dropped from v2).
         "_v1_r3", "_v1_r5", "_v1_r8", "_v1_r12", "_v1_r24", "_v1_r1", "_v1_r48_z",
         "_v1_atr14", "_v1_pk_sigma20", "_v1_atr_regime_id", "_v1_ema_diff",
-        "_v1_vwap_drift48", "_v1_rsi14_z", "_v1_rsi2", "_v1_rsi14",
+        "_v1_rsi14_z", "_v1_rsi2", "_v1_rsi14",
         "_v1_rsi2_gt_rsi14", "_v1_ret_ema_diff_2_5", "_v1_bb_bandwidth_delta_10",
-        "_v1_close_ema_slope_3", "_v1_body_tr", "_v1_upper_tr", "_v1_lower_tr",
+        "_v1_close_ema_slope_3", "_v1_upper_tr", "_v1_lower_tr",
         "_v1_wick_imbalance", "_v1_range_comp_20_100", "_v1_range_adr",
         "_v1_spread_p", "_v1_slip_bps",
         "_v1_clv", "_v1_range_z", "_v1_spread_z", "_v1_cost_bps_est",
-        "_v1_kurt_r", "_v1_int_r5_atr", "_v1_int_vwap_h1", "_v1_int_slope_h4_atr",
-        "_v1_int_clv_atr", "_v1_cost_bps_dyn", "_v1_tod_sin", "_v1_tod_cos",
+        "_v1_kurt_r", "_v1_int_vwap_h1",
+        "_v1_cost_bps_dyn", "_v1_tod_sin", "_v1_tod_cos",
         "_v1_r1_q90_48", "_v1_r1_q10_48", "_v1_atr_z_10_100", "_v1_tema_slope_20",
         "_v1_bb_squeeze_20_2", "_v1_kama_slope_30", "_v1_ret_ema_ratio_5_34",
         "_v1_body_share_1", "_v1_tr_1_over_atr_14", "_v1_comp3_ratio",
-        # 6 H1 multi-TF features
-        "_v1h1_ema_diff", "_v1h1_vwap_drift", "_v1h1_atr", "_v1h1_rsi14_z",
+        # H1 multi-TF features — _v1h1_vwap_drift dropped in canonical_v3
+        "_v1h1_ema_diff", "_v1h1_atr", "_v1h1_rsi14_z",
         "_v1h1_slope3", "_v1h1_slope5",
         # 5 H4 multi-TF features
         "_v1h4_ema_diff", "_v1h4_atr", "_v1h4_rsi14_z", "_v1h4_slope3", "_v1h4_slope5",
         # 5 m5_phase one-hots
         "m5_phase_0", "m5_phase_1", "m5_phase_2", "m5_phase_3", "m5_phase_4",
-        # 19 high-level basics
-        "mid", "range", "body_pct", "wick_asym", "atr", "atr50", "atr_z", "std50",
-        "ret_1", "ret_5", "ret_20", "roc20", "roc100", "rvol_20", "rvol_60",
+        # high-level basics — atr, std50, roc20 dropped in canonical_v3
+        "mid", "range", "body_pct", "wick_asym", "atr50", "atr_z",
+        "ret_1", "ret_5", "ret_20", "roc100", "rvol_20", "rvol_60",
         "ema20_slope", "ema100_slope", "pos_vs_ema200", "vol_ratio",
+        # 9 SMC features (NEW addition — entry-IQL now sees SMC directly,
+        # not just via XGB outputs).
+        "smc_swing_state", "smc_bos_up", "smc_bos_down", "smc_choch",
+        "smc_sweep_up", "smc_sweep_down", "smc_sweep_size_atr",
+        "smc_bars_since_sweep", "smc_premium_discount",
+        # 5 NEW canonical_v3 features (cyclic time + SMC×swing interaction)
+        "hour_sin", "hour_cos", "dow_sin", "dow_cos", "smc_premium_state",
     ]
 ]
 # Derived V3-equivalent feature
@@ -266,21 +291,13 @@ def load_forward_outcome_dataset(per_week_dir: Path) -> pd.DataFrame:
 
 
 def build_reward_matrix(df: pd.DataFrame, *, variant: str) -> np.ndarray:
-    """Return R of shape (n_rows, 5_actions, n_K). NaN-filled to 0.
+    """Return R of shape (n_rows, 3_actions, n_K). NaN-filled to 0.
 
-    Action layout follows iql_core.ACTION_*_ID:
-      0=SKIP, 1=TAKE_LONG_NOW, 2=TAKE_SHORT_NOW, 3=WAIT_LONG, 4=WAIT_SHORT
+    Action layout follows iql_core.ACTION_*_ID (3-action):
+      0=SKIP, 1=TAKE_LONG_NOW, 2=TAKE_SHORT_NOW
 
-    For SKIP (action 0), reward is 0 in all variants — no trade taken.
-    For trade actions, reward depends on variant.
-
-    NOTE on SKIP-competitiveness: MFE is by definition ≥ 0 (peak favorable
-    excursion), so any variant that simply uses raw MFE (R_RAW) will never
-    let SKIP win — oracle-action will always pick a trade action. The
-    R_NET_REAL variant solves this by discounting MFE by an exit-realization
-    fraction, penalizing path drawdown, and subtracting spread cost. This
-    creates the "ingen trade er bedre enn dårlig trade" signal needed for
-    SKIP to be a meaningful action class.
+    SKIP semantically means "re-evaluate next M5 bar" — the runtime calls
+    the adapter again on the next V10 candidate. Reward = 0 for SKIP.
     """
     n = len(df)
     R = np.zeros((n, iql_core.N_ACTIONS_V1, N_K), dtype=np.float32)
@@ -295,11 +312,22 @@ def build_reward_matrix(df: pd.DataFrame, *, variant: str) -> np.ndarray:
         else np.full(n, 1.5, dtype=float)
     )
 
+    # 2026-Q2 BIDIR: hard penalty multiplier from V10 v2's bad_path probability.
+    # If V10 predicts the trade goes bad (bad_path_prob → 1.0), TAKE rewards
+    # are scaled toward zero, making SKIP comparatively attractive. The IQL learns
+    # to internalize "trust V10's bad_path signal".
+    # If column missing (legacy candidates without V10 v2 logits), no-op gate (= 1.0).
+    bad_path_prob = (
+        pd.to_numeric(df.get("bad_path_prob"), errors="coerce")
+        .fillna(0.0).clip(lower=0.0, upper=1.0).astype(float).to_numpy()
+        if "bad_path_prob" in df.columns
+        else np.zeros(n, dtype=float)
+    )
+    bad_path_gate = (1.0 - bad_path_prob).astype(np.float32)  # 1.0 = no gate, 0.0 = full block
+
     for ai, (action_prefix, side) in enumerate([
         ("take_now", "long"),
         ("take_now", "short"),
-        ("wait", "long"),
-        ("wait", "short"),
     ], start=1):
         for ki, K in enumerate(K_HORIZONS):
             mfe_col = f"{action_prefix}_{side}_mfe_bps_at_K{K}_v1"
@@ -330,6 +358,10 @@ def build_reward_matrix(df: pd.DataFrame, *, variant: str) -> np.ndarray:
                 raise ValueError(f"unknown reward variant: {variant}")
             # Clip extreme values for stability (top 0.1% MFE values can be 500+ bps)
             r = np.clip(r, -500.0, 500.0)
+            # 2026-Q2 BIDIR: apply bad_path gate. Multiplies the MFE reward by
+            # (1 - bad_path_prob) so V10's bad-path predictions translate into
+            # reduced incentive to TAKE.
+            r = r * bad_path_gate
             R[:, ai, ki] = r.astype(np.float32)
     return R
 
@@ -507,11 +539,28 @@ def evaluate_one_fold(
     *,
     variant: str,
     artifact_root: Path,
+    balance_actions: bool = False,
+    skip_weight_multiplier: float = 1.0,
+    skip_oversample_factor: int = 1,
 ) -> dict[str, Any]:
     fold_id_v1 = fold["fold_id_v1"]
     train_idx = fold["train_idx_v1"]
     val_idx = fold["val_idx_v1"]
     test_idx = fold["test_idx_v1"]
+
+    # V9 Issue 1 Plan B: oversample SKIP rows in training set. Class-weights
+    # alone barely move SKIP-rate (4x: 0.93%, 10x: 0.985%) because oracle SKIP
+    # has only 266/50824 rows (0.5%). Replicating the SKIP rows N times gives
+    # the IQL actual gradient examples to learn from, not just a multiplier.
+    skip_oversample_count = 0
+    if skip_oversample_factor > 1:
+        skip_mask = oracle_action[train_idx] == iql_core.ACTION_SKIP_ID
+        skip_indices = train_idx[skip_mask]
+        if len(skip_indices) > 0:
+            extra_replicas = np.tile(skip_indices, skip_oversample_factor - 1)
+            train_idx = np.concatenate([train_idx, extra_replicas])
+            skip_oversample_count = int(len(extra_replicas))
+
     X_train = X[train_idx]
     R_train = R[train_idx]
     X_val = X[val_idx]
@@ -537,6 +586,35 @@ def evaluate_one_fold(
         flush=True,
     )
 
+    # Inverse-frequency class weights to counter V10 v2's 83/17 long/short skew.
+    # Without this the IQL collapses to always-LONG (16.75 bps fast baseline =
+    # 57% of oracle). Q-loss + V-loss both honor sample_weights via expectile_loss.
+    sample_weights = None
+    train_class_weights: list[float] = []
+    train_action_counts: dict[int, int] = {}
+    if balance_actions:
+        oa_train = oracle_action[train_idx]
+        n_per_action = np.bincount(
+            oa_train.astype(np.int64), minlength=iql_core.N_ACTIONS_V1,
+        ).clip(min=1)
+        class_weights = len(oa_train) / (iql_core.N_ACTIONS_V1 * n_per_action)
+        # V9 Issue 1: bump SKIP class weight by additional multiplier (default 1.0
+        # = inverse-frequency only). Wave 2 final showed Entry-IQL chose SKIP only
+        # 0.73% of the time (target 5-10%); a 4-5× SKIP multiplier on top of the
+        # ~64× inverse-frequency forces the IQL to attend to rare SKIP cases.
+        if skip_weight_multiplier != 1.0:
+            class_weights[iql_core.ACTION_SKIP_ID] *= float(skip_weight_multiplier)
+        sample_weights = class_weights[oa_train].astype(np.float32)
+        train_class_weights = [float(w) for w in class_weights]
+        train_action_counts = {ai: int(n_per_action[ai]) for ai in range(iql_core.N_ACTIONS_V1)}
+        print(
+            f"[{ACTION}] {fold_id_v1} {variant} balance_actions: "
+            f"train_action_counts={train_action_counts} "
+            f"class_weights={train_class_weights} "
+            f"skip_weight_multiplier={skip_weight_multiplier}",
+            flush=True,
+        )
+
     # Train multi-head IQL
     model = iql_core.train_multi_head_entry_iql(
         X_train, R_train,
@@ -551,6 +629,7 @@ def evaluate_one_fold(
         n_hidden=TRAIN_N_HIDDEN,
         seed=SEED_V1,
         prefer_cuda=True,
+        sample_weights=sample_weights,
     )
 
     # Evaluate per K-horizon × per aggregator on val and test
@@ -626,6 +705,12 @@ def evaluate_one_fold(
         "test_baselines_v1": test_baselines,
         "all_evaluations_v1": eval_rows,
         "model_path_v1": str(model_path),
+        "balance_actions_v1": bool(balance_actions),
+        "skip_weight_multiplier_v1": float(skip_weight_multiplier),
+        "skip_oversample_factor_v1": int(skip_oversample_factor),
+        "skip_oversample_added_rows_v1": int(skip_oversample_count),
+        "train_action_counts_v1": train_action_counts,
+        "train_class_weights_v1": train_class_weights,
     }
 
 
@@ -728,6 +813,9 @@ def write_artifacts(
     sample_n_rows: int | None = None,
     variants_subset: list[str] | None = None,
     built_at_utc: str | None = None,
+    balance_actions: bool = False,
+    skip_weight_multiplier: float = 1.0,
+    skip_oversample_factor: int = 1,
 ) -> dict[str, Any]:
     timestamp = built_at_utc or _stamp()
     artifact_root = out_root or (DEFAULT_REPORTS_ROOT / f"{ACTION}_{timestamp}_LOCK")
@@ -790,6 +878,9 @@ def write_artifacts(
             r = evaluate_one_fold(
                 fold, X, R_by_variant[variant], oracle_action,
                 variant=variant, artifact_root=artifact_root,
+                balance_actions=balance_actions,
+                skip_weight_multiplier=skip_weight_multiplier,
+                skip_oversample_factor=skip_oversample_factor,
             )
             per_fold_results.append(r)
             flat_evaluations.extend(r.get("all_evaluations_v1", []))
@@ -820,6 +911,7 @@ def write_artifacts(
         "test_size_v1": TEST_SIZE,
         "seed_v1": SEED_V1,
         "min_per_class_val_v1": MIN_PER_CLASS_VAL,
+        "balance_actions_v1": bool(balance_actions),
         "per_fold_summary_v1": [
             {
                 "fold_id_v1": r["fold_id_v1"],
@@ -874,6 +966,20 @@ def main() -> None:
                         help="Comma-sep subset of reward variants to train (default: all 6).")
     parser.add_argument("--budget", type=str, default="fast", choices=list(BUDGET_PRESETS.keys()),
                         help="Training compute budget: fast (smoke), medium, full (production).")
+    parser.add_argument("--balance-actions", action="store_true",
+                        help="Inverse-frequency class weights on training rows to counter "
+                             "V10 v2's 83/17 long/short skew. Required for entry-IQL retrain "
+                             "after V3 v6; without it the IQL collapses to always-LONG.")
+    parser.add_argument("--skip-weight-multiplier", type=float, default=1.0,
+                        help="V9 Issue 1: extra multiplier on SKIP class-weight on top of "
+                             "inverse-frequency (only active with --balance-actions). Wave 2 "
+                             "final showed Entry-IQL chose SKIP only 0.73%% (target 5-10%%). "
+                             "Try 4.0 to push effective SKIP weight from ~64x to ~256x.")
+    parser.add_argument("--skip-oversample-factor", type=int, default=1,
+                        help="V9 Issue 1 Plan B: replicate SKIP training rows N times. "
+                             "Class-weights alone barely move SKIP-rate (4x and 10x both stay "
+                             "around 1%%) because oracle SKIP has only 0.5%% of rows. "
+                             "Try 10-20 to give the IQL actual gradient examples.")
     parser.add_argument("--built-at-utc", type=str, default=None)
     args = parser.parse_args()
 
@@ -894,6 +1000,9 @@ def main() -> None:
         sample_n_rows=args.sample_n_rows,
         variants_subset=variants_subset,
         built_at_utc=args.built_at_utc,
+        balance_actions=args.balance_actions,
+        skip_weight_multiplier=args.skip_weight_multiplier,
+        skip_oversample_factor=args.skip_oversample_factor,
     )
     print(json.dumps(_jsonable(result["summary"]), ensure_ascii=True, indent=2, sort_keys=True))
 
