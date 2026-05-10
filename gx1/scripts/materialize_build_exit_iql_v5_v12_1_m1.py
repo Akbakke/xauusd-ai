@@ -67,7 +67,7 @@ DEFAULT_GIVEBACK_FRAC = 0.7                        # if current_pnl < cum_peak *
 DEFAULT_GIVEBACK_PENALTY = 0.5                     # penalize half of giveback bps in EXIT reward
 DEFAULT_TRAIL_PEAK_MIN_BPS = 50.0                  # only apply trail bonus if peak ≥ 50 bps achieved
 DEFAULT_TRAIL_CAPTURE_FRAC = 0.8                   # bonus when current_pnl ≥ 80% of peak
-DEFAULT_TRAIL_BONUS_FRAC = 0.10                    # bonus = 10% of cum_peak
+DEFAULT_TRAIL_BONUS_FRAC = 0.0                     # V12.1.1 NO_TRAIL cemented (grid winner) — disable trail-stop bonus
 NEVER_FIRE_PENALTY_BPS = v12_train.V12_NEVER_FIRE_PENALTY_BPS
 
 # ── V12.1 reuses V12 state-feature lists ──────────────────────────────────

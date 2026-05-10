@@ -53,7 +53,7 @@ class ExitDeciderV12Recommendation:
 class ExitDeciderV12Adapter:
     """Wrap Exit-IQL v5 with V3 fail-safe override (V12 Stage 4)."""
     iql_adapter: ExitIQLV2Adapter
-    v3_override_threshold: float = V3_OVERRIDE_DEFAULT_THRESHOLD
+    v3_override_threshold: float | None = V3_OVERRIDE_DEFAULT_THRESHOLD
     v3_prob_field: str = "v3_v8_should_exit_prob"
 
     @classmethod
@@ -63,7 +63,7 @@ class ExitDeciderV12Adapter:
         *,
         variant: str = "R_V12",
         fold_id: str = "FOLD_1",
-        v3_override_threshold: float = V3_OVERRIDE_DEFAULT_THRESHOLD,
+        v3_override_threshold: float | None = V3_OVERRIDE_DEFAULT_THRESHOLD,
         prefer_cuda: bool = True,
     ) -> "ExitDeciderV12Adapter":
         iql = ExitIQLV2Adapter.load(
@@ -71,7 +71,8 @@ class ExitDeciderV12Adapter:
             variant=variant, fold_id=fold_id,
             prefer_cuda=prefer_cuda,
         )
-        return cls(iql_adapter=iql, v3_override_threshold=float(v3_override_threshold))
+        thr = float(v3_override_threshold) if v3_override_threshold is not None else None
+        return cls(iql_adapter=iql, v3_override_threshold=thr)
 
     def decide(self, bar_state: dict[str, Any]) -> ExitDeciderV12Recommendation:
         """Decide HOLD/EXIT_NOW for one bar. V3 fail-safe checked first."""

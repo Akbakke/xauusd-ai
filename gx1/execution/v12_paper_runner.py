@@ -199,6 +199,9 @@ def main() -> int:
                    help="Don't actually send orders — just log what would happen (shadow mode)")
     p.add_argument("--journal-suffix", type=str, default="",
                    help="Suffix for journal filename (e.g. 'live' or 'shadow') to allow parallel runners")
+    p.add_argument("--allow-stub", action="store_true",
+                   help="Permit running with stubbed V12 decision/exit logic. Required for shadow-mode "
+                        "smoke-tests; refuses live orders unless --dry-run.")
     args = p.parse_args()
 
     logging.basicConfig(level=logging.INFO,
@@ -212,8 +215,19 @@ def main() -> int:
     LOG.info(f"V12 paper runner starting  env={creds.env}  account={creds.account_id}")
     LOG.info(f"  max_spread_bps={args.max_spread_bps}  asia_skip={args.asia_skip}  "
              f"units={args.units}  dry_run={args.dry_run}")
-    if make_v12_decision({}).get("stub"):
-        LOG.warning("⚠️  V12 decision is STUBBED — wire in real V12-stack before live use!")
+
+    entry_stubbed = bool(make_v12_decision({}).get("stub"))
+    exit_stubbed = bool(make_v12_exit_decision({}).get("stub"))
+    if entry_stubbed or exit_stubbed:
+        LOG.warning(f"⚠️  V12 stubbed (entry={entry_stubbed} exit={exit_stubbed}) — "
+                    f"shadow-mode only. Wire real stack before live trading.")
+        if not args.allow_stub:
+            LOG.error("Refusing to start: stubbed V12 logic detected but --allow-stub not set.")
+            return 2
+        if not args.dry_run:
+            LOG.error("Refusing to start: --dry-run is required when V12 is stubbed "
+                      "(no exit loop wired → trades would never close).")
+            return 2
 
     last_decision_minute = None
     consecutive_errors = 0

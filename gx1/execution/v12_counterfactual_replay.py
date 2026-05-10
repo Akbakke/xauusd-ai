@@ -46,7 +46,6 @@ M1_TAPE_DIR = Path("/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m1_bid_ask
 
 K_HORIZONS_BPS = [12, 60, 240, 480, 1440]   # M1 minutes — match V12 trainer
 HIGH_CONVICTION_BPS_THRESHOLD = 50.0
-COST_THRESHOLD_BPS = 30.0                   # net-of-spread profitable threshold
 
 
 def load_m1_window(start_ts: pd.Timestamp, end_ts: pd.Timestamp) -> pd.DataFrame:
@@ -163,7 +162,7 @@ def replay_journal(journal_path: Path) -> tuple[list[dict], dict]:
             continue
         cf = compute_forward_outcome(m1, idx, K_HORIZONS_BPS)
         ev["counterfactual"] = cf
-        # Classify: best_what_if_pnl, missed_opportunity flag
+        # Classify: best_what_if_pnl, missed_opportunity flag (direction-aware)
         if cf:
             best_long_mfe = max(cf.get(f"long_max_mfe_K{K}", -9999) for K in K_HORIZONS_BPS)
             best_short_mfe = max(cf.get(f"short_max_mfe_K{K}", -9999) for K in K_HORIZONS_BPS)
@@ -172,9 +171,25 @@ def replay_journal(journal_path: Path) -> tuple[list[dict], dict]:
             ev["best_what_if_side"] = "long" if best_long_mfe >= best_short_mfe else "short"
             decision = ev.get("v12_decision", {}).get("action", "UNKNOWN")
             order_status = ev.get("order_status", "UNKNOWN")
+            # Direction-aware proposed-side MFE:
+            #   TAKE_LONG_NOW gated by spread → use long_max_mfe (V12 wanted long)
+            #   TAKE_SHORT_NOW gated → use short_max_mfe
+            #   SKIP → use best of either side (V12 had no proposed direction)
+            if decision == "TAKE_LONG_NOW":
+                proposed_side_mfe = best_long_mfe
+                proposed_side = "long"
+            elif decision == "TAKE_SHORT_NOW":
+                proposed_side_mfe = best_short_mfe
+                proposed_side = "short"
+            else:
+                proposed_side_mfe = best_what_if
+                proposed_side = ev["best_what_if_side"]
+            ev["proposed_side_mfe_bps"] = proposed_side_mfe
+            ev["proposed_side"] = proposed_side
             ev["missed_opportunity"] = (
-                decision == "SKIP" or order_status == "BLOCKED_BY_GATE"
-            ) and best_what_if >= HIGH_CONVICTION_BPS_THRESHOLD
+                (decision == "SKIP" or order_status == "BLOCKED_BY_GATE")
+                and proposed_side_mfe >= HIGH_CONVICTION_BPS_THRESHOLD
+            )
         enriched.append(ev)
 
     # Aggregate stats

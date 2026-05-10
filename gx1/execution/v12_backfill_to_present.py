@@ -110,7 +110,6 @@ def append_to_year_partition(df: pd.DataFrame) -> dict:
         else:
             combined = sub.sort_values("time")
         combined.to_parquet(out_path, index=False)
-        n_new = len(combined) - (len(existing) if out_path.exists() and 'existing' in locals() else 0)
         stats[year] = {"total_rows": len(combined), "new_added_approx": int(len(sub))}
         LOG.info(f"  year={year}: total {len(combined):,} bars, +{len(sub):,} new")
     return stats

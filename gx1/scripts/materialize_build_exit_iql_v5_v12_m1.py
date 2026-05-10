@@ -81,7 +81,8 @@ ONE_HOT_COLS = list(v3_m1.ONE_HOT_COLS)
 # ── V12 reward variant ───────────────────────────────────────────────────
 
 
-REWARD_VARIANTS_V12 = ["R_V12", "R_NET_REAL", "R_REGRET"]
+REWARD_VARIANTS_V12 = ["R_V12", "R_NET_REAL", "R_REGRET"]   # all valid choices for --variants
+DEFAULT_VARIANTS_V12 = ["R_V12"]                            # default = R_V12 only (V12.1 superseded R_NET_REAL/R_REGRET)
 
 
 def build_reward_matrix_v12(df: pd.DataFrame, *, variant: str) -> np.ndarray:
@@ -215,7 +216,7 @@ def write_artifacts(
     X, feature_names = build_state_matrix(df)
     print(f"[{ACTION}] state matrix: {X.shape}, features={len(feature_names)}", flush=True)
 
-    variants = variants_subset or REWARD_VARIANTS_V12
+    variants = variants_subset or DEFAULT_VARIANTS_V12
     R_by_variant: dict[str, np.ndarray] = {}
     for variant in variants:
         R_by_variant[variant] = build_reward_matrix_v12(df, variant=variant)

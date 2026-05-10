@@ -105,7 +105,6 @@ def main() -> int:
         else:
             combined = m5.sort_values("time").reset_index(drop=True)
         combined.to_parquet(out_path, index=False)
-        added = len(combined) - (len(existing) if out_path.exists() and 'existing' in dir() else 0)
         LOG.info(f"year={year}: {len(combined):,} M5 rows  range={combined['time'].min()} → {combined['time'].max()}")
 
     return 0
