@@ -63,15 +63,68 @@ EXIT_HOLD_ID = 0
 EXIT_NOW_ID = 1
 
 
-def load_v12_dataset(v3tracked_dir: Path) -> pd.DataFrame:
-    """Load all per_week parquets from V12_PER_BAR_V3TRACKED LOCK."""
+def load_v12_dataset(v3tracked_dir: Path,
+                     candidate_uids: set[str] | None = None,
+                     reports_root: Path | None = None,
+                     canonical_path: Path | None = None) -> pd.DataFrame:
+    """Load V12 V3TRACKED parquets WITH lazy-join of chunk_0 + canonical features.
+
+    Critical: IQL-adapter expects 201 features including 106 chunk0 + 84 canonical
+    columns that V12 V3TRACKED parquets do NOT contain. Without this lazy-join,
+    adapter sees 0 for missing features and produces garbled Q-values (manifesting
+    as exit_iql_active_frac=0% even when trained model is correct).
+
+    Mimics `materialize_build_exit_iql_v3_m1.load_per_bar_dataset_lazy_join` but
+    filters by candidate_uids to bound memory.
+    """
+    sys.path.insert(0, "/home/andre2/src/GX1_ENGINE")
+    from gx1.scripts import materialize_build_candidate_forward_outcome_dataset_v1 as fwd_pipe
+    from gx1.scripts import materialize_build_exit_iql_v2 as v2_train
+    from gx1.scripts import materialize_build_exit_iql_v3_m1 as v3_m1
+
     files = sorted((v3tracked_dir / "per_week").glob("*.parquet"))
     if not files:
         raise FileNotFoundError(f"no parquets under {v3tracked_dir}/per_week")
-    print(f"  Loading {len(files)} weekly V12 parquets...")
+
+    if reports_root is None:
+        reports_root = Path("/home/andre2/GX1_DATA/reports/truth_e2e_sanity")
+    if canonical_path is None:
+        canonical_path = v3_m1.DEFAULT_CANONICAL_FEATURES_PATH
+
+    print(f"  Loading {len(files)} weekly V12 parquets"
+          + (f" (filtered to {len(candidate_uids):,} candidates)..." if candidate_uids else "..."))
+    print(f"  [lazy-join] canonical features: {canonical_path}")
+    canonical = fwd_pipe._load_canonical_features(canonical_path)
+    canonical_suf = v3_m1._suffix_canonical(canonical)
+
     t0 = time.time()
-    df = pd.concat([pd.read_parquet(f) for f in files], ignore_index=True)
-    print(f"  Loaded {len(df):,} rows in {time.time()-t0:.1f}s")
+    parts = []
+    weeks_with_chunk0 = 0
+    for f in files:
+        if candidate_uids is not None:
+            df_p = pd.read_parquet(f, filters=[("candidate_uid", "in", candidate_uids)])
+        else:
+            df_p = pd.read_parquet(f)
+        if len(df_p) == 0:
+            continue
+        # Per-week chunk_0 lazy-join (matches v3_m1.load_per_bar_dataset_lazy_join)
+        week_name = f.stem.removeprefix("exit_per_bar_m1_")
+        week_dir = reports_root / week_name
+        chunk0 = fwd_pipe._load_chunk0_features(week_dir)
+        chunk0_suf = v3_m1._suffix_chunk0(chunk0)
+        if chunk0_suf is not None:
+            df_p = v3_m1._merge_asof_features(df_p, chunk0_suf)
+            weeks_with_chunk0 += 1
+        else:
+            for col in v2_train.NUMERIC_STATE_COLS_CHUNK0:
+                df_p[col] = np.nan
+        if canonical_suf is not None:
+            df_p = v3_m1._merge_asof_features(df_p, canonical_suf)
+        parts.append(df_p)
+
+    df = pd.concat(parts, ignore_index=True) if parts else pd.DataFrame()
+    print(f"  Loaded {len(df):,} rows × {len(df.columns)} cols in {time.time()-t0:.1f}s "
+          f"(chunk0-joined weeks: {weeks_with_chunk0}/{len(files)})")
     return df
 
 
@@ -126,12 +179,12 @@ def simulate_one_candidate(
     iql_exit_indices = np.where(iql_actions == EXIT_NOW_ID)[0]
     iql_exit_bar = int(iql_exit_indices[0]) if len(iql_exit_indices) > 0 else -1
 
-    # Resolve final exit: earliest of (V3 override, IQL EXIT_NOW)
+    # Resolve final exit: earliest of (V3 override, IQL EXIT_NOW). V3 wins ties (Stage 4).
     candidates_for_exit = [b for b in (v3_override_bar, iql_exit_bar) if b >= 0]
     if candidates_for_exit:
         first_exit = min(candidates_for_exit)
         exit_reason = (
-            "V3_OVERRIDE" if first_exit == v3_override_bar and v3_override_bar >= 0 and (iql_exit_bar < 0 or v3_override_bar < iql_exit_bar)
+            "V3_OVERRIDE" if v3_override_bar >= 0 and (iql_exit_bar < 0 or v3_override_bar <= iql_exit_bar)
             else "EXIT_IQL_SIGNAL"
         )
     else:
@@ -269,8 +322,17 @@ def main() -> int:
 
     # Load V12 dataset + Entry-IQL decisions
     print(f"\n[2/3] Loading V12 V3TRACKED dataset + Entry-IQL decisions...")
-    df = load_v12_dataset(v3tracked)
     decisions = load_entry_iql_decisions(decisions_path)
+    # Pre-sample candidate_uids to bound memory: full 63.6M-row load OOMs on 15GB host.
+    # Filter to TAKE actions, then optionally sub-sample to args.max_candidates.
+    take_uids = decisions[decisions["action_label_v1"].isin(
+        ["TAKE_LONG_NOW", "TAKE_SHORT_NOW"])]["candidate_uid"].astype(str).tolist()
+    print(f"  TAKE candidates available: {len(take_uids):,}")
+    if args.max_candidates and len(take_uids) > args.max_candidates:
+        rng = np.random.default_rng(20260509)
+        take_uids = list(rng.choice(take_uids, size=args.max_candidates, replace=False))
+        print(f"  Sub-sampled to {len(take_uids):,} candidates for memory safety")
+    df = load_v12_dataset(v3tracked, candidate_uids=set(take_uids))
 
     # Run configs
     summaries: list[dict[str, Any]] = []
