@@ -44,6 +44,7 @@ from gx1.execution.v12_xgb_live import XGBLiveInference
 from gx1.execution.v12_v10_live import V10LiveInference, SEQ_LEN as V10_SEQ_LEN
 from gx1.execution.v12_entry_iql_live import EntryIQLLiveInference
 from gx1.execution.v12_exit_iql_live import ExitIQLLiveInference
+from gx1.execution.v12_v3_live import V3LiveInference
 from gx1.execution.v12_trade_state import TradeState, SIDE_LONG, SIDE_SHORT
 
 LOG = logging.getLogger("v12_pipeline")
@@ -63,6 +64,7 @@ class V12Pipeline:
     v10: V10LiveInference
     entry_iql: EntryIQLLiveInference
     exit_iql: ExitIQLLiveInference
+    v3: V3LiveInference | None = None     # V3 v8 — used for exit decisions
     # Cache for the most recent augmented window + XGB bridge (refreshed per M5)
     _last_augmented_bucket: pd.Timestamp | None = None
     _last_augmented: pd.DataFrame | None = None
@@ -80,10 +82,11 @@ class V12Pipeline:
         v10 = V10LiveInference.load_default()
         entry_iql = EntryIQLLiveInference.load_default()
         exit_iql = ExitIQLLiveInference.load_default()
+        v3 = V3LiveInference.load_default()   # V3 v8 exit transformer
         LOG.info(f"V12Pipeline loaded in {(time.perf_counter()-t0)*1000:.0f} ms")
         LOG.info(f"  prebuilt cutoff: {loader.cutoff_ts}")
         return cls(prebuilt_loader=loader, xgb=xgb, v10=v10,
-                    entry_iql=entry_iql, exit_iql=exit_iql)
+                    entry_iql=entry_iql, exit_iql=exit_iql, v3=v3)
 
     # ── shared canonical_v3 build (cached per M5 bucket) ───────────────
 
@@ -224,8 +227,26 @@ class V12Pipeline:
         else:
             cv3_row = augmented.loc[m5_bucket]
 
+        # Run V3 v8 inference for this M1 bar (B2 wire-up)
+        # Trade overlay (the 19 trade-state features) deferred to B3; V3 currently
+        # sees the window as if no trade is open. The 4 V3 outputs are still
+        # meaningfully different from 0, and Exit-IQL sees them in its state
+        # vector. Phase B3 will add the proper trade-state overlay.
+        v3_v8_out = None
+        try:
+            v3_v8_out = self.v3.predict(
+                end_ts=pd.Timestamp(now_minute),
+                base34_prebuilt=self.prebuilt_loader._base28,
+                canonical_v3_window=augmented,
+                xgb_inferer=self.xgb,
+                trade_overlay=None,    # B3 will populate this from TradeState
+            )
+        except Exception as exc:
+            LOG.warning(f"V3 v8 inference failed: {exc}; using zero fallback")
+            v3_v8_out = None
+
         rec, bar_state = self.exit_iql.decide_for_trade(
-            trade, cv3_row, v3_v8_out=None,   # stubbed for now
+            trade, cv3_row, v3_v8_out=v3_v8_out,
         )
         return {
             "action": rec.action_label_v1,
