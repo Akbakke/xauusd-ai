@@ -88,6 +88,56 @@ class PrebuiltStateLoader:
     _cv3: pd.DataFrame | None = field(default=None, init=False)
     _base28: pd.DataFrame | None = field(default=None, init=False)
     _last_ts: pd.Timestamp | None = field(default=None, init=False)
+    # mtime tracking for incremental-updater hot-reload
+    _cv3_mtime: float = field(default=0.0, init=False)
+    _base28_mtime: float = field(default=0.0, init=False)
+
+    def refresh_if_changed(self) -> bool:
+        """Reload prebuilts if their disk mtime has advanced since last load.
+        Designed to be called every M1 poll by the live runner — the incremental
+        updater writes new bars to disk, and this method detects the change and
+        hot-reloads in-memory state. Returns True if any prebuilt was reloaded.
+        """
+        reloaded = False
+        try:
+            cv3_mt = self.canonical_v3_path.stat().st_mtime
+            if cv3_mt > self._cv3_mtime + 0.01:   # 10ms tolerance for fs precision
+                old_cutoff = self._cv3.index[-1] if self._cv3 is not None else None
+                self._cv3 = pd.read_parquet(self.canonical_v3_path)
+                if "time" in self._cv3.columns:
+                    self._cv3["time"] = pd.to_datetime(self._cv3["time"], utc=True)
+                    self._cv3 = self._cv3.set_index("time")
+                self._cv3 = self._cv3.sort_index()
+                self._cv3_mtime = cv3_mt
+                new_cutoff = self._cv3.index[-1]
+                if old_cutoff is None or new_cutoff > old_cutoff:
+                    LOG.info(f"canonical_v3 reloaded: cutoff {old_cutoff} → {new_cutoff}")
+                reloaded = True
+        except Exception as exc:
+            LOG.warning(f"canonical_v3 reload failed: {exc}")
+
+        if self._base28 is not None and self.base28_path is not None:
+            try:
+                b28_mt = self.base28_path.stat().st_mtime
+                if b28_mt > self._base28_mtime + 0.01:
+                    self._base28 = pd.read_parquet(self.base28_path)
+                    if not isinstance(self._base28.index, pd.DatetimeIndex):
+                        if "time" in self._base28.columns:
+                            self._base28["time"] = pd.to_datetime(self._base28["time"], utc=True)
+                            self._base28 = self._base28.set_index("time")
+                    self._base28 = self._base28.sort_index()
+                    self._base28_mtime = b28_mt
+                    reloaded = True
+            except Exception as exc:
+                LOG.warning(f"BASE28 reload failed: {exc}")
+
+        if reloaded and self._cv3 is not None:
+            # Update joint cutoff
+            if self._base28 is not None:
+                self._last_ts = min(self._cv3.index[-1], self._base28.index[-1])
+            else:
+                self._last_ts = self._cv3.index[-1]
+        return reloaded
 
     def load(self) -> None:
         """Load prebuilt(s). Uses joined prebuilt if it exists (single file with
@@ -106,6 +156,7 @@ class PrebuiltStateLoader:
             self._cv3 = cv3
             self._base28 = None
             self._last_ts = cv3.index[-1]
+            self._cv3_mtime = JOINED_PREBUILT.stat().st_mtime
             LOG.info(f"  joined: {len(cv3):,} rows × {len(cv3.columns)} cols  "
                       f"range {cv3.index[0]} → {cv3.index[-1]}")
             return
@@ -121,6 +172,7 @@ class PrebuiltStateLoader:
             cv3 = cv3.set_index("time")
         cv3 = cv3.sort_index()
         self._cv3 = cv3
+        self._cv3_mtime = self.canonical_v3_path.stat().st_mtime
         LOG.info(f"  canonical_v3: {len(cv3):,} rows × {len(cv3.columns)} cols  "
                   f"range {cv3.index[0]} → {cv3.index[-1]}")
 
@@ -132,6 +184,7 @@ class PrebuiltStateLoader:
                 base28 = base28.set_index("time")
         base28 = base28.sort_index()
         self._base28 = base28
+        self._base28_mtime = self.base28_path.stat().st_mtime
         LOG.info(f"  BASE28: {len(base28):,} rows × {len(base28.columns)} cols  "
                   f"range {base28.index[0]} → {base28.index[-1]}")
 

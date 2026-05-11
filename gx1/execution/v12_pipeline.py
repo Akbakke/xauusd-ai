@@ -101,6 +101,11 @@ class V12Pipeline:
         Returns True if data available, False only if prebuilt is empty or
         history insufficient (early-history edge cases).
         """
+        # Hot-reload prebuilts from disk if incremental updater extended them.
+        # Invalidates cached window if cutoff advanced.
+        if self.prebuilt_loader.refresh_if_changed():
+            self._last_augmented_bucket = None
+            self._last_augmented = None
         cutoff = self.prebuilt_loader.cutoff_ts
         # Clip to latest available M5 if past cutoff
         effective_ts = now_minute if now_minute <= cutoff else cutoff
