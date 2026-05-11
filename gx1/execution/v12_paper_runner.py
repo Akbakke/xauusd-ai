@@ -57,16 +57,41 @@ JOURNAL_DIR = Path("/home/andre2/GX1_DATA/reports/v12_paper_runs")
 DEFAULT_MAX_SPREAD_BPS = 10.0          # skip if spread > this
 DEFAULT_DEFAULT_UNITS = 1              # smallest position size for paper-trade
 DEFAULT_POLL_SECONDS = 10              # how often to check for new M1 close
+DEFAULT_QUOTE_MAX_AGE_SEC = 90.0       # treat quote as stale (market closed/halted) if older
 ASIA_HOURS_UTC = range(0, 7)           # 00:00-07:00 UTC = Asia session
+
+
+class StaleQuoteError(RuntimeError):
+    """Raised when OANDA returns a quote older than max_age_sec.
+
+    Happens when market is closed (e.g. weekend) — OANDA keeps serving the
+    last close-of-week quote until Sunday Sydney open. Without this guard the
+    paper-runner would log thousands of fake events with stale spreads.
+    """
+    def __init__(self, age_sec: float, quote_time: str):
+        super().__init__(f"Quote is {age_sec:.0f}s old (quote_time={quote_time}) — market likely closed")
+        self.age_sec = age_sec
+        self.quote_time = quote_time
 
 
 # ── Pre-trade spread + session checks ─────────────────────────────────────
 
 
-def get_current_spread_bps(client: OandaClient) -> tuple[float, float, float]:
-    """Returns (spread_bps, bid, ask). Raises on API error."""
+def get_current_spread_bps(client: OandaClient,
+                            *, max_age_sec: float = DEFAULT_QUOTE_MAX_AGE_SEC,
+                            now_utc: datetime | None = None,
+                            ) -> tuple[float, float, float]:
+    """Returns (spread_bps, bid, ask). Raises StaleQuoteError if quote is older
+    than max_age_sec (market closed). Raises ValueError on invalid bid."""
     pricing = client.get_pricing([INSTRUMENT])
     quote = pricing["prices"][0]
+    quote_time_str = quote.get("time", "")
+    if quote_time_str:
+        quote_time = pd.to_datetime(quote_time_str, utc=True)
+        now = now_utc or datetime.now(timezone.utc)
+        age_sec = (now - quote_time.to_pydatetime()).total_seconds()
+        if age_sec > max_age_sec:
+            raise StaleQuoteError(age_sec, quote_time_str)
     bid = float(quote["bids"][0]["price"])
     ask = float(quote["asks"][0]["price"])
     if bid <= 0:
@@ -231,6 +256,7 @@ def main() -> int:
 
     last_decision_minute = None
     consecutive_errors = 0
+    last_stale_log_minute = None
 
     while True:
         try:
@@ -242,7 +268,18 @@ def main() -> int:
                 time.sleep(args.poll_seconds)
                 continue
 
-            spread_bps, bid, ask = get_current_spread_bps(client)
+            try:
+                spread_bps, bid, ask = get_current_spread_bps(client, now_utc=now_utc)
+            except StaleQuoteError as exc:
+                # Market closed (weekend/holiday) — OANDA serves last close-of-week quote.
+                # Skip silently; log once per hour to confirm daemon alive without polluting journal.
+                if last_stale_log_minute is None or (current_minute - last_stale_log_minute).total_seconds() >= 3600:
+                    LOG.info(f"stale quote ({exc.age_sec:.0f}s old, market closed) — pausing journal writes")
+                    last_stale_log_minute = current_minute
+                last_decision_minute = current_minute
+                consecutive_errors = 0
+                time.sleep(args.poll_seconds)
+                continue
             allowed, reason = can_trade_now(
                 spread_bps, max_spread_bps=args.max_spread_bps,
                 asia_skip=args.asia_skip, now_utc=now_utc,
