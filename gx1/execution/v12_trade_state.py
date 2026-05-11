@@ -30,9 +30,12 @@ Usage:
 """
 from __future__ import annotations
 
+import json
 import logging
+import os
 from collections import deque
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -207,6 +210,80 @@ class TradeState:
             "side_v1_long": 1.0 if self.side == SIDE_LONG else 0.0,
             "side_v1_short": 1.0 if self.side == SIDE_SHORT else 0.0,
         }
+
+    # ── persistence ──────────────────────────────────────────────────
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize TradeState to a JSON-safe dict."""
+        return {
+            "entry_ts": self.entry_ts.isoformat(),
+            "side": self.side,
+            "entry_bid": self.entry_bid,
+            "entry_ask": self.entry_ask,
+            "entry_spread_bps": self.entry_spread_bps,
+            "v10_snapshot": _jsonable(self.v10_snapshot),
+            "bars_in_trade": self.bars_in_trade,
+            "current_bid": self.current_bid,
+            "current_ask": self.current_ask,
+            "current_pnl_bps": self.current_pnl_bps,
+            "cum_mfe_bps": self.cum_mfe_bps,
+            "cum_mae_bps": self.cum_mae_bps,
+            "bars_since_mfe_peak": self.bars_since_mfe_peak,
+            "m1_returns_window": list(self.m1_returns_window),
+        }
+
+    @classmethod
+    def from_dict(cls, d: dict[str, Any]) -> "TradeState":
+        """Rehydrate TradeState from a serialized dict (e.g. after restart)."""
+        t = cls(
+            entry_ts=pd.Timestamp(d["entry_ts"]),
+            side=str(d["side"]),
+            entry_bid=float(d["entry_bid"]),
+            entry_ask=float(d["entry_ask"]),
+            entry_spread_bps=float(d["entry_spread_bps"]),
+            v10_snapshot=dict(d.get("v10_snapshot") or {}),
+            bars_in_trade=int(d.get("bars_in_trade", 0)),
+            current_bid=float(d.get("current_bid", 0.0)),
+            current_ask=float(d.get("current_ask", 0.0)),
+            current_pnl_bps=float(d.get("current_pnl_bps", 0.0)),
+            cum_mfe_bps=float(d.get("cum_mfe_bps", 0.0)),
+            cum_mae_bps=float(d.get("cum_mae_bps", 0.0)),
+            bars_since_mfe_peak=int(d.get("bars_since_mfe_peak", 0)),
+        )
+        for v in d.get("m1_returns_window") or []:
+            t.m1_returns_window.append(float(v))
+        return t
+
+    def save(self, path: Path) -> None:
+        """Atomically write trade state to disk (so an interrupted write can't corrupt)."""
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_suffix(path.suffix + ".tmp")
+        tmp.write_text(json.dumps(self.to_dict(), default=str, indent=2))
+        os.replace(tmp, path)
+
+    @classmethod
+    def load(cls, path: Path) -> "TradeState | None":
+        """Load a saved trade state, or None if no file present."""
+        if not path.is_file():
+            return None
+        try:
+            return cls.from_dict(json.loads(path.read_text()))
+        except Exception as exc:
+            LOG.warning(f"failed to load trade state from {path}: {exc}")
+            return None
+
+
+def _jsonable(o):
+    """Recursively convert numpy/pandas/etc. to JSON-safe types."""
+    if isinstance(o, (np.floating, np.integer)):
+        return o.item()
+    if isinstance(o, np.ndarray):
+        return [_jsonable(x) for x in o.tolist()]
+    if isinstance(o, dict):
+        return {k: _jsonable(v) for k, v in o.items()}
+    if isinstance(o, (list, tuple)):
+        return [_jsonable(x) for x in o]
+    return o
 
 
 def _shannon_entropy(probs):

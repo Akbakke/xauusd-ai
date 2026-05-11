@@ -57,6 +57,7 @@ INSTRUMENT = "XAU_USD"
 JOURNAL_DIR = Path("/home/andre2/GX1_DATA/reports/v12_paper_runs")
 COLLECTOR_DIR = Path("/home/andre2/GX1_DATA/reports/v12_live_data")
 CANONICAL_M1_DIR = Path("/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m1_bid_ask__CANONICAL")
+TRADE_STATE_FILE = JOURNAL_DIR / "open_trade_state.json"  # persistent open-trade marker
 
 # Pre-trade gates
 DEFAULT_MAX_SPREAD_BPS = 10.0          # skip if spread > this
@@ -240,7 +241,15 @@ def main() -> int:
     last_decision_minute = None
     consecutive_errors = 0
     last_stale_log_minute = None
-    open_trade: TradeState | None = None        # single-trade-at-a-time policy
+
+    # Resume any open trade from disk (survives runner crash/restart)
+    open_trade: TradeState | None = TradeState.load(TRADE_STATE_FILE)
+    if open_trade is not None:
+        LOG.info(f"resumed open trade from {TRADE_STATE_FILE}: "
+                  f"side={open_trade.side} bars={open_trade.bars_in_trade} "
+                  f"entry_ts={open_trade.entry_ts}  pnl={open_trade.current_pnl_bps:+.1f} bps")
+    else:
+        LOG.info(f"no open trade state at {TRADE_STATE_FILE} — starting fresh")
 
     while True:
         try:
@@ -312,8 +321,10 @@ def main() -> int:
                         close_result = attempt_market_entry(client, close_side, units=args.units)
                         event["close_order_details"] = close_result
                     open_trade = None
+                    TRADE_STATE_FILE.unlink(missing_ok=True)   # delete persisted state
                 else:
                     event["order_status"] = "HOLDING_TRADE"
+                    open_trade.save(TRADE_STATE_FILE)          # persist running state
                 # 24h hard cap fail-safe
                 if open_trade is not None and open_trade.bars_in_trade >= 1440:
                     LOG.warning(f"24h cap reached — forced close")
@@ -322,6 +333,7 @@ def main() -> int:
                         close_side = "short" if open_trade.side == "long" else "long"
                         attempt_market_entry(client, close_side, units=args.units)
                     open_trade = None
+                    TRADE_STATE_FILE.unlink(missing_ok=True)
 
                 log_journal_event(daily_journal_path(args.journal_suffix), event)
                 last_decision_minute = current_minute
@@ -362,6 +374,7 @@ def main() -> int:
                             side=side, entry_bid=bid, entry_ask=ask,
                             v10_snapshot=decision.get("_v10_snapshot", {}),
                         )
+                        open_trade.save(TRADE_STATE_FILE)   # persist immediately
                         LOG.info(f"opened trade  side={side}  entry={ask if side=='long' else bid}  "
                                   f"v10_p_long={decision.get('v10_p_long', 0):.3f}  "
                                   f"q_take={decision.get('q_take_long' if side=='long' else 'q_take_short', 0):+.1f}")
@@ -372,6 +385,7 @@ def main() -> int:
                         side=side, entry_bid=bid, entry_ask=ask,
                         v10_snapshot=decision.get("_v10_snapshot", {}),
                     )
+                    open_trade.save(TRADE_STATE_FILE)   # persist immediately
                     LOG.info(f"[DRY] virtual trade opened  side={side}")
             else:
                 # SKIP — flag if V12 would have had >50 bps Q-advantage on either side
