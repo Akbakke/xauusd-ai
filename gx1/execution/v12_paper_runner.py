@@ -58,6 +58,17 @@ JOURNAL_DIR = Path("/home/andre2/GX1_DATA/reports/v12_paper_runs")
 COLLECTOR_DIR = Path("/home/andre2/GX1_DATA/reports/v12_live_data")
 CANONICAL_M1_DIR = Path("/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m1_bid_ask__CANONICAL")
 TRADE_STATE_FILE = JOURNAL_DIR / "open_trade_state.json"  # persistent open-trade marker
+TRADE_ALERTS_FILE = Path("/home/andre2/TRADES_ALERTS.txt")  # easy-to-tail alerts file
+
+
+def write_trade_alert(line: str) -> None:
+    """Append a one-line alert to TRADES_ALERTS.txt (for `tail -f` monitoring)."""
+    ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    try:
+        with TRADE_ALERTS_FILE.open("a") as f:
+            f.write(f"[{ts}] {line}\n")
+    except Exception:
+        pass   # alerts file is best-effort; never crash the runner over it
 
 # Pre-trade gates
 DEFAULT_MAX_SPREAD_BPS = 10.0          # skip if spread > this
@@ -313,6 +324,11 @@ def main() -> int:
 
                 if exit_decision.get("action_id") == 1:   # EXIT_NOW
                     event["order_status"] = "EXIT_NOW"
+                    write_trade_alert(
+                        f"EXIT  side={open_trade.side}  bars={open_trade.bars_in_trade}  "
+                        f"pnl={open_trade.current_pnl_bps:+.1f} bps  peak={open_trade.cum_mfe_bps:+.1f}  "
+                        f"mae={open_trade.cum_mae_bps:+.1f}  source={exit_decision.get('decision_source','IQL_Q')}"
+                    )
                     if args.dry_run:
                         LOG.info(f"[DRY] EXIT_NOW after {open_trade.bars_in_trade} bars  "
                                   f"pnl={open_trade.current_pnl_bps:+.1f} bps  side={open_trade.side}")
@@ -375,6 +391,14 @@ def main() -> int:
                             v10_snapshot=decision.get("_v10_snapshot", {}),
                         )
                         open_trade.save(TRADE_STATE_FILE)   # persist immediately
+                        write_trade_alert(
+                            f"OPEN  side={side}  entry={ask if side=='long' else bid:.2f}  "
+                            f"spread={spread_bps:.1f}bps  "
+                            f"v10_p_long={decision.get('v10_p_long', 0):.3f}  "
+                            f"q_take={decision.get('q_take_long' if side=='long' else 'q_take_short', 0):+.1f}  "
+                            f"adv={decision.get('advantage_over_skip', 0):+.1f}bps  "
+                            f"trade_id={order_result.get('trade_id','?')}"
+                        )
                         LOG.info(f"opened trade  side={side}  entry={ask if side=='long' else bid}  "
                                   f"v10_p_long={decision.get('v10_p_long', 0):.3f}  "
                                   f"q_take={decision.get('q_take_long' if side=='long' else 'q_take_short', 0):+.1f}")
