@@ -82,6 +82,20 @@ class TradeState:
     # Recent M1 return window (for vol/momentum features)
     m1_returns_window: deque = field(default_factory=lambda: deque(maxlen=120))
 
+    # V3 v8 running stats (updated per bar via update_v3)
+    v3_last_prob: float = 0.0
+    v3_max_prob_in_trade: float = 0.0
+    v3_consecutive_exits: int = 0
+    v3_max_consecutive_exits: int = 0
+    v3_total_exit_decisions: int = 0
+    v3_signal_acceleration: float = 0.0      # latest delta-prob bar-to-bar
+
+    # Per-bar trajectory (used for V3 overlay + trade-state metrics)
+    pnl_history: deque = field(default_factory=lambda: deque(maxlen=2000))   # bps per bar
+    mfe_at_bar: float = 0.0                  # mfe_bps at last bar
+    time_since_mfe_peak_bars: int = 0
+    last_atr_bps: float = 0.0
+
     @classmethod
     def open(
         cls,
@@ -131,8 +145,29 @@ class TradeState:
         self.cum_mae_bps = min(self.cum_mae_bps, self.current_pnl_bps)
         if self.cum_mfe_bps > prev_peak:
             self.bars_since_mfe_peak = 0
+            self.time_since_mfe_peak_bars = 0
         else:
             self.bars_since_mfe_peak += 1
+            self.time_since_mfe_peak_bars += 1
+        self.mfe_at_bar = self.cum_mfe_bps
+        self.pnl_history.append(self.current_pnl_bps)
+
+    def update_v3(self, v3_v8_out: dict | None) -> None:
+        """Update V3 v8 running stats from latest V3 inference output."""
+        if not v3_v8_out:
+            return
+        prob = float(v3_v8_out.get("v3_v8_should_exit_prob", 0.0))
+        self.v3_signal_acceleration = prob - self.v3_last_prob
+        self.v3_last_prob = prob
+        if prob > self.v3_max_prob_in_trade:
+            self.v3_max_prob_in_trade = prob
+        if prob > 0.5:
+            self.v3_consecutive_exits += 1
+            self.v3_total_exit_decisions += 1
+            if self.v3_consecutive_exits > self.v3_max_consecutive_exits:
+                self.v3_max_consecutive_exits = self.v3_consecutive_exits
+        else:
+            self.v3_consecutive_exits = 0
 
     # ── feature construction ────────────────────────────────────────
 
@@ -211,6 +246,113 @@ class TradeState:
             "side_v1_short": 1.0 if self.side == SIDE_SHORT else 0.0,
         }
 
+    def build_v3_tracking_features(self) -> dict[str, float]:
+        """The 7 V3-tracking features Exit-IQL V12.1.1 expects in its state vector.
+
+        Computed as running stats over v3_v8_should_exit_prob across the trade's
+        bars (per V12 Phase 4 spec):
+
+          v3_should_exit_decision_v1  = (latest prob > 0.5)
+          v3_decision_confidence_v1   = |latest prob - 0.5|
+          v3_max_prob_in_trade_v1     = running max of prob since entry
+          v3_consecutive_exits_v1     = current consecutive bars with prob > 0.5
+          v3_signal_acceleration_v1   = Δ prob bar-to-bar
+          v3_total_exit_decisions_v1  = count of bars with prob > 0.5
+          v3_max_consecutive_exits_v1 = max run anywhere in trade
+        """
+        prob = self.v3_last_prob
+        return {
+            "v3_should_exit_decision_v1": 1.0 if prob > 0.5 else 0.0,
+            "v3_decision_confidence_v1": float(abs(prob - 0.5)),
+            "v3_max_prob_in_trade_v1": float(self.v3_max_prob_in_trade),
+            "v3_consecutive_exits_v1": float(self.v3_consecutive_exits),
+            "v3_signal_acceleration_v1": float(self.v3_signal_acceleration),
+            "v3_total_exit_decisions_v1": float(self.v3_total_exit_decisions),
+            "v3_max_consecutive_exits_v1": float(self.v3_max_consecutive_exits),
+        }
+
+    def build_v3_overlay(self) -> dict[str, np.ndarray]:
+        """Build the 19-feature trade-state overlay matrix for V3 v8's in-trade
+        portion of the 512-bar window.
+
+        Returned arrays have length = bars_in_trade. They map to the END of V3's
+        512-bar window (the most recent bars are in-trade).
+
+        Note: this is the simplified MVP overlay — fills each in-trade bar with
+        approximations rather than the precise per-bar history that training
+        used. For full per-bar trajectory we'd need to record every bar's stats
+        (pnl_history captures pnl but not derivatives). Most of the 19 features
+        are slow-moving so the approximation is reasonable.
+        """
+        n = max(1, self.bars_in_trade)
+        # Trade-bar arrays — most of these are "current state" broadcast back to all
+        # in-trade bars. mfe_decay_rate, pnl_velocity, pnl_acceleration computed
+        # from pnl_history when available.
+        pnl_arr = np.array(list(self.pnl_history), dtype=np.float32) if self.pnl_history else np.zeros(n, dtype=np.float32)
+        if len(pnl_arr) < n:
+            pnl_arr = np.pad(pnl_arr, (n - len(pnl_arr), 0))
+        pnl_arr = pnl_arr[-n:]
+
+        pnl_velocity = np.zeros(n, dtype=np.float32)
+        pnl_velocity[1:] = np.diff(pnl_arr)
+        pnl_acceleration = np.zeros(n, dtype=np.float32)
+        pnl_acceleration[1:] = np.diff(pnl_velocity)
+
+        # Cumulative MFE per bar (approximation: monotone running max)
+        mfe_arr = np.maximum.accumulate(pnl_arr) if len(pnl_arr) > 0 else np.zeros(n, dtype=np.float32)
+        mae_arr = np.minimum.accumulate(pnl_arr) if len(pnl_arr) > 0 else np.zeros(n, dtype=np.float32)
+        dd_from_mfe = mfe_arr - pnl_arr
+        time_since_mfe = np.arange(n, dtype=np.float32)   # simplified — bar index
+        bars_held = np.arange(1, n + 1, dtype=np.float32)
+        atr_arr = np.full(n, self.last_atr_bps, dtype=np.float32)
+        # giveback ratio: drawdown_from_peak / peak (clipped)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            giveback_ratio = np.where(mfe_arr > 0, dd_from_mfe / np.maximum(mfe_arr, 1e-6), 0.0)
+            giveback_ratio = np.clip(giveback_ratio, 0.0, 2.0)
+        giveback_accel = np.zeros(n, dtype=np.float32)
+        giveback_accel[1:] = np.diff(giveback_ratio)
+        # mfe_decay_rate: rate of mfe decay (negative slope of mfe over recent bars)
+        mfe_decay = np.zeros(n, dtype=np.float32)
+        if n >= 5:
+            mfe_decay[5:] = (mfe_arr[5:] - mfe_arr[:-5]) / 5.0
+        # rolling_slope_since_entry (approximation: pnl_arr[-1]/bars_held)
+        rolling_slope = pnl_arr / np.maximum(bars_held, 1.0)
+
+        # Entry-snapshot features are CONSTANT across all in-trade bars
+        s = self.v10_snapshot or {}
+        dp = s.get("direction_probs", [0.0, 0.0, 0.0])
+        p_long_e = float(dp[0] if hasattr(dp, "__len__") else 0.0)
+        p_short_e = float(dp[1] if hasattr(dp, "__len__") and len(dp) > 1 else 0.0)
+        p_flat_e = float(dp[2] if hasattr(dp, "__len__") and len(dp) > 2 else max(0.0, 1.0 - p_long_e - p_short_e))
+        p_hat_e = max(p_long_e, p_short_e, p_flat_e)
+        margin_e = abs(p_long_e - p_short_e)
+        uncertainty_e = 1.0 - p_hat_e
+        entropy_e = _shannon_entropy([p_long_e, p_short_e, p_flat_e])
+
+        return {
+            # Entry-snapshot (constant across in-trade window)
+            "p_long_entry": np.full(n, p_long_e, dtype=np.float32),
+            "p_hat_entry": np.full(n, p_hat_e, dtype=np.float32),
+            "uncertainty_entry": np.full(n, uncertainty_e, dtype=np.float32),
+            "entropy_entry": np.full(n, entropy_e, dtype=np.float32),
+            "margin_entry": np.full(n, margin_e, dtype=np.float32),
+            # Per-bar trade-state
+            "pnl_bps_now": pnl_arr,
+            "mfe_bps": mfe_arr,
+            "mae_bps": mae_arr,
+            "dd_from_mfe_bps": dd_from_mfe.astype(np.float32),
+            "distance_from_peak_mfe_bps": dd_from_mfe.astype(np.float32),  # synonymous
+            "bars_held": bars_held,
+            "time_since_mfe_bars": time_since_mfe,
+            "mfe_decay_rate": mfe_decay,
+            "pnl_velocity": pnl_velocity,
+            "pnl_acceleration": pnl_acceleration,
+            "rolling_slope_since_entry": rolling_slope.astype(np.float32),
+            "atr_bps_now": atr_arr,
+            "giveback_ratio": giveback_ratio.astype(np.float32),
+            "giveback_acceleration": giveback_accel,
+        }
+
     # ── persistence ──────────────────────────────────────────────────
 
     def to_dict(self) -> dict[str, Any]:
@@ -230,6 +372,18 @@ class TradeState:
             "cum_mae_bps": self.cum_mae_bps,
             "bars_since_mfe_peak": self.bars_since_mfe_peak,
             "m1_returns_window": list(self.m1_returns_window),
+            # V3 tracking stats
+            "v3_last_prob": self.v3_last_prob,
+            "v3_max_prob_in_trade": self.v3_max_prob_in_trade,
+            "v3_consecutive_exits": self.v3_consecutive_exits,
+            "v3_max_consecutive_exits": self.v3_max_consecutive_exits,
+            "v3_total_exit_decisions": self.v3_total_exit_decisions,
+            "v3_signal_acceleration": self.v3_signal_acceleration,
+            # Per-bar trajectory
+            "pnl_history": list(self.pnl_history),
+            "mfe_at_bar": self.mfe_at_bar,
+            "time_since_mfe_peak_bars": self.time_since_mfe_peak_bars,
+            "last_atr_bps": self.last_atr_bps,
         }
 
     @classmethod
@@ -249,9 +403,20 @@ class TradeState:
             cum_mfe_bps=float(d.get("cum_mfe_bps", 0.0)),
             cum_mae_bps=float(d.get("cum_mae_bps", 0.0)),
             bars_since_mfe_peak=int(d.get("bars_since_mfe_peak", 0)),
+            v3_last_prob=float(d.get("v3_last_prob", 0.0)),
+            v3_max_prob_in_trade=float(d.get("v3_max_prob_in_trade", 0.0)),
+            v3_consecutive_exits=int(d.get("v3_consecutive_exits", 0)),
+            v3_max_consecutive_exits=int(d.get("v3_max_consecutive_exits", 0)),
+            v3_total_exit_decisions=int(d.get("v3_total_exit_decisions", 0)),
+            v3_signal_acceleration=float(d.get("v3_signal_acceleration", 0.0)),
+            mfe_at_bar=float(d.get("mfe_at_bar", 0.0)),
+            time_since_mfe_peak_bars=int(d.get("time_since_mfe_peak_bars", 0)),
+            last_atr_bps=float(d.get("last_atr_bps", 0.0)),
         )
         for v in d.get("m1_returns_window") or []:
             t.m1_returns_window.append(float(v))
+        for v in d.get("pnl_history") or []:
+            t.pnl_history.append(float(v))
         return t
 
     def save(self, path: Path) -> None:

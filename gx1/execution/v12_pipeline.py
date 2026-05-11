@@ -227,20 +227,22 @@ class V12Pipeline:
         else:
             cv3_row = augmented.loc[m5_bucket]
 
-        # Run V3 v8 inference for this M1 bar (B2 wire-up)
-        # Trade overlay (the 19 trade-state features) deferred to B3; V3 currently
-        # sees the window as if no trade is open. The 4 V3 outputs are still
-        # meaningfully different from 0, and Exit-IQL sees them in its state
-        # vector. Phase B3 will add the proper trade-state overlay.
+        # Update trade's atr_bps from latest M5 bar (for V3 overlay's atr_bps_now)
+        trade.last_atr_bps = float(cv3_row.get("atr_bps", 0.0) or 0.0)
+
+        # Run V3 v8 inference with trade-state overlay (B3 wire-up)
         v3_v8_out = None
         try:
+            overlay = trade.build_v3_overlay() if trade.bars_in_trade > 0 else None
             v3_v8_out = self.v3.predict(
                 end_ts=pd.Timestamp(now_minute),
                 base34_prebuilt=self.prebuilt_loader._base28,
                 canonical_v3_window=augmented,
                 xgb_inferer=self.xgb,
-                trade_overlay=None,    # B3 will populate this from TradeState
+                trade_overlay=overlay,
             )
+            # Update trade with V3 output → maintains running stats for next bar
+            trade.update_v3(v3_v8_out)
         except Exception as exc:
             LOG.warning(f"V3 v8 inference failed: {exc}; using zero fallback")
             v3_v8_out = None
@@ -248,6 +250,8 @@ class V12Pipeline:
         rec, bar_state = self.exit_iql.decide_for_trade(
             trade, cv3_row, v3_v8_out=v3_v8_out,
         )
+        # Inject V3-tracking running stats into bar_state (overwriting any prior 0-fills)
+        bar_state.update(trade.build_v3_tracking_features())
         return {
             "action": rec.action_label_v1,
             "action_id": int(rec.action_id_v1),
