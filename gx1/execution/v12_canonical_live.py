@@ -55,14 +55,20 @@ from gx1.scripts.materialize_canonical_v3_augment import (
 
 LOG = logging.getLogger("v12_canonical_live")
 
-# Default lookback: 30 days. Empirical equivalence vs batch prebuilt:
-#   72h  → 99/112 features exact match  (3-day rolling features stable)
-#   336h → 104/112 features exact match (H1/H4 EMAs converge)
-#   720h → 108/112 features exact match (D1 ATR14 stable; only year-scale
-#                                         features like _v1_range_adr drift)
-# Cold-build cost at 720h: ~1.3 sec on 6000+ M5 bars. Acceptable for M5-cadence
-# decisions (one cold call every 5 min, cached in-between).
-DEFAULT_LOOKBACK_HOURS = 30 * 24  # 30 days
+# Default lookback: 45 days. Empirical equivalence vs batch prebuilt
+# (reference bar 2026-05-08 20:50, comparing all 112 canonical_v3 columns):
+#   72h   → 99/112 exact   (3-day rolling features stable)
+#   336h  → 104/112 exact  (H1/H4 EMAs converge)
+#   720h  → 108/112 exact  (D1 ATR14 + H4 RSI z-score stabilize)
+#   1080h → 109/112 exact  (H4 EMA-diff converges; only _v1_range_adr drifts
+#                            ~0.39% due to ADR20 = 5760 M5-bar window float
+#                            accumulation noise — does not change with longer
+#                            lookback)
+# Going past 45 days (e.g. 60/90/120d) does not improve match further but
+# linearly increases cold-build cost (60d=3.8s, 90d=6.5s, 120d=9.1s).
+# Cold-build cost at 1080h: ~2.4 sec on ~8650 M5 bars. M5-bucket caching
+# means only one cold call per 5-min decision cadence.
+DEFAULT_LOOKBACK_HOURS = 45 * 24  # 45 days — covers ADR20 + D1 ATR14 + H4 RSI
 MIN_M5_BARS_REQUIRED = 50         # canonical_v2 needs enough history for rolling features
 
 
