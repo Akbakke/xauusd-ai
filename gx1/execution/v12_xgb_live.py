@@ -50,8 +50,10 @@ LOG = logging.getLogger("v12_xgb_live")
 
 DEFAULT_BUNDLE_DIR = Path(
     "/home/andre2/GX1_DATA/models/models/"
-    "xgb_universal_multihead_v5__BIDIR_RSI_SMC_PRUNED_CANONICAL_V3_20260505T081604Z_1000est"
+    "xgb_universal_multihead_v5__BIDIR_RSI_SMC_PRUNED_CANONICAL_V3_20260505T060428Z"
 )
+# NOTE: Use 060428Z (V12 cascade source per INFERENCE_BATCH_CANDIDATES_V3_summary.json).
+# The 081604Z_1000est retrain was deleted 2026-05-11 to avoid bundle confusion.
 DEFAULT_SANITIZER_CONFIG = Path(
     "/home/andre2/src/GX1_ENGINE/gx1/xgb/contracts/xgb_input_sanitizer_canonical_v3_v1.json"
 )
