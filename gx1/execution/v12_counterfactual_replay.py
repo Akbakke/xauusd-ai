@@ -201,14 +201,26 @@ def replay_journal(journal_path: Path) -> tuple[list[dict], dict]:
         "high_value_missed_50plus": 0,
         "high_value_missed_100plus": 0,
     }
+    # Per-regime + per-session breakdown of missed opportunities
+    regime_breakdown: dict[str, dict[str, int]] = {}
+    session_breakdown: dict[str, dict[str, int]] = {}
     for ev in enriched:
         d = ev.get("v12_decision", {}).get("action", "UNKNOWN")
         stats["decisions"].setdefault(d, 0)
         stats["decisions"][d] += 1
+        feats = ev.get("features") or {}
+        regime = feats.get("vol_regime", "unknown")
+        session = feats.get("session", "unknown")
+        regime_breakdown.setdefault(regime, {"total": 0, "missed": 0})
+        session_breakdown.setdefault(session, {"total": 0, "missed": 0})
+        regime_breakdown[regime]["total"] += 1
+        session_breakdown[session]["total"] += 1
         if ev.get("missed_opportunity"):
             stats["missed_opportunity_count"] += 1
             bps = ev.get("best_what_if_pnl_bps", 0)
             stats["missed_opportunity_total_bps"] += bps
+            regime_breakdown[regime]["missed"] += 1
+            session_breakdown[session]["missed"] += 1
             if bps >= 50:
                 stats["high_value_missed_50plus"] += 1
             if bps >= 100:
@@ -217,6 +229,8 @@ def replay_journal(journal_path: Path) -> tuple[list[dict], dict]:
         stats["missed_opportunity_mean_bps"] = (
             stats["missed_opportunity_total_bps"] / stats["missed_opportunity_count"]
         )
+    stats["regime_breakdown"] = regime_breakdown
+    stats["session_breakdown"] = session_breakdown
     return enriched, stats
 
 
@@ -252,7 +266,7 @@ def main() -> int:
     print(json.dumps(stats, indent=2, default=str))
     print(f"\nFull enriched journal: {out_journal}")
 
-    # Highlight high-value missed opportunities
+    # Highlight high-value missed opportunities — surface regime + session for ML feedback
     missed = [e for e in enriched if e.get("missed_opportunity")]
     if missed:
         print(f"\nTop 10 missed opportunities (>= 50 bps forward MFE):")
@@ -264,8 +278,14 @@ def main() -> int:
             decision = ev.get("v12_decision", {}).get("action", "?")
             order = ev.get("order_status", "?")
             spread = ev.get("spread_bps", 0)
-            print(f"  {ts}  {side:5s} would-have +{bps:6.1f} bps   "
-                  f"V12 said {decision} (order_status={order})  spread={spread:.1f}")
+            feats = ev.get("features") or {}
+            regime = feats.get("vol_regime", "?")
+            session = feats.get("session", "?")
+            atr = feats.get("atr14_m5_bps", 0.0)
+            stack = feats.get("ema_stack_aligned", 0)
+            print(f"  {ts}  {side:5s} +{bps:6.1f} bps   V12={decision} "
+                  f"({order}) spread={spread:.1f}  regime={regime} session={session} "
+                  f"atr={atr:.1f}bps stack={stack:+d}")
     return 0
 
 

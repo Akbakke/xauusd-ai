@@ -48,10 +48,13 @@ if ENV_FILE.is_file():
 
 from gx1.execution.oanda_client import OandaClient, OandaClientConfig
 from gx1.execution.oanda_credentials import load_oanda_credentials
+from gx1.execution.v12_live_features import LiveFeatureBuilder
 
 LOG = logging.getLogger("v12_paper")
 INSTRUMENT = "XAU_USD"
 JOURNAL_DIR = Path("/home/andre2/GX1_DATA/reports/v12_paper_runs")
+COLLECTOR_DIR = Path("/home/andre2/GX1_DATA/reports/v12_live_data")
+CANONICAL_M1_DIR = Path("/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m1_bid_ask__CANONICAL")
 
 # Pre-trade gates
 DEFAULT_MAX_SPREAD_BPS = 10.0          # skip if spread > this
@@ -237,9 +240,14 @@ def main() -> int:
     client = OandaClient(OandaClientConfig(api_key=creds.api_token,
                                             account_id=creds.account_id,
                                             env=creds.env))
+    feature_builder = LiveFeatureBuilder(
+        collector_dir=COLLECTOR_DIR,
+        canonical_m1_dir=CANONICAL_M1_DIR,
+    )
     LOG.info(f"V12 paper runner starting  env={creds.env}  account={creds.account_id}")
     LOG.info(f"  max_spread_bps={args.max_spread_bps}  asia_skip={args.asia_skip}  "
              f"units={args.units}  dry_run={args.dry_run}")
+    LOG.info(f"  feature_builder: 26-feature live snapshot (Phase A)")
 
     entry_stubbed = bool(make_v12_decision({}).get("stub"))
     exit_stubbed = bool(make_v12_exit_decision({}).get("stub"))
@@ -284,10 +292,23 @@ def main() -> int:
                 spread_bps, max_spread_bps=args.max_spread_bps,
                 asia_skip=args.asia_skip, now_utc=now_utc,
             )
+
+            # Build live feature snapshot (Phase A: counterfactual context).
+            # Failure is non-fatal — log warning, journal still has core fields.
+            try:
+                live_feats = feature_builder.compute(
+                    pd.Timestamp(current_minute),
+                    bid=bid, ask=ask, spread_bps=spread_bps,
+                )
+            except Exception as exc:
+                LOG.warning(f"feature_builder failed at {current_minute}: {exc}")
+                live_feats = {}
+
             event = {
                 "ts_utc": current_minute.isoformat(),
                 "bid": bid, "ask": ask, "spread_bps": spread_bps,
                 "allowed": allowed, "gate_reason": reason,
+                "features": live_feats,
             }
 
             # === V12 decision is ALWAYS made (even when gate blocks) for counterfactual logging.
