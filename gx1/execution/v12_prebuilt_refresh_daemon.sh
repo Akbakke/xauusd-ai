@@ -101,7 +101,6 @@ json.dump(m, open('$MANIFEST', 'w'), indent=2)
         echo "[refresh] WARN no new base34 file found in $NEW_DIR" | tee -a "$LOG"
     fi
 
-    DURATION=$(($(date +%s) - $(date -d "$TS" +%s) ))
-    echo "[refresh-daemon] cycle $cycle done in ${DURATION}s — sleeping $INTERVAL_SEC s" | tee -a "$LOG"
+    echo "[refresh-daemon] cycle $cycle done at $(date -u +%Y-%m-%dT%H:%M:%SZ) — sleeping $INTERVAL_SEC s" | tee -a "$LOG"
     sleep "$INTERVAL_SEC"
 done
