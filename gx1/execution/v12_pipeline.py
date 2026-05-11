@@ -39,14 +39,12 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from gx1.execution.v12_canonical_live import LiveCanonicalV3Builder
-from gx1.execution.v12_ctx_augment_live import augment_canonical_v3
+from gx1.execution.v12_state_from_prebuilt import PrebuiltStateLoader
 from gx1.execution.v12_xgb_live import XGBLiveInference
 from gx1.execution.v12_v10_live import V10LiveInference, SEQ_LEN as V10_SEQ_LEN
 from gx1.execution.v12_entry_iql_live import EntryIQLLiveInference
 from gx1.execution.v12_exit_iql_live import ExitIQLLiveInference
 from gx1.execution.v12_trade_state import TradeState, SIDE_LONG, SIDE_SHORT
-from gx1.execution.v12_m1_to_m5_downsample import m1_to_m5
 
 LOG = logging.getLogger("v12_pipeline")
 
@@ -60,83 +58,58 @@ ACTION_LABEL_BY_ID = {0: "SKIP", 1: "TAKE_LONG_NOW", 2: "TAKE_SHORT_NOW"}
 
 @dataclass
 class V12Pipeline:
-    canonical_builder: LiveCanonicalV3Builder
+    prebuilt_loader: PrebuiltStateLoader
     xgb: XGBLiveInference
     v10: V10LiveInference
     entry_iql: EntryIQLLiveInference
     exit_iql: ExitIQLLiveInference
-    # Cache for the most recent augmented canonical_v3 (refreshed per M5)
+    # Cache for the most recent augmented window + XGB bridge (refreshed per M5)
     _last_augmented_bucket: pd.Timestamp | None = None
     _last_augmented: pd.DataFrame | None = None
     _last_bridge: np.ndarray | None = None
+    _last_xgb_p_long: np.ndarray | None = None
+    _last_xgb_p_short: np.ndarray | None = None
+    _last_xgb_p_flat: np.ndarray | None = None
 
     @classmethod
     def load_default(cls) -> "V12Pipeline":
         t0 = time.perf_counter()
-        builder = LiveCanonicalV3Builder(
-            collector_dir=COLLECTOR_DIR,
-            canonical_m1_dir=CANONICAL_M1_DIR,
-        )
+        loader = PrebuiltStateLoader()
+        loader.load()
         xgb = XGBLiveInference.load_default()
         v10 = V10LiveInference.load_default()
         entry_iql = EntryIQLLiveInference.load_default()
         exit_iql = ExitIQLLiveInference.load_default()
         LOG.info(f"V12Pipeline loaded in {(time.perf_counter()-t0)*1000:.0f} ms")
-        return cls(canonical_builder=builder, xgb=xgb, v10=v10,
+        LOG.info(f"  prebuilt cutoff: {loader.cutoff_ts}")
+        return cls(prebuilt_loader=loader, xgb=xgb, v10=v10,
                     entry_iql=entry_iql, exit_iql=exit_iql)
 
     # ── shared canonical_v3 build (cached per M5 bucket) ───────────────
 
     def _refresh_canonical(self, now_minute: pd.Timestamp) -> bool:
-        """Refresh augmented canonical_v3 + XGB bridge if a new M5 bucket. Returns True if data available."""
+        """Refresh augmented window + XGB bridge from disk prebuilt if a new M5 bucket.
+        Returns True if data available, False if past prebuilt cutoff."""
         cur_bucket = now_minute.floor("5min")
         if self._last_augmented_bucket == cur_bucket and self._last_augmented is not None:
             return True
 
-        cv3 = self.canonical_builder.compute(now_minute)
-        if cv3.empty:
-            LOG.warning(f"canonical_v3 empty for {now_minute}")
+        # Read 96-bar window directly from canonical_v3 + BASE28 prebuilts.
+        # Identical values to what V12 cascade trainings saw — no live recompute.
+        augmented = self.prebuilt_loader.get_window(now_minute, n_bars=V10_SEQ_LEN)
+        if augmented.empty:
+            LOG.warning(f"prebuilt empty/past cutoff for {now_minute} "
+                         f"(loader cutoff: {self.prebuilt_loader.cutoff_ts})")
+            return False
+        if len(augmented) < V10_SEQ_LEN:
+            LOG.warning(f"only {len(augmented)} bars (need {V10_SEQ_LEN}) — early-history bar")
             return False
 
-        # Load raw M5 for HTF resampling (used by augment)
-        start_ts = now_minute - pd.Timedelta(hours=self.canonical_builder.lookback_hours)
-        parts = []
-        for fp in sorted(COLLECTOR_DIR.glob("xauusd_m1_*.parquet")):
-            try:
-                df = pd.read_parquet(fp)
-            except Exception:
-                continue
-            df["time"] = pd.to_datetime(df["time"], utc=True)
-            sub = df[(df["time"] >= start_ts) & (df["time"] <= now_minute)]
-            if len(sub) > 0:
-                parts.append(sub)
-        for yr in range(start_ts.year, now_minute.year + 1):
-            fp = CANONICAL_M1_DIR / f"year={yr}" / "part-000.parquet"
-            if not fp.exists():
-                continue
-            try:
-                df = pd.read_parquet(fp)
-            except Exception:
-                continue
-            df["time"] = pd.to_datetime(df["time"], utc=True)
-            sub = df[(df["time"] >= start_ts) & (df["time"] <= now_minute)]
-            if len(sub) > 0:
-                parts.append(sub)
-        if not parts:
-            return False
-        m1 = (pd.concat(parts, ignore_index=True)
-                .drop_duplicates(subset=["time"], keep="last")
-                .sort_values("time").reset_index(drop=True))
-        m5 = m1_to_m5(m1)
-        augmented = augment_canonical_v3(cv3, m5)
-
+        # Run XGB on the entire 96-bar window (needed for V10 seq_x signal_bridge)
         xgb_out = self.xgb.predict(augmented)
-        bridge = xgb_out["signal_bridge_v1"]
-
         self._last_augmented_bucket = cur_bucket
         self._last_augmented = augmented
-        self._last_bridge = bridge
-        # Store XGB per-bar probabilities too for entry-decision use
+        self._last_bridge = xgb_out["signal_bridge_v1"]
         self._last_xgb_p_long = xgb_out["p_long"]
         self._last_xgb_p_short = xgb_out["p_short"]
         self._last_xgb_p_flat = xgb_out["p_flat"]
