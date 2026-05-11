@@ -62,6 +62,13 @@ CANONICAL_V3_PREBUILT = Path(
     "/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_PREBUILT/"
     "xauusd_m5_CANONICAL_V3_2020_2026.parquet"
 )
+# Joined prebuilt: canonical_v3 + 32 BASE28 ctx_cont/cat features. Produced
+# by add_ctx_cont_columns_to_prebuilt.py on the canonical_v3 prebuilt.
+# Preferred over reading two prebuilts separately when it exists.
+JOINED_PREBUILT = Path(
+    "/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_PREBUILT/"
+    "xauusd_m5_CANONICAL_V3_BASE28_AUGMENTED_2020_2026.parquet"
+)
 BASE28_MANIFEST_PATH = Path(
     "/home/andre2/GX1_DATA/data/data/prebuilt/BASE28_CANONICAL/CURRENT_MANIFEST.json"
 )
@@ -83,7 +90,27 @@ class PrebuiltStateLoader:
     _last_ts: pd.Timestamp | None = field(default=None, init=False)
 
     def load(self) -> None:
-        """Load both prebuilts into memory (one-time at startup)."""
+        """Load prebuilt(s). Uses joined prebuilt if it exists (single file with
+        all 92 XGB features), else falls back to canonical_v3 + BASE28 split."""
+
+        if JOINED_PREBUILT.exists():
+            LOG.info(f"loading JOINED prebuilt: {JOINED_PREBUILT.name}")
+            cv3 = pd.read_parquet(JOINED_PREBUILT)
+            if "time" in cv3.columns:
+                cv3["time"] = pd.to_datetime(cv3["time"], utc=True)
+                cv3 = cv3.set_index("time")
+            if not isinstance(cv3.index, pd.DatetimeIndex):
+                # Already DatetimeIndex from add_ctx_cont
+                pass
+            cv3 = cv3.sort_index()
+            self._cv3 = cv3
+            self._base28 = None
+            self._last_ts = cv3.index[-1]
+            LOG.info(f"  joined: {len(cv3):,} rows × {len(cv3.columns)} cols  "
+                      f"range {cv3.index[0]} → {cv3.index[-1]}")
+            return
+
+        # Fallback: load both separately (legacy path before joined was produced)
         if self.base28_path is None:
             self.base28_path = _resolve_base28_parquet()
 
@@ -140,12 +167,15 @@ class PrebuiltStateLoader:
         if cv3_win.empty:
             return pd.DataFrame()
 
-        # Join BASE28 augmented columns at the SAME timestamps.
-        # BASE28 features (32 total) that aren't already in cv3 prebuilt:
+        # Joined-prebuilt path: all features already in cv3_win
+        if self._base28 is None:
+            return cv3_win
+
+        # Fallback: join BASE28 augmented columns at exact timestamps
         b28_cols = [c for c in self._base28.columns if c not in cv3_win.columns]
         if b28_cols:
             b28_slice = self._base28.loc[:end_bucket, b28_cols].reindex(
-                cv3_win.index, method=None,    # exact-match join — no fuzzy alignment
+                cv3_win.index, method=None,
             )
             joined = pd.concat([cv3_win, b28_slice], axis=1)
         else:
