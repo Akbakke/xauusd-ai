@@ -91,18 +91,28 @@ class V12Pipeline:
     # ── shared canonical_v3 build (cached per M5 bucket) ───────────────
 
     def _refresh_canonical(self, now_minute: pd.Timestamp) -> bool:
-        """Refresh augmented window + XGB bridge from disk prebuilt if a new M5 bucket.
-        Returns True if data available, False if past prebuilt cutoff."""
-        cur_bucket = now_minute.floor("5min")
+        """Refresh augmented window + XGB bridge from disk prebuilt.
+
+        If now_minute is past the prebuilt cutoff, automatically falls back to
+        the cutoff bar (latest available CLOSED M5). The runner then makes a
+        decision on the freshest data available, instead of skipping. The
+        incremental updater keeps cutoff within ~5-15 min of real-time.
+
+        Returns True if data available, False only if prebuilt is empty or
+        history insufficient (early-history edge cases).
+        """
+        cutoff = self.prebuilt_loader.cutoff_ts
+        # Clip to latest available M5 if past cutoff
+        effective_ts = now_minute if now_minute <= cutoff else cutoff
+        cur_bucket = effective_ts.floor("5min")
         if self._last_augmented_bucket == cur_bucket and self._last_augmented is not None:
             return True
 
         # Read 96-bar window directly from canonical_v3 + BASE28 prebuilts.
         # Identical values to what V12 cascade trainings saw — no live recompute.
-        augmented = self.prebuilt_loader.get_window(now_minute, n_bars=V10_SEQ_LEN)
+        augmented = self.prebuilt_loader.get_window(effective_ts, n_bars=V10_SEQ_LEN)
         if augmented.empty:
-            LOG.warning(f"prebuilt empty/past cutoff for {now_minute} "
-                         f"(loader cutoff: {self.prebuilt_loader.cutoff_ts})")
+            LOG.warning(f"prebuilt empty for {effective_ts} (cutoff={cutoff}) — system not ready")
             return False
         if len(augmented) < V10_SEQ_LEN:
             LOG.warning(f"only {len(augmented)} bars (need {V10_SEQ_LEN}) — early-history bar")
