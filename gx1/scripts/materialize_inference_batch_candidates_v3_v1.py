@@ -71,7 +71,9 @@ DEFAULT_PREBUILT_PARQUET = Path(
     "/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_PREBUILT/xauusd_m5_CANONICAL_V3_2020_2026.parquet"
 )
 DEFAULT_XGB_BUNDLE = Path(
-    "/home/andre2/GX1_DATA/models/models/xgb_universal_multihead_v5__BIDIR_RSI_SMC_PRUNED_CANONICAL_V3_20260505T081604Z_1000est"
+    # V12-cascade authoritative bundle per CURRENT_BUNDLES.md (the 081604Z_1000est
+    # retrain was deleted 2026-05-11 — it was never used by V12 cascade).
+    "/home/andre2/GX1_DATA/models/models/xgb_universal_multihead_v5__BIDIR_RSI_SMC_PRUNED_CANONICAL_V3_20260505T060428Z"
 )
 DEFAULT_V10_BUNDLE = Path(
     "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_CTX__RETRAIN_2026Q2_BIDIR_SMC_CANONICAL_V3_6YR_BS512_20260506T120938Z"

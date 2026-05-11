@@ -96,7 +96,9 @@ DEFAULT_CANONICAL_V2_PATH = Path(
     "/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_PREBUILT/xauusd_m5_CANONICAL_V3_2020_2026.parquet"
 )
 DEFAULT_XGB_BUNDLE = Path(
-    "/home/andre2/GX1_DATA/models/models/xgb_universal_multihead_v5__BIDIR_RSI_SMC_PRUNED_CANONICAL_V3_20260505T081604Z_1000est"
+    # V12-cascade authoritative bundle per CURRENT_BUNDLES.md (the 081604Z_1000est
+    # retrain was deleted 2026-05-11 — it was never used by V12 cascade).
+    "/home/andre2/GX1_DATA/models/models/xgb_universal_multihead_v5__BIDIR_RSI_SMC_PRUNED_CANONICAL_V3_20260505T060428Z"
 )
 DEFAULT_XGB_FEATURE_CONTRACT = REPO_ROOT / "gx1" / "xgb" / "contracts" / "xgb_input_features_canonical_v3_v1.json"
 DEFAULT_XGB_SANITIZER_CONFIG = REPO_ROOT / "gx1" / "xgb" / "contracts" / "xgb_input_sanitizer_canonical_v3_v1.json"

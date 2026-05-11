@@ -34,7 +34,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 PYTHON = "/home/andre2/venvs/gx1/bin/python3"
 DEFAULT_PER_BAR_DIR = "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/EXIT_IQL_PER_BAR_DATASET_V2_M1"
 DEFAULT_FORWARD_OUTCOME = "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/CANDIDATE_FORWARD_OUTCOME_RUN/v1_full"
-DEFAULT_ENTRY_IQL_ROOT = "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/BUILD_ENTRY_IQL_V2_20260506T132525Z_LOCK"
+DEFAULT_ENTRY_IQL_ROOT = "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/BUILD_ENTRY_IQL_V2_20260506T195420Z_LOCK"  # was 132525Z_LOCK (deleted 2026-05-11); 195420Z is V12-cascade authoritative
 DEFAULT_STORAGE = "sqlite:////tmp/v9_exit_optuna.db"
 
 # K_HORIZONS in M1 bars: [5, 20, 60, 120, 240, 480]
