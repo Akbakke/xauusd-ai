@@ -49,6 +49,8 @@ if ENV_FILE.is_file():
 from gx1.execution.oanda_client import OandaClient, OandaClientConfig
 from gx1.execution.oanda_credentials import load_oanda_credentials
 from gx1.execution.v12_live_features import LiveFeatureBuilder
+from gx1.execution.v12_pipeline import V12Pipeline
+from gx1.execution.v12_trade_state import TradeState
 
 LOG = logging.getLogger("v12_paper")
 INSTRUMENT = "XAU_USD"
@@ -91,8 +93,8 @@ def get_current_spread_bps(client: OandaClient,
     quote_time_str = quote.get("time", "")
     if quote_time_str:
         quote_time = pd.to_datetime(quote_time_str, utc=True)
-        now = now_utc or datetime.now(timezone.utc)
-        age_sec = (now - quote_time.to_pydatetime()).total_seconds()
+        now = pd.Timestamp(now_utc) if now_utc is not None else pd.Timestamp.now(tz="UTC")
+        age_sec = (now - quote_time).total_seconds()
         if age_sec > max_age_sec:
             raise StaleQuoteError(age_sec, quote_time_str)
     bid = float(quote["bids"][0]["price"])
@@ -113,47 +115,28 @@ def can_trade_now(spread_bps: float, *, max_spread_bps: float, asia_skip: bool,
     return True, "ok"
 
 
-# ── V12 decision stub (TO BE WIRED IN) ────────────────────────────────────
+# ── V12 decision (wired in sesjon 1-5) ────────────────────────────────────
 
 
-def make_v12_decision(features_snapshot: dict[str, Any]) -> dict[str, Any]:
-    """STUB — replace with real V12 stack call.
+def make_v12_decision(pipeline: V12Pipeline, now_minute: datetime,
+                      bid: float, ask: float) -> dict[str, Any]:
+    """Run the full V12 entry stack: XGB v5 → V10 v3 → Entry-IQL v2.
 
-    Real implementation (Mon-Tue task):
-      - Build candidate features from rolling M1+M5 window
-      - Run XGB → V10 → Entry-IQL via existing adapters
-      - Returns full state-vector for counterfactual replay:
-        {
-          "action": "SKIP"|"TAKE_LONG_NOW"|"TAKE_SHORT_NOW",
-          "q_skip": float,
-          "q_take_long": float,
-          "q_take_short": float,
-          "advantage_over_skip_long": float,
-          "advantage_over_skip_short": float,
-          "v10_path_quality_pred": float,
-          "v10_mfe_first_n_pred": float,
-          "v10_p_long": float, "v10_p_short": float,
-          "xgb_signal7": list[float],
-        }
-
-    For wiring instructions see project_gx1_v12_deploy_runtime.md.
+    Returns dict with action + Q-trio + V10 outputs + XGB outputs +
+    decision timestamp. Pipeline maintains caches so per-M5 cold-build
+    cost is amortized across all M1 ticks in that bucket.
     """
-    return {"action": "SKIP", "stub": True,
-             "q_skip": 0.0, "q_take_long": 0.0, "q_take_short": 0.0,
-             "advantage_over_skip_long": 0.0, "advantage_over_skip_short": 0.0}
+    return pipeline.make_entry_decision(pd.Timestamp(now_minute), bid, ask)
 
 
-def make_v12_exit_decision(bar_state: dict[str, Any]) -> dict[str, Any]:
-    """STUB — replace with ExitDeciderV12Adapter call.
+def make_v12_exit_decision(pipeline: V12Pipeline, trade: TradeState,
+                            now_minute: datetime, bid: float, ask: float,
+                            m1_close: float) -> dict[str, Any]:
+    """Run Exit-IQL V12.1 for one M1 bar on an open trade.
 
-    Real implementation:
-        from gx1.runtime.exit_decider_v12_adapter import ExitDeciderV12Adapter
-        decider = ExitDeciderV12Adapter.load(<V12_1_1_LOCK>, variant="R_V12_1", fold_id="FOLD_1",
-                                              v3_override_threshold=None)  # drop V3 fail-safe
-        rec = decider.decide(bar_state)
-        return {"action_id": rec.action_id_v1, "decision_source": rec.decision_source_v1}
+    Advances trade-state (PnL/MFE/MAE) and queries the Exit-IQL adapter.
     """
-    return {"action_id": 0, "stub": True}
+    return pipeline.make_exit_decision(trade, pd.Timestamp(now_minute), bid, ask, m1_close)
 
 
 # ── Order execution + reject handling ────────────────────────────────────
@@ -249,22 +232,15 @@ def main() -> int:
              f"units={args.units}  dry_run={args.dry_run}")
     LOG.info(f"  feature_builder: 26-feature live snapshot (Phase A)")
 
-    entry_stubbed = bool(make_v12_decision({}).get("stub"))
-    exit_stubbed = bool(make_v12_exit_decision({}).get("stub"))
-    if entry_stubbed or exit_stubbed:
-        LOG.warning(f"⚠️  V12 stubbed (entry={entry_stubbed} exit={exit_stubbed}) — "
-                    f"shadow-mode only. Wire real stack before live trading.")
-        if not args.allow_stub:
-            LOG.error("Refusing to start: stubbed V12 logic detected but --allow-stub not set.")
-            return 2
-        if not args.dry_run:
-            LOG.error("Refusing to start: --dry-run is required when V12 is stubbed "
-                      "(no exit loop wired → trades would never close).")
-            return 2
+    # Load full V12 pipeline (XGB v5 + V10 v3 + Entry-IQL v2 + Exit-IQL V12.1)
+    LOG.info("loading V12Pipeline (XGB + V10 + Entry-IQL + Exit-IQL)...")
+    pipeline = V12Pipeline.load_default()
+    LOG.info("✓ V12 entry+exit stacks loaded — runner is live-wired")
 
     last_decision_minute = None
     consecutive_errors = 0
     last_stale_log_minute = None
+    open_trade: TradeState | None = None        # single-trade-at-a-time policy
 
     while True:
         try:
@@ -309,17 +285,58 @@ def main() -> int:
                 "bid": bid, "ask": ask, "spread_bps": spread_bps,
                 "allowed": allowed, "gate_reason": reason,
                 "features": live_feats,
+                "has_open_trade": open_trade is not None,
             }
 
-            # === V12 decision is ALWAYS made (even when gate blocks) for counterfactual logging.
-            # This lets us replay "would V12 have taken?" + 24h forward-outcome offline.
-            decision = make_v12_decision({"ts": current_minute, "bid": bid, "ask": ask})
+            # ── EXIT branch: open trade → run Exit-IQL V12.1 per M1 ──
+            if open_trade is not None:
+                m1_close = (bid + ask) / 2.0   # mid as proxy for M1 close until next collector tick
+                exit_decision = make_v12_exit_decision(
+                    pipeline, open_trade, current_minute, bid, ask, m1_close,
+                )
+                event["v12_exit_decision"] = exit_decision
+                event["trade_open_ts"] = open_trade.entry_ts.isoformat()
+                event["trade_side"] = open_trade.side
+                event["trade_bars"] = open_trade.bars_in_trade
+                event["trade_pnl_bps"] = open_trade.current_pnl_bps
+                event["trade_peak_bps"] = open_trade.cum_mfe_bps
+                event["trade_mae_bps"] = open_trade.cum_mae_bps
+
+                if exit_decision.get("action_id") == 1:   # EXIT_NOW
+                    event["order_status"] = "EXIT_NOW"
+                    if args.dry_run:
+                        LOG.info(f"[DRY] EXIT_NOW after {open_trade.bars_in_trade} bars  "
+                                  f"pnl={open_trade.current_pnl_bps:+.1f} bps  side={open_trade.side}")
+                    else:
+                        close_side = "short" if open_trade.side == "long" else "long"
+                        close_result = attempt_market_entry(client, close_side, units=args.units)
+                        event["close_order_details"] = close_result
+                    open_trade = None
+                else:
+                    event["order_status"] = "HOLDING_TRADE"
+                # 24h hard cap fail-safe
+                if open_trade is not None and open_trade.bars_in_trade >= 1440:
+                    LOG.warning(f"24h cap reached — forced close")
+                    event["order_status"] = "FORCED_CLOSE_24H"
+                    if not args.dry_run:
+                        close_side = "short" if open_trade.side == "long" else "long"
+                        attempt_market_entry(client, close_side, units=args.units)
+                    open_trade = None
+
+                log_journal_event(daily_journal_path(args.journal_suffix), event)
+                last_decision_minute = current_minute
+                consecutive_errors = 0
+                time.sleep(args.poll_seconds)
+                continue
+
+            # ── ENTRY branch: no open trade → run XGB→V10→Entry-IQL ──
+            decision = make_v12_decision(pipeline, current_minute, bid, ask)
             event["v12_decision"] = decision
 
             if not allowed:
                 # Gate blocked the order (spread/asia) — but log V12's intent for counterfactual analysis
                 event["order_status"] = "BLOCKED_BY_GATE"
-                # Flag high-conviction opportunities even when blocked
+                # Flag high-conviction opportunities even when blocked (direction-aware)
                 adv_long = float(decision.get("advantage_over_skip_long", 0.0))
                 adv_short = float(decision.get("advantage_over_skip_short", 0.0))
                 event["high_conviction_blocked"] = (adv_long >= 50.0 or adv_short >= 50.0)
@@ -337,9 +354,27 @@ def main() -> int:
                     order_result = attempt_market_entry(client, side, units=args.units)
                     event["order_status"] = order_result["status"]
                     event["order_details"] = order_result
+                    if order_result.get("status") == "filled":
+                        # Open virtual trade with the entry quote (use current bid/ask
+                        # snapshot since OANDA fill_price collapses bid/ask).
+                        open_trade = TradeState.open(
+                            entry_ts=pd.Timestamp(current_minute),
+                            side=side, entry_bid=bid, entry_ask=ask,
+                            v10_snapshot=decision.get("_v10_snapshot", {}),
+                        )
+                        LOG.info(f"opened trade  side={side}  entry={ask if side=='long' else bid}  "
+                                  f"v10_p_long={decision.get('v10_p_long', 0):.3f}  "
+                                  f"q_take={decision.get('q_take_long' if side=='long' else 'q_take_short', 0):+.1f}")
+                # In dry-run mode, also open a virtual trade for shadow exit-loop testing.
+                if args.dry_run:
+                    open_trade = TradeState.open(
+                        entry_ts=pd.Timestamp(current_minute),
+                        side=side, entry_bid=bid, entry_ask=ask,
+                        v10_snapshot=decision.get("_v10_snapshot", {}),
+                    )
+                    LOG.info(f"[DRY] virtual trade opened  side={side}")
             else:
                 # SKIP — flag if V12 would have had >50 bps Q-advantage on either side
-                # (these are "missed opportunities" we want to replay/learn from)
                 adv_long = float(decision.get("advantage_over_skip_long", 0.0))
                 adv_short = float(decision.get("advantage_over_skip_short", 0.0))
                 event["order_status"] = "SKIP"
