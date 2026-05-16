@@ -72,6 +72,10 @@ class V12Pipeline:
     _last_xgb_p_long: np.ndarray | None = None
     _last_xgb_p_short: np.ndarray | None = None
     _last_xgb_p_flat: np.ndarray | None = None
+    # V12.2 cluster-1 fix: per-side last-entry M5 bucket. Blocks repeat same-side
+    # entries within the same M5 (5-min) window — addresses live "4 LONG in 7min"
+    # cluster pattern observed 2026-05-12 where V10 fired 4× same signal in same bucket.
+    _last_entry_m5_by_side: dict[str, pd.Timestamp] = field(default_factory=dict)
 
     @classmethod
     def load_default(cls) -> "V12Pipeline":
@@ -83,8 +87,14 @@ class V12Pipeline:
         entry_iql = EntryIQLLiveInference.load_default()
         exit_iql = ExitIQLLiveInference.load_default()
         v3 = V3LiveInference.load_default()   # V3 v8 exit transformer
+        # V12.2: if any model needs multi-TF, build the per-bar feature tables once
+        # on the loader so predict() calls can slice cheaply.
+        needs_mtf = getattr(v10, "_enable_multi_tf", False) or getattr(v3, "_enable_multi_tf", False)
+        if needs_mtf:
+            LOG.info("V12.2: building multi-TF features on PrebuiltStateLoader (one-time)")
+            loader.build_multi_tf_features()
         LOG.info(f"V12Pipeline loaded in {(time.perf_counter()-t0)*1000:.0f} ms")
-        LOG.info(f"  prebuilt cutoff: {loader.cutoff_ts}")
+        LOG.info(f"  prebuilt cutoff: {loader.cutoff_ts}  multi_tf_active={needs_mtf}")
         return cls(prebuilt_loader=loader, xgb=xgb, v10=v10,
                     entry_iql=entry_iql, exit_iql=exit_iql, v3=v3)
 
@@ -172,7 +182,15 @@ class V12Pipeline:
 
         # The decision-bar is the LATEST closed M5 bar in augmented
         end_idx = len(augmented) - 1
-        v10_out = self.v10.predict(augmented, bridge, end_idx=end_idx)
+        # V12.2: fetch multi-TF windows if V10 bundle requires them (no-op for v3 bundle)
+        mtf_windows = None
+        if getattr(self.v10, "_enable_multi_tf", False):
+            decision_ts = augmented.index[end_idx]
+            mtf_windows = self.prebuilt_loader.get_multi_tf_windows(decision_ts)
+            if not mtf_windows:
+                LOG.warning("V10 multi-TF needed but PrebuiltStateLoader has no multi-TF features built — "
+                             "build_multi_tf_features() must be called once after load()")
+        v10_out = self.v10.predict(augmented, bridge, end_idx=end_idx, multi_tf_windows=mtf_windows)
 
         # Entry-IQL input
         row = augmented.iloc[end_idx]
@@ -182,6 +200,36 @@ class V12Pipeline:
             "p_flat": float(self._last_xgb_p_flat[end_idx]),
         }
         rec, candidate = self.entry_iql.predict_from_pipeline(row, xgb_this, v10_out)
+
+        # V12.2 CLUSTER-1 RATE-LIMIT: block repeat same-side entries within same M5 bucket.
+        # Live V10 fires multiple times per minute; without this, IQL takes 4× same LONG
+        # signal in same 5-min window (Cluster-1 pattern observed 2026-05-12).
+        action_label = rec.action_label_v1
+        if action_label in ("TAKE_LONG_NOW", "TAKE_SHORT_NOW"):
+            side_key = "long" if action_label == "TAKE_LONG_NOW" else "short"
+            decision_m5 = augmented.index[end_idx]  # already an M5-bar timestamp
+            last_m5 = self._last_entry_m5_by_side.get(side_key)
+            if last_m5 == decision_m5:
+                LOG.info(
+                    f"[CLUSTER1_RATE_LIMIT] blocking repeat {side_key} entry — "
+                    f"last_entry_m5={last_m5} current_m5={decision_m5}"
+                )
+                return {
+                    "action": "SKIP",
+                    "action_id": 0,
+                    "q_per_action": [float(rec.q_per_action_v1[0]), float(rec.q_per_action_v1[1]), float(rec.q_per_action_v1[2])],
+                    "q_skip": float(rec.q_per_action_v1[0]),
+                    "q_take_long": float(rec.q_per_action_v1[1]),
+                    "q_take_short": float(rec.q_per_action_v1[2]),
+                    "advantage_over_skip": 0.0,
+                    "advantage_over_skip_long": float(rec.q_per_action_v1[1] - rec.q_per_action_v1[0]),
+                    "advantage_over_skip_short": float(rec.q_per_action_v1[2] - rec.q_per_action_v1[0]),
+                    "blocked_reason": "CLUSTER1_RATE_LIMIT",
+                    "decision_ts": str(decision_m5),
+                    "stub": False,
+                }
+            # Record this entry so subsequent same-M5 same-side requests are blocked.
+            self._last_entry_m5_by_side[side_key] = decision_m5
 
         q = rec.q_per_action_v1
         return {
@@ -249,12 +297,19 @@ class V12Pipeline:
         v3_v8_out = None
         try:
             overlay = trade.build_v3_overlay() if trade.bars_in_trade > 0 else None
+            # V12.2: fetch multi-TF windows if V3 bundle requires them
+            v3_mtf_windows = None
+            if getattr(self.v3, "_enable_multi_tf", False):
+                v3_mtf_windows = self.prebuilt_loader.get_multi_tf_windows(pd.Timestamp(now_minute))
+                if not v3_mtf_windows:
+                    LOG.warning("V3 multi-TF needed but loader missing features — call build_multi_tf_features()")
             v3_v8_out = self.v3.predict(
                 end_ts=pd.Timestamp(now_minute),
                 base34_prebuilt=self.prebuilt_loader._base28,
                 canonical_v3_window=augmented,
                 xgb_inferer=self.xgb,
                 trade_overlay=overlay,
+                multi_tf_windows=v3_mtf_windows,
             )
             # Update trade with V3 output → maintains running stats for next bar
             trade.update_v3(v3_v8_out)

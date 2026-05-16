@@ -368,7 +368,22 @@ class DiskMultiTaskThinDataset(DiskLabeledThinDataset):
     whose `exit_aux_family` is not one of the canonical family names get
     `EXIT_AUX_FAMILY_IGNORE_INDEX` (-100) so torch's cross_entropy skips them
     via its default `ignore_index`.
+
+    V12.2 multi-TF: when `multi_tf_feats` is provided, the y_dict gets
+    additional keys `seq_m5, seq_m15, seq_h1, seq_h4, seq_d1` — each a
+    (multi_tf_seq_len, n_features) tensor sliced at-or-before the record's
+    timestamp. Training helpers extract these and pass to model.forward.
     """
+
+    def __init__(self, *args,
+                 multi_tf_feats: Optional[Dict[str, "pd.DataFrame"]] = None,
+                 multi_tf_shift: Optional[Dict[str, "pd.Timedelta"]] = None,
+                 multi_tf_seq_len: int = 96,
+                 **kwargs):
+        super().__init__(*args, **kwargs)
+        self.multi_tf_feats = multi_tf_feats
+        self.multi_tf_shift = multi_tf_shift
+        self.multi_tf_seq_len = int(multi_tf_seq_len)
 
     def __getitem__(
         self, idx: int,
@@ -390,7 +405,21 @@ class DiskMultiTaskThinDataset(DiskLabeledThinDataset):
         family_idx = EXIT_AUX_FAMILY_TO_ID.get(family_str, EXIT_AUX_FAMILY_IGNORE_INDEX)
         y_family = torch.tensor(family_idx, dtype=torch.long)
         w = torch.tensor(self._sample_weight(rec), dtype=torch.float32)
-        return x, {"main": y_main, "profit": y_profit, "family": y_family}, w
+        out_dict: Dict[str, torch.Tensor] = {
+            "main": y_main, "profit": y_profit, "family": y_family,
+        }
+        # V12.2: slice multi-TF windows at record timestamp
+        if self.multi_tf_feats is not None:
+            import pandas as pd
+            from gx1.features.htf_features import get_last_n_at_or_before
+            ts = pd.Timestamp(rec.get("ts"))
+            for tf, feats in self.multi_tf_feats.items():
+                arr = get_last_n_at_or_before(
+                    feats, ts, n=self.multi_tf_seq_len,
+                    tf_shift=self.multi_tf_shift[tf],
+                )
+                out_dict[f"seq_{tf.lower()}"] = torch.from_numpy(arr)
+        return x, out_dict, w
 
 
 # ---------------------------------------------------------------------------

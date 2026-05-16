@@ -1,23 +1,25 @@
 #!/usr/bin/env python3
-"""V12 paper-trade runner — production template for live deployment.
+"""V12 paper-trade runner — production live deployment.
 
-Status: SKELETON / DESIGN TEMPLATE. The V12 decision-stack call is stubbed
-(`make_v12_decision`) and must be wired in once shadow-replay validates the
-feature pipeline on live data (Mon-Tue). Pre-trade spread check, reject
-handling, and reject-logging are production-ready.
+Status: V12.4 CEMENTED 2026-05-16. Full V12Pipeline (XGB v5 + V10 multi-TF +
+Entry-IQL v2 + V3 v9 multi-TF + Exit-IQL R_V12 + V12.4 Strategy-F overlay)
+is loaded and wired via `pipeline.make_entry_decision()` / `.make_exit_decision()`.
 
 Modus operandi:
     1. Wait for next M1 candle close (poll OANDA every 5-10s).
     2. Pre-trade spread check: skip if (ask-bid)/bid > spread_threshold_bps.
-    3. Make V12 decision (stub for now).
+    3. Make V12.4 decision via V12Pipeline.
     4. If TAKE: place market order via OANDA (no SL/TP per V12 mandate).
     5. Catch MARKET_ORDER_REJECT_TRANSACTION; log reason + spread + time.
-    6. If trade open: per-bar V3 v8 + ExitDeciderV12 → close order on EXIT_NOW.
+    6. If trade open: per-bar V3 v9 + V12.4 overlay → close order on EXIT_NOW.
     7. Log everything to daily journal for replay/comparison vs Phase 6 baseline.
 
-Run (after wiring V12 decision):
+Run (live demo on OANDA practice):
     PYTHONPATH=/home/andre2/src/GX1_ENGINE python3 \\
-        gx1/execution/v12_paper_runner.py [--asia-skip] [--max-spread-bps N]
+        gx1/execution/v12_paper_runner.py --asia-skip --max-trades 5 --units 1
+
+V12.4 lockdown: Strategy-F params are hardcoded in v12_exit_iql_live.py.
+GX1_MFE_GIVEBACK_* env vars are rejected (RuntimeError) — no env-side ablation.
 """
 from __future__ import annotations
 
@@ -51,13 +53,15 @@ from gx1.execution.oanda_credentials import load_oanda_credentials
 from gx1.execution.v12_live_features import LiveFeatureBuilder
 from gx1.execution.v12_pipeline import V12Pipeline
 from gx1.execution.v12_trade_state import TradeState
+from gx1.monitoring.trade_journal import TradeJournal
 
 LOG = logging.getLogger("v12_paper")
 INSTRUMENT = "XAU_USD"
 JOURNAL_DIR = Path("/home/andre2/GX1_DATA/reports/v12_paper_runs")
 COLLECTOR_DIR = Path("/home/andre2/GX1_DATA/reports/v12_live_data")
 CANONICAL_M1_DIR = Path("/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m1_bid_ask__CANONICAL")
-TRADE_STATE_FILE = JOURNAL_DIR / "open_trade_state.json"  # persistent open-trade marker
+TRADE_STATE_FILE = JOURNAL_DIR / "open_trade_state.json"  # LEGACY single-trade marker (migrated on startup)
+TRADE_STATE_DIR = JOURNAL_DIR / "open_trades"             # one JSON file per open virtual trade
 TRADE_ALERTS_FILE = Path("/home/andre2/TRADES_ALERTS.txt")  # easy-to-tail alerts file
 
 
@@ -75,6 +79,7 @@ DEFAULT_MAX_SPREAD_BPS = 10.0          # skip if spread > this
 DEFAULT_DEFAULT_UNITS = 1              # smallest position size for paper-trade
 DEFAULT_POLL_SECONDS = 10              # how often to check for new M1 close
 DEFAULT_QUOTE_MAX_AGE_SEC = 90.0       # treat quote as stale (market closed/halted) if older
+DEFAULT_MAX_TRADES = 1                 # max concurrent virtual trades held simultaneously
 ASIA_HOURS_UTC = range(0, 7)           # 00:00-07:00 UTC = Asia session
 
 
@@ -175,10 +180,15 @@ def attempt_market_entry(client: OandaClient, side: str,
         LOG.error(f"OANDA order call failed: {exc}")
         return {"status": "api_error", "reason": str(exc)}
 
-    # Parse response: OANDA returns {orderCreateTransaction, orderFillTransaction OR orderRejectTransaction, ...}
-    if "orderRejectTransaction" in response or "orderFillTransaction" not in response:
-        reject = response.get("orderRejectTransaction", {})
-        reason = reject.get("rejectReason", "UNKNOWN")
+    # Parse response: OANDA returns {orderCreateTransaction, orderFillTransaction} on success.
+    # On failure it returns one of: orderRejectTransaction (instrument/price errors) or
+    # orderCancelTransaction (e.g. INSUFFICIENT_MARGIN cancels post-creation).
+    if "orderRejectTransaction" in response or "orderCancelTransaction" in response \
+            or "orderFillTransaction" not in response:
+        reject = (response.get("orderRejectTransaction")
+                  or response.get("orderCancelTransaction") or {})
+        reason = (reject.get("rejectReason")
+                  or reject.get("reason") or "UNKNOWN")
         LOG.warning(f"REJECTED side={side} reason={reason}  cid={client_order_id}")
         return {"status": "rejected", "reason": reason, "client_order_id": client_order_id,
                  "raw": response}
@@ -190,6 +200,36 @@ def attempt_market_entry(client: OandaClient, side: str,
              "trade_id": fill.get("tradeOpened", {}).get("tradeID"),
              "client_order_id": client_order_id,
              "raw": response}
+
+
+def attempt_close_trade(client: OandaClient, trade: TradeState) -> dict[str, Any]:
+    """Close a specific virtual trade by its OANDA tradeID.
+
+    Works in both NETTING and HEDGING account modes: OANDA's
+    PUT /accounts/{id}/trades/{tradeID}/close endpoint closes only the units
+    associated with that tradeID, not the full netted position.
+
+    Falls back to a counter-direction market order if `trade.trade_id` is
+    missing (e.g. virtual dry-run trade) — best-effort, may net incorrectly
+    if multiple same-direction trades are open.
+    """
+    if trade.trade_id is None:
+        LOG.warning(f"close_trade: trade has no OANDA tradeID — using counter-market fallback")
+        close_side = "short" if trade.side == "long" else "long"
+        return attempt_market_entry(client, close_side, units=trade.units)
+    try:
+        response = client.close_trade(trade.trade_id)
+        fill = response.get("orderFillTransaction", {})
+        LOG.info(f"CLOSED trade_id={trade.trade_id} units={fill.get('units')}  "
+                  f"price={fill.get('price')}  pl={fill.get('pl')}")
+        return {"status": "closed",
+                 "trade_id": trade.trade_id,
+                 "fill_price": float(fill.get("price", 0) or 0),
+                 "realized_pl": float(fill.get("pl", 0) or 0),
+                 "raw": response}
+    except Exception as exc:
+        LOG.error(f"OANDA close_trade({trade.trade_id}) failed: {exc}")
+        return {"status": "api_error", "trade_id": trade.trade_id, "reason": str(exc)}
 
 
 # ── Journal — all decisions + outcomes for daily replay ──────────────────
@@ -217,6 +257,8 @@ def main() -> int:
     p.add_argument("--asia-skip", action="store_true",
                    help="Skip trades in Asia session (00:00-07:00 UTC)")
     p.add_argument("--units", type=int, default=DEFAULT_DEFAULT_UNITS)
+    p.add_argument("--max-trades", type=int, default=DEFAULT_MAX_TRADES,
+                   help="Max concurrent virtual trades held simultaneously (default: 1)")
     p.add_argument("--poll-seconds", type=int, default=DEFAULT_POLL_SECONDS)
     p.add_argument("--dry-run", action="store_true",
                    help="Don't actually send orders — just log what would happen (shadow mode)")
@@ -230,6 +272,8 @@ def main() -> int:
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s %(name)s [%(levelname)s] %(message)s",
                         datefmt="%Y-%m-%dT%H:%M:%SZ")
+    # Suppress noisy "Using legacy trade_id" warnings (we intentionally use trade_id mode).
+    logging.getLogger("gx1.monitoring.trade_journal").setLevel(logging.ERROR)
 
     creds = load_oanda_credentials()
     client = OandaClient(OandaClientConfig(api_key=creds.api_token,
@@ -241,7 +285,7 @@ def main() -> int:
     )
     LOG.info(f"V12 paper runner starting  env={creds.env}  account={creds.account_id}")
     LOG.info(f"  max_spread_bps={args.max_spread_bps}  asia_skip={args.asia_skip}  "
-             f"units={args.units}  dry_run={args.dry_run}")
+             f"units={args.units}  max_trades={args.max_trades}  dry_run={args.dry_run}")
     LOG.info(f"  feature_builder: 26-feature live snapshot (Phase A)")
 
     # Load full V12 pipeline (XGB v5 + V10 v3 + Entry-IQL v2 + Exit-IQL V12.1)
@@ -249,18 +293,39 @@ def main() -> int:
     pipeline = V12Pipeline.load_default()
     LOG.info("✓ V12 entry+exit stacks loaded — runner is live-wired")
 
+    # Structured trade journal — per-trade JSON + aggregate index CSV.
+    # Captures: entry_snapshot (V10/XGB context), feature_context,
+    # per-bar v12_bar_decisions (IQL+V3), execution_events (OANDA fills),
+    # exit_summary (realized PnL, MFE/MAE peaks).
+    journal = TradeJournal(
+        run_dir=JOURNAL_DIR,
+        run_tag=f"v12_paper_{args.journal_suffix or 'live'}_{datetime.now(timezone.utc).strftime('%Y%m%d')}",
+        header={"runner": "v12_paper_runner",
+                "env": creds.env,
+                "max_trades": args.max_trades,
+                "units": args.units,
+                "max_spread_bps": args.max_spread_bps,
+                "asia_skip": args.asia_skip,
+                "dry_run": args.dry_run},
+    )
+    LOG.info(f"  trade journal: {journal.journal_dir}")
+
     last_decision_minute = None
     consecutive_errors = 0
     last_stale_log_minute = None
 
-    # Resume any open trade from disk (survives runner crash/restart)
-    open_trade: TradeState | None = TradeState.load(TRADE_STATE_FILE)
-    if open_trade is not None:
-        LOG.info(f"resumed open trade from {TRADE_STATE_FILE}: "
-                  f"side={open_trade.side} bars={open_trade.bars_in_trade} "
-                  f"entry_ts={open_trade.entry_ts}  pnl={open_trade.current_pnl_bps:+.1f} bps")
+    # Resume any open trades from disk (survives runner crash/restart).
+    # Auto-migrates legacy single-file state into the per-trade directory.
+    open_trades: list[TradeState] = TradeState.load_all(
+        TRADE_STATE_DIR, legacy_single_file=TRADE_STATE_FILE,
+    )
+    if open_trades:
+        for t in open_trades:
+            LOG.info(f"resumed open trade {t.trade_id or '(no-id)'}: "
+                      f"side={t.side} bars={t.bars_in_trade} "
+                      f"entry_ts={t.entry_ts}  pnl={t.current_pnl_bps:+.1f} bps")
     else:
-        LOG.info(f"no open trade state at {TRADE_STATE_FILE} — starting fresh")
+        LOG.info(f"no open trades in {TRADE_STATE_DIR} — starting fresh")
 
     while True:
         try:
@@ -305,66 +370,135 @@ def main() -> int:
                 "bid": bid, "ask": ask, "spread_bps": spread_bps,
                 "allowed": allowed, "gate_reason": reason,
                 "features": live_feats,
-                "has_open_trade": open_trade is not None,
+                "n_open_trades": len(open_trades),
+                "max_trades": args.max_trades,
+                "has_open_trade": len(open_trades) > 0,   # back-compat for analytics
             }
 
-            # ── EXIT branch: open trade → run Exit-IQL V12.1 per M1 ──
-            if open_trade is not None:
-                m1_close = (bid + ask) / 2.0   # mid as proxy for M1 close until next collector tick
+            # ── EXIT branch: iterate all open trades, evaluate each per M1 ──
+            m1_close = (bid + ask) / 2.0   # mid as proxy for M1 close
+            per_trade_records: list[dict[str, Any]] = []
+            survivors: list[TradeState] = []
+            for trade in open_trades:
                 exit_decision = make_v12_exit_decision(
-                    pipeline, open_trade, current_minute, bid, ask, m1_close,
+                    pipeline, trade, current_minute, bid, ask, m1_close,
                 )
-                event["v12_exit_decision"] = exit_decision
-                event["trade_open_ts"] = open_trade.entry_ts.isoformat()
-                event["trade_side"] = open_trade.side
-                event["trade_bars"] = open_trade.bars_in_trade
-                event["trade_pnl_bps"] = open_trade.current_pnl_bps
-                event["trade_peak_bps"] = open_trade.cum_mfe_bps
-                event["trade_mae_bps"] = open_trade.cum_mae_bps
+                record = {
+                    "trade_id": trade.trade_id,
+                    "side": trade.side,
+                    "entry_ts": trade.entry_ts.isoformat(),
+                    "bars_in_trade": trade.bars_in_trade,
+                    "units": trade.units,
+                    "pnl_bps": trade.current_pnl_bps,
+                    "peak_bps": trade.cum_mfe_bps,
+                    "mae_bps": trade.cum_mae_bps,
+                    "exit_decision": exit_decision,
+                }
 
                 if exit_decision.get("action_id") == 1:   # EXIT_NOW
-                    event["order_status"] = "EXIT_NOW"
+                    record["order_status"] = "EXIT_NOW"
                     write_trade_alert(
-                        f"EXIT  side={open_trade.side}  bars={open_trade.bars_in_trade}  "
-                        f"pnl={open_trade.current_pnl_bps:+.1f} bps  peak={open_trade.cum_mfe_bps:+.1f}  "
-                        f"mae={open_trade.cum_mae_bps:+.1f}  source={exit_decision.get('decision_source','IQL_Q')}"
+                        f"EXIT  trade_id={trade.trade_id}  side={trade.side}  "
+                        f"bars={trade.bars_in_trade}  "
+                        f"pnl={trade.current_pnl_bps:+.1f} bps  peak={trade.cum_mfe_bps:+.1f}  "
+                        f"mae={trade.cum_mae_bps:+.1f}  source={exit_decision.get('decision_source','IQL_Q')}"
                     )
                     if args.dry_run:
-                        LOG.info(f"[DRY] EXIT_NOW after {open_trade.bars_in_trade} bars  "
-                                  f"pnl={open_trade.current_pnl_bps:+.1f} bps  side={open_trade.side}")
+                        LOG.info(f"[DRY] EXIT_NOW trade_id={trade.trade_id} after {trade.bars_in_trade} bars  "
+                                  f"pnl={trade.current_pnl_bps:+.1f} bps  side={trade.side}")
                     else:
-                        close_side = "short" if open_trade.side == "long" else "long"
-                        close_result = attempt_market_entry(client, close_side, units=args.units)
-                        event["close_order_details"] = close_result
-                    open_trade = None
-                    TRADE_STATE_FILE.unlink(missing_ok=True)   # delete persisted state
-                else:
-                    event["order_status"] = "HOLDING_TRADE"
-                    open_trade.save(TRADE_STATE_FILE)          # persist running state
-                # 24h hard cap fail-safe
-                if open_trade is not None and open_trade.bars_in_trade >= 1440:
-                    LOG.warning(f"24h cap reached — forced close")
-                    event["order_status"] = "FORCED_CLOSE_24H"
+                        close_result = attempt_close_trade(client, trade)
+                        record["close_order_details"] = close_result
+                    trade.delete_state_file(TRADE_STATE_DIR)
+                elif trade.bars_in_trade >= 1440:   # 24h hard cap
+                    LOG.warning(f"24h cap reached for trade {trade.trade_id} — forced close")
+                    record["order_status"] = "FORCED_CLOSE_24H"
                     if not args.dry_run:
-                        close_side = "short" if open_trade.side == "long" else "long"
-                        attempt_market_entry(client, close_side, units=args.units)
-                    open_trade = None
-                    TRADE_STATE_FILE.unlink(missing_ok=True)
+                        attempt_close_trade(client, trade)
+                    trade.delete_state_file(TRADE_STATE_DIR)
+                else:
+                    record["order_status"] = "HOLDING_TRADE"
+                    trade.save(TRADE_STATE_DIR)
+                    survivors.append(trade)
 
+                # ── TradeJournal: per-bar V12 decision capture ──
+                if trade.trade_id:
+                    journal.log_v12_bar_decision(
+                        trade_id=trade.trade_id,
+                        timestamp=current_minute.isoformat(),
+                        bars_in_trade=trade.bars_in_trade,
+                        bid=bid, ask=ask,
+                        current_pnl_bps=trade.current_pnl_bps,
+                        cum_mfe_bps=trade.cum_mfe_bps,
+                        cum_mae_bps=trade.cum_mae_bps,
+                        bars_since_mfe_peak=trade.bars_since_mfe_peak,
+                        atr_bps=trade.last_atr_bps,
+                        iql_action=exit_decision.get("action", "?"),
+                        iql_action_id=int(exit_decision.get("action_id", 0)),
+                        iql_decision_source=exit_decision.get("decision_source", "?"),
+                        iql_q_hold=exit_decision.get("q_hold"),
+                        iql_q_exit=exit_decision.get("q_exit"),
+                        iql_q_advantage=exit_decision.get("q_advantage"),
+                        v3_should_exit_prob=exit_decision.get("v3_should_exit_prob"),
+                        v3_max_prob_in_trade=trade.v3_max_prob_in_trade,
+                        v3_consecutive_exits=trade.v3_consecutive_exits,
+                        v3_total_exit_decisions=trade.v3_total_exit_decisions,
+                        v3_signal_acceleration=trade.v3_signal_acceleration,
+                    )
+                    # On EXIT_NOW or 24h cap: also log exit_summary
+                    if record.get("order_status") in ("EXIT_NOW", "FORCED_CLOSE_24H"):
+                        close_result = record.get("close_order_details") or {}
+                        exit_price = float(close_result.get("fill_price", 0.0) or
+                                            (bid if trade.side == "long" else ask))
+                        realized_pnl = float(close_result.get("realized_pl", 0.0))
+                        journal.log_oanda_trade_update(
+                            trade_id=trade.trade_id,
+                            event_type="TRADE_CLOSED_OANDA",
+                            oanda_trade_id=trade.trade_id,
+                            price=exit_price, units=trade.units, pl=realized_pnl,
+                        )
+                        journal.log_exit_summary(
+                            trade_id=trade.trade_id,
+                            exit_time=current_minute.isoformat(),
+                            exit_price=exit_price,
+                            exit_bid=bid, exit_ask=ask,
+                            exit_spread_bps=spread_bps,
+                            exit_reason=record["order_status"],
+                            realized_pnl_bps=float(trade.current_pnl_bps),
+                            max_mfe_bps=float(trade.cum_mfe_bps),
+                            max_mae_bps=float(trade.cum_mae_bps),
+                            intratrade_drawdown_bps=float(trade.cum_mfe_bps - trade.current_pnl_bps),
+                        )
+                per_trade_records.append(record)
+            open_trades = survivors
+            event["open_trade_records"] = per_trade_records
+            # Back-compat top-level fields when exactly one trade was active
+            if len(per_trade_records) == 1:
+                r0 = per_trade_records[0]
+                event["v12_exit_decision"] = r0["exit_decision"]
+                event["trade_open_ts"] = r0["entry_ts"]
+                event["trade_side"] = r0["side"]
+                event["trade_bars"] = r0["bars_in_trade"]
+                event["trade_pnl_bps"] = r0["pnl_bps"]
+                event["trade_peak_bps"] = r0["peak_bps"]
+                event["trade_mae_bps"] = r0["mae_bps"]
+                event["order_status"] = r0["order_status"]
+
+            # ── ENTRY branch: if room for more trades, evaluate XGB→V10→Entry-IQL ──
+            if len(open_trades) >= args.max_trades:
+                event.setdefault("order_status", "AT_MAX_TRADES")
                 log_journal_event(daily_journal_path(args.journal_suffix), event)
                 last_decision_minute = current_minute
                 consecutive_errors = 0
                 time.sleep(args.poll_seconds)
                 continue
 
-            # ── ENTRY branch: no open trade → run XGB→V10→Entry-IQL ──
             decision = make_v12_decision(pipeline, current_minute, bid, ask)
             event["v12_decision"] = decision
 
             if not allowed:
                 # Gate blocked the order (spread/asia) — but log V12's intent for counterfactual analysis
                 event["order_status"] = "BLOCKED_BY_GATE"
-                # Flag high-conviction opportunities even when blocked (direction-aware)
                 adv_long = float(decision.get("advantage_over_skip_long", 0.0))
                 adv_short = float(decision.get("advantage_over_skip_short", 0.0))
                 event["high_conviction_blocked"] = (adv_long >= 50.0 or adv_short >= 50.0)
@@ -378,39 +512,120 @@ def main() -> int:
                 side = "long" if decision["action"] == "TAKE_LONG_NOW" else "short"
                 if args.dry_run:
                     event["order_status"] = "DRY_RUN"
+                    virtual_id = f"virtual_{current_minute.strftime('%Y%m%dT%H%M%S')}"
+                    new_trade = TradeState.open(
+                        entry_ts=pd.Timestamp(current_minute),
+                        side=side, entry_bid=bid, entry_ask=ask,
+                        v10_snapshot=decision.get("_v10_snapshot", {}),
+                        trade_id=virtual_id, units=args.units,
+                    )
+                    new_trade.save(TRADE_STATE_DIR)
+                    open_trades.append(new_trade)
+                    LOG.info(f"[DRY] virtual trade opened  side={side}  id={virtual_id}")
                 else:
                     order_result = attempt_market_entry(client, side, units=args.units)
                     event["order_status"] = order_result["status"]
                     event["order_details"] = order_result
                     if order_result.get("status") == "filled":
-                        # Open virtual trade with the entry quote (use current bid/ask
-                        # snapshot since OANDA fill_price collapses bid/ask).
-                        open_trade = TradeState.open(
+                        new_trade = TradeState.open(
                             entry_ts=pd.Timestamp(current_minute),
                             side=side, entry_bid=bid, entry_ask=ask,
                             v10_snapshot=decision.get("_v10_snapshot", {}),
+                            trade_id=str(order_result.get("trade_id") or ""),
+                            units=args.units,
                         )
-                        open_trade.save(TRADE_STATE_FILE)   # persist immediately
+                        new_trade.save(TRADE_STATE_DIR)
+                        open_trades.append(new_trade)
+
+                        # ── TradeJournal: log entry lifecycle ──
+                        if new_trade.trade_id:
+                            v10 = decision.get("_v10_snapshot") or {}
+                            journal.log_order_submitted(
+                                trade_id=new_trade.trade_id,
+                                instrument=INSTRUMENT, side=side,
+                                units=args.units, order_type="MARKET",
+                                client_order_id=order_result.get("client_order_id"),
+                                oanda_env=creds.env,
+                            )
+                            journal.log_order_filled(
+                                trade_id=new_trade.trade_id,
+                                oanda_trade_id=new_trade.trade_id,
+                                fill_price=order_result.get("fill_price"),
+                                fill_units=args.units,
+                            )
+                            journal.log_entry_snapshot(
+                                trade_id=new_trade.trade_id,
+                                entry_time=current_minute.isoformat(),
+                                instrument=INSTRUMENT, side=side,
+                                entry_price=float(order_result.get("fill_price") or
+                                                  (ask if side == "long" else bid)),
+                                entry_bid=bid, entry_ask=ask,
+                                entry_spread_bps=spread_bps,
+                                entry_model_version="V12.1.1_NO_TRAIL",
+                                entry_score={
+                                    "q_take_long": float(decision.get("q_take_long", 0.0)),
+                                    "q_take_short": float(decision.get("q_take_short", 0.0)),
+                                    "q_skip": float(decision.get("q_skip", 0.0)),
+                                    "advantage_over_skip": float(decision.get("advantage_over_skip", 0.0)),
+                                    "advantage_over_skip_long": float(decision.get("advantage_over_skip_long", 0.0)),
+                                    "advantage_over_skip_short": float(decision.get("advantage_over_skip_short", 0.0)),
+                                    "v10_p_long": float(decision.get("v10_p_long", 0.0)),
+                                    "v10_p_short": float(decision.get("v10_p_short", 0.0)),
+                                    "v10_path_quality_pred": float(decision.get("v10_path_quality_pred", 0.0)),
+                                    "v10_mfe_pred_at_entry": float(decision.get("v10_mfe_pred_at_entry", 0.0)),
+                                    "v10_tradable_prob": float(decision.get("v10_tradable_prob", 0.0)),
+                                    "v10_bad_path_prob": float(decision.get("v10_bad_path_prob", 0.0)),
+                                    "decision_ts": str(decision.get("decision_ts", "")),
+                                },
+                                entry_filters_passed=["spread_ok", "v12_take"],
+                                base_units=args.units, units=args.units,
+                                atr_bps=v10.get("atr_bps"),
+                                spread_bps=spread_bps,
+                            )
+                            journal.log_feature_context(
+                                trade_id=new_trade.trade_id,
+                                spread_pct=spread_bps / 10000.0,
+                                candle_close=(bid + ask) / 2.0,
+                            )
+                            journal.log_oanda_trade_update(
+                                trade_id=new_trade.trade_id,
+                                event_type="TRADE_OPENED_OANDA",
+                                oanda_trade_id=new_trade.trade_id,
+                                price=float(order_result.get("fill_price") or ask),
+                                units=args.units,
+                            )
+
                         write_trade_alert(
-                            f"OPEN  side={side}  entry={ask if side=='long' else bid:.2f}  "
-                            f"spread={spread_bps:.1f}bps  "
+                            f"OPEN  trade_id={new_trade.trade_id}  side={side}  "
+                            f"entry={ask if side=='long' else bid:.2f}  "
+                            f"spread={spread_bps:.1f}bps  units={args.units}  "
+                            f"open_count={len(open_trades)}/{args.max_trades}  "
                             f"v10_p_long={decision.get('v10_p_long', 0):.3f}  "
                             f"q_take={decision.get('q_take_long' if side=='long' else 'q_take_short', 0):+.1f}  "
-                            f"adv={decision.get('advantage_over_skip', 0):+.1f}bps  "
-                            f"trade_id={order_result.get('trade_id','?')}"
+                            f"adv={decision.get('advantage_over_skip', 0):+.1f}bps"
                         )
-                        LOG.info(f"opened trade  side={side}  entry={ask if side=='long' else bid}  "
-                                  f"v10_p_long={decision.get('v10_p_long', 0):.3f}  "
-                                  f"q_take={decision.get('q_take_long' if side=='long' else 'q_take_short', 0):+.1f}")
-                # In dry-run mode, also open a virtual trade for shadow exit-loop testing.
-                if args.dry_run:
-                    open_trade = TradeState.open(
-                        entry_ts=pd.Timestamp(current_minute),
-                        side=side, entry_bid=bid, entry_ask=ask,
-                        v10_snapshot=decision.get("_v10_snapshot", {}),
-                    )
-                    open_trade.save(TRADE_STATE_FILE)   # persist immediately
-                    LOG.info(f"[DRY] virtual trade opened  side={side}")
+                        LOG.info(f"opened trade  id={new_trade.trade_id}  side={side}  "
+                                  f"entry={ask if side=='long' else bid}  "
+                                  f"open_count={len(open_trades)}/{args.max_trades}  "
+                                  f"v10_p_long={decision.get('v10_p_long', 0):.3f}")
+                    elif order_result.get("status") in ("rejected", "api_error"):
+                        # Reject without a trade_id — log via run-level JSONL so reject stream
+                        # is preserved for triage even if no per-trade journal exists.
+                        journal.log(
+                            event_type="ORDER_REJECTED",
+                            payload={
+                                "ts_utc": current_minute.isoformat(),
+                                "side": side,
+                                "units": args.units,
+                                "reason": order_result.get("reason"),
+                                "client_order_id": order_result.get("client_order_id"),
+                                "v12_action": decision.get("action"),
+                                "advantage_over_skip": float(decision.get("advantage_over_skip", 0.0)),
+                                "v10_p_long": float(decision.get("v10_p_long", 0.0)),
+                                "bid": bid, "ask": ask,
+                                "n_open_trades": len(open_trades),
+                            },
+                        )
             else:
                 # SKIP — flag if V12 would have had >50 bps Q-advantage on either side
                 adv_long = float(decision.get("advantage_over_skip_long", 0.0))

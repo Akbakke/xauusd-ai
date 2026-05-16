@@ -1496,7 +1496,14 @@ def _attach_labels_to_exit_records(
 if TORCH_AVAILABLE:
 
     class ExitTransformerV0(nn.Module):
-        """Small transformer encoder: input (B, T, D) -> EXIT prob (B,)."""
+        """Small transformer encoder: input (B, T, D) -> EXIT prob (B,).
+
+        V12.2 multi-TF mode: when enable_multi_tf=True, the model takes 5
+        additional per-TF inputs (M5/M15/H1/H4/D1) and fuses them with the
+        base M1 sequence's last token via a second-stage MLP. When disabled
+        (default), state_dict matches v8 exactly so existing v8 bundles load
+        with strict=True.
+        """
 
         def __init__(
             self,
@@ -1508,6 +1515,31 @@ if TORCH_AVAILABLE:
             dropout: float = 0.1,
             family_head_dim: int = len(EXIT_AUX_FAMILY_NAMES),
             profit_protect_head_dim: int = 1,
+            # ── V12.2 multi-TF (default OFF — v8-bit-identical) ──
+            # When enabled, model expects all 5 TF tensors in forward().
+            # Base sequence is M1 (window_len=512 by default), so M5 is added
+            # here as a NEW stream (not present in V10 multi-TF since V10's
+            # base IS M5). Coverage at default lengths: M5=8h, M15=24h,
+            # H1=4d, H4=16d, D1=~3mo.
+            enable_multi_tf: bool = False,
+            m5_seq_dim: int = 0,
+            m15_seq_dim: int = 0,
+            h1_seq_dim: int = 0,
+            h4_seq_dim: int = 0,
+            d1_seq_dim: int = 0,
+            m5_seq_len: int = 96,
+            m15_seq_len: int = 96,
+            h1_seq_len: int = 96,
+            h4_seq_len: int = 96,
+            d1_seq_len: int = 96,
+            multi_tf_num_layers: int = 2,
+            multi_tf_scale: float = 0.5,
+            # ── Distillation Q-head (V13 prep) ────────────────────────
+            # When enabled, adds nn.Linear(d_model, 2) producing q_per_action
+            # mirroring Exit-IQL Q-values [q_hold, q_exit]. Zero-init for
+            # stable baseline output. State-dict matches v_FIXED exactly when
+            # disabled (no params added).
+            enable_q_head: bool = False,
         ):
             super().__init__()
             self.input_dim = input_dim
@@ -1515,6 +1547,7 @@ if TORCH_AVAILABLE:
             self.d_model = d_model
             self.family_head_dim = int(family_head_dim)
             self.profit_protect_head_dim = int(profit_protect_head_dim)
+            self.enable_q_head = bool(enable_q_head)
             self.proj = nn.Linear(input_dim, d_model)
             enc = nn.TransformerEncoderLayer(
                 d_model=d_model,
@@ -1525,26 +1558,106 @@ if TORCH_AVAILABLE:
                 batch_first=True,
             )
             self.transformer = nn.TransformerEncoder(enc, num_layers=n_layers)
+
+            # ── Multi-TF (V12.2) — only built when enabled ──
+            self.enable_multi_tf = bool(enable_multi_tf)
+            if self.enable_multi_tf:
+                if min(m5_seq_dim, m15_seq_dim, h1_seq_dim, h4_seq_dim, d1_seq_dim) <= 0:
+                    raise RuntimeError(
+                        f"MULTI_TF_DIM_INVALID: all of m5/m15/h1/h4/d1_seq_dim must be >0. "
+                        f"Got m5={m5_seq_dim} m15={m15_seq_dim} h1={h1_seq_dim} "
+                        f"h4={h4_seq_dim} d1={d1_seq_dim}"
+                    )
+                self._mtf_dims = {
+                    "m5": int(m5_seq_dim), "m15": int(m15_seq_dim),
+                    "h1": int(h1_seq_dim), "h4": int(h4_seq_dim), "d1": int(d1_seq_dim),
+                }
+                self._mtf_lens = {
+                    "m5": int(m5_seq_len), "m15": int(m15_seq_len),
+                    "h1": int(h1_seq_len), "h4": int(h4_seq_len), "d1": int(d1_seq_len),
+                }
+                self.m5_proj = nn.Linear(int(m5_seq_dim), d_model)
+                self.m15_proj = nn.Linear(int(m15_seq_dim), d_model)
+                self.h1_proj = nn.Linear(int(h1_seq_dim), d_model)
+                self.h4_proj = nn.Linear(int(h4_seq_dim), d_model)
+                self.d1_proj = nn.Linear(int(d1_seq_dim), d_model)
+                def _mk_enc():
+                    layer = nn.TransformerEncoderLayer(
+                        d_model=d_model, nhead=n_heads, dim_feedforward=d_model * 4,
+                        dropout=dropout, activation="gelu", batch_first=True,
+                    )
+                    return nn.TransformerEncoder(layer, num_layers=int(multi_tf_num_layers))
+                self.m5_encoder = _mk_enc()
+                self.m15_encoder = _mk_enc()
+                self.h1_encoder = _mk_enc()
+                self.h4_encoder = _mk_enc()
+                self.d1_encoder = _mk_enc()
+                # V12.2 v2: ADDITIVE residual fusion. multi_tf_fuse operates
+                # ONLY on multi-TF pools (not on z_v8). Output is a correction
+                # added to z_v8 via multi_tf_scale. Zero-init last layer so
+                # initial correction ≈ 0 → model starts exactly as v8 baseline.
+                self.multi_tf_fuse = nn.Sequential(
+                    nn.Linear(5 * d_model, d_model),
+                    nn.GELU(),
+                    nn.Dropout(dropout),
+                    nn.Linear(d_model, d_model),
+                )
+                nn.init.zeros_(self.multi_tf_fuse[-1].bias)
+                nn.init.normal_(self.multi_tf_fuse[-1].weight, std=0.01)
+                self.register_buffer("multi_tf_scale", torch.tensor(float(multi_tf_scale)))
+
             self.head = nn.Linear(d_model, 1)
             self.profit_protect_head = nn.Linear(d_model, self.profit_protect_head_dim)
             self.family_head = nn.Linear(d_model, self.family_head_dim)
 
-        def forward(self, x: "torch.Tensor") -> "torch.Tensor":
-            return torch.sigmoid(self.forward_logits(x))
+            # ── Distillation Q-head (V13 prep) ────────────────────────
+            # Only instantiated when enable_q_head=True. Zero-init for stable
+            # baseline (no Q-signal) until KL-loss pulls it during training.
+            if self.enable_q_head:
+                self.q_head = nn.Linear(d_model, 2)  # [q_hold, q_exit]
+                nn.init.zeros_(self.q_head.weight)
+                nn.init.zeros_(self.q_head.bias)
 
-        def _encode(self, x: "torch.Tensor") -> "torch.Tensor":
+        def forward(self, x: "torch.Tensor", **mtf_kwargs) -> "torch.Tensor":
+            return torch.sigmoid(self.forward_logits(x, **mtf_kwargs))
+
+        def forward_q_per_action(self, x: "torch.Tensor", **mtf_kwargs) -> "torch.Tensor":
+            """Returns (B, 2) tensor [q_hold, q_exit]. Only valid if enable_q_head=True."""
+            if not self.enable_q_head:
+                raise RuntimeError("forward_q_per_action called but enable_q_head=False")
+            return self.q_head(self._encode(x, **mtf_kwargs))
+
+        def _encode(self, x: "torch.Tensor",
+                    seq_m5=None, seq_m15=None, seq_h1=None, seq_h4=None, seq_d1=None
+                    ) -> "torch.Tensor":
             h = self.proj(x)
             h = self.transformer(h)
-            return h[:, -1]
+            z_v8 = h[:, -1]   # base v8 pooling = last M1 token
+            if (self.enable_multi_tf
+                    and all(t is not None for t in (seq_m5, seq_m15, seq_h1, seq_h4, seq_d1))):
+                m5_pool = self.m5_encoder(self.m5_proj(seq_m5)).mean(dim=1)
+                m15_pool = self.m15_encoder(self.m15_proj(seq_m15)).mean(dim=1)
+                h1_pool = self.h1_encoder(self.h1_proj(seq_h1)).mean(dim=1)
+                h4_pool = self.h4_encoder(self.h4_proj(seq_h4)).mean(dim=1)
+                d1_pool = self.d1_encoder(self.d1_proj(seq_d1)).mean(dim=1)
+                # V12.2 v2: ADDITIVE residual. mtf_fuse on multi-TF only;
+                # output added to z_v8 with scale.
+                mtf_combined = torch.cat(
+                    [m5_pool, m15_pool, h1_pool, h4_pool, d1_pool], dim=1,
+                )
+                mtf_correction = self.multi_tf_fuse(mtf_combined)
+                scale = float(self.multi_tf_scale.item())
+                return z_v8 + scale * mtf_correction
+            return z_v8
 
-        def forward_logits(self, x: "torch.Tensor") -> "torch.Tensor":
-            return self.head(self._encode(x)).squeeze(-1)
+        def forward_logits(self, x: "torch.Tensor", **mtf_kwargs) -> "torch.Tensor":
+            return self.head(self._encode(x, **mtf_kwargs)).squeeze(-1)
 
-        def forward_profit_protect_logits(self, x: "torch.Tensor") -> "torch.Tensor":
-            return self.profit_protect_head(self._encode(x)).squeeze(-1)
+        def forward_profit_protect_logits(self, x: "torch.Tensor", **mtf_kwargs) -> "torch.Tensor":
+            return self.profit_protect_head(self._encode(x, **mtf_kwargs)).squeeze(-1)
 
-        def forward_family_logits(self, x: "torch.Tensor") -> "torch.Tensor":
-            return self.family_head(self._encode(x))
+        def forward_family_logits(self, x: "torch.Tensor", **mtf_kwargs) -> "torch.Tensor":
+            return self.family_head(self._encode(x, **mtf_kwargs))
 
 else:
     ExitTransformerV0 = None  # type: ignore
@@ -1587,6 +1700,28 @@ def save_exit_transformer_artifacts(
         "exit_ml_io_version": str(contract["io_version"]),
         "feature_names_hash": str(feature_names_hash or contract["feature_hash"]),
     }
+
+    # V12.2: serialize multi-TF config so the bundle can be reloaded as
+    # multi-TF at live inference time. Inferred from the model class itself —
+    # v8 models (no multi-TF) will write enabled=False.
+    enable_mtf = bool(getattr(model, "enable_multi_tf", False))
+    mtf_dims = getattr(model, "_mtf_dims", None) or {}
+    mtf_lens = getattr(model, "_mtf_lens", None) or {}
+    cfg["multi_tf"] = {
+        "enabled": enable_mtf,
+        "m5_seq_dim": int(mtf_dims.get("m5", 0)) if enable_mtf else 0,
+        "m15_seq_dim": int(mtf_dims.get("m15", 0)) if enable_mtf else 0,
+        "h1_seq_dim": int(mtf_dims.get("h1", 0)) if enable_mtf else 0,
+        "h4_seq_dim": int(mtf_dims.get("h4", 0)) if enable_mtf else 0,
+        "d1_seq_dim": int(mtf_dims.get("d1", 0)) if enable_mtf else 0,
+        "m5_seq_len": int(mtf_lens.get("m5", 96)) if enable_mtf else 96,
+        "m15_seq_len": int(mtf_lens.get("m15", 96)) if enable_mtf else 96,
+        "h1_seq_len": int(mtf_lens.get("h1", 96)) if enable_mtf else 96,
+        "h4_seq_len": int(mtf_lens.get("h4", 96)) if enable_mtf else 96,
+        "d1_seq_len": int(mtf_lens.get("d1", 96)) if enable_mtf else 96,
+        "feature_contract": "MULTI_TF_PER_BAR_V1" if enable_mtf else None,
+    }
+
     cfg_path = out_dir / "exit_transformer_config.json"
     with open(cfg_path, "w", encoding="utf-8") as f:
         json.dump(cfg, f, indent=2)

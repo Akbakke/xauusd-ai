@@ -1244,6 +1244,73 @@ class TradeJournal:
             key_str = self._key(trade_uid=trade_uid, trade_id=trade_id) if (trade_uid or trade_id) else "UNKNOWN"
             logger.warning(f"[TRADE_JOURNAL] Failed to log {event_type} for key={key_str}: {e}")
     
+    def log_v12_bar_decision(
+        self,
+        trade_id: str,
+        timestamp: str,
+        bars_in_trade: int,
+        bid: float,
+        ask: float,
+        current_pnl_bps: float,
+        cum_mfe_bps: float,
+        cum_mae_bps: float,
+        iql_action: str,
+        iql_action_id: int,
+        iql_decision_source: str,
+        iql_q_hold: Optional[float] = None,
+        iql_q_exit: Optional[float] = None,
+        iql_q_advantage: Optional[float] = None,
+        v3_should_exit_prob: Optional[float] = None,
+        v3_max_prob_in_trade: Optional[float] = None,
+        v3_consecutive_exits: Optional[int] = None,
+        v3_total_exit_decisions: Optional[int] = None,
+        v3_signal_acceleration: Optional[float] = None,
+        v3_family_argmax: Optional[int] = None,
+        v3_family_logit_max: Optional[float] = None,
+        atr_bps: Optional[float] = None,
+        bars_since_mfe_peak: Optional[int] = None,
+        trade_uid: Optional[str] = None,
+    ) -> None:
+        """Log per-bar V12 decision context for retrospective trade analysis.
+
+        Captures everything Exit-IQL + V3 saw at this bar. Appended to a list
+        in the trade journal so the full bar-by-bar decision trace is preserved.
+
+        Use for: 'why did IQL hold at bar 23 when V3 was screaming?',
+        'what was MFE drawdown sequence?', 'when did V3 first signal exit?'.
+        """
+        if not self.enabled:
+            return
+        try:
+            trade_journal = self._get_trade_journal(trade_uid=trade_uid, trade_id=trade_id)
+            trade_journal.setdefault("v12_bar_decisions", []).append({
+                "timestamp": timestamp,
+                "bars_in_trade": bars_in_trade,
+                "bid": bid, "ask": ask,
+                "current_pnl_bps": current_pnl_bps,
+                "cum_mfe_bps": cum_mfe_bps,
+                "cum_mae_bps": cum_mae_bps,
+                "bars_since_mfe_peak": bars_since_mfe_peak,
+                "atr_bps": atr_bps,
+                "iql_action": iql_action,
+                "iql_action_id": iql_action_id,
+                "iql_decision_source": iql_decision_source,
+                "iql_q_hold": iql_q_hold,
+                "iql_q_exit": iql_q_exit,
+                "iql_q_advantage": iql_q_advantage,
+                "v3_should_exit_prob": v3_should_exit_prob,
+                "v3_max_prob_in_trade": v3_max_prob_in_trade,
+                "v3_consecutive_exits": v3_consecutive_exits,
+                "v3_total_exit_decisions": v3_total_exit_decisions,
+                "v3_signal_acceleration": v3_signal_acceleration,
+                "v3_family_argmax": v3_family_argmax,
+                "v3_family_logit_max": v3_family_logit_max,
+            })
+            self._write_trade_json(trade_uid=trade_uid, trade_id=trade_id)
+        except Exception as e:
+            key_str = self._key(trade_uid=trade_uid, trade_id=trade_id) if (trade_uid or trade_id) else "UNKNOWN"
+            logger.warning(f"[TRADE_JOURNAL] Failed to log v12 bar decision for key={key_str}: {e}")
+
     def close(self) -> None:
         """Close journal and flush all pending writes."""
         # Write any remaining trade JSONs

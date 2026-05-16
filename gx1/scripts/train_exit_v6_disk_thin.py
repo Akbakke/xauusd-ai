@@ -56,6 +56,9 @@ from gx1.exits.training.disk_labeled_dataset import (
 )
 from gx1.policy.exit_transformer_v0 import ExitTransformerV0
 from gx1.exits.contracts.registry import get_exit_io_contract
+# V12.2 multi-TF feature contract (imported unconditionally — used in
+# both v8 and v9 config-save paths, value is 19).
+from gx1.features.htf_features import MULTI_TF_FEATURE_COUNT
 
 # Reuse the existing v6 components (same training math, same loss / EMA / scheduler).
 from gx1.scripts.train_exit_v6_thin_records import (
@@ -157,7 +160,20 @@ def main() -> None:
                              "= less pickle buffer pressure. Default 4 (was 16 in v6 in-memory).")
     parser.add_argument("--smoke-trades-per-split", type=int, default=None,
                         help="If set, truncate each split to N trades for smoke testing.")
+    # V12.2 multi-TF (default OFF — produces v8-bit-identical bundles)
+    parser.add_argument("--enable-multi-tf", action="store_true",
+                        help="V12.2: enable multi-TF input (M5/M15/H1/H4/D1). "
+                             "Requires --m5-prebuilt-path. Bundle becomes V3 v9.")
+    parser.add_argument("--m5-prebuilt-path", type=str, default=None,
+                        help="V12.2: path to canonical_v3 M5 OHLC parquet for "
+                             "resampling H1/H4/D1 features (and M5 series).")
+    parser.add_argument("--multi-tf-seq-len", type=int, default=96,
+                        help="V12.2: bars per TF (default 96).")
+    parser.add_argument("--multi-tf-scale", type=float, default=0.5,
+                        help="V12.2: multi-TF pool scale in cross-fusion.")
     args = parser.parse_args()
+    if args.enable_multi_tf and not args.m5_prebuilt_path:
+        parser.error("--enable-multi-tf requires --m5-prebuilt-path")
 
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
@@ -266,18 +282,50 @@ def main() -> None:
     train_pos = scan_labeled_pos_rate(train_jsonl, train_offsets[:50000])  # bound the scan
     print(f"[{ACTION}] train should_exit pos_rate (sampled): {train_pos:.4f}", flush=True)
 
+    # V12.2: pre-build multi-TF feature tables (M5/M15/H1/H4/D1) from canonical_v3
+    # M5 prebuilt. Resample once, cache in memory, share across train/val/test datasets.
+    mtf_feats: Optional[Dict[str, Any]] = None
+    mtf_shift: Optional[Dict[str, Any]] = None
+    if args.enable_multi_tf:
+        from gx1.features.htf_features import (
+            build_multi_tf_per_bar_features,
+            MULTI_TF_SHIFT, MULTI_TF_FEATURE_COUNT,
+        )
+        import pandas as _pd
+        print(f"[{ACTION}] V12.2: pre-building multi-TF features from {args.m5_prebuilt_path}", flush=True)
+        m5 = _pd.read_parquet(args.m5_prebuilt_path,
+                               columns=["time", "open", "high", "low", "close"])
+        m5["time"] = _pd.to_datetime(m5["time"], utc=True)
+        m5 = m5.set_index("time").sort_index()
+        for c in ("open", "high", "low", "close"):
+            m5[c] = m5[c].astype(np.float32)
+        mtf_feats = build_multi_tf_per_bar_features(m5)
+        mtf_shift = MULTI_TF_SHIFT
+        del m5
+        import gc; gc.collect()
+        for tf, df in mtf_feats.items():
+            print(f"[{ACTION}]   {tf}: {len(df):,} bars × {df.shape[1]} feats", flush=True)
+
     # Stage 6: build datasets.
+    _mtf_kwargs = (
+        dict(multi_tf_feats=mtf_feats, multi_tf_shift=mtf_shift,
+              multi_tf_seq_len=int(args.multi_tf_seq_len))
+        if args.enable_multi_tf else {}
+    )
     train_ds = DiskMultiTaskThinDataset(
         base, labeled_jsonl=train_jsonl, record_offsets=train_offsets,
         side_weights=side_weights,
+        **_mtf_kwargs,
     )
     val_ds = DiskMultiTaskThinDataset(
         base, labeled_jsonl=val_jsonl, record_offsets=val_offsets,
         side_weights=None,  # eval doesn't need side balance
+        **_mtf_kwargs,
     )
     test_ds = DiskMultiTaskThinDataset(
         base, labeled_jsonl=test_jsonl, record_offsets=test_offsets,
         side_weights=None,
+        **_mtf_kwargs,
     )
     print(
         f"[{ACTION}] datasets ready: train={len(train_ds):,} val={len(val_ds):,} "
@@ -299,10 +347,25 @@ def main() -> None:
     )
 
     # Stage 7: model.
+    _model_mtf_kwargs = {}
+    if args.enable_multi_tf:
+        _mtf_dim = int(MULTI_TF_FEATURE_COUNT)
+        _model_mtf_kwargs = dict(
+            enable_multi_tf=True,
+            m5_seq_dim=_mtf_dim, m15_seq_dim=_mtf_dim,
+            h1_seq_dim=_mtf_dim, h4_seq_dim=_mtf_dim, d1_seq_dim=_mtf_dim,
+            m5_seq_len=int(args.multi_tf_seq_len), m15_seq_len=int(args.multi_tf_seq_len),
+            h1_seq_len=int(args.multi_tf_seq_len), h4_seq_len=int(args.multi_tf_seq_len),
+            d1_seq_len=int(args.multi_tf_seq_len),
+            multi_tf_scale=float(args.multi_tf_scale),
+        )
+        print(f"[{ACTION}] V12.2 model: multi-TF M5/M15/H1/H4/D1 "
+              f"dim={_mtf_dim} len={args.multi_tf_seq_len} scale={args.multi_tf_scale}", flush=True)
     model = ExitTransformerV0(
         input_dim=int(base.input_dim), window_len=int(base.window_len),
         d_model=int(args.d_model), n_heads=int(args.n_heads), n_layers=int(args.n_layers),
         dropout=float(args.dropout),
+        **_model_mtf_kwargs,
     ).to(device)
     n_params = sum(p.numel() for p in model.parameters())
     print(
@@ -428,6 +491,23 @@ def main() -> None:
         "exit_ml_io_version": str(contract["io_version"]),
         "feature_names_hash": str(contract["feature_hash"]),
         "feature_count": int(contract["feature_count"]),
+    }
+    # V12.2: serialize multi-TF marker so live inference re-instantiates model
+    # with multi-TF support. v8 bundles will have enabled=False (default).
+    config["multi_tf"] = {
+        "enabled": bool(args.enable_multi_tf),
+        "m5_seq_dim": int(MULTI_TF_FEATURE_COUNT) if args.enable_multi_tf else 0,
+        "m15_seq_dim": int(MULTI_TF_FEATURE_COUNT) if args.enable_multi_tf else 0,
+        "h1_seq_dim": int(MULTI_TF_FEATURE_COUNT) if args.enable_multi_tf else 0,
+        "h4_seq_dim": int(MULTI_TF_FEATURE_COUNT) if args.enable_multi_tf else 0,
+        "d1_seq_dim": int(MULTI_TF_FEATURE_COUNT) if args.enable_multi_tf else 0,
+        "m5_seq_len": int(args.multi_tf_seq_len),
+        "m15_seq_len": int(args.multi_tf_seq_len),
+        "h1_seq_len": int(args.multi_tf_seq_len),
+        "h4_seq_len": int(args.multi_tf_seq_len),
+        "d1_seq_len": int(args.multi_tf_seq_len),
+        "feature_contract": "MULTI_TF_PER_BAR_V1" if args.enable_multi_tf else None,
+        "multi_tf_scale": float(args.multi_tf_scale),
     }
     (bundle_dir / "transformer_config.json").write_text(json.dumps(config, indent=2))
 

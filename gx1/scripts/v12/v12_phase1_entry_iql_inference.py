@@ -17,6 +17,7 @@ Run:
 """
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 import time
@@ -30,30 +31,46 @@ import pyarrow.parquet as pq
 sys.path.insert(0, "/home/andre2/src/GX1_ENGINE")
 from gx1.runtime.entry_iql_v2_adapter import EntryIQLV2Adapter  # noqa: E402
 
-ENTRY_IQL_LOCK = Path(
+DEFAULT_ENTRY_IQL_LOCK = Path(
     "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/"
-    "BUILD_ENTRY_IQL_V2_20260506T195420Z_LOCK"
+    "BUILD_ENTRY_IQL_V2_V12_2_20260514T161504Z_R4_LOCK"
 )
-FORWARD_OUTCOME_DIR = Path(
+DEFAULT_FORWARD_OUTCOME_DIR = Path(
     "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/"
     "CANDIDATE_FORWARD_OUTCOME_RUN/v1_full/per_week"
 )
-OUT_DIR = Path(
-    "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/"
-    f"ENTRY_IQL_INFERENCE_FOR_V12_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
-)
+DEFAULT_OUT_ROOT = Path("/home/andre2/GX1_DATA/reports/truth_e2e_sanity")
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description="V12 Phase 1 — Entry-IQL v2 inference")
+    parser.add_argument("--entry-iql-lock", type=str, default=str(DEFAULT_ENTRY_IQL_LOCK),
+                        help="Entry-IQL v2 trained-models LOCK dir (from materialize_build_entry_iql_v2.py).")
+    parser.add_argument("--forward-outcome-dir", type=str, default=str(DEFAULT_FORWARD_OUTCOME_DIR),
+                        help="Path to forward-outcome per_week dir (the dir CONTAINING the *.parquet shards).")
+    parser.add_argument("--out-root", type=str, default=str(DEFAULT_OUT_ROOT),
+                        help="Parent dir under which a ENTRY_IQL_INFERENCE_FOR_V12_<TS> dir is created.")
+    parser.add_argument("--variant", type=str, default="R_NET_REAL")
+    parser.add_argument("--fold-id", type=str, default="FOLD_1")
+    args = parser.parse_args()
+
+    ENTRY_IQL_LOCK = Path(args.entry_iql_lock)
+    FORWARD_OUTCOME_DIR = Path(args.forward_outcome_dir)
+    OUT_DIR = Path(args.out_root) / (
+        f"ENTRY_IQL_INFERENCE_FOR_V12_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
+    )
+
     print(f"V12 PHASE 1 — Entry-IQL v2 inference on forward-outcome candidates")
-    print(f"Output dir: {OUT_DIR}")
+    print(f"  ENTRY_IQL_LOCK       = {ENTRY_IQL_LOCK}")
+    print(f"  FORWARD_OUTCOME_DIR  = {FORWARD_OUTCOME_DIR}")
+    print(f"  Output dir           = {OUT_DIR}")
 
     # ── Adapter ──────────────────────────────────────────────────────────
     print(f"\n[0/3] Loading Entry-IQL v2 adapter...")
     adapter = EntryIQLV2Adapter.load(
         artifact_root=ENTRY_IQL_LOCK,
-        variant="R_NET_REAL",
-        fold_id="FOLD_1",
+        variant=args.variant,
+        fold_id=args.fold_id,
         aggregator="mean",
         beta=1.0,
         prefer_cuda=True,
@@ -139,8 +156,9 @@ def main() -> int:
     summary = {
         "run_at_utc": datetime.now(timezone.utc).isoformat(),
         "entry_iql_lock": str(ENTRY_IQL_LOCK),
-        "variant": "R_NET_REAL",
-        "fold_id": "FOLD_1",
+        "forward_outcome_dir": str(FORWARD_OUTCOME_DIR),
+        "variant": args.variant,
+        "fold_id": args.fold_id,
         "n_candidates_total": int(len(full)),
         "n_take": n_take,
         "action_dist": full["action_label_v1"].value_counts().to_dict(),

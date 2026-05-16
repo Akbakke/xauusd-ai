@@ -38,7 +38,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -55,8 +55,10 @@ from gx1.exits.contracts.exit_io_v6_ctx_v3canonical_m1l512 import (
 )
 
 ACTION = "SCORE_V3_V8_ON_PER_BAR_V1"
+# V12.2 (2026-05-15): default updated to V3 v9 multi-TF. The script
+# HARD-REQUIRES a multi-TF bundle; V8 (non-multi-TF) is deprecated.
 DEFAULT_V3_BUNDLE = Path(
-    "/home/andre2/GX1_DATA/models/exit_transformer_v0/EXIT_V8_DISK__BIDIR_2026Q2_CANONICAL_V3_20260506T185957Z"
+    "/home/andre2/GX1_DATA/models/exit_transformer_v0/EXIT_V9_MULTI_TF_LR5E4_SCALE025_20260513T223544Z"
 )
 DEFAULT_V3_DATASET_DIR = Path(
     "/home/andre2/GX1_DATA/data/training/exit_v3_v7_training_2020_2026_canonical_v3"
@@ -109,10 +111,36 @@ def load_v3_v8_model(bundle_dir: Path, device: torch.device) -> ExitTransformerV
         raise ValueError(f"V3 v8 input_dim={cfg['input_dim']} mismatch V6={expected_dim}")
     if cfg.get("exit_ml_io_version") != "EXIT_IO_V6_CTX_V3CANONICAL_M1L512":
         raise ValueError(f"V3 v8 io_version mismatch: {cfg.get('exit_ml_io_version')}")
+
+    # V12.2 (2026-05-15): multi-TF is now REQUIRED. Reject non-multi-TF bundles.
+    mtf_cfg = cfg.get("multi_tf", {}) or {}
+    enable_mtf = bool(mtf_cfg.get("enabled", False))
+    if not enable_mtf:
+        raise RuntimeError(
+            f"[V3 LOAD] bundle {bundle_dir.name} is NOT multi-TF "
+            f"(multi_tf.enabled={enable_mtf}). V12.2 hard-requires multi-TF. "
+            "Use V3 v9+ bundle or update transformer_config.json."
+        )
+    mtf_kwargs = dict(
+        enable_multi_tf=True,
+        m5_seq_dim=int(mtf_cfg["m5_seq_dim"]),
+        m15_seq_dim=int(mtf_cfg["m15_seq_dim"]),
+        h1_seq_dim=int(mtf_cfg["h1_seq_dim"]),
+        h4_seq_dim=int(mtf_cfg["h4_seq_dim"]),
+        d1_seq_dim=int(mtf_cfg["d1_seq_dim"]),
+        m5_seq_len=int(mtf_cfg["m5_seq_len"]),
+        m15_seq_len=int(mtf_cfg["m15_seq_len"]),
+        h1_seq_len=int(mtf_cfg["h1_seq_len"]),
+        h4_seq_len=int(mtf_cfg["h4_seq_len"]),
+        d1_seq_len=int(mtf_cfg["d1_seq_len"]),
+    )
+    print(f"[V3 LOAD] multi-TF bundle detected — model constructed with M5+M15+H1+H4+D1", flush=True)
+
     model = ExitTransformerV0(
         input_dim=cfg["input_dim"], window_len=cfg["window_len"],
         d_model=cfg["d_model"], n_heads=cfg["n_heads"], n_layers=cfg["n_layers"],
         dropout=cfg.get("dropout", 0.1),
+        **mtf_kwargs,
     )
     state_dict = torch.load(state_path, map_location=device, weights_only=True)
     model.load_state_dict(state_dict)
@@ -139,6 +167,9 @@ def score_week(
     week_parquet: Path, m1_feature_matrix: np.memmap, m1_time_ns: np.ndarray,
     model: ExitTransformerV0, device: torch.device, batch_size: int,
     out_path: Path,
+    multi_tf_feats: Optional[Dict[str, Any]] = None,
+    multi_tf_shift: Optional[Dict[str, Any]] = None,
+    multi_tf_seq_len: int = 96,
 ) -> Dict[str, int]:
     df = pd.read_parquet(week_parquet)
     n_rows = len(df)
@@ -164,21 +195,74 @@ def score_week(
     grouped = df.groupby("candidate_uid", sort=False)
     pending_x: List[np.ndarray] = []
     pending_idx: List[int] = []
+    # V12.2: per-pending timestamp (only used when multi-TF is enabled).
+    # We collect bar_ts_ns alongside io windows, then slice multi-TF windows
+    # batched in flush_batch.
+    pending_ts_ns: List[int] = []
+
+    enable_mtf = bool(getattr(model, "enable_multi_tf", False))
+    if enable_mtf and (multi_tf_feats is None or multi_tf_shift is None):
+        raise RuntimeError(
+            "[score_v3_v8] V3 bundle is multi-TF but multi_tf_feats/multi_tf_shift "
+            "are None. Caller (main) must pre-build features from M5 prebuilt "
+            "(via build_multi_tf_per_bar_features) and pass them in."
+        )
+
+    # Cache: precompute pandas Timedelta → int64 ns for fast slicing
+    _mtf_shift_ns: Dict[str, int] = {}
+    if enable_mtf:
+        _mtf_shift_ns = {tf: int(td.value) for tf, td in multi_tf_shift.items()}
+
+    def _build_mtf_batch(ts_ns_list: List[int]) -> Dict[str, torch.Tensor]:
+        """Vectorized multi-TF batch slicing — uses pre-computed feats.attrs
+        (ts_int64 + feats_np) and a vectorized searchsorted per TF, instead of
+        the per-item pd.Timestamp + get_last_n_at_or_before path (~5-10x faster
+        for B=256). The inner B-loop is unavoidable because the right index
+        varies per item, but each iter is just a numpy slice (cheap)."""
+        ts_ns_arr = np.asarray(ts_ns_list, dtype=np.int64)
+        B = ts_ns_arr.shape[0]
+        out: Dict[str, torch.Tensor] = {}
+        for tf, feats in multi_tf_feats.items():
+            ts_int64 = feats.attrs["ts_int64"]
+            feats_np = feats.attrs["feats_np"]
+            D = feats_np.shape[1]
+            n = multi_tf_seq_len
+            shift_ns = _mtf_shift_ns[tf]
+            cutoffs = ts_ns_arr - shift_ns
+            right_idx = np.searchsorted(ts_int64, cutoffs, side="right")
+            stacked = np.zeros((B, n, D), dtype=np.float32)
+            for i in range(B):
+                r = int(right_idx[i])
+                if r <= 0:
+                    continue
+                left = r - n if r >= n else 0
+                tail = feats_np[left:r]
+                if tail.shape[0] < n:
+                    stacked[i, -tail.shape[0]:] = tail
+                else:
+                    stacked[i] = tail
+            out[f"seq_{tf.lower()}"] = torch.from_numpy(stacked).to(device, non_blocking=True)
+        return out
 
     def flush_batch() -> None:
         if not pending_x:
             return
         x = np.stack(pending_x, axis=0)
         x_t = torch.from_numpy(x).to(device, non_blocking=True)
-        h = model._encode(x_t)  # (B, d_model)
-        main_logit = model.head(h).squeeze(-1)
-        prof_logit = model.profit_protect_head(h).squeeze(-1)
-        fam_logits = model.family_head(h)  # (B, n_family)
+        mtf_kwargs = _build_mtf_batch(pending_ts_ns) if enable_mtf else {}
+        # V12.2 speedup: bfloat16 autocast on the heavy forward.
+        # ~1.5-2x throughput on Ampere/Hopper; V3 model is robust to mixed prec.
+        with torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=(device.type == "cuda")):
+            h = model._encode(x_t, **mtf_kwargs)   # (B, d_model)
+            main_logit = model.head(h).squeeze(-1)
+            prof_logit = model.profit_protect_head(h).squeeze(-1)
+            fam_logits = model.family_head(h)  # (B, n_family)
 
-        main_prob = torch.sigmoid(main_logit).cpu().numpy()
-        prof_prob = torch.sigmoid(prof_logit).cpu().numpy()
-        fam_argmax = torch.argmax(fam_logits, dim=-1).cpu().numpy()
-        fam_max = fam_logits.max(dim=-1).values.cpu().numpy()
+        # cast back to fp32 for stable sigmoid + argmax + cpu transfer
+        main_prob = torch.sigmoid(main_logit.float()).cpu().numpy()
+        prof_prob = torch.sigmoid(prof_logit.float()).cpu().numpy()
+        fam_argmax = torch.argmax(fam_logits.float(), dim=-1).cpu().numpy()
+        fam_max = fam_logits.float().max(dim=-1).values.cpu().numpy()
 
         for i, row_idx in enumerate(pending_idx):
             out_should[row_idx] = float(main_prob[i])
@@ -187,6 +271,7 @@ def score_week(
             out_family_max[row_idx] = float(fam_max[i])
         pending_x.clear()
         pending_idx.clear()
+        pending_ts_ns.clear()
 
     for cand_uid, trade_rows in grouped:
         n_trades += 1
@@ -225,6 +310,8 @@ def score_week(
 
             pending_x.append(io)
             pending_idx.append(int(abs_idx))
+            if enable_mtf:
+                pending_ts_ns.append(int(bar_ts_ns[abs_idx]))
             if len(pending_x) >= batch_size:
                 flush_batch()
     flush_batch()
@@ -250,7 +337,14 @@ def main() -> None:
     parser.add_argument("--out-root", type=str, required=True)
     parser.add_argument("--week", action="append", default=None,
                         help="Specific week stem to process (repeat). If unset, process all.")
-    parser.add_argument("--batch-size", type=int, default=256)
+    parser.add_argument("--batch-size", type=int, default=4096,
+                        help="V12.2: default 4096 — uses ~5GB GPU mem with bf16 autocast, "
+                             "leaves plenty of headroom on 24GB cards.")
+    # V12.2: only needed when V3 bundle is multi-TF (V3 v9+).
+    parser.add_argument("--m5-prebuilt-path", type=str, default=None,
+                        help="V12.2: canonical_v3 M5 prebuilt parquet, required when "
+                             "scoring with a multi-TF V3 bundle (auto-detected from cfg.multi_tf).")
+    parser.add_argument("--multi-tf-seq-len", type=int, default=96)
     args = parser.parse_args()
 
     bundle = Path(args.v3_bundle).expanduser().resolve()
@@ -267,6 +361,41 @@ def main() -> None:
     model = load_v3_v8_model(bundle, device)
     print(f"[{ACTION}] loaded V3 v8: input_dim={model.input_dim} window_len={model.window_len} "
           f"d_model={model.d_model}", flush=True)
+
+    # V12.2 speedup: torch.compile the _encode hot path. Dynamic=True handles
+    # the last-batch shorter-than-batch_size case without re-compilation.
+    if device.type == "cuda":
+        try:
+            compiled_encode = torch.compile(model._encode, mode="reduce-overhead", dynamic=True)
+            model._encode = compiled_encode  # type: ignore[method-assign]
+            print(f"[{ACTION}] torch.compile applied to model._encode (reduce-overhead, dynamic)", flush=True)
+        except Exception as e:
+            print(f"[{ACTION}] torch.compile FAILED ({e!r}) — falling back to eager", flush=True)
+
+    # V12.2: if multi-TF bundle, build features ONCE before week-loop.
+    mtf_feats = None
+    mtf_shift = None
+    if getattr(model, "enable_multi_tf", False):
+        if not args.m5_prebuilt_path:
+            raise RuntimeError(
+                "[score_v3_v8] V3 bundle is multi-TF — --m5-prebuilt-path is required."
+            )
+        from gx1.features.htf_features import (
+            build_multi_tf_per_bar_features, MULTI_TF_SHIFT,
+        )
+        print(f"[{ACTION}] V12.2: building multi-TF features from {args.m5_prebuilt_path}", flush=True)
+        m5 = pd.read_parquet(args.m5_prebuilt_path,
+                              columns=["time", "open", "high", "low", "close"])
+        m5["time"] = pd.to_datetime(m5["time"], utc=True)
+        m5 = m5.set_index("time").sort_index()
+        for c in ("open", "high", "low", "close"):
+            m5[c] = m5[c].astype(np.float32)
+        mtf_feats = build_multi_tf_per_bar_features(m5)
+        mtf_shift = MULTI_TF_SHIFT
+        del m5
+        import gc; gc.collect()
+        for tf, df in mtf_feats.items():
+            print(f"[{ACTION}]   {tf}: {len(df):,} bars × {df.shape[1]} feats", flush=True)
 
     print(f"[{ACTION}] loading m1_feature_matrix + m1_time_ns from {v3_ds}", flush=True)
     m1_feature_matrix = np.load(v3_ds / "m1_feature_matrix.npy", mmap_mode="r")
@@ -291,6 +420,9 @@ def main() -> None:
         stats = score_week(
             wp, m1_feature_matrix, m1_time_ns, model, device,
             args.batch_size, out_path,
+            multi_tf_feats=mtf_feats,
+            multi_tf_shift=mtf_shift,
+            multi_tf_seq_len=int(args.multi_tf_seq_len),
         )
         week_stats.append(stats)
         total_rows += stats["n_rows"]

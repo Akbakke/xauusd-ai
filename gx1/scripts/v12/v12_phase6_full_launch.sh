@@ -15,9 +15,11 @@ REPO=/home/andre2/src/GX1_ENGINE
 LOG_DIR=/tmp/v12_cascade_logs
 mkdir -p "$LOG_DIR"
 
-# Default: auto-detect newest V12 trained Phase 5 LOCK
-P5_LOCK="${1:-$(ls -td $REPORTS/BUILD_EXIT_IQL_PER_BAR_DATASET_V12_*_TRAINED_*_LOCK 2>/dev/null | head -1)}"
-V3TRACKED_LOCK="${2:-$(ls -td $REPORTS/BUILD_EXIT_IQL_PER_BAR_DATASET_V12_*_V3TRACKED_*_LOCK 2>/dev/null | head -1)}"
+# Default: auto-detect newest V12.2 trained Phase 5 LOCK.
+# Glob is V12_2_* (NOT V12_*) so we never silently fall back to a V12.1 build
+# if a V12.2 dir is removed/touched. V12.1 datasets were retired 2026-05-16.
+P5_LOCK="${1:-$(ls -td $REPORTS/BUILD_EXIT_IQL_PER_BAR_DATASET_V12_2_*_TRAINED_*_LOCK 2>/dev/null | head -1)}"
+V3TRACKED_LOCK="${2:-$(ls -td $REPORTS/BUILD_EXIT_IQL_PER_BAR_DATASET_V12_2_*_V3TRACKED_*_LOCK 2>/dev/null | head -1)}"
 DECISIONS="${3:-/tmp/v12_entry_iql_decisions.parquet}"
 
 [[ -d "$P5_LOCK" ]] || { echo "ERR: P5_LOCK not found: $P5_LOCK" >&2; exit 1; }
@@ -40,7 +42,7 @@ echo "  P6LOCK output   = $P6LOCK"
 echo "  log             = $LOG_DIR/phase6_full_${TS}.log"
 echo "============================================================"
 
-PYTHONPATH=$REPO python3 -u /tmp/v12_phase6_joint_validation.py \
+PYTHONPATH=$REPO python3 -u $REPO/gx1/scripts/v12/v12_phase6_joint_validation.py \
     --v3tracked-lock "$V3TRACKED_LOCK" \
     --exit-iql-v5-lock "$P5_LOCK" \
     --entry-iql-decisions "$DECISIONS" \

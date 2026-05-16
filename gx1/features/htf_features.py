@@ -295,3 +295,219 @@ def compute_htf_features(
         h4_trend_sign_cat=h4_trend,
         insufficient_warmup_for_v1=insufficient,
     )
+
+
+# ---------------------------------------------------------------------------
+# Multi-TF per-bar features (V12.2)
+#
+# Used by V10 v3 / V3 v8 multi-TF mode (enable_multi_tf=True).
+# Produces per-bar time-series feature tables for H1/H4/D1 so transformer
+# encoders can attend across each timeframe's recent history.
+# Reuses existing _resample_ohlc / _atr / _ema for consistency with v3 scalar
+# HTF features — same math, just per-bar instead of scalar lookup.
+# ---------------------------------------------------------------------------
+
+# Per-bar feature contract — order must stay stable (state_dict keys depend on it).
+# V12.2 v2: dropped raw OHLC (4150 ≈ XAUUSD price dominates everything else).
+# Replaced with scale-invariant relatives. All features now in roughly [-5, 5] range
+# after winsorizing — works much better with transformer input.
+MULTI_TF_PER_BAR_FEATURES = (
+    # Price-relative features (all scale-invariant)
+    "close_open_pct",        # (close-open)/open  — bar direction strength
+    "high_low_atr",          # (high-low)/atr14   — bar range vs typical
+    "close_open_atr",        # (close-open)/atr14 — bar direction in ATR units
+    # Returns (clipped to ±500 bps = ±5% per bar)
+    "ret_1", "ret_3", "ret_5", "ret_10",
+    # Volatility
+    "atr_bps_14",            # ATR in bps of close (already scale-invariant)
+    # Momentum (RSI normalized)
+    "rsi14_centered",        # (rsi14 - 50) / 50  → [-1, 1]
+    "mom_1_atr", "mom_5_atr", "mom_20_atr",  # already ATR-normalized, but clipped
+    # Position / shape
+    "range_pos_20",
+    "body_pct", "upper_wick_pct", "lower_wick_pct",
+    # Trend
+    "ema20_dist_atr",        # clipped
+)
+MULTI_TF_FEATURE_COUNT = len(MULTI_TF_PER_BAR_FEATURES)   # = 17
+
+MULTI_TF_RESAMPLE_RULES = {
+    # V10 (entry) base is M5 → uses M15+H1+H4+D1.
+    # V3 (exit) base is M1 → uses M5+M15+H1+H4+D1 (M5 added below).
+    "M5": "5min",     # 96 bars = 8h — micro momentum (V3 only — V10 has M5 as base)
+    "M15": "15min",   # 96 bars = 24h — intraday momentum
+    "H1": "1h",       # 96 bars = 4 days
+    "H4": "4h",       # 96 bars = 16 days
+    "D1": "1D",       # 96 bars = ~3 months
+}
+
+# Pandas-Timedelta shift per TF: ensures we use only CLOSED bars at-or-before t
+MULTI_TF_SHIFT = {
+    "M5": pd.Timedelta(minutes=5),
+    "M15": pd.Timedelta(minutes=15),
+    "H1": pd.Timedelta(hours=1),
+    "H4": pd.Timedelta(hours=4),
+    "D1": pd.Timedelta(days=1),
+}
+
+
+def _rsi(close: pd.Series, n: int = 14) -> pd.Series:
+    """Wilder-style RSI on close series. Returns Series indexed like close."""
+    diff = close.diff()
+    gain = diff.where(diff > 0, 0.0)
+    loss = -diff.where(diff < 0, 0.0)
+    avg_gain = gain.ewm(alpha=1.0 / n, adjust=False).mean()
+    avg_loss = loss.ewm(alpha=1.0 / n, adjust=False).mean()
+    rs = avg_gain / np.maximum(avg_loss, 1e-12)
+    return 100.0 - 100.0 / (1.0 + rs)
+
+
+def compute_per_bar_features(ohlc: pd.DataFrame) -> pd.DataFrame:
+    """Compute V12.2 v2 multi-TF per-bar features — all scale-invariant + clipped.
+
+    Input: DataFrame with columns [open, high, low, close], DatetimeIndex.
+    Output: DataFrame with MULTI_TF_PER_BAR_FEATURES columns.
+
+    V12.2 v2 fixes vs v1:
+    - Dropped raw OHLC (4150 dominated all other features)
+    - Added scale-invariant alternatives: close_open_pct, high_low_atr
+    - Centered RSI to [-1, 1] range
+    - Winsorize all features to ±5 std to prevent outliers from poisoning training
+      (some features had max=89,887 due to division-by-near-zero in low-vol periods)
+    - Use realistic ATR floor (0.5% of close) instead of 1e-12
+    """
+    if not all(c in ohlc.columns for c in ("open", "high", "low", "close")):
+        raise RuntimeError(f"compute_per_bar_features: missing OHLC cols in {list(ohlc.columns)}")
+    df = ohlc[["open", "high", "low", "close"]].astype(np.float64).copy()
+    out = pd.DataFrame(index=df.index, dtype=np.float64)
+
+    c = df["close"]
+    o = df["open"]
+    h = df["high"]
+    l = df["low"]
+
+    # Realistic ATR floor: 1 bps of close (= 0.01% of price)
+    # Prevents division-by-near-zero outliers in low-volatility periods.
+    atr14 = _atr(h, l, c, 14)
+    atr_floor = np.maximum(c * 1e-4, 1e-3)   # at least 0.01% of close, min 0.001
+    atr_safe = np.maximum(atr14, atr_floor)
+
+    # Price-relative scale-invariant features
+    out["close_open_pct"] = ((c - o) / np.maximum(o, 1e-6)).fillna(0.0)        # ≈ [-0.05, 0.05]
+    out["high_low_atr"] = ((h - l) / atr_safe).fillna(0.0)                      # ≈ [0, 5]
+    out["close_open_atr"] = ((c - o) / atr_safe).fillna(0.0)                    # ≈ [-3, 3]
+
+    # Close-to-close returns (bps) — winsorize to ±500 bps (5%)
+    for k in (1, 3, 5, 10):
+        ret = ((c - c.shift(k)) / np.maximum(c.shift(k), 1e-6) * 1e4)
+        out[f"ret_{k}"] = ret.clip(-500.0, 500.0).fillna(0.0)
+
+    # ATR in bps
+    out["atr_bps_14"] = (atr14 / np.maximum(c, 1e-6) * 1e4).clip(0, 500).fillna(0.0)
+
+    # RSI centered to [-1, 1] (was [0, 100])
+    rsi = _rsi(c, 14)
+    out["rsi14_centered"] = ((rsi - 50.0) / 50.0).clip(-1.0, 1.0).fillna(0.0)
+
+    # Momentum in ATR units — winsorize to ±10
+    for k in (1, 5, 20):
+        delta = c - c.shift(k)
+        out[f"mom_{k}_atr"] = (delta / atr_safe).clip(-10.0, 10.0).fillna(0.0)
+
+    # Position in last 20-bar range
+    rolling_high = h.rolling(20, min_periods=1).max()
+    rolling_low = l.rolling(20, min_periods=1).min()
+    span = np.maximum(rolling_high - rolling_low, atr_floor)
+    out["range_pos_20"] = ((c - rolling_low) / span).clip(0.0, 1.0)
+
+    # Body / wick fractions
+    bar_range = np.maximum(h - l, atr_floor)
+    body = (c - o).abs()
+    upper_wick = h - df[["open", "close"]].max(axis=1)
+    lower_wick = df[["open", "close"]].min(axis=1) - l
+    out["body_pct"] = (body / bar_range).clip(0.0, 1.0)
+    out["upper_wick_pct"] = (upper_wick / bar_range).clip(0.0, 1.0)
+    out["lower_wick_pct"] = (lower_wick / bar_range).clip(0.0, 1.0)
+
+    # EMA20 distance in ATR units — winsorize to ±10
+    ema20 = _ema(c, 20)
+    out["ema20_dist_atr"] = ((c - ema20) / atr_safe).clip(-10.0, 10.0).fillna(0.0)
+
+    return out[list(MULTI_TF_PER_BAR_FEATURES)]
+
+
+def build_multi_tf_per_bar_features(m5_df: pd.DataFrame) -> dict:
+    """Resample M5 → H1/H4/D1 and compute per-bar features for each TF.
+
+    Input: M5 DataFrame with DatetimeIndex (UTC) and [open, high, low, close].
+    Output: {"H1": DataFrame, "H4": DataFrame, "D1": DataFrame} — each indexed
+    by that TF's bar-close timestamp, columns from MULTI_TF_PER_BAR_FEATURES.
+
+    V12.2 perf: each DataFrame has `.attrs["ts_int64"]` (sorted timestamps as
+    int64 ns) and `.attrs["feats_np"]` ((N, 19) float32 array) attached. These
+    let get_last_n_at_or_before() use O(log N) searchsorted instead of
+    O(N) pandas .loc — ~100× per-slice speedup, critical for training where
+    we slice 60k samples × 5 TFs × N epochs.
+    """
+    _validate_m5_input(m5_df)
+    result = {}
+    for tf_name, rule in MULTI_TF_RESAMPLE_RULES.items():
+        resampled = _resample_ohlc(m5_df, rule)
+        # Drop rows with any NaN OHLC (gaps from weekends/holidays don't have full bars)
+        resampled = resampled.dropna(subset=["open", "high", "low", "close"])
+        feats = compute_per_bar_features(resampled)
+        # Pre-compute fast-path arrays (V12.2 perf optimization)
+        feats.attrs["ts_int64"] = feats.index.values.astype("datetime64[ns]").astype(np.int64)
+        feats.attrs["feats_np"] = feats.fillna(0.0).to_numpy(dtype=np.float32, copy=True)
+        result[tf_name] = feats
+    return result
+
+
+def get_last_n_at_or_before(
+    feats: pd.DataFrame, target_ts: pd.Timestamp, n: int, tf_shift: pd.Timedelta,
+) -> np.ndarray:
+    """Slice the last `n` per-bar feature rows whose close-time is <= (target_ts - tf_shift).
+
+    Returns: (n, n_features) float32 array. If fewer than n bars are available
+    (warmup not satisfied), the result is left-padded with zeros.
+
+    `tf_shift` enforces the "only closed bars" invariant: e.g. for H1, target=12:35
+    means we use H1 bars closing at-or-before 11:35 (the 11:00 H1 bar, since
+    12:00 H1 bar hasn't closed yet at 12:35).
+
+    V12.2 fast path: when `feats.attrs["ts_int64"]` and `feats.attrs["feats_np"]`
+    are present (set by build_multi_tf_per_bar_features), we use numpy
+    searchsorted on int64 timestamps — ~100× faster than pandas .loc.
+    """
+    if feats is None or len(feats) == 0:
+        return np.zeros((n, MULTI_TF_FEATURE_COUNT), dtype=np.float32)
+
+    # Fast path: pre-computed int64 timestamps + numpy feature array
+    ts_int64 = feats.attrs.get("ts_int64")
+    feats_np = feats.attrs.get("feats_np")
+    if ts_int64 is not None and feats_np is not None:
+        target_ns = pd.Timestamp(target_ts).value
+        shift_ns = int(tf_shift.value)
+        cutoff_ns = target_ns - shift_ns
+        # searchsorted with side='right' gives the index AFTER the last bar
+        # whose timestamp is <= cutoff (i.e. the slice [..., right) is what we want)
+        right = np.searchsorted(ts_int64, cutoff_ns, side="right")
+        if right == 0:
+            return np.zeros((n, MULTI_TF_FEATURE_COUNT), dtype=np.float32)
+        left = max(0, right - n)
+        tail = feats_np[left:right]
+        if tail.shape[0] < n:
+            pad = np.zeros((n - tail.shape[0], MULTI_TF_FEATURE_COUNT), dtype=np.float32)
+            tail = np.concatenate([pad, tail], axis=0)
+        return tail
+
+    # Fallback: pandas .loc (slower) — for old caches without attrs
+    cutoff = pd.Timestamp(target_ts) - tf_shift
+    eligible = feats.loc[feats.index <= cutoff]
+    if eligible.empty:
+        return np.zeros((n, MULTI_TF_FEATURE_COUNT), dtype=np.float32)
+    tail = eligible.tail(n).fillna(0.0).to_numpy(dtype=np.float32, copy=True)
+    if tail.shape[0] < n:
+        pad = np.zeros((n - tail.shape[0], MULTI_TF_FEATURE_COUNT), dtype=np.float32)
+        tail = np.concatenate([pad, tail], axis=0)
+    return tail

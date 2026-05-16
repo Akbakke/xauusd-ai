@@ -70,6 +70,10 @@ class TradeState:
     entry_spread_bps: float
     v10_snapshot: dict[str, Any]         # frozen V10 outputs at entry
 
+    # Identity (set after OANDA fill — used as state-file name + close-trade id)
+    trade_id: str | None = None
+    units: int = 1
+
     # Running state (updated per M1 bar)
     bars_in_trade: int = 0
     current_bid: float = 0.0
@@ -104,6 +108,8 @@ class TradeState:
         entry_bid: float,
         entry_ask: float,
         v10_snapshot: dict[str, Any] | None = None,
+        trade_id: str | None = None,
+        units: int = 1,
     ) -> "TradeState":
         if side not in SIDES:
             raise ValueError(f"side must be {SIDES}, got {side!r}")
@@ -117,6 +123,8 @@ class TradeState:
             entry_ask=float(entry_ask),
             entry_spread_bps=float(spread_bps),
             v10_snapshot=dict(v10_snapshot or {}),
+            trade_id=trade_id,
+            units=int(units),
             current_bid=float(entry_bid),
             current_ask=float(entry_ask),
         )
@@ -364,6 +372,8 @@ class TradeState:
             "entry_ask": self.entry_ask,
             "entry_spread_bps": self.entry_spread_bps,
             "v10_snapshot": _jsonable(self.v10_snapshot),
+            "trade_id": self.trade_id,
+            "units": self.units,
             "bars_in_trade": self.bars_in_trade,
             "current_bid": self.current_bid,
             "current_ask": self.current_ask,
@@ -396,6 +406,8 @@ class TradeState:
             entry_ask=float(d["entry_ask"]),
             entry_spread_bps=float(d["entry_spread_bps"]),
             v10_snapshot=dict(d.get("v10_snapshot") or {}),
+            trade_id=d.get("trade_id"),
+            units=int(d.get("units", 1)),
             bars_in_trade=int(d.get("bars_in_trade", 0)),
             current_bid=float(d.get("current_bid", 0.0)),
             current_ask=float(d.get("current_ask", 0.0)),
@@ -420,11 +432,27 @@ class TradeState:
         return t
 
     def save(self, path: Path) -> None:
-        """Atomically write trade state to disk (so an interrupted write can't corrupt)."""
+        """Atomically write trade state to disk (so an interrupted write can't corrupt).
+
+        `path` may be either a file path or a directory (when using multi-trade
+        persistence). If a directory is given, the filename is derived from
+        `trade_id` via `state_filename()`.
+        """
+        if path.is_dir():
+            path = path / self.state_filename()
         path.parent.mkdir(parents=True, exist_ok=True)
         tmp = path.with_suffix(path.suffix + ".tmp")
         tmp.write_text(json.dumps(self.to_dict(), default=str, indent=2))
         os.replace(tmp, path)
+
+    def state_filename(self) -> str:
+        """Filename for this trade's state file (one file per trade)."""
+        tid = self.trade_id or f"virtual_{self.entry_ts.strftime('%Y%m%dT%H%M%S')}"
+        return f"open_trade_{tid}.json"
+
+    def delete_state_file(self, directory: Path) -> None:
+        """Remove this trade's persisted state file from the directory."""
+        (directory / self.state_filename()).unlink(missing_ok=True)
 
     @classmethod
     def load(cls, path: Path) -> "TradeState | None":
@@ -436,6 +464,35 @@ class TradeState:
         except Exception as exc:
             LOG.warning(f"failed to load trade state from {path}: {exc}")
             return None
+
+    @classmethod
+    def load_all(cls, directory: Path,
+                 legacy_single_file: Path | None = None) -> list["TradeState"]:
+        """Load all persisted open trades from `directory`.
+
+        If `legacy_single_file` is given and exists, it's migrated into the
+        directory (preserves a trade opened before the multi-trade refactor)
+        and removed from its old location.
+
+        Returns trades sorted by entry_ts ascending.
+        """
+        directory.mkdir(parents=True, exist_ok=True)
+        trades: list[TradeState] = []
+
+        if legacy_single_file is not None and legacy_single_file.is_file():
+            t = cls.load(legacy_single_file)
+            if t is not None:
+                t.save(directory)
+                legacy_single_file.unlink(missing_ok=True)
+                LOG.info(f"migrated legacy trade state {legacy_single_file.name} "
+                          f"→ {directory}/{t.state_filename()}")
+
+        for p in sorted(directory.glob("open_trade_*.json")):
+            t = cls.load(p)
+            if t is not None:
+                trades.append(t)
+        trades.sort(key=lambda x: x.entry_ts)
+        return trades
 
 
 def _jsonable(o):

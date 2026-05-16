@@ -137,6 +137,12 @@ class PrebuiltStateLoader:
                 self._last_ts = min(self._cv3.index[-1], self._base28.index[-1])
             else:
                 self._last_ts = self._cv3.index[-1]
+            # V12.2: refresh multi-TF features if they were built
+            if self._multi_tf_feats is not None:
+                try:
+                    self.build_multi_tf_features()
+                except Exception as exc:
+                    LOG.warning(f"multi-TF refresh failed: {exc} — keeping stale features")
         return reloaded
 
     def load(self) -> None:
@@ -234,6 +240,49 @@ class PrebuiltStateLoader:
         else:
             joined = cv3_win.copy()
         return joined
+
+    # ── Multi-TF (V12.2) ──────────────────────────────────────────────
+    _multi_tf_feats: dict | None = field(default=None, init=False)
+    _multi_tf_shift: dict | None = field(default=None, init=False)
+    _multi_tf_feat_count: int = field(default=0, init=False)
+
+    def build_multi_tf_features(self) -> None:
+        """Build M5/M15/H1/H4/D1 per-bar feature tables from the loaded
+        canonical_v3 prebuilt. Called once at runner startup (post-load),
+        cached for live inference. Refresh hook below also updates them."""
+        if self._cv3 is None:
+            raise RuntimeError("call .load() before .build_multi_tf_features()")
+        from gx1.features.htf_features import (
+            build_multi_tf_per_bar_features, MULTI_TF_SHIFT, MULTI_TF_FEATURE_COUNT,
+        )
+        # Use canonical_v3's OHLC (it has open/high/low/close + time)
+        ohlc_cols = ["open", "high", "low", "close"]
+        missing = [c for c in ohlc_cols if c not in self._cv3.columns]
+        if missing:
+            raise RuntimeError(f"canonical_v3 missing OHLC cols: {missing}")
+        m5_ohlc = self._cv3[ohlc_cols].copy()
+        LOG.info(f"building multi-TF features (M5/M15/H1/H4/D1) from {len(m5_ohlc):,} M5 bars...")
+        self._multi_tf_feats = build_multi_tf_per_bar_features(m5_ohlc)
+        self._multi_tf_shift = MULTI_TF_SHIFT
+        self._multi_tf_feat_count = int(MULTI_TF_FEATURE_COUNT)
+        for tf, feats in self._multi_tf_feats.items():
+            LOG.info(f"  multi-TF {tf}: {len(feats):,} bars × {feats.shape[1]} feats")
+
+    def get_multi_tf_windows(self, end_ts: pd.Timestamp, n_bars: int = 96
+                              ) -> dict[str, np.ndarray]:
+        """Return {seq_m5, seq_m15, seq_h1, seq_h4, seq_d1} arrays at-or-before end_ts.
+        Each is (n_bars, n_features) float32. Zero-padded at start if warmup unmet.
+
+        Empty dict if multi-TF features aren't built (caller falls back to v3 path)."""
+        if self._multi_tf_feats is None:
+            return {}
+        from gx1.features.htf_features import get_last_n_at_or_before
+        return {
+            f"seq_{tf.lower()}": get_last_n_at_or_before(
+                feats, end_ts, n=n_bars, tf_shift=self._multi_tf_shift[tf]
+            )
+            for tf, feats in self._multi_tf_feats.items()
+        }
 
     def get_latest_row(self, end_ts: pd.Timestamp) -> pd.Series | None:
         """Convenience: get only the M5-bucket row at end_ts (joined). None if missing."""

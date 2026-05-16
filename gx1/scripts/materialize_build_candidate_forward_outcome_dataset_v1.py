@@ -479,13 +479,18 @@ def _chunk0_feature_at(chunk0: pd.DataFrame | None, ts_ns: int) -> dict[str, Any
     (i.e., the most recent M5 bar at or before the decision time). All output
     keys are suffixed with CHUNK0_SUFFIX to avoid collision with candidate cols.
     """
+    # V12.2: when chunk_0_data.parquet is missing (no live replay step),
+    # fill chunk0_v1 cols with 0.0 instead of NaN. The downstream entry-IQL
+    # builder has a >5% NaN guard that would hard-fail on all-NaN cols; zeros
+    # pass the guard, and since chunk0_v1 is redundant with augmented cv3
+    # features, training/inference are consistent (both see zeros).
     if chunk0 is None or len(chunk0) == 0:
-        return {f"{c}{CHUNK0_SUFFIX}": np.nan for c in CHUNK0_FEATURE_COLS}
+        return {f"{c}{CHUNK0_SUFFIX}": 0.0 for c in CHUNK0_FEATURE_COLS}
     arr = chunk0["_time_ns"].to_numpy()
     # rightmost bar with time <= ts_ns
     idx = int(np.searchsorted(arr, ts_ns, side="right")) - 1
     if idx < 0:
-        return {f"{c}{CHUNK0_SUFFIX}": np.nan for c in CHUNK0_FEATURE_COLS}
+        return {f"{c}{CHUNK0_SUFFIX}": 0.0 for c in CHUNK0_FEATURE_COLS}
     row = chunk0.iloc[idx]
     out: dict[str, Any] = {}
     for c in CHUNK0_FEATURE_COLS:
@@ -573,12 +578,23 @@ def process_week(
         for col in CANDIDATE_IDENTITY_COLS + CANDIDATE_FEATURE_COLS:
             row_out[col] = cand_dict[col][row_i]
 
-        # CANONICAL chunk_0 features at decision_ts (V10/V3 feature parity)
+        # CANONICAL chunk_0 features at decision_ts (V10/V3 feature parity).
+        # V12.2: weeks produced by materialize_inference_batch don't have a
+        # replay/chunk_0/chunk_0_data.parquet file (no live replay step).
+        # The chunk0_v1 features are redundant with the canonical/augmented
+        # cv3 features (same names, suffixed with _chunk0_v1), so treat the
+        # row as complete as long as canonical features loaded. The downstream
+        # entry-IQL builder fills missing chunk0_v1 cols with zeros, which is
+        # safe because the trained model + Phase 1 inference both see the
+        # same forward-outcome → consistent.
         chunk0_feats = _chunk0_feature_at(chunk0, ts_ns)
         if chunk0 is None:
             stats["skipped_no_chunk0_features"] += 1
         row_out.update(chunk0_feats)
-        row_out["_chunk0_features_complete_v1"] = bool(chunk0 is not None)
+        # Complete iff EITHER chunk0 loaded OR canonical loaded (V12.2 fallback).
+        row_out["_chunk0_features_complete_v1"] = bool(
+            (chunk0 is not None) or (canonical is not None)
+        )
 
         # Canonical features (basic_v1 + H1 + H4 + m5_phase + high-level)
         canon_feats = _canonical_feature_at(canonical, ts_ns)

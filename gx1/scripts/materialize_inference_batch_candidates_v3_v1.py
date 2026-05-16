@@ -55,6 +55,7 @@ from gx1.contracts.signal_bridge_v3 import (
     CTX_CAT_DIM_V3,
     DEFAULT_SEQ_LEN_V3,
 )
+from gx1.execution.v12_ctx_augment_live import augment_canonical_v3
 from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import EntryV10CtxHybridTransformer
 from gx1.time.session_detector import (
     get_session_minutes_since_open_vectorized,
@@ -75,8 +76,10 @@ DEFAULT_XGB_BUNDLE = Path(
     # retrain was deleted 2026-05-11 — it was never used by V12 cascade).
     "/home/andre2/GX1_DATA/models/models/xgb_universal_multihead_v5__BIDIR_RSI_SMC_PRUNED_CANONICAL_V3_20260505T060428Z"
 )
+# V12.2 (2026-05-15): default updated to V10 v_FIXED multi-TF.
+# Script HARD-REQUIRES multi-TF V10; non-multi-TF V10 v3 baseline is deprecated.
 DEFAULT_V10_BUNDLE = Path(
-    "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_CTX__RETRAIN_2026Q2_BIDIR_SMC_CANONICAL_V3_6YR_BS512_20260506T120938Z"
+    "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_MULTI_TF_v2_FIXED_20260513T214805Z"
 )
 DEFAULT_XGB_FEATURE_CONTRACT = REPO_ROOT / "gx1" / "xgb" / "contracts" / "xgb_input_features_canonical_v3_v1.json"
 DEFAULT_XGB_SANITIZER_CONFIG = REPO_ROOT / "gx1" / "xgb" / "contracts" / "xgb_input_sanitizer_canonical_v3_v1.json"
@@ -216,11 +219,34 @@ def run_v10_inference(
     *, model: EntryV10CtxHybridTransformer,
     per_bar: np.ndarray, ctx_cont: np.ndarray, ctx_cat: np.ndarray,
     seq_len: int, batch_size: int, device: torch.device,
-) -> Dict[str, np.ndarray]:
-    """Run V10 v2 in batches over all decision moments where idx >= seq_len-1."""
+    decision_ts_ns: Optional[np.ndarray] = None,
+    multi_tf_feats: Optional[Dict[str, "pd.DataFrame"]] = None,
+    multi_tf_shift: Optional[Dict[str, "pd.Timedelta"]] = None,
+    multi_tf_seq_len: int = 96,
+) -> Tuple[Dict[str, np.ndarray], np.ndarray]:
+    """Run V10 v2 in batches over all decision moments where idx >= seq_len-1.
+
+    V12.2: when the model is multi-TF, also slice M15/H1/H4/D1 windows per
+    decision bar (using `decision_ts_ns` + `multi_tf_feats`) and pass them as
+    seq_m15/seq_h1/seq_h4/seq_d1 to the model.forward — without this, the
+    multi-TF residual branch is silently bypassed.
+    """
     n = per_bar.shape[0]
     decision_indices = np.arange(seq_len - 1, n)  # decision possible at idx >= seq_len-1
     n_dec = len(decision_indices)
+
+    enable_mtf = bool(getattr(getattr(model, "cfg", None), "enable_multi_tf", False))
+    if enable_mtf:
+        if multi_tf_feats is None or multi_tf_shift is None or decision_ts_ns is None:
+            raise RuntimeError(
+                "[run_v10_inference] V10 model is multi-TF but multi_tf_feats / "
+                "multi_tf_shift / decision_ts_ns were not provided."
+            )
+        from gx1.features.htf_features import get_last_n_at_or_before  # noqa: F401
+        tf_names = ("M15", "H1", "H4", "D1")
+        print(f"[{ACTION}] V12.2 multi-TF inference: TFs={tf_names} seq_len={multi_tf_seq_len}",
+              flush=True)
+
     print(f"[{ACTION}] V10 inference on {n_dec:,} decision moments (batch={batch_size})...", flush=True)
 
     out_keys = ("direction_logits", "anchor_logits", "delta_logits", "path_quality",
@@ -244,7 +270,31 @@ def run_v10_inference(
             snap_t = torch.from_numpy(snap_x).to(device)
             cont_t = torch.from_numpy(ctx_cont_x).to(device)
             cat_t = torch.from_numpy(ctx_cat_x).to(device)
-            out = model(seq_x=seq_t, snap_x=snap_t, ctx_cont=cont_t, ctx_cat=cat_t)
+
+            mtf_kwargs: Dict[str, torch.Tensor] = {}
+            if enable_mtf:
+                from gx1.features.htf_features import get_last_n_at_or_before
+                batch_ts_ns = decision_ts_ns[batch_idx]
+                for tf in tf_names:
+                    feats_df = multi_tf_feats[tf]
+                    shift_td = multi_tf_shift[tf]
+                    stacked = np.empty(
+                        (B, multi_tf_seq_len, feats_df.shape[1]),
+                        dtype=np.float32,
+                    )
+                    for bi, ts_ns in enumerate(batch_ts_ns):
+                        ts = pd.Timestamp(int(ts_ns), unit="ns", tz="UTC")
+                        stacked[bi] = get_last_n_at_or_before(
+                            feats_df, ts, n=multi_tf_seq_len, tf_shift=shift_td,
+                        )
+                    mtf_kwargs[f"seq_{tf.lower()}"] = torch.from_numpy(stacked).to(
+                        device, non_blocking=True,
+                    )
+
+            out = model(
+                seq_x=seq_t, snap_x=snap_t, ctx_cont=cont_t, ctx_cat=cat_t,
+                **mtf_kwargs,
+            )
             for k in out_keys:
                 out_buffers[k].append(out[k].detach().cpu().numpy())
 
@@ -411,6 +461,12 @@ def main() -> None:
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
     parser.add_argument("--dry-run-no-write", action="store_true",
                         help="Skip per-week parquet writes; print counts only")
+    # V12.2: required when V10 bundle is multi-TF (auto-detected from bundle_metadata.json).
+    parser.add_argument("--m5-prebuilt-path", type=str, default=None,
+                        help="V12.2: M5 prebuilt parquet for multi-TF feature extraction. "
+                             "If unset and V10 bundle is multi-TF, defaults to --prebuilt.")
+    parser.add_argument("--multi-tf-seq-len", type=int, default=96,
+                        help="V12.2: window length per multi-TF stream (M15/H1/H4/D1).")
     args = parser.parse_args()
 
     print(f"[{ACTION}] device={args.device}", flush=True)
@@ -425,6 +481,16 @@ def main() -> None:
     if args.limit_rows is not None:
         cv2 = cv2.iloc[:int(args.limit_rows)]
     print(f"[{ACTION}] cv2 shape={cv2.shape} ts=[{cv2.index[0]} → {cv2.index[-1]}]", flush=True)
+
+    # ---- canonical_v3 augmentation ----
+    # The canonical_v3 prebuilt was regenerated 2026-05-11 without ctx_cont /
+    # session / interaction features. Run the live augmenter inline so XGB +
+    # V10 can find atr_bps, D1_dist_from_ema200_atr, _v1_is_US, etc.
+    pre_aug_cols = set(cv2.columns)
+    cv2 = augment_canonical_v3(cv2, cv2)
+    added_cols = sorted(set(cv2.columns) - pre_aug_cols)
+    print(f"[{ACTION}] canonical_v3 augment: added {len(added_cols)} cols "
+          f"(now {len(cv2.columns)} total)", flush=True)
 
     # ---- XGB inference ----
     bridge = run_xgb_inference(
@@ -441,12 +507,38 @@ def main() -> None:
 
     # ---- Load V10 v2 ----
     v10_meta = json.loads((Path(args.v10_bundle) / "bundle_metadata.json").read_text())
+    mtf_cfg = v10_meta.get("multi_tf", {}) or {}
+    enable_mtf = bool(mtf_cfg.get("enabled", False))
+    # V12.2 (2026-05-15): multi-TF is now REQUIRED. Reject non-multi-TF V10.
+    if not enable_mtf:
+        raise RuntimeError(
+            f"[{ACTION}] V10 bundle {Path(args.v10_bundle).name} is NOT multi-TF "
+            f"(bundle_metadata.json multi_tf.enabled={enable_mtf}). "
+            "V12.2 hard-requires multi-TF V10 bundle (e.g. ENTRY_V10_MULTI_TF_v2_FIXED_*)."
+        )
+    v10_mtf_kwargs: Dict[str, int] = {}
+    if enable_mtf:
+        v10_mtf_kwargs = dict(
+            enable_multi_tf=True,
+            m15_seq_dim=int(mtf_cfg["m15_seq_dim"]),
+            h1_seq_dim=int(mtf_cfg["h1_seq_dim"]),
+            h4_seq_dim=int(mtf_cfg["h4_seq_dim"]),
+            d1_seq_dim=int(mtf_cfg["d1_seq_dim"]),
+            m15_seq_len=int(mtf_cfg["m15_seq_len"]),
+            h1_seq_len=int(mtf_cfg["h1_seq_len"]),
+            h4_seq_len=int(mtf_cfg["h4_seq_len"]),
+            d1_seq_len=int(mtf_cfg["d1_seq_len"]),
+        )
+        print(f"[{ACTION}] V12.2: multi-TF V10 bundle detected "
+              f"(M15+H1+H4+D1 × {mtf_cfg['m15_seq_len']} bars × {mtf_cfg['m15_seq_dim']} feats)",
+              flush=True)
     model = EntryV10CtxHybridTransformer(
         seq_input_dim=v10_meta["seq_input_dim"],
         snap_input_dim=v10_meta["snap_input_dim"],
         ctx_cont_dim=v10_meta["ctx_cont_dim"],
         ctx_cat_dim=v10_meta["ctx_cat_dim"],
         seq_len=v10_meta["seq_len"],
+        **v10_mtf_kwargs,
     )
     state = torch.load(Path(args.v10_bundle) / "model_state_dict.pt", map_location="cpu", weights_only=True)
     model.load_state_dict(state)
@@ -454,10 +546,42 @@ def main() -> None:
     model.to(device)
     print(f"[{ACTION}] V10 v2 loaded; seq_len={v10_meta['seq_len']} on {device}", flush=True)
 
+    # ---- V12.2: pre-build multi-TF features (M15/H1/H4/D1 × 17 feats) ----
+    # Always reads the FULL M5 parquet (never the --limit-rows-truncated cv2)
+    # so D1 percentile-252 warmup is always satisfied even in smoke tests.
+    mtf_feats = None
+    mtf_shift = None
+    if enable_mtf:
+        m5_path = Path(args.m5_prebuilt_path) if args.m5_prebuilt_path else Path(args.prebuilt)
+        from gx1.features.htf_features import (
+            build_multi_tf_per_bar_features, MULTI_TF_SHIFT,
+        )
+        print(f"[{ACTION}] V12.2: building multi-TF features from {m5_path}", flush=True)
+        m5_for_mtf = pd.read_parquet(
+            m5_path, columns=["time", "open", "high", "low", "close"]
+        )
+        m5_for_mtf["time"] = pd.to_datetime(m5_for_mtf["time"], utc=True)
+        m5_for_mtf = m5_for_mtf.set_index("time").sort_index()
+        for c in ("open", "high", "low", "close"):
+            m5_for_mtf[c] = m5_for_mtf[c].astype(np.float32)
+        mtf_feats = build_multi_tf_per_bar_features(m5_for_mtf)
+        mtf_shift = MULTI_TF_SHIFT
+        del m5_for_mtf
+        import gc as _gc; _gc.collect()
+        for tf, df in mtf_feats.items():
+            print(f"[{ACTION}]   {tf}: {len(df):,} bars × {df.shape[1]} feats", flush=True)
+
+    # ---- decision timestamps (int64 ns) for multi-TF slicing ----
+    decision_ts_ns = cv2.index.values.astype("datetime64[ns]").astype(np.int64)
+
     # ---- V10 inference ----
     v10_out, decision_indices = run_v10_inference(
         model=model, per_bar=per_bar, ctx_cont=ctx_cont, ctx_cat=ctx_cat,
         seq_len=int(v10_meta["seq_len"]), batch_size=int(args.batch_size), device=device,
+        decision_ts_ns=decision_ts_ns,
+        multi_tf_feats=mtf_feats,
+        multi_tf_shift=mtf_shift,
+        multi_tf_seq_len=int(args.multi_tf_seq_len),
     )
 
     # ---- Emit candidates ----

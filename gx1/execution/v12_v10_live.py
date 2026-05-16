@@ -57,9 +57,11 @@ from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import EntryV10CtxHyb
 
 LOG = logging.getLogger("v12_v10_live")
 
+# V12.2 cement (2026-05-15): default = V10 v_FIXED multi-TF.
+# Phase 6 result: +73.64 bps/cand (V12_OFF), +35.7% over V12.1.1 baseline +54.27.
 DEFAULT_BUNDLE_DIR = Path(
     "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/"
-    "ENTRY_V10_CTX__RETRAIN_2026Q2_BIDIR_SMC_CANONICAL_V3_6YR_BS512_20260506T120938Z"
+    "ENTRY_V10_MULTI_TF_v2_FIXED_20260513T214805Z"
 )
 
 # V10 v3 cemented config (from MASTER_TRANSFORMER_LOCK.json):
@@ -75,6 +77,10 @@ class V10LiveInference:
     bundle_dir: Path
     device: str = "cpu"            # CPU is fast enough for single-bar inference
     _model: EntryV10CtxHybridTransformer | None = field(default=None)
+    # V12.2 multi-TF: detected from bundle_metadata.json at load time
+    _enable_multi_tf: bool = False
+    _mtf_seq_lens: dict = field(default_factory=dict)
+    _mtf_seq_dims: dict = field(default_factory=dict)
 
     @classmethod
     def load(cls, bundle_dir: Path = DEFAULT_BUNDLE_DIR,
@@ -95,6 +101,41 @@ class V10LiveInference:
         if int(lock["ctx_cat_dim"]) != CTX_CAT_DIM:
             raise RuntimeError(f"V10 bundle ctx_cat_dim={lock['ctx_cat_dim']} != {CTX_CAT_DIM}")
 
+        # V12.2: read bundle_metadata.json for multi-TF config (optional —
+        # v3 bundles don't have this section, default to v3 mode).
+        meta_path = bundle_dir / "bundle_metadata.json"
+        multi_tf_cfg = {}
+        if meta_path.is_file():
+            try:
+                meta = json.loads(meta_path.read_text())
+                multi_tf_cfg = meta.get("multi_tf", {}) or {}
+            except Exception as exc:
+                LOG.warning(f"bundle_metadata.json read failed: {exc} — assuming v3 mode")
+        enable_mtf = bool(multi_tf_cfg.get("enabled", False))
+        # V12.2 hard-fail: live runtime REQUIRES multi-TF V10 bundles.
+        # Single-TF V10 bundles (V11_BAD_PATH_FIXED, CANONICAL_V3_6YR_BS512, etc.)
+        # are pre-cement and not validated for live use. Refuse to load them.
+        if not enable_mtf:
+            raise RuntimeError(
+                f"V10 bundle is NOT multi-TF (bundle_metadata.json missing or "
+                f"multi_tf.enabled != true). V12.2 live REQUIRES multi-TF. "
+                f"Bundle: {bundle_dir}"
+            )
+        mtf_kwargs = {}
+        if enable_mtf:
+            mtf_kwargs = dict(
+                enable_multi_tf=True,
+                m15_seq_dim=int(multi_tf_cfg["m15_seq_dim"]),
+                h1_seq_dim=int(multi_tf_cfg["h1_seq_dim"]),
+                h4_seq_dim=int(multi_tf_cfg["h4_seq_dim"]),
+                d1_seq_dim=int(multi_tf_cfg["d1_seq_dim"]),
+                m15_seq_len=int(multi_tf_cfg["m15_seq_len"]),
+                h1_seq_len=int(multi_tf_cfg["h1_seq_len"]),
+                h4_seq_len=int(multi_tf_cfg["h4_seq_len"]),
+                d1_seq_len=int(multi_tf_cfg["d1_seq_len"]),
+            )
+            LOG.info(f"V10 bundle is multi-TF: H1/H4/D1 dim={multi_tf_cfg['h1_seq_dim']} len={multi_tf_cfg['h1_seq_len']}")
+
         # Build model with bundle's hyperparameters; load weights
         model = EntryV10CtxHybridTransformer(
             seq_input_dim=int(lock["seq_input_dim"]),
@@ -102,6 +143,7 @@ class V10LiveInference:
             seq_len=int(lock["seq_len"]),
             ctx_cont_dim=int(lock["ctx_cont_dim"]),
             ctx_cat_dim=int(lock["ctx_cat_dim"]),
+            **mtf_kwargs,
         )
         state_dict_path = bundle_dir / lock["model_path_relative"]
         if not state_dict_path.exists():
@@ -110,8 +152,15 @@ class V10LiveInference:
         model.load_state_dict(state_dict)
         model.eval()
         model.to(device)
-        LOG.info(f"V10 v3 loaded: {bundle_dir.name}  device={device}")
-        return cls(bundle_dir=bundle_dir, device=device, _model=model)
+        LOG.info(f"V10 v3 loaded: {bundle_dir.name}  device={device}  multi_tf={enable_mtf}")
+        return cls(
+            bundle_dir=bundle_dir, device=device, _model=model,
+            _enable_multi_tf=enable_mtf,
+            _mtf_seq_lens={k: int(multi_tf_cfg.get(f"{k.lower()}_seq_len", 96))
+                            for k in ("M15", "H1", "H4", "D1")} if enable_mtf else {},
+            _mtf_seq_dims={k: int(multi_tf_cfg.get(f"{k.lower()}_seq_dim", 0))
+                            for k in ("M15", "H1", "H4", "D1")} if enable_mtf else {},
+        )
 
     @classmethod
     def load_default(cls) -> "V10LiveInference":
@@ -164,6 +213,7 @@ class V10LiveInference:
         augmented_cv3: pd.DataFrame,
         bridge: np.ndarray,
         end_idx: int = -1,
+        multi_tf_windows: dict | None = None,
     ) -> dict[str, Any]:
         """V10 forward pass for the M5 bar at `end_idx` of `augmented_cv3`.
 
@@ -204,8 +254,25 @@ class V10LiveInference:
         ctx_cont_t = torch.from_numpy(ctx_cont_np).to(self.device)          # (1, 45)
         ctx_cat_t = torch.from_numpy(ctx_cat_np).to(self.device)            # (1, 6)
 
+        # V12.2: pass multi-TF windows when bundle requires them
+        mtf_kwargs = {}
+        if self._enable_multi_tf:
+            if multi_tf_windows is None:
+                raise RuntimeError(
+                    "V10 bundle is multi-TF — caller must pass multi_tf_windows "
+                    "(via PrebuiltStateLoader.get_multi_tf_windows())"
+                )
+            for k in ("seq_m15", "seq_h1", "seq_h4", "seq_d1"):
+                if k not in multi_tf_windows:
+                    raise RuntimeError(f"multi-TF V10 needs {k} but missing from multi_tf_windows")
+                arr = multi_tf_windows[k]
+                # Add batch dim if needed
+                if arr.ndim == 2:
+                    arr = arr[np.newaxis, :, :]
+                mtf_kwargs[k] = torch.from_numpy(arr.astype(np.float32, copy=False)).to(self.device)
+
         with torch.no_grad():
-            out = self._model(seq_t, snap_t, ctx_cat=ctx_cat_t, ctx_cont=ctx_cont_t)
+            out = self._model(seq_t, snap_t, ctx_cat=ctx_cat_t, ctx_cont=ctx_cont_t, **mtf_kwargs)
 
         dir_logits = out["direction_logits"].cpu().numpy()[0]             # (3,)
         dir_probs = _softmax(dir_logits)

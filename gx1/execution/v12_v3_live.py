@@ -48,9 +48,11 @@ from gx1.policy.exit_transformer_v0 import ExitTransformerV0
 
 LOG = logging.getLogger("v12_v3_live")
 
+# V12.2 cement (2026-05-15): default = V3 v9 multi-TF.
+# Trained val_acc 96.31% (+5.87pp over V3 v8 baseline 90.44%).
 DEFAULT_BUNDLE_DIR = Path(
     "/home/andre2/GX1_DATA/models/exit_transformer_v0/"
-    "EXIT_V8_DISK__BIDIR_2026Q2_CANONICAL_V3_20260506T185957Z"
+    "EXIT_V9_MULTI_TF_LR5E4_SCALE025_20260513T223544Z"
 )
 WINDOW_LEN = 512   # 512 M1 bars (8.5 hours)
 
@@ -75,6 +77,10 @@ class V3LiveInference:
     bundle_dir: Path
     device: str = "cpu"
     _model: ExitTransformerV0 | None = field(default=None)
+    # V12.2 multi-TF: detected from transformer_config.json at load time
+    _enable_multi_tf: bool = False
+    _mtf_seq_dims: dict = field(default_factory=dict)
+    _mtf_seq_lens: dict = field(default_factory=dict)
 
     @classmethod
     def load(cls, bundle_dir: Path = DEFAULT_BUNDLE_DIR, device: str = "cpu") -> "V3LiveInference":
@@ -94,17 +100,53 @@ class V3LiveInference:
         if cfg.get("exit_ml_io_version") != "EXIT_IO_V6_CTX_V3CANONICAL_M1L512":
             raise RuntimeError(f"V3 v8 io_version mismatch: {cfg.get('exit_ml_io_version')}")
 
+        # V12.2: detect multi-TF mode from config (v8 bundles default enabled=False).
+        mtf_cfg = cfg.get("multi_tf", {}) or {}
+        enable_mtf = bool(mtf_cfg.get("enabled", False))
+        # V12.2 hard-fail: live runtime REQUIRES multi-TF V3 bundles.
+        # Single-TF V3 bundles (EXIT_V6/V7/V8_DISK_*) are pre-cement and not validated.
+        if not enable_mtf:
+            raise RuntimeError(
+                f"V3 bundle is NOT multi-TF (transformer_config.json missing or "
+                f"multi_tf.enabled != true). V12.2 live REQUIRES multi-TF. "
+                f"Bundle: {bundle_dir}"
+            )
+        mtf_kwargs = {}
+        if enable_mtf:
+            mtf_kwargs = dict(
+                enable_multi_tf=True,
+                m5_seq_dim=int(mtf_cfg["m5_seq_dim"]),
+                m15_seq_dim=int(mtf_cfg["m15_seq_dim"]),
+                h1_seq_dim=int(mtf_cfg["h1_seq_dim"]),
+                h4_seq_dim=int(mtf_cfg["h4_seq_dim"]),
+                d1_seq_dim=int(mtf_cfg["d1_seq_dim"]),
+                m5_seq_len=int(mtf_cfg["m5_seq_len"]),
+                m15_seq_len=int(mtf_cfg["m15_seq_len"]),
+                h1_seq_len=int(mtf_cfg["h1_seq_len"]),
+                h4_seq_len=int(mtf_cfg["h4_seq_len"]),
+                d1_seq_len=int(mtf_cfg["d1_seq_len"]),
+            )
+            LOG.info(f"V3 bundle is multi-TF: M5/M15/H1/H4/D1 active")
+
         model = ExitTransformerV0(
             input_dim=cfg["input_dim"], window_len=cfg["window_len"],
             d_model=cfg["d_model"], n_heads=cfg["n_heads"], n_layers=cfg["n_layers"],
             dropout=cfg.get("dropout", 0.1),
+            **mtf_kwargs,
         )
         state_dict = torch.load(state_path, map_location=device, weights_only=True)
         model.load_state_dict(state_dict)
         model.to(device).eval()
         LOG.info(f"V3 v8 loaded: {bundle_dir.name}  device={device}  "
-                  f"input_dim={cfg['input_dim']}  window_len={cfg['window_len']}")
-        return cls(bundle_dir=bundle_dir, device=device, _model=model)
+                  f"input_dim={cfg['input_dim']}  window_len={cfg['window_len']}  multi_tf={enable_mtf}")
+        return cls(
+            bundle_dir=bundle_dir, device=device, _model=model,
+            _enable_multi_tf=enable_mtf,
+            _mtf_seq_dims={k: int(mtf_cfg.get(f"{k.lower()}_seq_dim", 0))
+                            for k in ("M5", "M15", "H1", "H4", "D1")} if enable_mtf else {},
+            _mtf_seq_lens={k: int(mtf_cfg.get(f"{k.lower()}_seq_len", 96))
+                            for k in ("M5", "M15", "H1", "H4", "D1")} if enable_mtf else {},
+        )
 
     @classmethod
     def load_default(cls) -> "V3LiveInference":
@@ -190,7 +232,8 @@ class V3LiveInference:
     # ── inference ────────────────────────────────────────────────────
 
     @torch.no_grad()
-    def predict_from_matrix(self, window: np.ndarray) -> dict[str, Any]:
+    def predict_from_matrix(self, window: np.ndarray,
+                              multi_tf_windows: dict | None = None) -> dict[str, Any]:
         """Forward V3 v8 on a (512, 91) input matrix. Returns 4 head outputs."""
         if self._model is None:
             raise RuntimeError("V3 v8 not loaded — call .load() first")
@@ -198,9 +241,26 @@ class V3LiveInference:
             raise RuntimeError(f"window shape {window.shape} != ({WINDOW_LEN}, {V6_FEATURE_COUNT})")
 
         x = torch.from_numpy(window).unsqueeze(0).to(self.device)   # (1, 512, 91)
-        main_logit = self._model.forward_logits(x).item()
-        pp_logit = self._model.forward_profit_protect_logits(x).item()
-        family_logits = self._model.forward_family_logits(x).cpu().numpy().flatten()
+
+        # V12.2: build multi-TF kwargs if model needs them
+        mtf_kwargs = {}
+        if self._enable_multi_tf:
+            if multi_tf_windows is None:
+                raise RuntimeError(
+                    "V3 bundle is multi-TF — caller must pass multi_tf_windows "
+                    "(via PrebuiltStateLoader.get_multi_tf_windows())"
+                )
+            for k in ("seq_m5", "seq_m15", "seq_h1", "seq_h4", "seq_d1"):
+                if k not in multi_tf_windows:
+                    raise RuntimeError(f"multi-TF V3 needs {k} but missing from multi_tf_windows")
+                arr = multi_tf_windows[k]
+                if arr.ndim == 2:
+                    arr = arr[np.newaxis, :, :]
+                mtf_kwargs[k] = torch.from_numpy(arr.astype(np.float32, copy=False)).to(self.device)
+
+        main_logit = self._model.forward_logits(x, **mtf_kwargs).item()
+        pp_logit = self._model.forward_profit_protect_logits(x, **mtf_kwargs).item()
+        family_logits = self._model.forward_family_logits(x, **mtf_kwargs).cpu().numpy().flatten()
         return {
             "v3_v8_should_exit_prob": float(_sigmoid(main_logit)),
             "v3_v8_profit_protect_prob": float(_sigmoid(pp_logit)),
@@ -215,14 +275,15 @@ class V3LiveInference:
         canonical_v3_window: pd.DataFrame,
         xgb_inferer,
         trade_overlay: dict[str, np.ndarray] | None = None,
+        multi_tf_windows: dict | None = None,
     ) -> dict[str, Any]:
-        """One-shot: build window + forward V3 v8."""
+        """One-shot: build window + forward V3 v8 (or v9 with multi-TF)."""
         window = self.build_window(
             end_ts, base34_prebuilt, xgb_inferer,
             canonical_v3_window=canonical_v3_window,
             trade_overlay=trade_overlay,
         )
-        return self.predict_from_matrix(window)
+        return self.predict_from_matrix(window, multi_tf_windows=multi_tf_windows)
 
 
 def _sigmoid(x: float) -> float:

@@ -13,16 +13,40 @@
 # Optional env vars (smoke-mode):
 #   WEEK_FILTER="<week_stem>"  # repeat by space-separating; passes --week to Phase 4
 #   MAX_WEEKS=N                # passes --max-weeks N to Phase 4
+#
+# V12.2 multi-TF (V3 v9+) support:
+#   V3_BUNDLE        — override default V3 bundle (default = v8 non-multi-TF)
+#   M5_PREBUILT_PATH — required when V3 bundle is multi-TF; forwarded to scorer
+#   MULTI_TF_SEQ_LEN — optional, default 96 (forwarded only when M5_PREBUILT_PATH set)
 set -euo pipefail
 
 V12_LOCK="${1:?Usage: $0 <V12_PER_BAR_LOCK>}"
 [[ -d "$V12_LOCK" ]] || { echo "ERR: $V12_LOCK not a directory" >&2; exit 1; }
 [[ -d "$V12_LOCK/per_week" ]] || { echo "ERR: $V12_LOCK/per_week missing" >&2; exit 1; }
 
-V3_BUNDLE="${V3_BUNDLE:-/home/andre2/GX1_DATA/models/exit_transformer_v0/EXIT_V8_DISK__BIDIR_2026Q2_CANONICAL_V3_20260506T185957Z}"
+V3_BUNDLE="${V3_BUNDLE:-/home/andre2/GX1_DATA/models/exit_transformer_v0/EXIT_V9_MULTI_TF_LR5E4_SCALE025_20260513T223544Z}"
 V3_DATASET="${V3_DATASET:-/home/andre2/GX1_DATA/data/training/exit_v3_v7_training_2020_2026_canonical_v3}"
 [[ -d "$V3_BUNDLE" ]]  || { echo "ERR: V3 bundle missing: $V3_BUNDLE" >&2; exit 1; }
 [[ -d "$V3_DATASET" ]] || { echo "ERR: V3 dataset missing: $V3_DATASET" >&2; exit 1; }
+
+# V12.2: detect multi-TF from bundle's transformer_config.json and require M5_PREBUILT_PATH.
+V3_CFG="$V3_BUNDLE/transformer_config.json"
+V3_IS_MTF=0
+if [[ -f "$V3_CFG" ]]; then
+    if grep -q '"enabled":[[:space:]]*true' "$V3_CFG"; then
+        V3_IS_MTF=1
+    fi
+fi
+if [[ "$V3_IS_MTF" -eq 1 ]]; then
+    M5_PREBUILT_PATH="${M5_PREBUILT_PATH:-}"
+    if [[ -z "$M5_PREBUILT_PATH" ]]; then
+        echo "ERR: V3 bundle is multi-TF (transformer_config.multi_tf.enabled=true)." >&2
+        echo "     Set env M5_PREBUILT_PATH=<canonical_v3 M5 parquet> before launch." >&2
+        exit 1
+    fi
+    [[ -f "$M5_PREBUILT_PATH" ]] || { echo "ERR: M5_PREBUILT_PATH not a file: $M5_PREBUILT_PATH" >&2; exit 1; }
+fi
+MULTI_TF_SEQ_LEN="${MULTI_TF_SEQ_LEN:-96}"
 
 REPO=/home/andre2/src/GX1_ENGINE
 LOG_DIR=/tmp/v12_cascade_logs
@@ -37,16 +61,24 @@ echo "V12 cascade  Phase 3 → Phase 4"
 echo "  V12_LOCK        = $V12_LOCK"
 echo "  V3_BUNDLE       = $V3_BUNDLE"
 echo "  V3_DATASET      = $V3_DATASET"
+echo "  V3_IS_MTF       = $V3_IS_MTF (multi-TF V3 v9+ if 1)"
+if [[ "$V3_IS_MTF" -eq 1 ]]; then
+    echo "  M5_PREBUILT     = $M5_PREBUILT_PATH"
+    echo "  MTF_SEQ_LEN     = $MULTI_TF_SEQ_LEN"
+fi
 echo "  V3AUG output    = $V3AUG_LOCK"
 echo "  V3TRACKED final = $V3TRACKED_LOCK"
 echo "============================================================"
 
 echo
-echo "[Phase 3] V3 v8 per-bar inference augment"
+echo "[Phase 3] V3 per-bar inference augment"
 echo "  log: $LOG_DIR/phase3_${TS}.log"
 P3_EXTRA=()
 if [[ -n "${WEEK_FILTER:-}" ]]; then
     for w in $WEEK_FILTER; do P3_EXTRA+=(--week "$w"); done
+fi
+if [[ "$V3_IS_MTF" -eq 1 ]]; then
+    P3_EXTRA+=(--m5-prebuilt-path "$M5_PREBUILT_PATH" --multi-tf-seq-len "$MULTI_TF_SEQ_LEN")
 fi
 PYTHONPATH=$REPO python3 -u $REPO/gx1/scripts/score_v3_v8_on_per_bar_v1.py \
     --v3-bundle "$V3_BUNDLE" \
@@ -76,7 +108,7 @@ fi
 if [[ -n "${MAX_WEEKS:-}" ]]; then
     P4_EXTRA+=(--max-weeks "$MAX_WEEKS")
 fi
-PYTHONPATH=$REPO python3 -u /tmp/v12_phase4_v3_tracking_features.py \
+PYTHONPATH=$REPO python3 -u $REPO/gx1/scripts/v12/v12_phase4_v3_tracking_features.py \
     --in-dir  "$V3AUG_LOCK/per_week" \
     --out-dir "$V3TRACKED_LOCK/per_week" \
     "${P4_EXTRA[@]}" \

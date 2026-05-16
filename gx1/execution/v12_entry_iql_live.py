@@ -57,13 +57,18 @@ from gx1.runtime.entry_iql_v2_adapter import EntryIQLV2Adapter, EntryRecommendat
 
 LOG = logging.getLogger("v12_entry_iql_live")
 
+# V12.2 cement (2026-05-15): default = Entry-IQL retrained on V10 v_FIXED multi-TF outputs.
+# Phase 6 validated +73.64 bps/cand (V12_OFF, R_NET_REAL FOLD_1, no advantage filter).
 DEFAULT_BUNDLE_DIR = Path(
-    "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/BUILD_ENTRY_IQL_V2_20260506T195420Z_LOCK"
+    "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/"
+    "BUILD_ENTRY_IQL_V2_V12_2_20260514T161504Z_R4_LOCK"
 )
 DEFAULT_VARIANT = "R_NET_REAL"
 DEFAULT_FOLD = "FOLD_1"
 DEFAULT_AGGREGATOR = "mean"
-DEFAULT_MIN_ADVANTAGE_BPS = 15.1   # V9 P70 sweet spot
+# V12.2: filter off (0.0) to match Phase 6 validation. V12.1.1 used 15.1 (V9 P70)
+# but V12.2 Q-adv distribution shifted lower (p70=10.2) since more candidates pass.
+DEFAULT_MIN_ADVANTAGE_BPS = 0.0   # V12.2 Phase 6 validated config
 DEFAULT_BETA = 1.0                  # softmax temperature for confidence
 
 # Categorical label conventions from inference_batch_v3 (matches training):

@@ -81,8 +81,15 @@ ONE_HOT_COLS = list(v3_m1.ONE_HOT_COLS)
 # ── V12 reward variant ───────────────────────────────────────────────────
 
 
-REWARD_VARIANTS_V12 = ["R_V12", "R_NET_REAL", "R_REGRET"]   # all valid choices for --variants
-DEFAULT_VARIANTS_V12 = ["R_V12"]                            # default = R_V12 only (V12.1 superseded R_NET_REAL/R_REGRET)
+REWARD_VARIANTS_V12 = ["R_V12"]   # R_V13_MFE_AWARE RETIRED 2026-05-16 (OOS-overfit; V12.4 overlay supersedes)
+DEFAULT_VARIANTS_V12 = ["R_V12"]
+# R_NET_REAL / R_REGRET also retired — V12.1 superseded them, never used post-cement.
+
+# V13 design constants — RETIRED but kept as documentation comment.
+# Reason: R_V13_MFE_AWARE retrained with HOLD-penalty (-50 bps) at MFE-giveback.
+# OOS-test (2026-05-16) showed per-trade mean collapsed from +17.6 → +7.6 bps
+# (Period 1 → Period 2) — model overfit to early regime, fired too aggressively
+# on fresh data. V12.4 Strategy-F overlay (post-IQL heuristic) is more robust.
 
 
 def build_reward_matrix_v12(df: pd.DataFrame, *, variant: str) -> np.ndarray:
@@ -103,6 +110,14 @@ def build_reward_matrix_v12(df: pd.DataFrame, *, variant: str) -> np.ndarray:
     n = len(df)
     R = np.zeros((n, v2_train.N_ACTIONS_EXIT, N_K), dtype=np.float32)
 
+    if variant == "R_V13_MFE_AWARE":
+        raise RuntimeError(
+            "R_V13_MFE_AWARE RETIRED 2026-05-16. OOS-test showed overfit. "
+            "V12.4 uses post-IQL Strategy-F overlay (v12_exit_iql_live.py) "
+            "instead of baking the policy into reward. To retrain: "
+            "git-checkout pre-V12.4 commit."
+        )
+
     if variant == "R_V12":
         # Pre-computed columns from Phase 2 (capital-cost already applied)
         r_exit = pd.to_numeric(df["r_exit_now_v1"], errors="coerce").fillna(0.0).to_numpy().astype(np.float32)
@@ -110,10 +125,11 @@ def build_reward_matrix_v12(df: pd.DataFrame, *, variant: str) -> np.ndarray:
             df.get("is_never_fire_v1", pd.Series([False] * n))
             .fillna(False).astype(bool).to_numpy()
         )
+
         for ki, K in enumerate(K_HORIZONS):
             col = f"r_hold_K{K}_v1"
             if col not in df.columns:
-                raise KeyError(f"R_V12 requires precomputed column {col!r} (built in Phase 2 / v12_phase2_build_per_bar_dataset.py)")
+                raise KeyError(f"{variant} requires precomputed column {col!r} (built in Phase 2 / v12_phase2_build_per_bar_dataset.py)")
             r_hold = pd.to_numeric(df[col], errors="coerce").fillna(0.0).to_numpy().astype(np.float32)
             # Never-fire penalty: if a bar has is_never_fire_v1=True, HOLD reward
             # at every K is -1000. This makes "never commit" infeasible for IQL.
