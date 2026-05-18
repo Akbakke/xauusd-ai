@@ -96,6 +96,16 @@ _ENTRY_ALLOWED_COMPAT_STATE_KEYS = {
     "head_clean_edge.bias",
     "head_survival.weight",
     "head_survival.bias",
+    # V10 v3+ aux heads (Targets 1-4) — optional, present only when
+    # bundle was trained with --enable-*-head flags.
+    "head_tf_agreement.weight",
+    "head_tf_agreement.bias",
+    "head_path_quality_log_var.weight",
+    "head_path_quality_log_var.bias",
+    "head_position_size.weight",
+    "head_position_size.bias",
+    "head_hold_horizon.weight",
+    "head_hold_horizon.bias",
 }
 
 
@@ -3089,7 +3099,9 @@ def run_train(
     }
     (out_bundle_dir / "bundle_metadata.json").write_text(json.dumps(meta, indent=2))
 
-    # Post-export verify: strict load
+    # Post-export verify: strict load. Match aux-head flags so model2 has
+    # the same parameters as the trained model (otherwise the v3+ head
+    # weights would be flagged as unexpected_keys).
     model2 = EntryV10CtxHybridTransformer(
         seq_input_dim=SEQ_SIGNAL_DIM,
         snap_input_dim=SNAP_SIGNAL_DIM,
@@ -3105,6 +3117,10 @@ def run_train(
         h1_seq_len=multi_tf_seq_len,
         h4_seq_len=multi_tf_seq_len,
         d1_seq_len=multi_tf_seq_len,
+        enable_tf_agreement_head=enable_tf_agreement_head,
+        enable_path_quality_variance_head=enable_path_quality_variance_head,
+        enable_position_size_head=enable_position_size_head,
+        enable_hold_horizon_head=enable_hold_horizon_head,
     )
     _load_entry_model_state_compat(model2, torch.load(model_path, map_location="cpu"), label="post_export_verify")
     model2.eval()
