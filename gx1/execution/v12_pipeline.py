@@ -322,11 +322,28 @@ class V12Pipeline:
         )
         # Inject V3-tracking running stats into bar_state (overwriting any prior 0-fills)
         bar_state.update(trade.build_v3_tracking_features())
+        # Surface raw Exit-IQL Q-values for diagnostics (was None before, made
+        # debugging premature exits impossible). q_per_action_v1 = [q_hold, q_exit].
+        iql_rec = rec.iql_recommendation_v1
+        q_hold = float(iql_rec.q_per_action_v1[0])
+        q_exit = float(iql_rec.q_per_action_v1[1])
+        # Diagnostic: cast every bar_state value to a JSON-serializable scalar
+        # so the runner can log the full 204-feature state to journal.
+        bar_state_clean = {}
+        for k, v in bar_state.items():
+            try:
+                bar_state_clean[k] = float(v)
+            except (TypeError, ValueError):
+                bar_state_clean[k] = str(v)
         return {
             "action": rec.action_label_v1,
             "action_id": int(rec.action_id_v1),
             "decision_source": rec.decision_source_v1,
             "v3_should_exit_prob": float(rec.v3_should_exit_prob_v1),
+            "q_hold": q_hold,
+            "q_exit": q_exit,
+            "q_advantage": float(iql_rec.advantage_exit_over_hold_v1),
+            "bar_state": bar_state_clean,
             "bars_in_trade": int(trade.bars_in_trade),
             "current_pnl_bps": float(trade.current_pnl_bps),
             "cum_mfe_bps": float(trade.cum_mfe_bps),

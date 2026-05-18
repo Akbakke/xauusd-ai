@@ -217,19 +217,27 @@ class ExitIQLLiveInference:
         bar_state["trend_regime_TREND_NEUTRAL"] = 1.0
         bar_state["decision_reason_v2_inference_batch"] = 1.0
 
-        # All remaining canonical_v3 + augmented columns as plain features
+        # Canonical_v3 + augment features under BOTH _chunk0_v1 and _canon_v1
+        # suffixes — same convention as v12_entry_iql_live.py:184-185.
+        # In training the two came from separate sources (BASE28 vs canonical_v3
+        # joins) but represent the same per-bar feature values. The Exit-IQL
+        # adapter looks up features by exact name; without the suffix-rename
+        # ~150/204 features were silent-zero-filled and Q-values were garbage.
         for col, val in canonical_v3_row.items():
             if col in ("time",):
                 continue
-            if col in bar_state:
-                continue  # already populated
             try:
                 v = float(val)
                 if not np.isfinite(v):
                     v = 0.0
             except (TypeError, ValueError):
                 continue
-            bar_state[col] = v
+            chunk_key = f"{col}_chunk0_v1"
+            canon_key = f"{col}_canon_v1"
+            if chunk_key not in bar_state:
+                bar_state[chunk_key] = v
+            if canon_key not in bar_state:
+                bar_state[canon_key] = v
 
         return bar_state
 
