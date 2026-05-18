@@ -118,6 +118,15 @@ class PrebuiltStateLoader:
 
         if self._base28 is not None and self.base28_path is not None:
             try:
+                # Refresh-daemon rotates BASE28 to a NEW path every cycle; consult
+                # the manifest so we hot-swap when the authoritative path changes.
+                try:
+                    current_path = _resolve_base28_parquet()
+                except Exception:
+                    current_path = self.base28_path
+                if current_path != self.base28_path:
+                    self.base28_path = current_path
+                    self._base28_mtime = 0.0  # force reload below
                 b28_mt = self.base28_path.stat().st_mtime
                 if b28_mt > self._base28_mtime + 0.01:
                     self._base28 = pd.read_parquet(self.base28_path)

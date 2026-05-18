@@ -137,7 +137,7 @@ class V3LiveInference:
         state_dict = torch.load(state_path, map_location=device, weights_only=True)
         model.load_state_dict(state_dict)
         model.to(device).eval()
-        LOG.info(f"V3 v8 loaded: {bundle_dir.name}  device={device}  "
+        LOG.info(f"V3 v9 (multi-TF) loaded: {bundle_dir.name}  device={device}  "
                   f"input_dim={cfg['input_dim']}  window_len={cfg['window_len']}  multi_tf={enable_mtf}")
         return cls(
             bundle_dir=bundle_dir, device=device, _model=model,

@@ -561,7 +561,7 @@ def main() -> int:
                                                   (ask if side == "long" else bid)),
                                 entry_bid=bid, entry_ask=ask,
                                 entry_spread_bps=spread_bps,
-                                entry_model_version="V12.1.1_NO_TRAIL",
+                                entry_model_version="V12.4",
                                 entry_score={
                                     "q_take_long": float(decision.get("q_take_long", 0.0)),
                                     "q_take_short": float(decision.get("q_take_short", 0.0)),
