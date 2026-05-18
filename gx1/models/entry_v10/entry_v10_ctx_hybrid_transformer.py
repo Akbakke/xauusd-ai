@@ -152,6 +152,12 @@ class EntryV10CtxHybridTransformer(nn.Module):
         # Distillation Q-head (V13 prep). Default OFF so v_FIXED bundles
         # load with strict=True. When True, adds q_head linear layer.
         enable_q_head: bool = False,
+        # V10 v3+ aux heads (Targets 1-4). All OFF by default so v_FIXED
+        # bundles continue to load with strict=True.
+        enable_tf_agreement_head: bool = False,
+        enable_path_quality_variance_head: bool = False,
+        enable_position_size_head: bool = False,
+        enable_hold_horizon_head: bool = False,
     ) -> None:
         super().__init__()
         if seq_input_dim <= 0 or snap_input_dim <= 0 or seq_len <= 0:
@@ -185,6 +191,10 @@ class EntryV10CtxHybridTransformer(nn.Module):
             multi_tf_num_layers=int(multi_tf_num_layers),
             multi_tf_scale=float(multi_tf_scale),
             enable_q_head=bool(enable_q_head),
+            enable_tf_agreement_head=bool(enable_tf_agreement_head),
+            enable_path_quality_variance_head=bool(enable_path_quality_variance_head),
+            enable_position_size_head=bool(enable_position_size_head),
+            enable_hold_horizon_head=bool(enable_hold_horizon_head),
         )
 
         d_model = int(self.cfg.d_model)
