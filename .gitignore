@@ -73,12 +73,12 @@ _quarantine_*/
 ../GX1_DATA/
 GX1_DATA/
 
-# Data directories
-data/
-models/
-reports/
-archive/
-quarantine/
+# Data directories (root-level only — keep gx1/models/ source code tracked)
+/data/
+/models/
+/reports/
+/archive/
+/quarantine/
 
 # Large binary/model files
 **/*.parquet

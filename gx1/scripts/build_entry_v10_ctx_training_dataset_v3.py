@@ -1625,6 +1625,103 @@ def build_dataset_canonical(
     y_label_horizon = merged3["label_horizon_bars"].astype(np.int32).to_numpy()
     y_path_horizon = merged3["path_quality_horizon_bars"].astype(np.int32).to_numpy()
 
+    # V10 v3+ TARGET 1: multi-TF trend-agreement score.
+    # Computed from D1/H4/H1/M15/M5 sign signals; fraction of non-D1 TFs
+    # whose sign matches D1's. Aux label for training (loss-weighting when
+    # direction prediction is wrong under high TF-disagreement).
+    # Spec: GX1_DATA/V10_V3_RETRAIN_TARGETS.md target 1.
+    try:
+        from gx1.features.tf_agreement_score import compute_tf_agreement_score
+        y_tf_agreement = compute_tf_agreement_score(merged3).astype(np.float32).to_numpy()
+        log.info(
+            "[V3_TF_AGREEMENT] computed n=%d  mean=%.3f  std=%.3f  frac_full=%.3f  frac_zero=%.3f",
+            len(y_tf_agreement), float(y_tf_agreement.mean()), float(y_tf_agreement.std()),
+            float((y_tf_agreement == 1.0).mean()), float((y_tf_agreement == 0.0).mean()),
+        )
+    except Exception as exc:
+        log.warning(f"[V3_TF_AGREEMENT] compute failed ({exc}) — filling with neutral 0.5")
+        y_tf_agreement = np.full(len(merged3), 0.5, dtype=np.float32)
+
+    # V10 v3+ TARGET 4: realized hold-horizon ∈ [0,1] (bars / 1440).
+    # Join V10 candidates (entry-side) with Exit-IQL per_bar dataset to
+    # get max(bars_in_trade_v1) per candidate = realized hold. Non-trade
+    # samples (y_tradable=0) get neutral 0.5 (=~720 bars).
+    # Spec: GX1_DATA/V10_V3_RETRAIN_TARGETS.md target 4.
+    try:
+        from pathlib import Path as _P
+        per_bar_root = _P("/home/andre2/GX1_DATA/reports/truth_e2e_sanity/"
+                           "BUILD_EXIT_IQL_PER_BAR_DATASET_V12_2_20260514T161504Z_R4_LOCK_V3TRACKED_SOLO_20260515T004836Z_LOCK/per_week")
+        if not per_bar_root.exists():
+            raise RuntimeError(f"Exit-IQL per_bar root missing: {per_bar_root}")
+        # Build a candidate_uid → max_bars_in_trade map across all weeks.
+        # We only need the columns; this is a cheap pass.
+        hold_map: dict = {}  # decision_ts_utc → max_bars_in_trade
+        for wp in sorted(per_bar_root.glob("*.parquet")):
+            try:
+                _df_pb = pd.read_parquet(wp, columns=["decision_ts_utc", "bars_in_trade_v1"])
+                _agg = _df_pb.groupby("decision_ts_utc")["bars_in_trade_v1"].max()
+                for ts, max_bars in _agg.items():
+                    hold_map[ts] = float(max_bars)
+            except Exception:
+                continue
+        log.info(f"[V3_HOLD_HORIZON] candidates with realized hold: {len(hold_map):,}")
+        # Map onto merged3 by time (entry timestamp)
+        time_series = merged3["time"]
+        if not pd.api.types.is_datetime64_any_dtype(time_series):
+            time_series = pd.to_datetime(time_series, utc=True)
+        # Normalize to ns-precision string keys matching per_bar format
+        time_keys = time_series.astype(str)
+        realized_hold = time_keys.map(hold_map).fillna(720.0)  # 720 = neutral 12h default
+        y_hold_horizon = (realized_hold.astype(np.float32) / 1440.0).clip(0.0, 1.0).to_numpy()
+        # Non-tradable rows get neutral 0.5
+        try:
+            non_tradable_mask = merged3["y_tradable"].astype(np.float32).to_numpy() <= 0.5
+            y_hold_horizon[non_tradable_mask] = 0.5
+        except KeyError:
+            pass
+        n_with_real = int((~np.isclose(y_hold_horizon, 0.5)).sum())
+        log.info(
+            "[V3_HOLD_HORIZON] computed n=%d (with realized=%d)  mean=%.3f  p50=%.3f",
+            len(y_hold_horizon), n_with_real, float(y_hold_horizon.mean()),
+            float(np.percentile(y_hold_horizon, 50)),
+        )
+    except Exception as exc:
+        log.warning(f"[V3_HOLD_HORIZON] compute failed ({exc}) — filling with neutral 0.5")
+        y_hold_horizon = np.full(len(merged3), 0.5, dtype=np.float32)
+
+    # V10 v3+ TARGET 3: position-size target ∈ [0,1].
+    # Proxy: realized signed edge in ATR units, sigmoid-mapped.
+    # target = sigmoid((mfe + mae) / (atr * 2))
+    #   +2 ATR winner → ~0.88  (model should learn "bigger size here")
+    #   -2 ATR loser  → ~0.12  ("smaller size here")
+    #     0 (flat)    → 0.5    (neutral default)
+    # Non-tradable rows get neutral 0.5 so they don't pull head astray.
+    # Live runner maps prediction to {0.25, 0.5, 1.0, 2.0}× units.
+    # Spec: GX1_DATA/V10_V3_RETRAIN_TARGETS.md target 3.
+    try:
+        atr_col = "atr_bps" if "atr_bps" in merged3.columns else None
+        if atr_col is None:
+            raise RuntimeError("atr_bps column missing — cannot compute position-size target")
+        atr_arr = np.maximum(merged3[atr_col].astype(np.float32).to_numpy(), 1e-3)
+        signed_edge_atr = (y_mfe_first_n + y_mae_first_n) / (atr_arr * 2.0)
+        y_position_size = (1.0 / (1.0 + np.exp(-signed_edge_atr))).astype(np.float32)
+        # Non-tradable rows → neutral 0.5
+        try:
+            non_tradable_mask = merged3["y_tradable"].astype(np.float32).to_numpy() <= 0.5
+            y_position_size[non_tradable_mask] = 0.5
+        except KeyError:
+            pass
+        log.info(
+            "[V3_POSITION_SIZE] computed n=%d  mean=%.3f  p10=%.3f  p50=%.3f  p90=%.3f",
+            len(y_position_size), float(y_position_size.mean()),
+            float(np.percentile(y_position_size, 10)),
+            float(np.percentile(y_position_size, 50)),
+            float(np.percentile(y_position_size, 90)),
+        )
+    except Exception as exc:
+        log.warning(f"[V3_POSITION_SIZE] compute failed ({exc}) — filling with neutral 0.5")
+        y_position_size = np.full(len(merged3), 0.5, dtype=np.float32)
+
     # ---------------------------------------------------------------------------
     # Poison-short relabel: H4_uptrend + negative micro_momentum + price below EMA
     #
@@ -2614,6 +2711,9 @@ def build_dataset_canonical(
                 "y_quality_score": y_qual[i],
                 "y_bad_path": y_bad_path[i],
                 "y_tradable": y_tradable[i],
+                "y_tf_agreement_score": y_tf_agreement[i],
+                "y_position_size_target": y_position_size[i],
+                "y_hold_horizon_target": y_hold_horizon[i],
                 "mae_first_n_bps": y_mae_first_n[i],
                 "mfe_first_n_bps": y_mfe_first_n[i],
                 "path_quality_bps": y_path_quality[i],
