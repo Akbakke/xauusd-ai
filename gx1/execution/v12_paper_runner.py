@@ -159,6 +159,37 @@ def make_v12_exit_decision(pipeline: V12Pipeline, trade: TradeState,
 # ── Order execution + reject handling ────────────────────────────────────
 
 
+def units_from_position_size_pred(base_units: int, position_size_pred: float,
+                                    max_multiplier: float = 1.0) -> tuple[int, float]:
+    """Map V10 v3+ position_size_pred ∈ [0,1] to actual units.
+
+    Returns (units, applied_multiplier). Multiplier mapping:
+      pred < 0.3 → 0.25×
+      0.3-0.5    → 0.5×
+      0.5-0.7    → 1.0×
+      > 0.7      → 2.0×
+
+    Falls back to plain base_units when:
+      - pred is invalid (-1.0 sentinel from legacy bundles)
+      - max_multiplier == 1.0 (feature disabled)
+    Multiplier is clamped at max_multiplier so the runner can disable
+    high-conviction sizing while still allowing reductions.
+    """
+    if position_size_pred < 0.0 or max_multiplier == 1.0:
+        return base_units, 1.0
+    if position_size_pred < 0.3:
+        mult = 0.25
+    elif position_size_pred < 0.5:
+        mult = 0.5
+    elif position_size_pred < 0.7:
+        mult = 1.0
+    else:
+        mult = 2.0
+    mult = min(mult, float(max_multiplier))
+    units = max(1, int(round(base_units * mult)))   # never below 1 unit
+    return units, mult
+
+
 def attempt_market_entry(client: OandaClient, side: str,
                          units: int = DEFAULT_DEFAULT_UNITS) -> dict[str, Any]:
     """Submit market order. Returns dict with status + reason if rejected.
@@ -256,7 +287,12 @@ def main() -> int:
     p.add_argument("--max-spread-bps", type=float, default=DEFAULT_MAX_SPREAD_BPS)
     p.add_argument("--asia-skip", action="store_true",
                    help="Skip trades in Asia session (00:00-07:00 UTC)")
-    p.add_argument("--units", type=int, default=DEFAULT_DEFAULT_UNITS)
+    p.add_argument("--units", type=int, default=DEFAULT_DEFAULT_UNITS,
+                   help="Base unit size per trade. If V10 v3+ position_size_pred is "
+                        "available, actual order is units × multiplier (clamped via --max-units-multiplier).")
+    p.add_argument("--max-units-multiplier", type=float, default=1.0,
+                   help="Cap on position_size multiplier from V10 v3+ pred. "
+                        "1.0 = ignore prediction (use plain --units). 2.0 = allow up to 2× units.")
     p.add_argument("--max-trades", type=int, default=DEFAULT_MAX_TRADES,
                    help="Max concurrent virtual trades held simultaneously (default: 1)")
     p.add_argument("--poll-seconds", type=int, default=DEFAULT_POLL_SECONDS)
@@ -510,6 +546,16 @@ def main() -> int:
 
             if decision["action"] in ("TAKE_LONG_NOW", "TAKE_SHORT_NOW"):
                 side = "long" if decision["action"] == "TAKE_LONG_NOW" else "short"
+                # V10 v3+ Target 3: adaptive units from position_size_pred.
+                # Falls back to args.units when pred is -1 (legacy bundle) or
+                # when --max-units-multiplier == 1.0 (feature disabled).
+                pos_pred = float(decision.get("v10_position_size_pred", -1.0))
+                trade_units, units_mult = units_from_position_size_pred(
+                    args.units, pos_pred, max_multiplier=args.max_units_multiplier,
+                )
+                event["units_multiplier_applied"] = units_mult
+                if units_mult != 1.0:
+                    LOG.info(f"adaptive units: pos_size_pred={pos_pred:.3f} → mult={units_mult}× → {trade_units}u (base={args.units})")
                 if args.dry_run:
                     event["order_status"] = "DRY_RUN"
                     virtual_id = f"virtual_{current_minute.strftime('%Y%m%dT%H%M%S')}"
@@ -517,13 +563,13 @@ def main() -> int:
                         entry_ts=pd.Timestamp(current_minute),
                         side=side, entry_bid=bid, entry_ask=ask,
                         v10_snapshot=decision.get("_v10_snapshot", {}),
-                        trade_id=virtual_id, units=args.units,
+                        trade_id=virtual_id, units=trade_units,
                     )
                     new_trade.save(TRADE_STATE_DIR)
                     open_trades.append(new_trade)
                     LOG.info(f"[DRY] virtual trade opened  side={side}  id={virtual_id}")
                 else:
-                    order_result = attempt_market_entry(client, side, units=args.units)
+                    order_result = attempt_market_entry(client, side, units=trade_units)
                     event["order_status"] = order_result["status"]
                     event["order_details"] = order_result
                     if order_result.get("status") == "filled":
@@ -532,7 +578,7 @@ def main() -> int:
                             side=side, entry_bid=bid, entry_ask=ask,
                             v10_snapshot=decision.get("_v10_snapshot", {}),
                             trade_id=str(order_result.get("trade_id") or ""),
-                            units=args.units,
+                            units=trade_units,
                         )
                         new_trade.save(TRADE_STATE_DIR)
                         open_trades.append(new_trade)

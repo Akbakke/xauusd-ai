@@ -250,6 +250,13 @@ class V12Pipeline:
             "v10_p_short": float(v10_out["direction_probs"][1]),
             "v10_tradable_prob": float(v10_out["tradable_prob"]),
             "v10_bad_path_prob": float(v10_out["bad_path_prob"]),
+            # V10 v3+ aux heads (only present when retrained with those flags).
+            # Use .get() so older v_FIXED bundles don't break the dict.
+            "v10_tf_agreement_pred": float(v10_out.get("tf_agreement_pred", -1.0)),
+            "v10_path_quality_std": float(v10_out.get("path_quality_std", -1.0)),
+            "v10_position_size_pred": float(v10_out.get("position_size_pred", -1.0)),
+            "v10_hold_horizon_pred": float(v10_out.get("hold_horizon_pred", -1.0)),
+            "v10_hold_horizon_bars_pred": int(v10_out.get("hold_horizon_bars_pred", -1)),
             "decision_ts": str(augmented.index[end_idx]),
             "_v10_snapshot": v10_out,   # for later TradeState.open()
             "stub": False,

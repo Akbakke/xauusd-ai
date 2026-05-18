@@ -80,6 +80,14 @@ MFE_GIVEBACK_MIN_MFE_BPS = 15.0
 BREAKEVEN_RATIO = 0.30
 BREAKEVEN_MIN_MFE = 10.0
 STRONG_HOLD_QADV = -200.0              # tuned via param sweep — top decile of Q-adv
+# V10 v3+ Target 4: hold-horizon-expired override.
+# When V10 v3+ bundle is loaded, it predicts expected trade hold in bars.
+# If trade exceeds K × prediction AND MFE never reached profit-lock floor,
+# force EXIT_NOW with reason HOLD_HORIZON_EXPIRED — cuts stale grinders.
+# Set K = 1.5 (50% margin over model's expectation).
+HOLD_HORIZON_OVERRUN_MULT = 1.5
+# Sentinel: V10 returns -1 when bundle has no hold_horizon head.
+HOLD_HORIZON_INVALID_SENTINEL = 0.0
 
 # Hard guard: refuse to load if user explicitly tries to disable via env.
 # This is a NO-CONFIG-DRIFT enforcement — older policies were retired.
@@ -285,6 +293,30 @@ class ExitIQLLiveInference:
             iql_q_adv = float(rec.iql_recommendation_v1.advantage_exit_over_hold_v1 or 0.0)
             strong_hold = (STRATEGY_F_ENABLED
                             and iql_q_adv < STRONG_HOLD_QADV)
+
+            # Rule 4 (V10 v3+ Target 4): hold-horizon-expired — cuts stale trades
+            # when realized hold exceeds K × model's predicted hold AND no
+            # significant MFE accumulated. Only active when bundle has the
+            # hold_horizon head (predicts > 0; legacy bundles return -1).
+            hold_horizon_pred_bars = float(
+                (trade.v10_snapshot or {}).get("hold_horizon_bars_pred", -1.0)
+            )
+            hold_horizon_expired = (
+                STRATEGY_F_ENABLED
+                and hold_horizon_pred_bars > HOLD_HORIZON_INVALID_SENTINEL
+                and int(trade.bars_in_trade or 0) > int(HOLD_HORIZON_OVERRUN_MULT * hold_horizon_pred_bars)
+                and mfe < MFE_GIVEBACK_MIN_MFE_BPS  # only cut if trade never built real edge
+            )
+            if hold_horizon_expired and not strong_hold:
+                rec = ExitDeciderV12Recommendation(
+                    action_id_v1=EXIT_NOW_ID,
+                    action_label_v1="EXIT_NOW",
+                    decision_source_v1="HOLD_HORIZON_EXPIRED",
+                    v3_should_exit_prob_v1=rec.v3_should_exit_prob_v1,
+                    iql_recommendation_v1=rec.iql_recommendation_v1,
+                    override_threshold_v1=HOLD_HORIZON_OVERRUN_MULT,
+                )
+                return rec, bar_state
 
             if f_trigger and not strong_hold:
                 # F override — exit now

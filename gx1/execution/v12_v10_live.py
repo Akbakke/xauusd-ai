@@ -276,7 +276,7 @@ class V10LiveInference:
 
         dir_logits = out["direction_logits"].cpu().numpy()[0]             # (3,)
         dir_probs = _softmax(dir_logits)
-        return {
+        result = {
             "direction_logits": dir_logits,
             "direction_probs": dir_probs,                                  # [P(long), P(short), P(flat)]
             "path_quality": float(out["path_quality"].cpu().numpy()[0, 0]),
@@ -287,6 +287,25 @@ class V10LiveInference:
             "survival_prob": float(_sigmoid(out["survival_logit"].cpu().numpy()[0, 0])),
             "decision_ts": window.index[-1].isoformat(),
         }
+        # V10 v3+ aux heads (Targets 1-4) — only emitted by bundles trained
+        # with enable_*_head=True. Older v_FIXED bundles don't have these
+        # keys in the model output, so we add them conditionally and the
+        # live pipeline / journal logs whichever are present.
+        if "tf_agreement_logit" in out:
+            result["tf_agreement_pred"] = float(_sigmoid(out["tf_agreement_logit"].cpu().numpy()[0, 0]))
+        if "path_quality_log_var" in out:
+            log_var = float(out["path_quality_log_var"].cpu().numpy()[0, 0])
+            # std = sqrt(exp(log_var)); also expose raw log_var for journal.
+            result["path_quality_log_var"] = log_var
+            result["path_quality_std"] = float(np.exp(log_var / 2.0))
+        if "position_size_logit" in out:
+            result["position_size_pred"] = float(_sigmoid(out["position_size_logit"].cpu().numpy()[0, 0]))
+        if "hold_horizon_logit" in out:
+            hh_pred = float(_sigmoid(out["hold_horizon_logit"].cpu().numpy()[0, 0]))
+            # Map [0,1] back to bars (max 1440 = 24h).
+            result["hold_horizon_pred"] = hh_pred
+            result["hold_horizon_bars_pred"] = int(round(hh_pred * 1440))
+        return result
 
 
 def _softmax(x: np.ndarray) -> np.ndarray:
