@@ -2392,6 +2392,11 @@ def run_train(
     multi_tf_seq_len: int = 96,
     multi_tf_scale: float = 0.5,
     subsample_rows: int = 0,
+    # V10 v3+ aux heads (Targets 1-4)
+    enable_tf_agreement_head: bool = False,
+    enable_path_quality_variance_head: bool = False,
+    enable_position_size_head: bool = False,
+    enable_hold_horizon_head: bool = False,
 ) -> None:
     _guard_no_rl()
 
@@ -2692,7 +2697,18 @@ def run_train(
         h4_seq_len=multi_tf_seq_len,
         d1_seq_len=multi_tf_seq_len,
         multi_tf_scale=multi_tf_scale,
+        # V10 v3+ aux heads (Targets 1-4)
+        enable_tf_agreement_head=enable_tf_agreement_head,
+        enable_path_quality_variance_head=enable_path_quality_variance_head,
+        enable_position_size_head=enable_position_size_head,
+        enable_hold_horizon_head=enable_hold_horizon_head,
     ).to(device)
+    if enable_tf_agreement_head or enable_path_quality_variance_head or enable_position_size_head or enable_hold_horizon_head:
+        log.info(
+            "[V10_V3PLUS_HEADS] tf_agreement=%s path_var=%s position_size=%s hold_horizon=%s",
+            enable_tf_agreement_head, enable_path_quality_variance_head,
+            enable_position_size_head, enable_hold_horizon_head,
+        )
     if enable_multi_tf:
         log.info(
             "[MULTI_TF_PROOF] enabled=True  TFs=M15+H1+H4+D1  per_tf_dim=%d  per_tf_len=%d  total_extra_params≈%dK",
@@ -3670,6 +3686,31 @@ def main() -> None:
              "Requires --m5-prebuilt-path. Model is trained from scratch "
              "(not weight-compatible with v3 bundles).",
     )
+    # ── V10 v3+ aux heads (Targets 1-4) ──────────────────────────────
+    parser.add_argument(
+        "--enable-tf-agreement-head", action="store_true",
+        help="V10 v3+ Target 1: add multi-TF agreement aux head + MSE loss "
+             "× 0.5 weight on y_tf_agreement_score label.",
+    )
+    parser.add_argument(
+        "--enable-path-quality-variance-head", action="store_true",
+        help="V10 v3+ Target 2: add log-variance head for path_quality; "
+             "swap smooth_l1 loss for Gaussian NLL so model learns uncertainty.",
+    )
+    parser.add_argument(
+        "--enable-position-size-head", action="store_true",
+        help="V10 v3+ Target 3: add position-size aux head + MSE loss × 0.3 "
+             "weight on y_position_size_target label.",
+    )
+    parser.add_argument(
+        "--enable-hold-horizon-head", action="store_true",
+        help="V10 v3+ Target 4: add hold-horizon aux head + MSE loss × 0.3 "
+             "weight on y_hold_horizon_target label.",
+    )
+    parser.add_argument(
+        "--enable-v10-v3plus-all-heads", action="store_true",
+        help="Convenience flag: enable all 4 V10 v3+ aux heads (T1+T2+T3+T4).",
+    )
     parser.add_argument(
         "--m5-prebuilt-path", type=Path, default=None,
         help="V12.2: path to canonical_v3 M5 OHLC parquet (used by dataset "
@@ -3786,6 +3827,11 @@ def main() -> None:
             multi_tf_seq_len=args.multi_tf_seq_len,
             multi_tf_scale=args.multi_tf_scale,
             subsample_rows=args.subsample_rows,
+            # V10 v3+ aux heads (Targets 1-4). --enable-v10-v3plus-all-heads is a convenience.
+            enable_tf_agreement_head=args.enable_tf_agreement_head or args.enable_v10_v3plus_all_heads,
+            enable_path_quality_variance_head=args.enable_path_quality_variance_head or args.enable_v10_v3plus_all_heads,
+            enable_position_size_head=args.enable_position_size_head or args.enable_v10_v3plus_all_heads,
+            enable_hold_horizon_head=args.enable_hold_horizon_head or args.enable_v10_v3plus_all_heads,
         )
         return
 
