@@ -150,15 +150,38 @@ def load_entry_v10_ctx_bundle(
         EntryV10CtxHybridTransformer,
     )
 
+    # Detect multi-TF and v3+ aux heads from bundle metadata so model is
+    # constructed with matching parameters (otherwise their weights show
+    # up as unexpected_keys in strict-load below).
+    mtf_meta = (meta.get("multi_tf") or {}) if isinstance(meta, dict) else {}
+    enable_mtf = bool(mtf_meta.get("enabled", False))
+    mtf_dim = int(mtf_meta.get("m15_seq_dim", 0)) if enable_mtf else 0
+    mtf_seq_len = int(mtf_meta.get("m15_seq_len", 96)) if enable_mtf else 96
+    mtf_scale = float(mtf_meta.get("multi_tf_scale", 0.5)) if enable_mtf else 0.5
+    # V10 v3+ aux heads: detect by presence in state_dict keys.
+    state_dict_preview = torch.load(state_path, map_location="cpu")
+    _has_tf_agreement = "head_tf_agreement.weight" in state_dict_preview
+    _has_path_var = "head_path_quality_log_var.weight" in state_dict_preview
+    _has_position_size = "head_position_size.weight" in state_dict_preview
+    _has_hold_horizon = "head_hold_horizon.weight" in state_dict_preview
+
     model = EntryV10CtxHybridTransformer(
         seq_input_dim=seq_input_dim,
         snap_input_dim=snap_input_dim,
         seq_len=seq_len,
         ctx_cont_dim=ctx_cont_dim,
         ctx_cat_dim=ctx_cat_dim,
+        enable_multi_tf=enable_mtf,
+        m15_seq_dim=mtf_dim, h1_seq_dim=mtf_dim, h4_seq_dim=mtf_dim, d1_seq_dim=mtf_dim,
+        m15_seq_len=mtf_seq_len, h1_seq_len=mtf_seq_len, h4_seq_len=mtf_seq_len, d1_seq_len=mtf_seq_len,
+        multi_tf_scale=mtf_scale,
+        enable_tf_agreement_head=_has_tf_agreement,
+        enable_path_quality_variance_head=_has_path_var,
+        enable_position_size_head=_has_position_size,
+        enable_hold_horizon_head=_has_hold_horizon,
     ).to(dev)
 
-    state_dict = torch.load(state_path, map_location=dev)
+    state_dict = state_dict_preview
     parked_head_keys = {
         "head_early_move.weight",
         "head_early_move.bias",

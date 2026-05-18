@@ -294,8 +294,9 @@ class V10LiveInference:
         if "tf_agreement_logit" in out:
             result["tf_agreement_pred"] = float(_sigmoid(out["tf_agreement_logit"].cpu().numpy()[0, 0]))
         if "path_quality_log_var" in out:
-            log_var = float(out["path_quality_log_var"].cpu().numpy()[0, 0])
-            # std = sqrt(exp(log_var)); also expose raw log_var for journal.
+            # Clamp same range as training (-5, 5) before exp — un-trained
+            # bundles can output extreme log_var values that overflow.
+            log_var = float(np.clip(out["path_quality_log_var"].cpu().numpy()[0, 0], -5.0, 5.0))
             result["path_quality_log_var"] = log_var
             result["path_quality_std"] = float(np.exp(log_var / 2.0))
         if "position_size_logit" in out:

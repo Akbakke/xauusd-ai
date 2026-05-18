@@ -1597,7 +1597,7 @@ def train_epoch(
             y_tf_agreement = batch["y_tf_agreement_score"].to(device, non_blocking=non_blocking)
             tf_pred = torch.sigmoid(out["tf_agreement_logit"]).squeeze(-1)
             tf_agreement_loss = torch.nn.functional.mse_loss(tf_pred, y_tf_agreement)
-            loss = loss + 0.5 * tf_agreement_loss  # weight tuned conservatively; primary task = direction
+            loss = loss + 0.3 * tf_agreement_loss  # weight conservative; primary task = direction. Reduced from 0.5 after first retrain to free more capacity for direction head.
 
         # V10 v3+ Target 3: position-size BCE-style loss (only when aux head enabled)
         if "position_size_logit" in out:
@@ -1605,14 +1605,14 @@ def train_epoch(
             pos_pred = torch.sigmoid(out["position_size_logit"]).squeeze(-1)
             # MSE is fine here since target is continuous in [0,1] and well-defined.
             position_size_loss = torch.nn.functional.mse_loss(pos_pred, y_pos_size)
-            loss = loss + 0.3 * position_size_loss  # smaller weight than tf_agreement; secondary task
+            loss = loss + 0.2 * position_size_loss  # secondary task; reduced from 0.3 after first retrain
 
         # V10 v3+ Target 4: hold-horizon MSE loss (only when aux head enabled)
         if "hold_horizon_logit" in out:
             y_hold = batch["y_hold_horizon_target"].to(device, non_blocking=non_blocking)
             hold_pred = torch.sigmoid(out["hold_horizon_logit"]).squeeze(-1)
             hold_horizon_loss = torch.nn.functional.mse_loss(hold_pred, y_hold)
-            loss = loss + 0.3 * hold_horizon_loss
+            loss = loss + 0.2 * hold_horizon_loss  # reduced from 0.3 after first retrain
 
         preds = torch.argmax(probs, dim=1)
         short_mask = y == 1
