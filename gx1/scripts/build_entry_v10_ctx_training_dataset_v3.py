@@ -1665,12 +1665,14 @@ def build_dataset_canonical(
             except Exception:
                 continue
         log.info(f"[V3_HOLD_HORIZON] candidates with realized hold: {len(hold_map):,}")
-        # Map onto merged3 by time (entry timestamp)
+        # Map onto merged3 by time (entry timestamp). Per_bar dataset stores
+        # decision_ts_utc as ISO string ("2026-04-13T00:00:00+00:00") so we
+        # must match that format — pandas .astype(str) gives space-separator
+        # which won't match.
         time_series = merged3["time"]
         if not pd.api.types.is_datetime64_any_dtype(time_series):
             time_series = pd.to_datetime(time_series, utc=True)
-        # Normalize to ns-precision string keys matching per_bar format
-        time_keys = time_series.astype(str)
+        time_keys = time_series.apply(lambda t: t.isoformat() if pd.notna(t) else "")
         realized_hold = time_keys.map(hold_map).fillna(720.0)  # 720 = neutral 12h default
         y_hold_horizon = (realized_hold.astype(np.float32) / 1440.0).clip(0.0, 1.0).to_numpy()
         # Non-tradable rows get neutral 0.5
