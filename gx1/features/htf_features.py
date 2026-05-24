@@ -98,6 +98,14 @@ def _resample_ohlc(df: pd.DataFrame, rule: str) -> pd.DataFrame:
     return df.resample(rule).agg(agg).dropna(how="all")
 
 
+def _resample_ohlcv(df: pd.DataFrame, rule: str) -> pd.DataFrame:
+    """V2-extension: also aggregates volume (sum) — needed for VWAP per TF."""
+    agg = {"open": "first", "high": "max", "low": "min",
+           "close": _last_valid, "volume": "sum"}
+    cols = [c for c in agg.keys() if c in df.columns]
+    return df[cols].resample(rule).agg({c: agg[c] for c in cols}).dropna(how="all")
+
+
 def _last_closed_at_or_before(
     series_htf: pd.Series, target_ts: pd.Timestamp, shift: pd.Timedelta
 ) -> Optional[float]:
@@ -331,6 +339,36 @@ MULTI_TF_PER_BAR_FEATURES = (
 )
 MULTI_TF_FEATURE_COUNT = len(MULTI_TF_PER_BAR_FEATURES)   # = 17
 
+# ─────────────────────────────────────────────────────────────────────────────
+# V2 (2026-05-22): 25 features per TF. Adds full EMA stack + VWAP + BB + regime
+# to address user-observed gap (live trade went LONG while H4/D1 trend negative).
+# V1 above is preserved for backward-compat with currently-deployed V10/V3 bundles.
+# Both can co-exist until V2 retraining is cement + deployed.
+# ─────────────────────────────────────────────────────────────────────────────
+MULTI_TF_PER_BAR_FEATURES_V2 = (
+    # KEPT from V1 (9 features) — proven signal from feature_importance analysis
+    "atr_bps_14", "rsi14_centered", "mom_5_atr", "mom_20_atr",
+    "close_open_atr", "body_pct", "upper_wick_pct", "lower_wick_pct",
+    "ema20_dist_atr",
+    # NEW: full EMA stack (3 distances + 3 slopes)
+    "ema50_dist_atr", "ema100_dist_atr", "ema200_dist_atr",
+    "ema20_slope_atr", "ema50_slope_atr", "ema200_slope_atr",
+    # NEW: EMA-regime (2)
+    "ema_stack_aligned_v2",   # int {-1,0,+1}: bear/range/bull
+    "regime_class_id",        # int {0..4}: range/up_low/up_high/down_low/down_high
+    # NEW: VWAP family (4)
+    "vwap_session_dist_atr",  # dist to session VWAP
+    "vwap20_dist_atr",        # rolling 20-bar VWAP
+    "vwap96_dist_atr",        # rolling 96-bar VWAP
+    "vwap_session_slope_atr", # session-VWAP velocity
+    # NEW: Bollinger + trend strength (4)
+    "bb_position",            # (close − bb_lower) / (bb_upper − bb_lower) ∈ [0,1]
+    "bb_width_atr",           # (bb_upper − bb_lower) / atr14
+    "adx_centered",           # (adx − 25) / 25
+    "trend_age_bars_norm",    # bars since last EMA stack flip, normalized log
+)
+MULTI_TF_FEATURE_COUNT_V2 = len(MULTI_TF_PER_BAR_FEATURES_V2)   # = 25
+
 MULTI_TF_RESAMPLE_RULES = {
     # V10 (entry) base is M5 → uses M15+H1+H4+D1.
     # V3 (exit) base is M1 → uses M5+M15+H1+H4+D1 (M5 added below).
@@ -436,6 +474,224 @@ def compute_per_bar_features(ohlc: pd.DataFrame) -> pd.DataFrame:
     return out[list(MULTI_TF_PER_BAR_FEATURES)]
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# V2 helpers + compute_per_bar_features_v2
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _rolling_vwap(close: pd.Series, volume: pd.Series, window: int) -> pd.Series:
+    """Rolling N-bar VWAP. Uses 1.0 volume when zero/missing (degenerate guard)."""
+    v = volume.fillna(0).where(volume > 0, 1.0)
+    pv = close * v
+    pv_sum = pv.rolling(window, min_periods=1).sum()
+    v_sum = v.rolling(window, min_periods=1).sum()
+    return pv_sum / np.maximum(v_sum, 1e-12)
+
+
+def _session_vwap(close: pd.Series, volume: pd.Series) -> pd.Series:
+    """VWAP reset at each calendar day's midnight UTC."""
+    v = volume.fillna(0).where(volume > 0, 1.0)
+    pv = close * v
+    # Group by date — cumulative within day
+    grp = close.index.normalize()
+    pv_cs = pv.groupby(grp).cumsum()
+    v_cs = v.groupby(grp).cumsum()
+    return pv_cs / np.maximum(v_cs, 1e-12)
+
+
+def _adx14(h: pd.Series, l: pd.Series, c: pd.Series, n: int = 14) -> pd.Series:
+    """Welles Wilder's ADX. Returns 0..100 series indexed like c."""
+    up = h.diff()
+    dn = -l.diff()
+    plus_dm = np.where((up > dn) & (up > 0), up, 0.0)
+    minus_dm = np.where((dn > up) & (dn > 0), dn, 0.0)
+    plus_dm = pd.Series(plus_dm, index=c.index)
+    minus_dm = pd.Series(minus_dm, index=c.index)
+    tr = pd.concat([
+        (h - l).abs(),
+        (h - c.shift(1)).abs(),
+        (l - c.shift(1)).abs(),
+    ], axis=1).max(axis=1)
+    atr = tr.ewm(alpha=1.0/n, adjust=False).mean()
+    plus_di = 100.0 * plus_dm.ewm(alpha=1.0/n, adjust=False).mean() / np.maximum(atr, 1e-12)
+    minus_di = 100.0 * minus_dm.ewm(alpha=1.0/n, adjust=False).mean() / np.maximum(atr, 1e-12)
+    dx = 100.0 * (plus_di - minus_di).abs() / np.maximum(plus_di + minus_di, 1e-12)
+    return dx.ewm(alpha=1.0/n, adjust=False).mean().fillna(0.0)
+
+
+def _regime_class(stack_aligned: pd.Series, ema200_slope: pd.Series, atr_safe: pd.Series) -> pd.Series:
+    """Combine EMA-stack alignment + EMA200 slope into 5-class regime enum.
+
+    0 = range (stack=0)
+    1 = uptrend_low (stack=+1, slope <= +0.3 ATR)
+    2 = uptrend_high (stack=+1, slope > +0.3 ATR)
+    3 = downtrend_low (stack=-1, slope >= -0.3 ATR)
+    4 = downtrend_high (stack=-1, slope < -0.3 ATR)
+    """
+    slope_atr = ema200_slope / np.maximum(atr_safe, 1e-9)
+    out = pd.Series(0, index=stack_aligned.index, dtype=int)
+    out[stack_aligned == 1] = np.where(slope_atr[stack_aligned == 1] > 0.3, 2, 1)
+    out[stack_aligned == -1] = np.where(slope_atr[stack_aligned == -1] < -0.3, 4, 3)
+    return out
+
+
+def _trend_age_bars(stack_aligned: pd.Series) -> pd.Series:
+    """Number of consecutive bars since the EMA stack last changed sign."""
+    # Convert to int sign sequence; count runs
+    chg = (stack_aligned != stack_aligned.shift(1)).cumsum()
+    return stack_aligned.groupby(chg).cumcount().astype(float)
+
+
+def compute_per_bar_features_v2(ohlcv: pd.DataFrame) -> pd.DataFrame:
+    """V2 multi-TF per-bar features — 25 cols. Requires OHLCV (volume needed for VWAP).
+
+    Backward compat: if volume missing, falls back to volume=1 (tick-equal-weight VWAP).
+    """
+    if not all(c in ohlcv.columns for c in ("open", "high", "low", "close")):
+        raise RuntimeError(f"compute_per_bar_features_v2: missing OHLC cols")
+    df = ohlcv[["open", "high", "low", "close"]].astype(np.float64).copy()
+    if "volume" in ohlcv.columns:
+        df["volume"] = pd.to_numeric(ohlcv["volume"], errors="coerce").fillna(0).astype(np.float64)
+    else:
+        df["volume"] = 1.0   # tick-equal-weight fallback
+    out = pd.DataFrame(index=df.index, dtype=np.float64)
+
+    c = df["close"]; o = df["open"]; h = df["high"]; l = df["low"]; v = df["volume"]
+
+    atr14 = _atr(h, l, c, 14)
+    atr_floor = np.maximum(c * 1e-4, 1e-3)
+    atr_safe = np.maximum(atr14, atr_floor)
+
+    # ─── KEPT (9) ────────────────────────────────────────────────────
+    out["atr_bps_14"] = (atr14 / np.maximum(c, 1e-6) * 1e4).clip(0, 500).fillna(0.0)
+    rsi = _rsi(c, 14)
+    out["rsi14_centered"] = ((rsi - 50.0) / 50.0).clip(-1.0, 1.0).fillna(0.0)
+    # 2026-05-24 FIX: ffill close before shift so D1/H4 with sparse warmup don't
+    # produce zeros from NaN propagation. Previously D1 mom_20 was DEAD because
+    # shift(20) on sparse D1 series → NaN → fillna(0) → constant zero column.
+    c_ffilled = c.ffill()
+    for k in (5, 20):
+        delta = c_ffilled - c_ffilled.shift(k)
+        out[f"mom_{k}_atr"] = (delta / atr_safe).clip(-10.0, 10.0).fillna(0.0)
+    out["close_open_atr"] = ((c - o) / atr_safe).fillna(0.0).clip(-10.0, 10.0)
+    bar_range = np.maximum(h - l, atr_floor)
+    body = (c - o).abs()
+    upper_wick = h - df[["open", "close"]].max(axis=1)
+    lower_wick = df[["open", "close"]].min(axis=1) - l
+    out["body_pct"] = (body / bar_range).clip(0.0, 1.0)
+    out["upper_wick_pct"] = (upper_wick / bar_range).clip(0.0, 1.0)
+    out["lower_wick_pct"] = (lower_wick / bar_range).clip(0.0, 1.0)
+    ema20 = _ema(c, 20)
+    out["ema20_dist_atr"] = ((c - ema20) / atr_safe).clip(-10.0, 10.0).fillna(0.0)
+
+    # ─── NEW: EMA stack (3 dist + 3 slopes) ──────────────────────────
+    # 2026-05-24 FIX: ffill EMA series before stack-check. Without ffill, NaN in
+    # any EMA (early warmup, especially on resampled D1/H4 with <200 bars history)
+    # silently dropped stack_aligned to 0 → dead feature on D1/H4/M15.
+    ema50 = _ema(c, 50).ffill()
+    ema100 = _ema(c, 100).ffill()
+    ema200 = _ema(c, 200).ffill()
+    out["ema50_dist_atr"] = ((c - ema50) / atr_safe).clip(-15.0, 15.0).fillna(0.0)
+    out["ema100_dist_atr"] = ((c - ema100) / atr_safe).clip(-20.0, 20.0).fillna(0.0)
+    out["ema200_dist_atr"] = ((c - ema200) / atr_safe).clip(-30.0, 30.0).fillna(0.0)
+    out["ema20_slope_atr"] = ((ema20 - ema20.shift(5)) / atr_safe).clip(-5.0, 5.0).fillna(0.0)
+    out["ema50_slope_atr"] = ((ema50 - ema50.shift(5)) / atr_safe).clip(-5.0, 5.0).fillna(0.0)
+    out["ema200_slope_atr"] = ((ema200 - ema200.shift(5)) / atr_safe).clip(-5.0, 5.0).fillna(0.0)
+
+    # ─── NEW: EMA-stack regime (2) ───────────────────────────────────
+    # 2026-05-24: now uses ffill'd EMAs above + checks full stack (50<100<200) for
+    # stricter alignment. Previously bear/bull only checked 20<50<200, missing 100.
+    bull = (ema20 > ema50) & (ema50 > ema100) & (ema100 > ema200)
+    bear = (ema20 < ema50) & (ema50 < ema100) & (ema100 < ema200)
+    stack = pd.Series(0, index=c.index)
+    stack[bull] = 1
+    stack[bear] = -1
+    out["ema_stack_aligned_v2"] = stack.astype(float)
+    out["regime_class_id"] = _regime_class(stack, ema200 - ema200.shift(5), atr_safe).astype(float)
+
+    # ─── NEW: VWAP family (4) ────────────────────────────────────────
+    # 2026-05-24 FIX: session_vwap on D1 is degenerate (one bar per day → VWAP=close
+    # → distance always 0). For TFs where bars span >= 1 day, use a 5-bar (weekly-ish)
+    # rolling VWAP as a "session" proxy. Detect via index frequency.
+    if len(c) >= 2:
+        median_delta_hours = float(
+            (c.index.to_series().diff().median() or pd.Timedelta(0)).total_seconds() / 3600.0
+        )
+    else:
+        median_delta_hours = 0.0
+    if median_delta_hours >= 23.0:  # D1 or coarser
+        vwap_sess = _rolling_vwap(c, v, 5)  # 5-day VWAP as "session" proxy
+    else:
+        vwap_sess = _session_vwap(c, v)
+    out["vwap_session_dist_atr"] = ((c - vwap_sess) / atr_safe).clip(-15.0, 15.0).fillna(0.0)
+    vwap20 = _rolling_vwap(c, v, 20)
+    out["vwap20_dist_atr"] = ((c - vwap20) / atr_safe).clip(-10.0, 10.0).fillna(0.0)
+    vwap96 = _rolling_vwap(c, v, 96)
+    out["vwap96_dist_atr"] = ((c - vwap96) / atr_safe).clip(-15.0, 15.0).fillna(0.0)
+    out["vwap_session_slope_atr"] = ((vwap_sess - vwap_sess.shift(5)) / atr_safe).clip(-5.0, 5.0).fillna(0.0)
+
+    # ─── NEW: Bollinger + trend strength (4) ─────────────────────────
+    sma20 = c.rolling(20, min_periods=1).mean()
+    std20 = c.rolling(20, min_periods=1).std().fillna(0.0)
+    bb_upper = sma20 + 2.0 * std20
+    bb_lower = sma20 - 2.0 * std20
+    bb_width = (bb_upper - bb_lower)
+    out["bb_position"] = ((c - bb_lower) / np.maximum(bb_width, atr_floor)).clip(0.0, 1.0).fillna(0.5)
+    out["bb_width_atr"] = (bb_width / atr_safe).clip(0.0, 20.0).fillna(0.0)
+    adx = _adx14(h, l, c, 14)
+    out["adx_centered"] = ((adx - 25.0) / 25.0).clip(-1.0, 3.0).fillna(0.0)
+    # log1p(bars_since_flip) / log1p(500) — normalized 0..1, saturates at 500 bars
+    age = _trend_age_bars(stack).clip(upper=500.0)
+    out["trend_age_bars_norm"] = (np.log1p(age) / np.log1p(500.0)).fillna(0.0)
+
+    return out[list(MULTI_TF_PER_BAR_FEATURES_V2)].astype(np.float32)
+
+
+def build_multi_tf_per_bar_features_v2(m5_df: pd.DataFrame) -> dict:
+    """V2 multi-TF builder. Requires OHLCV (will tick-equal-weight if volume missing).
+
+    Resamples M5 → M5/M15/H1/H4/D1, computes V2 25-feature set per TF.
+    Result attaches .attrs["ts_int64"] and .attrs["feats_np"] for fast slicing
+    (same fast-path API as V1).
+    """
+    _validate_m5_input(m5_df)
+    result = {}
+    for tf_name, rule in MULTI_TF_RESAMPLE_RULES.items():
+        resampled = _resample_ohlcv(m5_df, rule)
+        resampled = resampled.dropna(subset=["open", "high", "low", "close"])
+        feats = compute_per_bar_features_v2(resampled)
+        feats.attrs["ts_int64"] = feats.index.values.astype("datetime64[ns]").astype(np.int64)
+        feats.attrs["feats_np"] = feats.fillna(0.0).to_numpy(dtype=np.float32, copy=True)
+        result[tf_name] = feats
+    return result
+
+
+def load_multi_tf_v2_cache(cache_dir) -> dict:
+    """Load a pre-built V2 multi-TF cache (see scripts/prebuild_multi_tf_cache_v2.py).
+
+    Returns the same dict shape as build_multi_tf_per_bar_features_v2(): one
+    DataFrame per TF (M5/M15/H1/H4/D1) with .attrs["ts_int64"] and
+    .attrs["feats_np"] populated for get_last_n_at_or_before fast-path.
+
+    Saves the ~84s rebuild cost on every trainer launch.
+    """
+    import json
+    from pathlib import Path as _P
+    cache_dir = _P(cache_dir)
+    manifest = json.loads((cache_dir / "manifest.json").read_text())
+    out = {}
+    for tf_name, info in manifest["tfs"].items():
+        feats_np = np.load(cache_dir / info["feats_npy"], mmap_mode="r")
+        ts_int64 = np.load(cache_dir / info["ts_npy"], mmap_mode="r")
+        # Reconstruct minimal DataFrame (only index + attrs matter for fast-path).
+        idx = pd.DatetimeIndex(ts_int64.astype("datetime64[ns]"), tz="UTC")
+        # NOTE: keep DataFrame columns minimal — fast-path uses attrs only.
+        df = pd.DataFrame(np.empty((len(idx), feats_np.shape[1]), dtype=np.float32), index=idx)
+        df.attrs["ts_int64"] = np.ascontiguousarray(ts_int64).astype(np.int64, copy=False)
+        df.attrs["feats_np"] = np.ascontiguousarray(feats_np).astype(np.float32, copy=False)
+        out[tf_name] = df
+    return out
+
+
 def build_multi_tf_per_bar_features(m5_df: pd.DataFrame) -> dict:
     """Resample M5 → H1/H4/D1 and compute per-bar features for each TF.
 
@@ -479,8 +735,13 @@ def get_last_n_at_or_before(
     are present (set by build_multi_tf_per_bar_features), we use numpy
     searchsorted on int64 timestamps — ~100× faster than pandas .loc.
     """
+    # V2: infer pad dim from feats so this works for both V1 (17) and V2 (25).
+    pad_dim = MULTI_TF_FEATURE_COUNT
+    if feats is not None and len(feats) > 0:
+        pad_dim = int(feats.shape[1])
+
     if feats is None or len(feats) == 0:
-        return np.zeros((n, MULTI_TF_FEATURE_COUNT), dtype=np.float32)
+        return np.zeros((n, pad_dim), dtype=np.float32)
 
     # Fast path: pre-computed int64 timestamps + numpy feature array
     ts_int64 = feats.attrs.get("ts_int64")
@@ -489,15 +750,13 @@ def get_last_n_at_or_before(
         target_ns = pd.Timestamp(target_ts).value
         shift_ns = int(tf_shift.value)
         cutoff_ns = target_ns - shift_ns
-        # searchsorted with side='right' gives the index AFTER the last bar
-        # whose timestamp is <= cutoff (i.e. the slice [..., right) is what we want)
         right = np.searchsorted(ts_int64, cutoff_ns, side="right")
         if right == 0:
-            return np.zeros((n, MULTI_TF_FEATURE_COUNT), dtype=np.float32)
+            return np.zeros((n, pad_dim), dtype=np.float32)
         left = max(0, right - n)
         tail = feats_np[left:right]
         if tail.shape[0] < n:
-            pad = np.zeros((n - tail.shape[0], MULTI_TF_FEATURE_COUNT), dtype=np.float32)
+            pad = np.zeros((n - tail.shape[0], pad_dim), dtype=np.float32)
             tail = np.concatenate([pad, tail], axis=0)
         return tail
 
@@ -505,9 +764,9 @@ def get_last_n_at_or_before(
     cutoff = pd.Timestamp(target_ts) - tf_shift
     eligible = feats.loc[feats.index <= cutoff]
     if eligible.empty:
-        return np.zeros((n, MULTI_TF_FEATURE_COUNT), dtype=np.float32)
+        return np.zeros((n, pad_dim), dtype=np.float32)
     tail = eligible.tail(n).fillna(0.0).to_numpy(dtype=np.float32, copy=True)
     if tail.shape[0] < n:
-        pad = np.zeros((n - tail.shape[0], MULTI_TF_FEATURE_COUNT), dtype=np.float32)
+        pad = np.zeros((n - tail.shape[0], pad_dim), dtype=np.float32)
         tail = np.concatenate([pad, tail], axis=0)
     return tail

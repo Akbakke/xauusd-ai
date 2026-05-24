@@ -55,6 +55,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -94,7 +95,54 @@ K_PRIMARY = 96  # used to derive oracle_action_label_v1 for stratification
 # the V3 training run. Only R_NET_REAL (alpha=0.5 MFE realisation + beta=0.5
 # MAE penalty + gamma=2.0 spread cost) produces an action distribution where
 # SKIP can win — the realistic production-deployable policy.
-REWARD_VARIANTS = ["R_NET_REAL"]
+REWARD_VARIANTS = [
+    "R_NET_REAL",
+    "R_TERMINAL_K24",
+    "R_TERMINAL_K96",
+    # R_PATIENT_K96 = terminal_pnl@K96 - lambda * mae_before_mfe@K96 - 2*spread.
+    # Linear MAE-pre penalty. Effect was small (~15% MAE reduction) — too gentle.
+    "R_PATIENT_K96_LAM03",
+    "R_PATIENT_K96_LAM05",
+    "R_PATIENT_K96_LAM10",
+    # R_CLEAN_K96 = binary threshold: full reward if MAE_pre < TOL else 0.
+    # Forces Entry-IQL to learn "wait until the dip is done, then take".
+    "R_CLEAN_K96_TOL10",
+    "R_CLEAN_K96_TOL20",
+    "R_CLEAN_K96_TOL40",
+    # R_QUAD_K96 = quadratic MAE penalty: small MAE no effect, large MAE bombs.
+    "R_QUAD_K96_LAM05",
+    "R_QUAD_K96_LAM10",
+    # R_QUALITY_K96 = scale-invariant entry-quality ratio.
+    # r = terminal_pnl * max(0, 1 - MAE_pre/MFE) - 2*spread
+    # Self-balancing: no tuning, the ratio MAE/MFE itself is the "entry cleanness" signal.
+    "R_QUALITY_K96",
+    # R_SOFT_K96 = sigmoid-binary (smoother than hard threshold).
+    # r = terminal_pnl * sigmoid((TOL - MAE_pre) / scale) - 2*spread
+    "R_SOFT_K96_TOL20",
+    "R_SOFT_K96_TOL40",
+    # R_ASYMMETRIC_K96 = logarithmic MAE penalty (gentle for small MAE, firm for large).
+    # r = terminal_pnl - λ * log(1 + MAE_pre) - 2*spread
+    "R_ASYMMETRIC_K96_LAM05",
+    "R_ASYMMETRIC_K96_LAM10",
+    # R_WAIT_OPP_K96 — uses counterfactual wait_long/wait_short_terminal_pnl@K96
+    # to explicitly reward SKIP when waiting beats taking now.
+    # r_long  = take_now_long_terminal_pnl@K96 - λ*MAE_pre - 2*spread
+    # r_short = take_now_short_terminal_pnl@K96 - λ*MAE_pre - 2*spread
+    # r_skip  = max(0, max(wait_long, wait_short) - max(r_long, r_short))
+    # Goal: teach Entry-IQL "vent til dippen er ferdig" via SKIP > TAKE signal.
+    "R_WAIT_OPP_K96_LAM05",
+    "R_WAIT_OPP_K96_LAM10",
+    # K48 variants: shorter wait horizon (more responsive). wait_K48 had +40 mean signal.
+    "R_WAIT_OPP_K48_LAM05",
+    "R_WAIT_OPP_K48_LAM10",
+    "R_WAIT_OPP_K96_LAM20",  # stronger MAE penalty
+    # 2026-05-24: aggressive λ — push MAE lower at cost of fewer trades
+    "R_WAIT_OPP_K96_LAM30",
+    "R_WAIT_OPP_K96_LAM50",
+    # R_HYBRID = R_WAIT_OPP + binary clean threshold (max selective)
+    "R_HYBRID_K96_TOL20",
+    "R_HYBRID_K96_TOL40",
+]
 GATED_THRESHOLD_BPS = 30.0
 
 # R_NET_REAL parameters: realistic-net reward.
@@ -159,77 +207,71 @@ NUMERIC_STATE_COLS_CANDIDATE = [
     "direction_logit_long",
     "direction_logit_short",
     "direction_logit_flat",
+    # V10 v3+ aux heads (Targets 1-4) — direct features for Entry-IQL state.
+    # NaN-filled for candidates from legacy bundles (handled by trainer's missing-fill).
+    "tf_agreement_pred",
+    "path_quality_log_var",
+    "path_quality_std",
+    "position_size_pred",
+    "hold_horizon_pred",
+    # Portfolio features (improvement #1 2026-05-21) — simulated portfolio state
+    # at decision_ts based on same-week sliding window. Makes Entry-IQL aware of
+    # existing trades when scoring. Filled by forward-outcome builder.
+    "portfolio_n_open_long_at_decision",
+    "portfolio_n_open_short_at_decision",
+    "portfolio_combined_pnl_bps_at_decision",
+    "portfolio_time_since_last_entry_min",
 ]
 
-# CANONICAL V10/V3 features at decision_ts (from chunk_0_data.parquet).
-# These are the SAME features V10 actually saw at runtime → IQL gets full
-# feature parity with the entry transformer it supervises.
-NUMERIC_STATE_COLS_CHUNK0 = [
-    f"{c}{fwd_pipe.CHUNK0_SUFFIX}"  # type: ignore[attr-defined]
-    for c in [
-        "_v1_atr14", "_v1_atr_regime_id", "_v1_atr_z_10_100",
-        "_v1_bb_bandwidth_delta_10", "_v1_bb_squeeze_20_2",
-        "_v1_body_share_1", "_v1_body_tr",
-        "_v1_close_ema_slope_3", "_v1_clv", "_v1_comp3_ratio",
-        "_v1_cost_bps_dyn", "_v1_cost_bps_est",
-        "_v1_ema_diff",
-        "_v1_int_clv_atr", "_v1_int_ema_us", "_v1_int_r5_atr",
-        "_v1_int_range_us", "_v1_int_slope_h1_us", "_v1_int_slope_h4_atr",
-        "_v1_int_vwap_h1",
-        "_v1_is_EU", "_v1_is_US",
-        "_v1_kama_slope_30", "_v1_kurt_r", "_v1_lower_tr",
-        "_v1_pk_sigma20", "_v1_r1", "_v1_r12",
-        "atr_bps", "spread_bps",
-        "D1_dist_from_ema200_atr", "H1_range_compression_ratio",
-        "D1_atr_percentile_252", "M15_range_compression_ratio",
-        "micro_momentum_3", "micro_momentum_5", "micro_acceleration",
-        "wick_ratio", "distance_ema_fast",
-        "dist_last_swing_high_atr", "dist_last_swing_low_atr",
-        "bars_since_swing_high", "bars_since_swing_low",
-        "retracement_from_last_impulse",
-        "trend_regime_id", "vol_regime_id",
-        "atr_bucket", "spread_bucket", "H4_trend_sign_cat",
-        "session_id",
-        "is_ASIA",
-        "minutes_since_session_open", "minutes_to_next_session_boundary",
-        "session_change_flag", "session_tradable",
-    ]
-]
+# NUMERIC_STATE_COLS_CHUNK0 dropped 2026-05-21: chunk_0_data parquet was missing
+# from training inputs all along, so every chunk0_v1 column was zero-filled
+# during forward-outcome build. Feature-importance analysis confirmed all 55
+# chunk0_v1 columns scored zero on XGB-gain AND permutation. Duplicates of the
+# canon_v1 sister features already in the state vector — pure noise floor.
+NUMERIC_STATE_COLS_CHUNK0: list[str] = []
 # Canonical V10 features (basic_v1 + H1 + H4 + m5_phase + high-level), suffixed _canon_v1
 # Names mirror canonical_features_v1.parquet columns.
 NUMERIC_STATE_COLS_CANONICAL = [
     f"{c}{fwd_pipe.CANONICAL_FEATURES_SUFFIX}"
     for c in [
         # _v1_* basic_v1 features — canonical_v3 keeps the non-pruned subset.
-        # Removed (canonical_v3 prunes): _v1_int_r5_atr, _v1_int_slope_h4_atr,
-        # _v1_int_clv_atr, _v1_body_tr, _v1_vwap_drift48 (5 dropped from v2).
+        # 2026-05-21: 5 previously-dropped features RE-ADDED via PLUS5 augmenter
+        # (_v1_vwap_drift48, _v1h1_vwap_drift, atr, std50, roc20).
+        # 2026-05-21: 9 canon_v1 features pruned by feature-importance analysis
+        # (constant/duplicated): _v1_atr_regime_id, _v1_bb_bandwidth_delta_10,
+        # _v1_lower_tr, _v1_spread_p, _v1_slip_bps, _v1_spread_z,
+        # _v1_cost_bps_est, _v1_comp3_ratio, smc_choch.
         "_v1_r3", "_v1_r5", "_v1_r8", "_v1_r12", "_v1_r24", "_v1_r1", "_v1_r48_z",
-        "_v1_atr14", "_v1_pk_sigma20", "_v1_atr_regime_id", "_v1_ema_diff",
+        "_v1_atr14", "_v1_pk_sigma20", "_v1_ema_diff",
         "_v1_rsi14_z", "_v1_rsi2", "_v1_rsi14",
-        "_v1_rsi2_gt_rsi14", "_v1_ret_ema_diff_2_5", "_v1_bb_bandwidth_delta_10",
-        "_v1_close_ema_slope_3", "_v1_upper_tr", "_v1_lower_tr",
+        "_v1_rsi2_gt_rsi14", "_v1_ret_ema_diff_2_5",
+        "_v1_close_ema_slope_3", "_v1_upper_tr",
         "_v1_wick_imbalance", "_v1_range_comp_20_100", "_v1_range_adr",
-        "_v1_spread_p", "_v1_slip_bps",
-        "_v1_clv", "_v1_range_z", "_v1_spread_z", "_v1_cost_bps_est",
+        "_v1_clv", "_v1_range_z",
         "_v1_kurt_r", "_v1_int_vwap_h1",
         "_v1_cost_bps_dyn", "_v1_tod_sin", "_v1_tod_cos",
         "_v1_r1_q90_48", "_v1_r1_q10_48", "_v1_atr_z_10_100", "_v1_tema_slope_20",
         "_v1_bb_squeeze_20_2", "_v1_kama_slope_30", "_v1_ret_ema_ratio_5_34",
-        "_v1_body_share_1", "_v1_tr_1_over_atr_14", "_v1_comp3_ratio",
-        # H1 multi-TF features — _v1h1_vwap_drift dropped in canonical_v3
+        "_v1_body_share_1", "_v1_tr_1_over_atr_14",
+        # PLUS5 2026-05-21: M5 48-period VWAP drift (mean-reversion signal)
+        "_v1_vwap_drift48",
+        # H1 multi-TF features
         "_v1h1_ema_diff", "_v1h1_atr", "_v1h1_rsi14_z",
         "_v1h1_slope3", "_v1h1_slope5",
+        # PLUS5 2026-05-21: H1 24-period VWAP drift
+        "_v1h1_vwap_drift",
         # 5 H4 multi-TF features
         "_v1h4_ema_diff", "_v1h4_atr", "_v1h4_rsi14_z", "_v1h4_slope3", "_v1h4_slope5",
         # 5 m5_phase one-hots
         "m5_phase_0", "m5_phase_1", "m5_phase_2", "m5_phase_3", "m5_phase_4",
-        # high-level basics — atr, std50, roc20 dropped in canonical_v3
+        # high-level basics
         "mid", "range", "body_pct", "wick_asym", "atr50", "atr_z",
         "ret_1", "ret_5", "ret_20", "roc100", "rvol_20", "rvol_60",
         "ema20_slope", "ema100_slope", "pos_vs_ema200", "vol_ratio",
-        # 9 SMC features (NEW addition — entry-IQL now sees SMC directly,
-        # not just via XGB outputs).
-        "smc_swing_state", "smc_bos_up", "smc_bos_down", "smc_choch",
+        # PLUS5 2026-05-21: raw atr + std50 + roc20 — momentum/vol features
+        "atr", "std50", "roc20",
+        # 8 SMC features (smc_choch pruned 2026-05-21 — constant in canonical_v3).
+        "smc_swing_state", "smc_bos_up", "smc_bos_down",
         "smc_sweep_up", "smc_sweep_down", "smc_sweep_size_atr",
         "smc_bars_since_sweep", "smc_premium_discount",
         # 5 NEW canonical_v3 features (cyclic time + SMC×swing interaction)
@@ -239,12 +281,124 @@ NUMERIC_STATE_COLS_CANONICAL = [
 # Derived V3-equivalent feature
 NUMERIC_STATE_COLS_DERIVED = ["entropy_v1"]
 
+# 2026-05-24 DIP-CONFIRMED features (computed in build_state_matrix from existing cols).
+# Captures "we are near a recent low AND momentum is turning up" — explicit dip-bottom signal.
+# dip_confirmed_TF = clip(1 - dist_to_TF_lo_atr / 2, 0, 1) * sigmoid(TF_ema20_slope_atr_v2 * 5)
+# Range: [0, 1]. High = "just bounced off recent low" → buy-the-dip candidate.
+NUMERIC_STATE_COLS_DIP = [
+    # DIP per TF — ALL 5 TFs after Bug 2 fix (dist_to_*_lo_atr alive for all).
+    "dip_proximity_m5_v3",  "dip_confirmed_m5_v3",
+    "dip_proximity_m15_v3", "dip_confirmed_m15_v3",
+    "dip_proximity_h1_v3",  "dip_confirmed_h1_v3",
+    "dip_proximity_h4_v3",  "dip_confirmed_h4_v3",
+    "dip_proximity_d1_v3",  "dip_confirmed_d1_v3",
+]
+
+# 2026-05-24 STRUCTURE per TF — ALL 5 TFs (HH/HL/LH/LL pattern detection).
+# After Bug 1 fix: mom_5/mom_20 alive on M5/M15/H1/H4/D1.
+NUMERIC_STATE_COLS_STRUCT = [
+    # M5
+    "struct_continuation_up_m5_v3",     "struct_pullback_in_uptrend_m5_v3",
+    "struct_continuation_down_m5_v3",   "struct_bounce_in_downtrend_m5_v3",
+    "struct_pullback_depth_m5_v3",
+    # M15
+    "struct_continuation_up_m15_v3",    "struct_pullback_in_uptrend_m15_v3",
+    "struct_continuation_down_m15_v3",  "struct_bounce_in_downtrend_m15_v3",
+    "struct_pullback_depth_m15_v3",
+    # H1
+    "struct_continuation_up_h1_v3",     "struct_pullback_in_uptrend_h1_v3",
+    "struct_continuation_down_h1_v3",   "struct_bounce_in_downtrend_h1_v3",
+    "struct_pullback_depth_h1_v3",
+    # H4
+    "struct_continuation_up_h4_v3",     "struct_pullback_in_uptrend_h4_v3",
+    "struct_continuation_down_h4_v3",   "struct_bounce_in_downtrend_h4_v3",
+    "struct_pullback_depth_h4_v3",
+    # D1
+    "struct_continuation_up_d1_v3",     "struct_pullback_in_uptrend_d1_v3",
+    "struct_continuation_down_d1_v3",   "struct_bounce_in_downtrend_d1_v3",
+    "struct_pullback_depth_d1_v3",
+    # Multi-TF combo (strongest signal: ALL 5 TFs align)
+    "struct_all_tf_pullback_v3",          # M5 × M15 × H1 × H4 × D1 strict AND
+    "struct_tf_agree_count_v3",           # soft 0-1 fraction of TFs agreeing
+    "struct_dip_x_uptrend_v3",            # avg dip (5 TFs) × M5 pullback
+    "struct_smc_swing_x_dip_v3",          # SMC swing × M5 dip
+]
+
 NUMERIC_STATE_COLS = (
     NUMERIC_STATE_COLS_CANDIDATE
     + NUMERIC_STATE_COLS_CHUNK0
     + NUMERIC_STATE_COLS_CANONICAL
     + NUMERIC_STATE_COLS_DERIVED
+    + NUMERIC_STATE_COLS_DIP
+    + NUMERIC_STATE_COLS_STRUCT
 )
+
+# ─────────────────────────────────────────────────────────────────────────────
+# V2 (2026-05-22): C+prune strategy. When GX1_BUILD_IQL_V2=1, input is the
+# AUGMENTED forward-outcome dir (153 extra cols: 125 per-TF V2 + 28 group-A).
+# State vector: drop 44 V1-confirmed-weak + add 153 V2 → ~291 features.
+# Permutation importance (Phase C4b) prunes weak ones after preliminary training.
+# ─────────────────────────────────────────────────────────────────────────────
+
+V2_BUILD_MODE = bool(int(os.environ.get("GX1_BUILD_IQL_V2", "0")))
+
+# Phase A drop list (44 weak features from PLUS5 ensemble permutation importance).
+V2_DROP_FEATURES = (
+    "smc_premium_discount_canon_v1", "_v1_r3_canon_v1", "_v1_range_adr_canon_v1",
+    "smc_premium_state_canon_v1", "_v1h4_slope5_canon_v1", "_v1_range_z_canon_v1",
+    "range_canon_v1", "_v1_pk_sigma20_canon_v1", "smc_swing_state_canon_v1",
+    "_v1_rsi14_canon_v1", "ret_1_canon_v1", "vol_ratio_canon_v1", "_v1_r1_canon_v1",
+    "_v1_cost_bps_dyn_canon_v1", "_v1h1_slope3_canon_v1", "_v1_rsi2_gt_rsi14_canon_v1",
+    "_v1_kama_slope_30_canon_v1", "ret_20_canon_v1", "_v1_rsi2_canon_v1",
+    "_v1_tr_1_over_atr_14_canon_v1", "_v1_tema_slope_20_canon_v1",
+    "smc_bos_down_canon_v1", "m5_phase_0_canon_v1", "_v1_body_share_1_canon_v1",
+    "_v1_clv_canon_v1", "smc_bars_since_sweep_canon_v1", "smc_sweep_down_canon_v1",
+    "smc_sweep_size_atr_canon_v1", "_v1h4_slope3_canon_v1", "smc_sweep_up_canon_v1",
+    "_v1_r48_z_canon_v1", "roc20_canon_v1", "_v1h1_slope5_canon_v1",
+    "_v1_close_ema_slope_3_canon_v1", "_v1_r5_canon_v1", "_v1_wick_imbalance_canon_v1",
+    "m5_phase_4_canon_v1", "body_pct_canon_v1", "m5_phase_3_canon_v1",
+    "wick_asym_canon_v1", "smc_bos_up_canon_v1", "m5_phase_1_canon_v1",
+    "m5_phase_2_canon_v1", "_v1_ret_ema_diff_2_5_canon_v1", "_v1_upper_tr_canon_v1",
+)
+
+# 125 per-TF V2 features (5 TFs × 25 V2 cache features).
+# Naming matches augment_forward_outcome_v2.py:_pertf_name() output.
+def _build_v2_per_tf_cols():
+    from gx1.features.htf_features import MULTI_TF_PER_BAR_FEATURES_V2
+    tfs = ("m5", "m15", "h1", "h4", "d1")
+    cols = []
+    for tf in tfs:
+        for feat in MULTI_TF_PER_BAR_FEATURES_V2:
+            base = f"{tf}_{feat}"
+            cols.append(base if feat.endswith("_v2") else base + "_v2")
+    return tuple(cols)
+
+V2_PER_TF_COLS = _build_v2_per_tf_cols()   # 125 cols
+
+V2_GROUP_A_COLS = (
+    "is_asia_eu_overlap", "is_eu_us_overlap", "is_eu_only", "is_us_only",
+    "atr_ratio_m5_h4", "atr_ratio_m15_d1", "atr_ratio_h1_d1", "atr_ratio_m5_m15",
+    "vol_pct_m5_1yr", "vol_pct_h1_1yr",
+    "dist_to_R1_atr", "dist_to_R2_atr", "dist_to_S1_atr", "dist_to_S2_atr",
+    # 2026-05-24: added M15 + D1 dist_to_hi/lo (Bug 2 fix in group_a_features.py:199)
+    "dist_to_m5_hi_atr",  "dist_to_m5_lo_atr",
+    "dist_to_m15_hi_atr", "dist_to_m15_lo_atr",
+    "dist_to_h1_hi_atr",  "dist_to_h1_lo_atr",
+    "dist_to_h4_hi_atr",  "dist_to_h4_lo_atr",
+    "dist_to_d1_hi_atr",  "dist_to_d1_lo_atr",
+    "long_win_rate_last10",  "long_mean_pnl_last10",
+    "long_n_consec_losses",  "long_time_since_last_close_min",
+    "short_win_rate_last10", "short_mean_pnl_last10",
+    "short_n_consec_losses", "short_time_since_last_close_min",
+)   # 32 cols (was 28; +4 for M15/D1 hi/lo)
+
+if V2_BUILD_MODE:
+    # V2 final state-vector: V1 (minus drops) + 125 per-TF + 28 group-A
+    _v1_kept = tuple(c for c in NUMERIC_STATE_COLS if c not in V2_DROP_FEATURES)
+    NUMERIC_STATE_COLS = _v1_kept + V2_PER_TF_COLS + V2_GROUP_A_COLS
+    print(f"[V2_BUILD_MODE] state vector: {len(_v1_kept)} V1-kept + "
+          f"{len(V2_PER_TF_COLS)} per-TF + {len(V2_GROUP_A_COLS)} group-A "
+          f"= {len(NUMERIC_STATE_COLS)} features (pre-prune)", flush=True)
 
 # Categorical state columns to one-hot encode (string-valued candidate cols).
 ONE_HOT_COLS = [
@@ -325,6 +479,66 @@ def build_reward_matrix(df: pd.DataFrame, *, variant: str) -> np.ndarray:
     )
     bad_path_gate = (1.0 - bad_path_prob).astype(np.float32)  # 1.0 = no gate, 0.0 = full block
 
+    if variant.startswith("R_WAIT_OPP_"):
+        # Counterfactual-aware reward: explicitly credits SKIP when waiting beats taking.
+        _CFG = {
+            "R_WAIT_OPP_K96_LAM05": (96, 0.5),
+            "R_WAIT_OPP_K96_LAM10": (96, 1.0),
+            "R_WAIT_OPP_K96_LAM20": (96, 2.0),
+            "R_WAIT_OPP_K96_LAM30": (96, 3.0),
+            "R_WAIT_OPP_K96_LAM50": (96, 5.0),
+            "R_WAIT_OPP_K48_LAM05": (48, 0.5),
+            "R_WAIT_OPP_K48_LAM10": (48, 1.0),
+        }[variant]
+        _K, _LAM = _CFG
+        tl = df[f"take_now_long_terminal_pnl_at_K{_K}_v1"].astype(float).fillna(0.0).to_numpy()
+        ts = df[f"take_now_short_terminal_pnl_at_K{_K}_v1"].astype(float).fillna(0.0).to_numpy()
+        ml = np.maximum(df[f"take_now_long_mae_before_mfe_bps_at_K{_K}_v1"].astype(float).fillna(0.0).to_numpy(), 0.0)
+        ms = np.maximum(df[f"take_now_short_mae_before_mfe_bps_at_K{_K}_v1"].astype(float).fillna(0.0).to_numpy(), 0.0)
+        wl = df[f"wait_long_terminal_pnl_at_K{_K}_v1"].astype(float).fillna(0.0).to_numpy()
+        ws = df[f"wait_short_terminal_pnl_at_K{_K}_v1"].astype(float).fillna(0.0).to_numpy()
+        r_long = tl - _LAM * ml - 2.0 * entry_spread_bps
+        r_short = ts - _LAM * ms - 2.0 * entry_spread_bps
+        best_take = np.maximum(r_long, r_short)
+        best_wait = np.maximum(wl, ws)
+        r_skip = np.maximum(0.0, best_wait - best_take)
+        r_long = np.clip(r_long, -500, 500) * bad_path_gate
+        r_short = np.clip(r_short, -500, 500) * bad_path_gate
+        r_skip = np.clip(r_skip, 0, 500)
+        for ki in range(N_K):
+            R[:, 0, ki] = r_skip.astype(np.float32)  # SKIP
+            R[:, 1, ki] = r_long.astype(np.float32)  # LONG
+            R[:, 2, ki] = r_short.astype(np.float32)  # SHORT
+        return R
+
+    if variant.startswith("R_HYBRID_K96_TOL"):
+        # R_HYBRID = R_WAIT_OPP + binary clean-threshold filter.
+        # TAKE only allowed if (MAE_pre < TOL) AND (terminal_pnl > 0).
+        # SKIP reward = wait - take counterfactual delta (R_WAIT_OPP style).
+        _TOL = {"R_HYBRID_K96_TOL20": 20.0, "R_HYBRID_K96_TOL40": 40.0}[variant]
+        tl = df["take_now_long_terminal_pnl_at_K96_v1"].astype(float).fillna(0.0).to_numpy()
+        ts = df["take_now_short_terminal_pnl_at_K96_v1"].astype(float).fillna(0.0).to_numpy()
+        ml = np.maximum(df["take_now_long_mae_before_mfe_bps_at_K96_v1"].astype(float).fillna(0.0).to_numpy(), 0.0)
+        ms = np.maximum(df["take_now_short_mae_before_mfe_bps_at_K96_v1"].astype(float).fillna(0.0).to_numpy(), 0.0)
+        wl = df["wait_long_terminal_pnl_at_K96_v1"].astype(float).fillna(0.0).to_numpy()
+        ws = df["wait_short_terminal_pnl_at_K96_v1"].astype(float).fillna(0.0).to_numpy()
+        # Binary gate: only credit TAKE if MAE_pre < TOL (clean entry only)
+        clean_l = ml < _TOL
+        clean_s = ms < _TOL
+        r_long = np.where(clean_l, tl - 2.0 * entry_spread_bps, -50.0)
+        r_short = np.where(clean_s, ts - 2.0 * entry_spread_bps, -50.0)
+        best_take = np.maximum(r_long, r_short)
+        best_wait = np.maximum(wl, ws)
+        r_skip = np.maximum(0.0, best_wait - best_take)
+        r_long = np.clip(r_long, -500, 500) * bad_path_gate
+        r_short = np.clip(r_short, -500, 500) * bad_path_gate
+        r_skip = np.clip(r_skip, 0, 500)
+        for ki in range(N_K):
+            R[:, 0, ki] = r_skip.astype(np.float32)
+            R[:, 1, ki] = r_long.astype(np.float32)
+            R[:, 2, ki] = r_short.astype(np.float32)
+        return R
+
     for ai, (action_prefix, side) in enumerate([
         ("take_now", "long"),
         ("take_now", "short"),
@@ -354,6 +568,99 @@ def build_reward_matrix(df: pd.DataFrame, *, variant: str) -> np.ndarray:
                 r = (R_NET_REAL_ALPHA_MFE * mfe
                      - R_NET_REAL_BETA_MAE * mae_pre
                      - R_NET_REAL_GAMMA_SPREAD * entry_spread_bps)
+            elif variant in ("R_TERMINAL_K24", "R_TERMINAL_K96"):
+                # Direct terminal-PnL reward at fixed K horizon (no MFE proxy).
+                # Train target = "PnL you actually realize at K bars forward".
+                # Avoids R_NET_REAL's MFE-vs-terminal-PnL gap that systematically
+                # over-rewards SHORTS in uptrending markets (2026-05-24 diag).
+                _K_TARGET = 24 if variant == "R_TERMINAL_K24" else 96
+                term_pnl_col = f"{action_prefix}_{side}_terminal_pnl_at_K{_K_TARGET}_v1"
+                if term_pnl_col not in df.columns:
+                    raise RuntimeError(f"missing {term_pnl_col} (needed for {variant})")
+                term_pnl = df[term_pnl_col].astype(float).fillna(0.0).to_numpy()
+                # Same K-horizon shape: copy single-K reward into all K slots so
+                # the IQL doesn't see K-varying signal (each K slot = terminal PnL @ K_TARGET).
+                # Subtract spread (entry + exit each pay 1x).
+                r = term_pnl - 2.0 * entry_spread_bps
+            elif variant.startswith("R_PATIENT_K96_LAM"):
+                # Patient-entry reward: penalises MAE BEFORE profit.
+                # Goal: Entry-IQL learns to skip trades that immediately draw down,
+                # and wait for the dip to finish before entering.
+                #   r = terminal_pnl@K96 - λ * mae_before_mfe@K96 - 2*spread
+                _LAM = {"R_PATIENT_K96_LAM03": 0.3,
+                        "R_PATIENT_K96_LAM05": 0.5,
+                        "R_PATIENT_K96_LAM10": 1.0}[variant]
+                term_pnl_col = f"{action_prefix}_{side}_terminal_pnl_at_K96_v1"
+                mae_pre_k96_col = f"{action_prefix}_{side}_mae_before_mfe_bps_at_K96_v1"
+                if term_pnl_col not in df.columns:
+                    raise RuntimeError(f"missing {term_pnl_col} (needed for {variant})")
+                if mae_pre_k96_col not in df.columns:
+                    raise RuntimeError(f"missing {mae_pre_k96_col} (needed for {variant})")
+                term_pnl = df[term_pnl_col].astype(float).fillna(0.0).to_numpy()
+                mae_pre_k96 = np.maximum(df[mae_pre_k96_col].astype(float).fillna(0.0).to_numpy(), 0.0)
+                r = term_pnl - _LAM * mae_pre_k96 - 2.0 * entry_spread_bps
+            elif variant.startswith("R_CLEAN_K96_TOL"):
+                # R_CLEAN_K96 = binary-threshold MAE filter.
+                # r = (terminal_pnl - 2*spread) if mae_pre < TOL else 0
+                # Forces model to learn: only TAKE when entry is clean (MAE below tol).
+                _TOL = {"R_CLEAN_K96_TOL10": 10.0,
+                        "R_CLEAN_K96_TOL20": 20.0,
+                        "R_CLEAN_K96_TOL40": 40.0}[variant]
+                term_pnl_col = f"{action_prefix}_{side}_terminal_pnl_at_K96_v1"
+                mae_pre_k96_col = f"{action_prefix}_{side}_mae_before_mfe_bps_at_K96_v1"
+                term_pnl = df[term_pnl_col].astype(float).fillna(0.0).to_numpy()
+                mae_pre_k96 = np.maximum(df[mae_pre_k96_col].astype(float).fillna(0.0).to_numpy(), 0.0)
+                clean = mae_pre_k96 < _TOL
+                r = np.where(clean, term_pnl - 2.0 * entry_spread_bps, 0.0)
+            elif variant.startswith("R_QUAD_K96_LAM"):
+                # R_QUAD_K96 = quadratic MAE penalty (small MAE ~free, large MAE bombs).
+                # r = terminal_pnl - λ * (mae_pre / 10)² - 2*spread
+                # Examples (LAM=1.0): MAE=10 → -1 bps, MAE=50 → -25 bps, MAE=200 → -400 bps
+                _LAM = {"R_QUAD_K96_LAM05": 0.5,
+                        "R_QUAD_K96_LAM10": 1.0}[variant]
+                term_pnl_col = f"{action_prefix}_{side}_terminal_pnl_at_K96_v1"
+                mae_pre_k96_col = f"{action_prefix}_{side}_mae_before_mfe_bps_at_K96_v1"
+                term_pnl = df[term_pnl_col].astype(float).fillna(0.0).to_numpy()
+                mae_pre_k96 = np.maximum(df[mae_pre_k96_col].astype(float).fillna(0.0).to_numpy(), 0.0)
+                # Quadratic in (MAE/10) so small MAE essentially free
+                r = term_pnl - _LAM * (mae_pre_k96 / 10.0) ** 2 - 2.0 * entry_spread_bps
+            elif variant == "R_QUALITY_K96":
+                # Scale-invariant entry-quality ratio. The ratio MAE_pre/MFE@K96 measures
+                # how "clean" the entry was: tiny MAE relative to peak = high quality.
+                # r = terminal_pnl * max(0, 1 - MAE_pre/MFE) - 2*spread
+                # No hyperparameter; the data structure itself defines quality.
+                term_pnl_col = f"{action_prefix}_{side}_terminal_pnl_at_K96_v1"
+                mae_pre_k96_col = f"{action_prefix}_{side}_mae_before_mfe_bps_at_K96_v1"
+                mfe_k96_col = f"{action_prefix}_{side}_mfe_bps_at_K96_v1"
+                term_pnl = df[term_pnl_col].astype(float).fillna(0.0).to_numpy()
+                mae_pre_k96 = np.maximum(df[mae_pre_k96_col].astype(float).fillna(0.0).to_numpy(), 0.0)
+                mfe_k96 = np.maximum(df[mfe_k96_col].astype(float).fillna(0.0).to_numpy(), 1e-6)
+                quality = np.clip(1.0 - mae_pre_k96 / mfe_k96, 0.0, 1.0)
+                r = term_pnl * quality - 2.0 * entry_spread_bps
+            elif variant.startswith("R_SOFT_K96_TOL"):
+                # Sigmoid-soft binary: smooth transition around TOL instead of hard cliff.
+                # r = terminal_pnl * sigmoid((TOL - MAE_pre) / scale) - 2*spread
+                # scale=10 so transition spans ~30 bps around TOL.
+                _TOL = {"R_SOFT_K96_TOL20": 20.0,
+                        "R_SOFT_K96_TOL40": 40.0}[variant]
+                _SCALE = 10.0
+                term_pnl_col = f"{action_prefix}_{side}_terminal_pnl_at_K96_v1"
+                mae_pre_k96_col = f"{action_prefix}_{side}_mae_before_mfe_bps_at_K96_v1"
+                term_pnl = df[term_pnl_col].astype(float).fillna(0.0).to_numpy()
+                mae_pre_k96 = np.maximum(df[mae_pre_k96_col].astype(float).fillna(0.0).to_numpy(), 0.0)
+                weight = 1.0 / (1.0 + np.exp(-(_TOL - mae_pre_k96) / _SCALE))
+                r = term_pnl * weight - 2.0 * entry_spread_bps
+            elif variant.startswith("R_ASYMMETRIC_K96_LAM"):
+                # Logarithmic MAE penalty: gentle for noise-level MAE, firm for large.
+                # r = terminal_pnl - λ * 10 * log(1 + MAE_pre/10) - 2*spread
+                # Examples (λ=1): MAE=10 → -6.9, MAE=50 → -17.9, MAE=200 → -30.4
+                _LAM = {"R_ASYMMETRIC_K96_LAM05": 0.5,
+                        "R_ASYMMETRIC_K96_LAM10": 1.0}[variant]
+                term_pnl_col = f"{action_prefix}_{side}_terminal_pnl_at_K96_v1"
+                mae_pre_k96_col = f"{action_prefix}_{side}_mae_before_mfe_bps_at_K96_v1"
+                term_pnl = df[term_pnl_col].astype(float).fillna(0.0).to_numpy()
+                mae_pre_k96 = np.maximum(df[mae_pre_k96_col].astype(float).fillna(0.0).to_numpy(), 0.0)
+                r = term_pnl - _LAM * 10.0 * np.log1p(mae_pre_k96 / 10.0) - 2.0 * entry_spread_bps
             else:
                 raise ValueError(f"unknown reward variant: {variant}")
             # Clip extreme values for stability (top 0.1% MFE values can be 500+ bps)
@@ -388,6 +695,78 @@ def build_state_matrix(df: pd.DataFrame) -> tuple[np.ndarray, list[str]]:
         if n_dropped > 0:
             print(f"[BUILD_STATE_MATRIX] dropping {n_dropped:,} rows with incomplete features", flush=True)
         df = df.loc[complete_mask].reset_index(drop=True)
+
+    # 2026-05-24 DIP + STRUCTURE per TF — ALL 5 TFs (M5/M15/H1/H4/D1).
+    # After Bug 1+2 fixes: all per-TF mom_5/mom_20 + dist_to_*_lo_atr now alive.
+    # Use dist_to_*_lo_atr where available, ema20_dist as proxy where not.
+    df = df.copy()
+    DIP_TF_INPUTS = {
+        "m5":  ("dist_to_m5_lo_atr",     "m5_ema20_slope_atr_v2",  "dist_to"),
+        "m15": ("dist_to_m15_lo_atr",    "m15_ema20_slope_atr_v2", "dist_to"),
+        "h1":  ("dist_to_h1_lo_atr",     "h1_ema20_slope_atr_v2",  "dist_to"),
+        "h4":  ("dist_to_h4_lo_atr",     "h4_ema20_slope_atr_v2",  "dist_to"),
+        "d1":  ("dist_to_d1_lo_atr",     "d1_ema20_slope_atr_v2",  "dist_to"),
+    }
+    for tf, (proxy_col, slope_col, kind) in DIP_TF_INPUTS.items():
+        if proxy_col in df.columns and slope_col in df.columns:
+            proxy = pd.to_numeric(df[proxy_col], errors="coerce").fillna(2.0).to_numpy(dtype=np.float32)
+            slope = pd.to_numeric(df[slope_col], errors="coerce").fillna(0.0).to_numpy(dtype=np.float32)
+            if kind == "dist_to":
+                dip_prox = np.clip(1.0 - proxy / 2.0, 0.0, 1.0)
+            else:
+                dip_prox = np.clip(-proxy / 2.0, 0.0, 1.0)
+            recovery = 1.0 / (1.0 + np.exp(-slope * 5.0))
+            df[f"dip_proximity_{tf}_v3"] = dip_prox.astype(np.float32)
+            df[f"dip_confirmed_{tf}_v3"] = (dip_prox * recovery).astype(np.float32)
+        else:
+            df[f"dip_proximity_{tf}_v3"] = np.zeros(len(df), dtype=np.float32)
+            df[f"dip_confirmed_{tf}_v3"] = np.zeros(len(df), dtype=np.float32)
+
+    # Multi-TF HH/HL structure — ALL 5 TFs (after Bug 1 fix: H4/D1 mom_20 alive).
+    for tf in ("m5", "m15", "h1", "h4", "d1"):
+        m5_col, m20_col = f"{tf}_mom_5_atr_v2", f"{tf}_mom_20_atr_v2"
+        if m5_col in df.columns and m20_col in df.columns:
+            m5 = pd.to_numeric(df[m5_col], errors="coerce").fillna(0.0).to_numpy(dtype=np.float32)
+            m20 = pd.to_numeric(df[m20_col], errors="coerce").fillna(0.0).to_numpy(dtype=np.float32)
+            df[f"struct_continuation_up_{tf}_v3"] = ((m20 > 0) & (m5 > 0)).astype(np.float32)
+            df[f"struct_pullback_in_uptrend_{tf}_v3"] = ((m20 > 0) & (m5 < 0)).astype(np.float32)
+            df[f"struct_continuation_down_{tf}_v3"] = ((m20 < 0) & (m5 < 0)).astype(np.float32)
+            df[f"struct_bounce_in_downtrend_{tf}_v3"] = ((m20 < 0) & (m5 > 0)).astype(np.float32)
+            depth_raw = np.where(m20 > 1e-6, -m5 / np.maximum(np.abs(m20), 1e-6), 0.0)
+            df[f"struct_pullback_depth_{tf}_v3"] = np.clip(depth_raw, -2.0, 2.0).astype(np.float32)
+        else:
+            for k in ("continuation_up", "pullback_in_uptrend", "continuation_down",
+                      "bounce_in_downtrend", "pullback_depth"):
+                df[f"struct_{k}_{tf}_v3"] = np.zeros(len(df), dtype=np.float32)
+
+    # MULTI-TF ALIGNMENT — BUY-THE-DIP signal when ALL 5 TFs agree (strict)
+    pback_m5  = df.get("struct_pullback_in_uptrend_m5_v3",  pd.Series(np.zeros(len(df)))).to_numpy(dtype=np.float32)
+    pback_m15 = df.get("struct_pullback_in_uptrend_m15_v3", pd.Series(np.zeros(len(df)))).to_numpy(dtype=np.float32)
+    pback_h1  = df.get("struct_pullback_in_uptrend_h1_v3",  pd.Series(np.zeros(len(df)))).to_numpy(dtype=np.float32)
+    pback_h4  = df.get("struct_pullback_in_uptrend_h4_v3",  pd.Series(np.zeros(len(df)))).to_numpy(dtype=np.float32)
+    pback_d1  = df.get("struct_pullback_in_uptrend_d1_v3",  pd.Series(np.zeros(len(df)))).to_numpy(dtype=np.float32)
+    df["struct_all_tf_pullback_v3"] = (pback_m5 * pback_m15 * pback_h1 * pback_h4 * pback_d1).astype(np.float32)
+    # Soft version: count of TFs agreeing (0-5) normalized
+    df["struct_tf_agree_count_v3"] = ((pback_m5 + pback_m15 + pback_h1 + pback_h4 + pback_d1) / 5.0).astype(np.float32)
+
+    # Combo: avg dip-confirmed (ALL 5 TFs) × M5 pullback
+    dc_m5  = df.get("dip_confirmed_m5_v3",  pd.Series(np.zeros(len(df)))).to_numpy(dtype=np.float32)
+    dc_m15 = df.get("dip_confirmed_m15_v3", pd.Series(np.zeros(len(df)))).to_numpy(dtype=np.float32)
+    dc_h1  = df.get("dip_confirmed_h1_v3",  pd.Series(np.zeros(len(df)))).to_numpy(dtype=np.float32)
+    dc_h4  = df.get("dip_confirmed_h4_v3",  pd.Series(np.zeros(len(df)))).to_numpy(dtype=np.float32)
+    dc_d1  = df.get("dip_confirmed_d1_v3",  pd.Series(np.zeros(len(df)))).to_numpy(dtype=np.float32)
+    avg_dip = (dc_m5 + dc_m15 + dc_h1 + dc_h4 + dc_d1) / 5.0
+    df["struct_dip_x_uptrend_v3"] = (avg_dip * pback_m5).astype(np.float32)
+
+    # Combo: SMC swing_state × M5 dip_proximity
+    smc_col = "smc_swing_state_canon_v1"
+    if smc_col in df.columns and "dip_proximity_m5_v3" in df.columns:
+        sw = pd.to_numeric(df[smc_col], errors="coerce").fillna(0.0).to_numpy(dtype=np.float32)
+        sw_norm = np.clip(sw / max(float(np.abs(sw).max() or 1.0), 1.0), -1.0, 1.0)
+        df["struct_smc_swing_x_dip_v3"] = (sw_norm * df["dip_proximity_m5_v3"].to_numpy(dtype=np.float32)).astype(np.float32)
+    else:
+        df["struct_smc_swing_x_dip_v3"] = np.zeros(len(df), dtype=np.float32)
+
     state_parts: list[pd.DataFrame] = []
     feature_names: list[str] = []
     nan_warnings: list[tuple[str, float]] = []
@@ -981,7 +1360,15 @@ def main() -> None:
                              "around 1%%) because oracle SKIP has only 0.5%% of rows. "
                              "Try 10-20 to give the IQL actual gradient examples.")
     parser.add_argument("--built-at-utc", type=str, default=None)
+    parser.add_argument("--seed", type=int, default=None,
+                        help="Override default SEED_V1 (used for ensemble training).")
     args = parser.parse_args()
+    # 2026-05-21 ensemble support: override module-level SEED_V1 so all seed-
+    # dependent operations (fold split, IQL trainer, sampling) use the override.
+    if args.seed is not None:
+        global SEED_V1
+        SEED_V1 = int(args.seed)
+        print(f"[{ACTION}] SEED override: {SEED_V1}", flush=True)
 
     preset = BUDGET_PRESETS[args.budget]
     TRAIN_EPOCHS_Q = preset["epochs_q"]

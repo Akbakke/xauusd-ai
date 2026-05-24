@@ -22,9 +22,16 @@ V3 parity:
     so the IQL has explicit per-minute texture beyond the V10/V3 chunk_0
     features.
 
-K_HORIZONS_EXIT_M1 = [5, 20, 60, 120, 240, 480] M1-bars
-                   ≈ [5min, 20min, 1h, 2h, 4h, 8h]
-                   (identical wall-clock horizons to v1's M5 horizons).
+K_HORIZONS_EXIT_M1 = [1, 4, 12, 48, 144, 240] M1-bars (2026-05-24 SCALP)
+                   ≈ [1min, 4min, 12min, 48min, 2.4h, 4h]
+                   K is the LOOKAHEAD HORIZON for the Q-value's hold-max-pnl
+                   estimate, NOT the exit time. Exit is governed by Strategi F
+                   (profit-lock + giveback + IQL signal). K-set spans:
+                     - K=1,4: immediate-next-bar decision gradient
+                     - K=12,48: short-term planning window
+                     - K=144,240: realistic-scalp-life lookahead
+                   Previous swing-K [5, 20, 60, 120, 240, 480] caused trainer
+                   K-mismatch (5/6 K-slots degenerate) and IQL_EXIT firing 2/14581.
 
 Scaling architecture (15 GB host RAM, ~440M rows full build)
 ------------------------------------------------------------
@@ -91,7 +98,7 @@ DEFAULT_OUT_ROOT = DEFAULT_REPORTS_ROOT / "EXIT_IQL_PER_BAR_DATASET_V2_M1"
 
 # Wall-clock horizons identical to v1 (M5 [1,4,12,24,48,96] = 5/20min/1/2/4/8h).
 # Expressed in M1 bars: 1×5, 4×5, 12×5, 24×5, 48×5, 96×5.
-K_HORIZONS_EXIT_M1 = [5, 20, 60, 120, 240, 480]
+K_HORIZONS_EXIT_M1 = [1, 4, 12, 48, 144, 240]  # SCALP lookahead horizons
 N_K_EXIT_M1 = len(K_HORIZONS_EXIT_M1)
 MAX_K_EXIT_M1 = max(K_HORIZONS_EXIT_M1)
 

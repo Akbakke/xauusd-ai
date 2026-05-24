@@ -98,7 +98,7 @@ DEFAULT_M5_TAPE_ROOT = Path(
 )
 DEFAULT_OUT_ROOT = DEFAULT_REPORTS_ROOT / "EXIT_IQL_PER_BAR_DATASET_V1"
 
-K_HORIZONS_EXIT = [1, 4, 12, 24, 48, 96]   # bars-remaining-to-look-ahead for HOLD reward
+K_HORIZONS_EXIT = [1, 4, 12, 48, 144, 240]  # 2026-05-24 SCALP — matches v2_m1 dataset builder
 N_K_EXIT = len(K_HORIZONS_EXIT)
 MAX_K_EXIT = max(K_HORIZONS_EXIT)
 DEFAULT_BAR_STRIDE = 4              # keep every Nth bar to bound dataset size

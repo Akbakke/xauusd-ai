@@ -39,6 +39,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -72,16 +73,42 @@ ACTION_HOLD_ID = 0
 ACTION_EXIT_NOW_ID = 1
 ACTION_LABELS_EXIT = {ACTION_HOLD_ID: "HOLD", ACTION_EXIT_NOW_ID: "EXIT_NOW"}
 
-K_HORIZONS = exit_pipe.K_HORIZONS_EXIT  # [1, 4, 12, 24, 48, 96]
+K_HORIZONS = exit_pipe.K_HORIZONS_EXIT  # SCALP: [1, 4, 12, 48, 144, 240] M1-bars (= 1min..4h lookahead)
+# 2026-05-24 K-HORIZON MISMATCH (action required, NOT a config swap):
+# Trener vil ha SCALP-K [1, 4, 12, 24, 48, 96]. Existing per-bar dataset has
+# SWING-K [12, 60, 240, 480, 1440] (built for swing-trade analysis). Only K=12
+# intersects -> 5/6 K-slots are degenerate (hold_K falls back to exit_now),
+# which is why IQL_EXIT virtually never fires.
+#
+# RIGHT FIX: rebuild per-bar dataset with hold_max_pnl_K{1,4,12,24,48,96}_v1
+# columns to match the scalp-aligned trainer. See
+# materialize_build_exit_iql_per_bar_dataset_v2_m1.py.
+#
+# WRONG FIX: changing K_HORIZONS to [12, 60, 240, 480, 1440] would make trainer
+# learn swing-trade exits — opposite of what we want for scalping.
 N_K = len(K_HORIZONS)
-K_PRIMARY = 24  # primary stratifier horizon (2h)
+K_PRIMARY = 48  # 2026-05-24: was 24, but new scalp K_HORIZONS=[1,4,12,48,144,240]. 48 M1=48min.
 # NOTE: R_RAW and R_NET05 removed 2026-05-02 — they degenerate to "always HOLD"
 # because their HOLD reward = max future MFE has no realization cost. Oracle
 # itself becomes degenerate, the policy matches oracle perfectly (~99.6%) but
 # the policy is unusable in live trading (trades would never close).
 # R_NET_REAL is the production policy. R_GATED + R_REGRET are alternative
 # perspectives that all include realistic exit-cost framing.
-REWARD_VARIANTS = ["R_NET_REAL", "R_GATED", "R_REGRET", "R_NET_V2"]
+# 2026-05-24: R_PEAK_AWARE_{MILD,MED,HARSH} added. Penalise drawdown-from-peak,
+# MAE, and bars-held more aggressively than R_NET_V2. Goal: trigger IQL_EXIT
+# at MFE peaks instead of letting trades drift back to break-even.
+REWARD_VARIANTS = [
+    "R_NET_REAL", "R_GATED", "R_REGRET", "R_NET_V2",
+    "R_PEAK_AWARE_MILD", "R_PEAK_AWARE_MED", "R_PEAK_AWARE_HARSH",
+    # R_PEAK_QUALITY (analog til entry R_QUALITY): scale-invariant ratio.
+    # r_hold = hold_K * max(0, 1 - drawdown/peak_mfe)
+    # r_exit = exit_now - spread
+    # Self-balancing: ingen hyperparametre. Modellen lærer "exit når quality faller"
+    # via gradient, ikke via hardkodet giveback-terskel.
+    "R_PEAK_QUALITY",
+    # R_PEAK_QUALITY_QUAD: kvadratisk quality (sterkere straff for giveback).
+    "R_PEAK_QUALITY_QUAD",
+]
 GATED_THRESHOLD_BPS = 10.0
 R_NET_REAL_ALPHA = 0.5
 R_NET_REAL_BETA = 0.5
@@ -96,6 +123,19 @@ R_NET_REAL_GAMMA = 2.0
 # Calibrated so r_hold is ~15-25 bps worse than R_NET_REAL on avg — modest EXIT bias.
 R_NET_V2_GIVEBACK = 0.3         # mild MFE-giveback penalty
 R_NET_V2_BARS_COST = 0.02       # capital-binding cost per bar held
+
+# 2026-05-24 R_PEAK_AWARE — Phase 6 OOT showed IQL_EXIT fired 2/14,581 times.
+# Diagnosis: HOLD reward = max future PnL (perfect foresight) >> EXIT reward (current).
+# Plus K-horizon mismatch made 5/6 K-slots degenerate.
+# Fix: same skeleton as R_NET_V2 but stronger giveback + MAE + bars_cost so the
+# expectile target actually moves below exit_now once we've passed peak.
+#   r_hold = ALPHA*hold_K - BETA_MAE*|MAE| - giveback*drawdown - bars_cost*bars - 2*spread
+#   r_exit = exit_now - 2*spread
+R_PEAK_AWARE_PARAMS = {
+    "R_PEAK_AWARE_MILD":  {"alpha": 0.5, "beta_mae": 0.3, "giveback": 0.5, "bars_cost": 0.02},
+    "R_PEAK_AWARE_MED":   {"alpha": 0.5, "beta_mae": 0.5, "giveback": 1.0, "bars_cost": 0.05},
+    "R_PEAK_AWARE_HARSH": {"alpha": 0.5, "beta_mae": 0.8, "giveback": 2.0, "bars_cost": 0.10},
+}
 
 # Cross-validation
 N_FOLDS = 3
@@ -133,28 +173,30 @@ NUMERIC_STATE_COLS_CANDIDATE = [
     "mfe_first_n_pred",
     "path_quality_pred",
 ]
-# CANONICAL V3 features per held bar (from chunk_0_data.parquet).
-NUMERIC_STATE_COLS_CHUNK0 = [
-    f"{c}{exit_pipe.CHUNK0_SUFFIX}"
-    for c in exit_pipe.CHUNK0_FEATURE_COLS
-]
+# CHUNK0 features dropped 2026-05-21: chunk_0_data parquet was missing from
+# training inputs, so chunk0_v1 cols were zero-filled and contributed nothing.
+# Confirmed by feature-importance analysis (gain=0, perm=0 across the board).
+NUMERIC_STATE_COLS_CHUNK0: list[str] = []
 # Canonical V10 features per held bar (basic_v1 + H1 + H4 + m5_phase + high-level)
 NUMERIC_STATE_COLS_CANONICAL = [
     f"{c}{exit_pipe.CANONICAL_FEATURES_SUFFIX}"
     for c in [
+        # 2026-05-21: pruned canon_v1 features (constant/duplicated per
+        # feature-importance analysis): _v1_atr_regime_id,
+        # _v1_bb_bandwidth_delta_10, _v1_lower_tr, _v1_spread_p, _v1_slip_bps,
+        # _v1_spread_z, _v1_cost_bps_est, _v1_comp3_ratio.
         "_v1_r3", "_v1_r5", "_v1_r8", "_v1_r12", "_v1_r24", "_v1_r1", "_v1_r48_z",
-        "_v1_atr14", "_v1_pk_sigma20", "_v1_atr_regime_id", "_v1_ema_diff",
+        "_v1_atr14", "_v1_pk_sigma20", "_v1_ema_diff",
         "_v1_vwap_drift48", "_v1_rsi14_z", "_v1_rsi2", "_v1_rsi14",
-        "_v1_rsi2_gt_rsi14", "_v1_ret_ema_diff_2_5", "_v1_bb_bandwidth_delta_10",
-        "_v1_close_ema_slope_3", "_v1_body_tr", "_v1_upper_tr", "_v1_lower_tr",
+        "_v1_rsi2_gt_rsi14", "_v1_ret_ema_diff_2_5",
+        "_v1_close_ema_slope_3", "_v1_body_tr", "_v1_upper_tr",
         "_v1_wick_imbalance", "_v1_range_comp_20_100", "_v1_range_adr",
-        "_v1_spread_p", "_v1_slip_bps",
-        "_v1_clv", "_v1_range_z", "_v1_spread_z", "_v1_cost_bps_est",
+        "_v1_clv", "_v1_range_z",
         "_v1_kurt_r", "_v1_int_r5_atr", "_v1_int_vwap_h1", "_v1_int_slope_h4_atr",
         "_v1_int_clv_atr", "_v1_cost_bps_dyn", "_v1_tod_sin", "_v1_tod_cos",
         "_v1_r1_q90_48", "_v1_r1_q10_48", "_v1_atr_z_10_100", "_v1_tema_slope_20",
         "_v1_bb_squeeze_20_2", "_v1_kama_slope_30", "_v1_ret_ema_ratio_5_34",
-        "_v1_body_share_1", "_v1_tr_1_over_atr_14", "_v1_comp3_ratio",
+        "_v1_body_share_1", "_v1_tr_1_over_atr_14",
         "_v1h1_ema_diff", "_v1h1_vwap_drift", "_v1h1_atr", "_v1h1_rsi14_z",
         "_v1h1_slope3", "_v1h1_slope5",
         "_v1h4_ema_diff", "_v1h4_atr", "_v1h4_rsi14_z", "_v1h4_slope3", "_v1h4_slope5",
@@ -175,6 +217,104 @@ NUMERIC_STATE_COLS_CANDIDATE = (
     + NUMERIC_STATE_COLS_TRADE_DERIV
     + NUMERIC_STATE_COLS_ENTRY_SNAPSHOT
 )
+
+# ─────────────────────────────────────────────────────────────────────────────
+# V2 (2026-05-22): C+prune strategy for Exit-IQL.
+# Reads from AUGMENTED per_bar dataset (V2 cols joined by candidate_uid).
+# Drops 57 features identified by Exit-IQL permutation importance.
+# Adds 125 per-TF V2 + 28 group-A → ~250 pre-prune features.
+# ─────────────────────────────────────────────────────────────────────────────
+
+V2_BUILD_MODE_EXIT = bool(int(os.environ.get("GX1_BUILD_EXIT_IQL_V2", "0")))
+
+# Exit-IQL FI drop list (57 features, perm-imp ≈ 0).
+V2_DROP_FEATURES_EXIT = (
+    "bad_path_prob", "m1_last_60bar_return_bps_v1", "m1_realized_vol_60bar_bps_v1",
+    "hour_utc", "rolling_slope_since_entry_v1", "bars_in_trade_v1", "p_long",
+    "v3_v8_family_logit_max", "path_quality_std", "m1_last_15bar_return_bps_v1",
+    "mfe_first_n_pred", "direction_logit_flat", "mfe_decay_rate_v1",
+    "tf_agreement_pred", "path_quality_pred", "p_flat", "margin",
+    "m1_realized_vol_15bar_bps_v1", "hold_horizon_pred", "forward_bars_remaining_v1",
+    "direction_logit_short", "pnl_acceleration_v1", "p_hat", "m5_phase_4_v1",
+    "direction_logit_long", "giveback_acceleration_v1", "bar_return_bps_v1",
+    "v3_signal_acceleration_v1", "m1_last_5bar_return_bps_v1", "current_atr_bps_v1",
+    "m5_phase_2_v1", "pnl_velocity_v1", "entropy_entry_v1",
+    "v3_max_consecutive_exits_v1", "m5_phase_1_v1", "tradable_prob",
+    "m5_phase_0_v1", "m5_phase_3_v1", "v3_consecutive_exits_v1",
+    "v3_v8_family_argmax", "uncertainty_score", "weekday_utc",
+    "v12_capital_cost_bps_v1", "v10_p_long_at_entry_v1", "accepted",
+    "p_long_entry_v1", "uncertainty_entry_v1", "margin_entry_v1",
+    "v10_path_quality_at_entry_v1", "v10_path_quality_std_at_entry_v1",
+    "v3_should_exit_decision_v1", "v10_position_size_at_entry_v1",
+    "v10_mfe_pred_at_entry_v1", "v10_tf_agreement_at_entry_v1",
+    "v10_hold_horizon_at_entry_v1", "v10_p_short_at_entry_v1", "p_hat_entry_v1",
+    # giveback_ratio_v1 — kept (high importance per FI)
+)
+
+# V2 per-TF (125) and group-A (28) — same definitions as Entry-IQL builder
+def _build_v2_per_tf_cols_exit():
+    from gx1.features.htf_features import MULTI_TF_PER_BAR_FEATURES_V2
+    tfs = ("m5", "m15", "h1", "h4", "d1")
+    cols = []
+    for tf in tfs:
+        for feat in MULTI_TF_PER_BAR_FEATURES_V2:
+            base = f"{tf}_{feat}"
+            cols.append(base if feat.endswith("_v2") else base + "_v2")
+    return tuple(cols)
+
+V2_PER_TF_COLS_EXIT = _build_v2_per_tf_cols_exit()
+V2_GROUP_A_COLS_EXIT = (
+    "is_asia_eu_overlap", "is_eu_us_overlap", "is_eu_only", "is_us_only",
+    "atr_ratio_m5_h4", "atr_ratio_m15_d1", "atr_ratio_h1_d1", "atr_ratio_m5_m15",
+    "vol_pct_m5_1yr", "vol_pct_h1_1yr",
+    "dist_to_R1_atr", "dist_to_R2_atr", "dist_to_S1_atr", "dist_to_S2_atr",
+    # 2026-05-24: added M15 + D1 dist_to_hi/lo (Bug 2 fix in group_a_features.py:199)
+    "dist_to_m5_hi_atr",  "dist_to_m5_lo_atr",
+    "dist_to_m15_hi_atr", "dist_to_m15_lo_atr",
+    "dist_to_h1_hi_atr",  "dist_to_h1_lo_atr",
+    "dist_to_h4_hi_atr",  "dist_to_h4_lo_atr",
+    "dist_to_d1_hi_atr",  "dist_to_d1_lo_atr",
+    "long_win_rate_last10",  "long_mean_pnl_last10",
+    "long_n_consec_losses",  "long_time_since_last_close_min",
+    "short_win_rate_last10", "short_mean_pnl_last10",
+    "short_n_consec_losses", "short_time_since_last_close_min",
+    # 2026-05-24 PM: dip + struct features (joined via augment_per_bar _v3 suffix).
+    # Exit needs these to see "M15 turning down → strong-hold or exit-now" patterns.
+    "dip_proximity_m5_v3",  "dip_confirmed_m5_v3",
+    "dip_proximity_m15_v3", "dip_confirmed_m15_v3",
+    "dip_proximity_h1_v3",  "dip_confirmed_h1_v3",
+    "dip_proximity_h4_v3",  "dip_confirmed_h4_v3",
+    "dip_proximity_d1_v3",  "dip_confirmed_d1_v3",
+    "struct_continuation_up_m5_v3",  "struct_pullback_in_uptrend_m5_v3",
+    "struct_continuation_down_m5_v3","struct_bounce_in_downtrend_m5_v3",
+    "struct_pullback_depth_m5_v3",
+    "struct_continuation_up_m15_v3", "struct_pullback_in_uptrend_m15_v3",
+    "struct_continuation_down_m15_v3","struct_bounce_in_downtrend_m15_v3",
+    "struct_pullback_depth_m15_v3",
+    "struct_continuation_up_h1_v3",  "struct_pullback_in_uptrend_h1_v3",
+    "struct_continuation_down_h1_v3","struct_bounce_in_downtrend_h1_v3",
+    "struct_pullback_depth_h1_v3",
+    "struct_continuation_up_h4_v3",  "struct_pullback_in_uptrend_h4_v3",
+    "struct_continuation_down_h4_v3","struct_bounce_in_downtrend_h4_v3",
+    "struct_pullback_depth_h4_v3",
+    "struct_continuation_up_d1_v3",  "struct_pullback_in_uptrend_d1_v3",
+    "struct_continuation_down_d1_v3","struct_bounce_in_downtrend_d1_v3",
+    "struct_pullback_depth_d1_v3",
+    "struct_all_tf_pullback_v3", "struct_tf_agree_count_v3",
+    "struct_dip_x_uptrend_v3",   "struct_smc_swing_x_dip_v3",
+)
+
+if V2_BUILD_MODE_EXIT:
+    # Drop weak features from PER_BAR + CANDIDATE state, then add V2 cols
+    _per_bar_kept = [c for c in NUMERIC_STATE_COLS_PER_BAR if c not in V2_DROP_FEATURES_EXIT]
+    _candidate_kept = tuple(c for c in NUMERIC_STATE_COLS_CANDIDATE if c not in V2_DROP_FEATURES_EXIT)
+    NUMERIC_STATE_COLS_PER_BAR = _per_bar_kept
+    NUMERIC_STATE_COLS_CANDIDATE = _candidate_kept + V2_PER_TF_COLS_EXIT + V2_GROUP_A_COLS_EXIT
+    print(f"[V2_BUILD_MODE_EXIT] bar_state: {len(_per_bar_kept)} per-bar-kept + "
+          f"{len(_candidate_kept)} candidate-kept + {len(V2_PER_TF_COLS_EXIT)} per-TF + "
+          f"{len(V2_GROUP_A_COLS_EXIT)} group-A = "
+          f"{len(NUMERIC_STATE_COLS_PER_BAR) + len(NUMERIC_STATE_COLS_CANDIDATE)} features",
+          flush=True)
 ONE_HOT_COLS = [
     "session",
     "vol_regime",
@@ -319,6 +459,35 @@ def build_reward_matrix(df: pd.DataFrame, *, variant: str) -> np.ndarray:
                 - R_NET_V2_BARS_COST * bars_held_v2
             )
             r_exit = exit_now - R_NET_REAL_GAMMA * spread
+        elif variant in R_PEAK_AWARE_PARAMS:
+            # R_PEAK_AWARE — addresses Phase 6 OOT finding that IQL_EXIT virtually never
+            # fires (2/14,581) because HOLD reward (max future PnL = perfect foresight)
+            # systematically dominates EXIT reward (current PnL).
+            # Stronger giveback + MAE + bars_cost so r_hold drops below exit_now
+            # once we've passed peak, encouraging the IQL to learn EXIT_NOW signals.
+            p = R_PEAK_AWARE_PARAMS[variant]
+            r_hold = (
+                p["alpha"] * hold_K
+                - p["beta_mae"] * np.abs(current_mae)
+                - p["giveback"] * drawdown
+                - p["bars_cost"] * bars_held_v2
+                - R_NET_REAL_GAMMA * spread
+            )
+            r_exit = exit_now - R_NET_REAL_GAMMA * spread
+        elif variant in ("R_PEAK_QUALITY", "R_PEAK_QUALITY_QUAD"):
+            # Scale-invariant exit-quality (analog to entry R_QUALITY).
+            # quality = max(0, 1 - drawdown_from_peak / peak_mfe)
+            # When at peak: quality=1 → full HOLD reward
+            # When given back 50% of peak: quality=0.5 → half HOLD reward
+            # When given back 100% of peak: quality=0 → no HOLD reward → EXIT triggered
+            # Self-balancing — replaces hardcoded R_PEAK_AWARE giveback/bars_cost lambdas.
+            peak_mfe_col = pd.to_numeric(df.get("current_mfe_bps_v1"), errors="coerce").fillna(0.0).to_numpy()
+            peak_mfe_safe = np.maximum(peak_mfe_col, 1.0)  # avoid div0; if no peak yet, quality≈1
+            quality = np.clip(1.0 - drawdown / peak_mfe_safe, 0.0, 1.0)
+            if variant == "R_PEAK_QUALITY_QUAD":
+                quality = quality ** 2  # steeper falloff on giveback
+            r_hold = hold_K * quality - R_NET_REAL_GAMMA * spread
+            r_exit = exit_now - R_NET_REAL_GAMMA * spread
         else:
             raise ValueError(f"unknown reward variant: {variant}")
 
@@ -342,7 +511,7 @@ def build_state_matrix(df: pd.DataFrame) -> tuple[np.ndarray, list[str]]:
     parts: list[pd.DataFrame] = []
     feature_names: list[str] = []
     nan_warnings: list[tuple[str, float]] = []
-    for c in NUMERIC_STATE_COLS_PER_BAR + NUMERIC_STATE_COLS_CANDIDATE:
+    for c in list(NUMERIC_STATE_COLS_PER_BAR) + list(NUMERIC_STATE_COLS_CANDIDATE):
         if c in df.columns:
             s = pd.to_numeric(df[c], errors="coerce")
             nan_frac = s.isna().mean()
@@ -606,18 +775,44 @@ def write_artifacts(
             },
         }
 
-    print(f"[{ACTION}] loading per-bar exit dataset from {per_week_dir}", flush=True)
-    df = load_per_bar_dataset(per_week_dir, sample_n_rows=sample_n_rows)
-    print(f"[{ACTION}] loaded rows={len(df):,} cols={len(df.columns)}", flush=True)
+    # V2: load pre-built state + reward cache via env GX1_EXIT_IQL_V2_STATE_CACHE.
+    # Cache built by scripts/prep_exit_iql_v2_state_cache.py with per-trade stratified sampling.
+    import os as _os
+    _state_cache_dir = _os.environ.get("GX1_EXIT_IQL_V2_STATE_CACHE", "").strip()
+    if _state_cache_dir:
+        from pathlib import Path as _P
+        cache_dir = _P(_state_cache_dir)
+        if not (cache_dir / "state_matrix.npy").is_file():
+            raise FileNotFoundError(f"[{ACTION}] state-cache missing files: {cache_dir}")
+        print(f"[{ACTION}] LOAD_STATE_CACHE: {cache_dir}", flush=True)
+        X = np.load(cache_dir / "state_matrix.npy", mmap_mode="r").astype(np.float32, copy=False)
+        feature_names = json.loads((cache_dir / "feature_names.json").read_text())
+        rew_npz = np.load(cache_dir / "reward_matrices.npz")
+        R_by_variant = {k: rew_npz[k] for k in rew_npz.files}
+        cu_arr = np.load(cache_dir / "candidate_uid.npy", allow_pickle=True)
+        df = pd.DataFrame({"candidate_uid": cu_arr})
+        ts_path = cache_dir / "decision_ts_utc.npy"
+        if ts_path.is_file():
+            ts_ns = np.load(ts_path)
+            df["decision_ts_utc"] = pd.to_datetime(ts_ns, utc=True)
+        print(f"[{ACTION}] cache loaded: X={X.shape} features={len(feature_names)} "
+              f"variants={list(R_by_variant.keys())}", flush=True)
+        for variant in R_by_variant:
+            print(f"[{ACTION}] cached reward {variant}: shape={R_by_variant[variant].shape} "
+                  f"mean={float(R_by_variant[variant].mean()):.3f}", flush=True)
+    else:
+        print(f"[{ACTION}] loading per-bar exit dataset from {per_week_dir}", flush=True)
+        df = load_per_bar_dataset(per_week_dir, sample_n_rows=sample_n_rows)
+        print(f"[{ACTION}] loaded rows={len(df):,} cols={len(df.columns)}", flush=True)
 
-    X, feature_names = build_state_matrix(df)
-    print(f"[{ACTION}] state matrix: {X.shape}, features={len(feature_names)}", flush=True)
+        X, feature_names = build_state_matrix(df)
+        print(f"[{ACTION}] state matrix: {X.shape}, features={len(feature_names)}", flush=True)
 
-    R_by_variant: dict[str, np.ndarray] = {}
-    for variant in (variants_subset or REWARD_VARIANTS):
-        R_by_variant[variant] = build_reward_matrix(df, variant=variant)
-        print(f"[{ACTION}] reward matrix {variant}: shape={R_by_variant[variant].shape} "
-              f"mean={float(R_by_variant[variant].mean()):.3f}", flush=True)
+        R_by_variant = {}
+        for variant in (variants_subset or REWARD_VARIANTS):
+            R_by_variant[variant] = build_reward_matrix(df, variant=variant)
+            print(f"[{ACTION}] reward matrix {variant}: shape={R_by_variant[variant].shape} "
+                  f"mean={float(R_by_variant[variant].mean()):.3f}", flush=True)
 
     R_for_strat = R_by_variant.get("R_NET_REAL", next(iter(R_by_variant.values())))
     K_primary_idx = K_HORIZONS.index(K_PRIMARY)

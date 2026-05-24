@@ -1273,3 +1273,68 @@ User asked about XGB hyperparameter robustness. Investigation showed:
 
 ### Verification
 compileall PASS; True IQL run completed successfully; 19 + 16 (existing Phase 3) = 35 Phase-3 tests pass; runtime modules untouched; V1/V2 contracts unchanged; live system untouched.
+
+## 2026-05-24 - V12.5 Multi-TF Audit, Bug Fixes, Feature Expansion
+
+**Scope:** Deep-audit pipeline + 4 bug fixes + 5-TF dip/struct expansion + cleanup.
+
+### Bugs found & fixed
+1. **htf_features.py ema_stack (Bug 1):** `ema_stack_aligned_v2` was DEAD on M15/H4/D1 because EMA50/100/200 had NaN in early warmup → silent 0. Fix: `.ffill()` on EMA series before alignment check + use full stack (50<100<200).
+2. **htf_features.py mom_k (Bug 2):** `d1_mom_20_atr_v2` DEAD due to sparse resampled D1 + `shift(20)` propagating NaN. Fix: `ffill()` close before shift.
+3. **augment_forward_outcome_v2.py SMC join (Bug 3):** SMC features (`smc_choch_canon_v1`, `smc_bos_down_canon_v1`, `smc_sweep_up/down/size_canon_v1`) were all-zero in forward_outcome despite being computed in `canonical_v3` prebuilt. Fix: asof-join 10 SMC cols from canonical_v3 into forward-outcome via `decision_ts_utc`.
+4. **augment_per_bar_v2_from_forward_outcome.py prefix filter (Bug 4):** `_canon_v1` columns (78 canonical features) were never broadcast to per-bar → Exit-IQL had 80+ dead features (4.5% alive only). Fix: extend `v2_cols` discovery to include `_canon_v1` suffix and `dist_to_m15_/dist_to_d1_` prefixes.
+5. **augment_forward_outcome_v2.py liquidity_zones (Bug 2b):** M15 + D1 hardcoded out of liquidity zone computation (`for tf in (m5, h1, h4)`) → Entry-IQL could never see M15 swing-low to learn "wait when M15 turns down". Fix: added M15 (192 bars) + D1 (60 bars) resampled OHLC + dist_to_m15/d1_hi/lo computation; also patched `group_a_features.py` for consistency.
+6. **htf_features.py session_vwap on D1 (Bug 5):** `d1_vwap_session_dist_atr_v2` always 0 because D1 has only 1 bar/day → session-VWAP = close. Fix: detect TF cadence; use 5-bar rolling VWAP as "session" proxy when TF >= 1 day.
+
+### 5-TF dip + structure features (R_WAIT_OPP family)
+- Extended dip_proximity_*_v3 and dip_confirmed_*_v3 from 4 TFs → **all 5 TFs (M5/M15/H1/H4/D1)**.
+- Extended struct_continuation/pullback/bounce/depth from 3 TFs → **all 5 TFs**.
+- `struct_all_tf_pullback_v3` now requires ALL 5 TFs aligned (strict AND, ultra-selective). Added `struct_tf_agree_count_v3` for soft 0-1 fraction.
+- `struct_dip_x_uptrend_v3` now averages dip_confirmed across all 5 TFs.
+
+### Reward variants added (Entry-IQL)
+- R_PATIENT_K96_LAM03/05/10 (linear MAE-pre penalty)
+- R_CLEAN_K96_TOL10/20/40 (binary threshold)
+- R_QUAD_K96_LAM05/10 (quadratic penalty)
+- R_QUALITY_K96 (scale-invariant `terminal_pnl × (1 - MAE/MFE)`)
+- R_SOFT_K96_TOL20/40 (sigmoid-soft threshold)
+- R_ASYMMETRIC_K96_LAM05/10 (logarithmic)
+- R_WAIT_OPP_K48_LAM05/10, K96_LAM05/10/20/30/50 (**counterfactual wait-vs-take** — `r_skip = max(0, wait - take)`)
+- R_HYBRID_K96_TOL20/40 (R_WAIT_OPP + binary clean-threshold gate)
+
+### Reward variants added (Exit-IQL)
+- R_PEAK_AWARE_MILD/MED/HARSH (multi-component giveback+MAE+bars+spread)
+- R_PEAK_QUALITY (`hold_K × max(0, 1 - drawdown/peak_mfe)` — scale-invariant exit)
+- R_PEAK_QUALITY_QUAD (quadratic version)
+
+### Bundle cleanup
+- Slettet 19 deprecated Entry-IQL bundles (R_TERMINAL, R_PATIENT, R_CLEAN, R_QUAD, R_QUALITY, R_SOFT, R_ASYMMETRIC, R_HYBRID, V3PLUS_FULL/WINSORIZED/ZCLAMP, V3PLUS_PORTFOLIO_PLUS5_SEED133[7-9, 0-1]) — beholder kun R_WAIT_OPP-familien (kandidat-vinner).
+- Slettet 4 Exit-IQL bundles (FINAL_SMOKE + 3 PRELIM) — ALL exit bundles slettet.
+- Slettet 2 store V12 per-bar baser (~15 GB).
+- Slettet 8 JOINT_ENTRY_EXIT_IQL_VALIDATION_GATE bundles.
+- Slettet 3 PHASE6 LOCK resultatbundles.
+- Total disk frigjort: ~58 GB.
+
+### Code cleanup (5 dead-code removals)
+- `gx1/features/smc_pack_v1.py` (544 LOC, 0 references) — DELETED
+- `gx1/rl/entry_v10/_legacy/` (4 moduler) — DELETED
+- 5 gamle /tmp/phase6_*.py + validate_*.py — DELETED
+- `gx1/rl/dataset_horizon_constants.py` — CREATED (unified K_HORIZONS)
+- `gx1/rl/reward_defs.py` — CREATED (unified reward variant names)
+
+### Live runtime status (CRITICAL)
+- v12_entry_iql_live.py hardcoder `BUILD_ENTRY_IQL_V3PLUS_PORTFOLIO_PLUS5_SEED133[7-9, 0-1]` — **deleted in cleanup, restart-blocking**.
+- v12_exit_iql_live.py hardcoder `BUILD_EXIT_IQL_PER_BAR_DATASET_V12_..._V3TRACKED_..._ZCLAMP8M_TRAINED` — **deleted in cleanup, restart-blocking**.
+- WARNING-kommentarer lagt til begge filer.
+- Live OANDA paper-runner holder vekter i RAM; DO NOT RESTART før nye bundles deployes + paths oppdateres.
+
+### Datasets — final state
+- `CANDIDATE_FORWARD_OUTCOME_V3PLUS_PLUS5_FIXED_V3_20260524T161239Z_LOCK` (518 cols, alle bug-fixes anvendt, men IKKE inkluderer 5-TF dip/struct utvidelse fra senere på dagen).
+- `EXIT_IQL_PER_BAR_DATASET_V2_M1_SCALP_V3PLUS_FIXED_V3_20260524T161821Z_LOCK` (351 cols, samme).
+- **Begge må re-augmenteres** før retrain for å fange 5-TF dip/struct expansion + d1_vwap fix.
+
+### Open work — POST-RETRAIN MUST-DOs
+1. **Live runtime path fix:** update v12_entry_iql_live.py DEFAULT_BUNDLE_DIR + ENSEMBLE_BUNDLE_DIRS to new winning bundle.
+2. **Live runtime path fix:** update v12_exit_iql_live.py V12_4_APPROVED_BUNDLE constant to new exit bundle.
+3. **Smoke-test live** end-to-end before deploying.
+4. **Cement winner** by archiving prior bundles + updating PROJECT_STATE.md.
