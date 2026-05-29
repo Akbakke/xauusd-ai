@@ -1,6 +1,7 @@
 # gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from typing import Dict, Optional
 
@@ -24,6 +25,49 @@ def _assert_finite(name: str, t: torch.Tensor) -> None:
 
 _ANCHOR_FIELDS = ("p_long", "p_short", "p_flat")
 _ANCHOR_IDX = tuple(ORDERED_FIELDS.index(f) for f in _ANCHOR_FIELDS)
+
+# ── Dip-analysis head layout (V10 entry) — risk-aware, multi-horizon, distributional.
+# Output index = flatten over (direction, horizon, target) in this order. The
+# trainer's pinball loss and any consumer MUST use this same layout (documented,
+# not magic numbers). dip_p50/p90 = conditional quantiles of mae_before_mfe (dip
+# depth if taking now); recovery_p50 = median mfe-after-dip. See memory
+# project_gx1_dip_aware_entry_timing.
+DIP_DIRECTIONS = ("long", "short")
+DIP_HORIZONS = (12, 48, 96)                       # M5 bars
+DIP_TARGETS = ("dip_p50", "dip_p90", "recovery_p50")
+DIP_HEAD_DIM = len(DIP_DIRECTIONS) * len(DIP_HORIZONS) * len(DIP_TARGETS)  # = 18
+
+# ── Self-supervised forecast head (#5) — predict cumulative future return (bps)
+# at several M5 horizons. Self-supervised (target = realized future return, no
+# labels). Forces the representation to capture forward price dynamics → richer
+# dip/momentum encoding that all heads + the IQL benefit from.
+FORECAST_HORIZONS = (1, 5, 12, 24)                # M5 bars ahead
+FORECAST_HEAD_DIM = len(FORECAST_HORIZONS)        # = 4
+
+# ── Dip-timing head (2026-05-26) — predicts WHEN, not just how-deep. Completes
+# "don't enter at the TOP of a dip": dip_bottom_frac = bar-of-dip-bottom / K and
+# time_to_mfe_frac = bar-of-favorable-peak / K, both ∈[0,1]. Layout flattens over
+# (direction, horizon, target) in this exact order. Targets are builder columns
+# y_dip_bottom_frac_{dir}_K{K} / y_time_to_mfe_frac_{dir}_K{K}.
+TIMING_DIRECTIONS = ("long", "short")
+TIMING_HORIZONS = (12, 48, 96)
+TIMING_TARGETS = ("dip_bottom_frac", "time_to_mfe_frac")
+TIMING_HEAD_DIM = len(TIMING_DIRECTIONS) * len(TIMING_HORIZONS) * len(TIMING_TARGETS)  # = 12
+
+# ── Tail-risk head (2026-05-26) — p90 (pinball q=0.9) of the WORST adverse
+# excursion over the full K horizon (regardless of mfe ordering) → stop placement
+# / risk sizing. Layout flattens over (direction, horizon). Target column
+# y_tail_mae_{dir}_K{K}.
+TAIL_RISK_DIRECTIONS = ("long", "short")
+TAIL_RISK_HORIZONS = (12, 48, 96)
+TAIL_RISK_QUANTILE = 0.9
+TAIL_RISK_HEAD_DIM = len(TAIL_RISK_DIRECTIONS) * len(TAIL_RISK_HORIZONS)  # = 6
+
+# ── Volatility-forecast head (2026-05-26) — realized forward vol (std of 1-bar
+# returns, bps) over K bars; direction-agnostic. Feeds sizing + regime awareness.
+# Target column y_vol_fwd_K{K}.
+VOL_FORECAST_HORIZONS = (12, 48, 96)
+VOL_FORECAST_HEAD_DIM = len(VOL_FORECAST_HORIZONS)  # = 3
 
 
 @dataclass(frozen=True)
@@ -64,6 +108,24 @@ class CtxModelConfig:
     d1_seq_len: int = 96         # ~3 months at D1 cadence
     multi_tf_num_layers: int = 2 # smaller encoders per TF (lower TF count → less compute)
     multi_tf_scale: float = 0.5  # cap multi-TF contribution to final fusion
+    # ── Cross-TF attention fusion (2026-05-26) ────────────────────────
+    # When enabled, replaces the static concat→MLP multi-TF fusion with: treat
+    # the N per-TF pools as a sequence of N tokens → cross-TF attention (each TF
+    # attends to the others) → learnable per-TF gate (softmax weights) → output.
+    # Lets the model learn WHICH TF matters WHEN (M5 for timing, D1 for regime),
+    # regime-dependent, instead of a fixed mix. Zero-init output → starts as a
+    # no-op correction (stable). State-dict matches when off (gated, default OFF).
+    enable_cross_tf_attn: bool = False
+    # ── V2 extension (2026-05-22): M5 as multi-TF input ───────────────
+    # When enabled (V10 v4+), V10 receives BOTH:
+    #   - seq_x (M5 raw price-state, 37 features × 96 bars)   ← existing path
+    #   - seq_m5 (M5 V2 features 25 × 96 bars from multi-TF cache) ← NEW
+    # These are different feature representations of the same M5 history.
+    # Fuse layer expands from 4×d_model → 5×d_model input.
+    # Defaults OFF so V1 v3+ bundles load with strict=True.
+    enable_multi_tf_m5: bool = False
+    m5_seq_dim: int = 0          # 0 → m5 multi-TF branch disabled
+    m5_seq_len: int = 96         # ~8 hours at M5 cadence
     # ── Distillation Q-head (V13 prep) ────────────────────────────────
     # When enabled, adds nn.Linear(d_model, 3) producing q_per_action that
     # mirrors Entry-IQL Q-values (skip / long / short). Zero-initialised so
@@ -107,6 +169,35 @@ class CtxModelConfig:
     # cut early in stale trades. State-dict matches v_FIXED exactly when
     # disabled. Spec: GX1_DATA/V10_V3_RETRAIN_TARGETS.md target 4.
     enable_hold_horizon_head: bool = False
+    # ── Dip-analysis head (2026-05-26) ────────────────────────────────
+    # When enabled, adds nn.Linear(d_model, DIP_HEAD_DIM=18) regressing the
+    # distributional dip profile (dip_p50/p90 of mae_before_mfe + recovery_p50)
+    # over {long,short}×K. Forces the transformer to EXPLICITLY represent
+    # dip-state internally — so its pooled z (and every downstream head + the
+    # Entry-IQL that consumes it) encodes "are we about to enter at the top of a
+    # dip". This is the signal R_WAIT_OPP rewards. State-dict matches when off.
+    enable_dip_head: bool = False
+    # ── Self-supervised forecast head (#5) ────────────────────────────
+    # nn.Linear(d_model, FORECAST_HEAD_DIM): predicts cumulative future return
+    # (bps) at FORECAST_HORIZONS. Self-supervised aux objective → representation
+    # captures forward dynamics. State-dict matches when off (gated, default OFF).
+    enable_forecast_head: bool = False
+    # ── Dip-timing / tail-risk / vol-forecast heads (2026-05-26) ──────
+    # All gated, state-dict matches when off. timing: WHEN dip bottoms + WHEN
+    # favorable peak hits (TIMING_HEAD_DIM=12). tail_risk: p90 worst-adverse over
+    # full horizon (TAIL_RISK_HEAD_DIM=6, pinball q=0.9). vol_forecast: forward
+    # realized vol (VOL_FORECAST_HEAD_DIM=3). See module-level *_HEAD_DIM layout.
+    enable_timing_head: bool = False
+    enable_tail_risk_head: bool = False
+    enable_vol_forecast_head: bool = False
+    # ── Positional encoding (temporal order) ──────────────────────────
+    # When enabled, adds sinusoidal positional encoding to the base seq and
+    # every per-TF sequence BEFORE its transformer encoder. Without it, the
+    # encoder + mean-pool are fully permutation-invariant: the model is blind
+    # to the temporal ORDER of the window and only sees an unordered bag of
+    # bars. Default OFF so v_FIXED bundles keep bit-identical forward
+    # behaviour; the buffer is persistent=False so state_dict is unchanged.
+    enable_pos_enc: bool = False
 
 
 class EntryV10CtxHybridTransformer(nn.Module):
@@ -149,6 +240,11 @@ class EntryV10CtxHybridTransformer(nn.Module):
         d1_seq_len: int = 96,
         multi_tf_num_layers: int = 2,
         multi_tf_scale: float = 0.5,
+        enable_cross_tf_attn: bool = False,
+        # V2 extension: enable M5 as 5th multi-TF branch
+        enable_multi_tf_m5: bool = False,
+        m5_seq_dim: int = 0,
+        m5_seq_len: int = 96,
         # Distillation Q-head (V13 prep). Default OFF so v_FIXED bundles
         # load with strict=True. When True, adds q_head linear layer.
         enable_q_head: bool = False,
@@ -158,6 +254,12 @@ class EntryV10CtxHybridTransformer(nn.Module):
         enable_path_quality_variance_head: bool = False,
         enable_position_size_head: bool = False,
         enable_hold_horizon_head: bool = False,
+        enable_dip_head: bool = False,
+        enable_forecast_head: bool = False,
+        enable_timing_head: bool = False,
+        enable_tail_risk_head: bool = False,
+        enable_vol_forecast_head: bool = False,
+        enable_pos_enc: bool = False,
     ) -> None:
         super().__init__()
         if seq_input_dim <= 0 or snap_input_dim <= 0 or seq_len <= 0:
@@ -170,6 +272,10 @@ class EntryV10CtxHybridTransformer(nn.Module):
                     f"MULTI_TF_DIM_INVALID: when enable_multi_tf=True, all of m15/h1/h4/d1_seq_dim must be >0. "
                     f"Got m15={m15_seq_dim} h1={h1_seq_dim} h4={h4_seq_dim} d1={d1_seq_dim}"
                 )
+        if enable_multi_tf_m5 and m5_seq_dim <= 0:
+            raise RuntimeError(
+                f"MULTI_TF_M5_DIM_INVALID: enable_multi_tf_m5=True requires m5_seq_dim > 0; got {m5_seq_dim}"
+            )
 
         self.cfg = CtxModelConfig(
             seq_input_dim=seq_input_dim,
@@ -188,13 +294,23 @@ class EntryV10CtxHybridTransformer(nn.Module):
             h1_seq_len=int(h1_seq_len),
             h4_seq_len=int(h4_seq_len),
             d1_seq_len=int(d1_seq_len),
+            enable_multi_tf_m5=bool(enable_multi_tf_m5),
+            m5_seq_dim=int(m5_seq_dim),
+            m5_seq_len=int(m5_seq_len),
             multi_tf_num_layers=int(multi_tf_num_layers),
             multi_tf_scale=float(multi_tf_scale),
+            enable_cross_tf_attn=bool(enable_cross_tf_attn),
             enable_q_head=bool(enable_q_head),
             enable_tf_agreement_head=bool(enable_tf_agreement_head),
             enable_path_quality_variance_head=bool(enable_path_quality_variance_head),
             enable_position_size_head=bool(enable_position_size_head),
             enable_hold_horizon_head=bool(enable_hold_horizon_head),
+            enable_dip_head=bool(enable_dip_head),
+            enable_forecast_head=bool(enable_forecast_head),
+            enable_timing_head=bool(enable_timing_head),
+            enable_tail_risk_head=bool(enable_tail_risk_head),
+            enable_vol_forecast_head=bool(enable_vol_forecast_head),
+            enable_pos_enc=bool(enable_pos_enc),
         )
 
         d_model = int(self.cfg.d_model)
@@ -279,6 +395,17 @@ class EntryV10CtxHybridTransformer(nn.Module):
         # then multiplies by 1440 to get expected hold-bars.
         if self.cfg.enable_hold_horizon_head:
             self.head_hold_horizon = nn.Linear(d_model, 1)
+        if self.cfg.enable_dip_head:
+            # 18 outputs: (dir{long,short} × K{12,48,96} × {dip_p50,dip_p90,recovery_p50})
+            self.head_dip = nn.Linear(d_model, DIP_HEAD_DIM)
+        if self.cfg.enable_forecast_head:
+            self.head_forecast = nn.Linear(d_model, FORECAST_HEAD_DIM)  # cum. future ret (bps) @ horizons
+        if self.cfg.enable_timing_head:
+            self.head_timing = nn.Linear(d_model, TIMING_HEAD_DIM)  # dip-bottom/peak bar-frac (see TIMING_* layout)
+        if self.cfg.enable_tail_risk_head:
+            self.head_tail_risk = nn.Linear(d_model, TAIL_RISK_HEAD_DIM)  # p90 worst-adverse (see TAIL_RISK_* layout)
+        if self.cfg.enable_vol_forecast_head:
+            self.head_vol_forecast = nn.Linear(d_model, VOL_FORECAST_HEAD_DIM)  # fwd realized vol (bps) @ horizons
 
         # ── Multi-TF encoders (V12.2) — only instantiated when enabled ──
         # Each TF gets its own lightweight TransformerEncoder + linear projection.
@@ -302,22 +429,43 @@ class EntryV10CtxHybridTransformer(nn.Module):
             self.h1_encoder = _mk_enc()
             self.h4_encoder = _mk_enc()
             self.d1_encoder = _mk_enc()
+            # V2 (2026-05-22): if enable_multi_tf_m5=True, add 5th branch for M5
+            # V2-feature stream. State_dict gains m5_proj + m5_encoder weights when
+            # this flag is on; v_FIXED bundles (flag=False) load unchanged.
+            n_tf_branches = 4
+            if self.cfg.enable_multi_tf_m5:
+                self.m5_proj = nn.Linear(int(self.cfg.m5_seq_dim), d_model)
+                self.m5_encoder = _mk_enc()
+                self._expected_m5_seq_dim = int(self.cfg.m5_seq_dim)
+                n_tf_branches = 5
             # V12.2 v2: ADDITIVE residual fusion. multi_tf_fuse operates ONLY on
             # multi-TF pools (not concatenated with z_v3). Output is a small
             # CORRECTION that's added to z_v3 — preserves v3 baseline behavior
             # when multi-TF is uninformative (random init → near-zero output).
-            # Previously: z = multi_tf_fuse([z_v3, mtf]) which DESTROYED v3 path
-            # and forced model to relearn baseline from scratch.
             self.multi_tf_fuse = nn.Sequential(
-                nn.Linear(4 * d_model, d_model),
+                nn.Linear(n_tf_branches * d_model, d_model),
                 nn.GELU(),
                 nn.Dropout(dropout),
                 nn.Linear(d_model, d_model),
             )
-            # Zero-init last layer's bias so initial multi-TF correction ≈ 0 →
-            # model starts exactly as v3 baseline + tiny noise.
             nn.init.zeros_(self.multi_tf_fuse[-1].bias)
             nn.init.normal_(self.multi_tf_fuse[-1].weight, std=0.01)
+            # ── Cross-TF attention + learnable per-TF gates (#3+#4) ──
+            # Each per-TF pool becomes a token; attention lets TFs attend across
+            # each other; a learnable softmax gate weights TFs (regime-dependent).
+            # Zero-init output → starts as no-op (stable cold start).
+            if self.cfg.enable_cross_tf_attn:
+                self.cross_tf_attn = nn.TransformerEncoder(
+                    nn.TransformerEncoderLayer(
+                        d_model=d_model, nhead=n_heads, dim_feedforward=d_ff,
+                        dropout=dropout, batch_first=True, activation="gelu", norm_first=True,
+                    ),
+                    num_layers=1,
+                )
+                self.tf_gate_logits = nn.Parameter(torch.zeros(n_tf_branches))  # learnable per-TF weight
+                self.cross_tf_out = nn.Linear(d_model, d_model)
+                nn.init.zeros_(self.cross_tf_out.weight)
+                nn.init.zeros_(self.cross_tf_out.bias)
             self._expected_m15_seq_dim = int(self.cfg.m15_seq_dim)
             self._expected_h1_seq_dim = int(self.cfg.h1_seq_dim)
             self._expected_h4_seq_dim = int(self.cfg.h4_seq_dim)
@@ -333,6 +481,39 @@ class EntryV10CtxHybridTransformer(nn.Module):
         # Anchored residual scale stored in state_dict for replay parity
         self.register_buffer("residual_scale", torch.tensor(float(self.cfg.residual_scale)))
         self.register_buffer("anchor_eps", torch.tensor(float(self.cfg.anchor_eps)))
+
+        # ── Positional encoding buffers (persistent=False → not in state_dict) ──
+        self.enable_pos_enc = bool(self.cfg.enable_pos_enc)
+        if self.enable_pos_enc:
+            self.register_buffer("pos_enc", self._sinusoidal_pe(int(seq_len), d_model), persistent=False)
+            if self.cfg.enable_multi_tf:
+                self.register_buffer("pos_enc_m15", self._sinusoidal_pe(int(self.cfg.m15_seq_len), d_model), persistent=False)
+                self.register_buffer("pos_enc_h1", self._sinusoidal_pe(int(self.cfg.h1_seq_len), d_model), persistent=False)
+                self.register_buffer("pos_enc_h4", self._sinusoidal_pe(int(self.cfg.h4_seq_len), d_model), persistent=False)
+                self.register_buffer("pos_enc_d1", self._sinusoidal_pe(int(self.cfg.d1_seq_len), d_model), persistent=False)
+                if self.cfg.enable_multi_tf_m5:
+                    self.register_buffer("pos_enc_m5", self._sinusoidal_pe(int(self.cfg.m5_seq_len), d_model), persistent=False)
+
+    @staticmethod
+    def _sinusoidal_pe(seq_len: int, d_model: int) -> torch.Tensor:
+        """Standard sinusoidal positional encoding, shape (1, seq_len, d_model)."""
+        pe = torch.zeros(int(seq_len), int(d_model))
+        position = torch.arange(0, int(seq_len), dtype=torch.float32).unsqueeze(1)
+        div_term = torch.exp(
+            torch.arange(0, int(d_model), 2, dtype=torch.float32)
+            * (-math.log(10000.0) / float(d_model))
+        )
+        pe[:, 0::2] = torch.sin(position * div_term)
+        n_cos = pe[:, 1::2].size(1)
+        pe[:, 1::2] = torch.cos(position * div_term[:n_cos])
+        return pe.unsqueeze(0)  # (1, seq_len, d_model)
+
+    def _add_pe(self, t: torch.Tensor, buf_name: str) -> torch.Tensor:
+        """Add positional encoding (sliced to current seq len) if enabled."""
+        if not getattr(self, "enable_pos_enc", False):
+            return t
+        pe = getattr(self, buf_name)
+        return t + pe[:, : t.size(1)]
 
     def _anchor_logits_from_snap(self, snap_x: torch.Tensor) -> torch.Tensor:
         # Anchor from XGB probs: [p_long, p_short, p_flat] in SIGNAL_BRIDGE_V1 order
@@ -395,6 +576,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
 
         # Encode
         seq_h = self.seq_proj(seq_x)                  # (B,T,d)
+        seq_h = self._add_pe(seq_h, "pos_enc")        # temporal order (no-op if disabled)
         seq_h = self.encoder(seq_h)                   # (B,T,d)
         seq_pool = seq_h.mean(dim=1)                  # (B,d)
 
@@ -410,9 +592,9 @@ class EntryV10CtxHybridTransformer(nn.Module):
         fused = torch.cat([seq_pool, snap_h, cat_flat, cont_h], dim=1)
         z_v3 = self.fuse(fused)
 
-        # ── Multi-TF second-stage fusion (V12.2) ──
+        # ── Multi-TF second-stage fusion (V12.2 + V2 M5 extension) ──
         # Only active when the model was constructed with enable_multi_tf=True
-        # AND the caller provides all four TF tensors. If model is v3-mode but
+        # AND the caller provides required TF tensors. If model is v3-mode but
         # caller mistakenly passes multi-TF inputs, we ignore them (no-op).
         _mtf_inputs_present = all(
             t is not None for t in (seq_m15, seq_h1, seq_h4, seq_d1)
@@ -431,15 +613,41 @@ class EntryV10CtxHybridTransformer(nn.Module):
                     raise RuntimeError(f"{name.upper()}_DIM_MISMATCH: got={int(t.shape[2])} expected={exp_dim}")
                 _assert_finite(name, t)
 
-            m15_pool = self.m15_encoder(self.m15_proj(seq_m15)).mean(dim=1)   # (B,d)
-            h1_pool = self.h1_encoder(self.h1_proj(seq_h1)).mean(dim=1)
-            h4_pool = self.h4_encoder(self.h4_proj(seq_h4)).mean(dim=1)
-            d1_pool = self.d1_encoder(self.d1_proj(seq_d1)).mean(dim=1)
-            # V12.2 v2: ADDITIVE residual. mtf_fuse takes ONLY multi-TF pools
-            # (no z_v3 in input), output is a correction added to z_v3 with
-            # multi_tf_scale. Random init → ≈0 correction → starts as v3 baseline.
-            mtf_combined = torch.cat([m15_pool, h1_pool, h4_pool, d1_pool], dim=1)
-            mtf_correction = self.multi_tf_fuse(mtf_combined)
+            m15_pool = self.m15_encoder(self._add_pe(self.m15_proj(seq_m15), "pos_enc_m15")).mean(dim=1)   # (B,d)
+            h1_pool = self.h1_encoder(self._add_pe(self.h1_proj(seq_h1), "pos_enc_h1")).mean(dim=1)
+            h4_pool = self.h4_encoder(self._add_pe(self.h4_proj(seq_h4), "pos_enc_h4")).mean(dim=1)
+            d1_pool = self.d1_encoder(self._add_pe(self.d1_proj(seq_d1), "pos_enc_d1")).mean(dim=1)
+
+            # V2: 5th branch for M5 V2-features (different from seq_x raw price-state).
+            pool_list = [m15_pool, h1_pool, h4_pool, d1_pool]
+            if self.cfg.enable_multi_tf_m5:
+                if seq_m5 is None:
+                    raise RuntimeError(
+                        "SEQ_M5_REQUIRED: enable_multi_tf_m5=True but seq_m5 is None"
+                    )
+                _assert_shape("seq_m5", seq_m5, 3)
+                if int(seq_m5.shape[1]) != int(self.cfg.m5_seq_len):
+                    raise RuntimeError(
+                        f"SEQ_M5_LEN_MISMATCH: got={int(seq_m5.shape[1])} expected={self.cfg.m5_seq_len}"
+                    )
+                if int(seq_m5.shape[2]) != int(self._expected_m5_seq_dim):
+                    raise RuntimeError(
+                        f"SEQ_M5_DIM_MISMATCH: got={int(seq_m5.shape[2])} expected={self._expected_m5_seq_dim}"
+                    )
+                _assert_finite("seq_m5", seq_m5)
+                m5_pool = self.m5_encoder(self._add_pe(self.m5_proj(seq_m5), "pos_enc_m5")).mean(dim=1)   # (B,d)
+                pool_list.append(m5_pool)
+
+            if self.cfg.enable_cross_tf_attn and hasattr(self, "cross_tf_attn"):
+                # (B, n_tf, d): each TF pool is a token → cross-TF attention
+                tf_tokens = torch.stack(pool_list, dim=1)
+                tf_attended = self.cross_tf_attn(tf_tokens)            # (B, n_tf, d)
+                gate = torch.softmax(self.tf_gate_logits, dim=0)       # (n_tf,) learnable
+                pooled = (tf_attended * gate.view(1, -1, 1)).sum(dim=1)  # (B, d) gated combine
+                mtf_correction = self.cross_tf_out(pooled)
+            else:
+                mtf_combined = torch.cat(pool_list, dim=1)
+                mtf_correction = self.multi_tf_fuse(mtf_combined)
             scale = float(self.multi_tf_scale.item())
             z = z_v3 + scale * mtf_correction
         else:
@@ -500,4 +708,24 @@ class EntryV10CtxHybridTransformer(nn.Module):
             hold_horizon_logit = self.head_hold_horizon(z)  # (B, 1) — raw logit
             _assert_finite("hold_horizon_logit", hold_horizon_logit)
             out["hold_horizon_logit"] = hold_horizon_logit
+        if self.cfg.enable_dip_head and hasattr(self, "head_dip"):
+            dip_pred = self.head_dip(z)  # (B, 18) — dip risk profile (see DIP_* layout)
+            _assert_finite("dip_pred", dip_pred)
+            out["dip_pred"] = dip_pred
+        if self.cfg.enable_forecast_head and hasattr(self, "head_forecast"):
+            forecast_pred = self.head_forecast(z)  # (B, 4) — cum future ret (bps) @ FORECAST_HORIZONS
+            _assert_finite("forecast_pred", forecast_pred)
+            out["forecast_pred"] = forecast_pred
+        if self.cfg.enable_timing_head and hasattr(self, "head_timing"):
+            timing_pred = self.head_timing(z)  # (B, 12) — dip-bottom/peak bar-frac (see TIMING_* layout)
+            _assert_finite("timing_pred", timing_pred)
+            out["timing_pred"] = timing_pred
+        if self.cfg.enable_tail_risk_head and hasattr(self, "head_tail_risk"):
+            tail_risk_pred = self.head_tail_risk(z)  # (B, 6) — p90 worst-adverse (see TAIL_RISK_* layout)
+            _assert_finite("tail_risk_pred", tail_risk_pred)
+            out["tail_risk_pred"] = tail_risk_pred
+        if self.cfg.enable_vol_forecast_head and hasattr(self, "head_vol_forecast"):
+            vol_forecast_pred = self.head_vol_forecast(z)  # (B, 3) — fwd realized vol (bps) @ VOL_FORECAST_HORIZONS
+            _assert_finite("vol_forecast_pred", vol_forecast_pred)
+            out["vol_forecast_pred"] = vol_forecast_pred
         return out

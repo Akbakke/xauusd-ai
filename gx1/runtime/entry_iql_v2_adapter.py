@@ -172,23 +172,41 @@ class EntryIQLV2Adapter:
         Returns un-normalized vector; caller (or predict_one) applies z-score.
         """
         v = np.zeros(len(self.feature_names), dtype=np.float32)
+        missing: list[str] = []
         for i, fname in enumerate(self.feature_names):
             if "__" in fname:
                 cat_col, _, cat_val = fname.partition("__")
                 runtime_val = candidate.get(cat_col)
-                if runtime_val is not None and str(runtime_val) == cat_val:
+                if runtime_val is None:
+                    missing.append(fname)
+                    continue
+                if str(runtime_val) == cat_val:
                     v[i] = 1.0
                 else:
                     v[i] = 0.0
             else:
                 raw = candidate.get(fname)
                 if raw is None:
+                    missing.append(fname)
+                    continue
+                try:
+                    v[i] = float(raw)
+                except (TypeError, ValueError):
                     v[i] = 0.0
-                else:
-                    try:
-                        v[i] = float(raw)
-                    except (TypeError, ValueError):
-                        v[i] = 0.0
+        # Strict coverage check — was silent 0-fill before 2026-05-19.
+        # Root cause of all-LONG bias: 5 v3+ aux head features missing in live
+        # → adapter 0-filled → Q-vector collapsed to constant.
+        if missing and not getattr(self, "_missing_warned_set", None) == tuple(missing):
+            import logging
+            n_miss = len(missing)
+            tot = len(self.feature_names)
+            head = ", ".join(missing[:10])
+            logging.getLogger("entry_iql_v2_adapter").warning(
+                f"[FEATURE_COVERAGE] {n_miss}/{tot} features missing from candidate — "
+                f"silent 0-fill. First 10: [{head}]"
+                + (f" (+{n_miss-10} more)" if n_miss > 10 else "")
+            )
+            self._missing_warned_set = tuple(missing)
         return v
 
     # ------- Inference -------

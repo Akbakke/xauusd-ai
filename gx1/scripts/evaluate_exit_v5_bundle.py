@@ -171,7 +171,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="V3 exit transformer bundle evaluator")
     parser.add_argument("--bundle-dir", type=str, required=True)
     parser.add_argument("--dataset-dir", type=str,
-                        default="/home/andre2/GX1_DATA/data/training/exit_v3_v5_training_2020_2026")
+                        default="/home/andre2/GX1_DATA/data/training/exit_v3_v7_training_2020_2026_canonical_v3")
     parser.add_argument("--split", choices=["train", "val", "test"], default="test")
     parser.add_argument("--train-cutoff", type=str, default="2025-01-01T00:00:00+00:00")
     parser.add_argument("--val-cutoff", type=str, default="2025-09-01T00:00:00+00:00")

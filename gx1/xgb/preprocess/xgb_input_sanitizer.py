@@ -207,7 +207,15 @@ class XGBInputSanitizer:
             
             if allow_nan_fill:
                 X = np.where(nan_mask, nan_fill_value, X)
-                log.warning(f"[SANITIZER] Filled {stats.n_nan_total} NaN values with {nan_fill_value}")
+                # Never silent: NaN→fill can corrupt a feature (0.0 is a meaningful
+                # value for many flags). Log at ERROR with the feature breakdown so
+                # a real data gap is visible, even though the caller chose to fill.
+                top_nan = sorted(stats.n_nan_by_feature.items(), key=lambda x: -x[1])[:5]
+                log.error(
+                    f"[SANITIZER] Filled {stats.n_nan_total} NaN with {nan_fill_value} "
+                    f"(hard_fail_on_nan={self.hard_fail_on_nan} overridden by allow_nan_fill=True). "
+                    f"Top features: {top_nan}"
+                )
         
         # Check for Inf
         inf_mask = np.isinf(X)

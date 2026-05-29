@@ -16,10 +16,12 @@ Modus operandi:
 
 Run (live demo on OANDA practice):
     PYTHONPATH=/home/andre2/src/GX1_ENGINE python3 \\
-        gx1/execution/v12_paper_runner.py --asia-skip --max-trades 5 --units 1
+        gx1/execution/v12_paper_runner.py --max-trades 5 --units 1
 
-V12.4 lockdown: Strategy-F params are hardcoded in v12_exit_iql_live.py.
-GX1_MFE_GIVEBACK_* env vars are rejected (RuntimeError) — no env-side ablation.
+We trade year-round, all sessions (Asia included) — session is a learned
+feature, not a hardcoded skip. Strategy-F overlay is ABLATABLE via
+GX1_STRATEGY_F_ENABLED / GX1_MFE_GIVEBACK_* env vars (default = cemented values);
+set GX1_STRATEGY_F_ENABLED=0 for the pure Exit-IQL policy.
 """
 from __future__ import annotations
 
@@ -75,12 +77,14 @@ def write_trade_alert(line: str) -> None:
         pass   # alerts file is best-effort; never crash the runner over it
 
 # Pre-trade gates
-DEFAULT_MAX_SPREAD_BPS = 10.0          # skip if spread > this
+DEFAULT_MAX_SPREAD_BPS = 7.0           # 2026-05-20 tightening: was 10.0, but
+                                        # news-spike spreads at 8-10 bps ate
+                                        # entry edge. Backtest data had clean
+                                        # OANDA M5 spreads typically 1-3 bps.
 DEFAULT_DEFAULT_UNITS = 1              # smallest position size for paper-trade
 DEFAULT_POLL_SECONDS = 10              # how often to check for new M1 close
 DEFAULT_QUOTE_MAX_AGE_SEC = 90.0       # treat quote as stale (market closed/halted) if older
 DEFAULT_MAX_TRADES = 1                 # max concurrent virtual trades held simultaneously
-ASIA_HOURS_UTC = range(0, 7)           # 00:00-07:00 UTC = Asia session
 
 
 class StaleQuoteError(RuntimeError):
@@ -122,11 +126,11 @@ def get_current_spread_bps(client: OandaClient,
     return spread_bps, bid, ask
 
 
-def can_trade_now(spread_bps: float, *, max_spread_bps: float, asia_skip: bool,
+def can_trade_now(spread_bps: float, *, max_spread_bps: float,
                    now_utc: datetime) -> tuple[bool, str]:
-    """Pre-trade gating. Returns (allowed, reason)."""
-    if asia_skip and now_utc.hour in ASIA_HOURS_UTC:
-        return False, f"asia_session_skip (hour={now_utc.hour})"
+    """Pre-trade gating — SPREAD SAFETY ONLY. We trade year-round, all sessions
+    (incl. Asia): session is a learned feature the Entry-IQL policy decides on,
+    not a hardcoded skip. `now_utc` kept for future safety gates."""
     if spread_bps > max_spread_bps:
         return False, f"spread_too_wide ({spread_bps:.1f} > {max_spread_bps})"
     return True, "ok"
@@ -136,14 +140,42 @@ def can_trade_now(spread_bps: float, *, max_spread_bps: float, asia_skip: bool,
 
 
 def make_v12_decision(pipeline: V12Pipeline, now_minute: datetime,
-                      bid: float, ask: float) -> dict[str, Any]:
+                      bid: float, ask: float,
+                      open_trades: list | None = None) -> dict[str, Any]:
     """Run the full V12 entry stack: XGB v5 → V10 v3 → Entry-IQL v2.
 
     Returns dict with action + Q-trio + V10 outputs + XGB outputs +
     decision timestamp. Pipeline maintains caches so per-M5 cold-build
     cost is amortized across all M1 ticks in that bucket.
+
+    `open_trades` is the runner's list of currently-open TradeState objects.
+    Aggregated into portfolio_state and passed to Entry-IQL so model sees
+    current portfolio context (#1 improvement 2026-05-21).
     """
-    return pipeline.make_entry_decision(pd.Timestamp(now_minute), bid, ask)
+    portfolio_state = None
+    if open_trades:
+        n_long = sum(1 for t in open_trades if t.side == "long")
+        n_short = sum(1 for t in open_trades if t.side == "short")
+        combined_pnl = sum(t.current_pnl_bps for t in open_trades)
+        latest_entry = max(t.entry_ts for t in open_trades) if open_trades else None
+        if latest_entry is not None:
+            # now_minute may already be tz-aware; pandas refuses tz= kwarg in that case.
+            ts_now = pd.Timestamp(now_minute)
+            if ts_now.tz is None:
+                ts_now = ts_now.tz_localize("UTC")
+            time_since_last = (ts_now - latest_entry).total_seconds() / 60.0
+            time_since_last = max(0.0, min(240.0, time_since_last))
+        else:
+            time_since_last = 240.0
+        portfolio_state = {
+            "n_open_long": float(n_long),
+            "n_open_short": float(n_short),
+            "combined_pnl_bps": float(combined_pnl),
+            "time_since_last_entry_min": float(time_since_last),
+        }
+    return pipeline.make_entry_decision(
+        pd.Timestamp(now_minute), bid, ask, portfolio_state=portfolio_state,
+    )
 
 
 def make_v12_exit_decision(pipeline: V12Pipeline, trade: TradeState,
@@ -225,10 +257,29 @@ def attempt_market_entry(client: OandaClient, side: str,
                  "raw": response}
 
     fill = response["orderFillTransaction"]
-    LOG.info(f"FILLED side={side} units={signed_units}  price={fill.get('price')}  trade_id={fill.get('tradeOpened', {}).get('tradeID')}")
+    # Extract trade_id: OANDA returns different paths depending on account mode +
+    # netting outcome. HEDGING + new position: tradeOpened.tradeID. NETTING + offset:
+    # tradesClosed[0].tradeID (the reduced trade). Fallback to orderFillTransaction.id
+    # so we always have an identifier even if the position structure is odd.
+    trade_id = (
+        fill.get("tradeOpened", {}).get("tradeID")
+        or fill.get("tradeReduced", {}).get("tradeID")
+        or (fill.get("tradesClosed") or [{}])[0].get("tradeID")
+        or fill.get("id")
+    )
+    if not fill.get("tradeOpened", {}).get("tradeID"):
+        # Audit log when we fall back to non-tradeOpened parsing (was the
+        # 2026-05-20 phantom-LONG bug — OANDA netted the longs against existing
+        # shorts so tradeOpened was missing).
+        LOG.warning(
+            f"FILL parse fallback: tradeOpened missing, resolved trade_id={trade_id} via "
+            f"{'tradeReduced' if fill.get('tradeReduced') else 'tradesClosed' if fill.get('tradesClosed') else 'fill.id'}. "
+            f"Raw orderFillTransaction keys: {sorted(fill.keys())}"
+        )
+    LOG.info(f"FILLED side={side} units={signed_units}  price={fill.get('price')}  trade_id={trade_id}")
     return {"status": "filled",
              "fill_price": float(fill.get("price", 0)),
-             "trade_id": fill.get("tradeOpened", {}).get("tradeID"),
+             "trade_id": trade_id,
              "client_order_id": client_order_id,
              "raw": response}
 
@@ -285,8 +336,6 @@ def daily_journal_path(suffix: str = "") -> Path:
 def main() -> int:
     p = argparse.ArgumentParser(description="V12 paper-trade runner (skeleton)")
     p.add_argument("--max-spread-bps", type=float, default=DEFAULT_MAX_SPREAD_BPS)
-    p.add_argument("--asia-skip", action="store_true",
-                   help="Skip trades in Asia session (00:00-07:00 UTC)")
     p.add_argument("--units", type=int, default=DEFAULT_DEFAULT_UNITS,
                    help="Base unit size per trade. If V10 v3+ position_size_pred is "
                         "available, actual order is units × multiplier (clamped via --max-units-multiplier).")
@@ -320,7 +369,7 @@ def main() -> int:
         canonical_m1_dir=CANONICAL_M1_DIR,
     )
     LOG.info(f"V12 paper runner starting  env={creds.env}  account={creds.account_id}")
-    LOG.info(f"  max_spread_bps={args.max_spread_bps}  asia_skip={args.asia_skip}  "
+    LOG.info(f"  max_spread_bps={args.max_spread_bps}  (year-round, all sessions)  "
              f"units={args.units}  max_trades={args.max_trades}  dry_run={args.dry_run}")
     LOG.info(f"  feature_builder: 26-feature live snapshot (Phase A)")
 
@@ -341,7 +390,6 @@ def main() -> int:
                 "max_trades": args.max_trades,
                 "units": args.units,
                 "max_spread_bps": args.max_spread_bps,
-                "asia_skip": args.asia_skip,
                 "dry_run": args.dry_run},
     )
     LOG.info(f"  trade journal: {journal.journal_dir}")
@@ -386,8 +434,7 @@ def main() -> int:
                 time.sleep(args.poll_seconds)
                 continue
             allowed, reason = can_trade_now(
-                spread_bps, max_spread_bps=args.max_spread_bps,
-                asia_skip=args.asia_skip, now_utc=now_utc,
+                spread_bps, max_spread_bps=args.max_spread_bps, now_utc=now_utc,
             )
 
             # Build live feature snapshot (Phase A: counterfactual context).
@@ -401,6 +448,29 @@ def main() -> int:
                 LOG.warning(f"feature_builder failed at {current_minute}: {exc}")
                 live_feats = {}
 
+            # MULTI-TF TREND ENRICHMENT (2026-05-22): LiveFeatureBuilder is M5-only,
+            # but canonical_v3 prebuilt has per-TF EMA trend signals baked in via the
+            # offline augmenter. Pull the latest row's per-TF trend features so the
+            # entry gates and shadow filters can see H1/H4/D1 trend state, not just M5.
+            try:
+                cv3 = pipeline.prebuilt_loader._cv3
+                if cv3 is not None and len(cv3) > 0:
+                    last_row = cv3.iloc[-1]
+                    for col in (
+                        "_v1_ema_diff",            # M5 EMA distance (price units)
+                        "_v1h1_ema_diff",          # H1 EMA distance
+                        "_v1h4_ema_diff",          # H4 EMA distance
+                        "pos_vs_ema200",           # M5 position vs EMA200 (bps)
+                        "d1_ema_slope_20_canon_v2",  # D1 EMA20 slope
+                        "ema20_slope",             # M5 EMA20 slope
+                        "ema100_slope",            # M5 EMA100 slope
+                    ):
+                        if col in cv3.columns:
+                            try: live_feats[col] = float(last_row[col])
+                            except (TypeError, ValueError): pass
+            except Exception as exc:
+                LOG.warning(f"multi-TF trend enrichment failed: {exc}")
+
             event = {
                 "ts_utc": current_minute.isoformat(),
                 "bid": bid, "ask": ask, "spread_bps": spread_bps,
@@ -412,10 +482,46 @@ def main() -> int:
             }
 
             # ── EXIT branch: iterate all open trades, evaluate each per M1 ──
-            m1_close = (bid + ask) / 2.0   # mid as proxy for M1 close
+            # H4 fix 2026-05-19: use the LAST CLOSED M1 bar's (bid_close+ask_close)/2
+            # from the data collector parquet. Tick-mid (bid+ask)/2 at decision time
+            # is biased — the bar hasn't closed yet, so we'd be using a mid-bar
+            # snapshot when training used the M1 bar's actual close. Falls back to
+            # tick-mid if the parquet read fails.
+            m1_close = (bid + ask) / 2.0   # tick-mid fallback
+            try:
+                from pathlib import Path
+                _day = current_minute.strftime("%Y%m%d")
+                _p = Path(f"/home/andre2/GX1_DATA/reports/v12_live_data/xauusd_m1_{_day}.parquet")
+                if _p.exists():
+                    _df = pd.read_parquet(_p, columns=["time", "ask_close", "bid_close"]).tail(1)
+                    if len(_df) > 0:
+                        _row = _df.iloc[-1]
+                        m1_close = float((_row["ask_close"] + _row["bid_close"]) / 2.0)
+            except Exception:
+                pass
+            # TIME-OF-DAY EXIT (2026-05-21 audit improvement #19): force-close
+            # all open trades by 21:00 UTC daily (US close) to avoid holding
+            # through low-liquidity overnight chop. Soft session limit — trades
+            # opened in EU/US must be resolved within session.
+            DAILY_FORCE_EXIT_HOUR_UTC = 21
+            force_exit_active = now_utc.hour >= DAILY_FORCE_EXIT_HOUR_UTC and open_trades
+            if force_exit_active:
+                LOG.info(
+                    f"[TIME_OF_DAY_EXIT] hour={now_utc.hour} >= {DAILY_FORCE_EXIT_HOUR_UTC} UTC, "
+                    f"closing {len(open_trades)} open trade(s)"
+                )
             per_trade_records: list[dict[str, Any]] = []
             survivors: list[TradeState] = []
             for trade in open_trades:
+                if force_exit_active:
+                    # Force EXIT_NOW; bypass Exit-IQL decision
+                    close_result = attempt_close_trade(client, trade)
+                    LOG.info(
+                        f"[TIME_OF_DAY_EXIT] closed {trade.side} trade_id={trade.trade_id} "
+                        f"pnl={trade.current_pnl_bps:+.2f}bps  status={close_result.get('status')}"
+                    )
+                    trade.delete_state_file(TRADE_STATE_DIR)
+                    continue
                 exit_decision = make_v12_exit_decision(
                     pipeline, trade, current_minute, bid, ask, m1_close,
                 )
@@ -529,7 +635,7 @@ def main() -> int:
                 time.sleep(args.poll_seconds)
                 continue
 
-            decision = make_v12_decision(pipeline, current_minute, bid, ask)
+            decision = make_v12_decision(pipeline, current_minute, bid, ask, open_trades=open_trades)
             event["v12_decision"] = decision
 
             if not allowed:
@@ -546,14 +652,200 @@ def main() -> int:
 
             if decision["action"] in ("TAKE_LONG_NOW", "TAKE_SHORT_NOW"):
                 side = "long" if decision["action"] == "TAKE_LONG_NOW" else "short"
-                # V10 v3+ Target 3: adaptive units from position_size_pred.
-                # Falls back to args.units when pred is -1 (legacy bundle) or
-                # when --max-units-multiplier == 1.0 (feature disabled).
+                # NETTING-guard removed 2026-05-20: account migrated to HEDGING
+                # (101-004-31061417-002). Each market order now opens a separate
+                # trade regardless of existing positions on the same instrument,
+                # so opposite-side entries no longer net against existing trades.
+                # If you reinstate a NETTING account, restore the guard from git.
+
+                # ADAPTIVE MIN-ADVANTAGE (2026-05-21, loosened 2026-05-22): scale
+                # min_adv with current M5 ATR. Reduced from 0.5 → 0.35 to increase
+                # trade-flow so we accumulate post-PLUS5 trades for N≥30 analysis
+                # faster. Shadow filter still logs would-block flags for retrospective
+                # A/B. Floor raised slightly (2 → 1.5) to keep accepting low-vol signals.
+                # Env-var GX1_ADAPTIVE_MIN_ADV_ATR_MULT overrides for quick tuning.
+                ADAPTIVE_MIN_ADV_ATR_MULT = float(
+                    os.environ.get("GX1_ADAPTIVE_MIN_ADV_ATR_MULT", "0.35")
+                )
+                ADAPTIVE_MIN_ADV_FLOOR_BPS = float(
+                    os.environ.get("GX1_ADAPTIVE_MIN_ADV_FLOOR_BPS", "1.5")
+                )
+                atr_bps_now = float(live_feats.get("atr14_m5_bps", 0.0) or 0.0)
+                adaptive_min_adv = max(ADAPTIVE_MIN_ADV_FLOOR_BPS, ADAPTIVE_MIN_ADV_ATR_MULT * atr_bps_now)
+                adv_taken = float(decision.get(
+                    "advantage_over_skip_long" if side == "long" else "advantage_over_skip_short", 0.0
+                ))
+
+                # SHADOW FILTERS (2026-05-21): compute candidate gates that the
+                # root-cause analysis on 137 pre-PLUS5 trades suggests would have
+                # blocked deep-MAE entries. These are LOGGED ONLY — they do NOT
+                # alter the actual decision. After N=30 post-PLUS5 trades we can
+                # A/B-compare: would-block flags vs realized PnL/MAE per trade.
+                dist_ema200_sh = float(live_feats.get("dist_to_ema200_bps", 0.0) or 0.0)
+                ema_stack_aligned_sh = int(live_feats.get("ema_stack_aligned", 0) or 0)
+                spread_z_sh = float(live_feats.get("spread_z_24h", 0.0) or 0.0)
+                mins_to_sess_sh = float(live_feats.get("minutes_to_session_change", 0.0) or 0.0)
+                q_long_sh = float(decision.get("q_take_long", 0.0) or 0.0)
+                q_short_sh = float(decision.get("q_take_short", 0.0) or 0.0)
+                q_chosen_sh = q_long_sh if side == "long" else q_short_sh
+                # Multi-TF trend signals (2026-05-22: user-requested per-TF gates).
+                # All values are price-units except pos_vs_ema200 (bps) and slopes.
+                # Sign convention: NEGATIVE = downtrend on that TF.
+                h1_diff = float(live_feats.get("_v1h1_ema_diff", 0.0) or 0.0)
+                h4_diff = float(live_feats.get("_v1h4_ema_diff", 0.0) or 0.0)
+                d1_slope = float(live_feats.get("d1_ema_slope_20_canon_v2", 0.0) or 0.0)
+                m5_pos_ema200 = float(live_feats.get("pos_vs_ema200", 0.0) or 0.0)
+                ema100_slope_v = float(live_feats.get("ema100_slope", 0.0) or 0.0)
+                # Per-TF counter-trend: LONG when TF is in downtrend; SHORT when uptrend
+                # Thresholds picked from observed ranges (small ε keeps "neutral" trades).
+                h1_counter = (side == "long" and h1_diff < -0.3) or (side == "short" and h1_diff > 0.3)
+                h4_counter = (side == "long" and h4_diff < -5.0) or (side == "short" and h4_diff > 5.0)
+                d1_counter = (side == "long" and d1_slope < -10.0) or (side == "short" and d1_slope > 10.0)
+                m5_ema200_counter = (side == "long" and m5_pos_ema200 < -5.0) or (side == "short" and m5_pos_ema200 > 5.0)
+                ema100_counter = (side == "long" and ema100_slope_v < -0.5) or (side == "short" and ema100_slope_v > 0.5)
+                event["shadow_filters"] = {
+                    # ORIGINAL 5 shadow gates (kept for retrospective continuity)
+                    "would_block_strict_trend": bool(
+                        (side == "long" and dist_ema200_sh < -10.0) or
+                        (side == "short" and dist_ema200_sh > +10.0)
+                    ),
+                    "would_block_ema_stack_misaligned": bool(ema_stack_aligned_sh != 1),
+                    "would_block_spread_wide": bool(spread_z_sh > 0.0),
+                    "would_block_midsession_dead": bool(mins_to_sess_sh > 280.0),
+                    "would_block_q_overconfident": bool(abs(q_chosen_sh) > 200.0),
+                    # NEW (2026-05-22): per-TF counter-trend gates from M5-cadence
+                    # multi-TF features baked into canonical_v3 prebuilt.
+                    "would_block_M5_ema200_counter": bool(m5_ema200_counter),
+                    "would_block_M5_ema100_slope_counter": bool(ema100_counter),
+                    "would_block_H1_counter": bool(h1_counter),
+                    "would_block_H4_counter": bool(h4_counter),
+                    "would_block_D1_counter": bool(d1_counter),
+                    # Combined: ANY higher-TF (H1/H4/D1) disagrees with side
+                    "would_block_any_higher_tf_counter": bool(h1_counter or h4_counter or d1_counter),
+                    # Strict: ALL TFs must agree (TYPICAL TRADER RULE — every TF in trend direction)
+                    "would_block_unless_all_tfs_agree": bool(
+                        h1_counter or h4_counter or d1_counter or m5_ema200_counter or ema100_counter
+                    ),
+                    # raw diagnostic values
+                    "shadow_dist_ema200_bps": dist_ema200_sh,
+                    "shadow_ema_stack_aligned": ema_stack_aligned_sh,
+                    "shadow_spread_z_24h": spread_z_sh,
+                    "shadow_minutes_to_session_change": mins_to_sess_sh,
+                    "shadow_q_chosen": q_chosen_sh,
+                    "shadow_h1_ema_diff": h1_diff,
+                    "shadow_h4_ema_diff": h4_diff,
+                    "shadow_d1_ema_slope": d1_slope,
+                    "shadow_m5_pos_ema200": m5_pos_ema200,
+                    "shadow_ema100_slope": ema100_slope_v,
+                }
+                event["shadow_filters"]["would_block_any"] = any(
+                    v for k, v in event["shadow_filters"].items() if k.startswith("would_block_")
+                )
+                if adv_taken < adaptive_min_adv:
+                    LOG.info(
+                        f"[ADAPTIVE_MIN_ADV] blocking {side} entry — adv={adv_taken:+.2f} "
+                        f"< adaptive_min={adaptive_min_adv:.2f} (ATR={atr_bps_now:.1f}, mult={ADAPTIVE_MIN_ADV_ATR_MULT})"
+                    )
+                    event["order_status"] = "blocked_adaptive_min_adv"
+                    event["adaptive_min_adv_threshold"] = adaptive_min_adv
+                    event["adaptive_min_adv_atr_bps"] = atr_bps_now
+                    log_journal_event(daily_journal_path(args.journal_suffix), event)
+                    last_decision_minute = current_minute
+                    consecutive_errors = 0
+                    time.sleep(args.poll_seconds)
+                    continue
+
+                # REGIME-AWARE FILTER (2026-05-21): counterfactual replay on
+                # 2026-05-20 journal showed Entry-IQL SHORTs lost 100% of the
+                # time (mean -52 bps) in a strong uptrend (dist_to_ema200 > 50),
+                # while LONGs won 88.7% (+43 bps 4h terminal). Block counter-trend
+                # entries when price is far from EMA200. Asymmetric threshold so
+                # we don't kill all entries during chop.
+                REGIME_DIST_THRESHOLD_BPS = 50.0
+                dist_ema200 = float(live_feats.get("dist_to_ema200_bps", 0.0) or 0.0)
+                if dist_ema200 > REGIME_DIST_THRESHOLD_BPS and side == "short":
+                    LOG.info(
+                        f"[REGIME_FILTER] blocking SHORT — dist_to_ema200={dist_ema200:+.1f} bps "
+                        f"> +{REGIME_DIST_THRESHOLD_BPS} (strong uptrend, counter-trend shorts lose)"
+                    )
+                    event["order_status"] = "blocked_regime_uptrend"
+                    event["regime_dist_ema200_bps"] = dist_ema200
+                    log_journal_event(daily_journal_path(args.journal_suffix), event)
+                    last_decision_minute = current_minute
+                    consecutive_errors = 0
+                    time.sleep(args.poll_seconds)
+                    continue
+                if dist_ema200 < -REGIME_DIST_THRESHOLD_BPS and side == "long":
+                    LOG.info(
+                        f"[REGIME_FILTER] blocking LONG — dist_to_ema200={dist_ema200:+.1f} bps "
+                        f"< -{REGIME_DIST_THRESHOLD_BPS} (strong downtrend, counter-trend longs lose)"
+                    )
+                    event["order_status"] = "blocked_regime_downtrend"
+                    event["regime_dist_ema200_bps"] = dist_ema200
+                    log_journal_event(daily_journal_path(args.journal_suffix), event)
+                    last_decision_minute = current_minute
+                    consecutive_errors = 0
+                    time.sleep(args.poll_seconds)
+                    continue
+
+                # PORTFOLIO-AWARE OVERLAY (2026-05-20): Entry-IQL was trained on
+                # independent single-step candidates with NO portfolio state. In
+                # live, repeated same-side entries during prolonged drawdowns
+                # stack losses. These hardcoded rules approximate a portfolio-
+                # aware policy until proper retrain with portfolio features.
+                MAX_SAME_SIDE_OPEN = int(os.environ.get("GX1_MAX_SAME_SIDE_OPEN", "10"))
+                DRAWDOWN_BLOCK_BPS = float(os.environ.get("GX1_DRAWDOWN_BLOCK_BPS", "-100.0"))
+                same_side = [t for t in open_trades if t.side == side]
+                if len(same_side) >= MAX_SAME_SIDE_OPEN:
+                    LOG.info(
+                        f"[PORTFOLIO_GUARD] blocking {side} entry — already "
+                        f"{len(same_side)} {side} trades open (max {MAX_SAME_SIDE_OPEN})"
+                    )
+                    event["order_status"] = "blocked_portfolio_max_side"
+                    event["portfolio_same_side_n"] = len(same_side)
+                    log_journal_event(daily_journal_path(args.journal_suffix), event)
+                    last_decision_minute = current_minute
+                    consecutive_errors = 0
+                    time.sleep(args.poll_seconds)
+                    continue
+                combined_pnl = sum(t.current_pnl_bps for t in open_trades)
+                if combined_pnl < DRAWDOWN_BLOCK_BPS:
+                    LOG.info(
+                        f"[PORTFOLIO_GUARD] blocking {side} entry — combined unrealized "
+                        f"PnL {combined_pnl:+.1f} bps < {DRAWDOWN_BLOCK_BPS} threshold"
+                    )
+                    event["order_status"] = "blocked_portfolio_drawdown"
+                    event["portfolio_combined_pnl_bps"] = combined_pnl
+                    log_journal_event(daily_journal_path(args.journal_suffix), event)
+                    last_decision_minute = current_minute
+                    consecutive_errors = 0
+                    time.sleep(args.poll_seconds)
+                    continue
+                # V10 v3+ Target 3: position_size_pred — model's confidence the
+                # trade is worth taking at full size. Default behaviour: drive
+                # ADAPTIVE sizing (units × multiplier, below) and let the learned
+                # Entry-IQL policy decide whether to enter — no hardcoded skip.
+                # The old hard-cutoff is ablatable via GX1_POSITION_CONFIDENCE_MIN
+                # (default -1.0 = disabled). Set e.g. 0.6 to re-enable the cutoff.
+                POSITION_CONFIDENCE_MIN = float(os.environ.get("GX1_POSITION_CONFIDENCE_MIN", "-1.0"))
                 pos_pred = float(decision.get("v10_position_size_pred", -1.0))
+                if pos_pred >= 0.0 and pos_pred < POSITION_CONFIDENCE_MIN:
+                    LOG.info(
+                        f"[CONFIDENCE_FILTER] blocking {side} entry — "
+                        f"position_size_pred={pos_pred:.3f} < {POSITION_CONFIDENCE_MIN}"
+                    )
+                    event["order_status"] = "blocked_low_confidence"
+                    event["position_size_pred"] = pos_pred
+                    log_journal_event(daily_journal_path(args.journal_suffix), event)
+                    last_decision_minute = current_minute
+                    consecutive_errors = 0
+                    time.sleep(args.poll_seconds)
+                    continue
                 trade_units, units_mult = units_from_position_size_pred(
                     args.units, pos_pred, max_multiplier=args.max_units_multiplier,
                 )
                 event["units_multiplier_applied"] = units_mult
+                event["position_size_pred"] = pos_pred
                 if units_mult != 1.0:
                     LOG.info(f"adaptive units: pos_size_pred={pos_pred:.3f} → mult={units_mult}× → {trade_units}u (base={args.units})")
                 if args.dry_run:
@@ -567,12 +859,53 @@ def main() -> int:
                     )
                     new_trade.save(TRADE_STATE_DIR)
                     open_trades.append(new_trade)
+                    try:
+                        decision_ts_str = decision.get("decision_ts")
+                        if decision_ts_str:
+                            pipeline.record_entry_for_cluster(
+                                side, pd.Timestamp(decision_ts_str),
+                            )
+                    except Exception:
+                        pass
                     LOG.info(f"[DRY] virtual trade opened  side={side}  id={virtual_id}")
                 else:
                     order_result = attempt_market_entry(client, side, units=trade_units)
                     event["order_status"] = order_result["status"]
                     event["order_details"] = order_result
                     if order_result.get("status") == "filled":
+                        # NETTING-mode detection: if OANDA closed/reduced existing
+                        # opposite-side trades (instead of opening a new one), we
+                        # must NOT register a new TradeState. Drop the closed
+                        # TradeState(s) from our internal list to match broker
+                        # reality (2026-05-20 phantom-LONG bug).
+                        raw_fill = order_result.get("raw", {}).get("orderFillTransaction", {})
+                        had_open = bool(raw_fill.get("tradeOpened", {}).get("tradeID"))
+                        closed_ids = [t.get("tradeID") for t in (raw_fill.get("tradesClosed") or [])]
+                        reduced_id = raw_fill.get("tradeReduced", {}).get("tradeID")
+                        netting_ids = [tid for tid in (closed_ids + [reduced_id]) if tid]
+                        if not had_open and netting_ids:
+                            # OANDA netted: remove matched open trades, do NOT open new.
+                            LOG.warning(
+                                f"[NETTING] {side} fill {trade_units}u netted against existing "
+                                f"opposite-side trades {netting_ids} — no new TradeState created"
+                            )
+                            survivors_after_net: list[TradeState] = []
+                            removed = 0
+                            for t in open_trades:
+                                if t.trade_id and t.trade_id in netting_ids:
+                                    t.delete_state_file(TRADE_STATE_DIR)
+                                    removed += 1
+                                else:
+                                    survivors_after_net.append(t)
+                            open_trades[:] = survivors_after_net
+                            event["netting_removed_n"] = removed
+                            event["netting_trade_ids"] = netting_ids
+                            event["order_status"] = "netted"
+                            log_journal_event(daily_journal_path(args.journal_suffix), event)
+                            last_decision_minute = current_minute
+                            consecutive_errors = 0
+                            time.sleep(args.poll_seconds)
+                            continue
                         new_trade = TradeState.open(
                             entry_ts=pd.Timestamp(current_minute),
                             side=side, entry_bid=bid, entry_ask=ask,
@@ -582,6 +915,18 @@ def main() -> int:
                         )
                         new_trade.save(TRADE_STATE_DIR)
                         open_trades.append(new_trade)
+                        # Audit 3 C-3 fix 2026-05-20: only advance cluster-state
+                        # AFTER trade is actually opened. Previously the pipeline
+                        # advanced state on TAKE_*_NOW recommendation regardless
+                        # of downstream gate/portfolio rejection.
+                        try:
+                            decision_ts_str = decision.get("decision_ts")
+                            if decision_ts_str:
+                                pipeline.record_entry_for_cluster(
+                                    side, pd.Timestamp(decision_ts_str),
+                                )
+                        except Exception as exc:
+                            LOG.warning(f"cluster-state record failed: {exc}")
 
                         # ── TradeJournal: log entry lifecycle ──
                         if new_trade.trade_id:
@@ -589,7 +934,7 @@ def main() -> int:
                             journal.log_order_submitted(
                                 trade_id=new_trade.trade_id,
                                 instrument=INSTRUMENT, side=side,
-                                units=args.units, order_type="MARKET",
+                                units=trade_units, order_type="MARKET",
                                 client_order_id=order_result.get("client_order_id"),
                                 oanda_env=creds.env,
                             )
@@ -597,7 +942,7 @@ def main() -> int:
                                 trade_id=new_trade.trade_id,
                                 oanda_trade_id=new_trade.trade_id,
                                 fill_price=order_result.get("fill_price"),
-                                fill_units=args.units,
+                                fill_units=trade_units,
                             )
                             journal.log_entry_snapshot(
                                 trade_id=new_trade.trade_id,
@@ -624,7 +969,7 @@ def main() -> int:
                                     "decision_ts": str(decision.get("decision_ts", "")),
                                 },
                                 entry_filters_passed=["spread_ok", "v12_take"],
-                                base_units=args.units, units=args.units,
+                                base_units=args.units, units=trade_units,
                                 atr_bps=v10.get("atr_bps"),
                                 spread_bps=spread_bps,
                             )
@@ -638,7 +983,7 @@ def main() -> int:
                                 event_type="TRADE_OPENED_OANDA",
                                 oanda_trade_id=new_trade.trade_id,
                                 price=float(order_result.get("fill_price") or ask),
-                                units=args.units,
+                                units=trade_units,
                             )
 
                         write_trade_alert(
@@ -685,7 +1030,8 @@ def main() -> int:
 
         except Exception as exc:
             consecutive_errors += 1
-            LOG.error(f"loop error (consec={consecutive_errors}): {exc}")
+            import traceback as _tb
+            LOG.error(f"loop error (consec={consecutive_errors}): {exc}\n{_tb.format_exc()}")
             backoff = min(args.poll_seconds * (2 ** min(consecutive_errors, 5)), 300)
             time.sleep(backoff)
 

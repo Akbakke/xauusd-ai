@@ -71,7 +71,7 @@ from gx1.scripts.train_exit_v6_thin_records import (
 
 ACTION = "TRAIN_EXIT_V6_DISK_THIN_RECORDS"
 
-DEFAULT_DATASET_DIR = Path("/home/andre2/GX1_DATA/data/training/exit_v3_v5_training_2020_2026")
+DEFAULT_DATASET_DIR = Path("/home/andre2/GX1_DATA/data/training/exit_v3_v7_training_2020_2026_canonical_v3")
 DEFAULT_OUT_DIR = Path("/home/andre2/GX1_DATA/models/exit_transformer_v0")
 
 
@@ -128,9 +128,11 @@ def main() -> None:
 
     parser.add_argument("--epochs", type=int, default=20)
     parser.add_argument("--batch-size", type=int, default=256)
-    parser.add_argument("--num-workers", type=int, default=0,
-                        help="DataLoader workers. Stay 0 — DiskLabeledThinDataset "
-                             "holds an open file handle that doesn't pickle.")
+    parser.add_argument("--num-workers", type=int, default=6,
+                        help="DataLoader workers. 2026-05-26: DiskLabeledThinDataset is now "
+                             "worker-safe (per-process file handle + pickle-safe state), so "
+                             ">0 enables parallel prefetch (was the V3-train bottleneck; ~6.8x). "
+                             "Set 0 only for debug.")
     parser.add_argument("--lr", type=float, default=1.2e-3)
     parser.add_argument("--weight-decay", type=float, default=1e-4)
     parser.add_argument("--d-model", type=int, default=128)
@@ -141,7 +143,9 @@ def main() -> None:
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
     parser.add_argument("--train-cutoff", type=str, default="2025-01-01T00:00:00+00:00")
     parser.add_argument("--val-cutoff", type=str, default="2025-09-01T00:00:00+00:00")
-    parser.add_argument("--exit-io-version", type=str, default="EXIT_IO_V5_CTX_EXTENDED_SMC_M1L512")
+    parser.add_argument("--exit-io-version", type=str, default="EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512",
+                        help="V7 contract (131 feats = 91 V6 + 4 volume + 36 dip/struct, 2026-05-26 parity "
+                             "wave). Default so a re-run trains on the full 131-feature matrix.")
     parser.add_argument("--early-stop-patience", type=int, default=4)
 
     parser.add_argument("--side-balance-weight", action="store_true")
@@ -160,20 +164,55 @@ def main() -> None:
                              "= less pickle buffer pressure. Default 4 (was 16 in v6 in-memory).")
     parser.add_argument("--smoke-trades-per-split", type=int, default=None,
                         help="If set, truncate each split to N trades for smoke testing.")
-    # V12.2 multi-TF (default OFF — produces v8-bit-identical bundles)
-    parser.add_argument("--enable-multi-tf", action="store_true",
-                        help="V12.2: enable multi-TF input (M5/M15/H1/H4/D1). "
-                             "Requires --m5-prebuilt-path. Bundle becomes V3 v9.")
-    parser.add_argument("--m5-prebuilt-path", type=str, default=None,
-                        help="V12.2: path to canonical_v3 M5 OHLC parquet for "
-                             "resampling H1/H4/D1 features (and M5 series).")
+    # V12.2 multi-TF — MANDATORY (2026-05-26): the --enable-multi-tf on/off flag
+    # was REMOVED. Multi-TF×5 (M5/M15/H1/H4/D1, V2 25-feat) is ALWAYS on; it must
+    # never be possible to accidentally train a single-TF V3 exit transformer.
+    # --m5-prebuilt-path is therefore required. (rule: multi_tf_always_mandatory)
+    parser.add_argument("--m5-prebuilt-path", type=str, required=True,
+                        help="REQUIRED: canonical_v3 M5 OHLC parquet for resampling the "
+                             "M5/M15/H1/H4/D1 multi-TF features. Multi-TF is mandatory.")
     parser.add_argument("--multi-tf-seq-len", type=int, default=96,
                         help="V12.2: bars per TF (default 96).")
     parser.add_argument("--multi-tf-scale", type=float, default=0.5,
                         help="V12.2: multi-TF pool scale in cross-fusion.")
+    parser.add_argument("--enable-pos-enc", action=argparse.BooleanOptionalAction, default=True,
+                        help="Sinusoidal positional encoding on the base M1 window AND every "
+                             "per-TF stream so the transformer uses temporal ORDER (default ON). "
+                             "Without it the encoder is permutation-invariant — blind to bar order. "
+                             "--no-enable-pos-enc restores the old order-blind behaviour.")
+    parser.add_argument("--enable-dip-head", action=argparse.BooleanOptionalAction, default=True,
+                        help="V3 dip-analysis head (6: K{12,48,144}×{recovery_p50,p10}, pinball loss "
+                             "vs forward recovery) so the exit transformer represents dip-bottom/recovery "
+                             "— don't exit at a dip bottom. Default ON for the dip-aware rebuild.")
+    # New aux heads (2026-05-26) — mirror of V10 entry heads, exit-oriented. Default ON.
+    parser.add_argument("--enable-timing-head", action=argparse.BooleanOptionalAction, default=True,
+                        help="V3 timing head (6: time_to_recovery/worst_frac × K{12,48,144}).")
+    parser.add_argument("--enable-tail-risk-head", action=argparse.BooleanOptionalAction, default=True,
+                        help="V3 tail-risk head (3: p90 worst further-drawdown × K). Cut before tail.")
+    parser.add_argument("--enable-vol-forecast-head", action=argparse.BooleanOptionalAction, default=True,
+                        help="V3 vol-forecast head (3: forward realized vol bps × K).")
+    parser.add_argument("--enable-forecast-head", action=argparse.BooleanOptionalAction, default=True,
+                        help="V3 forecast head (3: forward pnl change × K). <0 → market turning against trade.")
+    # V2 fast-train extras
+    parser.add_argument("--init-from-state-dict", type=str, default=None,
+                        help="V2 warm-start: load .pt state_dict into model after construction "
+                             "(strict=False). Use scripts/warm_start_v3_v10_v2_from_v9.py to build. "
+                             "For smoke-date filtering use --train-cutoff and --val-cutoff (existing).")
+    parser.add_argument(
+        "--vedtak", type=str, default=None,
+        help="Explicit user decision id authorizing this retrain. REQUIRED "
+             "(never auto-retrain). Any non-empty string from a deliberate human go.",
+    )
     args = parser.parse_args()
-    if args.enable_multi_tf and not args.m5_prebuilt_path:
-        parser.error("--enable-multi-tf requires --m5-prebuilt-path")
+    # NEVER auto-retrain — fail-closed unless an explicit --vedtak is passed.
+    from gx1_guards.gates import require_retrain_vedtak, GateError
+    try:
+        require_retrain_vedtak(args.vedtak)
+    except GateError as e:
+        parser.error(str(e))
+    # Multi-TF is MANDATORY — force on (toggle removed). m5-prebuilt-path is required
+    # by argparse, so multi-TF can never be silently single-TF.
+    args.enable_multi_tf = True
 
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
@@ -258,9 +297,10 @@ def main() -> None:
         spill_root.mkdir(parents=True, exist_ok=True)
         print(f"[{ACTION}] spill dir: {spill_root}", flush=True)
 
-        # Default 4 workers — labeling is CPU-bound and the host has 20 cores.
+        # 2026-05-26: default raised 4→14 — labeling is CPU-bound, host has 18 cores;
+        # the labeler is ~26M per-bar evals so more workers ≈ linear until ~14.
         # Set EXIT_LABEL_WORKERS=1 to fall back to serial (debug/low-RAM hosts).
-        n_workers = int(os.environ.get("EXIT_LABEL_WORKERS", "4"))
+        n_workers = int(os.environ.get("EXIT_LABEL_WORKERS", str(min(14, (os.cpu_count() or 8)))))
         chunksize = int(args.label_chunksize)
         print(f"[{ACTION}] EXIT_LABEL_WORKERS={n_workers} chunksize={chunksize}", flush=True)
 
@@ -286,23 +326,39 @@ def main() -> None:
     # M5 prebuilt. Resample once, cache in memory, share across train/val/test datasets.
     mtf_feats: Optional[Dict[str, Any]] = None
     mtf_shift: Optional[Dict[str, Any]] = None
+    v3_v2_mode: bool = False
+    _mtf_feature_count_actual: int = 0
     if args.enable_multi_tf:
+        # MANDATORY V2: 5 TFs × 25 feats. V1 (17-feat) path + GX1_V3_MULTI_TF_V2
+        # env-gate removed 2026-05-26 (rule: multi_tf_always_mandatory).
+        v3_v2_mode = True
         from gx1.features.htf_features import (
             build_multi_tf_per_bar_features,
-            MULTI_TF_SHIFT, MULTI_TF_FEATURE_COUNT,
+            build_multi_tf_per_bar_features_v2,
+            MULTI_TF_SHIFT, MULTI_TF_FEATURE_COUNT, MULTI_TF_FEATURE_COUNT_V2,
         )
         import pandas as _pd
-        print(f"[{ACTION}] V12.2: pre-building multi-TF features from {args.m5_prebuilt_path}", flush=True)
-        m5 = _pd.read_parquet(args.m5_prebuilt_path,
-                               columns=["time", "open", "high", "low", "close"])
+        print(f"[{ACTION}] V12.2: pre-building multi-TF features from {args.m5_prebuilt_path} (v2={v3_v2_mode})", flush=True)
+        load_cols = ["time", "open", "high", "low", "close"]
+        if v3_v2_mode:
+            import pyarrow.parquet as _pq
+            if "volume" in _pq.ParquetFile(args.m5_prebuilt_path).schema_arrow.names:
+                load_cols.append("volume")
+        m5 = _pd.read_parquet(args.m5_prebuilt_path, columns=load_cols)
         m5["time"] = _pd.to_datetime(m5["time"], utc=True)
         m5 = m5.set_index("time").sort_index()
         for c in ("open", "high", "low", "close"):
             m5[c] = m5[c].astype(np.float32)
-        mtf_feats = build_multi_tf_per_bar_features(m5)
+        if "volume" in m5.columns:
+            m5["volume"] = m5["volume"].astype(np.float32)
+        if v3_v2_mode:
+            mtf_feats = build_multi_tf_per_bar_features_v2(m5)
+        else:
+            mtf_feats = build_multi_tf_per_bar_features(m5)
         mtf_shift = MULTI_TF_SHIFT
         del m5
         import gc; gc.collect()
+        _mtf_feature_count_actual = int(MULTI_TF_FEATURE_COUNT_V2 if v3_v2_mode else MULTI_TF_FEATURE_COUNT)
         for tf, df in mtf_feats.items():
             print(f"[{ACTION}]   {tf}: {len(df):,} bars × {df.shape[1]} feats", flush=True)
 
@@ -333,23 +389,35 @@ def main() -> None:
         flush=True,
     )
 
+    # FAST_TRAIN: global TF32 / bf16 / compile toggles, plus DataLoader prefetch bump.
+    try:
+        from gx1.utils.fast_train import apply_global_speedups, loader_kwargs as _ft_loader_kwargs
+        _ft_report = apply_global_speedups()
+        print(f"[{ACTION}] FAST_TRAIN: {_ft_report}", flush=True)
+    except Exception as _e:
+        print(f"[{ACTION}] FAST_TRAIN init failed: {_e!r}", flush=True)
+        _ft_loader_kwargs = None
+    if _ft_loader_kwargs is not None:
+        _dl_kwargs = _ft_loader_kwargs(args.num_workers, use_cuda=(device.type == "cuda"))
+    else:
+        _dl_kwargs = dict(num_workers=args.num_workers, pin_memory=True,
+                          persistent_workers=(args.num_workers > 0),
+                          prefetch_factor=(2 if args.num_workers > 0 else None))
     train_loader = DataLoader(
-        train_ds, batch_size=args.batch_size, shuffle=True,
-        num_workers=args.num_workers, pin_memory=True, drop_last=True,
+        train_ds, batch_size=args.batch_size, shuffle=True, drop_last=True, **_dl_kwargs,
     )
     val_loader = DataLoader(
-        val_ds, batch_size=args.batch_size, shuffle=False,
-        num_workers=args.num_workers, pin_memory=True,
+        val_ds, batch_size=args.batch_size, shuffle=False, **_dl_kwargs,
     )
     test_loader = DataLoader(
-        test_ds, batch_size=args.batch_size, shuffle=False,
-        num_workers=args.num_workers, pin_memory=True,
+        test_ds, batch_size=args.batch_size, shuffle=False, **_dl_kwargs,
     )
 
     # Stage 7: model.
     _model_mtf_kwargs = {}
     if args.enable_multi_tf:
-        _mtf_dim = int(MULTI_TF_FEATURE_COUNT)
+        # Use the dim that was actually built (V1=17, V2=25) — not the V1 constant.
+        _mtf_dim = int(_mtf_feature_count_actual)
         _model_mtf_kwargs = dict(
             enable_multi_tf=True,
             m5_seq_dim=_mtf_dim, m15_seq_dim=_mtf_dim,
@@ -359,12 +427,19 @@ def main() -> None:
             d1_seq_len=int(args.multi_tf_seq_len),
             multi_tf_scale=float(args.multi_tf_scale),
         )
-        print(f"[{ACTION}] V12.2 model: multi-TF M5/M15/H1/H4/D1 "
+        _v2_tag = " (V2)" if v3_v2_mode else " (V1)"
+        print(f"[{ACTION}] V12.2 model{_v2_tag}: multi-TF M5/M15/H1/H4/D1 "
               f"dim={_mtf_dim} len={args.multi_tf_seq_len} scale={args.multi_tf_scale}", flush=True)
     model = ExitTransformerV0(
         input_dim=int(base.input_dim), window_len=int(base.window_len),
         d_model=int(args.d_model), n_heads=int(args.n_heads), n_layers=int(args.n_layers),
         dropout=float(args.dropout),
+        enable_pos_enc=bool(args.enable_pos_enc),
+        enable_dip_head=bool(args.enable_dip_head),
+        enable_timing_head=bool(args.enable_timing_head),
+        enable_tail_risk_head=bool(args.enable_tail_risk_head),
+        enable_vol_forecast_head=bool(args.enable_vol_forecast_head),
+        enable_forecast_head=bool(args.enable_forecast_head),
         **_model_mtf_kwargs,
     ).to(device)
     n_params = sum(p.numel() for p in model.parameters())
@@ -374,10 +449,32 @@ def main() -> None:
         flush=True,
     )
 
-    if args.torch_compile:
+    # V2 warm-start: load state_dict BEFORE torch.compile (avoids _orig_mod prefix issue).
+    if args.init_from_state_dict:
+        _isd_path = Path(args.init_from_state_dict)
+        if not _isd_path.is_file():
+            raise FileNotFoundError(f"[INIT_STATE_DICT_MISSING] {_isd_path}")
+        print(f"[{ACTION}] [WARM_START] loading: {_isd_path}", flush=True)
+        _isd = torch.load(_isd_path, map_location="cpu", weights_only=True)
+        _isd = {k.removeprefix("_orig_mod."): v for k, v in _isd.items()}
+        _ld = model.load_state_dict(_isd, strict=False)
+        print(
+            f"[{ACTION}] [WARM_START] loaded {len(_isd)} keys. "
+            f"missing={len(_ld.missing_keys)} unexpected={len(_ld.unexpected_keys)}",
+            flush=True,
+        )
+
+    # torch.compile via either --torch-compile flag OR GX1_FAST_TRAIN env.
+    _compile_from_env = False
+    try:
+        from gx1.utils.fast_train import compile_enabled as _ft_compile_enabled
+        _compile_from_env = _ft_compile_enabled()
+    except Exception:
+        pass
+    if args.torch_compile or _compile_from_env:
         try:
             model = torch.compile(model, mode="reduce-overhead")
-            print(f"[{ACTION}] torch.compile applied", flush=True)
+            print(f"[{ACTION}] torch.compile applied (source={'cli' if args.torch_compile else 'fast_train_env'})", flush=True)
         except Exception as e:
             print(f"[{ACTION}] torch.compile failed: {e}", flush=True)
 
@@ -412,9 +509,59 @@ def main() -> None:
         flush=True,
     )
 
+    # ── Bundle dir + config written BEFORE the loop so the best weights are
+    #    checkpointed to disk on every improvement. Fixes failure-mode #8: the
+    #    old code held best_state only in RAM and saved at natural end, so any
+    #    kill/reboot mid-training lost the whole run (burned 7 BASE76 runs). ──
+    bundle_name = args.bundle_name or f"EXIT_V6_DISK__BIDIR_2026Q2_{_utc_stamp()}"
+    bundle_dir = Path(args.out_dir) / bundle_name
+    bundle_dir.mkdir(parents=True, exist_ok=True)
+    state_path = bundle_dir / "exit_transformer_v0.pt"
+    contract = get_exit_io_contract(args.exit_io_version)
+    _bundle_mtf_dim = int(_mtf_feature_count_actual) if args.enable_multi_tf else 0
+    _bundle_v2 = bool(args.enable_multi_tf and v3_v2_mode)
+    config = {
+        "input_dim": int(base.input_dim), "window_len": int(base.window_len),
+        "d_model": int(args.d_model), "n_layers": int(args.n_layers),
+        "n_heads": int(args.n_heads), "dropout": float(args.dropout),
+        "enable_pos_enc": bool(args.enable_pos_enc),
+        "enable_dip_head": bool(args.enable_dip_head),
+        "enable_timing_head": bool(args.enable_timing_head),
+        "enable_tail_risk_head": bool(args.enable_tail_risk_head),
+        "enable_vol_forecast_head": bool(args.enable_vol_forecast_head),
+        "enable_forecast_head": bool(args.enable_forecast_head),
+        "exit_ml_io_version": str(contract["io_version"]),
+        "feature_names_hash": str(contract["feature_hash"]),
+        "feature_count": int(contract["feature_count"]),
+        "multi_tf": {
+            "enabled": bool(args.enable_multi_tf),
+            "v2_mode": _bundle_v2,
+            "m5_seq_dim": _bundle_mtf_dim, "m15_seq_dim": _bundle_mtf_dim,
+            "h1_seq_dim": _bundle_mtf_dim, "h4_seq_dim": _bundle_mtf_dim,
+            "d1_seq_dim": _bundle_mtf_dim,
+            "m5_seq_len": int(args.multi_tf_seq_len), "m15_seq_len": int(args.multi_tf_seq_len),
+            "h1_seq_len": int(args.multi_tf_seq_len), "h4_seq_len": int(args.multi_tf_seq_len),
+            "d1_seq_len": int(args.multi_tf_seq_len),
+            "feature_contract": (
+                "MULTI_TF_PER_BAR_V2" if _bundle_v2
+                else ("MULTI_TF_PER_BAR_V1" if args.enable_multi_tf else None)
+            ),
+            "multi_tf_scale": float(args.multi_tf_scale),
+        },
+    }
+    (bundle_dir / "transformer_config.json").write_text(json.dumps(config, indent=2))
+
+    def _persist_best(state: Dict[str, torch.Tensor]) -> str:
+        """Atomically write best weights to disk; returns sha256 (fix #8)."""
+        tmp = state_path.with_suffix(".pt.tmp")
+        torch.save({k: v for k, v in state.items()}, tmp)
+        os.replace(tmp, state_path)
+        return hashlib.sha256(state_path.read_bytes()).hexdigest()
+
     # Stage 8: training loop.
     best_val_loss = math.inf
     best_state: Optional[Dict[str, torch.Tensor]] = None
+    state_sha = ""
     epochs_no_improve = 0
     history: List[Dict[str, Any]] = []
     for epoch in range(args.epochs):
@@ -436,14 +583,21 @@ def main() -> None:
         print(
             f"[{ACTION}] epoch {epoch+1}: train_main={train_stats['train_loss_main']:.4f} "
             f"val_main={val_stats['loss_main']:.4f} val_total={val_stats['loss_total']:.4f} "
-            f"val_acc={val_stats['acc_at_05']:.4f} ({train_stats['elapsed_s']:.1f}s)",
+            f"val_acc={val_stats['acc_at_05']:.4f} "
+            f"PR_AUC={val_stats.get('pr_auc', float('nan')):.4f} "
+            f"ROC_AUC={val_stats.get('roc_auc', float('nan')):.4f} "
+            f"prec={val_stats.get('precision_at_05', float('nan')):.3f} "
+            f"recall={val_stats.get('recall_at_05', float('nan')):.3f} "
+            f"({train_stats['elapsed_s']:.1f}s)",
             flush=True,
         )
         if val_stats["loss_total"] < best_val_loss - 1e-4:
             best_val_loss = val_stats["loss_total"]
-            best_state = {k: v.detach().cpu().clone() for k, v in eval_model.state_dict().items()}
+            _eval_to_save = eval_model._orig_mod if hasattr(eval_model, "_orig_mod") else eval_model
+            best_state = {k: v.detach().cpu().clone() for k, v in _eval_to_save.state_dict().items()}
             epochs_no_improve = 0
-            print(f"[{ACTION}]   new best val_loss={best_val_loss:.4f}", flush=True)
+            state_sha = _persist_best(best_state)  # checkpoint to disk immediately (fix #8)
+            print(f"[{ACTION}]   new best val_loss={best_val_loss:.4f} — checkpointed to disk", flush=True)
         else:
             epochs_no_improve += 1
             if epochs_no_improve >= args.early_stop_patience:
@@ -455,7 +609,12 @@ def main() -> None:
                 break
 
     if best_state is not None:
-        model.load_state_dict(best_state)
+        # best_state was saved from the UNCOMPILED module (_orig_mod, non-prefixed
+        # keys — see _eval_to_save above). Load into the underlying module so a
+        # torch.compile'd `model` (OptimizedModule, expects _orig_mod. prefix)
+        # doesn't fail with a key-prefix mismatch. (GX1_FAST_TRAIN=1 path.)
+        _load_target = model._orig_mod if hasattr(model, "_orig_mod") else model
+        _load_target.load_state_dict(best_state)
 
     final_eval_model = copy.deepcopy(model) if ema is not None else model
     if ema is not None:
@@ -471,45 +630,13 @@ def main() -> None:
         flush=True,
     )
 
-    # Stage 9: save bundle.
-    bundle_name = (
-        args.bundle_name
-        or f"EXIT_V6_DISK__BIDIR_2026Q2_{_utc_stamp()}"
-    )
-    bundle_dir = Path(args.out_dir) / bundle_name
-    bundle_dir.mkdir(parents=True, exist_ok=True)
-
-    state_path = bundle_dir / "exit_transformer_v0.pt"
-    torch.save(model.state_dict(), state_path)
-    state_sha = hashlib.sha256(state_path.read_bytes()).hexdigest()
-
-    contract = get_exit_io_contract(args.exit_io_version)
-    config = {
-        "input_dim": int(base.input_dim), "window_len": int(base.window_len),
-        "d_model": int(args.d_model), "n_layers": int(args.n_layers),
-        "n_heads": int(args.n_heads), "dropout": float(args.dropout),
-        "exit_ml_io_version": str(contract["io_version"]),
-        "feature_names_hash": str(contract["feature_hash"]),
-        "feature_count": int(contract["feature_count"]),
-    }
-    # V12.2: serialize multi-TF marker so live inference re-instantiates model
-    # with multi-TF support. v8 bundles will have enabled=False (default).
-    config["multi_tf"] = {
-        "enabled": bool(args.enable_multi_tf),
-        "m5_seq_dim": int(MULTI_TF_FEATURE_COUNT) if args.enable_multi_tf else 0,
-        "m15_seq_dim": int(MULTI_TF_FEATURE_COUNT) if args.enable_multi_tf else 0,
-        "h1_seq_dim": int(MULTI_TF_FEATURE_COUNT) if args.enable_multi_tf else 0,
-        "h4_seq_dim": int(MULTI_TF_FEATURE_COUNT) if args.enable_multi_tf else 0,
-        "d1_seq_dim": int(MULTI_TF_FEATURE_COUNT) if args.enable_multi_tf else 0,
-        "m5_seq_len": int(args.multi_tf_seq_len),
-        "m15_seq_len": int(args.multi_tf_seq_len),
-        "h1_seq_len": int(args.multi_tf_seq_len),
-        "h4_seq_len": int(args.multi_tf_seq_len),
-        "d1_seq_len": int(args.multi_tf_seq_len),
-        "feature_contract": "MULTI_TF_PER_BAR_V1" if args.enable_multi_tf else None,
-        "multi_tf_scale": float(args.multi_tf_scale),
-    }
-    (bundle_dir / "transformer_config.json").write_text(json.dumps(config, indent=2))
+    # Stage 9: weights + config already on disk (checkpointed at each best, fix #8).
+    # If the run never improved (best_state is None), persist final weights now so
+    # the bundle is never empty.
+    if best_state is None:
+        _final = model._orig_mod if hasattr(model, "_orig_mod") else model
+        best_state = {k: v.detach().cpu().clone() for k, v in _final.state_dict().items()}
+        state_sha = _persist_best(best_state)
 
     manifest = {
         "action_v1": ACTION,

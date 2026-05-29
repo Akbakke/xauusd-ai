@@ -331,13 +331,35 @@ class DiskLabeledThinDataset(Dataset):
         self.record_offsets = record_offsets
         self.side_weights: Dict[str, float] = side_weights or {}
         self._fh: Optional[Any] = None
+        self._fh_pid: Optional[int] = None
 
     def __len__(self) -> int:
         return len(self.record_offsets)
 
+    # ── DataLoader-worker safety (2026-05-26) ─────────────────────────────────
+    # The raw file handle must NOT be shared across processes: on fork the
+    # inherited fd causes seek races (silent read corruption); on spawn it isn't
+    # picklable. Fix: open a PER-PROCESS handle (reopen when the pid changes) and
+    # drop the handle from pickled state. This makes num_workers>0 safe → the
+    # data loader can prefetch in parallel (was the real V3-train bottleneck).
+    def __getstate__(self) -> Dict[str, Any]:
+        state = self.__dict__.copy()
+        state["_fh"] = None
+        state["_fh_pid"] = None
+        return state
+
+    def __setstate__(self, state: Dict[str, Any]) -> None:
+        self.__dict__.update(state)
+        self._fh = None
+        self._fh_pid = None
+
     def _ensure_fh(self) -> None:
-        if self._fh is None:
+        import os as _os
+        pid = _os.getpid()
+        if self._fh is None or self._fh_pid != pid:
+            # reopen in this process (handles both fork-inherited fd and spawn)
             self._fh = open(self.labeled_jsonl, "rb")
+            self._fh_pid = pid
 
     def _read_record(self, idx: int) -> Dict[str, Any]:
         self._ensure_fh()
@@ -408,6 +430,19 @@ class DiskMultiTaskThinDataset(DiskLabeledThinDataset):
         out_dict: Dict[str, torch.Tensor] = {
             "main": y_main, "profit": y_profit, "family": y_family,
         }
+        # V3 dip-head recovery targets (gated by enable_dip_head at train time).
+        for _Kdip in (12, 48, 144):
+            out_dict[f"dip_recovery_K{_Kdip}"] = torch.tensor(
+                float(rec.get(f"y_dip_recovery_K{_Kdip}", 0.0) or 0.0), dtype=torch.float32,
+            )
+        # V3 NEW-head targets (2026-05-26) — exit-oriented, forward-from-in-trade.
+        # Gated by enable_*_head at train time (default 0.0 if labeler didn't write them).
+        for _K in (12, 48, 144):
+            for _nm in ("forecast", "tail_mae", "time_to_recovery_frac",
+                        "time_to_worst_frac", "vol_fwd"):
+                out_dict[f"v3_{_nm}_K{_K}"] = torch.tensor(
+                    float(rec.get(f"y_v3_{_nm}_K{_K}", 0.0) or 0.0), dtype=torch.float32,
+                )
         # V12.2: slice multi-TF windows at record timestamp
         if self.multi_tf_feats is not None:
             import pandas as pd

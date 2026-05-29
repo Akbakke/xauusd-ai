@@ -63,14 +63,18 @@ class ExitDeciderV12Adapter:
         *,
         variant: str = "R_V12",
         fold_id: str = "FOLD_1",
+        aggregator: str | None = None,
         v3_override_threshold: float | None = V3_OVERRIDE_DEFAULT_THRESHOLD,
         prefer_cuda: bool = True,
     ) -> "ExitDeciderV12Adapter":
-        iql = ExitIQLV2Adapter.load(
+        load_kwargs = dict(
             artifact_root=Path(artifact_root),
             variant=variant, fold_id=fold_id,
             prefer_cuda=prefer_cuda,
         )
+        if aggregator is not None:
+            load_kwargs["aggregator"] = aggregator
+        iql = ExitIQLV2Adapter.load(**load_kwargs)
         thr = float(v3_override_threshold) if v3_override_threshold is not None else None
         return cls(iql_adapter=iql, v3_override_threshold=thr)
 

@@ -30,7 +30,9 @@ Used by v12_paper_runner.py to drive live trade decisions.
 """
 from __future__ import annotations
 
+import dataclasses
 import logging
+import os
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -48,6 +50,44 @@ from gx1.execution.v12_v3_live import V3LiveInference
 from gx1.execution.v12_trade_state import TradeState, SIDE_LONG, SIDE_SHORT
 
 LOG = logging.getLogger("v12_pipeline")
+
+
+# Phase 3a/3b A/B-switch: when set to "1", swap Entry-IQL Q-values with the
+# V10 distilled q_head's q_per_action. Used by Phase 6 to A/B test distilled
+# bundles vs the IQL teacher. The downstream gates (cluster1, min_adv,
+# regime filter, portfolio guard) all still apply unchanged.
+_USE_DISTILLED_ENTRY = os.environ.get("GX1_USE_DISTILLED_ENTRY", "0") == "1"
+
+
+def _entry_rec_with_distilled_q(rec, v10_out, beta: float = 1.0):
+    """Rebuild an EntryRecommendation using V10 q_head values instead of IQL Q.
+
+    Only the Q-vector and derived fields (action, advantage, softmax) are
+    replaced. variant/fold/feature_names/state stay as-is — they're only
+    informational. Caller must verify v10_out has q_per_action_v1 before calling.
+    """
+    from gx1.runtime.entry_iql_v2_adapter import EntryRecommendation, iql_core
+    q = np.asarray(v10_out["q_per_action_v1"], dtype=np.float32)
+    a_id = int(np.argmax(q))
+    q_skip = float(q[iql_core.ACTION_SKIP_ID])
+    chosen_q = float(q[a_id])
+    best_take = float(max(q[iql_core.ACTION_TAKE_LONG_NOW_ID],
+                          q[iql_core.ACTION_TAKE_SHORT_NOW_ID]))
+    adv_skip = chosen_q - q_skip
+    adv_take = chosen_q - best_take
+    scaled = beta * q
+    scaled = scaled - scaled.max()
+    soft = np.exp(scaled); soft = soft / soft.sum()
+    return dataclasses.replace(
+        rec,
+        action_id_v1=a_id,
+        action_label_v1=iql_core.ACTION_LABELS_V1[a_id],
+        q_per_action_v1=q.copy(),
+        q_per_action_per_k_v1=np.broadcast_to(q[:, None], (3, len(rec.k_horizons_v1))).copy(),
+        advantage_over_skip_v1=adv_skip,
+        advantage_over_realized_v1=adv_take,
+        confidence_softmax_v1=soft.astype(np.float32),
+    )
 
 COLLECTOR_DIR = Path("/home/andre2/GX1_DATA/reports/v12_live_data")
 CANONICAL_M1_DIR = Path("/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m1_bid_ask__CANONICAL")
@@ -76,6 +116,12 @@ class V12Pipeline:
     # entries within the same M5 (5-min) window — addresses live "4 LONG in 7min"
     # cluster pattern observed 2026-05-12 where V10 fired 4× same signal in same bucket.
     _last_entry_m5_by_side: dict[str, pd.Timestamp] = field(default_factory=dict)
+    # Per-M1-bar atr_bps cache for current_atr_bps_v1 in Exit-IQL bar_state.
+    # Training computes this as (ask_high - bid_low)/mid * 1e4 per M1 bar — typical
+    # value 3-7 bps. Live had been using canonical_v3 M5 ATR14 (10-50 bps), a 10x
+    # distribution shift that destabilized Exit-IQL Q-values. C1 fix 2026-05-19.
+    _last_m1_atr_bps: float = 0.0
+    _last_m1_atr_minute: pd.Timestamp | None = None
 
     @classmethod
     def load_default(cls) -> "V12Pipeline":
@@ -98,7 +144,47 @@ class V12Pipeline:
         return cls(prebuilt_loader=loader, xgb=xgb, v10=v10,
                     entry_iql=entry_iql, exit_iql=exit_iql, v3=v3)
 
+    def _refresh_m1_atr_bps(self, now_minute: pd.Timestamp) -> float:
+        """Compute current_atr_bps_v1 = (ask_high - bid_low)/mid * 1e4 from the
+        most recent CLOSED M1 bar in the data collector parquet.
+
+        Training (materialize_build_exit_iql_per_bar_dataset_v1.py:215-217) uses
+        per-M1-bar bid/ask hi-lo, typical 3-7 bps. Live previously used canonical
+        M5 ATR14 (10-50 bps), creating a ~10× distribution shift on a feature
+        Exit-IQL depends on. Cached per minute to avoid disk thrash.
+        """
+        cur_min = now_minute.replace(second=0, microsecond=0)
+        if self._last_m1_atr_minute == cur_min and self._last_m1_atr_bps > 0:
+            return self._last_m1_atr_bps
+        try:
+            from pathlib import Path
+            day = cur_min.strftime("%Y%m%d")
+            p = Path(f"/home/andre2/GX1_DATA/reports/v12_live_data/xauusd_m1_{day}.parquet")
+            if not p.exists():
+                return self._last_m1_atr_bps
+            df = pd.read_parquet(p, columns=["time", "ask_high", "bid_low", "ask_close", "bid_close"]).tail(2)
+            if len(df) == 0:
+                return self._last_m1_atr_bps
+            row = df.iloc[-1]
+            ah = float(row["ask_high"]); bl = float(row["bid_low"])
+            ac = float(row["ask_close"]); bc = float(row["bid_close"])
+            mid = (ac + bc) / 2.0
+            atr = (ah - bl) / max(mid, 1e-6) * 1e4 if mid > 0 else 0.0
+            self._last_m1_atr_bps = float(atr)
+            self._last_m1_atr_minute = cur_min
+            return self._last_m1_atr_bps
+        except Exception as exc:
+            LOG.warning(f"_refresh_m1_atr_bps failed: {exc}; keeping prior {self._last_m1_atr_bps}")
+            return self._last_m1_atr_bps
+
     # ── shared canonical_v3 build (cached per M5 bucket) ───────────────
+
+    def record_entry_for_cluster(self, side: str, decision_m5_ts: pd.Timestamp) -> None:
+        """Caller (paper-runner) invokes this AFTER the trade is filled and the
+        new TradeState is created. Records the M5-bucket so subsequent same-M5
+        ticks are correctly cluster-blocked. Audit 3 C-3 fix 2026-05-20."""
+        side_key = "long" if side in ("long", "TAKE_LONG_NOW") else "short"
+        self._last_entry_m5_by_side[side_key] = pd.Timestamp(decision_m5_ts)
 
     def _refresh_canonical(self, now_minute: pd.Timestamp) -> bool:
         """Refresh augmented window + XGB bridge from disk prebuilt.
@@ -150,6 +236,7 @@ class V12Pipeline:
         now_minute: pd.Timestamp,
         bid: float,
         ask: float,
+        portfolio_state: dict[str, float] | None = None,
     ) -> dict[str, Any]:
         """Run the full XGB → V10 → Entry-IQL chain for the current bar.
 
@@ -199,20 +286,37 @@ class V12Pipeline:
             "p_short": float(self._last_xgb_p_short[end_idx]),
             "p_flat": float(self._last_xgb_p_flat[end_idx]),
         }
-        rec, candidate = self.entry_iql.predict_from_pipeline(row, xgb_this, v10_out)
+        rec, candidate = self.entry_iql.predict_from_pipeline(
+            row, xgb_this, v10_out, portfolio_state=portfolio_state,
+        )
+        # Phase 3a A/B: replace IQL Q with distilled V10 q_head when env says so.
+        # Has no effect if v10_out lacks q_per_action_v1 (non-distilled bundle).
+        if _USE_DISTILLED_ENTRY and "q_per_action_v1" in v10_out:
+            rec = _entry_rec_with_distilled_q(rec, v10_out, beta=self.entry_iql.adapter.beta)
 
-        # V12.2 CLUSTER-1 RATE-LIMIT: block repeat same-side entries within same M5 bucket.
-        # Live V10 fires multiple times per minute; without this, IQL takes 4× same LONG
-        # signal in same 5-min window (Cluster-1 pattern observed 2026-05-12).
+        # V12.2 CLUSTER-1 RATE-LIMIT: block repeat entries within same M5 bucket.
+        # Live V10/IQL fires multiple times per minute; without this, IQL takes 4×
+        # same LONG signal in same 5-min window (Cluster-1 pattern observed
+        # 2026-05-12). H5 audit fix 2026-05-19: also block OPPOSITE-side flapping
+        # within the same M5 (e.g. LONG@16:00:30 then SHORT@16:01:15 would have
+        # passed before — now blocked) to prevent same-bar contradiction trades.
         action_label = rec.action_label_v1
         if action_label in ("TAKE_LONG_NOW", "TAKE_SHORT_NOW"):
             side_key = "long" if action_label == "TAKE_LONG_NOW" else "short"
             decision_m5 = augmented.index[end_idx]  # already an M5-bar timestamp
-            last_m5 = self._last_entry_m5_by_side.get(side_key)
-            if last_m5 == decision_m5:
+            last_m5_same = self._last_entry_m5_by_side.get(side_key)
+            last_m5_opp = self._last_entry_m5_by_side.get(
+                "short" if side_key == "long" else "long"
+            )
+            block_reason = None
+            if last_m5_same == decision_m5:
+                block_reason = "CLUSTER1_SAME_SIDE_SAME_M5"
+            elif last_m5_opp == decision_m5:
+                block_reason = "CLUSTER1_OPPOSITE_SIDE_SAME_M5"
+            if block_reason is not None:
                 LOG.info(
-                    f"[CLUSTER1_RATE_LIMIT] blocking repeat {side_key} entry — "
-                    f"last_entry_m5={last_m5} current_m5={decision_m5}"
+                    f"[CLUSTER1_RATE_LIMIT] blocking {side_key} entry ({block_reason}) — "
+                    f"last_same={last_m5_same} last_opp={last_m5_opp} current_m5={decision_m5}"
                 )
                 return {
                     "action": "SKIP",
@@ -224,12 +328,16 @@ class V12Pipeline:
                     "advantage_over_skip": 0.0,
                     "advantage_over_skip_long": float(rec.q_per_action_v1[1] - rec.q_per_action_v1[0]),
                     "advantage_over_skip_short": float(rec.q_per_action_v1[2] - rec.q_per_action_v1[0]),
-                    "blocked_reason": "CLUSTER1_RATE_LIMIT",
+                    "blocked_reason": block_reason,
                     "decision_ts": str(decision_m5),
                     "stub": False,
                 }
-            # Record this entry so subsequent same-M5 same-side requests are blocked.
-            self._last_entry_m5_by_side[side_key] = decision_m5
+            # Cluster1-state advance moved to v12_paper_runner.py post-fill.
+            # Audit 3 C-3 fix 2026-05-20: previously this wrote state regardless
+            # of downstream gate/portfolio-guard rejection, causing false
+            # cluster-blocks on subsequent ticks. Caller must call
+            # `pipeline.record_entry_for_cluster(side, decision_m5)` AFTER the
+            # trade is actually opened (not on TAKE_*_NOW recommendation alone).
 
         q = rec.q_per_action_v1
         return {
@@ -324,8 +432,13 @@ class V12Pipeline:
             LOG.warning(f"V3 v8 inference failed: {exc}; using zero fallback")
             v3_v8_out = None
 
+        # C1 fix 2026-05-19: training uses per-M1-bar (ask_high - bid_low)/mid bps
+        # (typical 3-7 bps), live had been using canonical M5 ATR14 (10-50 bps).
+        # 10× distribution shift on a feature Exit-IQL depends on.
+        m1_atr_bps = self._refresh_m1_atr_bps(now_minute)
         rec, bar_state = self.exit_iql.decide_for_trade(
             trade, cv3_row, v3_v8_out=v3_v8_out,
+            current_m1_atr_bps_override=m1_atr_bps if m1_atr_bps > 0 else None,
         )
         # Inject V3-tracking running stats into bar_state (overwriting any prior 0-fills)
         bar_state.update(trade.build_v3_tracking_features())

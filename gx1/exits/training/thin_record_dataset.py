@@ -32,7 +32,7 @@ Usage
 -----
     from gx1.exits.training.thin_record_dataset import ThinRecordDataset
 
-    ds = ThinRecordDataset("/path/to/exit_v3_v5_training_2020_2026")
+    ds = ThinRecordDataset("/path/to/exit_v3_v7_training_2020_2026_canonical_v3")
     sample = ds[0]
     # sample["io_features"]: (window_len, input_dim) float32 tensor
     # sample["scalars"]: dict[str, float]

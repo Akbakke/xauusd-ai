@@ -49,6 +49,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import time as _time
 from datetime import datetime, timezone
@@ -67,12 +68,12 @@ from gx1.contracts.signal_bridge_v2 import (
     ORDERED_CTX_CONT_NAMES_V2,
     ORDERED_CTX_CAT_NAMES_V2,
 )
-from gx1.exits.contracts.exit_io_v6_ctx_v3canonical_m1l512 import (
-    EXIT_IO_V6_CTX_V3CANONICAL_M1L512_FEATURES,
-    EXIT_IO_V6_CTX_V3CANONICAL_M1L512_FEATURE_COUNT,
-    EXIT_IO_V6_CTX_V3CANONICAL_M1L512_FEATURE_NAMES_HASH,
-    EXIT_IO_V6_CTX_V3CANONICAL_M1L512_DEFAULT_WINDOW_LEN,
-    EXIT_IO_V6_CTX_V3CANONICAL_M1L512_IO_VERSION,
+from gx1.exits.contracts.exit_io_v7_volume_dipstruct_m1l512 import (
+    EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_FEATURES,
+    EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_FEATURE_COUNT,
+    EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_FEATURE_NAMES_HASH,
+    EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_DEFAULT_WINDOW_LEN,
+    EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_IO_VERSION,
     compute_m5_phase_onehot,
 )
 from gx1.exits.contracts.exit_io_v1_ctx36_features import EXIT_IO_V1_CTX36_FEATURES
@@ -93,15 +94,15 @@ DEFAULT_REPORTS_ROOT = Path("/home/andre2/GX1_DATA/reports/truth_e2e_sanity")
 DEFAULT_M1_TAPE_ROOT = Path("/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m1_bid_ask__CANONICAL")
 DEFAULT_M5_TAPE_ROOT = Path("/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m5_bid_ask__CANONICAL")
 DEFAULT_CANONICAL_V2_PATH = Path(
-    "/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_PREBUILT/xauusd_m5_CANONICAL_V3_2020_2026.parquet"
+    "/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_PREBUILT/xauusd_m5_CANONICAL_V3_FULL_PLUS_CTX_2020_2026.parquet"
 )
 DEFAULT_XGB_BUNDLE = Path(
     # V12-cascade authoritative bundle per CURRENT_BUNDLES.md (the 081604Z_1000est
     # retrain was deleted 2026-05-11 — it was never used by V12 cascade).
-    "/home/andre2/GX1_DATA/models/models/xgb_universal_multihead_v5__BIDIR_RSI_SMC_PRUNED_CANONICAL_V3_20260505T060428Z"
+    "/home/andre2/GX1_DATA/models/models/xgb_v7_base80_20260526T052210Z"
 )
-DEFAULT_XGB_FEATURE_CONTRACT = REPO_ROOT / "gx1" / "xgb" / "contracts" / "xgb_input_features_canonical_v3_v1.json"
-DEFAULT_XGB_SANITIZER_CONFIG = REPO_ROOT / "gx1" / "xgb" / "contracts" / "xgb_input_sanitizer_canonical_v3_v1.json"
+DEFAULT_XGB_FEATURE_CONTRACT = REPO_ROOT / "gx1" / "xgb" / "contracts" / "xgb_input_features_base80_v1.json"
+DEFAULT_XGB_SANITIZER_CONFIG = REPO_ROOT / "gx1" / "xgb" / "contracts" / "xgb_input_sanitizer_base80_v1.json"
 DEFAULT_OUT_PATH = Path("/home/andre2/GX1_DATA/data/training/exit_v3_v7_training_2020_2026_canonical_v3")
 
 WINDOW_LEN = 512  # M1L512 — V5 default
@@ -120,7 +121,7 @@ TRADE_STATE_FEATURE_NAMES = [
     "giveback_ratio", "giveback_acceleration",  # giveback (2)
 ]
 TRADE_STATE_FEATURE_INDICES = [
-    EXIT_IO_V6_CTX_V3CANONICAL_M1L512_FEATURES.index(n) for n in TRADE_STATE_FEATURE_NAMES
+    EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_FEATURES.index(n) for n in TRADE_STATE_FEATURE_NAMES
 ]
 
 
@@ -142,10 +143,10 @@ def precompute_m1_feature_vectors(
     Returns (m1_time_ns, feature_matrix). Trade-state features are ZERO at pre-trade context;
     caller fills them per (trade, bar) at emit time.
     """
-    print(f"[{ACTION}] precompute: M1 bars={len(m1_df):,}, output_dim={EXIT_IO_V6_CTX_V3CANONICAL_M1L512_FEATURE_COUNT}",
+    print(f"[{ACTION}] precompute: M1 bars={len(m1_df):,}, output_dim={EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_FEATURE_COUNT}",
           flush=True)
     n = len(m1_df)
-    feat_mat = np.zeros((n, EXIT_IO_V6_CTX_V3CANONICAL_M1L512_FEATURE_COUNT), dtype=np.float32)
+    feat_mat = np.zeros((n, EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_FEATURE_COUNT), dtype=np.float32)
     m1_time_ns = m1_df["time"].astype("int64").to_numpy()
 
     # ---- 1) XGB inference per M1 bar ----
@@ -177,6 +178,30 @@ def precompute_m1_feature_vectors(
         cv2["session_change_flag"] = (sid.diff().fillna(0) != 0).astype(np.int8)
     if "session_tradable" not in cv2.columns:
         cv2["session_tradable"] = (cv2["session_id"].astype(int) != 0).astype(np.int8)
+
+    # BASE76 derived-features parity with XGB trainer / V10 builder
+    sid_arr = cv2["session_id"].astype(np.int32)
+    if "_v1_is_EU" not in cv2.columns:
+        cv2["_v1_is_EU"] = (sid_arr == 1).astype(np.int8)
+    if "_v1_is_US" not in cv2.columns:
+        cv2["_v1_is_US"] = (sid_arr == 3).astype(np.int8)
+    is_us_f = cv2["_v1_is_US"].to_numpy(dtype=np.float64)
+    if "_v1_body_tr" not in cv2.columns and "_v1_body_share_1" in cv2.columns:
+        cv2["_v1_body_tr"] = cv2["_v1_body_share_1"].to_numpy(dtype=np.float64)
+    if "_v1_int_clv_atr" not in cv2.columns and "_v1_clv" in cv2.columns:
+        cv2["_v1_int_clv_atr"] = cv2["_v1_clv"].to_numpy(dtype=np.float64)
+    if "_v1_int_r5_atr" not in cv2.columns and "_v1_r5" in cv2.columns:
+        cv2["_v1_int_r5_atr"] = cv2["_v1_r5"].to_numpy(dtype=np.float64)
+    if "_v1_int_slope_h4_atr" not in cv2.columns and "_v1h4_slope5" in cv2.columns:
+        cv2["_v1_int_slope_h4_atr"] = cv2["_v1h4_slope5"].to_numpy(dtype=np.float64)
+    if "_v1_int_ema_us" not in cv2.columns and "_v1_ema_diff" in cv2.columns:
+        cv2["_v1_int_ema_us"] = cv2["_v1_ema_diff"].to_numpy(dtype=np.float64) * is_us_f
+    if "_v1_int_range_us" not in cv2.columns and "_v1_range_z" in cv2.columns:
+        cv2["_v1_int_range_us"] = cv2["_v1_range_z"].to_numpy(dtype=np.float64) * is_us_f
+    if "_v1_int_slope_h1_us" not in cv2.columns and "_v1h1_slope3" in cv2.columns:
+        cv2["_v1_int_slope_h1_us"] = cv2["_v1h1_slope3"].to_numpy(dtype=np.float64) * is_us_f
+    if "atr_bps" not in cv2.columns and "_v1_atr14" in cv2.columns and "close" in cv2.columns:
+        cv2["atr_bps"] = (cv2["_v1_atr14"].astype(float) / cv2["close"].astype(float).clip(lower=1e-6) * 1e4).clip(0, 500).fillna(0.0)
 
     missing = [c for c in xgb_features if c not in cv2.columns]
     if missing:
@@ -220,19 +245,83 @@ def precompute_m1_feature_vectors(
     feat_mat[:, 0:7] = bridge_m1
     print(f"[{ACTION}] XGB-bridge populated for {n:,} M1 bars", flush=True)
 
+    # ---- 1b) EXIT_IO_V7: dip/struct (36) on the M5 cv2 grid (2026-05-26) ----
+    # ONE-TRUTH with the entry V10 builder + Exit-IQL state: same
+    # augment_candidate._dip_struct_5tf. Added as cv2 columns so the lazy-join
+    # below aligns them M5→M1 (per-M1 STORAGE, same pattern as every other
+    # feature — NOT downsampled/broadcast). 35 from augment; smc-combo computed.
+    from gx1.contracts.signal_bridge_v3 import (
+        ORDERED_CTX_CONT_DIP_STRUCT as _DIP_STRUCT,
+        ORDERED_CTX_CONT_GROUP_A_PARITY as _GROUP_A,
+    )
+    if any(f not in cv2.columns for f in (list(_DIP_STRUCT) + list(_GROUP_A))):
+        from gx1.scripts.augment_forward_outcome_v2 import (
+            build_context as _ga_ctx, augment_candidate as _ga_aug,
+        )
+        from gx1.features.htf_features import load_multi_tf_v2_cache as _ga_load_cache
+        _cache_dir = os.environ.get(
+            "GX1_V10_MULTI_TF_V2_CACHE_DIR",
+            "/home/andre2/GX1_DATA/data/data/prebuilt/MULTI_TF_V2_CACHE",
+        )
+        _m5 = cv2[["high", "low", "close"]].copy()
+        _m5.index = pd.to_datetime(cv2["time"], utc=True)
+        _m5 = _m5.sort_index()
+        _ctx = _ga_ctx(_m5, _ga_load_cache(_cache_dir), journal_dir=Path("/nonexistent_v3_build_journal"))
+        _from_aug = [f for f in _DIP_STRUCT if f != "struct_smc_swing_x_dip_v3"]
+        # 2026-05-26: ALSO extract the 24 GROUP-A parity (top/bottom-distance + pivots
+        # + vol-term + session-overlap) from the SAME augment call → full entry↔exit
+        # symmetry. dip_proximity_m5 is transient (for the smc-combo below).
+        _extract = _from_aug + list(_GROUP_A) + ["dip_proximity_m5_v3"]
+        _cols = {k: np.zeros(len(cv2), dtype=np.float32) for k in _extract}
+        for _i, _ts in enumerate(pd.DatetimeIndex(pd.to_datetime(cv2["time"], utc=True))):
+            _feat = _ga_aug(_ctx, _ts)
+            for _k in _extract:
+                _cols[_k][_i] = float(_feat.get(_k, 0.0))
+        for _k in (_from_aug + list(_GROUP_A)):
+            cv2[_k] = _cols[_k]
+        # struct_smc_swing_x_dip_v3 = norm(smc_swing_state) × dip_proximity_m5 (augment line 548)
+        if "smc_swing_state" in cv2.columns:
+            _sw = pd.to_numeric(cv2["smc_swing_state"], errors="coerce").fillna(0.0).to_numpy(np.float32)
+            _ma = float(np.abs(_sw).max()) if len(_sw) else 1.0
+            cv2["struct_smc_swing_x_dip_v3"] = (
+                np.clip(_sw / max(_ma, 1.0), -1.0, 1.0) * _cols["dip_proximity_m5_v3"]
+            ).astype(np.float32)
+        else:
+            cv2["struct_smc_swing_x_dip_v3"] = np.zeros(len(cv2), dtype=np.float32)
+        print(f"[{ACTION}] dip/struct ({len(_DIP_STRUCT)}) computed on M5 grid (one-truth w/ IQL)", flush=True)
+
+    # ---- 1c) EXIT_IO_V7: volume/order-flow (4) on the M1 grid (genuinely M1) ----
+    from gx1.features.volume_features import VOLUME_FEATURE_NAMES, compute_volume_features
+    _vol_src = pd.DataFrame({
+        "volume": (pd.to_numeric(m1_df["volume"], errors="coerce") if "volume" in m1_df.columns
+                   else pd.Series(np.zeros(n))),
+        "close": pd.to_numeric(m1_df["close"] if "close" in m1_df.columns else m1_df["bid_close"], errors="coerce"),
+    })
+    _vol_feats = compute_volume_features(_vol_src)  # name -> (n,) float32, M1-resolution
+    print(f"[{ACTION}] volume ({len(VOLUME_FEATURE_NAMES)}) computed on M1 grid", flush=True)
+
     # ---- 2) Lazy-join canonical_v2 features for ctx_cont (11 V1 + 22 V2 ext) + ctx_cat (6) + swing (5) + m5_phase (5) + SMC (9) ----
     # Indices 12-49 + 50-79 in V5 feature list — anything that comes from canonical_v2 columns.
     # Build mapping: for each V5 feature name, if present in cv2, copy via M5→M1 alignment.
     print(f"[{ACTION}] lazy-joining canonical_v2 features to M1 grid...", flush=True)
-    for v5_idx, fname in enumerate(EXIT_IO_V6_CTX_V3CANONICAL_M1L512_FEATURES):
+    _handled_new: set = set()  # track that the V7 new features (vol+group_a+dip/struct) get filled
+    _new_feature_names = set(VOLUME_FEATURE_NAMES) | set(_GROUP_A) | set(_DIP_STRUCT)
+    for v5_idx, fname in enumerate(EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_FEATURES):
         if v5_idx < 7:
             continue  # XGB-bridge already filled
         if fname in TRADE_STATE_FEATURE_NAMES:
             continue  # filled per-bar at emit time
+        # volume/order-flow: M1-native (NOT M5-aligned — genuinely per-minute)
+        if fname in VOLUME_FEATURE_NAMES:
+            feat_mat[:, v5_idx] = _vol_feats[fname]
+            _handled_new.add(fname)
+            continue
         if fname in cv2.columns:
             col = pd.to_numeric(cv2[fname], errors="coerce").fillna(0.0).to_numpy(dtype=np.float32)
             sorted_col = col[m5_sort_idx]
             feat_mat[:, v5_idx] = sorted_col[pos]
+            if fname in _new_feature_names:
+                _handled_new.add(fname)
             continue
         # m5_phase one-hot: derive from M1 timestamp directly
         if fname.startswith("m5_phase_"):
@@ -242,7 +331,15 @@ def precompute_m1_feature_vectors(
             phase = (minute % 5).astype(np.int32)
             feat_mat[:, v5_idx] = (phase == ph_idx).astype(np.float32)
             continue
-    print(f"[{ACTION}] precompute done. shape={feat_mat.shape}", flush=True)
+    # FAIL-CLOSED: the 40 V7 new features MUST be filled (never silently 0).
+    _unfilled = _new_feature_names - _handled_new
+    if _unfilled:
+        raise RuntimeError(
+            f"[EXIT_IO_V7_FILL] {len(_unfilled)} new features left UNFILLED "
+            f"(would be silent-zero): {sorted(_unfilled)}"
+        )
+    print(f"[{ACTION}] precompute done. shape={feat_mat.shape}  "
+          f"(V7 new feats filled: {len(_handled_new)}/{len(_new_feature_names)})", flush=True)
     return m1_time_ns, feat_mat
 
 
@@ -598,9 +695,9 @@ def main() -> None:
         "action_v1": ACTION,
         "out_dir_v1": str(out_dir),
         "built_at_utc_v1": datetime.now(timezone.utc).isoformat(),
-        "io_version": EXIT_IO_V6_CTX_V3CANONICAL_M1L512_IO_VERSION,
-        "feature_names_hash": EXIT_IO_V6_CTX_V3CANONICAL_M1L512_FEATURE_NAMES_HASH,
-        "input_dim": int(EXIT_IO_V6_CTX_V3CANONICAL_M1L512_FEATURE_COUNT),
+        "io_version": EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_IO_VERSION,
+        "feature_names_hash": EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_FEATURE_NAMES_HASH,
+        "input_dim": int(EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_FEATURE_COUNT),
         "window_len": int(args.window_len),
         "max_bars_per_trade": int(args.max_bars_per_trade),
         "emit_stride": int(args.emit_stride),

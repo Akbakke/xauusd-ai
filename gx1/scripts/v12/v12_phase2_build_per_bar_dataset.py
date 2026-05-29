@@ -138,6 +138,14 @@ def emit_per_bar_rows_v12(
         "v10_p_short_at_entry_v1": candidate_row.get("p_short"),
         "v10_path_quality_at_entry_v1": candidate_row.get("path_quality_pred"),
         "v10_mfe_pred_at_entry_v1": candidate_row.get("mfe_first_n_pred"),
+        # V10 v3+ aux heads — included as Exit-IQL state features so the
+        # Q-network can learn associations like "low tf_agreement → favor exit"
+        # or "trade past predicted hold_horizon → exit even on small MFE".
+        # NaN for legacy bundles; gets filled with neutral 0.5 / 0.0 in Exit-IQL adapter.
+        "v10_tf_agreement_at_entry_v1": candidate_row.get("tf_agreement_pred"),
+        "v10_path_quality_std_at_entry_v1": candidate_row.get("path_quality_std"),
+        "v10_position_size_at_entry_v1": candidate_row.get("position_size_pred"),
+        "v10_hold_horizon_at_entry_v1": candidate_row.get("hold_horizon_pred"),
     }
 
     n_full = len(cur_pnl)

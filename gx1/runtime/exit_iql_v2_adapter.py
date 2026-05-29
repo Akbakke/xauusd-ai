@@ -137,19 +137,40 @@ class ExitIQLV2Adapter:
 
     def build_state_vector(self, bar_state: dict[str, Any]) -> np.ndarray:
         v = np.zeros(len(self.feature_names), dtype=np.float32)
+        missing: list[str] = []
         for i, fname in enumerate(self.feature_names):
             if "__" in fname:
                 cat_col, _, cat_val = fname.partition("__")
                 runtime_val = bar_state.get(cat_col)
-                if runtime_val is not None and str(runtime_val) == cat_val:
+                if runtime_val is None:
+                    missing.append(fname)
+                    continue
+                if str(runtime_val) == cat_val:
                     v[i] = 1.0
             else:
                 raw = bar_state.get(fname)
-                if raw is not None:
-                    try:
-                        v[i] = float(raw)
-                    except (TypeError, ValueError):
-                        v[i] = 0.0
+                if raw is None:
+                    missing.append(fname)
+                    continue
+                try:
+                    v[i] = float(raw)
+                except (TypeError, ValueError):
+                    v[i] = 0.0
+        # Strict coverage check — log once per missing-set to avoid spam.
+        # Without this guard, missing features silent-0-fill and the model
+        # drifts (root cause of 2026-05-19 LONG-bias bug). Cap warning to
+        # avoid log flood when bar_state is intentionally sparse.
+        if missing and not getattr(self, "_missing_warned_set", None) == tuple(missing):
+            import logging
+            n_miss = len(missing)
+            tot = len(self.feature_names)
+            head = ", ".join(missing[:10])
+            logging.getLogger("exit_iql_v2_adapter").warning(
+                f"[FEATURE_COVERAGE] {n_miss}/{tot} features missing from bar_state — "
+                f"silent 0-fill. First 10: [{head}]"
+                + (f" (+{n_miss-10} more)" if n_miss > 10 else "")
+            )
+            self._missing_warned_set = tuple(missing)
         return v
 
     def predict(self, bar_states: list[dict[str, Any]]) -> list[ExitRecommendation]:

@@ -158,12 +158,31 @@ def load_entry_v10_ctx_bundle(
     mtf_dim = int(mtf_meta.get("m15_seq_dim", 0)) if enable_mtf else 0
     mtf_seq_len = int(mtf_meta.get("m15_seq_len", 96)) if enable_mtf else 96
     mtf_scale = float(mtf_meta.get("multi_tf_scale", 0.5)) if enable_mtf else 0.5
+    # V2 manifest fields (default 0/False = V1 bundles work unchanged).
+    _v2_mode = bool(mtf_meta.get("v2_mode", False))
+    _m5_seq_dim = int(mtf_meta.get("m5_seq_dim", 0)) if (enable_mtf and _v2_mode) else 0
+    _m5_seq_len = int(mtf_meta.get("m5_seq_len", mtf_seq_len)) if (enable_mtf and _v2_mode) else mtf_seq_len
+    _h4_seq_len = int(mtf_meta.get("h4_seq_len", mtf_seq_len)) if enable_mtf else mtf_seq_len
+    _d1_seq_len = int(mtf_meta.get("d1_seq_len", mtf_seq_len)) if enable_mtf else mtf_seq_len
     # V10 v3+ aux heads: detect by presence in state_dict keys.
     state_dict_preview = torch.load(state_path, map_location="cpu")
     _has_tf_agreement = "head_tf_agreement.weight" in state_dict_preview
     _has_path_var = "head_path_quality_log_var.weight" in state_dict_preview
     _has_position_size = "head_position_size.weight" in state_dict_preview
     _has_hold_horizon = "head_hold_horizon.weight" in state_dict_preview
+    # 2026-05-26 dip-aware heads + cross-TF attention — detect by state_dict
+    # presence so strict-load matches (else they read as unexpected_keys).
+    _has_dip = "head_dip.weight" in state_dict_preview
+    _has_forecast = "head_forecast.weight" in state_dict_preview
+    _has_timing = "head_timing.weight" in state_dict_preview
+    _has_tail_risk = "head_tail_risk.weight" in state_dict_preview
+    _has_vol_forecast = "head_vol_forecast.weight" in state_dict_preview
+    _has_cross_tf = any(k.startswith("cross_tf_attn.") or k == "tf_gate_logits" for k in state_dict_preview)
+    # Positional encoding uses a persistent=False buffer (NOT in state_dict),
+    # so it cannot be probed from keys like the aux heads — it MUST be read
+    # from bundle metadata. Default False keeps old (pos-enc-free) bundles
+    # bit-identical at inference.
+    _enable_pos_enc = bool(meta.get("enable_pos_enc", False)) if isinstance(meta, dict) else False
 
     model = EntryV10CtxHybridTransformer(
         seq_input_dim=seq_input_dim,
@@ -173,12 +192,23 @@ def load_entry_v10_ctx_bundle(
         ctx_cat_dim=ctx_cat_dim,
         enable_multi_tf=enable_mtf,
         m15_seq_dim=mtf_dim, h1_seq_dim=mtf_dim, h4_seq_dim=mtf_dim, d1_seq_dim=mtf_dim,
-        m15_seq_len=mtf_seq_len, h1_seq_len=mtf_seq_len, h4_seq_len=mtf_seq_len, d1_seq_len=mtf_seq_len,
+        m15_seq_len=mtf_seq_len, h1_seq_len=mtf_seq_len,
+        h4_seq_len=_h4_seq_len, d1_seq_len=_d1_seq_len,
+        # V2: enable M5 branch when manifest says so.
+        enable_multi_tf_m5=_v2_mode,
+        m5_seq_dim=_m5_seq_dim, m5_seq_len=_m5_seq_len,
         multi_tf_scale=mtf_scale,
         enable_tf_agreement_head=_has_tf_agreement,
         enable_path_quality_variance_head=_has_path_var,
         enable_position_size_head=_has_position_size,
         enable_hold_horizon_head=_has_hold_horizon,
+        enable_pos_enc=_enable_pos_enc,
+        enable_dip_head=_has_dip,
+        enable_forecast_head=_has_forecast,
+        enable_timing_head=_has_timing,
+        enable_tail_risk_head=_has_tail_risk,
+        enable_vol_forecast_head=_has_vol_forecast,
+        enable_cross_tf_attn=_has_cross_tf,
     ).to(dev)
 
     state_dict = state_dict_preview

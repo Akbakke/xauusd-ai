@@ -53,6 +53,21 @@ from gx1.exits.contracts.exit_io_v6_ctx_v3canonical_m1l512 import (
     EXIT_IO_V6_CTX_V3CANONICAL_M1L512_FEATURES as V6_FEATURES,
     EXIT_IO_V6_CTX_V3CANONICAL_M1L512_FEATURE_COUNT as V6_FEATURE_COUNT,
 )
+# V7 contract (extension of V6; first 91 features identical to V6).
+# 2026-05-28: scorer extended to accept both V6 (91) and V7 (155) bundles.
+# Auto-detected from cfg["exit_ml_io_version"] in load_v3_v8_model.
+from gx1.exits.contracts.exit_io_v7_volume_dipstruct_m1l512 import (
+    EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_FEATURES as V7_FEATURES,
+    EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_FEATURE_COUNT as V7_FEATURE_COUNT,
+    EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_IO_VERSION as V7_IO_VERSION,
+)
+
+# One-truth mapping: contract io_version → (features, count, label).
+# Used by load_v3_v8_model + the matrix-dim assertion in main().
+SUPPORTED_CONTRACTS: Dict[str, Tuple[List[str], int]] = {
+    "EXIT_IO_V6_CTX_V3CANONICAL_M1L512": (list(V6_FEATURES), V6_FEATURE_COUNT),
+    V7_IO_VERSION: (list(V7_FEATURES), V7_FEATURE_COUNT),
+}
 
 ACTION = "SCORE_V3_V8_ON_PER_BAR_V1"
 # V12.2 (2026-05-15): default updated to V3 v9 multi-TF. The script
@@ -106,11 +121,18 @@ def load_v3_v8_model(bundle_dir: Path, device: torch.device) -> ExitTransformerV
     cfg_path = bundle_dir / "transformer_config.json"
     state_path = bundle_dir / "exit_transformer_v0.pt"
     cfg = json.loads(cfg_path.read_text())
-    expected_dim = V6_FEATURE_COUNT
+    io_version = cfg.get("exit_ml_io_version")
+    if io_version not in SUPPORTED_CONTRACTS:
+        raise ValueError(
+            f"V3 io_version {io_version!r} not in supported: "
+            f"{sorted(SUPPORTED_CONTRACTS)}"
+        )
+    _feats, expected_dim = SUPPORTED_CONTRACTS[io_version]
     if cfg["input_dim"] != expected_dim:
-        raise ValueError(f"V3 v8 input_dim={cfg['input_dim']} mismatch V6={expected_dim}")
-    if cfg.get("exit_ml_io_version") != "EXIT_IO_V6_CTX_V3CANONICAL_M1L512":
-        raise ValueError(f"V3 v8 io_version mismatch: {cfg.get('exit_ml_io_version')}")
+        raise ValueError(
+            f"V3 input_dim={cfg['input_dim']} mismatch contract {io_version}={expected_dim}"
+        )
+    print(f"[V3 LOAD] contract={io_version} input_dim={expected_dim}", flush=True)
 
     # V12.2 (2026-05-15): multi-TF is now REQUIRED. Reject non-multi-TF bundles.
     mtf_cfg = cfg.get("multi_tf", {}) or {}
@@ -133,16 +155,34 @@ def load_v3_v8_model(bundle_dir: Path, device: torch.device) -> ExitTransformerV
         h1_seq_len=int(mtf_cfg["h1_seq_len"]),
         h4_seq_len=int(mtf_cfg["h4_seq_len"]),
         d1_seq_len=int(mtf_cfg["d1_seq_len"]),
+        multi_tf_scale=float(mtf_cfg.get("multi_tf_scale", 0.5)),
     )
-    print(f"[V3 LOAD] multi-TF bundle detected — model constructed with M5+M15+H1+H4+D1", flush=True)
+    # Aux head gates (V7 enables dip/timing/tail_risk/vol_forecast/forecast).
+    # Pass-through whatever the cfg declares — fail-closed if the cfg is silent.
+    aux_kwargs: Dict[str, Any] = {}
+    for gate in (
+        "enable_dip_head", "enable_timing_head", "enable_tail_risk_head",
+        "enable_vol_forecast_head", "enable_forecast_head",
+    ):
+        if gate in cfg:
+            aux_kwargs[gate] = bool(cfg[gate])
+    print(
+        f"[V3 LOAD] multi-TF bundle detected — model constructed with M5+M15+H1+H4+D1; "
+        f"aux gates: {aux_kwargs}",
+        flush=True,
+    )
 
     model = ExitTransformerV0(
         input_dim=cfg["input_dim"], window_len=cfg["window_len"],
         d_model=cfg["d_model"], n_heads=cfg["n_heads"], n_layers=cfg["n_layers"],
         dropout=cfg.get("dropout", 0.1),
+        enable_pos_enc=bool(cfg.get("enable_pos_enc", True)),
         **mtf_kwargs,
+        **aux_kwargs,
     )
     state_dict = torch.load(state_path, map_location=device, weights_only=True)
+    # Strip torch.compile prefix if present (compile-wrapped bundles).
+    state_dict = {k.removeprefix("_orig_mod."): v for k, v in state_dict.items()}
     model.load_state_dict(state_dict)
     model.to(device).eval()
     return model
@@ -247,6 +287,16 @@ def score_week(
     def flush_batch() -> None:
         if not pending_x:
             return
+        # 2026-05-28: pad to exact batch_size so torch.compile(mode="reduce-overhead")
+        # CUDA Graphs stay valid across weeks. Outputs for padded rows are discarded.
+        n_real = len(pending_x)
+        if n_real < batch_size:
+            pad_x = pending_x[-1]
+            pad_ts = pending_ts_ns[-1] if pending_ts_ns else 0
+            while len(pending_x) < batch_size:
+                pending_x.append(pad_x)
+                if enable_mtf:
+                    pending_ts_ns.append(pad_ts)
         x = np.stack(pending_x, axis=0)
         x_t = torch.from_numpy(x).to(device, non_blocking=True)
         mtf_kwargs = _build_mtf_batch(pending_ts_ns) if enable_mtf else {}
@@ -264,7 +314,9 @@ def score_week(
         fam_argmax = torch.argmax(fam_logits.float(), dim=-1).cpu().numpy()
         fam_max = fam_logits.float().max(dim=-1).values.cpu().numpy()
 
-        for i, row_idx in enumerate(pending_idx):
+        # Only attribute the first n_real outputs (the rest are padding).
+        for i in range(n_real):
+            row_idx = pending_idx[i]
             out_should[row_idx] = float(main_prob[i])
             out_profit[row_idx] = float(prof_prob[i])
             out_family[row_idx] = int(fam_argmax[i])
@@ -331,7 +383,15 @@ def score_week(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=f"{ACTION}")
-    parser.add_argument("--v3-bundle", type=str, default=str(DEFAULT_V3_BUNDLE))
+    # 2026-05-28: default V3 bundle resolved from PROJECT_STATE_artifacts.json
+    # (one truth). Falls back to legacy V9 default if guards module unavailable.
+    _default_v3_bundle = DEFAULT_V3_BUNDLE
+    try:
+        from gx1_guards.artifacts import load_decision_artifact
+        _default_v3_bundle = load_decision_artifact("v3_exit")
+    except Exception:
+        pass
+    parser.add_argument("--v3-bundle", type=str, default=str(_default_v3_bundle))
     parser.add_argument("--v3-dataset-dir", type=str, default=str(DEFAULT_V3_DATASET_DIR))
     parser.add_argument("--per-bar-dir", type=str, default=str(DEFAULT_PER_BAR_DIR))
     parser.add_argument("--out-root", type=str, required=True)
@@ -340,12 +400,28 @@ def main() -> None:
     parser.add_argument("--batch-size", type=int, default=4096,
                         help="V12.2: default 4096 — uses ~5GB GPU mem with bf16 autocast, "
                              "leaves plenty of headroom on 24GB cards.")
-    # V12.2: only needed when V3 bundle is multi-TF (V3 v9+).
+    # Multi-TF source: prefer pre-built V2 cache; M5 parquet path is the live-build fallback.
+    parser.add_argument("--multi-tf-v2-cache", type=str,
+                        default="/home/andre2/GX1_DATA/data/data/prebuilt/MULTI_TF_V2_CACHE",
+                        help="Pre-built MULTI_TF_V2_CACHE dir (preferred; saves ~84s rebuild).")
     parser.add_argument("--m5-prebuilt-path", type=str, default=None,
                         help="V12.2: canonical_v3 M5 prebuilt parquet, required when "
-                             "scoring with a multi-TF V3 bundle (auto-detected from cfg.multi_tf).")
+                             "scoring with a multi-TF V3 bundle if --multi-tf-v2-cache absent.")
     parser.add_argument("--multi-tf-seq-len", type=int, default=96)
+    parser.add_argument("--vedtak", type=str, default=None,
+                        help="REQUIRED retrain vedtak (gx1_guards gate). Short reason string.")
     args = parser.parse_args()
+
+    # Retrain-vedtak gate (no auto-retrains).
+    try:
+        from gx1_guards.gates import require_retrain_vedtak, GateError
+        try:
+            require_retrain_vedtak(args.vedtak)
+        except GateError as e:
+            parser.error(str(e))
+    except ImportError:
+        if not args.vedtak:
+            parser.error("--vedtak is required (gx1_guards unavailable; pass --vedtak anyway).")
 
     bundle = Path(args.v3_bundle).expanduser().resolve()
     v3_ds = Path(args.v3_dataset_dir).expanduser().resolve()
@@ -365,35 +441,62 @@ def main() -> None:
     # V12.2 speedup: torch.compile the _encode hot path. Dynamic=True handles
     # the last-batch shorter-than-batch_size case without re-compilation.
     if device.type == "cuda":
+        # 2026-05-28: mode="reduce-overhead" uses CUDA Graphs which need fixed
+        # input shapes — flush_batch was patched to pad partial batches to
+        # batch_size so every call has identical shape. dynamic=False locks
+        # the graph for max throughput (3x+ over mode="default").
         try:
-            compiled_encode = torch.compile(model._encode, mode="reduce-overhead", dynamic=True)
+            compiled_encode = torch.compile(model._encode, mode="reduce-overhead", dynamic=False)
             model._encode = compiled_encode  # type: ignore[method-assign]
-            print(f"[{ACTION}] torch.compile applied to model._encode (reduce-overhead, dynamic)", flush=True)
+            print(f"[{ACTION}] torch.compile applied to model._encode (reduce-overhead, static; padded batches)", flush=True)
         except Exception as e:
             print(f"[{ACTION}] torch.compile FAILED ({e!r}) — falling back to eager", flush=True)
 
     # V12.2: if multi-TF bundle, build features ONCE before week-loop.
+    # 2026-05-28: prefer pre-built MULTI_TF_V2_CACHE over live M5 build (saves ~84s).
     mtf_feats = None
     mtf_shift = None
     if getattr(model, "enable_multi_tf", False):
-        if not args.m5_prebuilt_path:
-            raise RuntimeError(
-                "[score_v3_v8] V3 bundle is multi-TF — --m5-prebuilt-path is required."
-            )
+        try:
+            _v2_mtf = int(model.m5_proj.weight.shape[1]) == 25
+        except Exception:
+            _v2_mtf = False
         from gx1.features.htf_features import (
-            build_multi_tf_per_bar_features, MULTI_TF_SHIFT,
+            build_multi_tf_per_bar_features,
+            build_multi_tf_per_bar_features_v2,
+            load_multi_tf_v2_cache,
+            MULTI_TF_SHIFT,
         )
-        print(f"[{ACTION}] V12.2: building multi-TF features from {args.m5_prebuilt_path}", flush=True)
-        m5 = pd.read_parquet(args.m5_prebuilt_path,
-                              columns=["time", "open", "high", "low", "close"])
-        m5["time"] = pd.to_datetime(m5["time"], utc=True)
-        m5 = m5.set_index("time").sort_index()
-        for c in ("open", "high", "low", "close"):
-            m5[c] = m5[c].astype(np.float32)
-        mtf_feats = build_multi_tf_per_bar_features(m5)
+        cache_dir = Path(args.multi_tf_v2_cache).expanduser().resolve() if args.multi_tf_v2_cache else None
+        if _v2_mtf and cache_dir is not None and cache_dir.exists() and (cache_dir / "manifest.json").exists():
+            print(f"[{ACTION}] loading pre-built multi-TF V2 cache from {cache_dir}", flush=True)
+            mtf_feats = load_multi_tf_v2_cache(cache_dir)
+        elif args.m5_prebuilt_path:
+            print(f"[{ACTION}] live-building multi-TF features from {args.m5_prebuilt_path} (v2={_v2_mtf})", flush=True)
+            _load_cols = ["time", "open", "high", "low", "close"]
+            if _v2_mtf:
+                import pyarrow.parquet as _pq
+                if "volume" in _pq.ParquetFile(args.m5_prebuilt_path).schema_arrow.names:
+                    _load_cols.append("volume")
+            m5 = pd.read_parquet(args.m5_prebuilt_path, columns=_load_cols)
+            m5["time"] = pd.to_datetime(m5["time"], utc=True)
+            m5 = m5.set_index("time").sort_index()
+            for c in ("open", "high", "low", "close"):
+                m5[c] = m5[c].astype(np.float32)
+            if "volume" in m5.columns:
+                m5["volume"] = m5["volume"].astype(np.float32)
+            if _v2_mtf:
+                mtf_feats = build_multi_tf_per_bar_features_v2(m5)
+            else:
+                mtf_feats = build_multi_tf_per_bar_features(m5)
+            del m5
+            import gc; gc.collect()
+        else:
+            raise RuntimeError(
+                "[score_v3_v8] V3 bundle is multi-TF — pass --multi-tf-v2-cache "
+                "(preferred) or --m5-prebuilt-path."
+            )
         mtf_shift = MULTI_TF_SHIFT
-        del m5
-        import gc; gc.collect()
         for tf, df in mtf_feats.items():
             print(f"[{ACTION}]   {tf}: {len(df):,} bars × {df.shape[1]} feats", flush=True)
 
@@ -402,8 +505,13 @@ def main() -> None:
     m1_time_ns = np.load(v3_ds / "m1_time_ns.npy")
     print(f"[{ACTION}] m1 matrix shape={m1_feature_matrix.shape}, time_ns range="
           f"{m1_time_ns[0]}..{m1_time_ns[-1]}", flush=True)
-    if m1_feature_matrix.shape[1] != V6_FEATURE_COUNT:
-        raise ValueError(f"matrix dim {m1_feature_matrix.shape[1]} != V6 {V6_FEATURE_COUNT}")
+    # Auto-derive expected dim from the loaded model's bundle contract (one truth).
+    _expected_m1_dim = int(model.input_dim)
+    if m1_feature_matrix.shape[1] != _expected_m1_dim:
+        raise ValueError(
+            f"m1 matrix dim {m1_feature_matrix.shape[1]} != model.input_dim {_expected_m1_dim} "
+            f"— v3-dataset-dir {v3_ds} contract mismatches the V3 bundle."
+        )
 
     pb_per_week_dir = pb_dir / "per_week"
     week_files = sorted(pb_per_week_dir.glob("exit_per_bar_m1_*.parquet"))

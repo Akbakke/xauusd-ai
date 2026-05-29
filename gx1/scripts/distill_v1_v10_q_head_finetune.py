@@ -5,7 +5,7 @@ Strategy: keep V12.2 v_FIXED backbone FROZEN; train only the new `q_head` layer
 (zero-init in patched model) to mirror Entry-IQL's q_per_action_v1 distribution.
 
 Inputs:
-  - V12.2 v_FIXED bundle (entry_v10/ENTRY_V10_MULTI_TF_v2_FIXED_*) — warmstart
+  - V10 v3+ bundle (entry_v10_ctx/ENTRY_V10_V3PLUS_v2_*) — warmstart
   - V10 training dataset (v10_v3_6yr_dataset__HOLD_03B_*.parquet)
   - Entry-IQL decisions.parquet (q_skip_v1, q_take_long_v1, q_take_short_v1)
   - canonical_v3 M5 prebuilt (for multi-TF cache, same as training)
@@ -45,17 +45,20 @@ from gx1.models.entry_v10.entry_v10_ctx_train_v3 import (
 )
 
 
+# 2026-05-21: defaults updated to v3+ chain (Transformer-IQL via Phase 3
+# distillation). Backbone = ENTRY_V10_V3PLUS_v2 (already has 4 aux heads).
+# Q-head learns from Entry-IQL ZCLAMP teacher's per-decision Q-values.
 DEFAULT_V_FIXED_BUNDLE = Path(
     "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/"
-    "ENTRY_V10_MULTI_TF_v2_FIXED_20260513T214805Z"
+    "ENTRY_V10_V3PLUS_v2_20260518T135516Z"
 )
 DEFAULT_TRAIN_PARQUET = Path(
-    "/home/andre2/GX1_DATA/data/training/entry_v10_ctx_v3_dataset_6yr/"
-    "v10_v3_6yr_dataset__HOLD_03B_train.parquet"
+    "/home/andre2/GX1_DATA/data/training/entry_v10_ctx_v3plus_dataset_6yr/"
+    "v10_v3plus_6yr_dataset__HOLD_03B_train.parquet"
 )
 DEFAULT_VAL_PARQUET = Path(
-    "/home/andre2/GX1_DATA/data/training/entry_v10_ctx_v3_dataset_6yr/"
-    "v10_v3_6yr_dataset__HOLD_03B_val.parquet"
+    "/home/andre2/GX1_DATA/data/training/entry_v10_ctx_v3plus_dataset_6yr/"
+    "v10_v3plus_6yr_dataset__HOLD_03B_val.parquet"
 )
 DEFAULT_CANONICAL_M5 = Path(
     "/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_PREBUILT/"
@@ -207,6 +210,14 @@ def main() -> int:
     meta_path = args.v_fixed_bundle / "bundle_metadata.json"
     meta = json.loads(meta_path.read_text())
     mtf = meta["multi_tf"]
+    # V10 v3+ aux heads — present in v_FIXED bundle's state_dict, must be enabled
+    # when reconstructing the model or load_state_dict reports them as unexpected.
+    aux_flags = {
+        "enable_tf_agreement_head":          bool(meta.get("enable_tf_agreement_head", True)),
+        "enable_path_quality_variance_head": bool(meta.get("enable_path_quality_variance_head", True)),
+        "enable_position_size_head":         bool(meta.get("enable_position_size_head", True)),
+        "enable_hold_horizon_head":          bool(meta.get("enable_hold_horizon_head", True)),
+    }
     model = EntryV10CtxHybridTransformer(
         seq_input_dim=int(meta["seq_input_dim"]),
         snap_input_dim=int(meta["snap_input_dim"]),
@@ -219,17 +230,18 @@ def main() -> int:
         m15_seq_len=int(mtf["m15_seq_len"]), h1_seq_len=int(mtf["h1_seq_len"]),
         h4_seq_len=int(mtf["h4_seq_len"]),   d1_seq_len=int(mtf["d1_seq_len"]),
         enable_q_head=True,
+        **aux_flags,
     ).to(device)
     state = torch.load(args.v_fixed_bundle / "model_state_dict.pt", map_location=device)
     incompatible = model.load_state_dict(state, strict=False)
-    # Expected: missing=q_head.{weight,bias} (zero-init), unexpected=[]
     if incompatible.unexpected_keys:
         raise RuntimeError(f"Unexpected keys in state_dict: {incompatible.unexpected_keys}")
+    # Expected missing: only q_head (zero-init). Aux heads must come from state_dict.
     expected_missing = {"q_head.weight", "q_head.bias"}
     actual_missing = set(incompatible.missing_keys)
     if actual_missing != expected_missing:
         raise RuntimeError(f"Missing keys mismatch: got {actual_missing}, expected {expected_missing}")
-    print(f"  ✓ v_FIXED warmstart OK (q_head zero-init)", flush=True)
+    print(f"  ✓ v_FIXED warmstart OK (q_head zero-init, aux heads {sum(aux_flags.values())}/4 enabled)", flush=True)
 
     # ── Freeze backbone ─────────────────────────────────────────────
     for p in model.parameters():
@@ -301,8 +313,12 @@ def main() -> int:
         "n_train_rows": int(len(train_ds)),
         "n_val_rows": int(len(val_ds)),
     }
-    # Copy peripheral files from v_FIXED into new bundle
-    for fname in ("xgb_universal_multihead_v2_meta.json", "lock.json"):
+    # Copy peripheral files from v_FIXED into new bundle. MASTER_TRANSFORMER_LOCK.json
+    # is required by V10LiveInference.load to validate dims.
+    for fname in (
+        "xgb_universal_multihead_v2_meta.json", "lock.json",
+        "MASTER_TRANSFORMER_LOCK.json",
+    ):
         src = args.v_fixed_bundle / fname
         if src.exists():
             (out_bundle / fname).write_bytes(src.read_bytes())

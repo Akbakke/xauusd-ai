@@ -36,8 +36,9 @@ from typing import Any, Dict, List
 
 REPO = Path("/home/andre2/src/GX1_ENGINE")
 TRAINER = REPO / "gx1/models/entry_v10/entry_v10_ctx_train_v3.py"
-DATASET_DIR = Path("/home/andre2/GX1_DATA/data/training/entry_v10_ctx_v3_dataset_6yr")
-TRAIN_PARQUET = DATASET_DIR / "v10_v3_6yr_dataset__HOLD_03B_train.parquet"
+# 2026-05-26: repointed to the current ctx=105 dataset (old v3_dataset_6yr deleted in cleanup).
+DATASET_DIR = Path("/home/andre2/GX1_DATA/data/training/entry_v10_ctx_BASE80_PARITY_NORELABEL_6yr_20260526T102912Z")
+TRAIN_PARQUET = DATASET_DIR / "v10_base80_parity_norelabel_6yr_dataset__HOLD_03B_train.parquet"
 M5_PREBUILT = Path("/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_PREBUILT/xauusd_m5_CANONICAL_V3_2020_2026.parquet")
 
 
@@ -76,7 +77,7 @@ def run_trial(
         "--lr", f"{lr}",
         "--early-stopping-patience", "999",   # disable, we want raw curves
         "--device", "cuda",
-        "--enable-multi-tf",
+        # --enable-multi-tf removed 2026-05-26 (multi-TF is now mandatory; flag deleted)
         "--m5-prebuilt-path", str(M5_PREBUILT),
         "--multi-tf-scale", f"{scale}",
         "--subsample-rows", str(subsample_rows),

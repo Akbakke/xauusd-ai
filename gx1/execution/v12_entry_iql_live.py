@@ -70,20 +70,32 @@ LOG = logging.getLogger("v12_entry_iql_live")
 #       trained and validated.
 # Currently-running paper-runner process holds weights in RAM; do NOT restart
 # until new bundles are deployed.
-DEFAULT_BUNDLE_DIR = Path(
-    "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/"
-    "BUILD_ENTRY_IQL_V3PLUS_PORTFOLIO_PLUS5_SEED1337_20260521T111046Z"
-)
-ENSEMBLE_BUNDLE_DIRS = [
-    Path("/home/andre2/GX1_DATA/reports/truth_e2e_sanity/BUILD_ENTRY_IQL_V3PLUS_PORTFOLIO_PLUS5_SEED1337_20260521T111046Z"),
-    Path("/home/andre2/GX1_DATA/reports/truth_e2e_sanity/BUILD_ENTRY_IQL_V3PLUS_PORTFOLIO_PLUS5_SEED1338_20260521T111046Z"),
-    Path("/home/andre2/GX1_DATA/reports/truth_e2e_sanity/BUILD_ENTRY_IQL_V3PLUS_PORTFOLIO_PLUS5_SEED1339_20260521T111046Z"),
-    Path("/home/andre2/GX1_DATA/reports/truth_e2e_sanity/BUILD_ENTRY_IQL_V3PLUS_PORTFOLIO_PLUS5_SEED1340_20260521T111046Z"),
-    Path("/home/andre2/GX1_DATA/reports/truth_e2e_sanity/BUILD_ENTRY_IQL_V3PLUS_PORTFOLIO_PLUS5_SEED1341_20260521T111046Z"),
-]
-DEFAULT_VARIANT = "R_NET_REAL"
-DEFAULT_FOLD = "FOLD_1"
+# 2026-05-29: contract-driven default — reads the ACTIVE entry_iql bundle from
+# PROJECT_STATE_artifacts.json via gx1_guards.load_decision_entry. The retired
+# 5-seed PORTFOLIO_PLUS5 ensemble is gone; current cement is a single bundle.
+def _resolve_default_entry_iql_entry() -> dict:
+    try:
+        from gx1_guards.artifacts import load_decision_entry
+        return load_decision_entry("entry_iql")
+    except Exception:
+        return {
+            "path": Path(
+                "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/"
+                "BUILD_ENTRY_IQL_V2_COSTFIX_HEADS_FAST_20260528T071646Z"
+            ),
+            "active_variant": "R_WAIT_OPP_K96_LAM50",
+            "active_folds": ["FOLD_1"],
+        }
+
+_DEFAULT_ENTRY = _resolve_default_entry_iql_entry()
+DEFAULT_BUNDLE_DIR = Path(_DEFAULT_ENTRY["path"])
+DEFAULT_VARIANT = _DEFAULT_ENTRY.get("active_variant", "R_WAIT_OPP_K96_LAM50")
+DEFAULT_FOLD = (_DEFAULT_ENTRY.get("active_folds") or ["FOLD_1"])[0]
 DEFAULT_AGGREGATOR = "mean"
+# Ensemble was retired with the PLUS5 cleanup. load_default() now uses a single
+# bundle (the current cement). Keep an empty list so any callers expecting the
+# name still find an iterable.
+ENSEMBLE_BUNDLE_DIRS: list[Path] = []
 # V12.2: filter off (0.0) to match Phase 6 validation. V12.1.1 used 15.1 (V9 P70)
 # but V12.2 Q-adv distribution shifted lower (p70=10.2) since more candidates pass.
 DEFAULT_MIN_ADVANTAGE_BPS = 0.0    # 2026-05-21: replaced static threshold with
@@ -309,6 +321,7 @@ class EntryIQLLiveInference:
         # load_ensemble), but explicit per-adapter call makes the contract
         # self-documenting and refactor-safe.
         q_full_list = []
+        state_a = None
         for a in self.ensemble_adapters:
             state_a = a.build_state_vector(candidate)[None, :]  # (1, n_features)
             q_full_list.append(a.model.predict_q(state_a))      # (1, n_actions, n_K)
@@ -358,7 +371,7 @@ class EntryIQLLiveInference:
             variant_v1=a0.variant,
             fold_id_v1=a0.fold_id,
             feature_names_v1=list(a0.feature_names),
-            state_v1=states[0],
+            state_v1=(state_a[0] if state_a is not None else np.zeros(0, dtype=np.float32)),
         )
 
     def predict_from_pipeline(

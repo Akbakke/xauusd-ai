@@ -2,7 +2,8 @@
 """
 Train Universal Multi-head XGB v2 on canonical BASE28 data.
 
-Trains one XGB head per session (ASIA, EU, OVERLAP, US) with 2-class threshold labels:
+Trains one XGB head per session (ASIA, EU, OVERLAP, US) with 3-class ATR
+triple-barrier labels (LONG / SHORT / FLAT, multi:softprob):
 - LONG:  future_return_bps >= +T
 - SHORT: future_return_bps <= -T
 Rows within (-T, +T) are dropped (no FLAT in this iteration).
@@ -332,7 +333,10 @@ def _load_feature_contracts(
     Path,
 ]:
     if feature_contract_path is None:
-        feature_contract_path = WORKSPACE_ROOT / "gx1" / "xgb" / "contracts" / "xgb_input_features_base28_v1.json"
+        # BASE76 is the ONE active contract (V10/V3 expect it). Default here so a
+        # re-run without --feature-contract-path can never silently rebuild the
+        # wrong (legacy base28) contract into the same bundle filename.
+        feature_contract_path = WORKSPACE_ROOT / "gx1" / "xgb" / "contracts" / "xgb_input_features_base80_v1.json"
     if not feature_contract_path.exists():
         raise FileNotFoundError(f"Feature contract not found: {feature_contract_path}")
 
@@ -341,7 +345,7 @@ def _load_feature_contracts(
     schema_hash = feature_contract.get("schema_hash", "unknown")
 
     if sanitizer_config_path is None:
-        sanitizer_config_path = WORKSPACE_ROOT / "gx1" / "xgb" / "contracts" / "xgb_input_sanitizer_base28_v1.json"
+        sanitizer_config_path = WORKSPACE_ROOT / "gx1" / "xgb" / "contracts" / "xgb_input_sanitizer_base80_v1.json"
     if not sanitizer_config_path.exists():
         raise FileNotFoundError(f"Sanitizer config not found: {sanitizer_config_path}")
 
@@ -702,16 +706,16 @@ def main() -> int:
     parser.add_argument("--canonical-prebuilt-parquet", type=Path, default=None)
     parser.add_argument(
         "--feature-contract-path", type=Path, default=None,
-        help="Override feature contract path. Default: gx1/xgb/contracts/xgb_input_features_base28_v1.json",
+        help="Override feature contract path. Default: gx1/xgb/contracts/xgb_input_features_base80_v1.json",
     )
     parser.add_argument(
         "--sanitizer-config-path", type=Path, default=None,
-        help="Override sanitizer config path. Default: gx1/xgb/contracts/xgb_input_sanitizer_base28_v1.json",
+        help="Override sanitizer config path. Default: gx1/xgb/contracts/xgb_input_sanitizer_base80_v1.json",
     )
     parser.add_argument("--output-dir", type=Path, default=None)
     parser.add_argument("--n-bars", type=int, default=None, help="Optional cap after year-filter, preserves chronological order")
     parser.add_argument("--val-split", type=float, default=0.20)
-    parser.add_argument("--lookahead-bars", type=int, default=12)
+    parser.add_argument("--lookahead-bars", type=int, default=24)  # BASE76 bundle was trained at 24 (~2h M5)
     parser.add_argument("--spread-bps", type=float, default=2.0)
     parser.add_argument(
         "--tape-root",
@@ -848,6 +852,11 @@ def main() -> int:
     print(f"Tape root:           {tape_root}")
 
     tape_df = _load_canonical_tape(tape_root, years_set)
+    # 2026-05-24 FIX: if rebuilt canonical contains "close" column, drop it before
+    # merge so tape's close wins without suffix collision (pandas would rename to
+    # close_x/close_y otherwise → KeyError downstream).
+    if "close" in df.columns:
+        df = df.drop(columns=["close"])
     rows_base28 = len(df)
     rows_tape = len(tape_df)
     joined_df = df.merge(
@@ -902,7 +911,39 @@ def main() -> int:
         f"ASIA={percentages.get('ASIA', 0):.1f}%"
     )
 
+    # 2026-05-24 BASE76: derive features dropped by canonical_v3_augment as redundant.
+    # Duplicates: re-expose under historical names so BASE76 contract is satisfied
+    # without bloating canonical_v3 parquet.
+    # Session-interaction (*_us): _v1_is_US gated derivatives; same formulas as
+    # v12_ctx_augment_live._derive_us_interactions (parity with live).
+    sid = df["session_id"].astype(np.int32)
+    df["_v1_is_EU"] = (sid == 1).astype(np.int8)
+    df["_v1_is_US"] = (sid == 3).astype(np.int8)
+    is_us_f = df["_v1_is_US"].to_numpy(dtype=np.float64)
+    if "_v1_body_share_1" in df.columns:
+        df["_v1_body_tr"] = df["_v1_body_share_1"].to_numpy(dtype=np.float64)
+    if "_v1_clv" in df.columns:
+        df["_v1_int_clv_atr"] = df["_v1_clv"].to_numpy(dtype=np.float64)
+    if "_v1_r5" in df.columns:
+        df["_v1_int_r5_atr"] = df["_v1_r5"].to_numpy(dtype=np.float64)
+    if "_v1h4_slope5" in df.columns:
+        df["_v1_int_slope_h4_atr"] = df["_v1h4_slope5"].to_numpy(dtype=np.float64)
+    if "_v1_ema_diff" in df.columns:
+        df["_v1_int_ema_us"] = df["_v1_ema_diff"].to_numpy(dtype=np.float64) * is_us_f
+    if "_v1_range_z" in df.columns:
+        df["_v1_int_range_us"] = df["_v1_range_z"].to_numpy(dtype=np.float64) * is_us_f
+    if "_v1h1_slope3" in df.columns:
+        df["_v1_int_slope_h1_us"] = df["_v1h1_slope3"].to_numpy(dtype=np.float64) * is_us_f
+    print("[XGB] derived BASE76 missing features (8x duplicates+session-interactions)")
+
     # ATR-normalized triple-barrier labels (session-aware, 3-class)
+    # 2026-05-24 FIX: if atr_bps not in canonical, derive from _v1_atr14 / close * 1e4
+    if "atr_bps" not in df.columns:
+        if "_v1_atr14" in df.columns and "close" in df.columns:
+            df["atr_bps"] = (df["_v1_atr14"].astype(float) / df["close"].astype(float).clip(lower=1e-6) * 1e4).clip(0, 500).fillna(0.0)
+            print("[XGB] derived atr_bps from _v1_atr14 / close * 1e4 (no atr_bps in canonical)")
+        else:
+            raise KeyError("atr_bps missing and cannot derive from _v1_atr14 + close")
     atr_col = "atr_bps"
     session_multipliers = {
         "EU": 1.35,

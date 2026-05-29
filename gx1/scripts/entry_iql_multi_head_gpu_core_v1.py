@@ -119,9 +119,21 @@ class MultiHeadEntryIQLModel:
     device: torch.device
     feature_means: np.ndarray  # (state_dim,) — z-score normalization
     feature_stds: np.ndarray   # (state_dim,)
+    z_clamp: float = 5.0       # ±sigma clamp at normalization (inference + training)
 
     def _normalize(self, X_np: np.ndarray) -> np.ndarray:
-        return ((X_np - self.feature_means) / self.feature_stds).astype(np.float32)
+        # Clamp z-scores to ±z_clamp sigma. Training also clamps so model never
+        # learns to extrapolate outside this range. Audit C2/C3 follow-up 2026-05-20:
+        # live values outside p1-p99 of training distribution were producing
+        # extreme z-scores (50-100σ) and Q-network exploded to +1184 bps adv
+        # (5× training reward max).
+        z = (X_np - self.feature_means) / self.feature_stds
+        z = np.clip(z, -self.z_clamp, self.z_clamp)
+        # NaN-fill after clip (audit 3 L-1 fix 2026-05-20): any NaN from divide-
+        # by-zero std or upstream missing feature would cascade through the Q
+        # network. Defensive replace with 0.0 (mean of normalized distribution).
+        z = np.where(np.isnan(z), 0.0, z)
+        return z.astype(np.float32)
 
     def predict_q(self, X_np: np.ndarray) -> np.ndarray:
         """Return (n, n_actions, n_K) Q-values."""
@@ -179,12 +191,28 @@ def train_multi_head_entry_iql(
     device = _device(prefer_cuda)
     state_dim = X_np.shape[1]
 
-    # Normalize state features (z-score on train data)
-    feature_means = np.nanmean(X_np, axis=0).astype(np.float32)
-    feature_stds = np.nanstd(X_np, axis=0).astype(np.float32) + 1e-6
+    # Normalize state features (z-score on train data) — WINSORIZED.
+    # Audit C2/C3 2026-05-19: a few rows with 10^6-magnitude outliers were
+    # poisoning the mean/std (e.g. v10_mfe_pred_at_entry_v1 raw mean=15,617,
+    # std=446k — features were dead post-normalization). Clip per-column to
+    # the 1st/99th percentile before computing stats.
+    X_for_stats = X_np.copy()
+    lo = np.nanpercentile(X_for_stats, 1.0, axis=0)
+    hi = np.nanpercentile(X_for_stats, 99.0, axis=0)
+    X_clipped = np.clip(X_for_stats, lo, hi)
+    feature_means = np.nanmean(X_clipped, axis=0).astype(np.float32)
+    feature_stds = np.nanstd(X_clipped, axis=0).astype(np.float32) + 1e-6
+    # Use UNCLIPPED inputs for training (model sees real distribution after
+    # normalization with robust stats — outliers normalize to plausible z-scores).
+    Z_CLAMP_SIGMA = 5.0   # match adapter clamp; training+inference must agree
     X_norm = ((X_np - feature_means) / feature_stds).astype(np.float32)
+    X_norm = np.clip(X_norm, -Z_CLAMP_SIGMA, Z_CLAMP_SIGMA)
     # NaN-fill after normalization (defensive)
     X_norm = np.where(np.isnan(X_norm), 0.0, X_norm)
+    # Sanity log: how many features have suspiciously huge raw mean/std post-clip
+    huge = int(np.sum(np.abs(feature_means) > 1e4) + np.sum(feature_stds > 1e4))
+    if huge > 0:
+        print(f"[winsorize] WARN: {huge} feature stats still >1e4 after p1-p99 clip")
 
     # Replace NaN rewards with 0 (typically only in degenerate forward windows)
     R_clean = np.where(np.isnan(R_np), 0.0, R_np).astype(np.float32)

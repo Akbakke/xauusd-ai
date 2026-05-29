@@ -72,6 +72,56 @@ BASE34_MANIFEST = Path(
 )
 WARMUP_DAYS = 30   # enough for ATR14, EMA200, RSI, etc. to stabilize
 
+# PLUS5: 5 features the v3 augment originally dropped as "duplicates". Re-added
+# 2026-05-21 because PLUS5 Entry-IQL ensemble was trained on them with real values
+# (mean test reward 95K vs 94K without). Logic mirrors
+# augment_canonical_v3_with_missing_features.py:compute_features.
+PLUS5_FEATURES = ("atr", "std50", "roc20", "_v1_vwap_drift48", "_v1h1_vwap_drift")
+
+
+def _compute_plus5_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Compute the 5 PLUS5 features on an OHLCV DataFrame in place and return it.
+
+    Expects columns: open, high, low, close, volume. DataFrame may be time-indexed
+    or have a 'time' column; output preserves whichever input had.
+    """
+    out = df.copy()
+    close = pd.to_numeric(out["close"], errors="coerce").astype(np.float64)
+    high = pd.to_numeric(out["high"], errors="coerce").astype(np.float64)
+    low = pd.to_numeric(out["low"], errors="coerce").astype(np.float64)
+    volume = pd.to_numeric(out["volume"], errors="coerce").fillna(0).astype(np.float64).replace(0, 1.0)
+    pv = close * volume
+
+    # 1. _v1_vwap_drift48: M5 48-period VWAP drift
+    pv_48 = pv.rolling(48, min_periods=1).sum()
+    v_48 = volume.rolling(48, min_periods=1).sum()
+    vwap48 = pv_48 / v_48.replace(0, 1.0)
+    out["_v1_vwap_drift48"] = ((close - vwap48) / vwap48.replace(0, 1.0)).astype(np.float32)
+
+    # 2. _v1h1_vwap_drift: H1 VWAP drift (24 H1 bars ≈ 288 M5 bars)
+    pv_h1 = pv.rolling(288, min_periods=12).sum()
+    v_h1 = volume.rolling(288, min_periods=12).sum()
+    vwap_h1 = pv_h1 / v_h1.replace(0, 1.0)
+    out["_v1h1_vwap_drift"] = ((close - vwap_h1) / vwap_h1.replace(0, 1.0)).astype(np.float32)
+
+    # 3. atr: Wilder M5 14-period ATR (EWMA alpha=1/14)
+    prev_close = close.shift(1).fillna(close)
+    tr = pd.concat([
+        (high - low).abs(),
+        (high - prev_close).abs(),
+        (low - prev_close).abs(),
+    ], axis=1).max(axis=1)
+    out["atr"] = tr.ewm(alpha=1/14, adjust=False).mean().astype(np.float32)
+
+    # 4. std50: rolling std of M5 close-to-close returns
+    rets = close.pct_change().fillna(0.0)
+    out["std50"] = rets.rolling(50, min_periods=2).std().fillna(0.0).astype(np.float32)
+
+    # 5. roc20: 20-period rate of change of close
+    out["roc20"] = close.pct_change(20).fillna(0.0).astype(np.float32)
+
+    return out
+
 
 def _atomic_write_parquet(df: pd.DataFrame, path: Path) -> None:
     """Write parquet atomically via .tmp + os.replace (no torn writes)."""
@@ -170,13 +220,20 @@ def update_canonical_v3_incremental() -> tuple[int, pd.Timestamp | None]:
     v2 = build_canonical_v2(full_slice)
     # Apply v3 augment
     v3_new = _apply_canonical_v3_augment(v2)
+    # PLUS5: compute the 5 features on the full warmup slice (needs OHLCV history)
+    # and merge into v3_new by index. Uses m5 which has OHLCV pre-augment.
+    plus5_df = _compute_plus5_features(m5[["open", "high", "low", "close", "volume"]])
+    for c in PLUS5_FEATURES:
+        v3_new[c] = plus5_df[c].reindex(v3_new.index).astype(np.float32).fillna(0.0)
     # Take only the new bars
     v3_new = v3_new[v3_new.index > last_in_prebuilt]
     if v3_new.empty:
         LOG.warning("v3 augment produced no new rows")
         return 0, last_in_prebuilt
 
-    # Align columns with existing prebuilt (any missing → 0, any extra → drop)
+    # Align columns with existing prebuilt (any missing → 0, any extra → drop).
+    # PLUS5 cols are added to v3_new above; they will survive the alignment if
+    # cv3 has them (after one-shot backfill).
     cv3_cols = list(cv3.columns)
     for c in cv3_cols:
         if c not in v3_new.columns:

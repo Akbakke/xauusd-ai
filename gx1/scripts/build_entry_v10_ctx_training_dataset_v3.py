@@ -88,6 +88,14 @@ STRICT_TRADABLE_MAE_MAX_BPS = 3.0    # V2 (was 2.0)
 STRICT_TRADABLE_PATH_MIN_BPS = 11.0  # V2 (was 14.0)
 STRICT_TRADABLE_PATH_LEAD_MIN_BPS = 7.0
 STRICT_TRADABLE_MFE_LEAD_MIN_BPS = 6.0
+# 2026-05-26 — entry direction/tradable label re-tuned (user: "89% flat uaktuelt").
+# The directional label = (pnl_at_horizon >= V11_TRADABLE_PNL_MIN_BPS) over
+# V11_DIRECTION_HORIZON_BARS. Lowered 30→15 bps + horizon 10→24 (2h) → ~60% flat
+# (was ~89%) so the model has real directional signal to learn + calibrate on.
+# 15 bps ≈ 11 bps net after ~2.25 bps spread — a solid edge, not noise. bad_path /
+# path_quality keep their own (10-bar) horizon — only the direction label changed.
+V11_TRADABLE_PNL_MIN_BPS = 15.0
+V11_DIRECTION_HORIZON_BARS = 24
 HARD_NEG_LONG_MIN_XGB_P_LONG = 0.30
 HARD_NEG_LONG_MIN_MFE_BPS = 10.0
 HARD_NEG_LONG_MIN_MAE_BPS = 6.0
@@ -1103,24 +1111,36 @@ def build_dataset_canonical(
     canonical_v2_parquet: Optional[Path] = None,
     output_path: Optional[Path] = None,  # V2 streaming-write target
     streaming_batch_size: int = 5000,     # V2 batch rows per ParquetWriter flush
+    source_parquet_override: Optional[Path] = None,
+    xgb_feature_contract_path: Optional[Path] = None,
+    xgb_sanitizer_config_path: Optional[Path] = None,
 ) -> Tuple[pd.DataFrame, Dict[str, Any]]:
     ctx = _hard_gate_ctx6cat6()
-    _ensure_inputs_exist(base28_manifest_path, xgb_bundle_path)
+    if source_parquet_override is None:
+        _ensure_inputs_exist(base28_manifest_path, xgb_bundle_path)
+    elif not xgb_bundle_path.exists():
+        raise RuntimeError(f"INPUT_MISSING: xgb_bundle not found: {xgb_bundle_path}")
 
     if seq_len < 2:
         raise RuntimeError("SEQ_LEN_INVALID: must be >=2")
     if horizon_bars < 1:
         raise RuntimeError("HORIZON_INVALID: must be >=1")
 
-    # 1) Resolve BASE28 manifest + sha
-    manifest_info = resolve_base28_canonical_from_manifest(str(base28_manifest_path))
-    parquet_path = Path(manifest_info["parquet_path"]).expanduser().resolve()
-    parquet_sha = manifest_info["parquet_sha256"]
+    # 1) Resolve source: either BASE28 manifest or single-parquet override (BASE76 mode).
+    if source_parquet_override is not None:
+        parquet_path = Path(source_parquet_override).expanduser().resolve()
+        if not parquet_path.exists():
+            raise RuntimeError(f"SOURCE_PARQUET_OVERRIDE_MISSING: {parquet_path}")
+        parquet_sha = _sha256_file(parquet_path)
+        log.info("[SOURCE_PARQUET_OVERRIDE] %s sha256=%s", parquet_path, parquet_sha)
+    else:
+        manifest_info = resolve_base28_canonical_from_manifest(str(base28_manifest_path))
+        parquet_path = Path(manifest_info["parquet_path"]).expanduser().resolve()
+        parquet_sha = manifest_info["parquet_sha256"]
+        if not parquet_path.exists():
+            raise RuntimeError(f"BASE28_PARQUET_MISSING: {parquet_path}")
 
-    if not parquet_path.exists():
-        raise RuntimeError(f"BASE28_PARQUET_MISSING: {parquet_path}")
-
-    # 2) Load BASE28 parquet
+    # 2) Load parquet
     df = pd.read_parquet(parquet_path)
     df = df.reset_index(drop=False)
     time_col = _detect_time_col(df)
@@ -1128,8 +1148,9 @@ def build_dataset_canonical(
 
     # Canonical BASE28 may be expanded to raw M1 rows with an explicit model-bar marker.
     # Entry training remains defined on the M5 model-bar lane, so filter here instead of
-    # letting the later tape join fail on a mixed-granularity input.
-    if "is_model_bar" in df.columns:
+    # letting the later tape join fail on a mixed-granularity input. Skip when override
+    # source is already M5-cadence.
+    if "is_model_bar" in df.columns and source_parquet_override is None:
         model_bar_mask = pd.Series(df["is_model_bar"]).fillna(False).astype(bool)
         rows_before_model_bar = int(len(df))
         rows_model_bar = int(model_bar_mask.sum())
@@ -1154,8 +1175,15 @@ def build_dataset_canonical(
     if max_rows and len(df) > max_rows:
         df = df.head(int(max_rows)).copy()
 
-    # 3) Enforce XGB feature contract order (V3: canonical_v3 92-feature contract).
-    contract_path = project_root / "gx1" / "xgb" / "contracts" / "xgb_input_features_canonical_v3_v1.json"
+    # 3) Enforce XGB feature contract order. Default: base80 (the ONE active
+    # contract). Override via --xgb-feature-contract-path.
+    if xgb_feature_contract_path is not None:
+        contract_path = Path(xgb_feature_contract_path).expanduser().resolve()
+    else:
+        contract_path = project_root / "gx1" / "xgb" / "contracts" / "xgb_input_features_base80_v1.json"
+    if not contract_path.exists():
+        raise RuntimeError(f"XGB_FEATURE_CONTRACT_MISSING: {contract_path}")
+    log.info("[XGB_FEATURE_CONTRACT] %s", contract_path)
     contract_obj = json.loads(contract_path.read_text(encoding="utf-8"))
     features = contract_obj.get("features") or contract_obj.get("ordered_features") or []
     if len(features) < 28:
@@ -1199,21 +1227,51 @@ def build_dataset_canonical(
     if "session_tradable" not in df.columns:
         df["session_tradable"] = (df["session_id"].astype(int) != 0).astype(np.int8)
 
+    # BASE76 derived-features parity with XGB trainer (canonical_v3_FULL dropped these
+    # as redundant; re-expose under historical names so BASE76 contract is satisfied).
+    sid = df["session_id"].astype(np.int32)
+    if "_v1_is_EU" not in df.columns:
+        df["_v1_is_EU"] = (sid == 1).astype(np.int8)
+    if "_v1_is_US" not in df.columns:
+        df["_v1_is_US"] = (sid == 3).astype(np.int8)
+    is_us_f = df["_v1_is_US"].to_numpy(dtype=np.float64)
+    if "_v1_body_tr" not in df.columns and "_v1_body_share_1" in df.columns:
+        df["_v1_body_tr"] = df["_v1_body_share_1"].to_numpy(dtype=np.float64)
+    if "_v1_int_clv_atr" not in df.columns and "_v1_clv" in df.columns:
+        df["_v1_int_clv_atr"] = df["_v1_clv"].to_numpy(dtype=np.float64)
+    if "_v1_int_r5_atr" not in df.columns and "_v1_r5" in df.columns:
+        df["_v1_int_r5_atr"] = df["_v1_r5"].to_numpy(dtype=np.float64)
+    if "_v1_int_slope_h4_atr" not in df.columns and "_v1h4_slope5" in df.columns:
+        df["_v1_int_slope_h4_atr"] = df["_v1h4_slope5"].to_numpy(dtype=np.float64)
+    if "_v1_int_ema_us" not in df.columns and "_v1_ema_diff" in df.columns:
+        df["_v1_int_ema_us"] = df["_v1_ema_diff"].to_numpy(dtype=np.float64) * is_us_f
+    if "_v1_int_range_us" not in df.columns and "_v1_range_z" in df.columns:
+        df["_v1_int_range_us"] = df["_v1_range_z"].to_numpy(dtype=np.float64) * is_us_f
+    if "_v1_int_slope_h1_us" not in df.columns and "_v1h1_slope3" in df.columns:
+        df["_v1_int_slope_h1_us"] = df["_v1h1_slope3"].to_numpy(dtype=np.float64) * is_us_f
+    # Derive atr_bps if missing (needed by canonical_v3 contract; BASE76 doesn't require it).
+    if "atr_bps" not in df.columns and "_v1_atr14" in df.columns and "close" in df.columns:
+        df["atr_bps"] = (df["_v1_atr14"].astype(float) / df["close"].astype(float).clip(lower=1e-6) * 1e4).clip(0, 500).fillna(0.0)
+
     missing = [c for c in features if c not in df.columns]
     if missing:
-        raise RuntimeError(f"BASE28_FEATURES_MISSING: {missing}")
+        raise RuntimeError(f"SOURCE_FEATURES_MISSING: {missing}")
 
     df_features = df[features].copy()
     if len(df_features) == 0:
         raise RuntimeError("NO_ROWS_AFTER_FEATURE_SELECT")
 
-    # 4) Load canonical XGB bundle + sanitizer (V2: canonical_v2 sanitizer)
+    # 4) Load canonical XGB bundle + sanitizer. Sanitizer matches contract.
     model_path = Path(xgb_bundle_path) / "xgb_universal_multihead_v2.joblib"
-    sanitizer_cfg = project_root / "gx1" / "xgb" / "contracts" / "xgb_input_sanitizer_canonical_v3_v1.json"
+    if xgb_sanitizer_config_path is not None:
+        sanitizer_cfg = Path(xgb_sanitizer_config_path).expanduser().resolve()
+    else:
+        sanitizer_cfg = project_root / "gx1" / "xgb" / "contracts" / "xgb_input_sanitizer_canonical_v3_v1.json"
     if not model_path.exists():
         raise RuntimeError(f"XGB_MODEL_MISSING: {model_path}")
     if not sanitizer_cfg.exists():
         raise RuntimeError(f"SANITIZER_CONFIG_MISSING: {sanitizer_cfg}")
+    log.info("[XGB_SANITIZER_CONFIG] %s", sanitizer_cfg)
 
     xgb_model_sha256 = _sha256_file(model_path)
     log.info("[XGB_MODEL_SHA256] %s %s", model_path, xgb_model_sha256)
@@ -1515,14 +1573,29 @@ def build_dataset_canonical(
                 "bad_path_horizon_bars",
                 "bad_path_mae_threshold_bps",
                 "bad_path_mfe_threshold_bps",
-                "v11_pnl_long_at_horizon_bps",
-                "v11_pnl_short_at_horizon_bps",
+                # NOTE: the H=10 v11_pnl_*_at_horizon_bps are NOT merged — the direction
+                # label uses the dedicated H=24 v11_pnl_*_at_dir_horizon_bps below
+                # (2026-05-26). bad_path head still uses its own bad_path_*_first_n.
             ]
         ],
         on="time",
         how="inner",
         validate="one_to_one",
     )
+    # 2026-05-26: dedicated H=24 (2h) pnl-at-horizon for the DIRECTION/tradable label
+    # (decoupled from bad_path's 10-bar horizon). Reuses the same spread-aware pnl fn.
+    _dir_pnl = _compute_bad_path_first_n(
+        tape=merged[["time"] + [c for c in merged.columns if c in ("bid_close", "ask_close", "bid", "ask")]].copy(),
+        horizon_bars=V11_DIRECTION_HORIZON_BARS,
+        adverse_threshold_bps=BAD_PATH_MAE_THRESHOLD_BPS,
+        favorable_threshold_bps=BAD_PATH_MFE_THRESHOLD_BPS,
+    )[["time", "v11_pnl_long_at_horizon_bps", "v11_pnl_short_at_horizon_bps"]].rename(
+        columns={
+            "v11_pnl_long_at_horizon_bps": "v11_pnl_long_at_dir_horizon_bps",
+            "v11_pnl_short_at_horizon_bps": "v11_pnl_short_at_dir_horizon_bps",
+        }
+    )
+    merged2 = merged2.merge(_dir_pnl, on="time", how="inner", validate="one_to_one")
     if len(merged2) == 0:
         raise RuntimeError("LABEL_JOIN_EMPTY")
 
@@ -1568,16 +1641,48 @@ def build_dataset_canonical(
         raise RuntimeError(f"CANONICAL_V2_PARQUET_NOT_FOUND: {canonical_v2_parquet}")
 
     log.info("[V2_CANONICAL_JOIN] loading canonical_v2 from %s", canonical_v2_parquet)
-    cv2_needed = list(set(
+    # Volume features (vol_z_20 …) and GROUP-A market-parity features are DERIVED
+    # below (volume from raw `volume`; parity via augment_candidate one-truth w/
+    # IQL) — they do NOT exist in any source parquet, so exclude them from the
+    # load requirement and instead pull raw `volume`.
+    from gx1.features.volume_features import VOLUME_FEATURE_NAMES as _VOLUME_FEAT_NAMES
+    from gx1.contracts.signal_bridge_v3 import (
+        ORDERED_CTX_CONT_GROUP_A_PARITY as _GROUP_A_PARITY,
+        ORDERED_CTX_CONT_DIP_STRUCT as _DIP_STRUCT_PARITY,
+    )
+    _computed_not_loaded = set(_VOLUME_FEAT_NAMES) | set(_GROUP_A_PARITY) | set(_DIP_STRUCT_PARITY)
+    cv2_needed = list((set(
         list(PER_BAR_PRICE_STATE_FIELDS_V3)
         + list(ORDERED_CTX_CONT_NAMES_V3)
-    ))
+        + ["volume"]
+    )) - _computed_not_loaded)
     cv2_already_have = set(merged3.columns)
     cv2_to_load = [c for c in cv2_needed if c not in cv2_already_have]
+    # When source-parquet-override is used (canonical_v3_FULL_PLUS_CTX has 249 cols),
+    # pull what's available from there first, then fall back to canonical_v2 for the rest.
+    src_supplied: List[str] = []
+    if source_parquet_override is not None:
+        src_cols = set(df.columns)
+        src_supplied = [c for c in cv2_to_load if c in src_cols]
+        if src_supplied:
+            log.info("[SOURCE_PARQUET_SUPPLIED] %d cols from source parquet (skipping cv2 for those)", len(src_supplied))
+            src_extra = df[["time"] + src_supplied].drop_duplicates(subset=["time"])
+            merged3 = merged3.merge(src_extra, on="time", how="inner", validate="one_to_one")
+            cv2_to_load = [c for c in cv2_to_load if c not in src_supplied]
     log.info(
-        "[V2_CANONICAL_JOIN] need=%d in_merged3=%d to_load_from_cv2=%d",
-        len(cv2_needed), len(cv2_needed) - len(cv2_to_load), len(cv2_to_load),
+        "[V2_CANONICAL_JOIN] need=%d in_merged3=%d to_load_from_cv2=%d (src_supplied=%d)",
+        len(cv2_needed), len(cv2_needed) - len(cv2_to_load) - len(src_supplied), len(cv2_to_load), len(src_supplied),
     )
+    # Filter cv2_to_load to only what canonical_v2 actually has, hard-fail if any
+    # truly missing across all sources (instead of obscure pyarrow error).
+    import pyarrow.parquet as _pq_chk
+    cv2_available = set(_pq_chk.read_schema(str(canonical_v2_parquet)).names) if cv2_to_load else set()
+    cv2_truly_missing = [c for c in cv2_to_load if c not in cv2_available]
+    if cv2_truly_missing:
+        raise RuntimeError(
+            f"V2_CANONICAL_FIELDS_MISSING_EVERYWHERE: {cv2_truly_missing} "
+            f"(not in source_parquet, not in canonical_v2 schema)"
+        )
     cv2_df = pd.read_parquet(canonical_v2_parquet, columns=["time"] + cv2_to_load)
     cv2_df["time"] = pd.to_datetime(cv2_df["time"], utc=True)
     log.info(
@@ -1593,7 +1698,156 @@ def build_dataset_canonical(
     )
     if rows_post == 0:
         raise RuntimeError("V2_CANONICAL_JOIN_EMPTY: no time overlap between merged3 and canonical_v2")
-    # Verify all 30 SIGNAL_FIELDS and all 43 ctx_cont names are present after join
+
+    # ── GROUP-A market-parity (24) — 2026-05-26 ──────────────────────────────
+    # Compute the 24 ctx_cont parity features (dip-distance, pivots, vol-term,
+    # vol-percentile, session-overlap) the SAME way the Entry/Exit-IQL data does
+    # (augment_forward_outcome_v2.augment_candidate) → identical values = ONE
+    # TRUTH (V10 sees exactly what the IQL acts on). atr is derived from the M5
+    # multi-TF cache inside augment_candidate (matches IQL). Portfolio feats are
+    # excluded (journal_dir nonexistent → 0; they're IQL-only state).
+    from gx1.contracts.signal_bridge_v3 import (
+        ORDERED_CTX_CONT_GROUP_A_PARITY, ORDERED_CTX_CONT_DIP_STRUCT,
+    )
+    # struct_smc_swing_x_dip_v3 is computed downstream (needs SMC×dip_proximity_m5);
+    # the other 35 dip/struct come straight from augment_candidate._dip_struct_5tf.
+    _DIP_STRUCT_FROM_AUG = [f for f in ORDERED_CTX_CONT_DIP_STRUCT if f != "struct_smc_swing_x_dip_v3"]
+    _AUG_EXTRACT = list(ORDERED_CTX_CONT_GROUP_A_PARITY) + _DIP_STRUCT_FROM_AUG + ["dip_proximity_m5_v3"]
+    if any(f not in merged3.columns for f in (list(ORDERED_CTX_CONT_GROUP_A_PARITY) + list(ORDERED_CTX_CONT_DIP_STRUCT))):
+        from gx1.scripts.augment_forward_outcome_v2 import build_context as _ga_ctx, augment_candidate as _ga_aug
+        from gx1.features.htf_features import load_multi_tf_v2_cache as _ga_load_cache
+        _cache_dir = os.environ.get("GX1_V10_MULTI_TF_V2_CACHE_DIR",
+            "/home/andre2/GX1_DATA/data/data/prebuilt/MULTI_TF_V2_CACHE")
+        _m5 = merged3[["high", "low", "close"]].copy()
+        _m5.index = pd.to_datetime(merged3["time"], utc=True)
+        _m5 = _m5.sort_index()
+        _ctx = _ga_ctx(_m5, _ga_load_cache(_cache_dir), journal_dir=Path("/nonexistent_v10_build_journal"))
+        _cols = {k: np.zeros(len(merged3), dtype=np.float32) for k in _AUG_EXTRACT}
+        for _i, _ts in enumerate(pd.DatetimeIndex(pd.to_datetime(merged3["time"], utc=True))):
+            _feat = _ga_aug(_ctx, _ts)
+            for _k in _AUG_EXTRACT:
+                _cols[_k][_i] = float(_feat.get(_k, 0.0))
+        for _k, _arr in _cols.items():
+            if _k in ORDERED_CTX_CONT_GROUP_A_PARITY or _k in _DIP_STRUCT_FROM_AUG:
+                merged3[_k] = _arr
+        # struct_smc_swing_x_dip_v3 = norm(smc_swing_state) × dip_proximity_m5_v3
+        # (mirrors augment_forward_outcome_v2.py:548 / IQL state builder — one truth).
+        _sw_col = "smc_swing_state" if "smc_swing_state" in merged3.columns else None
+        if _sw_col is not None:
+            _sw = pd.to_numeric(merged3[_sw_col], errors="coerce").fillna(0.0).to_numpy(np.float32)
+            _max_abs = float(np.abs(_sw).max()) if len(_sw) else 1.0
+            _sw_norm = np.clip(_sw / max(_max_abs, 1.0), -1.0, 1.0)
+            merged3["struct_smc_swing_x_dip_v3"] = (_sw_norm * _cols["dip_proximity_m5_v3"]).astype(np.float32)
+        else:
+            merged3["struct_smc_swing_x_dip_v3"] = np.zeros(len(merged3), dtype=np.float32)
+        log.info("[V10_GROUP_A_PARITY] computed %d parity + %d dip/struct ctx_cont features (one-truth w/ IQL)",
+                 len(ORDERED_CTX_CONT_GROUP_A_PARITY), len(ORDERED_CTX_CONT_DIP_STRUCT))
+
+    # ── Volume / order-flow per-bar features (2026-05-26) ────────────────────
+    # Derived from raw `volume` (+ `close`) via the SAME helper the live ctx
+    # augmenter calls (gx1.features.volume_features) → identical train/serve
+    # values. Adds vol_z_20 / vol_ratio_5_20 / vol_pct_96 / signed_vol_z_20 to
+    # the per-bar seq (PER_BAR_PRICE_STATE_FIELDS_V3 tail).
+    if any(f not in merged3.columns for f in _VOLUME_FEAT_NAMES):
+        from gx1.features.volume_features import add_volume_features as _add_vol
+        if "volume" not in merged3.columns:
+            raise RuntimeError("V10_VOLUME_FEATURES: raw `volume` column missing from merged3 — cannot derive")
+        merged3 = merged3.sort_values("time").reset_index(drop=True)
+        _add_vol(merged3)
+        log.info("[V10_VOLUME_FEATURES] computed %d volume/order-flow seq features (one-truth w/ serving)",
+                 len(_VOLUME_FEAT_NAMES))
+
+    # ── Dip + forecast + timing + tail-risk + vol HEAD TARGETS (2026-05-26) ───
+    # Dip-head (18): for {long,short} × K{12,48,96} we label mae_before_mfe (the
+    # adverse drawdown BEFORE the favorable peak — same definition as the IQL's
+    # take_now_*_mae_before_mfe) and mfe (recovery). Computed O(K)-vectorized on
+    # M5 high/low (close-entry). Pinball loss turns dip_p50/p90 ← mae, recovery_p50
+    # ← mfe. Forecast-head (4): cum future return @ K{1,5,12,24}. Self-supervised.
+    #
+    # NEW heads (2026-05-26, per user go-ahead):
+    #   • dip-timing (6): y_dip_bottom_frac_{side}_K = bar-of-dip-bottom / K ∈[0,1]
+    #     → "don't enter at the TOP of a dip" needs WHEN, not just how-deep.
+    #   • time-to-MFE (6): y_time_to_mfe_frac_{side}_K = bar-of-favorable-peak / K
+    #     → entry urgency (move imminent vs hours away).
+    #   • tail-risk (6): y_tail_mae_{side}_K = worst adverse over FULL K horizon
+    #     (regardless of mfe ordering) → stop placement / risk sizing. p90 via pinball.
+    #   • vol-forecast (3): y_vol_fwd_K = forward realized vol (std of 1-bar ret, bps)
+    #     over next K — direction-agnostic. → sizing + regime.
+    # All come (almost) free from the same M5 high/low loop; vol from close returns.
+    if "y_dip_mae_long_K12" not in merged3.columns:
+        _close = merged3["close"].to_numpy(np.float64)
+        _high = merged3["high"].to_numpy(np.float64)
+        _low = merged3["low"].to_numpy(np.float64)
+        _n = len(_close); _BPS = 1e4
+        for _K in (1, 5, 12, 24):  # forecast horizons (M5)
+            _f = np.zeros(_n, dtype=np.float64)
+            if _n > _K:
+                _f[: _n - _K] = (_close[_K:] - _close[: _n - _K]) / _close[: _n - _K] * _BPS
+            # clip gap/bad-print outliers (weekend gaps) so the forecast loss
+            # isn't dominated by a few extreme bars; real M5 moves are well within.
+            merged3[f"y_forecast_ret_K{_K}"] = np.clip(np.nan_to_num(_f), -1000.0, 1000.0).astype(np.float32)
+        # forward realized-vol (std of 1-bar pct returns over next K), direction-agnostic
+        _ret1 = pd.Series(_close).pct_change()
+        for _K in (12, 48, 96):
+            _fwd_std = (_ret1.rolling(_K).std().shift(-_K) * _BPS)
+            merged3[f"y_vol_fwd_K{_K}"] = np.clip(
+                np.nan_to_num(_fwd_std.to_numpy(), nan=0.0, posinf=0.0, neginf=0.0), 0.0, 1000.0
+            ).astype(np.float32)
+        for _side in ("long", "short"):
+            for _K in (12, 48, 96):  # dip horizons (M5)
+                _mfe = np.full(_n, -1e18); _mae_before = np.zeros(_n); _run_adv = np.zeros(_n)
+                _run_adv_bar = np.zeros(_n); _dip_bottom_bar = np.zeros(_n); _mfe_bar = np.zeros(_n)
+                for _k in range(1, _K + 1):
+                    _hi = np.full(_n, np.nan); _lo = np.full(_n, np.nan)
+                    if _n > _k:
+                        _hi[: _n - _k] = _high[_k:]; _lo[: _n - _k] = _low[_k:]
+                    if _side == "long":
+                        _fav = np.nan_to_num((_hi - _close) / _close * _BPS, nan=-1e18)
+                        _adv = np.nan_to_num((_lo - _close) / _close * _BPS, nan=0.0)
+                    else:  # short: profit when price falls
+                        _fav = np.nan_to_num((_close - _lo) / _close * _BPS, nan=-1e18)
+                        _adv = np.nan_to_num((_close - _hi) / _close * _BPS, nan=0.0)
+                    _new_worst = _adv < _run_adv                     # strictly new worst adverse
+                    _run_adv = np.minimum(_run_adv, _adv)            # worst adverse so far
+                    _run_adv_bar = np.where(_new_worst, _k, _run_adv_bar)
+                    _new_peak = _fav > _mfe
+                    _mae_before = np.where(_new_peak, -_run_adv, _mae_before)      # drawdown BEFORE peak
+                    _dip_bottom_bar = np.where(_new_peak, _run_adv_bar, _dip_bottom_bar)  # WHEN that dip bottomed
+                    _mfe_bar = np.where(_new_peak, _k, _mfe_bar)      # WHEN the favorable peak hit
+                    _mfe = np.maximum(_mfe, _fav)
+                _mfe = np.where(_mfe < -1e17, 0.0, _mfe)
+                merged3[f"y_dip_mae_{_side}_K{_K}"] = np.clip(_mae_before, 0.0, 1000.0).astype(np.float32)
+                merged3[f"y_dip_mfe_{_side}_K{_K}"] = np.clip(_mfe, 0.0, 1000.0).astype(np.float32)
+                # timing (normalized to [0,1] by horizon) + full-horizon tail risk
+                merged3[f"y_dip_bottom_frac_{_side}_K{_K}"] = np.clip(_dip_bottom_bar / float(_K), 0.0, 1.0).astype(np.float32)
+                merged3[f"y_time_to_mfe_frac_{_side}_K{_K}"] = np.clip(_mfe_bar / float(_K), 0.0, 1.0).astype(np.float32)
+                merged3[f"y_tail_mae_{_side}_K{_K}"] = np.clip(-_run_adv, 0.0, 1000.0).astype(np.float32)
+        log.info(
+            "[V10_DIP_FORECAST_TARGETS] computed 12 dip + 4 forecast + 12 timing "
+            "(dip-bottom+time-to-mfe ×dir×K) + 6 tail-risk + 3 vol-forecast targets"
+        )
+
+    # ── HEAD-TARGET column manifest (ONE place — emitted into every output row) ─
+    # These regression targets feed V10's aux heads (dip / forecast / timing /
+    # tail-risk / vol). They are emitted into the per-row dict below so the
+    # trainer's row.get(col, 0.0) actually finds them (silent-zero gap fixed
+    # 2026-05-26). Order is irrelevant (read by name downstream).
+    _HEAD_TARGET_COLS = (
+        [f"y_dip_mae_{_d}_K{_K}" for _d in ("long", "short") for _K in (12, 48, 96)]
+        + [f"y_dip_mfe_{_d}_K{_K}" for _d in ("long", "short") for _K in (12, 48, 96)]
+        + [f"y_forecast_ret_K{_K}" for _K in (1, 5, 12, 24)]
+        + [f"y_dip_bottom_frac_{_d}_K{_K}" for _d in ("long", "short") for _K in (12, 48, 96)]
+        + [f"y_time_to_mfe_frac_{_d}_K{_K}" for _d in ("long", "short") for _K in (12, 48, 96)]
+        + [f"y_tail_mae_{_d}_K{_K}" for _d in ("long", "short") for _K in (12, 48, 96)]
+        + [f"y_vol_fwd_K{_K}" for _K in (12, 48, 96)]
+    )
+    _missing_head_tgt = [c for c in _HEAD_TARGET_COLS if c not in merged3.columns]
+    if _missing_head_tgt:
+        raise RuntimeError(f"V10_HEAD_TARGETS_MISSING before emit: {_missing_head_tgt}")
+    _head_target_arrays = {c: merged3[c].astype(np.float32).to_numpy() for c in _HEAD_TARGET_COLS}
+    log.info("[V10_HEAD_TARGETS] %d head-target columns staged for emission", len(_HEAD_TARGET_COLS))
+
+    # Verify all 30 SIGNAL_FIELDS and all 69 ctx_cont names are present after join
     missing_sig = [f for f in SIGNAL_FIELDS if f not in merged3.columns]
     if missing_sig:
         raise RuntimeError(f"V2_SIGNAL_FIELDS_MISSING after canonical_v2 join: {missing_sig}")
@@ -1650,7 +1904,7 @@ def build_dataset_canonical(
     try:
         from pathlib import Path as _P
         per_bar_root = _P("/home/andre2/GX1_DATA/reports/truth_e2e_sanity/"
-                           "BUILD_EXIT_IQL_PER_BAR_DATASET_V12_2_20260514T161504Z_R4_LOCK_V3TRACKED_SOLO_20260515T004836Z_LOCK/per_week")
+                           "BUILD_EXIT_IQL_PER_BAR_DATASET_V12_V3PLUS_FULL_20260519T012648Z_LOCK_V3TRACKED_20260519T022946Z_LOCK/per_week")
         if not per_bar_root.exists():
             raise RuntimeError(f"Exit-IQL per_bar root missing: {per_bar_root}")
         # Build a candidate_uid → max_bars_in_trade map across all weeks.
@@ -1724,535 +1978,18 @@ def build_dataset_canonical(
         log.warning(f"[V3_POSITION_SIZE] compute failed ({exc}) — filling with neutral 0.5")
         y_position_size = np.full(len(merged3), 0.5, dtype=np.float32)
 
-    # ---------------------------------------------------------------------------
-    # Poison-short relabel: H4_uptrend + negative micro_momentum + price below EMA
-    #
-    # Bars matching this signature are systematically mislabeled by the model as
-    # SHORT, but price consistently moves UP (they are LONG or FLAT in truth).
-    # Action: force y_direction=2 (FLAT) and zero y_quality_score so these bars
-    # contribute no signal for the SHORT class during training.
-    # Rationale: H4_trend_sign_cat=2 (H4 uptrend), micro_momentum_5 < -1.5
-    # (short-term pullback), distance_ema_fast < -0.3 (price below fast EMA)
-    # — this pocket was confirmed regime-stable across 2025 and 2026 runs.
-    # Only applied when these three columns are available in merged3.
-    # ---------------------------------------------------------------------------
-    _POISON_SHORT_COLS = ("H4_trend_sign_cat", "micro_momentum_5", "distance_ema_fast")
-    if all(c in merged3.columns for c in _POISON_SHORT_COLS):
-        _h4 = merged3["H4_trend_sign_cat"].to_numpy()
-        _mom5 = merged3["micro_momentum_5"].astype(np.float32).to_numpy()
-        _dist_ema = merged3["distance_ema_fast"].astype(np.float32).to_numpy()
-        _poison_mask = (
-            (_h4 == 2)
-            & (_mom5 < -1.5)
-            & (_dist_ema < -0.3)
-        )
-        _n_poison = int(_poison_mask.sum())
-        if _n_poison > 0:
-            y_dir = y_dir.copy()
-            y_qual = y_qual.copy()
-            y_early = y_early.copy()
-            y_dir[_poison_mask] = 2      # relabel to FLAT
-            y_qual[_poison_mask] = 0.0   # zero quality weight
-            y_early[_poison_mask] = 0.0  # no early-move credit
-        log.info(
-            "[POISON_SHORT_RELABEL] n_rows=%d n_poison_relabeled=%d "
-            "criteria=H4_trend_sign_cat==2_AND_micro_momentum_5<-1.5_AND_distance_ema_fast<-0.3",
-            len(merged3),
-            _n_poison,
-        )
-    else:
-        log.warning(
-            "[POISON_SHORT_RELABEL_SKIP] missing_cols=%s",
-            [c for c in _POISON_SHORT_COLS if c not in merged3.columns],
-        )
-
-    # ---------------------------------------------------------------------------
-    # Group B relabel: H4=2 + high ATR + short-like local setup
-    # Criteria (explicit):
-    # - H4_trend_sign_cat == 2
-    # - high ATR: atr_bps >= 9.4949 OR atr_bucket >= 4 OR D1_atr_percentile_252 >= 0.8254
-    # - short-like: micro_momentum_3 < 0, micro_momentum_5 < 0, distance_ema_fast < 0
-    # Action: force y_direction=2 (FLAT) and zero quality/early-move.
-    # ---------------------------------------------------------------------------
-    _GROUP_B_COLS = (
-        "H4_trend_sign_cat",
-        "atr_bps",
-        "atr_bucket",
-        "D1_atr_percentile_252",
-        "micro_momentum_3",
-        "micro_momentum_5",
-        "distance_ema_fast",
-    )
-    if all(c in merged3.columns for c in _GROUP_B_COLS):
-        _h4 = merged3["H4_trend_sign_cat"].to_numpy()
-        _atr_bps = merged3["atr_bps"].astype(np.float32).to_numpy()
-        _atr_bucket = merged3["atr_bucket"].astype(np.int64).to_numpy()
-        _d1_atr = merged3["D1_atr_percentile_252"].astype(np.float32).to_numpy()
-        _mom3 = merged3["micro_momentum_3"].astype(np.float32).to_numpy()
-        _mom5 = merged3["micro_momentum_5"].astype(np.float32).to_numpy()
-        _dist_ema = merged3["distance_ema_fast"].astype(np.float32).to_numpy()
-
-        _high_atr = (_atr_bps >= 9.4949) | (_atr_bucket >= 4) | (_d1_atr >= 0.8254)
-        _short_like = (_mom3 < 0.0) & (_mom5 < 0.0) & (_dist_ema < 0.0)
-        _group_b_mask = (_h4 == 2) & _high_atr & _short_like
-        _n_group_b = int(_group_b_mask.sum())
-        if _n_group_b > 0:
-            y_dir = y_dir.copy()
-            y_qual = y_qual.copy()
-            y_early = y_early.copy()
-            y_dir[_group_b_mask] = 2
-            y_qual[_group_b_mask] = 0.0
-            y_early[_group_b_mask] = 0.0
-        log.info(
-            "[GROUP_B_RELABEL] n_rows=%d n_group_b_relabeled=%d "
-            "criteria=H4_trend_sign_cat==2_AND_high_ATR_AND_micro_momentum_3<0_AND_micro_momentum_5<0_AND_distance_ema_fast<0 "
-            "high_ATR=(atr_bps>=9.4949 OR atr_bucket>=4 OR D1_atr_percentile_252>=0.8254)",
-            len(merged3),
-            _n_group_b,
-        )
-    else:
-        log.warning(
-            "[GROUP_B_RELABEL_SKIP] missing_cols=%s",
-            [c for c in _GROUP_B_COLS if c not in merged3.columns],
-        )
-
-    # ---------------------------------------------------------------------------
-    # OVERLAP short tail relabel: session in {EU, OVERLAP} + short + high ATR + weak short setup
-    # Criteria (explicit):
-    # - session_id == 2 (OVERLAP)
-    # - y_direction == 1 (SHORT)
-    # - high ATR: atr_bps >= 9.4949 OR atr_bucket >= 4 OR D1_atr_percentile_252 >= 0.8254
-    # - weak short setup: micro_momentum_3 >= 0, micro_momentum_5 >= 0, distance_ema_fast >= 0
-    # Action: force y_direction=2 (FLAT) and zero quality/early-move.
-    # ---------------------------------------------------------------------------
-    _OVERLAP_TAIL_COLS = (
-        "session_id",
-        "atr_bps",
-        "atr_bucket",
-        "D1_atr_percentile_252",
-        "micro_momentum_3",
-        "micro_momentum_5",
-        "distance_ema_fast",
-    )
-    if all(c in merged3.columns for c in _OVERLAP_TAIL_COLS):
-        _sess = merged3["session_id"].astype(np.int64).to_numpy()
-        _atr_bps = merged3["atr_bps"].astype(np.float32).to_numpy()
-        _atr_bucket = merged3["atr_bucket"].astype(np.int64).to_numpy()
-        _d1_atr = merged3["D1_atr_percentile_252"].astype(np.float32).to_numpy()
-        _mom3 = merged3["micro_momentum_3"].astype(np.float32).to_numpy()
-        _mom5 = merged3["micro_momentum_5"].astype(np.float32).to_numpy()
-        _dist_ema = merged3["distance_ema_fast"].astype(np.float32).to_numpy()
-
-        _high_atr = (_atr_bps >= 9.4949) | (_atr_bucket >= 4) | (_d1_atr >= 0.8254)
-        _weak_short_setup = (_mom3 >= 0.0) & (_mom5 >= 0.0) & (_dist_ema >= 0.0)
-        _drift_chop_setup = (np.abs(_mom3) <= 0.5) & (np.abs(_mom5) <= 0.5) & (np.abs(_dist_ema) <= 0.2)
-        _session_mask = (_sess == 1) | (_sess == 2)  # EU=1, OVERLAP=2
-        _short_mask = (y_dir == 1)
-        _no_early_edge = (y_early == 0.0)
-        _overlap_tail_mask = _session_mask & _short_mask & _high_atr & _no_early_edge & (_weak_short_setup | _drift_chop_setup)
-        _n_overlap_tail = int(_overlap_tail_mask.sum())
-        if _n_overlap_tail > 0:
-            y_dir = y_dir.copy()
-            y_qual = y_qual.copy()
-            y_early = y_early.copy()
-            y_dir[_overlap_tail_mask] = 2
-            y_qual[_overlap_tail_mask] = 0.0
-            y_early[_overlap_tail_mask] = 0.0
-        log.info(
-            "[OVERLAP_SHORT_TAIL_RELABEL] n_rows=%d n_overlap_short_tail_relabeled=%d "
-            "criteria=session_id_in_{EU,OVERLAP}_AND_y_direction==1_AND_high_ATR_AND_y_early_move==0_AND("
-            "micro_momentum_3>=0_AND_micro_momentum_5>=0_AND_distance_ema_fast>=0 OR "
-            "abs(micro_momentum_3)<=0.5_AND_abs(micro_momentum_5)<=0.5_AND_abs(distance_ema_fast)<=0.2) "
-            "high_ATR=(atr_bps>=9.4949 OR atr_bucket>=4 OR D1_atr_percentile_252>=0.8254)",
-            len(merged3),
-            _n_overlap_tail,
-        )
-    else:
-        log.warning(
-            "[OVERLAP_SHORT_TAIL_RELABEL_SKIP] missing_cols=%s",
-            [c for c in _OVERLAP_TAIL_COLS if c not in merged3.columns],
-        )
-
-    # ---------------------------------------------------------------------------
-    # OVERLAP short residual relabel (confirmed pocket, post-B1; H4 in {0,2}):
-    # Criteria (explicit):
-    # - session_id == OVERLAP (2)
-    # - y_direction == SHORT
-    # - H4_trend_sign_cat in {0, 2}
-    # - atr_bucket == 3
-    # - micro_momentum_5 < 0
-    # - distance_ema_fast < 0
-    # Action: force y_direction=2 (FLAT) and zero quality/early-move.
-    # ---------------------------------------------------------------------------
-    _OVERLAP_SHORT_RESIDUAL_COLS = (
-        "session_id",
-        "H4_trend_sign_cat",
-        "atr_bucket",
-        "micro_momentum_3",
-        "micro_momentum_5",
-        "distance_ema_fast",
-    )
-    if all(c in merged3.columns for c in _OVERLAP_SHORT_RESIDUAL_COLS):
-        _sess = merged3["session_id"].astype(np.int64).to_numpy()
-        _h4 = merged3["H4_trend_sign_cat"].astype(np.int64).to_numpy()
-        _atr_bucket = merged3["atr_bucket"].astype(np.int64).to_numpy()
-        _mom5 = merged3["micro_momentum_5"].astype(np.float32).to_numpy()
-        _dist_ema = merged3["distance_ema_fast"].astype(np.float32).to_numpy()
-
-        _is_overlap = (_sess == 2)  # OVERLAP
-        _is_short = (y_dir == 1)       # SHORT (effective, after earlier relabels)
-        _is_short_raw = (y_dir_raw == 1)  # SHORT (raw, before any relabels)
-        _h4_0_2 = (_h4 == 0) | (_h4 == 2)
-        _raw_mask = (
-            _is_overlap
-            & _is_short_raw
-            & _h4_0_2
-            & (_atr_bucket == 3)
-            & (_mom5 < 0.0)
-            & (_dist_ema < 0.0)
-        )
-        _mask = (
-            _is_overlap
-            & _is_short
-            & _h4_0_2
-            & (_atr_bucket == 3)
-            & (_mom5 < 0.0)
-            & (_dist_ema < 0.0)
-        )
-        _n_overlap_short_raw = int(_raw_mask.sum())
-        _n_overlap_short_eff = int(_mask.sum())
-        _overlap_short_total = int((_is_overlap & _is_short).sum())
-        if _n_overlap_short_eff > 0:
-            y_dir = y_dir.copy()
-            y_qual = y_qual.copy()
-            y_early = y_early.copy()
-            y_dir[_mask] = 2
-            y_qual[_mask] = 0.0
-            y_early[_mask] = 0.0
-        log.info(
-            "[OVERLAP_SHORT_RESIDUAL_RAW_PROOF] n_rows=%d n_raw_match=%d "
-            "criteria=session_id==OVERLAP_AND_y_direction==SHORT_AND_H4_trend_sign_cat_in_{0,2}_AND_atr_bucket==3_"
-            "AND_micro_momentum_5<0_AND_distance_ema_fast<0",
-            len(merged3),
-            _n_overlap_short_raw,
-        )
-        log.info(
-            "[OVERLAP_SHORT_RESIDUAL_EFFECTIVE_PROOF] n_rows=%d n_effective_relabel=%d "
-            "share_of_overlap_short=%.6f",
-            len(merged3),
-            _n_overlap_short_eff,
-            (_n_overlap_short_eff / _overlap_short_total) if _overlap_short_total > 0 else 0.0,
-        )
-    else:
-        log.warning(
-            "[OVERLAP_SHORT_RESIDUAL_RELABEL_SKIP] missing_cols=%s",
-            [c for c in _OVERLAP_SHORT_RESIDUAL_COLS if c not in merged3.columns],
-        )
-
-    # ---------------------------------------------------------------------------
-    # OVERLAP/EU short residual variant matrix (proof-only, no relabel)
-    # Evaluated on RAW vs EFFECTIVE labels for clean comparison.
-    # ---------------------------------------------------------------------------
-    _OVERLAP_SHORT_MATRIX_COLS = (
-        "session_id",
-        "H4_trend_sign_cat",
-        "atr_bucket",
-        "micro_momentum_3",
-        "micro_momentum_5",
-        "distance_ema_fast",
-    )
-    if all(c in merged3.columns for c in _OVERLAP_SHORT_MATRIX_COLS):
-        _sess = merged3["session_id"].astype(np.int64).to_numpy()
-        _h4 = merged3["H4_trend_sign_cat"].astype(np.int64).to_numpy()
-        _atr_bucket = merged3["atr_bucket"].astype(np.int64).to_numpy()
-        _mom3 = merged3["micro_momentum_3"].astype(np.float32).to_numpy()
-        _mom5 = merged3["micro_momentum_5"].astype(np.float32).to_numpy()
-        _dist_ema = merged3["distance_ema_fast"].astype(np.float32).to_numpy()
-
-        _is_short = (y_dir == 1)
-        _is_short_raw = (y_dir_raw == 1)
-
-        _sess_overlap = (_sess == 2)
-        _sess_eu = (_sess == 1)
-        _sess_eu_overlap = _sess_overlap | _sess_eu
-
-        _atr_3 = (_atr_bucket == 3)
-        _atr_4 = (_atr_bucket == 4)
-        _atr_34 = _atr_3 | _atr_4
-
-        _h4_0 = (_h4 == 0)
-        _h4_0_2 = (_h4 == 0) | (_h4 == 2)
-
-        _mom3_neg = (_mom3 < 0.0)
-        _mom5_neg = (_mom5 < 0.0)
-        _mom3_5_neg = _mom3_neg & _mom5_neg
-        _dist_neg = (_dist_ema < 0.0)
-        _dist_neg_strong = (_dist_ema < -0.3)
-
-        _variants = [
-            {
-                "name": "O_S3_H4_0_MOM35_DISTNEG",
-                "sess": _sess_overlap,
-                "atr": _atr_3,
-                "h4": _h4_0,
-                "mom": _mom3_5_neg,
-                "dist": _dist_neg,
-                "share_label": "overlap_short",
-            },
-            {
-                "name": "O_S34_H4_0_MOM35_DISTNEG",
-                "sess": _sess_overlap,
-                "atr": _atr_34,
-                "h4": _h4_0,
-                "mom": _mom3_5_neg,
-                "dist": _dist_neg,
-                "share_label": "overlap_short",
-            },
-            {
-                "name": "EU_S3_H4_0_MOM35_DISTNEG",
-                "sess": _sess_eu,
-                "atr": _atr_3,
-                "h4": _h4_0,
-                "mom": _mom3_5_neg,
-                "dist": _dist_neg,
-                "share_label": "eu_short",
-            },
-            {
-                "name": "EUO_S3_H4_0_MOM35_DISTNEG",
-                "sess": _sess_eu_overlap,
-                "atr": _atr_3,
-                "h4": _h4_0,
-                "mom": _mom3_5_neg,
-                "dist": _dist_neg,
-                "share_label": "eu_or_overlap_short",
-            },
-            {
-                "name": "O_S3_H4_0_MOM5_DISTNEG",
-                "sess": _sess_overlap,
-                "atr": _atr_3,
-                "h4": _h4_0,
-                "mom": _mom5_neg,
-                "dist": _dist_neg,
-                "share_label": "overlap_short",
-            },
-            {
-                "name": "O_S3_H4_0_MOM35_DISTNEG_STRONG",
-                "sess": _sess_overlap,
-                "atr": _atr_3,
-                "h4": _h4_0,
-                "mom": _mom3_5_neg,
-                "dist": _dist_neg_strong,
-                "share_label": "overlap_short",
-            },
-            {
-                "name": "O_S3_H4_0_MOM35_NODIST",
-                "sess": _sess_overlap,
-                "atr": _atr_3,
-                "h4": _h4_0,
-                "mom": _mom3_5_neg,
-                "dist": np.ones(len(merged3), dtype=bool),
-                "share_label": "overlap_short",
-            },
-            {
-                "name": "O_S3_H4_0OR2_MOM35_DISTNEG",
-                "sess": _sess_overlap,
-                "atr": _atr_3,
-                "h4": _h4_0_2,
-                "mom": _mom3_5_neg,
-                "dist": _dist_neg,
-                "share_label": "overlap_short",
-            },
-            {
-                "name": "EUO_S34_H4_0_MOM35_DISTNEG",
-                "sess": _sess_eu_overlap,
-                "atr": _atr_34,
-                "h4": _h4_0,
-                "mom": _mom3_5_neg,
-                "dist": _dist_neg,
-                "share_label": "eu_or_overlap_short",
-            },
-            {
-                "name": "O_S3_H4_0OR2_MOM35_DISTNEG_ACTIVE",
-                "sess": _sess_overlap,
-                "atr": _atr_3,
-                "h4": _h4_0_2,
-                "mom": _mom3_5_neg,
-                "dist": _dist_neg,
-                "share_label": "overlap_short",
-            },
-            {
-                "name": "O_S3_H4_0OR2_MOM5_DISTNEG",
-                "sess": _sess_overlap,
-                "atr": _atr_3,
-                "h4": _h4_0_2,
-                "mom": _mom5_neg,
-                "dist": _dist_neg,
-                "share_label": "overlap_short",
-            },
-            {
-                "name": "O_S3_H4_0OR2_MOM35_NODIST",
-                "sess": _sess_overlap,
-                "atr": _atr_3,
-                "h4": _h4_0_2,
-                "mom": _mom3_5_neg,
-                "dist": np.ones(len(merged3), dtype=bool),
-                "share_label": "overlap_short",
-            },
-            {
-                "name": "O_S34_H4_0OR2_MOM35_DISTNEG",
-                "sess": _sess_overlap,
-                "atr": _atr_34,
-                "h4": _h4_0_2,
-                "mom": _mom3_5_neg,
-                "dist": _dist_neg,
-                "share_label": "overlap_short",
-            },
-        ]
-
-        _share_denoms = {
-            "overlap_short": int((_sess_overlap & _is_short).sum()),
-            "eu_short": int((_sess_eu & _is_short).sum()),
-            "eu_or_overlap_short": int((_sess_eu_overlap & _is_short).sum()),
-        }
-
-        for v in _variants:
-            _mask_raw = _is_short_raw & v["sess"] & v["atr"] & v["h4"] & v["mom"] & v["dist"]
-            _mask_eff = _is_short & v["sess"] & v["atr"] & v["h4"] & v["mom"] & v["dist"]
-            _n_raw = int(_mask_raw.sum())
-            _n_eff = int(_mask_eff.sum())
-            _share_label = v["share_label"]
-            _denom = _share_denoms.get(_share_label, 0)
-            _share = (_n_eff / _denom) if _denom > 0 else 0.0
-            log.info(
-                "[OVERLAP_SHORT_MATRIX_RAW_PROOF] variant=%s n_rows=%d n_raw_match=%d",
-                v["name"],
-                len(merged3),
-                _n_raw,
-            )
-            log.info(
-                "[OVERLAP_SHORT_MATRIX_EFFECTIVE_PROOF] variant=%s n_rows=%d n_effective_match=%d "
-                "share_%s=%.6f",
-                v["name"],
-                len(merged3),
-                _n_eff,
-                _share_label,
-                _share,
-            )
-    else:
-        log.warning(
-            "[OVERLAP_SHORT_MATRIX_SKIP] missing_cols=%s",
-            [c for c in _OVERLAP_SHORT_MATRIX_COLS if c not in merged3.columns],
-        )
-
-    # ---------------------------------------------------------------------------
-    # OVERLAP long relabel
-    #
-    # Canonical lane keeps exactly one general relabel profile here:
-    #   V4_OL_LONG_B1
-    #
-    # B1 criteria, explicitly:
-    # - session_id == OVERLAP
-    # - y_direction == LONG
-    # - H4_trend_sign_cat == 0
-    # - atr_bucket in {3,4}
-    # - D1_atr_percentile_252 >= 0.5 (mid/high)
-    # - micro_momentum_3 < 0
-    # - micro_momentum_5 < 0
-    # - distance_ema_fast is clearly negative (stricter than < 0), i.e. dist_ema_fast < -0.3
-    # ---------------------------------------------------------------------------
-    _OVERLAP_LONG_COLS = (
-        "session_id",
-        "H4_trend_sign_cat",
-        "atr_bucket",
-        "D1_atr_percentile_252",
-        "micro_momentum_3",
-        "micro_momentum_5",
-        "distance_ema_fast",
-    )
-    if all(c in merged3.columns for c in _OVERLAP_LONG_COLS):
-        _sess = merged3["session_id"].astype(np.int64).to_numpy()
-        _h4 = merged3["H4_trend_sign_cat"].astype(np.int64).to_numpy()
-        _atr_bucket = merged3["atr_bucket"].astype(np.int64).to_numpy()
-        _d1_atr = merged3["D1_atr_percentile_252"].astype(np.float32).to_numpy()
-        _mom3 = merged3["micro_momentum_3"].astype(np.float32).to_numpy()
-        _mom5 = merged3["micro_momentum_5"].astype(np.float32).to_numpy()
-        _dist_ema = merged3["distance_ema_fast"].astype(np.float32).to_numpy()
-
-        _is_overlap = (_sess == 2)  # OVERLAP
-        _is_long = (y_dir == 0)     # LONG (effective, after earlier relabels)
-        _is_long_raw = (y_dir_raw == 0)  # LONG (raw, before any relabels)
-        _h4_0 = (_h4 == 0)
-        _atr_34 = (_atr_bucket == 3) | (_atr_bucket == 4)
-        _d1_mid_high = (_d1_atr >= 0.5)
-        _mom_neg = (_mom3 < 0.0) & (_mom5 < 0.0)
-        # Use existing natural cutoff for "clearly negative" distance_ema_fast.
-        _dist_neg_strong = (_dist_ema < -0.3)
-        _raw_mask = _is_overlap & _is_long_raw & _h4_0 & _atr_34 & _d1_mid_high & _mom_neg & _dist_neg_strong
-        _mask = _is_overlap & _is_long & _h4_0 & _atr_34 & _d1_mid_high & _mom_neg & _dist_neg_strong
-
-        _n_overlap_long_raw = int(_raw_mask.sum())
-        _n_overlap_long_eff = int(_mask.sum())
-        _overlap_long_total = int((_is_overlap & _is_long).sum())
-        if _n_overlap_long_eff > 0:
-            y_dir = y_dir.copy()
-            y_qual = y_qual.copy()
-            y_early = y_early.copy()
-            y_dir[_mask] = 2
-            y_qual[_mask] = 0.0
-            y_early[_mask] = 0.0
-        log.info(
-            "[OVERLAP_LONG_RELABEL_PROOF] variant=%s n_rows=%d n_raw_match=%d "
-            "n_effective_relabel=%d share_of_overlap_long=%.6f",
-            "V4_OL_LONG_B1",
-            len(merged3),
-            _n_overlap_long_raw,
-            _n_overlap_long_eff,
-            (_n_overlap_long_eff / _overlap_long_total) if _overlap_long_total > 0 else 0.0,
-        )
-    else:
-        log.warning(
-            "[OVERLAP_LONG_RELABEL_SKIP] missing_cols=%s",
-            [c for c in _OVERLAP_LONG_COLS if c not in merged3.columns],
-        )
-
-    # ---------------------------------------------------------------------------
-    # US short relabel
-    #
-    # Canonical lane keeps this parked at BASELINE (no relabel).
-    # ---------------------------------------------------------------------------
-    _US_SHORT_COLS = (
-        "session_id",
-        "H4_trend_sign_cat",
-        "atr_bucket",
-        "D1_atr_percentile_252",
-        "micro_momentum_3",
-        "micro_momentum_5",
-        "distance_ema_fast",
-    )
-    if all(c in merged3.columns for c in _US_SHORT_COLS):
-        _sess = merged3["session_id"].astype(np.int64).to_numpy()
-
-        _is_us = (_sess == 3)
-        _is_short = (y_dir == 1)
-        _raw_mask = np.zeros(len(merged3), dtype=bool)
-        _mask = np.zeros(len(merged3), dtype=bool)
-        _n_us_short_raw = int(_raw_mask.sum())
-        _n_us_short_eff = int(_mask.sum())
-        _us_short_total = int((_is_us & _is_short).sum())
-        log.info(
-            "[US_SHORT_RELABEL_PROOF] variant=%s n_rows=%d n_raw_match=%d n_effective_relabel=%d "
-            "share_of_us_short=%.6f",
-            "V4_US_SHORT_BASELINE",
-            len(merged3),
-            _n_us_short_raw,
-            _n_us_short_eff,
-            (_n_us_short_eff / _us_short_total) if _us_short_total > 0 else 0.0,
-        )
-    else:
-        log.warning(
-            "[US_SHORT_RELABEL_SKIP] missing_cols=%s",
-            [c for c in _US_SHORT_COLS if c not in merged3.columns],
-        )
+    # ── Relabel rules REMOVED 2026-05-26 (one truth, smart-AI) ───────────────
+    # The 4 hand-tuned FLAT-relabel patches (POISON_SHORT / GROUP_B /
+    # OVERLAP_SHORT_TAIL / OVERLAP_SHORT_RESIDUAL), the proof-only matrix /
+    # OVERLAP_LONG / US_SHORT blocks, AND the GX1_V10_RELABEL_RULES switch were
+    # DELETED. They were magic-number crutches (H4/momentum/ATR thresholds) for
+    # model failure modes the current model (multi-TF×5 + dip/struct inputs +
+    # dip/timing/tail heads) is meant to LEARN. y_direction now follows ONLY the
+    # outcome-based label; any residual pocket regression is fixed with a LEARNED
+    # signal, never a hardcoded patch. (The strict-tradable labeling below is the
+    # legitimate outcome-based label definition, NOT a pocket patch — kept.)
+    # relabel_veto below is therefore always all-False (harmless no-op so the
+    # downstream tradability propagation stays unchanged).
 
     # ---------------------------------------------------------------------------
     # Quality/tradability targets (post-relabel):
@@ -2285,12 +2022,16 @@ def build_dataset_canonical(
     #            despite only ~5% of dataset being tradable. Anti-calibrated head.
     # New (V11): tradable = (final_pnl_at_horizon >= V11_TRADABLE_PNL_MIN_BPS).
     #            Direct outcome target, head learns to predict P(profitable trade).
-    # Threshold 30 bps = "high-edge trade" (well above noise + spread).
-    V11_TRADABLE_PNL_MIN_BPS = 30.0
-    _pnl_long_at_h = merged3["v11_pnl_long_at_horizon_bps"].astype(np.float32).to_numpy() \
-        if "v11_pnl_long_at_horizon_bps" in merged3.columns else _path_long  # fallback for old data
-    _pnl_short_at_h = merged3["v11_pnl_short_at_horizon_bps"].astype(np.float32).to_numpy() \
-        if "v11_pnl_short_at_horizon_bps" in merged3.columns else _path_short
+    # 2026-05-26: threshold 30→15 bps + dedicated H=24 (2h) direction horizon
+    # (V11_TRADABLE_PNL_MIN_BPS / V11_DIRECTION_HORIZON_BARS module consts) → ~60%
+    # flat (was ~89%). Uses the v11_pnl_*_at_DIR_horizon_bps columns (H=24), NOT the
+    # bad_path H=10 columns. (rule: 89% flat uaktuelt — give the model real signal.)
+    _dir_long_col = "v11_pnl_long_at_dir_horizon_bps"
+    _dir_short_col = "v11_pnl_short_at_dir_horizon_bps"
+    if _dir_long_col not in merged3.columns or _dir_short_col not in merged3.columns:
+        raise RuntimeError(f"V11_DIRECTION_PNL_MISSING: need {_dir_long_col}/{_dir_short_col} (H={V11_DIRECTION_HORIZON_BARS})")
+    _pnl_long_at_h = merged3[_dir_long_col].astype(np.float32).to_numpy()
+    _pnl_short_at_h = merged3[_dir_short_col].astype(np.float32).to_numpy()
 
     _tradable_long = (_pnl_long_at_h >= V11_TRADABLE_PNL_MIN_BPS)
     _tradable_short = (_pnl_short_at_h >= V11_TRADABLE_PNL_MIN_BPS)
@@ -2737,6 +2478,9 @@ def build_dataset_canonical(
                 "y_survival_bidir": y_survival_bidir[i],
                 "label_horizon_bars": y_label_horizon[i],
                 "path_quality_horizon_bars": y_path_horizon[i],
+                # aux-head regression targets (dip/forecast/timing/tail/vol) — emit
+                # so trainer's row.get(col) finds real values (not silent 0.0).
+                **{_c: _head_target_arrays[_c][i] for _c in _HEAD_TARGET_COLS},
             }
         )
         if len(pending) >= streaming_batch_size:
@@ -2925,6 +2669,30 @@ def main() -> None:
         help="Path to canonical_features_v2.parquet (provides per-bar price-state features + new ctx_cont features).",
     )
 
+    # BASE76 propagation: when training transformers against a BASE76 XGB bundle.
+    # Overrides BASE28 manifest source + canonical_v3 92-feat contract.
+    parser.add_argument(
+        "--source-parquet-override",
+        type=str,
+        default=None,
+        help="Override BASE28 manifest with a single-parquet source (e.g. canonical_v3_FULL_PLUS_CTX). "
+             "Skips is_model_bar filter (must already be M5-cadence) and uses the XGB feature contract "
+             "from --xgb-feature-contract-path.",
+    )
+    parser.add_argument(
+        "--xgb-feature-contract-path",
+        type=str,
+        default=None,
+        help="Override default XGB feature contract. Default: "
+             "gx1/xgb/contracts/xgb_input_features_base80_v1.json",
+    )
+    parser.add_argument(
+        "--xgb-sanitizer-config-path",
+        type=str,
+        default=None,
+        help="Override default canonical_v3 sanitizer config. Must match feature contract.",
+    )
+
     # Labels (fixed-hold)
     parser.add_argument("--hold-bars", dest="hold_bars", type=int, default=3, help="Fixed-hold label horizon in M5 bars (default: 3). Must be between 1 and 50.")
     parser.add_argument("--early_move_threshold_bps", type=float, default=4.0, help="Early-move threshold in bps (default: 4.0).")
@@ -3033,9 +2801,12 @@ def main() -> None:
             }
         )
     else:
-        if not args.base28_manifest or not args.xgb_bundle:
-            raise SystemExit("Both --base28_manifest and --xgb_bundle are required when --truth-config is not provided")
-        base28_manifest_path = Path(args.base28_manifest).resolve()
+        if not args.xgb_bundle:
+            raise SystemExit("--xgb_bundle required when --truth-config is not provided")
+        if not args.source_parquet_override and not args.base28_manifest:
+            raise SystemExit("Either --base28_manifest or --source-parquet-override required when --truth-config is not provided")
+        # When --source-parquet-override is set, BASE28 manifest is bypassed entirely.
+        base28_manifest_path = Path(args.base28_manifest).resolve() if args.base28_manifest else Path("/dev/null")
         xgb_bundle_path = Path(args.xgb_bundle).resolve()
         xgb_override = os.environ.get("GX1_XGB_BUNDLE_DIR", "").strip()
         if xgb_override:
@@ -3046,7 +2817,10 @@ def main() -> None:
                 )
             xgb_bundle_path = override_path
         proof_payload.update({"truth_config_path": None, "truth_source": "manual_args"})
-    _ensure_inputs_exist(base28_manifest_path, xgb_bundle_path)
+    if not args.source_parquet_override:
+        _ensure_inputs_exist(base28_manifest_path, xgb_bundle_path)
+    elif not xgb_bundle_path.exists():
+        raise RuntimeError(f"INPUT_MISSING: xgb_bundle not found: {xgb_bundle_path}")
 
     output_path = Path(args.output).resolve()
     hold_suffix = f"HOLD_{hold_bars:02d}B"
@@ -3159,6 +2933,9 @@ def main() -> None:
                 split_name=split_name,
                 canonical_v2_parquet=Path(args.canonical_v2_parquet).expanduser().resolve(),
                 output_path=out,  # V2 streaming-write target
+                source_parquet_override=(Path(args.source_parquet_override).expanduser().resolve() if args.source_parquet_override else None),
+                xgb_feature_contract_path=(Path(args.xgb_feature_contract_path).expanduser().resolve() if args.xgb_feature_contract_path else None),
+                xgb_sanitizer_config_path=(Path(args.xgb_sanitizer_config_path).expanduser().resolve() if args.xgb_sanitizer_config_path else None),
             )
             _log_label_distribution_proof(df_built, split=split_name)
             # V2: parquet already written by streaming_write inside build_dataset_canonical
@@ -3197,6 +2974,9 @@ def main() -> None:
         split_name="full",
         canonical_v2_parquet=Path(args.canonical_v2_parquet).expanduser().resolve(),
         output_path=output_path,  # V2 streaming-write target
+        source_parquet_override=(Path(args.source_parquet_override).expanduser().resolve() if args.source_parquet_override else None),
+        xgb_feature_contract_path=(Path(args.xgb_feature_contract_path).expanduser().resolve() if args.xgb_feature_contract_path else None),
+        xgb_sanitizer_config_path=(Path(args.xgb_sanitizer_config_path).expanduser().resolve() if args.xgb_sanitizer_config_path else None),
     )
     _log_label_distribution_proof(df_built, split="SINGLE")
     # V2: parquet already written by streaming_write inside build_dataset_canonical

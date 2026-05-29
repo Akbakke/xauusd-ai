@@ -180,11 +180,17 @@ class TradeState:
     # ── feature construction ────────────────────────────────────────
 
     def _rolling_return_bps(self, n: int) -> float:
-        """M1 close return over the last n bars (in bps), or 0 if not enough data."""
-        if len(self.m1_returns_window) < 2:
+        """M1 close return over EXACTLY n bars (bps).
+
+        Returns 0.0 if fewer than (n+1) bars are available — matches training
+        convention where partial-window features were 0-filled at trade start.
+        (Audit H2 2026-05-19: previously returned a SHORTER-lookback value
+        silently, e.g. ``m1_last_60bar_return_bps_v1`` was actually a 2-bar
+        return early in trade, diverging from training data.)
+        """
+        if len(self.m1_returns_window) < n + 1:
             return 0.0
-        lookback = min(n, len(self.m1_returns_window) - 1)
-        prev = self.m1_returns_window[-(lookback + 1)] if lookback + 1 <= len(self.m1_returns_window) else self.m1_returns_window[0]
+        prev = self.m1_returns_window[-(n + 1)]
         cur = self.m1_returns_window[-1]
         if prev <= 0:
             return 0.0
@@ -208,6 +214,56 @@ class TradeState:
             bar_return = (self.m1_returns_window[-1] - self.m1_returns_window[-2]) / self.m1_returns_window[-2] * 10000.0
         else:
             bar_return = 0.0
+
+        # Trade-state derivatives — formulas MUST match training EXACTLY
+        # (`materialize_build_exit_iql_per_bar_dataset_v1.py:283-322`). Live had
+        # subtly wrong formulas in earlier fix (audit 3 C-1/C-2 2026-05-20):
+        #   - mfe_decay_rate: training is cum_peak[t] - cum_peak[t-4]
+        #     (forward growth ≥ 0), live had used (max(h[-4:]) - h[-1])/4
+        #   - giveback_ratio: training clips to [-10, 10] with 1e-6 epsilon,
+        #     live had clipped to [0, 2] with 1.0 epsilon (different scale).
+        #   - giveback_acceleration: training is SECOND diff of giveback,
+        #     live had used FIRST diff (velocity, not acceleration).
+        #   - rolling_slope: training is closed-form OLS slope of pnl vs bar_idx
+        #     over [0..t], live had used rolling-return divided by bars.
+        h = np.asarray(list(self.pnl_history), dtype=np.float64)
+        n = len(h)
+        if n >= 1:
+            cum_peak = np.maximum.accumulate(h)
+        # pnl_velocity / pnl_acceleration: first / second discrete differences
+        pnl_velocity = float(h[-1] - h[-2]) if n >= 2 else 0.0
+        pnl_acceleration = float(h[-1] - 2.0 * h[-2] + h[-3]) if n >= 3 else 0.0
+        # mfe_decay_rate: cum_peak[t] - cum_peak[t-4]  (monotone ≥ 0 increase)
+        mfe_decay_rate = float(cum_peak[-1] - cum_peak[-5]) if n >= 5 else 0.0
+        # giveback_ratio: 1 - cur_pnl/max(cum_peak, 1e-6), clipped to [-10, 10]
+        if n >= 1:
+            pos_peak = max(float(cum_peak[-1]), 1e-6)
+            giveback_ratio = 1.0 - h[-1] / pos_peak
+            giveback_ratio = float(np.clip(giveback_ratio, -10.0, 10.0))
+        else:
+            giveback_ratio = 0.0
+        # giveback_acceleration: second diff of giveback timeseries
+        if n >= 3:
+            gv_t = 1.0 - h[-1] / max(float(cum_peak[-1]), 1e-6)
+            gv_t1 = 1.0 - h[-2] / max(float(cum_peak[-2]), 1e-6)
+            gv_t2 = 1.0 - h[-3] / max(float(cum_peak[-3]), 1e-6)
+            giveback_acceleration = float(np.clip(gv_t - 2.0 * gv_t1 + gv_t2, -10.0, 10.0))
+        else:
+            giveback_acceleration = 0.0
+
+        # rolling_slope_since_entry_v1: closed-form OLS slope of pnl vs bar_idx
+        # over [0..n-1]. slope = (n·Σxy − Σx·Σy) / (n·Σx² − (Σx)²).
+        if n >= 3:
+            idx = np.arange(n, dtype=np.float64)
+            sum_x = idx.sum()
+            sum_x2 = (idx * idx).sum()
+            sum_y = h.sum()
+            sum_xy = (idx * h).sum()
+            denom = n * sum_x2 - sum_x * sum_x
+            rolling_slope = float((n * sum_xy - sum_x * sum_y) / denom) if abs(denom) > 1e-9 else 0.0
+        else:
+            rolling_slope = 0.0
+
         return {
             "bars_in_trade_v1": float(self.bars_in_trade),
             "current_unrealized_pnl_bps_v1": float(self.current_pnl_bps),
@@ -221,6 +277,13 @@ class TradeState:
             "m1_last_60bar_return_bps_v1": float(self._rolling_return_bps(60)),
             "m1_realized_vol_15bar_bps_v1": float(self._rolling_vol_bps(15)),
             "m1_realized_vol_60bar_bps_v1": float(self._rolling_vol_bps(60)),
+            # 6 trade-state derivatives — match training builder formulas exactly.
+            "pnl_velocity_v1": float(pnl_velocity),
+            "pnl_acceleration_v1": float(pnl_acceleration),
+            "mfe_decay_rate_v1": float(mfe_decay_rate),
+            "giveback_ratio_v1": float(giveback_ratio),
+            "giveback_acceleration_v1": float(giveback_acceleration),
+            "rolling_slope_since_entry_v1": float(rolling_slope),
         }
 
     def build_v10_entry_snapshot_features(self) -> dict[str, float]:
@@ -236,6 +299,14 @@ class TradeState:
             "v10_mfe_pred_at_entry_v1": float(s.get("mfe_first_n", 0.0)),
             "v10_tradable_at_entry_v1": float(s.get("tradable_prob", 0.0)),
             "v10_bad_path_at_entry_v1": float(s.get("bad_path_prob", 0.0)),
+            # V10 v3+ aux head outputs frozen at entry — Exit-IQL was retrained
+            # 2026-05-19 to consume these 4 features (208-dim state vector).
+            # Without them they're silently 0-filled and Exit-IQL Q-values
+            # drift from what training saw.
+            "v10_tf_agreement_at_entry_v1": float(s.get("tf_agreement_pred", 0.0)),
+            "v10_path_quality_std_at_entry_v1": float(s.get("path_quality_std", 0.0)),
+            "v10_position_size_at_entry_v1": float(s.get("position_size_pred", 0.0)),
+            "v10_hold_horizon_at_entry_v1": float(s.get("hold_horizon_pred", 0.0)),
             # V3 v8 frozen at entry (would be from V3 inference at entry bar)
             "p_long_entry_v1": p_long_e,
             "p_hat_entry_v1": float(max(p_long_e, p_short_e, 1.0 - p_long_e - p_short_e)),
@@ -244,8 +315,8 @@ class TradeState:
             # entropy
             "entropy_entry_v1": float(self.v10_snapshot.get("entropy_at_entry",
                 _shannon_entropy([p_long_e, p_short_e, max(0.0, 1.0 - p_long_e - p_short_e)]))),
-            # rolling slope since entry (approximated via simple regression on m1 returns)
-            "rolling_slope_since_entry_v1": float(self._rolling_return_bps(self.bars_in_trade) / max(1, self.bars_in_trade)),
+            # rolling_slope_since_entry_v1 is now produced by build_trade_state_features()
+            # using closed-form OLS slope over pnl_history (matches training).
         }
 
     def build_side_one_hot(self) -> dict[str, float]:

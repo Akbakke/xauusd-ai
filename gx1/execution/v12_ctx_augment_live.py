@@ -182,6 +182,20 @@ def _add_session_interactions(cv3: pd.DataFrame) -> None:
         cv3["_v1_int_range_us"] = cv3["_v1_range_z"].to_numpy(dtype=np.float64) * is_us
     if "_v1h1_slope3" in cv3.columns:
         cv3["_v1_int_slope_h1_us"] = cv3["_v1h1_slope3"].to_numpy(dtype=np.float64) * is_us
+    # XGB base80-contract aliases: canonical_v3 renamed 4 features but the XGB
+    # base80 contract still expects the legacy names. They are EXACT duplicates
+    # (see materialize_canonical_v3_augment.py duplicate-pair list) — alias them
+    # so the serving augmenter feeds XGB the same inputs as training. One truth:
+    # raw canonical_v3 (e.g. CANONICAL_V3_FULL) lacks these; FULL_PLUS_CTX baked
+    # them in. Guarded so pre-baked frames are untouched.
+    for _dst, _src in (
+        ("_v1_body_tr", "_v1_body_share_1"),
+        ("_v1_int_clv_atr", "_v1_clv"),
+        ("_v1_int_r5_atr", "_v1_r5"),
+        ("_v1_int_slope_h4_atr", "_v1h4_slope5"),
+    ):
+        if _dst not in cv3.columns and _src in cv3.columns:
+            cv3[_dst] = cv3[_src].to_numpy(dtype=np.float64)
 
 
 def _add_spread_atr_bps(cv3: pd.DataFrame) -> None:
@@ -414,4 +428,10 @@ def augment_canonical_v3(cv3: pd.DataFrame, df_m5: pd.DataFrame) -> pd.DataFrame
     _add_micro_features(out)
     _add_swing_features(out)
     _add_regime_categoricals(out)
+    # Volume / order-flow per-bar features — SAME helper the V10 builder uses, so
+    # the seq's vol_z_20/vol_ratio_5_20/vol_pct_96/signed_vol_z_20 are identical
+    # train↔serve. Computed on the full `out` frame (full history) so trailing
+    # windows match training (no window-edge skew). Fail-closed-neutral if no vol.
+    from gx1.features.volume_features import add_volume_features
+    add_volume_features(out)
     return out

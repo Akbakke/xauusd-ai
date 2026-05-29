@@ -580,7 +580,10 @@ def compute_per_bar_features_v2(ohlcv: pd.DataFrame) -> pd.DataFrame:
     out["body_pct"] = (body / bar_range).clip(0.0, 1.0)
     out["upper_wick_pct"] = (upper_wick / bar_range).clip(0.0, 1.0)
     out["lower_wick_pct"] = (lower_wick / bar_range).clip(0.0, 1.0)
-    ema20 = _ema(c, 20)
+    # 2026-05-24 PM: ffill ema20 too (used in stack check line 603). Audit caught
+    # that only ema50/100/200 were ffill'd in Bug 1 fix, leaving ema20 NaN-vulnerable
+    # in early warmup → stack-check evaluates NaN>x as False → bull=0 silent.
+    ema20 = _ema(c, 20).ffill()
     out["ema20_dist_atr"] = ((c - ema20) / atr_safe).clip(-10.0, 10.0).fillna(0.0)
 
     # ─── NEW: EMA stack (3 dist + 3 slopes) ──────────────────────────

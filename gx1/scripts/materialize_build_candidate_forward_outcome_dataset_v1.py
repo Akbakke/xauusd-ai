@@ -131,46 +131,41 @@ CANDIDATE_FEATURE_COLS = [
     "direction_logit_long",
     "direction_logit_short",
     "direction_logit_flat",
+    # V10 v3+ aux heads (Targets 1-4) — needed for Entry-IQL state features
+    # and downstream Exit-IQL training (via per-bar dataset v10-snapshot).
+    # NaN for candidates from legacy bundles without these heads.
+    "tf_agreement_pred",
+    "path_quality_log_var",
+    "path_quality_std",
+    "position_size_pred",
+    "hold_horizon_pred",
+    # 2026-05-27 COSTFIX V10 new heads (base-named, carried candidate -> fwd-outcome
+    # -> Entry-IQL state). 43 scalars (dip 18 / forecast 4 / timing 12 / tail_risk 6
+    # / vol_forecast 3). NaN for candidates from a bundle lacking these heads.
+    *[f"v10_dip_{_i}" for _i in range(18)],
+    *[f"v10_forecast_{_i}" for _i in range(4)],
+    *[f"v10_timing_{_i}" for _i in range(12)],
+    *[f"v10_tail_risk_{_i}" for _i in range(6)],
+    *[f"v10_vol_forecast_{_i}" for _i in range(3)],
+    # 2026-05-21 portfolio features (improvement #1):
+    # Simulated portfolio state at decision_ts — gives Entry-IQL awareness of
+    # existing trades when scoring this candidate. Same week sliding window:
+    # any candidate C' with decision_ts in [T - 240 min, T) is treated as "open".
+    "portfolio_n_open_long_at_decision",
+    "portfolio_n_open_short_at_decision",
+    "portfolio_combined_pnl_bps_at_decision",
+    "portfolio_time_since_last_entry_min",
 ]
 
 # CANONICAL feature columns from each week's replay/chunk_0/chunk_0_data.parquet.
 # This is what V10/V3 transformers actually consume in the live runtime.
 # Joining these by time gives the IQL the SAME feature vector V10 sees at
-# entry-decision time, eliminating the V10-output-only feature bottleneck.
-# 55 features = 28 BASE28 _v1_* + 11 ctx_cont + 6 ctx_cat + 5 swing + 5 session.
-CHUNK0_FEATURE_COLS = [
-    # 28 BASE28 _v1_* features
-    "_v1_atr14", "_v1_atr_regime_id", "_v1_atr_z_10_100",
-    "_v1_bb_bandwidth_delta_10", "_v1_bb_squeeze_20_2",
-    "_v1_body_share_1", "_v1_body_tr",
-    "_v1_close_ema_slope_3", "_v1_clv", "_v1_comp3_ratio",
-    "_v1_cost_bps_dyn", "_v1_cost_bps_est",
-    "_v1_ema_diff",
-    "_v1_int_clv_atr", "_v1_int_ema_us", "_v1_int_r5_atr",
-    "_v1_int_range_us", "_v1_int_slope_h1_us", "_v1_int_slope_h4_atr",
-    "_v1_int_vwap_h1",
-    "_v1_is_EU", "_v1_is_US",
-    "_v1_kama_slope_30", "_v1_kurt_r", "_v1_lower_tr",
-    "_v1_pk_sigma20", "_v1_r1", "_v1_r12",
-    # 11 ctx_cont (multi-TF + microstructure)
-    "atr_bps", "spread_bps",
-    "D1_dist_from_ema200_atr", "H1_range_compression_ratio",
-    "D1_atr_percentile_252", "M15_range_compression_ratio",
-    "micro_momentum_3", "micro_momentum_5", "micro_acceleration",
-    "wick_ratio", "distance_ema_fast",
-    # 5 swing
-    "dist_last_swing_high_atr", "dist_last_swing_low_atr",
-    "bars_since_swing_high", "bars_since_swing_low",
-    "retracement_from_last_impulse",
-    # 6 ctx_cat (regime IDs)
-    "trend_regime_id", "vol_regime_id",
-    "atr_bucket", "spread_bucket", "H4_trend_sign_cat",
-    "session_id",
-    # 5 session
-    "is_ASIA",
-    "minutes_since_session_open", "minutes_to_next_session_boundary",
-    "session_change_flag", "session_tradable",
-]
+# 2026-05-21: chunk_0_data parquet was missing from training inputs all along,
+# so every chunk0_v1 column was zero-filled in the forward-outcome dataset.
+# Feature-importance analysis confirmed all 55 columns scored gain=0/perm=0.
+# Disabled entirely — keep CHUNK0_SUFFIX defined so legacy adapters that ignore
+# the suffix don't crash, but emit no columns from the joiner.
+CHUNK0_FEATURE_COLS: list[str] = []
 # Some chunk_0 features overlap by name with CANDIDATE_FEATURE_COLS (atr_bps,
 # entry_spread_bps via spread_bps, session_id) — we suffix them on join to
 # disambiguate.
@@ -551,6 +546,24 @@ def process_week(
     cand_dict = {col: cand[col].to_list() if col in cand.columns else [None] * len(cand)
                  for col in CANDIDATE_IDENTITY_COLS + CANDIDATE_FEATURE_COLS}
 
+    # Pre-compute per-candidate decision_ts_ns + m5_close + side for portfolio
+    # simulation (improvement #1 2026-05-21). Use cand row order (already sorted
+    # by decision_ts via shadow_meta_candidates_*_MERGED.parquet construction).
+    PORTFOLIO_LOOKBACK_MIN = 240   # 4h same as MAX_K horizon — matches reward window
+    _PORTFOLIO_LOOKBACK_NS = PORTFOLIO_LOOKBACK_MIN * 60 * 1_000_000_000
+    cand_ts_ns_arr = np.zeros(len(cand), dtype=np.int64)
+    cand_m5_close_arr = np.zeros(len(cand), dtype=np.float64)
+    cand_side_arr: list[str | None] = []
+    for k in range(len(cand)):
+        _ts_ns = _safe_decision_ts_to_int64_ns(cand_dict["decision_ts_utc"][k])
+        cand_ts_ns_arr[k] = _ts_ns if _ts_ns is not None else 0
+        # Look up m5_close at this candidate's decision_ts (mid of bid_close + ask_close)
+        if _ts_ns is not None:
+            _idx = int(np.searchsorted(m5_time_ns, _ts_ns, side="right")) - 1
+            if 0 <= _idx < n_m5:
+                cand_m5_close_arr[k] = (m5_arrays["bid_close"][_idx] + m5_arrays["ask_close"][_idx]) / 2.0
+        cand_side_arr.append(cand_dict["side"][k])
+
     for row_i in range(len(cand)):
         decision_ts_str = cand_dict["decision_ts_utc"][row_i]
         ts_ns = _safe_decision_ts_to_int64_ns(decision_ts_str)
@@ -577,6 +590,46 @@ def process_week(
         # Identity + candidate features (carry forward)
         for col in CANDIDATE_IDENTITY_COLS + CANDIDATE_FEATURE_COLS:
             row_out[col] = cand_dict[col][row_i]
+
+        # PORTFOLIO SIMULATION (improvement #1 2026-05-21):
+        # Treat any earlier candidate in this week with decision_ts in
+        # [ts_ns - 240min, ts_ns) as a "virtually open" trade. Estimate its
+        # current pnl from m5_close movement (entry → now). Aggregate counts,
+        # combined pnl, time-since-last for input to Entry-IQL.
+        cur_m5_close = float(cand_m5_close_arr[row_i]) if cand_m5_close_arr[row_i] > 0 else 0.0
+        window_lower_ns = ts_ns - _PORTFOLIO_LOOKBACK_NS
+        port_n_long = 0
+        port_n_short = 0
+        port_sum_pnl_bps = 0.0
+        port_last_entry_ns: int | None = None
+        if cur_m5_close > 0:
+            for k in range(row_i):
+                k_ts_ns = int(cand_ts_ns_arr[k])
+                if k_ts_ns <= window_lower_ns or k_ts_ns >= ts_ns:
+                    continue
+                k_side = cand_side_arr[k]
+                if k_side not in ("long", "short"):
+                    continue
+                k_entry = float(cand_m5_close_arr[k])
+                if k_entry <= 0:
+                    continue
+                if k_side == "long":
+                    pnl_bps = (cur_m5_close - k_entry) / k_entry * 10000.0
+                    port_n_long += 1
+                else:
+                    pnl_bps = (k_entry - cur_m5_close) / k_entry * 10000.0
+                    port_n_short += 1
+                port_sum_pnl_bps += pnl_bps
+                if port_last_entry_ns is None or k_ts_ns > port_last_entry_ns:
+                    port_last_entry_ns = k_ts_ns
+        if port_last_entry_ns is not None:
+            time_since_last_min = (ts_ns - port_last_entry_ns) / 60_000_000_000
+        else:
+            time_since_last_min = float(PORTFOLIO_LOOKBACK_MIN)  # cap = no recent entries
+        row_out["portfolio_n_open_long_at_decision"] = int(port_n_long)
+        row_out["portfolio_n_open_short_at_decision"] = int(port_n_short)
+        row_out["portfolio_combined_pnl_bps_at_decision"] = float(port_sum_pnl_bps)
+        row_out["portfolio_time_since_last_entry_min"] = float(time_since_last_min)
 
         # CANONICAL chunk_0 features at decision_ts (V10/V3 feature parity).
         # V12.2: weeks produced by materialize_inference_batch don't have a

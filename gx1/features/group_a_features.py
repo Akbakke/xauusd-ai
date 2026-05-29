@@ -360,10 +360,14 @@ GROUP_A_FEATURE_NAMES = (
     "vol_pct_m5_1yr", "vol_pct_h1_1yr",
     # A6 — pivots (4)
     "dist_to_R1_atr", "dist_to_R2_atr", "dist_to_S1_atr", "dist_to_S2_atr",
-    # A5 — liquidity zones (6)
+    # A5 — liquidity zones (10) — 2026-05-26 one-truth fix: added M15+D1 to match
+    # liquidity_zones() (which computes all 5 TFs) + Entry/Exit-IQL V2_GROUP_A_COLS.
+    # Previously stale at 6 (m5/h1/h4) → compute_group_a_features silently dropped m15/d1.
     "dist_to_m5_hi_atr", "dist_to_m5_lo_atr",
+    "dist_to_m15_hi_atr", "dist_to_m15_lo_atr",
     "dist_to_h1_hi_atr", "dist_to_h1_lo_atr",
     "dist_to_h4_hi_atr", "dist_to_h4_lo_atr",
+    "dist_to_d1_hi_atr", "dist_to_d1_lo_atr",
     # A1 — per-side perf (8)
     "long_win_rate_last10",  "long_mean_pnl_last10",
     "long_n_consec_losses",  "long_time_since_last_close_min",

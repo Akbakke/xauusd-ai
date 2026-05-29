@@ -652,7 +652,20 @@ def main() -> None:
     parser.add_argument("--directional-only", action="store_true")
     parser.add_argument("--candidates-per-batch", type=int, default=DEFAULT_CANDIDATES_PER_BATCH)
     parser.add_argument("--built-at-utc", type=str, default=None)
+    parser.add_argument("--vedtak", type=str, default=None,
+                        help="REQUIRED retrain vedtak (gx1_guards gate). Short reason string.")
     args = parser.parse_args()
+
+    # Retrain-vedtak gate (no auto-retrains).
+    try:
+        from gx1_guards.gates import require_retrain_vedtak, GateError
+        try:
+            require_retrain_vedtak(args.vedtak)
+        except GateError as e:
+            parser.error(str(e))
+    except ImportError:
+        if not args.vedtak:
+            parser.error("--vedtak is required (gx1_guards unavailable; pass --vedtak anyway).")
 
     out_root = Path(args.out_root).expanduser().resolve() if args.out_root else None
     result = write_artifacts(

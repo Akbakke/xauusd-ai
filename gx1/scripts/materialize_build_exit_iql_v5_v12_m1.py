@@ -67,6 +67,12 @@ V12_V10_SNAPSHOT_COLS = [
     "v10_p_short_at_entry_v1",
     "v10_path_quality_at_entry_v1",
     "v10_mfe_pred_at_entry_v1",
+    # V10 v3+ aux heads (Targets 1-4) — added 2026-05-19.
+    # NaN-filled for legacy V10 bundles via trainer's missing-fill.
+    "v10_tf_agreement_at_entry_v1",
+    "v10_path_quality_std_at_entry_v1",
+    "v10_position_size_at_entry_v1",
+    "v10_hold_horizon_at_entry_v1",
 ]
 
 NUMERIC_STATE_COLS_PER_BAR = (
@@ -81,9 +87,15 @@ ONE_HOT_COLS = list(v3_m1.ONE_HOT_COLS)
 # ── V12 reward variant ───────────────────────────────────────────────────
 
 
-REWARD_VARIANTS_V12 = ["R_V12"]   # R_V13_MFE_AWARE RETIRED 2026-05-16 (OOS-overfit; V12.4 overlay supersedes)
-DEFAULT_VARIANTS_V12 = ["R_V12"]
-# R_NET_REAL / R_REGRET also retired — V12.1 superseded them, never used post-cement.
+# R_V13_MFE_AWARE RETIRED 2026-05-16 (OOS-overfit; the -50bps HOLD-penalty fired
+# too aggressively on fresh data). R_NET_V2 is the MILDER, robust way to bake the
+# MFE-protection objective into the reward: HOLD reward gets a giveback penalty
+# (-R_NET_V2_GIVEBACK × drawdown_from_peak) so the IQL LEARNS to exit on giveback
+# instead of relying on the hard-coded Strategy-F overlay. Selectable (not default)
+# so Stage 7 can train an "objective-in-reward" Exit-IQL and Phase 6 can ablate it
+# against the overlay. R_NET_REAL/R_REGRET kept selectable for A/B baselines.
+REWARD_VARIANTS_V12 = ["R_V12", "R_NET_V2", "R_NET_REAL", "R_REGRET"]
+DEFAULT_VARIANTS_V12 = ["R_V12"]   # default unchanged — cemented behaviour
 
 # V13 design constants — RETIRED but kept as documentation comment.
 # Reason: R_V13_MFE_AWARE retrained with HOLD-penalty (-50 bps) at MFE-giveback.
@@ -365,7 +377,20 @@ def main() -> None:
                         help=f"K_PRIMARY override. Allowed: {K_HORIZONS}. Default {K_PRIMARY}.")
     parser.add_argument("--exit-reward-multiplier", type=float, default=1.0)
     parser.add_argument("--built-at-utc", type=str, default=None)
+    parser.add_argument("--vedtak", type=str, default=None,
+                        help="REQUIRED retrain vedtak (gx1_guards gate). Short reason string.")
     args = parser.parse_args()
+
+    # Retrain-vedtak gate (no auto-retrains).
+    try:
+        from gx1_guards.gates import require_retrain_vedtak, GateError
+        try:
+            require_retrain_vedtak(args.vedtak)
+        except GateError as e:
+            parser.error(str(e))
+    except ImportError:
+        if not args.vedtak:
+            parser.error("--vedtak is required (gx1_guards unavailable; pass --vedtak anyway).")
 
     v2_train.BUDGET_ACTIVE = v2_train.BUDGET_PRESETS[args.budget]
 

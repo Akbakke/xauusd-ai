@@ -86,10 +86,8 @@ def proba_to_signal_bridge_v1(proba: np.ndarray) -> np.ndarray:
         p_short = arr[:, 1]
         p_flat = np.zeros_like(p_long)
     p_hat = np.maximum.reduce([p_long, p_short, p_flat])
-    if n_cols == 2:
-        top_two = np.sort(arr, axis=1)[:, ::-1][:, :2]
-    else:
-        top_two = np.sort(arr, axis=1)[:, ::-1][:, :2]
+    # top1-top2 margin — identical for 2- and 3-class (arr holds the class probs)
+    top_two = np.sort(arr, axis=1)[:, ::-1][:, :2]
     margin_top1_top2 = top_two[:, 0] - top_two[:, 1]
     eps = 1e-12
     probs = np.clip(arr[:, :3] if n_cols == 3 else np.column_stack([p_long, p_short, p_flat]), eps, 1.0)
@@ -106,6 +104,23 @@ def proba_to_signal_bridge_v1(proba: np.ndarray) -> np.ndarray:
         ]
     ).astype(np.float32)
     return bridge
+
+
+# Fail-closed guard (finding C, 2026-05-26): proba_to_signal_bridge_v1 emits a
+# FIXED 7-field order. The live/batch paths set GX1_SIGNAL_BRIDGE_VERSION=3 but
+# this builder is version-agnostic — it works ONLY because the active (v3) bridge
+# field order is identical. If a future bridge reorders fields, this assert fails
+# loudly at import instead of silently feeding V10/V3 a permuted bridge.
+_BRIDGE_ORDER_V1 = ["p_long", "p_short", "p_flat", "p_hat",
+                    "uncertainty_score", "margin_top1_top2", "entropy"]
+try:
+    from gx1.contracts.signal_bridge_v3 import ORDERED_BRIDGE_FIELDS_V3 as _ACTIVE_BRIDGE
+    assert list(_ACTIVE_BRIDGE) == _BRIDGE_ORDER_V1, (
+        f"SIGNAL_BRIDGE_ORDER_DRIFT: proba_to_signal_bridge_v1 emits {_BRIDGE_ORDER_V1} "
+        f"but active bridge is {list(_ACTIVE_BRIDGE)} — V10/V3 would receive a permuted bridge."
+    )
+except ImportError:
+    pass  # contracts module optional at this layer
 
 
 @dataclass
@@ -261,7 +276,17 @@ class XGBMultiheadModel:
         
         calibrators = None
         calibration_method = None
-        if _bool_env("GX1_XGB_HEAD_CALIBRATE", False):
+        # Bundle-driven calibration: a bundle that carries CALIBRATION.json /
+        # meta.calibration MUST serve calibrated EVERYWHERE (live, batch, dataset
+        # builders, Phase 6) — never env-gated at load, or a calibrated bundle gets
+        # served raw and we get train/serve skew. GX1_XGB_HEAD_CALIBRATE=0 can
+        # force-disable for a deliberate ablation only.
+        _calib_in_bundle = (
+            bool(meta.get("calibration", {}).get("method"))
+            or (model_path.parent / "CALIBRATION.json").exists()
+        )
+        _calib_force_off = os.getenv("GX1_XGB_HEAD_CALIBRATE", "").strip().lower() in ("0", "false", "no", "off")
+        if _calib_in_bundle and not _calib_force_off:
             calibration_method = (
                 meta.get("calibration", {}).get("method")
                 or os.getenv("GX1_XGB_CALIBRATOR", "isotonic")

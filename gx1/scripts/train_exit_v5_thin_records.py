@@ -41,7 +41,7 @@ from gx1.exits.contracts.registry import get_exit_io_contract
 
 ACTION = "TRAIN_EXIT_V5_THIN_RECORDS"
 
-DEFAULT_DATASET_DIR = Path("/home/andre2/GX1_DATA/data/training/exit_v3_v5_training_2020_2026")
+DEFAULT_DATASET_DIR = Path("/home/andre2/GX1_DATA/data/training/exit_v3_v7_training_2020_2026_canonical_v3")
 DEFAULT_OUT_DIR = Path("/home/andre2/GX1_DATA/models/exit_transformer_v0")
 
 

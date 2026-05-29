@@ -495,7 +495,20 @@ def main() -> None:
                              "terminal). Try 1.2-1.5 to push EXIT_NOW above HOLD when "
                              "outcomes are similar.")
     parser.add_argument("--built-at-utc", type=str, default=None)
+    parser.add_argument("--vedtak", type=str, default=None,
+                        help="REQUIRED retrain vedtak (gx1_guards gate). Short reason string.")
     args = parser.parse_args()
+
+    # Retrain-vedtak gate (no auto-retrains).
+    try:
+        from gx1_guards.gates import require_retrain_vedtak, GateError
+        try:
+            require_retrain_vedtak(args.vedtak)
+        except GateError as e:
+            parser.error(str(e))
+    except ImportError:
+        if not args.vedtak:
+            parser.error("--vedtak is required (gx1_guards unavailable; pass --vedtak anyway).")
 
     # Apply training budget into v2 globals (same pattern as v2 main).
     preset = v2_train.BUDGET_PRESETS[args.budget]

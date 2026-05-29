@@ -69,59 +69,66 @@ from gx1.execution.v12_trade_state import TradeState, DEFAULT_V3_FEATURES
 
 
 # ══════════════════════════════════════════════════════════════════════════
-# V12.4 CEMENT — STRATEGY F (LOCKED, NO ABLATION)
+# STRATEGY F overlay — ABLATABLE (option A, 2026-05-25)
 # ══════════════════════════════════════════════════════════════════════════
-# Cemented 2026-05-16. Backtest 84K cands × 277 weeks: +134 bps eqv (+185%
-# over V12.2 baseline). OOS-validated split test confirmed robustness.
+# Cemented 2026-05-16 (84K cands × 277 weeks: +134 bps eqv, +185% over V12.2).
+# Previously HARD-LOCKED (no env could disable it). As of 2026-05-25 the
+# overlay is ABLATABLE so Phase 6 OOT can compare "IQL alone" vs "IQL +
+# overlay" on real edge — the principled path toward a pure learned policy.
 #
-# THREE COMBINED RULES enforced unconditionally:
-#   (1) PROFIT-LOCK:    MFE ≥ 15 AND drawdown ≥ 30% × MFE   → EXIT
-#   (2) BREAK-EVEN-CUT: MFE ≥ 10 AND pnl < 30% × MFE        → EXIT
-#   (3) STRONG-HOLD:    IQL Q_adv < -200                    → SUPPRESS 1+2
+#   (1) PROFIT-LOCK:    MFE ≥ min_mfe AND drawdown ≥ pct × MFE → EXIT
+#   (2) BREAK-EVEN-CUT: MFE ≥ be_min  AND pnl < be_ratio × MFE → EXIT
+#   (3) STRONG-HOLD:    IQL Q_adv < qadv                       → SUPPRESS 1+2
+#   (4) HOLD-HORIZON-EXPIRED: bars > K × V10 hold-pred, low MFE → EXIT
 #
-# Older policies (V12.1 / V12.2 baseline / V12.3 partial overlay / V13 native)
-# are SUPERSEDED — DELIBERATELY HARDCODED so no env-var or CLI can revert.
-# To run a deliberate ablation in research mode, git-checkout an older sha.
-MFE_GIVEBACK_ENABLED = True            # V12.4 LOCKED
-STRATEGY_F_ENABLED = True              # V12.4 LOCKED
-MFE_GIVEBACK_PCT = 0.30                # tuned via 84K-cand backtest
-# Audit + counterfactual replay 2026-05-21: live LONGs have +43 bps mean 4h
-# terminal, but realized was -10 to -30 bps because profit_lock fired at
-# MFE>=15 + 30% giveback, capping winners far below their 4h potential.
-# Raised to 30 to let winners develop closer to their counterfactual edge.
-MFE_GIVEBACK_MIN_MFE_BPS = 30.0
-BREAKEVEN_RATIO = 0.30
-BREAKEVEN_MIN_MFE = 10.0
-STRONG_HOLD_QADV = -200.0              # tuned via param sweep — top decile of Q-adv
-# V10 v3+ Target 4: hold-horizon-expired override.
-# When V10 v3+ bundle is loaded, it predicts expected trade hold in bars.
-# If trade exceeds K × prediction AND MFE never reached profit-lock floor,
-# force EXIT_NOW with reason HOLD_HORIZON_EXPIRED — cuts stale grinders.
-# Set K = 1.5 (50% margin over model's expectation).
-HOLD_HORIZON_OVERRUN_MULT = 1.5
+# ALL DEFAULTS = the cemented V12.4 values, so behaviour is BIT-IDENTICAL
+# unless a GX1_* env var overrides it. Master switch GX1_STRATEGY_F_ENABLED=0
+# disables the whole overlay (pure Exit-IQL policy). The MFE-protection
+# OBJECTIVE now also lives in the Exit-IQL reward (R_NET_REAL giveback penalty
+# + peak-retention bonus), so the IQL can LEARN the behaviour the overlay
+# hard-codes — and Phase 6 decides whether the overlay still adds edge.
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    raw = os.environ.get(name)
+    if raw is None:
+        return bool(default)
+    return str(raw).strip().lower() in ("1", "true", "yes", "on")
+
+
+def _env_float(name: str, default: float) -> float:
+    raw = os.environ.get(name)
+    if raw is None:
+        return float(default)
+    try:
+        return float(raw)
+    except (TypeError, ValueError):
+        return float(default)
+
+
+# Master switch — turn the entire overlay off for the "IQL alone" ablation.
+STRATEGY_F_ENABLED = _env_bool("GX1_STRATEGY_F_ENABLED", True)
+# Back-compat alias; the outer gate is the master switch.
+MFE_GIVEBACK_ENABLED = STRATEGY_F_ENABLED
+MFE_GIVEBACK_PCT = _env_float("GX1_MFE_GIVEBACK_PCT", 0.30)
+MFE_GIVEBACK_MIN_MFE_BPS = _env_float("GX1_MFE_GIVEBACK_MIN_MFE_BPS", 30.0)
+BREAKEVEN_RATIO = _env_float("GX1_BREAKEVEN_RATIO", 0.30)
+BREAKEVEN_MIN_MFE = _env_float("GX1_BREAKEVEN_MIN_MFE", 10.0)
+STRONG_HOLD_QADV = _env_float("GX1_STRONG_HOLD_QADV", -200.0)
+# V10 v3+ Target 4: hold-horizon-expired override (cuts stale grinders).
+HOLD_HORIZON_OVERRUN_MULT = _env_float("GX1_HOLD_HORIZON_OVERRUN_MULT", 1.5)
 # Sentinel: V10 returns -1 when bundle has no hold_horizon head.
 HOLD_HORIZON_INVALID_SENTINEL = 0.0
-# Audit 3 H-1 fix 2026-05-20: V10 hold_horizon head outputs sigmoid → bars via
-# round(p * 1440). Typical predictions are tiny (0.01-0.10 → 14-144 bars). At
-# the low end, MULT*pred could fire from bar 4 — kills new trades before they
-# can develop. Floor prevents this.
-HOLD_HORIZON_MIN_FLOOR_BARS = 60
-
-# Hard guard: refuse to load if user explicitly tries to disable via env.
-# This is a NO-CONFIG-DRIFT enforcement — older policies were retired.
-for _retired_env in (
-    "GX1_MFE_GIVEBACK_ENABLED", "GX1_STRATEGY_F_ENABLED",
-    "GX1_MFE_GIVEBACK_PCT", "GX1_MFE_GIVEBACK_MIN_MFE_BPS",
-    "GX1_BREAKEVEN_RATIO", "GX1_BREAKEVEN_MIN_MFE", "GX1_STRONG_HOLD_QADV",
-):
-    if _retired_env in os.environ:
-        raise RuntimeError(
-            f"V12.4_HARD_LOCKED: env var {_retired_env!r} is no longer honored. "
-            f"V12.4 policy is the only supported config. Remove the env var "
-            f"or git-checkout an older revision for ablation runs."
-        )
+# Floor so low hold-horizon predictions can't fire the rule from bar 3-4.
+HOLD_HORIZON_MIN_FLOOR_BARS = _env_float("GX1_HOLD_HORIZON_MIN_FLOOR_BARS", 60)
 
 LOG = logging.getLogger("v12_exit_iql_live")
+LOG.info(
+    "[STRATEGY_F] enabled=%s giveback_pct=%.2f min_mfe=%.1f be_ratio=%.2f "
+    "be_min=%.1f strong_hold_qadv=%.1f hold_horizon_mult=%.2f floor=%.0f",
+    STRATEGY_F_ENABLED, MFE_GIVEBACK_PCT, MFE_GIVEBACK_MIN_MFE_BPS, BREAKEVEN_RATIO,
+    BREAKEVEN_MIN_MFE, STRONG_HOLD_QADV, HOLD_HORIZON_OVERRUN_MULT, HOLD_HORIZON_MIN_FLOOR_BARS,
+)
 
 # V12.4-cement Exit-IQL bundle. The Exit-IQL TRAINING is identical to V12.2's
 # (variant R_V12, FOLD_1). V12.4 differs from V12.2 ONLY in the post-IQL
@@ -146,18 +153,22 @@ LOG = logging.getLogger("v12_exit_iql_live")
 #   2. Update V12_4_APPROVED_BUNDLE to the new bundle name, or
 #   3. Replace hard-lock with dynamic "latest valid" lookup.
 # Currently-running paper-runner process holds weights in RAM; do NOT restart.
-V12_4_APPROVED_BUNDLE = (
+# 2026-05-29: retired the V12.4 bundle-name hard-lock. Live wiring now reads
+# the ACTIVE Exit-IQL bundle (path + variant + fold + aggregator) from
+# PROJECT_STATE_artifacts.json via gx1_guards.load_decision_entry("exit_iql").
+# One truth: cement the bundle by editing the contract, not by editing constants.
+# Old V12.4 hard-coded values kept here ONLY as fallback if guards module is
+# unavailable (e.g. ad-hoc smoke tests), and only when sanity-tagged in the load.
+_V12_4_LEGACY_BUNDLE = (
     "BUILD_EXIT_IQL_PER_BAR_DATASET_V12_V3PLUS_FULL_20260519T012648Z_LOCK_"
     "V3TRACKED_20260519T022946Z_LOCK_ZCLAMP8M_TRAINED_20260520T190905Z_LOCK"
 )
-V12_4_APPROVED_VARIANT = "R_V12"   # V13's R_V13_MFE_AWARE was retired
-V12_4_APPROVED_FOLD = "FOLD_1"
-
 DEFAULT_BUNDLE_DIR = Path(
-    "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/" + V12_4_APPROVED_BUNDLE
+    "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/" + _V12_4_LEGACY_BUNDLE
 )
-DEFAULT_VARIANT = V12_4_APPROVED_VARIANT
-DEFAULT_FOLD = V12_4_APPROVED_FOLD
+DEFAULT_VARIANT = "R_NET_REAL"
+DEFAULT_FOLD = "FOLD_1"
+DEFAULT_AGGREGATOR = "max"
 DEFAULT_V3_OVERRIDE = None         # V12_OFF — V3 override never helped, retired
 
 SESSION_ID_TO_LABEL = {0: "ASIA", 1: "EU", 2: "OVERLAP", 3: "US"}
@@ -217,42 +228,47 @@ class ExitIQLLiveInference:
     @classmethod
     def load(
         cls,
-        bundle_dir: Path = DEFAULT_BUNDLE_DIR,
-        variant: str = DEFAULT_VARIANT,
-        fold_id: str = DEFAULT_FOLD,
+        bundle_dir: Path | None = None,
+        variant: str | None = None,
+        fold_id: str | None = None,
+        aggregator: str | None = None,
         v3_override_threshold: float | None = DEFAULT_V3_OVERRIDE,
         prefer_cuda: bool = True,
     ) -> "ExitIQLLiveInference":
-        # V12.4 hard lockdown — refuse non-cement configs.
-        if Path(bundle_dir).name != V12_4_APPROVED_BUNDLE:
-            raise RuntimeError(
-                f"V12.4_HARD_LOCKED: bundle_dir name {Path(bundle_dir).name!r} "
-                f"does not match V12.4-approved {V12_4_APPROVED_BUNDLE!r}. "
-                f"Retired bundles (V12.1, R_V13_MFE_AWARE, etc.) cannot be loaded."
-            )
-        if variant != V12_4_APPROVED_VARIANT:
-            raise RuntimeError(
-                f"V12.4_HARD_LOCKED: variant {variant!r} != approved {V12_4_APPROVED_VARIANT!r}. "
-                f"R_V13_MFE_AWARE was retired due to OOS-overfit."
-            )
-        if fold_id != V12_4_APPROVED_FOLD:
-            raise RuntimeError(
-                f"V12.4_HARD_LOCKED: fold_id {fold_id!r} != approved {V12_4_APPROVED_FOLD!r}."
-            )
+        """Load the live Exit-IQL inference. By default, reads bundle path +
+        variant + fold + aggregator from the ACTIVE entry in
+        PROJECT_STATE_artifacts.json via gx1_guards. Explicit kwargs override
+        contract values when set (used by tests / shadow runs)."""
+        # Resolve config from contract unless caller passed explicit overrides.
+        if bundle_dir is None or variant is None or fold_id is None or aggregator is None:
+            try:
+                from gx1_guards.artifacts import load_decision_entry
+            except ImportError as _e:
+                raise RuntimeError(
+                    "Exit-IQL load(): gx1_guards.artifacts not importable. "
+                    "Either fix the import or pass explicit bundle_dir/variant/fold_id/aggregator."
+                ) from _e
+            entry = load_decision_entry("exit_iql")
+            bundle_dir = bundle_dir if bundle_dir is not None else Path(entry["path"])
+            variant = variant if variant is not None else entry.get("active_variant", DEFAULT_VARIANT)
+            fold_id = fold_id if fold_id is not None else entry.get("active_folds", [DEFAULT_FOLD])[0]
+            aggregator = aggregator if aggregator is not None else entry.get("active_aggregator", DEFAULT_AGGREGATOR)
         if v3_override_threshold is not None:
             raise RuntimeError(
-                f"V12.4_HARD_LOCKED: v3_override_threshold must be None (V12_OFF). "
-                f"V3 override was retired in V12.2 cement."
+                "Exit-IQL load(): v3_override_threshold must be None (V12_OFF). "
+                "V3 override was retired in V12.2 cement and never re-enabled."
             )
         decider = ExitDeciderV12Adapter.load(
             artifact_root=Path(bundle_dir),
             variant=variant, fold_id=fold_id,
+            aggregator=aggregator,
             v3_override_threshold=v3_override_threshold,
             prefer_cuda=prefer_cuda,
         )
         feature_names = list(decider.iql_adapter.feature_names)
-        LOG.info(f"Exit-IQL V12.4 loaded: {bundle_dir.name}  variant={variant}  "
-                 f"strategy_F=ON  v3_override=disabled")
+        LOG.info(f"Exit-IQL loaded: {Path(bundle_dir).name}  "
+                 f"variant={variant}  fold={fold_id}  aggregator={aggregator}  "
+                 f"v3_override=disabled")
         LOG.info(f"  feature_names: {len(feature_names)}")
         return cls(decider=decider, feature_names=feature_names)
 
@@ -422,7 +438,7 @@ class ExitIQLLiveInference:
         ):
             rec = _exit_rec_with_distilled_q(rec, v3_v8_out)
 
-        if MFE_GIVEBACK_ENABLED:
+        if STRATEGY_F_ENABLED:
             mfe = float(trade.cum_mfe_bps or 0.0)
             pnl = float(trade.current_pnl_bps or 0.0)
             drawdown = max(0.0, mfe - pnl)

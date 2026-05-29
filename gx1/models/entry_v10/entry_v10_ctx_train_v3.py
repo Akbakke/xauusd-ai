@@ -39,6 +39,7 @@ from gx1.contracts.signal_bridge_v3 import (
     SEQ_SIGNAL_DIM_V3 as SEQ_SIGNAL_DIM,
     SNAP_SIGNAL_DIM_V3 as SNAP_SIGNAL_DIM,
     DEFAULT_SEQ_LEN_V3,
+    CTX_CONT_DIM_V3,
 )
 from gx1.contracts.signal_bridge_v1 import get_canonical_ctx_contract
 from gx1.time.session_detector import (
@@ -48,6 +49,74 @@ from gx1.time.session_detector import (
 )
 from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
     EntryV10CtxHybridTransformer,
+    DIP_DIRECTIONS, DIP_HORIZONS, DIP_TARGETS, FORECAST_HORIZONS,
+    TIMING_DIRECTIONS, TIMING_HORIZONS, TIMING_TARGETS,
+    TAIL_RISK_DIRECTIONS, TAIL_RISK_HORIZONS, TAIL_RISK_QUANTILE,
+    VOL_FORECAST_HORIZONS,
+)
+
+
+def dip_forecast_loss(out: dict, batch: dict, device) -> "torch.Tensor":
+    """Shared loss for the dip-head (18, pinball quantile) + forecast-head (4,
+    smooth_l1). Returns 0 if a head/its targets are absent (gated). Output layout
+    MUST match the model: dip = dir×K×{dip_p50,dip_p90,recovery_p50}; recovery
+    uses the mfe label, dip_p50/p90 use the mae_before_mfe label."""
+    import torch
+    total = torch.zeros((), device=device)
+    dip_pred = out.get("dip_pred")
+    if dip_pred is not None and "y_dip_mae_long_K12" in batch:
+        tgts, qs = [], []
+        for d in DIP_DIRECTIONS:
+            for K in DIP_HORIZONS:
+                for tgt in DIP_TARGETS:
+                    if tgt.startswith("recovery"):
+                        tgts.append(batch[f"y_dip_mfe_{d}_K{K}"]); qs.append(0.5)
+                    else:  # dip_p50 / dip_p90
+                        tgts.append(batch[f"y_dip_mae_{d}_K{K}"]); qs.append(0.9 if "p90" in tgt else 0.5)
+        tgt = torch.stack(tgts, dim=1).to(device).float()          # (B, 18)
+        q = torch.tensor(qs, device=device, dtype=tgt.dtype).view(1, -1)
+        err = tgt - dip_pred.float()
+        total = total + torch.maximum(q * err, (q - 1.0) * err).mean()
+    fc_pred = out.get("forecast_pred")
+    if fc_pred is not None and "y_forecast_ret_K1" in batch:
+        fc_tgt = torch.stack([batch[f"y_forecast_ret_K{K}"] for K in FORECAST_HORIZONS], dim=1).to(device).float()
+        total = total + torch.nn.functional.smooth_l1_loss(fc_pred.float(), fc_tgt)
+    # ── dip-timing head (12, smooth_l1) — WHEN the dip bottoms / favorable peak ─
+    timing_pred = out.get("timing_pred")
+    if timing_pred is not None and "y_dip_bottom_frac_long_K12" in batch:
+        t_tgts = []
+        for d in TIMING_DIRECTIONS:
+            for K in TIMING_HORIZONS:
+                for tgt in TIMING_TARGETS:
+                    t_tgts.append(batch[f"y_{tgt}_{d}_K{K}"])
+        t_tgt = torch.stack(t_tgts, dim=1).to(device).float()          # (B, 12)
+        total = total + torch.nn.functional.smooth_l1_loss(timing_pred.float(), t_tgt)
+    # ── tail-risk head (6, pinball q=0.9) — worst adverse over full horizon ─────
+    tail_pred = out.get("tail_risk_pred")
+    if tail_pred is not None and "y_tail_mae_long_K12" in batch:
+        tail_tgts = [batch[f"y_tail_mae_{d}_K{K}"]
+                     for d in TAIL_RISK_DIRECTIONS for K in TAIL_RISK_HORIZONS]
+        tail_tgt = torch.stack(tail_tgts, dim=1).to(device).float()    # (B, 6)
+        q = float(TAIL_RISK_QUANTILE)
+        err = tail_tgt - tail_pred.float()
+        total = total + torch.maximum(q * err, (q - 1.0) * err).mean()
+    # ── vol-forecast head (3, smooth_l1) — forward realized vol (bps) ───────────
+    vol_pred = out.get("vol_forecast_pred")
+    if vol_pred is not None and "y_vol_fwd_K12" in batch:
+        vol_tgt = torch.stack([batch[f"y_vol_fwd_K{K}"] for K in VOL_FORECAST_HORIZONS], dim=1).to(device).float()
+        total = total + torch.nn.functional.smooth_l1_loss(vol_pred.float(), vol_tgt)
+    return total
+
+
+# Aux-head regression target columns batched per sample (fallback 0.0). Must
+# stay in sync with the builder's _HEAD_TARGET_COLS and the model's heads.
+_DIP_FORECAST_TARGET_COLS = (
+    [f"y_dip_mae_{d}_K{K}" for d in DIP_DIRECTIONS for K in DIP_HORIZONS]
+    + [f"y_dip_mfe_{d}_K{K}" for d in DIP_DIRECTIONS for K in DIP_HORIZONS]
+    + [f"y_forecast_ret_K{K}" for K in FORECAST_HORIZONS]
+    + [f"y_{tgt}_{d}_K{K}" for d in TIMING_DIRECTIONS for K in TIMING_HORIZONS for tgt in TIMING_TARGETS]
+    + [f"y_tail_mae_{d}_K{K}" for d in TAIL_RISK_DIRECTIONS for K in TAIL_RISK_HORIZONS]
+    + [f"y_vol_fwd_K{K}" for K in VOL_FORECAST_HORIZONS]
 )
 
 # -----------------------------------------------------------------------------
@@ -139,11 +208,18 @@ XGB_SHORT_LONG_PENALTY = float(_env_str("ENTRY_XGB_SHORT_LONG_PENALTY", "0.0"))
 # than LONG/SHORT->FLAT, while FLAT->LONG/SHORT remains moderate.
 ENTRY_COST_SENSITIVE_ENABLED = int(_env_str("ENTRY_COST_SENSITIVE_LOSS", "1"))
 ENTRY_COST_SENSITIVE_SCALE = float(_env_str("ENTRY_COST_SENSITIVE_SCALE", "0.25"))
+# 2026-05-26: directional costs SYMMETRIZED. The old asymmetric defaults
+# (short_to_long=3.00 > long_to_short=2.00; flat_to_long=2.75 > flat_to_short=1.60)
+# penalized LONG predictions harder → model over-called SHORT (65% short candidates
+# vs ~47% true H=24 direction over a gold bull market). That anti-long tilt was
+# tuned in an earlier wave when the model was long-biased; with balanced labels +
+# symmetric class weights it over-corrected. Now long↔short and flat→dir costs are
+# equal (no directional preference). See project_gx1_v10_short_bias_costmatrix.
 ENTRY_COST_LONG_TO_SHORT = float(_env_str("ENTRY_COST_LONG_TO_SHORT", "2.00"))
 ENTRY_COST_LONG_TO_FLAT = float(_env_str("ENTRY_COST_LONG_TO_FLAT", "0.45"))
-ENTRY_COST_SHORT_TO_LONG = float(_env_str("ENTRY_COST_SHORT_TO_LONG", "3.00"))
+ENTRY_COST_SHORT_TO_LONG = float(_env_str("ENTRY_COST_SHORT_TO_LONG", "2.00"))
 ENTRY_COST_SHORT_TO_FLAT = float(_env_str("ENTRY_COST_SHORT_TO_FLAT", "0.45"))
-ENTRY_COST_FLAT_TO_LONG = float(_env_str("ENTRY_COST_FLAT_TO_LONG", "2.75"))
+ENTRY_COST_FLAT_TO_LONG = float(_env_str("ENTRY_COST_FLAT_TO_LONG", "1.60"))
 ENTRY_COST_FLAT_TO_SHORT = float(_env_str("ENTRY_COST_FLAT_TO_SHORT", "1.60"))
 
 # -----------------------------------------------------------------------------
@@ -264,9 +340,9 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_COST_SENSITIVE_SCALE": "0.25",
     "ENTRY_COST_LONG_TO_SHORT": "2.00",
     "ENTRY_COST_LONG_TO_FLAT": "0.45",
-    "ENTRY_COST_SHORT_TO_LONG": "3.00",
+    "ENTRY_COST_SHORT_TO_LONG": "2.00",  # 2026-05-26: symmetrized (was 3.00, anti-long)
     "ENTRY_COST_SHORT_TO_FLAT": "0.45",
-    "ENTRY_COST_FLAT_TO_LONG": "2.75",
+    "ENTRY_COST_FLAT_TO_LONG": "1.60",   # 2026-05-26: symmetrized (was 2.75, anti-long)
     "ENTRY_COST_FLAT_TO_SHORT": "1.60",
     "ENTRY_PRED_BALANCE_ALPHA": "0.0",
     "ENTRY_PRED_BALANCE_TARGET": "label",
@@ -452,6 +528,22 @@ _GRAD_CLIP_NORM: float = 1.0
 _WEIGHT_DECAY: float = 1e-5
 
 
+def _autocast_forward(model: nn.Module, device: torch.device, *args, **kwargs) -> Dict[str, torch.Tensor]:
+    """Forward through model in bf16 autocast (if GX1_FAST_TRAIN=1), then cast
+    outputs back to fp32 for stable loss computation. No-op (just calls model)
+    when fast-train is off.
+    """
+    from gx1.utils.fast_train import autocast_context
+    with autocast_context(device):
+        out = model(*args, **kwargs)
+    if isinstance(out, dict):
+        out = {k: (v.float() if hasattr(v, "float") and torch.is_tensor(v) and v.is_floating_point() else v)
+               for k, v in out.items()}
+    elif torch.is_tensor(out) and out.is_floating_point():
+        out = out.float()
+    return out
+
+
 def _multi_tf_kwargs_from_batch(batch: Dict[str, torch.Tensor], device: torch.device) -> Dict[str, torch.Tensor]:
     """Extract multi-TF tensors from batch if present (V12.2). Returns {} for v3 batches.
     Centralized helper so each model() call site doesn't need its own conditional logic.
@@ -498,6 +590,14 @@ def _set_deterministic(seed: int, device: torch.device, deterministic: bool) -> 
     else:
         torch.backends.cudnn.benchmark = True
         torch.backends.cudnn.deterministic = False
+    # GX1_FAST_TRAIN: TF32 matmul + cuDNN tf32 enabled when master flag set.
+    # Overrides cudnn.deterministic above when deterministic=False — by design.
+    try:
+        from gx1.utils.fast_train import apply_global_speedups
+        _fast_report = apply_global_speedups()
+        log.info("[FAST_TRAIN] %s", _fast_report)
+    except Exception as _e:
+        log.warning("[FAST_TRAIN] init failed: %r", _e)
 
 # -----------------------------------------------------------------------------
 # Dataset resolution (manifest or dir)
@@ -793,11 +893,20 @@ class EntryV10CtxDataset(Dataset):
         enable_multi_tf: bool = False,
         m5_prebuilt_path: Optional[Path] = None,
         multi_tf_seq_len: int = 96,
+        # V2 fast-train: per-TF seq_len overrides + smoke date subset
+        per_tf_seq_lens: Optional[Dict[str, int]] = None,
+        smoke_date_from: str = "",
+        smoke_date_to: str = "",
     ):
         self.parquet_path = Path(parquet_path)
         self.seq_len = int(seq_len)
         self.enable_multi_tf = bool(enable_multi_tf)
         self.multi_tf_seq_len = int(multi_tf_seq_len)
+        # per_tf_seq_lens: dict like {"M5": 96, "M15": 96, "H1": 96, "H4": 48, "D1": 30}.
+        # Unset TFs fall back to multi_tf_seq_len.
+        self.per_tf_seq_lens: Dict[str, int] = dict(per_tf_seq_lens) if per_tf_seq_lens else {}
+        self.smoke_date_from = str(smoke_date_from or "")
+        self.smoke_date_to = str(smoke_date_to or "")
         self._multi_tf_feats: Optional[Dict[str, pd.DataFrame]] = None
         self._multi_tf_shift: Optional[Dict[str, pd.Timedelta]] = None
         self._multi_tf_feature_count: int = 0
@@ -967,8 +1076,8 @@ class EntryV10CtxDataset(Dataset):
                         float(np.nanmin(mins_to.values)),
                         float(np.nanmax(mins_to.values)),
                     )
-                elif self.ctx_cont_dim in (43, 45):
-                    # V2/V3 contract — 21 v1 prefix + 22 v2 extension OR 19 v2-retained + 5 v3-new
+                elif self.ctx_cont_dim in (43, 45, CTX_CONT_DIM_V3):
+                    # V2 (43) / legacy V3 (45) / current V3 w/ group-A parity (69 = CTX_CONT_DIM_V3)
                     self._ctx_vnext_extra = None
                     log.info(
                         "[ENTRY_CTX_VNEXT_EXTRA_PROOF] source=prebuilt_v3 ctx_cont_dim=%d status=present (signal_bridge_v3)",
@@ -976,7 +1085,7 @@ class EntryV10CtxDataset(Dataset):
                     )
                 else:
                     raise RuntimeError(
-                        f"[ENTRY_V10_CTX_VNEXT_DIM] expected ctx_cont_dim 16, 21, 43, or 45, got {self.ctx_cont_dim}"
+                        f"[ENTRY_V10_CTX_VNEXT_DIM] expected ctx_cont_dim 16, 21, 43, 45, or {CTX_CONT_DIM_V3}, got {self.ctx_cont_dim}"
                     )
 
             y = df["y_direction"].astype(int).values
@@ -1064,9 +1173,15 @@ class EntryV10CtxDataset(Dataset):
         # ~3GB resampled feature tables. Without this, peak memory hits OOM
         # on 15GB hosts (1.5GB parquet × 2 + multi-TF × 2 + train arrays).
         if self.enable_multi_tf:
+            # MANDATORY V2: 5 TFs (M5/M15/H1/H4/D1) × 25 feats. The V1 (4-TF/17-feat)
+            # path + GX1_V10_MULTI_TF_V2 env-gate were removed 2026-05-26 — multi-TF×5
+            # is the only supported mode (rule: multi_tf_always_mandatory).
+            v2_mode = True
             from gx1.features.htf_features import (
                 build_multi_tf_per_bar_features,
+                build_multi_tf_per_bar_features_v2,
                 MULTI_TF_FEATURE_COUNT,
+                MULTI_TF_FEATURE_COUNT_V2,
                 MULTI_TF_SHIFT,
             )
             if m5_prebuilt_path is None:
@@ -1077,48 +1192,95 @@ class EntryV10CtxDataset(Dataset):
             m5_path = Path(m5_prebuilt_path)
             if not m5_path.is_file():
                 raise FileNotFoundError(f"[MULTI_TF_INIT_FAIL] M5 prebuilt missing: {m5_path}")
-            cache_key = str(m5_path.resolve())
+            # Cache key includes v2 flag so V1 and V2 don't alias each other.
+            cache_key = f"{m5_path.resolve()}|v2={v2_mode}"
             cached = _MULTI_TF_CACHE.get(cache_key)
+            # Disk cache (V2 only): GX1_V10_MULTI_TF_V2_CACHE_DIR points at a pre-built
+            # cache from scripts/prebuild_multi_tf_cache_v2.py. Saves ~84s per init.
+            _disk_cache_dir = os.environ.get("GX1_V10_MULTI_TF_V2_CACHE_DIR", "").strip()
             if cached is not None:
-                log.info(f"[MULTI_TF] reusing cached feature tables (key={m5_path.name})")
+                log.info(f"[MULTI_TF] reusing cached feature tables (key={m5_path.name} v2={v2_mode})")
                 self._multi_tf_feats = cached
+            elif v2_mode and _disk_cache_dir:
+                from gx1.features.htf_features import load_multi_tf_v2_cache
+                log.info(f"[MULTI_TF] loading V2 disk cache: {_disk_cache_dir}")
+                self._multi_tf_feats = load_multi_tf_v2_cache(_disk_cache_dir)
+                _MULTI_TF_CACHE[cache_key] = self._multi_tf_feats
             else:
-                log.info(f"[MULTI_TF] loading M5 prebuilt for resample: {m5_path.name}")
-                # Load directly into smaller dtypes to reduce peak memory.
-                m5 = pd.read_parquet(m5_path, columns=["time", "open", "high", "low", "close"])
+                log.info(f"[MULTI_TF] loading M5 prebuilt for resample: {m5_path.name} (v2={v2_mode})")
+                load_cols = ["time", "open", "high", "low", "close"]
+                if v2_mode:
+                    # V2 needs volume for VWAP family — fall back to tick-equal if missing.
+                    import pyarrow.parquet as pq
+                    if "volume" in pq.ParquetFile(m5_path).schema_arrow.names:
+                        load_cols.append("volume")
+                m5 = pd.read_parquet(m5_path, columns=load_cols)
                 m5["time"] = pd.to_datetime(m5["time"], utc=True)
                 m5 = m5.set_index("time").sort_index()
-                # Downcast OHLC to float32 (1.5GB → 750MB in-memory)
                 for c in ("open", "high", "low", "close"):
                     m5[c] = m5[c].astype(np.float32)
-                log.info(f"[MULTI_TF] M5 prebuilt: {len(m5):,} rows, building M15/H1/H4/D1 features...")
-                self._multi_tf_feats = build_multi_tf_per_bar_features(m5)
-                del m5   # release raw M5 immediately
+                if "volume" in m5.columns:
+                    m5["volume"] = m5["volume"].astype(np.float32)
+                tf_label = "M5+M15+H1+H4+D1 (V2 25-feat)" if v2_mode else "M15+H1+H4+D1 (V1 17-feat)"
+                log.info(f"[MULTI_TF] M5 prebuilt: {len(m5):,} rows, building {tf_label}...")
+                if v2_mode:
+                    self._multi_tf_feats = build_multi_tf_per_bar_features_v2(m5)
+                else:
+                    self._multi_tf_feats = build_multi_tf_per_bar_features(m5)
+                    # V1 returned all 5 keys (M5/M15/H1/H4/D1) historically; V1
+                    # V10 trainer expects only 4 (M5 is the base seq). Filter.
+                    self._multi_tf_feats = {
+                        k: v for k, v in self._multi_tf_feats.items() if k != "M5"
+                    }
+                del m5
                 import gc; gc.collect()
                 _MULTI_TF_CACHE[cache_key] = self._multi_tf_feats
             self._multi_tf_shift = MULTI_TF_SHIFT
-            self._multi_tf_feature_count = int(MULTI_TF_FEATURE_COUNT)
+            self._multi_tf_feature_count = (
+                int(MULTI_TF_FEATURE_COUNT_V2) if v2_mode else int(MULTI_TF_FEATURE_COUNT)
+            )
+            self._multi_tf_v2 = bool(v2_mode)
             for tf_name, feats in self._multi_tf_feats.items():
                 log.info(
                     f"[MULTI_TF] {tf_name}: {len(feats):,} bars × {feats.shape[1]} feats  "
                     f"range {feats.index[0]} → {feats.index[-1]}"
                 )
 
-    def _get_multi_tf_window(self, target_ts: pd.Timestamp) -> Dict[str, np.ndarray]:
-        """Slice the multi-TF window (H1/H4/D1) at-or-before target_ts.
+        # V2 fast-train: smoke-date subset (applies to BOTH advanced and flat schemas).
+        # Subsets self.indices only — np_seq + df rows are kept intact (idx-addressed).
+        if self.smoke_date_from or self.smoke_date_to:
+            times = pd.to_datetime(self.df["time"], utc=True, errors="coerce")
+            mask = np.ones(len(times), dtype=bool)
+            if self.smoke_date_from:
+                from_ts = pd.Timestamp(self.smoke_date_from, tz="UTC")
+                mask &= (times >= from_ts).values
+            if self.smoke_date_to:
+                to_ts = pd.Timestamp(self.smoke_date_to, tz="UTC")
+                mask &= (times <= to_ts).values
+            kept = np.where(mask)[0]
+            # Intersect with existing self.indices (preserves seq_len warmup constraint of flat schema).
+            self.indices = np.array(sorted(set(self.indices.tolist()) & set(kept.tolist())), dtype=np.int64)
+            log.info(
+                f"[SMOKE_DATE] range=[{self.smoke_date_from or '*'}..{self.smoke_date_to or '*'}] "
+                f"samples kept: {len(self.indices):,}/{len(times):,}"
+            )
 
-        Returns dict with keys 'seq_h1', 'seq_h4', 'seq_d1', each a
-        (multi_tf_seq_len, feature_count) float32 array. Zero-padded if warmup
-        not satisfied at the start of the dataset.
+    def _get_multi_tf_window(self, target_ts: pd.Timestamp) -> Dict[str, np.ndarray]:
+        """Slice the multi-TF window at-or-before target_ts, using per-TF seq_len.
+
+        Returns dict with one 'seq_<tf>' key per TF in self._multi_tf_feats. Each
+        array shape = (per_tf_lens[TF], feature_count) float32, left-zero-padded
+        on warmup.
         """
         from gx1.features.htf_features import get_last_n_at_or_before
-        n = self.multi_tf_seq_len
-        return {
-            f"seq_{tf.lower()}": get_last_n_at_or_before(
-                feats, target_ts, n=n, tf_shift=self._multi_tf_shift[tf]
+        default_n = self.multi_tf_seq_len
+        out: Dict[str, np.ndarray] = {}
+        for tf, feats in self._multi_tf_feats.items():
+            n = int(self.per_tf_seq_lens.get(tf, default_n))
+            out[f"seq_{tf.lower()}"] = get_last_n_at_or_before(
+                feats, target_ts, n=n, tf_shift=self._multi_tf_shift[tf],
             )
-            for tf, feats in self._multi_tf_feats.items()
-        }
+        return out
 
     def __len__(self) -> int:
         return len(self.indices)
@@ -1181,6 +1343,8 @@ class EntryV10CtxDataset(Dataset):
                 # V10 v3+ Target 4: hold-horizon target (fallback 0.5 = ~720 bars)
                 "y_hold_horizon_target": torch.tensor(float(row.get("y_hold_horizon_target", 0.5)), dtype=torch.float32),
             }
+            for _tcol in _DIP_FORECAST_TARGET_COLS:  # dip(12) + forecast(4) head targets
+                out_batch[_tcol] = torch.tensor(float(row.get(_tcol, 0.0)), dtype=torch.float32)
             if self.enable_multi_tf:
                 mtf = self._get_multi_tf_window(pd.Timestamp(row["time"]))
                 for k, v in mtf.items():
@@ -1226,6 +1390,10 @@ class EntryV10CtxDataset(Dataset):
                 # V10 v3+ Target 4: hold-horizon neutral fallback for flat schema
                 "y_hold_horizon_target": torch.tensor(0.5, dtype=torch.float32),
             }
+            _row_t = self.df.iloc[t]
+            for _tcol in _DIP_FORECAST_TARGET_COLS:  # dip(12) + forecast(4) head targets
+                _v = _row_t[_tcol] if _tcol in self.df.columns else 0.0
+                out_batch[_tcol] = torch.tensor(float(_v), dtype=torch.float32)
             if self.enable_multi_tf:
                 target_ts = pd.Timestamp(self.df.iloc[t]["time"])
                 mtf = self._get_multi_tf_window(target_ts)
@@ -1341,8 +1509,19 @@ def train_epoch(
     clean_edge_pos_weight: float,
     survival_pos_weight: float,
     bad_path_pos_weight: float,
+    scheduler=None,  # GX1_FAST_TRAIN: cosine+warmup scheduler, stepped per opt.step()
 ):
     model.train()
+    # V2 fast-train: gradient accumulation. Read from env so signature stays compatible.
+    try:
+        from gx1.utils.fast_train import grad_accum_steps_from_env
+        _accum_steps = grad_accum_steps_from_env()
+    except Exception:
+        _accum_steps = 1
+    if _accum_steps > 1:
+        log.info("[GRAD_ACCUM] accumulating gradients over %d batches per optimizer step", _accum_steps)
+    _accum_count = 0
+    optimizer.zero_grad(set_to_none=True)
     total = 0.0
     total_ce = 0.0
     total_cost = 0.0
@@ -1399,8 +1578,9 @@ def train_epoch(
         y_teacher_winner_long = batch["y_teacher_winner_long"].to(device, non_blocking=non_blocking)
         y_selector_long_mask = batch["y_selector_long_mask"].to(device, non_blocking=non_blocking)
 
-        optimizer.zero_grad(set_to_none=True)
-        out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **_multi_tf_kwargs_from_batch(batch, seq_x.device))
+        # Grad accum: zero_grad happens AFTER step (or at start of epoch).
+        # See loss.backward() / optimizer.step() block below for the gated step.
+        out = _autocast_forward(model, seq_x.device, seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **_multi_tf_kwargs_from_batch(batch, seq_x.device))
         logits = out["direction_logits"]
         path_pred = out.get("path_quality")
         mfe_pred = out.get("mfe_first_n")
@@ -1614,6 +1794,11 @@ def train_epoch(
             hold_horizon_loss = torch.nn.functional.mse_loss(hold_pred, y_hold)
             loss = loss + 0.2 * hold_horizon_loss  # reduced from 0.3 after first retrain
 
+        # Dip-head (18, pinball) + forecast-head (4, smooth_l1). Returns a 0-tensor
+        # if heads/targets absent (gated) → harmless. Conservative weight (0.2):
+        # primary task is direction; dip/forecast shape the representation.
+        loss = loss + 0.2 * dip_forecast_loss(out, batch, device)
+
         preds = torch.argmax(probs, dim=1)
         short_mask = y == 1
         if short_mask.any():
@@ -1626,9 +1811,20 @@ def train_epoch(
             delta_abs_sum += float(delta_logits.abs().mean().item()) * y.shape[0]
             scaled_delta_abs_sum += float(scaled_delta.abs().mean().item()) * y.shape[0]
             final_minus_anchor_abs_sum += float((logits - anchor_logits).abs().mean().item()) * y.shape[0]
-        loss.backward()
-        torch.nn.utils.clip_grad_norm_(model.parameters(), _GRAD_CLIP_NORM)
-        optimizer.step()
+        # Grad accumulation: scale loss down by accum_steps so .backward() sums to
+        # the same magnitude as a single big-batch step. Only step + zero every Nth batch.
+        if _accum_steps > 1:
+            (loss / float(_accum_steps)).backward()
+        else:
+            loss.backward()
+        _accum_count += 1
+        if _accum_count >= _accum_steps:
+            torch.nn.utils.clip_grad_norm_(model.parameters(), _GRAD_CLIP_NORM)
+            optimizer.step()
+            optimizer.zero_grad(set_to_none=True)
+            if scheduler is not None:
+                scheduler.step()
+            _accum_count = 0
 
         bs = y.shape[0]
         total += float(loss) * bs
@@ -1742,7 +1938,7 @@ def validate(
             y_teacher_winner_long = batch["y_teacher_winner_long"].to(device, non_blocking=non_blocking)
             y_selector_long_mask = batch["y_selector_long_mask"].to(device, non_blocking=non_blocking)
 
-            out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **_multi_tf_kwargs_from_batch(batch, seq_x.device))
+            out = _autocast_forward(model, seq_x.device, seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **_multi_tf_kwargs_from_batch(batch, seq_x.device))
             logits = out["direction_logits"]
             path_pred = out.get("path_quality")
             mfe_pred = out.get("mfe_first_n")
@@ -1997,7 +2193,7 @@ def _validate_eval(model, loader, criterion, device, residual_side_bias_alpha: f
             ctx_cat = batch["ctx_cat"].to(device, non_blocking=non_blocking)
             y = batch["y"].to(device, non_blocking=non_blocking)
 
-            out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **_multi_tf_kwargs_from_batch(batch, seq_x.device))
+            out = _autocast_forward(model, seq_x.device, seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **_multi_tf_kwargs_from_batch(batch, seq_x.device))
             logits = out["direction_logits"]
             anchor_logits = out.get("anchor_logits")
             delta_logits = out.get("delta_logits")
@@ -2314,7 +2510,9 @@ def run_sanity_check(
     out_bundle_dir.mkdir(parents=True, exist_ok=True)
 
     state_path = out_bundle_dir / "model_state_dict.pt"
-    state_dict = {k: v.cpu().clone() for k, v in model.state_dict().items()}
+    # Unwrap torch.compile wrapper to avoid `_orig_mod.` prefix in saved keys.
+    _save_model = model._orig_mod if hasattr(model, "_orig_mod") else model
+    state_dict = {k: v.cpu().clone() for k, v in _save_model.state_dict().items()}
     torch.save(state_dict, state_path)
 
     ordered_ctx_cont_names = _build_ordered_ctx_cont_names(ctx_cont_dim, list(ctx.get("ctx_cont_names") or []))
@@ -2407,12 +2605,35 @@ def run_train(
     enable_path_quality_variance_head: bool = False,
     enable_position_size_head: bool = False,
     enable_hold_horizon_head: bool = False,
+    # Positional encoding (temporal order of every sequence)
+    enable_pos_enc: bool = False,
+    enable_dip_head: bool = False,
+    enable_forecast_head: bool = False,
+    enable_cross_tf_attn: bool = False,
+    enable_timing_head: bool = False,
+    enable_tail_risk_head: bool = False,
+    enable_vol_forecast_head: bool = False,
+    # V2 fast-train extras
+    per_tf_seq_len_h4: int = 0,
+    per_tf_seq_len_d1: int = 0,
+    smoke_date_from: str = "",
+    smoke_date_to: str = "",
+    grad_accum_steps: int = 0,
+    init_from_state_dict: Optional[Path] = None,
 ) -> None:
     _guard_no_rl()
 
+    # Multi-TF×5 is MANDATORY — fail closed if a caller ever passes it off or
+    # forgets the M5 prebuilt. There is no single-TF V10 (toggle removed 2026-05-26).
+    if not enable_multi_tf or m5_prebuilt_path is None:
+        raise RuntimeError(
+            "[MULTI_TF_MANDATORY] V10 must train multi-TF×5 (M5/M15/H1/H4/D1). "
+            f"Got enable_multi_tf={enable_multi_tf} m5_prebuilt_path={m5_prebuilt_path}."
+        )
+
     ctx = get_canonical_ctx_contract()
     _require(ctx["tag"] == "CTX6CAT6", "[CTX_SPLIT_BRAIN]")
-    # V2: SEQ_SIGNAL_DIM is now 37 (signal_bridge_v3). Removed legacy hardcoded 7-check.
+    # V2: SEQ_SIGNAL_DIM is now 41 (signal_bridge_v3: 7 bridge + 34 price-state incl. volume).
     _require(SEQ_SIGNAL_DIM == SNAP_SIGNAL_DIM, "[SIGNAL_DIM_SEQ_SNAP_MISMATCH]")
     _require(SEQ_SIGNAL_DIM > 0, "[SIGNAL_DIM_INVALID]")
 
@@ -2432,22 +2653,43 @@ def run_train(
     # this, OOM on 15GB hosts during Dataset construction (1.5GB parquet ×
     # pandas overhead + 1.5GB M5 prebuilt × pandas overhead > 15GB).
     if enable_multi_tf and m5_prebuilt_path is not None:
-        cache_key = str(Path(m5_prebuilt_path).resolve())
+        v2_mode = True  # MANDATORY V2 5×25 (env-gate removed 2026-05-26)
+        cache_key = f"{Path(m5_prebuilt_path).resolve()}|v2={v2_mode}"
         if cache_key not in _MULTI_TF_CACHE:
-            from gx1.features.htf_features import build_multi_tf_per_bar_features
-            log.info(f"[MULTI_TF] pre-building features (peak-mem-fix): {Path(m5_prebuilt_path).name}")
-            m5 = pd.read_parquet(m5_prebuilt_path, columns=["time", "open", "high", "low", "close"])
+            from gx1.features.htf_features import (
+                build_multi_tf_per_bar_features,
+                build_multi_tf_per_bar_features_v2,
+            )
+            log.info(f"[MULTI_TF] pre-building features (peak-mem-fix): {Path(m5_prebuilt_path).name} v2={v2_mode}")
+            load_cols = ["time", "open", "high", "low", "close"]
+            if v2_mode:
+                import pyarrow.parquet as pq
+                if "volume" in pq.ParquetFile(m5_prebuilt_path).schema_arrow.names:
+                    load_cols.append("volume")
+            m5 = pd.read_parquet(m5_prebuilt_path, columns=load_cols)
             m5["time"] = pd.to_datetime(m5["time"], utc=True)
             m5 = m5.set_index("time").sort_index()
             for c in ("open", "high", "low", "close"):
                 m5[c] = m5[c].astype(np.float32)
-            feats = build_multi_tf_per_bar_features(m5)
+            if "volume" in m5.columns:
+                m5["volume"] = m5["volume"].astype(np.float32)
+            if v2_mode:
+                feats = build_multi_tf_per_bar_features_v2(m5)
+            else:
+                feats = build_multi_tf_per_bar_features(m5)
+                feats = {k: v for k, v in feats.items() if k != "M5"}
             del m5
             import gc; gc.collect()
             _MULTI_TF_CACHE[cache_key] = feats
             for tf_name, df in feats.items():
                 log.info(f"[MULTI_TF] {tf_name}: {len(df):,} bars × {df.shape[1]} feats")
 
+    # V2 fast-train: build per-TF seq_lens dict and forward smoke-date.
+    _per_tf_lens: Dict[str, int] = {}
+    if int(per_tf_seq_len_h4) > 0:
+        _per_tf_lens["H4"] = int(per_tf_seq_len_h4)
+    if int(per_tf_seq_len_d1) > 0:
+        _per_tf_lens["D1"] = int(per_tf_seq_len_d1)
     train_ds = EntryV10CtxDataset(
         train_parquet,
         seq_len=seq_len,
@@ -2455,6 +2697,9 @@ def run_train(
         enable_multi_tf=enable_multi_tf,
         m5_prebuilt_path=m5_prebuilt_path,
         multi_tf_seq_len=multi_tf_seq_len,
+        per_tf_seq_lens=_per_tf_lens,
+        smoke_date_from=smoke_date_from,
+        smoke_date_to=smoke_date_to,
     )
     # V12.2 sweep mode: stratified subsample on training set ONLY (val untouched).
     if subsample_rows > 0 and subsample_rows < len(train_ds):
@@ -2481,6 +2726,9 @@ def run_train(
         enable_multi_tf=enable_multi_tf,
         m5_prebuilt_path=m5_prebuilt_path,
         multi_tf_seq_len=multi_tf_seq_len,
+        per_tf_seq_lens=_per_tf_lens,
+        smoke_date_from=smoke_date_from,
+        smoke_date_to=smoke_date_to,
     )
     train_bad_path_rate = float(train_ds.df["y_bad_path"].astype(float).mean()) if "y_bad_path" in train_ds.df.columns else 0.0
     val_bad_path_rate = float(val_ds.df["y_bad_path"].astype(float).mean()) if "y_bad_path" in val_ds.df.columns else 0.0
@@ -2528,11 +2776,21 @@ def run_train(
     survival_pos_weight = float(
         min(float(ENTRY_AUX_SURVIVAL_POS_WEIGHT_CAP), max(1.0, raw_survival_pos_weight))
     )
-    raw_long_class_weight = ((1.0 - train_long_rate) / max(train_long_rate, 1e-9)) if train_long_rate > 0.0 else 1.0
-    raw_short_class_weight = ((1.0 - train_short_rate) / max(train_short_rate, 1e-9)) if train_short_rate > 0.0 else 0.0
-    long_class_weight = float(min(float(ENTRY_LONG_CLASS_WEIGHT_CAP), max(1.0, raw_long_class_weight)))
+    # 2026-05-26: SYMMETRIC + sqrt-softened directional class weights. The old
+    # per-side inverse-frequency weights made the model over-predict SHORT (short
+    # rarer → higher weight: 4.67 vs long 4.22) AND over-predict direction vs flat
+    # (4.5 vs 1.0). With the re-balanced labels (~18/18/63) that aggressive scheme
+    # over-corrects. Fix: ONE shared directional weight from the COMBINED directional
+    # rate (removes long/short asymmetry), sqrt-softened (shrinks the directional-vs-
+    # flat gap). Env caps still clamp. flat stays 1.0.
+    _dir_rate = 0.5 * (float(train_long_rate) + float(train_short_rate))
+    _raw_dir = ((1.0 - _dir_rate) / max(_dir_rate, 1e-9)) if _dir_rate > 0.0 else 1.0
+    _dir_w = float(np.sqrt(max(_raw_dir, 1.0)))  # sqrt-soften; >=1
+    raw_long_class_weight = _raw_dir   # kept for the proof log
+    raw_short_class_weight = _raw_dir
+    long_class_weight = float(min(float(ENTRY_LONG_CLASS_WEIGHT_CAP), max(1.0, _dir_w)))
     if train_short_rate > 0.0:
-        short_class_weight = float(min(float(ENTRY_SHORT_CLASS_WEIGHT_CAP), max(1.0, raw_short_class_weight)))
+        short_class_weight = float(min(float(ENTRY_SHORT_CLASS_WEIGHT_CAP), max(1.0, _dir_w)))
     else:
         short_class_weight = 0.0
     flat_class_weight = float(max(float(ENTRY_FLAT_CLASS_WEIGHT_FLOOR), 1.0))
@@ -2612,22 +2870,19 @@ def run_train(
     )
 
     use_cuda = device.type == "cuda"
-    # Honor explicit num_workers=0 — was previously bumped to 8 on CUDA, causing
-    # 7+ GB RAM via 8× DataLoader-worker fork. On 16 GB hosts that triggers OOM
-    # when combined with other in-flight processes.
     if use_cuda and num_workers < 0:
         num_workers = max(2, min(8, (os.cpu_count() or 4)))
-    pin_memory = bool(use_cuda)
+    # Centralized loader tuning — bumps prefetch_factor 2→4 when GX1_FAST_TRAIN=1.
+    from gx1.utils.fast_train import loader_kwargs as _loader_kwargs
+    _dl_kwargs = _loader_kwargs(num_workers, use_cuda=use_cuda)
     if _running_in_wsl():
-        pin_memory = False
-    persistent_workers = bool(num_workers > 0)
-    prefetch_factor = 2 if num_workers > 0 else None
+        _dl_kwargs["pin_memory"] = False
+    pin_memory = _dl_kwargs["pin_memory"]
+    persistent_workers = _dl_kwargs["persistent_workers"]
+    prefetch_factor = _dl_kwargs["prefetch_factor"]
     log.info(
         "[DATALOADER_CONFIG] num_workers=%d pin_memory=%s persistent_workers=%s prefetch_factor=%s",
-        num_workers,
-        pin_memory,
-        persistent_workers,
-        str(prefetch_factor),
+        num_workers, pin_memory, persistent_workers, str(prefetch_factor),
     )
 
     train_loader = DataLoader(
@@ -2691,6 +2946,13 @@ def run_train(
 
     # V12.2: detect multi-TF feature count from dataset (avoid hardcoding 19)
     _mtf_feat_count = train_ds._multi_tf_feature_count if enable_multi_tf else 0
+    # V2 mode: dataset adds M5 branch (5 TFs total) + 25-feat per TF
+    _mtf_v2 = bool(getattr(train_ds, "_multi_tf_v2", False)) if enable_multi_tf else False
+    # Per-TF seq_len overrides (default 0 → fall back to global multi_tf_seq_len).
+    _h4_len = int(per_tf_seq_len_h4) if int(per_tf_seq_len_h4) > 0 else int(multi_tf_seq_len)
+    _d1_len = int(per_tf_seq_len_d1) if int(per_tf_seq_len_d1) > 0 else int(multi_tf_seq_len)
+    if _h4_len != multi_tf_seq_len or _d1_len != multi_tf_seq_len:
+        log.info("[PER_TF_SEQ_LEN] H4=%d D1=%d (global=%d)", _h4_len, _d1_len, int(multi_tf_seq_len))
     model = EntryV10CtxHybridTransformer(
         seq_input_dim=SEQ_SIGNAL_DIM,
         snap_input_dim=SNAP_SIGNAL_DIM,
@@ -2704,14 +2966,25 @@ def run_train(
         d1_seq_dim=_mtf_feat_count,
         m15_seq_len=multi_tf_seq_len,
         h1_seq_len=multi_tf_seq_len,
-        h4_seq_len=multi_tf_seq_len,
-        d1_seq_len=multi_tf_seq_len,
+        h4_seq_len=_h4_len,
+        d1_seq_len=_d1_len,
+        # V2 only: enable M5 branch (V1 leaves enable_multi_tf_m5=False)
+        enable_multi_tf_m5=_mtf_v2,
+        m5_seq_dim=_mtf_feat_count if _mtf_v2 else 0,
+        m5_seq_len=multi_tf_seq_len,
         multi_tf_scale=multi_tf_scale,
         # V10 v3+ aux heads (Targets 1-4)
         enable_tf_agreement_head=enable_tf_agreement_head,
         enable_path_quality_variance_head=enable_path_quality_variance_head,
         enable_position_size_head=enable_position_size_head,
         enable_hold_horizon_head=enable_hold_horizon_head,
+        enable_pos_enc=enable_pos_enc,
+        enable_dip_head=enable_dip_head,
+        enable_forecast_head=enable_forecast_head,
+        enable_cross_tf_attn=enable_cross_tf_attn,
+        enable_timing_head=enable_timing_head,
+        enable_tail_risk_head=enable_tail_risk_head,
+        enable_vol_forecast_head=enable_vol_forecast_head,
     ).to(device)
     if enable_tf_agreement_head or enable_path_quality_variance_head or enable_position_size_head or enable_hold_horizon_head:
         log.info(
@@ -2720,11 +2993,37 @@ def run_train(
             enable_position_size_head, enable_hold_horizon_head,
         )
     if enable_multi_tf:
+        _tfs = "M5+M15+H1+H4+D1 (V2)" if _mtf_v2 else "M15+H1+H4+D1 (V1)"
         log.info(
-            "[MULTI_TF_PROOF] enabled=True  TFs=M15+H1+H4+D1  per_tf_dim=%d  per_tf_len=%d  total_extra_params≈%dK",
-            _mtf_feat_count, multi_tf_seq_len,
+            "[MULTI_TF_PROOF] enabled=True  TFs=%s  per_tf_dim=%d  per_tf_len=%d  total_extra_params≈%dK",
+            _tfs, _mtf_feat_count, multi_tf_seq_len,
             (sum(p.numel() for p in model.parameters()) - 691977) // 1000,
         )
+    # Warm-start: load a state_dict (likely from warm_start_v10_v2_from_v1.py)
+    # BEFORE torch.compile wrap, since compile prefixes keys with _orig_mod.
+    if init_from_state_dict is not None:
+        _isd_path = Path(init_from_state_dict)
+        if not _isd_path.is_file():
+            raise FileNotFoundError(f"[INIT_STATE_DICT_MISSING] {_isd_path}")
+        log.info(f"[WARM_START] loading state_dict: {_isd_path}")
+        _isd = torch.load(_isd_path, map_location="cpu", weights_only=True)
+        _isd = {k.removeprefix("_orig_mod."): v for k, v in _isd.items()}
+        _ld = model.load_state_dict(_isd, strict=False)
+        log.info(
+            f"[WARM_START] loaded {len(_isd)} keys. missing={len(_ld.missing_keys)} unexpected={len(_ld.unexpected_keys)}"
+        )
+        if _ld.missing_keys:
+            log.info(f"[WARM_START] missing (model has, state lacks): {sorted(_ld.missing_keys)[:5]}...")
+        if _ld.unexpected_keys:
+            log.info(f"[WARM_START] unexpected (state has, model lacks): {sorted(_ld.unexpected_keys)[:5]}...")
+    # GX1_FAST_TRAIN=1 wraps model with torch.compile (best-effort).
+    try:
+        from gx1.utils.fast_train import maybe_compile, compile_enabled
+        if compile_enabled():
+            log.info("[FAST_TRAIN] torch.compile=on (mode=reduce-overhead)")
+        model = maybe_compile(model)
+    except Exception as _e:
+        log.warning("[FAST_TRAIN] compile wrap failed: %r", _e)
     try:
         head_out = int(getattr(model.head_direction, "out_features", -1))
     except Exception:
@@ -2818,6 +3117,26 @@ def run_train(
     )
     optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=_WEIGHT_DECAY)
 
+    # GX1_FAST_TRAIN: cosine LR + 10% warmup scheduler (steps-based).
+    # Step every batch; works correctly with grad-accum since we still call
+    # scheduler.step() in train_epoch for each forward pass.
+    _scheduler = None
+    try:
+        from gx1.utils.fast_train import build_cosine_warmup_scheduler, _fast_train_master
+        if _fast_train_master():
+            _steps_per_epoch = max(1, len(train_loader))
+            _total_steps = _steps_per_epoch * int(epochs)
+            _warmup_steps = max(1, int(_total_steps * 0.10))
+            _scheduler = build_cosine_warmup_scheduler(
+                optimizer, total_steps=_total_steps, warmup_steps=_warmup_steps,
+            )
+            log.info(
+                "[FAST_TRAIN] cosine+warmup scheduler: total_steps=%d warmup_steps=%d (10%%)",
+                _total_steps, _warmup_steps,
+            )
+    except Exception as _e:
+        log.warning("[FAST_TRAIN] scheduler init failed: %r", _e)
+
     best_state = None
     best_val = float("inf")
     best_epoch = -1
@@ -2850,6 +3169,7 @@ def run_train(
             clean_edge_pos_weight=clean_edge_pos_weight,
             survival_pos_weight=survival_pos_weight,
             bad_path_pos_weight=bad_path_pos_weight,
+            scheduler=_scheduler,
         )
         va_loss, auc, acc, val_short_to_long, val_stats = validate(
             model,
@@ -2937,7 +3257,8 @@ def run_train(
             )
         if (best_val - va_loss) > float(early_stopping_min_delta):
             best_val = va_loss
-            best_state = {k: v.cpu().clone() for k, v in model.state_dict().items()}
+            _ckpt_model = model._orig_mod if hasattr(model, "_orig_mod") else model
+            best_state = {k: v.cpu().clone() for k, v in _ckpt_model.state_dict().items()}
             best_epoch = epoch + 1
             epochs_since_improve = 0
             log.info(
@@ -3013,16 +3334,23 @@ def run_train(
         # whether to feed seq_m15/seq_h1/seq_h4/seq_d1 into the model.
         "multi_tf": {
             "enabled": bool(enable_multi_tf),
+            "v2_mode": bool(_mtf_v2),
+            "m5_seq_dim": int(_mtf_feat_count) if (enable_multi_tf and _mtf_v2) else 0,
+            "m5_seq_len": int(multi_tf_seq_len) if (enable_multi_tf and _mtf_v2) else 0,
             "m15_seq_dim": int(_mtf_feat_count) if enable_multi_tf else 0,
             "h1_seq_dim": int(_mtf_feat_count) if enable_multi_tf else 0,
             "h4_seq_dim": int(_mtf_feat_count) if enable_multi_tf else 0,
             "d1_seq_dim": int(_mtf_feat_count) if enable_multi_tf else 0,
             "m15_seq_len": int(multi_tf_seq_len),
             "h1_seq_len": int(multi_tf_seq_len),
-            "h4_seq_len": int(multi_tf_seq_len),
-            "d1_seq_len": int(multi_tf_seq_len),
-            "feature_contract": "MULTI_TF_PER_BAR_V1",
+            "h4_seq_len": int(_h4_len),
+            "d1_seq_len": int(_d1_len),
+            "feature_contract": "MULTI_TF_PER_BAR_V2" if _mtf_v2 else "MULTI_TF_PER_BAR_V1",
         },
+        # Positional encoding marker — buffer is persistent=False (not in
+        # state_dict), so the live bundle loader MUST read this to rebuild the
+        # model with matching forward behaviour.
+        "enable_pos_enc": bool(enable_pos_enc),
         "batch_size": batch_size,
         "seed": seed,
         "seq_input_dim": SEQ_SIGNAL_DIM,
@@ -3115,19 +3443,31 @@ def run_train(
         d1_seq_dim=_mtf_feat_count,
         m15_seq_len=multi_tf_seq_len,
         h1_seq_len=multi_tf_seq_len,
-        h4_seq_len=multi_tf_seq_len,
-        d1_seq_len=multi_tf_seq_len,
+        h4_seq_len=_h4_len,
+        d1_seq_len=_d1_len,
+        # V2: mirror M5 branch + dim from training-time model.
+        enable_multi_tf_m5=_mtf_v2,
+        m5_seq_dim=_mtf_feat_count if _mtf_v2 else 0,
+        m5_seq_len=multi_tf_seq_len,
         enable_tf_agreement_head=enable_tf_agreement_head,
         enable_path_quality_variance_head=enable_path_quality_variance_head,
         enable_position_size_head=enable_position_size_head,
         enable_hold_horizon_head=enable_hold_horizon_head,
+        # 2026-05-26: the post-export verify model MUST mirror the trained model's
+        # new heads, else their state_dict keys read as "unexpected" and the verify
+        # raises (caught in pre-train smoke). Keep in lockstep with run_train args.
+        enable_dip_head=enable_dip_head,
+        enable_forecast_head=enable_forecast_head,
+        enable_cross_tf_attn=enable_cross_tf_attn,
+        enable_timing_head=enable_timing_head,
+        enable_tail_risk_head=enable_tail_risk_head,
+        enable_vol_forecast_head=enable_vol_forecast_head,
     )
     _load_entry_model_state_compat(model2, torch.load(model_path, map_location="cpu"), label="post_export_verify")
     model2.eval()
     with torch.no_grad():
         B = 2
-        # signal_bridge_v3: per-bar seq dim is 37 (7 bridge + 30 price-state).
-        # The previous hardcoded `7` was a signal_bridge_v1 leftover.
+        # signal_bridge_v3: per-bar seq dim is 41 (7 bridge + 34 price-state incl. 4 volume).
         from gx1.contracts.signal_bridge_v3 import SEQ_SIGNAL_DIM_V3 as _SEQ_DIM
         dummy_seq = torch.zeros(B, seq_len, _SEQ_DIM)
         dummy_snap = torch.zeros(B, _SEQ_DIM)
@@ -3138,9 +3478,11 @@ def run_train(
             mtf_kwargs = {
                 "seq_m15": torch.zeros(B, multi_tf_seq_len, _mtf_feat_count),
                 "seq_h1": torch.zeros(B, multi_tf_seq_len, _mtf_feat_count),
-                "seq_h4": torch.zeros(B, multi_tf_seq_len, _mtf_feat_count),
-                "seq_d1": torch.zeros(B, multi_tf_seq_len, _mtf_feat_count),
+                "seq_h4": torch.zeros(B, _h4_len, _mtf_feat_count),
+                "seq_d1": torch.zeros(B, _d1_len, _mtf_feat_count),
             }
+            if _mtf_v2:
+                mtf_kwargs["seq_m5"] = torch.zeros(B, multi_tf_seq_len, _mtf_feat_count)
         _ = model2(dummy_seq, dummy_snap, ctx_cat=dummy_cat, ctx_cont=dummy_cont, **mtf_kwargs)
     log.info(f"[DONE] Bundle OK strict load verified: {out_bundle_dir}")
 
@@ -3402,7 +3744,7 @@ def _compute_bias_stats(
             ctx_cat = batch["ctx_cat"].to(device)
             y = batch["y"].to(device)
 
-            out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **_multi_tf_kwargs_from_batch(batch, seq_x.device))
+            out = _autocast_forward(model, seq_x.device, seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **_multi_tf_kwargs_from_batch(batch, seq_x.device))
             logits = out["direction_logits"]
             probs = torch.softmax(logits, dim=1)
             preds = torch.argmax(probs, dim=1)
@@ -3695,13 +4037,11 @@ def main() -> None:
     )
     parser.add_argument("--early-stopping-patience", type=int, default=10)
     parser.add_argument("--early-stopping-min-delta", type=float, default=1e-4)
-    # ── Multi-TF (V12.2) ─────────────────────────────────────────────
-    parser.add_argument(
-        "--enable-multi-tf", action="store_true",
-        help="V12.2: enable multi-timeframe input (H1/H4/D1 sequences). "
-             "Requires --m5-prebuilt-path. Model is trained from scratch "
-             "(not weight-compatible with v3 bundles).",
-    )
+    # ── Multi-TF (V12.2) — MANDATORY, no toggle ──────────────────────
+    # 2026-05-26: the --enable-multi-tf on/off flag was REMOVED. Multi-TF×5
+    # (M5/M15/H1/H4/D1, V2 25-feat) is ALWAYS on — it must never be possible to
+    # accidentally train a single-TF V10. --m5-prebuilt-path is therefore
+    # required. (rule: multi_tf_always_mandatory)
     # ── V10 v3+ aux heads (Targets 1-4) ──────────────────────────────
     parser.add_argument(
         "--enable-tf-agreement-head", action="store_true",
@@ -3728,13 +4068,83 @@ def main() -> None:
         help="Convenience flag: enable all 4 V10 v3+ aux heads (T1+T2+T3+T4).",
     )
     parser.add_argument(
-        "--m5-prebuilt-path", type=Path, default=None,
-        help="V12.2: path to canonical_v3 M5 OHLC parquet (used by dataset "
-             "to resample H1/H4/D1 features). Required when --enable-multi-tf.",
+        "--enable-pos-enc", action=argparse.BooleanOptionalAction, default=True,
+        help="Sinusoidal positional encoding on the base seq + every per-TF "
+             "sequence so the transformer uses temporal ORDER (default ON for "
+             "new runs). Without it the encoder+mean-pool are permutation-"
+             "invariant — the model is blind to bar order. --no-enable-pos-enc "
+             "restores the old order-blind behaviour.",
+    )
+    parser.add_argument(
+        "--enable-dip-head", action=argparse.BooleanOptionalAction, default=True,
+        help="Distributional dip-analysis head (18: dir×K×{dip_p50,dip_p90,recovery_p50}, "
+             "pinball loss vs mae_before_mfe/mfe). Default ON for the dip-aware rebuild.",
+    )
+    parser.add_argument(
+        "--enable-forecast-head", action=argparse.BooleanOptionalAction, default=True,
+        help="Self-supervised forecast head (4: cum future return @ K{1,5,12,24}). Default ON.",
+    )
+    parser.add_argument(
+        "--enable-cross-tf-attn", action=argparse.BooleanOptionalAction, default=True,
+        help="Cross-TF attention + learnable per-TF gates fusion (regime-dependent). Default ON.",
+    )
+    parser.add_argument(
+        "--enable-timing-head", action=argparse.BooleanOptionalAction, default=True,
+        help="Dip-timing head (12: dir×K×{dip_bottom_frac,time_to_mfe_frac}). WHEN the dip "
+             "bottoms / favorable peak hits. Default ON for the dip-aware rebuild.",
+    )
+    parser.add_argument(
+        "--enable-tail-risk-head", action=argparse.BooleanOptionalAction, default=True,
+        help="Tail-risk head (6: dir×K, pinball q=0.9 of worst adverse over full horizon). Default ON.",
+    )
+    parser.add_argument(
+        "--enable-vol-forecast-head", action=argparse.BooleanOptionalAction, default=True,
+        help="Volatility-forecast head (3: forward realized vol bps @ K{12,48,96}). Default ON.",
+    )
+    parser.add_argument(
+        "--m5-prebuilt-path", type=Path, required=True,
+        help="REQUIRED: path to canonical_v3 M5 OHLC parquet (used by dataset to "
+             "resample the M5/M15/H1/H4/D1 multi-TF features). Multi-TF is mandatory.",
     )
     parser.add_argument(
         "--multi-tf-seq-len", type=int, default=96,
-        help="V12.2: number of bars per TF (default: 96 → ~4d H1, ~16d H4, ~3mo D1).",
+        help="V12.2: number of bars per TF (default: 96 → ~4d H1, ~16d H4, ~3mo D1). "
+             "Per-TF overrides via --per-tf-seq-len-{h4,d1}.",
+    )
+    parser.add_argument(
+        "--per-tf-seq-len-h4", type=int, default=0,
+        help="V2: override H4 multi-TF seq_len (default 0 = use --multi-tf-seq-len). "
+             "Recommended 48 — H4@96 = 16d which is overkill, 48 = 8d.",
+    )
+    parser.add_argument(
+        "--per-tf-seq-len-d1", type=int, default=0,
+        help="V2: override D1 multi-TF seq_len (default 0 = use --multi-tf-seq-len). "
+             "Recommended 30 — D1@96 = 3mo which is overkill, 30 = 1mo.",
+    )
+    parser.add_argument(
+        "--prelim-no-aux-heads", action="store_true",
+        help="V2 prelim mode: disable V10 v3+ aux heads (tradable/clean_edge/survival/etc) "
+             "during prelim training. Speeds up ~10%% per step. Final retrain re-enables them.",
+    )
+    parser.add_argument(
+        "--smoke-date-from", type=str, default="",
+        help="V2 smoke mode: subset train/val to samples >= this UTC date (YYYY-MM-DD). "
+             "Use with --smoke-date-to for short-fold smoke (e.g. 6mo)."
+    )
+    parser.add_argument(
+        "--smoke-date-to", type=str, default="",
+        help="V2 smoke mode: subset train/val to samples <= this UTC date (YYYY-MM-DD)."
+    )
+    parser.add_argument(
+        "--grad-accum-steps", type=int, default=0,
+        help="Gradient accumulation steps (effective_batch = batch_size × this). "
+             "Default 0 = use env GX1_FAST_TRAIN_GRAD_ACCUM (which defaults to 1).",
+    )
+    parser.add_argument(
+        "--init-from-state-dict", type=Path, default=None,
+        help="V2 warm-start: load a state_dict (.pt) into the model right after construction. "
+             "Use scripts/warm_start_v10_v2_from_v1.py to build a V2 warm-start from a V1 bundle. "
+             "Strict=False — missing/unexpected keys are logged but allowed.",
     )
     parser.add_argument(
         "--multi-tf-scale", type=float, default=0.5,
@@ -3760,9 +4170,13 @@ def main() -> None:
              "where train delta grows unboundedly while val is stable.",
     )
 
+    parser.add_argument(
+        "--vedtak", type=str, default=None,
+        help="Explicit user decision id authorizing this retrain. REQUIRED for --train "
+             "(never auto-retrain). Any non-empty string from a deliberate human go.",
+    )
     args = parser.parse_args()
-    if args.enable_multi_tf and args.m5_prebuilt_path is None:
-        parser.error("--enable-multi-tf requires --m5-prebuilt-path")
+    # Multi-TF is mandatory — m5-prebuilt-path is required by argparse; nothing to gate.
     # V12.2: apply grad-clip-norm + weight-decay to module-level variables
     global _GRAD_CLIP_NORM, _WEIGHT_DECAY
     _GRAD_CLIP_NORM = float(args.grad_clip_norm)
@@ -3802,6 +4216,12 @@ def main() -> None:
         return
 
     if args.train:
+        # NEVER auto-retrain — fail-closed unless an explicit --vedtak is passed.
+        from gx1_guards.gates import require_retrain_vedtak, GateError
+        try:
+            require_retrain_vedtak(args.vedtak)
+        except GateError as e:
+            parser.error(str(e))
         if args.out_bundle_dir is None:
             parser.error("--out_bundle_dir is required for --train")
         _log_manifest_proof(args.dataset_manifest)
@@ -3822,6 +4242,15 @@ def main() -> None:
             _log_label_distribution(test_parquet, split="test")
         except Exception as e:
             log.warning("[ENTRY_LABEL_DISTRIBUTION] split=test status=skip reason=%s", e)
+        # V2 prelim-mode: force-disable all V10 v3+ aux heads for prelim training (item 16).
+        # Final retrain (without --prelim-no-aux-heads) re-enables them.
+        _aux_tf = args.enable_tf_agreement_head or args.enable_v10_v3plus_all_heads
+        _aux_pqv = args.enable_path_quality_variance_head or args.enable_v10_v3plus_all_heads
+        _aux_ps = args.enable_position_size_head or args.enable_v10_v3plus_all_heads
+        _aux_hh = args.enable_hold_horizon_head or args.enable_v10_v3plus_all_heads
+        if args.prelim_no_aux_heads:
+            log.info("[PRELIM_NO_AUX_HEADS] disabling tf_agreement/path_var/pos_size/hold_horizon heads for prelim")
+            _aux_tf = _aux_pqv = _aux_ps = _aux_hh = False
         run_train(
             train_parquet=train_parquet,
             val_parquet=val_parquet,
@@ -3838,16 +4267,29 @@ def main() -> None:
             early_stopping_patience=args.early_stopping_patience,
             early_stopping_min_delta=args.early_stopping_min_delta,
             deterministic=not args.fast,
-            enable_multi_tf=args.enable_multi_tf,
+            enable_multi_tf=True,  # MANDATORY — never single-TF (toggle removed 2026-05-26)
             m5_prebuilt_path=args.m5_prebuilt_path,
             multi_tf_seq_len=args.multi_tf_seq_len,
             multi_tf_scale=args.multi_tf_scale,
             subsample_rows=args.subsample_rows,
-            # V10 v3+ aux heads (Targets 1-4). --enable-v10-v3plus-all-heads is a convenience.
-            enable_tf_agreement_head=args.enable_tf_agreement_head or args.enable_v10_v3plus_all_heads,
-            enable_path_quality_variance_head=args.enable_path_quality_variance_head or args.enable_v10_v3plus_all_heads,
-            enable_position_size_head=args.enable_position_size_head or args.enable_v10_v3plus_all_heads,
-            enable_hold_horizon_head=args.enable_hold_horizon_head or args.enable_v10_v3plus_all_heads,
+            enable_tf_agreement_head=_aux_tf,
+            enable_path_quality_variance_head=_aux_pqv,
+            enable_position_size_head=_aux_ps,
+            enable_hold_horizon_head=_aux_hh,
+            enable_pos_enc=bool(args.enable_pos_enc),
+            enable_dip_head=bool(args.enable_dip_head),
+            enable_forecast_head=bool(args.enable_forecast_head),
+            enable_cross_tf_attn=bool(args.enable_cross_tf_attn),
+            enable_timing_head=bool(args.enable_timing_head),
+            enable_tail_risk_head=bool(args.enable_tail_risk_head),
+            enable_vol_forecast_head=bool(args.enable_vol_forecast_head),
+            # V2 fast-train extras
+            per_tf_seq_len_h4=int(args.per_tf_seq_len_h4),
+            per_tf_seq_len_d1=int(args.per_tf_seq_len_d1),
+            smoke_date_from=str(args.smoke_date_from or ""),
+            smoke_date_to=str(args.smoke_date_to or ""),
+            grad_accum_steps=int(args.grad_accum_steps),
+            init_from_state_dict=args.init_from_state_dict,
         )
         return
 

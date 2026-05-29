@@ -93,8 +93,9 @@ elif _GX1_SIGNAL_BRIDGE_VERSION == "2":
     EXPECTED_SEQ_SIGNAL_DIM = 37
     EXPECTED_SNAP_SIGNAL_DIM = 37
 else:
-    # 2026-Q2 v3 contract (wave 2 canonical_v3): ctx_cont 45, SEQ/SNAP 37, ctx_cat 6
-    MIN_CTX_CONT_DIM = 45
+    # 2026-Q2 v3 contract (canonical_v3 + group-A parity): ctx_cont 69, SEQ/SNAP 37, ctx_cat 6.
+    from gx1.contracts.signal_bridge_v3 import CTX_CONT_DIM_V3 as _CTX_CONT_DIM_V3
+    MIN_CTX_CONT_DIM = _CTX_CONT_DIM_V3  # one-truth floor (69) — tracks the contract
     EXPECTED_CTX_CAT_DIM = 6
     EXPECTED_SEQ_SIGNAL_DIM = 37
     EXPECTED_SNAP_SIGNAL_DIM = 37

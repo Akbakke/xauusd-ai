@@ -44,16 +44,39 @@ from gx1.exits.contracts.exit_io_v6_ctx_v3canonical_m1l512 import (
     EXIT_IO_V6_CTX_V3CANONICAL_M1L512_FEATURES as V6_FEATURES,
     EXIT_IO_V6_CTX_V3CANONICAL_M1L512_FEATURE_COUNT as V6_FEATURE_COUNT,
 )
+# V7 contract (extension of V6; first 91 features identical).
+from gx1.exits.contracts.exit_io_v7_volume_dipstruct_m1l512 import (
+    EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_FEATURES as V7_FEATURES,
+    EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_FEATURE_COUNT as V7_FEATURE_COUNT,
+    EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_IO_VERSION as V7_IO_VERSION,
+)
 from gx1.policy.exit_transformer_v0 import ExitTransformerV0
 
 LOG = logging.getLogger("v12_v3_live")
 
-# V12.2 cement (2026-05-15): default = V3 v9 multi-TF.
-# Trained val_acc 96.31% (+5.87pp over V3 v8 baseline 90.44%).
-DEFAULT_BUNDLE_DIR = Path(
-    "/home/andre2/GX1_DATA/models/exit_transformer_v0/"
-    "EXIT_V9_MULTI_TF_LR5E4_SCALE025_20260513T223544Z"
-)
+# 2026-05-29: default V3 bundle is contract-driven via
+# gx1_guards.load_decision_artifact("v3_exit"). Env override stays for A/B.
+import os as _os
+def _resolve_default_v3_bundle() -> Path:
+    env_override = _os.environ.get("GX1_V3_BUNDLE_DIR")
+    if env_override:
+        return Path(env_override)
+    try:
+        from gx1_guards.artifacts import load_decision_artifact
+        return Path(load_decision_artifact("v3_exit"))
+    except Exception:
+        return Path(
+            "/home/andre2/GX1_DATA/models/exit_transformer_v0/"
+            "EXIT_V9_MULTI_TF_LR5E4_SCALE025_20260513T223544Z"
+        )
+DEFAULT_BUNDLE_DIR = _resolve_default_v3_bundle()
+
+# One-truth: io_version → (features, count) so V6 and V7 bundles are both accepted.
+# V7 prefix is V6-identical so trade-state indices are stable across both.
+SUPPORTED_V3_CONTRACTS: dict = {
+    "EXIT_IO_V6_CTX_V3CANONICAL_M1L512": (list(V6_FEATURES), V6_FEATURE_COUNT),
+    V7_IO_VERSION: (list(V7_FEATURES), V7_FEATURE_COUNT),
+}
 WINDOW_LEN = 512   # 512 M1 bars (8.5 hours)
 
 # Indices of the 7 XGB-bridge features (positions 0..6 in the V6 contract)
@@ -81,6 +104,8 @@ class V3LiveInference:
     _enable_multi_tf: bool = False
     _mtf_seq_dims: dict = field(default_factory=dict)
     _mtf_seq_lens: dict = field(default_factory=dict)
+    # Phase 3b q_head: set when bundle was distilled from Exit-IQL teacher.
+    _enable_q_head: bool = False
 
     @classmethod
     def load(cls, bundle_dir: Path = DEFAULT_BUNDLE_DIR, device: str = "cpu") -> "V3LiveInference":
@@ -93,12 +118,23 @@ class V3LiveInference:
             raise FileNotFoundError(f"V3 v8 weights missing: {state_path}")
 
         cfg = json.loads(cfg_path.read_text())
-        if int(cfg["input_dim"]) != V6_FEATURE_COUNT:
-            raise RuntimeError(f"V3 v8 input_dim={cfg['input_dim']} != V6 {V6_FEATURE_COUNT}")
+        # 2026-05-29: accept both V6 (91-feat) and V7 (155-feat) bundles via
+        # the io_version → (features, count) lookup. V7 prefix is V6, so the
+        # 19-feature trade-state overlay indices are identical.
+        io_version = cfg.get("exit_ml_io_version")
+        if io_version not in SUPPORTED_V3_CONTRACTS:
+            raise RuntimeError(
+                f"V3 io_version {io_version!r} not in supported: "
+                f"{sorted(SUPPORTED_V3_CONTRACTS)}"
+            )
+        _expected_features, _expected_count = SUPPORTED_V3_CONTRACTS[io_version]
+        if int(cfg["input_dim"]) != _expected_count:
+            raise RuntimeError(
+                f"V3 input_dim={cfg['input_dim']} != contract {io_version}={_expected_count}"
+            )
         if int(cfg["window_len"]) != WINDOW_LEN:
-            raise RuntimeError(f"V3 v8 window_len={cfg['window_len']} != {WINDOW_LEN}")
-        if cfg.get("exit_ml_io_version") != "EXIT_IO_V6_CTX_V3CANONICAL_M1L512":
-            raise RuntimeError(f"V3 v8 io_version mismatch: {cfg.get('exit_ml_io_version')}")
+            raise RuntimeError(f"V3 window_len={cfg['window_len']} != {WINDOW_LEN}")
+        LOG.info(f"V3 contract={io_version} input_dim={_expected_count}")
 
         # V12.2: detect multi-TF mode from config (v8 bundles default enabled=False).
         mtf_cfg = cfg.get("multi_tf", {}) or {}
@@ -128,13 +164,27 @@ class V3LiveInference:
             )
             LOG.info(f"V3 bundle is multi-TF: M5/M15/H1/H4/D1 active")
 
+        # Phase 3b: bundle was distilled with enable_q_head=True iff the config
+        # carries the flag. Falls back to state_dict probe for older bundles.
+        state_dict = torch.load(state_path, map_location=device, weights_only=True)
+        enable_q_head = bool(cfg.get("enable_q_head", False)) or ("q_head.weight" in state_dict)
+        if enable_q_head:
+            LOG.info("V3 q_head (distilled) detected — predict() will emit v3_q_per_action")
+
         model = ExitTransformerV0(
             input_dim=cfg["input_dim"], window_len=cfg["window_len"],
             d_model=cfg["d_model"], n_heads=cfg["n_heads"], n_layers=cfg["n_layers"],
             dropout=cfg.get("dropout", 0.1),
+            enable_q_head=enable_q_head,
+            enable_pos_enc=bool(cfg.get("enable_pos_enc", False)),
+            enable_dip_head=bool(cfg.get("enable_dip_head", False)) or ("dip_head.weight" in state_dict),
+            # 2026-05-26 new aux heads — detect from cfg or state_dict so strict load matches.
+            enable_timing_head=bool(cfg.get("enable_timing_head", False)) or ("timing_head.weight" in state_dict),
+            enable_tail_risk_head=bool(cfg.get("enable_tail_risk_head", False)) or ("tail_risk_head.weight" in state_dict),
+            enable_vol_forecast_head=bool(cfg.get("enable_vol_forecast_head", False)) or ("vol_forecast_head.weight" in state_dict),
+            enable_forecast_head=bool(cfg.get("enable_forecast_head", False)) or ("forecast_head.weight" in state_dict),
             **mtf_kwargs,
         )
-        state_dict = torch.load(state_path, map_location=device, weights_only=True)
         model.load_state_dict(state_dict)
         model.to(device).eval()
         LOG.info(f"V3 v9 (multi-TF) loaded: {bundle_dir.name}  device={device}  "
@@ -142,6 +192,7 @@ class V3LiveInference:
         return cls(
             bundle_dir=bundle_dir, device=device, _model=model,
             _enable_multi_tf=enable_mtf,
+            _enable_q_head=enable_q_head,
             _mtf_seq_dims={k: int(mtf_cfg.get(f"{k.lower()}_seq_dim", 0))
                             for k in ("M5", "M15", "H1", "H4", "D1")} if enable_mtf else {},
             _mtf_seq_lens={k: int(mtf_cfg.get(f"{k.lower()}_seq_len", 96))
@@ -261,12 +312,22 @@ class V3LiveInference:
         main_logit = self._model.forward_logits(x, **mtf_kwargs).item()
         pp_logit = self._model.forward_profit_protect_logits(x, **mtf_kwargs).item()
         family_logits = self._model.forward_family_logits(x, **mtf_kwargs).cpu().numpy().flatten()
-        return {
+        result = {
             "v3_v8_should_exit_prob": float(_sigmoid(main_logit)),
             "v3_v8_profit_protect_prob": float(_sigmoid(pp_logit)),
             "v3_v8_family_argmax": int(np.argmax(family_logits)),
             "v3_v8_family_logit_max": float(np.max(family_logits)),
         }
+        # Phase 3b q_head: emit Exit-IQL-distilled Q-values when bundle has q_head.
+        if self._enable_q_head:
+            q = self._model.forward_q_per_action(x, **mtf_kwargs).cpu().numpy()[0].astype(float)
+            q_hold, q_exit = float(q[0]), float(q[1])
+            result["v3_q_per_action_v1"] = [q_hold, q_exit]
+            result["v3_q_hold_v1"] = q_hold
+            result["v3_q_exit_v1"] = q_exit
+            result["v3_q_advantage_v1"] = q_exit - q_hold
+            result["v3_q_action_id_v1"] = 1 if q_exit > q_hold else 0
+        return result
 
     def predict(
         self,

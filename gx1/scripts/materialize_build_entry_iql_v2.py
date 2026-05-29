@@ -207,13 +207,17 @@ NUMERIC_STATE_COLS_CANDIDATE = [
     "direction_logit_long",
     "direction_logit_short",
     "direction_logit_flat",
-    # V10 v3+ aux heads (Targets 1-4) — direct features for Entry-IQL state.
-    # NaN-filled for candidates from legacy bundles (handled by trainer's missing-fill).
-    "tf_agreement_pred",
-    "path_quality_log_var",
-    "path_quality_std",
-    "position_size_pred",
-    "hold_horizon_pred",
+    # 2026-05-27: dropped the old V10 v3+ aux-head cols (tf_agreement_pred /
+    # path_quality_log_var / path_quality_std / position_size_pred / hold_horizon_pred)
+    # — the COSTFIX V10 does NOT have those heads, so they'd be all-NaN and trip
+    # build_state_matrix's >5%-NaN fail-closed abort. Replaced with COSTFIX V10's
+    # actual new heads (full entry parity; base-named, carried via candidate->fwd-outcome).
+    # 43 scalars: dip 18 / forecast 4 / timing 12 / tail_risk 6 / vol_forecast 3.
+    *[f"v10_dip_{_i}" for _i in range(18)],
+    *[f"v10_forecast_{_i}" for _i in range(4)],
+    *[f"v10_timing_{_i}" for _i in range(12)],
+    *[f"v10_tail_risk_{_i}" for _i in range(6)],
+    *[f"v10_vol_forecast_{_i}" for _i in range(3)],
     # Portfolio features (improvement #1 2026-05-21) — simulated portfolio state
     # at decision_ts based on same-week sliding window. Makes Entry-IQL aware of
     # existing trades when scoring. Filled by forward-outcome builder.
@@ -287,8 +291,10 @@ NUMERIC_STATE_COLS_DERIVED = ["entropy_v1"]
 # Range: [0, 1]. High = "just bounced off recent low" → buy-the-dip candidate.
 NUMERIC_STATE_COLS_DIP = [
     # DIP per TF — ALL 5 TFs after Bug 2 fix (dist_to_*_lo_atr alive for all).
-    "dip_proximity_m5_v3",  "dip_confirmed_m5_v3",
-    "dip_proximity_m15_v3", "dip_confirmed_m15_v3",
+    # 2026-05-24 PM: dropped dip_proximity_m5/m15_v3 (saturated 99% nnz, low std).
+    # dip_confirmed_m5/m15 retain the slope-gated signal which IS informative.
+    "dip_confirmed_m5_v3",
+    "dip_confirmed_m15_v3",
     "dip_proximity_h1_v3",  "dip_confirmed_h1_v3",
     "dip_proximity_h4_v3",  "dip_confirmed_h4_v3",
     "dip_proximity_d1_v3",  "dip_confirmed_d1_v3",
@@ -317,9 +323,10 @@ NUMERIC_STATE_COLS_STRUCT = [
     "struct_continuation_up_d1_v3",     "struct_pullback_in_uptrend_d1_v3",
     "struct_continuation_down_d1_v3",   "struct_bounce_in_downtrend_d1_v3",
     "struct_pullback_depth_d1_v3",
-    # Multi-TF combo (strongest signal: ALL 5 TFs align)
-    "struct_all_tf_pullback_v3",          # M5 × M15 × H1 × H4 × D1 strict AND
-    "struct_tf_agree_count_v3",           # soft 0-1 fraction of TFs agreeing
+    # Multi-TF combo
+    # 2026-05-24 PM: dropped struct_all_tf_pullback_v3 (0% nnz on 9.3M rows —
+    # TFs are negatively correlated for pullback, all-5-align literally never happens).
+    "struct_tf_agree_count_v3",           # soft 0-1 fraction of TFs agreeing (kept — 67.8% nnz)
     "struct_dip_x_uptrend_v3",            # avg dip (5 TFs) × M5 pullback
     "struct_smc_swing_x_dip_v3",          # SMC swing × M5 dip
 ]
@@ -1362,7 +1369,18 @@ def main() -> None:
     parser.add_argument("--built-at-utc", type=str, default=None)
     parser.add_argument("--seed", type=int, default=None,
                         help="Override default SEED_V1 (used for ensemble training).")
+    parser.add_argument(
+        "--vedtak", type=str, default=None,
+        help="Explicit user decision id authorizing this Entry-IQL build+train. "
+             "REQUIRED (never auto-retrain). Any non-empty string from a deliberate human go.",
+    )
     args = parser.parse_args()
+    # NEVER auto-retrain — fail-closed unless an explicit --vedtak is passed.
+    from gx1_guards.gates import require_retrain_vedtak, GateError
+    try:
+        require_retrain_vedtak(args.vedtak)
+    except GateError as e:
+        parser.error(str(e))
     # 2026-05-21 ensemble support: override module-level SEED_V1 so all seed-
     # dependent operations (fold split, IQL trainer, sampling) use the override.
     if args.seed is not None:

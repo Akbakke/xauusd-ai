@@ -12,6 +12,8 @@ from __future__ import annotations
 import argparse
 import gc
 import json
+import math
+import os
 import sys
 import time
 from collections import defaultdict
@@ -62,6 +64,20 @@ GROUP_A_FEATURE_NAMES = (
 # smc_bos_down 76K, smc_sweep_up/down 25K each) but were NEVER joined into
 # forward_outcome → all zero downstream. Fix: load canonical_v3 once, asof-join
 # by time to add SMC cols (with _canon_v1 suffix to match downstream expectations).
+# 2026-05-24 PM: 5-TF dip + structure features (computed in augment_candidate).
+# Persisted into fwd parquet so both Entry-IQL and Exit-IQL state builders can
+# read them via column lookup (no need to recompute at training time).
+DIP_STRUCT_FEATURE_NAMES = tuple(
+    [f"dip_proximity_{tf}_v3"  for tf in ("m5","m15","h1","h4","d1")]
+  + [f"dip_confirmed_{tf}_v3"  for tf in ("m5","m15","h1","h4","d1")]
+  + [f"struct_continuation_up_{tf}_v3"      for tf in ("m5","m15","h1","h4","d1")]
+  + [f"struct_pullback_in_uptrend_{tf}_v3"  for tf in ("m5","m15","h1","h4","d1")]
+  + [f"struct_continuation_down_{tf}_v3"    for tf in ("m5","m15","h1","h4","d1")]
+  + [f"struct_bounce_in_downtrend_{tf}_v3"  for tf in ("m5","m15","h1","h4","d1")]
+  + [f"struct_pullback_depth_{tf}_v3"       for tf in ("m5","m15","h1","h4","d1")]
+  + ["struct_all_tf_pullback_v3", "struct_tf_agree_count_v3", "struct_dip_x_uptrend_v3"]
+)  # 5×7 + 3 = 38 cols (smc_swing_x_dip computed downstream after SMC join)
+
 GROUP_S_SMC_FEATURE_NAMES = (
     "smc_swing_state_canon_v1",
     "smc_bos_up_canon_v1",
@@ -393,15 +409,50 @@ def _per_side_perf(ctx: AugmentContext, ts: pd.Timestamp, lookback_n: int = 10) 
     return out
 
 
+def _dip_struct_5tf(per_tf_out: dict[str, float], liq_out: dict[str, float]) -> dict[str, float]:
+    """5-TF dip + structure features computed from per-TF V2 + liquidity zones.
+    Persisted into fwd dataset so both Entry-IQL and Exit-IQL state builders can
+    read them without recomputing.
+    """
+    out: dict[str, float] = {}
+    # DIP per TF: proximity-to-low × sigmoid(ema20-slope)
+    for tf in ("m5", "m15", "h1", "h4", "d1"):
+        dist_lo = float(liq_out.get(f"dist_to_{tf}_lo_atr", 2.0))
+        slope = float(per_tf_out.get(f"{tf}_ema20_slope_atr_v2", 0.0))
+        dip_prox = max(0.0, min(1.0, 1.0 - dist_lo / 2.0))
+        recovery = 1.0 / (1.0 + math.exp(-slope * 5.0))
+        out[f"dip_proximity_{tf}_v3"] = dip_prox
+        out[f"dip_confirmed_{tf}_v3"] = dip_prox * recovery
+    # STRUCTURE per TF: HH/HL/LH/LL via mom_5 + mom_20 signs
+    pback = {}
+    for tf in ("m5", "m15", "h1", "h4", "d1"):
+        m5_mom = float(per_tf_out.get(f"{tf}_mom_5_atr_v2", 0.0))
+        m20_mom = float(per_tf_out.get(f"{tf}_mom_20_atr_v2", 0.0))
+        out[f"struct_continuation_up_{tf}_v3"] = float((m20_mom > 0) and (m5_mom > 0))
+        out[f"struct_pullback_in_uptrend_{tf}_v3"] = float((m20_mom > 0) and (m5_mom < 0))
+        out[f"struct_continuation_down_{tf}_v3"] = float((m20_mom < 0) and (m5_mom < 0))
+        out[f"struct_bounce_in_downtrend_{tf}_v3"] = float((m20_mom < 0) and (m5_mom > 0))
+        depth = -m5_mom / max(abs(m20_mom), 1e-6) if m20_mom > 1e-6 else 0.0
+        out[f"struct_pullback_depth_{tf}_v3"] = max(-2.0, min(2.0, depth))
+        pback[tf] = out[f"struct_pullback_in_uptrend_{tf}_v3"]
+    # Multi-TF combo: strict AND across all 5 TFs
+    out["struct_all_tf_pullback_v3"] = pback["m5"] * pback["m15"] * pback["h1"] * pback["h4"] * pback["d1"]
+    out["struct_tf_agree_count_v3"] = (pback["m5"] + pback["m15"] + pback["h1"] + pback["h4"] + pback["d1"]) / 5.0
+    avg_dip = (out["dip_confirmed_m5_v3"] + out["dip_confirmed_m15_v3"] + out["dip_confirmed_h1_v3"]
+               + out["dip_confirmed_h4_v3"] + out["dip_confirmed_d1_v3"]) / 5.0
+    out["struct_dip_x_uptrend_v3"] = avg_dip * pback["m5"]
+    # struct_smc_swing_x_dip_v3 computed downstream in augment_week (needs SMC join)
+    return out
+
+
 def augment_candidate(ctx: AugmentContext, ts: pd.Timestamp) -> dict[str, float]:
-    """Fast per-candidate compute: O(log N) lookups for all 153 V2 features."""
+    """Fast per-candidate compute: O(log N) lookups for all V2 + dip/struct features."""
     ts_ns = ts.value if hasattr(ts, "value") else pd.Timestamp(ts).value
     m5_idx = np.searchsorted(ctx.m5_ts_ns, ts_ns, side="right") - 1
     if m5_idx < 0:
-        # before history start — return zeros
-        return {**{k: 0.0 for k in PER_TF_FEATURE_NAMES}, **{k: 0.0 for k in GROUP_A_FEATURE_NAMES}}
+        return {**{k: 0.0 for k in PER_TF_FEATURE_NAMES}, **{k: 0.0 for k in GROUP_A_FEATURE_NAMES},
+                **{k: 0.0 for k in DIP_STRUCT_FEATURE_NAMES}}
     current_price = float(ctx.m5_close[m5_idx])
-    # ATR-14 estimate from atr_bps_14 (M5) in V2 cache
     m5_feats = ctx.multi_tf.get("M5")
     if m5_feats is not None and m5_feats.attrs.get("feats_np") is not None:
         m5_ts_arr = m5_feats.attrs["ts_int64"]
@@ -414,14 +465,97 @@ def augment_candidate(ctx: AugmentContext, ts: pd.Timestamp) -> dict[str, float]
         current_atr = 1.5
 
     out: dict[str, float] = {}
-    out.update(_per_tf_all(ctx, ts_ns))            # 125
-    out.update(_session_overlap(ts))                # 4
-    out.update(_vol_term(ctx, ts_ns))               # 4
-    out.update(_vol_pct(ctx, ts_ns))                # 2
+    per_tf = _per_tf_all(ctx, ts_ns)
+    liq = _liquidity_zones(ctx, ts_ns, current_price, current_atr)
+    out.update(per_tf)                                         # 125
+    out.update(_session_overlap(ts))                           # 4
+    out.update(_vol_term(ctx, ts_ns))                          # 4
+    out.update(_vol_pct(ctx, ts_ns))                           # 2
     out.update(_pivots(ctx, ts, current_atr, current_price))   # 4
-    out.update(_liquidity_zones(ctx, ts_ns, current_price, current_atr))  # 6
-    out.update(_per_side_perf(ctx, ts))             # 8
+    out.update(liq)                                            # 10 (5 TFs × hi/lo)
+    out.update(_per_side_perf(ctx, ts))                        # 8
+    out.update(_dip_struct_5tf(per_tf, liq))                   # 38 (dip + struct)
     return out
+
+
+DEFAULT_MULTI_TF_V2_CACHE_DIR = "/home/andre2/GX1_DATA/data/data/prebuilt/MULTI_TF_V2_CACHE"
+
+
+def attach_group_a_dip_struct_ctx_columns(
+    df: pd.DataFrame,
+    *,
+    cache_dir: str | None = None,
+    journal_label: str = "parity",
+    smc_col_candidates: tuple[str, ...] = ("smc_swing_state", "smc_swing_state_canon_v1"),
+) -> pd.DataFrame:
+    """Add the 24 GROUP-A parity + 36 dip/struct ctx_cont columns to ``df`` in place.
+
+    ONE TRUTH for the V10 entry builder, the V3 exit builder, and the
+    inference-batch candidate generator (serving). All three compute these
+    ctx_cont features identically from :func:`augment_candidate`, so the model
+    sees the same values at train and inference time (no train/serve skew).
+
+    Requirements:
+      - ``df`` has lowercase ``high``/``low``/``close`` columns.
+      - ``df`` has a ``time`` column OR a tz-aware ``DatetimeIndex``.
+
+    Idempotent: returns immediately if all 60 columns are already present.
+    Mirrors the cemented-V10 builder block exactly (including the
+    ``struct_smc_swing_x_dip_v3`` SMC×dip-proximity derivation).
+    """
+    from gx1.contracts.signal_bridge_v3 import (
+        ORDERED_CTX_CONT_GROUP_A_PARITY as _GROUP_A,
+        ORDERED_CTX_CONT_DIP_STRUCT as _DIP_STRUCT,
+    )
+    from gx1.features.htf_features import load_multi_tf_v2_cache
+
+    need = list(_GROUP_A) + list(_DIP_STRUCT)
+    if all(c in df.columns for c in need):
+        return df
+
+    for c in ("high", "low", "close"):
+        if c not in df.columns:
+            raise RuntimeError(
+                f"[CTX_CONT_PARITY] df missing required OHLC column '{c}'"
+            )
+    if "time" in df.columns:
+        ts_index = pd.to_datetime(df["time"], utc=True)
+    elif isinstance(df.index, pd.DatetimeIndex):
+        ts_index = pd.to_datetime(df.index, utc=True)
+    else:
+        raise RuntimeError("[CTX_CONT_PARITY] df needs a 'time' column or DatetimeIndex")
+
+    cache = cache_dir or os.environ.get(
+        "GX1_V10_MULTI_TF_V2_CACHE_DIR", DEFAULT_MULTI_TF_V2_CACHE_DIR
+    )
+    m5 = df[["high", "low", "close"]].copy()
+    m5.index = ts_index.to_numpy()
+    m5 = m5.sort_index()
+    ctx = build_context(
+        m5, load_multi_tf_v2_cache(cache),
+        journal_dir=Path(f"/nonexistent_{journal_label}_journal"),
+    )
+
+    dip_from_aug = [f for f in _DIP_STRUCT if f != "struct_smc_swing_x_dip_v3"]
+    extract = list(_GROUP_A) + dip_from_aug + ["dip_proximity_m5_v3"]
+    cols = {k: np.zeros(len(df), dtype=np.float32) for k in extract}
+    for i, ts in enumerate(pd.DatetimeIndex(ts_index)):
+        feat = augment_candidate(ctx, ts)
+        for k in extract:
+            cols[k][i] = float(feat.get(k, 0.0))
+    for k in (list(_GROUP_A) + dip_from_aug):
+        df[k] = cols[k]
+
+    # struct_smc_swing_x_dip_v3 = clip(smc_swing_state / max|·|, -1, 1) × dip_proximity_m5_v3
+    smc_col = next((c for c in smc_col_candidates if c in df.columns), None)
+    if smc_col is not None:
+        sw = pd.to_numeric(df[smc_col], errors="coerce").fillna(0.0).to_numpy(np.float32)
+        max_abs = float(np.abs(sw).max()) if len(sw) else 1.0
+        sw_norm = np.clip(sw / max(max_abs, 1.0), -1.0, 1.0)
+        df["struct_smc_swing_x_dip_v3"] = (sw_norm * cols["dip_proximity_m5_v3"]).astype(np.float32)
+    else:
+        df["struct_smc_swing_x_dip_v3"] = np.zeros(len(df), dtype=np.float32)
+    return df
 
 
 def augment_week(week_pq: Path, out_pq: Path, ctx: AugmentContext,
@@ -436,13 +570,14 @@ def augment_week(week_pq: Path, out_pq: Path, ctx: AugmentContext,
         raise RuntimeError(f"{week_pq} missing decision_ts_utc")
     # 2026-05-24: drop existing V2/group-A/SMC cols if input was pre-augmented
     # (prevents duplicate cols when re-running on V10V2_AUGMENTED with bug-fixes).
-    cols_to_overwrite = set(PER_TF_FEATURE_NAMES) | set(GROUP_A_FEATURE_NAMES) | set(GROUP_S_SMC_FEATURE_NAMES)
+    cols_to_overwrite = (set(PER_TF_FEATURE_NAMES) | set(GROUP_A_FEATURE_NAMES)
+                         | set(GROUP_S_SMC_FEATURE_NAMES) | set(DIP_STRUCT_FEATURE_NAMES))
     existing_to_drop = [c for c in df.columns if c in cols_to_overwrite]
     if existing_to_drop:
         df = df.drop(columns=existing_to_drop)
     ts_arr = pd.to_datetime(df["decision_ts_utc"], utc=True)
     new_cols: dict[str, list[float]] = {
-        name: [] for name in (PER_TF_FEATURE_NAMES + GROUP_A_FEATURE_NAMES)
+        name: [] for name in (PER_TF_FEATURE_NAMES + GROUP_A_FEATURE_NAMES + DIP_STRUCT_FEATURE_NAMES)
     }
     t0 = time.time()
     for ts in ts_arr:
@@ -483,6 +618,17 @@ def augment_week(week_pq: Path, out_pq: Path, ctx: AugmentContext,
         # No SMC cache → fill zeros (graceful fallback for non-canonical-v3 sources)
         for dst_col in GROUP_S_SMC_FEATURE_NAMES:
             df[dst_col] = np.zeros(n, dtype=np.float32)
+
+    # 2026-05-24 PM: struct_smc_swing_x_dip_v3 = SMC swing state × M5 dip proximity.
+    # Computed here (after SMC join) since needs both signals.
+    if "smc_swing_state_canon_v1" in df.columns and "dip_proximity_m5_v3" in df.columns:
+        sw = pd.to_numeric(df["smc_swing_state_canon_v1"], errors="coerce").fillna(0.0).to_numpy(dtype=np.float32)
+        max_abs = float(np.abs(sw).max()) if len(sw) else 1.0
+        sw_norm = np.clip(sw / max(max_abs, 1.0), -1.0, 1.0)
+        dp = pd.to_numeric(df["dip_proximity_m5_v3"], errors="coerce").fillna(0.0).to_numpy(dtype=np.float32)
+        df["struct_smc_swing_x_dip_v3"] = (sw_norm * dp).astype(np.float32)
+    else:
+        df["struct_smc_swing_x_dip_v3"] = np.zeros(n, dtype=np.float32)
 
     out_pq.parent.mkdir(parents=True, exist_ok=True)
     df.to_parquet(out_pq, index=False)

@@ -5,7 +5,7 @@ Loads the cemented entry_v10_ctx transformer (V10 v3 / canonical_v3 / 6yr
 BS512) and produces per-bar entry-context outputs that feed Entry-IQL v2.
 
 V10 v3 input contract (from MASTER_TRANSFORMER_LOCK.json):
-    seq_x     : (B, 96, 37)  → 96-bar M5 history of
+    seq_x     : (B, 96, 41)  → 96-bar M5 history of
                                  [signal_bridge_v1 (7) | price_state (30)]
     snap_x    : (B, 37)      → snapshot of the decision-bar (same 37 fields)
     ctx_cont  : (B, 45)      → ORDERED_CTX_CONT_NAMES_V3
@@ -57,18 +57,34 @@ from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import EntryV10CtxHyb
 
 LOG = logging.getLogger("v12_v10_live")
 
-# V12.2 cement (2026-05-15): default = V10 v_FIXED multi-TF.
-# Phase 6 result: +73.64 bps/cand (V12_OFF), +35.7% over V12.1.1 baseline +54.27.
-DEFAULT_BUNDLE_DIR = Path(
-    "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/"
-    "ENTRY_V10_MULTI_TF_v2_FIXED_20260513T214805Z"
-)
+# 2026-05-19: v3+ cement — V10 multi-TF with 4 aux heads (tf_agreement,
+# path_quality_log_var/std, position_size, hold_horizon). State_dict verified
+# to contain all 8 head weights. Forward-outcome candidates (50,217) were built
+# using this exact bundle, so the downstream chain (Entry-IQL v3+ → Phase 1 →
+# per-bar → Exit-IQL v3+) is self-consistent.
+# 2026-05-29: default is now contract-driven via gx1_guards.load_decision_artifact("v10_entry").
+# A/B override: set GX1_V10_BUNDLE_DIR env var to bypass and use a different bundle.
+import os as _os
+def _resolve_default_v10_bundle() -> Path:
+    env_override = _os.environ.get("GX1_V10_BUNDLE_DIR")
+    if env_override:
+        return Path(env_override)
+    try:
+        from gx1_guards.artifacts import load_decision_artifact
+        return Path(load_decision_artifact("v10_entry"))
+    except Exception:
+        # Fail-soft fallback for ad-hoc smoke tests where guards aren't importable.
+        return Path(
+            "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/"
+            "ENTRY_V10_V3PLUS_v2_20260518T135516Z"
+        )
+DEFAULT_BUNDLE_DIR = _resolve_default_v10_bundle()
 
 # V10 v3 cemented config (from MASTER_TRANSFORMER_LOCK.json):
 SEQ_LEN = 96
-SEQ_DIM = 37   # 7 bridge + 30 price_state
-SNAP_DIM = 37
-CTX_CONT_DIM = 45
+SEQ_DIM = SEQ_SIGNAL_DIM_V3    # contract-derived: 7 bridge + 34 price_state = 41 (was 37)
+SNAP_DIM = SEQ_SIGNAL_DIM_V3
+CTX_CONT_DIM = CTX_CONT_DIM_V3  # one-truth: track the contract (69 w/ group-A parity), not a hardcoded 45
 CTX_CAT_DIM = 6
 
 
@@ -105,10 +121,12 @@ class V10LiveInference:
         # v3 bundles don't have this section, default to v3 mode).
         meta_path = bundle_dir / "bundle_metadata.json"
         multi_tf_cfg = {}
+        _enable_pos_enc = False  # persistent=False buffer → must come from metadata, not state_dict
         if meta_path.is_file():
             try:
                 meta = json.loads(meta_path.read_text())
                 multi_tf_cfg = meta.get("multi_tf", {}) or {}
+                _enable_pos_enc = bool(meta.get("enable_pos_enc", False))
             except Exception as exc:
                 LOG.warning(f"bundle_metadata.json read failed: {exc} — assuming v3 mode")
         enable_mtf = bool(multi_tf_cfg.get("enabled", False))
@@ -123,6 +141,9 @@ class V10LiveInference:
             )
         mtf_kwargs = {}
         if enable_mtf:
+            # V2 (BASE76): M5 is a 5th multi-TF branch. Must read v2_mode/m5_* or
+            # strict load fails on m5_proj/m5_encoder + the 5-branch fuse weights.
+            _v2_mode = bool(multi_tf_cfg.get("v2_mode", False))
             mtf_kwargs = dict(
                 enable_multi_tf=True,
                 m15_seq_dim=int(multi_tf_cfg["m15_seq_dim"]),
@@ -133,8 +154,48 @@ class V10LiveInference:
                 h1_seq_len=int(multi_tf_cfg["h1_seq_len"]),
                 h4_seq_len=int(multi_tf_cfg["h4_seq_len"]),
                 d1_seq_len=int(multi_tf_cfg["d1_seq_len"]),
+                enable_multi_tf_m5=_v2_mode,
+                m5_seq_dim=int(multi_tf_cfg.get("m5_seq_dim", 0)) if _v2_mode else 0,
+                m5_seq_len=int(multi_tf_cfg.get("m5_seq_len", multi_tf_cfg["m15_seq_len"])) if _v2_mode else 96,
             )
-            LOG.info(f"V10 bundle is multi-TF: H1/H4/D1 dim={multi_tf_cfg['h1_seq_dim']} len={multi_tf_cfg['h1_seq_len']}")
+            LOG.info(f"V10 bundle is multi-TF (v2_mode={_v2_mode}): H1/H4/D1 dim={multi_tf_cfg['h1_seq_dim']} len={multi_tf_cfg['h1_seq_len']}")
+
+        # Detect V10 v3+ aux heads by presence in state_dict so model is
+        # built with matching parameters (else load_state_dict fails strict).
+        state_dict_path = bundle_dir / lock["model_path_relative"]
+        if not state_dict_path.exists():
+            raise FileNotFoundError(f"V10 weights not found: {state_dict_path}")
+        state_dict = torch.load(str(state_dict_path), map_location=device, weights_only=False)
+        v3plus_kwargs = dict(
+            enable_tf_agreement_head="head_tf_agreement.weight" in state_dict,
+            enable_path_quality_variance_head="head_path_quality_log_var.weight" in state_dict,
+            enable_position_size_head="head_position_size.weight" in state_dict,
+            enable_hold_horizon_head="head_hold_horizon.weight" in state_dict,
+        )
+        if any(v3plus_kwargs.values()):
+            LOG.info(f"V10 v3+ aux heads detected in bundle: {[k for k,v in v3plus_kwargs.items() if v]}")
+        # 2026-05-21: q_head present iff bundle was distilled from Entry-IQL teacher.
+        # Detect via state_dict key. When True, the predict() result includes
+        # q_per_action_v1 + advantage_over_skip_v1, exposing Entry-IQL knowledge
+        # baked into the V10 backbone via Phase 3a distillation.
+        enable_q_head = "q_head.weight" in state_dict
+        if enable_q_head:
+            LOG.info("V10 q_head (distilled) detected — predict() will emit q_per_action")
+
+        # 2026-05-26: dip-head / forecast-head / cross-TF-attn — detect from
+        # state_dict keys so the new dip-aware bundles load strict (else their
+        # weights are unexpected_keys → load fails).
+        _enable_dip_head = "head_dip.weight" in state_dict
+        _enable_forecast_head = "head_forecast.weight" in state_dict
+        _enable_cross_tf_attn = any(k.startswith("cross_tf_attn.") or k == "tf_gate_logits" for k in state_dict)
+        _enable_timing_head = "head_timing.weight" in state_dict
+        _enable_tail_risk_head = "head_tail_risk.weight" in state_dict
+        _enable_vol_forecast_head = "head_vol_forecast.weight" in state_dict
+        if (_enable_dip_head or _enable_forecast_head or _enable_cross_tf_attn
+                or _enable_timing_head or _enable_tail_risk_head or _enable_vol_forecast_head):
+            LOG.info(f"V10 dip-aware bundle: dip={_enable_dip_head} forecast={_enable_forecast_head} "
+                     f"cross_tf_attn={_enable_cross_tf_attn} timing={_enable_timing_head} "
+                     f"tail_risk={_enable_tail_risk_head} vol_forecast={_enable_vol_forecast_head}")
 
         # Build model with bundle's hyperparameters; load weights
         model = EntryV10CtxHybridTransformer(
@@ -144,11 +205,16 @@ class V10LiveInference:
             ctx_cont_dim=int(lock["ctx_cont_dim"]),
             ctx_cat_dim=int(lock["ctx_cat_dim"]),
             **mtf_kwargs,
+            **v3plus_kwargs,
+            enable_q_head=enable_q_head,
+            enable_pos_enc=_enable_pos_enc,
+            enable_dip_head=_enable_dip_head,
+            enable_forecast_head=_enable_forecast_head,
+            enable_cross_tf_attn=_enable_cross_tf_attn,
+            enable_timing_head=_enable_timing_head,
+            enable_tail_risk_head=_enable_tail_risk_head,
+            enable_vol_forecast_head=_enable_vol_forecast_head,
         )
-        state_dict_path = bundle_dir / lock["model_path_relative"]
-        if not state_dict_path.exists():
-            raise FileNotFoundError(f"V10 weights not found: {state_dict_path}")
-        state_dict = torch.load(str(state_dict_path), map_location=device, weights_only=False)
         model.load_state_dict(state_dict)
         model.eval()
         model.to(device)
@@ -170,7 +236,7 @@ class V10LiveInference:
 
     @staticmethod
     def _build_seq_matrix(df: pd.DataFrame, bridge: np.ndarray) -> np.ndarray:
-        """Per-bar (n, 37) sequence matrix: 7 signal_bridge + 30 price_state."""
+        """Per-bar (n, 41) sequence matrix: 7 signal_bridge + 34 price_state (incl. 4 volume)."""
         n = len(df)
         out = np.zeros((n, SEQ_DIM), dtype=np.float32)
         if bridge.shape != (n, 7):
@@ -262,13 +328,25 @@ class V10LiveInference:
                     "V10 bundle is multi-TF — caller must pass multi_tf_windows "
                     "(via PrebuiltStateLoader.get_multi_tf_windows())"
                 )
-            for k in ("seq_m15", "seq_h1", "seq_h4", "seq_d1"):
+            required_tfs = ["seq_m15", "seq_h1", "seq_h4", "seq_d1"]
+            # V2 (BASE76): M5 is a 5th branch — require seq_m5 only when the model
+            # was built with it, else forward() raises SEQ_M5_REQUIRED.
+            if getattr(self._model.cfg, "enable_multi_tf_m5", False):
+                required_tfs.append("seq_m5")
+            for k in required_tfs:
                 if k not in multi_tf_windows:
                     raise RuntimeError(f"multi-TF V10 needs {k} but missing from multi_tf_windows")
                 arr = multi_tf_windows[k]
                 # Add batch dim if needed
                 if arr.ndim == 2:
                     arr = arr[np.newaxis, :, :]
+                # The loader returns a uniform n_bars (96) for every TF, but the
+                # model tapers per-TF (BASE76: h4=48, d1=30). Trim to the model's
+                # expected per-TF seq_len (most-recent bars) or forward() raises
+                # *_LEN_MISMATCH. No-op when they're equal.
+                exp_len = int(getattr(self._model.cfg, f"{k[4:]}_seq_len"))  # seq_h4 -> h4_seq_len
+                if arr.shape[1] > exp_len:
+                    arr = arr[:, -exp_len:, :]
                 mtf_kwargs[k] = torch.from_numpy(arr.astype(np.float32, copy=False)).to(self.device)
 
         with torch.no_grad():
@@ -306,6 +384,30 @@ class V10LiveInference:
             # Map [0,1] back to bars (max 1440 = 24h).
             result["hold_horizon_pred"] = hh_pred
             result["hold_horizon_bars_pred"] = int(round(hh_pred * 1440))
+        # Dip-analysis head (18): dir×K×{dip_p50,dip_p90,recovery_p50}. Surface raw
+        # so Entry-IQL / runner can act on the dip-risk profile (don't enter at top
+        # of a dip). Forecast head (4): cum future return @ K{1,5,12,24} bps.
+        if "dip_pred" in out:
+            result["dip_pred_v1"] = out["dip_pred"].cpu().numpy()[0].astype(float).tolist()
+        if "forecast_pred" in out:
+            result["forecast_pred_v1"] = out["forecast_pred"].cpu().numpy()[0].astype(float).tolist()
+        if "timing_pred" in out:
+            result["timing_pred_v1"] = out["timing_pred"].cpu().numpy()[0].astype(float).tolist()
+        if "tail_risk_pred" in out:
+            result["tail_risk_pred_v1"] = out["tail_risk_pred"].cpu().numpy()[0].astype(float).tolist()
+        if "vol_forecast_pred" in out:
+            result["vol_forecast_pred_v1"] = out["vol_forecast_pred"].cpu().numpy()[0].astype(float).tolist()
+        # Distilled q_head (Phase 3a): [q_skip, q_long, q_short] in bps.
+        if "q_per_action" in out:
+            q = out["q_per_action"].cpu().numpy()[0].astype(float)
+            result["q_per_action_v1"] = q.tolist()
+            q_skip, q_long, q_short = float(q[0]), float(q[1]), float(q[2])
+            result["q_skip_v1"] = q_skip
+            result["q_take_long_v1"] = q_long
+            result["q_take_short_v1"] = q_short
+            result["q_advantage_over_skip_v1"] = float(max(q_long, q_short) - q_skip)
+            # Argmax action id matches Entry-IQL ACTION_LABELS_V1.
+            result["q_action_id_v1"] = int(np.argmax(q))
         return result
 
 

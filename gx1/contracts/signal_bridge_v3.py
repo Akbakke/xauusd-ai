@@ -17,7 +17,9 @@ Built on signal_bridge_v2, adapted for canonical_v3:
   Δ vs v2 — per-bar PRICE_STATE (V10 seq + snap input):
     DROP `atr` (pruned in v3 — duplicate of `_v1_atr14`)
     ADD `_v1_atr14` (already canonical name; replaces `atr` cleanly)
-    NET: 30 → 30 (same dim, one substitution)
+    ADD 4 volume/order-flow features (2026-05-26): vol_z_20, vol_ratio_5_20,
+        vol_pct_96, signed_vol_z_20 — from gx1.features.volume_features.
+    NET: 30 → 34 (one substitution + 4 volume); SEQ 37 → 41 (7 bridge + 34)
 
   Δ vs v2 — ctx_cat: UNCHANGED (6)
   Δ vs v2 — anchor (p_long/p_short/p_flat at indices 0..2): UNCHANGED
@@ -110,18 +112,26 @@ PER_BAR_PRICE_STATE_FIELDS_V3: List[str] = [
     "smc_sweep_size_atr",
     "smc_bars_since_sweep",
     "smc_premium_discount",
+    # Volume / order-flow (4 — 2026-05-26). Derived from raw `volume` (+ `close`)
+    # via gx1.features.volume_features.compute_volume_features — ONE TRUTH shared
+    # by the V10 builder (training) and augment_canonical_v3 (serving). XAU OANDA
+    # `volume` is tick-volume; all 4 are self-normalising (z/ratio/percentile).
+    "vol_z_20",
+    "vol_ratio_5_20",
+    "vol_pct_96",
+    "signed_vol_z_20",
 ]
-PRICE_STATE_DIM_V3 = len(PER_BAR_PRICE_STATE_FIELDS_V3)  # 30
+PRICE_STATE_DIM_V3 = len(PER_BAR_PRICE_STATE_FIELDS_V3)  # 34 (was 30; +4 volume)
 
 
 # ---------------------------------------------------------------------------
 # SEQ + SNAP fields
 # ---------------------------------------------------------------------------
 ORDERED_SEQ_FIELDS_V3: List[str] = ORDERED_BRIDGE_FIELDS_V3 + PER_BAR_PRICE_STATE_FIELDS_V3
-SEQ_SIGNAL_DIM_V3 = len(ORDERED_SEQ_FIELDS_V3)  # 37 (same as v2)
+SEQ_SIGNAL_DIM_V3 = len(ORDERED_SEQ_FIELDS_V3)  # 41 (was 37; +4 volume)
 
 ORDERED_SNAP_FIELDS_V3: List[str] = list(ORDERED_SEQ_FIELDS_V3)
-SNAP_SIGNAL_DIM_V3 = len(ORDERED_SNAP_FIELDS_V3)  # 37
+SNAP_SIGNAL_DIM_V3 = len(ORDERED_SNAP_FIELDS_V3)  # 41
 
 DEFAULT_SEQ_LEN_V3 = 96  # unchanged from v2
 
@@ -190,12 +200,64 @@ ORDERED_CTX_CONT_V3_EXTENSION: List[str] = [
     "smc_premium_state",
 ]
 
+# 2026-05-26 — GROUP-A market-parity extension (24). Gives V10 the SAME market/
+# structure features the Entry/Exit-IQL decide on (dip-distance, pivots, vol-term,
+# vol-percentile, session-overlap) so the transformer represents everything the
+# IQL acts on — no asymmetry. Portfolio features (long/short_*) are deliberately
+# EXCLUDED (IQL-only state, would be 0 in training → train/serve skew). Order +
+# names MUST match group_a_features.GROUP_A_FEATURE_NAMES market subset.
+ORDERED_CTX_CONT_GROUP_A_PARITY: List[str] = [
+    # session overlap (4)
+    "is_asia_eu_overlap", "is_eu_us_overlap", "is_eu_only", "is_us_only",
+    # vol term structure (4)
+    "atr_ratio_m5_h4", "atr_ratio_m15_d1", "atr_ratio_h1_d1", "atr_ratio_m5_m15",
+    # vol percentile (2)
+    "vol_pct_m5_1yr", "vol_pct_h1_1yr",
+    # pivots (4)
+    "dist_to_R1_atr", "dist_to_R2_atr", "dist_to_S1_atr", "dist_to_S2_atr",
+    # liquidity / dip-distance, both directions, all 5 TFs (10)
+    "dist_to_m5_hi_atr", "dist_to_m5_lo_atr",
+    "dist_to_m15_hi_atr", "dist_to_m15_lo_atr",
+    "dist_to_h1_hi_atr", "dist_to_h1_lo_atr",
+    "dist_to_h4_hi_atr", "dist_to_h4_lo_atr",
+    "dist_to_d1_hi_atr", "dist_to_d1_lo_atr",
+]
+
+# 2026-05-26 — DIP/STRUCT parity extension (36). Gives V10 the SAME explicit
+# entry-structure features the Entry-IQL acts on (dip-confirmed/proximity per TF +
+# HH/HL/LH/LL continuation/pullback/bounce/depth + cross-TF combos), computed by the
+# SAME augment_forward_outcome_v2._dip_struct_5tf — full V10↔IQL symmetry. Names +
+# subset MUST match materialize_build_entry_iql_v2.NUMERIC_STATE_COLS_DIP/STRUCT.
+ORDERED_CTX_CONT_DIP_STRUCT: List[str] = [
+    # DIP (8) — dip_proximity_m5/m15 dropped (saturated); confirmed kept for all 5
+    "dip_confirmed_m5_v3", "dip_confirmed_m15_v3",
+    "dip_proximity_h1_v3", "dip_confirmed_h1_v3",
+    "dip_proximity_h4_v3", "dip_confirmed_h4_v3",
+    "dip_proximity_d1_v3", "dip_confirmed_d1_v3",
+    # STRUCT per TF (25): continuation_up / pullback_in_uptrend / continuation_down /
+    # bounce_in_downtrend / pullback_depth × {m5,m15,h1,h4,d1}
+    "struct_continuation_up_m5_v3", "struct_pullback_in_uptrend_m5_v3",
+    "struct_continuation_down_m5_v3", "struct_bounce_in_downtrend_m5_v3", "struct_pullback_depth_m5_v3",
+    "struct_continuation_up_m15_v3", "struct_pullback_in_uptrend_m15_v3",
+    "struct_continuation_down_m15_v3", "struct_bounce_in_downtrend_m15_v3", "struct_pullback_depth_m15_v3",
+    "struct_continuation_up_h1_v3", "struct_pullback_in_uptrend_h1_v3",
+    "struct_continuation_down_h1_v3", "struct_bounce_in_downtrend_h1_v3", "struct_pullback_depth_h1_v3",
+    "struct_continuation_up_h4_v3", "struct_pullback_in_uptrend_h4_v3",
+    "struct_continuation_down_h4_v3", "struct_bounce_in_downtrend_h4_v3", "struct_pullback_depth_h4_v3",
+    "struct_continuation_up_d1_v3", "struct_pullback_in_uptrend_d1_v3",
+    "struct_continuation_down_d1_v3", "struct_bounce_in_downtrend_d1_v3", "struct_pullback_depth_d1_v3",
+    # cross-TF combos (3)
+    "struct_tf_agree_count_v3", "struct_dip_x_uptrend_v3", "struct_smc_swing_x_dip_v3",
+]
+
 ORDERED_CTX_CONT_NAMES_V3: List[str] = (
     ORDERED_CTX_CONT_V1_PREFIX
     + ORDERED_CTX_CONT_V2_EXTENSION_RETAINED
     + ORDERED_CTX_CONT_V3_EXTENSION
+    + ORDERED_CTX_CONT_GROUP_A_PARITY
+    + ORDERED_CTX_CONT_DIP_STRUCT
 )
-CTX_CONT_DIM_V3 = len(ORDERED_CTX_CONT_NAMES_V3)  # 21 + 19 + 5 = 45
+CTX_CONT_DIM_V3 = len(ORDERED_CTX_CONT_NAMES_V3)  # 21 + 19 + 5 + 24 + 36 = 105
 
 
 # ---------------------------------------------------------------------------
@@ -292,6 +354,15 @@ def assert_signal_bridge_v3_contract() -> None:
             )
     if ORDERED_SEQ_FIELDS_V3 != ORDERED_SNAP_FIELDS_V3:
         raise RuntimeError("[SIGNAL_BRIDGE_V3] seq/snap field lists must match")
+    # ONE-TRUTH: the volume slice of the price-state list MUST equal the canonical
+    # VOLUME_FEATURE_NAMES (no silent drift between module and contract).
+    from gx1.features.volume_features import VOLUME_FEATURE_NAMES
+    vol_slice = PER_BAR_PRICE_STATE_FIELDS_V3[-len(VOLUME_FEATURE_NAMES):]
+    if vol_slice != list(VOLUME_FEATURE_NAMES):
+        raise RuntimeError(
+            f"[SIGNAL_BRIDGE_V3] volume-field drift: contract tail {vol_slice} "
+            f"!= VOLUME_FEATURE_NAMES {list(VOLUME_FEATURE_NAMES)}"
+        )
 
 
 assert_signal_bridge_v3_contract()
@@ -301,14 +372,14 @@ assert_signal_bridge_v3_contract()
 # v2-compatible aliases — same shape so existing call-sites can swap import path
 # ---------------------------------------------------------------------------
 SIGNAL_BRIDGE_ID = SIGNAL_BRIDGE_ID_V3
-ORDERED_FIELDS = ORDERED_SEQ_FIELDS_V3  # 37 fields per bar
-SEQ_SIGNAL_DIM = SEQ_SIGNAL_DIM_V3  # 37
-SNAP_SIGNAL_DIM = SNAP_SIGNAL_DIM_V3  # 37
+ORDERED_FIELDS = ORDERED_SEQ_FIELDS_V3  # 41 fields per bar (7 bridge + 34 price-state)
+SEQ_SIGNAL_DIM = SEQ_SIGNAL_DIM_V3  # 41
+SNAP_SIGNAL_DIM = SNAP_SIGNAL_DIM_V3  # 41
 CONTRACT_SHA256 = CONTRACT_SHA256_V3
 
-ORDERED_CTX_CONT_NAMES_EXTENDED = ORDERED_CTX_CONT_NAMES_V3  # 45
+ORDERED_CTX_CONT_NAMES_EXTENDED = ORDERED_CTX_CONT_NAMES_V3  # 69
 ORDERED_CTX_CAT_NAMES_EXTENDED = ORDERED_CTX_CAT_NAMES_V3  # 6
-N_CTX_CONT_EXTENDED = CTX_CONT_DIM_V3  # 45
+N_CTX_CONT_EXTENDED = CTX_CONT_DIM_V3  # 69
 N_CTX_CAT_EXTENDED = CTX_CAT_DIM_V3  # 6
 
 ORDERED_CTX_CONT_NAMES_BASELINE = ORDERED_CTX_CONT_V1_PREFIX[:2]
@@ -322,7 +393,7 @@ CTX_CONT_COL_D1_ATR_PCTL252 = "D1_atr_percentile_252"
 CTX_CONT_COL_M15_COMP = "M15_range_compression_ratio"
 CTX_CAT_COL_H4_TREND_SIGN = "H4_trend_sign_cat"
 
-ALLOWED_CTX_CONT_DIMS = tuple(range(CTX_CONT_DIM_V3, 65))
+ALLOWED_CTX_CONT_DIMS = tuple(range(CTX_CONT_DIM_V3, CTX_CONT_DIM_V3 + 21))  # 69..89 (bundle-driven headroom)
 ALLOWED_CTX_CAT_DIMS = (CTX_CAT_DIM_V3,)
 
 
@@ -422,7 +493,7 @@ def get_canonical_ctx_contract() -> Dict[str, object]:
         "ctx_cat_names": list(ORDERED_CTX_CAT_NAMES_EXTENDED),
         "tag": "CTX45CAT6_V3",
         "source": "signal_bridge_v3_full_contract",
-        "ctx_cont_rule": "bundle-driven ctx_cont_dim must equal 45 and match the v3 ordered list",
+        "ctx_cont_rule": "bundle-driven ctx_cont_dim must equal 69 and match the v3 ordered list",
         "ctx_cat_rule": "bundle-driven ctx_cat_dim must equal 6 and match the v3 ordered list",
     }
 

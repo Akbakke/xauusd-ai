@@ -69,21 +69,25 @@ from gx1.xgb.preprocess.xgb_input_sanitizer import XGBInputSanitizer
 ACTION = "INFERENCE_BATCH_CANDIDATES_V3"
 
 DEFAULT_PREBUILT_PARQUET = Path(
-    "/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_PREBUILT/xauusd_m5_CANONICAL_V3_2020_2026.parquet"
+    "/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_PREBUILT/xauusd_m5_CANONICAL_V3_FULL_PLUS_CTX_2020_2026.parquet"
 )
 DEFAULT_XGB_BUNDLE = Path(
     # V12-cascade authoritative bundle per CURRENT_BUNDLES.md (the 081604Z_1000est
     # retrain was deleted 2026-05-11 — it was never used by V12 cascade).
-    "/home/andre2/GX1_DATA/models/models/xgb_universal_multihead_v5__BIDIR_RSI_SMC_PRUNED_CANONICAL_V3_20260505T060428Z"
+    "/home/andre2/GX1_DATA/models/models/xgb_v7_base80_20260526T052210Z"
 )
 # V12.2 (2026-05-15): default updated to V10 v_FIXED multi-TF.
+# v3+ chain (2026-05-19): default now V10 V3PLUS_v2 (4 aux heads + multi-TF cement).
 # Script HARD-REQUIRES multi-TF V10; non-multi-TF V10 v3 baseline is deprecated.
 DEFAULT_V10_BUNDLE = Path(
-    "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_MULTI_TF_v2_FIXED_20260513T214805Z"
+    "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_V3PLUS_v2_20260518T135516Z"
 )
-DEFAULT_XGB_FEATURE_CONTRACT = REPO_ROOT / "gx1" / "xgb" / "contracts" / "xgb_input_features_canonical_v3_v1.json"
-DEFAULT_XGB_SANITIZER_CONFIG = REPO_ROOT / "gx1" / "xgb" / "contracts" / "xgb_input_sanitizer_canonical_v3_v1.json"
+DEFAULT_XGB_FEATURE_CONTRACT = REPO_ROOT / "gx1" / "xgb" / "contracts" / "xgb_input_features_base80_v1.json"
+DEFAULT_XGB_SANITIZER_CONFIG = REPO_ROOT / "gx1" / "xgb" / "contracts" / "xgb_input_sanitizer_base80_v1.json"
 DEFAULT_REPORTS_ROOT = Path("/home/andre2/GX1_DATA/reports/truth_e2e_sanity")
+# Multi-TF V2 cache (5 TFs incl M5 × 25 feats) — same one-truth source as rescore
+# + the V10/V3 training builders. The V2-multi-TF V10 was trained on this.
+DEFAULT_V2_CACHE_DIR = Path("/home/andre2/GX1_DATA/data/data/prebuilt/MULTI_TF_V2_CACHE")
 
 DEFAULT_BATCH_SIZE = 256
 DEFAULT_MIN_MARGIN = 0.05
@@ -184,11 +188,16 @@ def run_xgb_inference(
 def build_v10_input_matrices(
     cv2: pd.DataFrame, bridge: np.ndarray,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Build (n_m5, 37) seq_per_bar, (n_m5, 43) ctx_cont, (n_m5, 6) ctx_cat."""
+    """Build (n_m5, 41) seq_per_bar, (n_m5, 69) ctx_cont, (n_m5, 6) ctx_cat."""
     n = len(cv2)
-    # per-bar SEQ = [bridge (7), price_state (30)]
+    # per-bar SEQ = [bridge (7), price_state (34: 30 + 4 volume)]
     per_bar = np.zeros((n, SEQ_SIGNAL_DIM_V3), dtype=np.float32)
     per_bar[:, 0:7] = bridge
+    # Volume/order-flow features are DERIVED (not in canonical_v2) — compute with
+    # the SAME one-truth helper as the V10 builder + live serving.
+    from gx1.features.volume_features import VOLUME_FEATURE_NAMES, add_volume_features
+    if any(c not in cv2.columns for c in VOLUME_FEATURE_NAMES):
+        add_volume_features(cv2)
     missing_pb = [c for c in PER_BAR_PRICE_STATE_FIELDS_V3 if c not in cv2.columns]
     if missing_pb:
         raise RuntimeError(f"[{ACTION}] PER_BAR_PRICE_STATE missing in prebuilt: {missing_pb}")
@@ -222,7 +231,8 @@ def run_v10_inference(
     decision_ts_ns: Optional[np.ndarray] = None,
     multi_tf_feats: Optional[Dict[str, "pd.DataFrame"]] = None,
     multi_tf_shift: Optional[Dict[str, "pd.Timedelta"]] = None,
-    multi_tf_seq_len: int = 96,
+    per_tf_lens: Optional[Dict[str, int]] = None,
+    v2_mode: bool = False,
 ) -> Tuple[Dict[str, np.ndarray], np.ndarray]:
     """Run V10 v2 in batches over all decision moments where idx >= seq_len-1.
 
@@ -236,21 +246,34 @@ def run_v10_inference(
     n_dec = len(decision_indices)
 
     enable_mtf = bool(getattr(getattr(model, "cfg", None), "enable_multi_tf", False))
+    tf_names: Tuple[str, ...] = ()
     if enable_mtf:
-        if multi_tf_feats is None or multi_tf_shift is None or decision_ts_ns is None:
+        if (multi_tf_feats is None or multi_tf_shift is None or decision_ts_ns is None
+                or per_tf_lens is None):
             raise RuntimeError(
                 "[run_v10_inference] V10 model is multi-TF but multi_tf_feats / "
-                "multi_tf_shift / decision_ts_ns were not provided."
+                "multi_tf_shift / decision_ts_ns / per_tf_lens were not provided."
             )
         from gx1.features.htf_features import get_last_n_at_or_before  # noqa: F401
-        tf_names = ("M15", "H1", "H4", "D1")
-        print(f"[{ACTION}] V12.2 multi-TF inference: TFs={tf_names} seq_len={multi_tf_seq_len}",
+        # V2-multi-TF V10 adds M5 as the 5th branch (gated by v2_mode).
+        tf_names = (("M5", "M15", "H1", "H4", "D1") if v2_mode
+                    else ("M15", "H1", "H4", "D1"))
+        print(f"[{ACTION}] multi-TF inference: TFs={tf_names} seq_lens={per_tf_lens} v2_mode={v2_mode}",
               flush=True)
 
     print(f"[{ACTION}] V10 inference on {n_dec:,} decision moments (batch={batch_size})...", flush=True)
 
     out_keys = ("direction_logits", "anchor_logits", "delta_logits", "path_quality",
-                "mfe_first_n", "tradable_logit", "bad_path_logit", "clean_edge_logit", "survival_logit")
+                "mfe_first_n", "tradable_logit", "bad_path_logit", "clean_edge_logit", "survival_logit",
+                # V10 v3+ aux heads — present only when bundle has them; soft-handled below
+                "tf_agreement_logit", "path_quality_log_var", "position_size_logit", "hold_horizon_logit",
+                # 2026-05-27: COSTFIX V10 new heads (dip/forecast/timing/tail/vol). Emitted
+                # base-named for the Entry-IQL path (candidate-gen -> fwd-outcome carry -> state).
+                "dip_pred", "forecast_pred", "timing_pred", "tail_risk_pred", "vol_forecast_pred")
+    # Per-key width for the NaN-fill of absent heads (keeps concat shape-consistent;
+    # scalars default to width 1). Bundles lacking a head emit all-NaN of this width.
+    _OUT_KEY_WIDTH = {"dip_pred": 18, "forecast_pred": 4, "timing_pred": 12,
+                      "tail_risk_pred": 6, "vol_forecast_pred": 3}
     out_buffers: Dict[str, List[np.ndarray]] = {k: [] for k in out_keys}
 
     model.eval()
@@ -278,14 +301,15 @@ def run_v10_inference(
                 for tf in tf_names:
                     feats_df = multi_tf_feats[tf]
                     shift_td = multi_tf_shift[tf]
+                    n_tf = int(per_tf_lens[tf])
                     stacked = np.empty(
-                        (B, multi_tf_seq_len, feats_df.shape[1]),
+                        (B, n_tf, feats_df.shape[1]),
                         dtype=np.float32,
                     )
                     for bi, ts_ns in enumerate(batch_ts_ns):
                         ts = pd.Timestamp(int(ts_ns), unit="ns", tz="UTC")
                         stacked[bi] = get_last_n_at_or_before(
-                            feats_df, ts, n=multi_tf_seq_len, tf_shift=shift_td,
+                            feats_df, ts, n=n_tf, tf_shift=shift_td,
                         )
                     mtf_kwargs[f"seq_{tf.lower()}"] = torch.from_numpy(stacked).to(
                         device, non_blocking=True,
@@ -296,7 +320,11 @@ def run_v10_inference(
                 **mtf_kwargs,
             )
             for k in out_keys:
-                out_buffers[k].append(out[k].detach().cpu().numpy())
+                if k in out:
+                    out_buffers[k].append(out[k].detach().cpu().numpy())
+                else:
+                    # Aux head absent in this bundle — fill width-aware NaN sentinel.
+                    out_buffers[k].append(np.full((B, _OUT_KEY_WIDTH.get(k, 1)), np.nan, dtype=np.float32))
 
             if (batch_start // batch_size) % 200 == 0:
                 elapsed = _time.time() - t0
@@ -324,6 +352,16 @@ CANDIDATE_COLS = [
     "tradable_prob", "mfe_first_n_pred", "path_quality_pred",
     # NEW: V10 v2 aux outputs needed for entry-IQL BIDIR retrain (Phase 6)
     "bad_path_prob", "direction_logit_long", "direction_logit_short", "direction_logit_flat",
+    # V10 v3+ aux heads (Targets 1-4) — needed for Exit-IQL state vector.
+    # NaN-filled for legacy bundles without these heads.
+    "tf_agreement_pred", "path_quality_log_var", "path_quality_std",
+    "position_size_pred", "hold_horizon_pred",
+    # 2026-05-27: COSTFIX V10 new heads (base-named, emitted for Entry-IQL path).
+    *[f"v10_dip_{_i}" for _i in range(18)],
+    *[f"v10_forecast_{_i}" for _i in range(4)],
+    *[f"v10_timing_{_i}" for _i in range(12)],
+    *[f"v10_tail_risk_{_i}" for _i in range(6)],
+    *[f"v10_vol_forecast_{_i}" for _i in range(3)],
     "vol_regime", "trend_regime",
     "run_id", "candidate_uid", "trade_uid", "trade_id",
     "decision_ts_utc", "source_eval_log", "source_eval_log_row",
@@ -400,6 +438,40 @@ def emit_candidates(
     rows["direction_logit_long"] = direction_logits_raw[sel, 0].tolist()
     rows["direction_logit_short"] = direction_logits_raw[sel, 1].tolist()
     rows["direction_logit_flat"] = direction_logits_raw[sel, 2].tolist()
+    # V10 v3+ aux heads — only meaningful when bundle has them. NaN-sentinel
+    # for legacy bundles. Stored raw for Exit-IQL to consume as features.
+    def _sigmoid_clip(arr):
+        a = np.clip(arr, -20.0, 20.0)
+        return 1.0 / (1.0 + np.exp(-a))
+    if "tf_agreement_logit" in v10_out and not np.all(np.isnan(v10_out["tf_agreement_logit"])):
+        rows["tf_agreement_pred"] = _sigmoid_clip(v10_out["tf_agreement_logit"][sel, 0]).tolist()
+    else:
+        rows["tf_agreement_pred"] = [float("nan")] * n
+    if "path_quality_log_var" in v10_out and not np.all(np.isnan(v10_out["path_quality_log_var"])):
+        rows["path_quality_log_var"] = v10_out["path_quality_log_var"][sel, 0].tolist()
+        rows["path_quality_std"] = np.exp(np.clip(v10_out["path_quality_log_var"][sel, 0], -5.0, 5.0) / 2.0).tolist()
+    else:
+        rows["path_quality_log_var"] = [float("nan")] * n
+        rows["path_quality_std"] = [float("nan")] * n
+    if "position_size_logit" in v10_out and not np.all(np.isnan(v10_out["position_size_logit"])):
+        rows["position_size_pred"] = _sigmoid_clip(v10_out["position_size_logit"][sel, 0]).tolist()
+    else:
+        rows["position_size_pred"] = [float("nan")] * n
+    if "hold_horizon_logit" in v10_out and not np.all(np.isnan(v10_out["hold_horizon_logit"])):
+        rows["hold_horizon_pred"] = _sigmoid_clip(v10_out["hold_horizon_logit"][sel, 0]).tolist()
+    else:
+        rows["hold_horizon_pred"] = [float("nan")] * n
+    # 2026-05-27: COSTFIX V10 new heads — base-named (no _v2) for the Entry-IQL path
+    # (candidate parquet -> forward-outcome carry-forward -> Entry-IQL state). Index-
+    # consistent: v10_out["<head>_pred"][:, i] -> column v10_<base>_{i}. NaN if absent.
+    _NEW_HEAD_EMIT = {"dip_pred": ("v10_dip", 18), "forecast_pred": ("v10_forecast", 4),
+                      "timing_pred": ("v10_timing", 12), "tail_risk_pred": ("v10_tail_risk", 6),
+                      "vol_forecast_pred": ("v10_vol_forecast", 3)}
+    for _key, (_base, _w) in _NEW_HEAD_EMIT.items():
+        _arr = v10_out.get(_key)
+        _ok = _arr is not None and _arr.ndim == 2 and _arr.shape[1] >= _w and not np.all(np.isnan(_arr))
+        for _i in range(_w):
+            rows[f"{_base}_{_i}"] = (_arr[sel, _i].tolist() if _ok else [float("nan")] * n)
     rows["vol_regime"] = ["MEDIUM"] * n  # placeholder; V3 builder doesn't read
     rows["trend_regime"] = ["TREND_NEUTRAL"] * n  # placeholder
     rows["decision_ts_utc"] = [t.isoformat() for t in ts_index]
@@ -453,6 +525,9 @@ def main() -> None:
     parser.add_argument("--xgb-feature-contract", type=str, default=str(DEFAULT_XGB_FEATURE_CONTRACT))
     parser.add_argument("--xgb-sanitizer-config", type=str, default=str(DEFAULT_XGB_SANITIZER_CONFIG))
     parser.add_argument("--reports-root", type=str, default=str(DEFAULT_REPORTS_ROOT))
+    parser.add_argument("--v2-cache-dir", type=str, default=str(DEFAULT_V2_CACHE_DIR),
+                        help="Multi-TF V2 cache dir (5 TFs incl M5 × 25 feats). One-truth "
+                             "source the V2-multi-TF V10 was trained on.")
     parser.add_argument("--batch-size", type=int, default=DEFAULT_BATCH_SIZE)
     parser.add_argument("--min-margin", type=float, default=DEFAULT_MIN_MARGIN)
     parser.add_argument("--min-directional-prob", type=float, default=DEFAULT_MIN_DIRECTIONAL_PROB)
@@ -492,6 +567,17 @@ def main() -> None:
     print(f"[{ACTION}] canonical_v3 augment: added {len(added_cols)} cols "
           f"(now {len(cv2.columns)} total)", flush=True)
 
+    # ---- ctx_cont parity: 24 group-A + 36 dip/struct (2026-05-26) ----
+    # SERVING PARITY: the V10 v3+ contract (ctx_cont=105) requires the group-A
+    # parity + dip/struct features that augment_canonical_v3 does NOT produce.
+    # Compute them via the SAME one-truth helper the V10/V3 training builders use
+    # so candidate generation feeds the model identical ctx_cont at train+serve.
+    from gx1.scripts.augment_forward_outcome_v2 import attach_group_a_dip_struct_ctx_columns
+    n_before = len(cv2.columns)
+    attach_group_a_dip_struct_ctx_columns(cv2, journal_label="inference_batch")
+    print(f"[{ACTION}] ctx_cont parity: added {len(cv2.columns) - n_before} group-A+dip/struct cols "
+          f"(now {len(cv2.columns)} total)", flush=True)
+
     # ---- XGB inference ----
     bridge = run_xgb_inference(
         cv2,
@@ -505,69 +591,50 @@ def main() -> None:
     print(f"[{ACTION}] inputs: per_bar={per_bar.shape} ctx_cont={ctx_cont.shape} ctx_cat={ctx_cat.shape}",
           flush=True)
 
-    # ---- Load V10 v2 ----
-    v10_meta = json.loads((Path(args.v10_bundle) / "bundle_metadata.json").read_text())
+    # ---- Load V10 via the one-truth bundle loader ----
+    # 2026-05-26: was hand-rolling model construction (4-TF, V1 multi-TF, no M5
+    # branch, no dip/forecast/timing/tail/vol heads) → stale vs the V2-multi-TF
+    # V10 (e.g. ENTRY_V10_RELABEL15H24_SYMW). Reuse load_entry_v10_ctx_bundle (the
+    # SAME loader rescore uses) so construction tracks the bundle's metadata +
+    # state_dict exactly (M5 branch, cross-TF gates, all heads). One truth.
+    from gx1.models.entry_v10.entry_v10_bundle import load_entry_v10_ctx_bundle
+    device = torch.device(args.device)
+    bundle = load_entry_v10_ctx_bundle(
+        bundle_dir=Path(args.v10_bundle), device=args.device, xgb_models=None,
+    )
+    model = bundle.transformer_model
+    v10_meta = bundle.metadata
     mtf_cfg = v10_meta.get("multi_tf", {}) or {}
     enable_mtf = bool(mtf_cfg.get("enabled", False))
-    # V12.2 (2026-05-15): multi-TF is now REQUIRED. Reject non-multi-TF V10.
+    # multi-TF is REQUIRED (feedback_multi_tf_always_mandatory). Reject non-multi-TF.
     if not enable_mtf:
         raise RuntimeError(
             f"[{ACTION}] V10 bundle {Path(args.v10_bundle).name} is NOT multi-TF "
-            f"(bundle_metadata.json multi_tf.enabled={enable_mtf}). "
-            "V12.2 hard-requires multi-TF V10 bundle (e.g. ENTRY_V10_MULTI_TF_v2_FIXED_*)."
+            f"(multi_tf.enabled={enable_mtf}). Script hard-requires multi-TF V10."
         )
-    v10_mtf_kwargs: Dict[str, int] = {}
-    if enable_mtf:
-        v10_mtf_kwargs = dict(
-            enable_multi_tf=True,
-            m15_seq_dim=int(mtf_cfg["m15_seq_dim"]),
-            h1_seq_dim=int(mtf_cfg["h1_seq_dim"]),
-            h4_seq_dim=int(mtf_cfg["h4_seq_dim"]),
-            d1_seq_dim=int(mtf_cfg["d1_seq_dim"]),
-            m15_seq_len=int(mtf_cfg["m15_seq_len"]),
-            h1_seq_len=int(mtf_cfg["h1_seq_len"]),
-            h4_seq_len=int(mtf_cfg["h4_seq_len"]),
-            d1_seq_len=int(mtf_cfg["d1_seq_len"]),
-        )
-        print(f"[{ACTION}] V12.2: multi-TF V10 bundle detected "
-              f"(M15+H1+H4+D1 × {mtf_cfg['m15_seq_len']} bars × {mtf_cfg['m15_seq_dim']} feats)",
-              flush=True)
-    model = EntryV10CtxHybridTransformer(
-        seq_input_dim=v10_meta["seq_input_dim"],
-        snap_input_dim=v10_meta["snap_input_dim"],
-        ctx_cont_dim=v10_meta["ctx_cont_dim"],
-        ctx_cat_dim=v10_meta["ctx_cat_dim"],
-        seq_len=v10_meta["seq_len"],
-        **v10_mtf_kwargs,
-    )
-    state = torch.load(Path(args.v10_bundle) / "model_state_dict.pt", map_location="cpu", weights_only=True)
-    model.load_state_dict(state)
-    device = torch.device(args.device)
-    model.to(device)
-    print(f"[{ACTION}] V10 v2 loaded; seq_len={v10_meta['seq_len']} on {device}", flush=True)
+    v2_mode = bool(mtf_cfg.get("v2_mode", False))
+    print(f"[{ACTION}] V10 loaded (one-truth bundle loader); seq_len={v10_meta['seq_len']} "
+          f"v2_mode={v2_mode} m5_seq_dim={mtf_cfg.get('m5_seq_dim')} on {device}", flush=True)
 
-    # ---- V12.2: pre-build multi-TF features (M15/H1/H4/D1 × 17 feats) ----
-    # Always reads the FULL M5 parquet (never the --limit-rows-truncated cv2)
-    # so D1 percentile-252 warmup is always satisfied even in smoke tests.
+    # ---- Multi-TF features: load the V2 cache (5 TFs incl M5, 25 feats) ----
+    # MUST match training: the V2-multi-TF V10 was trained on load_multi_tf_v2_cache
+    # output, NOT the V1 build_multi_tf_per_bar_features (17 feats, no M5 branch).
     mtf_feats = None
     mtf_shift = None
+    per_tf_lens: Optional[Dict[str, int]] = None
     if enable_mtf:
-        m5_path = Path(args.m5_prebuilt_path) if args.m5_prebuilt_path else Path(args.prebuilt)
-        from gx1.features.htf_features import (
-            build_multi_tf_per_bar_features, MULTI_TF_SHIFT,
-        )
-        print(f"[{ACTION}] V12.2: building multi-TF features from {m5_path}", flush=True)
-        m5_for_mtf = pd.read_parquet(
-            m5_path, columns=["time", "open", "high", "low", "close"]
-        )
-        m5_for_mtf["time"] = pd.to_datetime(m5_for_mtf["time"], utc=True)
-        m5_for_mtf = m5_for_mtf.set_index("time").sort_index()
-        for c in ("open", "high", "low", "close"):
-            m5_for_mtf[c] = m5_for_mtf[c].astype(np.float32)
-        mtf_feats = build_multi_tf_per_bar_features(m5_for_mtf)
+        from gx1.features.htf_features import load_multi_tf_v2_cache, MULTI_TF_SHIFT
+        v2_cache_dir = Path(args.v2_cache_dir)
+        print(f"[{ACTION}] loading multi-TF V2 cache: {v2_cache_dir}", flush=True)
+        mtf_feats = load_multi_tf_v2_cache(v2_cache_dir)
         mtf_shift = MULTI_TF_SHIFT
-        del m5_for_mtf
-        import gc as _gc; _gc.collect()
+        per_tf_lens = {
+            "M5": int(mtf_cfg.get("m5_seq_len", 96)),
+            "M15": int(mtf_cfg.get("m15_seq_len", 96)),
+            "H1": int(mtf_cfg.get("h1_seq_len", 96)),
+            "H4": int(mtf_cfg.get("h4_seq_len", 96)),
+            "D1": int(mtf_cfg.get("d1_seq_len", 96)),
+        }
         for tf, df in mtf_feats.items():
             print(f"[{ACTION}]   {tf}: {len(df):,} bars × {df.shape[1]} feats", flush=True)
 
@@ -581,7 +648,8 @@ def main() -> None:
         decision_ts_ns=decision_ts_ns,
         multi_tf_feats=mtf_feats,
         multi_tf_shift=mtf_shift,
-        multi_tf_seq_len=int(args.multi_tf_seq_len),
+        per_tf_lens=per_tf_lens,
+        v2_mode=v2_mode,
     )
 
     # ---- Emit candidates ----

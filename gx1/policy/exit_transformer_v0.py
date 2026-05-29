@@ -99,6 +99,32 @@ EXIT_PROFIT_HEAD_BUCKET_NAMES: List[str] = [
 DEFAULT_FAMILY_AUX_LOSS_WEIGHT = 0.0
 DEFAULT_PROFIT_PROTECT_HEAD_LOSS_WEIGHT = 0.50
 
+# ── Dip-analysis head layout (V3 exit) — does the current drawdown recover?
+# Output index = flatten over (horizon, quantile). recovery = max(pnl after now
+# within K) − pnl_now. p10 = downside-recovery-risk (don't hold a dip that won't
+# recover). Trainer pinball loss + consumers use this layout. See memory
+# project_gx1_dip_aware_entry_timing.
+V3_DIP_HORIZONS = (12, 48, 144)        # M1 bars
+V3_DIP_QUANTILES = ("recovery_p50", "recovery_p10")
+V3_DIP_HEAD_DIM = len(V3_DIP_HORIZONS) * len(V3_DIP_QUANTILES)  # = 6
+
+# ── New aux heads (2026-05-26) — mirror of V10 entry heads onto the exit side.
+# All M1-horizon, forward-looking from the current in-trade bar, single-side
+# (the open trade's pnl is already side-signed). Gated, state-dict-safe, default
+# OFF (bundles trained without them stay bit-identical). Targets computed in the
+# exit labeler `_attach_labels_to_exit_records`; pinball/smooth_l1 in the trainer.
+V3_NEW_HEAD_HORIZONS = (12, 48, 144)   # M1 bars (match dip horizons)
+# timing: WHEN the dip recovers / WHEN the worst-adverse hits (frac of K ∈[0,1]).
+V3_TIMING_TARGETS = ("time_to_recovery_frac", "time_to_worst_frac")
+V3_TIMING_HEAD_DIM = len(V3_NEW_HEAD_HORIZONS) * len(V3_TIMING_TARGETS)  # = 6
+# tail-risk: p90 of worst further-adverse pnl over K (pinball q=0.9) — cut before tail.
+V3_TAIL_RISK_QUANTILE = 0.9
+V3_TAIL_RISK_HEAD_DIM = len(V3_NEW_HEAD_HORIZONS)  # = 3
+# vol-forecast: forward realized vol (bps) over K — regime/hold sizing.
+V3_VOL_FORECAST_HEAD_DIM = len(V3_NEW_HEAD_HORIZONS)  # = 3
+# forecast: cumulative forward pnl (bps) over K — exit-timing signal.
+V3_FORECAST_HEAD_DIM = len(V3_NEW_HEAD_HORIZONS)  # = 3
+
 # -----------------------------------------------------------------------------
 # LAST_GO resolver
 # -----------------------------------------------------------------------------
@@ -943,6 +969,63 @@ def _attach_labels_to_exit_records(
                 end = min(n, i + intraday_h + 1)
                 future_max[i] = float(np.nanmax(pnl[i:end])) if end > i else float(pnl[i])
 
+        # ── V3 dip-head targets (2026-05-26): forward recovery within K M1 bars ──
+        # recovery_K[i] = max(pnl[i+1 .. i+K]) − pnl[i], clipped ≥0. Teaches the
+        # exit dip-head whether a current drawdown recovers → don't exit at a dip
+        # bottom. Pinball loss turns it into recovery_p50/p10 (downside) quantiles.
+        # O(K)-vectorized per trade; gated by enable_dip_head at train time.
+        for _Kdip in (12, 48, 144):
+            _fwd = np.full(n, -np.inf, dtype=np.float64)
+            for _k in range(1, _Kdip + 1):
+                if n > _k:
+                    _sh = np.full(n, -np.inf, dtype=np.float64)
+                    _sh[: n - _k] = pnl[_k:]
+                    _fwd = np.maximum(_fwd, _sh)
+            _rec = np.where(np.isfinite(_fwd), _fwd - pnl, 0.0)
+            _rec = np.clip(_rec, 0.0, 1000.0)
+            for _i in range(n):
+                recs[_i][f"y_dip_recovery_K{_Kdip}"] = float(_rec[_i])
+
+        # ── V3 NEW-head targets (2026-05-26) — EXIT-ORIENTED, forward-from-in-trade ──
+        # All on the trade's own side-signed pnl trajectory. Codes "the market has
+        # turned against the open position → take profit". Horizons match dip (M1).
+        #   forecast_K   = pnl[i+K] − pnl[i]                 (<0 → market moving against us)
+        #   tail_mae_K   = pnl[i] − min(pnl[i+1..i+K])       (worst further drawdown ahead)
+        #   t_recov_frac = argmax(pnl[i+1..i+K]) / K          (WHEN the forward peak hits)
+        #   t_worst_frac = argmin(pnl[i+1..i+K]) / K          (WHEN the worst-adverse hits)
+        #   vol_fwd_K    = std(Δpnl over next K) (bps)        (forward realized vol)
+        # Gated by enable_*_head at train time; pinball(tail)/smooth_l1(rest) in trainer.
+        _pnl64 = pnl.astype(np.float64)
+        for _K in (12, 48, 144):
+            _fmax = np.full(n, -np.inf); _fmin = np.full(n, np.inf)
+            _amax = np.zeros(n); _amin = np.zeros(n); _kth = np.full(n, np.nan)
+            for _k in range(1, _K + 1):
+                if n > _k:
+                    _sh = np.full(n, np.nan, dtype=np.float64); _sh[: n - _k] = _pnl64[_k:]
+                    _fin = np.isfinite(_sh)
+                    _amax = np.where(_fin & (_sh > _fmax), float(_k), _amax)
+                    _fmax = np.where(_fin, np.maximum(_fmax, _sh), _fmax)
+                    _amin = np.where(_fin & (_sh < _fmin), float(_k), _amin)
+                    _fmin = np.where(_fin, np.minimum(_fmin, _sh), _fmin)
+                    if _k == _K:
+                        _kth = _sh
+            _fc = np.where(np.isfinite(_kth), _kth - _pnl64, 0.0)
+            _tail = np.where(np.isfinite(_fmin), _pnl64 - _fmin, 0.0)
+            _ttr = _amax / float(_K); _ttw = _amin / float(_K)
+            for _i in range(n):
+                recs[_i][f"y_v3_forecast_K{_K}"] = float(np.clip(np.nan_to_num(_fc[_i]), -1000.0, 1000.0))
+                recs[_i][f"y_v3_tail_mae_K{_K}"] = float(np.clip(_tail[_i], 0.0, 1000.0))
+                recs[_i][f"y_v3_time_to_recovery_frac_K{_K}"] = float(np.clip(_ttr[_i], 0.0, 1.0))
+                recs[_i][f"y_v3_time_to_worst_frac_K{_K}"] = float(np.clip(_ttw[_i], 0.0, 1.0))
+        # forward realized vol of per-bar pnl changes (direction-agnostic)
+        _dpnl = np.diff(_pnl64, prepend=_pnl64[:1] if n else np.zeros(0, dtype=np.float64))
+        _svol = pd.Series(_dpnl)
+        for _K in (12, 48, 144):
+            _fstd = (_svol.rolling(_K).std().shift(-_K)).to_numpy()
+            _fstd = np.clip(np.nan_to_num(_fstd, nan=0.0, posinf=0.0, neginf=0.0), 0.0, 1000.0)
+            for _i in range(n):
+                recs[_i][f"y_v3_vol_fwd_K{_K}"] = float(_fstd[_i])
+
         main_pos_count = 0
         profit_pos_count = 0
         det_count = 0
@@ -1540,6 +1623,32 @@ if TORCH_AVAILABLE:
             # stable baseline output. State-dict matches v_FIXED exactly when
             # disabled (no params added).
             enable_q_head: bool = False,
+            # ── Positional encoding (temporal order) ──────────────────
+            # When enabled, adds sinusoidal positional encoding to the base
+            # M1 sequence (and each per-TF stream) BEFORE the transformer.
+            # Without it, self-attention is permutation-invariant and the
+            # 512-bar window is treated as an unordered set — defeating the
+            # purpose of "look 512 bars back in time". Default OFF so older
+            # bundles (trained without PE) keep bit-identical forward
+            # behaviour; the buffer is persistent=False so state_dict is
+            # unchanged either way (strict load stays valid).
+            enable_pos_enc: bool = False,
+            # ── Dip-analysis head (2026-05-26) ────────────────────────
+            # When enabled, adds nn.Linear(d_model, V3_DIP_HEAD_DIM=6) producing a
+            # distributional dip/recovery forecast: for each horizon K∈{12,48,144}
+            # two pinball quantiles (recovery_p50, recovery_p10) of "how much does
+            # the current adverse excursion recover, in bps". Makes the exit
+            # transformer EXPLICITLY represent dip-state — don't exit at a dip
+            # bottom. Trained via _v3_dip_loss (pinball) in the multitask loop.
+            # State-dict matches when off (gated, default OFF).
+            enable_dip_head: bool = False,
+            # ── New aux heads (2026-05-26) — mirror of V10 entry heads ────
+            # timing(6)/tail_risk(3)/vol_forecast(3)/forecast(3), all gated,
+            # state-dict-safe, default OFF. See V3_*_HEAD_DIM layout.
+            enable_timing_head: bool = False,
+            enable_tail_risk_head: bool = False,
+            enable_vol_forecast_head: bool = False,
+            enable_forecast_head: bool = False,
         ):
             super().__init__()
             self.input_dim = input_dim
@@ -1548,6 +1657,11 @@ if TORCH_AVAILABLE:
             self.family_head_dim = int(family_head_dim)
             self.profit_protect_head_dim = int(profit_protect_head_dim)
             self.enable_q_head = bool(enable_q_head)
+            self.enable_dip_head = bool(enable_dip_head)
+            self.enable_timing_head = bool(enable_timing_head)
+            self.enable_tail_risk_head = bool(enable_tail_risk_head)
+            self.enable_vol_forecast_head = bool(enable_vol_forecast_head)
+            self.enable_forecast_head = bool(enable_forecast_head)
             self.proj = nn.Linear(input_dim, d_model)
             enc = nn.TransformerEncoderLayer(
                 d_model=d_model,
@@ -1606,6 +1720,20 @@ if TORCH_AVAILABLE:
                 nn.init.normal_(self.multi_tf_fuse[-1].weight, std=0.01)
                 self.register_buffer("multi_tf_scale", torch.tensor(float(multi_tf_scale)))
 
+            # ── Positional encoding buffers (persistent=False → not in state_dict) ──
+            self.enable_pos_enc = bool(enable_pos_enc)
+            if self.enable_pos_enc:
+                self.register_buffer(
+                    "pos_enc", self._sinusoidal_pe(int(window_len), d_model), persistent=False
+                )
+                if self.enable_multi_tf:
+                    for tf in ("m5", "m15", "h1", "h4", "d1"):
+                        self.register_buffer(
+                            f"pos_enc_{tf}",
+                            self._sinusoidal_pe(int(self._mtf_lens[tf]), d_model),
+                            persistent=False,
+                        )
+
             self.head = nn.Linear(d_model, 1)
             self.profit_protect_head = nn.Linear(d_model, self.profit_protect_head_dim)
             self.family_head = nn.Linear(d_model, self.family_head_dim)
@@ -1618,6 +1746,40 @@ if TORCH_AVAILABLE:
                 nn.init.zeros_(self.q_head.weight)
                 nn.init.zeros_(self.q_head.bias)
 
+            # ── Dip-analysis head: 6 outputs (K{12,48,144} × {recovery_p50,p10}) ──
+            if self.enable_dip_head:
+                self.dip_head = nn.Linear(d_model, V3_DIP_HEAD_DIM)
+            # ── New aux heads (2026-05-26) — mirror of V10 entry heads ──
+            if self.enable_timing_head:
+                self.timing_head = nn.Linear(d_model, V3_TIMING_HEAD_DIM)        # 6
+            if self.enable_tail_risk_head:
+                self.tail_risk_head = nn.Linear(d_model, V3_TAIL_RISK_HEAD_DIM)  # 3
+            if self.enable_vol_forecast_head:
+                self.vol_forecast_head = nn.Linear(d_model, V3_VOL_FORECAST_HEAD_DIM)  # 3
+            if self.enable_forecast_head:
+                self.forecast_head = nn.Linear(d_model, V3_FORECAST_HEAD_DIM)    # 3
+
+        @staticmethod
+        def _sinusoidal_pe(seq_len: int, d_model: int) -> "torch.Tensor":
+            """Standard sinusoidal positional encoding, shape (1, seq_len, d_model)."""
+            pe = torch.zeros(int(seq_len), int(d_model))
+            position = torch.arange(0, int(seq_len), dtype=torch.float32).unsqueeze(1)
+            div_term = torch.exp(
+                torch.arange(0, int(d_model), 2, dtype=torch.float32)
+                * (-math.log(10000.0) / float(d_model))
+            )
+            pe[:, 0::2] = torch.sin(position * div_term)
+            n_cos = pe[:, 1::2].size(1)
+            pe[:, 1::2] = torch.cos(position * div_term[:n_cos])
+            return pe.unsqueeze(0)  # (1, seq_len, d_model)
+
+        def _add_pe(self, t: "torch.Tensor", buf_name: str) -> "torch.Tensor":
+            """Add positional encoding (sliced to current seq len) if enabled."""
+            if not getattr(self, "enable_pos_enc", False):
+                return t
+            pe = getattr(self, buf_name)
+            return t + pe[:, : t.size(1)]
+
         def forward(self, x: "torch.Tensor", **mtf_kwargs) -> "torch.Tensor":
             return torch.sigmoid(self.forward_logits(x, **mtf_kwargs))
 
@@ -1627,19 +1789,50 @@ if TORCH_AVAILABLE:
                 raise RuntimeError("forward_q_per_action called but enable_q_head=False")
             return self.q_head(self._encode(x, **mtf_kwargs))
 
+        def forward_dip(self, x: "torch.Tensor", **mtf_kwargs) -> "torch.Tensor":
+            """Returns (B,) dip/recovery regression. Only valid if enable_dip_head=True."""
+            if not self.enable_dip_head:
+                raise RuntimeError("forward_dip called but enable_dip_head=False")
+            return self.dip_head(self._encode(x, **mtf_kwargs)).squeeze(-1)
+
+        def forward_timing(self, x: "torch.Tensor", **mtf_kwargs) -> "torch.Tensor":
+            """Returns (B, V3_TIMING_HEAD_DIM). Only valid if enable_timing_head=True."""
+            if not self.enable_timing_head:
+                raise RuntimeError("forward_timing called but enable_timing_head=False")
+            return self.timing_head(self._encode(x, **mtf_kwargs))
+
+        def forward_tail_risk(self, x: "torch.Tensor", **mtf_kwargs) -> "torch.Tensor":
+            """Returns (B, V3_TAIL_RISK_HEAD_DIM). Only valid if enable_tail_risk_head=True."""
+            if not self.enable_tail_risk_head:
+                raise RuntimeError("forward_tail_risk called but enable_tail_risk_head=False")
+            return self.tail_risk_head(self._encode(x, **mtf_kwargs))
+
+        def forward_vol_forecast(self, x: "torch.Tensor", **mtf_kwargs) -> "torch.Tensor":
+            """Returns (B, V3_VOL_FORECAST_HEAD_DIM). Only valid if enable_vol_forecast_head=True."""
+            if not self.enable_vol_forecast_head:
+                raise RuntimeError("forward_vol_forecast called but enable_vol_forecast_head=False")
+            return self.vol_forecast_head(self._encode(x, **mtf_kwargs))
+
+        def forward_forecast(self, x: "torch.Tensor", **mtf_kwargs) -> "torch.Tensor":
+            """Returns (B, V3_FORECAST_HEAD_DIM). Only valid if enable_forecast_head=True."""
+            if not self.enable_forecast_head:
+                raise RuntimeError("forward_forecast called but enable_forecast_head=False")
+            return self.forecast_head(self._encode(x, **mtf_kwargs))
+
         def _encode(self, x: "torch.Tensor",
                     seq_m5=None, seq_m15=None, seq_h1=None, seq_h4=None, seq_d1=None
                     ) -> "torch.Tensor":
             h = self.proj(x)
+            h = self._add_pe(h, "pos_enc")
             h = self.transformer(h)
             z_v8 = h[:, -1]   # base v8 pooling = last M1 token
             if (self.enable_multi_tf
                     and all(t is not None for t in (seq_m5, seq_m15, seq_h1, seq_h4, seq_d1))):
-                m5_pool = self.m5_encoder(self.m5_proj(seq_m5)).mean(dim=1)
-                m15_pool = self.m15_encoder(self.m15_proj(seq_m15)).mean(dim=1)
-                h1_pool = self.h1_encoder(self.h1_proj(seq_h1)).mean(dim=1)
-                h4_pool = self.h4_encoder(self.h4_proj(seq_h4)).mean(dim=1)
-                d1_pool = self.d1_encoder(self.d1_proj(seq_d1)).mean(dim=1)
+                m5_pool = self.m5_encoder(self._add_pe(self.m5_proj(seq_m5), "pos_enc_m5")).mean(dim=1)
+                m15_pool = self.m15_encoder(self._add_pe(self.m15_proj(seq_m15), "pos_enc_m15")).mean(dim=1)
+                h1_pool = self.h1_encoder(self._add_pe(self.h1_proj(seq_h1), "pos_enc_h1")).mean(dim=1)
+                h4_pool = self.h4_encoder(self._add_pe(self.h4_proj(seq_h4), "pos_enc_h4")).mean(dim=1)
+                d1_pool = self.d1_encoder(self._add_pe(self.d1_proj(seq_d1), "pos_enc_d1")).mean(dim=1)
                 # V12.2 v2: ADDITIVE residual. mtf_fuse on multi-TF only;
                 # output added to z_v8 with scale.
                 mtf_combined = torch.cat(

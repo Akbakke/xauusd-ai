@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""V12 XGB v5 live inference wrapper.
+"""V12 XGB v7 (base80) live inference wrapper.
 
-Loads the cemented xgb_universal_multihead_v5 bundle, runs predict_proba
-per-session on augmented canonical_v3 rows, and emits the 7-dim
-signal_bridge_v1 vector that V10 v3 will consume downstream.
+Loads the xgb_v7_base80 bundle (80 feats, isotonic-calibrated), runs
+predict_proba per-session on augmented canonical_v3 rows, and emits the 7-dim
+signal_bridge vector that V10/V3 consume downstream.
 
 Inputs at inference time:
     - Augmented canonical_v3 DataFrame from
       gx1.execution.v12_ctx_augment_live.augment_canonical_v3()
-      (must contain all 92 features listed in
-       gx1/xgb/contracts/xgb_input_features_canonical_v3_v1.json)
+      (must contain all 80 features listed in
+       gx1/xgb/contracts/xgb_input_features_base80_v1.json)
     - The bar's session (ASIA / EU / OVERLAP / US) — taken from session_id
       column if not specified.
 
@@ -48,17 +48,18 @@ from gx1.time.session_detector import get_session_vectorized
 
 LOG = logging.getLogger("v12_xgb_live")
 
+# base80 is the ONE active XGB stack (80 feats incl. hour/dow), calibrated
+# (isotonic, bundle-driven at load). The superseded 76-feat / 92-feat bundles
+# were DELETED 2026-05-26 (cleanup) — base80 is the only XGB bundle on disk.
+# predict() is fail-closed on missing feature / NaN.
 DEFAULT_BUNDLE_DIR = Path(
-    "/home/andre2/GX1_DATA/models/models/"
-    "xgb_universal_multihead_v5__BIDIR_RSI_SMC_PRUNED_CANONICAL_V3_20260505T060428Z"
+    "/home/andre2/GX1_DATA/models/models/xgb_v7_base80_20260526T052210Z"
 )
-# NOTE: Use 060428Z (V12 cascade source per INFERENCE_BATCH_CANDIDATES_V3_summary.json).
-# The 081604Z_1000est retrain was deleted 2026-05-11 to avoid bundle confusion.
 DEFAULT_SANITIZER_CONFIG = Path(
-    "/home/andre2/src/GX1_ENGINE/gx1/xgb/contracts/xgb_input_sanitizer_canonical_v3_v1.json"
+    "/home/andre2/src/GX1_ENGINE/gx1/xgb/contracts/xgb_input_sanitizer_base80_v1.json"
 )
 DEFAULT_FEATURE_CONTRACT = Path(
-    "/home/andre2/src/GX1_ENGINE/gx1/xgb/contracts/xgb_input_features_canonical_v3_v1.json"
+    "/home/andre2/src/GX1_ENGINE/gx1/xgb/contracts/xgb_input_features_base80_v1.json"
 )
 
 SESSION_ID_TO_NAME = {0: "ASIA", 1: "EU", 2: "OVERLAP", 3: "US"}
@@ -89,7 +90,7 @@ class XGBLiveInference:
         if not meta_path.exists():
             raise FileNotFoundError(f"XGB bundle meta not found: {meta_path}")
 
-        LOG.info(f"loading XGB v5 bundle: {bundle_dir.name}")
+        LOG.info(f"loading XGB v7 base80 bundle: {bundle_dir.name}")
         model = XGBMultiheadModel.load(str(joblib_path))
         sanitizer = XGBInputSanitizer.from_config(str(sanitizer_config))
         contract = json.loads(feature_contract.read_text())
@@ -141,10 +142,13 @@ class XGBLiveInference:
                  else pd.to_datetime(augmented_cv3_row["time"], utc=True)
             sessions = get_session_vectorized(ts).to_numpy(dtype=object)
 
-        # Sanitize feature matrix
+        # Sanitize feature matrix. LIVE is fail-closed: respect the sanitizer's
+        # hard_fail_on_nan (no silent NaN→0 fill). A NaN feature means corrupt
+        # input — better to raise and skip the bar than feed a wrong signal_bridge
+        # into V10/V3. (Batch/training paths may still fill.)
         df_feat = augmented_cv3_row[self._features].copy()
         x, _ = self._sanitizer.sanitize(
-            df_feat, feature_list=self._features, allow_nan_fill=True, nan_fill_value=0.0,
+            df_feat, feature_list=self._features, allow_nan_fill=False, nan_fill_value=0.0,
         )
         df_san = pd.DataFrame(x, columns=self._features, index=df_feat.index)
 

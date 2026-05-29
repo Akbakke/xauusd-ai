@@ -280,8 +280,9 @@ V2_GROUP_A_COLS_EXIT = (
     "short_n_consec_losses", "short_time_since_last_close_min",
     # 2026-05-24 PM: dip + struct features (joined via augment_per_bar _v3 suffix).
     # Exit needs these to see "M15 turning down → strong-hold or exit-now" patterns.
-    "dip_proximity_m5_v3",  "dip_confirmed_m5_v3",
-    "dip_proximity_m15_v3", "dip_confirmed_m15_v3",
+    # 2026-05-24 PM 2: dropped dip_proximity_m5/m15 (saturated 99% nnz, low std).
+    "dip_confirmed_m5_v3",
+    "dip_confirmed_m15_v3",
     "dip_proximity_h1_v3",  "dip_confirmed_h1_v3",
     "dip_proximity_h4_v3",  "dip_confirmed_h4_v3",
     "dip_proximity_d1_v3",  "dip_confirmed_d1_v3",
@@ -300,7 +301,8 @@ V2_GROUP_A_COLS_EXIT = (
     "struct_continuation_up_d1_v3",  "struct_pullback_in_uptrend_d1_v3",
     "struct_continuation_down_d1_v3","struct_bounce_in_downtrend_d1_v3",
     "struct_pullback_depth_d1_v3",
-    "struct_all_tf_pullback_v3", "struct_tf_agree_count_v3",
+    # 2026-05-24 PM: dropped struct_all_tf_pullback_v3 (0% nnz — never fires).
+    "struct_tf_agree_count_v3",
     "struct_dip_x_uptrend_v3",   "struct_smc_swing_x_dip_v3",
 )
 
