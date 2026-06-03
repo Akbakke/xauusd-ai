@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# Tracked, version-controlled pre-commit gate (activated via: git config core.hooksPath .claude/git-hooks).
+# Forward-workflow guardrail: a commit cannot land if the guardrails drifted or cement behaviour changed.
+# Escape hatch for emergencies: GX1_SKIP_PRECOMMIT_TESTS=1 git commit ...
+set -euo pipefail
+
+# 1) Block deletion of critical scripts (ported from the old repo-local hook).
+CRITICAL=(
+  "gx1/scripts/run_truth_e2e_sanity.py"
+  "gx1/scripts/report_truth_decomp_payoff_shapes.py"
+)
+for f in "${CRITICAL[@]}"; do
+  if git diff --cached --name-status | awk '$1=="D"{print $2}' | grep -qx "$f"; then
+    echo "[pre-commit] ERROR: attempt to delete critical file: $f — refusing." >&2
+    exit 1
+  fi
+done
+
+if [ "${GX1_SKIP_PRECOMMIT_TESTS:-0}" = "1" ]; then
+  echo "[pre-commit] guardrail/golden tests SKIPPED (GX1_SKIP_PRECOMMIT_TESTS=1)"
+  exit 0
+fi
+
+PY=.venv/bin/python
+[ -x "$PY" ] || { echo "[pre-commit] WARN: $PY not found — skipping test gates"; exit 0; }
+
+# 2) Guardrail drift tripwire (fast, always): live ~/.claude hooks/settings must match the versioned refs.
+if ! "$PY" -m pytest tests/test_guard_hooks_versioned.py -q >/tmp/gx1_precommit_drift.log 2>&1; then
+  echo "[pre-commit] GUARDRAIL DRIFT — commit blocked. See /tmp/gx1_precommit_drift.log" >&2
+  tail -5 /tmp/gx1_precommit_drift.log >&2 || true
+  exit 1
+fi
+
+# 3) Golden cement-behaviour test — ONLY when cement-affecting code is staged (keeps most commits fast).
+staged="$(git diff --cached --name-only)"
+if echo "$staged" | grep -qE 'gx1/models/entry_v10/|gx1/contracts/|gx1/exits/contracts/|gx1/scripts/(add_ctx_cont|build_entry_v10|materialize_)'; then
+  echo "[pre-commit] cement-behaviour code staged → running golden cement-V10 test…"
+  if ! "$PY" -m pytest tests/test_golden_cement_entry_v10.py -q >/tmp/gx1_precommit_golden.log 2>&1; then
+    echo "[pre-commit] GOLDEN FAILED — cement V10 output changed; commit blocked. See /tmp/gx1_precommit_golden.log" >&2
+    tail -8 /tmp/gx1_precommit_golden.log >&2 || true
+    exit 1
+  fi
+fi
+
+echo "[pre-commit] guardrails OK"
+exit 0

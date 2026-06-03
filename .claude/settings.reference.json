@@ -1,0 +1,62 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash",
+      "Edit",
+      "Write",
+      "Read",
+      "Glob",
+      "Grep",
+      "WebFetch",
+      "WebSearch"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(git push *)",
+      "Bash(git reset --hard *)",
+      "Bash(git clean *)",
+      "Bash(git commit --amend *)",
+      "Bash(git worktree remove *)"
+    ],
+    "defaultMode": "bypassPermissions"
+  },
+  "skipDangerousModePermissionPrompt": true,
+  "agentPushNotifEnabled": true,
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "5"
+  },
+  "effortLevel": "xhigh",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/andre2/src/GX1_ENGINE/.venv/bin/python /home/andre2/.claude/hooks/guard_bash.py"
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/andre2/src/GX1_ENGINE/.venv/bin/python /home/andre2/.claude/hooks/guard_write.py"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/andre2/src/GX1_ENGINE/.venv/bin/python /home/andre2/.claude/hooks/check_python.py"
+          }
+        ]
+      }
+    ]
+  }
+}
