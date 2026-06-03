@@ -1352,11 +1352,25 @@ def build_dataset_canonical(
     t_min = pd.Timestamp(df_sig["time"].min()).tz_convert("UTC")
     t_max = pd.Timestamp(df_sig["time"].max()).tz_convert("UTC")
 
+    # V10-AUX-05 (2026-06-03 cross-model scan): spread-aware relabel of the DIRECTIONAL
+    # risk targets (y_dip_mae / y_dip_mfe / y_tail_mae). Mid-vs-mid excursions understate a
+    # position's adverse move and overstate its favorable move by ~half a spread on each
+    # leg (~0.7-1.8 bps risk-optimistic). When enabled we load bid/ask high/low and measure
+    # the round-trip-honest excursion (long: enter ASK, mark BID; short: enter BID, mark
+    # ASK). Default OFF = bit-identical to the cemented dataset; the regime-robust retrain
+    # sets GX1_V10_SPREAD_AWARE_RISK_TARGETS=1. forecast_ret / vol_fwd are direction-agnostic
+    # and are NEVER touched. Timing fractions stay mid-defined (only magnitudes change).
+    _spread_aware_risk = os.environ.get(
+        "GX1_V10_SPREAD_AWARE_RISK_TARGETS", "0"
+    ).strip().lower() in ("1", "true", "yes", "on")
+    _risk_tape_cols = ["bid_close", "ask_close", "open", "high", "low", "close"]
+    if _spread_aware_risk:
+        _risk_tape_cols = _risk_tape_cols + ["bid_high", "bid_low", "ask_high", "ask_low"]
     tape = _load_canonical_tape(
         tape_root=tape_root,
         t_min=t_min,
         t_max=t_max,
-        required_cols=["bid_close", "ask_close", "open", "high", "low", "close"],
+        required_cols=_risk_tape_cols,
     )
 
     # Inner join tape to BASE28 by time.
@@ -1779,6 +1793,23 @@ def build_dataset_canonical(
         _high = merged3["high"].to_numpy(np.float64)
         _low = merged3["low"].to_numpy(np.float64)
         _n = len(_close); _BPS = 1e4
+        # V10-AUX-05: spread-aware price lanes for the directional risk targets (only used
+        # when GX1_V10_SPREAD_AWARE_RISK_TARGETS=1). Fail-closed: assert the bid/ask high/low
+        # carried through every join before we rely on them.
+        if _spread_aware_risk:
+            _need_sa = ("bid_close", "ask_close", "bid_high", "bid_low", "ask_high", "ask_low")
+            _missing_sa = [c for c in _need_sa if c not in merged3.columns]
+            if _missing_sa:
+                raise RuntimeError(
+                    f"GX1_V10_SPREAD_AWARE_RISK_TARGETS=1 but spread cols missing from "
+                    f"merged3 (lost in a join?): {_missing_sa}"
+                )
+            _ask_close = merged3["ask_close"].to_numpy(np.float64)  # long entry (buy at ask)
+            _bid_close = merged3["bid_close"].to_numpy(np.float64)  # short entry (sell at bid)
+            _bid_high = merged3["bid_high"].to_numpy(np.float64)
+            _bid_low = merged3["bid_low"].to_numpy(np.float64)
+            _ask_high = merged3["ask_high"].to_numpy(np.float64)
+            _ask_low = merged3["ask_low"].to_numpy(np.float64)
         for _K in (1, 5, 12, 24):  # forecast horizons (M5)
             _f = np.zeros(_n, dtype=np.float64)
             if _n > _K:
@@ -1797,6 +1828,11 @@ def build_dataset_canonical(
             for _K in (12, 48, 96):  # dip horizons (M5)
                 _mfe = np.full(_n, -1e18); _mae_before = np.zeros(_n); _run_adv = np.zeros(_n)
                 _run_adv_bar = np.zeros(_n); _dip_bottom_bar = np.zeros(_n); _mfe_bar = np.zeros(_n)
+                # V10-AUX-05: parallel spread-aware magnitude trackers. The MID trackers above
+                # still drive peak/bottom detection (timing fractions stay mid-defined); these
+                # only feed the three directional risk MAGNITUDES when the flag is ON.
+                if _spread_aware_risk:
+                    _mfe_sa = np.full(_n, -1e18); _mae_before_sa = np.zeros(_n); _run_adv_sa = np.zeros(_n)
                 for _k in range(1, _K + 1):
                     _hi = np.full(_n, np.nan); _lo = np.full(_n, np.nan)
                     if _n > _k:
@@ -1807,6 +1843,20 @@ def build_dataset_canonical(
                     else:  # short: profit when price falls
                         _fav = np.nan_to_num((_close - _lo) / _close * _BPS, nan=-1e18)
                         _adv = np.nan_to_num((_close - _hi) / _close * _BPS, nan=0.0)
+                    if _spread_aware_risk:
+                        _bhi = np.full(_n, np.nan); _blo = np.full(_n, np.nan)
+                        _ahi = np.full(_n, np.nan); _alo = np.full(_n, np.nan)
+                        if _n > _k:
+                            _bhi[: _n - _k] = _bid_high[_k:]; _blo[: _n - _k] = _bid_low[_k:]
+                            _ahi[: _n - _k] = _ask_high[_k:]; _alo[: _n - _k] = _ask_low[_k:]
+                        if _side == "long":
+                            # enter long buying at ASK; mark/exit selling at BID
+                            _fav_sa = np.nan_to_num((_bhi - _ask_close) / _ask_close * _BPS, nan=-1e18)
+                            _adv_sa = np.nan_to_num((_blo - _ask_close) / _ask_close * _BPS, nan=0.0)
+                        else:
+                            # enter short selling at BID; mark/exit buying back at ASK (profit as ASK falls)
+                            _fav_sa = np.nan_to_num((_bid_close - _alo) / _bid_close * _BPS, nan=-1e18)
+                            _adv_sa = np.nan_to_num((_bid_close - _ahi) / _bid_close * _BPS, nan=0.0)
                     _new_worst = _adv < _run_adv                     # strictly new worst adverse
                     _run_adv = np.minimum(_run_adv, _adv)            # worst adverse so far
                     _run_adv_bar = np.where(_new_worst, _k, _run_adv_bar)
@@ -1815,16 +1865,31 @@ def build_dataset_canonical(
                     _dip_bottom_bar = np.where(_new_peak, _run_adv_bar, _dip_bottom_bar)  # WHEN that dip bottomed
                     _mfe_bar = np.where(_new_peak, _k, _mfe_bar)      # WHEN the favorable peak hit
                     _mfe = np.maximum(_mfe, _fav)
+                    if _spread_aware_risk:
+                        _run_adv_sa = np.minimum(_run_adv_sa, _adv_sa)
+                        # mae_before captured at the SAME (mid-defined) favorable peak bar
+                        _mae_before_sa = np.where(_new_peak, -_run_adv_sa, _mae_before_sa)
+                        _mfe_sa = np.maximum(_mfe_sa, _fav_sa)
                 _mfe = np.where(_mfe < -1e17, 0.0, _mfe)
-                merged3[f"y_dip_mae_{_side}_K{_K}"] = np.clip(_mae_before, 0.0, 1000.0).astype(np.float32)
-                merged3[f"y_dip_mfe_{_side}_K{_K}"] = np.clip(_mfe, 0.0, 1000.0).astype(np.float32)
+                if _spread_aware_risk:
+                    _mae_out = _mae_before_sa
+                    _mfe_out = np.where(_mfe_sa < -1e17, 0.0, _mfe_sa)
+                    _tail_out = -_run_adv_sa
+                else:
+                    _mae_out = _mae_before
+                    _mfe_out = _mfe
+                    _tail_out = -_run_adv
+                merged3[f"y_dip_mae_{_side}_K{_K}"] = np.clip(_mae_out, 0.0, 1000.0).astype(np.float32)
+                merged3[f"y_dip_mfe_{_side}_K{_K}"] = np.clip(_mfe_out, 0.0, 1000.0).astype(np.float32)
                 # timing (normalized to [0,1] by horizon) + full-horizon tail risk
                 merged3[f"y_dip_bottom_frac_{_side}_K{_K}"] = np.clip(_dip_bottom_bar / float(_K), 0.0, 1.0).astype(np.float32)
                 merged3[f"y_time_to_mfe_frac_{_side}_K{_K}"] = np.clip(_mfe_bar / float(_K), 0.0, 1.0).astype(np.float32)
-                merged3[f"y_tail_mae_{_side}_K{_K}"] = np.clip(-_run_adv, 0.0, 1000.0).astype(np.float32)
+                merged3[f"y_tail_mae_{_side}_K{_K}"] = np.clip(_tail_out, 0.0, 1000.0).astype(np.float32)
         log.info(
             "[V10_DIP_FORECAST_TARGETS] computed 12 dip + 4 forecast + 12 timing "
-            "(dip-bottom+time-to-mfe ×dir×K) + 6 tail-risk + 3 vol-forecast targets"
+            "(dip-bottom+time-to-mfe ×dir×K) + 6 tail-risk + 3 vol-forecast targets "
+            "(risk_targets=%s)",
+            "SPREAD_AWARE_bid/ask" if _spread_aware_risk else "mid",
         )
 
     # ── HEAD-TARGET column manifest (ONE place — emitted into every output row) ─

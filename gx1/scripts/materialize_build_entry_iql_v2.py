@@ -139,9 +139,43 @@ REWARD_VARIANTS = [
     # 2026-05-24: aggressive λ — push MAE lower at cost of fewer trades
     "R_WAIT_OPP_K96_LAM30",
     "R_WAIT_OPP_K96_LAM50",
+    # 2026-06-03 (vedtak entry_iql_perside_reward_20260603): _SYM = symmetric r_skip
+    # (waited side penalized by its OWN MAE+spread). Fixes the ~98%-skip / per-side
+    # anti-calibration. Candidate active variants for the regime-robust retrain.
+    "R_WAIT_OPP_K96_LAM30_SYM",
+    "R_WAIT_OPP_K96_LAM50_SYM",
     # R_HYBRID = R_WAIT_OPP + binary clean threshold (max selective)
     "R_HYBRID_K96_TOL20",
     "R_HYBRID_K96_TOL40",
+    # R_V10_PQ_COND_K96 (2026-06-01, vedtak r_v10_pq_cond_design_20260601) —
+    # V10 path-quality conditioned λ. Designed after live missed a 139-bps short
+    # day where cement LAM50 (λ=5 fast) skipped every poll. Insight: V10's
+    # path_quality_pred is already informative; use it to modulate the MAE
+    # penalty. Clean path → small penalty (allow take), messy path → large
+    # penalty (force skip). Encodes regime-awareness without a separate detector.
+    #   λ_eff(s) = 8.0 - 14.0 * clip(v10_path_quality_pred, 0, 0.5)
+    #   pq=0.0 → λ=8.0 (stricter than LAM50)
+    #   pq=0.3 → λ=3.8 (between LAM30 and LAM50)
+    #   pq=0.5+ → λ=1.0 (very tolerant, like LAM10)
+    # r_long  = take_now_long_terminal_pnl@K96  - λ_eff * MAE_pre - 2*spread
+    # r_short = take_now_short_terminal_pnl@K96 - λ_eff * MAE_pre - 2*spread
+    # r_skip  = max(0, max(wait_long, wait_short) - max(r_long, r_short))
+    "R_V10_PQ_COND_K96",
+    # R_V10_MULTI_COND_K96 (2026-06-01, iteration after PQ_COND missed today's regime) —
+    # Conditions λ on THREE signals at once: V10 path_quality + V10 mfe_pred + V10
+    # tradable_prob. Insight from 2026-06-01: PQ_COND alone skipped today's 139-bps
+    # short because V10 pq mean was only 0.38. But V10 ALSO predicted moderate
+    # tradable_prob (0.84). The multi-signal cocktail captures more nuance:
+    #   - High pq + high tradable + decent mfe_pred → very lenient λ
+    #   - Any single signal weak → strict λ
+    # λ_eff(s) = 8.0
+    #          - 5.0 * clip(path_quality_pred, 0, 0.5)        # 0..2.5
+    #          - 3.0 * clip(tradable_prob - 0.5, 0, 0.5)       # 0..1.5
+    #          - 2.0 * clip(mfe_first_n_pred / 50.0, 0, 1.0)   # 0..2.0
+    #   all-strong → λ ≈ 2.0 (very tolerant)
+    #   mid → λ ≈ 5.0 (like LAM50)
+    #   all-weak → λ ≈ 8.0 (stricter than cement)
+    "R_V10_MULTI_COND_K96",
 ]
 GATED_THRESHOLD_BPS = 30.0
 
@@ -488,6 +522,13 @@ def build_reward_matrix(df: pd.DataFrame, *, variant: str) -> np.ndarray:
 
     if variant.startswith("R_WAIT_OPP_"):
         # Counterfactual-aware reward: explicitly credits SKIP when waiting beats taking.
+        # 2026-06-03 (vedtak entry_iql_perside_reward_20260603): the `_SYM` family fixes the
+        # r_skip ASYMMETRY — cement compared an UNPENALIZED best_wait against an
+        # MAE+spread-penalized best_take, structurally over-crediting SKIP (~98% skip) and
+        # corrupting per-side calibration. _SYM penalizes the waited side with ITS OWN MAE +
+        # spread (the waited side eventually enters too), making r_skip a like-for-like compare.
+        _sym = variant.endswith("_SYM")
+        _base = variant[:-4] if _sym else variant
         _CFG = {
             "R_WAIT_OPP_K96_LAM05": (96, 0.5),
             "R_WAIT_OPP_K96_LAM10": (96, 1.0),
@@ -496,16 +537,81 @@ def build_reward_matrix(df: pd.DataFrame, *, variant: str) -> np.ndarray:
             "R_WAIT_OPP_K96_LAM50": (96, 5.0),
             "R_WAIT_OPP_K48_LAM05": (48, 0.5),
             "R_WAIT_OPP_K48_LAM10": (48, 1.0),
-        }[variant]
+        }[_base]
         _K, _LAM = _CFG
+        # _SYM (2026-06-03): TWO additional fixes folded in from the all-models scan —
+        #  EIQL-R1: TRUE PER-K reward. The base variants compute ONE K and broadcast it to all
+        #    6 Q-heads (multi-head Q + mean/max aggregator = no-op). _SYM instead gives each
+        #    K-head its OWN horizon's outcome, re-activating the multi-head architecture.
+        #  LBL-2: NO double-spread. take_now_*_terminal_pnl is already bid/ask-based (long exits
+        #    on bid, short on ask -> round-trip spread embedded), so subtracting 2*entry_spread
+        #    again double-charges. _SYM uses spread_coef=0; base keeps 2.0 for reproducibility.
+        _spread_coef = 0.0 if _sym else 2.0
+
+        def _wait_opp_at_K(K):
+            tl = df[f"take_now_long_terminal_pnl_at_K{K}_v1"].astype(float).fillna(0.0).to_numpy()
+            ts = df[f"take_now_short_terminal_pnl_at_K{K}_v1"].astype(float).fillna(0.0).to_numpy()
+            ml = np.maximum(df[f"take_now_long_mae_before_mfe_bps_at_K{K}_v1"].astype(float).fillna(0.0).to_numpy(), 0.0)
+            ms = np.maximum(df[f"take_now_short_mae_before_mfe_bps_at_K{K}_v1"].astype(float).fillna(0.0).to_numpy(), 0.0)
+            wl = df[f"wait_long_terminal_pnl_at_K{K}_v1"].astype(float).fillna(0.0).to_numpy()
+            ws = df[f"wait_short_terminal_pnl_at_K{K}_v1"].astype(float).fillna(0.0).to_numpy()
+            rl = tl - _LAM * ml - _spread_coef * entry_spread_bps
+            rs = ts - _LAM * ms - _spread_coef * entry_spread_bps
+            if _sym:
+                mwl = np.maximum(df[f"wait_long_mae_before_mfe_bps_at_K{K}_v1"].astype(float).fillna(0.0).to_numpy(), 0.0)
+                mws = np.maximum(df[f"wait_short_mae_before_mfe_bps_at_K{K}_v1"].astype(float).fillna(0.0).to_numpy(), 0.0)
+                wl = wl - _LAM * mwl - _spread_coef * entry_spread_bps
+                ws = ws - _LAM * mws - _spread_coef * entry_spread_bps
+            rk = np.maximum(0.0, np.maximum(wl, ws) - np.maximum(rl, rs))
+            return (np.clip(rl, -500, 500) * bad_path_gate,
+                    np.clip(rs, -500, 500) * bad_path_gate,
+                    np.clip(rk, 0, 500))
+
+        if _sym:
+            # per-K: each Q-head ki gets the reward computed at its own horizon K_HORIZONS[ki]
+            for ki in range(N_K):
+                rl, rs, rk = _wait_opp_at_K(K_HORIZONS[ki])
+                R[:, 0, ki] = rk.astype(np.float32)
+                R[:, 1, ki] = rl.astype(np.float32)
+                R[:, 2, ki] = rs.astype(np.float32)
+        else:
+            rl, rs, rk = _wait_opp_at_K(_K)   # single-K, broadcast (cement reproducibility)
+            for ki in range(N_K):
+                R[:, 0, ki] = rk.astype(np.float32)
+                R[:, 1, ki] = rl.astype(np.float32)
+                R[:, 2, ki] = rs.astype(np.float32)
+        return R
+
+    if variant == "R_V10_PQ_COND_K96":
+        # V10 path-quality conditioned reward (vedtak r_v10_pq_cond_design_20260601).
+        # Same structure as R_WAIT_OPP_K96_LAM* but λ varies per-row by V10's
+        # path_quality_pred. Clean predicted path → small penalty (allow take),
+        # messy → large penalty (force skip).
+        _K = 96
         tl = df[f"take_now_long_terminal_pnl_at_K{_K}_v1"].astype(float).fillna(0.0).to_numpy()
         ts = df[f"take_now_short_terminal_pnl_at_K{_K}_v1"].astype(float).fillna(0.0).to_numpy()
         ml = np.maximum(df[f"take_now_long_mae_before_mfe_bps_at_K{_K}_v1"].astype(float).fillna(0.0).to_numpy(), 0.0)
         ms = np.maximum(df[f"take_now_short_mae_before_mfe_bps_at_K{_K}_v1"].astype(float).fillna(0.0).to_numpy(), 0.0)
         wl = df[f"wait_long_terminal_pnl_at_K{_K}_v1"].astype(float).fillna(0.0).to_numpy()
         ws = df[f"wait_short_terminal_pnl_at_K{_K}_v1"].astype(float).fillna(0.0).to_numpy()
-        r_long = tl - _LAM * ml - 2.0 * entry_spread_bps
-        r_short = ts - _LAM * ms - 2.0 * entry_spread_bps
+        # Per-row λ from V10's path_quality_pred (head trained on path-quality target).
+        # path_quality column in fwd-outcome df: "path_quality_pred" or "v10_path_quality_pred".
+        v10_pq_col = None
+        for c in ("path_quality_pred", "v10_path_quality_pred", "path_quality"):
+            if c in df.columns:
+                v10_pq_col = c
+                break
+        if v10_pq_col is None:
+            raise RuntimeError(
+                f"R_V10_PQ_COND_K96 requires V10 path_quality_pred column in df. "
+                f"Available cols starting with 'v10' or 'path_q': "
+                f"{[c for c in df.columns if c.startswith('v10') or c.startswith('path_q')][:10]}"
+            )
+        pq = pd.to_numeric(df[v10_pq_col], errors="coerce").fillna(0.5).astype(float).to_numpy()
+        pq_clipped = np.clip(pq, 0.0, 0.5)
+        lambda_eff = 8.0 - 14.0 * pq_clipped  # 1.0 (pq=0.5) to 8.0 (pq=0)
+        r_long = tl - lambda_eff * ml - 2.0 * entry_spread_bps
+        r_short = ts - lambda_eff * ms - 2.0 * entry_spread_bps
         best_take = np.maximum(r_long, r_short)
         best_wait = np.maximum(wl, ws)
         r_skip = np.maximum(0.0, best_wait - best_take)
@@ -516,6 +622,45 @@ def build_reward_matrix(df: pd.DataFrame, *, variant: str) -> np.ndarray:
             R[:, 0, ki] = r_skip.astype(np.float32)  # SKIP
             R[:, 1, ki] = r_long.astype(np.float32)  # LONG
             R[:, 2, ki] = r_short.astype(np.float32)  # SHORT
+        return R
+
+    if variant == "R_V10_MULTI_COND_K96":
+        # Multi-signal V10-conditioned reward (iter on R_V10_PQ_COND_K96).
+        _K = 96
+        tl = df[f"take_now_long_terminal_pnl_at_K{_K}_v1"].astype(float).fillna(0.0).to_numpy()
+        ts = df[f"take_now_short_terminal_pnl_at_K{_K}_v1"].astype(float).fillna(0.0).to_numpy()
+        ml = np.maximum(df[f"take_now_long_mae_before_mfe_bps_at_K{_K}_v1"].astype(float).fillna(0.0).to_numpy(), 0.0)
+        ms = np.maximum(df[f"take_now_short_mae_before_mfe_bps_at_K{_K}_v1"].astype(float).fillna(0.0).to_numpy(), 0.0)
+        wl = df[f"wait_long_terminal_pnl_at_K{_K}_v1"].astype(float).fillna(0.0).to_numpy()
+        ws = df[f"wait_short_terminal_pnl_at_K{_K}_v1"].astype(float).fillna(0.0).to_numpy()
+        # Three V10 signal columns. Tolerate naming variation across builds.
+        def _get(col_options, default=0.5):
+            for c in col_options:
+                if c in df.columns:
+                    return pd.to_numeric(df[c], errors="coerce").fillna(default).astype(float).to_numpy()
+            raise RuntimeError(f"R_V10_MULTI_COND_K96 needs one of: {col_options}")
+        pq = _get(("path_quality_pred", "v10_path_quality_pred"))
+        tradable = _get(("tradable_prob", "v10_tradable_prob"))
+        mfe_pred = _get(("mfe_first_n_pred", "v10_mfe_pred_at_entry", "mfe_at_entry_pred"))
+        # λ_eff cocktail
+        lambda_eff = (
+            8.0
+            - 5.0 * np.clip(pq, 0.0, 0.5)
+            - 3.0 * np.clip(tradable - 0.5, 0.0, 0.5)
+            - 2.0 * np.clip(mfe_pred / 50.0, 0.0, 1.0)
+        )
+        r_long = tl - lambda_eff * ml - 2.0 * entry_spread_bps
+        r_short = ts - lambda_eff * ms - 2.0 * entry_spread_bps
+        best_take = np.maximum(r_long, r_short)
+        best_wait = np.maximum(wl, ws)
+        r_skip = np.maximum(0.0, best_wait - best_take)
+        r_long = np.clip(r_long, -500, 500) * bad_path_gate
+        r_short = np.clip(r_short, -500, 500) * bad_path_gate
+        r_skip = np.clip(r_skip, 0, 500)
+        for ki in range(N_K):
+            R[:, 0, ki] = r_skip.astype(np.float32)
+            R[:, 1, ki] = r_long.astype(np.float32)
+            R[:, 2, ki] = r_short.astype(np.float32)
         return R
 
     if variant.startswith("R_HYBRID_K96_TOL"):
@@ -863,6 +1008,43 @@ def build_stratified_folds(
     return folds
 
 
+def build_chronological_folds(
+    decision_ts: np.ndarray,          # per-row decision timestamp (datetime64 / int64 ns), len == n_rows
+    n_folds: int = N_FOLDS,
+    embargo_bars: int = 192,          # >= longest forward horizon (16h @ M5 = 192 bars)
+) -> list[dict[str, np.ndarray]]:
+    """Purged walk-forward chronological splits with an embargo gap.
+
+    2026-06-03 (RR4): the random StratifiedShuffleSplit leaks — neighbor candidates ~5 min
+    apart share 8-16h forward windows, so a random test row's outcome overlaps a train row's.
+    This sorts by decision time, builds EXPANDING-window walk-forward folds (train = past,
+    val + test = later blocks), and PURGES `embargo_bars` rows at each train->val and val->test
+    boundary so no forward window straddles the split. Fold N's test is the most recent block
+    (the true OOT). Row indices returned are into the ORIGINAL (unsorted) row order.
+    """
+    n_rows = len(decision_ts)
+    order = np.argsort(np.asarray(decision_ts), kind="mergesort")  # stable, chronological
+    # (n_folds + 2) contiguous time-blocks: >=1 train block before the first val/test pair.
+    blocks = np.array_split(order, n_folds + 2)
+    folds: list[dict[str, np.ndarray]] = []
+    emb = max(0, int(embargo_bars))
+    for k in range(n_folds):
+        train = np.concatenate(blocks[: k + 1]) if k + 1 > 0 else np.array([], dtype=int)
+        val = blocks[k + 1]
+        test = blocks[k + 2]
+        # Purge: drop the last `emb` (most-recent) rows of train and of val so their forward
+        # windows cannot reach into the following block. Blocks are time-ordered.
+        train = train[:-emb] if emb and len(train) > emb else (np.array([], dtype=int) if emb >= len(train) else train)
+        val_purged = val[:-emb] if emb and len(val) > emb else (np.array([], dtype=int) if emb >= len(val) else val)
+        folds.append({
+            "fold_id_v1": f"FOLD_{k + 1}",
+            "train_idx_v1": np.sort(train),
+            "val_idx_v1": np.sort(val_purged),
+            "test_idx_v1": np.sort(test),
+        })
+    return folds
+
+
 # ---------------------------------------------------------------------------
 # Evaluation
 # ---------------------------------------------------------------------------
@@ -1002,6 +1184,12 @@ def evaluate_one_fold(
         )
 
     # Train multi-head IQL
+    # EIQL-2 (2026-06-03 cross-model scan): optional small-weight margin-ranking term on the
+    # MSE Q-loss. Default 0.0 = pure-MSE bit-parity with the cemented IQL; the regime-robust
+    # retrain sets GX1_ENTRY_IQL_Q_RANKING_WEIGHT (e.g. 0.05) to sharpen the per-(state,K)
+    # argmax separation the live policy reads, while keeping Q in bps for the Phase-6 gates.
+    _q_rank_w = float(os.environ.get("GX1_ENTRY_IQL_Q_RANKING_WEIGHT", "0.0"))
+    _q_rank_m = float(os.environ.get("GX1_ENTRY_IQL_Q_RANKING_MARGIN", "5.0"))
     model = iql_core.train_multi_head_entry_iql(
         X_train, R_train,
         k_horizons=K_HORIZONS,
@@ -1016,6 +1204,8 @@ def evaluate_one_fold(
         seed=SEED_V1,
         prefer_cuda=True,
         sample_weights=sample_weights,
+        q_ranking_weight=_q_rank_w,
+        q_ranking_margin=_q_rank_m,
     )
 
     # Evaluate per K-horizon × per aggregator on val and test
@@ -1252,10 +1442,32 @@ def write_artifacts(
     oracle_dist = {ai: int((oracle_action == ai).sum()) for ai in range(iql_core.N_ACTIONS_V1)}
     print(f"[{ACTION}] oracle action (stratifier={strat_variant} K={K_PRIMARY}) distribution: {oracle_dist}", flush=True)
 
-    folds = build_stratified_folds(
-        n_rows=len(df), oracle_action=oracle_action,
-        n_folds=N_FOLDS, val_size=VAL_SIZE, test_size=TEST_SIZE, seed=SEED_V1,
-    )
+    # 2026-06-03 (RR4 / TUNE-03 Entry-half): chronological+embargo split is the HONEST
+    # default. The legacy StratifiedShuffleSplit-by-action leaks: neighbor candidate bars
+    # ~minutes apart with overlapping 8-16h forward windows straddle train/test, so its
+    # "OOT" overstates edge. Chronological + embargo>=192 bars purges that overlap and makes
+    # every downstream gate (Phase 6, per-side Spearman) honest. 'stratified' is still
+    # selectable (GX1_ENTRY_IQL_SPLIT_MODE=stratified) ONLY to reproduce the pre-2026-06-03
+    # cement bit-for-bit; it must never be used for a deploy candidate. Fail-closed: if
+    # chronological is asked for but no decision-ts column exists, we RAISE (cannot do an
+    # honest split without timestamps).
+    _split_mode = os.environ.get("GX1_ENTRY_IQL_SPLIT_MODE", "chronological").strip().lower()
+    if _split_mode == "chronological":
+        _ts_col = next((c for c in ("decision_ts_utc", "decision_ts", "time", "ts_utc") if c in df.columns), None)
+        if _ts_col is None:
+            raise RuntimeError(f"[{ACTION}] GX1_ENTRY_IQL_SPLIT_MODE=chronological but no decision-ts "
+                               f"column found in df (looked for decision_ts_utc/decision_ts/time/ts_utc)")
+        _embargo = int(os.environ.get("GX1_ENTRY_IQL_EMBARGO_BARS", "192"))
+        print(f"[{ACTION}] split=chronological (ts={_ts_col}, embargo={_embargo} bars) — honest OOT", flush=True)
+        folds = build_chronological_folds(
+            decision_ts=pd.to_datetime(df[_ts_col]).to_numpy(),
+            n_folds=N_FOLDS, embargo_bars=_embargo,
+        )
+    else:
+        folds = build_stratified_folds(
+            n_rows=len(df), oracle_action=oracle_action,
+            n_folds=N_FOLDS, val_size=VAL_SIZE, test_size=TEST_SIZE, seed=SEED_V1,
+        )
 
     per_fold_results: list[dict[str, Any]] = []
     flat_evaluations: list[dict[str, Any]] = []

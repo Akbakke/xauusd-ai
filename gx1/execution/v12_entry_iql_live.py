@@ -43,6 +43,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -74,18 +75,11 @@ LOG = logging.getLogger("v12_entry_iql_live")
 # PROJECT_STATE_artifacts.json via gx1_guards.load_decision_entry. The retired
 # 5-seed PORTFOLIO_PLUS5 ensemble is gone; current cement is a single bundle.
 def _resolve_default_entry_iql_entry() -> dict:
-    try:
-        from gx1_guards.artifacts import load_decision_entry
-        return load_decision_entry("entry_iql")
-    except Exception:
-        return {
-            "path": Path(
-                "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/"
-                "BUILD_ENTRY_IQL_V2_COSTFIX_HEADS_FAST_20260528T071646Z"
-            ),
-            "active_variant": "R_WAIT_OPP_K96_LAM50",
-            "active_folds": ["FOLD_1"],
-        }
+    # FAIL-CLOSED (2026-06-03 audit): NO hardcoded fallback dict. A guard failure MUST
+    # propagate — the swallowed guard would serve a stale bundle/variant silently on the
+    # next cement repoint (train/serve skew). Mirrors the already-correct Exit-IQL resolver.
+    from gx1_guards.artifacts import load_decision_entry
+    return load_decision_entry("entry_iql")
 
 _DEFAULT_ENTRY = _resolve_default_entry_iql_entry()
 DEFAULT_BUNDLE_DIR = Path(_DEFAULT_ENTRY["path"])
@@ -145,16 +139,14 @@ class EntryIQLLiveInference:
 
     @classmethod
     def load_default(cls) -> "EntryIQLLiveInference":
-        # 2026-05-21: default = 5-seed ensemble. Fall back to single bundle if
-        # ensemble dirs unavailable (e.g., legacy systems or testing).
-        try:
-            for d in ENSEMBLE_BUNDLE_DIRS:
-                if not d.exists():
-                    raise FileNotFoundError(f"ensemble bundle missing: {d}")
+        # 2026-06-03 audit: the 5-seed ensemble was retired with the PLUS5 cleanup —
+        # ENSEMBLE_BUNDLE_DIRS is always [] so the old try/except path raised+logged a
+        # false WARNING on EVERY startup (masking real load errors) before falling here.
+        # Single-bundle is the cement; load it directly. (ENSEMBLE_BUNDLE_DIRS kept for a
+        # future re-promotion via load_ensemble.)
+        if ENSEMBLE_BUNDLE_DIRS:
             return cls.load_ensemble(ENSEMBLE_BUNDLE_DIRS)
-        except Exception as exc:
-            LOG.warning(f"ensemble load failed: {exc}; falling back to single bundle")
-            return cls.load()
+        return cls.load()
 
     @classmethod
     def load_ensemble(
@@ -269,8 +261,65 @@ class EntryIQLLiveInference:
             "position_size_pred": float(v10_out.get("position_size_pred", 0.0)),
             "hold_horizon_pred": float(v10_out.get("hold_horizon_pred", 0.0)),
             # Portfolio state features (#1 2026-05-21): populated by caller
-            # from open trades. Default 0 = no open trades (matches training
-            # candidate at start of week with no prior entries).
+        }
+
+        # 2026-05-29: unpack the 5 new V10 head arrays into scalar features
+        # matching the Entry-IQL state schema. COSTFIX V10 emits these as lists
+        # in v10_out; Entry-IQL was trained on them named v10_dip_0..v10_dip_17,
+        # v10_forecast_0..3, v10_timing_0..11, v10_tail_risk_0..5, v10_vol_forecast_0..2
+        # (43 cols, one-truth mapping in
+        # gx1/scripts/materialize_inference_batch_candidates_v3_v1.py).
+        # Without this unpack the adapter silent-zero-fills 43 features → severe
+        # train/serve skew. Each missing array stays as zeros (matches the
+        # candidate-gen fallback path).
+        _V10_NEW_HEAD_EMIT = (
+            ("dip_pred_v1", "v10_dip", 18),
+            ("forecast_pred_v1", "v10_forecast", 4),
+            ("timing_pred_v1", "v10_timing", 12),
+            ("tail_risk_pred_v1", "v10_tail_risk", 6),
+            ("vol_forecast_pred_v1", "v10_vol_forecast", 3),
+        )
+        # 2026-06-02 fix (audit MEDIUM-#1): make every slot EXPLICIT.
+        # Previously when an aux head was missing, slots were left ABSENT and
+        # the adapter silent-0-fills them with a coverage warning (which fires
+        # only ONCE per unique missing-set). With this change, every slot is
+        # explicitly written either with the real value or an explicit 0.0 +
+        # a marker — so missing-head events surface as a structured log line
+        # per poll and Entry-IQL state is reproducible.
+        missing_heads = []
+        for src_key, out_prefix, width in _V10_NEW_HEAD_EMIT:
+            arr = v10_out.get(src_key)
+            values: list[float] = []
+            if arr is None:
+                missing_heads.append(src_key)
+            else:
+                try:
+                    values = [float(x) for x in (arr if hasattr(arr, "__len__") else [arr])]
+                except (TypeError, ValueError):
+                    missing_heads.append(src_key)
+                    values = []
+            for i in range(width):
+                v = values[i] if i < len(values) else 0.0
+                candidate[f"{out_prefix}_{i}"] = v
+        if missing_heads and not getattr(self, "_v10_head_warn_set", None) == tuple(missing_heads):
+            LOG.warning(
+                f"[V10_AUX_HEAD_MISSING] heads={missing_heads} not in v10_out — "
+                f"explicit 0-fill applied. Train/serve skew risk if this persists. "
+                f"Check V10 bundle loaded variants."
+            )
+            self._v10_head_warn_set = tuple(missing_heads)
+
+        # Re-open the dict so further candidate_v3 augmentation below still works.
+        candidate.update({
+            # Portfolio state features (#1 2026-05-21): populated by caller
+            # from open trades. Default 0 = no open trades.
+            # TRAIN/SERVE PARITY NOTE (2026-06-03, user vedtak = Option A): this LIVE
+            # path counts ACTUAL open positions (canonical = matches the name
+            # portfolio_n_open_*_at_decision). The TRAINING column was built as
+            # candidate-density (~12-16 mid-week), so the cement model saw a skewed
+            # input. Fix is at the TRAINING side at next Entry-IQL retrain (recompute
+            # to real-open-positions); live stays as-is. See materialize_build_
+            # candidate_forward_outcome_dataset_v1.py PORTFOLIO SIMULATION block.
             "portfolio_n_open_long_at_decision": float((portfolio_state or {}).get(
                 "n_open_long", 0.0)),
             "portfolio_n_open_short_at_decision": float((portfolio_state or {}).get(
@@ -279,13 +328,14 @@ class EntryIQLLiveInference:
                 "combined_pnl_bps", 0.0)),
             "portfolio_time_since_last_entry_min": float((portfolio_state or {}).get(
                 "time_since_last_entry_min", 240.0)),
-        }
+        })
 
-        # Canonical_v3 + augment features under the _canon_v1 suffix only.
-        # 2026-05-21: _chunk0_v1 mirror dropped — those state-vector slots were
-        # constants in training (chunk_0_data parquet was missing) and the
-        # corresponding NUMERIC_STATE_COLS_CHUNK0 list is now empty, so the
-        # adapter will not look them up.
+        # Canonical_v3 + augment features. 2026-05-29: emit BOTH the raw column
+        # name AND the `_canon_v1`-suffixed variant. Entry-IQL training mixed
+        # conventions — some features kept their raw name (e.g. dip_confirmed_*_v3,
+        # m15_*_v2), others got `_canon_v1` appended (e.g. _v1_atr14_canon_v1).
+        # The dual-emit makes the adapter look up the right one without us having
+        # to know per-feature which convention it expects.
         for col, val in augmented_cv3_row.items():
             if col in ("time",):
                 continue
@@ -295,14 +345,51 @@ class EntryIQLLiveInference:
                     v = 0.0
             except (TypeError, ValueError):
                 continue
-            candidate[f"{col}_canon_v1"] = v
+            candidate[col] = v
+            # Only emit the _canon_v1 alias if the raw name doesn't already end
+            # with another versioned suffix that Entry-IQL trained on directly.
+            if not (col.endswith("_v3") or col.endswith("_v2")
+                    or col.endswith("_canon_v1") or col.endswith("_canon_v2")
+                    or col.endswith("_canon_v3")):
+                candidate[f"{col}_canon_v1"] = v
 
-        # One-hot categoricals (adapter looks up cat_col → cat_val match)
+        # One-hot categoricals (adapter looks up cat_col → cat_val match).
+        # 2026-05-29: ALSO emit the explicit one-hot binary cols
+        # `{cat_col}__{cat_val}` since Entry-IQL state names them that way.
         sid = int(augmented_cv3_row.get("session_id", 0) or 0)
-        candidate["session"] = SESSION_ID_TO_LABEL.get(sid, "ASIA")
-        candidate["vol_regime"] = DEFAULT_VOL_REGIME_LABEL
-        candidate["trend_regime"] = DEFAULT_TREND_REGIME_LABEL
+        session_label = SESSION_ID_TO_LABEL.get(sid, "ASIA")
+        candidate["session"] = session_label
+        for v in ("ASIA", "EU", "OVERLAP", "US"):
+            candidate[f"session__{v}"] = 1.0 if session_label == v else 0.0
+
+        # H6 (2026-06-03 gap-register): real regime when GX1_REGIME_V4=1 (MIRROR of
+        # materialize_inference_batch_candidates_v3_v1._{TREND,VOL}_REGIME_ID_TO_LABEL — keep in
+        # sync). Else cement placeholders (regime-blind). Emit all 4 vol categories (the build
+        # ONE_HOT expects EXTREME too; was only emitting 3 here = a latent mismatch).
+        if os.environ.get("GX1_REGIME_V4", "0") == "1":
+            _tr_id = int(augmented_cv3_row.get("trend_regime_id", 1) or 1)
+            _vr_id = int(augmented_cv3_row.get("vol_regime_id", 2) or 2)
+            vol_label = {0: "LOW", 1: "LOW", 2: "MEDIUM", 3: "HIGH", 4: "EXTREME"}.get(_vr_id, "MEDIUM")
+            trend_label = {0: "TREND_DOWN", 1: "TREND_NEUTRAL", 2: "TREND_UP"}.get(_tr_id, "TREND_NEUTRAL")
+        else:
+            vol_label = DEFAULT_VOL_REGIME_LABEL
+            trend_label = DEFAULT_TREND_REGIME_LABEL
+        candidate["vol_regime"] = vol_label
+        for v in ("LOW", "MEDIUM", "HIGH", "EXTREME"):
+            candidate[f"vol_regime__{v}"] = 1.0 if vol_label == v else 0.0
+
+        candidate["trend_regime"] = trend_label
+        for v in ("TREND_UP", "TREND_NEUTRAL", "TREND_DOWN"):
+            candidate[f"trend_regime__{v}"] = 1.0 if trend_label == v else 0.0
+
         candidate["decision_reason"] = DEFAULT_DECISION_REASON
+        candidate[f"decision_reason__{DEFAULT_DECISION_REASON}"] = 1.0
+
+        # 2026-05-29: a few Entry-IQL training features are aliases of explicit
+        # build_candidate scalars or aren't present in cv3 (legacy canonical_v1
+        # outputs the v3 prebuilt no longer carries). Emit best-effort aliases
+        # so the adapter resolves them instead of zero-filling.
+        candidate.setdefault("margin", candidate.get("margin_top1_top2", 0.0))
 
         return candidate
 

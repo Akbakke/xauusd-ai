@@ -262,6 +262,12 @@ ENTRY_DEAD_LONG_CE_MULTIPLIER = float(_env_str("ENTRY_DEAD_LONG_CE_MULTIPLIER", 
 ENTRY_DEAD_LONG_PROB_PENALTY = float(_env_str("ENTRY_DEAD_LONG_PROB_PENALTY", "0.40"))
 ENTRY_TEASER_LONG_CE_MULTIPLIER = float(_env_str("ENTRY_TEASER_LONG_CE_MULTIPLIER", "1.35"))
 ENTRY_TEASER_LONG_PROB_PENALTY = float(_env_str("ENTRY_TEASER_LONG_PROB_PENALTY", "0.16"))
+# 2026-06-03 (vedtak v10_symmetric_negatives_20260603): mirror the LONG hard-negative
+# penalty stack onto the SHORT side (probs[:,1] + y_*_negative_short), reusing the SAME
+# magnitudes (equal weight). Default OFF = bit-identical to cement (the LONG-only asymmetry
+# that suppressed the LONG side). Enable for the retrain with ENTRY_SYMMETRIC_NEGATIVES=1
+# (+ GX1_ENTRY_ALLOW_TRAIN_ENV_OVERRIDES=1, since it's a deliberate non-cement recipe).
+ENTRY_SYMMETRIC_NEGATIVES = _env_str("ENTRY_SYMMETRIC_NEGATIVES", "0") in {"1", "true", "yes", "on"}
 ENTRY_BAD_PATH_CE_MULTIPLIER = float(_env_str("ENTRY_BAD_PATH_CE_MULTIPLIER", "1.50"))
 ENTRY_BAD_PATH_PROB_PENALTY = float(_env_str("ENTRY_BAD_PATH_PROB_PENALTY", "0.24"))
 ENTRY_AUX_CLEAN_EDGE_WEIGHT = float(_env_str("ENTRY_AUX_CLEAN_EDGE_WEIGHT", "0.55"))
@@ -367,6 +373,7 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_DEAD_LONG_PROB_PENALTY": "0.40",
     "ENTRY_TEASER_LONG_CE_MULTIPLIER": "1.35",
     "ENTRY_TEASER_LONG_PROB_PENALTY": "0.16",
+    "ENTRY_SYMMETRIC_NEGATIVES": "0",
     "ENTRY_BAD_PATH_CE_MULTIPLIER": "1.50",
     "ENTRY_BAD_PATH_PROB_PENALTY": "0.24",
     "ENTRY_AUX_CLEAN_EDGE_WEIGHT": "0.45",
@@ -1331,8 +1338,17 @@ class EntryV10CtxDataset(Dataset):
                 "y_dead_negative_long": torch.tensor(float(row.get("y_dead_negative_long", 0.0)), dtype=torch.float32),
                 "y_teaser_negative_long": torch.tensor(float(row.get("y_teaser_negative_long", 0.0)), dtype=torch.float32),
                 "y_hard_negative_long": torch.tensor(float(row.get("y_hard_negative_long", 0.0)), dtype=torch.float32),
+                # SHORT-side negatives (vedtak v10_symmetric_negatives_20260603) — fed only when
+                # ENTRY_SYMMETRIC_NEGATIVES=1; default 0.0 fallback keeps cement bit-parity.
+                "y_dead_negative_short": torch.tensor(float(row.get("y_dead_negative_short", 0.0)), dtype=torch.float32),
+                "y_teaser_negative_short": torch.tensor(float(row.get("y_teaser_negative_short", 0.0)), dtype=torch.float32),
+                "y_hard_negative_short": torch.tensor(float(row.get("y_hard_negative_short", 0.0)), dtype=torch.float32),
                 "y_clean_edge_long": torch.tensor(float(row.get("y_clean_edge_long", 0.0)), dtype=torch.float32),
                 "y_survival_long": torch.tensor(float(row.get("y_survival_long", 0.0)), dtype=torch.float32),
+                # bidir quality labels + short selector (vedtak v10_symmetric_negatives_20260603)
+                "y_selector_short_mask": torch.tensor(float(row.get("y_selector_short_mask", 0.0)), dtype=torch.float32),
+                "y_clean_edge_bidir": torch.tensor(float(row.get("y_clean_edge_bidir", 0.0)), dtype=torch.float32),
+                "y_survival_bidir": torch.tensor(float(row.get("y_survival_bidir", 0.0)), dtype=torch.float32),
                 "y_teacher_bad_long": torch.tensor(float(row.get("y_teacher_bad_long", row.get("y_v6_teacher_bad_long", 0.0))), dtype=torch.float32),
                 "y_teacher_winner_long": torch.tensor(float(row.get("y_teacher_winner_long", row.get("y_v6_teacher_winner_long", 0.0))), dtype=torch.float32),
                 "y_selector_long_mask": torch.tensor(float(row.get("y_selector_long_mask", 0.0)), dtype=torch.float32),
@@ -1378,8 +1394,14 @@ class EntryV10CtxDataset(Dataset):
                 "y_dead_negative_long": torch.tensor(0.0, dtype=torch.float32),
                 "y_teaser_negative_long": torch.tensor(0.0, dtype=torch.float32),
                 "y_hard_negative_long": torch.tensor(0.0, dtype=torch.float32),
+                "y_dead_negative_short": torch.tensor(0.0, dtype=torch.float32),
+                "y_teaser_negative_short": torch.tensor(0.0, dtype=torch.float32),
+                "y_hard_negative_short": torch.tensor(0.0, dtype=torch.float32),
                 "y_clean_edge_long": torch.tensor(0.0, dtype=torch.float32),
                 "y_survival_long": torch.tensor(0.0, dtype=torch.float32),
+                "y_selector_short_mask": torch.tensor(0.0, dtype=torch.float32),
+                "y_clean_edge_bidir": torch.tensor(0.0, dtype=torch.float32),
+                "y_survival_bidir": torch.tensor(0.0, dtype=torch.float32),
                 "y_teacher_bad_long": torch.tensor(0.0, dtype=torch.float32),
                 "y_teacher_winner_long": torch.tensor(0.0, dtype=torch.float32),
                 "y_selector_long_mask": torch.tensor(0.0, dtype=torch.float32),
@@ -1572,11 +1594,19 @@ def train_epoch(
         y_dead_negative_long = batch["y_dead_negative_long"].to(device, non_blocking=non_blocking)
         y_teaser_negative_long = batch["y_teaser_negative_long"].to(device, non_blocking=non_blocking)
         y_hard_negative_long = batch["y_hard_negative_long"].to(device, non_blocking=non_blocking)
+        y_dead_negative_short = batch["y_dead_negative_short"].to(device, non_blocking=non_blocking)
+        y_teaser_negative_short = batch["y_teaser_negative_short"].to(device, non_blocking=non_blocking)
+        y_hard_negative_short = batch["y_hard_negative_short"].to(device, non_blocking=non_blocking)
         y_clean_edge_long = batch["y_clean_edge_long"].to(device, non_blocking=non_blocking)
         y_survival_long = batch["y_survival_long"].to(device, non_blocking=non_blocking)
         y_teacher_bad_long = batch["y_teacher_bad_long"].to(device, non_blocking=non_blocking)
         y_teacher_winner_long = batch["y_teacher_winner_long"].to(device, non_blocking=non_blocking)
         y_selector_long_mask = batch["y_selector_long_mask"].to(device, non_blocking=non_blocking)
+        # SYM (vedtak v10_symmetric_negatives_20260603): short-side selector + bidir quality
+        # labels (already built in the dataset, never read by cement). Used only when symmetric.
+        y_selector_short_mask = batch["y_selector_short_mask"].to(device, non_blocking=non_blocking)
+        y_clean_edge_bidir = batch["y_clean_edge_bidir"].to(device, non_blocking=non_blocking)
+        y_survival_bidir = batch["y_survival_bidir"].to(device, non_blocking=non_blocking)
 
         # Grad accum: zero_grad happens AFTER step (or at start of epoch).
         # See loss.backward() / optimizer.step() block below for the gated step.
@@ -1593,6 +1623,11 @@ def train_epoch(
 
         residual_hard_neg_long = torch.clamp(
             y_hard_negative_long.float() - y_dead_negative_long.float() - y_teaser_negative_long.float(),
+            min=0.0,
+            max=1.0,
+        )
+        residual_hard_neg_short = torch.clamp(
+            y_hard_negative_short.float() - y_dead_negative_short.float() - y_teaser_negative_short.float(),
             min=0.0,
             max=1.0,
         )
@@ -1614,6 +1649,21 @@ def train_epoch(
             ce_sample_weight = ce_sample_weight + (
                 (float(ENTRY_HARD_NEG_LONG_CE_MULTIPLIER) - 1.0) * residual_hard_neg_long
             )
+        # SYMMETRIC SHORT CE-multipliers (vedtak v10_symmetric_negatives_20260603) — reuse the
+        # SAME magnitudes as long, applied to the short-negative labels. OFF by default (cement).
+        if ENTRY_SYMMETRIC_NEGATIVES:
+            if float(ENTRY_DEAD_LONG_CE_MULTIPLIER) > 1.0:
+                ce_sample_weight = ce_sample_weight + (
+                    (float(ENTRY_DEAD_LONG_CE_MULTIPLIER) - 1.0) * y_dead_negative_short.float()
+                )
+            if float(ENTRY_TEASER_LONG_CE_MULTIPLIER) > 1.0:
+                ce_sample_weight = ce_sample_weight + (
+                    (float(ENTRY_TEASER_LONG_CE_MULTIPLIER) - 1.0) * y_teaser_negative_short.float()
+                )
+            if float(ENTRY_HARD_NEG_LONG_CE_MULTIPLIER) > 1.0:
+                ce_sample_weight = ce_sample_weight + (
+                    (float(ENTRY_HARD_NEG_LONG_CE_MULTIPLIER) - 1.0) * residual_hard_neg_short
+                )
         ce_loss_raw = (ce_per * ce_sample_weight).mean()
         ce_loss = float(ENTRY_DIRECTION_CE_SCALE) * ce_loss_raw
         probs = torch.softmax(logits, dim=1)
@@ -1660,6 +1710,19 @@ def train_epoch(
         if float(ENTRY_HARD_NEG_LONG_PROB_PENALTY) > 0.0 and hard_neg_mask.any():
             hard_neg_prob_loss = float(ENTRY_HARD_NEG_LONG_PROB_PENALTY) * probs[hard_neg_mask, 0].mean()
             loss = loss + hard_neg_prob_loss
+        # SYMMETRIC SHORT prob-penalties (vedtak v10_symmetric_negatives_20260603) — push down
+        # probs[:,1] (SHORT) on short-negative samples, mirroring the long penalties on probs[:,0].
+        # This is the direct counterweight to the LONG-suppression. OFF by default (cement).
+        if ENTRY_SYMMETRIC_NEGATIVES:
+            dead_neg_short_mask = y_dead_negative_short.float() > 0.5
+            teaser_neg_short_mask = y_teaser_negative_short.float() > 0.5
+            hard_neg_short_mask = residual_hard_neg_short > 0.5
+            if float(ENTRY_DEAD_LONG_PROB_PENALTY) > 0.0 and dead_neg_short_mask.any():
+                loss = loss + float(ENTRY_DEAD_LONG_PROB_PENALTY) * probs[dead_neg_short_mask, 1].mean()
+            if float(ENTRY_TEASER_LONG_PROB_PENALTY) > 0.0 and teaser_neg_short_mask.any():
+                loss = loss + float(ENTRY_TEASER_LONG_PROB_PENALTY) * probs[teaser_neg_short_mask, 1].mean()
+            if float(ENTRY_HARD_NEG_LONG_PROB_PENALTY) > 0.0 and hard_neg_short_mask.any():
+                loss = loss + float(ENTRY_HARD_NEG_LONG_PROB_PENALTY) * probs[hard_neg_short_mask, 1].mean()
 
         tradable_loss = torch.tensor(0.0, device=device)
         clean_edge_loss = torch.tensor(0.0, device=device)
@@ -1668,7 +1731,13 @@ def train_epoch(
         path_loss = torch.tensor(0.0, device=device)
         mfe_loss = torch.tensor(0.0, device=device)
         positive_mask = y_tradable.float() > 0.5
-        selector_mask = y_selector_long_mask.float() > 0.5
+        # SYM (vedtak v10_symmetric_negatives_20260603): supervise the quality aux heads
+        # (tradable/bad_path/clean_edge/survival) on BOTH sides so the latent z is not shaped
+        # LONG-only. Default OFF = cement bit-parity (long-only selector + long targets).
+        if ENTRY_SYMMETRIC_NEGATIVES:
+            selector_mask = (y_selector_long_mask.float() + y_selector_short_mask.float()) > 0.5
+        else:
+            selector_mask = y_selector_long_mask.float() > 0.5
         if aux_path_weight > 0.0 and path_pred is not None:
             if positive_mask.any():
                 p_scale = max(1.0, float(aux_path_scale_bps))
@@ -1724,7 +1793,7 @@ def train_epoch(
             if selector_mask.any():
                 clean_edge_loss = nn.functional.binary_cross_entropy_with_logits(
                     clean_edge_logit.squeeze(1)[selector_mask],
-                    y_clean_edge_long.float()[selector_mask],
+                    (y_clean_edge_bidir if ENTRY_SYMMETRIC_NEGATIVES else y_clean_edge_long).float()[selector_mask],
                     pos_weight=torch.tensor(float(clean_edge_pos_weight), device=device, dtype=clean_edge_logit.dtype),
                 )
                 clean_edge_loss = float(ENTRY_AUX_CLEAN_EDGE_WEIGHT) * clean_edge_loss
@@ -1734,7 +1803,7 @@ def train_epoch(
             if selector_mask.any():
                 survival_loss = nn.functional.binary_cross_entropy_with_logits(
                     survival_logit.squeeze(1)[selector_mask],
-                    y_survival_long.float()[selector_mask],
+                    (y_survival_bidir if ENTRY_SYMMETRIC_NEGATIVES else y_survival_long).float()[selector_mask],
                     pos_weight=torch.tensor(float(survival_pos_weight), device=device, dtype=survival_logit.dtype),
                 )
                 survival_loss = float(ENTRY_AUX_SURVIVAL_WEIGHT) * survival_loss
@@ -1874,6 +1943,129 @@ def train_epoch(
         "clean_edge_rank_loss_mean": (clean_edge_rank_loss_sum / max(1, n)),
     }
 
+
+def _aux_head_diagnostics(
+    head_preds: "dict[str, list]",
+    binary_labels: "dict[str, list]",
+    realized: "dict[str, list]",
+) -> "tuple[dict, list]":
+    """V10-AUX-02 (2026-06-03 cross-model scan): read-only WARN-level build signal.
+
+    Computes, on the accumulated validation predictions:
+      (a) cross-head Spearman between aux-head predictions -> catches the rho~0.99
+          head-collapse (clean_edge/survival/tradable becoming redundant);
+      (b) per-head AUC vs each head's own binary label -> catches a head that stopped
+          discriminating;
+      (c) Spearman(head_pred, realized outcome) -> catches MIS-TARGETING such as the
+          documented bad_path head predicting volatility instead of loss (bad_path prob
+          should correlate NEGATIVELY with realized path_quality_bps).
+
+    This NEVER touches loss/gradients/checkpoint-selection. It is observability only, so it
+    fails SOFT: a missing head/label/dependency skips that metric with a WARN, it does not
+    raise. Returns (metrics_dict, warn_messages).
+    """
+    metrics: "dict[str, float]" = {}
+    warns: "list[str]" = []
+    try:
+        from scipy.stats import spearmanr  # local import: fail-soft if scipy absent
+        from sklearn.metrics import roc_auc_score
+    except Exception as exc:  # pragma: no cover - diagnostics only
+        warns.append(f"[V10-AUX-02] diagnostics skipped (import failed: {exc})")
+        return metrics, warns
+
+    def _cat(d, k):
+        vs = d.get(k) or []
+        if not vs:
+            return None
+        try:
+            arr = np.concatenate([np.asarray(v, dtype=np.float64).reshape(-1) for v in vs])
+        except Exception:
+            return None
+        return arr if arr.size else None
+
+    pred_arrays = {k: _cat(head_preds, k) for k in head_preds}
+    pred_arrays = {k: v for k, v in pred_arrays.items() if v is not None}
+
+    # (a) cross-head Spearman -> report the max |rho| off-diagonal + flag redundant pairs.
+    names = sorted(pred_arrays.keys())
+    max_abs_rho = 0.0
+    max_pair = ""
+    for i in range(len(names)):
+        for j in range(i + 1, len(names)):
+            a, b = pred_arrays[names[i]], pred_arrays[names[j]]
+            if a.size != b.size or a.size < 16:
+                continue
+            try:
+                rho = spearmanr(a, b).correlation
+            except Exception:
+                continue
+            if rho is None or not np.isfinite(rho):
+                continue
+            metrics[f"xhead_rho__{names[i]}__{names[j]}"] = float(rho)
+            if abs(rho) > abs(max_abs_rho):
+                max_abs_rho = float(rho)
+                max_pair = f"{names[i]}~{names[j]}"
+            if abs(rho) >= 0.95:
+                warns.append(
+                    f"[V10-AUX-02] cross-head COLLAPSE: {names[i]}~{names[j]} "
+                    f"Spearman={rho:+.3f} (>=0.95 => heads are redundant)"
+                )
+    if max_pair:
+        metrics["xhead_max_abs_rho"] = float(max_abs_rho)
+        if abs(max_abs_rho) >= 0.95:
+            warns.append(f"[V10-AUX-02] highest cross-head |rho|={max_abs_rho:+.3f} @ {max_pair}")
+
+    # (b) per-head AUC vs its own binary label.
+    for k in ("tradable", "bad_path", "clean_edge", "survival"):
+        pred = pred_arrays.get(k)
+        lbl = _cat(binary_labels, k)
+        if pred is None or lbl is None or pred.size != lbl.size:
+            continue
+        ub = np.unique(lbl[np.isfinite(lbl)])
+        if ub.size < 2:
+            warns.append(f"[V10-AUX-02] {k} AUC skipped (label has one class)")
+            continue
+        m = np.isfinite(pred) & np.isfinite(lbl)
+        if m.sum() < 16:
+            continue
+        try:
+            auc = float(roc_auc_score((lbl[m] > 0.5).astype(int), pred[m]))
+        except Exception as exc:
+            warns.append(f"[V10-AUX-02] {k} AUC failed: {exc}")
+            continue
+        metrics[f"auc__{k}"] = auc
+        if auc < 0.52:
+            warns.append(f"[V10-AUX-02] {k} AUC={auc:.3f} (~chance => head not discriminating)")
+
+    # (c) Spearman(head_pred, realized outcome) -> mis-targeting detector.
+    for rk in realized:
+        rv = _cat(realized, rk)
+        if rv is None:
+            continue
+        for hk, pred in pred_arrays.items():
+            if pred.size != rv.size or pred.size < 16:
+                continue
+            m = np.isfinite(pred) & np.isfinite(rv)
+            if m.sum() < 16:
+                continue
+            try:
+                rho = spearmanr(pred[m], rv[m]).correlation
+            except Exception:
+                continue
+            if rho is None or not np.isfinite(rho):
+                continue
+            metrics[f"realized_rho__{hk}__{rk}"] = float(rho)
+            # Documented failure: bad_path (prob of a BAD path) should be NEGATIVELY
+            # correlated with realized path_quality_bps. A positive sign = anti-targeted.
+            if hk == "bad_path" and rk == "path_quality_bps" and rho > -0.02:
+                warns.append(
+                    f"[V10-AUX-02] bad_path ANTI-TARGETED: Spearman(bad_path, "
+                    f"path_quality_bps)={rho:+.3f} (expected strongly negative; "
+                    f"head may be predicting volatility, not loss)"
+                )
+    return metrics, warns
+
+
 def validate(
     model,
     loader,
@@ -1916,6 +2108,11 @@ def validate(
     clean_edge_rank_loss_sum = 0.0
     bad_path_loss_sum = 0.0
     hard_neg_prob_loss_sum = 0.0
+    # V10-AUX-02: read-only accumulators for the cross-head / AUC / realized-target panel.
+    _diag_pred: "dict[str, list]" = {k: [] for k in (
+        "tradable", "bad_path", "clean_edge", "survival", "path_quality", "mfe_first_n")}
+    _diag_lbl: "dict[str, list]" = {k: [] for k in ("tradable", "bad_path", "clean_edge", "survival")}
+    _diag_real: "dict[str, list]" = {k: [] for k in ("mfe_first_n_bps", "path_quality_bps")}
 
     with torch.no_grad():
         for batch in loader:
@@ -1948,6 +2145,29 @@ def validate(
             survival_logit = out.get("survival_logit")
             anchor_logits = out.get("anchor_logits")
             delta_logits = out.get("delta_logits")
+
+            # V10-AUX-02: accumulate per-head probs/preds + labels + realized targets for
+            # the read-only diagnostic panel (computed after the loop). Detached, no grad.
+            def _np1d(t):
+                return t.detach().float().cpu().numpy().reshape(-1)
+            if tradable_logit is not None:
+                _diag_pred["tradable"].append(_np1d(torch.sigmoid(tradable_logit)))
+            if bad_path_logit is not None:
+                _diag_pred["bad_path"].append(_np1d(torch.sigmoid(bad_path_logit)))
+            if clean_edge_logit is not None:
+                _diag_pred["clean_edge"].append(_np1d(torch.sigmoid(clean_edge_logit)))
+            if survival_logit is not None:
+                _diag_pred["survival"].append(_np1d(torch.sigmoid(survival_logit)))
+            if path_pred is not None:
+                _diag_pred["path_quality"].append(_np1d(path_pred))
+            if mfe_pred is not None:
+                _diag_pred["mfe_first_n"].append(_np1d(mfe_pred))
+            _diag_lbl["tradable"].append(_np1d(y_tradable))
+            _diag_lbl["bad_path"].append(_np1d(y_bad_path))
+            _diag_lbl["clean_edge"].append(_np1d(y_clean_edge_long))
+            _diag_lbl["survival"].append(_np1d(y_survival_long))
+            _diag_real["mfe_first_n_bps"].append(_np1d(y_mfe_first))
+            _diag_real["path_quality_bps"].append(_np1d(y_path_quality))
 
             residual_hard_neg_long = torch.clamp(
                 y_hard_negative_long.float() - y_dead_negative_long.float() - y_teaser_negative_long.float(),
@@ -2151,6 +2371,15 @@ def validate(
         "balance_loss_mean": (total_balance / max(1, n)),
         "hard_neg_prob_loss_mean": (hard_neg_prob_loss_sum / max(1, n)),
     }
+    # V10-AUX-02: cross-head / AUC / realized-target diagnostics. Fail-soft, WARN-level,
+    # does NOT affect the returned loss or any checkpoint-selection metric.
+    try:
+        _diag_metrics, _diag_warns = _aux_head_diagnostics(_diag_pred, _diag_lbl, _diag_real)
+        stats.update(_diag_metrics)
+        for _w in _diag_warns:
+            log.warning(_w)
+    except Exception as _exc:  # pragma: no cover - diagnostics must never break val
+        log.warning(f"[V10-AUX-02] head diagnostics panel failed (ignored): {_exc}")
     # AUC is intentionally disabled for this 3-class path (previously hardcoded 0.0)
     return total / max(1, n), float("nan"), acc, short_pred_long_rate, stats
 
@@ -2607,6 +2836,7 @@ def run_train(
     enable_hold_horizon_head: bool = False,
     # Positional encoding (temporal order of every sequence)
     enable_pos_enc: bool = False,
+    enable_regime_film: bool = False,   # BIG-9: FiLM regime-conditioning (default OFF = bit-parity)
     enable_dip_head: bool = False,
     enable_forecast_head: bool = False,
     enable_cross_tf_attn: bool = False,
@@ -2620,6 +2850,13 @@ def run_train(
     smoke_date_to: str = "",
     grad_accum_steps: int = 0,
     init_from_state_dict: Optional[Path] = None,
+    # 2026-06-02: per-TF learnable input scaling (V10 v5+)
+    enable_tf_input_scale: bool = False,
+    tf_input_scale_init_m5: float = 1.0,
+    tf_input_scale_init_m15: float = 1.0,
+    tf_input_scale_init_h1: float = 0.7,
+    tf_input_scale_init_h4: float = 0.5,
+    tf_input_scale_init_d1: float = 0.3,
 ) -> None:
     _guard_no_rl()
 
@@ -2979,13 +3216,27 @@ def run_train(
         enable_position_size_head=enable_position_size_head,
         enable_hold_horizon_head=enable_hold_horizon_head,
         enable_pos_enc=enable_pos_enc,
+        enable_regime_film=enable_regime_film,
         enable_dip_head=enable_dip_head,
         enable_forecast_head=enable_forecast_head,
         enable_cross_tf_attn=enable_cross_tf_attn,
         enable_timing_head=enable_timing_head,
         enable_tail_risk_head=enable_tail_risk_head,
         enable_vol_forecast_head=enable_vol_forecast_head,
+        # 2026-06-02: per-TF learnable input scale (passes through to model arch)
+        enable_tf_input_scale=enable_tf_input_scale,
+        tf_input_scale_init_m5=tf_input_scale_init_m5,
+        tf_input_scale_init_m15=tf_input_scale_init_m15,
+        tf_input_scale_init_h1=tf_input_scale_init_h1,
+        tf_input_scale_init_h4=tf_input_scale_init_h4,
+        tf_input_scale_init_d1=tf_input_scale_init_d1,
     ).to(device)
+    if enable_tf_input_scale:
+        log.info(
+            "[TF_INPUT_SCALE] learnable per-TF inits: M5=%.2f M15=%.2f H1=%.2f H4=%.2f D1=%.2f",
+            tf_input_scale_init_m5, tf_input_scale_init_m15,
+            tf_input_scale_init_h1, tf_input_scale_init_h4, tf_input_scale_init_d1,
+        )
     if enable_tf_agreement_head or enable_path_quality_variance_head or enable_position_size_head or enable_hold_horizon_head:
         log.info(
             "[V10_V3PLUS_HEADS] tf_agreement=%s path_var=%s position_size=%s hold_horizon=%s",
@@ -3315,6 +3566,24 @@ def run_train(
         json.dumps(lock, indent=2)
     )
 
+    # 2026-06-02: extract learned per-TF input scales from best_state.
+    # These are saved next to the initial priors so inference can rebuild the
+    # model identically (init values define the Parameter, then state_dict
+    # overwrites with the learned values).
+    learned_tf_input_scales: Dict[str, float] = {}
+    if enable_tf_input_scale:
+        for _tf in ("m5", "m15", "h1", "h4", "d1"):
+            _key = f"tf_input_scale_{_tf}"
+            if _key in best_state:
+                learned_tf_input_scales[_tf] = float(best_state[_key].item())
+            elif f"_orig_mod.{_key}" in best_state:  # torch.compile prefix
+                learned_tf_input_scales[_tf] = float(best_state[f"_orig_mod.{_key}"].item())
+        if learned_tf_input_scales:
+            log.info(
+                "[TF_INPUT_SCALE_LEARNED] %s",
+                {k: round(v, 4) for k, v in learned_tf_input_scales.items()},
+            )
+
     meta = {
         "created_at_utc": _utc_now(),
         "git_commit": _git_commit(),
@@ -3347,10 +3616,27 @@ def run_train(
             "d1_seq_len": int(_d1_len),
             "feature_contract": "MULTI_TF_PER_BAR_V2" if _mtf_v2 else "MULTI_TF_PER_BAR_V1",
         },
+        # 2026-06-02: per-TF learnable input scaling marker. Inference must
+        # init the model with `enable_tf_input_scale=True` and the same init
+        # values used at train time so state_dict load is shape-compatible.
+        # Learned values overwrite the inits via state_dict; we surface them
+        # here for inspection/debugging.
+        "tf_input_scale": {
+            "enabled": bool(enable_tf_input_scale),
+            "init": {
+                "m5": float(tf_input_scale_init_m5),
+                "m15": float(tf_input_scale_init_m15),
+                "h1": float(tf_input_scale_init_h1),
+                "h4": float(tf_input_scale_init_h4),
+                "d1": float(tf_input_scale_init_d1),
+            },
+            "learned": learned_tf_input_scales,
+        },
         # Positional encoding marker — buffer is persistent=False (not in
         # state_dict), so the live bundle loader MUST read this to rebuild the
         # model with matching forward behaviour.
         "enable_pos_enc": bool(enable_pos_enc),
+        "enable_regime_film": bool(enable_regime_film),
         "batch_size": batch_size,
         "seed": seed,
         "seq_input_dim": SEQ_SIGNAL_DIM,
@@ -3462,6 +3748,18 @@ def run_train(
         enable_timing_head=enable_timing_head,
         enable_tail_risk_head=enable_tail_risk_head,
         enable_vol_forecast_head=enable_vol_forecast_head,
+        # 2026-06-03 BIG-9: regime_film.* are real params in state_dict -> verify model MUST
+        # mirror the flag or strict-load reads them as unexpected_keys and raises.
+        enable_regime_film=enable_regime_film,
+        # 2026-06-02: mirror training-time tf_input_scale config — state_dict
+        # contains tf_input_scale_* Parameters only when enabled, so the verify
+        # model must match the flag exactly.
+        enable_tf_input_scale=enable_tf_input_scale,
+        tf_input_scale_init_m5=tf_input_scale_init_m5,
+        tf_input_scale_init_m15=tf_input_scale_init_m15,
+        tf_input_scale_init_h1=tf_input_scale_init_h1,
+        tf_input_scale_init_h4=tf_input_scale_init_h4,
+        tf_input_scale_init_d1=tf_input_scale_init_d1,
     )
     _load_entry_model_state_compat(model2, torch.load(model_path, map_location="cpu"), label="post_export_verify")
     model2.eval()
@@ -3534,10 +3832,13 @@ def run_eval(
     ctx_cat_dim = int(meta.get("ctx_cat_dim") or -1)
     _require(ctx_cont_dim >= 6, "[EVAL_CONTRACT_CTX_CONT]")
     _require(ctx_cat_dim == 6, "[EVAL_CONTRACT_CTX_CAT]")
+    # 2026-06-03: validate against the ACTUAL architecture dim, not a hardcoded 7. The ==7
+    # assertion was a pre-multi-TF-V2 legacy leftover (current bundles incl the COSTFIX cement
+    # are seq/snap=41), so run_eval could never run on the live lineage. Build uses SEQ_SIGNAL_DIM.
     if meta.get("seq_input_dim") is not None:
-        _require(int(meta.get("seq_input_dim")) == 7, "[EVAL_CONTRACT_SEQ_DIM]")
+        _require(int(meta.get("seq_input_dim")) == SEQ_SIGNAL_DIM, "[EVAL_CONTRACT_SEQ_DIM]")
     if meta.get("snap_input_dim") is not None:
-        _require(int(meta.get("snap_input_dim")) == 7, "[EVAL_CONTRACT_SNAP_DIM]")
+        _require(int(meta.get("snap_input_dim")) == SNAP_SIGNAL_DIM, "[EVAL_CONTRACT_SNAP_DIM]")
 
     state_dict_sha = _sha256_file(model_path)
 
@@ -4076,6 +4377,12 @@ def main() -> None:
              "restores the old order-blind behaviour.",
     )
     parser.add_argument(
+        "--enable-regime-film", action="store_true", default=False,
+        help="BIG-9 (2026-06-03): FiLM regime-conditioning of a separate z_dir for the "
+             "direction head (zero-init -> bit-parity at start). Default OFF; enable for the "
+             "regime-robust retrain (pair with GX1_TREND_REGIME_FROM_D1=1 so the regime slot varies).",
+    )
+    parser.add_argument(
         "--enable-dip-head", action=argparse.BooleanOptionalAction, default=True,
         help="Distributional dip-analysis head (18: dir×K×{dip_p50,dip_p90,recovery_p50}, "
              "pinball loss vs mae_before_mfe/mfe). Default ON for the dip-aware rebuild.",
@@ -4152,6 +4459,23 @@ def main() -> None:
              "Lower (e.g. 0.25) dampens multi-TF contribution and helps if "
              "gradient explosion is observed in delta_abs_mean during early epochs.",
     )
+    # 2026-06-02: per-TF learnable input scaling. Initialized with priors and
+    # adjusted via backprop during training. Saves cement model from uniform
+    # per-TF gates that fail to differentiate macro vs micro signals.
+    parser.add_argument("--enable-tf-input-scale", action="store_true",
+        help="Enable learnable per-TF input scaling (V10 v5+). Each TF input "
+             "is multiplied by a learnable scalar before encoding. Defaults to "
+             "user-specified priors that down-weight macro TFs (D1, H4, H1).")
+    parser.add_argument("--tf-input-scale-init-m5",  type=float, default=1.0,
+        help="Initial value of learnable M5 scale (default 1.0)")
+    parser.add_argument("--tf-input-scale-init-m15", type=float, default=1.0,
+        help="Initial value of learnable M15 scale (default 1.0)")
+    parser.add_argument("--tf-input-scale-init-h1",  type=float, default=0.7,
+        help="Initial value of learnable H1 scale (default 0.7 — down-weight macro)")
+    parser.add_argument("--tf-input-scale-init-h4",  type=float, default=0.5,
+        help="Initial value of learnable H4 scale (default 0.5 — down-weight macro)")
+    parser.add_argument("--tf-input-scale-init-d1",  type=float, default=0.3,
+        help="Initial value of learnable D1 scale (default 0.3 — down-weight macro)")
     parser.add_argument(
         "--subsample-rows", type=int, default=0,
         help="V12.2 sweep: stratified-subsample train set to at most N rows "
@@ -4277,6 +4601,7 @@ def main() -> None:
             enable_position_size_head=_aux_ps,
             enable_hold_horizon_head=_aux_hh,
             enable_pos_enc=bool(args.enable_pos_enc),
+            enable_regime_film=bool(args.enable_regime_film),
             enable_dip_head=bool(args.enable_dip_head),
             enable_forecast_head=bool(args.enable_forecast_head),
             enable_cross_tf_attn=bool(args.enable_cross_tf_attn),
@@ -4290,6 +4615,13 @@ def main() -> None:
             smoke_date_to=str(args.smoke_date_to or ""),
             grad_accum_steps=int(args.grad_accum_steps),
             init_from_state_dict=args.init_from_state_dict,
+            # 2026-06-02: per-TF learnable input scaling
+            enable_tf_input_scale=bool(args.enable_tf_input_scale),
+            tf_input_scale_init_m5=float(args.tf_input_scale_init_m5),
+            tf_input_scale_init_m15=float(args.tf_input_scale_init_m15),
+            tf_input_scale_init_h1=float(args.tf_input_scale_init_h1),
+            tf_input_scale_init_h4=float(args.tf_input_scale_init_h4),
+            tf_input_scale_init_d1=float(args.tf_input_scale_init_d1),
         )
         return
 

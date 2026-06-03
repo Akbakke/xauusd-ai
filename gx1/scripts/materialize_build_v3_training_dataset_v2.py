@@ -97,7 +97,8 @@ DEFAULT_CANONICAL_V2_PATH = Path(
     "/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_PREBUILT/xauusd_m5_CANONICAL_V3_FULL_PLUS_CTX_2020_2026.parquet"
 )
 DEFAULT_XGB_BUNDLE = Path(
-    # V12-cascade authoritative bundle per CURRENT_BUNDLES.md (the 081604Z_1000est
+    # V12-cascade bundle. ONE truth = PROJECT_STATE_artifacts.json (resolve via
+    # gx1_guards.load_decision_artifact). CURRENT_BUNDLES.md is SUPERSEDED. (the 081604Z_1000est
     # retrain was deleted 2026-05-11 — it was never used by V12 cascade).
     "/home/andre2/GX1_DATA/models/models/xgb_v7_base80_20260526T052210Z"
 )

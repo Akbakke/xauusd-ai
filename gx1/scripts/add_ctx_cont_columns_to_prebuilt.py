@@ -647,8 +647,20 @@ def run_add_ctx_cont_columns(
     # Tradable flag (policy can still restrict to EU/OVERLAP/US)
     df_pre["session_tradable"] = (df_pre["session_id"] != 0).astype(np.int64)
 
-    # trend_regime_id: bucket by price_vs_ema50_atr if present else neutral=1
-    if "price_vs_ema50_atr" in df_pre.columns:
+    # trend_regime_id: 3-bin trend regime.
+    # 2026-06-03 (BIG-8): the price_vs_ema50_atr basis was DEGENERATE — constant=1 across all
+    # 332k BASE80 rows (price_vs_ema50_atr absent/always in-band) -> regime-conditioning was a
+    # no-op. GX1_TREND_REGIME_FROM_D1=1 buckets by the TRUE D1 trend/overextension signal
+    # D1_dist_from_ema200_atr (one-truth: computed identically in build + v12_ctx_augment_live),
+    # which actually varies and captures the strong-uptrend overextension that drove the -2000.
+    # Default OFF = old behavior (cement V10 ctx_cat embedding was trained on the old values;
+    # the regime-robust retrain build sets =1). Mirror EXACTLY in v12_ctx_augment_live.py.
+    import os as _os
+    if _os.environ.get("GX1_TREND_REGIME_FROM_D1", "0") == "1" and "D1_dist_from_ema200_atr" in df_pre.columns:
+        d = df_pre["D1_dist_from_ema200_atr"].to_numpy(dtype=float)
+        d = np.where(np.isfinite(d), d, 0.0)
+        trend_regime_id = np.where(d < -1.0, 0, np.where(d <= 1.0, 1, 2)).astype(np.int64)
+    elif "price_vs_ema50_atr" in df_pre.columns:
         p = df_pre["price_vs_ema50_atr"].to_numpy(dtype=float)
         p = np.where(np.isfinite(p), p, 0.0)
         trend_regime_id = np.where(p < -0.5, 0, np.where(p <= 0.5, 1, 2)).astype(np.int64)
@@ -702,6 +714,19 @@ def run_add_ctx_cont_columns(
     _finite_or_fail(cont_mat, label=f"ctx_cont(required_cont={required_cont})")
 
     log.info("[PREBUILT_CTX_CONT_PROOF] ctx_cont_dim=%d names=%s", ctx_cont_dim, required_cont)
+
+    # REGIME_V4 (2026-06-03): emit multi-TF regime CONDITIONING + 'regime is shifting'
+    # CHANGE-DETECTION features. Reuse-first — per-TF regime classes / trend-age / ema-stack are
+    # already in the prebuilt (htf_features), this derives the cross-TF + transition signals on
+    # top. ONE-TRUTH: identical gx1.features.regime_v4_features.add_regime_v4_features is called
+    # live in v12_ctx_augment_live.py (cannot drift). Default OFF = bit-parity (inert: the cols
+    # are emitted but not in the ctx contract until the Phase-C contract bump + V10 retrain).
+    # Fail-closed when enabled (raises on missing source columns).
+    if _os.environ.get("GX1_REGIME_V4", "0") == "1":
+        from gx1.features.regime_v4_features import add_regime_v4_features
+        df_pre = df_pre.sort_index()  # shift()/run-length require time-ascending order
+        add_regime_v4_features(df_pre)
+        log.info("[REGIME_V4] build-side: emitted multi-TF regime + change-detection features")
 
     # ------------------------------------------------------------
     # Write outputs

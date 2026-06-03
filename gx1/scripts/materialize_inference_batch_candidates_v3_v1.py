@@ -72,7 +72,8 @@ DEFAULT_PREBUILT_PARQUET = Path(
     "/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_PREBUILT/xauusd_m5_CANONICAL_V3_FULL_PLUS_CTX_2020_2026.parquet"
 )
 DEFAULT_XGB_BUNDLE = Path(
-    # V12-cascade authoritative bundle per CURRENT_BUNDLES.md (the 081604Z_1000est
+    # V12-cascade bundle. ONE truth = PROJECT_STATE_artifacts.json (resolve via
+    # gx1_guards.load_decision_artifact). CURRENT_BUNDLES.md is SUPERSEDED. (the 081604Z_1000est
     # retrain was deleted 2026-05-11 — it was never used by V12 cascade).
     "/home/andre2/GX1_DATA/models/models/xgb_v7_base80_20260526T052210Z"
 )
@@ -375,6 +376,17 @@ CANDIDATE_COLS = [
 ]
 
 
+# H6 (2026-06-03 gap-register): Entry-IQL was REGIME-BLIND — vol_regime/trend_regime were
+# constant placeholders, so the one-hot state columns carried zero signal. These map the real
+# (now-3-class BIG-8) trend_regime_id + the vol_regime_id quintile to the ONE_HOT categories
+# the IQL state expects (materialize_build_entry_iql_v2.ONE_HOT_COLS). Mirror in
+# v12_entry_iql_live.py. Gated by GX1_REGIME_V4 (default OFF = cement placeholders, since the
+# cement Entry-IQL was trained on the constants — feeding it real regime would be train/serve
+# skew; the regime-aware Entry-IQL retrain sets the flag ON).
+_TREND_REGIME_ID_TO_LABEL = {0: "TREND_DOWN", 1: "TREND_NEUTRAL", 2: "TREND_UP"}
+_VOL_REGIME_ID_TO_LABEL = {0: "LOW", 1: "LOW", 2: "MEDIUM", 3: "HIGH", 4: "EXTREME"}
+
+
 def emit_candidates(
     *, cv2: pd.DataFrame, decision_indices: np.ndarray,
     v10_out: Dict[str, np.ndarray],
@@ -472,8 +484,16 @@ def emit_candidates(
         _ok = _arr is not None and _arr.ndim == 2 and _arr.shape[1] >= _w and not np.all(np.isnan(_arr))
         for _i in range(_w):
             rows[f"{_base}_{_i}"] = (_arr[sel, _i].tolist() if _ok else [float("nan")] * n)
-    rows["vol_regime"] = ["MEDIUM"] * n  # placeholder; V3 builder doesn't read
-    rows["trend_regime"] = ["TREND_NEUTRAL"] * n  # placeholder
+    # H6: real regime into the Entry-IQL state when GX1_REGIME_V4=1 (else cement placeholders).
+    if os.environ.get("GX1_REGIME_V4", "0") == "1" and \
+            "trend_regime_id" in cv2.columns and "vol_regime_id" in cv2.columns:
+        _tr = cv2["trend_regime_id"].iloc[sel_global_idx].to_numpy(dtype=np.int64)
+        _vr = cv2["vol_regime_id"].iloc[sel_global_idx].to_numpy(dtype=np.int64)
+        rows["vol_regime"] = [_VOL_REGIME_ID_TO_LABEL.get(int(v), "MEDIUM") for v in _vr]
+        rows["trend_regime"] = [_TREND_REGIME_ID_TO_LABEL.get(int(t), "TREND_NEUTRAL") for t in _tr]
+    else:
+        rows["vol_regime"] = ["MEDIUM"] * n  # placeholder (cement) — regime-blind
+        rows["trend_regime"] = ["TREND_NEUTRAL"] * n  # placeholder (cement) — regime-blind
     rows["decision_ts_utc"] = [t.isoformat() for t in ts_index]
     rows["source_eval_log"] = [""] * n
     rows["source_eval_log_row"] = [0] * n

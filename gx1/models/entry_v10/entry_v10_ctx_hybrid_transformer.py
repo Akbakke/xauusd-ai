@@ -116,6 +116,18 @@ class CtxModelConfig:
     # regime-dependent, instead of a fixed mix. Zero-init output → starts as a
     # no-op correction (stable). State-dict matches when off (gated, default OFF).
     enable_cross_tf_attn: bool = False
+    # ── 2026-06-02: per-TF learnable input scaling ────────────────────
+    # V10 cement learned essentially equal weight per TF (cross_tf_attn gates
+    # barely moved from zero-init). To break that uniformity, scale each TF
+    # input by a LEARNABLE scalar initialized with a user-specified prior
+    # that down-weights macro (D1, H4) relative to micro (M5, M15).
+    # Default off so older bundles load with strict=True.
+    enable_tf_input_scale: bool = False
+    tf_input_scale_init_m5: float = 1.0
+    tf_input_scale_init_m15: float = 1.0
+    tf_input_scale_init_h1: float = 0.7
+    tf_input_scale_init_h4: float = 0.5
+    tf_input_scale_init_d1: float = 0.3
     # ── V2 extension (2026-05-22): M5 as multi-TF input ───────────────
     # When enabled (V10 v4+), V10 receives BOTH:
     #   - seq_x (M5 raw price-state, 37 features × 96 bars)   ← existing path
@@ -190,6 +202,16 @@ class CtxModelConfig:
     enable_timing_head: bool = False
     enable_tail_risk_head: bool = False
     enable_vol_forecast_head: bool = False
+    # ── Regime FiLM (2026-06-03, BIG-9) ───────────────────────────────
+    # When enabled, a small MLP over the ctx_cat embedding (incl. the repaired
+    # trend_regime_id/vol_regime slots) produces (gamma,beta) that FiLM-modulate a
+    # SEPARATE z_dir feeding ONLY the direction head: z_dir = (1+gamma)*z + beta. This
+    # lets DIRECTION adapt per-regime (e.g. suppress the mean-revert-short residual in a
+    # strong uptrend) without perturbing z for the aux heads / downstream IQL. The output
+    # Linear is ZERO-INIT so gamma=0,beta=0 at cold start -> z_dir==z -> bit-identical.
+    # Default OFF; the regime-robust V10 retrain opts in (a sample-efficient inductive bias,
+    # NOT a new capability — validate it earns its keep on 2026 OOT side-symmetry).
+    enable_regime_film: bool = False
     # ── Positional encoding (temporal order) ──────────────────────────
     # When enabled, adds sinusoidal positional encoding to the base seq and
     # every per-TF sequence BEFORE its transformer encoder. Without it, the
@@ -260,6 +282,15 @@ class EntryV10CtxHybridTransformer(nn.Module):
         enable_tail_risk_head: bool = False,
         enable_vol_forecast_head: bool = False,
         enable_pos_enc: bool = False,
+        enable_regime_film: bool = False,   # 2026-06-03 BIG-9 (default OFF = bit-parity)
+        # 2026-06-02: per-TF learnable input scaling (V10 v5+). All default
+        # OFF so legacy bundles continue to load strict=True.
+        enable_tf_input_scale: bool = False,
+        tf_input_scale_init_m5: float = 1.0,
+        tf_input_scale_init_m15: float = 1.0,
+        tf_input_scale_init_h1: float = 0.7,
+        tf_input_scale_init_h4: float = 0.5,
+        tf_input_scale_init_d1: float = 0.3,
     ) -> None:
         super().__init__()
         if seq_input_dim <= 0 or snap_input_dim <= 0 or seq_len <= 0:
@@ -311,6 +342,13 @@ class EntryV10CtxHybridTransformer(nn.Module):
             enable_tail_risk_head=bool(enable_tail_risk_head),
             enable_vol_forecast_head=bool(enable_vol_forecast_head),
             enable_pos_enc=bool(enable_pos_enc),
+            enable_regime_film=bool(enable_regime_film),
+            enable_tf_input_scale=bool(enable_tf_input_scale),
+            tf_input_scale_init_m5=float(tf_input_scale_init_m5),
+            tf_input_scale_init_m15=float(tf_input_scale_init_m15),
+            tf_input_scale_init_h1=float(tf_input_scale_init_h1),
+            tf_input_scale_init_h4=float(tf_input_scale_init_h4),
+            tf_input_scale_init_d1=float(tf_input_scale_init_d1),
         )
 
         d_model = int(self.cfg.d_model)
@@ -351,6 +389,23 @@ class EntryV10CtxHybridTransformer(nn.Module):
 
         # 3-class direction head: LONG / SHORT / FLAT
         self.head_direction = nn.Linear(d_model, 3)
+        # V10-7 (2026-06-03 all-models scan): zero-init the direction RESIDUAL head so cold-start
+        # delta_logits=0 -> direction == the (balanced) XGB anchor, and the residual is learned
+        # from zero. head_direction was the lone correction head NOT zero-init (q_head/FiLM/
+        # cross_tf_out/multi_tf_fuse all are). Only affects fresh-train init; loading a trained
+        # bundle overwrites these weights, so it's bit-parity-neutral for existing bundles.
+        nn.init.zeros_(self.head_direction.weight)
+        nn.init.zeros_(self.head_direction.bias)
+        # Regime FiLM (BIG-9): condition direction on the ctx_cat embedding (regime slots).
+        # ZERO-INIT final layer -> gamma=beta=0 at init -> z_dir==z -> bit-parity with cement.
+        if bool(getattr(self.cfg, "enable_regime_film", False)):
+            self.regime_film = nn.Sequential(
+                nn.Linear(ctx_cat_flat_dim, d_model),
+                nn.GELU(),
+                nn.Linear(d_model, 2 * d_model),   # -> (gamma, beta)
+            )
+            nn.init.zeros_(self.regime_film[-1].weight)
+            nn.init.zeros_(self.regime_film[-1].bias)
         # Auxiliary heads that remain active in the canonical runtime lane.
         self.head_path_quality = nn.Linear(d_model, 1)
         self.head_mfe_first_n = nn.Linear(d_model, 1)
@@ -471,6 +526,27 @@ class EntryV10CtxHybridTransformer(nn.Module):
             self._expected_h4_seq_dim = int(self.cfg.h4_seq_dim)
             self._expected_d1_seq_dim = int(self.cfg.d1_seq_dim)
             self.register_buffer("multi_tf_scale", torch.tensor(float(self.cfg.multi_tf_scale)))
+            # 2026-06-02 fix (V10 short-bias rooted in equal-weight TF fusion):
+            # Per-TF learnable input scalars initialized with user prior.
+            # Cement's tf_gate_logits learned essentially 1/5 uniform (gates barely
+            # moved from zero-init). To break that uniformity and let the model
+            # actually USE M5 micro-signal vs D1 macro-signal, we scale per-TF
+            # inputs BEFORE encoding. Initialized to enable_multi_tf_m5 prior:
+            #   M5=1.0, M15=1.0, H1=0.7, H4=0.5, D1=0.3
+            # Model can adjust these during training (gradient through encoders +
+            # final loss). When cfg.enable_tf_input_scale=True these are active.
+            self._enable_tf_input_scale = bool(getattr(self.cfg, "enable_tf_input_scale", False))
+            if self._enable_tf_input_scale:
+                init_m5 = float(getattr(self.cfg, "tf_input_scale_init_m5", 1.0))
+                init_m15 = float(getattr(self.cfg, "tf_input_scale_init_m15", 1.0))
+                init_h1 = float(getattr(self.cfg, "tf_input_scale_init_h1", 0.7))
+                init_h4 = float(getattr(self.cfg, "tf_input_scale_init_h4", 0.5))
+                init_d1 = float(getattr(self.cfg, "tf_input_scale_init_d1", 0.3))
+                self.tf_input_scale_m5 = nn.Parameter(torch.tensor(init_m5))
+                self.tf_input_scale_m15 = nn.Parameter(torch.tensor(init_m15))
+                self.tf_input_scale_h1 = nn.Parameter(torch.tensor(init_h1))
+                self.tf_input_scale_h4 = nn.Parameter(torch.tensor(init_h4))
+                self.tf_input_scale_d1 = nn.Parameter(torch.tensor(init_d1))
 
         # Strict markers (useful for debugging)
         self._expected_seq_dim = int(seq_input_dim)
@@ -613,10 +689,22 @@ class EntryV10CtxHybridTransformer(nn.Module):
                     raise RuntimeError(f"{name.upper()}_DIM_MISMATCH: got={int(t.shape[2])} expected={exp_dim}")
                 _assert_finite(name, t)
 
-            m15_pool = self.m15_encoder(self._add_pe(self.m15_proj(seq_m15), "pos_enc_m15")).mean(dim=1)   # (B,d)
-            h1_pool = self.h1_encoder(self._add_pe(self.h1_proj(seq_h1), "pos_enc_h1")).mean(dim=1)
-            h4_pool = self.h4_encoder(self._add_pe(self.h4_proj(seq_h4), "pos_enc_h4")).mean(dim=1)
-            d1_pool = self.d1_encoder(self._add_pe(self.d1_proj(seq_d1), "pos_enc_d1")).mean(dim=1)
+            # 2026-06-02: per-TF input scaling (learnable). Scales each TF
+            # sequence BEFORE projection so the encoders see "down-weighted"
+            # versions of the macro TFs (default init: H1=0.7, H4=0.5, D1=0.3).
+            # When enable_tf_input_scale=False (legacy), these multiplications
+            # are skipped and the model is bit-identical to pre-2026-06-02.
+            if getattr(self, "_enable_tf_input_scale", False):
+                seq_m15_in = seq_m15 * self.tf_input_scale_m15
+                seq_h1_in = seq_h1 * self.tf_input_scale_h1
+                seq_h4_in = seq_h4 * self.tf_input_scale_h4
+                seq_d1_in = seq_d1 * self.tf_input_scale_d1
+            else:
+                seq_m15_in, seq_h1_in, seq_h4_in, seq_d1_in = seq_m15, seq_h1, seq_h4, seq_d1
+            m15_pool = self.m15_encoder(self._add_pe(self.m15_proj(seq_m15_in), "pos_enc_m15")).mean(dim=1)   # (B,d)
+            h1_pool = self.h1_encoder(self._add_pe(self.h1_proj(seq_h1_in), "pos_enc_h1")).mean(dim=1)
+            h4_pool = self.h4_encoder(self._add_pe(self.h4_proj(seq_h4_in), "pos_enc_h4")).mean(dim=1)
+            d1_pool = self.d1_encoder(self._add_pe(self.d1_proj(seq_d1_in), "pos_enc_d1")).mean(dim=1)
 
             # V2: 5th branch for M5 V2-features (different from seq_x raw price-state).
             pool_list = [m15_pool, h1_pool, h4_pool, d1_pool]
@@ -635,7 +723,12 @@ class EntryV10CtxHybridTransformer(nn.Module):
                         f"SEQ_M5_DIM_MISMATCH: got={int(seq_m5.shape[2])} expected={self._expected_m5_seq_dim}"
                     )
                 _assert_finite("seq_m5", seq_m5)
-                m5_pool = self.m5_encoder(self._add_pe(self.m5_proj(seq_m5), "pos_enc_m5")).mean(dim=1)   # (B,d)
+                # 2026-06-02 per-TF scale (applied to M5 V2 branch as well)
+                if getattr(self, "_enable_tf_input_scale", False):
+                    seq_m5_in = seq_m5 * self.tf_input_scale_m5
+                else:
+                    seq_m5_in = seq_m5
+                m5_pool = self.m5_encoder(self._add_pe(self.m5_proj(seq_m5_in), "pos_enc_m5")).mean(dim=1)   # (B,d)
                 pool_list.append(m5_pool)
 
             if self.cfg.enable_cross_tf_attn and hasattr(self, "cross_tf_attn"):
@@ -653,7 +746,17 @@ class EntryV10CtxHybridTransformer(nn.Module):
         else:
             z = z_v3   # v3-identical path
 
-        delta_logits = self.head_direction(z)      # (B,3)
+        # Regime FiLM (BIG-9): modulate a SEPARATE z_dir for the direction head only,
+        # leaving z untouched for the aux heads + downstream. Zero-init -> z_dir==z at cold
+        # start (bit-parity). cat_emb (B,ctx_cat_dim,emb) was computed above; flatten as the
+        # regime conditioner (includes the repaired trend_regime_id/vol_regime slots).
+        if bool(getattr(self.cfg, "enable_regime_film", False)) and hasattr(self, "regime_film"):
+            film = self.regime_film(cat_emb.reshape(cat_emb.shape[0], -1))   # (B, 2*d_model)
+            gamma, beta = film.chunk(2, dim=1)
+            z_dir = (1.0 + gamma) * z + beta
+        else:
+            z_dir = z
+        delta_logits = self.head_direction(z_dir)   # (B,3)
         anchor_logits = self._anchor_logits_from_snap(snap_x)
         direction_logits = anchor_logits + (self.residual_scale.to(delta_logits.dtype) * delta_logits)
 

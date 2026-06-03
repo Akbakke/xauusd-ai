@@ -95,6 +95,36 @@ class XGBLiveInference:
         sanitizer = XGBInputSanitizer.from_config(str(sanitizer_config))
         contract = json.loads(feature_contract.read_text())
         features = list(contract["features"])
+
+        # 2026-06-02 fix (audit MEDIUM-#2): cross-check loaded model's trained
+        # feature list against the contract. Without this, swapping bundle dir
+        # (e.g. older 76-feat bundle vs 80-feat contract) silently NaN-pads the
+        # missing columns → 0-fill at inference → bad predictions.
+        meta = json.loads(meta_path.read_text())
+        model_feature_names = (
+            meta.get("feature_names")
+            or meta.get("features")
+            or meta.get("input_feature_names")
+        )
+        if model_feature_names:
+            model_set = set(model_feature_names)
+            contract_set = set(features)
+            missing_in_model = contract_set - model_set
+            extra_in_model = model_set - contract_set
+            if missing_in_model or extra_in_model:
+                raise RuntimeError(
+                    f"[XGB_CONTRACT_MISMATCH] loaded model ({len(model_feature_names)} feats) "
+                    f"vs contract ({len(features)} feats) disagree. "
+                    f"missing_in_model={sorted(missing_in_model)[:5]} "
+                    f"extra_in_model={sorted(extra_in_model)[:5]}. "
+                    f"Refusing to silent-pad. Check bundle_dir + feature_contract paths."
+                )
+            LOG.info(f"  XGB cross-check OK — model + contract agree on {len(features)} features")
+        else:
+            LOG.warning(
+                f"  XGB meta has no feature_names — cannot cross-check loaded model vs contract. "
+                f"Continuing with contract-driven feature list of {len(features)} feats."
+            )
         LOG.info(f"  features: {len(features)}  sessions: {list(model.sessions) if hasattr(model, 'sessions') else 'auto'}")
 
         return cls(

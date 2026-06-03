@@ -472,33 +472,6 @@ def compute_class_weights(y_train: np.ndarray, n_classes: int = 3) -> Dict[int, 
     return {cls: float(weights_norm[cls]) for cls in range(n_classes)}
 
 
-def compute_future_return_bps(
-    df: pd.DataFrame,
-    lookahead_bars: int,
-) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Compute future return in bps and valid mask (tape close).
-    """
-    if "close" not in df.columns:
-        preview_cols = list(df.columns[:50])
-        raise KeyError(
-            "Required price column 'close' not found in dataframe after tape join. "
-            f"Preview first columns={preview_cols}"
-        )
-    if df["close"].isna().any():
-        raise ValueError("Found NaN close values after tape join")
-
-    close = df["close"].to_numpy(dtype=np.float64)
-    future_close = np.roll(close, -lookahead_bars)
-    future_return_bps = (future_close - close) * 10_000.0 / close
-
-    valid_mask = np.ones(len(df), dtype=bool)
-    if lookahead_bars > 0:
-        valid_mask[-lookahead_bars:] = False
-
-    return future_return_bps, valid_mask
-
-
 def compute_triple_barrier_labels(
     df: pd.DataFrame,
     lookahead_bars: int,
@@ -609,71 +582,6 @@ def compute_triple_barrier_labels(
             hit_code[i] = 1
 
     return labels, valid_mask, hit_code
-
-
-def calibrate_threshold(
-    long_payoffs: np.ndarray,
-    short_payoffs: np.ndarray,
-    target_flat_min: float = 0.70,
-    target_flat_max: float = 0.90,
-    min_class_rate: float = 0.02,
-    thresholds_to_try: Optional[Sequence[float]] = None,
-) -> Tuple[float, Dict[str, float]]:
-    """
-    Calibrate threshold to achieve reasonable class balance on TRAIN split only.
-    """
-    if thresholds_to_try is None:
-        thresholds_to_try = [0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.50]
-
-    n_total = len(long_payoffs)
-    if n_total == 0:
-        raise ValueError("Cannot calibrate threshold on empty payoffs")
-
-    best_threshold = float(thresholds_to_try[0])
-    best_score = -1e18
-    best_rates: Optional[Dict[str, float]] = None
-
-    for threshold in thresholds_to_try:
-        long_mask = (long_payoffs >= threshold) & (short_payoffs < threshold)
-        short_mask = (short_payoffs >= threshold) & (long_payoffs < threshold)
-        flat_mask = ~long_mask & ~short_mask
-
-        long_rate = float(long_mask.sum() / n_total)
-        short_rate = float(short_mask.sum() / n_total)
-        flat_rate = float(flat_mask.sum() / n_total)
-
-        if flat_rate < target_flat_min or flat_rate > target_flat_max:
-            continue
-        if long_rate < min_class_rate or short_rate < min_class_rate:
-            continue
-
-        balance_score = 1.0 - abs(long_rate - short_rate)
-        flat_mid = (target_flat_min + target_flat_max) / 2.0
-        flat_score = 1.0 - abs(flat_rate - flat_mid) / max(1e-9, (target_flat_max - target_flat_min))
-        score = balance_score + flat_score
-
-        if score > best_score:
-            best_score = score
-            best_threshold = float(threshold)
-            best_rates = {
-                "LONG": long_rate,
-                "SHORT": short_rate,
-                "FLAT": flat_rate,
-            }
-
-    if best_rates is None:
-        threshold = float(thresholds_to_try[0])
-        long_mask = (long_payoffs >= threshold) & (short_payoffs < threshold)
-        short_mask = (short_payoffs >= threshold) & (long_payoffs < threshold)
-        flat_mask = ~long_mask & ~short_mask
-        best_threshold = threshold
-        best_rates = {
-            "LONG": float(long_mask.sum() / n_total),
-            "SHORT": float(short_mask.sum() / n_total),
-            "FLAT": float(flat_mask.sum() / n_total),
-        }
-
-    return best_threshold, best_rates
 
 
 def _ensure_serializable(obj: Any) -> Any:
@@ -995,6 +903,9 @@ def main() -> int:
     df["_barrier_bps"] = barrier_bps
 
     print("[XGB_LABELS_BY_SESSION]")
+    # XGB-10 (2026-06-03): capture the TRUE per-session barrier stats so head_metrics can
+    # record honest provenance instead of the fabricated hardcoded threshold_bps=6.0.
+    barrier_stats_by_session: Dict[str, Dict[str, float]] = {}
     for sess in sessions:
         mask = (df["_session"] == sess) & df["_label_valid"]
         n_sess = int(mask.sum())
@@ -1030,6 +941,13 @@ def main() -> int:
             f"atr_bps_mean={atr_mean:.4f} atr_bps_median={atr_median:.4f} "
             f"barrier_bps_mean={barrier_mean:.4f} barrier_bps_median={barrier_median:.4f}"
         )
+        barrier_stats_by_session[sess] = {
+            "session_multiplier": float(session_multipliers.get(sess, 1.0)),
+            "atr_bps_mean": atr_mean,
+            "atr_bps_median": atr_median,
+            "barrier_bps_mean": barrier_mean,
+            "barrier_bps_median": barrier_median,
+        }
 
     print("\nSanitizing XGB inputs...")
     X_all, sanitize_stats = sanitizer.sanitize(df, features, allow_nan_fill=True, nan_fill_value=0.0)
@@ -1094,14 +1012,34 @@ def main() -> int:
                 f"Invalid split for session={session}: n_total={n_total}, n_train={n_train}"
             )
 
-        # Time-based split: no shuffle, no funny business.
-        X_train = X_session[:n_train]
+        # XGB-3 (2026-06-03 cross-model scan): chronological EMBARGO between train and val.
+        # The triple-barrier label at row i looks `lookahead_bars` rows into the future, so
+        # the last `lookahead_bars` train rows have forward windows that overlap the first
+        # val rows -> early-stopping and the held-out probability calibrator both leak. We
+        # PURGE those train rows; the val block stays anchored at the original cut (n_train),
+        # so val is unchanged and only the train tail shrinks (~lookahead_bars rows / session).
+        # Default = lookahead_bars; set GX1_XGB_TRAIN_EMBARGO_BARS=0 to reproduce the
+        # pre-2026-06-03 cement exactly (leaky, for bit-parity reproduction only).
+        _embargo = int(os.environ.get("GX1_XGB_TRAIN_EMBARGO_BARS", str(int(args.lookahead_bars))))
+        _embargo = max(0, _embargo)
+        n_train_emb = max(0, n_train - _embargo)
+        if n_train_emb <= 0:
+            raise RuntimeError(
+                f"Embargo too large for session={session}: n_train={n_train}, "
+                f"embargo={_embargo} -> {n_train_emb} train rows"
+            )
+        if _embargo > 0:
+            print(f"  Train embargo:         drop last {_embargo} rows "
+                  f"({n_train} -> {n_train_emb}) so no fwd-label overlaps val")
+
+        # Time-based split: no shuffle, no funny business. Train tail purged by embargo.
+        X_train = X_session[:n_train_emb]
         X_val = X_session[n_train:]
-        y_train = y_session[:n_train]
+        y_train = y_session[:n_train_emb]
         y_val = y_session[n_train:]
-        ts_train = ts_session.iloc[:n_train]
+        ts_train = ts_session.iloc[:n_train_emb]
         ts_val = ts_session.iloc[n_train:]
-        year_train = year_session.iloc[:n_train]
+        year_train = year_session.iloc[:n_train_emb]
         year_val = year_session.iloc[n_train:]
 
         print(f"  Train rows:            {len(X_train):,}")
@@ -1208,7 +1146,12 @@ def main() -> int:
             "n_train": int(len(X_train)),
             "n_val": int(len(X_val)),
             "bars_per_year": {str(int(k)): int(v) for k, v in year_session.value_counts().sort_index().to_dict().items()},
-            "threshold_bps": 6.0,
+            # XGB-10: honest barrier provenance. The label barrier is ATR-normalized and
+            # session-scaled (barrier_bps = atr_bps * session_multiplier), NOT a fixed
+            # threshold. threshold_bps now reports the REAL per-session median barrier in
+            # bps (was a fabricated hardcoded 6.0 with no relation to the labeler).
+            "threshold_bps": float(barrier_stats_by_session.get(session, {}).get("barrier_bps_median", float("nan"))),
+            "barrier_params": barrier_stats_by_session.get(session, {}),
             "class_distribution_total": {
                 "LONG": float(total_counts["LONG"] / total_n),
                 "SHORT": float(total_counts["SHORT"] / total_n),
@@ -1480,7 +1423,16 @@ def main() -> int:
             "training": {
                 "years": [int(y) for y in args.years],
                 "lookahead_bars": int(args.lookahead_bars),
-                "threshold_bps": 6.0,
+                # XGB-10: TRUE label provenance (replaces the fabricated threshold_bps=6.0).
+                # Labels are ATR-normalized triple-barrier: barrier_bps = atr_bps *
+                # session_multiplier; a no-hit terminal return >= no_hit_return_factor * barrier
+                # is promoted to LONG/SHORT. There is NO fixed threshold_bps.
+                "label_method": "atr_triple_barrier_session_scaled",
+                "atr_col": str(atr_col),
+                "session_multipliers": {str(k): float(v) for k, v in session_multipliers.items()},
+                "no_hit_return_factor": float(no_hit_return_factor),
+                "barrier_formula": "barrier_bps = atr_bps * session_multiplier",
+                "train_embargo_bars": int(os.environ.get("GX1_XGB_TRAIN_EMBARGO_BARS", str(int(args.lookahead_bars)))),
                 "val_split": float(args.val_split),
                 "seed": int(args.seed),
                 "n_bars": int(args.n_bars) if args.n_bars is not None else None,

@@ -209,6 +209,12 @@ def load_m5_tape(m5_root: Path = DEFAULT_M5_TAPE_ROOT) -> pd.DataFrame:
     missing = [c for c in required if c not in df.columns]
     if missing:
         raise RuntimeError(f"[{ACTION}] M5 tape missing columns: {missing}")
+    # Fail-closed price-scale glitch guard (2026-06-03): a x10 deflation in
+    # canonical 2026-04-02..19 silently inflated Phase 6 PnL ~4.8x (4 takes = 80%
+    # of total). Bar-to-bar close jumps >3x are feed/scale corruption, never real
+    # gold moves — refuse to build forward outcomes on corrupt price.
+    from gx1.io.price_glitch_guard import assert_no_price_scale_glitch
+    assert_no_price_scale_glitch(df, context=f"{ACTION} M5 tape", time_col="time")
     return df
 
 
@@ -596,6 +602,17 @@ def process_week(
         # [ts_ns - 240min, ts_ns) as a "virtually open" trade. Estimate its
         # current pnl from m5_close movement (entry → now). Aggregate counts,
         # combined pnl, time-since-last for input to Entry-IQL.
+        #
+        # TRAIN/SERVE PARITY (2026-06-03 diagnosis, user vedtak = Option A):
+        # This "candidate-density" definition (counts EVERY earlier candidate, ~12-16
+        # mid-week) does NOT match the feature name portfolio_n_open_*_at_decision NOR
+        # the LIVE path (v12_paper_runner.make_v12_decision), which counts ACTUAL open
+        # positions (~0 most of the time). The name + live are the canonical reading;
+        # this training column is the skewed one. DECISION: leave live as-is, and at the
+        # NEXT Entry-IQL retrain recompute this block to real-open-positions semantics —
+        # i.e. only count earlier candidates that would actually be TAKEN and still open
+        # (entry not yet exited) at ts, under the live max_concurrent cap. Until that
+        # retrain happens this skew is documented, not silently patched.
         cur_m5_close = float(cand_m5_close_arr[row_i]) if cand_m5_close_arr[row_i] > 0 else 0.0
         window_lower_ns = ts_ns - _PORTFOLIO_LOOKBACK_NS
         port_n_long = 0

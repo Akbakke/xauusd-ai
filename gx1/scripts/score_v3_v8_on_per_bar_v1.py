@@ -383,14 +383,13 @@ def score_week(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=f"{ACTION}")
-    # 2026-05-28: default V3 bundle resolved from PROJECT_STATE_artifacts.json
-    # (one truth). Falls back to legacy V9 default if guards module unavailable.
-    _default_v3_bundle = DEFAULT_V3_BUNDLE
-    try:
-        from gx1_guards.artifacts import load_decision_artifact
-        _default_v3_bundle = load_decision_artifact("v3_exit")
-    except Exception:
-        pass
+    # 2026-05-28: default V3 bundle resolved from PROJECT_STATE_artifacts.json (one truth).
+    # FAIL-CLOSED (2026-06-03 audit): NO silent fallback to the legacy V9 default. The old
+    # `except: pass` would substitute the pre-COSTFIX V9 (V6/91-dim) which passes the 91-dim
+    # dim-assert SILENTLY -> a future Exit-IQL retrain would train on pre-COSTFIX V3 scores.
+    # Exit-IQL retrain is PENDING, so this had real blast radius. Let the guard propagate.
+    from gx1_guards.artifacts import load_decision_artifact
+    _default_v3_bundle = load_decision_artifact("v3_exit")
     parser.add_argument("--v3-bundle", type=str, default=str(_default_v3_bundle))
     parser.add_argument("--v3-dataset-dir", type=str, default=str(DEFAULT_V3_DATASET_DIR))
     parser.add_argument("--per-bar-dir", type=str, default=str(DEFAULT_PER_BAR_DIR))

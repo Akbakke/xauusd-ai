@@ -47,9 +47,13 @@ DEFAULT_REPORTS_ROOT = v3_m1.DEFAULT_REPORTS_ROOT
 DEFAULT_CANONICAL_FEATURES_PATH = v3_m1.DEFAULT_CANONICAL_FEATURES_PATH
 
 # ── V12 design constants ─────────────────────────────────────────────────
-K_HORIZONS = [12, 60, 240, 480, 1440]
+K_HORIZONS = [1, 4, 12, 48, 144, 240]
 N_K = len(K_HORIZONS)
-K_PRIMARY = 240                      # 4h default (mid-range; user can override)
+K_PRIMARY = 144                      # cement-match: 2.4h, same as COSTFIX Exit-IQL
+# 2026-06-02 fix: v5_v12_m1 originally used [12, 60, 240, 480, 1440] (V12 chain
+# horizons). But COSTFIX cement dataset has K=[1, 4, 12, 48, 144, 240]. Training
+# with mismatched K silently 0-fills 3 of 5 horizons → corrupt reward signal.
+# Set to cement-K so apples-to-apples comparison + Phase 6 OOT comparable.
 V12_NEVER_FIRE_PENALTY_BPS = -1000.0  # matches Phase 2 builder constant
 
 # ── V12-specific state-feature lists (extends v3_m1 base) ────────────────
@@ -78,7 +82,11 @@ V12_V10_SNAPSHOT_COLS = [
 NUMERIC_STATE_COLS_PER_BAR = (
     list(v3_m1.NUMERIC_STATE_COLS_PER_BAR)
     + V12_V3_TRACKING_COLS
-    + V12_V10_SNAPSHOT_COLS
+    + V12_V10_SNAPSHOT_COLS  # 2026-06-02: re-enabled. COSTFIX dataset
+    # augmented with V10-snap via augment_exit_iql_dataset_with_v3_tracking.py
+    # (joins V10 head predictions from candidate fwd-outcome dataset by
+    # candidate_uid). 4/8 cols have real values for legacy data, 4/8 are 0 for
+    # pre-v3+ V10 bundles (legit semantic: "no v3+ head emitted at entry").
 )
 NUMERIC_STATE_COLS_CANDIDATE = list(v3_m1.NUMERIC_STATE_COLS_CANDIDATE)
 ONE_HOT_COLS = list(v3_m1.ONE_HOT_COLS)
@@ -232,7 +240,11 @@ def write_artifacts(
     )
     print(f"[{ACTION}] loaded rows={len(df):,} cols={len(df.columns)}", flush=True)
 
-    # Sanity check: V12 reward columns must be present
+    # Sanity check: V12 reward columns MUST be present. This script is the
+    # V12-line builder — running it commits to a V12-built dataset. Never
+    # silently fall back to a degraded (non-V12) dataset; fail-closed.
+    # If a non-V12 Exit-IQL retrain is needed, use the COSTFIX builder that
+    # produced cement BUILD_EXIT_IQL_V3_M1_COSTFIX_HEADS_FAST_*.
     required_v12 = ["r_exit_now_v1", "is_never_fire_v1"] + [f"r_hold_K{K}_v1" for K in K_HORIZONS]
     missing = [c for c in required_v12 if c not in df.columns]
     if missing:
@@ -276,15 +288,22 @@ def write_artifacts(
         oracle_dist = {ai: int((oracle_action == ai).sum()) for ai in range(v2_train.N_ACTIONS_EXIT)}
         print(f"[{ACTION}] oracle action (R_V12, K={effective_k_primary}) dist: {oracle_dist}", flush=True)
 
-        folds = v2_train.build_stratified_folds(n_rows=len(df), oracle_action=oracle_action)
+        folds = v2_train.build_stratified_folds(
+            n_rows=len(df), oracle_action=oracle_action,
+            groups=v2_train.maybe_candidate_uid_groups(df),  # EXIT-8: leak-free group split when enabled
+        )
 
         per_fold_results: list[dict[str, Any]] = []
         flat_evaluations: list[dict[str, Any]] = []
+        _exit_sample_weights = v2_train.maybe_per_trade_sample_weights(df)  # EXIT-8 part 2 (None = cement)
+        _exit_loss_mask = v2_train.maybe_degenerate_loss_mask(df, v2_train.N_ACTIONS_EXIT, list(K_HORIZONS))  # EXIT-9
         for variant in variants:
             for fold in folds:
                 r = v2_train.evaluate_one_fold(
                     fold, X, R_by_variant[variant], oracle_action,
                     variant=variant, artifact_root=artifact_root,
+                    sample_weights=_exit_sample_weights,
+                    loss_mask=_exit_loss_mask,
                 )
                 per_fold_results.append(r)
                 flat_evaluations.extend(r.get("all_evaluations_v1", []))

@@ -712,6 +712,38 @@ def _batch_slices(n: int, batch_size: int, shuffle: bool, seed: int) -> Iterable
         yield idx[start : start + batch_size]
 
 
+def _should_exit_selection_metrics(
+    y_true: np.ndarray, y_prob: np.ndarray, threshold: float, precision_floor: float,
+) -> Tuple[float, float, float, float]:
+    """V3-4: consumption-matched should_exit metrics (import-free, no sklearn).
+
+    Returns (precision, recall, f1) at the decision `threshold`, plus recall-at-precision-floor
+    (max recall over a score sweep where precision >= floor; 0.0 if floor unmet or floor<=0).
+    The live consumer thresholds the should_exit sigmoid, so these match deployment far better
+    than the diluted 3-head focal-BCE loss the cement currently selects on.
+    """
+    yt = (np.asarray(y_true).reshape(-1) > 0.5).astype(np.int64)
+    yp = np.asarray(y_prob).reshape(-1)
+    pred = (yp >= float(threshold)).astype(np.int64)
+    tp = int(((pred == 1) & (yt == 1)).sum())
+    fp = int(((pred == 1) & (yt == 0)).sum())
+    fn = int(((pred == 0) & (yt == 1)).sum())
+    prec = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+    rec = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+    f1 = (2.0 * prec * rec / (prec + rec)) if (prec + rec) > 0 else 0.0
+    rec_at_floor = 0.0
+    if precision_floor > 0.0 and yp.size > 0 and int(yt.sum()) > 0:
+        order = np.argsort(-yp, kind="mergesort")          # high score first, stable
+        ys = yt[order]
+        tps = np.cumsum(ys)
+        fps = np.cumsum(1 - ys)
+        precs = tps / np.maximum(1, tps + fps)
+        recs = tps / float(max(1, int(yt.sum())))
+        ok = precs >= float(precision_floor)
+        rec_at_floor = float(recs[ok].max()) if bool(ok.any()) else 0.0
+    return float(prec), float(rec), float(f1), float(rec_at_floor)
+
+
 def _evaluate_epoch(
     *,
     model: exit_v0.ExitTransformerV0,
@@ -730,6 +762,12 @@ def _evaluate_epoch(
     total_profit = 0.0
     total_aux = 0.0
     total_count = 0
+    # V3-4 (2026-06-03 cross-model scan): accumulate should_exit prob/label so we can report
+    # CONSUMPTION-MATCHED metrics (F1 / recall-at-precision-floor at the decision threshold the
+    # live >0.95 fail-safe actually uses), not just the diluted 3-head loss. Diagnostics by
+    # default; only drives checkpoint selection when GX1_EXIT_CHECKPOINT_SELECTION_MODE != loss.
+    _se_true: List[np.ndarray] = []
+    _se_prob: List[np.ndarray] = []
     with torch.no_grad():
         for shard in _iter_split_shards(shards_dir, split):
             X = shard["X"]
@@ -773,17 +811,31 @@ def _evaluate_epoch(
                 total_main += float(main_loss.detach().cpu().item()) * bs
                 total_profit += float(profit_loss.detach().cpu().item()) * bs
                 total_aux += float(aux_loss.detach().cpu().item()) * bs
+                _se_prob.append(torch.sigmoid(logits).detach().float().cpu().numpy().reshape(-1))
+                _se_true.append(by.detach().float().cpu().numpy().reshape(-1))
     main_mean = total_main / max(1, total_count)
     profit_mean = total_profit / max(1, total_count)
     aux_mean = total_aux / max(1, total_count)
     total = main_mean + (profit_protect_head_loss_weight * profit_mean) + (family_aux_loss_weight * aux_mean)
-    return {
+    out = {
         "main_loss": float(main_mean),
         "profit_loss": float(profit_mean),
         "aux_loss": float(aux_mean),
         "total_loss": float(total),
         "n_samples": int(total_count),
     }
+    # should_exit consumption-matched metrics (read threshold/floor from env; import-free).
+    if _se_prob:
+        _thr = float(os.environ.get("GX1_EXIT_CONSUMPTION_THRESHOLD", "0.5"))
+        _pfloor = float(os.environ.get("GX1_EXIT_RECALL_PRECISION_FLOOR", "0.0"))
+        _prec, _rec, _f1, _rec_at_floor = _should_exit_selection_metrics(
+            np.concatenate(_se_true), np.concatenate(_se_prob), _thr, _pfloor,
+        )
+        out["should_exit_precision"] = _prec
+        out["should_exit_recall"] = _rec
+        out["should_exit_f1"] = _f1
+        out["should_exit_recall_at_pfloor"] = _rec_at_floor
+    return out
 
 
 def _sample_audit_arrays(shards_dir: Path, split: str, limit: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray, List[str]]:
@@ -905,6 +957,16 @@ def train_sharded(
         early_stop_min_delta = float(os.environ.get("GX1_EXIT_TRAIN_EARLY_STOP_MIN_DELTA", "0.0"))
     except Exception:
         early_stop_min_delta = 0.0
+    # V3-4: which scalar drives "best checkpoint" + early-stop. Default "loss" = diluted
+    # 3-head total_loss = EXACT cement behavior (bit-parity). "f1" / "recall_at_pfloor" select
+    # on the consumption-matched should_exit metric the live >0.95 fail-safe actually reads
+    # (higher=better, so we minimise its negative through the unchanged `<` logic below).
+    _ckpt_sel_mode = os.environ.get("GX1_EXIT_CHECKPOINT_SELECTION_MODE", "loss").strip().lower()
+    if _ckpt_sel_mode not in ("loss", "f1", "recall_at_pfloor"):
+        raise ValueError(
+            f"GX1_EXIT_CHECKPOINT_SELECTION_MODE='{_ckpt_sel_mode}' invalid; "
+            f"use loss|f1|recall_at_pfloor"
+        )
 
     pin_memory = False if _is_wsl() else bool(device.type == "cuda")
     log.info(
@@ -1013,9 +1075,19 @@ def train_sharded(
         val_main_loss_last = float(val_metrics["main_loss"])
         val_profit_loss_last = float(val_metrics["profit_loss"])
         val_aux_loss_last = float(val_metrics["aux_loss"])
-        vloss_epoch = float(val_metrics["total_loss"])
+        # V3-4: selection scalar. "loss" -> total_loss (cement bit-parity); the metric modes
+        # MINIMISE the negative of a higher-is-better should_exit metric so the `<` logic and
+        # min_delta semantics below are reused unchanged.
+        if _ckpt_sel_mode == "f1":
+            vloss_epoch = -float(val_metrics.get("should_exit_f1", 0.0))
+        elif _ckpt_sel_mode == "recall_at_pfloor":
+            vloss_epoch = -float(val_metrics.get("should_exit_recall_at_pfloor", 0.0))
+        else:
+            vloss_epoch = float(val_metrics["total_loss"])
         log.info(
-            "[EXIT_SHARD_EPOCH] epoch=%d/%d train_main=%.6f train_profit=%.6f train_aux=%.6f val_main=%.6f val_profit=%.6f val_aux=%.6f val_total=%.6f",
+            "[EXIT_SHARD_EPOCH] epoch=%d/%d train_main=%.6f train_profit=%.6f train_aux=%.6f "
+            "val_main=%.6f val_profit=%.6f val_aux=%.6f val_total=%.6f "
+            "se_prec=%.4f se_rec=%.4f se_f1=%.4f se_rec@pfloor=%.4f sel_mode=%s sel_val=%.6f",
             epoch + 1,
             epochs,
             train_main_loss_last,
@@ -1024,6 +1096,12 @@ def train_sharded(
             val_main_loss_last,
             val_profit_loss_last,
             val_aux_loss_last,
+            float(val_metrics["total_loss"]),
+            float(val_metrics.get("should_exit_precision", float("nan"))),
+            float(val_metrics.get("should_exit_recall", float("nan"))),
+            float(val_metrics.get("should_exit_f1", float("nan"))),
+            float(val_metrics.get("should_exit_recall_at_pfloor", float("nan"))),
+            _ckpt_sel_mode,
             vloss_epoch,
         )
         if early_stop:
@@ -1113,6 +1191,9 @@ def train_sharded(
         "early_stop_patience": int(early_stop_patience),
         "best_epoch": int(best_epoch),
         "val_loss": float(best_vloss),
+        # V3-4: in "loss" mode best_vloss IS the diluted total_loss (cement-identical); in metric
+        # modes it's the NEGATED should_exit metric the selection minimised — this field disambiguates.
+        "checkpoint_selection_mode": str(_ckpt_sel_mode),
         "train_main_loss_last": float(train_main_loss_last),
         "train_profit_loss_last": float(train_profit_loss_last),
         "train_aux_loss_last": float(train_aux_loss_last),

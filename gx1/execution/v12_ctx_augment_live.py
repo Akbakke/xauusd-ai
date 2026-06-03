@@ -378,8 +378,17 @@ def _add_swing_features(cv3: pd.DataFrame) -> None:
 
 def _add_regime_categoricals(cv3: pd.DataFrame) -> None:
     """Mutates cv3: trend_regime_id, vol_regime_id, atr_bucket, spread_bucket."""
-    # trend_regime_id: 0/1/2 from price_vs_ema50_atr if present, else neutral=1
-    if "price_vs_ema50_atr" in cv3.columns:
+    # trend_regime_id: 3-bin trend regime. MIRRORS add_ctx_cont_columns_to_prebuilt.py (one-truth).
+    # 2026-06-03 (BIG-8): old price_vs_ema50_atr basis was DEGENERATE (constant=1). When
+    # GX1_TREND_REGIME_FROM_D1=1, bucket by the TRUE D1 trend signal D1_dist_from_ema200_atr
+    # (computed above in this same function). Default OFF = cement-compatible (cement V10's
+    # ctx_cat embedding was trained on the old values); the regime-robust retrain enables it.
+    import os as _os
+    if _os.environ.get("GX1_TREND_REGIME_FROM_D1", "0") == "1" and "D1_dist_from_ema200_atr" in cv3.columns:
+        d = cv3["D1_dist_from_ema200_atr"].astype(float).to_numpy()
+        d = np.where(np.isfinite(d), d, 0.0)
+        cv3["trend_regime_id"] = np.where(d < -1.0, 0, np.where(d <= 1.0, 1, 2)).astype(np.int64)
+    elif "price_vs_ema50_atr" in cv3.columns:
         p = cv3["price_vs_ema50_atr"].astype(float).to_numpy()
         p = np.where(np.isfinite(p), p, 0.0)
         cv3["trend_regime_id"] = np.where(p < -0.5, 0, np.where(p <= 0.5, 1, 2)).astype(np.int64)
@@ -434,4 +443,14 @@ def augment_canonical_v3(cv3: pd.DataFrame, df_m5: pd.DataFrame) -> pd.DataFrame
     # windows match training (no window-edge skew). Fail-closed-neutral if no vol.
     from gx1.features.volume_features import add_volume_features
     add_volume_features(out)
+    # REGIME_V4 (2026-06-03): multi-TF regime CONDITIONING + 'regime is shifting' CHANGE-
+    # DETECTION features. ONE-TRUTH: identical gx1.features.regime_v4_features helper as the
+    # build-side (add_ctx_cont_columns_to_prebuilt.py) — cannot drift. Default OFF = bit-parity
+    # (inert until the Phase-C contract bump + retrain). Sources are already on `out`: per-TF
+    # regime/trend-age/ema-stack from v12_state_from_prebuilt._V2_MTF_PER_TF, D1_dist from
+    # _add_htf_features above. `out` is full-history time-ordered (same as the volume helper).
+    import os as _os
+    if _os.environ.get("GX1_REGIME_V4", "0") == "1":
+        from gx1.features.regime_v4_features import add_regime_v4_features
+        add_regime_v4_features(out)
     return out

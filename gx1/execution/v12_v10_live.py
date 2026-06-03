@@ -69,15 +69,11 @@ def _resolve_default_v10_bundle() -> Path:
     env_override = _os.environ.get("GX1_V10_BUNDLE_DIR")
     if env_override:
         return Path(env_override)
-    try:
-        from gx1_guards.artifacts import load_decision_artifact
-        return Path(load_decision_artifact("v10_entry"))
-    except Exception:
-        # Fail-soft fallback for ad-hoc smoke tests where guards aren't importable.
-        return Path(
-            "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/"
-            "ENTRY_V10_V3PLUS_v2_20260518T135516Z"
-        )
+    # FAIL-CLOSED (2026-06-03 audit): NO hardcoded fallback. A guard failure MUST
+    # propagate — never silently substitute the deleted pre-COSTFIX V3PLUS_v2 bundle.
+    # The "fail-soft for smoke tests" branch had no actual test consumer.
+    from gx1_guards.artifacts import load_decision_artifact
+    return Path(load_decision_artifact("v10_entry"))
 DEFAULT_BUNDLE_DIR = _resolve_default_v10_bundle()
 
 # V10 v3 cemented config (from MASTER_TRANSFORMER_LOCK.json):
@@ -121,12 +117,14 @@ class V10LiveInference:
         # v3 bundles don't have this section, default to v3 mode).
         meta_path = bundle_dir / "bundle_metadata.json"
         multi_tf_cfg = {}
+        tf_input_scale_cfg: dict = {}
         _enable_pos_enc = False  # persistent=False buffer → must come from metadata, not state_dict
         if meta_path.is_file():
             try:
                 meta = json.loads(meta_path.read_text())
                 multi_tf_cfg = meta.get("multi_tf", {}) or {}
                 _enable_pos_enc = bool(meta.get("enable_pos_enc", False))
+                tf_input_scale_cfg = meta.get("tf_input_scale", {}) or {}
             except Exception as exc:
                 LOG.warning(f"bundle_metadata.json read failed: {exc} — assuming v3 mode")
         enable_mtf = bool(multi_tf_cfg.get("enabled", False))
@@ -191,6 +189,33 @@ class V10LiveInference:
         _enable_timing_head = "head_timing.weight" in state_dict
         _enable_tail_risk_head = "head_tail_risk.weight" in state_dict
         _enable_vol_forecast_head = "head_vol_forecast.weight" in state_dict
+
+        # 2026-06-02: per-TF learnable input scale (V10 v5+). Detect via
+        # state_dict; if present, init values come from metadata so Parameter
+        # is constructed identically to training time (state_dict then
+        # overwrites with learned values). Fallback to user's prior if
+        # metadata missing.
+        _enable_tf_input_scale = any(
+            f"tf_input_scale_{tf}" in state_dict for tf in ("m5", "m15", "h1", "h4", "d1")
+        )
+        # BIG-9 (2026-06-03): FiLM regime-conditioning — rebuild the module iff the bundle
+        # carries regime_film.* weights (real params, so state_dict detection is authoritative).
+        _enable_regime_film = any(str(k).startswith("regime_film.") for k in state_dict)
+        _tf_inits = (tf_input_scale_cfg.get("init") or {})
+        _tf_scale_kwargs = dict(
+            enable_tf_input_scale=_enable_tf_input_scale,
+            tf_input_scale_init_m5=float(_tf_inits.get("m5", 1.0)),
+            tf_input_scale_init_m15=float(_tf_inits.get("m15", 1.0)),
+            tf_input_scale_init_h1=float(_tf_inits.get("h1", 0.7)),
+            tf_input_scale_init_h4=float(_tf_inits.get("h4", 0.5)),
+            tf_input_scale_init_d1=float(_tf_inits.get("d1", 0.3)),
+        ) if _enable_tf_input_scale else {}
+        if _enable_tf_input_scale:
+            _learned = tf_input_scale_cfg.get("learned") or {}
+            LOG.info(
+                "V10 per-TF input scale enabled — learned: %s",
+                {k: round(float(v), 4) for k, v in _learned.items()} if _learned else "(missing in meta)"
+            )
         if (_enable_dip_head or _enable_forecast_head or _enable_cross_tf_attn
                 or _enable_timing_head or _enable_tail_risk_head or _enable_vol_forecast_head):
             LOG.info(f"V10 dip-aware bundle: dip={_enable_dip_head} forecast={_enable_forecast_head} "
@@ -208,12 +233,14 @@ class V10LiveInference:
             **v3plus_kwargs,
             enable_q_head=enable_q_head,
             enable_pos_enc=_enable_pos_enc,
+            enable_regime_film=_enable_regime_film,
             enable_dip_head=_enable_dip_head,
             enable_forecast_head=_enable_forecast_head,
             enable_cross_tf_attn=_enable_cross_tf_attn,
             enable_timing_head=_enable_timing_head,
             enable_tail_risk_head=_enable_tail_risk_head,
             enable_vol_forecast_head=_enable_vol_forecast_head,
+            **_tf_scale_kwargs,
         )
         model.load_state_dict(state_dict)
         model.eval()
@@ -307,18 +334,22 @@ class V10LiveInference:
         window = augmented_cv3.iloc[start_idx: end_idx + 1]
         bridge_window = bridge[start_idx: end_idx + 1]
 
-        # Build input matrices for the 96-bar window
-        seq_np = self._build_seq_matrix(window, bridge_window)        # (96, 37)
-        # snap = last bar (= window's last row)
-        snap_np = seq_np[-1:].copy()                                   # (1, 37)
-        ctx_cont_np = self._build_ctx_cont(window.iloc[-1:])          # (1, 45)
-        ctx_cat_np = self._build_ctx_cat(window.iloc[-1:])            # (1, 6)
+        # Build input matrices for the SEQ_LEN-bar window.
+        # 2026-06-02 fix (audit MEDIUM-#4): use constant names in comments
+        # instead of stale hardcoded numbers. Actual dims: SEQ_DIM is
+        # contract-derived (signal_bridge_v3.SEQ_SIGNAL_DIM_V3 = 41 for V3),
+        # CTX_CONT_DIM is also contract-derived (105 for V3+, may shift).
+        # See module-level constants SEQ_DIM / CTX_CONT_DIM / CTX_CAT_DIM_V3.
+        seq_np = self._build_seq_matrix(window, bridge_window)        # (SEQ_LEN, SEQ_DIM)
+        snap_np = seq_np[-1:].copy()                                   # (1, SEQ_DIM)
+        ctx_cont_np = self._build_ctx_cont(window.iloc[-1:])          # (1, CTX_CONT_DIM)
+        ctx_cat_np = self._build_ctx_cat(window.iloc[-1:])            # (1, CTX_CAT_DIM_V3)
 
         # Tensors (add batch dim to seq)
-        seq_t = torch.from_numpy(seq_np).unsqueeze(0).to(self.device)      # (1, 96, 37)
-        snap_t = torch.from_numpy(snap_np).to(self.device)                  # (1, 37)
-        ctx_cont_t = torch.from_numpy(ctx_cont_np).to(self.device)          # (1, 45)
-        ctx_cat_t = torch.from_numpy(ctx_cat_np).to(self.device)            # (1, 6)
+        seq_t = torch.from_numpy(seq_np).unsqueeze(0).to(self.device)      # (1, SEQ_LEN, SEQ_DIM)
+        snap_t = torch.from_numpy(snap_np).to(self.device)                  # (1, SEQ_DIM)
+        ctx_cont_t = torch.from_numpy(ctx_cont_np).to(self.device)          # (1, CTX_CONT_DIM)
+        ctx_cat_t = torch.from_numpy(ctx_cat_np).to(self.device)            # (1, CTX_CAT_DIM_V3)
 
         # V12.2: pass multi-TF windows when bundle requires them
         mtf_kwargs = {}

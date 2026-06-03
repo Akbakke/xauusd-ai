@@ -26,7 +26,22 @@
       "active_folds": ["FOLD_1", "FOLD_2", "FOLD_3"],
       "status": "ACTIVE",
       "in_sample_only": false,
-      "note": "Entry-IQL trained on COSTFIX HEADS fwd-outcome (state incl 43 new V10 heads). Winner variant R_WAIT_OPP_K96_LAM50: PASS_BEATS_REALIZED_BASELINE, 98% SKIP / 1.4% LONG / 0.6% SHORT (long-leaning when active — IQL filters V10's 56% short-lean correctly). Test reward 2.07M bps total across folds. Runtime adapter pending. Vedtak 2026-05-28."
+      "rollback_history": [
+        {
+          "from_variant": "R_V10_PQ_COND_K96",
+          "to_variant": "R_WAIT_OPP_K96_LAM50",
+          "rolled_back_at_utc": "2026-06-02T09:35:00Z",
+          "reason": "Tactical rollback during Exit-IQL retrain effort (V3-tracking-features missing from cement Exit-IQL bundle, identified by audit fix #3). 2026-06-01 NEW PQ_COND live had 16 stacked shorts overnight (-2050 USD worst) due to CLUSTER1_RATE_LIMIT bug (also disabled by PURE_PHASE6 — fixed 2026-06-02). NEW Phase 6 OOT FULL 2.27x cement still holds; rollback is precautionary to limit new exposure while Exit-IQL is improved. Flip back to R_V10_PQ_COND_K96 after Exit-IQL retrained + validated."
+        }
+      ],
+      "candidate_variants_tested": {
+        "R_V10_PQ_COND_K96": {
+          "bundle_standalone": "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/BUILD_ENTRY_IQL_V2_V10_PQ_COND_FAST_20260601T130000Z",
+          "phase6_oot_full": "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/PHASE6_OOT_V10_PQ_COND_20260601T160000Z_LOCK",
+          "vs_cement": "2.27x total PnL, 3.94x takes, 92.99% win"
+        }
+      },
+      "note": "R_WAIT_OPP_K96_LAM50 cement re-active 2026-06-02 09:35Z. Tactical rollback — see rollback_history. NEW R_V10_PQ_COND_K96 retained in bundle's trained_models_v1/ for re-promotion after Exit-IQL retrain."
     },
     "exit_iql": {
       "path": "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/BUILD_EXIT_IQL_V3_M1_COSTFIX_HEADS_FAST_20260528T205051Z",

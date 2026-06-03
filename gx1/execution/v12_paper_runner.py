@@ -59,6 +59,16 @@ from gx1.monitoring.trade_journal import TradeJournal
 
 LOG = logging.getLogger("v12_paper")
 INSTRUMENT = "XAU_USD"
+
+# 2026-05-29: when env var GX1_PURE_PHASE6=1, every runtime wrapper filter
+# (adaptive_min_adv, regime block, portfolio caps, low-confidence,
+# TIME_OF_DAY_EXIT, spread cap) is bypassed so live runtime matches the
+# Phase 6 OOT simulation 1:1. Used after the COSTFIX cement to verify live
+# PnL tracks the +136 bps/take Phase 6 number.
+PURE_PHASE6 = bool(int(os.environ.get("GX1_PURE_PHASE6", "0")))
+if PURE_PHASE6:
+    LOG.warning("[GX1_PURE_PHASE6] all runtime wrappers DISABLED — runner = Phase 6 OOT 1:1")
+
 JOURNAL_DIR = Path("/home/andre2/GX1_DATA/reports/v12_paper_runs")
 COLLECTOR_DIR = Path("/home/andre2/GX1_DATA/reports/v12_live_data")
 CANONICAL_M1_DIR = Path("/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m1_bid_ask__CANONICAL")
@@ -130,10 +140,36 @@ def can_trade_now(spread_bps: float, *, max_spread_bps: float,
                    now_utc: datetime) -> tuple[bool, str]:
     """Pre-trade gating — SPREAD SAFETY ONLY. We trade year-round, all sessions
     (incl. Asia): session is a learned feature the Entry-IQL policy decides on,
-    not a hardcoded skip. `now_utc` kept for future safety gates."""
+    not a hardcoded skip. `now_utc` kept for future safety gates.
+
+    PURE_PHASE6: spread cap bypassed (Phase 6 OOT did not model spread filtering).
+    """
+    if PURE_PHASE6:
+        return True, "ok_pure_phase6"
     if spread_bps > max_spread_bps:
         return False, f"spread_too_wide ({spread_bps:.1f} > {max_spread_bps})"
     return True, "ok"
+
+
+# ── Execution safety invariant (2026-06-03) ───────────────────────────────
+
+
+def evaluate_entry_safety(side: str, n_same_side: int, n_opposing: int,
+                          hard_max_same_side: int) -> tuple[bool, str, int]:
+    """Pure no-short-in-long + no-pile-up entry-safety decision.
+
+    Always-on execution invariant, independent of PURE_PHASE6. The counts passed in
+    MUST already be reconciled against broker truth by the caller. Returns
+    (allowed, reason, detail). On violation the caller SKIPs the entry — it never
+    flattens existing trades (that would deadlock with the per-trade M1 exit
+    lifecycle). Opposing-side is checked first: never open a short while a long is
+    open (or vice-versa); then the same-side hard cap (the -2000 06-02 pile-up fix).
+    """
+    if n_opposing > 0:
+        return False, "blocked_opposing_side_open", n_opposing
+    if n_same_side >= hard_max_same_side:
+        return False, "blocked_hard_same_side_cap", n_same_side
+    return True, "ok", 0
 
 
 # ── V12 decision (wired in sesjon 1-5) ────────────────────────────────────
@@ -467,7 +503,13 @@ def main() -> int:
                     ):
                         if col in cv3.columns:
                             try: live_feats[col] = float(last_row[col])
-                            except (TypeError, ValueError): pass
+                            except (TypeError, ValueError) as exc:
+                                # Silent-skip historically hid stale cv3 columns;
+                                # 2026-06-01 audit flagged that → log it so we
+                                # catch feature gaps early instead of decisions
+                                # silently running with 0.0 fallback.
+                                LOG.warning(f"[multi-TF trend] col={col} cast failed: {exc} — "
+                                            f"shadow filter for this col will see default 0.0")
             except Exception as exc:
                 LOG.warning(f"multi-TF trend enrichment failed: {exc}")
 
@@ -504,7 +546,8 @@ def main() -> int:
             # through low-liquidity overnight chop. Soft session limit — trades
             # opened in EU/US must be resolved within session.
             DAILY_FORCE_EXIT_HOUR_UTC = 21
-            force_exit_active = now_utc.hour >= DAILY_FORCE_EXIT_HOUR_UTC and open_trades
+            # PURE_PHASE6: never force-exit; let Exit-IQL alone decide.
+            force_exit_active = (not PURE_PHASE6) and now_utc.hour >= DAILY_FORCE_EXIT_HOUR_UTC and open_trades
             if force_exit_active:
                 LOG.info(
                     f"[TIME_OF_DAY_EXIT] hour={now_utc.hour} >= {DAILY_FORCE_EXIT_HOUR_UTC} UTC, "
@@ -658,6 +701,52 @@ def main() -> int:
                 # so opposite-side entries no longer net against existing trades.
                 # If you reinstate a NETTING account, restore the guard from git.
 
+                # ─── ALWAYS-ON EXECUTION SAFETY INVARIANTS (2026-06-03, vedtak
+                # _execution_safety_invariants) — NOT gated on PURE_PHASE6. The
+                # -2000 incident (06-02) was a SAME-SIDE pile-up: 16 shorts stacked
+                # because the same-side cap was disabled by PURE_PHASE6=1. These are
+                # hard, always-on, and reconciled against BROKER TRUTH (the runner
+                # otherwise trusts only local TradeState, which can desync and blind
+                # an otherwise-correct guard). Fail-CLOSED on broker fetch error.
+                HARD_MAX_SAME_SIDE = int(os.environ.get("GX1_HARD_MAX_SAME_SIDE", "2"))
+                opp_side = "short" if side == "long" else "long"
+                n_same = sum(1 for t in open_trades if t.side == side)
+                n_opp = sum(1 for t in open_trades if t.side == opp_side)
+                if not args.dry_run:
+                    try:
+                        _bt = client.get_open_trades().get("trades", [])
+                        _b_long = sum(1 for t in _bt if t.get("instrument") == "XAU_USD"
+                                      and float(t.get("currentUnits", 0) or 0) > 0)
+                        _b_short = sum(1 for t in _bt if t.get("instrument") == "XAU_USD"
+                                       and float(t.get("currentUnits", 0) or 0) < 0)
+                        # Trust the LARGER of local/broker per side (defensive vs desync).
+                        n_same = max(n_same, _b_long if side == "long" else _b_short)
+                        n_opp = max(n_opp, _b_short if side == "long" else _b_long)
+                    except Exception as exc:  # noqa: BLE001 — fail-closed on broker error
+                        LOG.error(f"[SAFETY_RECONCILE] broker get_open_trades failed: {exc} "
+                                  f"— fail-closed SKIP of {side} entry")
+                        event["order_status"] = "blocked_broker_reconcile_fail"
+                        log_journal_event(daily_journal_path(args.journal_suffix), event)
+                        last_decision_minute = current_minute
+                        consecutive_errors = 0
+                        time.sleep(args.poll_seconds)
+                        continue
+                # No-short-in-long + no-pile-up via the pure, unit-tested helper.
+                # SKIP on violation — never flatten-first (no deadlock).
+                _safe_ok, _safe_reason, _safe_detail = evaluate_entry_safety(
+                    side, n_same, n_opp, HARD_MAX_SAME_SIDE)
+                if not _safe_ok:
+                    LOG.warning(f"[SAFETY] blocking {side} entry — {_safe_reason} "
+                                f"(same={n_same}, opp={n_opp}, hard_cap={HARD_MAX_SAME_SIDE})")
+                    event["order_status"] = _safe_reason
+                    event["safety_n_same_side"] = n_same
+                    event["safety_n_opposing"] = n_opp
+                    log_journal_event(daily_journal_path(args.journal_suffix), event)
+                    last_decision_minute = current_minute
+                    consecutive_errors = 0
+                    time.sleep(args.poll_seconds)
+                    continue
+
                 # ADAPTIVE MIN-ADVANTAGE (2026-05-21, loosened 2026-05-22): scale
                 # min_adv with current M5 ATR. Reduced from 0.5 → 0.35 to increase
                 # trade-flow so we accumulate post-PLUS5 trades for N≥30 analysis
@@ -741,7 +830,7 @@ def main() -> int:
                 event["shadow_filters"]["would_block_any"] = any(
                     v for k, v in event["shadow_filters"].items() if k.startswith("would_block_")
                 )
-                if adv_taken < adaptive_min_adv:
+                if (not PURE_PHASE6) and adv_taken < adaptive_min_adv:
                     LOG.info(
                         f"[ADAPTIVE_MIN_ADV] blocking {side} entry — adv={adv_taken:+.2f} "
                         f"< adaptive_min={adaptive_min_adv:.2f} (ATR={atr_bps_now:.1f}, mult={ADAPTIVE_MIN_ADV_ATR_MULT})"
@@ -763,7 +852,7 @@ def main() -> int:
                 # we don't kill all entries during chop.
                 REGIME_DIST_THRESHOLD_BPS = 50.0
                 dist_ema200 = float(live_feats.get("dist_to_ema200_bps", 0.0) or 0.0)
-                if dist_ema200 > REGIME_DIST_THRESHOLD_BPS and side == "short":
+                if (not PURE_PHASE6) and dist_ema200 > REGIME_DIST_THRESHOLD_BPS and side == "short":
                     LOG.info(
                         f"[REGIME_FILTER] blocking SHORT — dist_to_ema200={dist_ema200:+.1f} bps "
                         f"> +{REGIME_DIST_THRESHOLD_BPS} (strong uptrend, counter-trend shorts lose)"
@@ -775,7 +864,7 @@ def main() -> int:
                     consecutive_errors = 0
                     time.sleep(args.poll_seconds)
                     continue
-                if dist_ema200 < -REGIME_DIST_THRESHOLD_BPS and side == "long":
+                if (not PURE_PHASE6) and dist_ema200 < -REGIME_DIST_THRESHOLD_BPS and side == "long":
                     LOG.info(
                         f"[REGIME_FILTER] blocking LONG — dist_to_ema200={dist_ema200:+.1f} bps "
                         f"< -{REGIME_DIST_THRESHOLD_BPS} (strong downtrend, counter-trend longs lose)"
@@ -793,21 +882,12 @@ def main() -> int:
                 # live, repeated same-side entries during prolonged drawdowns
                 # stack losses. These hardcoded rules approximate a portfolio-
                 # aware policy until proper retrain with portfolio features.
-                MAX_SAME_SIDE_OPEN = int(os.environ.get("GX1_MAX_SAME_SIDE_OPEN", "10"))
+                # Same-side pile-up cap moved to the ALWAYS-ON safety invariant above
+                # (HARD_MAX_SAME_SIDE). The old PURE_PHASE6-gated MAX_SAME_SIDE_OPEN=10
+                # guard was removed 2026-06-03 — it was disabled live (PURE_PHASE6=1)
+                # and let 16 shorts stack on 06-02 (-2000). Drawdown-block below is
+                # now also always-on (un-gated from PURE_PHASE6).
                 DRAWDOWN_BLOCK_BPS = float(os.environ.get("GX1_DRAWDOWN_BLOCK_BPS", "-100.0"))
-                same_side = [t for t in open_trades if t.side == side]
-                if len(same_side) >= MAX_SAME_SIDE_OPEN:
-                    LOG.info(
-                        f"[PORTFOLIO_GUARD] blocking {side} entry — already "
-                        f"{len(same_side)} {side} trades open (max {MAX_SAME_SIDE_OPEN})"
-                    )
-                    event["order_status"] = "blocked_portfolio_max_side"
-                    event["portfolio_same_side_n"] = len(same_side)
-                    log_journal_event(daily_journal_path(args.journal_suffix), event)
-                    last_decision_minute = current_minute
-                    consecutive_errors = 0
-                    time.sleep(args.poll_seconds)
-                    continue
                 combined_pnl = sum(t.current_pnl_bps for t in open_trades)
                 if combined_pnl < DRAWDOWN_BLOCK_BPS:
                     LOG.info(
@@ -829,7 +909,7 @@ def main() -> int:
                 # (default -1.0 = disabled). Set e.g. 0.6 to re-enable the cutoff.
                 POSITION_CONFIDENCE_MIN = float(os.environ.get("GX1_POSITION_CONFIDENCE_MIN", "-1.0"))
                 pos_pred = float(decision.get("v10_position_size_pred", -1.0))
-                if pos_pred >= 0.0 and pos_pred < POSITION_CONFIDENCE_MIN:
+                if (not PURE_PHASE6) and pos_pred >= 0.0 and pos_pred < POSITION_CONFIDENCE_MIN:
                     LOG.info(
                         f"[CONFIDENCE_FILTER] blocking {side} entry — "
                         f"position_size_pred={pos_pred:.3f} < {POSITION_CONFIDENCE_MIN}"

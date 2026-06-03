@@ -107,6 +107,36 @@ def expectile_loss(
     return (weight * diff.pow(2)).mean()
 
 
+def q_ranking_margin_loss(
+    q_flat: torch.Tensor,       # (B, n_actions*nk) predicted Q
+    r_flat: torch.Tensor,       # (B, n_actions*nk) target rewards (defines per-(b,K) best action)
+    n_actions: int,
+    nk: int,
+    margin: float,
+    sample_w: torch.Tensor,     # (B,)
+) -> torch.Tensor:
+    """EIQL-2: per-(state, K) margin-ranking regularizer for the Q-net.
+
+    Pure MSE pins Q to the reward scale (bps) but is indifferent to whether the BEST
+    action is cleanly separated from the rest — when two actions have near-equal reward,
+    noise can flip the argmax that the live policy uses. This adds a small hinge that asks
+    Q[best] to exceed Q[other] by `margin` bps for every other action, per K. It is ADDITIVE
+    and small-weight so Q stays interpretable in bps for the cemented Phase-6 gates. The
+    per-(b,K) "best" action is taken from the REWARD target (not the prediction), so it never
+    chases the model's own mistakes.
+    """
+    B = q_flat.shape[0]
+    q = q_flat.view(B, n_actions, nk)
+    r = r_flat.view(B, n_actions, nk)
+    a_star = r.argmax(dim=1, keepdim=True)              # (B,1,nk) best action by reward
+    q_star = torch.gather(q, 1, a_star)                 # (B,1,nk)
+    hinge = torch.relu(margin - (q_star - q))           # (B,n_actions,nk); a* slot -> relu(margin)
+    mask = torch.ones_like(hinge)
+    mask.scatter_(1, a_star, 0.0)                       # zero out the a* slot (gap is 0 there)
+    per_bk = (hinge * mask).sum(dim=1) / float(max(1, n_actions - 1))   # (B, nk)
+    return (sample_w.unsqueeze(-1) * per_bk).mean()
+
+
 @dataclass
 class MultiHeadEntryIQLModel:
     """Trained model. q_net outputs (n, n_actions * n_K) which is reshaped."""
@@ -173,6 +203,9 @@ def train_multi_head_entry_iql(
     batch_size: int = DEFAULT_BATCH_SIZE,
     seed: int = 20260501,
     prefer_cuda: bool = True,
+    q_ranking_weight: float = 0.0,    # EIQL-2: 0.0 = bit-parity (pure MSE); small (~0.05) in retrain
+    q_ranking_margin: float = 5.0,    # margin in REWARD units (bps); only active when weight>0
+    loss_mask: np.ndarray | None = None,  # EXIT-9: (n, n_actions*n_K) 0/1 mask; None = bit-parity
 ) -> MultiHeadEntryIQLModel:
     """Train multi-head Q(s, a, K) on fully-observable counterfactual rewards.
 
@@ -224,6 +257,14 @@ def train_multi_head_entry_iql(
         w_t = torch.as_tensor(sample_weights, dtype=torch.float32, device=device)
     else:
         w_t = torch.ones(n, dtype=torch.float32, device=device)
+    # EXIT-9: optional per-(row, action*K) 0/1 mask. When provided, the Q-MSE is a masked mean
+    # (degenerate forced_terminal / K_eff-clipped HOLD cells contribute no gradient). None keeps
+    # the exact `.mean()` -> bit-parity for entry + the cemented exit.
+    M_t = None
+    if loss_mask is not None:
+        M_t = torch.as_tensor(np.asarray(loss_mask, dtype=np.float32), dtype=torch.float32, device=device)
+        if tuple(M_t.shape) != (n, n_actions * nk):
+            raise ValueError(f"loss_mask shape {tuple(M_t.shape)} != (n, n_actions*nk)=({n},{n_actions*nk})")
 
     q_net = MLP(state_dim, n_actions * nk, hidden_dim=hidden_dim, n_hidden=n_hidden, dropout=dropout).to(device)
     v_net = MLP(state_dim, nk, hidden_dim=hidden_dim, n_hidden=n_hidden, dropout=dropout).to(device)
@@ -231,6 +272,14 @@ def train_multi_head_entry_iql(
     v_opt = torch.optim.Adam(v_net.parameters(), lr=lr, weight_decay=weight_decay)
 
     g = torch.Generator(device="cpu").manual_seed(seed)
+
+    def _q_mse_loss(diff: torch.Tensor, idx: torch.Tensor) -> torch.Tensor:
+        # EXIT-9: masked-mean MSE when a loss_mask is supplied; else the exact `.mean()`.
+        wd = w_t[idx].unsqueeze(-1)
+        if M_t is None:
+            return (wd * diff.pow(2)).mean()
+        m = M_t[idx]
+        return (wd * m * diff.pow(2)).sum() / (wd * m).sum().clamp_min(1.0)
 
     # Phase 1: Q warmup — multi-head MSE on all observed rewards
     q_net.train()
@@ -240,7 +289,11 @@ def train_multi_head_entry_iql(
             idx = perm[i : i + batch_size]
             q_pred = q_net(X_t[idx])
             diff = q_pred - R_flat[idx]
-            loss = (w_t[idx].unsqueeze(-1) * diff.pow(2)).mean()
+            loss = _q_mse_loss(diff, idx)
+            if q_ranking_weight > 0.0:
+                loss = loss + q_ranking_weight * q_ranking_margin_loss(
+                    q_pred, R_flat[idx], n_actions, nk, q_ranking_margin, w_t[idx]
+                )
             q_opt.zero_grad()
             loss.backward()
             q_opt.step()
@@ -273,7 +326,11 @@ def train_multi_head_entry_iql(
                 idx = perm[i : i + batch_size]
                 q_pred = q_net(X_t[idx])
                 diff = q_pred - R_flat[idx]
-                loss = (w_t[idx].unsqueeze(-1) * diff.pow(2)).mean()
+                loss = _q_mse_loss(diff, idx)
+                if q_ranking_weight > 0.0:
+                    loss = loss + q_ranking_weight * q_ranking_margin_loss(
+                        q_pred, R_flat[idx], n_actions, nk, q_ranking_margin, w_t[idx]
+                    )
                 q_opt.zero_grad()
                 loss.backward()
                 q_opt.step()

@@ -48,6 +48,17 @@
 - Do not run R6, freeze, promo, live, or package build without an explicit green gate.
 - Keep historical artifacts as history unless an explicit selection contract marks them active.
 
+## Running live practice
+- One launcher script for the whole stack: `bash scripts/launch_live_practice.sh`.
+- Idempotent — reads `*.pid` files in `GX1_DATA/reports/v12_paper_runs/`, skips anything already alive, starts only what's missing. Re-run any time to verify the stack is up.
+- Starts four components together (they must ALL be running for live to track Phase 6 cement + auto-report):
+  1. `v12_oanda_data_collector` — pulls M1 OHLC from OANDA practice every 60s.
+  2. `v12_canonical_incremental --loop --interval 60` — appends new M1 → canonical_v3 + BASE34 prebuilts; without this, cv3 cutoff falls behind and the paper runner clips `effective_ts` to a stale bucket → live becomes a frozen replay.
+  3. `v12_paper_runner` with `GX1_PURE_PHASE6=1` — disables every live-only wrapper (TIME_OF_DAY_EXIT, ADAPTIVE_MIN_ADV, REGIME, PORTFOLIO_*, LOW_CONFIDENCE, spread cap, CLUSTER1_RATE_LIMIT in v12_pipeline) so live = Phase 6 OOT 1:1.
+  4. `v12_daily_counterfactual.sh --daemon` — every hour looks for journals older than 25h that haven't been replayed yet; runs `v12_counterfactual_replay.py` on each + writes per-day "skulle/skulle ikke handlet" report to `GX1_DATA/reports/v12_paper_runs/counterfactual_reports/`. Idempotent via marker files in `.replayed_markers/`.
+- Stop cleanly with `bash scripts/stop_live_practice.sh` before code edits that touch live runtime.
+- Logs land in `/tmp/gx1_live_practice/{paper_runner,oanda_data_collector,canonical_incremental}.log`.
+
 ## Git & secrets
 - Never amend live commits. Never force push.
 - Never commit secrets (`.env`, credentials).

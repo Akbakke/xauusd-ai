@@ -152,7 +152,8 @@ def simulate_one_candidate(
       max_bars: hard cap on bars to consider (matches V12 design 1440)
     """
     if len(candidate_bars) == 0:
-        return {"realized_pnl_bps": 0.0, "exit_bar": -1, "exit_reason": "NO_BARS",
+        return {"realized_pnl_bps": 0.0, "raw_fwd_pnl_bps": 0.0, "mae_bps": 0.0, "mfe_bps": 0.0,
+                "exit_bar": -1, "exit_reason": "NO_BARS",
                 "iql_action": -1, "v3_override_fired": False}
 
     n_bars = min(len(candidate_bars), max_bars)
@@ -192,8 +193,26 @@ def simulate_one_candidate(
         exit_reason = "FORCED_TERMINAL"
 
     pnl_at_exit = float(sub["current_unrealized_pnl_bps_v1"].iloc[first_exit])
+    # MAE/MFE over the ACTUAL hold [entry .. first_exit] (intra-trade excursion the
+    # trade really experienced before exiting). 2026-06-03: Phase 6 previously only
+    # recorded PnL at exit, so a take that profited at K could hide a deep adverse
+    # drawdown — invisible to validation while the user's goal is MINIMAL MAE.
+    held = pd.to_numeric(
+        sub["current_unrealized_pnl_bps_v1"].iloc[: first_exit + 1], errors="coerce"
+    )
+    mae_bps = float(held.min())  # most adverse excursion (<=0 typically)
+    mfe_bps = float(held.max())  # best favorable excursion before exit
+    # RAW forward PnL at a FIXED horizon (K=144 bars), independent of the exit policy.
+    # 2026-06-03 (GATE-4): the per-side Spearman calibration check must correlate the entry
+    # advantage against RAW forward PnL — NOT realized_pnl_bps (the exit policy masks entry
+    # anti-calibration). Used by the gate's per-side rank-calibration floor.
+    _kfix = min(143, len(sub) - 1)
+    raw_fwd_pnl_bps = float(pd.to_numeric(sub["current_unrealized_pnl_bps_v1"], errors="coerce").iloc[_kfix])
     return {
         "realized_pnl_bps": pnl_at_exit,
+        "raw_fwd_pnl_bps": raw_fwd_pnl_bps,
+        "mae_bps": mae_bps,
+        "mfe_bps": mfe_bps,
         "exit_bar": first_exit + 1,  # 1-based
         "exit_reason": exit_reason,
         "iql_exit_bar": iql_exit_bar + 1 if iql_exit_bar >= 0 else -1,
@@ -257,8 +276,15 @@ def evaluate_config(
     n_v3_override = int((out["exit_reason"] == "V3_OVERRIDE").sum()) if "v3_override_fired" in out.columns else 0
     n_forced = int((out["exit_reason"] == "FORCED_TERMINAL").sum())
 
-    pnl_take = out[out["exit_reason"] != "ENTRY_IQL_SKIP"]["realized_pnl_bps"]
-    bars_take = out[out["exit_reason"] != "ENTRY_IQL_SKIP"]["exit_bar"]
+    take_mask = out["exit_reason"] != "ENTRY_IQL_SKIP"
+    pnl_take = out[take_mask]["realized_pnl_bps"]
+    bars_take = out[take_mask]["exit_bar"]
+    # MAE/MFE aggregates over takes (2026-06-03). MAE is negative-good→bad; report the
+    # mean and the deep-drawdown tail (p05 / worst) plus the fraction of takes that dip
+    # below -20 bps, and PnL-per-unit-MAE efficiency. Directly serves the minimal-MAE goal.
+    mae_take = pd.to_numeric(out[take_mask].get("mae_bps"), errors="coerce") if "mae_bps" in out.columns else pd.Series(dtype=float)
+    mfe_take = pd.to_numeric(out[take_mask].get("mfe_bps"), errors="coerce") if "mfe_bps" in out.columns else pd.Series(dtype=float)
+    mae_take = mae_take.dropna()
     summary = {
         "config": config_name,
         "n_total": n_total, "n_take": n_take, "n_skip": n_skip,
@@ -275,8 +301,140 @@ def evaluate_config(
         "median_pnl_take": float(pnl_take.median()) if n_take > 0 else 0.0,
         "p75_pnl_take": float(pnl_take.quantile(0.75)) if n_take > 0 else 0.0,
         "mean_bars_held_take": float(bars_take.mean()) if n_take > 0 else 0.0,
+        # --- MAE / MFE (intra-trade excursion to exit) ---
+        "mean_mae_bps_take": float(mae_take.mean()) if len(mae_take) else 0.0,
+        "median_mae_bps_take": float(mae_take.median()) if len(mae_take) else 0.0,
+        "p05_mae_bps_take": float(mae_take.quantile(0.05)) if len(mae_take) else 0.0,
+        "worst_mae_bps_take": float(mae_take.min()) if len(mae_take) else 0.0,
+        "frac_take_mae_below_-20bps": float((mae_take < -20.0).mean()) if len(mae_take) else 0.0,
+        "mean_mfe_bps_take": float(mfe_take.dropna().mean()) if len(mfe_take.dropna()) else 0.0,
+        "mean_pnl_per_abs_mae": (
+            float(pnl_take.mean() / abs(mae_take.mean()))
+            if len(mae_take) and abs(mae_take.mean()) > 1e-9 else 0.0
+        ),
     }
     return out, summary
+
+
+# ── Phase 6 acceptance gate (2026-06-03, S6) ──────────────────────────────
+
+import re as _re
+
+_UID_TS_RE = _re.compile(r"(\d{8}T\d{6})")
+
+# Absolute floors + relative tolerances. Relative checks apply only when an anchor
+# (prior clean summary) is supplied. Per-year floors stop a single weak regime (e.g.
+# 2026) from auto-failing a real improvement while still catching collapse, and stop a
+# pile-up from hiding inside a pooled mean.
+GATE_CFG = {
+    "min_year_mean_bps": 12.0,
+    "min_year_win": 0.85,
+    "min_admit_rate": 0.60,
+    "max_opposing_overlaps": 0,
+    "rel_pnl": 0.95,         # mean_pnl_per_take >= 0.95x anchor
+    "rel_drawdown": 1.15,    # |drawdown| <= 1.15x anchor
+    "rel_mae": 1.20,         # |median MAE| / frac<-20 <= 1.20x anchor
+    "min_side_spearman": 0.10,  # GATE-4: per-side Spearman(adv, RAW fwd PnL) floor (long & short)
+}
+
+
+def _entry_year(uid: str):
+    m = _UID_TS_RE.findall(str(uid))
+    if not m:
+        return None
+    try:
+        return int(m[-1][:4])
+    except ValueError:
+        return None
+
+
+def _per_year_metrics(rows: "pd.DataFrame") -> dict:
+    """Per-year mean/median/win over TAKE rows (parsed from candidate_uid)."""
+    take = rows[rows["exit_reason"] != "ENTRY_IQL_SKIP"].copy()
+    if take.empty:
+        return {}
+    take["_year"] = take["candidate_uid"].map(_entry_year)
+    out = {}
+    for y, g in take.groupby("_year"):
+        if y is None:
+            continue
+        p = pd.to_numeric(g["realized_pnl_bps"], errors="coerce")
+        out[int(y)] = {"n": int(len(g)), "mean": float(p.mean()),
+                       "median": float(p.median()), "win": float((p > 0).mean())}
+    return out
+
+
+def evaluate_phase6_gate(summary: dict, per_year: dict, portfolio_live: dict,
+                         anchor: dict | None, cfg: dict = GATE_CFG,
+                         take_calib: "pd.DataFrame | None" = None) -> tuple[bool, list]:
+    """Return (passed, checks). checks = list of {name, ok, detail}. Fail-closed:
+    any failed check -> not passed. Relative checks only when anchor is given.
+    take_calib (optional): per-take frame with [side_v1, advantage, raw_fwd_pnl_bps] for the
+    per-side rank-calibration floor (RR3)."""
+    checks = []
+
+    def add(name, ok, detail):
+        checks.append({"name": name, "ok": bool(ok), "detail": detail})
+
+    # (1) per-year floors (absolute) — catch regime collapse + hidden pile-ups
+    if per_year:
+        worst_mean = min(v["mean"] for v in per_year.values())
+        worst_win = min(v["win"] for v in per_year.values())
+        add("per_year_min_mean_bps", worst_mean >= cfg["min_year_mean_bps"],
+            f"min-year mean {worst_mean:.1f} >= {cfg['min_year_mean_bps']}")
+        add("per_year_min_win", worst_win >= cfg["min_year_win"],
+            f"min-year win {worst_win:.3f} >= {cfg['min_year_win']}")
+    else:
+        add("per_year_metrics_present", False, "no per-year metrics (cannot gate)")
+
+    # (2) portfolio invariants + realistic drawdown/admit under the live safety layer
+    add("no_opposing_overlaps", portfolio_live.get("n_opposing_side_overlaps", 1) <= cfg["max_opposing_overlaps"],
+        f"opposing_overlaps={portfolio_live.get('n_opposing_side_overlaps')} <= {cfg['max_opposing_overlaps']}")
+    add("max_same_side_within_cap",
+        portfolio_live.get("max_same_side_concurrent", 10**9) <= (portfolio_live.get("max_concurrent_cap") or 10**9),
+        f"max_same_side={portfolio_live.get('max_same_side_concurrent')} <= cap {portfolio_live.get('max_concurrent_cap')}")
+    add("admit_rate", portfolio_live.get("admit_rate", 0.0) >= cfg["min_admit_rate"],
+        f"admit_rate={portfolio_live.get('admit_rate')} >= {cfg['min_admit_rate']}")
+
+    # (3) relative-to-anchor (only if anchor supplied)
+    if anchor:
+        a_mean = anchor.get("mean_pnl_per_take", 0.0)
+        if a_mean > 0:
+            add("rel_pnl_vs_anchor", summary.get("mean_pnl_per_take", 0.0) >= cfg["rel_pnl"] * a_mean,
+                f"mean_pnl {summary.get('mean_pnl_per_take'):.1f} >= {cfg['rel_pnl']}x anchor {a_mean:.1f}")
+        a_med_mae = abs(anchor.get("median_mae_bps_take", 0.0))
+        s_med_mae = abs(summary.get("median_mae_bps_take", 0.0))
+        if a_med_mae > 1e-9:
+            add("rel_mae_vs_anchor", s_med_mae <= cfg["rel_mae"] * a_med_mae,
+                f"|median MAE| {s_med_mae:.1f} <= {cfg['rel_mae']}x anchor {a_med_mae:.1f}")
+        a_dd = abs(anchor.get("_portfolio_drawdown_bps", 0.0))
+        s_dd = abs(portfolio_live.get("max_account_drawdown_bps", 0.0))
+        if a_dd > 1e-9:
+            add("rel_drawdown_vs_anchor", s_dd <= cfg["rel_drawdown"] * a_dd,
+                f"|drawdown| {s_dd:.0f} <= {cfg['rel_drawdown']}x anchor {a_dd:.0f}")
+    else:
+        add("anchor_supplied", True, "no anchor — relative checks skipped (first clean baseline run)")
+
+    # (4) PER-SIDE RANK-CALIBRATION (RR3/GATE-4): Spearman(entry advantage, RAW forward PnL),
+    # computed separately for long-takes and short-takes, BOTH >= floor. The -2000 model had
+    # short rho -0.28 (higher conviction -> worse trade). Correlate vs RAW fwd PnL, not joint-exit.
+    if take_calib is not None and len(take_calib) and {"side_v1", "advantage", "raw_fwd_pnl_bps"}.issubset(take_calib.columns):
+        floor = float(cfg.get("min_side_spearman", 0.10))
+        for side in ("long", "short"):
+            s = take_calib[take_calib["side_v1"] == side]
+            a = pd.to_numeric(s["advantage"], errors="coerce")
+            r = pd.to_numeric(s["raw_fwd_pnl_bps"], errors="coerce")
+            ok_n = len(s) >= 50 and a.nunique() >= 5
+            rho = float(a.rank().corr(r.rank())) if ok_n else float("nan")
+            if not ok_n:
+                add(f"side_spearman_{side}", True, f"{side}: n={len(s)} <50 — skipped (insufficient takes)")
+            else:
+                add(f"side_spearman_{side}", rho >= floor, f"{side} Spearman(adv,raw_fwd_pnl)={rho:.3f} >= {floor}")
+    else:
+        add("side_calibration_available", True, "no take_calib frame — per-side Spearman skipped")
+
+    passed = all(c["ok"] for c in checks)
+    return passed, checks
 
 
 def main() -> int:
@@ -292,6 +450,16 @@ def main() -> int:
     p.add_argument("--max-bars", type=int, default=V12_MAX_BARS_DEFAULT)
     p.add_argument("--skip-v12-on", action="store_true", help="Only run V12_OFF (no V3 fail-safe)")
     p.add_argument("--skip-v12-off", action="store_true", help="Only run V12_ON (V3 fail-safe)")
+    # 2026-06-03 (S6): turn Phase 6 into a real PASS/FAIL gate. Opt-in to preserve
+    # back-compat for exploratory runs; the retrain-vedtak procedure MUST pass --gate.
+    p.add_argument("--gate", action="store_true",
+                   help="Enforce PASS/FAIL acceptance gate; main() returns nonzero on FAIL.")
+    p.add_argument("--gate-anchor", default=None,
+                   help="Path to a prior CLEAN summary_v1.json for relative thresholds "
+                        "(pnl>=0.95x, drawdown<=1.15x, MAE<=1.2x). Omit on the first clean "
+                        "baseline run (absolute floors only).")
+    p.add_argument("--gate-hard-cap", type=int, default=2,
+                   help="Same-side concurrency hard cap modeled in the portfolio gate (matches live HARD_MAX_SAME_SIDE).")
     args = p.parse_args()
 
     v3tracked = Path(args.v3tracked_lock).expanduser().resolve()
@@ -381,6 +549,79 @@ def main() -> int:
     }
     (out_root / "summary_v1.json").write_text(json.dumps(summary_full, indent=2, default=str))
     print(f"\n✅ Wrote: {out_root}/summary_v1.json + per_candidate_V12_*.csv")
+
+    # Companion: sequential MAE/drawdown-aware portfolio sim (2026-06-03). Phase 6 above
+    # scores candidates independently (up to ~35 concurrent, unseen); this shows realized
+    # edge + account drawdown under a concurrency cap. Non-fatal: the primary Phase 6
+    # output is already on disk — a sim bug must never discard a multi-hour run.
+    gate_passed = None
+    try:
+        from gx1.backtest.portfolio_sim_v1 import cap_sweep, simulate_portfolio
+        for cfg in ("V12_OFF", "V12_ON"):
+            csv_path = out_root / f"per_candidate_{cfg}.csv"
+            if not csv_path.is_file():
+                continue
+            sweep = cap_sweep(pd.read_csv(csv_path))
+            (out_root / f"portfolio_sim_{cfg}.json").write_text(json.dumps(sweep, indent=2, default=str))
+            print(f"   + portfolio_sim_{cfg}.json (concurrency-cap sweep)")
+
+        # ── Acceptance GATE (S6) — gate on V12_OFF (primary), else V12_ON ──
+        gate_cfg_name = "V12_OFF" if (out_root / "per_candidate_V12_OFF.csv").is_file() else "V12_ON"
+        gate_csv = out_root / f"per_candidate_{gate_cfg_name}.csv"
+        if gate_csv.is_file():
+            gate_rows = pd.read_csv(gate_csv)
+            per_year = _per_year_metrics(gate_rows)
+            gate_summary = next((s for s in summaries if s.get("config") == gate_cfg_name), summaries[0])
+            anchor = None
+            if args.gate_anchor:
+                a = json.loads(Path(args.gate_anchor).read_text())
+                anchor = (a.get("configs", [a])[0]) if isinstance(a, dict) else None
+                if isinstance(a, dict) and "_portfolio_drawdown_bps" in a:
+                    anchor = {**(anchor or {}), "_portfolio_drawdown_bps": a["_portfolio_drawdown_bps"]}
+            try:
+                portfolio_live = simulate_portfolio(
+                    gate_rows, max_concurrent=args.gate_hard_cap,
+                    enforce_invariants=True, require_mae=True)
+            except ValueError as ve:
+                # No MAE column -> cannot honestly gate. Fail-closed when --gate.
+                portfolio_live = {"error": str(ve), "n_opposing_side_overlaps": 1,
+                                  "admit_rate": 0.0, "max_account_drawdown_bps": 0.0}
+            # GATE-4: per-side calibration frame — join take rows (side + RAW fwd PnL) with the
+            # entry advantage from decisions.parquet (by candidate_uid).
+            take_calib = None
+            try:
+                _adv = decisions[["candidate_uid", "advantage_over_skip_v1"]].rename(
+                    columns={"advantage_over_skip_v1": "advantage"})
+                _tk = gate_rows[gate_rows["exit_reason"] != "ENTRY_IQL_SKIP"][
+                    ["candidate_uid", "side_v1", "raw_fwd_pnl_bps"]]
+                take_calib = _tk.merge(_adv, on="candidate_uid", how="inner")
+            except Exception as _ce:  # noqa: BLE001 — calibration check is best-effort, gate degrades gracefully
+                print(f"   (per-side calib frame unavailable: {_ce})")
+            gate_passed, checks = evaluate_phase6_gate(
+                gate_summary, per_year, portfolio_live, anchor, take_calib=take_calib)
+            gate_out = {
+                "gated_config": gate_cfg_name, "passed": bool(gate_passed),
+                "checks": checks, "per_year": per_year,
+                "portfolio_live_modeled": portfolio_live,
+                "_portfolio_drawdown_bps": portfolio_live.get("max_account_drawdown_bps"),
+                "anchor": args.gate_anchor, "gate_cfg": GATE_CFG,
+            }
+            (out_root / "phase6_gate_v1.json").write_text(json.dumps(gate_out, indent=2, default=str))
+            print(f"\n{'='*80}\nPHASE 6 GATE [{gate_cfg_name}]: "
+                  f"{'✅ PASS' if gate_passed else '❌ FAIL'}\n{'='*80}")
+            for c in checks:
+                print(f"  {'✓' if c['ok'] else '✗'} {c['name']:28s} {c['detail']}")
+            print(f"   + phase6_gate_v1.json")
+    except Exception as e:  # noqa: BLE001 — companion diagnostic, never fatal
+        print(f"   ⚠ portfolio sim / gate skipped: {e}")
+
+    # Hard exit only when --gate is set (back-compat: exploratory runs always return 0).
+    if args.gate and gate_passed is False:
+        print("\n❌ --gate: acceptance gate FAILED → returning nonzero (retrain NOT validated).")
+        return 1
+    if args.gate and gate_passed is None:
+        print("\n❌ --gate: gate could not be evaluated → returning nonzero (fail-closed).")
+        return 1
     return 0
 
 

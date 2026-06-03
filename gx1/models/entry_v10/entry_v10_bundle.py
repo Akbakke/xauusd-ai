@@ -183,6 +183,29 @@ def load_entry_v10_ctx_bundle(
     # from bundle metadata. Default False keeps old (pos-enc-free) bundles
     # bit-identical at inference.
     _enable_pos_enc = bool(meta.get("enable_pos_enc", False)) if isinstance(meta, dict) else False
+    # BIG-9 (2026-06-03): FiLM regime-conditioning — must rebuild with the module if the
+    # bundle was trained with it (regime_film.* weights in state_dict), else strict-load fails.
+    _enable_regime_film = bool(meta.get("enable_regime_film", False)) if isinstance(meta, dict) else False
+    if not _enable_regime_film:
+        _enable_regime_film = any(str(k).startswith("regime_film.") for k in state_dict_preview)
+
+    # 2026-06-02: per-TF learnable input scaling (V10 v5+). Detect via
+    # state_dict so bundles without this feature continue to load. Init
+    # values come from meta so the Parameter shape matches state_dict
+    # (state_dict load overwrites init with learned values).
+    _tf_input_scale_cfg = (meta.get("tf_input_scale") or {}) if isinstance(meta, dict) else {}
+    _has_tf_input_scale = any(
+        f"tf_input_scale_{tf}" in state_dict_preview for tf in ("m5", "m15", "h1", "h4", "d1")
+    )
+    _tf_inits = (_tf_input_scale_cfg.get("init") or {})
+    _tf_scale_kwargs = dict(
+        enable_tf_input_scale=_has_tf_input_scale,
+        tf_input_scale_init_m5=float(_tf_inits.get("m5", 1.0)),
+        tf_input_scale_init_m15=float(_tf_inits.get("m15", 1.0)),
+        tf_input_scale_init_h1=float(_tf_inits.get("h1", 0.7)),
+        tf_input_scale_init_h4=float(_tf_inits.get("h4", 0.5)),
+        tf_input_scale_init_d1=float(_tf_inits.get("d1", 0.3)),
+    ) if _has_tf_input_scale else {}
 
     model = EntryV10CtxHybridTransformer(
         seq_input_dim=seq_input_dim,
@@ -203,12 +226,14 @@ def load_entry_v10_ctx_bundle(
         enable_position_size_head=_has_position_size,
         enable_hold_horizon_head=_has_hold_horizon,
         enable_pos_enc=_enable_pos_enc,
+        enable_regime_film=_enable_regime_film,
         enable_dip_head=_has_dip,
         enable_forecast_head=_has_forecast,
         enable_timing_head=_has_timing,
         enable_tail_risk_head=_has_tail_risk,
         enable_vol_forecast_head=_has_vol_forecast,
         enable_cross_tf_attn=_has_cross_tf,
+        **_tf_scale_kwargs,
     ).to(dev)
 
     state_dict = state_dict_preview

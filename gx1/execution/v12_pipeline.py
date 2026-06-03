@@ -203,7 +203,19 @@ class V12Pipeline:
             self._last_augmented_bucket = None
             self._last_augmented = None
         cutoff = self.prebuilt_loader.cutoff_ts
-        # Clip to latest available M5 if past cutoff
+        # FAIL-CLOSED staleness cap (2026-06-03 audit): the clip below silently decides on
+        # stale features if the canonical-incremental daemon stalls/dies (now>cutoff frozen).
+        # Refuse (SKIP) when the prebuilt is older than the cap. Live-only by construction:
+        # replay always has now<=cutoff so this never fires there.
+        import os as _os
+        _max_stale_min = float(_os.environ.get("GX1_MAX_PREBUILT_STALENESS_MIN", "30"))
+        if cutoff is not None and now_minute > cutoff:
+            _age_min = (now_minute - cutoff).total_seconds() / 60.0
+            if _age_min > _max_stale_min:
+                LOG.error(f"[PREBUILT_STALE] cutoff {cutoff} is {_age_min:.0f} min behind now "
+                          f"{now_minute} (> {_max_stale_min} cap) — SKIP (canonical daemon stalled?)")
+                return False
+        # Clip to latest available M5 if past cutoff (within staleness cap)
         effective_ts = now_minute if now_minute <= cutoff else cutoff
         cur_bucket = effective_ts.floor("5min")
         if self._last_augmented_bucket == cur_bucket and self._last_augmented is not None:
@@ -300,8 +312,20 @@ class V12Pipeline:
         # 2026-05-12). H5 audit fix 2026-05-19: also block OPPOSITE-side flapping
         # within the same M5 (e.g. LONG@16:00:30 then SHORT@16:01:15 would have
         # passed before — now blocked) to prevent same-bar contradiction trades.
+        # 2026-05-30: PURE_PHASE6 originally bypassed CLUSTER1_RATE_LIMIT too,
+        # because Phase 6 OOT didn't gate same-M5 re-entries (each OOT candidate
+        # is its own decision point, already deduplicated).
+        # 2026-06-02: REVERSED — CLUSTER1 is now ALWAYS ON in live regardless
+        # of PURE_PHASE6. The OOT-replay justification was wrong because in live,
+        # one M5 yields many M1 ticks and each ticks re-evaluates the same V10
+        # snapshot → without CLUSTER1, NEW PQ_COND policy stacked 7 short trades
+        # on the same M5 bar overnight 2026-06-02 (−1,348 USD on a 4500→4520
+        # adverse move). CLUSTER1 is a sanity-floor for live, not a feature gate.
+        # Override via GX1_CLUSTER1_DISABLE=1 only for explicit OOT-replay runs.
+        import os as _os
+        _cluster1_disabled = bool(int(_os.environ.get("GX1_CLUSTER1_DISABLE", "0")))
         action_label = rec.action_label_v1
-        if action_label in ("TAKE_LONG_NOW", "TAKE_SHORT_NOW"):
+        if (not _cluster1_disabled) and action_label in ("TAKE_LONG_NOW", "TAKE_SHORT_NOW"):
             side_key = "long" if action_label == "TAKE_LONG_NOW" else "short"
             decision_m5 = augmented.index[end_idx]  # already an M5-bar timestamp
             last_m5_same = self._last_entry_m5_by_side.get(side_key)
@@ -340,6 +364,25 @@ class V12Pipeline:
             # trade is actually opened (not on TAKE_*_NOW recommendation alone).
 
         q = rec.q_per_action_v1
+        # 2026-05-30: capture full 192-dim state vector + feature_names + per-K
+        # raw Q for offline counterfactual variant replay (multi_variant_counterfactual.py)
+        # and online-IQL prep. Adds ~2 KB per journal event. Safe to drop if
+        # journal disk pressure becomes an issue.
+        try:
+            state_arr = rec.state_v1
+            state_list = [float(v) for v in state_arr.tolist()] if state_arr is not None else None
+        except Exception as exc:
+            LOG.warning(f"[ONLINE_IQL_CAPTURE] state_v1 extract failed: {exc} — "
+                        f"journal will have null state_v1 for this poll. If this "
+                        f"persists, online-IQL replay buffer build will skip these "
+                        f"events.")
+            state_list = None
+        try:
+            q_per_k_arr = rec.q_per_action_per_k_v1
+            q_per_k_list = q_per_k_arr.tolist() if q_per_k_arr is not None else None
+        except Exception as exc:
+            LOG.warning(f"[ONLINE_IQL_CAPTURE] q_per_action_per_k_v1 extract failed: {exc}")
+            q_per_k_list = None
         return {
             "action": rec.action_label_v1,
             "action_id": int(rec.action_id_v1),
@@ -368,6 +411,13 @@ class V12Pipeline:
             "decision_ts": str(augmented.index[end_idx]),
             "_v10_snapshot": v10_out,   # for later TradeState.open()
             "stub": False,
+            # Online-IQL prep payload (2026-05-30). state_v1 is the 192-dim raw
+            # vector Entry-IQL saw at this poll. Schema constants (feature_names,
+            # k_horizons, variant, fold, aggregator) DON'T change per poll — they
+            # live in the bundle dir referenced by PROJECT_STATE_artifacts.json
+            # so we don't pay disk for redundancy.
+            "entry_iql_state_v1": state_list,
+            "entry_iql_q_per_action_per_k_v1": q_per_k_list,
         }
 
     # ── exit decision ────────────────────────────────────────────────

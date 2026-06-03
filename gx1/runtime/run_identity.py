@@ -601,9 +601,12 @@ def create_run_identity(
     # Get windows SHA
     windows_sha = _get_windows_sha(windows_path)
     
-    # DEL 3: Get Pre-Entry Wait Gate info (if available from env)
-    pre_entry_wait_enabled = os.getenv("GX1_PRE_ENTRY_WAIT_GATE_ENABLED", "0") == "1"
-    pre_entry_wait_counters = None  # Will be updated by EntryManager after replay
+    # DEL 3: Pre-Entry Wait Gate RETIRED 2026-06-03 — pre_entry_wait_gate.py deleted
+    # (0 importers, never executable; the env flag only set a misleading telemetry bool).
+    # Hardcoded False so the flag can't lie about a gate that no longer exists. Field kept
+    # for back-compat of old run-identity JSONs.
+    pre_entry_wait_enabled = False
+    pre_entry_wait_counters = None
     
     # DEL OVERLAP: Get OVERLAP Overlay info (if available from env)
     overlap_overlay_config_path = os.getenv("GX1_OVERLAP_OVERLAY_CONFIG")

@@ -52,7 +52,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from sklearn.model_selection import StratifiedShuffleSplit
+from sklearn.model_selection import GroupShuffleSplit, StratifiedShuffleSplit
 
 from gx1.scripts import entry_iql_multi_head_gpu_core_v1 as iql_core
 from gx1.scripts import (
@@ -556,18 +556,39 @@ def build_stratified_folds(
     n_rows: int, oracle_action: np.ndarray,
     *, n_folds: int = N_FOLDS, val_size: float = VAL_SIZE,
     test_size: float = TEST_SIZE, seed: int = SEED_V1,
+    groups: np.ndarray | None = None,
 ) -> list[dict[str, np.ndarray]]:
+    """Build train/val/test folds.
+
+    EXIT-8 (2026-06-03 cross-model scan): when `groups` (per-row candidate_uid) is provided,
+    use GroupShuffleSplit so ALL ~480 autocorrelated M1 bars of one trade land entirely on one
+    side — the leaky StratifiedShuffleSplit otherwise scatters a single trade across train AND
+    test, inflating the "OOT" estimate. groups=None (default) reproduces the cemented stratified
+    split bit-for-bit. Group mode forfeits oracle-action stratification (GroupShuffleSplit can't
+    stratify); that's the correct trade for an honest split here.
+    """
     folds: list[dict[str, np.ndarray]] = []
     all_idx = np.arange(n_rows)
+    g = np.asarray(groups) if groups is not None else None
+    if g is not None and g.shape[0] != n_rows:
+        raise ValueError(f"groups length {g.shape[0]} != n_rows {n_rows}")
     for fold_id_v1 in range(n_folds):
         non_train_size = val_size + test_size
-        sss1 = StratifiedShuffleSplit(n_splits=1, test_size=non_train_size, random_state=seed + fold_id_v1)
-        train_idx, valtest_idx = next(sss1.split(all_idx, oracle_action))
-        valtest_oracle = oracle_action[valtest_idx]
-        sss2 = StratifiedShuffleSplit(n_splits=1, test_size=test_size / non_train_size, random_state=seed + fold_id_v1 + 7919)
-        rel_val_idx, rel_test_idx = next(sss2.split(valtest_idx, valtest_oracle))
-        val_idx = valtest_idx[rel_val_idx]
-        test_idx = valtest_idx[rel_test_idx]
+        if g is not None:
+            gss1 = GroupShuffleSplit(n_splits=1, test_size=non_train_size, random_state=seed + fold_id_v1)
+            train_idx, valtest_idx = next(gss1.split(all_idx, oracle_action, groups=g))
+            gss2 = GroupShuffleSplit(n_splits=1, test_size=test_size / non_train_size, random_state=seed + fold_id_v1 + 7919)
+            rel_val_idx, rel_test_idx = next(gss2.split(valtest_idx, oracle_action[valtest_idx], groups=g[valtest_idx]))
+            val_idx = valtest_idx[rel_val_idx]
+            test_idx = valtest_idx[rel_test_idx]
+        else:
+            sss1 = StratifiedShuffleSplit(n_splits=1, test_size=non_train_size, random_state=seed + fold_id_v1)
+            train_idx, valtest_idx = next(sss1.split(all_idx, oracle_action))
+            valtest_oracle = oracle_action[valtest_idx]
+            sss2 = StratifiedShuffleSplit(n_splits=1, test_size=test_size / non_train_size, random_state=seed + fold_id_v1 + 7919)
+            rel_val_idx, rel_test_idx = next(sss2.split(valtest_idx, valtest_oracle))
+            val_idx = valtest_idx[rel_val_idx]
+            test_idx = valtest_idx[rel_test_idx]
         folds.append({
             "fold_id_v1": f"FOLD_{fold_id_v1 + 1}",
             "train_idx_v1": train_idx,
@@ -575,6 +596,73 @@ def build_stratified_folds(
             "test_idx_v1": test_idx,
         })
     return folds
+
+
+def maybe_candidate_uid_groups(df: "pd.DataFrame") -> np.ndarray | None:
+    """EXIT-8: ONE-truth resolver for the group-split key, shared by all exit call sites.
+
+    Returns the per-row candidate_uid array when GX1_EXIT_IQL_GROUP_SPLIT is truthy, else None
+    (= cement stratified split). Fail-closed: if the flag is set but candidate_uid is missing,
+    RAISE rather than silently fall back to the leaky split.
+    """
+    if os.environ.get("GX1_EXIT_IQL_GROUP_SPLIT", "0").strip().lower() not in ("1", "true", "yes", "on"):
+        return None
+    if "candidate_uid" not in df.columns:
+        raise RuntimeError(
+            "GX1_EXIT_IQL_GROUP_SPLIT=1 but 'candidate_uid' is absent from the per-bar df — "
+            "cannot do a leak-free group split; fix the dataset or unset the flag."
+        )
+    return df["candidate_uid"].to_numpy()
+
+
+def maybe_per_trade_sample_weights(df: "pd.DataFrame") -> np.ndarray | None:
+    """EXIT-8 part 2: per-trade 1/n_bars sample weight (mean-normalised to 1.0).
+
+    A long-held trade contributes ~480 near-duplicate M1 bars to the per-bar MSE and would
+    otherwise dominate short trades (survivor-length bias). Weighting each bar by 1/n_bars of
+    its trade equalises every trade's total contribution. Returns None unless
+    GX1_EXIT_IQL_PER_TRADE_WEIGHT is truthy (= cement unweighted). Mean-normalised so the loss
+    magnitude / effective LR is unchanged. Fail-closed if flag set but candidate_uid missing.
+    """
+    if os.environ.get("GX1_EXIT_IQL_PER_TRADE_WEIGHT", "0").strip().lower() not in ("1", "true", "yes", "on"):
+        return None
+    if "candidate_uid" not in df.columns:
+        raise RuntimeError(
+            "GX1_EXIT_IQL_PER_TRADE_WEIGHT=1 but 'candidate_uid' is absent from the per-bar df — "
+            "cannot compute a per-trade weight; fix the dataset or unset the flag."
+        )
+    counts = df.groupby("candidate_uid")["candidate_uid"].transform("size").to_numpy().astype(np.float64)
+    w = 1.0 / np.maximum(1.0, counts)
+    w = w * (float(len(w)) / float(w.sum()))   # mean-normalise to 1.0
+    return w.astype(np.float32)
+
+
+def maybe_degenerate_loss_mask(
+    df: "pd.DataFrame", n_actions: int, k_horizons: "list[int]",
+) -> np.ndarray | None:
+    """EXIT-9: (n, n_actions*n_K) 0/1 Q-loss mask, or None.
+
+    Zeroes the HOLD-action (row, K) cells whose forward window is clipped past the trade/data
+    end (forward_bars_remaining_v1 < K). For those cells r_hold_K is computed on K_eff<K bars,
+    so it is NOT a real K-horizon continuation reward and should not push gradient. EXIT_NOW
+    cells stay 1 (current-unrealized-PnL is horizon-independent, always valid). Returns None
+    unless GX1_EXIT_IQL_MASK_DEGENERATE is truthy (= cement, no masking). Fail-closed on a
+    missing forward_bars_remaining_v1 column. Flatten order (action-major) matches R.view(n,-1).
+    """
+    if os.environ.get("GX1_EXIT_IQL_MASK_DEGENERATE", "0").strip().lower() not in ("1", "true", "yes", "on"):
+        return None
+    if "forward_bars_remaining_v1" not in df.columns:
+        raise RuntimeError(
+            "GX1_EXIT_IQL_MASK_DEGENERATE=1 but 'forward_bars_remaining_v1' is absent from the "
+            "per-bar df — cannot mask degenerate K-cells; fix the dataset or unset the flag."
+        )
+    n = len(df)
+    nk = len(k_horizons)
+    fbr = df["forward_bars_remaining_v1"].to_numpy().astype(np.float64)
+    mask = np.ones((n, n_actions, nk), dtype=np.float32)
+    for ki, K in enumerate(k_horizons):
+        mask[fbr < float(K), ACTION_HOLD_ID, ki] = 0.0   # HOLD K-horizon clipped past trade end
+    return mask.reshape(n, n_actions * nk)
 
 
 def evaluate_policy_outcome(R: np.ndarray, predicted_action: np.ndarray, K_idx: int) -> dict[str, Any]:
@@ -612,6 +700,8 @@ def evaluate_one_fold(
     X: np.ndarray, R: np.ndarray, oracle_action: np.ndarray,
     *,
     variant: str, artifact_root: Path,
+    sample_weights: np.ndarray | None = None,   # EXIT-8 part 2: per-row weights (full-dataset)
+    loss_mask: np.ndarray | None = None,        # EXIT-9: (n, n_actions*n_K) full-dataset Q-loss mask
 ) -> dict[str, Any]:
     fold_id_v1 = fold["fold_id_v1"]
     train_idx = fold["train_idx_v1"]
@@ -620,6 +710,9 @@ def evaluate_one_fold(
     X_train, R_train = X[train_idx], R[train_idx]
     X_val, R_val = X[val_idx], R[val_idx]
     X_test, R_test = X[test_idx], R[test_idx]
+    # EXIT-8 part 2 / EXIT-9: subset the per-row weights + Q-loss mask to this fold's train rows.
+    train_sample_weights = sample_weights[train_idx] if sample_weights is not None else None
+    train_loss_mask = loss_mask[train_idx] if loss_mask is not None else None
 
     val_action_counts = {ai: int((oracle_action[val_idx] == ai).sum()) for ai in range(N_ACTIONS_EXIT)}
     val_class_guard_status = "OK" if min(val_action_counts.values()) >= MIN_PER_CLASS_VAL else "WARN_BELOW_MIN_PER_CLASS"
@@ -637,6 +730,8 @@ def evaluate_one_fold(
         batch_size=TRAIN_BATCH_SIZE,
         hidden_dim=TRAIN_HIDDEN_DIM, n_hidden=TRAIN_N_HIDDEN,
         seed=SEED_V1, prefer_cuda=True,
+        sample_weights=train_sample_weights,
+        loss_mask=train_loss_mask,
     )
 
     K_primary_idx = K_HORIZONS.index(K_PRIMARY)
@@ -822,14 +917,21 @@ def write_artifacts(
     oracle_dist = {ai: int((oracle_action == ai).sum()) for ai in range(N_ACTIONS_EXIT)}
     print(f"[{ACTION}] oracle action (R_NET_REAL K={K_PRIMARY}) distribution: {oracle_dist}", flush=True)
 
-    folds = build_stratified_folds(n_rows=len(df), oracle_action=oracle_action)
+    folds = build_stratified_folds(
+        n_rows=len(df), oracle_action=oracle_action,
+        groups=maybe_candidate_uid_groups(df),  # EXIT-8: leak-free group split when enabled
+    )
 
     per_fold_results: list[dict[str, Any]] = []
     flat_evaluations: list[dict[str, Any]] = []
+    _exit_sample_weights = maybe_per_trade_sample_weights(df)  # EXIT-8 part 2 (None = cement)
+    _exit_loss_mask = maybe_degenerate_loss_mask(df, N_ACTIONS_EXIT, list(K_HORIZONS))  # EXIT-9 (None = cement)
     for variant in (variants_subset or REWARD_VARIANTS):
         for fold in folds:
             r = evaluate_one_fold(fold, X, R_by_variant[variant], oracle_action,
-                                  variant=variant, artifact_root=artifact_root)
+                                  variant=variant, artifact_root=artifact_root,
+                                  sample_weights=_exit_sample_weights,
+                                  loss_mask=_exit_loss_mask)
             per_fold_results.append(r)
             flat_evaluations.extend(r.get("all_evaluations_v1", []))
 

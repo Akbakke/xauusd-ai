@@ -24,7 +24,10 @@ V12_LOCK="${1:?Usage: $0 <V12_PER_BAR_LOCK>}"
 [[ -d "$V12_LOCK" ]] || { echo "ERR: $V12_LOCK not a directory" >&2; exit 1; }
 [[ -d "$V12_LOCK/per_week" ]] || { echo "ERR: $V12_LOCK/per_week missing" >&2; exit 1; }
 
-V3_BUNDLE="${V3_BUNDLE:-/home/andre2/GX1_DATA/models/exit_transformer_v0/EXIT_V9_MULTI_TF_LR5E4_SCALE025_20260513T223544Z}"
+# FAIL-CLOSED (2026-06-03 audit): resolve the ACTIVE V3 bundle from PROJECT_STATE
+# instead of hardcoding the pre-COSTFIX V9 (which would poison a downstream Exit-IQL
+# retrain). On any guard error the substitution is empty -> the [[ -d ]] check below exits 1.
+V3_BUNDLE="${V3_BUNDLE:-$(PYTHONPATH=/home/andre2/src/GX1_ENGINE python3 -c 'from gx1_guards.artifacts import load_decision_artifact; print(load_decision_artifact("v3_exit"))' 2>/dev/null)}"
 V3_DATASET="${V3_DATASET:-/home/andre2/GX1_DATA/data/training/exit_v3_v7_training_2020_2026_canonical_v3}"
 [[ -d "$V3_BUNDLE" ]]  || { echo "ERR: V3 bundle missing: $V3_BUNDLE" >&2; exit 1; }
 [[ -d "$V3_DATASET" ]] || { echo "ERR: V3 dataset missing: $V3_DATASET" >&2; exit 1; }

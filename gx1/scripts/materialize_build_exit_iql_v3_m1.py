@@ -172,7 +172,11 @@ def load_per_bar_dataset_lazy_join(
         print(f"[{ACTION}] canonical: {len(canonical_suf):,} rows × "
               f"{len(canonical_suf.columns) - 1} features (suffixed)", flush=True)
     else:
-        print(f"[{ACTION}] WARNING: canonical features unavailable", flush=True)
+        # FAIL-CLOSED (2026-06-03 audit): canonical None -> the ~76 canonical state cols
+        # (63% of the state matrix) would silently zero-fill -> a wrongly-trained Exit-IQL.
+        raise RuntimeError(
+            f"[{ACTION}] canonical features unavailable ({canonical_path}) — refusing to "
+            f"build Exit-IQL state on a ~63%-zero-filled matrix. Fix the canonical input.")
 
     rng = np.random.default_rng(seed)
     per_file_target: int | None = None
@@ -246,10 +250,13 @@ def build_reward_matrix(df: pd.DataFrame, *, variant: str) -> np.ndarray:
 
     for ki, K in enumerate(K_HORIZONS):
         hold_col = f"hold_max_pnl_K{K}_v1"
-        hold_K = (
-            pd.to_numeric(df[hold_col], errors="coerce").fillna(0.0).to_numpy()
-            if hold_col in df.columns else exit_now
-        )
+        # FAIL-CLOSED (2026-06-03 audit): if the HOLD-reward column is missing it must NOT
+        # silently fall back to the EXIT reward (collapses HOLD vs EXIT-NOW into the same
+        # target -> degenerate policy). The dataset must carry hold_max_pnl_K{K}_v1.
+        if hold_col not in df.columns:
+            raise RuntimeError(f"[{ACTION}] HOLD-reward column '{hold_col}' missing from "
+                               f"dataset — refusing to substitute the EXIT reward.")
+        hold_K = pd.to_numeric(df[hold_col], errors="coerce").fillna(0.0).to_numpy()
 
         if variant == "R_NET_REAL":
             r_hold = (v2_train.R_NET_REAL_ALPHA * hold_K
@@ -288,10 +295,15 @@ def build_state_matrix(df: pd.DataFrame) -> tuple[np.ndarray, list[str]]:
     parts: list[pd.DataFrame] = []
     feature_names: list[str] = []
     nan_warnings: list[tuple[str, float]] = []
+    missing_cols: list[str] = []
     for c in NUMERIC_STATE_COLS_PER_BAR + NUMERIC_STATE_COLS_CANDIDATE:
         if c in df.columns:
             col = pd.to_numeric(df[c], errors="coerce")
         else:
+            # FAIL-CLOSED (2026-06-03 audit): a required state column missing means a
+            # corrupt/wrong dataset (e.g. canonical block absent -> 63% zero-fill). Do
+            # NOT silently zero-fill the model's input; collect and raise below.
+            missing_cols.append(c)
             col = pd.Series(np.zeros(len(df)), index=df.index)
         nan_frac = float(col.isna().mean()) if len(col) > 0 else 0.0
         if nan_frac > 0.05:
@@ -303,12 +315,19 @@ def build_state_matrix(df: pd.DataFrame) -> tuple[np.ndarray, list[str]]:
             dummies = pd.get_dummies(df[c].astype(str), prefix=c, dummy_na=False)
             parts.append(dummies)
             feature_names.extend(dummies.columns.tolist())
+    # FAIL-CLOSED (2026-06-03 audit): missing required cols or >5% NaN = degraded substrate.
+    # Was print-only; now hard RuntimeError (mirrors materialize_build_entry_iql_v2). A clean
+    # build off the repaired substrate has neither, so this only fires on a bad dataset.
+    if missing_cols:
+        raise RuntimeError(
+            f"[{ACTION}] {len(missing_cols)} required state columns MISSING from dataset "
+            f"(would be silently zero-filled): {missing_cols[:20]}"
+            f"{' ...' if len(missing_cols) > 20 else ''}")
     if nan_warnings:
-        print(f"[{ACTION}] feature NaN warnings (frac >5%):", flush=True)
-        for c, frac in nan_warnings[:20]:
-            print(f"    {c}: {frac:.2%}", flush=True)
-        if len(nan_warnings) > 20:
-            print(f"    ... +{len(nan_warnings) - 20} more", flush=True)
+        raise RuntimeError(
+            f"[{ACTION}] {len(nan_warnings)} feature(s) exceed 5% NaN (degraded substrate): "
+            f"{[(c, round(f, 4)) for c, f in nan_warnings[:20]]}"
+            f"{' ...' if len(nan_warnings) > 20 else ''}")
     X = pd.concat(parts, axis=1).astype(np.float32).to_numpy()
     return X, feature_names
 
@@ -396,15 +415,22 @@ def write_artifacts(
         oracle_dist = {ai: int((oracle_action == ai).sum()) for ai in range(v2_train.N_ACTIONS_EXIT)}
         print(f"[{ACTION}] oracle action (R_NET_REAL K={effective_k_primary}) distribution: {oracle_dist}", flush=True)
 
-        folds = v2_train.build_stratified_folds(n_rows=len(df), oracle_action=oracle_action)
+        folds = v2_train.build_stratified_folds(
+            n_rows=len(df), oracle_action=oracle_action,
+            groups=v2_train.maybe_candidate_uid_groups(df),  # EXIT-8: leak-free group split when enabled
+        )
 
         per_fold_results: list[dict[str, Any]] = []
         flat_evaluations: list[dict[str, Any]] = []
+        _exit_sample_weights = v2_train.maybe_per_trade_sample_weights(df)  # EXIT-8 part 2 (None = cement)
+        _exit_loss_mask = v2_train.maybe_degenerate_loss_mask(df, v2_train.N_ACTIONS_EXIT, list(K_HORIZONS))  # EXIT-9
         for variant in variants:
             for fold in folds:
                 r = v2_train.evaluate_one_fold(
                     fold, X, R_by_variant[variant], oracle_action,
                     variant=variant, artifact_root=artifact_root,
+                    sample_weights=_exit_sample_weights,
+                    loss_mask=_exit_loss_mask,
                 )
                 per_fold_results.append(r)
                 flat_evaluations.extend(r.get("all_evaluations_v1", []))

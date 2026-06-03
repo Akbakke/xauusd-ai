@@ -270,6 +270,31 @@ class ExitIQLLiveInference:
                  f"variant={variant}  fold={fold_id}  aggregator={aggregator}  "
                  f"v3_override=disabled")
         LOG.info(f"  feature_names: {len(feature_names)}")
+        # 2026-06-02 fix (audit MEDIUM-#3): validate that Exit-IQL's expected
+        # feature_names include the V3-block keys we'll feed at decision time.
+        # Without this, a retrained bundle that drops/renames V3 features would
+        # silently 0-fill them via DEFAULT_V3_FEATURES (used when v3_v8_out=None
+        # or when V3 inference fails). The check below catches contract drift
+        # at load rather than surfacing it as silent train/serve skew.
+        feat_set = set(feature_names)
+        v3_block_keys = set(DEFAULT_V3_FEATURES.keys())
+        missing_v3 = v3_block_keys - feat_set
+        if missing_v3:
+            LOG.warning(
+                f"[EXIT_IQL_V3_BLOCK_PARTIAL] adapter feature_names missing {len(missing_v3)} "
+                f"of {len(v3_block_keys)} V3-block features: {sorted(missing_v3)[:5]}. "
+                f"Bar-state will write them but adapter will ignore them — train/serve OK "
+                f"as long as this is intentional. Verify bundle's training-time V3 schema."
+            )
+        v3_track_keys = {"v3_max_prob_in_trade_v1", "v3_consecutive_exits_v1",
+                          "v3_total_exit_decisions_v1", "v3_signal_acceleration_v1"}
+        missing_track = v3_track_keys - feat_set
+        if missing_track == v3_track_keys:
+            LOG.warning(
+                f"[EXIT_IQL_V3_TRACKING_MISSING] none of the V3-tracking features "
+                f"(v3_max_prob_in_trade_v1 etc.) are in adapter — bundle was trained "
+                f"without V3 tracking. Check materialize_build_exit_iql_v3_m1 version."
+            )
         return cls(decider=decider, feature_names=feature_names)
 
     @classmethod
@@ -376,9 +401,22 @@ class ExitIQLLiveInference:
         # Set zeros for other sessions
         for s in ("ASIA", "EU", "OVERLAP", "US"):
             bar_state.setdefault(f"session_{s}", 0.0)
-        # vol_regime / trend_regime / decision_reason — same placeholder convention as training
-        bar_state["vol_regime_MEDIUM"] = 1.0
-        bar_state["trend_regime_TREND_NEUTRAL"] = 1.0
+        # vol_regime / trend_regime — real per-bar regime when GX1_REGIME_V4=1 (gap-register H6,
+        # exit side: Exit-IQL was regime-blind via these const placeholders). Mirror of the
+        # Entry-IQL H6 mappings (materialize_inference_batch_candidates_v3_v1). Else cement
+        # placeholder. Per-bar regime from canonical_v3_row (Exit ALWAYS M1, per-bar conditioning).
+        if os.environ.get("GX1_REGIME_V4", "0") == "1":
+            _tr = int(canonical_v3_row.get("trend_regime_id", 1) or 1)
+            _vr = int(canonical_v3_row.get("vol_regime_id", 2) or 2)
+            _vl = {0: "LOW", 1: "LOW", 2: "MEDIUM", 3: "HIGH", 4: "EXTREME"}.get(_vr, "MEDIUM")
+            _tl = {0: "TREND_DOWN", 1: "TREND_NEUTRAL", 2: "TREND_UP"}.get(_tr, "TREND_NEUTRAL")
+            for _v in ("LOW", "MEDIUM", "HIGH", "EXTREME"):
+                bar_state[f"vol_regime_{_v}"] = 1.0 if _vl == _v else 0.0
+            for _v in ("TREND_UP", "TREND_NEUTRAL", "TREND_DOWN"):
+                bar_state[f"trend_regime_{_v}"] = 1.0 if _tl == _v else 0.0
+        else:
+            bar_state["vol_regime_MEDIUM"] = 1.0
+            bar_state["trend_regime_TREND_NEUTRAL"] = 1.0
         bar_state["decision_reason_v2_inference_batch"] = 1.0
 
         # Canonical_v3 + augment features under the _canon_v1 suffix only.

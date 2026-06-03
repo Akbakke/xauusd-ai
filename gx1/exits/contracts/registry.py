@@ -43,6 +43,13 @@ from gx1.exits.contracts.exit_io_v7_volume_dipstruct_m1l512 import (
     EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_IO_VERSION,
     assert_exit_io_v7_volume_dipstruct_m1l512_contract,
 )
+from gx1.exits.contracts.exit_io_v8_regime_m1l512 import (
+    EXIT_IO_V8_REGIME_M1L512_DEFAULT_WINDOW_LEN,
+    EXIT_IO_V8_REGIME_M1L512_FEATURE_NAMES_HASH,
+    EXIT_IO_V8_REGIME_M1L512_FEATURES,
+    EXIT_IO_V8_REGIME_M1L512_IO_VERSION,
+    assert_exit_io_v8_regime_m1l512_contract,
+)
 
 
 def get_exit_io_contract(io_version: Optional[str] = None) -> Dict[str, Any]:
@@ -103,5 +110,14 @@ def get_exit_io_contract(io_version: Optional[str] = None) -> Dict[str, Any]:
             "feature_count": len(EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_FEATURES),
             "feature_hash": EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_FEATURE_NAMES_HASH,
             "default_window_len": int(EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_DEFAULT_WINDOW_LEN),
+        }
+    if resolved == EXIT_IO_V8_REGIME_M1L512_IO_VERSION:
+        assert_exit_io_v8_regime_m1l512_contract()
+        return {
+            "io_version": EXIT_IO_V8_REGIME_M1L512_IO_VERSION,
+            "feature_names": list(EXIT_IO_V8_REGIME_M1L512_FEATURES),
+            "feature_count": len(EXIT_IO_V8_REGIME_M1L512_FEATURES),
+            "feature_hash": EXIT_IO_V8_REGIME_M1L512_FEATURE_NAMES_HASH,
+            "default_window_len": int(EXIT_IO_V8_REGIME_M1L512_DEFAULT_WINDOW_LEN),
         }
     raise RuntimeError(f"[EXIT_CONTRACT_UNSUPPORTED] io_version={resolved}")

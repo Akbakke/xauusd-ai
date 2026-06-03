@@ -127,12 +127,45 @@ class _M5Cache:
     features: dict[str, Any] = field(default_factory=dict)
 
 
+# 2026-05-29: V2 multi-TF feature wiring for XGB v7 base80 cement.
+# XGB v7 expects 31 per-TF features (M15/H1/H4/D1 × ~8 features each).
+# Source columns from gx1.features.htf_features.compute_per_bar_features_v2,
+# then renamed to "<tf>_<src>_v2" (note ema_stack_aligned source already has
+# _v2 suffix so the rename uses the stripped form).
+V2_MTF_PER_TF_FEATURES = [
+    # (live-name fragment, source column in V2 DataFrame)
+    ("ema20_slope_atr", "ema20_slope_atr"),
+    ("ema_stack_aligned", "ema_stack_aligned_v2"),
+    ("regime_class_id", "regime_class_id"),
+    ("mom_5_atr", "mom_5_atr"),
+    ("mom_20_atr", "mom_20_atr"),
+    ("rsi14_centered", "rsi14_centered"),
+    ("atr_bps_14", "atr_bps_14"),
+    ("lower_wick_pct", "lower_wick_pct"),
+]
+V2_MTF_TFS = ["m15", "h1", "h4", "d1"]
+# D1 in the XGB v7 contract drops lower_wick_pct (7 feats vs 8 for the others).
+V2_MTF_SKIP = {("d1", "lower_wick_pct")}
+# Lookback for V2 multi-TF feature compute. D1 ema200 needs ~200 D1 bars; we
+# load 365 calendar days as a safe upper bound. Cached per H4 bucket so the
+# expensive resample+EMA pass runs at most once every 4 hours.
+V2_MTF_LOOKBACK_DAYS = 365
+
+
+@dataclass
+class _MultiTFV2Cache:
+    """Cached V2 multi-TF feature row keyed by the latest H4 bucket."""
+    last_h4_bucket: pd.Timestamp | None = None
+    features: dict[str, Any] = field(default_factory=dict)
+
+
 @dataclass
 class LiveFeatureBuilder:
     collector_dir: Path
     canonical_m1_dir: Path
     lookback_days: int = DEFAULT_LOOKBACK_DAYS
     _m5_cache: _M5Cache = field(default_factory=_M5Cache)
+    _mtf_v2_cache: _MultiTFV2Cache = field(default_factory=_MultiTFV2Cache)
 
     def _load_m1_window(self, now_ts: pd.Timestamp) -> pd.DataFrame:
         """Union of collector parquets + canonical M1 tape covering [now-lookback, now]."""
@@ -252,6 +285,74 @@ class LiveFeatureBuilder:
         self._m5_cache.features["_spread_std_24h"] = float(recent_spreads.std()) if len(recent_spreads) > 1 else 1.0
         return feats
 
+    def _compute_v2_mtf_features(self, now_ts: pd.Timestamp) -> dict[str, Any]:
+        """Compute V2 multi-TF features (M15/H1/H4/D1) required by XGB v7 base80.
+
+        Cached per H4 bucket — V2 D1/H4 features change slowly so a 4-hour cache
+        TTL is cheap and reduces the ~365-day M1 load to ~6 calls per day.
+        Returns a flat dict {"m15_<feat>_v2": value, "h1_<feat>_v2": value, ...}.
+        On any failure (insufficient history, M5 too short, missing volume),
+        returns an empty dict — caller treats as "feature unavailable" and the
+        XGB load-check will surface the gap.
+        """
+        cur_h4 = now_ts.floor("4h")
+        if self._mtf_v2_cache.last_h4_bucket == cur_h4 and self._mtf_v2_cache.features:
+            return self._mtf_v2_cache.features
+
+        # Load a longer M1 window than the M5 cache uses — D1 ema200 needs
+        # roughly 200 daily bars (~10 months), so 365 days is safe.
+        start_ts = now_ts - pd.Timedelta(days=V2_MTF_LOOKBACK_DAYS)
+        old_lb = self.lookback_days
+        try:
+            self.lookback_days = V2_MTF_LOOKBACK_DAYS
+            m1 = self._load_m1_window(now_ts)
+        finally:
+            self.lookback_days = old_lb
+        if m1.empty or len(m1) < 50_000:
+            return {}
+
+        # Aggregate to M5 with volume (build_multi_tf_per_bar_features_v2 needs it).
+        # If the source had no volume column, fall back to tick-equal-weight (use a
+        # dummy uniform volume so the V2 VWAP features don't NaN-out).
+        m5 = _aggregate_m1_to_m5(m1)
+        if len(m5) < 200:
+            return {}
+        if "volume" not in m5.columns:
+            m5["volume"] = 1.0
+        m5 = m5.set_index(pd.DatetimeIndex(m5["time"]))
+        m5 = m5.drop(columns=["time"])
+        for c in ("open", "high", "low", "close"):
+            m5[c] = m5[c].astype(np.float64)
+        m5["volume"] = m5["volume"].fillna(0.0).astype(np.float64)
+
+        try:
+            from gx1.features.htf_features import build_multi_tf_per_bar_features_v2
+            tf_feats = build_multi_tf_per_bar_features_v2(m5)
+        except Exception as exc:
+            LOG.warning(f"V2 multi-TF build failed: {exc}")
+            return {}
+
+        out: dict[str, Any] = {}
+        for tf in V2_MTF_TFS:
+            tf_key = tf.upper()  # build_multi_tf_per_bar_features_v2 returns M5/M15/H1/H4/D1
+            df = tf_feats.get(tf_key)
+            if df is None or len(df) == 0:
+                continue
+            last = df.iloc[-1]
+            for live_frag, src_col in V2_MTF_PER_TF_FEATURES:
+                if (tf, live_frag) in V2_MTF_SKIP:
+                    continue
+                if src_col not in df.columns:
+                    continue
+                val = last[src_col]
+                if pd.isna(val):
+                    val = 0.0
+                out[f"{tf}_{live_frag}_v2"] = float(val)
+
+        self._mtf_v2_cache.last_h4_bucket = cur_h4
+        self._mtf_v2_cache.features = out
+        return out
+
     def compute(self, now_ts: pd.Timestamp, *, bid: float, ask: float,
                  spread_bps: float) -> dict[str, Any]:
         """Build the 26-feature snapshot for the current minute.
@@ -289,7 +390,7 @@ class LiveFeatureBuilder:
         else:
             body_pct = upper_wick_pct = lower_wick_pct = ret_bps = 0.0
 
-        return {
+        out = {
             # time/session
             "hour_utc": h,
             "day_of_week": int(now_ts.dayofweek),
@@ -323,3 +424,6 @@ class LiveFeatureBuilder:
             # regime
             "vol_regime": m5f["vol_regime"],
         }
+        # 2026-05-29: V2 multi-TF features for XGB v7 base80 cement (31 cols).
+        out.update(self._compute_v2_mtf_features(now_ts))
+        return out

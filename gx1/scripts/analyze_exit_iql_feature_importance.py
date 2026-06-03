@@ -52,7 +52,11 @@ def main() -> int:
     parts = []
     for f in files:
         d = pd.read_parquet(f)
-        # Drop forced_terminal + never_fire (match Exit-IQL training filter)
+        # Drop forced_terminal + never_fire. This FI analysis targets r_exit_now_v1 (a per-row,
+        # horizon-independent reward), so a row-level drop of fully-degenerate bars is the right
+        # filter here. The Exit-IQL trainer is consistent in intent but finer-grained: under
+        # EXIT-9 (GX1_EXIT_IQL_MASK_DEGENERATE=1) it masks the specific HOLD (row,K) cells whose
+        # forward window is clipped (forward_bars_remaining_v1 < K), keeping the rest of the row.
         d = d[(d.get("is_never_fire_v1", 0) == 0) & (d.get("forced_terminal_v1", 0) == 0)]
         parts.append(d)
     df = pd.concat(parts, ignore_index=True)

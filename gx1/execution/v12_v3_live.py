@@ -50,6 +50,13 @@ from gx1.exits.contracts.exit_io_v7_volume_dipstruct_m1l512 import (
     EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_FEATURE_COUNT as V7_FEATURE_COUNT,
     EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_IO_VERSION as V7_IO_VERSION,
 )
+# V8 contract (extension of V7; first 155 features identical → prefix-init from V7).
+# 2026-06-03 regime-everywhere wave: adds the 16 REGIME_V4 features to the exit transformer.
+from gx1.exits.contracts.exit_io_v8_regime_m1l512 import (
+    EXIT_IO_V8_REGIME_M1L512_FEATURES as V8_FEATURES,
+    EXIT_IO_V8_REGIME_M1L512_FEATURE_COUNT as V8_FEATURE_COUNT,
+    EXIT_IO_V8_REGIME_M1L512_IO_VERSION as V8_IO_VERSION,
+)
 from gx1.policy.exit_transformer_v0 import ExitTransformerV0
 
 LOG = logging.getLogger("v12_v3_live")
@@ -61,14 +68,13 @@ def _resolve_default_v3_bundle() -> Path:
     env_override = _os.environ.get("GX1_V3_BUNDLE_DIR")
     if env_override:
         return Path(env_override)
-    try:
-        from gx1_guards.artifacts import load_decision_artifact
-        return Path(load_decision_artifact("v3_exit"))
-    except Exception:
-        return Path(
-            "/home/andre2/GX1_DATA/models/exit_transformer_v0/"
-            "EXIT_V9_MULTI_TF_LR5E4_SCALE025_20260513T223544Z"
-        )
+    # FAIL-CLOSED (2026-06-03 audit): NO hardcoded fallback. A guard failure MUST
+    # propagate — never silently substitute the pre-COSTFIX EXIT_V9 bundle (it still
+    # exists on disk and would load as a wrong V6/91-dim model, the same silent-broken
+    # class as the V3-V6 hardcode that ran the whole COSTFIX period). load_decision_artifact
+    # raises ArtifactGuardError on any non-ACTIVE / missing / contract / EURUSD condition.
+    from gx1_guards.artifacts import load_decision_artifact
+    return Path(load_decision_artifact("v3_exit"))
 DEFAULT_BUNDLE_DIR = _resolve_default_v3_bundle()
 
 # One-truth: io_version → (features, count) so V6 and V7 bundles are both accepted.
@@ -76,6 +82,8 @@ DEFAULT_BUNDLE_DIR = _resolve_default_v3_bundle()
 SUPPORTED_V3_CONTRACTS: dict = {
     "EXIT_IO_V6_CTX_V3CANONICAL_M1L512": (list(V6_FEATURES), V6_FEATURE_COUNT),
     V7_IO_VERSION: (list(V7_FEATURES), V7_FEATURE_COUNT),
+    # V8 prefix is V7-identical (first 155) so trade-state indices stay stable across all three.
+    V8_IO_VERSION: (list(V8_FEATURES), V8_FEATURE_COUNT),
 }
 WINDOW_LEN = 512   # 512 M1 bars (8.5 hours)
 
@@ -106,6 +114,12 @@ class V3LiveInference:
     _mtf_seq_lens: dict = field(default_factory=dict)
     # Phase 3b q_head: set when bundle was distilled from Exit-IQL teacher.
     _enable_q_head: bool = False
+    # 2026-06-02 fix: contract-aware feature list. V7 (155 feats) vs V6 (91)
+    # — build_window MUST consult these instead of hardcoding V6 (which silently
+    # broke V3 inference for the entire COSTFIX live era when V7 was loaded).
+    _features: list = field(default_factory=list)
+    _feature_count: int = 0
+    _trade_state_indices: list = field(default_factory=list)
 
     @classmethod
     def load(cls, bundle_dir: Path = DEFAULT_BUNDLE_DIR, device: str = "cpu") -> "V3LiveInference":
@@ -189,6 +203,14 @@ class V3LiveInference:
         model.to(device).eval()
         LOG.info(f"V3 v9 (multi-TF) loaded: {bundle_dir.name}  device={device}  "
                   f"input_dim={cfg['input_dim']}  window_len={cfg['window_len']}  multi_tf={enable_mtf}")
+        # 2026-06-02 fix: store contract-aware feature list so build_window uses
+        # V7 (155) when V7 bundle, V6 (91) when V6 bundle. Hardcoded V6 paths
+        # silently failed for the entire COSTFIX live era.
+        _tsi = [
+            list(_expected_features).index(n)
+            for n in TRADE_STATE_FEATURE_NAMES
+            if n in _expected_features
+        ]
         return cls(
             bundle_dir=bundle_dir, device=device, _model=model,
             _enable_multi_tf=enable_mtf,
@@ -197,6 +219,9 @@ class V3LiveInference:
                             for k in ("M5", "M15", "H1", "H4", "D1")} if enable_mtf else {},
             _mtf_seq_lens={k: int(mtf_cfg.get(f"{k.lower()}_seq_len", 96))
                             for k in ("M5", "M15", "H1", "H4", "D1")} if enable_mtf else {},
+            _features=list(_expected_features),
+            _feature_count=int(_expected_count),
+            _trade_state_indices=_tsi,
         )
 
     @classmethod
@@ -235,11 +260,15 @@ class V3LiveInference:
         if len(win) < WINDOW_LEN:
             raise RuntimeError(f"insufficient M1 history for V3 window: {len(win)} < {WINDOW_LEN}")
 
-        # Initialize matrix
-        mat = np.zeros((WINDOW_LEN, V6_FEATURE_COUNT), dtype=np.float32)
+        # 2026-06-02 fix: use the contract's actual feature list (V6=91 or V7=155)
+        # instead of hardcoded V6. Hardcoded V6 silently broke V7 inference for
+        # the entire COSTFIX live era.
+        _feat_list = self._features if self._features else list(V6_FEATURES)
+        _feat_count = self._feature_count if self._feature_count else V6_FEATURE_COUNT
+        mat = np.zeros((WINDOW_LEN, _feat_count), dtype=np.float32)
 
-        # Fill features 7..90 from base34 / canonical_v3 (skip indices 0-6 = XGB)
-        for j, fname in enumerate(V6_FEATURES):
+        # Fill non-XGB features from base34 / canonical_v3 (skip indices 0-6 = XGB)
+        for j, fname in enumerate(_feat_list):
             if j < 7:
                 continue  # XGB-bridge, filled below
             if fname in win.columns:
@@ -268,14 +297,16 @@ class V3LiveInference:
                 if bucket in bridge_by_ts:
                     mat[i, 0:7] = bridge_by_ts[bucket]
 
-        # Apply trade overlay if provided
+        # Apply trade overlay if provided. 2026-06-02 fix: use contract-aware
+        # trade-state indices (V6 vs V7 both have same 19 trade-state cols at
+        # same prefix positions, but explicit lookup is safer than assuming).
+        _ts_idx = self._trade_state_indices if self._trade_state_indices else TRADE_STATE_INDICES
         if trade_overlay is not None:
             for j, fname in enumerate(TRADE_STATE_FEATURE_NAMES):
-                if fname in trade_overlay:
-                    col_idx = TRADE_STATE_INDICES[j]
+                if fname in trade_overlay and j < len(_ts_idx):
+                    col_idx = _ts_idx[j]
                     overlay_arr = np.asarray(trade_overlay[fname], dtype=np.float32)
                     n_overlay = min(len(overlay_arr), WINDOW_LEN)
-                    # Overlay at the END of the window (in-trade bars are the latest)
                     mat[-n_overlay:, col_idx] = overlay_arr[-n_overlay:]
 
         return mat
@@ -288,8 +319,9 @@ class V3LiveInference:
         """Forward V3 v8 on a (512, 91) input matrix. Returns 4 head outputs."""
         if self._model is None:
             raise RuntimeError("V3 v8 not loaded — call .load() first")
-        if window.shape != (WINDOW_LEN, V6_FEATURE_COUNT):
-            raise RuntimeError(f"window shape {window.shape} != ({WINDOW_LEN}, {V6_FEATURE_COUNT})")
+        _expected_cnt = self._feature_count if self._feature_count else V6_FEATURE_COUNT
+        if window.shape != (WINDOW_LEN, _expected_cnt):
+            raise RuntimeError(f"window shape {window.shape} != ({WINDOW_LEN}, {_expected_cnt})")
 
         x = torch.from_numpy(window).unsqueeze(0).to(self.device)   # (1, 512, 91)
 
