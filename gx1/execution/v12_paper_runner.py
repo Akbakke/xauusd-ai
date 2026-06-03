@@ -426,7 +426,12 @@ def main() -> int:
                 "max_trades": args.max_trades,
                 "units": args.units,
                 "max_spread_bps": args.max_spread_bps,
-                "dry_run": args.dry_run},
+                "dry_run": args.dry_run,
+                # B4 fix (2026-06-04): record the env flags that change live decisions, so a
+                # journal can be reconciled against the Phase-6 config post-hoc ("which config ran?").
+                "pure_phase6": PURE_PHASE6,
+                "cluster1_disable": bool(int(os.environ.get("GX1_CLUSTER1_DISABLE", "0"))),
+                "regime_v4": bool(int(os.environ.get("GX1_REGIME_V4", "0")))},
     )
     LOG.info(f"  trade journal: {journal.journal_dir}")
 
