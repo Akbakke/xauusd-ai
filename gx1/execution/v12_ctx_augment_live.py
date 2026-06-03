@@ -220,6 +220,21 @@ def _add_spread_atr_bps(cv3: pd.DataFrame) -> None:
 def _add_htf_features(cv3: pd.DataFrame, df_m5: pd.DataFrame) -> None:
     """Mutates cv3: D1_dist_from_ema200_atr, H1_range_compression_ratio,
     D1_atr_percentile_252, M15_range_compression_ratio, H4_trend_sign_cat."""
+    # A1 FIX (2026-06-04): if cv3 already carries these HTF features, KEEP them.
+    # The prebuilt (add_ctx_cont_columns_to_prebuilt.py) computes them over the FULL
+    # history (D1 EMA200 / rolling(252,252)). Recomputing here over the short serve/rescore
+    # window (~45d) badly skews the long-lookback D1 feats — measured |Δ| median 0.41 on the
+    # 0..1 D1_atr_percentile_252 vs training. So when the caller passes the prebuilt (which
+    # has the correct full-history values), do NOT clobber them with a short-window recompute.
+    _htf_cols = (
+        "D1_dist_from_ema200_atr",
+        "D1_atr_percentile_252",
+        "H1_range_compression_ratio",
+        "M15_range_compression_ratio",
+        "H4_trend_sign_cat",
+    )
+    if all(c in cv3.columns for c in _htf_cols):
+        return
     # Ensure df_m5 is DatetimeIndex'd
     m5 = df_m5.copy()
     if "time" in m5.columns and not isinstance(m5.index, pd.DatetimeIndex):
