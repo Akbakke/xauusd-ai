@@ -105,6 +105,10 @@ class XGBLiveInference:
             meta.get("feature_names")
             or meta.get("features")
             or meta.get("input_feature_names")
+            # B5 fix (2026-06-04): xgb v2 meta stores the list under feature_names_ordered.
+            # Without this key the cross-check below silently no-op'd (fell to the warning),
+            # leaving predict-time X[:, :expected] free to silently truncate a mismatched bundle.
+            or meta.get("feature_names_ordered")
         )
         if model_feature_names:
             model_set = set(model_feature_names)
