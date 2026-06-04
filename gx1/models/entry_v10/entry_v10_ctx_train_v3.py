@@ -2923,10 +2923,20 @@ def run_train(
 
     # V2 fast-train: build per-TF seq_lens dict and forward smoke-date.
     _per_tf_lens: Dict[str, int] = {}
+    # B10 tapered-MTF (GX1_MTF_TAPERED=1, default OFF): coarser TFs reach further with FEWER
+    # bars — m15=64 (drops the ~8h M5 overlap), d1=252 (~1yr regime memory, matches the
+    # D1_atr_percentile_252 lookback). Explicit --per-tf-seq-len-* args still win. The model's
+    # m15/d1_seq_len below mirror these so the bundle metadata records them → live reads the
+    # same lens (train==serve). m5/h1/h4 stay at the global default.
+    _tapered = os.environ.get("GX1_MTF_TAPERED", "0") == "1"
     if int(per_tf_seq_len_h4) > 0:
         _per_tf_lens["H4"] = int(per_tf_seq_len_h4)
-    if int(per_tf_seq_len_d1) > 0:
-        _per_tf_lens["D1"] = int(per_tf_seq_len_d1)
+    _d1_eff = int(per_tf_seq_len_d1) if int(per_tf_seq_len_d1) > 0 else (252 if _tapered else 0)
+    if _d1_eff > 0:
+        _per_tf_lens["D1"] = _d1_eff
+    if _tapered:
+        _per_tf_lens["M15"] = 64
+        log.info("[GX1_MTF_TAPERED] per-TF seq-lens: %s (m5/h1=default %d)", _per_tf_lens, int(multi_tf_seq_len))
     train_ds = EntryV10CtxDataset(
         train_parquet,
         seq_len=seq_len,
@@ -3187,9 +3197,10 @@ def run_train(
     _mtf_v2 = bool(getattr(train_ds, "_multi_tf_v2", False)) if enable_multi_tf else False
     # Per-TF seq_len overrides (default 0 → fall back to global multi_tf_seq_len).
     _h4_len = int(per_tf_seq_len_h4) if int(per_tf_seq_len_h4) > 0 else int(multi_tf_seq_len)
-    _d1_len = int(per_tf_seq_len_d1) if int(per_tf_seq_len_d1) > 0 else int(multi_tf_seq_len)
-    if _h4_len != multi_tf_seq_len or _d1_len != multi_tf_seq_len:
-        log.info("[PER_TF_SEQ_LEN] H4=%d D1=%d (global=%d)", _h4_len, _d1_len, int(multi_tf_seq_len))
+    _d1_len = int(per_tf_seq_len_d1) if int(per_tf_seq_len_d1) > 0 else (252 if _tapered else int(multi_tf_seq_len))
+    _m15_len = 64 if _tapered else int(multi_tf_seq_len)  # B10 tapered-MTF — mirrors _per_tf_lens above (train==serve via bundle meta)
+    if _h4_len != multi_tf_seq_len or _d1_len != multi_tf_seq_len or _m15_len != multi_tf_seq_len:
+        log.info("[PER_TF_SEQ_LEN] M15=%d H4=%d D1=%d (global=%d)", _m15_len, _h4_len, _d1_len, int(multi_tf_seq_len))
     model = EntryV10CtxHybridTransformer(
         seq_input_dim=SEQ_SIGNAL_DIM,
         snap_input_dim=SNAP_SIGNAL_DIM,
@@ -3201,7 +3212,7 @@ def run_train(
         h1_seq_dim=_mtf_feat_count,
         h4_seq_dim=_mtf_feat_count,
         d1_seq_dim=_mtf_feat_count,
-        m15_seq_len=multi_tf_seq_len,
+        m15_seq_len=_m15_len,
         h1_seq_len=multi_tf_seq_len,
         h4_seq_len=_h4_len,
         d1_seq_len=_d1_len,
@@ -3727,7 +3738,7 @@ def run_train(
         h1_seq_dim=_mtf_feat_count,
         h4_seq_dim=_mtf_feat_count,
         d1_seq_dim=_mtf_feat_count,
-        m15_seq_len=multi_tf_seq_len,
+        m15_seq_len=_m15_len,
         h1_seq_len=multi_tf_seq_len,
         h4_seq_len=_h4_len,
         d1_seq_len=_d1_len,
