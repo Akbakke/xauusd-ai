@@ -88,8 +88,14 @@ DEFAULT_M5_TAPE_ROOT = Path(
     "/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m5_bid_ask__CANONICAL"
 )
 DEFAULT_OUT_ROOT = DEFAULT_REPORTS_ROOT / "ALL_TRADE_REVIEW_LEDGER_20260411_CANDIDATE_FORWARD_OUTCOME_V1"
+# 2026-06-04 (audit R7/R8): repoint to the PLUS5 parquet (V3's 113 cols + atr/std50/roc20/
+# _v1_vwap_drift48/_v1h1_vwap_drift = 118; verified clean superset, same 453,340 rows). Those 5
+# PLUS5 _canon_v1 were dead-zero in the cement Entry-IQL (the 113-col V3 source lacked them) while
+# live serves them REAL via v12_canonical_incremental._compute_plus5_features -> train/serve skew,
+# and the new fail-loud guard (E6) would ABORT the build on the absent cols. WIRE (not drop) =
+# one-truth with serve. The join suffixes _canon_v1, so atr -> atr_canon_v1 etc. match the allowlist.
 DEFAULT_CANONICAL_FEATURES_PATH = Path(
-    "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/CANONICAL_FEATURES_V3/canonical_features_v3.parquet"
+    "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/CANONICAL_FEATURES_V3_PLUS5/canonical_features_v3_plus5.parquet"
 )
 # Suffix kept as `_canon_v1` for downstream-builder backward compatibility
 # (entry-IQL/exit-IQL state column lists hardcode this suffix). The V3 parquet
