@@ -46,6 +46,21 @@ fi
 export GX1_REGIME_V4=0
 export GX1_TREND_REGIME_FROM_D1=0
 
+# ── Strategy-F overlay pins (2026-06-04, audit MISS-7) ──────────────────────
+# The Exit-IQL Strategy-F overlay constants (v12_exit_iql_live.py:110-123) and the distilled-exit
+# swap default to the CEMENTED values in code; pin them EXPLICITLY here so live's deployed policy is
+# visible and cannot silently drift from the Phase-6-validated config (Phase-6 OOT == live). Change a
+# value ONLY together with a re-validated Phase-6 ablation. These ARE the cemented defaults.
+export GX1_STRATEGY_F_ENABLED=1
+export GX1_MFE_GIVEBACK_PCT=0.30
+export GX1_MFE_GIVEBACK_MIN_MFE_BPS=30.0
+export GX1_BREAKEVEN_RATIO=0.30
+export GX1_BREAKEVEN_MIN_MFE=10.0
+export GX1_STRONG_HOLD_QADV=-200.0
+export GX1_HOLD_HORIZON_OVERRUN_MULT=1.5
+export GX1_HOLD_HORIZON_MIN_FLOOR_BARS=60
+export GX1_USE_DISTILLED_EXIT=0
+
 FORCE=0
 [[ "${1-}" == "--force" ]] && FORCE=1
 
