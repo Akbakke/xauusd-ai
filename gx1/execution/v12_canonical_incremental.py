@@ -225,6 +225,28 @@ def update_canonical_v3_incremental() -> tuple[int, pd.Timestamp | None]:
     plus5_df = _compute_plus5_features(m5[["open", "high", "low", "close", "volume"]])
     for c in PLUS5_FEATURES:
         v3_new[c] = plus5_df[c].reindex(v3_new.index).astype(np.float32).fillna(0.0)
+    # Phase 0a/C3 (2026-06-04): recompute the 5 HTF cols FRESH via the ONE-TRUTH
+    # build_htf_tape (same math as the offline ctx builder) instead of letting the
+    # BASE34 append forward-fill a FROZEN value (the H4-sign freeze: stale '2 bull' vs
+    # true '0 bear', stuck since the last full build). Compute over the FULL tape
+    # (existing cv3 OHLC + new bars) so the D1 270-bar percentile warmup is satisfied,
+    # then assign to v3_new by index. These 5 cols PERSIST only once cv3's schema carries
+    # them (one-shot backfill); pre-backfill the column-alignment below silently drops
+    # them (safe no-op). A compute hiccup must NOT break the live append (that would
+    # stale the whole pipeline) -> log loud + fall back to the prior forward-fill.
+    try:
+        from gx1.features.htf_features import build_htf_tape, HTF_TAPE_COLUMNS
+        _ohlc = ["open", "high", "low", "close"]
+        if all(c in cv3.columns for c in _ohlc):
+            _full_ohlc = pd.concat([cv3[_ohlc], new_m5[_ohlc]]).sort_index()
+            _full_ohlc = _full_ohlc[~_full_ohlc.index.duplicated(keep="last")]
+            _htf = build_htf_tape(_full_ohlc)
+            for c in HTF_TAPE_COLUMNS:
+                v3_new[c] = _htf[c].reindex(v3_new.index)
+        else:
+            LOG.error("[C3_HTF] cv3 lacks OHLC — HTF recompute skipped (stale forward-fill remains)")
+    except Exception as _htf_err:  # never crash the daemon append on an HTF hiccup
+        LOG.error(f"[C3_HTF] HTF recompute FAILED ({_htf_err}); HTF left to forward-fill fallback")
     # Take only the new bars
     v3_new = v3_new[v3_new.index > last_in_prebuilt]
     if v3_new.empty:
