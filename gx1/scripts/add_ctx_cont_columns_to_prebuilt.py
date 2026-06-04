@@ -653,10 +653,13 @@ def run_add_ctx_cont_columns(
     # no-op. GX1_TREND_REGIME_FROM_D1=1 buckets by the TRUE D1 trend/overextension signal
     # D1_dist_from_ema200_atr (one-truth: computed identically in build + v12_ctx_augment_live),
     # which actually varies and captures the strong-uptrend overextension that drove the -2000.
-    # Default OFF = old behavior (cement V10 ctx_cat embedding was trained on the old values;
-    # the regime-robust retrain build sets =1). Mirror EXACTLY in v12_ctx_augment_live.py.
+    # Phase 0a/E5 (2026-06-04, O3=A): DEFAULT FLIPPED "0"->"1" — the D1-based trend regime
+    # is now PERMANENT for every new build/retrain (the degenerate price_vs_ema50_atr basis is
+    # retired). Set GX1_TREND_REGIME_FROM_D1=0 ONLY to reproduce the 105-dim cement (whose
+    # ctx_cat embedding was trained on the old values). Mirror EXACTLY in v12_ctx_augment_live.py
+    # (serve) at the regime-robust retrain's cement (P3, post-cement).
     import os as _os
-    if _os.environ.get("GX1_TREND_REGIME_FROM_D1", "0") == "1" and "D1_dist_from_ema200_atr" in df_pre.columns:
+    if _os.environ.get("GX1_TREND_REGIME_FROM_D1", "1") == "1" and "D1_dist_from_ema200_atr" in df_pre.columns:
         d = df_pre["D1_dist_from_ema200_atr"].to_numpy(dtype=float)
         d = np.where(np.isfinite(d), d, 0.0)
         trend_regime_id = np.where(d < -1.0, 0, np.where(d <= 1.0, 1, 2)).astype(np.int64)
@@ -719,10 +722,11 @@ def run_add_ctx_cont_columns(
     # CHANGE-DETECTION features. Reuse-first — per-TF regime classes / trend-age / ema-stack are
     # already in the prebuilt (htf_features), this derives the cross-TF + transition signals on
     # top. ONE-TRUTH: identical gx1.features.regime_v4_features.add_regime_v4_features is called
-    # live in v12_ctx_augment_live.py (cannot drift). Default OFF = bit-parity (inert: the cols
-    # are emitted but not in the ctx contract until the Phase-C contract bump + V10 retrain).
-    # Fail-closed when enabled (raises on missing source columns).
-    if _os.environ.get("GX1_REGIME_V4", "0") == "1":
+    # live in v12_ctx_augment_live.py (cannot drift). Phase 0a/E5 (2026-06-04, O3=A): DEFAULT
+    # FLIPPED "0"->"1" — REGIME_V4 is emitted on every new build/retrain. The cols are inert
+    # until the contract bump (P1: ctx_cont 105->121) + V10 retrain pick them up. Set
+    # GX1_REGIME_V4=0 ONLY to reproduce the 105-dim cement. Fail-closed (raises on missing sources).
+    if _os.environ.get("GX1_REGIME_V4", "1") == "1":
         from gx1.features.regime_v4_features import add_regime_v4_features
         df_pre = df_pre.sort_index()  # shift()/run-length require time-ascending order
         add_regime_v4_features(df_pre)
