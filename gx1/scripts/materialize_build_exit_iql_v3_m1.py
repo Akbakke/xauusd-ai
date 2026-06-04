@@ -38,6 +38,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -102,6 +103,49 @@ NUMERIC_STATE_COLS_PER_BAR = (
 # come from v2 unchanged — chunk0 / canonical are populated by lazy-join.
 NUMERIC_STATE_COLS_CANDIDATE = list(v2_train.NUMERIC_STATE_COLS_CANDIDATE)
 ONE_HOT_COLS = list(v2_train.ONE_HOT_COLS)
+
+# B2/H7 fix (vedtak_b2h7_exit_features_20260604): the 64 volume/group_a/dip_struct features the
+# V7/V8 exit contract DECLARES were never materialised into the per-bar dataset (Exit-IQL trained
+# on zeros). They are not stored anywhere — computed on-the-fly from OHLC by one-truth helpers.
+# Compute them via the SAME helpers the entry build + live serve use, on the raw M5 tape (the
+# canonical loader drops OHLC), and merge_asof onto each per-bar row (M5 decision-context
+# broadcast across the M1 window — matches exit_io_v7 semantics). Flag-gated, default OFF =
+# cement bit-parity.
+_AUG64_ENABLED = os.environ.get("GX1_EXIT_AUGMENT_64", "0") == "1"
+try:
+    from gx1.contracts.signal_bridge_v3 import (
+        ORDERED_CTX_CONT_DIP_STRUCT as _DS64,
+    )
+    from gx1.contracts.signal_bridge_v3 import (
+        ORDERED_CTX_CONT_GROUP_A_PARITY as _GA64,
+    )
+    from gx1.features.volume_features import VOLUME_FEATURE_NAMES as _VOL64
+
+    NUMERIC_STATE_COLS_AUG64 = list(_VOL64) + list(_GA64) + list(_DS64)  # 4 + 24 + 36 = 64
+except Exception:  # noqa: BLE001 — import-time guard; absent only on a broken tree
+    NUMERIC_STATE_COLS_AUG64 = []
+
+
+def _compute_exit_aug64(canonical_path: Path) -> "pd.DataFrame | None":
+    """Compute the 64 declared exit features (volume/group_a/dip_struct) on the raw M5 tape via
+    the one-truth helpers; returns `_time_ns` + the 64 base-named cols for merge_asof. Flag-gated."""
+    if not _AUG64_ENABLED:
+        return None
+    if not canonical_path.exists():
+        raise RuntimeError(f"[{ACTION}] GX1_EXIT_AUGMENT_64=1 but canonical tape missing: {canonical_path}")
+    from gx1.features.volume_features import add_volume_features
+    from gx1.scripts.augment_forward_outcome_v2 import attach_group_a_dip_struct_ctx_columns
+    tape = pd.read_parquet(canonical_path)  # full cols incl OHLC + volume + smc_swing_state
+    tape["time"] = pd.to_datetime(tape["time"], utc=True)
+    tape = add_volume_features(tape)
+    tape = attach_group_a_dip_struct_ctx_columns(tape, journal_label="exit_aug64")
+    missing = [c for c in NUMERIC_STATE_COLS_AUG64 if c not in tape.columns]
+    if missing:
+        raise RuntimeError(
+            f"[{ACTION}] aug64 helpers did not produce {len(missing)}/64 cols: {missing[:10]} "
+            f"— verify OHLC/volume/smc_swing_state on the tape.")
+    tape["_time_ns"] = tape["time"].astype("int64")
+    return tape[["_time_ns"] + NUMERIC_STATE_COLS_AUG64].copy()
 
 
 # ---------------------------------------------------------------------------
@@ -178,6 +222,11 @@ def load_per_bar_dataset_lazy_join(
             f"[{ACTION}] canonical features unavailable ({canonical_path}) — refusing to "
             f"build Exit-IQL state on a ~63%-zero-filled matrix. Fix the canonical input.")
 
+    aug64 = _compute_exit_aug64(canonical_path)
+    if aug64 is not None:
+        print(f"[{ACTION}] aug64: computed {len(NUMERIC_STATE_COLS_AUG64)} declared exit features "
+              f"on the M5 tape (one-truth helpers) — will merge_asof onto per-bar rows", flush=True)
+
     rng = np.random.default_rng(seed)
     per_file_target: int | None = None
     if sample_n_rows is not None and sample_n_rows > 0:
@@ -210,6 +259,8 @@ def load_per_bar_dataset_lazy_join(
 
         if canonical_suf is not None:
             df_p = _merge_asof_features(df_p, canonical_suf)
+        if aug64 is not None:
+            df_p = _merge_asof_features(df_p, aug64)
 
         parts.append(df_p)
         if p_idx % 25 == 0 or p_idx == len(parquets):
@@ -296,7 +347,9 @@ def build_state_matrix(df: pd.DataFrame) -> tuple[np.ndarray, list[str]]:
     feature_names: list[str] = []
     nan_warnings: list[tuple[str, float]] = []
     missing_cols: list[str] = []
-    for c in NUMERIC_STATE_COLS_PER_BAR + NUMERIC_STATE_COLS_CANDIDATE:
+    for c in NUMERIC_STATE_COLS_PER_BAR + NUMERIC_STATE_COLS_CANDIDATE + (
+        NUMERIC_STATE_COLS_AUG64 if _AUG64_ENABLED else []
+    ):
         if c in df.columns:
             col = pd.to_numeric(df[c], errors="coerce")
         else:
