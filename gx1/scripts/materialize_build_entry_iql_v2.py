@@ -866,6 +866,8 @@ def build_state_matrix(df: pd.DataFrame) -> tuple[np.ndarray, list[str]]:
     state_parts: list[pd.DataFrame] = []
     feature_names: list[str] = []
     nan_warnings: list[tuple[str, float]] = []
+    absent_cols: list[str] = []      # Phase 0a/E6 fail-loud: allowlisted col not in frame
+    constant_cols: list[str] = []    # present but std~0 (likely dead/degenerate)
     # Numeric features
     for c in NUMERIC_STATE_COLS:
         if c in df.columns:
@@ -873,11 +875,38 @@ def build_state_matrix(df: pd.DataFrame) -> tuple[np.ndarray, list[str]]:
             nan_frac = s.isna().mean()
             if nan_frac > 0.05:
                 nan_warnings.append((c, float(nan_frac)))
-            state_parts.append(pd.DataFrame({c: s.fillna(0.0)}))
+            filled = s.fillna(0.0)
+            if float(filled.std()) <= 1e-12:
+                constant_cols.append(c)
+            state_parts.append(pd.DataFrame({c: filled}))
             feature_names.append(c)
         else:
+            absent_cols.append(c)
             state_parts.append(pd.DataFrame({c: np.zeros(len(df))}))
             feature_names.append(c)
+    # Phase 0a/E6 (2026-06-04) — FAIL-LOUD: an allowlisted feature ABSENT from the frame
+    # is the dead-zero footgun (the 36 dip/struct silently 0-filled until E1; the
+    # 2026-05-19 LONG-bias collapse). Refuse to silent-0-fill a whole block. (This will
+    # correctly error any build run on a frame lacking allowlisted cols — wire the source
+    # upstream, e.g. attach_group_a_dip_struct_ctx_columns, or drop the col from the
+    # allowlist before training.)
+    if absent_cols:
+        raise RuntimeError(
+            f"[BUILD_STATE_MATRIX] {len(absent_cols)} allowlisted numeric feature(s) ABSENT "
+            f"from the frame — refusing to silent-0-fill (dead-zero guard): {absent_cols[:20]}"
+            + (f" (+{len(absent_cols)-20} more)" if len(absent_cols) > 20 else "")
+            + ". Wire the source upstream or drop from NUMERIC_STATE_COLS before training."
+        )
+    # CONSTANT cols only WARN (not raise): a legit rare-binary flag can be all-0 in a given
+    # training window (std=0) — flag for review rather than break the build (O7).
+    if constant_cols:
+        print(
+            f"[BUILD_STATE_MATRIX][WARN] {len(constant_cols)} allowlisted numeric feature(s) "
+            f"are CONSTANT (std~0) in the frame — likely dead/degenerate: {constant_cols[:20]}"
+            + (f" (+{len(constant_cols)-20} more)" if len(constant_cols) > 20 else "")
+            + ". Confirm intended (rare-binary) or drop from the allowlist.",
+            flush=True,
+        )
     if nan_warnings:
         msg = ", ".join(f"{n}={f:.1%}" for n, f in nan_warnings[:8])
         raise RuntimeError(
