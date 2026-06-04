@@ -477,29 +477,30 @@ class PrebuiltStateLoader:
         ], axis=1).max(axis=1)
         cv3["atr"] = tr.ewm(alpha=1.0 / 14.0, adjust=False).mean().fillna(method="bfill").astype(np.float32)
 
-        # 50-bar close-return std (pct change std × 100 to roughly match v1 units).
+        # E2 (2026-06-04 train==serve parity): std50 / _v1_vwap_drift48 / _v1h1_vwap_drift MUST equal the
+        # BUILD truth (augment_canonical_v3_with_missing_features == v12_canonical_incremental._compute_plus5).
+        # The old serve math diverged (std50 min_periods 10 vs 2; vwap48 /close vs /vwap48 + min_periods 12
+        # vs 1; h1 calendar-resample vs rolling-288) -> a retrain on the PLUS5 parquet would learn values
+        # serve could not reproduce. Byte-aligned to the build formulas below (atr + roc20 already matched).
         rets = close.pct_change()
-        cv3["std50"] = rets.rolling(50, min_periods=10).std().fillna(0.0).astype(np.float32)
+        cv3["std50"] = rets.rolling(50, min_periods=2).std().fillna(0.0).astype(np.float32)
 
         # 20-bar rate-of-change (close[t] / close[t-20] - 1).
         cv3["roc20"] = close.pct_change(20).fillna(0.0).astype(np.float32)
 
-        # VWAP drift over rolling 48-bar window: (close - vwap48) / close.
-        pv = (close * vol_safe).rolling(48, min_periods=12).sum()
-        vv = vol_safe.rolling(48, min_periods=12).sum()
-        vwap48 = (pv / vv).fillna(close)
-        cv3["_v1_vwap_drift48"] = ((close - vwap48) / close.where(close > 0, 1.0)).fillna(0.0).astype(np.float32)
+        # _v1_vwap_drift48: M5 48-period VWAP drift = (close - vwap48) / vwap48 (build def, min_periods=1).
+        pv48 = (close * vol_safe).rolling(48, min_periods=1).sum()
+        vv48 = vol_safe.rolling(48, min_periods=1).sum()
+        vwap48 = pv48 / vv48.replace(0, 1.0)
+        cv3["_v1_vwap_drift48"] = ((close - vwap48) / vwap48.replace(0, 1.0)).fillna(0.0).astype(np.float32)
 
-        # H1 VWAP drift: resample to H1, compute VWAP per H1 bar, then asof-join back.
-        h1_pv = (close * vol_safe).resample("1h").sum()
-        h1_v = vol_safe.resample("1h").sum()
-        h1_close = close.resample("1h").last()
-        h1_vwap = (h1_pv / h1_v).fillna(h1_close)
-        # Cumulative session VWAP drift — for simplicity use (last H1 close - current H1 vwap)/close.
-        h1_drift = ((h1_close - h1_vwap) / h1_close.where(h1_close > 0, 1.0)).fillna(0.0)
-        # asof-broadcast last available H1 drift onto each M5 row.
-        h1_drift_aligned = h1_drift.reindex(cv3.index, method="ffill").fillna(0.0)
-        cv3["_v1h1_vwap_drift"] = h1_drift_aligned.astype(np.float32)
+        # _v1h1_vwap_drift: H1 VWAP drift = (close - vwap_288) / vwap_288, rolling 288 M5 (=24 H1),
+        # min_periods=12 (build def — NOT a calendar resample). fillna(0) only touches the <12-bar warmup
+        # (training-excluded, never hit live with a full window) -> decision-parity with build.
+        pv_h1 = (close * vol_safe).rolling(288, min_periods=12).sum()
+        v_h1 = vol_safe.rolling(288, min_periods=12).sum()
+        vwap_h1 = pv_h1 / v_h1.replace(0, 1.0)
+        cv3["_v1h1_vwap_drift"] = ((close - vwap_h1) / vwap_h1.replace(0, 1.0)).fillna(0.0).astype(np.float32)
 
         LOG.info(f"  v1 legacy augment done: cv3 now {len(cv3.columns)} cols")
         return cv3

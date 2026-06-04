@@ -516,7 +516,13 @@ def _chunk0_feature_at(chunk0: pd.DataFrame | None, ts_ns: int) -> dict[str, Any
 # Data-driven (recorded decisions + measured hold), not a guessed proxy. cap=1 → intervals are
 # non-overlapping → O(log n) per-candidate lookup. Bootstrap: uses the prev-gen entry-IQL
 # decisions to build the next gen's training state (iterate at each retrain).
-_B9_ENABLED = os.environ.get("GX1_PORTFOLIO_PARITY_B9", "0") == "1"
+# E1 (2026-06-04 train==serve parity): DEFAULT to the real-open single-slot book. The old default
+# (candidate-density, B9 off) put portfolio_n_open in a domain (mean ~12-16) the live serve path
+# (real max_trades=1, n_open in {0,1}) can NEVER emit -> a baked train!=serve skew on idx 59-62.
+# Real-open (cap=GX1_B9_MAX_CONCURRENT=1=live DEFAULT_MAX_TRADES) is the serve-reproducible truth;
+# build_realopen_occupancy fails LOUD if the decisions bootstrap is missing (no silent fallback).
+# Set GX1_PORTFOLIO_PARITY_B9=0 only for an explicit candidate-density experiment.
+_B9_ENABLED = os.environ.get("GX1_PORTFOLIO_PARITY_B9", "1") == "1"
 _B9_HOLD_M1_BARS = int(os.environ.get("GX1_B9_HOLD_M1_BARS", "100"))     # measured cement median
 _B9_MAX_CONCURRENT = int(os.environ.get("GX1_B9_MAX_CONCURRENT", "1"))   # live DEFAULT_MAX_TRADES
 _B9_DECISIONS_PATH = os.environ.get(
