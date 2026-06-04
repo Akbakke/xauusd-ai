@@ -117,7 +117,10 @@ def _atr(high: pd.Series, low: pd.Series, close: pd.Series, n: int) -> pd.Series
         (high - prev_close).abs(),
         (low - prev_close).abs(),
     ], axis=1).max(axis=1)
-    return tr.rolling(window=n, min_periods=max(2, n // 2)).mean()
+    # A1 2026-06-04: STRICT min_periods=n (matches gx1.features.htf_features._atr).
+    # The loose max(2, n//2) emitted an unconverged ATR on short serve/rescore windows;
+    # used ONLY by _add_htf_features (HTF-block-local helper), so this is contained.
+    return tr.rolling(window=n, min_periods=n).mean()
 
 
 def _align_last_closed(target_idx: pd.DatetimeIndex,
@@ -241,9 +244,13 @@ def _add_htf_features(cv3: pd.DataFrame, df_m5: pd.DataFrame) -> None:
         m5["time"] = pd.to_datetime(m5["time"], utc=True)
         m5 = m5.set_index("time")
 
-    # D1 features
+    # D1 features — A1 2026-06-04: STRICT warmup floors matching gx1.features.htf_features
+    # (D1_EMA200_MIN_BARS=220, D1_PCTL252_MIN_BARS=270). A too-short serve/rescore window
+    # now fails-closed to the cement-neutral default instead of writing an unconverged
+    # (loose) value (was 29% of bars off by >0.40 on D1_atr_percentile_252). Normal live is
+    # unaffected: the preserve-guard above keeps the prebuilt's full-history HTF when present.
     df_d1 = _resample_ohlc(m5, "1D")
-    if len(df_d1) >= 14:
+    if len(df_d1) >= 220:  # EMA200 converged
         d1_mid = (df_d1["high"] + df_d1["low"]) * 0.5
         d1_ema200 = _ema(d1_mid, 200)
         d1_atr14 = _atr(df_d1["high"], df_d1["low"], df_d1["close"], 14).ffill()
@@ -251,15 +258,14 @@ def _add_htf_features(cv3: pd.DataFrame, df_m5: pd.DataFrame) -> None:
         cv3["D1_dist_from_ema200_atr"] = _align_last_closed(
             cv3.index, d1_dist, pd.Timedelta(days=1)
         ).fillna(0.0).to_numpy(dtype=float)
-        # D1_atr_percentile_252
-        if len(df_d1) >= 30:  # need at least some history; 252 is target
-            window = min(252, len(df_d1))
+        # D1_atr_percentile_252 — only with the FULL 252 window (strict min_periods=252)
+        if len(df_d1) >= 270:
             def _pctl_last(arr):
                 a = np.asarray(arr, dtype=float)
                 if not np.isfinite(a).all():
                     return float("nan")
                 return float((a <= a[-1]).mean())
-            atr_pctl = d1_atr14.rolling(window, min_periods=max(2, window // 4)).apply(_pctl_last, raw=True).ffill()
+            atr_pctl = d1_atr14.rolling(252, min_periods=252).apply(_pctl_last, raw=True).ffill()
             cv3["D1_atr_percentile_252"] = _align_last_closed(
                 cv3.index, atr_pctl, pd.Timedelta(days=1)
             ).fillna(0.5).to_numpy(dtype=float)
@@ -269,9 +275,9 @@ def _add_htf_features(cv3: pd.DataFrame, df_m5: pd.DataFrame) -> None:
         cv3["D1_dist_from_ema200_atr"] = 0.0
         cv3["D1_atr_percentile_252"] = 0.5
 
-    # H1 features
+    # H1 features (H1_ATR100_MIN_BARS=120 — ATR100 converged)
     df_h1 = _resample_ohlc(m5, "1H")
-    if len(df_h1) >= 14:
+    if len(df_h1) >= 120:
         h1_atr14 = _atr(df_h1["high"], df_h1["low"], df_h1["close"], 14).ffill()
         h1_atr100 = _atr(df_h1["high"], df_h1["low"], df_h1["close"], 100).ffill()
         h1_comp = h1_atr14 / np.maximum(h1_atr100, ATR_EPS)
@@ -281,9 +287,9 @@ def _add_htf_features(cv3: pd.DataFrame, df_m5: pd.DataFrame) -> None:
     else:
         cv3["H1_range_compression_ratio"] = 1.0
 
-    # M15 features
+    # M15 features (M15_ATR100_MIN_BARS=200)
     df_m15 = _resample_ohlc(m5, "15min")
-    if len(df_m15) >= 14:
+    if len(df_m15) >= 200:
         m15_atr14 = _atr(df_m15["high"], df_m15["low"], df_m15["close"], 14).ffill()
         m15_atr100 = _atr(df_m15["high"], df_m15["low"], df_m15["close"], 100).ffill()
         m15_comp = m15_atr14 / np.maximum(m15_atr100, ATR_EPS)
@@ -293,9 +299,9 @@ def _add_htf_features(cv3: pd.DataFrame, df_m5: pd.DataFrame) -> None:
     else:
         cv3["M15_range_compression_ratio"] = 1.0
 
-    # H4 trend sign categorical
+    # H4 trend sign categorical (H4_EMA50_MIN_BARS=80 — EMA50 converged)
     df_h4 = _resample_ohlc(m5, "4H")
-    if len(df_h4) >= 50:
+    if len(df_h4) >= 80:
         h4_mid = (df_h4["high"] + df_h4["low"]) * 0.5
         h4_ema50 = _ema(h4_mid, 50)
         diff = (h4_mid - h4_ema50).to_numpy(dtype=float)
