@@ -179,7 +179,13 @@ def build_state_matrix(df: pd.DataFrame) -> tuple[np.ndarray, list[str]]:
     parts: list[pd.DataFrame] = []
     feature_names: list[str] = []
     nan_warnings: list[tuple[str, float]] = []
-    for c in NUMERIC_STATE_COLS_PER_BAR + NUMERIC_STATE_COLS_CANDIDATE:
+    # Phase 0a/E3 (2026-06-04): include the GX1_EXIT_AUGMENT_64 group so the cement V12
+    # trainer SEES the 64 declared volume/group_a/dip_struct exit feats (vedtak_b2h7).
+    # v3_m1.build_state_matrix already iterates AUG64; THIS trainer overrides
+    # build_state_matrix and previously never did -> it zero-filled all 64 even with
+    # GX1_EXIT_AUGMENT_64=1. Default OFF -> empty list -> cement bit-parity preserved.
+    _aug64 = list(v3_m1.NUMERIC_STATE_COLS_AUG64) if v3_m1._AUG64_ENABLED else []
+    for c in NUMERIC_STATE_COLS_PER_BAR + NUMERIC_STATE_COLS_CANDIDATE + _aug64:
         if c in df.columns:
             col = pd.to_numeric(df[c], errors="coerce")
         else:
