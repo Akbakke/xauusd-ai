@@ -1297,9 +1297,15 @@ def build_dataset_canonical(
         index=df_features.index,
     )
 
-    # 5) Predict per session head (ASIA routes to OVERLAP if no ASIA head exists)
-    session_series = df["session_id"].fillna(2).astype(int) if "session_id" in df.columns else None
-    session_map = {0: "OVERLAP", 1: "EU", 2: "OVERLAP", 3: "US"}
+    # 5) Predict per session head. 2026-06-04 (audit R1): route ASIA(0)->ASIA head. The COSTFIX
+    # XGB bundle HAS a real ASIA head (xgb_universal_multihead_v2_feature_importance_ASIA.csv), and
+    # serve (v12_xgb_live.py:65), candidate-gen (materialize_inference_batch_candidates_v3_v1.py:172)
+    # and the V3 builder (materialize_build_v3_training_dataset_v2.py:239) all route {0:ASIA}. The old
+    # {0:OVERLAP} fallback (assumed no ASIA head) trained the V10 dataset's ASIA bars (37.7% of all
+    # bars) on the WRONG head's bridge -> ~40% argmax disagreement vs serve. ONE TRUTH = ASIA->ASIA.
+    # Missing session_id -> 0 (ASIA), mirroring serve's .get(s, "ASIA") default.
+    session_series = df["session_id"].fillna(0).astype(int) if "session_id" in df.columns else None
+    session_map = {0: "ASIA", 1: "EU", 2: "OVERLAP", 3: "US"}
 
     bridge_all = np.zeros((len(df), 7), dtype=np.float64)
 
