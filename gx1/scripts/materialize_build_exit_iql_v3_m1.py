@@ -363,9 +363,21 @@ def build_state_matrix(df: pd.DataFrame) -> tuple[np.ndarray, list[str]]:
             nan_warnings.append((c, nan_frac))
         parts.append(col.fillna(0.0).rename(c))
         feature_names.append(c)
+    # EX3 (2026-06-04 train==serve parity): PIN the regime one-hot categories to the FULL fixed label set so
+    # the build column-set is deterministic + matches the live serve (v12_exit_iql_live.py:425-428), even when
+    # a category is absent in the data. get_dummies emits OBSERVED-only -> the degenerate trend_regime_id
+    # (const=1) emits ONLY trend_regime_TREND_NEUTRAL, dropping TREND_UP/DOWN; serve always sets all 3, so a
+    # retrained model would get an all-zero trend block live it never saw in training (regime-blind). Activates
+    # at the regime retrain (cement bundle unchanged; the adapter is by-name so col order is irrelevant).
+    _ONE_HOT_PIN = {
+        "vol_regime": ["LOW", "MEDIUM", "HIGH", "EXTREME"],
+        "trend_regime": ["TREND_UP", "TREND_NEUTRAL", "TREND_DOWN"],
+    }
     for c in ONE_HOT_COLS:
         if c in df.columns:
             dummies = pd.get_dummies(df[c].astype(str), prefix=c, dummy_na=False)
+            if c in _ONE_HOT_PIN:
+                dummies = dummies.reindex(columns=[f"{c}_{lbl}" for lbl in _ONE_HOT_PIN[c]], fill_value=0)
             parts.append(dummies)
             feature_names.extend(dummies.columns.tolist())
     # FAIL-CLOSED (2026-06-03 audit): missing required cols or >5% NaN = degraded substrate.
