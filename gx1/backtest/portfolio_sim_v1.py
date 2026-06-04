@@ -39,6 +39,16 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from gx1.portfolio.circuit_breaker_v1 import (
+    BreakerCfg,
+    OpenBook,
+    REASON_CLUSTER1_OPP,
+    REASON_CLUSTER1_SAME,
+    REASON_DRAWDOWN,
+    REASON_OPPOSING,
+    evaluate_entry_admission,
+)
+
 log = logging.getLogger(__name__)
 
 _UID_TS = re.compile(r"(\d{8}T\d{6})")
@@ -92,7 +102,8 @@ def _has_mae(df: pd.DataFrame) -> bool:
 
 def simulate_portfolio(df: pd.DataFrame, max_concurrent: int = 5,
                        enforce_invariants: bool = True,
-                       require_mae: bool = False) -> dict[str, Any]:
+                       require_mae: bool = False,
+                       breaker_cfg: "BreakerCfg | None" = None) -> dict[str, Any]:
     """Event-driven sequential portfolio sim with a concurrency cap.
 
     Entries are processed in time order. Before each entry, all trades whose exit_ts has
@@ -123,6 +134,9 @@ def simulate_portfolio(df: pd.DataFrame, max_concurrent: int = 5,
     n_admitted = 0
     n_dropped = 0
     n_blocked_opposing = 0       # entries refused because an opposing-side trade was open
+    n_blocked_cluster1 = 0       # same-M5 dedup blocks (CLUSTER1); near-inert on deduped Phase-6 takes
+    n_blocked_drawdown = 0       # combined-unrealized drawdown blocks (opt-in via breaker_cfg + unrealized)
+    last_entry_m5: dict[str, Any] = {}   # mirrors live _last_entry_m5_by_side (CLUSTER1)
     concur_samples = []
     worst_concurrent_mae = 0.0   # most-negative sum of open-trade MAE seen at any entry
     n_opposing_overlaps = 0      # admitted entries that left long & short open at once
@@ -156,12 +170,30 @@ def simulate_portfolio(df: pd.DataFrame, max_concurrent: int = 5,
         # block opposing-side, and same-side beyond the cap. Otherwise the original
         # total-concurrency cap (Phase 6 'all taken' baseline shape).
         if enforce_invariants:
-            if n_opp > 0:
-                n_blocked_opposing += 1
+            # ONE-TRUTH chokepoint: identical opposing / same-side-cap / CLUSTER1 logic
+            # as live (gx1.portfolio.circuit_breaker_v1.evaluate_entry_admission). Drawdown
+            # stays inert here unless a breaker_cfg + per-bar unrealized PnL are supplied
+            # (this sim tracks REALIZED equity, not open-trade unrealized — wired opt-in).
+            # Same-side cap maps to max_concurrent so the cap sweep is preserved; opposing
+            # then cap order is unchanged, so admit/opposing counts match the prior impl.
+            cfg = breaker_cfg or BreakerCfg(
+                hard_max_same_side=max_concurrent,
+                drawdown_block_bps=float("-inf"),
+                cluster1_enabled=True,
+            )
+            book = OpenBook(n_long=nl, n_short=ns,
+                            combined_unrealized_bps=0.0,
+                            last_entry_m5_by_side=last_entry_m5)
+            decision_m5 = tr.entry_ts.floor("5min")
+            allowed, reason, _ = evaluate_entry_admission(book, tr.side, decision_m5, cfg)
+            if not allowed:
                 n_dropped += 1
-                continue
-            if n_same >= max_concurrent:
-                n_dropped += 1
+                if reason == REASON_OPPOSING:
+                    n_blocked_opposing += 1
+                elif reason in (REASON_CLUSTER1_SAME, REASON_CLUSTER1_OPP):
+                    n_blocked_cluster1 += 1
+                elif reason == REASON_DRAWDOWN:
+                    n_blocked_drawdown += 1
                 continue
         elif len(open_heap) >= max_concurrent:
             n_dropped += 1
@@ -169,6 +201,7 @@ def simulate_portfolio(df: pd.DataFrame, max_concurrent: int = 5,
         heapq.heappush(open_heap, (tr.exit_ts, seq, tr))
         seq += 1
         n_admitted += 1
+        last_entry_m5[tr.side] = tr.entry_ts.floor("5min")  # CLUSTER1 state (mirrors live record_entry)
         nl2, ns2 = _counts()
         max_same_side_concurrent = max(max_same_side_concurrent, nl2, ns2)
         max_abs_net_exposure = max(max_abs_net_exposure, abs(nl2 - ns2))
@@ -187,6 +220,8 @@ def simulate_portfolio(df: pd.DataFrame, max_concurrent: int = 5,
         "n_admitted": int(n_admitted),
         "n_dropped_by_cap": int(n_dropped),
         "n_blocked_opposing": int(n_blocked_opposing),
+        "n_blocked_cluster1": int(n_blocked_cluster1),
+        "n_blocked_drawdown": int(n_blocked_drawdown),
         "admit_rate": round(n_admitted / len(trades), 4),
         "total_realized_pnl_bps": round(float(realized.sum()), 1),
         "mean_pnl_per_admitted_bps": round(float(realized.mean()), 2) if len(realized) else 0.0,
