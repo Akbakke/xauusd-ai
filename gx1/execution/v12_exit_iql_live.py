@@ -436,6 +436,15 @@ class ExitIQLLiveInference:
             canon_key = f"{col}_canon_v1"
             if canon_key not in bar_state:
                 bar_state[canon_key] = v
+            # EX2 (2026-06-04): also emit the BARE name so an AUG64-trained Exit-IQL
+            # (GX1_EXIT_AUGMENT_64=1) finds its 64 base-named feats (vol_z_20, dip_confirmed_m5_v3,
+            # struct_*_v3, atr_ratio_*, ...). The serve cv3 already carries all 64 via the same
+            # one-truth helpers (_augment_cv3_with_volume_features / _group_a_and_dip_struct). Safe
+            # unconditionally: the adapter ignores bar_state keys not in the bundle's feature_names,
+            # so AUG64-OFF (130-feat cement) bundles are unaffected. Guard prevents clobbering a
+            # more-specific bare key (trade-state / candidate feats) set earlier.
+            if col not in bar_state:
+                bar_state[col] = v
 
         return bar_state
 
