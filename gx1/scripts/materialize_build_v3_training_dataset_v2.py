@@ -333,6 +333,24 @@ def precompute_m1_feature_vectors(
         _cv2_ri = cv2.copy()
         _cv2_ri.index = _t
         _cv2_ri = _cv2_ri.sort_index()  # shift()/run-length require time-ascending order
+        # V2 (2026-06-04 train==serve parity): recompute the 12 {tf}_*_v2 REGIME_V4 SOURCE cols FRESH via
+        # the SHARED htf_features.attach_v2_mtf_per_bar_scalars — the SAME projection the live serve uses
+        # (v12_state_from_prebuilt._augment_cv3_with_v2_mtf_scalars) — OVERWRITING any stale precomputed-join
+        # values (the join vintage matched serve only 88-95%). add_regime_v4_features then derives F1-F10
+        # from sources identical to serve -> build==serve for the 8 source-passthrough + 8 derived cols.
+        from gx1.features.htf_features import attach_v2_mtf_per_bar_scalars as _attach_v2
+        if all(c in _cv2_ri.columns for c in ("open", "high", "low", "close")):
+            _rv4_ohlcv = _cv2_ri[["open", "high", "low", "close"]].astype(np.float64).copy()
+            _rv4_ohlcv["volume"] = (_cv2_ri["volume"].astype(np.float64) if "volume" in _cv2_ri.columns else 1.0)
+            _rv4_src_map = [
+                ("regime_class_id", "regime_class_id"),
+                ("trend_age_bars_norm", "trend_age_bars_norm"),
+                ("ema_stack_aligned", "ema_stack_aligned_v2"),
+            ]
+            _rv4_ts_ns = _cv2_ri.index.values.astype("datetime64[ns]").astype(np.int64)
+            for _c, _v in _attach_v2(_rv4_ohlcv, _rv4_ts_ns, _rv4_src_map, ("m15", "h1", "h4", "d1")).items():
+                _cv2_ri[_c] = _v
+            print(f"[{ACTION}] regime_v4 SOURCE cols recomputed fresh (V2 one-truth w/ serve)", flush=True)
         add_regime_v4_features(_cv2_ri)  # in-place; one-truth; raises on missing sources
         _aligned = _cv2_ri.reindex(_t)   # back to cv2's original row order, by timestamp
         for _rn in _EXIT_REGIME_V4_NAMES:

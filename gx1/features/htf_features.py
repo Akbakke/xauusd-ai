@@ -766,6 +766,43 @@ def build_multi_tf_per_bar_features_v2(m5_df: pd.DataFrame) -> dict:
     return result
 
 
+def attach_v2_mtf_per_bar_scalars(
+    m5_df: "pd.DataFrame",
+    target_ts_ns,
+    per_tf_map,
+    tfs=("m15", "h1", "h4", "d1"),
+    skip=frozenset(),
+) -> dict:
+    """V2 (2026-06-04) ONE-TRUTH per-bar V2 multi-TF scalar projection.
+
+    Shared by the live serve loader (v12_state_from_prebuilt._augment_cv3_with_v2_mtf_scalars) AND the
+    V3 exit builder so train==serve by construction (was duplicated -> the build join drifted to a stale
+    vintage matching serve only 88-95%). build_multi_tf_per_bar_features_v2(m5_df) -> for each TF asof-shift
+    via MULTI_TF_SHIFT (only-closed-bars searchsorted) onto target_ts_ns -> {tf_lower}_{live_frag}_v2 arrays.
+    per_tf_map = [(live_frag, src_col), ...]. Returns dict[col -> np.ndarray(len(target_ts_ns), float64)];
+    0.0 where no closed TF bar exists yet.
+    """
+    tf_feats = build_multi_tf_per_bar_features_v2(m5_df)
+    target_ts_ns = np.asarray(target_ts_ns, dtype=np.int64)
+    out: dict = {}
+    for tf_lower in tfs:
+        tf_key = tf_lower.upper()
+        tf_df = tf_feats.get(tf_key)
+        if tf_df is None or len(tf_df) == 0:
+            continue
+        tf_ts_ns = tf_df.index.values.astype("datetime64[ns]").astype(np.int64)
+        cutoffs = target_ts_ns - int(MULTI_TF_SHIFT[tf_key].value)
+        right = np.searchsorted(tf_ts_ns, cutoffs, side="right") - 1
+        valid_mask = right >= 0
+        safe_idx = np.clip(right, 0, len(tf_ts_ns) - 1)
+        for live_frag, src_col in per_tf_map:
+            if (tf_lower, live_frag) in skip or src_col not in tf_df.columns:
+                continue
+            values = tf_df[src_col].to_numpy(dtype=np.float64)
+            out[f"{tf_lower}_{live_frag}_v2"] = np.where(valid_mask, values[safe_idx], 0.0)
+    return out
+
+
 def load_multi_tf_v2_cache(cache_dir) -> dict:
     """Load a pre-built V2 multi-TF cache (see scripts/prebuild_multi_tf_cache_v2.py).
 

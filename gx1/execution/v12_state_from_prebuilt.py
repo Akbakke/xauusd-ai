@@ -585,10 +585,7 @@ class PrebuiltStateLoader:
         probe = f"{self._V2_MTF_TFS[0]}_{self._V2_MTF_PER_TF[0][0]}_v2"
         if probe in target.columns:
             return target
-        from gx1.features.htf_features import (
-            build_multi_tf_per_bar_features_v2,
-            MULTI_TF_SHIFT,
-        )
+        from gx1.features.htf_features import attach_v2_mtf_per_bar_scalars
         cv3 = target
         ohlc = ["open", "high", "low", "close"]
         if any(c not in cv3.columns for c in ohlc):
@@ -600,38 +597,22 @@ class PrebuiltStateLoader:
         m5_df["volume"] = cv3["volume"].astype(np.float64) if "volume" in cv3.columns else 1.0
         LOG.info(f"augmenting canonical_v3 with V2 multi-TF scalar features "
                  f"(31 cols expected) — {len(m5_df):,} M5 rows...")
+        # V2 (2026-06-04 one-truth): per-bar projection now lives in the SHARED
+        # htf_features.attach_v2_mtf_per_bar_scalars (build_multi_tf_per_bar_features_v2 +
+        # MULTI_TF_SHIFT only-closed-bars searchsorted) so the V3 exit builder produces the
+        # IDENTICAL {tf}_*_v2 cols (was an inline loop here -> the builder's stale join drifted to
+        # 88-95% match). Byte-identical to the prior loop.
         try:
-            tf_feats = build_multi_tf_per_bar_features_v2(m5_df)
+            cv3_ts_ns = cv3.index.values.astype("datetime64[ns]").astype(np.int64)
+            _v2cols = attach_v2_mtf_per_bar_scalars(
+                m5_df, cv3_ts_ns, self._V2_MTF_PER_TF, self._V2_MTF_TFS, self._V2_MTF_SKIP,
+            )
         except Exception as exc:
             LOG.warning(f"V2 mtf build failed: {exc} — XGB feature gap will surface")
             return cv3
-
-        cv3_ts_ns = cv3.index.values.astype("datetime64[ns]").astype(np.int64)
-        n_added = 0
-        for tf_lower in self._V2_MTF_TFS:
-            tf_key = tf_lower.upper()
-            tf_df = tf_feats.get(tf_key)
-            if tf_df is None or len(tf_df) == 0:
-                continue
-            tf_ts_ns = tf_df.index.values.astype("datetime64[ns]").astype(np.int64)
-            shift_ns = int(MULTI_TF_SHIFT[tf_key].value)
-            cutoffs = cv3_ts_ns - shift_ns
-            # right index in the TF bar tape at or before cutoff — V12.2 "only
-            # closed bars" semantics (same one-truth as get_last_n_at_or_before).
-            right = np.searchsorted(tf_ts_ns, cutoffs, side="right") - 1
-            valid_mask = right >= 0
-            safe_idx = np.clip(right, 0, len(tf_ts_ns) - 1)
-            for live_frag, src_col in self._V2_MTF_PER_TF:
-                if (tf_lower, live_frag) in self._V2_MTF_SKIP:
-                    continue
-                if src_col not in tf_df.columns:
-                    LOG.warning(f"V2 mtf {tf_lower}: source col {src_col!r} missing")
-                    continue
-                values = tf_df[src_col].to_numpy(dtype=np.float64)
-                out = np.where(valid_mask, values[safe_idx], 0.0)
-                cv3[f"{tf_lower}_{live_frag}_v2"] = out
-                n_added += 1
-        LOG.info(f"  V2 mtf augment done: +{n_added} cols  "
+        for _col, _vals in _v2cols.items():
+            cv3[_col] = _vals
+        LOG.info(f"  V2 mtf augment done: +{len(_v2cols)} cols  "
                  f"(cv3 now {len(cv3.columns)} cols total)")
         return cv3
 
