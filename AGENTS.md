@@ -5,7 +5,7 @@
   bridge probs (p_long/p_short/p_flat) — every 5 min, NOT per minute — and feeds
   BOTH stages:
     - ENTRY (per M5 bar): XGB bridge -> V10 entry transformer -> Entry-IQL
-      (final take-vs-wait). Context = multi-TF M5/M15/H1/H4/D1.
+      (final 3-action: SKIP / TAKE_LONG / TAKE_SHORT — no WAIT). Context = multi-TF M5/M15/H1/H4/D1.
     - EXIT (per M1 bar, in-trade): the latest M5 XGB bridge asof-filled onto each
       M1 bar (held for 5 M1 bars; `m5_phase_0..4` = minutes since the XGB refresh)
       + V10 entry-snapshot + trade-state (mfe/mae/dd_from_mfe/giveback/...)
@@ -53,11 +53,11 @@
 - Idempotent — reads `*.pid` files in `GX1_DATA/reports/v12_paper_runs/`, skips anything already alive, starts only what's missing. Re-run any time to verify the stack is up.
 - Starts four components together (they must ALL be running for live to track Phase 6 cement + auto-report):
   1. `v12_oanda_data_collector` — pulls M1 OHLC from OANDA practice every 60s.
-  2. `v12_canonical_incremental --loop --interval 60` — appends new M1 → canonical_v3 + BASE34 prebuilts; without this, cv3 cutoff falls behind and the paper runner clips `effective_ts` to a stale bucket → live becomes a frozen replay.
-  3. `v12_paper_runner` with `GX1_PURE_PHASE6=1` — disables every live-only wrapper (TIME_OF_DAY_EXIT, ADAPTIVE_MIN_ADV, REGIME, PORTFOLIO_*, LOW_CONFIDENCE, spread cap, CLUSTER1_RATE_LIMIT in v12_pipeline) so live = Phase 6 OOT 1:1.
+  2. `v12_canonical_incremental --loop --interval 15` — appends new M1 → canonical_v3 + BASE34 prebuilts; without this, cv3 cutoff falls behind and the paper runner clips `effective_ts` to a stale bucket → live becomes a frozen replay.
+  3. `v12_paper_runner` with `GX1_PURE_PHASE6=1` — disables every live-only wrapper (TIME_OF_DAY_EXIT, ADAPTIVE_MIN_ADV, REGIME, PORTFOLIO_*, LOW_CONFIDENCE, spread cap) so live = Phase 6 OOT 1:1. NOTE: CLUSTER1_RATE_LIMIT is NO LONGER disabled by PURE_PHASE6 — since 2026-06-02 it is ALWAYS ON as a live sanity-floor (v12_pipeline.py:318-324); override only via GX1_CLUSTER1_DISABLE=1 for explicit OOT-replay runs.
   4. `v12_daily_counterfactual.sh --daemon` — every hour looks for journals older than 25h that haven't been replayed yet; runs `v12_counterfactual_replay.py` on each + writes per-day "skulle/skulle ikke handlet" report to `GX1_DATA/reports/v12_paper_runs/counterfactual_reports/`. Idempotent via marker files in `.replayed_markers/`.
 - Stop cleanly with `bash scripts/stop_live_practice.sh` before code edits that touch live runtime.
-- Logs land in `/tmp/gx1_live_practice/{paper_runner,oanda_data_collector,canonical_incremental}.log`.
+- The data daemons (collector + canonical_incremental) run under **systemd --user** (`gx1-collector.service`, `gx1-canonical-incremental.service`) and log to `/home/andre2/GX1_DATA/reports/v12_paper_runs/logs/{collector,canonical_incremental}.log`. The `launch_live_practice.sh` nohup fallback (which would log to `/tmp/gx1_live_practice/`) is NOT the live source — prefer the systemd units (`systemctl --user status gx1-collector gx1-canonical-incremental`).
 
 ## Git & secrets
 - Never amend live commits. Never force push.
