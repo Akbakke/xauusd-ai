@@ -678,6 +678,16 @@ def main() -> int:
     print("=" * 80)
 
     gx1_data = _resolve_gx1_data_dir()
+    # Pre-rebuild fail-close (2026-06-04, rule 4): an XGB RETRAIN requires an EXPLICIT M5 BASE80 training
+    # parquet. The no-arg path resolves via BASE28_CANONICAL/CURRENT_MANIFEST.json — but that manifest is a
+    # LIVE-M1-serve pointer (rewritten every 15s by v12_canonical_incremental, read by serve/bootstrap), NOT
+    # a frozen M5 training source. Training off it = a moving/wrong-granularity target. Pass --canonical-prebuilt-parquet.
+    if args.canonical_prebuilt_parquet is None:
+        raise RuntimeError(
+            "[XGB_TRAIN_NO_SILENT_DEFAULT] --canonical-prebuilt-parquet is REQUIRED for a retrain — refusing to "
+            "auto-resolve the BASE28_CANONICAL manifest (a live-M1-serve pointer, not an M5 training source). "
+            "Pass the freshly-built, pinned M5 BASE80 prebuilt explicitly."
+        )
     manifest_path = _resolve_canonical_manifest_path(gx1_data, args.canonical_prebuilt_manifest)
     parquet_path = _resolve_canonical_parquet_path(gx1_data, args.canonical_prebuilt_parquet, manifest_path)
 
@@ -737,6 +747,15 @@ def main() -> int:
     ts_col = _resolve_timestamp_col(df)
     df["_ts_utc"] = _to_utc_timestamp_series(df, ts_col)
     df["_year"] = df["_ts_utc"].dt.year
+    # Pre-rebuild fail-close (rule 4): assert the training parquet is M5 (median bar spacing ~300s), NOT the
+    # M1 live tape — catches a wrong-granularity source before the expensive tape-join (base80/_v1 features are
+    # M5-baked; an M1 input silently trains garbage).
+    _dts = df["_ts_utc"].sort_values().diff().dropna().dt.total_seconds()
+    if len(_dts) and abs(float(_dts.median()) - 300.0) > 1.0:
+        raise RuntimeError(
+            f"[XGB_TRAIN_GRANULARITY] training parquet median bar spacing = {float(_dts.median()):.0f}s, expected "
+            f"300s (M5). Refusing to train XGB on a non-M5 source ({parquet_path})."
+        )
 
     years_set = set(int(y) for y in args.years)
     df = df.loc[df["_year"].isin(years_set)].copy()
