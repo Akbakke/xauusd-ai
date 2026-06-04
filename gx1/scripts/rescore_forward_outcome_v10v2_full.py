@@ -58,11 +58,16 @@ def main() -> int:
     p.add_argument("--fwd-in", type=Path, required=True)
     p.add_argument("--fwd-out", type=Path, required=True)
     p.add_argument("--v10-bundle", type=Path, required=True)
-    p.add_argument("--canonical-v3", type=Path, default=DEFAULT_CANONICAL)
+    # Pre-rebuild fail-close (2026-06-04, rule 4): --canonical-v3 + --v2-cache-dir are now REQUIRED — the old
+    # defaults pointed at the stale/DEGENERATE FULL_PLUS_CTX (const trend_regime_id, 05-22) and the frozen
+    # 05-22 MULTI_TF_V2_CACHE, now quarantined. A re-score MUST pass the regime-fresh artifacts explicitly.
+    p.add_argument("--canonical-v3", type=Path, required=True,
+                   help="explicit regime-fresh canonical_v3/FULL_PLUS_CTX (no silent default)")
     p.add_argument("--xgb-bundle", type=Path, default=DEFAULT_XGB_BUNDLE)
     p.add_argument("--xgb-contract", type=Path, default=DEFAULT_XGB_CONTRACT)
     p.add_argument("--xgb-sanitizer", type=Path, default=DEFAULT_XGB_SANITIZER)
-    p.add_argument("--v2-cache-dir", type=Path, default=DEFAULT_V2_CACHE_DIR)
+    p.add_argument("--v2-cache-dir", type=Path, required=True,
+                   help="explicit regime-fresh MULTI_TF_V2_CACHE (no silent default)")
     p.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
     p.add_argument("--batch-size", type=int, default=512)
     args = p.parse_args()
