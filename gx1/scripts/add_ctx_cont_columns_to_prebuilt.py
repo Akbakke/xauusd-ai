@@ -681,7 +681,11 @@ def run_add_ctx_cont_columns(
     df_pre["spread_bucket"] = spread_bucket.astype(np.int64)
 
     # H4_trend_sign_cat (optional): sign(mid - ema50) on H4, mapped to {0,1,2} for {-1,0,+1}
-    if ctx_cat_dim == 6:
+    # R4 (2026-06-04): compute H4_trend_sign_cat whenever it's in the (possibly trend_regime_id-
+    # dropped) ctx_cat contract — NOT a hardcoded `ctx_cat_dim == 6`. When GX1_REGIME_V4=1 the
+    # contract is 5 names (trend_regime_id dropped) but H4 is STILL required (it's the 5th), so a
+    # 5-dim build must still compute it. Contract-driven, robust to the dim change.
+    if CTX_CAT_COL_H4_TREND_SIGN in required_cat:
         df_h4 = _resample_ohlc(df_m5, "4H")
         if len(df_h4) < 80:
             raise RuntimeError("[CTX_WARMUP_FAIL] insufficient H4 bars for EMA50 warmup")

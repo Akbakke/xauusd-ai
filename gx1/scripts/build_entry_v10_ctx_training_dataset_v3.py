@@ -975,7 +975,8 @@ def write_manifest(
     ctx = _hard_gate_ctx6cat6()
     extra_ctx = (extra or {}).get("ctx_contract") or {}
     ctx_cont_dim = int(extra_ctx.get("ctx_cont_dim") or ctx.get("ctx_cont_dim") or 6)
-    ctx_cat_dim = int(extra_ctx.get("ctx_cat_dim") or ctx.get("ctx_cat_dim") or 6)
+    # R4: ctx_cat is contract-driven (5/6) — default to the v3 contract len, never the v1 anchor's 6.
+    ctx_cat_dim = int(extra_ctx.get("ctx_cat_dim") or len(ORDERED_CTX_CAT_NAMES_V3))
     ctx_cont_base_dim = int(extra_ctx.get("ctx_cont_base_dim") or ctx.get("ctx_cont_dim") or 6)
     ctx_cont_micro = list(extra_ctx.get("ctx_cont_micro_features") or [])
     ctx_cont_swing = list(extra_ctx.get("ctx_cont_swing_features") or [])
@@ -1345,7 +1346,12 @@ def build_dataset_canonical(
 
     # 6) Build ctx features
     ctx_cont_names = list(ctx["ctx_cont_names"])
-    ctx_cat_names = list(ctx["ctx_cat_names"])
+    # R4 (2026-06-04): ctx_cat is contract-driven from signal_bridge_v3 (5 when GX1_REGIME_V4=1
+    # — trend_regime_id dropped; 6 cement), NOT the stale v1 base anchor. This also fixes the
+    # H4 case: the v3 contract uses capital "H4_trend_sign_cat" exactly as add_ctx_cont emits it
+    # (the v1 base used lowercase "h4_trend_sign_cat", which mismatched the prebuilt column).
+    # Symmetric with the ctx_cont_names = ORDERED_CTX_CONT_NAMES_V3 upgrade later in this builder.
+    ctx_cat_names = list(ORDERED_CTX_CAT_NAMES_V3)
 
     # 7) Assemble per-bar signal dataframe (time aligned)
     # V2: bridge_all is shape (N, 7) — XGB-bridge fields only.
@@ -2577,8 +2583,9 @@ def build_dataset_canonical(
         mfe_missing,
     )
     log.info(
-        "[ENTRY_INPUT_SCHEMA_PROOF] signal_dim=7 ctx_cont_dim=%d ctx_cat_dim=6",
+        "[ENTRY_INPUT_SCHEMA_PROOF] signal_dim=7 ctx_cont_dim=%d ctx_cat_dim=%d",
         int(len(ctx_cont_names)),
+        int(len(ctx_cat_names)),
     )
 
     # 10) Metadata
@@ -2606,9 +2613,10 @@ def build_dataset_canonical(
             "bridge_dim": 7,
         },
         "ctx_contract": {
-            "tag": ctx["tag"],
+            # R4: self-describing tag/dim from the ACTUAL emitted ctx_cat (5/6), not the v1 anchor.
+            "tag": f"CTX6CAT{len(ctx_cat_names)}",
             "ctx_cont_dim": int(len(ctx_cont_names)),
-            "ctx_cat_dim": int(ctx["ctx_cat_dim"]),
+            "ctx_cat_dim": int(len(ctx_cat_names)),
             "ctx_cont_names": list(ctx_cont_names),
             "ctx_cat_names": list(ctx_cat_names),
             "allow_zero_ctx": bool(allow_zero_ctx),

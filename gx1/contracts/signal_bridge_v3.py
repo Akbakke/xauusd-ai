@@ -279,7 +279,7 @@ CTX_CONT_DIM_V3 = len(ORDERED_CTX_CONT_NAMES_V3)  # 105 (cement) or 121 (GX1_REG
 # ---------------------------------------------------------------------------
 # CTX_CAT fields (UNCHANGED from v2)
 # ---------------------------------------------------------------------------
-ORDERED_CTX_CAT_NAMES_V3: List[str] = [
+_CTX_CAT_ALL_V3: List[str] = [
     "session_id",
     "trend_regime_id",
     "vol_regime_id",
@@ -287,7 +287,19 @@ ORDERED_CTX_CAT_NAMES_V3: List[str] = [
     "spread_bucket",
     "H4_trend_sign_cat",
 ]
-CTX_CAT_DIM_V3 = len(ORDERED_CTX_CAT_NAMES_V3)  # 6
+# Phase 0a/R4 (2026-06-04, audit + user vedtak): when REGIME_V4 is ON, DROP the trend_regime_id
+# categorical. It was degenerate (const=1 on the price_vs_ema50 basis; const-bucket-2 on the D1
+# basis over 2025 OOT — a hardcoded ±1.0-ATR cut). Trend is now carried by the CONTINUOUS
+# D1_dist_from_ema200_atr (ctx_cont) + the 16 MULTI-TF REGIME_V4 features (per-TF regime class
+# m15/h1/h4/d1 + trend-age + cross-TF agreement) — "all smart, no hardcoded bucket". Multi-TF is
+# UNAFFECTED (ctx_cat is a separate shared-vocab embedding from the seq branches; REGIME_V4 adds
+# per-TF regime). Gated on the SAME GX1_REGIME_V4 flag as the ctx_cont append so the 6-cat cement
+# (flag=0, launcher-pinned for live) stays reproducible + no relaunch dim-mismatch. ctx_cat 6->5.
+if os.environ.get("GX1_REGIME_V4", "1") == "1":
+    ORDERED_CTX_CAT_NAMES_V3: List[str] = [c for c in _CTX_CAT_ALL_V3 if c != "trend_regime_id"]
+else:
+    ORDERED_CTX_CAT_NAMES_V3 = list(_CTX_CAT_ALL_V3)
+CTX_CAT_DIM_V3 = len(ORDERED_CTX_CAT_NAMES_V3)  # 5 (GX1_REGIME_V4=1) or 6 (cement)
 
 
 # ---------------------------------------------------------------------------

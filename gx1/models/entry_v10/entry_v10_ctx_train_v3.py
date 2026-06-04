@@ -319,6 +319,14 @@ def _expected_ctx_cont_dim() -> int:
     from gx1.contracts.signal_bridge_v3 import CTX_CONT_DIM_V3
     return int(CTX_CONT_DIM_V3)
 
+def _expected_ctx_cat_dim() -> int:
+    # R4 (2026-06-04): ctx_cat is contract-driven, mirroring _expected_ctx_cont_dim — no
+    # hardcoded 6. signal_bridge_v3: CTX_CAT_DIM_V3 = 5 (GX1_REGIME_V4=1, trend_regime_id
+    # dropped — continuous D1_dist + 16 multi-TF REGIME_V4 carry trend) or 6 (cement,
+    # GX1_REGIME_V4=0). The stale signal_bridge_v1 anchor (frozen 6) is NOT consulted here.
+    from gx1.contracts.signal_bridge_v3 import CTX_CAT_DIM_V3
+    return int(CTX_CAT_DIM_V3)
+
 def _build_ordered_ctx_cont_names(ctx_cont_dim: int, base_names: List[str]) -> List[str]:
     ordered = list(base_names)
     if ctx_cont_dim > len(ordered):
@@ -2640,11 +2648,13 @@ def run_sanity_check(
         fc = data.get("feature_contract") or {}
         fc_ctx_cont_dim = int(fc.get("ctx_cont_dim") or -1)
         fc_ctx_cat_dim = int(fc.get("ctx_cat_dim") or -1)
+        # R4: validate by DIMS (the real contract), not a brittle literal-tag string.
+        # ctx_cat is contract-driven (5/6); the ctx_tag is informational/self-describing.
+        _exp_cat_dim = _expected_ctx_cat_dim()
         _require(
-            fc.get("ctx_tag") == "CTX6CAT6"
-            and fc_ctx_cont_dim >= 6
-            and fc_ctx_cat_dim == 6,
-            f"[SANITY_MANIFEST_CONTRACT] manifest feature_contract must be CTX6CAT6 ctx_cont_dim>=6 ctx_cat_dim=6, got {fc}",
+            fc_ctx_cont_dim >= 6
+            and fc_ctx_cat_dim == _exp_cat_dim,
+            f"[SANITY_MANIFEST_CONTRACT] manifest feature_contract must be ctx_cont_dim>=6 ctx_cat_dim={_exp_cat_dim}, got {fc}",
         )
         if fc.get("ctx_cont_base_dim") is not None:
             _require(
@@ -2778,7 +2788,7 @@ def run_sanity_check(
         "class_order": [0, 1, 2],
         "supports_context_features": True,
         "signal_bridge_id": "XGB_SIGNAL_BRIDGE_V1",
-        "ctx_tag": "CTX6CAT6",
+        "ctx_tag": f"CTX6CAT{ctx_cat_dim}",
         "ordered_ctx_cont_names": ordered_ctx_cont_names,
         "ordered_ctx_cat_names": list(ctx.get("ctx_cat_names") or []),
         "feature_meta_path": str(feature_meta_path.name),
@@ -3172,7 +3182,8 @@ def run_train(
         ctx_cont_dim == expected_ctx_cont_dim,
         f"[ENTRY_CTX_CONT_DIM_MISMATCH] expected ctx_cont_dim={expected_ctx_cont_dim} got={ctx_cont_dim}",
     )
-    _require(ctx_cat_dim == 6, f"[ENTRY_CTX_CAT_DIM_MISMATCH] expected ctx_cat_dim=6 got={ctx_cat_dim}")
+    _exp_ctx_cat_dim = _expected_ctx_cat_dim()
+    _require(ctx_cat_dim == _exp_ctx_cat_dim, f"[ENTRY_CTX_CAT_DIM_MISMATCH] expected ctx_cat_dim={_exp_ctx_cat_dim} got={ctx_cat_dim}")
     if ctx_cont_dim > 6:
         log.info(
             "[ENTRY_MICRO_FEATURES_PROOF] names=%s count=%d",
@@ -3560,7 +3571,7 @@ def run_train(
         "created_at_utc": _utc_now(),
         "signal_bridge_id": "XGB_SIGNAL_BRIDGE_V1",
         "signal_bridge_contract_sha256": SIGNAL_BRIDGE_CONTRACT_SHA256,
-        "ctx_tag": "CTX6CAT6",
+        "ctx_tag": f"CTX6CAT{ctx_cat_dim}",
         "ctx_cont_dim": ctx_cont_dim,
         "ctx_cat_dim": ctx_cat_dim,
         "ordered_ctx_cont_names": list(ordered_ctx_cont_names),
@@ -3663,7 +3674,7 @@ def run_train(
         "expected_ctx_cat_dim": ctx_cat_dim,
         "supports_context_features": True,
         "signal_bridge_id": "XGB_SIGNAL_BRIDGE_V1",
-        "ctx_tag": "CTX6CAT6",
+        "ctx_tag": f"CTX6CAT{ctx_cat_dim}",
         "model_class": "EntryV10CtxHybridTransformer",
         "arch_id": "entry_v10_ctx_hybrid_transformer",
         "state_dict_sha256": state_dict_sha256,
@@ -3838,11 +3849,14 @@ def run_eval(
 
     meta = json.loads(meta_path.read_text(encoding="utf-8"))
     _require(meta.get("signal_bridge_id") == "XGB_SIGNAL_BRIDGE_V1", "[EVAL_CONTRACT_BRIDGE]")
-    _require(meta.get("ctx_tag") == "CTX6CAT6", "[EVAL_CONTRACT_CTX_TAG]")
+    # R4: the ctx_tag self-describes the bundle's own ctx_cat_dim (CTX6CAT6 cement / CTX6CAT5
+    # regime-robust). Validate self-consistency, not a frozen literal. ctx_cat_dim read below.
+    _meta_cat_dim = int(meta.get("ctx_cat_dim") or -1)
+    _require(meta.get("ctx_tag") == f"CTX6CAT{_meta_cat_dim}", "[EVAL_CONTRACT_CTX_TAG]")
     ctx_cont_dim = int(meta.get("ctx_cont_dim") or -1)
     ctx_cat_dim = int(meta.get("ctx_cat_dim") or -1)
     _require(ctx_cont_dim >= 6, "[EVAL_CONTRACT_CTX_CONT]")
-    _require(ctx_cat_dim == 6, "[EVAL_CONTRACT_CTX_CAT]")
+    _require(ctx_cat_dim == _expected_ctx_cat_dim(), "[EVAL_CONTRACT_CTX_CAT]")
     # 2026-06-03: validate against the ACTUAL architecture dim, not a hardcoded 7. The ==7
     # assertion was a pre-multi-TF-V2 legacy leftover (current bundles incl the COSTFIX cement
     # are seq/snap=41), so run_eval could never run on the live lineage. Build uses SEQ_SIGNAL_DIM.

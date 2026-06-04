@@ -98,24 +98,37 @@ def test_entry_context_features_tensor_conversion():
         M15_range_compression_ratio=1.0,
     )
     
-    # Test categorical tensor
-    ctx_cat = ctx.to_tensor_categorical()
+    # R4 (2026-06-04): the field->tensor mapping is verified by passing the dataclass's
+    # declared base ordered names explicitly (this is how a real caller uses it — serve
+    # passes the bundle's ordered_ctx_cat/cont_names). The no-arg path uses the active
+    # EXTENDED contract (ctx_cont=121), which this minimal base helper cannot supply.
+    cat_names = EntryContextFeatures.CAT_NAMES
+    expected_cat = {
+        "session_id": 1, "trend_regime_id": 0, "vol_regime_id": 1,
+        "atr_bucket": 1, "spread_bucket": 0, "h4_trend_sign_cat": 1,
+    }
+    ctx_cat = ctx.to_tensor_categorical(ordered_names=cat_names)
     assert ctx_cat.dtype == np.int64, f"Expected int64, got {ctx_cat.dtype}"
-    assert ctx_cat.shape == (6,), f"Expected shape (6,), got {ctx_cat.shape}"
-    assert ctx_cat[0] == 1, "session_id should be 1"
-    assert ctx_cat[1] == 0, "trend_regime_id should be 0"
-    assert ctx_cat[2] == 1, "vol_regime_id should be 1"
-    assert ctx_cat[3] == 1, "atr_bucket should be 1"
-    assert ctx_cat[4] == 0, "spread_bucket should be 0"
-    
-    assert ctx_cat[5] == 1, "h4_trend_sign_cat should be 1"
+    assert ctx_cat.shape == (len(cat_names),), f"Expected shape ({len(cat_names)},), got {ctx_cat.shape}"
+    for i, name in enumerate(cat_names):
+        assert ctx_cat[i] == expected_cat[name], f"{name} (idx {i}) expected {expected_cat[name]} got {ctx_cat[i]}"
 
-    # Test continuous tensor
-    ctx_cont = ctx.to_tensor_continuous()
+    # Test continuous tensor (explicit base ordered names)
+    cont_names = EntryContextFeatures.CONT_NAMES
+    ctx_cont = ctx.to_tensor_continuous(ordered_names=cont_names)
     assert ctx_cont.dtype == np.float32, f"Expected float32, got {ctx_cont.dtype}"
-    assert ctx_cont.shape == (6,), f"Expected shape (6,), got {ctx_cont.shape}"
-    assert ctx_cont[0] == 50.0, "atr_bps should be 50.0"
-    assert ctx_cont[1] == 10.0, "spread_bps should be 10.0"
+    assert ctx_cont.shape == (len(cont_names),), f"Expected shape ({len(cont_names)},), got {ctx_cont.shape}"
+    assert ctx_cont[cont_names.index("atr_bps")] == 50.0, "atr_bps should be 50.0"
+    assert ctx_cont[cont_names.index("spread_bps")] == 10.0, "spread_bps should be 10.0"
+
+    # R4: the no-arg categorical path is contract-driven (REGIME_V4-gated 5/6) — prove it
+    # tracks the active contract, not a hardcoded 6.
+    from gx1.contracts.signal_bridge_active import get_canonical_ctx_contract
+    active_cat_names = get_canonical_ctx_contract()["ctx_cat_names"]
+    ctx_cat_active = ctx.to_tensor_categorical()
+    assert ctx_cat_active.shape == (len(active_cat_names),), (
+        f"no-arg ctx_cat should track active contract len={len(active_cat_names)}, got {ctx_cat_active.shape}"
+    )
 
 
 def test_build_entry_context_features_determinism():

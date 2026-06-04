@@ -70,8 +70,9 @@ class EntryContextFeatures:
             from gx1.contracts.signal_bridge_active import get_canonical_ctx_contract
             canonical = get_canonical_ctx_contract()
             names = canonical.get("ctx_cat_names", [])
-            if len(names) != 6:
-                raise RuntimeError(f"[CTX_CAT_BUILD_FAIL] canonical ctx_cat_names unexpected len={len(names)} (expected 6)")
+            # R4: ctx_cat is contract-driven (5/6) — trust the contract length, no hardcoded 6.
+            if not names:
+                raise RuntimeError("[CTX_CAT_BUILD_FAIL] canonical ctx_cat_names empty (contract not loaded)")
         CANON_TO_ATTR = {
             "H4_trend_sign_cat": "h4_trend_sign_cat",
         }
@@ -101,8 +102,9 @@ class EntryContextFeatures:
             from gx1.contracts.signal_bridge_active import get_canonical_ctx_contract
             canonical = get_canonical_ctx_contract()
             names = canonical.get("ctx_cont_names", [])
-            if len(names) != 6:
-                raise RuntimeError(f"[CTX_CONT_BUILD_FAIL] canonical ctx_cont_names unexpected len={len(names)} (expected 6)")
+            # R4: ctx_cont is contract-driven (105/121) — the old "expected 6" was stale/wrong.
+            if not names:
+                raise RuntimeError("[CTX_CONT_BUILD_FAIL] canonical ctx_cont_names empty (contract not loaded)")
         vals = []
         for name in names:
             val = getattr(self, name, None)
