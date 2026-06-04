@@ -309,6 +309,7 @@ class ExitIQLLiveInference:
         canonical_v3_row: pd.Series,
         v3_v8_out: dict[str, float] | None = None,
         current_m1_atr_bps_override: float | None = None,
+        now_minute: "pd.Timestamp | None" = None,  # EX1: live M1 bar ts -> m5_phase = minute%5
     ) -> dict[str, Any]:
         """Build the 201-feature bar_state dict for the Exit-IQL adapter.
 
@@ -380,17 +381,28 @@ class ExitIQLLiveInference:
         # prebuilt was built without the m5_phase augmenter and Exit-IQL is
         # seeing a constant 0-vector for these features.
         phase_sum = 0.0
-        for p in range(5):
-            col = f"m5_phase_{p}"
-            val = float(canonical_v3_row.get(col, 0.0) or 0.0)
-            bar_state[f"m5_phase_{p}_v1"] = val
-            phase_sum += val
+        # EX1 (2026-06-04 train==serve parity): the per-bar TRAINER encodes m5_phase = minute%5
+        # (compute_m5_phase_index — XGB-refresh STALENESS). The old serve read canonical_v3_row['m5_phase_{p}']
+        # = cv3's minute//12 HOUR-segment bucket (materialize_build_canonical_features_v1) — a DIFFERENT
+        # formula, and both have variance so the fail-closed coverage guard never caught it. Compute minute%5
+        # from the live M1 bar ts when available; fall back to the cv3 col only if now_minute is absent.
+        if now_minute is not None:
+            from gx1.exits.contracts.exit_io_v3_ctx36_m1l512_phase5 import compute_m5_phase_onehot
+            _m5_oh = compute_m5_phase_onehot(now_minute)
+            for p in range(5):
+                bar_state[f"m5_phase_{p}_v1"] = float(_m5_oh[p])
+            phase_sum = 1.0
+        else:
+            for p in range(5):
+                col = f"m5_phase_{p}"
+                val = float(canonical_v3_row.get(col, 0.0) or 0.0)
+                bar_state[f"m5_phase_{p}_v1"] = val
+                phase_sum += val
         if phase_sum < 1e-6 and not getattr(self, "_m5_phase_warned", False):
             import logging as _l
             _l.getLogger("exit_iql_live").warning(
-                "[M5_PHASE_MISSING] canonical_v3_row has no m5_phase_{0..4} cols — "
-                "Exit-IQL bar_state's 5 phase one-hots are all 0. Verify "
-                "prebuilt was built with the m5_phase augmenter."
+                "[M5_PHASE_MISSING] no now_minute and canonical_v3_row has no m5_phase_{0..4} cols — "
+                "Exit-IQL bar_state's 5 phase one-hots are all 0. Pass now_minute (the live M1 bar ts)."
             )
             self._m5_phase_warned = True
 
@@ -456,6 +468,7 @@ class ExitIQLLiveInference:
         canonical_v3_row: pd.Series,
         v3_v8_out: dict[str, float] | None = None,
         current_m1_atr_bps_override: float | None = None,
+        now_minute: "pd.Timestamp | None" = None,  # EX1: live M1 bar ts -> m5_phase minute%5
     ) -> tuple[ExitDeciderV12Recommendation, dict[str, Any]]:
         """One-shot helper: build bar_state + run decider.
 
@@ -471,6 +484,7 @@ class ExitIQLLiveInference:
         bar_state = self.build_bar_state(
             trade, canonical_v3_row, v3_v8_out,
             current_m1_atr_bps_override=current_m1_atr_bps_override,
+            now_minute=now_minute,  # EX1: m5_phase = minute%5 of the live bar
         )
         rec = self.decider.decide(bar_state)
         # Phase 3b A/B: when GX1_USE_DISTILLED_EXIT=1 and the V3 bundle exposes

@@ -489,6 +489,7 @@ class V12Pipeline:
         rec, bar_state = self.exit_iql.decide_for_trade(
             trade, cv3_row, v3_v8_out=v3_v8_out,
             current_m1_atr_bps_override=m1_atr_bps if m1_atr_bps > 0 else None,
+            now_minute=now_minute,  # EX1: serve m5_phase = minute%5 of the live M1 bar (== trainer)
         )
         # Inject V3-tracking running stats into bar_state (overwriting any prior 0-fills)
         bar_state.update(trade.build_v3_tracking_features())
