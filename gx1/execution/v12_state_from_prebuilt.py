@@ -256,6 +256,13 @@ class PrebuiltStateLoader:
                     for col in grp_new.columns:
                         if col not in new_cv3.columns:
                             new_cv3[col] = grp_new[col].values
+                    # V1/R10 completion (2026-06-04): the parallel-augment SUCCESS path was missing the
+                    # regime_v4 augmenter (only the sync load paths + the sequential fallback had it). At
+                    # GX1_REGIME_V4=1 the live async hot-refresh would drop the 16 EXIT_IO_V8 regime cols ->
+                    # v12_v3_live.build_window fail-closed guard crashes the regime exit serve on first refresh.
+                    # Runs AFTER the mtf merge above (supplies the 12 {tf}_*_v2 sources); joins D1_dist + is a
+                    # no-op at flag=0 (cement bit-identical).
+                    new_cv3 = self._augment_cv3_with_regime_v4(new_cv3)
                     used_mp = True
                 except Exception as exc:
                     LOG.warning(f"[parallel-augment] subprocess augment failed "

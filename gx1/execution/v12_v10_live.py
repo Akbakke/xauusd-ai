@@ -81,7 +81,11 @@ SEQ_LEN = 96
 SEQ_DIM = SEQ_SIGNAL_DIM_V3    # contract-derived: 7 bridge + 34 price_state = 41 (was 37)
 SNAP_DIM = SEQ_SIGNAL_DIM_V3
 CTX_CONT_DIM = CTX_CONT_DIM_V3  # one-truth: track the contract (69 w/ group-A parity), not a hardcoded 45
-CTX_CAT_DIM = 6
+# R4 completion (2026-06-04): contract-driven, mirroring CTX_CONT_DIM above. Was a half-applied-R4
+# hardcoded `6` — the V10 LIVE loader's split-brain twin of the trainer/bootstrap dims R4 made
+# contract-driven. At GX1_REGIME_V4=1 (ctx_cat=5) the old literal rejected the 5-cat regime bundle at
+# load() (5 != 6) and _build_ctx_cat allocated (n,6) while iterating 5 names. Cement (flag=0) = 6, unchanged.
+CTX_CAT_DIM = CTX_CAT_DIM_V3
 
 
 @dataclass
