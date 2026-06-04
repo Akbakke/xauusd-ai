@@ -825,24 +825,32 @@ def main() -> int:
     # Session-interaction (*_us): _v1_is_US gated derivatives; same formulas as
     # v12_ctx_augment_live._derive_us_interactions (parity with live).
     sid = df["session_id"].astype(np.int32)
-    df["_v1_is_EU"] = (sid == 1).astype(np.int8)
-    df["_v1_is_US"] = (sid == 3).astype(np.int8)
+    # X1 (2026-06-04 train==serve parity): PRESERVE the prebuilt's baked _v1_is_EU/_v1_is_US (+ the
+    # *_us interactions derived from them) — they carry the SHIFTED prev-bar convention (basic_v1.py:
+    # 981-988) the live serve path feeds. Overwriting unconditionally with the UNSHIFTED current-bar
+    # session_id flipped ~0.7% of session-boundary bars (+3 interactions) -> trainer!=serve. Guard
+    # `if col not in df.columns` (matches the if-missing pattern in the V10/V3 builders); only
+    # synthesize when genuinely absent. Interactions use the (baked-or-fresh) is_US -> consistent basis.
+    if "_v1_is_EU" not in df.columns:
+        df["_v1_is_EU"] = (sid == 1).astype(np.int8)
+    if "_v1_is_US" not in df.columns:
+        df["_v1_is_US"] = (sid == 3).astype(np.int8)
     is_us_f = df["_v1_is_US"].to_numpy(dtype=np.float64)
-    if "_v1_body_share_1" in df.columns:
+    if "_v1_body_tr" not in df.columns and "_v1_body_share_1" in df.columns:
         df["_v1_body_tr"] = df["_v1_body_share_1"].to_numpy(dtype=np.float64)
-    if "_v1_clv" in df.columns:
+    if "_v1_int_clv_atr" not in df.columns and "_v1_clv" in df.columns:
         df["_v1_int_clv_atr"] = df["_v1_clv"].to_numpy(dtype=np.float64)
-    if "_v1_r5" in df.columns:
+    if "_v1_int_r5_atr" not in df.columns and "_v1_r5" in df.columns:
         df["_v1_int_r5_atr"] = df["_v1_r5"].to_numpy(dtype=np.float64)
-    if "_v1h4_slope5" in df.columns:
+    if "_v1_int_slope_h4_atr" not in df.columns and "_v1h4_slope5" in df.columns:
         df["_v1_int_slope_h4_atr"] = df["_v1h4_slope5"].to_numpy(dtype=np.float64)
-    if "_v1_ema_diff" in df.columns:
+    if "_v1_int_ema_us" not in df.columns and "_v1_ema_diff" in df.columns:
         df["_v1_int_ema_us"] = df["_v1_ema_diff"].to_numpy(dtype=np.float64) * is_us_f
-    if "_v1_range_z" in df.columns:
+    if "_v1_int_range_us" not in df.columns and "_v1_range_z" in df.columns:
         df["_v1_int_range_us"] = df["_v1_range_z"].to_numpy(dtype=np.float64) * is_us_f
-    if "_v1h1_slope3" in df.columns:
+    if "_v1_int_slope_h1_us" not in df.columns and "_v1h1_slope3" in df.columns:
         df["_v1_int_slope_h1_us"] = df["_v1h1_slope3"].to_numpy(dtype=np.float64) * is_us_f
-    print("[XGB] derived BASE76 missing features (8x duplicates+session-interactions)")
+    print("[XGB] derived BASE76 missing features (preserve baked shifted is_EU/is_US — X1 parity)")
 
     # ATR-normalized triple-barrier labels (session-aware, 3-class)
     # 2026-05-24 FIX: if atr_bps not in canonical, derive from _v1_atr14 / close * 1e4

@@ -1267,11 +1267,30 @@ def build_dataset_canonical(
     if xgb_sanitizer_config_path is not None:
         sanitizer_cfg = Path(xgb_sanitizer_config_path).expanduser().resolve()
     else:
-        sanitizer_cfg = project_root / "gx1" / "xgb" / "contracts" / "xgb_input_sanitizer_canonical_v3_v1.json"
+        # X2 (2026-06-04 parity): default to the BASE80 sanitizer the bundle was TRAINED with (empty
+        # bounds -> NO clipping, matching serve), NOT canonical_v3 (34 populated bounds -> clips 34
+        # _v1_*/session XGB inputs the serve path never clips). The two sibling builders
+        # (materialize_inference_batch_candidates_v3_v1.py, materialize_build_v3_training_dataset_v2.py)
+        # already hard-default base80; this entry builder silently diverged -> different XGB probs/bridge.
+        sanitizer_cfg = project_root / "gx1" / "xgb" / "contracts" / "xgb_input_sanitizer_base80_v1.json"
     if not model_path.exists():
         raise RuntimeError(f"XGB_MODEL_MISSING: {model_path}")
     if not sanitizer_cfg.exists():
         raise RuntimeError(f"SANITIZER_CONFIG_MISSING: {sanitizer_cfg}")
+    # X2 fail-closed (one-truth): the sanitizer used here MUST be the exact one the bundle was trained
+    # with — assert its SHA == the bundle meta's sanitizer_sha256, hard-fail on mismatch (would catch a
+    # wrong --xgb-sanitizer-config-path or a future default drift statically).
+    _xgb_meta_path = Path(xgb_bundle_path) / "xgb_universal_multihead_v2_meta.json"
+    if _xgb_meta_path.exists():
+        _expected_san_sha = (json.loads(_xgb_meta_path.read_text(encoding="utf-8")) or {}).get("sanitizer_sha256")
+        if _expected_san_sha:
+            _actual_san_sha = _sha256_file(sanitizer_cfg)
+            if _actual_san_sha != _expected_san_sha:
+                raise RuntimeError(
+                    f"XGB_SANITIZER_SHA_MISMATCH: {sanitizer_cfg.name} sha={_actual_san_sha} != bundle "
+                    f"meta.sanitizer_sha256={_expected_san_sha} — train would clip differently than the "
+                    f"model was trained with. Pass the matching --xgb-sanitizer-config-path."
+                )
     log.info("[XGB_SANITIZER_CONFIG] %s", sanitizer_cfg)
 
     xgb_model_sha256 = _sha256_file(model_path)
