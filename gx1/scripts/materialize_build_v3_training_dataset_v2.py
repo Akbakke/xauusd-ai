@@ -464,7 +464,23 @@ def emit_v3_records_for_candidate(
         gv_vel = np.zeros(n_avail, dtype=np.float32)
         gv_vel[1:] = giveback[1:] - giveback[:-1]
         giveback_acc[2:] = gv_vel[2:] - gv_vel[1:-1]
+    # R14 (2026-06-04): expanding closed-form OLS slope of cur_pnl vs bar_idx over [0..i].
+    # Was np.zeros (dead — overlay[:,15] all-zero in the whole V3 training set). ONE TRUTH with
+    # serve (v12_trade_state.build_trade_state_features:254-263) + the per-bar builder
+    # (materialize_build_exit_iql_per_bar_dataset_v2_m1:267-281) -> train==serve for rolling_slope.
     rolling_slope = np.zeros(n_avail, dtype=np.float32)
+    if n_avail >= 3:
+        _idx = np.arange(n_avail, dtype=np.float64)
+        _y64 = cur_pnl.astype(np.float64)
+        _cum_y = np.cumsum(_y64)
+        _cum_xy = np.cumsum(_idx * _y64)
+        for _i in range(2, n_avail):
+            _n = _i + 1
+            _sum_x = _i * _n / 2.0
+            _sum_x2 = _i * _n * (2 * _i + 1) / 6.0
+            _denom = _n * _sum_x2 - _sum_x * _sum_x
+            if abs(_denom) > 1e-9:
+                rolling_slope[_i] = float((_n * _cum_xy[_i] - _sum_x * _cum_y[_i]) / _denom)
 
     p_long_entry = float(candidate_row.get("p_long") or 0.0)
     p_hat_entry = float(candidate_row.get("p_hat") or 0.0)
@@ -629,7 +645,13 @@ def main() -> None:
                         help="Output DIRECTORY (not single file). Will contain matrix.npy + overlays.npy + records.jsonl + manifest.json")
     parser.add_argument("--reports-root", type=str, default=str(DEFAULT_REPORTS_ROOT))
     parser.add_argument("--m1-tape-root", type=str, default=str(DEFAULT_M1_TAPE_ROOT))
-    parser.add_argument("--canonical-v2", type=str, default=str(DEFAULT_CANONICAL_V2_PATH))
+    parser.add_argument(
+        "--canonical-v2", type=str, required=True,
+        help="REQUIRED (CLAUDE.md rule 4, no silent default; audit R11): canonical_v2/v3 M5 prebuilt. "
+             "Pass the REGIME-FRESH cv3 for the retrain — the old FULL_PLUS_CTX default carried a "
+             "DEGENERATE const trend_regime_id (84%% of rows differ vs the regime-robust build), which "
+             "would silently defeat the regime effort on the V3 leg. The /run-experiment manifest records "
+             "the path+hash.")
     parser.add_argument("--xgb-bundle", type=str, default=str(DEFAULT_XGB_BUNDLE))
     parser.add_argument("--xgb-feature-contract", type=str, default=str(DEFAULT_XGB_FEATURE_CONTRACT))
     parser.add_argument("--xgb-sanitizer-config", type=str, default=str(DEFAULT_XGB_SANITIZER_CONFIG))
