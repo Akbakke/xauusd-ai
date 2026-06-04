@@ -223,6 +223,18 @@ NUMERIC_STATE_COLS_CANONICAL = [
         "m5h1_momentum",
     ]
 ]
+# Phase 0a/O5 (2026-06-04): DROP 9 legacy _canon_v1 feats that have NO source in
+# canonical_features_v3 (verified absent -> zero-filled at train, while live recomputes
+# them -> a latent train/serve skew). Redundant with _v1_atr14 / _v1_atr_z / _v1_pk_sigma20.
+# The cement bundle (which trained on them as constant zeros) is preserved on disk; this
+# removes the skew + 9 dead inputs from the retrain contract. No env knob — the cement is
+# the artifact, not code-reproduced here.
+_O5_DEAD_CANON_V1 = {
+    "_v1_vwap_drift48_canon_v1", "_v1_body_tr_canon_v1", "_v1_int_r5_atr_canon_v1",
+    "_v1_int_slope_h4_atr_canon_v1", "_v1_int_clv_atr_canon_v1", "_v1h1_vwap_drift_canon_v1",
+    "atr_canon_v1", "std50_canon_v1", "roc20_canon_v1",
+}
+NUMERIC_STATE_COLS_CANONICAL = [c for c in NUMERIC_STATE_COLS_CANONICAL if c not in _O5_DEAD_CANON_V1]
 # V3 trade-state derivatives (per held bar)
 NUMERIC_STATE_COLS_TRADE_DERIV = list(exit_pipe.TRADE_STATE_DERIVATIVE_COLS)
 # V3 entry-snapshot fields carried through trade

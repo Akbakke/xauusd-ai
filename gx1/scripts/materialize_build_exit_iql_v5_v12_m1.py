@@ -185,16 +185,37 @@ def build_state_matrix(df: pd.DataFrame) -> tuple[np.ndarray, list[str]]:
     # build_state_matrix and previously never did -> it zero-filled all 64 even with
     # GX1_EXIT_AUGMENT_64=1. Default OFF -> empty list -> cement bit-parity preserved.
     _aug64 = list(v3_m1.NUMERIC_STATE_COLS_AUG64) if v3_m1._AUG64_ENABLED else []
+    # Phase 0a/E7 (2026-06-04): FAIL-LOUD on an ABSENT allowlisted col (the dead-zero
+    # footgun) instead of silent np.zeros. CONSTANT (std~0) present cols -> warn only (a
+    # legit rare-binary flag can be all-0 in a window — O7). After O5 dropped the 9
+    # source-less _canon_v1, every allowlisted col materializes post lazy-join.
+    absent_cols: list[str] = []
+    constant_cols: list[str] = []
     for c in NUMERIC_STATE_COLS_PER_BAR + NUMERIC_STATE_COLS_CANDIDATE + _aug64:
         if c in df.columns:
             col = pd.to_numeric(df[c], errors="coerce")
         else:
+            absent_cols.append(c)
             col = pd.Series(np.zeros(len(df)), index=df.index)
         nan_frac = float(col.isna().mean()) if len(col) > 0 else 0.0
         if nan_frac > 0.05:
             nan_warnings.append((c, nan_frac))
-        parts.append(col.fillna(0.0).rename(c))
+        filled = col.fillna(0.0)
+        if float(filled.std()) <= 1e-12:
+            constant_cols.append(c)
+        parts.append(filled.rename(c))
         feature_names.append(c)
+    if absent_cols:
+        raise RuntimeError(
+            f"[{ACTION}] {len(absent_cols)} allowlisted state feature(s) ABSENT from the per-bar "
+            f"frame — refusing to silent-0-fill (dead-zero guard): {absent_cols[:20]}"
+            + (f" (+{len(absent_cols)-20} more)" if len(absent_cols) > 20 else "")
+            + ". Wire the source (canonical join / aug64 path) or drop from the state list."
+        )
+    if constant_cols:
+        print(f"[{ACTION}][WARN] {len(constant_cols)} state feature(s) CONSTANT (std~0) — likely "
+              f"dead/degenerate: {constant_cols[:20]}"
+              + (f" (+{len(constant_cols)-20} more)" if len(constant_cols) > 20 else ""), flush=True)
     for c in ONE_HOT_COLS:
         if c in df.columns:
             dummies = pd.get_dummies(df[c].astype(str), prefix=c, dummy_na=False)
