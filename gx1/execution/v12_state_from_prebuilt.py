@@ -49,6 +49,7 @@ that exist in both prebuilts (i.e. before the staleness cutoff).
 from __future__ import annotations
 
 import logging
+import os
 import threading
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -261,6 +262,7 @@ class PrebuiltStateLoader:
                                 f"({exc}); falling back to sequential")
                     new_cv3 = self._augment_cv3_with_v2_mtf_scalars(new_cv3)
                     new_cv3 = self._augment_cv3_with_group_a_and_dip_struct(new_cv3)
+                    new_cv3 = self._augment_cv3_with_regime_v4(new_cv3)  # V1/R10: after v2_mtf (sources)
 
                 aug_took = (pd.Timestamp.utcnow() - t_aug).total_seconds()
                 LOG.info(f"[parallel-augment] full pipeline finished in {aug_took:.1f}s "
@@ -335,6 +337,7 @@ class PrebuiltStateLoader:
             self._augment_cv3_with_v2_mtf_scalars()
             self._augment_cv3_with_group_a_and_dip_struct()
             self._augment_cv3_with_v1_legacy()
+            self._augment_cv3_with_regime_v4()  # V1/R10: after v2_mtf (sources); gated GX1_REGIME_V4
             return
 
         # Fallback: load both separately (legacy path before joined was produced)
@@ -370,6 +373,7 @@ class PrebuiltStateLoader:
         self._augment_cv3_with_v2_mtf_scalars()
         self._augment_cv3_with_group_a_and_dip_struct()
         self._augment_cv3_with_v1_legacy()
+        self._augment_cv3_with_regime_v4()  # V1/R10: after v2_mtf (sources); gated GX1_REGIME_V4
 
     # ── V2 multi-TF scalar augmentation (XGB v7 base80) ───────────────
     # XGB v7 expects 31 V2-suffixed columns per row (M15/H1/H4/D1 × 7-8 each).
@@ -391,6 +395,45 @@ class PrebuiltStateLoader:
     )
     _V2_MTF_TFS = ("m15", "h1", "h4", "d1")
     _V2_MTF_SKIP = frozenset({("d1", "lower_wick_pct")})
+
+    # ── V1 / R10 (2026-06-04): REGIME_V4 exit-context augmentation ────────
+    def _augment_cv3_with_regime_v4(self, cv3: pd.DataFrame | None = None) -> pd.DataFrame | None:
+        """Compute the 16 REGIME_V4 EXIT_IO_V8 features on the FULL cv3 — ONE-truth add_regime_v4_features,
+        the SAME call the V3 builder uses (materialize_build_v3_training_dataset_v2.py:330-340). Gated by
+        GX1_REGIME_V4 so cement (flag=0 / EXIT_IO_V7) stays bit-identical. MUST run AFTER
+        _augment_cv3_with_v2_mtf_scalars (supplies the 12 {tf}_*_v2 source cols) and on the FULL frame
+        (F4 d1_dist_roc_288 / F9 bars_since_d1_regime_change need >=288-bar D1 history; a 96-bar window
+        would clip them to 0 = a second-order skew). Fail-closed: raises on a missing source col.
+        """
+        if os.environ.get("GX1_REGIME_V4", "0").strip().lower() not in ("1", "true", "yes", "on"):
+            return cv3 if cv3 is not None else self._cv3
+        in_place = cv3 is None
+        target = cv3 if cv3 is not None else self._cv3
+        if target is None:
+            return None
+        from gx1.features.regime_v4_features import (
+            REGIME_V4_FEATURE_NAMES as _RV4_NAMES,
+            add_regime_v4_features as _add_rv4,
+        )
+        if all(c in target.columns for c in _RV4_NAMES):
+            return target
+        # D1_dist_from_ema200_atr is the ONLY REGIME_V4 source not emitted by _augment_cv3_with_v2_mtf_scalars
+        # (which supplies the 12 {tf}_*_v2). Join it from base28 (capital-D1) by timestamp before computing.
+        if "D1_dist_from_ema200_atr" not in target.columns:
+            if self._base28 is not None and "D1_dist_from_ema200_atr" in self._base28.columns:
+                target["D1_dist_from_ema200_atr"] = (
+                    self._base28["D1_dist_from_ema200_atr"].reindex(target.index, method="ffill")
+                )
+            else:
+                raise RuntimeError(
+                    "[REGIME_V4_SERVE] D1_dist_from_ema200_atr missing from base28 — cannot compute the "
+                    "EXIT_IO_V8 REGIME_V4 tail at serve (would be train!=serve). Provide it on the prebuilt."
+                )
+        # add_regime_v4_features needs time-ascending order (shift/run-length); cv3 is sorted at load.
+        _add_rv4(target)  # in-place; one-truth; raises on any missing {tf}_*_v2 source col
+        if in_place:
+            self._cv3 = target
+        return target
 
     def _augment_cv3_with_group_a_and_dip_struct(self, cv3: pd.DataFrame | None = None) -> pd.DataFrame | None:
         """Add 24 GROUP-A parity + 36 DIP/STRUCT ctx_cont columns to cv3

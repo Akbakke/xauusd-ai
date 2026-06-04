@@ -280,6 +280,24 @@ class V3LiveInference:
                 mat[:, j] = pd.to_numeric(aligned, errors="coerce").fillna(0.0).to_numpy(dtype=np.float32)
             # else: feature missing — leave at 0
 
+        # V1 / R10 (2026-06-04) fail-closed: under GX1_REGIME_V4 the EXIT_IO_V8 regime tail MUST be
+        # present on the cv3 window (PrebuiltStateLoader._augment_cv3_with_regime_v4 computes it). Never
+        # silently leave it at 0 — that is exactly the COSTFIX V6-hardcode silent-zero failure. Only the
+        # 16 REGIME_V4 feats are checked (other legitimate-absent 0-fills are by design).
+        if _os.environ.get("GX1_REGIME_V4", "0").strip().lower() in ("1", "true", "yes", "on"):
+            from gx1.features.regime_v4_features import REGIME_V4_FEATURE_NAMES as _RV4
+            _rv4_set = set(_RV4)
+            _src_cols = set(win.columns) | (
+                set(canonical_v3_window.columns) if canonical_v3_window is not None else set()
+            )
+            _rv4_missing = [f for f in _feat_list if f in _rv4_set and f not in _src_cols]
+            if _rv4_missing:
+                raise RuntimeError(
+                    f"[V3_REGIME_V4_SILENT_ZERO] {len(_rv4_missing)} EXIT_IO_V8 REGIME_V4 cols absent from "
+                    f"the cv3 window at serve: {_rv4_missing[:5]} — loader regime augmenter did not run "
+                    f"(D1_dist / {{tf}}_*_v2 source cols missing?). Refusing to serve a zeroed regime tail."
+                )
+
         # Fill XGB signal_bridge (positions 0-6) by running XGB on unique M5 buckets
         m1_buckets = pd.DatetimeIndex(win.index.floor("5min"))
         unique_buckets = m1_buckets.unique()
