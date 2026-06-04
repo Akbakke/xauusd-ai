@@ -35,6 +35,17 @@ if [[ -f .env ]]; then
     set +o allexport
 fi
 
+# ── Regime-flag pins (2026-06-04, audit R2/R3) ──────────────────────────────
+# LIVE serves the COSTFIX cement (V10 ctx_cont=105, trend_regime price-basis, EXIT_IO_V7).
+# The build/contract defaults were flipped ON (GX1_REGIME_V4 -> ctx_cont 121) for the
+# upcoming regime retrain, so live MUST pin them OFF here until the 121-dim regime bundle is
+# cemented + promoted — otherwise the V10/V3 loaders fail-closed on the 121-vs-105 dim
+# mismatch (v12_v10_live.py) on relaunch. Flip BOTH to 1 in lockstep with promoting the
+# regime cement (and the serve mirrors P3-P5). Flags are EXPLICIT here — never rely on the
+# code defaults for live (build==serve flag parity).
+export GX1_REGIME_V4=0
+export GX1_TREND_REGIME_FROM_D1=0
+
 FORCE=0
 [[ "${1-}" == "--force" ]] && FORCE=1
 
