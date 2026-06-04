@@ -68,14 +68,33 @@ from gx1.contracts.signal_bridge_v2 import (
     ORDERED_CTX_CONT_NAMES_V2,
     ORDERED_CTX_CAT_NAMES_V2,
 )
-from gx1.exits.contracts.exit_io_v7_volume_dipstruct_m1l512 import (
-    EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_FEATURES,
-    EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_FEATURE_COUNT,
-    EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_FEATURE_NAMES_HASH,
-    EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_DEFAULT_WINDOW_LEN,
-    EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_IO_VERSION,
-    compute_m5_phase_onehot,
-)
+# Phase 0a/E4 (2026-06-04, O3=A): regime-default-ON -> train the V3 exit transformer on the
+# EXIT_IO_V8 contract (155 + 16 REGIME_V4 = 171). Aliased to the V7 names so the builder below
+# is unchanged; the 16-feat regime tail is computed on cv2 (1d block) + filled via the lazy-join
+# M5->M1 (rides cv2 like dip/struct) and covered by the _unfilled fail-closed guard. io_version/
+# hash/count come from V8, so the bundle metadata records V8. GX1_REGIME_V4=0 reproduces V7 (155).
+import os as _os_e4
+if _os_e4.environ.get("GX1_REGIME_V4", "1") == "1":
+    from gx1.exits.contracts.exit_io_v8_regime_m1l512 import (
+        EXIT_IO_V8_REGIME_M1L512_FEATURES as EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_FEATURES,
+        EXIT_IO_V8_REGIME_M1L512_FEATURE_COUNT as EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_FEATURE_COUNT,
+        EXIT_IO_V8_REGIME_M1L512_FEATURE_NAMES_HASH as EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_FEATURE_NAMES_HASH,
+        EXIT_IO_V8_REGIME_M1L512_DEFAULT_WINDOW_LEN as EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_DEFAULT_WINDOW_LEN,
+        EXIT_IO_V8_REGIME_M1L512_IO_VERSION as EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_IO_VERSION,
+        compute_m5_phase_onehot,
+    )
+    from gx1.features.regime_v4_features import REGIME_V4_FEATURE_NAMES as _EXIT_REGIME_V4_NAMES_SRC
+    _EXIT_REGIME_V4_NAMES = list(_EXIT_REGIME_V4_NAMES_SRC)
+else:
+    from gx1.exits.contracts.exit_io_v7_volume_dipstruct_m1l512 import (
+        EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_FEATURES,
+        EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_FEATURE_COUNT,
+        EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_FEATURE_NAMES_HASH,
+        EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_DEFAULT_WINDOW_LEN,
+        EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_IO_VERSION,
+        compute_m5_phase_onehot,
+    )
+    _EXIT_REGIME_V4_NAMES = []
 from gx1.exits.contracts.exit_io_v1_ctx36_features import EXIT_IO_V1_CTX36_FEATURES
 from gx1.scripts import materialize_build_candidate_forward_outcome_dataset_v1 as fwd_pipe
 from gx1.scripts import materialize_build_exit_iql_per_bar_dataset_v1 as v1_pipe
@@ -301,12 +320,31 @@ def precompute_m1_feature_vectors(
     _vol_feats = compute_volume_features(_vol_src)  # name -> (n,) float32, M1-resolution
     print(f"[{ACTION}] volume ({len(VOLUME_FEATURE_NAMES)}) computed on M1 grid", flush=True)
 
+    # ---- 1d) EXIT_IO_V8: 16 REGIME_V4 on the M5 cv2 grid (2026-06-04, E4) ----
+    # One-truth add_regime_v4_features (SAME computation as the entry V10 ctx + the EXIT_IO_V8
+    # contract tail). Attached as cv2 columns so the lazy-join below aligns them M5->M1 exactly
+    # like dip/struct (per-M1 STORAGE, M5-resolution value — constant over the M5 epoch, the
+    # intended decision-context granularity). Empty when regime OFF (V7 path). Fail-closed:
+    # add_regime_v4_features raises on missing source cols; the _unfilled guard below raises if
+    # any regime col is left unfilled.
+    if _EXIT_REGIME_V4_NAMES and any(f not in cv2.columns for f in _EXIT_REGIME_V4_NAMES):
+        from gx1.features.regime_v4_features import add_regime_v4_features
+        _t = pd.to_datetime(cv2["time"], utc=True)
+        _cv2_ri = cv2.copy()
+        _cv2_ri.index = _t
+        _cv2_ri = _cv2_ri.sort_index()  # shift()/run-length require time-ascending order
+        add_regime_v4_features(_cv2_ri)  # in-place; one-truth; raises on missing sources
+        _aligned = _cv2_ri.reindex(_t)   # back to cv2's original row order, by timestamp
+        for _rn in _EXIT_REGIME_V4_NAMES:
+            cv2[_rn] = _aligned[_rn].to_numpy()
+        print(f"[{ACTION}] regime_v4 ({len(_EXIT_REGIME_V4_NAMES)}) computed on M5 grid (EXIT_IO_V8)", flush=True)
+
     # ---- 2) Lazy-join canonical_v2 features for ctx_cont (11 V1 + 22 V2 ext) + ctx_cat (6) + swing (5) + m5_phase (5) + SMC (9) ----
     # Indices 12-49 + 50-79 in V5 feature list — anything that comes from canonical_v2 columns.
     # Build mapping: for each V5 feature name, if present in cv2, copy via M5→M1 alignment.
     print(f"[{ACTION}] lazy-joining canonical_v2 features to M1 grid...", flush=True)
     _handled_new: set = set()  # track that the V7 new features (vol+group_a+dip/struct) get filled
-    _new_feature_names = set(VOLUME_FEATURE_NAMES) | set(_GROUP_A) | set(_DIP_STRUCT)
+    _new_feature_names = set(VOLUME_FEATURE_NAMES) | set(_GROUP_A) | set(_DIP_STRUCT) | set(_EXIT_REGIME_V4_NAMES)
     for v5_idx, fname in enumerate(EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_FEATURES):
         if v5_idx < 7:
             continue  # XGB-bridge already filled
