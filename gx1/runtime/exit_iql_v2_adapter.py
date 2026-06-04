@@ -40,6 +40,13 @@ ACTION_HOLD_ID = 0
 ACTION_EXIT_NOW_ID = 1
 ACTION_LABELS_EXIT = {ACTION_HOLD_ID: "HOLD", ACTION_EXIT_NOW_ID: "EXIT_NOW"}
 
+# Fail-closed feature-coverage guard (2026-06-04) — see entry_iql_v2_adapter.py.
+# Trainer computes feature_stds = nanstd + 1e-6, so constant-in-training features
+# sit at ~1e-6; real-variance features are >= ~0.1. A real-variance feature
+# silently 0-filled at serve is the 2026-05-19 LONG-bias skew. std >= threshold
+# => REQUIRED at inference; derived per-bundle from the checkpoint (one truth).
+STD_REQUIRED_THRESHOLD = 1e-3
+
 
 @dataclass(frozen=True)
 class ExitRecommendation:
@@ -68,6 +75,9 @@ class ExitIQLV2Adapter:
     k_weights: np.ndarray | None
     artifact_root: Path
     exit_margin: float = 0.0  # V9 Issue 2: relax decision threshold (>0 fires more, <0 fires less)
+    strict_failclosed: bool = True  # raise (not 0-fill) if a train-variance feature is missing
+    warmup_grace_features: frozenset = frozenset()  # names demoted to warn-only (cold-start regime/MTF)
+    required_feature_names: frozenset = frozenset()  # derived in load(): std >= STD_REQUIRED_THRESHOLD
 
     @classmethod
     def load(
@@ -77,6 +87,8 @@ class ExitIQLV2Adapter:
         k_weights: Sequence[float] | None = None,
         prefer_cuda: bool = True,
         exit_margin: float = 0.0,
+        strict_failclosed: bool = True,
+        warmup_grace_features: Sequence[str] | None = None,
     ) -> "ExitIQLV2Adapter":
         if aggregator not in VALID_AGGREGATORS:
             raise ValueError(f"aggregator {aggregator!r} not in {VALID_AGGREGATORS}")
@@ -125,6 +137,11 @@ class ExitIQLV2Adapter:
         kw = np.asarray(k_weights, dtype=np.float32) if k_weights is not None else None
         if aggregator == "weighted" and (kw is None or len(kw) != n_k):
             raise ValueError(f"weighted aggregator needs k_weights of length {n_k}")
+        # Derive REQUIRED features from the checkpoint's training stds (one truth).
+        required_feature_names = frozenset(
+            fn for fn, sd in zip(feature_names, feature_stds.tolist())
+            if float(sd) >= STD_REQUIRED_THRESHOLD
+        )
         return cls(
             model=model,
             feature_names=feature_names,
@@ -133,6 +150,9 @@ class ExitIQLV2Adapter:
             aggregator=aggregator, beta=float(beta), k_weights=kw,
             artifact_root=artifact_root,
             exit_margin=float(exit_margin),
+            strict_failclosed=bool(strict_failclosed),
+            warmup_grace_features=frozenset(warmup_grace_features or ()),
+            required_feature_names=required_feature_names,
         )
 
     def build_state_vector(self, bar_state: dict[str, Any]) -> np.ndarray:
@@ -156,21 +176,35 @@ class ExitIQLV2Adapter:
                     v[i] = float(raw)
                 except (TypeError, ValueError):
                     v[i] = 0.0
-        # Strict coverage check — log once per missing-set to avoid spam.
-        # Without this guard, missing features silent-0-fill and the model
-        # drifts (root cause of 2026-05-19 LONG-bias bug). Cap warning to
-        # avoid log flood when bar_state is intentionally sparse.
-        if missing and not getattr(self, "_missing_warned_set", None) == tuple(missing):
-            import logging
-            n_miss = len(missing)
-            tot = len(self.feature_names)
-            head = ", ".join(missing[:10])
-            logging.getLogger("exit_iql_v2_adapter").warning(
-                f"[FEATURE_COVERAGE] {n_miss}/{tot} features missing from bar_state — "
-                f"silent 0-fill. First 10: [{head}]"
-                + (f" (+{n_miss-10} more)" if n_miss > 10 else "")
-            )
-            self._missing_warned_set = tuple(missing)
+        # Fail-closed coverage guard (2026-06-04). A REQUIRED feature (real training
+        # variance, std >= STD_REQUIRED_THRESHOLD) missing at serve is the 2026-05-19
+        # LONG-bias skew → refuse to 0-fill. Constants / one-hots / dead-zero debt
+        # (std ~1e-6) stay warn-only. warmup_grace_features demotes named cold-start
+        # features to warn-only.
+        if missing:
+            required_missing = [
+                f for f in missing
+                if f in self.required_feature_names and f not in self.warmup_grace_features
+            ]
+            if required_missing and self.strict_failclosed:
+                raise RuntimeError(
+                    f"[FEATURE_COVERAGE_FATAL] {len(required_missing)} required "
+                    f"(train-variance) feature(s) missing from bar_state — refusing to "
+                    f"0-fill (2026-05-19 skew guard): {required_missing[:20]}"
+                    + (f" (+{len(required_missing)-20} more)" if len(required_missing) > 20 else "")
+                    + " | pass strict_failclosed=False or add to warmup_grace_features to override."
+                )
+            if not getattr(self, "_missing_warned_set", None) == tuple(missing):
+                import logging
+                n_miss = len(missing)
+                tot = len(self.feature_names)
+                head = ", ".join(missing[:10])
+                logging.getLogger("exit_iql_v2_adapter").warning(
+                    f"[FEATURE_COVERAGE] {n_miss}/{tot} features missing from bar_state "
+                    f"(0-fill; {len(required_missing)} required) — first 10: [{head}]"
+                    + (f" (+{n_miss-10} more)" if n_miss > 10 else "")
+                )
+                self._missing_warned_set = tuple(missing)
         return v
 
     def predict(self, bar_states: list[dict[str, Any]]) -> list[ExitRecommendation]:

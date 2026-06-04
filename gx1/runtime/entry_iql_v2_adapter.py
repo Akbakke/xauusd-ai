@@ -54,6 +54,18 @@ from gx1.scripts import entry_iql_multi_head_gpu_core_v1 as iql_core
 VALID_AGGREGATORS = ("mean", "max", "weighted")
 DEFAULT_AGGREGATOR = "mean"
 
+# Fail-closed feature-coverage guard (2026-06-04). The trainer computes
+# feature_stds = nanstd(X) + 1e-6 (entry_iql_multi_head_gpu_core_v1.py:237), so a
+# feature that was CONSTANT in training sits at ~1e-6 while any feature that carried
+# real variance is >= ~0.1 (verified: empty band between 8e-4 and 0.12 in the cement
+# checkpoints). Silently 0-filling a real-variance feature at serve is exactly the
+# 2026-05-19 all-LONG-bias skew (V10 aux heads went missing -> Q collapsed to a
+# constant action). Features whose training std is >= this threshold are therefore
+# REQUIRED at inference; constants / one-hots / dead-zero debt (std ~1e-6) are
+# harmless to 0-fill. Derived per-bundle from the checkpoint -> cannot drift from
+# the contract (one truth).
+STD_REQUIRED_THRESHOLD = 1e-3
+
 
 @dataclass(frozen=True)
 class EntryRecommendation:
@@ -85,6 +97,9 @@ class EntryIQLV2Adapter:
     k_weights: np.ndarray | None
     artifact_root: Path
     min_advantage_bps: float = 0.0  # V9 Issue A: skip trades with Q-advantage below this threshold
+    strict_failclosed: bool = True  # raise (not 0-fill) if a train-variance feature is missing
+    warmup_grace_features: frozenset = frozenset()  # names demoted to warn-only (cold-start regime/MTF)
+    required_feature_names: frozenset = frozenset()  # derived in load(): std >= STD_REQUIRED_THRESHOLD
 
     # ------- Loading -------
 
@@ -100,6 +115,8 @@ class EntryIQLV2Adapter:
         k_weights: Sequence[float] | None = None,
         prefer_cuda: bool = True,
         min_advantage_bps: float = 0.0,
+        strict_failclosed: bool = True,
+        warmup_grace_features: Sequence[str] | None = None,
     ) -> "EntryIQLV2Adapter":
         if aggregator not in VALID_AGGREGATORS:
             raise ValueError(f"aggregator {aggregator!r} not in {VALID_AGGREGATORS}")
@@ -148,6 +165,13 @@ class EntryIQLV2Adapter:
         kw = np.asarray(k_weights, dtype=np.float32) if k_weights is not None else None
         if aggregator == "weighted" and (kw is None or len(kw) != n_k):
             raise ValueError(f"weighted aggregator needs k_weights of length {n_k}")
+        # Derive the REQUIRED feature set from the checkpoint's training stds: any
+        # feature that carried real variance (std >= STD_REQUIRED_THRESHOLD) must be
+        # present at serve. One truth — cannot drift from the contract.
+        required_feature_names = frozenset(
+            fn for fn, sd in zip(feature_names, feature_stds.tolist())
+            if float(sd) >= STD_REQUIRED_THRESHOLD
+        )
         return cls(
             model=model,
             feature_names=feature_names,
@@ -158,6 +182,9 @@ class EntryIQLV2Adapter:
             k_weights=kw,
             artifact_root=artifact_root,
             min_advantage_bps=float(min_advantage_bps),
+            strict_failclosed=bool(strict_failclosed),
+            warmup_grace_features=frozenset(warmup_grace_features or ()),
+            required_feature_names=required_feature_names,
         )
 
     # ------- State construction -------
@@ -193,20 +220,35 @@ class EntryIQLV2Adapter:
                     v[i] = float(raw)
                 except (TypeError, ValueError):
                     v[i] = 0.0
-        # Strict coverage check — was silent 0-fill before 2026-05-19.
-        # Root cause of all-LONG bias: 5 v3+ aux head features missing in live
-        # → adapter 0-filled → Q-vector collapsed to constant.
-        if missing and not getattr(self, "_missing_warned_set", None) == tuple(missing):
-            import logging
-            n_miss = len(missing)
-            tot = len(self.feature_names)
-            head = ", ".join(missing[:10])
-            logging.getLogger("entry_iql_v2_adapter").warning(
-                f"[FEATURE_COVERAGE] {n_miss}/{tot} features missing from candidate — "
-                f"silent 0-fill. First 10: [{head}]"
-                + (f" (+{n_miss-10} more)" if n_miss > 10 else "")
-            )
-            self._missing_warned_set = tuple(missing)
+        # Fail-closed coverage guard (2026-06-04). A REQUIRED feature (real training
+        # variance, std >= STD_REQUIRED_THRESHOLD) missing at serve is the 2026-05-19
+        # all-LONG-bias skew → refuse to 0-fill. Constants / one-hots / dead-zero debt
+        # (std ~1e-6) stay warn-only. warmup_grace_features demotes named cold-start
+        # features (regime/MTF needing warmup) to warn-only.
+        if missing:
+            required_missing = [
+                f for f in missing
+                if f in self.required_feature_names and f not in self.warmup_grace_features
+            ]
+            if required_missing and self.strict_failclosed:
+                raise RuntimeError(
+                    f"[FEATURE_COVERAGE_FATAL] {len(required_missing)} required "
+                    f"(train-variance) feature(s) missing from candidate — refusing to "
+                    f"0-fill (2026-05-19 skew guard): {required_missing[:20]}"
+                    + (f" (+{len(required_missing)-20} more)" if len(required_missing) > 20 else "")
+                    + " | pass strict_failclosed=False or add to warmup_grace_features to override."
+                )
+            if not getattr(self, "_missing_warned_set", None) == tuple(missing):
+                import logging
+                n_miss = len(missing)
+                tot = len(self.feature_names)
+                head = ", ".join(missing[:10])
+                logging.getLogger("entry_iql_v2_adapter").warning(
+                    f"[FEATURE_COVERAGE] {n_miss}/{tot} features missing from candidate "
+                    f"(0-fill; {len(required_missing)} required) — first 10: [{head}]"
+                    + (f" (+{n_miss-10} more)" if n_miss > 10 else "")
+                )
+                self._missing_warned_set = tuple(missing)
         return v
 
     # ------- Inference -------
