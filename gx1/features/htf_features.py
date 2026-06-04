@@ -246,6 +246,104 @@ def compute_h4_trend_sign_cat(
 
 
 # ---------------------------------------------------------------------------
+# Vectorized full-tape HTF (ONE TRUTH for the offline ctx builder + the live daemon)
+# ---------------------------------------------------------------------------
+
+HTF_TAPE_COLUMNS = (
+    "D1_dist_from_ema200_atr",
+    "D1_atr_percentile_252",
+    "H1_range_compression_ratio",
+    "M15_range_compression_ratio",
+    "H4_trend_sign_cat",
+)
+
+
+def _align_last_closed_tape(
+    target_index: pd.DatetimeIndex, htf_series: pd.Series, shift: pd.Timedelta
+) -> pd.Series:
+    """Vectorized no-lookahead align: each M5 bar gets the value of the last HTF bar
+    that CLOSED at or before it (an HTF bar opened at T closes at T+shift). Mirrors
+    add_ctx_cont_columns_to_prebuilt._align_last_closed and v12_ctx_augment_live._align_last_closed."""
+    shifted = htf_series.copy()
+    shifted.index = shifted.index + shift
+    return shifted.reindex(target_index, method="ffill")
+
+
+def build_htf_tape(m5_candles: pd.DataFrame) -> pd.DataFrame:
+    """Compute the 5 HTF features for EVERY M5 bar (vectorized full-tape), no lookahead.
+
+    ONE TRUTH for the offline ctx builder (add_ctx_cont_columns_to_prebuilt) AND the live
+    canonical_incremental daemon, so live serves the SAME fresh HTF the training
+    distribution was built with — fixing the daemon forward-fill / frozen-HTF bug (e.g. the
+    H4 trend sign says down-when-down instead of a stale value). Strict warmup floors match
+    the offline builder; FAIL-LOUD (raise) if warmup is unmet — never emits an unconverged
+    value. Returns a DataFrame indexed like ``m5_candles`` with ``HTF_TAPE_COLUMNS``.
+    """
+    _validate_m5_input(m5_candles)
+    m5 = m5_candles
+    if not isinstance(m5.index, pd.DatetimeIndex):
+        if "time" in m5.columns:
+            m5 = m5.set_index(pd.DatetimeIndex(pd.to_datetime(m5["time"], utc=True)))
+        else:
+            raise RuntimeError("[BUILD_HTF_TAPE] m5_candles needs a DatetimeIndex or a 'time' column")
+
+    df_d1 = _resample_ohlc(m5, "1D")
+    df_h1 = _resample_ohlc(m5, "1h")
+    df_m15 = _resample_ohlc(m5, "15min")
+    df_h4 = _resample_ohlc(m5, "4h")
+    # Strict warmup floors (match the offline builder: no unconverged HTF on short tapes).
+    if len(df_d1) < D1_PCTL252_MIN_BARS:
+        raise RuntimeError(
+            f"[BUILD_HTF_TAPE] insufficient D1 bars ({len(df_d1)} < {D1_PCTL252_MIN_BARS}) "
+            "for ATR14 252-day percentile warmup"
+        )
+    if len(df_h1) < H1_ATR100_MIN_BARS:
+        raise RuntimeError(f"[BUILD_HTF_TAPE] insufficient H1 bars ({len(df_h1)} < {H1_ATR100_MIN_BARS})")
+    if len(df_m15) < M15_ATR100_MIN_BARS:
+        raise RuntimeError(f"[BUILD_HTF_TAPE] insufficient M15 bars ({len(df_m15)} < {M15_ATR100_MIN_BARS})")
+    if len(df_h4) < H4_EMA50_MIN_BARS:
+        raise RuntimeError(f"[BUILD_HTF_TAPE] insufficient H4 bars ({len(df_h4)} < {H4_EMA50_MIN_BARS})")
+
+    # D1: dist-from-EMA200 (ATR units) + ATR14 252-day percentile rank
+    d1_mid = (df_d1["high"] + df_d1["low"]) * 0.5
+    d1_ema200 = _ema(d1_mid, 200)
+    d1_atr14 = _atr(df_d1["high"], df_d1["low"], df_d1["close"], 14).ffill()
+    d1_dist = (d1_mid - d1_ema200) / np.maximum(d1_atr14, ATR_EPS)
+
+    def _pctl_last(window: np.ndarray) -> float:
+        w = np.asarray(window, dtype=float)
+        if not np.isfinite(w).all():
+            return float("nan")
+        return float((w <= w[-1]).mean())
+
+    d1_atr_pctl252 = d1_atr14.rolling(252, min_periods=252).apply(_pctl_last, raw=True).ffill()
+
+    # H1 / M15 range compression (ATR14 / ATR100)
+    h1_comp = (
+        _atr(df_h1["high"], df_h1["low"], df_h1["close"], 14).ffill()
+        / np.maximum(_atr(df_h1["high"], df_h1["low"], df_h1["close"], 100).ffill(), ATR_EPS)
+    )
+    m15_comp = (
+        _atr(df_m15["high"], df_m15["low"], df_m15["close"], 14).ffill()
+        / np.maximum(_atr(df_m15["high"], df_m15["low"], df_m15["close"], 100).ffill(), ATR_EPS)
+    )
+
+    # H4 trend sign cat {0,1,2} = sign(H4 mid - H4 EMA50) + 1
+    h4_mid = (df_h4["high"] + df_h4["low"]) * 0.5
+    h4_sign = np.sign((h4_mid - _ema(h4_mid, 50)).fillna(0.0).to_numpy()).astype(np.int64)
+    h4_cat = pd.Series((h4_sign + 1).astype(np.int64), index=df_h4.index)
+
+    idx = m5.index
+    out = pd.DataFrame(index=idx)
+    out["D1_dist_from_ema200_atr"] = _align_last_closed_tape(idx, d1_dist, pd.Timedelta(days=1)).to_numpy(dtype=float)
+    out["D1_atr_percentile_252"] = _align_last_closed_tape(idx, d1_atr_pctl252, pd.Timedelta(days=1)).to_numpy(dtype=float)
+    out["H1_range_compression_ratio"] = _align_last_closed_tape(idx, h1_comp, pd.Timedelta(hours=1)).to_numpy(dtype=float)
+    out["M15_range_compression_ratio"] = _align_last_closed_tape(idx, m15_comp, pd.Timedelta(minutes=15)).to_numpy(dtype=float)
+    out["H4_trend_sign_cat"] = _align_last_closed_tape(idx, h4_cat, pd.Timedelta(hours=4)).to_numpy()
+    return out
+
+
+# ---------------------------------------------------------------------------
 # Combined entry point
 # ---------------------------------------------------------------------------
 
