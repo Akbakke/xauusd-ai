@@ -61,8 +61,10 @@ runtime.
 from __future__ import annotations
 
 import argparse
+import bisect
 import hashlib
 import json
+import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -499,6 +501,80 @@ def _chunk0_feature_at(chunk0: pd.DataFrame | None, ts_ns: int) -> dict[str, Any
     return out
 
 
+# ── B9: real-open portfolio parity (GX1_PORTFOLIO_PARITY_B9) ──────────────────
+# Live runs with max_trades=1 → 0-1 open positions; the legacy candidate-density block
+# (counts EVERY candidate in a 240-min window, ~12-16 mid-week) badly skews the
+# portfolio_n_open_*/combined_pnl/time_since features the Entry-IQL trains on. This builds a
+# DETERMINISTIC single-slot book from the RECORDED cement entry-IQL take/skip decisions
+# + the MEASURED cement hold (~100 M1 bars), so training portfolio state == live semantics.
+# Data-driven (recorded decisions + measured hold), not a guessed proxy. cap=1 → intervals are
+# non-overlapping → O(log n) per-candidate lookup. Bootstrap: uses the prev-gen entry-IQL
+# decisions to build the next gen's training state (iterate at each retrain).
+_B9_ENABLED = os.environ.get("GX1_PORTFOLIO_PARITY_B9", "0") == "1"
+_B9_HOLD_M1_BARS = int(os.environ.get("GX1_B9_HOLD_M1_BARS", "100"))     # measured cement median
+_B9_MAX_CONCURRENT = int(os.environ.get("GX1_B9_MAX_CONCURRENT", "1"))   # live DEFAULT_MAX_TRADES
+_B9_DECISIONS_PATH = os.environ.get(
+    "GX1_B9_DECISIONS_PATH",
+    "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/"
+    "ENTRY_IQL_INFERENCE_FOR_V12_20260529T043203Z/decisions.parquet",
+)
+
+
+def build_realopen_occupancy(decisions_path, m5_time_ns, m5_mid_arr,
+                             hold_m1_bars=_B9_HOLD_M1_BARS, max_concurrent=_B9_MAX_CONCURRENT):
+    """Single-slot (cap=max_concurrent) book from recorded entry-IQL TAKE decisions.
+    Returns (occ, occ_starts): occ = sorted list of dicts {start_ns,end_ns,side,entry_close};
+    occ_starts = [start_ns] for bisect. Entry price = M5 mid at/at-or-before the take ts.
+    cap=1 (live default) → non-overlapping intervals."""
+    dd = pd.read_parquet(Path(decisions_path), columns=["decision_ts_utc", "action_label_v1"])
+    dd["ts_ns"] = pd.to_datetime(dd["decision_ts_utc"], utc=True).astype("int64")
+    dd = dd.sort_values("ts_ns")
+    hold_ns = int(hold_m1_bars) * 60 * 1_000_000_000
+    n = len(m5_time_ns)
+    occ: list[dict[str, Any]] = []
+    open_ends: list[int] = []   # end_ns of currently-open trades (len <= max_concurrent)
+    for ts_ns, act in zip(dd["ts_ns"].to_numpy(), dd["action_label_v1"].to_numpy()):
+        if act not in ("TAKE_LONG_NOW", "TAKE_SHORT_NOW"):
+            continue
+        ts_ns = int(ts_ns)
+        open_ends = [e for e in open_ends if e > ts_ns]   # evict closed
+        if len(open_ends) >= max_concurrent:
+            continue                                       # book full → not opened live
+        idx = int(np.searchsorted(m5_time_ns, ts_ns, side="right")) - 1
+        entry_close = float(m5_mid_arr[idx]) if 0 <= idx < n else 0.0
+        end = ts_ns + hold_ns
+        occ.append({"start_ns": ts_ns, "end_ns": end,
+                    "side": "long" if act == "TAKE_LONG_NOW" else "short",
+                    "entry_close": entry_close})
+        open_ends.append(end)
+    occ.sort(key=lambda d: d["start_ns"])
+    return occ, [d["start_ns"] for d in occ]
+
+
+def realopen_at(occ, occ_starts, ts_ns, cur_close, lookback_min):
+    """Real-open portfolio features at ts from the single-slot book (cap=1 → ≤1 overlap)."""
+    n_long = n_short = 0
+    sum_pnl = 0.0
+    last_start = None
+    j = bisect.bisect_right(occ_starts, ts_ns) - 1   # last interval starting at/before ts
+    if j >= 0:
+        iv = occ[j]
+        last_start = iv["start_ns"]
+        if iv["start_ns"] < ts_ns <= iv["end_ns"]:    # entered strictly before, not yet exited
+            ec = iv["entry_close"]
+            if ec > 0 and cur_close > 0:
+                sum_pnl = ((cur_close - ec) if iv["side"] == "long" else (ec - cur_close)) / ec * 10000.0
+            if iv["side"] == "long":
+                n_long = 1
+            else:
+                n_short = 1
+    if last_start is not None:
+        time_since = min(float(lookback_min), (ts_ns - last_start) / 60_000_000_000)
+    else:
+        time_since = float(lookback_min)
+    return n_long, n_short, sum_pnl, time_since
+
+
 def process_week(
     week_dir: Path,
     m5: pd.DataFrame,
@@ -507,8 +583,13 @@ def process_week(
     canonical: pd.DataFrame | None,
     *,
     max_gap_ns: int,
+    realopen: tuple | None = None,
 ) -> tuple[pd.DataFrame, dict[str, Any]]:
-    """Process one TRUTH_MONFRI_WEEK_* directory. Return (rows_df, stats_dict)."""
+    """Process one TRUTH_MONFRI_WEEK_* directory. Return (rows_df, stats_dict).
+
+    realopen: optional (occ, occ_starts) global single-slot book (B9). When provided, the
+    portfolio_* features use real-open semantics (live max_trades) instead of candidate-density.
+    """
     rid = week_dir.name
     cand_path = week_dir / f"shadow_meta_candidates_{rid}_MERGED.parquet"
     stats: dict[str, Any] = {
@@ -643,6 +724,11 @@ def process_week(
             time_since_last_min = (ts_ns - port_last_entry_ns) / 60_000_000_000
         else:
             time_since_last_min = float(PORTFOLIO_LOOKBACK_MIN)  # cap = no recent entries
+        if realopen is not None:
+            # B9: real-open single-slot book (live max_trades semantics) overrides candidate-density.
+            _occ, _occ_starts = realopen
+            port_n_long, port_n_short, port_sum_pnl_bps, time_since_last_min = realopen_at(
+                _occ, _occ_starts, ts_ns, cur_m5_close, PORTFOLIO_LOOKBACK_MIN)
         row_out["portfolio_n_open_long_at_decision"] = int(port_n_long)
         row_out["portfolio_n_open_short_at_decision"] = int(port_n_short)
         row_out["portfolio_combined_pnl_bps_at_decision"] = float(port_sum_pnl_bps)
@@ -780,6 +866,15 @@ def write_artifacts(
     }
     max_gap_ns = MAX_INTRA_GAP_MINUTES * 60 * 1_000_000_000
 
+    # B9: build the global single-slot real-open book once (GX1_PORTFOLIO_PARITY_B9=1).
+    _b9_realopen = None
+    if _B9_ENABLED:
+        _m5_mid = (m5_arrays["bid_close"] + m5_arrays["ask_close"]) * 0.5
+        _b9_occ, _b9_starts = build_realopen_occupancy(_B9_DECISIONS_PATH, m5_time_ns, _m5_mid)
+        _b9_realopen = (_b9_occ, _b9_starts)
+        print(f"[{ACTION}] B9 real-open book: {len(_b9_occ)} taken-trade intervals "
+              f"(hold={_B9_HOLD_M1_BARS}m1 cap={_B9_MAX_CONCURRENT}) from {_B9_DECISIONS_PATH}", flush=True)
+
     week_dirs = sorted(
         d for d in reports_root.iterdir()
         if d.is_dir() and _is_truth_monfri_week(d.name)
@@ -805,7 +900,8 @@ def write_artifacts(
             except (json.JSONDecodeError, OSError):
                 pass  # fallthrough to recompute
 
-        df, stats = process_week(week_dir, m5, m5_time_ns, m5_arrays, canonical, max_gap_ns=max_gap_ns)
+        df, stats = process_week(week_dir, m5, m5_time_ns, m5_arrays, canonical,
+                                 max_gap_ns=max_gap_ns, realopen=_b9_realopen)
         per_week_stats.append(stats)
         if not df.empty:
             df.to_parquet(out_path, index=False)
