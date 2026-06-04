@@ -849,75 +849,19 @@ def build_state_matrix(df: pd.DataFrame) -> tuple[np.ndarray, list[str]]:
         df = df.loc[complete_mask].reset_index(drop=True)
 
     # 2026-05-24 DIP + STRUCTURE per TF — ALL 5 TFs (M5/M15/H1/H4/D1).
-    # After Bug 1+2 fixes: all per-TF mom_5/mom_20 + dist_to_*_lo_atr now alive.
-    # Use dist_to_*_lo_atr where available, ema20_dist as proxy where not.
+    # 2026-06-04 (Phase 0a / O2=A): compute the 36 dip/struct (+24 GROUP-A) ctx_cont
+    # cols via the ONE-TRUTH helper attach_group_a_dip_struct_ctx_columns — the SAME
+    # function the serving path (v12_state_from_prebuilt.py:428) and candidate-gen
+    # (materialize_inference_batch_candidates_v3_v1.py:597) use, so the model sees
+    # identical values at train and serve (no skew). The helper is IDEMPOTENT: if
+    # candidate-gen already attached the 36 (the retrain path), it returns immediately
+    # and PRESERVES the real values — fixing the dead-zero bug where the old inline
+    # block recomputed them from per-TF inputs ABSENT in the COSTFIX frame and
+    # overwrote the real values with zeros. Fail-loud: the helper raises if OHLC is
+    # missing and the cols are not already present (better than silent zero-fill).
     df = df.copy()
-    DIP_TF_INPUTS = {
-        "m5":  ("dist_to_m5_lo_atr",     "m5_ema20_slope_atr_v2",  "dist_to"),
-        "m15": ("dist_to_m15_lo_atr",    "m15_ema20_slope_atr_v2", "dist_to"),
-        "h1":  ("dist_to_h1_lo_atr",     "h1_ema20_slope_atr_v2",  "dist_to"),
-        "h4":  ("dist_to_h4_lo_atr",     "h4_ema20_slope_atr_v2",  "dist_to"),
-        "d1":  ("dist_to_d1_lo_atr",     "d1_ema20_slope_atr_v2",  "dist_to"),
-    }
-    for tf, (proxy_col, slope_col, kind) in DIP_TF_INPUTS.items():
-        if proxy_col in df.columns and slope_col in df.columns:
-            proxy = pd.to_numeric(df[proxy_col], errors="coerce").fillna(2.0).to_numpy(dtype=np.float32)
-            slope = pd.to_numeric(df[slope_col], errors="coerce").fillna(0.0).to_numpy(dtype=np.float32)
-            if kind == "dist_to":
-                dip_prox = np.clip(1.0 - proxy / 2.0, 0.0, 1.0)
-            else:
-                dip_prox = np.clip(-proxy / 2.0, 0.0, 1.0)
-            recovery = 1.0 / (1.0 + np.exp(-slope * 5.0))
-            df[f"dip_proximity_{tf}_v3"] = dip_prox.astype(np.float32)
-            df[f"dip_confirmed_{tf}_v3"] = (dip_prox * recovery).astype(np.float32)
-        else:
-            df[f"dip_proximity_{tf}_v3"] = np.zeros(len(df), dtype=np.float32)
-            df[f"dip_confirmed_{tf}_v3"] = np.zeros(len(df), dtype=np.float32)
-
-    # Multi-TF HH/HL structure — ALL 5 TFs (after Bug 1 fix: H4/D1 mom_20 alive).
-    for tf in ("m5", "m15", "h1", "h4", "d1"):
-        m5_col, m20_col = f"{tf}_mom_5_atr_v2", f"{tf}_mom_20_atr_v2"
-        if m5_col in df.columns and m20_col in df.columns:
-            m5 = pd.to_numeric(df[m5_col], errors="coerce").fillna(0.0).to_numpy(dtype=np.float32)
-            m20 = pd.to_numeric(df[m20_col], errors="coerce").fillna(0.0).to_numpy(dtype=np.float32)
-            df[f"struct_continuation_up_{tf}_v3"] = ((m20 > 0) & (m5 > 0)).astype(np.float32)
-            df[f"struct_pullback_in_uptrend_{tf}_v3"] = ((m20 > 0) & (m5 < 0)).astype(np.float32)
-            df[f"struct_continuation_down_{tf}_v3"] = ((m20 < 0) & (m5 < 0)).astype(np.float32)
-            df[f"struct_bounce_in_downtrend_{tf}_v3"] = ((m20 < 0) & (m5 > 0)).astype(np.float32)
-            depth_raw = np.where(m20 > 1e-6, -m5 / np.maximum(np.abs(m20), 1e-6), 0.0)
-            df[f"struct_pullback_depth_{tf}_v3"] = np.clip(depth_raw, -2.0, 2.0).astype(np.float32)
-        else:
-            for k in ("continuation_up", "pullback_in_uptrend", "continuation_down",
-                      "bounce_in_downtrend", "pullback_depth"):
-                df[f"struct_{k}_{tf}_v3"] = np.zeros(len(df), dtype=np.float32)
-
-    # MULTI-TF ALIGNMENT — BUY-THE-DIP signal when ALL 5 TFs agree (strict)
-    pback_m5  = df.get("struct_pullback_in_uptrend_m5_v3",  pd.Series(np.zeros(len(df)))).to_numpy(dtype=np.float32)
-    pback_m15 = df.get("struct_pullback_in_uptrend_m15_v3", pd.Series(np.zeros(len(df)))).to_numpy(dtype=np.float32)
-    pback_h1  = df.get("struct_pullback_in_uptrend_h1_v3",  pd.Series(np.zeros(len(df)))).to_numpy(dtype=np.float32)
-    pback_h4  = df.get("struct_pullback_in_uptrend_h4_v3",  pd.Series(np.zeros(len(df)))).to_numpy(dtype=np.float32)
-    pback_d1  = df.get("struct_pullback_in_uptrend_d1_v3",  pd.Series(np.zeros(len(df)))).to_numpy(dtype=np.float32)
-    df["struct_all_tf_pullback_v3"] = (pback_m5 * pback_m15 * pback_h1 * pback_h4 * pback_d1).astype(np.float32)
-    # Soft version: count of TFs agreeing (0-5) normalized
-    df["struct_tf_agree_count_v3"] = ((pback_m5 + pback_m15 + pback_h1 + pback_h4 + pback_d1) / 5.0).astype(np.float32)
-
-    # Combo: avg dip-confirmed (ALL 5 TFs) × M5 pullback
-    dc_m5  = df.get("dip_confirmed_m5_v3",  pd.Series(np.zeros(len(df)))).to_numpy(dtype=np.float32)
-    dc_m15 = df.get("dip_confirmed_m15_v3", pd.Series(np.zeros(len(df)))).to_numpy(dtype=np.float32)
-    dc_h1  = df.get("dip_confirmed_h1_v3",  pd.Series(np.zeros(len(df)))).to_numpy(dtype=np.float32)
-    dc_h4  = df.get("dip_confirmed_h4_v3",  pd.Series(np.zeros(len(df)))).to_numpy(dtype=np.float32)
-    dc_d1  = df.get("dip_confirmed_d1_v3",  pd.Series(np.zeros(len(df)))).to_numpy(dtype=np.float32)
-    avg_dip = (dc_m5 + dc_m15 + dc_h1 + dc_h4 + dc_d1) / 5.0
-    df["struct_dip_x_uptrend_v3"] = (avg_dip * pback_m5).astype(np.float32)
-
-    # Combo: SMC swing_state × M5 dip_proximity
-    smc_col = "smc_swing_state_canon_v1"
-    if smc_col in df.columns and "dip_proximity_m5_v3" in df.columns:
-        sw = pd.to_numeric(df[smc_col], errors="coerce").fillna(0.0).to_numpy(dtype=np.float32)
-        sw_norm = np.clip(sw / max(float(np.abs(sw).max() or 1.0), 1.0), -1.0, 1.0)
-        df["struct_smc_swing_x_dip_v3"] = (sw_norm * df["dip_proximity_m5_v3"].to_numpy(dtype=np.float32)).astype(np.float32)
-    else:
-        df["struct_smc_swing_x_dip_v3"] = np.zeros(len(df), dtype=np.float32)
+    from gx1.scripts.augment_forward_outcome_v2 import attach_group_a_dip_struct_ctx_columns
+    df = attach_group_a_dip_struct_ctx_columns(df, journal_label="entry_iql_v2_build")
 
     state_parts: list[pd.DataFrame] = []
     feature_names: list[str] = []
