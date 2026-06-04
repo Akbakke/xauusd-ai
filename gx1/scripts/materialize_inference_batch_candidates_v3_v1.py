@@ -539,15 +539,22 @@ def emit_candidates(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=ACTION)
-    parser.add_argument("--prebuilt", type=str, default=str(DEFAULT_PREBUILT_PARQUET))
+    # Pre-rebuild fail-close (2026-06-04, rule 4 "no silent defaults"): --prebuilt/--v10-bundle/--v2-cache-dir
+    # are now REQUIRED — the old defaults pointed at a stale 05-22 prebuilt, a DELETED V10 bundle
+    # (ENTRY_V10_V3PLUS_v2, .exists()=False), and the frozen 05-22 MULTI_TF_V2_CACHE. A Fase-2 run MUST pass
+    # the freshly-rebuilt regime artifacts explicitly. (Imported helpers run_xgb_inference/build_v10_input_matrices
+    # are unaffected — only direct CLI invocation.)
+    parser.add_argument("--prebuilt", type=str, required=True,
+                        help="explicit regime-fresh prebuilt (no silent default)")
     parser.add_argument("--xgb-bundle", type=str, default=str(DEFAULT_XGB_BUNDLE))
-    parser.add_argument("--v10-bundle", type=str, default=str(DEFAULT_V10_BUNDLE))
+    parser.add_argument("--v10-bundle", type=str, required=True,
+                        help="explicit V10 bundle (no silent default — old default bundle was DELETED)")
     parser.add_argument("--xgb-feature-contract", type=str, default=str(DEFAULT_XGB_FEATURE_CONTRACT))
     parser.add_argument("--xgb-sanitizer-config", type=str, default=str(DEFAULT_XGB_SANITIZER_CONFIG))
     parser.add_argument("--reports-root", type=str, default=str(DEFAULT_REPORTS_ROOT))
-    parser.add_argument("--v2-cache-dir", type=str, default=str(DEFAULT_V2_CACHE_DIR),
-                        help="Multi-TF V2 cache dir (5 TFs incl M5 × 25 feats). One-truth "
-                             "source the V2-multi-TF V10 was trained on.")
+    parser.add_argument("--v2-cache-dir", type=str, required=True,
+                        help="Multi-TF V2 cache dir (5 TFs incl M5 × 25 feats). One-truth source the "
+                             "V2-multi-TF V10 was trained on (no silent default — old default was stale 05-22).")
     parser.add_argument("--batch-size", type=int, default=DEFAULT_BATCH_SIZE)
     parser.add_argument("--min-margin", type=float, default=DEFAULT_MIN_MARGIN)
     parser.add_argument("--min-directional-prob", type=float, default=DEFAULT_MIN_DIRECTIONAL_PROB)

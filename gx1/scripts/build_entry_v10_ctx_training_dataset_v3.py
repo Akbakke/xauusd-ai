@@ -2763,8 +2763,11 @@ def main() -> None:
     parser.add_argument(
         "--canonical_v2_parquet",
         type=str,
-        default="/home/andre2/GX1_DATA/reports/truth_e2e_sanity/CANONICAL_FEATURES_V2/canonical_features_v2.parquet",
-        help="Path to canonical_features_v2.parquet (provides per-bar price-state features + new ctx_cont features).",
+        required=True,
+        help="Path to the canonical_v2 / FULL_PLUS_CTX parquet (per-bar price-state + ctx_cont). Pre-rebuild "
+             "fail-close (2026-06-04, rule 4 'no silent defaults'): REQUIRED — the old default was a 10-day-stale "
+             "(ends 05-25) canonical_v2 that would silently poison the V10 dataset; pass the regime-fresh rebuild "
+             "output explicitly (V3's --canonical-v2 is already required; this mirrors it).",
     )
 
     # BASE76 propagation: when training transformers against a BASE76 XGB bundle.
