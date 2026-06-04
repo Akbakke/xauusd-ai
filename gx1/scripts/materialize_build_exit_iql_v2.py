@@ -204,6 +204,23 @@ NUMERIC_STATE_COLS_CANONICAL = [
         "mid", "range", "body_pct", "wick_asym", "atr", "atr50", "atr_z", "std50",
         "ret_1", "ret_5", "ret_20", "roc20", "roc100", "rvol_20", "rvol_60",
         "ema20_slope", "ema100_slope", "pos_vs_ema200", "vol_ratio",
+        # 2026-06-04 (Phase 0a / E2): wire 19 dead-zero canonical_v3 feats that ARE
+        # joined into the per-bar state (the comprehension appends CANONICAL_FEATURES_SUFFIX
+        # = _canon_v1) but were never in this allowlist, so the Exit-IQL state matrix
+        # silently zero-filled them. All 19 verified present in canonical_features_v3
+        # (113 cols) with real variance (live-merge check). smc_choch DROPPED (nnz 0.09%).
+        # SMC structure (9):
+        "smc_swing_state", "smc_bos_up", "smc_bos_down",
+        "smc_sweep_up", "smc_sweep_down", "smc_sweep_size_atr",
+        "smc_bars_since_sweep", "smc_premium_discount", "smc_premium_state",
+        # HTF D1/M15 (9) — source cols carry an embedded _canon_v2 base, so post-join
+        # name is X_canon_v2_canon_v1:
+        "d1_rsi14_canon_v2", "d1_ema_slope_20_canon_v2", "d1_atr14_canon_v2",
+        "d1_range_z_20_canon_v2", "d1_close_pct_in_20day_range_canon_v2",
+        "d1_pct_change_5_canon_v2", "m15_rsi14_canon_v2",
+        "m15_range_z_20_canon_v2", "m15_trend_sign_canon_v2",
+        # M5/H1 cross-TF momentum (1):
+        "m5h1_momentum",
     ]
 ]
 # V3 trade-state derivatives (per held bar)
