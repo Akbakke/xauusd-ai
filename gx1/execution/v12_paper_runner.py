@@ -164,12 +164,14 @@ def evaluate_entry_safety(side: str, n_same_side: int, n_opposing: int,
     flattens existing trades (that would deadlock with the per-trade M1 exit
     lifecycle). Opposing-side is checked first: never open a short while a long is
     open (or vice-versa); then the same-side hard cap (the -2000 06-02 pile-up fix).
+
+    2026-06-04: delegates to the ONE-TRUTH circuit-breaker (gx1.portfolio.
+    circuit_breaker_v1.evaluate_same_opp_cap) so live and the offline harness share
+    the exact same admission logic. Behavior-identical (golden parity test
+    tests/test_circuit_breaker_parity.py + pinned by test_entry_safety_invariant.py).
     """
-    if n_opposing > 0:
-        return False, "blocked_opposing_side_open", n_opposing
-    if n_same_side >= hard_max_same_side:
-        return False, "blocked_hard_same_side_cap", n_same_side
-    return True, "ok", 0
+    from gx1.portfolio.circuit_breaker_v1 import evaluate_same_opp_cap
+    return evaluate_same_opp_cap(side, n_same_side, n_opposing, hard_max_same_side)
 
 
 # ── V12 decision (wired in sesjon 1-5) ────────────────────────────────────
