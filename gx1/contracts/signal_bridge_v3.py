@@ -252,12 +252,14 @@ ORDERED_CTX_CONT_DIP_STRUCT: List[str] = [
 
 # REGIME_V4 tail (2026-06-03 regime-everywhere wave): 16 multi-TF regime CONDITIONING +
 # regime-CHANGE-DETECTION features (gx1.features.regime_v4_features — the SAME list the exit
-# EXIT_IO_V8 uses; one truth). ENV-CONDITIONAL: appended ONLY when GX1_REGIME_V4=1 (the regime
-# retrain). Default OFF → the contract stays the cement's 105 EXACTLY (bit-parity reproduction;
-# the prebuilt only carries the REGIME_V4 cols when the same flag is set, so an unconditional
-# append would break a cement rebuild). The V10 loader is bundle-meta-driven (uses each
-# bundle's own ctx_cont_dim) so the cement (105) + a regime bundle (121) coexist either way.
-if os.environ.get("GX1_REGIME_V4", "0") == "1":
+# EXIT_IO_V8 uses; one truth). ENV-CONDITIONAL: appended when GX1_REGIME_V4=1. Phase 0a/P1
+# (2026-06-04, O3=A): DEFAULT FLIPPED "0"->"1" — regime is now part of the STANDARD contract
+# (ctx_cont 121) for every new build/retrain. Set GX1_REGIME_V4=0 ONLY to reproduce the 105-dim
+# cement EXACTLY (the prebuilt carries the REGIME_V4 cols only when the same flag is set, so the
+# default-ON + this escape-hatch keeps a cement rebuild reproducible). The V10 loader is
+# bundle-meta-driven (uses each bundle's own ctx_cont_dim), so the cement (105) + a regime
+# bundle (121) coexist either way.
+if os.environ.get("GX1_REGIME_V4", "1") == "1":
     from gx1.features.regime_v4_features import REGIME_V4_FEATURE_NAMES as _REGIME_V4_NAMES
     ORDERED_CTX_CONT_REGIME_V4: List[str] = list(_REGIME_V4_NAMES)
 else:
