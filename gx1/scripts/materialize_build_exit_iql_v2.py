@@ -644,6 +644,114 @@ def maybe_candidate_uid_groups(df: "pd.DataFrame") -> np.ndarray | None:
     return df["candidate_uid"].to_numpy()
 
 
+# R16 (2026-06-04): trades hold up to ~24h of autocorrelated M1 bars; the embargo must be >= the
+# max trade duration so a train trade's full forward bar-window has closed before any val/test
+# trade is decided (no straddle). 24h is a safe upper bound on the exit horizon.
+EXIT_EMBARGO_NS = 24 * 3600 * 1_000_000_000
+
+
+def build_chronological_group_folds(
+    decision_ts: np.ndarray,          # per-row trade decision time (decision_ts_utc), len == n_rows
+    groups: np.ndarray,               # per-row candidate_uid, len == n_rows
+    n_folds: int = N_FOLDS,
+    embargo_ns: int = EXIT_EMBARGO_NS,
+) -> list[dict[str, np.ndarray]]:
+    """R16: group-aware purged walk-forward chronological splits for the per-bar EXIT-IQL.
+
+    The per-bar exit set has ~480 autocorrelated M1 bars per trade. An honest OOT split must
+    (a) keep EVERY bar of a trade on ONE side (candidate_uid grouping), AND (b) be chronological in
+    TRADE-decision time (train = earlier trades, val/test = later) with an embargo gap so no train
+    trade's forward bar-window straddles a later split. Mirrors entry-IQL build_chronological_folds
+    but at the TRADE (group) granularity. Row indices returned are into the ORIGINAL (unsorted) row
+    order; fold N's test is the most-recent trade block (true OOT).
+    """
+    n_rows = len(decision_ts)
+    if len(groups) != n_rows:
+        raise ValueError(f"[EXIT_CHRONO_SPLIT] groups len {len(groups)} != n_rows {n_rows}")
+    # Parse decision_ts -> int64 ns (robust to ISO str / datetime64 / int64-ns). NaT -> INT64_MIN.
+    ts = pd.to_datetime(pd.Series(decision_ts), utc=True, errors="coerce").astype("int64").to_numpy()
+    if np.any(ts <= 0):
+        raise RuntimeError(
+            "[EXIT_CHRONO_SPLIT] decision_ts has unparseable/empty values — cannot order trades by "
+            "time for an honest OOT split."
+        )
+    g = np.asarray(groups)
+    uniq, inv = np.unique(g, return_inverse=True)   # inv: row -> trade index into uniq
+    n_trades = len(uniq)
+    if n_trades < n_folds + 2:
+        raise RuntimeError(
+            f"[EXIT_CHRONO_SPLIT] only {n_trades} trades for {n_folds}+2 blocks — too few for an honest split."
+        )
+    # Per-trade decision time = min ts within the trade (decision_ts_utc is constant per trade;
+    # min is robust to a stray differing row).
+    trade_ts = np.full(n_trades, np.iinfo(np.int64).max, dtype=np.int64)
+    np.minimum.at(trade_ts, inv, ts)
+    trade_order = np.argsort(trade_ts, kind="mergesort")      # chronological trade order
+    blocks = np.array_split(trade_order, n_folds + 2)         # contiguous time-blocks of TRADE indices
+    emb = max(0, int(embargo_ns))
+    folds: list[dict[str, np.ndarray]] = []
+    for k in range(n_folds):
+        train_tr = np.concatenate(blocks[: k + 1])
+        val_tr = blocks[k + 1]
+        test_tr = blocks[k + 2]
+        # Time-embargo: purge train trades decided within `emb` of the first val decision, and val
+        # trades within `emb` of the first test decision, so no forward bar-window straddles a split.
+        if emb and len(val_tr) and len(train_tr):
+            val_start = int(trade_ts[val_tr].min())
+            train_tr = train_tr[trade_ts[train_tr] <= (val_start - emb)]
+        if emb and len(test_tr) and len(val_tr):
+            test_start = int(trade_ts[test_tr].min())
+            val_tr = val_tr[trade_ts[val_tr] <= (test_start - emb)]
+        # Map trade indices -> ORIGINAL row indices (every bar of each trade lands together).
+        train_idx = np.nonzero(np.isin(inv, train_tr))[0]
+        val_idx = np.nonzero(np.isin(inv, val_tr))[0]
+        test_idx = np.nonzero(np.isin(inv, test_tr))[0]
+        folds.append({
+            "fold_id_v1": f"FOLD_{k + 1}",
+            "train_idx_v1": np.sort(train_idx),
+            "val_idx_v1": np.sort(val_idx),
+            "test_idx_v1": np.sort(test_idx),
+        })
+    return folds
+
+
+def resolve_exit_folds(
+    df: "pd.DataFrame", *, n_rows: int, oracle_action: np.ndarray, n_folds: int = N_FOLDS,
+) -> list[dict[str, np.ndarray]]:
+    """ONE-truth split resolver for ALL exit-IQL call sites. GX1_EXIT_IQL_SPLIT_MODE:
+      - 'stratified' (DEFAULT, cement bit-parity): StratifiedShuffleSplit by oracle_action.
+      - 'group' (EXIT-8): GroupShuffleSplit by candidate_uid (leak-free, but random-in-time).
+      - 'chronological' (R16): group-aware purged walk-forward by decision_ts_utc + candidate_uid
+        + embargo — true OOT, parity with entry-IQL build_chronological_folds.
+    Back-compat: GX1_EXIT_IQL_GROUP_SPLIT=1 selects 'group' when SPLIT_MODE is unset. Fail-closed:
+    'chronological'/'group' RAISE if their required columns are absent (never silently leak).
+    """
+    mode = os.environ.get("GX1_EXIT_IQL_SPLIT_MODE", "").strip().lower()
+    if not mode:
+        mode = "group" if os.environ.get("GX1_EXIT_IQL_GROUP_SPLIT", "0").strip().lower() in ("1", "true", "yes", "on") else "stratified"
+    if mode == "chronological":
+        for col in ("decision_ts_utc", "candidate_uid"):
+            if col not in df.columns:
+                raise RuntimeError(
+                    f"[EXIT_SPLIT] GX1_EXIT_IQL_SPLIT_MODE=chronological needs '{col}' in the per-bar df — "
+                    "cannot do an honest OOT split."
+                )
+        folds = build_chronological_group_folds(
+            decision_ts=df["decision_ts_utc"].to_numpy(),
+            groups=df["candidate_uid"].to_numpy(),
+            n_folds=n_folds,
+        )
+        print(f"[EXIT_SPLIT] mode=chronological (decision_ts_utc + candidate_uid + {EXIT_EMBARGO_NS/3.6e12:.0f}h embargo) folds={len(folds)}", flush=True)
+        return folds
+    if mode == "group":
+        if "candidate_uid" not in df.columns:
+            raise RuntimeError("[EXIT_SPLIT] GX1_EXIT_IQL_SPLIT_MODE=group needs 'candidate_uid' in the per-bar df.")
+        print("[EXIT_SPLIT] mode=group (GroupShuffleSplit by candidate_uid)", flush=True)
+        return build_stratified_folds(n_rows=n_rows, oracle_action=oracle_action, n_folds=n_folds, groups=df["candidate_uid"].to_numpy())
+    print("[EXIT_SPLIT] mode=stratified (cement StratifiedShuffleSplit, bit-parity)", flush=True)
+    return build_stratified_folds(n_rows=n_rows, oracle_action=oracle_action, n_folds=n_folds, groups=None)
+
+
 def maybe_per_trade_sample_weights(df: "pd.DataFrame") -> np.ndarray | None:
     """EXIT-8 part 2: per-trade 1/n_bars sample weight (mean-normalised to 1.0).
 

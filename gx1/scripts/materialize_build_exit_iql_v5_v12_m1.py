@@ -315,9 +315,8 @@ def write_artifacts(
         oracle_dist = {ai: int((oracle_action == ai).sum()) for ai in range(v2_train.N_ACTIONS_EXIT)}
         print(f"[{ACTION}] oracle action (R_V12, K={effective_k_primary}) dist: {oracle_dist}", flush=True)
 
-        folds = v2_train.build_stratified_folds(
-            n_rows=len(df), oracle_action=oracle_action,
-            groups=v2_train.maybe_candidate_uid_groups(df),  # EXIT-8: leak-free group split when enabled
+        folds = v2_train.resolve_exit_folds(
+            df, n_rows=len(df), oracle_action=oracle_action,  # R16: GX1_EXIT_IQL_SPLIT_MODE = stratified(cement)|group|chronological
         )
 
         per_fold_results: list[dict[str, Any]] = []
