@@ -298,6 +298,25 @@ class V3LiveInference:
                     f"(D1_dist / {{tf}}_*_v2 source cols missing?). Refusing to serve a zeroed regime tail."
                 )
 
+        # V3 (2026-06-04 train==serve parity): compute the 4 volume features M1-NATIVE on the window's
+        # raw M1 volume+close (constitution: exit is ALWAYS M1, never coarsen). The old serve path left
+        # idx 91-94 to the M5-ffill branch above (M5-window z/pct, constant per 5-M1 epoch) which the
+        # M1-native build (materialize_build_v3_training_dataset_v2:313-321) cannot match. Activates once
+        # the base34 prebuilt carries raw `volume`+`close` (added by the canonical daemon; materializes at
+        # the prebuilt rebuild). Fail-soft until then — if volume absent, the M5-ffill values above stand.
+        if "volume" in win.columns and ("close" in win.columns or "bid_close" in win.columns):
+            from gx1.features.volume_features import VOLUME_FEATURE_NAMES, compute_volume_features
+            _vw = pd.DataFrame({
+                "volume": pd.to_numeric(win["volume"], errors="coerce").to_numpy(),
+                "close": pd.to_numeric(
+                    win["close"] if "close" in win.columns else win["bid_close"], errors="coerce"
+                ).to_numpy(),
+            })
+            _vf = compute_volume_features(_vw)
+            for _vn in VOLUME_FEATURE_NAMES:
+                if _vn in _feat_list:
+                    mat[:, _feat_list.index(_vn)] = np.asarray(_vf[_vn], dtype=np.float32)
+
         # Fill XGB signal_bridge (positions 0-6) by running XGB on unique M5 buckets
         m1_buckets = pd.DatetimeIndex(win.index.floor("5min"))
         unique_buckets = m1_buckets.unique()
