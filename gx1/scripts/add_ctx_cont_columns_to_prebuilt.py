@@ -809,6 +809,31 @@ def run_add_ctx_cont_columns(
                     df_pre[_n] = _merged_cross[_n].to_numpy()
             log.info("[REGIME_V4] merged %d cv3 cross/cyclic feats (smc_premium_state/m5h1_momentum/hour/dow)", len(_need_cross))
 
+    # B2 train==serve (2026-06-05, XGB-audit): bake the SHIFTED _v1_is_EU/_v1_is_US (np.roll by 1, [0]=0).
+    # The V10 build (source-parquet-override) + candidate batch run XGB INFERENCE on THIS parquet, and the
+    # new XGB is trained on SHIFTED is_EU/is_US (base80 builder B2) matching live serve
+    # (v12_ctx_augment_live.py:165-172). Those builders otherwise derive them UNSHIFTED
+    # (build_entry_v10_ctx_training_dataset_v3.py:1234-1237) -> train≠serve on ~0.7% session-boundary bars.
+    # Outside the REGIME_V4 block: this is an XGB-bridge input, always needed. df_pre is time-sorted.
+    if "_v1_is_EU" not in df_pre.columns or "_v1_is_US" not in df_pre.columns:
+        from gx1.time.session_detector import get_session_vectorized as _get_sess
+        _sess_b2 = _get_sess(pd.to_datetime(df_pre.index, utc=True))
+        for _b2name, _b2tag in (("_v1_is_EU", "EU"), ("_v1_is_US", "US")):
+            if _b2name not in df_pre.columns:
+                _b2raw = (_sess_b2 == _b2tag).to_numpy(dtype=np.float64)
+                _b2sh = np.roll(_b2raw, 1)
+                _b2sh[0] = 0.0
+                df_pre[_b2name] = _b2sh
+        log.info("[B2] baked shifted _v1_is_EU/_v1_is_US (train==serve XGB-inference parity)")
+    # *_us session-interactions on the SHIFTED is_US basis (same formulas as the trainer :876-881 and live
+    # serve _add_session_interactions). The candidate batch's run_xgb_inference REQUIRES these present
+    # (raises on missing); the V10 builder derives them too — baking here keeps ONE basis for every consumer.
+    _is_us_b2 = df_pre["_v1_is_US"].to_numpy(dtype=np.float64)
+    for _usname, _ussrc in (("_v1_int_ema_us", "_v1_ema_diff"), ("_v1_int_range_us", "_v1_range_z"),
+                            ("_v1_int_slope_h1_us", "_v1h1_slope3")):
+        if _usname not in df_pre.columns and _ussrc in df_pre.columns:
+            df_pre[_usname] = df_pre[_ussrc].to_numpy(dtype=np.float64) * _is_us_b2
+
     # ------------------------------------------------------------
     # Write outputs
     # ------------------------------------------------------------
