@@ -228,10 +228,29 @@ def write_artifacts(
     _cv3_for_xgb = os.environ.get(
         "GX1_XGB_CV3_FOR_CROSSFEATS",
         "/home/andre2/GX1_DATA/data/data/prebuilt/_PINNED_FASE2B_20260605/xauusd_m5_CANONICAL_V3_2020_2026.parquet")
-    if Path(_cv3_for_xgb).exists() and any(_n not in merged.columns for _n in _need6):
-        _cv3x = pd.read_parquet(_cv3_for_xgb, columns=["time"] + [n for n in _need6])
+    if any(_n not in merged.columns for _n in _need6):
+        # N4 guard (2026-06-05, XGB-audit): the old code SILENTLY SKIPPED when the pinned cv3 was absent
+        # (shipping a base80 missing the 6 cross-feats) and did an UNVALIDATED left-merge — a wrong-but-
+        # covering cv3 or a time-grid gap would train XGB on silent 0-fill with zero detection. Now: fail
+        # CLOSED if the pin is missing; validate the join is 1:1 (no row blow-up) + introduces ZERO new NaN.
+        if not Path(_cv3_for_xgb).exists():
+            raise FileNotFoundError(
+                f"[{ACTION}] cv3 cross-feats source missing — pass GX1_XGB_CV3_FOR_CROSSFEATS: {_cv3_for_xgb}")
+        _cv3x = pd.read_parquet(_cv3_for_xgb, columns=["time"] + list(_need6))
         _cv3x["time"] = pd.to_datetime(_cv3x["time"], utc=True)
-        merged = merged.merge(_cv3x, on="time", how="left")
+        _n_before = len(merged)
+        _na_before = {n: int(merged[n].isna().sum()) for n in _need6 if n in merged.columns}
+        merged = merged.merge(_cv3x, on="time", how="left", validate="one_to_one")
+        if len(merged) != _n_before:
+            raise ValueError(f"[{ACTION}] cv3 cross-feats merge changed row count {_n_before}->{len(merged)}")
+        _na_new = {n: int(merged[n].isna().sum()) - _na_before.get(n, 0) for n in _need6}
+        _bad = {n: v for n, v in _na_new.items() if v > 0}
+        if _bad:
+            raise ValueError(
+                f"[{ACTION}] cv3 cross-feats merge introduced NaN (time-grid gap / wrong cv3): {_bad} "
+                f"from {_cv3_for_xgb}")
+        print(f"[{ACTION}] cv3 cross-feats merged from {_cv3_for_xgb} "
+              f"span=({_cv3x['time'].min()}..{_cv3x['time'].max()}) (1:1, 0 new NaN)", flush=True)
     print(f"[{ACTION}] self-attached session + multi-TF-v2 + cv3 cross-feats → {len(merged.columns)} cols", flush=True)
 
     print(f"[{ACTION}] feature inventory:", flush=True)
