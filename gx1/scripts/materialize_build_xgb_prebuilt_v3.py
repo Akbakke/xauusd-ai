@@ -89,32 +89,46 @@ def merge_canonical_v2_with_base28_ctx(
         print(f"[{ACTION}] dropped OHLC carry-over from canonical_v2: {drop_ohlc}", flush=True)
     print(f"[{ACTION}] canonical_v2: {len(cv2):,} rows × {len(cv2.columns)} cols", flush=True)
 
-    print(f"[{ACTION}] reading BASE28 prebuilt from {base28_path}", flush=True)
-    base28 = pd.read_parquet(base28_path)
-    base28["time"] = pd.to_datetime(base28["time"], utc=True)
-    print(f"[{ACTION}] BASE28: {len(base28):,} rows × {len(base28.columns)} cols", flush=True)
-
-    # Identify unique columns to take from BASE28 (those NOT already in canonical_v2)
     cv2_cols = set(cv2.columns)
-    base28_extras = [c for c in base28.columns if c not in cv2_cols and c != "time"]
-    print(f"[{ACTION}] BASE28 columns to merge in (not in canonical_v2): {len(base28_extras)}", flush=True)
-    for c in base28_extras:
-        print(f"    + {c}", flush=True)
+    # base28 is OPTIONAL (2026-06-05 one-truth fix). The stale BASE28 seed (ends 2026-03-13) was the ONLY
+    # thing capping base80's span at 03-13 via this inner-join. The 6 base80-contract features it uniquely
+    # supplied — session_id + _v1_int_ema_us / _v1_int_range_us / _v1_int_slope_h1_us / _v1_is_EU / _v1_is_US
+    # — are DERIVED by the XGB trainer itself (_derive_session_context_features + "derived BASE76 missing
+    # features", train_xgb_universal_multihead_v2.py:120 & 863-882). So with base28 dropped, base80 =
+    # fresh canonical_v2 (to 2026-05-25) + self-attach below; the trainer fills the 6. No 03-13 cap, ONE truth.
+    base28_str = str(base28_path) if base28_path is not None else "NONE"
+    use_base28 = base28_path is not None and base28_str.upper() not in ("NONE", "") and Path(base28_path).exists()
+    if use_base28:
+        print(f"[{ACTION}] reading BASE28 prebuilt from {base28_path}", flush=True)
+        base28 = pd.read_parquet(base28_path)
+        base28["time"] = pd.to_datetime(base28["time"], utc=True)
+        print(f"[{ACTION}] BASE28: {len(base28):,} rows × {len(base28.columns)} cols", flush=True)
 
-    # Inner-join on time — both should have the same M5 grid 2020-2026
-    base28_keep = base28[["time"] + base28_extras].copy()
-    print(f"[{ACTION}] inner-joining on time...", flush=True)
-    t0 = _time.time()
-    merged = cv2.merge(base28_keep, on="time", how="inner", validate="one_to_one")
-    elapsed = _time.time() - t0
-    print(f"[{ACTION}] merge done in {elapsed:.1f}s, "
-          f"result: {len(merged):,} rows × {len(merged.columns)} cols", flush=True)
+        # Identify unique columns to take from BASE28 (those NOT already in canonical_v2)
+        base28_extras = [c for c in base28.columns if c not in cv2_cols and c != "time"]
+        print(f"[{ACTION}] BASE28 columns to merge in (not in canonical_v2): {len(base28_extras)}", flush=True)
+        for c in base28_extras:
+            print(f"    + {c}", flush=True)
 
-    if len(merged) == 0:
-        raise RuntimeError(f"[{ACTION}] inner join produced 0 rows — time grids don't overlap?")
-    if len(merged) < min(len(cv2), len(base28)) * 0.95:
-        print(f"[{ACTION}] WARNING: merged rows ({len(merged):,}) << either input "
-              f"(cv2={len(cv2):,}, base28={len(base28):,}) — possible time-grid mismatch", flush=True)
+        # Inner-join on time — both should have the same M5 grid 2020-2026
+        base28_keep = base28[["time"] + base28_extras].copy()
+        print(f"[{ACTION}] inner-joining on time...", flush=True)
+        t0 = _time.time()
+        merged = cv2.merge(base28_keep, on="time", how="inner", validate="one_to_one")
+        elapsed = _time.time() - t0
+        print(f"[{ACTION}] merge done in {elapsed:.1f}s, "
+              f"result: {len(merged):,} rows × {len(merged.columns)} cols", flush=True)
+
+        if len(merged) == 0:
+            raise RuntimeError(f"[{ACTION}] inner join produced 0 rows — time grids don't overlap?")
+        if len(merged) < min(len(cv2), len(base28)) * 0.95:
+            print(f"[{ACTION}] WARNING: merged rows ({len(merged):,}) << either input "
+                  f"(cv2={len(cv2):,}, base28={len(base28):,}) — possible time-grid mismatch", flush=True)
+    else:
+        print(f"[{ACTION}] base28 DROPPED (path={base28_str!r}) — span follows canonical_v2; "
+              f"trainer derives session_id + _v1_int_*/_v1_is_* (X1 parity)", flush=True)
+        base28_extras = []
+        merged = cv2
 
     inventory = {
         "_v1_canonical_v2": [c for c in merged.columns if c.startswith("_v1_") and not c.startswith("_v1h") and c not in base28_extras],
@@ -162,6 +176,51 @@ def write_artifacts(
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     merged, inventory = merge_canonical_v2_with_base28_ctx(canonical_v2_path, base28_path)
+
+    # SELF-CONTAINED (2026-06-05): the base80 contract needs the multi-TF-v2 (m15/h1/h4/d1_*_v2) + the 5
+    # session-timing features that the v2+BASE28 merge does NOT produce (the BASE28 seed lacks session; v2
+    # carries *_canon_v2, not the *_v2 projection). Attach them ONE-TRUTH (same helpers as the V3 builder +
+    # live serve) so XGB's sanitizer (fail-closed on missing cols) passes. M5 OHLC for the TF projection
+    # comes from the clean canonical M5 tape (full history → HTF warmup for the 2020-11-09+ target rows).
+    import glob as _glob
+    import os
+    import numpy as _np
+    from gx1.features.basic_v1 import add_session_features as _add_sess
+    from gx1.features.htf_features import attach_v2_mtf_per_bar_scalars as _attach_v2
+    _t = pd.to_datetime(merged["time"], utc=True)
+    # (a) session-timing features (add_session_features derives them from a DatetimeIndex)
+    _si = merged.set_index(pd.DatetimeIndex(_t.values))
+    _add_sess(_si)
+    for _sc in ("is_ASIA", "minutes_since_session_open", "minutes_to_next_session_boundary",
+                "session_change_flag", "session_tradable"):
+        if _sc in _si.columns and _sc not in merged.columns:
+            merged[_sc] = _np.asarray(_si[_sc])
+    # (b) multi-TF V2 projection (m15/h1/h4/d1_*_v2) from the clean M5 tape (one-truth attach_v2_mtf)
+    _tape = sorted(_glob.glob("/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m5_bid_ask__CANONICAL/year=*/part-000.parquet"))
+    _m5 = pd.concat([pd.read_parquet(p, columns=["time", "open", "high", "low", "close", "volume"]) for p in _tape],
+                    ignore_index=True)
+    _m5["time"] = pd.to_datetime(_m5["time"], utc=True)
+    _m5 = _m5.drop_duplicates("time").sort_values("time").set_index("time")
+    _per_tf = (("ema20_slope_atr", "ema20_slope_atr"), ("ema_stack_aligned", "ema_stack_aligned_v2"),
+               ("regime_class_id", "regime_class_id"), ("trend_age_bars_norm", "trend_age_bars_norm"),
+               ("mom_5_atr", "mom_5_atr"), ("mom_20_atr", "mom_20_atr"), ("rsi14_centered", "rsi14_centered"),
+               ("atr_bps_14", "atr_bps_14"), ("lower_wick_pct", "lower_wick_pct"))
+    _ts_ns = _t.values.astype("datetime64[ns]").astype(_np.int64)
+    for _c, _v in _attach_v2(_m5, _ts_ns, _per_tf, ("m15", "h1", "h4", "d1"),
+                             frozenset({("d1", "lower_wick_pct")})).items():
+        if _c not in merged.columns:
+            merged[_c] = _v
+    # (c) cyclic-time + SMC + cross-TF momentum: produced by canonical_v3_augment → merge from the pinned
+    # clean cv3 (one-truth values; recomputing risks a formula mismatch vs train==serve).
+    _need6 = ["hour_sin", "hour_cos", "dow_sin", "dow_cos", "smc_premium_state", "m5h1_momentum"]
+    _cv3_for_xgb = os.environ.get(
+        "GX1_XGB_CV3_FOR_CROSSFEATS",
+        "/home/andre2/GX1_DATA/data/data/prebuilt/_PINNED_FASE2B_20260605/xauusd_m5_CANONICAL_V3_2020_2026.parquet")
+    if Path(_cv3_for_xgb).exists() and any(_n not in merged.columns for _n in _need6):
+        _cv3x = pd.read_parquet(_cv3_for_xgb, columns=["time"] + [n for n in _need6])
+        _cv3x["time"] = pd.to_datetime(_cv3x["time"], utc=True)
+        merged = merged.merge(_cv3x, on="time", how="left")
+    print(f"[{ACTION}] self-attached session + multi-TF-v2 + cv3 cross-feats → {len(merged.columns)} cols", flush=True)
 
     print(f"[{ACTION}] feature inventory:", flush=True)
     for grp, cols in inventory.items():

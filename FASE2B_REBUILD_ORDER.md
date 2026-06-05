@@ -9,6 +9,24 @@ fact below was discovered by hitting a fail-closed guard and verifying the fix a
 - **Shell flags for the WHOLE rebuild:** `export GX1_REGIME_V4=1 GX1_TREND_REGIME_FROM_D1=1`.
 - **Orchestrator:** `scripts/fase2b_rebuild.sh` (encodes this; idempotent, fail-closed, resumable).
 
+## The 3 "bases" are DIFFERENT LAYERS — ONE truth (do NOT mix fresh + stale)
+base28 / base34 / base80 are NOT versions of one base; they are 3 distinct artifacts, each derived from the
+SAME clean M5 tape (the one truth). Never run a stale one against fresh ones.
+| | what | resolution | purpose | FRESH source this wave |
+|---|---|---|---|---|
+| **BASE28** | M5 canonical foundation (base features + session + ctx + categoricals) | M5 | source for base34 + base80 | derive from fresh cv3/FULL_PLUS_CTX, NOT `_staging/BASE28_SEED` (stale, ends 03-13, degenerate trend_regime_id) |
+| **BASE34** | BASE28 expanded to M1 + ctx16cat6 | **M1** | **serve** source (PrebuiltStateLoader) | rebuild from fresh BASE28; NEVER the stale `MONDAY_WEEK_EXTENSION` base34 |
+| **BASE80** | XGB 80-feature set = canonical_v2 + self-attach | M5 | XGB training | **base28 DROPPED** — fresh canonical_v2 (to 05-25) + self-attach (session/multi-TF-v2/cv3-crosses). Build with `--base28-prebuilt NONE`. |
+**RULE:** for THIS wave, build everything off the fresh workspace artifacts in `runs/FASE2B_REGIME_V4_20260605/`
++ the pinned clean cv3. The `_staging/*_SEED` + `MONDAY_WEEK_EXTENSION/*` files are STALE — never feed them to a build.
+**base80 ↔ base28 root-fix (2026-06-05):** base28 was the ONLY thing capping base80 at 03-13 (its seed ends
+2026-03-13) via the inner-join. The 6 base80-contract features base28 uniquely supplied — `session_id` +
+`_v1_int_ema_us`/`_v1_int_range_us`/`_v1_int_slope_h1_us`/`_v1_is_EU`/`_v1_is_US` — are DERIVED by the XGB
+trainer itself (`train_xgb_universal_multihead_v2.py:120` `_derive_session_context_features`, and `:863-882`
+"derived BASE76 missing features"). So `merge_canonical_v2_with_base28_ctx` is now base28-OPTIONAL: pass
+`--base28-prebuilt NONE` and base80 follows canonical_v2's full span (to 2026-05-25) with NO 03-13 cap.
+Stale base28/base80(03-13) + corrupt-cv3 quarantined reversibly → `runs/_SUPERSEDED_20260605/` (manifest there).
+
 ## The x10 truth (data cleanliness)
 - raw M1 canonical: CLEAN. M5 canonical tape `data/oanda/canonical/xauusd_m5_bid_ask__CANONICAL`
   (`year=YYYY/part-000.parquet` ×7, 2020-01-01 → 2026-05-25): CLEAN (April 2026 median 4757).
