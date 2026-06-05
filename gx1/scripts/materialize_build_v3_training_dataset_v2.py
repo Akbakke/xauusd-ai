@@ -457,48 +457,11 @@ def emit_v3_records_for_candidate(
     cum_peak = np.maximum.accumulate(peak)
     cum_trough = np.minimum.accumulate(trough)
 
-    arg_peak = np.zeros(n_avail, dtype=np.int32)
-    running_max = -np.inf
-    running_max_idx = 0
-    for i in range(n_avail):
-        if peak[i] >= running_max:
-            running_max = float(peak[i])
-            running_max_idx = i
-        arg_peak[i] = running_max_idx
-
-    pnl_vel = np.zeros(n_avail, dtype=np.float32)
-    pnl_acc = np.zeros(n_avail, dtype=np.float32)
-    if n_avail >= 2:
-        pnl_vel[1:] = cur_pnl[1:] - cur_pnl[:-1]
-    if n_avail >= 3:
-        pnl_acc[2:] = pnl_vel[2:] - pnl_vel[1:-1]
-    mfe_decay = np.zeros(n_avail, dtype=np.float32)
-    if n_avail > 4:
-        mfe_decay[4:] = cum_peak[4:] - cum_peak[:-4]
-    pos_peak = np.maximum(cum_peak, 1e-6)
-    giveback = np.clip((1.0 - cur_pnl / pos_peak), -10.0, 10.0).astype(np.float32)
-    giveback_acc = np.zeros(n_avail, dtype=np.float32)
-    if n_avail >= 3:
-        gv_vel = np.zeros(n_avail, dtype=np.float32)
-        gv_vel[1:] = giveback[1:] - giveback[:-1]
-        giveback_acc[2:] = gv_vel[2:] - gv_vel[1:-1]
-    # R14 (2026-06-04): expanding closed-form OLS slope of cur_pnl vs bar_idx over [0..i].
-    # Was np.zeros (dead — overlay[:,15] all-zero in the whole V3 training set). ONE TRUTH with
-    # serve (v12_trade_state.build_trade_state_features:254-263) + the per-bar builder
-    # (materialize_build_exit_iql_per_bar_dataset_v2_m1:267-281) -> train==serve for rolling_slope.
-    rolling_slope = np.zeros(n_avail, dtype=np.float32)
-    if n_avail >= 3:
-        _idx = np.arange(n_avail, dtype=np.float64)
-        _y64 = cur_pnl.astype(np.float64)
-        _cum_y = np.cumsum(_y64)
-        _cum_xy = np.cumsum(_idx * _y64)
-        for _i in range(2, n_avail):
-            _n = _i + 1
-            _sum_x = _i * _n / 2.0
-            _sum_x2 = _i * _n * (2 * _i + 1) / 6.0
-            _denom = _n * _sum_x2 - _sum_x * _sum_x
-            if abs(_denom) > 1e-9:
-                rolling_slope[_i] = float((_n * _cum_xy[_i] - _sum_x * _cum_y[_i]) / _denom)
+    # V4 (2026-06-05): ONE-TRUTH overlay via gx1.features.trade_overlay — the SAME helper the live serve
+    # path (v12_trade_state.build_v3_overlay) calls, so build==serve is bit-identical. The inline per-bar
+    # math (arg_peak/pnl_vel/mfe_decay/giveback/giveback_acc/rolling_slope + the 19-col assignment) was
+    # duplicated here AND in serve's drifting "MVP" (~10 slots disagreed); it now lives ONLY in the helper.
+    from gx1.features.trade_overlay import compute_trade_overlay, OVERLAY_COL_NAMES
 
     p_long_entry = float(candidate_row.get("p_long") or 0.0)
     p_hat_entry = float(candidate_row.get("p_hat") or 0.0)
@@ -513,27 +476,26 @@ def emit_v3_records_for_candidate(
     teacher_final_mae_bps = float(cum_trough.min() if n_avail > 0 else 0.0)
     teacher_duration_bars = int(n_avail)
 
-    # Build per-trade overlay (n_avail, 19) — cols 0-4 entry-snapshot (broadcast), 5-18 per-bar trade-state.
-    overlay = np.zeros((n_avail, 19), dtype=np.float32)
-    overlay[:, 0] = p_long_entry
-    overlay[:, 1] = p_hat_entry
-    overlay[:, 2] = uncertainty_entry
-    overlay[:, 3] = entropy_entry
-    overlay[:, 4] = margin_entry
-    overlay[:, 5] = cur_pnl
-    overlay[:, 6] = cum_peak
-    overlay[:, 7] = cum_trough
-    overlay[:, 8] = cum_peak - cur_pnl
-    overlay[:, 9] = cum_peak - cur_pnl
-    overlay[:, 10] = np.arange(n_avail, dtype=np.float32)
-    overlay[:, 11] = np.arange(n_avail, dtype=np.float32) - arg_peak.astype(np.float32)
-    overlay[:, 12] = mfe_decay
-    overlay[:, 13] = pnl_vel
-    overlay[:, 14] = pnl_acc
-    overlay[:, 15] = rolling_slope
-    overlay[:, 16] = atr_bps_now
-    overlay[:, 17] = giveback
-    overlay[:, 18] = giveback_acc
+    # cols 0-4 entry-snapshot (margin_entry == candidate_row["margin"] = top1-top2 gap, V5); 5-18 per-bar.
+    overlay = compute_trade_overlay(
+        peak, trough, cur_pnl, atr_bps_now,
+        {
+            "p_long_entry": p_long_entry,
+            "p_hat_entry": p_hat_entry,
+            "uncertainty_entry": uncertainty_entry,
+            "entropy_entry": entropy_entry,
+            "margin_entry": margin_entry,
+        },
+    )
+
+    # The per-bar `scalars` mirror the overlay cols 1:1 — read them STRAIGHT from `overlay`
+    # (the one-truth helper output) so the records are bit-identical to what the model sees
+    # at serve. col idx resolved once; values are float32 (the contract dtype, matches serve).
+    _SCALAR_COLS = {name: OVERLAY_COL_NAMES.index(name) for name in (
+        "pnl_bps_now", "mfe_bps", "mae_bps", "dd_from_mfe_bps",
+        "distance_from_peak_mfe_bps", "giveback_ratio", "bars_held",
+        "time_since_mfe_bars", "atr_bps_now", "rolling_slope_since_entry",
+    )}
 
     trade_uid = f"{candidate_row.get('run_id', 'unknown')}:{candidate_row.get('candidate_uid', 'unknown')}:{side}"
     records: List[Dict[str, Any]] = []
@@ -550,18 +512,7 @@ def emit_v3_records_for_candidate(
         # Map: overlay row range = [overlay_start_row, overlay_start_row + n_in_trade_bars)
         overlay_start_row = max(0, win_start - s_t)
 
-        scalars = {
-            "pnl_bps_now": float(cur_pnl[t]),
-            "mfe_bps": float(cum_peak[t]),
-            "mae_bps": float(cum_trough[t]),
-            "dd_from_mfe_bps": float(cum_peak[t] - cur_pnl[t]),
-            "distance_from_peak_mfe_bps": float(cum_peak[t] - cur_pnl[t]),
-            "giveback_ratio": float(giveback[t]),
-            "bars_held": float(t),
-            "time_since_mfe_bars": float(t - arg_peak[t]),
-            "atr_bps_now": float(atr_bps_now[t]),
-            "rolling_slope_since_entry": float(rolling_slope[t]),
-        }
+        scalars = {name: float(overlay[t, idx]) for name, idx in _SCALAR_COLS.items()}
 
         rec = {
             "ts": pd.Timestamp(bar_ts_ns, tz="UTC").isoformat(),

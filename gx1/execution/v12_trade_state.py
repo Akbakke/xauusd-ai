@@ -41,6 +41,8 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from gx1.features.trade_overlay import OVERLAY_COL_NAMES, compute_trade_overlay
+
 LOG = logging.getLogger("v12_trade_state")
 
 SIDE_LONG = "long"
@@ -100,6 +102,16 @@ class TradeState:
     time_since_mfe_peak_bars: int = 0
     last_atr_bps: float = 0.0
 
+    # V4 (R13) intrabar excursion history — feeds the ONE-TRUTH V3 overlay helper
+    # (gx1.features.trade_overlay.compute_trade_overlay), the SAME function the
+    # train builder calls, so build_v3_overlay is bit-identical to training.
+    # peak/trough = INTRABAR favorable/adverse excursion bps (spread-side: long
+    # bid_high/bid_low, short ask_low/ask_high); atr = per-bar (ask_high-bid_low)/
+    # mid*1e4. One value appended per CLOSED M1 bar, in lock-step with pnl_history.
+    peak_history: deque = field(default_factory=lambda: deque(maxlen=2000))
+    trough_history: deque = field(default_factory=lambda: deque(maxlen=2000))
+    atr_bps_history: deque = field(default_factory=lambda: deque(maxlen=2000))
+
     @classmethod
     def open(
         cls,
@@ -138,8 +150,43 @@ class TradeState:
             # entry @ bid, mark @ ask
             return (self.entry_bid - ask) / self.entry_bid * 10000.0
 
-    def update_bar(self, bid: float, ask: float, m1_close: float) -> None:
-        """Advance trade state by one M1 bar."""
+    def _intrabar_excursion(
+        self, bid_high: float, bid_low: float, ask_high: float, ask_low: float,
+        bid_close: float, ask_close: float,
+    ) -> tuple[float, float, float]:
+        """Per-bar INTRABAR favorable/adverse excursion + atr in bps, IDENTICAL to
+        the train builder (materialize_build_exit_iql_per_bar_dataset_v1.compute_per_bar_signals).
+
+          long  (entry@ask): peak=(bid_high-entry_ask)/entry_ask, trough=(bid_low-entry_ask)/entry_ask
+          short (entry@bid): peak=(entry_bid-ask_low)/entry_bid,  trough=(entry_bid-ask_high)/entry_bid
+          atr = (ask_high-bid_low)/mid*1e4,  mid=(ask_close+bid_close)/2
+        """
+        if self.side == SIDE_LONG:
+            peak = (bid_high - self.entry_ask) / self.entry_ask * 10000.0
+            trough = (bid_low - self.entry_ask) / self.entry_ask * 10000.0
+        else:
+            peak = (self.entry_bid - ask_low) / self.entry_bid * 10000.0
+            trough = (self.entry_bid - ask_high) / self.entry_bid * 10000.0
+        mid = (ask_close + bid_close) / 2.0
+        atr = (ask_high - bid_low) / mid * 10000.0 if mid > 0 else 0.0
+        return float(peak), float(trough), float(atr)
+
+    def update_bar(
+        self, bid: float, ask: float, m1_close: float,
+        bid_high: float | None = None, bid_low: float | None = None,
+        ask_high: float | None = None, ask_low: float | None = None,
+    ) -> None:
+        """Advance trade state by one CLOSED M1 bar.
+
+        bid/ask = this bar's CLOSE bid/ask (the mark prices). m1_close = mid close
+        (drives the return window). bid_high/bid_low/ask_high/ask_low = this bar's
+        intrabar range — REQUIRED for the V4 one-truth V3 overlay (intrabar MFE/MAE
+        basis, matches the train builder). When absent (tests / non-live callers
+        without OHLC) the bar's range collapses to its close (peak=trough=close-mark
+        pnl, atr=spread) — a degraded close-only fallback that re-introduces the
+        pre-V4 overlay skew, so the LIVE pipeline MUST pass them
+        (v12_pipeline.make_exit_decision threads them from the collector parquet).
+        """
         self.bars_in_trade += 1
         prev_close = m1_close if not self.m1_returns_window else self.m1_returns_window[-1]
         ret_bps = (m1_close - prev_close) / prev_close * 10000.0 if prev_close > 0 else 0.0
@@ -159,6 +206,20 @@ class TradeState:
             self.time_since_mfe_peak_bars += 1
         self.mfe_at_bar = self.cum_mfe_bps
         self.pnl_history.append(self.current_pnl_bps)
+
+        # V4 (R13): record INTRABAR excursion + per-bar atr for the one-truth overlay.
+        if None not in (bid_high, bid_low, ask_high, ask_low):
+            peak, trough, atr = self._intrabar_excursion(
+                float(bid_high), float(bid_low), float(ask_high), float(ask_low), bid, ask,
+            )
+        else:
+            # close-only degrade: no intrabar range available for this caller.
+            peak = trough = self.current_pnl_bps
+            denom = (ask + bid) / 2.0
+            atr = (ask - bid) / denom * 10000.0 if denom > 0 else 0.0
+        self.peak_history.append(float(peak))
+        self.trough_history.append(float(trough))
+        self.atr_bps_history.append(float(atr))
 
     def update_v3(self, v3_v8_out: dict | None) -> None:
         """Update V3 v8 running stats from latest V3 inference output."""
@@ -311,7 +372,13 @@ class TradeState:
             "p_long_entry_v1": p_long_e,
             "p_hat_entry_v1": float(max(p_long_e, p_short_e, 1.0 - p_long_e - p_short_e)),
             "uncertainty_entry_v1": float(1.0 - max(p_long_e, p_short_e, 1.0 - p_long_e - p_short_e)),
-            "margin_entry_v1": float(abs(p_long_e - p_short_e)),
+            # margin = top1-top2 gap of the 3-class probs — matches the candidate-gen
+            # (sorted[-1]-sorted[-2]) and the Exit-IQL state builder
+            # (materialize_build_exit_iql_per_bar_dataset_v2_m1.py:247 candidate_row["margin"]).
+            # NOT abs(p_long-p_short) (wrong when p_flat is top1).
+            "margin_entry_v1": float(
+                sorted((p_long_e, p_short_e, max(0.0, 1.0 - p_long_e - p_short_e)))[-1]
+                - sorted((p_long_e, p_short_e, max(0.0, 1.0 - p_long_e - p_short_e)))[-2]),
             # entropy
             "entropy_entry_v1": float(self.v10_snapshot.get("entropy_at_entry",
                 _shannon_entropy([p_long_e, p_short_e, max(0.0, 1.0 - p_long_e - p_short_e)]))),
@@ -351,86 +418,55 @@ class TradeState:
         }
 
     def build_v3_overlay(self) -> dict[str, np.ndarray]:
-        """Build the 19-feature trade-state overlay matrix for V3 v8's in-trade
-        portion of the 512-bar window.
+        """Build the 19-feature trade-state overlay for V3's in-trade portion of
+        the 512-bar window, via the ONE-TRUTH helper
+        (gx1.features.trade_overlay.compute_trade_overlay) — the SAME function the
+        train builder (materialize_build_v3_training_dataset_v2.py) calls, so
+        build==serve is bit-identical (V4/R13). Replaces the pre-V4 "MVP" overlay
+        that approximated ~10 of the 19 slots (close-mark MFE instead of intrabar,
+        1-based bars_held, wrong mfe_decay lag/giveback formula, slope=pnl/bars).
 
-        Returned arrays have length = bars_in_trade. They map to the END of V3's
-        512-bar window (the most recent bars are in-trade).
-
-        Note: this is the simplified MVP overlay — fills each in-trade bar with
-        approximations rather than the precise per-bar history that training
-        used. For full per-bar trajectory we'd need to record every bar's stats
-        (pnl_history captures pnl but not derivatives). Most of the 19 features
-        are slow-moving so the approximation is reasonable.
+        Arrays have length = number of recorded in-trade bars (one per CLOSED M1
+        bar, peak/trough/atr in lock-step with pnl_history). The consumer
+        (v12_v3_live) RIGHT-ALIGNS them onto the END of the 512-bar window and
+        uses the last min(len, 512) values.
         """
-        n = max(1, self.bars_in_trade)
-        # Trade-bar arrays — most of these are "current state" broadcast back to all
-        # in-trade bars. mfe_decay_rate, pnl_velocity, pnl_acceleration computed
-        # from pnl_history when available.
-        pnl_arr = np.array(list(self.pnl_history), dtype=np.float32) if self.pnl_history else np.zeros(n, dtype=np.float32)
-        if len(pnl_arr) < n:
-            pnl_arr = np.pad(pnl_arr, (n - len(pnl_arr), 0))
-        pnl_arr = pnl_arr[-n:]
+        n = len(self.pnl_history)
+        if n == 0:
+            # No closed bar yet — emit a single zero row (consumer right-aligns).
+            return {name: np.zeros(1, dtype=np.float32) for name in OVERLAY_COL_NAMES}
 
-        pnl_velocity = np.zeros(n, dtype=np.float32)
-        pnl_velocity[1:] = np.diff(pnl_arr)
-        pnl_acceleration = np.zeros(n, dtype=np.float32)
-        pnl_acceleration[1:] = np.diff(pnl_velocity)
+        # peak/trough/atr are appended in lock-step with pnl_history; from_dict
+        # backfills them for trades persisted before V4 so lengths always match.
+        peak = np.fromiter(self.peak_history, dtype=np.float64, count=n)
+        trough = np.fromiter(self.trough_history, dtype=np.float64, count=n)
+        cur_pnl = np.fromiter(self.pnl_history, dtype=np.float64, count=n)
+        atr = np.fromiter(self.atr_bps_history, dtype=np.float64, count=n)
 
-        # Cumulative MFE per bar (approximation: monotone running max)
-        mfe_arr = np.maximum.accumulate(pnl_arr) if len(pnl_arr) > 0 else np.zeros(n, dtype=np.float32)
-        mae_arr = np.minimum.accumulate(pnl_arr) if len(pnl_arr) > 0 else np.zeros(n, dtype=np.float32)
-        dd_from_mfe = mfe_arr - pnl_arr
-        time_since_mfe = np.arange(n, dtype=np.float32)   # simplified — bar index
-        bars_held = np.arange(1, n + 1, dtype=np.float32)
-        atr_arr = np.full(n, self.last_atr_bps, dtype=np.float32)
-        # giveback ratio: drawdown_from_peak / peak (clipped)
-        with np.errstate(divide="ignore", invalid="ignore"):
-            giveback_ratio = np.where(mfe_arr > 0, dd_from_mfe / np.maximum(mfe_arr, 1e-6), 0.0)
-            giveback_ratio = np.clip(giveback_ratio, 0.0, 2.0)
-        giveback_accel = np.zeros(n, dtype=np.float32)
-        giveback_accel[1:] = np.diff(giveback_ratio)
-        # mfe_decay_rate: rate of mfe decay (negative slope of mfe over recent bars)
-        mfe_decay = np.zeros(n, dtype=np.float32)
-        if n >= 5:
-            mfe_decay[5:] = (mfe_arr[5:] - mfe_arr[:-5]) / 5.0
-        # rolling_slope_since_entry (approximation: pnl_arr[-1]/bars_held)
-        rolling_slope = pnl_arr / np.maximum(bars_held, 1.0)
-
-        # Entry-snapshot features are CONSTANT across all in-trade bars
+        # Entry-snapshot (V10 direction softmax @entry, frozen). margin = top1-top2
+        # gap of the 3-class probs — matches the candidate-gen
+        # (materialize_inference_batch_candidates_v3_v1.py:403 sorted[-1]-sorted[-2])
+        # and the train overlay entry-snap. NOT abs(p_long-p_short).
         s = self.v10_snapshot or {}
         dp = s.get("direction_probs", [0.0, 0.0, 0.0])
         p_long_e = float(dp[0] if hasattr(dp, "__len__") else 0.0)
         p_short_e = float(dp[1] if hasattr(dp, "__len__") and len(dp) > 1 else 0.0)
         p_flat_e = float(dp[2] if hasattr(dp, "__len__") and len(dp) > 2 else max(0.0, 1.0 - p_long_e - p_short_e))
         p_hat_e = max(p_long_e, p_short_e, p_flat_e)
-        margin_e = abs(p_long_e - p_short_e)
+        _sorted = sorted((p_long_e, p_short_e, p_flat_e))
+        margin_e = _sorted[-1] - _sorted[-2]
         uncertainty_e = 1.0 - p_hat_e
         entropy_e = _shannon_entropy([p_long_e, p_short_e, p_flat_e])
 
-        return {
-            # Entry-snapshot (constant across in-trade window)
-            "p_long_entry": np.full(n, p_long_e, dtype=np.float32),
-            "p_hat_entry": np.full(n, p_hat_e, dtype=np.float32),
-            "uncertainty_entry": np.full(n, uncertainty_e, dtype=np.float32),
-            "entropy_entry": np.full(n, entropy_e, dtype=np.float32),
-            "margin_entry": np.full(n, margin_e, dtype=np.float32),
-            # Per-bar trade-state
-            "pnl_bps_now": pnl_arr,
-            "mfe_bps": mfe_arr,
-            "mae_bps": mae_arr,
-            "dd_from_mfe_bps": dd_from_mfe.astype(np.float32),
-            "distance_from_peak_mfe_bps": dd_from_mfe.astype(np.float32),  # synonymous
-            "bars_held": bars_held,
-            "time_since_mfe_bars": time_since_mfe,
-            "mfe_decay_rate": mfe_decay,
-            "pnl_velocity": pnl_velocity,
-            "pnl_acceleration": pnl_acceleration,
-            "rolling_slope_since_entry": rolling_slope.astype(np.float32),
-            "atr_bps_now": atr_arr,
-            "giveback_ratio": giveback_ratio.astype(np.float32),
-            "giveback_acceleration": giveback_accel,
-        }
+        overlay = compute_trade_overlay(peak, trough, cur_pnl, atr, {
+            "p_long_entry": p_long_e,
+            "p_hat_entry": p_hat_e,
+            "uncertainty_entry": uncertainty_e,
+            "entropy_entry": entropy_e,
+            "margin_entry": margin_e,
+        })
+        # Consumer maps by name → return one (n,) array per overlay column.
+        return {name: overlay[:, i] for i, name in enumerate(OVERLAY_COL_NAMES)}
 
     # ── persistence ──────────────────────────────────────────────────
 
@@ -465,6 +501,10 @@ class TradeState:
             "mfe_at_bar": self.mfe_at_bar,
             "time_since_mfe_peak_bars": self.time_since_mfe_peak_bars,
             "last_atr_bps": self.last_atr_bps,
+            # V4 (R13) intrabar excursion history — in lock-step with pnl_history.
+            "peak_history": list(self.peak_history),
+            "trough_history": list(self.trough_history),
+            "atr_bps_history": list(self.atr_bps_history),
         }
 
     @classmethod
@@ -500,6 +540,25 @@ class TradeState:
             t.m1_returns_window.append(float(v))
         for v in d.get("pnl_history") or []:
             t.pnl_history.append(float(v))
+        # V4 (R13): intrabar excursion history. Trades persisted BEFORE V4 lack
+        # these — backfill with a close-only degrade (peak=trough=pnl, atr=last_atr)
+        # so build_v3_overlay stays length-aligned with pnl_history. Subsequent
+        # update_bar calls then carry real intrabar values for the newest bars.
+        peak_h = d.get("peak_history")
+        trough_h = d.get("trough_history")
+        atr_h = d.get("atr_bps_history")
+        if peak_h is not None and trough_h is not None and atr_h is not None:
+            for v in peak_h:
+                t.peak_history.append(float(v))
+            for v in trough_h:
+                t.trough_history.append(float(v))
+            for v in atr_h:
+                t.atr_bps_history.append(float(v))
+        else:
+            for v in t.pnl_history:
+                t.peak_history.append(float(v))
+                t.trough_history.append(float(v))
+                t.atr_bps_history.append(float(t.last_atr_bps))
         return t
 
     def save(self, path: Path) -> None:

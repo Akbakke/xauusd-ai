@@ -122,6 +122,9 @@ class V12Pipeline:
     # distribution shift that destabilized Exit-IQL Q-values. C1 fix 2026-05-19.
     _last_m1_atr_bps: float = 0.0
     _last_m1_atr_minute: pd.Timestamp | None = None
+    # V4 (R13): full intrabar OHLC of the latest CLOSED M1 bar (one source for the
+    # V3 overlay's intrabar peak/trough/atr AND current_atr_bps_v1).
+    _last_m1_bar: dict | None = None
 
     @classmethod
     def load_default(cls) -> "V12Pipeline":
@@ -144,38 +147,54 @@ class V12Pipeline:
         return cls(prebuilt_loader=loader, xgb=xgb, v10=v10,
                     entry_iql=entry_iql, exit_iql=exit_iql, v3=v3)
 
-    def _refresh_m1_atr_bps(self, now_minute: pd.Timestamp) -> float:
-        """Compute current_atr_bps_v1 = (ask_high - bid_low)/mid * 1e4 from the
-        most recent CLOSED M1 bar in the data collector parquet.
+    def _refresh_m1_bar(self, now_minute: pd.Timestamp) -> dict | None:
+        """Latest CLOSED M1 bar's intrabar OHLC (bid/ask high/low/close) + per-bar
+        atr_bps, from the OANDA collector parquet. ONE source for BOTH the V3
+        overlay's intrabar peak/trough/atr (V4/R13) AND current_atr_bps_v1.
 
-        Training (materialize_build_exit_iql_per_bar_dataset_v1.py:215-217) uses
-        per-M1-bar bid/ask hi-lo, typical 3-7 bps. Live previously used canonical
-        M5 ATR14 (10-50 bps), creating a ~10× distribution shift on a feature
-        Exit-IQL depends on. Cached per minute to avoid disk thrash.
+        Training (materialize_build_exit_iql_per_bar_dataset_v1.py compute_per_bar_signals)
+        uses per-M1-bar bid/ask hi-lo (atr typical 3-7 bps; intrabar excursion for
+        MFE/MAE). Live previously used canonical M5 ATR14 (10-50 bps) for atr and a
+        close-only MFE/MAE approximation — both train/serve skews. Cached per minute
+        to avoid disk thrash. Returns None (keeps prior cache) if no bar available.
         """
         cur_min = now_minute.replace(second=0, microsecond=0)
-        if self._last_m1_atr_minute == cur_min and self._last_m1_atr_bps > 0:
-            return self._last_m1_atr_bps
+        if self._last_m1_atr_minute == cur_min and self._last_m1_bar is not None:
+            return self._last_m1_bar
         try:
             from pathlib import Path
             day = cur_min.strftime("%Y%m%d")
             p = Path(f"/home/andre2/GX1_DATA/reports/v12_live_data/xauusd_m1_{day}.parquet")
             if not p.exists():
-                return self._last_m1_atr_bps
-            df = pd.read_parquet(p, columns=["time", "ask_high", "bid_low", "ask_close", "bid_close"]).tail(2)
+                return self._last_m1_bar
+            df = pd.read_parquet(p, columns=[
+                "time", "bid_high", "bid_low", "ask_high", "ask_low", "ask_close", "bid_close",
+            ]).tail(2)
             if len(df) == 0:
-                return self._last_m1_atr_bps
+                return self._last_m1_bar
             row = df.iloc[-1]
             ah = float(row["ask_high"]); bl = float(row["bid_low"])
             ac = float(row["ask_close"]); bc = float(row["bid_close"])
             mid = (ac + bc) / 2.0
             atr = (ah - bl) / max(mid, 1e-6) * 1e4 if mid > 0 else 0.0
+            bar = {
+                "bid_high": float(row["bid_high"]), "bid_low": bl,
+                "ask_high": ah, "ask_low": float(row["ask_low"]),
+                "bid_close": bc, "ask_close": ac, "atr_bps": float(atr),
+            }
+            self._last_m1_bar = bar
             self._last_m1_atr_bps = float(atr)
             self._last_m1_atr_minute = cur_min
-            return self._last_m1_atr_bps
+            return bar
         except Exception as exc:
-            LOG.warning(f"_refresh_m1_atr_bps failed: {exc}; keeping prior {self._last_m1_atr_bps}")
-            return self._last_m1_atr_bps
+            LOG.warning(f"_refresh_m1_bar failed: {exc}; keeping prior bar")
+            return self._last_m1_bar
+
+    def _refresh_m1_atr_bps(self, now_minute: pd.Timestamp) -> float:
+        """current_atr_bps_v1 = per-M1-bar (ask_high-bid_low)/mid*1e4. Thin accessor
+        over the one-truth _refresh_m1_bar (same source, same per-minute cache)."""
+        bar = self._refresh_m1_bar(now_minute)
+        return float(bar["atr_bps"]) if bar else self._last_m1_atr_bps
 
     # ── shared canonical_v3 build (cached per M5 bucket) ───────────────
 
@@ -435,8 +454,20 @@ class V12Pipeline:
         Advances the trade's state (PnL/MFE/MAE/etc.), then queries
         Exit-IQL. Returns dict with HOLD / EXIT_NOW action.
         """
-        # Advance bar state first
-        trade.update_bar(bid=bid, ask=ask, m1_close=m1_close)
+        # Advance bar state first. V4 (R13): thread the latest CLOSED M1 bar's
+        # intrabar OHLC so the V3 overlay's peak/trough/atr use the REAL intrabar
+        # range (one-truth with the train builder's compute_per_bar_signals),
+        # NOT a close-only degrade. _refresh_m1_bar shares the per-minute cache
+        # with the current_atr_bps_v1 path (same M1 bar source).
+        _m1bar = self._refresh_m1_bar(now_minute)
+        if _m1bar is not None:
+            trade.update_bar(
+                bid=bid, ask=ask, m1_close=m1_close,
+                bid_high=_m1bar["bid_high"], bid_low=_m1bar["bid_low"],
+                ask_high=_m1bar["ask_high"], ask_low=_m1bar["ask_low"],
+            )
+        else:
+            trade.update_bar(bid=bid, ask=ask, m1_close=m1_close)
 
         if not self._refresh_canonical(now_minute):
             return {
@@ -455,7 +486,10 @@ class V12Pipeline:
         else:
             cv3_row = augmented.loc[m5_bucket]
 
-        # Update trade's atr_bps from latest M5 bar (for V3 overlay's atr_bps_now)
+        # last_atr_bps = latest M5 atr (journal/diagnostic + from_dict backfill only).
+        # NOTE: the V3 overlay's atr_bps_now is NO LONGER sourced here — V4 records a
+        # per-M1-bar atr in update_bar (intrabar (ask_high-bid_low)/mid), the one-truth
+        # builder basis. This M5 value is kept for the per-bar journal field.
         trade.last_atr_bps = float(cv3_row.get("atr_bps", 0.0) or 0.0)
 
         # Run V3 v8 inference with trade-state overlay (B3 wire-up)
