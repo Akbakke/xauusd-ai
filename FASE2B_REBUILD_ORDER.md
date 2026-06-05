@@ -79,4 +79,20 @@ fact below was discovered by hitting a fail-closed guard and verifying the fix a
 - v2: 456,335 rows × 118 cols, April 4757, has `atr`. cv3: 456,335 × 113, glitch-guard PASS, re-pinned (sha c78181db).
 - FULL_PLUS_CTX (cement ref): ~249 cols, has `atr_bps` + the 16 regime cols, 2020-11-09 → 2026.
 
+## CORE PATTERN (learned the hard way 2026-06-05): builders are NOT self-contained
+Every retrain artifact needs the FULL multi-augmenter chain (multi-TF-v2 `{tf}_*_v2`, session one-hots,
+regime, group-A, dip/struct), but the individual builders DON'T all attach it — they assume a prior step did.
+The fail-closed guards catch each gap (so nothing poisons silently), but you must attach the missing piece:
+- **FULL_PLUS_CTX:** add_ctx_cont now self-attaches `{tf}_*_v2` (fixed 2026-06-05). ✅
+- **base80 (`materialize_build_xgb_prebuilt_v3`):** merges v2 + BASE28 but does NOT attach the multi-TF-v2
+  (`m15/h1/h4/d1_*_v2`, ~24) NOR the full session set (is_ASIA, minutes_since_session_open, session_change_flag,
+  session_tradable, minutes_to_next_session_boundary). XGB sanitizer fail-closes: "Missing 37 features".
+  → base80 build must ALSO attach v2_mtf (htf_features.attach_v2_mtf_per_bar_scalars) + the session features.
+  Also: BASE28_SEED is stale (ends 2026-03-13) + had no `time` col (reset_index) → base80 caps at 314k rows / 03-13.
+- Expect the SAME for the V10/V3/candidate/Exit-IQL dataset builds — attach the missing augmentation per the guard.
+
+**No encoded full-retrain pipeline exists** (cement was ad-hoc over sessions). Completion = days of GPU +
+per-artifact augmentation fixes. The honest high-leverage move is to make each builder self-contained
+(attach its own augmentation, like add_ctx_cont) so the rebuild becomes reproducible — THEN run.
+
 > Maintenance: when a later step reveals a new input/order/guard, ADD it here the same session (per AGENTS.md rule).
