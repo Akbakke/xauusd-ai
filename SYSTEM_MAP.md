@@ -218,6 +218,7 @@ Entry-snapshot (cols 0-4, frozen, from **V10 direction softmax** — candidate-g
   increments `bars_in_trade` once/minute ([v12_paper_runner.py:457-477](gx1/execution/v12_paper_runner.py#L457)). **24h hard cap:** `bars_in_trade>=1440` → `FORCED_CLOSE_24H` ([:605-610](gx1/execution/v12_paper_runner.py#L605)).
 - **Counterfactual daemon two tracks:** Track A (forward-outcome) hourly, only journals **>25h old** (K=1440 forward + 1h margin); Track B (variant-shadow) every 10min on fresh journals ([v12_daily_counterfactual.sh:36-66](gx1/execution/v12_daily_counterfactual.sh#L36)).
 - **systemd vs launcher interval mismatch:** `gx1-canonical-incremental.service` runs `--interval 15`; `launch_live_practice.sh:127` runs `--interval 60`. **systemd is source of truth.**
+- **Stale multi-TF cache footgun (fixed 06-05):** the V10/V3 build scripts default `GX1_V10_MULTI_TF_V2_CACHE_DIR` to a hardcoded path that was 13 days stale → built fresh-cv3 datasets on a stale cache. Now `build_context()` raises `[MTF_CACHE_STALE]` if the cache lags the M5 cutoff by > 2 days (see §19). The Fase-2B rebuild MUST regen `prebuild_multi_tf_cache_v2` and set the env var.
 - **float32 vs float64** (overlay): ≤~5e-6 bps on 2nd-diff cols — harmless. **Two ATRs** (§5). **REGIME_V4 flag defaults OPPOSITE** build(1)/serve(0), launcher PINS 0. **trend_regime_id DROPPED** (R4) — don't reintroduce. **Exit M1 sacred** — never coarsen to M5 (hook blocks).
 
 ## 17. Flags index (set explicitly in run-manifests; never trust defaults)
@@ -235,12 +236,30 @@ Entry-snapshot (cols 0-4, frozen, from **V10 direction softmax** — candidate-g
 | `GX1_EXIT_IQL_SPLIT_MODE` | chronological embargo split | chronological (cement-parity) |
 | `GX1_MAX_PREBUILT_STALENESS_MIN` | fail-closed SKIP if prebuilt older | `30` |
 | `GX1_V10_BUNDLE_DIR` / `GX1_V3_BUNDLE_DIR` | bundle override (else guard-driven) | guard |
+| `GX1_V10_MULTI_TF_V2_CACHE_DIR` | multi-TF V2 cache dir for V10/V3 builds | env (regen + set at rebuild) |
+| `GX1_MTF_CACHE_MAX_LAG_DAYS` / `GX1_MTF_CACHE_ALLOW_STALE` | stale-cache guard (§19) | `2` / off |
 | `--vedtak <id>` | REQUIRED for any retrain (gx1_guards fail-closed) | — |
 
 ## 18. Protected core + the edit marker
 
 Hard-frozen dirs (CLAUDE.md rule 1): `gx1/execution`, `gx1/contracts`, `gx1/exits/contracts`, `gx1/models/entry_v10`,
 `gx1/core`. A PreToolUse hook ([.claude/hooks/guard_write.py](.claude/hooks/guard_write.py)) blocks edits unless a **one-shot** marker exists: `touch /home/andre2/src/GX1_ENGINE/.claude/ALLOW_CORE_EDIT` (consumed per write, re-arms). Lifting it is the user's explicit act, per change. Same hook HARD-BLOCKS M1→M5 coarsening in exit files. Bundle loads fail-closed via `gx1_guards`.
+
+## 19. Retrain entrypoints + --vedtak gates (rule 3)
+
+Every model trainer calls `gx1_guards.gates.require_retrain_vedtak(args.vedtak)` right after `parse_args` (fail-closed; missing `--vedtak` aborts). Active trainer + dataset builder per model:
+
+| model | active trainer | gated |
+|---|---|---|
+| XGB v7 base80 | train_xgb_universal_multihead_v2.py (req `--canonical-prebuilt-parquet`) | ✅ 06-05 |
+| V10 entry | entry_v10_ctx_train_v3.py · build_entry_v10_ctx_training_dataset_v3.py | ✅ |
+| Entry-IQL | materialize_build_entry_iql_v2.py | ✅ |
+| V3 exit transformer | train_exit_v6_disk_thin.py (req `--dataset-dir` 06-05) · train_exit_transformer_v0_sharded.py | ✅ 06-05 |
+| Exit-IQL | materialize_build_exit_iql_v3_m1.py (active) / _v2.py (legacy) · per_bar_dataset_v2_m1.py | ✅ 06-05 |
+
+- **Multi-TF cache freshness:** `build_context()` raises `[MTF_CACHE_STALE]` if the V2 cache lags the M5 build cutoff by > `GX1_MTF_CACHE_MAX_LAG_DAYS` (default 2) — covers all 3 build paths ([augment_forward_outcome_v2.py](gx1/scripts/augment_forward_outcome_v2.py)). Rebuild must regen `prebuild_multi_tf_cache_v2` + set `GX1_V10_MULTI_TF_V2_CACHE_DIR`.
+- `add_ctx_cont` manifest records `regime_v4_emitted` (the 16 REGIME_V4 cols are emitted by NAME, not counted in `ctx_cont_dim` {2..16}).
+- **Pre-retrain hard blockers (2026-06-05 audit, owner=user):** x10 2026-04 data NOT repaired (detect-only guard, no repair script) · cv3 not pinned + daemons live · stale BASE28 seed · R12 serve-volume M5≠M1 (PROTECTED) · R13 parity-RUN. See FASE2_PREFLIGHT_RUNBOK.
 
 ---
 
