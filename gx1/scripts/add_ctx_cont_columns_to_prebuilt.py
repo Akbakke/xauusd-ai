@@ -734,6 +734,26 @@ def run_add_ctx_cont_columns(
     if _regime_v4_emitted:
         from gx1.features.regime_v4_features import add_regime_v4_features
         df_pre = df_pre.sort_index()  # shift()/run-length require time-ascending order
+        # One-truth (2026-06-05): SELF-ATTACH the 12 {tf}_*_v2 REGIME_V4 SOURCE cols FRESH via the SHARED
+        # htf_features.attach_v2_mtf_per_bar_scalars — the SAME projection the V3 builder
+        # (materialize_build_v3_training_dataset_v2.py:336-353) + live serve
+        # (v12_state_from_prebuilt._augment_cv3_with_v2_mtf_scalars) use → build==serve by construction.
+        # Uses df_m5 (FULL raw M5 incl. the 400-day HTF warmup) projected onto df_pre's timestamps.
+        # Without this, add_regime_v4_features raises [REGIME_V4 missing sources] (add_ctx_cont used to
+        # assume a prior step provided them — the 2026-06-05 rebuild gap).
+        from gx1.features.htf_features import attach_v2_mtf_per_bar_scalars as _attach_v2
+        _rv4_m5 = df_m5[["open", "high", "low", "close"]].astype(np.float64).copy()
+        _rv4_m5["volume"] = (df_m5["volume"].astype(np.float64) if "volume" in df_m5.columns else 1.0)
+        _rv4_src_map = [
+            ("regime_class_id", "regime_class_id"),
+            ("trend_age_bars_norm", "trend_age_bars_norm"),
+            ("ema_stack_aligned", "ema_stack_aligned_v2"),
+        ]
+        _rv4_ts_ns = df_pre.index.values.astype("datetime64[ns]").astype(np.int64)
+        _attached = _attach_v2(_rv4_m5, _rv4_ts_ns, _rv4_src_map, ("m15", "h1", "h4", "d1"))
+        for _c, _v in _attached.items():
+            df_pre[_c] = _v
+        log.info("[REGIME_V4] self-attached %d {tf}_*_v2 sources fresh (one-truth w/ V3 builder + serve)", len(_attached))
         add_regime_v4_features(df_pre)
         log.info("[REGIME_V4] build-side: emitted multi-TF regime + change-detection features")
 

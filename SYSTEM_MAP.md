@@ -247,6 +247,10 @@ Hard-frozen dirs (CLAUDE.md rule 1): `gx1/execution`, `gx1/contracts`, `gx1/exit
 
 ## 19. Retrain entrypoints + --vedtak gates (rule 3)
 
+**Rebuild ordering/inputs/guards/dims** → [FASE2B_REBUILD_ORDER.md](FASE2B_REBUILD_ORDER.md) (the exact Fase-2B
+sequence + the x10-fix + the add_ctx_cont guard sequence; orchestrated by `scripts/fase2b_rebuild.sh`). Read it
+before running/resuming the rebuild — don't re-scan the chain.
+
 Every model trainer calls `gx1_guards.gates.require_retrain_vedtak(args.vedtak)` right after `parse_args` (fail-closed; missing `--vedtak` aborts). Active trainer + dataset builder per model:
 
 | model | active trainer | gated |
