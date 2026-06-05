@@ -43,4 +43,14 @@ so it is not gated. Reversible-first cleanup per rule 5 needs no per-item ask wi
    for a genuinely-new shared one-truth helper. Before creating a file, name the existing one you
    considered extending and why it didn't fit. Keep ONE truth, fail-closed, minimal change.
 
+8. **ONE gjeldende — single selection truth, no version roulette (user vedtak 2026-06-05).** Exactly
+   ONE artifact is active per role (xgb / v10_entry / v3_exit / entry_iql / exit_iql), named in the ONE
+   selection contract `PROJECT_STATE_artifacts.json`. Build / decision / serve code resolves bundles ONLY
+   through that contract (`gx1_guards.load_decision_artifact`) — NEVER by glob, "latest", mtime, or a
+   hardcoded/default path. Missing or ambiguous = hard error, never a guessed fallback. A new artifact is
+   PENDING until it passes gates and I flip the contract; the live-active bundle is never deleted while
+   active. Superseded artifacts are QUARANTINED then deleted via rule 5 (backup→inventory→dry-run→my
+   confirm) so we never drown in v1/v2/v3… The goal is that running the wrong version is IMPOSSIBLE
+   (a fail-closed resolver refusing to guess), not "remember to pick the right one".
+
 @AGENTS.md

@@ -41,6 +41,24 @@
 - Never use in-sample scores as decision-valid evidence.
 - Never select old invalidated V3 artifacts for decisioning.
 
+## ONE gjeldende — artifact selection (no version roulette) [CLAUDE.md rule 8]
+- **ONE truth = `PROJECT_STATE_artifacts.json`** (repo root). It names the single ACTIVE artifact per role
+  (xgb / v10_entry / v3_exit / entry_iql / exit_iql, + active_variant/folds/aggregator). Edit it ONLY via an
+  explicit vedtak. It SUPERSEDES `GX1_DATA/CURRENT_BUNDLES.md` (already renamed `.SUPERSEDED_SEE_PROJECT_STATE`).
+- **Resolve only through the contract.** Every build/decision/serve path loads its bundle via
+  `gx1_guards.load_decision_artifact` keyed on the contract — NEVER by glob, `sorted(...)[-1]`, mtime/"latest",
+  or a hardcoded default path. Missing/ambiguous/PENDING ⇒ raise, never silently fall back to an on-disk vintage.
+  (Known footguns flagged 2026-06-03: a V3 resolver that fell back to a stale V9 on disk, and a build-path V9
+  substitution — these are the exact pattern to hunt and kill; verify none remain before trusting "can't run wrong".)
+- **New artifact lifecycle:** build → PENDING_VEDTAK → pass gates → I flip the contract to ACTIVE → the prior
+  ACTIVE moves to `history[]` (INVALIDATED). Never two ACTIVE per role. Never auto-promote.
+- **Physical de-duplication (so we don't drown in v1/v2/v3…):** superseded artifacts are removed via rule 5
+  (backup → inventory → dry-run → user confirm → delete), QUARANTINE-first (reversible) e.g. `runs/_SUPERSEDED_<date>/`.
+  NEVER delete the live-ACTIVE bundle while it is active, and NEVER mid-rebuild delete the chain a pending retrain
+  still depends on. Cleanup of the OLD cement happens only AFTER the new chain cements + the contract flips.
+- **The guarantee** is the fail-closed resolver refusing to guess — NOT physical deletion. Deletion reduces
+  clutter; the resolver is what makes running-wrong impossible. Both are required; the resolver is load-bearing.
+
 ## Models & architecture
 - V10/V3 transformer input contracts are SACRED. Never refactor a contract to fit upstream XGB changes — retrain XGB on the contract V10/V3 expects, or shelf the experiment.
 - Multi-TF is ALWAYS mandatory — for V10 (entry) AND V3 (exit). Never single-TF.
