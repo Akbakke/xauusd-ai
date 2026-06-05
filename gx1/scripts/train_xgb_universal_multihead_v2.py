@@ -670,7 +670,17 @@ def main() -> int:
         action="store_false",
     )
 
+    parser.add_argument(
+        "--vedtak", type=str, default=None,
+        help="Explicit retrain decision id — rule 3, NEVER auto-retrain (gx1_guards fail-closed).",
+    )
     args = parser.parse_args()
+    # NEVER auto-retrain — fail-closed unless an explicit --vedtak is passed (CLAUDE.md rule 3).
+    from gx1_guards.gates import require_retrain_vedtak, GateError
+    try:
+        require_retrain_vedtak(args.vedtak)
+    except GateError as e:
+        parser.error(str(e))
     np.random.seed(args.seed)
 
     print("=" * 80)

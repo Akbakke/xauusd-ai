@@ -1227,7 +1227,17 @@ def main() -> int:
     ap.add_argument("--batch-size", type=int, default=32)
     ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--seed", type=int, default=42)
+    ap.add_argument(
+        "--vedtak", type=str, default=None,
+        help="Explicit retrain decision id — rule 3, NEVER auto-retrain (gx1_guards fail-closed).",
+    )
     args = ap.parse_args()
+    # NEVER auto-retrain — fail-closed unless an explicit --vedtak is passed (CLAUDE.md rule 3).
+    from gx1_guards.gates import require_retrain_vedtak, GateError
+    try:
+        require_retrain_vedtak(args.vedtak)
+    except GateError as e:
+        ap.error(str(e))
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
     report = train_sharded(

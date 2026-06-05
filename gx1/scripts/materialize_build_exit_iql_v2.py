@@ -1137,7 +1137,17 @@ def main() -> None:
     parser.add_argument("--variants", type=str, default=None)
     parser.add_argument("--budget", type=str, default="fast", choices=list(BUDGET_PRESETS.keys()))
     parser.add_argument("--built-at-utc", type=str, default=None)
+    parser.add_argument(
+        "--vedtak", type=str, default=None,
+        help="Explicit retrain decision id — rule 3, NEVER auto-retrain (gx1_guards fail-closed).",
+    )
     args = parser.parse_args()
+    # NEVER auto-retrain — fail-closed unless an explicit --vedtak is passed (CLAUDE.md rule 3).
+    from gx1_guards.gates import require_retrain_vedtak, GateError
+    try:
+        require_retrain_vedtak(args.vedtak)
+    except GateError as e:
+        parser.error(str(e))
 
     preset = BUDGET_PRESETS[args.budget]
     TRAIN_EPOCHS_Q = preset["epochs_q"]
