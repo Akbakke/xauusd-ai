@@ -4,6 +4,17 @@ These are the HARD rules. They are operational, not architectural — they apply
 session, every turn. Make a violation impossible or loud, never "remember to be careful".
 Architecture, data-flow, and the detailed guardrails live in @AGENTS.md — read it before acting.
 
+## OPERATING MODE — DRIVE TO COMPLETION (user vedtak 2026-06-05)
+Default to AUTONOMOUS execution. When I authorize a goal/wave (a `--vedtak`, or "kjør alt ferdig /
+fortsett til du er fornøyd"), execute every step of it — builds, runs, retrains, data-prep, cleanup —
+to completion WITHOUT per-step confirmation. Verify each step yourself; report at MILESTONES, not before
+each step. One wave `--vedtak` covers every retrain in that wave (rule 3). Stop ONLY for (a) a genuine
+hard blocker you cannot resolve after actually trying, or (b) a catastrophe-floor breach (rules 2/4/6:
+git-clean-before-run, manifest, XAU-only / no-secrets / no-force-push). Continue until DONE + verified.
+Asking me to confirm every little thing creates misery — DON'T. (Rule 1 protected-core EDITS still need
+my marker — but that gates EDITING the live chain/contracts, NOT running them; the rebuild RUNS scripts,
+so it is not gated. Reversible-first cleanup per rule 5 needs no per-item ask within an authorized wave.)
+
 1. **Protected core is frozen.** Never `Edit`/`Write` the live chain or the SACRED transformer
    contracts — `gx1/execution/`, `gx1/contracts/`, `gx1/exits/contracts/`, `gx1/models/entry_v10/`,
    `gx1/core/` — without my explicit, per-change confirmation. A PreToolUse hook blocks these by
