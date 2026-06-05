@@ -78,35 +78,23 @@ def main() -> int:
                 )
                 return 2
 
-    # 1b) HARD BLOCK: edits to the protected live core / SACRED contracts (CLAUDE.md rule 1).
+    # 1b) Protected live core / SACRED contracts (CLAUDE.md rule 1). The one-shot MARKER GATE was
+    # REMOVED 2026-06-05 (user vedtak — the per-edit `touch` friction was killing the rebuild workflow).
+    # Protected-core edits are now ALLOWED, but LOUDLY logged so live-chain / contract changes stay
+    # visible (never silent). The trust discipline still applies (CLAUDE.md: verify in-use, ONE truth,
+    # minimal change, train==serve, git-clean-before-run) — this only drops the hard block + the marker.
     if PROTECTED_CORE_RE.search(path):
-        if os.path.exists(ALLOW_CORE_EDIT_MARKER):
-            # One-shot override: consume the marker so the guard re-arms after THIS edit.
-            try:
-                os.remove(ALLOW_CORE_EDIT_MARKER)
-            except OSError:
-                pass
-            print(json.dumps({
-                "hookSpecificOutput": {
-                    "hookEventName": "PreToolUse",
-                    "additionalContext": (
-                        f"CORE-EDIT OVERRIDE consumed (one-shot) for {os.path.basename(path)} — "
-                        "protected-core guard is now RE-ARMED. Authorize another edit only with "
-                        "the user's explicit OK (re-create .claude/ALLOW_CORE_EDIT)."
-                    ),
-                }
-            }))
-            return 0
-        print(
-            "BLOCKED by GX1 guard: protected core is FROZEN (CLAUDE.md rule 1). "
-            f"{path} is part of the live chain / SACRED transformer contracts "
-            "(gx1/execution | contracts | exits/contracts | models/entry_v10 | core). "
-            "Editing it needs the user's EXPLICIT confirmation. To authorize ONE edit, the user "
-            "runs:  touch /home/andre2/src/GX1_ENGINE/.claude/ALLOW_CORE_EDIT  "
-            "(marker is consumed after a single edit, re-arming the guard).",
-            file=sys.stderr,
-        )
-        return 2
+        print(json.dumps({
+            "hookSpecificOutput": {
+                "hookEventName": "PreToolUse",
+                "additionalContext": (
+                    f"⚠ PROTECTED-CORE EDIT (no longer marker-gated, user vedtak 2026-06-05): {path} is part "
+                    "of the LIVE chain / SACRED transformer contracts. Allowed — but be deliberate: verify "
+                    "in-use, ONE truth, minimal change, train==serve. Logged for visibility."
+                ),
+            }
+        }))
+        return 0
 
     # 2) SOFT WARN: creating a brand-new .py in a core dir (possible duplicate).
     if tool == "Write" and path.endswith(".py") and CORE_DIR_RE.search(path) and not os.path.exists(path):

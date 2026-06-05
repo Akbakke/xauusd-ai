@@ -11,14 +11,16 @@ to completion WITHOUT per-step confirmation. Verify each step yourself; report a
 each step. One wave `--vedtak` covers every retrain in that wave (rule 3). Stop ONLY for (a) a genuine
 hard blocker you cannot resolve after actually trying, or (b) a catastrophe-floor breach (rules 2/4/6:
 git-clean-before-run, manifest, XAU-only / no-secrets / no-force-push). Continue until DONE + verified.
-Asking me to confirm every little thing creates misery — DON'T. (Rule 1 protected-core EDITS still need
-my marker — but that gates EDITING the live chain/contracts, NOT running them; the rebuild RUNS scripts,
-so it is not gated. Reversible-first cleanup per rule 5 needs no per-item ask within an authorized wave.)
+Asking me to confirm every little thing creates misery — DON'T. (Protected-core edits are no longer
+marker-gated as of 2026-06-05 — the hook warns, doesn't block; edit the live chain deliberately per
+rule 1, no per-edit `touch`. Reversible-first cleanup per rule 5 needs no per-item ask within an authorized wave.)
 
-1. **Protected core is frozen.** Never `Edit`/`Write` the live chain or the SACRED transformer
-   contracts — `gx1/execution/`, `gx1/contracts/`, `gx1/exits/contracts/`, `gx1/models/entry_v10/`,
-   `gx1/core/` — without my explicit, per-change confirmation. A PreToolUse hook blocks these by
-   default; lifting it is a deliberate act by me, never assumed by you.
+1. **Protected core — edit DELIBERATELY (hard marker-gate removed 2026-06-05, user vedtak).** The live
+   chain / SACRED transformer contracts — `gx1/execution/`, `gx1/contracts/`, `gx1/exits/contracts/`,
+   `gx1/models/entry_v10/`, `gx1/core/` — are no longer marker-gated (the per-edit `touch` friction was
+   killing the workflow); the PreToolUse hook now WARNS instead of blocks. The discipline is UNCHANGED:
+   verify in-use, ONE truth, minimal change, train==serve, and NEVER coarsen the M1 exit grid (that edit
+   is still HARD-blocked). The gate is gone; the care is not — treat every live-chain edit as a real change.
 
 2. **Git clean before any run.** Never start a train / retrain / backtest / Phase-6 / live launch
    while `git status --short` is non-empty. A dirty tree means we don't know what we're running.
