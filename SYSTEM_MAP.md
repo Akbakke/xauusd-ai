@@ -132,7 +132,7 @@ Entry-snapshot (cols 0-4, frozen, from **V10 direction softmax** — candidate-g
 | current_atr_bps_v1 | compute_per_bar_signals atr | `_refresh_m1_bar` | ✅ `(ask_high-bid_low)/mid` |
 | 31 `{tf}_*_v2` cols | V3 builder attach_v2_mtf | `_augment_cv3_with_v2_mtf_scalars` | ✅ byte-identical (06-04) |
 | m5_phase | `minute%5` (trainer) | `compute_m5_phase_onehot` | ✅ (old `minute//12` retired) |
-| M1-native volume | build_v3_dataset_v2:313 | v12_state_from_prebuilt:507 | ⚠️ **R12 serve PENDING** |
+| M1-native volume (4 feats, idx 91-94) | build_v3_dataset_v2:313 (M1-native) | v12_v3_live:307-318 (M1-native branch, **present**, one-truth `compute_volume_features`) | ⚠️ **rebuild-gated, NOT a code edit**: serve branch fires only when base34 carries raw `volume`; base34 has it on NEW rows only (incr. daemon), needs full-rebuild to backfill ALL rows. M5-ffill fallback until then. |
 | REGIME_V4 ctx (16) | add_regime_v4_features | `_augment_cv3_with_regime_v4` | ⚠️ **R10 serve wire PENDING** |
 
 ---
@@ -259,7 +259,8 @@ Every model trainer calls `gx1_guards.gates.require_retrain_vedtak(args.vedtak)`
 
 - **Multi-TF cache freshness:** `build_context()` raises `[MTF_CACHE_STALE]` if the V2 cache lags the M5 build cutoff by > `GX1_MTF_CACHE_MAX_LAG_DAYS` (default 2) — covers all 3 build paths ([augment_forward_outcome_v2.py](gx1/scripts/augment_forward_outcome_v2.py)). Rebuild must regen `prebuild_multi_tf_cache_v2` + set `GX1_V10_MULTI_TF_V2_CACHE_DIR`.
 - `add_ctx_cont` manifest records `regime_v4_emitted` (the 16 REGIME_V4 cols are emitted by NAME, not counted in `ctx_cont_dim` {2..16}).
-- **Pre-retrain hard blockers (2026-06-05 audit, owner=user):** x10 2026-04 data NOT repaired (detect-only guard, no repair script) · cv3 not pinned + daemons live · stale BASE28 seed · R12 serve-volume M5≠M1 (PROTECTED) · R13 parity-RUN. See FASE2_PREFLIGHT_RUNBOK.
+- **Pre-retrain hard blockers (2026-06-05 audit, owner=user):** x10 2026-04 data NOT repaired (detect-only guard, no repair script) · cv3 PINNED 06-05 (`_PINNED_FASE2B_20260605`, daemons stopped) · stale BASE28 seed · R13 parity-RUN. See FASE2_PREFLIGHT_RUNBOK.
+- **R12 = NO protected edit needed** (traced 06-05): serve M1-native branch `v12_v3_live:307-318` is already correct + self-activates. The open piece is EDITABLE rebuild-prep: the full base34 (M1-expanded) rebuild must emit raw M1 `volume` on ALL rows (the incremental daemon does it for NEW rows only; no full-rebuild builder emitting volume was found — `materialize_build_extended_base34` builds M5 w/o volume, `canonical_prebuilt_rebuilder` has none). Either a one-shot volume backfill onto base34 or wire the rebuild to emit it.
 
 ---
 
