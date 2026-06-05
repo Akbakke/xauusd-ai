@@ -344,6 +344,15 @@ def update_base34_incremental(new_cutoff: pd.Timestamp) -> int:
             else:
                 # column not in cv3 — keep last value from base34 (will be NaN-filled below)
                 row_data[c] = float(base34[c].iloc[-1]) if c in base34.columns and pd.notna(base34[c].iloc[-1]) else 0.0
+        # V3-producer (2026-06-05): carry the RAW M1 OHLCV onto each base34 row (M1-NATIVE, NOT M5-ffilled).
+        # base34 today holds only M5-derived features ffilled onto M1; the exit V3 transformer needs raw M1
+        # volume/close (V3-consume: M1-native vol features, build_window) + high/low (V4: intrabar-high MFE).
+        # Additive cols (downstream consumers read by name, ignore extras); the full-history rebuild adds them
+        # to ALL rows so the interim NaN on pre-existing rows resolves at rebuild.
+        for _oc in ("open", "high", "low", "close", "volume"):
+            if _oc in new_m1.columns:
+                _ov = new_m1.loc[ts, _oc]
+                row_data[_oc] = float(_ov) if pd.notna(_ov) else 0.0
         new_m1_rows.append((ts, row_data))
 
     if not new_m1_rows:
