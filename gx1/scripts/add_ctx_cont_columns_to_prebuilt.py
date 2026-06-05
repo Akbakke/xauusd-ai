@@ -107,7 +107,16 @@ def get_prebuilt_ctx_contract_columns(
             f"ctx_cont_dim={ctx_cont_dim} unsupported; base_cont={len(base_cont)} "
             f"micro={len(MICRO_FEATURE_NAMES)} swing={len(SWING_FEATURE_NAMES)}"
         )
-    required_cat = list(ORDERED_CTX_CAT_NAMES_EXTENDED[:ctx_cat_dim])
+    # ctx_cat ONE-TRUTH with signal_bridge_v3 (the V10/V3 builders' + live serve contract).
+    # Under GX1_REGIME_V4=1 the cat set DROPS the degenerate trend_regime_id and KEEPS
+    # H4_trend_sign_cat (5 names). signal_bridge_v1's EXTENDED[:5] does the OPPOSITE (keeps
+    # trend_regime_id, drops H4) → the V10 builder fail-closes CTX_CAT_MISSING_IN_BASE28:
+    # 'H4_trend_sign_cat'. Pull the v3 contract list directly so build==train==serve.
+    if os.environ.get("GX1_REGIME_V4", "1") == "1" and ctx_cat_dim == 5:
+        from gx1.contracts.signal_bridge_v3 import ORDERED_CTX_CAT_NAMES_V3 as _CAT_V3
+        required_cat = list(_CAT_V3)
+    else:
+        required_cat = list(ORDERED_CTX_CAT_NAMES_EXTENDED[:ctx_cat_dim])
     return required_cont, required_cat
 
 
@@ -337,7 +346,16 @@ def run_add_ctx_cont_columns(
             f"ctx_cont_dim={ctx_cont_dim} unsupported; base_cont={len(base_cont)} "
             f"micro={len(MICRO_FEATURE_NAMES)} swing={len(SWING_FEATURE_NAMES)}"
         )
-    required_cat = list(ORDERED_CTX_CAT_NAMES_EXTENDED[:ctx_cat_dim])
+    # ctx_cat ONE-TRUTH with signal_bridge_v3 (the V10/V3 builders' + live serve contract).
+    # Under GX1_REGIME_V4=1 the cat set DROPS the degenerate trend_regime_id and KEEPS
+    # H4_trend_sign_cat (5 names). signal_bridge_v1's EXTENDED[:5] does the OPPOSITE (keeps
+    # trend_regime_id, drops H4) → the V10 builder fail-closes CTX_CAT_MISSING_IN_BASE28:
+    # 'H4_trend_sign_cat'. Pull the v3 contract list directly so build==train==serve.
+    if os.environ.get("GX1_REGIME_V4", "1") == "1" and ctx_cat_dim == 5:
+        from gx1.contracts.signal_bridge_v3 import ORDERED_CTX_CAT_NAMES_V3 as _CAT_V3
+        required_cat = list(_CAT_V3)
+    else:
+        required_cat = list(ORDERED_CTX_CAT_NAMES_EXTENDED[:ctx_cat_dim])
 
     # ------------------------------------------------------------
     # Load prebuilt + raw
