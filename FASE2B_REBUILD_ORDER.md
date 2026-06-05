@@ -175,4 +175,29 @@ _oot_xgb_directional_compare.py` (reuses XGBMultiheadModel + trainer's compute_t
   `load_decision_artifact("xgb")` (PROTECTED CORE → needs explicit marker; MUST fix before the new chain goes live,
   else live serves the OLD xgb after the contract flips). The 4 transformer/IQL resolvers ARE contract-gated + fail-closed.
 
+## WAVE DECISIONS — dip/top + entry direction (user vedtak 2026-06-05)
+Readiness audit found the chain is NOT 100% live end-to-end; user decided how much to bake into THIS cement:
+1. **AUG64 = ON** (dip/top into the Exit-IQL POLICY). The V3 exit-transformer already SEES the 64 (36 dip/struct +
+   24 group-A + 4 vol), but the IQL policy-head is flag-gated default-OFF. Set `GX1_EXIT_AUGMENT_64=1` for the
+   Exit-IQL build/train (and ensure the V3 build emits them via EXIT_IO_V8). Contract-extending → OOT-gate vs cement.
+2. **Entry-IQL reward: DROP R_WAIT_OPP_K96_LAM50** — user: "LAM50 var elendig, 99% skip, tok ingenting." Go
+   AGGRESSIVE + SYMMETRIC + regime/TF-aware. Candidate: R_V10_PQ_COND_K96 (proven 3.94x takes / 92.99% win, the
+   aggressive one rolled back only for a since-fixed CLUSTER1 bug) and/or a LOW-λ per-side R_WAIT_OPP_SYM. Pick at
+   the Entry-IQL stage by OOT + the gate below.
+3. **HARD ENTRY-DIRECTION GATE (user, emphatic):** the entry must NOT blindly follow the d1 regime. When the
+   actionable TFs contradict d1 — m5+m15 DOWN while d1 UP — the model must call SHORT (don't buy the top of a daily
+   uptrend). This is LEARNED from `regime_divergence_flag_v3` + per-TF regime classes (now in V10's 121-ctx), NOT a
+   hardcoded rule (all-smart-AI). Gate: on a held-out slice where m5&m15 regime=down & d1 regime=up, require the
+   retrained V10/Entry-IQL to short (or at minimum NOT go long) at a materially higher rate than cement; this is the
+   "short-in-uptrend stress-test gate" — a CEMENT BLOCKER for this wave.
+4. **portfolio_parity_B9 = ON** (`GX1_PORTFOLIO_PARITY_B9=1` at forward-outcome regen) — fixes the candidate-density
+   train/serve skew (~12-16 train vs ~0-1 live).
+
+## Readiness-audit blockers (2026-06-05) — status
+- **[FIXED]** Exit-IQL V8 scorer: `score_v3_v8_on_per_bar_v1.py` SUPPORTED_CONTRACTS now includes EXIT_IO_V8 (171).
+- **[OPEN, fix at Entry-IQL stage]** forward-outcome strips OHLC/time → the 36 dip/struct can't attach. Fix:
+  `materialize_build_candidate_forward_outcome_dataset_v1.py` carry high/low/close+time OR the 36+24 from the merged
+  candidate parquet (inference_batch attaches them @605-607). Plus carry the PLUS5 `_canon_v1` cols in the join.
+- **[OPEN, go-live]** FG-1 protected XGB live resolver (needs marker before contract flip).
+
 > Maintenance: when a later step reveals a new input/order/guard, ADD it here the same session (per AGENTS.md rule).
