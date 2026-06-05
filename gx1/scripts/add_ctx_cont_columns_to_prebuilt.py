@@ -744,18 +744,52 @@ def run_add_ctx_cont_columns(
         from gx1.features.htf_features import attach_v2_mtf_per_bar_scalars as _attach_v2
         _rv4_m5 = df_m5[["open", "high", "low", "close"]].astype(np.float64).copy()
         _rv4_m5["volume"] = (df_m5["volume"].astype(np.float64) if "volume" in df_m5.columns else 1.0)
+        # FULL 9-source per-TF map (2026-06-05): mirrors the base80 builder's self-attach so the
+        # output carries EVERY {tf}_*_v2 the base80 XGB contract needs (the downstream V10/V3 builders
+        # run XGB inference on THIS parquet -> fail-closed SOURCE_FEATURES_MISSING without them). The
+        # regime features (regime_class_id/trend_age_bars_norm/ema_stack_aligned) are a subset; add the
+        # 6 non-regime sources (ema20_slope_atr/mom_5_atr/mom_20_atr/rsi14_centered/atr_bps_14/lower_wick_pct).
         _rv4_src_map = [
+            ("ema20_slope_atr", "ema20_slope_atr"),
+            ("ema_stack_aligned", "ema_stack_aligned_v2"),
             ("regime_class_id", "regime_class_id"),
             ("trend_age_bars_norm", "trend_age_bars_norm"),
-            ("ema_stack_aligned", "ema_stack_aligned_v2"),
+            ("mom_5_atr", "mom_5_atr"),
+            ("mom_20_atr", "mom_20_atr"),
+            ("rsi14_centered", "rsi14_centered"),
+            ("atr_bps_14", "atr_bps_14"),
+            ("lower_wick_pct", "lower_wick_pct"),
         ]
         _rv4_ts_ns = df_pre.index.values.astype("datetime64[ns]").astype(np.int64)
-        _attached = _attach_v2(_rv4_m5, _rv4_ts_ns, _rv4_src_map, ("m15", "h1", "h4", "d1"))
+        _attached = _attach_v2(_rv4_m5, _rv4_ts_ns, _rv4_src_map, ("m15", "h1", "h4", "d1"),
+                               frozenset({("d1", "lower_wick_pct")}))
         for _c, _v in _attached.items():
             df_pre[_c] = _v
         log.info("[REGIME_V4] self-attached %d {tf}_*_v2 sources fresh (one-truth w/ V3 builder + serve)", len(_attached))
         add_regime_v4_features(df_pre)
         log.info("[REGIME_V4] build-side: emitted multi-TF regime + change-detection features")
+
+        # cv3-augment cross/cyclic feats the base80 contract needs but canonical_v2 lacks
+        # (smc_premium_state, m5h1_momentum, hour/dow cyclic). One-truth: merge the values from the
+        # pinned clean cv3 (recomputing risks a formula mismatch vs train==serve), keyed on time.
+        _need_cross = ["hour_sin", "hour_cos", "dow_sin", "dow_cos", "smc_premium_state", "m5h1_momentum"]
+        _cv3_cross = _os.environ.get(
+            "GX1_XGB_CV3_FOR_CROSSFEATS",
+            "/home/andre2/GX1_DATA/data/data/prebuilt/_PINNED_FASE2B_20260605/xauusd_m5_CANONICAL_V3_2020_2026.parquet")
+        if Path(_cv3_cross).exists() and any(_n not in df_pre.columns for _n in _need_cross):
+            import pyarrow.parquet as _pq
+            _cv3_schema_cols = set(_pq.read_schema(_cv3_cross).names)
+            _read_cols = (["time"] + _need_cross) if "time" in _cv3_schema_cols else _need_cross
+            _cv3x = pd.read_parquet(_cv3_cross, columns=_read_cols)
+            if "time" not in _cv3x.columns:  # time stored as the parquet index
+                _cv3x = _cv3x.reset_index().rename(columns={(_cv3x.index.name or "index"): "time"})
+            _cv3x["time"] = pd.to_datetime(_cv3x["time"], utc=True)
+            _idx_time = pd.to_datetime(df_pre.index, utc=True)
+            _merged_cross = pd.DataFrame({"time": _idx_time}).merge(_cv3x, on="time", how="left")
+            for _n in _need_cross:
+                if _n not in df_pre.columns:
+                    df_pre[_n] = _merged_cross[_n].to_numpy()
+            log.info("[REGIME_V4] merged %d cv3 cross/cyclic feats (smc_premium_state/m5h1_momentum/hour/dow)", len(_need_cross))
 
     # ------------------------------------------------------------
     # Write outputs
