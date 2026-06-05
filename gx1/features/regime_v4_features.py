@@ -24,9 +24,14 @@ from typing import List
 import numpy as np
 import pandas as pd
 
-_TFS = ("m15", "h1", "h4", "d1")
+# 2026-06-05 (user vedtak): M5 ADDED — the immediate-flow TF is the MOST important for the entry's
+# direction ("trade with the trend her og nå"). M5 now participates in the regime-class cross-TF
+# agreement/divergence (regime_tf_agreement_v3 etc.), not just the M5 seq. Appended (not prepended) so the
+# m15/h1/h4/d1 features keep their relative order; everything is by-name so order is non-load-bearing.
+# Grows REGIME_V4_FEATURE_NAMES 16->18 -> ctx_cont 121->123, EXIT_IO_V8 171->173 (contracts import dynamically).
+_TFS = ("m15", "h1", "h4", "d1", "m5")
 # M5-bar cadence per TF (one bar of TF = N M5 bars), for transition look-backs.
-_TF_BARS = {"m15": 3, "h1": 12, "h4": 48, "d1": 288}
+_TF_BARS = {"m15": 3, "h1": 12, "h4": 48, "d1": 288, "m5": 1}
 
 # Source columns this module REUSES (must exist on the frame when GX1_REGIME_V4 is enabled).
 REGIME_V4_SOURCE_COLS: List[str] = (

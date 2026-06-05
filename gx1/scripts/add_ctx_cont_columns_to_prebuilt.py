@@ -779,8 +779,8 @@ def run_add_ctx_cont_columns(
             ("lower_wick_pct", "lower_wick_pct"),
         ]
         _rv4_ts_ns = df_pre.index.values.astype("datetime64[ns]").astype(np.int64)
-        _attached = _attach_v2(_rv4_m5, _rv4_ts_ns, _rv4_src_map, ("m15", "h1", "h4", "d1"),
-                               frozenset({("d1", "lower_wick_pct")}))
+        _attached = _attach_v2(_rv4_m5, _rv4_ts_ns, _rv4_src_map, ("m15", "h1", "h4", "d1", "m5"),
+                               frozenset({("d1", "lower_wick_pct")}))  # m5 ADDED 2026-06-05 (regime all-5; m5_regime_class_id_v2 etc.)
         for _c, _v in _attached.items():
             df_pre[_c] = _v
         log.info("[REGIME_V4] self-attached %d {tf}_*_v2 sources fresh (one-truth w/ V3 builder + serve)", len(_attached))

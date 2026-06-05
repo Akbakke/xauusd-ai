@@ -376,7 +376,7 @@ class PrebuiltStateLoader:
         ("atr_bps_14", "atr_bps_14"),
         ("lower_wick_pct", "lower_wick_pct"),
     )
-    _V2_MTF_TFS = ("m15", "h1", "h4", "d1")
+    _V2_MTF_TFS = ("m15", "h1", "h4", "d1", "m5")  # m5 ADDED 2026-06-05 (user vedtak: regime ALL-5; train==serve w/ build add_ctx_cont + V3 builder)
     _V2_MTF_SKIP = frozenset({("d1", "lower_wick_pct")})
 
     # ── V1 / R10 (2026-06-04): REGIME_V4 exit-context augmentation ────────

@@ -348,7 +348,7 @@ def precompute_m1_feature_vectors(
                 ("ema_stack_aligned", "ema_stack_aligned_v2"),
             ]
             _rv4_ts_ns = _cv2_ri.index.values.astype("datetime64[ns]").astype(np.int64)
-            for _c, _v in _attach_v2(_rv4_ohlcv, _rv4_ts_ns, _rv4_src_map, ("m15", "h1", "h4", "d1")).items():
+            for _c, _v in _attach_v2(_rv4_ohlcv, _rv4_ts_ns, _rv4_src_map, ("m15", "h1", "h4", "d1", "m5")).items():  # m5 ADDED 2026-06-05 (regime all-5)
                 _cv2_ri[_c] = _v
             print(f"[{ACTION}] regime_v4 SOURCE cols recomputed fresh (V2 one-truth w/ serve)", flush=True)
         add_regime_v4_features(_cv2_ri)  # in-place; one-truth; raises on missing sources
