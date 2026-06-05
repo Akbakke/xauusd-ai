@@ -546,7 +546,10 @@ def main() -> None:
     # are unaffected — only direct CLI invocation.)
     parser.add_argument("--prebuilt", type=str, required=True,
                         help="explicit regime-fresh prebuilt (no silent default)")
-    parser.add_argument("--xgb-bundle", type=str, default=str(DEFAULT_XGB_BUNDLE))
+    parser.add_argument("--xgb-bundle", type=str, required=True,
+                        help="explicit XGB bundle (no silent default; rule 8 / FG-2 fix 2026-06-05). The old "
+                             "hardcoded DEFAULT_XGB_BUNDLE would silently bake a STALE xgb into the candidate "
+                             "batch after a retrain — pass the contract-active xgb explicitly.")
     parser.add_argument("--v10-bundle", type=str, required=True,
                         help="explicit V10 bundle (no silent default — old default bundle was DELETED)")
     parser.add_argument("--xgb-feature-contract", type=str, default=str(DEFAULT_XGB_FEATURE_CONTRACT))

@@ -195,6 +195,18 @@ def write_artifacts(
                 "session_change_flag", "session_tradable"):
         if _sc in _si.columns and _sc not in merged.columns:
             merged[_sc] = _np.asarray(_si[_sc])
+    # B2 train==serve (2026-06-05, XGB-audit): bake the SHIFTED _v1_is_EU/_v1_is_US (np.roll by 1, [0]=0)
+    # to MATCH live serve EXACTLY (gx1/execution/v12_ctx_augment_live.py:165-172) and the cement (base28
+    # baked them shifted). Without this, the trainer SYNTHESIZES them UNSHIFTED (train_xgb:863-866) while
+    # serve feeds SHIFTED -> train≠serve on ~0.7% session-boundary bars. Baking them present makes the
+    # trainer's preserve-branch fire and derive the *_us interactions from the shifted is_US (serve basis).
+    # merged is time-sorted (canonical_v2), so roll-by-1 = previous bar = the no-lookahead session lag.
+    for _name, _src in (("_v1_is_EU", "is_EU"), ("_v1_is_US", "is_US")):
+        if _src in _si.columns and _name not in merged.columns:
+            _arr = _np.asarray(_si[_src], dtype=_np.float64)
+            _sh = _np.roll(_arr, 1)
+            _sh[0] = 0.0
+            merged[_name] = _sh
     # (b) multi-TF V2 projection (m15/h1/h4/d1_*_v2) from the clean M5 tape (one-truth attach_v2_mtf)
     _tape = sorted(_glob.glob("/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m5_bid_ask__CANONICAL/year=*/part-000.parquet"))
     _m5 = pd.concat([pd.read_parquet(p, columns=["time", "open", "high", "low", "close", "volume"]) for p in _tape],

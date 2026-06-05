@@ -621,7 +621,10 @@ def main() -> None:
              "DEGENERATE const trend_regime_id (84%% of rows differ vs the regime-robust build), which "
              "would silently defeat the regime effort on the V3 leg. The /run-experiment manifest records "
              "the path+hash.")
-    parser.add_argument("--xgb-bundle", type=str, default=str(DEFAULT_XGB_BUNDLE))
+    parser.add_argument("--xgb-bundle", type=str, required=True,
+                        help="explicit XGB bundle (no silent default; rule 8 / FG-2 fix 2026-06-05). The old "
+                             "hardcoded DEFAULT_XGB_BUNDLE would silently bake a STALE xgb into the V3 training "
+                             "dataset after a retrain — pass the contract-active xgb explicitly.")
     parser.add_argument("--xgb-feature-contract", type=str, default=str(DEFAULT_XGB_FEATURE_CONTRACT))
     parser.add_argument("--xgb-sanitizer-config", type=str, default=str(DEFAULT_XGB_SANITIZER_CONFIG))
     parser.add_argument("--week", action="append", default=None)
