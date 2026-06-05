@@ -652,6 +652,11 @@ def process_week(
     _PORTFOLIO_LOOKBACK_NS = PORTFOLIO_LOOKBACK_MIN * 60 * 1_000_000_000
     cand_ts_ns_arr = np.zeros(len(cand), dtype=np.int64)
     cand_m5_close_arr = np.zeros(len(cand), dtype=np.float64)
+    # OHLC-carry (2026-06-05, Entry-IQL↔V10 parity-fix): mid M5 high/low at the decision bar, carried so
+    # the Entry-IQL builder's attach_group_a_dip_struct_ctx_columns can self-compute the 36 dip/struct via
+    # build_context (one-truth w/ the V10 ctx builder) instead of the dead-zero it got when OHLC was stripped.
+    cand_m5_high_arr = np.zeros(len(cand), dtype=np.float64)
+    cand_m5_low_arr = np.zeros(len(cand), dtype=np.float64)
     cand_side_arr: list[str | None] = []
     for k in range(len(cand)):
         _ts_ns = _safe_decision_ts_to_int64_ns(cand_dict["decision_ts_utc"][k])
@@ -661,6 +666,8 @@ def process_week(
             _idx = int(np.searchsorted(m5_time_ns, _ts_ns, side="right")) - 1
             if 0 <= _idx < n_m5:
                 cand_m5_close_arr[k] = (m5_arrays["bid_close"][_idx] + m5_arrays["ask_close"][_idx]) / 2.0
+                cand_m5_high_arr[k] = (m5_arrays["bid_high"][_idx] + m5_arrays["ask_high"][_idx]) / 2.0
+                cand_m5_low_arr[k] = (m5_arrays["bid_low"][_idx] + m5_arrays["ask_low"][_idx]) / 2.0
         cand_side_arr.append(cand_dict["side"][k])
 
     for row_i in range(len(cand)):
@@ -689,6 +696,13 @@ def process_week(
         # Identity + candidate features (carry forward)
         for col in CANDIDATE_IDENTITY_COLS + CANDIDATE_FEATURE_COLS:
             row_out[col] = cand_dict[col][row_i]
+        # OHLC-carry (2026-06-05): mid M5 high/low/close at the decision bar so the Entry-IQL builder's
+        # attach_group_a_dip_struct_ctx_columns (augment_forward_outcome_v2.py:553) can compute the 36
+        # dip/struct (+24 group-A) via build_context — the 36 were dead-zero (std 1e-6) without this.
+        # Candidates are per-M5-bar (continuous) -> the carried OHLC series matches the V10 ctx builder.
+        row_out["high"] = float(cand_m5_high_arr[row_i])
+        row_out["low"] = float(cand_m5_low_arr[row_i])
+        row_out["close"] = float(cand_m5_close_arr[row_i])
 
         # PORTFOLIO SIMULATION (improvement #1 2026-05-21):
         # Treat any earlier candidate in this week with decision_ts in
