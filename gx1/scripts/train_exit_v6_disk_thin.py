@@ -114,7 +114,11 @@ def _label_split(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=ACTION)
-    parser.add_argument("--dataset-dir", type=str, default=str(DEFAULT_DATASET_DIR))
+    # rule 4 (no silent defaults): an exit retrain MUST point at an explicit, freshly-built
+    # dataset. The old default (DEFAULT_DATASET_DIR = cement-vintage exit_v3_v7) silently
+    # trained a retrain on stale data — the 2026-06-05 readiness-audit footgun.
+    parser.add_argument("--dataset-dir", type=str, required=True,
+                        help="Fresh exit training dataset dir (REQUIRED — no stale default).")
     parser.add_argument("--out-dir", type=str, default=str(DEFAULT_OUT_DIR))
     parser.add_argument("--bundle-name", type=str, default=None)
     parser.add_argument("--label-spill-dir", type=str, default=None,
