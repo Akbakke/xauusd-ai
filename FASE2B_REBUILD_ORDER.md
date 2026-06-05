@@ -47,6 +47,13 @@ fact below was discovered by hitting a fail-closed guard and verifying the fix a
      ema_stack_aligned}) → these must be ATTACHED before `add_regime_v4_features`. **One-truth fix (2026-06-05):**
      `add_ctx_cont` now SELF-ATTACHES them via `htf_features.attach_v2_mtf_per_bar_scalars`, mirroring the V3 builder
      (`materialize_build_v3_training_dataset_v2.py:337-353`). Before the fix you'd hand-attach; now it's self-contained.
+   - **A LEAN FULL_PLUS_CTX is OK (don't panic at the col count).** My output = 163 cols vs the cement's 249;
+     it carries only the 16 ctx_cont subset + 5 cat + regime + sources. The V10 builder
+     (`build_entry_v10_ctx_training_dataset_v3`) **COMPUTES the remaining ~66 ctx_cont itself** (one-truth w/ IQL):
+     session one-hots `is_ASIA` (:1220), group-A + dip/struct via `augment_forward_outcome_v2.build_context`
+     (:1761-1788), and **fail-closes** if any `ORDERED_CTX_CONT_NAMES_V3` is still missing (:1950-1951). So
+     FULL_PLUS_CTX does NOT need all 121 pre-computed — the cement's 249 just had them pre-baked. Verified
+     2026-06-05: FULL_PLUS_CTX 395,653 rows, April 4757 (clean), atr_bps + regime cols present.
 4. **MULTI_TF_V2_CACHE** regen: `python -m gx1.scripts.prebuild_multi_tf_cache_v2` against the clean cv3/tape
    (verify `manifest.last_ts == cutoff`). REQUIRED by the V10/V3 builds (`GX1_V10_MULTI_TF_V2_CACHE_DIR`); the
    `build_context` stale-guard `[MTF_CACHE_STALE]` refuses a cache lagging the build cutoff by > 2 days.
