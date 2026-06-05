@@ -4,6 +4,14 @@ READ THIS before running/resuming the rebuild. It captures the precise ordering,
 and the dims map — so we COME HERE AND READ instead of re-scanning the whole chain every session. Each
 fact below was discovered by hitting a fail-closed guard and verifying the fix against the cement artifacts.
 
+> **STATUS 2026-06-05 — READ FIRST:** XGB + V10 are retrained on this stack (+ M5 in the regime, all 5 TFs, contracts
+> 123/173), but a deep V10 diagnosis found **two LOAD-BEARING fixes required before cementing** — do NOT cement as-is.
+> See `/home/andre2/GX1_DATA/HANDOVER_2026_06_05_FASE2B_M5_REGIME_V10_DIAGNOSIS.md` (§3/§4) + memory
+> `project_gx1_v10_direction_diagnosis_20260605`. In short: (1) restore XGB high-conviction selectivity (cement top-5%
+> 0.90 → new 0.63), (2) train a signed net-PnL selector head + gate Entry-IQL on it (NOT path_quality, which can't pick
+> direction), (3) fix V10 checkpoint-selection + drop regime-FiLM. The marker gate is REMOVED (warn-only) — edit
+> protected core freely-but-deliberately. Re-labeling to a longer horizon is a TESTED BLIND ALLEY (label is already 2h).
+
 - **Vedtak:** `fase2b_regime_v4_rebuild_20260605` (REGIME_V4 baked in; flag REMOVED post-cement — no off-switch).
 - **Workspace:** `/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/` (RUN_MANIFEST.json there).
 - **Shell flags for the WHOLE rebuild:** `export GX1_REGIME_V4=1 GX1_TREND_REGIME_FROM_D1=1`.

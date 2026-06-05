@@ -40,6 +40,10 @@
 - Never use implicit latest/glob artifact selection for decisioning.
 - Never use in-sample scores as decision-valid evidence.
 - Never select old invalidated V3 artifacts for decisioning.
+- **Verify on the LOAD-BEARING metric, not blanket accuracy.** The bot trades a SELECTED high-conviction subset, so
+  grade the metric it actually acts on (high-conviction-tail dir-acc, selected-trade win-rate / bps-take), not the
+  blanket average. Blanket OOT can HOLD while the load-bearing tail regresses — 2026-06-05 the fase2b XGB held blanket
+  0.508≥cement but its top-5% conviction collapsed 0.90→0.63, missed by a blanket-accuracy "verified" check.
 
 ## ONE gjeldende — artifact selection (no version roulette) [CLAUDE.md rule 8]
 - **ONE truth = `PROJECT_STATE_artifacts.json`** (repo root). It names the single ACTIVE artifact per role
