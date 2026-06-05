@@ -159,4 +159,20 @@ cement dir name "RELABEL15H24" is legacy, `relabel_veto_rate=0`).
 4. `add_ctx_cont` ctx_cat: under REGIME_V4 source `required_cat` from signal_bridge_v3 (drops trend_regime_id,
    keeps H4_trend_sign_cat) — NOT signal_bridge_v1 EXTENDED[:5] (the opposite) — else CTX_CAT_MISSING_IN_BASE28.
 
+## XGB retrain — VERIFIED CORRECT (B1 OOT gate, 2026-06-05)
+After a 79-agent adversarial audit + fixes, the new XGB was OOT-gated on held-out 2026 (23,898 bars, excl the
+2026-04 x10-ATR-contamination window; XGB trains only to 2025-12-31). Tool: `runs/FASE2B_REGIME_V4_20260605/
+_oot_xgb_directional_compare.py` (reuses XGBMultiheadModel + trainer's compute_triple_barrier_labels — one-truth):
+- **NEW dir_acc 0.5077 / logloss 0.9256  vs  CEMENT 0.5018 / 0.9408** → NEW ≥ cement on BOTH (Δ +0.6pp acc, better logloss).
+- The in-sample val-margin "collapse" (NEW val_logloss 0.846 vs cement 0.690) was **honest leak-removal, NOT a
+  regression**: cement's higher in-sample confidence came from a STALE/leaky mtf_v2 vintage (pre-one-truth-fix);
+  NEW uses the corrected serve-faithful `attach_v2_mtf_per_bar_scalars`. Worse in-sample + BETTER OOT = cement
+  overfit/leaked, NEW generalizes. **Lesson: never judge a retrain on val/in-sample — OOT decides (project rule).**
+- **B2 fixed (train==serve):** base80 builder now BAKES the SHIFTED `_v1_is_EU`/`_v1_is_US` (np.roll by 1, [0]=0)
+  matching live serve (`v12_ctx_augment_live.py:165-172`) + cement; trainer log confirms `PRESERVED baked-shifted`.
+- Resolver hygiene (rule 8): FG-2 (`--xgb-bundle` made `required` in candidate + V3 builders, no silent stale default).
+  STILL OPEN: **FG-1** — `gx1/execution/v12_xgb_live.py:55-57` hardcodes the XGB literal instead of
+  `load_decision_artifact("xgb")` (PROTECTED CORE → needs explicit marker; MUST fix before the new chain goes live,
+  else live serves the OLD xgb after the contract flips). The 4 transformer/IQL resolvers ARE contract-gated + fail-closed.
+
 > Maintenance: when a later step reveals a new input/order/guard, ADD it here the same session (per AGENTS.md rule).
