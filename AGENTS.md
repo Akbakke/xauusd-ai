@@ -1,6 +1,12 @@
 # GX1 Agent Guardrails
 
 ## What GX1 is — read before acting
+- **FIRST, read [SYSTEM_MAP.md](SYSTEM_MAP.md)** — the ONE-TRUTH map of how the live chain wires
+  together: data flow, train↔serve parity formulas, file→responsibility index, flags, and the
+  live-vs-backtest gotchas. It exists specifically so we STOP burning a whole session re-deriving the
+  same overview. If a "how is this wired / where does this come from / does build match serve" answer is
+  NOT there, derive it once and ADD it to SYSTEM_MAP.md the SAME session (its Maintenance rule). Trust
+  the map's `file:line` pointers; fix them in the same change when code moves.
 - Solo-built XAUUSD trading bot: cooperating number-AIs. XGB produces per-M5
   bridge probs (p_long/p_short/p_flat) — every 5 min, NOT per minute — and feeds
   BOTH stages:
@@ -42,6 +48,10 @@
 - All smart AI, no hardcoded decision rules (e.g. no hardcoded relabel rules — let the model learn).
 
 ## Workflow discipline
+- ONE-TRUTH OVERVIEW: consult [SYSTEM_MAP.md](SYSTEM_MAP.md) before tracing the chain or answering any
+  data-flow / train↔serve / parity question. When you derive a non-obvious fact it lacks (a call site, a
+  formula, a flag default, a gotcha, a moved file), write it back to SYSTEM_MAP.md the same session — the
+  goal is that the NEXT session never re-derives it. Map = tight facts+pointers; logs stay in DECISION_LOG/PROJECT_STATE.
 - NEVER auto-retrain. Get an explicit user decision (vedtak) before every retrain.
 - Check existing code before building; keep ONE truth (no duplicated/overriding logic); fail-closed defaults; minimal change; clean up superseded artifacts as you go; run a post-task bug/mismatch hunt.
 - Always maximize CPU/GPU/RAM utilization (raw + smart prefetch/numba/GPU).
