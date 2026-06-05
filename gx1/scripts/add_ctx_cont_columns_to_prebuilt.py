@@ -730,7 +730,8 @@ def run_add_ctx_cont_columns(
     # FLIPPED "0"->"1" — REGIME_V4 is emitted on every new build/retrain. The cols are inert
     # until the contract bump (P1: ctx_cont 105->121) + V10 retrain pick them up. Set
     # GX1_REGIME_V4=0 ONLY to reproduce the 105-dim cement. Fail-closed (raises on missing sources).
-    if _os.environ.get("GX1_REGIME_V4", "1") == "1":
+    _regime_v4_emitted = _os.environ.get("GX1_REGIME_V4", "1") == "1"
+    if _regime_v4_emitted:
         from gx1.features.regime_v4_features import add_regime_v4_features
         df_pre = df_pre.sort_index()  # shift()/run-length require time-ascending order
         add_regime_v4_features(df_pre)
@@ -753,6 +754,11 @@ def run_add_ctx_cont_columns(
                     "raw_m5_paths": [str(p) for p in raw_m5_paths],
                     "ctx_cont_dim": int(ctx_cont_dim),
                     "ctx_cat_dim": int(ctx_cat_dim),
+                    # ctx_cont_dim is the BASE28 ctx_cont subset (2..16). REGIME_V4 emits 16
+                    # SEPARATE named cols (inert until the V10 105->121 contract bump consumes
+                    # them) — record their presence explicitly so downstream/audits don't have
+                    # to infer parquet content from ctx_cont_dim (which does NOT include them).
+                    "regime_v4_emitted": bool(_regime_v4_emitted),
                     "required_cont": required_cont,
                     "required_cat": required_cat,
                     "ctx_columns_added": required_cont + required_cat,
@@ -786,6 +792,7 @@ def run_add_ctx_cont_columns(
         "prebuilt_bytes": prebuilt_bytes,
         "ctx_cont_dim": int(ctx_cont_dim),
         "ctx_cat_dim": int(ctx_cat_dim),
+        "regime_v4_emitted": bool(_regime_v4_emitted),  # parquet carries the 16 REGIME_V4 cols (see diagnostics note)
         "no_fallback_enforced": True,
     }
     manifest_path.write_text(json.dumps(manifest_obj, indent=2), encoding="utf-8")
