@@ -102,13 +102,11 @@ CANONICAL_V3_PREBUILT = Path(
     "/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_PREBUILT/"
     "xauusd_m5_CANONICAL_V3_2020_2026.parquet"
 )
-# Joined prebuilt: canonical_v3 + 32 BASE28 ctx_cont/cat features. Produced
-# by add_ctx_cont_columns_to_prebuilt.py on the canonical_v3 prebuilt.
-# Preferred over reading two prebuilts separately when it exists.
-JOINED_PREBUILT = Path(
-    "/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_PREBUILT/"
-    "xauusd_m5_CANONICAL_V3_BASE28_AUGMENTED_2020_2026.parquet"
-)
+# NOTE: a "JOINED_PREBUILT" single-file fast-path (canonical_v3 + BASE28 ctx_cont/cat
+# pre-merged) was REMOVED 2026-06-05 — it took an unguarded `.exists()` precedence over
+# the manifest-resolved canonical_v3 + BASE28 split with NO freshness check, so a stale
+# leftover reappearing on disk would silently poison serve/retrain (audit MISS-3 / R10
+# coupling). The split path below is the ONE truth (BASE28 resolved fresh from the manifest).
 BASE28_MANIFEST_PATH = Path(
     "/home/andre2/GX1_DATA/data/data/prebuilt/BASE28_CANONICAL/CURRENT_MANIFEST.json"
 )
@@ -321,33 +319,11 @@ class PrebuiltStateLoader:
             LOG.warning(f"async cv3 refresh failed: {exc}")
 
     def load(self) -> None:
-        """Load prebuilt(s). Uses joined prebuilt if it exists (single file with
-        all 92 XGB features), else falls back to canonical_v3 + BASE28 split."""
+        """Load the canonical_v3 + BASE28 prebuilts (the ONE-truth split path).
+        BASE28 is resolved FRESH from its manifest; the 5 augmenters then run on
+        cv3. (The unguarded JOINED single-file fast-path was removed 2026-06-05 —
+        see the note at BASE28_MANIFEST_PATH.)"""
 
-        if JOINED_PREBUILT.exists():
-            LOG.info(f"loading JOINED prebuilt: {JOINED_PREBUILT.name}")
-            cv3 = pd.read_parquet(JOINED_PREBUILT)
-            if "time" in cv3.columns:
-                cv3["time"] = pd.to_datetime(cv3["time"], utc=True)
-                cv3 = cv3.set_index("time")
-            if not isinstance(cv3.index, pd.DatetimeIndex):
-                # Already DatetimeIndex from add_ctx_cont
-                pass
-            cv3 = cv3.sort_index()
-            self._cv3 = cv3
-            self._base28 = None
-            self._last_ts = cv3.index[-1]
-            self._cv3_mtime = JOINED_PREBUILT.stat().st_mtime
-            LOG.info(f"  joined: {len(cv3):,} rows × {len(cv3.columns)} cols  "
-                      f"range {cv3.index[0]} → {cv3.index[-1]}")
-            self._augment_cv3_with_volume_features()
-            self._augment_cv3_with_v2_mtf_scalars()
-            self._augment_cv3_with_group_a_and_dip_struct()
-            self._augment_cv3_with_v1_legacy()
-            self._augment_cv3_with_regime_v4()  # V1/R10: after v2_mtf (sources); gated GX1_REGIME_V4
-            return
-
-        # Fallback: load both separately (legacy path before joined was produced)
         if self.base28_path is None:
             self.base28_path = _resolve_base28_parquet()
 
