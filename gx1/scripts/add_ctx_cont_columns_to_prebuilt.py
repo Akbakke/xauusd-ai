@@ -761,7 +761,18 @@ def run_add_ctx_cont_columns(
     # Write outputs
     # ------------------------------------------------------------
     output_parquet.parent.mkdir(parents=True, exist_ok=True)
-    df_pre.to_parquet(output_parquet, index=True)
+    # ONE-TRUTH SHAPE (2026-06-05): emit `time` as a plain column with a clean RangeIndex.
+    # Saving index=True while a `time` column already exists produced a parquet whose
+    # DatetimeIndex was *named* "time" AND carried a `time` column — the downstream V10
+    # builder's `df.reset_index(drop=False)` then collides ("cannot insert time, already
+    # exists"). Normalize here so every consumer (V10 build, Entry-IQL build, candidate batch)
+    # loads a consistent time-as-column frame.
+    _out = df_pre
+    if "time" in _out.columns:
+        _out = _out.reset_index(drop=True)            # time already a column → drop redundant index
+    elif _out.index.name == "time" or isinstance(_out.index, pd.DatetimeIndex):
+        _out = _out.reset_index(drop=False).rename(columns={"index": "time"})  # surface time index
+    _out.to_parquet(output_parquet, index=False)
 
     if diagnostics_path is not None:
         diagnostics_path = Path(diagnostics_path).resolve()
