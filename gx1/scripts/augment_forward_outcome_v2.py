@@ -221,8 +221,45 @@ def _build_trade_history(journal_dir: Path, suffix: str = "live_v12_4") -> pd.Da
     return df.dropna(subset=["close_ts", "pnl_bps"]).sort_values("close_ts").reset_index(drop=True)
 
 
+def _assert_multi_tf_cache_fresh(m5_df: pd.DataFrame, multi_tf: dict) -> None:
+    """Fail-closed (rule 4): a multi-TF V2 cache ending long before the M5 build data
+    means the build SILENTLY used a STALE cache — the 2026-06-05 audit footgun, where
+    builders loaded the 05-22 cache via the GX1_V10_MULTI_TF_V2_CACHE_DIR env-default
+    while building on fresh cv3 (silent train/serve feature skew). Raise if the cache's
+    newest bar lags the M5 cutoff by > GX1_MTF_CACHE_MAX_LAG_DAYS (default 2). Bypass
+    only for an explicit OOT/replay build via GX1_MTF_CACHE_ALLOW_STALE=1 (logged loud).
+    Covers ALL build paths because every one funnels through build_context().
+    """
+    if not multi_tf:
+        return
+    try:
+        m5_last = int(pd.Timestamp(m5_df.index[-1]).value)
+        cache_last = max(
+            int(np.asarray(df.attrs["ts_int64"]).max())
+            for df in multi_tf.values()
+            if getattr(df, "attrs", None) and len(df.attrs.get("ts_int64", []))
+        )
+    except (ValueError, KeyError, IndexError):
+        return  # can't determine cutoff — don't block
+    lag_days = (m5_last - cache_last) / 86_400e9
+    print(f"[MTF_CACHE] m5_cutoff={pd.Timestamp(m5_last)} cache_cutoff={pd.Timestamp(cache_last)} "
+          f"lag={lag_days:.1f}d", flush=True)
+    if os.environ.get("GX1_MTF_CACHE_ALLOW_STALE", "0").strip().lower() in ("1", "true", "yes", "on"):
+        print("[MTF_CACHE_STALE] freshness check BYPASSED via GX1_MTF_CACHE_ALLOW_STALE=1", flush=True)
+        return
+    max_lag = float(os.environ.get("GX1_MTF_CACHE_MAX_LAG_DAYS", "2"))
+    if lag_days > max_lag:
+        raise RuntimeError(
+            f"[MTF_CACHE_STALE] multi-TF V2 cache ends {lag_days:.1f} days before the M5 build data "
+            f"(cache={pd.Timestamp(cache_last)}, data={pd.Timestamp(m5_last)}); refusing to build on a "
+            f"stale cache. Regenerate prebuild_multi_tf_cache_v2.py for this cutoff and set "
+            f"GX1_V10_MULTI_TF_V2_CACHE_DIR, or set GX1_MTF_CACHE_ALLOW_STALE=1 for an explicit OOT replay."
+        )
+
+
 def build_context(m5_df: pd.DataFrame, multi_tf: dict, journal_dir: Path) -> AugmentContext:
     """Pre-compute all caches ONCE. Heavy upfront cost, fast per-candidate after."""
+    _assert_multi_tf_cache_fresh(m5_df, multi_tf)  # fail-closed on stale multi-TF cache (rule 4)
     ts_ns = m5_df.index.values.astype("datetime64[ns]").astype(np.int64)
     h1_ts, h1_hi, h1_lo = _build_resampled_ohlc_array(m5_df, "1h")
     h4_ts, h4_hi, h4_lo = _build_resampled_ohlc_array(m5_df, "4h")
