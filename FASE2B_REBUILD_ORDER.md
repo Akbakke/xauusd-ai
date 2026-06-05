@@ -113,4 +113,50 @@ The fail-closed guards catch each gap (so nothing poisons silently), but you mus
 per-artifact augmentation fixes. The honest high-leverage move is to make each builder self-contained
 (attach its own augmentation, like add_ctx_cont) so the rebuild becomes reproducible — THEN run.
 
+## VERIFIED build/train recipe — steps 4-7 (the ACTUAL commands, 2026-06-05)
+The cement recipe is NOT encoded anywhere — but each cement DATASET dir records it: read
+`<dataset>/build.log` + the `*.manifest.json` `build_command` (literal argv) + `DATASET_BUILD_PROOF.json`.
+That is the ONE-TRUTH source; reconstruct-from-memory is unreliable (an Explore agent hallucinated 3
+trainer script names — ALWAYS `ls` the script before running). Real entrypoints (filesystem-verified):
+- XGB train: `gx1.scripts.train_xgb_universal_multihead_v2` (**+ `GX1_XGB_HEAD_CALIBRATE=1 GX1_XGB_CALIBRATOR=isotonic`**
+  → writes `CALIBRATION.json` (isotonic_interp, 4 session heads). The V10/V3/candidate builds APPLY this
+  calibration to the bridge probs; WITHOUT it the XGB step is incomplete and train≠serve. Deterministic seed=42.)
+- V10 transformer train: `gx1.models.entry_v10.entry_v10_ctx_train_v3` (a MODULE under protected `gx1/models/entry_v10/`
+  — RUNNING it is fine; only EDITING is gated. `--train`, seed 1337, epochs 10, lr 3e-4, batch 256, seq_len 96.
+  COSTFIX cost-matrix is the code DEFAULT (ENTRY_COST_SHORT_TO_LONG=2.00 / FLAT_TO_LONG=1.60 symmetrized).
+  ctx dims come FROM the dataset → 121/5 under REGIME_V4, no CLI dim arg.)
+- V3 exit train: `gx1.scripts.train_exit_v6_disk_thin`. Entry-IQL build: `gx1.scripts.materialize_build_entry_iql_v2`.
+  Candidate batch: `gx1.scripts.materialize_inference_batch_candidates_v3_v1`.
+  Exit-IQL per-bar build: `gx1.scripts.materialize_build_exit_iql_per_bar_dataset_v2_m1`.
+  (Entry-IQL + Exit-IQL TRAINERS: resolve from their build script / bundle meta — NOT `train_entry_iql_v2`/
+  `train_exit_iql_v5` which DO NOT EXIST.)
+
+**V10 dataset build (verified working 2026-06-05, fresh inputs):**
+```
+GX1_REGIME_V4=1 GX1_TREND_REGIME_FROM_D1=1 GX1_V10_MULTI_TF_V2_CACHE_DIR=<WS>/MULTI_TF_V2_CACHE \
+python -m gx1.scripts.build_entry_v10_ctx_training_dataset_v3 \
+  --source-parquet-override <WS>/FULL_PLUS_CTX.parquet \
+  --xgb-feature-contract-path gx1/xgb/contracts/xgb_input_features_base80_v1.json \
+  --xgb-sanitizer-config-path gx1/xgb/contracts/xgb_input_sanitizer_base80_v1.json \
+  --xgb_bundle <WS>/xgb_v7 --canonical_v2_parquet <WS>/canonical_features_v2.parquet \
+  --tape_root <tape> --output <WS>/v10_dataset/v10_regime_v4_6yr_dataset.parquet \
+  --hold-bars 3 --time_split \
+  --train_start 2020-11-09T00:00:00Z --train_end 2025-06-30T23:59:59Z \
+  --val_start 2025-07-01T00:00:00Z   --val_end   2025-12-31T23:59:59Z \
+  --test_start 2026-01-01T00:00:00Z  --test_end  2026-05-25T23:59:59Z
+```
+Split = train(2020-11-09→2025-06-30) / val(2025-07-01→2025-12-31) / **test = held-out 2026 OOT** (for gates).
+NO relabel env — `GX1_V10_RELABEL_RULES` was REMOVED 2026-05-26 (labels are pure outcome-based; the
+cement dir name "RELABEL15H24" is legacy, `relabel_veto_rate=0`).
+
+**Self-contained builder fixes made 2026-06-05 (each caught by a fail-closed guard, in order):**
+1. base80 `materialize_build_xgb_prebuilt_v3`: base28 OPTIONAL (`--base28-prebuilt NONE`) — see root-fix above.
+2. `add_ctx_cont` parquet shape: emit `time` as a plain COLUMN (clean RangeIndex), not a named DatetimeIndex
+   (else V10 builder's `reset_index(drop=False)` collides: "cannot insert time, already exists").
+3. `add_ctx_cont` features: attach the FULL 9-source mtf_v2 map (was 3 regime-only) + merge cv3 cross-feats
+   (smc_premium_state/m5h1_momentum/hour/dow) — else V10 build SOURCE_FEATURES_MISSING (it runs XGB inference
+   on FULL_PLUS_CTX → needs ALL 80 base80 features present, except the 6 it derives + is_ASIA).
+4. `add_ctx_cont` ctx_cat: under REGIME_V4 source `required_cat` from signal_bridge_v3 (drops trend_regime_id,
+   keeps H4_trend_sign_cat) — NOT signal_bridge_v1 EXTENDED[:5] (the opposite) — else CTX_CAT_MISSING_IN_BASE28.
+
 > Maintenance: when a later step reveals a new input/order/guard, ADD it here the same session (per AGENTS.md rule).
