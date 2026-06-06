@@ -3839,6 +3839,22 @@ def run_train(
         xgb_models=None,
     )
 
+    # ── ALWAYS-RUN feature-liveness audit (user vedtak 2026-06-06: NOTHING ignored) ──────
+    # Fail LOUD if any input feature went silently dead (off the documented allowlist) or the
+    # multi-TF block broke. Reuses val_ds (built with the right TF args); a SHUFFLED batch so
+    # slow-varying feats (D1 regime) aren't false-flagged. FeatureLivenessError FAILS the
+    # retrain (a silently-ignored input is a regression); a transient load issue only warns.
+    try:
+        from gx1.audit.feature_liveness import assert_v10_batch_liveness, FeatureLivenessError
+        _ab = next(iter(DataLoader(val_ds, batch_size=min(8192, len(val_ds)),
+                                   shuffle=True, num_workers=2)))
+        assert_v10_batch_liveness(_ab, ctx_cont_names=list(ordered_ctx_cont_names), raise_on_fail=True)
+        log.info("[FEATURE_LIVENESS] post-export audit OK — nothing ignored (all inputs alive/allowlisted)")
+    except FeatureLivenessError:
+        raise
+    except Exception as _e:  # transient dataset/load issue must not fail a good retrain
+        log.warning("[FEATURE_LIVENESS] audit skipped (non-fatal): %r", _e)
+
 
 def run_eval(
     bundle_dir: Path,

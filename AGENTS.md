@@ -44,6 +44,14 @@
   grade the metric it actually acts on (high-conviction-tail dir-acc, selected-trade win-rate / bps-take), not the
   blanket average. Blanket OOT can HOLD while the load-bearing tail regresses — 2026-06-05 the fase2b XGB held blanket
   0.508≥cement but its top-5% conviction collapsed 0.90→0.63, missed by a blanket-accuracy "verified" check.
+- **NOTHING ignored — feature-liveness is ALWAYS checked (user vedtak 2026-06-06).** Every input feature the chain
+  consumes must be ALIVE (non-constant on a SHUFFLED sample — a consecutive batch false-flags slow-varying feats like
+  D1 regime) or on the documented allowlist. `gx1.audit.feature_liveness` is the ONE-TRUTH cross-chain check (XGB gain +
+  V10 ctx/snap variance + multi-TF integrity: all 5 TFs present, alive, DISTINCT resolutions, ATR scaling sane). It runs
+  AUTO at every V10 retrain (trainer post-export, fail-loud) and MUST pass before any cement
+  (`python -m gx1.audit.feature_liveness --strict --v10-bundle … --xgb-bundle …`). Adding a feature to
+  `KNOWN_ALLOWED_DEAD` requires a documented reason (structural/benign). A NEW dead feature = a silent-ignore
+  regression → fix or document, never ship silently.
 
 ## ONE gjeldende — artifact selection (no version roulette) [CLAUDE.md rule 8]
 - **ONE truth = `PROJECT_STATE_artifacts.json`** (repo root). It names the single ACTIVE artifact per role
