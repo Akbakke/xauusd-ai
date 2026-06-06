@@ -236,6 +236,12 @@ ENTRY_DIRECTION_CE_SCALE = float(_env_str("ENTRY_DIRECTION_CE_SCALE", "1.40"))
 # the direction label, forcing the 5 multi-TF streams to predict direction.
 # Env-overridable; default 0.3 (secondary to the main direction CE).
 ENTRY_MTF_DIR_AUX_WEIGHT = float(_env_str("ENTRY_MTF_DIR_AUX_WEIGHT", "0.30"))
+# Checkpoint-selection monitor (diagnosis fix #3, 2026-06-06): the early-stop / best-checkpoint
+# was selected on TOTAL multi-head val loss, which saves the aux-overfit epoch (the cement froze
+# at epoch-2 = the aux optimum, NOT the best-direction epoch). "dir_acc" instead keeps the epoch
+# with the highest direction validation accuracy (the metric the chain actually acts on).
+# Default "val_loss" = bit-identical to the historical behavior.
+ENTRY_CKPT_MONITOR = _env_str("GX1_V10_CKPT_MONITOR", "val_loss").strip().lower()
 
 # -----------------------------------------------------------------------------
 # Timing loss (early adverse move penalty)
@@ -3438,10 +3444,13 @@ def run_train(
 
     best_state = None
     best_val = float("inf")
+    best_acc = float("-inf")  # direction-acc monitor (GX1_V10_CKPT_MONITOR=dir_acc)
     best_epoch = -1
     epochs_since_improve = 0
     last_epoch = 0
     early_stopped = False
+    _ckpt_monitor = ENTRY_CKPT_MONITOR if ENTRY_CKPT_MONITOR in {"val_loss", "dir_acc"} else "val_loss"
+    log.info("[CKPT_MONITOR] selecting best checkpoint on %s", _ckpt_monitor)
 
     for epoch in range(epochs):
         last_epoch = epoch + 1
@@ -3554,16 +3563,24 @@ def run_train(
                 float(tr_stats.get("aux_tradable_loss_mean", 0.0)),
                 float(tr_loss),
             )
-        if (best_val - va_loss) > float(early_stopping_min_delta):
+        if _ckpt_monitor == "dir_acc":
+            _improved = np.isfinite(acc) and (acc - best_acc) > float(early_stopping_min_delta)
+        else:
+            _improved = (best_val - va_loss) > float(early_stopping_min_delta)
+        if _improved:
             best_val = va_loss
+            if np.isfinite(acc):
+                best_acc = acc
             _ckpt_model = model._orig_mod if hasattr(model, "_orig_mod") else model
             best_state = {k: v.cpu().clone() for k, v in _ckpt_model.state_dict().items()}
             best_epoch = epoch + 1
             epochs_since_improve = 0
             log.info(
-                "[BEST_CHECKPOINT] epoch=%d val=%.6f",
+                "[BEST_CHECKPOINT] epoch=%d val=%.6f dir_acc=%.6f monitor=%s",
                 best_epoch,
                 best_val,
+                acc,
+                _ckpt_monitor,
             )
         else:
             epochs_since_improve += 1
@@ -3641,6 +3658,8 @@ def run_train(
         "val_data_sha256": _sha256_file(Path(val_parquet)),
         "best_val_loss": best_val,
         "best_epoch": best_epoch,
+        "ckpt_monitor": _ckpt_monitor,
+        "best_dir_acc": (float(best_acc) if np.isfinite(best_acc) else None),
         "last_epoch": last_epoch,
         "early_stopped": bool(early_stopped),
         "early_stopping_patience": int(early_stopping_patience),
