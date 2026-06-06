@@ -40,6 +40,7 @@ from gx1.contracts.signal_bridge_v3 import (
     SNAP_SIGNAL_DIM_V3 as SNAP_SIGNAL_DIM,
     DEFAULT_SEQ_LEN_V3,
     CTX_CONT_DIM_V3,
+    ORDERED_CTX_CAT_NAMES_V3,
 )
 from gx1.contracts.signal_bridge_v1 import get_canonical_ctx_contract
 from gx1.time.session_detector import (
@@ -3182,7 +3183,15 @@ def run_train(
     ctx_cat_dim = int(sample["ctx_cat"].shape[1])
     base_ctx_cont_names = list(ctx.get("ctx_cont_names") or [])
     ordered_ctx_cont_names = _build_ordered_ctx_cont_names(ctx_cont_dim, base_ctx_cont_names)
-    ordered_ctx_cat_names = list(ctx.get("ctx_cat_names") or [])
+    # M3 fix (2026-06-06): use the REGIME-AWARE 5-name ctx_cat (signal_bridge_v3), NOT the stale
+    # signal_bridge_v1 6-name list (which keeps the dropped trend_regime_id) — so the bundle metadata
+    # matches the trained ctx_cat_dim (5 under GX1_REGIME_V4) + the strict v3 contract validator.
+    ordered_ctx_cat_names = list(ORDERED_CTX_CAT_NAMES_V3)
+    if len(ordered_ctx_cat_names) != ctx_cat_dim:
+        raise RuntimeError(
+            f"[CTX_CAT_NAME_DIM_MISMATCH] ordered_ctx_cat_names={len(ordered_ctx_cat_names)} "
+            f"!= trained ctx_cat_dim={ctx_cat_dim} (REGIME_V4={os.environ.get('GX1_REGIME_V4','1')})"
+        )
     log.info(
         f"[TRAIN_CONTRACT] seq_x={sample['seq_x'].shape} snap_x={sample['snap_x'].shape} "
         f"ctx_cont={sample['ctx_cont'].shape} ctx_cat={sample['ctx_cat'].shape}"
