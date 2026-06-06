@@ -51,8 +51,13 @@ rule 1, no per-edit `touch`. Reversible-first cleanup per rule 5 needs no per-it
    through that contract (`gx1_guards.load_decision_artifact`) — NEVER by glob, "latest", mtime, or a
    hardcoded/default path. Missing or ambiguous = hard error, never a guessed fallback. A new artifact is
    PENDING until it passes gates and I flip the contract; the live-active bundle is never deleted while
-   active. Superseded artifacts are QUARANTINED then deleted via rule 5 (backup→inventory→dry-run→my
-   confirm) so we never drown in v1/v2/v3… The goal is that running the wrong version is IMPOSSIBLE
-   (a fail-closed resolver refusing to guess), not "remember to pick the right one".
+   active. **AUTO-PARK on supersede (user vedtak 2026-06-06): the moment a new version supersedes an old
+   one (e.g. V7→V8 exit contract), AUTOMATICALLY quarantine the superseded build-artifacts — reversible
+   move to `runs/_SUPERSEDED_<date>/`, WITHOUT being asked.** Superseded DATASETS / intermediate builds /
+   non-active dupes park immediately (rollback re-activates the BUNDLE, not the dataset, so datasets are
+   safe to park once a newer dataset exists); the still-live-ACTIVE BUNDLE parks automatically at the
+   cement-flip that deactivates it — never before (it is the rollback). Quarantine→delete via rule 5
+   (backup→inventory→dry-run→my confirm) so we never drown in v1/v2/v3… The goal is that running the wrong
+   version is IMPOSSIBLE (a fail-closed resolver refusing to guess), not "remember to pick the right one".
 
 @AGENTS.md
