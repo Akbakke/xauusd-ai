@@ -231,6 +231,10 @@ ENTRY_PRED_BALANCE_ALPHA = float(_env_str("ENTRY_PRED_BALANCE_ALPHA", "0.0"))
 ENTRY_PRED_BALANCE_TARGET = _env_str("ENTRY_PRED_BALANCE_TARGET", "label").lower()
 ENTRY_RESIDUAL_SIDE_BIAS_ALPHA = float(_env_str("ENTRY_RESIDUAL_SIDE_BIAS_ALPHA", "0.0"))
 ENTRY_DIRECTION_CE_SCALE = float(_env_str("ENTRY_DIRECTION_CE_SCALE", "1.40"))
+# Forceful MTF→direction (2026-06-06): aux CE on the multi-TF direction logits vs
+# the direction label, forcing the 5 multi-TF streams to predict direction.
+# Env-overridable; default 0.3 (secondary to the main direction CE).
+ENTRY_MTF_DIR_AUX_WEIGHT = float(_env_str("ENTRY_MTF_DIR_AUX_WEIGHT", "0.30"))
 
 # -----------------------------------------------------------------------------
 # Timing loss (early adverse move penalty)
@@ -1871,6 +1875,15 @@ def train_epoch(
             hold_horizon_loss = torch.nn.functional.mse_loss(hold_pred, y_hold)
             loss = loss + 0.2 * hold_horizon_loss  # reduced from 0.3 after first retrain
 
+        # Forceful MTF→direction aux CE (2026-06-06): force the multi-TF repr to
+        # predict direction (LONG/SHORT/FLAT). Mirrors the MAIN direction CE
+        # (criterion.ce = class-weighted, full-batch — same weighting as the
+        # symmetric-negatives recipe), NOT selector-masked, so the 5 multi-TF
+        # streams learn full directional signal and genuinely inform direction.
+        if "mtf_dir_logits" in out and float(ENTRY_MTF_DIR_AUX_WEIGHT) > 0.0:
+            mtf_dir_ce = criterion.ce(out["mtf_dir_logits"], y).mean()
+            loss = loss + float(ENTRY_MTF_DIR_AUX_WEIGHT) * mtf_dir_ce
+
         # Dip-head (18, pinball) + forecast-head (4, smooth_l1). Returns a 0-tensor
         # if heads/targets absent (gated) → harmless. Conservative weight (0.2):
         # primary task is direction; dip/forecast shape the representation.
@@ -2846,6 +2859,8 @@ def run_train(
     enable_hold_horizon_head: bool = False,
     # Positional encoding (temporal order of every sequence)
     enable_pos_enc: bool = False,
+    enable_mtf_direction_head: bool = False,
+    mtf_dir_scale_init: float = 0.2,
     enable_regime_film: bool = False,   # BIG-9: FiLM regime-conditioning (default OFF = bit-parity)
     enable_dip_head: bool = False,
     enable_forecast_head: bool = False,
@@ -3245,6 +3260,8 @@ def run_train(
         enable_timing_head=enable_timing_head,
         enable_tail_risk_head=enable_tail_risk_head,
         enable_vol_forecast_head=enable_vol_forecast_head,
+        enable_mtf_direction_head=enable_mtf_direction_head,
+        mtf_dir_scale_init=mtf_dir_scale_init,
         # 2026-06-02: per-TF learnable input scale (passes through to model arch)
         enable_tf_input_scale=enable_tf_input_scale,
         tf_input_scale_init_m5=tf_input_scale_init_m5,
@@ -3659,6 +3676,8 @@ def run_train(
         # model with matching forward behaviour.
         "enable_pos_enc": bool(enable_pos_enc),
         "enable_regime_film": bool(enable_regime_film),
+        "enable_mtf_direction_head": bool(enable_mtf_direction_head),  # forceful MTF→dir (2026-06-06)
+        "mtf_dir_aux_weight": float(ENTRY_MTF_DIR_AUX_WEIGHT),
         "batch_size": batch_size,
         "seed": seed,
         "seq_input_dim": SEQ_SIGNAL_DIM,
@@ -3774,6 +3793,8 @@ def run_train(
         enable_timing_head=enable_timing_head,
         enable_tail_risk_head=enable_tail_risk_head,
         enable_vol_forecast_head=enable_vol_forecast_head,
+        enable_mtf_direction_head=enable_mtf_direction_head,
+        mtf_dir_scale_init=mtf_dir_scale_init,
         # 2026-06-03 BIG-9: regime_film.* are real params in state_dict -> verify model MUST
         # mirror the flag or strict-load reads them as unexpected_keys and raises.
         enable_regime_film=enable_regime_film,
@@ -4412,6 +4433,17 @@ def main() -> None:
              "regime-robust retrain (pair with GX1_TREND_REGIME_FROM_D1=1 so the regime slot varies).",
     )
     parser.add_argument(
+        "--enable-mtf-direction-head", action="store_true", default=False,
+        help="Forceful MTF→direction (2026-06-06): a dedicated head reads the GATED cross-TF "
+             "repr and adds a non-zeroable term to direction logits, + an aux CE forcing the 5 "
+             "multi-TF streams to predict direction. Requires --enable-cross-tf-attn (default ON).",
+    )
+    parser.add_argument(
+        "--mtf-dir-scale-init", type=float, default=0.2,
+        help="Initial value of the learnable mtf_dir_scale (default 0.2, NON-zero so the multi-TF "
+             "direction term contributes from epoch 0).",
+    )
+    parser.add_argument(
         "--enable-dip-head", action=argparse.BooleanOptionalAction, default=True,
         help="Distributional dip-analysis head (18: dir×K×{dip_p50,dip_p90,recovery_p50}, "
              "pinball loss vs mae_before_mfe/mfe). Default ON for the dip-aware rebuild.",
@@ -4637,6 +4669,8 @@ def main() -> None:
             enable_timing_head=bool(args.enable_timing_head),
             enable_tail_risk_head=bool(args.enable_tail_risk_head),
             enable_vol_forecast_head=bool(args.enable_vol_forecast_head),
+            enable_mtf_direction_head=bool(args.enable_mtf_direction_head),
+            mtf_dir_scale_init=float(args.mtf_dir_scale_init),
             # V2 fast-train extras
             per_tf_seq_len_h4=int(args.per_tf_seq_len_h4),
             per_tf_seq_len_d1=int(args.per_tf_seq_len_d1),

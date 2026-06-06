@@ -178,6 +178,9 @@ def load_entry_v10_ctx_bundle(
     _has_tail_risk = "head_tail_risk.weight" in state_dict_preview
     _has_vol_forecast = "head_vol_forecast.weight" in state_dict_preview
     _has_cross_tf = any(k.startswith("cross_tf_attn.") or k == "tf_gate_logits" for k in state_dict_preview)
+    # Forceful MTF→direction head (2026-06-06): real params (head + scale) in
+    # state_dict → detect by presence so the rebuilt model matches strict-load.
+    _has_mtf_direction = "head_mtf_direction.weight" in state_dict_preview
     # Positional encoding uses a persistent=False buffer (NOT in state_dict),
     # so it cannot be probed from keys like the aux heads — it MUST be read
     # from bundle metadata. Default False keeps old (pos-enc-free) bundles
@@ -233,6 +236,7 @@ def load_entry_v10_ctx_bundle(
         enable_tail_risk_head=_has_tail_risk,
         enable_vol_forecast_head=_has_vol_forecast,
         enable_cross_tf_attn=_has_cross_tf,
+        enable_mtf_direction_head=_has_mtf_direction,
         **_tf_scale_kwargs,
     ).to(dev)
 

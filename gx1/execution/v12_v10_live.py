@@ -190,6 +190,11 @@ class V10LiveInference:
         _enable_dip_head = "head_dip.weight" in state_dict
         _enable_forecast_head = "head_forecast.weight" in state_dict
         _enable_cross_tf_attn = any(k.startswith("cross_tf_attn.") or k == "tf_gate_logits" for k in state_dict)
+        # Forceful MTF→direction head (2026-06-06): LIVE serve auto-detect (this is
+        # where q_head-style detection lives). Build it so strict load_state_dict matches.
+        _enable_mtf_direction_head = "head_mtf_direction.weight" in state_dict
+        if _enable_mtf_direction_head:
+            LOG.info("V10 mtf_direction head detected — multi-TF contributes a dedicated direction term")
         _enable_timing_head = "head_timing.weight" in state_dict
         _enable_tail_risk_head = "head_tail_risk.weight" in state_dict
         _enable_vol_forecast_head = "head_vol_forecast.weight" in state_dict
@@ -241,6 +246,7 @@ class V10LiveInference:
             enable_dip_head=_enable_dip_head,
             enable_forecast_head=_enable_forecast_head,
             enable_cross_tf_attn=_enable_cross_tf_attn,
+            enable_mtf_direction_head=_enable_mtf_direction_head,
             enable_timing_head=_enable_timing_head,
             enable_tail_risk_head=_enable_tail_risk_head,
             enable_vol_forecast_head=_enable_vol_forecast_head,

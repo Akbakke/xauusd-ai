@@ -144,6 +144,14 @@ class CtxModelConfig:
     # an empty (un-distilled) head outputs zeros — identical baseline output.
     # State-dict matches v_FIXED exactly when disabled (no params added).
     enable_q_head: bool = False
+    # ── Multi-TF → direction head (2026-06-06, forceful MTF→dir) ───────
+    # Dedicated nn.Linear(d_model,3) reads the GATED cross-TF repr (`pooled`,
+    # NON-zero-init — NOT mtf_correction which is damped to 0 by zero-init
+    # cross_tf_out) + an aux CE forces the 5 multi-TF streams to predict
+    # direction. Adds mtf_dir_scale*logits to direction_logits. Default OFF
+    # → no params added → strict-load unchanged.
+    enable_mtf_direction_head: bool = False
+    mtf_dir_scale_init: float = 0.2
     # ── TF-agreement head (V10 v3+ Target 1) ──────────────────────────
     # When enabled, adds nn.Linear(d_model, 1) producing tf_agreement_pred
     # in [0,1] (after sigmoid). Trained against y_tf_agreement_score label
@@ -270,6 +278,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
         # Distillation Q-head (V13 prep). Default OFF so v_FIXED bundles
         # load with strict=True. When True, adds q_head linear layer.
         enable_q_head: bool = False,
+        enable_mtf_direction_head: bool = False,
+        mtf_dir_scale_init: float = 0.2,
         # V10 v3+ aux heads (Targets 1-4). All OFF by default so v_FIXED
         # bundles continue to load with strict=True.
         enable_tf_agreement_head: bool = False,
@@ -332,6 +342,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
             multi_tf_scale=float(multi_tf_scale),
             enable_cross_tf_attn=bool(enable_cross_tf_attn),
             enable_q_head=bool(enable_q_head),
+            enable_mtf_direction_head=bool(enable_mtf_direction_head),
+            mtf_dir_scale_init=float(mtf_dir_scale_init),
             enable_tf_agreement_head=bool(enable_tf_agreement_head),
             enable_path_quality_variance_head=bool(enable_path_quality_variance_head),
             enable_position_size_head=bool(enable_position_size_head),
@@ -423,6 +435,22 @@ class EntryV10CtxHybridTransformer(nn.Module):
             self.q_head = nn.Linear(d_model, 3)  # [q_skip, q_long, q_short]
             nn.init.zeros_(self.q_head.weight)
             nn.init.zeros_(self.q_head.bias)
+
+        # ── Multi-TF → direction head (forceful MTF→dir, 2026-06-06) ───
+        # Reads the GATED cross-TF representation (`pooled`, captured in forward —
+        # NON-zero-init, unlike mtf_correction) and contributes a dedicated,
+        # non-zeroable term to direction_logits. Requires the cross-TF branch
+        # (that's where `pooled` lives). Small-normal init on the Linear (NOT zero
+        # — zero-init is the trap that made the model ignore multi-TF) + a learnable
+        # non-zero scale so it informs direction from epoch 0. No params when off.
+        if (self.cfg.enable_mtf_direction_head and self.cfg.enable_multi_tf
+                and self.cfg.enable_cross_tf_attn):
+            self.head_mtf_direction = nn.Linear(d_model, 3)  # [long, short, flat]
+            nn.init.normal_(self.head_mtf_direction.weight, std=0.02)
+            nn.init.zeros_(self.head_mtf_direction.bias)
+            self.mtf_dir_scale = nn.Parameter(
+                torch.tensor(float(self.cfg.mtf_dir_scale_init))
+            )
 
         # ── TF-agreement head (V10 v3+ Target 1) ──────────────────────
         # Only instantiated when enable_tf_agreement_head=True. Outputs
@@ -737,14 +765,19 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 tf_attended = self.cross_tf_attn(tf_tokens)            # (B, n_tf, d)
                 gate = torch.softmax(self.tf_gate_logits, dim=0)       # (n_tf,) learnable
                 pooled = (tf_attended * gate.view(1, -1, 1)).sum(dim=1)  # (B, d) gated combine
+                # Forceful MTF→dir: capture the GATED, NON-zero-init repr (NOT
+                # mtf_correction, which zero-init cross_tf_out damps to ~0).
+                mtf_repr = pooled
                 mtf_correction = self.cross_tf_out(pooled)
             else:
                 mtf_combined = torch.cat(pool_list, dim=1)
+                mtf_repr = None   # mtf_direction head requires the cross-TF branch (see __init__ guard)
                 mtf_correction = self.multi_tf_fuse(mtf_combined)
             scale = float(self.multi_tf_scale.item())
             z = z_v3 + scale * mtf_correction
         else:
             z = z_v3   # v3-identical path
+            mtf_repr = None
 
         # Regime FiLM (BIG-9): modulate a SEPARATE z_dir for the direction head only,
         # leaving z untouched for the aux heads + downstream. Zero-init -> z_dir==z at cold
@@ -759,6 +792,17 @@ class EntryV10CtxHybridTransformer(nn.Module):
         delta_logits = self.head_direction(z_dir)   # (B,3)
         anchor_logits = self._anchor_logits_from_snap(snap_x)
         direction_logits = anchor_logits + (self.residual_scale.to(delta_logits.dtype) * delta_logits)
+        # Forceful MTF→dir (2026-06-06): dedicated, non-zeroable multi-TF term on
+        # direction logits. Only when the head exists (cross-TF branch + enabled).
+        # Emits mtf_dir_logits for the aux CE that forces the multi-TF repr to
+        # predict direction (ENTRY_MTF_DIR_AUX_WEIGHT in the trainer).
+        mtf_dir_logits = None
+        if hasattr(self, "head_mtf_direction") and mtf_repr is not None:
+            mtf_dir_logits = self.head_mtf_direction(mtf_repr)   # (B,3)
+            _assert_finite("mtf_dir_logits", mtf_dir_logits)
+            direction_logits = direction_logits + (
+                self.mtf_dir_scale.to(direction_logits.dtype) * mtf_dir_logits
+            )
 
         # Hard output finite checks
         _assert_finite("direction_logits", direction_logits)
@@ -779,6 +823,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
             "direction_logits": direction_logits,
             "anchor_logits": anchor_logits,
             "delta_logits": delta_logits,
+            **({"mtf_dir_logits": mtf_dir_logits} if mtf_dir_logits is not None else {}),
             "path_quality": path_quality,
             "mfe_first_n": mfe_first_n,
             "tradable_logit": tradable_logit,
