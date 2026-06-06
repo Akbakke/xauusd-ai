@@ -86,9 +86,17 @@ Stale base28/base80(03-13) + corrupt-cv3 quarantined reversibly → `runs/_SUPER
 5. **fresh BASE28 seed** → **base34** (`CTX16CAT6`) → **`backfill_base34_raw_m1_ohlcv_v1 --write`** (R12 M1 volume; run
    AS THE LAST base34 step, re-run after any base34 rebuild; idempotent, atomic, .bak).
 6. **V10 build** (`build_entry_v10_ctx_training_dataset_v3`, explicit `--canonical_v2_parquet=<FULL_PLUS_CTX>`)
-   → **V3 build** (`materialize_build_v3_training_dataset_v2`, io_version=EXIT_IO_V8) → **candidate-batch**
-   (`materialize_inference_batch_candidates_v3_v1`, explicit `--prebuilt/--v10-bundle/--v2-cache-dir`)
+   → **candidate-batch** (`materialize_inference_batch_candidates_v3_v1`, explicit `--prebuilt/--v10-bundle/--v2-cache-dir`)
+   → **V3 build** (`materialize_build_v3_training_dataset_v2`, EXIT_IO_V8 via `GX1_REGIME_V4=1`)
    → **Exit-IQL per-bar** (`materialize_build_exit_iql_per_bar_dataset_v2_m1`).
+   ⚠ **CORRECTED 2026-06-06:** candidate-batch comes BEFORE V3 — the V3 builder consumes per-week
+   `shadow_meta_candidates_<TRUTH_MONFRI_WEEK>_MERGED.parquet` from `--reports-root` (default
+   `GX1_DATA/reports/truth_e2e_sanity`) to know where trades open; it does NOT generate them. Verified by a
+   build that wrote the M1 feature tape but `weeks_processed:0` (empty reports-root). The candidate-batch
+   (`materialize_inference_batch_candidates_v3_v1`) generates those per-week candidate parquets with the
+   fase2b V10+XGB. There is NO `--exit-io-version` flag (EXIT_IO_V8/173 is selected by `GX1_REGIME_V4=1`,
+   :77); `GX1_EXIT_AUGMENT_64` is an Exit-IQL-stage flag (no-op in the V3 build). `GX1_V10_MULTI_TF_V2_CACHE_DIR`
+   is LOAD-BEARING (else the V3 build reads the stale global MTF cache).
 7. **Fase-3 retrain** (`--vedtak fase2b_regime_v4_rebuild_20260605` on EACH trainer — all gated): XGB → V10 →
    Entry-IQL → V3 → Exit-IQL → gates (R13 parity-on-replayed-trade + short-in-uptrend + −2000 reduction, held-out 2026)
    → cement on PASS → **REMOVE the REGIME_V4 flag + OFF/105/6 path** (no off-switch).
