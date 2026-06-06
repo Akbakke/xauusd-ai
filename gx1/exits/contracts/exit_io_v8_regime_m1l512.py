@@ -8,9 +8,9 @@ the entry side now has (previously the exit transformer saw regime ONLY via the 
 encoders, with no explicit regime ctx — the gap-register finding).
 
   Δ vs V7:
-    + 16 REGIME_V4 features (SAME names + computation as the entry V10 ctx — one truth:
+    + 18 REGIME_V4 features (SAME names + computation as the entry V10 ctx — one truth:
         gx1.features.regime_v4_features.REGIME_V4_FEATURE_NAMES):
-        per-TF regime class (m15/h1/h4/d1) + per-TF trend-age (4) — multi-TF regime STATE;
+        per-TF regime class (m5/m15/h1/h4/d1) + per-TF trend-age (5) — multi-TF regime STATE;
         regime_tf_agreement / regime_stack_sum / regime_divergence_flag — cross-TF state;
         d1_dist_roc_288 / d1_dist_to_boundary / d1_regime_changed_flag /
         bars_since_d1_regime_change / d1_trend_age_mature_flag — regime CHANGE-DETECTION.
@@ -19,11 +19,11 @@ encoders, with no explicit regime ctx — the gap-register finding).
       change-detection features answer "is the regime I entered now shifting → take profit
       before the reversal."
 
-Total: 155 + 16 = 171 features per M1 bar, × 512 M1 window.
+Total: 155 + 18 = 173 features per M1 bar, × 512 M1 window.
 
 Backward-compat:
   - First 155 features identical to V7 — V8 transformer can prefix-init from V7.
-  - REGIME_V4 appended at the tail (indices 155..170).
+  - REGIME_V4 appended at the tail (indices 155..172).
 
 One-truth: the regime tail == gx1.features.regime_v4_features.REGIME_V4_FEATURE_NAMES
 (the SAME list the entry V10 ctx_cont uses). Asserted below.

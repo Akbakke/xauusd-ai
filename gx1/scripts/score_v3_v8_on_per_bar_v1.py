@@ -61,7 +61,7 @@ from gx1.exits.contracts.exit_io_v7_volume_dipstruct_m1l512 import (
     EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_FEATURE_COUNT as V7_FEATURE_COUNT,
     EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512_IO_VERSION as V7_IO_VERSION,
 )
-# V8 contract (extension of V7; +16 REGIME_V4 feats -> 171). 2026-06-05 (fase2b): scorer extended to
+# V8 contract (extension of V7; +18 REGIME_V4 feats -> 173). 2026-06-05 (fase2b): scorer extended to
 # accept the regime V3 model so its output can be scored into the Exit-IQL per-bar state — without this
 # load_v3_v8_model RAISES on EXIT_IO_V8 io_version and regime/dip never reaches the exit policy.
 from gx1.exits.contracts.exit_io_v8_regime_m1l512 import (
@@ -75,7 +75,7 @@ from gx1.exits.contracts.exit_io_v8_regime_m1l512 import (
 SUPPORTED_CONTRACTS: Dict[str, Tuple[List[str], int]] = {
     "EXIT_IO_V6_CTX_V3CANONICAL_M1L512": (list(V6_FEATURES), V6_FEATURE_COUNT),
     V7_IO_VERSION: (list(V7_FEATURES), V7_FEATURE_COUNT),
-    V8_IO_VERSION: (list(V8_FEATURES), V8_FEATURE_COUNT),  # fase2b regime V3 (171)
+    V8_IO_VERSION: (list(V8_FEATURES), V8_FEATURE_COUNT),  # fase2b regime V3 (173)
 }
 
 ACTION = "SCORE_V3_V8_ON_PER_BAR_V1"
