@@ -3704,7 +3704,8 @@ def run_train(
             "clean_edge_ranking_weight": float(ENTRY_CLEAN_EDGE_RANKING_WEIGHT),
             "clean_edge_ranking_margin": float(ENTRY_CLEAN_EDGE_RANKING_MARGIN),
             "selector_masked_aux": True,
-            "teacher_v6_mined": True,
+            "symmetric_negatives": bool(ENTRY_SYMMETRIC_NEGATIVES),  # A7 2026-06-06: long==short
+            "teacher_v6_mined": bool(ENTRY_CLEAN_EDGE_RANKING_WEIGHT > 0.0),  # A5: honest (dead targets ⇒ off)
             "aux_regression_positive_only": True,
             "active_heads": [
                 "direction",
@@ -3717,7 +3718,10 @@ def run_train(
             ],
         },
         "lane_contract": {
-            "direction_policy": "LONG_ONLY_PREMIUM",
+            # A7 2026-06-06: model trained BIDIRECTIONAL (symmetric long/short); the stale
+            # LONG_ONLY_PREMIUM label drove the live lane to suppress shorts. entry_admission_policy
+            # left as-is this wave (governs admission ORDER only; consumers not yet re-verified).
+            "direction_policy": "BIDIRECTIONAL_PREMIUM",
             "entry_admission_policy": "OVERLAP_LONG_REPLACES_OLDEST_OVERLAP_SHORT_WHEN_FULL",
             "max_open_trades": 10,
         },
