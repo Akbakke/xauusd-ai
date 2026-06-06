@@ -3848,17 +3848,27 @@ def run_train(
         xgb_models=None,
     )
 
-    # ── ALWAYS-RUN feature-liveness audit (user vedtak 2026-06-06: NOTHING ignored) ──────
-    # Fail LOUD if any input feature went silently dead (off the documented allowlist) or the
-    # multi-TF block broke. Reuses val_ds (built with the right TF args); a SHUFFLED batch so
-    # slow-varying feats (D1 regime) aren't false-flagged. FeatureLivenessError FAILS the
-    # retrain (a silently-ignored input is a regression); a transient load issue only warns.
+    # ── ALWAYS-RUN feature-liveness audit (user vedtak 2026-06-06: NOTHING ignored, rule 9) ──────
+    # Fail LOUD if an input feature went silently dead (off the allowlist) or the multi-TF block broke.
+    # Two correctness requirements (learned 2026-06-06 from a false-fail):
+    #   (1) use the FULL 123 ctx_cont names (ordered_ctx_cont_names may be the truncated base list →
+    #       unnamed indices can't be allowlist-matched → false-flag allowlisted feats like vol_pct_*1yr);
+    #   (2) sample from TRAIN (2020-2025 = broad period). The val window alone (6 months) is too narrow:
+    #       slow-varying D1 regime feats (trend-age/regime-change) look const there → false-fail.
+    # FeatureLivenessError FAILS the retrain (a silently-ignored input is a regression); a transient
+    # load issue only warns.
     try:
         from gx1.audit.feature_liveness import assert_v10_batch_liveness, FeatureLivenessError
-        _ab = next(iter(DataLoader(val_ds, batch_size=min(8192, len(val_ds)),
+        try:
+            from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import ORDERED_CTX_CONT_NAMES_V3 as _FULL_CC
+            _live_cc = list(_FULL_CC) if len(_FULL_CC) == int(ctx_cont_dim) else list(ordered_ctx_cont_names)
+        except Exception:
+            _live_cc = list(ordered_ctx_cont_names)
+        _live_ds = train_ds if len(train_ds) > 0 else val_ds  # broad period so slow-varying feats vary
+        _ab = next(iter(DataLoader(_live_ds, batch_size=min(8192, len(_live_ds)),
                                    shuffle=True, num_workers=2)))
-        assert_v10_batch_liveness(_ab, ctx_cont_names=list(ordered_ctx_cont_names),
-                                  snap_names=list(SIGNAL_FIELDS), raise_on_fail=True)  # P1: incl the XGB bridge (snap_x)
+        assert_v10_batch_liveness(_ab, ctx_cont_names=_live_cc,
+                                  snap_names=list(SIGNAL_FIELDS), raise_on_fail=True)  # incl the XGB bridge (snap_x)
         log.info("[FEATURE_LIVENESS] post-export audit OK — nothing ignored (all inputs alive/allowlisted)")
     except FeatureLivenessError:
         raise
