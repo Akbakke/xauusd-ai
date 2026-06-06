@@ -37,8 +37,8 @@ KNOWN_ALLOWED_DEAD: Dict[str, str] = {
     "is_ASIA": "ditto.", "session_change_flag": "ditto.", "session_tradable": "ditto.",
     "minutes_since_session_open": "ditto.", "minutes_to_next_session_boundary": "ditto.",
     # Known bugs/gaps tracked in the hygiene wave (NOT to be silently forgotten):
-    "_v1_atr_regime_id": "chained-index BUG → const=1 (basic_v1.py:726). Hygiene wave: fix the mask.",
-    "smc_choch": "too sparse (0.1% nonzero) → 0 gain. Hygiene wave: decay to bars_since_choch.",
+    "_v1_atr_regime_id": "BUG-MASK (remove when fixed): chained-index BUG → const=1 (basic_v1.py:726). Hygiene wave.",
+    "smc_choch": "BUG-MASK (remove when fixed): too sparse (0.1% nonzero) → 0 gain. Hygiene wave: decay to bars_since_choch.",
     # Multi-TF window-property (NOT a bug): D1 EMA-stack alignment can be const over a calm window:
     "d1:ema_stack_aligned_v2": "D1 regime can be stable over a test window → const there; alive in other TFs.",
 }
@@ -89,14 +89,17 @@ def check_multi_tf_integrity(seq_by_tf: Dict[str, np.ndarray]) -> Dict[str, obje
             rep["new_dead"].append(f"{tf}: BAD SHAPE {a.shape} (expected (B,L,{len(names)}))")
             continue
         rep["new_dead"].extend(_dead_cols(a, names, tf=tf.lower()))
-        rep["atr_by_tf"][tf] = float(a.reshape(-1, a.shape[-1])[:, atr_idx].mean())
+        # mask zero-padded warmup rows (atr==0) so the ATR-scaling sanity isn't deflated on a skewed batch
+        _atr_col = a.reshape(-1, a.shape[-1])[:, atr_idx]; _nz = _atr_col[_atr_col > 0]
+        rep["atr_by_tf"][tf] = float(_nz.mean()) if _nz.size else 0.0
     # distinctness: ema50_dist series must not be ~identical across TFs (corr<0.98)
     if ema50_idx is not None and {"M5", "D1"} <= set(seq_by_tf):
         def ser(tf):
             return np.asarray(seq_by_tf[tf], np.float64)[:, :, ema50_idx].reshape(-1)
         for a, b in (("M5", "D1"), ("M5", "H1"), ("H1", "D1")):
-            if len(ser(a)) == len(ser(b)):
-                r = float(np.corrcoef(ser(a), ser(b))[0, 1])
+            sa, sb = ser(a), ser(b); n = min(len(sa), len(sb))  # truncate so the corr ALWAYS runs (no silent skip)
+            if n > 100:
+                r = float(np.corrcoef(sa[:n], sb[:n])[0, 1])
                 if abs(r) > 0.98:
                     rep["duplicate"].append(f"{a}~{b} ema50_dist corr={r:+.3f} (TFs not distinct!)")
     # ATR-scaling sanity: D1 atr should exceed M5 atr (coarser bars span more)
