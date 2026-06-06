@@ -52,9 +52,16 @@ LOG = logging.getLogger("v12_xgb_live")
 # (isotonic, bundle-driven at load). The superseded 76-feat / 92-feat bundles
 # were DELETED 2026-05-26 (cleanup) — base80 is the only XGB bundle on disk.
 # predict() is fail-closed on missing feature / NaN.
-DEFAULT_BUNDLE_DIR = Path(
-    "/home/andre2/GX1_DATA/models/models/xgb_v7_base80_20260526T052210Z"
-)
+def _resolve_default_xgb_bundle() -> Path:
+    # FG-1 fix (2026-06-06, rule 8): resolve the ACTIVE xgb bundle via the ONE selection
+    # contract — NEVER a hardcoded literal (else live keeps serving the OLD xgb after a cement
+    # flips the contract → silent train/serve skew). Mirrors v12_v3_live._resolve_default_v3_bundle.
+    # Fail-closed: load_decision_artifact raises on missing/ambiguous/non-ACTIVE/EURUSD.
+    from gx1_guards.artifacts import load_decision_artifact
+    return Path(load_decision_artifact("xgb"))
+
+
+DEFAULT_BUNDLE_DIR = _resolve_default_xgb_bundle()
 DEFAULT_SANITIZER_CONFIG = Path(
     "/home/andre2/src/GX1_ENGINE/gx1/xgb/contracts/xgb_input_sanitizer_base80_v1.json"
 )

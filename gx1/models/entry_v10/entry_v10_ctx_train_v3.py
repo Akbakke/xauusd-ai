@@ -3857,7 +3857,8 @@ def run_train(
         from gx1.audit.feature_liveness import assert_v10_batch_liveness, FeatureLivenessError
         _ab = next(iter(DataLoader(val_ds, batch_size=min(8192, len(val_ds)),
                                    shuffle=True, num_workers=2)))
-        assert_v10_batch_liveness(_ab, ctx_cont_names=list(ordered_ctx_cont_names), raise_on_fail=True)
+        assert_v10_batch_liveness(_ab, ctx_cont_names=list(ordered_ctx_cont_names),
+                                  snap_names=list(SIGNAL_FIELDS), raise_on_fail=True)  # P1: incl the XGB bridge (snap_x)
         log.info("[FEATURE_LIVENESS] post-export audit OK — nothing ignored (all inputs alive/allowlisted)")
     except FeatureLivenessError:
         raise

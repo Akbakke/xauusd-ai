@@ -115,8 +115,8 @@ def assert_v10_batch_liveness(batch: dict, *, ctx_cont_names: Optional[Sequence[
     issues: List[str] = []
     if "ctx_cont" in batch and ctx_cont_names is not None:
         issues += [f"ctx_cont:{d}" for d in _dead_cols(to_np(batch["ctx_cont"]), list(ctx_cont_names))]
-    if "snap" in batch and snap_names is not None:
-        issues += [f"snap:{d}" for d in _dead_cols(to_np(batch["snap"]), list(snap_names))]
+    if "snap_x" in batch and snap_names is not None:  # the dataset batch key is snap_x (the 41-dim XGB bridge)
+        issues += [f"snap:{d}" for d in _dead_cols(to_np(batch["snap_x"]), list(snap_names))]
     seq_by_tf = {k.replace("seq_", "").upper(): to_np(batch[k])
                  for k in ("seq_m5", "seq_m15", "seq_h1", "seq_h4", "seq_d1") if k in batch}
     mtf = check_multi_tf_integrity(seq_by_tf) if seq_by_tf else {"missing": ["ALL — no multi-TF in batch"], "new_dead": [], "duplicate": []}
@@ -182,7 +182,8 @@ def _main() -> int:
         # large batch samples across the whole period so only TRULY-constant features show std~0.
         # (Training batches are already shuffled → the trainer-callable is correct without this.)
         batch = next(iter(DataLoader(ds, batch_size=8192, shuffle=True, num_workers=4)))
-        rep = assert_v10_batch_liveness(batch, ctx_cont_names=cc, raise_on_fail=False)
+        from gx1.contracts.signal_bridge_v3 import ORDERED_SNAP_FIELDS_V3 as _SNAP
+        rep = assert_v10_batch_liveness(batch, ctx_cont_names=cc, snap_names=list(_SNAP), raise_on_fail=False)
         print(f"[V10] multi-TF atr-by-tf: {rep['multi_tf_atr']}")
         print(f"[V10] {'OK ✓ — nothing ignored' if rep['ok'] else 'ISSUES: ' + repr(rep['issues'])}")
         failed |= not rep["ok"]
