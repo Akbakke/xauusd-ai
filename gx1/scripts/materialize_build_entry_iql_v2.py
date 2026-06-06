@@ -900,12 +900,21 @@ def build_state_matrix(df: pd.DataFrame) -> tuple[np.ndarray, list[str]]:
     # CONSTANT cols only WARN (not raise): a legit rare-binary flag can be all-0 in a given
     # training window (std=0) — flag for review rather than break the build (O7).
     if constant_cols:
+        # P4 (2026-06-06): a CONSTANT col is now FAIL-CLOSED unless it's on the ONE-TRUTH
+        # feature-liveness allowlist (structural/rare-binary). A non-allowlisted constant = a
+        # silent-ignore / zeroed-handoff regression (the historical 36-dip/struct dead-zero) → RAISE.
+        from gx1.audit.feature_liveness import KNOWN_ALLOWED_DEAD
+        _new_const = [c for c in constant_cols if c not in KNOWN_ALLOWED_DEAD]
+        if _new_const:
+            raise RuntimeError(
+                f"[BUILD_STATE_MATRIX] {len(_new_const)} numeric feature(s) CONSTANT (std~0) and NOT on "
+                f"the feature-liveness allowlist — silent-ignore/zeroed-handoff regression: {_new_const[:20]}"
+                + (f" (+{len(_new_const)-20} more)" if len(_new_const) > 20 else "")
+                + ". Fix the upstream hand-off, or (if truly structural) add to KNOWN_ALLOWED_DEAD with a reason."
+            )
         print(
-            f"[BUILD_STATE_MATRIX][WARN] {len(constant_cols)} allowlisted numeric feature(s) "
-            f"are CONSTANT (std~0) in the frame — likely dead/degenerate: {constant_cols[:20]}"
-            + (f" (+{len(constant_cols)-20} more)" if len(constant_cols) > 20 else "")
-            + ". Confirm intended (rare-binary) or drop from the allowlist.",
-            flush=True,
+            f"[BUILD_STATE_MATRIX][WARN] {len(constant_cols)} allowlisted constant feature(s) "
+            f"(structural/rare-binary, OK): {constant_cols[:20]}", flush=True,
         )
     if nan_warnings:
         msg = ", ".join(f"{n}={f:.1%}" for n, f in nan_warnings[:8])

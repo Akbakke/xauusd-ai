@@ -347,6 +347,7 @@ def build_state_matrix(df: pd.DataFrame) -> tuple[np.ndarray, list[str]]:
     feature_names: list[str] = []
     nan_warnings: list[tuple[str, float]] = []
     missing_cols: list[str] = []
+    constant_cols: list[str] = []
     for c in NUMERIC_STATE_COLS_PER_BAR + NUMERIC_STATE_COLS_CANDIDATE + (
         NUMERIC_STATE_COLS_AUG64 if _AUG64_ENABLED else []
     ):
@@ -361,6 +362,8 @@ def build_state_matrix(df: pd.DataFrame) -> tuple[np.ndarray, list[str]]:
         nan_frac = float(col.isna().mean()) if len(col) > 0 else 0.0
         if nan_frac > 0.05:
             nan_warnings.append((c, nan_frac))
+        if c not in missing_cols and float(col.fillna(0.0).std()) < 1e-4:
+            constant_cols.append(c)  # P4: silent-ignore/zeroed-handoff guard (raised below)
         parts.append(col.fillna(0.0).rename(c))
         feature_names.append(c)
     # EX3 (2026-06-04 train==serve parity): PIN the regime one-hot categories to the FULL fixed label set so
@@ -393,6 +396,17 @@ def build_state_matrix(df: pd.DataFrame) -> tuple[np.ndarray, list[str]]:
             f"[{ACTION}] {len(nan_warnings)} feature(s) exceed 5% NaN (degraded substrate): "
             f"{[(c, round(f, 4)) for c, f in nan_warnings[:20]]}"
             f"{' ...' if len(nan_warnings) > 20 else ''}")
+    # P4 (2026-06-06): a CONSTANT state col is fail-closed UNLESS on the one-truth feature-liveness
+    # allowlist — a non-allowlisted constant = a silent-ignore / zeroed-handoff regression (e.g. a V10
+    # head or the V3 score collapsing to const). Mirrors the Entry-IQL build P4 guard.
+    if constant_cols:
+        from gx1.audit.feature_liveness import KNOWN_ALLOWED_DEAD
+        _new_const = [c for c in constant_cols if c not in KNOWN_ALLOWED_DEAD]
+        if _new_const:
+            raise RuntimeError(
+                f"[{ACTION}] {len(_new_const)} state feature(s) CONSTANT (std~0) and NOT on the "
+                f"feature-liveness allowlist — silent-ignore/zeroed-handoff regression: {_new_const[:20]}"
+                f"{' ...' if len(_new_const) > 20 else ''}. Fix the hand-off or add to KNOWN_ALLOWED_DEAD with a reason.")
     X = pd.concat(parts, axis=1).astype(np.float32).to_numpy()
     return X, feature_names
 

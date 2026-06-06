@@ -1514,6 +1514,23 @@ def main() -> int:
     meta_path.write_text(json.dumps(meta_json, indent=2))
     meta_sha = _compute_sha256(meta_path)
 
+    # P2 (2026-06-06): ALWAYS-RUN XGB feature-gain gate — fail LOUD if any base80 feature has 0 gain
+    # in ALL session heads (off the documented allowlist) = a silent-ignore regression (the
+    # cement-XGB-tail failure class). Best-effort: a real regression RAISES; an audit hiccup warns.
+    try:
+        from gx1.audit.feature_liveness import audit_xgb_gain
+        _xgb_dead = audit_xgb_gain(str(output_dir),
+                                   "gx1/xgb/contracts/xgb_input_features_base80_v1.json")
+        if _xgb_dead:
+            raise RuntimeError(
+                f"[XGB_FEATURE_LIVENESS] {len(_xgb_dead)} base80 feature(s) 0-gain in ALL heads "
+                f"and off-allowlist (silent-ignore regression): {_xgb_dead}")
+        print("[XGB_FEATURE_LIVENESS] post-export gain audit OK — no new dead features", flush=True)
+    except RuntimeError:
+        raise
+    except Exception as _e:
+        print(f"[XGB_FEATURE_LIVENESS] audit skipped (non-fatal): {_e!r}", flush=True)
+
     print(f"  Model path:            {model_path}")
     print(f"  Model sha256:          {model_sha}")
     print(f"  Meta path:             {meta_path}")
