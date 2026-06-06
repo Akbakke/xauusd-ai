@@ -60,4 +60,15 @@ rule 1, no per-edit `touch`. Reversible-first cleanup per rule 5 needs no per-it
    (backup→inventory→dry-run→my confirm) so we never drown in v1/v2/v3… The goal is that running the wrong
    version is IMPOSSIBLE (a fail-closed resolver refusing to guess), not "remember to pick the right one".
 
+9. **NOTHING ignored — feature-liveness is AUTO-checked every run, NEVER hand-verified (user vedtak
+   2026-06-06).** Every input feature + dependency the chain consumes MUST be alive (non-constant on a
+   SHUFFLED sample) or on the documented `gx1.audit.feature_liveness.KNOWN_ALLOWED_DEAD` allowlist. The
+   ONE-TRUTH cross-chain check `gx1.audit.feature_liveness` runs AUTOMATICALLY + fail-closed: the XGB-gain
+   gate at XGB-retrain post-export, the V10 ctx/snap/multi-TF (all 5 TFs alive + DISTINCT) check at
+   V10-retrain post-export, the zeroed/constant-hand-off guard in the Entry/Exit-IQL builds, and
+   `python -m gx1.audit.feature_liveness --strict …` before any cement. A NEW dead/ignored feature (or a
+   broken/duplicated TF, or a zeroed hand-off) = a silent-ignore regression → the build/retrain/cement
+   FAILS LOUD; fix the wiring or add to the allowlist with a documented reason. NEVER hand-verify "are all
+   features used" again — the chain refuses to run-wrong.
+
 @AGENTS.md
