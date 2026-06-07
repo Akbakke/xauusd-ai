@@ -860,6 +860,14 @@ def build_state_matrix(df: pd.DataFrame) -> tuple[np.ndarray, list[str]]:
     # overwrote the real values with zeros. Fail-loud: the helper raises if OHLC is
     # missing and the cols are not already present (better than silent zero-fill).
     df = df.copy()
+    # 2026-06-07: the candidate-only forward-outcome (chunk_0 ABSENT — candidate-batch lineage,
+    # not the truth_e2e replay) carries the decision timestamp as `decision_ts_utc`, while the
+    # attach helper keys multi-TF context on a `time` column / DatetimeIndex (the chunk_0 path
+    # supplied `time` directly). OHLC is already present; only `time` is missing. Bridge it so the
+    # 60 group-A/dip-struct ctx cols compute from the same M5 bar as the candidate's decision.
+    # Defensive: only fires when `time` is absent (no effect on the chunk_0/cement path).
+    if "time" not in df.columns and "decision_ts_utc" in df.columns:
+        df["time"] = pd.to_datetime(df["decision_ts_utc"], utc=True)
     from gx1.scripts.augment_forward_outcome_v2 import attach_group_a_dip_struct_ctx_columns
     df = attach_group_a_dip_struct_ctx_columns(df, journal_label="entry_iql_v2_build")
 
