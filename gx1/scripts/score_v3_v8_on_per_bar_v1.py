@@ -344,8 +344,21 @@ def score_week(
         sorted_m1_idx = m1_idx_now[sorted_indices]
         # m1_idx of trade entry = m1_idx_now - bars_in_trade (per row, but constant per trade if data clean)
         s_t_arr = sorted_m1_idx - sorted_bars_in_trade  # candidate s_t per row
-        # Use median to robust-est. of s_t for this trade
-        s_t = int(np.median(s_t_arr))
+        # HIGH-1 guard (2026-06-08 multi-agent audit): s_t = m1_idx_now - bars_in_trade is the
+        # trade-entry index and MUST be IDENTICAL for every bar of the trade. If the per-bar grid
+        # and the V3-dataset m1 grid disagree (gap/dup dedup mismatch), the old median silently
+        # mis-aligned the 19 trade-state overlay cols into the WRONG window rows -> poisons the
+        # v3_v8_* features feeding Exit-IQL. Fail LOUD instead of silent-misalign.
+        _s_t_lo, _s_t_hi = int(s_t_arr.min()), int(s_t_arr.max())
+        if _s_t_hi != _s_t_lo:
+            raise RuntimeError(
+                f"[V3_SCORE_OVERLAY_MISALIGN] cand={cand_uid}: trade-entry index s_t not constant "
+                f"across the trade (min={_s_t_lo} max={_s_t_hi} spread={_s_t_hi - _s_t_lo}; "
+                f"n_bars={len(s_t_arr)}). per-bar m1 grid vs V3-dataset m1 grid disagree — refusing "
+                f"to silent-misalign the trade-state overlay. Rebuild per-bar + V3-dataset from the "
+                f"SAME M1 tape, or carry the builder's explicit overlay_start_row."
+            )
+        s_t = _s_t_lo
 
         for i_in_trade, abs_idx in enumerate(sorted_indices):
             mi = int(sorted_m1_idx[i_in_trade])
