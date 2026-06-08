@@ -151,15 +151,20 @@ def main() -> int:
     shutil.copy2(part, bak)
     old_cols = [c for c in old.columns if c != "time"]
     out_cols = old_cols + [c for c in df_new.columns if c not in old_cols and c != "time"]
-    df_out = df_new[out_cols]
-    df_out.index.name = "time"
+    # MATCH the original partition format EXACTLY: 'time' as a COLUMN + RangeIndex
+    # (NOT a named DatetimeIndex). load_m5_tape/load_m1_tape glob year=* and expect a
+    # 'time' column; writing time-as-index silently drops the partition's timestamps.
+    df_out = df_new[out_cols].reset_index()  # 'time' (index) -> first column
+    df_out = df_out[["time"] + out_cols]
     tmp = part.with_suffix(".parquet.tmp")
-    df_out.to_parquet(tmp, index=True)
+    df_out.to_parquet(tmp, index=False)
     tmp.replace(part)
-    print(f"[REPAIR] {tag}: backed up -> {bak.name}; WROTE rows={len(df_out):,}", flush=True)
+    print(f"[REPAIR] {tag}: backed up -> {bak.name}; WROTE rows={len(df_out):,} (time as column)", flush=True)
 
     chk = pd.read_parquet(part)
-    if not isinstance(chk.index, pd.DatetimeIndex):
+    if "time" in chk.columns:
+        chk = chk.set_index(pd.to_datetime(chk["time"], utc=True))
+    elif not isinstance(chk.index, pd.DatetimeIndex):
         chk.index = pd.to_datetime(chk.index, utc=True)
     ac = _april(chk)
     print(f"[REPAIR] {tag}: VERIFY rows={len(chk):,} range {chk.index.min()} -> {chk.index.max()} "
