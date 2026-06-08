@@ -1,73 +1,88 @@
 {
   "project": "XAUUSD",
-  "note": "ONE source of truth for decision-valid artifacts. Edit ONLY via explicit vedtak. Supersedes GX1_DATA/CURRENT_BUNDLES.md (whose V12.1.1 paths were deleted/superseded). Flip status PENDING_VEDTAK -> ACTIVE only after a bundle is built + verified. Paths are absolute. Updated 2026-05-29 via user vedtak (Exit-IQL ACTIVE — full COSTFIX chain now cemented).",
+  "note": "ONE source of truth for decision-valid artifacts. Edit ONLY via explicit vedtak. Paths absolute. FASE2B regime-v4 chain CEMENTED 2026-06-08 (user vedtak 'keep this' + 'mengde forst'). Higher-EV/volume frontier: honest vs cement +1.58 bps/take, volume-first +49% total @ max_trades=3, BETTER drawdown (-1089 vs cement -1762). Win 0.91-0.95 vs 0.97 (direction-ceiling-bound, accepted). Operating point: min_advantage_bps=0, max_trades=3 (live-tunable), exit agg=max K=144. Prior COSTFIX chain -> history (parked rollback; workspace bundles intact).",
   "active": {
     "xgb": {
-      "path": "/home/andre2/GX1_DATA/models/models/xgb_v7_base80_20260526T052210Z",
+      "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/xgb_v7",
       "status": "ACTIVE",
       "in_sample_only": false,
-      "note": "base80 multihead bridge the COSTFIX V10 expects (V10/V3 contracts sacred)."
+      "note": "fase2b base80 multihead XGB (regime-v4 rebuild, isotonic-calibrated). 0 dead features (rule-9 strict)."
     },
     "v10_entry": {
-      "path": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_RELABEL15H24_SYMW_COSTFIX_20260526T183658Z",
+      "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_bundle_clean",
       "status": "ACTIVE",
       "in_sample_only": false,
-      "note": "cost-matrix-fixed V10 (symmetric directional costs). Verified directionally healthy 2026-05-26: +34.6 bps/call, 75% win, both sides profitable all years. Replaces broken SYMW (65% short)."
+      "note": "fase2b clean V10: FiLM-off, BIDIRECTIONAL, regime-v4, multi-TF-v2 (5TF x25, ATR distinct M5 13->D1 246). Honest OOT dir 0.5876 (at ceiling; edge=exit+selection)."
     },
     "v3_exit": {
-      "path": "/home/andre2/GX1_DATA/models/models/exit_transformer/EXIT_V3_V7_COSTFIX_LR3E4_20260527T150041Z/EXIT_V6_DISK__BIDIR_2026Q2_20260527T150320Z",
+      "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v3_train_out_clean/v3_exit_fase2b_regime_v4",
       "status": "ACTIVE",
       "in_sample_only": false,
-      "note": "lr=3e-4, 6 epochs healthy convergence (vs baseline lr=1.2e-3 which overfit at epoch 1). OOT TEST: PR-AUC 0.139 / ROC-AUC 0.751 / recall@0.5 0.095 / f1@0.5 0.131 / precision@0.5 0.212 (vs baseline 0.161/0.770/0.021/0.039/0.287). Slightly lower integrated PR-AUC but 3.3x f1 + 4.5x recall + healthier convergence → better usable signal for Exit-IQL. Vedtak 2026-05-28."
+      "note": "fase2b V3 exit transformer EXIT_IO_V8 (173, +18 regime), multi-TF-v2 5TF x25."
     },
     "entry_iql": {
-      "path": "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/BUILD_ENTRY_IQL_V2_COSTFIX_HEADS_FAST_20260528T071646Z",
+      "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/entry_iql_clean",
       "active_variant": "R_WAIT_OPP_K96_LAM50",
-      "active_folds": ["FOLD_1", "FOLD_2", "FOLD_3"],
+      "active_folds": [
+        "FOLD_1",
+        "FOLD_2",
+        "FOLD_3"
+      ],
+      "operating_point": {
+        "min_advantage_bps": 0,
+        "max_trades": 3,
+        "note": "VOLUME-FIRST (user vedtak 2026-06-08): no entry filter; DD bounded by max_trades=3 (portfolio sim -1089 DD, +49% total vs cement). Live-tunable cap."
+      },
       "status": "ACTIVE",
       "in_sample_only": false,
-      "rollback_history": [
-        {
-          "from_variant": "R_V10_PQ_COND_K96",
-          "to_variant": "R_WAIT_OPP_K96_LAM50",
-          "rolled_back_at_utc": "2026-06-02T09:35:00Z",
-          "reason": "Tactical rollback during Exit-IQL retrain effort (V3-tracking-features missing from cement Exit-IQL bundle, identified by audit fix #3). 2026-06-01 NEW PQ_COND live had 16 stacked shorts overnight (-2050 USD worst) due to CLUSTER1_RATE_LIMIT bug (also disabled by PURE_PHASE6 — fixed 2026-06-02). NEW Phase 6 OOT FULL 2.27x cement still holds; rollback is precautionary to limit new exposure while Exit-IQL is improved. Flip back to R_V10_PQ_COND_K96 after Exit-IQL retrained + validated."
-        }
-      ],
-      "candidate_variants_tested": {
-        "R_V10_PQ_COND_K96": {
-          "bundle_standalone": "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/BUILD_ENTRY_IQL_V2_V10_PQ_COND_FAST_20260601T130000Z",
-          "phase6_oot_full": "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/PHASE6_OOT_V10_PQ_COND_20260601T160000Z_LOCK",
-          "vs_cement": "2.27x total PnL, 3.94x takes, 92.99% win"
-        }
-      },
-      "note": "R_WAIT_OPP_K96_LAM50 cement re-active 2026-06-02 09:35Z. Tactical rollback — see rollback_history. NEW R_V10_PQ_COND_K96 retained in bundle's trained_models_v1/ for re-promotion after Exit-IQL retrain."
+      "note": "fase2b Entry-IQL R_WAIT_OPP_K96_LAM50 (MAE-before-MFE penalty lambda=5, wired)."
     },
     "exit_iql": {
-      "path": "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/BUILD_EXIT_IQL_V3_M1_COSTFIX_HEADS_FAST_20260528T205051Z",
+      "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/exit_iql_train_clean",
       "active_variant": "R_NET_REAL",
       "active_aggregator": "max",
       "active_k_horizon": 144,
-      "active_folds": ["FOLD_1", "FOLD_2", "FOLD_3"],
-      "alternate_aggregator": "mean",
-      "alternate_note": "agg=mean (FOLD_1/2/3) is the more-aggressive alternate — same R_NET_REAL bundle, just different action-selection rule at inference (mean Q over K-horizons instead of max). Slightly lower val_total (~6.79M vs ~6.95M) but 79% EXIT_NOW vs 57% → kortere holds. Swap by flipping active_aggregator without rebuilding/retraining. Note 2026-05-29.",
+      "active_folds": [
+        "FOLD_1",
+        "FOLD_2",
+        "FOLD_3"
+      ],
       "status": "ACTIVE",
       "in_sample_only": false,
-      "note": "Exit-IQL trained on V7-scored per-bar dataset (67.7M rows scored, 2M sub-sampled for training, fast budget, 3 folds × 3 reward variants). Winner R_NET_REAL agg=max K=144: val_total_reward ~6.95M bps / test ~6.98M, action split 43% HOLD / 57% EXIT_NOW, beats always-hold baseline by +3.95M bps total. R_NET_V2 weaker (overcautious 78-93% EXIT), R_REGRET collapsed (99.9% HOLD trivial). PASS_BEATS_BASELINE. 9 checkpoints under trained_models_v1/. Vedtak 2026-05-29.",
-      "phase6_oot_validation": {
-        "report": "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/PHASE6_OOT_COSTFIX_HEADS_20260529T043258Z_LOCK",
-        "n_take": 3311,
-        "mean_pnl_per_take_bps": 136.0,
-        "win_rate_take": 0.927,
-        "mean_bars_held": 40.1,
-        "exit_iql_active_frac": 0.998,
-        "v3_override_frac": 0.0,
-        "vs_v3plus_chain": "+92% (×1.92 over prior +70.92 bps cement)",
-        "note": "V12_OFF == V12_ON (V3 fail-safe never fires at threshold 0.95). Cement-validated."
-      }
+      "note": "fase2b Exit-IQL R_NET_REAL agg=max K=144 +AUG64 (64 declared exit feats now REAL vs cement zeros). PASS beats always-hold. State coverage verified (per-bar+canonical+AUG64+one-hot)."
     }
   },
   "history": [
+    {
+      "role": "exit_iql",
+      "path": "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/BUILD_EXIT_IQL_V3_M1_COSTFIX_HEADS_FAST_20260528T205051Z",
+      "status": "INVALIDATED",
+      "reason": "superseded by fase2b regime-v4 chain (user vedtak 'keep this' 2026-06-08). Parked as rollback (workspace bundles intact)."
+    },
+    {
+      "role": "entry_iql",
+      "path": "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/BUILD_ENTRY_IQL_V2_COSTFIX_HEADS_FAST_20260528T071646Z",
+      "status": "INVALIDATED",
+      "reason": "superseded by fase2b regime-v4 chain (user vedtak 'keep this' 2026-06-08). Parked as rollback (workspace bundles intact)."
+    },
+    {
+      "role": "v3_exit",
+      "path": "/home/andre2/GX1_DATA/models/models/exit_transformer/EXIT_V3_V7_COSTFIX_LR3E4_20260527T150041Z/EXIT_V6_DISK__BIDIR_2026Q2_20260527T150320Z",
+      "status": "INVALIDATED",
+      "reason": "superseded by fase2b regime-v4 chain (user vedtak 'keep this' 2026-06-08). Parked as rollback (workspace bundles intact)."
+    },
+    {
+      "role": "v10_entry",
+      "path": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_RELABEL15H24_SYMW_COSTFIX_20260526T183658Z",
+      "status": "INVALIDATED",
+      "reason": "superseded by fase2b regime-v4 chain (user vedtak 'keep this' 2026-06-08). Parked as rollback (workspace bundles intact)."
+    },
+    {
+      "role": "xgb",
+      "path": "/home/andre2/GX1_DATA/models/models/xgb_v7_base80_20260526T052210Z",
+      "status": "INVALIDATED",
+      "reason": "superseded by fase2b regime-v4 chain (user vedtak 'keep this' 2026-06-08). Parked as rollback (workspace bundles intact)."
+    },
     {
       "path": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_RELABEL15H24_SYMW_20260526T144328Z",
       "status": "INVALIDATED",
@@ -81,12 +96,12 @@
     {
       "path": "GX1_DATA/CURRENT_BUNDLES.md V12.1.1 entries (V10 v3 / V3 v8 / XGB v5 / IQL LOCKs)",
       "status": "INVALIDATED",
-      "reason": "registry stale — those bundle dirs deleted/superseded by the v3+ chain + COSTFIX rebuild."
+      "reason": "registry stale \u2014 those bundle dirs deleted/superseded by the v3+ chain + COSTFIX rebuild."
     },
     {
       "path": "/home/andre2/GX1_DATA/models/models/exit_transformer/EXIT_V3_V7_COSTFIX_20260526T211756Z__SUPERSEDED_BY_LR3E4_DO_NOT_USE",
       "status": "INVALIDATED",
-      "reason": "V3 baseline lr=1.2e-3 (epoch-1-best, immediate overfit). OOT PR-AUC 0.161 / ROC 0.770. Superseded 2026-05-28 by lr=3e-4 (healthier convergence, better operational metrics). Quarantined on disk (renamed __SUPERSEDED_BY_LR3E4_DO_NOT_USE) — kept for reversibility."
+      "reason": "V3 baseline lr=1.2e-3 (epoch-1-best, immediate overfit). OOT PR-AUC 0.161 / ROC 0.770. Superseded 2026-05-28 by lr=3e-4 (healthier convergence, better operational metrics). Quarantined on disk (renamed __SUPERSEDED_BY_LR3E4_DO_NOT_USE) \u2014 kept for reversibility."
     },
     {
       "path": "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/INFERENCE_BATCH_CANDIDATES_V3PLUS_COSTFIX_20260526T201825Z__SUPERSEDED_BY_HEADS_BATCH",
