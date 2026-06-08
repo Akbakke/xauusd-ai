@@ -84,7 +84,20 @@
   goal is that the NEXT session never re-derives it. Map = tight facts+pointers; logs stay in DECISION_LOG/PROJECT_STATE.
 - NEVER auto-retrain. Get an explicit user decision (vedtak) before every retrain.
 - Check existing code before building; keep ONE truth (no duplicated/overriding logic); fail-closed defaults; minimal change; clean up superseded artifacts as you go; run a post-task bug/mismatch hunt.
-- Always maximize CPU/GPU/RAM utilization (raw + smart prefetch/numba/GPU).
+- **SMART + MAXED runs — ALWAYS, before every training/build (user vedtak 2026-06-08).** Don't just raw-maximize
+  CPU/GPU/RAM — design the SETUP to run as efficiently as possible. Before launching ANY train/build, ask:
+  1. **Warm-start** — can I `--init-from-state-dict` from the matching cemented/prior bundle? On near-identical data
+     (e.g. a data-repair/extend rebuild) a converged init cuts epochs from ~6-9 to ~1-3 (early-stop catches it). Verify
+     arch match (loaded-keys missing=0/unexpected=0).
+  2. **Reuse cache** — never recompute what already exists + is valid: labels/spill dirs (`--reuse-spill-dir`),
+     datasets, MTF caches, candidate batches. Recompute only the dirty/extended slice.
+  3. **Parallelize across idle resources** — fill the idle GPU with an independent small job while a CPU-bound step
+     runs (e.g. entry-IQL retrain during V3 labeling), and run independent CPU prep while the GPU trains. Keep BOTH busy.
+  4. **Max throughput knobs** — `EXIT_LABEL_WORKERS≈cores-2`, `--num-workers 12`, large GPU-batch (scoring 8192), bf16+
+     tf32+torch_compile. But tiny IQL Q-nets are inherently low-GPU% (small model) → max samples/s, NOT GPU%.
+  5. **Verify after launch** — snapshot GPU% / load / samples-s once warm; if a large model is CPU/dataloader-bound,
+     fix (more workers / bigger batch); if a small net is low-GPU%, that's expected — don't chase GPU%.
+  This is a PRE-RUN discipline: think setup+efficiency first, not just "turn util up". [[feedback_check_before_build_one_truth]]
 - Do not run R6, freeze, promo, live, or package build without an explicit green gate.
 - Keep historical artifacts as history unless an explicit selection contract marks them active.
 
