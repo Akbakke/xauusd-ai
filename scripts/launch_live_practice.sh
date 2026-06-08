@@ -138,14 +138,15 @@ RUNNER_PID_FILE="$PAPER_RUNS/paper_runner.pid"
 UNITS=${GX1_PAPER_UNITS:-10}
 MAX_TRADES=${GX1_PAPER_MAX_TRADES:-100}
 MAX_SPREAD=${GX1_PAPER_MAX_SPREAD_BPS:-9999}
-SUFFIX=${GX1_PAPER_SUFFIX:-costfix_pure_phase6}
+SUFFIX=${GX1_PAPER_SUFFIX:-fase2b_regime_v4_pure_phase6}
 
 if [[ $FORCE -eq 1 ]]; then stop_if_running "$RUNNER_PID_FILE"; fi
 if pid=$(is_alive "$RUNNER_PID_FILE"); then
     echo "[3/4] paper_runner already RUNNING (PID $pid) — skip"
 else
     echo "[3/4] launching v12_paper_runner --units $UNITS --max-trades $MAX_TRADES ..."
-    GX1_PURE_PHASE6=1 nohup python3 -m gx1.execution.v12_paper_runner \
+    GX1_PURE_PHASE6=1 GX1_REGIME_V4=1 GX1_TREND_REGIME_FROM_D1=1 GX1_EXIT_AUGMENT_64=1 \
+    nohup python3 -m gx1.execution.v12_paper_runner \
         --units "$UNITS" \
         --max-trades "$MAX_TRADES" \
         --max-spread-bps "$MAX_SPREAD" \
