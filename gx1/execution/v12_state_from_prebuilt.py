@@ -450,9 +450,24 @@ class PrebuiltStateLoader:
         from gx1.scripts.augment_forward_outcome_v2 import (
             attach_group_a_dip_struct_ctx_columns,
         )
+        from gx1.features.htf_features import build_multi_tf_per_bar_features_v2
+        # LIVE serve: build the multi-TF bundle IN-MEMORY from THIS cv3 and pass it, instead
+        # of reading the on-disk MULTI_TF_V2_CACHE. The disk cache is only as fresh as its
+        # last rebuild — nothing in the live loop advances it, so it eventually trips the
+        # 2-day stale guard (live breaks) or, worse, would serve stale HTF context. Building
+        # from the live cv3 makes the group-A/dip-struct ctx ALWAYS current and removes the
+        # last live disk-cache dependency. Same builder + same bars as the disk cache (which
+        # prebuild_multi_tf_cache_v2 also makes via build_multi_tf_per_bar_features_v2), and
+        # the features are causal/asof → bit-identical at every decision ts (train==serve).
+        try:
+            mtf_in_mem = build_multi_tf_per_bar_features_v2(target)
+        except Exception as exc:
+            LOG.warning(f"group_a/dip_struct: in-memory multi-TF build failed ({exc}); "
+                        f"falling back to on-disk cache")
+            mtf_in_mem = None
         # The helper mutates in place via the returned DataFrame; rebind to be safe.
         target = attach_group_a_dip_struct_ctx_columns(
-            target, journal_label="live_costfix",
+            target, journal_label="live_costfix", multi_tf=mtf_in_mem,
         )
         if in_place:
             self._cv3 = target

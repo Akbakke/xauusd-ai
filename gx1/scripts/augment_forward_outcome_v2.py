@@ -522,6 +522,7 @@ def attach_group_a_dip_struct_ctx_columns(
     df: pd.DataFrame,
     *,
     cache_dir: str | None = None,
+    multi_tf: dict | None = None,
     journal_label: str = "parity",
     smc_col_candidates: tuple[str, ...] = ("smc_swing_state", "smc_swing_state_canon_v1"),
 ) -> pd.DataFrame:
@@ -562,14 +563,23 @@ def attach_group_a_dip_struct_ctx_columns(
     else:
         raise RuntimeError("[CTX_CONT_PARITY] df needs a 'time' column or DatetimeIndex")
 
-    cache = cache_dir or os.environ.get(
-        "GX1_V10_MULTI_TF_V2_CACHE_DIR", DEFAULT_MULTI_TF_V2_CACHE_DIR
-    )
     m5 = df[["high", "low", "close"]].copy()
     m5.index = ts_index.to_numpy()
     m5 = m5.sort_index()
+    # Multi-TF source: either an explicitly-provided in-memory bundle (LIVE serve passes
+    # the mtf it just built from this SAME cv3 → staleness structurally impossible, no
+    # on-disk dependency) OR the on-disk V2 cache (BUILD pipeline: pinned cv3 + a freshly
+    # regenerated workspace cache). Both come from build_multi_tf_per_bar_features_v2() on
+    # the same bars and the features are causal/asof, so for any decision ts the values are
+    # bit-identical → train==serve preserved either way. (rule: make running-stale
+    # IMPOSSIBLE for live, not "remember to refresh the cache".)
+    if multi_tf is None:
+        cache = cache_dir or os.environ.get(
+            "GX1_V10_MULTI_TF_V2_CACHE_DIR", DEFAULT_MULTI_TF_V2_CACHE_DIR
+        )
+        multi_tf = load_multi_tf_v2_cache(cache)
     ctx = build_context(
-        m5, load_multi_tf_v2_cache(cache),
+        m5, multi_tf,
         journal_dir=Path(f"/nonexistent_{journal_label}_journal"),
     )
 
