@@ -47,7 +47,12 @@ from gx1.execution.oanda_credentials import load_oanda_credentials
 
 LOG = logging.getLogger("v12_collector")
 INSTRUMENT = "XAU_USD"
-POLL_SECONDS = 60
+# Poll cadence is env-overridable (no magic constant) — live SLA tuning. Default 60s
+# (OANDA-friendly); set GX1_COLLECTOR_POLL_SECONDS=15 in the systemd unit to pick up a
+# newly-closed M1 bar within ~15s instead of ~60s (tightens the M1 exit price reaction).
+# Note: a *closed* M1 bar is inherently up to 60s old; sub-1-min reaction needs tick
+# streaming (OANDA pricing/stream), not a faster poll — this only removes poll latency.
+POLL_SECONDS = int(os.environ.get("GX1_COLLECTOR_POLL_SECONDS", "60"))
 FETCH_LOOKBACK = 30                    # poll the last 30 M1 candles each iteration
 OUT_DIR = Path("/home/andre2/GX1_DATA/reports/v12_live_data")
 
