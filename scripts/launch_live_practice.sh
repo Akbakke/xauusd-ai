@@ -35,6 +35,13 @@ if [[ -f .env ]]; then
     set +o allexport
 fi
 
+# ── Collector poll cadence (live SLA) ───────────────────────────────────────
+# Tighten the OANDA M1 poll to 15s so a newly-closed bar reaches disk within ~15s
+# (default code constant is 60s). The live source is the systemd unit (drop-in
+# gx1-collector.service.d/poll15.conf sets the same value); this export only keeps
+# the nohup FALLBACK collector in parity if systemd is ever not owning it.
+export GX1_COLLECTOR_POLL_SECONDS=${GX1_COLLECTOR_POLL_SECONDS:-15}
+
 # ── Regime-flag pins (2026-06-04, audit R2/R3) ──────────────────────────────
 # LIVE serves the COSTFIX cement (V10 ctx_cont=105, trend_regime price-basis, EXIT_IO_V7).
 # The build/contract defaults were flipped ON (GX1_REGIME_V4 -> ctx_cont 121) for the
