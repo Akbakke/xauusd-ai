@@ -96,6 +96,13 @@ def load_v12_dataset(v3tracked_dir: Path,
     print(f"  [lazy-join] canonical features: {canonical_path}")
     canonical = fwd_pipe._load_canonical_features(canonical_path)
     canonical_suf = v3_m1._suffix_canonical(canonical)
+    # 2026-06-08: the train loader (load_per_bar_dataset_lazy_join) ALSO computes + merges the 64
+    # AUG64 exit features (gated by GX1_EXIT_AUGMENT_64); this gate loader had omitted it, so an
+    # AUG64-trained Exit-IQL hit FEATURE_COVERAGE_FATAL on the 64 missing cols. Mirror the train
+    # loader exactly so gate state == train/serve state. No-op when GX1_EXIT_AUGMENT_64!=1.
+    aug64 = v3_m1._compute_exit_aug64(canonical_path)
+    if aug64 is not None:
+        print(f"  [aug64] computed {len(v3_m1.NUMERIC_STATE_COLS_AUG64)} declared exit features (merge_asof per week)")
 
     t0 = time.time()
     parts = []
@@ -120,6 +127,8 @@ def load_v12_dataset(v3tracked_dir: Path,
                 df_p[col] = np.nan
         if canonical_suf is not None:
             df_p = v3_m1._merge_asof_features(df_p, canonical_suf)
+        if aug64 is not None:
+            df_p = v3_m1._merge_asof_features(df_p, aug64)
         parts.append(df_p)
 
     df = pd.concat(parts, ignore_index=True) if parts else pd.DataFrame()
