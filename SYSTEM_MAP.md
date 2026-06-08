@@ -32,7 +32,7 @@ XGB, multi-TF, datasets). §16-18 = gotchas, flags, protected core. Then the mai
   grid to M5 (a PreToolUse hook hard-blocks resample/ffill in exit files).
 - **V3 window = EXACTLY 512 M1 bars (8.5h)**, assembled once per M1 bar: canonical from BASE34, XGB
   bridge asof from M5 buckets (`bridge_by_ts` map), 19-col overlay right-aligned onto last `min(n,512)` rows ([v12_v3_live.py:257-347](gx1/execution/v12_v3_live.py#L257)).
-- **Entry-IQL `state_v1` (192-dim raw, un-normalized)** is journaled as `entry_iql_state_v1` for online-IQL replay + offline counterfactual variant replay ([v12_pipeline.py:390-438](gx1/execution/v12_pipeline.py#L390)).
+- **Entry-IQL `state_v1` (197-dim raw, un-normalized)** is journaled as `entry_iql_state_v1` for online-IQL replay + offline counterfactual variant replay ([v12_pipeline.py:390-438](gx1/execution/v12_pipeline.py#L390)). (Audit 2026-06-08: actual cement+clean = **197**, NOT 192; the adapter is name-driven and asserts `state_dim == len(feature_names)`.)
 
 ## 2. Perception vs policy — the part people (and I) keep getting wrong
 
@@ -135,7 +135,7 @@ Entry-snapshot (cols 0-4, frozen, from **V10 direction softmax** — candidate-g
 | 31 `{tf}_*_v2` cols | V3 builder attach_v2_mtf | `_augment_cv3_with_v2_mtf_scalars` | ✅ byte-identical (06-04) |
 | m5_phase | `minute%5` (trainer) | `compute_m5_phase_onehot` | ✅ (old `minute//12` retired) |
 | M1-native volume (4 feats, idx 91-94) | build_v3_dataset_v2:313 (M1-native) | v12_v3_live:307-318 (M1-native branch, **present**, one-truth `compute_volume_features`) | ⚠️ **rebuild-gated, NOT a code edit**: serve branch fires only when base34 carries raw `volume`; base34 has it on NEW rows only (incr. daemon), needs full-rebuild to backfill ALL rows. M5-ffill fallback until then. |
-| REGIME_V4 ctx (16) | add_regime_v4_features | `_augment_cv3_with_regime_v4` | ⚠️ **R10 serve wire PENDING** |
+| REGIME_V4 ctx (**18**) | add_regime_v4_features | `_augment_cv3_with_regime_v4` | ✓ **serve-wired** (gated GX1_REGIME_V4; launcher pins =1) |
 
 ---
 
@@ -145,8 +145,7 @@ Entry-snapshot (cols 0-4, frozen, from **V10 direction softmax** — candidate-g
   `V10.predict()` raises `RuntimeError` if `multi_tf_windows=None`. Default per-TF `seq_len=96`, bundle-metadata-driven ([v12_v10_live.py:358-385](gx1/execution/v12_v10_live.py#L358)). Candidate-gen hard-rejects non-multi-TF V10 ([...candidates_v3_v1.py:637-641](gx1/scripts/materialize_inference_batch_candidates_v3_v1.py#L637)).
 - **43 V10 new-head scalars** unpacked into Entry-IQL: dip 18 / forecast 4 / timing 12 / tail_risk 6 / vol_forecast 3;
   missing heads → explicit 0-fill + structured warn per missing-set change (2026-06-02 fix for the all-LONG-bias 0-fill bug) ([v12_entry_iql_live.py:275-310](gx1/execution/v12_entry_iql_live.py#L275)).
-- **Entry-IQL state:** cement runtime `state_v1` = **192-dim** (raw, journaled). The v2 builder declares **74** named
-  feats: 63 numeric (16 candidate + 43 V10-aux + 4 portfolio) + 11 one-hot (session4 + vol_regime4 + trend_regime3) ([materialize_build_entry_iql_v2.py:222-262](gx1/scripts/materialize_build_entry_iql_v2.py#L222)). ⚠️ 74≠192 — the 192 carries additional expanded/per-K terms; exact mapping not yet pinned (verify).
+- **Entry-IQL state:** cement runtime `state_v1` = **197-dim** (raw, journaled; verified at source 2026-06-08 — ckpt `net.0.weight=(256,197)`, 197 named `feature_names_v1`). The adapter builds the state strictly BY NAME with one-hot expansion + a fail-closed coverage guard and asserts `state_dim == len(feature_names)` ([entry_iql_v2_adapter.py:136-148,200-252](gx1/runtime/entry_iql_v2_adapter.py#L136)) — so adding/removing a feature is a contract change the serve mirrors automatically (the clean λ-rebuild = same 197, byte-identical names+order to the active cement).
 - **Zero-fill guard:** required feats (training std ≥ 1e-3) raise `RuntimeError` if absent; constants/harmless one-hots
   zero-fill silently — the 2026-05-19 LONG-bias guard ([entry_iql_v2_adapter.py:57-67,223-240](gx1/runtime/entry_iql_v2_adapter.py#L57)).
 - **ctx dims contract-driven:** `ctx_cont_dim = CTX_CONT_DIM_V3` (105 cement / 121 REGIME_V4), `ctx_cat_dim = CTX_CAT_DIM_V3`
@@ -175,7 +174,7 @@ Entry-snapshot (cols 0-4, frozen, from **V10 direction softmax** — candidate-g
 |---|---|---|---|
 | V6 | 91 | base canonical M1L512 | exit_io_v6_ctx_v3canonical_m1l512.py |
 | V7 | 155 | +4 volume +24 group-A +36 dip/struct | exit_io_v7_volume_dipstruct_m1l512.py:3-30 |
-| V8 | 171 | +16 REGIME_V4 (regime class + trend-age/TF + cross-TF + change-detect) | exit_io_v8_regime_m1l512.py:1-30 |
+| V8 | **173** | V7(155) + **18** REGIME_V4 (regime class + trend-age/TF + cross-TF + change-detect) | exit_io_v8_regime_m1l512.py:1-30 |
 
 - **Prefix-stable:** V7[:91]==V6, V8[:155]==V7 (runtime assertions) → warm-start from prior weights + **stable trade-state
   overlay indices 7-25 across all three**. Registry **defaults V6** if `io_version=None` (cement target = V7→V8; fail-close that None) ([registry.py:56-58](gx1/exits/contracts/registry.py#L56)). `SUPPORTED_V3_CONTRACTS` maps io_version → (features, count) ([v12_v3_live.py:80-151](gx1/execution/v12_v3_live.py#L80)).
