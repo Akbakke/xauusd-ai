@@ -132,6 +132,19 @@ def load_v12_dataset(v3tracked_dir: Path,
         parts.append(df_p)
 
     df = pd.concat(parts, ignore_index=True) if parts else pd.DataFrame()
+    # 2026-06-08: one-hot expand the categoricals EXACTLY as the train build_state_matrix does
+    # (get_dummies + pinned regime set). The gate bar_state is the raw per-bar row, so without this
+    # the adapter misses session_*/vol_regime_*/trend_regime_*/side_v1_* (the last coverage layer).
+    if len(df) > 0:
+        _ONE_HOT_PIN = {"vol_regime": ["LOW", "MEDIUM", "HIGH", "EXTREME"],
+                        "trend_regime": ["TREND_UP", "TREND_NEUTRAL", "TREND_DOWN"]}
+        for c in v2_train.ONE_HOT_COLS:
+            if c in df.columns:
+                dummies = pd.get_dummies(df[c].astype(str), prefix=c, dummy_na=False)
+                if c in _ONE_HOT_PIN:
+                    dummies = dummies.reindex(columns=[f"{c}_{lbl}" for lbl in _ONE_HOT_PIN[c]], fill_value=0)
+                for col in dummies.columns:
+                    df[col] = dummies[col].astype(np.float32)
     print(f"  Loaded {len(df):,} rows × {len(df.columns)} cols in {time.time()-t0:.1f}s "
           f"(chunk0-joined weeks: {weeks_with_chunk0}/{len(files)})")
     return df
