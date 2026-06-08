@@ -130,6 +130,7 @@ REWARD_VARIANTS = [
     # r_short = take_now_short_terminal_pnl@K96 - λ*MAE_pre - 2*spread
     # r_skip  = max(0, max(wait_long, wait_short) - max(r_long, r_short))
     # Goal: teach Entry-IQL "vent til dippen er ferdig" via SKIP > TAKE signal.
+    "R_WAIT_OPP_K96_LAM025",  # 2026-06-08 λ-sweep (vedtak entry_iql_lambda_sweep_20260608): recover over-skipped mean-reversion entries
     "R_WAIT_OPP_K96_LAM05",
     "R_WAIT_OPP_K96_LAM10",
     # K48 variants: shorter wait horizon (more responsive). wait_K48 had +40 mean signal.
@@ -530,6 +531,7 @@ def build_reward_matrix(df: pd.DataFrame, *, variant: str) -> np.ndarray:
         _sym = variant.endswith("_SYM")
         _base = variant[:-4] if _sym else variant
         _CFG = {
+            "R_WAIT_OPP_K96_LAM025": (96, 0.25),  # 2026-06-08 λ-sweep: gentlest MAE penalty (vedtak entry_iql_lambda_sweep_20260608)
             "R_WAIT_OPP_K96_LAM05": (96, 0.5),
             "R_WAIT_OPP_K96_LAM10": (96, 1.0),
             "R_WAIT_OPP_K96_LAM20": (96, 2.0),

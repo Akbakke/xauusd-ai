@@ -1,17 +1,17 @@
 {
-  "bundle_name": "ENTRY_V10_RELABEL15H24_SYMW_COSTFIX_20260526T183658Z",
-  "state_dict_sha256": "c471a1c1136d25ada290e3cf6fd9d1a7ebff574e0214a78db8a9a6c6a001218e",
+  "bundle_name": "v10_bundle_clean",
+  "state_dict_sha256": "87b56d2cd5acaa4fa01822b1b0aa7944c279137bac14049b65274c5ec8939837",
   "n": 64,
   "n_classes": 3,
-  "logits_sha256": "6ae1dbabaa3775a4cf6ff613b016829486db57fa921a3942dd99dfb9b4412905",
+  "logits_sha256": "5263f144655a049396a293b54aab8d7c638caad51acf56c7bd743ee2cbdf7920",
   "per_class_logit_mean": [
-    -9.179,
-    -8.6241,
-    -4.598
+    -11.8809,
+    -8.275,
+    -3.4172
   ],
   "argmax_counts": [
-    11,
-    16,
+    10,
+    17,
     37
   ]
 }
