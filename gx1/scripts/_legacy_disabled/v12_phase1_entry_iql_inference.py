@@ -110,9 +110,18 @@ def main() -> int:
     print(f"\n[2/3] Running Entry-IQL inference per week...")
     for w_idx, fp in enumerate(files, start=1):
         week_id = fp.stem  # forward_outcomes_TRUTH_MONFRI_WEEK_YYYYMMDD_YYYYMMDD
-        cands = pd.read_parquet(fp, columns=cols_to_read)
+        # 2026-06-08: the candidate lineage (no chunk_0) lacks the 60 group-A/dip-struct ctx cols.
+        # The Entry-IQL BUILD attaches them via the one-truth helper; mirror that here so inference
+        # state == train state (train==serve). Read needed cols + OHLC + decision_ts so the attach
+        # can compute them; the helper is idempotent (no-op if already present, e.g. chunk_0 lineage).
+        _read = [c for c in (set(cols_to_read) | {"high", "low", "close", "open", "decision_ts_utc"}) if c in fw_cols]
+        cands = pd.read_parquet(fp, columns=_read)
         if len(cands) == 0:
             continue
+        if "time" not in cands.columns and "decision_ts_utc" in cands.columns:
+            cands["time"] = pd.to_datetime(cands["decision_ts_utc"], utc=True)
+        from gx1.scripts.augment_forward_outcome_v2 import attach_group_a_dip_struct_ctx_columns
+        cands = attach_group_a_dip_struct_ctx_columns(cands, journal_label="phase1_entry_inference")
         candidate_dicts = cands.to_dict("records")
         recs = adapter.predict(candidate_dicts)
 
