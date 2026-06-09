@@ -105,6 +105,19 @@
   5. **Verify after launch** — snapshot GPU% / load / samples-s once warm; if a large model is CPU/dataloader-bound,
      fix (more workers / bigger batch); if a small net is low-GPU%, that's expected — don't chase GPU%.
   This is a PRE-RUN discipline: think setup+efficiency first, not just "turn util up". [[feedback_check_before_build_one_truth]]
+- **RETRAIN-SCOPE discipline — DON'T retrain what didn't change (2026-06-09 audit).** The audit found
+  ~16h+ of avoidable pure-fit and ~45% of the 20+ transformer retrains were avoidable. Before retraining a
+  TRANSFORMER ask: (1) **Warm-start by default** — 16/17 historical trainings ran COLD despite support;
+  always `--init-from-state-dict` from the cemented bundle on near-identical data (the V3 trainer now warns
+  LOUDLY on from-scratch; pass `--from-scratch` only for a deliberate cold start). (2) **Decouple V10↔V3** —
+  the cascade is one-way (XGB→V10→candidates→V3): an EXIT-side change retrains V3(+Exit-IQL) ONLY; an
+  ENTRY-side change retrains V10 + regen candidates, then warm-start-REFIT V3 only if candidate drift is
+  material; a full co-retrain of BOTH is justified ONLY by a SHARED-upstream change (XGB bundle or the
+  `signal_bridge_v3` 41-dim SEQ contract). Never reflex "deploy together". (3) **Reward = IQL-FROZEN** —
+  NEVER retrain a transformer to test a reward; relabel the reward + retrain the small IQL Q-net
+  (warm-start, minutes-to-~2h), transformer FROZEN. V13 proved the from-scratch-reward path overfits AND
+  is slower (Strategy-F won as an IQL-overlay with zero transformer retrain). V10 fit is ~35min (332K rows);
+  V3 is the ~2h/epoch cost driver — optimize V3, treat V10 fit as ~free. [[project_gx1_retrain_cost_audit_20260609]]
 - Do not run R6, freeze, promo, live, or package build without an explicit green gate.
 - Keep historical artifacts as history unless an explicit selection contract marks them active.
 

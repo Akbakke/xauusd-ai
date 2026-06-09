@@ -150,7 +150,10 @@ def main() -> None:
     parser.add_argument("--exit-io-version", type=str, default="EXIT_IO_V7_VOLUME_DIPSTRUCT_M1L512",
                         help="V7 contract (131 feats = 91 V6 + 4 volume + 36 dip/struct, 2026-05-26 parity "
                              "wave). Default so a re-run trains on the full 131-feature matrix.")
-    parser.add_argument("--early-stop-patience", type=int, default=4)
+    parser.add_argument("--early-stop-patience", type=int, default=2,
+                        help="2026-06-09 audit: default 4→2. Warm-started runs converge in ~1-2 "
+                             "epochs (best is usually epoch 1); patience 4 burned ~2 non-improving "
+                             "epochs (~4h on V3). Bump to 3 for a cold from-scratch run if needed.")
 
     parser.add_argument("--side-balance-weight", action="store_true")
     parser.add_argument("--focal-gamma", type=float, default=2.0)
@@ -202,6 +205,11 @@ def main() -> None:
                         help="V2 warm-start: load .pt state_dict into model after construction "
                              "(strict=False). Use scripts/warm_start_v3_v10_v2_from_v9.py to build. "
                              "For smoke-date filtering use --train-cutoff and --val-cutoff (existing).")
+    parser.add_argument("--from-scratch", action="store_true",
+                        help="Acknowledge a deliberate COLD start (no warm-start). Without this AND "
+                             "without --init-from-state-dict the trainer warns LOUDLY: from-scratch "
+                             "transformer retrains burn ~2-3 extra exploration epochs (~4-6h on V3) "
+                             "that a warm-start from the cemented bundle collapses (2026-06-09 audit).")
     parser.add_argument(
         "--vedtak", type=str, default=None,
         help="Explicit user decision id authorizing this retrain. REQUIRED "
@@ -301,10 +309,10 @@ def main() -> None:
         spill_root.mkdir(parents=True, exist_ok=True)
         print(f"[{ACTION}] spill dir: {spill_root}", flush=True)
 
-        # 2026-05-26: default raised 4→14 — labeling is CPU-bound, host has 18 cores;
-        # the labeler is ~26M per-bar evals so more workers ≈ linear until ~14.
-        # Set EXIT_LABEL_WORKERS=1 to fall back to serial (debug/low-RAM hosts).
-        n_workers = int(os.environ.get("EXIT_LABEL_WORKERS", str(min(14, (os.cpu_count() or 8)))))
+        # 2026-05-26: default raised 4→14; 2026-06-09 audit: default → cores-2 (16 on an 18-core
+        # host). Labeling is CPU-bound and runs while the GPU is IDLE (~3.1h front-loaded per
+        # from-scratch V3 build), so it is pure wall-clock — max it. EXIT_LABEL_WORKERS=1 = serial.
+        n_workers = int(os.environ.get("EXIT_LABEL_WORKERS", str(max(1, (os.cpu_count() or 8) - 2))))
         chunksize = int(args.label_chunksize)
         print(f"[{ACTION}] EXIT_LABEL_WORKERS={n_workers} chunksize={chunksize}", flush=True)
 
@@ -467,6 +475,16 @@ def main() -> None:
             f"missing={len(_ld.missing_keys)} unexpected={len(_ld.unexpected_keys)}",
             flush=True,
         )
+    elif not args.from_scratch:
+        # 2026-06-09 audit: 16/17 historical transformer trainings ran cold despite warm-start
+        # support — the single biggest avoidable wait. Make from-scratch LOUD, never silent.
+        print(
+            f"\n{'='*78}\n[{ACTION}] ⚠ FROM-SCRATCH (cold) start — no --init-from-state-dict given.\n"
+            f"  Warm-starting from the cemented V3 bundle collapses ~2-3 exploration epochs\n"
+            f"  (~4-6h on V3). Pass --init-from-state-dict <cemented exit_transformer_v0.pt> to\n"
+            f"  warm-start, or --from-scratch to acknowledge a deliberate cold start.\n{'='*78}\n",
+            flush=True,
+        )
 
     # torch.compile via either --torch-compile flag OR GX1_FAST_TRAIN env.
     _compile_from_env = False
@@ -482,7 +500,10 @@ def main() -> None:
         except Exception as e:
             print(f"[{ACTION}] torch.compile failed: {e}", flush=True)
 
-    optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+    # 2026-06-09 audit: fused optimizer step (CUDA only) — saves per-step launch overhead on the
+    # ~3.3M-param model; numerically equivalent (training-only, no train==serve impact).
+    optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay,
+                                  fused=torch.cuda.is_available())
     steps_per_epoch = max(1, len(train_loader))
     total_steps = steps_per_epoch * args.epochs
     scheduler = make_cosine_warmup_scheduler(
@@ -659,7 +680,7 @@ def main() -> None:
             "loss_weights": loss_weights, "side_balance_weight": args.side_balance_weight,
             "side_weights_long": (side_weights or {}).get("long"),
             "side_weights_short": (side_weights or {}).get("short"),
-            "label_workers": int(os.environ.get("EXIT_LABEL_WORKERS", "4")),
+            "label_workers": int(os.environ.get("EXIT_LABEL_WORKERS", str(max(1, (os.cpu_count() or 8) - 2)))),
             "label_chunksize": args.label_chunksize,
             "train_cutoff": args.train_cutoff, "val_cutoff": args.val_cutoff,
         },
