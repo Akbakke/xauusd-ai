@@ -299,6 +299,18 @@ def build_reward_matrix(df: pd.DataFrame, *, variant: str) -> np.ndarray:
         if "bars_in_trade_v1" in df.columns else np.zeros(n, dtype=float)
     )
 
+    # R_PEAK_QUALITY family (ported from v2 builder, ONE-truth math): scale-invariant
+    # giveback-quality needs the running MFE peak. Fail-closed (rule 9 / 2026-06-03 audit):
+    # refuse a degraded reward if the peak column is absent rather than silently filling 0
+    # (which would collapse quality->0 and force a degenerate always-EXIT policy).
+    peak_mfe_safe = None
+    if variant in ("R_PEAK_QUALITY", "R_PEAK_QUALITY_QUAD"):
+        if "current_mfe_bps_v1" not in df.columns:
+            raise RuntimeError(f"[{ACTION}] reward '{variant}' needs 'current_mfe_bps_v1' "
+                               f"(running MFE peak) — refusing to substitute a degraded reward.")
+        peak_mfe = pd.to_numeric(df["current_mfe_bps_v1"], errors="coerce").fillna(0.0).to_numpy()
+        peak_mfe_safe = np.maximum(peak_mfe, 1.0)  # avoid div0; if no peak yet, quality≈1
+
     for ki, K in enumerate(K_HORIZONS):
         hold_col = f"hold_max_pnl_K{K}_v1"
         # FAIL-CLOSED (2026-06-03 audit): if the HOLD-reward column is missing it must NOT
@@ -331,6 +343,17 @@ def build_reward_matrix(df: pd.DataFrame, *, variant: str) -> np.ndarray:
             oracle = np.maximum(exit_now, hold_K)
             r_hold = hold_K - oracle
             r_exit = exit_now - oracle
+        elif variant in ("R_PEAK_QUALITY", "R_PEAK_QUALITY_QUAD"):
+            # Scale-invariant exit-quality (ported from v2 builder :508-521, identical math).
+            # quality = clip(1 - drawdown_from_peak / peak_mfe, 0, 1): at peak quality=1 (full
+            # HOLD reward); full giveback quality=0 (-> EXIT_NOW triggered). Self-balancing —
+            # makes giveback-protection LEARNED, the smart-AI replacement for the hardcoded
+            # Strategy-F overlay (no tuned giveback/bars_cost lambdas).
+            quality = np.clip(1.0 - drawdown / peak_mfe_safe, 0.0, 1.0)
+            if variant == "R_PEAK_QUALITY_QUAD":
+                quality = quality ** 2  # steeper falloff on giveback
+            r_hold = hold_K * quality - v2_train.R_NET_REAL_GAMMA * spread
+            r_exit = exit_now - v2_train.R_NET_REAL_GAMMA * spread
         else:
             raise ValueError(f"unknown reward variant for M1 trainer: {variant}")
 
@@ -586,7 +609,8 @@ def main() -> None:
     parser.add_argument("--out-root", type=str, default=None)
     parser.add_argument("--sample-n-rows", type=int, default=None)
     parser.add_argument("--variants", type=str, default=None,
-                        help="Comma-separated subset of REWARD_VARIANTS (R_NET_REAL,R_GATED,R_REGRET)")
+                        help="Comma-separated subset of REWARD_VARIANTS "
+                             "(R_NET_REAL,R_NET_V2,R_GATED,R_REGRET,R_PEAK_QUALITY,R_PEAK_QUALITY_QUAD)")
     parser.add_argument("--budget", type=str, default="fast",
                         choices=list(v2_train.BUDGET_PRESETS.keys()))
     parser.add_argument("--k-primary", type=int, default=None,
