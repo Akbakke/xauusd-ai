@@ -33,7 +33,14 @@
 - Treat `PROJECT_STATE.md` as the current local project state.
 
 ## Scope & isolation
-- XAUUSD only. No other instruments in this project — never share data, models, paths, configs, reports, code trees, or memory with anything else.
+- XAUUSD is the only TRADED instrument. No other instruments are traded, and never share data, models, paths, configs,
+  reports, code trees, or memory with any OTHER PROJECT.
+- **CROSS-ASSET DATA AS FEATURES is permitted (user vedtak `cross_asset_features_20260609`).** Other instruments'
+  market data (e.g. DXY/USD-basket, real yields/TIPS, VIX/risk-sentiment, other metals) MAY be ingested as READ-ONLY
+  PREDICTIVE FEATURES for the XAU chain — gold does not move alone. STRICT bounds: feature-INPUT only, NEVER traded,
+  NEVER an output/decision instrument, NEVER shared with another project, kept under a clearly-labelled cross-asset
+  feature path. XAU remains the sole traded/output instrument; secrets + no-force-push + train==serve all unchanged.
+  (Supersedes the blanket "XAUUSD only" reading of CLAUDE.md rule 6 for FEATURE inputs only — trading-scope is unchanged.)
 
 ## Decisioning data integrity
 - Never use dummy, synthetic, or degraded fallback inputs for decisioning.
