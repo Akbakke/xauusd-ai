@@ -206,10 +206,10 @@ def main() -> None:
                              "(strict=False). Use scripts/warm_start_v3_v10_v2_from_v9.py to build. "
                              "For smoke-date filtering use --train-cutoff and --val-cutoff (existing).")
     parser.add_argument("--from-scratch", action="store_true",
-                        help="Acknowledge a deliberate COLD start (no warm-start). Without this AND "
-                             "without --init-from-state-dict the trainer warns LOUDLY: from-scratch "
-                             "transformer retrains burn ~2-3 extra exploration epochs (~4-6h on V3) "
-                             "that a warm-start from the cemented bundle collapses (2026-06-09 audit).")
+                        help="Force a deliberate COLD start. By DEFAULT (no warm-start flag) the trainer "
+                             "AUTO-warm-starts from the ACTIVE v3_exit bundle in the contract — cold "
+                             "retrains burn ~2-3 extra exploration epochs (~4-6h on V3, 2026-06-09 audit). "
+                             "Pass this only for a real arch/contract change where warm-start won't transfer.")
     parser.add_argument(
         "--vedtak", type=str, default=None,
         help="Explicit user decision id authorizing this retrain. REQUIRED "
@@ -462,29 +462,57 @@ def main() -> None:
     )
 
     # V2 warm-start: load state_dict BEFORE torch.compile (avoids _orig_mod prefix issue).
+    # 2026-06-09 audit: warm-start is now the DEFAULT (16/17 historical trainings ran cold because a
+    # human had to remember the flag — the single biggest avoidable wait). Resolution order:
+    # explicit --init-from-state-dict > auto-resolve the ACTIVE v3_exit bundle via the ONE-truth
+    # contract (rule-8 resolver, NO glob/mtime) > --from-scratch (deliberate cold). A silent
+    # cold-start is now IMPOSSIBLE, not "remember to warm-start".
+    _warmstart_src = None
     if args.init_from_state_dict:
-        _isd_path = Path(args.init_from_state_dict)
-        if not _isd_path.is_file():
-            raise FileNotFoundError(f"[INIT_STATE_DICT_MISSING] {_isd_path}")
-        print(f"[{ACTION}] [WARM_START] loading: {_isd_path}", flush=True)
-        _isd = torch.load(_isd_path, map_location="cpu", weights_only=True)
+        _warmstart_src = Path(args.init_from_state_dict)
+        if not _warmstart_src.is_file():
+            raise FileNotFoundError(f"[INIT_STATE_DICT_MISSING] {_warmstart_src}")
+        print(f"[{ACTION}] [WARM_START] source = explicit --init-from-state-dict", flush=True)
+    elif args.from_scratch:
+        print(f"[{ACTION}] [WARM_START] DISABLED — deliberate --from-scratch cold start.", flush=True)
+    else:
+        try:
+            from gx1_guards.artifacts import load_decision_artifact
+            _cand = Path(load_decision_artifact("v3_exit")) / "exit_transformer_v0.pt"
+            if _cand.is_file():
+                _warmstart_src = _cand
+                print(f"[{ACTION}] [WARM_START] AUTO source = active v3_exit bundle (contract): {_cand}", flush=True)
+        except Exception as _e:
+            print(f"[{ACTION}] [WARM_START] auto-resolve failed ({_e!r}) — falling back to cold start.", flush=True)
+        if _warmstart_src is None:
+            print(
+                f"\n{'='*78}\n[{ACTION}] ⚠ FROM-SCRATCH (cold) start — no warm-start source resolved.\n"
+                f"  Pass --init-from-state-dict <cemented exit_transformer_v0.pt> to warm-start,\n"
+                f"  or --from-scratch to acknowledge a deliberate cold start.\n{'='*78}\n",
+                flush=True,
+            )
+
+    if _warmstart_src is not None:
+        print(f"[{ACTION}] [WARM_START] loading: {_warmstart_src}", flush=True)
+        _isd = torch.load(_warmstart_src, map_location="cpu", weights_only=True)
         _isd = {k.removeprefix("_orig_mod."): v for k, v in _isd.items()}
         _ld = model.load_state_dict(_isd, strict=False)
+        _n_model = sum(1 for _ in model.state_dict())
+        _miss, _unexp = len(_ld.missing_keys), len(_ld.unexpected_keys)
         print(
-            f"[{ACTION}] [WARM_START] loaded {len(_isd)} keys. "
-            f"missing={len(_ld.missing_keys)} unexpected={len(_ld.unexpected_keys)}",
+            f"[{ACTION}] [WARM_START] loaded {len(_isd)} keys. missing={_miss} unexpected={_unexp}",
             flush=True,
         )
-    elif not args.from_scratch:
-        # 2026-06-09 audit: 16/17 historical transformer trainings ran cold despite warm-start
-        # support — the single biggest avoidable wait. Make from-scratch LOUD, never silent.
-        print(
-            f"\n{'='*78}\n[{ACTION}] ⚠ FROM-SCRATCH (cold) start — no --init-from-state-dict given.\n"
-            f"  Warm-starting from the cemented V3 bundle collapses ~2-3 exploration epochs\n"
-            f"  (~4-6h on V3). Pass --init-from-state-dict <cemented exit_transformer_v0.pt> to\n"
-            f"  warm-start, or --from-scratch to acknowledge a deliberate cold start.\n{'='*78}\n",
-            flush=True,
-        )
+        # Mismatch guard: large miss/unexpected => arch/contract drift => warm-start barely
+        # transferred. Warn LOUDLY so a contract bump isn't silently warm-started from a stale arch.
+        if _miss + _unexp > max(4, int(0.05 * _n_model)):
+            print(
+                f"\n{'='*78}\n[{ACTION}] ⚠ WARM_START POOR MATCH: missing={_miss} unexpected={_unexp} "
+                f"(model has {_n_model} keys).\n  Likely an ARCH/CONTRACT change vs the cemented bundle "
+                f"— warm-start barely transferred.\n  Use --from-scratch for a clean cold start if this "
+                f"is a real contract bump.\n{'='*78}\n",
+                flush=True,
+            )
 
     # torch.compile via either --torch-compile flag OR GX1_FAST_TRAIN env.
     _compile_from_env = False

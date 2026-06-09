@@ -108,8 +108,9 @@
 - **RETRAIN-SCOPE discipline — DON'T retrain what didn't change (2026-06-09 audit).** The audit found
   ~16h+ of avoidable pure-fit and ~45% of the 20+ transformer retrains were avoidable. Before retraining a
   TRANSFORMER ask: (1) **Warm-start by default** — 16/17 historical trainings ran COLD despite support;
-  always `--init-from-state-dict` from the cemented bundle on near-identical data (the V3 trainer now warns
-  LOUDLY on from-scratch; pass `--from-scratch` only for a deliberate cold start). (2) **Decouple V10↔V3** —
+  always warm-start on near-identical data (the V3 trainer now AUTO-warm-starts from the ACTIVE v3_exit
+  bundle in the contract BY DEFAULT — rule-8 resolver + arch-mismatch guard; pass `--from-scratch` only
+  for a real arch/contract change, or `--init-from-state-dict` to override the source). (2) **Decouple V10↔V3** —
   the cascade is one-way (XGB→V10→candidates→V3): an EXIT-side change retrains V3(+Exit-IQL) ONLY; an
   ENTRY-side change retrains V10 + regen candidates, then warm-start-REFIT V3 only if candidate drift is
   material; a full co-retrain of BOTH is justified ONLY by a SHARED-upstream change (XGB bundle or the
