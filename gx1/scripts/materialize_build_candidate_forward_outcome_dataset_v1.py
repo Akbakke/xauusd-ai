@@ -342,6 +342,10 @@ def compute_outcomes_for_window(
             out[f"time_to_mfe_at_K{K}"] = -1
             out[f"terminal_pnl_at_K{K}"] = float("nan")
             out[f"forward_bars_used_at_K{K}"] = 0
+            out[f"trough_bars_to_at_K{K}"] = -1
+            out[f"trough_terminal_pnl_at_K{K}"] = float("nan")
+            out[f"trough_mfe_bps_at_K{K}"] = float("nan")
+            out[f"trough_mae_before_mfe_bps_at_K{K}"] = float("nan")
         return out
 
     peak, trough, terminal = compute_side_metrics(
@@ -363,6 +367,10 @@ def compute_outcomes_for_window(
             out[f"time_to_mfe_at_K{K}"] = -1
             out[f"terminal_pnl_at_K{K}"] = float("nan")
             out[f"forward_bars_used_at_K{K}"] = 0
+            out[f"trough_bars_to_at_K{K}"] = -1
+            out[f"trough_terminal_pnl_at_K{K}"] = float("nan")
+            out[f"trough_mfe_bps_at_K{K}"] = float("nan")
+            out[f"trough_mae_before_mfe_bps_at_K{K}"] = float("nan")
             continue
 
         peak_K = peak[:K_eff]
@@ -382,6 +390,30 @@ def compute_outcomes_for_window(
         out[f"time_to_mfe_at_K{K}"] = argmax_idx
         out[f"terminal_pnl_at_K{K}"] = terminal_K
         out[f"forward_bars_used_at_K{K}"] = K_eff
+
+        # TROUGH-ANCHORED "wait-for-the-bottom" counterfactual (2026-06-09): the bottom = the
+        # worst-adverse bar BEFORE the MFE peak. Emit the ORACLE outcome of ENTERING at that bar
+        # (vs entering now), so a reward can teach skip-while-falling / take-at-the-bottom.
+        # trough_bars_to_at_K = 0 => this bar IS the bottom (take now). Re-uses compute_side_metrics
+        # (ONE-truth bid/ask fill convention) on the sub-window from the trough bar to K.
+        trough_idx = int(np.argmin(trough_K[: argmax_idx + 1]))
+        ts = slice(trough_idx, K_eff)
+        pk_t, tr_t, tm_t = compute_side_metrics(
+            bid_open[ts], bid_high[ts], bid_low[ts], bid_close[ts],
+            ask_open[ts], ask_high[ts], ask_low[ts], ask_close[ts], side,
+        )
+        if len(pk_t):
+            amax_t = int(np.argmax(pk_t))
+            mfe_t = float(pk_t[amax_t])
+            maebm_t = float(-np.min(tr_t[: amax_t + 1]))
+            maebm_t = maebm_t if maebm_t > 0 else 0.0
+            term_t = float(tm_t[-1])
+        else:
+            mfe_t, maebm_t, term_t = mfe, mae_before, terminal_K
+        out[f"trough_bars_to_at_K{K}"] = trough_idx
+        out[f"trough_terminal_pnl_at_K{K}"] = term_t
+        out[f"trough_mfe_bps_at_K{K}"] = mfe_t
+        out[f"trough_mae_before_mfe_bps_at_K{K}"] = maebm_t
     return out
 
 
