@@ -208,7 +208,18 @@ def main():
         last_v = verdict(new, base)
         if "fase2b" in tag:
             decisive = last_v
-    if decisive is None:  # fase2b baseline missing → fall back to the last baseline verdict we computed
+    # FAIL LOUD (2026-06-10 hardening): if the DECISIVE fase2b baseline was REQUESTED but produced no verdict
+    # (missing/unreadable file), NEVER silently grade the "DECISIVE GATE" against the easier COSTFIX informational
+    # baseline — that emits a misleading PASS/FAIL + exit code against the wrong comparator. Only an EXPLICIT
+    # `--fase2b-baseline ''` skip may fall back, and it is labelled honestly so nobody reads it as the rollback.
+    if decisive is None:
+        if args.fase2b_baseline:
+            raise FileNotFoundError(
+                f"[GATE] decisive fase2b baseline requested ({args.fase2b_baseline!r}) but produced no verdict "
+                f"(missing/unreadable) — refusing to silently fall back to COSTFIX as 'decisive'. Fix the path, "
+                f"or pass --fase2b-baseline '' to grade against COSTFIX only.")
+        print("\n[NOTE] --fase2b-baseline '' (explicit skip): the DECISIVE line below is vs COSTFIX informational, "
+              "NOT the live fase2b rollback.")
         decisive = bool(last_v) if last_v is not None else False
     print(f"\n=== DECISIVE GATE (clean chain vs LIVE fase2b rollback, April-excluded): "
           f"{'PASS — flip candidate' if decisive else 'FAIL — keep cement'} ===")
