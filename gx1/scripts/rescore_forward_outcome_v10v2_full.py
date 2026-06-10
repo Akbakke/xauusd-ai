@@ -39,7 +39,9 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 DEFAULT_CANONICAL = Path("/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_PREBUILT/xauusd_m5_CANONICAL_V3_FULL_PLUS_CTX_2020_2026.parquet")
-DEFAULT_XGB_BUNDLE = Path("/home/andre2/GX1_DATA/models/models/xgb_v7_base80_20260526T052210Z")
+# --xgb-bundle is REQUIRED (no silent stale-bundle default; rule 8). The old hardcoded literal
+# (xgb_v7_base80_20260526T052210Z) is now an INVALIDATED history entry — pass the contract-active
+# xgb explicitly (PROJECT_STATE_artifacts.json active.xgb) so a rescore can never bake a stale bundle.
 DEFAULT_XGB_CONTRACT = REPO_ROOT / "gx1" / "xgb" / "contracts" / "xgb_input_features_base80_v1.json"
 DEFAULT_XGB_SANITIZER = REPO_ROOT / "gx1" / "xgb" / "contracts" / "xgb_input_sanitizer_base80_v1.json"
 DEFAULT_V2_CACHE_DIR = Path("/home/andre2/GX1_DATA/data/data/prebuilt/MULTI_TF_V2_CACHE")
@@ -63,7 +65,8 @@ def main() -> int:
     # 05-22 MULTI_TF_V2_CACHE, now quarantined. A re-score MUST pass the regime-fresh artifacts explicitly.
     p.add_argument("--canonical-v3", type=Path, required=True,
                    help="explicit regime-fresh canonical_v3/FULL_PLUS_CTX (no silent default)")
-    p.add_argument("--xgb-bundle", type=Path, default=DEFAULT_XGB_BUNDLE)
+    p.add_argument("--xgb-bundle", type=Path, required=True,
+                   help="explicit xgb bundle (no silent stale default; pass the contract-active xgb)")
     p.add_argument("--xgb-contract", type=Path, default=DEFAULT_XGB_CONTRACT)
     p.add_argument("--xgb-sanitizer", type=Path, default=DEFAULT_XGB_SANITIZER)
     p.add_argument("--v2-cache-dir", type=Path, required=True,

@@ -157,15 +157,8 @@ LOG.info(
 # the ACTIVE Exit-IQL bundle (path + variant + fold + aggregator) from
 # PROJECT_STATE_artifacts.json via gx1_guards.load_decision_entry("exit_iql").
 # One truth: cement the bundle by editing the contract, not by editing constants.
-# Old V12.4 hard-coded values kept here ONLY as fallback if guards module is
-# unavailable (e.g. ad-hoc smoke tests), and only when sanity-tagged in the load.
-_V12_4_LEGACY_BUNDLE = (
-    "BUILD_EXIT_IQL_PER_BAR_DATASET_V12_V3PLUS_FULL_20260519T012648Z_LOCK_"
-    "V3TRACKED_20260519T022946Z_LOCK_ZCLAMP8M_TRAINED_20260520T190905Z_LOCK"
-)
-DEFAULT_BUNDLE_DIR = Path(
-    "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/" + _V12_4_LEGACY_BUNDLE
-)
+# (2026-06-10: removed the dead _V12_4_LEGACY_BUNDLE / DEFAULT_BUNDLE_DIR fallback constants —
+# verified unreferenced; load() resolves exclusively via load_decision_entry("exit_iql").)
 DEFAULT_VARIANT = "R_NET_REAL"
 DEFAULT_FOLD = "FOLD_1"
 DEFAULT_AGGREGATOR = "max"

@@ -47,8 +47,16 @@ XGB, multi-TF, datasets). §16-18 = gotchas, flags, protected core. Then the mai
   hold-max-pnl term, NOT exit time. DIFFERENT from entry's K-set ([materialize_build_exit_iql_per_bar_dataset_v1.py:101](gx1/scripts/materialize_build_exit_iql_per_bar_dataset_v1.py#L101)).
 - **Advantages (bps, reward scale):** `advantage_over_skip = Q[chosen]-Q[SKIP]`; `advantage_over_realized =
   Q[chosen]-max(Q[long],Q[short])` ([entry_iql_v2_adapter.py:75-78,297](gx1/runtime/entry_iql_v2_adapter.py#L75)). Exit advantage = `q_exit-q_hold`, gated by `exit_margin` (default 0 = argmax).
-- **Q-advantage entry filter:** cement `min_advantage_bps = 0.0` (OFF); runtime adaptive `min_adv =
-  max(FLOOR 1.5, MULT 0.35 × ATR_bps)` in the runner ([v12_entry_iql_live.py:93-101](gx1/execution/v12_entry_iql_live.py#L93), [v12_paper_runner.py:763-770](gx1/execution/v12_paper_runner.py#L763)).
+- **Entry selection — CEMENTED 2026-06-10 = conviction-gate + skip-ASIA** (serve-time overlay; the
+  `entry_iql_clean` **LAM50-reward bundle is UNCHANGED**): OPEN a TAKE when `raw_adv = best-TAKE-Q − SKIP-Q`
+  (UN-clipped) `>= GX1_CONVICTION_THR` (−34.2 = offline conviction20 20th-pctile → top-20% open), side =
+  `argmax(TAKE-Q)`, OVERRIDING the IQL's conservative argmax-SKIP; + skip-ASIA (block ASIA-session entries).
+  Env-gated `GX1_CONVICTION_GATE`/`GX1_SKIP_ASIA`/`GX1_CONVICTION_THR` ([v12_entry_iql_live.py:104](gx1/execution/v12_entry_iql_live.py#L104),
+  [v12_paper_runner.py](gx1/execution/v12_paper_runner.py), commits 42b5946b/268c70ee; launcher pins `1`/`1`/`−34.2`).
+  ONE truth = `PROJECT_STATE_artifacts.json` → `entry_iql.operating_point`.
+  - SUPERSEDED (pre-2026-06-10, "LAM50/VOLUME-FIRST" *operating point* — NOT the bundle): cement
+    `min_advantage_bps = 0.0` (OFF) + runtime adaptive `min_adv = max(1.5, 0.35×ATR_bps)` = IQL argmax-SKIP,
+    ~8% take, admit 0.458 < gate floor. Retired by the conviction-gate.
 
 ## 3. The 19-col V3 trade-state overlay (V4/R13) — ONE TRUTH
 
@@ -228,7 +236,9 @@ Entry-snapshot (cols 0-4, frozen, from **V10 direction softmax** — candidate-g
 
 | flag | meaning | default |
 |---|---|---|
-| `GX1_REGIME_V4` | regime-v4 ctx (cont 121/cat 5 vs 105/6) | build/contract `1`, serve/cand `0`, launcher PIN `0` |
+| `GX1_REGIME_V4` | regime-v4 ctx (cont 121/cat 5 vs 105/6) | build/contract `1`, serve/cand `0`, launcher PIN `1` (fase2b cement) |
+| `GX1_CONVICTION_GATE` / `GX1_CONVICTION_THR` | entry conviction-gate: open top-20% by `raw_adv` (≥ thr) overriding IQL SKIP | code OFF / `-34.2`; launcher PIN `1` / `-34.2` (CEMENTED 2026-06-10) |
+| `GX1_SKIP_ASIA` | block ASIA-session entries (per-year win floor) | code OFF; launcher PIN `1` |
 | `GX1_PURE_PHASE6` | disable live-only wrappers (live=Phase6 1:1); CLUSTER1 stays ON; safety always-on | `1` for paper-runner |
 | `GX1_STRATEGY_F_ENABLED` | MFE-giveback exit overlay (4 rules) | `True` (OOT-ablate → OFF post-retrain) |
 | `GX1_MFE_GIVEBACK_PCT` / `_MIN_MFE_BPS` | profit-lock thresholds | `0.30` / `30.0` |

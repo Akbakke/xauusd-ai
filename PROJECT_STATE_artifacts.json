@@ -101,26 +101,31 @@
       "reason": "superseded by fase2b regime-v4 chain (user vedtak 'keep this' 2026-06-08). Parked as rollback (workspace bundles intact)."
     },
     {
+      "role": "v10_entry",
       "path": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_RELABEL15H24_SYMW_20260526T144328Z",
       "status": "INVALIDATED",
       "reason": "anti-long cost-matrix short-bias (65% short vs 47% true); superseded by COSTFIX."
     },
     {
+      "role": "candidate_batch",
       "path": "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/INFERENCE_BATCH_CANDIDATES_V3PLUS_RELABEL15H24_SYMW_20260526T173100Z__SUPERSEDED_SHORTBIAS_DO_NOT_USE",
       "status": "INVALIDATED",
       "reason": "candidate batch from short-biased SYMW V10; superseded by COSTFIX batch."
     },
     {
+      "role": "registry",
       "path": "GX1_DATA/CURRENT_BUNDLES.md V12.1.1 entries (V10 v3 / V3 v8 / XGB v5 / IQL LOCKs)",
       "status": "INVALIDATED",
       "reason": "registry stale \u2014 those bundle dirs deleted/superseded by the v3+ chain + COSTFIX rebuild."
     },
     {
+      "role": "v3_exit",
       "path": "/home/andre2/GX1_DATA/models/models/exit_transformer/EXIT_V3_V7_COSTFIX_20260526T211756Z__SUPERSEDED_BY_LR3E4_DO_NOT_USE",
       "status": "INVALIDATED",
       "reason": "V3 baseline lr=1.2e-3 (epoch-1-best, immediate overfit). OOT PR-AUC 0.161 / ROC 0.770. Superseded 2026-05-28 by lr=3e-4 (healthier convergence, better operational metrics). Quarantined on disk (renamed __SUPERSEDED_BY_LR3E4_DO_NOT_USE) \u2014 kept for reversibility."
     },
     {
+      "role": "candidate_batch",
       "path": "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/INFERENCE_BATCH_CANDIDATES_V3PLUS_COSTFIX_20260526T201825Z__SUPERSEDED_BY_HEADS_BATCH",
       "status": "INVALIDATED",
       "reason": "headless COSTFIX candidate batch; superseded by HEADS_20260527T123431Z (strict superset: identical entries + 43 V10 new-head cols for Entry-IQL)."

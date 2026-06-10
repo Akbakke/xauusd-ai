@@ -94,10 +94,9 @@ ASIA_HOURS = set(list(range(22, 24)) + list(range(0, 9)))
 EU_HOURS   = set(range(7, 17))
 US_HOURS   = set(range(13, 22))
 
-DEFAULT_FORWARD_OUTCOME_DIR = Path(
-    "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/"
-    "CANDIDATE_FORWARD_OUTCOME_V3PLUS_PORTFOLIO_PLUS5_20260521T110559Z_LOCK"
-)
+# --forward-outcome-dir is REQUIRED (no silent stale default; rule 8). The old hardcoded literal
+# (CANDIDATE_FORWARD_OUTCOME_V3PLUS_..._20260521 LOCK) is superseded 2x (v3+ -> COSTFIX -> fase2b)
+# and quarantined — pass the current forward-outcome dir explicitly so an augment can't read a stale set.
 M5_PREBUILT = Path(
     "/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_PREBUILT/"
     "xauusd_m5_CANONICAL_V3_2020_2026.parquet"
@@ -686,7 +685,8 @@ def augment_week(week_pq: Path, out_pq: Path, ctx: AugmentContext,
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--forward-outcome-dir", type=Path, default=DEFAULT_FORWARD_OUTCOME_DIR)
+    ap.add_argument("--forward-outcome-dir", type=Path, required=True,
+                    help="explicit forward-outcome dir (no silent stale default; pass the current set)")
     ap.add_argument("--out-dir", type=Path, default=None)
     ap.add_argument("--m5-prebuilt", type=Path, default=M5_PREBUILT)
     ap.add_argument("--n-weeks-test", type=int, default=0)

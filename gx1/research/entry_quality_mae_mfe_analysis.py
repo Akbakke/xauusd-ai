@@ -22,10 +22,12 @@ import pandas as pd
 
 sys.path.insert(0, "/home/andre2/src/GX1_ENGINE")
 
-# Defaults = the cemented chain (so this runs today; point at clean WS2 once A2.5 lands).
-DEF_FO = "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/forward_outcome_clean/per_week"
-DEF_DEC = ("/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/entry_decisions_lam50/"
-           "ENTRY_IQL_INFERENCE_FOR_V12_20260608T033121Z/decisions.parquet")
+# Defaults = the CLEAN (WS2) cemented chain. Repointed 2026-06-10: the old REGIME_V4 forward_outcome_clean
+# + entry_decisions_lam50 dumps were quarantined to runs/_SUPERSEDED_20260610/. DEF_DEC = the current
+# conviction-gate entry decisions (the live entry operating point); pass --decisions explicitly to analyse
+# a different policy's dump.
+DEF_FO = "/home/andre2/GX1_DATA/runs/FASE2B_CLEAN_20260608/forward_outcome_clean/per_week"
+DEF_DEC = "/home/andre2/GX1_DATA/runs/FASE2B_CLEAN_20260608/entry_decisions_conviction20/decisions.parquet"
 CORRUPT_APRIL = (pd.Timestamp("2026-04-01", tz="UTC"), pd.Timestamp("2026-04-21", tz="UTC"))
 
 # Decision-time feature candidates (decision-time only; NO outcomes, NO entry-IQL q/advantage = circular).

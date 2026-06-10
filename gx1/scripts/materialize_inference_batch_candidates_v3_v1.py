@@ -71,18 +71,9 @@ ACTION = "INFERENCE_BATCH_CANDIDATES_V3"
 DEFAULT_PREBUILT_PARQUET = Path(
     "/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_PREBUILT/xauusd_m5_CANONICAL_V3_FULL_PLUS_CTX_2020_2026.parquet"
 )
-DEFAULT_XGB_BUNDLE = Path(
-    # V12-cascade bundle. ONE truth = PROJECT_STATE_artifacts.json (resolve via
-    # gx1_guards.load_decision_artifact). CURRENT_BUNDLES.md is SUPERSEDED. (the 081604Z_1000est
-    # retrain was deleted 2026-05-11 — it was never used by V12 cascade).
-    "/home/andre2/GX1_DATA/models/models/xgb_v7_base80_20260526T052210Z"
-)
-# V12.2 (2026-05-15): default updated to V10 v_FIXED multi-TF.
-# v3+ chain (2026-05-19): default now V10 V3PLUS_v2 (4 aux heads + multi-TF cement).
-# Script HARD-REQUIRES multi-TF V10; non-multi-TF V10 v3 baseline is deprecated.
-DEFAULT_V10_BUNDLE = Path(
-    "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_V3PLUS_v2_20260518T135516Z"
-)
+# 2026-06-10: removed orphaned DEFAULT_XGB_BUNDLE / DEFAULT_V10_BUNDLE literals (both stale/deleted
+# vintages, NOT argparse defaults — --xgb-bundle/--v10-bundle are required=True). ONE truth =
+# PROJECT_STATE_artifacts.json (resolve via gx1_guards.load_decision_artifact). No silent stale bundle.
 DEFAULT_XGB_FEATURE_CONTRACT = REPO_ROOT / "gx1" / "xgb" / "contracts" / "xgb_input_features_base80_v1.json"
 DEFAULT_XGB_SANITIZER_CONFIG = REPO_ROOT / "gx1" / "xgb" / "contracts" / "xgb_input_sanitizer_base80_v1.json"
 DEFAULT_REPORTS_ROOT = Path("/home/andre2/GX1_DATA/reports/truth_e2e_sanity")

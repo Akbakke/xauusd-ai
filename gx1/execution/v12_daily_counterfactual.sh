@@ -6,8 +6,11 @@
 #   reports in counterfactual_reports/.
 #
 # Track B: variant-shadow (added 2026-05-31, every 10 min, TODAY+yesterday)
-#   "What would LAM30/LAM20/HYBRID have decided on the same polls as cement
-#   LAM50?" — produces take-rate-per-variant reports in variant_shadow_reports/.
+#   Reward-family take-rate comparison: "What would LAM30/LAM20/HYBRID have decided
+#   on the same polls?" NOTE (2026-06-10): the LIVE entry DECISION policy is the
+#   conviction-gate + skip-ASIA serve-overlay on the LAM50-REWARD bundle (NOT raw LAM50
+#   argmax) — these shadow variants compare reward-family take-rates, not the live operating point.
+#   Produces take-rate-per-variant reports in variant_shadow_reports/.
 #   No fwd window needed (variants only choose actions), so we run fresh every
 #   cycle as the live journal grows.
 #

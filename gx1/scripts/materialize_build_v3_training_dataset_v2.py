@@ -115,12 +115,8 @@ DEFAULT_M5_TAPE_ROOT = Path("/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m
 DEFAULT_CANONICAL_V2_PATH = Path(
     "/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_PREBUILT/xauusd_m5_CANONICAL_V3_FULL_PLUS_CTX_2020_2026.parquet"
 )
-DEFAULT_XGB_BUNDLE = Path(
-    # V12-cascade bundle. ONE truth = PROJECT_STATE_artifacts.json (resolve via
-    # gx1_guards.load_decision_artifact). CURRENT_BUNDLES.md is SUPERSEDED. (the 081604Z_1000est
-    # retrain was deleted 2026-05-11 — it was never used by V12 cascade).
-    "/home/andre2/GX1_DATA/models/models/xgb_v7_base80_20260526T052210Z"
-)
+# 2026-06-10: removed orphaned DEFAULT_XGB_BUNDLE literal (stale vintage, NOT an argparse default —
+# --xgb-bundle is required=True). ONE truth = PROJECT_STATE_artifacts.json (load_decision_artifact).
 DEFAULT_XGB_FEATURE_CONTRACT = REPO_ROOT / "gx1" / "xgb" / "contracts" / "xgb_input_features_base80_v1.json"
 DEFAULT_XGB_SANITIZER_CONFIG = REPO_ROOT / "gx1" / "xgb" / "contracts" / "xgb_input_sanitizer_base80_v1.json"
 DEFAULT_OUT_PATH = Path("/home/andre2/GX1_DATA/data/training/exit_v3_v7_training_2020_2026_canonical_v3")
