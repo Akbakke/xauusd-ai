@@ -41,6 +41,12 @@ KNOWN_ALLOWED_DEAD: Dict[str, str] = {
     "smc_choch": "BUG-MASK (remove when fixed): too sparse (0.1% nonzero) → 0 gain. Hygiene wave: decay to bars_since_choch.",
     # Multi-TF window-property (NOT a bug): D1 EMA-stack alignment can be const over a calm window:
     "d1:ema_stack_aligned_v2": "D1 regime can be stable over a test window → const there; alive in other TFs.",
+    # Provenance one-hot — const BY CONSTRUCTION (verified 2026-06-10 by the full-state re-audit): decision_reason is
+    # hardcoded `['v2_inference_batch']*n` at candidate-gen (materialize_inference_batch_candidates_v3_v1.py:502),
+    # n_unique=1 → the get_dummies column is constant=1, zero possible signal. Appears in Entry-IQL(197) + Exit-IQL(209)
+    # state (double- vs single-underscore get_dummies sep). Harmless dead slot; DROP at the next rebuild.
+    "decision_reason__v2_inference_batch": "Entry-IQL: const provenance one-hot (hardcoded reason, n_unique=1). Drop at rebuild.",
+    "decision_reason_v2_inference_batch": "Exit-IQL: same const provenance one-hot. Drop at rebuild.",
 }
 
 MULTI_TF_NAMES: Sequence[str] = ()

@@ -71,36 +71,52 @@ def _audit_state(name, X, names):
 
 
 def main():
+    import os
+    from pathlib import Path
+    # Match the A3 exit build's env (aug64 + regime) so the EXIT lazy-join computes the same 64 aug64 features.
+    for k in ("GX1_EXIT_AUGMENT_64", "GX1_REGIME_V4", "GX1_TREND_REGIME_FROM_D1"):
+        os.environ.setdefault(k, "1")
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--sample-n", type=int, default=200_000)
     ap.add_argument("--forward-outcome-dir", default=f"{WS2}/forward_outcome_clean/per_week")
     ap.add_argument("--mtf-cache", default=f"{WS2}/MULTI_TF_V2_CACHE")
-    ap.add_argument("--exit-per-bar-dir", default=f"{WS2}/exit_per_bar_scored_clean/per_week")
+    ap.add_argument("--exit-per-bar-dir", default=f"{WS2}/exit_per_bar_scored_clean")
+    ap.add_argument("--canonical-features", default=f"{WS2}/CANONICAL_FEATURES_V3_PLUS5/canonical_features_v3_plus5.parquet")
+    ap.add_argument("--reports-root", default="/home/andre2/GX1_DATA/reports/truth_e2e_sanity")  # chunk0 (empty) — build default
     ap.add_argument("--xgb-bundle", default=None)
     ap.add_argument("--xgb-contract", default=None)
     args = ap.parse_args()
     total_dead = 0
+    failures = []   # a THROWN arm is a FAIL, never a silent pass (the 2026-06-10 false-pass bug)
 
-    # 1) ENTRY-IQL 197-state (THE GAP — where the 36 dip/struct hid). Load fwd-outcome sample → attach_ (self-
-    #    compute dip/struct with the MTF cache) → build_state_matrix → _dead_cols. Also the dip/struct DATA-TRACE.
+    # 1) ENTRY-IQL 197-state. Replicate the build (materialize_build_entry_iql_v2:873-876): map decision_ts_utc->time,
+    #    attach_ (dip/struct from the MTF cache), build_state_matrix → _dead_cols. Also the dip/struct DATA-TRACE.
     try:
         from gx1.scripts.augment_forward_outcome_v2 import attach_group_a_dip_struct_ctx_columns
         from gx1.scripts.materialize_build_entry_iql_v2 import build_state_matrix as entry_bsm
         df = _sample_weeks(args.forward_outcome_dir, args.sample_n)
+        if "time" not in df.columns and "decision_ts_utc" in df.columns:
+            df["time"] = pd.to_datetime(df["decision_ts_utc"], utc=True)   # build does this before attach_
         df = attach_group_a_dip_struct_ctx_columns(df, cache_dir=args.mtf_cache, journal_label="reaudit")
         X, names = entry_bsm(df)
         total_dead += _audit_state("ENTRY-IQL state", X, names)
     except Exception as e:
-        print(f"\n[ENTRY-IQL audit FAILED: {e!r}]"); traceback.print_exc()
+        print(f"\n[ENTRY-IQL audit FAILED: {e!r}]"); traceback.print_exc(); failures.append("ENTRY-IQL")
 
-    # 2) EXIT-IQL 209-state
+    # 2) EXIT-IQL 209-state. Use the build's ONE-TRUTH lazy-join loader (canonical-suffix + 64 aug64 + chunk0) →
+    #    build_state_matrix — same path as the A3 build (materialize_build_exit_iql_v3_m1:470). Raw scored parquets
+    #    LACK the _v1_*_canon_v1 + aug64 cols (they are lazy-joined), so a plain read would false-miss 86 cols.
     try:
-        from gx1.scripts.materialize_build_exit_iql_v3_m1 import build_state_matrix as exit_bsm
-        dfe = _sample_weeks(args.exit_per_bar_dir, args.sample_n)
+        from gx1.scripts.materialize_build_exit_iql_v3_m1 import (
+            build_state_matrix as exit_bsm, load_per_bar_dataset_lazy_join)
+        pbd = Path(args.exit_per_bar_dir)
+        per_week = pbd / "per_week" if (pbd / "per_week").exists() else pbd
+        dfe = load_per_bar_dataset_lazy_join(per_week, reports_root=Path(args.reports_root),
+                                             canonical_path=Path(args.canonical_features), sample_n_rows=args.sample_n)
         Xe, namese = exit_bsm(dfe)
         total_dead += _audit_state("EXIT-IQL state", Xe, namese)
     except Exception as e:
-        print(f"\n[EXIT-IQL audit FAILED: {e!r}]"); traceback.print_exc()
+        print(f"\n[EXIT-IQL audit FAILED: {e!r}]"); traceback.print_exc(); failures.append("EXIT-IQL")
 
     # 3) XGB gain (existing one-truth check)
     if args.xgb_bundle and args.xgb_contract:
@@ -112,16 +128,17 @@ def main():
                 print(f"      {d}")
             total_dead += len(xdead)
         except Exception as e:
-            print(f"\n[XGB audit FAILED: {e!r}]")
+            print(f"\n[XGB audit FAILED: {e!r}]"); failures.append("XGB")
     else:
         print("\n[XGB audit skipped — pass --xgb-bundle + --xgb-contract]")
 
-    # NOTE: V10 ctx/snap/multi-TF is covered by assert_v10_batch_liveness (run at V10 retrain); add a batch
-    # loader here when extending. V3 173-input = variance check on a v3_dataset sample (TODO).
-    print(f"\n=== FULL RE-AUDIT: total un-allowlisted DEAD features = {total_dead} "
-          f"({'PASS — all alive/allowlisted' if total_dead == 0 else 'FAIL — fix or justify each'}) ===")
+    # Verdict: PASS only if every attempted arm RAN and found no un-allowlisted dead. A thrown arm = FAIL
+    # (so a broken audit can NEVER read as PASS — the false-pass bug found 2026-06-10).
+    ok = (total_dead == 0) and not failures
+    print(f"\n=== FULL RE-AUDIT: un-allowlisted DEAD={total_dead}  failed_arms={failures or 'none'} "
+          f"=> {'PASS — all audited arms alive/allowlisted' if ok else 'FAIL — see dead features / failed arms above'} ===")
     print(f"(allowlist KNOWN_ALLOWED_DEAD has {len(KNOWN_ALLOWED_DEAD)} entries)")
-    sys.exit(0 if total_dead == 0 else 1)
+    sys.exit(0 if ok else 1)
 
 
 if __name__ == "__main__":
