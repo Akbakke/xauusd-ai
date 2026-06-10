@@ -205,9 +205,11 @@ TRAIN_HIDDEN_DIM = 128
 TRAIN_N_HIDDEN = 2
 
 BUDGET_PRESETS = {
-    "fast":   {"epochs_q":  30, "epochs_v": 15, "k_iter": 3, "batch": 512, "hidden": 128, "n_hidden": 2},
-    "medium": {"epochs_q":  60, "epochs_v": 25, "k_iter": 4, "batch": 256, "hidden": 192, "n_hidden": 3},
-    "full":   {"epochs_q": 100, "epochs_v": 40, "k_iter": 6, "batch": 256, "hidden": 256, "n_hidden": 3},
+    # 2026-06-10 (user vedtak): tiny IQL MLP => BIG batch. 512/256 was a 16-32x throughput leak (manual
+    # minibatch loop, GPU starved) — same fix as the exit builder. Batch -> 4096. NEVER drop to 256.
+    "fast":   {"epochs_q":  30, "epochs_v": 15, "k_iter": 3, "batch": 4096, "hidden": 128, "n_hidden": 2},
+    "medium": {"epochs_q":  60, "epochs_v": 25, "k_iter": 4, "batch": 4096, "hidden": 192, "n_hidden": 3},
+    "full":   {"epochs_q": 100, "epochs_v": 40, "k_iter": 6, "batch": 4096, "hidden": 256, "n_hidden": 3},
 }
 
 # Per-class assertion guards

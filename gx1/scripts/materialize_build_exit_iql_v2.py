@@ -369,9 +369,13 @@ ALLOWED_NEXT_ACTIONS = {
 
 # Training budget presets — same shape as entry-IQL for consistency
 BUDGET_PRESETS = {
-    "fast":   {"epochs_q":  30, "epochs_v": 15, "k_iter": 3, "batch": 512, "hidden": 128, "n_hidden": 2},
-    "medium": {"epochs_q":  60, "epochs_v": 25, "k_iter": 4, "batch": 256, "hidden": 192, "n_hidden": 3},
-    "full":   {"epochs_q": 100, "epochs_v": 40, "k_iter": 6, "batch": 256, "hidden": 256, "n_hidden": 3},
+    # 2026-06-10 (user vedtak): batch 256/512 was a 16-32x THROUGHPUT LEAK for the tiny 3-layer IQL
+    # MLP — it trains via a manual in-memory minibatch loop (~13.7k iters/epoch at 256), so the GPU
+    # sat at ~38% and Python-loop overhead dominated. Tiny net => BIG batch (SMART+MAXED rule). Batch
+    # is now 4096 everywhere (~16x fewer iters, GPU saturated). NEVER drop a tiny IQL back to 256.
+    "fast":   {"epochs_q":  30, "epochs_v": 15, "k_iter": 3, "batch": 4096, "hidden": 128, "n_hidden": 2},
+    "medium": {"epochs_q":  60, "epochs_v": 25, "k_iter": 4, "batch": 4096, "hidden": 192, "n_hidden": 3},
+    "full":   {"epochs_q": 100, "epochs_v": 40, "k_iter": 6, "batch": 4096, "hidden": 256, "n_hidden": 3},
 }
 TRAIN_TAU = 0.8
 TRAIN_EPOCHS_Q = 30

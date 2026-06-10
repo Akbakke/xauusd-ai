@@ -613,6 +613,10 @@ def main() -> None:
                              "(R_NET_REAL,R_NET_V2,R_GATED,R_REGRET,R_PEAK_QUALITY,R_PEAK_QUALITY_QUAD)")
     parser.add_argument("--budget", type=str, default="fast",
                         choices=list(v2_train.BUDGET_PRESETS.keys()))
+    parser.add_argument("--batch-size", type=int, default=None,
+                        help="Override the preset batch. The tiny IQL MLP trains via a manual minibatch "
+                             "loop, so a LARGE batch (>=4096) is mandatory — 256 was a 16x throughput "
+                             "leak (2026-06-10). Presets now default to 4096; raise further if VRAM allows.")
     parser.add_argument("--k-primary", type=int, default=None,
                         help=f"V9 Issue 2: K_PRIMARY override in M1 bars. "
                              f"Allowed values: {K_HORIZONS}. Default 120 (2h). "
@@ -646,7 +650,10 @@ def main() -> None:
     v2_train.TRAIN_BATCH_SIZE = preset["batch"]
     v2_train.TRAIN_HIDDEN_DIM = preset["hidden"]
     v2_train.TRAIN_N_HIDDEN = preset["n_hidden"]
-    print(f"[{ACTION}] training budget '{args.budget}': {preset}", flush=True)
+    if args.batch_size:  # explicit override (tiny IQL => big batch; SMART+MAXED 2026-06-10)
+        v2_train.TRAIN_BATCH_SIZE = int(args.batch_size)
+    print(f"[{ACTION}] training budget '{args.budget}': {preset} | effective batch="
+          f"{v2_train.TRAIN_BATCH_SIZE}", flush=True)
 
     out_root = Path(args.out_root).expanduser().resolve() if args.out_root else None
     variants_subset = args.variants.split(",") if args.variants else None

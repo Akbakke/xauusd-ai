@@ -101,7 +101,12 @@
   3. **Parallelize across idle resources** — fill the idle GPU with an independent small job while a CPU-bound step
      runs (e.g. entry-IQL retrain during V3 labeling), and run independent CPU prep while the GPU trains. Keep BOTH busy.
   4. **Max throughput knobs** — `EXIT_LABEL_WORKERS≈cores-2`, `--num-workers 12`, large GPU-batch (scoring 8192), bf16+
-     tf32+torch_compile. But tiny IQL Q-nets are inherently low-GPU% (small model) → max samples/s, NOT GPU%.
+     tf32+torch_compile. **HARD RULE — tiny IQL/MLP nets MUST train at a LARGE batch (≥4096), NEVER 256
+     (user vedtak 2026-06-10).** The IQL trains via a manual in-memory minibatch loop, so batch 256 = ~13.7k
+     iters/epoch, GPU ~38%, Python-loop-bound = a 16-32x throughput leak (turned a ~hour job into ~a day).
+     `BUDGET_PRESETS` batch is now 4096 (was 256) + a `--batch-size` override exists — CHECK the effective
+     batch in the log before walking away, and bump higher if VRAM allows. A small net is low-GPU% by nature
+     → maximize SAMPLES/S (big batch), not GPU%. This applies to EVERY IQL/small-net run (exit AND entry).
   5. **Verify after launch** — snapshot GPU% / load / samples-s once warm; if a large model is CPU/dataloader-bound,
      fix (more workers / bigger batch); if a small net is low-GPU%, that's expected — don't chase GPU%.
   This is a PRE-RUN discipline: think setup+efficiency first, not just "turn util up". [[feedback_check_before_build_one_truth]]
