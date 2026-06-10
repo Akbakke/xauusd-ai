@@ -37,22 +37,29 @@ CORRUPT_APRIL = (pd.Timestamp("2026-04-01", tz="UTC"), pd.Timestamp("2026-04-21"
 # Default cement baseline (matches honest_phase6_gate.py:52). 33.61 bps / 0.971 skip-ASIA reference.
 CEMENT_BASELINE = ("/home/andre2/GX1_DATA/reports/truth_e2e_sanity/"
                    "PHASE6_OOT_COSTFIX_HEADS_20260529T043258Z_LOCK/per_candidate_V12_OFF.csv")
+# The LIVE fase2b cement = the ACTUAL rollback the clean wave would replace (its per-candidate CSV).
+FASE2B_BASELINE = ("/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/"
+                   "phase6_lam50/per_candidate_V12_OFF.csv")
 # Hold-bucket edges on exit_bar (M1 bars). The 60-240 buckets are the runner band the overlay clips.
 HOLD_BUCKETS = [(0, 30), (30, 60), (60, 120), (120, 240), (240, np.inf)]
 
 
-def load(csv_path):
-    """Read a per-candidate CSV; decode entry_ts/session/year from candidate_uid; drop corrupt-April."""
+def load(csv_path, keep_april=False):
+    """Read a per-candidate CSV; decode entry_ts/session/year from candidate_uid. By DEFAULT drops the
+    corrupt-April window (cement/pre-repair chains had x10 fakes there). keep_april=True KEEPS it — use
+    for a REPAIRED clean chain (April is valid OOT post-repair, handover §9); the impossible(>1000bps)
+    count in the kept window then doubles as a REPAIR CHECK (a good x10 repair => 0 impossible there)."""
     pc = pd.read_csv(csv_path)
     ts = pc["candidate_uid"].str.extract(r"(\d{8}T\d{6})$")[0]
     pc["entry_ts"] = pd.to_datetime(ts, format="%Y%m%dT%H%M%S", utc=True)
     pc["session"] = get_session_vectorized(pc["entry_ts"]).values
     pc["win"] = (pc["realized_pnl_bps"] > 0).astype(float)
     apr = (pc["entry_ts"] >= CORRUPT_APRIL[0]) & (pc["entry_ts"] < CORRUPT_APRIL[1])
-    clean = pc[~apr].copy()
+    clean = pc.copy() if keep_april else pc[~apr].copy()
     clean.attrs["raw_n"] = len(pc)
-    clean.attrs["april_removed"] = int(apr.sum())
-    clean.attrs["april_bps_removed"] = float(pc.loc[apr, "realized_pnl_bps"].sum())
+    clean.attrs["april_kept"] = keep_april
+    clean.attrs["april_removed"] = 0 if keep_april else int(apr.sum())
+    clean.attrs["april_bps_removed"] = 0.0 if keep_april else float(pc.loc[apr, "realized_pnl_bps"].sum())
     clean.attrs["impossible"] = int((clean["realized_pnl_bps"].abs() > 1000).sum())
     return clean
 
@@ -165,16 +172,48 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("candidate_csv", help="gated chain per_candidate_V12_OFF.csv to grade")
     ap.add_argument("--baseline", default=CEMENT_BASELINE,
-                    help="baseline per_candidate CSV (default: honest cement)")
+                    help="COSTFIX-era baseline per_candidate CSV (informational)")
+    ap.add_argument("--fase2b-baseline", default=FASE2B_BASELINE,
+                    help="LIVE fase2b cement baseline = the ACTUAL rollback (decisive). '' to skip.")
+    ap.add_argument("--no-repaired-april-view", action="store_true",
+                    help="suppress the repaired-April-INCLUSIVE candidate view (shown by default)")
     args = ap.parse_args()
 
-    new = summarize(load(args.candidate_csv), "CANDIDATE chain")
+    # Candidate, April-EXCLUDED = apples-to-apples basis vs the (still-corrupt-April) cement baselines.
+    new = summarize(load(args.candidate_csv, keep_april=False), "CANDIDATE chain (April-EXCLUDED)")
     show(new)
-    base = summarize(load(args.baseline), "BASELINE (cement)")
-    show(base)
-    ok = verdict(new, base)
-    print("\nHonest cement reference: blanket ~28.4 bps/94% win; skip-ASIA ~33.6 bps/97% win.")
-    sys.exit(0 if ok else 1)
+    # Candidate INCLUDING the repaired April = the wave's new OOT capability + a repair check (handover §9
+    # says April is valid post-repair; the launcher claims 'no April-skip'). Verdict stays April-excluded
+    # because the cement baselines' April is still the x10-corrupt data.
+    if not args.no_repaired_april_view:
+        new_apr = summarize(load(args.candidate_csv, keep_april=True),
+                            "CANDIDATE incl. REPAIRED April (wave OOT; impossible=0 => x10 repair OK)")
+        show(new_apr)
+        if new_apr["impossible"] > 0:
+            print(f"  ⚠⚠ {new_apr['impossible']} impossible(>1000bps) trades in the KEPT window — the x10 "
+                  f"April repair MAY HAVE FAILED; do NOT trust the April-inclusive view until checked.")
+
+    decisive, last_v = None, None
+    for tag, path in (("COSTFIX cement (informational)", args.baseline),
+                      ("LIVE fase2b cement (THE ROLLBACK — decisive)", args.fase2b_baseline)):
+        if not path:
+            continue
+        try:
+            base = summarize(load(path, keep_april=False), f"BASELINE — {tag}")
+        except Exception as e:
+            print(f"\n[skip baseline {tag}: {e!r}]")
+            continue
+        print(f"\n########## CANDIDATE (April-excl) vs {tag} ##########")
+        show(base)
+        last_v = verdict(new, base)
+        if "fase2b" in tag:
+            decisive = last_v
+    if decisive is None:  # fase2b baseline missing → fall back to the last baseline verdict we computed
+        decisive = bool(last_v) if last_v is not None else False
+    print(f"\n=== DECISIVE GATE (clean chain vs LIVE fase2b rollback, April-excluded): "
+          f"{'PASS — flip candidate' if decisive else 'FAIL — keep cement'} ===")
+    print("Honest cement reference: blanket ~28.4 bps/94% win; skip-ASIA ~33.6 bps/97% win.")
+    sys.exit(0 if decisive else 1)
 
 
 if __name__ == "__main__":

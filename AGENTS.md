@@ -100,6 +100,11 @@
      datasets, MTF caches, candidate batches. Recompute only the dirty/extended slice.
   3. **Parallelize across idle resources** — fill the idle GPU with an independent small job while a CPU-bound step
      runs (e.g. entry-IQL retrain during V3 labeling), and run independent CPU prep while the GPU trains. Keep BOTH busy.
+     **BUT RAM-HEADROOM IS A HARD CEILING (user vedtak 2026-06-10 — an OOM CRASHED the PC).** NEVER launch a parallel
+     agent-Workflow or any heavy job while a build is holding tens of GB of RAM. The exit-IQL build holds ~34-42 GB
+     (5M rows); stacking 4 audit agents on top tipped 47 GB → OOM → hard reboot, losing the whole run. Before launching
+     anything concurrent, check `free -g` available; if a big build is resident, parallelize ONLY light read/grep work,
+     and prefer reducing the build's `--sample-n-rows` to leave headroom. Watchdog the RAM (avail<1.5 GB = act).
   4. **Max throughput knobs** — `EXIT_LABEL_WORKERS≈cores-2`, `--num-workers 12`, large GPU-batch (scoring 8192), bf16+
      tf32+torch_compile. **HARD RULE — tiny IQL/MLP nets MUST train at a LARGE batch (≥4096), NEVER 256
      (user vedtak 2026-06-10).** The IQL trains via a manual in-memory minibatch loop, so batch 256 = ~13.7k
