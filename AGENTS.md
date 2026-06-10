@@ -59,6 +59,19 @@
   (`python -m gx1.audit.feature_liveness --strict --v10-bundle … --xgb-bundle …`). Adding a feature to
   `KNOWN_ALLOWED_DEAD` requires a documented reason (structural/benign). A NEW dead feature = a silent-ignore
   regression → fix or document, never ship silently.
+  - **HARD COVERAGE RULE (user vedtak 2026-06-10 — a 36-feature silent-zero slipped through for MONTHS).** The
+    liveness check MUST cover the FULL state vector of EVERY model — XGB / V10 ctx+snap / Entry-IQL (197) / V3 /
+    Exit-IQL (209) — including SELF-COMPUTED features (e.g. the `attach_group_a_dip_struct_ctx_columns` 36 dip/struct
+    `_v3` columns), NOT just XGB-gain + V10 ctx. ANY feature that is constant/all-zero on a shuffled sample AND not in
+    `KNOWN_ALLOWED_DEAD` = HARD FAIL the build/cement, LOUD. **CONCRETE BUG FOUND 2026-06-10:** the 36
+    `dip_confirmed_{tf}_v3` / `struct_*_{tf}_v3` (M5/M15/H1/H4/D1) are CONST-ZERO in train AND serve because
+    `_dip_struct_5tf` reads `{tf}_ema20_slope_atr_v2` / `{tf}_mom_5/20_atr_v2` / `dist_to_{tf}_lo_atr` via
+    `.get(...,0.0)` and those upstream per-TF inputs are ABSENT → `dip_prox=0`. They are NOT allowlisted yet were
+    never flagged → the auto-check did not cover them. This is a silent-ignore regression, NOT benign. [[project_gx1_dead_feature_hygiene_wave_20260606]]
+  - **MANDATE: a full feature-liveness RE-AUDIT of all 5 state vectors (actual built values, shuffled-sample variance)
+    is REQUIRED before any cement and periodically — NEVER assume the allowlist is complete or that "it was checked
+    once". Verify EVERY feature is FACTUALLY alive + used, every time. Do not trust memory that a feature is dead/benign
+    — re-verify against the actual data.
 
 ## ONE gjeldende — artifact selection (no version roulette) [CLAUDE.md rule 8]
 - **ONE truth = `PROJECT_STATE_artifacts.json`** (repo root). It names the single ACTIVE artifact per role
