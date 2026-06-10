@@ -25,41 +25,42 @@ import traceback
 import numpy as np
 import pandas as pd
 
-sys.path.insert(0, "/home/andre2/src/GX1_ENGINE")
-from gx1.audit.feature_liveness import audit_iql_state_liveness, KNOWN_ALLOWED_DEAD  # noqa: E402
+from gx1.audit.feature_liveness import audit_iql_state_liveness, KNOWN_ALLOWED_DEAD
 
 WS2 = "/home/andre2/GX1_DATA/runs/FASE2B_CLEAN_20260608"
 
 
 def _sample_weeks(per_week_dir, sample_n, seed=1337):
-    """Read a few weekly parquets and take a shuffled sample of sample_n rows (RAM-safe)."""
+    """Bounded-RAM shuffled sample of ~sample_n rows from a per-week parquet dir.
+
+    Subsamples EACH parquet to ~sample_n/n_files rows BEFORE concat (the proven pattern from
+    load_per_bar_dataset, materialize_build_exit_iql_v2) so the full dataset is never materialized —
+    full temporal coverage, bounded memory. Glob-agnostic, so it serves both the forward_outcome and
+    exit_per_bar dirs. Final shuffle-cap to exactly sample_n (rule-9: shuffled, not a consecutive batch).
+    """
     files = sorted(glob.glob(f"{per_week_dir}/*.parquet"))
     if not files:
         raise FileNotFoundError(f"no parquets under {per_week_dir}")
     rng = np.random.default_rng(seed)
-    # spread the sample across the date range (first/mid/last + a few random weeks) — NOT consecutive
-    idx = sorted(set([0, len(files) // 2, len(files) - 1] + list(rng.integers(0, len(files), size=6))))
-    dfs, got = [], 0
-    for i in idx:
-        d = pd.read_parquet(files[i])
-        dfs.append(d); got += len(d)
-        if got >= sample_n * 2:
-            break
-    df = pd.concat(dfs, ignore_index=True)
+    per_file = max(1, sample_n // len(files) + 1)
+    parts = []
+    for f in files:
+        d = pd.read_parquet(f)
+        if len(d) > per_file:
+            d = d.iloc[rng.choice(len(d), size=per_file, replace=False)]
+        parts.append(d)
+    df = pd.concat(parts, ignore_index=True)
     if len(df) > sample_n:
-        df = df.sample(n=sample_n, random_state=seed).reset_index(drop=True)  # SHUFFLE (rule-9: not consecutive)
-    return df
+        df = df.sample(n=sample_n, random_state=seed)
+    return df.reset_index(drop=True)
 
 
 def _audit_state(name, X, names):
     """Run the one-truth audit_iql_state_liveness on a built state matrix; return n_dead."""
-    X = np.asarray(X, dtype=np.float64)
     rep = audit_iql_state_liveness(X, names, role=name, raise_on_fail=False)  # warn-loud, don't raise
-    dead = rep["dead"]
-    nz = (np.abs(X).reshape(-1, X.shape[-1]) > 0).mean(axis=0)
-    n_zero = int((nz == 0).sum())
-    print(f"\n===== {name}: {X.shape[-1]} features, {X.shape[0]} rows =====")
-    print(f"  ALIVE={X.shape[-1]-len(dead)}  DEAD(un-allowlisted)={len(dead)}  all-zero-cols={n_zero}")
+    dead, n_zero, n_feat, n_rows = rep["dead"], rep["n_zero"], rep["n_features"], rep["n_rows"]
+    print(f"\n===== {name}: {n_feat} features, {n_rows} rows =====")
+    print(f"  ALIVE={n_feat-len(dead)}  DEAD(un-allowlisted)={len(dead)}  all-zero-cols={n_zero}")
     if dead:
         print("  ⚠ DEAD / un-allowlisted (FAIL):")
         for d in dead[:60]:

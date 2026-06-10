@@ -149,8 +149,11 @@ def audit_iql_state_liveness(X, names, *, role: str = "iql-state", raise_on_fail
     names = list(names)
     if arr.shape[-1] != len(names):
         raise ValueError(f"audit_iql_state_liveness[{role}]: {arr.shape[-1]} cols vs {len(names)} names — mismatch")
+    flat = arr.reshape(-1, arr.shape[-1])                 # view, no copy (C-contiguous)
     dead = _dead_cols(arr, names)
-    rep = {"ok": not dead, "role": role, "n_features": arr.shape[-1], "dead": dead}
+    n_zero = int((~flat.any(axis=0)).sum())               # all-zero columns (single pass; callers needn't recompute)
+    rep = {"ok": not dead, "role": role, "n_rows": int(flat.shape[0]),
+           "n_features": arr.shape[-1], "n_zero": n_zero, "dead": dead}
     if dead:
         msg = (f"[FEATURE_LIVENESS_FAIL] {role}: {len(dead)} state feature(s) constant/zero and NOT on "
                f"KNOWN_ALLOWED_DEAD — a silent-ignore regression (rule 9):\n  - " + "\n  - ".join(dead))
