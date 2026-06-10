@@ -26,7 +26,7 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, "/home/andre2/src/GX1_ENGINE")
-from gx1.audit.feature_liveness import _dead_cols, KNOWN_ALLOWED_DEAD  # noqa: E402
+from gx1.audit.feature_liveness import audit_iql_state_liveness, KNOWN_ALLOWED_DEAD  # noqa: E402
 
 WS2 = "/home/andre2/GX1_DATA/runs/FASE2B_CLEAN_20260608"
 
@@ -52,9 +52,10 @@ def _sample_weeks(per_week_dir, sample_n, seed=1337):
 
 
 def _audit_state(name, X, names):
-    """Run _dead_cols on a built state matrix; return (n, n_alive, dead_list)."""
+    """Run the one-truth audit_iql_state_liveness on a built state matrix; return n_dead."""
     X = np.asarray(X, dtype=np.float64)
-    dead = _dead_cols(X, names)
+    rep = audit_iql_state_liveness(X, names, role=name, raise_on_fail=False)  # warn-loud, don't raise
+    dead = rep["dead"]
     nz = (np.abs(X).reshape(-1, X.shape[-1]) > 0).mean(axis=0)
     n_zero = int((nz == 0).sum())
     print(f"\n===== {name}: {X.shape[-1]} features, {X.shape[0]} rows =====")

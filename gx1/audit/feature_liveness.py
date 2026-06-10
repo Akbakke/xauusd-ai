@@ -133,6 +133,33 @@ def assert_v10_batch_liveness(batch: dict, *, ctx_cont_names: Optional[Sequence[
     return rep
 
 
+def audit_iql_state_liveness(X, names, *, role: str = "iql-state", raise_on_fail: bool = False) -> dict:
+    """Liveness check for an already-built Entry/Exit-IQL STATE matrix — closes the rule-9 COVERAGE GAP.
+
+    There was NO liveness check on the Entry-IQL (197) or Exit-IQL (209) STATE vectors — that is how 36
+    self-computed dip/struct features stayed CONST-ZERO, un-allowlisted, for months. This is the reusable
+    enforcement primitive: the IQL builds pass their built (X, names) in to fail LOUD on any state feature
+    that is constant/zero and NOT on KNOWN_ALLOWED_DEAD.
+
+    X: (N, F) state matrix (the 1st return of build_state_matrix). names: F feature names (2nd return).
+    Pure wrapper on _dead_cols (the one-truth checker) — takes already-built values, so it adds NO heavy
+    import to this light lib (which the V10/XGB trainers import at post-export). raise_on_fail=True at cement.
+    """
+    arr = np.asarray(X, dtype=np.float64)
+    names = list(names)
+    if arr.shape[-1] != len(names):
+        raise ValueError(f"audit_iql_state_liveness[{role}]: {arr.shape[-1]} cols vs {len(names)} names — mismatch")
+    dead = _dead_cols(arr, names)
+    rep = {"ok": not dead, "role": role, "n_features": arr.shape[-1], "dead": dead}
+    if dead:
+        msg = (f"[FEATURE_LIVENESS_FAIL] {role}: {len(dead)} state feature(s) constant/zero and NOT on "
+               f"KNOWN_ALLOWED_DEAD — a silent-ignore regression (rule 9):\n  - " + "\n  - ".join(dead))
+        if raise_on_fail:
+            raise FeatureLivenessError(msg)
+        print(msg, file=sys.stderr)
+    return rep
+
+
 def audit_xgb_gain(bundle_dir: str, contract_path: str) -> List[str]:
     """Return base80 features with 0 gain in ALL session heads, excluding the allowlist."""
     from gx1.xgb.multihead.xgb_multihead_model_v1 import XGBMultiheadModel
