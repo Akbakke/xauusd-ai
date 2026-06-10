@@ -19,6 +19,7 @@ Usage:
 """
 import argparse
 import glob
+import re
 import sys
 import traceback
 
@@ -70,6 +71,89 @@ def _audit_state(name, X, names):
     return len(dead)
 
 
+# ── --detail mode (2026-06-11): per-TF EMA / M5-M15 market-state / MAE liveness on the SAME frames
+# the audit already loads (no second data-load). Answers "is EMA operative on ALL TFs / are M5-M15 state
+# + MAE features actually alive". Piggybacks arms 1 (entry forward_outcome) + 2 (exit per-bar). ──
+_TFS_ORDER = ["m5", "m15", "h1", "h4", "d1"]
+_DETAIL_DEAD_STD = 1e-8
+
+
+def _col_stat(s):
+    a = pd.to_numeric(s, errors="coerce").to_numpy(dtype=np.float64)
+    a = a[np.isfinite(a)]
+    if a.size == 0:
+        return 0.0, 0.0, 0, True
+    std = float(np.std(a)); nz = float(np.mean(np.abs(a) > 1e-12)); nu = int(np.unique(np.round(a, 8)).size)
+    return std, nz, nu, (std < _DETAIL_DEAD_STD)
+
+
+def _tf_of(col):
+    m = re.match(r"^(m5|m15|h1|h4|d1)_", col.lower())
+    return m.group(1) if m else None
+
+
+def _detail_block(df, title, pats):
+    print(f"\n----- DETAIL: {title} -----")
+    any_dead = []
+    for label, pat in pats:
+        rx = re.compile(pat, re.I)
+        cols = sorted([c for c in df.columns if rx.search(c)])
+        if not cols:
+            print(f"  [{label}] (no matching cols)"); continue
+        by_tf = {}
+        for c in cols:
+            by_tf.setdefault(_tf_of(c) or "(scalar)", []).append(c)
+        ntf = len([k for k in by_tf if k != "(scalar)"])
+        print(f"  [{label}] {len(cols)} cols, {ntf} TFs:")
+        for tf in _TFS_ORDER + ["(scalar)"]:
+            for c in by_tf.get(tf, []):
+                std, nz, nu, dead = _col_stat(df[c])
+                flag = "  <<< DEAD/CONST" if dead else ("  <all-zero>" if nz < 1e-3 else "")
+                if dead:
+                    any_dead.append(c)
+                print(f"      {c:46s} std={std:.3e} nz={nz*100:5.1f}% nuniq={nu:>6}{flag}")
+    if any_dead:
+        print(f"  ⚠ DEAD/CONST in '{title}': {any_dead}")
+    return any_dead
+
+
+def _ema_distinct(df):
+    print("\n----- DETAIL: EMA cross-TF DISTINCTNESS (corr>0.98 = TFs NOT distinct = a bug) -----")
+    for base in ["ema50_dist_atr", "ema20_dist_atr", "ema20_50_diff_atr"]:
+        ser = {}
+        for tf in _TFS_ORDER:
+            cand = [c for c in df.columns if c.lower().startswith(tf + "_") and base in c.lower()]
+            if cand:
+                ser[tf] = pd.to_numeric(df[cand[0]], errors="coerce").to_numpy(np.float64)
+        if not ser:
+            print(f"  {base}: NOT PRESENT in any TF (not wired)"); continue
+        if len(ser) < 2:
+            print(f"  {base}: only in {list(ser)}"); continue
+        tfs = list(ser); print(f"  {base}: present in {tfs}")
+        for i in range(len(tfs)):
+            for j in range(i + 1, len(tfs)):
+                a, b = ser[tfs[i]], ser[tfs[j]]
+                m = np.isfinite(a) & np.isfinite(b)
+                if m.sum() > 100 and np.std(a[m]) > 0 and np.std(b[m]) > 0:
+                    r = float(np.corrcoef(a[m], b[m])[0, 1])
+                    print(f"      {tfs[i]}~{tfs[j]} corr={r:+.3f}{'  <<< NOT DISTINCT' if abs(r) > 0.98 else ''}")
+
+
+_ENTRY_DETAIL_PATS = [
+    ("ema_dist", r"ema\d+_dist_atr"), ("ema_slope", r"ema\d+_slope_atr"),
+    ("ema_stack", r"ema_stack_aligned"), ("ema20x50_cross(V3)", r"ema20_50_diff_atr"),
+    ("dip", r"dip"), ("struct", r"struct"), ("regime", r"regime"),
+    ("momentum", r"_mom_?\d|momentum"), ("dist_to_hilo", r"dist_to_.*(lo|hi)"),
+    ("MAE-before-MFE", r"mae_before_mfe|mae_bef_mfe"), ("mfe", r"mfe"),
+]
+_EXIT_DETAIL_PATS = [
+    ("MAE", r"\bmae\b|_mae|mae_bps|mae_bef"), ("MFE", r"\bmfe\b|_mfe|mfe_bps"),
+    ("dd_from_mfe", r"dd_from_mfe|drawdown_from"), ("giveback", r"giveback"),
+    ("m5_phase/hold", r"m5_phase|bars_in|bars_since|hold"),
+    ("exit-MTF EMA", r"ema\d+_dist_atr|ema\d+_slope_atr|ema_stack"),
+]
+
+
 def main():
     import os
     from pathlib import Path
@@ -85,6 +169,8 @@ def main():
     ap.add_argument("--reports-root", default="/home/andre2/GX1_DATA/reports/truth_e2e_sanity")  # chunk0 (empty) — build default
     ap.add_argument("--xgb-bundle", default=None)
     ap.add_argument("--xgb-contract", default=None)
+    ap.add_argument("--detail", action="store_true",
+                    help="also print per-TF EMA / M5-M15 market-state / MAE liveness detail on the loaded frames")
     args = ap.parse_args()
     total_dead = 0
     failures = []   # a THROWN arm is a FAIL, never a silent pass (the 2026-06-10 false-pass bug)
@@ -100,6 +186,9 @@ def main():
         df = attach_group_a_dip_struct_ctx_columns(df, cache_dir=args.mtf_cache, journal_label="reaudit")
         X, names = entry_bsm(df)
         total_dead += _audit_state("ENTRY-IQL state", X, names)
+        if args.detail:
+            _detail_block(df, "ENTRY per-TF EMA + M5/M15 market-state + MAE", _ENTRY_DETAIL_PATS)
+            _ema_distinct(df)
     except Exception as e:
         print(f"\n[ENTRY-IQL audit FAILED: {e!r}]"); traceback.print_exc(); failures.append("ENTRY-IQL")
 
@@ -115,6 +204,8 @@ def main():
                                              canonical_path=Path(args.canonical_features), sample_n_rows=args.sample_n)
         Xe, namese = exit_bsm(dfe)
         total_dead += _audit_state("EXIT-IQL state", Xe, namese)
+        if args.detail:
+            _detail_block(dfe, "EXIT trade-state MAE/MFE + exit-MTF EMA", _EXIT_DETAIL_PATS)
     except Exception as e:
         print(f"\n[EXIT-IQL audit FAILED: {e!r}]"); traceback.print_exc(); failures.append("EXIT-IQL")
 
