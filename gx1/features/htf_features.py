@@ -467,6 +467,18 @@ MULTI_TF_PER_BAR_FEATURES_V2 = (
 )
 MULTI_TF_FEATURE_COUNT_V2 = len(MULTI_TF_PER_BAR_FEATURES_V2)   # = 25
 
+# ─────────────────────────────────────────────────────────────────────────────
+# V3 (2026-06-10): V2 + ema20_50_diff_atr — the LEARNED EMA20×EMA50 cross/distance
+# (user ask: "ema20 som krysser ema50"). Signed gap = which EMA is on top (cross STATE),
+# |mag| = separation, zero-crossing = the cross EVENT; flips EARLIER than ema_stack_aligned_v2
+# (which needs the full 20<50<100<200 stack) → earlier dip/recovery signal. DEFINED ONLY here +
+# co-exists with V2 (compute_per_bar_features_v2(..., feature_set=V3) returns 26). NOT yet wired
+# into any trainer/cache (V2 stays mandatory) — the revival retrain flips it (25→26 cascade:
+# MTF cache → V10 → candidates → V3; warm-start the per-TF *_proj). Pure-additive until then.
+# ─────────────────────────────────────────────────────────────────────────────
+MULTI_TF_PER_BAR_FEATURES_V3 = MULTI_TF_PER_BAR_FEATURES_V2 + ("ema20_50_diff_atr",)
+MULTI_TF_FEATURE_COUNT_V3 = len(MULTI_TF_PER_BAR_FEATURES_V3)   # = 26
+
 MULTI_TF_RESAMPLE_RULES = {
     # V10 (entry) base is M5 → uses M15+H1+H4+D1.
     # V3 (exit) base is M1 → uses M5+M15+H1+H4+D1 (M5 added below).
@@ -639,7 +651,8 @@ def _trend_age_bars(stack_aligned: pd.Series) -> pd.Series:
     return stack_aligned.groupby(chg).cumcount().astype(float)
 
 
-def compute_per_bar_features_v2(ohlcv: pd.DataFrame) -> pd.DataFrame:
+def compute_per_bar_features_v2(ohlcv: pd.DataFrame, *,
+                                feature_set: tuple = MULTI_TF_PER_BAR_FEATURES_V2) -> pd.DataFrame:
     """V2 multi-TF per-bar features — 25 cols. Requires OHLCV (volume needed for VWAP).
 
     Backward compat: if volume missing, falls back to volume=1 (tick-equal-weight VWAP).
@@ -697,6 +710,9 @@ def compute_per_bar_features_v2(ohlcv: pd.DataFrame) -> pd.DataFrame:
     out["ema20_slope_atr"] = ((ema20 - ema20.shift(5)) / atr_safe).clip(-5.0, 5.0).fillna(0.0)
     out["ema50_slope_atr"] = ((ema50 - ema50.shift(5)) / atr_safe).clip(-5.0, 5.0).fillna(0.0)
     out["ema200_slope_atr"] = ((ema200 - ema200.shift(5)) / atr_safe).clip(-5.0, 5.0).fillna(0.0)
+    # V3 (additive): EMA20×EMA50 cross/distance in ATR units. Always computed (cheap — both EMAs are
+    # already above); only RETURNED when feature_set=V3 (else dropped by the V2 column filter below).
+    out["ema20_50_diff_atr"] = ((ema20 - ema50) / atr_safe).clip(-15.0, 15.0).fillna(0.0)
 
     # ─── NEW: EMA-stack regime (2) ───────────────────────────────────
     # 2026-05-24: now uses ffill'd EMAs above + checks full stack (50<100<200) for
@@ -744,7 +760,7 @@ def compute_per_bar_features_v2(ohlcv: pd.DataFrame) -> pd.DataFrame:
     age = _trend_age_bars(stack).clip(upper=500.0)
     out["trend_age_bars_norm"] = (np.log1p(age) / np.log1p(500.0)).fillna(0.0)
 
-    return out[list(MULTI_TF_PER_BAR_FEATURES_V2)].astype(np.float32)
+    return out[list(feature_set)].astype(np.float32)
 
 
 def build_multi_tf_per_bar_features_v2(m5_df: pd.DataFrame) -> dict:
