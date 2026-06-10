@@ -90,6 +90,16 @@ def load_v12_dataset(v3tracked_dir: Path,
         reports_root = Path("/home/andre2/GX1_DATA/reports/truth_e2e_sanity")
     if canonical_path is None:
         canonical_path = v3_m1.DEFAULT_CANONICAL_FEATURES_PATH
+    # FAIL LOUD on a missing canonical (rule-8/9): the Exit-IQL state includes the _v1_*_canon_v1 features.
+    # _load_canonical_features() returns None on a missing file, which silently SKIPS the join → the 144
+    # canonical cols never enter bar_state → FEATURE_COVERAGE_FATAL at predict (caught 2026-06-10: the gate
+    # fell back to a DEAD default path and silently dropped all 144). Never silently fall back to a vintage.
+    canonical_path = Path(canonical_path)
+    if not canonical_path.exists():
+        raise FileNotFoundError(
+            f"[GATE] canonical features parquet missing: {canonical_path} — refusing to silently skip the "
+            f"_v1_*_canon_v1 join (would FEATURE_COVERAGE_FATAL on 144 cols at predict). Pass "
+            f"--canonical-features pointing at the SAME canonical the Exit-IQL was built against.")
 
     print(f"  Loading {len(files)} weekly V12 parquets"
           + (f" (filtered to {len(candidate_uids):,} candidates)..." if candidate_uids else "..."))
@@ -467,6 +477,9 @@ def main() -> int:
     p.add_argument("--variant", default="R_V12", help="Reward variant for Exit-IQL adapter (R_V12, R_NET_REAL, R_REGRET)")
     p.add_argument("--fold-id", default="FOLD_1")
     p.add_argument("--out-root", default=None)
+    p.add_argument("--canonical-features", default=None,
+                   help="Canonical features parquet to lazy-join (MUST match the one the Exit-IQL was built "
+                        "against). Fail-closed if the resolved path is missing — no silent fallback (rule 8/9).")
     p.add_argument("--max-candidates", type=int, default=None, help="Subsample for fast eval")
     p.add_argument("--v3-override-threshold", type=float, default=V3_OVERRIDE_DEFAULT)
     p.add_argument("--max-bars", type=int, default=V12_MAX_BARS_DEFAULT)
@@ -522,7 +535,9 @@ def main() -> int:
         rng = np.random.default_rng(20260509)
         take_uids = list(rng.choice(take_uids, size=args.max_candidates, replace=False))
         print(f"  Sub-sampled to {len(take_uids):,} candidates for memory safety")
-    df = load_v12_dataset(v3tracked, candidate_uids=set(take_uids))
+    df = load_v12_dataset(v3tracked, candidate_uids=set(take_uids),
+                          canonical_path=(Path(args.canonical_features).expanduser().resolve()
+                                          if args.canonical_features else None))
 
     # Run configs
     summaries: list[dict[str, Any]] = []
