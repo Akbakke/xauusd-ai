@@ -1,6 +1,6 @@
 {
   "project": "XAUUSD",
-  "note": "ONE source of truth for decision-valid artifacts. Edit ONLY via explicit vedtak. Paths absolute. CLEAN x10-April-repaired V3+exit-IQL FLIPPED LIVE 2026-06-10 (cement vedtak 'a'): EXIT chain now on FASE2B_CLEAN_20260608 (honest Phase-D gate PASS, clean +4.88 bps/take vs fase2b, all hardened checks; re-audit GREEN 208/209). XGB/V10/entry-IQL UNCHANGED (fase2b). skip-ASIA NOT yet shipped (no live mechanism) -> next step is the entry-SELECTION lever. Rollback = re-point v3_exit+exit_iql to the FASE2B_REGIME_V4 history entries (bundles intact). FASE2B regime-v4 chain CEMENTED 2026-06-08 (user vedtak 'keep this' + 'mengde forst'). Higher-EV/volume frontier: honest vs cement +1.58 bps/take, volume-first +49% total @ max_trades=3, BETTER drawdown (-1089 vs cement -1762). Win 0.91-0.95 vs 0.97 (direction-ceiling-bound, accepted). Operating point: min_advantage_bps=0, max_trades=3 (live-tunable), exit agg=max K=144. Prior COSTFIX chain -> history (parked rollback; workspace bundles intact).",
+  "note": "ONE source of truth for decision-valid artifacts. Edit ONLY via explicit vedtak. Paths absolute. CLEAN x10-April-repaired V3+exit-IQL FLIPPED LIVE 2026-06-10 (cement vedtak 'a'): EXIT chain now on FASE2B_CLEAN_20260608 (honest Phase-D gate PASS, clean +4.88 bps/take vs fase2b, all hardened checks; re-audit GREEN 208/209). XGB/V10/entry-IQL UNCHANGED (fase2b). skip-ASIA NOT yet shipped (no live mechanism) -> next step is the entry-SELECTION lever. Rollback = re-point v3_exit+exit_iql to the FASE2B_REGIME_V4 history entries (bundles intact). FASE2B regime-v4 chain CEMENTED 2026-06-08 (user vedtak 'keep this' + 'mengde forst'). Higher-EV/volume frontier: honest vs cement +1.58 bps/take, volume-first +49% total @ max_trades=3, BETTER drawdown (-1089 vs cement -1762). Win 0.91-0.95 vs 0.97 (direction-ceiling-bound, accepted). Operating point: min_advantage_bps=0, max_trades=3 (live-tunable), exit agg=max K=144. Prior COSTFIX chain -> history (parked rollback; workspace bundles intact). ENTRY operating point CEMENTED 2026-06-10 (vedtak 'Cement + restart live') to conviction-gate + skip-ASIA (serve-time selection overlay; entry_iql BUNDLE unchanged; reversible by unsetting GX1_CONVICTION_GATE/GX1_SKIP_ASIA) - see entry_iql.operating_point.",
   "active": {
     "xgb": {
       "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/xgb_v7",
@@ -29,13 +29,18 @@
         "FOLD_3"
       ],
       "operating_point": {
+        "selection": "CONVICTION_GATE",
+        "conviction_gate": true,
+        "conviction_thr": -34.2,
+        "skip_asia": true,
         "min_advantage_bps": 0,
         "max_trades": 3,
-        "note": "VOLUME-FIRST (user vedtak 2026-06-08): no entry filter; DD bounded by max_trades=3 (portfolio sim -1089 DD, +49% total vs cement). Live-tunable cap."
+        "live_env": "GX1_CONVICTION_GATE=1 GX1_SKIP_ASIA=1 GX1_CONVICTION_THR=-34.2",
+        "note": "CEMENTED 2026-06-10 (user vedtak 'Cement + restart live'). ENTRY-SELECTION #1 = conviction-gate: OPEN a TAKE when raw_adv = best-TAKE-Q - SKIP-Q (UN-clipped) >= -34.2 (the offline conviction20 20th-pctile -> top-20% open), side = argmax(TAKE-Q), OVERRIDING the IQL's conservative argmax SKIP; + skip-ASIA (block ASIA-session entries, session_detector SSoT). Gate-validated (12k subsample, FULL exit chain, R_NET_REAL) vs the prior min_advantage_bps=0/LAM50 operating point: +27.7% total PnL, admit 0.642 (vs 0.458 FAIL), portfolio DD -201 (vs -656). skip-ASIA lifts 2026 per-year win 0.8405 -> 0.8532 (PASS >= 0.85), overall win 0.9466 -> 0.9510, bps/take 24.78 -> 27.27. test==serve 1.0000 (live formula reproduces offline conviction20 decisions; take-rate 0.2000). BUNDLE UNCHANGED (same entry_iql_clean R_WAIT_OPP_K96_LAM50 Q-net) -> SERVE-TIME selection overlay, fully reversible by unsetting GX1_CONVICTION_GATE/GX1_SKIP_ASIA. Implemented env-gated in v12_entry_iql_live.py + v12_paper_runner.py (commit 42b5946b, OFF by default). SUPERSEDES VOLUME-FIRST (LAM50 argmax over-skipped: admit 0.458 < 0.6 floor). max_trades=3 = the DD-validated portfolio cap (live-tunable)."
       },
       "status": "ACTIVE",
       "in_sample_only": false,
-      "note": "fase2b Entry-IQL R_WAIT_OPP_K96_LAM50 (MAE-before-MFE penalty lambda=5, wired)."
+      "note": "fase2b Entry-IQL R_WAIT_OPP_K96_LAM50 (MAE-before-MFE penalty lambda=5, wired). SERVED WITH the conviction-gate + skip-ASIA selection overlay (see operating_point) since 2026-06-10 - bundle/variant UNCHANGED, overlay is serve-time + reversible (flag toggle)."
     },
     "exit_iql": {
       "path": "/home/andre2/GX1_DATA/runs/FASE2B_CLEAN_20260608/exit_iql_retrain_clean_20260609",

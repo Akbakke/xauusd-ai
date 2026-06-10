@@ -68,6 +68,19 @@ export GX1_HOLD_HORIZON_OVERRUN_MULT=1.5
 export GX1_HOLD_HORIZON_MIN_FLOOR_BARS=60
 export GX1_USE_DISTILLED_EXIT=0
 
+# ── ENTRY-SELECTION pins (2026-06-10, CEMENTED — vedtak 'Cement + restart live') ──
+# Entry-selection #1 = conviction-gate + skip-ASIA (PROJECT_STATE_artifacts.json
+# entry_iql.operating_point). OPEN a TAKE when raw_adv = best-TAKE-Q − SKIP-Q (un-clipped)
+# >= GX1_CONVICTION_THR (−34.2 = offline conviction20 20th-pctile, top-20% open), side =
+# argmax(TAKE-Q), overriding the IQL conservative SKIP; + skip-ASIA. Gate-validated (12k
+# subsample, full exit chain, R_NET_REAL): +27.7% total PnL, admit 0.642 (vs LAM50 0.458),
+# portfolio DD −201 (vs −656); skip-ASIA lifts 2026 per-year win 0.8405→0.8532 (PASS).
+# test==serve 1.0000. Bundle UNCHANGED — serve-time overlay, reversible by setting these to 0.
+# Pinned EXPLICITLY (build==serve flag parity); never rely on code defaults for live.
+export GX1_CONVICTION_GATE=1
+export GX1_SKIP_ASIA=1
+export GX1_CONVICTION_THR=-34.2
+
 FORCE=0
 [[ "${1-}" == "--force" ]] && FORCE=1
 
@@ -143,9 +156,11 @@ sleep 3
 # 3. Paper runner (PURE_PHASE6 = Phase 6 OOT 1:1) ---------------------------
 RUNNER_PID_FILE="$PAPER_RUNS/paper_runner.pid"
 UNITS=${GX1_PAPER_UNITS:-10}
-MAX_TRADES=${GX1_PAPER_MAX_TRADES:-100}
+# max_trades=3 is the DD-VALIDATED portfolio cap (entry_iql.operating_point); the conviction-gate's
+# −201 DD was measured at this cap. Default was 100 (unbounded-risk footgun); pinned to 3 for live.
+MAX_TRADES=${GX1_PAPER_MAX_TRADES:-3}
 MAX_SPREAD=${GX1_PAPER_MAX_SPREAD_BPS:-9999}
-SUFFIX=${GX1_PAPER_SUFFIX:-fase2b_regime_v4_pure_phase6}
+SUFFIX=${GX1_PAPER_SUFFIX:-conviction20_skipasia_pure_phase6}
 
 if [[ $FORCE -eq 1 ]]; then stop_if_running "$RUNNER_PID_FILE"; fi
 if pid=$(is_alive "$RUNNER_PID_FILE"); then
