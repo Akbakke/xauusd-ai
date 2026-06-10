@@ -101,6 +101,15 @@ DEFAULT_MIN_ADVANTAGE_BPS = 0.0    # 2026-05-21: replaced static threshold with
                                    # low-vol, 20-50 bps in high-vol).
 DEFAULT_BETA = 1.0                  # softmax temperature for confidence
 
+# Conviction-gate (entry-selection #1, gate-validated 2026-06-10: ~2x total edge, win held 0.953,
+# AND lower cap-3 DD than LAM50 −201 vs −734). When GX1_CONVICTION_GATE=1 the entry OPENS by raw
+# advantage: TAKE if raw_adv = best-TAKE-Q − SKIP-Q (UN-clipped) >= GX1_CONVICTION_THR (default −34.2
+# = the offline conviction20 20th-pctile), side = argmax(TAKE-Q) — overriding the IQL's conservative
+# SKIP. OFF by default (= legacy LAM50, advantage>0 ~8% take). Reproduces the offline conviction20
+# decisions on the same Q (test==serve). REQUIRES skip-ASIA (GX1_SKIP_ASIA) live to clear the per-year floor.
+CONVICTION_GATE_ON = os.environ.get("GX1_CONVICTION_GATE", "0") == "1"
+CONVICTION_THR = float(os.environ.get("GX1_CONVICTION_THR", "-34.2"))
+
 # Categorical label conventions from inference_batch_v3 (matches training):
 SESSION_ID_TO_LABEL = {0: "ASIA", 1: "EU", 2: "OVERLAP", 3: "US"}
 DEFAULT_VOL_REGIME_LABEL = "MEDIUM"           # always — placeholder in training
@@ -439,9 +448,22 @@ class EntryIQLLiveInference:
         best_take_q = float(max(q_agg[0, iql_core.ACTION_TAKE_LONG_NOW_ID],
                                  q_agg[0, iql_core.ACTION_TAKE_SHORT_NOW_ID]))
         adv_take = chosen_q - best_take_q
-        # min_advantage_bps filter applied by ensemble too
-        if a0.min_advantage_bps > 0.0 and a_id != skip_id and adv < a0.min_advantage_bps:
+        # Selection logic: conviction-gate (open by raw advantage, gate-validated) OR legacy min_adv filter.
+        if CONVICTION_GATE_ON:
+            # TAKE if the best TAKE's UN-clipped advantage over SKIP clears the calibrated threshold;
+            # side = the higher-Q TAKE direction. Overrides the IQL's conservative argmax SKIP.
+            raw_adv = best_take_q - float(q_agg[0, skip_id])
+            if raw_adv >= CONVICTION_THR:
+                _l, _s = iql_core.ACTION_TAKE_LONG_NOW_ID, iql_core.ACTION_TAKE_SHORT_NOW_ID
+                a_id = _l if q_agg[0, _l] >= q_agg[0, _s] else _s
+            else:
+                a_id = skip_id
+        elif a0.min_advantage_bps > 0.0 and a_id != skip_id and adv < a0.min_advantage_bps:
             a_id = skip_id
+        # Recompute advantages for the FINAL action (a_id may have changed by the gate/filter above).
+        chosen_q = float(q_agg[0, a_id])
+        adv = chosen_q - float(q_agg[0, skip_id])
+        adv_take = chosen_q - best_take_q
         # Note: q_std_per_action available via q_std_per_action variable but
         # not added to EntryRecommendation dataclass to keep schema stable.
         # Could be logged separately when needed for uncertainty-aware sizing.

@@ -68,6 +68,12 @@ INSTRUMENT = "XAU_USD"
 PURE_PHASE6 = bool(int(os.environ.get("GX1_PURE_PHASE6", "0")))
 if PURE_PHASE6:
     LOG.warning("[GX1_PURE_PHASE6] all runtime wrappers DISABLED — runner = Phase 6 OOT 1:1")
+# 2026-06-10: GX1_SKIP_ASIA=1 blocks ASIA-session entries (gx1.time.session_detector, ASIA=22:00-07:00 UTC).
+# REQUIRED with the conviction-gate (GX1_CONVICTION_GATE) to clear the per-year win floor (gate-validated:
+# blanket 2026 win 0.840 FAILs, skip-ASIA 0.851 PASSes). Applies even under PURE_PHASE6 (it IS the gated arm).
+SKIP_ASIA = bool(int(os.environ.get("GX1_SKIP_ASIA", "0")))
+if SKIP_ASIA:
+    LOG.warning("[GX1_SKIP_ASIA] ASIA-session entries blocked (conviction-gate per-year floor requirement)")
 
 JOURNAL_DIR = Path("/home/andre2/GX1_DATA/reports/v12_paper_runs")
 COLLECTOR_DIR = Path("/home/andre2/GX1_DATA/reports/v12_live_data")
@@ -143,7 +149,14 @@ def can_trade_now(spread_bps: float, *, max_spread_bps: float,
     not a hardcoded skip. `now_utc` kept for future safety gates.
 
     PURE_PHASE6: spread cap bypassed (Phase 6 OOT did not model spread filtering).
+    GX1_SKIP_ASIA still applies (it is the gate-validated arm, not a discretionary wrapper).
     """
+    # skip-ASIA: block ASIA-session entries (same session_detector SSoT the offline gate used →
+    # test==serve). Applies even under PURE_PHASE6 — it is the conviction-gate's per-year-floor requirement.
+    if SKIP_ASIA:
+        from gx1.time.session_detector import get_session
+        if get_session(pd.Timestamp(now_utc)) == "ASIA":
+            return False, "skip_asia"
     if PURE_PHASE6:
         return True, "ok_pure_phase6"
     if spread_bps > max_spread_bps:
