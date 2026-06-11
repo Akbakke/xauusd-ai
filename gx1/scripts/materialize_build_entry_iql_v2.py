@@ -689,6 +689,38 @@ def build_reward_matrix(df: pd.DataFrame, *, variant: str) -> np.ndarray:
             R[:, 2, ki] = r_short.astype(np.float32)
         return R
 
+    if variant == "R_TROUGH_WAIT_K96_LAM50_SYM":
+        # 2026-06-11 (vedtak trough_reward_refit_20260611): TROUGH-ANCHORED skip-credit.
+        # TAKE rewards = the proven LAM50_SYM form (true per-K, spread_coef=0, MAE-λ=5).
+        # SKIP credit = the ORACLE outcome of entering AT THE COMING BOTTOM (trough_terminal −
+        # λ·trough_MAE, same λ — like-for-like), HINGED over best_take + margin (smooth hinge per
+        # the SESSCOND lesson, not a jump). This is the counterfactual the old wait_* labels
+        # (re-anchored +6 bars) could NOT express — "wait-for-the-bottom is not teachable" was the
+        # judge-panel verdict until the trough labels landed (builder 06-09, first dataset
+        # TROUGH_REBUILD_20260611). Teaches: skip while the dip is still falling, take at/near the
+        # bottom — LEARNED, not a serve rule.
+        _LAM = 5.0
+        _MARGIN = 20.0
+        for ki in range(N_K):
+            K = K_HORIZONS[ki]
+            tl = df[f"take_now_long_terminal_pnl_at_K{K}_v1"].astype(float).fillna(0.0).to_numpy()
+            ts_ = df[f"take_now_short_terminal_pnl_at_K{K}_v1"].astype(float).fillna(0.0).to_numpy()
+            ml = np.maximum(df[f"take_now_long_mae_before_mfe_bps_at_K{K}_v1"].astype(float).fillna(0.0).to_numpy(), 0.0)
+            ms = np.maximum(df[f"take_now_short_mae_before_mfe_bps_at_K{K}_v1"].astype(float).fillna(0.0).to_numpy(), 0.0)
+            rl = tl - _LAM * ml
+            rs = ts_ - _LAM * ms
+            ttl = df[f"take_now_long_trough_terminal_pnl_at_K{K}_v1"].astype(float).fillna(0.0).to_numpy()
+            tts = df[f"take_now_short_trough_terminal_pnl_at_K{K}_v1"].astype(float).fillna(0.0).to_numpy()
+            tml = np.maximum(df[f"take_now_long_trough_mae_before_mfe_bps_at_K{K}_v1"].astype(float).fillna(0.0).to_numpy(), 0.0)
+            tms = np.maximum(df[f"take_now_short_trough_mae_before_mfe_bps_at_K{K}_v1"].astype(float).fillna(0.0).to_numpy(), 0.0)
+            wl = ttl - _LAM * tml
+            ws = tts - _LAM * tms
+            rk = np.maximum(0.0, np.maximum(wl, ws) - np.maximum(rl, rs) - _MARGIN)
+            R[:, 0, ki] = np.clip(rk, 0, 500).astype(np.float32)
+            R[:, 1, ki] = _gate_take(rl)
+            R[:, 2, ki] = _gate_take(rs)
+        return R
+
     if variant in ("R_WAIT_OPP_K96_SESSCOND", "R_WAIT_OPP_K96_SESSCOND_SYM"):
         # Session-conditional MAE penalty (2026-06-11): lambda_eff varies per-row by SESSION so the IQL
         # stops over-skipping recoverable OVERLAP/EU dips (where they pay) while keeping a high bar on ASIA
