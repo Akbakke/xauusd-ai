@@ -139,6 +139,14 @@
      → maximize SAMPLES/S (big batch), not GPU%. This applies to EVERY IQL/small-net run (exit AND entry).
   5. **Verify after launch** — snapshot GPU% / load / samples-s once warm; if a large model is CPU/dataloader-bound,
      fix (more workers / bigger batch); if a small net is low-GPU%, that's expected — don't chase GPU%.
+  6. **HARD RULE — REPLAY/EVAL LOOPS MUST BE PARALLELIZED (user vedtak 2026-06-11; the gate-replay lesson).**
+     Any per-candidate/per-row evaluation loop that will run more than once (gate replays, A/B arms, counter-
+     factuals) MUST use a fork-after-load worker pool — per-candidate replays are embarrassingly parallel and
+     Linux fork shares the big frame copy-on-write (no per-worker RAM copy). 2026-06-11: the phase6 exit-replay
+     ran 5× à ~1h on 1/18 cores = ~4-5h avoidable — the SAME leak class as the IQL batch-256 rule above.
+     `v12_phase6_joint_validation` honors GX1_REPLAY_WORKERS (default cores-aware; =1 forces serial). Check
+     `load average` vs core count after launching ANY eval loop — 1 busy core of 18 on a >10-min job = fix it
+     first, run it after. Determinism requirement: parallel output must be diff-identical to serial.
   This is a PRE-RUN discipline: think setup+efficiency first, not just "turn util up". [[feedback_check_before_build_one_truth]]
 - **RETRAIN-SCOPE discipline — DON'T retrain what didn't change (2026-06-09 audit).** The audit found
   ~16h+ of avoidable pure-fit and ~45% of the 20+ transformer retrains were avoidable. Before retraining a

@@ -40,6 +40,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import time
 from datetime import datetime, timezone
@@ -254,6 +255,46 @@ def simulate_one_candidate(
     }
 
 
+# ── 2026-06-11 parallel-replay worker plumbing (AGENTS.md SMART+MAXED #6) ──────────────
+# Fork-inherited shared state: the parent sets _REPLAY_CTX BEFORE Pool creation; children get
+# the frame + adapter via copy-on-write (no pickling, no per-worker RAM copy). Workers must
+# treat everything in _REPLAY_CTX as READ-ONLY.
+_REPLAY_CTX: dict | None = None
+
+
+def _replay_worker_init() -> None:
+    try:
+        import torch
+        torch.set_num_threads(1)   # one core per worker — the pool provides the parallelism
+    except Exception:
+        pass
+
+
+def _replay_eval_chunk(uids) -> list[dict]:
+    ctx = _REPLAY_CTX
+    merged, groups = ctx["merged"], ctx["groups"]
+    rows: list[dict] = []
+    for uid in uids:
+        idx = groups.get(uid)
+        if idx is None or len(idx) == 0:
+            continue
+        cand_bars = merged.iloc[idx].sort_values("bar_idx_v1").reset_index(drop=True)
+        action_label = cand_bars["action_label_v1"].iloc[0]
+        side = "long" if action_label == "TAKE_LONG_NOW" else "short" if action_label == "TAKE_SHORT_NOW" else None
+        if side is None:
+            row = {"candidate_uid": uid, "action_label_v1": action_label,
+                   "realized_pnl_bps": 0.0, "exit_bar": -1, "exit_reason": "ENTRY_IQL_SKIP",
+                   "v3_override_fired": False, "n_bars_considered": 0}
+        else:
+            sim = simulate_one_candidate(
+                cand_bars, side=side, exit_adapter=ctx["exit_adapter"],
+                v3_override_threshold=ctx["v3_thr"], max_bars=ctx["max_bars"],
+            )
+            row = {"candidate_uid": uid, "action_label_v1": action_label, "side_v1": side, **sim}
+        rows.append(row)
+    return rows
+
+
 def evaluate_config(
     df: pd.DataFrame,
     decisions: pd.DataFrame,
@@ -274,31 +315,56 @@ def evaluate_config(
         merged = merged[merged["candidate_uid"].isin(candidate_uids)]
     print(f"[{config_name}] candidates: {len(candidate_uids):,}, total bars: {len(merged):,}")
 
-    rows: list[dict[str, Any]] = []
+    # 2026-06-11 PARALLEL REPLAY (AGENTS.md SMART+MAXED #6, user vedtak — the 5×1h/1-core lesson).
+    # Per-candidate replay is embarrassingly parallel; fork shares `merged` + the adapter COW.
+    # GX1_REPLAY_WORKERS=1 forces the ORIGINAL serial path (bit-reference for determinism diffs).
+    _n_workers = int(os.environ.get("GX1_REPLAY_WORKERS",
+                                    str(min(12, max(1, (os.cpu_count() or 2) - 4)))))
     t0 = time.time()
-    for i, uid in enumerate(candidate_uids):
-        cand_bars = merged[merged["candidate_uid"] == uid].sort_values("bar_idx_v1").reset_index(drop=True)
-        if len(cand_bars) == 0:
-            continue
-        action_label = cand_bars["action_label_v1"].iloc[0]
-        side = "long" if action_label == "TAKE_LONG_NOW" else "short" if action_label == "TAKE_SHORT_NOW" else None
+    if _n_workers <= 1:
+        rows: list[dict[str, Any]] = []
+        for i, uid in enumerate(candidate_uids):
+            cand_bars = merged[merged["candidate_uid"] == uid].sort_values("bar_idx_v1").reset_index(drop=True)
+            if len(cand_bars) == 0:
+                continue
+            action_label = cand_bars["action_label_v1"].iloc[0]
+            side = "long" if action_label == "TAKE_LONG_NOW" else "short" if action_label == "TAKE_SHORT_NOW" else None
 
-        if side is None:
-            row = {"candidate_uid": uid, "action_label_v1": action_label,
-                   "realized_pnl_bps": 0.0, "exit_bar": -1, "exit_reason": "ENTRY_IQL_SKIP",
-                   "v3_override_fired": False, "n_bars_considered": 0}
-        else:
-            sim = simulate_one_candidate(
-                cand_bars, side=side, exit_adapter=exit_adapter,
-                v3_override_threshold=v3_override_threshold, max_bars=max_bars,
-            )
-            row = {"candidate_uid": uid, "action_label_v1": action_label, "side_v1": side, **sim}
-        rows.append(row)
-        if (i + 1) % 1000 == 0:
-            elapsed = time.time() - t0
-            rate = (i + 1) / max(1, elapsed)
-            eta = (len(candidate_uids) - i - 1) / max(1, rate) / 60
-            print(f"[{config_name}] [{i+1}/{len(candidate_uids)}] {rate:.1f} cand/s ETA {eta:.1f}min")
+            if side is None:
+                row = {"candidate_uid": uid, "action_label_v1": action_label,
+                       "realized_pnl_bps": 0.0, "exit_bar": -1, "exit_reason": "ENTRY_IQL_SKIP",
+                       "v3_override_fired": False, "n_bars_considered": 0}
+            else:
+                sim = simulate_one_candidate(
+                    cand_bars, side=side, exit_adapter=exit_adapter,
+                    v3_override_threshold=v3_override_threshold, max_bars=max_bars,
+                )
+                row = {"candidate_uid": uid, "action_label_v1": action_label, "side_v1": side, **sim}
+            rows.append(row)
+            if (i + 1) % 1000 == 0:
+                elapsed = time.time() - t0
+                rate = (i + 1) / max(1, elapsed)
+                eta = (len(candidate_uids) - i - 1) / max(1, rate) / 60
+                print(f"[{config_name}] [{i+1}/{len(candidate_uids)}] {rate:.1f} cand/s ETA {eta:.1f}min")
+    else:
+        import multiprocessing as _mp
+        global _REPLAY_CTX
+        # groupby index = O(1) per-candidate lookup (the serial path's boolean scan over the full
+        # frame was O(N) × n_candidates — the second half of the leak). Same rows, same order.
+        _REPLAY_CTX = {
+            "merged": merged, "groups": merged.groupby("candidate_uid", sort=False).indices,
+            "exit_adapter": exit_adapter, "v3_thr": v3_override_threshold, "max_bars": max_bars,
+        }
+        chunks = np.array_split(np.asarray(candidate_uids, dtype=object), _n_workers * 4)
+        chunks = [c for c in chunks if len(c)]
+        print(f"[{config_name}] PARALLEL replay: {_n_workers} workers × {len(chunks)} chunks "
+              f"(GX1_REPLAY_WORKERS; fork/COW shared frame)")
+        ctx = _mp.get_context("fork")
+        with ctx.Pool(_n_workers, initializer=_replay_worker_init) as pool:
+            chunk_rows = pool.map(_replay_eval_chunk, chunks)
+        rows = [r for cr in chunk_rows for r in cr]
+        _REPLAY_CTX = None
+        print(f"[{config_name}] PARALLEL replay done: {len(rows):,} rows in {(time.time()-t0)/60:.1f}min")
 
     out = pd.DataFrame(rows)
     n_total = len(out)
@@ -516,12 +582,19 @@ def main() -> int:
 
     # Load Exit-IQL v5 adapter
     print(f"\n[1/3] Loading Exit-IQL v5 adapter (variant={args.variant}, fold={args.fold_id})...")
+    # 2026-06-11 parallel replay: forked workers cannot touch a parent CUDA context
+    # ("Cannot re-initialize CUDA in forked subprocess") — load the tiny Q-net on CPU
+    # when the worker pool is active (12 × CPU beats 1 × GPU here; V3 probs are
+    # pre-scored in the frame, the adapter is a small MLP).
+    _replay_workers = int(os.environ.get("GX1_REPLAY_WORKERS",
+                                         str(min(12, max(1, (os.cpu_count() or 2) - 4)))))
     exit_adapter = ExitIQLV2Adapter.load(
         artifact_root=iql_lock,
         variant=args.variant, fold_id=args.fold_id,
-        prefer_cuda=True,
+        prefer_cuda=(_replay_workers <= 1),
     )
-    print(f"  features={len(exit_adapter.feature_names)}, device={exit_adapter.model.device}")
+    print(f"  features={len(exit_adapter.feature_names)}, device={exit_adapter.model.device} "
+          f"(replay_workers={_replay_workers})")
 
     # Load V12 dataset + Entry-IQL decisions
     print(f"\n[2/3] Loading V12 V3TRACKED dataset + Entry-IQL decisions...")
