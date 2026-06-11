@@ -132,9 +132,9 @@ def arm_metrics(df: pd.DataFrame, label: str) -> dict:
             "p10_pnl": float(pnl.quantile(0.10)) if len(sub) else 0.0,
         }
         yr = _per_year_metrics(sub)
-        m["per_year"] = {str(k): {"n": int(v["n"]), "bps": round(float(v["bps_per_take"]), 2),
-                                  "win": round(float(v["win_rate"]), 4)}
-                         for k, v in yr.items()} if isinstance(yr, dict) else str(yr)
+        m["per_year"] = {str(k): {"n": int(v["n"]), "bps": round(float(v["mean"]), 2),
+                                  "win": round(float(v["win"]), 4)}
+                         for k, v in yr.items()}
         sim = simulate_portfolio(sub, max_concurrent=3)
         m["portfolio_cap3"] = {k: sim.get(k) for k in
                                ("n_admitted", "n_dropped", "total_pnl_bps", "max_drawdown_bps")}
