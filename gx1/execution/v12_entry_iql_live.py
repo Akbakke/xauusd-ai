@@ -110,6 +110,15 @@ DEFAULT_BETA = 1.0                  # softmax temperature for confidence
 CONVICTION_GATE_ON = os.environ.get("GX1_CONVICTION_GATE", "0") == "1"
 CONVICTION_THR = float(os.environ.get("GX1_CONVICTION_THR", "-34.2"))
 
+# STEP-1 reversible serve-time overlays (2026-06-11, default OFF = no-op; the feature cols read 0.0 when the
+# candidate lacks them, so live is byte-unchanged until BOTH the feature flag is built into the prebuilt AND
+# the overlay flag is set). Calibrate thresholds via the OOT A/B gate (repaired-April kept).
+RECLAIM_GATE_ON = os.environ.get("GX1_SMC_RECLAIM_GATE", "0") == "1"          # skip a TAKE into an un-reclaimed falling knife
+RECLAIM_GATE_MIN = float(os.environ.get("GX1_SMC_RECLAIM_MIN", "0.5"))         # min opposite-side reclaim displacement to veto
+ROUND_WALL_ON = os.environ.get("GX1_ROUND_NUMBER_WALL", "0") == "1"           # penalize low-conviction TAKE into adverse $-wall
+ROUND_WALL_NEAR_ATR = float(os.environ.get("GX1_ROUND_WALL_NEAR_ATR", "0.25"))  # "near a wall" if |dist| < this (ATR)
+ROUND_WALL_EXTRA = float(os.environ.get("GX1_ROUND_WALL_EXTRA", "20.0"))       # extra conviction required to take into a wall
+
 # Categorical label conventions from inference_batch_v3 (matches training):
 SESSION_ID_TO_LABEL = {0: "ASIA", 1: "EU", 2: "OVERLAP", 3: "US"}
 DEFAULT_VOL_REGIME_LABEL = "MEDIUM"           # always — placeholder in training
@@ -460,6 +469,25 @@ class EntryIQLLiveInference:
                 a_id = skip_id
         elif a0.min_advantage_bps > 0.0 and a_id != skip_id and adv < a0.min_advantage_bps:
             a_id = skip_id
+        # STEP-1 reversible overlays (default-OFF): falling-knife skip + round-number wall. Read candidate
+        # feature cols (0.0 when the prebuilt lacks them → no-op); applied to whatever TAKE was chosen.
+        if a_id != skip_id and (RECLAIM_GATE_ON or ROUND_WALL_ON):
+            _L, _S = iql_core.ACTION_TAKE_LONG_NOW_ID, iql_core.ACTION_TAKE_SHORT_NOW_ID
+            if RECLAIM_GATE_ON:
+                _rec_up = float(candidate.get("smc_sweep_reclaim_up_displacement_atr", 0.0))    # bullish reclaim
+                _rec_dn = float(candidate.get("smc_sweep_reclaim_down_displacement_atr", 0.0))  # bearish reclaim
+                if a_id == _L and _rec_dn > RECLAIM_GATE_MIN and _rec_up <= 0.0:
+                    a_id = skip_id   # long into an active bearish reclaim, no bullish = catching a falling knife
+                elif a_id == _S and _rec_up > RECLAIM_GATE_MIN and _rec_dn <= 0.0:
+                    a_id = skip_id
+            if a_id != skip_id and ROUND_WALL_ON:
+                _raw = best_take_q - float(q_agg[0, skip_id])
+                _d50 = float(candidate.get("dist_to_round_50_atr", 0.0))   # signed: <0 below the level
+                _d100 = float(candidate.get("dist_to_round_100_atr", 0.0))
+                _wall = min(abs(_d50), abs(_d100))
+                _adverse = (a_id == _L and (_d50 < 0.0 or _d100 < 0.0)) or (a_id == _S and (_d50 > 0.0 or _d100 > 0.0))
+                if _wall < ROUND_WALL_NEAR_ATR and _adverse and _raw < (CONVICTION_THR + ROUND_WALL_EXTRA):
+                    a_id = skip_id   # low-conviction TAKE entering into an adverse $-wall
         # Recompute advantages for the FINAL action (a_id may have changed by the gate/filter above).
         chosen_q = float(q_agg[0, a_id])
         adv = chosen_q - float(q_agg[0, skip_id])
