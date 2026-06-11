@@ -89,17 +89,31 @@ echo "   • ENTRY → unset GX1_CONVICTION_GATE / GX1_SKIP_ASIA (reverts to LAM
 echo "   • Edge features/overlays → unset their flags (default-OFF). Rollback re-activates BUNDLES, never datasets."
 
 echo; echo "▌ Cleanup state:"
-if [[ -f "$DATA/_SUPERSEDED_20260610/MANIFEST.json" ]]; then
-  n=$("$PY" -c "import json;print(json.load(open('$DATA/_SUPERSEDED_20260610/MANIFEST.json'))['n_items'])" 2>/dev/null || echo "?")
-  sz=$(du -sh "$DATA/_SUPERSEDED_20260610" 2>/dev/null | cut -f1)
-  echo "   • $n items ($sz) reversibly parked → _SUPERSEDED_20260610/ (rule-8; MANIFEST.json = restore map). 0 hard-deleted."
-fi
+for sup in _SUPERSEDED_20260610 _SUPERSEDED_20260611; do
+  if [[ -f "$DATA/runs/$sup/MANIFEST.json" || -f "$DATA/$sup/MANIFEST.json" ]]; then
+    mf="$DATA/$sup/MANIFEST.json"; [[ -f "$DATA/runs/$sup/MANIFEST.json" ]] && mf="$DATA/runs/$sup/MANIFEST.json"
+    n=$("$PY" -c "import json;print(json.load(open('$mf'))['n_items'])" 2>/dev/null || echo "?")
+    sz=$(du -sh "$(dirname "$mf")" 2>/dev/null | cut -f1)
+    echo "   • $n items ($sz) reversibly parked → $sup/ (rule-8; MANIFEST.json = restore map). 0 hard-deleted."
+  fi
+done
 echo "   • Memory pruned 2026-06-11: 44 superseded (pre-fase2b) files removed; 34 current kept."
 
+echo; echo "▌ 2026-06-11 FIX-WAVE (audit → fixed + verified, commits e44fd7dc/3585c5c2/…):"
+echo "   • CONVICTION-GATE was a LIVE NO-OP (ensemble-only branch) → hoisted to the single-bundle path;"
+echo "     flags-OFF parity 200/200 + gate-ON formula 200/200 through the REAL predict(). Re-verify take-rate"
+echo "     (~0.20 non-ASIA) IN-VIVO after relaunch."
+echo "   • SESSCOND reward fixed (was KeyError-dead + crashed default builds) — now OPT-IN via --variants."
+echo "   • FVG M15/H1 forming-bar look-ahead fixed (completed-bars-only; build==serve parity-tested)."
+echo "   • Exit-IO contracts PINNED vs GX1_SMC_SWEEP_RECLAIM mutation; sizing fail-closed on missing ATR."
+echo "   • ROUND-WALL A/B (12k cement replay, live-parity-checked): NO edge — vetoes 0.30%, removes"
+echo "     86%-win trades (−420 bps total), Δbps/take +0.03, cap-3 DD unchanged (−172.3). NOT flipped."
+
 echo; echo "▌ What's next:"
-echo "   1. STEP-1 entry-overlay A/B over forward_outcome_step1feats (falling-knife skip + round-number wall),"
-echo "      OOT-tail + rule-9 gated (ALL data incl. repaired April, cap-3 DD floor). Flip the winners live."
-echo "   2. STEP-2 reward refit (R_WAIT_OPP_K96_SESSCOND_SYM, IQL-frozen) → STEP-3 round+FVG ctx_cont cascade →"
-echo "      STEP-4 sweep SEQ cascade. Each is an own-vedtak gated retrain."
+echo "   1. Falling-knife (GX1_SMC_RECLAIM_GATE) A/B is still BLOCKED on the canonical rebuild with"
+echo "      GX1_SMC_SWEEP_RECLAIM=1 + extending the augment GROUP_S join (own run-vedtak)."
+echo "   2. STEP-2 reward refit (R_WAIT_OPP_K96_SESSCOND[_SYM], IQL-frozen, opt-in --variants) → STEP-3"
+echo "      round+FVG ctx_cont cascade (CLEAN step1feats cols are leak-free) → STEP-4 sweep SEQ cascade."
+echo "      Each is an own-vedtak gated retrain."
 echo "   3. FEAT-6: M1-NATIVE FVG (+sweep) for the M1 exit (compute on the M1 tape → exit_io → V3). Exit is ALWAYS M1."
 bar; echo
