@@ -1178,6 +1178,8 @@ def evaluate_one_fold(
     balance_actions: bool = False,
     skip_weight_multiplier: float = 1.0,
     skip_oversample_factor: int = 1,
+    volbal_mask: np.ndarray | None = None,
+    volbal_factor: int = 1,
 ) -> dict[str, Any]:
     fold_id_v1 = fold["fold_id_v1"]
     train_idx = fold["train_idx_v1"]
@@ -1196,6 +1198,20 @@ def evaluate_one_fold(
             extra_replicas = np.tile(skip_indices, skip_oversample_factor - 1)
             train_idx = np.concatenate([train_idx, extra_replicas])
             skip_oversample_count = int(len(extra_replicas))
+
+    # 2026-06-11 VOL-REGIME BALANCE (vedtak vol_regime_balance_20260611): high-vol rows are ~10-15%
+    # of history, so the regime-CONDITIONAL pattern (measured: in dip-in-uptrend states, high-vol
+    # short EV=+5.9 vs long EV=-10.3 — the INVERSE of low-vol) drowns in the low-vol majority
+    # gradient. Replicate high-vol TRAIN rows (mask computed on the ORIGINAL row order; applied
+    # train-only — val/test stay natural-distribution, so eval is honest). Same pattern as the
+    # SKIP oversample above.
+    volbal_oversample_count = 0
+    if volbal_mask is not None and volbal_factor > 1:
+        hv_indices = train_idx[volbal_mask[train_idx]]
+        if len(hv_indices) > 0:
+            extra_hv = np.tile(hv_indices, volbal_factor - 1)
+            train_idx = np.concatenate([train_idx, extra_hv])
+            volbal_oversample_count = int(len(extra_hv))
 
     X_train = X[train_idx]
     R_train = R[train_idx]
@@ -1551,6 +1567,15 @@ def write_artifacts(
 
     per_fold_results: list[dict[str, Any]] = []
     flat_evaluations: list[dict[str, Any]] = []
+    # 2026-06-11 vol-regime balance (env-gated, default OFF): high-vol mask on ORIGINAL row order.
+    _volbal_factor = int(os.environ.get("GX1_REWARD_VOLBALANCE_FACTOR", "1"))
+    _volbal_mask = None
+    if _volbal_factor > 1:
+        _volbal_atr = float(os.environ.get("GX1_REWARD_VOLBALANCE_ATR", "14.0"))
+        _volbal_mask = (pd.to_numeric(df.get("atr_bps"), errors="coerce").fillna(0.0) > _volbal_atr).to_numpy()
+        print(f"[{ACTION}] GX1_REWARD_VOLBALANCE_FACTOR={_volbal_factor}: oversampling "
+              f"{int(_volbal_mask.sum()):,}/{len(df):,} high-vol rows (atr_bps>{_volbal_atr}) in TRAIN only", flush=True)
+
     for variant in (variants_subset or REWARD_VARIANTS):
         for fold in folds:
             r = evaluate_one_fold(
@@ -1559,6 +1584,7 @@ def write_artifacts(
                 balance_actions=balance_actions,
                 skip_weight_multiplier=skip_weight_multiplier,
                 skip_oversample_factor=skip_oversample_factor,
+                volbal_mask=_volbal_mask, volbal_factor=_volbal_factor,
             )
             per_fold_results.append(r)
             flat_evaluations.extend(r.get("all_evaluations_v1", []))
