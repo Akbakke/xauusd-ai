@@ -177,6 +177,10 @@ REWARD_VARIANTS = [
     #   mid → λ ≈ 5.0 (like LAM50)
     #   all-weak → λ ≈ 8.0 (stricter than cement)
     "R_V10_MULTI_COND_K96",
+    # R_WAIT_OPP_K96_SESSCOND[_SYM] (2026-06-11) — session-conditional MAE-penalty lambda (stop LAM50
+    # over-skipping recoverable OVERLAP/EU dips; keep ASIA strict). LEARNED, IQL-frozen relabel. Gated A/B.
+    "R_WAIT_OPP_K96_SESSCOND",
+    "R_WAIT_OPP_K96_SESSCOND_SYM",
 ]
 GATED_THRESHOLD_BPS = 30.0
 
@@ -658,6 +662,50 @@ def build_reward_matrix(df: pd.DataFrame, *, variant: str) -> np.ndarray:
         best_take = np.maximum(r_long, r_short)
         best_wait = np.maximum(wl, ws)
         r_skip = np.maximum(0.0, best_wait - best_take)
+        r_long = np.clip(r_long, -500, 500) * bad_path_gate
+        r_short = np.clip(r_short, -500, 500) * bad_path_gate
+        r_skip = np.clip(r_skip, 0, 500)
+        for ki in range(N_K):
+            R[:, 0, ki] = r_skip.astype(np.float32)
+            R[:, 1, ki] = r_long.astype(np.float32)
+            R[:, 2, ki] = r_short.astype(np.float32)
+        return R
+
+    if variant in ("R_WAIT_OPP_K96_SESSCOND", "R_WAIT_OPP_K96_SESSCOND_SYM"):
+        # Session-conditional MAE penalty (2026-06-11): lambda_eff varies per-row by SESSION so the IQL
+        # stops over-skipping recoverable OVERLAP/EU dips (where they pay) while keeping a high bar on ASIA
+        # (worst session) — LEARNED selectivity, not a hardcoded skip. Same shape as R_V10_PQ_COND_K96 but
+        # with a session-bucketed lambda + a margin-gated skip (judge-panel: kills the near-free-skip pathology).
+        _sym = variant.endswith("_SYM")
+        _K = 96
+        _SKIP_MARGIN = 20.0
+        from gx1.time.session_detector import get_session_vectorized
+        if "decision_ts_utc" not in df.columns:
+            raise RuntimeError(f"{variant} requires decision_ts_utc for SSoT session parity")
+        sess = get_session_vectorized(pd.to_datetime(df["decision_ts_utc"], utc=True))
+        # v1 buckets — MEASURE-THEN-LEARN: re-calibrate from GATED clean-chain per-session edge before cement.
+        LAM_BY_SESSION = {"ASIA": 5.0, "EU": 1.5, "OVERLAP": 1.0, "US": 3.0}
+        lambda_eff = sess.map(LAM_BY_SESSION).fillna(3.0).astype(float).to_numpy()
+        if os.environ.get("GX1_ENTRY_SESSCOND_RECOV", "0") == "1":  # OPTIONAL recov_ratio (default OFF)
+            recov = pd.to_numeric(df.get("v10_dip_0"), errors="coerce").fillna(0.0).clip(0, 1).to_numpy()
+            lambda_eff = lambda_eff * (1.0 - 0.5 * recov)
+        tl = df[f"take_now_long_terminal_pnl_at_K{_K}_v1"].astype(float).fillna(0.0).to_numpy()
+        ts_ = df[f"take_now_short_terminal_pnl_at_K{_K}_v1"].astype(float).fillna(0.0).to_numpy()
+        ml = np.maximum(df[f"take_now_long_mae_before_mfe_bps_at_K{_K}_v1"].astype(float).fillna(0.0).to_numpy(), 0.0)
+        ms = np.maximum(df[f"take_now_short_mae_before_mfe_bps_at_K{_K}_v1"].astype(float).fillna(0.0).to_numpy(), 0.0)
+        wl = df[f"wait_long_terminal_pnl_at_K{_K}_v1"].astype(float).fillna(0.0).to_numpy()
+        ws = df[f"wait_short_terminal_pnl_at_K{_K}_v1"].astype(float).fillna(0.0).to_numpy()
+        _spread_coef = 0.0 if _sym else 2.0
+        r_long = tl - lambda_eff * ml - _spread_coef * entry_spread_bps
+        r_short = ts_ - lambda_eff * ms - _spread_coef * entry_spread_bps
+        if _sym:  # penalize the waited side by its OWN MAE (like-for-like compare)
+            mwl = np.maximum(df[f"wait_long_mae_before_mfe_bps_at_K{_K}_v1"].astype(float).fillna(0.0).to_numpy(), 0.0)
+            mws = np.maximum(df[f"wait_short_mae_before_mfe_bps_at_K{_K}_v1"].astype(float).fillna(0.0).to_numpy(), 0.0)
+            wl = wl - lambda_eff * mwl - _spread_coef * entry_spread_bps
+            ws = ws - lambda_eff * mws - _spread_coef * entry_spread_bps
+        best_take = np.maximum(r_long, r_short)
+        best_wait = np.maximum(wl, ws)
+        r_skip = np.where(best_wait - best_take >= _SKIP_MARGIN, best_wait - best_take, 0.0)
         r_long = np.clip(r_long, -500, 500) * bad_path_gate
         r_short = np.clip(r_short, -500, 500) * bad_path_gate
         r_skip = np.clip(r_skip, 0, 500)
