@@ -322,6 +322,20 @@ def update_base34_incremental(new_cutoff: pd.Timestamp) -> int:
         cv3 = cv3.set_index("time")
     cv3 = cv3.sort_index()
 
+    # 2026-06-11 FREEZE FIX: the 37 BASE34-only columns (32 ctx-augment features + session/regime/
+    # swing/micro flags + is_model_bar) used to be COPY-FORWARDED from the last base34 row on every
+    # append → ALL of them froze from 2026-05-25 18:25 (session pinned US, atr_bps 5.348, vol MEDIUM,
+    # trend NEUTRAL — journal-confirmed all the way into the live entry/exit state vectors). They are
+    # now RECOMPUTED per cycle via the ONE-TRUTH live augmenter (v12_ctx_augment_live.
+    # augment_canonical_v3 — the docstring's step-4 intent, never implemented), on a trailing cv3
+    # window long enough for the percentile features (D1_atr_percentile_252 needs ~1y of D1).
+    from gx1.execution.v12_ctx_augment_live import augment_canonical_v3
+    AUG_WINDOW_DAYS = 420
+    cv3_win = cv3.loc[cv3.index >= (new_cutoff - pd.Timedelta(days=AUG_WINDOW_DAYS))]
+    _m5_cols = [c for c in ("open", "high", "low", "close", "volume") if c in cv3_win.columns]
+    cv3_aug = augment_canonical_v3(cv3_win, cv3_win[_m5_cols].copy())
+    _carry_warned: set = set()
+
     # For each new M1 bar, find the most-recent CLOSED M5 bucket
     new_m1_rows = []
     base34_cols = list(base34.columns)
@@ -341,8 +355,20 @@ def update_base34_incremental(new_cutoff: pd.Timestamp) -> int:
         for c in base34_cols:
             if c in cv3.columns:
                 row_data[c] = float(cv3_row[c]) if pd.notna(cv3_row[c]) else 0.0
+            elif c == "is_model_bar":
+                # marker for source M5 model-bar timestamps (extension builder: index.isin(model bars))
+                row_data[c] = float(ts in cv3.index)
+            elif c in cv3_aug.columns:
+                # recomputed ctx value at the SAME last-closed M5 bar the cv3 features come from
+                _v = cv3_aug.at[cv3_row.name, c] if cv3_row.name in cv3_aug.index else np.nan
+                row_data[c] = float(_v) if pd.notna(_v) else 0.0
             else:
-                # column not in cv3 — keep last value from base34 (will be NaN-filled below)
+                # genuinely underivable column — carry last value, but LOUDLY (rule 9:
+                # never a silent freeze again)
+                if c not in _carry_warned:
+                    LOG.warning(f"[BASE34] column '{c}' not in cv3 and not produced by the ctx "
+                                f"augmenter — carrying last value (FROZEN). Fix the wiring.")
+                    _carry_warned.add(c)
                 row_data[c] = float(base34[c].iloc[-1]) if c in base34.columns and pd.notna(base34[c].iloc[-1]) else 0.0
         # V3-producer (2026-06-05): carry the RAW M1 OHLCV onto each base34 row (M1-NATIVE, NOT M5-ffilled).
         # base34 today holds only M5-derived features ffilled onto M1; the exit V3 transformer needs raw M1
@@ -397,15 +423,70 @@ def run_one_cycle() -> dict:
     }
 
 
+def backfill_base34_ctx(since_ts: pd.Timestamp) -> dict:
+    """One-shot repair of the 2026-05-25 FREEZE: recompute the 37 BASE34-only ctx columns for all
+    rows after `since_ts` via the same ONE-TRUTH augmenter the (fixed) incremental path uses.
+    Run with the gx1-canonical-incremental daemon STOPPED (this rewrites the same parquet)."""
+    from gx1.execution.v12_ctx_augment_live import augment_canonical_v3
+    manifest = json.loads(BASE34_MANIFEST.read_text())
+    base34_path = Path(manifest["parquet_path"])
+    base34 = pd.read_parquet(base34_path)
+    base34.index = pd.to_datetime(base34.index, utc=True)
+    cv3 = pd.read_parquet(CANONICAL_V3_PREBUILT)
+    if "time" in cv3.columns:
+        cv3["time"] = pd.to_datetime(cv3["time"], utc=True)
+        cv3 = cv3.set_index("time")
+    cv3 = cv3.sort_index()
+    win = cv3.loc[cv3.index >= (since_ts - pd.Timedelta(days=420))]
+    _m5_cols = [c for c in ("open", "high", "low", "close", "volume") if c in win.columns]
+    cv3_aug = augment_canonical_v3(win, win[_m5_cols].copy())
+    target = [c for c in base34.columns if c not in cv3.columns and c != "is_model_bar"
+              and c in cv3_aug.columns]
+    mask = base34.index > since_ts
+    n_rows = int(mask.sum())
+    # map each M1 row to its last CLOSED M5 bar (same semantics as the append path)
+    closed = (base34.index[mask].floor("5min") - pd.Timedelta(minutes=5))
+    aug_idx = cv3_aug.index.searchsorted(closed.values, side="right") - 1
+    valid = aug_idx >= 0
+    before = {c: int(base34.loc[mask, c].nunique()) for c in target[:6]}
+    for c in target:
+        vals = cv3_aug[c].to_numpy()[aug_idx]
+        vals = np.where(valid, vals, np.nan)
+        base34.loc[mask, c] = pd.Series(vals, index=base34.index[mask]).fillna(0.0).astype(np.float32)
+    if "is_model_bar" in base34.columns:
+        base34.loc[mask, "is_model_bar"] = base34.index[mask].isin(cv3.index)
+    after = {c: int(base34.loc[mask, c].nunique()) for c in target[:6]}
+    tmp = base34_path.with_suffix(".parquet.tmp")
+    base34.to_parquet(tmp, index=True)
+    os.replace(tmp, base34_path)
+    manifest["parquet_sha256"] = hashlib.sha256(base34_path.read_bytes()).hexdigest()
+    manifest["rows"] = len(base34)
+    manifest["created_utc"] = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    manifest["note"] = (manifest.get("note", "") +
+                        f" | BACKFILL {datetime.now(timezone.utc):%Y-%m-%dT%H:%MZ}: recomputed "
+                        f"{len(target)} frozen ctx cols for {n_rows} rows since {since_ts} (freeze fix).")
+    BASE34_MANIFEST.write_text(json.dumps(manifest, indent=2))
+    return {"rows_backfilled": n_rows, "cols": len(target),
+            "nunique_before_sample": before, "nunique_after_sample": after}
+
+
 def main() -> int:
     p = argparse.ArgumentParser(description="V12 incremental canonical/BASE34 updater")
     p.add_argument("--loop", action="store_true", help="Loop continuously (default: one-shot)")
     p.add_argument("--interval", type=int, default=60, help="Loop interval in seconds (default 60)")
+    p.add_argument("--backfill-base34-since", type=str, default=None,
+                   help="One-shot: recompute the frozen BASE34 ctx cols for rows after this UTC ts "
+                        "(freeze fix repair). Stop the daemon first.")
     args = p.parse_args()
 
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s %(name)s [%(levelname)s] %(message)s",
                         datefmt="%Y-%m-%dT%H:%M:%SZ")
+
+    if args.backfill_base34_since:
+        stats = backfill_base34_ctx(pd.Timestamp(args.backfill_base34_since, tz="UTC"))
+        print(json.dumps(stats, indent=2))
+        return 0
 
     if not args.loop:
         stats = run_one_cycle()

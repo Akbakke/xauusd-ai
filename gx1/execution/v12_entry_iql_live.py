@@ -385,8 +385,13 @@ class EntryIQLLiveInference:
         # sync). Else cement placeholders (regime-blind). Emit all 4 vol categories (the build
         # ONE_HOT expects EXTREME too; was only emitting 3 here = a latent mismatch).
         if os.environ.get("GX1_REGIME_V4", "0") == "1":
-            _tr_id = int(augmented_cv3_row.get("trend_regime_id", 1) or 1)
-            _vr_id = int(augmented_cv3_row.get("vol_regime_id", 2) or 2)
+            # 2026-06-11 fix: the old `int(x or default)` coerced the VALID id 0 to the default
+            # (`0 or 1` == 1) — live could never emit TREND_DOWN (trend_id=0) or LOW vol (vol_id=0,
+            # ~20% of bars). NaN-safe explicit handling instead.
+            _tr_raw = augmented_cv3_row.get("trend_regime_id")
+            _vr_raw = augmented_cv3_row.get("vol_regime_id")
+            _tr_id = int(_tr_raw) if _tr_raw is not None and np.isfinite(_tr_raw) else 1
+            _vr_id = int(_vr_raw) if _vr_raw is not None and np.isfinite(_vr_raw) else 2
             vol_label = {0: "LOW", 1: "LOW", 2: "MEDIUM", 3: "HIGH", 4: "EXTREME"}.get(_vr_id, "MEDIUM")
             trend_label = {0: "TREND_DOWN", 1: "TREND_NEUTRAL", 2: "TREND_UP"}.get(_tr_id, "TREND_NEUTRAL")
         else:
