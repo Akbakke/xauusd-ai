@@ -242,6 +242,35 @@ def make_v12_exit_decision(pipeline: V12Pipeline, trade: TradeState,
 # ── Order execution + reject handling ────────────────────────────────────
 
 
+# Serve-time position SIZING overlay (2026-06-11, reversible — like the conviction-gate). DEFAULT OFF
+# (GX1_SIZING_MODE=off OR max_mult=1.0) == flat units, byte-identical to cement. Scales OANDA units by
+# conviction (raw_adv) and/or inverse-ATR (vol-target), clamped. No dim, no retrain, instant rollback.
+SIZING_MODE = os.environ.get("GX1_SIZING_MODE", "off")                       # off|conviction|voltarget|both
+SIZING_MAX_MULT = float(os.environ.get("GX1_SIZING_MAX_MULT", "1.0"))        # 1.0 = overlay disarmed
+SIZING_MIN_MULT = float(os.environ.get("GX1_SIZING_MIN_MULT", "1.0"))
+SIZING_CONV_LO = float(os.environ.get("GX1_SIZING_CONV_LO", os.environ.get("GX1_CONVICTION_THR", "-34.2")))
+SIZING_CONV_HI = float(os.environ.get("GX1_SIZING_CONV_HI", "40.0"))
+SIZING_ATR_REF = float(os.environ.get("GX1_SIZING_ATR_REF_BPS", "18.0"))
+SIZING_ATR_FLOOR = float(os.environ.get("GX1_SIZING_ATR_FLOOR_BPS", "6.0"))
+if SIZING_MODE != "off" and SIZING_MAX_MULT != 1.0:
+    LOG.warning("[GX1_SIZING] mode=%s max_mult=%.2f — position sizing OVERLAY active (reversible)", SIZING_MODE, SIZING_MAX_MULT)
+
+
+def size_units(base_units: int, raw_adv: float, atr_bps_now: float):
+    """Serve-time conviction/vol position sizing. DEFAULT-OFF (or max_mult=1.0) == flat units (cement path)."""
+    if SIZING_MODE == "off" or SIZING_MAX_MULT == 1.0:
+        return base_units, 1.0
+    m = 1.0
+    if SIZING_MODE in ("conviction", "both"):
+        span = max(SIZING_CONV_HI - SIZING_CONV_LO, 1e-6)
+        frac = min(max((raw_adv - SIZING_CONV_LO) / span, 0.0), 1.0)
+        m *= 1.0 + (SIZING_MAX_MULT - 1.0) * frac
+    if SIZING_MODE in ("voltarget", "both"):
+        m *= SIZING_ATR_REF / max(atr_bps_now, SIZING_ATR_FLOOR)
+    m = min(max(m, SIZING_MIN_MULT), SIZING_MAX_MULT)
+    return max(1, int(round(base_units * m))), m
+
+
 def units_from_position_size_pred(base_units: int, position_size_pred: float,
                                     max_multiplier: float = 1.0) -> tuple[int, float]:
     """Map V10 v3+ position_size_pred ∈ [0,1] to actual units.
@@ -941,9 +970,20 @@ def main() -> int:
                     consecutive_errors = 0
                     time.sleep(args.poll_seconds)
                     continue
-                trade_units, units_mult = units_from_position_size_pred(
-                    args.units, pos_pred, max_multiplier=args.max_units_multiplier,
-                )
+                if SIZING_MODE != "off":
+                    # reversible serve-time sizing: conviction = best-side advantage_over_skip (≈ raw_adv);
+                    # vol-target = inverse live M5 ATR. DEFAULT-OFF path below is byte-identical to cement.
+                    raw_adv = max(float(decision.get("advantage_over_skip_long", 0.0)),
+                                  float(decision.get("advantage_over_skip_short", 0.0)))
+                    _atr_bps = float(live_feats.get("atr14_m5_bps", 0.0) or 0.0)
+                    trade_units, units_mult = size_units(args.units, raw_adv, _atr_bps)
+                    event["sizing_mode"] = SIZING_MODE
+                    event["sizing_raw_adv"] = raw_adv
+                    event["sizing_atr_bps"] = _atr_bps
+                else:
+                    trade_units, units_mult = units_from_position_size_pred(
+                        args.units, pos_pred, max_multiplier=args.max_units_multiplier,
+                    )
                 event["units_multiplier_applied"] = units_mult
                 event["position_size_pred"] = pos_pred
                 if units_mult != 1.0:
