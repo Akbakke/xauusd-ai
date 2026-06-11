@@ -65,7 +65,10 @@ def add_cyclic_time_features(df: pd.DataFrame) -> pd.DataFrame:
     if isinstance(df.index, pd.DatetimeIndex):
         ts = df.index
     elif "time" in df.columns:
-        ts = pd.to_datetime(df["time"], utc=True)
+        # 2026-06-11 fix: pd.to_datetime(Series) returns a Series (no .hour) — wrap in
+        # DatetimeIndex so the column-branch behaves like the index-branch (latent bug;
+        # the daemon path always used the index branch).
+        ts = pd.DatetimeIndex(pd.to_datetime(df["time"], utc=True))
     else:
         raise RuntimeError("[canonical_v3] no DatetimeIndex or 'time' column found")
     hour = ts.hour.to_numpy(dtype=np.float32)
