@@ -530,6 +530,18 @@ def build_reward_matrix(df: pd.DataFrame, *, variant: str) -> np.ndarray:
         else np.zeros(n, dtype=float)
     )
     bad_path_gate = (1.0 - bad_path_prob).astype(np.float32)  # 1.0 = no gate, 0.0 = full block
+    # 2026-06-11 REWARD-V2 (env-gated, default OFF — vedtak reward_v2_refit_20260611): the
+    # multiplicative gate INVERTS on negative rewards (shrinks a bad take toward 0 → teaches the
+    # Q-net that V10-flagged-bad takes are LESS bad; 71% of LAM50 take-rewards are negative,
+    # median lift +39 bps). POSGATE applies the gate only to the POSITIVE part: gains on a
+    # V10-flagged-bad path are discounted, losses stay fully punished.
+    _badpath_posgate = os.environ.get("GX1_REWARD_BADPATH_POSGATE", "0") == "1"
+
+    def _gate_take(r: np.ndarray) -> np.ndarray:
+        r = np.clip(r, -500, 500)
+        if _badpath_posgate:
+            return np.where(r > 0, r * bad_path_gate, r).astype(np.float32)
+        return (r * bad_path_gate).astype(np.float32)
 
     # 2026-06-11 fix: SESSCOND names also match startswith("R_WAIT_OPP_") — they MUST be excluded
     # here or the _CFG lookup below raises KeyError before their dedicated handler is reached.
@@ -577,8 +589,8 @@ def build_reward_matrix(df: pd.DataFrame, *, variant: str) -> np.ndarray:
                 wl = wl - _LAM * mwl - _spread_coef * entry_spread_bps
                 ws = ws - _LAM * mws - _spread_coef * entry_spread_bps
             rk = np.maximum(0.0, np.maximum(wl, ws) - np.maximum(rl, rs))
-            return (np.clip(rl, -500, 500) * bad_path_gate,
-                    np.clip(rs, -500, 500) * bad_path_gate,
+            return (_gate_take(rl),
+                    _gate_take(rs),
                     np.clip(rk, 0, 500))
 
         if _sym:
@@ -629,8 +641,8 @@ def build_reward_matrix(df: pd.DataFrame, *, variant: str) -> np.ndarray:
         best_take = np.maximum(r_long, r_short)
         best_wait = np.maximum(wl, ws)
         r_skip = np.maximum(0.0, best_wait - best_take)
-        r_long = np.clip(r_long, -500, 500) * bad_path_gate
-        r_short = np.clip(r_short, -500, 500) * bad_path_gate
+        r_long = _gate_take(r_long)
+        r_short = _gate_take(r_short)
         r_skip = np.clip(r_skip, 0, 500)
         for ki in range(N_K):
             R[:, 0, ki] = r_skip.astype(np.float32)  # SKIP
@@ -668,8 +680,8 @@ def build_reward_matrix(df: pd.DataFrame, *, variant: str) -> np.ndarray:
         best_take = np.maximum(r_long, r_short)
         best_wait = np.maximum(wl, ws)
         r_skip = np.maximum(0.0, best_wait - best_take)
-        r_long = np.clip(r_long, -500, 500) * bad_path_gate
-        r_short = np.clip(r_short, -500, 500) * bad_path_gate
+        r_long = _gate_take(r_long)
+        r_short = _gate_take(r_short)
         r_skip = np.clip(r_skip, 0, 500)
         for ki in range(N_K):
             R[:, 0, ki] = r_skip.astype(np.float32)
@@ -712,8 +724,8 @@ def build_reward_matrix(df: pd.DataFrame, *, variant: str) -> np.ndarray:
         best_take = np.maximum(r_long, r_short)
         best_wait = np.maximum(wl, ws)
         r_skip = np.where(best_wait - best_take >= _SKIP_MARGIN, best_wait - best_take, 0.0)
-        r_long = np.clip(r_long, -500, 500) * bad_path_gate
-        r_short = np.clip(r_short, -500, 500) * bad_path_gate
+        r_long = _gate_take(r_long)
+        r_short = _gate_take(r_short)
         r_skip = np.clip(r_skip, 0, 500)
         for ki in range(N_K):
             R[:, 0, ki] = r_skip.astype(np.float32)
@@ -740,8 +752,8 @@ def build_reward_matrix(df: pd.DataFrame, *, variant: str) -> np.ndarray:
         best_take = np.maximum(r_long, r_short)
         best_wait = np.maximum(wl, ws)
         r_skip = np.maximum(0.0, best_wait - best_take)
-        r_long = np.clip(r_long, -500, 500) * bad_path_gate
-        r_short = np.clip(r_short, -500, 500) * bad_path_gate
+        r_long = _gate_take(r_long)
+        r_short = _gate_take(r_short)
         r_skip = np.clip(r_skip, 0, 500)
         for ki in range(N_K):
             R[:, 0, ki] = r_skip.astype(np.float32)
@@ -873,12 +885,9 @@ def build_reward_matrix(df: pd.DataFrame, *, variant: str) -> np.ndarray:
                 r = term_pnl - _LAM * 10.0 * np.log1p(mae_pre_k96 / 10.0) - 2.0 * entry_spread_bps
             else:
                 raise ValueError(f"unknown reward variant: {variant}")
-            # Clip extreme values for stability (top 0.1% MFE values can be 500+ bps)
-            r = np.clip(r, -500.0, 500.0)
-            # 2026-Q2 BIDIR: apply bad_path gate. Multiplies the MFE reward by
-            # (1 - bad_path_prob) so V10's bad-path predictions translate into
-            # reduced incentive to TAKE.
-            r = r * bad_path_gate
+            # bad_path gate via the ONE-TRUTH helper (clips to [-500,500] + gates;
+            # respects GX1_REWARD_BADPATH_POSGATE — see _gate_take above).
+            r = _gate_take(r)
             R[:, ai, ki] = r.astype(np.float32)
     return R
 
@@ -1469,6 +1478,18 @@ def write_artifacts(
 
     print(f"[{ACTION}] loading forward-outcome dataset from {per_week_dir}", flush=True)
     df = load_forward_outcome_dataset(per_week_dir)
+    # 2026-06-11 REWARD-V2 (env-gated, default OFF — vedtak reward_v2_refit_20260611): mask
+    # Friday/week-boundary-TRUNCATED rows from TRAINING. The K-labels are computed on partial
+    # forward windows (4.9% of rows have <0.5*K96 coverage) and build_reward_matrix fillna(0)s
+    # them — partial-PnL noise the model absorbs silently. Producer marks them
+    # (take_now_*_forward_bars_used_at_K{K}_v1) but no reward builder consumed the mark until now.
+    if os.environ.get("GX1_REWARD_TRUNC_MASK", "0") == "1":
+        _bl = pd.to_numeric(df.get("take_now_long_forward_bars_used_at_K96_v1"), errors="coerce")
+        _bs = pd.to_numeric(df.get("take_now_short_forward_bars_used_at_K96_v1"), errors="coerce")
+        _keep = (_bl.fillna(0) >= 48) & (_bs.fillna(0) >= 48)
+        print(f"[{ACTION}] GX1_REWARD_TRUNC_MASK=1: dropping {(~_keep).sum():,}/{len(df):,} "
+              f"truncated rows (<48/96 forward bars at K96)", flush=True)
+        df = df[_keep].reset_index(drop=True)
     print(f"[{ACTION}] loaded rows={len(df):,} cols={len(df.columns)}", flush=True)
     if sample_n_rows is not None and sample_n_rows < len(df):
         df = df.sample(n=sample_n_rows, random_state=SEED_V1).reset_index(drop=True)
