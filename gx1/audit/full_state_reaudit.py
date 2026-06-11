@@ -19,6 +19,7 @@ Usage:
 """
 import argparse
 import glob
+import os
 import re
 import sys
 import traceback
@@ -28,7 +29,24 @@ import pandas as pd
 
 from gx1.audit.feature_liveness import audit_iql_state_liveness, KNOWN_ALLOWED_DEAD
 
-WS2 = "/home/andre2/GX1_DATA/runs/FASE2B_CLEAN_20260608"
+WS2 = "/home/andre2/GX1_DATA/runs/FASE2B_CLEAN_20260608"   # legacy fallback only
+
+
+def _wave_dirs():
+    """Resolve the ACTUAL wave dir of the LIVE entry vs exit bundle from the ONE-TRUTH contract — so the
+    ENTRY arm audits the live entry's own training data (its wave) and the EXIT arm audits the exit's wave.
+    These are DIFFERENT waves (entry=FASE2B_REGIME_V4, exit=FASE2B_CLEAN); a single hardcoded WS2 audited the
+    wrong bundle for entry (the 2026-06-11 'regime-blind' artifact). Fail-soft to WS2 if the contract is absent."""
+    import json
+    entry_wave = exit_wave = WS2
+    try:
+        c = json.load(open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+                                        "PROJECT_STATE_artifacts.json")))
+        entry_wave = os.path.dirname(c["active"]["entry_iql"]["path"])   # .../FASE2B_REGIME_V4_20260605
+        exit_wave = os.path.dirname(c["active"]["exit_iql"]["path"])     # .../FASE2B_CLEAN_20260608
+    except Exception as _e:
+        print(f"[reaudit] WARN: contract wave-resolve failed ({_e!r}) — falling back to WS2={WS2}")
+    return entry_wave, exit_wave
 
 
 def _sample_weeks(per_week_dir, sample_n, seed=1337):
@@ -160,12 +178,16 @@ def main():
     # Match the A3 exit build's env (aug64 + regime) so the EXIT lazy-join computes the same 64 aug64 features.
     for k in ("GX1_EXIT_AUGMENT_64", "GX1_REGIME_V4", "GX1_TREND_REGIME_FROM_D1"):
         os.environ.setdefault(k, "1")
+    # ENTRY arm audits the live ENTRY bundle's OWN wave; EXIT arm the EXIT bundle's wave (contract-resolved,
+    # NOT one hardcoded WS2 — the 2026-06-11 wrong-bundle/regime-blind fix).
+    _entry_wave, _exit_wave = _wave_dirs()
+    print(f"[reaudit] entry-wave={_entry_wave}  exit-wave={_exit_wave}")
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--sample-n", type=int, default=200_000)
-    ap.add_argument("--forward-outcome-dir", default=f"{WS2}/forward_outcome_clean/per_week")
-    ap.add_argument("--mtf-cache", default=f"{WS2}/MULTI_TF_V2_CACHE")
-    ap.add_argument("--exit-per-bar-dir", default=f"{WS2}/exit_per_bar_scored_clean")
-    ap.add_argument("--canonical-features", default=f"{WS2}/CANONICAL_FEATURES_V3_PLUS5/canonical_features_v3_plus5.parquet")
+    ap.add_argument("--forward-outcome-dir", default=f"{_entry_wave}/forward_outcome_clean/per_week")
+    ap.add_argument("--mtf-cache", default=f"{_entry_wave}/MULTI_TF_V2_CACHE")
+    ap.add_argument("--exit-per-bar-dir", default=f"{_exit_wave}/exit_per_bar_scored_clean")
+    ap.add_argument("--canonical-features", default=f"{_exit_wave}/CANONICAL_FEATURES_V3_PLUS5/canonical_features_v3_plus5.parquet")
     ap.add_argument("--reports-root", default="/home/andre2/GX1_DATA/reports/truth_e2e_sanity")  # chunk0 (empty) — build default
     ap.add_argument("--xgb-bundle", default=None)
     ap.add_argument("--xgb-contract", default=None)
