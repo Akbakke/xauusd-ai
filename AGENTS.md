@@ -63,11 +63,11 @@
     liveness check MUST cover the FULL state vector of EVERY model — XGB / V10 ctx+snap / Entry-IQL (197) / V3 /
     Exit-IQL (209) — including SELF-COMPUTED features (e.g. the `attach_group_a_dip_struct_ctx_columns` 36 dip/struct
     `_v3` columns), NOT just XGB-gain + V10 ctx. ANY feature that is constant/all-zero on a shuffled sample AND not in
-    `KNOWN_ALLOWED_DEAD` = HARD FAIL the build/cement, LOUD. **CONCRETE BUG FOUND 2026-06-10:** the 36
-    `dip_confirmed_{tf}_v3` / `struct_*_{tf}_v3` (M5/M15/H1/H4/D1) are CONST-ZERO in train AND serve because
-    `_dip_struct_5tf` reads `{tf}_ema20_slope_atr_v2` / `{tf}_mom_5/20_atr_v2` / `dist_to_{tf}_lo_atr` via
-    `.get(...,0.0)` and those upstream per-TF inputs are ABSENT → `dip_prox=0`. They are NOT allowlisted yet were
-    never flagged → the auto-check did not cover them. This is a silent-ignore regression, NOT benign. [[project_gx1_dead_feature_hygiene_wave_20260606]]
+    `KNOWN_ALLOWED_DEAD` = HARD FAIL the build/cement, LOUD. **RESOLVED 2026-06-11 (re-audit on ACTUAL built
+    values):** the 36 `dip_confirmed_{tf}_v3` / `struct_*_{tf}_v3` cols were SUSPECTED const-zero, but the full-state
+    re-audit (`full_state_reaudit --detail`, shuffled sample) measured them **35/36 ALIVE** — the suspicion was WRONG.
+    The coverage rule STANDS regardless: it is exactly WHY we now audit every state vector (Entry-IQL 197 + Exit-IQL 209
+    + XGB + V10 ctx/snap/multi-TF), not just XGB-gain + V10 ctx. [[project_gx1_full_stack_reaudit_20260611]]
   - **MANDATE: a full feature-liveness RE-AUDIT of all 5 state vectors (actual built values, shuffled-sample variance)
     is REQUIRED before any cement and periodically — NEVER assume the allowlist is complete or that "it was checked
     once". Verify EVERY feature is FACTUALLY alive + used, every time. Do not trust memory that a feature is dead/benign
@@ -82,6 +82,12 @@
   or a hardcoded default path. Missing/ambiguous/PENDING ⇒ raise, never silently fall back to an on-disk vintage.
   (Known footguns flagged 2026-06-03: a V3 resolver that fell back to a stale V9 on disk, and a build-path V9
   substitution — these are the exact pattern to hunt and kill; verify none remain before trusting "can't run wrong".)
+  - **Resolve-from-contract applies to AUDITING / DIAGNOSING too (2026-06-11 lesson).** When you re-audit or answer
+    "what is live / is this feature dead", resolve the ACTIVE bundle's OWN data from the contract — NOT a hardcoded
+    default. ENTRY and EXIT are DIFFERENT waves (entry=FASE2B_REGIME_V4, exit=FASE2B_CLEAN); `full_state_reaudit`
+    hardcoded one WS2 for both → it audited the EXIT wave's forward_outcome for the ENTRY arm → a FALSE "entry
+    regime-blind" verdict (the live entry IS regime-aware). Fixed: `_wave_dirs()` derives each arm's wave from the
+    contract. VERIFY against the live bundle's real data before reporting a defect, every time.
 - **New artifact lifecycle:** build → PENDING_VEDTAK → pass gates → I flip the contract to ACTIVE → the prior
   ACTIVE moves to `history[]` (INVALIDATED). Never two ACTIVE per role. Never auto-promote.
 - **Physical de-duplication (so we don't drown in v1/v2/v3…):** superseded artifacts are removed via rule 5

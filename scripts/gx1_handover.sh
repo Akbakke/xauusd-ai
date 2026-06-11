@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # GX1 HANDOVER — print the CURRENT gjeldende state for a fresh session.
 #
-# Re-runnable orientation: reads PROJECT_STATE_artifacts.json (the ONE selection truth) live,
-# checks the live stack, and prints the operating point + verify/rollback/next steps.
+# Re-runnable orientation: reads PROJECT_STATE_artifacts.json (the ONE selection truth) live, checks the
+# stack, and prints the operating point + edge-buildout state + verify/rollback/next steps.
 # Resolve bundles ONLY via gx1_guards.load_decision_artifact — never glob/latest/mtime.
 #
 # Usage:  bash scripts/gx1_handover.sh
@@ -17,39 +17,36 @@ cd "$REPO"
 bar(){ printf '%s\n' "────────────────────────────────────────────────────────────────────────"; }
 echo; bar
 echo "  GX1 HANDOVER — gjeldende state @ $(date -u '+%Y-%m-%d %H:%M:%SZ')"
-echo "  ONE selection truth = PROJECT_STATE_artifacts.json (resolve via gx1_guards.load_decision_artifact)"
+echo "  Read first: CLAUDE.md + AGENTS.md + SYSTEM_MAP.md + PROJECT_STATE_artifacts.json (the ONE selection truth)."
+echo "  MODE: BUILD (live stopped, iterating). ONE truth = the contract; resolve via gx1_guards.load_decision_artifact."
 bar
 
-echo; echo "▌ ACTIVE bundles (one per role — running LIVE now):"
+echo; echo "▌ ACTIVE bundles (one per role — the live chain):"
 "$PY" - "$CONTRACT" <<'PY'
 import json,sys,os
-c=json.load(open(sys.argv[1]))
-a=c["active"]
+c=json.load(open(sys.argv[1])); a=c["active"]
 def line(role,extra=""):
     v=a[role]; p=v["path"]; ok="OK " if os.path.exists(p) else "MISSING!!"
     print(f"   [{ok}] {role:10s} {p.replace('/home/andre2/GX1_DATA/','')}  {extra}")
 line("xgb")
-line("v10_entry")
-line("v3_exit", f"({a['v3_exit'].get('note','')[:0]}EXIT_IO_V8)")
-line("entry_iql", f"variant={a['entry_iql'].get('active_variant')}")
+line("v10_entry", "(regime-v4, ctx_cont 123)")
+line("v3_exit", "(EXIT_IO_V8)")
+line("entry_iql", f"variant={a['entry_iql'].get('active_variant')}  + CONVICTION-GATE overlay")
 line("exit_iql", f"variant={a['exit_iql'].get('active_variant')} agg={a['exit_iql'].get('active_aggregator')} K={a['exit_iql'].get('active_k_horizon')}")
 op=a["entry_iql"].get("operating_point",{})
 print()
-print("▌ ENTRY operating point (CEMENTED 2026-06-10, serve-time overlay — entry_iql BUNDLE UNCHANGED):")
-print(f"   selection      : {op.get('selection')}")
-print(f"   conviction_thr : {op.get('conviction_thr')}   (open top-20% by raw_adv = best-TAKE-Q − SKIP-Q, side=argmax TAKE-Q)")
-print(f"   skip_asia      : {op.get('skip_asia')}        (block ASIA-session entries, per-year win floor)")
-print(f"   max_trades     : {op.get('max_trades')}            (DD-validated portfolio cap)")
-print(f"   live_env       : {op.get('live_env')}")
-print("   LAM50 NOTE     : the live entry IS the LAM50-REWARD Q-net (entry_iql_clean). Only the OLD")
-print("                    LAM50/VOLUME-FIRST *operating point* (argmax-SKIP) is superseded. DO NOT remove the bundle.")
+print("▌ ENTRY operating point (CEMENTED 2026-06-10 — serve-time overlay, entry_iql BUNDLE UNCHANGED):")
+print(f"   selection={op.get('selection')}  conviction_thr={op.get('conviction_thr')}  skip_asia={op.get('skip_asia')}  max_trades={op.get('max_trades')}")
+print(f"   live_env: {op.get('live_env')}")
+print("   LAM50 NOTE: the live entry IS the LAM50-REWARD Q-net served via the conviction-gate; only the OLD")
+print("               LAM50/VOLUME-FIRST argmax operating-point is superseded. Do NOT remove the bundle.")
 PY
 
-echo; echo "▌ LIVE stack status:"
+echo; echo "▌ LIVE stack — STOPPED (build mode). Relaunch with: bash scripts/launch_live_practice.sh"
 if command -v systemctl >/dev/null 2>&1; then
   export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
   for u in gx1-collector gx1-canonical-incremental; do
-    printf "   %-26s %s\n" "$u" "$(systemctl --user is-active "$u" 2>/dev/null || echo unknown)"
+    printf "   %-26s %s\n" "$u" "$(systemctl --user is-active "$u" 2>/dev/null || true)"
   done
 fi
 for pf in paper_runner counterfactual_daemon; do
@@ -57,36 +54,45 @@ for pf in paper_runner counterfactual_daemon; do
   if [[ -n "${p:-}" ]] && kill -0 "$p" 2>/dev/null; then st="ALIVE pid=$p"; else st="not running"; fi
   printf "   %-26s %s\n" "$pf" "$st"
 done
-echo "   (re-run: bash scripts/launch_live_practice.sh  — idempotent, pins conviction-gate+skip-ASIA)"
 
-echo; echo "▌ Key commits (entry-selection cement + cleanup):"
-git log --oneline -6 | sed 's/^/   /'
+echo; echo "▌ EDGE BUILDOUT — STEP-0 DONE (5 components, ALL env-gated DEFAULT-OFF → live byte-identical):"
+echo "   GX1_SMC_SWEEP_RECLAIM  sweep-then-reclaim (smc_v1)        69cd6441"
+echo "   GX1_ROUND_NUMBER       round-number \$-level proximity     542a85df"
+echo "   GX1_FVG_FEATURES       FVG M5/M15/H1 proximity            18305072"
+echo "   R_WAIT_OPP_K96_SESSCOND session-conditional entry reward  e8173344  (label-only)"
+echo "   GX1_SIZING_MODE        conviction/vol position sizing     d775a008"
+echo "   STEP-1 overlays wired (17f12208): GX1_SMC_RECLAIM_GATE (falling-knife skip) + GX1_ROUND_NUMBER_WALL,"
+echo "     default-OFF. A/B feature-build done → runs/FASE2B_REGIME_V4_20260605/forward_outcome_step1feats."
+echo "   Verdict: chain is SELECTION-limited; reward-shaping + sizing > features (project_gx1_feature_edge_verdict_20260611)."
 
-echo; echo "▌ Verify (test==serve + rule-9 liveness):"
-echo "   • test==serve : live conviction formula reproduces the offline conviction20 decisions (take-rate 0.2000, match 1.0000)."
-echo "   • rule-9      : python gx1/audit/full_state_reaudit.py  (defaults -> FASE2B_CLEAN_20260608; expect Entry 196/197 + Exit 208/209 ALIVE)."
-echo "   • feature-liveness pre-cement: python -m gx1.audit.feature_liveness --strict --v10-bundle <active> --xgb-bundle <active>"
+echo; echo "▌ DATA: April-2026 is x10-REPAIRED → NO exclusion anywhere (code+memory purged). Use ALL data."
+
+echo; echo "▌ Key commits this session (newest first):"
+git log --oneline -10 | sed 's/^/   /'
+
+echo; echo "▌ Verify (test==serve + rule-9):"
+echo "   • rule-9 re-audit (contract-resolves entry-vs-exit wave): python gx1/audit/full_state_reaudit.py --detail"
+echo "     (expect Entry 197/197 + Exit 209/209 ALIVE, XGB 0-gain; per-TF EMA alive×5 TF; dip/struct 35/36 alive)."
+echo "   • conviction test==serve: live formula reproduces the offline conviction20 decisions (take-rate 0.2000, 1.0000)."
 
 echo; echo "▌ Rollback:"
-echo "   • EXIT  : re-point v3_exit + exit_iql in PROJECT_STATE_artifacts.json to the FASE2B_REGIME_V4 history"
-echo "             entries (v3_exit_fase2b_regime_v4 + exit_iql_train_clean — both bundles intact on disk)."
-echo "   • ENTRY : unset GX1_CONVICTION_GATE / GX1_SKIP_ASIA (reverts to LAM50 argmax; no artifact restore)."
-echo "   • Rollback re-activates BUNDLES, never datasets."
+echo "   • EXIT chain → re-point v3_exit + exit_iql in the contract to the FASE2B_REGIME_V4 history[] entries"
+echo "     (v3_exit_fase2b_regime_v4 + exit_iql_train_clean — bundles intact on disk)."
+echo "   • ENTRY → unset GX1_CONVICTION_GATE / GX1_SKIP_ASIA (reverts to LAM50 argmax; no artifact restore)."
+echo "   • Edge features/overlays → unset their flags (default-OFF). Rollback re-activates BUNDLES, never datasets."
 
 echo; echo "▌ Cleanup state:"
 if [[ -f "$DATA/_SUPERSEDED_20260610/MANIFEST.json" ]]; then
   n=$("$PY" -c "import json;print(json.load(open('$DATA/_SUPERSEDED_20260610/MANIFEST.json'))['n_items'])" 2>/dev/null || echo "?")
   sz=$(du -sh "$DATA/_SUPERSEDED_20260610" 2>/dev/null | cut -f1)
-  echo "   • $n superseded items ($sz) reversibly parked -> _SUPERSEDED_20260610/ (rule-8; MANIFEST.json = restore map)."
-  echo "   • 0 hard-deleted. Hard-delete is a SEPARATE rule-5 step (backup->inventory->dry-run->user confirm)."
+  echo "   • $n items ($sz) reversibly parked → _SUPERSEDED_20260610/ (rule-8; MANIFEST.json = restore map). 0 hard-deleted."
 fi
+echo "   • Memory pruned 2026-06-11: 44 superseded (pre-fase2b) files removed; 34 current kept."
 
 echo; echo "▌ What's next:"
-echo "   • IN-VIVO: confirm live take-rate ~20% non-ASIA (vs LAM50 ~8%), zero ASIA takes (accrues over EU/US sessions)."
-echo "   • FEATURE WAVE #2 (own vedtak per retrain): ema20×50 + OOT-tail+rule-9-gated selection features"
-echo "     (FVG-proximity, sweep-then-reclaim, round-number levels, vol-regime-transition, session-cond reward,"
-echo "     RV-term-slope, conviction×regime); cross-asset (real-yields>DXY>GSR>VIX, level/residual not momentum)."
-echo "   • Bake skip-ASIA as a LEARNED session-conditional entry reward at the next entry-IQL retrain."
-echo "   • Deferred build-path repoints before parking the 7 KEEP_UNSAFE: GX1_B9_DECISIONS_PATH +"
-echo "     posthoc_session_strategyf_eval CEMENT/FASE2B baselines."
+echo "   1. STEP-1 entry-overlay A/B over forward_outcome_step1feats (falling-knife skip + round-number wall),"
+echo "      OOT-tail + rule-9 gated (ALL data incl. repaired April, cap-3 DD floor). Flip the winners live."
+echo "   2. STEP-2 reward refit (R_WAIT_OPP_K96_SESSCOND_SYM, IQL-frozen) → STEP-3 round+FVG ctx_cont cascade →"
+echo "      STEP-4 sweep SEQ cascade. Each is an own-vedtak gated retrain."
+echo "   3. FEAT-6: M1-NATIVE FVG (+sweep) for the M1 exit (compute on the M1 tape → exit_io → V3). Exit is ALWAYS M1."
 bar; echo
