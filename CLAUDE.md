@@ -69,6 +69,11 @@ rule 1, no per-edit `touch`. Reversible-first cleanup per rule 5 needs no per-it
    `python -m gx1.audit.feature_liveness --strict …` before any cement. A NEW dead/ignored feature (or a
    broken/duplicated TF, or a zeroed hand-off) = a silent-ignore regression → the build/retrain/cement
    FAILS LOUD; fix the wiring or add to the allowlist with a documented reason. NEVER hand-verify "are all
-   features used" again — the chain refuses to run-wrong.
+   features used" again — the chain refuses to run-wrong. **LIVE-TAIL leg (user vedtak 2026-06-11): the
+   check also covers the LIVE prebuilt tails** — `--live-tail` scans cv3+BASE34 for the freeze signature
+   (was-varying column now constant; the 2026-05-25 BASE34 copy-forward freeze lived 17 days while every
+   training-side audit was green). Runs AUTO: hard-fail preflight in `launch_live_practice.sh` + hourly
+   ERROR-loud self-check in the canonical_incremental daemon. Allowlist `LIVE_TAIL_ALLOWED_CONST`
+   (documented reasons only).
 
 @AGENTS.md

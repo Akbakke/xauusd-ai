@@ -82,6 +82,15 @@ export GX1_CONVICTION_THR=-34.2
 FORCE=0
 [[ "${1-}" == "--force" ]] && FORCE=1
 
+# ── Rule-9 LIVE-TAIL preflight (user vedtak 2026-06-11) ─────────────────────
+# Freeze-signature scan of the live cv3+BASE34 prebuilt tails BEFORE launching anything:
+# a was-varying column that is now constant on the recent tail = the 2026-05-25 BASE34
+# copy-forward freeze class (lived 17 days while every training-side audit was green).
+# Live must NEVER serve frozen context — hard fail here.
+echo "[preflight] rule-9 live-tail freeze-signature scan…"
+/home/andre2/src/GX1_ENGINE/.venv/bin/python -m gx1.audit.feature_liveness --live-tail --strict \
+  || { echo "FATAL: rule-9 LIVE-TAIL check failed — the live prebuilt tail carries FROZEN context. Fix the append wiring (see gx1.audit.feature_liveness.check_live_prebuilt_tail) before launching."; exit 1; }
+
 # is_alive <pidfile> → echoes the alive pid or empty
 is_alive() {
     local pf=$1

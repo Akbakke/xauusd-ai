@@ -171,6 +171,84 @@ def audit_iql_state_liveness(X, names, *, role: str = "iql-state", raise_on_fail
     return rep
 
 
+LIVE_TAIL_ALLOWED_CONST: Dict[str, str] = {
+    # Structural — XAU OHLC has no bid/ask spread on the M5-derived path:
+    "spread_bps": "XAU OHLC no spread (structural).",
+    "spread_bucket": "bucketization of the const spread (structural).",
+    # REGIME-SATURATED capped formula, NOT an append freeze (verified 2026-06-11, the live-tail
+    # check's first real catch): cost = 12*sess*(0.5+0.5*clip(0.6*atr_pct*1e4+0.4*rng_z, 0, 3))
+    # saturates at 24.0 whenever atr_bps >= ~5 — permanently true in the 2026 high-vol regime
+    # (16,914/17k values = 24.0 over the last 60d; basic_v1.py:1635-1644). train==serve consistent
+    # (batch saturates identically). FIX CANDIDATE at the next feature wave: raise/log-scale the cap
+    # so the cost proxy regains information in high-vol regimes.
+    "_v1_cost_bps_dyn": "scale_term cap 3.0 saturates in the 2026 high-vol regime → const 24.0. Uncap at next feature wave.",
+}
+LIVE_TAIL_REF_MIN_NUNIQUE = 4   # was-varying threshold: ref-window nunique >= this => freeze when tail==1
+LIVE_BASE34_MANIFEST = "/home/andre2/GX1_DATA/data/data/prebuilt/BASE28_CANONICAL/CURRENT_MANIFEST.json"
+LIVE_CV3_PREBUILT = ("/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_PREBUILT/"
+                     "xauusd_m5_CANONICAL_V3_2020_2026.parquet")
+
+
+def check_live_prebuilt_tail(tail_days: int = 5, ref_days: int = 30,
+                             base34_manifest: str = LIVE_BASE34_MANIFEST,
+                             cv3_path: str = LIVE_CV3_PREBUILT,
+                             raise_on_fail: bool = False) -> dict:
+    """Rule-9 LIVE-TAIL check (user vedtak 2026-06-11): detect the FREEZE SIGNATURE on the LIVE
+    prebuilts — a column constant over the recent tail that USED to vary in the reference window.
+
+    Training-data audits can never see this class of failure: the BASE34 copy-forward freeze lived
+    17 days (2026-05-25→06-11, session pinned US / atr_bps const into the live entry+exit states)
+    while every training-side liveness audit was green.
+
+    FAIL signature per column: nunique(tail) == 1 AND nunique(ref) >= LIVE_TAIL_REF_MIN_NUNIQUE
+    (was-varying, now-frozen), off LIVE_TAIL_ALLOWED_CONST. Constant in BOTH windows = structural
+    (reported, not failed). Also reports cutoff staleness (informational — markets may be closed).
+    """
+    import pandas as pd
+    out: dict = {"ok": True, "frozen": [], "structural_const": [], "checked": {}, "stale_minutes": {}}
+    frames: list[tuple[str, "pd.DataFrame"]] = []
+    man = json.loads(Path(base34_manifest).read_text())
+    b34 = pd.read_parquet(man["parquet_path"])
+    b34.index = pd.to_datetime(b34.index, utc=True)
+    frames.append(("BASE34", b34))
+    cv3 = pd.read_parquet(cv3_path)
+    if "time" in cv3.columns:
+        cv3["time"] = pd.to_datetime(cv3["time"], utc=True)
+        cv3 = cv3.set_index("time")
+    frames.append(("CV3", cv3.sort_index()))
+    now = pd.Timestamp.now(tz="UTC")
+    for name, df in frames:
+        cutoff = df.index.max()
+        out["stale_minutes"][name] = round(float((now - cutoff).total_seconds() / 60.0), 1)
+        tail_start = cutoff - pd.Timedelta(days=tail_days)
+        ref_start = tail_start - pd.Timedelta(days=ref_days)
+        tail = df[df.index > tail_start]
+        ref = df[(df.index > ref_start) & (df.index <= tail_start)]
+        n_checked = 0
+        for c in df.columns:
+            if df[c].dtype.kind not in "fiub":
+                continue
+            n_checked += 1
+            nu_tail = int(tail[c].nunique(dropna=True))
+            if nu_tail > 1:
+                continue
+            nu_ref = int(ref[c].nunique(dropna=True))
+            if nu_ref >= LIVE_TAIL_REF_MIN_NUNIQUE and c not in LIVE_TAIL_ALLOWED_CONST:
+                out["frozen"].append(f"{name}:{c} (tail const={tail[c].dropna().iloc[-1] if len(tail[c].dropna()) else 'NaN'}, ref nunique={nu_ref})")
+            elif nu_ref <= 1:
+                out["structural_const"].append(f"{name}:{c}")
+        out["checked"][name] = {"cols": n_checked, "tail_rows": len(tail), "ref_rows": len(ref)}
+    out["ok"] = not out["frozen"]
+    if not out["ok"]:
+        msg = (f"[RULE9-LIVE-TAIL] FREEZE SIGNATURE on the live prebuilt(s): {out['frozen']} — "
+               f"a was-varying column is now constant on the {tail_days}d tail. Fix the append wiring; "
+               f"NEVER let live serve frozen context (the 2026-05-25 BASE34 freeze class).")
+        if raise_on_fail:
+            raise FeatureLivenessError(msg)
+        print(msg, file=sys.stderr)
+    return out
+
+
 def audit_xgb_gain(bundle_dir: str, contract_path: str) -> List[str]:
     """Return base80 features with 0 gain in ALL session heads, excluding the allowlist."""
     from gx1.xgb.multihead.xgb_multihead_model_v1 import XGBMultiheadModel
@@ -194,8 +272,18 @@ def _main() -> int:
     ap.add_argument("--xgb-bundle", type=str, default=None)
     ap.add_argument("--xgb-contract", type=str, default="gx1/xgb/contracts/xgb_input_features_base80_v1.json")
     ap.add_argument("--strict", action="store_true", help="exit nonzero if any NEW dead feature")
+    ap.add_argument("--live-tail", action="store_true",
+                    help="rule-9 LIVE-TAIL check: freeze-signature scan of the live cv3+BASE34 prebuilt tails")
+    ap.add_argument("--tail-days", type=int, default=5)
+    ap.add_argument("--ref-days", type=int, default=30)
     a = ap.parse_args()
     failed = False
+    if a.live_tail:
+        rep = check_live_prebuilt_tail(tail_days=a.tail_days, ref_days=a.ref_days)
+        print(f"[LIVE-TAIL] checked={rep['checked']} stale_min={rep['stale_minutes']}")
+        print(f"[LIVE-TAIL] structural-const (info): {len(rep['structural_const'])} cols")
+        print(f"[LIVE-TAIL] {'OK ✓ — no freeze signature' if rep['ok'] else 'FROZEN: ' + repr(rep['frozen'])}")
+        failed |= not rep["ok"]
     if a.xgb_bundle:
         dead = audit_xgb_gain(a.xgb_bundle, a.xgb_contract)
         print(f"[XGB] new-dead (0 gain, off allowlist): {dead or 'NONE ✓'}")
