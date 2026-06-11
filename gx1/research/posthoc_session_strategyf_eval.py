@@ -1,8 +1,8 @@
 """POST-HOC OOT evaluator — measure P1 (skip/down-weight ASIA) edge + P3 (Strategy-F / runner-clip)
 on a gated per-candidate CSV, with ZERO retrain and ZERO serve change.
 
-This EXTENDS the existing post-hoc grader honest_phase6_gate.py (corrupt-April exclusion, skip-ASIA
-subset, HARDENED 4-check verdict) with the two things it lacked:
+This EXTENDS the existing post-hoc grader honest_phase6_gate.py (ALL data — April is x10-repaired,
+skip-ASIA subset, HARDENED 4-check verdict) with the two things it lacked:
   (1) the validator's PER-YEAR floor (GATE_CFG 12.0 bps / 0.85 win) so a chain that collapses in one
       regime can't pass on a pooled mean — imported as ONE-TRUTH from
       gx1.scripts.v12.v12_phase6_joint_validation (_per_year_metrics / _entry_year / GATE_CFG);

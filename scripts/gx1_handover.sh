@@ -15,10 +15,14 @@ PAPER=$DATA/reports/v12_paper_runs
 cd "$REPO"
 
 bar(){ printf '%s\n' "────────────────────────────────────────────────────────────────────────"; }
+# MODE is DERIVED, never asserted (2026-06-11 fix: the hardcoded "BUILD (live stopped)" headline
+# contradicted the systemd-active data daemons printed right below it).
+_pr_pid=$(cat "$PAPER/paper_runner.pid" 2>/dev/null || true)
+if [[ -n "${_pr_pid:-}" ]] && kill -0 "$_pr_pid" 2>/dev/null; then MODE="LIVE (paper_runner alive pid=$_pr_pid)"; else MODE="BUILD (paper_runner stopped; data daemons may still run)"; fi
 echo; bar
 echo "  GX1 HANDOVER — gjeldende state @ $(date -u '+%Y-%m-%d %H:%M:%SZ')"
 echo "  Read first: CLAUDE.md + AGENTS.md + SYSTEM_MAP.md + PROJECT_STATE_artifacts.json (the ONE selection truth)."
-echo "  MODE: BUILD (live stopped, iterating). ONE truth = the contract; resolve via gx1_guards.load_decision_artifact."
+echo "  MODE: $MODE. ONE truth = the contract; resolve via gx1_guards.load_decision_artifact."
 bar
 
 echo; echo "▌ ACTIVE bundles (one per role — the live chain):"
@@ -42,7 +46,7 @@ print("   LAM50 NOTE: the live entry IS the LAM50-REWARD Q-net served via the co
 print("               LAM50/VOLUME-FIRST argmax operating-point is superseded. Do NOT remove the bundle.")
 PY
 
-echo; echo "▌ LIVE stack — STOPPED (build mode). Relaunch with: bash scripts/launch_live_practice.sh"
+echo; echo "▌ LIVE stack (status below is live-checked). Relaunch with: bash scripts/launch_live_practice.sh"
 if command -v systemctl >/dev/null 2>&1; then
   export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
   for u in gx1-collector gx1-canonical-incremental; do
@@ -62,16 +66,19 @@ echo "   GX1_FVG_FEATURES       FVG M5/M15/H1 proximity            18305072"
 echo "   R_WAIT_OPP_K96_SESSCOND session-conditional entry reward  e8173344  (label-only)"
 echo "   GX1_SIZING_MODE        conviction/vol position sizing     d775a008"
 echo "   STEP-1 overlays wired (17f12208): GX1_SMC_RECLAIM_GATE (falling-knife skip) + GX1_ROUND_NUMBER_WALL,"
-echo "     default-OFF. A/B feature-build done → runs/FASE2B_REGIME_V4_20260605/forward_outcome_step1feats."
+echo "     default-OFF. A/B feature-set → \$GX1_DATA/runs/FASE2B_CLEAN_20260608/forward_outcome_step1feats_clean"
+echo "     (CLEAN-wave re-augment, uid-aligned with the gate chain; the entry-wave step1feats was parked — its"
+echo "     FVG cols predate the M15/H1 look-ahead fix)."
 echo "   Verdict: chain is SELECTION-limited; reward-shaping + sizing > features (project_gx1_feature_edge_verdict_20260611)."
 
 echo; echo "▌ DATA: April-2026 is x10-REPAIRED → NO exclusion anywhere (code+memory purged). Use ALL data."
 
-echo; echo "▌ Key commits this session (newest first):"
+echo; echo "▌ Last 10 commits (newest first):"
 git log --oneline -10 | sed 's/^/   /'
 
 echo; echo "▌ Verify (test==serve + rule-9):"
-echo "   • rule-9 re-audit (contract-resolves entry-vs-exit wave): python gx1/audit/full_state_reaudit.py --detail"
+echo "   • rule-9 re-audit (contract-resolves entry-vs-exit wave), from the repo root:"
+echo "       $REPO/.venv/bin/python -m gx1.audit.full_state_reaudit --detail"
 echo "     (expect Entry 197/197 + Exit 209/209 ALIVE, XGB 0-gain; per-TF EMA alive×5 TF; dip/struct 35/36 alive)."
 echo "   • conviction test==serve: live formula reproduces the offline conviction20 decisions (take-rate 0.2000, 1.0000)."
 

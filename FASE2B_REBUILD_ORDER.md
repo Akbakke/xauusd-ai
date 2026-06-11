@@ -78,7 +78,7 @@ Stale base28/base80(03-13) + corrupt-cv3 quarantined reversibly → `runs/_SUPER
      (`build_entry_v10_ctx_training_dataset_v3`) **COMPUTES the remaining ~66 ctx_cont itself** (one-truth w/ IQL):
      session one-hots `is_ASIA` (:1220), group-A + dip/struct via `augment_forward_outcome_v2.build_context`
      (:1761-1788), and **fail-closes** if any `ORDERED_CTX_CONT_NAMES_V3` is still missing (:1950-1951). So
-     FULL_PLUS_CTX does NOT need all 121 pre-computed — the cement's 249 just had them pre-baked. Verified
+     FULL_PLUS_CTX does NOT need all 123 pre-computed — the cement's 249 just had them pre-baked. Verified
      2026-06-05: FULL_PLUS_CTX 395,653 rows, April 4757 (clean), atr_bps + regime cols present.
 4. **MULTI_TF_V2_CACHE** regen: `python -m gx1.scripts.prebuild_multi_tf_cache_v2` against the clean cv3/tape
    (verify `manifest.last_ts == cutoff`). REQUIRED by the V10/V3 builds (`GX1_V10_MULTI_TF_V2_CACHE_DIR`); the
@@ -102,11 +102,11 @@ Stale base28/base80(03-13) + corrupt-cv3 quarantined reversibly → `runs/_SUPER
    → cement on PASS → **REMOVE the REGIME_V4 flag + OFF/105/6 path** (no off-switch).
 
 ## Dims map (the recurring "which dim is which" confusion — STOP re-deriving)
-- **ENTRY (V10 → Entry-IQL):** ctx_cont **105** (cement, REGIME_V4=0) / **121** (REGIME_V4=1); ctx_cat **6** / **5**;
+- **ENTRY (V10 → Entry-IQL):** ctx_cont **105** (cement, REGIME_V4=0) / **123** (REGIME_V4=1); ctx_cat **6** / **5**;
   `add_ctx_cont` base-subset = **16** (base6 + micro5 + swing5); base34 = `CTX16CAT6`.
-- **EXIT (V3 → Exit-IQL):** EXIT_IO **V6=91 / V7=155** (+4 vol +24 group-A +**36 dip/struct**) **/ V8=171** (+16 regime);
+- **EXIT (V3 → Exit-IQL):** EXIT_IO **V6=91 / V7=155** (+4 vol +24 group-A +**36 dip/struct**) **/ V8=173** (+18 regime);
   `exit_io_v1_ctx36` = the older 36-ctx exit contract (the `ctx36` in the branch name).
-- **REGIME_V4 ON** = **+16 continuous** regime features (ctx_cont 105→121) and **−1 categorical** (the degenerate
+- **REGIME_V4 ON** = **+18 continuous** regime features (ctx_cont 105→123) and **−1 categorical** (the degenerate
   `trend_regime_id` dropped, ctx_cat 6→5). That IS "bake regime in": rich continuous signal, not an on/off category.
 
 ## Verified artifact checkpoints (re-pin / verify at each)
@@ -140,7 +140,7 @@ trainer script names — ALWAYS `ls` the script before running). Real entrypoint
 - V10 transformer train: `gx1.models.entry_v10.entry_v10_ctx_train_v3` (a MODULE under protected `gx1/models/entry_v10/`
   — RUNNING it is fine; only EDITING is gated. `--train`, seed 1337, epochs 10, lr 3e-4, batch 256, seq_len 96.
   COSTFIX cost-matrix is the code DEFAULT (ENTRY_COST_SHORT_TO_LONG=2.00 / FLAT_TO_LONG=1.60 symmetrized).
-  ctx dims come FROM the dataset → 121/5 under REGIME_V4, no CLI dim arg.)
+  ctx dims come FROM the dataset → 123/5 under REGIME_V4, no CLI dim arg.)
 - V3 exit train: `gx1.scripts.train_exit_v6_disk_thin`. Entry-IQL build: `gx1.scripts.materialize_build_entry_iql_v2`.
   Candidate batch: `gx1.scripts.materialize_inference_batch_candidates_v3_v1`.
   Exit-IQL per-bar build: `gx1.scripts.materialize_build_exit_iql_per_bar_dataset_v2_m1`.
@@ -202,7 +202,7 @@ Readiness audit found the chain is NOT 100% live end-to-end; user decided how mu
    the Entry-IQL stage by OOT + the gate below.
 3. **HARD ENTRY-DIRECTION GATE (user, emphatic):** the entry must NOT blindly follow the d1 regime. When the
    actionable TFs contradict d1 — m5+m15 DOWN while d1 UP — the model must call SHORT (don't buy the top of a daily
-   uptrend). This is LEARNED from `regime_divergence_flag_v3` + per-TF regime classes (now in V10's 121-ctx), NOT a
+   uptrend). This is LEARNED from `regime_divergence_flag_v3` + per-TF regime classes (now in V10's 123-ctx), NOT a
    hardcoded rule (all-smart-AI). Gate: on a held-out slice where m5&m15 regime=down & d1 regime=up, require the
    retrained V10/Entry-IQL to short (or at minimum NOT go long) at a materially higher rate than cement; this is the
    "short-in-uptrend stress-test gate" — a CEMENT BLOCKER for this wave.
@@ -210,7 +210,7 @@ Readiness audit found the chain is NOT 100% live end-to-end; user decided how mu
    train/serve skew (~12-16 train vs ~0-1 live).
 
 ## Readiness-audit blockers (2026-06-05) — status
-- **[FIXED]** Exit-IQL V8 scorer: `score_v3_v8_on_per_bar_v1.py` SUPPORTED_CONTRACTS now includes EXIT_IO_V8 (171).
+- **[FIXED]** Exit-IQL V8 scorer: `score_v3_v8_on_per_bar_v1.py` SUPPORTED_CONTRACTS now includes EXIT_IO_V8 (173).
 - **[OPEN, fix at Entry-IQL stage]** forward-outcome strips OHLC/time → the 36 dip/struct can't attach. Fix:
   `materialize_build_candidate_forward_outcome_dataset_v1.py` carry high/low/close+time OR the 36+24 from the merged
   candidate parquet (inference_batch attaches them @605-607). Plus carry the PLUS5 `_canon_v1` cols in the join.

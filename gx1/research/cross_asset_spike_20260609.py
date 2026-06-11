@@ -86,10 +86,7 @@ def main() -> int:
     cand["ts"] = pd.to_datetime(cand["decision_ts_utc"], utc=True)
     cand = cand.dropna(subset=["ts", "p_long", "take_now_long_terminal_pnl_at_K96_v1",
                                "take_now_short_terminal_pnl_at_K96_v1"]).sort_values("ts")
-    # exclude corrupt April 2026 (honest)
-    apr = (cand["ts"] >= pd.Timestamp("2026-04-01", tz="UTC")) & (cand["ts"] <= pd.Timestamp("2026-04-21", tz="UTC"))
-    cand = cand[~apr]
-    print(f"[SPIKE] XAU candidates (April-excluded): {len(cand):,}", flush=True)
+    print(f"[SPIKE] XAU candidates (ALL data, April repaired): {len(cand):,}", flush=True)
 
     # asof-align dollar features onto each candidate (causal: last H1 bar <= decision ts)
     usd_flat = usd.rename_axis("uts").reset_index().sort_values("uts")
@@ -102,7 +99,7 @@ def main() -> int:
 
     out = []
     def line(s): out.append(s); print(s, flush=True)
-    line(f"\n=== CROSS-ASSET SPIKE RESULTS (n={len(m):,}, 2020-11..2026, April-excluded) ===")
+    line(f"\n=== CROSS-ASSET SPIKE RESULTS (n={len(m):,}, 2020-11..2026, ALL data) ===")
     # (a) contemporaneous-to-forward correlation: dollar momentum vs XAU forward dir payoff
     for c in ["usd_mom6", "usd_mom24", "usd_vs_ma200"]:
         r = np.corrcoef(m[c].to_numpy(), xau_dir_ret)[0, 1]

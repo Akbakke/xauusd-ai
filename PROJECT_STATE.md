@@ -1,3 +1,8 @@
+> **SUPERSEDED 2026-06-11 — HISTORICAL LOG ONLY (frozen 2026-04-30).**
+> Current state lives in `PROJECT_STATE_artifacts.json` (the ONE selection truth)
+> + `bash scripts/gx1_handover.sh` (live overview). Nothing below reflects the
+> fase2b/CLEAN cement era; do not act on it.
+
 # Project State
 
 Current action: `PARALLEL_CONTEXTUAL_IQL_STATE_ACTION_RESEARCH_LANE_PACK_V1`

@@ -124,7 +124,7 @@ def main():
     adv = pd.to_numeric(df["advantage_over_skip_v1"], errors="coerce").fillna(0.0).to_numpy()
 
     print(f"\n===== ENTRY-QUALITY / MAE-MFE @ K{args.k} (recoverable if mae_before_mfe>={args.recoverable_atr_frac}*atr) =====")
-    print(f"candidates (April-excluded): {len(df)}   took={took.sum()} ({100*took.mean():.1f}%)   skipped={skipped.sum()}")
+    print(f"candidates (ALL data, April repaired): {len(df)}   took={took.sum()} ({100*took.mean():.1f}%)   skipped={skipped.sum()}")
     print("\n-- ALL candidates, policy-preferred side, by timing class --")
     a = agg_cls(term, cls)
     for k in ("CLEAN", "RECOVERABLE", "BAD"):

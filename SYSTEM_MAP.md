@@ -4,8 +4,9 @@
 session re-deriving the same overview. If the answer is here, trust it (each fact carries a
 `file:line` you can verify in seconds). If it's NOT here and you had to derive it, **add it here in
 the same session** (see "Maintenance rule" at the bottom). Version-controlled in the repo so it's the
-same truth from `/home/andre2` or inside the repo. Scope = the live **COSTFIX chain** (2026-Q2),
-XAUUSD only. Paths/lines checked 2026-06-05 unless marked `(verify)`.
+same truth from `/home/andre2` or inside the repo. Scope = the live **fase2b/CLEAN cement** (entry
+chain `FASE2B_REGIME_V4_20260605`, exit chain `FASE2B_CLEAN_20260608`; cemented 2026-06-08, clean-exit
+flipped 2026-06-10), XAUUSD only. Paths/lines checked 2026-06-05 unless marked `(verify)`.
 
 Layout: §1-9 = the chain + parity (read first). §10-15 = stack internals (entry, exit, contracts,
 XGB, multi-TF, datasets). §16-18 = gotchas, flags, protected core. Then the maintenance rule.
@@ -54,6 +55,8 @@ XGB, multi-TF, datasets). §16-18 = gotchas, flags, protected core. Then the mai
   Env-gated `GX1_CONVICTION_GATE`/`GX1_SKIP_ASIA`/`GX1_CONVICTION_THR` ([v12_entry_iql_live.py:104](gx1/execution/v12_entry_iql_live.py#L104),
   [v12_paper_runner.py](gx1/execution/v12_paper_runner.py), commits 42b5946b/268c70ee; launcher pins `1`/`1`/`−34.2`).
   ONE truth = `PROJECT_STATE_artifacts.json` → `entry_iql.operating_point`.
+  2026-06-11 gate-hoist fix: the gate+overlays now apply on the single-bundle `predict()` path too (they
+  were ensemble-branch-only — the flag was a live NO-OP between 2026-06-10 and the fix; [v12_entry_iql_live.py:417-419](gx1/execution/v12_entry_iql_live.py#L417)).
   - SUPERSEDED (pre-2026-06-10, "LAM50/VOLUME-FIRST" *operating point* — NOT the bundle): cement
     `min_advantage_bps = 0.0` (OFF) + runtime adaptive `min_adv = max(1.5, 0.35×ATR_bps)` = IQL argmax-SKIP,
     ~8% take, admit 0.458 < gate floor. Retired by the conviction-gate.
@@ -89,7 +92,7 @@ Entry-snapshot (cols 0-4, frozen, from **V10 direction softmax** — candidate-g
   cols `time, open/high/low/close/volume, bid_*, ask_*`. Written by `v12_oanda_data_collector` (systemd `gx1-collector.service`).
   Poll cadence env `GX1_COLLECTOR_POLL_SECONDS` (default **60**; **live = 15** via drop-in `gx1-collector.service.d/poll15.conf`, 2026-06-08) ([v12_oanda_data_collector.py:50-57](gx1/execution/v12_oanda_data_collector.py#L50)). 15s = a closed M1 bar reaches disk within ~15s; this parquet feeds `m1_close` + canonical/feature freshness, **NOT** the live exit price (see §16 lag-truth).
 - **Two independent reads of this parquet per exit decision:** (1) the runner reads `ask_close+bid_close` →
-  `m1_close` (mid, **NOT cached**) ([v12_paper_runner.py:539-548](gx1/execution/v12_paper_runner.py#L539)); (2) `_refresh_m1_bar` reads intrabar high/low for the overlay peak/trough/atr (**cached per minute**) ([v12_pipeline.py:150-191](gx1/execution/v12_pipeline.py#L150)).
+  `m1_close` (mid, **NOT cached**) ([v12_paper_runner.py:589-598](gx1/execution/v12_paper_runner.py#L589)); (2) `_refresh_m1_bar` reads intrabar high/low for the overlay peak/trough/atr (**cached per minute**) ([v12_pipeline.py:150-191](gx1/execution/v12_pipeline.py#L150)).
 - **Per-M1 atr** `(ask_high-bid_low)/mid*1e4` (~3-7 bps) ← `_refresh_m1_bar` (ONE source for overlay intrabar + `current_atr_bps_v1`).
 - **M5 atr** `cv3_row["atr_bps"]` (ATR14, ~10-50 bps) → `trade.last_atr_bps`, used ONLY for journal + `from_dict` backfill. Overlay no longer reads it (V4).
 - The V3-producer daemon ([v12_canonical_incremental.py:347](gx1/execution/v12_canonical_incremental.py#L347)) carries raw M1 `o/h/l/c/v` (MID) onto base34 (R12 volume); intrabar MFE uses **spread-side** from the collector, not base34 mid.
@@ -105,11 +108,11 @@ Entry-snapshot (cols 0-4, frozen, from **V10 direction softmax** — candidate-g
 
 ## 7. Exit decision flow (per M1 bar)
 
-`v12_paper_runner` loop → [v12_pipeline.make_exit_decision](gx1/execution/v12_pipeline.py#L425):
+`v12_paper_runner` loop → [v12_pipeline.make_exit_decision](gx1/execution/v12_pipeline.py#L444):
 1. `_refresh_m1_bar` → `trade.update_bar(bid,ask,m1_close, bid_high,bid_low,ask_high,ask_low)` (advances PnL/MFE/MAE + records intrabar).
 2. `_refresh_canonical` (hot-reload; fail-closed if stale > `GX1_MAX_PREBUILT_STALENESS_MIN`).
 3. `build_v3_overlay()` → `v3.predict(... trade_overlay, multi_tf_windows)`.
-4. `exit_iql.decide_for_trade(trade, cv3_row, v3_v8_out, current_m1_atr_bps_override)` → `(rec, bar_state)`; `action_id` 0=HOLD/1=EXIT_NOW; `bar_state` journaled for distillation ([v12_exit_iql_live.py:465](gx1/execution/v12_exit_iql_live.py#L465)).
+4. `exit_iql.decide_for_trade(trade, cv3_row, v3_v8_out, current_m1_atr_bps_override)` → `(rec, bar_state)`; `action_id` 0=HOLD/1=EXIT_NOW; `bar_state` journaled for distillation ([v12_exit_iql_live.py:468](gx1/execution/v12_exit_iql_live.py#L468)).
 - **Trade-state = 18 feats** (`build_trade_state_features`): bars_in_trade, pnl, mfe, mae, bars_since_mfe, dd, bar_return, 3× rolling ret (5/15/60), 2× rolling vol (15/60), pnl_vel, pnl_acc, mfe_decay (cum_peak[t]-cum_peak[t-4]), giveback (clip[-10,10]), giveback_acc (2nd diff), rolling_slope (OLS) ([v12_trade_state.py:270-348](gx1/execution/v12_trade_state.py#L270)).
 - **V10 entry-snapshot = 10 feats** frozen at open (6 V10 + 4 v3+ aux tf_agreement/path_quality_std/position_size/hold_horizon; `hold_horizon=-1` sentinel = bundle lacks head) ([v12_trade_state.py:350-387](gx1/execution/v12_trade_state.py#L350)).
 - **m5_phase live = `minute%5`** via `compute_m5_phase_onehot` (matches trainer); old canon path = `minute//12` (stale, different formula) ([v12_exit_iql_live.py:384-399](gx1/execution/v12_exit_iql_live.py#L384)).
@@ -156,7 +159,7 @@ Entry-snapshot (cols 0-4, frozen, from **V10 direction softmax** — candidate-g
 - **Entry-IQL state:** cement runtime `state_v1` = **197-dim** (raw, journaled; verified at source 2026-06-08 — ckpt `net.0.weight=(256,197)`, 197 named `feature_names_v1`). The adapter builds the state strictly BY NAME with one-hot expansion + a fail-closed coverage guard and asserts `state_dim == len(feature_names)` ([entry_iql_v2_adapter.py:136-148,200-252](gx1/runtime/entry_iql_v2_adapter.py#L136)) — so adding/removing a feature is a contract change the serve mirrors automatically (the clean λ-rebuild = same 197, byte-identical names+order to the active cement).
 - **Zero-fill guard:** required feats (training std ≥ 1e-3) raise `RuntimeError` if absent; constants/harmless one-hots
   zero-fill silently — the 2026-05-19 LONG-bias guard ([entry_iql_v2_adapter.py:57-67,223-240](gx1/runtime/entry_iql_v2_adapter.py#L57)).
-- **ctx dims contract-driven:** `ctx_cont_dim = CTX_CONT_DIM_V3` (105 cement / 121 REGIME_V4), `ctx_cat_dim = CTX_CAT_DIM_V3`
+- **ctx dims contract-driven:** `ctx_cont_dim = CTX_CONT_DIM_V3` (105 regime-off / 123 REGIME_V4 — the live fase2b cement), `ctx_cat_dim = CTX_CAT_DIM_V3`
   (6 cement / 5 REGIME_V4, R4 2026-06-04 — was hardcoded 6); both locked at load ([v12_v10_live.py:115-118](gx1/execution/v12_v10_live.py#L115)).
 
 ## 11. Exit stack internals (V3 → Exit-IQL → overlays)
@@ -172,7 +175,7 @@ Entry-snapshot (cols 0-4, frozen, from **V10 direction softmax** — candidate-g
   2. break-even-cut: MFE≥10bps & pnl<30%·MFE → EXIT
   3. strong-hold: suppress 1+2 if IQL `Q_adv < −200`
   4. hold-horizon-expired: bars > 1.5×hold_pred & mfe<30bps (floor 60 bars) → EXIT
-  All thresholds `GX1_*` ablatable (§17). Validated +136 bps WITHOUT Strategy-F but live runs it ON → OOT-ablate, default OFF post-retrain.
+  All thresholds `GX1_*` ablatable (§17). Validated +136 bps WITHOUT Strategy-F but live runs it ON → OOT-ablate, default OFF post-retrain. ⚠ The +136 figure is corrupt-April-2026-INFLATED (~80%); honest post-x10-repair value ≈ **28 bps/take** (2026-06-06 correction) — re-measure on ALL repaired data before relying on it.
 - **Distilled Q-swap (`GX1_USE_DISTILLED_EXIT=1`):** if `v3_v8_out` carries `v3_q_hold/exit`, swap IQL rec for distilled argmax; `decision_source='DISTILLED_V3_QHEAD'`; Strategy-F overlays on the swapped baseline ([v12_exit_iql_live.py:177-214](gx1/execution/v12_exit_iql_live.py#L177)).
 - **Loaders fail-closed:** Exit-IQL bundle/variant/fold/aggregator from `gx1_guards.artifacts.load_decision_entry('exit_iql')` unless all 4 kwargs explicit ([v12_exit_iql_live.py:243-255](gx1/execution/v12_exit_iql_live.py#L243)); V10/V3 via `gx1_guards.load_decision_artifact()` (no hardcoded fallback) ([v12_v10_live.py:68-77](gx1/execution/v12_v10_live.py#L68)).
 
@@ -194,7 +197,7 @@ Entry-snapshot (cols 0-4, frozen, from **V10 direction softmax** — candidate-g
 - **7-dim bridge order** = `[p_long, p_short, p_flat, p_hat, uncertainty_score, margin_top1_top2, entropy]`;
   `entropy = -Σ p·ln(p)` (eps 1e-12, natural log); `margin = sorted_desc[-1... i.e. top1] - top2` ([signal_bridge_v3.py:62-68](gx1/contracts/signal_bridge_v3.py#L62), [xgb_multihead_model_v1.py:88-94](gx1/xgb/multihead/xgb_multihead_model_v1.py#L88)).
 - **SEQ matrix = (n_m5, 41)** = 7-dim bridge + **34-dim price-state** (was 30; +4 volume `vol_z_20/vol_ratio_5_20/vol_pct_96/signed_vol_z_20` 2026-05-26). `SEQ_SIGNAL_DIM_V3=41` used by ALL V10+V3 training ([signal_bridge_v3.py:69,124,131](gx1/contracts/signal_bridge_v3.py#L69)). Volume 4 derived from raw `volume` via `volume_features.compute_volume_features` (one-truth) ([signal_bridge_v3.py:115-123](gx1/contracts/signal_bridge_v3.py#L115)).
-- **Live XGB fail-closed on NaN:** `predict()` sets `allow_nan_fill=False`, sanitizer `hard_fail_on_nan=True` → `ValueError(SANITIZER_NAN_FAIL)` not 0-fill ([v12_xgb_live.py:179-186](gx1/execution/v12_xgb_live.py#L179)). Contract cross-check raises `[XGB_CONTRACT_MISMATCH]` on feature-name mismatch (B5 2026-06-04 added `feature_names_ordered` lookup) ([v12_xgb_live.py:99-126](gx1/execution/v12_xgb_live.py#L99)).
+- **Live XGB fail-closed on NaN:** `predict()` sets `allow_nan_fill=False`, sanitizer `hard_fail_on_nan=True` → `ValueError(SANITIZER_NAN_FAIL)` not 0-fill ([v12_xgb_live.py:186-193](gx1/execution/v12_xgb_live.py#L186)). Contract cross-check raises `[XGB_CONTRACT_MISMATCH]` on feature-name mismatch (B5 2026-06-04 added `feature_names_ordered` lookup) ([v12_xgb_live.py:99-126](gx1/execution/v12_xgb_live.py#L99)).
 - **decision_indices = `arange(seq_len-1, n)`** (default 95..n): V10 only emits decisions where ≥`seq_len-1` history exists; these map filtered candidates back to global cv2 rows ([...candidates_v3_v1.py:246,421](gx1/scripts/materialize_inference_batch_candidates_v3_v1.py#L246)).
 
 ## 14. Multi-TF mechanics
@@ -224,9 +227,9 @@ Entry-snapshot (cols 0-4, frozen, from **V10 direction softmax** — candidate-g
 - **Entry safety is ALWAYS-ON** (not PURE_PHASE6-gated): `evaluate_entry_safety` → `circuit_breaker_v1.evaluate_same_opp_cap`
   enforces no-short-in-long + no-same-side pile-up, reconciling local TradeState vs broker `get_open_trades()` — defends the **2026-06-02 −2000 USD incident** (16 shorts stacked after PURE_PHASE6=1 disabled the cap) ([v12_paper_runner.py:157-174,711-744](gx1/execution/v12_paper_runner.py#L157)).
 - **Loop cadence:** runner polls ~10s but decides **once per M1** (`last_decision_minute==current_minute` gate); `update_bar`
-  increments `bars_in_trade` once/minute ([v12_paper_runner.py:457-477](gx1/execution/v12_paper_runner.py#L457)). **24h hard cap:** `bars_in_trade>=1440` → `FORCED_CLOSE_24H` ([:605-610](gx1/execution/v12_paper_runner.py#L605)).
+  increments `bars_in_trade` once/minute ([v12_paper_runner.py:507-515](gx1/execution/v12_paper_runner.py#L507)). **24h hard cap:** `bars_in_trade>=1440` → `FORCED_CLOSE_24H` ([:655-660](gx1/execution/v12_paper_runner.py#L655)).
 - **Counterfactual daemon two tracks:** Track A (forward-outcome) hourly, only journals **>25h old** (K=1440 forward + 1h margin); Track B (variant-shadow) every 10min on fresh journals ([v12_daily_counterfactual.sh:36-66](gx1/execution/v12_daily_counterfactual.sh#L36)).
-- **systemd vs launcher interval mismatch:** `gx1-canonical-incremental.service` runs `--interval 15`; `launch_live_practice.sh:127` runs `--interval 60`. **systemd is source of truth.**
+- **systemd vs launcher interval mismatch:** `gx1-canonical-incremental.service` runs `--interval 15`; `launch_live_practice.sh:146-147` runs `--interval 60`. **systemd is source of truth.**
 - **Stale multi-TF cache footgun (build-pipeline only as of 06-08):** the V10/V3 BUILD scripts default `GX1_V10_MULTI_TF_V2_CACHE_DIR` to a hardcoded path → a stale cache builds fresh-cv3 datasets wrong. `build_context()` raises `[MTF_CACHE_STALE]` if the cache lags the M5 cutoff by > 2 days (see §19); a Fase-2B-style rebuild MUST regen `prebuild_multi_tf_cache_v2` + set the env var. **LIVE serve no longer reads this cache** (§6, in-memory) — so the stale guard can no longer break live; it only guards builds.
 - **LAG TRUTH — exit PRICE reaction vs FEATURE freshness (don't conflate; 2026-06-08).** The price the bot trades on is **live-polled every ~10s** straight from OANDA `client.get_pricing()` with a `StaleQuoteError` guard rejecting quotes older than `DEFAULT_QUOTE_MAX_AGE_SEC` ([v12_paper_runner.py:116-136,468](gx1/execution/v12_paper_runner.py#L116)) → already ≤~10s, satisfies "≤1 min". The **collector parquet** (`m1_close` + canonical features, now ~15s) and the **~280s async-refresh** (model-input feature context: cv3 M5 feats, multi-TF, base34) are a SEPARATE, slower path — that's where "1–2 min lag" lives, and it gates FEATURES not the trade price. Sub-1-min *price reaction* is already met by polling; tick streaming would mainly sharpen `m1_close`/microstructure, not the live quote.
 - **Logger timestamps are +2h vs real UTC (cosmetic TZ bug):** live logs stamp `…THH:MM:SSZ` in local CEST, not UTC. A log line "09:25Z" = real 07:25 UTC. Compare DATA timestamps (true UTC) to `date -u`, NOT to log stamps, when judging lag — else you'll misread a +2h offset as a 2-hour data lag.
@@ -236,7 +239,7 @@ Entry-snapshot (cols 0-4, frozen, from **V10 direction softmax** — candidate-g
 
 | flag | meaning | default |
 |---|---|---|
-| `GX1_REGIME_V4` | regime-v4 ctx (cont 121/cat 5 vs 105/6) | build/contract `1`, serve/cand `0`, launcher PIN `1` (fase2b cement) |
+| `GX1_REGIME_V4` | regime-v4 ctx (cont 123/cat 5 vs 105/6) | build/contract `1`, serve/cand `0`, launcher PIN `1` (fase2b cement) |
 | `GX1_CONVICTION_GATE` / `GX1_CONVICTION_THR` | entry conviction-gate: open top-20% by `raw_adv` (≥ thr) overriding IQL SKIP | code OFF / `-34.2`; launcher PIN `1` / `-34.2` (CEMENTED 2026-06-10) |
 | `GX1_SKIP_ASIA` | block ASIA-session entries (per-year win floor) | code OFF; launcher PIN `1` |
 | `GX1_PURE_PHASE6` | disable live-only wrappers (live=Phase6 1:1); CLUSTER1 stays ON; safety always-on | `1` for paper-runner |
@@ -253,10 +256,10 @@ Entry-snapshot (cols 0-4, frozen, from **V10 direction softmax** — candidate-g
 | `GX1_MTF_CACHE_MAX_LAG_DAYS` / `GX1_MTF_CACHE_ALLOW_STALE` | stale-cache guard (§19) | `2` / off |
 | `--vedtak <id>` | REQUIRED for any retrain (gx1_guards fail-closed) | — |
 
-## 18. Protected core + the edit marker
+## 18. Protected core — warn-only (marker gate REMOVED 2026-06-05)
 
-Hard-frozen dirs (CLAUDE.md rule 1): `gx1/execution`, `gx1/contracts`, `gx1/exits/contracts`, `gx1/models/entry_v10`,
-`gx1/core`. A PreToolUse hook ([.claude/hooks/guard_write.py](.claude/hooks/guard_write.py)) blocks edits unless a **one-shot** marker exists: `touch /home/andre2/src/GX1_ENGINE/.claude/ALLOW_CORE_EDIT` (consumed per write, re-arms). Lifting it is the user's explicit act, per change. Same hook HARD-BLOCKS M1→M5 coarsening in exit files. Bundle loads fail-closed via `gx1_guards`.
+Protected dirs (CLAUDE.md rule 1): `gx1/execution`, `gx1/contracts`, `gx1/exits/contracts`, `gx1/models/entry_v10`,
+`gx1/core`. The one-shot `ALLOW_CORE_EDIT` marker gate was **REMOVED 2026-06-05** (commit 70d22bbf, user vedtak — the per-edit `touch` friction was killing the workflow). The PreToolUse hook ([.claude/hooks/guard_write.py:86-97](.claude/hooks/guard_write.py)) now **WARNS** on protected-core edits — emits `additionalContext` ("⚠ PROTECTED-CORE EDIT…"), exit 0, edit allowed but loudly logged; the discipline (verify in-use, ONE truth, minimal change, train==serve) is unchanged. The ONLY remaining HARD BLOCK (exit 2) is M1→M5 coarsening of the exit's M1 grid in exit files ([guard_write.py:65-79](.claude/hooks/guard_write.py)). Bundle loads fail-closed via `gx1_guards`.
 
 ## 19. Retrain entrypoints + --vedtak gates (rule 3)
 
@@ -275,8 +278,8 @@ Every model trainer calls `gx1_guards.gates.require_retrain_vedtak(args.vedtak)`
 | Exit-IQL | materialize_build_exit_iql_v3_m1.py (active) / _v2.py (legacy) · per_bar_dataset_v2_m1.py | ✅ 06-05 |
 
 - **Multi-TF cache freshness:** `build_context()` raises `[MTF_CACHE_STALE]` if the V2 cache lags the M5 build cutoff by > `GX1_MTF_CACHE_MAX_LAG_DAYS` (default 2) — covers all 3 build paths ([augment_forward_outcome_v2.py](gx1/scripts/augment_forward_outcome_v2.py)). Rebuild must regen `prebuild_multi_tf_cache_v2` + set `GX1_V10_MULTI_TF_V2_CACHE_DIR`.
-- `add_ctx_cont` manifest records `regime_v4_emitted` (the 16 REGIME_V4 cols are emitted by NAME, not counted in `ctx_cont_dim` {2..16}).
-- **Pre-retrain hard blockers (2026-06-05 audit, owner=user):** x10 2026-04 data NOT repaired (detect-only guard, no repair script) · cv3 PINNED 06-05 (`_PINNED_FASE2B_20260605`, daemons stopped) · stale BASE28 seed · R13 parity-RUN. See FASE2_PREFLIGHT_RUNBOK.
+- `add_ctx_cont` manifest records `regime_v4_emitted` (the 18 REGIME_V4 cols are emitted by NAME, not counted in `ctx_cont_dim` {2..16}).
+- **Pre-retrain blockers (2026-06-05 audit) — status 2026-06-11:** x10 2026-04 **RESOLVED for the build/train chain** — April-2026 x10 was rebuilt from the clean tape and the CLEAN x10-April-repaired chain cemented + flipped 2026-06-10 (`PROJECT_STATE_artifacts.json` note); the detect-guard (`price_glitch_guard`) remains in place · cv3 pin + stale BASE28 seed **RESOLVED by the fase2b rebuild** (fresh cv3 re-pinned `_PINNED_FASE2B_20260605`, fresh BASE28/base34/base80 built — see FASE2B_REBUILD_ORDER.md; data daemons running again under systemd, verified active 2026-06-11) · R13 parity-RUN (status as of 2026-06-05, re-verify). See FASE2_PREFLIGHT_RUNBOK.
 - **R12 = NO protected edit needed** (traced 06-05): serve M1-native branch `v12_v3_live:307-318` is already correct + self-activates. The open piece is EDITABLE rebuild-prep: the full base34 (M1-expanded) rebuild must emit raw M1 `volume` on ALL rows (the incremental daemon does it for NEW rows only; no full-rebuild builder emitting volume was found — `materialize_build_extended_base34` builds M5 w/o volume, `canonical_prebuilt_rebuilder` has none). Either a one-shot volume backfill onto base34 or wire the rebuild to emit it.
 
 ---

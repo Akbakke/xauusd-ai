@@ -250,15 +250,15 @@ ORDERED_CTX_CONT_DIP_STRUCT: List[str] = [
     "struct_tf_agree_count_v3", "struct_dip_x_uptrend_v3", "struct_smc_swing_x_dip_v3",
 ]
 
-# REGIME_V4 tail (2026-06-03 regime-everywhere wave): 16 multi-TF regime CONDITIONING +
+# REGIME_V4 tail (2026-06-03 regime-everywhere wave): 18 multi-TF regime CONDITIONING +
 # regime-CHANGE-DETECTION features (gx1.features.regime_v4_features — the SAME list the exit
 # EXIT_IO_V8 uses; one truth). ENV-CONDITIONAL: appended when GX1_REGIME_V4=1. Phase 0a/P1
 # (2026-06-04, O3=A): DEFAULT FLIPPED "0"->"1" — regime is now part of the STANDARD contract
-# (ctx_cont 121) for every new build/retrain. Set GX1_REGIME_V4=0 ONLY to reproduce the 105-dim
+# (ctx_cont 123) for every new build/retrain. Set GX1_REGIME_V4=0 ONLY to reproduce the 105-dim
 # cement EXACTLY (the prebuilt carries the REGIME_V4 cols only when the same flag is set, so the
 # default-ON + this escape-hatch keeps a cement rebuild reproducible). The V10 loader is
 # bundle-meta-driven (uses each bundle's own ctx_cont_dim), so the cement (105) + a regime
-# bundle (121) coexist either way.
+# bundle (123) coexist either way.
 if os.environ.get("GX1_REGIME_V4", "1") == "1":
     from gx1.features.regime_v4_features import REGIME_V4_FEATURE_NAMES as _REGIME_V4_NAMES
     ORDERED_CTX_CONT_REGIME_V4: List[str] = list(_REGIME_V4_NAMES)
@@ -273,7 +273,7 @@ ORDERED_CTX_CONT_NAMES_V3: List[str] = (
     + ORDERED_CTX_CONT_DIP_STRUCT
     + ORDERED_CTX_CONT_REGIME_V4
 )
-CTX_CONT_DIM_V3 = len(ORDERED_CTX_CONT_NAMES_V3)  # 105 (cement) or 121 (GX1_REGIME_V4=1)
+CTX_CONT_DIM_V3 = len(ORDERED_CTX_CONT_NAMES_V3)  # 105 (regime-off) or 123 (GX1_REGIME_V4=1)
 
 
 # ---------------------------------------------------------------------------
@@ -290,7 +290,7 @@ _CTX_CAT_ALL_V3: List[str] = [
 # Phase 0a/R4 (2026-06-04, audit + user vedtak): when REGIME_V4 is ON, DROP the trend_regime_id
 # categorical. It was degenerate (const=1 on the price_vs_ema50 basis; const-bucket-2 on the D1
 # basis over 2025 OOT — a hardcoded ±1.0-ATR cut). Trend is now carried by the CONTINUOUS
-# D1_dist_from_ema200_atr (ctx_cont) + the 16 MULTI-TF REGIME_V4 features (per-TF regime class
+# D1_dist_from_ema200_atr (ctx_cont) + the 18 MULTI-TF REGIME_V4 features (per-TF regime class
 # m15/h1/h4/d1 + trend-age + cross-TF agreement) — "all smart, no hardcoded bucket". Multi-TF is
 # UNAFFECTED (ctx_cat is a separate shared-vocab embedding from the seq branches; REGIME_V4 adds
 # per-TF regime). Gated on the SAME GX1_REGIME_V4 flag as the ctx_cont append so the 6-cat cement

@@ -42,16 +42,14 @@ fi
 # the nohup FALLBACK collector in parity if systemd is ever not owning it.
 export GX1_COLLECTOR_POLL_SECONDS=${GX1_COLLECTOR_POLL_SECONDS:-15}
 
-# ── Regime-flag pins (2026-06-04, audit R2/R3) ──────────────────────────────
-# LIVE serves the COSTFIX cement (V10 ctx_cont=105, trend_regime price-basis, EXIT_IO_V7).
-# The build/contract defaults were flipped ON (GX1_REGIME_V4 -> ctx_cont 121) for the
-# upcoming regime retrain, so live MUST pin them OFF here until the 121-dim regime bundle is
-# cemented + promoted — otherwise the V10/V3 loaders fail-closed on the 121-vs-105 dim
-# mismatch (v12_v10_live.py) on relaunch. Flip BOTH to 1 in lockstep with promoting the
-# regime cement (and the serve mirrors P3-P5). Flags are EXPLICIT here — never rely on the
-# code defaults for live (build==serve flag parity).
-export GX1_REGIME_V4=0
-export GX1_TREND_REGIME_FROM_D1=0
+# ── Regime-flag pins (2026-06-08 fase2b cement; top-level pin 2026-06-11) ────────────────
+# LIVE serves the fase2b/CLEAN cement (V10 regime-v4 ctx_cont=123, EXIT_IO_V8=173). Pinned ON
+# at top level so EVERY component launched from this script inherits the cemented flags (the
+# old =0 COSTFIX-era pins survived here while the paper-runner line overrode them inline —
+# stale narrative + a footgun for any future component that didn't override). Flags are
+# EXPLICIT here — never rely on code defaults for live (build==serve flag parity).
+export GX1_REGIME_V4=1
+export GX1_TREND_REGIME_FROM_D1=1
 
 # ── Strategy-F overlay pins (2026-06-04, audit MISS-7) ──────────────────────
 # The Exit-IQL Strategy-F overlay constants (v12_exit_iql_live.py:110-123) and the distilled-exit

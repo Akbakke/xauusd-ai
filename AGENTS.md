@@ -30,7 +30,8 @@
 
 ## Environment
 - Use `/home/andre2/src/GX1_ENGINE/.venv/bin/python` for Python commands.
-- Treat `PROJECT_STATE.md` as the current local project state.
+- Current state = `PROJECT_STATE_artifacts.json` (the ONE selection truth) + `bash scripts/gx1_handover.sh`
+  (live overview). `PROJECT_STATE.md` is a frozen 2026-04-30 historical log (superseded banner inside).
 
 ## Scope & isolation
 - XAUUSD is the only TRADED instrument. No other instruments are traded, and never share data, models, paths, configs,
@@ -157,7 +158,7 @@
 - Starts four components together (they must ALL be running for live to track Phase 6 cement + auto-report):
   1. `v12_oanda_data_collector` — pulls M1 OHLC from OANDA practice every 60s.
   2. `v12_canonical_incremental --loop --interval 15` — appends new M1 → canonical_v3 + BASE34 prebuilts; without this, cv3 cutoff falls behind and the paper runner clips `effective_ts` to a stale bucket → live becomes a frozen replay.
-  3. `v12_paper_runner` with `GX1_PURE_PHASE6=1` — disables every live-only wrapper (TIME_OF_DAY_EXIT, ADAPTIVE_MIN_ADV, REGIME, PORTFOLIO_*, LOW_CONFIDENCE, spread cap) so live = Phase 6 OOT 1:1. NOTE: CLUSTER1_RATE_LIMIT is NO LONGER disabled by PURE_PHASE6 — since 2026-06-02 it is ALWAYS ON as a live sanity-floor (v12_pipeline.py:318-324); override only via GX1_CLUSTER1_DISABLE=1 for explicit OOT-replay runs.
+  3. `v12_paper_runner` with `GX1_PURE_PHASE6=1` — disables every live-only wrapper (TIME_OF_DAY_EXIT, ADAPTIVE_MIN_ADV, REGIME, PORTFOLIO_*, LOW_CONFIDENCE, spread cap) so live = Phase 6 OOT 1:1. NOTE: CLUSTER1_RATE_LIMIT is NO LONGER disabled by PURE_PHASE6 — since 2026-06-02 it is ALWAYS ON as a live sanity-floor (v12_pipeline.py:337-345); override only via GX1_CLUSTER1_DISABLE=1 for explicit OOT-replay runs.
   4. `v12_daily_counterfactual.sh --daemon` — every hour looks for journals older than 25h that haven't been replayed yet; runs `v12_counterfactual_replay.py` on each + writes per-day "skulle/skulle ikke handlet" report to `GX1_DATA/reports/v12_paper_runs/counterfactual_reports/`. Idempotent via marker files in `.replayed_markers/`.
 - Stop cleanly with `bash scripts/stop_live_practice.sh` before code edits that touch live runtime.
 - The data daemons (collector + canonical_incremental) run under **systemd --user** (`gx1-collector.service`, `gx1-canonical-incremental.service`) and log to `/home/andre2/GX1_DATA/reports/v12_paper_runs/logs/{collector,canonical_incremental}.log`. The `launch_live_practice.sh` nohup fallback (which would log to `/tmp/gx1_live_practice/`) is NOT the live source — prefer the systemd units (`systemctl --user status gx1-collector gx1-canonical-incremental`).
