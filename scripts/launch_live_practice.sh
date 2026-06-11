@@ -78,14 +78,20 @@ export GX1_USE_DISTILLED_EXIT=0
 # −172). test==serve: size_units 500/500 exact; gate formula parity 200/200 (e44fd7dc).
 # SUPERSEDES the 2026-06-10 thr −34.2 operating point. Bundle UNCHANGED — serve-time overlay,
 # fully reversible (thr back to −34.2 + GX1_SIZING_MODE=off). Pinned EXPLICITLY.
+# 2026-06-11 v2 (vedtak 'Go — lås both-sizing'): conviction × inverse-ATR vol-sizing. Replayed
+# (exact live formula): total +25.8% vs the −34.2 gate, 2026 size-w win 0.8505 (BACK ABOVE the
+# 0.85 floor), cap-3 DD −118.7 (vs −314.6 conviction-only, −172.3 old gate). 2026-vol (atr p50
+# 13.4 vs 8.3 hist) auto-downsizes the tail regime. test==serve size_units 500/500 exact.
 export GX1_CONVICTION_GATE=1
 export GX1_SKIP_ASIA=1
 export GX1_CONVICTION_THR=-67.0
-export GX1_SIZING_MODE=conviction
+export GX1_SIZING_MODE=both
 export GX1_SIZING_MAX_MULT=2.0
-export GX1_SIZING_MIN_MULT=1.0
+export GX1_SIZING_MIN_MULT=0.5
 export GX1_SIZING_CONV_LO=-67.0
 export GX1_SIZING_CONV_HI=-34.2
+export GX1_SIZING_ATR_REF_BPS=14.0
+export GX1_SIZING_ATR_FLOOR_BPS=14.0
 
 FORCE=0
 [[ "${1-}" == "--force" ]] && FORCE=1
