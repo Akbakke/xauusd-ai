@@ -28,7 +28,7 @@ sys.path.insert(0, "/home/andre2/src/GX1_ENGINE")
 # a different policy's dump.
 DEF_FO = "/home/andre2/GX1_DATA/runs/FASE2B_CLEAN_20260608/forward_outcome_clean/per_week"
 DEF_DEC = "/home/andre2/GX1_DATA/runs/FASE2B_CLEAN_20260608/entry_decisions_conviction20/decisions.parquet"
-CORRUPT_APRIL = (pd.Timestamp("2026-04-01", tz="UTC"), pd.Timestamp("2026-04-21", tz="UTC"))
+# April-2026 x10-REPAIRED 2026-06 — no exclusion anywhere; April is valid data.
 
 # Decision-time feature candidates (decision-time only; NO outcomes, NO entry-IQL q/advantage = circular).
 FEATURE_HINTS = ("p_long", "p_short", "p_flat", "p_hat", "margin", "uncertainty", "tradable_prob",
@@ -55,8 +55,7 @@ def load(fo_dir, dec_path, K):
     df = fo.merge(dec, on="candidate_uid", how="inner", suffixes=("", "_dec"))
     ts = df["candidate_uid"].str.extract(r"(\d{8}T\d{6})$")[0]
     df["entry_ts"] = pd.to_datetime(ts, format="%Y%m%dT%H%M%S", utc=True)
-    apr = (df["entry_ts"] >= CORRUPT_APRIL[0]) & (df["entry_ts"] < CORRUPT_APRIL[1])
-    df = df[~apr].copy()
+    # April-2026 is x10-REPAIRED (2026-06) → NO exclusion; use ALL data.
     return df, keep_out
 
 
