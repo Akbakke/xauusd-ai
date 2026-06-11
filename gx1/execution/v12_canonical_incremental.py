@@ -444,9 +444,10 @@ def backfill_base34_ctx(since_ts: pd.Timestamp) -> dict:
               and c in cv3_aug.columns]
     mask = base34.index > since_ts
     n_rows = int(mask.sum())
-    # map each M1 row to its last CLOSED M5 bar (same semantics as the append path)
-    closed = (base34.index[mask].floor("5min") - pd.Timedelta(minutes=5))
-    aug_idx = cv3_aug.index.searchsorted(closed.values, side="right") - 1
+    # map each M1 row to its last CLOSED M5 bar (same semantics as the append path);
+    # int64-ns on both sides (tz-aware vs naive .values would raise in searchsorted)
+    closed_ns = (base34.index[mask].floor("5min") - pd.Timedelta(minutes=5)).asi8
+    aug_idx = np.searchsorted(cv3_aug.index.asi8, closed_ns, side="right") - 1
     valid = aug_idx >= 0
     before = {c: int(base34.loc[mask, c].nunique()) for c in target[:6]}
     for c in target:
