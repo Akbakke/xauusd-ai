@@ -90,11 +90,18 @@ def compute_reclaim_cols(uids_ts: pd.DataFrame) -> pd.DataFrame:
     from gx1.features.smc_v1 import compute_smc_features, SMC_FEATURE_NAMES
     assert len(SMC_FEATURE_NAMES) == 11, "run with GX1_SMC_SWEEP_RECLAIM=1 (reclaim names missing)"
     base_check = ["smc_sweep_up", "smc_sweep_down", "smc_sweep_size_atr", "smc_premium_discount"]
-    m5 = pd.read_parquet(M5_PREBUILT, columns=["time", "open", "high", "low", "close",
-                                               "_v1_atr14", *base_check])
+    m5 = pd.read_parquet(M5_PREBUILT, columns=["time", "open", "high", "low", "close", *base_check])
     m5["time"] = pd.to_datetime(m5["time"], utc=True)
     m5 = m5.sort_values("time").reset_index(drop=True)
-    smc = compute_smc_features(m5, atr_col="_v1_atr14")
+    # The canonical batch build's plain "atr" = TR.rolling(14, min_periods=1).mean() (v1 SMA —
+    # verified EXACT against stored smc_sweep_size_atr; _v1_atr14 and the live-incremental EMA(1/14)
+    # both MISMATCH ~11.8%). NB pre-existing drift: v12_canonical_incremental computes "atr" as
+    # EMA-Wilder — sweep EVENTS agree, sizes differ on appended bars (flagged 2026-06-11, deferred).
+    tr = pd.concat([(m5["high"] - m5["low"]).abs(),
+                    (m5["high"] - m5["close"].shift(1)).abs(),
+                    (m5["low"] - m5["close"].shift(1)).abs()], axis=1).max(axis=1)
+    m5["_atr_build"] = tr.rolling(14, min_periods=1).mean().astype(np.float32)
+    smc = compute_smc_features(m5, atr_col="_atr_build")
     n_bad = 0
     for c in base_check:
         a = m5[c].to_numpy(dtype=np.float64); b = smc[c].to_numpy(dtype=np.float64)
