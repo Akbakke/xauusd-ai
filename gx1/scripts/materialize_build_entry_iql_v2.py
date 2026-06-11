@@ -934,13 +934,24 @@ def build_state_matrix(df: pd.DataFrame) -> tuple[np.ndarray, list[str]]:
             f"[BUILD_STATE_MATRIX] {len(nan_warnings)} feature(s) have >5% NaN "
             f"(first 8 listed): {msg}. Investigate upstream pipeline before training."
         )
-    # One-hot features
+    # One-hot features.
+    # 2026-06-11 train==serve PIN (mirrors the exit-side EX3 _ONE_HOT_PIN, materialize_build_exit_iql_v3_m1.py:398):
+    # under GX1_REGIME_V4=1 (real regime), PIN the regime one-hot categories to the FIXED label set so the build
+    # column-set is deterministic + matches live serve even when a fold lacks a category — else sorted(observed)
+    # would drop e.g. trend_regime__TREND_UP and the live runner would set a column the model never trained on.
+    # GATED on REGIME_V4: with REGIME_V4 OFF (current cement) trend/vol are const placeholders, so pinning would
+    # emit const-0 one-hots that fail rule-9 — keep observed-only there (= unchanged live-cement behavior).
+    _ENTRY_ONE_HOT_PIN = {
+        "vol_regime": ["LOW", "MEDIUM", "HIGH", "EXTREME"],
+        "trend_regime": ["TREND_UP", "TREND_NEUTRAL", "TREND_DOWN"],
+    }
+    _regime_v4 = os.environ.get("GX1_REGIME_V4", "0") == "1"
     for c in ONE_HOT_COLS:
         if c not in df.columns:
             continue
         s = df[c].astype("string").fillna("UNKNOWN")
-        unique_values = sorted(s.unique().tolist())
-        for v in unique_values:
+        categories = _ENTRY_ONE_HOT_PIN[c] if (_regime_v4 and c in _ENTRY_ONE_HOT_PIN) else sorted(s.unique().tolist())
+        for v in categories:
             col_name = f"{c}__{v}"
             state_parts.append(pd.DataFrame({col_name: (s == v).astype(np.float32).to_numpy()}))
             feature_names.append(col_name)

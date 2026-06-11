@@ -386,6 +386,16 @@ class ExitIQLLiveInference:
                 bar_state[f"m5_phase_{p}_v1"] = float(_m5_oh[p])
             phase_sum = 1.0
         else:
+            # 2026-06-11: now_minute absent → fall back to the cv3 minute//12 m5_phase cols, which use a
+            # DIFFERENT formula than the trainer's minute%5 (train≠serve on the phase block). Keep the fallback
+            # for live stability (don't halt a trade) but WARN LOUD once so it is visible, not silent.
+            if not getattr(self, "_m5_phase_fallback_warned", False):
+                import logging as _l
+                _l.getLogger("exit_iql_live").warning(
+                    "[M5_PHASE_FALLBACK] now_minute absent → using cv3 minute//12 m5_phase cols (WRONG formula "
+                    "vs trainer minute%5; train!=serve on the phase block). Pass now_minute for every live exit decision."
+                )
+                self._m5_phase_fallback_warned = True
             for p in range(5):
                 col = f"m5_phase_{p}"
                 val = float(canonical_v3_row.get(col, 0.0) or 0.0)

@@ -721,15 +721,22 @@ def build_basic_v1(df):
         q33_valid = q33_arr[valid_mask]
         q67_valid = q67_arr[valid_mask]
         
-        # LOW regime: atr14 < q33
+        # LOW regime: atr14 < q33 ; HIGH regime: atr14 >= q67 ; MEDIUM: q33<=atr14<q67 (already 1.0)
         low_mask = atr_valid < q33_valid
-        regime_id[valid_mask][low_mask] = 0.0
-        
-        # HIGH regime: atr14 >= q67
         high_mask = atr_valid >= q67_valid
-        regime_id[valid_mask][high_mask] = 2.0
-        
-        # MEDIUM regime: q33 <= atr14 < q67 (already set to 1.0)
+        if os.environ.get("GX1_ATR_REGIME_FIX", "0") == "1":
+            # 2026-06-11 FIX (env-gated; DEFAULT OFF = live-cement parity — the cement trained on the buggy
+            # const=1). The legacy `regime_id[valid_mask][low_mask]=0.0` is CHAINED indexing → it writes a
+            # temporary copy, NOT the underlying array → regime_id stayed const=1 (MEDIUM) for everyone.
+            # Write via the combined integer index into the real array. Flip ON only at the wave rebuild.
+            valid_idx = np.flatnonzero(valid_mask)
+            regime_id[valid_idx[low_mask]] = 0.0
+            regime_id[valid_idx[high_mask]] = 2.0
+        else:
+            # LEGACY buggy path kept for train==serve parity with the live cement (these two lines are no-ops
+            # by construction — chained indexing — so regime_id stays const=1; intentional until the wave).
+            regime_id[valid_mask][low_mask] = 0.0
+            regime_id[valid_mask][high_mask] = 2.0
     
     # Fill NaN with 1.0 (middle regime)
     regime_id = np.nan_to_num(regime_id, nan=1.0)
@@ -1465,7 +1472,7 @@ def build_basic_v1(df):
     t_misc_roll_start = time.perf_counter()
     from gx1.features.rolling_timer import timed_rolling
     from gx1.features.pandas_ops_timer import timed_pandas_rolling
-    from gx1.utils.perf_timer import perf_add, perf_inc
+    from gx1.utils.perf_timer import perf_add  # perf_inc already imported above in this fn (F811 fix)
     # DEL 2: Replace .pct_change(), .fillna() with NumPy
     close_arr = df["close"].to_numpy(dtype=np.float64)
     ret1_array = pct_change_np(close_arr, k=1)
