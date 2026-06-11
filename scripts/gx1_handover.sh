@@ -39,9 +39,11 @@ line("entry_iql", f"variant={a['entry_iql'].get('active_variant')}  + CONVICTION
 line("exit_iql", f"variant={a['exit_iql'].get('active_variant')} agg={a['exit_iql'].get('active_aggregator')} K={a['exit_iql'].get('active_k_horizon')}")
 op=a["entry_iql"].get("operating_point",{})
 print()
-print("▌ ENTRY operating point (CEMENTED 2026-06-10 — serve-time overlay, entry_iql BUNDLE UNCHANGED):")
-print(f"   selection={op.get('selection')}  conviction_thr={op.get('conviction_thr')}  skip_asia={op.get('skip_asia')}  max_trades={op.get('max_trades')}")
+print("▌ ENTRY operating point (CEMENTED 2026-06-11 'thr -67 + conviction-sizing' — serve-time overlay, BUNDLE UNCHANGED):")
+print(f"   selection={op.get('selection')}  conviction_thr={op.get('conviction_thr')}  sizing={op.get('sizing')}  skip_asia={op.get('skip_asia')}  max_trades={op.get('max_trades')}")
 print(f"   live_env: {op.get('live_env')}")
+print("   Evidence: band [-67,-34.2) full-exit-chain replay 18.2 bps/take @ 0.915 win; locked +36.0% total,")
+print("   2026 size-w win 0.847 (accepted), cap-3 DD -315. First in-vivo trade: 619 LONG +118.7 P/L.")
 print("   LAM50 NOTE: the live entry IS the LAM50-REWARD Q-net served via the conviction-gate; only the OLD")
 print("               LAM50/VOLUME-FIRST argmax operating-point is superseded. Do NOT remove the bundle.")
 PY
