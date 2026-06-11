@@ -30,6 +30,11 @@ if str(REPO) not in sys.path:
 from gx1.features.htf_features import (
     build_multi_tf_per_bar_features_v2, MULTI_TF_PER_BAR_FEATURES_V2,
 )
+# Round-number proximity: import the ONE-TRUTH compute (group_a_features) — no duplicated math.
+from gx1.features.group_a_features import (
+    round_number_levels as _round_number_levels, ROUND_FEATURE_NAMES as _ROUND_FEATURE_NAMES,
+)
+_AUG_ROUND_ON = os.environ.get("GX1_ROUND_NUMBER", "0") == "1"
 
 TF_NAMES = ("M5", "M15", "H1", "H4", "D1")
 
@@ -58,6 +63,10 @@ GROUP_A_FEATURE_NAMES = (
     "short_win_rate_last10", "short_mean_pnl_last10",
     "short_n_consec_losses", "short_time_since_last_close_min",
 )
+if _AUG_ROUND_ON:  # +5 ONLY under GX1_ROUND_NUMBER → default-OFF keeps the Group-A name set byte-identical;
+    # the zero-fill (augment_candidate m5_idx<0), new_cols dict (augment_week), and attach_group_a copy-set all
+    # iterate GROUP_A_FEATURE_NAMES, so appending here wires every code path in one place.
+    GROUP_A_FEATURE_NAMES = GROUP_A_FEATURE_NAMES + _ROUND_FEATURE_NAMES
 
 # 2026-05-24 GROUP_S: SMC features from canonical_v3 (joined by decision_ts).
 # These ARE in canonical_v3 prebuilt with real signal (smc_choch 421 non-zero,
@@ -508,6 +517,8 @@ def augment_candidate(ctx: AugmentContext, ts: pd.Timestamp) -> dict[str, float]
     out.update(_vol_term(ctx, ts_ns))                          # 4
     out.update(_vol_pct(ctx, ts_ns))                           # 2
     out.update(_pivots(ctx, ts, current_atr, current_price))   # 4
+    if _AUG_ROUND_ON:
+        out.update(_round_number_levels(current_price, current_atr))   # 5 (env-gated)
     out.update(liq)                                            # 10 (5 TFs × hi/lo)
     out.update(_per_side_perf(ctx, ts))                        # 8
     out.update(_dip_struct_5tf(per_tf, liq))                   # 38 (dip + struct)

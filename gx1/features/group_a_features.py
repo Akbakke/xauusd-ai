@@ -18,12 +18,41 @@ capture.
 from __future__ import annotations
 
 import json
+import os
 from collections import deque
 from pathlib import Path
 from typing import Iterable
 
 import numpy as np
 import pandas as pd
+
+# Round-number / psychological $-level proximity (2026-06-11, env-gated GX1_ROUND_NUMBER, default OFF =
+# contract byte-unchanged). The chain is otherwise ENTIRELY ATR-scale-invariant → structurally blind to
+# absolute price. This is the deliberate exception: mod on ABSOLUTE price, THEN ATR-normalize the proximity
+# (scale-invariant, no 2024-25 price-zone overfit). Gated everywhere so default-OFF keeps GROUP_A count = 28.
+_ROUND_NUMBER_ON = os.environ.get("GX1_ROUND_NUMBER", "0") == "1"
+ROUND_GRIDS = (100.0, 50.0, 25.0, 10.0)
+ROUND_MAGNET_W = {100.0: 1.0, 50.0: 0.6, 25.0: 0.35, 10.0: 0.2}
+ROUND_MAGNET_SCALE = 0.5  # ATR units
+ROUND_FEATURE_NAMES = (
+    "dist_to_round_100_atr", "dist_to_round_50_atr",
+    "dist_to_round_25_atr", "dist_to_round_10_atr", "round_magnet_score",
+)
+
+
+def round_number_levels(price: float, current_atr: float) -> dict[str, float]:
+    """Signed ATR-distance to the nearest $100/$50/$25/$10 level + a decayed magnet score.
+    `price` is the absolute close; the mod is on absolute price, the proximity is ATR-normalized."""
+    atr_safe = max(current_atr, 1e-3)
+    out: dict[str, float] = {}
+    magnet = 0.0
+    for g in ROUND_GRIDS:
+        nearest = round(price / g) * g
+        d_atr = (price - nearest) / atr_safe          # signed, ATR-normalized
+        out[f"dist_to_round_{int(g)}_atr"] = float(d_atr)
+        magnet += ROUND_MAGNET_W[g] * float(np.exp(-abs(d_atr) / ROUND_MAGNET_SCALE))
+    out["round_magnet_score"] = float(magnet)
+    return out
 
 # ─────────────────────────────────────────────────────────────────────────────
 # A4 — Session overlap markers (cheapest — purely time-based)
@@ -374,7 +403,9 @@ GROUP_A_FEATURE_NAMES = (
     "short_win_rate_last10", "short_mean_pnl_last10",
     "short_n_consec_losses", "short_time_since_last_close_min",
 )
-GROUP_A_FEATURE_COUNT = len(GROUP_A_FEATURE_NAMES)   # = 28
+if _ROUND_NUMBER_ON:  # +5 ONLY under the flag → default-OFF keeps the base Group-A contract byte-identical
+    GROUP_A_FEATURE_NAMES = GROUP_A_FEATURE_NAMES + ROUND_FEATURE_NAMES
+GROUP_A_FEATURE_COUNT = len(GROUP_A_FEATURE_NAMES)   # = 32 (OFF) / 37 (GX1_ROUND_NUMBER=1)
 
 
 def compute_group_a_features(
@@ -396,6 +427,10 @@ def compute_group_a_features(
     out.update(realized_vol_percentile(m5_df, target_ts))
     out.update(daily_pivot_levels(m5_df, target_ts, current_atr))
     out.update(liquidity_zones(m5_df, target_ts, current_atr))
+    if _ROUND_NUMBER_ON:
+        _elig = m5_df.loc[m5_df.index <= target_ts]
+        if not _elig.empty:
+            out.update(round_number_levels(float(_elig["close"].iloc[-1]), current_atr))
     if journal_dir is not None:
         out.update(per_side_recent_performance(journal_dir, target_ts))
     else:
