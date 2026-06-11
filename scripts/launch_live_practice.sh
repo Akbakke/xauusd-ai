@@ -82,6 +82,10 @@ export GX1_USE_DISTILLED_EXIT=0
 # (exact live formula): total +25.8% vs the −34.2 gate, 2026 size-w win 0.8505 (BACK ABOVE the
 # 0.85 floor), cap-3 DD −118.7 (vs −314.6 conviction-only, −172.3 old gate). 2026-vol (atr p50
 # 13.4 vs 8.3 hist) auto-downsizes the tail regime. test==serve size_units 500/500 exact.
+# 2026-06-11 v3 (vedtak 'Flip!'): BUNDLE flip -> entry_iql_volbal_20260611 (LAM50_SYM, vol-regime-
+# balansert). OP rekalibrert til NY Q-skala: thr -37.71 = top-35%, sizing-ankre 65./80. pctil
+# (LO -37.71 / HI -13.99). Evidens: 24.43 bps/take @ 0.9466 win, 2026-win 0.8543 PASS, DD -113.
+# Kontrakten (entry_iql.operating_point) er sannhetskilden; kommentarene over beskriver v1/v2-historikken.
 export GX1_CONVICTION_GATE=1
 export GX1_SKIP_ASIA=1
 export GX1_CONVICTION_THR=-37.71
