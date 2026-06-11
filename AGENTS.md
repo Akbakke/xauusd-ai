@@ -111,6 +111,11 @@
   goal is that the NEXT session never re-derives it. Map = tight facts+pointers; logs stay in DECISION_LOG/PROJECT_STATE.
 - NEVER auto-retrain. Get an explicit user decision (vedtak) before every retrain.
 - Check existing code before building; keep ONE truth (no duplicated/overriding logic); fail-closed defaults; minimal change; clean up superseded artifacts as you go; run a post-task bug/mismatch hunt.
+- **NO OLD CODE LEFT BEHIND (user vedtak 2026-06-11).** The moment code is updated or replaced, the OLD
+  version goes to `_legacy_disabled/` IN THE SAME COMMIT — zero orphan scripts, zero dead paths, zero
+  shims importing FROM legacy (promote the implementation instead). And when LIVE-chain code changes,
+  RESTART the consuming daemons in the same wave — a daemon running pre-fix code is exactly how the
+  BASE34 freeze kept appending frozen rows after the fix was committed. Stale running code == old code.
 - **SMART + MAXED runs — ALWAYS, before every training/build (user vedtak 2026-06-08).** Don't just raw-maximize
   CPU/GPU/RAM — design the SETUP to run as efficiently as possible. Before launching ANY train/build, ask:
   1. **Warm-start** — can I `--init-from-state-dict` from the matching cemented/prior bundle? On near-identical data
