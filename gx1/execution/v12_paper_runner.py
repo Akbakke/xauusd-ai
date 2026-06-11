@@ -266,6 +266,14 @@ def size_units(base_units: int, raw_adv: float, atr_bps_now: float):
         frac = min(max((raw_adv - SIZING_CONV_LO) / span, 0.0), 1.0)
         m *= 1.0 + (SIZING_MAX_MULT - 1.0) * frac
     if SIZING_MODE in ("voltarget", "both"):
+        # 2026-06-11 FAIL-CLOSED fix: atr_bps_now <= 0 means NO vol data (live_feats={} on any
+        # feature_builder failure / short M1 window) — the old floor-clamp mapped exactly that
+        # case to the MAXIMUM vol-target multiplier (ref/floor, e.g. 18/6 = 3×). Missing data
+        # must size FLAT, never UP.
+        if atr_bps_now <= 0.0:
+            LOG.warning("[GX1_SIZING] voltarget requested but atr_bps_now=%.3f (missing vol data) "
+                        "— sizing FLAT (multiplier 1.0) for this trade", atr_bps_now)
+            return base_units, 1.0
         m *= SIZING_ATR_REF / max(atr_bps_now, SIZING_ATR_FLOOR)
     m = min(max(m, SIZING_MIN_MULT), SIZING_MAX_MULT)
     return max(1, int(round(base_units * m))), m

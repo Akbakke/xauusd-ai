@@ -196,7 +196,15 @@ def compute_smc_features(
     sweep_reclaim_up = np.zeros(nb, dtype=np.float32)    # bullish: down-sweep → up-reclaim
     sweep_reclaim_down = np.zeros(nb, dtype=np.float32)  # bearish: up-sweep → down-reclaim
     if _SWEEP_RECLAIM_ON:
-        open_ = df["open"].to_numpy(dtype=np.float64) if "open" in df.columns else close
+        # 2026-06-11 FAIL-LOUD: the old fallback open_=close made the reclaim conditions
+        # (close>open / close<open) permanently FALSE → silently all-zero reclaim features
+        # when the caller's frame lacks 'open'. Rule 9: a dead feature must fail, not ship.
+        if "open" not in df.columns:
+            raise ValueError(
+                "[SMC_SWEEP_RECLAIM] GX1_SMC_SWEEP_RECLAIM=1 but the input frame has no 'open' "
+                "column — the reclaim features would be constant-zero. Pass OHLC including 'open'."
+            )
+        open_ = df["open"].to_numpy(dtype=np.float64)
         pend_dn = (-1, np.nan, 0.0)   # DOWN-sweep awaiting an UP-reclaim (bullish): (sweep_bar, swept_lvl, wick_atr)
         pend_up = (-1, np.nan, 0.0)   # UP-sweep awaiting a DOWN-reclaim (bearish)
         act_up = (-1, 0.0)            # active bullish reclaim: (reclaim_bar, strength)

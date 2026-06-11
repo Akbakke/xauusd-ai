@@ -177,8 +177,12 @@ REWARD_VARIANTS = [
     #   mid → λ ≈ 5.0 (like LAM50)
     #   all-weak → λ ≈ 8.0 (stricter than cement)
     "R_V10_MULTI_COND_K96",
-    # R_WAIT_OPP_K96_SESSCOND[_SYM] (2026-06-11) — session-conditional MAE-penalty lambda (stop LAM50
-    # over-skipping recoverable OVERLAP/EU dips; keep ASIA strict). LEARNED, IQL-frozen relabel. Gated A/B.
+]
+# R_WAIT_OPP_K96_SESSCOND[_SYM] (2026-06-11) — session-conditional MAE-penalty lambda (stop LAM50
+# over-skipping recoverable OVERLAP/EU dips; keep ASIA strict). LEARNED, IQL-frozen relabel. Gated A/B.
+# OPT-IN ONLY (2026-06-11 fix): NOT in REWARD_VARIANTS — STEP-2 is its own vedtak; a default build
+# (no --variants) must not silently grow two extra IQL trainings. Request via --variants explicitly.
+SESSCOND_VARIANTS = [
     "R_WAIT_OPP_K96_SESSCOND",
     "R_WAIT_OPP_K96_SESSCOND_SYM",
 ]
@@ -527,7 +531,9 @@ def build_reward_matrix(df: pd.DataFrame, *, variant: str) -> np.ndarray:
     )
     bad_path_gate = (1.0 - bad_path_prob).astype(np.float32)  # 1.0 = no gate, 0.0 = full block
 
-    if variant.startswith("R_WAIT_OPP_"):
+    # 2026-06-11 fix: SESSCOND names also match startswith("R_WAIT_OPP_") — they MUST be excluded
+    # here or the _CFG lookup below raises KeyError before their dedicated handler is reached.
+    if variant.startswith("R_WAIT_OPP_") and variant not in ("R_WAIT_OPP_K96_SESSCOND", "R_WAIT_OPP_K96_SESSCOND_SYM"):
         # Counterfactual-aware reward: explicitly credits SKIP when waiting beats taking.
         # 2026-06-03 (vedtak entry_iql_perside_reward_20260603): the `_SYM` family fixes the
         # r_skip ASYMMETRY — cement compared an UNPENALIZED best_wait against an

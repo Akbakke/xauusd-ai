@@ -97,6 +97,15 @@ _DETAIL_DEAD_STD = 1e-8
 
 
 def _col_stat(s):
+    # 2026-06-11: dtype-aware — string/categorical columns (trend_regime/vol_regime) used to coerce
+    # to all-NaN and print "<<< DEAD/CONST", a FALSE positive (the same print-class that produced the
+    # earlier false "entry regime-blind" memory). Categoricals are judged by nunique; their liveness
+    # is properly audited via the one-hots inside the model state vectors.
+    if not pd.api.types.is_numeric_dtype(s):
+        vals = s.dropna().astype(str)
+        nu = int(vals.nunique())
+        nz = float(len(vals)) / max(len(s), 1)
+        return 0.0, nz, nu, (nu <= 1)
     a = pd.to_numeric(s, errors="coerce").to_numpy(dtype=np.float64)
     a = a[np.isfinite(a)]
     if a.size == 0:

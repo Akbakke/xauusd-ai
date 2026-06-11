@@ -506,13 +506,20 @@ def _fvg_5tf(ctx: "AugmentContext", ts_ns: int, current_price: float, current_at
     import math as _math
     atr_safe = max(current_atr, 1e-3)
     CLIP, TAU = 3.0, 1.0
+    M5_NS = 300_000_000_000  # decision moment = close of the M5 bar labeled ts (= ts + 5min)
     out: dict[str, float] = {}
-    for tf, ts_arr, hi_arr, lo_arr, lb in (
-        ("m5", ctx.m5_ts_ns, ctx.m5_high, ctx.m5_low, 240),
-        ("m15", ctx.m15_ts_ns, ctx.m15_high, ctx.m15_low, 192),
-        ("h1", ctx.h1_ts_ns, ctx.h1_high, ctx.h1_low, 168),
+    for tf, ts_arr, hi_arr, lo_arr, lb, period_ns in (
+        ("m5", ctx.m5_ts_ns, ctx.m5_high, ctx.m5_low, 240, M5_NS),
+        ("m15", ctx.m15_ts_ns, ctx.m15_high, ctx.m15_low, 192, 900_000_000_000),
+        ("h1", ctx.h1_ts_ns, ctx.h1_high, ctx.h1_low, 168, 3_600_000_000_000),
     ):
-        right = int(np.searchsorted(ts_arr, ts_ns, side="right"))
+        # 2026-06-11 LOOK-AHEAD FIX: only bars whose period has COMPLETED by the decision moment
+        # (close of the M5 bar labeled ts, i.e. ts+5min) may enter the window. The old side="right"
+        # cut at ts included the FORMING M15/H1 bar, whose full-period high/low (resampled from the
+        # complete tape) leaks intra-period FUTURE data → build≠serve at the same ts. The serve-time
+        # contract for FVG is therefore COMPLETED TF bars only. M5 is unchanged (label<=ts ⇔
+        # completed-by-ts+5min on the native M5 grid).
+        right = int(np.searchsorted(ts_arr, ts_ns + M5_NS - period_ns, side="right"))
         if right < 3:
             out[f"{tf}_dist_to_unfilled_fvg_atr"] = CLIP
             out[f"{tf}_fvg_active"] = float(_math.exp(-CLIP / TAU))
@@ -826,23 +833,60 @@ def main() -> int:
     print(f"[AUG_V2] processing {len(week_files)} weekly parquets...")
 
     total_n = 0; total_t = 0.0
+    week_rows: dict[str, int] = {}
+    skipped_existing: list[str] = []
+    errors: list[str] = []
     for i, wp in enumerate(week_files):
         out_pq = out_per_week / wp.name
-        if out_pq.exists(): continue
+        if out_pq.exists():
+            skipped_existing.append(wp.name)
+            continue
         try:
             s = augment_week(wp, out_pq, ctx, smc_cache=smc_cache)
+            week_rows[wp.name] = int(s["n"])
             total_n += s["n"]; total_t += s.get("elapsed_sec", 0)
             if (i+1) % 25 == 0 or i+1 == len(week_files):
                 rate = total_n / max(total_t, 1e-6)
                 print(f"  [{i+1}/{len(week_files)}] {wp.stem}  n={s['n']:>4}  "
                       f"({rate:.0f} cand/s, {total_n:,} done)", flush=True)
         except Exception as exc:
+            errors.append(f"{wp.name}: {exc}")
             print(f"  [{i+1}/{len(week_files)}] {wp.stem}  ERROR: {exc}", flush=True)
         gc.collect()
 
     print(f"\n[AUG_V2] DONE — {total_n:,} candidates in {total_t/60:.1f} min "
           f"({total_n/max(total_t,1e-6):.0f} cand/s)")
     print(f"[AUG_V2] output → {out_dir}")
+    # 2026-06-11: run-manifest (rule 4 — the step1feats build had NO manifest and had to be
+    # verified forensically after a reboot wiped the only log). Records source, env-gates,
+    # commit, per-week rowcounts and errors; status != DONE means PARTIAL — do not consume.
+    import json as _json, subprocess as _sp
+    try:
+        _commit = _sp.run(["git", "rev-parse", "HEAD"], cwd=Path(__file__).resolve().parents[2],
+                          capture_output=True, text=True).stdout.strip() or "unknown"
+    except Exception:
+        _commit = "unknown"
+    manifest = {
+        "schema": "AUG_V2_MANIFEST_V1",
+        "built_utc": pd.Timestamp.utcnow().isoformat(),
+        "commit": _commit,
+        "source_forward_outcome_dir": str(args.forward_outcome_dir),
+        "m5_prebuilt": str(args.m5_prebuilt),
+        "env_gates": {k: os.environ.get(k, "0") for k in
+                      ("GX1_ROUND_NUMBER", "GX1_FVG_FEATURES", "GX1_SMC_SWEEP_RECLAIM")},
+        "n_week_files_seen": len(week_files),
+        "n_built": len(week_rows),
+        "n_skipped_existing": len(skipped_existing),
+        "rows_built_total": total_n,
+        "per_week_rows": week_rows,
+        "errors": errors,
+        "status": "DONE" if not errors else "FAILED_PARTIAL",
+    }
+    (out_dir / "manifest_v1.json").write_text(_json.dumps(manifest, indent=2))
+    print(f"[AUG_V2] manifest → {out_dir / 'manifest_v1.json'}  status={manifest['status']}")
+    if errors:
+        print(f"[AUG_V2] FAIL-LOUD: {len(errors)} week(s) errored — output is PARTIAL, do not consume.")
+        return 1
     return 0
 
 

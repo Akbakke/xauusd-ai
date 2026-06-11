@@ -33,8 +33,29 @@ from gx1.features.smc_v1 import SMC_FEATURE_NAMES
 EXIT_IO_V5_CTX_EXTENDED_SMC_M1L512_IO_VERSION = "EXIT_IO_V5_CTX_EXTENDED_SMC_M1L512"
 EXIT_IO_V5_CTX_EXTENDED_SMC_M1L512_DEFAULT_WINDOW_LEN = 512
 
-# Reuse the SMC feature list from gx1/features/smc_v1.py — single source of truth.
-EXIT_IO_V5_SMC_EXTENSION_FEATURES: List[str] = list(SMC_FEATURE_NAMES)
+# 2026-06-11 CONTRACT PIN: this SACRED contract is pinned to the 9 BASE SMC names the cemented
+# V5→V8 chain trained on. It used to alias the LIVE smc_v1.SMC_FEATURE_NAMES list, which GROWS
+# 9→11 under GX1_SMC_SWEEP_RECLAIM=1 — silently mutating V5 89→91 / V7 155→157 / V8 173→175 in
+# any process with the feature flag set (and the self-computed hashes followed the mutation, so
+# the asserts couldn't catch it). Baking sweep-reclaim into the exit SEQ is a NEW contract
+# version (STEP-4, own vedtak), never a mutation of V5. The prefix-assert below keeps the
+# one-truth linkage to smc_v1 (a base-name rename still fails loud).
+EXIT_IO_V5_SMC_EXTENSION_FEATURES: List[str] = [
+    "smc_swing_state",
+    "smc_bos_up",
+    "smc_bos_down",
+    "smc_choch",
+    "smc_sweep_up",
+    "smc_sweep_down",
+    "smc_sweep_size_atr",
+    "smc_bars_since_sweep",
+    "smc_premium_discount",
+]
+if list(SMC_FEATURE_NAMES[:9]) != EXIT_IO_V5_SMC_EXTENSION_FEATURES:
+    raise RuntimeError(
+        "[EXIT_IO_V5_CONTRACT] smc_v1.SMC_FEATURE_NAMES base-9 prefix drifted from the pinned "
+        f"contract list: {list(SMC_FEATURE_NAMES[:9])} != {EXIT_IO_V5_SMC_EXTENSION_FEATURES}"
+    )
 
 EXIT_IO_V5_CTX_EXTENDED_SMC_M1L512_FEATURES: List[str] = (
     list(EXIT_IO_V4_CTX_EXTENDED_M1L512_FEATURES)

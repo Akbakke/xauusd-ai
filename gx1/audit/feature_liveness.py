@@ -37,7 +37,9 @@ KNOWN_ALLOWED_DEAD: Dict[str, str] = {
     "is_ASIA": "ditto.", "session_change_flag": "ditto.", "session_tradable": "ditto.",
     "minutes_since_session_open": "ditto.", "minutes_to_next_session_boundary": "ditto.",
     # Known bugs/gaps tracked in the hygiene wave (NOT to be silently forgotten):
-    "_v1_atr_regime_id": "BUG-MASK (remove when fixed): chained-index BUG → const=1 (basic_v1.py:726). Hygiene wave.",
+    "_v1_atr_regime_id": "BUG-MASK: chained-index BUG → const=1 (basic_v1.py:726). Fix EXISTS behind "
+                         "GX1_ATR_REGIME_FIX=1 (bf4a6abd, default OFF — live builds still emit const). REMOVE this "
+                         "entry at the first rebuild that enables the gate, or it will mask the then-alive feature.",
     "smc_choch": "BUG-MASK (remove when fixed): too sparse (0.1% nonzero) → 0 gain. Hygiene wave: decay to bars_since_choch.",
     # Multi-TF window-property (NOT a bug): D1 EMA-stack alignment can be const over a calm window:
     "d1:ema_stack_aligned_v2": "D1 regime can be stable over a test window → const there; alive in other TFs.",

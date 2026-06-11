@@ -414,39 +414,37 @@ class EntryIQLLiveInference:
     # ── inference ────────────────────────────────────────────────────
 
     def predict(self, candidate: dict[str, Any]) -> EntryRecommendation:
-        # 2026-05-21 ensemble: when multiple adapters loaded, average Q-values
-        # across all and use combined Q for final decision. Single-adapter
-        # codepath unchanged for backwards compat.
-        if len(self.ensemble_adapters) <= 1:
-            return self.adapter.predict_one(candidate)
-        # Get full Q-per-K from each adapter, then average.
-        # 2026-05-24 DEFENSIVE: each adapter builds its OWN raw state vector and
-        # runs its OWN predict_q (which applies seed-specific feature_means/stds).
-        # Same raw vector across adapters when feature_names match (validated in
-        # load_ensemble), but explicit per-adapter call makes the contract
-        # self-documenting and refactor-safe.
-        q_full_list = []
-        state_a = None
-        for a in self.ensemble_adapters:
-            state_a = a.build_state_vector(candidate)[None, :]  # (1, n_features)
-            q_full_list.append(a.model.predict_q(state_a))      # (1, n_actions, n_K)
-        q_full_ens = np.mean(np.stack(q_full_list, axis=0), axis=0)
-        # Use primary adapter's aggregator/beta/min_adv to convert Q → action
-        # (all adapters share the same training config so settings are uniform).
+        # 2026-06-11 GATE-HOIST FIX: the conviction-gate + STEP-1 overlays used to live ONLY in the
+        # ensemble (>=2 adapters) branch while the live single-bundle cement early-returned
+        # adapter.predict_one() — GX1_CONVICTION_GATE=1 was a silent NO-OP live. Both paths now
+        # compute Q and flow through ONE shared selection block (gate → min_adv → overlays).
+        from gx1.runtime.entry_iql_v2_adapter import EntryRecommendation, iql_core
         a0 = self.adapter
+        if len(self.ensemble_adapters) <= 1:
+            state_a = a0.build_state_vector(candidate)[None, :]   # (1, n_features)
+            q_full_ens = a0.model.predict_q(state_a)              # (1, n_actions, n_K)
+        else:
+            # 2026-05-21 ensemble: average Q-per-K across all adapters.
+            # 2026-05-24 DEFENSIVE: each adapter builds its OWN raw state vector and
+            # runs its OWN predict_q (which applies seed-specific feature_means/stds).
+            # Same raw vector across adapters when feature_names match (validated in
+            # load_ensemble), but explicit per-adapter call makes the contract
+            # self-documenting and refactor-safe.
+            q_full_list = []
+            state_a = None
+            for a in self.ensemble_adapters:
+                state_a = a.build_state_vector(candidate)[None, :]  # (1, n_features)
+                q_full_list.append(a.model.predict_q(state_a))      # (1, n_actions, n_K)
+            q_full_ens = np.mean(np.stack(q_full_list, axis=0), axis=0)
+        # Aggregate across K with the primary adapter's settings (uniform across an ensemble) —
+        # identical math to EntryIQLV2Adapter.predict, so flags-OFF output == predict_one.
         if a0.aggregator == "mean":
             q_agg = q_full_ens.mean(axis=2)
         elif a0.aggregator == "max":
             q_agg = q_full_ens.max(axis=2)
         else:
             q_agg = (q_full_ens * a0.k_weights[None, None, :]).sum(axis=2)
-        actions = q_agg.argmax(axis=1)
-        a_id = int(actions[0])
-        # Compute std across ensemble per action for uncertainty
-        q_std_per_action = np.stack(q_full_list, axis=0).mean(axis=-1).std(axis=0)[0]
-        # Build a recommendation using primary adapter for label/conf logic but
-        # with averaged Q.
-        from gx1.runtime.entry_iql_v2_adapter import EntryRecommendation, iql_core
+        a_id = int(q_agg.argmax(axis=1)[0])
         scaled = a0.beta * q_agg
         scaled = scaled - scaled.max(axis=1, keepdims=True)
         soft = np.exp(scaled); soft = soft / soft.sum(axis=1, keepdims=True)
@@ -469,11 +467,17 @@ class EntryIQLLiveInference:
                 a_id = skip_id
         elif a0.min_advantage_bps > 0.0 and a_id != skip_id and adv < a0.min_advantage_bps:
             a_id = skip_id
-        # STEP-1 reversible overlays (default-OFF): falling-knife skip + round-number wall. Read candidate
-        # feature cols (0.0 when the prebuilt lacks them → no-op); applied to whatever TAKE was chosen.
+        # STEP-1 reversible overlays (default-OFF): falling-knife skip + round-number wall, applied to
+        # whatever TAKE was chosen. Flag ON + missing feature cols = LOUD once-per-process warning
+        # (rule 9: never a silent no-op); the 0.0 default only covers the flags-OFF byte-identity case.
         if a_id != skip_id and (RECLAIM_GATE_ON or ROUND_WALL_ON):
             _L, _S = iql_core.ACTION_TAKE_LONG_NOW_ID, iql_core.ACTION_TAKE_SHORT_NOW_ID
             if RECLAIM_GATE_ON:
+                if "smc_sweep_reclaim_down_displacement_atr" not in candidate and not getattr(self, "_reclaim_cols_warned", False):
+                    LOG.warning("[STEP1_OVERLAY] GX1_SMC_RECLAIM_GATE=1 but smc_sweep_reclaim_* cols are MISSING "
+                                "from the candidate — the falling-knife gate is a NO-OP. Rebuild the cv3 prebuilt "
+                                "with GX1_SMC_SWEEP_RECLAIM=1 before trusting this overlay.")
+                    self._reclaim_cols_warned = True
                 _rec_up = float(candidate.get("smc_sweep_reclaim_up_displacement_atr", 0.0))    # bullish reclaim
                 _rec_dn = float(candidate.get("smc_sweep_reclaim_down_displacement_atr", 0.0))  # bearish reclaim
                 if a_id == _L and _rec_dn > RECLAIM_GATE_MIN and _rec_up <= 0.0:
@@ -481,20 +485,27 @@ class EntryIQLLiveInference:
                 elif a_id == _S and _rec_up > RECLAIM_GATE_MIN and _rec_dn <= 0.0:
                     a_id = skip_id
             if a_id != skip_id and ROUND_WALL_ON:
+                if "dist_to_round_50_atr" not in candidate and not getattr(self, "_round_cols_warned", False):
+                    LOG.warning("[STEP1_OVERLAY] GX1_ROUND_NUMBER_WALL=1 but dist_to_round_* cols are MISSING "
+                                "from the candidate — the round-wall veto is a NO-OP. Build the round-number "
+                                "features (GX1_ROUND_NUMBER=1) into the candidate path first.")
+                    self._round_cols_warned = True
                 _raw = best_take_q - float(q_agg[0, skip_id])
-                _d50 = float(candidate.get("dist_to_round_50_atr", 0.0))   # signed: <0 below the level
-                _d100 = float(candidate.get("dist_to_round_100_atr", 0.0))
-                _wall = min(abs(_d50), abs(_d100))
-                _adverse = (a_id == _L and (_d50 < 0.0 or _d100 < 0.0)) or (a_id == _S and (_d50 > 0.0 or _d100 > 0.0))
-                if _wall < ROUND_WALL_NEAR_ATR and _adverse and _raw < (CONVICTION_THR + ROUND_WALL_EXTRA):
-                    a_id = skip_id   # low-conviction TAKE entering into an adverse $-wall
+                # PER-GRID veto (2026-06-11 fix): a wall vetoes only when the SAME grid's level is both
+                # NEAR and ADVERSE. The old min(|d50|,|d100|) + (d50<0 OR d100<0) conflated the grids and
+                # systematically vetoed longs sitting just above an xx50 support (every $100 level is also
+                # a $50 level, so a far-adverse $100 always co-occurred with a near-favorable $50).
+                if _raw < (CONVICTION_THR + ROUND_WALL_EXTRA):
+                    for _col in ("dist_to_round_50_atr", "dist_to_round_100_atr"):
+                        _d = float(candidate.get(_col, 0.0))   # signed: <0 = price below the level
+                        _adverse_g = (_d < 0.0) if a_id == _L else (_d > 0.0)
+                        if _adverse_g and abs(_d) < ROUND_WALL_NEAR_ATR:
+                            a_id = skip_id   # low-conviction TAKE entering into an adverse $-wall
+                            break
         # Recompute advantages for the FINAL action (a_id may have changed by the gate/filter above).
         chosen_q = float(q_agg[0, a_id])
         adv = chosen_q - float(q_agg[0, skip_id])
         adv_take = chosen_q - best_take_q
-        # Note: q_std_per_action available via q_std_per_action variable but
-        # not added to EntryRecommendation dataclass to keep schema stable.
-        # Could be logged separately when needed for uncertainty-aware sizing.
         return EntryRecommendation(
             action_id_v1=a_id,
             action_label_v1=iql_core.ACTION_LABELS_V1[a_id],
@@ -502,13 +513,13 @@ class EntryIQLLiveInference:
             q_per_action_per_k_v1=q_full_ens[0].copy(),
             advantage_over_skip_v1=adv,
             advantage_over_realized_v1=adv_take,
-            confidence_softmax_v1=soft[0],
+            confidence_softmax_v1=soft[0].copy(),
             aggregator_v1=a0.aggregator,
             k_horizons_v1=list(a0.model.k_horizons),
             variant_v1=a0.variant,
             fold_id_v1=a0.fold_id,
             feature_names_v1=list(a0.feature_names),
-            state_v1=(state_a[0] if state_a is not None else np.zeros(0, dtype=np.float32)),
+            state_v1=(state_a[0].copy() if state_a is not None else np.zeros(0, dtype=np.float32)),
         )
 
     def predict_from_pipeline(
