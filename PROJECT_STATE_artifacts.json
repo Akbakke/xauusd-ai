@@ -21,8 +21,8 @@
       "note": "CLEAN x10-April-repaired V3 exit transformer EXIT_IO_V8, multi-TF-v2 5TF x25. Flipped 2026-06-10 (cement vedtak 'a'). The clean Exit-IQL was scored/trained on THIS V3 -> they flip together (flipping exit-IQL alone would be train/serve skew). Prior fase2b V3 -> history (rollback)."
     },
     "entry_iql": {
-      "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/entry_iql_clean",
-      "active_variant": "R_WAIT_OPP_K96_LAM50",
+      "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/entry_iql_volbal_20260611",
+      "active_variant": "R_WAIT_OPP_K96_LAM50_SYM",
       "active_folds": [
         "FOLD_1",
         "FOLD_2",
@@ -31,13 +31,13 @@
       "operating_point": {
         "selection": "CONVICTION_GATE_VOLSIZED",
         "conviction_gate": true,
-        "conviction_thr": -67.0,
+        "conviction_thr": -37.71,
         "sizing": {
           "mode": "both",
           "max_mult": 2.0,
           "min_mult": 0.5,
-          "conv_lo": -67.0,
-          "conv_hi": -34.2,
+          "conv_lo": -37.71,
+          "conv_hi": -13.99,
           "atr_ref_bps": 14.0,
           "atr_floor_bps": 14.0,
           "base_units": 5
@@ -45,12 +45,12 @@
         "skip_asia": true,
         "min_advantage_bps": 0,
         "max_trades": 3,
-        "live_env": "GX1_CONVICTION_GATE=1 GX1_SKIP_ASIA=1 GX1_CONVICTION_THR=-67.0 GX1_SIZING_MODE=both GX1_SIZING_MAX_MULT=2.0 GX1_SIZING_MIN_MULT=0.5 GX1_SIZING_CONV_LO=-67.0 GX1_SIZING_CONV_HI=-34.2 GX1_SIZING_ATR_REF_BPS=14.0 GX1_SIZING_ATR_FLOOR_BPS=14.0",
-        "note": "v2 SAME DAY (user vedtak 'Go - laas both-sizing' 2026-06-11): sizing conviction->BOTH (x inverse-ATR, REF=14/FLOOR=14 -> m_vol=min(14/atr,1), product clamp [0.5,2.0]). Replayed exact-live-formula: total +25.8% vs the -34.2 gate (712,863 bps skipASIA), 2026 size-w win 0.8505 (BACK ABOVE the 0.85 floor), union cap-3 DD -118.7 (vs -314.6 conviction-only, -172.3 old gate) - 2026 vol regime (atr p50 13.4 vs 8.3 hist) is auto-downsized. test==serve size_units(both) 500/500 exact. CEMENTED 2026-06-11 (user vedtak 'thr -67 + konvictjons-sizing ... laaser vi denne'). ENTRY-SELECTION #2 = WIDER gate + CONVICTION-SIZING: OPEN when raw_adv >= -67.0; size = base_units * m, m linear 1.0->2.0 over raw_adv [-67,-34.2] (band trades 0.5-1.0x the old-gate exposure; base_units 10->5 keeps old-gate trades at exactly 10 units). EVIDENCE: band [-67,-34.2) replayed through the FULL exit chain (phase6_band67, 12k of 21,772): 18.17 bps/take @ 0.915 win skipASIA, FLAT across sub-bands (16.5/16.5/17.7) -> the -34.2 gate was cutting into positive EV. Locked numbers (size-weighted, scaled): total +36.0% vs thr -34.2 gate (770,575 vs 566,456 bps), 2026 size-weighted win 0.8468 (vs 0.8532 - ACCEPTED by vedtak; fix-path = vol-regime sizing), union cap-3 DD -314.6 (vs -172.3). test==serve: size_units 500/500 exact (env-parametrized formula); gate parity 200/200 through the REAL predict() (e44fd7dc). Decisions provenance: entry_decisions_lam50_q (reproduced the -34.2 gate region 29,088/29,089) + entry_decisions_band67. First in-vivo trade on the repaired chain: trade 619 LONG +118.66 P/L (2026-06-11 14:18 UTC, raw_adv -21.6 marginal-band take - exactly the class this OP opens more of). SUPERSEDES the 2026-06-10 thr -34.2 operating point (same bundle, same Q-net). Reversible: GX1_CONVICTION_THR=-34.2 + GX1_SIZING_MODE=off. PRIOR OP NOTE: CEMENTED 2026-06-10 (user vedtak 'Cement + restart live'). ENTRY-SELECTION #1 = conviction-gate: OPEN a TAKE when raw_adv = best-TAKE-Q - SKIP-Q (UN-clipped) >= -34.2 (the offline conviction20 20th-pctile -> top-20% open), side = argmax(TAKE-Q), OVERRIDING the IQL's conservative argmax SKIP; + skip-ASIA (block ASIA-session entries, session_detector SSoT). Gate-validated (12k subsample, FULL exit chain, R_NET_REAL) vs the prior min_advantage_bps=0/LAM50 operating point: +27.7% total PnL, admit 0.642 (vs 0.458 FAIL), portfolio DD -201 (vs -656). skip-ASIA lifts 2026 per-year win 0.8405 -> 0.8532 (PASS >= 0.85), overall win 0.9466 -> 0.9510, bps/take 24.78 -> 27.27. test==serve 1.0000 (live formula reproduces offline conviction20 decisions; take-rate 0.2000). BUNDLE UNCHANGED (same entry_iql_clean R_WAIT_OPP_K96_LAM50 Q-net) -> SERVE-TIME selection overlay, fully reversible by unsetting GX1_CONVICTION_GATE/GX1_SKIP_ASIA. Implemented env-gated in v12_entry_iql_live.py + v12_paper_runner.py (commit 42b5946b, OFF by default). SUPERSEDES VOLUME-FIRST (LAM50 argmax over-skipped: admit 0.458 < 0.6 floor). max_trades=3 = the DD-validated portfolio cap (live-tunable)."
+        "live_env": "GX1_CONVICTION_GATE=1 GX1_SKIP_ASIA=1 GX1_CONVICTION_THR=-37.71 GX1_SIZING_MODE=both GX1_SIZING_MAX_MULT=2.0 GX1_SIZING_MIN_MULT=0.5 GX1_SIZING_CONV_LO=-37.71 GX1_SIZING_CONV_HI=-13.99 GX1_SIZING_ATR_REF_BPS=14.0 GX1_SIZING_ATR_FLOOR_BPS=14.0",
+        "note": "CEMENTED 2026-06-11 (user vedtak 'Flip!'). BUNDLE FLIP + recalibrated OP on the new Q-scale: thr -37.71 = volbal top-35% (matches the prior coverage); sizing anchors = its own 65th/80th pctiles (LO -37.71 / HI -13.99); vol-sizing both-mode REF=14 unchanged. EVIDENCE (12k full-exit-chain replay, PARALLEL gate 2.8min): 24.43 bps/take @ 0.9466 win skipASIA, 2026 30.66 bps @ 0.8543 win (floor PASS without vol-sizing help), cap-3 DD -113.0 (HALF of v2fix -214.8 at same density). MECHANISM CONFIRMED: high-vol takes 943 short/890 long, shorts 38.6 vs longs 26.1 bps (the measured vol-regime inversion, learned via GX1_REWARD_VOLBALANCE_FACTOR=6 + POSGATE + TRUNC_MASK training). Trained on REGIME_V4 forward_outcome_clean; decisions provenance entry_decisions_volbal(_top35). Posthoc-vs-top20-baseline expectancy delta is a coverage artifact (35% vs 20%); per-year floor PASSES. Reversible: see history[0] rollback note."
       },
       "status": "ACTIVE",
       "in_sample_only": false,
-      "note": "fase2b Entry-IQL R_WAIT_OPP_K96_LAM50 (MAE-before-MFE penalty lambda=5, wired). SERVED WITH the conviction-gate + skip-ASIA selection overlay (see operating_point) since 2026-06-10 - bundle/variant UNCHANGED, overlay is serve-time + reversible (flag toggle)."
+      "note": "Vol-regime-balanced Entry-IQL (LAM50_SYM reward: true per-K, no spread double-count; trained with bad_path POSGATE + Friday-trunc mask + 6x high-vol oversample, vedtak vol_regime_balance_20260611). Serves with the CONVICTION_GATE_VOLSIZED overlay (see operating_point)."
     },
     "exit_iql": {
       "path": "/home/andre2/GX1_DATA/runs/FASE2B_CLEAN_20260608/exit_iql_retrain_clean_20260609",
@@ -68,6 +68,13 @@
     }
   },
   "history": [
+    {
+      "role": "entry_iql",
+      "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/entry_iql_clean",
+      "active_variant": "R_WAIT_OPP_K96_LAM50",
+      "status": "INVALIDATED",
+      "reason": "ROLLBACK TARGET. fase2b entry_iql_clean (R_WAIT_OPP_K96_LAM50) superseded 2026-06-11 by entry_iql_volbal_20260611 (vedtak 'Flip!'): vol-regime-balanced LAM50_SYM beat it on ALL axes at the same 35% coverage (24.43 vs 23.45 bps/take, win 0.9466 vs 0.937, 2026-win 0.8543 PASS vs 0.847 FAIL, 12k-sample cap-3 DD -113 vs v2fix -215). Bundle intact on disk; rollback = re-point path+variant here and restore thr -67.0 / SIZING_CONV_LO -67 / HI -34.2 in launcher+OP."
+    },
     {
       "role": "exit_iql",
       "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/exit_iql_train_clean",

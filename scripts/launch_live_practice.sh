@@ -84,12 +84,12 @@ export GX1_USE_DISTILLED_EXIT=0
 # 13.4 vs 8.3 hist) auto-downsizes the tail regime. test==serve size_units 500/500 exact.
 export GX1_CONVICTION_GATE=1
 export GX1_SKIP_ASIA=1
-export GX1_CONVICTION_THR=-67.0
+export GX1_CONVICTION_THR=-37.71
 export GX1_SIZING_MODE=both
 export GX1_SIZING_MAX_MULT=2.0
 export GX1_SIZING_MIN_MULT=0.5
-export GX1_SIZING_CONV_LO=-67.0
-export GX1_SIZING_CONV_HI=-34.2
+export GX1_SIZING_CONV_LO=-37.71
+export GX1_SIZING_CONV_HI=-13.99
 export GX1_SIZING_ATR_REF_BPS=14.0
 export GX1_SIZING_ATR_FLOOR_BPS=14.0
 
