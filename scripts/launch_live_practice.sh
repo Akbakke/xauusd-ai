@@ -66,18 +66,26 @@ export GX1_HOLD_HORIZON_OVERRUN_MULT=1.5
 export GX1_HOLD_HORIZON_MIN_FLOOR_BARS=60
 export GX1_USE_DISTILLED_EXIT=0
 
-# ── ENTRY-SELECTION pins (2026-06-10, CEMENTED — vedtak 'Cement + restart live') ──
-# Entry-selection #1 = conviction-gate + skip-ASIA (PROJECT_STATE_artifacts.json
-# entry_iql.operating_point). OPEN a TAKE when raw_adv = best-TAKE-Q − SKIP-Q (un-clipped)
-# >= GX1_CONVICTION_THR (−34.2 = offline conviction20 20th-pctile, top-20% open), side =
-# argmax(TAKE-Q), overriding the IQL conservative SKIP; + skip-ASIA. Gate-validated (12k
-# subsample, full exit chain, R_NET_REAL): +27.7% total PnL, admit 0.642 (vs LAM50 0.458),
-# portfolio DD −201 (vs −656); skip-ASIA lifts 2026 per-year win 0.8405→0.8532 (PASS).
-# test==serve 1.0000. Bundle UNCHANGED — serve-time overlay, reversible by setting these to 0.
-# Pinned EXPLICITLY (build==serve flag parity); never rely on code defaults for live.
+# ── ENTRY-SELECTION pins (2026-06-11, CEMENTED — vedtak 'thr −67 + conviction-sizing, låser denne') ──
+# Entry-selection #2 = WIDER conviction-gate + CONVICTION-SIZING + skip-ASIA (PROJECT_STATE_artifacts.json
+# entry_iql.operating_point). OPEN when raw_adv = best-TAKE-Q − SKIP-Q (un-clipped) >= −67.0
+# (band [−67,−34.2) replayed through the FULL exit chain 2026-06-11: 18.2 bps/take @ 0.915 win,
+# FLAT across sub-bands — the old top-20% gate was cutting into positive EV). SIZING: linear
+# conviction multiplier 1.0→2.0 over [−67,−34.2] (band trades at 0.5–1.0× the old-gate exposure;
+# UNITS dropped 10→5 so old-gate trades keep EXACTLY their prior 10-unit exposure at 2.0×).
+# Locked numbers (skipASIA, size-weighted, scaled to full take-set): total +36.0% vs the −34.2
+# gate, 2026 size-weighted win 0.847 (vs 0.853 — ACCEPTED by vedtak), union cap-3 DD −315 (vs
+# −172). test==serve: size_units 500/500 exact; gate formula parity 200/200 (e44fd7dc).
+# SUPERSEDES the 2026-06-10 thr −34.2 operating point. Bundle UNCHANGED — serve-time overlay,
+# fully reversible (thr back to −34.2 + GX1_SIZING_MODE=off). Pinned EXPLICITLY.
 export GX1_CONVICTION_GATE=1
 export GX1_SKIP_ASIA=1
-export GX1_CONVICTION_THR=-34.2
+export GX1_CONVICTION_THR=-67.0
+export GX1_SIZING_MODE=conviction
+export GX1_SIZING_MAX_MULT=2.0
+export GX1_SIZING_MIN_MULT=1.0
+export GX1_SIZING_CONV_LO=-67.0
+export GX1_SIZING_CONV_HI=-34.2
 
 FORCE=0
 [[ "${1-}" == "--force" ]] && FORCE=1
@@ -162,12 +170,12 @@ sleep 3
 
 # 3. Paper runner (PURE_PHASE6 = Phase 6 OOT 1:1) ---------------------------
 RUNNER_PID_FILE="$PAPER_RUNS/paper_runner.pid"
-UNITS=${GX1_PAPER_UNITS:-10}
+UNITS=${GX1_PAPER_UNITS:-5}   # 2026-06-11: 10→5 with SIZING_MAX_MULT=2.0 — old-gate trades stay at 10 units (5×2.0)
 # max_trades=3 is the DD-VALIDATED portfolio cap (entry_iql.operating_point); the conviction-gate's
 # −201 DD was measured at this cap. Default was 100 (unbounded-risk footgun); pinned to 3 for live.
 MAX_TRADES=${GX1_PAPER_MAX_TRADES:-3}
 MAX_SPREAD=${GX1_PAPER_MAX_SPREAD_BPS:-9999}
-SUFFIX=${GX1_PAPER_SUFFIX:-conviction20_skipasia_pure_phase6}
+SUFFIX=${GX1_PAPER_SUFFIX:-conviction67sized_skipasia_pure_phase6}
 
 if [[ $FORCE -eq 1 ]]; then stop_if_running "$RUNNER_PID_FILE"; fi
 if pid=$(is_alive "$RUNNER_PID_FILE"); then
