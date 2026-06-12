@@ -58,6 +58,16 @@ LOG = logging.getLogger("v12_pipeline")
 # regime filter, portfolio guard) all still apply unchanged.
 _USE_DISTILLED_ENTRY = os.environ.get("GX1_USE_DISTILLED_ENTRY", "0") == "1"
 
+# IN-PROCESS SHADOW (2026-06-12, ladder wave): when GX1_SHADOW_BUNDLE_DIR points
+# at a candidate Entry-IQL bundle, a SECOND adapter scores every poll's candidate
+# through the same predict() (incl. the live conviction-gate/overlay env flags)
+# and the shadow Q/action are journaled alongside the live decision. The live
+# decision is NEVER affected — fail-safe: any shadow error logs once and disables.
+# Same env var as the Track B daemon so one export shadows the candidate everywhere.
+_SHADOW_BUNDLE_DIR = os.environ.get("GX1_SHADOW_BUNDLE_DIR", "").strip()
+_SHADOW_VARIANT = os.environ.get("GX1_SHADOW_VARIANT", "").strip()  # default: contract active_variant
+_SHADOW_FOLD = os.environ.get("GX1_SHADOW_FOLD", "").strip()        # default: contract first active fold
+
 
 def _entry_rec_with_distilled_q(rec, v10_out, beta: float = 1.0):
     """Rebuild an EntryRecommendation using V10 q_head values instead of IQL Q.
@@ -125,6 +135,37 @@ class V12Pipeline:
     # V4 (R13): full intrabar OHLC of the latest CLOSED M1 bar (one source for the
     # V3 overlay's intrabar peak/trough/atr AND current_atr_bps_v1).
     _last_m1_bar: dict | None = None
+    # In-process shadow (2026-06-12, ladder wave): candidate Entry-IQL scoring
+    # every poll alongside the live adapter. None = shadow off / load failed.
+    shadow_entry_iql: EntryIQLLiveInference | None = None
+    _shadow_error_logged: bool = False
+
+    @classmethod
+    def _load_shadow_entry_iql(cls) -> "EntryIQLLiveInference | None":
+        """Load the candidate shadow bundle from GX1_SHADOW_BUNDLE_DIR.
+
+        FAIL-SAFE by design (NOT fail-closed): the shadow is observability, not
+        decisioning — a broken candidate bundle must never block the live stack.
+        Variant/fold default to the contract-resolved ACTIVE entry's values so a
+        warm-started candidate (same ckpt naming) loads with zero extra config.
+        """
+        if not _SHADOW_BUNDLE_DIR:
+            return None
+        try:
+            from gx1.execution.v12_entry_iql_live import (
+                DEFAULT_VARIANT, DEFAULT_FOLD, DEFAULT_AGGREGATOR)
+            variant = _SHADOW_VARIANT or DEFAULT_VARIANT
+            fold = _SHADOW_FOLD or DEFAULT_FOLD
+            shadow = EntryIQLLiveInference.load(
+                bundle_dir=Path(_SHADOW_BUNDLE_DIR), variant=variant, fold_id=fold,
+                aggregator=DEFAULT_AGGREGATOR,
+            )
+            LOG.info(f"SHADOW Entry-IQL loaded: {Path(_SHADOW_BUNDLE_DIR).name} "
+                     f"variant={variant} fold={fold} — scores every poll, affects nothing")
+            return shadow
+        except Exception as exc:
+            LOG.error(f"SHADOW Entry-IQL load FAILED ({exc}) — live unaffected, shadow disabled")
+            return None
 
     @classmethod
     def load_default(cls) -> "V12Pipeline":
@@ -136,6 +177,7 @@ class V12Pipeline:
         entry_iql = EntryIQLLiveInference.load_default()
         exit_iql = ExitIQLLiveInference.load_default()
         v3 = V3LiveInference.load_default()   # V3 v8 exit transformer
+        shadow_entry_iql = cls._load_shadow_entry_iql()
         # V12.2: if any model needs multi-TF, build the per-bar feature tables once
         # on the loader so predict() calls can slice cheaply.
         needs_mtf = getattr(v10, "_enable_multi_tf", False) or getattr(v3, "_enable_multi_tf", False)
@@ -145,7 +187,8 @@ class V12Pipeline:
         LOG.info(f"V12Pipeline loaded in {(time.perf_counter()-t0)*1000:.0f} ms")
         LOG.info(f"  prebuilt cutoff: {loader.cutoff_ts}  multi_tf_active={needs_mtf}")
         return cls(prebuilt_loader=loader, xgb=xgb, v10=v10,
-                    entry_iql=entry_iql, exit_iql=exit_iql, v3=v3)
+                    entry_iql=entry_iql, exit_iql=exit_iql, v3=v3,
+                    shadow_entry_iql=shadow_entry_iql)
 
     def _refresh_m1_bar(self, now_minute: pd.Timestamp) -> dict | None:
         """Latest CLOSED M1 bar's intrabar OHLC (bid/ask high/low/close) + per-bar
@@ -325,6 +368,23 @@ class V12Pipeline:
         if _USE_DISTILLED_ENTRY and "q_per_action_v1" in v10_out:
             rec = _entry_rec_with_distilled_q(rec, v10_out, beta=self.entry_iql.adapter.beta)
 
+        # IN-PROCESS SHADOW (2026-06-12): candidate bundle scores the SAME inputs
+        # through the SAME predict() path (incl. conviction-gate/overlay env flags
+        # → candidate-vs-active on the live operating point). Observability only —
+        # any error logs ONCE and disables; the live decision is already final.
+        shadow_rec = None
+        if self.shadow_entry_iql is not None:
+            try:
+                shadow_rec, _ = self.shadow_entry_iql.predict_from_pipeline(
+                    row, xgb_this, v10_out, portfolio_state=portfolio_state,
+                )
+            except Exception as exc:
+                if not self._shadow_error_logged:
+                    LOG.error(f"SHADOW predict failed ({exc}) — disabling shadow for this run")
+                    self._shadow_error_logged = True
+                self.shadow_entry_iql = None
+                shadow_rec = None
+
         # V12.2 CLUSTER-1 RATE-LIMIT: block repeat entries within same M5 bucket.
         # Live V10/IQL fires multiple times per minute; without this, IQL takes 4×
         # same LONG signal in same 5-min window (Cluster-1 pattern observed
@@ -402,7 +462,7 @@ class V12Pipeline:
         except Exception as exc:
             LOG.warning(f"[ONLINE_IQL_CAPTURE] q_per_action_per_k_v1 extract failed: {exc}")
             q_per_k_list = None
-        return {
+        out = {
             "action": rec.action_label_v1,
             "action_id": int(rec.action_id_v1),
             "q_per_action": [float(q[0]), float(q[1]), float(q[2])],
@@ -438,6 +498,17 @@ class V12Pipeline:
             "entry_iql_state_v1": state_list,
             "entry_iql_q_per_action_per_k_v1": q_per_k_list,
         }
+        # IN-PROCESS SHADOW fields (only when a candidate is loaded — journals
+        # stay byte-identical when GX1_SHADOW_BUNDLE_DIR is unset).
+        if shadow_rec is not None:
+            sq = shadow_rec.q_per_action_v1
+            out["shadow_action"] = shadow_rec.action_label_v1
+            out["shadow_q_per_action"] = [float(sq[0]), float(sq[1]), float(sq[2])]
+            out["shadow_advantage_over_skip_long"] = float(sq[1] - sq[0])
+            out["shadow_advantage_over_skip_short"] = float(sq[2] - sq[0])
+            out["shadow_agrees_with_live"] = bool(shadow_rec.action_label_v1 == rec.action_label_v1)
+            out["shadow_bundle"] = Path(_SHADOW_BUNDLE_DIR).name
+        return out
 
     # ── exit decision ────────────────────────────────────────────────
 

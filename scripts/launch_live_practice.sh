@@ -97,6 +97,16 @@ export GX1_SIZING_CONV_HI=-13.99
 export GX1_SIZING_ATR_REF_BPS=14.0
 export GX1_SIZING_ATR_FLOOR_BPS=14.0
 
+# IN-PROCESS SHADOW (2026-06-12, ladder wave): if a candidate bundle is named in
+# the config file, the runner loads it as a SHADOW adapter — scores every poll,
+# journals shadow_q/action/agreement, affects NOTHING. The nightly refit updates
+# this file to its newest PENDING candidate; the runner picks it up at restart.
+SHADOW_CFG=/home/andre2/GX1_DATA/config/shadow_bundle_dir.txt
+if [[ -s "$SHADOW_CFG" ]]; then
+    export GX1_SHADOW_BUNDLE_DIR="$(head -1 "$SHADOW_CFG" | tr -d '[:space:]')"
+    echo "[launch] in-process SHADOW armed: $GX1_SHADOW_BUNDLE_DIR"
+fi
+
 FORCE=0
 [[ "${1-}" == "--force" ]] && FORCE=1
 
