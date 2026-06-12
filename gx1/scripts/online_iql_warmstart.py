@@ -212,7 +212,9 @@ def main() -> int:
     p.add_argument("--epochs-q", type=int, default=2, help="Q-net epochs per phase (cement used 30+)")
     p.add_argument("--epochs-v", type=int, default=2)
     p.add_argument("--k-iterations", type=int, default=2, help="Alternating V/Q iterations")
-    p.add_argument("--batch-size", type=int, default=512)
+    p.add_argument("--batch-size", type=int, default=4096,
+                   help="IQL big-batch hard rule (vedtak 2026-06-10): tiny MLPs train "
+                        "at >=4096, never 256/512 — clamped to buffer size if smaller.")
     p.add_argument("--seed", type=int, default=20260531)
     p.add_argument("--vedtak", type=str, default=None,
                    help="Explicit user decision id. REQUIRED — fail-closed.")
@@ -235,7 +237,30 @@ def main() -> int:
             f"replay buffer was built for variant {meta['variant']!r} but warm-start "
             f"requested {args.variant!r}. Rebuild buffer with matching variant."
         )
-    k_horizons = meta["k_horizons"]
+    # 2026-06-12: buffer meta now records cement M5-bar horizons as k_horizons_m5
+    # (the old key fell to the 5x M1/M5 unit bug). Fall back for old buffers.
+    k_horizons = meta.get("k_horizons_m5") or meta["k_horizons"]
+    if list(k_horizons) != list(cement["ckpt"]["k_horizons"]):
+        raise RuntimeError(
+            f"buffer k_horizons {k_horizons} != cement ckpt k_horizons "
+            f"{cement['ckpt']['k_horizons']} — rebuild buffer with --k-horizons matching the bundle."
+        )
+    # Reward-label env parity (2026-06-12): the refit MUST rebuild rewards under
+    # the same flags the cement was trained with. Newer ckpts stamp reward_env_v1;
+    # older ones (e.g. volbal) were fingerprint-verified posgate=1.
+    cement_env = cement["ckpt"].get("reward_env_v1")
+    buffer_env = meta.get("reward_env_v1") or {}
+    if cement_env is not None:
+        cpg = cement_env.get("GX1_REWARD_BADPATH_POSGATE", "0")
+        bpg = str(buffer_env.get("GX1_REWARD_BADPATH_POSGATE", "?"))[:1]
+        if cpg != bpg:
+            raise RuntimeError(
+                f"reward env mismatch: cement POSGATE={cpg} vs buffer POSGATE={bpg} — "
+                f"rebuild the buffer with GX1_REWARD_BADPATH_POSGATE={cpg}."
+            )
+    else:
+        LOG.warning("cement ckpt has no reward_env_v1 stamp (pre-2026-06-12 bundle) — "
+                    "verify buffer posgate matches the bundle's training (volbal = posgate 1).")
     LOG.info(f"buffer rows: {len(df)}  variant: {meta['variant']}  k_horizons: {k_horizons}")
     if len(df) < 50:
         LOG.warning(f"only {len(df)} rows — warm-start needs ~50+ trades for stable update")
@@ -249,7 +274,8 @@ def main() -> int:
         k_iterations=args.k_iterations, batch_size=args.batch_size, seed=args.seed,
     )
 
-    # Persist in cement-compatible layout
+    # Persist in cement-compatible layout (stamp reward env for the NEXT refit)
+    new_ckpt["reward_env_v1"] = cement_env or buffer_env
     args.out_dir.mkdir(parents=True, exist_ok=True)
     (args.out_dir / "trained_models_v1").mkdir(exist_ok=True)
     ckpt_out = args.out_dir / "trained_models_v1" / f"{args.variant}_{args.fold}.pt"
@@ -276,9 +302,11 @@ def main() -> int:
 
     LOG.info("")
     LOG.info("=== NEXT STEPS (vedtak required, NOT automated) ===")
-    LOG.info(f"1. Phase 6 OOT-validate: python -m gx1.scripts.phase6_oot_costfix --entry-bundle {args.out_dir}")
-    LOG.info("2. If OOT >= cement (+136 bps/take): manually edit PROJECT_STATE_artifacts.json")
-    LOG.info(f"   set active.entry_iql.path = {args.out_dir}")
+    LOG.info("1. Gate vs cement (parallel exit-chain replay + hardened posthoc eval):")
+    LOG.info(f"   python -m gx1.scripts.v12.v12_phase6_joint_validation --gate ... (candidate {args.out_dir})")
+    LOG.info(f"   python -m gx1.execution.v12_counterfactual_replay --mode stress ... (RR2 short-in-uptrend gate)")
+    LOG.info("2. If gates PASS on the load-bearing metrics (bps/take, per-year floors, DD):")
+    LOG.info(f"   manual vedtak → flip PROJECT_STATE_artifacts.json active.entry_iql.path = {args.out_dir}")
     LOG.info("3. bash scripts/stop_live_practice.sh && bash scripts/launch_live_practice.sh")
     return 0
 

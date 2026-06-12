@@ -317,6 +317,135 @@ def check_live_prebuilt_tail(tail_days: int = 5, ref_days: int = 30,
     return out
 
 
+# ── DISTRIBUTION-DRIFT leg (rule-9 extension, ladder wave 2026-06-12) ──────────
+# Freeze/continuity catch PIPELINE failures; this leg catches DISTRIBUTION shift:
+# per-feature two-sample KS between the last N days of LIVE entry-IQL states
+# (journal `entry_iql_state_v1`, one-truth adapter feature order) and a stored
+# TRAINING-distribution reference sample. Output is ADVISORY — it flags
+# "consider a retrain vedtak", it never retrains (CLAUDE.md rule 3) and never
+# blocks the live stack. Expected market-regime drift on known regime-features
+# goes on the allowlist with a documented reason, same pattern as the others.
+DRIFT_KS_STAT_THR = 0.25       # KS statistic above this = feature drifted
+DRIFT_MAX_FRAC = 0.20          # >20% of features drifted = advise retrain review
+DRIFT_ALLOWED: Dict[str, str] = {
+    # name → documented reason (expected market-regime drift, not pipeline drift)
+}
+
+
+def write_drift_reference(forward_outcome_dir: str, out_path: str,
+                          sample_n: int = 4000, seed: int = 20260612) -> dict:
+    """Generate the training-distribution reference sample for the drift leg.
+
+    Loads the SAME per_week forward-outcome parquets the cement Entry-IQL
+    trained on and builds states through the ONE-TRUTH build_state_matrix
+    (materialize_build_entry_iql_v2) — so reference columns are positionally
+    identical to the live `entry_iql_state_v1` vector. Stores a shuffled
+    sample as parquet (named columns, training order) + a meta sidecar.
+    """
+    import pandas as pd
+    from gx1.scripts.materialize_build_entry_iql_v2 import (
+        load_forward_outcome_dataset, build_state_matrix)
+    df = load_forward_outcome_dataset(Path(forward_outcome_dir))
+    # Replicate the cement trunc-mask (volbal trained with GX1_REWARD_TRUNC_MASK=1)
+    # so the reference reflects the rows the model actually saw.
+    _bl = pd.to_numeric(df.get("take_now_long_forward_bars_used_at_K96_v1"), errors="coerce")
+    _bs = pd.to_numeric(df.get("take_now_short_forward_bars_used_at_K96_v1"), errors="coerce")
+    if _bl is not None and _bs is not None:
+        keep = (_bl.fillna(0) >= 48) & (_bs.fillna(0) >= 48)
+        df = df[keep].reset_index(drop=True)
+    # NOTE: states must be built on the FULL df (rolling/window augments inside
+    # build_state_matrix change values on a subsample) — sample rows AFTER.
+    X, names = build_state_matrix(df)
+    rng = np.random.default_rng(seed)
+    idx = rng.choice(len(X), size=min(sample_n, len(X)), replace=False)
+    ref = pd.DataFrame(X[idx], columns=names)
+    out = Path(out_path)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    ref.to_parquet(out, index=False)
+    meta = {
+        "source_forward_outcome_dir": str(forward_outcome_dir),
+        "source_rows": int(len(X)), "sample_n": int(len(idx)),
+        "state_dim": int(X.shape[1]), "seed": seed,
+        "schema_v1": "ENTRY_IQL_DRIFT_REFERENCE_V1",
+    }
+    Path(str(out) + ".meta.json").write_text(json.dumps(meta, indent=2))
+    return meta
+
+
+def check_distribution_drift(reference_path: str, journal_days: int = 7,
+                             journal_suffix: str = "",
+                             ks_stat_thr: float = DRIFT_KS_STAT_THR,
+                             max_drift_frac: float = DRIFT_MAX_FRAC) -> dict:
+    """Two-sample KS per feature: live entry-IQL states (last N days of paper
+    journals) vs the stored training reference. Advisory — see leg header."""
+    from datetime import datetime, timedelta, timezone
+
+    import pandas as pd
+    from scipy.stats import ks_2samp
+    ref = pd.read_parquet(reference_path)
+    names = list(ref.columns)
+
+    paper_dir = Path("/home/andre2/GX1_DATA/reports/v12_paper_runs")
+    cutoff = datetime.now(timezone.utc) - timedelta(days=journal_days)
+    pat = f"v12_paper_journal_*{journal_suffix}.jsonl" if journal_suffix else "v12_paper_journal_*.jsonl"
+    states, seen = [], set()
+    for jp in sorted(paper_dir.glob(pat)):
+        try:
+            day = jp.name.split("_")[3][:8]
+            if datetime.strptime(day, "%Y%m%d").replace(tzinfo=timezone.utc) < cutoff - timedelta(days=1):
+                continue
+        except (IndexError, ValueError):
+            continue
+        with jp.open() as fh:
+            for line in fh:
+                try:
+                    ev = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                d = ev.get("v12_decision") or {}
+                sv = d.get("entry_iql_state_v1")
+                ts = d.get("decision_ts") or ev.get("ts_utc")
+                if sv is None or ts in seen:
+                    continue
+                seen.add(ts)
+                states.append(sv)
+    if len(states) < 100:
+        return {"ok": True, "skipped": True,
+                "reason": f"only {len(states)} live states in last {journal_days}d (<100) — not enough for KS"}
+    live = np.asarray(states, dtype=np.float64)
+    if live.shape[1] != len(names):
+        return {"ok": False, "skipped": False, "drifted": [], "frac": 1.0,
+                "reason": f"STATE-DIM MISMATCH live={live.shape[1]} vs reference={len(names)} — "
+                          f"reference predates a contract change; regenerate it."}
+
+    drifted = []
+    for i, name in enumerate(names):
+        a = ref.iloc[:, i].to_numpy(dtype=np.float64)
+        b = live[:, i]
+        a, b = a[np.isfinite(a)], b[np.isfinite(b)]
+        if len(a) < 50 or len(b) < 50 or (a.std() == 0 and b.std() == 0):
+            continue
+        ks = ks_2samp(a, b)
+        if ks.statistic >= ks_stat_thr and name not in DRIFT_ALLOWED:
+            drifted.append({"name": name, "ks": round(float(ks.statistic), 3),
+                            "p": float(ks.pvalue),
+                            "ref_mean": round(float(a.mean()), 4),
+                            "live_mean": round(float(b.mean()), 4)})
+    drifted.sort(key=lambda d: -d["ks"])
+    frac = len(drifted) / max(1, len(names))
+    return {
+        "ok": frac <= max_drift_frac,
+        "skipped": False,
+        "n_features": len(names), "n_live_states": int(len(live)),
+        "n_drifted": len(drifted), "frac": round(frac, 3),
+        "drifted_top": drifted[:25],
+        "advice": ("DISTRIBUTION DRIFT over threshold — review top-drifted features; "
+                   "if market-regime (not pipeline) drift persists across weeks, "
+                   "consider an IQL-refit/retrain VEDTAK (never auto)." if frac > max_drift_frac
+                   else "within threshold"),
+    }
+
+
 def audit_xgb_gain(bundle_dir: str, contract_path: str) -> List[str]:
     """Return base80 features with 0 gain in ALL session heads, excluding the allowlist."""
     from gx1.xgb.multihead.xgb_multihead_model_v1 import XGBMultiheadModel
@@ -344,8 +473,38 @@ def _main() -> int:
                     help="rule-9 LIVE-TAIL check: freeze-signature scan of the live cv3+BASE34 prebuilt tails")
     ap.add_argument("--tail-days", type=int, default=5)
     ap.add_argument("--ref-days", type=int, default=30)
+    # DISTRIBUTION-DRIFT leg (2026-06-12, ladder wave) — advisory KS live-vs-training
+    ap.add_argument("--distribution-drift", action="store_true",
+                    help="KS-drift: last N days of live entry-IQL states vs training reference")
+    ap.add_argument("--drift-reference", type=str, default=None,
+                    help="path to drift_reference parquet (explicit, rule 4 — no guessed default)")
+    ap.add_argument("--journal-days", type=int, default=7)
+    ap.add_argument("--journal-suffix", type=str, default="")
+    ap.add_argument("--write-drift-reference", action="store_true",
+                    help="generate the reference: requires --forward-outcome-dir + --drift-reference (out path)")
+    ap.add_argument("--forward-outcome-dir", type=str, default=None)
     a = ap.parse_args()
     failed = False
+    if a.write_drift_reference:
+        if not (a.forward_outcome_dir and a.drift_reference):
+            ap.error("--write-drift-reference requires --forward-outcome-dir and --drift-reference")
+        meta = write_drift_reference(a.forward_outcome_dir, a.drift_reference)
+        print(f"[DRIFT-REF] wrote {meta['sample_n']}x{meta['state_dim']} sample → {a.drift_reference}")
+        return 0
+    if a.distribution_drift:
+        if not a.drift_reference:
+            ap.error("--distribution-drift requires --drift-reference (rule 4: explicit, never guessed)")
+        rep = check_distribution_drift(a.drift_reference, journal_days=a.journal_days,
+                                       journal_suffix=a.journal_suffix)
+        if rep.get("skipped"):
+            print(f"[DRIFT] SKIPPED: {rep['reason']}")
+        else:
+            print(f"[DRIFT] live_states={rep.get('n_live_states')} drifted={rep.get('n_drifted')}/"
+                  f"{rep.get('n_features')} frac={rep.get('frac')}")
+            for d in rep.get("drifted_top", [])[:10]:
+                print(f"  {d['name']}: KS={d['ks']} ref_mean={d['ref_mean']} live_mean={d['live_mean']}")
+            print(f"[DRIFT] {'OK ✓ — ' + rep['advice'] if rep['ok'] else 'DRIFT-ALERT: ' + rep['advice']}")
+        failed |= not rep["ok"]
     if a.live_tail:
         rep = check_live_prebuilt_tail(tail_days=a.tail_days, ref_days=a.ref_days)
         print(f"[LIVE-TAIL] checked={rep['checked']} stale_min={rep['stale_minutes']}")

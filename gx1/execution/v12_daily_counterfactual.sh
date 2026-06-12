@@ -34,7 +34,14 @@ DAEMON_MODE=false
 [[ "${1:-}" == "--daemon" ]] && DAEMON_MODE=true
 
 # Track B (variant shadow) tunables — env-overridable.
-SHADOW_VARIANTS="${GX1_SHADOW_VARIANTS:-R_WAIT_OPP_K96_LAM50,R_WAIT_OPP_K96_LAM30,R_WAIT_OPP_K96_LAM20,R_WAIT_OPP_K96_LAM10,R_HYBRID_K96_TOL20}"
+# Default "auto" (2026-06-12): enumerate every checkpoint in the ACTIVE bundle
+# (contract-resolved) instead of a hardcoded variant list. The old hardcoded
+# default (LAM50/30/20/10/HYBRID) silently no-op'ed after the volbal bundle
+# flip 2026-06-11 — per_variant={} while the daemon counted success.
+SHADOW_VARIANTS="${GX1_SHADOW_VARIANTS:-auto}"
+# Optional CANDIDATE bundle dir: when set, Track B scores THAT bundle's
+# checkpoints over the live journal (shadow a PENDING candidate before promote).
+SHADOW_BUNDLE_DIR="${GX1_SHADOW_BUNDLE_DIR:-}"
 SHADOW_LOOKBACK_DAYS="${GX1_SHADOW_LOOKBACK_DAYS:-2}"
 SHADOW_INTERVAL_SEC="${GX1_SHADOW_INTERVAL_SEC:-600}"     # 10 min
 FORWARD_INTERVAL_SEC="${GX1_FORWARD_INTERVAL_SEC:-3600}"  # 1h
@@ -120,12 +127,18 @@ run_variant_shadow() {
             fi
             local SUFFIX_ARG=""
             [[ -n "$SUFFIX" ]] && SUFFIX_ARG="--journal-suffix $SUFFIX"
+            local BUNDLE_ARG=""
+            [[ -n "$SHADOW_BUNDLE_DIR" ]] && BUNDLE_ARG="--bundle-dir $SHADOW_BUNDLE_DIR"
             if PYTHONPATH=$REPO python3 -u $REPO/gx1/execution/v12_counterfactual_replay.py \
                 --journal-date "$DATE" $SUFFIX_ARG \
-                --mode variants --variants "$SHADOW_VARIANTS" \
+                --mode variants --variants "$SHADOW_VARIANTS" $BUNDLE_ARG \
                 --out-dir "$VARIANT_DIR" \
                 > "$LOG_DIR/variant_shadow_${BASE}.log" 2>&1; then
                 PROC=$((PROC + 1))
+            else
+                # fail-loud: a degraded/failed shadow must be visible in the daemon
+                # log, not silently absorbed (the 2026-06-11→12 no-op lesson).
+                echo "[$(date -u +%H:%M:%SZ)] [variant-shadow] ❌ FAILED/DEGRADED for $BASE — see $LOG_DIR/variant_shadow_${BASE}.log"
             fi
         done
     done

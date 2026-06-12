@@ -536,6 +536,10 @@ def build_reward_matrix(df: pd.DataFrame, *, variant: str) -> np.ndarray:
     # median lift +39 bps). POSGATE applies the gate only to the POSITIVE part: gains on a
     # V10-flagged-bad path are discounted, losses stay fully punished.
     _badpath_posgate = os.environ.get("GX1_REWARD_BADPATH_POSGATE", "0") == "1"
+    # 2026-06-12: LOG the gate mode loud — the volbal bundle's posgate state was
+    # unrecoverable from logs (no line) and had to be fingerprinted from R.mean().
+    print(f"[BUILD_ENTRY_IQL_V2] GX1_REWARD_BADPATH_POSGATE={'1' if _badpath_posgate else '0'} "
+          f"({'positive-part gate' if _badpath_posgate else 'full multiplicative gate'})")
 
     def _gate_take(r: np.ndarray) -> np.ndarray:
         r = np.clip(r, -500, 500)
@@ -1378,6 +1382,15 @@ def evaluate_one_fold(
             "n_hidden": TRAIN_N_HIDDEN,
             "dropout": iql_core.DEFAULT_DROPOUT,
             "schema_v1": "MULTI_HEAD_ENTRY_IQL_V2_CHECKPOINT",
+            # 2026-06-12 (ladder wave): stamp reward-label env flags into the ckpt.
+            # A warm-start refit MUST rebuild rewards under the SAME flags — the
+            # volbal bundle's posgate state had to be reverse-engineered from the
+            # reward-matrix mean fingerprint because nothing recorded it. Never again.
+            "reward_env_v1": {
+                "GX1_REWARD_BADPATH_POSGATE": os.environ.get("GX1_REWARD_BADPATH_POSGATE", "0"),
+                "GX1_REWARD_TRUNC_MASK": os.environ.get("GX1_REWARD_TRUNC_MASK", "0"),
+                "GX1_REWARD_VOLBALANCE_FACTOR": os.environ.get("GX1_REWARD_VOLBALANCE_FACTOR", "0"),
+            },
         },
         model_path,
     )

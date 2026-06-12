@@ -46,6 +46,17 @@ M1_TAPE_DIR = Path("/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m1_bid_ask
 
 K_HORIZONS_BPS = [12, 60, 240, 480, 1440]   # M1 minutes — match V12 trainer
 HIGH_CONVICTION_BPS_THRESHOLD = 50.0
+TRADES_DIR = PAPER_DIR / "trade_journal" / "trades"
+
+# Per-trade critic thresholds (2026-06-12, continuous-learning ladder, track B).
+# post-exit regret = the PRIMARY (decision-relevant) formula from
+# replay_merge._write_post_exit_regret_audit: bounded 24-M1-bar follow-through
+# window after exit, >=10 bps favorable move == "exited too early". Keep in
+# lockstep with that one-truth backtest formula.
+POST_EXIT_HORIZON_BARS = 24
+POST_EXIT_REGRET_THR_BPS = 10.0
+WRONG_SIDE_MARGIN_BPS = 20.0     # opposite side must beat realized by this much
+CORRECT_SKIP_K = 240             # judge skips on the 4h terminal outcome
 
 
 def load_m1_window(start_ts: pd.Timestamp, end_ts: pd.Timestamp) -> pd.DataFrame:
@@ -134,6 +145,119 @@ def compute_forward_outcome(m1: pd.DataFrame, entry_idx: int,
     return out
 
 
+def judge_take(ev: dict, m1: pd.DataFrame, m1_time_arr: np.ndarray) -> dict | None:
+    """Per-trade critic (2026-06-12, ladder track B): judge a FILLED take against
+    its realized outcome + counterfactuals. Returns a verdict dict, or None when
+    the event has no resolvable trade.
+
+    Verdicts (orthogonal flags, each with a regret quantity in bps):
+      false_take      — realized PnL < 0 (skip was worth 0)
+      wrong_side      — the OPPOSITE side's terminal at the matched K-horizon
+                        beats realized by >= WRONG_SIDE_MARGIN_BPS and is positive
+      held_too_short  — post-exit bounded follow-through (24 M1 bars, one-truth
+                        replay_merge primary formula) >= 10 bps in trade direction
+      mfe_giveback    — peaked >= 10 bps MFE but realized < 50% of the peak
+      good_take       — realized > 0 and neither wrong_side nor held_too_short
+    """
+    od = ev.get("order_details") or {}
+    trade_id = od.get("trade_id")
+    if not trade_id:
+        return None
+    trade_fp = TRADES_DIR / f"{trade_id}.json"
+    if not trade_fp.exists():
+        return {"trade_id": str(trade_id), "resolved": False, "reason": "no_trade_json"}
+    try:
+        trade = json.loads(trade_fp.read_text())
+    except (json.JSONDecodeError, OSError):
+        return {"trade_id": str(trade_id), "resolved": False, "reason": "unreadable_trade_json"}
+    es = trade.get("exit_summary") or {}
+    if not es:
+        return {"trade_id": str(trade_id), "resolved": False, "reason": "still_open_or_no_exit_summary"}
+
+    action = (ev.get("v12_decision") or {}).get("action", "")
+    side = "long" if action == "TAKE_LONG_NOW" else "short" if action == "TAKE_SHORT_NOW" else None
+    if side is None:
+        side = str((trade.get("entry_snapshot") or {}).get("side", "")).lower() or None
+    if side not in ("long", "short"):
+        return {"trade_id": str(trade_id), "resolved": False, "reason": "unknown_side"}
+    opp = "short" if side == "long" else "long"
+
+    realized = float(es.get("realized_pnl_bps", np.nan))
+    max_mfe = float(es.get("max_mfe_bps", np.nan))
+    if not np.isfinite(realized):
+        return {"trade_id": str(trade_id), "resolved": False, "reason": "no_realized_pnl"}
+
+    # Hold time → matched K-horizon for the other-side comparison
+    entry_ts = pd.to_datetime(ev.get("ts_utc"), utc=True)
+    exit_ts = pd.to_datetime(es.get("exit_time"), utc=True, errors="coerce")
+    bars_held = max(1, int((exit_ts - entry_ts).total_seconds() // 60)) if pd.notna(exit_ts) else None
+    cf = ev.get("counterfactual") or {}
+    matched_k = next((K for K in K_HORIZONS_BPS if bars_held is not None and K >= bars_held),
+                     K_HORIZONS_BPS[-1])
+    opp_terminal = cf.get(f"{opp}_terminal_K{matched_k}")
+
+    # Post-exit follow-through (held_too_short) — one-truth primary formula from
+    # replay_merge._write_post_exit_regret_audit: exit price = exit_bid for long /
+    # exit_ask for short (what we got), favorable move over the NEXT 24 M1 bars.
+    post_exit_mfe = None
+    post_exit_observed = False
+    px = es.get("exit_price_used")
+    if px is None or not np.isfinite(float(px or np.nan)):
+        px = es.get("exit_bid") if side == "long" else es.get("exit_ask")
+    if pd.notna(exit_ts) and px is not None and np.isfinite(float(px)) and float(px) > 0:
+        px = float(px)
+        exit_idx = int(np.searchsorted(m1_time_arr, exit_ts.value, side="right") - 1)
+        start = max(0, exit_idx + 1)
+        end = min(len(m1), start + POST_EXIT_HORIZON_BARS)
+        if start < end:
+            window = m1.iloc[start:end]
+            if side == "long":
+                fav = float(window["bid_close"].max())
+                val = (fav - px) / px * 10000.0
+            else:
+                fav = float(window["ask_close"].min())
+                val = (px - fav) / px * 10000.0
+            if np.isfinite(val):
+                post_exit_mfe = max(0.0, val)
+                post_exit_observed = True
+
+    false_take = realized < 0.0
+    wrong_side = (opp_terminal is not None and np.isfinite(opp_terminal)
+                  and opp_terminal > 0.0
+                  and (opp_terminal - realized) >= WRONG_SIDE_MARGIN_BPS)
+    held_too_short = bool(post_exit_observed and post_exit_mfe >= POST_EXIT_REGRET_THR_BPS)
+    mfe_giveback = bool(np.isfinite(max_mfe) and max_mfe >= 10.0
+                        and realized < 0.5 * max_mfe)
+    good_take = bool(realized > 0.0 and not wrong_side and not held_too_short)
+
+    return {
+        "trade_id": str(trade_id),
+        "resolved": True,
+        "ts_utc": ev.get("ts_utc"),
+        "side": side,
+        "exit_time": str(es.get("exit_time")),
+        "exit_reason": es.get("exit_reason"),
+        "bars_held": bars_held,
+        "matched_k": matched_k,
+        "realized_pnl_bps": round(realized, 2),
+        "max_mfe_bps": round(max_mfe, 2) if np.isfinite(max_mfe) else None,
+        "max_mae_bps": es.get("max_mae_bps"),
+        "opp_side_terminal_bps": round(float(opp_terminal), 2) if opp_terminal is not None and np.isfinite(opp_terminal) else None,
+        "post_exit_mfe_bps": round(post_exit_mfe, 2) if post_exit_mfe is not None else None,
+        "post_exit_observed": post_exit_observed,
+        # flags
+        "false_take": bool(false_take),
+        "wrong_side": bool(wrong_side),
+        "held_too_short": held_too_short,
+        "mfe_giveback": mfe_giveback,
+        "good_take": good_take,
+        # regret quantities (bps, all >= 0) — the training-feed signal
+        "skip_regret_bps": round(max(0.0, -realized), 2),
+        "side_regret_bps": round(max(0.0, float(opp_terminal) - realized), 2) if opp_terminal is not None and np.isfinite(opp_terminal) else None,
+        "hold_regret_bps": round(post_exit_mfe, 2) if post_exit_mfe is not None else None,
+    }
+
+
 def replay_journal(journal_path: Path) -> tuple[list[dict], dict]:
     """Replay every event in journal; compute counterfactual + classify outcomes."""
     if not journal_path.exists():
@@ -202,6 +326,22 @@ def replay_journal(journal_path: Path) -> tuple[list[dict], dict]:
                 (decision == "SKIP" or order_status == "BLOCKED_BY_GATE")
                 and proposed_side_mfe >= HIGH_CONVICTION_BPS_THRESHOLD
             )
+            # correct_skip (2026-06-12, ladder track B): the skip was right when
+            # the BEST side's terminal at K=240 (4h) was a loss — taking either
+            # side and holding through the judging horizon would have lost money.
+            best_terminal_240 = max(
+                cf.get(f"long_terminal_K{CORRECT_SKIP_K}", float("-inf")),
+                cf.get(f"short_terminal_K{CORRECT_SKIP_K}", float("-inf")),
+            )
+            ev["correct_skip"] = (
+                (decision == "SKIP" or order_status == "BLOCKED_BY_GATE")
+                and np.isfinite(best_terminal_240) and best_terminal_240 <= 0.0
+            )
+        # Per-trade critic: judge every FILLED take against realized + counterfactual
+        if ev.get("order_details") and ev.get("order_status") == "filled":
+            verdict = judge_take(ev, m1, m1_time_arr)
+            if verdict is not None:
+                ev["trade_verdict"] = verdict
         enriched.append(ev)
 
     # Aggregate stats
@@ -243,6 +383,29 @@ def replay_journal(journal_path: Path) -> tuple[list[dict], dict]:
         )
     stats["regime_breakdown"] = regime_breakdown
     stats["session_breakdown"] = session_breakdown
+
+    # Per-trade critic aggregates (2026-06-12, ladder track B)
+    stats["correct_skip_count"] = sum(1 for e in enriched if e.get("correct_skip"))
+    verdicts = [e["trade_verdict"] for e in enriched if e.get("trade_verdict")]
+    resolved = [v for v in verdicts if v.get("resolved")]
+    tv = {
+        "n_takes_judged": len(verdicts),
+        "n_resolved": len(resolved),
+        "n_unresolved": len(verdicts) - len(resolved),
+        "false_takes": sum(1 for v in resolved if v["false_take"]),
+        "wrong_side": sum(1 for v in resolved if v["wrong_side"]),
+        "held_too_short": sum(1 for v in resolved if v["held_too_short"]),
+        "mfe_giveback": sum(1 for v in resolved if v["mfe_giveback"]),
+        "good_takes": sum(1 for v in resolved if v["good_take"]),
+    }
+    if resolved:
+        tv["mean_realized_bps"] = round(float(np.mean([v["realized_pnl_bps"] for v in resolved])), 2)
+        tv["total_skip_regret_bps"] = round(sum(v["skip_regret_bps"] for v in resolved), 2)
+        hold_regrets = [v["hold_regret_bps"] for v in resolved if v.get("hold_regret_bps") is not None]
+        tv["total_hold_regret_bps"] = round(sum(hold_regrets), 2) if hold_regrets else 0.0
+        side_regrets = [v["side_regret_bps"] for v in resolved if v.get("side_regret_bps") is not None]
+        tv["total_side_regret_bps"] = round(sum(side_regrets), 2) if side_regrets else 0.0
+    stats["trade_verdicts"] = tv
     return enriched, stats
 
 
@@ -301,9 +464,24 @@ def replay_variants(journal_path: Path,
     states_arr = np.asarray(states, dtype=np.float32)
     cement_dist = Counter(cement_actions)
 
+    # Resolve (label, ckpt_path) pairs. "auto" (2026-06-12, ladder wave) enumerates
+    # EVERY checkpoint inside the contract-resolved bundle's trained_models_v1/ —
+    # label = file stem (variant+fold). This kills the stale-variant-list class
+    # permanently: a bundle flip (e.g. clean→volbal 2026-06-11, which silently
+    # no-op'ed the LAM50/30/20/10 default list) can never empty the shadow again.
+    # NOT a rule-8 violation: the BUNDLE is contract-resolved (or an explicit
+    # --bundle-dir candidate); we only enumerate checkpoints inside it.
+    models_dir = bundle_dir / "trained_models_v1"
+    if len(variants) == 1 and variants[0].lower() == "auto":
+        pairs = [(fp.stem, fp) for fp in sorted(models_dir.glob("*.pt"))]
+        if not pairs:
+            LOG.error(f"variants=auto found NO checkpoints in {models_dir} — "
+                      f"bundle dir wrong or bundle has no trained_models_v1")
+    else:
+        pairs = [(v, models_dir / f"{v}_{fold_id}.pt") for v in variants]
+
     per_variant = {}
-    for variant in variants:
-        ckpt_path = bundle_dir / "trained_models_v1" / f"{variant}_{fold_id}.pt"
+    for variant, ckpt_path in pairs:
         if not ckpt_path.is_file():
             LOG.warning(f"  {variant}: checkpoint not found at {ckpt_path}, skipping")
             continue
@@ -355,11 +533,20 @@ def replay_variants(journal_path: Path,
                  f"({100*n_would_take/len(states):.2f}%) "
                  f"max_adv={adv_max.max():+.2f}")
 
+    # FAIL-LOUD (2026-06-12): an empty per_variant with replayable states means the
+    # shadow is silently dead (the exact 2026-06-11→12 volbal-flip no-op). Surface it.
+    degraded = bool(states) and not per_variant
+    if degraded:
+        LOG.error(f"variant shadow DEGRADED: {len(states)} replayable states but "
+                  f"0 variants scored — checkpoint list does not match bundle "
+                  f"{bundle_dir.name} (use --variants auto)")
     return dict(
         n_total=n_total,
         n_replayable=len(states),
         aggregator=aggregator,
         fold=fold_id,
+        bundle=bundle_dir.name,
+        degraded=degraded,
         cement_distribution=dict(cement_dist),
         per_variant=per_variant,
     )
@@ -493,7 +680,10 @@ def main() -> int:
         print("\n=== Variant-replay summary ===")
         print(json.dumps(variant_stats, indent=2, default=str))
         if args.mode == "variants":
-            return 0  # skip forward-outcome path entirely
+            # fail-loud (2026-06-12): a degraded shadow (states but no scored
+            # variants) must exit nonzero so the daemon's success counter and
+            # logs show the breakage instead of counting an empty report as OK.
+            return 1 if variant_stats.get("degraded") else 0
 
     LOG.info(f"replaying {journal_path}")
     enriched, stats = replay_journal(journal_path)
@@ -502,6 +692,17 @@ def main() -> int:
         for ev in enriched:
             f.write(json.dumps(ev, default=str) + "\n")
     out_summary.write_text(json.dumps(stats, indent=2, default=str))
+
+    # Per-trade verdicts (2026-06-12, ladder track B): compact one-line-per-trade
+    # JSONL — the machine-readable regret feed for accumulation/refit. The full
+    # entry state for each verdict lives on the SAME ts in the enriched journal.
+    verdict_rows = [e["trade_verdict"] for e in enriched if e.get("trade_verdict")]
+    if verdict_rows:
+        out_verdicts = out_dir / f"trade_verdicts_{args.journal_date}{suf}.jsonl"
+        with out_verdicts.open("w") as f:
+            for v in verdict_rows:
+                f.write(json.dumps(v, default=str) + "\n")
+        print(f"\nPer-trade verdicts ({len(verdict_rows)}): {out_verdicts}")
 
     print("\n=== V12 Counterfactual Daily Report ===")
     print(json.dumps(stats, indent=2, default=str))
