@@ -189,6 +189,74 @@ LIVE_CV3_PREBUILT = ("/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_PREB
                      "xauusd_m5_CANONICAL_V3_2020_2026.parquet")
 
 
+US_MARKET_HOLIDAYS = {  # XAU/CME stengt eller early-close (utvid årlig)
+    "2025-01-01","2025-01-20","2025-02-17","2025-04-18","2025-05-26","2025-06-19","2025-07-04",
+    "2025-09-01","2025-11-27","2025-11-28","2025-12-24","2025-12-25","2025-12-26","2025-12-31",
+    "2026-01-01","2026-01-19","2026-02-16","2026-04-03","2026-05-25","2026-07-03","2026-09-07",
+    "2026-11-26","2026-11-27","2026-12-24","2026-12-25","2026-12-31",
+}
+KNOWN_DATA_GAPS = {  # aksepterte historiske hull (dato → grunn). Repareres via OANDA-backfill når mulig.
+    "2025-04-24": "80min utfall (historisk, pre-rule).",
+    "2025-12-07": "31min tynn søndagsåpning.",
+    "2026-03-27": "24min utfall (historisk).",
+    "2026-03-31": "HEL DAG 04-01 mangler — April-repair-grense. BACKFILL-KANDIDAT.",
+    "2026-04-11": "lørdagsbars + 38t gap — repair-artefakt. UNDERSØKES.",
+    "2026-05-29": "75min utfall.",
+    "2026-06-05": "11.4t utfall (maskin nede) — BACKFILL-KANDIDAT.",
+    "2026-06-10": "OOM-reboot (2 hull 35+75min) — BACKFILL-KANDIDAT.",
+    "2026-06-11": "reboot 15min.",
+}
+
+
+def check_live_continuity(tail_days: int = 10, fresh_fail_hours: int = 48,
+                          raise_on_fail: bool = False) -> dict:
+    """Rule-9 CONTINUITY check (user-direktiv 2026-06-12: «ALLTID oppdatert, INGEN hull, nøyaktig på
+    hver M1 (exit) og M5 (entry)»). Skanner cv3 (M5) + BASE34 (M1) for grid-hull, klassifisert mot
+    helg / daglig 21-22Z-pause / US-helligdager / tick-tomme minutter (<=10 min) / KNOWN_DATA_GAPS.
+    Et UKJENT hull NYERE enn fresh_fail_hours = FAIL (collector/daemon-utfall pågår eller nettopp
+    skjedd); eldre ukjente hull rapporteres for backfill. Sjekker også ferskhet (cutoff-alder)."""
+    import pandas as pd
+    out: dict = {"ok": True, "fresh_gaps": [], "stale_gaps": [], "freshness_min": {}}
+    now = pd.Timestamp.now(tz="UTC")
+    man = json.loads(Path(LIVE_BASE34_MANIFEST).read_text())
+    frames = []
+    cv3 = pd.read_parquet(LIVE_CV3_PREBUILT, columns=["time"])
+    frames.append(("CV3-M5", pd.DatetimeIndex(pd.to_datetime(cv3["time"], utc=True)).sort_values(), 5))
+    b34 = pd.read_parquet(man["parquet_path"], columns=[])
+    frames.append(("BASE34-M1", pd.DatetimeIndex(pd.to_datetime(b34.index, utc=True)).sort_values(), 1))
+    for name, idx, step in frames:
+        out["freshness_min"][name] = round(float((now - idx.max()).total_seconds() / 60), 1)
+        idx = idx[idx >= (now - pd.Timedelta(days=tail_days))]
+        if len(idx) < 2:
+            out["fresh_gaps"].append(f"{name}: <2 bars i {tail_days}d-vinduet")
+            continue
+        diffs = pd.Series(idx[1:]) - pd.Series(idx[:-1])
+        mask = diffs > pd.Timedelta(minutes=step)
+        for s, dlt in zip(idx[:-1][mask], diffs[mask]):
+            m = dlt.total_seconds() / 60
+            if s.dayofweek == 4 and 2300 <= m <= 3200: continue          # helg
+            if s.hour in (20, 21) and 50 <= m <= 75: continue            # daglig pause
+            if m <= 10: continue                                          # tick-tomt
+            keys = {(s + pd.Timedelta(days=o)).strftime("%Y-%m-%d") for o in (0, 1)}
+            if keys & US_MARKET_HOLIDAYS: continue
+            if keys & set(KNOWN_DATA_GAPS):
+                out["stale_gaps"].append(f"{name}: {s} +{m:.0f}min (kjent: {KNOWN_DATA_GAPS[sorted(keys & set(KNOWN_DATA_GAPS))[0]]})")
+                continue
+            entry = f"{name}: {s} +{m:.0f}min UKJENT"
+            if (now - s) <= pd.Timedelta(hours=fresh_fail_hours):
+                out["fresh_gaps"].append(entry)
+            else:
+                out["stale_gaps"].append(entry)
+    out["ok"] = not out["fresh_gaps"]
+    if not out["ok"]:
+        msg = (f"[RULE9-CONTINUITY] FERSKE UKJENTE HULL i live-prebuilts: {out['fresh_gaps']} — "
+               f"collector/daemon-utfall; reparér (OANDA-backfill) før live stoler på lookback.")
+        if raise_on_fail:
+            raise FeatureLivenessError(msg)
+        print(msg, file=sys.stderr)
+    return out
+
+
 def check_live_prebuilt_tail(tail_days: int = 5, ref_days: int = 30,
                              base34_manifest: str = LIVE_BASE34_MANIFEST,
                              cv3_path: str = LIVE_CV3_PREBUILT,
@@ -284,6 +352,10 @@ def _main() -> int:
         print(f"[LIVE-TAIL] structural-const (info): {len(rep['structural_const'])} cols")
         print(f"[LIVE-TAIL] {'OK ✓ — no freeze signature' if rep['ok'] else 'FROZEN: ' + repr(rep['frozen'])}")
         failed |= not rep["ok"]
+        crep = check_live_continuity()
+        print(f"[CONTINUITY] freshness_min={crep['freshness_min']}  kjente/gamle hull: {len(crep['stale_gaps'])}")
+        print(f"[CONTINUITY] {'OK ✓ — ingen ferske ukjente hull' if crep['ok'] else 'FERSKE HULL: ' + repr(crep['fresh_gaps'])}")
+        failed |= not crep["ok"]
     if a.xgb_bundle:
         dead = audit_xgb_gain(a.xgb_bundle, a.xgb_contract)
         print(f"[XGB] new-dead (0 gain, off allowlist): {dead or 'NONE ✓'}")

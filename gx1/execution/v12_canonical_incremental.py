@@ -510,12 +510,17 @@ def main() -> int:
         _cycles += 1
         if _cycles % max(1, 3600 // max(args.interval, 1)) == 0:
             try:
-                from gx1.audit.feature_liveness import check_live_prebuilt_tail
+                from gx1.audit.feature_liveness import check_live_prebuilt_tail, check_live_continuity
                 _rep = check_live_prebuilt_tail()
                 if not _rep["ok"]:
                     LOG.error(f"[RULE9-LIVE-TAIL] FREEZE SIGNATURE: {_rep['frozen']} — fix the append wiring NOW")
                 else:
                     LOG.info(f"[RULE9-LIVE-TAIL] ok (stale_min={_rep['stale_minutes']})")
+                _crep = check_live_continuity()
+                if not _crep["ok"]:
+                    LOG.error(f"[RULE9-CONTINUITY] FERSKE HULL: {_crep['fresh_gaps']}")
+                else:
+                    LOG.info(f"[RULE9-CONTINUITY] ok (freshness={_crep['freshness_min']})")
             except Exception as exc:
                 LOG.error(f"[RULE9-LIVE-TAIL] self-check failed to run: {exc}")
         _time.sleep(args.interval)
