@@ -114,10 +114,34 @@ FORCE=0
 # Freeze-signature scan of the live cv3+BASE34 prebuilt tails BEFORE launching anything:
 # a was-varying column that is now constant on the recent tail = the 2026-05-25 BASE34
 # copy-forward freeze class (lived 17 days while every training-side audit was green).
-# Live must NEVER serve frozen context — hard fail here.
-echo "[preflight] rule-9 live-tail freeze-signature scan…"
+# Live must NEVER serve frozen context — hard fail here. The same call runs the
+# CONTINUITY guard (grid gaps vs weekend/pause/holidays/KNOWN_DATA_GAPS; a fresh
+# UNKNOWN gap <48h = hard fail) — gaps in history BLOCK every (re)start.
+echo "[preflight] rule-9 live-tail freeze-signature + continuity scan…"
 /home/andre2/src/GX1_ENGINE/.venv/bin/python -m gx1.audit.feature_liveness --live-tail --strict \
-  || { echo "FATAL: rule-9 LIVE-TAIL check failed — the live prebuilt tail carries FROZEN context. Fix the append wiring (see gx1.audit.feature_liveness.check_live_prebuilt_tail) before launching."; exit 1; }
+  || { echo "FATAL: rule-9 LIVE-TAIL/CONTINUITY check failed — frozen context or a fresh unknown gap in the live prebuilts. Fix the append wiring / backfill the gap (see gx1.audit.feature_liveness) before launching."; exit 1; }
+
+# ── Rule-9 DRIFT preflight (user-direktiv 2026-06-12: «sjekk drift + hull hver
+# gang vi starter på nytt») ──────────────────────────────────────────────────
+# KS distribution-drift: last 7 days of live entry-states vs the ACTIVE bundle's
+# training reference. ADVISORY by design (rule 3): market drift flags a retrain
+# VEDTAK, it must never block a launch — a bot that refuses to start in a new
+# regime is wrong; the hard catastrophe floors above (freeze/gaps) still block.
+# Structural reference problems (dim/name mismatch) surface here loudly too.
+echo "[preflight] rule-9 distribution-drift scan (advisory)…"
+DRIFT_REF=$(PYTHONPATH=/home/andre2/src/GX1_ENGINE /home/andre2/src/GX1_ENGINE/.venv/bin/python -c "
+from gx1_guards.artifacts import load_decision_artifact
+from pathlib import Path
+p = Path(load_decision_artifact('entry_iql')) / 'drift_reference_v1.parquet'
+print(p if p.is_file() else '')" 2>/dev/null || true)
+if [[ -n "$DRIFT_REF" ]]; then
+    PYTHONPATH=/home/andre2/src/GX1_ENGINE /home/andre2/src/GX1_ENGINE/.venv/bin/python \
+        -m gx1.audit.feature_liveness --distribution-drift \
+        --drift-reference "$DRIFT_REF" --journal-days 7 \
+        || echo "[preflight] ⚠ DRIFT-ALERT (advisory) — review the lines above; persistent drift = consider a retrain vedtak (rule 3: never auto)"
+else
+    echo "[preflight] ⚠ drift scan SKIPPED — ACTIVE entry bundle has no drift_reference_v1.parquet (generate via feature_liveness --write-drift-reference at next cement)"
+fi
 
 # is_alive <pidfile> → echoes the alive pid or empty
 is_alive() {

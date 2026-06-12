@@ -74,6 +74,11 @@ rule 1, no per-edit `touch`. Reversible-first cleanup per rule 5 needs no per-it
    (was-varying column now constant; the 2026-05-25 BASE34 copy-forward freeze lived 17 days while every
    training-side audit was green). Runs AUTO: hard-fail preflight in `launch_live_practice.sh` + hourly
    ERROR-loud self-check in the canonical_incremental daemon. Allowlist `LIVE_TAIL_ALLOWED_CONST`
-   (documented reasons only).
+   (documented reasons only). **EVERY (re)start preflight = THREE legs (user-direktiv 2026-06-12):**
+   (1) live-tail FREEZE — hard fail; (2) CONTINUITY/gap-sjekk mot helg/pause/helligdager/KNOWN_DATA_GAPS —
+   fresh UNKNOWN gap = hard fail (hull i historikken blokkerer oppstart); (3) KS DISTRIBUTION-DRIFT —
+   siste 7d live-states vs ACTIVE-bundlets `drift_reference_v1.parquet`, ADVISORY-loud (markedsdrift
+   flagger et retrain-VEDTAK, blokkerer aldri en launch — rule 3; en bot som nekter å starte i nytt
+   regime er feil). Drift-referansen regenereres ved hvert cement (`--write-drift-reference`).
 
 @AGENTS.md
