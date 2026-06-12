@@ -38,6 +38,10 @@ set -euo pipefail
 
 REPO=/home/andre2/src/GX1_ENGINE
 PY=$REPO/.venv/bin/python
+# cwd-independent: every `python -m gx1.…` below needs the repo on PYTHONPATH —
+# without this the script only worked when invoked FROM the repo root
+# (discovered when the first background/full run failed with No module named).
+export PYTHONPATH=$REPO${PYTHONPATH:+:$PYTHONPATH}
 GATES_DIR=/home/andre2/GX1_DATA/reports/v12_paper_runs/nightly_learning/candidate_gates
 TS=$(date -u +%Y%m%dT%H%M%SZ)
 TODAY=$(date -u +%Y%m%d)
