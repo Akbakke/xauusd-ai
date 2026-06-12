@@ -494,6 +494,13 @@ def main() -> int:
         print(json.dumps(stats, indent=2))
         return 0
 
+    # Hang forensics (2026-06-12, hang #3 — NOT the self-check; 60 threads in
+    # futex_wait + main in do_select): SIGUSR1 dumps ALL thread stacks to stderr
+    # (lands in the daemon log). The watchdog sends it before restarting, so the
+    # next hang self-documents its root cause. py-spy needs ptrace/sudo — this doesn't.
+    import faulthandler
+    import signal as _signal
+    faulthandler.register(_signal.SIGUSR1, all_threads=True)
     LOG.info(f"starting incremental updater loop (interval={args.interval}s)")
     # Rule-9 self-check MOVED OUT of this loop (2026-06-12, standing decision after
     # hang #2): the hourly in-process check (reading BOTH prebuilts inside the
