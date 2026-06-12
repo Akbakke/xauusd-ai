@@ -265,11 +265,21 @@ def replay_journal(journal_path: Path) -> tuple[list[dict], dict]:
         return [], {}
 
     events = []
+    n_corrupt = 0
     with journal_path.open() as f:
         for line in f:
             line = line.strip()
-            if line:
+            if not line:
+                continue
+            # tolerant parse (2026-06-12): a single corrupt line (e.g. a
+            # mid-write kill) must not block the whole day's replay — the
+            # 20260603 journal failed hourly for 9 days on one bad line.
+            try:
                 events.append(json.loads(line))
+            except json.JSONDecodeError:
+                n_corrupt += 1
+    if n_corrupt:
+        LOG.warning(f"skipped {n_corrupt} corrupt journal line(s) in {journal_path.name}")
     if not events:
         return [], {}
 
