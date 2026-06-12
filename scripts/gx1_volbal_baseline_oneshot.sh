@@ -52,7 +52,12 @@ if (( AVAIL < 34 )); then
     exit 1
 fi
 
-log "running FULL gate on ACTIVE volbal bundle…"
+# FULL phase6 with the default 12 replay workers peaked 42.8 GB anon-RSS and
+# OOM-killed on this 47 GB box (2026-06-12 22:16, dmesg pid 265574) — the COW
+# write-amplification scales with worker count. 4 workers ≈ parent frame +
+# 4 modest COW deltas; slower (~4x replay leg) but fits.
+export GX1_REPLAY_WORKERS=4
+log "running FULL gate on ACTIVE volbal bundle (GX1_REPLAY_WORKERS=4, OOM cap)…"
 if bash "$REPO/scripts/gx1_candidate_gate.sh" "$VOLBAL"; then
     log "gate run completed (verdict written)."
 else
