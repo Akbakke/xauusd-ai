@@ -342,7 +342,20 @@ def write_drift_reference(forward_outcome_dir: str, out_path: str,
     identical to the live `entry_iql_state_v1` vector. Stores a shuffled
     sample as parquet (named columns, training order) + a meta sidecar.
     """
+    import os
+
     import pandas as pd
+    # CEMENT ENV PARITY (2026-06-12 adversarial finding): without these, the
+    # builder's one-hot category ORDER differs from the live bundle (vol_regime
+    # came out alphabetical EXTREME/HIGH/LOW/MEDIUM instead of the REGIME_V4-pinned
+    # LOW/MEDIUM/HIGH/EXTREME, trend swapped) → positional KS compared the WRONG
+    # columns. Force the same env the cement build ran with, BEFORE import
+    # (V2_BUILD_MODE is evaluated at module import).
+    for _k, _v in (("GX1_BUILD_IQL_V2", "0"), ("GX1_REGIME_V4", "1")):
+        if os.environ.get(_k, _v) != _v:
+            raise RuntimeError(f"write_drift_reference needs {_k}={_v} (cement parity); "
+                               f"got {os.environ[_k]!r} — unset it and rerun")
+        os.environ[_k] = _v
     from gx1.scripts.materialize_build_entry_iql_v2 import (
         load_forward_outcome_dataset, build_state_matrix)
     df = load_forward_outcome_dataset(Path(forward_outcome_dir))
@@ -417,6 +430,21 @@ def check_distribution_drift(reference_path: str, journal_days: int = 7,
         return {"ok": False, "skipped": False, "drifted": [], "frac": 1.0,
                 "reason": f"STATE-DIM MISMATCH live={live.shape[1]} vs reference={len(names)} — "
                           f"reference predates a contract change; regenerate it."}
+    # ALIGN BY NAME, not position (2026-06-12 adversarial finding: a reference
+    # generated under different one-hot category order silently KS-compared the
+    # wrong columns). Live vectors are positional in the ACTIVE bundle's
+    # feature_names_v1 order (contract-resolved) — map reference columns to it;
+    # any name-set mismatch = regenerate, never guess.
+    from gx1_guards.artifacts import load_decision_artifact
+    bundle = Path(load_decision_artifact("entry_iql"))
+    live_names = json.loads((bundle / "summary_v1.json").read_text())["feature_names_v1"]
+    if set(live_names) != set(names):
+        missing = sorted(set(live_names) ^ set(names))[:8]
+        return {"ok": False, "skipped": False, "drifted": [], "frac": 1.0,
+                "reason": f"FEATURE-NAME MISMATCH reference vs ACTIVE bundle (e.g. {missing}) — "
+                          f"reference belongs to another contract; regenerate it."}
+    ref = ref[live_names]          # reorder reference columns to the live order
+    names = list(live_names)
 
     drifted = []
     for i, name in enumerate(names):

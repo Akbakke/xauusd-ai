@@ -176,15 +176,28 @@
 - Stop cleanly with `bash scripts/stop_live_practice.sh` before code edits that touch live runtime.
 - **Continuous-learning loop (ladder wave 2026-06-12):** `gx1-nightly-learning.timer` (systemd --user,
   03:30 UTC) runs `scripts/gx1_nightly_learning.sh` — per-trade verdict accumulation
-  (`counterfactual_reports/trade_verdicts_*.jsonl` → `nightly_learning/regret_dataset.parquet`), rolling
-  matured live-regret replay buffer (`build_online_replay_buffer`, SYM-parity, D-8..D-2), and the rule-9
-  KS distribution-drift leg (`feature_liveness --distribution-drift`, ADVISORY — flags a retrain vedtak,
-  never retrains). The REFIT leg is armed ONLY by a standing vedtak id in
-  `GX1_DATA/config/nightly_refit_standing_vedtak.txt` (rule 3); it writes a PENDING candidate under
-  `reports/online_iql/` + Track-B shadow reports — promote stays a manual contract flip (rule 8).
-  Track B variant-shadow defaults to `--variants auto` (enumerates the contract-resolved bundle's
-  checkpoints; a bundle flip can no longer silently empty the shadow) and honors `GX1_SHADOW_BUNDLE_DIR`
-  for shadowing a PENDING candidate.
+  (`counterfactual_reports/trade_verdicts_*.jsonl` → `nightly_learning/regret_dataset.parquet`), the
+  CANONICAL-TAPE FRESHENER (writes M1+M5 canonical tapes nightly: OANDA-history backfill + downsample,
+  idempotent, fail-loud on skipped fetch chunks), rolling matured live-regret replay buffers — ENTRY
+  (`build_online_replay_buffer`, cement-M5 label convention + SYM parity, D-8..D-2) and EXIT
+  (`build_online_exit_replay_buffer`, per-(trade, M1-bar) 209-dim transitions, dataset-only) — and the
+  rule-9 KS distribution-drift leg (`feature_liveness --distribution-drift`, ADVISORY — flags a retrain
+  vedtak, never retrains; reference = `drift_reference_v1.parquet` in the ACTIVE entry bundle,
+  name-aligned). The REFIT leg is armed ONLY by a standing vedtak id in
+  `GX1_DATA/config/nightly_refit_standing_vedtak.txt` (rule 3 — ARMED 2026-06-12:
+  `nightly_iql_refit_standing_v1`); it runs a 3-fold warm-start with the ANTI-FORGETTING cement mix
+  (`cement_replay_sample_v1.parquet` in the ACTIVE bundle, `--mix-cement`), writes a PENDING candidate
+  under `reports/online_iql/warmstart_<ts>/`, shadow-scores it on D-1 (out-of-sample only), runs
+  `scripts/gx1_candidate_gate.sh --quick` (evidence json under `nightly_learning/candidate_gates/`;
+  FULL mode incl. the decisive volbal-baseline comparison is required before any flip), and rotates the
+  in-process shadow (`GX1_DATA/config/shadow_bundle_dir.txt`) ONLY on gate PASS — promote stays a manual
+  contract flip (rule 8). **In-process shadow:** when `shadow_bundle_dir.txt` names a candidate, the
+  paper runner loads a second Entry-IQL adapter (fail-SAFE, auto-resolves variant/fold from the
+  candidate's own checkpoints) that scores every poll through the live `predict()` path and journals
+  `shadow_action`/`shadow_q_per_action`/`shadow_agrees_with_live` — affects nothing, picked up at runner
+  restart, mid-run disablement journaled as `shadow_disabled_reason`. Track B variant-shadow defaults to
+  `--variants auto` (enumerates the contract-resolved bundle's checkpoints; a bundle flip can no longer
+  silently empty the shadow) and honors `GX1_SHADOW_BUNDLE_DIR` for shadowing a PENDING candidate.
 - The data daemons (collector + canonical_incremental) run under **systemd --user** (`gx1-collector.service`, `gx1-canonical-incremental.service`) and log to `/home/andre2/GX1_DATA/reports/v12_paper_runs/logs/{collector,canonical_incremental}.log`. The incremental unit has a drop-in (`~/.config/systemd/user/gx1-canonical-incremental.service.d/ctx_env.conf`) pinning `GX1_TREND_REGIME_FROM_D1=1` — REQUIRED for the BASE34 ctx recompute (without it trend_regime_id degenerates to constant 1; 2026-06-11 freeze fix). The `launch_live_practice.sh` nohup fallback (which would log to `/tmp/gx1_live_practice/`) is NOT the live source — prefer the systemd units (`systemctl --user status gx1-collector gx1-canonical-incremental`).
 
 ## Git & secrets

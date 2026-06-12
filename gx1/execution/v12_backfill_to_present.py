@@ -48,6 +48,20 @@ INSTRUMENT = "XAU_USD"
 M1_TAPE_ROOT = Path("/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m1_bid_ask__CANONICAL")
 
 
+def _atomic_to_parquet(df: pd.DataFrame, path: Path) -> None:
+    """Atomic write: tmp + os.replace (same FS, no torn read for concurrent readers).
+
+    Same pattern as v12_canonical_incremental._atomic_write_parquet — kept local
+    so this thin fetch script does not drag in that module's full feature stack.
+    A partial part-000.parquet.tmp from a crashed run is harmless: no consumer
+    matches it (readers glob year=*/part-000.parquet) and the next run's
+    to_parquet to the same deterministic tmp path overwrites it.
+    """
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    df.to_parquet(tmp, index=False)
+    os.replace(tmp, path)
+
+
 def find_latest_m1_timestamp() -> tuple[pd.Timestamp, Path]:
     """Scan year=* partitions for newest timestamp."""
     files = sorted(M1_TAPE_ROOT.glob("year=*/part-000.parquet"))
@@ -109,7 +123,9 @@ def append_to_year_partition(df: pd.DataFrame) -> dict:
                         .sort_values("time"))
         else:
             combined = sub.sort_values("time")
-        combined.to_parquet(out_path, index=False)
+        # mid-write crash must not corrupt the one-truth year tape (hourly
+        # cf-daemon reads the same file — torn-read race)
+        _atomic_to_parquet(combined, out_path)
         stats[year] = {"total_rows": len(combined), "new_added_approx": int(len(sub))}
         LOG.info(f"  year={year}: total {len(combined):,} bars, +{len(sub):,} new")
     return stats

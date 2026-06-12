@@ -31,26 +31,24 @@ import pyarrow.parquet as pq
 sys.path.insert(0, "/home/andre2/src/GX1_ENGINE")
 from gx1.runtime.entry_iql_v2_adapter import EntryIQLV2Adapter  # noqa: E402
 
-DEFAULT_ENTRY_IQL_LOCK = Path(
-    "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/"
-    "BUILD_ENTRY_IQL_V2_V12_2_20260514T161504Z_R4_LOCK"
-)
-DEFAULT_FORWARD_OUTCOME_DIR = Path(
-    "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/"
-    "CANDIDATE_FORWARD_OUTCOME_RUN/v1_full/per_week"
-)
-DEFAULT_OUT_ROOT = Path("/home/andre2/GX1_DATA/reports/truth_e2e_sanity")
+# 2026-06-12 (promoted out of _legacy_disabled — it is load-bearing for the
+# nightly candidate gate): ALL hardcoded defaults removed. The old
+# DEFAULT_ENTRY_IQL_LOCK pointed at a dead 2026-05-14 bundle — running bare
+# would have silently inferred with a stale vintage (rule 8). Every input is
+# now an explicit required arg; callers resolve bundles via gx1_guards or pass
+# an explicit candidate (the gate's sanctioned override).
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="V12 Phase 1 — Entry-IQL v2 inference")
-    parser.add_argument("--entry-iql-lock", type=str, default=str(DEFAULT_ENTRY_IQL_LOCK),
-                        help="Entry-IQL v2 trained-models LOCK dir (from materialize_build_entry_iql_v2.py).")
-    parser.add_argument("--forward-outcome-dir", type=str, default=str(DEFAULT_FORWARD_OUTCOME_DIR),
+    parser.add_argument("--entry-iql-lock", type=str, required=True,
+                        help="Entry-IQL v2 trained-models LOCK dir (from materialize_build_entry_iql_v2.py). "
+                             "REQUIRED — no default (rule 8: never a guessed vintage).")
+    parser.add_argument("--forward-outcome-dir", type=str, required=True,
                         help="Path to forward-outcome per_week dir (the dir CONTAINING the *.parquet shards).")
-    parser.add_argument("--out-root", type=str, default=str(DEFAULT_OUT_ROOT),
+    parser.add_argument("--out-root", type=str, required=True,
                         help="Parent dir under which a ENTRY_IQL_INFERENCE_FOR_V12_<TS> dir is created.")
-    parser.add_argument("--variant", type=str, default="R_NET_REAL")
+    parser.add_argument("--variant", type=str, required=True)
     parser.add_argument("--fold-id", type=str, default="FOLD_1")
     args = parser.parse_args()
 

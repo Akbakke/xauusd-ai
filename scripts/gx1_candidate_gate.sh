@@ -69,6 +69,8 @@ CAND_NAME=$(basename "$CAND")
 
 [[ -n "$OUT_ROOT" ]] || OUT_ROOT="$GATES_DIR/runs"
 GATE_OUT="$OUT_ROOT/${CAND_NAME}_${TS}"
+# A dry-run must leave NO debris under the gate-evidence tree (2026-06-12 finding)
+$DRYRUN && GATE_OUT=$(mktemp -d /tmp/gx1_gate_dryrun.XXXXXX)
 mkdir -p "$GATE_OUT"
 
 # --- (1) SANITY — real loads, fail-closed (also derives the candidate's variant/folds) --------
@@ -159,7 +161,9 @@ export GX1_EXIT_AUGMENT_64=1 GX1_REGIME_V4=1 GX1_TREND_REGIME_FROM_D1=1
 PH6_EXTRA=()
 $QUICK && PH6_EXTRA+=(--max-candidates 3000)
 
-CMD_INFER=("$PY" -m gx1.scripts._legacy_disabled.v12_phase1_entry_iql_inference
+# 2026-06-12: module PROMOTED out of _legacy_disabled (NO-OLD-CODE — it is
+# load-bearing for the nightly gate); all its hardcoded defaults were removed.
+CMD_INFER=("$PY" -m gx1.scripts.v12_phase1_entry_iql_inference
   --entry-iql-lock "$CAND"
   --forward-outcome-dir "$FWD"
   --out-root "$GATE_OUT/entry_decisions"
@@ -174,7 +178,25 @@ CMD_PH6=("$PY" -m gx1.scripts.v12.v12_phase6_joint_validation
   --variant "$EXIT_VARIANT" --fold-id FOLD_1 --skip-v12-on
   --canonical-features "$CANON"
   --out-root "$GATE_OUT/phase6" --gate "${PH6_EXTRA[@]}")
+# DECISIVE baseline = the ACTIVE volbal chain when its per-candidate CSV exists
+# (generated once via this same harness with --entry-iql-lock <ACTIVE bundle>);
+# the tool's built-in default is the SUPERSEDED lam50 chain — comparing against
+# it inflates PASS (volbal beat lam50 on all axes; 2026-06-12 finding).
+VOLBAL_BASELINE="$GATES_DIR/baselines/volbal_per_candidate_V12_OFF.csv"
 CMD_POSTHOC=("$PY" -m gx1.research.posthoc_session_strategyf_eval "$GATE_OUT/phase6/per_candidate_V12_OFF.csv")
+if $QUICK; then
+  # quick mode caps candidates at 3000 — a FULL 12k baseline would fail the
+  # posthoc coverage>=80% check on N alone. Quick nights = phase6 floors +
+  # per-year posthoc floor only; the DECISIVE volbal comparison runs in FULL
+  # mode before any flip.
+  CMD_POSTHOC+=(--fase2b-baseline "")
+  BASELINE_NOTE="quick mode: decisive volbal comparison SKIPPED (coverage-incomparable) — run FULL before any flip"
+elif [[ -f "$VOLBAL_BASELINE" ]]; then
+  CMD_POSTHOC+=(--fase2b-baseline "$VOLBAL_BASELINE")
+  BASELINE_NOTE="ACTIVE volbal chain ($VOLBAL_BASELINE)"
+else
+  BASELINE_NOTE="DEFAULT lam50 chain (SUPERSEDED by volbal — PASS may be inflated; generate $VOLBAL_BASELINE)"
+fi
 
 echo "=== CANDIDATE-GATE MANIFEST ($(date -u)) ==="
 echo "  commit:       $(git -C "$REPO" rev-parse HEAD)"
@@ -187,6 +209,12 @@ echo "  canon:        $CANON"
 echo "  env:          GX1_EXIT_AUGMENT_64=1 GX1_REGIME_V4=1 GX1_TREND_REGIME_FROM_D1=1 GX1_REPLAY_WORKERS=${GX1_REPLAY_WORKERS:-<tool default: cores-4 capped 12>}"
 echo "  mode:         quick=$QUICK dry_run=$DRYRUN  ram_avail=${AVAIL_GB}GB"
 echo "  out:          $GATE_OUT"
+echo "  posthoc base: $BASELINE_NOTE"
+echo "  WAVE CAVEAT:  candidate entry decisions are inferred on the EXIT wave's"
+echo "                forward_outcome ($(basename "$WAVE_DIR")) — the same pairing as the cement"
+echo "                evidence, but NOT the candidate's training wave (FASE2B_REGIME_V4)."
+echo "                Entry-wave-keyed gate inputs are a tracked follow-up; read PASS/FAIL"
+echo "                with this in mind (2026-06-11 wave-mismatch lesson)."
 echo "  NOTE: contract is READ-ONLY here; PASS != promotion (manual flip, rule 8)."
 echo "=============================================="
 
@@ -194,7 +222,7 @@ if $DRYRUN; then
   echo "[dry-run] step 2 (inference): ${CMD_INFER[*]}"
   echo "[dry-run] step 3 (phase6):    ${CMD_PH6[*]}"
   echo "[dry-run] step 4 (posthoc):   ${CMD_POSTHOC[*]}"
-  echo "[dry-run] verdict would go →  $GATES_DIR/${CAND_NAME}_${TODAY}.json"
+  echo "[dry-run] verdict would go →  $GATES_DIR/${CAND_NAME}_${TS}_<mode>.json"
   echo "[dry-run] DONE (sanity PASSED; nothing executed, no verdict written)"
   exit 0
 fi
@@ -235,11 +263,15 @@ else
 fi
 
 # --- Verdict json (the ONLY write outside this run's out dir) ---------------------------------
+# Filename carries TS + mode (2026-06-12 finding: a (candidate, day) key let a
+# quick run and a later full run silently overwrite each other's evidence).
 mkdir -p "$GATES_DIR"
-VERDICT="$GATES_DIR/${CAND_NAME}_${TODAY}.json"
+MODE_TAG=$($QUICK && echo quick || echo full)
+VERDICT="$GATES_DIR/${CAND_NAME}_${TS}_${MODE_TAG}.json"
 GATE_OUT="$GATE_OUT" SANITY_JSON="$SANITY_JSON" CAND="$CAND" VARIANT="$VARIANT" \
 PH6_RC="$PH6_RC" POSTHOC_RC="$POSTHOC_RC" N_TAKE="$N_TAKE" QUICK="$QUICK" \
-DECISIONS="$DECISIONS" EXIT_BUNDLE="$EXIT_BUNDLE" VERDICT="$VERDICT" $PY - <<'PYEOF'
+DECISIONS="$DECISIONS" EXIT_BUNDLE="$EXIT_BUNDLE" VERDICT="$VERDICT" \
+BASELINE_NOTE="$BASELINE_NOTE" WAVE_DIR="$WAVE_DIR" $PY - <<'PYEOF'
 import json, os
 from datetime import datetime, timezone
 from pathlib import Path
@@ -268,6 +300,13 @@ verdict = {
                    "evaluate a candidate; see nightly candidate_shadow (Track-B) instead"},
     },
     "passed": bool(passed),
+    "posthoc_baseline": os.environ["BASELINE_NOTE"],
+    # HONESTY (2026-06-12 adversarial finding, 2026-06-11 wave-mismatch class):
+    # entry decisions are inferred on the EXIT wave's forward_outcome — the same
+    # pairing as the cement evidence but NOT the candidate's training wave.
+    "wave_caveat": (f"entry inputs = EXIT wave {os.environ['WAVE_DIR']} forward_outcome; "
+                    f"candidate trained on FASE2B_REGIME_V4 — entry-wave-keyed gate "
+                    f"inputs are a tracked follow-up"),
     "promotion": "MANUAL contract flip only (rule 8) — this verdict is evidence, not promotion",
 }
 Path(os.environ["VERDICT"]).write_text(json.dumps(verdict, indent=2, default=str))

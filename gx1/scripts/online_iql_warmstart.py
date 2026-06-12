@@ -45,6 +45,7 @@ import pandas as pd
 import torch
 
 from gx1.scripts import entry_iql_multi_head_gpu_core_v1 as iql_core
+from gx1.scripts.build_online_replay_buffer import LABEL_CONVENTION_CEMENT_M5
 from gx1_guards.gates import GateError, require_retrain_vedtak
 
 logging.basicConfig(level=logging.INFO, format="[warmstart] %(message)s")
@@ -256,9 +257,14 @@ def main() -> int:
             f"replay buffer was built for variant {meta['variant']!r} but warm-start "
             f"requested {args.variant!r}. Rebuild buffer with matching variant."
         )
-    # 2026-06-12: buffer meta now records cement M5-bar horizons as k_horizons_m5
-    # (the old key fell to the 5x M1/M5 unit bug). Fall back for old buffers.
-    k_horizons = meta.get("k_horizons_m5") or meta["k_horizons"]
+    # 2026-06-12: k_horizons_m5 (cement M5-bar units) is REQUIRED. Metas with only
+    # the legacy 'k_horizons' key carry the known 5x M1/M5 horizon bug — refuse.
+    if "k_horizons_m5" not in meta:
+        raise RuntimeError(
+            "replay buffer meta lacks 'k_horizons_m5' — legacy buffer with the 5x "
+            "M1/M5 horizon-unit bug. Rebuild it with build_online_replay_buffer."
+        )
+    k_horizons = meta["k_horizons_m5"]
     if list(k_horizons) != list(cement["ckpt"]["k_horizons"]):
         raise RuntimeError(
             f"buffer k_horizons {k_horizons} != cement ckpt k_horizons "
@@ -294,6 +300,17 @@ def main() -> int:
     sample_weights: np.ndarray | None = None
     n_live, n_cem = int(len(df)), 0
     if args.mix_cement is not None:
+        # The cement anchor rows ARE the cement label definition — mixing them with
+        # M1-grid live rewards trains one Q-net on two label conventions (measured
+        # mean |Δ| 54 bps). Require the live buffer to be cement-grid, fail loud.
+        live_conv = meta.get("label_convention")
+        if live_conv != LABEL_CONVENTION_CEMENT_M5:
+            raise RuntimeError(
+                f"--mix-cement requires live buffer label_convention="
+                f"{LABEL_CONVENTION_CEMENT_M5!r}, got {live_conv!r} — the live rewards "
+                f"are not on the cement M5 label grid. Rebuild the buffer with "
+                f"build_online_replay_buffer (re-anchored 2026-06-12)."
+            )
         LOG.info(f"loading cement mix sample: {args.mix_cement}")
         df_cem = pd.read_parquet(args.mix_cement)
         cem_meta = json.loads(args.mix_cement.with_suffix(".meta.json").read_text())

@@ -138,7 +138,8 @@ class V12Pipeline:
     # In-process shadow (2026-06-12, ladder wave): candidate Entry-IQL scoring
     # every poll alongside the live adapter. None = shadow off / load failed.
     shadow_entry_iql: EntryIQLLiveInference | None = None
-    _shadow_error_logged: bool = False
+    _shadow_errors: int = 0
+    _shadow_disabled_reason: str | None = None
 
     @classmethod
     def _load_shadow_entry_iql(cls) -> "EntryIQLLiveInference | None":
@@ -156,6 +157,22 @@ class V12Pipeline:
                 DEFAULT_VARIANT, DEFAULT_FOLD, DEFAULT_AGGREGATOR)
             variant = _SHADOW_VARIANT or DEFAULT_VARIANT
             fold = _SHADOW_FOLD or DEFAULT_FOLD
+            # AUTO-RESOLVE on miss (2026-06-12 adversarial finding): coupling the
+            # shadow to the CONTRACT's variant/fold silently kills it at the next
+            # variant flip (the exact Track-B no-op class fixed the same day with
+            # '--variants auto'). If the configured ckpt is absent in the CANDIDATE
+            # bundle, enumerate its own trained_models_v1/ and derive variant+fold
+            # from the first checkpoint stem — loud, never silent-dark.
+            ckpt = Path(_SHADOW_BUNDLE_DIR) / "trained_models_v1" / f"{variant}_{fold}.pt"
+            if not ckpt.is_file():
+                avail = sorted((Path(_SHADOW_BUNDLE_DIR) / "trained_models_v1").glob("*_FOLD_*.pt"))
+                if not avail:
+                    raise FileNotFoundError(f"no checkpoints in {_SHADOW_BUNDLE_DIR}/trained_models_v1")
+                stem = avail[0].stem                      # e.g. R_..._SYM_FOLD_1
+                variant, fold = stem.rsplit("_FOLD_", 1)
+                fold = f"FOLD_{fold}"
+                LOG.warning(f"SHADOW: configured {ckpt.name} absent — auto-resolved to "
+                            f"{stem}.pt from the candidate bundle ({len(avail)} ckpts)")
             shadow = EntryIQLLiveInference.load(
                 bundle_dir=Path(_SHADOW_BUNDLE_DIR), variant=variant, fold_id=fold,
                 aggregator=DEFAULT_AGGREGATOR,
@@ -379,10 +396,16 @@ class V12Pipeline:
                     row, xgb_this, v10_out, portfolio_state=portfolio_state,
                 )
             except Exception as exc:
-                if not self._shadow_error_logged:
-                    LOG.error(f"SHADOW predict failed ({exc}) — disabling shadow for this run")
-                    self._shadow_error_logged = True
-                self.shadow_entry_iql = None
+                # Disable after 3 strikes (transient CUDA hiccups must not kill
+                # days of observability), and record WHY in every later journal
+                # record — 'disabled mid-run' must be distinguishable from
+                # 'never armed' (2026-06-12 adversarial finding).
+                self._shadow_errors += 1
+                LOG.error(f"SHADOW predict failed ({self._shadow_errors}/3: {exc})")
+                if self._shadow_errors >= 3:
+                    self.shadow_entry_iql = None
+                    self._shadow_disabled_reason = f"predict_failed_x3:{type(exc).__name__}"
+                    LOG.error("SHADOW disabled for the rest of this run — journals will carry shadow_disabled_reason")
                 shadow_rec = None
 
         # V12.2 CLUSTER-1 RATE-LIMIT: block repeat entries within same M5 bucket.
@@ -421,7 +444,7 @@ class V12Pipeline:
                     f"[CLUSTER1_RATE_LIMIT] blocking {side_key} entry ({block_reason}) — "
                     f"last_same={last_m5_same} last_opp={last_m5_opp} current_m5={decision_m5}"
                 )
-                return {
+                blocked_out = {
                     "action": "SKIP",
                     "action_id": 0,
                     "q_per_action": [float(rec.q_per_action_v1[0]), float(rec.q_per_action_v1[1]), float(rec.q_per_action_v1[2])],
@@ -435,6 +458,10 @@ class V12Pipeline:
                     "decision_ts": str(decision_m5),
                     "stub": False,
                 }
+                # shadow already scored this poll — blocked polls are exactly the
+                # disagreement-relevant samples; don't drop the record (2026-06-12).
+                self._attach_shadow_fields(blocked_out, shadow_rec, rec.action_label_v1)
+                return blocked_out
             # Cluster1-state advance moved to v12_paper_runner.py post-fill.
             # Audit 3 C-3 fix 2026-05-20: previously this wrote state regardless
             # of downstream gate/portfolio-guard rejection, causing false
@@ -498,17 +525,25 @@ class V12Pipeline:
             "entry_iql_state_v1": state_list,
             "entry_iql_q_per_action_per_k_v1": q_per_k_list,
         }
-        # IN-PROCESS SHADOW fields (only when a candidate is loaded — journals
-        # stay byte-identical when GX1_SHADOW_BUNDLE_DIR is unset).
+        self._attach_shadow_fields(out, shadow_rec, rec.action_label_v1)
+        return out
+
+    def _attach_shadow_fields(self, out: dict, shadow_rec, live_action: str) -> None:
+        """Attach IN-PROCESS SHADOW fields to a decision dict (both the normal and
+        the cluster-1-blocked return paths — blocked polls are exactly the
+        disagreement-relevant samples). Journals stay byte-identical when
+        GX1_SHADOW_BUNDLE_DIR is unset; a mid-run disablement is journaled via
+        shadow_disabled_reason so it is never mistaken for 'never armed'."""
         if shadow_rec is not None:
             sq = shadow_rec.q_per_action_v1
             out["shadow_action"] = shadow_rec.action_label_v1
             out["shadow_q_per_action"] = [float(sq[0]), float(sq[1]), float(sq[2])]
             out["shadow_advantage_over_skip_long"] = float(sq[1] - sq[0])
             out["shadow_advantage_over_skip_short"] = float(sq[2] - sq[0])
-            out["shadow_agrees_with_live"] = bool(shadow_rec.action_label_v1 == rec.action_label_v1)
+            out["shadow_agrees_with_live"] = bool(shadow_rec.action_label_v1 == live_action)
             out["shadow_bundle"] = Path(_SHADOW_BUNDLE_DIR).name
-        return out
+        elif self._shadow_disabled_reason is not None:
+            out["shadow_disabled_reason"] = self._shadow_disabled_reason
 
     # ── exit decision ────────────────────────────────────────────────
 

@@ -1,19 +1,23 @@
 #!/usr/bin/env bash
 # GX1 nightly continuous-learning loop — ladder wave (user vedtak «Ja til alle 3» 2026-06-12).
 #
-# ANALYSIS legs run every night (read-only + reports, no vedtak needed):
-#   1. RAM guard (abort <8 GB available — AGENTS.md OOM hard ceiling)
-#   2. Accumulate per-trade verdicts (trade_verdicts_*.jsonl → regret_dataset.parquet)
-#   3. Build/refresh the live-regret replay buffer for MATURED days (D-8..D-2; 25h K-aging)
-#   4. KS distribution-drift check (rule-9 drift leg — ADVISORY, never blocks)
-#   5. Nightly report JSON in nightly_learning/
+# NIGHTLY legs (no vedtak needed; analysis + idempotent data maintenance):
+#   1.  RAM guard (abort <8 GB available — AGENTS.md OOM hard ceiling)
+#   2.  Accumulate per-trade verdicts (trade_verdicts_*.jsonl → regret_dataset.parquet)
+#   2b. Canonical tape freshener — WRITES the M1/M5 canonical tapes (idempotent
+#       append+dedupe; OANDA history, complete candles only; fail-loud chunk guard)
+#   3.  ENTRY replay buffer (matured D-8..D-2; 25h K-aging) + EXIT-side transition
+#       buffer (dataset-only — refit rewards go through the exit builder's defs)
+#   4.  KS distribution-drift check (rule-9 drift leg — ADVISORY, never blocks)
+#   5.  Nightly report JSON in nightly_learning/ + severity-folded exit code
 #
 # REFIT leg (CLAUDE.md rule 3 — NEVER runs without a standing vedtak):
 #   Armed ONLY when $STANDING_VEDTAK_FILE exists and contains a vedtak id.
-#   Then: warm-start IQL refit on the rolling buffer → candidate bundle under
-#   online_iql/ → Track-B style shadow-score of the candidate over recent journals.
-#   The candidate is PENDING — this script NEVER flips PROJECT_STATE_artifacts.json
-#   (rule 8: promote is a manual contract flip after gates).
+#   Then: 3-fold warm-start refit (anti-forgetting cement mix when the ACTIVE
+#   bundle carries cement_replay_sample_v1.parquet) → PENDING candidate under
+#   online_iql/ → D-1 out-of-sample shadow report → quick candidate gate →
+#   shadow rotation ONLY on gate PASS. The candidate stays PENDING — this script
+#   NEVER flips PROJECT_STATE_artifacts.json (rule 8: promote is a manual flip).
 #
 # Scheduling: systemd --user gx1-nightly-learning.timer (03:30 UTC).
 # Manual run: bash scripts/gx1_nightly_learning.sh
@@ -184,7 +188,10 @@ if [[ -f "$STANDING_VEDTAK_FILE" ]] && [[ -s "$STANDING_VEDTAK_FILE" ]]; then
         BASE_BUNDLE=$(PYTHONPATH=$REPO $PY -c "
 from gx1_guards.artifacts import load_decision_artifact
 print(load_decision_artifact('entry_iql'))")
-        CAND_DIR="$ONLINE_IQL_DIR/warmstart_${TODAY}"
+        # Timestamped dir (2026-06-12 adversarial finding): a date-only key let a
+        # same-day re-run leave a FOLD-mixed chimera (new FOLD_1 + stale FOLD_2/3)
+        # indistinguishable to the gate's sanity step.
+        CAND_DIR="$ONLINE_IQL_DIR/warmstart_${TODAY}T$(date -u +%H%M%S)"
         log "REFIT armed (vedtak=$VEDTAK) — warm-start from $(basename "$BASE_BUNDLE")"
         # Anti-forgetting mix (ladder wave 2026-06-12): anchor the refit on a frozen
         # 20k cement-distribution sample (states+rewards, posgate-parity) living in
@@ -211,31 +218,32 @@ print(load_decision_artifact('entry_iql'))")
         if $REFIT_OK; then
             STATUS[refit]="candidate_PENDING"
             log "candidate written → $CAND_DIR (PENDING — gates + manual contract flip required)"
-            # Shadow-score the candidate over the last 2 days of journals (Track-B reuse)
-            for d in 1 2; do
-                D=$(date -u -d "$d days ago" +%Y%m%d)
-                PYTHONPATH=$REPO $PY -m gx1.execution.v12_counterfactual_replay \
-                    --journal-date "$D" --journal-suffix "$SUFFIX" \
-                    --mode variants --variants auto --bundle-dir "$CAND_DIR" \
-                    --out-dir "$OUT_DIR/candidate_shadow" \
-                    >> "$OUT_DIR/refit_${TODAY}.log" 2>&1 || true
-            done
-            log "candidate shadow reports → $OUT_DIR/candidate_shadow/"
-            # Auto-gate evidence (ladder wave 2026-06-12): quick candidate-vs-cement
-            # gate run — PASS/FAIL verdict json under nightly_learning/candidate_gates/.
+            # Shadow-score the candidate on D-1 ONLY — D-2 sits INSIDE its own
+            # training window (buffer D-8..D-2) and would read as out-of-sample
+            # evidence when it is not (2026-06-12 adversarial finding).
+            D=$(date -u -d "1 day ago" +%Y%m%d)
+            PYTHONPATH=$REPO $PY -m gx1.execution.v12_counterfactual_replay \
+                --journal-date "$D" --journal-suffix "$SUFFIX" \
+                --mode variants --variants auto --bundle-dir "$CAND_DIR" \
+                --out-dir "$OUT_DIR/candidate_shadow" \
+                >> "$OUT_DIR/refit_${TODAY}.log" 2>&1 || true
+            log "candidate shadow report (D-1, out-of-sample) → $OUT_DIR/candidate_shadow/"
+            # Auto-gate evidence (ladder wave 2026-06-12): quick candidate gate run —
+            # PASS/FAIL verdict json under nightly_learning/candidate_gates/.
             # Evidence only; promote stays a manual contract flip (rule 8).
             if bash $REPO/scripts/gx1_candidate_gate.sh "$CAND_DIR" --quick \
                     >> "$OUT_DIR/candidate_gate_${TODAY}.log" 2>&1; then
                 STATUS[gate]=PASS
                 log "candidate gate PASS (verdict in nightly_learning/candidate_gates/)"
+                # Rotate the in-process shadow ONLY on gate PASS — a failed candidate
+                # must not evict a passing one from the single shadow slot. The runner
+                # reads this file at LAUNCH — picked up at its next restart.
+                echo "$CAND_DIR" > /home/andre2/GX1_DATA/config/shadow_bundle_dir.txt
+                log "in-process shadow rotated → $CAND_DIR (takes effect at next runner restart)"
             else
                 STATUS[gate]=FAIL
-                log "candidate gate FAIL/blocked — see $OUT_DIR/candidate_gate_${TODAY}.log"
+                log "candidate gate FAIL/blocked — shadow NOT rotated; see $OUT_DIR/candidate_gate_${TODAY}.log"
             fi
-            # Rotate the in-process shadow to the newest candidate. The runner reads
-            # this file at LAUNCH — picked up at its next restart, never mid-flight.
-            echo "$CAND_DIR" > /home/andre2/GX1_DATA/config/shadow_bundle_dir.txt
-            log "in-process shadow rotated → $CAND_DIR (takes effect at next runner restart)"
         else
             STATUS[refit]=FAIL
             log "refit FAILED — see $OUT_DIR/refit_${TODAY}.log"
@@ -259,3 +267,11 @@ fi
     echo "}"
 } > "$REPORT"
 log "nightly report → $REPORT  [verdicts=${STATUS[verdicts]:-?} tape=${STATUS[tape]:-?} buffer=${STATUS[buffer]:-?} exit_buf=${STATUS[exit_buffer]:-?} drift=${STATUS[drift]:-?} refit=${STATUS[refit]:-?} gate=${STATUS[gate]:-?}]"
+
+# Severity fold (2026-06-12 adversarial finding): the oneshot must not report
+# SUCCESS on a wasted night. Hard failures = nonzero so journalctl/OnFailure can
+# alert; skipped(rc=…) buffers and not_armed refit remain a successful night.
+if [[ "${STATUS[tape]:-}" == "FAIL" || "${STATUS[refit]:-}" == "FAIL" || "${STATUS[verdicts]:-}" == "FAIL" ]]; then
+    exit 1
+fi
+exit 0

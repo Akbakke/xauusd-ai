@@ -140,6 +140,18 @@ def encode_state(bar_state: dict, feature_names: list[str]) -> tuple[np.ndarray,
             if runtime_val is None:
                 missing.append(fname)
                 continue
+            # LATENT PARITY TRAP (2026-06-12 adversarial finding): the journal
+            # float-casts bar_state values, so a NUMERIC categorical the serve
+            # adapter matched as str(0)=='0' arrives here as 0.0 and
+            # str(0.0)=='0' is False → silent one-hot mismatch. The ACTIVE
+            # bundle has zero cat features; FAIL LOUD if a future bundle pairs
+            # a cat one-hot with a float-cast journal value — fix the journal
+            # cast (or normalize here) deliberately at that point.
+            if isinstance(runtime_val, float):
+                raise RuntimeError(
+                    f"one-hot source {cat_col!r} reached the buffer as float "
+                    f"({runtime_val!r}) — journal float-cast breaks cat__val "
+                    f"matching; resolve the encoding before building (see header)")
             if str(runtime_val) == cat_val:
                 v[i] = 1.0
         else:
