@@ -495,7 +495,13 @@ def main() -> int:
         return 0
 
     LOG.info(f"starting incremental updater loop (interval={args.interval}s)")
-    _cycles = 0
+    # Rule-9 self-check MOVED OUT of this loop (2026-06-12, standing decision after
+    # hang #2): the hourly in-process check (reading BOTH prebuilts inside the
+    # appender) was the last sign of life before BOTH daemon hangs at the 21-22Z
+    # pause boundary (2026-06-12 00:05 and 22:00). It now runs as its own systemd
+    # --user timer (gx1-rule9-selfcheck.timer → feature_liveness --live-tail) so a
+    # stuck check can never stall data collection. The launch preflight remains
+    # the hard gate; this daemon only appends.
     while True:
         try:
             stats = run_one_cycle()
@@ -503,26 +509,6 @@ def main() -> int:
                 LOG.info(f"cycle stats: {stats}")
         except Exception as exc:
             LOG.exception(f"cycle failed: {exc}")
-        # Rule-9 LIVE-TAIL self-check (user vedtak 2026-06-11): every ~1h, scan the prebuilt
-        # tails this daemon maintains for the freeze signature (was-varying → now-constant).
-        # ERROR-loud, never fatal (killing the appender would stop data collection too) —
-        # the launch_live_practice.sh preflight is the hard gate.
-        _cycles += 1
-        if _cycles % max(1, 3600 // max(args.interval, 1)) == 0:
-            try:
-                from gx1.audit.feature_liveness import check_live_prebuilt_tail, check_live_continuity
-                _rep = check_live_prebuilt_tail()
-                if not _rep["ok"]:
-                    LOG.error(f"[RULE9-LIVE-TAIL] FREEZE SIGNATURE: {_rep['frozen']} — fix the append wiring NOW")
-                else:
-                    LOG.info(f"[RULE9-LIVE-TAIL] ok (stale_min={_rep['stale_minutes']})")
-                _crep = check_live_continuity()
-                if not _crep["ok"]:
-                    LOG.error(f"[RULE9-CONTINUITY] FERSKE HULL: {_crep['fresh_gaps']}")
-                else:
-                    LOG.info(f"[RULE9-CONTINUITY] ok (freshness={_crep['freshness_min']})")
-            except Exception as exc:
-                LOG.error(f"[RULE9-LIVE-TAIL] self-check failed to run: {exc}")
         _time.sleep(args.interval)
 
 
