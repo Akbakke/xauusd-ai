@@ -75,22 +75,78 @@ if len(r):
 EOF
 then STATUS[verdicts]=ok; else STATUS[verdicts]=FAIL; fi
 
-# ── 3. Rolling live-regret replay buffer (matured days only) ─────────────────
+# ── 2b. Canonical tape freshener (M1 → M5; ladder wave 2026-06-12) ───────────
+# Both canonical tapes froze at the Jun 8 repair — nothing scheduled freshened
+# them. Chain: OANDA history (complete candles only) → v12_backfill_to_present
+# (per-year dedupe keep='last', idempotent, no-op if gap<5min) → m1_to_m5
+# downsample (drops <5-bar buckets: a partial live-edge bucket can never be
+# emitted; 1h overlap self-heals the edge). Single-writer: never run twice
+# concurrently. Bonus: OANDA history FILLS registered machine-down gaps the
+# live collector missed (06-10 OOM / 06-11 reboot).
+log "freshening canonical tapes (M1 backfill → M5 downsample)"
+TAPE_OK=true
+PYTHONPATH=$REPO $PY $REPO/gx1/execution/v12_backfill_to_present.py \
+    > "$OUT_DIR/tape_m1_${TODAY}.log" 2>&1 || TAPE_OK=false
+# A failed 1-day fetch chunk is skipped-and-continued upstream and becomes a
+# PERMANENT hole (next run starts past it) — fail the step LOUD instead.
+if grep -qE "chunk [0-9]+ failed" "$OUT_DIR/tape_m1_${TODAY}.log"; then
+    TAPE_OK=false
+    log "TAPE M1 backfill had FAILED chunks — permanent-hole risk; repair before next run"
+fi
+if $TAPE_OK; then
+    PYTHONPATH=$REPO $PY $REPO/gx1/execution/v12_m1_to_m5_downsample.py \
+        > "$OUT_DIR/tape_m5_${TODAY}.log" 2>&1 || TAPE_OK=false
+fi
+if $TAPE_OK && PYTHONPATH=$REPO $PY - >> "$OUT_DIR/tape_m5_${TODAY}.log" 2>&1 <<'PYEOF'
+import sys, pathlib, pandas as pd
+root = pathlib.Path("/home/andre2/GX1_DATA/data/oanda/canonical")
+last = lambda tape: max(pd.to_datetime(pd.read_parquet(f, columns=["time"])["time"], utc=True).max()
+                        for f in sorted((root / tape).glob("year=*/part-000.parquet")))
+m1, m5 = last("xauusd_m1_bid_ask__CANONICAL"), last("xauusd_m5_bid_ask__CANONICAL")
+lag_h = (pd.Timestamp.now(tz="UTC") - m1).total_seconds() / 3600
+print(f"[TAPE_FRESHEN] m1_last={m1} m5_last={m5} m1_lag_h={lag_h:.1f}")
+# 36h allows the Sunday 03:30Z run (~30.6h back to Friday close); M5 within the
+# downsampler's own 1h self-heal window of M1.
+sys.exit(0 if lag_h < 36 and (m1 - m5).total_seconds() <= 3600 else 1)
+PYEOF
+then
+    STATUS[tape]=ok
+    log "tapes fresh (see tape_m5_${TODAY}.log for cutoffs)"
+else
+    STATUS[tape]=FAIL
+    log "tape freshener FAILED — see $OUT_DIR/tape_m1_${TODAY}.log / tape_m5_${TODAY}.log"
+fi
+
+# ── 3. Rolling live-regret replay buffers (matured days only) ─────────────────
 FROM=$(date -u -d "8 days ago" +%Y%m%d)
 TO=$(date -u -d "2 days ago" +%Y%m%d)
 BUF="$REPLAY_DIR/replay_rolling_${TODAY}.parquet"
-log "building replay buffer $FROM..$TO (suffix=$SUFFIX, variant=$VARIANT)"
+log "building ENTRY replay buffer $FROM..$TO (suffix=$SUFFIX, variant=$VARIANT)"
 if PYTHONPATH=$REPO $PY -m gx1.scripts.build_online_replay_buffer \
         --from "$FROM" --to "$TO" --suffix "$SUFFIX" \
         --variant "$VARIANT" --out "$BUF" > "$OUT_DIR/buffer_${TODAY}.log" 2>&1; then
     STATUS[buffer]=ok
-    log "buffer ok → $BUF"
+    log "entry buffer ok → $BUF"
 else
     rc=$?
     # rc=2 (no journals) / rc=3 (no rows) are EXPECTED right after an operating-point
     # suffix change or on quiet weeks — report, don't fail the night.
     STATUS[buffer]="skipped(rc=$rc)"
-    log "buffer skipped/failed rc=$rc — see $OUT_DIR/buffer_${TODAY}.log"
+    log "entry buffer skipped/failed rc=$rc — see $OUT_DIR/buffer_${TODAY}.log"
+fi
+# EXIT-side transitions (ladder wave 2026-06-12): per-(trade, M1-bar) 209-dim
+# states + regret labels. Dataset only — exit-IQL refit rewards go through the
+# exit builder's one-truth defs (see build_online_exit_replay_buffer header).
+EXIT_BUF="$REPLAY_DIR/exit_replay_rolling_${TODAY}.parquet"
+if PYTHONPATH=$REPO $PY -m gx1.scripts.build_online_exit_replay_buffer \
+        --from "$FROM" --to "$TO" --suffix "$SUFFIX" \
+        --out "$EXIT_BUF" > "$OUT_DIR/exit_buffer_${TODAY}.log" 2>&1; then
+    STATUS[exit_buffer]=ok
+    log "exit buffer ok → $EXIT_BUF"
+else
+    rc=$?
+    STATUS[exit_buffer]="skipped(rc=$rc)"
+    log "exit buffer skipped/failed rc=$rc — see $OUT_DIR/exit_buffer_${TODAY}.log"
 fi
 
 # ── 4. KS distribution-drift (advisory) ──────────────────────────────────────
@@ -130,11 +186,25 @@ from gx1_guards.artifacts import load_decision_artifact
 print(load_decision_artifact('entry_iql'))")
         CAND_DIR="$ONLINE_IQL_DIR/warmstart_${TODAY}"
         log "REFIT armed (vedtak=$VEDTAK) — warm-start from $(basename "$BASE_BUNDLE")"
+        # Anti-forgetting mix (ladder wave 2026-06-12): anchor the refit on a frozen
+        # 20k cement-distribution sample (states+rewards, posgate-parity) living in
+        # the ACTIVE bundle dir. Contract-resolved $BASE_BUNDLE means a bundle flip
+        # automatically points at THAT bundle's sample; if the new bundle has none
+        # yet, run unmixed + warn loud (re-export per build_online_replay_buffer
+        # --export-cement-sample) rather than kill the night.
+        MIX_ARGS=()
+        CEMENT_SAMPLE="$BASE_BUNDLE/cement_replay_sample_v1.parquet"
+        if [[ -s "$CEMENT_SAMPLE" ]]; then
+            MIX_ARGS=(--mix-cement "$CEMENT_SAMPLE" --mix-weight 0.5)
+        else
+            log "WARNING: no cement_replay_sample_v1.parquet in $(basename "$BASE_BUNDLE") — refit runs UNMIXED (forgetting risk)"
+        fi
         REFIT_OK=true
         for FOLD in FOLD_1 FOLD_2 FOLD_3; do
             PYTHONPATH=$REPO $PY -m gx1.scripts.online_iql_warmstart \
                 --base-bundle "$BASE_BUNDLE" --replay "$BUF" \
                 --variant "$VARIANT" --fold "$FOLD" \
+                "${MIX_ARGS[@]}" \
                 --out-dir "$CAND_DIR" --vedtak "$VEDTAK" \
                 >> "$OUT_DIR/refit_${TODAY}.log" 2>&1 || { REFIT_OK=false; break; }
         done
@@ -151,6 +221,21 @@ print(load_decision_artifact('entry_iql'))")
                     >> "$OUT_DIR/refit_${TODAY}.log" 2>&1 || true
             done
             log "candidate shadow reports → $OUT_DIR/candidate_shadow/"
+            # Auto-gate evidence (ladder wave 2026-06-12): quick candidate-vs-cement
+            # gate run — PASS/FAIL verdict json under nightly_learning/candidate_gates/.
+            # Evidence only; promote stays a manual contract flip (rule 8).
+            if bash $REPO/scripts/gx1_candidate_gate.sh "$CAND_DIR" --quick \
+                    >> "$OUT_DIR/candidate_gate_${TODAY}.log" 2>&1; then
+                STATUS[gate]=PASS
+                log "candidate gate PASS (verdict in nightly_learning/candidate_gates/)"
+            else
+                STATUS[gate]=FAIL
+                log "candidate gate FAIL/blocked — see $OUT_DIR/candidate_gate_${TODAY}.log"
+            fi
+            # Rotate the in-process shadow to the newest candidate. The runner reads
+            # this file at LAUNCH — picked up at its next restart, never mid-flight.
+            echo "$CAND_DIR" > /home/andre2/GX1_DATA/config/shadow_bundle_dir.txt
+            log "in-process shadow rotated → $CAND_DIR (takes effect at next runner restart)"
         else
             STATUS[refit]=FAIL
             log "refit FAILED — see $OUT_DIR/refit_${TODAY}.log"
@@ -167,10 +252,10 @@ fi
     echo "  \"date\": \"$TODAY\","
     echo "  \"suffix\": \"$SUFFIX\","
     echo "  \"variant\": \"$VARIANT\","
-    for k in verdicts buffer drift refit; do
+    for k in verdicts tape buffer exit_buffer drift refit gate; do
         echo "  \"$k\": \"${STATUS[$k]:-unknown}\","
     done
     echo "  \"ram_avail_gb\": $AVAIL_GB"
     echo "}"
 } > "$REPORT"
-log "nightly report → $REPORT  [verdicts=${STATUS[verdicts]:-?} buffer=${STATUS[buffer]:-?} drift=${STATUS[drift]:-?} refit=${STATUS[refit]:-?}]"
+log "nightly report → $REPORT  [verdicts=${STATUS[verdicts]:-?} tape=${STATUS[tape]:-?} buffer=${STATUS[buffer]:-?} exit_buf=${STATUS[exit_buffer]:-?} drift=${STATUS[drift]:-?} refit=${STATUS[refit]:-?} gate=${STATUS[gate]:-?}]"

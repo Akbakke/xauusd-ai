@@ -89,8 +89,13 @@ def warmstart_train(
     k_iterations: int,
     batch_size: int,
     seed: int,
+    sample_weights: np.ndarray | None = None,
 ) -> dict:
-    """Load cement weights into a fresh MultiHeadEntryIQLModel + continue training on (X_new, R_new)."""
+    """Load cement weights into a fresh MultiHeadEntryIQLModel + continue training on (X_new, R_new).
+
+    sample_weights: optional per-row loss weight aligned with X_new (anti-forgetting
+    mix: live rows 1.0, cement-anchor rows --mix-weight). None = all-ones (unchanged).
+    """
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     state_dim = int(cement_ckpt["state_dim"])
     n_actions = int(cement_ckpt["n_actions"])
@@ -127,7 +132,14 @@ def warmstart_train(
     R_t = torch.as_tensor(R_clean, dtype=torch.float32, device=device)
     n = X_t.shape[0]
     R_flat = R_t.view(n, n_actions * n_k)
-    w_t = torch.ones(n, dtype=torch.float32, device=device)
+    # Per-row loss weight — already consumed by BOTH the Q-loss and the V
+    # expectile loss below; the mix path just feeds non-uniform values in.
+    if sample_weights is not None:
+        if sample_weights.shape != (n,):
+            raise RuntimeError(f"sample_weights shape {sample_weights.shape} != ({n},)")
+        w_t = torch.as_tensor(np.asarray(sample_weights, dtype=np.float32), device=device)
+    else:
+        w_t = torch.ones(n, dtype=torch.float32, device=device)
 
     q_opt = torch.optim.Adam(q_net.parameters(), lr=lr, weight_decay=iql_core.DEFAULT_WEIGHT_DECAY)
     v_opt = torch.optim.Adam(v_net.parameters(), lr=lr, weight_decay=iql_core.DEFAULT_WEIGHT_DECAY)
@@ -203,6 +215,13 @@ def main() -> int:
                    help="Path to cement bundle (BUILD_ENTRY_IQL_V2_...)")
     p.add_argument("--replay", type=Path, required=True,
                    help="Replay buffer parquet from build_online_replay_buffer")
+    # ANTI-FORGETTING mix (2026-06-12): the live buffer alone is hundreds of rows —
+    # mixing a frozen cement-distribution sample anchors the Q-net while it adapts.
+    p.add_argument("--mix-cement", type=Path, default=None,
+                   help="Cement-distribution sample parquet (build_online_replay_buffer "
+                        "--export-cement-sample) mixed in as anti-forgetting anchor")
+    p.add_argument("--mix-weight", type=float, default=0.5,
+                   help="Per-row loss weight for cement rows (live rows always 1.0)")
     p.add_argument("--variant", type=str, required=True,
                    help="Variant to warm-start (must match a cement checkpoint)")
     p.add_argument("--fold", type=str, default="FOLD_1", choices=["FOLD_1", "FOLD_2", "FOLD_3"])
@@ -268,10 +287,62 @@ def main() -> int:
     X_new, R_new = buffer_to_tensors(df, k_horizons)
     LOG.info(f"X shape: {X_new.shape}  R shape: {R_new.shape}")
 
+    # ANTI-FORGETTING mix: concat a frozen cement-distribution sample after the
+    # live rows; per-row loss weight 1.0 (live) vs --mix-weight (cement) threads
+    # into warmstart_train's existing w_t. All parity checks fail loud — a
+    # mismatched sample would anchor the net to the WRONG distribution.
+    sample_weights: np.ndarray | None = None
+    n_live, n_cem = int(len(df)), 0
+    if args.mix_cement is not None:
+        LOG.info(f"loading cement mix sample: {args.mix_cement}")
+        df_cem = pd.read_parquet(args.mix_cement)
+        cem_meta = json.loads(args.mix_cement.with_suffix(".meta.json").read_text())
+        if cem_meta["variant"] != args.variant:
+            raise RuntimeError(
+                f"cement sample variant {cem_meta['variant']!r} != requested {args.variant!r} — "
+                f"re-export with --export-cement-sample --variant {args.variant}."
+            )
+        if list(cem_meta["k_horizons_m5"]) != list(k_horizons):
+            raise RuntimeError(
+                f"cement sample k_horizons {cem_meta['k_horizons_m5']} != buffer/ckpt {k_horizons}."
+            )
+        cem_pg = str((cem_meta.get("reward_env_v1") or {}).get("GX1_REWARD_BADPATH_POSGATE", "?"))[:1]
+        ref_pg = str((cement_env or buffer_env).get("GX1_REWARD_BADPATH_POSGATE", "?"))[:1]
+        if cem_pg != ref_pg:
+            raise RuntimeError(
+                f"reward env mismatch: cement sample POSGATE={cem_pg} vs bundle/buffer POSGATE={ref_pg}."
+            )
+        # State-contract check: names AND ORDER vs the bundle summary — a
+        # same-width reorder would pass the state_dim check silently.
+        bundle_names = cement["summary"].get("feature_names_v1")
+        sample_names = cem_meta.get("feature_names")
+        if bundle_names is not None and sample_names is not None:
+            if list(sample_names) != list(bundle_names):
+                raise RuntimeError(
+                    "cement sample feature_names do not match the bundle's "
+                    "feature_names_v1 (names/order) — re-export against this bundle."
+                )
+        X_cem, R_cem = buffer_to_tensors(df_cem, k_horizons)
+        if X_cem.shape[1] != X_new.shape[1]:
+            raise RuntimeError(
+                f"cement sample state_dim={X_cem.shape[1]} != live buffer state_dim={X_new.shape[1]}."
+            )
+        n_cem = int(X_cem.shape[0])
+        X_new = np.concatenate([X_new, X_cem], axis=0)
+        R_new = np.concatenate([R_new, R_cem], axis=0)
+        sample_weights = np.concatenate([
+            np.ones(n_live, dtype=np.float32),
+            np.full(n_cem, float(args.mix_weight), dtype=np.float32),
+        ])
+        LOG.info(f"ANTI-FORGETTING MIX: {n_live} live rows (w=1.0) + {n_cem} cement rows "
+                 f"(w={args.mix_weight}) = {n_live + n_cem} total — loss mass "
+                 f"live={float(n_live):.1f} vs cement={n_cem * float(args.mix_weight):.1f}")
+
     new_ckpt = warmstart_train(
         cement["ckpt"], X_new, R_new,
         lr=args.lr, epochs_q=args.epochs_q, epochs_v=args.epochs_v,
         k_iterations=args.k_iterations, batch_size=args.batch_size, seed=args.seed,
+        sample_weights=sample_weights,
     )
 
     # Persist in cement-compatible layout (stamp reward env for the NEXT refit)
@@ -296,6 +367,11 @@ def main() -> int:
         "n_journals": len(meta.get("journals", [])),
         "date_from": meta.get("date_from"),
         "date_to": meta.get("date_to"),
+        # ANTI-FORGETTING mix composition (None/0 when --mix-cement unused)
+        "mix_cement": str(args.mix_cement) if args.mix_cement else None,
+        "mix_weight": float(args.mix_weight) if args.mix_cement else None,
+        "n_live_rows": n_live,
+        "n_cement_rows": n_cem,
     }
     (args.out_dir / "summary_v1.json").write_text(json.dumps(summary_out, indent=2, default=str))
     LOG.info(f"wrote summary → {args.out_dir / 'summary_v1.json'}")

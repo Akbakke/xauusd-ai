@@ -36,11 +36,28 @@ PARITY with the ACTIVE bundle (entry_iql_volbal_20260611):
     (incl. the +30-M1-bar wait anchor) is short or crosses a >180-min gap are
     DROPPED — the cement builder masks truncated labels the same way.
 
+ANTI-FORGETTING export mode (2026-06-12, --export-cement-sample):
+  The nightly warm-start trains on hundreds of live rows — low LR + 2 epochs is
+  the only forgetting protection. This mode exports a frozen, seeded sample of
+  the CEMENT training distribution (states + rewards) in buffer-compatible
+  columns so online_iql_warmstart --mix-cement can anchor the Q-net while it
+  adapts. It IGNORES journals entirely: it replays the cement build's own
+  load → trunc-mask → state → reward path via the ONE-TRUTH functions in
+  materialize_build_entry_iql_v2 (never a re-implementation), under the same
+  env the ACTIVE volbal bundle was trained with, then validates the produced
+  feature names + ORDER against the contract-resolved ACTIVE entry_iql bundle.
+
 Usage:
   python -m gx1.scripts.build_online_replay_buffer \
       --from 20260601 --to 20260607 \
       --variant R_WAIT_OPP_K96_LAM50_SYM \
       --out /home/andre2/GX1_DATA/reports/online_replay/replay_W2026_23.parquet
+
+  python -m gx1.scripts.build_online_replay_buffer \
+      --export-cement-sample \
+      --forward-outcome-dir .../forward_outcome_clean/per_week \
+      --sample-n 20000 --variant R_WAIT_OPP_K96_LAM50_SYM \
+      --out .../cement_replay_sample_v1.parquet
 """
 
 from __future__ import annotations
@@ -274,12 +291,162 @@ def build_buffer(
     return pd.DataFrame(rows)
 
 
+def export_cement_sample(
+    forward_outcome_dir: Path,
+    variant: str,
+    sample_n: int,
+    seed: int,
+    out: Path,
+) -> int:
+    """Export a frozen sample of the cement training distribution (states + rewards).
+
+    Parity is the law here: same load → trunc-mask → state → reward sequence as
+    the cement build (materialize_build_entry_iql_v2.write_artifacts:1540-1566),
+    using its one-truth functions — this function only orders the calls, applies
+    the masks the cement applied, and samples AFTER everything is built.
+    """
+    # Cement env — forced BEFORE importing materialize_build_entry_iql_v2:
+    #   GX1_BUILD_IQL_V2=0  read at module IMPORT (line 395); the live 197-dim
+    #                     state = V1 mode (185 numeric + 12 one-hot — verified
+    #                     vs volbal feature_names_v1); =1 would swap in the
+    #                     297-col V2 set and fail the dead-zero guard on this
+    #                     (non-augmented) forward-outcome frame;
+    #   GX1_REGIME_V4=1   pins the regime one-hot categories/ORDER at
+    #                     build_state_matrix:1043-1052 (cement order LOW/MEDIUM/
+    #                     HIGH/EXTREME — sorted(observed) would reorder them);
+    #   POSGATE/TRUNC_MASK are the volbal reward env (posgate fingerprint-
+    #                     verified — see module header). Conflicting pre-set
+    #                     values = hard error, never a silent override.
+    cement_env = {
+        "GX1_BUILD_IQL_V2": "0",
+        "GX1_REGIME_V4": "1",
+        "GX1_REWARD_BADPATH_POSGATE": "1",
+        "GX1_REWARD_TRUNC_MASK": "1",
+    }
+    for k, v in cement_env.items():
+        cur = os.environ.get(k)
+        if cur is not None and cur != v:
+            raise RuntimeError(
+                f"env conflict: {k}={cur!r} is set but cement-sample export requires {v!r} "
+                f"(ACTIVE volbal bundle parity). Unset it before --export-cement-sample."
+            )
+        os.environ[k] = v
+    LOG.info(f"cement-sample env FORCED (volbal cement parity): {cement_env}")
+
+    from gx1.scripts.materialize_build_entry_iql_v2 import (
+        K_HORIZONS,
+        build_reward_matrix,
+        build_state_matrix,
+        load_forward_outcome_dataset,
+    )
+    from gx1_guards.artifacts import load_decision_artifact
+
+    LOG.info(f"loading forward-outcome dataset from {forward_outcome_dir}")
+    df = load_forward_outcome_dataset(forward_outcome_dir)
+    n_loaded = len(df)
+    # Trunc-mask EXACTLY as the cement applied it (write_artifacts:1547-1553):
+    # drop Friday/week-boundary rows with <48/96 forward bars at K96.
+    _bl = pd.to_numeric(df.get("take_now_long_forward_bars_used_at_K96_v1"), errors="coerce")
+    _bs = pd.to_numeric(df.get("take_now_short_forward_bars_used_at_K96_v1"), errors="coerce")
+    _keep = (_bl.fillna(0) >= 48) & (_bs.fillna(0) >= 48)
+    LOG.info(f"trunc-mask (GX1_REWARD_TRUNC_MASK=1): dropping {int((~_keep).sum()):,}/{n_loaded:,} "
+             f"truncated rows (<48/96 forward bars at K96)")
+    df = df[_keep].reset_index(drop=True)
+
+    # Pre-apply build_state_matrix's completeness mask (its lines 945-952) so X
+    # and R are built from the SAME rows: build_state_matrix drops incomplete
+    # rows INTERNALLY, which would silently misalign X against an R built from
+    # the unmasked df. Pre-masking makes the internal drop a no-op.
+    if "_canonical_features_complete_v1" in df.columns:
+        complete = df["_canonical_features_complete_v1"].fillna(False).astype(bool)
+        if "_chunk0_features_complete_v1" in df.columns:
+            complete &= df["_chunk0_features_complete_v1"].fillna(False).astype(bool)
+        if (~complete).any():
+            LOG.info(f"completeness mask: dropping {int((~complete).sum()):,} incomplete-feature rows")
+            df = df[complete].reset_index(drop=True)
+
+    # Build state + reward on the FULL df, sample AFTER — build_state_matrix's
+    # attach_group_a_dip_struct_ctx_columns computes rolling/window features
+    # whose values CHANGE if computed on a subsample (NEVER subsample first).
+    X, feature_names = build_state_matrix(df)
+    if X.shape[0] != len(df):
+        raise RuntimeError(
+            f"state/reward row misalignment: build_state_matrix returned {X.shape[0]} rows "
+            f"for a {len(df)}-row df despite pre-masking — investigate before exporting."
+        )
+    LOG.info(f"state matrix: {X.shape}, features={len(feature_names)}")
+    # R shape (n, 3, n_K); action layout per build_reward_matrix:500-509:
+    # 0=SKIP, 1=TAKE_LONG, 2=TAKE_SHORT — the exact columns buffer_to_tensors
+    # (online_iql_warmstart.py:74-77) reads back as r_skip/r_long/r_short.
+    R = build_reward_matrix(df, variant=variant)
+    LOG.info(f"reward matrix {variant}: shape={R.shape} mean={float(R.mean()):.3f}")
+
+    # rule 8: the sample anchors a warm-start of the ACTIVE entry_iql bundle —
+    # verify the state contract (names AND order; a same-width reorder would
+    # pass a dim check silently) against the contract-resolved bundle summary.
+    bundle = load_decision_artifact("entry_iql")
+    bundle_names = json.loads((bundle / "summary_v1.json").read_text())["feature_names_v1"]
+    if list(feature_names) != list(bundle_names):
+        diffs = [(i, a, b) for i, (a, b) in enumerate(zip(feature_names, bundle_names)) if a != b]
+        raise RuntimeError(
+            f"state contract mismatch vs ACTIVE entry_iql bundle {bundle.name}: built "
+            f"{len(feature_names)} features vs bundle {len(bundle_names)}; first order diffs: "
+            f"{diffs[:5]} — wrong env or wrong forward-outcome wave for this bundle."
+        )
+    LOG.info(f"state contract verified vs ACTIVE bundle {bundle.name}: "
+             f"{len(feature_names)} features, names+order identical")
+
+    n = len(df)
+    take = min(int(sample_n), n)
+    rng = np.random.default_rng(seed)                      # seeded — reproducible sample
+    idx = np.sort(rng.choice(n, size=take, replace=False))  # sorted = keep chronology
+
+    out_cols: dict[str, np.ndarray] = {}
+    for i in range(X.shape[1]):
+        out_cols[f"s{i:03d}"] = X[idx, i]
+    for ki, k in enumerate(K_HORIZONS):
+        out_cols[f"r_skip_K{k}"] = R[idx, 0, ki]
+        out_cols[f"r_long_K{k}"] = R[idx, 1, ki]
+        out_cols[f"r_short_K{k}"] = R[idx, 2, ki]
+    out_df = pd.DataFrame(out_cols)
+    out_df["source"] = "cement"
+    ts_col = next((c for c in ("decision_ts_utc", "decision_ts", "time") if c in df.columns), None)
+    if ts_col is not None:
+        out_df["ts_utc"] = pd.to_datetime(df[ts_col].iloc[idx], utc=True).astype(str).to_numpy()
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out_df.to_parquet(out, index=False)
+
+    meta_path = out.with_suffix(".meta.json")
+    meta_path.write_text(json.dumps({
+        "mode": "cement_sample_export_v1",
+        "variant": variant,
+        "sym": variant.endswith("_SYM"),
+        "k_horizons_m5": list(K_HORIZONS),
+        "n_rows": int(take),
+        "n_source_rows_after_masks": int(n),
+        "n_loaded_rows": int(n_loaded),
+        "sample_seed": int(seed),
+        "source": "cement",
+        "forward_outcome_dir": str(forward_outcome_dir),
+        "active_bundle_validated": str(bundle),
+        "state_dim": int(X.shape[1]),
+        "feature_names": list(feature_names),
+        "reward_env_v1": {
+            "GX1_REWARD_BADPATH_POSGATE": "1",
+            "GX1_REWARD_TRUNC_MASK": "1",
+        },
+    }, indent=2))
+    LOG.info(f"wrote {take:,} cement-sample rows → {out}")
+    LOG.info(f"wrote metadata → {meta_path}")
+    return 0
+
+
 def main() -> int:
     p = argparse.ArgumentParser()
-    p.add_argument("--from", dest="date_from", type=str, required=True,
-                   help="Start date YYYYMMDD (inclusive)")
-    p.add_argument("--to", dest="date_to", type=str, required=True,
-                   help="End date YYYYMMDD (inclusive)")
+    p.add_argument("--from", dest="date_from", type=str, default=None,
+                   help="Start date YYYYMMDD (inclusive). Required unless --export-cement-sample.")
+    p.add_argument("--to", dest="date_to", type=str, default=None,
+                   help="End date YYYYMMDD (inclusive). Required unless --export-cement-sample.")
     p.add_argument("--suffix", type=str, default="conviction67sized_skipasia_pure_phase6",
                    help="Journal filename suffix (after the date)")
     p.add_argument("--variant", type=str, default="R_WAIT_OPP_K96_LAM50_SYM",
@@ -290,7 +457,31 @@ def main() -> int:
                    help="Cement K-horizons in M5 BARS (must match the bundle ckpt)")
     p.add_argument("--out", type=Path, required=True,
                    help="Output parquet path")
+    # ANTI-FORGETTING export mode (header): journals ignored, cement sample out.
+    p.add_argument("--export-cement-sample", action="store_true",
+                   help="Export a frozen sample of the CEMENT training distribution "
+                        "(states+rewards, buffer-compatible) for --mix-cement anchoring.")
+    p.add_argument("--forward-outcome-dir", type=Path, default=None,
+                   help="per_week dir of the cement forward-outcome dataset "
+                        "(required with --export-cement-sample)")
+    p.add_argument("--sample-n", type=int, default=20000,
+                   help="Cement-sample rows to export (seeded, sampled AFTER full build)")
+    p.add_argument("--seed", type=int, default=20260612,
+                   help="RNG seed for the cement sample (reproducible, never wall-clock)")
     args = p.parse_args()
+
+    if args.export_cement_sample:
+        if args.forward_outcome_dir is None:
+            p.error("--export-cement-sample requires --forward-outcome-dir")
+        return export_cement_sample(
+            forward_outcome_dir=args.forward_outcome_dir,
+            variant=args.variant,
+            sample_n=args.sample_n,
+            seed=args.seed,
+            out=args.out,
+        )
+    if not args.date_from or not args.date_to:
+        p.error("--from/--to are required (unless --export-cement-sample)")
 
     k_horizons_m5 = tuple(int(k) for k in args.k_horizons.split(","))
 
