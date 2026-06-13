@@ -55,6 +55,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from gx1.runtime.exit_iql_v2_adapter import ExitIQLV2Adapter  # noqa: E402
+from gx1.execution.v12_exit_iql_live import strategy_f_decision  # noqa: E402  (one-truth L7A overlay)
 
 ACTION = "JOINT_ENTRY_EXIT_IQL_V5_V12_VALIDATION_GATE"
 DEFAULT_REPORTS_ROOT = Path("/home/andre2/GX1_DATA/reports/truth_e2e_sanity")
@@ -174,6 +175,7 @@ def simulate_one_candidate(
     exit_adapter: ExitIQLV2Adapter,
     v3_override_threshold: float | None,
     max_bars: int,
+    strategy_f: bool = False,
 ) -> dict[str, Any]:
     """Simulate exit decisions per bar for a single candidate.
 
@@ -213,14 +215,40 @@ def simulate_one_candidate(
     iql_exit_indices = np.where(iql_actions == EXIT_NOW_ID)[0]
     iql_exit_bar = int(iql_exit_indices[0]) if len(iql_exit_indices) > 0 else -1
 
-    # Resolve final exit: earliest of (V3 override, IQL EXIT_NOW). V3 wins ties (Stage 4).
-    candidates_for_exit = [b for b in (v3_override_bar, iql_exit_bar) if b >= 0]
+    # Strategy-F overlay (2026-06-13 vedtak L7A): score the +Strategy-F policy LIVE actually runs
+    # (~55% of live exits). The 4-rule overlay (profit-lock / breakeven-cut / hold-horizon-expired,
+    # suppressed by strong-hold) can force an EARLIER EXIT_NOW than the base IQL/v3 exit. ONE-TRUTH
+    # strategy_f_decision shared with v12_exit_iql_live. Only scan up to the base exit (Strategy-F
+    # later than the base exit is irrelevant) for cost.
+    strategy_f_bar = -1
+    if strategy_f:
+        pnl_arr = pd.to_numeric(sub["current_unrealized_pnl_bps_v1"], errors="coerce").to_numpy(dtype=float)
+        run_mfe = np.maximum.accumulate(np.where(np.isfinite(pnl_arr), pnl_arr, -np.inf))
+        hold_pred = pd.to_numeric(pd.Series([candidate_row.get("hold_horizon_pred", -1.0)]),
+                                  errors="coerce").iloc[0]
+        hold_pred = float(hold_pred) if pd.notna(hold_pred) else -1.0
+        _base = [b for b in (v3_override_bar, iql_exit_bar) if b >= 0]
+        _scan_to = (min(_base) if _base else n_bars - 1) + 1
+        for t in range(min(n_bars, _scan_to)):
+            q_adv = float(recs[t].iql_recommendation_v1.advantage_exit_over_hold_v1 or 0.0)
+            _mfe_t = float(run_mfe[t]) if np.isfinite(run_mfe[t]) else 0.0
+            _pnl_t = float(pnl_arr[t]) if np.isfinite(pnl_arr[t]) else 0.0
+            force, _r = strategy_f_decision(_mfe_t, _pnl_t, q_adv, hold_pred, t)
+            if force:
+                strategy_f_bar = t
+                break
+
+    # Resolve final exit: earliest of (V3 override, IQL EXIT_NOW, Strategy-F). V3 wins ties (Stage 4),
+    # then IQL, then Strategy-F.
+    candidates_for_exit = [b for b in (v3_override_bar, iql_exit_bar, strategy_f_bar) if b >= 0]
     if candidates_for_exit:
         first_exit = min(candidates_for_exit)
-        exit_reason = (
-            "V3_OVERRIDE" if v3_override_bar >= 0 and (iql_exit_bar < 0 or v3_override_bar <= iql_exit_bar)
-            else "EXIT_IQL_SIGNAL"
-        )
+        if v3_override_bar >= 0 and first_exit == v3_override_bar:
+            exit_reason = "V3_OVERRIDE"
+        elif iql_exit_bar >= 0 and first_exit == iql_exit_bar:
+            exit_reason = "EXIT_IQL_SIGNAL"
+        else:
+            exit_reason = "STRATEGY_F"
     else:
         first_exit = n_bars - 1
         exit_reason = "FORCED_TERMINAL"
@@ -251,6 +279,8 @@ def simulate_one_candidate(
         "iql_exit_bar": iql_exit_bar + 1 if iql_exit_bar >= 0 else -1,
         "v3_override_bar": v3_override_bar + 1 if v3_override_bar >= 0 else -1,
         "v3_override_fired": exit_reason == "V3_OVERRIDE",
+        "strategy_f_bar": strategy_f_bar + 1 if strategy_f_bar >= 0 else -1,
+        "strategy_f_fired": exit_reason == "STRATEGY_F",
         "n_bars_considered": int(n_bars),
     }
 
@@ -289,6 +319,7 @@ def _replay_eval_chunk(uids) -> list[dict]:
             sim = simulate_one_candidate(
                 cand_bars, side=side, exit_adapter=ctx["exit_adapter"],
                 v3_override_threshold=ctx["v3_thr"], max_bars=ctx["max_bars"],
+                strategy_f=ctx.get("strategy_f", False),
             )
             row = {"candidate_uid": uid, "action_label_v1": action_label, "side_v1": side, **sim}
         rows.append(row)
@@ -304,6 +335,7 @@ def evaluate_config(
     v3_override_threshold: float | None,
     max_bars: int,
     max_candidates: int | None,
+    strategy_f: bool = False,
 ) -> tuple[pd.DataFrame, dict[str, Any]]:
     """Run validation pass for one config (V12_OFF or V12_ON)."""
     print(f"\n[{config_name}] Joining V12 dataset with Entry-IQL decisions...")
@@ -338,6 +370,7 @@ def evaluate_config(
                 sim = simulate_one_candidate(
                     cand_bars, side=side, exit_adapter=exit_adapter,
                     v3_override_threshold=v3_override_threshold, max_bars=max_bars,
+                    strategy_f=strategy_f,
                 )
                 row = {"candidate_uid": uid, "action_label_v1": action_label, "side_v1": side, **sim}
             rows.append(row)
@@ -354,6 +387,7 @@ def evaluate_config(
         _REPLAY_CTX = {
             "merged": merged, "groups": merged.groupby("candidate_uid", sort=False).indices,
             "exit_adapter": exit_adapter, "v3_thr": v3_override_threshold, "max_bars": max_bars,
+            "strategy_f": strategy_f,
         }
         chunks = np.array_split(np.asarray(candidate_uids, dtype=object), _n_workers * 4)
         chunks = [c for c in chunks if len(c)]
@@ -561,6 +595,11 @@ def main() -> int:
                         "baseline run (absolute floors only).")
     p.add_argument("--gate-hard-cap", type=int, default=2,
                    help="Same-side concurrency hard cap modeled in the portfolio gate (matches live HARD_MAX_SAME_SIDE).")
+    p.add_argument("--strategy-f", dest="strategy_f", action="store_true",
+                   default=(os.environ.get("GX1_GATE_STRATEGY_F", "0") == "1"),
+                   help="2026-06-13 L7A: apply the live +Strategy-F exit overlay in the gate "
+                        "(scores the policy live actually runs). Default off = pure Exit-IQL+v3 (the "
+                        "historical cement-validation policy). Env GX1_GATE_STRATEGY_F=1 also enables.")
     args = p.parse_args()
 
     v3tracked = Path(args.v3tracked_lock).expanduser().resolve()
@@ -620,6 +659,7 @@ def main() -> int:
             df, decisions, exit_adapter,
             config_name="V12_OFF", v3_override_threshold=None,
             max_bars=args.max_bars, max_candidates=args.max_candidates,
+            strategy_f=args.strategy_f,
         )
         rows_off.to_csv(out_root / "per_candidate_V12_OFF.csv", index=False)
         summaries.append(sum_off)
@@ -629,7 +669,10 @@ def main() -> int:
             df, decisions, exit_adapter,
             config_name="V12_ON", v3_override_threshold=args.v3_override_threshold,
             max_bars=args.max_bars, max_candidates=args.max_candidates,
+            strategy_f=args.strategy_f,
         )
+    if args.strategy_f:
+        print("[L7A] Strategy-F overlay ACTIVE in the gate (scoring the live +Strategy-F policy).")
         rows_on.to_csv(out_root / "per_candidate_V12_ON.csv", index=False)
         summaries.append(sum_on)
 

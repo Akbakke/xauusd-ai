@@ -130,6 +130,52 @@ LOG.info(
     BREAKEVEN_MIN_MFE, STRONG_HOLD_QADV, HOLD_HORIZON_OVERRUN_MULT, HOLD_HORIZON_MIN_FLOOR_BARS,
 )
 
+
+def strategy_f_decision(
+    mfe_bps: float,
+    pnl_bps: float,
+    iql_q_adv: float,
+    hold_horizon_pred_bars: float,
+    bars_in_trade: int,
+    *,
+    enabled: bool = True,
+) -> tuple[bool, str]:
+    """ONE-TRUTH Strategy-F overlay decision (the 4-rule post-IQL exit override).
+
+    Returns (force_exit_now, reason). reason ∈ {'', 'HOLD_HORIZON_EXPIRED', 'BREAKEVEN_CUT',
+    'MFE_GIVEBACK_OVERRIDE'}. Shared by the LIVE exit (build_bar_state_and_decide) AND the Phase-6
+    gate (v12_phase6_joint_validation.simulate_one_candidate) so the gate scores the +Strategy-F
+    policy live actually runs (2026-06-13 vedtak L7A — the cement had been gated on pure Exit-IQL +
+    v3-override, but live forces ~55% of exits through this overlay). `enabled` lets a caller request
+    a pure-IQL replay arm without the global GX1_STRATEGY_F_ENABLED switch.
+    """
+    if not (enabled and STRATEGY_F_ENABLED):
+        return False, ""
+    mfe = float(mfe_bps or 0.0)
+    pnl = float(pnl_bps or 0.0)
+    drawdown = max(0.0, mfe - pnl)
+    # Rule 1: profit-lock (MFE peak with significant giveback)
+    profit_lock = (mfe >= MFE_GIVEBACK_MIN_MFE_BPS and drawdown >= MFE_GIVEBACK_PCT * mfe and mfe > 0)
+    # Rule 2: break-even-cut (drifting back to zero from peak)
+    breakeven_cut = (mfe >= BREAKEVEN_MIN_MFE and pnl < BREAKEVEN_RATIO * mfe)
+    f_trigger = profit_lock or breakeven_cut
+    # Rule 3: strong-hold override — let lottery winners ride if IQL is VERY confident HOLD.
+    strong_hold = (float(iql_q_adv or 0.0) < STRONG_HOLD_QADV)
+    # Rule 4: hold-horizon-expired — cut stale grinders that never built edge.
+    hold_pred = float(hold_horizon_pred_bars if hold_horizon_pred_bars is not None else -1.0)
+    hold_eff = (max(hold_pred, float(HOLD_HORIZON_MIN_FLOOR_BARS))
+                if hold_pred > HOLD_HORIZON_INVALID_SENTINEL else hold_pred)
+    hold_horizon_expired = (
+        hold_pred > HOLD_HORIZON_INVALID_SENTINEL
+        and int(bars_in_trade or 0) > int(HOLD_HORIZON_OVERRUN_MULT * hold_eff)
+        and mfe < MFE_GIVEBACK_MIN_MFE_BPS
+    )
+    if hold_horizon_expired and not strong_hold:
+        return True, "HOLD_HORIZON_EXPIRED"
+    if f_trigger and not strong_hold:
+        return True, ("BREAKEVEN_CUT" if breakeven_cut and not profit_lock else "MFE_GIVEBACK_OVERRIDE")
+    return False, ""
+
 # V12.4-cement Exit-IQL bundle. The Exit-IQL TRAINING is identical to V12.2's
 # (variant R_V12, FOLD_1). V12.4 differs from V12.2 ONLY in the post-IQL
 # Strategy-F overlay above, NOT in the underlying model. R_V13_MFE_AWARE
@@ -512,67 +558,24 @@ class ExitIQLLiveInference:
             rec = _exit_rec_with_distilled_q(rec, v3_v8_out)
 
         if STRATEGY_F_ENABLED:
-            mfe = float(trade.cum_mfe_bps or 0.0)
-            pnl = float(trade.current_pnl_bps or 0.0)
-            drawdown = max(0.0, mfe - pnl)
-
-            # Rule 1: Profit-lock — MFE peak with significant giveback
-            profit_lock = (mfe >= MFE_GIVEBACK_MIN_MFE_BPS
-                           and drawdown >= MFE_GIVEBACK_PCT * mfe
-                           and mfe > 0)
-
-            # Rule 2 (V12.4): Break-even-cut — trade drifting back to zero from peak
-            breakeven_cut = (STRATEGY_F_ENABLED
-                              and mfe >= BREAKEVEN_MIN_MFE
-                              and pnl < BREAKEVEN_RATIO * mfe)
-
-            f_trigger = profit_lock or breakeven_cut
-
-            # Rule 3 (V12.4): Strong-hold override — let lottery winners ride
-            # if IQL is VERY confident HOLD (Q_adv very negative).
+            # ONE-TRUTH Strategy-F overlay (2026-06-13 L7A): the 4-rule decision is now in
+            # strategy_f_decision so the Phase-6 gate scores the IDENTICAL +Strategy-F policy.
             iql_q_adv = float(rec.iql_recommendation_v1.advantage_exit_over_hold_v1 or 0.0)
-            strong_hold = (STRATEGY_F_ENABLED
-                            and iql_q_adv < STRONG_HOLD_QADV)
-
-            # Rule 4 (V10 v3+ Target 4): hold-horizon-expired — cuts stale trades
-            # when realized hold exceeds K × model's predicted hold AND no
-            # significant MFE accumulated. Only active when bundle has the
-            # hold_horizon head (predicts > 0; legacy bundles return -1).
-            hold_horizon_pred_bars = float(
-                (trade.v10_snapshot or {}).get("hold_horizon_bars_pred", -1.0)
+            force_exit, reason = strategy_f_decision(
+                mfe_bps=float(trade.cum_mfe_bps or 0.0),
+                pnl_bps=float(trade.current_pnl_bps or 0.0),
+                iql_q_adv=iql_q_adv,
+                hold_horizon_pred_bars=float((trade.v10_snapshot or {}).get("hold_horizon_bars_pred", -1.0)),
+                bars_in_trade=int(trade.bars_in_trade or 0),
             )
-            # Apply min-floor to prevent rule firing from bar 3-4 on
-            # low-confidence predictions (audit 3 H-1 fix 2026-05-20).
-            hold_horizon_effective_bars = max(
-                hold_horizon_pred_bars, float(HOLD_HORIZON_MIN_FLOOR_BARS)
-            ) if hold_horizon_pred_bars > HOLD_HORIZON_INVALID_SENTINEL else hold_horizon_pred_bars
-            hold_horizon_expired = (
-                STRATEGY_F_ENABLED
-                and hold_horizon_pred_bars > HOLD_HORIZON_INVALID_SENTINEL
-                and int(trade.bars_in_trade or 0) > int(HOLD_HORIZON_OVERRUN_MULT * hold_horizon_effective_bars)
-                and mfe < MFE_GIVEBACK_MIN_MFE_BPS  # only cut if trade never built real edge
-            )
-            if hold_horizon_expired and not strong_hold:
-                rec = ExitDeciderV12Recommendation(
-                    action_id_v1=EXIT_NOW_ID,
-                    action_label_v1="EXIT_NOW",
-                    decision_source_v1="HOLD_HORIZON_EXPIRED",
-                    v3_should_exit_prob_v1=rec.v3_should_exit_prob_v1,
-                    iql_recommendation_v1=rec.iql_recommendation_v1,
-                    override_threshold_v1=HOLD_HORIZON_OVERRUN_MULT,
-                )
-                return rec, bar_state
-
-            if f_trigger and not strong_hold:
-                # F override — exit now
-                reason = ("BREAKEVEN_CUT" if breakeven_cut and not profit_lock
-                          else "MFE_GIVEBACK_OVERRIDE")
+            if force_exit:
                 rec = ExitDeciderV12Recommendation(
                     action_id_v1=EXIT_NOW_ID,
                     action_label_v1="EXIT_NOW",
                     decision_source_v1=reason,
                     v3_should_exit_prob_v1=rec.v3_should_exit_prob_v1,
                     iql_recommendation_v1=rec.iql_recommendation_v1,
-                    override_threshold_v1=MFE_GIVEBACK_PCT,
+                    override_threshold_v1=(HOLD_HORIZON_OVERRUN_MULT
+                                           if reason == "HOLD_HORIZON_EXPIRED" else MFE_GIVEBACK_PCT),
                 )
         return rec, bar_state
