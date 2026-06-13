@@ -98,6 +98,13 @@ export GX1_SIZING_MODE=both
 export GX1_SIZING_MAX_MULT=2.0
 export GX1_SIZING_MIN_MULT=0.5
 export GX1_SIZING_CONV_LO=-37.71
+# 2026-06-13 MARGIN²-SIZING armed (user vedtak «mer gass mer hale → Fortsett»): conviction source
+# raw_adv → margin (=1−uncertainty, corr 0.36 w/ realized vs raw_adv's 0.04). At the −100 gate replay
+# raw_adv-sizing HURT (−3% vs flat); margin² = +16.6% TOTAL but worst-trade −48→−81, maxDD 135→233
+# (~70% bigger tail — the deliberate gas/tail tradeoff). REVERSIBLE: GX1_SIZING_CONV_SRC=raw_adv (or
+# =margin GX1_SIZING_MARGIN_POW=1.0 for the gentler +10% margin¹). margin² × inverse-ATR (mode=both).
+export GX1_SIZING_CONV_SRC=margin
+export GX1_SIZING_MARGIN_POW=2.0
 export GX1_SIZING_CONV_HI=-13.99
 export GX1_SIZING_ATR_REF_BPS=14.0
 export GX1_SIZING_ATR_FLOOR_BPS=14.0
