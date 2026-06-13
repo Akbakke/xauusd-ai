@@ -9,6 +9,10 @@
 #   3.  ENTRY replay buffer (matured D-8..D-2; 25h K-aging) + EXIT-side transition
 #       buffer (dataset-only — refit rewards go through the exit builder's defs)
 #   4.  KS distribution-drift check (rule-9 drift leg — ADVISORY, never blocks)
+#   4b. TRUE exit-chain net-capture (SAMPLED, top-K/day): grounds the cheap
+#       Strategy-F-floor managed-net on the highest-value SKIPs by running the
+#       REAL exit chain forward (make_exit_decision). ~37s/replay → sampled.
+#       ANALYSIS ONLY, best-effort, RAM-guarded; never fails the night.
 #   5.  Nightly report JSON in nightly_learning/ + severity-folded exit code
 #
 # REFIT leg (CLAUDE.md rule 3 — NEVER runs without a standing vedtak):
@@ -175,6 +179,43 @@ else
     log "drift skipped — ACTIVE bundle has no drift_reference_v1.parquet (generate via --write-drift-reference)"
 fi
 
+# ── 4b. TRUE exit-chain net-capture (SAMPLED analysis tier) ───────────────────
+# Grounds the cheap Strategy-F-floor managed-net (action 2) on the highest-value
+# SKIPs by running the REAL exit chain (V3 + Exit-IQL + Strategy-F) forward via
+# the live one-truth make_exit_decision — ~37s/replay, so SAMPLED (top-K/day).
+# ANALYSIS ONLY: no vedtak, no retrain, no contract touch. LOWEST priority — a
+# failure here must NEVER fail the night (it is the last best-effort leg).
+# RAM: the V12Pipeline load is ~2-3 GB; we re-check headroom and SKIP loud if a
+# heavy build crept in since leg 1 (never OOM the box — AGENTS.md hard ceiling).
+TRUE_NETCAP_K="${GX1_TRUE_NETCAP_K:-20}"
+NETCAP_AVAIL_GB=$(free -g | awk 'NR==2{print $7}')
+# Most-recent matured counterfactual report (managed-net enriched by the hourly
+# daemon). Use the configured suffix; pick the newest dated file for it.
+CF_REPORT=$(ls -t "$CF_DIR"/counterfactual_*_"${SUFFIX}".jsonl 2>/dev/null | head -1)
+if (( NETCAP_AVAIL_GB < 8 )); then
+    STATUS[true_netcap]="skipped(ram=${NETCAP_AVAIL_GB}GB<8)"
+    log "true-netcap SKIP: only ${NETCAP_AVAIL_GB} GB available (<8) — not loading the pipeline."
+elif [[ -z "$CF_REPORT" ]]; then
+    STATUS[true_netcap]="skipped(no_report)"
+    log "true-netcap SKIP: no counterfactual_*_${SUFFIX}.jsonl in $CF_DIR yet."
+else
+    NETCAP_DATE=$(basename "$CF_REPORT" | sed -E 's/counterfactual_([0-9]+)_.*/\1/')
+    NETCAP_OUT="$OUT_DIR/true_netcap_${NETCAP_DATE}.parquet"
+    log "true-netcap (k=$TRUE_NETCAP_K) on $(basename "$CF_REPORT") → $NETCAP_OUT"
+    if PYTHONPATH=$REPO $PY -m gx1.research.exit_netcapture \
+            --skip-source "$CF_REPORT" --top-k "$TRUE_NETCAP_K" \
+            --out "$NETCAP_OUT" > "$OUT_DIR/true_netcap_${TODAY}.log" 2>&1; then
+        STATUS[true_netcap]=ok
+        log "true-netcap ok → $NETCAP_OUT"
+        tail -8 "$OUT_DIR/true_netcap_${TODAY}.log" || true
+    else
+        rc=$?
+        # best-effort: a replay/pipeline failure must not fail the night.
+        STATUS[true_netcap]="skipped(rc=$rc)"
+        log "true-netcap skipped/failed rc=$rc — see $OUT_DIR/true_netcap_${TODAY}.log"
+    fi
+fi
+
 # ── 5. REFIT leg — standing vedtak required (rule 3), PENDING only (rule 8) ──
 if [[ -f "$STANDING_VEDTAK_FILE" ]] && [[ -s "$STANDING_VEDTAK_FILE" ]]; then
     VEDTAK=$(head -1 "$STANDING_VEDTAK_FILE" | tr -d '[:space:]')
@@ -264,13 +305,13 @@ fi
     echo "  \"date\": \"$TODAY\","
     echo "  \"suffix\": \"$SUFFIX\","
     echo "  \"variant\": \"$VARIANT\","
-    for k in verdicts tape buffer exit_buffer drift refit gate; do
+    for k in verdicts tape buffer exit_buffer drift true_netcap refit gate; do
         echo "  \"$k\": \"${STATUS[$k]:-unknown}\","
     done
     echo "  \"ram_avail_gb\": $AVAIL_GB"
     echo "}"
 } > "$REPORT"
-log "nightly report → $REPORT  [verdicts=${STATUS[verdicts]:-?} tape=${STATUS[tape]:-?} buffer=${STATUS[buffer]:-?} exit_buf=${STATUS[exit_buffer]:-?} drift=${STATUS[drift]:-?} refit=${STATUS[refit]:-?} gate=${STATUS[gate]:-?}]"
+log "nightly report → $REPORT  [verdicts=${STATUS[verdicts]:-?} tape=${STATUS[tape]:-?} buffer=${STATUS[buffer]:-?} exit_buf=${STATUS[exit_buffer]:-?} drift=${STATUS[drift]:-?} true_netcap=${STATUS[true_netcap]:-?} refit=${STATUS[refit]:-?} gate=${STATUS[gate]:-?}]"
 
 # Severity fold (2026-06-12 adversarial finding): the oneshot must not report
 # SUCCESS on a wasted night. Hard failures = nonzero so journalctl/OnFailure can
