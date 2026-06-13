@@ -202,7 +202,11 @@ print(load_decision_artifact('entry_iql'))")
         MIX_ARGS=()
         CEMENT_SAMPLE="$BASE_BUNDLE/cement_replay_sample_v1.parquet"
         if [[ -s "$CEMENT_SAMPLE" ]]; then
-            MIX_ARGS=(--mix-cement "$CEMENT_SAMPLE" --mix-weight 0.5)
+            # Self-scaling anchor (2026-06-13): target live = 15% of loss mass so a
+            # small early buffer is not drowned (the first refit's 95 live rows were
+            # 0.95% mass → candidate ≈ cement → gate FAIL on no movement). As the
+            # buffer grows the anchor grows with it (capped at the 20k sample).
+            MIX_ARGS=(--mix-cement "$CEMENT_SAMPLE" --mix-weight 0.5 --cement-target-live-frac 0.15)
         else
             log "WARNING: no cement_replay_sample_v1.parquet in $(basename "$BASE_BUNDLE") — refit runs UNMIXED (forgetting risk)"
         fi

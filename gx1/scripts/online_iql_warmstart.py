@@ -223,6 +223,12 @@ def main() -> int:
                         "--export-cement-sample) mixed in as anti-forgetting anchor")
     p.add_argument("--mix-weight", type=float, default=0.5,
                    help="Per-row loss weight for cement rows (live rows always 1.0)")
+    p.add_argument("--cement-target-live-frac", type=float, default=None,
+                   help="If set (e.g. 0.15), SUBSAMPLE the cement anchor so live rows are this "
+                        "fraction of the TOTAL loss mass — self-scales with buffer size so a tiny "
+                        "live buffer is not drowned (2026-06-13: 95 live vs 20000 cement = 0.95%% "
+                        "mass, candidate ≈ cement). cement_rows = n_live*(1-f)/f/mix_weight, capped "
+                        "at the available sample. None = use the full cement sample (legacy).")
     p.add_argument("--variant", type=str, required=True,
                    help="Variant to warm-start (must match a cement checkpoint)")
     p.add_argument("--fold", type=str, default="FOLD_1", choices=["FOLD_1", "FOLD_2", "FOLD_3"])
@@ -344,6 +350,24 @@ def main() -> int:
             raise RuntimeError(
                 f"cement sample state_dim={X_cem.shape[1]} != live buffer state_dim={X_new.shape[1]}."
             )
+        # SELF-SCALING anchor (2026-06-13): cap the cement rows so live reaches a
+        # target fraction of the total loss mass. With f and weight w:
+        #   live_mass = n_live;  cement_mass = n_cem*w;  f = live_mass/(live+cement)
+        #   => n_cem = n_live*(1-f)/f/w   (capped at the available sample)
+        # A small live buffer now gets a proportionally small anchor (meaningful),
+        # and as live grows the anchor grows with it up to the full sample.
+        if args.cement_target_live_frac is not None:
+            f = float(args.cement_target_live_frac)
+            if not (0.0 < f < 1.0):
+                raise RuntimeError(f"--cement-target-live-frac must be in (0,1), got {f}")
+            n_cem_target = int(round(n_live * (1.0 - f) / f / max(float(args.mix_weight), 1e-6)))
+            n_cem_target = max(1, min(n_cem_target, int(X_cem.shape[0])))
+            if n_cem_target < X_cem.shape[0]:
+                rng = np.random.default_rng(args.seed)
+                sel = rng.choice(int(X_cem.shape[0]), size=n_cem_target, replace=False)
+                X_cem, R_cem = X_cem[sel], R_cem[sel]
+                LOG.info(f"cement anchor SUBSAMPLED to {n_cem_target}/{cem_meta['n_rows']} rows "
+                         f"for target live-frac={f} (live={n_live})")
         n_cem = int(X_cem.shape[0])
         X_new = np.concatenate([X_new, X_cem], axis=0)
         R_new = np.concatenate([R_new, R_cem], axis=0)
@@ -351,9 +375,12 @@ def main() -> int:
             np.ones(n_live, dtype=np.float32),
             np.full(n_cem, float(args.mix_weight), dtype=np.float32),
         ])
+        _live_mass = float(n_live)
+        _cem_mass = n_cem * float(args.mix_weight)
+        _live_frac = _live_mass / max(_live_mass + _cem_mass, 1e-9)
         LOG.info(f"ANTI-FORGETTING MIX: {n_live} live rows (w=1.0) + {n_cem} cement rows "
                  f"(w={args.mix_weight}) = {n_live + n_cem} total — loss mass "
-                 f"live={float(n_live):.1f} vs cement={n_cem * float(args.mix_weight):.1f}")
+                 f"live={_live_mass:.1f} vs cement={_cem_mass:.1f} (live-frac={_live_frac:.1%})")
 
     new_ckpt = warmstart_train(
         cement["ckpt"], X_new, R_new,
