@@ -15,6 +15,17 @@ Asking me to confirm every little thing creates misery — DON'T. (Protected-cor
 marker-gated as of 2026-06-05 — the hook warns, doesn't block; edit the live chain deliberately per
 rule 1, no per-edit `touch`. Reversible-first cleanup per rule 5 needs no per-item ask within an authorized wave.)
 
+## ALWAYS BUILD, NEVER REMOVE — FIX AND IMPLEMENT (user vedtak 2026-06-13, MUST ALWAYS BE FOLLOWED)
+When two artifacts/schemas/feature-sets differ, the answer is NEVER to DROP capability to match the
+lesser one — it is to UPGRADE the lesser one UP to the richer one. We drop NOTHING. A richer schema
+(more features / more regime cols / more capability) is the target; bring everything else up to it,
+fix the wiring, implement the missing side. Example (the mistake that birthed this rule): a rebuilt
+BASE34 had 114 cols WITH the REGIME_V4 block; the live serve had 62 WITHOUT it. The WRONG move is
+"rebuild regime-OFF to match live's 62"; the RIGHT move is "keep the 114 WITH regime and upgrade the
+live serve + daemon to the 114-col regime-aware schema." Removing features to make a swap easier is
+forbidden. If a model/serve path lacks a feature the build has, that is a GAP to CLOSE (build it in),
+never a reason to delete the feature. Always build, fix, implement — never amputate.
+
 1. **Protected core — edit DELIBERATELY (hard marker-gate removed 2026-06-05, user vedtak).** The live
    chain / SACRED transformer contracts — `gx1/execution/`, `gx1/contracts/`, `gx1/exits/contracts/`,
    `gx1/models/entry_v10/`, `gx1/core/` — are no longer marker-gated (the per-edit `touch` friction was
