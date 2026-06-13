@@ -250,21 +250,35 @@ SIZING_MAX_MULT = float(os.environ.get("GX1_SIZING_MAX_MULT", "1.0"))        # 1
 SIZING_MIN_MULT = float(os.environ.get("GX1_SIZING_MIN_MULT", "1.0"))
 SIZING_CONV_LO = float(os.environ.get("GX1_SIZING_CONV_LO", os.environ.get("GX1_CONVICTION_THR", "-34.2")))
 SIZING_CONV_HI = float(os.environ.get("GX1_SIZING_CONV_HI", "40.0"))
+# 2026-06-13: conviction-sizing SOURCE. raw_adv (the IQL advantage, DEFAULT) was proven a DEAD sizing
+# signal on May/Jun (corr(raw_adv,realized)=+0.04; raw_adv-sizing only +2%). The XGB/V10 entry-confidence
+# `margin` (= p_hat top1−top2 ≈ 1−uncertainty_score) correlates +0.36 with realized PnL → mean-preserving
+# size~margin^POW gained +22% (margin^2) on the actual realized-bps A/B. Opt-in + reversible; set
+# GX1_SIZING_CONV_SRC=margin (+ GX1_SIZING_MIN_MULT=0.5, MAX_MULT=2.0) to arm the A/B winner.
+SIZING_CONV_SRC = os.environ.get("GX1_SIZING_CONV_SRC", "raw_adv")            # raw_adv | margin
+SIZING_MARGIN_POW = float(os.environ.get("GX1_SIZING_MARGIN_POW", "2.0"))     # margin^POW
+SIZING_MARGIN_REF = float(os.environ.get("GX1_SIZING_MARGIN_REF", "0.3318"))  # full-history mean(margin^2) = mean-preserving norm
 SIZING_ATR_REF = float(os.environ.get("GX1_SIZING_ATR_REF_BPS", "18.0"))
 SIZING_ATR_FLOOR = float(os.environ.get("GX1_SIZING_ATR_FLOOR_BPS", "6.0"))
 if SIZING_MODE != "off" and SIZING_MAX_MULT != 1.0:
     LOG.warning("[GX1_SIZING] mode=%s max_mult=%.2f — position sizing OVERLAY active (reversible)", SIZING_MODE, SIZING_MAX_MULT)
 
 
-def size_units(base_units: int, raw_adv: float, atr_bps_now: float):
+def size_units(base_units: int, raw_adv: float, atr_bps_now: float, margin: float | None = None):
     """Serve-time conviction/vol position sizing. DEFAULT-OFF (or max_mult=1.0) == flat units (cement path)."""
     if SIZING_MODE == "off" or SIZING_MAX_MULT == 1.0:
         return base_units, 1.0
     m = 1.0
     if SIZING_MODE in ("conviction", "both"):
-        span = max(SIZING_CONV_HI - SIZING_CONV_LO, 1e-6)
-        frac = min(max((raw_adv - SIZING_CONV_LO) / span, 0.0), 1.0)
-        m *= 1.0 + (SIZING_MAX_MULT - 1.0) * frac
+        if SIZING_CONV_SRC == "margin" and margin is not None:
+            # mean-preserving margin^POW (the +22% A/B winner): size~ margin^POW / mean(margin^POW),
+            # so the average trade sizes ~1× (clamp [MIN,MAX] handles the tails). margin is the
+            # XGB/V10 entry confidence (corr 0.36 w/ realized vs raw_adv's 0.04).
+            m *= (max(float(margin), 0.0) ** SIZING_MARGIN_POW) / max(SIZING_MARGIN_REF, 1e-9)
+        else:
+            span = max(SIZING_CONV_HI - SIZING_CONV_LO, 1e-6)
+            frac = min(max((raw_adv - SIZING_CONV_LO) / span, 0.0), 1.0)
+            m *= 1.0 + (SIZING_MAX_MULT - 1.0) * frac
     if SIZING_MODE in ("voltarget", "both"):
         # 2026-06-11 FAIL-CLOSED fix: atr_bps_now <= 0 means NO vol data (live_feats={} on any
         # feature_builder failure / short M1 window) — the old floor-clamp mapped exactly that
@@ -984,9 +998,15 @@ def main() -> int:
                     raw_adv = max(float(decision.get("advantage_over_skip_long", 0.0)),
                                   float(decision.get("advantage_over_skip_short", 0.0)))
                     _atr_bps = float(live_feats.get("atr14_m5_bps", 0.0) or 0.0)
-                    trade_units, units_mult = size_units(args.units, raw_adv, _atr_bps)
+                    # margin = XGB/V10 entry confidence (p_hat top1−top2 ≈ 1−uncertainty); the +22% A/B
+                    # sizing source when GX1_SIZING_CONV_SRC=margin (raw_adv stays the default).
+                    _margin = decision.get("margin", decision.get("margin_top1_top2"))
+                    _margin = float(_margin) if _margin is not None else None
+                    trade_units, units_mult = size_units(args.units, raw_adv, _atr_bps, margin=_margin)
                     event["sizing_mode"] = SIZING_MODE
+                    event["sizing_conv_src"] = SIZING_CONV_SRC
                     event["sizing_raw_adv"] = raw_adv
+                    event["sizing_margin"] = _margin
                     event["sizing_atr_bps"] = _atr_bps
                 else:
                     trade_units, units_mult = units_from_position_size_pred(
