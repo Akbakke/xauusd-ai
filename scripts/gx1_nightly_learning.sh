@@ -35,7 +35,7 @@ OUT_DIR=$PAPER_DIR/nightly_learning
 REPLAY_DIR=/home/andre2/GX1_DATA/reports/online_replay
 ONLINE_IQL_DIR=/home/andre2/GX1_DATA/reports/online_iql
 STANDING_VEDTAK_FILE=/home/andre2/GX1_DATA/config/nightly_refit_standing_vedtak.txt
-SUFFIX="${GX1_NIGHTLY_SUFFIX:-conviction67sized_skipasia_pure_phase6}"
+SUFFIX="${GX1_NIGHTLY_SUFFIX:-open100_conv_sized_skipasia_pure_phase6}"   # 2026-06-13: tracks the live open-more(-100)+margin² config (was conviction67sized)
 VARIANT="${GX1_NIGHTLY_VARIANT:-R_WAIT_OPP_K96_LAM50_SYM}"
 TODAY=$(date -u +%Y%m%d)
 mkdir -p "$OUT_DIR" "$REPLAY_DIR"
@@ -299,13 +299,24 @@ else
     log "refit not armed (no standing vedtak at $STANDING_VEDTAK_FILE) — analysis-only night"
 fi
 
+# ── 5b. Operating-point A/B: LIVE open100+margin² vs conviction67 baseline ──────
+# 2026-06-13: grades the armed open-more(−100) + margin²-sizing flip on REAL trades vs the prior
+# operating point (per-trade journal arithmetic; graceful no-op until live data resolves Monday).
+log "operating-point A/B: open100+margin² vs conviction67 (on resolved live trades)"
+if PYTHONPATH=$REPO $PY -m gx1.scripts.nightly_op_comparison --live-suffix "$SUFFIX" \
+       > "$OUT_DIR/op_comparison_${TODAY}.log" 2>&1; then
+    STATUS[op_cmp]=ok; tail -1 "$OUT_DIR/op_comparison_${TODAY}.log" | sed 's/^/    /'
+else
+    STATUS[op_cmp]=FAIL; log "op-comparison FAILED — see $OUT_DIR/op_comparison_${TODAY}.log"
+fi
+
 # ── 6. Report ─────────────────────────────────────────────────────────────────
 {
     echo "{"
     echo "  \"date\": \"$TODAY\","
     echo "  \"suffix\": \"$SUFFIX\","
     echo "  \"variant\": \"$VARIANT\","
-    for k in verdicts tape buffer exit_buffer drift true_netcap refit gate; do
+    for k in verdicts tape buffer exit_buffer drift true_netcap op_cmp refit gate; do
         echo "  \"$k\": \"${STATUS[$k]:-unknown}\","
     done
     echo "  \"ram_avail_gb\": $AVAIL_GB"
