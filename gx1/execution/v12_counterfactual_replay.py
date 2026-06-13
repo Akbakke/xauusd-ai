@@ -162,12 +162,14 @@ def compute_forward_outcome(m1: pd.DataFrame, entry_idx: int,
 # This is the CHEAP, vectorized, daemon-safe estimate: walk the forward window
 # applying ONLY the model-free Strategy-F overlay (rules 1 PROFIT-LOCK + 2
 # BREAKEVEN-CUT) the live exit applies — constants IMPORTED one-truth from
-# v12_exit_iql_live (never hardcoded). It is an UPPER BOUND on managed
-# re-capture: the live chain ALSO runs V3 should_exit + Exit-IQL Q + Strategy-F
-# rules 3/4 (IQL/V10-dependent) which exit EARLIER on winners (627/629:
-# Strategy-F-floor held to +55, the true chain cut at +11). Read it as
-# "managed-net FLOOR, not true exit-chain net"; the true number needs the
-# sampled nightly true-chain tier (a tracked follow-up).
+# v12_exit_iql_live (never hardcoded). It is a LOOSE TWO-WAY approximation, NOT
+# an upper bound (corrected 2026-06-13 by the true-chain tier): the live chain
+# ALSO runs V3 should_exit + Exit-IQL Q + Strategy-F rules 3/4 (the MFE-giveback
+# OVERRIDE lets winners RIDE), so vs ground truth the floor UNDERSTATES winners
+# (gx1/research/exit_netcapture smoke: floor 2.5 vs true +22.7) and OVERSTATES
+# losers (floor 21.8 vs true +3.4). Read it as a coarse triage that strips the
+# worst raw-peak FOMO; the gx1/research/exit_netcapture sampled nightly tier is
+# the ground truth on the top-K.
 def _strategy_f_constants() -> tuple[float, float, float, float]:
     from gx1.execution.v12_exit_iql_live import (
         MFE_GIVEBACK_PCT, MFE_GIVEBACK_MIN_MFE_BPS, BREAKEVEN_RATIO, BREAKEVEN_MIN_MFE)
@@ -513,7 +515,8 @@ def replay_journal(journal_path: Path) -> tuple[list[dict], dict]:
         round(float(np.mean(_mgd_nets)), 2) if _mgd_nets else 0.0)
     stats["missed_opportunity_raw_vs_managed"] = (
         f"raw {stats['missed_opportunity_count']} flags / managed {len(_mgd)} flags "
-        f"(managed = Strategy-F-floor net, an UPPER BOUND; true chain cuts earlier)")
+        f"(managed = Strategy-F-floor net, a LOOSE two-way approx — strips raw-peak "
+        f"FOMO but can under/over-state; true-chain tier is ground truth)")
 
     # Per-trade critic aggregates (2026-06-12, ladder track B)
     stats["correct_skip_count"] = sum(1 for e in enriched if e.get("correct_skip"))
