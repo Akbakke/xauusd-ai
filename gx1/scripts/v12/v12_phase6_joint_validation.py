@@ -230,7 +230,9 @@ def simulate_one_candidate(
         _base = [b for b in (v3_override_bar, iql_exit_bar) if b >= 0]
         _scan_to = (min(_base) if _base else n_bars - 1) + 1
         for t in range(min(n_bars, _scan_to)):
-            q_adv = float(recs[t].iql_recommendation_v1.advantage_exit_over_hold_v1 or 0.0)
+            # adapter ExitRecommendation exposes advantage_exit_over_hold_v1 FLAT (the live
+            # ExitDeciderV12Recommendation nests it under .iql_recommendation_v1 — different type).
+            q_adv = float(getattr(recs[t], "advantage_exit_over_hold_v1", 0.0) or 0.0)
             _mfe_t = float(run_mfe[t]) if np.isfinite(run_mfe[t]) else 0.0
             _pnl_t = float(pnl_arr[t]) if np.isfinite(pnl_arr[t]) else 0.0
             force, _r = strategy_f_decision(_mfe_t, _pnl_t, q_adv, hold_pred, t)
