@@ -88,7 +88,12 @@ export GX1_USE_DISTILLED_EXIT=0
 # Kontrakten (entry_iql.operating_point) er sannhetskilden; kommentarene over beskriver v1/v2-historikken.
 export GX1_CONVICTION_GATE=1
 export GX1_SKIP_ASIA=1
-export GX1_CONVICTION_THR=-37.71
+# 2026-06-13 OPEN-MORE (user vedtak «B: -100 er perfekt»): gate −37.71 → −100. May/Jun actual-exit
+# ladder (NON-ASIA, +Strategy-F): coverage 19%→33%, TOTAL bps +70%, win 87→86% (≈unchanged), worst-MAE
+# −68 UNCHANGED, per-take edge ~11 bps held. OOT-corroborated (skip pool 87.6% would-win, net+ every
+# week). DD scales with trade count (cap=3 caps concurrency). SIZING_CONV_LO stays pinned −37.71 below,
+# so the NEW marginal trades enter at base size (no conviction boost). REVERSIBLE: thr back to −37.71.
+export GX1_CONVICTION_THR=-100
 export GX1_SIZING_MODE=both
 export GX1_SIZING_MAX_MULT=2.0
 export GX1_SIZING_MIN_MULT=0.5
@@ -231,7 +236,7 @@ UNITS=${GX1_PAPER_UNITS:-5}   # 2026-06-11: 10→5 with SIZING_MAX_MULT=2.0 — 
 # −201 DD was measured at this cap. Default was 100 (unbounded-risk footgun); pinned to 3 for live.
 MAX_TRADES=${GX1_PAPER_MAX_TRADES:-3}
 MAX_SPREAD=${GX1_PAPER_MAX_SPREAD_BPS:-9999}
-SUFFIX=${GX1_PAPER_SUFFIX:-conviction67sized_skipasia_pure_phase6}
+SUFFIX=${GX1_PAPER_SUFFIX:-open100_conv_sized_skipasia_pure_phase6}   # 2026-06-13 open-more thr -100 (was conviction67sized)
 
 # Orphan-reaper (2026-06-13 audit): the spawn gate below only kill -0's the SINGLE pid in the
 # pid-file, so every relaunch that found that pid dead spawned a fresh runner ON TOP of still-alive
