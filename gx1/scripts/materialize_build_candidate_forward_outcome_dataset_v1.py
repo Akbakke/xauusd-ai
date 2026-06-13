@@ -596,24 +596,35 @@ def build_realopen_occupancy(decisions_path, m5_time_ns, m5_mid_arr,
 
 
 def realopen_at(occ, occ_starts, ts_ns, cur_close, lookback_min):
-    """Real-open portfolio features at ts from the single-slot book (cap=1 → ≤1 overlap)."""
+    """Real-open portfolio features at ts from the cap=N book.
+
+    2026-06-13 L7B: counts ALL concurrently-open intervals (was hardcoded to the single
+    most-recent interval = cap=1 only, which silently UNDERCOUNTED portfolio_n_open_long/short +
+    combined_pnl at cap>1 — the entry features were thus trained in a cap=1 domain while live runs
+    max_trades=3). Reduces EXACTLY to the prior cap=1 result when ≤1 interval is open. Relies on the
+    fixed hold (build_realopen_occupancy uses a constant hold_ns) so end_ns is monotonic in start_ns
+    and we can stop scanning once an interval has already closed."""
     n_long = n_short = 0
     sum_pnl = 0.0
-    last_start = None
     j = bisect.bisect_right(occ_starts, ts_ns) - 1   # last interval starting at/before ts
-    if j >= 0:
-        iv = occ[j]
-        last_start = iv["start_ns"]
-        if iv["start_ns"] < ts_ns <= iv["end_ns"]:    # entered strictly before, not yet exited
+    # time_since = since the MOST RECENT entry at/before ts (open or closed) — cap-independent.
+    last_entry_start = occ[j]["start_ns"] if j >= 0 else None
+    k = j
+    while k >= 0:
+        iv = occ[k]
+        if iv["end_ns"] < ts_ns:
+            break  # closed; all earlier intervals also closed (fixed hold → monotonic end_ns)
+        if iv["start_ns"] < ts_ns:  # entered strictly before, still open (ts <= end guaranteed)
             ec = iv["entry_close"]
             if ec > 0 and cur_close > 0:
-                sum_pnl = ((cur_close - ec) if iv["side"] == "long" else (ec - cur_close)) / ec * 10000.0
+                sum_pnl += ((cur_close - ec) if iv["side"] == "long" else (ec - cur_close)) / ec * 10000.0
             if iv["side"] == "long":
-                n_long = 1
+                n_long += 1
             else:
-                n_short = 1
-    if last_start is not None:
-        time_since = min(float(lookback_min), (ts_ns - last_start) / 60_000_000_000)
+                n_short += 1
+        k -= 1
+    if last_entry_start is not None:
+        time_since = min(float(lookback_min), (ts_ns - last_entry_start) / 60_000_000_000)
     else:
         time_since = float(lookback_min)
     return n_long, n_short, sum_pnl, time_since
