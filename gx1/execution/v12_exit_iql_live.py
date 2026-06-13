@@ -421,8 +421,17 @@ class ExitIQLLiveInference:
         # Entry-IQL H6 mappings (materialize_inference_batch_candidates_v3_v1). Else cement
         # placeholder. Per-bar regime from canonical_v3_row (Exit ALWAYS M1, per-bar conditioning).
         if os.environ.get("GX1_REGIME_V4", "0") == "1":
-            _tr = int(canonical_v3_row.get("trend_regime_id", 1) or 1)
-            _vr = int(canonical_v3_row.get("vol_regime_id", 2) or 2)
+            # NaN-safe coercion (2026-06-13 audit): the old `... or 1` / `... or 2`
+            # truthiness-coerced a VALID id 0 to the default — trend_regime_id=0
+            # (TREND_DOWN) became NEUTRAL and vol_regime_id=0 (LOW, ~20% of bars)
+            # became MEDIUM, so TREND_DOWN + vol_regime_LOW could NEVER be emitted
+            # live on the EXIT side (~20% of in-trade M1 bars got the WRONG regime
+            # one-hot — a silent train≠serve skew). Same bug the entry side fixed
+            # 2026-06-11; this is the exit-side twin the entry fix missed. Mirror it.
+            _tr_raw = canonical_v3_row.get("trend_regime_id")
+            _tr = int(_tr_raw) if _tr_raw is not None and np.isfinite(_tr_raw) else 1
+            _vr_raw = canonical_v3_row.get("vol_regime_id")
+            _vr = int(_vr_raw) if _vr_raw is not None and np.isfinite(_vr_raw) else 2
             _vl = {0: "LOW", 1: "LOW", 2: "MEDIUM", 3: "HIGH", 4: "EXTREME"}.get(_vr, "MEDIUM")
             _tl = {0: "TREND_DOWN", 1: "TREND_NEUTRAL", 2: "TREND_UP"}.get(_tr, "TREND_NEUTRAL")
             for _v in ("LOW", "MEDIUM", "HIGH", "EXTREME"):

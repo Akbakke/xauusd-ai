@@ -110,6 +110,18 @@ fi
 FORCE=0
 [[ "${1-}" == "--force" ]] && FORCE=1
 
+# ── Rule 2: git-clean before the live launch (2026-06-13 audit gap) ──────────
+# CLAUDE.md rule 2 says git-clean before ANY run, explicitly incl. live launch —
+# but this launcher had no git check, so the highest-stakes run (the live XGB→V10
+# →IQL→V3→Exit decision stack) could start on a dirty tree (we don't know what
+# we're running). Mirror fase2b_rebuild.sh / gx1_candidate_gate.sh. --force skips
+# (deliberate operator override only).
+if [[ "$FORCE" != "1" ]] && [[ -n "$(git -C /home/andre2/src/GX1_ENGINE status --short)" ]]; then
+    echo "FATAL: git tree is dirty — rule 2 (git-clean before any run, incl. live launch). Commit/stash, or pass --force to override deliberately:"
+    git -C /home/andre2/src/GX1_ENGINE status --short
+    exit 1
+fi
+
 # ── Rule-9 LIVE-TAIL preflight (user vedtak 2026-06-11) ─────────────────────
 # Freeze-signature scan of the live cv3+BASE34 prebuilt tails BEFORE launching anything:
 # a was-varying column that is now constant on the recent tail = the 2026-05-25 BASE34
