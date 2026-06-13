@@ -58,6 +58,15 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+# ONE-TRUTH REGIME_V4 per-TF V2 mtf scalar projection (5-TF/9-feat). Shared with the
+# canonical_incremental daemon + build so the live serve, the daemon-maintained BASE34,
+# and the training BASE34 all project the SAME per-TF regime inputs (no train≠serve).
+from gx1.features.htf_features import (
+    REGIME_V4_V2_MTF_PER_TF,
+    REGIME_V4_V2_MTF_TFS,
+    REGIME_V4_V2_MTF_SKIP,
+)
+
 LOG = logging.getLogger("v12_state_from_prebuilt")
 
 
@@ -360,24 +369,14 @@ class PrebuiltStateLoader:
 
     # ── V2 multi-TF scalar augmentation (XGB v7 base80) ───────────────
     # XGB v7 expects 31 V2-suffixed columns per row (M15/H1/H4/D1 × 7-8 each).
-    # These come from gx1.features.htf_features.compute_per_bar_features_v2 last
-    # bar per TF, asof-joined onto each M5 row using MULTI_TF_SHIFT (one-truth).
-    _V2_MTF_PER_TF = (
-        ("ema20_slope_atr", "ema20_slope_atr"),
-        ("ema_stack_aligned", "ema_stack_aligned_v2"),
-        ("regime_class_id", "regime_class_id"),
-        # REGIME_V4 (2026-06-03 / A2): emit per-TF trend-age SCALAR live so the regime-change
-        # features (gx1.features.regime_v4_features) have R2 at serve time. Additive +
-        # fail-soft (warns+skips if absent); col is in MULTI_TF_PER_BAR_FEATURES_V2.
-        ("trend_age_bars_norm", "trend_age_bars_norm"),
-        ("mom_5_atr", "mom_5_atr"),
-        ("mom_20_atr", "mom_20_atr"),
-        ("rsi14_centered", "rsi14_centered"),
-        ("atr_bps_14", "atr_bps_14"),
-        ("lower_wick_pct", "lower_wick_pct"),
-    )
-    _V2_MTF_TFS = ("m15", "h1", "h4", "d1", "m5")  # m5 ADDED 2026-06-05 (user vedtak: regime ALL-5; train==serve w/ build add_ctx_cont + V3 builder)
-    _V2_MTF_SKIP = frozenset({("d1", "lower_wick_pct")})
+    # ONE TRUTH (2026-06-13): the per-TF V2 mtf projection now lives in
+    # gx1.features.htf_features.REGIME_V4_V2_MTF_* and is imported at module top, so the serve,
+    # the canonical_incremental daemon (BASE34 ctx recompute), and the build all use the IDENTICAL
+    # 5-TF/9-feat regime projection. (m5 ADDED 2026-06-05 — regime ALL-5; trend_age_bars_norm = R2
+    # for gx1.features.regime_v4_features.) Was inline here; promoted to kill the duplication.
+    _V2_MTF_PER_TF = REGIME_V4_V2_MTF_PER_TF
+    _V2_MTF_TFS = REGIME_V4_V2_MTF_TFS
+    _V2_MTF_SKIP = REGIME_V4_V2_MTF_SKIP
 
     # ── V1 / R10 (2026-06-04): REGIME_V4 exit-context augmentation ────────
     def _augment_cv3_with_regime_v4(self, cv3: pd.DataFrame | None = None) -> pd.DataFrame | None:

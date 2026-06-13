@@ -247,6 +247,31 @@ def update_canonical_v3_incremental() -> tuple[int, pd.Timestamp | None]:
             LOG.error("[C3_HTF] cv3 lacks OHLC — HTF recompute skipped (stale forward-fill remains)")
     except Exception as _htf_err:  # never crash the daemon append on an HTF hiccup
         LOG.error(f"[C3_HTF] HTF recompute FAILED ({_htf_err}); HTF left to forward-fill fallback")
+    # D1-EWM CONVERGENCE (2026-06-13, LANE B): build_canonical_v2 above ran on a WARMUP_DAYS-day
+    # slice, so its D1 EWM features (d1_rsi14/d1_ema_slope_20 — both in the live XGB v3 contract,
+    # consumed every M5 bar) seed UN-converged (up to ~15 RSI pts off at the tail; train uses
+    # full-history). Recompute the D1 features over the FULL cv3 OHLC + new bars (cheap — ~1500 D1
+    # bars) via the ONE-TRUTH compute_d1_features + merge_asof_features (the SAME functions
+    # build_canonical_v2 uses) and OVERWRITE, so the live cv3 tail == training. Mirrors the HTF
+    # full-tape recompute above. Fail-loud-but-non-fatal (a hiccup must never stale the live append).
+    try:
+        from gx1.scripts.materialize_build_canonical_features_v2 import (
+            compute_d1_features, merge_asof_features)
+        _ohlc = ["open", "high", "low", "close"]
+        if all(c in cv3.columns for c in _ohlc):
+            _full = pd.concat([cv3[_ohlc], new_m5[_ohlc]]).sort_index()
+            _full = _full[~_full.index.duplicated(keep="last")].rename_axis("time").reset_index()
+            _d1_full = compute_d1_features(_full)
+            _d1_cols = [c for c in _d1_full.columns if c not in ("time", "_time_ns")]
+            _base = pd.DataFrame({"time": v3_new.index})
+            _merged = merge_asof_features(_base, _d1_full, base_time_col="time")
+            for _c in _d1_cols:
+                if _c in v3_new.columns:
+                    v3_new[_c] = _merged[_c].to_numpy()
+        else:
+            LOG.error("[D1_CONVERGE] cv3 lacks OHLC — D1 full-history recompute skipped (30d warmup remains)")
+    except Exception as _d1err:  # never crash the daemon append on a D1 hiccup
+        LOG.error(f"[D1_CONVERGE] full-history D1 recompute FAILED ({_d1err}); WARMUP_DAYS D1 retained")
     # Take only the new bars
     v3_new = v3_new[v3_new.index > last_in_prebuilt]
     if v3_new.empty:
@@ -331,7 +356,15 @@ def update_base34_incremental(new_cutoff: pd.Timestamp) -> int:
     # window long enough for the percentile features (D1_atr_percentile_252 needs ~1y of D1).
     from gx1.execution.v12_ctx_augment_live import augment_canonical_v3
     AUG_WINDOW_DAYS = 420
-    cv3_win = cv3.loc[cv3.index >= (new_cutoff - pd.Timedelta(days=AUG_WINDOW_DAYS))]
+    cv3_win = cv3.loc[cv3.index >= (new_cutoff - pd.Timedelta(days=AUG_WINDOW_DAYS))].copy()
+    # REGIME_V4 (2026-06-13 cutover): attach the per-TF V2 multi-TF scalars REGIME_V4 needs as
+    # inputs (R1/R2/R3) BEFORE augment, via the ONE-TRUTH helper shared with serve + build. Without
+    # this, augment_canonical_v3's REGIME_V4 block (GX1_REGIME_V4=1) is fail-closed-missing and the
+    # 52 regime cols carry-forward FROZEN on append (the 2026-05-25 freeze class). This recompute is
+    # the per-append cost driver (~17s @ 420d) but runs only when a new M5 closes (run_one_cycle gates
+    # update_base34_incremental on n_cv3>0 — every 5 min), and the write is atomic.
+    from gx1.features.htf_features import attach_default_regime_v4_v2_scalars
+    attach_default_regime_v4_v2_scalars(cv3_win)
     _m5_cols = [c for c in ("open", "high", "low", "close", "volume") if c in cv3_win.columns]
     cv3_aug = augment_canonical_v3(cv3_win, cv3_win[_m5_cols].copy())
     _carry_warned: set = set()
@@ -437,7 +470,11 @@ def backfill_base34_ctx(since_ts: pd.Timestamp) -> dict:
         cv3["time"] = pd.to_datetime(cv3["time"], utc=True)
         cv3 = cv3.set_index("time")
     cv3 = cv3.sort_index()
-    win = cv3.loc[cv3.index >= (since_ts - pd.Timedelta(days=420))]
+    win = cv3.loc[cv3.index >= (since_ts - pd.Timedelta(days=420))].copy()
+    # REGIME_V4: same ONE-TRUTH per-TF V2 scalar attach as the live append path, so the backfill
+    # recomputes the 52 regime cols (not just the legacy ctx) when GX1_REGIME_V4=1.
+    from gx1.features.htf_features import attach_default_regime_v4_v2_scalars
+    attach_default_regime_v4_v2_scalars(win)
     _m5_cols = [c for c in ("open", "high", "low", "close", "volume") if c in win.columns]
     cv3_aug = augment_canonical_v3(win, win[_m5_cols].copy())
     target = [c for c in base34.columns if c not in cv3.columns and c != "is_model_bar"

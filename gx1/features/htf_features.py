@@ -819,6 +819,60 @@ def attach_v2_mtf_per_bar_scalars(
     return out
 
 
+# ── REGIME_V4 per-TF V2 multi-TF scalar projection — ONE TRUTH ──────────────────
+# The (live-fragment, source-col) projection + TF set + skip that produce the per-TF
+# `{tf}_*_v2` scalars REGIME_V4 needs (R1 regime_class_id / R2 trend_age_bars_norm /
+# R3 ema_stack_aligned, plus the mom/rsi/atr_bps/slope/lower_wick context). This is the
+# 5-TF/9-feature REGIME version (m5 ADDED 2026-06-05, user vedtak: regime ALL-5) — NOT the
+# older 4-TF/8-feature XGB-v7 projection in v12_live_features.V2_MTF_PER_TF_FEATURES.
+# The live serve loader (v12_state_from_prebuilt._V2_MTF_PER_TF imports THIS) AND the
+# canonical_incremental daemon (BASE34 ctx recompute) AND the build (add_ctx_cont) all use
+# these so the daemon-maintained BASE34 regime cols are train==serve by construction.
+REGIME_V4_V2_MTF_PER_TF = (
+    ("ema20_slope_atr", "ema20_slope_atr"),
+    ("ema_stack_aligned", "ema_stack_aligned_v2"),
+    ("regime_class_id", "regime_class_id"),
+    ("trend_age_bars_norm", "trend_age_bars_norm"),
+    ("mom_5_atr", "mom_5_atr"),
+    ("mom_20_atr", "mom_20_atr"),
+    ("rsi14_centered", "rsi14_centered"),
+    ("atr_bps_14", "atr_bps_14"),
+    ("lower_wick_pct", "lower_wick_pct"),
+)
+REGIME_V4_V2_MTF_TFS = ("m15", "h1", "h4", "d1", "m5")
+REGIME_V4_V2_MTF_SKIP = frozenset({("d1", "lower_wick_pct")})
+
+
+def attach_default_regime_v4_v2_scalars(cv3: "pd.DataFrame") -> "pd.DataFrame":
+    """Attach the per-TF V2 multi-TF scalars REGIME_V4 needs (its R1/R2/R3 inputs +
+    context) to a cv3 frame IN PLACE, using the canonical REGIME_V4_V2_MTF_* constants.
+
+    ONE TRUTH shared by the live serve loader, the build (add_ctx_cont), and the
+    canonical_incremental daemon — so the daemon-maintained BASE34 regime columns are
+    computed the SAME way the training BASE34 was (no train≠serve, no carry-forward freeze).
+    Idempotent: returns unchanged if the scalars are already present. Fail-soft on missing
+    OHLC (returns unchanged) so a degenerate frame never crashes the live append; the
+    REGIME_V4 block downstream is itself fail-closed if its inputs are still absent.
+    """
+    cv3 = cv3 if isinstance(cv3.index, pd.DatetimeIndex) else cv3
+    probe = f"{REGIME_V4_V2_MTF_TFS[0]}_{REGIME_V4_V2_MTF_PER_TF[0][0]}_v2"
+    if probe in cv3.columns:
+        return cv3
+    ohlc = ["open", "high", "low", "close"]
+    if any(c not in cv3.columns for c in ohlc):
+        return cv3
+    m5_df = cv3[ohlc].astype(np.float64).copy()
+    m5_df["volume"] = (
+        cv3["volume"].astype(np.float64) if "volume" in cv3.columns else 1.0
+    )
+    ts_ns = cv3.index.values.astype("datetime64[ns]").astype(np.int64)
+    for _col, _vals in attach_v2_mtf_per_bar_scalars(
+        m5_df, ts_ns, REGIME_V4_V2_MTF_PER_TF, REGIME_V4_V2_MTF_TFS, REGIME_V4_V2_MTF_SKIP
+    ).items():
+        cv3[_col] = _vals
+    return cv3
+
+
 def load_multi_tf_v2_cache(cache_dir) -> dict:
     """Load a pre-built V2 multi-TF cache (see scripts/prebuild_multi_tf_cache_v2.py).
 
