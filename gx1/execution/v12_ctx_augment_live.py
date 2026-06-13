@@ -136,7 +136,14 @@ def _align_last_closed(target_idx: pd.DatetimeIndex,
 
 
 def _rank_bucket_0_4(x: np.ndarray, fallback: int) -> np.ndarray:
-    """0..4 bucket via percentile rank across the input array."""
+    """0..4 bucket via percentile rank across the input array.
+
+    WARNING — FRAME-DEPENDENT: this ranks RELATIVE to whatever array it is handed (no fixed bin
+    edges), so the SAME atr_bps lands in different buckets depending on the window. The BUILD ranks
+    over full history; the daemon ranked over a trailing 420d window -> ~31% of live appends got a
+    wrong-by-one vol bucket the IQL one-hots act on (2026-06-13 audit). Prefer _digitize_bucket_0_4
+    against FROZEN full-history edges (frame-invariant); this rank path is the fail-soft fallback.
+    """
     x = np.asarray(x, dtype=float)
     x = np.where(np.isfinite(x), x, np.nan)
     s = pd.Series(x)
@@ -146,6 +153,42 @@ def _rank_bucket_0_4(x: np.ndarray, fallback: int) -> np.ndarray:
     b = np.clip(q * 5.0, 0.0, 4.99).astype(np.int64)
     b = np.where(np.isfinite(b), b, int(fallback)).astype(np.int64)
     return b
+
+
+# Frozen full-history bucket EDGES (2026-06-13 audit fix): digitizing atr_bps/spread_bps against
+# fixed quantile edges makes vol_regime_id/atr_bucket/spread_bucket FRAME-INVARIANT, so the daemon
+# (any window), the entry serve (augment_canonical_v3), the exit (base34), and the build all produce
+# the IDENTICAL bucket = training. Edges live next to the cv3 prebuilt; regenerated at each cement/
+# cutover (gx1.scripts.write_regime_bucket_edges). Verified: digitize == full-history rank at 100%.
+REGIME_BUCKET_EDGES_PATH = (
+    "/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_PREBUILT/regime_bucket_edges_v1.json"
+)
+_REGIME_EDGES_CACHE: dict | None = None
+_REGIME_EDGES_MTIME: float | None = None
+
+
+def _load_regime_bucket_edges() -> dict | None:
+    """Load the frozen bucket edges JSON (cached, mtime-invalidated). None if absent."""
+    global _REGIME_EDGES_CACHE, _REGIME_EDGES_MTIME
+    import os as _os
+    import json as _json
+    try:
+        mt = _os.stat(REGIME_BUCKET_EDGES_PATH).st_mtime
+    except OSError:
+        return None
+    if _REGIME_EDGES_CACHE is None or mt != _REGIME_EDGES_MTIME:
+        with open(REGIME_BUCKET_EDGES_PATH) as _fh:
+            _REGIME_EDGES_CACHE = _json.load(_fh)
+        _REGIME_EDGES_MTIME = mt
+    return _REGIME_EDGES_CACHE
+
+
+def _digitize_bucket_0_4(x: np.ndarray, edges, fallback: int) -> np.ndarray:
+    """0..4 bucket by digitizing against FROZEN edges [q20,q40,q60,q80] — frame-invariant."""
+    x = np.asarray(x, dtype=float)
+    e = np.asarray(edges, dtype=float)
+    b = np.clip(np.digitize(x, e, right=False), 0, 4).astype(np.int64)
+    return np.where(np.isfinite(x), b, int(fallback)).astype(np.int64)
 
 
 # ── per-feature-group computations ────────────────────────────────────────
@@ -415,16 +458,32 @@ def _add_regime_categoricals(cv3: pd.DataFrame) -> None:
         cv3["trend_regime_id"] = np.where(p < -0.5, 0, np.where(p <= 0.5, 1, 2)).astype(np.int64)
     else:
         cv3["trend_regime_id"] = 1
-    # vol_regime_id / atr_bucket: percentile rank of atr_bps (0..4)
+    # vol_regime_id / atr_bucket / spread_bucket: bucket atr_bps/spread_bps into 0..4.
+    # 2026-06-13 audit FIX: digitize against FROZEN full-history edges (frame-invariant, so daemon /
+    # entry-serve / exit / build all agree = training) instead of a frame-relative percentile rank
+    # (which made the daemon's 420d window disagree with full-history training on ~31% of appends).
+    # Fall back to the rank path + WARN if the edges file is missing (degraded, but never crash live).
+    _edges = _load_regime_bucket_edges()
     if "atr_bps" in cv3.columns:
-        vol = _rank_bucket_0_4(cv3["atr_bps"].to_numpy(dtype=float), fallback=2)
+        _av = cv3["atr_bps"].to_numpy(dtype=float)
+        if _edges and _edges.get("atr_bps_edges"):
+            vol = _digitize_bucket_0_4(_av, _edges["atr_bps_edges"], fallback=2)
+        else:
+            LOG.warning("[REGIME] frozen atr_bps bucket edges absent (%s) — falling back to "
+                        "FRAME-RELATIVE rank (train≠serve risk). Regenerate via "
+                        "gx1.scripts.write_regime_bucket_edges.", REGIME_BUCKET_EDGES_PATH)
+            vol = _rank_bucket_0_4(_av, fallback=2)
     else:
         vol = np.full(len(cv3), 2, dtype=np.int64)
     cv3["vol_regime_id"] = vol.astype(np.int64)
     cv3["atr_bucket"] = vol.astype(np.int64)
-    # spread_bucket
+    # spread_bucket (spread_bps is ~constant on XAU — frame-invariant either way, but digitize for parity)
     if "spread_bps" in cv3.columns:
-        sp = _rank_bucket_0_4(cv3["spread_bps"].to_numpy(dtype=float), fallback=0)
+        _sv = cv3["spread_bps"].to_numpy(dtype=float)
+        if _edges and _edges.get("spread_bps_edges"):
+            sp = _digitize_bucket_0_4(_sv, _edges["spread_bps_edges"], fallback=0)
+        else:
+            sp = _rank_bucket_0_4(_sv, fallback=0)
     else:
         sp = np.zeros(len(cv3), dtype=np.int64)
     cv3["spread_bucket"] = sp.astype(np.int64)
