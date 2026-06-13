@@ -854,7 +854,6 @@ def attach_default_regime_v4_v2_scalars(cv3: "pd.DataFrame") -> "pd.DataFrame":
     OHLC (returns unchanged) so a degenerate frame never crashes the live append; the
     REGIME_V4 block downstream is itself fail-closed if its inputs are still absent.
     """
-    cv3 = cv3 if isinstance(cv3.index, pd.DatetimeIndex) else cv3
     probe = f"{REGIME_V4_V2_MTF_TFS[0]}_{REGIME_V4_V2_MTF_PER_TF[0][0]}_v2"
     if probe in cv3.columns:
         return cv3
