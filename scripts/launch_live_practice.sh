@@ -233,6 +233,19 @@ MAX_TRADES=${GX1_PAPER_MAX_TRADES:-3}
 MAX_SPREAD=${GX1_PAPER_MAX_SPREAD_BPS:-9999}
 SUFFIX=${GX1_PAPER_SUFFIX:-conviction67sized_skipasia_pure_phase6}
 
+# Orphan-reaper (2026-06-13 audit): the spawn gate below only kill -0's the SINGLE pid in the
+# pid-file, so every relaunch that found that pid dead spawned a fresh runner ON TOP of still-alive
+# orphans from prior runs — 9 concurrent runners accrued, double-journaling under one suffix and
+# multi-submitting against one OANDA account (and pre-fix-code orphans = NO-OLD-CODE violation).
+# Reap any v12_paper_runner that is NOT the (alive) pid-file pid before deciding to spawn.
+_keep=$(is_alive "$RUNNER_PID_FILE" || true)
+for _p in $(pgrep -f "gx1.execution.v12_paper_runner" 2>/dev/null || true); do
+    if [[ "$_p" != "$_keep" ]]; then
+        echo "[3/4] reaping ORPHAN paper_runner PID $_p (not pid-file-tracked '${_keep:-none}') — prevents double-journal / multi-submit / stale code"
+        kill "$_p" 2>/dev/null || true
+    fi
+done
+
 if [[ $FORCE -eq 1 ]]; then stop_if_running "$RUNNER_PID_FILE"; fi
 if pid=$(is_alive "$RUNNER_PID_FILE"); then
     echo "[3/4] paper_runner already RUNNING (PID $pid) — skip"

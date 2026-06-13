@@ -34,6 +34,12 @@ stop_pid() {
 
 echo "Stopping live-practice stack..."
 stop_pid paper_runner            "$PAPER_RUNS/paper_runner.pid"
+# Reap ANY orphan paper_runner not tracked by the pid-file (2026-06-13 audit: prior relaunches
+# accrued 9 concurrent runners; stop_pid only killed the recorded pid, orphans survived).
+for _p in $(pgrep -f "gx1.execution.v12_paper_runner" 2>/dev/null || true); do
+    echo "  reaping orphan paper_runner PID $_p"
+    kill "$_p" 2>/dev/null || true
+done
 stop_pid canonical_incremental   "$PAPER_RUNS/canonical_incremental.pid"
 stop_pid oanda_data_collector    "$PAPER_RUNS/collector.pid"
 stop_pid counterfactual_daemon   "$PAPER_RUNS/counterfactual_daemon.pid"
