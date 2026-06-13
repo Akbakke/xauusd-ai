@@ -59,7 +59,9 @@ from gx1.execution.v12_exit_iql_live import strategy_f_decision  # noqa: E402  (
 
 ACTION = "JOINT_ENTRY_EXIT_IQL_V5_V12_VALIDATION_GATE"
 DEFAULT_REPORTS_ROOT = Path("/home/andre2/GX1_DATA/reports/truth_e2e_sanity")
-V3_OVERRIDE_DEFAULT = 0.95
+V3_OVERRIDE_DEFAULT = None   # 2026-06-13: V3 fail-safe override RETIRED (fired 0/977, removed from live exit).
+                             # The gate now scores the v3-free live policy (Exit-IQL + Strategy-F) by default.
+                             # --v3-override-threshold still accepts a value for explicit historical comparison only.
 V12_MAX_BARS_DEFAULT = 1440  # match Phase 2 builder cap
 EXIT_HOLD_ID = 0
 EXIT_NOW_ID = 1

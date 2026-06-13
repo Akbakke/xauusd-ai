@@ -33,7 +33,6 @@ import numpy as np
 from gx1.runtime.exit_iql_v2_adapter import ExitIQLV2Adapter, ExitRecommendation
 
 
-V3_OVERRIDE_DEFAULT_THRESHOLD = 0.95
 EXIT_HOLD_ID = 0
 EXIT_NOW_ID = 1
 
@@ -51,10 +50,11 @@ class ExitDeciderV12Recommendation:
 
 @dataclass
 class ExitDeciderV12Adapter:
-    """Wrap Exit-IQL v5 with V3 fail-safe override (V12 Stage 4)."""
+    """Wrap Exit-IQL v5. (The V3 fail-safe override was RETIRED 2026-06-13 — it was already disabled
+    live since the V12.2 cement ("never helped"), fired 0/977 on May/June, and is now removed entirely.
+    The exit decision is the Exit-IQL argmax; the live Strategy-F overlay runs on top in v12_exit_iql_live.)"""
     iql_adapter: ExitIQLV2Adapter
-    v3_override_threshold: float | None = V3_OVERRIDE_DEFAULT_THRESHOLD
-    v3_prob_field: str = "v3_v8_should_exit_prob"
+    v3_prob_field: str = "v3_v8_should_exit_prob"   # still RECORDED for observability (not acted on)
 
     @classmethod
     def load(
@@ -64,7 +64,6 @@ class ExitDeciderV12Adapter:
         variant: str = "R_V12",
         fold_id: str = "FOLD_1",
         aggregator: str | None = None,
-        v3_override_threshold: float | None = V3_OVERRIDE_DEFAULT_THRESHOLD,
         prefer_cuda: bool = True,
     ) -> "ExitDeciderV12Adapter":
         load_kwargs = dict(
@@ -75,31 +74,19 @@ class ExitDeciderV12Adapter:
         if aggregator is not None:
             load_kwargs["aggregator"] = aggregator
         iql = ExitIQLV2Adapter.load(**load_kwargs)
-        thr = float(v3_override_threshold) if v3_override_threshold is not None else None
-        return cls(iql_adapter=iql, v3_override_threshold=thr)
+        return cls(iql_adapter=iql)
 
     def decide(self, bar_state: dict[str, Any]) -> ExitDeciderV12Recommendation:
-        """Decide HOLD/EXIT_NOW for one bar. V3 fail-safe checked first."""
-        v3_prob = float(bar_state.get(self.v3_prob_field, 0.0) or 0.0)
+        """Decide HOLD/EXIT_NOW for one bar = Exit-IQL argmax."""
+        v3_prob = float(bar_state.get(self.v3_prob_field, 0.0) or 0.0)  # recorded, not acted on
         iql_rec = self.iql_adapter.predict_one(bar_state)
-
-        if (self.v3_override_threshold is not None
-                and v3_prob > self.v3_override_threshold):
-            return ExitDeciderV12Recommendation(
-                action_id_v1=EXIT_NOW_ID,
-                action_label_v1="EXIT_NOW",
-                decision_source_v1="V3_OVERRIDE",
-                v3_should_exit_prob_v1=v3_prob,
-                iql_recommendation_v1=iql_rec,
-                override_threshold_v1=self.v3_override_threshold,
-            )
         return ExitDeciderV12Recommendation(
             action_id_v1=int(iql_rec.action_id_v1),
             action_label_v1=str(iql_rec.action_label_v1),
             decision_source_v1="IQL_Q",
             v3_should_exit_prob_v1=v3_prob,
             iql_recommendation_v1=iql_rec,
-            override_threshold_v1=self.v3_override_threshold,
+            override_threshold_v1=0.0,
         )
 
     def decide_batch(self, bar_states: list[dict[str, Any]]) -> list[ExitDeciderV12Recommendation]:
@@ -107,36 +94,23 @@ class ExitDeciderV12Adapter:
         n = len(bar_states)
         if n == 0:
             return []
-        # Run IQL inference in batch for efficiency
         iql_recs = self.iql_adapter.predict(bar_states)
         out: list[ExitDeciderV12Recommendation] = []
         for s, r in zip(bar_states, iql_recs):
-            v3_prob = float(s.get(self.v3_prob_field, 0.0) or 0.0)
-            if (self.v3_override_threshold is not None
-                    and v3_prob > self.v3_override_threshold):
-                out.append(ExitDeciderV12Recommendation(
-                    action_id_v1=EXIT_NOW_ID,
-                    action_label_v1="EXIT_NOW",
-                    decision_source_v1="V3_OVERRIDE",
-                    v3_should_exit_prob_v1=v3_prob,
-                    iql_recommendation_v1=r,
-                    override_threshold_v1=self.v3_override_threshold,
-                ))
-            else:
-                out.append(ExitDeciderV12Recommendation(
-                    action_id_v1=int(r.action_id_v1),
-                    action_label_v1=str(r.action_label_v1),
-                    decision_source_v1="IQL_Q",
-                    v3_should_exit_prob_v1=v3_prob,
-                    iql_recommendation_v1=r,
-                    override_threshold_v1=self.v3_override_threshold,
-                ))
+            v3_prob = float(s.get(self.v3_prob_field, 0.0) or 0.0)  # recorded, not acted on
+            out.append(ExitDeciderV12Recommendation(
+                action_id_v1=int(r.action_id_v1),
+                action_label_v1=str(r.action_label_v1),
+                decision_source_v1="IQL_Q",
+                v3_should_exit_prob_v1=v3_prob,
+                iql_recommendation_v1=r,
+                override_threshold_v1=0.0,
+            ))
         return out
 
     def info(self) -> dict[str, Any]:
         return {
             "schema_v1": "EXIT_DECIDER_V12_RUNTIME_ADAPTER_V1",
             "iql_adapter_v1": self.iql_adapter.info(),
-            "v3_override_threshold_v1": self.v3_override_threshold,
             "v3_prob_field_v1": self.v3_prob_field,
         }

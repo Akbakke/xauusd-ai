@@ -21,10 +21,10 @@ cols, so the next retrained bundle will see a ~140-feature contract.)
 V12.2 cement config (per project_gx1_v12_2_cemented_2026q2):
   - variant: R_V12  (V12.2 retrain on V3 v9 multi-TF outputs)
   - fold_id: FOLD_1
-  - v3_override_threshold: None  (V3 fail-safe DISABLED — Phase 6
-    validated V12_OFF +73.64 bps beats V12_ON +70.60 bps at 0.95
-    threshold. V3 outputs feed Q-learning state but never trigger
-    overrides directly.)
+  - V3 fail-safe override REMOVED 2026-06-13 (Phase-6 had validated V12_OFF +73.64 bps > V12_ON
+    +70.60 at the 0.95 threshold; it then fired 0/977 on May/June and is now deleted from the chain).
+    V3 v9 outputs still feed the Exit-IQL Q-learning STATE (the 4 V3-tracking features below) — they
+    just never trigger a direct override. Exit = Exit-IQL argmax + the Strategy-F overlay.
 
 V3 v9 outputs ARE produced live via V3LiveInference (multi-TF). The 4
 V3-tracking features (should_exit_decision, decision_confidence,
@@ -208,7 +208,7 @@ def strategy_f_decision(
 DEFAULT_VARIANT = "R_NET_REAL"
 DEFAULT_FOLD = "FOLD_1"
 DEFAULT_AGGREGATOR = "max"
-DEFAULT_V3_OVERRIDE = None         # V12_OFF — V3 override never helped, retired
+# (V3 fail-safe override fully REMOVED 2026-06-13 — never helped, fired 0/977; exit = Exit-IQL argmax + Strategy-F.)
 
 SESSION_ID_TO_LABEL = {0: "ASIA", 1: "EU", 2: "OVERLAP", 3: "US"}
 
@@ -271,7 +271,6 @@ class ExitIQLLiveInference:
         variant: str | None = None,
         fold_id: str | None = None,
         aggregator: str | None = None,
-        v3_override_threshold: float | None = DEFAULT_V3_OVERRIDE,
         prefer_cuda: bool = True,
     ) -> "ExitIQLLiveInference":
         """Load the live Exit-IQL inference. By default, reads bundle path +
@@ -292,16 +291,12 @@ class ExitIQLLiveInference:
             variant = variant if variant is not None else entry.get("active_variant", DEFAULT_VARIANT)
             fold_id = fold_id if fold_id is not None else entry.get("active_folds", [DEFAULT_FOLD])[0]
             aggregator = aggregator if aggregator is not None else entry.get("active_aggregator", DEFAULT_AGGREGATOR)
-        if v3_override_threshold is not None:
-            raise RuntimeError(
-                "Exit-IQL load(): v3_override_threshold must be None (V12_OFF). "
-                "V3 override was retired in V12.2 cement and never re-enabled."
-            )
+        # V3 fail-safe override REMOVED 2026-06-13 (was retired/disabled since the V12.2 cement,
+        # fired 0/977 on May/June). The exit is the Exit-IQL argmax + the Strategy-F overlay below.
         decider = ExitDeciderV12Adapter.load(
             artifact_root=Path(bundle_dir),
             variant=variant, fold_id=fold_id,
             aggregator=aggregator,
-            v3_override_threshold=v3_override_threshold,
             prefer_cuda=prefer_cuda,
         )
         feature_names = list(decider.iql_adapter.feature_names)
