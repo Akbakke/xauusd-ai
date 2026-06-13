@@ -228,8 +228,15 @@ def materialize(
         tape_root=m5_root,
     )
     ctx_df = pd.read_parquet(ctx_path)
+    # add_ctx_cont now emits `time` as a plain COLUMN with a RangeIndex (one-truth convention
+    # change documented in FASE2B_REBUILD_ORDER.md step 3 fix #2). Restore the DatetimeIndex the
+    # downstream `_expand_to_raw_index` reindex requires by promoting the `time` column when present.
     if not isinstance(ctx_df.index, pd.DatetimeIndex):
-        raise RuntimeError("ctx model-bar parquet lost DatetimeIndex")
+        if "time" in ctx_df.columns:
+            ctx_df = ctx_df.set_index(pd.DatetimeIndex(pd.to_datetime(ctx_df["time"], utc=True)))
+            ctx_df = ctx_df.drop(columns=["time"])
+        else:
+            raise RuntimeError("ctx model-bar parquet lost DatetimeIndex")
     if ctx_df.index.tz is None:
         ctx_df.index = ctx_df.index.tz_localize("UTC")
     else:
