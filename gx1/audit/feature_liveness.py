@@ -333,7 +333,8 @@ DRIFT_ALLOWED: Dict[str, str] = {
 
 
 def write_drift_reference(forward_outcome_dir: str, out_path: str,
-                          sample_n: int = 4000, seed: int = 20260612) -> dict:
+                          sample_n: int = 4000, seed: int = 20260612,
+                          vol_match: bool = True) -> dict:
     """Generate the training-distribution reference sample for the drift leg.
 
     Loads the SAME per_week forward-outcome parquets the cement Entry-IQL
@@ -366,11 +367,42 @@ def write_drift_reference(forward_outcome_dir: str, out_path: str,
     if _bl is not None and _bs is not None:
         keep = (_bl.fillna(0) >= 48) & (_bs.fillna(0) >= 48)
         df = df[keep].reset_index(drop=True)
-    # NOTE: states must be built on the FULL df (rolling/window augments inside
-    # build_state_matrix change values on a subsample) — sample rows AFTER.
+    # Pre-apply build_state_matrix's OWN completeness mask (its lines 945-952) to df
+    # FIRST, so df and X stay row-aligned (build_state_matrix drops incomplete rows
+    # internally; sampling weights built from df must match X positionally). Same
+    # alignment pattern as build_online_replay_buffer --export-cement-sample.
+    if "_canonical_features_complete_v1" in df.columns:
+        _cm = df["_canonical_features_complete_v1"].fillna(False).astype(bool)
+        if "_chunk0_features_complete_v1" in df.columns:
+            _cm = _cm & df["_chunk0_features_complete_v1"].fillna(False).astype(bool)
+        df = df.loc[_cm].reset_index(drop=True)
+    # NOTE: states must be built on the FULL (masked) df (rolling/window augments
+    # inside build_state_matrix change values on a subsample) — sample rows AFTER.
     X, names = build_state_matrix(df)
+    if X.shape[0] != len(df):
+        raise RuntimeError(f"X rows {X.shape[0]} != df rows {len(df)} after pre-mask — "
+                           f"build_state_matrix dropped more; alignment broken")
     rng = np.random.default_rng(seed)
-    idx = rng.choice(len(X), size=min(sample_n, len(X)), replace=False)
+    # VOL-MATCHED sampling (2026-06-13, user-direktiv): the live entry is skip-ASIA
+    # + current-regime, so a 6-year-UNIFORM reference under-weights the high-vol the
+    # model EFFECTIVELY trained on (volbal oversampled atr_bps>14 by 6x, TRAIN-only —
+    # materialize_build_entry_iql_v2.py:1616-1620). A uniform reference therefore
+    # false-flags vol features as "drifted" purely from the sampling mismatch (the
+    # KS leg is advisory, so this never blocked anything — but it cried wolf). Mirror
+    # the SAME oversample here so KS measures live-vs-EFFECTIVE-training, not
+    # live-vs-uniform-history. atr_bps is the one-truth vol column the build uses.
+    vol_factor = int(os.environ.get("GX1_DRIFT_REF_VOL_FACTOR", "6"))
+    vol_atr = float(os.environ.get("GX1_DRIFT_REF_VOL_ATR", "14.0"))
+    n_hv = 0
+    if vol_match and vol_factor > 1 and "atr_bps" in df.columns:
+        hv = (pd.to_numeric(df["atr_bps"], errors="coerce").fillna(0.0) > vol_atr).to_numpy()
+        n_hv = int(hv.sum())
+        w = np.ones(len(X), dtype=np.float64)
+        w[hv] = float(vol_factor)        # high-vol rows are `vol_factor`x as likely
+        w /= w.sum()
+        idx = rng.choice(len(X), size=min(sample_n, len(X)), replace=False, p=w)
+    else:
+        idx = rng.choice(len(X), size=min(sample_n, len(X)), replace=False)
     ref = pd.DataFrame(X[idx], columns=names)
     out = Path(out_path)
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -379,7 +411,9 @@ def write_drift_reference(forward_outcome_dir: str, out_path: str,
         "source_forward_outcome_dir": str(forward_outcome_dir),
         "source_rows": int(len(X)), "sample_n": int(len(idx)),
         "state_dim": int(X.shape[1]), "seed": seed,
-        "schema_v1": "ENTRY_IQL_DRIFT_REFERENCE_V1",
+        "vol_matched": bool(vol_match and vol_factor > 1 and "atr_bps" in df.columns),
+        "vol_factor": vol_factor, "vol_atr_bps": vol_atr, "n_high_vol_rows": n_hv,
+        "schema_v1": "ENTRY_IQL_DRIFT_REFERENCE_V2_VOLMATCH",
     }
     Path(str(out) + ".meta.json").write_text(json.dumps(meta, indent=2))
     return meta
@@ -511,13 +545,17 @@ def _main() -> int:
     ap.add_argument("--write-drift-reference", action="store_true",
                     help="generate the reference: requires --forward-outcome-dir + --drift-reference (out path)")
     ap.add_argument("--forward-outcome-dir", type=str, default=None)
+    ap.add_argument("--no-vol-match", action="store_true",
+                    help="disable the 6x high-vol oversample in the drift reference (legacy uniform sampling)")
     a = ap.parse_args()
     failed = False
     if a.write_drift_reference:
         if not (a.forward_outcome_dir and a.drift_reference):
             ap.error("--write-drift-reference requires --forward-outcome-dir and --drift-reference")
-        meta = write_drift_reference(a.forward_outcome_dir, a.drift_reference)
-        print(f"[DRIFT-REF] wrote {meta['sample_n']}x{meta['state_dim']} sample → {a.drift_reference}")
+        meta = write_drift_reference(a.forward_outcome_dir, a.drift_reference,
+                                     vol_match=not a.no_vol_match)
+        print(f"[DRIFT-REF] wrote {meta['sample_n']}x{meta['state_dim']} sample "
+              f"(vol_matched={meta['vol_matched']}, hv_rows={meta['n_high_vol_rows']}) → {a.drift_reference}")
         return 0
     if a.distribution_drift:
         if not a.drift_reference:
