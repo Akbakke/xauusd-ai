@@ -145,6 +145,71 @@ def compute_forward_outcome(m1: pd.DataFrame, entry_idx: int,
     return out
 
 
+# ── Strategy-F GIVEBACK-MANAGED NET (action 2, 2026-06-13) ────────────────────
+# The missed_opportunity / held_too_short signals report RAW post-entry price
+# PEAK MFE — direction-blind, unmanaged FOMO that the 2026-06-13 net-capture
+# experiment showed overstates capturable edge by ~2-8x (true exit-chain
+# re-capture median +13.6 bps vs raw peak 28.5 mean). The TRUE exit chain
+# (V3+Exit-IQL+Strategy-F) is ~37s/replay → infeasible for the ~12k SKIPs/day.
+# This is the CHEAP, vectorized, daemon-safe estimate: walk the forward window
+# applying ONLY the model-free Strategy-F overlay (rules 1 PROFIT-LOCK + 2
+# BREAKEVEN-CUT) the live exit applies — constants IMPORTED one-truth from
+# v12_exit_iql_live (never hardcoded). It is an UPPER BOUND on managed
+# re-capture: the live chain ALSO runs V3 should_exit + Exit-IQL Q + Strategy-F
+# rules 3/4 (IQL/V10-dependent) which exit EARLIER on winners (627/629:
+# Strategy-F-floor held to +55, the true chain cut at +11). Read it as
+# "managed-net FLOOR, not true exit-chain net"; the true number needs the
+# sampled nightly true-chain tier (a tracked follow-up).
+def _strategy_f_constants() -> tuple[float, float, float, float]:
+    from gx1.execution.v12_exit_iql_live import (
+        MFE_GIVEBACK_PCT, MFE_GIVEBACK_MIN_MFE_BPS, BREAKEVEN_RATIO, BREAKEVEN_MIN_MFE)
+    return (float(MFE_GIVEBACK_MIN_MFE_BPS), float(MFE_GIVEBACK_PCT),
+            float(BREAKEVEN_MIN_MFE), float(BREAKEVEN_RATIO))
+
+
+def giveback_managed_net(m1: pd.DataFrame, entry_idx: int, side: str, k: int) -> float | None:
+    """Strategy-F-floor managed net (bps) of entering `side` at entry_idx and
+    holding forward up to k M1 bars, cut by the model-free Strategy-F overlay.
+
+    Mirrors v12_exit_iql_live rule order EXACTLY: at each post-entry bar, peak =
+    running max favorable, pnl = close-side pnl; EXIT when
+      profit_lock   = mfe >= MIN_MFE and (mfe-pnl) >= PCT*mfe and mfe>0   (rule 1)
+      OR breakeven  = mfe >= BE_MIN  and pnl < BE_RATIO*mfe               (rule 2)
+    else hold to k (terminal). Returns net bps at the managed exit, or None.
+    """
+    if entry_idx >= len(m1) or side not in ("long", "short"):
+        return None
+    entry_bar = m1.iloc[entry_idx]
+    entry = float(entry_bar["ask_open"] if side == "long" else entry_bar["bid_open"])
+    if entry <= 0:
+        return None
+    end_idx = min(entry_idx + k, len(m1) - 1)
+    if end_idx <= entry_idx:
+        return None
+    window = m1.iloc[entry_idx + 1: end_idx + 1]
+    if len(window) == 0:
+        return None
+    min_mfe, pct, be_min, be_ratio = _strategy_f_constants()
+
+    if side == "long":
+        fav_peak = (window["bid_high"].to_numpy(dtype=float) - entry) / entry * 1e4   # running favorable
+        bar_pnl = (window["bid_close"].to_numpy(dtype=float) - entry) / entry * 1e4   # close-side pnl
+    else:
+        fav_peak = (entry - window["ask_low"].to_numpy(dtype=float)) / entry * 1e4
+        bar_pnl = (entry - window["ask_close"].to_numpy(dtype=float)) / entry * 1e4
+
+    run_peak = 0.0
+    for i in range(len(bar_pnl)):
+        run_peak = max(run_peak, float(fav_peak[i]), float(bar_pnl[i]))
+        pnl_i = float(bar_pnl[i])
+        drawdown = max(0.0, run_peak - pnl_i)
+        profit_lock = (run_peak >= min_mfe and drawdown >= pct * run_peak and run_peak > 0.0)
+        breakeven_cut = (run_peak >= be_min and pnl_i < be_ratio * run_peak)
+        if profit_lock or breakeven_cut:
+            return pnl_i
+    return float(bar_pnl[-1])   # held to horizon, no managed cut
+
+
 def judge_take(ev: dict, m1: pd.DataFrame, m1_time_arr: np.ndarray) -> dict | None:
     """Per-trade critic (2026-06-12, ladder track B): judge a FILLED take against
     its realized outcome + counterfactuals. Returns a verdict dict, or None when
@@ -336,6 +401,22 @@ def replay_journal(journal_path: Path) -> tuple[list[dict], dict]:
                 (decision == "SKIP" or order_status == "BLOCKED_BY_GATE")
                 and proposed_side_mfe >= HIGH_CONVICTION_BPS_THRESHOLD
             )
+            # EXIT-CHAIN-NET (action 2, 2026-06-13): for SKIP/BLOCKED, the raw
+            # proposed_side_mfe above is direction-blind peak FOMO. Add the
+            # Strategy-F-FLOOR managed net (what a giveback-managed trade on the
+            # proposed side would have netted) at K240 — strictly more
+            # decision-relevant than the raw peak. UPPER BOUND on managed
+            # re-capture (the live V3/IQL chain cuts earlier on winners — see
+            # the 2026-06-13 net-capture experiment). missed_opportunity_managed
+            # uses this net, not the raw peak, so it stops flagging trades the
+            # exit discipline would have given back.
+            if decision in ("SKIP", "TAKE_LONG_NOW", "TAKE_SHORT_NOW") or order_status == "BLOCKED_BY_GATE":
+                mnet = giveback_managed_net(m1, idx, proposed_side, CORRECT_SKIP_K)
+                ev["proposed_side_managed_net_bps"] = round(mnet, 2) if mnet is not None else None
+                ev["missed_opportunity_managed"] = bool(
+                    (decision == "SKIP" or order_status == "BLOCKED_BY_GATE")
+                    and mnet is not None and mnet >= HIGH_CONVICTION_BPS_THRESHOLD
+                )
             # correct_skip (2026-06-12, ladder track B): the skip was right when
             # the BEST side's terminal at K=240 (4h) was a loss — taking either
             # side and holding through the judging horizon would have lost money.
@@ -393,6 +474,22 @@ def replay_journal(journal_path: Path) -> tuple[list[dict], dict]:
         )
     stats["regime_breakdown"] = regime_breakdown
     stats["session_breakdown"] = session_breakdown
+
+    # EXIT-CHAIN-NET aggregate (action 2): the managed-FLOOR view of "missed
+    # opportunity" — how many SKIPs would have netted >= threshold AFTER the
+    # Strategy-F giveback discipline, not raw peak. The gap between the raw and
+    # managed counts is the FOMO the raw signal overstates (2026-06-13: true
+    # exit chain cuts even earlier, so managed is an upper bound).
+    _mgd = [e for e in enriched if e.get("missed_opportunity_managed")]
+    _mgd_nets = [e["proposed_side_managed_net_bps"] for e in _mgd
+                 if e.get("proposed_side_managed_net_bps") is not None]
+    stats["missed_opportunity_managed_count"] = len(_mgd)
+    stats["missed_opportunity_managed_total_bps"] = round(sum(_mgd_nets), 1)
+    stats["missed_opportunity_managed_mean_bps"] = (
+        round(float(np.mean(_mgd_nets)), 2) if _mgd_nets else 0.0)
+    stats["missed_opportunity_raw_vs_managed"] = (
+        f"raw {stats['missed_opportunity_count']} flags / managed {len(_mgd)} flags "
+        f"(managed = Strategy-F-floor net, an UPPER BOUND; true chain cuts earlier)")
 
     # Per-trade critic aggregates (2026-06-12, ladder track B)
     stats["correct_skip_count"] = sum(1 for e in enriched if e.get("correct_skip"))
