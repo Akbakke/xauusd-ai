@@ -57,6 +57,14 @@ POST_EXIT_HORIZON_BARS = 24
 POST_EXIT_REGRET_THR_BPS = 10.0
 WRONG_SIDE_MARGIN_BPS = 20.0     # opposite side must beat realized by this much
 CORRECT_SKIP_K = 240             # judge skips on the 4h terminal outcome
+# "Should have waited" / dip-timing (2026-06-13, user: «skulle ventet = vent til
+# dip er ferdig»). The R_WAIT_OPP reward the LIVE entry (LAM50_SYM) optimizes
+# penalizes mae_before_mfe — adverse excursion BEFORE the favorable move = we
+# entered before the dip bottomed. This verdict grades that live: a take whose
+# mae_before_mfe >= threshold entered too early; wait_regret = the entry-price
+# improvement a trough-timed entry would have captured. Same one-truth metric
+# the reward minimizes (compute_forward_outcome {side}_mae_before_mfe_K).
+WAIT_REGRET_THR_BPS = 10.0
 
 
 def load_m1_window(start_ts: pd.Timestamp, end_ts: pd.Timestamp) -> pd.DataFrame:
@@ -295,6 +303,20 @@ def judge_take(ev: dict, m1: pd.DataFrame, m1_time_arr: np.ndarray) -> dict | No
                         and realized < 0.5 * max_mfe)
     good_take = bool(realized > 0.0 and not wrong_side and not held_too_short)
 
+    # SHOULD-HAVE-WAITED / dip-timing (2026-06-13): the ENTRY-side analog of the
+    # exit critic — did we take BEFORE the dip finished? mae_before_mfe (the
+    # adverse excursion before the favorable move) at the matched horizon is the
+    # one-truth R_WAIT_OPP metric the live entry optimizes. High = entered into a
+    # still-falling dip; a trough-timed entry would have captured the SAME move
+    # with `wait_regret_bps` better entry price. ORTHOGONAL to take/skip quality
+    # (a profitable take can still have been mistimed). Tied to the dip-aware
+    # WAIT design (Entry-IQL + dist-to-low features). [[project_gx1_dip_aware_entry_timing]]
+    mae_before_mfe = cf.get(f"{side}_mae_before_mfe_K{matched_k}")
+    should_have_waited = bool(mae_before_mfe is not None and np.isfinite(mae_before_mfe)
+                              and float(mae_before_mfe) >= WAIT_REGRET_THR_BPS)
+    wait_regret_bps = (round(max(0.0, float(mae_before_mfe)), 2)
+                       if mae_before_mfe is not None and np.isfinite(mae_before_mfe) else None)
+
     return {
         "trade_id": str(trade_id),
         "resolved": True,
@@ -316,10 +338,12 @@ def judge_take(ev: dict, m1: pd.DataFrame, m1_time_arr: np.ndarray) -> dict | No
         "held_too_short": held_too_short,
         "mfe_giveback": mfe_giveback,
         "good_take": good_take,
+        "should_have_waited": should_have_waited,   # dip-timing: entered before the dip bottomed
         # regret quantities (bps, all >= 0) — the training-feed signal
         "skip_regret_bps": round(max(0.0, -realized), 2),
         "side_regret_bps": round(max(0.0, float(opp_terminal) - realized), 2) if opp_terminal is not None and np.isfinite(opp_terminal) else None,
         "hold_regret_bps": round(post_exit_mfe, 2) if post_exit_mfe is not None else None,
+        "wait_regret_bps": wait_regret_bps,         # entry-price improvement a trough-timed entry captures
     }
 
 
@@ -504,6 +528,7 @@ def replay_journal(journal_path: Path) -> tuple[list[dict], dict]:
         "held_too_short": sum(1 for v in resolved if v["held_too_short"]),
         "mfe_giveback": sum(1 for v in resolved if v["mfe_giveback"]),
         "good_takes": sum(1 for v in resolved if v["good_take"]),
+        "should_have_waited": sum(1 for v in resolved if v.get("should_have_waited")),
     }
     if resolved:
         tv["mean_realized_bps"] = round(float(np.mean([v["realized_pnl_bps"] for v in resolved])), 2)
@@ -512,6 +537,8 @@ def replay_journal(journal_path: Path) -> tuple[list[dict], dict]:
         tv["total_hold_regret_bps"] = round(sum(hold_regrets), 2) if hold_regrets else 0.0
         side_regrets = [v["side_regret_bps"] for v in resolved if v.get("side_regret_bps") is not None]
         tv["total_side_regret_bps"] = round(sum(side_regrets), 2) if side_regrets else 0.0
+        wait_regrets = [v["wait_regret_bps"] for v in resolved if v.get("wait_regret_bps") is not None]
+        tv["total_wait_regret_bps"] = round(sum(wait_regrets), 2) if wait_regrets else 0.0
     stats["trade_verdicts"] = tv
     return enriched, stats
 
