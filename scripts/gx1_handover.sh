@@ -39,14 +39,17 @@ line("entry_iql", f"variant={a['entry_iql'].get('active_variant')}  + CONVICTION
 line("exit_iql", f"variant={a['exit_iql'].get('active_variant')} agg={a['exit_iql'].get('active_aggregator')} K={a['exit_iql'].get('active_k_horizon')}")
 op=a["entry_iql"].get("operating_point",{})
 print()
-print("▌ ENTRY operating point (CEMENTED 2026-06-11 'thr -67 + conviction-sizing' — serve-time overlay, BUNDLE UNCHANGED):")
+print("▌ ENTRY operating point (OPEN-MORE WAVE ARMED 2026-06-13/14 — serve-time overlay, BUNDLE UNCHANGED):")
 print(f"   selection={op.get('selection')}  conviction_thr={op.get('conviction_thr')}  sizing={op.get('sizing')}  skip_asia={op.get('skip_asia')}  max_trades={op.get('max_trades')}")
 print(f"   live_env: {op.get('live_env')}")
-print("   Evidence: band [-67,-34.2) full-exit-chain replay 18.2 bps/take @ 0.915 win. v2 BOTH-sizing locked:")
-print("   +25.8% total, 2026 size-w win 0.8505 (floor REPAIRED), cap-3 DD -118.7 (beats old gate -172).")
-print("   First in-vivo trade on the repaired chain: 619 LONG +118.66 P/L.")
-print("   LAM50 NOTE: the live entry IS the LAM50-REWARD Q-net served via the conviction-gate; only the OLD")
-print("               LAM50/VOLUME-FIRST argmax operating-point is superseded. Do NOT remove the bundle.")
+print("   OPEN-MORE: thr -37.71 -> -100 (~+70% takes at full quality); sizing src raw_adv -> margin^2 x inverse-ATR(14).")
+print("   TRUE cap-3 mark-to-market account DD = 564 bps, ret/DD 30.5 (inverse-ATR already de-risks the EXTREME-vol tail;")
+print("   worst moment is a RECOVERING concurrent-underwater excursion, not lost capital). Nightly op-A/B activates Monday.")
+print("   ENTRY-RETRAIN REFUTED (9-agent OOT-verified 2026-06-14): the 'toxic' EXTREME+TREND_UP high-conf LONGs are net-")
+print("   PROFITABLE (+5447 bps/77.7%); trough labels do NOT separate them OOT (pre-gate >=0.58 FAILS at 0.501) -> a")
+print("   trough-reward refit is futile (oracle -3053 bps). DO NOT retrain entry on this. See memory")
+print("   project_gx1_dd_analysis_retrain_refuted_20260614. LAM50 Q-net IS the live entry — do NOT remove the bundle.")
+print("   REVERSIBLE: launcher GX1_CONVICTION_THR=-37.71, GX1_SIZING_CONV_SRC=raw_adv (or MARGIN_POW=1.0 for margin^1).")
 PY
 
 echo; echo "▌ LIVE stack (status below is live-checked). Relaunch with: bash scripts/launch_live_practice.sh"
@@ -126,11 +129,13 @@ echo "   • Edge headroom QUANTIFIED: open-more (~+45% extrap; band [-67,-34.2)
 echo "     > sizing (+14% at 2x top-decile) >> exit/veto (exhausted). LAM50 reward depression documented."
 
 echo; echo "▌ What's next:"
-echo "   1. OPEN-MORE band replay: exit-replay raw_adv ∈ [−67,−34.2) (12k pattern, no retrain) to convert"
-echo "      the +45% extrapolation into a replayed number before any thr change (own run-vedtak)."
-echo "   2. SIZING A/B: 2x top-raw_adv-decile under cap-3 portfolio sim (GX1_SIZING_MODE exists, fail-closed)."
-echo "      + ASIA size-down vs full skip (skip-ASIA buys DD, costs 21% total PnL)."
-echo "   3. Reward-fix bundle v2 at next entry-IQL refit: _SYM family + bad_path positive-part gate +"
+echo "   1. WATCH LIVE (Monday open): open-more -100 + margin² + skip-ASIA is armed; the nightly op-A/B leg"
+echo "      (gx1.scripts.nightly_op_comparison) grades it vs conviction67 on resolved trades. Watch live DD/win."
+echo "   2. ENTRY: do NOT retrain on the toxic-cluster (OOT-refuted — trough labels unlearnable, family is profitable)."
+echo "      The productive entry direction is OPEN-MORE (selection breadth) + the nightly continuous-learning loop,"
+echo "      NOT suppressing a profitable regime. Marginal DD lever (if wanted): GX1_SIZING_ATR_REF_BPS 14->10 (DD 564->537,"
+echo "      costs ~2000 bps realized; reversible env-flag, no retrain)."
+echo "   3. Reward-fix bundle v2 at next entry-IQL refit (own vedtak): _SYM family + bad_path positive-part gate +"
 echo "      truncation mask + recalibrated SESSCOND λ. STEP-3 round+FVG ctx cascade (leak-free cols ready)"
 echo "      → STEP-4 sweep SEQ → FEAT-6 M1-native FVG for the exit. Own-vedtak each."
 bar; echo

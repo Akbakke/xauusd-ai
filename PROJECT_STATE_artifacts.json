@@ -31,11 +31,14 @@
       "operating_point": {
         "selection": "CONVICTION_GATE_VOLSIZED",
         "conviction_gate": true,
-        "conviction_thr": -37.71,
+        "conviction_thr": -100.0,
         "sizing": {
           "mode": "both",
           "max_mult": 2.0,
           "min_mult": 0.5,
+          "conv_src": "margin",
+          "margin_pow": 2.0,
+          "margin_ref": 0.3318,
           "conv_lo": -37.71,
           "conv_hi": -13.99,
           "atr_ref_bps": 14.0,
@@ -45,8 +48,8 @@
         "skip_asia": true,
         "min_advantage_bps": 0,
         "max_trades": 3,
-        "live_env": "GX1_CONVICTION_GATE=1 GX1_SKIP_ASIA=1 GX1_CONVICTION_THR=-37.71 GX1_SIZING_MODE=both GX1_SIZING_MAX_MULT=2.0 GX1_SIZING_MIN_MULT=0.5 GX1_SIZING_CONV_LO=-37.71 GX1_SIZING_CONV_HI=-13.99 GX1_SIZING_ATR_REF_BPS=14.0 GX1_SIZING_ATR_FLOOR_BPS=14.0",
-        "note": "CEMENTED 2026-06-11 (user vedtak 'Flip!'). BUNDLE FLIP + recalibrated OP on the new Q-scale: thr -37.71 = volbal top-35% (matches the prior coverage); sizing anchors = its own 65th/80th pctiles (LO -37.71 / HI -13.99); vol-sizing both-mode REF=14 unchanged. EVIDENCE (12k full-exit-chain replay, PARALLEL gate 2.8min): 24.43 bps/take @ 0.9466 win skipASIA, 2026 30.66 bps @ 0.8543 win (floor PASS without vol-sizing help), cap-3 DD -113.0 (HALF of v2fix -214.8 at same density). MECHANISM CONFIRMED: high-vol takes 943 short/890 long, shorts 38.6 vs longs 26.1 bps (the measured vol-regime inversion, learned via GX1_REWARD_VOLBALANCE_FACTOR=6 + POSGATE + TRUNC_MASK training). Trained on REGIME_V4 forward_outcome_clean; decisions provenance entry_decisions_volbal(_top35). Posthoc-vs-top20-baseline expectancy delta is a coverage artifact (35% vs 20%); per-year floor PASSES. Reversible: see history[0] rollback note."
+        "live_env": "GX1_CONVICTION_GATE=1 GX1_SKIP_ASIA=1 GX1_CONVICTION_THR=-100 GX1_SIZING_MODE=both GX1_SIZING_CONV_SRC=margin GX1_SIZING_MARGIN_POW=2.0 GX1_SIZING_MARGIN_REF=0.3318 GX1_SIZING_MAX_MULT=2.0 GX1_SIZING_MIN_MULT=0.5 GX1_SIZING_CONV_LO=-37.71 GX1_SIZING_CONV_HI=-13.99 GX1_SIZING_ATR_REF_BPS=14.0 GX1_SIZING_ATR_FLOOR_BPS=14.0",
+        "note": "OPEN-MORE WAVE ARMED 2026-06-13/14 (vedtak 'B: -100 er perfekt' + 'mer gass mer hale -> Fortsett'): conviction_thr -37.71 -> -100 (open-more, ~+70% takes at full quality, win + worst-MAE unchanged to -100); sizing source raw_adv -> margin^2 (margin corr 0.36 w/ realized vs raw_adv 0.04; +22% A/B) x inverse-ATR(14)=min(14/atr,1) high-vol de-risk (mode=both); conv_lo pinned -37.71 so new marginal trades enter at base size. BUNDLE UNCHANGED (entry_iql_volbal_20260611). journal suffix open100_conv_sized_skipasia_pure_phase6. DD ANALYSIS + ENTRY-RETRAIN VERDICT (9-agent OOT-verified 2026-06-14): TRUE cap-3 per-M1-bar mark-to-market account DD = 564 bps, ret/DD 30.5 (BETTER than flat 24.5 - the inverse-ATR leg already de-risks the EXTREME-vol tail; the worst moment is a recovering concurrent-underwater excursion, not lost capital). ENTRY-IQL RETRAIN REFUTED: the EXTREME+TREND_UP high-confidence LONG family is net-PROFITABLE (+5447 bps, 77.7% win, BETTER than other LONGs); confidence-inversion is a side-artifact (within-LONG winners are MORE confident); the trough labels do NOT separate the toxic entries OOT (loser-AUC 0.46-0.54 in-sample, GBM 0.70-0.94 in-sample -> 0.44-0.51 OOT both split directions; pre-gate >=0.58 FAILS at 0.501) -> a trough-reward refit is futile and would drop profitable LONGs (label-oracle -3053 bps). DO NOT retrain entry on this. See memory project_gx1_dd_analysis_retrain_refuted_20260614. REVERSIBLE: launcher GX1_CONVICTION_THR=-37.71, GX1_SIZING_CONV_SRC=raw_adv (or MARGIN_POW=1.0 for gentler margin^1). ---- PRIOR OP (history): CEMENTED 2026-06-11 (user vedtak 'Flip!'). BUNDLE FLIP + recalibrated OP on the new Q-scale: thr -37.71 = volbal top-35% (matches the prior coverage); sizing anchors = its own 65th/80th pctiles (LO -37.71 / HI -13.99); vol-sizing both-mode REF=14 unchanged. EVIDENCE (12k full-exit-chain replay, PARALLEL gate 2.8min): 24.43 bps/take @ 0.9466 win skipASIA, 2026 30.66 bps @ 0.8543 win (floor PASS without vol-sizing help), cap-3 DD -113.0 (HALF of v2fix -214.8 at same density). MECHANISM CONFIRMED: high-vol takes 943 short/890 long, shorts 38.6 vs longs 26.1 bps (the measured vol-regime inversion, learned via GX1_REWARD_VOLBALANCE_FACTOR=6 + POSGATE + TRUNC_MASK training). Trained on REGIME_V4 forward_outcome_clean; decisions provenance entry_decisions_volbal(_top35). Posthoc-vs-top20-baseline expectancy delta is a coverage artifact (35% vs 20%); per-year floor PASSES. Reversible: see history[0] rollback note."
       },
       "status": "ACTIVE",
       "in_sample_only": false,

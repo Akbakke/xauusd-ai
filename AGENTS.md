@@ -162,6 +162,16 @@
   (warm-start, minutes-to-~2h), transformer FROZEN. V13 proved the from-scratch-reward path overfits AND
   is slower (Strategy-F won as an IQL-overlay with zero transformer retrain). V10 fit is ~35min (332K rows);
   V3 is the ~2h/epoch cost driver — optimize V3, treat V10 fit as ~free. [[project_gx1_retrain_cost_audit_20260609]]
+- **LABEL-REWARD PRE-GATE — don't retrain on a label that doesn't separate the target OOT (user vedtak 2026-06-14).**
+  Before building ANY label-reward retrain (a new reward derived from a new label set — trough-anchored, session-cond,
+  vol-cond, etc.), FIRST prove the new label SEPARATES the load-bearing target on a STRICT out-of-time split (fit early
+  months / test later, AND reverse). If the loser-vs-winner AUC ≈ 0.5 OOT, the retrain is FUTILE — the policy cannot
+  learn what the label cannot distinguish, and a fitted filter will drop profitable trades. 2026-06-14: the
+  trough-anchored entry-reward refit (to suppress the "confident-blowoff-top LONG cluster") was REFUTED exactly this way
+  — trough labels overfit to GBM-AUC 0.70–0.94 in-sample but collapsed to 0.44–0.51 OOT (pre-gate ≥0.58 FAILED at 0.501),
+  the "toxic" regime is net-PROFITABLE, and a label-oracle filter cost −3053 bps. The in-sample number is the trap (it
+  always looks separable inside the cement's training window); the OOT split is the truth. Cheapest, run it FIRST — it
+  blocks futile retrains before any compute. [[project_gx1_dd_analysis_retrain_refuted_20260614]]
 - Do not run R6, freeze, promo, live, or package build without an explicit green gate.
 - Keep historical artifacts as history unless an explicit selection contract marks them active.
 

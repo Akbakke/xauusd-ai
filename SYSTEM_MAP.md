@@ -48,13 +48,24 @@ XGB, multi-TF, datasets). §16-18 = gotchas, flags, protected core. Then the mai
   hold-max-pnl term, NOT exit time. DIFFERENT from entry's K-set ([materialize_build_exit_iql_per_bar_dataset_v1.py:101](gx1/scripts/materialize_build_exit_iql_per_bar_dataset_v1.py#L101)).
 - **Advantages (bps, reward scale):** `advantage_over_skip = Q[chosen]-Q[SKIP]`; `advantage_over_realized =
   Q[chosen]-max(Q[long],Q[short])` ([entry_iql_v2_adapter.py:75-78,297](gx1/runtime/entry_iql_v2_adapter.py#L75)). Exit advantage = `q_exit-q_hold`, gated by `exit_margin` (default 0 = argmax).
-- **Entry selection — CEMENTED 2026-06-10 = conviction-gate + skip-ASIA** (serve-time overlay; the
-  `entry_iql_clean` **LAM50-reward bundle is UNCHANGED**): OPEN a TAKE when `raw_adv = best-TAKE-Q − SKIP-Q`
-  (UN-clipped) `>= GX1_CONVICTION_THR` (−34.2 = offline conviction20 20th-pctile → top-20% open), side =
-  `argmax(TAKE-Q)`, OVERRIDING the IQL's conservative argmax-SKIP; + skip-ASIA (block ASIA-session entries).
+- **Entry selection — OPEN-MORE WAVE ARMED 2026-06-13/14 = conviction-gate (thr −100) + margin²×inverse-ATR sizing +
+  skip-ASIA** (serve-time overlay; the `entry_iql_volbal_20260611` **bundle is UNCHANGED**): OPEN a TAKE when
+  `raw_adv = best-TAKE-Q − SKIP-Q` (UN-clipped) `>= GX1_CONVICTION_THR` (now **−100 = open-more**, ~+70% takes at full
+  quality; was −34.2/top-20% cemented 2026-06-10), side = `argmax(TAKE-Q)`, OVERRIDING the IQL argmax-SKIP; + skip-ASIA.
   Env-gated `GX1_CONVICTION_GATE`/`GX1_SKIP_ASIA`/`GX1_CONVICTION_THR` ([v12_entry_iql_live.py:104](gx1/execution/v12_entry_iql_live.py#L104),
-  [v12_paper_runner.py](gx1/execution/v12_paper_runner.py), commits 42b5946b/268c70ee; launcher pins `1`/`1`/`−34.2`).
-  ONE truth = `PROJECT_STATE_artifacts.json` → `entry_iql.operating_point`.
+  [v12_paper_runner.py `size_units`](gx1/execution/v12_paper_runner.py); launcher pins `1`/`1`/`−100`).
+  ONE truth = `PROJECT_STATE_artifacts.json` → `entry_iql.operating_point` (synced 2026-06-14).
+  - **POSITION SIZING (`SIZING_MODE=both`):** `size = clip( (margin²/REF) × min(ATR_REF/atr, 1), MIN_MULT, MAX_MULT )`
+    — a conviction `margin^POW/REF` leg (margin = XGB/V10 top1−top2 = 1−uncertainty, corr 0.36 w/ realized) **×** an
+    inverse-ATR `min(14/atr,1)` leg that ONLY down-sizes high-vol bars; final clamp `[0.5, 2.0]`. Live: `POW=2.0`,
+    `REF=0.3318`, `ATR_REF=ATR_FLOOR=14`. **FOOTGUN — REF must track POW:** the launcher pins `REF=0.3318` (=full-history
+    mean(margin²)) and does NOT reset it when POW changes; flipping only `POW=1.0` leaves REF=0.3318 → sizes ~everything
+    to 2× (clipped), NOT gentle margin¹. Mean-preserving per-POW population REF (2026): POW 1.0→0.7046, 1.5→0.6347,
+    2.0→0.5859 (2026 mean(margin²)=0.5859 > 0.3318 → live runs ~1.77× avg, the intended "more gas").
+  - **TRUE cap-3 per-M1-bar mark-to-market account DD = 564 bps, ret/DD 30.5** (the inverse-ATR leg already de-risks the
+    EXTREME-vol tail; worst moment = ≤3 concurrent same-side trades underwater that RECOVER, not lost capital). The "366"
+    is a realized-bps proxy; "888" is margin²-only (omits the inverse-ATR leg). Entry-IQL retrain on the toxic LONG
+    cluster is OOT-REFUTED (memory `project_gx1_dd_analysis_retrain_refuted_20260614`) — do NOT build it.
   2026-06-11 gate-hoist fix: the gate+overlays now apply on the single-bundle `predict()` path too (they
   were ensemble-branch-only — the flag was a live NO-OP between 2026-06-10 and the fix; [v12_entry_iql_live.py:417-419](gx1/execution/v12_entry_iql_live.py#L417)).
   - SUPERSEDED (pre-2026-06-10, "LAM50/VOLUME-FIRST" *operating point* — NOT the bundle): cement
@@ -242,7 +253,8 @@ Entry-snapshot (cols 0-4, frozen, from **V10 direction softmax** — candidate-g
 | flag | meaning | default |
 |---|---|---|
 | `GX1_REGIME_V4` | regime-v4 ctx (cont 123/cat 5 vs 105/6) | build/contract `1`, serve/cand `0`, launcher PIN `1` (fase2b cement) |
-| `GX1_CONVICTION_GATE` / `GX1_CONVICTION_THR` | entry conviction-gate: open top-20% by `raw_adv` (≥ thr) overriding IQL SKIP | code OFF / `-34.2`; launcher PIN `1` / `-34.2` (CEMENTED 2026-06-10) |
+| `GX1_CONVICTION_GATE` / `GX1_CONVICTION_THR` | entry conviction-gate: open by `raw_adv` (≥ thr) overriding IQL SKIP | code OFF / `-34.2`; launcher PIN `1` / **`-100`** (OPEN-MORE armed 2026-06-13/14; was -34.2/top-20%) |
+| `GX1_SIZING_MODE` / `GX1_SIZING_CONV_SRC` / `GX1_SIZING_MARGIN_POW` / `GX1_SIZING_ATR_REF_BPS` | position sizing `clip((margin^POW/REF)×min(ATR_REF/atr,1),0.5,2)` (REF MUST track POW — footgun) | code `off`/`raw_adv`/`2.0`/`18`; launcher PIN `both`/`margin`/`2.0`/`14` (REF=0.3318) |
 | `GX1_SKIP_ASIA` | block ASIA-session entries (per-year win floor) | code OFF; launcher PIN `1` |
 | `GX1_PURE_PHASE6` | disable live-only wrappers (live=Phase6 1:1); CLUSTER1 stays ON; safety always-on | `1` for paper-runner |
 | `GX1_STRATEGY_F_ENABLED` | MFE-giveback exit overlay (4 rules) | `True` (OOT-ablate → OFF post-retrain) |
