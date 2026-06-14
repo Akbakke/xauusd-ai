@@ -649,8 +649,19 @@ class PrebuiltStateLoader:
         # Fallback: join BASE28 augmented columns at exact timestamps
         b28_cols = [c for c in self._base28.columns if c not in cv3_win.columns]
         if b28_cols:
+            # 2026-06-15 weekend-open boundary fix: the FIRST M5 bar after a market gap
+            # (e.g. Sun 22:00) exists in cv3, but its :00 minute is missing from base28
+            # (OANDA's first post-open M1 bar lands at :04), so an exact reindex(method=
+            # None) left ALL base28 cols NaN on that ONE context bar -> the fail-closed
+            # XGB sanitizer (and session_id.astype(int)) refused EVERY decision for the
+            # ~8h that bar stays in the 96-bar window = live fully blocked at every Sunday
+            # open. Fill ONLY that gap from the next M1 bar WITHIN THE SAME M5 bucket
+            # (tolerance=5min). Verified: exact-matched bars (= every bar training saw)
+            # are returned BIT-IDENTICALLY (train==serve preserved); the cap at end_bucket
+            # prevents any future leak; the decision bar itself is always present in
+            # base28 (cutoff = min(cv3,base28)) so it is never fabricated.
             b28_slice = self._base28.loc[:end_bucket, b28_cols].reindex(
-                cv3_win.index, method=None,
+                cv3_win.index, method="bfill", tolerance=pd.Timedelta("5min"),
             )
             joined = pd.concat([cv3_win, b28_slice], axis=1)
         else:
