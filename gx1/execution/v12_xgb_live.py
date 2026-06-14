@@ -175,10 +175,20 @@ class XGBLiveInference:
         # Per-bar session resolution
         if session is not None:
             sessions = np.array([session] * len(augmented_cv3_row), dtype=object)
-        elif "session_id" in augmented_cv3_row.columns:
+        elif "session_id" in augmented_cv3_row.columns and augmented_cv3_row["session_id"].notna().all():
             sid = augmented_cv3_row["session_id"].astype(int).to_numpy()
             sessions = np.array([SESSION_ID_TO_NAME.get(int(s), "ASIA") for s in sid], dtype=object)
         else:
+            # session_id ABSENT or NaN -> derive the session from the bar timestamp (the
+            # canonical, always-available source). 2026-06-15 LIVE-BLOCKER fix: at the
+            # weekend market-open get_window() joins base28 (M1) cols onto the cv3 (M5)
+            # window with reindex(method=None); when cv3 is momentarily ahead of base28
+            # (the two prebuilts async-refresh independently), session_id is NaN on the
+            # un-joined tail bar(s) and ``.astype(int)`` raised IntCastingNaNError on
+            # EVERY poll -> ALL live entries blocked (crash-loop, no journal). Parity
+            # verified 1.00000 over a full week: get_session_vectorized(ts) is bit-
+            # identical to SESSION_ID_TO_NAME[session_id] (session is a pure function of
+            # UTC time), so this fallback is train==serve-exact, never a degraded input.
             ts = augmented_cv3_row.index if isinstance(augmented_cv3_row.index, pd.DatetimeIndex) \
                  else pd.to_datetime(augmented_cv3_row["time"], utc=True)
             sessions = get_session_vectorized(ts).to_numpy(dtype=object)
