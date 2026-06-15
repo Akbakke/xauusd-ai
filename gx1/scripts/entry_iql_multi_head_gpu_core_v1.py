@@ -206,6 +206,8 @@ def train_multi_head_entry_iql(
     q_ranking_weight: float = 0.0,    # EIQL-2: 0.0 = bit-parity (pure MSE); small (~0.05) in retrain
     q_ranking_margin: float = 5.0,    # margin in REWARD units (bps); only active when weight>0
     loss_mask: np.ndarray | None = None,  # EXIT-9: (n, n_actions*n_K) 0/1 mask; None = bit-parity
+    init_q_state_dict: dict | None = None,  # WARM-START: load cement Q weights as init; None = cold (bit-parity)
+    init_v_state_dict: dict | None = None,  # WARM-START: load cement V weights as init; None = cold (bit-parity)
 ) -> MultiHeadEntryIQLModel:
     """Train multi-head Q(s, a, K) on fully-observable counterfactual rewards.
 
@@ -268,6 +270,18 @@ def train_multi_head_entry_iql(
 
     q_net = MLP(state_dim, n_actions * nk, hidden_dim=hidden_dim, n_hidden=n_hidden, dropout=dropout).to(device)
     v_net = MLP(state_dim, nk, hidden_dim=hidden_dim, n_hidden=n_hidden, dropout=dropout).to(device)
+    # WARM-START (2026-06-15): when an init state-dict is supplied, load the cement Q/V weights as the
+    # starting point INSTEAD of random init, so the refit nudges the converged policy rather than
+    # re-learning from scratch (mirrors online_iql_warmstart.warmstart_train, ONE-TRUTH trainer). Loaded
+    # with strict=True so an arch mismatch (hidden/state_dim) fails LOUD. Default None = cold = bit-parity.
+    if init_q_state_dict is not None:
+        _miss_q = q_net.load_state_dict(init_q_state_dict, strict=True)
+        print(f"[iql-warmstart] loaded init Q-net weights (missing={_miss_q.missing_keys}, "
+              f"unexpected={_miss_q.unexpected_keys})", flush=True)
+    if init_v_state_dict is not None:
+        _miss_v = v_net.load_state_dict(init_v_state_dict, strict=True)
+        print(f"[iql-warmstart] loaded init V-net weights (missing={_miss_v.missing_keys}, "
+              f"unexpected={_miss_v.unexpected_keys})", flush=True)
     q_opt = torch.optim.Adam(q_net.parameters(), lr=lr, weight_decay=weight_decay)
     v_opt = torch.optim.Adam(v_net.parameters(), lr=lr, weight_decay=weight_decay)
 

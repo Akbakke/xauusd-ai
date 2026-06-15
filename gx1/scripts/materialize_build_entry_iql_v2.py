@@ -1216,6 +1216,9 @@ def evaluate_one_fold(
     skip_oversample_factor: int = 1,
     volbal_mask: np.ndarray | None = None,
     volbal_factor: int = 1,
+    regimelong_mask: np.ndarray | None = None,
+    regimelong_factor: int = 1,
+    warmstart_init: dict | None = None,
 ) -> dict[str, Any]:
     fold_id_v1 = fold["fold_id_v1"]
     train_idx = fold["train_idx_v1"]
@@ -1248,6 +1251,23 @@ def evaluate_one_fold(
             extra_hv = np.tile(hv_indices, volbal_factor - 1)
             train_idx = np.concatenate([train_idx, extra_hv])
             volbal_oversample_count = int(len(extra_hv))
+
+    # 2026-06-15 REGIME-LONG BALANCE (vedtak entry_iql_regimelong_refit_20260615): the regime
+    # TREND_UP + V10-leans-LONG (p_long>p_short) + normal/low vol (atr_bps<=14) is a MINORITY of
+    # training rows, so the (OOT-proven) "take the dip-LONG here" signal drowns in the majority
+    # gradient — the volbal IQL learned a blanket anti-LONG floor (q_take_long median -425, NEVER
+    # argmax) and FORCE-SHORTS profitable dip-LONGs. Replicate those regime TRAIN rows (mask computed
+    # on the ORIGINAL row order, SAME definition as the DIPFIX serve overlay _dipfix_regime_mask so
+    # train==serve; applied train-only — val/test stay natural-distribution so eval stays honest).
+    # The reward is per-side symmetric and long-reward > short-reward in this regime, so amplifying
+    # its gradient teaches the IQL to RAISE q_long here. Same pattern as the volbal oversample above.
+    regimelong_oversample_count = 0
+    if regimelong_mask is not None and regimelong_factor > 1:
+        rl_indices = train_idx[regimelong_mask[train_idx]]
+        if len(rl_indices) > 0:
+            extra_rl = np.tile(rl_indices, regimelong_factor - 1)
+            train_idx = np.concatenate([train_idx, extra_rl])
+            regimelong_oversample_count = int(len(extra_rl))
 
     X_train = X[train_idx]
     R_train = R[train_idx]
@@ -1310,6 +1330,17 @@ def evaluate_one_fold(
     # argmax separation the live policy reads, while keeping Q in bps for the Phase-6 gates.
     _q_rank_w = float(os.environ.get("GX1_ENTRY_IQL_Q_RANKING_WEIGHT", "0.0"))
     _q_rank_m = float(os.environ.get("GX1_ENTRY_IQL_Q_RANKING_MARGIN", "5.0"))
+    # WARM-START (2026-06-15): when warmstart_init is supplied (init-from-bundle), load the cement Q/V
+    # weights as the starting point and train at a LOW LR for FEW epochs (nudge, not re-learn). The
+    # arch (hidden/n_hidden/state_dim) MUST match the cement ckpt or load_state_dict(strict=True) raises.
+    _init_q = warmstart_init.get(fold_id_v1, {}).get("q") if warmstart_init else None
+    _init_v = warmstart_init.get(fold_id_v1, {}).get("v") if warmstart_init else None
+    _ws_kwargs: dict[str, Any] = {}
+    if _init_q is not None or _init_v is not None:
+        _ws_lr = float(os.environ.get("GX1_ENTRY_IQL_WARMSTART_LR", "1e-4"))
+        _ws_kwargs = {"lr": _ws_lr, "init_q_state_dict": _init_q, "init_v_state_dict": _init_v}
+        print(f"[{ACTION}] {fold_id_v1} {variant} WARM-START from cement (lr={_ws_lr}, "
+              f"epochs_q={TRAIN_EPOCHS_Q} epochs_v={TRAIN_EPOCHS_V} k_iter={TRAIN_K_VQ_ITERATIONS})", flush=True)
     model = iql_core.train_multi_head_entry_iql(
         X_train, R_train,
         k_horizons=K_HORIZONS,
@@ -1326,6 +1357,7 @@ def evaluate_one_fold(
         sample_weights=sample_weights,
         q_ranking_weight=_q_rank_w,
         q_ranking_margin=_q_rank_m,
+        **_ws_kwargs,
     )
 
     # Evaluate per K-horizon × per aggregator on val and test
@@ -1390,6 +1422,7 @@ def evaluate_one_fold(
                 "GX1_REWARD_BADPATH_POSGATE": os.environ.get("GX1_REWARD_BADPATH_POSGATE", "0"),
                 "GX1_REWARD_TRUNC_MASK": os.environ.get("GX1_REWARD_TRUNC_MASK", "0"),
                 "GX1_REWARD_VOLBALANCE_FACTOR": os.environ.get("GX1_REWARD_VOLBALANCE_FACTOR", "0"),
+                "GX1_REWARD_REGIMELONG_FACTOR": os.environ.get("GX1_REWARD_REGIMELONG_FACTOR", "0"),
             },
         },
         model_path,
@@ -1414,6 +1447,9 @@ def evaluate_one_fold(
         "skip_weight_multiplier_v1": float(skip_weight_multiplier),
         "skip_oversample_factor_v1": int(skip_oversample_factor),
         "skip_oversample_added_rows_v1": int(skip_oversample_count),
+        "volbal_oversample_added_rows_v1": int(volbal_oversample_count),
+        "regimelong_oversample_factor_v1": int(regimelong_factor),
+        "regimelong_oversample_added_rows_v1": int(regimelong_oversample_count),
         "train_action_counts_v1": train_action_counts,
         "train_class_weights_v1": train_class_weights,
     }
@@ -1521,6 +1557,7 @@ def write_artifacts(
     balance_actions: bool = False,
     skip_weight_multiplier: float = 1.0,
     skip_oversample_factor: int = 1,
+    init_from_bundle: Path | None = None,
 ) -> dict[str, Any]:
     timestamp = built_at_utc or _stamp()
     artifact_root = out_root or (DEFAULT_REPORTS_ROOT / f"{ACTION}_{timestamp}_LOCK")
@@ -1621,6 +1658,50 @@ def write_artifacts(
         print(f"[{ACTION}] GX1_REWARD_VOLBALANCE_FACTOR={_volbal_factor}: oversampling "
               f"{int(_volbal_mask.sum()):,}/{len(df):,} high-vol rows (atr_bps>{_volbal_atr}) in TRAIN only", flush=True)
 
+    # 2026-06-15 REGIME-LONG balance (env-gated, default OFF — vedtak entry_iql_regimelong_refit_20260615):
+    # oversample the regime where the volbal IQL force-shorts profitable dip-LONGs. Mask = the SAME
+    # definition as the DIPFIX serve overlay gx1.execution.v12_entry_iql_live._dipfix_regime_mask, computed
+    # on the forward_outcome columns (train==serve consistent): p_long>p_short AND trend_regime==TREND_UP
+    # AND (vol_regime in {LOW,MEDIUM} OR atr_bps<=ATR_MAX). Mask on ORIGINAL row order; applied train-only
+    # (val/test natural-distribution → honest eval). factor=1 (default) = byte-identical no-op.
+    _regimelong_factor = int(os.environ.get("GX1_REWARD_REGIMELONG_FACTOR", "1"))
+    _regimelong_mask = None
+    if _regimelong_factor > 1:
+        _rl_atr_max = float(os.environ.get("GX1_REWARD_REGIMELONG_ATR_MAX", "14.0"))
+        _p_long = pd.to_numeric(df.get("p_long"), errors="coerce")
+        _p_short = pd.to_numeric(df.get("p_short"), errors="coerce")
+        _leans_long = (_p_long > _p_short).fillna(False)
+        _trend_up = (df.get("trend_regime").astype("string") == "TREND_UP").fillna(False) \
+            if "trend_regime" in df.columns else pd.Series(False, index=df.index)
+        _vol_label_low = (df.get("vol_regime").astype("string").isin(["LOW", "MEDIUM"])).fillna(False) \
+            if "vol_regime" in df.columns else pd.Series(False, index=df.index)
+        _atr_low = (pd.to_numeric(df.get("atr_bps"), errors="coerce") <= _rl_atr_max).fillna(False)
+        _vol_low = _vol_label_low | _atr_low
+        _regimelong_mask = (_leans_long & _trend_up & _vol_low).to_numpy()
+        print(f"[{ACTION}] GX1_REWARD_REGIMELONG_FACTOR={_regimelong_factor}: oversampling "
+              f"{int(_regimelong_mask.sum()):,}/{len(df):,} regime-long rows "
+              f"(TREND_UP & p_long>p_short & vol-low/atr<={_rl_atr_max}) in TRAIN only", flush=True)
+
+    # WARM-START init (2026-06-15): load the cement Q/V weights per-fold so the refit nudges the
+    # converged policy. The transformer is FROZEN (it is upstream — its outputs are already baked into
+    # forward_outcome); this only inits the small IQL Q/V net. Arch must match the cement ckpt.
+    _warmstart_init: dict[str, dict] | None = None
+    if init_from_bundle is not None:
+        _warmstart_init = {}
+        _ws_models_dir = Path(init_from_bundle) / "trained_models_v1"
+        for variant in (variants_subset or REWARD_VARIANTS):
+            for fold in folds:
+                fid = fold["fold_id_v1"]
+                _ck_path = _ws_models_dir / f"{variant}_{fid}.pt"
+                if not _ck_path.is_file():
+                    raise FileNotFoundError(
+                        f"[{ACTION}] --init-from-bundle: cement checkpoint missing: {_ck_path} "
+                        f"(variant={variant} fold={fid}). Refit cannot warm-start without it.")
+                _ck = torch.load(_ck_path, map_location="cpu", weights_only=False)
+                _warmstart_init[fid] = {"q": _ck["q_state_dict"], "v": _ck["v_state_dict"]}
+        print(f"[{ACTION}] WARM-START: loaded cement Q/V init for {len(_warmstart_init)} fold(s) "
+              f"from {init_from_bundle}", flush=True)
+
     for variant in (variants_subset or REWARD_VARIANTS):
         for fold in folds:
             r = evaluate_one_fold(
@@ -1630,6 +1711,8 @@ def write_artifacts(
                 skip_weight_multiplier=skip_weight_multiplier,
                 skip_oversample_factor=skip_oversample_factor,
                 volbal_mask=_volbal_mask, volbal_factor=_volbal_factor,
+                regimelong_mask=_regimelong_mask, regimelong_factor=_regimelong_factor,
+                warmstart_init=_warmstart_init,
             )
             per_fold_results.append(r)
             flat_evaluations.extend(r.get("all_evaluations_v1", []))
@@ -1661,6 +1744,16 @@ def write_artifacts(
         "seed_v1": SEED_V1,
         "min_per_class_val_v1": MIN_PER_CLASS_VAL,
         "balance_actions_v1": bool(balance_actions),
+        "regimelong_oversample_factor_v1": int(_regimelong_factor),
+        "regimelong_oversample_n_masked_rows_v1": (int(_regimelong_mask.sum()) if _regimelong_mask is not None else 0),
+        "volbal_oversample_factor_v1": int(_volbal_factor),
+        "warmstart_init_from_bundle_v1": (str(init_from_bundle) if init_from_bundle is not None else None),
+        "reward_env_v1": {
+            "GX1_REWARD_BADPATH_POSGATE": os.environ.get("GX1_REWARD_BADPATH_POSGATE", "0"),
+            "GX1_REWARD_TRUNC_MASK": os.environ.get("GX1_REWARD_TRUNC_MASK", "0"),
+            "GX1_REWARD_VOLBALANCE_FACTOR": os.environ.get("GX1_REWARD_VOLBALANCE_FACTOR", "0"),
+            "GX1_REWARD_REGIMELONG_FACTOR": os.environ.get("GX1_REWARD_REGIMELONG_FACTOR", "0"),
+        },
         "per_fold_summary_v1": [
             {
                 "fold_id_v1": r["fold_id_v1"],
@@ -1730,6 +1823,12 @@ def main() -> None:
                              "around 1%%) because oracle SKIP has only 0.5%% of rows. "
                              "Try 10-20 to give the IQL actual gradient examples.")
     parser.add_argument("--built-at-utc", type=str, default=None)
+    parser.add_argument("--init-from-bundle", type=str, default=None,
+                        help="WARM-START: path to a cement Entry-IQL bundle (with trained_models_v1/"
+                             "<variant>_<fold>.pt). Loads its Q/V weights as init (transformer FROZEN — "
+                             "this only nudges the small IQL net). Arch must match (hidden/n_hidden/"
+                             "state_dim); a mismatch fails loud via load_state_dict(strict=True). "
+                             "Warm-start LR via GX1_ENTRY_IQL_WARMSTART_LR (default 1e-4).")
     parser.add_argument("--seed", type=int, default=None,
                         help="Override default SEED_V1 (used for ensemble training).")
     parser.add_argument(
@@ -1771,6 +1870,8 @@ def main() -> None:
         balance_actions=args.balance_actions,
         skip_weight_multiplier=args.skip_weight_multiplier,
         skip_oversample_factor=args.skip_oversample_factor,
+        init_from_bundle=(Path(args.init_from_bundle).expanduser().resolve()
+                          if args.init_from_bundle else None),
     )
     print(json.dumps(_jsonable(result["summary"]), ensure_ascii=True, indent=2, sort_keys=True))
 
