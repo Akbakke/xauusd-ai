@@ -299,8 +299,10 @@ def build_trajectories_on_the_fly(
         joined_parts.append(g)
     df = pd.concat(joined_parts, ignore_index=True)
     # One-hot expand categoricals EXACTLY as load_v12_dataset (the last coverage layer).
+    # Pin side_v1 too (a single-side chunk would otherwise omit side_v1_long/short → FEATURE_COVERAGE_FATAL).
     _ONE_HOT_PIN = {"vol_regime": ["LOW", "MEDIUM", "HIGH", "EXTREME"],
-                    "trend_regime": ["TREND_UP", "TREND_NEUTRAL", "TREND_DOWN"]}
+                    "trend_regime": ["TREND_UP", "TREND_NEUTRAL", "TREND_DOWN"],
+                    "side_v1": ["long", "short"]}
     for c in v2_train.ONE_HOT_COLS:
         if c in df.columns:
             dummies = pd.get_dummies(df[c].astype(str), prefix=c, dummy_na=False)
@@ -793,10 +795,19 @@ def main() -> int:
     # pre-scored in the frame, the adapter is a small MLP).
     _replay_workers = int(os.environ.get("GX1_REPLAY_WORKERS",
                                          str(min(12, max(1, (os.cpu_count() or 2) - 4)))))
+    # GX1_GATE_GRACE_FEATURES: comma-separated feature names demoted to warn-only (not fail-closed).
+    # ONLY for the on-the-fly path where V3-scored cols (v3_v8_*) are not (yet) computed on the rebuilt
+    # trajectory — V3-override is RETIRED (default v3-free policy), so these are transformer-INPUT
+    # CONTEXT, not exit-decision drivers. Documented small-sample caveat; the FULL run should wire
+    # score_v3_v8_on_per_bar on the rebuilt trajectory. Empty by default (pre-scored path is unaffected).
+    _grace = tuple(f.strip() for f in os.environ.get("GX1_GATE_GRACE_FEATURES", "").split(",") if f.strip())
+    if _grace:
+        print(f"  [grace] warmup_grace_features (warn-only, not fail-closed): {list(_grace)}")
     exit_adapter = ExitIQLV2Adapter.load(
         artifact_root=iql_lock,
         variant=args.variant, fold_id=args.fold_id,
         prefer_cuda=(_replay_workers <= 1),
+        warmup_grace_features=_grace or None,
     )
     print(f"  features={len(exit_adapter.feature_names)}, device={exit_adapter.model.device} "
           f"(replay_workers={_replay_workers})")
