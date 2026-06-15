@@ -52,6 +52,7 @@ import numpy as np
 import pandas as pd
 
 from gx1.runtime.entry_iql_v2_adapter import EntryIQLV2Adapter, EntryRecommendation
+from gx1.scripts import entry_iql_multi_head_gpu_core_v1 as iql_core  # ACTION_* ids/labels (one-truth)
 
 LOG = logging.getLogger("v12_entry_iql_live")
 
@@ -118,6 +119,106 @@ RECLAIM_GATE_MIN = float(os.environ.get("GX1_SMC_RECLAIM_MIN", "0.5"))         #
 ROUND_WALL_ON = os.environ.get("GX1_ROUND_NUMBER_WALL", "0") == "1"           # penalize low-conviction TAKE into adverse $-wall
 ROUND_WALL_NEAR_ATR = float(os.environ.get("GX1_ROUND_WALL_NEAR_ATR", "0.25"))  # "near a wall" if |dist| < this (ATR)
 ROUND_WALL_EXTRA = float(os.environ.get("GX1_ROUND_WALL_EXTRA", "20.0"))       # extra conviction required to take into a wall
+
+# ── DIPFIX serve-time selection overlay (2026-06-15, default OFF = byte-identical no-op) ──────────
+# WHY: the cemented volbal Entry-IQL learned an anti-LONG floor that FORCE-SHORTS dips in uptrends.
+# OOT-truth (2026): in TREND_UP + V10-leans-LONG + normal/low vol, take-LONG realized +30.8 bps/68.7%
+# win vs the IQL's forced take-SHORT −34.6 bps/29% win. "Buy-the-dip-LONG" is NOT OOT-learnable
+# (trough-anchored reward refit REFUTED 2026-06-14) so the lever is SERVE-TIME SELECTION, not retrain.
+# This overlay is env-gated DEFAULT-OFF; when GX1_ENTRY_DIPFIX is unset the entry decision is
+# BYTE-IDENTICAL to the prior chain (the regime mask is never even evaluated). It is the ONE TRUTH
+# applied in BOTH the live serve (EntryIQLLiveInference.predict, after conviction-gate/STEP-1) AND the
+# OOT gate inference (v12_phase1_entry_iql_inference imports apply_dipfix_overlay) so live == gate.
+#
+# Regime mask = TREND_UP AND V10-leans-LONG AND vol normal/low, computed from candidate features that
+# exist in BOTH the live candidate dict (build_candidate) AND the gate's forward_outcome rows:
+#   • TREND_UP   : trend_regime == "TREND_UP"  (real REGIME_V4 label; live sets it in build_candidate
+#                  when GX1_REGIME_V4=1, gate FO carries it) OR ≥2 of {m15,h1,h4}_ema20_slope_atr_v2 > 0
+#                  (the per-TF slope vote only fires when those cols are present — live path; the gate
+#                  FASE2B_CLEAN forward_outcome does NOT carry per-TF slopes, so there the label drives).
+#   • leans-LONG : p_long > p_short  (these ARE the V10 direction softmax probs — see build_candidate).
+#   • vol norm/low: vol_regime in {LOW, MEDIUM} OR atr_bps <= 14  (atr14_m5_bps fallback). On the gate
+#                  FO vol_regime skews EXTREME/HIGH so the atr_bps<=14 leg (~75% of bars) is load-bearing.
+DIPFIX_ON = os.environ.get("GX1_ENTRY_DIPFIX", "0") == "1"
+DIPFIX_MODE = os.environ.get("GX1_ENTRY_DIPFIX_MODE", "suppress_short")  # "suppress_short" | "both"
+# p_long top-~30% WITHIN the masked regime on the ACTIVE-exit-wave forward_outcome (q70 = 0.809,
+# 2026-06-15 measured) — only revive a SKIP into a TAKE_LONG when V10 is STRONGLY long. Conservative
+# round-down to 0.80; override via env. Used by the "both" mode's SKIP→TAKE_LONG revival only.
+DIPFIX_PLONG_THR = float(os.environ.get("GX1_ENTRY_DIPFIX_PLONG_THR", "0.80"))
+DIPFIX_ATR_MAX = float(os.environ.get("GX1_ENTRY_DIPFIX_ATR_MAX", "14.0"))      # "normal/low vol" ATR ceiling (bps)
+
+
+def _dipfix_regime_mask(candidate: dict[str, Any]) -> bool:
+    """TREND_UP AND V10-leans-LONG AND vol normal/low — the regime where the volbal IQL force-shorts
+    profitable dip-LONGs. Reads ONLY keys present in both the live candidate dict and the gate FO row.
+    Returns False (mask does not apply) on any missing/ambiguous signal — fail-SAFE (never force a
+    decision change on incomplete context)."""
+    # leans-LONG (V10 direction softmax)
+    try:
+        p_long = float(candidate.get("p_long"))
+        p_short = float(candidate.get("p_short"))
+    except (TypeError, ValueError):
+        return False
+    if not (p_long > p_short):
+        return False
+    # TREND_UP: real regime label OR the per-TF ema20-slope vote (>=2 of m15/h1/h4 up, when present)
+    trend_up = str(candidate.get("trend_regime", "")) == "TREND_UP"
+    if not trend_up:
+        slopes = [candidate.get(f"{tf}_ema20_slope_atr_v2") for tf in ("m15", "h1", "h4")]
+        present = [float(s) for s in slopes if s is not None]
+        if len(present) >= 2 and sum(1 for s in present if s > 0.0) >= 2:
+            trend_up = True
+    if not trend_up:
+        return False
+    # vol normal/low: regime label OR atr ceiling (atr_bps, fallback atr14_m5_bps)
+    vol_low = str(candidate.get("vol_regime", "")) in ("LOW", "MEDIUM")
+    if not vol_low:
+        atr = candidate.get("atr_bps")
+        if atr is None:
+            atr = candidate.get("atr14_m5_bps")
+        try:
+            vol_low = float(atr) <= DIPFIX_ATR_MAX
+        except (TypeError, ValueError):
+            vol_low = False
+    return bool(vol_low)
+
+
+def apply_dipfix_overlay(action_id: int, candidate: dict[str, Any], q_agg_row=None) -> tuple[int, dict]:
+    """ONE-TRUTH DIPFIX serve-time selection overlay (default-OFF; no-op unless GX1_ENTRY_DIPFIX=1).
+
+    Applied AFTER the conviction-gate / STEP-1 overlays have produced a final action_id. Modes:
+      • suppress_short: masked regime AND action == TAKE_SHORT  → SKIP.
+      • both:           suppress_short PLUS masked regime AND action == SKIP AND p_long >= PLONG_THR
+                        → TAKE_LONG (base size).
+    Returns (new_action_id, marker_dict). marker_dict is {} when the overlay does not fire; when it
+    fires it carries {"dipfix_applied": True, "dipfix_mode": ..., "dipfix_from": <orig label>,
+    "dipfix_to": <new label>} so the journal/CSV attributes the change. Pure function of its inputs
+    (env read once at module load) — same logic for live serve and the OOT gate.
+    """
+    if not DIPFIX_ON:
+        return action_id, {}
+    _S = iql_core.ACTION_TAKE_SHORT_NOW_ID
+    _L = iql_core.ACTION_TAKE_LONG_NOW_ID
+    _SKIP = iql_core.ACTION_SKIP_ID
+    if not _dipfix_regime_mask(candidate):
+        return action_id, {}
+    new_id = action_id
+    if action_id == _S:
+        new_id = _SKIP
+    elif DIPFIX_MODE == "both" and action_id == _SKIP:
+        try:
+            if float(candidate.get("p_long")) >= DIPFIX_PLONG_THR:
+                new_id = _L
+        except (TypeError, ValueError):
+            pass
+    if new_id == action_id:
+        return action_id, {}
+    return new_id, {
+        "dipfix_applied": True,
+        "dipfix_mode": DIPFIX_MODE,
+        "dipfix_from": iql_core.ACTION_LABELS_V1[action_id],
+        "dipfix_to": iql_core.ACTION_LABELS_V1[new_id],
+    }
 
 # Categorical label conventions from inference_batch_v3 (matches training):
 SESSION_ID_TO_LABEL = {0: "ASIA", 1: "EU", 2: "OVERLAP", 3: "US"}
@@ -507,6 +608,12 @@ class EntryIQLLiveInference:
                         if _adverse_g and abs(_d) < ROUND_WALL_NEAR_ATR:
                             a_id = skip_id   # low-conviction TAKE entering into an adverse $-wall
                             break
+        # DIPFIX serve-time selection overlay (2026-06-15, default-OFF byte-identical). Applied AFTER the
+        # conviction-gate + STEP-1 overlays on the FINAL action: in TREND_UP & V10-leans-LONG & normal/low
+        # vol, suppress the volbal IQL's force-SHORT (and optionally revive a high-p_long SKIP → LONG). The
+        # marker is stashed on self for the journal so a fired overlay is attributable. ONE TRUTH with the
+        # OOT gate (v12_phase1_entry_iql_inference calls the SAME apply_dipfix_overlay).
+        a_id, self._dipfix_marker = apply_dipfix_overlay(a_id, candidate)
         # Recompute advantages for the FINAL action (a_id may have changed by the gate/filter above).
         chosen_q = float(q_agg[0, a_id])
         adv = chosen_q - float(q_agg[0, skip_id])
@@ -544,4 +651,9 @@ class EntryIQLLiveInference:
             portfolio_state=portfolio_state,
         )
         rec = self.predict(candidate)
+        # Surface the DIPFIX marker in the journaled candidate dict so a fired overlay is attributable
+        # (default-OFF: _dipfix_marker is {} → no keys added → journal unchanged).
+        marker = getattr(self, "_dipfix_marker", None)
+        if marker:
+            candidate.update(marker)
         return rec, candidate

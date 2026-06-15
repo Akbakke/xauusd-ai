@@ -30,6 +30,7 @@ import pyarrow.parquet as pq
 
 sys.path.insert(0, "/home/andre2/src/GX1_ENGINE")
 from gx1.runtime.entry_iql_v2_adapter import EntryIQLV2Adapter  # noqa: E402
+from gx1.scripts import entry_iql_multi_head_gpu_core_v1 as iql_core  # noqa: E402  ACTION_* labels (one-truth)
 
 # 2026-06-12 (promoted out of _legacy_disabled — it is load-bearing for the
 # nightly candidate gate): ALL hardcoded defaults removed. The old
@@ -123,11 +124,32 @@ def main() -> int:
         candidate_dicts = cands.to_dict("records")
         recs = adapter.predict(candidate_dicts)
 
+        # DIPFIX serve-time selection overlay (2026-06-15, default-OFF byte-identical). ONE TRUTH with the
+        # live serve (gx1.execution.v12_entry_iql_live.apply_dipfix_overlay) so the OOT gate evaluates the
+        # SAME selection the paper runner would apply. When GX1_ENTRY_DIPFIX is unset this is a pure no-op
+        # (apply_dipfix_overlay returns the action_id unchanged + {}), so the gate baseline arm is identical
+        # to the prior raw-IQL inference (the volbal baseline CSV). The marker columns are emitted always
+        # (False/"" off-rows) so the per-candidate CSV attributes any fired overlay.
+        from gx1.execution.v12_entry_iql_live import apply_dipfix_overlay
+        new_action_ids, dipfix_applied, dipfix_mode_col, dipfix_from_col, dipfix_to_col = [], [], [], [], []
+        for r, c in zip(recs, candidate_dicts):
+            nid, mk = apply_dipfix_overlay(int(r.action_id_v1), c)
+            new_action_ids.append(nid)
+            dipfix_applied.append(bool(mk.get("dipfix_applied", False)))
+            dipfix_mode_col.append(mk.get("dipfix_mode", ""))
+            dipfix_from_col.append(mk.get("dipfix_from", ""))
+            dipfix_to_col.append(mk.get("dipfix_to", ""))
+
         out = pd.DataFrame({
             "candidate_uid": cands["candidate_uid"].values,
             "decision_ts_utc": cands["decision_ts_utc"].values if "decision_ts_utc" in cands.columns else None,
-            "action_label_v1": [r.action_label_v1 for r in recs],
-            "action_id_v1": [r.action_id_v1 for r in recs],
+            "action_label_v1": [iql_core.ACTION_LABELS_V1[a] for a in new_action_ids],
+            "action_id_v1": new_action_ids,
+            "dipfix_applied": dipfix_applied,
+            "dipfix_mode": dipfix_mode_col,
+            "dipfix_from": dipfix_from_col,
+            "dipfix_to": dipfix_to_col,
+            "raw_action_label_v1": [r.action_label_v1 for r in recs],
             "advantage_over_skip_v1": [r.advantage_over_skip_v1 for r in recs],
             "advantage_over_realized_v1": [r.advantage_over_realized_v1 for r in recs],
             "q_skip_v1": [r.q_per_action_v1[0] for r in recs],
