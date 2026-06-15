@@ -150,8 +150,12 @@ def load_v12_dataset(v3tracked_dir: Path,
     # (get_dummies + pinned regime set). The gate bar_state is the raw per-bar row, so without this
     # the adapter misses session_*/vol_regime_*/trend_regime_*/side_v1_* (the last coverage layer).
     if len(df) > 0:
+        # Pin side_v1 too (2026-06-15): a candidate subset that is ALL one side (e.g. a short-only
+        # baseline arm) otherwise never creates side_v1_long → FEATURE_COVERAGE_FATAL. Pre-existing
+        # latent bug surfaced by the DIPFIX baseline arm; pin like vol/trend so both cols always exist.
         _ONE_HOT_PIN = {"vol_regime": ["LOW", "MEDIUM", "HIGH", "EXTREME"],
-                        "trend_regime": ["TREND_UP", "TREND_NEUTRAL", "TREND_DOWN"]}
+                        "trend_regime": ["TREND_UP", "TREND_NEUTRAL", "TREND_DOWN"],
+                        "side_v1": ["long", "short"]}
         for c in v2_train.ONE_HOT_COLS:
             if c in df.columns:
                 dummies = pd.get_dummies(df[c].astype(str), prefix=c, dummy_na=False)
