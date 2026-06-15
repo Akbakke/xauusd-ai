@@ -894,10 +894,13 @@ def main() -> int:
             max_bars=args.max_bars, max_candidates=args.max_candidates,
             strategy_f=args.strategy_f,
         )
-    if args.strategy_f:
-        print("[L7A] Strategy-F overlay ACTIVE in the gate (scoring the live +Strategy-F policy).")
+        # 2026-06-15 FIX: this block referenced rows_on/sum_on unconditionally — crashed with
+        # UnboundLocalError under --skip-v12-on (after the V12_OFF CSV was already written). Nest
+        # it inside the V12_ON guard where those locals exist.
         rows_on.to_csv(out_root / "per_candidate_V12_ON.csv", index=False)
         summaries.append(sum_on)
+    if args.strategy_f:
+        print("[L7A] Strategy-F overlay ACTIVE in the gate (scoring the live +Strategy-F policy).")
 
     # Summary report
     print("\n" + "=" * 80)
