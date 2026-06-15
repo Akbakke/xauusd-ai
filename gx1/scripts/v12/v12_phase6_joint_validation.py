@@ -170,6 +170,148 @@ def load_entry_iql_decisions(path: Path) -> pd.DataFrame:
     return df
 
 
+# ── ON-THE-FLY trajectory build for ARBITRARY entries (2026-06-15, DIPFIX corrected gate) ──────────
+# WHY: the default gate joins entry decisions to the PRE-MATERIALIZED `exit_per_bar_scored_clean`
+# per-bar trajectories, which are SIDE-LOCKED at build time (derive_side → one side per candidate).
+# That is fine for revived-LONG candidates (they were built LONG, since the DIPFIX mask requires
+# p_long>p_short and derive_side builds LONG when p_long>=p_short — verified 64/64 LONG on the OOT
+# weeks), but it CANNOT honestly evaluate an ADDED entry whose target side differs from the built
+# side, NOR can it evaluate entry-WAVE force-SHORTS (whose candidate_uids do not exist in the
+# exit-wave scored set — the two waves share 0 uids). This builder reconstructs the per-bar M1
+# trajectory for an EXPLICIT decisions set + side, on the fly from the canonical M1 tape, using the
+# ONE-TRUTH `emit_per_bar_rows_m1` (the same builder the cemented exit_per_bar dataset used), then the
+# SAME canonical/chunk0/aug64 lazy-join `load_v12_dataset` performs. Output frame is column-compatible
+# with the pre-scored path → it flows straight into evaluate_config (Exit-IQL + Strategy-F) +
+# simulate_portfolio (cap-3). No pre-materialization required; arbitrary entries / forced sides OK.
+def build_trajectories_on_the_fly(
+    decisions: pd.DataFrame,
+    candidate_context: pd.DataFrame,
+    *,
+    m1_tape_root: Path,
+    canonical_path: Path,
+    reports_root: Path,
+    max_bars: int,
+    bar_stride: int = 1,
+) -> pd.DataFrame:
+    """Build per-bar M1 exit trajectories for the TAKE rows in `decisions`, honoring the decision's
+    OWN side (action_label_v1 → long/short), with NO dependence on any pre-scored per-bar dataset.
+
+    decisions:        [candidate_uid, action_label_v1, ...] — the (possibly DIPFIX-overlaid) entry set.
+    candidate_context: forward-outcome rows carrying [candidate_uid, decision_ts_utc, run_id, p_long,
+                       p_short, p_flat, p_hat, margin, uncertainty_score, session, atr_bps, vol_regime,
+                       trend_regime, ...] — the entry-side context emit_per_bar_rows_m1 snapshots.
+                       MUST be the SAME wave the decisions were inferred on (uid-aligned).
+    Returns a per-bar frame with current_unrealized_pnl_bps_v1 + all exit state cols, canonical-joined.
+    """
+    sys.path.insert(0, str(REPO_ROOT))
+    from gx1.scripts import materialize_build_candidate_forward_outcome_dataset_v1 as fwd_pipe
+    from gx1.scripts import materialize_build_exit_iql_v2 as v2_train
+    from gx1.scripts import materialize_build_exit_iql_v3_m1 as v3_m1
+    from gx1.scripts import materialize_build_exit_iql_per_bar_dataset_v2_m1 as pb
+
+    take = decisions[decisions["action_label_v1"].isin(["TAKE_LONG_NOW", "TAKE_SHORT_NOW"])].copy()
+    if take.empty:
+        raise ValueError("[on-the-fly] no TAKE rows in decisions — nothing to build")
+    side_map = {"TAKE_LONG_NOW": "long", "TAKE_SHORT_NOW": "short"}
+    take["_side"] = take["action_label_v1"].map(side_map)
+    ctx = candidate_context.drop_duplicates("candidate_uid").set_index("candidate_uid")
+    miss = [u for u in take["candidate_uid"] if u not in ctx.index]
+    if miss:
+        raise ValueError(
+            f"[on-the-fly] {len(miss)} TAKE candidate_uids absent from candidate_context "
+            f"(wave mismatch — decisions + context must be the SAME forward_outcome wave). "
+            f"e.g. {miss[:3]}")
+
+    print(f"[on-the-fly] building M1 trajectories for {len(take):,} TAKE candidates "
+          f"({(take['_side']=='long').sum()} long / {(take['_side']=='short').sum()} short)")
+    m1 = fwd_pipe.load_m5_tape(m1_tape_root)   # generic year-partition loader (M1 tape here)
+    m1_time_ns = m1["time"].astype("int64").to_numpy()
+    n_m1 = len(m1_time_ns)
+    m1_arrays = {c: m1[c].astype(np.float64).to_numpy()
+                 for c in ("bid_open", "bid_high", "bid_low", "bid_close",
+                           "ask_open", "ask_high", "ask_low", "ask_close")}
+    del m1
+    print(f"[on-the-fly] M1 tape: {n_m1:,} bars")
+
+    rows: list[dict[str, Any]] = []
+    skipped_past_tape = skipped_no_ts = 0
+    for uid, side in zip(take["candidate_uid"].tolist(), take["_side"].tolist()):
+        crow = ctx.loc[uid].to_dict()
+        crow["candidate_uid"] = uid
+        ts_ns = fwd_pipe._safe_decision_ts_to_int64_ns(crow.get("decision_ts_utc"))
+        if ts_ns is None:
+            skipped_no_ts += 1
+            continue
+        idx_start = int(np.searchsorted(m1_time_ns, ts_ns, side="right"))
+        if idx_start >= n_m1:
+            skipped_past_tape += 1
+            continue
+        s_t, e_t, _ = fwd_pipe.slice_forward_window(
+            m1_time_ns, n_m1, idx_start, max_bars + max(pb.K_HORIZONS_EXIT_M1) + 1, pb.MAX_INTRA_GAP_NS)
+        bar_times_ns = m1_time_ns[s_t:e_t]
+        emitted = pb.emit_per_bar_rows_m1(
+            crow,
+            m1_arrays["bid_open"][s_t:e_t], m1_arrays["bid_high"][s_t:e_t],
+            m1_arrays["bid_low"][s_t:e_t], m1_arrays["bid_close"][s_t:e_t],
+            m1_arrays["ask_open"][s_t:e_t], m1_arrays["ask_high"][s_t:e_t],
+            m1_arrays["ask_low"][s_t:e_t], m1_arrays["ask_close"][s_t:e_t],
+            bar_times_ns,
+            side=side, bar_stride=bar_stride, max_bars_per_trade=max_bars,
+            k_horizons=pb.K_HORIZONS_EXIT_M1,
+        )
+        rows.extend(emitted)
+    if skipped_no_ts or skipped_past_tape:
+        print(f"[on-the-fly] skipped: no_decision_ts={skipped_no_ts} past_tape_end={skipped_past_tape}")
+    if not rows:
+        raise RuntimeError("[on-the-fly] emit produced 0 per-bar rows — check decision_ts / M1 tape coverage")
+    df_p = pd.DataFrame(rows)
+    print(f"[on-the-fly] emitted {len(df_p):,} per-bar rows for {df_p['candidate_uid'].nunique():,} candidates")
+
+    # Lazy-join chunk_0 + canonical + aug64 — EXACTLY as load_v12_dataset does (train==serve state).
+    canonical = fwd_pipe._load_canonical_features(canonical_path)
+    canonical_suf = v3_m1._suffix_canonical(canonical)
+    aug64 = v3_m1._compute_exit_aug64(canonical_path)
+    # chunk_0 is per-week; group emitted rows by their source week (parsed from candidate_uid) so the
+    # asof-join uses the right week's chunk_0 — mirrors load_v12_dataset's per-week chunk0 lazy-join.
+    import re as _re
+    def _week_of(uid: str) -> str | None:
+        m = _re.search(r"(TRUTH_MONFRI_WEEK_\d{8}_\d{8})", str(uid))
+        return m.group(1) if m else None
+    df_p["_week"] = df_p["candidate_uid"].map(_week_of)
+    joined_parts = []
+    for week_name, g in df_p.groupby("_week", dropna=False):
+        g = g.drop(columns=["_week"])
+        if week_name is not None:
+            chunk0 = fwd_pipe._load_chunk0_features(reports_root / week_name)
+            chunk0_suf = v3_m1._suffix_chunk0(chunk0)
+            if chunk0_suf is not None:
+                g = v3_m1._merge_asof_features(g, chunk0_suf)
+            else:
+                for col in v2_train.NUMERIC_STATE_COLS_CHUNK0:
+                    g[col] = np.nan
+        else:
+            for col in v2_train.NUMERIC_STATE_COLS_CHUNK0:
+                g[col] = np.nan
+        if canonical_suf is not None:
+            g = v3_m1._merge_asof_features(g, canonical_suf)
+        if aug64 is not None:
+            g = v3_m1._merge_asof_features(g, aug64)
+        joined_parts.append(g)
+    df = pd.concat(joined_parts, ignore_index=True)
+    # One-hot expand categoricals EXACTLY as load_v12_dataset (the last coverage layer).
+    _ONE_HOT_PIN = {"vol_regime": ["LOW", "MEDIUM", "HIGH", "EXTREME"],
+                    "trend_regime": ["TREND_UP", "TREND_NEUTRAL", "TREND_DOWN"]}
+    for c in v2_train.ONE_HOT_COLS:
+        if c in df.columns:
+            dummies = pd.get_dummies(df[c].astype(str), prefix=c, dummy_na=False)
+            if c in _ONE_HOT_PIN:
+                dummies = dummies.reindex(columns=[f"{c}_{lbl}" for lbl in _ONE_HOT_PIN[c]], fill_value=0)
+            for col in dummies.columns:
+                df[col] = dummies[col].astype(np.float32)
+    print(f"[on-the-fly] joined frame: {len(df):,} rows × {len(df.columns)} cols")
+    return df
+
+
 def simulate_one_candidate(
     candidate_bars: pd.DataFrame,
     *,
@@ -585,6 +727,26 @@ def main() -> int:
                    help="Canonical features parquet to lazy-join (MUST match the one the Exit-IQL was built "
                         "against). Fail-closed if the resolved path is missing — no silent fallback (rule 8/9).")
     p.add_argument("--max-candidates", type=int, default=None, help="Subsample for fast eval")
+    # ── ON-THE-FLY trajectory build (2026-06-15, DIPFIX corrected gate) ──────────────────────────
+    # When set, ignore --v3tracked-lock's pre-scored per-bar trajectories and instead REBUILD the
+    # per-bar M1 exit trajectory for EVERY TAKE in --entry-iql-decisions, honoring the decision's OWN
+    # side, from the canonical M1 tape via the one-truth emit_per_bar_rows_m1. This is the only path
+    # that can honestly evaluate ADDED entries (revived longs) / entry-wave force-shorts that have no
+    # (or side-wrong) pre-materialized trajectory. --candidate-context is REQUIRED (the uid-aligned
+    # forward_outcome the decisions were inferred on — supplies decision_ts + entry context snapshot).
+    p.add_argument("--build-trajectories-on-the-fly", action="store_true",
+                   help="Rebuild per-bar M1 trajectories for arbitrary entries from the M1 tape "
+                        "(no pre-materialized per-bar dataset; honors each decision's own side).")
+    p.add_argument("--candidate-context", default=None,
+                   help="forward_outcome per_week dir (uid-aligned with --entry-iql-decisions) — "
+                        "REQUIRED with --build-trajectories-on-the-fly (entry context + decision_ts).")
+    p.add_argument("--m1-tape-root", default="/home/andre2/GX1_DATA/data/oanda/canonical/"
+                   "xauusd_m1_bid_ask__CANONICAL", help="Canonical M1 tape (on-the-fly build source).")
+    p.add_argument("--reports-root", default=str(DEFAULT_REPORTS_ROOT),
+                   help="truth_e2e_sanity reports root for the per-week chunk_0 lazy-join (on-the-fly).")
+    p.add_argument("--only-weeks", default=None,
+                   help="Comma-separated TRUTH_MONFRI_WEEK_* names to restrict the on-the-fly build "
+                        "(SMALL-SAMPLE / RAM-bounded verification).")
     p.add_argument("--v3-override-threshold", type=float, default=V3_OVERRIDE_DEFAULT)
     p.add_argument("--max-bars", type=int, default=V12_MAX_BARS_DEFAULT)
     p.add_argument("--skip-v12-on", action="store_true", help="Only run V12_OFF (no V3 fail-safe)")
@@ -651,9 +813,55 @@ def main() -> int:
         rng = np.random.default_rng(20260509)
         take_uids = list(rng.choice(take_uids, size=args.max_candidates, replace=False))
         print(f"  Sub-sampled to {len(take_uids):,} candidates for memory safety")
-    df = load_v12_dataset(v3tracked, candidate_uids=set(take_uids),
-                          canonical_path=(Path(args.canonical_features).expanduser().resolve()
-                                          if args.canonical_features else None))
+
+    if args.build_trajectories_on_the_fly:
+        # ── ON-THE-FLY path: rebuild per-bar trajectories for arbitrary entries (no pre-scored set).
+        if not args.candidate_context:
+            print("FATAL: --build-trajectories-on-the-fly requires --candidate-context (uid-aligned "
+                  "forward_outcome per_week dir).")
+            return 1
+        if not args.canonical_features:
+            print("FATAL: --build-trajectories-on-the-fly requires --canonical-features (rule 8/9: "
+                  "no silent canonical fallback).")
+            return 1
+        ctx_dir = Path(args.candidate_context).expanduser().resolve()
+        only_weeks = ([w.strip() for w in args.only_weeks.split(",") if w.strip()]
+                      if args.only_weeks else None)
+        ctx_files = sorted(ctx_dir.glob("*.parquet"))
+        if only_weeks:
+            ctx_files = [f for f in ctx_files if any(w in f.stem for w in only_weeks)]
+        if not ctx_files:
+            print(f"FATAL: no forward_outcome parquets under {ctx_dir}"
+                  + (f" matching weeks {only_weeks}" if only_weeks else ""))
+            return 1
+        _ctx_cols = ["candidate_uid", "decision_ts_utc", "run_id", "p_long", "p_short", "p_flat",
+                     "p_hat", "margin", "uncertainty_score", "session", "weekday_utc", "hour_utc",
+                     "atr_bps", "vol_regime", "trend_regime", "mfe_first_n_pred", "path_quality_pred"]
+        import pyarrow.parquet as _pq
+        _avail = set(_pq.ParquetFile(ctx_files[0]).schema.names)
+        _read = [c for c in _ctx_cols if c in _avail]
+        candidate_context = pd.concat([pd.read_parquet(f, columns=_read) for f in ctx_files],
+                                      ignore_index=True)
+        # restrict decisions to the loaded context weeks (uid-aligned) so the build is bounded
+        decisions = decisions[decisions["candidate_uid"].isin(set(candidate_context["candidate_uid"]))]
+        if args.max_candidates:
+            _take = decisions[decisions["action_label_v1"].isin(["TAKE_LONG_NOW", "TAKE_SHORT_NOW"])]
+            if len(_take) > args.max_candidates:
+                _keep = set(_take["candidate_uid"].sample(n=args.max_candidates, random_state=20260615))
+                decisions = decisions[
+                    (~decisions["action_label_v1"].isin(["TAKE_LONG_NOW", "TAKE_SHORT_NOW"]))
+                    | decisions["candidate_uid"].isin(_keep)]
+        df = build_trajectories_on_the_fly(
+            decisions, candidate_context,
+            m1_tape_root=Path(args.m1_tape_root).expanduser().resolve(),
+            canonical_path=Path(args.canonical_features).expanduser().resolve(),
+            reports_root=Path(args.reports_root).expanduser().resolve(),
+            max_bars=args.max_bars,
+        )
+    else:
+        df = load_v12_dataset(v3tracked, candidate_uids=set(take_uids),
+                              canonical_path=(Path(args.canonical_features).expanduser().resolve()
+                                              if args.canonical_features else None))
 
     # Run configs
     summaries: list[dict[str, Any]] = []
