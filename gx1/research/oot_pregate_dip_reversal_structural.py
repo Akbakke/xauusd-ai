@@ -224,7 +224,9 @@ TREND_COLS = ["ema20_slope_canon_v1", "ema100_slope_canon_v1", "pos_vs_ema200_ca
               "_v1_ema_diff_canon_v1", "m15_trend_sign_canon_v2_canon_v1",
               "d1_ema_slope_20_canon_v2_canon_v1", "_v1_r5_canon_v1", "_v1_r24_canon_v1",
               "p_long", "p_short", "margin", "uncertainty_score", "atr_bps"]
-LABEL_COLS = [f"take_now_long_terminal_pnl_at_{K}_v1", f"take_now_short_terminal_pnl_at_{K}_v1"]
+LABEL_COLS = [f"take_now_long_terminal_pnl_at_{K}_v1", f"take_now_short_terminal_pnl_at_{K}_v1",
+              f"take_now_long_mae_before_mfe_bps_at_{K}_v1", f"take_now_long_mfe_bps_at_{K}_v1",
+              f"take_now_long_mae_bps_at_{K}_v1"]
 CTX_COLS = ["decision_ts_utc", "side", "trend_regime", "ema100_slope_canon_v1",
             "pos_vs_ema200_canon_v1", "_v1_r5_canon_v1", "_v1_rsi14_canon_v1"]
 
@@ -338,6 +340,37 @@ def main():
               f"OOT(fit_early→late)={oot_el:.4f}  OOT(fit_late→early)={oot_le:.4f}  "
               f"separable={results[name]['separable']}")
 
+    # ── 6. MULTI-TARGET pre-gate ("use them for SOMETHING ELSE", user push): do the SAME Tier-1
+    #     features separate a NON-direction load-bearing target OOT? big-loss (→SKIP the toxic dip),
+    #     painful-path MAE-before-MFE (→size-down / wait), MFE (→exit/size). Same pop, same OOT split.
+    print("\n[6] MULTI-TARGET separability (dip-in-uptrend pop, strict OOT both dirs, gate>=0.58):")
+    lp = df[f"take_now_long_terminal_pnl_at_{K}_v1"].astype(float)
+    mbf = df[f"take_now_long_mae_before_mfe_bps_at_{K}_v1"].astype(float)
+    mfe = df[f"take_now_long_mfe_bps_at_{K}_v1"].astype(float)
+    targets = {
+        "DIRECTION_long_win":           (lp > 0).astype(int).values,
+        "BIG_LOSS(<-30bps)→skip":       (lp < -30.0).astype(int).values,
+        "PAINFUL_PATH(maebef<median)":  (mbf < float(mbf.median())).astype(int).values,
+        "HIGH_MFE(>median)":            (mfe > float(mfe.median())).astype(int).values,
+    }
+    arm_sets = {"T1_new(clean price)": NEW_COMBINED, "baseline_struct": feat_struct,
+                "conviction(ref-LEAK)": CONV_COLS,
+                "all(struct+new+trend)": list(dict.fromkeys(feat_struct + NEW_COMBINED + feat_trend))}
+    mt = {}
+    for tname, yv in targets.items():
+        if len(np.unique(yv)) < 2:
+            print(f"  [{tname}] degenerate (one class) — skip"); continue
+        df["_y"] = yv
+        br = float(np.mean(yv)); row = {}
+        for aname, cols in arm_sets.items():
+            _, _, oe, _, _ = fit_eval(cols, aname, early, late)
+            _, _, ol, _, _ = fit_eval(cols, aname, late, early)
+            sep = bool(oe >= 0.58 and ol >= 0.58)
+            row[aname] = dict(oot_el=round(oe, 4), oot_le=round(ol, 4), separable=sep)
+            print(f"  [{tname:28s} base={br:.3f}] {aname:22s} OOT={oe:.4f}/{ol:.4f}  sep={sep}")
+        mt[tname] = dict(base_rate=br, arms=row)
+    df["_y"] = targets["DIRECTION_long_win"]   # restore primary target
+
     # top features (permutation importance on OOT, fit-early model) over BASELINE-struct + NEW Tier-1
     PI_COLS = list(dict.fromkeys(feat_struct + NEW_COMBINED))
     from sklearn.inspection import permutation_importance
@@ -360,7 +393,7 @@ def main():
     for f, v in imp[:12]:
         print(f"  {f:42s} {v:+.5f}")
 
-    out = dict(results=results, base_rate=base_rate, n_total=len(df),
+    out = dict(results=results, multi_target=mt, base_rate=base_rate, n_total=len(df),
                split_median=str(med), top_struct=[(f, round(float(v), 5)) for f, v in imp[:12]])
     Path("/tmp/oot_pregate_dip_struct.json").write_text(json.dumps(out, indent=2, default=str))
     print("WROTE /tmp/oot_pregate_dip_struct.json")
