@@ -217,6 +217,14 @@ HL_COLS = ["hl_higher_low_flag", "hl_higher_low_mag_atr", "hl_higher_high_flag",
            "hl_structure_score", "dist_to_swing_low_atr", "bars_since_swing_low"]
 PDHL_COLS = ["dist_to_pdh_atr", "dist_to_pdl_atr", "dist_to_pwh_atr", "dist_to_pwl_atr"]
 
+# ── Tier-2 EXOGENOUS (macro/cross-asset) — the only info class NOT already in price ───
+# Cached daily macro (realyld / tnx-10y / vix / dxy; level/z/resid). Daily CLOSE stamped at day 00:00 →
+# LAG +1 day so an intraday decision on day D sees at most day (D-1)'s close (leak-safe; the prior
+# oot_macro_test did NOT lag = a 1-day look-ahead, and STILL found direction-noise). Level+resid only
+# (momentum chg1d/chg5d was refuted NEGATIVE, memory).
+MACRO_PARQUET = "/home/andre2/GX1_DATA/research/cross_asset_fred_20260615/macro_features.parquet"
+T2_MACRO_COLS = [f"{s}_{k}" for s in ("realyld", "tnx", "vix", "dxy") for k in ("lvl", "z", "resid")]
+
 
 # ── 2. load forward_outcome decision bars (trend cols + label + ts) ───────────
 TREND_COLS = ["ema20_slope_canon_v1", "ema100_slope_canon_v1", "pos_vs_ema200_canon_v1",
@@ -261,6 +269,16 @@ def main():
     for c in struct_cols:
         df[c] = m5[c].to_numpy()[idx]
 
+    # asof-join Tier-2 EXOGENOUS macro (LAG +1 day = leak-safe: day-D close available day D+1)
+    macro = pd.read_parquet(MACRO_PARQUET)[T2_MACRO_COLS].copy()
+    macro.index = pd.to_datetime(macro.index, utc=True) + pd.Timedelta(days=1)   # day-D close available D+1
+    macro = macro.sort_index().reset_index()
+    macro = macro.rename(columns={macro.columns[0]: "time"})   # former index (day ts) → "time"
+    df = df.sort_values("ts").reset_index(drop=True)
+    df = pd.merge_asof(df, macro, left_on="ts", right_on="time", direction="backward")
+    df = df.drop(columns=["time"])
+    print(f"  macro asof-joined (+1d lag): {T2_MACRO_COLS[:3]}... non-nan realyld_lvl={int(df['realyld_lvl'].notna().sum())}")
+
     # ── 3. DIP-IN-UPTREND population ──────────────────────────────────────────
     # uptrend = regime TREND_UP AND structurally above 200EMA AND ema100 rising;
     # dip = a short-term pullback (recent 5-bar return < 0 OR rsi14 < 45 OR price in lower premium/discount).
@@ -286,7 +304,7 @@ def main():
                  "_outcome", "trough", "bars_to")
     feat_struct = [c for c in struct_cols]
     feat_trend = [c for c in TREND_COLS]
-    for fset in (feat_struct, feat_trend, FIB_COLS, HL_COLS, PDHL_COLS):
+    for fset in (feat_struct, feat_trend, FIB_COLS, HL_COLS, PDHL_COLS, T2_MACRO_COLS):
         for c in fset:
             assert not any(tok in c for tok in FORBIDDEN), f"LEAKAGE: forward col in features: {c}"
 
@@ -354,6 +372,7 @@ def main():
         "HIGH_MFE(>median)":            (mfe > float(mfe.median())).astype(int).values,
     }
     arm_sets = {"T1_new(clean price)": NEW_COMBINED, "baseline_struct": feat_struct,
+                "T2_macro(exo)": T2_MACRO_COLS, "T2_macro+price_trend": list(dict.fromkeys(T2_MACRO_COLS + TREND_PRICE_COLS)),
                 "conviction(ref-LEAK)": CONV_COLS,
                 "all(struct+new+trend)": list(dict.fromkeys(feat_struct + NEW_COMBINED + feat_trend))}
     mt = {}
