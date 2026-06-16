@@ -314,12 +314,18 @@ def main():
         return clf, auc_is, auc_oot, len(Xtr), len(Xte)
 
     NEW_COMBINED = list(dict.fromkeys(FIB_COLS + HL_COLS + PDHL_COLS))
+    # decompose trend into chain-CONVICTION (p_long/p_short/margin/uncertainty = the chain's OWN fitted
+    # output — a known fitted-leak suspect) vs PURE-PRICE trend (ema/rsi/returns/atr — no chain output).
+    CONV_COLS = ["p_long", "p_short", "margin", "uncertainty_score"]
+    TREND_PRICE_COLS = [c for c in feat_trend if c not in CONV_COLS]
     results = {}
     for name, cols in (("structural", feat_struct), ("trend", feat_trend),
                        ("structural+trend", feat_struct + feat_trend),
+                       ("conviction_only", CONV_COLS), ("trend_price_only", TREND_PRICE_COLS),
                        ("T1_fib", FIB_COLS), ("T1_higher_low", HL_COLS), ("T1_pdh_pdl", PDHL_COLS),
                        ("T1_new_combined", NEW_COMBINED),
                        ("T1_new+trend", list(dict.fromkeys(NEW_COMBINED + feat_trend))),
+                       ("T1_new+price_trend", list(dict.fromkeys(NEW_COMBINED + TREND_PRICE_COLS))),
                        ("T1_new+struct+trend", list(dict.fromkeys(feat_struct + NEW_COMBINED + feat_trend)))):
         clf_el, is_el, oot_el, ntr_el, nte_el = fit_eval(cols, name, early, late)   # fit early, test late
         clf_le, is_le, oot_le, ntr_le, nte_le = fit_eval(cols, name, late, early)   # fit late, test early
