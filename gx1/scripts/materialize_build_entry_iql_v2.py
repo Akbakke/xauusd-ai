@@ -145,6 +145,10 @@ REWARD_VARIANTS = [
     # anti-calibration. Candidate active variants for the regime-robust retrain.
     "R_WAIT_OPP_K96_LAM30_SYM",
     "R_WAIT_OPP_K96_LAM50_SYM",
+    # 2026-06-16 (vedtak entry_iql_regime_short_penalty_20260616): LAM50_SYM + regime-conditional SHORT
+    # penalty (suppress the OOT-stable −EV short in TREND_UP&V10-long&normal-vol → IQL learns SKIP, not
+    # short, a clear uptrend). Byte-identical to LAM50_SYM outside the regime. See build_reward_matrix.
+    "R_WAIT_OPP_K96_REGSHORT_SYM",
     # R_HYBRID = R_WAIT_OPP + binary clean threshold (max selective)
     "R_HYBRID_K96_TOL20",
     "R_HYBRID_K96_TOL40",
@@ -565,10 +569,33 @@ def build_reward_matrix(df: pd.DataFrame, *, variant: str) -> np.ndarray:
             "R_WAIT_OPP_K96_LAM20": (96, 2.0),
             "R_WAIT_OPP_K96_LAM30": (96, 3.0),
             "R_WAIT_OPP_K96_LAM50": (96, 5.0),
+            "R_WAIT_OPP_K96_REGSHORT": (96, 5.0),  # 2026-06-16: LAM50 form + regime-cond SHORT penalty
             "R_WAIT_OPP_K48_LAM05": (48, 0.5),
             "R_WAIT_OPP_K48_LAM10": (48, 1.0),
         }[_base]
         _K, _LAM = _CFG
+        # REGSHORT (vedtak entry_iql_regime_short_penalty_20260616): identical to LAM50_SYM EXCEPT
+        # r_short is penalized by GX1_REGSHORT_PENALTY (default 60bps) in the DIPFIX regime (TREND_UP &
+        # V10-leans-long & normal/low-vol — where SHORT is OOT-stable −EV). Teaches the IQL to value
+        # SKIP over SHORT in a clear uptrend NATIVELY (cures the volbal-inflated-short-Q artifact) only
+        # where short is reliably bad; high-vol short edge (vol-gated out) untouched. SAME mask as the
+        # regimelong trainer oversample (one-truth). Inert for every other R_WAIT_OPP variant.
+        _regshort_mask = None
+        _regshort_pen = 0.0
+        if _base == "R_WAIT_OPP_K96_REGSHORT":
+            _regshort_pen = float(os.environ.get("GX1_REGSHORT_PENALTY", "60.0"))
+            _rs_atr_max = float(os.environ.get("GX1_REGSHORT_ATR_MAX", "14.0"))
+            _rs_pl = pd.to_numeric(df.get("p_long"), errors="coerce")
+            _rs_psh = pd.to_numeric(df.get("p_short"), errors="coerce")
+            _rs_leans = (_rs_pl > _rs_psh).fillna(False).to_numpy()
+            _rs_tup = ((df.get("trend_regime").astype("string") == "TREND_UP").fillna(False).to_numpy()
+                       if "trend_regime" in df.columns else np.zeros(len(df), bool))
+            _rs_vlow = ((df.get("vol_regime").astype("string").isin(["LOW", "MEDIUM"])).fillna(False).to_numpy()
+                        if "vol_regime" in df.columns else np.zeros(len(df), bool))
+            _rs_alow = (pd.to_numeric(df.get("atr_bps"), errors="coerce") <= _rs_atr_max).fillna(False).to_numpy()
+            _regshort_mask = _rs_tup & _rs_leans & (_rs_vlow | _rs_alow)
+            print(f"[BUILD_ENTRY_IQL_V2] REGSHORT: −{_regshort_pen:.0f}bps SHORT penalty on "
+                  f"{int(_regshort_mask.sum()):,}/{len(df):,} TREND_UP&leans-long&low-vol rows", flush=True)
         # _SYM (2026-06-03): TWO additional fixes folded in from the all-models scan —
         #  EIQL-R1: TRUE PER-K reward. The base variants compute ONE K and broadcast it to all
         #    6 Q-heads (multi-head Q + mean/max aggregator = no-op). _SYM instead gives each
@@ -587,6 +614,8 @@ def build_reward_matrix(df: pd.DataFrame, *, variant: str) -> np.ndarray:
             ws = df[f"wait_short_terminal_pnl_at_K{K}_v1"].astype(float).fillna(0.0).to_numpy()
             rl = tl - _LAM * ml - _spread_coef * entry_spread_bps
             rs = ts - _LAM * ms - _spread_coef * entry_spread_bps
+            if _regshort_mask is not None:   # REGSHORT: penalize the −EV short in the DIPFIX regime
+                rs = np.where(_regshort_mask, rs - _regshort_pen, rs)
             if _sym:
                 mwl = np.maximum(df[f"wait_long_mae_before_mfe_bps_at_K{K}_v1"].astype(float).fillna(0.0).to_numpy(), 0.0)
                 mws = np.maximum(df[f"wait_short_mae_before_mfe_bps_at_K{K}_v1"].astype(float).fillna(0.0).to_numpy(), 0.0)
