@@ -371,6 +371,27 @@ def main():
         mt[tname] = dict(base_rate=br, arms=row)
     df["_y"] = targets["DIRECTION_long_win"]   # restore primary target
 
+    # ── 7. SELECTION REPLAY (account-PnL truth, OOT-2026): within the dip-in-uptrend LONG population,
+    #     does a STRUCTURAL filter pick BETTER dip-longs than taking them all? Uses REAL realized long
+    #     terminal PnL (forward_outcome — pre-learned-exit, indicative of selection quality, not cap-3).
+    print("\n[7] SELECTION REPLAY — realized LONG terminal-PnL, OOT-2026 dip-in-uptrend longs:")
+    oot = df[df["ts"] >= pd.Timestamp("2026-01-01", tz="UTC")].copy()
+    rlv = oot[f"take_now_long_terminal_pnl_at_{K}_v1"].astype(float).values
+    def rep(maskarr, name):
+        m = np.asarray(maskarr, dtype=bool); v = rlv[m]
+        if len(v) == 0:
+            print(f"  {name:30s} n=0"); return
+        print(f"  {name:30s} n={len(v):5d}  total={v.sum():9.0f}bps  mean={v.mean():7.2f}  win={(v > 0).mean():.4f}")
+    hl = (oot["hl_higher_low_flag"] == 1.0).fillna(False).values
+    fg = (oot["fib_in_golden"] == 1.0).fillna(False).values
+    pdl = ((oot["dist_to_pdl_atr"] >= -0.5) & (oot["dist_to_pdl_atr"] <= 1.0)).fillna(False).values
+    rep(np.ones(len(oot), bool), "ALL dip-longs (baseline)")
+    rep(hl, "higher-low only")
+    rep(fg, "fib-golden only")
+    rep(pdl, "near-PDL only")
+    rep(hl & fg, "higher-low AND fib-golden")
+    rep(hl & fg & pdl, "all-3 combined")
+
     # top features (permutation importance on OOT, fit-early model) over BASELINE-struct + NEW Tier-1
     PI_COLS = list(dict.fromkeys(feat_struct + NEW_COMBINED))
     from sklearn.inspection import permutation_importance
