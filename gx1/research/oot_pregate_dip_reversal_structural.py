@@ -145,21 +145,77 @@ def build_m5_structural() -> pd.DataFrame:
     out["m5_dist_to_unfilled_fvg_atr"] = fvg_dist
     out["m5_fvg_active"] = np.exp(-np.abs(fvg_dist) / TAU)
 
-    # recent swing-low ATR-distance + bars-since (uses confirmed pivots only — no look-ahead at decision bar)
+    # recent swing structure (confirmed pivots only — no look-ahead at decision bar).
+    # Track the TWO most-recent confirmed swing lows AND highs so we can encode Dow market
+    # structure: a HIGHER-LOW (last_sl > prev_sl) = uptrend intact (buy the dip); a LOWER-LOW
+    # = trend breaking (falling knife). This is the classic manual-trader dip-vs-knife read.
     sh_mask, sl_mask = _detect_swing_pivots(high, low, SWING_LOOKBACK)
-    last_sl_price = np.nan; last_sl_bar = -1
+    last_sl_price = np.nan; prev_sl_price = np.nan; last_sl_bar = -1
+    last_sh_price = np.nan; prev_sh_price = np.nan
     dist_sl = np.full(n, np.nan); bars_sl = np.full(n, 999.0)
+    hl_flag = np.full(n, np.nan); hl_mag = np.full(n, np.nan)
+    hh_flag = np.full(n, np.nan); struct_score = np.full(n, np.nan)
     for i in range(n):
         # a pivot at bar p is only CONFIRMED at p+SWING_LOOKBACK (needs future bars) → use confirmation lag
         conf = i - SWING_LOOKBACK
         if conf >= 0 and sl_mask[conf]:
-            last_sl_price = low[conf]; last_sl_bar = conf
+            prev_sl_price = last_sl_price; last_sl_price = low[conf]; last_sl_bar = conf
+        if conf >= 0 and sh_mask[conf]:
+            prev_sh_price = last_sh_price; last_sh_price = high[conf]
         if last_sl_bar >= 0:
             dist_sl[i] = (close[i] - last_sl_price) / atr_safe[i]
             bars_sl[i] = float(i - last_sl_bar)
+        if np.isfinite(last_sl_price) and np.isfinite(prev_sl_price):
+            hl_flag[i] = 1.0 if last_sl_price > prev_sl_price else 0.0
+            hl_mag[i] = (last_sl_price - prev_sl_price) / atr_safe[i]
+        if np.isfinite(last_sh_price) and np.isfinite(prev_sh_price):
+            hh_flag[i] = 1.0 if last_sh_price > prev_sh_price else 0.0
+        if np.isfinite(hl_flag[i]) and np.isfinite(hh_flag[i]):
+            struct_score[i] = hl_flag[i] + hh_flag[i]   # 2 = HH+HL (clean uptrend), 0 = LL+LH (downtrend)
     out["dist_to_swing_low_atr"] = dist_sl
     out["bars_since_swing_low"] = np.clip(bars_sl, 0, 999)
+    out["hl_higher_low_flag"] = hl_flag
+    out["hl_higher_low_mag_atr"] = hl_mag
+    out["hl_higher_high_flag"] = hh_flag
+    out["hl_structure_score"] = struct_score
+
+    # ── FIBONACCI retrace zone of the last confirmed swing (from premium_discount = (close-last_low)/
+    # (last_high-last_low) ∈ [0,1]). In an uptrend pullback the 50–61.8% retrace buy-zone = pd∈[~0.35,0.55];
+    # a deep retrace (pd<0.21 ≈ beyond 78.6%) means the up-swing is likely broken. premium_discount itself
+    # is ALREADY in the baseline structural arm — these are the nonlinear zone encodings on top of it.
+    pd_arr = out["smc_premium_discount"].to_numpy(np.float64)
+    out["fib_dist_382"] = np.abs(pd_arr - 0.382)
+    out["fib_dist_500"] = np.abs(pd_arr - 0.500)
+    out["fib_dist_618"] = np.abs(pd_arr - 0.618)
+    out["fib_in_golden"] = ((pd_arr >= 0.35) & (pd_arr <= 0.55)).astype(np.float64)
+    out["fib_deep_retrace"] = (pd_arr < 0.214).astype(np.float64)
+
+    # ── PDH/PDL/PWH/PWL: prior COMPLETED day/week high-low, signed ATR-distance. Leak-safe via a
+    # shift of the period-bin index to its "available-from" time (period end), then a backward asof-map:
+    # at bar t we only ever see periods that FULLY completed before t. Heavily-watched manual levels.
+    tdf = pd.DataFrame({"time": m5["time"].values, "high": high, "low": low}).set_index("time")
+    def _prior_period(rule, delta):
+        agg = pd.DataFrame({"ph": tdf["high"].resample(rule).max(),
+                            "pl": tdf["low"].resample(rule).min()}).dropna()
+        agg.index = agg.index + delta            # available only AFTER the period fully completes
+        a = pd.merge_asof(pd.DataFrame({"time": m5["time"].values}), agg.reset_index(),
+                          on="time", direction="backward")
+        return a["ph"].to_numpy(np.float64), a["pl"].to_numpy(np.float64)
+    pdh, pdl = _prior_period("1D", pd.Timedelta(days=1))
+    pwh, pwl = _prior_period("1W", pd.Timedelta(days=7))
+    out["dist_to_pdh_atr"] = (close - pdh) / atr_safe
+    out["dist_to_pdl_atr"] = (close - pdl) / atr_safe
+    out["dist_to_pwh_atr"] = (close - pwh) / atr_safe
+    out["dist_to_pwl_atr"] = (close - pwl) / atr_safe
     return out
+
+
+# ── Tier-1 NEW feature families (the eye-vs-model candidates under test) ───────
+FIB_COLS = ["smc_premium_discount", "fib_dist_382", "fib_dist_500", "fib_dist_618",
+            "fib_in_golden", "fib_deep_retrace"]
+HL_COLS = ["hl_higher_low_flag", "hl_higher_low_mag_atr", "hl_higher_high_flag",
+           "hl_structure_score", "dist_to_swing_low_atr", "bars_since_swing_low"]
+PDHL_COLS = ["dist_to_pdh_atr", "dist_to_pdl_atr", "dist_to_pwh_atr", "dist_to_pwl_atr"]
 
 
 # ── 2. load forward_outcome decision bars (trend cols + label + ts) ───────────
@@ -228,7 +284,7 @@ def main():
                  "_outcome", "trough", "bars_to")
     feat_struct = [c for c in struct_cols]
     feat_trend = [c for c in TREND_COLS]
-    for fset in (feat_struct, feat_trend):
+    for fset in (feat_struct, feat_trend, FIB_COLS, HL_COLS, PDHL_COLS):
         for c in fset:
             assert not any(tok in c for tok in FORBIDDEN), f"LEAKAGE: forward col in features: {c}"
 
@@ -257,9 +313,14 @@ def main():
         # permutation importance (cheap: gain proxy via single-feature drop on OOT not needed; use built-in)
         return clf, auc_is, auc_oot, len(Xtr), len(Xte)
 
+    NEW_COMBINED = list(dict.fromkeys(FIB_COLS + HL_COLS + PDHL_COLS))
     results = {}
     for name, cols in (("structural", feat_struct), ("trend", feat_trend),
-                       ("structural+trend", feat_struct + feat_trend)):
+                       ("structural+trend", feat_struct + feat_trend),
+                       ("T1_fib", FIB_COLS), ("T1_higher_low", HL_COLS), ("T1_pdh_pdl", PDHL_COLS),
+                       ("T1_new_combined", NEW_COMBINED),
+                       ("T1_new+trend", list(dict.fromkeys(NEW_COMBINED + feat_trend))),
+                       ("T1_new+struct+trend", list(dict.fromkeys(feat_struct + NEW_COMBINED + feat_trend)))):
         clf_el, is_el, oot_el, ntr_el, nte_el = fit_eval(cols, name, early, late)   # fit early, test late
         clf_le, is_le, oot_le, ntr_le, nte_le = fit_eval(cols, name, late, early)   # fit late, test early
         results[name] = dict(in_sample=(is_el + is_le) / 2,
@@ -271,9 +332,10 @@ def main():
               f"OOT(fit_early→late)={oot_el:.4f}  OOT(fit_late→early)={oot_le:.4f}  "
               f"separable={results[name]['separable']}")
 
-    # top features for the structural arm (permutation importance on OOT, fit-early model)
+    # top features (permutation importance on OOT, fit-early model) over BASELINE-struct + NEW Tier-1
+    PI_COLS = list(dict.fromkeys(feat_struct + NEW_COMBINED))
     from sklearn.inspection import permutation_importance
-    Xtr = df.loc[early, feat_struct].astype(np.float32).replace([np.inf, -np.inf], np.nan)
+    Xtr = df.loc[early, PI_COLS].astype(np.float32).replace([np.inf, -np.inf], np.nan)
     ytr = df.loc[early, "_y"].values
     if len(Xtr) > SAMPLE_CAP:
         sel = RNG.choice(len(Xtr), SAMPLE_CAP, replace=False); Xtr = Xtr.iloc[sel]; ytr = ytr[sel]
@@ -281,14 +343,14 @@ def main():
                                          l2_regularization=1.0, min_samples_leaf=200,
                                          early_stopping=True, validation_fraction=0.15, random_state=42)
     clf.fit(Xtr, ytr)
-    Xte = df.loc[late, feat_struct].astype(np.float32).replace([np.inf, -np.inf], np.nan)
+    Xte = df.loc[late, PI_COLS].astype(np.float32).replace([np.inf, -np.inf], np.nan)
     yte = df.loc[late, "_y"].values
     nte = min(len(Xte), 50000)
     sel = RNG.choice(len(Xte), nte, replace=False)
     pi = permutation_importance(clf, Xte.iloc[sel], yte[sel], n_repeats=5, random_state=0,
                                 scoring="roc_auc", n_jobs=4)
-    imp = sorted(zip(feat_struct, pi.importances_mean), key=lambda x: -x[1])
-    print("[top structural features by OOT permutation-AUC importance]")
+    imp = sorted(zip(PI_COLS, pi.importances_mean), key=lambda x: -x[1])
+    print("[top features (baseline-struct + NEW Tier-1) by OOT permutation-AUC importance]")
     for f, v in imp[:12]:
         print(f"  {f:42s} {v:+.5f}")
 
