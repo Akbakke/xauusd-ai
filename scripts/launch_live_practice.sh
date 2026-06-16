@@ -88,12 +88,16 @@ export GX1_USE_DISTILLED_EXIT=0
 # Kontrakten (entry_iql.operating_point) er sannhetskilden; kommentarene over beskriver v1/v2-historikken.
 export GX1_CONVICTION_GATE=1
 export GX1_SKIP_ASIA=1
-# 2026-06-13 OPEN-MORE (user vedtak «B: -100 er perfekt»): gate −37.71 → −100. May/Jun actual-exit
-# ladder (NON-ASIA, +Strategy-F): coverage 19%→33%, TOTAL bps +70%, win 87→86% (≈unchanged), worst-MAE
-# −68 UNCHANGED, per-take edge ~11 bps held. OOT-corroborated (skip pool 87.6% would-win, net+ every
-# week). DD scales with trade count (cap=3 caps concurrency). SIZING_CONV_LO stays pinned −37.71 below,
-# so the NEW marginal trades enter at base size (no conviction boost). REVERSIBLE: thr back to −37.71.
-export GX1_CONVICTION_THR=-100
+# 2026-06-16 TIGHTEN-TO-QUALITY (user vedtak «Maksimal kvalitet»): gate −100 → −37.71. The open-more
+# −100 marginal band [−100,0) validated POSITIVE-but-LOWER-quality (forward-EV 18-31 bps/0.59-0.63 win,
+# exit-preserved; LONG-half DIPFIX +29.7% through exit) — positive VOLUME, not a loser, but it DILUTES
+# per-take quality vs the 32-bps IQL-natural core. User chose max per-take quality over volume. −37.71 =
+# volbal top-35% (gate-VALIDATED: 24.43 bps/take @ 0.9466 win skipASIA, 2026 30.66 bps @ 0.8543 win floor
+# PASS, cap-3 DD −113). SIZING_CONV_LO already pinned −37.71 = the gate threshold (marginal trades at base
+# size). DIPFIX KEPT (quality-consistent: suppresses in-regime −EV shorts + revives only p_long≥0.80).
+# REVERSIBLE: thr back to −100 for the open-more volume op.
+# ---- PRIOR (history): 2026-06-13 OPEN-MORE «B: -100 er perfekt» — −37.71→−100, +70% TOTAL bps volume.
+export GX1_CONVICTION_THR=-37.71
 export GX1_SIZING_MODE=both
 export GX1_SIZING_MAX_MULT=2.0
 export GX1_SIZING_MIN_MULT=0.5
