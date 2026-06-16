@@ -108,6 +108,19 @@ export GX1_SIZING_MARGIN_POW=2.0
 export GX1_SIZING_CONV_HI=-13.99
 export GX1_SIZING_ATR_REF_BPS=14.0
 export GX1_SIZING_ATR_FLOOR_BPS=14.0
+# 2026-06-16 DIPFIX SERVE-OVERLAY armed (user vedtak «Ja armer dette»). Selection overlay on the SAME
+# cemented bundle (entry_iql_volbal_20260611) — NOT a bundle flip, fully reversible. In TREND_UP +
+# V10-leans-LONG + normal/low-vol it (a) suppresses the IQL's forced TAKE_SHORT → SKIP and (b) revives
+# SKIP → TAKE_LONG when p_long ≥ 0.80. Cures the learned anti-LONG floor that force-shorts profitable
+# dip-LONGs (OOT 2026: take-LONG +30.8 vs forced-SHORT −34.6 bps). DIPFIX-experiment arm C ("both")
+# validated on the FULL exit+cap-3 OOT-2026 replay: total PnL 35333→45826 (+29.7%), win 0.769→0.783
+# (+1.4pp), maxDD −424.8 UNCHANGED (DD-neutral), +1000 revived dip-longs. The regime-long REWARD-REFIT
+# (factor-2/4) was REFUTED by the full anchored gate 2026-06-16 (−12 bps vs cement) — SELECTION works,
+# retrain dilutes. ONE-TRUTH fn apply_dipfix_overlay applied in BOTH live serve (v12_entry_iql_live.py)
+# AND the OOT gate (v12_phase1_entry_iql_inference) so live == gate. REVERSIBLE: GX1_ENTRY_DIPFIX=0
+# (or GX1_ENTRY_DIPFIX_MODE=suppress_short for the short-suppression-only arm).
+export GX1_ENTRY_DIPFIX=1
+export GX1_ENTRY_DIPFIX_MODE=both
 
 # IN-PROCESS SHADOW (2026-06-12, ladder wave): if a candidate bundle is named in
 # the config file, the runner loads it as a SHADOW adapter — scores every poll,
