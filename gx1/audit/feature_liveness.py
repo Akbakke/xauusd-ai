@@ -205,6 +205,7 @@ KNOWN_DATA_GAPS = {  # aksepterte historiske hull (dato → grunn). Repareres vi
     "2026-06-05": "11.4t utfall (maskin nede) — BACKFILL-KANDIDAT.",
     "2026-06-10": "OOM-reboot (2 hull 35+75min) — BACKFILL-KANDIDAT.",
     "2026-06-11": "reboot 15min.",
+    "2026-06-17": "OOM-reboot (full phase6-gate tippet 58G-cap) — ~15-16min hull 14:27-14:43 (collector/daemon starved under RAM-thrash, mistet OANDA M1-vindu). Scroller ut av lookback ~22:43Z; nattlig tape-freshener (v12_backfill_to_present) backfiller. BACKFILL-KANDIDAT.",
 }
 
 
