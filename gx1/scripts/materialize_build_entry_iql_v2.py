@@ -1247,6 +1247,7 @@ def evaluate_one_fold(
     volbal_factor: int = 1,
     regimelong_mask: np.ndarray | None = None,
     regimelong_factor: int = 1,
+    recency_weights: np.ndarray | None = None,
     warmstart_init: dict | None = None,
 ) -> dict[str, Any]:
     fold_id_v1 = fold["fold_id_v1"]
@@ -1349,6 +1350,36 @@ def evaluate_one_fold(
             f"train_action_counts={train_action_counts} "
             f"class_weights={train_class_weights} "
             f"skip_weight_multiplier={skip_weight_multiplier}",
+            flush=True,
+        )
+
+    # 2026-06-17 RECENCY-WEIGHTING (vedtak entry_iql_recency_weight_20260617): exponentially up-weight
+    # RECENT train rows so the policy adapts to the CURRENT (2026 high-vol) regime, while keeping the
+    # 2020-25 history as a LIGHT BACKGROUND (anti-forgetting / robustness — we DOWN-weight old rows, we
+    # never DROP them; CLAUDE.md "always build, never remove"). recency_weights is precomputed on the
+    # ORIGINAL row order in write_artifacts = 0.5**(age_days / halflife). It is indexed by the (already
+    # oversample-extended) train_idx and applied TRAIN-ONLY (val/test stay natural-weight → honest OOT).
+    # It multiplies into the balance_actions class weights (expectile_loss honors the product). expectile_loss
+    # uses a plain .mean() (line ~107), so absolute weight scale changes the gradient magnitude — to keep the
+    # warm-start/baseline LR valid we RENORMALIZE the product to mean 1.0 over the train rows: only the
+    # RELATIVE (recent-vs-old) weighting changes, the loss scale is identical to the uniform-weight cement.
+    recency_applied = False
+    recency_w_stats: dict[str, float] = {}
+    if recency_weights is not None:
+        rw_train = recency_weights[train_idx].astype(np.float32)
+        sample_weights = rw_train.copy() if sample_weights is None else (sample_weights * rw_train)
+        _w_sum = float(sample_weights.sum())
+        if _w_sum > 0.0:
+            sample_weights = (sample_weights * (len(sample_weights) / _w_sum)).astype(np.float32)
+        recency_applied = True
+        recency_w_stats = {
+            "rw_train_min": float(rw_train.min()), "rw_train_max": float(rw_train.max()),
+            "rw_train_mean": float(rw_train.mean()),
+        }
+        print(
+            f"[{ACTION}] {fold_id_v1} {variant} RECENCY-WEIGHT applied: train_rows={len(rw_train)} "
+            f"recency_w in [{recency_w_stats['rw_train_min']:.4f},{recency_w_stats['rw_train_max']:.4f}] "
+            f"(mean={recency_w_stats['rw_train_mean']:.4f}); product renormalized to mean=1.0",
             flush=True,
         )
 
@@ -1479,6 +1510,8 @@ def evaluate_one_fold(
         "volbal_oversample_added_rows_v1": int(volbal_oversample_count),
         "regimelong_oversample_factor_v1": int(regimelong_factor),
         "regimelong_oversample_added_rows_v1": int(regimelong_oversample_count),
+        "recency_weight_applied_v1": bool(recency_applied),
+        "recency_weight_stats_v1": recency_w_stats,
         "train_action_counts_v1": train_action_counts,
         "train_class_weights_v1": train_class_weights,
     }
@@ -1711,6 +1744,31 @@ def write_artifacts(
               f"{int(_regimelong_mask.sum()):,}/{len(df):,} regime-long rows "
               f"(TREND_UP & p_long>p_short & vol-low/atr<={_rl_atr_max}) in TRAIN only", flush=True)
 
+    # 2026-06-17 RECENCY-WEIGHTING (env-gated, default OFF — vedtak entry_iql_recency_weight_20260617):
+    # exponential half-life weight by DECISION TIMESTAMP so the build adapts to the CURRENT (2026 high-vol)
+    # regime while keeping 2020-25 as light background (NOT dropped — CLAUDE.md "always build, never remove").
+    # Computed on the ORIGINAL row order (same as the volbal/regimelong masks above), applied train-only inside
+    # evaluate_one_fold. halflife in DAYS; 0 (default) = OFF = byte-identical no-op vs the uniform-weight cement.
+    # Anchor = the most-recent decision_ts in the dataset, so recent rows weigh ~1.0 and older rows decay; the
+    # product with the class weights is renormalized to mean 1.0 (in evaluate_one_fold) so the loss scale is
+    # unchanged and only the relative recent-vs-old emphasis differs from the cement.
+    _recency_halflife_days = float(os.environ.get("GX1_RECENCY_HALFLIFE_DAYS", "0"))
+    _recency_weights = None
+    if _recency_halflife_days > 0:
+        _rts_col = next((c for c in ("decision_ts_utc", "decision_ts", "time", "ts_utc") if c in df.columns), None)
+        if _rts_col is None:
+            raise RuntimeError(f"[{ACTION}] GX1_RECENCY_HALFLIFE_DAYS>0 but no decision-ts column found "
+                               f"(looked for decision_ts_utc/decision_ts/time/ts_utc)")
+        _rts = pd.to_datetime(df[_rts_col], utc=True)
+        _age_days = (_rts.max() - _rts).dt.total_seconds().to_numpy() / 86400.0
+        _recency_weights = np.power(0.5, _age_days / _recency_halflife_days).astype(np.float32)
+        _yr = _rts.dt.year.to_numpy()
+        _by_year = ", ".join(f"{y}:{float(_recency_weights[_yr == y].mean()):.3f}" for y in sorted(set(_yr.tolist())))
+        print(f"[{ACTION}] GX1_RECENCY_HALFLIFE_DAYS={_recency_halflife_days}: recency weights on {len(df):,} "
+              f"rows (ts={_rts_col}, anchor={_rts.max()}), raw w in "
+              f"[{float(_recency_weights.min()):.5f},{float(_recency_weights.max()):.5f}]; pre-renorm mean-w by "
+              f"year: {_by_year}", flush=True)
+
     # WARM-START init (2026-06-15): load the cement Q/V weights per-fold so the refit nudges the
     # converged policy. The transformer is FROZEN (it is upstream — its outputs are already baked into
     # forward_outcome); this only inits the small IQL Q/V net. Arch must match the cement ckpt.
@@ -1741,6 +1799,7 @@ def write_artifacts(
                 skip_oversample_factor=skip_oversample_factor,
                 volbal_mask=_volbal_mask, volbal_factor=_volbal_factor,
                 regimelong_mask=_regimelong_mask, regimelong_factor=_regimelong_factor,
+                recency_weights=_recency_weights,
                 warmstart_init=_warmstart_init,
             )
             per_fold_results.append(r)
@@ -1760,6 +1819,7 @@ def write_artifacts(
         "recommendation_v1": recommendation,
         "headline_v1": headline,
         "input_forward_outcome_dir_v1": str(forward_outcome_dir),
+        "recency_halflife_days_v1": float(_recency_halflife_days),
         "n_rows_v1": int(len(df)),
         "n_features_v1": int(X.shape[1]),
         "feature_names_v1": feature_names,
