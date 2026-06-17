@@ -509,9 +509,164 @@ def analyze_short_ev_in_uptrend():
     stat(up & leans_long & oot.values, lp, "[OOT] any-up & leans-LONG: LONG")
 
 
+def analyze_direction_headroom():
+    """DIRECTION headroom test (2026-06-17, user vedtak: attack ENTRY V10/IQL direction; can the model
+    catch REGIME-CHANGES / turning points the way discretionary traders claim to?). Tests, strict-OOT
+    both-halves, GBM AUC on dir_up (= long_terminal_pnl > short_terminal_pnl):
+      (1) blanket vs at TRANSITION/regime-change bars (vol/range-expansion) — the user's hypothesis;
+      (2) across horizons K12 (catch-the-turn, 1h) → K96 (8h);
+      (3) feature families: clean_price / transition / multi-TF / V10-internal-heads / conviction(leak ref);
+      (4) does a FRESH GBM on V10's internal heads beat V10's own direction_logit OOT (V10 leaving signal)?
+    Reconciles "56%": prints blanket dir-accuracy of V10's direction head by regime + conviction band."""
+    K_LIST = ["K12", "K24", "K96"]
+    CLEAN = ["ema20_slope_canon_v1","ema100_slope_canon_v1","pos_vs_ema200_canon_v1","_v1_rsi14_canon_v1",
+        "_v1_rsi2_canon_v1","_v1_rsi14_z_canon_v1","_v1_r5_canon_v1","_v1_r24_canon_v1","ret_1_canon_v1",
+        "ret_5_canon_v1","ret_20_canon_v1","roc20_canon_v1","roc100_canon_v1","_v1_ema_diff_canon_v1",
+        "_v1_close_ema_slope_3_canon_v1","_v1_tema_slope_20_canon_v1","_v1_kama_slope_30_canon_v1",
+        "range_canon_v1","atr_canon_v1","atr50_canon_v1","_v1_atr14_canon_v1"]
+    TRANS = ["atr_z_canon_v1","_v1_atr_z_10_100_canon_v1","vol_ratio_canon_v1","rvol_20_canon_v1",
+        "rvol_60_canon_v1","_v1_range_z_canon_v1","_v1_range_comp_20_100_canon_v1","_v1_range_adr_canon_v1",
+        "d1_range_z_20_canon_v2_canon_v1","m15_range_z_20_canon_v2_canon_v1","_v1_tr_1_over_atr_14_canon_v1",
+        "_v1_ret_ema_diff_2_5_canon_v1","_v1_ret_ema_ratio_5_34_canon_v1","m5h1_momentum_canon_v1"]
+    MTF = ["_v1h1_ema_diff_canon_v1","_v1h4_ema_diff_canon_v1","_v1h1_slope3_canon_v1","_v1h1_slope5_canon_v1",
+        "_v1h4_slope3_canon_v1","_v1h4_slope5_canon_v1","_v1h1_rsi14_z_canon_v1","_v1h4_rsi14_z_canon_v1",
+        "d1_ema_slope_20_canon_v2_canon_v1","d1_rsi14_canon_v2_canon_v1","d1_pct_change_5_canon_v2_canon_v1",
+        "d1_close_pct_in_20day_range_canon_v2_canon_v1","m15_trend_sign_canon_v2_canon_v1","m15_rsi14_canon_v2_canon_v1"]
+    V10H = ([f"v10_dip_{i}" for i in range(18)] + [f"v10_forecast_{i}" for i in range(4)]
+            + [f"v10_timing_{i}" for i in range(12)] + [f"v10_tail_risk_{i}" for i in range(2)]
+            + ["direction_logit_long","direction_logit_short","direction_logit_flat"])
+    CONV = ["p_long","p_short","margin","uncertainty_score"]
+    LAB = [f"take_now_long_terminal_pnl_at_{k}_v1" for k in K_LIST] + [f"take_now_short_terminal_pnl_at_{k}_v1" for k in K_LIST]
+    need = sorted(set(CLEAN+TRANS+MTF+V10H+CONV+LAB+["decision_ts_utc","trend_regime","vol_ratio_canon_v1"]))
+    files = sorted(glob.glob(f"{FO_DIR}/*.parquet"))
+    avail = set(pd.read_parquet(files[0]).columns)
+    need = [c for c in need if c in avail]
+    df = pd.concat([pd.read_parquet(f, columns=need) for f in files], ignore_index=True)
+    df["ts"] = pd.to_datetime(df["decision_ts_utc"], utc=True)
+    df = df.sort_values("ts").reset_index(drop=True)
+    med = df["ts"].median(); early = (df["ts"] <= med).values; late = (df["ts"] > med).values
+    print(f"[dir-headroom] rows={len(df)} split@{med}")
+    FAMS = {"clean_price":[c for c in CLEAN if c in avail], "transition":[c for c in TRANS if c in avail],
+            "multi_TF":[c for c in MTF if c in avail], "V10_heads":[c for c in V10H if c in avail],
+            "ALL_clean":[c for c in CLEAN+TRANS+MTF if c in avail], "conviction(LEAK ref)":[c for c in CONV if c in avail]}
+    # transition subset = top-30% vol expansion (vol_ratio) — "a change is happening now"
+    vr = df["vol_ratio_canon_v1"].astype(float) if "vol_ratio_canon_v1" in avail else df["atr_canon_v1"].astype(float)
+    trans_mask = (vr >= vr.quantile(0.70)).values
+    def auc(cols, y, tr, te):
+        Xtr=df.loc[tr,cols].astype(np.float32).replace([np.inf,-np.inf],np.nan); Xte=df.loc[te,cols].astype(np.float32).replace([np.inf,-np.inf],np.nan)
+        ytr=y[tr]; yte=y[te]
+        if len(Xtr)>SAMPLE_CAP:
+            s=RNG.choice(len(Xtr),SAMPLE_CAP,replace=False); Xtr=Xtr.iloc[s]; ytr=ytr[s]
+        if len(np.unique(yte))<2 or len(np.unique(ytr))<2: return float("nan")
+        c=HistGradientBoostingClassifier(max_depth=4,max_iter=300,learning_rate=0.05,l2_regularization=1.0,
+            min_samples_leaf=200,early_stopping=True,validation_fraction=0.15,random_state=42)
+        c.fit(Xtr,ytr); return roc_auc_score(yte,c.predict_proba(Xte)[:,1])
+    for k in K_LIST:
+        lp=df[f"take_now_long_terminal_pnl_at_{k}_v1"].astype(float).values
+        sp=df[f"take_now_short_terminal_pnl_at_{k}_v1"].astype(float).values
+        y=(lp>sp).astype(int)
+        ok=~(np.isnan(lp)|np.isnan(sp))
+        print(f"\n=== horizon {k}  dir_up base={y[ok].mean():.3f}  (sep gate: OOT both >=0.55) ===")
+        print(f"  {'family':22s} {'AUC_allbars(e→l/l→e)':22s} {'AUC_TRANSITION(e→l/l→e)':24s}")
+        for fam,cols in FAMS.items():
+            if not cols: continue
+            ea=auc(cols,y,early&ok,late&ok); la=auc(cols,y,late&ok,early&ok)
+            te_e=early&ok&trans_mask; te_l=late&ok&trans_mask
+            ea_t=auc(cols,y,early&ok,te_l); la_t=auc(cols,y,late&ok,te_e)
+            star=" ***" if (ea>=0.55 and la>=0.55) else ("  T*" if (ea_t>=0.55 and la_t>=0.55) else "")
+            print(f"  {fam:22s} {ea:.3f} / {la:.3f}          {ea_t:.3f} / {la_t:.3f}{star}")
+    # reconcile "56%": V10 direction-head blanket accuracy + by regime + by conviction band (K96)
+    print("\n=== '56%' RECONCILE: V10 direction-head accuracy (argmax direction_logit vs actual up/down) ===")
+    if "direction_logit_long" in avail:
+        lp=df["take_now_long_terminal_pnl_at_K96_v1"].astype(float).values; sp=df["take_now_short_terminal_pnl_at_K96_v1"].astype(float).values
+        y=(lp>sp).astype(int); pred_up=(df["direction_logit_long"]>df["direction_logit_short"]).astype(int).values
+        ok=~(np.isnan(lp)|np.isnan(sp)); oot=(df["ts"]>=pd.Timestamp("2026-01-01",tz="UTC")).values
+        def acc(m): m=m&ok; return (pred_up[m]==y[m]).mean(), int(m.sum())
+        a,n=acc(np.ones(len(df),bool)); print(f"  blanket: acc={a:.3f} n={n}")
+        a,n=acc(oot); print(f"  OOT-2026 blanket: acc={a:.3f} n={n}")
+        if "margin" in avail:
+            mg=df["margin"].astype(float).values; hi=mg>=np.nanpercentile(mg,80)
+            a,n=acc(hi); print(f"  high-conviction (top-20% margin): acc={a:.3f} n={n}")
+            a,n=acc(hi&oot); print(f"  high-conviction OOT-2026: acc={a:.3f} n={n}")
+        for rg in ("TREND_UP","TREND_DOWN","TREND_NEUTRAL"):
+            a,n=acc((df["trend_regime"]==rg).values); print(f"  regime {rg}: acc={a:.3f} n={n}")
+        a,n=acc(trans_mask); print(f"  TRANSITION bars (top-30% vol-expansion): acc={a:.3f} n={n}")
+        a,n=acc(trans_mask&oot); print(f"  TRANSITION bars OOT-2026: acc={a:.3f} n={n}")
+
+
+def verify_direction_signal():
+    """ADVERSARIAL verify (2026-06-17): is the multi_TF/clean OOT direction AUC (0.72-0.79 @K96) a REAL
+    edge or just trend-AUTOCORRELATION (momentum)? And does V10 leave directional signal on the table
+    (retrain opportunity)? Decisive tests, K96 dir_up = long_pnl>short_pnl:
+      (A) NAIVE-MOMENTUM baseline: predict forward_up = recent trend up (ema100_slope>0). If multi_TF barely
+          beats it → it's momentum, not skill. (B) CONTINUATION vs REVERSAL accuracy — does it catch TURNS?
+      (C) 2026-ONLY holdout (fit<=2025-06): the true deploy regime (where conviction-tail inverted).
+      (D) V10-CEILING head-to-head: fresh GBM(clean+V10-heads) OOT accuracy vs V10's own direction head."""
+    K = "K96"
+    feats = {
+      "multi_TF": ["_v1h1_ema_diff_canon_v1","_v1h4_ema_diff_canon_v1","_v1h1_slope3_canon_v1","_v1h1_slope5_canon_v1",
+        "_v1h4_slope3_canon_v1","_v1h4_slope5_canon_v1","_v1h1_rsi14_z_canon_v1","_v1h4_rsi14_z_canon_v1",
+        "d1_ema_slope_20_canon_v2_canon_v1","d1_rsi14_canon_v2_canon_v1","d1_pct_change_5_canon_v2_canon_v1",
+        "d1_close_pct_in_20day_range_canon_v2_canon_v1","m15_trend_sign_canon_v2_canon_v1","m15_rsi14_canon_v2_canon_v1"],
+      "clean+V10heads": (["ema20_slope_canon_v1","ema100_slope_canon_v1","pos_vs_ema200_canon_v1","_v1_rsi14_canon_v1",
+        "_v1_r5_canon_v1","_v1_r24_canon_v1","roc20_canon_v1","roc100_canon_v1","_v1h1_ema_diff_canon_v1","_v1h4_ema_diff_canon_v1",
+        "d1_ema_slope_20_canon_v2_canon_v1","d1_close_pct_in_20day_range_canon_v2_canon_v1"]
+        + [f"v10_dip_{i}" for i in range(18)] + [f"v10_forecast_{i}" for i in range(4)]
+        + [f"v10_timing_{i}" for i in range(12)] + ["direction_logit_long","direction_logit_short"]),
+    }
+    need = sorted(set(sum(feats.values(),[]) + ["decision_ts_utc","trend_regime","ema100_slope_canon_v1","_v1_r24_canon_v1",
+        "direction_logit_long","direction_logit_short","margin",
+        f"take_now_long_terminal_pnl_at_{K}_v1",f"take_now_short_terminal_pnl_at_{K}_v1"]))
+    files = sorted(glob.glob(f"{FO_DIR}/*.parquet"))
+    avail = set(pd.read_parquet(files[0]).columns); need=[c for c in need if c in avail]
+    df = pd.concat([pd.read_parquet(f, columns=need) for f in files], ignore_index=True)
+    df["ts"]=pd.to_datetime(df["decision_ts_utc"],utc=True); df=df.sort_values("ts").reset_index(drop=True)
+    lp=df[f"take_now_long_terminal_pnl_at_{K}_v1"].astype(float).values; sp=df[f"take_now_short_terminal_pnl_at_{K}_v1"].astype(float).values
+    y=(lp>sp).astype(int); ok=~(np.isnan(lp)|np.isnan(sp))
+    rec_up=(df["ema100_slope_canon_v1"].astype(float).values>0)          # recent trend (decision-time, no leak)
+    cont=(rec_up==(y==1))                                                 # continuation vs reversal (uses fwd → analysis only)
+    med=df["ts"].median(); early=(df["ts"]<=med).values; late=(df["ts"]>med).values
+    h2025=(df["ts"]<=pd.Timestamp("2025-06-01",tz="UTC")).values; oot26=(df["ts"]>=pd.Timestamp("2026-01-01",tz="UTC")).values
+    def fit_pred(cols,tr,te):
+        Xtr=df.loc[tr,cols].astype(np.float32).replace([np.inf,-np.inf],np.nan); Xte=df.loc[te,cols].astype(np.float32).replace([np.inf,-np.inf],np.nan)
+        ytr=y[tr]
+        if len(Xtr)>SAMPLE_CAP:
+            s=RNG.choice(len(Xtr),SAMPLE_CAP,replace=False); Xtr=Xtr.iloc[s]; ytr=ytr[s]
+        c=HistGradientBoostingClassifier(max_depth=4,max_iter=300,learning_rate=0.05,l2_regularization=1.0,
+            min_samples_leaf=200,early_stopping=True,validation_fraction=0.15,random_state=42); c.fit(Xtr,ytr)
+        p=c.predict_proba(Xte)[:,1]; return p
+    # (A) naive momentum baseline accuracy (predict up if recent trend up)
+    print("=== (A) NAIVE MOMENTUM baseline (pred_up = ema100_slope>0) ===")
+    for seg,m in (("ALL",ok),("OOT-2026",ok&oot26)):
+        mm=m; print(f"  {seg}: acc={(rec_up[mm]==(y[mm]==1)).mean():.3f}  (base_up={y[mm].mean():.3f})  n={int(mm.sum())}")
+    # (B)+(D) fit multi_TF and clean+V10heads, OOT both halves; compare to V10 head; split continuation/reversal
+    v10_up=(df["direction_logit_long"]>df["direction_logit_short"]).values
+    for fam,cols in feats.items():
+        cols=[c for c in cols if c in avail]
+        print(f"\n=== family: {fam} ===")
+        for split_name,tr,te in (("fit_early→late",early&ok,late&ok),("fit_late→early",late&ok,early&ok),("fit≤2025-06→2026",h2025&ok,oot26&ok)):
+            p=fit_pred(cols,tr,te); yt=y[te]; pred=(p>=0.5).astype(int)
+            auc=roc_auc_score(yt,p) if len(np.unique(yt))>1 else float("nan")
+            acc=(pred==yt).mean()
+            # continuation vs reversal accuracy WITHIN the test set
+            te_idx=np.where(te)[0]; c_te=cont[te_idx];
+            acc_cont=(pred[c_te]==yt[c_te]).mean() if c_te.sum() else float("nan")
+            acc_rev=(pred[~c_te]==yt[~c_te]).mean() if (~c_te).sum() else float("nan")
+            # naive momentum on same test set
+            acc_mom=(rec_up[te_idx]==(yt==1)).mean()
+            # V10 head on same test set
+            acc_v10=(v10_up[te_idx]==(yt==1)).mean()
+            print(f"  [{split_name}] AUC={auc:.3f} acc={acc:.3f} | momentum={acc_mom:.3f} V10head={acc_v10:.3f} || acc_CONTINUATION={acc_cont:.3f} acc_REVERSAL={acc_rev:.3f} (rev_frac={(~c_te).mean():.2f})")
+
+
 if __name__ == "__main__":
     import sys
-    if len(sys.argv) > 1 and sys.argv[1] == "short_ev":
+    mode = sys.argv[1] if len(sys.argv) > 1 else ""
+    if mode == "short_ev":
         analyze_short_ev_in_uptrend()
+    elif mode == "dir_headroom":
+        analyze_direction_headroom()
+    elif mode == "dir_verify":
+        verify_direction_signal()
     else:
         main()
