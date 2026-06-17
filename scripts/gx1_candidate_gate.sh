@@ -46,6 +46,18 @@ GATES_DIR=/home/andre2/GX1_DATA/reports/v12_paper_runs/nightly_learning/candidat
 TS=$(date -u +%Y%m%dT%H%M%SZ)
 TODAY=$(date -u +%Y%m%d)
 
+# 2026-06-17 OOM-GUARD (catastrophe-floor): the FULL phase6 gate peaks ~56G on a 58G WSL cap and
+# OOM-CRASHED the whole PC mid-run (froze → hard reboot → live runner left down → open paper trades
+# unmanaged ~3h). Re-exec the ENTIRE harness inside a HARD cgroup memory ceiling so an overrun kills
+# THIS job (cgroup OOM-killer), NEVER the machine. A 44G cap forces the full 145K gate to be CHUNKED
+# (the proven baseline pattern) or candidate-restricted instead of swap-storming the box to death.
+# Override: GX1_GATE_MEM / GX1_GATE_SWAP. Escape hatch (NOT recommended): GX1_CAPPED=1 to skip.
+if [[ -z "${GX1_CAPPED:-}" ]] && command -v systemd-run >/dev/null 2>&1; then
+  export GX1_CAPPED=1
+  echo ">>> [oom-guard] re-exec under cgroup cap MemoryMax=${GX1_GATE_MEM:-44G} (see scripts/gx1_capped_run.sh)"
+  exec "$REPO/scripts/gx1_capped_run.sh" --mem "${GX1_GATE_MEM:-44G}" --swap "${GX1_GATE_SWAP:-2G}" -- bash "$0" "$@"
+fi
+
 usage() { grep '^# Usage' -A4 "$0" | sed 's/^# \{0,1\}//'; exit 2; }
 
 CAND="" ; QUICK=false ; DRYRUN=false ; FOLD=FOLD_1 ; OUT_ROOT=""
