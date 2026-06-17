@@ -147,6 +147,35 @@ DIPFIX_MODE = os.environ.get("GX1_ENTRY_DIPFIX_MODE", "suppress_short")  # "supp
 DIPFIX_PLONG_THR = float(os.environ.get("GX1_ENTRY_DIPFIX_PLONG_THR", "0.80"))
 DIPFIX_ATR_MAX = float(os.environ.get("GX1_ENTRY_DIPFIX_ATR_MAX", "14.0"))      # "normal/low vol" ATR ceiling (bps)
 
+# ── FORCED-COUNTER-TREND-SHORT veto (2026-06-17, default OFF = byte-identical no-op) ──────────────
+# An OPTICS / path-perception / DD-volume knob — NOT a PnL improvement (default-OFF; arm only deliberately).
+# It vetoes the open-more op's FORCED counter-trend shorts: when raw_adv < threshold (the IQL natively
+# preferred SKIP — best_take_q < q_skip) AND the forced side is SHORT AND we are in an uptrend → keep SKIP.
+# The IQL-NATURAL shorts (raw_adv >= 0) are NEVER touched.
+# ⚠ VALIDATION (2026-06-17, OOT-2026 decisions ⋈ forward_outcome): the trades it removes are NOT painful
+# losers — held-out they have MFE med 85 / MAE med 30 (MFE ~2.8× MAE), termK96 +40 bps, 67% win — i.e. the
+# model's pullback-catching shorts (the +30 bps leans-short cell). Removing 354 of them (13% of OOT shorts)
+# REMOVES +EV VOLUME (7th short-suppression refutation). The "MAE >> MFE" the user observes live is a few
+# salient EARLY-EXIT cases (the exit closes at a small profit after a transient MAE dip, e.g. 07:29 MAE 6 →
+# +1), NOT a class property: through the real exit ALL taken shorts net positive (IQL-natural +34 bps/95.5%
+# win/MAE-MFE 0.24; marginal band +15.5/82%). So this knob trades realized PnL for fewer optically-counter-
+# trend shorts + lower trade count; it is documented + available but stays OFF unless explicitly chosen.
+FORCED_SHORT_VETO_ON = os.environ.get("GX1_ENTRY_FORCED_SHORT_VETO", "0") == "1"
+# Veto a TAKE_SHORT only when its raw_adv (best_take_q − q_skip, UN-clipped) is below this — i.e. the IQL
+# natively preferred SKIP. Default 0.0 = veto only op-FORCED shorts; the genuine IQL-natural shorts (raw_adv>=0)
+# are always kept. Raise toward CONVICTION_THR to veto fewer; this is the surgical counter-trend-short knob.
+FORCED_SHORT_VETO_RAWADV_MAX = float(os.environ.get("GX1_ENTRY_FORCED_SHORT_VETO_RAWADV_MAX", "0.0"))
+
+
+def _is_trend_up(candidate: dict[str, Any]) -> bool:
+    """ONE-TRUTH uptrend detector (real REGIME_V4 label OR ≥2 of {m15,h1,h4} ema20-slope up). Used by both
+    the DIPFIX mask and the forced-counter-trend-short veto so they read the regime identically."""
+    if str(candidate.get("trend_regime", "")) == "TREND_UP":
+        return True
+    slopes = [candidate.get(f"{tf}_ema20_slope_atr_v2") for tf in ("m15", "h1", "h4")]
+    present = [float(s) for s in slopes if s is not None]
+    return len(present) >= 2 and sum(1 for s in present if s > 0.0) >= 2
+
 
 def _dipfix_regime_mask(candidate: dict[str, Any]) -> bool:
     """TREND_UP AND V10-leans-LONG AND vol normal/low — the regime where the volbal IQL force-shorts
@@ -161,14 +190,8 @@ def _dipfix_regime_mask(candidate: dict[str, Any]) -> bool:
         return False
     if not (p_long > p_short):
         return False
-    # TREND_UP: real regime label OR the per-TF ema20-slope vote (>=2 of m15/h1/h4 up, when present)
-    trend_up = str(candidate.get("trend_regime", "")) == "TREND_UP"
-    if not trend_up:
-        slopes = [candidate.get(f"{tf}_ema20_slope_atr_v2") for tf in ("m15", "h1", "h4")]
-        present = [float(s) for s in slopes if s is not None]
-        if len(present) >= 2 and sum(1 for s in present if s > 0.0) >= 2:
-            trend_up = True
-    if not trend_up:
+    # TREND_UP: real regime label OR the per-TF ema20-slope vote (>=2 of m15/h1/h4 up) — ONE-TRUTH helper
+    if not _is_trend_up(candidate):
         return False
     # vol normal/low: regime label OR atr ceiling (atr_bps, fallback atr14_m5_bps)
     vol_low = str(candidate.get("vol_regime", "")) in ("LOW", "MEDIUM")
@@ -562,6 +585,7 @@ class EntryIQLLiveInference:
                                  q_agg[0, iql_core.ACTION_TAKE_SHORT_NOW_ID]))
         adv_take = chosen_q - best_take_q
         # Selection logic: conviction-gate (open by raw advantage, gate-validated) OR legacy min_adv filter.
+        self._forced_short_veto_fired = False   # reset per-prediction (forced-counter-trend-short veto marker)
         if CONVICTION_GATE_ON:
             # TAKE if the best TAKE's UN-clipped advantage over SKIP clears the calibrated threshold;
             # side = the higher-Q TAKE direction. Overrides the IQL's conservative argmax SKIP.
@@ -569,6 +593,14 @@ class EntryIQLLiveInference:
             if raw_adv >= CONVICTION_THR:
                 _l, _s = iql_core.ACTION_TAKE_LONG_NOW_ID, iql_core.ACTION_TAKE_SHORT_NOW_ID
                 a_id = _l if q_agg[0, _l] >= q_agg[0, _s] else _s
+                # FORCED-COUNTER-TREND-SHORT veto (default-OFF): if the open-more op FORCED this take
+                # (raw_adv < threshold ⇒ the IQL natively preferred SKIP) AND the forced side is SHORT AND
+                # we are in an uptrend, keep SKIP. Removes only the op-manufactured counter-trend shorts;
+                # the IQL-natural shorts (raw_adv ≥ 0) are untouched. Strictly conservative + reversible.
+                if (FORCED_SHORT_VETO_ON and a_id == _s
+                        and raw_adv < FORCED_SHORT_VETO_RAWADV_MAX and _is_trend_up(candidate)):
+                    a_id = skip_id
+                    self._forced_short_veto_fired = True
             else:
                 a_id = skip_id
         elif a0.min_advantage_bps > 0.0 and a_id != skip_id and adv < a0.min_advantage_bps:
@@ -656,4 +688,6 @@ class EntryIQLLiveInference:
         marker = getattr(self, "_dipfix_marker", None)
         if marker:
             candidate.update(marker)
+        if getattr(self, "_forced_short_veto_fired", False):
+            candidate["forced_short_veto_applied"] = True   # attribution: op-forced uptrend short → SKIP
         return rec, candidate
