@@ -68,6 +68,16 @@ _SHADOW_BUNDLE_DIR = os.environ.get("GX1_SHADOW_BUNDLE_DIR", "").strip()
 _SHADOW_VARIANT = os.environ.get("GX1_SHADOW_VARIANT", "").strip()  # default: contract active_variant
 _SHADOW_FOLD = os.environ.get("GX1_SHADOW_FOLD", "").strip()        # default: contract first active fold
 
+# HARD MAE-STOP (risk overlay, 2026-06-17, default 0 = OFF). The learned Exit-IQL does NOT hard-cap
+# adverse excursion — it holds through deep MAE to scratch a win, keeping a 95% win-rate but a brutal
+# left tail (baseline worst single trade −416 bps MAE; it IS the bulk of the cap-3 account DD). User
+# vedtak: stop "tåle 500 i minus i 8 timer for 16 i pluss". When the live unrealized PnL drops to
+# −GX1_EXIT_HARD_STOP_BPS, force EXIT_NOW regardless of the Exit-IQL action. NOT gated by PURE_PHASE6
+# (a risk overlay we WANT live). Validated (OOT baseline hard-stop sim): −80 caps every trade at −80
+# for −1.7% total PnL (−120 = −0.8%); bilateral; the marginal/live trades it most protects have worse
+# MAE so the live benefit is larger. Reversible: GX1_EXIT_HARD_STOP_BPS=0.
+_EXIT_HARD_STOP_BPS = float(os.environ.get("GX1_EXIT_HARD_STOP_BPS", "0") or "0")
+
 
 def _entry_rec_with_distilled_q(rec, v10_out, beta: float = 1.0):
     """Rebuild an EntryRecommendation using V10 q_head values instead of IQL Q.
@@ -659,10 +669,23 @@ class V12Pipeline:
                 bar_state_clean[k] = float(v)
             except (TypeError, ValueError):
                 bar_state_clean[k] = str(v)
+        # HARD MAE-STOP risk overlay (default-OFF). One-truth, applies live + in any pipeline replay.
+        # If the trade is more than the stop underwater right now, force EXIT_NOW — caps the adverse
+        # excursion so a position can never sit deep in the red grinding for a small scratch-win.
+        _action_label = rec.action_label_v1
+        _action_id = int(rec.action_id_v1)
+        _decision_source = rec.decision_source_v1
+        if _EXIT_HARD_STOP_BPS > 0.0 and _action_id != 1 and float(trade.current_pnl_bps) <= -_EXIT_HARD_STOP_BPS:
+            _action_label = "EXIT_NOW"
+            _action_id = 1
+            _decision_source = "HARD_MAE_STOP"
+            LOG.info(f"[HARD_MAE_STOP] {trade.side} trade_id={getattr(trade, 'trade_id', '?')} "
+                     f"pnl={trade.current_pnl_bps:+.1f}bps <= -{_EXIT_HARD_STOP_BPS:.0f} → force EXIT_NOW "
+                     f"(bars={trade.bars_in_trade}, mae={trade.cum_mae_bps:+.1f})")
         return {
-            "action": rec.action_label_v1,
-            "action_id": int(rec.action_id_v1),
-            "decision_source": rec.decision_source_v1,
+            "action": _action_label,
+            "action_id": _action_id,
+            "decision_source": _decision_source,
             "v3_should_exit_prob": float(rec.v3_should_exit_prob_v1),
             "q_hold": q_hold,
             "q_exit": q_exit,
