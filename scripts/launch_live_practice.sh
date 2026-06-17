@@ -65,6 +65,13 @@ export GX1_STRONG_HOLD_QADV=-200.0
 export GX1_HOLD_HORIZON_OVERRUN_MULT=1.5
 export GX1_HOLD_HORIZON_MIN_FLOOR_BARS=60
 export GX1_USE_DISTILLED_EXIT=0
+# ── HARD MAE-STOP risk overlay (2026-06-17, user vedtak: stop 'tåle 500 i minus i 8t for 16 i pluss') ──
+# The learned Exit-IQL holds through deep adverse excursion to scratch a win (95% win-rate but worst
+# single trade −416 bps MAE = the bulk of the 564 bps cap-3 account-DD). This caps EVERY trade: when the
+# live unrealized PnL hits −80 bps, force EXIT_NOW. Validated (OOT hard-stop sim, 17132 trades): −80 caps
+# the −416 tail at −80 for −1.7% total PnL (this is a deliberate risk-for-PnL trade the user chose). TUNE:
+# raise to 120 for less cost (−0.8%) / lower to 50 for tighter risk (−4.9%); 0 = OFF (revert to pure IQL exit).
+export GX1_EXIT_HARD_STOP_BPS=80
 
 # ── ENTRY-SELECTION pins (2026-06-11, CEMENTED — vedtak 'thr −67 + conviction-sizing, låser denne') ──
 # Entry-selection #2 = WIDER conviction-gate + CONVICTION-SIZING + skip-ASIA (PROJECT_STATE_artifacts.json
