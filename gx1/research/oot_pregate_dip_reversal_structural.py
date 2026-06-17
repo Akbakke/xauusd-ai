@@ -439,5 +439,79 @@ def main():
     print("WROTE /tmp/oot_pregate_dip_struct.json")
 
 
+def analyze_short_ev_in_uptrend():
+    """LOAD-BEARING money test (2026-06-17): is SHORTING a strong uptrend actually negative-EV OOT,
+    and is it WORSE when V10 ALSO leans short (p_short>p_long) — the exact population the user's
+    'short i tydelig opptrend' complaint + the handover's trend-short-suppression lever target?
+
+    This is a *selection/EV* question, NOT a direction-AUC question (clean-price trend AUC = 0.50/0.56
+    OOT — direction is unpredictable). We measure RAW realized terminal PnL (forward_outcome, pre-exit)
+    of take-SHORT vs take-LONG within strong-uptrend bars, split by V10-lean and by trend-strength tier,
+    on OOT-2026 AND both strict-OOT halves (robustness). If short EV is robustly negative there, a blanket
+    'don't short a strong uptrend' overlay has EV support; if break-even/positive, suppressing it costs
+    PnL (the REGSHORT wall) and the lever is the operating-point, not direction."""
+    K = "K96"
+    print("[short-EV] loading decision bars ...")
+    df = load_decisions()
+    df["ts"] = pd.to_datetime(df["decision_ts_utc"], utc=True)
+    sp = df[f"take_now_short_terminal_pnl_at_{K}_v1"].astype(float)
+    lp = df[f"take_now_long_terminal_pnl_at_{K}_v1"].astype(float)
+    df = df[sp.notna() & lp.notna()].reset_index(drop=True)
+    sp = df[f"take_now_short_terminal_pnl_at_{K}_v1"].astype(float).values
+    lp = df[f"take_now_long_terminal_pnl_at_{K}_v1"].astype(float).values
+    # strong-uptrend = TREND_UP regime AND above 200EMA AND ema100 rising (same def as the pre-gate pop)
+    up = ((df["trend_regime"] == "TREND_UP") & (df["pos_vs_ema200_canon_v1"] > 0)
+          & (df["ema100_slope_canon_v1"] > 0)).fillna(False).values
+    pl = df["p_long"].astype(float).values
+    ps = df["p_short"].astype(float).values
+    leans_short = ps > pl
+    leans_long = pl > ps
+    ts = df["ts"].values
+    oot = df["ts"] >= pd.Timestamp("2026-01-01", tz="UTC")
+    med = df["ts"].median()
+    early = (df["ts"] <= med).values; late = (df["ts"] > med).values
+    # trend-strength tiers on ema100_slope within the up-population (handover's 'gate on STRENGTH')
+    es = df["ema100_slope_canon_v1"].astype(float).values
+    up_es = es[up]
+    q67 = np.nanpercentile(up_es, 67) if up.sum() else np.nan
+    strong = up & (es >= q67)   # top-tercile slope = 'tydelig/strong' uptrend
+
+    def stat(mask, arr, label):
+        m = np.asarray(mask, bool); v = arr[m]
+        v = v[~np.isnan(v)]
+        if len(v) == 0:
+            print(f"  {label:48s} n=0"); return
+        print(f"  {label:48s} n={len(v):6d}  mean={v.mean():7.2f}  win={(v>0).mean():.3f}  total={v.sum():10.0f}")
+
+    print(f"\n[short-EV] rows={len(df)}  strong-uptrend(top-tercile-slope) n={int(strong.sum())}  "
+          f"split@{med}")
+    print("\n=== ALL strong-uptrend bars (raw EV of SHORT vs LONG, pre-exit terminal PnL) ===")
+    for seg, mask in (("OOT-2026", strong & oot.values), ("fit-early-half", strong & early),
+                      ("fit-late-half", strong & late), ("ALL-history", strong)):
+        print(f"-- {seg} --")
+        stat(mask, sp, f"[{seg}] SHORT (all leans)")
+        stat(mask, lp, f"[{seg}] LONG  (all leans)")
+    print("\n=== strong-uptrend × V10-LEANS-SHORT (the handover's target cell) ===")
+    for seg, base in (("OOT-2026", oot.values), ("early-half", early), ("late-half", late), ("ALL", np.ones(len(df), bool))):
+        m = strong & leans_short & base
+        stat(m, sp, f"[{seg}] leans-SHORT: SHORT realized")
+        stat(m, lp, f"[{seg}] leans-SHORT: LONG-instead realized")
+    print("\n=== strong-uptrend × V10-LEANS-LONG (DIPFIX's existing mask cell) ===")
+    for seg, base in (("OOT-2026", oot.values), ("ALL", np.ones(len(df), bool))):
+        m = strong & leans_long & base
+        stat(m, sp, f"[{seg}] leans-LONG: SHORT realized")
+        stat(m, lp, f"[{seg}] leans-LONG: LONG realized")
+    # broader (not just top-tercile) so we don't cherry-pick the strength cut
+    print("\n=== ANY-uptrend (no strength cut) × lean, OOT-2026 ===")
+    stat(up & leans_short & oot.values, sp, "[OOT] any-up & leans-SHORT: SHORT")
+    stat(up & leans_short & oot.values, lp, "[OOT] any-up & leans-SHORT: LONG-instead")
+    stat(up & leans_long & oot.values, sp, "[OOT] any-up & leans-LONG: SHORT")
+    stat(up & leans_long & oot.values, lp, "[OOT] any-up & leans-LONG: LONG")
+
+
 if __name__ == "__main__":
-    main()
+    import sys
+    if len(sys.argv) > 1 and sys.argv[1] == "short_ev":
+        analyze_short_ev_in_uptrend()
+    else:
+        main()
