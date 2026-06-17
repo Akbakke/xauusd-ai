@@ -311,7 +311,20 @@ class V12Pipeline:
             return False
 
         # Run XGB on the entire 96-bar window (needed for V10 seq_x signal_bridge)
-        xgb_out = self.xgb.predict(augmented)
+        try:
+            xgb_out = self.xgb.predict(augmented)
+        except ValueError as exc:
+            # 2026-06-17: keep the FAIL-CLOSED guard (never trade on NaN inputs) but SKIP this
+            # bar CLEANLY instead of crash-looping the runner. The daily-break boundary M5 bar
+            # (~22:00 UTC) has incomplete M1 sub-bars → `_v1_int_*` intrabar feats are legitimately
+            # NaN; the model was never trained to decide such a bar, so we SKIP (never fill/
+            # fabricate — train==serve preserved). Transient: the next complete bar decides
+            # normally. A PERSISTENT NaN stays visible via this WARNING + the hourly self-check.
+            if "SANITIZER_NAN_FAIL" in str(exc):
+                LOG.warning(f"XGB sanitizer NaN on decision bar {effective_ts} — SKIP this bar "
+                            f"(incomplete/boundary bar, fail-closed): {str(exc)[:160]}")
+                return False
+            raise
         self._last_augmented_bucket = cur_bucket
         self._last_augmented = augmented
         self._last_bridge = xgb_out["signal_bridge_v1"]

@@ -130,6 +130,19 @@ def _atomic_write_parquet(df: pd.DataFrame, path: Path) -> None:
     os.replace(tmp, path)
 
 
+def _coerce_time_col(df: pd.DataFrame) -> pd.DataFrame | None:
+    """Return df with a usable 'time' COLUMN, or None for a torn/malformed read.
+    Guards the 2026-06-17 KeyError:'time' race: a collector/canonical M1 parquet read
+    mid-write (or with time stored as the index) lacks a 'time' column → returning None
+    makes the caller skip that file THIS cycle; the next 15s cycle re-reads the completed
+    file. Non-blocking, fail-safe (never fabricates data)."""
+    if "time" in df.columns:
+        return df
+    if df.index.name == "time" or isinstance(df.index, pd.DatetimeIndex):
+        return df.reset_index().rename(columns={df.index.name or "index": "time"})
+    return None
+
+
 def _load_m1_collector_for_window(start_ts: pd.Timestamp, end_ts: pd.Timestamp) -> pd.DataFrame:
     """Union of canonical M1 tape + live collector parquets covering [start, end]."""
     parts: list[pd.DataFrame] = []
@@ -137,6 +150,9 @@ def _load_m1_collector_for_window(start_ts: pd.Timestamp, end_ts: pd.Timestamp) 
         try:
             df = pd.read_parquet(fp)
         except Exception:
+            continue
+        df = _coerce_time_col(df)
+        if df is None:
             continue
         df["time"] = pd.to_datetime(df["time"], utc=True)
         sub = df[(df["time"] >= start_ts) & (df["time"] <= end_ts)]
@@ -149,6 +165,9 @@ def _load_m1_collector_for_window(start_ts: pd.Timestamp, end_ts: pd.Timestamp) 
         try:
             df = pd.read_parquet(fp)
         except Exception:
+            continue
+        df = _coerce_time_col(df)
+        if df is None:
             continue
         df["time"] = pd.to_datetime(df["time"], utc=True)
         sub = df[(df["time"] >= start_ts) & (df["time"] <= end_ts)]
