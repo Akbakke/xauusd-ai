@@ -72,6 +72,18 @@ export GX1_USE_DISTILLED_EXIT=0
 # the −416 tail at −80 for −1.7% total PnL (this is a deliberate risk-for-PnL trade the user chose). TUNE:
 # raise to 120 for less cost (−0.8%) / lower to 50 for tighter risk (−4.9%); 0 = OFF (revert to pure IQL exit).
 export GX1_EXIT_HARD_STOP_BPS=80
+# ── LET-WINNERS-RUN overlay (2026-06-18, user vedtak: arm if green — confirmed on 2 OOT periods) ──
+# The self-diagnosis found held_too_short = the dominant live leak (508 bps): the Exit-IQL takes profit AT
+# the in-trade peak (giveback ~0) and the price keeps running. LWR suppresses that profit-EXIT_NOW while
+# in-profit (pnl≥15) AND near-peak (giveback < FRAC), so the winner rides until a real trailing giveback
+# (Strategy-F 30%) / hard-stop. OOT exit-replay gate (cap-3, LWR OFF vs ON, identical env): block[4]
+# (2025-11→2026-05) +16.6% PnL / +16.4% DD; period2 (2024-06→2025-06) +32.7% PnL / +0.0% DD — robustly
+# +PnL across regimes, worst-trade UNCHANGED both periods, DD increase regime-specific (flat in calm). ONE
+# TRUTH (live make_exit_decision + phase6 gate). REVERSIBLE: GX1_EXIT_LET_WINNERS_RUN=0. TUNE: FRAC tighter
+# (0.20) = less captured continuation + less DD.
+export GX1_EXIT_LET_WINNERS_RUN=1
+export GX1_LWR_GIVEBACK_FRAC=0.30
+export GX1_LWR_MIN_PNL_BPS=15.0
 
 # ── ENTRY-SELECTION pins (2026-06-11, CEMENTED — vedtak 'thr −67 + conviction-sizing, låser denne') ──
 # Entry-selection #2 = WIDER conviction-gate + CONVICTION-SIZING + skip-ASIA (PROJECT_STATE_artifacts.json
