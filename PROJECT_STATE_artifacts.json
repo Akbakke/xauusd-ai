@@ -48,7 +48,7 @@
         "dipfix": {
           "enabled": true,
           "mode": "both",
-          "plong_thr": 0.80,
+          "plong_thr": 0.8,
           "atr_max_bps": 14.0,
           "vedtak": "dipfix_serve_overlay_20260616",
           "note": "Serve-time SELECTION overlay (bundle UNCHANGED, reversible). TREND_UP + V10-leans-LONG + normal/low-vol: suppress forced TAKE_SHORT->SKIP + revive SKIP->TAKE_LONG when p_long>=0.80. Arm-C validated on FULL exit+cap-3 OOT-2026: total 35333->45826 bps (+29.7%), win 0.769->0.783, maxDD -424.8 UNCHANGED. Regime-long REWARD-REFIT (factor-2/4) REFUTED by full anchored gate 2026-06-16 (-12 bps vs cement) - selection works, retrain dilutes. REVERSIBLE: GX1_ENTRY_DIPFIX=0."
@@ -75,7 +75,20 @@
       ],
       "status": "ACTIVE",
       "in_sample_only": false,
-      "note": "CLEAN x10-April-repaired Exit-IQL R_NET_REAL agg=max K=144 +AUG64. Phase-D honest gate PASS vs live fase2b: +4.88 bps/take (skip-ASIA 35.3 vs 30.4), win 0.962, all 5 hardened checks + per-year floor. Flipped 2026-06-10 (vedtak 'a'). active_variant PINNED R_NET_REAL FROM THE GATE: the bundle summary_v1.json self-recommends R_PEAK_QUALITY which the gate REJECTED (win 0.826<0.85) - do NOT trust the bundle headline. Re-audit GREEN (208/209 alive). Prior fase2b -> history (rollback)."
+      "note": "CLEAN x10-April-repaired Exit-IQL R_NET_REAL agg=max K=144 +AUG64. Phase-D honest gate PASS vs live fase2b: +4.88 bps/take (skip-ASIA 35.3 vs 30.4), win 0.962, all 5 hardened checks + per-year floor. Flipped 2026-06-10 (vedtak 'a'). active_variant PINNED R_NET_REAL FROM THE GATE: the bundle summary_v1.json self-recommends R_PEAK_QUALITY which the gate REJECTED (win 0.826<0.85) - do NOT trust the bundle headline. Re-audit GREEN (208/209 alive). Prior fase2b -> history (rollback).",
+      "operating_point": {
+        "hard_mae_stop_bps": 80.0,
+        "hard_mae_stop_vedtak": "exit_hard_stop_20260617",
+        "let_winners_run": {
+          "enabled": true,
+          "giveback_frac": 0.3,
+          "min_pnl_bps": 15.0,
+          "vedtak": "let_winners_run_20260618",
+          "note": "Serve-time EXIT overlay (bundle UNCHANGED): suppress IQL profit-EXIT_NOW while in-profit+near-peak so winners ride to a real trailing giveback. Gated cap-3: block4 +16.6%PnL/+16.4%DD, period2 +32.7%PnL/+0%DD. Reversible GX1_EXIT_LET_WINNERS_RUN=0."
+        },
+        "strategy_f_enabled": true,
+        "mfe_giveback_pct": 0.3
+      }
     }
   },
   "history": [
