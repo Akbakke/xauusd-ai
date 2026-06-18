@@ -42,6 +42,27 @@ def _pertf_name(tf: str, feat: str) -> str:
     base = f"{tf.lower()}_{feat}"
     return base if feat.endswith("_v2") else base + "_v2"
 
+# ── Closed-bar leak guard for the per-TF V2-cache asof (ENV-GATED, 2026-06-18) ────────────────────
+# The MULTI_TF_V2 cache is START-stamped (resample label='left'); a bare searchsorted(side='right') at an
+# intraday decision picks the SAME-period still-FORMING D1/H4/H1 bar (features use the full bar's FUTURE
+# close) = forward leak. Proven: the V2 per-TF adds gave +0.18 naive AUC that COLLAPSES to ~0 causal. These
+# helpers feed the V2 per-TF scalars (and 16 cemented V10 ctx_cont features). GATED so the CURRENT cement
+# (trained on the old leaky asof) keeps train==serve while LIVE, and the OPTION-B rebuild (V10+IQL+V3+exit
+# retrained leak-free) sets GX1_PERTF_CLOSED_BAR=1; the launcher pins it ON with the new chain at cement-flip.
+# Default OFF = byte-identical to historical behavior. Pick the last HTF bar CLOSED by the M5 decision moment
+# (M5 closes 5min after label ts): a bar started at S is closed by D iff S <= D - bar_duration; M5 → unchanged.
+_PERTF_CLOSED_BAR = os.environ.get("GX1_PERTF_CLOSED_BAR", "0") == "1"
+_DECISION_M5_NS = 300_000_000_000  # M5 bar closes 5min after its label ts
+from gx1.features.htf_features import MULTI_TF_SHIFT as _MTF_SHIFT
+_TF_SHIFT_NS = {tf: int(_MTF_SHIFT[tf].value) for tf in TF_NAMES}
+
+def _cache_cutoff_ns(ts_ns: int, tf: str) -> int:
+    """asof cutoff for the per-TF V2 cache. GX1_PERTF_CLOSED_BAR=1 → last bar CLOSED by the M5 decision
+    moment (leak-free); else legacy bare ts_ns (start-stamped, picks the forming bar). M5 → unchanged."""
+    if not _PERTF_CLOSED_BAR:
+        return ts_ns
+    return ts_ns + _DECISION_M5_NS - _TF_SHIFT_NS[tf]
+
 PER_TF_FEATURE_NAMES = tuple(
     _pertf_name(tf, feat) for tf in TF_NAMES for feat in MULTI_TF_PER_BAR_FEATURES_V2
 )
@@ -338,8 +359,8 @@ def _per_tf_all(ctx: AugmentContext, ts_ns: int) -> dict[str, float]:
             for feat in MULTI_TF_PER_BAR_FEATURES_V2:
                 out[_pertf_name(tf, feat)] = 0.0
             continue
-        # searchsorted: index of FIRST ts > ts_ns; -1 = last bar at or before
-        right = np.searchsorted(ts_arr, ts_ns, side="right")
+        # last bar CLOSED by the M5 decision moment when GX1_PERTF_CLOSED_BAR=1 (else legacy bare ts_ns)
+        right = np.searchsorted(ts_arr, _cache_cutoff_ns(ts_ns, tf), side="right")
         if right == 0:
             for feat in MULTI_TF_PER_BAR_FEATURES_V2:
                 out[_pertf_name(tf, feat)] = 0.0
@@ -356,7 +377,7 @@ def _vol_term(ctx: AugmentContext, ts_ns: int) -> dict[str, float]:
         feats = ctx.multi_tf.get(tf)
         if feats is None: return 0.0
         ts_arr = feats.attrs["ts_int64"]
-        right = np.searchsorted(ts_arr, ts_ns, side="right")
+        right = np.searchsorted(ts_arr, _cache_cutoff_ns(ts_ns, tf), side="right")  # closed-bar when gated
         if right == 0: return 0.0
         feats_np = feats.attrs["feats_np"]
         # atr_bps_14 is feature index 0 in MULTI_TF_PER_BAR_FEATURES_V2
@@ -375,7 +396,7 @@ def _vol_pct(ctx: AugmentContext, ts_ns: int) -> dict[str, float]:
     """Lookup pre-computed M5 / H1 ATR percentile at ts_ns."""
     m5_idx = np.searchsorted(ctx.m5_ts_ns, ts_ns, side="right") - 1
     m5_pct = float(ctx.m5_atr_pct_1yr[m5_idx]) if m5_idx >= 0 else 0.5
-    h1_idx = np.searchsorted(ctx.h1_atr_pct_ts_ns, ts_ns, side="right") - 1
+    h1_idx = np.searchsorted(ctx.h1_atr_pct_ts_ns, _cache_cutoff_ns(ts_ns, "H1"), side="right") - 1  # closed-bar when gated
     h1_pct = float(ctx.h1_atr_pct_1yr[h1_idx]) if h1_idx >= 0 else 0.5
     return {"vol_pct_m5_1yr": m5_pct, "vol_pct_h1_1yr": h1_pct}
 
@@ -411,7 +432,7 @@ def _liquidity_zones(ctx: AugmentContext, ts_ns: int, current_price: float, curr
         ("h4",  ctx.h4_ts_ns,  ctx.h4_high,  ctx.h4_low,  168),
         ("d1",  ctx.d1_ts_ns,  ctx.d1_high,  ctx.d1_low,  60),
     ):
-        right = np.searchsorted(ts_arr, ts_ns, side="right")
+        right = np.searchsorted(ts_arr, _cache_cutoff_ns(ts_ns, tf_name.upper()), side="right")  # closed-bar when gated
         if right == 0:
             out[f"dist_to_{tf_name}_hi_atr"] = 0.0
             out[f"dist_to_{tf_name}_lo_atr"] = 0.0
