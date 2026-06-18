@@ -77,11 +77,37 @@ df.to_parquet(out, index=False)
 r = df[df.resolved == True]  # noqa: E712
 print(f"[nightly] regret dataset: {len(df)} trades ({len(r)} resolved) → {out}")
 if len(r):
-    print(f"[nightly]   false_take={int(r.false_take.sum())} wrong_side={int(r.wrong_side.sum())} "
-          f"held_too_short={int(r.held_too_short.sum())} good={int(r.good_take.sum())} "
-          f"hold_regret_total={r.hold_regret_bps.fillna(0).sum():.0f}bps")
+    # 2026-06-18: write a one-glance regret ROLLUP (dominant leak flag) so "what we do poorly" is
+    # surfaced at the top of the nightly JSON instead of buried in the parquet. The 06-18 audit found
+    # held_too_short is the dominant live leak (exit cuts winners short); make it visible every night.
+    flags = {"false_take": int(r.false_take.sum()), "wrong_side": int(r.wrong_side.sum()),
+             "held_too_short": int(r.held_too_short.sum())}
+    for opt in ("mfe_giveback", "should_have_waited"):
+        if opt in r.columns:
+            flags[opt] = int(r[opt].fillna(0).astype(bool).sum())
+    dominant = max(flags, key=flags.get) if any(flags.values()) else "none"
+    rollup = {"n_resolved": int(len(r)), "good_take": int(r.good_take.sum()),
+              "dominant_leak_flag": dominant, "flag_counts": flags,
+              "hold_regret_total_bps": round(float(r.hold_regret_bps.fillna(0).sum()), 1)}
+    if "realized_pnl_bps" in r.columns:
+        rollup["mean_realized_bps"] = round(float(r.realized_pnl_bps.fillna(0).mean()), 1)
+    json.dump(rollup, open("/home/andre2/GX1_DATA/reports/v12_paper_runs/nightly_learning/regret_rollup.json", "w"))
+    print(f"[nightly]   ROLLUP dominant={dominant} held_too_short={flags['held_too_short']} "
+          f"hold_regret={rollup['hold_regret_total_bps']}bps good={rollup['good_take']}/{len(r)}")
 EOF
 then STATUS[verdicts]=ok; else STATUS[verdicts]=FAIL; fi
+
+# ── 2c. Daily trade-review (rich per-trade narrative; wired 2026-06-18) ───────
+# v12_daily_trade_review was ORPHANED (last run 2026-05-13, never scheduled). It writes the
+# human-readable per-trade story (REVIEW.md: MFE_GIVEBACK / RAN_TO_STOP tags + bar-by-bar
+# trajectory) — the "what happened on each trade" layer the user wants. Best-effort: NEVER
+# fails the night (last leg before severity-fold can't depend on it).
+log "daily trade-review → daily_reviews/${TODAY}/"
+if PYTHONPATH=$REPO $PY -m gx1.execution.v12_daily_trade_review >>"$OUT_DIR/daily_review_${TODAY}.log" 2>&1; then
+    STATUS[trade_review]=ok
+else
+    STATUS[trade_review]=skip; log "daily trade-review skipped (best-effort, see daily_review_${TODAY}.log)"
+fi
 
 # ── 2b. Canonical tape freshener (M1 → M5; ladder wave 2026-06-12) ───────────
 # Both canonical tapes froze at the Jun 8 repair — nothing scheduled freshened
@@ -316,7 +342,9 @@ fi
     echo "  \"date\": \"$TODAY\","
     echo "  \"suffix\": \"$SUFFIX\","
     echo "  \"variant\": \"$VARIANT\","
-    for k in verdicts tape buffer exit_buffer drift true_netcap op_cmp refit gate; do
+    # 2026-06-18: one-glance regret rollup (dominant leak flag) at the TOP — "what we do poorly".
+    echo "  \"regret_rollup\": $(cat "$OUT_DIR/regret_rollup.json" 2>/dev/null || echo null),"
+    for k in verdicts trade_review tape buffer exit_buffer drift true_netcap op_cmp refit gate; do
         echo "  \"$k\": \"${STATUS[$k]:-unknown}\","
     done
     echo "  \"ram_avail_gb\": $AVAIL_GB"
