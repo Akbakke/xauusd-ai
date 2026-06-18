@@ -122,6 +122,19 @@ HOLD_HORIZON_INVALID_SENTINEL = 0.0
 # Floor so low hold-horizon predictions can't fire the rule from bar 3-4.
 HOLD_HORIZON_MIN_FLOOR_BARS = _env_float("GX1_HOLD_HORIZON_MIN_FLOOR_BARS", 60)
 
+# ── LET-WINNERS-RUN overlay (2026-06-18, default OFF) ─────────────────────────────────────────────
+# The 06-18 self-diagnosis found held_too_short = the dominant live leak (508 bps): all 10 are
+# CONTINUATION-MISSES — the Exit-IQL takes profit AT the in-trade MFE peak (giveback ~0) and the price
+# keeps running (post-exit MFE median +27, up to +114). This is the IQL's OWN EXIT_NOW, not Strategy-F
+# (which needs 30% giveback) and not strong-hold (which only blocks Strategy-F). LWR suppresses a PROFIT
+# EXIT_NOW while the trade is in profit AND still NEAR its peak (giveback fraction < LWR_GIVEBACK_FRAC) so
+# the winner rides until a REAL trailing giveback (Strategy-F 30%) or the hard-stop closes it. Never
+# suppresses a losing exit (pnl < LWR_MIN_PNL_BPS) or a real giveback. ENV-GATED default-OFF (cement keeps
+# train==serve); the OOT exit-replay gate tests it ON before any arming. ONE TRUTH (phase6 + live import it).
+LET_WINNERS_RUN = _env_bool("GX1_EXIT_LET_WINNERS_RUN", False)
+LWR_GIVEBACK_FRAC = _env_float("GX1_LWR_GIVEBACK_FRAC", 0.30)   # release (allow exit) once giveback >= this × MFE
+LWR_MIN_PNL_BPS = _env_float("GX1_LWR_MIN_PNL_BPS", 15.0)       # only let genuine WINNERS run
+
 LOG = logging.getLogger("v12_exit_iql_live")
 LOG.info(
     "[STRATEGY_F] enabled=%s giveback_pct=%.2f min_mfe=%.1f be_ratio=%.2f "
@@ -175,6 +188,25 @@ def strategy_f_decision(
     if f_trigger and not strong_hold:
         return True, ("BREAKEVEN_CUT" if breakeven_cut and not profit_lock else "MFE_GIVEBACK_OVERRIDE")
     return False, ""
+
+
+def let_winners_run_hold(current_pnl_bps: float, cum_mfe_bps: float, *, enabled: bool = True) -> bool:
+    """ONE-TRUTH LET-WINNERS-RUN overlay (default-OFF; no-op unless GX1_EXIT_LET_WINNERS_RUN=1).
+
+    Returns True = SUPPRESS this bar's profit-EXIT_NOW and HOLD, so a winning trade that the Exit-IQL
+    would close AT its peak keeps running until it gives back >= LWR_GIVEBACK_FRAC of the peak (then the
+    normal exit / Strategy-F / hard-stop closes it). Only fires when the trade is a genuine winner
+    (pnl >= LWR_MIN_PNL_BPS) AND still near its peak (giveback fraction < LWR_GIVEBACK_FRAC). Never holds a
+    loser or a real giveback. Shared by the LIVE exit (make_exit_decision) AND the Phase-6 gate so the gate
+    scores the IDENTICAL policy. `enabled` lets a caller force-disable for a baseline arm."""
+    if not (enabled and LET_WINNERS_RUN):
+        return False
+    pnl = float(current_pnl_bps or 0.0)
+    mfe = float(cum_mfe_bps or 0.0)
+    if pnl < LWR_MIN_PNL_BPS or mfe <= 0.0:
+        return False
+    giveback_frac = (mfe - pnl) / mfe
+    return giveback_frac < LWR_GIVEBACK_FRAC
 
 # V12.4-cement Exit-IQL bundle. The Exit-IQL TRAINING is identical to V12.2's
 # (variant R_V12, FOLD_1). V12.4 differs from V12.2 ONLY in the post-IQL

@@ -45,7 +45,7 @@ from gx1.execution.v12_state_from_prebuilt import PrebuiltStateLoader
 from gx1.execution.v12_xgb_live import XGBLiveInference
 from gx1.execution.v12_v10_live import V10LiveInference, SEQ_LEN as V10_SEQ_LEN
 from gx1.execution.v12_entry_iql_live import EntryIQLLiveInference
-from gx1.execution.v12_exit_iql_live import ExitIQLLiveInference
+from gx1.execution.v12_exit_iql_live import ExitIQLLiveInference, let_winners_run_hold
 from gx1.execution.v12_v3_live import V3LiveInference
 from gx1.execution.v12_trade_state import TradeState, SIDE_LONG, SIDE_SHORT
 
@@ -675,6 +675,13 @@ class V12Pipeline:
         _action_label = rec.action_label_v1
         _action_id = int(rec.action_id_v1)
         _decision_source = rec.decision_source_v1
+        # LET-WINNERS-RUN overlay (default-OFF; ONE-TRUTH with the phase6 gate): suppress a profit-EXIT_NOW
+        # while the trade is in profit AND still near its MFE peak, so a winner rides until a real trailing
+        # giveback (Strategy-F) / hard-stop closes it — addresses the held_too_short continuation-miss leak.
+        if _action_id == 1 and let_winners_run_hold(float(trade.current_pnl_bps), float(trade.cum_mfe_bps)):
+            _action_label = "HOLD"
+            _action_id = 0
+            _decision_source = "LET_WINNERS_RUN"
         if _EXIT_HARD_STOP_BPS > 0.0 and _action_id != 1 and float(trade.current_pnl_bps) <= -_EXIT_HARD_STOP_BPS:
             _action_label = "EXIT_NOW"
             _action_id = 1

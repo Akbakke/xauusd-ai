@@ -55,7 +55,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from gx1.runtime.exit_iql_v2_adapter import ExitIQLV2Adapter  # noqa: E402
-from gx1.execution.v12_exit_iql_live import strategy_f_decision  # noqa: E402  (one-truth L7A overlay)
+from gx1.execution.v12_exit_iql_live import strategy_f_decision, let_winners_run_hold  # noqa: E402  (one-truth overlays)
 
 ACTION = "JOINT_ENTRY_EXIT_IQL_V5_V12_VALIDATION_GATE"
 DEFAULT_REPORTS_ROOT = Path("/home/andre2/GX1_DATA/reports/truth_e2e_sanity")
@@ -362,8 +362,22 @@ def simulate_one_candidate(
 
     recs = exit_adapter.predict(bar_states)
     iql_actions = np.array([r.action_id_v1 for r in recs], dtype=np.int32)
+    # running PnL + MFE (used by the LET-WINNERS-RUN overlay below + the Strategy-F scan)
+    pnl_arr = pd.to_numeric(sub["current_unrealized_pnl_bps_v1"], errors="coerce").to_numpy(dtype=float)
+    run_mfe = np.maximum.accumulate(np.where(np.isfinite(pnl_arr), pnl_arr, -np.inf))
+    # LET-WINNERS-RUN (default-OFF, ONE-TRUTH with the live exit): skip an IQL profit-EXIT_NOW while the
+    # trade is in profit AND still near its peak, so a winner rides until a real giveback / terminal. At
+    # the default LWR_GIVEBACK_FRAC=0.30 this aligns with Strategy-F's 30% giveback, so Strategy-F (scanned
+    # below) becomes the binding trailing-stop exit — no double-suppression needed.
     iql_exit_indices = np.where(iql_actions == EXIT_NOW_ID)[0]
-    iql_exit_bar = int(iql_exit_indices[0]) if len(iql_exit_indices) > 0 else -1
+    iql_exit_bar = -1
+    for _idx in iql_exit_indices:
+        _p = float(pnl_arr[_idx]) if np.isfinite(pnl_arr[_idx]) else 0.0
+        _m = float(run_mfe[_idx]) if np.isfinite(run_mfe[_idx]) else 0.0
+        if let_winners_run_hold(_p, _m):
+            continue
+        iql_exit_bar = int(_idx)
+        break
 
     # Strategy-F overlay (2026-06-13 vedtak L7A): score the +Strategy-F policy LIVE actually runs
     # (~55% of live exits). The 4-rule overlay (profit-lock / breakeven-cut / hold-horizon-expired,
