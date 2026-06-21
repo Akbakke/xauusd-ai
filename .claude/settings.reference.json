@@ -1,4 +1,7 @@
 {
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "5"
+  },
   "permissions": {
     "allow": [
       "Bash",
@@ -20,12 +23,6 @@
     ],
     "defaultMode": "bypassPermissions"
   },
-  "skipDangerousModePermissionPrompt": true,
-  "agentPushNotifEnabled": true,
-  "env": {
-    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "5"
-  },
-  "effortLevel": "xhigh",
   "hooks": {
     "PreToolUse": [
       {
@@ -58,5 +55,9 @@
         ]
       }
     ]
-  }
+  },
+  "effortLevel": "xhigh",
+  "skipDangerousModePermissionPrompt": true,
+  "theme": "dark",
+  "agentPushNotifEnabled": true
 }
