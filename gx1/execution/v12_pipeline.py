@@ -654,7 +654,15 @@ class V12Pipeline:
             current_m1_atr_bps_override=m1_atr_bps if m1_atr_bps > 0 else None,
             now_minute=now_minute,  # EX1: serve m5_phase = minute%5 of the live M1 bar (== trainer)
         )
-        # Inject V3-tracking running stats into bar_state (overwriting any prior 0-fills)
+        # Inject the 7 V3-tracking running-stats (max-prob-since-entry, consecutive-
+        # exits, acceleration…) into bar_state. These are DERIVED running stats over
+        # the V3 prob across the trade — DISTINCT from the 4 raw v3_v8_* outputs above
+        # (which ARE in the cement). This is a belt-and-suspenders re-call of the same
+        # values build_bar_state() already wrote (v12_exit_iql_live.py:433), kept as a
+        # forward-compat hook: the CURRENT CLEAN exit cement was NOT built with these 7,
+        # so the featurizer drops them (hence the benign [EXIT_IQL_V3_TRACKING_MISSING]
+        # load warning) — train==serve holds. They re-enter only if a future vedtak-gated
+        # IQL refit re-adds them (augment_exit_iql_dataset_with_v3_tracking.py).
         bar_state.update(trade.build_v3_tracking_features())
         # Surface raw Exit-IQL Q-values for diagnostics (was None before, made
         # debugging premature exits impossible). q_per_action_v1 = [q_hold, q_exit].
