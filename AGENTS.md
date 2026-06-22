@@ -184,6 +184,17 @@
   3. `v12_paper_runner` with `GX1_PURE_PHASE6=1` — disables every live-only wrapper (TIME_OF_DAY_EXIT, ADAPTIVE_MIN_ADV, REGIME, PORTFOLIO_*, LOW_CONFIDENCE, spread cap) so live = Phase 6 OOT 1:1. NOTE: CLUSTER1_RATE_LIMIT is NO LONGER disabled by PURE_PHASE6 — since 2026-06-02 it is ALWAYS ON as a live sanity-floor (v12_pipeline.py:337-345); override only via GX1_CLUSTER1_DISABLE=1 for explicit OOT-replay runs.
   4. `v12_daily_counterfactual.sh --daemon` — every hour looks for journals older than 25h that haven't been replayed yet; runs `v12_counterfactual_replay.py` on each + writes per-day "skulle/skulle ikke handlet" report to `GX1_DATA/reports/v12_paper_runs/counterfactual_reports/`. Idempotent via marker files in `.replayed_markers/`.
 - Stop cleanly with `bash scripts/stop_live_practice.sh` before code edits that touch live runtime.
+- **Paper-runner AUTO-RECOVER after reboot (2026-06-22):** the runner + counterfactual daemon are nohup
+  (not directly systemd), so they did NOT survive reboots — the data daemons did. Now `gx1-paper-runner.service`
+  (systemd --user, `Type=oneshot`, enabled in `default.target.wants/`) runs `launch_live_practice.sh` at boot,
+  `After=` the data daemons + a 180s `ExecStartPre` sleep so they catch up to fresh data BEFORE the launcher's
+  rule-9 preflight runs. It reuses the launcher as the ONE TRUTH (operating-point env + git-clean + 3-leg
+  preflight) — NEVER duplicate that env into the unit. The preflight stays the hard gate: on a long-downtime
+  data gap (forward-only daemon can't backfill a hole behind its cutoff) the launcher FATALs and the runner
+  does NOT auto-start on bad data — repair the gap first (backfill M1 tape → truncate prebuilts to before the
+  hole → daemon re-append; backup-first, rule 5). Logs: `…/logs/auto_recover.log`. NOTE: `systemctl --user`
+  needs the dbus user session (`/run/user/UID/bus`), which WSL doesn't always start at boot — if it's down,
+  enable via the `default.target.wants/` symlink directly (bus-independent; the manager reads it at boot).
 - **Continuous-learning loop (ladder wave 2026-06-12):** `gx1-nightly-learning.timer` (systemd --user,
   03:30 UTC) runs `scripts/gx1_nightly_learning.sh` — per-trade verdict accumulation
   (`counterfactual_reports/trade_verdicts_*.jsonl` → `nightly_learning/regret_dataset.parquet`), the
