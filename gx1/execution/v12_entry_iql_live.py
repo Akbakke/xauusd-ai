@@ -147,6 +147,15 @@ DIPFIX_MODE = os.environ.get("GX1_ENTRY_DIPFIX_MODE", "suppress_short")  # "supp
 DIPFIX_PLONG_THR = float(os.environ.get("GX1_ENTRY_DIPFIX_PLONG_THR", "0.80"))
 DIPFIX_ATR_MAX = float(os.environ.get("GX1_ENTRY_DIPFIX_ATR_MAX", "14.0"))      # "normal/low vol" ATR ceiling (bps)
 
+# ── MARGIN-FLOOR entry overlay (2026-06-23, default OFF = byte-identical no-op) ─────────────────────
+# Skip a FINAL TAKE whose V10 conviction `margin` (top1-top2 of the 3-class direction probs) is below the
+# floor. The live gate selects by raw_adv (corr ~0.04 w/ realized PnL); margin is corr ~0.36 — so the gate
+# admits low-conviction trades the margin^2-sizing only floors at 0.5x rather than removing. This overlay
+# REMOVES them. It NEVER converts a SKIP into a TAKE. Default-OFF ⇒ live byte-unchanged until a vedtak
+# flips it (rule 8). Validation spec: GX1_DATA/MARGIN_FLOOR_GATE_SPEC_20260623.md.
+MARGIN_FLOOR_ON = os.environ.get("GX1_ENTRY_MARGIN_FLOOR", "0") == "1"
+MARGIN_FLOOR_THR = float(os.environ.get("GX1_ENTRY_MARGIN_FLOOR_THR", "0.47"))  # absolute margin floor (top1-top2)
+
 # ── FORCED-COUNTER-TREND-SHORT veto (2026-06-17, default OFF = byte-identical no-op) ──────────────
 # An OPTICS / path-perception / DD-volume knob — NOT a PnL improvement (default-OFF; arm only deliberately).
 # It vetoes the open-more op's FORCED counter-trend shorts: when raw_adv < threshold (the IQL natively
@@ -241,6 +250,48 @@ def apply_dipfix_overlay(action_id: int, candidate: dict[str, Any], q_agg_row=No
         "dipfix_mode": DIPFIX_MODE,
         "dipfix_from": iql_core.ACTION_LABELS_V1[action_id],
         "dipfix_to": iql_core.ACTION_LABELS_V1[new_id],
+    }
+
+
+_MARGIN_FLOOR_MISSING_WARNED = False
+
+
+def apply_margin_floor_overlay(action_id: int, candidate: dict[str, Any]) -> tuple[int, dict]:
+    """ONE-TRUTH margin-floor serve-time selection overlay (default-OFF; no-op unless GX1_ENTRY_MARGIN_FLOOR=1).
+
+    Applied to the FINAL action_id (AFTER the conviction-gate, STEP-1 overlays, and DIPFIX). Skips a TAKE
+    whose V10 conviction `margin` (top1-top2 of the 3-class direction probs) is below MARGIN_FLOOR_THR —
+    removing the low-conviction trades the raw_adv gate admits and the margin^2-sizing only floors at 0.5x.
+    NEVER converts a SKIP into a TAKE. Fail-OPEN on a missing/unparseable margin (keeps the trade rather
+    than silently dropping it) but LOUD-once when the flag is ON yet `margin` is absent (rule 9: a flagged
+    overlay must never be a silent no-op). Returns (new_action_id, marker_dict); marker is {} when the
+    overlay does not fire. Pure function of its inputs (env read once at module load) — identical logic for
+    live serve (v12_entry_iql_live.predict) and the OOT gate (v12_phase1_entry_iql_inference).
+    """
+    if not MARGIN_FLOOR_ON:
+        return action_id, {}
+    _SKIP = iql_core.ACTION_SKIP_ID
+    if action_id == _SKIP:
+        return action_id, {}
+    if "margin" not in candidate:
+        global _MARGIN_FLOOR_MISSING_WARNED
+        if not _MARGIN_FLOOR_MISSING_WARNED:
+            LOG.warning("[MARGIN_FLOOR] GX1_ENTRY_MARGIN_FLOOR=1 but 'margin' is MISSING from the candidate "
+                        "— the floor is a NO-OP for this row. Ensure margin is built into the candidate path "
+                        "(build_candidate sets it; forward_outcome carries it) before trusting this overlay.")
+            _MARGIN_FLOOR_MISSING_WARNED = True
+        return action_id, {}
+    try:
+        margin = float(candidate["margin"])
+    except (TypeError, ValueError):
+        return action_id, {}   # unparseable margin ⇒ keep the trade (never silent-drop a TAKE)
+    if margin >= MARGIN_FLOOR_THR:
+        return action_id, {}
+    return _SKIP, {
+        "margin_floor_applied": True,
+        "margin_floor_thr": MARGIN_FLOOR_THR,
+        "margin_floor_margin": margin,
+        "margin_floor_from": iql_core.ACTION_LABELS_V1[action_id],
     }
 
 # Categorical label conventions from inference_batch_v3 (matches training):
@@ -646,6 +697,11 @@ class EntryIQLLiveInference:
         # marker is stashed on self for the journal so a fired overlay is attributable. ONE TRUTH with the
         # OOT gate (v12_phase1_entry_iql_inference calls the SAME apply_dipfix_overlay).
         a_id, self._dipfix_marker = apply_dipfix_overlay(a_id, candidate)
+        # MARGIN-FLOOR overlay (2026-06-23, default-OFF byte-identical): skip a final TAKE whose V10
+        # conviction margin is below the floor. Applied LAST so the invariant "an emitted TAKE has
+        # margin >= floor" holds across every upstream overlay. ONE TRUTH with the OOT gate
+        # (v12_phase1_entry_iql_inference calls the SAME apply_margin_floor_overlay).
+        a_id, self._margin_floor_marker = apply_margin_floor_overlay(a_id, candidate)
         # Recompute advantages for the FINAL action (a_id may have changed by the gate/filter above).
         chosen_q = float(q_agg[0, a_id])
         adv = chosen_q - float(q_agg[0, skip_id])
@@ -688,6 +744,10 @@ class EntryIQLLiveInference:
         marker = getattr(self, "_dipfix_marker", None)
         if marker:
             candidate.update(marker)
+        # MARGIN-FLOOR marker (default-OFF: _margin_floor_marker is {} → no keys added → journal unchanged).
+        mf_marker = getattr(self, "_margin_floor_marker", None)
+        if mf_marker:
+            candidate.update(mf_marker)
         if getattr(self, "_forced_short_veto_fired", False):
             candidate["forced_short_veto_applied"] = True   # attribution: op-forced uptrend short → SKIP
         return rec, candidate

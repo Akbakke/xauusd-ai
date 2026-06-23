@@ -130,15 +130,23 @@ def main() -> int:
         # (apply_dipfix_overlay returns the action_id unchanged + {}), so the gate baseline arm is identical
         # to the prior raw-IQL inference (the volbal baseline CSV). The marker columns are emitted always
         # (False/"" off-rows) so the per-candidate CSV attributes any fired overlay.
-        from gx1.execution.v12_entry_iql_live import apply_dipfix_overlay
+        # MARGIN-FLOOR overlay applied IMMEDIATELY AFTER dipfix (same order as the live serve:
+        # conviction-gate → STEP-1 → dipfix → margin-floor). ONE TRUTH with the live serve
+        # (gx1.execution.v12_entry_iql_live.apply_margin_floor_overlay) so the OOT gate scores the
+        # IDENTICAL selection the paper runner would apply. Default-OFF (GX1_ENTRY_MARGIN_FLOOR unset)
+        # ⇒ pure no-op → gate baseline arm byte-identical to the prior inference.
+        from gx1.execution.v12_entry_iql_live import apply_dipfix_overlay, apply_margin_floor_overlay
         new_action_ids, dipfix_applied, dipfix_mode_col, dipfix_from_col, dipfix_to_col = [], [], [], [], []
+        margin_floor_applied = []
         for r, c in zip(recs, candidate_dicts):
             nid, mk = apply_dipfix_overlay(int(r.action_id_v1), c)
+            nid, mf = apply_margin_floor_overlay(nid, c)
             new_action_ids.append(nid)
             dipfix_applied.append(bool(mk.get("dipfix_applied", False)))
             dipfix_mode_col.append(mk.get("dipfix_mode", ""))
             dipfix_from_col.append(mk.get("dipfix_from", ""))
             dipfix_to_col.append(mk.get("dipfix_to", ""))
+            margin_floor_applied.append(bool(mf.get("margin_floor_applied", False)))
 
         out = pd.DataFrame({
             "candidate_uid": cands["candidate_uid"].values,
@@ -149,6 +157,7 @@ def main() -> int:
             "dipfix_mode": dipfix_mode_col,
             "dipfix_from": dipfix_from_col,
             "dipfix_to": dipfix_to_col,
+            "margin_floor_applied": margin_floor_applied,
             "raw_action_label_v1": [r.action_label_v1 for r in recs],
             "advantage_over_skip_v1": [r.advantage_over_skip_v1 for r in recs],
             "advantage_over_realized_v1": [r.advantage_over_realized_v1 for r in recs],
