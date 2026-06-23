@@ -137,5 +137,55 @@ def main():
     print("\nWROTE /tmp/oot_pregate_badpath.json")
 
 
+def analyze_regime_direction():
+    """USER HYPOTHESIS (2026-06-23): "we've been bearish; we should have SHORTED, not longed #755."
+    Decisive OOT test: in the DOWN regime (and the #755 cell p_long>=0.95 within it), is SHORT realized
+    terminal-PnL actually > LONG OOT — i.e. is the model's high-conviction LONG systematically the WRONG
+    side in a down-regime (a fixable direction-calibration error), or is #755 just hindsight (the -180bps
+    drop was unpredictable at 17:11)? Uses raw forward_outcome long/short terminal-PnL @K96 (pre-exit)."""
+    df = load()
+    sp = df[f"take_now_short_terminal_pnl_at_{K}_v1"].astype(float).values
+    lp = df[f"take_now_long_terminal_pnl_at_{K}_v1"].astype(float).values
+    df = df[~(np.isnan(sp) | np.isnan(lp))].reset_index(drop=True)
+    sp = df[f"take_now_short_terminal_pnl_at_{K}_v1"].astype(float).values
+    lp = df[f"take_now_long_terminal_pnl_at_{K}_v1"].astype(float).values
+    pl = df["p_long"].astype(float).values
+    ps = df["p_short"].astype(float).values
+    reg = df["trend_regime"].astype(str).values
+    med = df["ts"].median()
+    segs = {"OOT-late": (df["ts"] > med).values, "OOT-early": (df["ts"] <= med).values,
+            "2026-only": (df["ts"] >= pd.Timestamp("2026-01-01", tz="UTC")).values}
+
+    def ev(mask, label):
+        m = np.asarray(mask, bool)
+        if m.sum() == 0:
+            print(f"    {label:46s} n=0"); return
+        L, S = lp[m], sp[m]
+        better = "SHORT" if S.mean() > L.mean() else "LONG"
+        print(f"    {label:46s} n={m.sum():6d}  LONG mean={L.mean():+7.2f} win={ (L>0).mean():.2f}  "
+              f"SHORT mean={S.mean():+7.2f} win={(S>0).mean():.2f}  -> {better} better")
+
+    print("=== REGIME-CONDITIONAL DIRECTION EV (raw K96 terminal-PnL; LONG vs SHORT) ===")
+    print(f"rows={len(df)}  split@{med}")
+    for sname, smask in segs.items():
+        print(f"\n[{sname}]")
+        down = (reg == "TREND_DOWN") & smask
+        up = (reg == "TREND_UP") & smask
+        ev(smask, "ALL bars")
+        ev(down, "TREND_DOWN regime")
+        ev(down & (pl >= 0.95), "TREND_DOWN & p_long>=0.95 (the #755 cell)")
+        ev(down & (pl > ps), "TREND_DOWN & model leans LONG")
+        ev(down & (ps > pl), "TREND_DOWN & model leans SHORT")
+        ev(up & (pl >= 0.95), "TREND_UP & p_long>=0.95 (contrast)")
+    print("\nVERDICT: a 'short the down-regime' calibration fix is REAL only if SHORT robustly beats LONG")
+    print("in TREND_DOWN across OOT halves (esp. the leans-LONG cell). If LONG still wins / it's noise,")
+    print("#755 was hindsight (direction at ceiling) and shorting the model's high-conv longs loses EV.")
+
+
 if __name__ == "__main__":
-    main()
+    import sys
+    mode = sys.argv[1] if len(sys.argv) > 1 else ""
+    if mode == "regime_dir":
+        analyze_regime_direction()
+    else:
+        main()
