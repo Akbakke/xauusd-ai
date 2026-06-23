@@ -111,32 +111,41 @@ def main():
 
     # ── PART 2: catastrophic classifier (XGB / LGBM / LR), strict OOT + 2026 ──
     print("\n" + "=" * 64 + "\nPART 2 — CATASTROPHIC CLASSIFIER (fit EARLY → test LATE & 2026)\n" + "=" * 64)
+    from sklearn.metrics import roc_curve
+    pre26 = ~oot26
+
     def fit_eval(y, name):
         res = {}
-        Xtr, ytr = X[early], y[early]
-        for mdl, tag in ((xgb.XGBClassifier(n_estimators=300, max_depth=4, learning_rate=0.05, subsample=0.8,
-                                             colsample_bytree=0.8, eval_metric="logloss", n_jobs=4,
-                                             scale_pos_weight=float((ytr == 0).sum()/max(1, (ytr == 1).sum()))), "XGB"),
-                         (lgb.LGBMClassifier(n_estimators=300, max_depth=5, learning_rate=0.05, subsample=0.8,
-                                             colsample_bytree=0.8, n_jobs=4, verbose=-1,
-                                             class_weight="balanced"), "LGBM"),
-                         (LogisticRegression(max_iter=2000, class_weight="balanced", C=0.5), "LR")):
-            Xt = Xs[early] if tag == "LR" else X[early]
-            mdl.fit(Xt, ytr)
-            for split, mask in (("late", late), ("2026", oot26)):
-                Xv = (Xs if tag == "LR" else X)[mask]
-                yv = y[mask]
-                if len(np.unique(yv)) < 2:
-                    continue
+        # robust OOT arms: chrono early->late (only if early has both classes) + pre2026->2026 (true forward)
+        arms = []
+        if len(np.unique(y[early])) > 1 and len(np.unique(y[late])) > 1:
+            arms.append(("early", "late", early, late))
+        if len(np.unique(y[pre26])) > 1 and len(np.unique(y[oot26])) > 1:
+            arms.append(("pre2026", "2026", pre26, oot26))
+        if not arms:
+            print(f"  [{name}] no valid OOT arm (too rare for any split)"); return res
+        for trn, tsn, trm, tem in arms:
+            spw = float((y[trm] == 0).sum() / max(1, (y[trm] == 1).sum()))
+            for mdl, tag in ((xgb.XGBClassifier(n_estimators=300, max_depth=4, learning_rate=0.05, subsample=0.8,
+                                                 colsample_bytree=0.8, eval_metric="logloss", n_jobs=4,
+                                                 scale_pos_weight=spw), "XGB"),
+                             (lgb.LGBMClassifier(n_estimators=300, max_depth=5, learning_rate=0.05, subsample=0.8,
+                                                 colsample_bytree=0.8, n_jobs=4, verbose=-1, class_weight="balanced"), "LGBM"),
+                             (LogisticRegression(max_iter=2000, class_weight="balanced", C=0.5), "LR")):
+                Xt = (Xs if tag == "LR" else X)[trm]
+                Xv = (Xs if tag == "LR" else X)[tem]
+                try:
+                    mdl.fit(Xt, y[trm])
+                except Exception as e:
+                    print(f"  [{name} {tag} {trn}->{tsn}] fit failed: {e}"); continue
                 p = mdl.predict_proba(Xv)[:, 1]
+                yv = y[tem]
                 auc = roc_auc_score(yv, p); pr = average_precision_score(yv, p)
-                # recall at fixed FPR
-                from sklearn.metrics import roc_curve
                 fpr, tpr, _ = roc_curve(yv, p)
                 rec = {f"recall@FPR{int(f*100)}%": round(float(np.interp(f, fpr, tpr)), 3) for f in (0.01, 0.05, 0.10)}
-                res[f"{tag}_{split}"] = dict(auc=round(auc, 4), pr_auc=round(pr, 4), base=round(yv.mean(), 4),
-                                             brier=round(brier_score_loss(yv, p), 4), **rec)
-                print(f"  [{name} {tag} →{split}] AUC={auc:.3f} PR={pr:.3f} (base {yv.mean():.3f}) "
+                res[f"{tag}_{trn}->{tsn}"] = dict(auc=round(auc, 4), pr_auc=round(pr, 4), base=round(yv.mean(), 4),
+                                                  brier=round(brier_score_loss(yv, p), 4), **rec)
+                print(f"  [{name} {tag} {trn}->{tsn}] AUC={auc:.3f} PR={pr:.3f} (base {yv.mean():.3f}) "
                       f"rec@1%={rec['recall@FPR1%']} @5%={rec['recall@FPR5%']} @10%={rec['recall@FPR10%']}")
         return res
     OUT["part2_L150"] = fit_eval(y150, "L150")
