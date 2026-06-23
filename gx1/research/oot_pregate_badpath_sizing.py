@@ -182,10 +182,76 @@ def analyze_regime_direction():
     print("#755 was hindsight (direction at ceiling) and shorting the model's high-conv longs loses EV.")
 
 
+def analyze_noise_harvest():
+    """USER CHALLENGE (2026-06-23): "could we just enter ANYWHERE, let it wander, exit slightly green, and
+    'win'? The +8 has no connection to the entry." THE decisive test: does the MODEL's selected entry beat
+    RANDOM entry on EV, OOT — or is the win-rate pure mean-reversion noise-harvest any entry would get?
+
+    For each bar we know long/short terminal-PnL @K96 + long MFE/MAE. We compare, OOT (late + 2026):
+      • RANDOM entry      = ALL bars, the model's argmax side.
+      • MODEL-SELECTED    = top-tercile conviction (margin), argmax side  (≈ the conviction-gate subset).
+    on TWO exit rules:
+      (1) HOLD-to-K96  (raw directional EV — the honest 'is the side right' number)
+      (2) +8 NOISE-HARVEST proxy = take +8 if MFE>=8 else hold-to-K96 (the user's described behaviour),
+          with a -80 stop floor. If random ≈ selected here, the win-rate is NOISE, not entry edge."""
+    df = load()
+    lp = df[f"take_now_long_terminal_pnl_at_{K}_v1"].astype(float).values
+    spn = df[f"take_now_short_terminal_pnl_at_{K}_v1"].astype(float).values
+    mfe = df[f"take_now_long_mfe_bps_at_{K}_v1"].astype(float).values
+    mae = df[f"take_now_long_mae_bps_at_{K}_v1"].astype(float).values  # stored positive magnitude
+    pl = df["p_long"].astype(float).values
+    ps = df["p_short"].astype(float).values
+    mg = df["margin"].astype(float).values
+    ok = ~(np.isnan(lp) | np.isnan(spn) | np.isnan(mfe))
+    med = df["ts"].median()
+    SPREAD = 3.0  # round-trip spread cost (bps), realistic for XAU
+
+    def harvest_long(idx, thresh=8.0):
+        """+thresh take if MFE reaches it, else hold-to-K96; -80 stop floor. minus spread."""
+        m, t = mfe[idx], lp[idx]
+        realized = np.where(m >= thresh, thresh, np.maximum(t, -80.0))
+        return realized - SPREAD
+
+    def seg_report(segmask, segname):
+        base = segmask & ok
+        # MODEL side = long where p_long>p_short
+        long_lean = base & (pl > ps)
+        top = base & (mg >= np.nanpercentile(mg[base], 67))           # high-conviction subset
+        sel_long = top & (pl > ps)                                     # selected longs (≈ conviction-gate longs)
+        print(f"\n[{segname}]  n_all={int(base.sum())}  n_selected_long={int(sel_long.sum())}")
+        # (1) HOLD-to-K96 raw directional EV (long side)
+        print("  (1) HOLD-to-K96 LONG, raw EV (bps/trade):")
+        print(f"      RANDOM   (all long-lean)   EV={lp[long_lean].mean():+6.2f}  win={(lp[long_lean]>0).mean():.3f}  n={int(long_lean.sum())}")
+        print(f"      SELECTED (top-conv long)   EV={lp[sel_long].mean():+6.2f}  win={(lp[sel_long]>0).mean():.3f}  n={int(sel_long.sum())}")
+        # also random side-agnostic: any bar, any random side
+        print(f"      RANDOM   (all bars, LONG)  EV={lp[base].mean():+6.2f}  win={(lp[base]>0).mean():.3f}")
+        # (2) +8 noise-harvest proxy
+        hr_rand = harvest_long(np.where(base)[0])
+        hr_sel = harvest_long(np.where(sel_long)[0])
+        print("  (2) +8 NOISE-HARVEST proxy (take +8 else hold, -80 stop, -3 spread):")
+        print(f"      RANDOM   (all bars)        EV={hr_rand.mean():+6.2f}  win(MFE>=8)={(mfe[base]>=8).mean():.3f}  "
+              f"worst5%={np.percentile(hr_rand,5):+.0f}  n={len(hr_rand)}")
+        print(f"      SELECTED (top-conv long)   EV={hr_sel.mean():+6.2f}  win(MFE>=8)={(mfe[sel_long]>=8).mean():.3f}  "
+              f"worst5%={np.percentile(hr_sel,5):+.0f}  n={len(hr_sel)}")
+        edge = hr_sel.mean() - hr_rand.mean()
+        print(f"  >> SELECTION EDGE (harvest EV: selected − random) = {edge:+.2f} bps  "
+              f"({'REAL edge' if edge > 1.0 else 'NOISE (selection adds ~nothing)'})")
+
+    print("=== NOISE-HARVEST TEST: does model entry beat RANDOM entry? (OOT) ===")
+    print(f"spread cost assumed = {SPREAD} bps round-trip")
+    seg_report((df['ts'] > med).values, "OOT-late")
+    seg_report((df['ts'] >= pd.Timestamp('2026-01-01', tz='UTC')).values, "2026-only")
+    print("\nINTERPRETATION: if SELECTED EV ≈ RANDOM EV and both ~0 after spread → the user is RIGHT: it's")
+    print("noise-harvest, the entry adds nothing, and the win-rate is illusory (tail risk uncompensated).")
+    print("If SELECTED >> RANDOM and net-positive after spread → there is real (thin) entry/selection edge.")
+
+
 if __name__ == "__main__":
     import sys
     mode = sys.argv[1] if len(sys.argv) > 1 else ""
     if mode == "regime_dir":
         analyze_regime_direction()
+    elif mode == "noise":
+        analyze_noise_harvest()
     else:
         main()
