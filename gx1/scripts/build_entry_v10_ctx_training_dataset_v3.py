@@ -51,6 +51,7 @@ project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from gx1.contracts.signal_bridge_v1 import get_canonical_ctx_contract
+from gx1.features.swing_structure_v1 import compute_swing_structure_features
 # V2: switch from signal_bridge_v1 (7 fields) to signal_bridge_v3 (30 per-bar fields).
 # SIGNAL_FIELDS now refers to the FULL 30-field per-bar feature vector (XGB-bridge 7 + price-state 23).
 from gx1.contracts.signal_bridge_v3 import (
@@ -1444,78 +1445,24 @@ def build_dataset_canonical(
         if name not in tape_feat.columns:
             raise RuntimeError(f"MICRO_FEATURE_MISSING: {name}")
 
-    # Swing-structure features (ATR-normalized)
-    prev_close = close.shift(1).fillna(close)
-    tr = np.maximum(
-        (high - low).abs(),
-        np.maximum((high - prev_close).abs(), (low - prev_close).abs()),
+    # Swing-structure features (ATR-normalized) — ONE TRUTH: gx1.features.swing_structure_v1
+    # (lookahead-safe confirmation lag). Shared with the live serve augmenter
+    # (v12_ctx_augment_live._add_swing_features) so train == serve bit-for-bit; do NOT
+    # re-implement the math here (2026-06-24 unification — was a 2nd, edge-divergent copy).
+    _swing = compute_swing_structure_features(
+        high.to_numpy(dtype=np.float64),
+        low.to_numpy(dtype=np.float64),
+        close.to_numpy(dtype=np.float64),
+        lookback=2,
+        atr_period=SWING_ATR_PERIOD,
     )
-    atr = tr.rolling(window=SWING_ATR_PERIOD, min_periods=1).mean()
-    atr_safe = atr.clip(lower=eps)
-
-    pivot_high = high > pd.concat(
-        [high.shift(1), high.shift(2), high.shift(-1), high.shift(-2)], axis=1
-    ).max(axis=1, skipna=True)
-    pivot_low = low < pd.concat(
-        [low.shift(1), low.shift(2), low.shift(-1), low.shift(-2)], axis=1
-    ).min(axis=1, skipna=True)
+    for _name, _arr in _swing.items():
+        tape_feat[_name] = _arr
     log.info(
-        "[ENTRY_SWING_PIVOT_PROOF] pivot_highs=%d pivot_lows=%d",
-        int(pivot_high.sum()),
-        int(pivot_low.sum()),
+        "[ENTRY_SWING_PIVOT_PROOF] swing_resets_high=%d swing_resets_low=%d",
+        int((np.diff(_swing["bars_since_swing_high"]) < 0).sum()),
+        int((np.diff(_swing["bars_since_swing_low"]) < 0).sum()),
     )
-
-    n = int(len(tape_feat))
-    last_high_vals = np.empty(n, dtype=np.float64)
-    last_low_vals = np.empty(n, dtype=np.float64)
-    last_high_idx = np.empty(n, dtype=np.int64)
-    last_low_idx = np.empty(n, dtype=np.int64)
-
-    # Lookahead-safe confirmation lag: pivot_high/low use high/low.shift(-1/-2), so a pivot at
-    # bar j is only confirmed once bar j+SWING_CONFIRM_LAG closes. Reflect it from there, NEVER
-    # at bar j — else the 5 swing ctx features carry a 2-bar look-ahead in training (train/serve
-    # skew vs the causal live serve). Same convention as smc_v1 + v12_ctx_augment_live._add_swing_features
-    # (fixed 2026-06-24). NOTE: keep this in sync with _add_swing_features — ideally unify into one helper.
-    SWING_CONFIRM_LAG = 2
-    _ph = pivot_high.to_numpy(); _pl = pivot_low.to_numpy()
-    _hi = high.to_numpy(); _lo = low.to_numpy()
-    last_high = float(_hi[0])
-    last_low = float(_lo[0])
-    last_hi_i = 0
-    last_lo_i = 0
-    for i in range(n):
-        k = i - SWING_CONFIRM_LAG
-        if k >= 0 and _ph[k]:
-            last_high = float(_hi[k])
-            last_hi_i = k
-        if k >= 0 and _pl[k]:
-            last_low = float(_lo[k])
-            last_lo_i = k
-        last_high_vals[i] = last_high
-        last_low_vals[i] = last_low
-        last_high_idx[i] = last_hi_i
-        last_low_idx[i] = last_lo_i
-
-    idx = np.arange(n, dtype=np.int64)
-    bars_since_high = (idx - last_high_idx).astype(np.float32)
-    bars_since_low = (idx - last_low_idx).astype(np.float32)
-
-    dist_last_swing_high_atr = (close.to_numpy() - last_high_vals) / atr_safe.to_numpy()
-    dist_last_swing_low_atr = (close.to_numpy() - last_low_vals) / atr_safe.to_numpy()
-
-    denom = np.maximum((last_high_vals - last_low_vals), eps)
-    retracement = np.zeros(n, dtype=np.float64)
-    up_mask = last_high_idx > last_low_idx
-    down_mask = last_low_idx > last_high_idx
-    retracement[up_mask] = (last_high_vals[up_mask] - close.to_numpy()[up_mask]) / denom[up_mask]
-    retracement[down_mask] = (close.to_numpy()[down_mask] - last_low_vals[down_mask]) / denom[down_mask]
-    retracement = np.clip(retracement, 0.0, 1.0)
-
-    tape_feat["dist_last_swing_high_atr"] = dist_last_swing_high_atr.astype(np.float32)
-    tape_feat["dist_last_swing_low_atr"] = dist_last_swing_low_atr.astype(np.float32)
-    tape_feat["bars_since_swing_high"] = bars_since_high.astype(np.float32)
-    tape_feat["bars_since_swing_low"] = bars_since_low.astype(np.float32)
-    tape_feat["retracement_from_last_impulse"] = retracement.astype(np.float32)
 
     for name in SWING_FEATURE_NAMES:
         if name not in tape_feat.columns:

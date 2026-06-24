@@ -75,6 +75,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from gx1.features.swing_structure_v1 import compute_swing_structure_features
 from gx1.time.session_detector import (
     get_session_id_vectorized,
     get_session_minutes_since_open_vectorized,
@@ -375,76 +376,19 @@ def _add_micro_features(cv3: pd.DataFrame) -> None:
 
 
 def _add_swing_features(cv3: pd.DataFrame) -> None:
-    """Mutates cv3: dist_last_swing_high/low_atr, bars_since_swing_high/low,
-    retracement_from_last_impulse. Swing pivots are 5-bar lookahead-symmetric
-    (i.e. high[i] is a pivot-high iff it exceeds high[i±1] and high[i±2])."""
-    eps = 1e-9
-    close = cv3["close"].astype(float)
-    high = cv3["high"].astype(float)
-    low = cv3["low"].astype(float)
-
-    # ATR for the period
-    prev_close = close.shift(1).fillna(close)
-    tr = np.maximum(
-        (high - low).abs(),
-        np.maximum((high - prev_close).abs(), (low - prev_close).abs()),
+    """Mutates cv3 with the 5 swing-structure ctx features (dist_last_swing_high/low_atr,
+    bars_since_swing_high/low, retracement_from_last_impulse). Delegates to the ONE-TRUTH
+    helper gx1.features.swing_structure_v1 (lookahead-safe confirmation lag) — do NOT
+    re-implement the math here (2026-06-24 unification; live decision bar stays causal)."""
+    feats = compute_swing_structure_features(
+        cv3["high"].to_numpy(dtype=np.float64),
+        cv3["low"].to_numpy(dtype=np.float64),
+        cv3["close"].to_numpy(dtype=np.float64),
+        lookback=2,
+        atr_period=SWING_ATR_PERIOD,
     )
-    atr = tr.rolling(window=SWING_ATR_PERIOD, min_periods=1).mean()
-    atr_safe = atr.clip(lower=eps).to_numpy()
-
-    # Pivot detection looks 2 bars back + 2 bars forward. Detection may use future
-    # bars, but the pivot is REFLECTED into features only from bar i+SWING_CONFIRM_LAG
-    # (when h[i±2] have closed) — lookahead-safe via a confirmation lag, the same
-    # convention as smc_v1._track_recent_swings (fixed 2026-06-24; was reflected AT the
-    # pivot bar = a 2-bar train/serve look-ahead on the 5 swing ctx features).
-    SWING_CONFIRM_LAG = 2
-    h_arr = high.to_numpy()
-    l_arr = low.to_numpy()
-    n = len(h_arr)
-    pivot_high = np.zeros(n, dtype=bool)
-    pivot_low = np.zeros(n, dtype=bool)
-    for i in range(2, n - 2):
-        if (h_arr[i] > h_arr[i-1] and h_arr[i] > h_arr[i-2] and
-                h_arr[i] > h_arr[i+1] and h_arr[i] > h_arr[i+2]):
-            pivot_high[i] = True
-        if (l_arr[i] < l_arr[i-1] and l_arr[i] < l_arr[i-2] and
-                l_arr[i] < l_arr[i+1] and l_arr[i] < l_arr[i+2]):
-            pivot_low[i] = True
-
-    last_high_vals = np.empty(n, dtype=np.float64)
-    last_low_vals = np.empty(n, dtype=np.float64)
-    last_high_idx = np.empty(n, dtype=np.int64)
-    last_low_idx = np.empty(n, dtype=np.int64)
-    last_high = float(h_arr[0]); last_low = float(l_arr[0])
-    last_hi_i = 0; last_lo_i = 0
-    # Reflect a pivot only once confirmed (bar j+SWING_CONFIRM_LAG), never AT bar j.
-    # The live decision bar (last row) was already causal; this makes interior/batch
-    # bars causal too → train==serve. (Was reflected at bar j = the look-ahead.)
-    for i in range(n):
-        j = i - SWING_CONFIRM_LAG
-        if j >= 0 and pivot_high[j]:
-            last_high = float(h_arr[j]); last_hi_i = j
-        if j >= 0 and pivot_low[j]:
-            last_low = float(l_arr[j]); last_lo_i = j
-        last_high_vals[i] = last_high
-        last_low_vals[i] = last_low
-        last_high_idx[i] = last_hi_i
-        last_low_idx[i] = last_lo_i
-
-    idx_arr = np.arange(n, dtype=np.int64)
-    cv3["bars_since_swing_high"] = (idx_arr - last_high_idx).astype(np.float32)
-    cv3["bars_since_swing_low"] = (idx_arr - last_low_idx).astype(np.float32)
-    cv3["dist_last_swing_high_atr"] = ((close.to_numpy() - last_high_vals) / atr_safe).astype(np.float32)
-    cv3["dist_last_swing_low_atr"] = ((close.to_numpy() - last_low_vals) / atr_safe).astype(np.float32)
-
-    denom = np.maximum((last_high_vals - last_low_vals), eps)
-    retracement = np.zeros(n, dtype=np.float64)
-    up_mask = last_high_idx > last_low_idx
-    down_mask = last_low_idx > last_high_idx
-    retracement[up_mask] = (last_high_vals[up_mask] - close.to_numpy()[up_mask]) / denom[up_mask]
-    retracement[down_mask] = (close.to_numpy()[down_mask] - last_low_vals[down_mask]) / denom[down_mask]
-    retracement = np.clip(retracement, 0.0, 1.0)
-    cv3["retracement_from_last_impulse"] = retracement.astype(np.float32)
+    for _name, _arr in feats.items():
+        cv3[_name] = _arr
 
 
 def _add_regime_categoricals(cv3: pd.DataFrame) -> None:
