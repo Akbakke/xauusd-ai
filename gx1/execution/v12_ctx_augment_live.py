@@ -392,9 +392,12 @@ def _add_swing_features(cv3: pd.DataFrame) -> None:
     atr = tr.rolling(window=SWING_ATR_PERIOD, min_periods=1).mean()
     atr_safe = atr.clip(lower=eps).to_numpy()
 
-    # Pivot detection (looks 2 bars forward + 2 bars back → uses future data
-    # within the lookback slice, NOT a leak for live since we only emit features
-    # for fully-closed M5 bars that already have 2 future bars).
+    # Pivot detection looks 2 bars back + 2 bars forward. Detection may use future
+    # bars, but the pivot is REFLECTED into features only from bar i+SWING_CONFIRM_LAG
+    # (when h[i±2] have closed) — lookahead-safe via a confirmation lag, the same
+    # convention as smc_v1._track_recent_swings (fixed 2026-06-24; was reflected AT the
+    # pivot bar = a 2-bar train/serve look-ahead on the 5 swing ctx features).
+    SWING_CONFIRM_LAG = 2
     h_arr = high.to_numpy()
     l_arr = low.to_numpy()
     n = len(h_arr)
@@ -414,11 +417,15 @@ def _add_swing_features(cv3: pd.DataFrame) -> None:
     last_low_idx = np.empty(n, dtype=np.int64)
     last_high = float(h_arr[0]); last_low = float(l_arr[0])
     last_hi_i = 0; last_lo_i = 0
+    # Reflect a pivot only once confirmed (bar j+SWING_CONFIRM_LAG), never AT bar j.
+    # The live decision bar (last row) was already causal; this makes interior/batch
+    # bars causal too → train==serve. (Was reflected at bar j = the look-ahead.)
     for i in range(n):
-        if pivot_high[i]:
-            last_high = float(h_arr[i]); last_hi_i = i
-        if pivot_low[i]:
-            last_low = float(l_arr[i]); last_lo_i = i
+        j = i - SWING_CONFIRM_LAG
+        if j >= 0 and pivot_high[j]:
+            last_high = float(h_arr[j]); last_hi_i = j
+        if j >= 0 and pivot_low[j]:
+            last_low = float(l_arr[j]); last_lo_i = j
         last_high_vals[i] = last_high
         last_low_vals[i] = last_low
         last_high_idx[i] = last_hi_i

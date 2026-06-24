@@ -1471,17 +1471,26 @@ def build_dataset_canonical(
     last_high_idx = np.empty(n, dtype=np.int64)
     last_low_idx = np.empty(n, dtype=np.int64)
 
-    last_high = float(high.iloc[0])
-    last_low = float(low.iloc[0])
+    # Lookahead-safe confirmation lag: pivot_high/low use high/low.shift(-1/-2), so a pivot at
+    # bar j is only confirmed once bar j+SWING_CONFIRM_LAG closes. Reflect it from there, NEVER
+    # at bar j — else the 5 swing ctx features carry a 2-bar look-ahead in training (train/serve
+    # skew vs the causal live serve). Same convention as smc_v1 + v12_ctx_augment_live._add_swing_features
+    # (fixed 2026-06-24). NOTE: keep this in sync with _add_swing_features — ideally unify into one helper.
+    SWING_CONFIRM_LAG = 2
+    _ph = pivot_high.to_numpy(); _pl = pivot_low.to_numpy()
+    _hi = high.to_numpy(); _lo = low.to_numpy()
+    last_high = float(_hi[0])
+    last_low = float(_lo[0])
     last_hi_i = 0
     last_lo_i = 0
     for i in range(n):
-        if bool(pivot_high.iloc[i]):
-            last_high = float(high.iloc[i])
-            last_hi_i = i
-        if bool(pivot_low.iloc[i]):
-            last_low = float(low.iloc[i])
-            last_lo_i = i
+        k = i - SWING_CONFIRM_LAG
+        if k >= 0 and _ph[k]:
+            last_high = float(_hi[k])
+            last_hi_i = k
+        if k >= 0 and _pl[k]:
+            last_low = float(_lo[k])
+            last_lo_i = k
         last_high_vals[i] = last_high
         last_low_vals[i] = last_low
         last_high_idx[i] = last_hi_i
