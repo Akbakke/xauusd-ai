@@ -570,6 +570,7 @@ def build_reward_matrix(df: pd.DataFrame, *, variant: str) -> np.ndarray:
             "R_WAIT_OPP_K96_LAM30": (96, 3.0),
             "R_WAIT_OPP_K96_LAM50": (96, 5.0),
             "R_WAIT_OPP_K96_REGSHORT": (96, 5.0),  # 2026-06-16: LAM50 form + regime-cond SHORT penalty
+            "R_WAIT_OPP_K96_DEEPCRASH": (96, 5.0),  # 2026-06-25: LAM50 form + depth-scaled deep-crash LONG penalty
             "R_WAIT_OPP_K48_LAM05": (48, 0.5),
             "R_WAIT_OPP_K48_LAM10": (48, 1.0),
         }[_base]
@@ -582,6 +583,8 @@ def build_reward_matrix(df: pd.DataFrame, *, variant: str) -> np.ndarray:
         # regimelong trainer oversample (one-truth). Inert for every other R_WAIT_OPP variant.
         _regshort_mask = None
         _regshort_pen = 0.0
+        _deepcrash_mask = None
+        _dc_penalty_vec = None
         if _base == "R_WAIT_OPP_K96_REGSHORT":
             _regshort_pen = float(os.environ.get("GX1_REGSHORT_PENALTY", "60.0"))
             _rs_atr_max = float(os.environ.get("GX1_REGSHORT_ATR_MAX", "14.0"))
@@ -596,6 +599,34 @@ def build_reward_matrix(df: pd.DataFrame, *, variant: str) -> np.ndarray:
             _regshort_mask = _rs_tup & _rs_leans & (_rs_vlow | _rs_alow)
             print(f"[BUILD_ENTRY_IQL_V2] REGSHORT: −{_regshort_pen:.0f}bps SHORT penalty on "
                   f"{int(_regshort_mask.sum()):,}/{len(df):,} TREND_UP&leans-long&low-vol rows", flush=True)
+        # DEEPCRASH (vedtak entry_iql_deepcrash_desize_20260625): identical to LAM50_SYM EXCEPT r_LONG is
+        # penalized by a DEPTH-SCALED amount in a SUSTAINED DEEP-CRASH (ret_20 in the crashing tail AND
+        # deep below the 200-EMA). Teaches the IQL "mer is i magen" — value SKIP/lower-conviction over a
+        # full-size LONG the deeper the established downtrend, where the catastrophic-tail long lives.
+        # below-200-EMA depth is the ONLY cross-episode-robust tell (2026-06-25 uncovering: path_quality/
+        # vol heads flagged it only in 2026-H1 and inverted pre-2026; below_ema200 held 0.59-0.68 BOTH
+        # episodes; short-the-crash refuted −54 EV; skip loses +EV; de-size is the only robust lever).
+        # Byte-identical to LAM50_SYM outside the mask. Inert for every other variant.
+        if _base == "R_WAIT_OPP_K96_DEEPCRASH":
+            _dc_pen = float(os.environ.get("GX1_DEEPCRASH_PENALTY", "80.0"))
+            _dc_ret_pctl = float(os.environ.get("GX1_DEEPCRASH_RET20_PCTL", "0.10"))
+            _dc_deep_pctl = float(os.environ.get("GX1_DEEPCRASH_DEEP_PCTL", "0.33"))
+            _dc_ret = pd.to_numeric(df.get("ret_20_canon_v1"), errors="coerce")
+            _dc_pos = pd.to_numeric(df.get("pos_vs_ema200_canon_v1"), errors="coerce")
+            if _dc_ret.notna().any() and _dc_pos.notna().any():
+                _crash_thr = float(_dc_ret.quantile(_dc_ret_pctl))
+                _crash = (_dc_ret <= _crash_thr).fillna(False).to_numpy()
+                _deep_thr = float(_dc_pos[_crash].quantile(_dc_deep_pctl)) if _crash.any() else 0.0
+                _deepcrash_mask = (_crash & (_dc_pos <= _deep_thr).fillna(False).to_numpy())
+                _below = (_deep_thr - _dc_pos).clip(lower=0.0).fillna(0.0).to_numpy()   # deeper -> bigger
+                _ref = float(np.median(_below[_deepcrash_mask])) if _deepcrash_mask.any() else 1.0
+                _scale = 1.0 + np.clip(_below / max(_ref, 1e-6), 0.0, 2.0)              # 1x .. 3x by depth
+                _dc_penalty_vec = (_dc_pen * _scale).astype(np.float32)
+                print(f"[BUILD_ENTRY_IQL_V2] DEEPCRASH: −{_dc_pen:.0f}bps depth-scaled LONG penalty on "
+                      f"{int(_deepcrash_mask.sum()):,}/{len(df):,} sustained-deep-crash rows "
+                      f"(crash_thr={_crash_thr:.1f} deep_thr={_deep_thr:.1f})", flush=True)
+            else:
+                print("[BUILD_ENTRY_IQL_V2] DEEPCRASH: ret_20/pos_vs_ema200 missing — penalty INERT (no-op)", flush=True)
         # _SYM (2026-06-03): TWO additional fixes folded in from the all-models scan —
         #  EIQL-R1: TRUE PER-K reward. The base variants compute ONE K and broadcast it to all
         #    6 Q-heads (multi-head Q + mean/max aggregator = no-op). _SYM instead gives each
@@ -616,6 +647,8 @@ def build_reward_matrix(df: pd.DataFrame, *, variant: str) -> np.ndarray:
             rs = ts - _LAM * ms - _spread_coef * entry_spread_bps
             if _regshort_mask is not None:   # REGSHORT: penalize the −EV short in the DIPFIX regime
                 rs = np.where(_regshort_mask, rs - _regshort_pen, rs)
+            if _deepcrash_mask is not None:  # DEEPCRASH: depth-scaled penalty on the catastrophic-tail LONG
+                rl = np.where(_deepcrash_mask, rl - _dc_penalty_vec, rl)
             if _sym:
                 mwl = np.maximum(df[f"wait_long_mae_before_mfe_bps_at_K{K}_v1"].astype(float).fillna(0.0).to_numpy(), 0.0)
                 mws = np.maximum(df[f"wait_short_mae_before_mfe_bps_at_K{K}_v1"].astype(float).fillna(0.0).to_numpy(), 0.0)
