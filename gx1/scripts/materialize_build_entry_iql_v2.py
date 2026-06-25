@@ -1653,6 +1653,7 @@ def write_artifacts(
     skip_weight_multiplier: float = 1.0,
     skip_oversample_factor: int = 1,
     init_from_bundle: Path | None = None,
+    init_variant: str | None = None,
 ) -> dict[str, Any]:
     timestamp = built_at_utc or _stamp()
     artifact_root = out_root or (DEFAULT_REPORTS_ROOT / f"{ACTION}_{timestamp}_LOCK")
@@ -1810,13 +1811,18 @@ def write_artifacts(
         _warmstart_init = {}
         _ws_models_dir = Path(init_from_bundle) / "trained_models_v1"
         for variant in (variants_subset or REWARD_VARIANTS):
+            # WARM-START source variant: when the candidate variant differs from the cement's (e.g.
+            # DEEPCRASH_SYM warm-starting from the cement's LAM50_SYM — IDENTICAL Q/V arch, only the
+            # reward differs), --init-variant names the SOURCE checkpoint in the init bundle. Default:
+            # same name (backward-compatible). Arch mismatch still fails loud at load_state_dict.
+            _src_variant = init_variant or variant
             for fold in folds:
                 fid = fold["fold_id_v1"]
-                _ck_path = _ws_models_dir / f"{variant}_{fid}.pt"
+                _ck_path = _ws_models_dir / f"{_src_variant}_{fid}.pt"
                 if not _ck_path.is_file():
                     raise FileNotFoundError(
                         f"[{ACTION}] --init-from-bundle: cement checkpoint missing: {_ck_path} "
-                        f"(variant={variant} fold={fid}). Refit cannot warm-start without it.")
+                        f"(variant={variant} init-variant={_src_variant} fold={fid}). Refit cannot warm-start without it.")
                 _ck = torch.load(_ck_path, map_location="cpu", weights_only=False)
                 _warmstart_init[fid] = {"q": _ck["q_state_dict"], "v": _ck["v_state_dict"]}
         print(f"[{ACTION}] WARM-START: loaded cement Q/V init for {len(_warmstart_init)} fold(s) "
@@ -1951,6 +1957,11 @@ def main() -> None:
                              "this only nudges the small IQL net). Arch must match (hidden/n_hidden/"
                              "state_dim); a mismatch fails loud via load_state_dict(strict=True). "
                              "Warm-start LR via GX1_ENTRY_IQL_WARMSTART_LR (default 1e-4).")
+    parser.add_argument("--init-variant", type=str, default=None,
+                        help="Source variant name in --init-from-bundle to warm-start FROM (default: the "
+                             "candidate variant). Use when the candidate's variant name differs from the "
+                             "cement's but the Q/V arch is identical, e.g. R_WAIT_OPP_K96_DEEPCRASH_SYM "
+                             "warm-starting from the cement's R_WAIT_OPP_K96_LAM50_SYM checkpoint.")
     parser.add_argument("--seed", type=int, default=None,
                         help="Override default SEED_V1 (used for ensemble training).")
     parser.add_argument(
@@ -1994,6 +2005,7 @@ def main() -> None:
         skip_oversample_factor=args.skip_oversample_factor,
         init_from_bundle=(Path(args.init_from_bundle).expanduser().resolve()
                           if args.init_from_bundle else None),
+        init_variant=args.init_variant,
     )
     print(json.dumps(_jsonable(result["summary"]), ensure_ascii=True, indent=2, sort_keys=True))
 
