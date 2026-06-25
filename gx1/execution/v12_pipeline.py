@@ -539,6 +539,11 @@ class V12Pipeline:
             "v10_hold_horizon_bars_pred": int(v10_out.get("hold_horizon_bars_pred", -1)),
             "decision_ts": str(augmented.index[end_idx]),
             "_v10_snapshot": v10_out,   # for later TradeState.open()
+            # trend_regime / vol_regime surfaced from the SAME candidate dict DIPFIX
+            # reads (train==serve-matched REGIME_V4 labels) so the runner's
+            # regime-adaptive sizing overlay + journaling can key on them. Additive.
+            "trend_regime": str(candidate.get("trend_regime", "")),
+            "vol_regime": str(candidate.get("vol_regime", "")),
             "stub": False,
             # Online-IQL prep payload (2026-05-30). state_v1 is the 192-dim raw
             # vector Entry-IQL saw at this poll. Schema constants (feature_names,

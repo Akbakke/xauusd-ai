@@ -55,6 +55,8 @@ from gx1.execution.oanda_credentials import load_oanda_credentials
 from gx1.execution.v12_live_features import LiveFeatureBuilder
 from gx1.execution.v12_pipeline import V12Pipeline
 from gx1.execution.v12_trade_state import TradeState
+from gx1.features.regime_adaptive_sizing_v1 import (
+    REGIME_RECAL_ON, TREND_REGIMES, build_live_tracker)
 from gx1.monitoring.trade_journal import TradeJournal
 
 LOG = logging.getLogger("v12_paper")
@@ -262,6 +264,21 @@ SIZING_ATR_REF = float(os.environ.get("GX1_SIZING_ATR_REF_BPS", "18.0"))
 SIZING_ATR_FLOOR = float(os.environ.get("GX1_SIZING_ATR_FLOOR_BPS", "6.0"))
 if SIZING_MODE != "off" and SIZING_MAX_MULT != 1.0:
     LOG.warning("[GX1_SIZING] mode=%s max_mult=%.2f — position sizing OVERLAY active (reversible)", SIZING_MODE, SIZING_MAX_MULT)
+
+# Regime-adaptive LONG-sizing recalibration (2026-06-25, reversible, DEFAULT-OFF).
+# De-sizes LONGs by the recent realized long-win in the CURRENT trend_regime — the
+# causal lever that corrects V10 down-regime long-overconfidence. The tracker
+# ACCUMULATES matured-long outcomes even when the overlay is OFF (so the rolling
+# window stays warm + we journal the would-be multiplier as live shadow evidence);
+# it only SCALES units when GX1_REGIME_RECAL=1. State persists across restarts so a
+# runner restart keeps a warm window. ONE TRUTH = gx1.features.regime_adaptive_sizing_v1
+# (the same class the offline phase6/gate replay imports → train==serve).
+REGIME_RECAL_STATE_PATH = JOURNAL_DIR / "regime_recal_state.json"
+_REGIME_RECAL_TRACKER = build_live_tracker(REGIME_RECAL_STATE_PATH)
+if REGIME_RECAL_ON:
+    LOG.warning("[REGIME_RECAL] regime-adaptive LONG de-sizing OVERLAY active (reversible) "
+                "k=%d base=%.2f floor=%.2f", _REGIME_RECAL_TRACKER.k,
+                _REGIME_RECAL_TRACKER.base, _REGIME_RECAL_TRACKER.floor)
 
 
 def size_units(base_units: int, raw_adv: float, atr_bps_now: float, margin: float | None = None):
@@ -725,6 +742,18 @@ def main() -> int:
                             max_mae_bps=float(trade.cum_mae_bps),
                             intratrade_drawdown_bps=float(trade.cum_mfe_bps - trade.current_pnl_bps),
                         )
+                        # Regime-recal: record the matured LONG outcome into the rolling
+                        # per-regime win window. ALWAYS (even when the overlay is OFF) so
+                        # the deque stays warm + the would-be multiplier is honest shadow
+                        # evidence. win = exit-stack realized pnl_bps > 0 (NOT K96 terminal
+                        # — this is the exit-realized basis the gate-fix replay must match).
+                        try:
+                            _entry_reg = str((trade.v10_snapshot or {}).get("entry_trend_regime", ""))
+                            if trade.side == "long" and _entry_reg in TREND_REGIMES:
+                                _REGIME_RECAL_TRACKER.record(
+                                    _entry_reg, float(trade.current_pnl_bps) > 0.0)
+                        except Exception as exc:
+                            LOG.warning(f"[REGIME_RECAL] outcome-record failed: {exc}")
                 per_trade_records.append(record)
             open_trades = survivors
             event["open_trade_records"] = per_trade_records
@@ -1012,6 +1041,29 @@ def main() -> int:
                     trade_units, units_mult = units_from_position_size_pred(
                         args.units, pos_pred, max_multiplier=args.max_units_multiplier,
                     )
+                # Regime-adaptive LONG de-sizing (reversible, default-OFF). Reads the
+                # current trend_regime (surfaced from the candidate) + the recent
+                # realized long-win rolling window; SCALES units ONLY for LONGs when
+                # GX1_REGIME_RECAL=1. ALWAYS journals the would-be multiplier (shadow
+                # evidence) even when off. The deque is updated at trade-close below.
+                _regime = str(decision.get("trend_regime", ""))
+                _recal_mult = (_REGIME_RECAL_TRACKER.multiplier(_regime)
+                               if side == "long" else 1.0)
+                _recal_nobs = _REGIME_RECAL_TRACKER.n_obs(_regime) if _regime in TREND_REGIMES else 0
+                event["regime_recal_trend_regime"] = _regime
+                event["regime_recal_mult_would_be"] = _recal_mult
+                event["regime_recal_n_obs"] = _recal_nobs
+                event["regime_recal_armed"] = bool(REGIME_RECAL_ON)
+                if REGIME_RECAL_ON and side == "long" and _recal_mult != 1.0:
+                    trade_units = max(1, int(round(trade_units * _recal_mult)))
+                    units_mult *= _recal_mult
+                    LOG.info("[REGIME_RECAL] long in %s recent-win de-size ×%.3f → %du (n_obs=%d)",
+                             _regime, _recal_mult, trade_units, _recal_nobs)
+                # stash entry regime onto the per-trade snapshot dict (no schema change)
+                # so the close-hook can attribute the matured outcome to its entry regime.
+                _snap = decision.get("_v10_snapshot")
+                if isinstance(_snap, dict):
+                    _snap["entry_trend_regime"] = _regime
                 event["units_multiplier_applied"] = units_mult
                 event["position_size_pred"] = pos_pred
                 if units_mult != 1.0:
