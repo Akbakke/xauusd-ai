@@ -12,6 +12,7 @@
 # Each heavy stage runs under gx1_capped_run.sh (cgroup OOM kills the JOB not the box; live=PID2157 stays up).
 set -euo pipefail
 
+export GX1_DATA=/home/andre2/GX1_DATA        # required by the V10 dataset builder (canonical tape lane resolver)
 export GX1_REGIME_V4=1
 export GX1_TREND_REGIME_FROM_D1=1
 export GX1_V10_CKPT_MONITOR=dir_acc          # cement selected ckpt on dir_acc (default is val_loss) — train==serve
