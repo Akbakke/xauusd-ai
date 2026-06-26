@@ -1211,6 +1211,39 @@ def build_chronological_folds(
     return folds
 
 
+def build_final_fold(
+    decision_ts: np.ndarray,
+    test_frac: float = 0.06,
+    val_frac: float = 0.06,
+    embargo_bars: int = 192,
+) -> list[dict[str, np.ndarray]]:
+    """ONE DEPLOY fold trained on ~ALL chronological history (no large OOT holdout).
+
+    2026-06-26 (user vedtak: "train on ALL 6 years, not just the early walk-forward block").
+    The chronological CV folds each hold out a recent block as test — so FOLD_1 trains on only
+    the EARLIEST block (~2020-mid-2021) and even FOLD_3 holds out the most-recent block. For a
+    DEPLOY model that has learned from EVERY regime incl the latest (e.g. the current sustained
+    down-regime), train on the full span minus a small recent val(early-stop)+test(sanity) tail.
+    The recent tail is a SANITY slice, NOT a clean multi-fold OOT — use chronological folds to
+    VALIDATE the method, this fold to SHIP. Indices into the ORIGINAL row order.
+    """
+    n = len(decision_ts)
+    order = np.argsort(np.asarray(decision_ts), kind="mergesort")  # chronological
+    n_test = max(1, int(n * test_frac))
+    n_val = max(1, int(n * val_frac))
+    test = order[-n_test:]
+    val = order[-(n_test + n_val):-n_test]
+    train = order[:-(n_test + n_val)]
+    emb = max(0, int(embargo_bars))
+    train = train[:-emb] if emb and len(train) > emb else train  # purge forward-window overlap
+    return [{
+        "fold_id_v1": "FOLD_FINAL",
+        "train_idx_v1": np.sort(train),
+        "val_idx_v1": np.sort(val),
+        "test_idx_v1": np.sort(test),
+    }]
+
+
 # ---------------------------------------------------------------------------
 # Evaluation
 # ---------------------------------------------------------------------------
@@ -1736,6 +1769,16 @@ def write_artifacts(
         folds = build_chronological_folds(
             decision_ts=pd.to_datetime(df[_ts_col]).to_numpy(),
             n_folds=N_FOLDS, embargo_bars=_embargo,
+        )
+    elif _split_mode == "final":
+        _ts_col = next((c for c in ("decision_ts_utc", "decision_ts", "time", "ts_utc") if c in df.columns), None)
+        if _ts_col is None:
+            raise RuntimeError(f"[{ACTION}] GX1_ENTRY_IQL_SPLIT_MODE=final but no decision-ts column found in df")
+        _embargo = int(os.environ.get("GX1_ENTRY_IQL_EMBARGO_BARS", "192"))
+        print(f"[{ACTION}] split=FINAL-FIT (ts={_ts_col}, embargo={_embargo}) — DEPLOY model trained on ~ALL "
+              f"history incl the most-recent regime; recent tail = SANITY only, NOT a clean OOT", flush=True)
+        folds = build_final_fold(
+            decision_ts=pd.to_datetime(df[_ts_col]).to_numpy(), embargo_bars=_embargo,
         )
     else:
         folds = build_stratified_folds(
