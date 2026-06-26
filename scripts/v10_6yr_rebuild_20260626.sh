@@ -23,7 +23,11 @@ VEDTAK=entry_v10_6yr_retrain_20260626
 ENG=/home/andre2/src/GX1_ENGINE
 PY=$ENG/.venv/bin/python
 WS=/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605
-REBUILD=$WS/v10_6yr_rebuild_20260626
+# Default to a fresh bodyfix workspace. The original v10_6yr_rebuild_20260626
+# contains a pre-fix train parquet with corrupt body_pct snap/seq_last outliers;
+# do not let skip-if-exists reuse it for retrain. Override with REBUILD_DIR only
+# for deliberate inspection/resume of a known-clean workspace.
+REBUILD=${REBUILD_DIR:-$WS/v10_6yr_rebuild_20260626_bodyfix}
 TAPE=/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m5_bid_ask__CANONICAL
 BASE28=/home/andre2/GX1_DATA/data/data/prebuilt/BASE28_CANONICAL/CURRENT_MANIFEST.json
 XGB=$WS/xgb_v7
@@ -122,10 +126,25 @@ fi
 
 # ---- GATE: verify contract dims BEFORE the SACRED GPU train (train==serve) ----
 $PY - <<PYEOF
-import glob,pyarrow.parquet as pq
+import glob
+import numpy as np
+import pyarrow.parquet as pq
+from gx1.audit.entry_transformer_feature_audit import _stack_list_column
+from gx1.contracts.signal_bridge_v3 import ORDERED_SEQ_FIELDS_V3
 f=sorted(glob.glob("$REBUILD/v10_dataset_6yr/*train*.parquet"))[0]
-print("[GATE] v10 train dataset:",f,"rows=",pq.ParquetFile(f).metadata.num_rows)
-# NOTE(audit): assert seq/ctx dims match 41/41/96/123/5 before training.
+pf=pq.ParquetFile(f)
+body_idx=ORDERED_SEQ_FIELDS_V3.index("body_pct")
+max_body=0.0
+bad_rows=0
+for batch in pf.iter_batches(batch_size=8192, columns=["snap"]):
+    snap=_stack_list_column(batch.to_pandas()["snap"], np.float32)
+    vals=snap[:, body_idx]
+    max_body=max(max_body, float(np.nanmax(vals)))
+    bad_rows += int(((vals < -1e-6) | (vals > 1.000001) | ~np.isfinite(vals)).sum())
+if bad_rows:
+    raise RuntimeError(f"[BODY_PCT_GATE_FAIL] train snap body_pct out of [0,1]: bad_rows={bad_rows} max={max_body}")
+print("[GATE] v10 train dataset:",f,"rows=",pf.metadata.num_rows,"body_pct_max=",max_body)
+# NOTE(audit): seq/ctx dims are also asserted by EntryV10CtxDataset/trainer before training.
 PYEOF
 
 # ---- STAGE 6: train V10 transformer (SACRED) — GUARDED: only runs with RUN_TRAIN=1 ----
