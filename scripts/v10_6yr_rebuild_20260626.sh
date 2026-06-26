@@ -59,17 +59,20 @@ assert len(detect_price_scale_glitch(dd))==0, "[GLITCH] x10 NOT fixed"
 assert_no_price_scale_glitch(dd); print("  [glitch-guard] PASS",f)
 PYEOF
 
-# ---- STAGE 3: FULL_PLUS_CTX (ctx_cont on v2 trimmed to model range >=2020-11-09) ----
-if have "$REBUILD/FULL_PLUS_CTX.parquet"; then echo "[3] skip FULL_PLUS_CTX"; else
+# ---- STAGE 3: FULL_PLUS_CTX (ctx_cont on CV3 trimmed to model range >=2020-11-09) ----
+# NOTE: source from cv3, NOT the pre-augment canonical_features_v2 — the SMC/cyclic/m5h1 source features
+# the V10 builder's canonical_v3 contract requires are ADDED in the cv3 augment (fase2b recipe is stale here).
+if have "$REBUILD/FULL_PLUS_CTX_v3src.parquet"; then echo "[3] skip FULL_PLUS_CTX_v3src"; else
   $PY - <<PYEOF
-import pandas as pd
-d=pd.read_parquet("$REBUILD/canonical_features_v2.parquet")
+import glob,pandas as pd
+f=sorted(glob.glob("$REBUILD/cv3/*CANONICAL_V3*.parquet"))[0]
+d=pd.read_parquet(f)
 t=pd.to_datetime(d["time"],utc=True) if "time" in d.columns else pd.to_datetime(d.index,utc=True)
-d[t>=pd.Timestamp("2020-11-09",tz="UTC")].to_parquet("$REBUILD/canonical_features_v2_modelrange.parquet",index=False)
+d[t>=pd.Timestamp("2020-11-09",tz="UTC")].to_parquet("$REBUILD/cv3_modelrange.parquet",index=False)
 PYEOF
   $CAP $PY -m gx1.scripts.add_ctx_cont_columns_to_prebuilt \
-    --prebuilt_parquet "$REBUILD/canonical_features_v2_modelrange.parquet" \
-    --output_parquet "$REBUILD/FULL_PLUS_CTX.parquet" \
+    --prebuilt_parquet "$REBUILD/cv3_modelrange.parquet" \
+    --output_parquet "$REBUILD/FULL_PLUS_CTX_v3src.parquet" \
     --ctx-cont-dim 16 --ctx-cat-dim 5 \
     --tape-root "$TAPE" --raw_m5_parquet $TAPE/year=*/part-000.parquet
 fi
@@ -89,7 +92,7 @@ if have "$REBUILD/v10_dataset_6yr/v10_6yr_dataset_train.parquet"; then echo "[5]
   mkdir -p "$REBUILD/v10_dataset_6yr"
   $CAP $PY -m gx1.scripts.build_entry_v10_ctx_training_dataset_v3 \
     --base28_manifest "$BASE28" --xgb_bundle "$XGB" \
-    --canonical_v2_parquet "$REBUILD/FULL_PLUS_CTX.parquet" \
+    --canonical_v2_parquet "$REBUILD/FULL_PLUS_CTX_v3src.parquet" \
     --output "$REBUILD/v10_dataset_6yr/v10_6yr_dataset.parquet" \
     --start 2020-11-09 --end 2026-06-14 \
     --time_split \
