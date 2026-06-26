@@ -299,14 +299,18 @@ def _load_canonical_tape(tape_root: Path, years: Sequence[int]) -> pd.DataFrame:
         if missing:
             raise RuntimeError(f"Canonical tape missing required columns={missing} path={path}")
 
-        tape = tape[["time", "close"]].copy()
+        optional = [c for c in ("bid_close", "ask_close") if c in tape.columns]
+        tape = tape[["time", "close", *optional]].copy()
         tape["_ts_utc"] = pd.to_datetime(tape["time"], utc=True, errors="coerce")
         if tape["_ts_utc"].isna().any():
             raise ValueError(f"Canonical tape has non-coercible timestamps in {path}")
         if tape["close"].isna().any():
             raise ValueError(f"Canonical tape has NaN close values in {path}")
+        for c in optional:
+            if tape[c].isna().any():
+                raise ValueError(f"Canonical tape has NaN {c} values in {path}")
 
-        frames.append(tape[["_ts_utc", "close"]])
+        frames.append(tape[["_ts_utc", "close", *optional]])
 
     tape_all = pd.concat(frames, ignore_index=True)
     if tape_all["_ts_utc"].duplicated().any():
@@ -584,6 +588,77 @@ def compute_triple_barrier_labels(
     return labels, valid_mask, hit_code
 
 
+def compute_fixed_horizon_spread_pnl_labels(
+    df: pd.DataFrame,
+    lookahead_bars: int,
+    threshold_bps: float,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Entry-Transformer-compatible fixed-horizon direction labels.
+
+    LONG  if spread-aware long final PnL at +H >= threshold and >= short PnL
+    SHORT if spread-aware short final PnL at +H >= threshold and > long PnL
+    FLAT  otherwise
+
+    Uses bid/ask close:
+      long:  buy at ask[i], sell at bid[i+H]
+      short: sell at bid[i], buy at ask[i+H]
+    """
+    if lookahead_bars < 1:
+        raise ValueError(f"lookahead_bars must be >=1, got {lookahead_bars}")
+    if threshold_bps < 0.0:
+        raise ValueError(f"threshold_bps must be >=0, got {threshold_bps}")
+    missing = [c for c in ("bid_close", "ask_close") if c not in df.columns]
+    if missing:
+        raise KeyError(f"fixed_horizon_spread_pnl labels require bid/ask close columns, missing={missing}")
+
+    bid = pd.to_numeric(df["bid_close"], errors="coerce").to_numpy(dtype=np.float64)
+    ask = pd.to_numeric(df["ask_close"], errors="coerce").to_numpy(dtype=np.float64)
+    n = len(df)
+    labels = np.full(n, -1, dtype=np.int32)
+    hit_code = np.full(n, -1, dtype=np.int32)  # 0=LONG,1=SHORT,2=FLAT,-1=INVALID
+    valid_mask = np.ones(n, dtype=bool)
+    pnl_long = np.full(n, np.nan, dtype=np.float64)
+    pnl_short = np.full(n, np.nan, dtype=np.float64)
+    valid_mask[-lookahead_bars:] = False
+    if n <= lookahead_bars:
+        valid_mask[:] = False
+        return labels, valid_mask, hit_code, pnl_long, pnl_short
+
+    entry_ask = ask[:-lookahead_bars]
+    entry_bid = bid[:-lookahead_bars]
+    exit_bid = bid[lookahead_bars:]
+    exit_ask = ask[lookahead_bars:]
+    finite = (
+        np.isfinite(entry_ask)
+        & np.isfinite(entry_bid)
+        & np.isfinite(exit_bid)
+        & np.isfinite(exit_ask)
+        & (entry_ask > 0.0)
+        & (entry_bid > 0.0)
+    )
+    long_ret = (exit_bid - entry_ask) / np.clip(entry_ask, 1e-12, None) * 1e4
+    short_ret = (entry_bid - exit_ask) / np.clip(entry_bid, 1e-12, None) * 1e4
+    pnl_long[:-lookahead_bars] = long_ret
+    pnl_short[:-lookahead_bars] = short_ret
+
+    valid_mask[:-lookahead_bars] &= finite
+    lab = np.full(n - lookahead_bars, 2, dtype=np.int32)
+    thr = float(threshold_bps)
+    tradable_long = (long_ret >= thr) & finite
+    tradable_short = (short_ret >= thr) & finite
+    only_long = tradable_long & ~tradable_short
+    only_short = tradable_short & ~tradable_long
+    both = tradable_long & tradable_short
+    lab[only_long] = 0
+    lab[only_short] = 1
+    lab[both & (long_ret >= short_ret)] = 0
+    lab[both & (short_ret > long_ret)] = 1
+    labels[:-lookahead_bars] = np.where(finite, lab, -1).astype(np.int32)
+    hit_code[:-lookahead_bars] = np.where(finite, lab, -1).astype(np.int32)
+    return labels, valid_mask, hit_code, pnl_long, pnl_short
+
+
 def _ensure_serializable(obj: Any) -> Any:
     if isinstance(obj, dict):
         return {str(k): _ensure_serializable(v) for k, v in obj.items()}
@@ -624,6 +699,22 @@ def main() -> int:
     parser.add_argument("--n-bars", type=int, default=None, help="Optional cap after year-filter, preserves chronological order")
     parser.add_argument("--val-split", type=float, default=0.20)
     parser.add_argument("--lookahead-bars", type=int, default=24)  # BASE76 bundle was trained at 24 (~2h M5)
+    parser.add_argument(
+        "--label-method",
+        choices=("atr_triple_barrier_session_scaled", "fixed_horizon_spread_pnl"),
+        default=os.environ.get("GX1_XGB_LABEL_METHOD", "atr_triple_barrier_session_scaled"),
+        help=(
+            "Direction label contract. Default preserves historical XGB behavior. "
+            "Use fixed_horizon_spread_pnl to align the bridge with Entry Transformer V11 "
+            "direction labels."
+        ),
+    )
+    parser.add_argument(
+        "--fixed-pnl-threshold-bps",
+        type=float,
+        default=float(os.environ.get("GX1_XGB_FIXED_PNL_THRESHOLD_BPS", "15.0")),
+        help="Threshold for --label-method fixed_horizon_spread_pnl. ET V11 default is 15 bps.",
+    )
     parser.add_argument("--spread-bps", type=float, default=2.0)
     parser.add_argument(
         "--tape-root",
@@ -792,8 +883,9 @@ def main() -> int:
     # 2026-05-24 FIX: if rebuilt canonical contains "close" column, drop it before
     # merge so tape's close wins without suffix collision (pandas would rename to
     # close_x/close_y otherwise → KeyError downstream).
-    if "close" in df.columns:
-        df = df.drop(columns=["close"])
+    tape_price_cols = [c for c in ("close", "bid_close", "ask_close") if c in df.columns]
+    if tape_price_cols:
+        df = df.drop(columns=tape_price_cols)
     rows_base28 = len(df)
     rows_tape = len(tape_df)
     joined_df = df.merge(
@@ -887,7 +979,7 @@ def main() -> int:
         print(f"[XGB] derived BASE76 missing features; SYNTHESIZED UNSHIFTED _v1_is_EU(baked={_is_eu_baked})/"
               f"_v1_is_US(baked={_is_us_baked}) — WARNING: live serve feeds SHIFTED; bake shifted in base80 for train==serve")
 
-    # ATR-normalized triple-barrier labels (session-aware, 3-class)
+    # Direction labels (session-aware XGB legacy or ET-compatible fixed-horizon spread PnL).
     # 2026-05-24 FIX: if atr_bps not in canonical, derive from _v1_atr14 / close * 1e4
     if "atr_bps" not in df.columns:
         if "_v1_atr14" in df.columns and "close" in df.columns:
@@ -906,15 +998,53 @@ def main() -> int:
     # that exceeds a fraction of the barrier.
     no_hit_return_factor = 0.50
 
-    print("\nComputing triple-barrier labels (ATR-normalized)...")
-    labels, valid_mask, hit_code = compute_triple_barrier_labels(
-        df=df,
-        lookahead_bars=args.lookahead_bars,
-        atr_col=atr_col,
-        session_col="_session",
-        session_multipliers=session_multipliers,
-        no_hit_return_factor=no_hit_return_factor,
-    )
+    label_method = str(args.label_method)
+    if label_method == "atr_triple_barrier_session_scaled":
+        print("\nComputing triple-barrier labels (ATR-normalized)...")
+        labels, valid_mask, hit_code = compute_triple_barrier_labels(
+            df=df,
+            lookahead_bars=args.lookahead_bars,
+            atr_col=atr_col,
+            session_col="_session",
+            session_multipliers=session_multipliers,
+            no_hit_return_factor=no_hit_return_factor,
+        )
+        session_mult_series = df["_session"].map(session_multipliers).astype(float)
+        df["_barrier_bps"] = df[atr_col].astype(float) * session_mult_series
+        label_training_meta: Dict[str, Any] = {
+            "label_method": "atr_triple_barrier_session_scaled",
+            "atr_col": str(atr_col),
+            "session_multipliers": {str(k): float(v) for k, v in session_multipliers.items()},
+            "no_hit_return_factor": float(no_hit_return_factor),
+            "barrier_formula": "barrier_bps = atr_bps * session_multiplier",
+        }
+        label_log_suffix = (
+            f"atr_col={atr_col} "
+            f"session_multipliers={session_multipliers} "
+            f"no_hit_return_factor={no_hit_return_factor}"
+        )
+    elif label_method == "fixed_horizon_spread_pnl":
+        print("\nComputing fixed-horizon spread-aware PnL labels...")
+        labels, valid_mask, hit_code, pnl_long_h, pnl_short_h = compute_fixed_horizon_spread_pnl_labels(
+            df=df,
+            lookahead_bars=args.lookahead_bars,
+            threshold_bps=float(args.fixed_pnl_threshold_bps),
+        )
+        df["_barrier_bps"] = float(args.fixed_pnl_threshold_bps)
+        df["_pnl_long_at_horizon_bps"] = pnl_long_h
+        df["_pnl_short_at_horizon_bps"] = pnl_short_h
+        label_training_meta = {
+            "label_method": "fixed_horizon_spread_pnl",
+            "pnl_source": "bid_ask_close",
+            "fixed_pnl_threshold_bps": float(args.fixed_pnl_threshold_bps),
+            "barrier_formula": "label=argmax(long_pnl,short_pnl) if side_pnl >= fixed_pnl_threshold_bps else flat",
+        }
+        label_log_suffix = (
+            f"fixed_pnl_threshold_bps={float(args.fixed_pnl_threshold_bps):.4f} "
+            "pnl_source=bid_ask_close"
+        )
+    else:  # argparse choices should make this unreachable.
+        raise RuntimeError(f"Unsupported label_method={label_method!r}")
     df["_label"] = labels
     df["_valid_mask"] = valid_mask
     df["_label_valid"] = df["_valid_mask"] & (df["_label"] >= 0)
@@ -935,15 +1065,9 @@ def main() -> int:
         f"FLAT={n_flat:,} "
         f"long_share={long_share:.4f} "
         f"horizon_bars={args.lookahead_bars} "
-        f"atr_col={atr_col} "
-        f"session_multipliers={session_multipliers} "
-        f"no_hit_return_factor={no_hit_return_factor}"
+        f"label_method={label_method} "
+        f"{label_log_suffix}"
     )
-
-    # Precompute barrier_bps per row for audit
-    session_mult_series = df["_session"].map(session_multipliers).astype(float)
-    barrier_bps = df[atr_col].astype(float) * session_mult_series
-    df["_barrier_bps"] = barrier_bps
 
     print("[XGB_LABELS_BY_SESSION]")
     # XGB-10 (2026-06-03): capture the TRUE per-session barrier stats so head_metrics can
@@ -1466,15 +1590,7 @@ def main() -> int:
             "training": {
                 "years": [int(y) for y in args.years],
                 "lookahead_bars": int(args.lookahead_bars),
-                # XGB-10: TRUE label provenance (replaces the fabricated threshold_bps=6.0).
-                # Labels are ATR-normalized triple-barrier: barrier_bps = atr_bps *
-                # session_multiplier; a no-hit terminal return >= no_hit_return_factor * barrier
-                # is promoted to LONG/SHORT. There is NO fixed threshold_bps.
-                "label_method": "atr_triple_barrier_session_scaled",
-                "atr_col": str(atr_col),
-                "session_multipliers": {str(k): float(v) for k, v in session_multipliers.items()},
-                "no_hit_return_factor": float(no_hit_return_factor),
-                "barrier_formula": "barrier_bps = atr_bps * session_multiplier",
+                **label_training_meta,
                 "train_embargo_bars": int(os.environ.get("GX1_XGB_TRAIN_EMBARGO_BARS", str(int(args.lookahead_bars)))),
                 "val_split": float(args.val_split),
                 "seed": int(args.seed),
