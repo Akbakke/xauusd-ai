@@ -383,9 +383,9 @@ class LiveFeatureBuilder:
             last_m1 = m1.iloc[-1]
             o, hi, lo, cl = float(last_m1["open"]), float(last_m1["high"]), float(last_m1["low"]), float(last_m1["close"])
             rng = max(hi - lo, 1e-9)
-            body_pct = abs(cl - o) / rng
-            upper_wick_pct = (hi - max(o, cl)) / rng
-            lower_wick_pct = (min(o, cl) - lo) / rng
+            body_pct = float(np.clip(abs(cl - o) / rng, 0.0, 1.0))
+            upper_wick_pct = float(np.clip((hi - max(o, cl)) / rng, 0.0, 1.0))
+            lower_wick_pct = float(np.clip((min(o, cl) - lo) / rng, 0.0, 1.0))
             ret_bps = (cl - float(m1["close"].iloc[-2])) / float(m1["close"].iloc[-2]) * 10000.0 if len(m1) >= 2 else 0.0
         else:
             body_pct = upper_wick_pct = lower_wick_pct = ret_bps = 0.0

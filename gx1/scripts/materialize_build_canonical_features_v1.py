@@ -127,7 +127,7 @@ def add_high_level_basics(df: pd.DataFrame) -> pd.DataFrame:
     # body_pct, wick_asym
     body_abs = (df["close"] - df["open"]).abs()
     bar_range = (df["high"] - df["low"]).clip(lower=1e-9)
-    df["body_pct"] = (body_abs / bar_range).astype(np.float32)
+    df["body_pct"] = (body_abs / bar_range).clip(lower=0.0, upper=1.0).astype(np.float32)
     upper_wick = (df["high"] - df[["open", "close"]].max(axis=1)).clip(lower=0)
     lower_wick = (df[["open", "close"]].min(axis=1) - df["low"]).clip(lower=0)
     wick_total = (upper_wick + lower_wick).clip(lower=1e-9)
