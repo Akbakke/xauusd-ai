@@ -99,7 +99,7 @@ fi
 # do NOT set GX1_MTF_CACHE_ALLOW_STALE — that would forward-fill (freeze) the recent down-regime ctx_cont.
 
 # ---- STAGE 5: V10 ctx_v3 6yr dataset (time_split; DOWN-REGIME IN TRAIN) ----
-if have "$REBUILD/v10_dataset_6yr/v10_6yr_dataset_train.parquet"; then echo "[5] skip v10 dataset"; else
+if ls "$REBUILD/v10_dataset_6yr/"*train*.parquet >/dev/null 2>&1; then echo "[5] skip v10 dataset (HOLD_03B exists)"; else
   mkdir -p "$REBUILD/v10_dataset_6yr"
   # CEMENT-FAITHFUL (proven from v10_dataset_m5.log): build via --source-parquet-override on the
   # cv3-derived FULL_PLUS_CTX (M5-cadence; is_model_bar filter skipped; is_ASIA auto-derived), NOT
