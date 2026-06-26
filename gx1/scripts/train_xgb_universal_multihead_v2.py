@@ -450,10 +450,21 @@ def eval_margin_metrics(
     return out
 
 
-def compute_class_weights(y_train: np.ndarray, n_classes: int = 3) -> Dict[int, float]:
+def compute_class_weights(
+    y_train: np.ndarray,
+    n_classes: int = 3,
+    power: float = 1.0,
+) -> Dict[int, float]:
     """
     Inverse-frequency class weights normalized so mean(sample_weight)=1.
+
+    power=1.0 gives full inverse-frequency weighting. Lower powers interpolate
+    toward unweighted training while preserving the same normalization.
     """
+    power_f = float(power)
+    if power_f < 0.0:
+        raise ValueError(f"class weight power must be >= 0, got {power}")
+
     counts = np.bincount(y_train, minlength=n_classes).astype(np.float64)
     total = counts.sum()
     if total <= 0:
@@ -463,7 +474,7 @@ def compute_class_weights(y_train: np.ndarray, n_classes: int = 3) -> Dict[int, 
     weights_raw = np.zeros_like(freq)
     for cls in range(n_classes):
         if counts[cls] > 0:
-            weights_raw[cls] = 1.0 / freq[cls]
+            weights_raw[cls] = (1.0 / freq[cls]) ** power_f
         else:
             weights_raw[cls] = 0.0
 
@@ -750,6 +761,15 @@ def main() -> int:
         action="store_false",
     )
     parser.add_argument(
+        "--class-weight-power",
+        type=float,
+        default=float(os.environ.get("GX1_XGB_CLASS_WEIGHT_POWER", "1.0")),
+        help=(
+            "Exponent for inverse-frequency class weights when enabled. "
+            "1.0=full inverse weights, 0.5=sqrt/mild weights, 0.0=unweighted."
+        ),
+    )
+    parser.add_argument(
         "--log-margin-metrics",
         dest="log_margin_metrics",
         action="store_true",
@@ -772,6 +792,8 @@ def main() -> int:
         require_retrain_vedtak(args.vedtak)
     except GateError as e:
         parser.error(str(e))
+    if float(args.class_weight_power) < 0.0:
+        parser.error(f"--class-weight-power must be >= 0, got {args.class_weight_power}")
     np.random.seed(args.seed)
 
     print("=" * 80)
@@ -819,6 +841,7 @@ def main() -> int:
         )
     print(f"Sessions:            {sessions}")
     print(f"Use class weights:   {args.use_class_weights}")
+    print(f"Class weight power:  {float(args.class_weight_power):.4f}")
     print(f"Log margin metrics:  {args.log_margin_metrics}")
 
     (
@@ -1246,7 +1269,11 @@ def main() -> int:
 
         class_weight: Dict[int, float] = {0: 1.0, 1: 1.0, 2: 1.0}
         if args.use_class_weights:
-            class_weight = compute_class_weights(y_train, n_classes=3)
+            class_weight = compute_class_weights(
+                y_train,
+                n_classes=3,
+                power=float(args.class_weight_power),
+            )
             sample_weight_train = np.array([class_weight[int(y)] for y in y_train], dtype=np.float32)
             sample_weight_val = np.array([class_weight[int(y)] for y in y_val], dtype=np.float32)
 
@@ -1258,7 +1285,8 @@ def main() -> int:
                 "  Class weights:         "
                 f"LONG={class_weight[0]:.6f} "
                 f"SHORT={class_weight[1]:.6f} "
-                f"FLAT={class_weight[2]:.6f}"
+                f"FLAT={class_weight[2]:.6f} "
+                f"power={float(args.class_weight_power):.4f}"
             )
         else:
             print("  Class weights:         DISABLED")
@@ -1338,6 +1366,7 @@ def main() -> int:
                 "LONG": float(class_weight[0]),
                 "SHORT": float(class_weight[1]),
                 "FLAT": float(class_weight[2]),
+                "power": float(args.class_weight_power) if args.use_class_weights else 0.0,
             },
             "val_logloss": val_logloss,
             "val_accuracy": val_accuracy,
@@ -1597,6 +1626,7 @@ def main() -> int:
                 "n_bars": int(args.n_bars) if args.n_bars is not None else None,
                 "min_bars_per_head": int(args.min_bars_per_head),
                 "use_class_weights": bool(args.use_class_weights),
+                "class_weight_power": float(args.class_weight_power) if args.use_class_weights else 0.0,
                 "log_margin_metrics": bool(args.log_margin_metrics),
                 "vedtak": str(args.vedtak) if args.vedtak else None,  # N6 (2026-06-05): retrain provenance in meta
             },
