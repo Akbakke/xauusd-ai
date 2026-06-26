@@ -6,6 +6,7 @@ tabular view from the exact V10 training dataset surfaces and answers:
 * Which active feature families carry learnable y_direction signal?
 * Do audit-only derived candidates add signal?
 * Is the primary 3-bar direction target aligned with longer forward horizons?
+* Is the embedded XGB bridge anchor aligned with the Entry Transformer label?
 
 The tool intentionally does not mutate model bundles or train/serve contracts.
 """
@@ -304,6 +305,115 @@ def _metrics(y_true: np.ndarray, proba: np.ndarray, pred: np.ndarray) -> dict[st
     return out
 
 
+def _normalize_proba(proba: np.ndarray) -> np.ndarray:
+    proba = np.asarray(proba, dtype=np.float64)
+    proba = np.clip(proba, 0.0, 1.0)
+    row_sum = proba.sum(axis=1, keepdims=True)
+    bad = (~np.isfinite(row_sum)) | (row_sum <= 0.0)
+    if np.any(bad):
+        proba[bad[:, 0], :] = 1.0 / max(proba.shape[1], 1)
+        row_sum = proba.sum(axis=1, keepdims=True)
+    return proba / row_sum
+
+
+def _class_share(y: np.ndarray) -> dict[str, float]:
+    vals, counts = np.unique(np.asarray(y, dtype=np.int64), return_counts=True)
+    n = max(int(len(y)), 1)
+    return {str(int(k)): float(v / n) for k, v in zip(vals, counts)}
+
+
+def _bridge_anchor_rows(split: str, y: np.ndarray, x: np.ndarray, specs: Sequence[FeatureSpec]) -> list[dict[str, Any]]:
+    """Measure whether snap p_long/p_short/p_flat predict the same y_direction contract.
+
+    This catches a high-impact silent mismatch: the bridge can be perfectly wired
+    and non-constant while still being trained on a different label definition
+    than the Entry Transformer.
+    """
+    name_to_idx = {s.name: i for i, s in enumerate(specs)}
+    need = ("snap__p_long", "snap__p_short", "snap__p_flat")
+    missing = [name for name in need if name not in name_to_idx]
+    if missing:
+        return [
+            {
+                "split": split,
+                "kind": "xgb_bridge_anchor_alignment",
+                "status": "missing_bridge_columns",
+                "missing": ",".join(missing),
+            }
+        ]
+    idx = [name_to_idx[name] for name in need]
+    proba = _normalize_proba(np.asarray(x[:, idx], dtype=np.float64))
+    pred = np.argmax(proba, axis=1).astype(np.int64)
+    y_arr = np.asarray(y, dtype=np.int64)
+    rows = [
+        {
+            "split": split,
+            "kind": "xgb_bridge_anchor_alignment",
+            "status": "ok",
+            "n": int(len(y_arr)),
+            **_metrics(y_arr, proba, pred),
+            "label_long_rate": float((y_arr == 0).mean()),
+            "label_short_rate": float((y_arr == 1).mean()),
+            "label_flat_rate": float((y_arr == 2).mean()),
+            "anchor_long_rate": float((pred == 0).mean()),
+            "anchor_short_rate": float((pred == 1).mean()),
+            "anchor_flat_rate": float((pred == 2).mean()),
+            "p_long_mean": float(proba[:, 0].mean()),
+            "p_short_mean": float(proba[:, 1].mean()),
+            "p_flat_mean": float(proba[:, 2].mean()),
+            "flat_rate_gap_label_minus_anchor": float((y_arr == 2).mean() - (pred == 2).mean()),
+            "flat_prob_gap_label_minus_mean": float((y_arr == 2).mean() - proba[:, 2].mean()),
+            "label_share": json.dumps(_class_share(y_arr), sort_keys=True),
+            "anchor_share": json.dumps(_class_share(pred), sort_keys=True),
+        }
+    ]
+    return rows
+
+
+def _load_bridge_meta(split_files: dict[str, Path]) -> dict[str, Any]:
+    train_manifest = split_files["train"].with_suffix(".manifest.json")
+    if not train_manifest.exists():
+        return {"status": "missing_dataset_manifest", "manifest": str(train_manifest)}
+    try:
+        manifest = json.loads(train_manifest.read_text(encoding="utf-8"))
+    except Exception as exc:
+        return {"status": "manifest_read_error", "manifest": str(train_manifest), "error": str(exc)}
+    inputs = manifest.get("inputs") or {}
+    xgb_bundle = inputs.get("xgb_bundle")
+    meta_path = Path(xgb_bundle) / "xgb_universal_multihead_v2_meta.json" if xgb_bundle else None
+    out: dict[str, Any] = {
+        "status": "ok" if meta_path and meta_path.exists() else "missing_xgb_meta",
+        "dataset_manifest": str(train_manifest),
+        "xgb_bundle": str(xgb_bundle) if xgb_bundle else None,
+        "xgb_model_file": inputs.get("xgb_model_file"),
+        "xgb_model_sha256": inputs.get("xgb_model_sha256"),
+        "xgb_meta": str(meta_path) if meta_path else None,
+    }
+    if not meta_path or not meta_path.exists():
+        return out
+    try:
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        out.update({"status": "xgb_meta_read_error", "error": str(exc)})
+        return out
+    training = meta.get("training") or {}
+    out.update(
+        {
+            "xgb_version": meta.get("version"),
+            "xgb_signal_bridge_version": meta.get("signal_bridge_version"),
+            "xgb_created_at": meta.get("created_at"),
+            "xgb_training_label_method": training.get("label_method"),
+            "xgb_training_lookahead_bars": training.get("lookahead_bars"),
+            "xgb_training_threshold_bps": training.get("threshold_bps"),
+            "xgb_training_barrier_formula": training.get("barrier_formula"),
+            "xgb_training_session_multipliers": training.get("session_multipliers"),
+            "xgb_head_sample_counts": meta.get("head_sample_counts"),
+            "xgb_head_signatures": meta.get("head_signatures"),
+        }
+    )
+    return out
+
+
 def _make_model(kind: str, *, seed: int, n_jobs: int, xgb_estimators: int):
     if kind == "xgb":
         from xgboost import XGBClassifier
@@ -564,6 +674,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     )
     horizon.to_csv(out_dir / "horizon_label_diagnostics.csv", index=False)
 
+    bridge_anchor = pd.DataFrame(
+        _bridge_anchor_rows("train_sample", y_train, x_train, specs)
+        + _bridge_anchor_rows("val", y_val, x_val, specs)
+        + _bridge_anchor_rows("test", y_test, x_test, specs)
+    )
+    bridge_anchor.to_csv(out_dir / "bridge_anchor_alignment.csv", index=False)
+    bridge_meta = _load_bridge_meta(split_files)
+
     best_family_test = (
         metrics[(metrics["split"] == "test") & metrics["feature_set"].astype(str).str.startswith("family_only:")]
         .sort_values("accuracy", ascending=False)
@@ -588,6 +706,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "test": {str(k): int(v) for k, v in zip(*np.unique(y_test, return_counts=True))},
         },
         "all_feature_metrics": metrics[(metrics["feature_set"] == "all")].to_dict(orient="records"),
+        "bridge_anchor_alignment": bridge_anchor.to_dict(orient="records"),
+        "bridge_meta": bridge_meta,
         "best_family_test_accuracy": best_family_test,
         "top_features": top_features,
         "outputs": {
@@ -596,6 +716,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "xgb_feature_importance": str(out_dir / "xgb_feature_importance.csv"),
             "family_importance": str(out_dir / "family_importance.csv"),
             "horizon_label_diagnostics": str(out_dir / "horizon_label_diagnostics.csv"),
+            "bridge_anchor_alignment": str(out_dir / "bridge_anchor_alignment.csv"),
             "summary": str(out_dir / "summary.json"),
         },
     }

@@ -6,6 +6,7 @@ import pandas as pd
 from gx1.audit.entry_transformer_feature_audit import DERIVED_CANDIDATE_NAMES
 from gx1.audit.entry_transformer_feature_diagnostics import (
     _batch_feature_matrix,
+    _bridge_anchor_rows,
     _mtf_current_matrix,
     _predict_proba,
     _selected_indices,
@@ -100,3 +101,46 @@ def test_predict_proba_normalizes_rows() -> None:
     np.testing.assert_allclose(out.sum(axis=1), 1.0)
     np.testing.assert_allclose(out[0], [1 / 3, 1 / 3, 1 / 3])
     np.testing.assert_allclose(out[1], [1 / 3, 1 / 3, 1 / 3])
+
+
+def test_bridge_anchor_rows_reports_label_alignment_gap() -> None:
+    seq = np.zeros((4, 96, len(ORDERED_SEQ_FIELDS_V3)), dtype=np.float32)
+    snap = np.zeros((4, len(ORDERED_SEQ_FIELDS_V3)), dtype=np.float32)
+    p_idx = [ORDERED_SEQ_FIELDS_V3.index(c) for c in ("p_long", "p_short", "p_flat")]
+    snap[:, p_idx] = np.array(
+        [
+            [0.8, 0.1, 0.1],
+            [0.7, 0.2, 0.1],
+            [0.1, 0.8, 0.1],
+            [0.2, 0.7, 0.1],
+        ],
+        dtype=np.float32,
+    )
+    ctx = np.zeros((4, len(ORDERED_CTX_CONT_NAMES_V3)), dtype=np.float32)
+    cat = np.zeros((4, len(ORDERED_CTX_CAT_NAMES_V3)), dtype=np.int64)
+    pdf = pd.DataFrame(
+        {
+            "time": pd.date_range("2026-06-26T12:00:00Z", periods=4, freq="5min"),
+            "seq": list(seq),
+            "snap": list(snap),
+            "ctx_cont": list(ctx),
+            "ctx_cat": list(cat),
+            "y_direction": [2, 2, 2, 2],
+        }
+    )
+    x, y, specs, _targets = _batch_feature_matrix(
+        pdf,
+        include_seq_summary=False,
+        include_derived=False,
+        mtf_cache=None,
+    )
+
+    rows = _bridge_anchor_rows("unit", y, x, specs)
+
+    assert len(rows) == 1
+    row = rows[0]
+    assert row["status"] == "ok"
+    assert row["accuracy"] == 0.0
+    assert row["label_flat_rate"] == 1.0
+    assert row["anchor_flat_rate"] == 0.0
+    assert row["flat_rate_gap_label_minus_anchor"] == 1.0
