@@ -23,11 +23,12 @@ VEDTAK=entry_v10_6yr_retrain_20260626
 ENG=/home/andre2/src/GX1_ENGINE
 PY=$ENG/.venv/bin/python
 WS=/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605
-# Default to a fresh bodyfix workspace. The original v10_6yr_rebuild_20260626
-# contains a pre-fix train parquet with corrupt body_pct snap/seq_last outliers;
-# do not let skip-if-exists reuse it for retrain. Override with REBUILD_DIR only
-# for deliberate inspection/resume of a known-clean workspace.
-REBUILD=${REBUILD_DIR:-$WS/v10_6yr_rebuild_20260626_bodyfix}
+# Default to a fresh bodyfix+spreadfix workspace. The original v10_6yr_rebuild_20260626
+# contains a pre-fix train parquet with corrupt body_pct snap/seq_last outliers, and the
+# first bodyfix workspace baked spread_bps=0.0 despite bid/ask columns being present.
+# Do not let skip-if-exists reuse either stale dataset for retrain. Override with
+# REBUILD_DIR only for deliberate inspection/resume of a known-clean workspace.
+REBUILD=${REBUILD_DIR:-$WS/v10_6yr_rebuild_20260626_spreadfix}
 TAPE=/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m5_bid_ask__CANONICAL
 BASE28=/home/andre2/GX1_DATA/data/data/prebuilt/BASE28_CANONICAL/CURRENT_MANIFEST.json
 XGB=$WS/xgb_v7
@@ -107,6 +108,24 @@ PYEOF
     --ctx-cont-dim 16 --ctx-cat-dim 5 \
     --tape-root "$TAPE" --raw_m5_parquet $TAPE/year=*/part-000.parquet
 fi
+
+$PY - <<PYEOF
+import numpy as np, pandas as pd
+p="$REBUILD/FULL_PLUS_CTX_v3src.parquet"
+d=pd.read_parquet(p, columns=["bid_close","ask_close","spread_bps"])
+spread=d["spread_bps"].to_numpy(dtype=float)
+bid=d["bid_close"].to_numpy(dtype=float)
+ask=d["ask_close"].to_numpy(dtype=float)
+derived=(ask-bid)/np.maximum(bid,1e-9)*1e4
+derived=np.maximum(np.where(np.isfinite(derived), derived, 0.0), 0.0)
+if float(np.nanstd(spread)) <= 1e-9 and float(np.nanpercentile(derived,95)) > 0.0:
+    raise RuntimeError(
+        "[SPREAD_BPS_GATE_FAIL] FULL_PLUS_CTX has constant spread_bps despite bid/ask signal; "
+        "use a fresh REBUILD_DIR or rebuild stage 3"
+    )
+print("[GATE] FULL_PLUS_CTX spread_bps:", p, "mean=", float(np.nanmean(spread)),
+      "p95=", float(np.nanpercentile(spread,95)), "std=", float(np.nanstd(spread)))
+PYEOF
 
 # ---- STAGE 4: MTF-v2 cache — REBUILD FRESH from new cv3 (existing caches end 06-08/05-25, stale vs build
 #      data 2026-06-26; the fail-closed freshness guard (max_lag 2d) would crash the dataset build). ----

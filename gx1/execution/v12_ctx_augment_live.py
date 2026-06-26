@@ -259,7 +259,9 @@ def _add_spread_atr_bps(cv3: pd.DataFrame) -> None:
     if "bid_close" in cv3.columns and "ask_close" in cv3.columns:
         bid = cv3["bid_close"].astype(float).to_numpy()
         ask = cv3["ask_close"].astype(float).to_numpy()
-        cv3["spread_bps"] = (ask - bid) / np.maximum(bid, ATR_EPS) * 1e4
+        spread_bps = (ask - bid) / np.maximum(bid, ATR_EPS) * 1e4
+        spread_bps = np.where(np.isfinite(spread_bps), spread_bps, 0.0)
+        cv3["spread_bps"] = np.maximum(spread_bps, 0.0)
     else:
         cv3["spread_bps"] = 0.0
 

@@ -271,6 +271,29 @@ def _finite_or_fail(arr: np.ndarray, *, label: str) -> None:
         raise RuntimeError(f"[CTX_NONFINITE_FAIL] {label} has non-finite values: count={n_bad}")
 
 
+def _derive_spread_bps_from_available(df: pd.DataFrame) -> np.ndarray:
+    """Derive at-bar spread bps from the best causal fields available."""
+    if "spread_bps" in df.columns:
+        spread_bps = df["spread_bps"].to_numpy(dtype=float)
+        _finite_or_fail(spread_bps, label="spread_bps(existing)")
+        return np.maximum(spread_bps, 0.0).astype(float)
+    if "bid_close" in df.columns and "ask_close" in df.columns:
+        bid = df["bid_close"].to_numpy(dtype=float)
+        ask = df["ask_close"].to_numpy(dtype=float)
+        bid = np.where(bid > 0, bid, np.nan)
+        spread_bps = (ask - bid) / bid * 1e4
+        spread_bps = np.where(np.isfinite(spread_bps), spread_bps, 0.0)
+        return np.maximum(spread_bps, 0.0).astype(float)
+    if "spread" in df.columns and "close" in df.columns:
+        close = df["close"].to_numpy(dtype=float)
+        close = np.where(close > 0, close, np.nan)
+        spread = df["spread"].to_numpy(dtype=float)
+        spread_bps = (spread / close) * 1e4
+        spread_bps = np.where(np.isfinite(spread_bps), spread_bps, 0.0)
+        return np.maximum(spread_bps, 0.0).astype(float)
+    return np.zeros(len(df), dtype=float)
+
+
 def _rank_bucket_0_4(x: np.ndarray, fallback: int) -> np.ndarray:
     """
     Deterministic 0..4 bucket via percentile rank (average).
@@ -420,19 +443,9 @@ def run_add_ctx_cont_columns(
         _finite_or_fail(atr_bps, label="atr_bps(derived)")
         df_pre["atr_bps"] = atr_bps
 
-    # spread_bps: use existing if present; else derive from spread/close; otherwise 0.0
-    if "spread_bps" in df_pre.columns:
-        spread_bps = df_pre["spread_bps"].to_numpy(dtype=float)
-        _finite_or_fail(spread_bps, label="spread_bps(existing)")
-    elif "spread" in df_pre.columns and "close" in df_pre.columns:
-        close = df_pre["close"].to_numpy(dtype=float)
-        close = np.where(close > 0, close, np.nan)
-        spread = df_pre["spread"].to_numpy(dtype=float)
-        spread_bps = (spread / close) * 1e4
-        spread_bps = np.where(np.isfinite(spread_bps), spread_bps, 0.0)
-        df_pre["spread_bps"] = spread_bps.astype(float)
-    else:
-        df_pre["spread_bps"] = 0.0
+    # spread_bps: use existing if present; else derive from bid/ask close exactly like
+    # live ctx augmentation; else derive from spread/close; otherwise 0.0.
+    df_pre["spread_bps"] = _derive_spread_bps_from_available(df_pre)
 
     # ------------------------------------------------------------
     # CONT: HTF core (D1_dist_from_ema200_atr, H1_range_compression_ratio)
