@@ -89,6 +89,38 @@ BOUNDS: dict[str, tuple[float, float]] = {
 }
 
 
+DERIVED_CANDIDATE_NAMES = [
+    "smc_choch_binary_snap",
+    "smc_choch_recent_tau12",
+    "smc_choch_recent_tau24",
+    "smc_bos_pressure_last12",
+    "smc_bos_pressure_last48",
+    "smc_sweep_bull_pressure_last12",
+    "smc_sweep_bull_pressure_last48",
+    "smc_sweep_size_recent_tau12",
+    "smc_sweep_recency_tau24",
+    "smc_premium_discount_snap",
+    "smc_premium_extreme_snap",
+    "sr_nearest_pivot_abs_atr",
+    "sr_support_proximity_exp",
+    "sr_resistance_proximity_exp",
+    "sr_support_minus_resistance_prox",
+    "liquidity_hi_nearest_abs_atr",
+    "liquidity_lo_nearest_abs_atr",
+    "liquidity_lo_minus_hi_prox",
+    "dip_confirmed_mean_5tf",
+    "dip_confirmed_max_5tf",
+    "dip_proximity_mean_h1h4d1",
+    "struct_tf_agree_count_v3",
+    "struct_dip_x_uptrend_v3",
+    "struct_smc_swing_x_dip_v3",
+]
+
+
+_SEQ_IDX = {name: i for i, name in enumerate(ORDERED_SEQ_FIELDS_V3)}
+_CTX_IDX = {name: i for i, name in enumerate(ORDERED_CTX_CONT_NAMES_V3)}
+
+
 def _json_default(obj: Any) -> Any:
     if isinstance(obj, (np.integer,)):
         return int(obj)
@@ -315,12 +347,116 @@ def _target_stats(path: Path, split: str) -> list[dict[str, Any]]:
     return rows
 
 
-def audit_split(path: Path, split: str, *, batch_size: int, seq_hist_sample_rows: int) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
+def _derived_candidate_matrix(seq: np.ndarray, snap: np.ndarray, ctx: np.ndarray) -> np.ndarray:
+    """Candidate smarter features derived from already-active inputs.
+
+    These are audit-only: they help decide the next contract bump without changing
+    train/serve behavior.
+    """
+    age = np.arange(seq.shape[1] - 1, -1, -1, dtype=np.float32)
+    w12 = np.exp(-age / 12.0).astype(np.float32)
+    w24 = np.exp(-age / 24.0).astype(np.float32)
+
+    choch = seq[:, :, _SEQ_IDX["smc_choch"]]
+    bos_up = seq[:, :, _SEQ_IDX["smc_bos_up"]]
+    bos_down = seq[:, :, _SEQ_IDX["smc_bos_down"]]
+    sweep_up = seq[:, :, _SEQ_IDX["smc_sweep_up"]]
+    sweep_down = seq[:, :, _SEQ_IDX["smc_sweep_down"]]
+    sweep_size = seq[:, :, _SEQ_IDX["smc_sweep_size_atr"]]
+    bars_since_sweep = snap[:, _SEQ_IDX["smc_bars_since_sweep"]]
+    premium = snap[:, _SEQ_IDX["smc_premium_discount"]]
+
+    r = np.stack(
+        [ctx[:, _CTX_IDX["dist_to_R1_atr"]], ctx[:, _CTX_IDX["dist_to_R2_atr"]]],
+        axis=1,
+    )
+    s = np.stack(
+        [ctx[:, _CTX_IDX["dist_to_S1_atr"]], ctx[:, _CTX_IDX["dist_to_S2_atr"]]],
+        axis=1,
+    )
+    r_abs = np.min(np.abs(r), axis=1)
+    s_abs = np.min(np.abs(s), axis=1)
+    r_prox = np.exp(-np.minimum(r_abs, 20.0))
+    s_prox = np.exp(-np.minimum(s_abs, 20.0))
+
+    hi = np.stack(
+        [
+            ctx[:, _CTX_IDX["dist_to_m5_hi_atr"]],
+            ctx[:, _CTX_IDX["dist_to_m15_hi_atr"]],
+            ctx[:, _CTX_IDX["dist_to_h1_hi_atr"]],
+            ctx[:, _CTX_IDX["dist_to_h4_hi_atr"]],
+            ctx[:, _CTX_IDX["dist_to_d1_hi_atr"]],
+        ],
+        axis=1,
+    )
+    lo = np.stack(
+        [
+            ctx[:, _CTX_IDX["dist_to_m5_lo_atr"]],
+            ctx[:, _CTX_IDX["dist_to_m15_lo_atr"]],
+            ctx[:, _CTX_IDX["dist_to_h1_lo_atr"]],
+            ctx[:, _CTX_IDX["dist_to_h4_lo_atr"]],
+            ctx[:, _CTX_IDX["dist_to_d1_lo_atr"]],
+        ],
+        axis=1,
+    )
+    hi_abs = np.min(np.abs(hi), axis=1)
+    lo_abs = np.min(np.abs(lo), axis=1)
+
+    dip_confirmed = np.stack(
+        [
+            ctx[:, _CTX_IDX["dip_confirmed_m5_v3"]],
+            ctx[:, _CTX_IDX["dip_confirmed_m15_v3"]],
+            ctx[:, _CTX_IDX["dip_confirmed_h1_v3"]],
+            ctx[:, _CTX_IDX["dip_confirmed_h4_v3"]],
+            ctx[:, _CTX_IDX["dip_confirmed_d1_v3"]],
+        ],
+        axis=1,
+    )
+    dip_prox = np.stack(
+        [
+            ctx[:, _CTX_IDX["dip_proximity_h1_v3"]],
+            ctx[:, _CTX_IDX["dip_proximity_h4_v3"]],
+            ctx[:, _CTX_IDX["dip_proximity_d1_v3"]],
+        ],
+        axis=1,
+    )
+
+    cols = [
+        snap[:, _SEQ_IDX["smc_choch"]],
+        np.max(choch * w12[None, :], axis=1),
+        np.max(choch * w24[None, :], axis=1),
+        (bos_up[:, -12:] - bos_down[:, -12:]).mean(axis=1),
+        (bos_up[:, -48:] - bos_down[:, -48:]).mean(axis=1),
+        (sweep_down[:, -12:] - sweep_up[:, -12:]).mean(axis=1),
+        (sweep_down[:, -48:] - sweep_up[:, -48:]).mean(axis=1),
+        np.max(sweep_size * w12[None, :], axis=1),
+        np.exp(-np.clip(bars_since_sweep, 0, 999) / 24.0),
+        premium,
+        np.abs(premium - 0.5) * 2.0,
+        np.minimum(r_abs, s_abs),
+        s_prox,
+        r_prox,
+        s_prox - r_prox,
+        hi_abs,
+        lo_abs,
+        np.exp(-np.minimum(lo_abs, 20.0)) - np.exp(-np.minimum(hi_abs, 20.0)),
+        dip_confirmed.mean(axis=1),
+        dip_confirmed.max(axis=1),
+        dip_prox.mean(axis=1),
+        ctx[:, _CTX_IDX["struct_tf_agree_count_v3"]],
+        ctx[:, _CTX_IDX["struct_dip_x_uptrend_v3"]],
+        ctx[:, _CTX_IDX["struct_smc_swing_x_dip_v3"]],
+    ]
+    return np.stack(cols, axis=1).astype(np.float32, copy=False)
+
+
+def audit_split(path: Path, split: str, *, batch_size: int, seq_hist_sample_rows: int) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
     pf = pq.ParquetFile(path)
     snap_acc = NumericAccumulator(ORDERED_SEQ_FIELDS_V3)
     seq_last_acc = NumericAccumulator(ORDERED_SEQ_FIELDS_V3)
     seq_hist_acc = NumericAccumulator(ORDERED_SEQ_FIELDS_V3)
     ctx_acc = NumericAccumulator(ORDERED_CTX_CONT_NAMES_V3)
+    derived_acc = NumericAccumulator(DERIVED_CANDIDATE_NAMES)
     cat_acc = CatAccumulator(ORDERED_CTX_CAT_NAMES_V3)
     seq_hist_rows_left = int(seq_hist_sample_rows)
     mismatch_rows = 0
@@ -348,6 +484,7 @@ def audit_split(path: Path, split: str, *, batch_size: int, seq_hist_sample_rows
         seq_last = seq[:, -1, :]
         seq_last_acc.add(seq_last, y)
         ctx_acc.add(ctx, y)
+        derived_acc.add(_derived_candidate_matrix(seq, snap, ctx), y)
         cat_acc.add(cat)
         mismatch_rows += int(np.any(np.abs(seq_last - snap) > 1e-6, axis=1).sum())
         if seq_hist_rows_left > 0:
@@ -363,6 +500,7 @@ def audit_split(path: Path, split: str, *, batch_size: int, seq_hist_sample_rows
         numeric,
         cat_acc.rows(split=split),
         _target_stats(path, split),
+        derived_acc.rows(split=split, scope="derived_candidate", group="derived_feature_candidate"),
         {
             "split": split,
             "path": str(path),
@@ -494,12 +632,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     numeric_rows: list[dict[str, Any]] = []
     cat_rows: list[dict[str, Any]] = []
     target_rows: list[dict[str, Any]] = []
+    derived_rows: list[dict[str, Any]] = []
     split_summaries: list[dict[str, Any]] = []
     for split, path in _split_files(dataset_dir).items():
-        n, c, t, s = audit_split(path, split, batch_size=int(args.batch_size), seq_hist_sample_rows=int(args.seq_hist_sample_rows))
+        n, c, t, d, s = audit_split(path, split, batch_size=int(args.batch_size), seq_hist_sample_rows=int(args.seq_hist_sample_rows))
         numeric_rows.extend(n)
         cat_rows.extend(c)
         target_rows.extend(t)
+        derived_rows.extend(d)
         split_summaries.append(s)
 
     mtf_summary: dict[str, Any] | None = None
@@ -511,6 +651,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     numeric = pd.DataFrame(numeric_rows)
     categorical = pd.DataFrame(cat_rows)
     targets = pd.DataFrame(target_rows)
+    derived = pd.DataFrame(derived_rows)
     bundle_dirs = [Path(p).expanduser() for p in args.bundle_dir]
     bundle_checks = pd.DataFrame(_bundle_checks(bundle_dirs)) if bundle_dirs else pd.DataFrame()
     risks = _risk_flags(numeric, categorical, bundle_checks)
@@ -519,6 +660,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     numeric.to_csv(out_dir / "feature_stats_by_split.csv", index=False)
     categorical.to_csv(out_dir / "categorical_stats_by_split.csv", index=False)
     targets.to_csv(out_dir / "target_label_stats_by_split.csv", index=False)
+    derived.to_csv(out_dir / "derived_feature_candidates.csv", index=False)
     if not bundle_checks.empty:
         bundle_checks.to_csv(out_dir / "bundle_metadata_contract_checks.csv", index=False)
     risks.to_csv(out_dir / "feature_risk_flags.csv", index=False)
@@ -549,6 +691,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "feature_stats_by_split": str(out_dir / "feature_stats_by_split.csv"),
             "categorical_stats_by_split": str(out_dir / "categorical_stats_by_split.csv"),
             "target_label_stats_by_split": str(out_dir / "target_label_stats_by_split.csv"),
+            "derived_feature_candidates": str(out_dir / "derived_feature_candidates.csv"),
             "bundle_metadata_contract_checks": str(out_dir / "bundle_metadata_contract_checks.csv"),
             "feature_risk_flags": str(out_dir / "feature_risk_flags.csv"),
             "summary": str(out_dir / "summary.json"),
