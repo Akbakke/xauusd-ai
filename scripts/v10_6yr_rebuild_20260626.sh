@@ -31,7 +31,7 @@ WS=/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605
 REBUILD=${REBUILD_DIR:-$WS/v10_6yr_rebuild_20260626_spreadfix}
 TAPE=/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m5_bid_ask__CANONICAL
 BASE28=/home/andre2/GX1_DATA/data/data/prebuilt/BASE28_CANONICAL/CURRENT_MANIFEST.json
-XGB=$WS/xgb_v7
+XGB=${XGB_BUNDLE_DIR:-$WS/xgb_v7}
 CAP="$ENG/scripts/gx1_capped_run.sh --mem 22G --swap 2G --"
 cd "$ENG"
 mkdir -p "$REBUILD"
