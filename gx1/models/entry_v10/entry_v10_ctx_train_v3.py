@@ -339,6 +339,12 @@ def _expected_ctx_cat_dim() -> int:
     return int(CTX_CAT_DIM_V3)
 
 def _build_ordered_ctx_cont_names(ctx_cont_dim: int, base_names: List[str]) -> List[str]:
+    try:
+        from gx1.contracts.signal_bridge_v3 import ORDERED_CTX_CONT_NAMES_V3
+        if int(ctx_cont_dim) == len(ORDERED_CTX_CONT_NAMES_V3):
+            return list(ORDERED_CTX_CONT_NAMES_V3)
+    except Exception:
+        pass
     ordered = list(base_names)
     if ctx_cont_dim > len(ordered):
         ordered = ordered + list(EXT_CTX_FEATURE_NAMES)
