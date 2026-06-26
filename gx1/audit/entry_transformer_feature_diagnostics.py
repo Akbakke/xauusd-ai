@@ -204,17 +204,23 @@ def _batch_feature_matrix(
     )
 
     if include_derived:
-        derived = _derived_candidate_matrix(seq, snap, ctx)
-        parts.append(derived)
+        derived_all = _derived_candidate_matrix(seq, snap, ctx)
+        inactive_derived = [
+            (i, str(name))
+            for i, name in enumerate(DERIVED_CANDIDATE_NAMES)
+            if str(name) not in ORDERED_CTX_CONT_NAMES_V3
+        ]
+        if inactive_derived:
+            parts.append(derived_all[:, [i for i, _ in inactive_derived]])
         specs.extend(
             FeatureSpec(
                 f"derived__{name}",
                 "derived_candidate",
-                str(name),
-                f"derived:{_family(str(name))}",
-                str(name) in ORDERED_CTX_CONT_NAMES_V3,
+                name,
+                f"derived:{_family(name)}",
+                False,
             )
-            for name in DERIVED_CANDIDATE_NAMES
+            for _, name in inactive_derived
         )
 
     mtf, mtf_specs = _mtf_current_matrix(times_ns, mtf_cache)

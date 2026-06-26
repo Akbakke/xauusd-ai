@@ -78,7 +78,7 @@ def test_batch_feature_matrix_covers_active_and_derived_surfaces() -> None:
         + 4 * len(ORDERED_SEQ_FIELDS_V3)
         + len(ORDERED_CTX_CONT_NAMES_V3)
         + len(ORDERED_CTX_CAT_NAMES_V3)
-        + len(DERIVED_CANDIDATE_NAMES)
+        + len([name for name in DERIVED_CANDIDATE_NAMES if name not in ORDERED_CTX_CONT_NAMES_V3])
     )
     assert x.shape == (2, expected_cols)
     np.testing.assert_array_equal(y, [0, 2])
@@ -86,6 +86,7 @@ def test_batch_feature_matrix_covers_active_and_derived_surfaces() -> None:
     assert "label_horizon_bars" in targets
     assert "y_forecast_ret_K1" in targets
     assert any(s.source == "derived_candidate" and not s.active_contract for s in specs)
+    assert not any(s.source == "derived_candidate" and s.active_contract for s in specs)
     assert any(s.source == "seq_mean12" and s.active_contract for s in specs)
 
 
