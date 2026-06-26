@@ -65,10 +65,21 @@ PYEOF
 if have "$REBUILD/FULL_PLUS_CTX_v3src.parquet"; then echo "[3] skip FULL_PLUS_CTX_v3src"; else
   $PY - <<PYEOF
 import glob,pandas as pd
-f=sorted(glob.glob("$REBUILD/cv3/*CANONICAL_V3*.parquet"))[0]
-d=pd.read_parquet(f)
-t=pd.to_datetime(d["time"],utc=True) if "time" in d.columns else pd.to_datetime(d.index,utc=True)
-d[t>=pd.Timestamp("2020-11-09",tz="UTC")].to_parquet("$REBUILD/cv3_modelrange.parquet",index=False)
+def load_t(f):
+    d=pd.read_parquet(f)
+    d.index=pd.to_datetime(d["time"],utc=True) if "time" in d.columns else pd.to_datetime(d.index,utc=True)
+    return d
+v2=load_t("$REBUILD/canonical_features_v2.parquet")
+cv3=load_t(sorted(glob.glob("$REBUILD/cv3/*CANONICAL_V3*.parquet"))[0])
+# cv3 is AUTHORITATIVE (canonical_v3 augment); restore the columns the augment dropped (incl real 'atr')
+# from v2 by time so add_ctx_cont + the V10 builder have the full source the cement had. cv3 wins on shared cols.
+extra=[c for c in v2.columns if c not in cv3.columns and c!="time"]
+for c in extra: cv3[c]=v2[c].reindex(cv3.index)
+cv3=cv3[cv3.index>=pd.Timestamp("2020-11-09",tz="UTC")].copy()
+if "time" not in cv3.columns: cv3["time"]=cv3.index
+print(f"[STAGE3] cv3_modelrange rows={len(cv3)} cols={cv3.shape[1]} restored_from_v2={extra}")
+assert cv3["atr"].notna().all(), "atr still missing/NaN after restore"
+cv3.reset_index(drop=True).to_parquet("$REBUILD/cv3_modelrange.parquet",index=False)
 PYEOF
   $CAP $PY -m gx1.scripts.add_ctx_cont_columns_to_prebuilt \
     --prebuilt_parquet "$REBUILD/cv3_modelrange.parquet" \
