@@ -101,11 +101,18 @@ fi
 # ---- STAGE 5: V10 ctx_v3 6yr dataset (time_split; DOWN-REGIME IN TRAIN) ----
 if have "$REBUILD/v10_dataset_6yr/v10_6yr_dataset_train.parquet"; then echo "[5] skip v10 dataset"; else
   mkdir -p "$REBUILD/v10_dataset_6yr"
+  # CEMENT-FAITHFUL (proven from v10_dataset_m5.log): build via --source-parquet-override on the
+  # cv3-derived FULL_PLUS_CTX (M5-cadence; is_model_bar filter skipped; is_ASIA auto-derived), NOT
+  # --base28_manifest (that M1 base34 path is the EXIT serve lane, missing 15 base80 feats).
   $CAP $PY -m gx1.scripts.build_entry_v10_ctx_training_dataset_v3 \
-    --base28_manifest "$BASE28" --xgb_bundle "$XGB" \
+    --source-parquet-override "$REBUILD/FULL_PLUS_CTX_v3src.parquet" \
+    --xgb-feature-contract-path gx1/xgb/contracts/xgb_input_features_base80_v1.json \
+    --xgb-sanitizer-config-path gx1/xgb/contracts/xgb_input_sanitizer_base80_v1.json \
+    --xgb_bundle "$XGB" \
     --canonical_v2_parquet "$REBUILD/FULL_PLUS_CTX_v3src.parquet" \
     --output "$REBUILD/v10_dataset_6yr/v10_6yr_dataset.parquet" \
     --start 2020-11-09 --end 2026-06-14 \
+    --hold-bars 3 \
     --time_split \
     --train_start $TRAIN_START --train_end $TRAIN_END \
     --val_start $VAL_START --val_end $VAL_END \
