@@ -3,6 +3,7 @@ import numpy as np
 from gx1.audit.entry_transformer_feature_audit import (
     DERIVED_CANDIDATE_NAMES,
     _derived_candidate_matrix,
+    _family,
 )
 from gx1.contracts.signal_bridge_v3 import ORDERED_CTX_CONT_NAMES_V3, ORDERED_SEQ_FIELDS_V3
 
@@ -48,3 +49,10 @@ def test_derived_candidate_matrix_keeps_names_and_core_formulas() -> None:
     np.testing.assert_allclose(out[:, cand_idx["sr_nearest_pivot_abs_atr"]], [1.0, 4.0])
     np.testing.assert_allclose(out[:, cand_idx["dip_confirmed_mean_5tf"]], [0.5, 0.5])
     np.testing.assert_allclose(out[:, cand_idx["dip_proximity_mean_h1h4d1"]], [0.25, 0.25])
+
+
+def test_family_classifies_structure_down_without_day_of_week_collision() -> None:
+    assert _family("struct_continuation_down_h4_v3") == "structure_smc_swing"
+    assert _family("struct_pullback_in_uptrend_d1_v3") == "structure_smc_swing"
+    assert _family("dow_sin") == "session_time"
+    assert _family("downside_pressure") == "other"

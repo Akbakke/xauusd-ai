@@ -143,7 +143,7 @@ def _family(name: str) -> str:
     n = str(name)
     if n.startswith(("p_", "margin", "uncertainty", "entropy")):
         return "xgb_bridge"
-    if n.startswith("smc_") or "swing" in n or "structure" in n:
+    if n.startswith("smc_") or n.startswith("struct_") or "swing" in n or "structure" in n:
         return "structure_smc_swing"
     if "dip" in n or "mfe" in n or "mae" in n or "tail" in n:
         return "path_dip_tail"
@@ -151,7 +151,14 @@ def _family(name: str) -> str:
         return "volatility_range"
     if "ema" in n or "trend" in n or "mom" in n or "slope" in n or "ret_" in n or "roc" in n:
         return "momentum_trend"
-    if "session" in n or "hour" in n or "dow" in n or n.startswith("is_"):
+    if (
+        "session" in n
+        or "hour" in n
+        or n.startswith("dow_")
+        or n.startswith("day_of_week")
+        or n in {"dow_sin", "dow_cos"}
+        or n.startswith("is_")
+    ):
         return "session_time"
     if "wick" in n or "body" in n or "clv" in n:
         return "candle_shape"
