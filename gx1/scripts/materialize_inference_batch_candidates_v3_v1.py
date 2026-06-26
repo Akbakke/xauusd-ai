@@ -10,7 +10,7 @@ Pipeline
 1. Load canonical_v2 prebuilt (314k M5 rows × 136 cols, time-indexed).
 2. Run XGB v4 per session → 7-dim signal_bridge_v3 per bar.
 3. Build (n_m5, 37) per-bar SEQ matrix: 7 XGB-bridge + 30 PER_BAR_PRICE_STATE.
-4. Build (n_m5, 43) ctx_cont and (n_m5, 6) ctx_cat matrices.
+4. Build contract-sized ctx_cont and ctx_cat matrices.
 5. For each M5 bar with ≥96 prior bars: forward V10 v2 in batches.
 6. Apply entry threshold (margin > thresh AND directional > flat).
 7. Emit per-(M5 bar) candidate row.
@@ -180,7 +180,7 @@ def run_xgb_inference(
 def build_v10_input_matrices(
     cv2: pd.DataFrame, bridge: np.ndarray,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Build (n_m5, 41) seq_per_bar, (n_m5, 69) ctx_cont, (n_m5, 6) ctx_cat."""
+    """Build contract-sized seq_per_bar, ctx_cont, and ctx_cat matrices."""
     n = len(cv2)
     # per-bar SEQ = [bridge (7), price_state (34: 30 + 4 volume)]
     per_bar = np.zeros((n, SEQ_SIGNAL_DIM_V3), dtype=np.float32)
@@ -196,7 +196,10 @@ def build_v10_input_matrices(
     for j, fname in enumerate(PER_BAR_PRICE_STATE_FIELDS_V3):
         per_bar[:, 7 + j] = pd.to_numeric(cv2[fname], errors="coerce").fillna(0.0).to_numpy(dtype=np.float32)
 
-    # ctx_cont (43) — derive is_ASIA from session_id if missing
+    from gx1.features.entry_smart_context import add_entry_smart_context_features
+    add_entry_smart_context_features(cv2, strict=True)
+
+    # ctx_cont — derive is_ASIA from session_id if missing
     ctx_cont = np.zeros((n, CTX_CONT_DIM_V3), dtype=np.float32)
     for j, fname in enumerate(ORDERED_CTX_CONT_NAMES_V3):
         if fname in cv2.columns:
@@ -278,7 +281,7 @@ def run_v10_inference(
             for bi, di in enumerate(batch_idx):
                 seq_x[bi] = per_bar[di - seq_len + 1: di + 1]
             snap_x = per_bar[batch_idx]  # (B, 37)
-            ctx_cont_x = ctx_cont[batch_idx]  # (B, 43)
+            ctx_cont_x = ctx_cont[batch_idx]  # (B, CTX_CONT_DIM_V3)
             ctx_cat_x = ctx_cat[batch_idx]  # (B, 6)
 
             seq_t = torch.from_numpy(seq_x).to(device)

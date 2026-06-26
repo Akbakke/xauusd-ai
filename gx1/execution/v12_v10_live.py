@@ -6,10 +6,10 @@ BS512) and produces per-bar entry-context outputs that feed Entry-IQL v2.
 
 V10 v3 input contract (from MASTER_TRANSFORMER_LOCK.json):
     seq_x     : (B, 96, 41)  → 96-bar M5 history of
-                                 [signal_bridge_v1 (7) | price_state (30)]
-    snap_x    : (B, 37)      → snapshot of the decision-bar (same 37 fields)
-    ctx_cont  : (B, 45)      → ORDERED_CTX_CONT_NAMES_V3
-    ctx_cat   : (B, 6)       → ORDERED_CTX_CAT_NAMES_V3 (int64)
+                                 [signal_bridge_v1 (7) | price_state]
+    snap_x    : (B, SEQ_SIGNAL_DIM_V3) → snapshot of the decision-bar
+    ctx_cont  : (B, CTX_CONT_DIM_V3)   → ORDERED_CTX_CONT_NAMES_V3
+    ctx_cat   : (B, CTX_CAT_DIM_V3)    → ORDERED_CTX_CAT_NAMES_V3 (int64)
 
 Outputs per bar:
     direction_logits   (3,)  → [LONG=0, SHORT=1, FLAT=2] pre-softmax
@@ -80,7 +80,7 @@ DEFAULT_BUNDLE_DIR = _resolve_default_v10_bundle()
 SEQ_LEN = 96
 SEQ_DIM = SEQ_SIGNAL_DIM_V3    # contract-derived: 7 bridge + 34 price_state = 41 (was 37)
 SNAP_DIM = SEQ_SIGNAL_DIM_V3
-CTX_CONT_DIM = CTX_CONT_DIM_V3  # one-truth: track the contract (69 w/ group-A parity), not a hardcoded 45
+CTX_CONT_DIM = CTX_CONT_DIM_V3  # one-truth: track the active contract, not a hardcoded legacy dim
 # R4 completion (2026-06-04): contract-driven, mirroring CTX_CONT_DIM above. Was a half-applied-R4
 # hardcoded `6` — the V10 LIVE loader's split-brain twin of the trainer/bootstrap dims R4 made
 # contract-driven. At GX1_REGIME_V4=1 (ctx_cat=5) the old literal rejected the 5-cat regime bundle at
@@ -288,13 +288,16 @@ class V10LiveInference:
 
     @staticmethod
     def _build_ctx_cont(df: pd.DataFrame) -> np.ndarray:
-        n = len(df)
+        from gx1.features.entry_smart_context import add_entry_smart_context_features
+        work = df.copy()
+        add_entry_smart_context_features(work, strict=True)
+        n = len(work)
         out = np.zeros((n, CTX_CONT_DIM), dtype=np.float32)
         for j, fname in enumerate(ORDERED_CTX_CONT_NAMES_V3):
-            if fname in df.columns:
-                out[:, j] = pd.to_numeric(df[fname], errors="coerce").fillna(0.0).to_numpy(dtype=np.float32)
-            elif fname == "is_ASIA" and "session_id" in df.columns:
-                out[:, j] = (df["session_id"].astype(int) == 0).astype(np.float32).to_numpy()
+            if fname in work.columns:
+                out[:, j] = pd.to_numeric(work[fname], errors="coerce").fillna(0.0).to_numpy(dtype=np.float32)
+            elif fname == "is_ASIA" and "session_id" in work.columns:
+                out[:, j] = (work["session_id"].astype(int) == 0).astype(np.float32).to_numpy()
             else:
                 raise RuntimeError(f"missing CTX_CONT col: {fname}")
         return out
@@ -352,7 +355,7 @@ class V10LiveInference:
         # See module-level constants SEQ_DIM / CTX_CONT_DIM / CTX_CAT_DIM_V3.
         seq_np = self._build_seq_matrix(window, bridge_window)        # (SEQ_LEN, SEQ_DIM)
         snap_np = seq_np[-1:].copy()                                   # (1, SEQ_DIM)
-        ctx_cont_np = self._build_ctx_cont(window.iloc[-1:])          # (1, CTX_CONT_DIM)
+        ctx_cont_np = self._build_ctx_cont(window)[-1:].copy()       # (1, CTX_CONT_DIM)
         ctx_cat_np = self._build_ctx_cat(window.iloc[-1:])            # (1, CTX_CAT_DIM_V3)
 
         # Tensors (add batch dim to seq)

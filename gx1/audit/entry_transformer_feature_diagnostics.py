@@ -207,7 +207,13 @@ def _batch_feature_matrix(
         derived = _derived_candidate_matrix(seq, snap, ctx)
         parts.append(derived)
         specs.extend(
-            FeatureSpec(f"derived__{name}", "derived_candidate", str(name), f"derived:{_family(str(name))}", False)
+            FeatureSpec(
+                f"derived__{name}",
+                "derived_candidate",
+                str(name),
+                f"derived:{_family(str(name))}",
+                str(name) in ORDERED_CTX_CONT_NAMES_V3,
+            )
             for name in DERIVED_CANDIDATE_NAMES
         )
 

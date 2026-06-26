@@ -1670,8 +1670,9 @@ def build_dataset_canonical(
     from gx1.contracts.signal_bridge_v3 import (
         ORDERED_CTX_CONT_GROUP_A_PARITY as _GROUP_A_PARITY,
         ORDERED_CTX_CONT_DIP_STRUCT as _DIP_STRUCT_PARITY,
+        ORDERED_CTX_CONT_ENTRY_SMART_DERIVED as _ENTRY_SMART_DERIVED,
     )
-    _computed_not_loaded = set(_VOLUME_FEAT_NAMES) | set(_GROUP_A_PARITY) | set(_DIP_STRUCT_PARITY)
+    _computed_not_loaded = set(_VOLUME_FEAT_NAMES) | set(_GROUP_A_PARITY) | set(_DIP_STRUCT_PARITY) | set(_ENTRY_SMART_DERIVED)
     cv2_needed = list((set(
         list(PER_BAR_PRICE_STATE_FIELDS_V3)
         + list(ORDERED_CTX_CONT_NAMES_V3)
@@ -1919,7 +1920,14 @@ def build_dataset_canonical(
     _head_target_arrays = {c: merged3[c].astype(np.float32).to_numpy() for c in _HEAD_TARGET_COLS}
     log.info("[V10_HEAD_TARGETS] %d head-target columns staged for emission", len(_HEAD_TARGET_COLS))
 
-    # Verify all 30 SIGNAL_FIELDS and all 69 ctx_cont names are present after join
+    # ENTRY smart-context features promoted from audit-only candidates. These are
+    # computed after SMC + Group-A + dip/struct source columns exist, before the
+    # ctx_cont contract gate below.
+    from gx1.features.entry_smart_context import add_entry_smart_context_features as _add_entry_smart
+    _add_entry_smart(merged3, strict=True)
+    log.info("[V10_ENTRY_SMART_CTX] computed %d promoted ctx_cont features", len(_ENTRY_SMART_DERIVED))
+
+    # Verify all contracted signal and ctx_cont names are present after join.
     missing_sig = [f for f in SIGNAL_FIELDS if f not in merged3.columns]
     if missing_sig:
         raise RuntimeError(f"V2_SIGNAL_FIELDS_MISSING after canonical_v2 join: {missing_sig}")

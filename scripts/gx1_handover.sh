@@ -33,7 +33,7 @@ def line(role,extra=""):
     v=a[role]; p=v["path"]; ok="OK " if os.path.exists(p) else "MISSING!!"
     print(f"   [{ok}] {role:10s} {p.replace('/home/andre2/GX1_DATA/','')}  {extra}")
 line("xgb")
-line("v10_entry", "(regime-v4, ctx_cont 123)")
+line("v10_entry", "(regime-v4, ctx_cont contract-driven)")
 line("v3_exit", "(EXIT_IO_V8)")
 line("entry_iql", f"variant={a['entry_iql'].get('active_variant')}  + CONVICTION-GATE overlay")
 line("exit_iql", f"variant={a['exit_iql'].get('active_variant')} agg={a['exit_iql'].get('active_aggregator')} K={a['exit_iql'].get('active_k_horizon')}")

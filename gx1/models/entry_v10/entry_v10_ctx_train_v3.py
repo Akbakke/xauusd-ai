@@ -325,7 +325,7 @@ def _is_vnext() -> bool:
     return _CTX_CONTRACT_MODE == "V_NEXT"
 
 def _expected_ctx_cont_dim() -> int:
-    # V2: signal_bridge_v3 has CTX_CONT_DIM_V3=43 (21 v1 prefix + 22 v2 H1/H4/D1/M15 extension).
+    # V2+: signal_bridge_v3 exposes the active ctx_cont dim through CTX_CONT_DIM_V3.
     # V_NEXT (legacy) was 21. V_BASE (legacy) was 16.
     from gx1.contracts.signal_bridge_v3 import CTX_CONT_DIM_V3
     return int(CTX_CONT_DIM_V3)
@@ -1109,7 +1109,7 @@ class EntryV10CtxDataset(Dataset):
                         float(np.nanmax(mins_to.values)),
                     )
                 elif self.ctx_cont_dim in (43, 45, CTX_CONT_DIM_V3):
-                    # V2 (43) / legacy V3 (45) / current V3 w/ group-A parity (69 = CTX_CONT_DIM_V3)
+                    # V2 (43) / legacy V3 (45) / current V3 variants are contract-sized.
                     self._ctx_vnext_extra = None
                     log.info(
                         "[ENTRY_CTX_VNEXT_EXTRA_PROOF] source=prebuilt_v3 ctx_cont_dim=%d status=present (signal_bridge_v3)",

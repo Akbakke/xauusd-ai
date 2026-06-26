@@ -5,7 +5,7 @@
 # EXACTLY for feature/contract parity (train==serve), but writes to a FRESH dir and NEVER re-pins (live untouched).
 #
 # train==serve target (cemented v10_bundle_clean/bundle_metadata.json, git f87cde48):
-#   seq_input_dim=41 snap_input_dim=41 seq_len=96 ctx_cont_dim=123 ctx_cat_dim=5 num_classes=3
+#   seq_input_dim=41 snap_input_dim=41 seq_len=96 ctx_cont_dim=142 ctx_cat_dim=5 num_classes=3
 #   model_class=EntryV10CtxHybridTransformer  signal_bridge_id=XGB_SIGNAL_BRIDGE_V1  ctx_tag=CTX6CAT5
 #   enable_regime_film=False enable_mtf_direction_head=False enable_pos_enc=True
 #   epochs=10 batch_size=512 lr=3e-4 seed=1337 early_stopping_patience=10 min_delta=1e-4 ckpt_monitor=dir_acc
@@ -39,12 +39,12 @@ mkdir -p "$REBUILD"
 TRAIN_VARIANT=${TRAIN_VARIANT:-baseline}
 case "$TRAIN_VARIANT" in
   baseline)
-    OUT_BUNDLE_DIR=${OUT_BUNDLE_DIR:-$REBUILD/v10_bundle_6yr_baseline_clean}
+    OUT_BUNDLE_DIR=${OUT_BUNDLE_DIR:-$REBUILD/v10_bundle_6yr_baseline_smartctx}
     ;;
   symmetric_negatives)
     export GX1_ENTRY_ALLOW_TRAIN_ENV_OVERRIDES=1
     export ENTRY_SYMMETRIC_NEGATIVES=1
-    OUT_BUNDLE_DIR=${OUT_BUNDLE_DIR:-$REBUILD/v10_bundle_6yr_symneg}
+    OUT_BUNDLE_DIR=${OUT_BUNDLE_DIR:-$REBUILD/v10_bundle_6yr_symneg_smartctx}
     ;;
   *)
     echo "[ABORT] unknown TRAIN_VARIANT=$TRAIN_VARIANT (expected baseline|symmetric_negatives)" >&2
@@ -137,9 +137,11 @@ if have "$GX1_V10_MULTI_TF_V2_CACHE_DIR/manifest.json"; then echo "[4] skip MTF 
 fi
 # do NOT set GX1_MTF_CACHE_ALLOW_STALE — that would forward-fill (freeze) the recent down-regime ctx_cont.
 
+DATASET_DIR=${DATASET_DIR:-$REBUILD/v10_dataset_6yr_smartctx}
+
 # ---- STAGE 5: V10 ctx_v3 6yr dataset (time_split; DOWN-REGIME IN TRAIN) ----
-if ls "$REBUILD/v10_dataset_6yr/"*train*.parquet >/dev/null 2>&1; then echo "[5] skip v10 dataset (HOLD_03B exists)"; else
-  mkdir -p "$REBUILD/v10_dataset_6yr"
+if ls "$DATASET_DIR/"*train*.parquet >/dev/null 2>&1; then echo "[5] skip v10 dataset (smartctx exists)"; else
+  mkdir -p "$DATASET_DIR"
   # CEMENT-FAITHFUL (proven from v10_dataset_m5.log): build via --source-parquet-override on the
   # cv3-derived FULL_PLUS_CTX (M5-cadence; is_model_bar filter skipped; is_ASIA auto-derived), NOT
   # --base28_manifest (that M1 base34 path is the EXIT serve lane, missing 15 base80 feats).
@@ -149,7 +151,7 @@ if ls "$REBUILD/v10_dataset_6yr/"*train*.parquet >/dev/null 2>&1; then echo "[5]
     --xgb-sanitizer-config-path gx1/xgb/contracts/xgb_input_sanitizer_base80_v1.json \
     --xgb_bundle "$XGB" \
     --canonical_v2_parquet "$REBUILD/FULL_PLUS_CTX_v3src.parquet" \
-    --output "$REBUILD/v10_dataset_6yr/v10_6yr_dataset.parquet" \
+    --output "$DATASET_DIR/v10_6yr_dataset.parquet" \
     --start 2020-11-09 --end 2026-06-14 \
     --hold-bars 3 \
     --time_split \
@@ -166,7 +168,7 @@ import numpy as np
 import pyarrow.parquet as pq
 from gx1.audit.entry_transformer_feature_audit import _stack_list_column
 from gx1.contracts.signal_bridge_v3 import ORDERED_SEQ_FIELDS_V3
-f=sorted(glob.glob("$REBUILD/v10_dataset_6yr/*train*.parquet"))[0]
+f=sorted(glob.glob("$DATASET_DIR/*train*.parquet"))[0]
 pf=pq.ParquetFile(f)
 body_idx=ORDERED_SEQ_FIELDS_V3.index("body_pct")
 max_body=0.0
@@ -187,7 +189,7 @@ if [ "${RUN_TRAIN:-0}" = "1" ]; then
   $ENG/scripts/gx1_capped_run.sh --mem 30G --swap 2G -- \
   $PY -m gx1.models.entry_v10.entry_v10_ctx_train_v3 --train \
     --vedtak "$VEDTAK" \
-    --dataset_dir "$REBUILD/v10_dataset_6yr" \
+    --dataset_dir "$DATASET_DIR" \
     --m5-prebuilt-path "$REBUILD/cv3/xauusd_m5_CANONICAL_V3_2020_2026.parquet" \
     --out_bundle_dir "$OUT_BUNDLE_DIR" \
     --seq_len 96 --epochs 10 --batch_size 512 --lr 3e-4 --seed 1337 \

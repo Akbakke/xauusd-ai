@@ -593,7 +593,7 @@ def _main() -> int:
         from gx1.models.entry_v10.entry_v10_ctx_train_v3 import EntryV10CtxDataset
         from gx1.models.entry_v10.entry_v10_bundle import load_entry_v10_ctx_bundle
         meta = load_entry_v10_ctx_bundle(bundle_dir=Path(a.v10_bundle), device="cpu", xgb_models=None).metadata
-        # Use the FULL one-truth ctx_cont names (123). The bundle metadata truncates to ~21, which
+        # Use the FULL one-truth ctx_cont names. The bundle metadata can truncate to legacy dims, which
         # would leave indices unnamed → unmatchable against the allowlist → false fails. The loader
         # passes ctx_cont through in ORDERED_CTX_CONT_NAMES_V3 order (verified raw==loader).
         try:

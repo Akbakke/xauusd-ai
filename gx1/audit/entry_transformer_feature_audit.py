@@ -350,8 +350,8 @@ def _target_stats(path: Path, split: str) -> list[dict[str, Any]]:
 def _derived_candidate_matrix(seq: np.ndarray, snap: np.ndarray, ctx: np.ndarray) -> np.ndarray:
     """Candidate smarter features derived from already-active inputs.
 
-    These are audit-only: they help decide the next contract bump without changing
-    train/serve behavior.
+    Some of these may already be promoted into the active ctx_cont contract; the
+    audit still computes the full candidate surface for continuity across runs.
     """
     age = np.arange(seq.shape[1] - 1, -1, -1, dtype=np.float32)
     w12 = np.exp(-age / 12.0).astype(np.float32)

@@ -8,4 +8,4 @@ def test_v10_metadata_ctx_cont_names_use_full_v3_contract() -> None:
     got = _build_ordered_ctx_cont_names(len(ORDERED_CTX_CONT_NAMES_V3), legacy_base_names)
 
     assert got == list(ORDERED_CTX_CONT_NAMES_V3)
-    assert len(got) == 123
+    assert len(got) == len(ORDERED_CTX_CONT_NAMES_V3)
