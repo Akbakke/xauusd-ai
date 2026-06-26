@@ -36,6 +36,8 @@ KNOWN_ALLOWED_DEAD: Dict[str, str] = {
     "session_id": "0 XGB gain by construction (session-headed model).",
     "is_ASIA": "ditto.", "session_change_flag": "ditto.", "session_tradable": "ditto.",
     "minutes_since_session_open": "ditto.", "minutes_to_next_session_boundary": "ditto.",
+    "_v1_is_EU": "legacy baked session one-hot; 0 XGB gain by construction in session-headed model.",
+    "_v1_is_US": "legacy baked session one-hot; 0 XGB gain by construction in session-headed model.",
     # Known bugs/gaps tracked in the hygiene wave (NOT to be silently forgotten):
     "_v1_atr_regime_id": "BUG-MASK: chained-index BUG → const=1 (basic_v1.py:726). Fix EXISTS behind "
                          "GX1_ATR_REGIME_FIX=1 (bf4a6abd, default OFF — live builds still emit const). REMOVE this "
