@@ -114,6 +114,26 @@ SURVIVAL_LONG_MFE_MIN_BPS = 8.0
 SURVIVAL_LONG_MAE_MAX_BPS = 6.0
 SURVIVAL_LONG_PATH_MIN_BPS = 8.0
 CANONICAL_PREMIUM_LONG_ONLY = False  # V2: BIDIRECTIONAL — emit both long and short labels
+
+
+def final_direction_label_horizon_bars() -> int:
+    """Return the actual horizon used by the emitted final y_direction label."""
+    return int(V11_DIRECTION_HORIZON_BARS)
+
+
+def final_direction_label_horizon_array(n_rows: int) -> np.ndarray:
+    if n_rows < 0:
+        raise ValueError(f"n_rows must be non-negative, got {n_rows}")
+    return np.full(int(n_rows), final_direction_label_horizon_bars(), dtype=np.int32)
+
+
+def direction_label_contract() -> Dict[str, Any]:
+    return {
+        "direction_label_source": "v11_spread_aware_final_pnl_at_direction_horizon",
+        "direction_label_horizon_bars": final_direction_label_horizon_bars(),
+        "direction_tradable_pnl_min_bps": float(V11_TRADABLE_PNL_MIN_BPS),
+    }
+
 # Active teacher runs used by the builder.
 ACTIVE_V12_STRONG_RUN_ROOT = Path("/home/andre2/GX1_DATA/reports/truth_e2e_sanity/ENTRY_WEEKLY_AUDIT_V12_STRONG_20250512_20260408")
 ACTIVE_V12_NORMAL_RUN_ROOT = Path("/home/andre2/GX1_DATA/reports/truth_e2e_sanity/ENTRY_WEEKLY_AUDIT_V12_NORMAL_20250604_20260408")
@@ -1928,7 +1948,19 @@ def build_dataset_canonical(
     y_mfe_first_n = merged3["mfe_first_n_bps"].astype(np.float32).to_numpy()
     y_path_quality = merged3["path_quality_bps"].astype(np.float32).to_numpy()
     y_bad_path = merged3["y_bad_path"].astype(np.float32).to_numpy()
-    y_label_horizon = merged3["label_horizon_bars"].astype(np.int32).to_numpy()
+    fixed_hold_bootstrap_horizon = merged3["label_horizon_bars"].astype(np.int32).to_numpy()
+    if len(fixed_hold_bootstrap_horizon):
+        _bootstrap_unique = sorted({int(v) for v in fixed_hold_bootstrap_horizon.tolist()})
+        log.info(
+            "[ENTRY_FIXED_HOLD_BOOTSTRAP_HORIZON] split=%s values=%s final_direction_horizon=%d",
+            split_name or "full",
+            _bootstrap_unique,
+            final_direction_label_horizon_bars(),
+        )
+    # The early fixed-hold labels are only a bootstrap surface. The final emitted
+    # y_direction is overwritten below by the V11 spread-aware H=24 pnl label, so
+    # label_horizon_bars must describe that final direction target.
+    y_label_horizon = final_direction_label_horizon_array(len(merged3))
     y_path_horizon = merged3["path_quality_horizon_bars"].astype(np.int32).to_numpy()
 
     # V10 v3+ TARGET 1: multi-TF trend-agreement score.
@@ -2569,6 +2601,8 @@ def build_dataset_canonical(
         "rows": int(len(df_out)),
         "seq_len": int(seq_len),
         "hold_bars": _hold_bars,
+        "fixed_hold_bootstrap_bars": _hold_bars,
+        **direction_label_contract(),
         "early_move_threshold_bps": float(early_move_threshold_bps),
         "flat_threshold_bps": float(flat_threshold_bps),
         "base28_manifest": {
@@ -2611,6 +2645,8 @@ def build_dataset_canonical(
             "max_open_trades": 10,
         },
         "strict_entry_labels": {
+            **direction_label_contract(),
+            "fixed_hold_bootstrap_bars": _hold_bars,
             "tradable_mfe_min_bps": float(STRICT_TRADABLE_MFE_MIN_BPS),
             "tradable_mae_max_bps": float(STRICT_TRADABLE_MAE_MAX_BPS),
             "tradable_path_min_bps": float(STRICT_TRADABLE_PATH_MIN_BPS),
@@ -2805,6 +2841,8 @@ def main() -> None:
         "signal_bridge_id": "XGB_SIGNAL_BRIDGE_V2",
         "signal_bridge_contract_sha256": str(SIGNAL_CONTRACT_SHA256),
         "hold_bars": hold_bars,
+        "fixed_hold_bootstrap_bars": hold_bars,
+        **direction_label_contract(),
         "flat_threshold_bps": float(flat_threshold_bps),
     }
 
@@ -2940,6 +2978,8 @@ def main() -> None:
                 "time_split": bool(args.time_split),
                 "seq_len": int(args.seq_len),
                 "hold_bars": int(hold_bars),
+                "fixed_hold_bootstrap_bars": int(hold_bars),
+                **direction_label_contract(),
                 "early_move_threshold_bps": float(args.early_move_threshold_bps),
                 "allow_zero_ctx": bool(args.allow_zero_ctx),
                 "xgb_model_sha256": xgb_model_sha256,
