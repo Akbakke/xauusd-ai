@@ -35,6 +35,22 @@ CAP="$ENG/scripts/gx1_capped_run.sh --mem 22G --swap 2G --"
 cd "$ENG"
 mkdir -p "$REBUILD"
 
+TRAIN_VARIANT=${TRAIN_VARIANT:-baseline}
+case "$TRAIN_VARIANT" in
+  baseline)
+    OUT_BUNDLE_DIR=${OUT_BUNDLE_DIR:-$REBUILD/v10_bundle_6yr_baseline_clean}
+    ;;
+  symmetric_negatives)
+    export GX1_ENTRY_ALLOW_TRAIN_ENV_OVERRIDES=1
+    export ENTRY_SYMMETRIC_NEGATIVES=1
+    OUT_BUNDLE_DIR=${OUT_BUNDLE_DIR:-$REBUILD/v10_bundle_6yr_symneg}
+    ;;
+  *)
+    echo "[ABORT] unknown TRAIN_VARIANT=$TRAIN_VARIANT (expected baseline|symmetric_negatives)" >&2
+    exit 1
+    ;;
+esac
+
 # Down-regime IN train; small honest OOT tail held out.
 TRAIN_START=2020-11-09T00:00:00Z ; TRAIN_END=2026-04-30T23:59:59Z
 VAL_START=2026-05-01T00:00:00Z   ; VAL_END=2026-05-20T23:59:59Z
@@ -154,7 +170,7 @@ if [ "${RUN_TRAIN:-0}" = "1" ]; then
     --vedtak "$VEDTAK" \
     --dataset_dir "$REBUILD/v10_dataset_6yr" \
     --m5-prebuilt-path "$REBUILD/cv3/xauusd_m5_CANONICAL_V3_2020_2026.parquet" \
-    --out_bundle_dir "$REBUILD/v10_bundle_6yr" \
+    --out_bundle_dir "$OUT_BUNDLE_DIR" \
     --seq_len 96 --epochs 10 --batch_size 512 --lr 3e-4 --seed 1337 \
     --early-stopping-patience 10 --early-stopping-min-delta 1e-4 \
     --num-workers 8
