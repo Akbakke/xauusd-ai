@@ -554,6 +554,44 @@ def _require_nonneg(name: str, v: float) -> None:
         raise RuntimeError(f"[ENTRY_COST_INVALID] {name} must be >= 0.0, got {v}")
 
 
+def _build_active_head_names(
+    *,
+    enable_tf_agreement_head: bool,
+    enable_path_quality_variance_head: bool,
+    enable_position_size_head: bool,
+    enable_hold_horizon_head: bool,
+    enable_mtf_direction_head: bool,
+    enable_dip_head: bool,
+    enable_forecast_head: bool,
+    enable_timing_head: bool,
+    enable_tail_risk_head: bool,
+    enable_vol_forecast_head: bool,
+) -> List[str]:
+    heads = [
+        "direction",
+        "tradable",
+        "path_quality",
+        "mfe_first_n",
+        "bad_path",
+        "clean_edge",
+        "survival",
+    ]
+    optional_heads = [
+        ("tf_agreement", enable_tf_agreement_head),
+        ("path_quality_log_var", enable_path_quality_variance_head),
+        ("position_size", enable_position_size_head),
+        ("hold_horizon", enable_hold_horizon_head),
+        ("mtf_direction", enable_mtf_direction_head),
+        ("dip", enable_dip_head),
+        ("forecast", enable_forecast_head),
+        ("timing", enable_timing_head),
+        ("tail_risk", enable_tail_risk_head),
+        ("vol_forecast", enable_vol_forecast_head),
+    ]
+    heads.extend(name for name, enabled in optional_heads if bool(enabled))
+    return heads
+
+
 # V12.2: grad-clip norm + weight-decay set at runtime via CLI flag. Module-level
 # so we don't have to thread through 6 layers of function args.
 _GRAD_CLIP_NORM: float = 1.0
@@ -3655,6 +3693,19 @@ def run_train(
                 {k: round(v, 4) for k, v in learned_tf_input_scales.items()},
             )
 
+    active_heads = _build_active_head_names(
+        enable_tf_agreement_head=enable_tf_agreement_head,
+        enable_path_quality_variance_head=enable_path_quality_variance_head,
+        enable_position_size_head=enable_position_size_head,
+        enable_hold_horizon_head=enable_hold_horizon_head,
+        enable_mtf_direction_head=enable_mtf_direction_head,
+        enable_dip_head=enable_dip_head,
+        enable_forecast_head=enable_forecast_head,
+        enable_timing_head=enable_timing_head,
+        enable_tail_risk_head=enable_tail_risk_head,
+        enable_vol_forecast_head=enable_vol_forecast_head,
+    )
+
     meta = {
         "created_at_utc": _utc_now(),
         "git_commit": _git_commit(),
@@ -3683,10 +3734,11 @@ def run_train(
             "h1_seq_dim": int(_mtf_feat_count) if enable_multi_tf else 0,
             "h4_seq_dim": int(_mtf_feat_count) if enable_multi_tf else 0,
             "d1_seq_dim": int(_mtf_feat_count) if enable_multi_tf else 0,
-            "m15_seq_len": int(multi_tf_seq_len),
+            "m15_seq_len": int(_m15_len),
             "h1_seq_len": int(multi_tf_seq_len),
             "h4_seq_len": int(_h4_len),
             "d1_seq_len": int(_d1_len),
+            "multi_tf_scale": float(multi_tf_scale),
             "feature_contract": "MULTI_TF_PER_BAR_V2" if _mtf_v2 else "MULTI_TF_PER_BAR_V1",
         },
         # 2026-06-02: per-TF learnable input scaling marker. Inference must
@@ -3735,6 +3787,27 @@ def run_train(
         "anchor_source": "signal7_p_long_short_flat",
         "residual_scale": float(ENTRY_RESIDUAL_SCALE),
         "anchor_eps": float(ENTRY_ANCHOR_EPS),
+        "class_weights": {
+            "long": float(long_class_weight),
+            "short": float(short_class_weight),
+            "flat": float(flat_class_weight),
+        },
+        "cost_matrix": {
+            "long_to_short": float(ENTRY_COST_LONG_TO_SHORT),
+            "long_to_flat": float(ENTRY_COST_LONG_TO_FLAT),
+            "short_to_long": float(ENTRY_COST_SHORT_TO_LONG),
+            "short_to_flat": float(ENTRY_COST_SHORT_TO_FLAT),
+            "flat_to_long": float(ENTRY_COST_FLAT_TO_LONG),
+            "flat_to_short": float(ENTRY_COST_FLAT_TO_SHORT),
+        },
+        "cost_sensitive_loss_enabled": bool(ENTRY_COST_SENSITIVE_ENABLED),
+        "cost_sensitive_loss_scale": float(ENTRY_COST_SENSITIVE_SCALE),
+        "pred_balance_alpha": float(ENTRY_PRED_BALANCE_ALPHA),
+        "pred_balance_target": str(ENTRY_PRED_BALANCE_TARGET),
+        "residual_side_bias_alpha": float(ENTRY_RESIDUAL_SIDE_BIAS_ALPHA),
+        "direction_ce_scale": float(ENTRY_DIRECTION_CE_SCALE),
+        "grad_clip_norm": float(_GRAD_CLIP_NORM),
+        "weight_decay": float(_WEIGHT_DECAY),
         "train_recipe": {
             "direction_ce_scale": float(ENTRY_DIRECTION_CE_SCALE),
             "residual_scale": float(ENTRY_RESIDUAL_SCALE),
@@ -3760,15 +3833,7 @@ def run_train(
             "symmetric_negatives": bool(ENTRY_SYMMETRIC_NEGATIVES),  # A7 2026-06-06: long==short
             "teacher_v6_mined": bool(ENTRY_CLEAN_EDGE_RANKING_WEIGHT > 0.0),  # A5: honest (dead targets ⇒ off)
             "aux_regression_positive_only": True,
-            "active_heads": [
-                "direction",
-                "tradable",
-                "path_quality",
-                "mfe_first_n",
-                "bad_path",
-                "clean_edge",
-                "survival",
-            ],
+            "active_heads": active_heads,
         },
         "lane_contract": {
             # A7 2026-06-06: model trained BIDIRECTIONAL (symmetric long/short); the stale

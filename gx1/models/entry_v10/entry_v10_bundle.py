@@ -61,6 +61,16 @@ _ENTRY_HEAD_STATE_KEYS: Dict[str, Set[str]] = {
     "bad_path": {"head_bad_path.weight", "head_bad_path.bias"},
     "clean_edge": {"head_clean_edge.weight", "head_clean_edge.bias"},
     "survival": {"head_survival.weight", "head_survival.bias"},
+    "tf_agreement": {"head_tf_agreement.weight", "head_tf_agreement.bias"},
+    "path_quality_log_var": {"head_path_quality_log_var.weight", "head_path_quality_log_var.bias"},
+    "position_size": {"head_position_size.weight", "head_position_size.bias"},
+    "hold_horizon": {"head_hold_horizon.weight", "head_hold_horizon.bias"},
+    "mtf_direction": {"head_mtf_direction.weight", "head_mtf_direction.bias", "mtf_dir_scale"},
+    "dip": {"head_dip.weight", "head_dip.bias"},
+    "forecast": {"head_forecast.weight", "head_forecast.bias"},
+    "timing": {"head_timing.weight", "head_timing.bias"},
+    "tail_risk": {"head_tail_risk.weight", "head_tail_risk.bias"},
+    "vol_forecast": {"head_vol_forecast.weight", "head_vol_forecast.bias"},
 }
 
 
