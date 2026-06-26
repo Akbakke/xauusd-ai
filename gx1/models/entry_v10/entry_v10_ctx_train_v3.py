@@ -231,7 +231,7 @@ ENTRY_COST_FLAT_TO_SHORT = float(_env_str("ENTRY_COST_FLAT_TO_SHORT", "1.60"))
 ENTRY_PRED_BALANCE_ALPHA = float(_env_str("ENTRY_PRED_BALANCE_ALPHA", "0.0"))
 ENTRY_PRED_BALANCE_TARGET = _env_str("ENTRY_PRED_BALANCE_TARGET", "label").lower()
 ENTRY_RESIDUAL_SIDE_BIAS_ALPHA = float(_env_str("ENTRY_RESIDUAL_SIDE_BIAS_ALPHA", "0.0"))
-ENTRY_DIRECTION_CE_SCALE = float(_env_str("ENTRY_DIRECTION_CE_SCALE", "1.40"))
+ENTRY_DIRECTION_CE_SCALE = float(_env_str("ENTRY_DIRECTION_CE_SCALE", "1.30"))
 # Forceful MTF→direction (2026-06-06): aux CE on the multi-TF direction logits vs
 # the direction label, forcing the 5 multi-TF streams to predict direction.
 # Env-overridable; default 0.3 (secondary to the main direction CE).
@@ -258,10 +258,10 @@ ENTRY_AUX_EARLY_WEIGHT = float(_env_str("ENTRY_AUX_EARLY_WEIGHT", "0.0"))
 ENTRY_AUX_QUALITY_WEIGHT = float(_env_str("ENTRY_AUX_QUALITY_WEIGHT", "0.0"))
 ENTRY_AUX_PATH_WEIGHT = float(_env_str("ENTRY_AUX_PATH_WEIGHT", "0.90"))
 ENTRY_AUX_MFE_WEIGHT = float(_env_str("ENTRY_AUX_MFE_WEIGHT", "0.25"))
-ENTRY_AUX_TRADABLE_WEIGHT = float(_env_str("ENTRY_AUX_TRADABLE_WEIGHT", "1.20"))
+ENTRY_AUX_TRADABLE_WEIGHT = float(_env_str("ENTRY_AUX_TRADABLE_WEIGHT", "1.15"))
 # Canonical lane keeps bad-path parked until it shows clean incremental value.
-ENTRY_AUX_BAD_PATH_WEIGHT = float(_env_str("ENTRY_AUX_BAD_PATH_WEIGHT", "0.30"))
-ENTRY_AUX_BAD_PATH_POS_WEIGHT_CAP = float(_env_str("ENTRY_AUX_BAD_PATH_POS_WEIGHT_CAP", "18.0"))
+ENTRY_AUX_BAD_PATH_WEIGHT = float(_env_str("ENTRY_AUX_BAD_PATH_WEIGHT", "0.0"))
+ENTRY_AUX_BAD_PATH_POS_WEIGHT_CAP = float(_env_str("ENTRY_AUX_BAD_PATH_POS_WEIGHT_CAP", "20.0"))
 # Scale bps targets to keep regression losses in a stable range
 ENTRY_AUX_QUALITY_SCALE_BPS = float(_env_str("ENTRY_AUX_QUALITY_SCALE_BPS", "50.0"))
 ENTRY_AUX_PATH_SCALE_BPS = float(_env_str("ENTRY_AUX_PATH_SCALE_BPS", "50.0"))
@@ -281,12 +281,12 @@ ENTRY_TEASER_LONG_PROB_PENALTY = float(_env_str("ENTRY_TEASER_LONG_PROB_PENALTY"
 ENTRY_SYMMETRIC_NEGATIVES = _env_str("ENTRY_SYMMETRIC_NEGATIVES", "0") in {"1", "true", "yes", "on"}
 ENTRY_BAD_PATH_CE_MULTIPLIER = float(_env_str("ENTRY_BAD_PATH_CE_MULTIPLIER", "1.50"))
 ENTRY_BAD_PATH_PROB_PENALTY = float(_env_str("ENTRY_BAD_PATH_PROB_PENALTY", "0.24"))
-ENTRY_AUX_CLEAN_EDGE_WEIGHT = float(_env_str("ENTRY_AUX_CLEAN_EDGE_WEIGHT", "0.55"))
-ENTRY_AUX_SURVIVAL_WEIGHT = float(_env_str("ENTRY_AUX_SURVIVAL_WEIGHT", "0.08"))
+ENTRY_AUX_CLEAN_EDGE_WEIGHT = float(_env_str("ENTRY_AUX_CLEAN_EDGE_WEIGHT", "0.45"))
+ENTRY_AUX_SURVIVAL_WEIGHT = float(_env_str("ENTRY_AUX_SURVIVAL_WEIGHT", "0.10"))
 ENTRY_AUX_CLEAN_EDGE_POS_WEIGHT_CAP = float(_env_str("ENTRY_AUX_CLEAN_EDGE_POS_WEIGHT_CAP", "16.0"))
 ENTRY_AUX_SURVIVAL_POS_WEIGHT_CAP = float(_env_str("ENTRY_AUX_SURVIVAL_POS_WEIGHT_CAP", "10.0"))
-ENTRY_CLEAN_EDGE_RANKING_WEIGHT = float(_env_str("ENTRY_CLEAN_EDGE_RANKING_WEIGHT", "0.35"))
-ENTRY_CLEAN_EDGE_RANKING_MARGIN = float(_env_str("ENTRY_CLEAN_EDGE_RANKING_MARGIN", "0.14"))
+ENTRY_CLEAN_EDGE_RANKING_WEIGHT = float(_env_str("ENTRY_CLEAN_EDGE_RANKING_WEIGHT", "0.25"))
+ENTRY_CLEAN_EDGE_RANKING_MARGIN = float(_env_str("ENTRY_CLEAN_EDGE_RANKING_MARGIN", "0.12"))
 
 # -----------------------------------------------------------------------------
 # Micro features (ctx_cont extension)
