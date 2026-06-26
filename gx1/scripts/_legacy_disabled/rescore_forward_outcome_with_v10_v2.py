@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Re-score forward-outcome dataset with V10 V2 prelim outputs.
+"""LEGACY DISABLED: partial V10 rescore kept for audit only.
+
+Re-score forward-outcome dataset with V10 V2 prelim outputs.
 
 Reads each per-week parquet in the existing forward-outcome dir, runs V10 V2
 prelim forward on each candidate (matched by time to V10 training dataset for

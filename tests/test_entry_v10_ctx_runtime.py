@@ -80,15 +80,25 @@ class TestEntryV10CtxProof:
     """Test 3: Proof test - same sample, ctx vs permuted ctx → output differs."""
     
     def test_ctx_consumption_proof(self):
-        """Test that ctx actually affects model output."""
+        """Test that ctx can affect output once the residual head has learned weights.
+
+        The production model intentionally zero-inits head_direction so a cold-start
+        bundle equals the XGB anchor before training. This proof should test the ctx
+        path itself, not fail on that safe initialization.
+        """
         from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import EntryV10CtxHybridTransformer
-        
+
+        torch.manual_seed(1337)
         # Create model
         model = EntryV10CtxHybridTransformer(
             seq_input_dim=16,
             snap_input_dim=88,
             seq_len=30,
         )
+        with torch.no_grad():
+            torch.manual_seed(20260626)
+            model.head_direction.weight.normal_(mean=0.0, std=0.05)
+            model.head_direction.bias.zero_()
         model.eval()
         
         # Create dummy inputs
@@ -103,7 +113,7 @@ class TestEntryV10CtxProof:
         trend_regime_id = torch.LongTensor([1])  # [1]
         
         # Pass A: Real ctx
-        ctx_cat_A = torch.LongTensor([[1, 1, 1, 1, 1, 1]])  # [1, 6]
+        ctx_cat_A = torch.LongTensor([[0, 1, 2, 3, 4, 5]])  # [1, 6]
         ctx_cont_A = torch.FloatTensor([[50.0, 10.0, 0.0, 1.0, 0.5, 1.0]])  # [1, 6]
         
         with torch.no_grad():

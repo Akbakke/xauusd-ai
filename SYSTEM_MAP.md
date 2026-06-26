@@ -73,6 +73,8 @@ XGB, multi-TF, datasets). §16-18 = gotchas, flags, protected core. Then the mai
     mean(margin²)) and does NOT reset it when POW changes; flipping only `POW=1.0` leaves REF=0.3318 → sizes ~everything
     to 2× (clipped), NOT gentle margin¹. Mean-preserving per-POW population REF (2026): POW 1.0→0.7046, 1.5→0.6347,
     2.0→0.5859 (2026 mean(margin²)=0.5859 > 0.3318 → live runs ~1.77× avg, the intended "more gas").
+    `V12Pipeline.make_entry_decision()` must surface `margin`/`margin_top1_top2` at top level because
+    `v12_paper_runner.size_units()` reads the decision dict, not the local Entry-IQL candidate.
   - **TRUE cap-3 per-M1-bar mark-to-market account DD = 564 bps, ret/DD 30.5** (the inverse-ATR leg already de-risks the
     EXTREME-vol tail; worst moment = ≤3 concurrent same-side trades underwater that RECOVER, not lost capital). The "366"
     is a realized-bps proxy; "888" is margin²-only (omits the inverse-ATR leg). Entry-IQL retrain on the toxic LONG
@@ -107,6 +109,22 @@ Entry-snapshot (cols 0-4, frozen, from **V10 direction softmax** — candidate-g
 - `direction_probs = softmax(V10 direction_logits)` in order **[long,short,flat]** (serve [v12_v10_live.py:394](gx1/execution/v12_v10_live.py#L394)).
 - `p_hat = max(3)`; `uncertainty = 1 - p_hat`; `entropy = Shannon natural-log` (`_compute_entropy_at_entry` == serve `_shannon_entropy`).
 - **`margin = top1 - top2` (sorted[-1]-sorted[-2]), NOT `abs(p_long-p_short)`** — serve bug fixed 2026-06-05 in `build_v3_overlay` AND `build_v10_entry_snapshot_features`. (Same formula in the bridge: [signal_bridge_v3.py:62-68](gx1/contracts/signal_bridge_v3.py#L62).)
+- **V10 forward-outcome rescore contract:** use `gx1/scripts/rescore_forward_outcome_v10v2_full.py` for new-eyes retrains.
+  It must overwrite the base Entry-IQL state columns as well as emit `_v2` lineage columns; `_v2`-only output is
+  invalid because `materialize_build_entry_iql_v2.py` reads base names (`p_long`, `margin`, `bad_path_prob`,
+  `v10_dip_*`, ...). The legacy partial rescore is disabled under `gx1/scripts/_legacy_disabled/`.
+- **V10 `--eval` contract:** eval must use the same manifest-driven runtime bundle loader and multi-TF dataset kwargs
+  as train/export. Manual single-TF model construction is invalid for modern V10 bundles with cross-TF/new-head params.
+- **ACTIVE Entry/Exit feature-coverage contract (2026-06-26 audit):** active Entry-IQL
+  `entry_iql_volbal_20260611/R_WAIT_OPP_K96_LAM50_SYM/FOLD_1` loads 197 features / 189 required; live candidate
+  audit had `required_missing=0` and nonzero V10 new-head groups (`v10_dip`, `v10_forecast`, `v10_timing`,
+  `v10_tail_risk`, `v10_vol_forecast`). Active Exit-IQL `exit_iql_retrain_clean_20260609/R_NET_REAL/FOLD_1`
+  loads 209 features / 202 required; live-loader bar_state audit had `required_missing=0` after PrebuiltStateLoader
+  AUG64 augmentation. Regression: `tests/test_iql_adapter_emitter_parity.py` now has PROJECT_STATE-following active
+  Entry coverage and an opt-in full live-loader Exit coverage test (`GX1_RUN_LIVE_LOADER_CONTRACT_TESTS=1`).
+- **Active Entry-IQL artifact footgun:** `summary_v1.input_forward_outcome_dir_v1` is not by itself the final
+  197-dim state contract; some source forward_outcome shards lack required dip/struct cols. Use the bundle adapter
+  feature list plus `drift_reference_v1.parquet` for active state-contract tests.
 
 ## 5. Live M1 source + the two ATRs
 

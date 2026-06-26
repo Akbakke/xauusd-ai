@@ -3900,6 +3900,7 @@ def run_eval(
     train_parquet: Optional[Path],
     val_parquet: Optional[Path],
     test_parquet: Path,
+    m5_prebuilt_path: Path,
     seq_len: int,
     seed: int,
     device: torch.device,
@@ -3947,21 +3948,37 @@ def run_eval(
 
     state_dict_sha = _sha256_file(model_path)
 
-    model = EntryV10CtxHybridTransformer(
-        seq_input_dim=SEQ_SIGNAL_DIM,
-        snap_input_dim=SNAP_SIGNAL_DIM,
-        seq_len=seq_len,
-        ctx_cont_dim=ctx_cont_dim,
-        ctx_cat_dim=ctx_cat_dim,
-    )
-    state = torch.load(model_path, map_location="cpu")
-    _load_entry_model_state_compat(model, state, label="run_eval")
-    model = model.to(device)
+    # Eval must construct the exact bundle architecture (multi-TF V2, cross-TF
+    # attention, new aux heads, optional scale params). Reusing the runtime bundle
+    # loader prevents --eval from drifting behind training/export.
+    from gx1.models.entry_v10.entry_v10_bundle import load_entry_v10_ctx_bundle
+    bundle = load_entry_v10_ctx_bundle(bundle_dir=bd, device=str(device), xgb_models=None)
+    model = bundle.transformer_model
+
+    mtf_meta = (meta.get("multi_tf") or {}) if isinstance(meta, dict) else {}
+    eval_dataset_kwargs: Dict[str, Any] = {}
+    if bool(mtf_meta.get("enabled", False)):
+        m5_path = Path(m5_prebuilt_path).expanduser()
+        _require(m5_path.is_file(), f"[EVAL_M5_PREBUILT_MISSING] {m5_path}")
+        mtf_seq_len = int(mtf_meta.get("m15_seq_len", 96))
+        eval_dataset_kwargs = {
+            "enable_multi_tf": True,
+            "m5_prebuilt_path": m5_path,
+            "multi_tf_seq_len": mtf_seq_len,
+            "per_tf_seq_lens": {
+                "M5": int(mtf_meta.get("m5_seq_len", mtf_seq_len)),
+                "M15": int(mtf_meta.get("m15_seq_len", mtf_seq_len)),
+                "H1": int(mtf_meta.get("h1_seq_len", mtf_seq_len)),
+                "H4": int(mtf_meta.get("h4_seq_len", mtf_seq_len)),
+                "D1": int(mtf_meta.get("d1_seq_len", mtf_seq_len)),
+            },
+        }
 
     dataset = EntryV10CtxDataset(
         parquet_path=test_parquet,
         seq_len=seq_len,
         allow_constant_labels=True,
+        **eval_dataset_kwargs,
     )
     _require(len(dataset) > 0, "[EVAL_NO_SAMPLES]")
     sample = dataset[0]
@@ -4075,6 +4092,7 @@ def run_eval(
         train_parquet=train_parquet,
         val_parquet=val_parquet,
         test_parquet=test_parquet,
+        dataset_kwargs=eval_dataset_kwargs,
     )
 
 
@@ -4315,6 +4333,7 @@ def _run_entry_training_bias_audit(
     train_parquet: Optional[Path],
     val_parquet: Optional[Path],
     test_parquet: Optional[Path],
+    dataset_kwargs: Optional[Dict[str, Any]] = None,
 ) -> None:
     splits = {
         "train": train_parquet,
@@ -4340,6 +4359,7 @@ def _run_entry_training_bias_audit(
             parquet_path=Path(parquet_path),
             seq_len=seq_len,
             allow_constant_labels=True,
+            **(dataset_kwargs or {}),
         )
         if len(dataset) == 0:
             log.warning("[ENTRY_TRAINING_BIAS_AUDIT] split=%s status=skip reason=empty_dataset", split_name)
@@ -4773,6 +4793,7 @@ def main() -> None:
             train_parquet=train_parquet,
             val_parquet=val_parquet,
             test_parquet=test_parquet,
+            m5_prebuilt_path=args.m5_prebuilt_path,
             seq_len=args.seq_len,
             seed=args.seed,
             device=device,

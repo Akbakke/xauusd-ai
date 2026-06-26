@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Full V10 V2 batch inference over canonical_v3 + join into forward-outcome.
+"""Full V10 batch inference over canonical_v3 + join into forward-outcome.
 
-Unlike rescore_forward_outcome_with_v10_v2.py (which only covers candidates
-present in V10 training dataset, 47.6% match), this script:
+Unlike the legacy-disabled rescore_forward_outcome_with_v10_v2.py (which only
+covered candidates present in the V10 training dataset, 47.6% match), this script:
 
   1. Loads canonical_v3 M5 prebuilt (456K bars, 2020-2026)
   2. Augments via augment_canonical_v3 (adds session/interaction features)
@@ -46,13 +46,101 @@ DEFAULT_XGB_CONTRACT = REPO_ROOT / "gx1" / "xgb" / "contracts" / "xgb_input_feat
 DEFAULT_XGB_SANITIZER = REPO_ROOT / "gx1" / "xgb" / "contracts" / "xgb_input_sanitizer_base80_v1.json"
 DEFAULT_V2_CACHE_DIR = Path("/home/andre2/GX1_DATA/data/data/prebuilt/MULTI_TF_V2_CACHE")
 
-# V10 output cols (snapshot at decision bar) — match the _v2 suffix used downstream.
-V10_OUT_COLS = [
+# V10 output cols (snapshot at decision bar). Keep the explicit _v2 columns for
+# lineage/debugging, but also overwrite the base names Entry-IQL actually reads.
+V10_V2_OUT_COLS = [
     "p_long_v2", "p_short_v2", "p_flat_v2", "p_hat_v2",
     "tradable_prob_v2", "mfe_first_n_pred_v2", "path_quality_pred_v2", "bad_path_prob_v2",
     "direction_logit_long_v2", "direction_logit_short_v2", "direction_logit_flat_v2",
     "path_quality_std_v2",
 ]
+V10_V2_TO_BASE = {
+    "p_long_v2": "p_long",
+    "p_short_v2": "p_short",
+    "p_flat_v2": "p_flat",
+    "p_hat_v2": "p_hat",
+    "tradable_prob_v2": "tradable_prob",
+    "mfe_first_n_pred_v2": "mfe_first_n_pred",
+    "path_quality_pred_v2": "path_quality_pred",
+    "bad_path_prob_v2": "bad_path_prob",
+    "direction_logit_long_v2": "direction_logit_long",
+    "direction_logit_short_v2": "direction_logit_short",
+    "direction_logit_flat_v2": "direction_logit_flat",
+    "path_quality_std_v2": "path_quality_std",
+}
+V10_DERIVED_BASE_COLS = ["margin", "uncertainty_score", "entropy_v1"]
+_NEW_HEAD_DIMS = {"dip": 18, "forecast": 4, "timing": 12, "tail_risk": 6, "vol_forecast": 3}
+V10_OUT_COLS = V10_V2_OUT_COLS + list(V10_V2_TO_BASE.values()) + V10_DERIVED_BASE_COLS
+
+
+def _sigmoid_np(x: np.ndarray) -> np.ndarray:
+    z = np.clip(x.astype(np.float64), -60.0, 60.0)
+    return 1.0 / (1.0 + np.exp(-z))
+
+
+def _softmax_np(logits: np.ndarray) -> np.ndarray:
+    z = logits.astype(np.float64) - np.nanmax(logits.astype(np.float64), axis=1, keepdims=True)
+    probs = np.exp(z)
+    return probs / np.nansum(probs, axis=1, keepdims=True)
+
+
+def _margin_top1_top2(probs: np.ndarray) -> np.ndarray:
+    sorted_probs = np.sort(probs.astype(np.float64), axis=1)
+    return sorted_probs[:, -1] - sorted_probs[:, -2]
+
+
+def _entropy_natural(probs: np.ndarray) -> np.ndarray:
+    p = np.clip(probs.astype(np.float64), 1e-12, 1.0)
+    return -np.sum(p * np.log(p), axis=1)
+
+
+def _assert_v10_base_matches_v2(df: pd.DataFrame, *, context: str = "v10_rescore") -> None:
+    for v2_col, base_col in V10_V2_TO_BASE.items():
+        if v2_col not in df.columns or base_col not in df.columns:
+            raise AssertionError(f"[{context}] missing V10 proof column pair: {v2_col}->{base_col}")
+        left = pd.to_numeric(df[v2_col], errors="coerce").to_numpy(dtype=np.float64)
+        right = pd.to_numeric(df[base_col], errors="coerce").to_numpy(dtype=np.float64)
+        if not np.allclose(left, right, rtol=0.0, atol=1e-6, equal_nan=True):
+            raise AssertionError(f"[{context}] base column {base_col} does not match {v2_col}")
+
+    prob_cols = ["p_long_v2", "p_short_v2", "p_flat_v2"]
+    if all(c in df.columns for c in prob_cols):
+        probs = df[prob_cols].apply(pd.to_numeric, errors="coerce").to_numpy(dtype=np.float64)
+        checks = {
+            "margin": _margin_top1_top2(probs),
+            "uncertainty_score": 1.0 - np.nanmax(probs, axis=1),
+            "entropy_v1": _entropy_natural(probs),
+        }
+        for col, expected in checks.items():
+            if col not in df.columns:
+                raise AssertionError(f"[{context}] missing derived base column: {col}")
+            actual = pd.to_numeric(df[col], errors="coerce").to_numpy(dtype=np.float64)
+            if not np.allclose(actual, expected, rtol=0.0, atol=1e-6, equal_nan=True):
+                raise AssertionError(f"[{context}] derived base column {col} is inconsistent")
+
+
+def _add_entry_iql_base_columns(v10_df: pd.DataFrame) -> pd.DataFrame:
+    missing = [c for c in V10_V2_OUT_COLS if c not in v10_df.columns]
+    if missing:
+        raise RuntimeError(f"[BASE_OVERWRITE] missing V10 _v2 columns: {missing}")
+
+    out = v10_df.copy()
+    for v2_col, base_col in V10_V2_TO_BASE.items():
+        out[base_col] = pd.to_numeric(out[v2_col], errors="coerce").astype("float32")
+
+    probs = out[["p_long_v2", "p_short_v2", "p_flat_v2"]].to_numpy(dtype=np.float64)
+    out["margin"] = _margin_top1_top2(probs).astype(np.float32)
+    out["uncertainty_score"] = (1.0 - np.nanmax(probs, axis=1)).astype(np.float32)
+    out["entropy_v1"] = _entropy_natural(probs).astype(np.float32)
+
+    for head_name, head_dim in _NEW_HEAD_DIMS.items():
+        for i in range(head_dim):
+            v2_col = f"v10_{head_name}_{i}_v2"
+            if v2_col in out.columns:
+                out[f"v10_{head_name}_{i}"] = pd.to_numeric(out[v2_col], errors="coerce").astype("float32")
+
+    _assert_v10_base_matches_v2(out, context="BASE_OVERWRITE")
+    return out
 
 
 def main() -> int:
@@ -73,6 +161,8 @@ def main() -> int:
                    help="explicit regime-fresh MULTI_TF_V2_CACHE (no silent default)")
     p.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
     p.add_argument("--batch-size", type=int, default=512)
+    p.add_argument("--min-match-rate", type=float, default=0.99,
+                   help="fail if fewer than this fraction of forward-outcome rows receive exact V10 scores")
     args = p.parse_args()
 
     device = torch.device(args.device)
@@ -146,7 +236,6 @@ def main() -> int:
     # 2026-05-27: COSTFIX V10 new heads (dip/forecast/timing/tail/vol). NaN-init so
     # a bundle lacking a head emits NaN (Entry-IQL trainer missing-fills). Emitted
     # index-consistent below: out["<head>_pred"][:, i] -> column v10_<head>_{i}_v2.
-    _NEW_HEAD_DIMS = {"dip": 18, "forecast": 4, "timing": 12, "tail_risk": 6, "vol_forecast": 3}
     out_new_heads = {h: np.full((n_dec, d), np.nan, dtype=np.float32) for h, d in _NEW_HEAD_DIMS.items()}
 
     model.eval()
@@ -213,11 +302,7 @@ def main() -> int:
     print(f"[STEP 6] building V10 score parquet ({len(times):,} rows)", flush=True)
 
     dir_logits = out_dict["direction_logits"]  # (n, 3)
-    dir_probs = np.exp(dir_logits - dir_logits.max(axis=1, keepdims=True))
-    dir_probs = dir_probs / dir_probs.sum(axis=1, keepdims=True)
-
-    def _sig(x):
-        return 1.0 / (1.0 + np.exp(-x))
+    dir_probs = _softmax_np(dir_logits).astype(np.float32)
 
     _v10_data = {
         "time": times,
@@ -225,10 +310,10 @@ def main() -> int:
         "p_short_v2": dir_probs[:, 1].astype(np.float32),
         "p_flat_v2": dir_probs[:, 2].astype(np.float32),
         "p_hat_v2": dir_probs.max(axis=1).astype(np.float32),
-        "tradable_prob_v2": _sig(out_dict["tradable_logit"].squeeze(-1)).astype(np.float32),
+        "tradable_prob_v2": _sigmoid_np(out_dict["tradable_logit"].squeeze(-1)).astype(np.float32),
         "mfe_first_n_pred_v2": out_dict["mfe_first_n"].squeeze(-1).astype(np.float32),
         "path_quality_pred_v2": out_dict["path_quality"].squeeze(-1).astype(np.float32),
-        "bad_path_prob_v2": _sig(out_dict["bad_path_logit"].squeeze(-1)).astype(np.float32),
+        "bad_path_prob_v2": _sigmoid_np(out_dict["bad_path_logit"].squeeze(-1)).astype(np.float32),
         "direction_logit_long_v2": dir_logits[:, 0].astype(np.float32),
         "direction_logit_short_v2": dir_logits[:, 1].astype(np.float32),
         "direction_logit_flat_v2": dir_logits[:, 2].astype(np.float32),
@@ -236,12 +321,18 @@ def main() -> int:
     }
     # 2026-05-27: COSTFIX V10 new heads (dip 18 / forecast 4 / timing 12 / tail_risk 6
     # / vol_forecast 3 = 43). Index-consistent: out["<head>_pred"][:, i] -> v10_<head>_{i}_v2.
-    # NaN where the bundle lacks the head. Entry-IQL state selects its subset by these names.
+    # NaN where the bundle lacks the head. Entry-IQL reads the base names, so
+    # _add_entry_iql_base_columns mirrors v10_<head>_{i}_v2 -> v10_<head>_{i}.
     for _h, _arr in out_new_heads.items():
         for _i in range(_arr.shape[1]):
             _v10_data[f"v10_{_h}_{_i}_v2"] = _arr[:, _i].astype(np.float32)
     v10_df = pd.DataFrame(_v10_data).set_index("time").sort_index()
-    print(f"  v10_df ready: shape={v10_df.shape} (+{sum(d for d in _NEW_HEAD_DIMS.values())} new-head cols)", flush=True)
+    v10_df = _add_entry_iql_base_columns(v10_df)
+    print(
+        f"  v10_df ready: shape={v10_df.shape} "
+        f"(+{sum(d for d in _NEW_HEAD_DIMS.values())} _v2 new-head cols, base Entry-IQL overwrite enabled)",
+        flush=True,
+    )
 
     # ── Step 7: join into forward-outcome per-week ───────────────────────
     args.fwd_out.mkdir(parents=True, exist_ok=True)
@@ -254,6 +345,10 @@ def main() -> int:
     v10_idx_int = v10_df.index.values.astype("datetime64[ns]").astype(np.int64)
     v10_arr = v10_df.to_numpy(dtype=np.float32)
     v10_cols = list(v10_df.columns)
+    required_join_cols = set(V10_V2_OUT_COLS) | set(V10_V2_TO_BASE.values()) | set(V10_DERIVED_BASE_COLS)
+    missing_join_cols = sorted(required_join_cols - set(v10_cols))
+    if missing_join_cols:
+        raise RuntimeError(f"[JOIN_CONTRACT] missing columns before join: {missing_join_cols}")
 
     n_matched = 0
     n_total = 0
@@ -273,12 +368,21 @@ def main() -> int:
             new_cols[match_mask] = v10_arr[matched_idx]
         for j, col in enumerate(v10_cols):
             df[col] = new_cols[:, j]
+        if match_mask.any():
+            proof_cols = sorted(required_join_cols)
+            _assert_v10_base_matches_v2(df.loc[match_mask, proof_cols], context=f"JOIN_PROOF:{wp.name}")
         df.to_parquet(per_week_out / wp.name, index=False)
         if (i + 1) % 50 == 0 or i + 1 == len(week_paths):
             elapsed = time.time() - t0
             print(f"  [JOIN] {i+1}/{len(week_paths)} weeks, matched={n_matched:,}/{n_total:,} "
                   f"({100*n_matched/max(1,n_total):.1f}%), elapsed={elapsed:.0f}s", flush=True)
-    print(f"[DONE] total matched: {n_matched:,}/{n_total:,} ({100*n_matched/max(1,n_total):.1f}%)", flush=True)
+    match_rate = n_matched / max(1, n_total)
+    print(f"[DONE] total matched: {n_matched:,}/{n_total:,} ({100*match_rate:.1f}%)", flush=True)
+    if match_rate < float(args.min_match_rate):
+        raise RuntimeError(
+            f"[JOIN_CONTRACT] V10 score match rate {match_rate:.6f} < required {args.min_match_rate:.6f}; "
+            "refusing to publish a partial new-eyes forward_outcome"
+        )
     return 0
 
 

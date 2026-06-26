@@ -22,10 +22,15 @@ stack — that remains the pre-relaunch live smoke.)
 from __future__ import annotations
 
 import glob
+import json
+import os
 from pathlib import Path
 
 import pandas as pd
 import pytest
+
+REPO = Path(__file__).resolve().parents[1]
+PROJECT_STATE = REPO / "PROJECT_STATE_artifacts.json"
 
 ENTRY_BUNDLE = Path(
     "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/"
@@ -69,6 +74,51 @@ def _first_parquet_row(frame_dir: Path) -> pd.Series:
     row = df.iloc[0].copy()
     # build_candidate / build_bar_state read row.name as a decision timestamp.
     row.name = pd.Timestamp("2026-01-06 12:00:00")
+    return row
+
+
+def _project_state_entry(role: str) -> dict:
+    if not PROJECT_STATE.exists():
+        pytest.skip("PROJECT_STATE_artifacts.json not found")
+    contract = json.loads(PROJECT_STATE.read_text())
+    entry = (contract.get("active") or {}).get(role) or {}
+    if entry.get("status") != "ACTIVE":
+        pytest.skip(f"active/{role} missing or not ACTIVE in PROJECT_STATE_artifacts.json")
+    path = Path(entry.get("path", ""))
+    if not path.exists():
+        pytest.skip(f"active/{role} path missing: {path}")
+    return entry
+
+
+def _active_entry_contract_row(entry_bundle: Path) -> pd.Series:
+    drift_ref = entry_bundle / "drift_reference_v1.parquet"
+    if drift_ref.is_file():
+        df = pd.read_parquet(drift_ref)
+        if df.empty:
+            pytest.skip(f"empty active entry drift reference: {drift_ref}")
+        row = df.iloc[0].copy()
+        row.name = pd.Timestamp("2026-01-06 12:00:00", tz="UTC")
+        return row
+
+    summary_path = entry_bundle / "summary_v1.json"
+    if not summary_path.is_file():
+        pytest.skip(f"active entry summary missing: {summary_path}")
+    summary = json.loads(summary_path.read_text())
+    fo_dir = Path(summary.get("input_forward_outcome_dir_v1", ""))
+    per_week = fo_dir / "per_week"
+    if not per_week.is_dir():
+        pytest.skip(f"active entry forward_outcome per_week missing: {per_week}")
+    files = sorted(per_week.glob("*.parquet"))
+    if not files:
+        pytest.skip(f"no forward_outcome parquet under {per_week}")
+    df = pd.read_parquet(files[0])
+    if df.empty:
+        pytest.skip(f"empty forward_outcome parquet: {files[0]}")
+    row = df.iloc[0].copy()
+    if "decision_ts_utc" in row:
+        row.name = pd.to_datetime(row["decision_ts_utc"], utc=True)
+    else:
+        row.name = pd.Timestamp("2026-01-06 12:00:00", tz="UTC")
     return row
 
 
@@ -140,6 +190,36 @@ def test_entry_builder_emits_all_required():
     )
 
 
+def test_active_entry_builder_emits_all_required():
+    """The historical COSTFIX test above is a rollback guard; this one follows
+    PROJECT_STATE and protects the currently ACTIVE Entry-IQL feature contract."""
+    entry = _project_state_entry("entry_iql")
+    bundle = Path(entry["path"])
+    variant = entry.get("active_variant") or "R_WAIT_OPP_K96_LAM50"
+    fold = (entry.get("active_folds") or ["FOLD_1"])[0]
+    required, features = _load_required(bundle, variant, fold, "entry")
+    assert required, "active entry REQUIRED set should be non-empty"
+    row = _active_entry_contract_row(bundle)
+    from gx1.execution.v12_entry_iql_live import EntryIQLLiveInference
+    inst = object.__new__(EntryIQLLiveInference)
+    cand = EntryIQLLiveInference.build_candidate(inst, row, {}, _complete_v10_out(), None)
+    missing = _unresolved_required(required, set(cand.keys()))
+    assert not missing, (
+        f"ACTIVE entry build_candidate omits {len(missing)} REQUIRED feature(s) "
+        f"from {bundle.name}/{variant}/{fold}: {missing[:20]}"
+    )
+    for prefix, width in {
+        "v10_dip": 18,
+        "v10_forecast": 4,
+        "v10_timing": 12,
+        "v10_tail_risk": 6,
+        "v10_vol_forecast": 3,
+    }.items():
+        expected = {f"{prefix}_{i}" for i in range(width)}
+        assert expected.issubset(set(features))
+        assert expected.issubset(set(cand))
+
+
 def test_exit_builder_emits_all_required():
     required, _ = _load_required(EXIT_BUNDLE, "R_NET_REAL", "FOLD_1", "exit")
     assert required, "exit REQUIRED set should be non-empty"
@@ -166,4 +246,78 @@ def test_exit_builder_emits_all_required():
     assert not missing, (
         f"exit build_bar_state omits {len(missing)} REQUIRED feature(s) → strict "
         f"adapter would halt live: {missing[:20]}"
+    )
+
+
+@pytest.mark.skipif(
+    os.environ.get("GX1_RUN_LIVE_LOADER_CONTRACT_TESTS") != "1",
+    reason="full live-loader contract test is intentionally opt-in; it runs heavy prebuilt augmentation",
+)
+def test_active_exit_live_loader_emits_all_required():
+    """Opt-in full-stack contract check for the ACTIVE Exit-IQL.
+
+    A raw canonical_v3 parquet row is not enough for the current clean Exit-IQL:
+    the ACTIVE bundle requires AUG64 columns that live adds via PrebuiltStateLoader.
+    This test intentionally uses that same loader when explicitly enabled.
+    """
+    os.environ.setdefault("GX1_REGIME_V4", "1")
+    os.environ.setdefault("GX1_TREND_REGIME_FROM_D1", "1")
+    entry = _project_state_entry("exit_iql")
+    from gx1.execution.v12_exit_iql_live import DEFAULT_V3_FEATURES, ExitIQLLiveInference
+    from gx1.execution.v12_state_from_prebuilt import PrebuiltStateLoader
+    from gx1.execution.v12_trade_state import TradeState
+
+    loader = PrebuiltStateLoader()
+    loader.load()
+    if loader._cv3 is None or loader._cv3.empty:
+        pytest.skip("live PrebuiltStateLoader produced no canonical_v3 rows")
+    bundle = Path(entry["path"])
+    exit_iql = ExitIQLLiveInference.load(
+        bundle_dir=bundle,
+        variant=entry.get("active_variant") or "R_NET_REAL",
+        fold_id=(entry.get("active_folds") or ["FOLD_1"])[0],
+        aggregator=entry.get("active_aggregator") or "max",
+        prefer_cuda=False,
+    )
+    row = loader._cv3.iloc[-1].copy()
+    now = pd.Timestamp(loader._cv3.index[-1])
+    if now.tz is None:
+        now = now.tz_localize("UTC")
+    trade = TradeState.open(
+        entry_ts=now - pd.Timedelta(minutes=31),
+        side="long",
+        entry_bid=3300.0,
+        entry_ask=3300.2,
+        v10_snapshot={
+            "direction_probs": [0.51, 0.43, 0.06],
+            "tradable_prob": 0.62,
+            "mfe_first_n": 12.5,
+            "path_quality": 0.55,
+            "bad_path_prob": 0.2,
+            "hold_horizon_bars_pred": 96,
+            "atr_bps": 13.0,
+        },
+    )
+    trade.update_bar(
+        bid=3301.0,
+        ask=3301.2,
+        m1_close=3301.1,
+        bid_high=3301.5,
+        bid_low=3300.7,
+        ask_high=3301.7,
+        ask_low=3300.9,
+    )
+    bar_state = exit_iql.build_bar_state(
+        trade,
+        row,
+        DEFAULT_V3_FEATURES,
+        current_m1_atr_bps_override=4.2,
+        now_minute=now,
+    )
+    adapter = exit_iql.decider.iql_adapter
+    adapter.build_state_vector(bar_state)
+    missing = _unresolved_required(set(adapter.required_feature_names), set(bar_state.keys()))
+    assert not missing, (
+        f"ACTIVE exit live-loader bar_state omits {len(missing)} REQUIRED feature(s) "
+        f"from {bundle.name}: {missing[:20]}"
     )

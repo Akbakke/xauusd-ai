@@ -79,6 +79,33 @@ _SHADOW_FOLD = os.environ.get("GX1_SHADOW_FOLD", "").strip()        # default: c
 _EXIT_HARD_STOP_BPS = float(os.environ.get("GX1_EXIT_HARD_STOP_BPS", "0") or "0")
 
 
+def _candidate_float_or_none(candidate: dict[str, Any], key: str) -> float | None:
+    try:
+        value = candidate.get(key)
+        return None if value is None else float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _entry_signal_fields_from_candidate(candidate: dict[str, Any]) -> dict[str, float | None]:
+    """Top-level fields consumed by runner overlays and journals.
+
+    The Entry-IQL candidate is the source of truth for these values. Keeping them
+    only inside the local candidate dict silently disables runner-side overlays
+    such as GX1_SIZING_CONV_SRC=margin.
+    """
+    margin = _candidate_float_or_none(candidate, "margin")
+    if margin is None:
+        margin = _candidate_float_or_none(candidate, "margin_top1_top2")
+    return {
+        "margin": margin,
+        "margin_top1_top2": margin,
+        "p_hat": _candidate_float_or_none(candidate, "p_hat"),
+        "uncertainty_score": _candidate_float_or_none(candidate, "uncertainty_score"),
+        "entropy_v1": _candidate_float_or_none(candidate, "entropy_v1"),
+    }
+
+
 def _entry_rec_with_distilled_q(rec, v10_out, beta: float = 1.0):
     """Rebuild an EntryRecommendation using V10 q_head values instead of IQL Q.
 
@@ -403,6 +430,7 @@ class V12Pipeline:
         rec, candidate = self.entry_iql.predict_from_pipeline(
             row, xgb_this, v10_out, portfolio_state=portfolio_state,
         )
+        entry_signal_fields = _entry_signal_fields_from_candidate(candidate)
         # Phase 3a A/B: replace IQL Q with distilled V10 q_head when env says so.
         # Has no effect if v10_out lacks q_per_action_v1 (non-distilled bundle).
         if _USE_DISTILLED_ENTRY and "q_per_action_v1" in v10_out:
@@ -481,6 +509,7 @@ class V12Pipeline:
                     "decision_ts": str(decision_m5),
                     "stub": False,
                 }
+                blocked_out.update(entry_signal_fields)
                 # shadow already scored this poll — blocked polls are exactly the
                 # disagreement-relevant samples; don't drop the record (2026-06-12).
                 self._attach_shadow_fields(blocked_out, shadow_rec, rec.action_label_v1)
@@ -553,6 +582,7 @@ class V12Pipeline:
             "entry_iql_state_v1": state_list,
             "entry_iql_q_per_action_per_k_v1": q_per_k_list,
         }
+        out.update(entry_signal_fields)
         self._attach_shadow_fields(out, shadow_rec, rec.action_label_v1)
         return out
 

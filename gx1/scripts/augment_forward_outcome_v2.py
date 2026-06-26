@@ -187,7 +187,7 @@ def _build_atr_percentile_array(df: pd.DataFrame, ts_ns: np.ndarray, window_days
         (h - c.shift(1)).abs(),
         (l - c.shift(1)).abs(),
     ], axis=1).max(axis=1)
-    atr = tr.ewm(alpha=1/14, adjust=False).mean().fillna(method="bfill").to_numpy(np.float64)
+    atr = tr.ewm(alpha=1/14, adjust=False).mean().bfill().to_numpy(np.float64)
     # Rolling 1yr percentile via numpy: for each i, percentile rank of atr[i] within
     # atr[i-WIN:i+1]. WIN = bars in 1yr (M5: 365*24*12 = 105k, H1: 365*24 = 8.7k).
     n_per_day = int(round(86400 / (ts_ns[1] - ts_ns[0]) * 1e9)) if len(ts_ns) > 1 else 288
@@ -202,7 +202,7 @@ def _build_atr_percentile_array(df: pd.DataFrame, ts_ns: np.ndarray, window_days
         if len(recent) >= 10:
             pct[i] = float((recent < atr[i]).mean())
     # Forward-fill between strided computations
-    pct = pd.Series(pct).fillna(method="ffill").fillna(0.5).to_numpy(dtype=np.float32)
+    pct = pd.Series(pct).ffill().fillna(0.5).to_numpy(dtype=np.float32)
     return pct
 
 
@@ -701,8 +701,7 @@ def attach_group_a_dip_struct_ctx_columns(
         feat = augment_candidate(ctx, ts)
         for k in extract:
             cols[k][i] = float(feat.get(k, 0.0))
-    for k in (list(_GROUP_A) + dip_from_aug):
-        df[k] = cols[k]
+    out_cols = {k: cols[k] for k in (list(_GROUP_A) + dip_from_aug)}
 
     # struct_smc_swing_x_dip_v3 = clip(smc_swing_state / max|·|, -1, 1) × dip_proximity_m5_v3
     smc_col = next((c for c in smc_col_candidates if c in df.columns), None)
@@ -710,10 +709,14 @@ def attach_group_a_dip_struct_ctx_columns(
         sw = pd.to_numeric(df[smc_col], errors="coerce").fillna(0.0).to_numpy(np.float32)
         max_abs = float(np.abs(sw).max()) if len(sw) else 1.0
         sw_norm = np.clip(sw / max(max_abs, 1.0), -1.0, 1.0)
-        df["struct_smc_swing_x_dip_v3"] = (sw_norm * cols["dip_proximity_m5_v3"]).astype(np.float32)
+        out_cols["struct_smc_swing_x_dip_v3"] = (sw_norm * cols["dip_proximity_m5_v3"]).astype(np.float32)
     else:
-        df["struct_smc_swing_x_dip_v3"] = np.zeros(len(df), dtype=np.float32)
-    return df
+        out_cols["struct_smc_swing_x_dip_v3"] = np.zeros(len(df), dtype=np.float32)
+    new_cols = pd.DataFrame(out_cols, index=df.index)
+    existing = [c for c in new_cols.columns if c in df.columns]
+    if existing:
+        df = df.drop(columns=existing)
+    return pd.concat([df, new_cols], axis=1)
 
 
 def augment_week(week_pq: Path, out_pq: Path, ctx: AugmentContext,

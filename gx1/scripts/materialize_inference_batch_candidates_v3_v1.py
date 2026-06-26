@@ -595,7 +595,7 @@ def main() -> None:
     # so candidate generation feeds the model identical ctx_cont at train+serve.
     from gx1.scripts.augment_forward_outcome_v2 import attach_group_a_dip_struct_ctx_columns
     n_before = len(cv2.columns)
-    attach_group_a_dip_struct_ctx_columns(cv2, journal_label="inference_batch")
+    cv2 = attach_group_a_dip_struct_ctx_columns(cv2, journal_label="inference_batch")
     print(f"[{ACTION}] ctx_cont parity: added {len(cv2.columns) - n_before} group-A+dip/struct cols "
           f"(now {len(cv2.columns)} total)", flush=True)
 
