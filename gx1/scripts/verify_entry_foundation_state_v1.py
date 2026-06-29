@@ -125,6 +125,7 @@ def _active_entry_artifact_paths() -> list[str]:
         "entry_foundation_worktree_hygiene_20260628_v1",
         "entry_foundation_smoke_train_manifests_20260628_v1",
         "entry_foundation_candidate_train_manifests_20260628_v1",
+        "entry_candidate_bundle_audit_20260628_v1",
         "entry_iql_distillation_contract_20260628_v1",
         "entry_iql_distillation_replay_20260628_v1",
         "entry_iql_replay_comparison_20260628_v1",
