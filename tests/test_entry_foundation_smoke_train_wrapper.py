@@ -40,6 +40,9 @@ def test_smoke_train_dry_run_prints_post_smoke_audit_command() -> None:
     assert "ENTRY_FOUNDATION_SMOKE_TRAIN_RUN_MANIFEST" in result.stdout
     assert "GX1_ENTRY_ALLOW_TRAIN_ENV_OVERRIDES=1" in result.stdout
     assert "ENTRY_AUX_BAD_PATH_WEIGHT=1.00" in result.stdout
+    assert "ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT=2.00" in result.stdout
+    assert "ENTRY_BAD_PATH_QUALITY_RANK_MARGIN=0.25" in result.stdout
+    assert "ENTRY_BAD_PATH_QUALITY_RANK_QUANTILE=0.25" in result.stdout
     assert "ENTRY_PRED_BALANCE_ALPHA=0.05" in result.stdout
     assert "GX1_V10_CKPT_MONITOR=dir_acc" in result.stdout
     assert "ENTRY_SYMMETRIC_NEGATIVES=1" in result.stdout
@@ -104,6 +107,9 @@ def test_smoke_train_wrapper_enforces_train_readiness_for_real_train() -> None:
     assert "smoke_recipe_env" in text
     assert "command_env_value" in text
     assert "ENTRY_AUX_BAD_PATH_WEIGHT" in text
+    assert "ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT" in text
+    assert "ENTRY_BAD_PATH_QUALITY_RANK_MARGIN" in text
+    assert "ENTRY_BAD_PATH_QUALITY_RANK_QUANTILE" in text
     assert "ENTRY_PRED_BALANCE_ALPHA" in text
     assert "GX1_V10_CKPT_MONITOR" in text
     assert "ENTRY_SYMMETRIC_NEGATIVES" in text

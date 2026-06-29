@@ -1143,6 +1143,9 @@ def _wrapper_checks() -> tuple[list[dict[str, Any]], dict[str, Any]]:
             "smoke train command records explicit edge recipe env",
             "GX1_ENTRY_ALLOW_TRAIN_ENV_OVERRIDES=1" in stdout
             and "ENTRY_AUX_BAD_PATH_WEIGHT=" in stdout
+            and "ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT=" in stdout
+            and "ENTRY_BAD_PATH_QUALITY_RANK_MARGIN=" in stdout
+            and "ENTRY_BAD_PATH_QUALITY_RANK_QUANTILE=" in stdout
             and "ENTRY_PRED_BALANCE_ALPHA=" in stdout
             and "GX1_V10_CKPT_MONITOR=dir_acc" in stdout
             and "ENTRY_SYMMETRIC_NEGATIVES=1" in stdout

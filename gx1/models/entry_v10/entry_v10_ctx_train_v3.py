@@ -272,6 +272,9 @@ ENTRY_AUX_TRADABLE_WEIGHT = float(_env_str("ENTRY_AUX_TRADABLE_WEIGHT", "1.15"))
 # Canonical lane keeps bad-path parked until it shows clean incremental value.
 ENTRY_AUX_BAD_PATH_WEIGHT = float(_env_str("ENTRY_AUX_BAD_PATH_WEIGHT", "0.0"))
 ENTRY_AUX_BAD_PATH_POS_WEIGHT_CAP = float(_env_str("ENTRY_AUX_BAD_PATH_POS_WEIGHT_CAP", "20.0"))
+ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT = float(_env_str("ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT", "0.0"))
+ENTRY_BAD_PATH_QUALITY_RANK_MARGIN = float(_env_str("ENTRY_BAD_PATH_QUALITY_RANK_MARGIN", "0.20"))
+ENTRY_BAD_PATH_QUALITY_RANK_QUANTILE = float(_env_str("ENTRY_BAD_PATH_QUALITY_RANK_QUANTILE", "0.25"))
 # Scale bps targets to keep regression losses in a stable range
 ENTRY_AUX_QUALITY_SCALE_BPS = float(_env_str("ENTRY_AUX_QUALITY_SCALE_BPS", "50.0"))
 ENTRY_AUX_PATH_SCALE_BPS = float(_env_str("ENTRY_AUX_PATH_SCALE_BPS", "50.0"))
@@ -401,6 +404,9 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_AUX_TRADABLE_WEIGHT": "1.15",
     "ENTRY_AUX_BAD_PATH_WEIGHT": "0.0",
     "ENTRY_AUX_BAD_PATH_POS_WEIGHT_CAP": "20.0",
+    "ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT": "0.0",
+    "ENTRY_BAD_PATH_QUALITY_RANK_MARGIN": "0.20",
+    "ENTRY_BAD_PATH_QUALITY_RANK_QUANTILE": "0.25",
     "ENTRY_AUX_QUALITY_SCALE_BPS": "50.0",
     "ENTRY_AUX_PATH_SCALE_BPS": "50.0",
     "ENTRY_AUX_MFE_SCALE_BPS": "20.0",
@@ -1812,6 +1818,39 @@ def _specialist_gate_regularization(out: dict[str, Any], device: torch.device) -
     }
 
 
+def _bad_path_quality_rank_loss(
+    bad_path_logit: torch.Tensor | None,
+    path_quality_bps: torch.Tensor,
+    device: torch.device,
+) -> torch.Tensor:
+    zero = torch.zeros((), device=device)
+    if float(ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT) <= 0.0:
+        return zero
+    if bad_path_logit is None or not isinstance(bad_path_logit, torch.Tensor) or bad_path_logit.numel() == 0:
+        return zero
+    logits = bad_path_logit.reshape(-1).float()
+    quality = path_quality_bps.reshape(-1).float()
+    finite = torch.isfinite(logits) & torch.isfinite(quality)
+    if int(finite.sum().detach().cpu().item()) < 8:
+        return zero
+    logits = logits[finite]
+    quality = quality[finite]
+    if not torch.isfinite(quality).all() or (quality.max() - quality.min()).abs() <= 1e-6:
+        return zero
+    q = min(0.45, max(0.05, float(ENTRY_BAD_PATH_QUALITY_RANK_QUANTILE)))
+    low_cut = torch.quantile(quality.detach(), q)
+    high_cut = torch.quantile(quality.detach(), 1.0 - q)
+    low_mask = quality <= low_cut
+    high_mask = quality >= high_cut
+    if int(low_mask.sum().detach().cpu().item()) < 2 or int(high_mask.sum().detach().cpu().item()) < 2:
+        return zero
+    low_bad_logit = logits[low_mask].mean()
+    high_bad_logit = logits[high_mask].mean()
+    rank_gap = low_bad_logit - high_bad_logit
+    margin = torch.tensor(float(ENTRY_BAD_PATH_QUALITY_RANK_MARGIN), device=device, dtype=logits.dtype)
+    return float(ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT) * torch.relu(margin - rank_gap)
+
+
 def train_epoch(
     model,
     loader,
@@ -1865,6 +1904,7 @@ def train_epoch(
     specialist_gate_loss_sum = 0.0
     specialist_gate_entropy_sum = 0.0
     specialist_gate_min_mean_sum = 0.0
+    bad_path_quality_rank_loss_sum = 0.0
     n = 0
     short_total = 0
     short_pred_long = 0
@@ -1928,6 +1968,7 @@ def train_epoch(
         anchor_logits = out.get("anchor_logits")
         delta_logits = out.get("delta_logits")
         specialist_gate_loss, specialist_gate_stats = _specialist_gate_regularization(out, device)
+        bad_path_quality_rank_loss = _bad_path_quality_rank_loss(bad_path_logit, y_path_quality, device)
 
         residual_hard_neg_long = torch.clamp(
             y_hard_negative_long.float() - y_dead_negative_long.float() - y_teaser_negative_long.float(),
@@ -1996,6 +2037,8 @@ def train_epoch(
         loss = ce_loss + cost_term + balance_term
         if float(ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT) > 0.0 or float(ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT) > 0.0:
             loss = loss + specialist_gate_loss
+        if float(ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT) > 0.0:
+            loss = loss + bad_path_quality_rank_loss
         hard_neg_prob_loss = torch.tensor(0.0, device=device)
         dead_neg_prob_loss = torch.tensor(0.0, device=device)
         teaser_neg_prob_loss = torch.tensor(0.0, device=device)
@@ -2222,6 +2265,7 @@ def train_epoch(
         specialist_gate_loss_sum += float(specialist_gate_loss.detach().cpu().item()) * bs
         specialist_gate_entropy_sum += float(specialist_gate_stats.get("entropy", 0.0)) * bs
         specialist_gate_min_mean_sum += float(specialist_gate_stats.get("min_mean", 0.0)) * bs
+        bad_path_quality_rank_loss_sum += float(bad_path_quality_rank_loss.detach().cpu().item()) * bs
         hard_neg_prob_loss_sum += float(hard_neg_prob_loss) * bs
         bad_path_loss_sum += float(bad_path_prob_loss) * bs
         if aux_path_weight > 0.0:
@@ -2245,6 +2289,7 @@ def train_epoch(
         "specialist_gate_loss_mean": (specialist_gate_loss_sum / max(1, n)),
         "specialist_gate_entropy_mean": (specialist_gate_entropy_sum / max(1, n)),
         "specialist_gate_min_mean": (specialist_gate_min_mean_sum / max(1, n)),
+        "bad_path_quality_rank_loss_mean": (bad_path_quality_rank_loss_sum / max(1, n)),
         "hard_neg_prob_loss_mean": (hard_neg_prob_loss_sum / max(1, n)),
         "bad_path_prob_loss_mean": (bad_path_loss_sum / max(1, n)),
         "aux_path_loss_mean": (total_aux_path / max(1, n)),
@@ -3773,6 +3818,12 @@ def run_train(
         float(ENTRY_SPECIALIST_GATE_MIN_MEAN),
     )
     log.info(
+        "[ENTRY_BAD_PATH_RANK_RECIPE] weight=%.3f margin=%.3f quantile=%.3f",
+        float(ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT),
+        float(ENTRY_BAD_PATH_QUALITY_RANK_MARGIN),
+        float(ENTRY_BAD_PATH_QUALITY_RANK_QUANTILE),
+    )
+    log.info(
         "[ENTRY_HARD_NEG_RECIPE] dead_long_ce_multiplier=%.3f dead_long_prob_penalty=%.3f teaser_long_ce_multiplier=%.3f teaser_long_prob_penalty=%.3f hard_neg_long_ce_multiplier=%.3f hard_neg_long_prob_penalty=%.3f",
         float(ENTRY_DEAD_LONG_CE_MULTIPLIER),
         float(ENTRY_DEAD_LONG_PROB_PENALTY),
@@ -3930,6 +3981,11 @@ def run_train(
                 float(tr_stats.get("specialist_gate_loss_mean", 0.0)),
                 float(tr_stats.get("specialist_gate_entropy_mean", 0.0)),
                 float(tr_stats.get("specialist_gate_min_mean", 0.0)),
+            )
+            log.info(
+                "[ENTRY_BAD_PATH_RANK_LOSS] split=train epoch=%d loss=%.6f",
+                epoch + 1,
+                float(tr_stats.get("bad_path_quality_rank_loss_mean", 0.0)),
             )
         if _ckpt_monitor == "dir_acc":
             _improved = np.isfinite(acc) and (acc - best_acc) > float(early_stopping_min_delta)
@@ -4151,6 +4207,9 @@ def run_train(
         "specialist_gate_entropy_weight": float(ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT),
         "specialist_gate_balance_weight": float(ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT),
         "specialist_gate_min_mean": float(ENTRY_SPECIALIST_GATE_MIN_MEAN),
+        "bad_path_quality_rank_weight": float(ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT),
+        "bad_path_quality_rank_margin": float(ENTRY_BAD_PATH_QUALITY_RANK_MARGIN),
+        "bad_path_quality_rank_quantile": float(ENTRY_BAD_PATH_QUALITY_RANK_QUANTILE),
         "grad_clip_norm": float(_GRAD_CLIP_NORM),
         "weight_decay": float(_WEIGHT_DECAY),
         "train_recipe": {
@@ -4160,6 +4219,9 @@ def run_train(
             "tradable_pos_weight": float(tradable_pos_weight),
             "bad_path_weight": float(ENTRY_AUX_BAD_PATH_WEIGHT),
             "bad_path_pos_weight": float(bad_path_pos_weight),
+            "bad_path_quality_rank_weight": float(ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT),
+            "bad_path_quality_rank_margin": float(ENTRY_BAD_PATH_QUALITY_RANK_MARGIN),
+            "bad_path_quality_rank_quantile": float(ENTRY_BAD_PATH_QUALITY_RANK_QUANTILE),
             "path_weight": float(ENTRY_AUX_PATH_WEIGHT),
             "mfe_weight": float(ENTRY_AUX_MFE_WEIGHT),
             "specialist_gate_entropy_weight": float(ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT),

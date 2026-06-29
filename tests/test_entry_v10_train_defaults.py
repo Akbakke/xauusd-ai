@@ -67,3 +67,4 @@ def test_entry_v10_env_defaults_match_canonical_guard_contract() -> None:
 def test_entry_v10_bad_path_aux_default_is_parked() -> None:
     env_defaults = _env_str_defaults(_trainer_ast())
     assert env_defaults["ENTRY_AUX_BAD_PATH_WEIGHT"] == "0.0"
+    assert env_defaults["ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT"] == "0.0"
