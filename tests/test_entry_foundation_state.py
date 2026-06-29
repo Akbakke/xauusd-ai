@@ -20,6 +20,13 @@ CANDIDATE_SPECIALIST_AUDIT = Path(
 )
 
 
+def test_foundation_state_allows_entry_train_manifest_report_roots() -> None:
+    verifier = (REPO / "gx1/scripts/verify_entry_foundation_state_v1.py").read_text(encoding="utf-8")
+
+    assert "entry_foundation_smoke_train_manifests_20260628_v1" in verifier
+    assert "entry_foundation_candidate_train_manifests_20260628_v1" in verifier
+
+
 def _args(*, selftest: bool) -> argparse.Namespace:
     return argparse.Namespace(
         audit_doc=str(AUDIT_DOC),
