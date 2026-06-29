@@ -64,10 +64,30 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "entry_foundation_candidate_train_run_manifest_v1" in text
     assert 'CANDIDATE_MEM_CAP="${ENTRY_FOUNDATION_CANDIDATE_MEM_CAP:-32G}"' in text
     assert 'CANDIDATE_SWAP_CAP="${ENTRY_FOUNDATION_CANDIDATE_SWAP_CAP:-2G}"' in text
+    assert 'CANDIDATE_BAD_PATH_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_BAD_PATH_WEIGHT:-1.00}"' in text
+    assert (
+        'CANDIDATE_BAD_PATH_QUALITY_RANK_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_BAD_PATH_QUALITY_RANK_WEIGHT:-2.00}"'
+        in text
+    )
+    assert 'CANDIDATE_PRED_BALANCE_ALPHA="${ENTRY_FOUNDATION_CANDIDATE_PRED_BALANCE_ALPHA:-0.05}"' in text
+    assert 'CANDIDATE_CKPT_MONITOR="${ENTRY_FOUNDATION_CANDIDATE_CKPT_MONITOR:-dir_acc}"' in text
+    assert (
+        'CANDIDATE_SPECIALIST_GATE_BALANCE_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_SPECIALIST_GATE_BALANCE_WEIGHT:-0.25}"'
+        in text
+    )
     assert '--mem "$CANDIDATE_MEM_CAP" --swap "$CANDIDATE_SWAP_CAP"' in text
     assert "Candidate resource cap: mem=$CANDIDATE_MEM_CAP swap=$CANDIDATE_SWAP_CAP" in text
     assert '"memory_cap": sys.argv[12]' in text
     assert '"swap_cap": sys.argv[13]' in text
+    assert "candidate_recipe_env" in text
+    assert "command_env_value" in text
+    assert "GX1_ENTRY_ALLOW_TRAIN_ENV_OVERRIDES=1" in text
+    assert "ENTRY_AUX_BAD_PATH_WEIGHT=" in text
+    assert "ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT=" in text
+    assert "ENTRY_PRED_BALANCE_ALPHA=" in text
+    assert "GX1_V10_CKPT_MONITOR=" in text
+    assert "ENTRY_SYMMETRIC_NEGATIVES=" in text
+    assert "ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT=" in text
     assert "artifact_sha256" in text
     assert "artifact_provenance_decision" in text
     assert "artifact_fingerprints" in text
