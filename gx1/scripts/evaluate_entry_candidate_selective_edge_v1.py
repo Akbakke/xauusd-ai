@@ -22,6 +22,7 @@ import pandas as pd
 import torch
 from torch.utils.data import DataLoader
 
+from gx1.contracts.signal_bridge_v3 import ORDERED_SEQ_FIELDS_V3
 from gx1.models.entry_v10.entry_v10_bundle import load_entry_v10_ctx_bundle
 from gx1.models.entry_v10.entry_v10_ctx_train_v3 import EntryV10CtxDataset, _multi_tf_kwargs_from_batch
 from gx1.scripts.audit_entry_foundation_smoke_bundle_v1 import (
@@ -38,6 +39,18 @@ from gx1.scripts.verify_entry_foundation_state_v1 import FOUNDATION_DATASET_DIR,
 DEFAULT_OUT_DIR = REPORTS_ROOT / "entry_candidate_selective_edge_20260628_v1"
 SESSION_NAMES = {0: "ASIA", 1: "EU", 2: "OVERLAP", 3: "US"}
 SIDE_NAMES = {0: "LONG", 1: "SHORT"}
+SIGNAL_BRIDGE_NEUTRAL_VALUES = np.array(
+    [
+        1.0 / 3.0,  # p_long
+        1.0 / 3.0,  # p_short
+        1.0 / 3.0,  # p_flat
+        1.0 / 3.0,  # p_hat
+        2.0 / 3.0,  # uncertainty_score = 1 - p_hat
+        0.0,  # margin_top1_top2
+        math.log(3.0),  # entropy for a uniform 3-class distribution
+    ],
+    dtype=np.float32,
+)
 
 
 def _json_default(obj: Any) -> Any:
@@ -127,6 +140,12 @@ def _top_frame(frame: pd.DataFrame, top_frac: float) -> pd.DataFrame:
         return frame.copy()
     n = max(1, int(math.ceil(len(frame) * float(top_frac))))
     return frame.sort_values("edge_score", ascending=False, kind="mergesort").head(n).copy()
+
+
+def _neutralize_signal_bridge(seq_x: torch.Tensor, snap_x: torch.Tensor) -> None:
+    values = torch.as_tensor(SIGNAL_BRIDGE_NEUTRAL_VALUES, dtype=seq_x.dtype, device=seq_x.device)
+    seq_x[..., : len(SIGNAL_BRIDGE_NEUTRAL_VALUES)] = values
+    snap_x[..., : len(SIGNAL_BRIDGE_NEUTRAL_VALUES)] = values.to(dtype=snap_x.dtype, device=snap_x.device)
 
 
 def build_metric_rows(predictions: pd.DataFrame, *, top_fracs: list[float]) -> list[dict[str, Any]]:
@@ -221,6 +240,7 @@ def _predict_bundle(
     device: torch.device,
     batch_size: int,
     m5_prebuilt_path: Path,
+    neutralize_signal_bridge: bool = False,
 ) -> tuple[pd.DataFrame, list[str], dict[str, Any]]:
     failures: list[str] = []
     bundle = load_entry_v10_ctx_bundle(bundle_dir=bundle_dir, device=str(device), xgb_models=None)
@@ -258,6 +278,8 @@ def _predict_bundle(
                 snap_x = batch["snap_x"].to(device)
                 ctx_cat = batch["ctx_cat"].to(device)
                 ctx_cont = batch["ctx_cont"].to(device)
+                if neutralize_signal_bridge:
+                    _neutralize_signal_bridge(seq_x, snap_x)
                 out = model(
                     seq_x,
                     snap_x,
@@ -363,6 +385,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     splits = _parse_csv(args.splits)
     top_fracs = [float(x) for x in _parse_csv(args.top_fracs)]
     device = torch.device(_device_arg(args.device))
+    no_xgb_ablation_mode = str(getattr(args, "no_xgb_ablation_mode", "bundle")).strip()
+    if no_xgb_ablation_mode not in {"bundle", "neutralize_signal_bridge"}:
+        raise RuntimeError(f"invalid no-XGB ablation mode: {no_xgb_ablation_mode}")
     out_dir.mkdir(parents=True, exist_ok=True)
     if mtf_cache_dir and mtf_cache_dir.exists():
         os.environ.setdefault("GX1_V10_MULTI_TF_V2_CACHE_DIR", str(mtf_cache_dir))
@@ -383,15 +408,24 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     failures.extend(candidate_failures)
 
     no_xgb_bundle = str(args.no_xgb_bundle_dir or "").strip()
+    no_xgb_neutralize = False
     if no_xgb_bundle:
+        no_xgb_bundle_path = Path(no_xgb_bundle).expanduser().resolve()
+        no_xgb_neutralize = no_xgb_ablation_mode == "neutralize_signal_bridge"
+        if no_xgb_bundle_path == bundle_dir and not no_xgb_neutralize:
+            failures.append(
+                "no-XGB bundle dir equals candidate bundle but mode=bundle; use "
+                "--no-xgb-ablation-mode neutralize_signal_bridge or provide a distinct ablation bundle"
+            )
         ablation, ablation_failures, _ = _predict_bundle(
-            bundle_dir=Path(no_xgb_bundle).expanduser().resolve(),
+            bundle_dir=no_xgb_bundle_path,
             dataset_dir=dataset_dir,
             splits=splits,
             model_name=f"{args.model_name}_no_xgb",
             device=device,
             batch_size=int(args.batch_size),
             m5_prebuilt_path=m5_prebuilt,
+            neutralize_signal_bridge=no_xgb_neutralize,
         )
         all_predictions.append(ablation)
         failures.extend(ablation_failures)
@@ -421,6 +455,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "decision": "PASS" if ready else "FAIL",
         "bundle_dir": str(bundle_dir),
         "no_xgb_bundle_dir": no_xgb_bundle or "",
+        "no_xgb_ablation": {
+            "required": bool(args.require_no_xgb_ablation),
+            "mode": no_xgb_ablation_mode if no_xgb_bundle else "",
+            "neutralize_signal_bridge": bool(no_xgb_neutralize),
+            "neutralized_fields": ORDERED_SEQ_FIELDS_V3[: len(SIGNAL_BRIDGE_NEUTRAL_VALUES)] if no_xgb_neutralize else [],
+            "neutral_values": SIGNAL_BRIDGE_NEUTRAL_VALUES.tolist() if no_xgb_neutralize else [],
+        },
         "dataset_dir": str(dataset_dir),
         "splits": summary_payload["splits"],
         "models": summary_payload["models"],
@@ -444,6 +485,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "decision": report["decision"],
             "bundle_dir": report["bundle_dir"],
             "no_xgb_bundle_dir": report["no_xgb_bundle_dir"],
+            "no_xgb_ablation": report["no_xgb_ablation"],
             "dataset_dir": report["dataset_dir"],
             "failures": failures,
         }
@@ -484,6 +526,7 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--splits", default="val,test")
     ap.add_argument("--top-fracs", default="0.05,0.10")
     ap.add_argument("--model-name", default="candidate")
+    ap.add_argument("--no-xgb-ablation-mode", choices=("bundle", "neutralize_signal_bridge"), default="bundle")
     ap.add_argument("--device", default="cpu")
     ap.add_argument("--batch-size", type=int, default=128)
     ap.add_argument("--m5-prebuilt-path", default=str(DEFAULT_M5_PREBUILT))

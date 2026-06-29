@@ -115,6 +115,26 @@ def _selective_edge_checks(
     models = {str(row.get("model")) for row in summary.get("summaries", []) if isinstance(row, dict)}
     no_xgb_model = f"{model_name}_no_xgb"
     no_xgb_bundle_dir = str(summary.get("no_xgb_bundle_dir") or "")
+    summary_bundle_dir = str(summary.get("bundle_dir") or "")
+    no_xgb_ablation = summary.get("no_xgb_ablation") if isinstance(summary.get("no_xgb_ablation"), dict) else {}
+    no_xgb_mode = str(no_xgb_ablation.get("mode") or "")
+    no_xgb_neutralizes_bridge = bool(no_xgb_ablation.get("neutralize_signal_bridge"))
+    no_xgb_neutralized_fields = [str(x) for x in no_xgb_ablation.get("neutralized_fields", [])]
+    no_xgb_neutral_values = no_xgb_ablation.get("neutral_values", [])
+    no_xgb_same_bundle = bool(no_xgb_bundle_dir and summary_bundle_dir and no_xgb_bundle_dir == summary_bundle_dir)
+    no_xgb_provenance_ok = True
+    if require_no_xgb_ablation:
+        if no_xgb_mode == "neutralize_signal_bridge":
+            no_xgb_provenance_ok = (
+                no_xgb_same_bundle
+                and no_xgb_neutralizes_bridge
+                and len(no_xgb_neutralized_fields) >= 7
+                and len(no_xgb_neutral_values) >= 7
+            )
+        elif no_xgb_mode == "bundle":
+            no_xgb_provenance_ok = bool(no_xgb_bundle_dir) and not no_xgb_same_bundle
+        else:
+            no_xgb_provenance_ok = False
     candidate_by_split = _summary_by_split(summary, model_name)
     top5 = _split_metric(summary, model_name, "top5_all_mean_pnl_bps")
     top10 = _split_metric(summary, model_name, "top10_all_mean_pnl_bps")
@@ -157,6 +177,17 @@ def _selective_edge_checks(
             "selective-edge summary records no-XGB bundle dir",
             bool(no_xgb_bundle_dir) if require_no_xgb_ablation else True,
             {"required": require_no_xgb_ablation, "no_xgb_bundle_dir": no_xgb_bundle_dir},
+        ),
+        _check(
+            "selective-edge no-XGB ablation provenance is explicit",
+            no_xgb_provenance_ok,
+            {
+                "required": require_no_xgb_ablation,
+                "mode": no_xgb_mode,
+                "neutralize_signal_bridge": no_xgb_neutralizes_bridge,
+                "same_bundle_as_candidate": no_xgb_same_bundle,
+                "neutralized_fields": no_xgb_neutralized_fields,
+            },
         ),
         _check(
             "candidate selective-edge has val/test summaries",

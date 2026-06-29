@@ -3,8 +3,11 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
+import torch
 
 from gx1.scripts.evaluate_entry_candidate_selective_edge_v1 import (
+    SIGNAL_BRIDGE_NEUTRAL_VALUES,
+    _neutralize_signal_bridge,
     build_metric_rows,
     build_summary,
     run,
@@ -50,6 +53,19 @@ def test_summary_uses_top5_and_top10_all_metrics() -> None:
     rows = {(row["split"], row["model"]): row for row in summary["summaries"]}
     assert rows[("val", "candidate")]["top5_all_mean_pnl_bps"] == 12.0
     assert rows[("test", "candidate")]["top10_all_mean_pnl_bps"] == 14.0
+
+
+def test_neutralize_signal_bridge_sets_only_bridge_slots() -> None:
+    seq_x = torch.ones((2, 3, 10), dtype=torch.float32)
+    snap_x = torch.full((2, 10), 2.0, dtype=torch.float32)
+
+    _neutralize_signal_bridge(seq_x, snap_x)
+
+    expected = torch.as_tensor(SIGNAL_BRIDGE_NEUTRAL_VALUES, dtype=torch.float32)
+    assert torch.allclose(seq_x[..., : len(expected)], expected.view(1, 1, -1))
+    assert torch.allclose(snap_x[..., : len(expected)], expected.view(1, -1))
+    assert torch.equal(seq_x[..., len(expected) :], torch.ones((2, 3, 3), dtype=torch.float32))
+    assert torch.equal(snap_x[..., len(expected) :], torch.full((2, 3), 2.0, dtype=torch.float32))
 
 
 def test_selective_edge_requires_bundle_dir(tmp_path: Path) -> None:
