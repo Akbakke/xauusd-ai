@@ -62,6 +62,12 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "--pretrain-manifest-json" in text
     assert "ENTRY_FOUNDATION_CANDIDATE_TRAIN_RUN_MANIFEST" in text
     assert "entry_foundation_candidate_train_run_manifest_v1" in text
+    assert 'CANDIDATE_MEM_CAP="${ENTRY_FOUNDATION_CANDIDATE_MEM_CAP:-32G}"' in text
+    assert 'CANDIDATE_SWAP_CAP="${ENTRY_FOUNDATION_CANDIDATE_SWAP_CAP:-2G}"' in text
+    assert '--mem "$CANDIDATE_MEM_CAP" --swap "$CANDIDATE_SWAP_CAP"' in text
+    assert "Candidate resource cap: mem=$CANDIDATE_MEM_CAP swap=$CANDIDATE_SWAP_CAP" in text
+    assert '"memory_cap": sys.argv[12]' in text
+    assert '"swap_cap": sys.argv[13]' in text
     assert "artifact_sha256" in text
     assert "artifact_provenance_decision" in text
     assert "artifact_fingerprints" in text

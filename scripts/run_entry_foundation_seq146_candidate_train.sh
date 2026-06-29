@@ -27,6 +27,8 @@ SMOKE_BUNDLE_AUDIT_ARG="$SMOKE_BUNDLE_AUDIT"
 AUDIT_AFTER=1
 AUDIT_DEVICE=cpu
 AUDIT_BATCH_SIZE=256
+CANDIDATE_MEM_CAP="${ENTRY_FOUNDATION_CANDIDATE_MEM_CAP:-32G}"
+CANDIDATE_SWAP_CAP="${ENTRY_FOUNDATION_CANDIDATE_SWAP_CAP:-2G}"
 
 usage() {
   cat <<'EOF'
@@ -47,6 +49,10 @@ Options:
   --audit-batch-size <n>
                        Default: 256
   --dry-run            Print the train command after candidate-readiness passes.
+
+Resource caps:
+  ENTRY_FOUNDATION_CANDIDATE_MEM_CAP   Default: 32G
+  ENTRY_FOUNDATION_CANDIDATE_SWAP_CAP  Default: 2G
 
 This is a full candidate-training path, not promotion. It will not run until
 candidate-readiness proves a real smoke-train bundle with edge diagnostics.
@@ -174,6 +180,7 @@ AUDIT_CMD=(
 
 if [[ "$DRY_RUN" = "1" ]]; then
   echo "Pre-candidate train manifest path: $CANDIDATE_MANIFEST"
+  echo "Candidate resource cap: mem=$CANDIDATE_MEM_CAP swap=$CANDIDATE_SWAP_CAP"
   printf 'Candidate train command:'
   printf ' %q' "${CMD[@]}"
   printf '\n'
@@ -193,6 +200,7 @@ require_clean_git_for_real_candidate_train
 mkdir -p "$CANDIDATE_TRAIN_MANIFEST_DIR"
 "$PY" - "$CANDIDATE_MANIFEST" "$VEDTAK" "$OUT_BUNDLE" "$FOUNDATION_DATASET" "$SMOKE_BUNDLE_AUDIT_ARG" \
   "$SPECIALIST_AUDIT" "$CANDIDATE_READINESS_JSON" "$AUDIT_AFTER" "$DEVICE" "$EPOCHS" "$BATCH_SIZE" \
+  "$CANDIDATE_MEM_CAP" "$CANDIDATE_SWAP_CAP" \
   "${CMD[@]}" __AUDIT_CMD__ "${AUDIT_CMD[@]}" <<'PY'
 import hashlib
 import json
@@ -205,7 +213,7 @@ manifest_path = Path(sys.argv[1])
 repo = Path("/home/andre2/src/GX1_ENGINE")
 sep = "__AUDIT_CMD__"
 sep_idx = sys.argv.index(sep)
-train_cmd = sys.argv[12:sep_idx]
+train_cmd = sys.argv[14:sep_idx]
 audit_cmd = sys.argv[sep_idx + 1:]
 
 
@@ -358,6 +366,8 @@ payload = {
         "device": sys.argv[9],
         "epochs": int(sys.argv[10]),
         "batch_size": int(sys.argv[11]),
+        "memory_cap": sys.argv[12],
+        "swap_cap": sys.argv[13],
     },
     "commands": {
         "train": train_cmd,
@@ -377,7 +387,7 @@ latest.write_text(manifest_path.read_text(encoding="utf-8"), encoding="utf-8")
 print(f"Pre-candidate train manifest written: {manifest_path}")
 PY
 
-scripts/gx1_capped_run.sh --mem 48G --swap 8G -- "${CMD[@]}"
+scripts/gx1_capped_run.sh --mem "$CANDIDATE_MEM_CAP" --swap "$CANDIDATE_SWAP_CAP" -- "${CMD[@]}"
 echo "Candidate bundle written: $OUT_BUNDLE"
 if [[ "$AUDIT_AFTER" = "1" ]]; then
   "${AUDIT_CMD[@]}"
