@@ -220,6 +220,14 @@ class CtxModelConfig:
     # Default OFF; the regime-robust V10 retrain opts in (a sample-efficient inductive bias,
     # NOT a new capability — validate it earns its keep on 2026 OOT side-symmetry).
     enable_regime_film: bool = False
+    # ── Specialist feature-family fusion (2026-06-28 foundation seq146) ──
+    # Optional specialist encoders over audited seq/snap feature groups:
+    # structure_swing, smc_liquidity, trend_ema, vol_compression,
+    # momentum_flow and session_regime. Default OFF so existing bundles have
+    # identical module structure and state_dict behaviour.
+    enable_specialist_fusion: bool = False
+    specialist_num_layers: int = 1
+    specialist_fusion_scale: float = 0.25
     # ── Positional encoding (temporal order) ──────────────────────────
     # When enabled, adds sinusoidal positional encoding to the base seq and
     # every per-TF sequence BEFORE its transformer encoder. Without it, the
@@ -293,6 +301,10 @@ class EntryV10CtxHybridTransformer(nn.Module):
         enable_vol_forecast_head: bool = False,
         enable_pos_enc: bool = False,
         enable_regime_film: bool = False,   # 2026-06-03 BIG-9 (default OFF = bit-parity)
+        enable_specialist_fusion: bool = False,
+        specialist_input_indices: Optional[Dict[str, list[int]]] = None,
+        specialist_num_layers: int = 1,
+        specialist_fusion_scale: float = 0.25,
         # 2026-06-02: per-TF learnable input scaling (V10 v5+). All default
         # OFF so legacy bundles continue to load strict=True.
         enable_tf_input_scale: bool = False,
@@ -355,6 +367,9 @@ class EntryV10CtxHybridTransformer(nn.Module):
             enable_vol_forecast_head=bool(enable_vol_forecast_head),
             enable_pos_enc=bool(enable_pos_enc),
             enable_regime_film=bool(enable_regime_film),
+            enable_specialist_fusion=bool(enable_specialist_fusion),
+            specialist_num_layers=int(specialist_num_layers),
+            specialist_fusion_scale=float(specialist_fusion_scale),
             enable_tf_input_scale=bool(enable_tf_input_scale),
             tf_input_scale_init_m5=float(tf_input_scale_init_m5),
             tf_input_scale_init_m15=float(tf_input_scale_init_m15),
@@ -398,6 +413,60 @@ class EntryV10CtxHybridTransformer(nn.Module):
             nn.GELU(),
             nn.Dropout(dropout),
         )
+
+        # Specialist feature-family fusion. Each specialist sees only its
+        # audited seq feature subset and produces one token. A gated mixture
+        # over those tokens adds a zero-init residual correction to z_v3.
+        self._specialist_names: tuple[str, ...] = tuple()
+        if self.cfg.enable_specialist_fusion:
+            cleaned: Dict[str, list[int]] = {}
+            raw_indices = specialist_input_indices or {}
+            for raw_name, raw_idx in raw_indices.items():
+                name = str(raw_name).strip()
+                if not name:
+                    continue
+                idx = sorted({int(i) for i in list(raw_idx or [])})
+                if not idx:
+                    continue
+                if min(idx) < 0 or max(idx) >= int(seq_input_dim):
+                    raise RuntimeError(
+                        f"SPECIALIST_INDEX_OOB: {name} has indices outside [0,{int(seq_input_dim) - 1}]"
+                    )
+                cleaned[name] = idx
+            if not cleaned:
+                raise RuntimeError("SPECIALIST_FUSION_REQUIRES_INDICES")
+            self._specialist_names = tuple(cleaned.keys())
+            self.specialist_proj = nn.ModuleDict(
+                {name: nn.Linear(len(idx), d_model) for name, idx in cleaned.items()}
+            )
+            specialist_layers = max(1, int(self.cfg.specialist_num_layers))
+
+            def _mk_specialist_enc() -> nn.TransformerEncoder:
+                layer = nn.TransformerEncoderLayer(
+                    d_model=d_model,
+                    nhead=n_heads,
+                    dim_feedforward=d_ff,
+                    dropout=dropout,
+                    batch_first=True,
+                    activation="gelu",
+                    norm_first=True,
+                )
+                return nn.TransformerEncoder(layer, num_layers=specialist_layers)
+
+            self.specialist_encoder = nn.ModuleDict(
+                {name: _mk_specialist_enc() for name in self._specialist_names}
+            )
+            for name, idx in cleaned.items():
+                self.register_buffer(
+                    f"specialist_idx_{name}",
+                    torch.tensor(idx, dtype=torch.long),
+                    persistent=False,
+                )
+            self.specialist_gate = nn.Linear(d_model, len(self._specialist_names))
+            self.specialist_out = nn.Linear(d_model, d_model)
+            nn.init.zeros_(self.specialist_out.weight)
+            nn.init.zeros_(self.specialist_out.bias)
+            self.register_buffer("specialist_fusion_scale", torch.tensor(float(self.cfg.specialist_fusion_scale)))
 
         # 3-class direction head: LONG / SHORT / FLAT
         self.head_direction = nn.Linear(d_model, 3)
@@ -696,6 +765,25 @@ class EntryV10CtxHybridTransformer(nn.Module):
         fused = torch.cat([seq_pool, snap_h, cat_flat, cont_h], dim=1)
         z_v3 = self.fuse(fused)
 
+        specialist_gate = None
+        if self.cfg.enable_specialist_fusion and hasattr(self, "specialist_gate"):
+            pools = []
+            for name in self._specialist_names:
+                idx = getattr(self, f"specialist_idx_{name}").to(seq_x.device)
+                seq_part = seq_x.index_select(dim=2, index=idx)
+                spec_h = self.specialist_proj[name](seq_part)
+                spec_h = self._add_pe(spec_h, "pos_enc")
+                spec_pool = self.specialist_encoder[name](spec_h).mean(dim=1)
+                pools.append(spec_pool)
+            specialist_tokens = torch.stack(pools, dim=1)
+            specialist_logits = self.specialist_gate(z_v3)
+            specialist_gate = torch.softmax(specialist_logits, dim=1)
+            specialist_pool = (specialist_tokens * specialist_gate.unsqueeze(-1)).sum(dim=1)
+            specialist_correction = self.specialist_out(specialist_pool)
+            _assert_finite("specialist_correction", specialist_correction)
+            _assert_finite("specialist_gate", specialist_gate)
+            z_v3 = z_v3 + self.specialist_fusion_scale.to(specialist_correction.dtype) * specialist_correction
+
         # ── Multi-TF second-stage fusion (V12.2 + V2 M5 extension) ──
         # Only active when the model was constructed with enable_multi_tf=True
         # AND the caller provides required TF tensors. If model is v3-mode but
@@ -831,6 +919,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
             "clean_edge_logit": clean_edge_logit,
             "survival_logit": survival_logit,
         }
+        if specialist_gate is not None:
+            out["specialist_gate"] = specialist_gate
         # Distillation Q-head — only emit when enabled in this bundle.
         if self.cfg.enable_q_head and hasattr(self, "q_head"):
             q_per_action = self.q_head(z)  # (B, 3) — [q_skip, q_long, q_short]

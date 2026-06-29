@@ -22,6 +22,26 @@
 #   nohup .../v12_daily_counterfactual.sh --daemon &
 set -euo pipefail
 
+COUNTERFACTUAL_ACK_VAR=GX1_ALLOW_LEGACY_V12_COUNTERFACTUAL_DAEMON
+COUNTERFACTUAL_ACK_VALUE=20260627_ALLOW_LEGACY_V12_COUNTERFACTUAL_DAEMON
+if [[ "${GX1_ALLOW_LEGACY_V12_COUNTERFACTUAL_DAEMON:-}" != "$COUNTERFACTUAL_ACK_VALUE" ]]; then
+    cat >&2 <<EOF
+[ABORT] Active Entry next-edge plan blocks legacy V12 counterfactual daemon.
+        Current path is Entry foundation seq146 cleanup/audit/smoke-readiness.
+        Use:
+          scripts/entry_next_edge_control.sh verify
+          scripts/entry_next_edge_control.sh selftest
+          scripts/entry_next_edge_control.sh foundation-guardrails
+          scripts/entry_next_edge_control.sh worktree-hygiene
+          scripts/entry_next_edge_control.sh stage-foundation-cleanup --dry-run
+          scripts/entry_next_edge_control.sh materialize-smoke
+          scripts/entry_next_edge_control.sh train-readiness
+        Override only with:
+          $COUNTERFACTUAL_ACK_VAR=$COUNTERFACTUAL_ACK_VALUE bash gx1/execution/v12_daily_counterfactual.sh
+EOF
+    exit 2
+fi
+
 REPO=/home/andre2/src/GX1_ENGINE
 PAPER_DIR=/home/andre2/GX1_DATA/reports/v12_paper_runs
 CF_DIR="$PAPER_DIR/counterfactual_reports"

@@ -375,6 +375,207 @@ def _sha256_file(path: Path) -> str:
     return h.hexdigest()
 
 
+def _strip_feature_prefix(name: str) -> str:
+    out = str(name)
+    for prefix in ("chart.", "ctx_cont.", "snap.", "seq."):
+        if out.startswith(prefix):
+            return out[len(prefix):]
+    return out
+
+
+def _resolve_seq_structure_extension(
+    *,
+    parquet_path: Optional[Path],
+    manifest_path: Optional[Path],
+    allow_manifest_only_inline: bool = False,
+) -> Tuple[Optional[Path], List[str], Dict[str, Any]]:
+    if parquet_path is None and manifest_path is None:
+        return None, [], {}
+
+    manifest: Dict[str, Any] = {}
+    features: List[str] = []
+    if manifest_path is not None:
+        manifest_path = Path(manifest_path).expanduser().resolve()
+        if not manifest_path.exists():
+            raise RuntimeError(f"SEQ_STRUCTURE_MANIFEST_MISSING: {manifest_path}")
+        manifest = json.loads(manifest_path.read_text())
+        features = [str(x) for x in manifest.get("selected_features", []) if str(x).strip()]
+        if parquet_path is None:
+            raw_parquet = str(manifest.get("parquet_path") or "").strip()
+            if not raw_parquet and not (allow_manifest_only_inline and features):
+                raise RuntimeError(f"SEQ_STRUCTURE_MANIFEST_NO_PARQUET: {manifest_path}")
+            parquet_path = Path(raw_parquet).expanduser().resolve() if raw_parquet else None
+
+    if parquet_path is None and not (allow_manifest_only_inline and features):
+        raise RuntimeError("SEQ_STRUCTURE_EXTENSION_PARQUET_UNRESOLVED")
+
+    actual_sha: Optional[str] = None
+    if parquet_path is not None:
+        parquet_path = Path(parquet_path).expanduser().resolve()
+        if not parquet_path.exists():
+            raise RuntimeError(f"SEQ_STRUCTURE_PARQUET_MISSING: {parquet_path}")
+
+        expected_sha = str(manifest.get("parquet_sha256") or "").strip()
+        actual_sha = _sha256_file(parquet_path)
+        if expected_sha and actual_sha != expected_sha:
+            raise RuntimeError(
+                f"SEQ_STRUCTURE_PARQUET_SHA_MISMATCH: got={actual_sha} expected={expected_sha} path={parquet_path}"
+            )
+
+    meta = {
+        "manifest_path": str(manifest_path) if manifest_path is not None else None,
+        "parquet_path": str(parquet_path) if parquet_path is not None else None,
+        "parquet_sha256": actual_sha,
+        "manifest_schema_version": manifest.get("schema_version"),
+        "manifest_selected_feature_count": len(features) if features else None,
+        "manifest_only": bool(manifest.get("manifest_only")) if manifest else False,
+        "foundation_structure_feature_version": manifest.get("foundation_structure_feature_version"),
+        "foundation_structure_feature_count": manifest.get("foundation_structure_feature_count"),
+        "foundation_structure_missing_feature_count": manifest.get("foundation_structure_missing_feature_count"),
+        "foundation_structure_all_required_selected": manifest.get("foundation_structure_all_required_selected"),
+        "manifest": manifest,
+    }
+    return parquet_path, features, meta
+
+
+def _join_seq_structure_extension(
+    merged3: pd.DataFrame,
+    *,
+    parquet_path: Path,
+    requested_features: List[str],
+) -> Tuple[pd.DataFrame, List[str], Dict[str, Any]]:
+    ext = pd.read_parquet(parquet_path)
+    if "time" not in ext.columns:
+        raise RuntimeError(f"SEQ_STRUCTURE_TIME_COL_MISSING: {parquet_path}")
+    ext = _normalize_time_utc(ext.reset_index(drop=True), "time")
+    ext = ext.drop_duplicates(subset=["time"], keep="last")
+
+    if requested_features:
+        features = list(requested_features)
+    else:
+        features = [c for c in ext.columns if c not in {"time", "session", "source_split"}]
+    if not features:
+        raise RuntimeError("SEQ_STRUCTURE_FEATURES_EMPTY")
+    missing = [f for f in features if f not in ext.columns]
+    if missing:
+        raise RuntimeError(f"SEQ_STRUCTURE_FEATURES_MISSING_IN_PARQUET: {missing[:30]} total={len(missing)}")
+
+    overlap = [f for f in features if f in merged3.columns]
+    if overlap:
+        raise RuntimeError(f"SEQ_STRUCTURE_FEATURE_NAME_COLLISION: {overlap[:30]} total={len(overlap)}")
+
+    before = int(len(merged3))
+    cols = ["time"] + features
+    ext_small = ext[cols].copy()
+    for f in features:
+        ext_small[f] = pd.to_numeric(ext_small[f], errors="raise").astype(np.float32)
+    joined = merged3.merge(ext_small, on="time", how="inner", validate="one_to_one")
+    after = int(len(joined))
+    if after != before:
+        raise RuntimeError(
+            f"SEQ_STRUCTURE_JOIN_ROW_MISMATCH: before={before} after={after} parquet={parquet_path}"
+        )
+    mat = joined[features].astype(np.float32).to_numpy()
+    if not np.isfinite(mat).all():
+        raise RuntimeError("SEQ_STRUCTURE_NONFINITE_VALUES")
+
+    normalized_existing_seq_overlap = [
+        f for f in features if _strip_feature_prefix(f) in set(SIGNAL_FIELDS)
+    ]
+    meta = {
+        "features": list(features),
+        "feature_count": int(len(features)),
+        "rows_joined": after,
+        "normalized_existing_seq_overlap": normalized_existing_seq_overlap,
+        "mode": "parquet_join",
+    }
+    return joined, features, meta
+
+
+def _build_inline_seq_structure_extension(
+    merged3: pd.DataFrame,
+    *,
+    requested_features: List[str],
+    ctx_cont_names: List[str],
+    source_parquet: Optional[Path],
+) -> Tuple[np.ndarray, List[str], Dict[str, Any]]:
+    if not requested_features:
+        raise RuntimeError("SEQ_STRUCTURE_INLINE_REQUESTED_FEATURES_EMPTY")
+
+    from gx1.scripts.experiment_entry_chart_structure_ablation_v1 import (
+        _build_chart_layer,
+        _build_deep_interaction_layer,
+        _build_price_derived_layer,
+    )
+
+    base_blocks: List[np.ndarray] = []
+    base_names: List[str] = []
+    for field in SIGNAL_FIELDS:
+        if field not in merged3.columns:
+            raise RuntimeError(f"SEQ_STRUCTURE_INLINE_MISSING_SIGNAL_FIELD: {field}")
+        base_blocks.append(merged3[field].astype(np.float32).to_numpy().reshape(-1, 1))
+        base_names.append(f"snap.{field}")
+    for field in ctx_cont_names:
+        if field not in merged3.columns:
+            raise RuntimeError(f"SEQ_STRUCTURE_INLINE_MISSING_CTX_FIELD: {field}")
+        base_blocks.append(merged3[field].astype(np.float32).to_numpy().reshape(-1, 1))
+        base_names.append(f"ctx_cont.{field}")
+    base_x = np.concatenate(base_blocks, axis=1).astype(np.float32, copy=False)
+
+    chart_x, chart_names = _build_chart_layer(base_x, base_names)
+    if source_parquet is not None:
+        price_x, price_names = _build_price_derived_layer(merged3[["time"]].copy(), Path(source_parquet))
+        if price_x.shape[1]:
+            chart_x = (
+                np.concatenate([chart_x, price_x], axis=1).astype(np.float32, copy=False)
+                if chart_x.shape[1]
+                else price_x
+            )
+            chart_names = list(chart_names) + list(price_names)
+    chart_all_x = (
+        np.concatenate([base_x, chart_x], axis=1).astype(np.float32, copy=False)
+        if chart_x.shape[1]
+        else base_x
+    )
+    chart_all_names = list(base_names) + list(chart_names)
+    deep_x, deep_names = _build_deep_interaction_layer(chart_all_x, chart_all_names, merged3[["time"]].copy())
+
+    all_pieces = [base_x]
+    all_names = list(base_names)
+    if chart_x.shape[1]:
+        all_pieces.append(chart_x)
+        all_names.extend(chart_names)
+    if deep_x.shape[1]:
+        all_pieces.append(deep_x)
+        all_names.extend(deep_names)
+    all_x = np.concatenate(all_pieces, axis=1).astype(np.float32, copy=False)
+    index = {name: i for i, name in enumerate(all_names)}
+    missing = [name for name in requested_features if name not in index]
+    if missing:
+        raise RuntimeError(f"SEQ_STRUCTURE_INLINE_FEATURES_MISSING: {missing[:30]} total={len(missing)}")
+
+    selected = [name for name in requested_features]
+    selected_cols: List[np.ndarray] = []
+    for name in selected:
+        selected_cols.append(all_x[:, index[name]].astype(np.float32, copy=False))
+    out = np.column_stack(selected_cols).astype(np.float32, copy=False)
+    if not np.isfinite(out).all():
+        raise RuntimeError("SEQ_STRUCTURE_INLINE_NONFINITE_VALUES")
+
+    meta = {
+        "mode": "inline_from_merged3",
+        "features": list(selected),
+        "feature_count": int(len(selected)),
+        "base_matrix_dim": int(base_x.shape[1]),
+        "chart_generated_dim": int(chart_x.shape[1]),
+        "deep_generated_dim": int(deep_x.shape[1]),
+        "available_feature_count": int(len(all_names)),
+        "source_parquet_for_price_features": str(source_parquet) if source_parquet is not None else None,
+        "missing_generated_features": [],
+    }
+    return out, selected, meta
+
+
 def _parse_ts(s: Optional[str]) -> Optional[pd.Timestamp]:
     if s is None:
         return None
@@ -1012,6 +1213,12 @@ def write_manifest(
             "xgb_bundle": str(xgb_bundle),
             "xgb_model_file": str((xgb_bundle / "xgb_universal_multihead_v2.joblib").resolve()),
             "xgb_model_sha256": extra.get("xgb_model_sha256") if extra else None,
+            "neutral_xgb_bridge": bool((extra or {}).get("neutral_xgb_bridge", False)),
+            "xgb_bridge_source": (
+                "neutral_uniform_proba"
+                if bool((extra or {}).get("neutral_xgb_bridge", False))
+                else "xgb_bundle_inference"
+            ),
             "tape_root": str(tape_root) if tape_root is not None else None,
         },
         "feature_contract": {
@@ -1136,6 +1343,10 @@ def build_dataset_canonical(
     source_parquet_override: Optional[Path] = None,
     xgb_feature_contract_path: Optional[Path] = None,
     xgb_sanitizer_config_path: Optional[Path] = None,
+    seq_structure_features_parquet: Optional[Path] = None,
+    seq_structure_manifest_path: Optional[Path] = None,
+    seq_structure_compute_inline: bool = False,
+    neutral_xgb_bridge: bool = False,
 ) -> Tuple[pd.DataFrame, Dict[str, Any]]:
     ctx = _hard_gate_ctx6cat6()
     if source_parquet_override is None:
@@ -1275,114 +1486,123 @@ def build_dataset_canonical(
     if "atr_bps" not in df.columns and "_v1_atr14" in df.columns and "close" in df.columns:
         df["atr_bps"] = (df["_v1_atr14"].astype(float) / df["close"].astype(float).clip(lower=1e-6) * 1e4).clip(0, 500).fillna(0.0)
 
-    missing = [c for c in features if c not in df.columns]
-    if missing:
-        raise RuntimeError(f"SOURCE_FEATURES_MISSING: {missing}")
-
-    df_features = df[features].copy()
-    if len(df_features) == 0:
-        raise RuntimeError("NO_ROWS_AFTER_FEATURE_SELECT")
-
-    # 4) Load canonical XGB bundle + sanitizer. Sanitizer matches contract.
-    model_path = Path(xgb_bundle_path) / "xgb_universal_multihead_v2.joblib"
-    if xgb_sanitizer_config_path is not None:
-        sanitizer_cfg = Path(xgb_sanitizer_config_path).expanduser().resolve()
-    else:
-        # X2 (2026-06-04 parity): default to the BASE80 sanitizer the bundle was TRAINED with (empty
-        # bounds -> NO clipping, matching serve), NOT canonical_v3 (34 populated bounds -> clips 34
-        # _v1_*/session XGB inputs the serve path never clips). The two sibling builders
-        # (materialize_inference_batch_candidates_v3_v1.py, materialize_build_v3_training_dataset_v2.py)
-        # already hard-default base80; this entry builder silently diverged -> different XGB probs/bridge.
-        sanitizer_cfg = project_root / "gx1" / "xgb" / "contracts" / "xgb_input_sanitizer_base80_v1.json"
-    if not model_path.exists():
-        raise RuntimeError(f"XGB_MODEL_MISSING: {model_path}")
-    if not sanitizer_cfg.exists():
-        raise RuntimeError(f"SANITIZER_CONFIG_MISSING: {sanitizer_cfg}")
-    # X2 fail-closed (one-truth): the sanitizer used here MUST be the exact one the bundle was trained
-    # with — assert its SHA == the bundle meta's sanitizer_sha256, hard-fail on mismatch (would catch a
-    # wrong --xgb-sanitizer-config-path or a future default drift statically).
-    _xgb_meta_path = Path(xgb_bundle_path) / "xgb_universal_multihead_v2_meta.json"
-    if _xgb_meta_path.exists():
-        _expected_san_sha = (json.loads(_xgb_meta_path.read_text(encoding="utf-8")) or {}).get("sanitizer_sha256")
-        if _expected_san_sha:
-            _actual_san_sha = _sha256_file(sanitizer_cfg)
-            if _actual_san_sha != _expected_san_sha:
-                raise RuntimeError(
-                    f"XGB_SANITIZER_SHA_MISMATCH: {sanitizer_cfg.name} sha={_actual_san_sha} != bundle "
-                    f"meta.sanitizer_sha256={_expected_san_sha} — train would clip differently than the "
-                    f"model was trained with. Pass the matching --xgb-sanitizer-config-path."
-                )
-    log.info("[XGB_SANITIZER_CONFIG] %s", sanitizer_cfg)
-
-    xgb_model_sha256 = _sha256_file(model_path)
-    log.info("[XGB_MODEL_SHA256] %s %s", model_path, xgb_model_sha256)
-
-    model = XGBMultiheadModel.load(str(model_path))
-    model_features = list(getattr(model, "feature_list", []) or [])
-    if model_features != features:
-        raise RuntimeError(
-            "XGB_FEATURE_CONTRACT_MISMATCH: contract features != model.feature_list "
-            f"(contract_len={len(features)} model_len={len(model_features)})"
-        )
-    sanitizer = XGBInputSanitizer.from_config(str(sanitizer_cfg))
-
-    # sanitize (contract-ordered)
-    x_array, _stats = sanitizer.sanitize(df_features, feature_list=features, allow_nan_fill=False)
-    if x_array is None or len(df_features) != len(df):
-        raise RuntimeError("SANITIZER_OUTPUT_INVALID")
-    if np.isnan(x_array).any() or np.isinf(x_array).any():
-        raise RuntimeError("SANITIZER_FAIL_NONFINITE: sanitized features contain NaN/Inf")
-    df_features_sanitized = pd.DataFrame(
-        x_array,
-        columns=features,
-        index=df_features.index,
-    )
-
-    # 5) Predict per session head. 2026-06-04 (audit R1): route ASIA(0)->ASIA head. The COSTFIX
-    # XGB bundle HAS a real ASIA head (xgb_universal_multihead_v2_feature_importance_ASIA.csv), and
-    # serve (v12_xgb_live.py:65), candidate-gen (materialize_inference_batch_candidates_v3_v1.py:172)
-    # and the V3 builder (materialize_build_v3_training_dataset_v2.py:239) all route {0:ASIA}. The old
-    # {0:OVERLAP} fallback (assumed no ASIA head) trained the V10 dataset's ASIA bars (37.7% of all
-    # bars) on the WRONG head's bridge -> ~40% argmax disagreement vs serve. ONE TRUTH = ASIA->ASIA.
-    # Missing session_id -> 0 (ASIA), mirroring serve's .get(s, "ASIA") default.
-    session_series = df["session_id"].fillna(0).astype(int) if "session_id" in df.columns else None
-    session_map = {0: "ASIA", 1: "EU", 2: "OVERLAP", 3: "US"}
-
     bridge_all = np.zeros((len(df), 7), dtype=np.float64)
-
-    def _run_for_session(sess_name: str, idx: np.ndarray) -> None:
-        if idx.size == 0:
-            return
-        probs = model.predict_proba(
-            df_features_sanitized.iloc[idx],
-            session=sess_name,
-            feature_list=features,
+    xgb_model_sha256: Optional[str] = None
+    if neutral_xgb_bridge:
+        neutral_proba = np.full((len(df), 3), 1.0 / 3.0, dtype=np.float64)
+        bridge_all[:, :] = proba_to_signal_bridge_v1(neutral_proba)
+        log.info(
+            "[NEUTRAL_XGB_BRIDGE] enabled rows=%d bridge_vector=%s",
+            len(df),
+            bridge_all[0].tolist() if len(df) else [],
         )
-        # Expect attributes or dict-like; support both
-        if hasattr(probs, "p_long"):
-            pl = np.asarray(probs.p_long, dtype=np.float64)
-            ps = np.asarray(probs.p_short, dtype=np.float64)
-            pf = np.asarray(probs.p_flat, dtype=np.float64)
-        else:
-            pl = np.asarray(probs["p_long"], dtype=np.float64)
-            ps = np.asarray(probs["p_short"], dtype=np.float64)
-            pf = np.asarray(probs["p_flat"], dtype=np.float64)
-        bridge_input = np.column_stack([pl, ps, pf])
-        bridge = proba_to_signal_bridge_v1(bridge_input)
-        if bridge.shape[1] != 7:
-            raise RuntimeError(f"[BRIDGE_DIM_MISMATCH] expected bridge_dim=7, got shape={bridge.shape}")
-        bridge_all[idx, :] = bridge
-
-    if session_series is not None:
-        for sid, name in session_map.items():
-            mask = session_series.values == sid
-            idx = np.where(mask)[0]
-            _run_for_session(name, idx)
     else:
-        _run_for_session("US", np.arange(len(df), dtype=np.int64))
+        missing = [c for c in features if c not in df.columns]
+        if missing:
+            raise RuntimeError(f"SOURCE_FEATURES_MISSING: {missing}")
+
+        df_features = df[features].copy()
+        if len(df_features) == 0:
+            raise RuntimeError("NO_ROWS_AFTER_FEATURE_SELECT")
+
+        # 4) Load canonical XGB bundle + sanitizer. Sanitizer matches contract.
+        model_path = Path(xgb_bundle_path) / "xgb_universal_multihead_v2.joblib"
+        if xgb_sanitizer_config_path is not None:
+            sanitizer_cfg = Path(xgb_sanitizer_config_path).expanduser().resolve()
+        else:
+            # X2 (2026-06-04 parity): default to the BASE80 sanitizer the bundle was TRAINED with (empty
+            # bounds -> NO clipping, matching serve), NOT canonical_v3 (34 populated bounds -> clips 34
+            # _v1_*/session XGB inputs the serve path never clips). The two sibling builders
+            # (materialize_inference_batch_candidates_v3_v1.py, materialize_build_v3_training_dataset_v2.py)
+            # already hard-default base80; this entry builder silently diverged -> different XGB probs/bridge.
+            sanitizer_cfg = project_root / "gx1" / "xgb" / "contracts" / "xgb_input_sanitizer_base80_v1.json"
+        if not model_path.exists():
+            raise RuntimeError(f"XGB_MODEL_MISSING: {model_path}")
+        if not sanitizer_cfg.exists():
+            raise RuntimeError(f"SANITIZER_CONFIG_MISSING: {sanitizer_cfg}")
+        # X2 fail-closed (one-truth): the sanitizer used here MUST be the exact one the bundle was trained
+        # with — assert its SHA == the bundle meta's sanitizer_sha256, hard-fail on mismatch (would catch a
+        # wrong --xgb-sanitizer-config-path or a future default drift statically).
+        _xgb_meta_path = Path(xgb_bundle_path) / "xgb_universal_multihead_v2_meta.json"
+        if _xgb_meta_path.exists():
+            _expected_san_sha = (json.loads(_xgb_meta_path.read_text(encoding="utf-8")) or {}).get("sanitizer_sha256")
+            if _expected_san_sha:
+                _actual_san_sha = _sha256_file(sanitizer_cfg)
+                if _actual_san_sha != _expected_san_sha:
+                    raise RuntimeError(
+                        f"XGB_SANITIZER_SHA_MISMATCH: {sanitizer_cfg.name} sha={_actual_san_sha} != bundle "
+                        f"meta.sanitizer_sha256={_expected_san_sha} — train would clip differently than the "
+                        f"model was trained with. Pass the matching --xgb-sanitizer-config-path."
+                    )
+        log.info("[XGB_SANITIZER_CONFIG] %s", sanitizer_cfg)
+
+        xgb_model_sha256 = _sha256_file(model_path)
+        log.info("[XGB_MODEL_SHA256] %s %s", model_path, xgb_model_sha256)
+
+        model = XGBMultiheadModel.load(str(model_path))
+        model_features = list(getattr(model, "feature_list", []) or [])
+        if model_features != features:
+            raise RuntimeError(
+                "XGB_FEATURE_CONTRACT_MISMATCH: contract features != model.feature_list "
+                f"(contract_len={len(features)} model_len={len(model_features)})"
+            )
+        sanitizer = XGBInputSanitizer.from_config(str(sanitizer_cfg))
+
+        # sanitize (contract-ordered)
+        x_array, _stats = sanitizer.sanitize(df_features, feature_list=features, allow_nan_fill=False)
+        if x_array is None or len(df_features) != len(df):
+            raise RuntimeError("SANITIZER_OUTPUT_INVALID")
+        if np.isnan(x_array).any() or np.isinf(x_array).any():
+            raise RuntimeError("SANITIZER_FAIL_NONFINITE: sanitized features contain NaN/Inf")
+        df_features_sanitized = pd.DataFrame(
+            x_array,
+            columns=features,
+            index=df_features.index,
+        )
+
+        # 5) Predict per session head. 2026-06-04 (audit R1): route ASIA(0)->ASIA head. The COSTFIX
+        # XGB bundle HAS a real ASIA head (xgb_universal_multihead_v2_feature_importance_ASIA.csv), and
+        # serve (v12_xgb_live.py:65), candidate-gen (materialize_inference_batch_candidates_v3_v1.py:172)
+        # and the V3 builder (materialize_build_v3_training_dataset_v2.py:239) all route {0:ASIA}. The old
+        # {0:OVERLAP} fallback (assumed no ASIA head) trained the V10 dataset's ASIA bars (37.7% of all
+        # bars) on the WRONG head's bridge -> ~40% argmax disagreement vs serve. ONE TRUTH = ASIA->ASIA.
+        # Missing session_id -> 0 (ASIA), mirroring serve's .get(s, "ASIA") default.
+        session_series = df["session_id"].fillna(0).astype(int) if "session_id" in df.columns else None
+        session_map = {0: "ASIA", 1: "EU", 2: "OVERLAP", 3: "US"}
+
+        def _run_for_session(sess_name: str, idx: np.ndarray) -> None:
+            if idx.size == 0:
+                return
+            probs = model.predict_proba(
+                df_features_sanitized.iloc[idx],
+                session=sess_name,
+                feature_list=features,
+            )
+            # Expect attributes or dict-like; support both
+            if hasattr(probs, "p_long"):
+                pl = np.asarray(probs.p_long, dtype=np.float64)
+                ps = np.asarray(probs.p_short, dtype=np.float64)
+                pf = np.asarray(probs.p_flat, dtype=np.float64)
+            else:
+                pl = np.asarray(probs["p_long"], dtype=np.float64)
+                ps = np.asarray(probs["p_short"], dtype=np.float64)
+                pf = np.asarray(probs["p_flat"], dtype=np.float64)
+            bridge_input = np.column_stack([pl, ps, pf])
+            bridge = proba_to_signal_bridge_v1(bridge_input)
+            if bridge.shape[1] != 7:
+                raise RuntimeError(f"[BRIDGE_DIM_MISMATCH] expected bridge_dim=7, got shape={bridge.shape}")
+            bridge_all[idx, :] = bridge
+
+        if session_series is not None:
+            for sid, name in session_map.items():
+                mask = session_series.values == sid
+                idx = np.where(mask)[0]
+                _run_for_session(name, idx)
+        else:
+            _run_for_session("US", np.arange(len(df), dtype=np.int64))
 
     # Bridge proof log/meta
-    log.info("[BRIDGE_PROOF] proba_dim=%d -> bridge_dim=%d rows=%d", 3, 7, bridge_all.shape[0])
+    log.info("[BRIDGE_PROOF] proba_dim=%d -> bridge_dim=%d rows=%d neutral=%s", 3, 7, bridge_all.shape[0], bool(neutral_xgb_bridge))
 
     # 6) Build ctx features
     ctx_cont_names = list(ctx["ctx_cont_names"])
@@ -1941,7 +2161,42 @@ def build_dataset_canonical(
     # since merged3 now contains all 22 v2 extension features after the canonical_v2 join.
     ctx_cont_names = list(ORDERED_CTX_CONT_NAMES_V3)
     log.info("[V2_CTX_CONT_UPGRADE] ctx_cont_names_v2 count=%d", len(ctx_cont_names))
-    sig_mat = merged3[list(SIGNAL_FIELDS)].astype(np.float32).to_numpy()
+    seq_structure_parquet, seq_structure_requested, seq_structure_meta = _resolve_seq_structure_extension(
+        parquet_path=seq_structure_features_parquet,
+        manifest_path=seq_structure_manifest_path,
+        allow_manifest_only_inline=bool(seq_structure_compute_inline),
+    )
+    seq_structure_feature_names: List[str] = []
+    if seq_structure_parquet is not None or (seq_structure_compute_inline and seq_structure_requested):
+        if seq_structure_compute_inline:
+            ext_sig_mat, seq_structure_feature_names, _seq_join_meta = _build_inline_seq_structure_extension(
+                merged3,
+                requested_features=seq_structure_requested,
+                ctx_cont_names=ctx_cont_names,
+                source_parquet=canonical_v2_parquet,
+            )
+        else:
+            merged3, seq_structure_feature_names, _seq_join_meta = _join_seq_structure_extension(
+                merged3,
+                parquet_path=seq_structure_parquet,
+                requested_features=seq_structure_requested,
+            )
+            ext_sig_mat = merged3[seq_structure_feature_names].astype(np.float32).to_numpy()
+        seq_structure_meta.update(_seq_join_meta)
+        log.info(
+            "[SEQ_STRUCTURE_EXTENSION_V1] enabled features=%d rows=%d parquet=%s",
+            len(seq_structure_feature_names),
+            len(merged3),
+            seq_structure_parquet,
+        )
+
+    base_sig_mat = merged3[list(SIGNAL_FIELDS)].astype(np.float32).to_numpy()
+    if seq_structure_feature_names:
+        sig_mat = np.concatenate([base_sig_mat, ext_sig_mat], axis=1).astype(np.float32, copy=False)
+    else:
+        sig_mat = base_sig_mat
+    signal_fields_emitted = list(SIGNAL_FIELDS) + list(seq_structure_feature_names)
+    snap_fields_emitted = list(signal_fields_emitted)
     times = merged3["time"].to_numpy()
 
     ctx_cont_mat = merged3[ctx_cont_names].astype(np.float32).to_numpy()
@@ -2598,7 +2853,10 @@ def build_dataset_canonical(
         mfe_missing,
     )
     log.info(
-        "[ENTRY_INPUT_SCHEMA_PROOF] signal_dim=7 ctx_cont_dim=%d ctx_cat_dim=%d",
+        "[ENTRY_INPUT_SCHEMA_PROOF] signal_dim=%d base_signal_dim=%d seq_structure_dim=%d ctx_cont_dim=%d ctx_cat_dim=%d",
+        int(sig_mat.shape[1]),
+        int(len(SIGNAL_FIELDS)),
+        int(len(seq_structure_feature_names)),
         int(len(ctx_cont_names)),
         int(len(ctx_cat_names)),
     )
@@ -2620,14 +2878,28 @@ def build_dataset_canonical(
         },
         "xgb_bundle": str(Path(xgb_bundle_path).resolve()),
         "xgb_model_sha256": xgb_model_sha256,
+        "neutral_xgb_bridge": bool(neutral_xgb_bridge),
+        "xgb_bridge_source": "neutral_uniform_proba" if neutral_xgb_bridge else "xgb_bundle_inference",
         "tape_root": str(Path(tape_root).resolve()),
         "join_ratio_tape": float(rows_joined / max(1, rows_base28)),
         "signal_bridge": {
-            "id": "XGB_SIGNAL_BRIDGE_V2",
-            "fields": list(SIGNAL_FIELDS),
+            "id": SIGNAL_BRIDGE_ID_V3,
+            "neutral_xgb_bridge": bool(neutral_xgb_bridge),
+            "bridge_source": "neutral_uniform_proba" if neutral_xgb_bridge else "xgb_bundle_inference",
+            "fields": list(signal_fields_emitted),
+            "base_fields": list(SIGNAL_FIELDS),
+            "snap_fields": list(snap_fields_emitted),
+            "seq_input_dim": int(sig_mat.shape[1]),
+            "snap_input_dim": int(sig_mat.shape[1]),
+            "base_seq_input_dim": int(len(SIGNAL_FIELDS)),
+            "seq_structure_extension_dim": int(len(seq_structure_feature_names)),
             "contract_sha256": SIGNAL_CONTRACT_SHA256,
             "proba_dim_seen": 3,
             "bridge_dim": 7,
+            "seq_structure_extension_v1": {
+                "enabled": bool(seq_structure_feature_names),
+                **{k: v for k, v in seq_structure_meta.items() if k != "manifest"},
+            },
         },
         "ctx_contract": {
             # R4: self-describing tag/dim from the ACTUAL emitted ctx_cat (5/6), not the v1 anchor.
@@ -2793,6 +3065,31 @@ def main() -> None:
         default=None,
         help="Override default canonical_v3 sanitizer config. Must match feature contract.",
     )
+    parser.add_argument(
+        "--neutral-xgb-bridge",
+        action="store_true",
+        help="Keep the 7 bridge fields for contract compatibility but fill them with neutral "
+             "1/3,1/3,1/3 probabilities instead of running XGBoost inference.",
+    )
+    parser.add_argument(
+        "--seq-structure-features-parquet",
+        type=str,
+        default=None,
+        help="Optional per-bar sequence-structure extension parquet keyed by time. "
+             "When supplied, selected fields are appended to seq/snap after signal_bridge_v3 fields.",
+    )
+    parser.add_argument(
+        "--seq-structure-manifest",
+        type=str,
+        default=None,
+        help="Optional sequence-structure feature-layer manifest. Supplies selected feature order, parquet path, and sha.",
+    )
+    parser.add_argument(
+        "--seq-structure-compute-inline",
+        action="store_true",
+        help="Compute selected sequence-structure features inline from per-bar merged3 instead of joining the parquet. "
+             "Use this for true temporal seq extension builds.",
+    )
 
     # Labels (fixed-hold)
     parser.add_argument("--hold-bars", dest="hold_bars", type=int, default=3, help="Fixed-hold label horizon in M5 bars (default: 3). Must be between 1 and 50.")
@@ -2826,6 +3123,8 @@ def main() -> None:
     parser.add_argument("--dry_run", action="store_true", help="Dry run: validate inputs/ctx, then exit.")
 
     args = parser.parse_args()
+    from gx1.runtime.entry_next_edge_legacy_guard import enforce_legacy_entry_research_ack
+    enforce_legacy_entry_research_ack("legacy Entry V10_CTX training dataset builder")
     build_command = sys.argv.copy()
 
     # Hard gate: ONE UNIVERSE
@@ -2852,6 +3151,12 @@ def main() -> None:
         "fixed_hold_bootstrap_bars": hold_bars,
         **direction_label_contract(),
         "flat_threshold_bps": float(flat_threshold_bps),
+        "neutral_xgb_bridge": bool(args.neutral_xgb_bridge),
+        "seq_structure_extension_v1": {
+            "manifest_path": str(Path(args.seq_structure_manifest).expanduser().resolve()) if args.seq_structure_manifest else None,
+            "parquet_path": str(Path(args.seq_structure_features_parquet).expanduser().resolve()) if args.seq_structure_features_parquet else None,
+            "compute_inline": bool(args.seq_structure_compute_inline),
+        },
     }
 
     # Resolve SSoT inputs (truth-config or manual)
@@ -2947,15 +3252,20 @@ def main() -> None:
     )
 
     model_file = xgb_bundle_path / "xgb_universal_multihead_v2.joblib"
-    if not model_file.exists():
-        raise RuntimeError(f"XGB_MODEL_MISSING: {model_file}")
-    xgb_model_sha256 = _sha256_file(model_file)
+    if bool(args.neutral_xgb_bridge):
+        xgb_model_sha256 = None
+        log.info("[NEUTRAL_XGB_BRIDGE] main preflight skips XGB model sha/load")
+    else:
+        if not model_file.exists():
+            raise RuntimeError(f"XGB_MODEL_MISSING: {model_file}")
+        xgb_model_sha256 = _sha256_file(model_file)
     proof_payload["xgb_model_sha256"] = xgb_model_sha256
     log.info(
-        "[XGB_BUNDLE_PROOF] xgb_bundle=%s model_file=%s model_sha256=%s",
+        "[XGB_BUNDLE_PROOF] xgb_bundle=%s model_file=%s model_sha256=%s neutral=%s",
         xgb_bundle_path,
         model_file,
         xgb_model_sha256,
+        bool(args.neutral_xgb_bridge),
     )
 
     start = _parse_ts(args.start)
@@ -2991,6 +3301,12 @@ def main() -> None:
                 "early_move_threshold_bps": float(args.early_move_threshold_bps),
                 "allow_zero_ctx": bool(args.allow_zero_ctx),
                 "xgb_model_sha256": xgb_model_sha256,
+                "neutral_xgb_bridge": bool(args.neutral_xgb_bridge),
+                "seq_structure_extension_v1": {
+                    "manifest_path": str(Path(args.seq_structure_manifest).expanduser().resolve()) if args.seq_structure_manifest else None,
+                    "parquet_path": str(Path(args.seq_structure_features_parquet).expanduser().resolve()) if args.seq_structure_features_parquet else None,
+                    "compute_inline": bool(args.seq_structure_compute_inline),
+                },
             },
         )
         return
@@ -3041,6 +3357,10 @@ def main() -> None:
                 source_parquet_override=(Path(args.source_parquet_override).expanduser().resolve() if args.source_parquet_override else None),
                 xgb_feature_contract_path=(Path(args.xgb_feature_contract_path).expanduser().resolve() if args.xgb_feature_contract_path else None),
                 xgb_sanitizer_config_path=(Path(args.xgb_sanitizer_config_path).expanduser().resolve() if args.xgb_sanitizer_config_path else None),
+                seq_structure_features_parquet=(Path(args.seq_structure_features_parquet).expanduser().resolve() if args.seq_structure_features_parquet else None),
+                seq_structure_manifest_path=(Path(args.seq_structure_manifest).expanduser().resolve() if args.seq_structure_manifest else None),
+                seq_structure_compute_inline=bool(args.seq_structure_compute_inline),
+                neutral_xgb_bridge=bool(args.neutral_xgb_bridge),
             )
             _log_label_distribution_proof(df_built, split=split_name)
             # V2: parquet already written by streaming_write inside build_dataset_canonical
@@ -3082,6 +3402,10 @@ def main() -> None:
         source_parquet_override=(Path(args.source_parquet_override).expanduser().resolve() if args.source_parquet_override else None),
         xgb_feature_contract_path=(Path(args.xgb_feature_contract_path).expanduser().resolve() if args.xgb_feature_contract_path else None),
         xgb_sanitizer_config_path=(Path(args.xgb_sanitizer_config_path).expanduser().resolve() if args.xgb_sanitizer_config_path else None),
+        seq_structure_features_parquet=(Path(args.seq_structure_features_parquet).expanduser().resolve() if args.seq_structure_features_parquet else None),
+        seq_structure_manifest_path=(Path(args.seq_structure_manifest).expanduser().resolve() if args.seq_structure_manifest else None),
+        seq_structure_compute_inline=bool(args.seq_structure_compute_inline),
+        neutral_xgb_bridge=bool(args.neutral_xgb_bridge),
     )
     _log_label_distribution_proof(df_built, split="SINGLE")
     # V2: parquet already written by streaming_write inside build_dataset_canonical

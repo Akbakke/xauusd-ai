@@ -30,6 +30,26 @@
 #   pkill -f v12_prebuilt_refresh_daemon.sh
 
 set -uo pipefail
+PREBUILT_REFRESH_ACK_VAR=GX1_ALLOW_LEGACY_V12_PREBUILT_REFRESH_DAEMON
+PREBUILT_REFRESH_ACK_VALUE=20260627_ALLOW_LEGACY_V12_PREBUILT_REFRESH_DAEMON
+if [[ "${GX1_ALLOW_LEGACY_V12_PREBUILT_REFRESH_DAEMON:-}" != "$PREBUILT_REFRESH_ACK_VALUE" ]]; then
+    cat >&2 <<EOF
+[ABORT] Active Entry next-edge plan blocks legacy V12 prebuilt-refresh daemon.
+        Current path is Entry foundation seq146 cleanup/audit/smoke-readiness.
+        Use:
+          scripts/entry_next_edge_control.sh verify
+          scripts/entry_next_edge_control.sh selftest
+          scripts/entry_next_edge_control.sh foundation-guardrails
+          scripts/entry_next_edge_control.sh worktree-hygiene
+          scripts/entry_next_edge_control.sh stage-foundation-cleanup --dry-run
+          scripts/entry_next_edge_control.sh materialize-smoke
+          scripts/entry_next_edge_control.sh train-readiness
+        Override only with:
+          $PREBUILT_REFRESH_ACK_VAR=$PREBUILT_REFRESH_ACK_VALUE bash gx1/execution/v12_prebuilt_refresh_daemon.sh
+EOF
+    exit 2
+fi
+
 INTERVAL_SEC=${INTERVAL_SEC:-1800}   # 30 min default
 REPO=/home/andre2/src/GX1_ENGINE
 LOG_DIR=/home/andre2/GX1_DATA/reports/v12_live_data/logs

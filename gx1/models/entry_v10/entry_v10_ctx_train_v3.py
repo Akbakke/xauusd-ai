@@ -55,6 +55,12 @@ from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
     TAIL_RISK_DIRECTIONS, TAIL_RISK_HORIZONS, TAIL_RISK_QUANTILE,
     VOL_FORECAST_HORIZONS,
 )
+from gx1.features.entry_specialist_feature_groups_v1 import (
+    REQUIRED_TRAINING_SPECIALISTS,
+    SPECIALIST_MODEL_CONTRACT,
+    SPECIALIST_FUSION_ACTIVE_HEADS,
+    SPECIALIST_FUSION_BLOCKED_HEADS,
+)
 
 
 def dip_forecast_loss(out: dict, batch: dict, device) -> "torch.Tensor":
@@ -125,13 +131,14 @@ _DIP_FORECAST_TARGET_COLS = (
 # -----------------------------------------------------------------------------
 def _guard_no_rl() -> None:
     """Hard-fail if gx1.rl or legacy was imported."""
+    allowed_legacy_modules = {"gx1.runtime.entry_next_edge_legacy_guard"}
     for mod in list(sys.modules.keys()):
         if mod == "gx1.rl" or mod.startswith("gx1.rl."):
             raise RuntimeError(
                 "[ENTRY_V10_CTX_RL_FORBIDDEN] gx1.rl must not be imported. "
                 f"Found: {mod}"
             )
-        if "legacy" in mod and mod.startswith("gx1."):
+        if "legacy" in mod and mod.startswith("gx1.") and mod not in allowed_legacy_modules:
             raise RuntimeError(
                 "[ENTRY_V10_CTX_LEGACY_FORBIDDEN] gx1 legacy must not be imported. "
                 f"Found: {mod}"
@@ -232,6 +239,9 @@ ENTRY_PRED_BALANCE_ALPHA = float(_env_str("ENTRY_PRED_BALANCE_ALPHA", "0.0"))
 ENTRY_PRED_BALANCE_TARGET = _env_str("ENTRY_PRED_BALANCE_TARGET", "label").lower()
 ENTRY_RESIDUAL_SIDE_BIAS_ALPHA = float(_env_str("ENTRY_RESIDUAL_SIDE_BIAS_ALPHA", "0.0"))
 ENTRY_DIRECTION_CE_SCALE = float(_env_str("ENTRY_DIRECTION_CE_SCALE", "1.30"))
+ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT = float(_env_str("ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT", "0.0"))
+ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT = float(_env_str("ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT", "0.0"))
+ENTRY_SPECIALIST_GATE_MIN_MEAN = float(_env_str("ENTRY_SPECIALIST_GATE_MIN_MEAN", "0.01"))
 # Forceful MTF→direction (2026-06-06): aux CE on the multi-TF direction logits vs
 # the direction label, forcing the 5 multi-TF streams to predict direction.
 # Env-overridable; default 0.3 (secondary to the main direction CE).
@@ -379,6 +389,9 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_PRED_BALANCE_TARGET": "label",
     "ENTRY_RESIDUAL_SIDE_BIAS_ALPHA": "0.0",
     "ENTRY_DIRECTION_CE_SCALE": "1.30",
+    "ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT": "0.0",
+    "ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT": "0.0",
+    "ENTRY_SPECIALIST_GATE_MIN_MEAN": "0.01",
     "ENTRY_TIMING_TARGET_BPS": "3.0",
     "ENTRY_TIMING_LOSS_SCALE": "0.0",
     "ENTRY_AUX_EARLY_WEIGHT": "0.0",
@@ -596,6 +609,10 @@ def _build_active_head_names(
 # so we don't have to thread through 6 layers of function args.
 _GRAD_CLIP_NORM: float = 1.0
 _WEIGHT_DECAY: float = 1e-5
+DEFAULT_SPECIALIST_AUDIT_JSON = Path(
+    "/home/andre2/GX1_DATA/reports/entry_specialist_feature_group_audit_20260628_v1/"
+    "ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_latest.json"
+)
 
 
 def _autocast_forward(model: nn.Module, device: torch.device, *args, **kwargs) -> Dict[str, torch.Tensor]:
@@ -630,6 +647,117 @@ def _multi_tf_kwargs_from_batch(batch: Dict[str, torch.Tensor], device: torch.de
                 t = t.to(device)
             out[key] = t
     return out
+
+
+def _load_specialist_fusion_contract(
+    audit_json: Optional[Path],
+    *,
+    expected_signal_dim: int,
+) -> tuple[Dict[str, list[int]], Dict[str, Any]]:
+    path = Path(audit_json or DEFAULT_SPECIALIST_AUDIT_JSON).expanduser().resolve()
+    if not path.exists():
+        raise RuntimeError(f"[SPECIALIST_AUDIT_MISSING] {path}")
+    report = json.loads(path.read_text(encoding="utf-8"))
+    if str(report.get("decision")) != "PASS":
+        raise RuntimeError(f"[SPECIALIST_AUDIT_NOT_PASS] {path} decision={report.get('decision')} failures={report.get('failures')}")
+    signal_dim = int(report.get("signal_field_count") or 0)
+    if signal_dim != int(expected_signal_dim):
+        raise RuntimeError(f"[SPECIALIST_SIGNAL_DIM_MISMATCH] audit={signal_dim} expected={expected_signal_dim}")
+    specialist_model_contract = (
+        report.get("specialist_model_contract")
+        if isinstance(report.get("specialist_model_contract"), dict)
+        else {}
+    )
+    specialist_model_failures = list(report.get("specialist_model_contract_failures") or [])
+    if not bool(report.get("specialist_model_contract_valid")):
+        specialist_model_failures.append("specialist audit did not declare specialist_model_contract_valid=true")
+    expected_model_contract_keys = {str(name) for name in SPECIALIST_MODEL_CONTRACT}
+    observed_model_contract_keys = {str(name) for name in specialist_model_contract}
+    if observed_model_contract_keys != expected_model_contract_keys:
+        specialist_model_failures.append(
+            "specialist model contract set mismatch: "
+            f"observed={sorted(observed_model_contract_keys)} expected={sorted(expected_model_contract_keys)}"
+        )
+    for name, expected_spec in SPECIALIST_MODEL_CONTRACT.items():
+        observed_spec = specialist_model_contract.get(name)
+        if not isinstance(observed_spec, dict):
+            specialist_model_failures.append(f"specialist model contract missing spec for {name}")
+            continue
+        if str(observed_spec.get("model_role") or "") != str(expected_spec.get("model_role") or ""):
+            specialist_model_failures.append(f"specialist model contract model_role mismatch: {name}")
+        for field in ("owned_objectives", "primary_signal_families", "supports_heads"):
+            observed_values = tuple(str(x) for x in observed_spec.get(field) or ())
+            expected_values = tuple(str(x) for x in expected_spec.get(field) or ())
+            if observed_values != expected_values:
+                specialist_model_failures.append(
+                    f"specialist model contract {field} mismatch: {name}"
+                )
+    if specialist_model_failures:
+        raise RuntimeError(
+            "[SPECIALIST_MODEL_CONTRACT_INVALID] "
+            f"{path} failures={specialist_model_failures[:5]}"
+        )
+    arch = report.get("architecture_contract") if isinstance(report.get("architecture_contract"), dict) else {}
+    raw = arch.get("specialist_input_indices") if isinstance(arch.get("specialist_input_indices"), dict) else {}
+    recommended = arch.get("recommended_fusion") if isinstance(arch.get("recommended_fusion"), dict) else {}
+    active_heads = [str(head) for head in recommended.get("active_heads") or recommended.get("heads") or [] if str(head)]
+    blocked_heads = [str(head) for head in recommended.get("blocked_heads") or [] if str(head)]
+    if set(active_heads) != set(SPECIALIST_FUSION_ACTIVE_HEADS):
+        raise RuntimeError(
+            "[SPECIALIST_ACTIVE_HEADS_MISMATCH] "
+            f"audit={sorted(active_heads)} expected={list(SPECIALIST_FUSION_ACTIVE_HEADS)}"
+        )
+    if set(blocked_heads) != set(SPECIALIST_FUSION_BLOCKED_HEADS):
+        raise RuntimeError(
+            "[SPECIALIST_BLOCKED_HEADS_MISMATCH] "
+            f"audit={sorted(blocked_heads)} expected={list(SPECIALIST_FUSION_BLOCKED_HEADS)}"
+        )
+    overlap = sorted(set(active_heads) & set(blocked_heads))
+    if overlap:
+        raise RuntimeError(f"[SPECIALIST_HEADS_ACTIVE_AND_BLOCKED] {overlap}")
+    trainable = set(REQUIRED_TRAINING_SPECIALISTS)
+    blocked = {"neutral_bridge_anchor", "unmapped"}
+    indices: Dict[str, list[int]] = {}
+    excluded_groups: Dict[str, int] = {}
+    for name, values in raw.items():
+        key = str(name)
+        idx = sorted({int(v) for v in list(values or [])})
+        if key in blocked or key not in trainable:
+            if idx:
+                excluded_groups[key] = int(len(idx))
+            continue
+        if not idx:
+            continue
+        if min(idx) < 0 or max(idx) >= int(expected_signal_dim):
+            raise RuntimeError(f"[SPECIALIST_INDEX_OOB] {key}: min={min(idx)} max={max(idx)} dim={expected_signal_dim}")
+        indices[key] = idx
+    required = list(REQUIRED_TRAINING_SPECIALISTS)
+    missing = [name for name in required if name not in indices]
+    if missing:
+        raise RuntimeError(f"[SPECIALIST_REQUIRED_GROUPS_MISSING] {missing}")
+    meta = {
+        "enabled": True,
+        "audit_json": str(path),
+        "audit_created_utc": str(report.get("created_utc") or ""),
+        "signal_field_count": signal_dim,
+        "selected_feature_count": int(report.get("selected_feature_count") or 0),
+        "input_indices": indices,
+        "group_feature_counts": {name: len(vals) for name, vals in indices.items()},
+        "trainable_specialists": list(REQUIRED_TRAINING_SPECIALISTS),
+        "excluded_specialist_groups": excluded_groups,
+        "active_heads": list(SPECIALIST_FUSION_ACTIVE_HEADS),
+        "blocked_heads": list(SPECIALIST_FUSION_BLOCKED_HEADS),
+        "specialist_model_contract": specialist_model_contract,
+        "specialist_model_contract_valid": True,
+        "specialist_model_contract_failures": [],
+        "specialist_model_contract_set_exact": True,
+        "specialist_model_contract_owned_objectives_match": True,
+        "specialist_model_contract_signal_families_match": True,
+        "specialist_model_contract_support_heads_match": True,
+        "specialist_model_contract_model_roles_match": True,
+        "specialist_model_contract_source": "entry_specialist_feature_group_audit",
+    }
+    return indices, meta
 
 def _resolve_gx1_data(override: str = "") -> Path:
     base = Path(override or os.environ.get("GX1_DATA", "")).expanduser().resolve()
@@ -786,6 +914,80 @@ def _log_manifest_proof(dataset_manifest: Optional[Path]) -> None:
         bridge_id,
         bridge_sha,
     )
+
+
+def _normalize_signal_names(names: List[str], dim: int) -> List[str]:
+    out = [str(x) for x in names if str(x).strip()]
+    if len(out) < int(dim):
+        out.extend(f"seq_extra_{i}" for i in range(len(out), int(dim)))
+    return out[: int(dim)]
+
+
+def _default_signal_names(dim: int) -> List[str]:
+    return _normalize_signal_names(list(SIGNAL_FIELDS), int(dim))
+
+
+def _signal_contract_from_manifest_obj(data: Dict[str, Any]) -> Dict[str, Any]:
+    extra = data.get("extra") if isinstance(data.get("extra"), dict) else {}
+    inputs = data.get("inputs") if isinstance(data.get("inputs"), dict) else {}
+    fc = data.get("feature_contract") if isinstance(data.get("feature_contract"), dict) else {}
+    sb = extra.get("signal_bridge") if isinstance(extra.get("signal_bridge"), dict) else {}
+    fields_raw = sb.get("fields") or fc.get("signal_bridge_fields") or list(SIGNAL_FIELDS)
+    fields = [str(x) for x in fields_raw]
+    seq_dim = int(sb.get("seq_input_dim") or len(fields) or SEQ_SIGNAL_DIM)
+    snap_dim = int(sb.get("snap_input_dim") or seq_dim)
+    return {
+        "seq_input_dim": seq_dim,
+        "snap_input_dim": snap_dim,
+        "fields": _normalize_signal_names(fields, seq_dim),
+        "neutral_xgb_bridge": bool(
+            extra.get("neutral_xgb_bridge", False)
+            or inputs.get("neutral_xgb_bridge", False)
+            or sb.get("neutral_xgb_bridge", False)
+        ),
+        "bridge_source": str(extra.get("xgb_bridge_source") or inputs.get("xgb_bridge_source") or sb.get("bridge_source") or ""),
+    }
+
+
+def _signal_contract_from_manifest_path(dataset_manifest: Optional[Path]) -> Dict[str, Any]:
+    if dataset_manifest is None:
+        return {
+            "seq_input_dim": int(SEQ_SIGNAL_DIM),
+            "snap_input_dim": int(SNAP_SIGNAL_DIM),
+            "fields": list(SIGNAL_FIELDS),
+            "neutral_xgb_bridge": False,
+            "bridge_source": "xgb_bundle_inference",
+        }
+    p = Path(dataset_manifest).expanduser().resolve()
+    if not p.exists():
+        return {
+            "seq_input_dim": int(SEQ_SIGNAL_DIM),
+            "snap_input_dim": int(SNAP_SIGNAL_DIM),
+            "fields": list(SIGNAL_FIELDS),
+            "neutral_xgb_bridge": False,
+            "bridge_source": "xgb_bundle_inference",
+        }
+    return _signal_contract_from_manifest_obj(json.loads(p.read_text(encoding="utf-8")))
+
+
+def _signal_contract_for_parquet(parquet_path: Path, seq_dim: int, snap_dim: int) -> Dict[str, Any]:
+    manifest_path = Path(parquet_path).expanduser().resolve().with_suffix(".manifest.json")
+    if manifest_path.exists():
+        contract = _signal_contract_from_manifest_path(manifest_path)
+        if int(contract["seq_input_dim"]) != int(seq_dim) or int(contract["snap_input_dim"]) != int(snap_dim):
+            raise RuntimeError(
+                "[ENTRY_V10_CTX_MANIFEST_SIGNAL_DIM_MISMATCH] "
+                f"{manifest_path} declares seq/snap={contract['seq_input_dim']}/{contract['snap_input_dim']} "
+                f"but parquet has {seq_dim}/{snap_dim}"
+            )
+        return contract
+    return {
+        "seq_input_dim": int(seq_dim),
+        "snap_input_dim": int(snap_dim),
+        "fields": _default_signal_names(seq_dim),
+        "neutral_xgb_bridge": False,
+        "bridge_source": "unknown_no_manifest",
+    }
 
 
 def _resolve_test_parquet(
@@ -970,6 +1172,11 @@ class EntryV10CtxDataset(Dataset):
     ):
         self.parquet_path = Path(parquet_path)
         self.seq_len = int(seq_len)
+        self.seq_input_dim = int(SEQ_SIGNAL_DIM)
+        self.snap_input_dim = int(SNAP_SIGNAL_DIM)
+        self.signal_names = list(SIGNAL_FIELDS)
+        self.neutral_xgb_bridge = False
+        self.xgb_bridge_source = "xgb_bundle_inference"
         self.enable_multi_tf = bool(enable_multi_tf)
         self.multi_tf_seq_len = int(multi_tf_seq_len)
         # per_tf_seq_lens: dict like {"M5": 96, "M15": 96, "H1": 96, "H4": 48, "D1": 30}.
@@ -1073,9 +1280,16 @@ class EntryV10CtxDataset(Dataset):
             snap_dim = int(first_batch.column("snap")[0].values.__len__())
             ctx_cont_dim = int(first_batch.column("ctx_cont")[0].values.__len__())
             ctx_cat_dim = int(first_batch.column("ctx_cat")[0].values.__len__())
+            signal_contract = _signal_contract_for_parquet(self.parquet_path, seq_dim=seq_dim, snap_dim=snap_dim)
+            self.seq_input_dim = int(signal_contract["seq_input_dim"])
+            self.snap_input_dim = int(signal_contract["snap_input_dim"])
+            self.signal_names = list(signal_contract["fields"])
+            self.neutral_xgb_bridge = bool(signal_contract.get("neutral_xgb_bridge", False))
+            self.xgb_bridge_source = str(signal_contract.get("bridge_source") or "")
             log.info(
                 f"[MEM_FIX] schema probe: seq=(N,{seq_len},{seq_dim})  snap=(N,{snap_dim})  "
-                f"ctx_cont=(N,{ctx_cont_dim})  ctx_cat=(N,{ctx_cat_dim})"
+                f"ctx_cont=(N,{ctx_cont_dim})  ctx_cat=(N,{ctx_cat_dim}) "
+                f"neutral_xgb_bridge={self.neutral_xgb_bridge}"
             )
             self._np_seq = np.zeros((n_rows, seq_len, seq_dim), dtype=np.float32)
             self._np_snap = np.zeros((n_rows, snap_dim), dtype=np.float32)
@@ -1357,27 +1571,28 @@ class EntryV10CtxDataset(Dataset):
 
     def __getitem__(self, i: int) -> Dict[str, torch.Tensor]:
         if self._advanced:
-            row = self.df.iloc[i]
+            t = int(self.indices[i])
+            row = self.df.iloc[t]
             # V12.2: nested cols were pre-converted to np arrays in __init__;
             # __getitem__ now just slices for speed + memory efficiency.
-            seq = self._np_seq[i]
-            snap = self._np_snap[i]
-            ctx_cont = self._np_ctx_cont[i].copy()   # copy so concatenate below is safe
+            seq = self._np_seq[t]
+            snap = self._np_snap[t]
+            ctx_cont = self._np_ctx_cont[t].copy()   # copy so concatenate below is safe
             if _is_vnext() and self._ctx_vnext_extra is not None:
-                extra = self._ctx_vnext_extra[i]
+                extra = self._ctx_vnext_extra[t]
                 ctx_cont = np.concatenate([ctx_cont, extra.astype(np.float32)], axis=0)
-            ctx_cat = self._np_ctx_cat[i]
+            ctx_cat = self._np_ctx_cat[t]
             y = int(np.asarray(row["y_direction"]).ravel()[0])
             if y not in (0, 1, 2):
                 raise RuntimeError(f"[ENTRY_V10_CTX_LABEL_INVALID] y_direction={y} expected 0/1/2")
 
-            if seq.shape != (self.seq_len, SEQ_SIGNAL_DIM):
+            if seq.shape != (self.seq_len, self.seq_input_dim):
                 raise RuntimeError(
-                    f"[ENTRY_V10_CTX_SHAPE_MISMATCH] seq shape {seq.shape} expected ({self.seq_len}, {SEQ_SIGNAL_DIM})"
+                    f"[ENTRY_V10_CTX_SHAPE_MISMATCH] seq shape {seq.shape} expected ({self.seq_len}, {self.seq_input_dim})"
                 )
-            if snap.shape != (SNAP_SIGNAL_DIM,):
+            if snap.shape != (self.snap_input_dim,):
                 raise RuntimeError(
-                    f"[ENTRY_V10_CTX_SHAPE_MISMATCH] snap shape {snap.shape} expected ({SNAP_SIGNAL_DIM},)"
+                    f"[ENTRY_V10_CTX_SHAPE_MISMATCH] snap shape {snap.shape} expected ({self.snap_input_dim},)"
                 )
             if ctx_cont.shape != (self.ctx_cont_dim,):
                 raise RuntimeError(
@@ -1571,6 +1786,32 @@ def _build_cost_sensitive_criterion(
     return criterion, cost_matrix
 
 
+def _specialist_gate_regularization(out: dict[str, Any], device: torch.device) -> tuple[torch.Tensor, dict[str, float]]:
+    gate = out.get("specialist_gate")
+    zero = torch.zeros((), device=device)
+    if gate is None or not isinstance(gate, torch.Tensor) or gate.numel() == 0:
+        return zero, {"entropy": 0.0, "min_mean": 0.0, "kl_uniform": 0.0, "floor_hinge": 0.0}
+    gate = gate.float().clamp(min=1e-8)
+    mean_gate = gate.mean(dim=0)
+    entropy = -(gate * gate.log()).sum(dim=1).mean()
+    max_entropy = torch.log(torch.tensor(float(gate.shape[1]), device=device, dtype=gate.dtype))
+    entropy_loss = (max_entropy - entropy).clamp_min(0.0)
+    uniform = torch.full_like(mean_gate, 1.0 / float(mean_gate.numel()))
+    kl_uniform = (uniform * (uniform.clamp(min=1e-8).log() - mean_gate.clamp(min=1e-8).log())).sum()
+    floor = torch.tensor(float(ENTRY_SPECIALIST_GATE_MIN_MEAN), device=device, dtype=gate.dtype)
+    floor_hinge = torch.relu(floor - mean_gate).sum()
+    loss = (
+        float(ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT) * entropy_loss
+        + float(ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT) * (kl_uniform + floor_hinge)
+    )
+    return loss, {
+        "entropy": float(entropy.detach().cpu().item()),
+        "min_mean": float(mean_gate.min().detach().cpu().item()),
+        "kl_uniform": float(kl_uniform.detach().cpu().item()),
+        "floor_hinge": float(floor_hinge.detach().cpu().item()),
+    }
+
+
 def train_epoch(
     model,
     loader,
@@ -1621,6 +1862,9 @@ def train_epoch(
     total_aux_survival = 0.0
     total_clean_edge_rank = 0.0
     total_aux_bad_path = 0.0
+    specialist_gate_loss_sum = 0.0
+    specialist_gate_entropy_sum = 0.0
+    specialist_gate_min_mean_sum = 0.0
     n = 0
     short_total = 0
     short_pred_long = 0
@@ -1683,6 +1927,7 @@ def train_epoch(
         survival_logit = out.get("survival_logit")
         anchor_logits = out.get("anchor_logits")
         delta_logits = out.get("delta_logits")
+        specialist_gate_loss, specialist_gate_stats = _specialist_gate_regularization(out, device)
 
         residual_hard_neg_long = torch.clamp(
             y_hard_negative_long.float() - y_dead_negative_long.float() - y_teaser_negative_long.float(),
@@ -1749,6 +1994,8 @@ def train_epoch(
                 balance_term = float(getattr(criterion, "balance_alpha", 0.0)) * balance_loss
 
         loss = ce_loss + cost_term + balance_term
+        if float(ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT) > 0.0 or float(ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT) > 0.0:
+            loss = loss + specialist_gate_loss
         hard_neg_prob_loss = torch.tensor(0.0, device=device)
         dead_neg_prob_loss = torch.tensor(0.0, device=device)
         teaser_neg_prob_loss = torch.tensor(0.0, device=device)
@@ -1972,6 +2219,9 @@ def train_epoch(
         total_ce += float(ce_loss) * bs
         total_cost += float(cost_term) * bs
         total_balance += float(balance_term) * bs
+        specialist_gate_loss_sum += float(specialist_gate_loss.detach().cpu().item()) * bs
+        specialist_gate_entropy_sum += float(specialist_gate_stats.get("entropy", 0.0)) * bs
+        specialist_gate_min_mean_sum += float(specialist_gate_stats.get("min_mean", 0.0)) * bs
         hard_neg_prob_loss_sum += float(hard_neg_prob_loss) * bs
         bad_path_loss_sum += float(bad_path_prob_loss) * bs
         if aux_path_weight > 0.0:
@@ -1992,6 +2242,9 @@ def train_epoch(
         "ce_loss_mean": (total_ce / max(1, n)),
         "cost_loss_mean": (total_cost / max(1, n)),
         "balance_loss_mean": (total_balance / max(1, n)),
+        "specialist_gate_loss_mean": (specialist_gate_loss_sum / max(1, n)),
+        "specialist_gate_entropy_mean": (specialist_gate_entropy_sum / max(1, n)),
+        "specialist_gate_min_mean": (specialist_gate_min_mean_sum / max(1, n)),
         "hard_neg_prob_loss_mean": (hard_neg_prob_loss_sum / max(1, n)),
         "bad_path_prob_loss_mean": (bad_path_loss_sum / max(1, n)),
         "aux_path_loss_mean": (total_aux_path / max(1, n)),
@@ -2698,12 +2951,20 @@ def run_sanity_check(
     out_bundle_dir: Path,
     dataset_manifest: Optional[Path] = None,
     deterministic: bool = True,
+    enable_specialist_fusion: bool = False,
+    specialist_audit_json: Optional[Path] = None,
+    specialist_num_layers: int = 1,
+    specialist_fusion_scale: float = 0.25,
 ) -> None:
     """
     Contract + dummy forward + write minimal bundle + reload with runtime loader (strict).
     Fail-fast with clear error labels.
     """
     _guard_no_rl()
+
+    signal_contract = _signal_contract_from_manifest_path(dataset_manifest)
+    seq_input_dim = int(signal_contract["seq_input_dim"])
+    snap_input_dim = int(signal_contract["snap_input_dim"])
 
     if dataset_manifest is not None:
         p = Path(dataset_manifest).expanduser().resolve()
@@ -2725,9 +2986,10 @@ def run_sanity_check(
                 int(fc.get("ctx_cont_base_dim")) == 6,
                 f"[SANITY_MANIFEST_CTX_BASE] expected ctx_cont_base_dim=6, got {fc.get('ctx_cont_base_dim')}",
             )
+        bridge_id = str(fc.get("signal_bridge_id") or "")
         _require(
-            fc.get("signal_bridge_id") == "XGB_SIGNAL_BRIDGE_V1",
-            f"[SANITY_MANIFEST_SIGNAL] expected XGB_SIGNAL_BRIDGE_V1, got {fc.get('signal_bridge_id')}",
+            bridge_id.startswith("XGB_SIGNAL_BRIDGE_"),
+            f"[SANITY_MANIFEST_SIGNAL] expected XGB_SIGNAL_BRIDGE_*, got {bridge_id}",
         )
         log.info(f"[SANITY] manifest contract OK: {p}")
 
@@ -2738,7 +3000,7 @@ def run_sanity_check(
             ctx.get("ctx_cont_dim") == 6 and ctx.get("ctx_cat_dim") == 6,
             "[SANITY_CTX_DIM_MISMATCH] expected ctx_cont_base=6 ctx_cat_dim=6",
         )
-    _require(SEQ_SIGNAL_DIM == SNAP_SIGNAL_DIM and SEQ_SIGNAL_DIM > 0, f"[SANITY_SIGNAL_DIM] seq={SEQ_SIGNAL_DIM} snap={SNAP_SIGNAL_DIM}")
+    _require(seq_input_dim == snap_input_dim and seq_input_dim > 0, f"[SANITY_SIGNAL_DIM] seq={seq_input_dim} snap={snap_input_dim}")
 
     if dataset_manifest is not None:
         ctx_cont_dim = int(fc_ctx_cont_dim)
@@ -2751,19 +3013,31 @@ def run_sanity_check(
 
     log.info(
         f"[SANITY] seed={seed} device={device} "
-        f"signal_bridge=7 ctx_cont={ctx_cont_dim} ctx_cat={ctx_cat_dim} seq_len={seq_len}"
+        f"signal_dim={seq_input_dim} ctx_cont={ctx_cont_dim} ctx_cat={ctx_cat_dim} seq_len={seq_len}"
     )
+    specialist_indices: Dict[str, list[int]] | None = None
+    specialist_meta: Dict[str, Any] | None = None
+    if enable_specialist_fusion:
+        specialist_indices, specialist_meta = _load_specialist_fusion_contract(
+            specialist_audit_json,
+            expected_signal_dim=seq_input_dim,
+        )
+        log.info("[SPECIALIST_FUSION] sanity enabled groups=%s", sorted(specialist_indices))
 
     _set_deterministic(seed, device, deterministic=deterministic)
 
     model = EntryV10CtxHybridTransformer(
-        seq_input_dim=SEQ_SIGNAL_DIM,
-        snap_input_dim=SNAP_SIGNAL_DIM,
+        seq_input_dim=seq_input_dim,
+        snap_input_dim=snap_input_dim,
         seq_len=seq_len,
         ctx_cont_dim=ctx_cont_dim,
         ctx_cat_dim=ctx_cat_dim,
         residual_scale=float(ENTRY_RESIDUAL_SCALE),
         anchor_eps=float(ENTRY_ANCHOR_EPS),
+        enable_specialist_fusion=bool(enable_specialist_fusion),
+        specialist_input_indices=specialist_indices,
+        specialist_num_layers=int(specialist_num_layers),
+        specialist_fusion_scale=float(specialist_fusion_scale),
     ).to(device)
     try:
         head_out = int(getattr(model.head_direction, "out_features", -1))
@@ -2778,8 +3052,8 @@ def run_sanity_check(
 
     # Dummy batch: per-sample ctx (B, ctx_*) as in dataset/trening
     B, T = 4, seq_len
-    dummy_seq = torch.randn(B, T, 7, device=device, dtype=torch.float32)
-    dummy_snap = torch.randn(B, 7, device=device, dtype=torch.float32)
+    dummy_seq = torch.randn(B, T, seq_input_dim, device=device, dtype=torch.float32)
+    dummy_snap = torch.randn(B, snap_input_dim, device=device, dtype=torch.float32)
     dummy_ctx_cont = torch.randn(B, ctx_cont_dim, device=device, dtype=torch.float32)
     dummy_ctx_cat = torch.randint(0, 256, (B, ctx_cat_dim), device=device, dtype=torch.int64)
 
@@ -2824,8 +3098,8 @@ def run_sanity_check(
         "version": "entry_v10_ctx_lock_v1",
         "created_at_utc": _utc_now(),
         "signal_bridge_contract_sha256": SIGNAL_BRIDGE_CONTRACT_SHA256,
-        "seq_input_dim": SEQ_SIGNAL_DIM,
-        "snap_input_dim": SNAP_SIGNAL_DIM,
+        "seq_input_dim": seq_input_dim,
+        "snap_input_dim": snap_input_dim,
         "seq_len": seq_len,
         "ctx_cont_dim": ctx_cont_dim,
         "ctx_cat_dim": ctx_cat_dim,
@@ -2843,8 +3117,8 @@ def run_sanity_check(
 
     meta = {
         "created_at_utc": _utc_now(),
-        "seq_input_dim": SEQ_SIGNAL_DIM,
-        "snap_input_dim": SNAP_SIGNAL_DIM,
+        "seq_input_dim": seq_input_dim,
+        "snap_input_dim": snap_input_dim,
         "seq_len": seq_len,
         "ctx_cont_dim": ctx_cont_dim,
         "ctx_cat_dim": ctx_cat_dim,
@@ -2858,6 +3132,12 @@ def run_sanity_check(
         "feature_meta_path": str(feature_meta_path.name),
         "sanity_bundle": True,
     }
+    if specialist_meta:
+        meta["specialist_fusion"] = {
+            **specialist_meta,
+            "num_layers": int(specialist_num_layers),
+            "fusion_scale": float(specialist_fusion_scale),
+        }
     (out_bundle_dir / "bundle_metadata.json").write_text(json.dumps(meta, indent=2))
 
     # Reload with runtime loader (strict=True in loader)
@@ -2919,6 +3199,10 @@ def run_train(
     enable_timing_head: bool = False,
     enable_tail_risk_head: bool = False,
     enable_vol_forecast_head: bool = False,
+    enable_specialist_fusion: bool = False,
+    specialist_audit_json: Optional[Path] = None,
+    specialist_num_layers: int = 1,
+    specialist_fusion_scale: float = 0.25,
     # V2 fast-train extras
     per_tf_seq_len_h4: int = 0,
     per_tf_seq_len_d1: int = 0,
@@ -2946,13 +3230,10 @@ def run_train(
 
     ctx = get_canonical_ctx_contract()
     _require(ctx["tag"] == "CTX6CAT6", "[CTX_SPLIT_BRAIN]")
-    # V2: SEQ_SIGNAL_DIM is now 41 (signal_bridge_v3: 7 bridge + 34 price-state incl. volume).
-    _require(SEQ_SIGNAL_DIM == SNAP_SIGNAL_DIM, "[SIGNAL_DIM_SEQ_SNAP_MISMATCH]")
-    _require(SEQ_SIGNAL_DIM > 0, "[SIGNAL_DIM_INVALID]")
 
     log.info(
         f"[TRAIN] seed={seed} device={device} batch_size={batch_size} epochs={epochs} lr={lr} "
-        f"signal_dim={SEQ_SIGNAL_DIM} ctx_cont=dynamic ctx_cat=6 early_stop_patience={early_stopping_patience} "
+        f"signal_dim=dynamic ctx_cont=dynamic ctx_cat=6 early_stop_patience={early_stopping_patience} "
         f"early_stop_min_delta={early_stopping_min_delta}"
     )
 
@@ -3229,6 +3510,9 @@ def run_train(
 
     # Before first epoch: log sample shapes and confirm contract signal=7, ctx_cat=6, ctx_cont>=6
     sample = next(iter(train_loader))
+    seq_input_dim = int(sample["seq_x"].shape[2])
+    snap_input_dim = int(sample["snap_x"].shape[1])
+    _require(seq_input_dim == snap_input_dim and seq_input_dim > 0, f"[SIGNAL_DIM_INVALID] seq={seq_input_dim} snap={snap_input_dim}")
     ctx_cont_dim = int(sample["ctx_cont"].shape[1])
     ctx_cat_dim = int(sample["ctx_cat"].shape[1])
     base_ctx_cont_names = list(ctx.get("ctx_cont_names") or [])
@@ -3247,9 +3531,11 @@ def run_train(
         f"ctx_cont={sample['ctx_cont'].shape} ctx_cat={sample['ctx_cat'].shape}"
     )
     log.info(
-        "[ENTRY_INPUT_SCHEMA_PROOF] signal_dim=7 ctx_cont_dim=%d ctx_cat_dim=%d",
+        "[ENTRY_INPUT_SCHEMA_PROOF] signal_dim=%d ctx_cont_dim=%d ctx_cat_dim=%d neutral_xgb_bridge=%s",
+        seq_input_dim,
         ctx_cont_dim,
         ctx_cat_dim,
+        bool(getattr(train_ds, "neutral_xgb_bridge", False)),
     )
     expected_ctx_cont_dim = _expected_ctx_cont_dim()
     _require(
@@ -3270,10 +3556,11 @@ def run_train(
             len(SWING_FEATURE_NAMES),
         )
     _require(
-        sample["seq_x"].shape[2] == SEQ_SIGNAL_DIM
+        sample["seq_x"].shape[2] == seq_input_dim
+        and sample["snap_x"].shape[1] == snap_input_dim
         and sample["ctx_cont"].shape[1] == ctx_cont_dim
         and sample["ctx_cat"].shape[1] == ctx_cat_dim,
-        f"[TRAIN_CONTRACT_MISMATCH] expected signal={SEQ_SIGNAL_DIM} ctx_cont={ctx_cont_dim} ctx_cat={ctx_cat_dim}",
+        f"[TRAIN_CONTRACT_MISMATCH] expected signal={seq_input_dim} ctx_cont={ctx_cont_dim} ctx_cat={ctx_cat_dim}",
     )
 
     # V12.2: detect multi-TF feature count from dataset (avoid hardcoding 19)
@@ -3286,9 +3573,17 @@ def run_train(
     _m15_len = 64 if _tapered else int(multi_tf_seq_len)  # B10 tapered-MTF — mirrors _per_tf_lens above (train==serve via bundle meta)
     if _h4_len != multi_tf_seq_len or _d1_len != multi_tf_seq_len or _m15_len != multi_tf_seq_len:
         log.info("[PER_TF_SEQ_LEN] M15=%d H4=%d D1=%d (global=%d)", _m15_len, _h4_len, _d1_len, int(multi_tf_seq_len))
+    specialist_indices: Dict[str, list[int]] | None = None
+    specialist_meta: Dict[str, Any] | None = None
+    if enable_specialist_fusion:
+        specialist_indices, specialist_meta = _load_specialist_fusion_contract(
+            specialist_audit_json,
+            expected_signal_dim=seq_input_dim,
+        )
+        log.info("[SPECIALIST_FUSION] train enabled groups=%s", sorted(specialist_indices))
     model = EntryV10CtxHybridTransformer(
-        seq_input_dim=SEQ_SIGNAL_DIM,
-        snap_input_dim=SNAP_SIGNAL_DIM,
+        seq_input_dim=seq_input_dim,
+        snap_input_dim=snap_input_dim,
         seq_len=seq_len,
         ctx_cont_dim=ctx_cont_dim,
         ctx_cat_dim=ctx_cat_dim,
@@ -3321,6 +3616,10 @@ def run_train(
         enable_vol_forecast_head=enable_vol_forecast_head,
         enable_mtf_direction_head=enable_mtf_direction_head,
         mtf_dir_scale_init=mtf_dir_scale_init,
+        enable_specialist_fusion=bool(enable_specialist_fusion),
+        specialist_input_indices=specialist_indices,
+        specialist_num_layers=int(specialist_num_layers),
+        specialist_fusion_scale=float(specialist_fusion_scale),
         # 2026-06-02: per-TF learnable input scale (passes through to model arch)
         enable_tf_input_scale=enable_tf_input_scale,
         tf_input_scale_init_m5=tf_input_scale_init_m5,
@@ -3357,6 +3656,18 @@ def run_train(
         log.info(f"[WARM_START] loading state_dict: {_isd_path}")
         _isd = torch.load(_isd_path, map_location="cpu", weights_only=True)
         _isd = {k.removeprefix("_orig_mod."): v for k, v in _isd.items()}
+        _model_state = model.state_dict()
+        _shape_dropped = [
+            k for k, v in _isd.items()
+            if k in _model_state and tuple(getattr(v, "shape", ())) != tuple(_model_state[k].shape)
+        ]
+        if _shape_dropped:
+            _isd = {k: v for k, v in _isd.items() if k not in set(_shape_dropped)}
+            log.info(
+                "[WARM_START] dropped %d shape-mismatched keys for dynamic input dims: %s",
+                len(_shape_dropped),
+                sorted(_shape_dropped)[:8],
+            )
         _ld = model.load_state_dict(_isd, strict=False)
         log.info(
             f"[WARM_START] loaded {len(_isd)} keys. missing={len(_ld.missing_keys)} unexpected={len(_ld.unexpected_keys)}"
@@ -3454,6 +3765,12 @@ def run_train(
         float(ENTRY_AUX_BAD_PATH_WEIGHT),
         float(XGB_SHORT_LONG_PENALTY),
         float(SHORT_CLASS_WEIGHT),
+    )
+    log.info(
+        "[ENTRY_SPECIALIST_GATE_RECIPE] entropy_w=%.3f balance_w=%.3f min_mean=%.3f",
+        float(ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT),
+        float(ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT),
+        float(ENTRY_SPECIALIST_GATE_MIN_MEAN),
     )
     log.info(
         "[ENTRY_HARD_NEG_RECIPE] dead_long_ce_multiplier=%.3f dead_long_prob_penalty=%.3f teaser_long_ce_multiplier=%.3f teaser_long_prob_penalty=%.3f hard_neg_long_ce_multiplier=%.3f hard_neg_long_prob_penalty=%.3f",
@@ -3607,6 +3924,13 @@ def run_train(
                 float(tr_stats.get("aux_tradable_loss_mean", 0.0)),
                 float(tr_loss),
             )
+            log.info(
+                "[ENTRY_SPECIALIST_GATE_LOSS] split=train epoch=%d loss=%.6f entropy=%.6f min_mean=%.6f",
+                epoch + 1,
+                float(tr_stats.get("specialist_gate_loss_mean", 0.0)),
+                float(tr_stats.get("specialist_gate_entropy_mean", 0.0)),
+                float(tr_stats.get("specialist_gate_min_mean", 0.0)),
+            )
         if _ckpt_monitor == "dir_acc":
             _improved = np.isfinite(acc) and (acc - best_acc) > float(early_stopping_min_delta)
         else:
@@ -3652,6 +3976,9 @@ def run_train(
     model_path = out_bundle_dir / "model_state_dict.pt"
     torch.save(best_state, model_path)
     state_dict_sha256 = _sha256_file(model_path)
+    trained_signal_names = list(getattr(train_ds, "signal_names", _default_signal_names(seq_input_dim)))
+    trained_neutral_xgb_bridge = bool(getattr(train_ds, "neutral_xgb_bridge", False))
+    trained_xgb_bridge_source = str(getattr(train_ds, "xgb_bridge_source", "") or "")
 
     lock = {
         "version": "entry_v10_ctx_lock_v1",
@@ -3663,8 +3990,11 @@ def run_train(
         "ctx_cat_dim": ctx_cat_dim,
         "ordered_ctx_cont_names": list(ordered_ctx_cont_names),
         "ordered_ctx_cat_names": list(ordered_ctx_cat_names),
-        "seq_input_dim": SEQ_SIGNAL_DIM,
-        "snap_input_dim": SNAP_SIGNAL_DIM,
+        "ordered_signal_names": trained_signal_names,
+        "neutral_xgb_bridge": trained_neutral_xgb_bridge,
+        "xgb_bridge_source": trained_xgb_bridge_source,
+        "seq_input_dim": seq_input_dim,
+        "snap_input_dim": snap_input_dim,
         "seq_len": seq_len,
         "num_classes": 3,
         "class_order": [0, 1, 2],
@@ -3766,8 +4096,11 @@ def run_train(
         "mtf_dir_aux_weight": float(ENTRY_MTF_DIR_AUX_WEIGHT),
         "batch_size": batch_size,
         "seed": seed,
-        "seq_input_dim": SEQ_SIGNAL_DIM,
-        "snap_input_dim": SNAP_SIGNAL_DIM,
+        "seq_input_dim": seq_input_dim,
+        "snap_input_dim": snap_input_dim,
+        "ordered_signal_names": trained_signal_names,
+        "neutral_xgb_bridge": trained_neutral_xgb_bridge,
+        "xgb_bridge_source": trained_xgb_bridge_source,
         "seq_len": seq_len,
         "ctx_cont_dim": ctx_cont_dim,
         "ctx_cat_dim": ctx_cat_dim,
@@ -3782,6 +4115,15 @@ def run_train(
         "ctx_tag": f"CTX6CAT{ctx_cat_dim}",
         "model_class": "EntryV10CtxHybridTransformer",
         "arch_id": "entry_v10_ctx_hybrid_transformer",
+        "specialist_fusion": (
+            {
+                **specialist_meta,
+                "num_layers": int(specialist_num_layers),
+                "fusion_scale": float(specialist_fusion_scale),
+            }
+            if specialist_meta
+            else {"enabled": False}
+        ),
         "state_dict_sha256": state_dict_sha256,
         "anchored_entry_enabled": True,
         "anchor_source": "signal7_p_long_short_flat",
@@ -3806,6 +4148,9 @@ def run_train(
         "pred_balance_target": str(ENTRY_PRED_BALANCE_TARGET),
         "residual_side_bias_alpha": float(ENTRY_RESIDUAL_SIDE_BIAS_ALPHA),
         "direction_ce_scale": float(ENTRY_DIRECTION_CE_SCALE),
+        "specialist_gate_entropy_weight": float(ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT),
+        "specialist_gate_balance_weight": float(ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT),
+        "specialist_gate_min_mean": float(ENTRY_SPECIALIST_GATE_MIN_MEAN),
         "grad_clip_norm": float(_GRAD_CLIP_NORM),
         "weight_decay": float(_WEIGHT_DECAY),
         "train_recipe": {
@@ -3817,6 +4162,9 @@ def run_train(
             "bad_path_pos_weight": float(bad_path_pos_weight),
             "path_weight": float(ENTRY_AUX_PATH_WEIGHT),
             "mfe_weight": float(ENTRY_AUX_MFE_WEIGHT),
+            "specialist_gate_entropy_weight": float(ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT),
+            "specialist_gate_balance_weight": float(ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT),
+            "specialist_gate_min_mean": float(ENTRY_SPECIALIST_GATE_MIN_MEAN),
             "dead_long_ce_multiplier": float(ENTRY_DEAD_LONG_CE_MULTIPLIER),
             "dead_long_prob_penalty": float(ENTRY_DEAD_LONG_PROB_PENALTY),
             "teaser_long_ce_multiplier": float(ENTRY_TEASER_LONG_CE_MULTIPLIER),
@@ -3861,8 +4209,8 @@ def run_train(
     # the same parameters as the trained model (otherwise the v3+ head
     # weights would be flagged as unexpected_keys).
     model2 = EntryV10CtxHybridTransformer(
-        seq_input_dim=SEQ_SIGNAL_DIM,
-        snap_input_dim=SNAP_SIGNAL_DIM,
+        seq_input_dim=seq_input_dim,
+        snap_input_dim=snap_input_dim,
         seq_len=seq_len,
         ctx_cont_dim=ctx_cont_dim,
         ctx_cat_dim=ctx_cat_dim,
@@ -3894,6 +4242,10 @@ def run_train(
         enable_vol_forecast_head=enable_vol_forecast_head,
         enable_mtf_direction_head=enable_mtf_direction_head,
         mtf_dir_scale_init=mtf_dir_scale_init,
+        enable_specialist_fusion=bool(enable_specialist_fusion),
+        specialist_input_indices=specialist_indices,
+        specialist_num_layers=int(specialist_num_layers),
+        specialist_fusion_scale=float(specialist_fusion_scale),
         # 2026-06-03 BIG-9: regime_film.* are real params in state_dict -> verify model MUST
         # mirror the flag or strict-load reads them as unexpected_keys and raises.
         enable_regime_film=enable_regime_film,
@@ -3911,10 +4263,8 @@ def run_train(
     model2.eval()
     with torch.no_grad():
         B = 2
-        # signal_bridge_v3: per-bar seq dim is 41 (7 bridge + 34 price-state incl. 4 volume).
-        from gx1.contracts.signal_bridge_v3 import SEQ_SIGNAL_DIM_V3 as _SEQ_DIM
-        dummy_seq = torch.zeros(B, seq_len, _SEQ_DIM)
-        dummy_snap = torch.zeros(B, _SEQ_DIM)
+        dummy_seq = torch.zeros(B, seq_len, seq_input_dim)
+        dummy_snap = torch.zeros(B, snap_input_dim)
         dummy_cat = torch.zeros(B, ctx_cat_dim, dtype=torch.long)
         dummy_cont = torch.zeros(B, ctx_cont_dim)
         mtf_kwargs = {}
@@ -3955,10 +4305,33 @@ def run_train(
         except Exception:
             _live_cc = list(ordered_ctx_cont_names)
         _live_ds = train_ds if len(train_ds) > 0 else val_ds  # broad period so slow-varying feats vary
-        _ab = next(iter(DataLoader(_live_ds, batch_size=min(8192, len(_live_ds)),
-                                   shuffle=True, num_workers=2)))
+        _snap_names = list(getattr(_live_ds, "signal_names", _default_signal_names(seq_input_dim)))
+        if bool(getattr(_live_ds, "_advanced", False)) and hasattr(_live_ds, "_np_ctx_cont") and hasattr(_live_ds, "_np_snap"):
+            _ab = {
+                "ctx_cont": np.asarray(_live_ds._np_ctx_cont, dtype=np.float32),
+                "snap_x": np.asarray(_live_ds._np_snap, dtype=np.float32),
+            }
+            if getattr(_live_ds, "_multi_tf_feats", None):
+                for _tf, _feats in _live_ds._multi_tf_feats.items():
+                    _arr = np.asarray(_feats.attrs.get("feats_np"), dtype=np.float32)
+                    if _arr.size:
+                        _ab[f"seq_{str(_tf).lower()}"] = _arr.reshape(1, _arr.shape[0], _arr.shape[1])
+            log.info(
+                "[FEATURE_LIVENESS] using full advanced arrays rows=%d snap_dim=%d ctx_cont_dim=%d",
+                int(_ab["ctx_cont"].shape[0]),
+                int(_ab["snap_x"].shape[1]),
+                int(_ab["ctx_cont"].shape[1]),
+            )
+        else:
+            _ab = next(iter(DataLoader(_live_ds, batch_size=min(8192, len(_live_ds)),
+                                       shuffle=True, num_workers=2)))
+        if bool(getattr(_live_ds, "neutral_xgb_bridge", False)):
+            _ab = dict(_ab)
+            _ab["snap_x"] = _ab["snap_x"][:, 7:]
+            _snap_names = _snap_names[7:]
+            log.info("[FEATURE_LIVENESS] neutral XGB bridge detected; skipping first 7 compat bridge slots")
         assert_v10_batch_liveness(_ab, ctx_cont_names=_live_cc,
-                                  snap_names=list(SIGNAL_FIELDS), raise_on_fail=True)  # incl the XGB bridge (snap_x)
+                                  snap_names=_snap_names, raise_on_fail=True)
         log.info("[FEATURE_LIVENESS] post-export audit OK — nothing ignored (all inputs alive/allowlisted)")
     except FeatureLivenessError:
         raise
@@ -4007,15 +4380,11 @@ def run_eval(
     _require(meta.get("ctx_tag") == f"CTX6CAT{_meta_cat_dim}", "[EVAL_CONTRACT_CTX_TAG]")
     ctx_cont_dim = int(meta.get("ctx_cont_dim") or -1)
     ctx_cat_dim = int(meta.get("ctx_cat_dim") or -1)
+    seq_input_dim = int(meta.get("seq_input_dim") or SEQ_SIGNAL_DIM)
+    snap_input_dim = int(meta.get("snap_input_dim") or seq_input_dim)
     _require(ctx_cont_dim >= 6, "[EVAL_CONTRACT_CTX_CONT]")
     _require(ctx_cat_dim == _expected_ctx_cat_dim(), "[EVAL_CONTRACT_CTX_CAT]")
-    # 2026-06-03: validate against the ACTUAL architecture dim, not a hardcoded 7. The ==7
-    # assertion was a pre-multi-TF-V2 legacy leftover (current bundles incl the COSTFIX cement
-    # are seq/snap=41), so run_eval could never run on the live lineage. Build uses SEQ_SIGNAL_DIM.
-    if meta.get("seq_input_dim") is not None:
-        _require(int(meta.get("seq_input_dim")) == SEQ_SIGNAL_DIM, "[EVAL_CONTRACT_SEQ_DIM]")
-    if meta.get("snap_input_dim") is not None:
-        _require(int(meta.get("snap_input_dim")) == SNAP_SIGNAL_DIM, "[EVAL_CONTRACT_SNAP_DIM]")
+    _require(seq_input_dim == snap_input_dim and seq_input_dim > 0, f"[EVAL_CONTRACT_SIGNAL_DIM] seq={seq_input_dim} snap={snap_input_dim}")
 
     state_dict_sha = _sha256_file(model_path)
 
@@ -4058,11 +4427,11 @@ def run_eval(
         f"[EVAL_SEQ_LEN_MISMATCH] dataset seq_len {sample['seq_x'].shape[0]} != {seq_len}",
     )
     _require(
-        sample["seq_x"].shape[1] == SEQ_SIGNAL_DIM
-        and sample["snap_x"].shape[0] == SNAP_SIGNAL_DIM
+        sample["seq_x"].shape[1] == seq_input_dim
+        and sample["snap_x"].shape[0] == snap_input_dim
         and sample["ctx_cont"].shape[0] == ctx_cont_dim
         and sample["ctx_cat"].shape[0] == ctx_cat_dim,
-        f"[EVAL_CONTRACT_MISMATCH] expected signal={SEQ_SIGNAL_DIM} ctx_cont={ctx_cont_dim} ctx_cat={ctx_cat_dim}",
+        f"[EVAL_CONTRACT_MISMATCH] expected signal={seq_input_dim} ctx_cont={ctx_cont_dim} ctx_cat={ctx_cat_dim}",
     )
 
     loader = DataLoader(
@@ -4137,6 +4506,8 @@ def run_eval(
         "test_parquet": str(test_parquet),
         "test_parquet_sha256": _sha256_file(Path(test_parquet)),
         "seq_len": seq_len,
+        "seq_input_dim": seq_input_dim,
+        "snap_input_dim": snap_input_dim,
         "batch_size": batch_size,
         "device": str(device),
         "seed": seed,
@@ -4616,6 +4987,23 @@ def main() -> None:
         help="Volatility-forecast head (3: forward realized vol bps @ K{12,48,96}). Default ON.",
     )
     parser.add_argument(
+        "--enable-specialist-fusion", action=argparse.BooleanOptionalAction, default=False,
+        help="Enable audited seq146 specialist feature-family encoders and gated fusion. "
+             "Default OFF for legacy bundle compatibility.",
+    )
+    parser.add_argument(
+        "--specialist-audit-json", type=Path, default=DEFAULT_SPECIALIST_AUDIT_JSON,
+        help="PASS specialist feature-group audit JSON that supplies specialist input indices.",
+    )
+    parser.add_argument(
+        "--specialist-num-layers", type=int, default=1,
+        help="TransformerEncoder layers per specialist branch when --enable-specialist-fusion is on.",
+    )
+    parser.add_argument(
+        "--specialist-fusion-scale", type=float, default=0.25,
+        help="Residual correction scale for specialist-fusion output.",
+    )
+    parser.add_argument(
         "--m5-prebuilt-path", type=Path, required=True,
         help="REQUIRED: path to canonical_v3 M5 OHLC parquet (used by dataset to "
              "resample the M5/M15/H1/H4/D1 multi-TF features). Multi-TF is mandatory.",
@@ -4707,6 +5095,8 @@ def main() -> None:
              "(never auto-retrain). Any non-empty string from a deliberate human go.",
     )
     args = parser.parse_args()
+    from gx1.runtime.entry_next_edge_legacy_guard import enforce_legacy_entry_research_ack
+    enforce_legacy_entry_research_ack("legacy Entry V10_CTX trainer/evaluator")
     # Multi-TF is mandatory — m5-prebuilt-path is required by argparse; nothing to gate.
     # V12.2: apply grad-clip-norm + weight-decay to module-level variables
     global _GRAD_CLIP_NORM, _WEIGHT_DECAY
@@ -4743,6 +5133,10 @@ def main() -> None:
             out_bundle_dir=args.out_bundle_dir,
             dataset_manifest=args.dataset_manifest,
             deterministic=not args.fast,
+            enable_specialist_fusion=bool(args.enable_specialist_fusion),
+            specialist_audit_json=args.specialist_audit_json,
+            specialist_num_layers=int(args.specialist_num_layers),
+            specialist_fusion_scale=float(args.specialist_fusion_scale),
         )
         return
 
@@ -4815,6 +5209,10 @@ def main() -> None:
             enable_timing_head=bool(args.enable_timing_head),
             enable_tail_risk_head=bool(args.enable_tail_risk_head),
             enable_vol_forecast_head=bool(args.enable_vol_forecast_head),
+            enable_specialist_fusion=bool(args.enable_specialist_fusion),
+            specialist_audit_json=args.specialist_audit_json,
+            specialist_num_layers=int(args.specialist_num_layers),
+            specialist_fusion_scale=float(args.specialist_fusion_scale),
             enable_mtf_direction_head=bool(args.enable_mtf_direction_head),
             mtf_dir_scale_init=float(args.mtf_dir_scale_init),
             # V2 fast-train extras

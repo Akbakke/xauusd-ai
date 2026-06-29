@@ -27,6 +27,26 @@
 # Manual run: bash scripts/gx1_nightly_learning.sh
 set -uo pipefail
 
+NIGHTLY_ACK_VAR=GX1_ALLOW_LEGACY_NIGHTLY_LEARNING
+NIGHTLY_ACK_VALUE=20260627_ALLOW_LEGACY_NIGHTLY_LEARNING
+if [[ "${GX1_ALLOW_LEGACY_NIGHTLY_LEARNING:-}" != "$NIGHTLY_ACK_VALUE" ]]; then
+    cat >&2 <<EOF
+[ABORT] Active Entry next-edge plan blocks legacy nightly learning/data-maintenance loop.
+        Current path is Entry foundation seq146 cleanup/audit/smoke-readiness.
+        Use:
+          scripts/entry_next_edge_control.sh verify
+          scripts/entry_next_edge_control.sh selftest
+          scripts/entry_next_edge_control.sh foundation-guardrails
+          scripts/entry_next_edge_control.sh worktree-hygiene
+          scripts/entry_next_edge_control.sh stage-foundation-cleanup --dry-run
+          scripts/entry_next_edge_control.sh materialize-smoke
+          scripts/entry_next_edge_control.sh train-readiness
+        Override only with:
+          $NIGHTLY_ACK_VAR=$NIGHTLY_ACK_VALUE bash scripts/gx1_nightly_learning.sh
+EOF
+    exit 2
+fi
+
 REPO=/home/andre2/src/GX1_ENGINE
 PY=$REPO/.venv/bin/python
 PAPER_DIR=/home/andre2/GX1_DATA/reports/v12_paper_runs

@@ -1,3 +1,23 @@
+# ACTIVE ENTRY FOUNDATION OVERRIDE - 2026-06-28
+
+This map documents the historical live GX1 chain, but the current Entry
+workstream is the foundation seq146 cleanup/audit/smoke-readiness path in
+`docs/ENTRY_FOUNDATION_AUDIT_20260628.md` and
+`docs/ENTRY_SEQUENTIAL_AI_SPECIALIST_BLUEPRINT_20260628.md`. For current Entry
+operations, use `scripts/entry_next_edge_control.sh` for guards, including
+`foundation-guardrails` and `worktree-hygiene` before train-readiness. Optional
+foundation cleanup staging is exposed only through
+`scripts/entry_next_edge_control.sh stage-foundation-cleanup --apply --vedtak <id>`.
+The executable smoke gate is `READY_FOR_VEDTAK_SMOKE_TRAIN`; if train-readiness emits
+`READY_FOR_VEDTAK_SMOKE_TRAIN_AFTER_GIT_CLEAN`, the foundation contract is ready
+but git-clean execution hygiene still blocks trainer start. The next real
+command requires explicit user vedtak and clean git:
+`scripts/entry_next_edge_control.sh smoke-train --vedtak <id> --require-edge-audit`.
+Candidate training, replay, IQL, promotion review, shadow, and live remain
+closed until their preceding foundation gates produce explicit PASS/READY
+artifacts. Do not use older XGB/V10/Entry-IQL live-practice instructions here as
+the active operating point.
+
 # GX1 SYSTEM MAP — read this BEFORE tracing the chain or any train/serve question
 
 **Purpose:** the ONE place that answers "how is this wired again?" so we stop spending a whole

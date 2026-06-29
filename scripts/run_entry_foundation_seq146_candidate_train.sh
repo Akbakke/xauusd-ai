@@ -1,0 +1,387 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Vedtak-gated candidate train launcher for the audited Entry foundation seq146
+# dataset. This wrapper is fail-closed behind candidate-readiness and never
+# promotes, pins, starts shadow, or touches live/practice order paths.
+
+REPO=/home/andre2/src/GX1_ENGINE
+DATA=/home/andre2/GX1_DATA
+PY=$REPO/.venv/bin/python
+
+FOUNDATION_DATASET=$DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_foundation_seq146_neutral
+FOUNDATION_STEM=v10_foundation_seq146__HOLD_03B
+M5_PREBUILT=$DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260626_spreadfix/cv3/xauusd_m5_CANONICAL_V3_2020_2026.parquet
+SPECIALIST_AUDIT=$DATA/reports/entry_specialist_feature_group_audit_20260628_v1/ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_latest.json
+SMOKE_BUNDLE_AUDIT=$DATA/reports/entry_foundation_smoke_bundle_audit_20260628_v1/ENTRY_FOUNDATION_SMOKE_BUNDLE_AUDIT_latest.json
+CANDIDATE_AUDIT_OUT=$DATA/reports/entry_candidate_bundle_audit_20260628_v1
+CANDIDATE_READINESS_JSON=$DATA/reports/entry_candidate_readiness_20260628_v1/ENTRY_CANDIDATE_READINESS_latest.json
+CANDIDATE_TRAIN_MANIFEST_DIR=$DATA/reports/entry_foundation_candidate_train_manifests_20260628_v1
+
+VEDTAK="${ENTRY_FOUNDATION_CANDIDATE_VEDTAK:-}"
+DEVICE=auto
+EPOCHS=8
+BATCH_SIZE=96
+DRY_RUN=0
+SMOKE_BUNDLE_AUDIT_ARG="$SMOKE_BUNDLE_AUDIT"
+AUDIT_AFTER=1
+AUDIT_DEVICE=cpu
+AUDIT_BATCH_SIZE=256
+
+usage() {
+  cat <<'EOF'
+Usage:
+  scripts/run_entry_foundation_seq146_candidate_train.sh --vedtak <id> [options]
+
+Options:
+  --vedtak <id>        Required explicit user decision id for candidate train.
+  --device <auto|cpu|cuda>
+  --epochs <n>         Default: 8
+  --batch-size <n>     Default: 96
+  --smoke-bundle-audit-json <path>
+                       Edge-required smoke bundle audit to satisfy candidate-readiness.
+  --skip-candidate-audit
+                       Do not run strict post-candidate bundle/head-contract audit.
+  --audit-device <auto|cpu|cuda>
+                       Default: cpu
+  --audit-batch-size <n>
+                       Default: 256
+  --dry-run            Print the train command after candidate-readiness passes.
+
+This is a full candidate-training path, not promotion. It will not run until
+candidate-readiness proves a real smoke-train bundle with edge diagnostics.
+After training it strict-loads the candidate bundle and verifies the active
+head contract before replay/selective-edge gates. It writes a pre-train
+candidate manifest before trainer start and passes that manifest into the
+post-candidate audit.
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --vedtak) VEDTAK="$2"; shift 2 ;;
+    --device) DEVICE="$2"; shift 2 ;;
+    --epochs) EPOCHS="$2"; shift 2 ;;
+    --batch-size) BATCH_SIZE="$2"; shift 2 ;;
+    --smoke-bundle-audit-json) SMOKE_BUNDLE_AUDIT_ARG="$2"; shift 2 ;;
+    --skip-candidate-audit) AUDIT_AFTER=0; shift ;;
+    --audit-device) AUDIT_DEVICE="$2"; shift 2 ;;
+    --audit-batch-size) AUDIT_BATCH_SIZE="$2"; shift 2 ;;
+    --dry-run) DRY_RUN=1; shift ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "FATAL: unknown arg: $1" >&2; usage >&2; exit 2 ;;
+  esac
+done
+
+if [[ -z "${VEDTAK:-}" ]]; then
+  echo "FATAL: --vedtak is required for foundation seq146 candidate train." >&2
+  echo "This is a full train command, so it must be an explicit user decision." >&2
+  exit 2
+fi
+
+case "$DEVICE" in
+  auto|cpu|cuda) ;;
+  *) echo "FATAL: --device must be auto, cpu, or cuda; got $DEVICE" >&2; exit 2 ;;
+esac
+case "$AUDIT_DEVICE" in
+  auto|cpu|cuda) ;;
+  *) echo "FATAL: --audit-device must be auto, cpu, or cuda; got $AUDIT_DEVICE" >&2; exit 2 ;;
+esac
+
+cd "$REPO"
+
+require_clean_git_for_real_candidate_train() {
+  GIT_STATUS_SHORT=$(git status --short)
+  if [[ -n "$GIT_STATUS_SHORT" ]]; then
+    echo "FATAL: real foundation candidate train requires clean git worktree." >&2
+    echo "Use --dry-run for inspection without starting trainer." >&2
+    echo "$GIT_STATUS_SHORT" >&2
+    exit 2
+  fi
+}
+
+if ! scripts/entry_next_edge_control.sh candidate-readiness \
+  --smoke-bundle-audit-json "$SMOKE_BUNDLE_AUDIT_ARG" \
+  --quiet
+then
+  cat >&2 <<EOF
+FATAL: candidate-readiness is NOT_READY; candidate train is blocked.
+
+Required next gate:
+  scripts/entry_next_edge_control.sh smoke-train --vedtak <id> --require-edge-audit
+
+Then rerun:
+  scripts/entry_next_edge_control.sh candidate-readiness
+EOF
+  exit 2
+fi
+
+STAMP=$(date -u '+%Y%m%dT%H%M%SZ')
+OUT_BUNDLE=$DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_foundation_seq146_candidate_$STAMP
+CANDIDATE_MANIFEST=$CANDIDATE_TRAIN_MANIFEST_DIR/ENTRY_FOUNDATION_CANDIDATE_TRAIN_RUN_MANIFEST_$STAMP.json
+
+CMD=(
+  env
+  GX1_DATA="$DATA"
+  GX1_REGIME_V4=1
+  GX1_TREND_REGIME_FROM_D1=1
+  GX1_ALLOW_LEGACY_ENTRY_V10_RESEARCH=20260627_ALLOW_LEGACY_ENTRY_V10_RESEARCH
+  "$PY" -m gx1.models.entry_v10.entry_v10_ctx_train_v3
+  --train
+  --vedtak "$VEDTAK"
+  --device "$DEVICE"
+  --dataset_dir "$FOUNDATION_DATASET"
+  --dataset_train_parquet "$FOUNDATION_DATASET/${FOUNDATION_STEM}_train.parquet"
+  --out_bundle_dir "$OUT_BUNDLE"
+  --m5-prebuilt-path "$M5_PREBUILT"
+  --epochs "$EPOCHS"
+  --batch_size "$BATCH_SIZE"
+  --early-stopping-patience 2
+  --early-stopping-min-delta 0.0
+  --num-workers 0
+  --multi-tf-seq-len 96
+  --per-tf-seq-len-h4 48
+  --per-tf-seq-len-d1 30
+  --grad-accum-steps 1
+  --enable-tf-agreement-head
+  --enable-path-quality-variance-head
+  --enable-position-size-head
+  --enable-dip-head
+  --enable-forecast-head
+  --enable-timing-head
+  --enable-tail-risk-head
+  --enable-vol-forecast-head
+  --enable-mtf-direction-head
+  --enable-specialist-fusion
+  --specialist-audit-json "$SPECIALIST_AUDIT"
+  --specialist-num-layers 1
+  --specialist-fusion-scale 0.25
+  --enable-tf-input-scale
+)
+
+AUDIT_CMD=(
+  scripts/entry_next_edge_control.sh
+  audit-smoke-bundle
+  --bundle-dir "$OUT_BUNDLE"
+  --dataset-dir "$FOUNDATION_DATASET"
+  --splits val,test
+  --device "$AUDIT_DEVICE"
+  --batch-size "$AUDIT_BATCH_SIZE"
+  --require-head-contract
+  --out-dir "$CANDIDATE_AUDIT_OUT"
+  --pretrain-manifest-json "$CANDIDATE_MANIFEST"
+)
+
+if [[ "$DRY_RUN" = "1" ]]; then
+  echo "Pre-candidate train manifest path: $CANDIDATE_MANIFEST"
+  printf 'Candidate train command:'
+  printf ' %q' "${CMD[@]}"
+  printf '\n'
+  if [[ "$AUDIT_AFTER" = "1" ]]; then
+    printf 'Post-candidate audit command:'
+    printf ' %q' "${AUDIT_CMD[@]}"
+    printf '\n'
+  else
+    echo "Post-candidate audit command: skipped by --skip-candidate-audit"
+  fi
+  echo "Post-candidate gates still required: strict load, 2026 offline replay, session/side/regime slices, explicit promotion review."
+  exit 0
+fi
+
+require_clean_git_for_real_candidate_train
+
+mkdir -p "$CANDIDATE_TRAIN_MANIFEST_DIR"
+"$PY" - "$CANDIDATE_MANIFEST" "$VEDTAK" "$OUT_BUNDLE" "$FOUNDATION_DATASET" "$SMOKE_BUNDLE_AUDIT_ARG" \
+  "$SPECIALIST_AUDIT" "$CANDIDATE_READINESS_JSON" "$AUDIT_AFTER" "$DEVICE" "$EPOCHS" "$BATCH_SIZE" \
+  "${CMD[@]}" __AUDIT_CMD__ "${AUDIT_CMD[@]}" <<'PY'
+import hashlib
+import json
+import subprocess
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+manifest_path = Path(sys.argv[1])
+repo = Path("/home/andre2/src/GX1_ENGINE")
+sep = "__AUDIT_CMD__"
+sep_idx = sys.argv.index(sep)
+train_cmd = sys.argv[12:sep_idx]
+audit_cmd = sys.argv[sep_idx + 1:]
+
+
+def read_json(path: str | Path) -> dict:
+    return json.loads(Path(path).read_text(encoding="utf-8"))
+
+
+def sha256_file(path: str | Path) -> str:
+    h = hashlib.sha256()
+    with Path(path).open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def git(*args: str) -> str:
+    proc = subprocess.run(["git", "-C", str(repo), *args], text=True, capture_output=True, check=False)
+    return (proc.stdout if proc.returncode == 0 else proc.stderr).strip()
+
+
+def gate_decision(report: dict, name: str) -> str:
+    for gate in report.get("gates") or []:
+        if isinstance(gate, dict) and str(gate.get("name")) == name:
+            return str(gate.get("decision") or "")
+    return ""
+
+
+smoke_audit = read_json(sys.argv[5])
+specialist_audit = read_json(sys.argv[6])
+candidate_readiness = read_json(sys.argv[7])
+smoke_pretrain = (
+    smoke_audit.get("pretrain_manifest_contract")
+    if isinstance(smoke_audit.get("pretrain_manifest_contract"), dict)
+    else {}
+)
+head_contract = smoke_audit.get("head_contract") if isinstance(smoke_audit.get("head_contract"), dict) else {}
+from gx1.models.entry_v10.entry_v10_ctx_train_v3 import _load_specialist_fusion_contract
+
+trainer_indices, trainer_meta = _load_specialist_fusion_contract(
+    Path(sys.argv[6]),
+    expected_signal_dim=146,
+)
+
+payload = {
+    "schema_version": "entry_foundation_candidate_train_run_manifest_v1",
+    "created_utc": datetime.now(timezone.utc).isoformat(),
+    "run_kind": "vedtak_gated_foundation_seq146_candidate_train",
+    "vedtak": sys.argv[2],
+    "out_bundle_dir": sys.argv[3],
+    "promotion_shadow_live_allowed": False,
+    "trainer_started_by_manifest_writer": False,
+    "inputs": {
+        "candidate_dataset_dir": sys.argv[4],
+        "smoke_bundle_audit_json": sys.argv[5],
+        "specialist_audit_json": sys.argv[6],
+        "candidate_readiness_json": sys.argv[7],
+    },
+    "artifact_sha256": {
+        "smoke_bundle_audit": sha256_file(sys.argv[5]),
+        "specialist_audit": sha256_file(sys.argv[6]),
+        "candidate_readiness": sha256_file(sys.argv[7]),
+    },
+    "preflight_contracts": {
+        "candidate_readiness": {
+            "decision": candidate_readiness.get("decision"),
+            "candidate_training_allowed_with_explicit_vedtak": candidate_readiness.get(
+                "candidate_training_allowed_with_explicit_vedtak"
+            ),
+            "artifact_provenance_decision": gate_decision(candidate_readiness, "artifact_provenance"),
+            "artifact_fingerprints": candidate_readiness.get("artifact_fingerprints") or {},
+            "failures": candidate_readiness.get("failures") or [],
+        },
+        "smoke_edge_audit": {
+            "decision": smoke_audit.get("decision"),
+            "bundle_dir": smoke_audit.get("bundle_dir"),
+            "required_training_specialists": smoke_audit.get("required_training_specialists") or [],
+            "specialist_groups": (smoke_audit.get("bundle_summary") or {}).get("specialist_groups") or [],
+            "pretrain_manifest_contract_decision": smoke_pretrain.get("decision"),
+            "feature_objective_coverage_all_present": smoke_pretrain.get("feature_objective_coverage_all_present"),
+            "feature_objective_liveness_all_live": smoke_pretrain.get("feature_objective_liveness_all_live"),
+            "feature_source_field_liveness_all_live": smoke_pretrain.get("feature_source_field_liveness_all_live"),
+            "specialist_active_heads_match_target": smoke_pretrain.get("specialist_active_heads_match_target"),
+            "specialist_blocked_heads_match_target": smoke_pretrain.get("specialist_blocked_heads_match_target"),
+            "specialist_objective_routing_all_present_and_expected": smoke_pretrain.get(
+                "specialist_objective_routing_all_present_and_expected"
+            ),
+            "specialist_model_contract_valid": smoke_pretrain.get("specialist_model_contract_valid"),
+            "specialist_model_contract_set_exact": smoke_pretrain.get("specialist_model_contract_set_exact"),
+            "specialist_model_contract_owned_objectives_match": smoke_pretrain.get(
+                "specialist_model_contract_owned_objectives_match"
+            ),
+            "smoke_dataset_audit_provenance_all_artifacts_present": smoke_pretrain.get(
+                "smoke_dataset_audit_provenance_all_artifacts_present"
+            ),
+            "smoke_dataset_audit_provenance_all_artifact_hashes_present": smoke_pretrain.get(
+                "smoke_dataset_audit_provenance_all_artifact_hashes_present"
+            ),
+            "worktree_critical_gate_review_ok": smoke_pretrain.get("worktree_critical_gate_review_ok"),
+        },
+        "target_foundation": {
+            "decision": head_contract.get("decision"),
+            "active_training_heads": head_contract.get("active_training_heads") or [],
+            "blocked_heads": head_contract.get("blocked_heads") or [],
+        },
+        "specialist_contract": {
+            "decision": specialist_audit.get("decision"),
+            "required_training_specialists": specialist_audit.get("required_training_specialists") or [],
+            "trainable_specialists": trainer_meta.get("trainable_specialists") or sorted(trainer_indices),
+            "trainer_loader_group_feature_counts": trainer_meta.get("group_feature_counts") or {},
+            "excluded_specialist_groups": trainer_meta.get("excluded_specialist_groups") or {},
+            "specialist_model_contract_valid": specialist_audit.get("specialist_model_contract_valid"),
+            "specialist_model_contract_failures": specialist_audit.get("specialist_model_contract_failures") or [],
+            "specialist_model_contract": specialist_audit.get("specialist_model_contract") or {},
+            "architecture_active_heads": (
+                (
+                    (specialist_audit.get("architecture_contract") or {}).get("recommended_fusion") or {}
+                ).get("active_heads")
+                or (
+                    (specialist_audit.get("architecture_contract") or {}).get("recommended_fusion") or {}
+                ).get("heads")
+                or []
+            ),
+            "architecture_blocked_heads": (
+                (
+                    (specialist_audit.get("architecture_contract") or {}).get("recommended_fusion") or {}
+                ).get("blocked_heads")
+                or []
+            ),
+            "foundation_objective_routing_all_present_and_expected": specialist_audit.get(
+                "foundation_objective_routing_all_present_and_expected"
+            ),
+            "specialist_input_liveness_all_live": specialist_audit.get("specialist_input_liveness_all_live"),
+            "specialist_input_liveness": [
+                {
+                    "split": row.get("split"),
+                    "specialist": row.get("specialist"),
+                    "live_feature_count": row.get("live_feature_count"),
+                    "feature_count": row.get("feature_count"),
+                    "min_required_live_feature_count": row.get("min_required_live_feature_count"),
+                    "nonfinite_count": row.get("nonfinite_count"),
+                    "mean_active_rate": row.get("mean_active_rate"),
+                }
+                for row in specialist_audit.get("specialist_input_liveness", [])
+                if isinstance(row, dict)
+            ],
+        },
+    },
+    "options": {
+        "audit_after": sys.argv[8] == "1",
+        "device": sys.argv[9],
+        "epochs": int(sys.argv[10]),
+        "batch_size": int(sys.argv[11]),
+    },
+    "commands": {
+        "train": train_cmd,
+        "post_candidate_audit": audit_cmd,
+    },
+    "git": {
+        "repo": str(repo),
+        "commit": git("rev-parse", "HEAD"),
+        "branch": git("rev-parse", "--abbrev-ref", "HEAD"),
+        "status_short": git("status", "--short").splitlines(),
+    },
+}
+manifest_path.parent.mkdir(parents=True, exist_ok=True)
+manifest_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+latest = manifest_path.parent / "ENTRY_FOUNDATION_CANDIDATE_TRAIN_RUN_MANIFEST_latest.json"
+latest.write_text(manifest_path.read_text(encoding="utf-8"), encoding="utf-8")
+print(f"Pre-candidate train manifest written: {manifest_path}")
+PY
+
+scripts/gx1_capped_run.sh --mem 48G --swap 8G -- "${CMD[@]}"
+echo "Candidate bundle written: $OUT_BUNDLE"
+if [[ "$AUDIT_AFTER" = "1" ]]; then
+  "${AUDIT_CMD[@]}"
+else
+  echo "Candidate bundle audit skipped by --skip-candidate-audit: $OUT_BUNDLE"
+fi
+echo "Post-candidate gates still required: strict load, 2026 offline replay, session/side/regime slices, explicit promotion review."

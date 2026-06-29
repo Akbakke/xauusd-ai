@@ -5,6 +5,25 @@
 
 set -euo pipefail
 
+LIVE_TRADING_ACK_REQUIRED=20260627_ALLOW_LEGACY_ENTRY_LIVE_TRADING
+if [[ "${GX1_ALLOW_LEGACY_ENTRY_LIVE_TRADING:-}" != "$LIVE_TRADING_ACK_REQUIRED" ]]; then
+    cat >&2 <<EOF
+[ABORT] Active Entry next-edge plan blocks legacy live trading launcher.
+        Current path is Entry foundation seq146 cleanup/audit/smoke-readiness.
+        Use:
+          scripts/entry_next_edge_control.sh verify
+          scripts/entry_next_edge_control.sh selftest
+          scripts/entry_next_edge_control.sh foundation-guardrails
+          scripts/entry_next_edge_control.sh worktree-hygiene
+          scripts/entry_next_edge_control.sh stage-foundation-cleanup --dry-run
+          scripts/entry_next_edge_control.sh materialize-smoke
+          scripts/entry_next_edge_control.sh train-readiness
+        Override only with:
+          GX1_ALLOW_LEGACY_ENTRY_LIVE_TRADING=$LIVE_TRADING_ACK_REQUIRED bash scripts/run_live_trial160.sh
+EOF
+    exit 2
+fi
+
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 cd "$ROOT"
 test "$(pwd)" = "$ROOT" || { echo "❌ FAIL: Not in repo-root (pwd=$(pwd), root=$ROOT)"; exit 1; }

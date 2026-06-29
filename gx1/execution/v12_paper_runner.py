@@ -50,17 +50,53 @@ if ENV_FILE.is_file():
                 k, v = line.split("=", 1)
                 os.environ.setdefault(k, v)
 
-from gx1.execution.oanda_client import OandaClient, OandaClientConfig
-from gx1.execution.oanda_credentials import load_oanda_credentials
-from gx1.execution.v12_live_features import LiveFeatureBuilder
-from gx1.execution.v12_pipeline import V12Pipeline
-from gx1.execution.v12_trade_state import TradeState
-from gx1.features.regime_adaptive_sizing_v1 import (
-    REGIME_RECAL_ON, TREND_REGIMES, build_live_tracker)
-from gx1.monitoring.trade_journal import TradeJournal
-
 LOG = logging.getLogger("v12_paper")
 INSTRUMENT = "XAU_USD"
+REGIME_RECAL_ON = False
+TREND_REGIMES: set[str] = set()
+_REGIME_RECAL_TRACKER = None
+_RUNTIME_DEPS_LOADED = False
+
+
+def _load_runtime_dependencies() -> None:
+    """Import artifact-touching runtime dependencies only after the Entry guard."""
+    global _RUNTIME_DEPS_LOADED
+    global OandaClient, OandaClientConfig, load_oanda_credentials
+    global LiveFeatureBuilder, V12Pipeline, TradeState, TradeJournal
+    global REGIME_RECAL_ON, TREND_REGIMES, _REGIME_RECAL_TRACKER
+    if _RUNTIME_DEPS_LOADED:
+        return
+
+    from gx1.execution.oanda_client import OandaClient as _OandaClient
+    from gx1.execution.oanda_client import OandaClientConfig as _OandaClientConfig
+    from gx1.execution.oanda_credentials import load_oanda_credentials as _load_oanda_credentials
+    from gx1.execution.v12_live_features import LiveFeatureBuilder as _LiveFeatureBuilder
+    from gx1.execution.v12_pipeline import V12Pipeline as _V12Pipeline
+    from gx1.execution.v12_trade_state import TradeState as _TradeState
+    from gx1.features.regime_adaptive_sizing_v1 import REGIME_RECAL_ON as _REGIME_RECAL_ON
+    from gx1.features.regime_adaptive_sizing_v1 import TREND_REGIMES as _TREND_REGIMES
+    from gx1.features.regime_adaptive_sizing_v1 import build_live_tracker
+    from gx1.monitoring.trade_journal import TradeJournal as _TradeJournal
+
+    OandaClient = _OandaClient
+    OandaClientConfig = _OandaClientConfig
+    load_oanda_credentials = _load_oanda_credentials
+    LiveFeatureBuilder = _LiveFeatureBuilder
+    V12Pipeline = _V12Pipeline
+    TradeState = _TradeState
+    TradeJournal = _TradeJournal
+    REGIME_RECAL_ON = bool(_REGIME_RECAL_ON)
+    TREND_REGIMES = set(_TREND_REGIMES)
+    _REGIME_RECAL_TRACKER = build_live_tracker(REGIME_RECAL_STATE_PATH)
+    if REGIME_RECAL_ON:
+        LOG.warning(
+            "[REGIME_RECAL] regime-adaptive LONG de-sizing OVERLAY active (reversible) "
+            "k=%d base=%.2f floor=%.2f",
+            _REGIME_RECAL_TRACKER.k,
+            _REGIME_RECAL_TRACKER.base,
+            _REGIME_RECAL_TRACKER.floor,
+        )
+    _RUNTIME_DEPS_LOADED = True
 
 # 2026-05-29: when env var GX1_PURE_PHASE6=1, every runtime wrapper filter
 # (adaptive_min_adv, regime block, portfolio caps, low-confidence,
@@ -83,6 +119,14 @@ CANONICAL_M1_DIR = Path("/home/andre2/GX1_DATA/data/oanda/canonical/xauusd_m1_bi
 TRADE_STATE_FILE = JOURNAL_DIR / "open_trade_state.json"  # LEGACY single-trade marker (migrated on startup)
 TRADE_STATE_DIR = JOURNAL_DIR / "open_trades"             # one JSON file per open virtual trade
 TRADE_ALERTS_FILE = Path("/home/andre2/TRADES_ALERTS.txt")  # easy-to-tail alerts file
+ENTRY_NEXT_EDGE_SHADOW_ACK_REQUIRED = "20260627_ENTRY_NO_XGB_LIVE_SHADOW"
+ENTRY_NEXT_EDGE_LEGACY_RUNNER_ACK_REQUIRED = "20260627_ALLOW_LEGACY_ENTRY_PAPER_RUNNER"
+ENTRY_NEXT_EDGE_SHADOW_RUNNER_ACK_REQUIRED = "20260627_ENTRY_NEXT_EDGE_SHADOW_RUNNER"
+ENTRY_NEXT_EDGE_SHADOW_MANIFEST_REQUIRED = Path(
+    "/home/andre2/GX1_DATA/reports/entry_tabular_no_xgb_candidates/"
+    "entry_tabular_no_xgb_top5_v1_20260627/candidate_manifest.json"
+)
+ENTRY_NEXT_EDGE_SHADOW_THRESHOLD_REQUIRED = 0.39048198845884335
 
 
 def write_trade_alert(line: str) -> None:
@@ -274,11 +318,6 @@ if SIZING_MODE != "off" and SIZING_MAX_MULT != 1.0:
 # runner restart keeps a warm window. ONE TRUTH = gx1.features.regime_adaptive_sizing_v1
 # (the same class the offline phase6/gate replay imports → train==serve).
 REGIME_RECAL_STATE_PATH = JOURNAL_DIR / "regime_recal_state.json"
-_REGIME_RECAL_TRACKER = build_live_tracker(REGIME_RECAL_STATE_PATH)
-if REGIME_RECAL_ON:
-    LOG.warning("[REGIME_RECAL] regime-adaptive LONG de-sizing OVERLAY active (reversible) "
-                "k=%d base=%.2f floor=%.2f", _REGIME_RECAL_TRACKER.k,
-                _REGIME_RECAL_TRACKER.base, _REGIME_RECAL_TRACKER.floor)
 
 
 def size_units(base_units: int, raw_adv: float, atr_bps_now: float, margin: float | None = None):
@@ -449,6 +488,34 @@ def daily_journal_path(suffix: str = "") -> Path:
     return JOURNAL_DIR / f"v12_paper_journal_{today}{suf}.jsonl"
 
 
+def enforce_entry_next_edge_runner_guard(args: argparse.Namespace) -> None:
+    """Fail closed while the active Entry foundation-freeze is in force."""
+    legacy_ack = os.environ.get("GX1_ALLOW_LEGACY_ENTRY_PAPER_RUNNER", "").strip()
+    if legacy_ack == ENTRY_NEXT_EDGE_LEGACY_RUNNER_ACK_REQUIRED:
+        return
+
+    print(
+        "\n".join(
+            [
+                "Active Entry foundation-freeze blocks direct v12_paper_runner use.",
+                "Current path is Entry foundation seq146 cleanup/audit/smoke-readiness.",
+                "Use:",
+                "  scripts/entry_next_edge_control.sh verify",
+                "  scripts/entry_next_edge_control.sh selftest",
+                "  scripts/entry_next_edge_control.sh foundation-guardrails",
+                "  scripts/entry_next_edge_control.sh worktree-hygiene",
+                "  scripts/entry_next_edge_control.sh stage-foundation-cleanup --dry-run",
+                "  scripts/entry_next_edge_control.sh materialize-smoke",
+                "  scripts/entry_next_edge_control.sh train-readiness",
+                "Override only with:",
+                f"  GX1_ALLOW_LEGACY_ENTRY_PAPER_RUNNER={ENTRY_NEXT_EDGE_LEGACY_RUNNER_ACK_REQUIRED} <command>",
+            ]
+        ),
+        file=sys.stderr,
+    )
+    raise SystemExit(2)
+
+
 # ── Main loop ────────────────────────────────────────────────────────────
 
 
@@ -466,18 +533,24 @@ def main() -> int:
     p.add_argument("--poll-seconds", type=int, default=DEFAULT_POLL_SECONDS)
     p.add_argument("--dry-run", action="store_true",
                    help="Don't actually send orders — just log what would happen (shadow mode)")
+    p.add_argument("--shadow-only", action="store_true",
+                   help="Observation-only mode: requires --dry-run, logs decisions, never opens virtual trades or writes trade state.")
     p.add_argument("--journal-suffix", type=str, default="",
                    help="Suffix for journal filename (e.g. 'live' or 'shadow') to allow parallel runners")
     p.add_argument("--allow-stub", action="store_true",
                    help="Permit running with stubbed V12 decision/exit logic. Required for shadow-mode "
                         "smoke-tests; refuses live orders unless --dry-run.")
     args = p.parse_args()
+    if args.shadow_only and not args.dry_run:
+        raise SystemExit("--shadow-only requires --dry-run")
+    enforce_entry_next_edge_runner_guard(args)
 
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s %(name)s [%(levelname)s] %(message)s",
                         datefmt="%Y-%m-%dT%H:%M:%SZ")
     # Suppress noisy "Using legacy trade_id" warnings (we intentionally use trade_id mode).
     logging.getLogger("gx1.monitoring.trade_journal").setLevel(logging.ERROR)
+    _load_runtime_dependencies()
 
     creds = load_oanda_credentials()
     client = OandaClient(OandaClientConfig(api_key=creds.api_token,
@@ -510,6 +583,9 @@ def main() -> int:
                 "units": args.units,
                 "max_spread_bps": args.max_spread_bps,
                 "dry_run": args.dry_run,
+                "shadow_only": args.shadow_only,
+                "entry_tabular_no_xgb_shadow_manifest": os.environ.get("GX1_ENTRY_TABULAR_NO_XGB_SHADOW_MANIFEST", ""),
+                "entry_tabular_no_xgb_shadow_threshold": os.environ.get("GX1_ENTRY_TABULAR_NO_XGB_SHADOW_THRESHOLD", ""),
                 # B4 fix (2026-06-04): record the env flags that change live decisions, so a
                 # journal can be reconciled against the Phase-6 config post-hoc ("which config ran?").
                 "pure_phase6": PURE_PHASE6,
@@ -524,9 +600,14 @@ def main() -> int:
 
     # Resume any open trades from disk (survives runner crash/restart).
     # Auto-migrates legacy single-file state into the per-trade directory.
-    open_trades: list[TradeState] = TradeState.load_all(
-        TRADE_STATE_DIR, legacy_single_file=TRADE_STATE_FILE,
-    )
+    open_trades: list[TradeState]
+    if args.shadow_only:
+        open_trades = []
+        LOG.warning("[SHADOW_ONLY] open trade state loading disabled; no orders or virtual trades will be opened")
+    else:
+        open_trades = TradeState.load_all(
+            TRADE_STATE_DIR, legacy_single_file=TRADE_STATE_FILE,
+        )
     if open_trades:
         for t in open_trades:
             LOG.info(f"resumed open trade {t.trade_id or '(no-id)'}: "
@@ -780,6 +861,14 @@ def main() -> int:
 
             decision = make_v12_decision(pipeline, current_minute, bid, ask, open_trades=open_trades)
             event["v12_decision"] = decision
+            if args.shadow_only:
+                event["order_status"] = "SHADOW_ONLY_NO_ORDER"
+                event["shadow_only"] = True
+                log_journal_event(daily_journal_path(args.journal_suffix), event)
+                last_decision_minute = current_minute
+                consecutive_errors = 0
+                time.sleep(args.poll_seconds)
+                continue
 
             if not allowed:
                 # Gate blocked the order (spread/asia) — but log V12's intent for counterfactual analysis

@@ -1,3 +1,33 @@
+# ACTIVE ENTRY FOUNDATION OVERRIDE - 2026-06-28
+
+Read `docs/ENTRY_FOUNDATION_AUDIT_20260628.md` and
+`docs/ENTRY_SEQUENTIAL_AI_SPECIALIST_BLUEPRINT_20260628.md` before acting on
+Entry work. They supersede older XGB/V10/Entry-IQL live-practice instructions in
+this file. The 2026-06-27 no-XGB shadow plan is historical pre-foundation
+evidence, not the active operating point.
+
+Use only the canonical control surface for this wave:
+- `scripts/entry_next_edge_control.sh verify`
+- `scripts/entry_next_edge_control.sh selftest`
+- `scripts/entry_next_edge_control.sh foundation-guardrails`
+- `scripts/entry_next_edge_control.sh worktree-hygiene`
+- optional, explicit cleanup staging:
+  `scripts/entry_next_edge_control.sh stage-foundation-cleanup --apply --vedtak <id>`
+- `scripts/entry_next_edge_control.sh train-readiness`
+- after explicit user vedtak only:
+  `scripts/entry_next_edge_control.sh smoke-train --vedtak <id> --require-edge-audit`
+
+Readiness is `READY_FOR_VEDTAK_SMOKE_TRAIN` only when foundation gates and
+git-clean execution hygiene both pass. `READY_FOR_VEDTAK_SMOKE_TRAIN_AFTER_GIT_CLEAN`
+means the foundation contract is ready but real trainer start is still blocked.
+Candidate training, replay-readiness, IQL distillation, IQL replay comparison,
+promotion review, shadow, and live remain closed until their preceding
+foundation gates produce explicit PASS/READY artifacts.
+
+Do not start legacy live/practice/OANDA order paths, old V10/XGB/ET research
+launchers, direct `v12_paper_runner`, or promotion/pin/live actions without the
+foundation-specific gate and explicit user vedtak.
+
 # GX1 Agent Guardrails
 
 ## What GX1 is — read before acting

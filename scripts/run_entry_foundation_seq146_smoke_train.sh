@@ -1,0 +1,647 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Vedtak-gated plumbing smoke for the audited Entry foundation seq146 dataset.
+# This never promotes, pins, starts shadow, or touches live/practice order paths.
+
+REPO=/home/andre2/src/GX1_ENGINE
+DATA=/home/andre2/GX1_DATA
+PY=$REPO/.venv/bin/python
+
+SOURCE_DATASET=$DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_foundation_seq146_neutral
+SMOKE_DATASET=$DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_foundation_seq146_smoke
+SMOKE_STEM=v10_foundation_seq146_smoke__HOLD_03B
+M5_PREBUILT=$DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260626_spreadfix/cv3/xauusd_m5_CANONICAL_V3_2020_2026.parquet
+SPECIALIST_AUDIT=$DATA/reports/entry_specialist_feature_group_audit_20260628_v1/ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_latest.json
+SMOKE_TRAIN_MANIFEST_DIR=$DATA/reports/entry_foundation_smoke_train_manifests_20260628_v1
+
+VEDTAK="${ENTRY_FOUNDATION_SMOKE_VEDTAK:-}"
+DEVICE=auto
+EPOCHS=1
+BATCH_SIZE=64
+TRAIN_ROWS=4095
+VAL_ROWS=1536
+TEST_ROWS=1536
+MATERIALIZE_ONLY=0
+MANIFEST_ONLY=0
+DRY_RUN=0
+REFRESH_SMOKE=0
+AUDIT_AFTER=1
+AUDIT_DEVICE=cpu
+AUDIT_BATCH_SIZE=128
+REQUIRE_EDGE_AUDIT=1
+SMOKE_BAD_PATH_WEIGHT="${ENTRY_FOUNDATION_SMOKE_BAD_PATH_WEIGHT:-1.00}"
+SMOKE_PRED_BALANCE_ALPHA="${ENTRY_FOUNDATION_SMOKE_PRED_BALANCE_ALPHA:-0.05}"
+SMOKE_CKPT_MONITOR="${ENTRY_FOUNDATION_SMOKE_CKPT_MONITOR:-dir_acc}"
+SMOKE_SYMMETRIC_NEGATIVES="${ENTRY_FOUNDATION_SMOKE_SYMMETRIC_NEGATIVES:-1}"
+SMOKE_SPECIALIST_GATE_ENTROPY_WEIGHT="${ENTRY_FOUNDATION_SMOKE_SPECIALIST_GATE_ENTROPY_WEIGHT:-0.05}"
+SMOKE_SPECIALIST_GATE_BALANCE_WEIGHT="${ENTRY_FOUNDATION_SMOKE_SPECIALIST_GATE_BALANCE_WEIGHT:-0.25}"
+SMOKE_SPECIALIST_GATE_MIN_MEAN="${ENTRY_FOUNDATION_SMOKE_SPECIALIST_GATE_MIN_MEAN:-0.02}"
+
+usage() {
+  cat <<'EOF'
+Usage:
+  scripts/run_entry_foundation_seq146_smoke_train.sh --vedtak <id> [options]
+
+Options:
+  --vedtak <id>        Required explicit user decision id for this smoke train.
+  --device <auto|cpu|cuda>
+  --epochs <n>         Default: 1
+  --batch-size <n>     Default: 64
+  --train-rows <n>     Default: 4095
+  --val-rows <n>       Default: 1536
+  --test-rows <n>      Default: 1536
+  --materialize-only   Build the small smoke dataset, then stop.
+  --manifest-only      Run real preflight and write the pre-train manifest, then stop.
+  --refresh-smoke      Rebuild the small smoke dataset before training/dry-run.
+  --dry-run            Print the train command, then stop.
+  --skip-smoke-audit   Do not run the post-train smoke bundle audit.
+  --audit-device <auto|cpu|cuda>
+                       Default: cpu
+  --audit-batch-size <n>
+                       Default: 128
+  --require-edge-audit Require edge diagnostics in the post-train audit. Default.
+  --no-require-edge-audit
+                       Plumbing-only audit; candidate-readiness will not pass.
+
+This is a smoke/plumbing path only. It writes a non-promoted bundle under the
+foundation seq146 run directory, audits the produced bundle including its active
+head contract, and does not pin, promote, shadow, or trade.
+
+Real training preflight reruns:
+  scripts/entry_next_edge_control.sh verify --quiet
+  scripts/entry_next_edge_control.sh foundation-guardrails --quiet
+  scripts/entry_next_edge_control.sh train-readiness --quiet
+
+Dry-run prints those preflight commands but does not recurse through them.
+Real training writes a pre-train run manifest before gx1_capped_run starts.
+Real training also requires a clean git worktree; use --manifest-only for proof
+when the repo is intentionally dirty.
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --vedtak) VEDTAK="$2"; shift 2 ;;
+    --device) DEVICE="$2"; shift 2 ;;
+    --epochs) EPOCHS="$2"; shift 2 ;;
+    --batch-size) BATCH_SIZE="$2"; shift 2 ;;
+    --train-rows) TRAIN_ROWS="$2"; REFRESH_SMOKE=1; shift 2 ;;
+    --val-rows) VAL_ROWS="$2"; REFRESH_SMOKE=1; shift 2 ;;
+    --test-rows) TEST_ROWS="$2"; REFRESH_SMOKE=1; shift 2 ;;
+    --materialize-only) MATERIALIZE_ONLY=1; shift ;;
+    --manifest-only) MANIFEST_ONLY=1; shift ;;
+    --refresh-smoke) REFRESH_SMOKE=1; shift ;;
+    --dry-run) DRY_RUN=1; shift ;;
+    --skip-smoke-audit) AUDIT_AFTER=0; shift ;;
+    --audit-device) AUDIT_DEVICE="$2"; shift 2 ;;
+    --audit-batch-size) AUDIT_BATCH_SIZE="$2"; shift 2 ;;
+    --require-edge-audit) REQUIRE_EDGE_AUDIT=1; shift ;;
+    --no-require-edge-audit) REQUIRE_EDGE_AUDIT=0; shift ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "FATAL: unknown arg: $1" >&2; usage >&2; exit 2 ;;
+  esac
+done
+
+if [[ -z "${VEDTAK:-}" ]]; then
+  echo "FATAL: --vedtak is required for foundation seq146 smoke train." >&2
+  echo "This is still a train command, so it must be an explicit user decision." >&2
+  exit 2
+fi
+
+case "$DEVICE" in
+  auto|cpu|cuda) ;;
+  *) echo "FATAL: --device must be auto, cpu, or cuda; got $DEVICE" >&2; exit 2 ;;
+esac
+case "$AUDIT_DEVICE" in
+  auto|cpu|cuda) ;;
+  *) echo "FATAL: --audit-device must be auto, cpu, or cuda; got $AUDIT_DEVICE" >&2; exit 2 ;;
+esac
+if [[ "$REQUIRE_EDGE_AUDIT" = "1" && "$AUDIT_AFTER" != "1" && "$MATERIALIZE_ONLY" != "1" ]]; then
+  echo "FATAL: --require-edge-audit cannot be combined with --skip-smoke-audit." >&2
+  echo "Candidate-readiness requires a post-smoke audit with edge diagnostics." >&2
+  exit 2
+fi
+if [[ "$MANIFEST_ONLY" = "1" && "$DRY_RUN" = "1" ]]; then
+  echo "FATAL: --manifest-only cannot be combined with --dry-run." >&2
+  exit 2
+fi
+
+cd "$REPO"
+
+require_clean_git_for_real_train() {
+  GIT_STATUS_SHORT=$(git status --short)
+  if [[ -n "$GIT_STATUS_SHORT" ]]; then
+    echo "FATAL: real foundation smoke train requires clean git worktree." >&2
+    echo "Use --dry-run or --manifest-only for inspection/proof without starting trainer." >&2
+    echo "$GIT_STATUS_SHORT" >&2
+    exit 2
+  fi
+}
+
+require_foundation_contract_ready_for_manifest_only() {
+  "$PY" - <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path("/home/andre2/GX1_DATA/reports/entry_training_readiness_20260628_v1/ENTRY_TRAINING_READINESS_latest.json")
+report = json.loads(path.read_text(encoding="utf-8"))
+if not report.get("foundation_contract_ready_for_smoke"):
+    print("FATAL: manifest-only requires foundation_contract_ready_for_smoke=true.", file=sys.stderr)
+    print(f"Readiness decision: {report.get('decision')}", file=sys.stderr)
+    print(f"Readiness failures: {len(report.get('failures') or [])}", file=sys.stderr)
+    print(f"Readiness report: {path}", file=sys.stderr)
+    raise SystemExit(2)
+PY
+}
+
+if [[ "$MATERIALIZE_ONLY" = "1" || "$REFRESH_SMOKE" = "1" || ! -f "$SMOKE_DATASET/SMOKE_DATASET_MANIFEST.json" ]]; then
+  "$PY" -m gx1.scripts.materialize_entry_foundation_smoke_dataset_v1 \
+    --source-dir "$SOURCE_DATASET" \
+    --out-dir "$SMOKE_DATASET" \
+    --stem "$SMOKE_STEM" \
+    --train-rows "$TRAIN_ROWS" \
+    --val-rows "$VAL_ROWS" \
+    --test-rows "$TEST_ROWS" \
+    --quiet
+else
+  echo "Using existing smoke dataset: $SMOKE_DATASET"
+fi
+
+if [[ "$MATERIALIZE_ONLY" = "1" ]]; then
+  echo "Smoke dataset materialized: $SMOKE_DATASET"
+  exit 0
+fi
+
+if [[ "$DRY_RUN" != "1" ]]; then
+  scripts/entry_next_edge_control.sh verify --quiet
+  scripts/entry_next_edge_control.sh foundation-guardrails --quiet
+  if [[ "$MANIFEST_ONLY" = "1" ]]; then
+    scripts/entry_next_edge_control.sh train-readiness --quiet --no-fail-on-not-ready
+    require_foundation_contract_ready_for_manifest_only
+  else
+    require_clean_git_for_real_train
+    scripts/entry_next_edge_control.sh train-readiness --quiet
+  fi
+fi
+
+STAMP=$(date -u '+%Y%m%dT%H%M%SZ')
+OUT_BUNDLE=$DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_foundation_seq146_smoke_$STAMP
+PRETRAIN_MANIFEST=$SMOKE_TRAIN_MANIFEST_DIR/ENTRY_FOUNDATION_SMOKE_TRAIN_RUN_MANIFEST_$STAMP.json
+RUN_MODE=real_train
+if [[ "$MANIFEST_ONLY" = "1" ]]; then
+  RUN_MODE=manifest_only
+fi
+
+CMD=(
+  env
+  GX1_DATA="$DATA"
+  GX1_REGIME_V4=1
+  GX1_TREND_REGIME_FROM_D1=1
+  GX1_ALLOW_LEGACY_ENTRY_V10_RESEARCH=20260627_ALLOW_LEGACY_ENTRY_V10_RESEARCH
+  GX1_ENTRY_ALLOW_TRAIN_ENV_OVERRIDES=1
+  ENTRY_AUX_BAD_PATH_WEIGHT="$SMOKE_BAD_PATH_WEIGHT"
+  ENTRY_PRED_BALANCE_ALPHA="$SMOKE_PRED_BALANCE_ALPHA"
+  GX1_V10_CKPT_MONITOR="$SMOKE_CKPT_MONITOR"
+  ENTRY_SYMMETRIC_NEGATIVES="$SMOKE_SYMMETRIC_NEGATIVES"
+  ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT="$SMOKE_SPECIALIST_GATE_ENTROPY_WEIGHT"
+  ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT="$SMOKE_SPECIALIST_GATE_BALANCE_WEIGHT"
+  ENTRY_SPECIALIST_GATE_MIN_MEAN="$SMOKE_SPECIALIST_GATE_MIN_MEAN"
+  "$PY" -m gx1.models.entry_v10.entry_v10_ctx_train_v3
+  --train
+  --vedtak "$VEDTAK"
+  --device "$DEVICE"
+  --dataset_dir "$SMOKE_DATASET"
+  --dataset_train_parquet "$SMOKE_DATASET/${SMOKE_STEM}_train.parquet"
+  --out_bundle_dir "$OUT_BUNDLE"
+  --m5-prebuilt-path "$M5_PREBUILT"
+  --epochs "$EPOCHS"
+  --batch_size "$BATCH_SIZE"
+  --early-stopping-patience 1
+  --early-stopping-min-delta 0.0
+  --num-workers 0
+  --multi-tf-seq-len 16
+  --per-tf-seq-len-h4 8
+  --per-tf-seq-len-d1 8
+  --grad-accum-steps 1
+  --enable-tf-agreement-head
+  --enable-path-quality-variance-head
+  --enable-position-size-head
+  --enable-dip-head
+  --enable-forecast-head
+  --enable-timing-head
+  --enable-tail-risk-head
+  --enable-vol-forecast-head
+  --enable-mtf-direction-head
+  --enable-specialist-fusion
+  --specialist-audit-json "$SPECIALIST_AUDIT"
+  --specialist-num-layers 1
+  --specialist-fusion-scale 0.25
+)
+
+AUDIT_CMD=(
+  scripts/entry_next_edge_control.sh
+  audit-smoke-bundle
+  --bundle-dir "$OUT_BUNDLE"
+  --dataset-dir "$SMOKE_DATASET"
+  --device "$AUDIT_DEVICE"
+  --batch-size "$AUDIT_BATCH_SIZE"
+  --require-head-contract
+  --pretrain-manifest-json "$PRETRAIN_MANIFEST"
+)
+if [[ "$REQUIRE_EDGE_AUDIT" = "1" ]]; then
+  AUDIT_CMD+=(--require-edge)
+fi
+
+if [[ "$DRY_RUN" = "1" ]]; then
+  echo "Real-train preflight command: scripts/entry_next_edge_control.sh verify --quiet"
+  echo "Real-train preflight command: scripts/entry_next_edge_control.sh foundation-guardrails --quiet"
+  echo "Real-train preflight command: scripts/entry_next_edge_control.sh train-readiness --quiet"
+  echo "Pre-train run manifest path: $PRETRAIN_MANIFEST"
+  printf 'Smoke train command:'
+  printf ' %q' "${CMD[@]}"
+  printf '\n'
+  if [[ "$AUDIT_AFTER" = "1" ]]; then
+    printf 'Post-smoke audit command:'
+    printf ' %q' "${AUDIT_CMD[@]}"
+    printf '\n'
+  else
+    echo "Post-smoke audit command: skipped by --skip-smoke-audit"
+  fi
+  exit 0
+fi
+
+mkdir -p "$SMOKE_TRAIN_MANIFEST_DIR"
+"$PY" - "$PRETRAIN_MANIFEST" "$VEDTAK" "$OUT_BUNDLE" "$SOURCE_DATASET" "$SMOKE_DATASET" \
+  "$SMOKE_DATASET/SMOKE_DATASET_MANIFEST.json" "$M5_PREBUILT" "$SPECIALIST_AUDIT" \
+  "$DATA/reports/entry_foundation_guardrails_20260628_v1/ENTRY_FOUNDATION_GUARDRAILS_latest.json" \
+  "$DATA/reports/entry_training_readiness_20260628_v1/ENTRY_TRAINING_READINESS_latest.json" \
+  "$AUDIT_AFTER" "$REQUIRE_EDGE_AUDIT" "$DEVICE" "$EPOCHS" "$BATCH_SIZE" "$TRAIN_ROWS" "$VAL_ROWS" "$TEST_ROWS" \
+  "$RUN_MODE" "${CMD[@]}" __AUDIT_CMD__ "${AUDIT_CMD[@]}" <<'PY'
+import json
+import hashlib
+import subprocess
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+manifest_path = Path(sys.argv[1])
+repo = Path("/home/andre2/src/GX1_ENGINE")
+sep = "__AUDIT_CMD__"
+sep_idx = sys.argv.index(sep)
+train_cmd = sys.argv[20:sep_idx]
+audit_cmd = sys.argv[sep_idx + 1:]
+
+
+def git(*args: str) -> str:
+    proc = subprocess.run(["git", "-C", str(repo), *args], text=True, capture_output=True, check=False)
+    return (proc.stdout if proc.returncode == 0 else proc.stderr).strip()
+
+
+def read_json(path: str | Path) -> dict:
+    p = Path(path)
+    return json.loads(p.read_text(encoding="utf-8"))
+
+
+def sha256_file(path: str | Path) -> str:
+    p = Path(path)
+    h = hashlib.sha256()
+    with p.open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def command_env_value(command: list[str], name: str) -> str | None:
+    prefix = f"{name}="
+    for item in command:
+        if isinstance(item, str) and item.startswith(prefix):
+            return item[len(prefix):]
+    return None
+
+
+def feature_contract_summary(report: dict) -> dict:
+    emitted = report.get("emitted_contracts") if isinstance(report.get("emitted_contracts"), dict) else {}
+    source_by_split = {
+        str(split): {
+            "source_field_count": int((contract or {}).get("foundation_structure_source_field_count") or 0),
+            "source_missing_count": int((contract or {}).get("foundation_structure_source_missing_count") or 0),
+        }
+        for split, contract in emitted.items()
+        if isinstance(contract, dict)
+    }
+    return {
+        "decision": report.get("decision"),
+        "selected_feature_count": report.get("selected_feature_count"),
+        "foundation_required_feature_count": report.get("foundation_required_feature_count"),
+        "foundation_objective_coverage_all_present": report.get("foundation_objective_coverage_all_present"),
+        "foundation_objective_coverage": [
+            {
+                "objective": row.get("objective"),
+                "present_count": row.get("present_count"),
+                "required_count": row.get("required_count"),
+                "missing_count": row.get("missing_count"),
+            }
+            for row in report.get("foundation_objective_coverage", [])
+            if isinstance(row, dict)
+        ],
+        "foundation_objective_liveness_all_live": report.get("foundation_objective_liveness_all_live"),
+        "foundation_objective_liveness": [
+            {
+                "split": row.get("split"),
+                "objective": row.get("objective"),
+                "observed_count": row.get("observed_count"),
+                "required_count": row.get("required_count"),
+                "missing_count": row.get("missing_count"),
+                "nonfinite_count": row.get("nonfinite_count"),
+                "near_constant_count": row.get("near_constant_count"),
+                "mean_active_rate": row.get("mean_active_rate"),
+            }
+            for row in report.get("foundation_objective_liveness", [])
+            if isinstance(row, dict)
+        ],
+        "foundation_source_field_liveness_all_live": report.get("foundation_source_field_liveness_all_live"),
+        "min_required_source_active_rate": report.get("min_required_source_active_rate"),
+        "min_required_source_active_count": report.get("min_required_source_active_count"),
+        "foundation_source_field_liveness": [
+            {
+                "split": row.get("split"),
+                "source_field": row.get("source_field"),
+                "source_kind": row.get("source_kind"),
+                "observed": row.get("observed"),
+                "n": row.get("n"),
+                "nonfinite_count": row.get("nonfinite_count"),
+                "active_count": row.get("active_count"),
+                "active_rate": row.get("active_rate"),
+                "near_constant": row.get("near_constant"),
+            }
+            for row in report.get("foundation_source_field_liveness", [])
+            if isinstance(row, dict)
+        ],
+        "foundation_source_fields_by_split": source_by_split,
+        "failures": report.get("failures") or [],
+    }
+
+
+def specialist_contract_summary(report: dict) -> dict:
+    architecture = report.get("architecture_contract") if isinstance(report.get("architecture_contract"), dict) else {}
+    recommended = architecture.get("recommended_fusion") if isinstance(architecture.get("recommended_fusion"), dict) else {}
+    raw_indices = architecture.get("specialist_input_indices") if isinstance(architecture.get("specialist_input_indices"), dict) else {}
+    from gx1.models.entry_v10.entry_v10_ctx_train_v3 import _load_specialist_fusion_contract
+
+    trainer_indices, trainer_meta = _load_specialist_fusion_contract(
+        Path(specialist_audit_path),
+        expected_signal_dim=146,
+    )
+    return {
+        "decision": report.get("decision"),
+        "signal_field_count": report.get("signal_field_count"),
+        "selected_feature_count": report.get("selected_feature_count"),
+        "required_training_specialists": report.get("required_training_specialists") or [],
+        "architecture_specialist_groups": sorted(
+            str(name) for name, values in raw_indices.items() if list(values or [])
+        ),
+        "trainable_specialists": trainer_meta.get("trainable_specialists") or sorted(trainer_indices),
+        "trainer_loader_group_feature_counts": trainer_meta.get("group_feature_counts") or {},
+        "excluded_specialist_groups": trainer_meta.get("excluded_specialist_groups") or {},
+        "specialist_model_contract_valid": report.get("specialist_model_contract_valid"),
+        "specialist_model_contract_failures": report.get("specialist_model_contract_failures") or [],
+        "specialist_model_contract": report.get("specialist_model_contract") or {},
+        "architecture_active_heads": recommended.get("active_heads") or recommended.get("heads") or [],
+        "architecture_blocked_heads": recommended.get("blocked_heads") or [],
+        "foundation_objective_routing_all_present_and_expected": report.get(
+            "foundation_objective_routing_all_present_and_expected"
+        ),
+        "specialist_input_liveness_all_live": report.get("specialist_input_liveness_all_live"),
+        "specialist_input_liveness": [
+            {
+                "split": row.get("split"),
+                "specialist": row.get("specialist"),
+                "live_feature_count": row.get("live_feature_count"),
+                "feature_count": row.get("feature_count"),
+                "min_required_live_feature_count": row.get("min_required_live_feature_count"),
+                "nonfinite_count": row.get("nonfinite_count"),
+                "mean_active_rate": row.get("mean_active_rate"),
+            }
+            for row in report.get("specialist_input_liveness", [])
+            if isinstance(row, dict)
+        ],
+        "foundation_objective_routing": [
+            {
+                "objective": row.get("objective"),
+                "expected_specialist": row.get("expected_specialist"),
+                "routed_to_expected_count": row.get("routed_to_expected_count"),
+                "required_count": row.get("required_count"),
+                "missing_count": row.get("missing_count"),
+                "misrouted_count": row.get("misrouted_count"),
+            }
+            for row in report.get("foundation_objective_routing", [])
+            if isinstance(row, dict)
+        ],
+        "failures": report.get("failures") or [],
+    }
+
+
+def target_contract_summary(report: dict) -> dict:
+    head_contract = report.get("target_head_contract") if isinstance(report.get("target_head_contract"), dict) else {}
+    return {
+        "decision": report.get("decision"),
+        "active_training_heads": head_contract.get("active_training_heads") or [],
+        "blocked_heads": head_contract.get("blocked_heads") or [],
+        "failures": report.get("failures") or [],
+    }
+
+
+def worktree_contract_summary(report: dict) -> dict:
+    critical_gate_review = (
+        report.get("foundation_cleanup_critical_gate_review")
+        if isinstance(report.get("foundation_cleanup_critical_gate_review"), dict)
+        else {}
+    )
+    return {
+        "decision": report.get("decision"),
+        "dirty_count": report.get("dirty_count"),
+        "foundation_cleanup_dirty_count": report.get("foundation_cleanup_dirty_count"),
+        "review_before_stage_dirty_count": report.get("review_before_stage_dirty_count"),
+        "foundation_cleanup_stage_ready": report.get("foundation_cleanup_stage_ready"),
+        "foundation_cleanup_critical_gate_review": {
+            "critical_gate_path_count": critical_gate_review.get("critical_gate_path_count"),
+            "ok_count": critical_gate_review.get("ok_count"),
+            "missing_from_repo": critical_gate_review.get("missing_from_repo") or [],
+            "dirty_missing_from_stage": critical_gate_review.get("dirty_missing_from_stage") or [],
+        },
+        "stage_plan_safe": report.get("stage_plan_safe"),
+        "post_stage_verification": report.get("foundation_cleanup_post_stage_verification") or {},
+    }
+
+
+def smoke_dataset_contract_summary(report: dict) -> dict:
+    provenance = report.get("audit_provenance") if isinstance(report.get("audit_provenance"), dict) else {}
+    artifacts = provenance.get("artifacts") if isinstance(provenance.get("artifacts"), dict) else {}
+    splits = report.get("splits") if isinstance(report.get("splits"), dict) else {}
+    return {
+        "schema_version": report.get("schema_version"),
+        "source_dir": report.get("source_dir"),
+        "out_dir": report.get("out_dir"),
+        "audit_provenance_schema_version": provenance.get("schema_version"),
+        "audit_provenance_all_artifacts_present": provenance.get("all_artifacts_present"),
+        "audit_provenance_all_artifact_hashes_present": provenance.get("all_artifact_hashes_present"),
+        "audit_provenance_artifacts": {
+            str(name): {
+                "path": row.get("path"),
+                "sha256": row.get("sha256"),
+                "decision": row.get("decision"),
+                "dataset_dir": row.get("dataset_dir"),
+            }
+            for name, row in artifacts.items()
+            if isinstance(row, dict)
+        },
+        "split_hashes": {
+            str(split): {
+                "rows": row.get("rows"),
+                "label_counts": row.get("label_counts"),
+                "source_manifest": row.get("source_manifest"),
+                "source_manifest_sha256": row.get("source_manifest_sha256"),
+                "out_path": row.get("out_path"),
+                "out_parquet_sha256": row.get("out_parquet_sha256"),
+                "out_manifest": row.get("out_manifest"),
+                "out_manifest_sha256": row.get("out_manifest_sha256"),
+            }
+            for split, row in splits.items()
+            if isinstance(row, dict)
+        },
+    }
+
+
+def gate_decision(report: dict, name: str) -> str:
+    for gate in report.get("gates") or []:
+        if isinstance(gate, dict) and str(gate.get("name")) == name:
+            return str(gate.get("decision") or "")
+    return ""
+
+
+readiness = read_json(sys.argv[10])
+artifacts = readiness.get("artifacts") if isinstance(readiness.get("artifacts"), dict) else {}
+feature_audit_path = artifacts.get("feature_audit")
+target_audit_path = artifacts.get("target_audit")
+specialist_audit_path = sys.argv[8]
+worktree_hygiene_path = artifacts.get("worktree_hygiene")
+feature_audit = read_json(feature_audit_path) if feature_audit_path else {}
+target_audit = read_json(target_audit_path) if target_audit_path else {}
+specialist_audit = read_json(specialist_audit_path)
+worktree_hygiene = read_json(worktree_hygiene_path) if worktree_hygiene_path else {}
+smoke_dataset_manifest = read_json(sys.argv[6])
+artifact_paths = {
+    "training_readiness": sys.argv[10],
+    "feature_audit": feature_audit_path,
+    "target_audit": target_audit_path,
+    "specialist_audit": specialist_audit_path,
+    "foundation_guardrails": sys.argv[9],
+    "smoke_dataset_manifest": sys.argv[6],
+    "worktree_hygiene": worktree_hygiene_path,
+}
+
+
+payload = {
+    "schema_version": "entry_foundation_smoke_train_run_manifest_v1",
+    "created_utc": datetime.now(timezone.utc).isoformat(),
+    "run_kind": "vedtak_gated_foundation_seq146_smoke_train",
+    "run_mode": sys.argv[19],
+    "vedtak": sys.argv[2],
+    "out_bundle_dir": sys.argv[3],
+    "promotion_shadow_live_allowed": False,
+    "trainer_started_by_manifest_writer": False,
+    "preflight_gates": {
+        "foundation_verify": "PASS_BEFORE_MANIFEST",
+        "foundation_guardrails": "PASS_BEFORE_MANIFEST",
+        "train_readiness": "PASS_BEFORE_MANIFEST",
+    },
+    "inputs": {
+        "source_dataset_dir": sys.argv[4],
+        "smoke_dataset_dir": sys.argv[5],
+        "smoke_dataset_manifest": sys.argv[6],
+        "m5_prebuilt_path": sys.argv[7],
+        "feature_audit_json": feature_audit_path,
+        "target_audit_json": target_audit_path,
+        "specialist_audit_json": sys.argv[8],
+        "foundation_guardrails_json": sys.argv[9],
+        "training_readiness_json": sys.argv[10],
+        "worktree_hygiene_json": worktree_hygiene_path,
+    },
+    "artifact_sha256": {
+        key: sha256_file(path)
+        for key, path in artifact_paths.items()
+        if path
+    },
+    "preflight_contracts": {
+        "training_readiness": {
+            "decision": readiness.get("decision"),
+            "foundation_contract_ready_for_smoke": readiness.get("foundation_contract_ready_for_smoke"),
+            "smoke_training_allowed_with_explicit_vedtak": readiness.get(
+                "smoke_training_allowed_with_explicit_vedtak"
+            ),
+            "artifact_provenance_decision": gate_decision(readiness, "artifact_provenance"),
+            "artifact_fingerprints": readiness.get("artifact_fingerprints") or {},
+            "execution_blockers": readiness.get("execution_blockers") or [],
+        },
+        "feature_foundation": feature_contract_summary(feature_audit),
+        "target_foundation": target_contract_summary(target_audit),
+        "specialist_contract": specialist_contract_summary(specialist_audit),
+        "smoke_dataset": smoke_dataset_contract_summary(smoke_dataset_manifest),
+        "worktree_hygiene": worktree_contract_summary(worktree_hygiene),
+    },
+    "options": {
+        "audit_after": sys.argv[11] == "1",
+        "require_edge_audit": sys.argv[12] == "1",
+        "device": sys.argv[13],
+        "epochs": int(sys.argv[14]),
+        "batch_size": int(sys.argv[15]),
+        "train_rows": int(sys.argv[16]),
+        "val_rows": int(sys.argv[17]),
+        "test_rows": int(sys.argv[18]),
+        "manifest_only": sys.argv[19] == "manifest_only",
+    },
+    "smoke_recipe_env": {
+        name: command_env_value(train_cmd, name)
+        for name in [
+            "GX1_ENTRY_ALLOW_TRAIN_ENV_OVERRIDES",
+            "ENTRY_AUX_BAD_PATH_WEIGHT",
+            "ENTRY_PRED_BALANCE_ALPHA",
+            "GX1_V10_CKPT_MONITOR",
+            "ENTRY_SYMMETRIC_NEGATIVES",
+            "ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT",
+            "ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT",
+            "ENTRY_SPECIALIST_GATE_MIN_MEAN",
+        ]
+    },
+    "commands": {
+        "train": train_cmd,
+        "post_smoke_audit": audit_cmd,
+    },
+    "git": {
+        "repo": str(repo),
+        "commit": git("rev-parse", "HEAD"),
+        "branch": git("rev-parse", "--abbrev-ref", "HEAD"),
+        "status_short": git("status", "--short").splitlines(),
+    },
+}
+manifest_path.parent.mkdir(parents=True, exist_ok=True)
+manifest_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+latest = manifest_path.parent / "ENTRY_FOUNDATION_SMOKE_TRAIN_RUN_MANIFEST_latest.json"
+latest.write_text(manifest_path.read_text(encoding="utf-8"), encoding="utf-8")
+print(f"Pre-train run manifest written: {manifest_path}")
+PY
+
+if [[ "$MANIFEST_ONLY" = "1" ]]; then
+  echo "Manifest-only stop before training: $PRETRAIN_MANIFEST"
+  exit 0
+fi
+
+scripts/gx1_capped_run.sh --mem 22G --swap 2G -- "${CMD[@]}"
+echo "Smoke bundle written: $OUT_BUNDLE"
+if [[ "$AUDIT_AFTER" = "1" ]]; then
+  "${AUDIT_CMD[@]}"
+else
+  echo "Smoke bundle audit skipped by --skip-smoke-audit: $OUT_BUNDLE"
+fi

@@ -150,9 +150,11 @@ def load_entry_v10_ctx_bundle(
 
     dev = _resolve_device(device)
     logging.getLogger(__name__).info(
-        "[ENTRY_BUNDLE_LOAD_PROOF] ctx_cont_dim=%d ctx_cat_dim=%d signal_dim=7",
+        "[ENTRY_BUNDLE_LOAD_PROOF] ctx_cont_dim=%d ctx_cat_dim=%d seq_input_dim=%d snap_input_dim=%d",
         ctx_cont_dim,
         ctx_cat_dim,
+        seq_input_dim,
+        snap_input_dim,
     )
 
     # Import real model
@@ -220,6 +222,27 @@ def load_entry_v10_ctx_bundle(
         tf_input_scale_init_d1=float(_tf_inits.get("d1", 0.3)),
     ) if _has_tf_input_scale else {}
 
+    _specialist_cfg = (meta.get("specialist_fusion") or {}) if isinstance(meta, dict) else {}
+    _has_specialist_fusion = bool(_specialist_cfg.get("enabled", False)) or any(
+        str(k).startswith("specialist_proj.")
+        or str(k).startswith("specialist_encoder.")
+        or str(k).startswith("specialist_gate.")
+        or str(k).startswith("specialist_out.")
+        or str(k) == "specialist_fusion_scale"
+        for k in state_dict_preview
+    )
+    _specialist_kwargs = {}
+    if _has_specialist_fusion:
+        _indices = _specialist_cfg.get("input_indices")
+        if not isinstance(_indices, dict) or not _indices:
+            raise RuntimeError("[ENTRY_BUNDLE_SPECIALIST_METADATA_MISSING] specialist_fusion.input_indices required")
+        _specialist_kwargs = {
+            "enable_specialist_fusion": True,
+            "specialist_input_indices": {str(k): [int(i) for i in list(v or [])] for k, v in _indices.items()},
+            "specialist_num_layers": int(_specialist_cfg.get("num_layers") or 1),
+            "specialist_fusion_scale": float(_specialist_cfg.get("fusion_scale") or 0.25),
+        }
+
     model = EntryV10CtxHybridTransformer(
         seq_input_dim=seq_input_dim,
         snap_input_dim=snap_input_dim,
@@ -248,6 +271,7 @@ def load_entry_v10_ctx_bundle(
         enable_cross_tf_attn=_has_cross_tf,
         enable_mtf_direction_head=_has_mtf_direction,
         **_tf_scale_kwargs,
+        **_specialist_kwargs,
     ).to(dev)
 
     state_dict = state_dict_preview

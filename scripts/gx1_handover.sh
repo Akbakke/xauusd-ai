@@ -14,6 +14,174 @@ CONTRACT=$REPO/PROJECT_STATE_artifacts.json
 PAPER=$DATA/reports/v12_paper_runs
 cd "$REPO"
 
+if [[ "${GX1_ALLOW_LEGACY_HANDOVER:-}" != "20260627_ALLOW_LEGACY_HANDOVER" ]]; then
+  bar(){ printf '%s\n' "------------------------------------------------------------------------"; }
+  echo
+  bar
+  echo "  GX1 HANDOVER - active Entry foundation seq146 @ $(date -u '+%Y-%m-%d %H:%M:%SZ')"
+  echo "  Canonical docs:"
+  echo "    docs/ENTRY_FOUNDATION_AUDIT_20260628.md"
+  echo "    docs/ENTRY_SEQUENTIAL_AI_SPECIALIST_BLUEPRINT_20260628.md"
+  echo "  Control surface:"
+  echo "    scripts/entry_next_edge_control.sh"
+  bar
+  echo
+  echo "Verification:"
+  VERIFY_ERR=$(mktemp)
+  if "$PY" -m gx1.scripts.verify_entry_foundation_state_v1 --quiet 2>"$VERIFY_ERR"; then
+    echo "  foundation verify: PASS"
+  else
+    echo "  foundation verify: FAIL (see feature/target/specialist readiness artifacts)"
+    LAST_VERIFY_ERROR=$(grep -E "RuntimeError:|Error:" "$VERIFY_ERR" | tail -n 1 || true)
+    if [[ -n "${LAST_VERIFY_ERROR:-}" ]]; then
+      echo "  foundation verify error: $LAST_VERIFY_ERROR"
+    fi
+  fi
+  rm -f "$VERIFY_ERR"
+  if [[ "${GX1_HANDOVER_SKIP_GUARDRAILS:-}" == "1" ]]; then
+    echo "  foundation guardrails: SKIPPED_BY_GUARDRAIL_TEST"
+  else
+    "$REPO/scripts/entry_next_edge_control.sh" foundation-guardrails --quiet
+    echo "  foundation guardrails: PASS"
+  fi
+  if [[ "${GX1_HANDOVER_SKIP_TRAIN_READINESS:-}" == "1" ]]; then
+    echo "  train-readiness: SKIPPED_BY_GUARDRAIL_TEST"
+  else
+    "$REPO/scripts/entry_next_edge_control.sh" train-readiness --quiet --no-fail-on-not-ready
+    "$PY" - <<'PY'
+import json
+from pathlib import Path
+
+path = Path("/home/andre2/GX1_DATA/reports/entry_training_readiness_20260628_v1/ENTRY_TRAINING_READINESS_latest.json")
+report = json.loads(path.read_text(encoding="utf-8"))
+print(f"  train-readiness: {report.get('decision')}")
+print(f"  failures: {len(report.get('failures') or [])}")
+print(f"  foundation contract ready: {report.get('foundation_contract_ready_for_smoke')}")
+print(f"  foundation activation required: {report.get('foundation_activation_required_before_smoke')}")
+print(f"  foundation activation apply required: {report.get('foundation_activation_apply_required_before_smoke')}")
+print(f"  foundation post-apply required: {report.get('foundation_activation_post_apply_required_before_smoke')}")
+print(f"  execution blockers: {len(report.get('execution_blockers') or [])}")
+hygiene_raw = (report.get("artifacts") or {}).get("worktree_hygiene")
+hygiene_path = Path(hygiene_raw) if hygiene_raw else None
+if hygiene_path and hygiene_path.exists():
+    hygiene = json.loads(hygiene_path.read_text(encoding="utf-8"))
+    print(f"  worktree hygiene: {hygiene.get('decision')} dirty={hygiene.get('dirty_count')}")
+    print(f"  foundation cleanup dirty: {hygiene.get('foundation_cleanup_dirty_count')}")
+    print(f"  review-before-stage dirty: {hygiene.get('review_before_stage_dirty_count')}")
+    stage_summary = hygiene.get("foundation_stage_summary") or {}
+    hold_summary = hygiene.get("review_hold_summary") or {}
+    print(f"  stage bytes/lines: {stage_summary.get('total_size_bytes')}/{stage_summary.get('total_line_count')}")
+    print(f"  hold bytes/lines: {hold_summary.get('total_size_bytes')}/{hold_summary.get('total_line_count')}")
+    print(f"  foundation stage list: {hygiene.get('foundation_stage_paths_txt')}")
+    print(f"  review hold list: {hygiene.get('review_hold_paths_txt')}")
+    print(f"  foundation stage status: {hygiene.get('foundation_stage_status_tsv')}")
+    print(f"  review hold status: {hygiene.get('review_hold_status_tsv')}")
+    dry = hygiene.get("git_add_dry_run") or {}
+    print(f"  git-add dry-run index unchanged: {dry.get('cached_unchanged')}")
+    diag = hygiene.get("stage_plan_diagnostics") or {}
+    print(f"  stage-plan safe: {hygiene.get('stage_plan_safe')}")
+    print(f"  stage/hold overlap: {diag.get('stage_hold_overlap_count')}")
+    print(f"  dry-run hold overlap: {diag.get('git_add_dry_run_hold_overlap_count')}")
+    review = hygiene.get("foundation_cleanup_required_review") or {}
+    critical = hygiene.get("foundation_cleanup_critical_gate_review") or {}
+    print(f"  foundation cleanup review: {hygiene.get('foundation_cleanup_review_decision')}")
+    print(f"  required cleanup paths ok: {review.get('ok_count')}/{review.get('required_path_count')}")
+    print(
+        "  critical gate paths ok: "
+        f"{critical.get('ok_count')}/{critical.get('critical_gate_path_count')} "
+        f"missing={len(critical.get('missing_from_repo') or [])} "
+        f"dirty-missing-stage={len(critical.get('dirty_missing_from_stage') or [])}"
+    )
+    print(f"  foundation cleanup stage-ready: {hygiene.get('foundation_cleanup_stage_ready')}")
+    print(f"  stage command: {' '.join(hygiene.get('foundation_cleanup_stage_command') or [])}")
+    post = hygiene.get("foundation_cleanup_post_stage_verification") or {}
+    print(f"  post-stage verification: {post.get('decision')} cached={post.get('cached_count')}")
+    print(f"  git-add dry-run output: {hygiene.get('git_add_dry_run_txt')}")
+print(f"  next: {report.get('next_allowed_command')}")
+print(f"  readiness report: {path}")
+adoption_root = Path("/home/andre2/GX1_DATA/reports/entry_foundation_adoption_candidate_20260629_v1")
+adoption_candidates = (
+    sorted(
+        adoption_root.glob("*/ENTRY_FOUNDATION_ADOPTION_CANDIDATE_latest.json"),
+        key=lambda p: p.stat().st_mtime_ns,
+        reverse=True,
+    )
+    if adoption_root.exists()
+    else []
+)
+if adoption_candidates:
+    adoption_path = adoption_candidates[0]
+    adoption = json.loads(adoption_path.read_text(encoding="utf-8"))
+    print(f"  adoption-candidate: {adoption.get('decision')} ready={adoption.get('candidate_ready_for_activation')}")
+    print(f"  adoption activation without vedtak: {adoption.get('activation_allowed_without_vedtak')}")
+    print(f"  adoption report: {adoption_path}")
+
+def latest_report(root: Path, filename: str):
+    candidates = (
+        sorted(
+            root.glob(f"*/{filename}"),
+            key=lambda p: p.stat().st_mtime_ns,
+            reverse=True,
+        )
+        if root.exists()
+        else []
+    )
+    if not candidates and (root / filename).exists():
+        candidates = [root / filename]
+    return candidates[0] if candidates else None
+
+plan_path = latest_report(
+    Path("/home/andre2/GX1_DATA/reports/entry_foundation_activation_plan_20260629_v1"),
+    "ENTRY_FOUNDATION_ACTIVATION_PLAN_latest.json",
+)
+if plan_path:
+    plan = json.loads(plan_path.read_text(encoding="utf-8"))
+    print(f"  activation-plan: {plan.get('decision')} strategy={plan.get('recommended_strategy')}")
+    print(f"  activation allowed without vedtak: {plan.get('activation_allowed_without_vedtak')}")
+    print(f"  activation-plan report: {plan_path}")
+
+apply_path = latest_report(
+    Path("/home/andre2/GX1_DATA/reports/entry_foundation_activation_apply_20260629_v1"),
+    "ENTRY_FOUNDATION_ACTIVATION_APPLY_latest.json",
+)
+if apply_path:
+    apply = json.loads(apply_path.read_text(encoding="utf-8"))
+    post_commands = apply.get("post_apply_commands") if isinstance(apply.get("post_apply_commands"), list) else []
+    print(f"  activation-apply dry-run: {apply.get('decision')} mutation_performed={apply.get('mutation_performed')}")
+    print(f"  activation-apply post commands: {len(post_commands)}")
+    print(f"  activation-apply report: {apply_path}")
+
+post_apply_path = latest_report(
+    Path("/home/andre2/GX1_DATA/reports/entry_foundation_activation_post_apply_20260629_v1"),
+    "ENTRY_FOUNDATION_ACTIVATION_POST_APPLY_latest.json",
+)
+if post_apply_path:
+    post_apply = json.loads(post_apply_path.read_text(encoding="utf-8"))
+    print(
+        "  activation-post-apply: "
+        f"{post_apply.get('decision')} "
+        f"activation_mutation={post_apply.get('activation_alias_mutation_performed')} "
+        f"post_apply_mutations={post_apply.get('post_apply_mutations_performed')}"
+    )
+    print(f"  activation-post-apply next: {post_apply.get('next_required_action')}")
+    print(f"  activation-post-apply report: {post_apply_path}")
+PY
+  fi
+  echo
+  echo "Allowed next:"
+  echo "  Follow train-readiness next command above."
+  echo "  Smoke training stays closed until train-readiness PASS, clean git, and explicit vedtak."
+  echo
+  echo "Blocked:"
+  echo "  generic train/retrain, promote, pin, shadow, paper/live order placement,"
+  echo "  candidate train, replay, IQL, promotion review, and legacy live/practice paths."
+  echo
+  echo "Historical legacy handover is available only with:"
+  echo "  GX1_ALLOW_LEGACY_HANDOVER=20260627_ALLOW_LEGACY_HANDOVER bash scripts/gx1_handover.sh"
+  echo
+  exit 0
+fi
+
 bar(){ printf '%s\n' "────────────────────────────────────────────────────────────────────────"; }
 # MODE is DERIVED, never asserted (2026-06-11 fix: the hardcoded "BUILD (live stopped)" headline
 # contradicted the systemd-active data daemons printed right below it).

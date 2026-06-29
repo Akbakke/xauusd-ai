@@ -35,6 +35,33 @@ if [[ -f .env ]]; then
     set +o allexport
 fi
 
+# Entry foundation-freeze guard:
+# The active Entry path is foundation seq146 cleanup/audit/smoke-readiness. This
+# full-stack launcher starts the older XGB -> V10 -> Entry-IQL path with OANDA
+# order placement, so it must not be the accidental next step. Use the
+# canonical control surface unless deliberately overriding this legacy launcher.
+ENTRY_LEGACY_ACK_REQUIRED=20260627_ALLOW_LEGACY_ENTRY_LIVE_PRACTICE
+if [[ "${GX1_ALLOW_LEGACY_ENTRY_LIVE_PRACTICE:-}" != "$ENTRY_LEGACY_ACK_REQUIRED" ]]; then
+    "$REPO/.venv/bin/python" -m gx1.scripts.verify_entry_foundation_state_v1 \
+        --quiet \
+        --out "$PAPER_RUNS/entry_foundation_legacy_live_guard.json" \
+        >/tmp/gx1_entry_foundation_live_guard.json
+    echo "[ABORT] Active Entry next-edge plan blocks legacy live-practice launch." >&2
+    echo "        Current path is Entry foundation seq146 cleanup/audit/smoke-readiness." >&2
+    echo "        This script can start XGB -> V10 -> Entry-IQL with OANDA orders." >&2
+    echo "        Required path now:" >&2
+    echo "          scripts/entry_next_edge_control.sh verify" >&2
+    echo "          scripts/entry_next_edge_control.sh selftest" >&2
+    echo "          scripts/entry_next_edge_control.sh foundation-guardrails" >&2
+    echo "          scripts/entry_next_edge_control.sh worktree-hygiene" >&2
+    echo "          scripts/entry_next_edge_control.sh stage-foundation-cleanup --dry-run" >&2
+    echo "          scripts/entry_next_edge_control.sh materialize-smoke" >&2
+    echo "          scripts/entry_next_edge_control.sh train-readiness" >&2
+    echo "        Override only with:" >&2
+    echo "          GX1_ALLOW_LEGACY_ENTRY_LIVE_PRACTICE=$ENTRY_LEGACY_ACK_REQUIRED bash scripts/launch_live_practice.sh" >&2
+    exit 2
+fi
+
 # ── Collector poll cadence (live SLA) ───────────────────────────────────────
 # Tighten the OANDA M1 poll to 15s so a newly-closed bar reaches disk within ~15s
 # (default code constant is 60s). The live source is the systemd unit (drop-in
