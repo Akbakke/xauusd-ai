@@ -70,6 +70,15 @@ def _all_ok(checks: list[dict[str, Any]]) -> bool:
     return all(bool(check.get("ok")) for check in checks)
 
 
+def _same_resolved_path(actual: Any, expected: Path) -> bool:
+    if actual in (None, ""):
+        return False
+    try:
+        return Path(str(actual)).resolve(strict=False) == expected.resolve(strict=False)
+    except (OSError, RuntimeError):
+        return False
+
+
 def _model_summaries(summary: dict[str, Any], model_name: str) -> list[dict[str, Any]]:
     return [
         row
@@ -131,7 +140,7 @@ def _selective_edge_checks(
     return [
         _check("selective-edge summary PASS", str(summary.get("decision")) == "PASS", {"failures": summary.get("failures")}),
         _check("selective-edge summary has zero failures", not summary.get("failures"), {"failures": summary.get("failures")}),
-        _check("selective-edge summary uses foundation dataset", str(summary.get("dataset_dir")) == str(FOUNDATION_DATASET_DIR)),
+        _check("selective-edge summary uses foundation dataset", _same_resolved_path(summary.get("dataset_dir"), FOUNDATION_DATASET_DIR)),
         _check(
             "selective-edge summary matches candidate bundle audit bundle",
             True if expected_bundle_dir is None else str(summary.get("bundle_dir")) == str(expected_bundle_dir),
@@ -208,7 +217,7 @@ def _candidate_bundle_audit_checks(path: Path, report: dict[str, Any]) -> list[d
         _check("candidate bundle audit exists", exists, {"path": str(path)}),
         _check("candidate bundle audit PASS", exists and str(report.get("decision")) == "PASS", {"failures": report.get("failures")}),
         _check("candidate bundle audit has zero failures", exists and not report.get("failures"), {"failures": report.get("failures")}),
-        _check("candidate bundle audit used foundation dataset", exists and str(report.get("dataset_dir")) == str(FOUNDATION_DATASET_DIR)),
+        _check("candidate bundle audit used foundation dataset", exists and _same_resolved_path(report.get("dataset_dir"), FOUNDATION_DATASET_DIR)),
         _check("candidate bundle audit is from actual train output, not sanity bundle", exists and not bool(bundle.get("sanity_bundle"))),
         _check("candidate bundle is seq146", exists and int(bundle.get("seq_input_dim") or 0) == 146 and int(bundle.get("snap_input_dim") or 0) == 146),
         _check("candidate bundle has multi-TF enabled", exists and bool(bundle.get("multi_tf_enabled"))),

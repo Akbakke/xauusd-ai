@@ -346,6 +346,17 @@ def test_candidate_bundle_audit_checks_pass_on_strict_candidate_contract(tmp_pat
     assert all(check["ok"] for check in checks)
 
 
+def test_candidate_bundle_audit_accepts_resolved_foundation_dataset_path(tmp_path: Path) -> None:
+    report = _candidate_bundle_audit()
+    report["dataset_dir"] = str(Path(report["dataset_dir"]).resolve(strict=False))
+    path = tmp_path / "candidate_audit.json"
+    path.write_text(json.dumps(report), encoding="utf-8")
+
+    checks = {check["name"]: check for check in _candidate_bundle_audit_checks(path, report)}
+
+    assert checks["candidate bundle audit used foundation dataset"]["ok"] is True
+
+
 def test_replay_readiness_current_artifacts_are_not_ready(tmp_path: Path) -> None:
     report = run(
         argparse.Namespace(
