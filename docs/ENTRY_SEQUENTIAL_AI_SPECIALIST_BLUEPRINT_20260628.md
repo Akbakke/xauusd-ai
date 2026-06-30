@@ -94,8 +94,9 @@ Machine contract:
   `gx1/scripts/audit_entry_exit_transformer_trainer_wrapper_readiness_v1.py`
   - Audits `scripts/run_entry_exit_transformer_train.sh` as a fail-closed
     future train wrapper: vedtak prefix rejection, implementation disabled,
-    train-execution review requirement, cgroup RAM cap declaration,
-    `--num-workers 0` and no train/replay/IQL/shadow/live side effects.
+    train-execution review and post-train audit contract requirements, cgroup
+    RAM cap declaration, `--num-workers 0` and no train/replay/IQL/shadow/live
+    side effects.
 - Active Exit Transformer trainer core:
   `gx1/models/exit_sequence_transformer/train_v1.py`
   - Defines the active causal masked `ExitSequenceTransformerV1` with exact
@@ -118,6 +119,13 @@ Machine contract:
     guardrails and weak-slice policy into one report. It keeps Exit training
     closed and requires a separate explicit train-execution vedtak package
     before any trainer can run.
+- Active Exit Transformer post-train audit contract:
+  `gx1/scripts/audit_entry_exit_transformer_post_train_contract_v1.py`
+  - Locks the required future bundle audit before any Exit trainer enablement:
+    exact active heads, strict load/finite forward, train-only normalization
+    hash, weak-slice disclosure, session/regime/side/tail diagnostics, net
+    reward, MAE/drawdown, giveback risk and MFE capture. It keeps
+    training/replay/IQL/shadow/live closed.
 - Latest report:
   `/home/andre2/GX1_DATA/reports/entry_specialist_feature_group_audit_20260628_v1/ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_latest.json`
 - Current decision: `PASS` on the active seq146 foundation dataset.

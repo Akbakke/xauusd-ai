@@ -143,6 +143,7 @@ def _active_entry_artifact_paths() -> list[str]:
         "entry_exit_transformer_pretrain_manifest_20260630_v1",
         "entry_exit_model_dataset_slice_robustness_20260630_v1",
         "entry_exit_transformer_train_execution_review_20260630_v1",
+        "entry_exit_transformer_post_train_contract_20260630_v1",
         "entry_candidate_selective_edge_20260628_v1",
         "entry_candidate_replay_20260628_v1",
         "entry_candidate_replay_trade_log_20260628_v1",
@@ -730,6 +731,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         entry_exit_transformer_pretrain_manifest = _read_text(REPO / "gx1/scripts/materialize_entry_exit_transformer_pretrain_manifest_v1.py")
         entry_exit_model_dataset_slice_robustness = _read_text(REPO / "gx1/scripts/audit_entry_exit_model_dataset_slice_robustness_v1.py")
         entry_exit_transformer_train_execution_review = _read_text(REPO / "gx1/scripts/audit_entry_exit_transformer_train_execution_review_v1.py")
+        entry_exit_transformer_post_train_contract = _read_text(REPO / "gx1/scripts/audit_entry_exit_transformer_post_train_contract_v1.py")
         entry_exit_transformer_trainer_core = _read_text(REPO / "gx1/models/exit_sequence_transformer/train_v1.py")
         worktree_hygiene = _read_text(REPO / "gx1/scripts/audit_entry_foundation_worktree_hygiene_v1.py")
         readiness = _read_text(REPO / "gx1/scripts/verify_entry_training_readiness_v1.py")
@@ -826,6 +828,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         _require("audit_entry_exit_model_dataset_slice_robustness_v1" in control, "control surface calls active Exit model dataset slice robustness", checks)
         _require("entry-exit-transformer-train-execution-review" in control, "control surface exposes active Exit Transformer train execution review", checks)
         _require("audit_entry_exit_transformer_train_execution_review_v1" in control, "control surface calls active Exit Transformer train execution review", checks)
+        _require("entry-exit-transformer-post-train-contract" in control, "control surface exposes active Exit Transformer post-train audit contract", checks)
+        _require("audit_entry_exit_transformer_post_train_contract_v1" in control, "control surface calls active Exit Transformer post-train audit contract", checks)
         _require("entry-exit-transformer-train" in control, "control surface exposes blocked active Exit Transformer train wrapper", checks)
         _require("run_entry_exit_transformer_train.sh" in control, "control surface calls blocked active Exit Transformer train wrapper", checks)
         _require("smoke-train" in control, "control surface exposes vedtak-gated smoke train", checks)
@@ -1149,6 +1153,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         _require("active Exit Transformer trainer implementation is not enabled" in entry_exit_transformer_train_wrapper, "Entry Exit Transformer train wrapper fail-closed before real training", checks)
         _require("TRAIN_EXECUTION_REVIEW_JSON" in entry_exit_transformer_train_wrapper, "Entry Exit Transformer train wrapper requires train-execution review json", checks)
         _require("ENTRY_EXIT_TRANSFORMER_TRAIN_EXECUTION_REVIEW_READY_FOR_EXPLICIT_VEDTAK_PACKAGE" in entry_exit_transformer_train_wrapper, "Entry Exit Transformer train wrapper requires ready train-execution review", checks)
+        _require("POST_TRAIN_AUDIT_CONTRACT_JSON" in entry_exit_transformer_train_wrapper, "Entry Exit Transformer train wrapper requires post-train audit contract json", checks)
+        _require("ENTRY_EXIT_TRANSFORMER_POST_TRAIN_AUDIT_CONTRACT_READY" in entry_exit_transformer_train_wrapper, "Entry Exit Transformer train wrapper requires ready post-train audit contract", checks)
         _require("scripts/gx1_capped_run.sh" in entry_exit_transformer_train_wrapper, "Entry Exit Transformer train wrapper declares capped run", checks)
         _require("--num-workers" in entry_exit_transformer_train_wrapper and "NUM_WORKERS=0" in entry_exit_transformer_train_wrapper, "Entry Exit Transformer train wrapper declares num-workers zero", checks)
         _require("ExitSequenceTransformerV1" in entry_exit_transformer_trainer_core, "Entry Exit Transformer trainer core defines active model", checks)
@@ -1170,6 +1176,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         _require("must_not_promote_from_broad_average" in entry_exit_transformer_train_execution_review, "Entry Exit Transformer train execution review accounts for weak slices", checks)
         _require("ENTRY_EXIT_TRANSFORMER_TRAIN_" in entry_exit_transformer_train_execution_review, "Entry Exit Transformer train execution review preserves train vedtak prefix", checks)
         _require("train execution review never trains, replays, distills, promotes, shadows, or starts live" in entry_exit_transformer_train_execution_review, "Entry Exit Transformer train execution review keeps all side-effect paths closed", checks)
+        _require("entry_exit_transformer_post_train_contract_v1" in entry_exit_transformer_post_train_contract, "Entry Exit Transformer post-train audit contract writes schema", checks)
+        _require("ENTRY_EXIT_TRANSFORMER_POST_TRAIN_AUDIT_CONTRACT_READY" in entry_exit_transformer_post_train_contract, "Entry Exit Transformer post-train audit contract has ready decision", checks)
+        _require("exact_output_heads" in entry_exit_transformer_post_train_contract, "Entry Exit Transformer post-train audit contract locks exact output heads", checks)
+        _require("must_not_promote_from_broad_average" in entry_exit_transformer_post_train_contract, "Entry Exit Transformer post-train audit contract blocks broad averages", checks)
+        _require("post-train audit contract never trains, replays, distills, promotes, shadows, or starts live" in entry_exit_transformer_post_train_contract, "Entry Exit Transformer post-train audit contract keeps all side-effect paths closed", checks)
 
     report = {
         "schema_version": "entry_foundation_state_v1",

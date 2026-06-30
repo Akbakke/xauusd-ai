@@ -12,8 +12,9 @@ architecture/readiness contract is ready, and the active Exit Transformer
 training-plan/readiness manifest plus fail-closed trainer-wrapper readiness are
 ready. The preflight-only trainer core and active pretrain-manifest audit are
 also ready. Active Exit model dataset slice robustness is ready with explicit
-weak-slice disclosure, and active Exit Transformer train-execution review is
-ready for an explicit vedtak package. No Exit trainer is approved or allowed.
+weak-slice disclosure, active Exit Transformer train-execution review is ready,
+and the active Exit Transformer post-train audit contract is ready. No Exit
+trainer is approved or allowed.
 
 The original rule still applies: foundation pass required before any more Transformer training.
 
@@ -53,7 +54,7 @@ lower drawdown. Those artifacts are frozen as diagnostic history.
 
 The active path is now:
 
-`handover -> verify -> selftest -> foundation-guardrails -> readiness-report -> Entry evidence gates -> Entry/IQL replay and slice evidence -> Entry-to-Exit handoff -> active Exit per-bar reconstruction -> active Exit state/reward contract -> active Exit split/leakage audit -> active Exit model dataset/readiness gates -> active Exit Transformer architecture/readiness -> active Exit Transformer training plan/readiness -> fail-closed Exit Transformer trainer-wrapper readiness -> active Exit Transformer pretrain manifest -> active Exit model dataset slice robustness -> active Exit Transformer train-execution review -> only then consider explicit Exit train vedtak/replay/IQL evidence gates`
+`handover -> verify -> selftest -> foundation-guardrails -> readiness-report -> Entry evidence gates -> Entry/IQL replay and slice evidence -> Entry-to-Exit handoff -> active Exit per-bar reconstruction -> active Exit state/reward contract -> active Exit split/leakage audit -> active Exit model dataset/readiness gates -> active Exit Transformer architecture/readiness -> active Exit Transformer training plan/readiness -> fail-closed Exit Transformer trainer-wrapper readiness -> active Exit Transformer pretrain manifest -> active Exit model dataset slice robustness -> active Exit Transformer train-execution review -> active Exit Transformer post-train audit contract -> only then consider explicit Exit train vedtak/replay/IQL evidence gates`
 
 The historical activation path was:
 
@@ -184,8 +185,9 @@ Active status:
   `ENTRY_EXIT_TRANSFORMER_TRAINER_WRAPPER_READY_FOR_IMPLEMENTATION_REVIEW`.
   The wrapper is executable and fail-closed: missing vedtak and wrong vedtak
   prefix both reject before side effects, the implementation flag remains
-  disabled, it requires the active train-execution review report, and the
-  future train path declares cgroup RAM caps plus `--num-workers 0`.
+  disabled, it requires the active train-execution review report and
+  post-train audit contract, and the future train path declares cgroup RAM caps
+  plus `--num-workers 0`.
 - Active Exit Transformer pretrain manifest:
   `ENTRY_EXIT_TRANSFORMER_PRETRAIN_MANIFEST_READY_FOR_TRAIN_EXECUTION_REVIEW`.
   It imports the active trainer core, runs a CPU-only finite forward preflight
@@ -209,10 +211,17 @@ Active status:
   direction/tail and weak slices. It still sets
   `exit_training_allowed=false` and
   `exit_training_allowed_with_explicit_vedtak=false`.
+- Active Exit Transformer post-train audit contract:
+  `ENTRY_EXIT_TRANSFORMER_POST_TRAIN_AUDIT_CONTRACT_READY`.
+  It locks the future bundle audit before any Exit train enablement package:
+  exact five heads, strict load/finite forward, train-only normalization hash,
+  weak-slice disclosure, session/regime/side/tail diagnostics, net reward,
+  MAE/drawdown, giveback risk and MFE capture. Replay, Exit-IQL, shadow, live
+  and promotion remain blocked until a trained bundle later passes that audit.
 - Exit Transformer training, Exit IQL, shadow, live and promotion remain
   closed. The next boundary is an explicit Exit train-execution enablement
   vedtak package; it must account for weak slices, clean-git checks, RAM guard
-  and post-train audit requirements before any Exit trainer can run.
+  and the active post-train audit contract before any Exit trainer can run.
 
 ## Previous Operating Status - 2026-06-29
 

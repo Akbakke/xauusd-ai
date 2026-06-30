@@ -85,6 +85,8 @@ def _source_review(wrapper: Path) -> dict[str, Any]:
         "trainer_disabled_fatal": "active Exit Transformer trainer implementation is not enabled",
         "train_execution_review_json": "TRAIN_EXECUTION_REVIEW_JSON",
         "train_execution_review_ready_decision": "ENTRY_EXIT_TRANSFORMER_TRAIN_EXECUTION_REVIEW_READY_FOR_EXPLICIT_VEDTAK_PACKAGE",
+        "post_train_audit_contract_json": "POST_TRAIN_AUDIT_CONTRACT_JSON",
+        "post_train_audit_contract_ready_decision": "ENTRY_EXIT_TRANSFORMER_POST_TRAIN_AUDIT_CONTRACT_READY",
         "capped_run": "scripts/gx1_capped_run.sh",
         "num_workers_guard": "NUM_WORKERS=0",
         "num_workers_train_arg": "--num-workers",

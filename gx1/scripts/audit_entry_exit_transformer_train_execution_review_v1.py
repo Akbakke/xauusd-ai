@@ -120,6 +120,7 @@ def _review_contract(training_plan: dict[str, Any], slice_report: dict[str, Any]
         "future_train_command_contract": command,
         "resource_guardrails": resources,
         "weak_slice_policy": weak_policy,
+        "post_train_audit_contract_required_before_enablement": True,
         "training_remains_closed_until_explicit_enablement": True,
     }
 
@@ -210,7 +211,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "promotion_shadow_live_allowed": False,
         "future_vedtak_prefix_required": VEDTAK_PREFIX,
         "next_required_gate": (
-            "explicit Exit Transformer train-execution enablement vedtak package; training remains closed"
+            "active Exit Transformer post-train audit contract before explicit train-execution enablement package; training remains closed"
             if ready
             else "repair Exit Transformer train-execution review before any training enablement discussion"
         ),
