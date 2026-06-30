@@ -192,6 +192,21 @@ the exact candidate bundle, trade log, artifact hashes and gate identities. The
 same Transformer/IQL split is the intended pattern for Exit timing and
 profit-capture work after Entry is proven.
 
+Full Bot Objective Lock: the system is being built toward a fully automated
+XAUUSD trading bot that enters long or short at high-quality points and exits
+near maximum profit opportunity. Entry remains the first active build track:
+the Entry Transformer must learn the full multi-timeframe market picture as the
+evidence layer, then Entry IQL may become the policy layer only after exact
+replay evidence proves tradable edge. Exit work must reuse that same calibrated
+language later: Exit Transformer learns exit-timing evidence from the exact
+Entry policy traces, and Exit IQL learns profit capture from replay-bound Exit
+state. The roughly 200 Entry/Exit inputs are one coordinated market-state
+language, not a bag of indicators. HH/HL/LH/LL, SMC/liquidity, momentum/flow,
+trend/EMA, volatility/compression, session/regime, support/resistance,
+spread/ATR, chart geometry, price action and all multi-timeframe context must
+be grounded, routed, hashed, live, non-collapsed and cross-compatible before
+any promotion, shadow or live path is discussed.
+
 Foundation features are not decorations and not independent one-off signals.
 The roughly 200 Entry/Exit inputs, including HH/HL/LH/LL, SMC/liquidity,
 momentum/flow, trend/EMA, volatility/compression, session/regime,
@@ -206,9 +221,11 @@ identity so Exit Transformer/IQL can learn profit capture from the exact Entry
 policy that produced the trades.
 
 Keep implementation work inside existing modules, reports and control surfaces
-unless genuinely new functionality needs a new file. Do not build UI, docs or
-model "pynt" ahead of foundation activation, post-apply verification,
-train-readiness and clean worktree/staging evidence.
+unless genuinely new functionality needs a new file. Create new files only for
+genuinely new artifacts, gates or model components that cannot fit existing
+ownership boundaries. Do not build UI, docs or model "pynt" ahead of foundation
+activation, post-apply verification, train-readiness, exact contracts and clean
+worktree/staging evidence.
 
 ## Specialist Encoders
 

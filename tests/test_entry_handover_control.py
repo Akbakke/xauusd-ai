@@ -167,6 +167,27 @@ def test_docs_name_handover_as_canonical_fresh_session_entrypoint() -> None:
     assert "replay-proven" in specialist_doc
     assert "isolated feature families" in foundation_doc
     assert "isolated feature families" in specialist_doc
+    full_bot_lock = "Full Bot Objective Lock: the system is being built toward a fully automated"
+    assert "Full Bot Objective Lock: the requested end state is a fully automated XAUUSD" in foundation_doc
+    assert full_bot_lock in specialist_doc
+    assert "Entry Transformer must learn the full multi-timeframe picture as the evidence" in foundation_doc
+    assert "Entry Transformer must learn the full multi-timeframe market picture as the" in specialist_doc
+    assert "Entry IQL may only become the policy \"brain\" after exact replay" in foundation_doc
+    assert "evidence proves tradable edge" in foundation_doc
+    assert "Exit follows after Entry evidence" in foundation_doc
+    assert "Transformer must learn exit-timing evidence from the exact Entry" in foundation_doc
+    assert "policy traces" in foundation_doc
+    assert "Exit Transformer learns exit-timing evidence from the exact" in specialist_doc
+    assert "Entry policy traces" in specialist_doc
+    assert "roughly 200 Entry/Exit inputs are one shared market-state language" in foundation_doc
+    assert "roughly 200 Entry/Exit inputs are one coordinated" in specialist_doc
+    assert "market-state language" in specialist_doc
+    assert "Create new files only for" in specialist_doc
+    assert "genuinely new artifacts, gates or model components" in specialist_doc
+    assert "create new" in foundation_doc
+    assert "files only for genuinely new artifacts, gates or model components" in foundation_doc
+    assert "clean-git" in foundation_doc
+    assert "hygiene before real training" in foundation_doc
     assert "challenger_seq215` must not reuse the six-gate Exit alignment" in foundation_doc
     assert "all eight specialist-gate weights before any Exit train/replay/IQL step" in foundation_doc
     assert "chart_geometry_encoder` and `price_action_candle_encoder` state" in specialist_doc

@@ -47,6 +47,25 @@ liquidity, momentum, trend, volatility, regime, session, spread/ATR,
 support/resistance, chart geometry and price action as one replay-proven
 trading policy, not as isolated feature families or direction-accuracy scores.
 
+Full Bot Objective Lock: the requested end state is a fully automated XAUUSD
+policy that enters long or short at the highest-quality Entry points and exits
+near maximum profit opportunity. Entry is the first active build track: the
+Entry Transformer must learn the full multi-timeframe picture as the evidence
+"eyes", and Entry IQL may only become the policy "brain" after exact replay
+evidence proves tradable edge. Exit follows after Entry evidence: Exit
+Transformer must learn exit-timing evidence from the exact Entry policy traces,
+and Exit IQL must learn profit capture from those replay-bound states. The
+roughly 200 Entry/Exit inputs are one shared market-state language, not a bag
+of independent indicators; HH/HL/LH/LL, SMC/liquidity, momentum/flow,
+trend/EMA, volatility/compression, regime/session, support/resistance,
+spread/ATR, chart geometry, price action and all multi-timeframe context must
+be calibrated together before promotion, shadow or live can be discussed. Keep
+repo work inside existing modules, reports and control surfaces; create new
+files only for genuinely new artifacts, gates or model components that cannot
+fit the existing ownership boundaries. Every step must preserve clean-git
+hygiene before real training and must fail closed on missing provenance, hashes,
+liveness, exact contracts or weak replay slices.
+
 `<id>` in `--vedtak <id>` is a deliberate human approval token, not a report id
 that the scripts invent automatically. Activation apply requires the
 `ENTRY_FOUNDATION_ACTIVATE_` prefix, for example
