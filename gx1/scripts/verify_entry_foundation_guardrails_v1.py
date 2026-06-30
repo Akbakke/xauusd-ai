@@ -181,6 +181,7 @@ def _readiness_policy_checks() -> list[dict[str, Any]]:
         "entry_exit_handoff",
         "entry_exit_reconstruction_audit",
         "entry_exit_state_reward_contract",
+        "entry_exit_split_leakage_audit",
     )
     blocked_downstream = (
         "smoke_train",
@@ -229,6 +230,7 @@ def _readiness_policy_checks() -> list[dict[str, Any]]:
         "entry_exit_handoff",
         "entry_exit_reconstruction_audit",
         "entry_exit_state_reward_contract",
+        "entry_exit_split_leakage_audit",
         "preview_shadow",
         "start_shadow",
         "live",
