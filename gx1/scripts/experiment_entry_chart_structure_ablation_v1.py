@@ -50,6 +50,7 @@ from gx1.scripts.replay_entry_tabular_no_xgb_policy_v1 import (
 )
 from gx1.features.entry_foundation_structure_v1 import build_entry_foundation_structure_layer
 from gx1.features.entry_chart_geometry_v1 import build_entry_chart_geometry_layer
+from gx1.features.entry_candlestick_patterns_v1 import build_entry_candlestick_pattern_layer
 
 
 DEFAULT_DATASET_DIR = Path(
@@ -307,6 +308,32 @@ def _build_price_derived_layer(sample_df: pd.DataFrame, source_parquet: Path) ->
     if not arrays:
         return np.empty((len(sample_df), 0), dtype=np.float32), []
     return np.column_stack(arrays).astype(np.float32, copy=False), names
+
+
+def _build_candlestick_derived_layer(sample_df: pd.DataFrame, source_parquet: Path) -> tuple[np.ndarray, list[str]]:
+    """Build closed-bar candlestick pattern features aligned to sample times."""
+    required = ["time", "open", "high", "low", "close"]
+    try:
+        import pyarrow.parquet as pq
+
+        available = set(pq.read_schema(source_parquet).names)
+    except Exception:
+        available = set(pd.read_parquet(source_parquet, columns=["time"], engine="pyarrow").columns)
+    missing = [name for name in required if name not in available]
+    if missing:
+        raise RuntimeError(f"CANDLESTICK_SOURCE_FIELDS_MISSING: {missing} parquet={source_parquet}")
+    src = pd.read_parquet(source_parquet, columns=required, engine="pyarrow")
+    src["time"] = pd.to_datetime(src["time"], utc=True)
+    src = src.sort_values("time").drop_duplicates("time").reset_index(drop=True)
+    candle_x, candle_names = build_entry_candlestick_pattern_layer(src)
+    if not candle_names:
+        return np.empty((len(sample_df), 0), dtype=np.float32), []
+    candle_df = pd.DataFrame(candle_x, columns=candle_names)
+    candle_df["time"] = src["time"].to_numpy()
+    candle_df = candle_df.set_index("time")
+    sample_times = pd.to_datetime(sample_df["time"], utc=True)
+    aligned = candle_df.reindex(sample_times).fillna(0.0)
+    return aligned[candle_names].to_numpy(np.float32), candle_names
 
 
 def _build_chart_layer(x: np.ndarray, feature_names: list[str]) -> tuple[np.ndarray, list[str]]:

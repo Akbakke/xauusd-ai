@@ -27,6 +27,9 @@ Usage:
   scripts/entry_next_edge_control.sh train-readiness
   scripts/entry_next_edge_control.sh candidate-readiness
   scripts/entry_next_edge_control.sh replay-readiness
+  scripts/entry_next_edge_control.sh feature-ai-inventory
+  scripts/entry_next_edge_control.sh chart-geometry-audit
+  scripts/entry_next_edge_control.sh candlestick-audit
   scripts/entry_next_edge_control.sh smoke-train --vedtak <id> --require-edge-audit
   scripts/entry_next_edge_control.sh audit-smoke-bundle --bundle-dir <dir>
   scripts/entry_next_edge_control.sh candidate-train --vedtak <id>
@@ -144,6 +147,9 @@ paths = {
     "entry-exit-model-dataset-slice-robustness": Path("/home/andre2/GX1_DATA/reports/entry_exit_model_dataset_slice_robustness_20260630_v1/ENTRY_EXIT_MODEL_DATASET_SLICE_ROBUSTNESS_latest.json"),
     "entry-exit-transformer-train-execution-review": Path("/home/andre2/GX1_DATA/reports/entry_exit_transformer_train_execution_review_20260630_v1/ENTRY_EXIT_TRANSFORMER_TRAIN_EXECUTION_REVIEW_latest.json"),
     "entry-exit-transformer-post-train-contract": Path("/home/andre2/GX1_DATA/reports/entry_exit_transformer_post_train_contract_20260630_v1/ENTRY_EXIT_TRANSFORMER_POST_TRAIN_CONTRACT_latest.json"),
+    "feature-ai-inventory": Path("/home/andre2/GX1_DATA/reports/entry_feature_ai_inventory_20260630_v1/ENTRY_FEATURE_AI_INVENTORY_latest.json"),
+    "chart-geometry-audit": Path("/home/andre2/GX1_DATA/reports/entry_chart_geometry_challenger_audit_20260630_v1/ENTRY_CHART_GEOMETRY_CHALLENGER_AUDIT_latest.json"),
+    "candlestick-audit": Path("/home/andre2/GX1_DATA/reports/entry_candlestick_pattern_challenger_audit_20260630_v1/ENTRY_CANDLESTICK_PATTERN_CHALLENGER_AUDIT_latest.json"),
 }
 adoption_root = Path("/home/andre2/GX1_DATA/reports/entry_foundation_adoption_candidate_20260629_v1")
 adoption_candidates = (
@@ -246,6 +252,9 @@ allowed_now = [
     "scripts/entry_next_edge_control.sh train-readiness --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh candidate-readiness --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh replay-readiness --quiet --no-fail-on-not-ready",
+    "scripts/entry_next_edge_control.sh feature-ai-inventory --quiet --no-fail-on-audit-fail",
+    "scripts/entry_next_edge_control.sh chart-geometry-audit --quiet --no-fail-on-audit-fail",
+    "scripts/entry_next_edge_control.sh candlestick-audit --quiet --no-fail-on-audit-fail",
     "scripts/entry_next_edge_control.sh iql-slice-audit --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh entry-exit-materialize --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh entry-exit-handoff --quiet --no-fail-on-not-ready",
@@ -787,6 +796,60 @@ commands.update(
             "touches_shadow_or_live": False,
             "description": "Refresh replay-readiness without opening IQL distillation.",
         },
+        "chart_geometry_audit": {
+            "argv": [
+                "scripts/entry_next_edge_control.sh",
+                "chart-geometry-audit",
+                "--quiet",
+                "--no-fail-on-audit-fail",
+            ],
+            "allowed": True,
+            "mode": "audit",
+            "requires_vedtak": False,
+            "requires_clean_git": False,
+            "mutates_git_index": False,
+            "starts_trainer": False,
+            "starts_replay": False,
+            "starts_iql_distillation": False,
+            "touches_shadow_or_live": False,
+            "description": "Audit numeric chart-geometry challenger features and manifest; no training or replay.",
+        },
+        "candlestick_audit": {
+            "argv": [
+                "scripts/entry_next_edge_control.sh",
+                "candlestick-audit",
+                "--quiet",
+                "--no-fail-on-audit-fail",
+            ],
+            "allowed": True,
+            "mode": "audit",
+            "requires_vedtak": False,
+            "requires_clean_git": False,
+            "mutates_git_index": False,
+            "starts_trainer": False,
+            "starts_replay": False,
+            "starts_iql_distillation": False,
+            "touches_shadow_or_live": False,
+            "description": "Audit closed-bar candlestick pattern challenger features and manifest; no training or replay.",
+        },
+        "feature_ai_inventory": {
+            "argv": [
+                "scripts/entry_next_edge_control.sh",
+                "feature-ai-inventory",
+                "--quiet",
+                "--no-fail-on-audit-fail",
+            ],
+            "allowed": True,
+            "mode": "report",
+            "requires_vedtak": False,
+            "requires_clean_git": False,
+            "mutates_git_index": False,
+            "starts_trainer": False,
+            "starts_replay": False,
+            "starts_iql_distillation": False,
+            "touches_shadow_or_live": False,
+            "description": "Materialize all active Entry inputs/features and ranked specialist-AI plan.",
+        },
         "candidate_train": {
             "argv": ["scripts/entry_next_edge_control.sh", "candidate-train", "--vedtak", "<id>"],
             "allowed": candidate_training_allowed,
@@ -1151,6 +1214,9 @@ execution_allowed_now = {
     "train_readiness_report": True,
     "candidate_readiness_report": True,
     "replay_readiness_report": True,
+    "feature_ai_inventory": True,
+    "chart_geometry_audit": True,
+    "candlestick_audit": True,
     "stage_foundation_cleanup_dry_run": True,
     "stage_foundation_cleanup_apply": False,
     "smoke_manifest": False,
@@ -1198,6 +1264,9 @@ allowed_after_explicit_vedtak = {
     "train_readiness_report": True,
     "candidate_readiness_report": True,
     "replay_readiness_report": True,
+    "feature_ai_inventory": True,
+    "chart_geometry_audit": True,
+    "candlestick_audit": True,
     "stage_foundation_cleanup_dry_run": True,
     "stage_foundation_cleanup_apply": foundation_cleanup_stage_ready,
     "smoke_manifest": smoke_manifest_proof_allowed,
@@ -1538,6 +1607,18 @@ PY
 
   replay-readiness)
     exec "$PY" -m gx1.scripts.verify_entry_replay_readiness_v1 "$@"
+    ;;
+
+  chart-geometry-audit)
+    exec "$PY" -m gx1.scripts.audit_entry_chart_geometry_challenger_v1 "$@"
+    ;;
+
+  feature-ai-inventory)
+    exec "$PY" -m gx1.scripts.materialize_entry_feature_ai_inventory_v1 "$@"
+    ;;
+
+  candlestick-audit)
+    exec "$PY" -m gx1.scripts.audit_entry_candlestick_pattern_challenger_v1 "$@"
     ;;
 
   candidate-train)

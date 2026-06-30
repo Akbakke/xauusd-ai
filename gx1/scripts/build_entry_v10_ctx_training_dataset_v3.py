@@ -503,6 +503,7 @@ def _build_inline_seq_structure_extension(
         raise RuntimeError("SEQ_STRUCTURE_INLINE_REQUESTED_FEATURES_EMPTY")
 
     from gx1.scripts.experiment_entry_chart_structure_ablation_v1 import (
+        _build_candlestick_derived_layer,
         _build_chart_layer,
         _build_deep_interaction_layer,
         _build_price_derived_layer,
@@ -532,6 +533,14 @@ def _build_inline_seq_structure_extension(
                 else price_x
             )
             chart_names = list(chart_names) + list(price_names)
+        candle_x, candle_names = _build_candlestick_derived_layer(merged3[["time"]].copy(), Path(source_parquet))
+        if candle_x.shape[1]:
+            chart_x = (
+                np.concatenate([chart_x, candle_x], axis=1).astype(np.float32, copy=False)
+                if chart_x.shape[1]
+                else candle_x
+            )
+            chart_names = list(chart_names) + list(candle_names)
     chart_all_x = (
         np.concatenate([base_x, chart_x], axis=1).astype(np.float32, copy=False)
         if chart_x.shape[1]
