@@ -170,6 +170,8 @@ def test_smoke_train_wrapper_enforces_train_readiness_for_real_train() -> None:
     assert "def artifact_fingerprint" in text
     assert "def run_artifact_fingerprints" in text
     assert 'if os.environ.get("RUN_FLAVOR", "foundation_seq146") != "foundation_seq146"' in text
+    assert "FATAL: non-foundation manifest artifact fingerprint missing" in text
+    assert "FATAL: non-foundation manifest artifact fingerprint hash mismatch" in text
     assert '"artifact_fingerprints": readiness_artifact_fingerprints' in text
     assert 'gate_decision(readiness, "artifact_provenance")' in text
     assert "--pretrain-manifest-json" in text

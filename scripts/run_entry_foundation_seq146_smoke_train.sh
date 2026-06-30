@@ -671,9 +671,21 @@ artifact_paths = {
     "smoke_dataset_manifest": sys.argv[6],
     "worktree_hygiene": worktree_hygiene_path,
 }
+artifact_sha256 = {
+    key: sha256_file(path)
+    for key, path in artifact_paths.items()
+    if path
+}
 readiness_artifact_fingerprints = readiness.get("artifact_fingerprints") or {}
 if os.environ.get("RUN_FLAVOR", "foundation_seq146") != "foundation_seq146":
     readiness_artifact_fingerprints = run_artifact_fingerprints(artifact_paths)
+    for key, fingerprint in readiness_artifact_fingerprints.items():
+        if not fingerprint.get("exists"):
+            print(f"FATAL: non-foundation manifest artifact fingerprint missing: {key}", file=sys.stderr)
+            raise SystemExit(2)
+        if str(fingerprint.get("sha256") or "") != str(artifact_sha256.get(key) or ""):
+            print(f"FATAL: non-foundation manifest artifact fingerprint hash mismatch: {key}", file=sys.stderr)
+            raise SystemExit(2)
 
 
 payload = {
@@ -704,9 +716,8 @@ payload = {
         "worktree_hygiene_json": worktree_hygiene_path,
     },
     "artifact_sha256": {
-        key: sha256_file(path)
-        for key, path in artifact_paths.items()
-        if path
+        key: value
+        for key, value in artifact_sha256.items()
     },
     "preflight_contracts": {
         "training_readiness": {
