@@ -347,6 +347,66 @@ def _coverage(model: str, df: pd.DataFrame) -> list[dict[str, Any]]:
     return rows
 
 
+def _exit_opportunity_row(model: str, scope: str, value: str, group: pd.DataFrame) -> dict[str, Any]:
+    pnl = _numeric(group, "net_pnl_bps").fillna(0.0)
+    mfe = _numeric(group, "mfe_bps").fillna(0.0)
+    mae = _numeric(group, "mae_bps").fillna(0.0)
+    held = _numeric(group, "held_bars").dropna()
+    positive_mfe = mfe > 0.0
+    capture_ratio = (pnl.clip(lower=0.0) / mfe.where(positive_mfe)).replace([np.inf, -np.inf], np.nan)
+    giveback = (mfe - pnl).clip(lower=0.0)
+    peak_oracle_lift = giveback
+    capture_75_lift = ((0.75 * mfe) - pnl).clip(lower=0.0)
+    capture_50_lift = ((0.50 * mfe) - pnl).clip(lower=0.0)
+    exit_reason = _category_series(group, "exit_reason")
+    stop_loss = exit_reason == "STOP_LOSS"
+    horizon = exit_reason == "HORIZON"
+    take_profit = exit_reason == "TAKE_PROFIT"
+    return {
+        "model": model,
+        "scope": scope,
+        "value": value,
+        "n_trades": int(len(group)),
+        "net_sum_bps": float(pnl.sum()),
+        "mfe_sum_bps": float(mfe.sum()),
+        "mae_sum_bps": float(mae.sum()),
+        "mean_mfe_capture_ratio": float(capture_ratio.mean()) if capture_ratio.notna().any() else None,
+        "median_mfe_capture_ratio": float(capture_ratio.median()) if capture_ratio.notna().any() else None,
+        "mean_giveback_bps": float(giveback.mean()) if len(giveback) else 0.0,
+        "p75_giveback_bps": float(giveback.quantile(0.75)) if len(giveback) else 0.0,
+        "p90_giveback_bps": float(giveback.quantile(0.90)) if len(giveback) else 0.0,
+        "peak_oracle_lift_sum_bps": float(peak_oracle_lift.sum()),
+        "capture_75_lift_sum_bps": float(capture_75_lift.sum()),
+        "capture_50_lift_sum_bps": float(capture_50_lift.sum()),
+        "stop_loss_count": int(stop_loss.sum()),
+        "stop_loss_with_positive_mfe_count": int((stop_loss & positive_mfe).sum()),
+        "horizon_count": int(horizon.sum()),
+        "horizon_p75_giveback_bps": float(giveback[horizon].quantile(0.75)) if bool(horizon.any()) else 0.0,
+        "take_profit_count": int(take_profit.sum()),
+        "take_profit_p75_mfe_slack_bps": (
+            float((mfe[take_profit] - pnl[take_profit]).clip(lower=0.0).quantile(0.75))
+            if bool(take_profit.any())
+            else 0.0
+        ),
+        "mean_held_bars": float(held.mean()) if not held.empty else None,
+    }
+
+
+def _exit_opportunity(trades_by_model: dict[str, pd.DataFrame]) -> pd.DataFrame:
+    rows: list[dict[str, Any]] = []
+    for model, df in trades_by_model.items():
+        rows.append(_exit_opportunity_row(model, "ALL", "ALL", df))
+        for scope, column in (
+            ("exit_reason", "exit_reason_slice"),
+            ("session", "session_slice"),
+            ("vol_regime", "vol_regime_slice"),
+            ("side", "side_slice"),
+        ):
+            for value, group in df.groupby(column, dropna=False, sort=True):
+                rows.append(_exit_opportunity_row(model, scope, str(value), group))
+    return pd.DataFrame(rows)
+
+
 def _edge_failures(comparison: pd.DataFrame, args: argparse.Namespace) -> list[dict[str, Any]]:
     failures: list[dict[str, Any]] = []
     if comparison.empty:
@@ -385,7 +445,7 @@ def _diagnostic_failures(comparison: pd.DataFrame, args: argparse.Namespace) -> 
     return failures
 
 
-def _write_markdown(path: Path, report: dict[str, Any], comparison: pd.DataFrame) -> None:
+def _write_markdown(path: Path, report: dict[str, Any], comparison: pd.DataFrame, exit_opportunity: pd.DataFrame) -> None:
     lines = [
         "# Entry IQL Replay Slice Audit",
         "",
@@ -417,6 +477,19 @@ def _write_markdown(path: Path, report: dict[str, Any], comparison: pd.DataFrame
             lines.append(f"- `{failure['check']}`")
     else:
         lines.append("- None")
+    lines.extend(["", "## Exit Opportunity", ""])
+    if exit_opportunity.empty:
+        lines.append("- None")
+    else:
+        all_rows = exit_opportunity[exit_opportunity["scope"] == "ALL"].sort_values("model")
+        for _, row in all_rows.iterrows():
+            lines.append(
+                "- "
+                f"`{row['model']}` "
+                f"capture_mean=`{row['mean_mfe_capture_ratio']}` "
+                f"giveback_p90=`{row['p90_giveback_bps']}` "
+                f"peak_oracle_lift=`{row['peak_oracle_lift_sum_bps']}`"
+            )
     lines.extend(["", "## Weakest Supported IQL Means", ""])
     if not comparison.empty:
         weakest = comparison[comparison["supported"]].sort_values("iql_net_mean_bps").head(10)
@@ -464,6 +537,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     )
     metrics = _slice_metrics(candidate, iql)
     comparison = _comparison(metrics, min_slice_trades=int(args.min_slice_trades))
+    exit_opportunity = _exit_opportunity({"candidate": candidate, "iql": iql})
     edge_failures = _edge_failures(comparison, args)
     diagnostic_failures = _diagnostic_failures(comparison, args)
     coverage = _coverage("candidate", candidate) + _coverage("iql", iql)
@@ -498,6 +572,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         _check("IQL replay trades are present", not iql_raw.empty, {"path": str(iql_trades_path)}),
         _check("slice metrics were produced", not metrics.empty, {"rows": int(len(metrics))}),
         _check("slice comparison rows were produced", not comparison.empty, {"rows": int(len(comparison))}),
+        _check(
+            "exit opportunity diagnostics were produced from replay MFE/MAE/held bars",
+            not exit_opportunity.empty,
+            {"rows": int(len(exit_opportunity))},
+        ),
         _check("session/regime/side/direction/bad-path/tail coverage is live", not coverage_failures, {"failures": coverage_failures}),
         _check(
             "supported edge cubes exist for session/regime/side",
@@ -541,8 +620,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     metrics_csv = out_dir / "entry_iql_replay_slice_metrics.csv"
     comparison_csv = out_dir / "entry_iql_replay_slice_comparison.csv"
+    exit_opportunity_csv = out_dir / "entry_iql_replay_exit_opportunity.csv"
     metrics.to_csv(metrics_csv, index=False)
     comparison.to_csv(comparison_csv, index=False)
+    exit_opportunity.to_csv(exit_opportunity_csv, index=False)
     json_path = out_dir / f"ENTRY_IQL_REPLAY_SLICE_AUDIT_{timestamp}.json"
     md_path = out_dir / f"ENTRY_IQL_REPLAY_SLICE_AUDIT_{timestamp}.md"
     report = {
@@ -576,12 +657,36 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "coverage": coverage,
         "low_support_slice_count": int(len(low_support)),
         "low_support_slices": low_support[:50],
+        "exit_opportunity_summary": {
+            "csv": str(exit_opportunity_csv),
+            "iql_all": (
+                exit_opportunity[
+                    (exit_opportunity["model"] == "iql") & (exit_opportunity["scope"] == "ALL")
+                ].to_dict("records")[:1]
+            ),
+            "candidate_all": (
+                exit_opportunity[
+                    (exit_opportunity["model"] == "candidate") & (exit_opportunity["scope"] == "ALL")
+                ].to_dict("records")[:1]
+            ),
+            "top_iql_peak_oracle_lift": (
+                exit_opportunity[exit_opportunity["model"] == "iql"]
+                .sort_values("peak_oracle_lift_sum_bps", ascending=False)
+                .head(10)
+                .to_dict("records")
+            ),
+            "interpretation": (
+                "Hindsight opportunity only. These numbers estimate where an exit/hazard model might add value; "
+                "they are not deployable policy evidence."
+            ),
+        },
         "edge_failures": edge_failures,
         "diagnostic_failures": diagnostic_failures,
         "checks": checks,
         "failures": failures,
         "slice_metrics_csv": str(metrics_csv),
         "slice_comparison_csv": str(comparison_csv),
+        "exit_opportunity_csv": str(exit_opportunity_csv),
         "json_path": str(json_path),
         "md_path": str(md_path),
         "trainer_started": False,
@@ -595,7 +700,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         ),
     }
     json_path.write_text(json.dumps(report, indent=2, sort_keys=True, default=_json_default) + "\n", encoding="utf-8")
-    _write_markdown(md_path, report, comparison)
+    _write_markdown(md_path, report, comparison, exit_opportunity)
     (out_dir / "ENTRY_IQL_REPLAY_SLICE_AUDIT_latest.json").write_text(
         json_path.read_text(encoding="utf-8"),
         encoding="utf-8",

@@ -126,9 +126,12 @@ def test_iql_replay_slice_audit_passes_supported_slices(tmp_path: Path) -> None:
     assert report["supported_edge_counts"]["side"] >= 2
     assert Path(report["slice_metrics_csv"]).exists()
     assert Path(report["slice_comparison_csv"]).exists()
+    assert Path(report["exit_opportunity_csv"]).exists()
+    assert report["exit_opportunity_summary"]["iql_all"][0]["peak_oracle_lift_sum_bps"] >= 0.0
     checks = {row["name"]: row["ok"] for row in report["checks"]}
     assert checks["IQL supported edge slices keep positive net/PF/drawdown/max-loss"] is True
     assert checks["IQL diagnostic slices do not materially worsen tails vs candidate"] is True
+    assert checks["exit opportunity diagnostics were produced from replay MFE/MAE/held bars"] is True
 
 
 def test_iql_replay_slice_audit_fails_when_supported_session_loses_edge(tmp_path: Path) -> None:
