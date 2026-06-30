@@ -56,6 +56,27 @@ Machine contract:
     canonical M5 bid/ask bars, with hashed M1-to-M5 supplement when available
     and explicit gap exclusions when price coverage is unresolved. It keeps
     Exit Transformer/IQL training closed for separate review gates.
+- Active Exit per-bar reconstruction audit:
+  `gx1/scripts/audit_entry_exit_per_bar_reconstruction_v1.py`
+  - Proves the active Entry-bound per-bar substrate has live ATR/spread,
+    finite state, exact terminal rows, contiguous M5 timelines, provenance and
+    explicit gap exclusions before state/reward work.
+- Active Exit state/reward contract:
+  `gx1/scripts/materialize_entry_exit_state_reward_contract_v1.py`
+  - Materializes HOLD/EXIT_NOW state, reward and next-row pointer semantics
+    from the active reconstruction. It keeps reward/outcome fields out of state
+    and keeps Exit training/IQL closed.
+- Active Exit split/leakage audit:
+  `gx1/scripts/audit_entry_exit_split_leakage_v1.py`
+  - Assigns deterministic time-ordered train/val/test episode splits and
+    proves no episode, next-row pointer, reward field or shortcut state feature
+    leaks across model boundaries.
+- Active Exit model dataset/readiness:
+  `gx1/scripts/materialize_entry_exit_model_dataset_readiness_v1.py`
+  - Writes active train/val/test Exit model shards, feature schema and
+    train-only numeric/categorical normalization metadata from the split/leakage
+    dataset. It keeps Exit Transformer/IQL training closed until architecture,
+    training and replay-evidence gates exist and pass.
 - Latest report:
   `/home/andre2/GX1_DATA/reports/entry_specialist_feature_group_audit_20260628_v1/ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_latest.json`
 - Current decision: `PASS` on the active seq146 foundation dataset.
@@ -63,8 +84,10 @@ Machine contract:
 ## Goal
 
 Find tradable XAUUSD edge with sequence models that understand different market
-mechanisms, then fuse them into one entry policy trained against replay/PnL,
-drawdown and tail-risk objectives.
+mechanisms, then fuse them into one entry policy and one exit policy trained
+against replay/PnL, drawdown and tail-risk objectives. The end state is a fully
+automated XAUUSD bot that enters long or short at high-quality points and exits
+near maximum profit opportunity while respecting session/regime/tail risk.
 
 ## Operating Doctrine
 
@@ -87,6 +110,11 @@ support/resistance, spread/ATR and multi-timeframe context, must be grounded,
 audited and cross-compatible so specialist gates can agree, disagree or abstain
 under recorded provenance. Broad averages cannot hide weak slices; session,
 regime, direction, bad-path and tail behavior remain first-class gates.
+Exit features must speak the same calibrated language as Entry: Entry score,
+direction probabilities, bad-path probability, path-quality prediction, session,
+regime, spread/ATR and realized path state must all be preserved with replay
+identity so Exit Transformer/IQL can learn profit capture from the exact Entry
+policy that produced the trades.
 
 Keep implementation work inside existing modules, reports and control surfaces
 unless genuinely new functionality needs a new file. Do not build UI, docs or

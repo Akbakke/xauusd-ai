@@ -1,10 +1,15 @@
 # Entry Foundation Audit - 2026-06-28
 
-Status: foundation pass required before any more Transformer training. The
-2026-06-29 directional-SMC candidate is green, but the canonical active
-seq146 foundation remains `NOT_READY` until an explicit vedtak-gated activation
-apply switches the active foundation path and the post-apply audits are
-refreshed. Smoke training remains closed.
+Status: active seq146 foundation is activated and post-apply refreshed. Entry
+smoke/candidate/IQL evidence is available, but shadow/live/promotion remain
+closed. Exit-side work is now in report-only foundation mode: active
+Entry-bound per-bar reconstruction, state/reward contract and split/leakage
+audit are ready; Exit Transformer/IQL training remains closed until explicit
+Exit architecture, training and replay evidence gates are added and pass. The
+active Exit model dataset/readiness gate is also ready, with train-only
+normalization metadata and train/val/test shards.
+
+The original rule still applies: foundation pass required before any more Transformer training.
 
 ## Decision
 
@@ -17,6 +22,16 @@ SMC/liquidity, trend, volatility, momentum, session/regime, spread/ATR,
 support/resistance and Exit-relevant context. The goal is tradable edge proven
 by replay/PnL, drawdown, MAE, bad-path, path quality and regime/session slices,
 not broad direction averages.
+
+The product objective is a fully automated XAUUSD bot that can enter long or
+short at high-quality points and exit near maximum profit opportunity. That
+requires the Entry Transformer "eyes", Entry IQL "brain", Exit Transformer
+timing model and Exit IQL policy to share one grounded multi-timeframe feature
+language. HH/HL/LH/LL, SMC/liquidity, momentum/flow, trend/EMA,
+volatility/compression, session/regime, spread/ATR, support/resistance and
+Entry-to-Exit path context must be calibrated as one system, not optimized as
+isolated signals. All new gates must measure tradable edge and failure slices;
+no broad average may hide weak session, regime, side, bad-path or tail behavior.
 
 `<id>` in `--vedtak <id>` is a deliberate human approval token, not a report id
 that the scripts invent automatically. Activation apply requires the
@@ -31,6 +46,10 @@ but they did not prove that the feature/target foundation is sufficient for
 lower drawdown. Those artifacts are frozen as diagnostic history.
 
 The active path is now:
+
+`handover -> verify -> selftest -> foundation-guardrails -> readiness-report -> Entry evidence gates -> Entry/IQL replay and slice evidence -> Entry-to-Exit handoff -> active Exit per-bar reconstruction -> active Exit state/reward contract -> active Exit split/leakage audit -> active Exit model dataset/readiness gates -> only then consider vedtak-gated Exit Transformer training/replay/IQL evidence`
+
+The historical activation path was:
 
 `handover -> verify -> selftest -> foundation-guardrails -> foundation-adoption-candidate -> foundation-activation-plan -> foundation-activation-apply --dry-run -> worktree-hygiene -> optional stage-foundation-cleanup --apply --vedtak <id> -> train-readiness -> if foundation_activation_required_before_smoke=true: foundation-activation-apply --apply --vedtak <id> -> foundation-activation-post-apply --apply --vedtak <id> -> train-readiness -> optional smoke-manifest --vedtak <id> -> smoke-train --vedtak <id> --require-edge-audit`
 
@@ -126,7 +145,32 @@ must keep Exit Transformer/IQL training closed until that substrate exists with
 explicit trade, bar-state, entry-context and replay-identity fields and has
 been audited.
 
-## Current Operating Status - 2026-06-29
+## Current Operating Status - 2026-06-30
+
+Active status:
+
+- Foundation activation apply completed.
+- Foundation post-apply refresh completed.
+- Worktree hygiene: `PASS_CLEAN_GIT`.
+- Train-readiness: `READY_FOR_VEDTAK_SMOKE_TRAIN`.
+- Entry-to-Exit per-bar handoff: `PASS_WITH_EXPLICIT_GAP_EXCLUSIONS`.
+  The active materializer fills missing canonical M5 `atr_bps` deterministically
+  from closed-bar bid/ask OHLC true range and excludes unresolved/non-contiguous
+  price gaps instead of synthesizing bars.
+- Active Exit per-bar reconstruction audit:
+  `READY_FOR_EXIT_STATE_REWARD_CONTRACT_REVIEW`.
+- Active Exit state/reward contract:
+  `ENTRY_EXIT_STATE_REWARD_CONTRACT_READY`.
+- Active Exit split/leakage audit:
+  `ENTRY_EXIT_SPLIT_LEAKAGE_AUDIT_READY`.
+- Active Exit model dataset/readiness:
+  `ENTRY_EXIT_MODEL_DATASET_READY_FOR_EXIT_TRANSFORMER_READINESS_REVIEW`.
+- Exit Transformer training, Exit IQL, shadow, live and promotion remain
+  closed. The next safe work is active Exit Transformer architecture/readiness
+  review; it is still report-only until a separate explicit Exit training gate
+  exists and passes.
+
+## Previous Operating Status - 2026-06-29
 
 Directional-SMC candidate status:
 

@@ -35,6 +35,7 @@ def test_foundation_state_allows_entry_train_manifest_report_roots() -> None:
     assert "entry_exit_per_bar_reconstruction_audit_20260630_v1" in verifier
     assert "entry_exit_state_reward_contract_20260630_v1" in verifier
     assert "entry_exit_split_leakage_audit_20260630_v1" in verifier
+    assert "entry_exit_model_dataset_readiness_20260630_v1" in verifier
 
 
 def _args(*, selftest: bool) -> argparse.Namespace:
@@ -188,6 +189,8 @@ def test_foundation_state_selftest_covers_control_policy_contracts() -> None:
     assert "Entry Exit state/reward contract checks HOLD transition pointers" in checks
     assert "control surface exposes active Exit split/leakage audit" in checks
     assert "Entry Exit split/leakage audit checks HOLD next-row split leakage" in checks
+    assert "control surface exposes active Exit model dataset readiness" in checks
+    assert "Entry Exit model dataset readiness uses train-only normalization" in checks
     assert "foundation guardrail verifier blocks candidate train in readiness policy" in checks
     assert "foundation guardrail verifier blocks IQL in readiness policy" in checks
     assert "foundation guardrail verifier blocks live in readiness policy" in checks

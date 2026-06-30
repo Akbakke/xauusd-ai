@@ -136,6 +136,7 @@ def _active_entry_artifact_paths() -> list[str]:
         "entry_exit_per_bar_reconstruction_audit_20260630_v1",
         "entry_exit_state_reward_contract_20260630_v1",
         "entry_exit_split_leakage_audit_20260630_v1",
+        "entry_exit_model_dataset_readiness_20260630_v1",
         "entry_candidate_selective_edge_20260628_v1",
         "entry_candidate_replay_20260628_v1",
         "entry_candidate_replay_trade_log_20260628_v1",
@@ -715,6 +716,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         entry_exit_reconstruction = _read_text(REPO / "gx1/scripts/audit_entry_exit_per_bar_reconstruction_v1.py")
         entry_exit_state_reward = _read_text(REPO / "gx1/scripts/materialize_entry_exit_state_reward_contract_v1.py")
         entry_exit_split_leakage = _read_text(REPO / "gx1/scripts/audit_entry_exit_split_leakage_v1.py")
+        entry_exit_model_dataset = _read_text(REPO / "gx1/scripts/materialize_entry_exit_model_dataset_readiness_v1.py")
         worktree_hygiene = _read_text(REPO / "gx1/scripts/audit_entry_foundation_worktree_hygiene_v1.py")
         readiness = _read_text(REPO / "gx1/scripts/verify_entry_training_readiness_v1.py")
         candidate_readiness = _read_text(REPO / "gx1/scripts/verify_entry_candidate_readiness_v1.py")
@@ -796,6 +798,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         _require("materialize_entry_exit_state_reward_contract_v1" in control, "control surface calls active Exit state/reward contract", checks)
         _require("entry-exit-split-leakage-audit" in control, "control surface exposes active Exit split/leakage audit", checks)
         _require("audit_entry_exit_split_leakage_v1" in control, "control surface calls active Exit split/leakage audit", checks)
+        _require("entry-exit-model-dataset-readiness" in control, "control surface exposes active Exit model dataset readiness", checks)
+        _require("materialize_entry_exit_model_dataset_readiness_v1" in control, "control surface calls active Exit model dataset readiness", checks)
         _require("smoke-train" in control, "control surface exposes vedtak-gated smoke train", checks)
         _require("--require-edge-audit" in control, "control surface documents edge-required smoke train", checks)
         _require("audit-smoke-bundle" in control, "control surface exposes smoke bundle audit", checks)
@@ -1093,6 +1097,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         _require("HOLD next-row pointers stay inside the same split" in entry_exit_split_leakage, "Entry Exit split/leakage audit checks HOLD next-row split leakage", checks)
         _require("state features exclude reward/outcome shortcut fields" in entry_exit_split_leakage, "Entry Exit split/leakage audit blocks shortcut state features", checks)
         _require("split/leakage audit never trains, replays, distills, promotes, shadows, or starts live" in entry_exit_split_leakage, "Entry Exit split/leakage audit keeps all side-effect paths closed", checks)
+        _require("entry_exit_model_dataset_readiness_v1" in entry_exit_model_dataset, "Entry Exit model dataset readiness writes schema", checks)
+        _require("ENTRY_EXIT_MODEL_DATASET_READY_FOR_EXIT_TRANSFORMER_READINESS_REVIEW" in entry_exit_model_dataset, "Entry Exit model dataset readiness has ready decision", checks)
+        _require("fit_numeric_mean_std_and_categorical_vocab_on_train_split_only" in entry_exit_model_dataset, "Entry Exit model dataset readiness uses train-only normalization", checks)
+        _require("numeric state features are finite and live" in entry_exit_model_dataset, "Entry Exit model dataset readiness requires live numeric state", checks)
+        _require("model dataset readiness never trains, replays, distills, promotes, shadows, or starts live" in entry_exit_model_dataset, "Entry Exit model dataset readiness keeps all side-effect paths closed", checks)
 
     report = {
         "schema_version": "entry_foundation_state_v1",
