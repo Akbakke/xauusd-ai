@@ -53,6 +53,10 @@ DEFAULT_SMART_SMOKE_STEM = "v10_smart_seq520_smoke__HOLD_03B"
 DEFAULT_SMART_SMOKE_MEM_CAP = "8G"
 DEFAULT_SMART_SMOKE_SWAP_CAP = "1G"
 DEFAULT_SMART_SMOKE_BATCH_SIZE = 256
+DEFAULT_SMART_SMOKE_EXTREME_SNAP_FEATURES = (
+    "session_regime.session_trend_structure_liquidity_long_score",
+)
+DEFAULT_SMART_SMOKE_EXTREME_SNAP_ROWS = 64
 
 SPLITS = ("train", "val", "test")
 EXPECTED_MANIFEST_VARIANT = "smart_seq520_candidate"
@@ -359,6 +363,10 @@ def _post_rebuild_refresh_command_contract(
                 str(EXPECTED_SIGNAL_DIM),
                 "--batch-size",
                 str(DEFAULT_SMART_SMOKE_BATCH_SIZE),
+                "--extreme-snap-feature",
+                DEFAULT_SMART_SMOKE_EXTREME_SNAP_FEATURES[0],
+                "--extreme-snap-rows",
+                str(DEFAULT_SMART_SMOKE_EXTREME_SNAP_ROWS),
                 "--quiet",
                 mem=DEFAULT_SMART_SMOKE_MEM_CAP,
                 swap=DEFAULT_SMART_SMOKE_SWAP_CAP,

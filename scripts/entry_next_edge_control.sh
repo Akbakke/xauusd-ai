@@ -2459,6 +2459,8 @@ PY
       --manifest-variant smart_seq520_candidate \
       --expected-seq-snap-width 520 \
       --batch-size 256 \
+      --extreme-snap-feature session_regime.session_trend_structure_liquidity_long_score \
+      --extreme-snap-rows 64 \
       --quiet
     ;;
 

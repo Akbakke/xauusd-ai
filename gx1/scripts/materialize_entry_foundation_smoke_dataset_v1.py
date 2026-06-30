@@ -13,7 +13,7 @@ import hashlib
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Sequence
 
 import numpy as np
 import pyarrow as pa
@@ -164,11 +164,106 @@ def _selected_global_indices(pf: pq.ParquetFile, *, max_rows: int, batch_size: i
     return np.sort(out[:max_rows]).astype(np.int64, copy=False)
 
 
-def _sample_split(source_path: Path, out_path: Path, *, max_rows: int, batch_size: int) -> dict[str, Any]:
+def _list_column_to_2d(column: pa.Array) -> np.ndarray:
+    try:
+        values = column.to_numpy(zero_copy_only=False)
+        return np.stack(values)
+    except Exception:
+        return np.asarray(column.to_pylist())
+
+
+def _signal_fields_from_manifest(source_manifest: Path) -> list[str]:
+    data = json.loads(source_manifest.read_text(encoding="utf-8"))
+    extra = data.get("extra") if isinstance(data.get("extra"), dict) else {}
+    bridge = extra.get("signal_bridge") if isinstance(extra.get("signal_bridge"), dict) else {}
+    fields = bridge.get("fields")
+    if not isinstance(fields, list) or not all(isinstance(name, str) for name in fields):
+        return []
+    return list(fields)
+
+
+def _selected_snap_extreme_indices(
+    pf: pq.ParquetFile,
+    *,
+    signal_fields: Sequence[str],
+    feature_names: Sequence[str],
+    max_rows: int,
+    batch_size: int,
+) -> tuple[np.ndarray, list[str]]:
+    if max_rows <= 0 or not feature_names:
+        return np.asarray([], dtype=np.int64), []
+    if "snap" not in pf.schema_arrow.names:
+        raise RuntimeError("extreme snap sampling requested, but source split lacks snap column")
+    missing = [name for name in feature_names if name not in signal_fields]
+    if missing:
+        raise RuntimeError(f"extreme snap sampling features missing from signal fields: {missing}")
+    indices = [signal_fields.index(name) for name in feature_names]
+    score_chunks: list[np.ndarray] = []
+    index_chunks: list[np.ndarray] = []
+    offset = 0
+    for batch in pf.iter_batches(batch_size=batch_size, columns=["snap"]):
+        mat = np.asarray(_list_column_to_2d(batch.column(0)), dtype=np.float64)
+        if mat.ndim != 2:
+            raise RuntimeError(f"snap column did not decode to 2D matrix: {mat.shape}")
+        score = np.max(np.abs(mat[:, indices]), axis=1)
+        if score.size:
+            take_n = min(max_rows, score.size)
+            local = np.argpartition(score, -take_n)[-take_n:]
+            score_chunks.append(score[local])
+            index_chunks.append((offset + local).astype(np.int64, copy=False))
+        offset += int(batch.num_rows)
+    if not score_chunks:
+        return np.asarray([], dtype=np.int64), list(feature_names)
+    scores = np.concatenate(score_chunks)
+    global_indices = np.concatenate(index_chunks)
+    active = scores > 0.0
+    if not bool(active.any()):
+        return np.asarray([], dtype=np.int64), list(feature_names)
+    scores = scores[active]
+    global_indices = global_indices[active]
+    take_n = min(max_rows, scores.size)
+    keep = np.argpartition(scores, -take_n)[-take_n:]
+    return np.sort(np.unique(global_indices[keep]).astype(np.int64, copy=False)), list(feature_names)
+
+
+def _merge_forced_indices(base: np.ndarray, forced: np.ndarray, *, max_rows: int) -> np.ndarray:
+    forced = np.unique(np.asarray(forced, dtype=np.int64))
+    if forced.size == 0:
+        return np.sort(base[:max_rows]).astype(np.int64, copy=False)
+    if forced.size >= max_rows:
+        return np.sort(forced[:max_rows]).astype(np.int64, copy=False)
+    forced_set = set(int(i) for i in forced)
+    fill = np.asarray([int(i) for i in base if int(i) not in forced_set], dtype=np.int64)
+    fill = fill[: max_rows - forced.size]
+    return np.sort(np.concatenate([forced, fill])).astype(np.int64, copy=False)
+
+
+def _sample_split(
+    source_path: Path,
+    out_path: Path,
+    *,
+    source_manifest: Path,
+    max_rows: int,
+    batch_size: int,
+    extreme_snap_features: Sequence[str] = (),
+    extreme_snap_rows: int = 0,
+) -> dict[str, Any]:
     pf = pq.ParquetFile(source_path)
     if "y_direction" not in pf.schema_arrow.names:
         raise RuntimeError(f"source split lacks y_direction: {source_path}")
     selected_indices = _selected_global_indices(pf, max_rows=max_rows, batch_size=batch_size)
+    forced_indices = np.asarray([], dtype=np.int64)
+    forced_features: list[str] = []
+    if extreme_snap_rows > 0 and extreme_snap_features:
+        signal_fields = _signal_fields_from_manifest(source_manifest)
+        forced_indices, forced_features = _selected_snap_extreme_indices(
+            pf,
+            signal_fields=signal_fields,
+            feature_names=extreme_snap_features,
+            max_rows=int(extreme_snap_rows),
+            batch_size=batch_size,
+        )
+        selected_indices = _merge_forced_indices(selected_indices, forced_indices, max_rows=max_rows)
     if len(selected_indices) == 0:
         raise RuntimeError(f"no rows selected from {source_path}")
     selected_set = set(int(i) for i in selected_indices)
@@ -211,6 +306,9 @@ def _sample_split(source_path: Path, out_path: Path, *, max_rows: int, batch_siz
         "rows": int(out.num_rows),
         "label_counts": {str(k): int(v) for k, v in zip(*np.unique(labels, return_counts=True))},
         "selection_strategy": "class_balanced_global_time_spread_v2",
+        "forced_extreme_snap_features": forced_features,
+        "forced_extreme_snap_rows_requested": int(extreme_snap_rows if extreme_snap_features else 0),
+        "forced_extreme_snap_rows_selected": int(len(forced_indices)),
         "selected_source_index_min": int(selected_indices[0]),
         "selected_source_index_max": int(selected_indices[-1]),
         "time_min": time_min,
@@ -276,10 +374,18 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     for split in ("train", "val", "test"):
         source_path = _source_split_path(source_dir, split)
         out_path = out_dir / f"{stem}_{split}.parquet"
-        sample = _sample_split(source_path, out_path, max_rows=row_limits[split], batch_size=int(args.batch_size))
         source_manifest = _split_manifest_path(source_path)
         if not source_manifest.exists():
             raise RuntimeError(f"source split manifest missing: {source_manifest}")
+        sample = _sample_split(
+            source_path,
+            out_path,
+            source_manifest=source_manifest,
+            max_rows=row_limits[split],
+            batch_size=int(args.batch_size),
+            extreme_snap_features=tuple(getattr(args, "extreme_snap_feature", []) or ()),
+            extreme_snap_rows=int(getattr(args, "extreme_snap_rows", 0) or 0),
+        )
         out_manifest = out_path.with_suffix(".manifest.json")
         _copy_split_manifest(
             source_manifest,
@@ -332,6 +438,8 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--val-rows", type=int, default=1536)
     ap.add_argument("--test-rows", type=int, default=1536)
     ap.add_argument("--batch-size", type=int, default=4096)
+    ap.add_argument("--extreme-snap-feature", action="append", default=[])
+    ap.add_argument("--extreme-snap-rows", type=int, default=0)
     ap.add_argument("--feature-audit-json", default=str(FEATURE_AUDIT_LATEST))
     ap.add_argument("--target-audit-json", default=str(TARGET_AUDIT_LATEST))
     ap.add_argument("--specialist-audit-json", default=str(SPECIALIST_AUDIT_LATEST))
