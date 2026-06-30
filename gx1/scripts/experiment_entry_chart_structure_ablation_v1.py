@@ -224,8 +224,10 @@ def _add_feature(
         raise RuntimeError(f"generated feature {name} is not 1D: {clean.shape}")
     if not np.isfinite(clean).all():
         raise RuntimeError(f"generated feature {name} contains non-finite values")
-    if float(np.nanstd(clean)) <= 1e-9:
-        return
+    # Manifest-driven sequence builds need stable feature names across
+    # train/val/test. A feature can be genuinely inactive in one slice while
+    # still being live elsewhere, so keep constant columns and let audits judge
+    # liveness instead of changing the emitted contract per split.
     arrays.append(clean)
     names.append(f"chart.{name}")
 

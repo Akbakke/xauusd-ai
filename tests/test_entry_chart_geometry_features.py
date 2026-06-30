@@ -7,6 +7,7 @@ from gx1.features.entry_chart_geometry_v1 import (
     missing_chart_geometry_source_fields,
 )
 from gx1.features.entry_specialist_feature_groups_v1 import classify_entry_specialist_feature
+from gx1.scripts.experiment_entry_chart_structure_ablation_v1 import _add_feature
 
 
 def _matrix(names: list[str], n: int = 6) -> np.ndarray:
@@ -101,3 +102,15 @@ def test_chart_geometry_source_contract_and_specialist_routing() -> None:
     assert missing == ["ctx_cont.dist_to_R1_atr"]
     assert classify_entry_specialist_feature("chart.geometry_fib_golden_zone_proximity") == "chart_geometry_encoder"
     assert classify_entry_specialist_feature("chart.geometry_ascending_triangle_pressure") == "chart_geometry_encoder"
+
+
+def test_generated_chart_features_keep_constant_columns_for_manifest_contract() -> None:
+    arrays: list[np.ndarray] = []
+    names: list[str] = []
+
+    _add_feature(arrays, names, "lh_x_ema50_200", np.zeros(6, dtype=np.float32))
+
+    assert names == ["chart.lh_x_ema50_200"]
+    assert len(arrays) == 1
+    assert arrays[0].shape == (6,)
+    assert np.all(arrays[0] == 0.0)

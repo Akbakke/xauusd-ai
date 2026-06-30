@@ -253,8 +253,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 "--seq-structure-compute-inline",
                 "--time_split",
                 "--neutral-xgb-bridge",
-                "--output_dir",
-                "<new_challenger_dataset_dir>",
+                "--output",
+                "<new_challenger_dataset_dir>/<stem>.parquet",
             ],
             "ram_note": (
                 "The combined extension adds 69 challenger features on top of the active 105-feature "
