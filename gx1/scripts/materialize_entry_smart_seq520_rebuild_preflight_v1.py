@@ -165,7 +165,7 @@ def _command_contract(
     argv = [
         "scripts/gx1_capped_run.sh",
         "--mem",
-        "4G",
+        "8G",
         "--swap",
         "1G",
         "--",
@@ -200,7 +200,7 @@ def _command_contract(
         },
         "requires_ram_cap": True,
         "ram_cap_runner": "scripts/gx1_capped_run.sh",
-        "memory_max": "4G",
+        "memory_max": "8G",
         "swap_max": "1G",
         "num_workers": 0,
         "starts_trainer": False,
@@ -341,7 +341,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         manifest_variant=str(smart_manifest.get("manifest_variant") or "smart_seq_candidate"),
     )
     argv = command_contract["argv"]
-    _check(checks, "rebuild command uses RAM cap runner", argv[:6] == ["scripts/gx1_capped_run.sh", "--mem", "4G", "--swap", "1G", "--"], argv[:8])
+    _check(checks, "rebuild command uses RAM cap runner", argv[:6] == ["scripts/gx1_capped_run.sh", "--mem", "8G", "--swap", "1G", "--"], argv[:8])
     _check(checks, "rebuild command uses source parquet override", "--source-parquet-override" in argv and source_parquet in argv, argv)
     _check(checks, "rebuild command pins canonical_v2 parquet", "--canonical_v2_parquet" in argv and source_parquet in argv, argv)
     _check(checks, "rebuild command computes smart extension inline", "--seq-structure-compute-inline" in argv, argv)
