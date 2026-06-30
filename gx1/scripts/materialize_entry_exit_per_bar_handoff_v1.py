@@ -11,16 +11,18 @@ import argparse
 import glob
 import hashlib
 import json
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import pandas as pd
+import pyarrow as pa
 import pyarrow.parquet as pq
 
 from gx1.scripts.audit_entry_exit_handoff_readiness_v1 import REQUIRED_EXIT_SUBSTRATE_FIELDS
-from gx1.scripts.verify_entry_foundation_state_v1 import REPORTS_ROOT
+from gx1.scripts.verify_entry_foundation_state_v1 import FOUNDATION_DATASET_DIR, REPORTS_ROOT
 
 
 DEFAULT_IQL_TRADE_LOG = (
@@ -36,8 +38,68 @@ DEFAULT_M5_PRICE_PARQUET = Path(
     "/home/andre2/GX1_DATA/data/data/prebuilt/CANONICAL_V3_PREBUILT/xauusd_m5_CANONICAL_V3_2020_2026.parquet"
 )
 DEFAULT_SUPPLEMENTAL_M1_GLOB = "/home/andre2/GX1_DATA/reports/v12_live_data/xauusd_m1_*.parquet"
+DEFAULT_FOUNDATION_DATASET_DIR = FOUNDATION_DATASET_DIR
+DEFAULT_ENTRY_M5_PREBUILT = Path(
+    "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260626_spreadfix/cv3/xauusd_m5_CANONICAL_V3_2020_2026.parquet"
+)
+DEFAULT_ENTRY_MTF_CACHE_DIR = Path("/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/MULTI_TF_V2_CACHE")
 DEFAULT_OUT_DIR = REPORTS_ROOT / "entry_exit_per_bar_handoff_20260630_v1"
 ATR_PERIOD_BARS = 14
+ENTRY_ALIGNMENT_SNAP_FEATURES = (
+    "chart.foundation_hh_state",
+    "chart.foundation_hl_state",
+    "chart.foundation_lh_state",
+    "chart.foundation_ll_state",
+    "chart.foundation_bos_up_age_bars",
+    "chart.foundation_bos_down_age_bars",
+    "chart.foundation_choch_age_bars",
+    "chart.foundation_sweep_low_reclaim_up_proxy",
+    "chart.foundation_sweep_high_reclaim_down_proxy",
+    "chart.foundation_false_breakout_high_followthrough_down_proxy",
+    "chart.foundation_false_breakout_low_followthrough_up_proxy",
+    "chart.foundation_compression_state",
+    "chart.foundation_expansion_state",
+    "chart.foundation_compression_release_trigger",
+    "chart.foundation_compression_release_up",
+    "chart.foundation_compression_release_down",
+    "chart.foundation_impulse_direction",
+    "chart.foundation_impulse_age_proxy",
+    "chart.foundation_impulse_pullback_alignment",
+)
+ENTRY_ALIGNMENT_CTX_CONT_FEATURES = (
+    "H1_range_compression_ratio",
+    "M15_range_compression_ratio",
+    "D1_atr_percentile_252",
+    "micro_momentum_3",
+    "micro_momentum_5",
+    "micro_acceleration",
+    "retracement_from_last_impulse",
+    "_v1h1_ema_diff",
+    "_v1h4_ema_diff",
+    "d1_ema_slope_20_canon_v2",
+    "m15_regime_class_id_v2",
+    "h1_regime_class_id_v2",
+    "h4_regime_class_id_v2",
+    "d1_regime_class_id_v2",
+    "m15_trend_age_bars_norm_v2",
+    "h1_trend_age_bars_norm_v2",
+    "h4_trend_age_bars_norm_v2",
+    "d1_trend_age_bars_norm_v2",
+    "regime_tf_agreement_v3",
+    "smc_bos_pressure_last48",
+    "smc_sweep_bull_pressure_last48",
+    "sr_support_minus_resistance_prox",
+    "liquidity_hi_nearest_abs_atr",
+    "liquidity_lo_nearest_abs_atr",
+)
+SPECIALIST_GATE_OUTPUT_FIELDS = {
+    "structure_swing_encoder": "entry_structure_swing_gate_weight",
+    "smc_liquidity_encoder": "entry_smc_liquidity_gate_weight",
+    "trend_ema_encoder": "entry_trend_ema_gate_weight",
+    "vol_compression_encoder": "entry_vol_compression_gate_weight",
+    "momentum_flow_encoder": "entry_momentum_flow_gate_weight",
+    "session_regime_encoder": "entry_session_regime_gate_weight",
+}
 
 PRICE_COLUMNS = (
     "time",
@@ -93,6 +155,339 @@ def _read_json_or_empty(path: Path) -> dict[str, Any]:
 def _normal_path(value: Any) -> str:
     raw = str(value or "").strip()
     return str(Path(raw).expanduser().resolve()) if raw else ""
+
+
+def _safe_feature_field(prefix: str, name: str) -> str:
+    clean = "".join(ch.lower() if ch.isalnum() else "_" for ch in name)
+    while "__" in clean:
+        clean = clean.replace("__", "_")
+    return f"{prefix}_{clean.strip('_')}"
+
+
+def _split_manifest(dataset_dir: Path, split: str) -> dict[str, Any]:
+    matches = sorted(dataset_dir.glob(f"*_{split}.manifest.json"))
+    return _read_json_or_empty(matches[0]) if matches else {}
+
+
+def _feature_index_contract(dataset_dir: Path) -> dict[str, Any]:
+    manifest = _split_manifest(dataset_dir, "train")
+    manifest_matches = sorted(dataset_dir.glob("*_train.manifest.json"))
+    signal_bridge = (
+        ((manifest.get("extra") or {}).get("signal_bridge") or {})
+        if isinstance(manifest.get("extra"), dict)
+        else {}
+    )
+    ctx_contract = (
+        ((manifest.get("extra") or {}).get("ctx_contract") or {})
+        if isinstance(manifest.get("extra"), dict)
+        else {}
+    )
+    snap_fields = list(signal_bridge.get("snap_fields") or [])
+    ctx_cont_names = list(ctx_contract.get("ctx_cont_names") or [])
+    fields: list[dict[str, Any]] = []
+    missing: list[dict[str, str]] = []
+    for source, names, requested, prefix in (
+        ("snap", snap_fields, ENTRY_ALIGNMENT_SNAP_FEATURES, "entry_snap"),
+        ("ctx_cont", ctx_cont_names, ENTRY_ALIGNMENT_CTX_CONT_FEATURES, "entry_ctx"),
+    ):
+        index = {name: idx for idx, name in enumerate(names)}
+        for name in requested:
+            if name not in index:
+                missing.append({"source": source, "name": name})
+                continue
+            fields.append(
+                {
+                    "source": source,
+                    "name": name,
+                    "index": int(index[name]),
+                    "output_field": _safe_feature_field(prefix, name),
+                }
+            )
+    return {
+        "dataset_dir": str(dataset_dir),
+        "manifest_path": str(manifest_matches[0]) if manifest_matches else "",
+        "snap_field_count": len(snap_fields),
+        "ctx_cont_field_count": len(ctx_cont_names),
+        "requested_snap_features": list(ENTRY_ALIGNMENT_SNAP_FEATURES),
+        "requested_ctx_cont_features": list(ENTRY_ALIGNMENT_CTX_CONT_FEATURES),
+        "fields": fields,
+        "missing_requested_features": missing,
+        "ready": bool(fields and not missing),
+    }
+
+
+def _split_overlaps(manifest: dict[str, Any], split: str, start: pd.Timestamp, end: pd.Timestamp) -> bool:
+    ranges = manifest.get("ts_min_max_by_split") if isinstance(manifest.get("ts_min_max_by_split"), dict) else {}
+    row = ranges.get(split) if isinstance(ranges.get(split), dict) else {}
+    raw_min = row.get("min") or row.get("ts_min")
+    raw_max = row.get("max") or row.get("ts_max")
+    if not raw_min or not raw_max:
+        return split == "test"
+    ts_min = pd.to_datetime(raw_min, utc=True, errors="coerce")
+    ts_max = pd.to_datetime(raw_max, utc=True, errors="coerce")
+    if pd.isna(ts_min) or pd.isna(ts_max):
+        return split == "test"
+    return bool(ts_min <= end and ts_max >= start)
+
+
+def _foundation_split_parquets(dataset_dir: Path, start: pd.Timestamp, end: pd.Timestamp) -> list[Path]:
+    train_manifest = _split_manifest(dataset_dir, "train")
+    out: list[Path] = []
+    for split in ("train", "val", "test"):
+        if not _split_overlaps(train_manifest, split, start, end):
+            continue
+        out.extend(sorted(dataset_dir.glob(f"*_{split}.parquet")))
+    return out
+
+
+def _value_from_array(value: Any, index: int) -> float:
+    try:
+        if value is None:
+            return float("nan")
+        return float(value[index])
+    except Exception:
+        return float("nan")
+
+
+def _float_or_nan(value: Any) -> float:
+    try:
+        out = float(value)
+        return out if np.isfinite(out) else float("nan")
+    except Exception:
+        return float("nan")
+
+
+def _load_entry_alignment_snapshots(dataset_dir: Path, start: pd.Timestamp, end: pd.Timestamp) -> tuple[pd.DataFrame, dict[str, Any]]:
+    contract = _feature_index_contract(dataset_dir)
+    fields = list(contract.get("fields") or [])
+    parquets = _foundation_split_parquets(dataset_dir, start, end)
+    frames: list[pd.DataFrame] = []
+    for path in parquets:
+        part = pd.read_parquet(path, columns=["time", "snap", "ctx_cont"])
+        part["time"] = pd.to_datetime(part["time"], utc=True, errors="coerce")
+        part = part.loc[(part["time"] >= start) & (part["time"] <= end)].copy()
+        if part.empty:
+            continue
+        for field in fields:
+            source = str(field["source"])
+            output_field = str(field["output_field"])
+            index = int(field["index"])
+            part[output_field] = part[source].map(lambda value, idx=index: _value_from_array(value, idx))
+        keep = ["time", *[str(field["output_field"]) for field in fields]]
+        frames.append(part[keep])
+    snapshots = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame(columns=["time"])
+    if not snapshots.empty:
+        snapshots = snapshots.dropna(subset=["time"]).drop_duplicates("time", keep="last")
+    diagnostics = {
+        "foundation_dataset_dir": str(dataset_dir),
+        "contract": contract,
+        "source_parquets": [str(path) for path in parquets],
+        "snapshot_rows": int(len(snapshots)),
+        "output_fields": [str(field["output_field"]) for field in fields],
+    }
+    return snapshots, diagnostics
+
+
+def _timestamp_ns_set(values: pd.Series) -> set[int]:
+    parsed = pd.to_datetime(values, utc=True, errors="coerce").dropna().drop_duplicates()
+    return {int(ts.value) for ts in parsed}
+
+
+def _materialize_entry_gate_subset_parquet(
+    *,
+    dataset_dir: Path,
+    entry_times: pd.Series,
+    start: pd.Timestamp,
+    end: pd.Timestamp,
+    out_dir: Path,
+) -> tuple[Path, dict[str, Any]]:
+    target_ns = _timestamp_ns_set(entry_times)
+    out_path = out_dir / "entry_specialist_gate_foundation_subset.parquet"
+    parquets = _foundation_split_parquets(dataset_dir, start, end)
+    selected_tables: list[pa.Table] = []
+    observed_ns: set[int] = set()
+    for path in parquets:
+        pf = pq.ParquetFile(path)
+        for batch in pf.iter_batches(batch_size=512):
+            table = pa.Table.from_batches([batch])
+            times = pd.to_datetime(table.column("time").to_pandas(), utc=True, errors="coerce")
+            mask = np.array(
+                [False if pd.isna(ts) else int(ts.value) in target_ns for ts in times],
+                dtype=bool,
+            )
+            if not bool(mask.any()):
+                continue
+            selected = table.filter(pa.array(mask))
+            selected_tables.append(selected)
+            observed_ns.update(int(ts.value) for ts in times.loc[mask].dropna())
+    if selected_tables:
+        subset = pa.concat_tables(selected_tables)
+        pq.write_table(subset, out_path)
+        subset_rows = int(subset.num_rows)
+    else:
+        pq.write_table(pa.table({"time": pa.array([], type=pa.timestamp("ns", tz="UTC"))}), out_path)
+        subset_rows = 0
+    missing_ns = sorted(target_ns - observed_ns)
+    diagnostics = {
+        "subset_parquet": str(out_path),
+        "source_parquets": [str(path) for path in parquets],
+        "requested_entry_time_count": int(len(target_ns)),
+        "observed_entry_time_count": int(len(observed_ns)),
+        "subset_rows": subset_rows,
+        "missing_entry_time_count": int(len(missing_ns)),
+        "missing_entry_time_examples": [
+            pd.Timestamp(ns, unit="ns", tz="UTC").isoformat() for ns in missing_ns[:20]
+        ],
+        "ready": bool(target_ns and not missing_ns and subset_rows >= len(target_ns)),
+    }
+    return out_path, diagnostics
+
+
+def _specialist_names_from_bundle(bundle: Any) -> list[str]:
+    names = list(getattr(bundle.transformer_model, "_specialist_names", []) or [])
+    if names:
+        return [str(name) for name in names]
+    cfg = (bundle.metadata.get("specialist_fusion") or {}) if isinstance(bundle.metadata, dict) else {}
+    indices = cfg.get("input_indices") if isinstance(cfg.get("input_indices"), dict) else {}
+    return sorted(str(name) for name in indices.keys())
+
+
+def _extract_entry_specialist_gate_outputs(
+    *,
+    dataset_dir: Path,
+    entry_times: pd.Series,
+    start: pd.Timestamp,
+    end: pd.Timestamp,
+    out_dir: Path,
+    bundle_dir: str,
+    m5_prebuilt_path: Path,
+    multi_tf_cache_dir: Path,
+    batch_size: int,
+    required: bool,
+) -> tuple[pd.DataFrame, dict[str, Any]]:
+    output_fields = [SPECIALIST_GATE_OUTPUT_FIELDS[name] for name in SPECIALIST_GATE_OUTPUT_FIELDS]
+    diagnostics: dict[str, Any] = {
+        "required": bool(required),
+        "bundle_dir": str(bundle_dir or ""),
+        "m5_prebuilt_path": str(m5_prebuilt_path),
+        "multi_tf_cache_dir": str(multi_tf_cache_dir),
+        "output_fields": output_fields,
+        "ready": False,
+        "failures": [],
+    }
+    if not required:
+        diagnostics["ready"] = True
+        diagnostics["output_fields"] = []
+        diagnostics["skipped_reason"] = "entry specialist gate extraction not required for this run"
+        return pd.DataFrame(columns=["time"]), diagnostics
+    raw_bundle_dir = str(bundle_dir or "").strip()
+    bundle_path = Path(raw_bundle_dir).expanduser().resolve() if raw_bundle_dir else None
+    if bundle_path is None or not bundle_path.is_dir():
+        diagnostics["failures"].append(f"candidate bundle dir missing: {raw_bundle_dir or '<empty>'}")
+        return pd.DataFrame(columns=["time", *output_fields]), diagnostics
+    if not (multi_tf_cache_dir / "manifest.json").is_file():
+        diagnostics["failures"].append(f"multi-TF cache manifest missing: {multi_tf_cache_dir / 'manifest.json'}")
+        return pd.DataFrame(columns=["time", *output_fields]), diagnostics
+    try:
+        from torch.utils.data import DataLoader
+        import torch
+
+        from gx1.models.entry_v10.entry_v10_bundle import load_entry_v10_ctx_bundle
+        from gx1.models.entry_v10.entry_v10_ctx_train_v3 import (
+            EntryV10CtxDataset,
+            _multi_tf_kwargs_from_batch,
+        )
+        from gx1.scripts.audit_entry_foundation_smoke_bundle_v1 import _bundle_dataset_kwargs
+
+        os.environ["GX1_V10_MULTI_TF_V2_CACHE_DIR"] = str(multi_tf_cache_dir)
+        bundle = load_entry_v10_ctx_bundle(bundle_dir=bundle_path, device="cpu", is_replay=True)
+        model = bundle.transformer_model.eval()
+        specialist_names = _specialist_names_from_bundle(bundle)
+        diagnostics["specialist_names"] = specialist_names
+        expected = list(SPECIALIST_GATE_OUTPUT_FIELDS)
+        if set(specialist_names) != set(expected):
+            diagnostics["failures"].append(
+                f"specialist set mismatch expected={sorted(expected)} observed={sorted(specialist_names)}"
+            )
+            return pd.DataFrame(columns=["time", *output_fields]), diagnostics
+        subset_path, subset_diagnostics = _materialize_entry_gate_subset_parquet(
+            dataset_dir=dataset_dir,
+            entry_times=entry_times,
+            start=start,
+            end=end,
+            out_dir=out_dir,
+        )
+        diagnostics["subset"] = subset_diagnostics
+        if not bool(subset_diagnostics.get("ready")):
+            diagnostics["failures"].append("foundation subset missing one or more trade entry_time rows")
+            return pd.DataFrame(columns=["time", *output_fields]), diagnostics
+        dataset_kwargs = _bundle_dataset_kwargs(bundle.metadata, m5_prebuilt_path)
+        dataset = EntryV10CtxDataset(
+            parquet_path=subset_path,
+            seq_len=int(bundle.transformer_config["seq_len"]),
+            allow_constant_labels=True,
+            **dataset_kwargs,
+        )
+        loader = DataLoader(dataset, batch_size=int(batch_size), shuffle=False, num_workers=0)
+        dataset_times = pd.to_datetime(dataset.df.iloc[dataset.indices]["time"], utc=True, errors="coerce").reset_index(drop=True)
+        rows: list[dict[str, Any]] = []
+        gates: list[np.ndarray] = []
+        offset = 0
+        with torch.no_grad():
+            for batch in loader:
+                seq_x = batch["seq_x"].to(bundle.device)
+                snap_x = batch["snap_x"].to(bundle.device)
+                ctx_cat = batch["ctx_cat"].to(bundle.device)
+                ctx_cont = batch["ctx_cont"].to(bundle.device)
+                out = model(
+                    seq_x,
+                    snap_x,
+                    ctx_cat=ctx_cat,
+                    ctx_cont=ctx_cont,
+                    **_multi_tf_kwargs_from_batch(batch, bundle.device),
+                )
+                gate_tensor = out.get("specialist_gate")
+                if gate_tensor is None:
+                    diagnostics["failures"].append("model emitted no specialist_gate")
+                    return pd.DataFrame(columns=["time", *output_fields]), diagnostics
+                gate = gate_tensor.detach().cpu().float().numpy()
+                gates.append(gate)
+                for local_idx in range(gate.shape[0]):
+                    row: dict[str, Any] = {"time": dataset_times.iloc[offset + local_idx]}
+                    for gate_idx, name in enumerate(specialist_names):
+                        row[SPECIALIST_GATE_OUTPUT_FIELDS[name]] = float(gate[local_idx, gate_idx])
+                    rows.append(row)
+                offset += int(gate.shape[0])
+        gate_matrix = np.concatenate(gates, axis=0) if gates else np.zeros((0, len(specialist_names)), dtype=np.float32)
+        gate_frame = pd.DataFrame(rows).drop_duplicates("time", keep="last")
+        finite = bool(np.isfinite(gate_matrix).all()) if gate_matrix.size else False
+        row_sum_error = (
+            float(np.max(np.abs(gate_matrix.sum(axis=1) - 1.0)))
+            if gate_matrix.size
+            else None
+        )
+        diagnostics.update(
+            {
+                "rows": int(len(gate_frame)),
+                "finite": finite,
+                "row_sum_max_abs_error": row_sum_error,
+                "mean_weight": {
+                    str(name): float(gate_matrix[:, idx].mean()) if gate_matrix.size else None
+                    for idx, name in enumerate(specialist_names)
+                },
+            }
+        )
+        if not finite:
+            diagnostics["failures"].append("specialist_gate has non-finite values")
+        if row_sum_error is None or row_sum_error > 1e-4:
+            diagnostics["failures"].append(f"specialist_gate row sums drift: {row_sum_error}")
+        if len(gate_frame) < len(_timestamp_ns_set(entry_times)):
+            diagnostics["failures"].append("specialist_gate rows do not cover all requested entry times")
+        diagnostics["ready"] = not diagnostics["failures"]
+        return gate_frame, diagnostics
+    except Exception as exc:
+        diagnostics["failures"].append(f"{type(exc).__name__}: {exc}")
+        return pd.DataFrame(columns=["time", *output_fields]), diagnostics
 
 
 def _candidate_bundle_dir(comparison: dict[str, Any]) -> str:
@@ -278,6 +673,7 @@ def _build_trade_rows(
     bars: pd.DataFrame,
     candidate_bundle_dir: str,
     replay_identity_hash: str,
+    entry_alignment_fields: tuple[str, ...],
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     side = str(trade["side"]).upper()
     entry = _side_entry_price(trade)
@@ -307,45 +703,46 @@ def _build_trade_rows(
         running_pnl = _pnl_bps(exit_close, entry, side)
         mfe = float(max(0.0, running_mfe.iloc[bar_index]))
         mae = float(max(0.0, running_mae.iloc[bar_index]))
-        rows.append(
-            {
-                "entry_trade_id": entry_trade_id,
-                "bar_ts": bar["time"].isoformat(),
-                "bar_index": int(bar_index),
-                "side": side,
-                "action_set": "HOLD,EXIT_NOW",
-                "running_pnl_bps": float(running_pnl),
-                "running_mfe_bps": mfe,
-                "running_mae_bps": mae,
-                "running_giveback_bps": float(max(0.0, mfe - running_pnl)),
-                "bars_held": int(bar_index),
-                "session": str(trade.get("session") or trade.get("state_session") or "UNKNOWN").upper(),
-                "vol_regime": str(trade.get("vol_regime") or trade.get("state_vol_regime") or "UNKNOWN"),
-                "spread_bps": float(bar.get("spread_bps", np.nan))
-                if pd.notna(bar.get("spread_bps", np.nan))
-                else float(((bar["ask_close"] - bar["bid_close"]) / max(1e-9, bar["close"])) * 10000.0),
-                "atr_bps": float(bar.get("atr_bps", np.nan)) if pd.notna(bar.get("atr_bps", np.nan)) else np.nan,
-                "bar_price_source": str(bar.get("price_source") or ""),
-                "bar_price_source_path": str(bar.get("price_source_path") or ""),
-                "entry_score": float(trade.get("score", np.nan)),
-                "entry_p_long": float(trade.get("p_long", np.nan)),
-                "entry_p_short": float(trade.get("p_short", np.nan)),
-                "entry_p_flat": float(trade.get("p_flat", np.nan)),
-                "entry_path_quality_pred": float(trade.get("path_quality_pred", np.nan)),
-                "entry_bad_path_prob": float(trade.get("bad_path_prob", np.nan)),
-                "entry_candidate_bundle_dir": candidate_bundle_dir,
-                "entry_iql_policy_id": str(trade.get("policy_id") or ""),
-                "entry_replay_identity_hash": replay_identity_hash,
-                "entry_time": pd.Timestamp(trade["entry_time"]).isoformat(),
-                "exit_time": pd.Timestamp(trade["exit_time"]).isoformat(),
-                "realized_net_pnl_bps": float(trade.get("net_pnl_bps", np.nan)),
-                "realized_gross_pnl_bps": float(trade.get("gross_pnl_bps", np.nan)),
-                "realized_mfe_bps": float(trade.get("mfe_bps", np.nan)),
-                "realized_mae_bps": float(trade.get("mae_bps", np.nan)),
-                "realized_exit_reason": str(trade.get("exit_reason") or ""),
-                "is_realized_exit_bar": bool(bar_index == max(0, len(bars) - 1)),
-            }
-        )
+        row = {
+            "entry_trade_id": entry_trade_id,
+            "bar_ts": bar["time"].isoformat(),
+            "bar_index": int(bar_index),
+            "side": side,
+            "action_set": "HOLD,EXIT_NOW",
+            "running_pnl_bps": float(running_pnl),
+            "running_mfe_bps": mfe,
+            "running_mae_bps": mae,
+            "running_giveback_bps": float(max(0.0, mfe - running_pnl)),
+            "bars_held": int(bar_index),
+            "session": str(trade.get("session") or trade.get("state_session") or "UNKNOWN").upper(),
+            "vol_regime": str(trade.get("vol_regime") or trade.get("state_vol_regime") or "UNKNOWN"),
+            "spread_bps": float(bar.get("spread_bps", np.nan))
+            if pd.notna(bar.get("spread_bps", np.nan))
+            else float(((bar["ask_close"] - bar["bid_close"]) / max(1e-9, bar["close"])) * 10000.0),
+            "atr_bps": float(bar.get("atr_bps", np.nan)) if pd.notna(bar.get("atr_bps", np.nan)) else np.nan,
+            "bar_price_source": str(bar.get("price_source") or ""),
+            "bar_price_source_path": str(bar.get("price_source_path") or ""),
+            "entry_score": float(trade.get("score", np.nan)),
+            "entry_p_long": float(trade.get("p_long", np.nan)),
+            "entry_p_short": float(trade.get("p_short", np.nan)),
+            "entry_p_flat": float(trade.get("p_flat", np.nan)),
+            "entry_path_quality_pred": float(trade.get("path_quality_pred", np.nan)),
+            "entry_bad_path_prob": float(trade.get("bad_path_prob", np.nan)),
+            "entry_candidate_bundle_dir": candidate_bundle_dir,
+            "entry_iql_policy_id": str(trade.get("policy_id") or ""),
+            "entry_replay_identity_hash": replay_identity_hash,
+            "entry_time": pd.Timestamp(trade["entry_time"]).isoformat(),
+            "exit_time": pd.Timestamp(trade["exit_time"]).isoformat(),
+            "realized_net_pnl_bps": float(trade.get("net_pnl_bps", np.nan)),
+            "realized_gross_pnl_bps": float(trade.get("gross_pnl_bps", np.nan)),
+            "realized_mfe_bps": float(trade.get("mfe_bps", np.nan)),
+            "realized_mae_bps": float(trade.get("mae_bps", np.nan)),
+            "realized_exit_reason": str(trade.get("exit_reason") or ""),
+            "is_realized_exit_bar": bool(bar_index == max(0, len(bars) - 1)),
+        }
+        for field in entry_alignment_fields:
+            row[field] = _float_or_nan(trade.get(field, np.nan))
+        rows.append(row)
     diag = {
         "entry_trade_id": entry_trade_id,
         "expected_bar_count": expected,
@@ -407,8 +804,51 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     trades["exit_time"] = pd.to_datetime(trades["exit_time"], utc=True)
     start = trades["entry_time"].min()
     end = trades["exit_time"].max()
-    prices, price_diagnostics = _load_prices(price_path, str(args.supplemental_m1_glob), start, end)
+    foundation_dataset_dir = (
+        Path(getattr(args, "foundation_dataset_dir", DEFAULT_FOUNDATION_DATASET_DIR))
+        .expanduser()
+        .resolve()
+    )
+    entry_alignment_snapshots, entry_alignment_diagnostics = _load_entry_alignment_snapshots(foundation_dataset_dir, start, end)
+    entry_snapshot_alignment_fields = tuple(str(field) for field in entry_alignment_diagnostics.get("output_fields") or [])
+    if not entry_alignment_snapshots.empty:
+        trades = trades.merge(
+            entry_alignment_snapshots.rename(columns={"time": "entry_time"}),
+            on="entry_time",
+            how="left",
+            validate="many_to_one",
+        )
+    else:
+        for field in entry_snapshot_alignment_fields:
+            trades[field] = np.nan
     candidate_bundle_dir = _candidate_bundle_dir(comparison)
+    entry_specialist_gate_outputs, entry_specialist_gate_diagnostics = _extract_entry_specialist_gate_outputs(
+        dataset_dir=foundation_dataset_dir,
+        entry_times=trades["entry_time"],
+        start=start,
+        end=end,
+        out_dir=out_dir,
+        bundle_dir=candidate_bundle_dir,
+        m5_prebuilt_path=Path(getattr(args, "entry_m5_prebuilt_path", DEFAULT_ENTRY_M5_PREBUILT)).expanduser().resolve(),
+        multi_tf_cache_dir=Path(getattr(args, "entry_multi_tf_cache_dir", DEFAULT_ENTRY_MTF_CACHE_DIR)).expanduser().resolve(),
+        batch_size=int(getattr(args, "entry_specialist_gate_batch_size", 32)),
+        required=bool(getattr(args, "require_entry_specialist_gates", True)),
+    )
+    entry_specialist_gate_fields = tuple(str(field) for field in entry_specialist_gate_diagnostics.get("output_fields") or [])
+    if not entry_specialist_gate_outputs.empty:
+        trades = trades.merge(
+            entry_specialist_gate_outputs.rename(columns={"time": "entry_time"}),
+            on="entry_time",
+            how="left",
+            validate="many_to_one",
+        )
+    else:
+        for field in entry_specialist_gate_fields:
+            trades[field] = np.nan
+    entry_alignment_fields = tuple(
+        dict.fromkeys([*entry_snapshot_alignment_fields, *entry_specialist_gate_fields])
+    )
+    prices, price_diagnostics = _load_prices(price_path, str(args.supplemental_m1_glob), start, end)
     replay_identity_hash = hashlib.sha256(
         (
             _sha256_file(trade_log_path)
@@ -420,6 +860,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     rows: list[dict[str, Any]] = []
     diagnostics: list[dict[str, Any]] = []
     excluded_trades: list[dict[str, Any]] = []
+    included_source_indices: list[int] = []
     for trade_idx, trade in trades.iterrows():
         mask = (prices["time"] >= trade["entry_time"]) & (prices["time"] <= trade["exit_time"])
         trade_bars = prices.loc[mask].copy()
@@ -429,9 +870,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             bars=trade_bars,
             candidate_bundle_dir=candidate_bundle_dir,
             replay_identity_hash=replay_identity_hash,
+            entry_alignment_fields=entry_alignment_fields,
         )
+        diag["source_trade_index"] = int(trade_idx)
         diagnostics.append(diag)
         if bool(diag.get("coverage_ready")):
+            included_source_indices.append(int(trade_idx))
             rows.extend(trade_rows)
         else:
             reasons: list[str] = []
@@ -465,6 +909,30 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     covered_trade_ratio = float(included_trade_count / source_trade_count) if source_trade_count else 0.0
     min_covered_trade_ratio = float(getattr(args, "min_covered_trade_ratio", 0.95))
     min_covered_trades = int(getattr(args, "min_covered_trades", 100))
+    included_alignment = (
+        trades.loc[included_source_indices, list(entry_alignment_fields)]
+        if entry_alignment_fields and included_source_indices
+        else pd.DataFrame()
+    )
+    entry_alignment_missing_field_counts = (
+        {field: int(included_alignment[field].isna().sum()) for field in entry_alignment_fields}
+        if not included_alignment.empty
+        else {field: 0 for field in entry_alignment_fields}
+    )
+    entry_alignment_missing_included_trade_count = (
+        int(included_alignment.isna().any(axis=1).sum())
+        if not included_alignment.empty
+        else (included_trade_count if not entry_alignment_fields else 0)
+    )
+    entry_alignment_missing_trade_examples = (
+        trades.loc[included_source_indices, ["entry_time", *list(entry_alignment_fields)]]
+        .loc[lambda frame: frame[list(entry_alignment_fields)].isna().any(axis=1)]
+        .head(20)
+        .assign(entry_time=lambda frame: frame["entry_time"].astype(str))
+        .to_dict(orient="records")
+        if entry_alignment_fields and included_source_indices
+        else []
+    )
     dataset_csv = out_dir / "entry_exit_per_bar_handoff.csv"
     diagnostics_csv = out_dir / "entry_exit_per_bar_handoff_trade_coverage.csv"
     exclusions_csv = out_dir / "entry_exit_per_bar_handoff_gap_exclusions.csv"
@@ -508,6 +976,31 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             },
         ),
         _check("per-bar dataset has required Exit substrate fields", not missing_fields, {"missing_fields": missing_fields, "required_fields": list(REQUIRED_EXIT_SUBSTRATE_FIELDS)}),
+        _check(
+            "Entry foundation snapshot alignment contract is ready",
+            bool((entry_alignment_diagnostics.get("contract") or {}).get("ready")),
+            entry_alignment_diagnostics.get("contract") or {},
+        ),
+        _check(
+            "Entry specialist gate outputs are extracted from candidate bundle",
+            bool(entry_specialist_gate_diagnostics.get("ready")),
+            entry_specialist_gate_diagnostics,
+        ),
+        _check(
+            "Entry alignment fields cover included trades",
+            bool(entry_alignment_fields)
+            and entry_alignment_missing_included_trade_count == 0
+            and set(entry_alignment_fields).issubset(set(dataset.columns)),
+            {
+                "foundation_dataset_dir": str(foundation_dataset_dir),
+                "snapshot_rows": entry_alignment_diagnostics.get("snapshot_rows"),
+                "entry_alignment_field_count": len(entry_alignment_fields),
+                "included_trade_count": included_trade_count,
+                "missing_included_trade_count": entry_alignment_missing_included_trade_count,
+                "missing_field_counts": entry_alignment_missing_field_counts,
+                "missing_trade_examples": entry_alignment_missing_trade_examples,
+            },
+        ),
         _check("materializer never trains, replays, builds adapters, promotes, shadows, or starts live", True, {"trainer_started": False, "replay_started": False, "adapter_built": False, "exit_training_allowed": False, "exit_iql_allowed": False, "promotion_shadow_live_allowed": False}),
     ]
     failures = [{"check": check["name"], "details": check.get("details") or {}} for check in checks if not check["ok"]]
@@ -526,6 +1019,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "m5_price_parquet_sha256": _sha256_file(price_path),
         "supplemental_m1_glob": str(args.supplemental_m1_glob),
         "price_diagnostics": price_diagnostics,
+        "entry_alignment_diagnostics": entry_alignment_diagnostics,
+        "entry_snapshot_alignment_output_fields": list(entry_snapshot_alignment_fields),
+        "entry_specialist_gate_diagnostics": entry_specialist_gate_diagnostics,
+        "entry_specialist_gate_output_fields": list(entry_specialist_gate_fields),
+        "entry_alignment_output_fields": list(entry_alignment_fields),
+        "entry_alignment_snapshot_rows": int(entry_alignment_diagnostics.get("snapshot_rows") or 0),
+        "entry_alignment_missing_included_trade_count": entry_alignment_missing_included_trade_count,
+        "entry_alignment_missing_field_counts": entry_alignment_missing_field_counts,
+        "entry_alignment_missing_trade_examples": entry_alignment_missing_trade_examples,
         "iql_comparison_json": str(comparison_path),
         "iql_slice_audit_json": str(slice_audit_path),
         "candidate_bundle_dir": candidate_bundle_dir,
@@ -600,6 +1102,11 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--supplemental-m1-glob", default=DEFAULT_SUPPLEMENTAL_M1_GLOB)
     ap.add_argument("--iql-comparison-json", default=str(DEFAULT_IQL_COMPARISON_JSON))
     ap.add_argument("--iql-slice-audit-json", default=str(DEFAULT_IQL_SLICE_AUDIT_JSON))
+    ap.add_argument("--foundation-dataset-dir", default=str(DEFAULT_FOUNDATION_DATASET_DIR))
+    ap.add_argument("--entry-m5-prebuilt-path", default=str(DEFAULT_ENTRY_M5_PREBUILT))
+    ap.add_argument("--entry-multi-tf-cache-dir", default=str(DEFAULT_ENTRY_MTF_CACHE_DIR))
+    ap.add_argument("--entry-specialist-gate-batch-size", type=int, default=32)
+    ap.add_argument("--require-entry-specialist-gates", action=argparse.BooleanOptionalAction, default=True)
     ap.add_argument("--out-dir", default=str(DEFAULT_OUT_DIR))
     ap.add_argument("--min-covered-trade-ratio", type=float, default=0.95)
     ap.add_argument("--min-covered-trades", type=int, default=100)

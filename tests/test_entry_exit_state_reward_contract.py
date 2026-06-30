@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from gx1.scripts.materialize_entry_exit_state_reward_contract_v1 import run
+from gx1.scripts.materialize_entry_exit_state_reward_contract_v1 import ENTRY_ALIGNMENT_STATE_FEATURES, run
 
 
 def _dataset() -> pd.DataFrame:
@@ -15,43 +15,44 @@ def _dataset() -> pd.DataFrame:
         trade_id = f"entry_iql_student:{trade_idx}:{entry_time.isoformat()}:{side}"
         for bar_index in range(3):
             bar_ts = entry_time + pd.Timedelta(minutes=5 * bar_index)
-            rows.append(
-                {
-                    "entry_trade_id": trade_id,
-                    "bar_ts": bar_ts.isoformat(),
-                    "bar_index": bar_index,
-                    "side": side,
-                    "action_set": "HOLD,EXIT_NOW",
-                    "running_pnl_bps": 10.0 + bar_index,
-                    "running_mfe_bps": 20.0 + bar_index,
-                    "running_mae_bps": 2.0 + bar_index,
-                    "running_giveback_bps": 1.0,
-                    "bars_held": bar_index,
-                    "session": "EU" if trade_idx == 0 else "US",
-                    "vol_regime": "4" if trade_idx == 0 else "5",
-                    "spread_bps": 1.2,
-                    "atr_bps": 5.0 + bar_index + trade_idx,
-                    "bar_price_source": "canonical_m5",
-                    "bar_price_source_path": "/prices.parquet",
-                    "entry_score": 0.9,
-                    "entry_p_long": 0.8 if side == "LONG" else 0.1,
-                    "entry_p_short": 0.1 if side == "LONG" else 0.8,
-                    "entry_p_flat": 0.1,
-                    "entry_path_quality_pred": 1.2,
-                    "entry_bad_path_prob": 0.2,
-                    "entry_candidate_bundle_dir": "/candidate",
-                    "entry_iql_policy_id": "entry_iql_student",
-                    "entry_replay_identity_hash": "hash123",
-                    "entry_time": entry_time.isoformat(),
-                    "exit_time": exit_time.isoformat(),
-                    "realized_net_pnl_bps": 25.0,
-                    "realized_gross_pnl_bps": 26.0,
-                    "realized_mfe_bps": 40.0,
-                    "realized_mae_bps": 5.0,
-                    "realized_exit_reason": "tp",
-                    "is_realized_exit_bar": bar_index == 2,
-                }
-            )
+            row = {
+                "entry_trade_id": trade_id,
+                "bar_ts": bar_ts.isoformat(),
+                "bar_index": bar_index,
+                "side": side,
+                "action_set": "HOLD,EXIT_NOW",
+                "running_pnl_bps": 10.0 + bar_index,
+                "running_mfe_bps": 20.0 + bar_index,
+                "running_mae_bps": 2.0 + bar_index,
+                "running_giveback_bps": 1.0,
+                "bars_held": bar_index,
+                "session": "EU" if trade_idx == 0 else "US",
+                "vol_regime": "4" if trade_idx == 0 else "5",
+                "spread_bps": 1.2,
+                "atr_bps": 5.0 + bar_index + trade_idx,
+                "bar_price_source": "canonical_m5",
+                "bar_price_source_path": "/prices.parquet",
+                "entry_score": 0.9,
+                "entry_p_long": 0.8 if side == "LONG" else 0.1,
+                "entry_p_short": 0.1 if side == "LONG" else 0.8,
+                "entry_p_flat": 0.1,
+                "entry_path_quality_pred": 1.2,
+                "entry_bad_path_prob": 0.2,
+                "entry_candidate_bundle_dir": "/candidate",
+                "entry_iql_policy_id": "entry_iql_student",
+                "entry_replay_identity_hash": "hash123",
+                "entry_time": entry_time.isoformat(),
+                "exit_time": exit_time.isoformat(),
+                "realized_net_pnl_bps": 25.0,
+                "realized_gross_pnl_bps": 26.0,
+                "realized_mfe_bps": 40.0,
+                "realized_mae_bps": 5.0,
+                "realized_exit_reason": "tp",
+                "is_realized_exit_bar": bar_index == 2,
+            }
+            for pos, field in enumerate(ENTRY_ALIGNMENT_STATE_FEATURES):
+                row[field] = float(pos + bar_index + trade_idx + 1)
+            rows.append(row)
     return pd.DataFrame(rows)
 
 

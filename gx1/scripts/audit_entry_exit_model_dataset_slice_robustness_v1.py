@@ -87,20 +87,38 @@ def _load_shards(report: dict[str, Any]) -> dict[str, pd.DataFrame]:
     }
 
 
-def _feature_liveness(frame: pd.DataFrame, numeric: list[str], categorical: list[str]) -> dict[str, Any]:
+def _feature_liveness(
+    frame: pd.DataFrame,
+    numeric: list[str],
+    categorical: list[str],
+    *,
+    split: str,
+    train_numeric_live_fields: set[str] | None = None,
+) -> dict[str, Any]:
     numeric_rows: list[dict[str, Any]] = []
     categorical_rows: list[dict[str, Any]] = []
     for field in numeric:
         values = pd.to_numeric(frame[field], errors="coerce") if field in frame else pd.Series(dtype=float)
         finite = values.replace([np.inf, -np.inf], np.nan).dropna()
+        finite_all = bool(field in frame and len(finite) == len(frame) and len(finite) > 0)
+        std = float(finite.std(ddof=0)) if len(finite) else None
+        live = bool(finite_all and std is not None and std > 1e-9)
+        train_live = bool(train_numeric_live_fields is not None and field in train_numeric_live_fields)
+        weak_nontrain_constant = bool(split != "train" and finite_all and not live and train_live)
+        ready = bool(finite_all and (live or weak_nontrain_constant))
         numeric_rows.append(
             {
                 "field": field,
                 "present": field in frame,
                 "finite_count": int(len(finite)),
                 "finite_ratio": float(len(finite) / max(len(frame), 1)),
-                "std": float(finite.std(ddof=0)) if len(finite) else None,
-                "live": bool(field in frame and len(finite) == len(frame) and len(finite) > 0 and float(finite.std(ddof=0)) > 1e-9),
+                "std": std,
+                "finite_all": finite_all,
+                "constant": bool(finite_all and not live),
+                "live": live,
+                "train_live": train_live if split != "train" else live,
+                "weak_nontrain_constant_disclosure": weak_nontrain_constant,
+                "ready": ready,
             }
         )
     for field in categorical:
@@ -118,11 +136,21 @@ def _feature_liveness(frame: pd.DataFrame, numeric: list[str], categorical: list
         "numeric": numeric_rows,
         "categorical": categorical_rows,
         "all_numeric_finite_and_live": all(row["live"] for row in numeric_rows),
+        "all_numeric_ready": all(row["ready"] for row in numeric_rows),
+        "weak_numeric_feature_count": int(sum(1 for row in numeric_rows if row["weak_nontrain_constant_disclosure"])),
+        "weak_numeric_features": [row for row in numeric_rows if row["weak_nontrain_constant_disclosure"]],
         "all_categorical_present": all(row["present"] for row in categorical_rows),
     }
 
 
-def _split_review(split: str, frame: pd.DataFrame, numeric: list[str], categorical: list[str]) -> dict[str, Any]:
+def _split_review(
+    split: str,
+    frame: pd.DataFrame,
+    numeric: list[str],
+    categorical: list[str],
+    *,
+    train_numeric_live_fields: set[str] | None = None,
+) -> dict[str, Any]:
     exit_now = _bool_series(frame["exit_now_label"]) if "exit_now_label" in frame else pd.Series(dtype=bool)
     terminal = _bool_series(frame["is_terminal_transition"]) if "is_terminal_transition" in frame else pd.Series(dtype=bool)
     reward_finite: dict[str, bool] = {}
@@ -132,7 +160,13 @@ def _split_review(split: str, frame: pd.DataFrame, numeric: list[str], categoric
             continue
         values = pd.to_numeric(frame[field], errors="coerce").replace([np.inf, -np.inf], np.nan)
         reward_finite[field] = bool(values.notna().all())
-    feature_liveness = _feature_liveness(frame, numeric, categorical)
+    feature_liveness = _feature_liveness(
+        frame,
+        numeric,
+        categorical,
+        split=split,
+        train_numeric_live_fields=train_numeric_live_fields,
+    )
     return {
         "split": split,
         "rows": int(len(frame)),
@@ -149,7 +183,7 @@ def _split_review(split: str, frame: pd.DataFrame, numeric: list[str], categoric
             and int((~exit_now).sum()) > 0
             and int(terminal.sum()) == int(frame["exit_episode_id"].nunique())
             and all(reward_finite.values())
-            and feature_liveness["all_numeric_finite_and_live"]
+            and feature_liveness["all_numeric_ready"]
             and feature_liveness["all_categorical_present"]
         ),
     }
@@ -202,12 +236,40 @@ def _slice_review(shards: dict[str, pd.DataFrame]) -> dict[str, Any]:
     }
 
 
+def _feature_liveness_review(split_reviews: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    weak_rows: list[dict[str, Any]] = []
+    blocking_rows: list[dict[str, Any]] = []
+    strict_dead_rows: list[dict[str, Any]] = []
+    for split, review in split_reviews.items():
+        liveness = review.get("feature_liveness") if isinstance(review.get("feature_liveness"), dict) else {}
+        for row in liveness.get("numeric") or []:
+            if not isinstance(row, dict):
+                continue
+            if row.get("weak_nontrain_constant_disclosure"):
+                weak_rows.append({"split": split, **row})
+            if not row.get("live"):
+                strict_dead_rows.append({"split": split, **row})
+            if not row.get("ready"):
+                blocking_rows.append({"split": split, **row})
+    return {
+        "all_numeric_finite_and_live_strict": bool(not strict_dead_rows),
+        "all_numeric_ready": bool(not blocking_rows),
+        "weak_numeric_feature_count": int(len(weak_rows)),
+        "weak_numeric_features": weak_rows,
+        "blocking_numeric_feature_count": int(len(blocking_rows)),
+        "blocking_numeric_features": blocking_rows,
+        "strict_nonlive_numeric_feature_count": int(len(strict_dead_rows)),
+        "strict_nonlive_numeric_features": strict_dead_rows,
+    }
+
+
 def _write_markdown(path: Path, report: dict[str, Any]) -> None:
     lines = [
         "# Entry Exit Model Dataset Slice Robustness",
         "",
         f"- Decision: `{report['decision']}`",
         f"- Weak slice count: `{report['slice_review']['weak_slice_count']}`",
+        f"- Weak numeric feature disclosures: `{report['feature_liveness_review']['weak_numeric_feature_count']}`",
         f"- Unsupported slice count: `{report['slice_review']['unsupported_slice_count']}`",
         f"- Exit training allowed: `{report['exit_training_allowed']}`",
         f"- Next required gate: `{report['next_required_gate']}`",
@@ -234,10 +296,28 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     numeric = list(schema.get("numeric_state_features") or [])
     categorical = list(schema.get("categorical_state_features") or [])
     shards = _load_shards(model_dataset)
+    train_liveness = _feature_liveness(
+        shards["train"],
+        numeric,
+        categorical,
+        split="train",
+    ) if "train" in shards else {"numeric": []}
+    train_numeric_live_fields = {
+        str(row.get("field"))
+        for row in train_liveness.get("numeric", [])
+        if isinstance(row, dict) and row.get("live")
+    }
     split_reviews = {
-        split: _split_review(split, frame, numeric, categorical)
+        split: _split_review(
+            split,
+            frame,
+            numeric,
+            categorical,
+            train_numeric_live_fields=train_numeric_live_fields,
+        )
         for split, frame in shards.items()
     }
+    feature_liveness_review = _feature_liveness_review(split_reviews)
     slice_review = _slice_review(shards)
     required_splits = {"train", "val", "test"}
     checks = [
@@ -284,6 +364,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "pretrain_manifest_json": str(pretrain_manifest_json),
         "pretrain_manifest_json_sha256": _sha256_file(pretrain_manifest_json) if pretrain_manifest_json.exists() else "",
         "split_reviews": split_reviews,
+        "feature_liveness_review": feature_liveness_review,
         "slice_review": slice_review,
         "checks": checks,
         "failures": failures,

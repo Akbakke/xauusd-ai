@@ -18,6 +18,12 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from gx1.scripts.materialize_entry_exit_per_bar_handoff_v1 import (
+    ENTRY_ALIGNMENT_CTX_CONT_FEATURES,
+    ENTRY_ALIGNMENT_SNAP_FEATURES,
+    SPECIALIST_GATE_OUTPUT_FIELDS,
+    _safe_feature_field,
+)
 from gx1.scripts.verify_entry_foundation_state_v1 import REPORTS_ROOT
 
 
@@ -32,6 +38,13 @@ READY_DECISION = "ENTRY_EXIT_STATE_REWARD_CONTRACT_READY"
 BLOCKED_DECISION = "BLOCKED_BY_EXIT_STATE_REWARD_CONTRACT"
 
 ACTION_ID = {"HOLD": 0, "EXIT_NOW": 1}
+ENTRY_ALIGNMENT_STATE_FEATURES = tuple(
+    [
+        *(_safe_feature_field("entry_snap", field) for field in ENTRY_ALIGNMENT_SNAP_FEATURES),
+        *(_safe_feature_field("entry_ctx", field) for field in ENTRY_ALIGNMENT_CTX_CONT_FEATURES),
+        *SPECIALIST_GATE_OUTPUT_FIELDS.values(),
+    ]
+)
 STATE_FEATURES = (
     "running_pnl_bps",
     "running_mfe_bps",
@@ -49,6 +62,7 @@ STATE_FEATURES = (
     "entry_p_flat",
     "entry_path_quality_pred",
     "entry_bad_path_prob",
+    *ENTRY_ALIGNMENT_STATE_FEATURES,
 )
 NUMERIC_STATE_FEATURES = (
     "running_pnl_bps",
@@ -64,6 +78,7 @@ NUMERIC_STATE_FEATURES = (
     "entry_p_flat",
     "entry_path_quality_pred",
     "entry_bad_path_prob",
+    *ENTRY_ALIGNMENT_STATE_FEATURES,
 )
 STATE_PROVENANCE_FIELDS = (
     "entry_trade_id",

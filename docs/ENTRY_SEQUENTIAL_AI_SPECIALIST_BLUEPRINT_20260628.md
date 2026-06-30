@@ -82,8 +82,9 @@ Machine contract:
   - Audits whether the Exit model state carries Entry policy context plus the
     required HH/SMC/liquidity, trend/EMA, compression/expansion, momentum/flow,
     multi-timeframe and specialist-gate mechanism families. It is fail-closed:
-    the current Exit state is blocked until those Entry snapshot families are
-    materialized as model state, not just broad score/probability fields.
+    the active Exit state is ready only when those Entry snapshot families and
+    exact specialist-gate outputs are materialized as model state, not just
+    broad score/probability fields.
 - Active Exit Transformer architecture/readiness:
   `gx1/scripts/audit_entry_exit_transformer_architecture_readiness_v1.py`
   - Locks the active `exit_sequence_transformer_v1` architecture contract
@@ -117,7 +118,9 @@ Machine contract:
 - Active Exit model dataset slice robustness:
   `gx1/scripts/audit_entry_exit_model_dataset_slice_robustness_v1.py`
   - Audits train/val/test label, reward and state-feature liveness plus
-    session/regime/side slices. It discloses weak slices explicitly so
+    session/regime/side slices. Train numeric state features must be finite and
+    live. Finite but constant non-train context fields are disclosed separately
+    only when train is live. It discloses weak slices explicitly so
     train-execution review cannot hide sparse side/session/regime behavior
     behind broad averages.
 - Active Exit Transformer train-execution review:

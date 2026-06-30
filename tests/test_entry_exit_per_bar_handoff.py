@@ -5,7 +5,41 @@ from pathlib import Path
 import pandas as pd
 
 from gx1.scripts.audit_entry_exit_handoff_readiness_v1 import REQUIRED_EXIT_SUBSTRATE_FIELDS
-from gx1.scripts.materialize_entry_exit_per_bar_handoff_v1 import run
+from gx1.scripts.materialize_entry_exit_per_bar_handoff_v1 import (
+    ENTRY_ALIGNMENT_CTX_CONT_FEATURES,
+    ENTRY_ALIGNMENT_SNAP_FEATURES,
+    run,
+)
+
+
+def _write_foundation_dataset(tmp_path: Path, times: list[str]) -> Path:
+    root = tmp_path / "foundation"
+    root.mkdir(parents=True)
+    manifest = {
+        "extra": {
+            "signal_bridge": {"snap_fields": list(ENTRY_ALIGNMENT_SNAP_FEATURES)},
+            "ctx_contract": {"ctx_cont_names": list(ENTRY_ALIGNMENT_CTX_CONT_FEATURES)},
+        },
+        "ts_min_max_by_split": {
+            "test": {
+                "min": min(times),
+                "max": max(times),
+            }
+        },
+    }
+    (root / "fixture_train.manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    rows = []
+    for raw in times:
+        ts = pd.Timestamp(raw)
+        rows.append(
+            {
+                "time": ts.tz_localize("UTC") if ts.tzinfo is None else ts.tz_convert("UTC"),
+                "snap": [float(idx + 1) for idx, _ in enumerate(ENTRY_ALIGNMENT_SNAP_FEATURES)],
+                "ctx_cont": [float(idx + 101) for idx, _ in enumerate(ENTRY_ALIGNMENT_CTX_CONT_FEATURES)],
+            }
+        )
+    pd.DataFrame(rows).to_parquet(root / "fixture_test.parquet", index=False)
+    return root
 
 
 def test_entry_exit_per_bar_handoff_materializes_required_fields(tmp_path: Path) -> None:
@@ -107,6 +141,7 @@ def test_entry_exit_per_bar_handoff_materializes_required_fields(tmp_path: Path)
     )
     slice_audit = tmp_path / "slice.json"
     slice_audit.write_text(json.dumps({"decision": "PASS"}) + "\n", encoding="utf-8")
+    foundation_dataset = _write_foundation_dataset(tmp_path, ["2026-01-01 00:00:00+00:00"])
 
     report = run(
         argparse.Namespace(
@@ -115,6 +150,8 @@ def test_entry_exit_per_bar_handoff_materializes_required_fields(tmp_path: Path)
             supplemental_m1_glob=str(tmp_path / "none_*.parquet"),
             iql_comparison_json=str(comparison),
             iql_slice_audit_json=str(slice_audit),
+            foundation_dataset_dir=str(foundation_dataset),
+            require_entry_specialist_gates=False,
             out_dir=str(tmp_path / "out"),
             min_covered_trade_ratio=0.95,
             min_covered_trades=1,
@@ -128,6 +165,8 @@ def test_entry_exit_per_bar_handoff_materializes_required_fields(tmp_path: Path)
     assert report["complete_trade_count"] == 1
     dataset = pd.read_csv(report["dataset_csv"])
     assert set(REQUIRED_EXIT_SUBSTRATE_FIELDS).issubset(dataset.columns)
+    assert "entry_snap_chart_foundation_hh_state" in dataset.columns
+    assert report["entry_alignment_missing_included_trade_count"] == 0
     assert dataset.iloc[-1]["running_pnl_bps"] > 190.0
     assert dataset.iloc[-1]["running_mfe_bps"] > 290.0
     assert report["exit_training_allowed"] is False
@@ -219,6 +258,7 @@ def test_entry_exit_per_bar_handoff_uses_hashed_m1_supplement_for_missing_m5_bar
     )
     slice_audit = tmp_path / "slice.json"
     slice_audit.write_text(json.dumps({"decision": "PASS"}) + "\n", encoding="utf-8")
+    foundation_dataset = _write_foundation_dataset(tmp_path, ["2026-01-01 00:00:00+00:00"])
 
     report = run(
         argparse.Namespace(
@@ -227,6 +267,8 @@ def test_entry_exit_per_bar_handoff_uses_hashed_m1_supplement_for_missing_m5_bar
             supplemental_m1_glob=str(tmp_path / "xauusd_m1_*.parquet"),
             iql_comparison_json=str(comparison),
             iql_slice_audit_json=str(slice_audit),
+            foundation_dataset_dir=str(foundation_dataset),
+            require_entry_specialist_gates=False,
             out_dir=str(tmp_path / "out"),
             min_covered_trade_ratio=0.95,
             min_covered_trades=1,
@@ -339,6 +381,7 @@ def test_entry_exit_per_bar_handoff_excludes_non_contiguous_trade_bars(tmp_path:
     )
     slice_audit = tmp_path / "slice.json"
     slice_audit.write_text(json.dumps({"decision": "PASS"}) + "\n", encoding="utf-8")
+    foundation_dataset = _write_foundation_dataset(tmp_path, ["2026-01-01 00:00:00+00:00"])
 
     report = run(
         argparse.Namespace(
@@ -347,6 +390,8 @@ def test_entry_exit_per_bar_handoff_excludes_non_contiguous_trade_bars(tmp_path:
             supplemental_m1_glob=str(tmp_path / "none_*.parquet"),
             iql_comparison_json=str(comparison),
             iql_slice_audit_json=str(slice_audit),
+            foundation_dataset_dir=str(foundation_dataset),
+            require_entry_specialist_gates=False,
             out_dir=str(tmp_path / "out"),
             min_covered_trade_ratio=0.0,
             min_covered_trades=0,

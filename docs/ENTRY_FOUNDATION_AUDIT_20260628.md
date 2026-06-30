@@ -4,17 +4,15 @@ Status: active seq146 foundation is activated and post-apply refreshed. Entry
 smoke/candidate/IQL evidence is available, but shadow/live/promotion remain
 closed. Exit-side work is now in report-only foundation mode: active
 Entry-bound per-bar reconstruction, state/reward contract and split/leakage
-audit are ready; Exit Transformer/IQL training remains closed until explicit
-Exit architecture, training and replay evidence gates are added and pass. The
-active Exit model dataset/readiness gate is also ready, with train-only
-normalization metadata and train/val/test shards. The active Entry-to-Exit
-feature alignment audit is now fail-closed because the current Exit state
-carries Entry policy context, path state, session/regime and cost fields, but
-does not yet carry HH/SMC/trend/momentum/MTF/specialist-gate mechanism fields
-as model state. Downstream Exit Transformer architecture, training-plan,
+audit are ready. The active Exit model dataset/readiness gate is ready, with
+train-only normalization metadata and train/val/test shards. The active
+Entry-to-Exit feature alignment audit is also ready after carrying Entry
+HH/SMC/trend/momentum/MTF mechanism fields plus exact specialist-gate outputs
+into Exit model state. Downstream Exit Transformer architecture, training-plan,
 wrapper, pretrain-manifest, slice robustness, train-execution review and
-post-train audit contract reports remain diagnostic until this alignment gap is
-repaired. No Exit trainer is approved or allowed.
+post-train audit contract reports are ready in report-only mode. Exit
+Transformer/IQL training remains closed until a separate explicit train
+enablement vedtak package is reviewed; no Exit trainer is approved or allowed.
 
 The original rule still applies: foundation pass required before any more Transformer training.
 
@@ -173,13 +171,13 @@ Active status:
 - Active Exit model dataset/readiness:
   `ENTRY_EXIT_MODEL_DATASET_READY_FOR_EXIT_TRANSFORMER_READINESS_REVIEW`.
 - Active Entry-to-Exit feature alignment:
-  `BLOCKED_BY_ENTRY_EXIT_FEATURE_ALIGNMENT`.
-  The audit proves the current Exit state has Entry score/probabilities,
-  path-quality and bad-path context plus path/session/regime/spread/ATR state,
-  but is missing HH/SMC/liquidity, trend/EMA, compression/expansion,
-  momentum/flow, multi-timeframe context and specialist-gate outputs as model
-  state. These fields must be carried from Entry snapshots into the per-bar
-  Exit substrate/state/model dataset before Exit Transformer training can open.
+  `ENTRY_EXIT_FEATURE_ALIGNMENT_READY_FOR_EXIT_TRANSFORMER_TRAINING_REVIEW`.
+  The active Exit state now carries Entry score/probabilities, path-quality,
+  bad-path context, path/session/regime/spread/ATR state, 43 Entry
+  snapshot/context mechanism fields and the exact six specialist-gate weights:
+  `structure_swing`, `smc_liquidity`, `trend_ema`, `vol_compression`,
+  `momentum_flow` and `session_regime`. Missing required alignment families:
+  zero.
 - Active Exit Transformer architecture/readiness:
   `ENTRY_EXIT_TRANSFORMER_ARCHITECTURE_READY_FOR_TRAINING_PLAN_REVIEW`.
 - Active Exit Transformer training plan/readiness:
@@ -208,7 +206,10 @@ Active status:
   The audit found zero unsupported session/regime/side slices and 20 weak
   slices that must be explicitly accounted for before any Exit train-execution
   review; examples include sparse long slices in EU/US/overlap and low-count
-  volatility-regime slices.
+  volatility-regime slices. Numeric feature liveness remains strict on train;
+  finite but constant val/test context fields are disclosed separately. The
+  current disclosure is `entry_ctx_d1_regime_class_id_v2` in val/test, with
+  train live and zero blocking numeric feature failures.
 - Active Exit Transformer train-execution review:
   `ENTRY_EXIT_TRANSFORMER_TRAIN_EXECUTION_REVIEW_READY_FOR_EXPLICIT_VEDTAK_PACKAGE`.
   It binds the active training plan, fail-closed wrapper, pretrain manifest,
@@ -227,11 +228,9 @@ Active status:
   MAE/drawdown, giveback risk and MFE capture. Replay, Exit-IQL, shadow, live
   and promotion remain blocked until a trained bundle later passes that audit.
 - Exit Transformer training, Exit IQL, shadow, live and promotion remain
-  closed. The next boundary is repairing Entry-to-Exit feature alignment; only
-  after that can an explicit Exit train-execution enablement vedtak package be
-  considered. That later package must account for weak slices, clean-git
-  checks, RAM guard and the active post-train audit contract before any Exit
-  trainer can run.
+  closed. The next boundary is an explicit Exit train-execution enablement
+  vedtak package; it must account for weak slices, clean-git checks, RAM guard
+  and the active post-train audit contract before any Exit trainer can run.
 
 ## Previous Operating Status - 2026-06-29
 

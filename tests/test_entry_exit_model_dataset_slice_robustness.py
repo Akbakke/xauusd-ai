@@ -7,7 +7,8 @@ import pandas as pd
 from gx1.scripts.audit_entry_exit_model_dataset_slice_robustness_v1 import run
 
 
-NUMERIC = ["running_pnl_bps", "running_mfe_bps", "bars_held", "atr_bps"]
+REGIME_CONTEXT_FIELD = "entry_ctx_d1_regime_class_id_v2"
+NUMERIC = ["running_pnl_bps", "running_mfe_bps", "bars_held", "atr_bps", REGIME_CONTEXT_FIELD]
 CATEGORICAL = ["session", "vol_regime", "side"]
 STATE_FEATURES = [*NUMERIC, *CATEGORICAL]
 REWARDS = [
@@ -19,7 +20,13 @@ REWARDS = [
 ]
 
 
-def _rows(split: str, *, unsupported_long: bool = False) -> list[dict]:
+def _rows(
+    split: str,
+    *,
+    unsupported_long: bool = False,
+    constant_nontrain_regime_context: bool = False,
+    constant_train_regime_context: bool = False,
+) -> list[dict]:
     rows = []
     configs = [
         ("ASIA", "4", "SHORT"),
@@ -46,6 +53,12 @@ def _rows(split: str, *, unsupported_long: bool = False) -> list[dict]:
                     "running_mfe_bps": float(step + 2),
                     "bars_held": float(step),
                     "atr_bps": float(10 + step + idx),
+                    REGIME_CONTEXT_FIELD: (
+                        4.0
+                        if (constant_nontrain_regime_context and split in {"val", "test"})
+                        or (constant_train_regime_context and split == "train")
+                        else float(step + idx + episode)
+                    ),
                 }
                 for reward in REWARDS:
                     row[reward] = float(step - idx)
@@ -53,13 +66,26 @@ def _rows(split: str, *, unsupported_long: bool = False) -> list[dict]:
     return rows
 
 
-def _write_inputs(tmp_path: Path, *, unsupported_long: bool = False) -> tuple[Path, Path]:
+def _write_inputs(
+    tmp_path: Path,
+    *,
+    unsupported_long: bool = False,
+    constant_nontrain_regime_context: bool = False,
+    constant_train_regime_context: bool = False,
+) -> tuple[Path, Path]:
     root = tmp_path / "data"
     root.mkdir()
     shards = {}
     for split in ("train", "val", "test"):
         path = root / f"{split}.csv"
-        pd.DataFrame(_rows(split, unsupported_long=unsupported_long)).to_csv(path, index=False)
+        pd.DataFrame(
+            _rows(
+                split,
+                unsupported_long=unsupported_long,
+                constant_nontrain_regime_context=constant_nontrain_regime_context,
+                constant_train_regime_context=constant_train_regime_context,
+            )
+        ).to_csv(path, index=False)
         shards[split] = path
     model_dataset = {
         "decision": "ENTRY_EXIT_MODEL_DATASET_READY_FOR_EXIT_TRANSFORMER_READINESS_REVIEW",
@@ -112,3 +138,41 @@ def test_entry_exit_model_dataset_slice_robustness_blocks_unsupported_slice(tmp_
     failed = {row["check"] for row in report["failures"]}
     assert "session/regime/side slices are disclosed without unsupported slices" in failed
     assert report["slice_review"]["unsupported_slice_count"] > 0
+
+
+def test_entry_exit_model_dataset_slice_robustness_discloses_finite_nontrain_constant_context(
+    tmp_path: Path,
+) -> None:
+    model_dataset_json, pretrain_manifest_json = _write_inputs(
+        tmp_path,
+        constant_nontrain_regime_context=True,
+    )
+
+    report = run(_args(tmp_path, model_dataset_json, pretrain_manifest_json))
+
+    assert report["decision"] == "ENTRY_EXIT_MODEL_DATASET_SLICE_ROBUSTNESS_READY_WITH_WEAK_SLICE_DISCLOSURE"
+    assert report["feature_liveness_review"]["weak_numeric_feature_count"] == 2
+    weak = report["feature_liveness_review"]["weak_numeric_features"]
+    assert {(row["split"], row["field"]) for row in weak} == {
+        ("val", REGIME_CONTEXT_FIELD),
+        ("test", REGIME_CONTEXT_FIELD),
+    }
+    assert report["split_reviews"]["val"]["feature_liveness"]["all_numeric_finite_and_live"] is False
+    assert report["split_reviews"]["val"]["feature_liveness"]["all_numeric_ready"] is True
+    assert all(row["ready"] for row in report["split_reviews"].values())
+
+
+def test_entry_exit_model_dataset_slice_robustness_blocks_train_constant_context(tmp_path: Path) -> None:
+    model_dataset_json, pretrain_manifest_json = _write_inputs(
+        tmp_path,
+        constant_train_regime_context=True,
+    )
+
+    report = run(_args(tmp_path, model_dataset_json, pretrain_manifest_json))
+
+    assert report["decision"] == "BLOCKED_BY_EXIT_MODEL_DATASET_SLICE_ROBUSTNESS"
+    assert report["feature_liveness_review"]["blocking_numeric_feature_count"] == 1
+    blocking = report["feature_liveness_review"]["blocking_numeric_features"]
+    assert blocking[0]["split"] == "train"
+    assert blocking[0]["field"] == REGIME_CONTEXT_FIELD
+    assert report["split_reviews"]["train"]["feature_liveness"]["all_numeric_ready"] is False
