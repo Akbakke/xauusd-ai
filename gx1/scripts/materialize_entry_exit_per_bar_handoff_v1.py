@@ -37,6 +37,7 @@ DEFAULT_M5_PRICE_PARQUET = Path(
 )
 DEFAULT_SUPPLEMENTAL_M1_GLOB = "/home/andre2/GX1_DATA/reports/v12_live_data/xauusd_m1_*.parquet"
 DEFAULT_OUT_DIR = REPORTS_ROOT / "entry_exit_per_bar_handoff_20260630_v1"
+ATR_PERIOD_BARS = 14
 
 PRICE_COLUMNS = (
     "time",
@@ -159,6 +160,37 @@ def _aggregate_m1_to_m5(path: Path, start: pd.Timestamp, end: pd.Timestamp) -> p
     return out
 
 
+def _mid_or_fallback(frame: pd.DataFrame, bid_col: str, ask_col: str, fallback_col: str) -> pd.Series:
+    values = pd.Series(np.nan, index=frame.index, dtype="float64")
+    if bid_col in frame.columns and ask_col in frame.columns:
+        bid = pd.to_numeric(frame[bid_col], errors="coerce")
+        ask = pd.to_numeric(frame[ask_col], errors="coerce")
+        values = (bid + ask) / 2.0
+    if fallback_col in frame.columns:
+        fallback = pd.to_numeric(frame[fallback_col], errors="coerce")
+        values = values.where(values.notna(), fallback)
+    return values
+
+
+def _deterministic_atr_bps(frame: pd.DataFrame, *, period_bars: int = ATR_PERIOD_BARS) -> pd.Series:
+    high = _mid_or_fallback(frame, "bid_high", "ask_high", "high")
+    low = _mid_or_fallback(frame, "bid_low", "ask_low", "low")
+    close = _mid_or_fallback(frame, "bid_close", "ask_close", "close")
+    prev_close = close.shift(1)
+    true_range = pd.concat(
+        [
+            (high - low).abs(),
+            (high - prev_close).abs(),
+            (low - prev_close).abs(),
+        ],
+        axis=1,
+    ).max(axis=1, skipna=True)
+    atr = true_range.rolling(int(period_bars), min_periods=1).mean()
+    close_abs = close.abs().replace(0.0, np.nan)
+    atr_bps = (atr / close_abs) * 10000.0
+    return atr_bps.where(np.isfinite(atr_bps) & (atr_bps >= 0.0), np.nan)
+
+
 def _glob_paths(pattern: str) -> list[Path]:
     if not pattern:
         return []
@@ -192,6 +224,16 @@ def _load_prices(path: Path, supplemental_m1_glob: str, start: pd.Timestamp, end
             .drop(columns=["_price_source_priority"])
         )
     prices = prices.sort_values("time").reset_index(drop=True)
+    atr_source_column_present = "atr_bps" in available
+    if "atr_bps" not in prices.columns:
+        prices["atr_bps"] = np.nan
+    prices["atr_bps"] = pd.to_numeric(prices["atr_bps"], errors="coerce")
+    atr_missing_before = int(prices["atr_bps"].isna().sum())
+    deterministic_atr = _deterministic_atr_bps(prices)
+    fill_mask = prices["atr_bps"].isna() & deterministic_atr.notna()
+    if bool(fill_mask.any()):
+        prices.loc[fill_mask, "atr_bps"] = deterministic_atr.loc[fill_mask]
+    atr_missing_after = int(prices["atr_bps"].isna().sum())
     supplemental_rows = (
         prices[prices["price_source"] == "supplemental_live_m1_to_m5"]
         if "price_source" in prices
@@ -205,6 +247,12 @@ def _load_prices(path: Path, supplemental_m1_glob: str, start: pd.Timestamp, end
         "supplemental_paths_considered": [str(candidate) for candidate in supplemental_paths],
         "supplemental_paths_used": supplemental_used_paths,
         "supplemental_input_sha256": supplemental_input_sha256,
+        "atr_bps_fill_method": "preserve_source_else_mid_bid_ask_true_range_rolling_14_closed_m5_bars",
+        "atr_bps_period_bars": ATR_PERIOD_BARS,
+        "atr_bps_source_column_present": bool(atr_source_column_present),
+        "atr_bps_null_rows_before_fill": atr_missing_before,
+        "atr_bps_filled_rows": int(fill_mask.sum()),
+        "atr_bps_null_rows_after_fill": atr_missing_after,
     }
     return prices, diagnostics
 
@@ -237,6 +285,12 @@ def _build_trade_rows(
     entry_trade_id = f"{trade.get('policy_id')}:{trade_idx}:{trade.get('entry_time')}:{side}"
     rows: list[dict[str, Any]] = []
     missing = max(0, expected - len(bars))
+    bar_times = pd.to_datetime(bars["time"], utc=True, errors="coerce") if "time" in bars.columns else pd.Series(dtype="datetime64[ns, UTC]")
+    invalid_bar_timestamp_count = int(bar_times.isna().sum()) if len(bar_times) else 0
+    bar_time_diffs = bar_times.diff().dropna() if len(bar_times) else pd.Series(dtype="timedelta64[ns]")
+    non_contiguous_5min_gap_count = int((bar_time_diffs != pd.Timedelta(minutes=5)).sum())
+    first_bar_matches_entry = bool(len(bar_times) and bar_times.iloc[0] == pd.Timestamp(trade["entry_time"]))
+    last_bar_matches_exit = bool(len(bar_times) and bar_times.iloc[-1] == pd.Timestamp(trade["exit_time"]))
     if side == "LONG":
         favorable = pd.to_numeric(bars["bid_high"], errors="coerce").cummax()
         adverse = pd.to_numeric(bars["bid_low"], errors="coerce").cummin()
@@ -297,6 +351,17 @@ def _build_trade_rows(
         "expected_bar_count": expected,
         "observed_bar_count": int(len(bars)),
         "missing_bar_count": int(missing),
+        "invalid_bar_timestamp_count": invalid_bar_timestamp_count,
+        "non_contiguous_5min_gap_count": non_contiguous_5min_gap_count,
+        "first_bar_matches_entry": first_bar_matches_entry,
+        "last_bar_matches_exit": last_bar_matches_exit,
+        "coverage_ready": bool(
+            int(missing) == 0
+            and invalid_bar_timestamp_count == 0
+            and non_contiguous_5min_gap_count == 0
+            and first_bar_matches_entry
+            and last_bar_matches_exit
+        ),
         "entry_time": pd.Timestamp(trade["entry_time"]).isoformat(),
         "exit_time": pd.Timestamp(trade["exit_time"]).isoformat(),
     }
@@ -366,15 +431,26 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             replay_identity_hash=replay_identity_hash,
         )
         diagnostics.append(diag)
-        if int(diag["missing_bar_count"]) == 0:
+        if bool(diag.get("coverage_ready")):
             rows.extend(trade_rows)
         else:
+            reasons: list[str] = []
+            if int(diag["missing_bar_count"]) > 0:
+                reasons.append("missing_per_bar_price_coverage")
+            if int(diag["invalid_bar_timestamp_count"]) > 0:
+                reasons.append("invalid_per_bar_price_timestamp")
+            if int(diag["non_contiguous_5min_gap_count"]) > 0:
+                reasons.append("non_contiguous_5min_per_bar_price_coverage")
+            if not bool(diag["first_bar_matches_entry"]):
+                reasons.append("first_bar_missing_at_entry_time")
+            if not bool(diag["last_bar_matches_exit"]):
+                reasons.append("last_bar_missing_at_exit_time")
             excluded_trades.append(
                 {
                     **diag,
                     "source_trade_index": int(trade_idx),
                     "side": str(trade.get("side") or ""),
-                    "reason": "missing_per_bar_price_coverage",
+                    "reason": ",".join(reasons) if reasons else "per_bar_price_coverage_not_ready",
                 }
             )
 
@@ -382,7 +458,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     diagnostics_df = pd.DataFrame(diagnostics)
     exclusions_df = pd.DataFrame(excluded_trades)
     missing_fields = [field for field in REQUIRED_EXIT_SUBSTRATE_FIELDS if field not in set(dataset.columns)]
-    complete_trade_count = int((diagnostics_df["missing_bar_count"] == 0).sum()) if not diagnostics_df.empty else 0
+    complete_trade_count = int(diagnostics_df["coverage_ready"].astype(bool).sum()) if not diagnostics_df.empty else 0
     source_trade_count = int(len(trades))
     included_trade_count = complete_trade_count
     excluded_trade_count = int(len(excluded_trades))
@@ -467,7 +543,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "covered_trade_ratio": covered_trade_ratio,
         "min_covered_trade_ratio": min_covered_trade_ratio,
         "min_covered_trades": min_covered_trades,
-        "gap_exclusion_policy": "exclude source trades with missing per-bar price coverage; never synthesize bars",
+        "gap_exclusion_policy": "exclude source trades with missing or non-contiguous per-bar price coverage; never synthesize bars",
         "required_exit_substrate_fields": list(REQUIRED_EXIT_SUBSTRATE_FIELDS),
         "checks": checks,
         "failures": failures,

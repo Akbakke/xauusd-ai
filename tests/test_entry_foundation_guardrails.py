@@ -63,6 +63,7 @@ def test_foundation_guardrails_current_repo_lock_control_and_handover(tmp_path: 
     assert policy_checks["readiness_policy_safe_now_iql_slice_audit"] is True
     assert policy_checks["readiness_policy_safe_now_entry_exit_materialize"] is True
     assert policy_checks["readiness_policy_safe_now_entry_exit_handoff"] is True
+    assert policy_checks["readiness_policy_safe_now_entry_exit_reconstruction_audit"] is True
     assert policy_checks["readiness_policy_blocks_foundation_activation_apply"] is True
     assert policy_checks["readiness_policy_blocks_foundation_activation_post_apply"] is True
     assert policy_checks["readiness_policy_blocks_smoke_train"] is True
