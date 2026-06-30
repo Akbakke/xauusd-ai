@@ -1296,7 +1296,7 @@ commands.update(
             "replay_allowed": False,
             "declares_ram_cap": True,
             "ram_cap_runner": "scripts/gx1_capped_run.sh",
-            "memory_cap": "4G",
+            "memory_cap": "8G",
             "swap_cap": "1G",
             "num_workers": 0,
             "description": (

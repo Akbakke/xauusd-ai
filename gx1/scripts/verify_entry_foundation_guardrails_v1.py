@@ -260,6 +260,7 @@ def _readiness_policy_checks() -> list[dict[str, Any]]:
         "challenger_smart_extension_manifest",
         "smart_rebuild_preflight",
         "smart_post_rebuild_readiness",
+        "smart_post_rebuild_refresh",
         "smart_smoke_manifest",
         "smart_smoke_readiness",
         "smart_smoke_train",
@@ -426,6 +427,7 @@ def _readiness_policy_checks() -> list[dict[str, Any]]:
                     and (commands.get(name) or {}).get("touches_shadow_or_live") is False
                     for name in (
                         "smart_post_rebuild_readiness",
+                        "smart_post_rebuild_refresh",
                         "smart_smoke_manifest",
                         "smart_smoke_readiness",
                         "smart_trainability_readiness",
@@ -438,6 +440,7 @@ def _readiness_policy_checks() -> list[dict[str, Any]]:
                     name: commands.get(name)
                     for name in (
                         "smart_post_rebuild_readiness",
+                        "smart_post_rebuild_refresh",
                         "smart_smoke_manifest",
                         "smart_smoke_readiness",
                         "smart_trainability_readiness",

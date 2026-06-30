@@ -670,6 +670,8 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
     assert payload["commands"]["smart_post_rebuild_refresh"]["touches_shadow_or_live"] is False
     assert payload["commands"]["smart_post_rebuild_refresh"]["specialist_contract_mode"] == "smart_seq520_candidate"
     assert payload["commands"]["smart_post_rebuild_refresh"]["expected_signal_dim"] == smart_expected_dim
+    assert payload["commands"]["smart_post_rebuild_refresh"]["memory_cap"] == "8G"
+    assert payload["commands"]["smart_post_rebuild_refresh"]["swap_cap"] == "1G"
     assert payload["commands"]["smart_post_rebuild_refresh"]["num_workers"] == 0
     assert "smart post-rebuild refresh vedtak" in payload["commands"]["smart_post_rebuild_refresh"][
         "not_executable_now_reason"
@@ -731,7 +733,10 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
     assert payload["commands"]["smart_trainability_readiness"]["training_allowed"] is False
     assert payload["commands"]["smart_trainability_readiness"]["candidate_training_allowed"] is False
     assert payload["commands"]["smart_trainability_readiness"]["replay_allowed"] is False
-    assert payload["status_summary"]["smart_trainability_readiness_ready"] is False
+    assert payload["status_summary"]["smart_trainability_readiness_ready"] is (
+        payload["status_summary"]["smart_trainability_readiness_decision"]
+        == "READY_FOR_SMART_SEQ520_TRAINABILITY_REVIEW"
+    )
     assert payload["commands"]["smart_ablation_replay_plan"]["argv"] == [
         "scripts/entry_next_edge_control.sh",
         "smart-ablation-replay-plan",
