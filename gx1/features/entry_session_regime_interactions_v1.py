@@ -362,7 +362,13 @@ def build_entry_session_regime_interaction_layer(
     h4_age = _clip01(c("ctx_cont.h4_trend_age_bars_norm_v2"))
     d1_age = _clip01(c("ctx_cont.d1_trend_age_bars_norm_v2"))
     h4_d1_regime_agreement = ((h4_regime_sign == d1_regime_sign) & (np.abs(d1_regime_sign) > 0.0)).astype(np.float32)
-    h4_d1_regime_mismatch = (h4_regime_sign * d1_regime_sign < 0.0).astype(np.float32)
+    h4_d1_hard_regime_mismatch = (h4_regime_sign * d1_regime_sign < 0.0).astype(np.float32)
+    h4_d1_regime_mismatch = _clip01(
+        h4_d1_hard_regime_mismatch
+        + 0.35 * np.abs(h4_regime_sign - d1_regime_sign)
+        + 0.25 * np.abs(h4_slope - d1_slope)
+        + 0.20 * mtf_divergence_pressure
+    )
     h4_d1_slope_coherence = _clip01(1.0 - 0.50 * np.abs(h4_slope - d1_slope))
     h4_d1_stack_score = _clip(
         0.22 * h4_regime_sign
@@ -428,7 +434,14 @@ def build_entry_session_regime_interaction_layer(
     _add(arrays, names, "eu_us_overlap_momentum_continuation", eu_us * low_spread_permission * mtf_agreement_pressure * np.abs(impulse_direction), lo=0.0, hi=1.0)
     _add(arrays, names, "eu_us_overlap_divergence_risk", eu_us * mtf_divergence_pressure * (0.50 + vol_pressure), lo=0.0, hi=2.0)
     _add(arrays, names, "asia_open_boundary_fade_risk", asia * boundary_transition * (0.50 + spread_bucket_pressure + vol_regime_pressure), lo=0.0, hi=2.0)
-    _add(arrays, names, "asia_mid_session_low_cost_permission", asia * mid_session_stability * low_cost_mid_atr_permission * (1.0 - vol_regime_pressure), lo=0.0, hi=1.0)
+    _add(
+        arrays,
+        names,
+        "asia_mid_session_low_cost_permission",
+        asia * mid_session_stability * _clip01(0.55 * low_cost_mid_atr_permission + 0.30 * low_spread_permission + 0.15 * (1.0 - vol_pressure)),
+        lo=0.0,
+        hi=1.0,
+    )
     _add(arrays, names, "eu_opening_structure_break_risk", eu * open_risk * np.abs(bos_balance) * (0.50 + spread_pressure + mtf_divergence_pressure), lo=0.0, hi=2.0)
     _add(arrays, names, "us_close_boundary_spread_tail_risk", us * boundary_risk * spread_atr_bucket_pressure * (0.50 + vol_regime_pressure), lo=0.0, hi=2.0)
 
@@ -492,11 +505,29 @@ def build_entry_session_regime_interaction_layer(
     _add(arrays, names, "session_momentum_structure_alignment_score", active_session * momentum_score * structure_bias * mtf_agreement_pressure, lo=-1.0, hi=1.0)
     _add(arrays, names, "asia_h4_d1_liquidity_reversal_risk", asia * np.abs(sweep_balance) * h4_d1_roc_reversal * (0.50 + regime_transition_abstain), lo=0.0, hi=2.0)
     _add(arrays, names, "eu_h4_d1_structure_continuation_long", eu * h4_d1_stack_bull * _pos(structure_bias) * bucket_low_spread_permission, lo=0.0, hi=1.0)
-    _add(arrays, names, "eu_h4_d1_structure_continuation_short", eu * h4_d1_stack_bear * _neg(structure_bias) * bucket_low_spread_permission, lo=0.0, hi=1.0)
+    _add(
+        arrays,
+        names,
+        "eu_h4_d1_structure_continuation_short",
+        eu * _clip01(h4_d1_stack_bear + 0.35 * _neg(h4_d1_stack_score) + 0.20 * mtf_agreement_pressure) * _neg(structure_bias) * low_spread_permission,
+        lo=0.0,
+        hi=1.0,
+    )
     _add(arrays, names, "us_h4_d1_momentum_followthrough", us * momentum_score * h4_d1_stack_score * low_spread_permission * (1.0 - regime_transition_abstain), lo=-1.0, hi=1.0)
     _add(arrays, names, "overlap_h4_d1_liquidity_tail_risk", overlap * np.abs(sweep_balance) * regime_transition_tail * (0.50 + spread_atr_bucket_pressure), lo=0.0, hi=2.0)
     _add(arrays, names, "session_trend_structure_liquidity_long_score", active_session * h4_d1_stack_bull * _pos(structure_bias) * _pos(sweep_balance) * low_cost_mid_atr_permission, lo=0.0, hi=1.0)
-    _add(arrays, names, "session_trend_structure_liquidity_short_score", active_session * h4_d1_stack_bear * _neg(structure_bias) * _neg(sweep_balance) * low_cost_mid_atr_permission, lo=0.0, hi=1.0)
+    _add(
+        arrays,
+        names,
+        "session_trend_structure_liquidity_short_score",
+        active_session
+        * _clip01(h4_d1_stack_bear + 0.35 * _neg(h4_d1_stack_score) + 0.20 * _neg(momentum_score))
+        * _clip01(_neg(structure_bias) + 0.25 * _neg(bos_balance))
+        * _clip01(_neg(sweep_balance) + 0.25 * choch_recent)
+        * _clip01(0.50 * low_cost_mid_atr_permission + 0.50 * low_spread_permission),
+        lo=0.0,
+        hi=1.0,
+    )
 
     out = np.column_stack(arrays).astype(np.float32, copy=False) if arrays else np.empty((x.shape[0], 0), dtype=np.float32)
     if not np.isfinite(out).all():

@@ -269,6 +269,9 @@ def build_entry_vol_compression_layer(
     d1_atr_pct = _clip01(c("ctx_cont.D1_atr_percentile_252", default=0.5))
     atr_bucket = _clip01(c("ctx_cat.atr_bucket", default=2.0) / 4.0)
     vol_regime = _clip01(c("ctx_cat.vol_regime_id", default=2.0) / 4.0)
+    m5_m15_ratio = _tanh(c("ctx_cont.atr_ratio_m5_m15", default=1.0) - 1.0, scale=1.0)
+    m15_d1_ratio = _tanh(c("ctx_cont.atr_ratio_m15_d1", default=1.0) - 1.0, scale=1.0)
+    h1_d1_ratio = _tanh(c("ctx_cont.atr_ratio_h1_d1", default=1.0) - 1.0, scale=1.0)
 
     atr_percentile = _clip01(
         0.20 * atr_unit
@@ -281,7 +284,14 @@ def build_entry_vol_compression_layer(
     )
     low_atr_pressure = _clip01(1.0 - atr_percentile)
     high_atr_pressure = atr_percentile
-    atr_m5_h1_spread = _clip(m5_vol_pct - h1_vol_pct, -1.0, 1.0)
+    atr_m5_h1_spread = _clip(
+        0.55 * (m5_vol_pct - h1_vol_pct)
+        + 0.25 * m5_m15_ratio
+        - 0.10 * m15_d1_ratio
+        - 0.10 * h1_d1_ratio,
+        -1.0,
+        1.0,
+    )
 
     h1_compression = _clip01(c("ctx_cont.H1_range_compression_ratio"))
     m15_compression = _clip01(c("ctx_cont.M15_range_compression_ratio"))

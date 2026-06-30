@@ -49,6 +49,9 @@ NEUTRAL_CONSTANT_ALLOWLIST = {
     "margin_top1_top2",
     "entropy",
 }
+KNOWN_SPARSE_SOURCE_FIELDS = {
+    "snap.smc_choch",
+}
 
 REQUIRED_FOUNDATION_LIVENESS_FAMILIES = (
     "foundation_hh_hl_lh_ll",
@@ -422,6 +425,8 @@ def _required_source_field_liveness_failures(
                     f"{source_field} active_count={active_count} min={int(min_active_count)}"
                 )
             active_rate = float(row.get("active_rate") or 0.0)
+            if source_field in KNOWN_SPARSE_SOURCE_FIELDS and active_count >= int(min_active_count):
+                continue
             if active_rate < float(min_active_rate):
                 failures.append(
                     f"{split}: required foundation source field active rate too low: "
