@@ -38,6 +38,15 @@ Entry-to-Exit path context must be calibrated as one system, not optimized as
 isolated signals. All new gates must measure tradable edge and failure slices;
 no broad average may hide weak session, regime, side, bad-path or tail behavior.
 
+Active Objective Rule: all Entry and Exit features with multi-timeframe context
+must share one calibrated market-state language before any promotion path is
+discussed. The Entry Transformer is the directional evidence layer, Entry IQL is
+the entry policy layer, Exit Transformer is the exit-timing evidence layer and
+Exit IQL is the exit policy layer. The system must coordinate structure,
+liquidity, momentum, trend, volatility, regime, session, spread/ATR,
+support/resistance, chart geometry and price action as one replay-proven
+trading policy, not as isolated feature families or direction-accuracy scores.
+
 `<id>` in `--vedtak <id>` is a deliberate human approval token, not a report id
 that the scripts invent automatically. Activation apply requires the
 `ENTRY_FOUNDATION_ACTIVATE_` prefix, for example

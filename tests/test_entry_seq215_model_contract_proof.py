@@ -20,6 +20,7 @@ from gx1.scripts.audit_entry_foundation_smoke_bundle_v1 import (
     _specialist_gate_failures,
 )
 from gx1.scripts.materialize_entry_feature_ai_inventory_v1 import (
+    NEXT_REQUIRED_GATE as FEATURE_AI_INVENTORY_NEXT_REQUIRED_GATE,
     _specialist_contract_provenance as _inventory_contract_provenance,
 )
 from gx1.scripts.materialize_entry_specialist_challenger_extension_manifest_v1 import (
@@ -219,6 +220,13 @@ def test_report_only_seq215_contract_provenance_separates_active_and_target_mode
     assert target["contract_registered"] is True
     assert target["contract_update_required_before_training"] is False
     assert provenance["contract_update_required_before_training"] is False
+
+
+def test_feature_ai_inventory_next_gate_points_to_seq215_smoke_evidence() -> None:
+    assert "build missing candlestick pattern layer" not in FEATURE_AI_INVENTORY_NEXT_REQUIRED_GATE
+    assert "SEQ215 smoke-manifest/smoke-train evidence" in FEATURE_AI_INVENTORY_NEXT_REQUIRED_GATE
+    assert "candidate-readiness-seq215" in FEATURE_AI_INVENTORY_NEXT_REQUIRED_GATE
+    assert "replay, IQL, shadow or live" in FEATURE_AI_INVENTORY_NEXT_REQUIRED_GATE
 
 
 def test_seq215_trainer_loader_requires_exact_challenger_contract_mode() -> None:

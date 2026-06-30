@@ -156,6 +156,13 @@ def test_docs_name_handover_as_canonical_fresh_session_entrypoint() -> None:
     assert "foundation_activation_required_before_smoke=true" in specialist_doc
     assert "foundation-activation-apply --apply --vedtak <id>" in specialist_doc
     assert "approve trainer start" in specialist_doc
+    active_objective_rule = "Active Objective Rule: all Entry and Exit features with multi-timeframe context"
+    assert active_objective_rule in foundation_doc
+    assert active_objective_rule in specialist_doc
+    assert "replay-proven" in foundation_doc
+    assert "replay-proven" in specialist_doc
+    assert "isolated feature families" in foundation_doc
+    assert "isolated feature families" in specialist_doc
 
 
 def test_control_surface_readiness_report_is_fail_open_status_only() -> None:

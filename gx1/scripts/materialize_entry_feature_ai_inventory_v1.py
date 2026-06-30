@@ -57,6 +57,12 @@ SPECIALIST_CONTRACT_AUTHORITY = (
     "gx1.features.entry_specialist_feature_groups_v1:"
     "specialist_model_contract_for_mode()/required_training_specialists_for_mode()"
 )
+NEXT_REQUIRED_GATE = (
+    "seq215 challenger inputs and the 8-specialist contract are materialized and audited; "
+    "next boundary is explicit SEQ215 smoke-manifest/smoke-train evidence with edge audit, "
+    "then candidate-readiness-seq215. Do not start candidate training, replay, IQL, shadow "
+    "or live from inventory alone."
+)
 
 
 def _json_default(obj: Any) -> Any:
@@ -546,9 +552,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             for split, contract in split_contracts.items()
         },
         "failures": failures,
-        "next_required_gate": (
-            "review feature inventory, build missing candlestick pattern layer, then rebuild/audit challenger dataset before any full train"
-        ),
+        "next_required_gate": NEXT_REQUIRED_GATE,
         "training_allowed": False,
         "shadow_live_promotion_allowed": False,
     }

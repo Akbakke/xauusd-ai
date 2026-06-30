@@ -165,6 +165,15 @@ against replay/PnL, drawdown and tail-risk objectives. The end state is a fully
 automated XAUUSD bot that enters long or short at high-quality points and exits
 near maximum profit opportunity while respecting session/regime/tail risk.
 
+Active Objective Rule: all Entry and Exit features with multi-timeframe context
+must share one calibrated market-state language before any promotion path is
+discussed. The Entry Transformer is the directional evidence layer, Entry IQL is
+the entry policy layer, Exit Transformer is the exit-timing evidence layer and
+Exit IQL is the exit policy layer. The system must coordinate structure,
+liquidity, momentum, trend, volatility, regime, session, spread/ATR,
+support/resistance, chart geometry and price action as one replay-proven
+trading policy, not as isolated feature families or direction-accuracy scores.
+
 ## Operating Doctrine
 
 The objective is a live-equivalent XAUUSD policy, not another isolated
