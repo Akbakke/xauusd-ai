@@ -131,6 +131,8 @@ def _active_entry_artifact_paths() -> list[str]:
         "entry_iql_replay_comparison_20260628_v1",
         "entry_candidate_selective_edge_20260628_v1",
         "entry_candidate_replay_20260628_v1",
+        "entry_candidate_replay_trade_log_20260628_v1",
+        "entry_candidate_replay_trade_log_20260628_v1_stop80_tp120",
         "entry_replay_readiness_20260628_v1",
         "entry_target_foundation_audit_20260628_v1",
         "entry_training_readiness_20260628_v1",

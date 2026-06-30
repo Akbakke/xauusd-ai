@@ -531,6 +531,7 @@ def test_replay_readiness_current_artifacts_are_not_ready(tmp_path: Path) -> Non
     failed = {failure["check"] for failure in report["failures"]}
     assert failed
     assert {
+        "candidate-readiness is green",
         "selective-edge summary has val/test",
         "offline replay dir exists",
     } & failed
