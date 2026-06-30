@@ -47,10 +47,11 @@ Usage:
   scripts/entry_next_edge_control.sh entry-exit-transformer-training-plan-readiness
   scripts/entry_next_edge_control.sh entry-exit-transformer-trainer-wrapper-readiness
   scripts/entry_next_edge_control.sh entry-exit-transformer-pretrain-manifest
+  scripts/entry_next_edge_control.sh entry-exit-model-dataset-slice-robustness
   scripts/entry_next_edge_control.sh entry-exit-transformer-train --vedtak <id> [--dry-run]
 
 Allowed path:
-  Entry foundation cleanup -> feature audit -> target audit -> rebuilt dataset -> adoption-candidate proof -> activation-plan review -> optional vedtak-gated activation apply -> vedtak-gated post-apply audit refresh + active verify -> foundation-guardrails -> worktree-hygiene -> optional vedtak-gated stage-foundation-cleanup -> train-readiness -> optional smoke-manifest proof -> vedtak-gated smoke train -> smoke bundle audit -> candidate-readiness -> vedtak-gated candidate train -> selective-edge/no-XGB ablation -> replay-evidence -> replay-readiness -> vedtak-gated IQL distillation contract -> IQL student trade log -> IQL replay evidence -> IQL replay comparison -> IQL slice/tail audit -> Entry-bound Exit per-bar handoff materialization -> Entry-to-Exit handoff readiness -> active Exit per-bar reconstruction audit -> active Exit state/reward contract -> active Exit split/leakage audit -> active Exit model dataset/readiness -> active Exit Transformer architecture/readiness -> active Exit Transformer training plan/readiness -> fail-closed active Exit Transformer trainer wrapper readiness -> active Exit Transformer pretrain manifest.
+  Entry foundation cleanup -> feature audit -> target audit -> rebuilt dataset -> adoption-candidate proof -> activation-plan review -> optional vedtak-gated activation apply -> vedtak-gated post-apply audit refresh + active verify -> foundation-guardrails -> worktree-hygiene -> optional vedtak-gated stage-foundation-cleanup -> train-readiness -> optional smoke-manifest proof -> vedtak-gated smoke train -> smoke bundle audit -> candidate-readiness -> vedtak-gated candidate train -> selective-edge/no-XGB ablation -> replay-evidence -> replay-readiness -> vedtak-gated IQL distillation contract -> IQL student trade log -> IQL replay evidence -> IQL replay comparison -> IQL slice/tail audit -> Entry-bound Exit per-bar handoff materialization -> Entry-to-Exit handoff readiness -> active Exit per-bar reconstruction audit -> active Exit state/reward contract -> active Exit split/leakage audit -> active Exit model dataset/readiness -> active Exit Transformer architecture/readiness -> active Exit Transformer training plan/readiness -> fail-closed active Exit Transformer trainer wrapper readiness -> active Exit Transformer pretrain manifest -> active Exit model dataset slice robustness.
 
 Blocked here:
   generic train, retrain, promote, pin, live, xgb-train, et-train, shadow.
@@ -136,6 +137,7 @@ paths = {
     "entry-exit-transformer-training-plan-readiness": Path("/home/andre2/GX1_DATA/reports/entry_exit_transformer_training_plan_readiness_20260630_v1/ENTRY_EXIT_TRANSFORMER_TRAINING_PLAN_READINESS_latest.json"),
     "entry-exit-transformer-trainer-wrapper-readiness": Path("/home/andre2/GX1_DATA/reports/entry_exit_transformer_trainer_wrapper_readiness_20260630_v1/ENTRY_EXIT_TRANSFORMER_TRAINER_WRAPPER_READINESS_latest.json"),
     "entry-exit-transformer-pretrain-manifest": Path("/home/andre2/GX1_DATA/reports/entry_exit_transformer_pretrain_manifest_20260630_v1/ENTRY_EXIT_TRANSFORMER_PRETRAIN_MANIFEST_latest.json"),
+    "entry-exit-model-dataset-slice-robustness": Path("/home/andre2/GX1_DATA/reports/entry_exit_model_dataset_slice_robustness_20260630_v1/ENTRY_EXIT_MODEL_DATASET_SLICE_ROBUSTNESS_latest.json"),
 }
 adoption_root = Path("/home/andre2/GX1_DATA/reports/entry_foundation_adoption_candidate_20260629_v1")
 adoption_candidates = (
@@ -249,6 +251,7 @@ allowed_now = [
     "scripts/entry_next_edge_control.sh entry-exit-transformer-training-plan-readiness --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh entry-exit-transformer-trainer-wrapper-readiness --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh entry-exit-transformer-pretrain-manifest --quiet --no-fail-on-not-ready",
+    "scripts/entry_next_edge_control.sh entry-exit-model-dataset-slice-robustness --quiet --no-fail-on-not-ready",
 ]
 if hygiene.get("foundation_cleanup_stage_ready"):
     allowed_now.append("scripts/entry_next_edge_control.sh stage-foundation-cleanup --dry-run")
@@ -398,6 +401,7 @@ entry_exit_transformer_architecture = reports.get("entry-exit-transformer-archit
 entry_exit_transformer_training_plan = reports.get("entry-exit-transformer-training-plan-readiness") or {}
 entry_exit_transformer_trainer_wrapper = reports.get("entry-exit-transformer-trainer-wrapper-readiness") or {}
 entry_exit_transformer_pretrain_manifest = reports.get("entry-exit-transformer-pretrain-manifest") or {}
+entry_exit_model_dataset_slice_robustness = reports.get("entry-exit-model-dataset-slice-robustness") or {}
 entry_exit_per_bar_decision = str(entry_exit_per_bar.get("decision") or "")
 entry_exit_per_bar_ready = entry_exit_per_bar_decision in {"PASS", "PASS_WITH_EXPLICIT_GAP_EXCLUSIONS"}
 entry_exit_handoff_entry_ready = bool(entry_exit_handoff.get("entry_evidence_ready"))
@@ -419,6 +423,8 @@ entry_exit_transformer_trainer_wrapper_decision = str(entry_exit_transformer_tra
 entry_exit_transformer_trainer_wrapper_ready = entry_exit_transformer_trainer_wrapper_decision == "ENTRY_EXIT_TRANSFORMER_TRAINER_WRAPPER_READY_FOR_IMPLEMENTATION_REVIEW"
 entry_exit_transformer_pretrain_manifest_decision = str(entry_exit_transformer_pretrain_manifest.get("decision") or "")
 entry_exit_transformer_pretrain_manifest_ready = entry_exit_transformer_pretrain_manifest_decision == "ENTRY_EXIT_TRANSFORMER_PRETRAIN_MANIFEST_READY_FOR_TRAIN_EXECUTION_REVIEW"
+entry_exit_model_dataset_slice_robustness_decision = str(entry_exit_model_dataset_slice_robustness.get("decision") or "")
+entry_exit_model_dataset_slice_robustness_ready = entry_exit_model_dataset_slice_robustness_decision == "ENTRY_EXIT_MODEL_DATASET_SLICE_ROBUSTNESS_READY_WITH_WEAK_SLICE_DISCLOSURE"
 promotion_review_allowed = bool(
     (reports.get("iql-replay-comparison") or {}).get("promotion_review_allowed_with_explicit_vedtak")
     and iql_replay_slice_audit_ready
@@ -453,8 +459,10 @@ if entry_exit_transformer_training_plan_ready and not entry_exit_transformer_tra
     current_blockers.append("fail-closed active Exit Transformer trainer wrapper readiness required before trainer implementation review")
 if entry_exit_transformer_trainer_wrapper_ready and not entry_exit_transformer_pretrain_manifest_ready:
     current_blockers.append("active Exit Transformer pretrain manifest required before train-execution review")
-if entry_exit_transformer_pretrain_manifest_ready:
-    current_blockers.append("train-execution enablement remains blocked until explicit review opens active Exit Transformer training")
+if entry_exit_transformer_pretrain_manifest_ready and not entry_exit_model_dataset_slice_robustness_ready:
+    current_blockers.append("active Exit model dataset slice robustness disclosure required before train-execution review")
+if entry_exit_model_dataset_slice_robustness_ready:
+    current_blockers.append("train-execution enablement remains blocked until explicit review accounts for weak slices and opens active Exit Transformer training")
 if not iql_replay_evidence_ready:
     current_blockers.append("IQL replay evidence requires distillation contract and IQL-student replay trade log")
 if not iql_replay_comparison_ready:
@@ -996,6 +1004,19 @@ commands.update(
             "touches_shadow_or_live": False,
             "description": "Materialize active Exit Transformer pretrain manifest with finite forward preflight; no training or replay.",
         },
+        "entry_exit_model_dataset_slice_robustness": {
+            "argv": ["scripts/entry_next_edge_control.sh", "entry-exit-model-dataset-slice-robustness"],
+            "allowed": True,
+            "mode": "exit_model_dataset_slice_robustness",
+            "requires_vedtak": False,
+            "requires_clean_git": False,
+            "mutates_git_index": False,
+            "starts_trainer": False,
+            "starts_replay": False,
+            "starts_iql_distillation": False,
+            "touches_shadow_or_live": False,
+            "description": "Audit active Exit session/regime/side slice robustness and weak-slice disclosure; no training or replay.",
+        },
         "entry_exit_transformer_train": {
             "argv": ["scripts/entry_next_edge_control.sh", "entry-exit-transformer-train", "--vedtak", "<id>"],
             "allowed": False,
@@ -1089,6 +1110,7 @@ execution_allowed_now = {
     "entry_exit_transformer_training_plan_readiness": True,
     "entry_exit_transformer_trainer_wrapper_readiness": True,
     "entry_exit_transformer_pretrain_manifest": True,
+    "entry_exit_model_dataset_slice_robustness": True,
     "entry_exit_transformer_train": False,
     "preview_shadow": False,
     "start_shadow": False,
@@ -1132,6 +1154,7 @@ allowed_after_explicit_vedtak = {
     "entry_exit_transformer_training_plan_readiness": True,
     "entry_exit_transformer_trainer_wrapper_readiness": True,
     "entry_exit_transformer_pretrain_manifest": True,
+    "entry_exit_model_dataset_slice_robustness": True,
     "entry_exit_transformer_train": False,
     "preview_shadow": False,
     "start_shadow": False,
@@ -1256,6 +1279,10 @@ payload = {
         "entry_exit_transformer_trainer_wrapper_ready": entry_exit_transformer_trainer_wrapper_ready,
         "entry_exit_transformer_pretrain_manifest_decision": entry_exit_transformer_pretrain_manifest_decision,
         "entry_exit_transformer_pretrain_manifest_ready": entry_exit_transformer_pretrain_manifest_ready,
+        "entry_exit_model_dataset_slice_robustness_decision": entry_exit_model_dataset_slice_robustness_decision,
+        "entry_exit_model_dataset_slice_robustness_ready": entry_exit_model_dataset_slice_robustness_ready,
+        "entry_exit_model_dataset_slice_robustness_weak_slice_count": (entry_exit_model_dataset_slice_robustness.get("slice_review") or {}).get("weak_slice_count") if isinstance(entry_exit_model_dataset_slice_robustness.get("slice_review"), dict) else None,
+        "entry_exit_model_dataset_slice_robustness_unsupported_slice_count": (entry_exit_model_dataset_slice_robustness.get("slice_review") or {}).get("unsupported_slice_count") if isinstance(entry_exit_model_dataset_slice_robustness.get("slice_review"), dict) else None,
         "entry_exit_transformer_train_allowed_after_vedtak": False,
         "exit_training_allowed": False,
         "exit_iql_allowed": False,
@@ -1498,6 +1525,10 @@ PY
 
   entry-exit-transformer-pretrain-manifest)
     exec "$PY" -m gx1.scripts.materialize_entry_exit_transformer_pretrain_manifest_v1 "$@"
+    ;;
+
+  entry-exit-model-dataset-slice-robustness)
+    exec "$PY" -m gx1.scripts.audit_entry_exit_model_dataset_slice_robustness_v1 "$@"
     ;;
 
   entry-exit-transformer-train)

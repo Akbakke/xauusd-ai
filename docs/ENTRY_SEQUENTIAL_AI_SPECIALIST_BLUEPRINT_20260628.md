@@ -106,6 +106,12 @@ Machine contract:
   - Runs a finite forward preflight on active train episodes, writes the
     pretrain manifest, records zero optimizer steps and keeps Exit
     training/replay/IQL/shadow/live closed until train-execution review.
+- Active Exit model dataset slice robustness:
+  `gx1/scripts/audit_entry_exit_model_dataset_slice_robustness_v1.py`
+  - Audits train/val/test label, reward and state-feature liveness plus
+    session/regime/side slices. It discloses weak slices explicitly so
+    train-execution review cannot hide sparse side/session/regime behavior
+    behind broad averages.
 - Latest report:
   `/home/andre2/GX1_DATA/reports/entry_specialist_feature_group_audit_20260628_v1/ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_latest.json`
 - Current decision: `PASS` on the active seq146 foundation dataset.
