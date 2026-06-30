@@ -47,6 +47,21 @@ liquidity, momentum, trend, volatility, regime, session, spread/ATR,
 support/resistance, chart geometry and price action as one replay-proven
 trading policy, not as isolated feature families or direction-accuracy scores.
 
+Feature Harmony Rule: every active Entry/Exit input must either be routed into
+the shared market-state contract or explicitly excluded with a recorded reason.
+The roughly 200 features are not a menu of standalone indicators; they are the
+numeric language the sequential AI uses to reconstruct how a manual trader
+would read structure, liquidity, support/resistance, Fibonacci/geometry,
+candles, EMA/trend pressure, momentum, ATR/spread and session/regime context
+across timeframes. Smart layers may summarize these mechanisms, but they do
+not replace provenance: each smart feature must be traceable to source fields,
+hashes, routing ownership, finite/non-collapsed liveness and replay evidence.
+Entry work comes first, but it must preserve the exact state needed by Exit so
+profit capture can be learned from the same Entry decisions. Keep the repo
+clean at every transition; prefer extending existing modules and control
+surfaces, and create new files only for genuinely new artifacts, gates or model
+components.
+
 Full Bot Objective Lock: the requested end state is a fully automated XAUUSD
 policy that enters long or short at the highest-quality Entry points and exits
 near maximum profit opportunity. Entry is the first active build track: the

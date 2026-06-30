@@ -178,6 +178,21 @@ liquidity, momentum, trend, volatility, regime, session, spread/ATR,
 support/resistance, chart geometry and price action as one replay-proven
 trading policy, not as isolated feature families or direction-accuracy scores.
 
+Feature Harmony Rule: every active input must be accounted for before training
+or replay can be trusted. Each Entry/Exit feature must either be routed into a
+specialist mechanism contract or explicitly excluded with a recorded reason.
+The roughly 200 inputs are the shared numeric language for the sequential AI to
+read the whole multi-timeframe chart: HH/HL/LH/LL, SMC/liquidity, support and
+resistance, Fibonacci/geometry, candle patterns, EMA/trend pressure, momentum,
+ATR/spread and session/regime context. Smart specialist layers may compress
+and expose stronger mechanism signals to the Transformer, but they do not
+erase the base features or their provenance; every smart layer must preserve
+source-field coverage, routing ownership, hashes, finite/non-collapsed
+liveness and replay evidence. Entry remains first, then Exit must reuse the
+same calibrated state from the exact Entry policy traces. Keep the repo clean
+at every transition, reuse existing modules and controls where possible, and
+create new files only for genuinely new artifacts, gates or model components.
+
 ## Operating Doctrine
 
 The objective is a live-equivalent XAUUSD policy, not another isolated
