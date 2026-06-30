@@ -2447,7 +2447,7 @@ if decision != "ENTRY_SMART_DATASET_READY_FOR_TRAIN_READINESS_REVIEW":
     print(f"FATAL: smart-post-rebuild-refresh blocked by decision={decision}", file=sys.stderr)
     raise SystemExit(2)
 PY
-    exec "$REPO/scripts/gx1_capped_run.sh" --mem 4G --swap 1G -- "$PY" -m gx1.scripts.materialize_entry_foundation_smoke_dataset_v1 \
+    exec "$REPO/scripts/gx1_capped_run.sh" --mem 8G --swap 1G -- "$PY" -m gx1.scripts.materialize_entry_foundation_smoke_dataset_v1 \
       --source-dir /home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_smart_candidate_20260630 \
       --out-dir /home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_smart_seq520_smoke_20260630 \
       --stem v10_smart_seq520_smoke__HOLD_03B \

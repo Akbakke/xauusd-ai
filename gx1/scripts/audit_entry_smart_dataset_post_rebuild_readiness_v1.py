@@ -50,6 +50,8 @@ DEFAULT_SMART_SPECIALIST_AUDIT_OUT_DIR = (
 )
 DEFAULT_SMART_SMOKE_DATASET_DIR = FOUNDATION_DATASET_DIR.parent / "v10_dataset_smart_seq520_smoke_20260630"
 DEFAULT_SMART_SMOKE_STEM = "v10_smart_seq520_smoke__HOLD_03B"
+DEFAULT_SMART_SMOKE_MEM_CAP = "8G"
+DEFAULT_SMART_SMOKE_SWAP_CAP = "1G"
 DEFAULT_SMART_SMOKE_BATCH_SIZE = 256
 
 SPLITS = ("train", "val", "test")
@@ -202,13 +204,18 @@ def _source_manifest_hash_review(smart_manifest: dict[str, Any]) -> dict[str, An
     }
 
 
-def _capped_python_module(module: str, *module_args: str) -> list[str]:
+def _capped_python_module(
+    module: str,
+    *module_args: str,
+    mem: str = "4G",
+    swap: str = "1G",
+) -> list[str]:
     return [
         "scripts/gx1_capped_run.sh",
         "--mem",
-        "4G",
+        mem,
         "--swap",
-        "1G",
+        swap,
         "--",
         ".venv/bin/python",
         "-m",
@@ -228,14 +235,23 @@ def _report_or_dataset_command(
     implemented_in_control_surface: bool = True,
 ) -> dict[str, Any]:
     ram_argv = inner_argv or argv
+    uses_capped_run = (
+        len(ram_argv) >= 6
+        and ram_argv[0] == "scripts/gx1_capped_run.sh"
+        and ram_argv[1] == "--mem"
+        and ram_argv[3] == "--swap"
+        and ram_argv[5] == "--"
+    )
     return {
         "argv": argv,
         "inner_argv": inner_argv or [],
         "mode": mode,
         "implemented_in_control_surface": bool(implemented_in_control_surface),
         "requires_explicit_vedtak": bool(requires_explicit_vedtak),
-        "requires_ram_cap": ram_argv[:6] == ["scripts/gx1_capped_run.sh", "--mem", "4G", "--swap", "1G", "--"],
+        "requires_ram_cap": uses_capped_run,
         "ram_cap_runner": "scripts/gx1_capped_run.sh" if ram_argv and ram_argv[0] == "scripts/gx1_capped_run.sh" else "",
+        "ram_cap_mem": ram_argv[2] if uses_capped_run else "",
+        "ram_cap_swap": ram_argv[4] if uses_capped_run else "",
         "writes_report": bool(writes_report),
         "writes_smoke_dataset": bool(writes_smoke_dataset),
         "starts_trainer": False,
@@ -344,6 +360,8 @@ def _post_rebuild_refresh_command_contract(
                 "--batch-size",
                 str(DEFAULT_SMART_SMOKE_BATCH_SIZE),
                 "--quiet",
+                mem=DEFAULT_SMART_SMOKE_MEM_CAP,
+                swap=DEFAULT_SMART_SMOKE_SWAP_CAP,
             ),
             mode="future_vedtak_gated_smoke_dataset_materialization",
             writes_report=False,

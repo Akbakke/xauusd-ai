@@ -263,6 +263,17 @@ def test_smart_dataset_post_rebuild_readiness_passes_fullscan_fixture(tmp_path: 
     ]
     assert smoke_dataset_command["implemented_in_control_surface"] is True
     smoke_dataset_argv = smoke_dataset_command["inner_argv"]
+    assert smoke_dataset_argv[:6] == [
+        "scripts/gx1_capped_run.sh",
+        "--mem",
+        "8G",
+        "--swap",
+        "1G",
+        "--",
+    ]
+    assert smoke_dataset_command["requires_ram_cap"] is True
+    assert smoke_dataset_command["ram_cap_mem"] == "8G"
+    assert smoke_dataset_command["ram_cap_swap"] == "1G"
     assert "--schema-version" in smoke_dataset_argv
     assert "entry_smart_seq520_smoke_dataset_v1" in smoke_dataset_argv
     assert "--split-schema-version" in smoke_dataset_argv
