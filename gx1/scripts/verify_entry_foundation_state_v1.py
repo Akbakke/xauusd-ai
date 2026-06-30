@@ -138,6 +138,7 @@ def _active_entry_artifact_paths() -> list[str]:
         "entry_exit_split_leakage_audit_20260630_v1",
         "entry_exit_model_dataset_readiness_20260630_v1",
         "entry_exit_transformer_architecture_readiness_20260630_v1",
+        "entry_exit_transformer_training_plan_readiness_20260630_v1",
         "entry_candidate_selective_edge_20260628_v1",
         "entry_candidate_replay_20260628_v1",
         "entry_candidate_replay_trade_log_20260628_v1",
@@ -719,6 +720,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         entry_exit_split_leakage = _read_text(REPO / "gx1/scripts/audit_entry_exit_split_leakage_v1.py")
         entry_exit_model_dataset = _read_text(REPO / "gx1/scripts/materialize_entry_exit_model_dataset_readiness_v1.py")
         entry_exit_transformer_architecture = _read_text(REPO / "gx1/scripts/audit_entry_exit_transformer_architecture_readiness_v1.py")
+        entry_exit_transformer_training_plan = _read_text(REPO / "gx1/scripts/materialize_entry_exit_transformer_training_plan_readiness_v1.py")
         worktree_hygiene = _read_text(REPO / "gx1/scripts/audit_entry_foundation_worktree_hygiene_v1.py")
         readiness = _read_text(REPO / "gx1/scripts/verify_entry_training_readiness_v1.py")
         candidate_readiness = _read_text(REPO / "gx1/scripts/verify_entry_candidate_readiness_v1.py")
@@ -804,6 +806,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         _require("materialize_entry_exit_model_dataset_readiness_v1" in control, "control surface calls active Exit model dataset readiness", checks)
         _require("entry-exit-transformer-architecture-readiness" in control, "control surface exposes active Exit Transformer architecture readiness", checks)
         _require("audit_entry_exit_transformer_architecture_readiness_v1" in control, "control surface calls active Exit Transformer architecture readiness", checks)
+        _require("entry-exit-transformer-training-plan-readiness" in control, "control surface exposes active Exit Transformer training plan readiness", checks)
+        _require("materialize_entry_exit_transformer_training_plan_readiness_v1" in control, "control surface calls active Exit Transformer training plan readiness", checks)
         _require("smoke-train" in control, "control surface exposes vedtak-gated smoke train", checks)
         _require("--require-edge-audit" in control, "control surface documents edge-required smoke train", checks)
         _require("audit-smoke-bundle" in control, "control surface exposes smoke bundle audit", checks)
@@ -1111,6 +1115,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         _require("exit_sequence_transformer_v1" in entry_exit_transformer_architecture, "Entry Exit Transformer architecture readiness locks model family", checks)
         _require("causal_masked_transformer_encoder" in entry_exit_transformer_architecture, "Entry Exit Transformer architecture readiness requires causal encoder", checks)
         _require("Exit Transformer architecture readiness never trains, replays, distills, promotes, shadows, or starts live" in entry_exit_transformer_architecture, "Entry Exit Transformer architecture readiness keeps all side-effect paths closed", checks)
+        _require("entry_exit_transformer_training_plan_readiness_v1" in entry_exit_transformer_training_plan, "Entry Exit Transformer training plan readiness writes schema", checks)
+        _require("ENTRY_EXIT_TRANSFORMER_TRAINING_PLAN_READY_FOR_VEDTAK_REVIEW" in entry_exit_transformer_training_plan, "Entry Exit Transformer training plan readiness has ready decision", checks)
+        _require("ENTRY_EXIT_TRANSFORMER_TRAIN_" in entry_exit_transformer_training_plan, "Entry Exit Transformer training plan readiness requires train vedtak prefix", checks)
+        _require("requires_ram_guard" in entry_exit_transformer_training_plan, "Entry Exit Transformer training plan readiness requires RAM guard", checks)
+        _require("training plan readiness never trains, replays, distills, promotes, shadows, or starts live" in entry_exit_transformer_training_plan, "Entry Exit Transformer training plan readiness keeps all side-effect paths closed", checks)
 
     report = {
         "schema_version": "entry_foundation_state_v1",

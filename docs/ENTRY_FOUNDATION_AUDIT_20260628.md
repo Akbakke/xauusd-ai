@@ -8,7 +8,8 @@ audit are ready; Exit Transformer/IQL training remains closed until explicit
 Exit architecture, training and replay evidence gates are added and pass. The
 active Exit model dataset/readiness gate is also ready, with train-only
 normalization metadata and train/val/test shards. The active Exit Transformer
-architecture/readiness contract is ready for training-plan review, but no Exit
+architecture/readiness contract is ready, and the active Exit Transformer
+training-plan/readiness manifest is ready for trainer-wrapper review. No Exit
 trainer is approved or allowed.
 
 The original rule still applies: foundation pass required before any more Transformer training.
@@ -49,7 +50,7 @@ lower drawdown. Those artifacts are frozen as diagnostic history.
 
 The active path is now:
 
-`handover -> verify -> selftest -> foundation-guardrails -> readiness-report -> Entry evidence gates -> Entry/IQL replay and slice evidence -> Entry-to-Exit handoff -> active Exit per-bar reconstruction -> active Exit state/reward contract -> active Exit split/leakage audit -> active Exit model dataset/readiness gates -> only then consider vedtak-gated Exit Transformer training/replay/IQL evidence`
+`handover -> verify -> selftest -> foundation-guardrails -> readiness-report -> Entry evidence gates -> Entry/IQL replay and slice evidence -> Entry-to-Exit handoff -> active Exit per-bar reconstruction -> active Exit state/reward contract -> active Exit split/leakage audit -> active Exit model dataset/readiness gates -> active Exit Transformer architecture/readiness -> active Exit Transformer training plan/readiness -> only then consider vedtak-gated Exit trainer-wrapper/replay/IQL evidence`
 
 The historical activation path was:
 
@@ -169,10 +170,17 @@ Active status:
   `ENTRY_EXIT_MODEL_DATASET_READY_FOR_EXIT_TRANSFORMER_READINESS_REVIEW`.
 - Active Exit Transformer architecture/readiness:
   `ENTRY_EXIT_TRANSFORMER_ARCHITECTURE_READY_FOR_TRAINING_PLAN_REVIEW`.
+- Active Exit Transformer training plan/readiness:
+  `ENTRY_EXIT_TRANSFORMER_TRAINING_PLAN_READY_FOR_VEDTAK_REVIEW`.
+  It pins 5906 rows, 413 episodes, the exact Exit heads
+  `exit_now_logit`, `hold_value_bps`, `exit_now_reward_bps`,
+  `giveback_risk_bps`, `mfe_capture_ratio`, shard hashes, train vedtak prefix
+  `ENTRY_EXIT_TRANSFORMER_TRAIN_` and RAM guardrails with `num_workers=0`,
+  initial batch size 32 and max process RSS 8 GiB.
 - Exit Transformer training, Exit IQL, shadow, live and promotion remain
-  closed. The next safe work is active Exit Transformer training plan/readiness
-  manifest; it is still report-only until a separate explicit Exit training
-  vedtak gate exists and passes.
+  closed. The next safe work is implementing and auditing an active Exit
+  Transformer trainer wrapper; it remains closed until the wrapper has its own
+  explicit vedtak gate, clean-git check, pretrain manifest and RAM guard.
 
 ## Previous Operating Status - 2026-06-29
 

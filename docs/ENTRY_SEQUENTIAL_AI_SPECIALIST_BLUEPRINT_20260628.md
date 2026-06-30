@@ -83,6 +83,13 @@ Machine contract:
     against the model dataset: causal masked Transformer encoder, train-only
     normalization, planned sequence length, exact output heads and no
     train/replay/IQL/shadow/live side effects.
+- Active Exit Transformer training plan/readiness:
+  `gx1/scripts/materialize_entry_exit_transformer_training_plan_readiness_v1.py`
+  - Pins the future trainer command contract, active architecture/dataset shard
+    hashes, exact Exit output heads, explicit `ENTRY_EXIT_TRANSFORMER_TRAIN_`
+    vedtak requirement, clean-git/pretrain-manifest requirements and RAM
+    guardrails. It remains report-only and keeps trainer/replay/IQL/shadow/live
+    side effects closed.
 - Latest report:
   `/home/andre2/GX1_DATA/reports/entry_specialist_feature_group_audit_20260628_v1/ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_latest.json`
 - Current decision: `PASS` on the active seq146 foundation dataset.

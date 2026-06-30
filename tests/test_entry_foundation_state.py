@@ -37,6 +37,7 @@ def test_foundation_state_allows_entry_train_manifest_report_roots() -> None:
     assert "entry_exit_split_leakage_audit_20260630_v1" in verifier
     assert "entry_exit_model_dataset_readiness_20260630_v1" in verifier
     assert "entry_exit_transformer_architecture_readiness_20260630_v1" in verifier
+    assert "entry_exit_transformer_training_plan_readiness_20260630_v1" in verifier
 
 
 def _args(*, selftest: bool) -> argparse.Namespace:
