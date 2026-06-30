@@ -832,10 +832,17 @@ def test_pretrain_manifest_contract_accepts_candidate_latest_refresh_with_timest
     candidate_readiness_latest.write_text(json.dumps({"artifact": "candidate_readiness_refreshed"}), encoding="utf-8")
 
     artifacts = {"candidate_readiness": candidate_readiness_latest}
+    timestamped_artifacts = {}
     for name in ("smoke_bundle_audit", "specialist_audit"):
-        path = tmp_path / f"{name}.json"
-        path.write_text(json.dumps({"artifact": name}), encoding="utf-8")
-        artifacts[name] = path
+        artifact_dir = tmp_path / f"{name}_reports"
+        artifact_dir.mkdir()
+        timestamped = artifact_dir / f"{name}_20260630T020634Z.json"
+        latest = artifact_dir / f"{name}_latest.json"
+        payload = {"artifact": name}
+        timestamped.write_text(json.dumps(payload), encoding="utf-8")
+        latest.write_text(json.dumps(payload), encoding="utf-8")
+        artifacts[name] = latest
+        timestamped_artifacts[name] = timestamped
     candidate_fingerprints = {
         name: {
             "path": str(path),
@@ -859,13 +866,13 @@ def test_pretrain_manifest_contract_accepts_candidate_latest_refresh_with_timest
         "inputs": {
             "candidate_dataset_dir": str(dataset_dir),
             "candidate_readiness_json": str(candidate_readiness_latest),
-            "smoke_bundle_audit_json": str(artifacts["smoke_bundle_audit"]),
-            "specialist_audit_json": str(artifacts["specialist_audit"]),
+            "smoke_bundle_audit_json": str(timestamped_artifacts["smoke_bundle_audit"]),
+            "specialist_audit_json": str(timestamped_artifacts["specialist_audit"]),
         },
         "artifact_sha256": {
             "candidate_readiness": _sha256_file(candidate_readiness_timestamped),
-            "smoke_bundle_audit": _sha256_file(artifacts["smoke_bundle_audit"]),
-            "specialist_audit": _sha256_file(artifacts["specialist_audit"]),
+            "smoke_bundle_audit": _sha256_file(timestamped_artifacts["smoke_bundle_audit"]),
+            "specialist_audit": _sha256_file(timestamped_artifacts["specialist_audit"]),
         },
         "preflight_contracts": {
             "candidate_readiness": {

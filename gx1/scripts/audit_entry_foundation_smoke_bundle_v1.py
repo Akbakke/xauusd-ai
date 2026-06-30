@@ -638,16 +638,24 @@ def _pretrain_manifest_contract_report(
                 continue
             fingerprint_path = fingerprint.get("path")
             manifest_path_for_key = path_by_hash_key.get(key)
+            fingerprint_sha = str(fingerprint.get("sha256") or "")
+            manifest_sha = str(hashes.get(key) or "")
             if (
                 fingerprint_path
                 and manifest_path_for_key
                 and str(Path(str(fingerprint_path)).expanduser().resolve())
                 != str(Path(str(manifest_path_for_key)).expanduser().resolve())
+                and not (
+                    fingerprint_sha
+                    and manifest_sha
+                    and fingerprint_sha == manifest_sha
+                    and bool(hash_checks.get(key, {}).get("ok"))
+                )
             ):
                 failures.append(
                     f"candidate pretrain manifest candidate_readiness artifact fingerprint path mismatch: {key}"
                 )
-            if str(fingerprint.get("sha256") or "") != str(hashes.get(key) or ""):
+            if fingerprint_sha != manifest_sha:
                 failures.append(
                     f"candidate pretrain manifest candidate_readiness artifact fingerprint hash mismatch: {key}"
                 )
