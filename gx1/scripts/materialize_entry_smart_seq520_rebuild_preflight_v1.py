@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from gx1.runtime.entry_next_edge_legacy_guard import LEGACY_RESEARCH_ACK_ENV, LEGACY_RESEARCH_ACK_VALUE
 from gx1.scripts.verify_entry_foundation_state_v1 import FOUNDATION_DATASET_DIR, REPORTS_ROOT
 
 
@@ -191,6 +192,8 @@ def _command_contract(
         "allowed_without_vedtak": False,
         "requires_explicit_rebuild_vedtak": True,
         "requires_clean_git_before_execution": True,
+        "uses_legacy_guarded_builder": True,
+        "required_environment": {LEGACY_RESEARCH_ACK_ENV: LEGACY_RESEARCH_ACK_VALUE},
         "requires_ram_cap": True,
         "ram_cap_runner": "scripts/gx1_capped_run.sh",
         "memory_max": "4G",
@@ -339,6 +342,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     _check(checks, "rebuild command pins canonical_v2 parquet", "--canonical_v2_parquet" in argv and source_parquet in argv, argv)
     _check(checks, "rebuild command computes smart extension inline", "--seq-structure-compute-inline" in argv, argv)
     _check(checks, "rebuild command keeps neutral xgb bridge", "--neutral-xgb-bridge" in argv, argv)
+    _check(
+        checks,
+        "rebuild command declares legacy builder ack env",
+        command_contract.get("required_environment", {}).get(LEGACY_RESEARCH_ACK_ENV)
+        == LEGACY_RESEARCH_ACK_VALUE,
+        command_contract.get("required_environment"),
+    )
     _check(checks, "rebuild command does not start trainer", command_contract["starts_trainer"] is False, command_contract)
 
     failed = [row for row in checks if not row["ok"]]

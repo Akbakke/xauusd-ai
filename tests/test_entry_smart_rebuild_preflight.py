@@ -163,6 +163,10 @@ def test_smart_rebuild_preflight_accepts_dynamic_smart_seq_width(tmp_path: Path)
     assert report["rebuild_command_contract"]["allowed_without_vedtak"] is False
     assert report["rebuild_command_contract"]["requires_explicit_rebuild_vedtak"] is True
     assert report["rebuild_command_contract"]["requires_clean_git_before_execution"] is True
+    assert report["rebuild_command_contract"]["uses_legacy_guarded_builder"] is True
+    assert report["rebuild_command_contract"]["required_environment"] == {
+        "GX1_ALLOW_LEGACY_ENTRY_V10_RESEARCH": "20260627_ALLOW_LEGACY_ENTRY_V10_RESEARCH"
+    }
     assert report["rebuild_command_contract"]["starts_trainer"] is False
     assert report["rebuild_command_contract"]["starts_replay"] is False
     assert report["rebuild_command_contract"]["starts_iql_distillation"] is False
