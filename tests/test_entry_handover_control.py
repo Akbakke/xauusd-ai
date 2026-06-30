@@ -626,6 +626,8 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
     assert payload["commands"]["smart_post_rebuild_readiness"]["argv"] == [
         "scripts/entry_next_edge_control.sh",
         "smart-post-rebuild-readiness",
+        "--fullscan",
+        "--verify-source-parquet-hashes",
         "--quiet",
         "--no-fail-on-not-ready",
     ]
@@ -951,7 +953,7 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
         in payload["allowed_now"]
     )
     assert (
-        "scripts/entry_next_edge_control.sh smart-post-rebuild-readiness --quiet --no-fail-on-not-ready"
+        "scripts/entry_next_edge_control.sh smart-post-rebuild-readiness --fullscan --verify-source-parquet-hashes --quiet --no-fail-on-not-ready"
         in payload["allowed_now"]
     )
     assert (

@@ -31,6 +31,8 @@ DEFAULT_PLANNED_DATASET_DIR = (
     FOUNDATION_DATASET_DIR.parent / "v10_dataset_smart_candidate_20260630"
 )
 REQUIRED_GX1_DATA_ROOT = "/home/andre2/GX1_DATA"
+MTF_CACHE_ENV = "GX1_V10_MULTI_TF_V2_CACHE_DIR"
+MTF_CACHE_DIR_NAME = "MULTI_TF_V2_CACHE"
 FIXED_BASE_COUNTS = {
     "base_signal_features": 41,
     "foundation_sequence_extension_features": 105,
@@ -89,6 +91,56 @@ def _artifact_meta(path: Path, *, verify_hash: bool = True) -> dict[str, Any]:
         "exists": path.exists(),
         "size_bytes": path.stat().st_size if path.exists() else None,
         "sha256": _sha256_file(path) if verify_hash else None,
+    }
+
+
+def _iso_from_ns(value: int | None) -> str | None:
+    if value is None:
+        return None
+    return datetime.fromtimestamp(value / 1_000_000_000, tz=timezone.utc).isoformat()
+
+
+def _ns_from_iso(value: str | None) -> int | None:
+    if not value:
+        return None
+    text = str(value).strip()
+    if text.endswith("Z"):
+        text = text[:-1] + "+00:00"
+    parsed = datetime.fromisoformat(text)
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return int(parsed.timestamp() * 1_000_000_000)
+
+
+def _mtf_cache_contract(cache_dir: Path, split_schedule: dict[str, dict[str, str]]) -> dict[str, Any]:
+    manifest_path = cache_dir / "manifest.json"
+    manifest: dict[str, Any] = {}
+    if manifest_path.exists():
+        manifest = _read_json(manifest_path)
+    tfs = manifest.get("tfs") if isinstance(manifest.get("tfs"), dict) else {}
+    last_by_tf = {
+        str(tf): int(row.get("last_ts_ns") or 0)
+        for tf, row in tfs.items()
+        if isinstance(row, dict) and int(row.get("last_ts_ns") or 0) > 0
+    }
+    max_last = max(last_by_tf.values()) if last_by_tf else None
+    m5_last = last_by_tf.get("M5")
+    test_end_ns = _ns_from_iso((split_schedule.get("test") or {}).get("end"))
+    return {
+        "cache_dir": str(cache_dir),
+        "manifest": _artifact_meta(manifest_path),
+        "manifest_exists": manifest_path.exists(),
+        "m5_prebuilt_source": manifest.get("m5_prebuilt_source"),
+        "feature_count": manifest.get("feature_count"),
+        "tf_count": len(tfs),
+        "last_ts_ns_by_tf": last_by_tf,
+        "max_last_ts_ns": max_last,
+        "max_last_ts_utc": _iso_from_ns(max_last),
+        "m5_last_ts_ns": m5_last,
+        "m5_last_ts_utc": _iso_from_ns(m5_last),
+        "test_end_ns": test_end_ns,
+        "test_end_utc": _iso_from_ns(test_end_ns),
+        "covers_test_end": bool(max_last is not None and test_end_ns is not None and max_last >= test_end_ns),
     }
 
 
@@ -180,6 +232,7 @@ def _command_contract(
     planned_dataset_dir: Path,
     manifest_variant: str,
     split_schedule: dict[str, dict[str, str]],
+    mtf_cache_dir: str,
 ) -> dict[str, Any]:
     output = planned_dataset_dir / f"v10_{manifest_variant}.parquet"
     argv = [
@@ -233,6 +286,7 @@ def _command_contract(
         "uses_legacy_guarded_builder": True,
         "required_environment": {
             "GX1_DATA": REQUIRED_GX1_DATA_ROOT,
+            MTF_CACHE_ENV: mtf_cache_dir,
             LEGACY_RESEARCH_ACK_ENV: LEGACY_RESEARCH_ACK_VALUE,
         },
         "requires_ram_cap": True,
@@ -378,6 +432,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     source_parquet = next(iter(source_parquets)) if len(source_parquets) == 1 else ""
     xgb_bundle = next(iter(xgb_bundles)) if len(xgb_bundles) == 1 else ""
+    mtf_cache = _mtf_cache_contract(Path(source_parquet).parent / MTF_CACHE_DIR_NAME, split_schedule)
     command_contract = _command_contract(
         source_parquet=source_parquet,
         xgb_bundle=xgb_bundle,
@@ -385,6 +440,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         planned_dataset_dir=planned_dataset_dir,
         manifest_variant=str(smart_manifest.get("manifest_variant") or "smart_seq_candidate"),
         split_schedule=split_schedule,
+        mtf_cache_dir=mtf_cache["cache_dir"],
     )
     argv = command_contract["argv"]
     _check(checks, "rebuild command uses RAM cap runner", argv[:6] == ["scripts/gx1_capped_run.sh", "--mem", "22G", "--swap", "2G", "--"], argv[:8])
@@ -403,6 +459,24 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         checks,
         "rebuild command declares GX1_DATA root",
         command_contract.get("required_environment", {}).get("GX1_DATA") == REQUIRED_GX1_DATA_ROOT,
+        command_contract.get("required_environment"),
+    )
+    _check(
+        checks,
+        "fresh multi-TF cache manifest exists",
+        mtf_cache["manifest_exists"] is True,
+        mtf_cache,
+    )
+    _check(
+        checks,
+        "fresh multi-TF cache covers test cutoff",
+        mtf_cache["covers_test_end"] is True,
+        mtf_cache,
+    )
+    _check(
+        checks,
+        "rebuild command declares fresh multi-TF cache env",
+        command_contract.get("required_environment", {}).get(MTF_CACHE_ENV) == mtf_cache["cache_dir"],
         command_contract.get("required_environment"),
     )
     _check(checks, "rebuild command does not start trainer", command_contract["starts_trainer"] is False, command_contract)
@@ -446,6 +520,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "smart_manifest": _artifact_meta(smart_manifest_path),
             "inventory_report": _artifact_meta(inventory_path),
             "foundation_dataset_dir": str(foundation_dataset_dir),
+            "multi_tf_cache": mtf_cache,
         },
         "split_contracts": split_contracts,
         "rebuild_command_contract": command_contract,

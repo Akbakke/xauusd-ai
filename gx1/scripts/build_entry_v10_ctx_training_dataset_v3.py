@@ -427,6 +427,8 @@ def _resolve_seq_structure_extension(
         "parquet_path": str(parquet_path) if parquet_path is not None else None,
         "parquet_sha256": actual_sha,
         "manifest_schema_version": manifest.get("schema_version"),
+        "manifest_variant": manifest.get("manifest_variant"),
+        "expected_seq_snap_width": manifest.get("expected_seq_snap_width"),
         "manifest_selected_feature_count": len(features) if features else None,
         "manifest_only": bool(manifest.get("manifest_only")) if manifest else False,
         "foundation_structure_feature_version": manifest.get("foundation_structure_feature_version"),
@@ -1990,10 +1992,12 @@ def build_dataset_canonical(
     # the extended ctx_cont dim 21→43.
     if canonical_v2_parquet is None:
         raise RuntimeError("V2_BUILDER_MISSING_CANONICAL_V2_PARQUET")
-    if not Path(canonical_v2_parquet).exists():
-        raise RuntimeError(f"CANONICAL_V2_PARQUET_NOT_FOUND: {canonical_v2_parquet}")
+    canonical_v2_path = Path(canonical_v2_parquet).expanduser().resolve()
+    if not canonical_v2_path.exists():
+        raise RuntimeError(f"CANONICAL_V2_PARQUET_NOT_FOUND: {canonical_v2_path}")
+    canonical_v2_sha256 = _sha256_file(canonical_v2_path)
 
-    log.info("[V2_CANONICAL_JOIN] loading canonical_v2 from %s", canonical_v2_parquet)
+    log.info("[V2_CANONICAL_JOIN] loading canonical_v2 from %s sha256=%s", canonical_v2_path, canonical_v2_sha256)
     # Volume features (vol_z_20 …) and GROUP-A market-parity features are DERIVED
     # below (volume from raw `volume`; parity via augment_candidate one-truth w/
     # IQL) — they do NOT exist in any source parquet, so exclude them from the
@@ -2030,14 +2034,14 @@ def build_dataset_canonical(
     # Filter cv2_to_load to only what canonical_v2 actually has, hard-fail if any
     # truly missing across all sources (instead of obscure pyarrow error).
     import pyarrow.parquet as _pq_chk
-    cv2_available = set(_pq_chk.read_schema(str(canonical_v2_parquet)).names) if cv2_to_load else set()
+    cv2_available = set(_pq_chk.read_schema(str(canonical_v2_path)).names) if cv2_to_load else set()
     cv2_truly_missing = [c for c in cv2_to_load if c not in cv2_available]
     if cv2_truly_missing:
         raise RuntimeError(
             f"V2_CANONICAL_FIELDS_MISSING_EVERYWHERE: {cv2_truly_missing} "
             f"(not in source_parquet, not in canonical_v2 schema)"
         )
-    cv2_df = pd.read_parquet(canonical_v2_parquet, columns=["time"] + cv2_to_load)
+    cv2_df = pd.read_parquet(canonical_v2_path, columns=["time"] + cv2_to_load)
     cv2_df["time"] = pd.to_datetime(cv2_df["time"], utc=True)
     log.info(
         "[V2_CANONICAL_JOIN] cv2 loaded: %d rows × %d cols (time + %d new)",
@@ -2286,7 +2290,7 @@ def build_dataset_canonical(
                 requested_features=seq_structure_requested,
                 ctx_cont_names=ctx_cont_names,
                 ctx_cat_names=ctx_cat_names,
-                source_parquet=canonical_v2_parquet,
+                source_parquet=canonical_v2_path,
             )
         else:
             merged3, seq_structure_feature_names, _seq_join_meta = _join_seq_structure_extension(
@@ -2310,6 +2314,17 @@ def build_dataset_canonical(
         sig_mat = base_sig_mat
     signal_fields_emitted = list(SIGNAL_FIELDS) + list(seq_structure_feature_names)
     snap_fields_emitted = list(signal_fields_emitted)
+    expected_seq_snap_width = seq_structure_meta.get("expected_seq_snap_width")
+    if expected_seq_snap_width is not None:
+        expected_seq_snap_width = int(expected_seq_snap_width)
+        observed_seq_snap_width = int(sig_mat.shape[1])
+        if observed_seq_snap_width != expected_seq_snap_width:
+            raise RuntimeError(
+                "SEQ_STRUCTURE_EXPECTED_WIDTH_MISMATCH: "
+                f"manifest_variant={seq_structure_meta.get('manifest_variant')} "
+                f"expected={expected_seq_snap_width} observed={observed_seq_snap_width} "
+                f"manifest={seq_structure_meta.get('manifest_path')}"
+            )
     times = merged3["time"].to_numpy()
 
     ctx_cont_mat = merged3[ctx_cont_names].astype(np.float32).to_numpy()
@@ -2989,6 +3004,10 @@ def build_dataset_canonical(
             "parquet_path": str(parquet_path),
             "parquet_sha256": parquet_sha,
         },
+        "canonical_v2_parquet": {
+            "path": str(canonical_v2_path),
+            "sha256": canonical_v2_sha256,
+        },
         "xgb_bundle": str(Path(xgb_bundle_path).resolve()),
         "xgb_model_sha256": xgb_model_sha256,
         "neutral_xgb_bridge": bool(neutral_xgb_bridge),
@@ -3348,14 +3367,6 @@ def main() -> None:
     if hold_suffix not in output_path.stem:
         output_path = output_path.with_name(f"{output_path.stem}__{hold_suffix}{output_path.suffix}")
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    # Write proof payload
-    try:
-        proof_path = output_path.parent / "DATASET_BUILD_PROOF.json"
-        with open(proof_path, "w") as f:
-            json.dump(proof_payload, f, indent=2)
-        log.info("[DATASET_BUILD_PROOF] wrote %s", proof_path)
-    except Exception as e:
-        log.warning("[DATASET_BUILD_PROOF] failed to write proof file: %s", e)
     proof_payload.update(
         {
             "base28_manifest_path": str(base28_manifest_path),
@@ -3380,6 +3391,14 @@ def main() -> None:
         xgb_model_sha256,
         bool(args.neutral_xgb_bridge),
     )
+    # Write proof after all pre-build identity fields are populated.
+    try:
+        proof_path = output_path.parent / "DATASET_BUILD_PROOF.json"
+        with open(proof_path, "w") as f:
+            json.dump(proof_payload, f, indent=2)
+        log.info("[DATASET_BUILD_PROOF] wrote %s", proof_path)
+    except Exception as e:
+        log.warning("[DATASET_BUILD_PROOF] failed to write proof file: %s", e)
 
     start = _parse_ts(args.start)
     end = _parse_ts(args.end)

@@ -314,7 +314,7 @@ allowed_now = [
     "scripts/entry_next_edge_control.sh challenger-extension-manifest --quiet --no-fail-on-audit-fail",
     "scripts/entry_next_edge_control.sh challenger-smart-extension-manifest --quiet --no-fail-on-audit-fail",
     "scripts/entry_next_edge_control.sh smart-rebuild-preflight --verify-large-input-hashes --quiet --no-fail-on-audit-fail",
-    "scripts/entry_next_edge_control.sh smart-post-rebuild-readiness --quiet --no-fail-on-not-ready",
+    "scripts/entry_next_edge_control.sh smart-post-rebuild-readiness --fullscan --verify-source-parquet-hashes --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh smart-smoke-readiness --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh smart-trainability-readiness --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh smart-ablation-replay-plan --quiet --no-fail-on-not-ready",
@@ -1248,6 +1248,8 @@ commands.update(
             "argv": [
                 "scripts/entry_next_edge_control.sh",
                 "smart-post-rebuild-readiness",
+                "--fullscan",
+                "--verify-source-parquet-hashes",
                 "--quiet",
                 "--no-fail-on-not-ready",
             ],

@@ -23,6 +23,24 @@ def _build_fixture(
 ) -> argparse.Namespace:
     source = tmp_path / "FULL_PLUS_CTX_v3src.parquet"
     source.write_bytes(b"dummy parquet placeholder")
+    mtf_cache = tmp_path / "MULTI_TF_V2_CACHE"
+    _write_json(
+        mtf_cache / "manifest.json",
+        {
+            "feature_count": 25,
+            "m5_prebuilt_source": str(tmp_path / "cv3" / "xauusd_m5_CANONICAL_V3_2020_2026.parquet"),
+            "tfs": {
+                "M5": {
+                    "n_bars": 1,
+                    "feature_count": 25,
+                    "feats_npy": "M5_feats.npy",
+                    "ts_npy": "M5_ts.npy",
+                    "first_ts_ns": 1782444300000000000,
+                    "last_ts_ns": 1782444300000000000,
+                }
+            },
+        },
+    )
     output_dir = tmp_path / "foundation_dataset"
     output_dir.mkdir(parents=True)
     xgb_bundle = tmp_path / "xgb_bundle"
@@ -187,8 +205,10 @@ def test_smart_rebuild_preflight_accepts_dynamic_smart_seq_width(tmp_path: Path)
     assert report["rebuild_command_contract"]["uses_legacy_guarded_builder"] is True
     assert report["rebuild_command_contract"]["required_environment"] == {
         "GX1_DATA": "/home/andre2/GX1_DATA",
+        "GX1_V10_MULTI_TF_V2_CACHE_DIR": str(tmp_path / "MULTI_TF_V2_CACHE"),
         "GX1_ALLOW_LEGACY_ENTRY_V10_RESEARCH": "20260627_ALLOW_LEGACY_ENTRY_V10_RESEARCH"
     }
+    assert report["inputs"]["multi_tf_cache"]["covers_test_end"] is True
     assert report["rebuild_command_contract"]["starts_trainer"] is False
     assert report["rebuild_command_contract"]["starts_replay"] is False
     assert report["rebuild_command_contract"]["starts_iql_distillation"] is False
