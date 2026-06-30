@@ -99,7 +99,22 @@ SPECIALIST_GATE_OUTPUT_FIELDS = {
     "vol_compression_encoder": "entry_vol_compression_gate_weight",
     "momentum_flow_encoder": "entry_momentum_flow_gate_weight",
     "session_regime_encoder": "entry_session_regime_gate_weight",
+    "chart_geometry_encoder": "entry_chart_geometry_gate_weight",
+    "price_action_candle_encoder": "entry_price_action_candle_gate_weight",
 }
+FOUNDATION_SPECIALIST_GATE_SET = (
+    "structure_swing_encoder",
+    "smc_liquidity_encoder",
+    "trend_ema_encoder",
+    "vol_compression_encoder",
+    "momentum_flow_encoder",
+    "session_regime_encoder",
+)
+CHALLENGER_SEQ215_SPECIALIST_GATE_SET = (
+    *FOUNDATION_SPECIALIST_GATE_SET,
+    "chart_geometry_encoder",
+    "price_action_candle_encoder",
+)
 
 PRICE_COLUMNS = (
     "time",
@@ -352,6 +367,15 @@ def _specialist_names_from_bundle(bundle: Any) -> list[str]:
     return sorted(str(name) for name in indices.keys())
 
 
+def _supported_specialist_gate_set(names: list[str]) -> bool:
+    observed = set(str(name) for name in names)
+    return observed in (set(FOUNDATION_SPECIALIST_GATE_SET), set(CHALLENGER_SEQ215_SPECIALIST_GATE_SET))
+
+
+def _gate_output_fields_for_names(names: list[str]) -> list[str]:
+    return [SPECIALIST_GATE_OUTPUT_FIELDS[str(name)] for name in names]
+
+
 def _extract_entry_specialist_gate_outputs(
     *,
     dataset_dir: Path,
@@ -365,13 +389,17 @@ def _extract_entry_specialist_gate_outputs(
     batch_size: int,
     required: bool,
 ) -> tuple[pd.DataFrame, dict[str, Any]]:
-    output_fields = [SPECIALIST_GATE_OUTPUT_FIELDS[name] for name in SPECIALIST_GATE_OUTPUT_FIELDS]
+    output_fields = _gate_output_fields_for_names(list(FOUNDATION_SPECIALIST_GATE_SET))
     diagnostics: dict[str, Any] = {
         "required": bool(required),
         "bundle_dir": str(bundle_dir or ""),
         "m5_prebuilt_path": str(m5_prebuilt_path),
         "multi_tf_cache_dir": str(multi_tf_cache_dir),
         "output_fields": output_fields,
+        "supported_specialist_sets": {
+            "foundation_seq146": list(FOUNDATION_SPECIALIST_GATE_SET),
+            "challenger_seq215": list(CHALLENGER_SEQ215_SPECIALIST_GATE_SET),
+        },
         "ready": False,
         "failures": [],
     }
@@ -404,12 +432,15 @@ def _extract_entry_specialist_gate_outputs(
         model = bundle.transformer_model.eval()
         specialist_names = _specialist_names_from_bundle(bundle)
         diagnostics["specialist_names"] = specialist_names
-        expected = list(SPECIALIST_GATE_OUTPUT_FIELDS)
-        if set(specialist_names) != set(expected):
+        if not _supported_specialist_gate_set(specialist_names):
             diagnostics["failures"].append(
-                f"specialist set mismatch expected={sorted(expected)} observed={sorted(specialist_names)}"
+                "specialist set mismatch expected one of "
+                f"{[sorted(FOUNDATION_SPECIALIST_GATE_SET), sorted(CHALLENGER_SEQ215_SPECIALIST_GATE_SET)]} "
+                f"observed={sorted(specialist_names)}"
             )
             return pd.DataFrame(columns=["time", *output_fields]), diagnostics
+        output_fields = _gate_output_fields_for_names(specialist_names)
+        diagnostics["output_fields"] = output_fields
         subset_path, subset_diagnostics = _materialize_entry_gate_subset_parquet(
             dataset_dir=dataset_dir,
             entry_times=entry_times,

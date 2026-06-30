@@ -102,6 +102,10 @@ Machine contract:
     the active Exit state is ready only when those Entry snapshot families and
     exact specialist-gate outputs are materialized as model state, not just
     broad score/probability fields.
+  - For `foundation_seq146`, the exact Entry specialist-gate set is the six base
+    specialists. For `challenger_seq215`, Exit alignment must carry
+    `chart_geometry_encoder` and `price_action_candle_encoder` state plus all
+    eight specialist-gate weights before any Exit train/replay/IQL step.
 - Active Exit Transformer architecture/readiness:
   `gx1/scripts/audit_entry_exit_transformer_architecture_readiness_v1.py`
   - Locks the active `exit_sequence_transformer_v1` architecture contract
@@ -647,6 +651,9 @@ feature names.
 - At minimum, Exit/V3/Exit-IQL alignment must cover structure state, BOS/CHoCH,
   sweep/reclaim, false breakout, compression/expansion, EMA/trend agreement,
   ATR regime, session regime and the Entry specialist gate outputs.
+- The `challenger_seq215` path must not inherit the six-gate Exit alignment from
+  `foundation_seq146`; it requires chart geometry state, price action/candle
+  state and all eight specialist gate weights.
 - Add an exit feature-alignment gate that fails when new Entry foundation
   features are missing from the Exit state without an explicit waiver.
 - Evaluate exit policy separately for sweep-reversal entries, BOS-continuation

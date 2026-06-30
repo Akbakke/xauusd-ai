@@ -6,10 +6,36 @@ import pandas as pd
 
 from gx1.scripts.audit_entry_exit_handoff_readiness_v1 import REQUIRED_EXIT_SUBSTRATE_FIELDS
 from gx1.scripts.materialize_entry_exit_per_bar_handoff_v1 import (
+    CHALLENGER_SEQ215_SPECIALIST_GATE_SET,
     ENTRY_ALIGNMENT_CTX_CONT_FEATURES,
     ENTRY_ALIGNMENT_SNAP_FEATURES,
+    FOUNDATION_SPECIALIST_GATE_SET,
+    _gate_output_fields_for_names,
+    _supported_specialist_gate_set,
     run,
 )
+
+
+def test_entry_exit_per_bar_handoff_supports_foundation_and_seq215_gate_sets() -> None:
+    assert _supported_specialist_gate_set(list(FOUNDATION_SPECIALIST_GATE_SET)) is True
+    assert _supported_specialist_gate_set(list(CHALLENGER_SEQ215_SPECIALIST_GATE_SET)) is True
+    assert _supported_specialist_gate_set([*FOUNDATION_SPECIALIST_GATE_SET, "unknown_encoder"]) is False
+
+    foundation_fields = _gate_output_fields_for_names(list(FOUNDATION_SPECIALIST_GATE_SET))
+    seq215_fields = _gate_output_fields_for_names(list(CHALLENGER_SEQ215_SPECIALIST_GATE_SET))
+
+    assert foundation_fields == [
+        "entry_structure_swing_gate_weight",
+        "entry_smc_liquidity_gate_weight",
+        "entry_trend_ema_gate_weight",
+        "entry_vol_compression_gate_weight",
+        "entry_momentum_flow_gate_weight",
+        "entry_session_regime_gate_weight",
+    ]
+    assert seq215_fields[-2:] == [
+        "entry_chart_geometry_gate_weight",
+        "entry_price_action_candle_gate_weight",
+    ]
 
 
 def _write_foundation_dataset(tmp_path: Path, times: list[str]) -> Path:

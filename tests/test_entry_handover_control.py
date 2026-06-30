@@ -163,6 +163,10 @@ def test_docs_name_handover_as_canonical_fresh_session_entrypoint() -> None:
     assert "replay-proven" in specialist_doc
     assert "isolated feature families" in foundation_doc
     assert "isolated feature families" in specialist_doc
+    assert "challenger_seq215` must not reuse the six-gate Exit alignment" in foundation_doc
+    assert "all eight specialist-gate weights before any Exit train/replay/IQL step" in foundation_doc
+    assert "chart_geometry_encoder` and `price_action_candle_encoder` state" in specialist_doc
+    assert "eight specialist-gate weights before any Exit train/replay/IQL step" in specialist_doc
 
 
 def test_control_surface_readiness_report_is_fail_open_status_only() -> None:

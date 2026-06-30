@@ -194,6 +194,10 @@ Active status:
   `structure_swing`, `smc_liquidity`, `trend_ema`, `vol_compression`,
   `momentum_flow` and `session_regime`. Missing required alignment families:
   zero.
+  This six-gate alignment is valid only for the active `foundation_seq146`
+  contract. `challenger_seq215` must not reuse the six-gate Exit alignment; it
+  must carry `chart_geometry_encoder` and `price_action_candle_encoder` state
+  plus all eight specialist-gate weights before any Exit train/replay/IQL step.
 - Active Exit Transformer architecture/readiness:
   `ENTRY_EXIT_TRANSFORMER_ARCHITECTURE_READY_FOR_TRAINING_PLAN_REVIEW`.
 - Active Exit Transformer training plan/readiness:

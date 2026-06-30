@@ -56,6 +56,20 @@ BASE_REQUIRED_PROVENANCE_FIELDS = (
     "entry_iql_policy_id",
     "entry_replay_identity_hash",
 )
+ENTRY_SPECIALIST_CONTRACT_MODES = ("foundation_seq146", "challenger_seq215")
+FOUNDATION_ENTRY_SPECIALIST_GATE_FIELDS = (
+    "entry_structure_swing_gate_weight",
+    "entry_smc_liquidity_gate_weight",
+    "entry_trend_ema_gate_weight",
+    "entry_vol_compression_gate_weight",
+    "entry_momentum_flow_gate_weight",
+    "entry_session_regime_gate_weight",
+)
+CHALLENGER_SEQ215_ENTRY_SPECIALIST_GATE_FIELDS = (
+    *FOUNDATION_ENTRY_SPECIALIST_GATE_FIELDS,
+    "entry_chart_geometry_gate_weight",
+    "entry_price_action_candle_gate_weight",
+)
 
 ALIGNMENT_FAMILIES: dict[str, dict[str, Any]] = {
     "entry_policy_context": {
@@ -129,8 +143,28 @@ ALIGNMENT_FAMILIES: dict[str, dict[str, Any]] = {
         "min_fields": 1,
         "reason": "The Exit model must not collapse Entry's multi-timeframe picture into a single M5 path state.",
     },
+    "chart_geometry_context": {
+        "tokens": ("chart_geometry", "geometry", "fib", "fibonacci", "trendline", "channel", "triangle", "flag"),
+        "scope": "state",
+        "min_fields": 1,
+        "expected_specialist": "chart_geometry_encoder",
+        "contract_modes": ("challenger_seq215",),
+        "reason": "Seq215 Exit alignment must preserve numeric chart geometry that Entry used, not only the fused score.",
+    },
+    "price_action_candle_context": {
+        "tokens": ("price_action", "candle", "doji", "hammer", "shooting", "engulfing", "inside", "outside", "tweezer"),
+        "scope": "state",
+        "min_fields": 1,
+        "expected_specialist": "price_action_candle_encoder",
+        "contract_modes": ("challenger_seq215",),
+        "reason": "Seq215 Exit alignment must preserve candlestick/price-action context that Entry used.",
+    },
     "entry_specialist_gate_outputs": {
-        "tokens": ("specialist_gate", "gate_weight", "specialist_weight", "structure_swing_gate", "smc_liquidity_gate", "trend_ema_gate", "vol_compression_gate", "momentum_flow_gate", "session_regime_gate"),
+        "required_fields_by_mode": {
+            "foundation_seq146": FOUNDATION_ENTRY_SPECIALIST_GATE_FIELDS,
+            "challenger_seq215": CHALLENGER_SEQ215_ENTRY_SPECIALIST_GATE_FIELDS,
+        },
+        "tokens": ("specialist_gate", "gate_weight", "specialist_weight", "structure_swing_gate", "smc_liquidity_gate", "trend_ema_gate", "vol_compression_gate", "momentum_flow_gate", "session_regime_gate", "chart_geometry_gate", "price_action_candle_gate"),
         "scope": "state",
         "min_fields": 6,
         "reason": "Exit should see which Entry specialists agreed, disagreed or abstained.",
@@ -186,14 +220,35 @@ def _family_review(
     state_features: list[str],
     provenance_features: list[str],
     all_columns: list[str],
+    contract_mode: str,
 ) -> dict[str, Any]:
     state_set = set(state_features)
     state_or_provenance = set(state_features).union(provenance_features)
     reviews: dict[str, dict[str, Any]] = {}
     missing: list[str] = []
+    skipped: list[str] = []
     for family, spec in ALIGNMENT_FAMILIES.items():
         scope = str(spec["scope"])
-        required_fields = list(spec.get("required_fields") or [])
+        contract_modes = tuple(str(mode) for mode in (spec.get("contract_modes") or ENTRY_SPECIALIST_CONTRACT_MODES))
+        if contract_mode not in contract_modes:
+            skipped.append(family)
+            reviews[family] = {
+                "ok": True,
+                "skipped": True,
+                "scope": scope,
+                "reason": spec.get("reason"),
+                "expected_specialist": spec.get("expected_specialist"),
+                "contract_modes": list(contract_modes),
+                "required_fields": [],
+                "tokens": list(spec.get("tokens") or ()),
+                "present_fields": [],
+                "missing_required_fields": [],
+                "present_anywhere_not_state": [],
+                "min_fields": spec.get("min_fields"),
+            }
+            continue
+        required_by_mode = spec.get("required_fields_by_mode") if isinstance(spec.get("required_fields_by_mode"), dict) else {}
+        required_fields = list(required_by_mode.get(contract_mode) or spec.get("required_fields") or [])
         tokens = tuple(spec.get("tokens") or ())
         universe = state_or_provenance if scope == "state_or_provenance" else state_set
         if required_fields:
@@ -209,8 +264,10 @@ def _family_review(
         reviews[family] = {
             "ok": bool(ok),
             "scope": scope,
+            "skipped": False,
             "reason": spec.get("reason"),
             "expected_specialist": spec.get("expected_specialist"),
+            "contract_modes": list(contract_modes),
             "required_fields": required_fields,
             "tokens": list(tokens),
             "present_fields": present,
@@ -220,7 +277,7 @@ def _family_review(
             ],
             "min_fields": spec.get("min_fields"),
         }
-    return {"ready": not missing, "missing_families": missing, "families": reviews}
+    return {"ready": not missing, "missing_families": missing, "skipped_families": skipped, "families": reviews}
 
 
 def _load_shards(shards: dict[str, str], columns: list[str]) -> dict[str, pd.DataFrame]:
@@ -308,6 +365,9 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
 def run(args: argparse.Namespace) -> dict[str, Any]:
     out_dir = Path(args.out_dir).expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
+    contract_mode = str(getattr(args, "entry_specialist_contract_mode", "foundation_seq146") or "foundation_seq146")
+    contract_mode_valid = contract_mode in ENTRY_SPECIALIST_CONTRACT_MODES
+    review_contract_mode = contract_mode if contract_mode_valid else "foundation_seq146"
     model_dataset_json = Path(args.model_dataset_json).expanduser().resolve()
     model_report = _read_json_or_empty(model_dataset_json)
     feature_schema_json = _path(str(model_report.get("feature_schema_json") or ""))
@@ -327,6 +387,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         state_features=state_features,
         provenance_features=provenance_features,
         all_columns=all_columns,
+        contract_mode=review_contract_mode,
     )
     live_fields = list(
         dict.fromkeys(
@@ -351,6 +412,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             {"decision": model_report.get("decision"), "required": READY_MODEL_DATASET_DECISION},
         ),
         _check("Exit model dataset feature schema exists", feature_schema_json.is_file(), {"path": str(feature_schema_json)}),
+        _check(
+            "Entry specialist contract mode is supported",
+            contract_mode_valid,
+            {"observed": contract_mode, "supported": list(ENTRY_SPECIALIST_CONTRACT_MODES)},
+        ),
         _check("base Entry/Exit state fields are present", not required_base_missing, {"missing": required_base_missing}),
         _check("base Entry provenance fields are present", not provenance_missing, {"missing": provenance_missing}),
         _check("Entry-to-Exit market mechanism families are present as model state", bool(family_review.get("ready")), family_review),
@@ -383,6 +449,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "feature_schema_json": str(feature_schema_json),
         "feature_schema_json_sha256": _sha256_file(feature_schema_json) if feature_schema_json.is_file() else "",
         "model_dataset_shards": shards,
+        "entry_specialist_contract_mode": contract_mode,
+        "entry_specialist_contract_mode_valid": contract_mode_valid,
+        "required_entry_specialist_gate_fields": list(
+            CHALLENGER_SEQ215_ENTRY_SPECIALIST_GATE_FIELDS
+            if review_contract_mode == "challenger_seq215"
+            else FOUNDATION_ENTRY_SPECIALIST_GATE_FIELDS
+        ),
         "state_feature_count": len(state_features),
         "state_features": state_features,
         "provenance_features": provenance_features,
@@ -401,7 +474,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "next_required_gate": (
             "active Exit Transformer architecture/readiness may proceed with aligned Entry/Exit state"
             if ready
-            else "extend Entry-bound Exit materializer/state-reward/model dataset with missing HH/SMC/trend/momentum/MTF/specialist-gate snapshots before Exit training"
+            else (
+                "extend Entry-bound Exit materializer/state-reward/model dataset with seq215 chart-geometry, "
+                "price-action/candle and 8-specialist-gate snapshots before Exit training"
+                if review_contract_mode == "challenger_seq215"
+                else "extend Entry-bound Exit materializer/state-reward/model dataset with missing HH/SMC/trend/momentum/MTF/specialist-gate snapshots before Exit training"
+            )
         ),
         "json_path": str(json_path),
         "md_path": str(md_path),
@@ -427,6 +505,11 @@ def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--model-dataset-json", default=str(DEFAULT_MODEL_DATASET_JSON))
     ap.add_argument("--out-dir", default=str(DEFAULT_OUT_DIR))
+    ap.add_argument(
+        "--entry-specialist-contract-mode",
+        choices=ENTRY_SPECIALIST_CONTRACT_MODES,
+        default="foundation_seq146",
+    )
     ap.add_argument("--fail-on-not-ready", action=argparse.BooleanOptionalAction, default=True)
     ap.add_argument("--quiet", action="store_true")
     return ap
