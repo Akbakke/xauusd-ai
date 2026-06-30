@@ -142,6 +142,7 @@ def _active_entry_artifact_paths() -> list[str]:
         "entry_exit_transformer_trainer_wrapper_readiness_20260630_v1",
         "entry_exit_transformer_pretrain_manifest_20260630_v1",
         "entry_exit_model_dataset_slice_robustness_20260630_v1",
+        "entry_exit_transformer_train_execution_review_20260630_v1",
         "entry_candidate_selective_edge_20260628_v1",
         "entry_candidate_replay_20260628_v1",
         "entry_candidate_replay_trade_log_20260628_v1",
@@ -728,6 +729,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         entry_exit_transformer_trainer_wrapper = _read_text(REPO / "gx1/scripts/audit_entry_exit_transformer_trainer_wrapper_readiness_v1.py")
         entry_exit_transformer_pretrain_manifest = _read_text(REPO / "gx1/scripts/materialize_entry_exit_transformer_pretrain_manifest_v1.py")
         entry_exit_model_dataset_slice_robustness = _read_text(REPO / "gx1/scripts/audit_entry_exit_model_dataset_slice_robustness_v1.py")
+        entry_exit_transformer_train_execution_review = _read_text(REPO / "gx1/scripts/audit_entry_exit_transformer_train_execution_review_v1.py")
         entry_exit_transformer_trainer_core = _read_text(REPO / "gx1/models/exit_sequence_transformer/train_v1.py")
         worktree_hygiene = _read_text(REPO / "gx1/scripts/audit_entry_foundation_worktree_hygiene_v1.py")
         readiness = _read_text(REPO / "gx1/scripts/verify_entry_training_readiness_v1.py")
@@ -822,6 +824,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         _require("materialize_entry_exit_transformer_pretrain_manifest_v1" in control, "control surface calls active Exit Transformer pretrain manifest", checks)
         _require("entry-exit-model-dataset-slice-robustness" in control, "control surface exposes active Exit model dataset slice robustness", checks)
         _require("audit_entry_exit_model_dataset_slice_robustness_v1" in control, "control surface calls active Exit model dataset slice robustness", checks)
+        _require("entry-exit-transformer-train-execution-review" in control, "control surface exposes active Exit Transformer train execution review", checks)
+        _require("audit_entry_exit_transformer_train_execution_review_v1" in control, "control surface calls active Exit Transformer train execution review", checks)
         _require("entry-exit-transformer-train" in control, "control surface exposes blocked active Exit Transformer train wrapper", checks)
         _require("run_entry_exit_transformer_train.sh" in control, "control surface calls blocked active Exit Transformer train wrapper", checks)
         _require("smoke-train" in control, "control surface exposes vedtak-gated smoke train", checks)
@@ -1159,6 +1163,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         _require("session/regime/side slices are disclosed without unsupported slices" in entry_exit_model_dataset_slice_robustness, "Entry Exit model dataset slice robustness audits session/regime/side slices", checks)
         _require("weak_slice_count" in entry_exit_model_dataset_slice_robustness, "Entry Exit model dataset slice robustness records weak slices", checks)
         _require("slice robustness audit never trains, replays, distills, promotes, shadows, or starts live" in entry_exit_model_dataset_slice_robustness, "Entry Exit model dataset slice robustness keeps all side-effect paths closed", checks)
+        _require("entry_exit_transformer_train_execution_review_v1" in entry_exit_transformer_train_execution_review, "Entry Exit Transformer train execution review writes schema", checks)
+        _require("ENTRY_EXIT_TRANSFORMER_TRAIN_EXECUTION_REVIEW_READY_FOR_EXPLICIT_VEDTAK_PACKAGE" in entry_exit_transformer_train_execution_review, "Entry Exit Transformer train execution review has ready decision", checks)
+        _require("must_not_promote_from_broad_average" in entry_exit_transformer_train_execution_review, "Entry Exit Transformer train execution review accounts for weak slices", checks)
+        _require("ENTRY_EXIT_TRANSFORMER_TRAIN_" in entry_exit_transformer_train_execution_review, "Entry Exit Transformer train execution review preserves train vedtak prefix", checks)
+        _require("train execution review never trains, replays, distills, promotes, shadows, or starts live" in entry_exit_transformer_train_execution_review, "Entry Exit Transformer train execution review keeps all side-effect paths closed", checks)
 
     report = {
         "schema_version": "entry_foundation_state_v1",

@@ -12,8 +12,8 @@ architecture/readiness contract is ready, and the active Exit Transformer
 training-plan/readiness manifest plus fail-closed trainer-wrapper readiness are
 ready. The preflight-only trainer core and active pretrain-manifest audit are
 also ready. Active Exit model dataset slice robustness is ready with explicit
-weak-slice disclosure for train-execution review. No Exit trainer is approved
-or allowed.
+weak-slice disclosure, and active Exit Transformer train-execution review is
+ready for an explicit vedtak package. No Exit trainer is approved or allowed.
 
 The original rule still applies: foundation pass required before any more Transformer training.
 
@@ -53,7 +53,7 @@ lower drawdown. Those artifacts are frozen as diagnostic history.
 
 The active path is now:
 
-`handover -> verify -> selftest -> foundation-guardrails -> readiness-report -> Entry evidence gates -> Entry/IQL replay and slice evidence -> Entry-to-Exit handoff -> active Exit per-bar reconstruction -> active Exit state/reward contract -> active Exit split/leakage audit -> active Exit model dataset/readiness gates -> active Exit Transformer architecture/readiness -> active Exit Transformer training plan/readiness -> fail-closed Exit Transformer trainer-wrapper readiness -> active Exit Transformer pretrain manifest -> active Exit model dataset slice robustness -> only then consider explicit Exit train-execution/replay/IQL evidence gates`
+`handover -> verify -> selftest -> foundation-guardrails -> readiness-report -> Entry evidence gates -> Entry/IQL replay and slice evidence -> Entry-to-Exit handoff -> active Exit per-bar reconstruction -> active Exit state/reward contract -> active Exit split/leakage audit -> active Exit model dataset/readiness gates -> active Exit Transformer architecture/readiness -> active Exit Transformer training plan/readiness -> fail-closed Exit Transformer trainer-wrapper readiness -> active Exit Transformer pretrain manifest -> active Exit model dataset slice robustness -> active Exit Transformer train-execution review -> only then consider explicit Exit train vedtak/replay/IQL evidence gates`
 
 The historical activation path was:
 
@@ -199,11 +199,20 @@ Active status:
   slices that must be explicitly accounted for before any Exit train-execution
   review; examples include sparse long slices in EU/US/overlap and low-count
   volatility-regime slices.
+- Active Exit Transformer train-execution review:
+  `ENTRY_EXIT_TRANSFORMER_TRAIN_EXECUTION_REVIEW_READY_FOR_EXPLICIT_VEDTAK_PACKAGE`.
+  It binds the active training plan, fail-closed wrapper, pretrain manifest,
+  weak-slice policy and RAM guardrails into one report. It requires the
+  `ENTRY_EXIT_TRANSFORMER_TRAIN_` vedtak prefix for any future training
+  discussion, preserves `num_workers=0`, max process RSS 8 GiB and abort below
+  8 GiB available RAM, and requires post-train reporting for session/regime/side,
+  direction/tail and weak slices. It still sets
+  `exit_training_allowed=false` and
+  `exit_training_allowed_with_explicit_vedtak=false`.
 - Exit Transformer training, Exit IQL, shadow, live and promotion remain
-  closed. The next safe work is train-execution enablement review; it remains
-  closed until explicit approval accounts for weak slices, clean-git checks,
-  RAM guard, post-train audit requirements and an explicit Exit train vedtak
-  exist.
+  closed. The next boundary is an explicit Exit train-execution enablement
+  vedtak package; it must account for weak slices, clean-git checks, RAM guard
+  and post-train audit requirements before any Exit trainer can run.
 
 ## Previous Operating Status - 2026-06-29
 

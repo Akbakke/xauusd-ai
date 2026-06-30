@@ -112,6 +112,12 @@ Machine contract:
     session/regime/side slices. It discloses weak slices explicitly so
     train-execution review cannot hide sparse side/session/regime behavior
     behind broad averages.
+- Active Exit Transformer train-execution review:
+  `gx1/scripts/audit_entry_exit_transformer_train_execution_review_v1.py`
+  - Binds the training plan, fail-closed wrapper, pretrain manifest, RAM
+    guardrails and weak-slice policy into one report. It keeps Exit training
+    closed and requires a separate explicit train-execution vedtak package
+    before any trainer can run.
 - Latest report:
   `/home/andre2/GX1_DATA/reports/entry_specialist_feature_group_audit_20260628_v1/ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_latest.json`
 - Current decision: `PASS` on the active seq146 foundation dataset.

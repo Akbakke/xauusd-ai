@@ -41,6 +41,7 @@ def test_foundation_state_allows_entry_train_manifest_report_roots() -> None:
     assert "entry_exit_transformer_trainer_wrapper_readiness_20260630_v1" in verifier
     assert "entry_exit_transformer_pretrain_manifest_20260630_v1" in verifier
     assert "entry_exit_model_dataset_slice_robustness_20260630_v1" in verifier
+    assert "entry_exit_transformer_train_execution_review_20260630_v1" in verifier
 
 
 def _args(*, selftest: bool) -> argparse.Namespace:
