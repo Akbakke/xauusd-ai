@@ -350,7 +350,7 @@ def classify_entry_specialist_feature(name: str) -> str:
     """Return the primary specialist group for one emitted seq/snap feature."""
     n = _norm(name)
     bare = n
-    for prefix in ("chart.", "ctx_cont.", "snap.", "seq."):
+    for prefix in ("chart.", "ctx_cont.", "ctx_cat.", "snap.", "seq."):
         if bare.startswith(prefix):
             bare = bare[len(prefix) :]
             break
@@ -391,8 +391,13 @@ def classify_entry_specialist_feature(name: str) -> str:
             "us_x_",
             "overlap",
             "session",
+            "session_id",
             "hour_",
             "dow_",
+            "is_us_only",
+            "spread",
+            "regime",
+            "dist_to_boundary",
         ),
     ):
         return "session_regime_encoder"
@@ -409,6 +414,7 @@ def classify_entry_specialist_feature(name: str) -> str:
             "resistance",
             "premium_discount",
             "premium_state",
+            "premium_extreme",
             "level",
             "pivot",
             "dist_to_r",
@@ -442,6 +448,7 @@ def classify_entry_specialist_feature(name: str) -> str:
             "foundation_bars_since_structure_break",
             "foundation_impulse",
             "foundation_pullback",
+            "retracement_from_last_impulse",
             "smc_swing",
             "smc_bos",
             "smc_choch",
@@ -489,6 +496,8 @@ def classify_entry_specialist_feature(name: str) -> str:
             "price_vs_ema",
             "tf_agreement",
             "rsi",
+            "pct_change",
+            "dist_roc",
         ),
     ):
         return "trend_ema_encoder"
@@ -500,6 +509,7 @@ def classify_entry_specialist_feature(name: str) -> str:
             "mom",
             "momentum",
             "dip_confirmed",
+            "dip_proximity",
             "acceleration",
             "clv",
             "signed_vol",

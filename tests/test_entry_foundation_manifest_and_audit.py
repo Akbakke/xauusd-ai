@@ -1,3 +1,4 @@
+import argparse
 import pandas as pd
 import pytest
 import numpy as np
@@ -22,10 +23,13 @@ from gx1.scripts.audit_entry_foundation_features_v1 import (
 )
 from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
     SIGNAL_FIELDS,
+    SIGNAL_BRIDGE_ID_V3,
     _build_inline_seq_structure_extension,
     _resolve_seq_structure_extension,
+    write_manifest,
 )
 from gx1.scripts.materialize_sequence_structure_features_v1 import _requested_features
+from gx1.scripts.repair_entry_seq215_manifest_provenance_v1 import run as run_seq215_manifest_repair
 
 
 def test_sequence_structure_manifest_request_includes_all_foundation_features_once() -> None:
@@ -40,6 +44,91 @@ def test_sequence_structure_manifest_request_includes_all_foundation_features_on
     assert set(FOUNDATION_STRUCTURE_FEATURE_NAMES).issubset(set(requested))
     assert meta["foundation_structure_features_required"] is True
     assert meta["foundation_structure_feature_count"] == len(FOUNDATION_STRUCTURE_FEATURE_NAMES)
+
+
+def test_dataset_manifest_uses_actual_v3_ctx_and_signal_contract(tmp_path) -> None:
+    manifest_path = write_manifest(
+        output_path=tmp_path / "sample_train.parquet",
+        build_command=["builder"],
+        base28_manifest=tmp_path / "base_manifest.json",
+        xgb_bundle=tmp_path / "xgb_bundle",
+        tape_root=tmp_path / "tape",
+        extra={
+            "signal_bridge": {
+                "id": SIGNAL_BRIDGE_ID_V3,
+                "fields": ["p_long", "chart.foundation_hh_state"],
+                "contract_sha256": "abc123",
+            },
+            "ctx_contract": {
+                "tag": "CTX6CAT5",
+                "ctx_cont_dim": 142,
+                "ctx_cat_dim": 5,
+                "ctx_cont_base_dim": 6,
+                "ctx_cont_micro_features": ["micro_momentum_3"],
+                "ctx_cont_swing_features": ["dist_last_swing_high_atr"],
+            },
+        },
+    )
+
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["feature_contract"]["ctx_tag"] == "CTX6CAT5"
+    assert manifest["feature_contract"]["ctx_cont_dim"] == 142
+    assert manifest["feature_contract"]["ctx_cat_dim"] == 5
+    assert manifest["feature_contract"]["signal_bridge_id"] == SIGNAL_BRIDGE_ID_V3
+    assert manifest["feature_contract"]["signal_bridge_contract_sha256"] == "abc123"
+    assert manifest["feature_contract"]["signal_bridge_fields"] == ["p_long", "chart.foundation_hh_state"]
+
+
+def test_seq215_manifest_repair_updates_stale_top_level_contract(tmp_path) -> None:
+    dataset_dir = tmp_path / "dataset"
+    out_dir = tmp_path / "reports"
+    dataset_dir.mkdir()
+    manifest = {
+        "feature_contract": {
+            "ctx_tag": "CTX6CAT6",
+            "ctx_cont_dim": 142,
+            "ctx_cat_dim": 5,
+            "signal_bridge_id": "XGB_SIGNAL_BRIDGE_V2",
+        },
+        "extra": {
+            "signal_bridge": {
+                "id": SIGNAL_BRIDGE_ID_V3,
+                "fields": ["p_long"],
+                "contract_sha256": "abc123",
+            },
+            "ctx_contract": {
+                "tag": "CTX6CAT5",
+                "ctx_cont_dim": 142,
+                "ctx_cat_dim": 5,
+                "ctx_cont_names": ["spread_bps"],
+                "ctx_cat_names": ["spread_bucket"],
+            },
+        },
+    }
+    (dataset_dir / "sample_train.manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    (dataset_dir / "DATASET_BUILD_PROOF.json").write_text(
+        json.dumps({"ctx_tag": "CTX6CAT6", "ctx_cont_dim": 6, "ctx_cat_dim": 6, "signal_bridge_id": "XGB_SIGNAL_BRIDGE_V2"}),
+        encoding="utf-8",
+    )
+
+    report = run_seq215_manifest_repair(
+        argparse.Namespace(
+            dataset_dir=str(dataset_dir),
+            out_dir=str(out_dir),
+            apply=True,
+            quiet=True,
+        )
+    )
+
+    repaired = json.loads((dataset_dir / "sample_train.manifest.json").read_text(encoding="utf-8"))
+    proof = json.loads((dataset_dir / "DATASET_BUILD_PROOF.json").read_text(encoding="utf-8"))
+    assert report["decision"] == "APPLIED"
+    assert repaired["feature_contract"]["ctx_tag"] == "CTX6CAT5"
+    assert repaired["feature_contract"]["signal_bridge_id"] == SIGNAL_BRIDGE_ID_V3
+    assert repaired["extra"]["signal_bridge"]["ctx_cont_dim"] == 142
+    assert proof["ctx_tag"] == "CTX6CAT5"
+    assert proof["ctx_cont_dim"] == 142
+    assert proof["ctx_cat_dim"] == 5
 
 
 def test_foundation_audit_stats_report_liveness_and_allow_neutral_bridge_constant() -> None:

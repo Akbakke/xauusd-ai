@@ -29,6 +29,26 @@ def test_entry_specialist_feature_classifier_maps_foundation_requirements() -> N
     assert classify_entry_specialist_feature("p_long") == "neutral_bridge_anchor"
 
 
+def test_entry_specialist_feature_classifier_maps_context_gate_fields() -> None:
+    expected = {
+        "ctx_cont.spread_bps": "session_regime_encoder",
+        "ctx_cat.spread_bucket": "session_regime_encoder",
+        "ctx_cont.is_us_only": "session_regime_encoder",
+        "ctx_cont.m15_regime_class_id_v2": "session_regime_encoder",
+        "ctx_cont.regime_stack_sum_v3": "session_regime_encoder",
+        "ctx_cont.d1_regime_changed_flag_v3": "session_regime_encoder",
+        "ctx_cont.d1_dist_to_boundary_v3": "session_regime_encoder",
+        "ctx_cont.retracement_from_last_impulse": "structure_swing_encoder",
+        "ctx_cont.d1_pct_change_5_canon_v2": "trend_ema_encoder",
+        "ctx_cont.d1_dist_roc_288_v3": "trend_ema_encoder",
+        "ctx_cont.dip_proximity_h1_v3": "momentum_flow_encoder",
+        "ctx_cont.dip_proximity_mean_h1h4d1": "momentum_flow_encoder",
+        "ctx_cont.smc_premium_extreme_snap": "smc_liquidity_encoder",
+    }
+
+    assert {field: classify_entry_specialist_feature(field) for field in expected} == expected
+
+
 def test_specialist_feature_group_audit_passes_minimal_contract(tmp_path: Path) -> None:
     selected = list(
         dict.fromkeys(

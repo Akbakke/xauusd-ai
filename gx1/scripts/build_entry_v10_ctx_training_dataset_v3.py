@@ -10,8 +10,8 @@ DELTAS vs v1 (build_entry_v10_ctx_training_dataset.py):
   +  XGB v3 default bundle (canonical_v2-trained, 87 features, 4-session-head bidir)
 
 SSoT / ONE UNIVERSE:
-- ctx contract: CTX6CAT6 base (ctx_cat=6 fixed) + 43-feature ctx_cont extension (signal_bridge_v3)
-- signal bridge: XGB_SIGNAL_BRIDGE_V2 (30 per-bar features)
+- ctx contract: actual emitted CTX6CAT5/6 + extended ctx_cont contract (signal_bridge_v3)
+- signal bridge: XGB_SIGNAL_BRIDGE_V3 plus optional sequence-structure extension
 - Canonical v2 features parquet: /home/andre2/GX1_DATA/reports/.../CANONICAL_FEATURES_V2/canonical_features_v2.parquet
 - Inputs must be canonical:
   - BASE28 prebuilt via CURRENT_MANIFEST.json (still used for ctx scaffold; v2 features joined on top)
@@ -22,8 +22,8 @@ Outputs:
 - time: tz-aware UTC timestamp
 - seq: ndarray shaped [seq_len=96, 30]  (signal_bridge_v3 sequence)
 - snap: ndarray shaped [30]             (signal_bridge_v3 snapshot)
-- ctx_cont: ndarray shaped [43]
-- ctx_cat: ndarray shaped [6]
+- ctx_cont: ndarray shaped [len(ORDERED_CTX_CONT_NAMES_V3)]
+- ctx_cat: ndarray shaped [len(ORDERED_CTX_CAT_NAMES_V3)]
 - y_direction, y_early_move, y_quality_score, y_bad_path, y_*_long, y_*_short, ... (full label set)
 
 NO FALLBACKS unless explicitly allowed by CLI flags.
@@ -1205,12 +1205,17 @@ def write_manifest(
 ) -> Path:
     ctx = _hard_gate_ctx6cat6()
     extra_ctx = (extra or {}).get("ctx_contract") or {}
+    extra_signal = (extra or {}).get("signal_bridge") or {}
     ctx_cont_dim = int(extra_ctx.get("ctx_cont_dim") or ctx.get("ctx_cont_dim") or 6)
     # R4: ctx_cat is contract-driven (5/6) — default to the v3 contract len, never the v1 anchor's 6.
     ctx_cat_dim = int(extra_ctx.get("ctx_cat_dim") or len(ORDERED_CTX_CAT_NAMES_V3))
     ctx_cont_base_dim = int(extra_ctx.get("ctx_cont_base_dim") or ctx.get("ctx_cont_dim") or 6)
     ctx_cont_micro = list(extra_ctx.get("ctx_cont_micro_features") or [])
     ctx_cont_swing = list(extra_ctx.get("ctx_cont_swing_features") or [])
+    ctx_tag = str(extra_ctx.get("tag") or f"CTX6CAT{ctx_cat_dim}")
+    signal_bridge_id = str(extra_signal.get("signal_bridge_id") or extra_signal.get("id") or SIGNAL_BRIDGE_ID_V3)
+    signal_bridge_sha = str(extra_signal.get("contract_sha256") or SIGNAL_CONTRACT_SHA256)
+    signal_bridge_fields = list(extra_signal.get("fields") or SIGNAL_FIELDS)
 
     manifest: Dict[str, Any] = {
         "created_at": _utc_now_iso(),
@@ -1231,15 +1236,15 @@ def write_manifest(
             "tape_root": str(tape_root) if tape_root is not None else None,
         },
         "feature_contract": {
-            "ctx_tag": str(ctx["tag"]),
+            "ctx_tag": ctx_tag,
             "ctx_cont_dim": int(ctx_cont_dim),
             "ctx_cat_dim": int(ctx_cat_dim),
             "ctx_cont_base_dim": int(ctx_cont_base_dim),
             "ctx_cont_micro_features": list(ctx_cont_micro),
             "ctx_cont_swing_features": list(ctx_cont_swing),
-            "signal_bridge_id": "XGB_SIGNAL_BRIDGE_V2",
-            "signal_bridge_contract_sha256": SIGNAL_CONTRACT_SHA256,
-            "signal_bridge_fields": list(SIGNAL_FIELDS),
+            "signal_bridge_id": signal_bridge_id,
+            "signal_bridge_contract_sha256": signal_bridge_sha,
+            "signal_bridge_fields": signal_bridge_fields,
         },
         "splits": splits,
         "ts_min_max_by_split": ts_min_max_by_split or {},
@@ -3151,10 +3156,10 @@ def main() -> None:
 
     # Dataset build proof (will be written after output_path resolved)
     proof_payload = {
-        "ctx_tag": ctx.get("tag"),
-        "ctx_cont_dim": int(ctx.get("ctx_cont_dim", -1)),
-        "ctx_cat_dim": int(ctx.get("ctx_cat_dim", -1)),
-        "signal_bridge_id": "XGB_SIGNAL_BRIDGE_V2",
+        "ctx_tag": f"CTX6CAT{len(ORDERED_CTX_CAT_NAMES_V3)}",
+        "ctx_cont_dim": int(len(ORDERED_CTX_CONT_NAMES_V3)),
+        "ctx_cat_dim": int(len(ORDERED_CTX_CAT_NAMES_V3)),
+        "signal_bridge_id": SIGNAL_BRIDGE_ID_V3,
         "signal_bridge_contract_sha256": str(SIGNAL_CONTRACT_SHA256),
         "hold_bars": hold_bars,
         "fixed_hold_bootstrap_bars": hold_bars,

@@ -112,6 +112,25 @@ def _load_split_signal_fields(dataset_dir: Path, splits: list[str]) -> dict[str,
     return out
 
 
+def _load_split_context_fields(dataset_dir: Path, splits: list[str]) -> dict[str, dict[str, Any]]:
+    out: dict[str, dict[str, Any]] = {}
+    for split in splits:
+        path = _split_manifest_path(dataset_dir, split)
+        manifest = _read_json(path)
+        ctx_contract = ((manifest.get("extra") or {}).get("ctx_contract") or {})
+        ctx_cont_names = [str(x) for x in ctx_contract.get("ctx_cont_names", []) if str(x).strip()]
+        ctx_cat_names = [str(x) for x in ctx_contract.get("ctx_cat_names", []) if str(x).strip()]
+        out[split] = {
+            "manifest_path": str(path),
+            "ctx_tag": str(ctx_contract.get("tag") or ""),
+            "ctx_cont_names": ctx_cont_names,
+            "ctx_cat_names": ctx_cat_names,
+            "ctx_cont_dim": int(ctx_contract.get("ctx_cont_dim") or len(ctx_cont_names)),
+            "ctx_cat_dim": int(ctx_contract.get("ctx_cat_dim") or len(ctx_cat_names)),
+        }
+    return out
+
+
 def _feature_rows(features: list[str]) -> list[dict[str, Any]]:
     return [
         {
@@ -140,6 +159,36 @@ def _count_rows(signal_fields: list[str], selected_features: list[str]) -> list[
             }
         )
     return rows
+
+
+def _context_routing_rows(context_contracts: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
+    if not context_contracts:
+        return []
+    split = sorted(context_contracts)[0]
+    contract = context_contracts[split]
+    rows: list[dict[str, Any]] = []
+    for scope, names_key in (("ctx_cont", "ctx_cont_names"), ("ctx_cat", "ctx_cat_names")):
+        for index, name in enumerate(contract.get(names_key) or []):
+            feature = f"{scope}.{name}"
+            rows.append(
+                {
+                    "scope": scope,
+                    "index": int(index),
+                    "feature": feature,
+                    "specialist": classify_entry_specialist_feature(feature),
+                }
+            )
+    return rows
+
+
+def _context_routing_failures(rows: list[dict[str, Any]], *, contract_mode: str) -> list[str]:
+    unmapped = [row for row in rows if str(row.get("specialist")) == "unmapped"]
+    if unmapped and str(contract_mode) == "challenger_seq215":
+        return [
+            "challenger context routing has unmapped fields: "
+            + ", ".join(str(row.get("feature")) for row in unmapped[:40])
+        ]
+    return []
 
 
 def _specialist_input_liveness_rows(
@@ -428,6 +477,8 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
             f"{row['feature_count']} min={row['min_required_live_feature_count']} "
             f"mean_active={row['mean_active_rate']:.6f} nonfinite={row['nonfinite_count']}"
         )
+    lines.extend(["", "## Context Routing", ""])
+    lines.append(f"- Unmapped context fields: `{report.get('context_routing_unmapped_count', 0)}`")
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
@@ -444,6 +495,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     failures: list[str] = []
     selected_features = _load_selected_features(seq_manifest_path)
     split_contracts = _load_split_signal_fields(dataset_dir, splits)
+    context_contracts = _load_split_context_fields(dataset_dir, splits)
     first_split = splits[0]
     signal_fields = list(split_contracts[first_split]["fields"])
     signal_set = set(signal_fields)
@@ -489,6 +541,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         required_training_specialists,
     )
     failures.extend(specialist_input_liveness_failures)
+    context_routing_rows = _context_routing_rows(context_contracts)
+    context_routing_failures = _context_routing_failures(context_routing_rows, contract_mode=contract_mode)
+    failures.extend(context_routing_failures)
 
     foundation_rows = _foundation_requirement_rows(selected_features)
     for row in foundation_rows:
@@ -532,6 +587,21 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "specialist_counts": specialist_counts,
         "specialist_input_liveness": specialist_input_liveness,
         "specialist_input_liveness_all_live": not specialist_input_liveness_failures,
+        "context_contracts": {
+            split: {
+                "manifest_path": contract.get("manifest_path"),
+                "ctx_tag": contract.get("ctx_tag"),
+                "ctx_cont_dim": contract.get("ctx_cont_dim"),
+                "ctx_cat_dim": contract.get("ctx_cat_dim"),
+            }
+            for split, contract in context_contracts.items()
+        },
+        "context_routing": context_routing_rows,
+        "context_routing_unmapped_count": int(
+            sum(1 for row in context_routing_rows if str(row.get("specialist")) == "unmapped")
+        ),
+        "context_routing_all_mapped": not context_routing_failures,
+        "context_routing_failures": context_routing_failures,
         "min_live_feature_counts": MIN_LIVE_FEATURE_COUNTS,
         "min_specialist_mean_active_rate": float(MIN_SPECIALIST_MEAN_ACTIVE_RATE),
         "min_feature_active_rate": float(MIN_FEATURE_ACTIVE_RATE),
