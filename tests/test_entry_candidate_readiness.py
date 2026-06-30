@@ -99,6 +99,8 @@ def _passing_smoke_audit(
             "specialist_input_liveness_all_live": True,
             "specialist_active_heads_match_target": True,
             "specialist_blocked_heads_match_target": True,
+            "specialist_required_training_set_exact": True,
+            "specialist_trainable_set_exact": True,
             "specialist_model_contract_valid": True,
             "specialist_model_contract_set_exact": True,
             "specialist_model_contract_owned_objectives_match": True,
@@ -231,6 +233,22 @@ def test_smoke_edge_checks_reject_missing_pretrain_specialist_model_contract() -
     report["pretrain_manifest_contract"]["specialist_model_contract_owned_objectives_match"] = False
 
     checks = _smoke_edge_checks(report)
+    failed = {check["name"] for check in checks if not check["ok"]}
+
+    assert "smoke bundle audit validated pre-train manifest provenance" in failed
+
+
+def test_smoke_edge_checks_reject_missing_pretrain_exact_trainable_specialist_set() -> None:
+    report = _passing_smoke_audit(
+        contract_mode="challenger_seq215",
+        dataset_dir=SEQ215_SMOKE_DATASET,
+        signal_dim=215,
+        specialists=SEQ215_SPECIALISTS,
+    )
+    report["pretrain_manifest_contract"]["specialist_required_training_set_exact"] = False
+    report["pretrain_manifest_contract"]["specialist_trainable_set_exact"] = False
+
+    checks = _smoke_edge_checks(report, contract_mode="challenger_seq215", min_active_specialists=8)
     failed = {check["name"] for check in checks if not check["ok"]}
 
     assert "smoke bundle audit validated pre-train manifest provenance" in failed

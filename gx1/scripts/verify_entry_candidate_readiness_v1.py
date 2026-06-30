@@ -359,6 +359,8 @@ def _smoke_edge_checks(
             and bool(pretrain_manifest.get("specialist_input_liveness_all_live"))
             and bool(pretrain_manifest.get("specialist_active_heads_match_target"))
             and bool(pretrain_manifest.get("specialist_blocked_heads_match_target"))
+            and bool(pretrain_manifest.get("specialist_required_training_set_exact"))
+            and bool(pretrain_manifest.get("specialist_trainable_set_exact"))
             and bool(pretrain_manifest.get("specialist_model_contract_valid"))
             and bool(pretrain_manifest.get("specialist_model_contract_set_exact"))
             and bool(pretrain_manifest.get("specialist_model_contract_owned_objectives_match"))

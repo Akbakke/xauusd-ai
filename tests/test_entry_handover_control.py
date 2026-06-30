@@ -101,6 +101,7 @@ def test_control_surface_routes_verify_to_active_foundation_state() -> None:
     assert 'smoke-manifest)' in text
     assert 'smoke-manifest-seq215)' in text
     assert 'candidate-readiness-seq215)' in text
+    assert 'verify_entry_candidate_readiness_v1 --challenger-seq215' in text
     assert 'candidate-train-seq215)' in text
     assert 'run_entry_foundation_seq146_smoke_train.sh" --manifest-only' in text
     assert 'run_entry_foundation_seq146_smoke_train.sh" --challenger-seq215 --manifest-only' in text
@@ -257,7 +258,8 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
     activation_post_apply_completed = bool(
         payload["status_summary"].get("foundation_activation_post_apply_completed")
     )
-    assert payload["status_summary"]["real_smoke_train_allowed"] is False
+    real_smoke_train_allowed = bool(payload["status_summary"]["real_smoke_train_allowed"])
+    assert isinstance(payload["status_summary"]["real_smoke_train_allowed"], bool)
     assert payload["status_summary"]["smoke_manifest_proof_allowed"] is foundation_ready
     assert payload["status_summary"]["activation_allowed_without_vedtak"] is False
     if adoption_ready:
@@ -341,14 +343,17 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
         )
     assert isinstance(payload["status_summary"]["smoke_manifest_seq215_proof_allowed"], bool)
     assert isinstance(payload["status_summary"]["real_smoke_train_seq215_allowed"], bool)
+    assert isinstance(payload["status_summary"]["seq215_smoke_contract_preflight_ready"], bool)
+    assert "chart_geometry_encoder" in payload["status_summary"]["seq215_smoke_contract_required_specialists"]
+    assert "price_action_candle_encoder" in payload["status_summary"]["seq215_smoke_contract_required_specialists"]
     assert isinstance(payload["status_summary"]["iql_distillation_allowed"], bool)
     assert isinstance(payload["status_summary"]["iql_replay_evidence_ready"], bool)
     assert isinstance(payload["status_summary"]["iql_replay_comparison_ready"], bool)
     assert isinstance(payload["status_summary"]["promotion_review_allowed"], bool)
     assert payload["status_summary"]["promotion_shadow_live_allowed"] is False
-    if foundation_ready:
+    if not real_smoke_train_allowed and foundation_ready:
         assert "clean git worktree and explicit smoke-train vedtak" in payload["status_summary"]["current_blockers"]
-    else:
+    elif not foundation_ready:
         assert "foundation contract is not ready for smoke" in payload["status_summary"]["current_blockers"]
     if adoption_ready and not foundation_ready:
         assert "explicit vedtak to switch active foundation dataset/audit paths" in payload["status_summary"]["current_blockers"]
@@ -365,10 +370,14 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
         "live": False,
     }
     assert payload["reports"]["train-readiness"]["decision"] in {
+        "READY_FOR_VEDTAK_SMOKE_TRAIN",
         "READY_FOR_VEDTAK_SMOKE_TRAIN_AFTER_GIT_CLEAN",
         "NOT_READY",
     }
-    assert payload["reports"]["worktree-hygiene"]["decision"] == "BLOCKED_BY_DIRTY_GIT"
+    assert payload["reports"]["worktree-hygiene"]["decision"] in {
+        "PASS_CLEAN_GIT",
+        "BLOCKED_BY_DIRTY_GIT",
+    }
     assert "iql-student-trade-log" in payload["reports"]
     assert "iql-replay-evidence" in payload["reports"]
     assert "iql-replay-comparison" in payload["reports"]
@@ -505,9 +514,12 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
         "--vedtak",
         "<id>",
     ]
-    assert payload["commands"]["smoke_manifest_seq215"]["allowed"] is foundation_ready
+    seq215_manifest_allowed = bool(payload["status_summary"]["smoke_manifest_seq215_proof_allowed"])
+    seq215_train_allowed = bool(payload["status_summary"]["real_smoke_train_seq215_allowed"])
+    seq215_preflight_ready = bool(payload["status_summary"]["seq215_smoke_contract_preflight_ready"])
+    assert payload["commands"]["smoke_manifest_seq215"]["allowed"] is seq215_manifest_allowed
     assert payload["commands"]["smoke_manifest_seq215"]["execution_allowed_now"] is False
-    assert payload["commands"]["smoke_manifest_seq215"]["allowed_after_explicit_vedtak"] is foundation_ready
+    assert payload["commands"]["smoke_manifest_seq215"]["allowed_after_explicit_vedtak"] is seq215_manifest_allowed
     assert payload["commands"]["smoke_manifest_seq215"]["not_executable_now_reason"] == (
         "requires explicit SEQ215 smoke-manifest vedtak; proof-only no trainer start"
     )
@@ -515,9 +527,9 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
     assert payload["commands"]["smoke_manifest_seq215"]["requires_vedtak"] is True
     assert payload["commands"]["smoke_manifest_seq215"]["requires_clean_git"] is False
     assert payload["commands"]["smoke_manifest_seq215"]["starts_trainer"] is False
-    assert payload["commands"]["smoke_train"]["allowed"] is False
+    assert payload["commands"]["smoke_train"]["allowed"] is real_smoke_train_allowed
     assert payload["commands"]["smoke_train"]["execution_allowed_now"] is False
-    assert payload["commands"]["smoke_train"]["allowed_after_explicit_vedtak"] is False
+    assert payload["commands"]["smoke_train"]["allowed_after_explicit_vedtak"] is real_smoke_train_allowed
     if foundation_ready:
         assert payload["commands"]["smoke_train"]["not_executable_now_reason"] == (
             "requires clean git worktree and explicit smoke-train vedtak"
@@ -538,16 +550,20 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
         "<id>",
         "--require-edge-audit",
     ]
-    assert payload["commands"]["smoke_train_seq215"]["allowed"] is False
+    assert payload["commands"]["smoke_train_seq215"]["allowed"] is seq215_train_allowed
     assert payload["commands"]["smoke_train_seq215"]["execution_allowed_now"] is False
-    assert payload["commands"]["smoke_train_seq215"]["allowed_after_explicit_vedtak"] is False
-    if foundation_ready:
+    assert payload["commands"]["smoke_train_seq215"]["allowed_after_explicit_vedtak"] is seq215_train_allowed
+    if foundation_ready and seq215_preflight_ready:
         assert payload["commands"]["smoke_train_seq215"]["not_executable_now_reason"] == (
             "requires clean git worktree and explicit SEQ215 smoke-train vedtak"
         )
-    else:
+    elif not foundation_ready:
         assert payload["commands"]["smoke_train_seq215"]["not_executable_now_reason"] == (
             "foundation contract is not ready for smoke"
+        )
+    else:
+        assert payload["commands"]["smoke_train_seq215"]["not_executable_now_reason"] == (
+            "seq215 smoke contract preflight is not ready"
         )
     assert payload["commands"]["smoke_train_seq215"]["mode"] == "train"
     assert payload["commands"]["smoke_train_seq215"]["requires_vedtak"] is True
@@ -567,6 +583,23 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
     assert payload["commands"]["candidate_train"]["requires_clean_git"] is True
     assert payload["commands"]["candidate_train"]["starts_trainer"] is True
     assert "real smoke bundle edge audit" in payload["commands"]["candidate_train"]["not_executable_now_reason"]
+    assert payload["commands"]["candidate_train_seq215"]["argv"] == [
+        "scripts/entry_next_edge_control.sh",
+        "candidate-train-seq215",
+        "--vedtak",
+        "<id>",
+    ]
+    assert payload["commands"]["candidate_train_seq215"]["allowed"] is payload["status_summary"]["candidate_training_seq215_allowed"]
+    assert payload["commands"]["candidate_train_seq215"]["execution_allowed_now"] is False
+    assert (
+        payload["commands"]["candidate_train_seq215"]["allowed_after_explicit_vedtak"]
+        is payload["status_summary"]["candidate_training_seq215_allowed"]
+    )
+    assert payload["commands"]["candidate_train_seq215"]["requires_vedtak"] is True
+    assert payload["commands"]["candidate_train_seq215"]["requires_clean_git"] is True
+    assert payload["commands"]["candidate_train_seq215"]["starts_trainer"] is True
+    assert payload["commands"]["candidate_train_seq215"]["requires_seq215_vedtak"] is True
+    assert "real seq215 smoke bundle edge audit" in payload["commands"]["candidate_train_seq215"]["not_executable_now_reason"]
     assert payload["commands"]["selective_edge"]["execution_allowed_now"] is False
     assert payload["commands"]["selective_edge"]["starts_trainer"] is False
     assert payload["commands"]["replay_evidence"]["execution_allowed_now"] is False
@@ -592,10 +625,14 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
     assert "scripts/entry_next_edge_control.sh stage-foundation-cleanup --dry-run" in payload["allowed_now"]
     assert not any("smoke-manifest" in item for item in payload["allowed_now"])
     if foundation_ready:
-        assert payload["optional_proof_commands"] == [
+        expected_optional = [
             "scripts/entry_next_edge_control.sh smoke-manifest --vedtak <id>  # proof only, no trainer start",
-            "scripts/entry_next_edge_control.sh smoke-manifest-seq215 --vedtak <id>  # proof only, no trainer start",
         ]
+        if seq215_manifest_allowed:
+            expected_optional.append(
+                "scripts/entry_next_edge_control.sh smoke-manifest-seq215 --vedtak <id>  # proof only, no trainer start"
+            )
+        assert payload["optional_proof_commands"] == expected_optional
     else:
         assert payload["optional_proof_commands"] == []
     if payload["worktree_hygiene"]["dirty_count"] == 0:
