@@ -408,10 +408,15 @@ def classify_entry_specialist_feature(name: str) -> str:
 
     if bare in NEUTRAL_BRIDGE_FIELDS:
         return "neutral_bridge_anchor"
+    if n.startswith("momentum.flow_") or bare.startswith("momentum.flow_"):
+        return "momentum_flow_encoder"
     if n in CONTEXT_FEATURE_SPECIALIST_OVERRIDES:
         return CONTEXT_FEATURE_SPECIALIST_OVERRIDES[n]
     if bare in CONTEXT_FEATURE_SPECIALIST_OVERRIDES:
         return CONTEXT_FEATURE_SPECIALIST_OVERRIDES[bare]
+
+    if n.startswith("chart.structure_swing_") or bare.startswith("structure_swing_"):
+        return "structure_swing_encoder"
 
     if _contains_any(
         n,
@@ -439,6 +444,8 @@ def classify_entry_specialist_feature(name: str) -> str:
             "foundation_eu_x_",
             "foundation_us_x_",
             "foundation_overlap_x_",
+            "session_regime.",
+            "session_regime_",
             "is_eu_only",
             "is_asia",
             "asia",

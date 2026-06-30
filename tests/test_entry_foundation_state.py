@@ -45,6 +45,10 @@ def test_foundation_state_allows_entry_train_manifest_report_roots() -> None:
     assert "entry_exit_model_dataset_slice_robustness_20260630_v1" in verifier
     assert "entry_exit_transformer_train_execution_review_20260630_v1" in verifier
     assert "entry_exit_transformer_post_train_contract_20260630_v1" in verifier
+    assert "entry_trend_ema_extension_manifest_20260630_v1" in verifier
+    assert "entry_smc_liquidity_quality_manifest_20260630_v1" in verifier
+    assert "entry_momentum_flow_challenger_manifest_20260630_v1" in verifier
+    assert "entry_session_regime_interaction_manifest_20260630_v1" in verifier
 
 
 def _args(*, selftest: bool) -> argparse.Namespace:
