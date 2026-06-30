@@ -53,6 +53,10 @@ MOMENTUM_FLOW_OPTIONAL_SOURCE_FIELDS = (
     "candle.pattern_bear_continuation_pressure",
     "candle.pattern_bull_reversal_pressure",
     "candle.pattern_bear_reversal_pressure",
+    "wick_asym",
+    "wick_ratio",
+    "candle.pattern_upper_wick_share",
+    "candle.pattern_lower_wick_share",
 )
 
 _SOURCE_ALIASES: dict[str, tuple[str, ...]] = {
@@ -91,6 +95,10 @@ _SOURCE_ALIASES: dict[str, tuple[str, ...]] = {
     "candle.pattern_bear_continuation_pressure": ("candle.pattern_bear_continuation_pressure",),
     "candle.pattern_bull_reversal_pressure": ("candle.pattern_bull_reversal_pressure",),
     "candle.pattern_bear_reversal_pressure": ("candle.pattern_bear_reversal_pressure",),
+    "wick_asym": ("snap.wick_asym", "wick_asym"),
+    "wick_ratio": ("ctx_cont.wick_ratio", "wick_ratio"),
+    "candle.pattern_upper_wick_share": ("candle.pattern_upper_wick_share",),
+    "candle.pattern_lower_wick_share": ("candle.pattern_lower_wick_share",),
 }
 
 MOMENTUM_FLOW_FEATURE_SUFFIXES = (
@@ -133,6 +141,10 @@ def _name_index(names: Iterable[str]) -> dict[str, int]:
 
 def _aliases(name: str) -> tuple[str, ...]:
     return _SOURCE_ALIASES.get(name, (name,))
+
+
+def _has_source(index: dict[str, int], canonical: str) -> bool:
+    return any(alias in index for alias in _aliases(canonical))
 
 
 def missing_entry_momentum_flow_source_fields(feature_names: Iterable[str]) -> list[str]:
@@ -232,6 +244,24 @@ def build_entry_momentum_flow_layer(
     atr_bps = c("atr_bps")
     atr_z = _tanh(c("atr_z"), scale=3.0)
     range_z = _tanh(c("_v1_range_z"), scale=3.0)
+    wick_signal_available = any(
+        _has_source(idx, name)
+        for name in (
+            "wick_asym",
+            "wick_ratio",
+            "candle.pattern_upper_wick_share",
+            "candle.pattern_lower_wick_share",
+        )
+    )
+    wick_weight = 1.0 if wick_signal_available else 0.0
+    wick_asym = _clip(c("wick_asym"), -1.0, 1.0)
+    wick_ratio = _clip01(c("wick_ratio", default=0.5))
+    upper_wick_share = _clip01(c("candle.pattern_upper_wick_share"))
+    lower_wick_share = _clip01(c("candle.pattern_lower_wick_share"))
+    upper_wick_flow = _clip01(wick_weight * (_pos(wick_asym) + 0.50 * wick_ratio + 0.50 * upper_wick_share))
+    lower_wick_flow = _clip01(
+        wick_weight * (_neg(wick_asym) + 0.50 * (1.0 - wick_ratio) + 0.50 * lower_wick_share)
+    )
 
     vol_scale = _safe_scale(
         ret1,
@@ -247,10 +277,13 @@ def build_entry_momentum_flow_layer(
     micro_scale = _safe_scale(mom3, mom5 / np.sqrt(5.0), floor=0.5)
     micro_impulse = _tanh(0.65 * mom3 + 0.35 * mom5, micro_scale)
     micro_accel_norm = _tanh(micro_accel, micro_scale)
+    return_acceleration = _clip(
+        0.65 * (ret1_norm - ret5_norm) + 0.35 * (ret5_norm - ret20_norm),
+        -2.0,
+        2.0,
+    )
     acceleration = _clip(
-        0.50 * (ret1_norm - ret5_norm)
-        + 0.30 * micro_accel_norm
-        + 0.20 * (ret5_norm - ret20_norm),
+        0.65 * return_acceleration + 0.35 * micro_accel_norm,
         -2.0,
         2.0,
     )
@@ -277,32 +310,65 @@ def build_entry_momentum_flow_layer(
     regime_divergence = _clip01(c("regime_divergence_flag_v3"))
     mtf_confirmation = _clip01(0.75 * mtf_confirmation + 0.25 * regime_agreement)
     mtf_conflict = _clip01(0.80 * mtf_conflict + 0.20 * regime_divergence)
+    bull_persistence = _clip01(
+        0.25 * _pos(ret1_norm)
+        + 0.30 * _pos(ret5_norm)
+        + 0.20 * _pos(ret20_norm)
+        + 0.15 * _pos(micro_impulse)
+        + 0.10 * mtf_bull
+    )
+    bear_persistence = _clip01(
+        0.25 * _neg(ret1_norm)
+        + 0.30 * _neg(ret5_norm)
+        + 0.20 * _neg(ret20_norm)
+        + 0.15 * _neg(micro_impulse)
+        + 0.10 * mtf_bear
+    )
+    persistence_balance = _clip(bull_persistence - bear_persistence, -1.0, 1.0)
 
     bull_cont = _clip01(c("candle.pattern_bull_continuation_pressure"))
     bear_cont = _clip01(c("candle.pattern_bear_continuation_pressure"))
     bull_reversal = _clip01(c("candle.pattern_bull_reversal_pressure"))
     bear_reversal = _clip01(c("candle.pattern_bear_reversal_pressure"))
+    clv_wick_bull_flow = _clip01(0.50 * _pos(clv) + 0.35 * lower_wick_flow + 0.15 * _pos(return_acceleration))
+    clv_wick_bear_flow = _clip01(0.50 * _neg(clv) + 0.35 * upper_wick_flow + 0.15 * _neg(return_acceleration))
     candle_bull = _clip01(
-        0.40 * _pos(clv) + 0.35 * bull_cont + 0.20 * bull_reversal + 0.05 * _pos(micro_impulse)
+        0.30 * _pos(clv)
+        + 0.25 * bull_cont
+        + 0.15 * bull_reversal
+        + 0.10 * _pos(micro_impulse)
+        + 0.20 * clv_wick_bull_flow
     )
     candle_bear = _clip01(
-        0.40 * _neg(clv) + 0.35 * bear_cont + 0.20 * bear_reversal + 0.05 * _neg(micro_impulse)
+        0.30 * _neg(clv)
+        + 0.25 * bear_cont
+        + 0.15 * bear_reversal
+        + 0.10 * _neg(micro_impulse)
+        + 0.20 * clv_wick_bear_flow
     )
 
-    bull_follow = _clip01(
+    vol_follow_quality = _clip01(
+        1.0
+        - 0.30 * np.maximum(np.abs(atr_z), np.abs(range_z))
+        + 0.20 * mtf_confirmation
+        - 0.20 * mtf_conflict
+    )
+    bull_follow_raw = _clip01(
         0.25 * _pos(ret1_norm)
         + 0.30 * _pos(ret5_norm)
         + 0.15 * _pos(ret20_norm)
         + 0.15 * _pos(micro_impulse)
         + 0.15 * candle_bull
     )
-    bear_follow = _clip01(
+    bear_follow_raw = _clip01(
         0.25 * _neg(ret1_norm)
         + 0.30 * _neg(ret5_norm)
         + 0.15 * _neg(ret20_norm)
         + 0.15 * _neg(micro_impulse)
         + 0.15 * candle_bear
     )
+    bull_follow = _clip01((0.90 * bull_follow_raw + 0.10 * bull_persistence) * (0.70 + 0.30 * vol_follow_quality))
+    bear_follow = _clip01((0.90 * bear_follow_raw + 0.10 * bear_persistence) * (0.70 + 0.30 * vol_follow_quality))
     follow_balance = _clip(bull_follow - bear_follow, -1.0, 1.0)
 
     high_vol_stress = _clip01(
@@ -310,13 +376,55 @@ def build_entry_momentum_flow_layer(
         + 0.35 * np.abs(range_z)
         + 0.30 * np.maximum(_pos(ret20_norm), _neg(ret20_norm))
     )
-    bull_exhaustion = _clip01(
+    bearish_reversal_pressure = _clip01(
         _pos(impulse_direction)
-        * (0.30 + 0.25 * deceleration + 0.20 * high_vol_stress + 0.15 * candle_bear + 0.10 * _neg(clv))
+        * (
+            0.22 * deceleration
+            + 0.20 * _neg(return_acceleration)
+            + 0.18 * high_vol_stress
+            + 0.18 * candle_bear
+            + 0.12 * upper_wick_flow
+            + 0.10 * _neg(clv)
+        )
+    )
+    bullish_reversal_pressure = _clip01(
+        _neg(impulse_direction)
+        * (
+            0.22 * deceleration
+            + 0.20 * _pos(return_acceleration)
+            + 0.18 * high_vol_stress
+            + 0.18 * candle_bull
+            + 0.12 * lower_wick_flow
+            + 0.10 * _pos(clv)
+        )
+    )
+    bull_exhaustion = _clip01(
+        0.70
+        * _clip01(
+            _pos(impulse_direction)
+            * (
+                0.30
+                + 0.25 * deceleration
+                + 0.20 * high_vol_stress
+                + 0.15 * candle_bear
+                + 0.10 * _neg(clv)
+            )
+        )
+        + 0.30 * bearish_reversal_pressure
     )
     bear_exhaustion = _clip01(
-        _neg(impulse_direction)
-        * (0.30 + 0.25 * deceleration + 0.20 * high_vol_stress + 0.15 * candle_bull + 0.10 * _pos(clv))
+        0.70
+        * _clip01(
+            _neg(impulse_direction)
+            * (
+                0.30
+                + 0.25 * deceleration
+                + 0.20 * high_vol_stress
+                + 0.15 * candle_bull
+                + 0.10 * _pos(clv)
+            )
+        )
+        + 0.30 * bullish_reversal_pressure
     )
 
     dip_confirmed = _mean01(
@@ -353,9 +461,10 @@ def build_entry_momentum_flow_layer(
     )
 
     impulse_pullback_alignment = _clip(
-        0.45 * _tanh(c("chart.foundation_impulse_direction"), scale=1.0)
-        + 0.35 * _tanh(c("chart.foundation_impulse_pullback_alignment"), scale=1.0)
-        + 0.20 * follow_balance,
+        0.40 * _tanh(c("chart.foundation_impulse_direction"), scale=1.0)
+        + 0.30 * _tanh(c("chart.foundation_impulse_pullback_alignment"), scale=1.0)
+        + 0.20 * follow_balance
+        + 0.10 * persistence_balance,
         -1.0,
         1.0,
     )
@@ -370,6 +479,8 @@ def build_entry_momentum_flow_layer(
         * mtf_confirmation
         * (1.0 - mtf_conflict)
         * (1.0 - np.maximum(bull_exhaustion, bear_exhaustion))
+        * (0.80 + 0.20 * vol_follow_quality)
+        * (0.75 + 0.25 * np.maximum(bull_persistence, bear_persistence))
     )
 
     arrays: list[np.ndarray] = []

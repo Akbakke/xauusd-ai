@@ -14,6 +14,9 @@ from gx1.features.entry_specialist_feature_groups_v1 import classify_entry_speci
 from gx1.scripts.materialize_entry_smc_liquidity_quality_manifest_v1 import run as run_manifest
 
 
+EXPECTED_SMC_LIQUIDITY_QUALITY_FEATURE_COUNT = 24
+
+
 def _matrix(names: list[str], n: int = 6) -> np.ndarray:
     x = np.zeros((n, len(names)), dtype=np.float32)
     idx = {name: i for i, name in enumerate(names)}
@@ -88,16 +91,46 @@ def test_smc_liquidity_quality_layer_builds_directional_closed_bar_features() ->
     idx = {name: i for i, name in enumerate(out_names)}
 
     assert tuple(out_names) == SMC_LIQUIDITY_QUALITY_FEATURE_NAMES
+    assert len(out_names) == EXPECTED_SMC_LIQUIDITY_QUALITY_FEATURE_COUNT
+    assert len(set(out_names)) == EXPECTED_SMC_LIQUIDITY_QUALITY_FEATURE_COUNT
     assert out.shape == (6, len(out_names))
     assert np.isfinite(out).all()
     assert out[1, idx["chart.smc_liquidity_sweep_low_quality_long"]] > 0.5
     assert out[4, idx["chart.smc_liquidity_sweep_high_quality_short"]] > 0.5
     assert out[1, idx["chart.smc_liquidity_reclaim_confirmation_long"]] > out[0, idx["chart.smc_liquidity_reclaim_confirmation_long"]]
     assert out[4, idx["chart.smc_liquidity_reclaim_confirmation_short"]] > out[0, idx["chart.smc_liquidity_reclaim_confirmation_short"]]
+    assert out[1, idx["chart.smc_liquidity_sweep_reclaim_strength_long"]] > out[0, idx["chart.smc_liquidity_sweep_reclaim_strength_long"]]
+    assert out[4, idx["chart.smc_liquidity_sweep_reclaim_strength_short"]] > out[0, idx["chart.smc_liquidity_sweep_reclaim_strength_short"]]
+    assert out[1, idx["chart.smc_liquidity_false_breakout_quality_long"]] > out[0, idx["chart.smc_liquidity_false_breakout_quality_long"]]
+    assert out[4, idx["chart.smc_liquidity_false_breakout_quality_short"]] > out[0, idx["chart.smc_liquidity_false_breakout_quality_short"]]
     assert out[1, idx["chart.smc_liquidity_liquidity_pool_proximity_low"]] > out[0, idx["chart.smc_liquidity_liquidity_pool_proximity_low"]]
     assert out[4, idx["chart.smc_liquidity_liquidity_pool_proximity_high"]] > out[0, idx["chart.smc_liquidity_liquidity_pool_proximity_high"]]
+    assert out[1, idx["chart.smc_liquidity_liquidity_pool_proximity_balance_low_minus_high"]] > 0.0
+    assert out[4, idx["chart.smc_liquidity_liquidity_pool_proximity_balance_low_minus_high"]] < 0.0
+    assert out[1, idx["chart.smc_liquidity_two_sided_liquidity_pool_pressure"]] > out[0, idx["chart.smc_liquidity_two_sided_liquidity_pool_pressure"]]
     assert out[1, idx["chart.smc_liquidity_wick_rejection_strength_long"]] > out[4, idx["chart.smc_liquidity_wick_rejection_strength_long"]]
     assert out[4, idx["chart.smc_liquidity_wick_rejection_strength_short"]] > out[1, idx["chart.smc_liquidity_wick_rejection_strength_short"]]
+    assert out[1, idx["chart.smc_liquidity_premium_discount_reclaim_confluence_long"]] > out[4, idx["chart.smc_liquidity_premium_discount_reclaim_confluence_long"]]
+    assert out[4, idx["chart.smc_liquidity_premium_discount_reclaim_confluence_short"]] > out[1, idx["chart.smc_liquidity_premium_discount_reclaim_confluence_short"]]
+
+
+def test_smc_liquidity_quality_layer_sanitizes_nonfinite_inputs() -> None:
+    names = list(SMC_LIQUIDITY_QUALITY_SOURCE_FIELDS) + [
+        "chart.foundation_sweep_low_reclaim_up_proxy",
+        "chart.foundation_sweep_high_reclaim_down_proxy",
+        "chart.foundation_false_breakout_low_followthrough_up_proxy",
+        "chart.foundation_false_breakout_high_followthrough_down_proxy",
+    ]
+    x = _matrix(names)
+    x[1, names.index("snap.smc_sweep_size_atr")] = np.nan
+    x[2, names.index("ctx_cont.sr_support_proximity_exp")] = np.inf
+    x[4, names.index("ctx_cont.sr_resistance_proximity_exp")] = -np.inf
+
+    out, out_names = build_entry_smc_liquidity_quality_layer(x, names)
+
+    assert len(out_names) == EXPECTED_SMC_LIQUIDITY_QUALITY_FEATURE_COUNT
+    assert out.shape == (6, EXPECTED_SMC_LIQUIDITY_QUALITY_FEATURE_COUNT)
+    assert np.isfinite(out).all()
 
 
 def test_smc_liquidity_quality_layer_is_future_row_invariant() -> None:
@@ -114,6 +147,7 @@ def test_smc_liquidity_quality_layer_is_future_row_invariant() -> None:
 
 
 def test_smc_liquidity_quality_contract_routes_to_smc_specialist() -> None:
+    assert len(SMC_LIQUIDITY_QUALITY_FEATURE_NAMES) == EXPECTED_SMC_LIQUIDITY_QUALITY_FEATURE_COUNT
     assert len(SMC_LIQUIDITY_QUALITY_SOURCE_FIELDS) == len(set(SMC_LIQUIDITY_QUALITY_SOURCE_FIELDS))
     assert missing_smc_liquidity_quality_source_fields(SMC_LIQUIDITY_QUALITY_SOURCE_FIELDS) == []
     assert missing_smc_liquidity_quality_source_fields(["snap.smc_sweep_up"])[:1] == ["snap.smc_sweep_down"]

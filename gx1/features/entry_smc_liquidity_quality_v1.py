@@ -12,7 +12,7 @@ from typing import Iterable
 import numpy as np
 
 
-SMC_LIQUIDITY_QUALITY_FEATURE_VERSION = "entry_smc_liquidity_quality_v1_20260630_candidate_closed_bar_context"
+SMC_LIQUIDITY_QUALITY_FEATURE_VERSION = "entry_smc_liquidity_quality_v1_20260630_candidate_closed_bar_context_sweep_pd_confluence"
 SMC_LIQUIDITY_QUALITY_FEATURE_PREFIX = "chart.smc_liquidity_"
 
 SMC_LIQUIDITY_QUALITY_SOURCE_FIELDS = (
@@ -292,6 +292,46 @@ def build_entry_smc_liquidity_quality_layer(
         0.0,
         5.0,
     )
+    sweep_reclaim_strength_long = _clip01(
+        0.30 * (sweep_low_quality / 5.0)
+        + 0.25 * reclaim_long
+        + 0.20 * wick_reject_long
+        + 0.15 * close_near_high
+        + 0.10 * foundation_reclaim_long
+    )
+    sweep_reclaim_strength_short = _clip01(
+        0.30 * (sweep_high_quality / 5.0)
+        + 0.25 * reclaim_short
+        + 0.20 * wick_reject_short
+        + 0.15 * close_near_low
+        + 0.10 * foundation_reclaim_short
+    )
+    false_breakout_quality_long = _clip01(
+        false_low_context
+        * (0.45 + 0.35 * reclaim_long + 0.20 * wick_reject_long)
+        * (0.70 + 0.30 * low_pool)
+    )
+    false_breakout_quality_short = _clip01(
+        false_high_context
+        * (0.45 + 0.35 * reclaim_short + 0.20 * wick_reject_short)
+        * (0.70 + 0.30 * high_pool)
+    )
+    liquidity_pool_balance = _clip(low_pool - high_pool, -1.0, 1.0)
+    two_sided_liquidity_pressure = _clip01(
+        np.minimum(low_pool, high_pool)
+        * (0.50 + 0.25 * support_touch_count + 0.25 * resistance_touch_count)
+        * (0.75 + 0.25 * sweep_recent)
+    )
+    premium_discount_reclaim_confluence_long = _clip01(
+        discount
+        * reclaim_long
+        * (0.45 + 0.25 * support_stack + 0.20 * low_pool + 0.10 * wick_reject_long)
+    )
+    premium_discount_reclaim_confluence_short = _clip01(
+        premium
+        * reclaim_short
+        * (0.45 + 0.25 * resistance_stack + 0.20 * high_pool + 0.10 * wick_reject_short)
+    )
 
     _add(arrays, names, "sweep_low_quality_long", sweep_low_quality, lo=0.0, hi=5.0)
     _add(arrays, names, "sweep_high_quality_short", sweep_high_quality, lo=0.0, hi=5.0)
@@ -299,14 +339,36 @@ def build_entry_smc_liquidity_quality_layer(
     _add(arrays, names, "reclaim_confirmation_short", reclaim_short, lo=0.0, hi=1.0)
     _add(arrays, names, "false_breakout_low_context_long", false_low_context, lo=0.0, hi=1.0)
     _add(arrays, names, "false_breakout_high_context_short", false_high_context, lo=0.0, hi=1.0)
+    _add(arrays, names, "sweep_reclaim_strength_long", sweep_reclaim_strength_long, lo=0.0, hi=1.0)
+    _add(arrays, names, "sweep_reclaim_strength_short", sweep_reclaim_strength_short, lo=0.0, hi=1.0)
+    _add(arrays, names, "false_breakout_quality_long", false_breakout_quality_long, lo=0.0, hi=1.0)
+    _add(arrays, names, "false_breakout_quality_short", false_breakout_quality_short, lo=0.0, hi=1.0)
     _add(arrays, names, "inducement_trap_risk_long", inducement_risk_long, lo=0.0, hi=5.0)
     _add(arrays, names, "inducement_trap_risk_short", inducement_risk_short, lo=0.0, hi=5.0)
     _add(arrays, names, "liquidity_pool_proximity_low", low_pool, lo=0.0, hi=1.0)
     _add(arrays, names, "liquidity_pool_proximity_high", high_pool, lo=0.0, hi=1.0)
+    _add(arrays, names, "liquidity_pool_proximity_balance_low_minus_high", liquidity_pool_balance, lo=-1.0, hi=1.0)
+    _add(arrays, names, "two_sided_liquidity_pool_pressure", two_sided_liquidity_pressure, lo=0.0, hi=1.0)
     _add(arrays, names, "wick_rejection_strength_long", wick_reject_long, lo=0.0, hi=1.0)
     _add(arrays, names, "wick_rejection_strength_short", wick_reject_short, lo=0.0, hi=1.0)
     _add(arrays, names, "premium_discount_trend_alignment_long", long_pd_alignment, lo=0.0, hi=1.0)
     _add(arrays, names, "premium_discount_trend_alignment_short", short_pd_alignment, lo=0.0, hi=1.0)
+    _add(
+        arrays,
+        names,
+        "premium_discount_reclaim_confluence_long",
+        premium_discount_reclaim_confluence_long,
+        lo=0.0,
+        hi=1.0,
+    )
+    _add(
+        arrays,
+        names,
+        "premium_discount_reclaim_confluence_short",
+        premium_discount_reclaim_confluence_short,
+        lo=0.0,
+        hi=1.0,
+    )
     _add(arrays, names, "sr_support_touch_count_recency_proxy", support_touch_recency, lo=0.0, hi=1.0)
     _add(arrays, names, "sr_resistance_touch_count_recency_proxy", resistance_touch_recency, lo=0.0, hi=1.0)
 

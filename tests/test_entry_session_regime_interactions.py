@@ -21,6 +21,9 @@ def _matrix(names: list[str], n: int = 6) -> np.ndarray:
     def set_col(name: str, values) -> None:
         x[:, idx[name]] = np.asarray(values, dtype=np.float32)
 
+    set_col("ret_1", [0.5, 1.0, 3.0, 2.0, 4.0, -4.0])
+    set_col("ret_5", [1.0, 2.0, 8.0, 5.0, 8.0, -8.0])
+    set_col("ret_20", [2.0, 4.0, 18.0, 8.0, 15.0, -15.0])
     set_col("ctx_cont.minutes_since_session_open", [0, 15, 120, 180, 240, 300])
     set_col("ctx_cont.minutes_to_next_session_boundary", [180, 90, 45, 10, 180, 5])
     set_col("ctx_cont.session_change_flag", [1, 0, 0, 0, 0, 1])
@@ -32,9 +35,14 @@ def _matrix(names: list[str], n: int = 6) -> np.ndarray:
     set_col("ctx_cont.is_us_only", [0, 0, 0, 0, 1, 1])
     set_col("ctx_cont.spread_bps", [1, 2, 2, 8, 1, 10])
     set_col("ctx_cont.atr_bps", [20, 20, 20, 20, 20, 20])
+    set_col("ctx_cont.micro_momentum_3", [0.1, 0.2, 0.6, 0.3, 0.8, -0.8])
+    set_col("ctx_cont.micro_momentum_5", [0.1, 0.3, 0.7, 0.4, 0.9, -0.9])
+    set_col("ctx_cont.micro_acceleration", [0.0, 0.1, 0.3, -0.2, 0.4, -0.4])
     set_col("ctx_cont.vol_pct_m5_1yr", [0.1, 0.2, 0.6, 0.9, 0.5, 0.95])
     set_col("ctx_cont.vol_pct_h1_1yr", [0.1, 0.3, 0.7, 0.8, 0.6, 0.9])
     set_col("ctx_cont.D1_atr_percentile_252", [0.2, 0.3, 0.7, 0.9, 0.5, 0.9])
+    set_col("ctx_cat.vol_regime_id", [0, 1, 2, 3, 1, 3])
+    set_col("ctx_cat.spread_bucket", [0, 0, 0, 2, 0, 2])
     set_col("ctx_cont.atr_ratio_m5_m15", [0.5, 0.7, 1.2, 2.0, 0.8, 2.5])
     set_col("ctx_cont.atr_ratio_m15_d1", [0.5, 0.7, 1.2, 2.0, 0.8, 2.5])
     set_col("ctx_cont.atr_ratio_h1_d1", [0.5, 0.7, 1.2, 2.0, 0.8, 2.5])
@@ -59,34 +67,100 @@ def _matrix(names: list[str], n: int = 6) -> np.ndarray:
     return x
 
 
+def _emitted_alias(name: str) -> str:
+    for prefix in ("ctx_cont.", "ctx_cat."):
+        if name.startswith(prefix):
+            return name.removeprefix(prefix)
+    return name
+
+
 def test_session_regime_interaction_layer_is_finite_and_causal_shape() -> None:
     names = list(SESSION_REGIME_INTERACTION_SOURCE_FIELDS)
     out, out_names = build_entry_session_regime_interaction_layer(_matrix(names), names)
     idx = {name: i for i, name in enumerate(out_names)}
 
     assert tuple(out_names) == SESSION_REGIME_INTERACTION_FEATURE_NAMES
+    assert len(SESSION_REGIME_INTERACTION_FEATURE_NAMES) == 43
     assert out.shape == (6, len(SESSION_REGIME_INTERACTION_FEATURE_NAMES))
     assert np.isfinite(out).all()
     assert out[0, idx["session_regime.session_opening_risk"]] == 1.0
     assert out[3, idx["session_regime.spread_cost_pressure"]] > out[2, idx["session_regime.spread_cost_pressure"]]
+    assert out[3, idx["session_regime.spread_bucket_high_pressure"]] > out[2, idx["session_regime.spread_bucket_high_pressure"]]
+    assert out[3, idx["session_regime.vol_regime_extreme_tail_pressure"]] > out[2, idx["session_regime.vol_regime_extreme_tail_pressure"]]
     assert out[2, idx["session_regime.regime_persistence_score"]] > out[3, idx["session_regime.regime_persistence_score"]]
     assert out[3, idx["session_regime.mtf_regime_divergence_pressure"]] > out[2, idx["session_regime.mtf_regime_divergence_pressure"]]
+    assert out[2, idx["session_regime.regime_stack_bull_trend_pressure"]] > 0.0
+    assert out[0, idx["session_regime.regime_stack_bear_trend_pressure"]] > 0.0
     assert out[3, idx["session_regime.eu_us_overlap_divergence_risk"]] > 0.0
     assert out[4, idx["session_regime.us_momentum_followthrough_pressure"]] > 0.0
+    assert out[3, idx["session_regime.overlap_momentum_vol_spread_risk"]] > 0.0
+    assert out[2, idx["session_regime.eu_structure_regime_continuation_bias"]] > 0.0
+    assert out[4, idx["session_regime.session_momentum_structure_alignment_score"]] > 0.0
+
+
+def test_session_regime_interaction_layer_accepts_emitted_context_aliases() -> None:
+    names = list(SESSION_REGIME_INTERACTION_SOURCE_FIELDS)
+    alias_names = [_emitted_alias(name) for name in names]
+    canonical_out, canonical_names = build_entry_session_regime_interaction_layer(_matrix(names), names)
+    alias_out, alias_feature_names = build_entry_session_regime_interaction_layer(_matrix(names), alias_names)
+
+    assert tuple(alias_feature_names) == tuple(canonical_names)
+    np.testing.assert_allclose(alias_out, canonical_out, rtol=0.0, atol=0.0)
 
 
 def test_session_regime_source_contract_and_routing_are_explicit() -> None:
     assert len(SESSION_REGIME_INTERACTION_SOURCE_FIELDS) == len(set(SESSION_REGIME_INTERACTION_SOURCE_FIELDS))
+    assert "ret_1" in SESSION_REGIME_INTERACTION_SOURCE_FIELDS
     assert "ctx_cont.spread_bps" in SESSION_REGIME_INTERACTION_SOURCE_FIELDS
+    assert "ctx_cont.micro_acceleration" in SESSION_REGIME_INTERACTION_SOURCE_FIELDS
+    assert "ctx_cat.vol_regime_id" in SESSION_REGIME_INTERACTION_SOURCE_FIELDS
+    assert "ctx_cat.spread_bucket" in SESSION_REGIME_INTERACTION_SOURCE_FIELDS
     assert "ctx_cont.regime_tf_agreement_v3" in SESSION_REGIME_INTERACTION_SOURCE_FIELDS
     assert "chart.foundation_sweep_reclaim_balance_proxy" in SESSION_REGIME_INTERACTION_SOURCE_FIELDS
     assert missing_session_regime_interaction_source_fields(SESSION_REGIME_INTERACTION_SOURCE_FIELDS) == []
+    assert missing_session_regime_interaction_source_fields(
+        [
+            "spread_bps" if name == "ctx_cont.spread_bps" else
+            "vol_regime_id" if name == "ctx_cat.vol_regime_id" else
+            "spread_bucket" if name == "ctx_cat.spread_bucket" else
+            name
+            for name in SESSION_REGIME_INTERACTION_SOURCE_FIELDS
+        ]
+    ) == []
     missing = missing_session_regime_interaction_source_fields(
         name for name in SESSION_REGIME_INTERACTION_SOURCE_FIELDS if name != "ctx_cont.spread_bps"
     )
     assert missing == ["ctx_cont.spread_bps"]
     for feature in SESSION_REGIME_INTERACTION_FEATURE_NAMES:
         assert classify_entry_specialist_feature(feature) == "session_regime_encoder"
+
+
+def test_session_regime_interaction_layer_sanitizes_nonfinite_inputs() -> None:
+    names = list(SESSION_REGIME_INTERACTION_SOURCE_FIELDS)
+    x = _matrix(names)
+    idx = {name: i for i, name in enumerate(names)}
+    x[1, idx["ctx_cont.spread_bps"]] = np.nan
+    x[2, idx["ctx_cont.atr_bps"]] = 0.0
+    x[3, idx["ret_5"]] = np.inf
+    x[4, idx["ctx_cat.vol_regime_id"]] = -np.inf
+
+    out, out_names = build_entry_session_regime_interaction_layer(x, names)
+
+    assert tuple(out_names) == SESSION_REGIME_INTERACTION_FEATURE_NAMES
+    assert out.shape == (6, 43)
+    assert np.isfinite(out).all()
+
+
+def test_session_regime_interaction_layer_does_not_read_future_rows() -> None:
+    names = list(SESSION_REGIME_INTERACTION_SOURCE_FIELDS)
+    base = _matrix(names)
+    changed_future = base.copy()
+    changed_future[-1, :] = base[-1, :] * -7.0 + 3.0
+
+    base_out, _ = build_entry_session_regime_interaction_layer(base, names)
+    changed_out, _ = build_entry_session_regime_interaction_layer(changed_future, names)
+
+    np.testing.assert_allclose(changed_out[:-1], base_out[:-1], rtol=0.0, atol=0.0)
 
 
 def test_session_regime_manifest_script_is_report_only(tmp_path: Path) -> None:

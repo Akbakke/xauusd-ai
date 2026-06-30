@@ -11,7 +11,7 @@ from typing import Iterable
 import numpy as np
 
 
-TREND_EMA_FEATURE_VERSION = "entry_trend_ema_v1_20260630_mtf_stack_pressure"
+TREND_EMA_FEATURE_VERSION = "entry_trend_ema_v1_20260630_mtf_stack_pressure_coherence"
 TREND_EMA_FEATURE_PREFIX = "trend.ema_"
 
 TREND_EMA_SOURCE_FIELDS = (
@@ -47,24 +47,24 @@ TREND_EMA_SOURCE_FIELDS = (
 
 TREND_EMA_FEATURE_DESCRIPTIONS = {
     "mtf_score": "Signed M5/M15/H1/H4/D1 EMA and trend-slope composite.",
-    "stack_alignment_score": "Signed EMA-stack agreement, positive for bull stack and negative for bear stack.",
-    "stack_bull_pressure": "Bullish EMA stack pressure gated by MTF agreement.",
-    "stack_bear_pressure": "Bearish EMA stack pressure gated by MTF agreement.",
-    "inflect_up_pressure": "Causal EMA-trend cross/inflection pressure from current and previous rows.",
-    "inflect_down_pressure": "Causal bearish EMA-trend cross/inflection pressure from current and previous rows.",
+    "stack_alignment_score": "Signed EMA-stack and slope-direction consensus.",
+    "stack_bull_pressure": "Bullish EMA stack pressure gated by MTF agreement and slope coherence.",
+    "stack_bear_pressure": "Bearish EMA stack pressure gated by MTF agreement and slope coherence.",
+    "inflect_up_pressure": "Causal EMA-trend cross/inflection pressure gated by current alignment context.",
+    "inflect_down_pressure": "Causal bearish EMA-trend cross/inflection pressure gated by current alignment context.",
     "slope_score": "Signed slope composite across M5/H1/H4/D1 slope proxies.",
     "slope_curvature": "Causal change in the slope composite.",
     "slope_curvature_abs": "Absolute slope curvature, useful for trend acceleration/deceleration.",
-    "mtf_agreement_pressure": "Agreement pressure across EMA signs and existing regime agreement.",
-    "mtf_divergence_pressure": "Divergence pressure across M5/H1/H4/D1 and existing regime divergence.",
+    "mtf_agreement_pressure": "Agreement pressure across EMA signs, slope coherence and existing regime agreement.",
+    "mtf_divergence_pressure": "Divergence pressure across M5/H1/H4/D1, EMA-vs-slope direction and existing regime divergence.",
     "distance_fast_abs": "Absolute distance-to-fast-EMA proxy, squashed for stability.",
     "distance_stack_abs": "Mean absolute distance of M5/H1/H4/D1 EMA proxies.",
     "distance_stretch_pressure": "Extended distance from EMA stack, higher when price is stretched.",
     "retrace_to_fast_long_pressure": "Uptrend pullback/retrace-to-fast-EMA pressure.",
     "retrace_to_fast_short_pressure": "Downtrend pullback/retrace-to-fast-EMA pressure.",
     "trend_age_mean": "Mean normalized trend age across M5/M15/H1/H4/D1.",
-    "trend_age_exhaustion_pressure": "Mature trend plus distance stretch pressure.",
-    "late_reversal_risk": "Mature trend, divergence and adverse curvature pressure.",
+    "trend_age_exhaustion_pressure": "Mature trend, distance stretch and fading slope-support pressure.",
+    "late_reversal_risk": "Mature trend, divergence and direction-aware adverse curvature pressure.",
     "d1_flip_pressure": "Trend-age and D1 distance-change pressure.",
 }
 
@@ -181,6 +181,25 @@ def build_entry_trend_ema_layer(
     regime_stack = _tanh(c("ctx_cont.regime_stack_sum_v3"), scale=3.0)
     regime_divergence = _clip01(c("ctx_cont.regime_divergence_flag_v3"))
 
+    slope_stack = np.vstack(
+        [
+            m5_slope,
+            m5_slope3,
+            m5_kama_slope,
+            m5_tema_slope,
+            h1_slope3,
+            h1_slope5,
+            h4_slope3,
+            h4_slope5,
+            d1_slope,
+            d1_change,
+        ]
+    )
+    slope_bull_share = (slope_stack > 0.0).mean(axis=0).astype(np.float32)
+    slope_bear_share = (slope_stack < 0.0).mean(axis=0).astype(np.float32)
+    slope_direction = _clip(slope_bull_share - slope_bear_share, -1.0, 1.0)
+    slope_coherence = np.maximum(slope_bull_share, slope_bear_share).astype(np.float32)
+
     slope_score = _clip(
         0.20 * m5_slope
         + 0.12 * m5_slope3
@@ -203,7 +222,8 @@ def build_entry_trend_ema_layer(
         + 0.10 * d1_slope
         + 0.06 * d1_change
         + 0.06 * m15_trend
-        + 0.08 * slope_score,
+        + 0.04 * slope_score
+        + 0.04 * slope_direction,
         -2.0,
         2.0,
     )
@@ -211,10 +231,19 @@ def build_entry_trend_ema_layer(
     sign_stack = np.vstack([m5_ema, m5_pos_ema200, h1_ema, h4_ema, d1_slope, m15_trend])
     bull_share = (sign_stack > 0.0).mean(axis=0).astype(np.float32)
     bear_share = (sign_stack < 0.0).mean(axis=0).astype(np.float32)
-    stack_alignment = _clip(bull_share - bear_share + 0.25 * regime_stack, -1.5, 1.5)
-    agreement_pressure = _clip01(np.maximum(bull_share, bear_share) * (0.50 + regime_agreement))
+    ema_direction = _clip(bull_share - bear_share, -1.0, 1.0)
+    ema_slope_coherence = _clip01(1.0 - 0.50 * np.abs(ema_direction - slope_direction))
+    tf_direction_consensus = _clip(0.70 * ema_direction + 0.30 * slope_direction, -1.0, 1.0)
+    stack_alignment = _clip(tf_direction_consensus + 0.20 * regime_stack, -1.5, 1.5)
+    alignment_coherence = _clip01(
+        0.55 * np.maximum(bull_share, bear_share)
+        + 0.25 * slope_coherence
+        + 0.20 * regime_agreement
+    )
+    agreement_pressure = _clip01(alignment_coherence * (0.60 + 0.40 * ema_slope_coherence))
     divergence_pressure = _clip01(
         regime_divergence
+        + np.abs(ema_direction - slope_direction) * 0.25
         + np.abs(m5_ema - h4_ema) * 0.20
         + np.abs(h1_ema - d1_slope) * 0.20
         + np.abs(m5_pos_ema200 - h1_ema) * 0.10
@@ -224,6 +253,32 @@ def build_entry_trend_ema_layer(
     trend_down = _neg(mtf_score)
     slope_delta = _delta(slope_score)
     mtf_delta = _delta(mtf_score)
+    bull_context = _clip01(
+        0.30 * bull_share
+        + 0.25 * slope_bull_share
+        + 0.20 * regime_agreement
+        + 0.15 * _pos(mtf_score)
+        + 0.10 * ema_slope_coherence
+    )
+    bear_context = _clip01(
+        0.30 * bear_share
+        + 0.25 * slope_bear_share
+        + 0.20 * regime_agreement
+        + 0.15 * _neg(mtf_score)
+        + 0.10 * ema_slope_coherence
+    )
+    cross_quality = _clip01(0.75 + 0.25 * ema_slope_coherence - 0.25 * regime_divergence)
+    m5_cross_base = _clip(0.55 * m5_ema + 0.25 * fast_dist + 0.20 * m5_slope, -2.0, 2.0)
+    inflect_up = cross_quality * (
+        _cross_up(mtf_score) * (0.65 + bull_context)
+        + _cross_up(m5_cross_base) * (0.35 + bull_context)
+        + _pos(mtf_delta) * (0.15 + 0.45 * bull_context)
+    )
+    inflect_down = cross_quality * (
+        _cross_down(mtf_score) * (0.65 + bear_context)
+        + _cross_down(m5_cross_base) * (0.35 + bear_context)
+        + _neg(mtf_delta) * (0.15 + 0.45 * bear_context)
+    )
 
     fast_distance_abs = np.abs(fast_dist).astype(np.float32)
     distance_stack_abs = np.vstack(
@@ -244,18 +299,35 @@ def build_entry_trend_ema_layer(
     )
     trend_age_mean = age_stack.mean(axis=0).astype(np.float32)
     mature_d1 = _clip01(c("ctx_cont.d1_trend_age_mature_flag_v3"))
-    exhaustion = _clip01((0.65 * trend_age_mean + 0.35 * mature_d1) * (0.50 + distance_stretch))
+    age_pressure = _clip01(0.65 * trend_age_mean + 0.35 * mature_d1)
+    trend_support = _clip01(
+        0.40 * np.maximum(bull_share, bear_share)
+        + 0.25 * slope_coherence
+        + 0.20 * regime_agreement
+        + 0.15 * ema_slope_coherence
+    )
+    slope_fade = _clip01(1.0 - trend_support + 0.35 * divergence_pressure)
+    exhaustion = _clip01(
+        age_pressure
+        * (0.45 + 0.35 * distance_stretch + 0.20 * np.abs(mtf_score))
+        * (0.75 + 0.25 * slope_fade)
+    )
     adverse_curvature_up = _neg(slope_delta) + _neg(mtf_delta)
     adverse_curvature_down = _pos(slope_delta) + _pos(mtf_delta)
-    late_reversal = _clip01(exhaustion * (0.50 + divergence_pressure) * (0.50 + np.maximum(adverse_curvature_up, adverse_curvature_down)))
-    regime_flip = _clip01((mature_d1 + trend_age_mean) * 0.5 * (regime_divergence + np.abs(d1_dist_roc)))
+    adverse_curvature = np.where(mtf_score >= 0.0, adverse_curvature_up, adverse_curvature_down).astype(np.float32)
+    late_reversal = _clip01(exhaustion * (0.45 + divergence_pressure) * (0.50 + adverse_curvature + 0.25 * slope_fade))
+    regime_flip = _clip01(
+        (mature_d1 + trend_age_mean)
+        * 0.5
+        * (0.55 * regime_divergence + 0.25 * np.abs(d1_dist_roc) + 0.20 * np.abs(ema_direction - slope_direction))
+    )
 
     _add(arrays, names, "mtf_score", mtf_score, lo=-2.0, hi=2.0)
     _add(arrays, names, "stack_alignment_score", stack_alignment, lo=-1.5, hi=1.5)
     _add(arrays, names, "stack_bull_pressure", trend_up * agreement_pressure, lo=0.0, hi=2.0)
     _add(arrays, names, "stack_bear_pressure", trend_down * agreement_pressure, lo=0.0, hi=2.0)
-    _add(arrays, names, "inflect_up_pressure", _cross_up(mtf_score) + _pos(mtf_delta), lo=0.0, hi=2.0)
-    _add(arrays, names, "inflect_down_pressure", _cross_down(mtf_score) + _neg(mtf_delta), lo=0.0, hi=2.0)
+    _add(arrays, names, "inflect_up_pressure", inflect_up, lo=0.0, hi=2.0)
+    _add(arrays, names, "inflect_down_pressure", inflect_down, lo=0.0, hi=2.0)
     _add(arrays, names, "slope_score", slope_score, lo=-2.0, hi=2.0)
     _add(arrays, names, "slope_curvature", slope_delta, lo=-2.0, hi=2.0)
     _add(arrays, names, "slope_curvature_abs", np.abs(slope_delta), lo=0.0, hi=2.0)

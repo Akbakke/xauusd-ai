@@ -12,7 +12,7 @@ from typing import Iterable
 import numpy as np
 
 
-STRUCTURE_SWING_DERIVATION_FEATURE_VERSION = "entry_structure_swing_derivations_v1_20260630_causal_quality_state"
+STRUCTURE_SWING_DERIVATION_FEATURE_VERSION = "entry_structure_swing_derivations_v1_20260630_causal_quality_state_v2"
 STRUCTURE_SWING_DERIVATION_FEATURE_PREFIX = "chart.structure_swing_"
 
 STRUCTURE_TFS = ("m5", "m15", "h1", "h4", "d1")
@@ -134,6 +134,20 @@ def build_entry_structure_swing_derivation_layer(
     structure_balance = _clip(0.50 * structure_balance_raw + 0.50 * ((hh + hl) - (lh + ll)), -2.0, 2.0)
     up_structure = _clip01(0.35 * hh + 0.35 * hl + 0.30 * _pos(structure_balance * 0.5))
     down_structure = _clip01(0.35 * lh + 0.35 * ll + 0.30 * _neg(structure_balance * 0.5))
+    hh_hl_consistency_up = _clip01(
+        np.minimum(hh, hl)
+        * (1.0 - 0.35 * np.minimum(lh, ll))
+        * (0.75 + 0.25 * _clip01(_pos(structure_balance) * 0.5))
+    )
+    lh_ll_consistency_down = _clip01(
+        np.minimum(lh, ll)
+        * (1.0 - 0.35 * np.minimum(hh, hl))
+        * (0.75 + 0.25 * _clip01(_neg(structure_balance) * 0.5))
+    )
+    hh_hl_lh_ll_conflict = _clip01(
+        0.65 * np.minimum(up_structure, down_structure)
+        + 0.35 * np.minimum(np.minimum(hh, hl), np.minimum(lh, ll))
+    )
 
     bos_up_recent = _clip01(
         c("chart.foundation_bos_up_recent_tau24")
@@ -174,6 +188,57 @@ def build_entry_structure_swing_derivation_layer(
     depth_quality = _depth_quality(combined_depth)
     structure_delta = _clip(structure_balance - _lag1(structure_balance), -2.0, 2.0)
     expansion_quality = _clip01(0.55 * expansion + 0.45 * release)
+    bos_choch_recency_alignment_up = _clip01(
+        bos_up_recent
+        * (1.0 - 0.45 * choch_recent)
+        * (0.50 + 0.30 * hh_hl_consistency_up + 0.20 * mtf_up)
+    )
+    bos_choch_recency_alignment_down = _clip01(
+        bos_down_recent
+        * (1.0 - 0.45 * choch_recent)
+        * (0.50 + 0.30 * lh_ll_consistency_down + 0.20 * mtf_down)
+    )
+    bos_choch_recency_conflict = _clip01(
+        choch_recent
+        * (
+            0.35 * np.maximum(bos_up_recent, bos_down_recent)
+            + 0.30 * hh_hl_lh_ll_conflict
+            + 0.20 * mtf_divergence
+            + 0.15 * (1.0 - mtf_agreement)
+        )
+    )
+    pullback_depth_phase_alignment_up = _clip01(
+        pullback_phase_up
+        * depth_quality
+        * (0.50 * hh_hl_consistency_up + 0.30 * mtf_up + 0.20 * _pos(impulse_pullback_alignment))
+    )
+    pullback_depth_phase_alignment_down = _clip01(
+        pullback_phase_down
+        * depth_quality
+        * (0.50 * lh_ll_consistency_down + 0.30 * mtf_down + 0.20 * _neg(impulse_pullback_alignment))
+    )
+    break_confirmation_up = _clip01(
+        bos_up_recent
+        * expansion_quality
+        * (
+            0.35 * hh_hl_consistency_up
+            + 0.25 * mtf_up
+            + 0.20 * _pos(structure_delta)
+            + 0.20 * _pos(impulse_direction)
+        )
+        * (1.0 - 0.35 * choch_recent)
+    )
+    break_confirmation_down = _clip01(
+        bos_down_recent
+        * expansion_quality
+        * (
+            0.35 * lh_ll_consistency_down
+            + 0.25 * mtf_down
+            + 0.20 * _neg(structure_delta)
+            + 0.20 * _neg(impulse_direction)
+        )
+        * (1.0 - 0.35 * choch_recent)
+    )
 
     swing_leg_quality_up = _clip01(
         up_structure
@@ -239,21 +304,44 @@ def build_entry_structure_swing_derivation_layer(
         * (0.50 + 0.50 * no_recent_break)
         * (1.0 - 0.25 * release)
     )
+    swing_compression_setup = _clip01(
+        (
+            0.35 * compression
+            + 0.20 * neutral_structure
+            + 0.20 * hh_hl_lh_ll_conflict
+            + 0.15 * mtf_divergence
+            + 0.10 * depth_quality
+        )
+        * (0.55 + 0.45 * no_recent_break)
+        * (1.0 - 0.30 * expansion_quality)
+    )
 
+    _add(arrays, names, "hh_hl_consistency_up", hh_hl_consistency_up, lo=0.0, hi=1.0)
+    _add(arrays, names, "lh_ll_consistency_down", lh_ll_consistency_down, lo=0.0, hi=1.0)
+    _add(arrays, names, "hh_hl_lh_ll_conflict", hh_hl_lh_ll_conflict, lo=0.0, hi=1.0)
     _add(arrays, names, "swing_leg_quality_up", swing_leg_quality_up, lo=0.0, hi=1.0)
     _add(arrays, names, "swing_leg_quality_down", swing_leg_quality_down, lo=0.0, hi=1.0)
     _add(arrays, names, "swing_leg_quality_balance", swing_leg_quality_up - swing_leg_quality_down, lo=-1.0, hi=1.0)
+    _add(arrays, names, "bos_choch_recency_alignment_up", bos_choch_recency_alignment_up, lo=0.0, hi=1.0)
+    _add(arrays, names, "bos_choch_recency_alignment_down", bos_choch_recency_alignment_down, lo=0.0, hi=1.0)
+    _add(arrays, names, "bos_choch_recency_conflict", bos_choch_recency_conflict, lo=0.0, hi=1.0)
     _add(arrays, names, "bos_followthrough_up_quality", bos_followthrough_up, lo=0.0, hi=1.0)
     _add(arrays, names, "bos_followthrough_down_quality", bos_followthrough_down, lo=0.0, hi=1.0)
     _add(arrays, names, "bos_followthrough_balance", bos_followthrough_up - bos_followthrough_down, lo=-1.0, hi=1.0)
+    _add(arrays, names, "break_confirmation_up", break_confirmation_up, lo=0.0, hi=1.0)
+    _add(arrays, names, "break_confirmation_down", break_confirmation_down, lo=0.0, hi=1.0)
+    _add(arrays, names, "break_confirmation_balance", break_confirmation_up - break_confirmation_down, lo=-1.0, hi=1.0)
     _add(arrays, names, "choch_failure_up_risk", choch_failure_up, lo=0.0, hi=1.0)
     _add(arrays, names, "choch_failure_down_risk", choch_failure_down, lo=0.0, hi=1.0)
     _add(arrays, names, "pullback_depth_quality", depth_quality, lo=0.0, hi=1.0)
+    _add(arrays, names, "pullback_depth_phase_alignment_up", pullback_depth_phase_alignment_up, lo=0.0, hi=1.0)
+    _add(arrays, names, "pullback_depth_phase_alignment_down", pullback_depth_phase_alignment_down, lo=0.0, hi=1.0)
     _add(arrays, names, "pullback_phase_continuation_up", pullback_continuation_up, lo=0.0, hi=1.0)
     _add(arrays, names, "pullback_phase_continuation_down", pullback_continuation_down, lo=0.0, hi=1.0)
     _add(arrays, names, "market_structure_regime_state", regime_state, lo=-2.0, hi=2.0)
     _add(arrays, names, "market_structure_regime_confidence", regime_confidence, lo=0.0, hi=1.0)
     _add(arrays, names, "structure_compression_pressure", compression_pressure, lo=0.0, hi=1.0)
+    _add(arrays, names, "swing_compression_setup", swing_compression_setup, lo=0.0, hi=1.0)
     _add(arrays, names, "mtf_structure_agreement", mtf_agreement, lo=0.0, hi=1.0)
     _add(arrays, names, "mtf_structure_divergence", mtf_divergence, lo=0.0, hi=1.0)
 

@@ -9,6 +9,38 @@ from gx1.features.entry_structure_swing_derivations_v1 import (
 )
 
 
+EXPECTED_STRUCTURE_SWING_DERIVATION_FEATURE_NAMES = (
+    "chart.structure_swing_hh_hl_consistency_up",
+    "chart.structure_swing_lh_ll_consistency_down",
+    "chart.structure_swing_hh_hl_lh_ll_conflict",
+    "chart.structure_swing_swing_leg_quality_up",
+    "chart.structure_swing_swing_leg_quality_down",
+    "chart.structure_swing_swing_leg_quality_balance",
+    "chart.structure_swing_bos_choch_recency_alignment_up",
+    "chart.structure_swing_bos_choch_recency_alignment_down",
+    "chart.structure_swing_bos_choch_recency_conflict",
+    "chart.structure_swing_bos_followthrough_up_quality",
+    "chart.structure_swing_bos_followthrough_down_quality",
+    "chart.structure_swing_bos_followthrough_balance",
+    "chart.structure_swing_break_confirmation_up",
+    "chart.structure_swing_break_confirmation_down",
+    "chart.structure_swing_break_confirmation_balance",
+    "chart.structure_swing_choch_failure_up_risk",
+    "chart.structure_swing_choch_failure_down_risk",
+    "chart.structure_swing_pullback_depth_quality",
+    "chart.structure_swing_pullback_depth_phase_alignment_up",
+    "chart.structure_swing_pullback_depth_phase_alignment_down",
+    "chart.structure_swing_pullback_phase_continuation_up",
+    "chart.structure_swing_pullback_phase_continuation_down",
+    "chart.structure_swing_market_structure_regime_state",
+    "chart.structure_swing_market_structure_regime_confidence",
+    "chart.structure_swing_structure_compression_pressure",
+    "chart.structure_swing_swing_compression_setup",
+    "chart.structure_swing_mtf_structure_agreement",
+    "chart.structure_swing_mtf_structure_divergence",
+)
+
+
 def _matrix(names: list[str], n: int = 8) -> np.ndarray:
     x = np.zeros((n, len(names)), dtype=np.float32)
     idx = {name: i for i, name in enumerate(names)}
@@ -54,17 +86,31 @@ def test_structure_swing_derivations_capture_quality_state_and_routing() -> None
     out, out_names = build_entry_structure_swing_derivation_layer(x, names)
     idx = {name: i for i, name in enumerate(out_names)}
 
-    assert out.shape == (8, len(STRUCTURE_SWING_DERIVATION_FEATURE_NAMES))
-    assert tuple(out_names) == STRUCTURE_SWING_DERIVATION_FEATURE_NAMES
+    assert len(STRUCTURE_SWING_DERIVATION_FEATURE_NAMES) == 28
+    assert STRUCTURE_SWING_DERIVATION_FEATURE_NAMES == EXPECTED_STRUCTURE_SWING_DERIVATION_FEATURE_NAMES
+    assert out.shape == (8, len(EXPECTED_STRUCTURE_SWING_DERIVATION_FEATURE_NAMES))
+    assert tuple(out_names) == EXPECTED_STRUCTURE_SWING_DERIVATION_FEATURE_NAMES
     assert np.isfinite(out).all()
     assert all(classify_entry_specialist_feature(name) == "structure_swing_encoder" for name in out_names)
 
+    assert out[2, idx["chart.structure_swing_hh_hl_consistency_up"]] > out[2, idx["chart.structure_swing_lh_ll_consistency_down"]]
+    assert out[6, idx["chart.structure_swing_lh_ll_consistency_down"]] > out[6, idx["chart.structure_swing_hh_hl_consistency_up"]]
+    assert out[3, idx["chart.structure_swing_hh_hl_lh_ll_conflict"]] > out[1, idx["chart.structure_swing_hh_hl_lh_ll_conflict"]]
     assert out[2, idx["chart.structure_swing_swing_leg_quality_up"]] > out[2, idx["chart.structure_swing_swing_leg_quality_down"]]
     assert out[6, idx["chart.structure_swing_swing_leg_quality_down"]] > out[6, idx["chart.structure_swing_swing_leg_quality_up"]]
+    assert out[1, idx["chart.structure_swing_bos_choch_recency_alignment_up"]] > 0.8
+    assert out[5, idx["chart.structure_swing_bos_choch_recency_alignment_down"]] > 0.8
+    assert out[3, idx["chart.structure_swing_bos_choch_recency_conflict"]] > out[1, idx["chart.structure_swing_bos_choch_recency_conflict"]]
     assert out[1, idx["chart.structure_swing_bos_followthrough_up_quality"]] > 0.4
     assert out[5, idx["chart.structure_swing_bos_followthrough_down_quality"]] > 0.4
+    assert out[1, idx["chart.structure_swing_break_confirmation_up"]] > 0.25
+    assert out[5, idx["chart.structure_swing_break_confirmation_down"]] > 0.25
+    assert out[1, idx["chart.structure_swing_break_confirmation_balance"]] > 0.25
+    assert out[5, idx["chart.structure_swing_break_confirmation_balance"]] < -0.25
     assert out[4, idx["chart.structure_swing_choch_failure_up_risk"]] > 0.3
     assert out[7, idx["chart.structure_swing_choch_failure_down_risk"]] > 0.3
+    assert out[2, idx["chart.structure_swing_pullback_depth_phase_alignment_up"]] > 0.4
+    assert out[6, idx["chart.structure_swing_pullback_depth_phase_alignment_down"]] > 0.4
     assert out[2, idx["chart.structure_swing_pullback_phase_continuation_up"]] > 0.2
     assert out[6, idx["chart.structure_swing_pullback_phase_continuation_down"]] > 0.2
     assert out[2, idx["chart.structure_swing_market_structure_regime_state"]] > 0.5
@@ -72,6 +118,24 @@ def test_structure_swing_derivations_capture_quality_state_and_routing() -> None
     assert out[1, idx["chart.structure_swing_mtf_structure_agreement"]] > out[3, idx["chart.structure_swing_mtf_structure_agreement"]]
     assert out[3, idx["chart.structure_swing_mtf_structure_divergence"]] > out[1, idx["chart.structure_swing_mtf_structure_divergence"]]
     assert out[3, idx["chart.structure_swing_structure_compression_pressure"]] > out[1, idx["chart.structure_swing_structure_compression_pressure"]]
+    assert out[3, idx["chart.structure_swing_swing_compression_setup"]] > out[1, idx["chart.structure_swing_swing_compression_setup"]]
+
+
+def test_structure_swing_derivations_keep_outputs_finite_under_bad_inputs() -> None:
+    names = list(STRUCTURE_SWING_DERIVATION_SOURCE_FIELDS)
+    x = _matrix(names)
+    idx = {name: i for i, name in enumerate(names)}
+    x[1, idx["chart.foundation_hh_state"]] = np.nan
+    x[2, idx["chart.foundation_hl_state"]] = np.inf
+    x[3, idx["chart.foundation_lh_state"]] = -np.inf
+    x[4, idx["chart.foundation_bos_up_recent_tau24"]] = np.nan
+    x[5, idx["chart.foundation_pullback_depth_norm"]] = np.inf
+
+    out, out_names = build_entry_structure_swing_derivation_layer(x, names)
+
+    assert tuple(out_names) == EXPECTED_STRUCTURE_SWING_DERIVATION_FEATURE_NAMES
+    assert out.shape == (8, 28)
+    assert np.isfinite(out).all()
 
 
 def test_structure_swing_derivations_do_not_read_future_rows() -> None:
@@ -90,6 +154,7 @@ def test_structure_swing_derivations_do_not_read_future_rows() -> None:
 
 
 def test_structure_swing_derivation_source_contract_is_explicit() -> None:
+    assert STRUCTURE_SWING_DERIVATION_FEATURE_NAMES == EXPECTED_STRUCTURE_SWING_DERIVATION_FEATURE_NAMES
     assert len(STRUCTURE_SWING_DERIVATION_SOURCE_FIELDS) == len(set(STRUCTURE_SWING_DERIVATION_SOURCE_FIELDS))
     assert "chart.foundation_bos_up_recent_tau24" in STRUCTURE_SWING_DERIVATION_SOURCE_FIELDS
     assert "ctx_cont.struct_continuation_up_h1_v3" in STRUCTURE_SWING_DERIVATION_SOURCE_FIELDS

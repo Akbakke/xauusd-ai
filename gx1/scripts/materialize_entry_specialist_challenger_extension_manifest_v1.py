@@ -20,13 +20,27 @@ import numpy as np
 from gx1.features.entry_chart_geometry_v1 import CHART_GEOMETRY_FEATURE_VERSION
 from gx1.features.entry_candlestick_patterns_v1 import CANDLESTICK_PATTERN_FEATURE_VERSION
 from gx1.features.entry_foundation_structure_v1 import FOUNDATION_STRUCTURE_FEATURE_VERSION
+from gx1.features.entry_momentum_flow_v1 import MOMENTUM_FLOW_FEATURE_NAMES, MOMENTUM_FLOW_FEATURE_VERSION
+from gx1.features.entry_session_regime_interactions_v1 import (
+    SESSION_REGIME_INTERACTION_FEATURE_NAMES,
+    SESSION_REGIME_INTERACTION_FEATURE_VERSION,
+)
+from gx1.features.entry_smc_liquidity_quality_v1 import (
+    SMC_LIQUIDITY_QUALITY_FEATURE_NAMES,
+    SMC_LIQUIDITY_QUALITY_FEATURE_VERSION,
+)
 from gx1.features.entry_specialist_feature_groups_v1 import (
     classify_entry_specialist_feature,
     group_features_by_specialist,
     required_training_specialists_for_mode,
     specialist_model_contract_for_mode,
 )
-from gx1.scripts.verify_entry_foundation_state_v1 import REPORTS_ROOT, SEQ_STRUCTURE_MANIFEST
+from gx1.features.entry_structure_swing_derivations_v1 import (
+    STRUCTURE_SWING_DERIVATION_FEATURE_NAMES,
+    STRUCTURE_SWING_DERIVATION_FEATURE_VERSION,
+)
+from gx1.features.entry_trend_ema_v1 import TREND_EMA_FEATURE_NAMES, TREND_EMA_FEATURE_VERSION
+from gx1.scripts.verify_entry_foundation_state_v1 import REPORTS_ROOT, REPO, SEQ_STRUCTURE_MANIFEST
 
 
 DEFAULT_OUT_DIR = REPORTS_ROOT / "entry_specialist_challenger_extension_manifest_20260630_v1"
@@ -40,9 +54,59 @@ DEFAULT_CANDLESTICK_MANIFEST = (
 )
 ACTIVE_SPECIALIST_CONTRACT_MODE = "foundation_seq146"
 TARGET_CHALLENGER_CONTRACT_MODE = "challenger_seq215"
+DEFAULT_BASE_SIGNAL_FEATURE_COUNT = 41
 SPECIALIST_CONTRACT_AUTHORITY = (
     "gx1.features.entry_specialist_feature_groups_v1:"
     "specialist_model_contract_for_mode()/required_training_specialists_for_mode()"
+)
+SMART_LAYER_FEATURES: "OrderedDict[str, tuple[str, tuple[str, ...], str, Path]]" = OrderedDict(
+    [
+        (
+            "trend_ema_smart_layer",
+            (
+                TREND_EMA_FEATURE_VERSION,
+                TREND_EMA_FEATURE_NAMES,
+                "gx1.features.entry_trend_ema_v1:build_entry_trend_ema_layer",
+                REPO / "gx1/features/entry_trend_ema_v1.py",
+            ),
+        ),
+        (
+            "smc_liquidity_quality_layer",
+            (
+                SMC_LIQUIDITY_QUALITY_FEATURE_VERSION,
+                SMC_LIQUIDITY_QUALITY_FEATURE_NAMES,
+                "gx1.features.entry_smc_liquidity_quality_v1:build_entry_smc_liquidity_quality_layer",
+                REPO / "gx1/features/entry_smc_liquidity_quality_v1.py",
+            ),
+        ),
+        (
+            "structure_swing_derivation_layer",
+            (
+                STRUCTURE_SWING_DERIVATION_FEATURE_VERSION,
+                STRUCTURE_SWING_DERIVATION_FEATURE_NAMES,
+                "gx1.features.entry_structure_swing_derivations_v1:build_entry_structure_swing_derivation_layer",
+                REPO / "gx1/features/entry_structure_swing_derivations_v1.py",
+            ),
+        ),
+        (
+            "momentum_flow_smart_layer",
+            (
+                MOMENTUM_FLOW_FEATURE_VERSION,
+                MOMENTUM_FLOW_FEATURE_NAMES,
+                "gx1.features.entry_momentum_flow_v1:build_entry_momentum_flow_layer",
+                REPO / "gx1/features/entry_momentum_flow_v1.py",
+            ),
+        ),
+        (
+            "session_regime_interaction_layer",
+            (
+                SESSION_REGIME_INTERACTION_FEATURE_VERSION,
+                SESSION_REGIME_INTERACTION_FEATURE_NAMES,
+                "gx1.features.entry_session_regime_interactions_v1:build_entry_session_regime_interaction_layer",
+                REPO / "gx1/features/entry_session_regime_interactions_v1.py",
+            ),
+        ),
+    ]
 )
 
 
@@ -105,6 +169,29 @@ def _source_meta(path: Path, data: dict[str, Any], *, label: str) -> dict[str, A
         "selected_feature_count": len(data.get("selected_features", []) or []),
         "dataset_rebuild_required_before_training": data.get("dataset_rebuild_required_before_training"),
         "trainable_in_current_contract": data.get("trainable_in_current_contract"),
+    }
+
+
+def _smart_source_meta(
+    *,
+    label: str,
+    version: str,
+    features: tuple[str, ...],
+    builder: str,
+    source_path: Path,
+) -> dict[str, Any]:
+    return {
+        "label": label,
+        "path": str(source_path),
+        "sha256": _sha256_file(source_path),
+        "schema_version": "entry_dormant_smart_feature_layer_v1",
+        "decision": "READY_FOR_SMART_CHALLENGER_MANIFEST_REVIEW",
+        "manifest_only": True,
+        "feature_version": version,
+        "builder": builder,
+        "selected_feature_count": int(len(features)),
+        "dataset_rebuild_required_before_training": True,
+        "trainable_in_current_contract": False,
     }
 
 
@@ -186,6 +273,8 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
         f"- Active foundation extension: `{report['counts']['foundation_sequence_extension_features']}`",
         f"- Chart geometry challenger: `{report['counts']['chart_geometry_challenger_features']}`",
         f"- Candlestick challenger: `{report['counts']['candlestick_challenger_features']}`",
+        f"- Smart candidate layers: `{report['counts']['smart_candidate_features']}`",
+        f"- Expected seq/snap width after rebuild: `{manifest['expected_seq_snap_width']}`",
         f"- Duplicate dropped: `{report['counts']['duplicate_feature_count']}`",
         f"- Failure count: `{len(report['failures'])}`",
         f"- Active contract: `{manifest['specialist_contract_provenance']['active_foundation']['contract_mode']}` "
@@ -216,6 +305,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     foundation_path = Path(args.foundation_seq_manifest).expanduser().resolve()
     chart_path = Path(args.chart_geometry_manifest).expanduser().resolve()
     candle_path = Path(args.candlestick_manifest).expanduser().resolve()
+    include_smart_layers = bool(getattr(args, "include_smart_layers", False))
+    base_signal_feature_count = int(
+        getattr(args, "base_signal_feature_count", DEFAULT_BASE_SIGNAL_FEATURE_COUNT)
+    )
 
     foundation = _read_json(foundation_path)
     chart = _read_json(chart_path)
@@ -223,6 +316,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     foundation_features = _selected_features(foundation, label="foundation sequence manifest")
     chart_features = _selected_features(chart, label="chart geometry manifest")
     candle_features = _selected_features(candle, label="candlestick manifest")
+    smart_layer_features: "OrderedDict[str, list[str]]" = OrderedDict()
+    if include_smart_layers:
+        for label, (_, names, _, _) in SMART_LAYER_FEATURES.items():
+            smart_layer_features[label] = list(names)
+    smart_features = [name for names in smart_layer_features.values() for name in names]
 
     failures: list[str] = []
     if chart.get("decision") != "READY_FOR_CHALLENGER_DATASET_REBUILD":
@@ -232,7 +330,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     if foundation.get("foundation_structure_all_required_selected") is not True:
         failures.append("foundation sequence manifest does not prove all required foundation structure features selected")
 
-    combined, duplicates = _dedupe_preserve_order(foundation_features + chart_features + candle_features)
+    combined, duplicates = _dedupe_preserve_order(
+        foundation_features + chart_features + candle_features + smart_features
+    )
     grouped = group_features_by_specialist(combined)
     unmapped = grouped.get("unmapped", [])
     if unmapped:
@@ -258,31 +358,68 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         failures.append(f"target challenger contract missing seq215 specialists: {missing_target_challengers}")
 
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    decision = "READY_FOR_CHALLENGER_DATASET_REBUILD_MANIFEST" if not failures else "FAIL"
+    expected_seq_snap_width = base_signal_feature_count + int(len(combined))
+    manifest_variant = f"smart_seq{expected_seq_snap_width}_candidate" if include_smart_layers else "seq215_challenger"
+    decision = (
+        "READY_FOR_SMART_CHALLENGER_DATASET_REBUILD_MANIFEST"
+        if include_smart_layers and not failures
+        else "READY_FOR_CHALLENGER_DATASET_REBUILD_MANIFEST"
+        if not failures
+        else "FAIL"
+    )
+    source_manifests = {
+        "foundation_sequence_extension": _source_meta(foundation_path, foundation, label="foundation_sequence_extension"),
+        "chart_geometry_challenger": _source_meta(chart_path, chart, label="chart_geometry_challenger"),
+        "candlestick_challenger": _source_meta(candle_path, candle, label="candlestick_challenger"),
+    }
+    if smart_layer_features:
+        source_manifests["smart_candidate_layers"] = OrderedDict(
+            (
+                label,
+                _smart_source_meta(
+                    label=label,
+                    version=version,
+                    features=features,
+                    builder=builder,
+                    source_path=source_path,
+                ),
+            )
+            for label, (version, features, builder, source_path) in SMART_LAYER_FEATURES.items()
+        )
     manifest = {
         "schema_version": "entry_specialist_challenger_extension_manifest_v1",
         "created_utc": datetime.now(timezone.utc).isoformat(),
+        "manifest_variant": manifest_variant,
         "decision": decision,
         "purpose": (
             "manifest-only selected feature order for rebuilding Entry sequence arrays with "
-            "foundation structure, numeric chart geometry, and closed-bar candlestick pattern inputs"
+            "foundation structure, numeric chart geometry, closed-bar candlestick pattern inputs"
+            + (", and dormant specialist smart-layer candidates" if include_smart_layers else "")
         ),
         "manifest_only": True,
         "selected_features": combined,
         "selected_feature_count": int(len(combined)),
+        "base_signal_feature_count": base_signal_feature_count,
+        "expected_seq_snap_width": expected_seq_snap_width,
         "feature_counts_by_specialist": _counter(combined),
         "features_by_specialist": grouped,
         "feature_rows": _feature_rows(combined),
-        "source_manifests": {
-            "foundation_sequence_extension": _source_meta(foundation_path, foundation, label="foundation_sequence_extension"),
-            "chart_geometry_challenger": _source_meta(chart_path, chart, label="chart_geometry_challenger"),
-            "candlestick_challenger": _source_meta(candle_path, candle, label="candlestick_challenger"),
-        },
+        "source_manifests": source_manifests,
         "source_feature_counts": {
             "foundation_sequence_extension": int(len(foundation_features)),
             "chart_geometry_challenger": int(len(chart_features)),
             "candlestick_challenger": int(len(candle_features)),
+            "smart_candidate_layers": int(len(smart_features)),
         },
+        "smart_layers_included": include_smart_layers,
+        "smart_layer_feature_counts": {
+            label: int(len(features)) for label, features in smart_layer_features.items()
+        },
+        "smart_layer_feature_versions": {
+            label: version for label, (version, _, _, _) in SMART_LAYER_FEATURES.items()
+        }
+        if smart_layer_features
+        else {},
         "duplicate_features_dropped": duplicates,
         "foundation_structure_feature_version": foundation.get(
             "foundation_structure_feature_version", FOUNDATION_STRUCTURE_FEATURE_VERSION
@@ -348,9 +485,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 "<new_challenger_dataset_dir>/<stem>.parquet",
             ],
             "ram_note": (
-                "The combined extension adds 69 challenger features on top of the active 105-feature "
-                "foundation extension. Rebuild under gx1_capped_run with conservative memory and "
-                "streaming batch settings."
+                "The combined extension adds "
+                f"{len(chart_features) + len(candle_features) + len(smart_features)} challenger/smart features "
+                f"on top of the active {len(foundation_features)}-feature foundation extension. "
+                "Rebuild under gx1_capped_run with conservative memory and streaming batch settings."
             ),
         },
     }
@@ -363,7 +501,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "foundation_sequence_extension_features": int(len(foundation_features)),
             "chart_geometry_challenger_features": int(len(chart_features)),
             "candlestick_challenger_features": int(len(candle_features)),
+            "smart_candidate_features": int(len(smart_features)),
             "combined_selected_features": int(len(combined)),
+            "base_signal_features": base_signal_feature_count,
+            "expected_seq_snap_width": expected_seq_snap_width,
             "duplicate_feature_count": int(len(duplicates)),
         },
         "failures": failures,
@@ -380,9 +521,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "shadow_live_promotion_allowed": False,
     }
 
-    manifest_json = out_dir / f"ENTRY_SPECIALIST_CHALLENGER_EXTENSION_MANIFEST_{timestamp}.json"
-    report_json = out_dir / f"ENTRY_SPECIALIST_CHALLENGER_EXTENSION_REPORT_{timestamp}.json"
-    report_md = out_dir / f"ENTRY_SPECIALIST_CHALLENGER_EXTENSION_REPORT_{timestamp}.md"
+    stem = (
+        "ENTRY_SPECIALIST_CHALLENGER_SMART_EXTENSION"
+        if include_smart_layers
+        else "ENTRY_SPECIALIST_CHALLENGER_EXTENSION"
+    )
+    manifest_json = out_dir / f"{stem}_MANIFEST_{timestamp}.json"
+    report_json = out_dir / f"{stem}_REPORT_{timestamp}.json"
+    report_md = out_dir / f"{stem}_REPORT_{timestamp}.md"
     manifest["manifest_json_path"] = str(manifest_json)
     report["json_path"] = str(report_json)
     report["md_path"] = str(report_md)
@@ -390,13 +536,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     manifest_json.write_text(json.dumps(manifest, indent=2, sort_keys=True, default=_json_default) + "\n", encoding="utf-8")
     report_json.write_text(json.dumps(report, indent=2, sort_keys=True, default=_json_default) + "\n", encoding="utf-8")
     _write_markdown(report_md, report)
-    (out_dir / "ENTRY_SPECIALIST_CHALLENGER_EXTENSION_MANIFEST_latest.json").write_text(
+    (out_dir / f"{stem}_MANIFEST_latest.json").write_text(
         manifest_json.read_text(encoding="utf-8"), encoding="utf-8"
     )
-    (out_dir / "ENTRY_SPECIALIST_CHALLENGER_EXTENSION_REPORT_latest.json").write_text(
+    (out_dir / f"{stem}_REPORT_latest.json").write_text(
         report_json.read_text(encoding="utf-8"), encoding="utf-8"
     )
-    (out_dir / "ENTRY_SPECIALIST_CHALLENGER_EXTENSION_REPORT_latest.md").write_text(
+    (out_dir / f"{stem}_REPORT_latest.md").write_text(
         report_md.read_text(encoding="utf-8"), encoding="utf-8"
     )
     if not args.quiet:
@@ -425,6 +571,8 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--foundation-seq-manifest", default=str(SEQ_STRUCTURE_MANIFEST))
     ap.add_argument("--chart-geometry-manifest", default=str(DEFAULT_CHART_GEOMETRY_MANIFEST))
     ap.add_argument("--candlestick-manifest", default=str(DEFAULT_CANDLESTICK_MANIFEST))
+    ap.add_argument("--include-smart-layers", action="store_true")
+    ap.add_argument("--base-signal-feature-count", type=int, default=DEFAULT_BASE_SIGNAL_FEATURE_COUNT)
     ap.add_argument("--fail-on-audit-fail", action=argparse.BooleanOptionalAction, default=True)
     ap.add_argument("--quiet", action="store_true")
     return ap

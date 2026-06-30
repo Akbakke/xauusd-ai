@@ -174,6 +174,16 @@ Active status:
   with an explicit `SEQ215` vedtak id. `candidate-readiness-seq215` must remain
   `NOT_READY_FOR_CANDIDATE_TRAINING` until the real seq215 smoke bundle edge
   audit exists and passes.
+- Smart-layer candidate: report-only/dormant. The optional
+  `materialize_entry_specialist_challenger_extension_manifest_v1 --include-smart-layers`
+  path currently combines the audited seq215 extension with 141 extra dormant smart-layer
+  features for trend/EMA, SMC/liquidity quality, structure/swing derivations,
+  momentum/flow and session/regime interactions. With the current feature
+  list this is a `smart_seq356_candidate` manifest candidate, not an active
+  dataset. It writes separate `SMART` manifest/report latest files and must
+  not overwrite the seq215 latest contract. It is not train-ready and requires a
+  separate rebuild, feature audit, specialist audit, liveness/non-collapse
+  proof and train-readiness gate before any smoke/candidate/replay/IQL step.
 - Entry-to-Exit per-bar handoff: `PASS_WITH_EXPLICIT_GAP_EXCLUSIONS`.
   The active materializer fills missing canonical M5 `atr_bps` deterministically
   from closed-bar bid/ask OHLC true range and excludes unresolved/non-contiguous

@@ -13,6 +13,30 @@ from gx1.features.entry_trend_ema_v1 import (
 from gx1.scripts.materialize_entry_trend_ema_extension_manifest_v1 import run as run_manifest
 
 
+EXPECTED_TREND_EMA_FEATURE_NAMES = (
+    "trend.ema_mtf_score",
+    "trend.ema_stack_alignment_score",
+    "trend.ema_stack_bull_pressure",
+    "trend.ema_stack_bear_pressure",
+    "trend.ema_inflect_up_pressure",
+    "trend.ema_inflect_down_pressure",
+    "trend.ema_slope_score",
+    "trend.ema_slope_curvature",
+    "trend.ema_slope_curvature_abs",
+    "trend.ema_mtf_agreement_pressure",
+    "trend.ema_mtf_divergence_pressure",
+    "trend.ema_distance_fast_abs",
+    "trend.ema_distance_stack_abs",
+    "trend.ema_distance_stretch_pressure",
+    "trend.ema_retrace_to_fast_long_pressure",
+    "trend.ema_retrace_to_fast_short_pressure",
+    "trend.ema_trend_age_mean",
+    "trend.ema_trend_age_exhaustion_pressure",
+    "trend.ema_late_reversal_risk",
+    "trend.ema_d1_flip_pressure",
+)
+
+
 def _matrix(names: list[str], n: int = 7) -> np.ndarray:
     x = np.zeros((n, len(names)), dtype=np.float32)
     idx = {name: i for i, name in enumerate(names)}
@@ -57,6 +81,57 @@ def _matrix(names: list[str], n: int = 7) -> np.ndarray:
     return x
 
 
+def _coherence_case(names: list[str], *, slope_sign: float) -> np.ndarray:
+    x = np.zeros((5, len(names)), dtype=np.float32)
+    idx = {name: i for i, name in enumerate(names)}
+
+    def set_col(name: str, value: float) -> None:
+        x[:, idx[name]] = np.full(x.shape[0], value, dtype=np.float32)
+
+    for name in (
+        "snap._v1_ema_diff",
+        "snap.pos_vs_ema200",
+        "ctx_cont._v1h1_ema_diff",
+        "ctx_cont._v1h4_ema_diff",
+        "ctx_cont.m15_trend_sign_canon_v2",
+    ):
+        set_col(name, 1.25)
+    for name in (
+        "snap.ema20_slope",
+        "snap._v1_close_ema_slope_3",
+        "snap._v1_kama_slope_30",
+        "snap._v1_tema_slope_20",
+        "ctx_cont._v1h1_slope3",
+        "ctx_cont._v1h1_slope5",
+        "ctx_cont._v1h4_slope3",
+        "ctx_cont._v1h4_slope5",
+        "ctx_cont.d1_ema_slope_20_canon_v2",
+        "ctx_cont.d1_pct_change_5_canon_v2",
+    ):
+        set_col(name, slope_sign * 1.25)
+    set_col("ctx_cont.distance_ema_fast", 0.20)
+    set_col("ctx_cont.regime_tf_agreement_v3", 1.00)
+    set_col("ctx_cont.regime_stack_sum_v3", 3.00)
+    set_col("ctx_cont.regime_divergence_flag_v3", 0.00)
+    set_col("ctx_cont.d1_dist_roc_288_v3", 0.10)
+    set_col("ctx_cont.d1_trend_age_mature_flag_v3", 0.20)
+    set_col("ctx_cont.retracement_from_last_impulse", 0.50)
+    for name in (
+        "ctx_cont.m5_trend_age_bars_norm_v2",
+        "ctx_cont.m15_trend_age_bars_norm_v2",
+        "ctx_cont.h1_trend_age_bars_norm_v2",
+        "ctx_cont.h4_trend_age_bars_norm_v2",
+        "ctx_cont.d1_trend_age_bars_norm_v2",
+    ):
+        set_col(name, 0.40)
+    return x
+
+
+def test_trend_ema_feature_contract_is_stable() -> None:
+    assert len(TREND_EMA_FEATURE_NAMES) == 20
+    assert TREND_EMA_FEATURE_NAMES == EXPECTED_TREND_EMA_FEATURE_NAMES
+
+
 def test_trend_ema_layer_builds_causal_specialist_features() -> None:
     names = list(TREND_EMA_SOURCE_FIELDS)
     out, out_names = build_entry_trend_ema_layer(_matrix(names), names)
@@ -73,6 +148,34 @@ def test_trend_ema_layer_builds_causal_specialist_features() -> None:
     assert out[6, idx["trend.ema_late_reversal_risk"]] > out[2, idx["trend.ema_late_reversal_risk"]]
 
 
+def test_trend_ema_layer_sanitizes_nonfinite_inputs() -> None:
+    names = list(TREND_EMA_SOURCE_FIELDS)
+    x = _matrix(names)
+    source_idx = {name: i for i, name in enumerate(names)}
+    x[1, source_idx["snap._v1_ema_diff"]] = np.nan
+    x[2, source_idx["snap.ema20_slope"]] = np.inf
+    x[3, source_idx["ctx_cont._v1h4_slope5"]] = -np.inf
+
+    out, out_names = build_entry_trend_ema_layer(x, names)
+
+    assert tuple(out_names) == EXPECTED_TREND_EMA_FEATURE_NAMES
+    assert out.shape == (7, 20)
+    assert np.isfinite(out).all()
+
+
+def test_trend_ema_layer_rewards_ema_slope_coherence() -> None:
+    names = list(TREND_EMA_SOURCE_FIELDS)
+    coherent, out_names = build_entry_trend_ema_layer(_coherence_case(names, slope_sign=1.0), names)
+    divergent, _ = build_entry_trend_ema_layer(_coherence_case(names, slope_sign=-1.0), names)
+    idx = {name: i for i, name in enumerate(out_names)}
+
+    row = 3
+    assert coherent[row, idx["trend.ema_mtf_agreement_pressure"]] > divergent[row, idx["trend.ema_mtf_agreement_pressure"]]
+    assert divergent[row, idx["trend.ema_mtf_divergence_pressure"]] > coherent[row, idx["trend.ema_mtf_divergence_pressure"]]
+    assert coherent[row, idx["trend.ema_stack_alignment_score"]] > divergent[row, idx["trend.ema_stack_alignment_score"]]
+    assert coherent[row, idx["trend.ema_stack_bull_pressure"]] > divergent[row, idx["trend.ema_stack_bull_pressure"]]
+
+
 def test_trend_ema_source_contract_and_specialist_routing() -> None:
     assert missing_trend_ema_source_fields(TREND_EMA_SOURCE_FIELDS) == []
     missing = missing_trend_ema_source_fields(
@@ -87,11 +190,12 @@ def test_trend_ema_layer_does_not_read_future_rows() -> None:
     x = _matrix(names)
     baseline, _ = build_entry_trend_ema_layer(x, names)
 
-    changed = x.copy()
-    changed[-1, :] = 99.0
-    mutated, _ = build_entry_trend_ema_layer(changed, names)
+    for future_start in range(1, x.shape[0]):
+        changed = x.copy()
+        changed[future_start:, :] = 99.0
+        mutated, _ = build_entry_trend_ema_layer(changed, names)
 
-    np.testing.assert_allclose(mutated[:-1], baseline[:-1], rtol=0.0, atol=0.0)
+        np.testing.assert_allclose(mutated[:future_start], baseline[:future_start], rtol=0.0, atol=0.0)
 
 
 def test_trend_ema_manifest_is_report_only(tmp_path) -> None:

@@ -13,11 +13,59 @@ from gx1.features.entry_specialist_feature_groups_v1 import classify_entry_speci
 from gx1.scripts.materialize_entry_momentum_flow_challenger_manifest_v1 import run
 
 
+def _feature_names(extra: list[str] | None = None) -> list[str]:
+    return list(
+        dict.fromkeys(
+            [
+                *MOMENTUM_FLOW_REQUIRED_SOURCE_FIELDS,
+                "ctx_cont.micro_momentum_3",
+                "ctx_cont.micro_momentum_5",
+                "ctx_cont.micro_acceleration",
+                "ctx_cont.atr_bps",
+                "snap.atr_z",
+                "snap._v1_range_z",
+                "ctx_cont._v1h1_slope5",
+                "ctx_cont._v1h4_slope5",
+                "ctx_cont.d1_pct_change_5_canon_v2",
+                "ctx_cont.d1_ema_slope_20_canon_v2",
+                "ctx_cont.regime_tf_agreement_v3",
+                "ctx_cont.regime_divergence_flag_v3",
+                "ctx_cont.dip_confirmed_m5_v3",
+                "ctx_cont.dip_confirmed_m15_v3",
+                "ctx_cont.dip_confirmed_h1_v3",
+                "ctx_cont.dip_confirmed_h4_v3",
+                "ctx_cont.dip_confirmed_d1_v3",
+                "ctx_cont.dip_confirmed_mean_5tf",
+                "ctx_cont.dip_confirmed_max_5tf",
+                "ctx_cont.dip_proximity_h1_v3",
+                "ctx_cont.dip_proximity_h4_v3",
+                "ctx_cont.dip_proximity_d1_v3",
+                "ctx_cont.dip_proximity_mean_h1h4d1",
+                "chart.foundation_impulse_direction",
+                "chart.foundation_impulse_pullback_alignment",
+                "chart.foundation_compression_release_up",
+                "chart.foundation_compression_release_down",
+                "candle.pattern_bull_continuation_pressure",
+                "candle.pattern_bear_continuation_pressure",
+                "candle.pattern_bull_reversal_pressure",
+                "candle.pattern_bear_reversal_pressure",
+                "snap.wick_asym",
+                "ctx_cont.wick_ratio",
+                "candle.pattern_upper_wick_share",
+                "candle.pattern_lower_wick_share",
+                *(extra or []),
+            ]
+        )
+    )
+
+
 def _matrix(names: list[str], n: int = 6) -> np.ndarray:
     x = np.zeros((n, len(names)), dtype=np.float32)
     idx = {name: i for i, name in enumerate(names)}
 
     def set_col(name: str, values) -> None:
+        if name not in idx:
+            return
         x[:, idx[name]] = np.asarray(values, dtype=np.float32)
 
     set_col("ret_1", [2.0, 5.0, 8.0, 1.0, -4.0, -7.0])
@@ -61,53 +109,33 @@ def _matrix(names: list[str], n: int = 6) -> np.ndarray:
     set_col("candle.pattern_bear_continuation_pressure", [0.0, 0.0, 0.0, 0.0, 0.5, 1.0])
     set_col("candle.pattern_bull_reversal_pressure", [0.0, 0.1, 0.1, 0.0, 0.2, 0.3])
     set_col("candle.pattern_bear_reversal_pressure", [0.0, 0.0, 0.2, 0.8, 0.1, 0.1])
+    set_col("snap.wick_asym", [0.0, -0.35, -0.65, 0.75, 0.35, 0.75])
+    set_col("ctx_cont.wick_ratio", [0.5, 0.25, 0.15, 0.85, 0.75, 0.90])
+    set_col("candle.pattern_upper_wick_share", [0.0, 0.1, 0.1, 0.9, 0.5, 0.9])
+    set_col("candle.pattern_lower_wick_share", [0.0, 0.6, 0.9, 0.1, 0.1, 0.1])
     return x
 
 
 def test_momentum_flow_layer_builds_causal_derivatives() -> None:
-    names = list(
-        dict.fromkeys(
-            [
-                *MOMENTUM_FLOW_REQUIRED_SOURCE_FIELDS,
-                "ctx_cont.micro_momentum_3",
-                "ctx_cont.micro_momentum_5",
-                "ctx_cont.micro_acceleration",
-                "ctx_cont.atr_bps",
-                "snap.atr_z",
-                "snap._v1_range_z",
-                "ctx_cont._v1h1_slope5",
-                "ctx_cont._v1h4_slope5",
-                "ctx_cont.d1_pct_change_5_canon_v2",
-                "ctx_cont.d1_ema_slope_20_canon_v2",
-                "ctx_cont.regime_tf_agreement_v3",
-                "ctx_cont.regime_divergence_flag_v3",
-                "ctx_cont.dip_confirmed_m5_v3",
-                "ctx_cont.dip_confirmed_m15_v3",
-                "ctx_cont.dip_confirmed_h1_v3",
-                "ctx_cont.dip_confirmed_h4_v3",
-                "ctx_cont.dip_confirmed_d1_v3",
-                "ctx_cont.dip_confirmed_mean_5tf",
-                "ctx_cont.dip_confirmed_max_5tf",
-                "ctx_cont.dip_proximity_h1_v3",
-                "ctx_cont.dip_proximity_h4_v3",
-                "ctx_cont.dip_proximity_d1_v3",
-                "ctx_cont.dip_proximity_mean_h1h4d1",
-                "chart.foundation_impulse_direction",
-                "chart.foundation_impulse_pullback_alignment",
-                "chart.foundation_compression_release_up",
-                "chart.foundation_compression_release_down",
-                "candle.pattern_bull_continuation_pressure",
-                "candle.pattern_bear_continuation_pressure",
-                "candle.pattern_bull_reversal_pressure",
-                "candle.pattern_bear_reversal_pressure",
-            ]
-        )
-    )
+    names = _feature_names()
     x = _matrix(names)
     out, out_names = build_entry_momentum_flow_layer(x, names)
     idx = {name: i for i, name in enumerate(out_names)}
+    no_wick_names = [
+        name
+        for name in names
+        if name
+        not in {
+            "snap.wick_asym",
+            "ctx_cont.wick_ratio",
+            "candle.pattern_upper_wick_share",
+            "candle.pattern_lower_wick_share",
+        }
+    ]
+    out_no_wick, _ = build_entry_momentum_flow_layer(_matrix(no_wick_names), no_wick_names)
 
     assert tuple(out_names) == MOMENTUM_FLOW_FEATURE_NAMES
+    assert len(MOMENTUM_FLOW_FEATURE_NAMES) == 26
     assert out.shape == (6, len(MOMENTUM_FLOW_FEATURE_NAMES))
     assert np.isfinite(out).all()
     assert out[2, idx["momentum.flow_bull_followthrough_score"]] > out[2, idx["momentum.flow_bear_followthrough_score"]]
@@ -115,6 +143,36 @@ def test_momentum_flow_layer_builds_causal_derivatives() -> None:
     assert out[2, idx["momentum.flow_dip_continuation_long_input"]] > out[2, idx["momentum.flow_dip_reversal_long_risk_input"]]
     assert out[3, idx["momentum.flow_bull_exhaustion_pressure"]] > 0.0
     assert out[5, idx["momentum.flow_compression_release_followthrough_score"]] < 0.0
+    assert out[2, idx["momentum.flow_candle_bull_pressure"]] > out_no_wick[2, idx["momentum.flow_candle_bull_pressure"]]
+    assert out[3, idx["momentum.flow_candle_bear_pressure"]] > out_no_wick[3, idx["momentum.flow_candle_bear_pressure"]]
+
+
+def test_momentum_flow_layer_is_finite_and_row_causal() -> None:
+    names = _feature_names(extra=["target.forward_return_24", "y_direction", "future_mfe_bps"])
+    x = _matrix(names)
+    out, out_names = build_entry_momentum_flow_layer(x, names)
+    source_idx = {name: i for i, name in enumerate(names)}
+
+    bad = x.copy()
+    bad[1, source_idx["ret_1"]] = np.nan
+    bad[2, source_idx["ret_5"]] = np.inf
+    bad[3, source_idx["ctx_cont.micro_momentum_3"]] = -np.inf
+    bad_out, bad_names = build_entry_momentum_flow_layer(bad, names)
+    assert bad_names == out_names
+    assert np.isfinite(bad_out).all()
+
+    future_changed = x.copy()
+    future_changed[3:, :] = future_changed[3:, :] * -7.0 + 3.0
+    future_changed[:, source_idx["target.forward_return_24"]] = np.linspace(-1_000.0, 1_000.0, x.shape[0])
+    future_out, _ = build_entry_momentum_flow_layer(future_changed, names)
+    np.testing.assert_allclose(out[:3], future_out[:3], rtol=0.0, atol=0.0)
+
+    leakage_only = x.copy()
+    leakage_only[:, source_idx["target.forward_return_24"]] = 999_999.0
+    leakage_only[:, source_idx["y_direction"]] = np.arange(x.shape[0], dtype=np.float32)
+    leakage_only[:, source_idx["future_mfe_bps"]] = -999_999.0
+    leakage_out, _ = build_entry_momentum_flow_layer(leakage_only, names)
+    np.testing.assert_allclose(out, leakage_out, rtol=0.0, atol=0.0)
 
 
 def test_momentum_flow_source_contract_and_specialist_routing() -> None:
@@ -131,6 +189,10 @@ def test_momentum_flow_source_contract_and_specialist_routing() -> None:
     assert missing_entry_momentum_flow_source_fields(names) == []
     assert missing_entry_momentum_flow_source_fields(names[:-1]) == ["micro_acceleration"]
     assert classify_entry_specialist_feature("momentum.flow_clean_edge_score") == "momentum_flow_encoder"
+    assert len(MOMENTUM_FLOW_FEATURE_NAMES) == 26
+    assert len(set(MOMENTUM_FLOW_FEATURE_NAMES)) == 26
+    forbidden = ("future", "target", "y_", "mfe", "mae", "pnl", "reward", "label")
+    assert not any(token in name for name in MOMENTUM_FLOW_FEATURE_NAMES for token in forbidden)
 
 
 def test_momentum_flow_manifest_is_report_only(tmp_path: Path) -> None:

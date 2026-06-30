@@ -283,6 +283,23 @@ Current audited seq215 challenger coverage:
 - `price_action_candle_encoder`: 31 signal fields, made from 3 existing
   body/wick/range fields plus 28 candlestick challenger fields.
 
+Current report-only smart-layer candidate:
+
+- The optional
+  `materialize_entry_specialist_challenger_extension_manifest_v1 --include-smart-layers`
+  path preserves the existing seq215 latest files and writes separate `SMART`
+  manifest/report latest files.
+- It currently adds 141 dormant smart-layer features on top of the 174-feature
+  seq215 extension: trend/EMA 20, SMC/liquidity quality 24,
+  structure/swing derivations 28, momentum/flow 26 and session/regime
+  interactions 43.
+- Expected rebuilt seq/snap width is currently 356 signal fields: 41 base
+  signal fields plus the 315-feature combined extension. This is a dataset rebuild candidate,
+  not active training evidence.
+- These smart layers are diagnostic/report-only until a separate rebuild,
+  feature audit, specialist audit, liveness/non-collapse proof and
+  train-readiness gate explicitly promote them into a trainable contract.
+
 Foundation requirement mapping is audited as:
 
 - HH/HL/LH/LL -> `structure_swing_encoder`.

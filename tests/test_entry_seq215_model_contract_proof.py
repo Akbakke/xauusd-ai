@@ -1,3 +1,4 @@
+import argparse
 import json
 from pathlib import Path
 
@@ -24,8 +25,14 @@ from gx1.scripts.materialize_entry_feature_ai_inventory_v1 import (
     _specialist_contract_provenance as _inventory_contract_provenance,
 )
 from gx1.scripts.materialize_entry_specialist_challenger_extension_manifest_v1 import (
+    DEFAULT_BASE_SIGNAL_FEATURE_COUNT,
+    DEFAULT_CANDLESTICK_MANIFEST,
+    DEFAULT_CHART_GEOMETRY_MANIFEST,
+    SMART_LAYER_FEATURES,
     _specialist_contract_provenance as _challenger_manifest_contract_provenance,
+    run as run_challenger_extension_manifest,
 )
+from gx1.scripts.verify_entry_foundation_state_v1 import SEQ_STRUCTURE_MANIFEST
 
 
 SEQ215_SPECIALIST_AUDIT = Path(
@@ -227,6 +234,71 @@ def test_feature_ai_inventory_next_gate_points_to_seq215_smoke_evidence() -> Non
     assert "SEQ215 smoke-manifest/smoke-train evidence" in FEATURE_AI_INVENTORY_NEXT_REQUIRED_GATE
     assert "candidate-readiness-seq215" in FEATURE_AI_INVENTORY_NEXT_REQUIRED_GATE
     assert "replay, IQL, shadow or live" in FEATURE_AI_INVENTORY_NEXT_REQUIRED_GATE
+
+
+def _challenger_extension_args(tmp_path: Path, *, include_smart_layers: bool) -> argparse.Namespace:
+    return argparse.Namespace(
+        out_dir=str(tmp_path),
+        foundation_seq_manifest=str(SEQ_STRUCTURE_MANIFEST),
+        chart_geometry_manifest=str(DEFAULT_CHART_GEOMETRY_MANIFEST),
+        candlestick_manifest=str(DEFAULT_CANDLESTICK_MANIFEST),
+        include_smart_layers=include_smart_layers,
+        base_signal_feature_count=DEFAULT_BASE_SIGNAL_FEATURE_COUNT,
+        fail_on_audit_fail=True,
+        quiet=True,
+    )
+
+
+def test_smart_challenger_manifest_preserves_seq215_latest_and_builds_dynamic_smart_candidate(
+    tmp_path: Path,
+) -> None:
+    default_report = run_challenger_extension_manifest(
+        _challenger_extension_args(tmp_path, include_smart_layers=False)
+    )
+
+    default_latest = tmp_path / "ENTRY_SPECIALIST_CHALLENGER_EXTENSION_REPORT_latest.json"
+    smart_latest = tmp_path / "ENTRY_SPECIALIST_CHALLENGER_SMART_EXTENSION_REPORT_latest.json"
+    assert default_latest.exists()
+    assert not smart_latest.exists()
+    assert default_report["decision"] == "READY_FOR_CHALLENGER_DATASET_REBUILD_MANIFEST"
+    assert default_report["counts"]["combined_selected_features"] == 174
+    assert default_report["counts"]["expected_seq_snap_width"] == 215
+    assert default_report["counts"]["smart_candidate_features"] == 0
+    assert default_report["manifest"]["manifest_variant"] == "seq215_challenger"
+
+    smart_report = run_challenger_extension_manifest(
+        _challenger_extension_args(tmp_path, include_smart_layers=True)
+    )
+
+    assert default_latest.exists()
+    default_latest_payload = json.loads(default_latest.read_text(encoding="utf-8"))
+    assert default_latest_payload["decision"] == "READY_FOR_CHALLENGER_DATASET_REBUILD_MANIFEST"
+    assert default_latest_payload["manifest"]["expected_seq_snap_width"] == 215
+
+    assert smart_latest.exists()
+    expected_smart_counts = {
+        label: len(features) for label, (_, features, _, _) in SMART_LAYER_FEATURES.items()
+    }
+    expected_smart_total = sum(expected_smart_counts.values())
+    expected_combined_features = default_report["counts"]["combined_selected_features"] + expected_smart_total
+    expected_seq_snap_width = default_report["counts"]["base_signal_features"] + expected_combined_features
+
+    assert smart_report["decision"] == "READY_FOR_SMART_CHALLENGER_DATASET_REBUILD_MANIFEST"
+    assert smart_report["counts"]["foundation_sequence_extension_features"] == 105
+    assert smart_report["counts"]["chart_geometry_challenger_features"] == 41
+    assert smart_report["counts"]["candlestick_challenger_features"] == 28
+    assert smart_report["counts"]["smart_candidate_features"] == expected_smart_total
+    assert smart_report["counts"]["combined_selected_features"] == expected_combined_features
+    assert smart_report["counts"]["base_signal_features"] == 41
+    assert smart_report["counts"]["expected_seq_snap_width"] == expected_seq_snap_width
+    assert smart_report["manifest"]["manifest_variant"] == f"smart_seq{expected_seq_snap_width}_candidate"
+    assert smart_report["manifest"]["smart_layers_included"] is True
+    assert smart_report["manifest"]["features_by_specialist"].get("unmapped", []) == []
+    assert smart_report["training_allowed"] is False
+    assert not any(smart_report["side_effects_started"].values())
+
+    assert smart_report["manifest"]["smart_layer_feature_counts"] == expected_smart_counts
+    assert expected_smart_total >= 104
 
 
 def test_seq215_trainer_loader_requires_exact_challenger_contract_mode() -> None:

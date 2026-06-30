@@ -35,6 +35,7 @@ Usage:
   scripts/entry_next_edge_control.sh chart-geometry-audit
   scripts/entry_next_edge_control.sh candlestick-audit
   scripts/entry_next_edge_control.sh challenger-extension-manifest
+  scripts/entry_next_edge_control.sh challenger-smart-extension-manifest
   scripts/entry_next_edge_control.sh smoke-train --vedtak <id> --require-edge-audit
   scripts/entry_next_edge_control.sh smoke-train-seq215 --vedtak <id> --require-edge-audit
   scripts/entry_next_edge_control.sh audit-smoke-bundle --bundle-dir <dir>
@@ -162,6 +163,7 @@ paths = {
     "chart-geometry-audit": Path("/home/andre2/GX1_DATA/reports/entry_chart_geometry_challenger_audit_20260630_v1/ENTRY_CHART_GEOMETRY_CHALLENGER_AUDIT_latest.json"),
     "candlestick-audit": Path("/home/andre2/GX1_DATA/reports/entry_candlestick_pattern_challenger_audit_20260630_v1/ENTRY_CANDLESTICK_PATTERN_CHALLENGER_AUDIT_latest.json"),
     "challenger-extension-manifest": Path("/home/andre2/GX1_DATA/reports/entry_specialist_challenger_extension_manifest_20260630_v1/ENTRY_SPECIALIST_CHALLENGER_EXTENSION_REPORT_latest.json"),
+    "challenger-smart-extension-manifest": Path("/home/andre2/GX1_DATA/reports/entry_specialist_challenger_extension_manifest_20260630_v1/ENTRY_SPECIALIST_CHALLENGER_SMART_EXTENSION_REPORT_latest.json"),
 }
 adoption_root = Path("/home/andre2/GX1_DATA/reports/entry_foundation_adoption_candidate_20260629_v1")
 adoption_candidates = (
@@ -270,6 +272,7 @@ allowed_now = [
     "scripts/entry_next_edge_control.sh chart-geometry-audit --quiet --no-fail-on-audit-fail",
     "scripts/entry_next_edge_control.sh candlestick-audit --quiet --no-fail-on-audit-fail",
     "scripts/entry_next_edge_control.sh challenger-extension-manifest --quiet --no-fail-on-audit-fail",
+    "scripts/entry_next_edge_control.sh challenger-smart-extension-manifest --quiet --no-fail-on-audit-fail",
     "scripts/entry_next_edge_control.sh iql-slice-audit --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh entry-exit-materialize --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh entry-exit-handoff --quiet --no-fail-on-not-ready",
@@ -552,6 +555,38 @@ if not iql_replay_comparison_ready:
     current_blockers.append("promotion review requires candidate-vs-IQL replay comparison PASS")
 if iql_replay_comparison_ready and not iql_replay_slice_audit_ready:
     current_blockers.append("promotion review requires IQL slice/tail audit PASS")
+
+try:
+    from gx1.scripts.materialize_entry_specialist_challenger_extension_manifest_v1 import (
+        DEFAULT_BASE_SIGNAL_FEATURE_COUNT,
+        SMART_LAYER_FEATURES,
+    )
+    smart_layer_feature_count = sum(
+        len(features) for _, features, _, _ in SMART_LAYER_FEATURES.values()
+    )
+except Exception as exc:
+    DEFAULT_BASE_SIGNAL_FEATURE_COUNT = 41
+    smart_layer_feature_count = 0
+    smart_layer_feature_count_error = str(exc)
+else:
+    smart_layer_feature_count_error = None
+challenger_extension_counts = (
+    (reports.get("challenger-extension-manifest") or {}).get("counts")
+    if isinstance((reports.get("challenger-extension-manifest") or {}).get("counts"), dict)
+    else {}
+)
+smart_candidate_base_signal_features = int(
+    challenger_extension_counts.get("base_signal_features") or DEFAULT_BASE_SIGNAL_FEATURE_COUNT
+)
+smart_candidate_seq215_extension_features = int(
+    challenger_extension_counts.get("combined_selected_features") or 174
+)
+smart_candidate_expected_signal_dim = (
+    smart_candidate_base_signal_features
+    + smart_candidate_seq215_extension_features
+    + smart_layer_feature_count
+)
+smart_candidate_manifest_variant = f"smart_seq{smart_candidate_expected_signal_dim}_candidate"
 
 commands = {
     "handover": {
@@ -1001,6 +1036,31 @@ commands.update(
             "touches_shadow_or_live": False,
             "description": "Materialize combined foundation+chart+candlestick sequence extension manifest for a later gated dataset rebuild.",
         },
+        "challenger_smart_extension_manifest": {
+            "argv": [
+                "scripts/entry_next_edge_control.sh",
+                "challenger-smart-extension-manifest",
+                "--quiet",
+                "--no-fail-on-audit-fail",
+            ],
+            "allowed": True,
+            "mode": "report",
+            "requires_vedtak": False,
+            "requires_clean_git": False,
+            "mutates_git_index": False,
+            "starts_trainer": False,
+            "starts_replay": False,
+            "starts_iql_distillation": False,
+            "touches_shadow_or_live": False,
+            "manifest_variant": smart_candidate_manifest_variant,
+            "expected_signal_dim": smart_candidate_expected_signal_dim,
+            "smart_layer_feature_count": smart_layer_feature_count,
+            "smart_layer_feature_count_error": smart_layer_feature_count_error,
+            "description": (
+                "Materialize report-only smart-layer extension manifest for a later "
+                "separately gated dataset rebuild; no training or replay."
+            ),
+        },
         "feature_ai_inventory": {
             "argv": [
                 "scripts/entry_next_edge_control.sh",
@@ -1419,6 +1479,7 @@ execution_allowed_now = {
     "chart_geometry_audit": True,
     "candlestick_audit": True,
     "challenger_extension_manifest": True,
+    "challenger_smart_extension_manifest": True,
     "stage_foundation_cleanup_dry_run": True,
     "stage_foundation_cleanup_apply": False,
     "smoke_manifest": False,
@@ -1876,6 +1937,10 @@ PY
 
   challenger-extension-manifest)
     exec "$PY" -m gx1.scripts.materialize_entry_specialist_challenger_extension_manifest_v1 "$@"
+    ;;
+
+  challenger-smart-extension-manifest)
+    exec "$PY" -m gx1.scripts.materialize_entry_specialist_challenger_extension_manifest_v1 --include-smart-layers "$@"
     ;;
 
   candidate-train)

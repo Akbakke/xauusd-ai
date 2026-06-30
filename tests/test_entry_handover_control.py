@@ -487,6 +487,24 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
     assert payload["commands"]["replay_readiness_seq215_report"]["starts_iql_distillation"] is False
     assert payload["commands"]["replay_readiness_seq215_report"]["specialist_contract_mode"] == "challenger_seq215"
     assert payload["commands"]["replay_readiness_seq215_report"]["expected_signal_dim"] == 215
+    assert payload["commands"]["challenger_smart_extension_manifest"]["argv"] == [
+        "scripts/entry_next_edge_control.sh",
+        "challenger-smart-extension-manifest",
+        "--quiet",
+        "--no-fail-on-audit-fail",
+    ]
+    assert payload["commands"]["challenger_smart_extension_manifest"]["execution_allowed_now"] is True
+    assert payload["commands"]["challenger_smart_extension_manifest"]["requires_vedtak"] is False
+    assert payload["commands"]["challenger_smart_extension_manifest"]["starts_trainer"] is False
+    assert payload["commands"]["challenger_smart_extension_manifest"]["starts_replay"] is False
+    assert payload["commands"]["challenger_smart_extension_manifest"]["starts_iql_distillation"] is False
+    assert payload["commands"]["challenger_smart_extension_manifest"]["touches_shadow_or_live"] is False
+    smart_expected_dim = payload["commands"]["challenger_smart_extension_manifest"]["expected_signal_dim"]
+    assert smart_expected_dim >= 319
+    assert payload["commands"]["challenger_smart_extension_manifest"]["smart_layer_feature_count"] >= 104
+    assert payload["commands"]["challenger_smart_extension_manifest"]["manifest_variant"] == (
+        f"smart_seq{smart_expected_dim}_candidate"
+    )
     assert payload["commands"]["stage_foundation_cleanup_dry_run"]["allowed"] is True
     assert payload["commands"]["stage_foundation_cleanup_dry_run"]["execution_allowed_now"] is True
     assert payload["commands"]["stage_foundation_cleanup_dry_run"]["allowed_after_explicit_vedtak"] is True
@@ -639,6 +657,10 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
     assert "scripts/entry_next_edge_control.sh candidate-readiness --quiet --no-fail-on-not-ready" in payload["allowed_now"]
     assert "scripts/entry_next_edge_control.sh replay-readiness --quiet --no-fail-on-not-ready" in payload["allowed_now"]
     assert "scripts/entry_next_edge_control.sh replay-readiness-seq215 --quiet --no-fail-on-not-ready" in payload["allowed_now"]
+    assert (
+        "scripts/entry_next_edge_control.sh challenger-smart-extension-manifest --quiet --no-fail-on-audit-fail"
+        in payload["allowed_now"]
+    )
     assert "scripts/entry_next_edge_control.sh stage-foundation-cleanup --dry-run" in payload["allowed_now"]
     assert not any("smoke-manifest" in item for item in payload["allowed_now"])
     if foundation_ready:
