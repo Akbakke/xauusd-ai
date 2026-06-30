@@ -140,6 +140,7 @@ def _active_entry_artifact_paths() -> list[str]:
         "entry_exit_transformer_architecture_readiness_20260630_v1",
         "entry_exit_transformer_training_plan_readiness_20260630_v1",
         "entry_exit_transformer_trainer_wrapper_readiness_20260630_v1",
+        "entry_exit_transformer_pretrain_manifest_20260630_v1",
         "entry_candidate_selective_edge_20260628_v1",
         "entry_candidate_replay_20260628_v1",
         "entry_candidate_replay_trade_log_20260628_v1",
@@ -724,6 +725,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         entry_exit_transformer_architecture = _read_text(REPO / "gx1/scripts/audit_entry_exit_transformer_architecture_readiness_v1.py")
         entry_exit_transformer_training_plan = _read_text(REPO / "gx1/scripts/materialize_entry_exit_transformer_training_plan_readiness_v1.py")
         entry_exit_transformer_trainer_wrapper = _read_text(REPO / "gx1/scripts/audit_entry_exit_transformer_trainer_wrapper_readiness_v1.py")
+        entry_exit_transformer_pretrain_manifest = _read_text(REPO / "gx1/scripts/materialize_entry_exit_transformer_pretrain_manifest_v1.py")
+        entry_exit_transformer_trainer_core = _read_text(REPO / "gx1/models/exit_sequence_transformer/train_v1.py")
         worktree_hygiene = _read_text(REPO / "gx1/scripts/audit_entry_foundation_worktree_hygiene_v1.py")
         readiness = _read_text(REPO / "gx1/scripts/verify_entry_training_readiness_v1.py")
         candidate_readiness = _read_text(REPO / "gx1/scripts/verify_entry_candidate_readiness_v1.py")
@@ -813,6 +816,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         _require("materialize_entry_exit_transformer_training_plan_readiness_v1" in control, "control surface calls active Exit Transformer training plan readiness", checks)
         _require("entry-exit-transformer-trainer-wrapper-readiness" in control, "control surface exposes active Exit Transformer trainer wrapper readiness", checks)
         _require("audit_entry_exit_transformer_trainer_wrapper_readiness_v1" in control, "control surface calls active Exit Transformer trainer wrapper readiness", checks)
+        _require("entry-exit-transformer-pretrain-manifest" in control, "control surface exposes active Exit Transformer pretrain manifest", checks)
+        _require("materialize_entry_exit_transformer_pretrain_manifest_v1" in control, "control surface calls active Exit Transformer pretrain manifest", checks)
         _require("entry-exit-transformer-train" in control, "control surface exposes blocked active Exit Transformer train wrapper", checks)
         _require("run_entry_exit_transformer_train.sh" in control, "control surface calls blocked active Exit Transformer train wrapper", checks)
         _require("smoke-train" in control, "control surface exposes vedtak-gated smoke train", checks)
@@ -1136,6 +1141,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         _require("active Exit Transformer trainer implementation is not enabled" in entry_exit_transformer_train_wrapper, "Entry Exit Transformer train wrapper fail-closed before real training", checks)
         _require("scripts/gx1_capped_run.sh" in entry_exit_transformer_train_wrapper, "Entry Exit Transformer train wrapper declares capped run", checks)
         _require("--num-workers" in entry_exit_transformer_train_wrapper and "NUM_WORKERS=0" in entry_exit_transformer_train_wrapper, "Entry Exit Transformer train wrapper declares num-workers zero", checks)
+        _require("ExitSequenceTransformerV1" in entry_exit_transformer_trainer_core, "Entry Exit Transformer trainer core defines active model", checks)
+        _require("--preflight-only" in entry_exit_transformer_trainer_core, "Entry Exit Transformer trainer core is preflight-gated", checks)
+        _require("active Exit Transformer training is not enabled" in entry_exit_transformer_trainer_core, "Entry Exit Transformer trainer core blocks non-preflight training", checks)
+        _require("causal_mask" in entry_exit_transformer_trainer_core, "Entry Exit Transformer trainer core builds causal mask", checks)
+        _require("optimizer_steps" in entry_exit_transformer_trainer_core and '"optimizer_steps": 0' in entry_exit_transformer_trainer_core, "Entry Exit Transformer trainer core records zero optimizer steps in preflight", checks)
+        _require("entry_exit_transformer_pretrain_manifest_v1" in entry_exit_transformer_pretrain_manifest, "Entry Exit Transformer pretrain manifest writes schema", checks)
+        _require("ENTRY_EXIT_TRANSFORMER_PRETRAIN_MANIFEST_READY_FOR_TRAIN_EXECUTION_REVIEW" in entry_exit_transformer_pretrain_manifest, "Entry Exit Transformer pretrain manifest has ready decision", checks)
+        _require("active Exit Transformer trainer core finite forward preflight passes" in entry_exit_transformer_pretrain_manifest, "Entry Exit Transformer pretrain manifest requires finite forward", checks)
+        _require("pretrain manifest never trains, replays, distills, promotes, shadows, or starts live" in entry_exit_transformer_pretrain_manifest, "Entry Exit Transformer pretrain manifest keeps all side-effect paths closed", checks)
 
     report = {
         "schema_version": "entry_foundation_state_v1",

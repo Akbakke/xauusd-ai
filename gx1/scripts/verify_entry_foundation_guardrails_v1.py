@@ -186,6 +186,7 @@ def _readiness_policy_checks() -> list[dict[str, Any]]:
         "entry_exit_transformer_architecture_readiness",
         "entry_exit_transformer_training_plan_readiness",
         "entry_exit_transformer_trainer_wrapper_readiness",
+        "entry_exit_transformer_pretrain_manifest",
     )
     blocked_downstream = (
         "smoke_train",
@@ -240,6 +241,7 @@ def _readiness_policy_checks() -> list[dict[str, Any]]:
         "entry_exit_transformer_architecture_readiness",
         "entry_exit_transformer_training_plan_readiness",
         "entry_exit_transformer_trainer_wrapper_readiness",
+        "entry_exit_transformer_pretrain_manifest",
         "entry_exit_transformer_train",
         "preview_shadow",
         "start_shadow",

@@ -33,7 +33,7 @@ Options:
   --epochs <n>       Default: 1
   --batch-size <n>   Default: 32
   --dry-run          Print the future capped train command, then stop.
-  --manifest-only    Reserved for a later pretrain-manifest gate; currently blocked.
+  --manifest-only    Reserved for a later train-execution enablement gate; currently blocked.
 
 Resource caps:
   ENTRY_EXIT_TRANSFORMER_TRAIN_MEM_CAP   Default: 8G
@@ -116,7 +116,7 @@ if [[ "$DRY_RUN" = "1" ]]; then
 fi
 
 if [[ "$MANIFEST_ONLY" = "1" ]]; then
-  echo "FATAL: --manifest-only is blocked until active Exit Transformer pretrain-manifest audit exists." >&2
+  echo "FATAL: --manifest-only is blocked until active Exit Transformer train-execution enablement exists." >&2
   exit 2
 fi
 

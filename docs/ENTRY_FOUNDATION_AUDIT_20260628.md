@@ -10,8 +10,8 @@ active Exit model dataset/readiness gate is also ready, with train-only
 normalization metadata and train/val/test shards. The active Exit Transformer
 architecture/readiness contract is ready, and the active Exit Transformer
 training-plan/readiness manifest plus fail-closed trainer-wrapper readiness are
-ready for trainer-core/pretrain-manifest implementation review. No Exit trainer
-is approved or allowed.
+ready. The preflight-only trainer core and active pretrain-manifest audit are
+also ready for train-execution review. No Exit trainer is approved or allowed.
 
 The original rule still applies: foundation pass required before any more Transformer training.
 
@@ -51,7 +51,7 @@ lower drawdown. Those artifacts are frozen as diagnostic history.
 
 The active path is now:
 
-`handover -> verify -> selftest -> foundation-guardrails -> readiness-report -> Entry evidence gates -> Entry/IQL replay and slice evidence -> Entry-to-Exit handoff -> active Exit per-bar reconstruction -> active Exit state/reward contract -> active Exit split/leakage audit -> active Exit model dataset/readiness gates -> active Exit Transformer architecture/readiness -> active Exit Transformer training plan/readiness -> fail-closed Exit Transformer trainer-wrapper readiness -> only then consider Exit trainer-core/pretrain-manifest/replay/IQL evidence gates`
+`handover -> verify -> selftest -> foundation-guardrails -> readiness-report -> Entry evidence gates -> Entry/IQL replay and slice evidence -> Entry-to-Exit handoff -> active Exit per-bar reconstruction -> active Exit state/reward contract -> active Exit split/leakage audit -> active Exit model dataset/readiness gates -> active Exit Transformer architecture/readiness -> active Exit Transformer training plan/readiness -> fail-closed Exit Transformer trainer-wrapper readiness -> active Exit Transformer pretrain manifest -> only then consider explicit Exit train-execution/replay/IQL evidence gates`
 
 The historical activation path was:
 
@@ -184,10 +184,16 @@ Active status:
   prefix both reject before side effects, the implementation flag remains
   disabled, and the future train path declares cgroup RAM caps plus
   `--num-workers 0`.
+- Active Exit Transformer pretrain manifest:
+  `ENTRY_EXIT_TRANSFORMER_PRETRAIN_MANIFEST_READY_FOR_TRAIN_EXECUTION_REVIEW`.
+  It imports the active trainer core, runs a CPU-only finite forward preflight
+  on four train episodes, proves the exact five output heads are live, records
+  405559 parameters, 35 valid tokens and `optimizer_steps=0`, and keeps all
+  train/replay/IQL/shadow/live side effects closed.
 - Exit Transformer training, Exit IQL, shadow, live and promotion remain
-  closed. The next safe work is implementing active Exit Transformer trainer
-  core plus a pretrain-manifest audit; it remains closed until those gates,
-  clean-git checks, RAM guard and an explicit Exit train vedtak exist.
+  closed. The next safe work is train-execution enablement review; it remains
+  closed until explicit approval, clean-git checks, RAM guard, post-train audit
+  requirements and an explicit Exit train vedtak exist.
 
 ## Previous Operating Status - 2026-06-29
 

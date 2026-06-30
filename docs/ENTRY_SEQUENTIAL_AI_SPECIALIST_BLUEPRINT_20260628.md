@@ -96,6 +96,16 @@ Machine contract:
     future train wrapper: vedtak prefix rejection, implementation disabled,
     cgroup RAM cap declaration, `--num-workers 0` and no
     train/replay/IQL/shadow/live side effects.
+- Active Exit Transformer trainer core:
+  `gx1/models/exit_sequence_transformer/train_v1.py`
+  - Defines the active causal masked `ExitSequenceTransformerV1` with exact
+    output heads and a CPU-only `--preflight-only` path. Non-preflight training
+    exits fail-closed.
+- Active Exit Transformer pretrain manifest:
+  `gx1/scripts/materialize_entry_exit_transformer_pretrain_manifest_v1.py`
+  - Runs a finite forward preflight on active train episodes, writes the
+    pretrain manifest, records zero optimizer steps and keeps Exit
+    training/replay/IQL/shadow/live closed until train-execution review.
 - Latest report:
   `/home/andre2/GX1_DATA/reports/entry_specialist_feature_group_audit_20260628_v1/ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_latest.json`
 - Current decision: `PASS` on the active seq146 foundation dataset.

@@ -70,6 +70,7 @@ def test_foundation_guardrails_current_repo_lock_control_and_handover(tmp_path: 
     assert policy_checks["readiness_policy_safe_now_entry_exit_transformer_architecture_readiness"] is True
     assert policy_checks["readiness_policy_safe_now_entry_exit_transformer_training_plan_readiness"] is True
     assert policy_checks["readiness_policy_safe_now_entry_exit_transformer_trainer_wrapper_readiness"] is True
+    assert policy_checks["readiness_policy_safe_now_entry_exit_transformer_pretrain_manifest"] is True
     assert policy_checks["readiness_policy_blocks_foundation_activation_apply"] is True
     assert policy_checks["readiness_policy_blocks_foundation_activation_post_apply"] is True
     assert policy_checks["readiness_policy_blocks_smoke_train"] is True
