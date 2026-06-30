@@ -108,7 +108,16 @@ The next real command after both vedtak and clean-git readiness is:
 This does not approve a candidate, replay, IQL distillation, shadow or live
 path. Those gates remain closed until the required post-smoke bundle audit,
 candidate-readiness, selective-edge/no-XGB evidence, replay-readiness,
-distillation contract, IQL replay evidence and IQL comparison gates pass.
+   distillation contract, IQL replay evidence, IQL comparison, IQL slice/tail
+   audit and Entry-to-Exit handoff readiness gates pass.
+
+After IQL replay comparison, `scripts/entry_next_edge_control.sh
+iql-slice-audit` must prove that the edge survives supported session, regime
+and side slices, and must record exit-opportunity diagnostics from the exact
+candidate/IQL replay trade logs. `scripts/entry_next_edge_control.sh
+entry-exit-handoff` is report-only and must keep Exit Transformer/IQL training
+closed until an active Entry-bound per-bar Exit substrate exists with explicit
+trade, bar-state, entry-context and replay-identity fields.
 
 ## Current Operating Status - 2026-06-29
 

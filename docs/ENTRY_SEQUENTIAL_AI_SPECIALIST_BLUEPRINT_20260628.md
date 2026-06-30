@@ -42,6 +42,14 @@ Machine contract:
   `gx1/scripts/materialize_entry_iql_replay_evidence_v1.py`
 - Post-distillation replay comparison gate:
   `gx1/scripts/verify_entry_iql_replay_comparison_v1.py`
+- Post-comparison slice/tail audit:
+  `gx1/scripts/audit_entry_iql_replay_slices_v1.py`
+  - Must prove session/regime/side edge slices, direction/bad-path/tail
+    diagnostics and exit-opportunity slack from the exact replay trade logs.
+- Entry-to-Exit handoff readiness audit:
+  `gx1/scripts/audit_entry_exit_handoff_readiness_v1.py`
+  - Must preserve active Entry/IQL replay evidence and keep Exit Transformer/IQL
+    training blocked until an active Entry-bound per-bar Exit substrate exists.
 - Latest report:
   `/home/andre2/GX1_DATA/reports/entry_specialist_feature_group_audit_20260628_v1/ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_latest.json`
 - Current decision: `PASS` on the active seq146 foundation dataset.
