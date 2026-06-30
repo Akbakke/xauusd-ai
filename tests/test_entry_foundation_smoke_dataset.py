@@ -131,6 +131,8 @@ def test_materialize_entry_foundation_smoke_dataset_can_pin_split_schema(tmp_pat
             specialist_audit_json=str(specialist_audit),
             schema_version="entry_smart_seq520_smoke_dataset_v1",
             split_schema_version="entry_smart_seq520_smoke_split_manifest_v1",
+            manifest_variant="smart_seq520_candidate",
+            expected_seq_snap_width=520,
             quiet=True,
         )
     )
@@ -139,6 +141,10 @@ def test_materialize_entry_foundation_smoke_dataset_can_pin_split_schema(tmp_pat
         (out / "v10_smart_seq520_smoke__HOLD_03B_train.manifest.json").read_text(encoding="utf-8")
     )
     assert split_manifest["schema_version"] == "entry_smart_seq520_smoke_split_manifest_v1"
+    assert split_manifest["manifest_variant"] == "smart_seq520_candidate"
+    assert split_manifest["expected_seq_snap_width"] == 520
     assert split_manifest["output_data_path"] == str(out / "v10_smart_seq520_smoke__HOLD_03B_train.parquet")
     manifest = json.loads((out / "SMOKE_DATASET_MANIFEST.json").read_text(encoding="utf-8"))
     assert manifest["schema_version"] == "entry_smart_seq520_smoke_dataset_v1"
+    assert manifest["manifest_variant"] == "smart_seq520_candidate"
+    assert manifest["expected_seq_snap_width"] == 520

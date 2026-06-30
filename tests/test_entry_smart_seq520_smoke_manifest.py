@@ -161,9 +161,11 @@ def test_materialize_smart_seq520_smoke_manifest_report_only(tmp_path: Path) -> 
     train_contract = report["future_command_contracts"]["smart_smoke_train"]
     assert train_contract["requires_explicit_vedtak"] is True
     assert train_contract["explicit_vedtak_id"] == "SMART_SEQ520_SMOKE_PYTEST"
-    assert train_contract["implemented_in_control_surface"] is False
-    assert train_contract["requires_trainer_surface_enablement"] is True
+    assert train_contract["implemented_in_control_surface"] is True
+    assert train_contract["requires_trainer_surface_enablement"] is False
+    assert train_contract["execution_allowed_now"] is False
     assert train_contract["specialist_contract_mode"] == "smart_seq520_candidate"
+    assert "--specialist-audit-json" in train_contract["inner_train_argv_template"]
     assert "<" not in " ".join(train_contract["argv_template"])
     assert train_contract["requires_ram_cap"] is True
     assert train_contract["ram_cap_runner"] == "scripts/gx1_capped_run.sh"

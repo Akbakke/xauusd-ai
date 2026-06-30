@@ -639,6 +639,34 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
         "smart_seq520_candidate"
     )
     assert payload["commands"]["smart_post_rebuild_readiness"]["expected_signal_dim"] == smart_expected_dim
+    assert payload["commands"]["smart_post_rebuild_refresh"]["argv"] == [
+        "scripts/entry_next_edge_control.sh",
+        "smart-post-rebuild-refresh",
+        "--apply",
+        "--vedtak",
+        "<id>",
+    ]
+    assert (
+        payload["commands"]["smart_post_rebuild_refresh"]["allowed"]
+        is payload["status_summary"]["smart_post_rebuild_readiness_ready"]
+    )
+    assert payload["commands"]["smart_post_rebuild_refresh"]["execution_allowed_now"] is False
+    assert (
+        payload["commands"]["smart_post_rebuild_refresh"]["allowed_after_explicit_vedtak"]
+        is payload["status_summary"]["smart_post_rebuild_readiness_ready"]
+    )
+    assert payload["commands"]["smart_post_rebuild_refresh"]["requires_vedtak"] is True
+    assert payload["commands"]["smart_post_rebuild_refresh"]["writes_smoke_dataset"] is True
+    assert payload["commands"]["smart_post_rebuild_refresh"]["starts_trainer"] is False
+    assert payload["commands"]["smart_post_rebuild_refresh"]["starts_replay"] is False
+    assert payload["commands"]["smart_post_rebuild_refresh"]["starts_iql_distillation"] is False
+    assert payload["commands"]["smart_post_rebuild_refresh"]["touches_shadow_or_live"] is False
+    assert payload["commands"]["smart_post_rebuild_refresh"]["specialist_contract_mode"] == "smart_seq520_candidate"
+    assert payload["commands"]["smart_post_rebuild_refresh"]["expected_signal_dim"] == smart_expected_dim
+    assert payload["commands"]["smart_post_rebuild_refresh"]["num_workers"] == 0
+    assert "smart post-rebuild refresh vedtak" in payload["commands"]["smart_post_rebuild_refresh"][
+        "not_executable_now_reason"
+    ]
     assert payload["commands"]["smart_smoke_manifest"]["argv"] == [
         "scripts/entry_next_edge_control.sh",
         "smart-smoke-manifest",
@@ -949,6 +977,9 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
                 "scripts/entry_next_edge_control.sh smoke-manifest-seq215 --vedtak <id>  # proof only, no trainer start"
             )
         if payload["status_summary"]["smart_post_rebuild_readiness_ready"]:
+            expected_optional.append(
+                "scripts/entry_next_edge_control.sh smart-post-rebuild-refresh --apply --vedtak <id>  # materialize smart smoke dataset only"
+            )
             expected_optional.append(
                 "scripts/entry_next_edge_control.sh smart-smoke-manifest --vedtak <id>  # proof only, no trainer start"
             )

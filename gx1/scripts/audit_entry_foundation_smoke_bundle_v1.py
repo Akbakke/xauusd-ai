@@ -793,6 +793,7 @@ def _pretrain_manifest_contract_report(
         allowed_smoke_dataset_schemas = {
             "entry_foundation_seq146_smoke_dataset_v1",
             "entry_foundation_seq215_smoke_dataset_v1",
+            "entry_smart_seq520_smoke_dataset_v1",
         }
         if str(smoke_dataset.get("schema_version")) not in allowed_smoke_dataset_schemas:
             failures.append(

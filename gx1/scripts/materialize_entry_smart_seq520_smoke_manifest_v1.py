@@ -35,6 +35,12 @@ DEFAULT_POST_REBUILD_READINESS_JSON = (
     / "entry_smart_dataset_post_rebuild_readiness_20260630_v1"
     / "ENTRY_SMART_DATASET_POST_REBUILD_READINESS_latest.json"
 )
+DEFAULT_SPECIALIST_AUDIT_JSON = (
+    REPORTS_ROOT
+    / "entry_specialist_feature_group_audit_20260628_v1"
+    / "smart_seq520_candidate_20260630"
+    / "ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_latest.json"
+)
 POST_REBUILD_READY_DECISION = "ENTRY_SMART_DATASET_READY_FOR_TRAIN_READINESS_REVIEW"
 RAM_CAP_RUNNER = "scripts/gx1_capped_run.sh"
 DEFAULT_MEMORY_CAP = "22G"
@@ -249,6 +255,7 @@ def _split_summary(dataset_dir: Path, split: str, *, sample_rows: int, batch_siz
 def _future_command_contracts(
     *,
     dataset_dir: Path,
+    specialist_audit_json: Path,
     vedtak_id: str,
     memory_cap: str,
     swap_cap: str,
@@ -272,6 +279,8 @@ def _future_command_contracts(
         "--num-workers",
         "0",
         "--enable-specialist-fusion",
+        "--specialist-audit-json",
+        str(specialist_audit_json),
         "--specialist-contract-mode",
         SMART_SPECIALIST_CONTRACT_MODE,
     ]
@@ -288,8 +297,9 @@ def _future_command_contracts(
         },
         "smart_smoke_train": {
             "mode": "future_train_contract_not_executed",
-            "implemented_in_control_surface": False,
-            "requires_trainer_surface_enablement": True,
+            "implemented_in_control_surface": True,
+            "requires_trainer_surface_enablement": False,
+            "execution_allowed_now": False,
             "argv_template": [
                 RAM_CAP_RUNNER,
                 "--mem",
@@ -408,6 +418,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     )
     future_command_contracts = _future_command_contracts(
         dataset_dir=dataset_dir,
+        specialist_audit_json=Path(getattr(args, "smart_specialist_audit_json", DEFAULT_SPECIALIST_AUDIT_JSON)).expanduser().resolve(),
         vedtak_id=vedtak_id,
         memory_cap=memory_cap,
         swap_cap=swap_cap,
@@ -598,6 +609,7 @@ def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--smart-smoke-dataset-dir", default=str(DEFAULT_SMART_SMOKE_DATASET_DIR))
     ap.add_argument("--post-rebuild-readiness-json", default=str(DEFAULT_POST_REBUILD_READINESS_JSON))
+    ap.add_argument("--smart-specialist-audit-json", default=str(DEFAULT_SPECIALIST_AUDIT_JSON))
     ap.add_argument("--out-dir", default=str(DEFAULT_OUT_DIR))
     ap.add_argument("--vedtak-id", "--vedtak", dest="vedtak_id", required=True)
     ap.add_argument("--memory-cap", default=DEFAULT_MEMORY_CAP)

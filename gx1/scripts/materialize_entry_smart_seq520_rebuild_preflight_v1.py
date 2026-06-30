@@ -185,9 +185,9 @@ def _command_contract(
     argv = [
         "scripts/gx1_capped_run.sh",
         "--mem",
-        "16G",
+        "22G",
         "--swap",
-        "1G",
+        "2G",
         "--",
         ".venv/bin/python",
         "-m",
@@ -237,8 +237,8 @@ def _command_contract(
         },
         "requires_ram_cap": True,
         "ram_cap_runner": "scripts/gx1_capped_run.sh",
-        "memory_max": "16G",
-        "swap_max": "1G",
+        "memory_max": "22G",
+        "swap_max": "2G",
         "num_workers": 0,
         "starts_trainer": False,
         "starts_replay": False,
@@ -387,7 +387,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         split_schedule=split_schedule,
     )
     argv = command_contract["argv"]
-    _check(checks, "rebuild command uses RAM cap runner", argv[:6] == ["scripts/gx1_capped_run.sh", "--mem", "16G", "--swap", "1G", "--"], argv[:8])
+    _check(checks, "rebuild command uses RAM cap runner", argv[:6] == ["scripts/gx1_capped_run.sh", "--mem", "22G", "--swap", "2G", "--"], argv[:8])
     _check(checks, "rebuild command uses source parquet override", "--source-parquet-override" in argv and source_parquet in argv, argv)
     _check(checks, "rebuild command pins canonical_v2 parquet", "--canonical_v2_parquet" in argv and source_parquet in argv, argv)
     _check(checks, "rebuild command computes smart extension inline", "--seq-structure-compute-inline" in argv, argv)

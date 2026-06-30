@@ -226,10 +226,16 @@ def _copy_split_manifest(
     split: str,
     sample: dict[str, Any],
     split_schema_version: str | None = None,
+    manifest_variant: str | None = None,
+    expected_seq_snap_width: int | None = None,
 ) -> None:
     data = json.loads(source_manifest.read_text(encoding="utf-8"))
     if split_schema_version:
         data["schema_version"] = split_schema_version
+    if manifest_variant:
+        data["manifest_variant"] = manifest_variant
+    if expected_seq_snap_width and expected_seq_snap_width > 0:
+        data["expected_seq_snap_width"] = int(expected_seq_snap_width)
     data["output_data_path"] = str(out_parquet)
     data["foundation_smoke_dataset_v1"] = {
         "source_manifest": str(source_manifest),
@@ -264,6 +270,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "val": int(args.val_rows),
         "test": int(args.test_rows),
     }
+    manifest_variant = str(getattr(args, "manifest_variant", "") or "")
+    expected_seq_snap_width = int(getattr(args, "expected_seq_snap_width", 0) or 0)
     samples: dict[str, Any] = {}
     for split in ("train", "val", "test"):
         source_path = _source_split_path(source_dir, split)
@@ -280,6 +288,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             split=split,
             sample=sample,
             split_schema_version=str(getattr(args, "split_schema_version", "") or ""),
+            manifest_variant=manifest_variant,
+            expected_seq_snap_width=expected_seq_snap_width,
         )
         sample.update(
             {
@@ -301,6 +311,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "splits": samples,
         "audit_provenance": _audit_provenance(args, source_dir),
     }
+    if manifest_variant:
+        manifest["manifest_variant"] = manifest_variant
+    if expected_seq_snap_width > 0:
+        manifest["expected_seq_snap_width"] = expected_seq_snap_width
     manifest_path = out_dir / "SMOKE_DATASET_MANIFEST.json"
     manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True, default=_json_default) + "\n", encoding="utf-8")
     manifest["manifest_path"] = str(manifest_path)
@@ -323,6 +337,8 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--specialist-audit-json", default=str(SPECIALIST_AUDIT_LATEST))
     ap.add_argument("--schema-version", default="entry_foundation_seq146_smoke_dataset_v1")
     ap.add_argument("--split-schema-version", default="")
+    ap.add_argument("--manifest-variant", default="")
+    ap.add_argument("--expected-seq-snap-width", type=int, default=0)
     ap.add_argument("--quiet", action="store_true")
     return ap
 

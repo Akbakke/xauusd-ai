@@ -261,12 +261,16 @@ def test_smart_dataset_post_rebuild_readiness_passes_fullscan_fixture(tmp_path: 
         "--vedtak",
         "<SMART_SEQ520_POST_REBUILD_REFRESH_VEDTAK_ID>",
     ]
-    assert smoke_dataset_command["implemented_in_control_surface"] is False
+    assert smoke_dataset_command["implemented_in_control_surface"] is True
     smoke_dataset_argv = smoke_dataset_command["inner_argv"]
     assert "--schema-version" in smoke_dataset_argv
     assert "entry_smart_seq520_smoke_dataset_v1" in smoke_dataset_argv
     assert "--split-schema-version" in smoke_dataset_argv
     assert "entry_smart_seq520_smoke_split_manifest_v1" in smoke_dataset_argv
+    assert "--manifest-variant" in smoke_dataset_argv
+    assert "smart_seq520_candidate" in smoke_dataset_argv
+    assert "--expected-seq-snap-width" in smoke_dataset_argv
+    assert "520" in smoke_dataset_argv
     assert smoke_dataset_command["requires_explicit_vedtak"] is True
     assert contract["requires_explicit_smoke_dataset_refresh_vedtak"] is True
     assert contract["commands"]["smart_smoke_manifest"]["requires_explicit_vedtak"] is True
@@ -293,6 +297,19 @@ def test_smart_dataset_post_rebuild_readiness_blocks_nonfinite_sample(tmp_path: 
 
     assert report["decision"] == gate.BLOCKED_DECISION
     assert report["split_scans"]["train"]["nonfinite_counts"]["snap"] == 1
+    assert any(failure["check"] == "parquet scan loaded finite seq/snap/ctx sample" for failure in report["failures"])
+    assert report["training_allowed"] is False
+
+
+def test_smart_dataset_post_rebuild_readiness_blocks_corrupt_partial_parquet(tmp_path: Path) -> None:
+    args = _build_fixture(tmp_path)
+    train_parquet = Path(args.dataset_dir) / "v10_smart_seq520_candidate__HOLD_03B_train.parquet"
+    train_parquet.write_bytes(b"partial parquet from killed rebuild\n")
+
+    report = gate.run(args)
+
+    assert report["decision"] == gate.BLOCKED_DECISION
+    assert any("parquet read error" in error for error in report["split_scans"]["train"]["errors"])
     assert any(failure["check"] == "parquet scan loaded finite seq/snap/ctx sample" for failure in report["failures"])
     assert report["training_allowed"] is False
 

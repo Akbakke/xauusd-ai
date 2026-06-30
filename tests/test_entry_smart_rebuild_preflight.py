@@ -171,7 +171,7 @@ def test_smart_rebuild_preflight_accepts_dynamic_smart_seq_width(tmp_path: Path)
     assert report["counts"]["expected_seq_snap_width"] == 520
     assert report["counts"]["smart_layer_features"] == 305
     argv = report["rebuild_command_contract"]["argv"]
-    assert argv[:6] == ["scripts/gx1_capped_run.sh", "--mem", "16G", "--swap", "1G", "--"]
+    assert argv[:6] == ["scripts/gx1_capped_run.sh", "--mem", "22G", "--swap", "2G", "--"]
     assert "--source-parquet-override" in argv
     assert "--seq-structure-compute-inline" in argv
     assert argv[argv.index("--train_start") + 1] == "2020-11-09 00:00:00+00:00"

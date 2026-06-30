@@ -53,6 +53,7 @@ DEFAULT_SMART_SMOKE_STEM = "v10_smart_seq520_smoke__HOLD_03B"
 
 SPLITS = ("train", "val", "test")
 EXPECTED_MANIFEST_VARIANT = "smart_seq520_candidate"
+EXPECTED_SIGNAL_DIM = 520
 AUDIT_CONTRACT_MODES = tuple(dict.fromkeys((*SPECIALIST_AUDIT_CONTRACT_MODES, EXPECTED_MANIFEST_VARIANT)))
 DEFAULT_SEQ_LEN = 96
 READY_DECISION = "ENTRY_SMART_DATASET_READY_FOR_TRAIN_READINESS_REVIEW"
@@ -335,13 +336,17 @@ def _post_rebuild_refresh_command_contract(
                 "entry_smart_seq520_smoke_dataset_v1",
                 "--split-schema-version",
                 "entry_smart_seq520_smoke_split_manifest_v1",
+                "--manifest-variant",
+                EXPECTED_MANIFEST_VARIANT,
+                "--expected-seq-snap-width",
+                str(EXPECTED_SIGNAL_DIM),
                 "--quiet",
             ),
             mode="future_vedtak_gated_smoke_dataset_materialization",
             writes_report=False,
             writes_smoke_dataset=True,
             requires_explicit_vedtak=True,
-            implemented_in_control_surface=False,
+            implemented_in_control_surface=True,
         ),
         "smart_smoke_manifest": _report_or_dataset_command(
             argv=[
@@ -576,7 +581,17 @@ def _scan_split_parquet(
     if not path.exists():
         return {"split": split, "path": str(path), "exists": False, "ready": False, "errors": ["missing parquet"]}
     errors: list[str] = []
-    schema_names = set(pq.ParquetFile(path).schema_arrow.names)
+    try:
+        pf = pq.ParquetFile(path)
+    except Exception as exc:
+        return {
+            "split": split,
+            "path": str(path),
+            "exists": True,
+            "ready": False,
+            "errors": [f"parquet read error: {type(exc).__name__}: {exc}"],
+        }
+    schema_names = set(pf.schema_arrow.names)
     required_cols = ["seq", "snap", "ctx_cont", "ctx_cat"]
     missing_cols = [col for col in required_cols if col not in schema_names]
     if missing_cols:
@@ -589,7 +604,6 @@ def _scan_split_parquet(
             "schema_columns": sorted(schema_names),
         }
 
-    pf = pq.ParquetFile(path)
     total_rows = int(pf.metadata.num_rows or 0)
     scan_limit = total_rows if fullscan else min(total_rows, int(sample_rows))
     stats = _FeatureStats(expected_width)
@@ -598,43 +612,46 @@ def _scan_split_parquet(
     nonfinite = {"seq": 0, "snap": 0, "ctx_cont": 0, "ctx_cat": 0}
     seq_last_snap_mismatch_rows = 0
     shape_examples: dict[str, Any] = {}
-    for batch in pf.iter_batches(batch_size=int(batch_size), columns=required_cols):
-        if not fullscan and scanned >= scan_limit:
-            break
-        pdf = batch.to_pandas()
-        if not fullscan:
-            remaining = scan_limit - scanned
-            pdf = pdf.iloc[:remaining].copy()
-        if pdf.empty:
-            continue
-        seq = _stack_list_column(pdf["seq"], np.float32)
-        snap = _stack_list_column(pdf["snap"], np.float32)
-        ctx_cont = _stack_list_column(pdf["ctx_cont"], np.float32)
-        ctx_cat = _stack_list_column(pdf["ctx_cat"], np.float64)
-        if seq.ndim != 3 or seq.shape[1:] != (expected_seq_len, expected_width):
-            errors.append(f"seq shape mismatch got={list(seq.shape)} expected=(*,{expected_seq_len},{expected_width})")
-        if snap.ndim != 2 or snap.shape[1] != expected_width:
-            errors.append(f"snap shape mismatch got={list(snap.shape)} expected=(*,{expected_width})")
-        if ctx_cont.ndim != 2 or ctx_cont.shape[1] != expected_ctx_cont_dim:
-            errors.append(f"ctx_cont shape mismatch got={list(ctx_cont.shape)} expected=(*,{expected_ctx_cont_dim})")
-        if ctx_cat.ndim != 2 or ctx_cat.shape[1] != expected_ctx_cat_dim:
-            errors.append(f"ctx_cat shape mismatch got={list(ctx_cat.shape)} expected=(*,{expected_ctx_cat_dim})")
-        shape_examples = {
-            "seq": list(seq.shape),
-            "snap": list(snap.shape),
-            "ctx_cont": list(ctx_cont.shape),
-            "ctx_cat": list(ctx_cat.shape),
-        }
-        if errors:
+    try:
+        for batch in pf.iter_batches(batch_size=int(batch_size), columns=required_cols):
+            if not fullscan and scanned >= scan_limit:
+                break
+            pdf = batch.to_pandas()
+            if not fullscan:
+                remaining = scan_limit - scanned
+                pdf = pdf.iloc[:remaining].copy()
+            if pdf.empty:
+                continue
+            seq = _stack_list_column(pdf["seq"], np.float32)
+            snap = _stack_list_column(pdf["snap"], np.float32)
+            ctx_cont = _stack_list_column(pdf["ctx_cont"], np.float32)
+            ctx_cat = _stack_list_column(pdf["ctx_cat"], np.float64)
+            if seq.ndim != 3 or seq.shape[1:] != (expected_seq_len, expected_width):
+                errors.append(f"seq shape mismatch got={list(seq.shape)} expected=(*,{expected_seq_len},{expected_width})")
+            if snap.ndim != 2 or snap.shape[1] != expected_width:
+                errors.append(f"snap shape mismatch got={list(snap.shape)} expected=(*,{expected_width})")
+            if ctx_cont.ndim != 2 or ctx_cont.shape[1] != expected_ctx_cont_dim:
+                errors.append(f"ctx_cont shape mismatch got={list(ctx_cont.shape)} expected=(*,{expected_ctx_cont_dim})")
+            if ctx_cat.ndim != 2 or ctx_cat.shape[1] != expected_ctx_cat_dim:
+                errors.append(f"ctx_cat shape mismatch got={list(ctx_cat.shape)} expected=(*,{expected_ctx_cat_dim})")
+            shape_examples = {
+                "seq": list(seq.shape),
+                "snap": list(snap.shape),
+                "ctx_cont": list(ctx_cont.shape),
+                "ctx_cat": list(ctx_cat.shape),
+            }
+            if errors:
+                scanned += int(len(pdf))
+                continue
+            nonfinite["seq"] += int((~np.isfinite(seq)).sum())
+            nonfinite["snap"] += int((~np.isfinite(snap)).sum())
+            nonfinite["ctx_cont"] += int((~np.isfinite(ctx_cont)).sum())
+            nonfinite["ctx_cat"] += int((~np.isfinite(ctx_cat)).sum())
+            seq_last_snap_mismatch_rows += int(np.any(np.abs(seq[:, -1, :] - snap) > 1e-6, axis=1).sum())
+            stats.add(snap)
             scanned += int(len(pdf))
-            continue
-        nonfinite["seq"] += int((~np.isfinite(seq)).sum())
-        nonfinite["snap"] += int((~np.isfinite(snap)).sum())
-        nonfinite["ctx_cont"] += int((~np.isfinite(ctx_cont)).sum())
-        nonfinite["ctx_cat"] += int((~np.isfinite(ctx_cat)).sum())
-        seq_last_snap_mismatch_rows += int(np.any(np.abs(seq[:, -1, :] - snap) > 1e-6, axis=1).sum())
-        stats.add(snap)
-        scanned += int(len(pdf))
+    except Exception as exc:
+        errors.append(f"parquet scan error: {type(exc).__name__}: {exc}")
     stats_summary = stats.summarize(signal_fields, groups)
     return {
         "split": split,
