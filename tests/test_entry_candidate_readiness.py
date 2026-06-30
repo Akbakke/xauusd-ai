@@ -2,7 +2,14 @@ import argparse
 import json
 from pathlib import Path
 
-from gx1.scripts.verify_entry_candidate_readiness_v1 import _mode_out_dir, _mode_smoke_bundle_audit_path, _smoke_edge_checks, run
+from gx1.scripts.verify_entry_candidate_readiness_v1 import (
+    _mode_candidate_train_command,
+    _mode_out_dir,
+    _mode_smoke_bundle_audit_path,
+    _mode_smoke_train_command,
+    _smoke_edge_checks,
+    run,
+)
 from gx1.scripts.verify_entry_training_readiness_v1 import EXPECTED_ACTIVE_TRAINING_HEADS, EXPECTED_BLOCKED_HEADS
 
 
@@ -33,6 +40,12 @@ def test_candidate_readiness_seq215_defaults_are_isolated_from_seq146_latest() -
     assert "challenger_seq215_20260630" in str(out_dir)
     assert smoke_path.name == "ENTRY_FOUNDATION_SMOKE_BUNDLE_AUDIT_latest.json"
     assert out_dir.name == "challenger_seq215_20260630"
+    assert _mode_smoke_train_command("challenger_seq215") == (
+        "scripts/entry_next_edge_control.sh smoke-train-seq215 --vedtak <id> --require-edge-audit"
+    )
+    assert _mode_candidate_train_command("challenger_seq215") == (
+        "scripts/entry_next_edge_control.sh candidate-train-seq215 --vedtak <id>"
+    )
 
 
 def _passing_smoke_audit(
@@ -344,6 +357,9 @@ def test_candidate_readiness_seq215_requires_challenger_contract_and_clean_gates
     assert report["required_specialist_groups"] == SEQ215_SPECIALISTS
     assert report["candidate_training_allowed_with_explicit_vedtak"] is True
     assert report["promotion_shadow_live_allowed"] is False
+    assert report["next_required_gate"] == (
+        "scripts/entry_next_edge_control.sh candidate-train-seq215 --vedtak <id> then post-train replay gates"
+    )
 
     smoke_path.write_text(
         json.dumps(
@@ -415,6 +431,9 @@ def test_candidate_readiness_seq215_missing_smoke_audit_reports_not_ready(tmp_pa
 
     assert report["decision"] == "NOT_READY_FOR_CANDIDATE_TRAINING"
     assert report["candidate_training_allowed_with_explicit_vedtak"] is False
+    assert report["next_required_gate"] == (
+        "run scripts/entry_next_edge_control.sh smoke-train-seq215 --vedtak <id> --require-edge-audit"
+    )
     assert report["smoke_bundle_audit_json"] == str(missing_smoke_path.resolve())
     assert "missing JSON artifact" in str(report["smoke_bundle_audit_load_error"])
     failed = {failure["check"] for failure in report["failures"]}

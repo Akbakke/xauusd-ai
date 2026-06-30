@@ -241,6 +241,22 @@ def _mode_out_dir(contract_mode: str) -> Path:
     raise ValueError(f"unknown specialist contract mode: {contract_mode}")
 
 
+def _mode_smoke_train_command(contract_mode: str) -> str:
+    if contract_mode == "foundation_seq146":
+        return "scripts/entry_next_edge_control.sh smoke-train --vedtak <id> --require-edge-audit"
+    if contract_mode == "challenger_seq215":
+        return "scripts/entry_next_edge_control.sh smoke-train-seq215 --vedtak <id> --require-edge-audit"
+    raise ValueError(f"unknown specialist contract mode: {contract_mode}")
+
+
+def _mode_candidate_train_command(contract_mode: str) -> str:
+    if contract_mode == "foundation_seq146":
+        return "scripts/entry_next_edge_control.sh candidate-train --vedtak <id>"
+    if contract_mode == "challenger_seq215":
+        return "scripts/entry_next_edge_control.sh candidate-train-seq215 --vedtak <id>"
+    raise ValueError(f"unknown specialist contract mode: {contract_mode}")
+
+
 def _observed_contract_mode(report: dict[str, Any]) -> str:
     bundle = report.get("bundle_summary") if isinstance(report.get("bundle_summary"), dict) else {}
     pretrain = (
@@ -566,9 +582,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "candidate_training_allowed_with_explicit_vedtak": bool(ready),
         "promotion_shadow_live_allowed": False,
         "next_required_gate": (
-            "candidate specialist-fusion train wrapper with explicit vedtak and post-train replay gate"
+            f"{_mode_candidate_train_command(contract_mode)} then post-train replay gates"
             if ready
-            else "run scripts/entry_next_edge_control.sh smoke-train --vedtak <id> --require-edge-audit"
+            else f"run {_mode_smoke_train_command(contract_mode)}"
         ),
         "artifacts": artifacts,
         "artifact_fingerprints": artifact_fingerprints,

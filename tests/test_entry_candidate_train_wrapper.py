@@ -45,6 +45,21 @@ def test_candidate_train_blocks_when_candidate_readiness_is_not_ready() -> None:
     assert "Candidate train command:" not in result.stdout
 
 
+def test_seq215_candidate_train_blocks_with_seq215_next_gate_when_not_ready() -> None:
+    result = _run_wrapper(
+        "--challenger-seq215",
+        "--vedtak",
+        "ENTRY_FOUNDATION_CANDIDATE_TRAIN_20260630_SEQ215_V1",
+        "--dry-run",
+    )
+
+    assert result.returncode == 2
+    assert "candidate-readiness is NOT_READY" in result.stderr
+    assert "smoke-train-seq215 --vedtak <id> --require-edge-audit" in result.stderr
+    assert "candidate-readiness-seq215" in result.stderr
+    assert "Candidate train command:" not in result.stdout
+
+
 def test_candidate_train_wrapper_declares_live_aux_heads_without_hold_horizon() -> None:
     text = WRAPPER.read_text(encoding="utf-8")
 

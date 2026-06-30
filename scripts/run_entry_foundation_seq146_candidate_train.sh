@@ -23,6 +23,8 @@ VEDTAK="${ENTRY_FOUNDATION_CANDIDATE_VEDTAK:-}"
 RUN_FLAVOR=foundation_seq146
 SPECIALIST_CONTRACT_MODE=foundation_seq146
 EXPECTED_SIGNAL_DIM=146
+CANDIDATE_READINESS_NEXT_CMD="scripts/entry_next_edge_control.sh smoke-train --vedtak <id> --require-edge-audit"
+CANDIDATE_READINESS_RERUN_CMD="scripts/entry_next_edge_control.sh candidate-readiness"
 DEVICE=auto
 EPOCHS=8
 BATCH_SIZE=96
@@ -108,6 +110,8 @@ while [[ $# -gt 0 ]]; do
       CANDIDATE_AUDIT_OUT=$DATA/reports/entry_candidate_bundle_audit_20260628_v1/challenger_seq215_20260630
       SPECIALIST_CONTRACT_MODE=challenger_seq215
       EXPECTED_SIGNAL_DIM=215
+      CANDIDATE_READINESS_NEXT_CMD="scripts/entry_next_edge_control.sh smoke-train-seq215 --vedtak <id> --require-edge-audit"
+      CANDIDATE_READINESS_RERUN_CMD="scripts/entry_next_edge_control.sh candidate-readiness-seq215"
       CANDIDATE_READINESS_DIR=$DATA/reports/entry_candidate_readiness_20260628_v1/challenger_seq215_20260630
       CANDIDATE_READINESS_JSON=$CANDIDATE_READINESS_DIR/ENTRY_CANDIDATE_READINESS_latest.json
       shift
@@ -164,10 +168,10 @@ then
 FATAL: candidate-readiness is NOT_READY; candidate train is blocked.
 
 Required next gate:
-  scripts/entry_next_edge_control.sh smoke-train --vedtak <id> --require-edge-audit
+  $CANDIDATE_READINESS_NEXT_CMD
 
 Then rerun:
-  scripts/entry_next_edge_control.sh candidate-readiness
+  $CANDIDATE_READINESS_RERUN_CMD
 EOF
   exit 2
 fi
