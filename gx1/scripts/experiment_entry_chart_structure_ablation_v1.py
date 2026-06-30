@@ -49,6 +49,7 @@ from gx1.scripts.replay_entry_tabular_no_xgb_policy_v1 import (
     _threshold_from_scores,
 )
 from gx1.features.entry_foundation_structure_v1 import build_entry_foundation_structure_layer
+from gx1.features.entry_chart_geometry_v1 import build_entry_chart_geometry_layer
 
 
 DEFAULT_DATASET_DIR = Path(
@@ -85,6 +86,12 @@ CHART_NAME_PARTS = (
     "retracement",
     "premium",
     "discount",
+    "geometry",
+    "fib_",
+    "trendline",
+    "channel",
+    "triangle",
+    "flag_pullback",
     "regime",
     "trend_age",
     "dist_last_swing",
@@ -475,6 +482,10 @@ def _build_chart_layer(x: np.ndarray, feature_names: list[str]) -> tuple[np.ndar
     if foundation_x.shape[1]:
         arrays.extend([foundation_x[:, i] for i in range(foundation_x.shape[1])])
         names.extend(foundation_names)
+    geometry_x, geometry_names = build_entry_chart_geometry_layer(x, feature_names)
+    if geometry_x.shape[1]:
+        arrays.extend([geometry_x[:, i] for i in range(geometry_x.shape[1])])
+        names.extend(geometry_names)
 
     if not arrays:
         return np.empty((x.shape[0], 0), dtype=np.float32), []

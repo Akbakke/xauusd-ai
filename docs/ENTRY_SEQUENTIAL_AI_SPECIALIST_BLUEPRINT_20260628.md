@@ -196,15 +196,21 @@ Use one shared 96-bar M5 timeline and separate encoders by feature family:
   MFE/MAE-conditioned momentum and volatility-adjusted follow-through.
 - `session_regime_encoder`: Asia/EU/US/overlap, session age/boundary, vol
   regime, spread bucket and session x structure interactions.
+- `chart_geometry_encoder`: challenger specialist for numeric trendlines,
+  support/resistance channels, Fibonacci pullback/extension zones, EMA-cross
+  pressure and chart-pattern proxies. This is not trainable in the current
+  six-specialist contract until a new dataset rebuild, specialist audit and
+  train-readiness gate explicitly include it.
 - `price_action_candle_encoder`: body/wick/range shape that is not already
   assigned to liquidity/structure.
 - `neutral_bridge_anchor`: allowlisted neutral XGB bridge fields only; keep as
   explicit priors until a new bridge is approved.
 
-Only the six required training specialists above `price_action_candle_encoder`
-are trainable in the current fusion contract. `price_action_candle_encoder`,
-`neutral_bridge_anchor` and `unmapped` stay excluded from trainable specialist
-indices until they have their own liveness and role gates.
+Only the six required training specialists above `chart_geometry_encoder` are
+trainable in the current fusion contract. `chart_geometry_encoder`,
+`price_action_candle_encoder`, `neutral_bridge_anchor` and `unmapped` stay
+excluded from trainable specialist indices until they have their own liveness
+and role gates.
 
 Current audited seq146 coverage:
 

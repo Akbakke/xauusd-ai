@@ -63,6 +63,13 @@ SPECIALIST_GROUPS: "OrderedDict[str, dict[str, str]]" = OrderedDict(
             },
         ),
         (
+            "chart_geometry_encoder",
+            {
+                "encoder": "chart_geometry_encoder",
+                "role": "Research challenger for numeric trendlines, support/resistance channels, Fibonacci zones, EMA crosses and chart patterns.",
+            },
+        ),
+        (
             "price_action_candle_encoder",
             {
                 "encoder": "price_action_candle_encoder",
@@ -287,6 +294,23 @@ def classify_entry_specialist_feature(name: str) -> str:
 
     if bare in NEUTRAL_BRIDGE_FIELDS:
         return "neutral_bridge_anchor"
+
+    if _contains_any(
+        n,
+        (
+            "chart.geometry_",
+            "geometry_",
+            "fib_",
+            "fibonacci",
+            "trendline",
+            "channel_",
+            "triangle",
+            "flag_pullback",
+            "ema_cross",
+            "line_pattern",
+        ),
+    ):
+        return "chart_geometry_encoder"
 
     # Session x structure is intentionally owned by the session encoder even
     # when the name also contains BOS/HH/sweep. The point is regime conditioning.

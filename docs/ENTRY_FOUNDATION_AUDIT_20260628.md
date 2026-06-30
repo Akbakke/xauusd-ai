@@ -857,6 +857,9 @@ Required checks:
 - Report non-finite count by feature and split.
 - Report constant and near-constant features by split.
 - Report liveness rates for all chart/SMC/structure/liquidity features.
+- For any chart-geometry challenger build, report liveness for numeric
+  trendline, support/resistance-channel, Fibonacci-zone, EMA-cross and
+  chart-pattern proxy families separately from SMC.
 - Detect neutral XGB bridge slots and allowlist only those constants.
 - Report train/val/test distribution drift for important features.
 - Fail if declared chart features are missing, non-finite, unexpectedly constant,
@@ -903,6 +906,12 @@ Add first-class sequence features for:
 - Sweep-reclaim up/down and failed-sweep follow-through.
 - Compression-to-expansion trigger and expansion direction.
 - Impulse direction, impulse age, pullback phase and pullback depth.
+- Challenger chart geometry: numeric support/resistance line proximity,
+  channel position, Fibonacci retracement/extension proximity, EMA-cross
+  pressure, trendline-break pressure and triangle/flag pattern proxies. These
+  must remain excluded from the active six-specialist trainable contract until
+  a new rebuild and specialist audit explicitly promote
+  `chart_geometry_encoder`.
 - Session x structure for Asia, EU, US and overlap, not EU-only.
 
 Implementation rules:
