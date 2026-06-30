@@ -2458,6 +2458,7 @@ PY
       --split-schema-version entry_smart_seq520_smoke_split_manifest_v1 \
       --manifest-variant smart_seq520_candidate \
       --expected-seq-snap-width 520 \
+      --batch-size 256 \
       --quiet
     ;;
 

@@ -272,7 +272,12 @@ def test_control_surface_readiness_report_is_fail_open_status_only() -> None:
     assert "scripts/entry_next_edge_control.sh replay-readiness-seq215 --quiet --no-fail-on-not-ready" in result.stdout
     assert "scripts/entry_next_edge_control.sh stage-foundation-cleanup --dry-run" in result.stdout
     if "train-readiness: NOT_READY" in result.stdout:
-        assert "optional proof commands:" not in result.stdout
+        assert (
+            "scripts/entry_next_edge_control.sh smoke-manifest --vedtak <id>  # proof only, no trainer start"
+            not in result.stdout
+        )
+        if "optional proof commands:" in result.stdout:
+            assert "scripts/entry_next_edge_control.sh smart-smoke-manifest --vedtak <id>" in result.stdout
     else:
         assert "optional proof commands:" in result.stdout
         assert "scripts/entry_next_edge_control.sh smoke-manifest --vedtak <id>  # proof only, no trainer start" in result.stdout

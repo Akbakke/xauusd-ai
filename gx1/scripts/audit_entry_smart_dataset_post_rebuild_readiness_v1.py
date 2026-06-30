@@ -50,6 +50,7 @@ DEFAULT_SMART_SPECIALIST_AUDIT_OUT_DIR = (
 )
 DEFAULT_SMART_SMOKE_DATASET_DIR = FOUNDATION_DATASET_DIR.parent / "v10_dataset_smart_seq520_smoke_20260630"
 DEFAULT_SMART_SMOKE_STEM = "v10_smart_seq520_smoke__HOLD_03B"
+DEFAULT_SMART_SMOKE_BATCH_SIZE = 256
 
 SPLITS = ("train", "val", "test")
 EXPECTED_MANIFEST_VARIANT = "smart_seq520_candidate"
@@ -340,6 +341,8 @@ def _post_rebuild_refresh_command_contract(
                 EXPECTED_MANIFEST_VARIANT,
                 "--expected-seq-snap-width",
                 str(EXPECTED_SIGNAL_DIM),
+                "--batch-size",
+                str(DEFAULT_SMART_SMOKE_BATCH_SIZE),
                 "--quiet",
             ),
             mode="future_vedtak_gated_smoke_dataset_materialization",

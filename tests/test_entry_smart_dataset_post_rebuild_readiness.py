@@ -271,6 +271,8 @@ def test_smart_dataset_post_rebuild_readiness_passes_fullscan_fixture(tmp_path: 
     assert "smart_seq520_candidate" in smoke_dataset_argv
     assert "--expected-seq-snap-width" in smoke_dataset_argv
     assert "520" in smoke_dataset_argv
+    assert "--batch-size" in smoke_dataset_argv
+    assert "256" in smoke_dataset_argv
     assert smoke_dataset_command["requires_explicit_vedtak"] is True
     assert contract["requires_explicit_smoke_dataset_refresh_vedtak"] is True
     assert contract["commands"]["smart_smoke_manifest"]["requires_explicit_vedtak"] is True
