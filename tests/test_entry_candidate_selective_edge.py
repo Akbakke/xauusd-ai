@@ -9,6 +9,7 @@ from gx1.scripts.evaluate_entry_candidate_selective_edge_v1 import (
     SIGNAL_BRIDGE_NEUTRAL_VALUES,
     _neutralize_signal_bridge,
     build_metric_rows,
+    build_no_xgb_ablation_diagnostics,
     build_summary,
     run,
 )
@@ -66,6 +67,29 @@ def test_neutralize_signal_bridge_sets_only_bridge_slots() -> None:
     assert torch.allclose(snap_x[..., : len(expected)], expected.view(1, -1))
     assert torch.equal(seq_x[..., len(expected) :], torch.ones((2, 3, 3), dtype=torch.float32))
     assert torch.equal(snap_x[..., len(expected) :], torch.full((2, 3), 2.0, dtype=torch.float32))
+
+
+def test_no_xgb_ablation_diagnostics_measure_prediction_delta() -> None:
+    predictions = pd.DataFrame(
+        {
+            "split": ["val", "val", "val", "val"],
+            "model": ["candidate", "candidate", "candidate_no_xgb", "candidate_no_xgb"],
+            "time": pd.date_range("2026-01-01", periods=2, freq="5min", tz="UTC").tolist() * 2,
+            "p_long": [0.7, 0.2, 0.6, 0.2],
+            "p_short": [0.2, 0.7, 0.3, 0.7],
+            "p_flat": [0.1, 0.1, 0.1, 0.1],
+            "edge_score": [0.6, 0.6, 0.5, 0.6],
+            "trade_side": [0, 1, 0, 1],
+            "pred_direction": [0, 1, 0, 1],
+        }
+    )
+
+    diagnostics = build_no_xgb_ablation_diagnostics(predictions, model_name="candidate")
+
+    assert diagnostics["available"] is True
+    assert diagnostics["splits"]["val"]["comparable"] is True
+    assert diagnostics["splits"]["val"]["max_abs_prob_delta"] == pytest.approx(0.1)
+    assert diagnostics["splits"]["val"]["max_abs_edge_score_delta"] == pytest.approx(0.1)
 
 
 def test_selective_edge_requires_bundle_dir(tmp_path: Path) -> None:

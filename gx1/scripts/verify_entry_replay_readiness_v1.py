@@ -122,6 +122,36 @@ def _selective_edge_checks(
     no_xgb_neutralized_fields = [str(x) for x in no_xgb_ablation.get("neutralized_fields", [])]
     no_xgb_neutral_values = no_xgb_ablation.get("neutral_values", [])
     no_xgb_same_bundle = bool(no_xgb_bundle_dir and summary_bundle_dir and no_xgb_bundle_dir == summary_bundle_dir)
+    no_xgb_diagnostics = (
+        summary.get("no_xgb_ablation_diagnostics") if isinstance(summary.get("no_xgb_ablation_diagnostics"), dict) else {}
+    )
+    no_xgb_diagnostic_splits = (
+        no_xgb_diagnostics.get("splits") if isinstance(no_xgb_diagnostics.get("splits"), dict) else {}
+    )
+    input_bridge_contract = (
+        summary.get("input_bridge_contract") if isinstance(summary.get("input_bridge_contract"), dict) else {}
+    )
+    input_bridge_splits = input_bridge_contract.get("splits") if isinstance(input_bridge_contract.get("splits"), dict) else {}
+    required_no_xgb_splits = [split for split in ("val", "test") if split in splits or not splits]
+    no_xgb_diagnostics_ok = True
+    no_xgb_has_effect = False
+    input_bridge_neutral_all = False
+    if require_no_xgb_ablation:
+        no_xgb_diagnostics_ok = bool(no_xgb_diagnostics.get("available")) and bool(required_no_xgb_splits)
+        for split in required_no_xgb_splits:
+            row = no_xgb_diagnostic_splits.get(split) if isinstance(no_xgb_diagnostic_splits.get(split), dict) else {}
+            no_xgb_diagnostics_ok = no_xgb_diagnostics_ok and bool(row.get("comparable")) and bool(row.get("time_match", True))
+            no_xgb_has_effect = no_xgb_has_effect or float(row.get("max_abs_prob_delta") or 0.0) > 0.0
+            no_xgb_has_effect = no_xgb_has_effect or float(row.get("max_abs_edge_score_delta") or 0.0) > 0.0
+            no_xgb_has_effect = no_xgb_has_effect or int(row.get("trade_side_diff_count") or 0) > 0
+            no_xgb_has_effect = no_xgb_has_effect or int(row.get("pred_direction_diff_count") or 0) > 0
+        input_bridge_neutral_all = bool(required_no_xgb_splits) and all(
+            bool((input_bridge_splits.get(split) if isinstance(input_bridge_splits.get(split), dict) else {}).get("neutral_xgb_bridge"))
+            for split in required_no_xgb_splits
+        )
+    no_xgb_liveness_ok = True
+    if require_no_xgb_ablation and no_xgb_mode == "neutralize_signal_bridge":
+        no_xgb_liveness_ok = no_xgb_diagnostics_ok and (no_xgb_has_effect or input_bridge_neutral_all)
     no_xgb_provenance_ok = True
     if require_no_xgb_ablation:
         if no_xgb_mode == "neutralize_signal_bridge":
@@ -187,6 +217,26 @@ def _selective_edge_checks(
                 "neutralize_signal_bridge": no_xgb_neutralizes_bridge,
                 "same_bundle_as_candidate": no_xgb_same_bundle,
                 "neutralized_fields": no_xgb_neutralized_fields,
+            },
+        ),
+        _check(
+            "selective-edge no-XGB ablation diagnostics exist",
+            no_xgb_diagnostics_ok,
+            {
+                "required": require_no_xgb_ablation,
+                "available": no_xgb_diagnostics.get("available"),
+                "required_splits": required_no_xgb_splits,
+                "diagnostic_splits": sorted(str(x) for x in no_xgb_diagnostic_splits),
+            },
+        ),
+        _check(
+            "selective-edge no-XGB ablation is live or input bridge already neutral",
+            no_xgb_liveness_ok,
+            {
+                "required": require_no_xgb_ablation,
+                "mode": no_xgb_mode,
+                "has_prediction_effect": no_xgb_has_effect,
+                "input_bridge_neutral_all": input_bridge_neutral_all,
             },
         ),
         _check(

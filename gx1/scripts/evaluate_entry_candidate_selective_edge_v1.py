@@ -231,6 +231,95 @@ def build_summary(predictions: pd.DataFrame, metrics: pd.DataFrame) -> dict[str,
     }
 
 
+def build_no_xgb_ablation_diagnostics(predictions: pd.DataFrame, *, model_name: str) -> dict[str, Any]:
+    no_xgb_model = f"{model_name}_no_xgb"
+    if predictions.empty or model_name not in set(predictions["model"].astype(str)) or no_xgb_model not in set(predictions["model"].astype(str)):
+        return {"available": False, "reason": "candidate or no-XGB predictions missing", "splits": {}}
+
+    split_rows: dict[str, Any] = {}
+    for split in sorted(str(x) for x in predictions["split"].dropna().unique()):
+        base = predictions[(predictions["split"].astype(str) == split) & (predictions["model"].astype(str) == model_name)].reset_index(drop=True)
+        ablation = predictions[
+            (predictions["split"].astype(str) == split) & (predictions["model"].astype(str) == no_xgb_model)
+        ].reset_index(drop=True)
+        if base.empty or ablation.empty or len(base) != len(ablation):
+            split_rows[split] = {
+                "rows_candidate": int(len(base)),
+                "rows_no_xgb": int(len(ablation)),
+                "comparable": False,
+            }
+            continue
+        prob_deltas = [(base[col].astype(float) - ablation[col].astype(float)).abs() for col in ("p_long", "p_short", "p_flat")]
+        edge_delta = (base["edge_score"].astype(float) - ablation["edge_score"].astype(float)).abs()
+        side_diff = base["trade_side"].astype(int) != ablation["trade_side"].astype(int)
+        pred_diff = base["pred_direction"].astype(int) != ablation["pred_direction"].astype(int)
+        time_match = True
+        if "time" in base.columns and "time" in ablation.columns:
+            time_match = bool(base["time"].equals(ablation["time"]))
+        split_rows[split] = {
+            "rows": int(len(base)),
+            "comparable": True,
+            "time_match": bool(time_match),
+            "max_abs_prob_delta": float(max(delta.max() for delta in prob_deltas)),
+            "mean_abs_prob_delta": float(np.mean([delta.mean() for delta in prob_deltas])),
+            "max_abs_edge_score_delta": float(edge_delta.max()),
+            "mean_abs_edge_score_delta": float(edge_delta.mean()),
+            "trade_side_diff_count": int(side_diff.sum()),
+            "pred_direction_diff_count": int(pred_diff.sum()),
+            "identical_predictions": bool(
+                max(delta.max() for delta in prob_deltas) == 0.0
+                and float(edge_delta.max()) == 0.0
+                and int(side_diff.sum()) == 0
+                and int(pred_diff.sum()) == 0
+            ),
+        }
+
+    return {
+        "available": True,
+        "candidate_model": model_name,
+        "no_xgb_model": no_xgb_model,
+        "splits": split_rows,
+    }
+
+
+def _dataset_signal_bridge_contract(dataset_dir: Path, splits: list[str]) -> dict[str, Any]:
+    rows: dict[str, Any] = {}
+    for split in splits:
+        matches = sorted(dataset_dir.glob(f"*_{split}.manifest.json"))
+        if len(matches) != 1:
+            rows[split] = {
+                "manifest_path": "",
+                "manifest_count": int(len(matches)),
+                "neutral_xgb_bridge": None,
+                "bridge_source": "",
+                "fields": [],
+            }
+            continue
+        path = matches[0]
+        data = json.loads(path.read_text(encoding="utf-8"))
+        extra = data.get("extra") if isinstance(data.get("extra"), dict) else {}
+        inputs = data.get("inputs") if isinstance(data.get("inputs"), dict) else {}
+        signal_bridge = extra.get("signal_bridge") if isinstance(extra.get("signal_bridge"), dict) else {}
+        fields = [str(x) for x in signal_bridge.get("fields", [])]
+        rows[split] = {
+            "manifest_path": str(path),
+            "manifest_count": 1,
+            "neutral_xgb_bridge": bool(
+                extra.get("neutral_xgb_bridge", False)
+                or inputs.get("neutral_xgb_bridge", False)
+                or signal_bridge.get("neutral_xgb_bridge", False)
+            ),
+            "bridge_source": str(
+                extra.get("xgb_bridge_source") or inputs.get("xgb_bridge_source") or signal_bridge.get("bridge_source") or ""
+            ),
+            "seq_input_dim": int(signal_bridge.get("seq_input_dim") or 0),
+            "snap_input_dim": int(signal_bridge.get("snap_input_dim") or 0),
+            "fields": fields,
+            "bridge_fields": fields[: len(SIGNAL_BRIDGE_NEUTRAL_VALUES)],
+        }
+    return {"splits": rows}
+
+
 def _predict_bundle(
     *,
     bundle_dir: Path,
@@ -438,6 +527,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     metric_rows = build_metric_rows(predictions, top_fracs=top_fracs)
     metrics = pd.DataFrame(metric_rows)
     summary_payload = build_summary(predictions, metrics)
+    no_xgb_ablation_diagnostics = build_no_xgb_ablation_diagnostics(predictions, model_name=str(args.model_name))
+    input_bridge_contract = _dataset_signal_bridge_contract(dataset_dir, splits)
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     ready = not failures
 
@@ -463,9 +554,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "neutral_values": SIGNAL_BRIDGE_NEUTRAL_VALUES.tolist() if no_xgb_neutralize else [],
         },
         "dataset_dir": str(dataset_dir),
+        "input_bridge_contract": input_bridge_contract,
         "splits": summary_payload["splits"],
         "models": summary_payload["models"],
         "summaries": summary_payload["summaries"],
+        "no_xgb_ablation_diagnostics": no_xgb_ablation_diagnostics,
         "top_fracs": top_fracs,
         "bundle_seq_len": int(bundle_meta.get("seq_len") or 0),
         "bundle_specialist_fusion_enabled": bool((bundle_meta.get("specialist_fusion") or {}).get("enabled")) if isinstance(bundle_meta.get("specialist_fusion"), dict) else False,
@@ -486,7 +579,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "bundle_dir": report["bundle_dir"],
             "no_xgb_bundle_dir": report["no_xgb_bundle_dir"],
             "no_xgb_ablation": report["no_xgb_ablation"],
+            "no_xgb_ablation_diagnostics": report["no_xgb_ablation_diagnostics"],
             "dataset_dir": report["dataset_dir"],
+            "input_bridge_contract": report["input_bridge_contract"],
             "failures": failures,
         }
     )

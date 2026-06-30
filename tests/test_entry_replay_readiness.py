@@ -37,7 +37,38 @@ def _selective_summary() -> dict:
             "neutralized_fields": [],
             "neutral_values": [],
         },
+        "no_xgb_ablation_diagnostics": {
+            "available": True,
+            "candidate_model": "candidate",
+            "no_xgb_model": "candidate_no_xgb",
+            "splits": {
+                "val": {
+                    "rows": 10,
+                    "comparable": True,
+                    "time_match": True,
+                    "max_abs_prob_delta": 0.2,
+                    "max_abs_edge_score_delta": 0.1,
+                    "trade_side_diff_count": 1,
+                    "pred_direction_diff_count": 1,
+                },
+                "test": {
+                    "rows": 10,
+                    "comparable": True,
+                    "time_match": True,
+                    "max_abs_prob_delta": 0.2,
+                    "max_abs_edge_score_delta": 0.1,
+                    "trade_side_diff_count": 1,
+                    "pred_direction_diff_count": 1,
+                },
+            },
+        },
         "dataset_dir": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_foundation_seq146_neutral",
+        "input_bridge_contract": {
+            "splits": {
+                "val": {"neutral_xgb_bridge": False},
+                "test": {"neutral_xgb_bridge": False},
+            }
+        },
         "splits": ["val", "test"],
         "summaries": rows,
     }
@@ -262,6 +293,37 @@ def test_selective_edge_checks_accept_same_bundle_with_neutralized_ablation() ->
         "neutralized_fields": [f"field_{idx}" for idx in range(7)],
         "neutral_values": [0.0] * 7,
     }
+    summary["no_xgb_ablation_diagnostics"] = {
+        "available": True,
+        "candidate_model": "candidate",
+        "no_xgb_model": "candidate_no_xgb",
+        "splits": {
+            "val": {
+                "rows": 10,
+                "comparable": True,
+                "time_match": True,
+                "max_abs_prob_delta": 0.0,
+                "max_abs_edge_score_delta": 0.0,
+                "trade_side_diff_count": 0,
+                "pred_direction_diff_count": 0,
+            },
+            "test": {
+                "rows": 10,
+                "comparable": True,
+                "time_match": True,
+                "max_abs_prob_delta": 0.0,
+                "max_abs_edge_score_delta": 0.0,
+                "trade_side_diff_count": 0,
+                "pred_direction_diff_count": 0,
+            },
+        },
+    }
+    summary["input_bridge_contract"] = {
+        "splits": {
+            "val": {"neutral_xgb_bridge": True},
+            "test": {"neutral_xgb_bridge": True},
+        }
+    }
     checks = _selective_edge_checks(
         summary,
         _selective_metrics(),
@@ -273,6 +335,35 @@ def test_selective_edge_checks_accept_same_bundle_with_neutralized_ablation() ->
     )
 
     assert all(check["ok"] for check in checks)
+
+
+def test_selective_edge_checks_reject_dead_neutralized_ablation_without_neutral_input() -> None:
+    summary = _selective_summary()
+    summary["no_xgb_bundle_dir"] = summary["bundle_dir"]
+    summary["no_xgb_ablation"] = {
+        "required": True,
+        "mode": "neutralize_signal_bridge",
+        "neutralize_signal_bridge": True,
+        "neutralized_fields": [f"field_{idx}" for idx in range(7)],
+        "neutral_values": [0.0] * 7,
+    }
+    for row in summary["no_xgb_ablation_diagnostics"]["splits"].values():
+        row["max_abs_prob_delta"] = 0.0
+        row["max_abs_edge_score_delta"] = 0.0
+        row["trade_side_diff_count"] = 0
+        row["pred_direction_diff_count"] = 0
+    checks = _selective_edge_checks(
+        summary,
+        _selective_metrics(),
+        model_name="candidate",
+        min_top5_mean_pnl_bps=0.0,
+        min_top10_mean_pnl_bps=0.0,
+        require_no_xgb_ablation=True,
+        expected_bundle_dir="/tmp/candidate_bundle",
+    )
+    failed = {check["name"] for check in checks if not check["ok"]}
+
+    assert "selective-edge no-XGB ablation is live or input bridge already neutral" in failed
 
 
 def test_candidate_bundle_audit_checks_reject_partial_active_head_contract(tmp_path: Path) -> None:
