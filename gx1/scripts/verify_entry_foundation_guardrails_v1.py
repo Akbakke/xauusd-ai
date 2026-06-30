@@ -176,6 +176,7 @@ def _readiness_policy_checks() -> list[dict[str, Any]]:
         "candidate_readiness_report",
         "replay_readiness_report",
         "stage_foundation_cleanup_dry_run",
+        "iql_slice_audit",
     )
     blocked_downstream = (
         "smoke_train",
@@ -219,6 +220,7 @@ def _readiness_policy_checks() -> list[dict[str, Any]]:
         "iql_student_trade_log",
         "iql_replay_evidence",
         "iql_compare",
+        "iql_slice_audit",
         "preview_shadow",
         "start_shadow",
         "live",

@@ -26,6 +26,7 @@ def test_worktree_hygiene_classifies_foundation_and_review_paths() -> None:
     assert classify_path("gx1/scripts/plan_entry_foundation_activation_v1.py") == "active_foundation_contract"
     assert classify_path("gx1/scripts/apply_entry_foundation_activation_v1.py") == "active_foundation_contract"
     assert classify_path("gx1/scripts/run_entry_foundation_activation_post_apply_v1.py") == "active_foundation_contract"
+    assert classify_path("gx1/scripts/audit_entry_iql_replay_slices_v1.py") == "active_foundation_contract"
     assert classify_path("gx1/models/entry_v10/entry_v10_bundle.py") == "active_foundation_contract"
     assert classify_path("gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py") == "active_foundation_contract"
     assert classify_path("gx1/models/entry_v10/entry_v10_ctx_train_v3.py") == "active_foundation_contract"
@@ -87,6 +88,7 @@ def test_worktree_hygiene_current_repo_report(tmp_path: Path) -> None:
     assert "gx1/scripts/materialize_entry_iql_student_trade_log_v1.py" in FOUNDATION_CLEANUP_CRITICAL_GATE_PATHS
     assert "gx1/scripts/materialize_entry_iql_replay_evidence_v1.py" in FOUNDATION_CLEANUP_CRITICAL_GATE_PATHS
     assert "gx1/scripts/verify_entry_iql_replay_comparison_v1.py" in FOUNDATION_CLEANUP_CRITICAL_GATE_PATHS
+    assert "gx1/scripts/audit_entry_iql_replay_slices_v1.py" in FOUNDATION_CLEANUP_CRITICAL_GATE_PATHS
     assert "gx1/scripts/verify_entry_training_readiness_v1.py" in FOUNDATION_CLEANUP_CRITICAL_GATE_PATHS
     assert "gx1/scripts/audit_entry_foundation_worktree_hygiene_v1.py" in FOUNDATION_CLEANUP_CRITICAL_GATE_PATHS
     assert "tests/test_entry_candidate_readiness.py" in FOUNDATION_CLEANUP_CRITICAL_GATE_PATHS
@@ -97,6 +99,7 @@ def test_worktree_hygiene_current_repo_report(tmp_path: Path) -> None:
     assert "tests/test_entry_iql_student_trade_log.py" in FOUNDATION_CLEANUP_CRITICAL_GATE_PATHS
     assert "tests/test_entry_iql_replay_comparison.py" in FOUNDATION_CLEANUP_CRITICAL_GATE_PATHS
     assert "tests/test_entry_iql_replay_evidence.py" in FOUNDATION_CLEANUP_CRITICAL_GATE_PATHS
+    assert "tests/test_entry_iql_replay_slice_audit.py" in FOUNDATION_CLEANUP_CRITICAL_GATE_PATHS
     assert "tests/test_entry_replay_readiness.py" in FOUNDATION_CLEANUP_CRITICAL_GATE_PATHS
     assert "tests/test_entry_training_readiness.py" in FOUNDATION_CLEANUP_CRITICAL_GATE_PATHS
     assert "tests/test_entry_foundation_guardrails.py" in FOUNDATION_CLEANUP_REQUIRED_PATHS
@@ -105,9 +108,11 @@ def test_worktree_hygiene_current_repo_report(tmp_path: Path) -> None:
     assert "gx1/scripts/plan_entry_foundation_activation_v1.py" in FOUNDATION_CLEANUP_REQUIRED_PATHS
     assert "gx1/scripts/apply_entry_foundation_activation_v1.py" in FOUNDATION_CLEANUP_REQUIRED_PATHS
     assert "gx1/scripts/run_entry_foundation_activation_post_apply_v1.py" in FOUNDATION_CLEANUP_REQUIRED_PATHS
+    assert "gx1/scripts/audit_entry_iql_replay_slices_v1.py" in FOUNDATION_CLEANUP_REQUIRED_PATHS
     assert "gx1/models/entry_v10/entry_v10_bundle.py" in FOUNDATION_CLEANUP_REQUIRED_PATHS
     assert "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py" in FOUNDATION_CLEANUP_REQUIRED_PATHS
     assert "gx1/models/entry_v10/entry_v10_ctx_train_v3.py" in FOUNDATION_CLEANUP_REQUIRED_PATHS
+    assert "tests/test_entry_iql_replay_slice_audit.py" in FOUNDATION_CLEANUP_REQUIRED_PATHS
     if report["dirty_count"] == 0:
         assert report["foundation_cleanup_stage_ready"] is False
     else:

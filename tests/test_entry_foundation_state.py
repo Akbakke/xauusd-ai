@@ -29,6 +29,7 @@ def test_foundation_state_allows_entry_train_manifest_report_roots() -> None:
     assert "entry_candidate_replay_trade_log_20260628_v1" in verifier
     assert "entry_candidate_replay_trade_log_20260628_v1_stop80_tp120" in verifier
     assert "entry_iql_student_trade_log_20260628_v1" in verifier
+    assert "entry_iql_replay_slice_audit_20260628_v1" in verifier
 
 
 def _args(*, selftest: bool) -> argparse.Namespace:
@@ -169,6 +170,9 @@ def test_foundation_state_selftest_covers_control_policy_contracts() -> None:
     assert "handover reports critical gate path coverage" in checks
     assert "foundation guardrail verifier uses readiness policy snapshot" in checks
     assert "foundation guardrail verifier reports readiness policy checks" in checks
+    assert "control surface exposes IQL replay slice audit" in checks
+    assert "IQL slice audit requires supported edge robustness" in checks
+    assert "IQL slice audit compares diagnostic tail slices" in checks
     assert "foundation guardrail verifier blocks candidate train in readiness policy" in checks
     assert "foundation guardrail verifier blocks IQL in readiness policy" in checks
     assert "foundation guardrail verifier blocks live in readiness policy" in checks

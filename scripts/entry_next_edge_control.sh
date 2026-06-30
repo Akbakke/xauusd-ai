@@ -36,9 +36,10 @@ Usage:
   scripts/entry_next_edge_control.sh iql-student-trade-log --vedtak <id>
   scripts/entry_next_edge_control.sh iql-replay-evidence --trades-path <csv|parquet>
   scripts/entry_next_edge_control.sh iql-compare
+  scripts/entry_next_edge_control.sh iql-slice-audit
 
 Allowed path:
-  Entry foundation cleanup -> feature audit -> target audit -> rebuilt dataset -> adoption-candidate proof -> activation-plan review -> optional vedtak-gated activation apply -> vedtak-gated post-apply audit refresh + active verify -> foundation-guardrails -> worktree-hygiene -> optional vedtak-gated stage-foundation-cleanup -> train-readiness -> optional smoke-manifest proof -> vedtak-gated smoke train -> smoke bundle audit -> candidate-readiness -> vedtak-gated candidate train -> selective-edge/no-XGB ablation -> replay-evidence -> replay-readiness -> vedtak-gated IQL distillation contract -> IQL student trade log -> IQL replay evidence -> IQL replay comparison.
+  Entry foundation cleanup -> feature audit -> target audit -> rebuilt dataset -> adoption-candidate proof -> activation-plan review -> optional vedtak-gated activation apply -> vedtak-gated post-apply audit refresh + active verify -> foundation-guardrails -> worktree-hygiene -> optional vedtak-gated stage-foundation-cleanup -> train-readiness -> optional smoke-manifest proof -> vedtak-gated smoke train -> smoke bundle audit -> candidate-readiness -> vedtak-gated candidate train -> selective-edge/no-XGB ablation -> replay-evidence -> replay-readiness -> vedtak-gated IQL distillation contract -> IQL student trade log -> IQL replay evidence -> IQL replay comparison -> IQL slice/tail audit.
 
 Blocked here:
   generic train, retrain, promote, pin, live, xgb-train, et-train, shadow.
@@ -113,6 +114,7 @@ paths = {
     "iql-student-trade-log": Path("/home/andre2/GX1_DATA/reports/entry_iql_student_trade_log_20260628_v1/ENTRY_IQL_STUDENT_TRADE_LOG_latest.json"),
     "iql-replay-evidence": Path("/home/andre2/GX1_DATA/reports/entry_iql_distillation_replay_20260628_v1/ENTRY_IQL_REPLAY_EVIDENCE_latest.json"),
     "iql-replay-comparison": Path("/home/andre2/GX1_DATA/reports/entry_iql_replay_comparison_20260628_v1/ENTRY_IQL_REPLAY_COMPARISON_latest.json"),
+    "iql-replay-slice-audit": Path("/home/andre2/GX1_DATA/reports/entry_iql_replay_slice_audit_20260628_v1/ENTRY_IQL_REPLAY_SLICE_AUDIT_latest.json"),
 }
 adoption_root = Path("/home/andre2/GX1_DATA/reports/entry_foundation_adoption_candidate_20260629_v1")
 adoption_candidates = (
@@ -215,6 +217,7 @@ allowed_now = [
     "scripts/entry_next_edge_control.sh train-readiness --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh candidate-readiness --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh replay-readiness --quiet --no-fail-on-not-ready",
+    "scripts/entry_next_edge_control.sh iql-slice-audit --quiet --no-fail-on-not-ready",
 ]
 if hygiene.get("foundation_cleanup_stage_ready"):
     allowed_now.append("scripts/entry_next_edge_control.sh stage-foundation-cleanup --dry-run")
@@ -353,8 +356,10 @@ iql_replay_evidence_ready = str((reports.get("iql-replay-evidence") or {}).get("
 iql_replay_comparison_ready = (
     str((reports.get("iql-replay-comparison") or {}).get("decision")) == "READY_FOR_PROMOTION_REVIEW_VEDTAK"
 )
+iql_replay_slice_audit_ready = str((reports.get("iql-replay-slice-audit") or {}).get("decision")) == "PASS"
 promotion_review_allowed = bool(
     (reports.get("iql-replay-comparison") or {}).get("promotion_review_allowed_with_explicit_vedtak")
+    and iql_replay_slice_audit_ready
 )
 current_blockers = []
 if not real_smoke_train_allowed:
@@ -374,6 +379,8 @@ if not iql_replay_evidence_ready:
     current_blockers.append("IQL replay evidence requires distillation contract and IQL-student replay trade log")
 if not iql_replay_comparison_ready:
     current_blockers.append("promotion review requires candidate-vs-IQL replay comparison PASS")
+if iql_replay_comparison_ready and not iql_replay_slice_audit_ready:
+    current_blockers.append("promotion review requires IQL slice/tail audit PASS")
 
 commands = {
     "handover": {
@@ -766,6 +773,19 @@ commands.update(
             "touches_shadow_or_live": False,
             "description": "Final IQL-vs-candidate replay comparison gate.",
         },
+        "iql_slice_audit": {
+            "argv": ["scripts/entry_next_edge_control.sh", "iql-slice-audit"],
+            "allowed": True,
+            "mode": "slice_tail_audit",
+            "requires_vedtak": False,
+            "requires_clean_git": False,
+            "mutates_git_index": False,
+            "starts_trainer": False,
+            "starts_replay": False,
+            "starts_iql_distillation": False,
+            "touches_shadow_or_live": False,
+            "description": "Report-only IQL-vs-candidate session/regime/side/tail slice audit.",
+        },
         "preview_shadow": {
             "argv": ["scripts/entry_next_edge_control.sh", "preview-shadow"],
             "allowed": False,
@@ -835,6 +855,7 @@ execution_allowed_now = {
     "iql_student_trade_log": False,
     "iql_replay_evidence": False,
     "iql_compare": False,
+    "iql_slice_audit": True,
     "preview_shadow": False,
     "start_shadow": False,
     "live": False,
@@ -866,6 +887,7 @@ allowed_after_explicit_vedtak = {
     "iql_student_trade_log": iql_student_trade_log_allowed,
     "iql_replay_evidence": False,
     "iql_compare": False,
+    "iql_slice_audit": True,
     "preview_shadow": False,
     "start_shadow": False,
     "live": False,
@@ -951,6 +973,7 @@ payload = {
         ),
         "iql_replay_evidence_ready": iql_replay_evidence_ready,
         "iql_replay_comparison_ready": iql_replay_comparison_ready,
+        "iql_replay_slice_audit_ready": iql_replay_slice_audit_ready,
         "promotion_review_allowed": promotion_review_allowed,
         "promotion_shadow_live_allowed": False,
         "current_blockers": current_blockers,
@@ -1146,6 +1169,10 @@ PY
 
   iql-compare)
     exec "$PY" -m gx1.scripts.verify_entry_iql_replay_comparison_v1 "$@"
+    ;;
+
+  iql-slice-audit)
+    exec "$PY" -m gx1.scripts.audit_entry_iql_replay_slices_v1 "$@"
     ;;
 
   smoke-train)

@@ -130,6 +130,7 @@ def _active_entry_artifact_paths() -> list[str]:
         "entry_iql_student_trade_log_20260628_v1",
         "entry_iql_distillation_replay_20260628_v1",
         "entry_iql_replay_comparison_20260628_v1",
+        "entry_iql_replay_slice_audit_20260628_v1",
         "entry_candidate_selective_edge_20260628_v1",
         "entry_candidate_replay_20260628_v1",
         "entry_candidate_replay_trade_log_20260628_v1",
@@ -703,6 +704,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         replay_evidence = _read_text(REPO / "gx1/scripts/materialize_entry_candidate_replay_evidence_v1.py")
         iql_replay_evidence = _read_text(REPO / "gx1/scripts/materialize_entry_iql_replay_evidence_v1.py")
         iql_comparison = _read_text(REPO / "gx1/scripts/verify_entry_iql_replay_comparison_v1.py")
+        iql_slice_audit = _read_text(REPO / "gx1/scripts/audit_entry_iql_replay_slices_v1.py")
         worktree_hygiene = _read_text(REPO / "gx1/scripts/audit_entry_foundation_worktree_hygiene_v1.py")
         readiness = _read_text(REPO / "gx1/scripts/verify_entry_training_readiness_v1.py")
         candidate_readiness = _read_text(REPO / "gx1/scripts/verify_entry_candidate_readiness_v1.py")
@@ -772,6 +774,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         _require("iql-student-trade-log" in control, "control surface exposes IQL student trade-log materializer", checks)
         _require("iql-replay-evidence" in control, "control surface exposes IQL replay evidence materializer", checks)
         _require("iql-compare" in control, "control surface exposes IQL replay comparison gate", checks)
+        _require("iql-slice-audit" in control, "control surface exposes IQL replay slice audit", checks)
+        _require("audit_entry_iql_replay_slices_v1" in control, "control surface calls IQL replay slice audit", checks)
         _require("smoke-train" in control, "control surface exposes vedtak-gated smoke train", checks)
         _require("--require-edge-audit" in control, "control surface documents edge-required smoke train", checks)
         _require("audit-smoke-bundle" in control, "control surface exposes smoke bundle audit", checks)
@@ -1036,6 +1040,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         _require("IQL replay net sum beats candidate" in iql_comparison, "IQL comparison gate requires replay net lift", checks)
         _require("IQL replay drawdown does not worsen" in iql_comparison, "IQL comparison gate checks drawdown vs candidate", checks)
         _require("gate never promotes, shadows, or starts live" in iql_comparison, "IQL comparison gate keeps promotion/shadow/live closed", checks)
+        _require("entry_iql_replay_slice_audit_v1" in iql_slice_audit, "IQL slice audit writes slice audit schema", checks)
+        _require("session/regime/side/direction/bad-path/tail" in iql_slice_audit, "IQL slice audit covers required slice families", checks)
+        _require("IQL supported edge slices keep positive net/PF/drawdown/max-loss" in iql_slice_audit, "IQL slice audit requires supported edge robustness", checks)
+        _require("IQL diagnostic slices do not materially worsen tails vs candidate" in iql_slice_audit, "IQL slice audit compares diagnostic tail slices", checks)
+        _require("slice audit never trains, replays, builds adapters, promotes, shadows, or starts live" in iql_slice_audit, "IQL slice audit keeps train/replay/shadow/live closed", checks)
+        _require("promotion_shadow_live_allowed" in iql_slice_audit, "IQL slice audit keeps promotion/shadow/live closed", checks)
 
     report = {
         "schema_version": "entry_foundation_state_v1",
