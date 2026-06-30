@@ -89,6 +89,12 @@ REQUIRED_TRAINING_SPECIALISTS = (
     "session_regime_encoder",
 )
 
+CHALLENGER_SEQ215_TRAINING_SPECIALISTS = (
+    *REQUIRED_TRAINING_SPECIALISTS,
+    "chart_geometry_encoder",
+    "price_action_candle_encoder",
+)
+
 SPECIALIST_FUSION_ACTIVE_HEADS = (
     "direction",
     "tradable",
@@ -272,6 +278,63 @@ SPECIALIST_MODEL_CONTRACT = OrderedDict(
         ),
     ]
 )
+
+CHALLENGER_SEQ215_SPECIALIST_MODEL_CONTRACT = OrderedDict(
+    [
+        *SPECIALIST_MODEL_CONTRACT.items(),
+        (
+            "chart_geometry_encoder",
+            {
+                "model_role": "chart_geometry_line_fib_pattern_sequence_ai",
+                "owned_objectives": (),
+                "primary_signal_families": (
+                    "support/resistance line proximity",
+                    "trendline/channel break pressure",
+                    "Fibonacci retracement/extension zones",
+                    "EMA cross pressure",
+                    "triangle/flag/compression chart-pattern proxies",
+                ),
+                "supports_heads": ("direction", "tradable", "timing", "path_quality", "tail_risk"),
+            },
+        ),
+        (
+            "price_action_candle_encoder",
+            {
+                "model_role": "closed_bar_candlestick_pattern_sequence_ai",
+                "owned_objectives": (),
+                "primary_signal_families": (
+                    "single-candle body/wick shape",
+                    "doji/indecision",
+                    "hammer/shooting-star rejection",
+                    "engulfing and two-candle reversal",
+                    "inside/outside bar compression and expansion",
+                    "three-candle continuation/reversal patterns",
+                ),
+                "supports_heads": ("direction", "tradable", "timing", "bad_path", "tail_risk"),
+            },
+        ),
+    ]
+)
+
+SPECIALIST_CONTRACT_MODES = ("foundation_seq146", "challenger_seq215")
+
+
+def required_training_specialists_for_mode(mode: str = "foundation_seq146") -> tuple[str, ...]:
+    normalized = str(mode or "foundation_seq146").strip()
+    if normalized == "foundation_seq146":
+        return REQUIRED_TRAINING_SPECIALISTS
+    if normalized == "challenger_seq215":
+        return CHALLENGER_SEQ215_TRAINING_SPECIALISTS
+    raise ValueError(f"unknown specialist contract mode: {mode}")
+
+
+def specialist_model_contract_for_mode(mode: str = "foundation_seq146") -> "OrderedDict[str, dict[str, object]]":
+    normalized = str(mode or "foundation_seq146").strip()
+    if normalized == "foundation_seq146":
+        return SPECIALIST_MODEL_CONTRACT
+    if normalized == "challenger_seq215":
+        return CHALLENGER_SEQ215_SPECIALIST_MODEL_CONTRACT
+    raise ValueError(f"unknown specialist contract mode: {mode}")
 
 
 def _norm(name: str) -> str:

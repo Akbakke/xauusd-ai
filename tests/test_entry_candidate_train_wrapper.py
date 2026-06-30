@@ -107,6 +107,8 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "specialist_model_contract_owned_objectives_match" in text
     assert "specialist_model_contract" in text
     assert "_load_specialist_fusion_contract" in text
+    assert "--specialist-contract-mode foundation_seq146" in text
+    assert 'contract_mode="foundation_seq146"' in text
     assert "feature_objective_liveness_all_live" in text
     assert "feature_source_field_liveness_all_live" in text
     assert "specialist_active_heads_match_target" in text

@@ -56,10 +56,11 @@ from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
     VOL_FORECAST_HORIZONS,
 )
 from gx1.features.entry_specialist_feature_groups_v1 import (
-    REQUIRED_TRAINING_SPECIALISTS,
-    SPECIALIST_MODEL_CONTRACT,
+    SPECIALIST_CONTRACT_MODES,
     SPECIALIST_FUSION_ACTIVE_HEADS,
     SPECIALIST_FUSION_BLOCKED_HEADS,
+    required_training_specialists_for_mode,
+    specialist_model_contract_for_mode,
 )
 
 
@@ -659,7 +660,11 @@ def _load_specialist_fusion_contract(
     audit_json: Optional[Path],
     *,
     expected_signal_dim: int,
+    contract_mode: str = "foundation_seq146",
 ) -> tuple[Dict[str, list[int]], Dict[str, Any]]:
+    normalized_contract_mode = str(contract_mode or "foundation_seq146").strip()
+    required_training_specialists = required_training_specialists_for_mode(normalized_contract_mode)
+    expected_model_contract = specialist_model_contract_for_mode(normalized_contract_mode)
     path = Path(audit_json or DEFAULT_SPECIALIST_AUDIT_JSON).expanduser().resolve()
     if not path.exists():
         raise RuntimeError(f"[SPECIALIST_AUDIT_MISSING] {path}")
@@ -677,14 +682,19 @@ def _load_specialist_fusion_contract(
     specialist_model_failures = list(report.get("specialist_model_contract_failures") or [])
     if not bool(report.get("specialist_model_contract_valid")):
         specialist_model_failures.append("specialist audit did not declare specialist_model_contract_valid=true")
-    expected_model_contract_keys = {str(name) for name in SPECIALIST_MODEL_CONTRACT}
+    observed_contract_mode = str(report.get("contract_mode") or "foundation_seq146").strip()
+    if observed_contract_mode != normalized_contract_mode:
+        specialist_model_failures.append(
+            f"specialist audit contract mode mismatch: observed={observed_contract_mode} expected={normalized_contract_mode}"
+        )
+    expected_model_contract_keys = {str(name) for name in expected_model_contract}
     observed_model_contract_keys = {str(name) for name in specialist_model_contract}
     if observed_model_contract_keys != expected_model_contract_keys:
         specialist_model_failures.append(
             "specialist model contract set mismatch: "
             f"observed={sorted(observed_model_contract_keys)} expected={sorted(expected_model_contract_keys)}"
         )
-    for name, expected_spec in SPECIALIST_MODEL_CONTRACT.items():
+    for name, expected_spec in expected_model_contract.items():
         observed_spec = specialist_model_contract.get(name)
         if not isinstance(observed_spec, dict):
             specialist_model_failures.append(f"specialist model contract missing spec for {name}")
@@ -721,7 +731,7 @@ def _load_specialist_fusion_contract(
     overlap = sorted(set(active_heads) & set(blocked_heads))
     if overlap:
         raise RuntimeError(f"[SPECIALIST_HEADS_ACTIVE_AND_BLOCKED] {overlap}")
-    trainable = set(REQUIRED_TRAINING_SPECIALISTS)
+    trainable = set(required_training_specialists)
     blocked = {"neutral_bridge_anchor", "unmapped"}
     indices: Dict[str, list[int]] = {}
     excluded_groups: Dict[str, int] = {}
@@ -737,7 +747,7 @@ def _load_specialist_fusion_contract(
         if min(idx) < 0 or max(idx) >= int(expected_signal_dim):
             raise RuntimeError(f"[SPECIALIST_INDEX_OOB] {key}: min={min(idx)} max={max(idx)} dim={expected_signal_dim}")
         indices[key] = idx
-    required = list(REQUIRED_TRAINING_SPECIALISTS)
+    required = list(required_training_specialists)
     missing = [name for name in required if name not in indices]
     if missing:
         raise RuntimeError(f"[SPECIALIST_REQUIRED_GROUPS_MISSING] {missing}")
@@ -749,7 +759,9 @@ def _load_specialist_fusion_contract(
         "selected_feature_count": int(report.get("selected_feature_count") or 0),
         "input_indices": indices,
         "group_feature_counts": {name: len(vals) for name, vals in indices.items()},
-        "trainable_specialists": list(REQUIRED_TRAINING_SPECIALISTS),
+        "contract_mode": normalized_contract_mode,
+        "audit_contract_mode": observed_contract_mode,
+        "trainable_specialists": list(required_training_specialists),
         "excluded_specialist_groups": excluded_groups,
         "active_heads": list(SPECIALIST_FUSION_ACTIVE_HEADS),
         "blocked_heads": list(SPECIALIST_FUSION_BLOCKED_HEADS),
@@ -2998,6 +3010,7 @@ def run_sanity_check(
     deterministic: bool = True,
     enable_specialist_fusion: bool = False,
     specialist_audit_json: Optional[Path] = None,
+    specialist_contract_mode: str = "foundation_seq146",
     specialist_num_layers: int = 1,
     specialist_fusion_scale: float = 0.25,
 ) -> None:
@@ -3066,6 +3079,7 @@ def run_sanity_check(
         specialist_indices, specialist_meta = _load_specialist_fusion_contract(
             specialist_audit_json,
             expected_signal_dim=seq_input_dim,
+            contract_mode=specialist_contract_mode,
         )
         log.info("[SPECIALIST_FUSION] sanity enabled groups=%s", sorted(specialist_indices))
 
@@ -3246,6 +3260,7 @@ def run_train(
     enable_vol_forecast_head: bool = False,
     enable_specialist_fusion: bool = False,
     specialist_audit_json: Optional[Path] = None,
+    specialist_contract_mode: str = "foundation_seq146",
     specialist_num_layers: int = 1,
     specialist_fusion_scale: float = 0.25,
     # V2 fast-train extras
@@ -3624,6 +3639,7 @@ def run_train(
         specialist_indices, specialist_meta = _load_specialist_fusion_contract(
             specialist_audit_json,
             expected_signal_dim=seq_input_dim,
+            contract_mode=specialist_contract_mode,
         )
         log.info("[SPECIALIST_FUSION] train enabled groups=%s", sorted(specialist_indices))
     model = EntryV10CtxHybridTransformer(
@@ -5058,6 +5074,12 @@ def main() -> None:
         help="PASS specialist feature-group audit JSON that supplies specialist input indices.",
     )
     parser.add_argument(
+        "--specialist-contract-mode",
+        choices=SPECIALIST_CONTRACT_MODES,
+        default="foundation_seq146",
+        help="Specialist contract mode expected by the trainer loader.",
+    )
+    parser.add_argument(
         "--specialist-num-layers", type=int, default=1,
         help="TransformerEncoder layers per specialist branch when --enable-specialist-fusion is on.",
     )
@@ -5197,6 +5219,7 @@ def main() -> None:
             deterministic=not args.fast,
             enable_specialist_fusion=bool(args.enable_specialist_fusion),
             specialist_audit_json=args.specialist_audit_json,
+            specialist_contract_mode=str(args.specialist_contract_mode),
             specialist_num_layers=int(args.specialist_num_layers),
             specialist_fusion_scale=float(args.specialist_fusion_scale),
         )
@@ -5273,6 +5296,7 @@ def main() -> None:
             enable_vol_forecast_head=bool(args.enable_vol_forecast_head),
             enable_specialist_fusion=bool(args.enable_specialist_fusion),
             specialist_audit_json=args.specialist_audit_json,
+            specialist_contract_mode=str(args.specialist_contract_mode),
             specialist_num_layers=int(args.specialist_num_layers),
             specialist_fusion_scale=float(args.specialist_fusion_scale),
             enable_mtf_direction_head=bool(args.enable_mtf_direction_head),

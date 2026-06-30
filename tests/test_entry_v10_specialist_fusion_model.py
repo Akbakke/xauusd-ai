@@ -5,6 +5,8 @@ import pytest
 import torch
 
 from gx1.features.entry_specialist_feature_groups_v1 import (
+    CHALLENGER_SEQ215_SPECIALIST_MODEL_CONTRACT,
+    CHALLENGER_SEQ215_TRAINING_SPECIALISTS,
     REQUIRED_TRAINING_SPECIALISTS,
     SPECIALIST_MODEL_CONTRACT,
     SPECIALIST_FUSION_ACTIVE_HEADS,
@@ -144,3 +146,49 @@ def test_entry_v10_specialist_fusion_rejects_tampered_model_contract(tmp_path: P
             tampered,
             expected_signal_dim=146,
         )
+
+
+def test_entry_v10_specialist_fusion_loads_challenger_seq215_contract() -> None:
+    audit_json = Path(
+        "/home/andre2/GX1_DATA/reports/entry_specialist_feature_group_audit_20260628_v1/"
+        "challenger_seq215_20260630_contract8/ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_latest.json"
+    )
+    specialist_indices, specialist_meta = _load_specialist_fusion_contract(
+        audit_json,
+        expected_signal_dim=215,
+        contract_mode="challenger_seq215",
+    )
+
+    assert specialist_meta["contract_mode"] == "challenger_seq215"
+    assert specialist_meta["signal_field_count"] == 215
+    assert specialist_meta["selected_feature_count"] == 174
+    assert set(specialist_meta["trainable_specialists"]) == set(CHALLENGER_SEQ215_TRAINING_SPECIALISTS)
+    assert specialist_meta["specialist_model_contract"] == json.loads(
+        json.dumps(CHALLENGER_SEQ215_SPECIALIST_MODEL_CONTRACT)
+    )
+    assert set(specialist_indices) == set(CHALLENGER_SEQ215_TRAINING_SPECIALISTS)
+    assert specialist_indices["chart_geometry_encoder"]
+    assert specialist_indices["price_action_candle_encoder"]
+    assert specialist_meta["excluded_specialist_groups"]["neutral_bridge_anchor"] == 7
+
+    model = EntryV10CtxHybridTransformer(
+        seq_input_dim=215,
+        snap_input_dim=215,
+        seq_len=96,
+        ctx_cont_dim=142,
+        ctx_cat_dim=5,
+        enable_specialist_fusion=True,
+        specialist_input_indices=specialist_indices,
+        specialist_num_layers=1,
+    ).eval()
+
+    out = model(
+        torch.randn(2, 96, 215),
+        torch.full((2, 215), 0.05),
+        ctx_cat=torch.zeros(2, 5, dtype=torch.long),
+        ctx_cont=torch.randn(2, 142),
+    )
+
+    assert out["direction_logits"].shape == (2, 3)
+    assert out["specialist_gate"].shape == (2, len(CHALLENGER_SEQ215_TRAINING_SPECIALISTS))
+    assert torch.allclose(out["specialist_gate"].sum(dim=1), torch.ones(2), atol=1e-6)

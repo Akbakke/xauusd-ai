@@ -246,6 +246,7 @@ CMD=(
   --enable-mtf-direction-head
   --enable-specialist-fusion
   --specialist-audit-json "$SPECIALIST_AUDIT"
+  --specialist-contract-mode foundation_seq146
   --specialist-num-layers 1
   --specialist-fusion-scale 0.25
 )
@@ -403,6 +404,7 @@ def specialist_contract_summary(report: dict) -> dict:
     trainer_indices, trainer_meta = _load_specialist_fusion_contract(
         Path(specialist_audit_path),
         expected_signal_dim=146,
+        contract_mode="foundation_seq146",
     )
     return {
         "decision": report.get("decision"),

@@ -135,6 +135,8 @@ def test_smoke_train_wrapper_enforces_train_readiness_for_real_train() -> None:
     assert "specialist_model_contract_failures" in text
     assert "specialist_model_contract" in text
     assert "_load_specialist_fusion_contract" in text
+    assert "--specialist-contract-mode foundation_seq146" in text
+    assert 'contract_mode="foundation_seq146"' in text
     assert "architecture_active_heads" in text
     assert "architecture_blocked_heads" in text
     assert "foundation_objective_routing_all_present_and_expected" in text

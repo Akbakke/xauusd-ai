@@ -16,13 +16,14 @@ from gx1.audit.entry_transformer_feature_audit import _stack_list_column
 from gx1.features.entry_specialist_feature_groups_v1 import (
     FOUNDATION_OBJECTIVE_SPECIALISTS,
     FOUNDATION_REQUIREMENT_PATTERNS,
-    REQUIRED_TRAINING_SPECIALISTS,
-    SPECIALIST_MODEL_CONTRACT,
+    SPECIALIST_CONTRACT_MODES,
     SPECIALIST_FUSION_ACTIVE_HEADS,
     SPECIALIST_FUSION_BLOCKED_HEADS,
     SPECIALIST_GROUPS,
     classify_entry_specialist_feature,
     group_features_by_specialist,
+    required_training_specialists_for_mode,
+    specialist_model_contract_for_mode,
 )
 from gx1.scripts.audit_entry_foundation_features_v1 import REQUIRED_FOUNDATION_OBJECTIVE_FEATURES
 from gx1.scripts.verify_entry_foundation_state_v1 import FOUNDATION_DATASET_DIR, REPORTS_ROOT, SEQ_STRUCTURE_MANIFEST
@@ -37,6 +38,8 @@ MIN_SIGNAL_COUNTS = {
     "vol_compression_encoder": 6,
     "momentum_flow_encoder": 3,
     "session_regime_encoder": 6,
+    "chart_geometry_encoder": 8,
+    "price_action_candle_encoder": 6,
 }
 
 MIN_LIVE_FEATURE_COUNTS = dict(MIN_SIGNAL_COUNTS)
@@ -143,6 +146,7 @@ def _specialist_input_liveness_rows(
     dataset_dir: Path,
     splits: list[str],
     signal_fields: list[str],
+    required_specialists: tuple[str, ...],
 ) -> list[dict[str, Any]]:
     groups_by_feature = [classify_entry_specialist_feature(feature) for feature in signal_fields]
     rows: list[dict[str, Any]] = []
@@ -153,7 +157,7 @@ def _specialist_input_liveness_rows(
             raise RuntimeError(
                 f"{split}: snap matrix shape {list(snap.shape)} does not match signal field count {len(signal_fields)}"
             )
-        for group in REQUIRED_TRAINING_SPECIALISTS:
+        for group in required_specialists:
             idx = [i for i, owner in enumerate(groups_by_feature) if owner == group]
             features = [signal_fields[i] for i in idx]
             arr = snap[:, idx] if idx else np.empty((snap.shape[0], 0), dtype=np.float32)
@@ -195,7 +199,11 @@ def _specialist_input_liveness_rows(
     return rows
 
 
-def _specialist_liveness_failures(rows: list[dict[str, Any]], splits: list[str]) -> list[str]:
+def _specialist_liveness_failures(
+    rows: list[dict[str, Any]],
+    splits: list[str],
+    required_specialists: tuple[str, ...],
+) -> list[str]:
     by_key = {
         (str(row.get("split")), str(row.get("specialist"))): row
         for row in rows
@@ -203,7 +211,7 @@ def _specialist_liveness_failures(rows: list[dict[str, Any]], splits: list[str])
     }
     failures: list[str] = []
     for split in splits:
-        for specialist in REQUIRED_TRAINING_SPECIALISTS:
+        for specialist in required_specialists:
             row = by_key.get((split, specialist))
             if row is None:
                 failures.append(f"{split}: specialist input liveness missing: {specialist}")
@@ -297,9 +305,12 @@ def _foundation_objective_routing_rows(selected_features: list[str]) -> list[dic
     return rows
 
 
-def _specialist_model_contract_failures(contract: dict[str, Any]) -> list[str]:
+def _specialist_model_contract_failures(
+    contract: dict[str, Any],
+    required_specialists: tuple[str, ...],
+) -> list[str]:
     failures: list[str] = []
-    required = set(REQUIRED_TRAINING_SPECIALISTS)
+    required = set(required_specialists)
     actual = set(contract)
     if actual != required:
         failures.append(
@@ -308,7 +319,7 @@ def _specialist_model_contract_failures(contract: dict[str, Any]) -> list[str]:
         )
     objective_owner: dict[str, str] = {}
     active_heads = set(SPECIALIST_FUSION_ACTIVE_HEADS)
-    for specialist in REQUIRED_TRAINING_SPECIALISTS:
+    for specialist in required_specialists:
         spec = contract.get(specialist) if isinstance(contract.get(specialist), dict) else {}
         if not str(spec.get("model_role") or ""):
             failures.append(f"{specialist}: specialist model contract missing model_role")
@@ -426,6 +437,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     out_dir = Path(args.out_dir).expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
     splits = _parse_csv(args.data_splits)
+    contract_mode = str(getattr(args, "contract_mode", "foundation_seq146") or "foundation_seq146").strip()
+    required_training_specialists = required_training_specialists_for_mode(contract_mode)
+    specialist_model_contract = specialist_model_contract_for_mode(contract_mode)
 
     failures: list[str] = []
     selected_features = _load_selected_features(seq_manifest_path)
@@ -455,7 +469,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     specialist_counts = _count_rows(signal_fields, selected_features)
     count_by_group = {row["specialist"]: int(row["signal_feature_count"]) for row in specialist_counts}
     selected_count_by_group = {row["specialist"]: int(row["selected_extension_count"]) for row in specialist_counts}
-    for group in REQUIRED_TRAINING_SPECIALISTS:
+    for group in required_training_specialists:
         min_count = int(MIN_SIGNAL_COUNTS.get(group, 1))
         if count_by_group.get(group, 0) < min_count:
             failures.append(f"{group}: signal feature count below minimum {min_count}: {count_by_group.get(group, 0)}")
@@ -463,8 +477,17 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         if selected_count_by_group.get(group, 0) <= 0:
             failures.append(f"{group}: no selected sequence-extension features assigned")
 
-    specialist_input_liveness = _specialist_input_liveness_rows(dataset_dir, splits, signal_fields)
-    specialist_input_liveness_failures = _specialist_liveness_failures(specialist_input_liveness, splits)
+    specialist_input_liveness = _specialist_input_liveness_rows(
+        dataset_dir,
+        splits,
+        signal_fields,
+        required_training_specialists,
+    )
+    specialist_input_liveness_failures = _specialist_liveness_failures(
+        specialist_input_liveness,
+        splits,
+        required_training_specialists,
+    )
     failures.extend(specialist_input_liveness_failures)
 
     foundation_rows = _foundation_requirement_rows(selected_features)
@@ -483,7 +506,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 f"foundation objective {row['objective']} not exactly routed to {row['expected_specialist']}: "
                 f"missing={row['missing_count']} misrouted={row['misrouted_count']}"
             )
-    specialist_model_contract_failures = _specialist_model_contract_failures(SPECIALIST_MODEL_CONTRACT)
+    specialist_model_contract_failures = _specialist_model_contract_failures(
+        specialist_model_contract,
+        required_training_specialists,
+    )
     failures.extend(specialist_model_contract_failures)
 
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
@@ -493,13 +519,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "decision": "PASS" if not failures else "FAIL",
         "dataset_dir": str(dataset_dir),
         "seq_structure_manifest": str(seq_manifest_path),
+        "contract_mode": contract_mode,
         "data_splits": splits,
         "signal_field_count": int(len(signal_fields)),
         "selected_feature_count": int(len(selected_features)),
         "selected_features_present_in_signal_count": int(len(selected_set & signal_set)),
-        "required_training_specialists": list(REQUIRED_TRAINING_SPECIALISTS),
+        "required_training_specialists": list(required_training_specialists),
         "specialist_groups": SPECIALIST_GROUPS,
-        "specialist_model_contract": SPECIALIST_MODEL_CONTRACT,
+        "specialist_model_contract": specialist_model_contract,
         "specialist_model_contract_valid": not specialist_model_contract_failures,
         "specialist_model_contract_failures": specialist_model_contract_failures,
         "specialist_counts": specialist_counts,
@@ -561,6 +588,7 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--seq-structure-manifest", default=str(SEQ_STRUCTURE_MANIFEST))
     ap.add_argument("--out-dir", default=str(DEFAULT_OUT_DIR))
     ap.add_argument("--data-splits", default="train,val,test")
+    ap.add_argument("--contract-mode", choices=SPECIALIST_CONTRACT_MODES, default="foundation_seq146")
     ap.add_argument("--fail-on-audit-fail", action=argparse.BooleanOptionalAction, default=True)
     ap.add_argument("--quiet", action="store_true")
     return ap

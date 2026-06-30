@@ -193,6 +193,7 @@ CMD=(
   --enable-mtf-direction-head
   --enable-specialist-fusion
   --specialist-audit-json "$SPECIALIST_AUDIT"
+  --specialist-contract-mode foundation_seq146
   --specialist-num-layers 1
   --specialist-fusion-scale 0.25
   --enable-tf-input-scale
@@ -305,6 +306,7 @@ from gx1.models.entry_v10.entry_v10_ctx_train_v3 import _load_specialist_fusion_
 trainer_indices, trainer_meta = _load_specialist_fusion_contract(
     Path(sys.argv[6]),
     expected_signal_dim=146,
+    contract_mode="foundation_seq146",
 )
 
 payload = {
