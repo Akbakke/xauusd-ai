@@ -671,6 +671,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     replay_trades = _read_csv_or_empty(replay_dir / "replay_policy_trades.csv")
     replay_manifest = _read_json(replay_dir / "REPLAY_EVIDENCE_MANIFEST.json") if (replay_dir / "REPLAY_EVIDENCE_MANIFEST.json").exists() else {}
     replay_identity = replay_manifest.get("replay_identity_contract") if isinstance(replay_manifest.get("replay_identity_contract"), dict) else {}
+    candidate_specialist_identity = (
+        replay_identity.get("candidate_specialist_contract")
+        if isinstance(replay_identity.get("candidate_specialist_contract"), dict)
+        else {}
+    )
+    selective_edge_specialist_identity = (
+        replay_identity.get("selective_edge_specialist_contract")
+        if isinstance(replay_identity.get("selective_edge_specialist_contract"), dict)
+        else {}
+    )
     evidence_identity = {
         "candidate_bundle_audit_json": str(candidate_bundle_audit_path),
         "selective_edge_summary_json": str(selective_summary_path),
@@ -684,6 +694,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "candidate_bundle_contract_mode": _contract_mode_from_bundle_audit(candidate_bundle_audit),
         "selective_edge_contract_mode": _normalize_contract_mode(selective_summary.get("contract_mode")),
         "replay_identity_contract_mode": _contract_mode_from_identity(replay_identity),
+        "candidate_specialist_contract": candidate_specialist_identity,
+        "selective_edge_specialist_contract": selective_edge_specialist_identity,
+        "candidate_specialist_contract_ready": bool(candidate_specialist_identity.get("ready")),
+        "selective_edge_specialist_contract_ready": bool(selective_edge_specialist_identity.get("ready")),
     }
     artifacts = {
         "candidate_readiness": str(candidate_readiness_path),

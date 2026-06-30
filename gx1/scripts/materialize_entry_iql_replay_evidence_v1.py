@@ -145,6 +145,11 @@ def _distillation_identity_contract(
         if isinstance(distillation_contract.get("replay_artifact_provenance_contract"), dict)
         else {}
     )
+    replay_specialist_identity = (
+        distillation_contract.get("replay_specialist_identity_contract")
+        if isinstance(distillation_contract.get("replay_specialist_identity_contract"), dict)
+        else {}
+    )
     failures: list[str] = []
     if str(distillation_contract.get("decision")) != REQUIRED_DECISION:
         failures.append(f"IQL distillation contract decision is not ready: {distillation_contract.get('decision')}")
@@ -160,6 +165,8 @@ def _distillation_identity_contract(
         failures.append("IQL distillation contract did not preserve candidate bundle specialist model contract provenance")
     if not bool(replay_artifact_provenance.get("ok")):
         failures.append("IQL distillation contract did not preserve replay artifact provenance")
+    if not bool(replay_specialist_identity.get("ok")):
+        failures.append("IQL distillation contract did not preserve replay specialist identity")
     if bool(distillation_contract.get("promotion_shadow_live_allowed")) is not False:
         failures.append("IQL distillation contract does not block promotion/shadow/live")
     if not identity:
@@ -195,6 +202,20 @@ def _distillation_identity_contract(
             )
         if not bool(candidate_replay_identity.get("ready")):
             failures.append("candidate replay evidence manifest identity contract is not ready")
+        candidate_specialist = (
+            candidate_replay_identity.get("candidate_specialist_contract")
+            if isinstance(candidate_replay_identity.get("candidate_specialist_contract"), dict)
+            else {}
+        )
+        selective_specialist = (
+            candidate_replay_identity.get("selective_edge_specialist_contract")
+            if isinstance(candidate_replay_identity.get("selective_edge_specialist_contract"), dict)
+            else {}
+        )
+        if not bool(candidate_specialist.get("ready")):
+            failures.append("candidate replay evidence manifest candidate specialist identity is not ready")
+        if not bool(selective_specialist.get("ready")):
+            failures.append("candidate replay evidence manifest selective-edge specialist identity is not ready")
         candidate_replay_bundle_dir = str(candidate_replay_identity.get("candidate_bundle_dir") or "")
         if candidate_bundle_dir and candidate_replay_bundle_dir != candidate_bundle_dir:
             failures.append(
@@ -222,6 +243,7 @@ def _distillation_identity_contract(
         "specialist_model_provenance_contract": specialist_model_provenance,
         "bundle_specialist_model_provenance_contract": bundle_specialist_model_provenance,
         "replay_artifact_provenance_contract": replay_artifact_provenance,
+        "replay_specialist_identity_contract": replay_specialist_identity,
         "distillation_artifact_hash_contract": artifact_hash_contract,
         "failures": failures,
     }

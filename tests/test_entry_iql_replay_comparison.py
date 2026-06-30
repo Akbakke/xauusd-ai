@@ -11,6 +11,14 @@ CANDIDATE_BUNDLE_DIR = "/tmp/candidate_bundle"
 CANDIDATE_REPLAY_MANIFEST_JSON = "/tmp/candidate/REPLAY_EVIDENCE_MANIFEST.json"
 IQL_REPLAY_MANIFEST_JSON = "/tmp/iql/REPLAY_EVIDENCE_MANIFEST.json"
 DISTILLATION_CONTRACT_JSON = "/tmp/distill.json"
+BASE_SPECIALIST_GROUPS = [
+    "structure_swing_encoder",
+    "smc_liquidity_encoder",
+    "trend_ema_encoder",
+    "vol_compression_encoder",
+    "momentum_flow_encoder",
+    "session_regime_encoder",
+]
 
 
 def _metrics(net: float, pf: float, dd: float, loss: float, trades: int = 10) -> pd.DataFrame:
@@ -49,17 +57,55 @@ def _write_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload), encoding="utf-8")
 
 
+def _candidate_specialist_identity(contract_mode: str = "foundation_seq146") -> dict:
+    groups = list(BASE_SPECIALIST_GROUPS)
+    if contract_mode == "challenger_seq215":
+        groups.extend(["chart_geometry_encoder", "price_action_candle_encoder"])
+    return {
+        "ready": True,
+        "contract_mode": contract_mode,
+        "bundle_specialist_groups": groups,
+        "failures": [],
+    }
+
+
+def _selective_specialist_identity(contract_mode: str = "foundation_seq146") -> dict:
+    groups = _candidate_specialist_identity(contract_mode)["bundle_specialist_groups"]
+    return {
+        "ready": True,
+        "contract_mode": contract_mode,
+        "candidate_bundle_specialist_contract": {"observed_specialists": groups},
+        "failures": [],
+    }
+
+
+def _replay_specialist_identity_contract(contract_mode: str = "foundation_seq146") -> dict:
+    return {
+        "ok": True,
+        "contract_mode": contract_mode,
+        "candidate_specialist_contract": _candidate_specialist_identity(contract_mode),
+        "selective_edge_specialist_contract": _selective_specialist_identity(contract_mode),
+        "failures": [],
+    }
+
+
 def _evidence_identity(
     bundle_dir: str = CANDIDATE_BUNDLE_DIR,
     candidate_replay_manifest_json: str = CANDIDATE_REPLAY_MANIFEST_JSON,
+    contract_mode: str = "foundation_seq146",
 ) -> dict:
     return {
+        "contract_mode": contract_mode,
         "replay_evidence_manifest_json": candidate_replay_manifest_json,
         "candidate_bundle_dir": bundle_dir,
         "selective_edge_bundle_dir": bundle_dir,
         "replay_identity_candidate_bundle_dir": bundle_dir,
         "no_xgb_bundle_dir": "/tmp/no_xgb_bundle",
         "replay_identity_ready": True,
+        "candidate_specialist_contract": _candidate_specialist_identity(contract_mode),
+        "selective_edge_specialist_contract": _selective_specialist_identity(contract_mode),
+        "candidate_specialist_contract_ready": True,
+        "selective_edge_specialist_contract_ready": True,
     }
 
 
@@ -131,6 +177,7 @@ def _distill_contract(
             "gate_decision": "PASS",
             "failures": [],
         },
+        "replay_specialist_identity_contract": _replay_specialist_identity_contract(),
         "evidence_identity": _evidence_identity(bundle_dir, candidate_replay_manifest_json),
     }
 
@@ -146,11 +193,16 @@ def _replay_manifest(
         "distillation_contract_json": distillation_contract_json,
         "replay_identity_contract": {
             "ready": True,
+            "contract_mode": "foundation_seq146",
             "candidate_bundle_dir": bundle_dir,
             "candidate_replay_evidence_manifest_json": candidate_replay_manifest_json,
             "distillation_contract_json": distillation_contract_json,
             "distillation_artifact_hash_contract": {"ready": True, "failures": []},
+            "candidate_specialist_contract": _candidate_specialist_identity(),
+            "selective_edge_specialist_contract": _selective_specialist_identity(),
+            "replay_specialist_identity_contract": _replay_specialist_identity_contract(),
         },
+        "replay_specialist_identity_contract": _replay_specialist_identity_contract(),
     }
 
 
@@ -538,6 +590,9 @@ def test_iql_replay_comparison_current_artifacts_not_ready(tmp_path: Path) -> No
             "IQL replay metrics have rows",
             "IQL replay net sum beats candidate",
             "IQL replay manifest is PASS",
+            "IQL distillation contract preserved replay specialist identity",
+            "candidate replay manifest preserves specialist identity",
+            "IQL replay manifest preserves replay specialist identity",
         } & failed
     else:
         assert report["failures"] == []

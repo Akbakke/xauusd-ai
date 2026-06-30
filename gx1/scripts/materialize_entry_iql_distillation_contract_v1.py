@@ -180,6 +180,76 @@ def _identity_checks(replay_readiness: dict[str, Any]) -> list[dict[str, Any]]:
     ]
 
 
+def _replay_specialist_identity_contract(
+    replay_readiness: dict[str, Any],
+    artifact_paths: dict[str, str],
+) -> dict[str, Any]:
+    evidence_identity = (
+        replay_readiness.get("evidence_identity")
+        if isinstance(replay_readiness.get("evidence_identity"), dict)
+        else {}
+    )
+    replay_manifest_path = Path(str(artifact_paths.get("candidate_replay_manifest") or "")).expanduser()
+    replay_manifest = _read_json(replay_manifest_path) if replay_manifest_path.is_file() else {}
+    replay_identity = (
+        replay_manifest.get("replay_identity_contract")
+        if isinstance(replay_manifest.get("replay_identity_contract"), dict)
+        else {}
+    )
+    candidate_specialist = (
+        evidence_identity.get("candidate_specialist_contract")
+        if isinstance(evidence_identity.get("candidate_specialist_contract"), dict)
+        else replay_identity.get("candidate_specialist_contract")
+        if isinstance(replay_identity.get("candidate_specialist_contract"), dict)
+        else {}
+    )
+    selective_specialist = (
+        evidence_identity.get("selective_edge_specialist_contract")
+        if isinstance(evidence_identity.get("selective_edge_specialist_contract"), dict)
+        else replay_identity.get("selective_edge_specialist_contract")
+        if isinstance(replay_identity.get("selective_edge_specialist_contract"), dict)
+        else {}
+    )
+    contract_mode = str(replay_readiness.get("contract_mode") or evidence_identity.get("contract_mode") or "foundation_seq146")
+    failures: list[str] = []
+
+    if not bool(candidate_specialist.get("ready")):
+        failures.append("candidate replay specialist identity is not ready")
+    if not bool(selective_specialist.get("ready")):
+        failures.append("selective-edge replay specialist identity is not ready")
+    for label, payload in (
+        ("candidate", candidate_specialist),
+        ("selective-edge", selective_specialist),
+    ):
+        observed_mode = str(payload.get("contract_mode") or "").strip()
+        if observed_mode and observed_mode != contract_mode:
+            failures.append(f"{label} specialist identity contract mode mismatch: {observed_mode} != {contract_mode}")
+        if payload.get("failures"):
+            failures.append(f"{label} specialist identity has failures: {payload.get('failures')}")
+    if contract_mode == "challenger_seq215":
+        candidate_groups = set(str(x) for x in candidate_specialist.get("bundle_specialist_groups", []) if str(x))
+        selective_candidate = (
+            selective_specialist.get("candidate_bundle_specialist_contract")
+            if isinstance(selective_specialist.get("candidate_bundle_specialist_contract"), dict)
+            else {}
+        )
+        selective_observed = set(str(x) for x in selective_candidate.get("observed_specialists", []) if str(x))
+        for required in ("chart_geometry_encoder", "price_action_candle_encoder"):
+            if required not in candidate_groups:
+                failures.append(f"candidate replay specialist identity missing {required}")
+            if required not in selective_observed:
+                failures.append(f"selective-edge replay specialist identity missing {required}")
+
+    return {
+        "ok": not failures,
+        "contract_mode": contract_mode,
+        "candidate_replay_manifest_json": str(replay_manifest_path),
+        "candidate_specialist_contract": candidate_specialist,
+        "selective_edge_specialist_contract": selective_specialist,
+        "failures": failures,
+    }
+
+
 def _replay_readiness_check(
     replay_readiness: dict[str, Any],
     *,
@@ -440,6 +510,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         artifact_paths,
         artifact_sha256,
     )
+    replay_specialist_identity = _replay_specialist_identity_contract(replay_readiness, artifact_paths)
 
     checks = [
         _check(
@@ -510,6 +581,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             bool(replay_artifact_provenance.get("ok")),
             replay_artifact_provenance,
         ),
+        _check(
+            "replay-readiness preserved replay specialist identity",
+            bool(replay_specialist_identity.get("ok")),
+            replay_specialist_identity,
+        ),
         *_identity_checks(replay_readiness),
         _check("contract never trains a model", True),
         _check("contract never writes production adapter", True),
@@ -555,6 +631,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "specialist_model_provenance_contract": specialist_model_provenance,
         "bundle_specialist_model_provenance_contract": bundle_specialist_model_provenance,
         "replay_artifact_provenance_contract": replay_artifact_provenance,
+        "replay_specialist_identity_contract": replay_specialist_identity,
         "artifact_paths": artifact_paths,
         "artifact_sha256": artifact_sha256,
         "artifact_hash_checks": artifact_hash_checks,

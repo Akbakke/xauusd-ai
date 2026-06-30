@@ -163,6 +163,11 @@ def build_comparison_checks(
         if isinstance(distill_contract.get("replay_artifact_provenance_contract"), dict)
         else {}
     )
+    replay_specialist_identity = (
+        distill_contract.get("replay_specialist_identity_contract")
+        if isinstance(distill_contract.get("replay_specialist_identity_contract"), dict)
+        else {}
+    )
     contract_bundle_dir = _identity_bundle_dir(evidence_identity)
     contract_mode = str(distill_contract.get("contract_mode") or evidence_identity.get("contract_mode") or "foundation_seq146")
     contract_selective_bundle_dir = str(evidence_identity.get("selective_edge_bundle_dir") or "")
@@ -183,6 +188,23 @@ def build_comparison_checks(
     iql_manifest_bundle_dir = _identity_bundle_dir(iql_manifest_identity)
     candidate_manifest_contract_mode = str(candidate_manifest_identity.get("contract_mode") or contract_mode)
     iql_manifest_contract_mode = str(iql_manifest_identity.get("contract_mode") or contract_mode)
+    candidate_manifest_candidate_specialist = (
+        candidate_manifest_identity.get("candidate_specialist_contract")
+        if isinstance(candidate_manifest_identity.get("candidate_specialist_contract"), dict)
+        else {}
+    )
+    candidate_manifest_selective_specialist = (
+        candidate_manifest_identity.get("selective_edge_specialist_contract")
+        if isinstance(candidate_manifest_identity.get("selective_edge_specialist_contract"), dict)
+        else {}
+    )
+    iql_manifest_replay_specialist = (
+        iql_manifest_identity.get("replay_specialist_identity_contract")
+        if isinstance(iql_manifest_identity.get("replay_specialist_identity_contract"), dict)
+        else iql_replay_manifest.get("replay_specialist_identity_contract")
+        if isinstance(iql_replay_manifest.get("replay_specialist_identity_contract"), dict)
+        else {}
+    )
     iql_manifest_distillation_contract_json = _normal_path_string(
         iql_replay_manifest.get("distillation_contract_json")
         or iql_manifest_identity.get("distillation_contract_json")
@@ -220,6 +242,10 @@ def build_comparison_checks(
         "specialist_model_provenance_contract": specialist_model_provenance,
         "bundle_specialist_model_provenance_contract": bundle_specialist_model_provenance,
         "replay_artifact_provenance_contract": replay_artifact_provenance,
+        "replay_specialist_identity_contract": replay_specialist_identity,
+        "candidate_replay_candidate_specialist_contract": candidate_manifest_candidate_specialist,
+        "candidate_replay_selective_edge_specialist_contract": candidate_manifest_selective_specialist,
+        "iql_replay_specialist_identity_contract": iql_manifest_replay_specialist,
     }
     checks = [
         _check(
@@ -260,6 +286,11 @@ def build_comparison_checks(
             "IQL distillation contract preserved replay artifact provenance",
             bool(replay_artifact_provenance.get("ok")),
             {"replay_artifact_provenance_contract": replay_artifact_provenance},
+        ),
+        _check(
+            "IQL distillation contract preserved replay specialist identity",
+            bool(replay_specialist_identity.get("ok")),
+            {"replay_specialist_identity_contract": replay_specialist_identity},
         ),
         _check(
             "IQL distillation contract carries evidence identity",
@@ -308,6 +339,15 @@ def build_comparison_checks(
             {"candidate_replay_identity": candidate_manifest_identity},
         ),
         _check(
+            "candidate replay manifest preserves specialist identity",
+            bool(candidate_manifest_candidate_specialist.get("ready"))
+            and bool(candidate_manifest_selective_specialist.get("ready")),
+            {
+                "candidate_specialist_contract": candidate_manifest_candidate_specialist,
+                "selective_edge_specialist_contract": candidate_manifest_selective_specialist,
+            },
+        ),
+        _check(
             "candidate replay manifest evidence identity matches distillation contract",
             bool(contract_bundle_dir) and candidate_manifest_bundle_dir == contract_bundle_dir,
             {
@@ -337,6 +377,11 @@ def build_comparison_checks(
             "IQL replay manifest evidence identity is ready",
             _identity_ready(iql_manifest_identity),
             {"iql_replay_identity": iql_manifest_identity},
+        ),
+        _check(
+            "IQL replay manifest preserves replay specialist identity",
+            bool(iql_manifest_replay_specialist.get("ok")),
+            {"replay_specialist_identity_contract": iql_manifest_replay_specialist},
         ),
         _check(
             "IQL replay manifest validated distillation artifact hashes",

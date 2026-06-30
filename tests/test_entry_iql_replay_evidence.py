@@ -14,6 +14,14 @@ from gx1.scripts.verify_entry_iql_replay_comparison_v1 import run as run_iql_com
 
 
 CANDIDATE_BUNDLE_DIR = "/tmp/candidate_bundle"
+BASE_SPECIALIST_GROUPS = [
+    "structure_swing_encoder",
+    "smc_liquidity_encoder",
+    "trend_ema_encoder",
+    "vol_compression_encoder",
+    "momentum_flow_encoder",
+    "session_regime_encoder",
+]
 
 
 def _raw_trades(net_values: list[float], *, policy_id: str) -> pd.DataFrame:
@@ -57,18 +65,129 @@ def _write_text_if_missing(path: Path, text: str) -> None:
         path.write_text(text, encoding="utf-8")
 
 
+def _candidate_specialist_identity(contract_mode: str = "foundation_seq146") -> dict:
+    groups = list(BASE_SPECIALIST_GROUPS)
+    if contract_mode == "challenger_seq215":
+        groups.extend(["chart_geometry_encoder", "price_action_candle_encoder"])
+    return {
+        "ready": True,
+        "contract_mode": contract_mode,
+        "bundle_specialist_groups": groups,
+        "failures": [],
+    }
+
+
+def _selective_specialist_identity(contract_mode: str = "foundation_seq146") -> dict:
+    groups = _candidate_specialist_identity(contract_mode)["bundle_specialist_groups"]
+    return {
+        "ready": True,
+        "contract_mode": contract_mode,
+        "candidate_bundle_specialist_contract": {"observed_specialists": groups},
+        "failures": [],
+    }
+
+
+def _replay_specialist_identity_contract(contract_mode: str = "foundation_seq146") -> dict:
+    return {
+        "ok": True,
+        "contract_mode": contract_mode,
+        "candidate_specialist_contract": _candidate_specialist_identity(contract_mode),
+        "selective_edge_specialist_contract": _selective_specialist_identity(contract_mode),
+        "failures": [],
+    }
+
+
+def _replay_identity_contract(
+    *,
+    bundle_dir: str = CANDIDATE_BUNDLE_DIR,
+    contract_mode: str = "foundation_seq146",
+) -> dict:
+    return {
+        "ready": True,
+        "contract_mode": contract_mode,
+        "candidate_bundle_dir": bundle_dir,
+        "candidate_specialist_contract": _candidate_specialist_identity(contract_mode),
+        "selective_edge_specialist_contract": _selective_specialist_identity(contract_mode),
+    }
+
+
+def _specialist_snapshot(contract_mode: str = "foundation_seq146") -> dict:
+    groups = _candidate_specialist_identity(contract_mode)["bundle_specialist_groups"]
+    dim = 215 if contract_mode == "challenger_seq215" else 146
+    return {
+        "requested_contract_mode": contract_mode,
+        "expected_signal_dim": dim,
+        "bundle_seq_input_dim": dim,
+        "bundle_snap_input_dim": dim,
+        "expected_specialists": groups,
+        "observed_specialists": groups,
+        "specialist_fusion_enabled": True,
+        "required_specialists_exact": True,
+        "specialist_model_contract_valid": True,
+        "specialist_model_contract_set_exact": True,
+        "specialist_model_contract_owned_objectives_match": True,
+        "specialist_model_contract_signal_families_match": True,
+        "specialist_model_contract_support_heads_match": True,
+        "specialist_model_contract_model_roles_match": True,
+        "failures": [],
+    }
+
+
+def _candidate_audit_payload(contract_mode: str = "foundation_seq146") -> dict:
+    groups = _candidate_specialist_identity(contract_mode)["bundle_specialist_groups"]
+    dim = 215 if contract_mode == "challenger_seq215" else 146
+    return {
+        "decision": "PASS",
+        "contract_mode": contract_mode,
+        "specialist_contract_mode": contract_mode,
+        "bundle_dir": CANDIDATE_BUNDLE_DIR,
+        "required_training_specialists": groups,
+        "bundle_summary": {
+            "contract_mode": contract_mode,
+            "specialist_contract_mode": contract_mode,
+            "seq_input_dim": dim,
+            "snap_input_dim": dim,
+            "specialist_groups": groups,
+            "specialist_fusion_enabled": True,
+            "specialist_model_contract_valid": True,
+            "specialist_model_contract_set_exact": True,
+            "specialist_model_contract_owned_objectives_match": True,
+            "specialist_model_contract_support_heads_match": True,
+            "specialist_model_contract_signal_families_match": True,
+            "specialist_model_contract_model_roles_match": True,
+        },
+        "bundle_specialist_model_contract": {
+            "valid": True,
+            "set_exact": True,
+            "owned_objectives_match": True,
+            "support_heads_match": True,
+            "signal_families_match": True,
+            "model_roles_match": True,
+            "failures": [],
+        },
+    }
+
+
+def _selective_summary_payload(contract_mode: str = "foundation_seq146") -> dict:
+    dim = 215 if contract_mode == "challenger_seq215" else 146
+    snapshot = _specialist_snapshot(contract_mode)
+    return {
+        "decision": "PASS",
+        "contract_mode": contract_mode,
+        "bundle_dir": CANDIDATE_BUNDLE_DIR,
+        "no_xgb_bundle_dir": "/tmp/candidate_no_xgb",
+        "bundle_seq_input_dim": dim,
+        "bundle_snap_input_dim": dim,
+        "bundle_specialist_contract": snapshot,
+        "no_xgb_bundle_specialist_contract": snapshot,
+    }
+
+
 def _write_candidate_identity_artifacts(tmp_path: Path) -> tuple[Path, Path]:
     candidate_audit = tmp_path / "candidate_audit.json"
     selective_summary = tmp_path / "selective_summary.json"
-    _write_json(candidate_audit, {"decision": "PASS", "bundle_dir": CANDIDATE_BUNDLE_DIR})
-    _write_json(
-        selective_summary,
-        {
-            "decision": "PASS",
-            "bundle_dir": CANDIDATE_BUNDLE_DIR,
-            "no_xgb_bundle_dir": "/tmp/candidate_no_xgb",
-        },
-    )
+    _write_json(candidate_audit, _candidate_audit_payload())
+    _write_json(selective_summary, _selective_summary_payload())
     return candidate_audit, selective_summary
 
 
@@ -77,20 +196,14 @@ def _write_distillation_contract(path: Path, *, ready: bool = True) -> None:
     candidate_replay_dir = root / "candidate"
     candidate_replay_manifest = candidate_replay_dir / "REPLAY_EVIDENCE_MANIFEST.json"
     _write_json_if_missing(root / "candidate_readiness.json", {"decision": "READY_FOR_CANDIDATE_TRAINING_VEDTAK"})
-    _write_json_if_missing(root / "candidate_audit.json", {"decision": "PASS", "bundle_dir": CANDIDATE_BUNDLE_DIR})
-    _write_json_if_missing(
-        root / "selective_summary.json",
-        {"decision": "PASS", "bundle_dir": CANDIDATE_BUNDLE_DIR, "no_xgb_bundle_dir": "/tmp/candidate_no_xgb"},
-    )
+    _write_json_if_missing(root / "candidate_audit.json", _candidate_audit_payload())
+    _write_json_if_missing(root / "selective_summary.json", _selective_summary_payload())
     _write_text_if_missing(root / "selective_metrics.csv", "split,model\nval,candidate\n")
     _write_json_if_missing(
         candidate_replay_manifest,
         {
             "decision": "PASS",
-            "replay_identity_contract": {
-                "ready": True,
-                "candidate_bundle_dir": CANDIDATE_BUNDLE_DIR,
-            },
+            "replay_identity_contract": _replay_identity_contract(),
         },
     )
     _write_text_if_missing(
@@ -194,6 +307,7 @@ def _write_distillation_contract(path: Path, *, ready: bool = True) -> None:
                 "gate_decision": "PASS",
                 "failures": [],
             },
+            "replay_specialist_identity_contract": _replay_specialist_identity_contract(),
             "artifact_paths": artifact_paths,
             "artifact_sha256": {
                 key: _sha256_file(Path(artifact_paths[key])) for key in IQL_DISTILLATION_REQUIRED_ARTIFACT_KEYS
@@ -207,6 +321,10 @@ def _write_distillation_contract(path: Path, *, ready: bool = True) -> None:
                 "replay_identity_candidate_bundle_dir": CANDIDATE_BUNDLE_DIR,
                 "no_xgb_bundle_dir": "/tmp/candidate_no_xgb",
                 "replay_identity_ready": True,
+                "candidate_specialist_contract": _candidate_specialist_identity(),
+                "selective_edge_specialist_contract": _selective_specialist_identity(),
+                "candidate_specialist_contract_ready": True,
+                "selective_edge_specialist_contract_ready": True,
             },
         },
     )
@@ -218,10 +336,7 @@ def _write_candidate_replay_manifest(tmp_path: Path) -> Path:
         manifest,
         {
             "decision": "PASS",
-            "replay_identity_contract": {
-                "ready": True,
-                "candidate_bundle_dir": CANDIDATE_BUNDLE_DIR,
-            },
+            "replay_identity_contract": _replay_identity_contract(),
         },
     )
     return manifest

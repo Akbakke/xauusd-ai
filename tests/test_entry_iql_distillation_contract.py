@@ -87,6 +87,52 @@ def _fingerprint(path: Path) -> dict:
     }
 
 
+BASE_SPECIALIST_GROUPS = [
+    "structure_swing_encoder",
+    "smc_liquidity_encoder",
+    "trend_ema_encoder",
+    "vol_compression_encoder",
+    "momentum_flow_encoder",
+    "session_regime_encoder",
+]
+
+
+def _candidate_specialist_identity(contract_mode: str = "foundation_seq146") -> dict:
+    groups = list(BASE_SPECIALIST_GROUPS)
+    if contract_mode == "challenger_seq215":
+        groups.extend(["chart_geometry_encoder", "price_action_candle_encoder"])
+    return {
+        "ready": True,
+        "contract_mode": contract_mode,
+        "bundle_specialist_groups": groups,
+        "failures": [],
+    }
+
+
+def _selective_specialist_identity(contract_mode: str = "foundation_seq146") -> dict:
+    groups = _candidate_specialist_identity(contract_mode)["bundle_specialist_groups"]
+    return {
+        "ready": True,
+        "contract_mode": contract_mode,
+        "candidate_bundle_specialist_contract": {"observed_specialists": groups},
+        "failures": [],
+    }
+
+
+def _replay_identity_contract(
+    *,
+    bundle_dir: str = "/tmp/candidate_bundle",
+    contract_mode: str = "foundation_seq146",
+) -> dict:
+    return {
+        "ready": True,
+        "contract_mode": contract_mode,
+        "candidate_bundle_dir": bundle_dir,
+        "candidate_specialist_contract": _candidate_specialist_identity(contract_mode),
+        "selective_edge_specialist_contract": _selective_specialist_identity(contract_mode),
+    }
+
+
 def _replay_artifact_fingerprints(
     *,
     candidate: Path,
@@ -157,10 +203,7 @@ def test_iql_distillation_contract_opens_on_replay_ready_contract(tmp_path: Path
         replay_manifest,
         {
             "decision": "PASS",
-            "replay_identity_contract": {
-                "ready": True,
-                "candidate_bundle_dir": "/tmp/candidate_bundle",
-            },
+            "replay_identity_contract": _replay_identity_contract(),
         },
     )
     ready = tmp_path / "ENTRY_REPLAY_READINESS_latest.json"
@@ -192,6 +235,10 @@ def test_iql_distillation_contract_opens_on_replay_ready_contract(tmp_path: Path
                 "replay_identity_candidate_bundle_dir": "/tmp/candidate_bundle",
                 "no_xgb_bundle_dir": "/tmp/no_xgb_bundle",
                 "replay_identity_ready": True,
+                "candidate_specialist_contract": _candidate_specialist_identity(),
+                "selective_edge_specialist_contract": _selective_specialist_identity(),
+                "candidate_specialist_contract_ready": True,
+                "selective_edge_specialist_contract_ready": True,
             },
             "artifact_fingerprints": replay_fingerprints,
             "gates": [
@@ -220,6 +267,7 @@ def test_iql_distillation_contract_opens_on_replay_ready_contract(tmp_path: Path
     assert set(IQL_DISTILLATION_REQUIRED_ARTIFACT_KEYS).issubset(report["artifact_sha256"])
     assert all(row["ok"] for row in report["artifact_hash_checks"].values())
     assert report["replay_artifact_provenance_contract"]["ok"] is True
+    assert report["replay_specialist_identity_contract"]["ok"] is True
     assert report["smoke_dataset_provenance_contract"]["ok"] is True
     assert report["specialist_set_provenance_contract"]["ok"] is True
     assert report["specialist_model_provenance_contract"]["ok"] is True
@@ -263,10 +311,7 @@ def test_iql_distillation_contract_rejects_missing_pretrain_provenance_gate(tmp_
         replay_manifest,
         {
             "decision": "PASS",
-            "replay_identity_contract": {
-                "ready": True,
-                "candidate_bundle_dir": "/tmp/candidate_bundle",
-            },
+            "replay_identity_contract": _replay_identity_contract(),
         },
     )
     ready = tmp_path / "ENTRY_REPLAY_READINESS_latest.json"
@@ -309,6 +354,10 @@ def test_iql_distillation_contract_rejects_missing_pretrain_provenance_gate(tmp_
                 "replay_identity_candidate_bundle_dir": "/tmp/candidate_bundle",
                 "no_xgb_bundle_dir": "/tmp/no_xgb_bundle",
                 "replay_identity_ready": True,
+                "candidate_specialist_contract": _candidate_specialist_identity(),
+                "selective_edge_specialist_contract": _selective_specialist_identity(),
+                "candidate_specialist_contract_ready": True,
+                "selective_edge_specialist_contract_ready": True,
             },
             "artifact_fingerprints": replay_fingerprints,
             "gates": [
@@ -368,10 +417,7 @@ def test_iql_distillation_contract_rejects_missing_specialist_model_contract(tmp
         replay_manifest,
         {
             "decision": "PASS",
-            "replay_identity_contract": {
-                "ready": True,
-                "candidate_bundle_dir": "/tmp/candidate_bundle",
-            },
+            "replay_identity_contract": _replay_identity_contract(),
         },
     )
     ready = tmp_path / "ENTRY_REPLAY_READINESS_latest.json"
@@ -411,6 +457,10 @@ def test_iql_distillation_contract_rejects_missing_specialist_model_contract(tmp
                 "replay_identity_candidate_bundle_dir": "/tmp/candidate_bundle",
                 "no_xgb_bundle_dir": "/tmp/no_xgb_bundle",
                 "replay_identity_ready": True,
+                "candidate_specialist_contract": _candidate_specialist_identity(),
+                "selective_edge_specialist_contract": _selective_specialist_identity(),
+                "candidate_specialist_contract_ready": True,
+                "selective_edge_specialist_contract_ready": True,
             },
             "artifact_fingerprints": replay_fingerprints,
             "gates": [
@@ -468,7 +518,7 @@ def test_iql_distillation_contract_rejects_missing_bundle_specialist_model_contr
     )
     _write_json(
         replay_manifest,
-        {"decision": "PASS", "replay_identity_contract": {"ready": True, "candidate_bundle_dir": "/tmp/candidate_bundle"}},
+        {"decision": "PASS", "replay_identity_contract": _replay_identity_contract()},
     )
     ready = tmp_path / "ENTRY_REPLAY_READINESS_latest.json"
     replay_fingerprints = _replay_artifact_fingerprints(
@@ -504,6 +554,10 @@ def test_iql_distillation_contract_rejects_missing_bundle_specialist_model_contr
                 "replay_identity_candidate_bundle_dir": "/tmp/candidate_bundle",
                 "no_xgb_bundle_dir": "/tmp/no_xgb_bundle",
                 "replay_identity_ready": True,
+                "candidate_specialist_contract": _candidate_specialist_identity(),
+                "selective_edge_specialist_contract": _selective_specialist_identity(),
+                "candidate_specialist_contract_ready": True,
+                "selective_edge_specialist_contract_ready": True,
             },
             "artifact_fingerprints": replay_fingerprints,
             "gates": [
