@@ -1,14 +1,26 @@
 # Entry Sequential AI Specialist Blueprint
 
-Status: machine-audited feature grouping contract exists. Do not promote from
-this until smoke training, replay and explicit promotion gates pass.
+Status: machine-audited feature grouping contracts exist. The active canonical
+Entry foundation remains `foundation_seq146`, and `train-readiness` is green
+for a vedtak-gated smoke run. The `challenger_seq215` path is now an audited
+8-specialist challenger contract, but it is not candidate/replay/IQL evidence
+until its own real smoke train and post-smoke edge audit pass. Do not promote
+from either path until smoke training, replay and explicit promotion gates pass.
 
 Machine contract:
 
 - Registry: `gx1/features/entry_specialist_feature_groups_v1.py`
   - `SPECIALIST_MODEL_CONTRACT` is the machine-readable role contract for the
-    six trainable specialist AIs: owned roadmap objectives, primary signal
-    families and supported active heads.
+    six `foundation_seq146` trainable specialist AIs: owned roadmap objectives,
+    primary signal families and supported active heads.
+  - `CHALLENGER_SEQ215_SPECIALIST_MODEL_CONTRACT` is the machine-readable role
+    contract for the eight `challenger_seq215` trainable specialist AIs. It
+    extends the six foundation specialists with `chart_geometry_encoder` and
+    `price_action_candle_encoder`.
+  - `specialist_model_contract_for_mode()` and
+    `required_training_specialists_for_mode()` are the authority. Documentation,
+    wrappers, audits and bundle metadata must name the active contract mode
+    instead of assuming the six-specialist base contract.
 - Audit: `gx1/scripts/audit_entry_specialist_feature_groups_v1.py`
   - The audit writes `specialist_model_contract`,
     `specialist_model_contract_valid` and
@@ -16,7 +28,8 @@ Machine contract:
 - Post-smoke bundle audit:
   `gx1/scripts/audit_entry_foundation_smoke_bundle_v1.py`
   - Must validate both the pre-train manifest specialist model contract and the
-    trained bundle metadata's preserved `bundle_specialist_model_contract`.
+    trained bundle metadata's preserved `bundle_specialist_model_contract` for
+    the declared contract mode.
 - Train-readiness gate:
   `gx1/scripts/verify_entry_training_readiness_v1.py`
 - Worktree-hygiene gate:
@@ -26,6 +39,10 @@ Machine contract:
     gates and their tests.
 - Candidate-readiness gate:
   `gx1/scripts/verify_entry_candidate_readiness_v1.py`
+  - Supports `foundation_seq146` and `challenger_seq215`. The seq215 report
+    lives under `entry_candidate_readiness_20260628_v1/challenger_seq215_20260630`
+    and must remain `NOT_READY_FOR_CANDIDATE_TRAINING` until the matching
+    seq215 smoke bundle edge audit exists and passes.
 - Candidate-train wrapper:
   `scripts/run_entry_foundation_seq146_candidate_train.sh`
 - Candidate selective-edge evaluator:
@@ -198,19 +215,32 @@ Use one shared 96-bar M5 timeline and separate encoders by feature family:
   regime, spread bucket and session x structure interactions.
 - `chart_geometry_encoder`: challenger specialist for numeric trendlines,
   support/resistance channels, Fibonacci pullback/extension zones, EMA-cross
-  pressure and chart-pattern proxies. This is not trainable in the current
-  six-specialist contract until a new dataset rebuild, specialist audit and
-  train-readiness gate explicitly include it.
-- `price_action_candle_encoder`: body/wick/range shape that is not already
-  assigned to liquidity/structure.
+  pressure and chart-pattern proxies. This is excluded from the active
+  `foundation_seq146` contract, but included as a trainable specialist in the
+  gated `challenger_seq215` contract after the seq215 rebuild and specialist
+  audit.
+- `price_action_candle_encoder`: body/wick/range shape, doji/indecision,
+  hammer/shooting-star rejection, engulfing/two-candle reversal, inside/outside
+  bars and three-candle continuation/reversal pressure that is not already
+  assigned to liquidity/structure. This is excluded from active
+  `foundation_seq146`, but included in gated `challenger_seq215`.
 - `neutral_bridge_anchor`: allowlisted neutral XGB bridge fields only; keep as
   explicit priors until a new bridge is approved.
 
-Only the six required training specialists above `chart_geometry_encoder` are
-trainable in the current fusion contract. `chart_geometry_encoder`,
-`price_action_candle_encoder`, `neutral_bridge_anchor` and `unmapped` stay
-excluded from trainable specialist indices until they have their own liveness
-and role gates.
+The trainable specialist set is selected by `specialist_contract_mode`:
+
+- `foundation_seq146`: the six base specialists
+  `structure_swing_encoder`, `smc_liquidity_encoder`, `trend_ema_encoder`,
+  `vol_compression_encoder`, `momentum_flow_encoder` and
+  `session_regime_encoder`.
+- `challenger_seq215`: the six base specialists plus
+  `chart_geometry_encoder` and `price_action_candle_encoder`.
+
+`neutral_bridge_anchor` and `unmapped` stay excluded from trainable specialist
+indices in both modes. Any specialist outside the selected mode is diagnostic
+only and must keep smoke/candidate gates closed if it appears as trainable
+without matching liveness, role, active-head support and bundle-preservation
+evidence.
 
 Current audited seq146 coverage:
 
@@ -223,6 +253,22 @@ Current audited seq146 coverage:
 - `session_regime_encoder`: 43 signal fields, 43 selected extension features.
 - `price_action_candle_encoder`: 3 signal fields.
 - Unmapped fields: 0.
+
+Current audited seq215 challenger coverage:
+
+- Base seq: 41 signal fields.
+- Reused foundation sequence extension: 105 signal fields.
+- New chart geometry challenger: 41 signal fields.
+- New candlestick challenger: 28 signal fields.
+- Total seq/snap width: 215 signal fields.
+- Context width: `ctx_cont=142`, `ctx_cat=5`, sequence length 96.
+- Specialist routing: 215/215 signal fields mapped, `unmapped=[]`, no nonfinite
+  values found in fullscan snap or ctx_cont.
+- `chart_geometry_encoder`: 41 signal fields covering trendline/channel/SR
+  geometry, Fibonacci zones, EMA-cross pressure and triangle/flag/compression
+  proxies.
+- `price_action_candle_encoder`: 31 signal fields, made from 3 existing
+  body/wick/range fields plus 28 candlestick challenger fields.
 
 Foundation requirement mapping is audited as:
 
@@ -252,10 +298,10 @@ Fuse specialist embeddings with a gated mixture layer:
 - The specialist audit's `architecture_contract.recommended_fusion` must match
   the target-head contract exactly: all active heads are listed under
   `active_heads`, and `hold_horizon` is listed only under `blocked_heads`.
-- The trainer's specialist-fusion loader must return the exact trainable set:
-  structure/swing, SMC/liquidity, trend/EMA, vol/compression, momentum/flow and
-  session/regime. Extra classified groups are diagnostics only until promoted by
-  a separate gate.
+- The trainer's specialist-fusion loader must return the exact trainable set
+  for the declared `specialist_contract_mode`: six specialists for
+  `foundation_seq146`, eight specialists for `challenger_seq215`. Extra
+  classified groups are diagnostics only until promoted by a separate gate.
 - Keep neutral XGB bridge inputs explicit and allowlisted until a new bridge is
   intentionally approved.
 
@@ -336,6 +382,12 @@ Fuse specialist embeddings with a gated mixture layer:
 6. Optionally run
    `scripts/entry_next_edge_control.sh smoke-manifest --vedtak <id>` to write
    the pre-train manifest/provenance proof without starting the trainer.
+   For the seq215 challenger, use
+   `scripts/entry_next_edge_control.sh smoke-manifest-seq215 --vedtak <id>`
+   with an explicit vedtak id containing `SEQ215`. It must write the manifest
+   for `specialist_contract_mode=challenger_seq215`, `seq_input_dim=215`, the
+   seq215 smoke dataset and the seq215 specialist audit, but still stop before
+   trainer start.
 7. Train a short smoke model with frozen XGB-neutral bridge and all heads
    enabled according to the machine target-head contract. Current active heads:
    direction, tradable, path quality, MFE-first-N, bad-path, clean-edge,
@@ -366,20 +418,34 @@ Fuse specialist embeddings with a gated mixture layer:
    training specialist group set, minimum active specialist count, minimum gate
    entropy, and each required specialist's mean gate weight above 1% on every
    audited split. Extra ungated specialist groups keep the audit closed. The
-   trainer must also preserve the exact `SPECIALIST_MODEL_CONTRACT` in trained
-   bundle metadata, and the post-smoke bundle audit must emit PASS for
-   `bundle_specialist_model_contract`: exact six trainable specialist AIs,
-   owned roadmap objectives, signal families, support heads and model roles. The
-   pre-train contract must preserve the exact active/blocked head split, with
-   `hold_horizon` blocked. Edge
+   trainer must also preserve the exact specialist model contract for the
+   declared mode in trained bundle metadata, and the post-smoke bundle audit
+   must emit PASS for `bundle_specialist_model_contract`: exact six trainable
+   specialist AIs for `foundation_seq146` or exact eight trainable specialist
+   AIs for `challenger_seq215`, with owned roadmap objectives, signal families,
+   support heads and model roles. The pre-train contract must preserve the exact
+   active/blocked head split, with `hold_horizon` blocked. Edge
    diagnostics are the smoke-wrapper default; `--no-require-edge-audit` is an
    explicit plumbing-only opt-out and `--require-edge-audit` is intentionally
    incompatible with `--skip-smoke-audit`.
+   The seq215 smoke path is
+   `scripts/entry_next_edge_control.sh smoke-train-seq215 --vedtak <id> --require-edge-audit`.
+   It requires an explicit `SEQ215` vedtak id, uses the seq215 smoke dataset,
+   `specialist_contract_mode=challenger_seq215`, the 8-specialist audit, and
+   writes the post-smoke audit under
+   `entry_foundation_smoke_bundle_audit_20260628_v1/challenger_seq215_20260630`.
+   It does not approve candidate training, replay, IQL, shadow, live or
+   promotion.
 9. Require direction to beat majority baseline and bad-path probability to be
    negatively related to path quality before treating the smoke as learning
    evidence. Plumbing-only smoke audits may pass without `--require-edge`.
 10. Run `scripts/entry_next_edge_control.sh candidate-readiness` and require
-   `READY_FOR_CANDIDATE_TRAINING_VEDTAK`.
+   `READY_FOR_CANDIDATE_TRAINING_VEDTAK`. For seq215, run
+   `scripts/entry_next_edge_control.sh candidate-readiness-seq215` and require
+   the same decision under `contract_mode=challenger_seq215`. It must stay
+   `NOT_READY_FOR_CANDIDATE_TRAINING` until the real seq215 smoke bundle edge
+   audit exists, is readable, matches `seq_input_dim=215`, preserves the exact
+   eight specialists and proves non-collapsed gate liveness.
 11. Train the candidate specialist-fusion Transformer through
    `scripts/entry_next_edge_control.sh candidate-train --vedtak <id>`. The
    wrapper must then strict-load the candidate bundle on the full foundation
@@ -401,6 +467,11 @@ Fuse specialist embeddings with a gated mixture layer:
    specialist input liveness, specialist active/blocked head parity and
    smoke-dataset audit-provenance hashes, plus the bundle-level specialist model
    contract preservation check.
+   For seq215, use
+   `scripts/entry_next_edge_control.sh candidate-train-seq215 --vedtak <id>`
+   only after `candidate-readiness-seq215` is green and the vedtak id contains
+   `SEQ215`; it remains closed before that even when base seq146 candidate
+   readiness or historical IQL evidence exists.
 12. Run selective-edge evaluation with no-XGB ablation through
    `scripts/entry_next_edge_control.sh selective-edge --bundle-dir <candidate> --no-xgb-bundle-dir <ablation>`.
    This writes `summary.json` and `selective_edge_metrics.csv` for
@@ -503,8 +574,11 @@ Exit alignment or live/shadow promotion can be discussed.
 
 ### Specialist Extensions
 
-- Promote `price_action_candle_encoder` only after its own liveness, role and
-  target-support gates pass.
+- Keep `price_action_candle_encoder` excluded from active `foundation_seq146`.
+  In `challenger_seq215`, it is already a gated trainable specialist with its
+  own role contract and target-head support, but it still has no candidate
+  authority until seq215 smoke edge audit, candidate-readiness, replay and IQL
+  gates prove tradable edge.
 - Expand price-action features with wick rejection, body expansion, inside/outside
   bars, engulfing behavior, close-location value, wick-to-ATR ratios, rejection
   at support/resistance and candle shape conditioned on SMC context.
@@ -513,9 +587,11 @@ Exit alignment or live/shadow promotion can be discussed.
 - Add momentum features for multi-horizon return slope, acceleration,
   volatility-normalized impulse, exhaustion, signed volume/flow proxy when
   available, return skew and momentum follow-through after pullback.
-- Preserve the six current trainable specialists as the base fusion contract.
-  New specialists or promoted diagnostic groups require separate liveness,
-  routing, active-head support and bundle-preservation gates.
+- Preserve the six `foundation_seq146` trainable specialists as the base
+  canonical fusion contract. Preserve the eight `challenger_seq215` trainable
+  specialists as a separate challenger contract. New specialists or promoted
+  diagnostic groups require separate liveness, routing, active-head support,
+  contract-mode plumbing and bundle-preservation gates.
 
 ### Auxiliary Specialist Models
 

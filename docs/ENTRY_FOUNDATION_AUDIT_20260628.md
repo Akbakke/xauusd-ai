@@ -158,6 +158,13 @@ Active status:
 - Foundation post-apply refresh completed.
 - Worktree hygiene: `PASS_CLEAN_GIT`.
 - Train-readiness: `READY_FOR_VEDTAK_SMOKE_TRAIN`.
+- Seq215 challenger foundation: materialized and audited as a separate
+  8-specialist challenger contract with 215 seq/snap signal inputs, but not yet
+  trained as evidence. It is opened only by
+  `scripts/entry_next_edge_control.sh smoke-train-seq215 --vedtak <id> --require-edge-audit`
+  with an explicit `SEQ215` vedtak id. `candidate-readiness-seq215` must remain
+  `NOT_READY_FOR_CANDIDATE_TRAINING` until the real seq215 smoke bundle edge
+  audit exists and passes.
 - Entry-to-Exit per-bar handoff: `PASS_WITH_EXPLICIT_GAP_EXCLUSIONS`.
   The active materializer fills missing canonical M5 `atr_bps` deterministically
   from closed-bar bid/ask OHLC true range and excludes unresolved/non-contiguous
@@ -717,13 +724,15 @@ Required acceptance gates:
    source-field liveness for every required `snap.*`/`ctx_cont.*` foundation
    input on train/val/test, plus live input features for every required
    specialist encoder on train/val/test. It must also prove the trainer's own
-   specialist-fusion contract loader accepts the current specialist audit,
-   loads the exact required trainable specialist set at `seq_input_dim=146`,
-   and excludes neutral bridge, price-action and unmapped groups from trainable
-   specialist indices until those groups have separate liveness/role gates.
+   specialist-fusion contract loader accepts the current specialist audit and
+   loads the exact required trainable specialist set for the declared
+   `specialist_contract_mode`: six specialists at `seq_input_dim=146` for
+   `foundation_seq146`, or eight specialists at `seq_input_dim=215` for
+   `challenger_seq215`. Neutral bridge and unmapped groups remain excluded from
+   trainable specialist indices in both modes.
    The manifest must also preserve `specialist_model_contract_valid=true`, the
-   exact trainable specialist model contract, and exact owned-roadmap-objective
-   mapping for the six trainable specialist AIs.
+   exact trainable specialist model contract for the declared mode, and exact
+   owned-roadmap-objective mapping for every trainable specialist AI.
    The specialist architecture contract must also match the target-head
    contract exactly: `hold_horizon` remains blocked and cannot appear in the
    active specialist-fusion head list.
@@ -732,8 +741,19 @@ Required acceptance gates:
    the canonical alias for the smoke wrapper's `--manifest-only` path. It may
    run while git is dirty if `foundation_contract_ready_for_smoke=true`, writes
    the pre-train manifest, and must stop before trainer start.
+   For the seq215 challenger, use
+   `scripts/entry_next_edge_control.sh smoke-manifest-seq215 --vedtak <id>`
+   with an explicit vedtak id containing `SEQ215`; it must preserve
+   `specialist_contract_mode=challenger_seq215`, `seq_input_dim=215`, the
+   seq215 smoke dataset and seq215 specialist audit.
 7. The next real action requires explicit user vedtak:
    `scripts/entry_next_edge_control.sh smoke-train --vedtak <id> --require-edge-audit`.
+   For the seq215 challenger, the only real-train command is
+   `scripts/entry_next_edge_control.sh smoke-train-seq215 --vedtak <id> --require-edge-audit`.
+   It requires a `SEQ215` vedtak id, clean git, the same train-readiness gate,
+   and a post-smoke audit written under
+   `entry_foundation_smoke_bundle_audit_20260628_v1/challenger_seq215_20260630`.
+   It does not open candidate training, replay, IQL, shadow, live or promotion.
 8. The smoke-train wrapper writes
    `ENTRY_FOUNDATION_SMOKE_TRAIN_RUN_MANIFEST_<UTC>.json` before any real
    trainer process starts. The manifest must record audit artifact SHA256s plus
@@ -746,12 +766,13 @@ Required acceptance gates:
    provenance no longer matches the active feature, target and specialist audit
    hashes, or whose worktree hygiene summary does not prove critical gate paths
    are complete.
-   The trained bundle metadata must also preserve the exact
-   `SPECIALIST_MODEL_CONTRACT` as `bundle_specialist_model_contract`: exact six
-   trainable specialist roles, exact owned roadmap objectives, support heads,
-   signal families and model roles. The bundle audit must fail if this
-   bundle-level contract is missing, reports failures, or diverges from the
-   audited specialist registry.
+   The trained bundle metadata must also preserve the exact specialist model
+   contract for the declared mode as `bundle_specialist_model_contract`: exact
+   six trainable specialist roles for `foundation_seq146` or exact eight
+   trainable specialist roles for `challenger_seq215`, exact owned roadmap
+   objectives, support heads, signal families and model roles. The bundle audit
+   must fail if this bundle-level contract is missing, reports failures, or
+   diverges from the audited specialist registry.
    Real trainer start also requires a clean git worktree; use `--dry-run` or
    `--manifest-only` for inspection/proof while the repo is intentionally
    dirty. `--manifest-only` still requires
@@ -764,12 +785,13 @@ Required acceptance gates:
    match the active/blocked head sets exactly across bundle capabilities,
    `train_recipe.active_heads`, state_dict heads and forward outputs; extra
    unsupported or experimental heads are not allowed. Specialist fusion is not
-   considered live unless the exact required specialist group set is present,
-   the gate is normalized and entropic, and each required specialist has mean
-   gate weight above 1% on every audited split. Extra ungated specialist groups
-   such as price-action must keep the bundle audit closed until promoted by a
-   separate gate. Candidate-readiness and replay-readiness must preserve the
-   same exact-head, exact-specialist-set, bundle-level specialist model
+   considered live unless the exact required specialist group set for the
+   declared contract mode is present, the gate is normalized and entropic, and
+   each required specialist has mean gate weight above 1% on every audited
+   split. Extra ungated specialist groups outside the selected mode must keep
+   the bundle audit closed until promoted by a separate gate. Candidate-readiness
+   and replay-readiness must preserve the same exact-head, exact-specialist-set,
+   bundle-level specialist model
    contract and per-required-specialist gate-liveness requirements before
    candidate training, replay evidence or IQL distillation can open. The
    candidate train pre-manifest must carry forward
@@ -909,9 +931,11 @@ Add first-class sequence features for:
 - Challenger chart geometry: numeric support/resistance line proximity,
   channel position, Fibonacci retracement/extension proximity, EMA-cross
   pressure, trendline-break pressure and triangle/flag pattern proxies. These
-  must remain excluded from the active six-specialist trainable contract until
-  a new rebuild and specialist audit explicitly promote
-  `chart_geometry_encoder`.
+  remain excluded from active `foundation_seq146`, but are included in the
+  gated `challenger_seq215` 8-specialist trainable contract after the seq215
+  rebuild and specialist audit. They still require seq215 smoke edge audit,
+  candidate-readiness, replay and IQL evidence before they can influence any
+  promotion discussion.
 - Session x structure for Asia, EU, US and overlap, not EU-only.
 
 Implementation rules:
