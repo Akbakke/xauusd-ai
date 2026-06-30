@@ -13,7 +13,7 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     classify_entry_specialist_feature,
 )
 from gx1.scripts.audit_entry_foundation_features_v1 import REQUIRED_FOUNDATION_OBJECTIVE_FEATURES
-from gx1.scripts.audit_entry_specialist_feature_groups_v1 import run
+from gx1.scripts.audit_entry_specialist_feature_groups_v1 import _context_routing_failures, run
 
 
 def test_entry_specialist_feature_classifier_maps_foundation_requirements() -> None:
@@ -33,10 +33,20 @@ def test_entry_specialist_feature_classifier_maps_context_gate_fields() -> None:
     expected = {
         "ctx_cont.spread_bps": "session_regime_encoder",
         "ctx_cat.spread_bucket": "session_regime_encoder",
+        "ctx_cat.vol_regime_id": "session_regime_encoder",
+        "ctx_cat.atr_bucket": "vol_compression_encoder",
         "ctx_cont.is_us_only": "session_regime_encoder",
+        "ctx_cont.is_eu_us_overlap": "session_regime_encoder",
+        "ctx_cont.m5_regime_class_id_v2": "session_regime_encoder",
         "ctx_cont.m15_regime_class_id_v2": "session_regime_encoder",
+        "ctx_cont.h1_regime_class_id_v2": "session_regime_encoder",
+        "ctx_cont.h4_regime_class_id_v2": "session_regime_encoder",
+        "ctx_cont.d1_regime_class_id_v2": "session_regime_encoder",
+        "ctx_cont.regime_tf_agreement_v3": "session_regime_encoder",
         "ctx_cont.regime_stack_sum_v3": "session_regime_encoder",
+        "ctx_cont.regime_divergence_flag_v3": "session_regime_encoder",
         "ctx_cont.d1_regime_changed_flag_v3": "session_regime_encoder",
+        "ctx_cont.bars_since_d1_regime_change_v3": "session_regime_encoder",
         "ctx_cont.d1_dist_to_boundary_v3": "session_regime_encoder",
         "ctx_cont.retracement_from_last_impulse": "structure_swing_encoder",
         "ctx_cont.d1_pct_change_5_canon_v2": "trend_ema_encoder",
@@ -47,6 +57,24 @@ def test_entry_specialist_feature_classifier_maps_context_gate_fields() -> None:
     }
 
     assert {field: classify_entry_specialist_feature(field) for field in expected} == expected
+
+
+def test_context_routing_failures_fail_closed_for_all_contract_modes() -> None:
+    rows = [
+        {
+            "scope": "ctx_cont",
+            "index": 0,
+            "feature": "ctx_cont.unowned_context_feature_v1",
+            "specialist": "unmapped",
+        }
+    ]
+
+    for contract_mode in ("foundation_seq146", "challenger_seq215"):
+        failures = _context_routing_failures(rows, contract_mode=contract_mode)
+
+        assert len(failures) == 1
+        assert contract_mode in failures[0]
+        assert "ctx_cont.unowned_context_feature_v1" in failures[0]
 
 
 def test_specialist_feature_group_audit_passes_minimal_contract(tmp_path: Path) -> None:
@@ -103,7 +131,20 @@ def test_specialist_feature_group_audit_passes_minimal_contract(tmp_path: Path) 
                     "seq_input_dim": len(fields),
                     "snap_input_dim": len(fields),
                     "seq_structure_extension_v1": {"features": selected},
-                }
+                },
+                "ctx_contract": {
+                    "tag": "UNIT_CTX",
+                    "ctx_cont_names": [
+                        "spread_bps",
+                        "is_us_only",
+                        "regime_stack_sum_v3",
+                        "d1_regime_changed_flag_v3",
+                        "dip_proximity_h1_v3",
+                    ],
+                    "ctx_cat_names": ["spread_bucket", "atr_bucket"],
+                    "ctx_cont_dim": 5,
+                    "ctx_cat_dim": 2,
+                },
             }
         }
         (dataset_dir / f"sample_{split}.manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
@@ -128,6 +169,12 @@ def test_specialist_feature_group_audit_passes_minimal_contract(tmp_path: Path) 
 
     assert report["decision"] == "PASS"
     assert report["architecture_contract"]["input_dim"] == len(fields)
+    assert report["signal_unmapped_count"] == 0
+    assert report["signal_unmapped_fields"] == []
+    assert report["signal_routing_all_mapped"] is True
+    assert report["context_routing_unmapped_count"] == 0
+    assert report["context_routing_unmapped_fields"] == []
+    assert report["context_routing_all_mapped"] is True
     recommended = report["architecture_contract"]["recommended_fusion"]
     assert set(recommended["active_heads"]) == set(SPECIALIST_FUSION_ACTIVE_HEADS)
     assert set(recommended["blocked_heads"]) == set(SPECIALIST_FUSION_BLOCKED_HEADS)

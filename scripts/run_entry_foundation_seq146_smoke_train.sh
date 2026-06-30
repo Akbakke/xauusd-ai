@@ -49,6 +49,7 @@ SMOKE_SPECIALIST_GATE_BALANCE_WEIGHT="${ENTRY_FOUNDATION_SMOKE_SPECIALIST_GATE_B
 SMOKE_SPECIALIST_GATE_MIN_MEAN="${ENTRY_FOUNDATION_SMOKE_SPECIALIST_GATE_MIN_MEAN:-0.02}"
 SMOKE_RUN_MEM="${ENTRY_FOUNDATION_SMOKE_RUN_MEM:-22G}"
 SMOKE_RUN_SWAP="${ENTRY_FOUNDATION_SMOKE_RUN_SWAP:-2G}"
+SMOKE_CAPPED_RUNNER=scripts/gx1_capped_run.sh
 
 usage() {
   cat <<'EOF'
@@ -139,8 +140,8 @@ if [[ -z "${VEDTAK:-}" ]]; then
   echo "This is still a train command, so it must be an explicit user decision." >&2
   exit 2
 fi
-if [[ "$RUN_FLAVOR" = "challenger_seq215" && "$MATERIALIZE_ONLY" != "1" && "$DRY_RUN" != "1" && "$VEDTAK" != *"SEQ215"* ]]; then
-  echo "FATAL: challenger seq215 smoke manifest/train requires an explicit SEQ215 vedtak id." >&2
+if [[ "$RUN_FLAVOR" = "challenger_seq215" && "$MATERIALIZE_ONLY" != "1" && "$VEDTAK" != *"SEQ215"* ]]; then
+  echo "FATAL: challenger seq215 smoke manifest/train/dry-run requires an explicit SEQ215 vedtak id." >&2
   echo "Use a new id such as ENTRY_FOUNDATION_SMOKE_TRAIN_20260630_SEQ215_V1 after gates are green." >&2
   exit 2
 fi
@@ -305,6 +306,10 @@ if [[ "$DRY_RUN" = "1" ]]; then
   echo "Real-train preflight command: scripts/entry_next_edge_control.sh foundation-guardrails --quiet"
   echo "Real-train preflight command: scripts/entry_next_edge_control.sh train-readiness --quiet"
   echo "Pre-train run manifest path: $PRETRAIN_MANIFEST"
+  echo "Smoke resource cap: mem=$SMOKE_RUN_MEM swap=$SMOKE_RUN_SWAP runner=$SMOKE_CAPPED_RUNNER num_workers=0"
+  printf 'Capped smoke train command:'
+  printf ' %q' "$SMOKE_CAPPED_RUNNER" --mem "$SMOKE_RUN_MEM" --swap "$SMOKE_RUN_SWAP" -- "${CMD[@]}"
+  printf '\n'
   printf 'Smoke train command:'
   printf ' %q' "${CMD[@]}"
   printf '\n'
@@ -324,6 +329,8 @@ TARGET_AUDIT_JSON="$TARGET_AUDIT" \
 SPECIALIST_CONTRACT_MODE="$SPECIALIST_CONTRACT_MODE" \
 EXPECTED_SIGNAL_DIM="$EXPECTED_SIGNAL_DIM" \
 RUN_FLAVOR="$RUN_FLAVOR" \
+SMOKE_RUN_MEM="$SMOKE_RUN_MEM" \
+SMOKE_RUN_SWAP="$SMOKE_RUN_SWAP" \
 "$PY" - "$PRETRAIN_MANIFEST" "$VEDTAK" "$OUT_BUNDLE" "$SOURCE_DATASET" "$SMOKE_DATASET" \
   "$SMOKE_DATASET/SMOKE_DATASET_MANIFEST.json" "$M5_PREBUILT" "$SPECIALIST_AUDIT" \
   "$DATA/reports/entry_foundation_guardrails_20260628_v1/ENTRY_FOUNDATION_GUARDRAILS_latest.json" \
@@ -370,6 +377,13 @@ def command_env_value(command: list[str], name: str) -> str | None:
     for item in command:
         if isinstance(item, str) and item.startswith(prefix):
             return item[len(prefix):]
+    return None
+
+
+def command_arg_value(command: list[str], flag: str) -> str | None:
+    for idx, item in enumerate(command):
+        if item == flag and idx + 1 < len(command):
+            return command[idx + 1]
     return None
 
 
@@ -657,6 +671,11 @@ payload = {
         "val_rows": int(sys.argv[17]),
         "test_rows": int(sys.argv[18]),
         "manifest_only": sys.argv[19] == "manifest_only",
+        "memory_cap": os.environ.get("SMOKE_RUN_MEM"),
+        "swap_cap": os.environ.get("SMOKE_RUN_SWAP"),
+        "cgroup_runner": "scripts/gx1_capped_run.sh",
+        "uses_gx1_capped_run": True,
+        "num_workers": int(command_arg_value(train_cmd, "--num-workers") or -1),
     },
     "smoke_recipe_env": {
         name: command_env_value(train_cmd, name)
@@ -697,7 +716,7 @@ if [[ "$MANIFEST_ONLY" = "1" ]]; then
   exit 0
 fi
 
-scripts/gx1_capped_run.sh --mem "$SMOKE_RUN_MEM" --swap "$SMOKE_RUN_SWAP" -- "${CMD[@]}"
+"$SMOKE_CAPPED_RUNNER" --mem "$SMOKE_RUN_MEM" --swap "$SMOKE_RUN_SWAP" -- "${CMD[@]}"
 echo "Smoke bundle written: $OUT_BUNDLE"
 if [[ "$AUDIT_AFTER" = "1" ]]; then
   "${AUDIT_CMD[@]}"

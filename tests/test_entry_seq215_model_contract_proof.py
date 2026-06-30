@@ -9,6 +9,8 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     CHALLENGER_SEQ215_TRAINING_SPECIALISTS,
     SPECIALIST_FUSION_ACTIVE_HEADS,
     SPECIALIST_FUSION_BLOCKED_HEADS,
+    required_training_specialists_for_mode,
+    specialist_model_contract_for_mode,
 )
 from gx1.models.entry_v10.entry_v10_ctx_train_v3 import _load_specialist_fusion_contract
 from gx1.scripts.audit_entry_foundation_smoke_bundle_v1 import (
@@ -16,6 +18,12 @@ from gx1.scripts.audit_entry_foundation_smoke_bundle_v1 import (
     _pretrain_manifest_contract_report,
     _sha256_file,
     _specialist_gate_failures,
+)
+from gx1.scripts.materialize_entry_feature_ai_inventory_v1 import (
+    _specialist_contract_provenance as _inventory_contract_provenance,
+)
+from gx1.scripts.materialize_entry_specialist_challenger_extension_manifest_v1 import (
+    _specialist_contract_provenance as _challenger_manifest_contract_provenance,
 )
 
 
@@ -180,6 +188,37 @@ def _seq215_pretrain_manifest(tmp_path: Path) -> tuple[dict, Path, Path, Path]:
         },
     }
     return manifest, bundle_dir, dataset_dir, tmp_path / "pretrain_manifest.json"
+
+
+@pytest.mark.parametrize(
+    "provenance_factory",
+    (_inventory_contract_provenance, _challenger_manifest_contract_provenance),
+)
+def test_report_only_seq215_contract_provenance_separates_active_and_target_modes(provenance_factory) -> None:
+    provenance = provenance_factory()
+    active = provenance["active_foundation"]
+    target = provenance["target_challenger"]
+
+    assert active["contract_mode"] == "foundation_seq146"
+    assert active["required_training_specialists"] == list(
+        required_training_specialists_for_mode("foundation_seq146")
+    )
+    assert active["required_training_specialist_count"] == 6
+    assert active["specialist_model_contract"] == specialist_model_contract_for_mode("foundation_seq146")
+
+    assert target["contract_mode"] == "challenger_seq215"
+    assert target["required_training_specialists"] == list(
+        required_training_specialists_for_mode("challenger_seq215")
+    )
+    assert target["required_training_specialist_count"] == 8
+    assert target["specialist_model_contract"] == specialist_model_contract_for_mode("challenger_seq215")
+    assert set(target["additional_training_specialists_vs_active_foundation"]) == {
+        "chart_geometry_encoder",
+        "price_action_candle_encoder",
+    }
+    assert target["contract_registered"] is True
+    assert target["contract_update_required_before_training"] is False
+    assert provenance["contract_update_required_before_training"] is False
 
 
 def test_seq215_trainer_loader_requires_exact_challenger_contract_mode() -> None:

@@ -34,9 +34,9 @@ from gx1.features.entry_foundation_structure_v1 import (
     FOUNDATION_STRUCTURE_SOURCE_FIELDS,
 )
 from gx1.features.entry_specialist_feature_groups_v1 import (
-    REQUIRED_TRAINING_SPECIALISTS,
-    SPECIALIST_MODEL_CONTRACT,
     classify_entry_specialist_feature,
+    required_training_specialists_for_mode,
+    specialist_model_contract_for_mode,
 )
 from gx1.scripts.evaluate_entry_selective_edge_v1 import _split_files
 from gx1.scripts.verify_entry_foundation_state_v1 import FOUNDATION_DATASET_DIR, REPORTS_ROOT, SEQ_STRUCTURE_MANIFEST
@@ -50,6 +50,12 @@ DEFAULT_CHART_GEOMETRY_MANIFEST = (
 DEFAULT_CANDLESTICK_MANIFEST = (
     REPORTS_ROOT
     / "entry_candlestick_pattern_challenger_audit_20260630_v1/ENTRY_CANDLESTICK_PATTERN_CHALLENGER_MANIFEST_latest.json"
+)
+ACTIVE_SPECIALIST_CONTRACT_MODE = "foundation_seq146"
+TARGET_CHALLENGER_CONTRACT_MODE = "challenger_seq215"
+SPECIALIST_CONTRACT_AUTHORITY = (
+    "gx1.features.entry_specialist_feature_groups_v1:"
+    "specialist_model_contract_for_mode()/required_training_specialists_for_mode()"
 )
 
 
@@ -179,6 +185,57 @@ def _group(names: list[str]) -> dict[str, list[str]]:
 
 def _count_groups(names: list[str]) -> dict[str, int]:
     return dict(sorted(Counter(classify_entry_specialist_feature(name) for name in names).items()))
+
+
+def _mode_specialist_contract(mode: str, *, role: str) -> dict[str, Any]:
+    required = tuple(required_training_specialists_for_mode(mode))
+    model_contract = specialist_model_contract_for_mode(mode)
+    missing_contract_entries = [name for name in required if name not in model_contract]
+    extra_contract_entries = [name for name in model_contract if name not in set(required)]
+    contract_registered = not missing_contract_entries and not extra_contract_entries
+    return {
+        "contract_mode": mode,
+        "role": role,
+        "authority": SPECIALIST_CONTRACT_AUTHORITY,
+        "required_training_specialists": list(required),
+        "required_training_specialist_count": int(len(required)),
+        "specialist_model_contract": model_contract,
+        "specialist_model_contract_specialists": list(model_contract.keys()),
+        "specialist_model_contract_specialist_count": int(len(model_contract)),
+        "specialist_model_contract_set_exact": bool(contract_registered),
+        "missing_specialist_model_contract_entries": missing_contract_entries,
+        "extra_specialist_model_contract_entries": extra_contract_entries,
+        "contract_registered": bool(contract_registered),
+        "contract_update_required_before_training": bool(not contract_registered),
+    }
+
+
+def _specialist_contract_provenance() -> dict[str, Any]:
+    active = _mode_specialist_contract(ACTIVE_SPECIALIST_CONTRACT_MODE, role="active_foundation")
+    target = _mode_specialist_contract(TARGET_CHALLENGER_CONTRACT_MODE, role="target_challenger")
+    active_required = set(active["required_training_specialists"])
+    target_required = set(target["required_training_specialists"])
+    target["additional_training_specialists_vs_active_foundation"] = [
+        name for name in target["required_training_specialists"] if name not in active_required
+    ]
+    target["inherits_active_foundation_specialists"] = all(name in target_required for name in active_required)
+    target["registered_contract_note"] = (
+        "challenger_seq215 8-specialist contract is registered; no specialist model contract "
+        "update is required before seq215 proof/smoke gates"
+    )
+    return {
+        "authority": SPECIALIST_CONTRACT_AUTHORITY,
+        "active_foundation": active,
+        "target_challenger": target,
+        "active_vs_target": {
+            "active_contract_mode": ACTIVE_SPECIALIST_CONTRACT_MODE,
+            "active_required_training_specialist_count": active["required_training_specialist_count"],
+            "target_contract_mode": TARGET_CHALLENGER_CONTRACT_MODE,
+            "target_required_training_specialist_count": target["required_training_specialist_count"],
+            "target_additional_training_specialists": target["additional_training_specialists_vs_active_foundation"],
+        },
+        "contract_update_required_before_training": bool(target["contract_update_required_before_training"]),
+    }
 
 
 def _feature_rows(names: list[str], *, input_surface: str, source: str) -> list[dict[str, Any]]:
@@ -326,6 +383,11 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
         f"- Chart-geometry challenger features: `{report['counts']['chart_geometry_features']}`",
         f"- Candlestick-pattern challenger features: `{report['counts']['candlestick_pattern_features']}`",
         f"- Label/target columns: `{report['counts']['label_or_target_columns']}`",
+        f"- Active contract: `{report['specialist_contract_provenance']['active_foundation']['contract_mode']}` "
+        f"({report['specialist_contract_provenance']['active_foundation']['required_training_specialist_count']} specialists)",
+        f"- Target challenger contract: `{report['specialist_contract_provenance']['target_challenger']['contract_mode']}` "
+        f"({report['specialist_contract_provenance']['target_challenger']['required_training_specialist_count']} specialists)",
+        f"- Target contract update required: `{report['specialist_contract_provenance']['contract_update_required_before_training']}`",
         "",
         "## Ranked Specialist AI Models",
         "",
@@ -398,6 +460,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         chart_geometry_features=chart_features,
         candlestick_features=candle_features,
     )
+    contract_provenance = _specialist_contract_provenance()
+    active_contract = contract_provenance["active_foundation"]
+    target_contract = contract_provenance["target_challenger"]
 
     decision = "READY_FOR_SPECIALIST_AI_DESIGN_REVIEW" if not failures else "FAIL"
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
@@ -453,8 +518,19 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "active_input_counts_by_specialist": _count_groups(active_named_for_grouping),
         "active_inputs_by_specialist": _group(active_named_for_grouping),
         "ranked_specialist_models": plan,
-        "current_required_training_specialists": list(REQUIRED_TRAINING_SPECIALISTS),
-        "current_specialist_model_contract": SPECIALIST_MODEL_CONTRACT,
+        "specialist_contract_provenance": contract_provenance,
+        "active_foundation_contract_mode": ACTIVE_SPECIALIST_CONTRACT_MODE,
+        "active_foundation_required_training_specialists": active_contract["required_training_specialists"],
+        "active_foundation_specialist_model_contract": active_contract["specialist_model_contract"],
+        "target_challenger_contract_mode": TARGET_CHALLENGER_CONTRACT_MODE,
+        "target_challenger_required_training_specialists": target_contract["required_training_specialists"],
+        "target_challenger_specialist_model_contract": target_contract["specialist_model_contract"],
+        "target_challenger_contract_update_required_before_training": target_contract[
+            "contract_update_required_before_training"
+        ],
+        "current_specialist_contract_mode": ACTIVE_SPECIALIST_CONTRACT_MODE,
+        "current_required_training_specialists": active_contract["required_training_specialists"],
+        "current_specialist_model_contract": active_contract["specialist_model_contract"],
         "foundation_structure_feature_version": FOUNDATION_STRUCTURE_FEATURE_VERSION,
         "chart_geometry_feature_version": CHART_GEOMETRY_FEATURE_VERSION,
         "candlestick_pattern_feature_version": CANDLESTICK_PATTERN_FEATURE_VERSION,

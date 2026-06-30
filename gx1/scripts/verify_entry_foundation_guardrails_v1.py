@@ -418,6 +418,39 @@ def _readiness_policy_checks() -> list[dict[str, Any]]:
                 "details": commands.get("candidate_train_seq215"),
             },
             {
+                "name": "readiness_policy_smoke_train_seq215_declares_ram_edge_seq215_contract",
+                "ok": (commands.get("smoke_train_seq215") or {}).get("requires_seq215_vedtak") is True
+                and (commands.get("smoke_train_seq215") or {}).get("requires_edge_audit") is True
+                and (commands.get("smoke_train_seq215") or {}).get("requires_ram_cap") is True
+                and (commands.get("smoke_train_seq215") or {}).get("ram_cap_runner")
+                == "scripts/gx1_capped_run.sh"
+                and (commands.get("smoke_train_seq215") or {}).get("num_workers") == 0
+                and (commands.get("smoke_train_seq215") or {}).get("specialist_contract_mode")
+                == "challenger_seq215"
+                and (commands.get("smoke_train_seq215") or {}).get("expected_signal_dim") == 215
+                and (commands.get("smoke_train_seq215") or {}).get("required_training_specialist_count") == 8
+                and (commands.get("smoke_train_seq215") or {}).get("requires_exact_specialist_contract_proof")
+                is True,
+                "details": commands.get("smoke_train_seq215"),
+            },
+            {
+                "name": "readiness_policy_candidate_train_seq215_declares_ram_edge_seq215_contract",
+                "ok": (commands.get("candidate_train_seq215") or {}).get("requires_seq215_vedtak") is True
+                and (commands.get("candidate_train_seq215") or {}).get("requires_candidate_readiness") is True
+                and (commands.get("candidate_train_seq215") or {}).get("requires_smoke_bundle_edge_audit") is True
+                and (commands.get("candidate_train_seq215") or {}).get("requires_ram_cap") is True
+                and (commands.get("candidate_train_seq215") or {}).get("ram_cap_runner")
+                == "scripts/gx1_capped_run.sh"
+                and (commands.get("candidate_train_seq215") or {}).get("num_workers") == 0
+                and (commands.get("candidate_train_seq215") or {}).get("specialist_contract_mode")
+                == "challenger_seq215"
+                and (commands.get("candidate_train_seq215") or {}).get("expected_signal_dim") == 215
+                and (commands.get("candidate_train_seq215") or {}).get("required_training_specialist_count") == 8
+                and (commands.get("candidate_train_seq215") or {}).get("requires_exact_specialist_contract_proof")
+                is True,
+                "details": commands.get("candidate_train_seq215"),
+            },
+            {
                 "name": "readiness_policy_iql_distill_declares_iql_side_effect",
                 "ok": (commands.get("iql_distill") or {}).get("starts_iql_distillation") is True
                 and (commands.get("iql_distill") or {}).get("requires_vedtak") is True,

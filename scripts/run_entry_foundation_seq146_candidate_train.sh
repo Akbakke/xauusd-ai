@@ -35,6 +35,7 @@ AUDIT_DEVICE=cpu
 AUDIT_BATCH_SIZE=256
 CANDIDATE_MEM_CAP="${ENTRY_FOUNDATION_CANDIDATE_MEM_CAP:-32G}"
 CANDIDATE_SWAP_CAP="${ENTRY_FOUNDATION_CANDIDATE_SWAP_CAP:-2G}"
+CANDIDATE_CAPPED_RUNNER=scripts/gx1_capped_run.sh
 CANDIDATE_BAD_PATH_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_BAD_PATH_WEIGHT:-1.00}"
 CANDIDATE_BAD_PATH_QUALITY_RANK_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_BAD_PATH_QUALITY_RANK_WEIGHT:-2.00}"
 CANDIDATE_BAD_PATH_QUALITY_RANK_MARGIN="${ENTRY_FOUNDATION_CANDIDATE_BAD_PATH_QUALITY_RANK_MARGIN:-0.25}"
@@ -130,7 +131,7 @@ if [[ -z "${VEDTAK:-}" ]]; then
   echo "This is a full train command, so it must be an explicit user decision." >&2
   exit 2
 fi
-if [[ "$RUN_FLAVOR" = "challenger_seq215" && "$DRY_RUN" != "1" && "$VEDTAK" != *"SEQ215"* ]]; then
+if [[ "$RUN_FLAVOR" = "challenger_seq215" && "$VEDTAK" != *"SEQ215"* ]]; then
   echo "FATAL: challenger seq215 candidate train requires an explicit SEQ215 vedtak id." >&2
   echo "Use a reviewed id containing SEQ215 only after seq215 smoke and candidate-readiness gates are green." >&2
   exit 2
@@ -246,7 +247,10 @@ AUDIT_CMD=(
 
 if [[ "$DRY_RUN" = "1" ]]; then
   echo "Pre-candidate train manifest path: $CANDIDATE_MANIFEST"
-  echo "Candidate resource cap: mem=$CANDIDATE_MEM_CAP swap=$CANDIDATE_SWAP_CAP"
+  echo "Candidate resource cap: mem=$CANDIDATE_MEM_CAP swap=$CANDIDATE_SWAP_CAP runner=$CANDIDATE_CAPPED_RUNNER num_workers=0"
+  printf 'Capped candidate train command:'
+  printf ' %q' "$CANDIDATE_CAPPED_RUNNER" --mem "$CANDIDATE_MEM_CAP" --swap "$CANDIDATE_SWAP_CAP" -- "${CMD[@]}"
+  printf '\n'
   printf 'Candidate train command:'
   printf ' %q' "${CMD[@]}"
   printf '\n'
@@ -313,6 +317,13 @@ def command_env_value(command: list[str], name: str) -> str | None:
     for item in command:
         if isinstance(item, str) and item.startswith(prefix):
             return item[len(prefix):]
+    return None
+
+
+def command_arg_value(command: list[str], flag: str) -> str | None:
+    for idx, item in enumerate(command):
+        if item == flag and idx + 1 < len(command):
+            return command[idx + 1]
     return None
 
 
@@ -457,6 +468,9 @@ payload = {
         "batch_size": int(sys.argv[11]),
         "memory_cap": sys.argv[12],
         "swap_cap": sys.argv[13],
+        "cgroup_runner": "scripts/gx1_capped_run.sh",
+        "uses_gx1_capped_run": True,
+        "num_workers": int(command_arg_value(train_cmd, "--num-workers") or -1),
     },
     "commands": {
         "train": train_cmd,
@@ -492,7 +506,7 @@ latest.write_text(manifest_path.read_text(encoding="utf-8"), encoding="utf-8")
 print(f"Pre-candidate train manifest written: {manifest_path}")
 PY
 
-scripts/gx1_capped_run.sh --mem "$CANDIDATE_MEM_CAP" --swap "$CANDIDATE_SWAP_CAP" -- "${CMD[@]}"
+"$CANDIDATE_CAPPED_RUNNER" --mem "$CANDIDATE_MEM_CAP" --swap "$CANDIDATE_SWAP_CAP" -- "${CMD[@]}"
 echo "Candidate bundle written: $OUT_BUNDLE"
 if [[ "$AUDIT_AFTER" = "1" ]]; then
   "${AUDIT_CMD[@]}"

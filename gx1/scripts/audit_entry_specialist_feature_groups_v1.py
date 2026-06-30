@@ -183,10 +183,11 @@ def _context_routing_rows(context_contracts: dict[str, dict[str, Any]]) -> list[
 
 def _context_routing_failures(rows: list[dict[str, Any]], *, contract_mode: str) -> list[str]:
     unmapped = [row for row in rows if str(row.get("specialist")) == "unmapped"]
-    if unmapped and str(contract_mode) == "challenger_seq215":
+    if unmapped:
         return [
-            "challenger context routing has unmapped fields: "
+            f"{contract_mode} context routing has unmapped fields: "
             + ", ".join(str(row.get("feature")) for row in unmapped[:40])
+            + f" total={len(unmapped)}"
         ]
     return []
 
@@ -478,7 +479,10 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
             f"mean_active={row['mean_active_rate']:.6f} nonfinite={row['nonfinite_count']}"
         )
     lines.extend(["", "## Context Routing", ""])
-    lines.append(f"- Unmapped context fields: `{report.get('context_routing_unmapped_count', 0)}`")
+    context_unmapped = [str(x) for x in report.get("context_routing_unmapped_fields") or []]
+    lines.append(f"- Unmapped context fields: `{len(context_unmapped)}`")
+    if context_unmapped:
+        lines.append(f"- Fields: `{', '.join(context_unmapped[:40])}`")
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
@@ -514,9 +518,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         if missing_ext:
             failures.append(f"{split}: selected extension features missing from signal fields: {missing_ext[:30]} total={len(missing_ext)}")
 
-    unmapped = [feature for feature in signal_fields if classify_entry_specialist_feature(feature) == "unmapped"]
-    if unmapped:
-        failures.append(f"unmapped signal fields: {unmapped[:30]} total={len(unmapped)}")
+    signal_unmapped_fields = [
+        feature for feature in signal_fields if classify_entry_specialist_feature(feature) == "unmapped"
+    ]
+    if signal_unmapped_fields:
+        failures.append(f"unmapped signal fields: {signal_unmapped_fields[:30]} total={len(signal_unmapped_fields)}")
 
     specialist_counts = _count_rows(signal_fields, selected_features)
     count_by_group = {row["specialist"]: int(row["signal_feature_count"]) for row in specialist_counts}
@@ -542,6 +548,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     )
     failures.extend(specialist_input_liveness_failures)
     context_routing_rows = _context_routing_rows(context_contracts)
+    context_routing_unmapped_fields = [
+        str(row.get("feature"))
+        for row in context_routing_rows
+        if str(row.get("specialist")) == "unmapped"
+    ]
     context_routing_failures = _context_routing_failures(context_routing_rows, contract_mode=contract_mode)
     failures.extend(context_routing_failures)
 
@@ -577,6 +588,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "contract_mode": contract_mode,
         "data_splits": splits,
         "signal_field_count": int(len(signal_fields)),
+        "signal_unmapped_count": int(len(signal_unmapped_fields)),
+        "signal_unmapped_fields": signal_unmapped_fields,
+        "signal_routing_all_mapped": not signal_unmapped_fields,
         "selected_feature_count": int(len(selected_features)),
         "selected_features_present_in_signal_count": int(len(selected_set & signal_set)),
         "required_training_specialists": list(required_training_specialists),
@@ -597,10 +611,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             for split, contract in context_contracts.items()
         },
         "context_routing": context_routing_rows,
-        "context_routing_unmapped_count": int(
-            sum(1 for row in context_routing_rows if str(row.get("specialist")) == "unmapped")
-        ),
-        "context_routing_all_mapped": not context_routing_failures,
+        "context_routing_unmapped_count": int(len(context_routing_unmapped_fields)),
+        "context_routing_unmapped_fields": context_routing_unmapped_fields,
+        "context_routing_all_mapped": not context_routing_unmapped_fields,
         "context_routing_failures": context_routing_failures,
         "min_live_feature_counts": MIN_LIVE_FEATURE_COUNTS,
         "min_specialist_mean_active_rate": float(MIN_SPECIALIST_MEAN_ACTIVE_RATE),

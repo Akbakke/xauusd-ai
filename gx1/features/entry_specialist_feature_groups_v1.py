@@ -126,6 +126,57 @@ NEUTRAL_BRIDGE_FIELDS = {
     "entropy",
 }
 
+CONTEXT_FEATURE_SPECIALIST_OVERRIDES = {
+    "ctx_cont.spread_bps": "session_regime_encoder",
+    "ctx_cat.spread_bucket": "session_regime_encoder",
+    "spread_bps": "session_regime_encoder",
+    "spread_bucket": "session_regime_encoder",
+    "ctx_cont.is_us_only": "session_regime_encoder",
+    "ctx_cont.is_eu_only": "session_regime_encoder",
+    "ctx_cont.is_asia_eu_overlap": "session_regime_encoder",
+    "ctx_cont.is_eu_us_overlap": "session_regime_encoder",
+    "is_us_only": "session_regime_encoder",
+    "is_eu_only": "session_regime_encoder",
+    "is_asia_eu_overlap": "session_regime_encoder",
+    "is_eu_us_overlap": "session_regime_encoder",
+    "ctx_cat.session_id": "session_regime_encoder",
+    "ctx_cat.vol_regime_id": "session_regime_encoder",
+    "ctx_cont.m5_regime_class_id_v2": "session_regime_encoder",
+    "ctx_cont.m15_regime_class_id_v2": "session_regime_encoder",
+    "ctx_cont.h1_regime_class_id_v2": "session_regime_encoder",
+    "ctx_cont.h4_regime_class_id_v2": "session_regime_encoder",
+    "ctx_cont.d1_regime_class_id_v2": "session_regime_encoder",
+    "ctx_cont.regime_tf_agreement_v3": "session_regime_encoder",
+    "ctx_cont.regime_stack_sum_v3": "session_regime_encoder",
+    "ctx_cont.regime_divergence_flag_v3": "session_regime_encoder",
+    "ctx_cont.d1_dist_to_boundary_v3": "session_regime_encoder",
+    "ctx_cont.d1_regime_changed_flag_v3": "session_regime_encoder",
+    "ctx_cont.bars_since_d1_regime_change_v3": "session_regime_encoder",
+    "session_id": "session_regime_encoder",
+    "vol_regime_id": "session_regime_encoder",
+    "m5_regime_class_id_v2": "session_regime_encoder",
+    "m15_regime_class_id_v2": "session_regime_encoder",
+    "h1_regime_class_id_v2": "session_regime_encoder",
+    "h4_regime_class_id_v2": "session_regime_encoder",
+    "d1_regime_class_id_v2": "session_regime_encoder",
+    "regime_tf_agreement_v3": "session_regime_encoder",
+    "regime_stack_sum_v3": "session_regime_encoder",
+    "regime_divergence_flag_v3": "session_regime_encoder",
+    "d1_dist_to_boundary_v3": "session_regime_encoder",
+    "d1_regime_changed_flag_v3": "session_regime_encoder",
+    "bars_since_d1_regime_change_v3": "session_regime_encoder",
+    "ctx_cat.atr_bucket": "vol_compression_encoder",
+    "atr_bucket": "vol_compression_encoder",
+    "ctx_cont.dip_proximity_h1_v3": "momentum_flow_encoder",
+    "ctx_cont.dip_proximity_h4_v3": "momentum_flow_encoder",
+    "ctx_cont.dip_proximity_d1_v3": "momentum_flow_encoder",
+    "ctx_cont.dip_proximity_mean_h1h4d1": "momentum_flow_encoder",
+    "dip_proximity_h1_v3": "momentum_flow_encoder",
+    "dip_proximity_h4_v3": "momentum_flow_encoder",
+    "dip_proximity_d1_v3": "momentum_flow_encoder",
+    "dip_proximity_mean_h1h4d1": "momentum_flow_encoder",
+}
+
 FOUNDATION_REQUIREMENT_PATTERNS = OrderedDict(
     [
         (
@@ -357,6 +408,10 @@ def classify_entry_specialist_feature(name: str) -> str:
 
     if bare in NEUTRAL_BRIDGE_FIELDS:
         return "neutral_bridge_anchor"
+    if n in CONTEXT_FEATURE_SPECIALIST_OVERRIDES:
+        return CONTEXT_FEATURE_SPECIALIST_OVERRIDES[n]
+    if bare in CONTEXT_FEATURE_SPECIALIST_OVERRIDES:
+        return CONTEXT_FEATURE_SPECIALIST_OVERRIDES[bare]
 
     if _contains_any(
         n,

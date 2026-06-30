@@ -37,6 +37,9 @@ def test_smoke_train_dry_run_prints_post_smoke_audit_command() -> None:
     assert "Real-train preflight command: scripts/entry_next_edge_control.sh foundation-guardrails --quiet" in result.stdout
     assert "Real-train preflight command: scripts/entry_next_edge_control.sh train-readiness --quiet" in result.stdout
     assert "Pre-train run manifest path:" in result.stdout
+    assert "Smoke resource cap: mem=22G swap=2G runner=scripts/gx1_capped_run.sh num_workers=0" in result.stdout
+    assert "Capped smoke train command:" in result.stdout
+    assert "scripts/gx1_capped_run.sh --mem 22G --swap 2G --" in result.stdout
     assert "ENTRY_FOUNDATION_SMOKE_TRAIN_RUN_MANIFEST" in result.stdout
     assert "GX1_ENTRY_ALLOW_TRAIN_ENV_OVERRIDES=1" in result.stdout
     assert "ENTRY_AUX_BAD_PATH_WEIGHT=1.00" in result.stdout
@@ -119,6 +122,28 @@ def test_seq215_manifest_requires_seq215_vedtak() -> None:
     assert "requires an explicit SEQ215 vedtak id" in result.stderr
 
 
+def test_seq215_smoke_dry_run_requires_seq215_vedtak() -> None:
+    result = subprocess.run(
+        [
+            "bash",
+            str(WRAPPER),
+            "--challenger-seq215",
+            "--vedtak",
+            "ENTRY_FOUNDATION_SMOKE_TRAIN_20260630_SEQ146_V1",
+            "--dry-run",
+        ],
+        cwd=REPO,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode == 2
+    assert "requires an explicit SEQ215 vedtak id" in result.stderr
+    assert "Smoke train command:" not in result.stdout
+
+
 def test_smoke_train_wrapper_enforces_train_readiness_for_real_train() -> None:
     text = WRAPPER.read_text(encoding="utf-8")
 
@@ -194,6 +219,14 @@ def test_smoke_train_wrapper_enforces_train_readiness_for_real_train() -> None:
     )
     assert "REQUIRE_EDGE_AUDIT=1" in text
     assert "--no-require-edge-audit" in text
+    assert 'SMOKE_CAPPED_RUNNER=scripts/gx1_capped_run.sh' in text
+    assert 'Smoke resource cap: mem=$SMOKE_RUN_MEM swap=$SMOKE_RUN_SWAP runner=$SMOKE_CAPPED_RUNNER num_workers=0' in text
+    assert 'Capped smoke train command:' in text
+    assert '"memory_cap": os.environ.get("SMOKE_RUN_MEM")' in text
+    assert '"swap_cap": os.environ.get("SMOKE_RUN_SWAP")' in text
+    assert '"cgroup_runner": "scripts/gx1_capped_run.sh"' in text
+    assert '"uses_gx1_capped_run": True' in text
+    assert '"num_workers": int(command_arg_value(train_cmd, "--num-workers") or -1)' in text
 
 
 def test_control_surface_exposes_manifest_only_smoke_proof() -> None:

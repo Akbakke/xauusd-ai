@@ -97,6 +97,8 @@ def test_foundation_guardrails_current_repo_lock_control_and_handover(tmp_path: 
     assert policy_checks["readiness_policy_blocks_live"] is True
     assert policy_checks["readiness_policy_candidate_train_declares_trainer"] is True
     assert policy_checks["readiness_policy_candidate_train_seq215_declares_trainer"] is True
+    assert policy_checks["readiness_policy_smoke_train_seq215_declares_ram_edge_seq215_contract"] is True
+    assert policy_checks["readiness_policy_candidate_train_seq215_declares_ram_edge_seq215_contract"] is True
     assert policy_checks["readiness_policy_iql_distill_declares_iql_side_effect"] is True
     assert policy_checks["readiness_policy_entry_exit_transformer_train_declares_trainer"] is True
     assert policy_checks["readiness_policy_shadow_live_declares_live_touch"] is True

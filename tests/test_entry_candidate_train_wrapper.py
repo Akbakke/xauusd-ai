@@ -60,6 +60,20 @@ def test_seq215_candidate_train_blocks_with_seq215_next_gate_when_not_ready() ->
     assert "Candidate train command:" not in result.stdout
 
 
+def test_seq215_candidate_train_dry_run_requires_seq215_vedtak_before_readiness() -> None:
+    result = _run_wrapper(
+        "--challenger-seq215",
+        "--vedtak",
+        "ENTRY_FOUNDATION_CANDIDATE_TRAIN_20260630_SEQ146_V1",
+        "--dry-run",
+    )
+
+    assert result.returncode == 2
+    assert "requires an explicit SEQ215 vedtak id" in result.stderr
+    assert "candidate-readiness is NOT_READY" not in result.stderr
+    assert "Candidate train command:" not in result.stdout
+
+
 def test_candidate_train_wrapper_declares_live_aux_heads_without_hold_horizon() -> None:
     text = WRAPPER.read_text(encoding="utf-8")
 
@@ -79,6 +93,7 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "entry_foundation_candidate_train_run_manifest_v1" in text
     assert 'CANDIDATE_MEM_CAP="${ENTRY_FOUNDATION_CANDIDATE_MEM_CAP:-32G}"' in text
     assert 'CANDIDATE_SWAP_CAP="${ENTRY_FOUNDATION_CANDIDATE_SWAP_CAP:-2G}"' in text
+    assert "CANDIDATE_CAPPED_RUNNER=scripts/gx1_capped_run.sh" in text
     assert 'CANDIDATE_BAD_PATH_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_BAD_PATH_WEIGHT:-1.00}"' in text
     assert (
         'CANDIDATE_BAD_PATH_QUALITY_RANK_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_BAD_PATH_QUALITY_RANK_WEIGHT:-2.00}"'
@@ -91,9 +106,17 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
         in text
     )
     assert '--mem "$CANDIDATE_MEM_CAP" --swap "$CANDIDATE_SWAP_CAP"' in text
-    assert "Candidate resource cap: mem=$CANDIDATE_MEM_CAP swap=$CANDIDATE_SWAP_CAP" in text
+    assert (
+        "Candidate resource cap: mem=$CANDIDATE_MEM_CAP swap=$CANDIDATE_SWAP_CAP "
+        "runner=$CANDIDATE_CAPPED_RUNNER num_workers=0"
+        in text
+    )
+    assert "Capped candidate train command:" in text
     assert '"memory_cap": sys.argv[12]' in text
     assert '"swap_cap": sys.argv[13]' in text
+    assert '"cgroup_runner": "scripts/gx1_capped_run.sh"' in text
+    assert '"uses_gx1_capped_run": True' in text
+    assert '"num_workers": int(command_arg_value(train_cmd, "--num-workers") or -1)' in text
     assert "candidate_recipe_env" in text
     assert "command_env_value" in text
     assert "GX1_ENTRY_ALLOW_TRAIN_ENV_OVERRIDES=1" in text
