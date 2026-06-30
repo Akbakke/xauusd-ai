@@ -40,6 +40,8 @@ SMOKE_SYMMETRIC_NEGATIVES="${ENTRY_FOUNDATION_SMOKE_SYMMETRIC_NEGATIVES:-1}"
 SMOKE_SPECIALIST_GATE_ENTROPY_WEIGHT="${ENTRY_FOUNDATION_SMOKE_SPECIALIST_GATE_ENTROPY_WEIGHT:-0.05}"
 SMOKE_SPECIALIST_GATE_BALANCE_WEIGHT="${ENTRY_FOUNDATION_SMOKE_SPECIALIST_GATE_BALANCE_WEIGHT:-0.25}"
 SMOKE_SPECIALIST_GATE_MIN_MEAN="${ENTRY_FOUNDATION_SMOKE_SPECIALIST_GATE_MIN_MEAN:-0.02}"
+SMOKE_RUN_MEM="${ENTRY_FOUNDATION_SMOKE_RUN_MEM:-22G}"
+SMOKE_RUN_SWAP="${ENTRY_FOUNDATION_SMOKE_RUN_SWAP:-2G}"
 
 usage() {
   cat <<'EOF'
@@ -80,6 +82,8 @@ Dry-run prints those preflight commands but does not recurse through them.
 Real training writes a pre-train run manifest before gx1_capped_run starts.
 Real training also requires a clean git worktree; use --manifest-only for proof
 when the repo is intentionally dirty.
+Set ENTRY_FOUNDATION_SMOKE_RUN_MEM/SWAP to lower the hard cgroup cap for
+RAM-constrained overnight runs.
 EOF
 }
 
@@ -647,7 +651,7 @@ if [[ "$MANIFEST_ONLY" = "1" ]]; then
   exit 0
 fi
 
-scripts/gx1_capped_run.sh --mem 22G --swap 2G -- "${CMD[@]}"
+scripts/gx1_capped_run.sh --mem "$SMOKE_RUN_MEM" --swap "$SMOKE_RUN_SWAP" -- "${CMD[@]}"
 echo "Smoke bundle written: $OUT_BUNDLE"
 if [[ "$AUDIT_AFTER" = "1" ]]; then
   "${AUDIT_CMD[@]}"
