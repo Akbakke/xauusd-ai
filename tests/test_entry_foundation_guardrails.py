@@ -67,6 +67,7 @@ def test_foundation_guardrails_current_repo_lock_control_and_handover(tmp_path: 
     assert policy_checks["readiness_policy_blocks_selective_edge"] is True
     assert policy_checks["readiness_policy_blocks_replay_evidence"] is True
     assert policy_checks["readiness_policy_blocks_iql_distill"] is True
+    assert policy_checks["readiness_policy_blocks_iql_student_trade_log"] is True
     assert policy_checks["readiness_policy_blocks_iql_replay_evidence"] is True
     assert policy_checks["readiness_policy_blocks_iql_compare"] is True
     assert policy_checks["readiness_policy_blocks_preview_shadow"] is True
