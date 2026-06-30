@@ -37,6 +37,13 @@ Machine contract:
   - Critical-gate path coverage includes docs/control, smoke bundle audit,
     candidate-readiness, replay-readiness, IQL distillation/evidence/comparison
     gates and their tests.
+- Feature AI inventory and harmony gate:
+  `gx1/scripts/materialize_entry_feature_ai_inventory_v1.py`
+  - Writes `feature_harmony_contract` as the machine-readable authority for
+    the Feature Harmony Rule: every active/generated Entry input must be
+    specialist-routed or explicitly excluded with a recorded reason, smart
+    layers must preserve source coverage, and unmapped fields keep downstream
+    training/replay gates closed.
 - Candidate-readiness gate:
   `gx1/scripts/verify_entry_candidate_readiness_v1.py`
   - Supports `foundation_seq146` and `challenger_seq215`. The seq215 report

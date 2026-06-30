@@ -218,10 +218,13 @@ Active status:
   a `smart_seq520_candidate` manifest candidate, not an active
   dataset. It writes separate `SMART` manifest/report latest files and must
   not overwrite the seq215 latest contract. The Entry feature AI inventory now
-  proves smart-source coverage for all ten smart layers, including OHLC source
-  provenance for price-action/candle smart3, and the inline sequence-extension
-  builder can materialize the requested 305 smart-layer fields when a capped
-  rebuild is explicitly opened. `smart-rebuild-preflight` is the report-only
+  writes `feature_harmony_contract`: every active/generated Entry input is
+  either specialist-routed or explicitly excluded with reason, with zero
+  unmapped fields required. It also proves smart-source coverage for all ten
+  smart layers, including OHLC source provenance for price-action/candle
+  smart3, and the inline sequence-extension builder can materialize the
+  requested 305 smart-layer fields when a capped rebuild is explicitly opened.
+  `smart-rebuild-preflight` is the report-only
   gate that binds the latest smart manifest, inventory, active source parquet,
   hashes and 4G-capped rebuild command before any dataset mutation. It is still
   not train-ready and requires a separate dataset rebuild, feature audit, specialist audit,

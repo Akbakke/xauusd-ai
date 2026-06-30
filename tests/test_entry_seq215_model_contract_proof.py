@@ -23,6 +23,8 @@ from gx1.scripts.audit_entry_foundation_smoke_bundle_v1 import (
 from gx1.scripts.materialize_entry_feature_ai_inventory_v1 import (
     NEXT_REQUIRED_GATE as FEATURE_AI_INVENTORY_NEXT_REQUIRED_GATE,
     SMART_LAYER_SOURCE_CONTRACTS,
+    _feature_harmony_contract,
+    _feature_rows,
     _specialist_contract_provenance as _inventory_contract_provenance,
 )
 from gx1.scripts.materialize_entry_specialist_challenger_extension_manifest_v1 import (
@@ -252,6 +254,51 @@ def test_feature_ai_inventory_registers_all_smart_layer_source_contracts() -> No
     for label, contract in SMART_LAYER_SOURCE_CONTRACTS.items():
         assert contract["required_source_fields"], label
         assert callable(contract["missing_required_source_fields"])
+
+
+def test_feature_harmony_contract_accounts_for_routed_and_excluded_inputs() -> None:
+    rows = (
+        _feature_rows(["ema20_slope", "chart.foundation_hh_state"], input_surface="seq", source="fixture")
+        + _feature_rows(["p_long"], input_surface="seq", source="fixture")
+    )
+
+    contract = _feature_harmony_contract(
+        feature_rows=rows,
+        label_or_target_columns=["y_direction", "ts"],
+        vector_columns={"seq", "snap", "ctx_cont", "ctx_cat"},
+        smart_layer_rows=[
+            {
+                "label": "trend_ema_smart_layer",
+                "missing_required_source_field_count": 0,
+                "missing_required_source_fields": [],
+            }
+        ],
+        specialist_contract_provenance=_inventory_contract_provenance(),
+    )
+
+    assert contract["schema_version"] == "entry_feature_harmony_contract_v1"
+    assert contract["feature_harmony_ready"] is True
+    assert contract["routed_input_count"] == 3
+    assert contract["excluded_input_count"] == 6
+    assert contract["accounted_input_count"] == 9
+    assert contract["unmapped_input_count"] == 0
+    assert contract["neutral_bridge_anchor_count"] == 1
+    assert contract["source_coverage_all_required_available"] is True
+    assert contract["training_allowed"] is False
+    assert contract["replay_allowed"] is False
+    assert contract["promotion_shadow_live_allowed"] is False
+
+    bad = _feature_harmony_contract(
+        feature_rows=[{"name": "mystery_feature", "input_surface": "seq", "source": "fixture", "specialist": "unmapped"}],
+        label_or_target_columns=[],
+        vector_columns=set(),
+        smart_layer_rows=[],
+        specialist_contract_provenance=_inventory_contract_provenance(),
+    )
+
+    assert bad["feature_harmony_ready"] is False
+    assert bad["unmapped_input_count"] == 1
+    assert any("unmapped routed inputs" in failure for failure in bad["failures"])
 
 
 def _challenger_extension_args(tmp_path: Path, *, include_smart_layers: bool) -> argparse.Namespace:

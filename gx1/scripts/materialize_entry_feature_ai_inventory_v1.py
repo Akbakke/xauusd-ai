@@ -482,6 +482,82 @@ def _feature_rows(names: list[str], *, input_surface: str, source: str) -> list[
     ]
 
 
+def _feature_harmony_contract(
+    *,
+    feature_rows: list[dict[str, Any]],
+    label_or_target_columns: list[str],
+    vector_columns: set[str],
+    smart_layer_rows: list[dict[str, Any]],
+    specialist_contract_provenance: dict[str, Any],
+) -> dict[str, Any]:
+    unmapped_rows = [row for row in feature_rows if row.get("specialist") == "unmapped"]
+    neutral_rows = [row for row in feature_rows if row.get("specialist") == "neutral_bridge_anchor"]
+    smart_missing_rows = [
+        row for row in smart_layer_rows if int(row.get("missing_required_source_field_count") or 0) > 0
+    ]
+    active = specialist_contract_provenance.get("active_foundation", {})
+    target = specialist_contract_provenance.get("target_challenger", {})
+    excluded_inputs = [
+        {
+            "name": name,
+            "input_surface": "dataset_vector_column",
+            "reason": "container column, not a scalar model feature",
+        }
+        for name in sorted(vector_columns)
+    ] + [
+        {
+            "name": name,
+            "input_surface": "label_or_target_or_metadata",
+            "reason": "not an Entry input feature; excluded from specialist routing",
+        }
+        for name in label_or_target_columns
+    ]
+    failures: list[str] = []
+    if unmapped_rows:
+        failures.append(f"feature harmony has unmapped routed inputs: {len(unmapped_rows)}")
+    if smart_missing_rows:
+        failures.append(f"feature harmony smart layers missing required source coverage: {len(smart_missing_rows)}")
+    if not bool(active.get("specialist_model_contract_set_exact")):
+        failures.append("feature harmony active foundation specialist contract is not exact")
+    if not bool(target.get("specialist_model_contract_set_exact")):
+        failures.append("feature harmony target challenger specialist contract is not exact")
+    return {
+        "schema_version": "entry_feature_harmony_contract_v1",
+        "rule": (
+            "Every active Entry input must be routed into one specialist mechanism "
+            "or explicitly excluded with a recorded reason; smart layers must keep "
+            "source coverage, routing ownership, provenance and liveness gates."
+        ),
+        "routed_input_count": int(len(feature_rows)),
+        "excluded_input_count": int(len(excluded_inputs)),
+        "accounted_input_count": int(len(feature_rows) + len(excluded_inputs)),
+        "unmapped_input_count": int(len(unmapped_rows)),
+        "neutral_bridge_anchor_count": int(len(neutral_rows)),
+        "smart_layer_count": int(len(smart_layer_rows)),
+        "smart_layers_missing_required_source_count": int(len(smart_missing_rows)),
+        "source_coverage_all_required_available": not smart_missing_rows,
+        "active_foundation_contract_mode": active.get("contract_mode"),
+        "active_foundation_contract_exact": bool(active.get("specialist_model_contract_set_exact")),
+        "target_challenger_contract_mode": target.get("contract_mode"),
+        "target_challenger_contract_exact": bool(target.get("specialist_model_contract_set_exact")),
+        "feature_harmony_ready": not failures,
+        "training_allowed": False,
+        "replay_allowed": False,
+        "promotion_shadow_live_allowed": False,
+        "unmapped_inputs": unmapped_rows[:100],
+        "neutral_bridge_inputs": neutral_rows,
+        "excluded_inputs": excluded_inputs,
+        "smart_layers_missing_required_source_fields": [
+            {
+                "label": row.get("label"),
+                "missing_required_source_fields": row.get("missing_required_source_fields"),
+            }
+            for row in smart_missing_rows
+        ],
+        "failures": failures,
+    }
+
+
 def _contains_any(name: str, tokens: tuple[str, ...]) -> bool:
     n = name.lower()
     return any(token in n for token in tokens)
@@ -619,6 +695,11 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
         f"- Smart candidate expected signal dim: `{report['smart_candidate']['expected_signal_dim']}`",
         f"- Smart source coverage all required available: "
         f"`{report['smart_candidate']['source_coverage_all_required_available']}`",
+        f"- Feature harmony ready: `{report['feature_harmony_ready']}`",
+        f"- Feature harmony accounted inputs: "
+        f"`{report['feature_harmony_contract']['accounted_input_count']}`",
+        f"- Feature harmony unmapped inputs: "
+        f"`{report['feature_harmony_contract']['unmapped_input_count']}`",
         f"- Label/target columns: `{report['counts']['label_or_target_columns']}`",
         f"- Active contract: `{report['specialist_contract_provenance']['active_foundation']['contract_mode']}` "
         f"({report['specialist_contract_provenance']['active_foundation']['required_training_specialist_count']} specialists)",
@@ -740,6 +821,27 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     contract_provenance = _specialist_contract_provenance()
     active_contract = contract_provenance["active_foundation"]
     target_contract = contract_provenance["target_challenger"]
+    feature_rows = (
+        _feature_rows(signal_fields, input_surface="seq_and_snap_signal", source="active_split_manifest")
+        + _feature_rows([f"ctx_cont.{name}" for name in ctx_cont], input_surface="ctx_cont", source="active_split_manifest")
+        + _feature_rows([f"ctx_cat.{name}" for name in ctx_cat], input_surface="ctx_cat", source="active_split_manifest")
+        + _feature_rows(sequence_features, input_surface="seq_structure_extension", source="sequence_structure_manifest")
+        + _feature_rows(chart_features, input_surface="chart_geometry_challenger", source="chart_geometry_manifest")
+        + _feature_rows(candle_features, input_surface="candlestick_pattern_challenger", source="candlestick_manifest")
+        + _feature_rows(
+            smart_features,
+            input_surface=f"smart_seq{smart_candidate_expected_signal_dim}_candidate",
+            source="smart_layer_manifest",
+        )
+    )
+    feature_harmony_contract = _feature_harmony_contract(
+        feature_rows=feature_rows,
+        label_or_target_columns=label_or_target_columns,
+        vector_columns=vector_columns,
+        smart_layer_rows=smart_layer_rows,
+        specialist_contract_provenance=contract_provenance,
+    )
+    failures.extend(feature_harmony_contract["failures"])
 
     decision = "READY_FOR_SPECIALIST_AI_DESIGN_REVIEW" if not failures else "FAIL"
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
@@ -793,19 +895,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "external_source_schema_columns": external_source_schema_columns,
             "label_or_target_columns": label_or_target_columns,
         },
-        "feature_rows": (
-            _feature_rows(signal_fields, input_surface="seq_and_snap_signal", source="active_split_manifest")
-            + _feature_rows([f"ctx_cont.{name}" for name in ctx_cont], input_surface="ctx_cont", source="active_split_manifest")
-            + _feature_rows([f"ctx_cat.{name}" for name in ctx_cat], input_surface="ctx_cat", source="active_split_manifest")
-            + _feature_rows(sequence_features, input_surface="seq_structure_extension", source="sequence_structure_manifest")
-            + _feature_rows(chart_features, input_surface="chart_geometry_challenger", source="chart_geometry_manifest")
-            + _feature_rows(candle_features, input_surface="candlestick_pattern_challenger", source="candlestick_manifest")
-            + _feature_rows(
-                smart_features,
-                input_surface=f"smart_seq{smart_candidate_expected_signal_dim}_candidate",
-                source="smart_layer_manifest",
-            )
-        ),
+        "feature_rows": feature_rows,
+        "feature_harmony_contract": feature_harmony_contract,
+        "feature_harmony_ready": feature_harmony_contract["feature_harmony_ready"],
         "active_input_counts_by_specialist": _count_groups(active_named_for_grouping),
         "active_inputs_by_specialist": _group(active_named_for_grouping),
         "smart_candidate": {
