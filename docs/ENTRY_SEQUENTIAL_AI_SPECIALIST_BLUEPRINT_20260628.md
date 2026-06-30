@@ -306,18 +306,21 @@ Current report-only smart-layer candidate:
   `materialize_entry_specialist_challenger_extension_manifest_v1 --include-smart-layers`
   path preserves the existing seq215 latest files and writes separate `SMART`
   manifest/report latest files.
-- It currently adds 280 dormant smart-layer features on top of the 174-feature
+- It currently adds 305 dormant smart-layer features on top of the 174-feature
   seq215 extension: trend/EMA 20, SMC/liquidity quality 24,
   structure/swing derivations 28, momentum/flow 26, session/regime
-  interactions 43, volatility/compression 28, chart-geometry smart2 13,
+  interactions 68, volatility/compression 28, chart-geometry smart2 13,
   price-action/candle smart3 32, support/resistance level memory 34 and
   multi-timeframe confluence 32.
-- Expected rebuilt seq/snap width is currently 495 signal fields: 41 base
-  signal fields plus the 454-feature combined extension. This is a dataset rebuild candidate,
+- Expected rebuilt seq/snap width is currently 520 signal fields: 41 base
+  signal fields plus the 479-feature combined extension. This is a dataset rebuild candidate,
   not active training evidence.
 - The Entry feature AI inventory proves all ten smart layers have required
   source coverage. The inline sequence-extension builder is wired to materialize
   these smart fields from the existing emitted signal/context fields plus the
+  active source parquet. `smart-rebuild-preflight` must bind the latest smart
+  manifest, inventory, source parquet, hashes and 4G-capped rebuild command
+  before any smart dataset rebuild is reviewed.
   audited OHLC source parquet for candle smart3 during a later capped rebuild.
 - These smart layers are diagnostic/report-only until a separate rebuild,
   feature audit, specialist audit, liveness/non-collapse proof and

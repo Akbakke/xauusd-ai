@@ -2,6 +2,7 @@ import argparse
 import json
 
 import numpy as np
+import pytest
 
 from gx1.features.entry_specialist_feature_groups_v1 import classify_entry_specialist_feature
 from gx1.features.entry_trend_ema_v1 import (
@@ -161,6 +162,20 @@ def test_trend_ema_layer_sanitizes_nonfinite_inputs() -> None:
     assert tuple(out_names) == EXPECTED_TREND_EMA_FEATURE_NAMES
     assert out.shape == (7, 20)
     assert np.isfinite(out).all()
+
+
+def test_trend_ema_layer_fails_closed_on_missing_source_fields() -> None:
+    names = list(TREND_EMA_SOURCE_FIELDS)
+    x = _matrix(names)
+    missing_name = "ctx_cont._v1h4_slope5"
+    keep_idx = [i for i, name in enumerate(names) if name != missing_name]
+    keep_names = [name for name in names if name != missing_name]
+
+    with pytest.raises(RuntimeError, match="trend/EMA required source fields missing"):
+        build_entry_trend_ema_layer(x[:, keep_idx], keep_names)
+
+    with pytest.raises(RuntimeError, match="trend/EMA feature name count"):
+        build_entry_trend_ema_layer(x, keep_names)
 
 
 def test_trend_ema_layer_rewards_ema_slope_coherence() -> None:

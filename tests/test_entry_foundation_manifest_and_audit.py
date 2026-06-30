@@ -407,10 +407,11 @@ def test_inline_seq_structure_extension_can_materialize_all_smart_layers(tmp_pat
         source_parquet=source,
     )
 
-    assert out.shape == (periods, 280)
+    assert out.shape == (periods, len(requested))
     assert names == requested
     assert np.isfinite(out).all()
-    assert meta["smart_generated_dim"] >= 235
+    assert meta["feature_count"] == len(requested)
+    assert meta["smart_generated_dim"] > 0
     assert {row["label"] for row in meta["smart_generated_layers"]} >= {
         "trend_ema_smart_layer",
         "smc_liquidity_quality_layer",

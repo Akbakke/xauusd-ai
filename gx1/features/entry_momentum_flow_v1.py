@@ -11,7 +11,7 @@ from typing import Iterable
 import numpy as np
 
 
-MOMENTUM_FLOW_FEATURE_VERSION = "entry_momentum_flow_v1_20260630_causal_closed_bar_derivatives"
+MOMENTUM_FLOW_FEATURE_VERSION = "entry_momentum_flow_v1_20260630_causal_flow_pressure"
 MOMENTUM_FLOW_FEATURE_PREFIX = "momentum.flow_"
 
 MOMENTUM_FLOW_REQUIRED_SOURCE_FIELDS = (
@@ -53,6 +53,7 @@ MOMENTUM_FLOW_OPTIONAL_SOURCE_FIELDS = (
     "candle.pattern_bear_continuation_pressure",
     "candle.pattern_bull_reversal_pressure",
     "candle.pattern_bear_reversal_pressure",
+    "body_pct",
     "wick_asym",
     "wick_ratio",
     "candle.pattern_upper_wick_share",
@@ -95,6 +96,7 @@ _SOURCE_ALIASES: dict[str, tuple[str, ...]] = {
     "candle.pattern_bear_continuation_pressure": ("candle.pattern_bear_continuation_pressure",),
     "candle.pattern_bull_reversal_pressure": ("candle.pattern_bull_reversal_pressure",),
     "candle.pattern_bear_reversal_pressure": ("candle.pattern_bear_reversal_pressure",),
+    "body_pct": ("snap.body_pct", "body_pct", "candle.pattern_body_pct", "candle.pattern_body_share"),
     "wick_asym": ("snap.wick_asym", "wick_asym"),
     "wick_ratio": ("ctx_cont.wick_ratio", "wick_ratio"),
     "candle.pattern_upper_wick_share": ("candle.pattern_upper_wick_share",),
@@ -114,17 +116,17 @@ MOMENTUM_FLOW_FEATURE_SUFFIXES = (
     "bear_followthrough_score",
     "followthrough_balance",
     "mtf_confirmation_score",
-    "mtf_conflict_score",
+    "flow_divergence_pressure",
     "mtf_bull_confirmation",
     "mtf_bear_confirmation",
-    "candle_bull_pressure",
-    "candle_bear_pressure",
+    "bodyflow_bull_pressure",
+    "bodyflow_bear_pressure",
     "bull_exhaustion_pressure",
     "bear_exhaustion_pressure",
     "dip_continuation_long_input",
     "dip_continuation_short_input",
-    "dip_reversal_long_risk_input",
-    "dip_reversal_short_risk_input",
+    "bad_path_long_initial_pressure",
+    "bad_path_short_initial_pressure",
     "impulse_pullback_alignment_score",
     "compression_release_followthrough_score",
     "clean_edge_score",
@@ -208,7 +210,15 @@ def _sign_agreement(parts: list[np.ndarray]) -> tuple[np.ndarray, np.ndarray, np
     return _clip01(confirmation), _clip01(conflict), _clip01(bull), _clip01(bear)
 
 
-def _add(arrays: list[np.ndarray], names: list[str], suffix: str, arr: np.ndarray, *, lo: float = -25.0, hi: float = 25.0) -> None:
+def _add(
+    arrays: list[np.ndarray],
+    names: list[str],
+    suffix: str,
+    arr: np.ndarray,
+    *,
+    lo: float = -25.0,
+    hi: float = 25.0,
+) -> None:
     clean = _clip(np.asarray(arr, dtype=np.float32), lo, hi)
     if clean.ndim != 1:
         raise RuntimeError(f"momentum flow feature {suffix} is not 1D: {clean.shape}")
@@ -330,21 +340,45 @@ def build_entry_momentum_flow_layer(
     bear_cont = _clip01(c("candle.pattern_bear_continuation_pressure"))
     bull_reversal = _clip01(c("candle.pattern_bull_reversal_pressure"))
     bear_reversal = _clip01(c("candle.pattern_bear_reversal_pressure"))
-    clv_wick_bull_flow = _clip01(0.50 * _pos(clv) + 0.35 * lower_wick_flow + 0.15 * _pos(return_acceleration))
-    clv_wick_bear_flow = _clip01(0.50 * _neg(clv) + 0.35 * upper_wick_flow + 0.15 * _neg(return_acceleration))
-    candle_bull = _clip01(
-        0.30 * _pos(clv)
-        + 0.25 * bull_cont
-        + 0.15 * bull_reversal
-        + 0.10 * _pos(micro_impulse)
-        + 0.20 * clv_wick_bull_flow
+    body_pct = _clip01(c("body_pct"))
+    body_impulse = _clip01(0.55 * body_pct + 0.45 * np.abs(clv))
+    clv_body_bull_flow = _clip01(
+        0.40 * _pos(clv) * (0.50 + 0.50 * body_impulse)
+        + 0.24 * lower_wick_flow
+        + 0.18 * _pos(return_acceleration)
+        + 0.18 * _pos(micro_impulse)
     )
-    candle_bear = _clip01(
-        0.30 * _neg(clv)
-        + 0.25 * bear_cont
-        + 0.15 * bear_reversal
-        + 0.10 * _neg(micro_impulse)
-        + 0.20 * clv_wick_bear_flow
+    clv_body_bear_flow = _clip01(
+        0.40 * _neg(clv) * (0.50 + 0.50 * body_impulse)
+        + 0.24 * upper_wick_flow
+        + 0.18 * _neg(return_acceleration)
+        + 0.18 * _neg(micro_impulse)
+    )
+    body_flow_bull = _clip01(
+        0.30 * clv_body_bull_flow
+        + 0.24 * bull_cont
+        + 0.16 * bull_reversal
+        + 0.16 * _pos(ret1_norm)
+        + 0.14 * _pos(ret5_norm)
+    )
+    body_flow_bear = _clip01(
+        0.30 * clv_body_bear_flow
+        + 0.24 * bear_cont
+        + 0.16 * bear_reversal
+        + 0.16 * _neg(ret1_norm)
+        + 0.14 * _neg(ret5_norm)
+    )
+    short_long_opposition = _clip01(_pos(ret1_norm) * _neg(ret20_norm) + _neg(ret1_norm) * _pos(ret20_norm))
+    impulse_clv_conflict = _clip01(_pos(impulse_direction) * _neg(clv) + _neg(impulse_direction) * _pos(clv))
+    accel_impulse_conflict = _clip01(
+        _pos(impulse_direction) * _neg(acceleration) + _neg(impulse_direction) * _pos(acceleration)
+    )
+    flow_divergence = _clip01(
+        0.34 * mtf_conflict
+        + 0.20 * regime_divergence
+        + 0.18 * short_long_opposition
+        + 0.16 * impulse_clv_conflict
+        + 0.12 * accel_impulse_conflict
     )
 
     vol_follow_quality = _clip01(
@@ -358,14 +392,14 @@ def build_entry_momentum_flow_layer(
         + 0.30 * _pos(ret5_norm)
         + 0.15 * _pos(ret20_norm)
         + 0.15 * _pos(micro_impulse)
-        + 0.15 * candle_bull
+        + 0.15 * body_flow_bull
     )
     bear_follow_raw = _clip01(
         0.25 * _neg(ret1_norm)
         + 0.30 * _neg(ret5_norm)
         + 0.15 * _neg(ret20_norm)
         + 0.15 * _neg(micro_impulse)
-        + 0.15 * candle_bear
+        + 0.15 * body_flow_bear
     )
     bull_follow = _clip01((0.90 * bull_follow_raw + 0.10 * bull_persistence) * (0.70 + 0.30 * vol_follow_quality))
     bear_follow = _clip01((0.90 * bear_follow_raw + 0.10 * bear_persistence) * (0.70 + 0.30 * vol_follow_quality))
@@ -382,7 +416,7 @@ def build_entry_momentum_flow_layer(
             0.22 * deceleration
             + 0.20 * _neg(return_acceleration)
             + 0.18 * high_vol_stress
-            + 0.18 * candle_bear
+            + 0.18 * body_flow_bear
             + 0.12 * upper_wick_flow
             + 0.10 * _neg(clv)
         )
@@ -393,7 +427,7 @@ def build_entry_momentum_flow_layer(
             0.22 * deceleration
             + 0.20 * _pos(return_acceleration)
             + 0.18 * high_vol_stress
-            + 0.18 * candle_bull
+            + 0.18 * body_flow_bull
             + 0.12 * lower_wick_flow
             + 0.10 * _pos(clv)
         )
@@ -406,7 +440,7 @@ def build_entry_momentum_flow_layer(
                 0.30
                 + 0.25 * deceleration
                 + 0.20 * high_vol_stress
-                + 0.15 * candle_bear
+                + 0.15 * body_flow_bear
                 + 0.10 * _neg(clv)
             )
         )
@@ -420,7 +454,7 @@ def build_entry_momentum_flow_layer(
                 0.30
                 + 0.25 * deceleration
                 + 0.20 * high_vol_stress
-                + 0.15 * candle_bull
+                + 0.15 * body_flow_bull
                 + 0.10 * _pos(clv)
             )
         )
@@ -453,11 +487,35 @@ def build_entry_momentum_flow_layer(
     dip_cont_short = _clip01(
         dip_setup * (0.45 * bear_follow + 0.30 * mtf_bear + 0.25 * (1.0 - bear_exhaustion))
     )
-    dip_reversal_long = _clip01(
-        dip_setup * (0.40 * bear_follow + 0.25 * mtf_conflict + 0.20 * bull_exhaustion + 0.15 * candle_bear)
+    bad_path_long = _clip01(
+        0.22 * bear_follow
+        + 0.18 * body_flow_bear
+        + 0.17 * bull_exhaustion
+        + 0.16 * flow_divergence
+        + 0.12 * high_vol_stress
+        + 0.09 * _neg(return_acceleration)
+        + 0.06 * upper_wick_flow
     )
-    dip_reversal_short = _clip01(
-        dip_setup * (0.40 * bull_follow + 0.25 * mtf_conflict + 0.20 * bear_exhaustion + 0.15 * candle_bull)
+    bad_path_short = _clip01(
+        0.22 * bull_follow
+        + 0.18 * body_flow_bull
+        + 0.17 * bear_exhaustion
+        + 0.16 * flow_divergence
+        + 0.12 * high_vol_stress
+        + 0.09 * _pos(return_acceleration)
+        + 0.06 * lower_wick_flow
+    )
+    bad_path_long = _clip01(
+        0.70 * bad_path_long
+        + 0.30
+        * dip_setup
+        * (0.40 * bear_follow + 0.25 * flow_divergence + 0.20 * bull_exhaustion + 0.15 * body_flow_bear)
+    )
+    bad_path_short = _clip01(
+        0.70 * bad_path_short
+        + 0.30
+        * dip_setup
+        * (0.40 * bull_follow + 0.25 * flow_divergence + 0.20 * bear_exhaustion + 0.15 * body_flow_bull)
     )
 
     impulse_pullback_alignment = _clip(
@@ -477,7 +535,7 @@ def build_entry_momentum_flow_layer(
     clean_edge = _clip01(
         np.abs(follow_balance)
         * mtf_confirmation
-        * (1.0 - mtf_conflict)
+        * (1.0 - flow_divergence)
         * (1.0 - np.maximum(bull_exhaustion, bear_exhaustion))
         * (0.80 + 0.20 * vol_follow_quality)
         * (0.75 + 0.25 * np.maximum(bull_persistence, bear_persistence))
@@ -497,22 +555,26 @@ def build_entry_momentum_flow_layer(
     _add(arrays, names, "bear_followthrough_score", bear_follow, lo=0.0, hi=1.0)
     _add(arrays, names, "followthrough_balance", follow_balance, lo=-1.0, hi=1.0)
     _add(arrays, names, "mtf_confirmation_score", mtf_confirmation, lo=0.0, hi=1.0)
-    _add(arrays, names, "mtf_conflict_score", mtf_conflict, lo=0.0, hi=1.0)
+    _add(arrays, names, "flow_divergence_pressure", flow_divergence, lo=0.0, hi=1.0)
     _add(arrays, names, "mtf_bull_confirmation", mtf_bull, lo=0.0, hi=1.0)
     _add(arrays, names, "mtf_bear_confirmation", mtf_bear, lo=0.0, hi=1.0)
-    _add(arrays, names, "candle_bull_pressure", candle_bull, lo=0.0, hi=1.0)
-    _add(arrays, names, "candle_bear_pressure", candle_bear, lo=0.0, hi=1.0)
+    _add(arrays, names, "bodyflow_bull_pressure", body_flow_bull, lo=0.0, hi=1.0)
+    _add(arrays, names, "bodyflow_bear_pressure", body_flow_bear, lo=0.0, hi=1.0)
     _add(arrays, names, "bull_exhaustion_pressure", bull_exhaustion, lo=0.0, hi=1.0)
     _add(arrays, names, "bear_exhaustion_pressure", bear_exhaustion, lo=0.0, hi=1.0)
     _add(arrays, names, "dip_continuation_long_input", dip_cont_long, lo=0.0, hi=1.0)
     _add(arrays, names, "dip_continuation_short_input", dip_cont_short, lo=0.0, hi=1.0)
-    _add(arrays, names, "dip_reversal_long_risk_input", dip_reversal_long, lo=0.0, hi=1.0)
-    _add(arrays, names, "dip_reversal_short_risk_input", dip_reversal_short, lo=0.0, hi=1.0)
+    _add(arrays, names, "bad_path_long_initial_pressure", bad_path_long, lo=0.0, hi=1.0)
+    _add(arrays, names, "bad_path_short_initial_pressure", bad_path_short, lo=0.0, hi=1.0)
     _add(arrays, names, "impulse_pullback_alignment_score", impulse_pullback_alignment, lo=-1.0, hi=1.0)
     _add(arrays, names, "compression_release_followthrough_score", compression_release_follow, lo=-1.0, hi=1.0)
     _add(arrays, names, "clean_edge_score", clean_edge, lo=0.0, hi=1.0)
 
-    out = np.column_stack(arrays).astype(np.float32, copy=False) if arrays else np.empty((x.shape[0], 0), dtype=np.float32)
+    out = (
+        np.column_stack(arrays).astype(np.float32, copy=False)
+        if arrays
+        else np.empty((x.shape[0], 0), dtype=np.float32)
+    )
     if tuple(names) != MOMENTUM_FLOW_FEATURE_NAMES:
         raise RuntimeError("momentum flow feature order drifted")
     if not np.isfinite(out).all():

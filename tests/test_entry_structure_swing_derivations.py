@@ -69,6 +69,10 @@ def _matrix(names: list[str], n: int = 8) -> np.ndarray:
     set_col("chart.foundation_compression_state", [0.1, 0.2, 0.3, 0.9, 0.2, 0.2, 0.3, 0.2])
     set_col("chart.foundation_expansion_state", [0.0, 0.4, 0.5, 0.1, 0.2, 0.4, 0.5, 0.2])
     set_col("chart.foundation_compression_release_trigger", [0.0, 0.2, 0.3, 0.0, 0.1, 0.2, 0.3, 0.1])
+    set_col("ctx_cont.dist_last_swing_high_atr", [-4.0, 0.6, 0.4, -0.2, -0.3, -4.0, -4.0, -0.2])
+    set_col("ctx_cont.dist_last_swing_low_atr", [4.0, 4.0, 4.0, 0.2, 0.3, -0.6, -0.4, 0.2])
+    set_col("ctx_cont.bars_since_swing_high", [48, 1, 2, 4, 6, 48, 48, 4])
+    set_col("ctx_cont.bars_since_swing_low", [48, 48, 48, 4, 6, 1, 2, 4])
     set_col("ctx_cont.struct_tf_agree_count_v3", [0, 5, 4, 1, 4, 5, 4, 4])
 
     for tf in ("m5", "m15", "h1", "h4", "d1"):
@@ -101,6 +105,7 @@ def test_structure_swing_derivations_capture_quality_state_and_routing() -> None
     assert out[1, idx["chart.structure_swing_bos_choch_recency_alignment_up"]] > 0.8
     assert out[5, idx["chart.structure_swing_bos_choch_recency_alignment_down"]] > 0.8
     assert out[3, idx["chart.structure_swing_bos_choch_recency_conflict"]] > out[1, idx["chart.structure_swing_bos_choch_recency_conflict"]]
+    assert out[4, idx["chart.structure_swing_bos_choch_recency_conflict"]] > out[2, idx["chart.structure_swing_bos_choch_recency_conflict"]]
     assert out[1, idx["chart.structure_swing_bos_followthrough_up_quality"]] > 0.4
     assert out[5, idx["chart.structure_swing_bos_followthrough_down_quality"]] > 0.4
     assert out[1, idx["chart.structure_swing_break_confirmation_up"]] > 0.25
@@ -113,6 +118,8 @@ def test_structure_swing_derivations_capture_quality_state_and_routing() -> None
     assert out[6, idx["chart.structure_swing_pullback_depth_phase_alignment_down"]] > 0.4
     assert out[2, idx["chart.structure_swing_pullback_phase_continuation_up"]] > 0.2
     assert out[6, idx["chart.structure_swing_pullback_phase_continuation_down"]] > 0.2
+    assert out[1, idx["chart.structure_swing_pullback_phase_continuation_up"]] > out[1, idx["chart.structure_swing_pullback_phase_continuation_down"]]
+    assert out[5, idx["chart.structure_swing_pullback_phase_continuation_down"]] > out[5, idx["chart.structure_swing_pullback_phase_continuation_up"]]
     assert out[2, idx["chart.structure_swing_market_structure_regime_state"]] > 0.5
     assert out[6, idx["chart.structure_swing_market_structure_regime_state"]] < -0.5
     assert out[1, idx["chart.structure_swing_mtf_structure_agreement"]] > out[3, idx["chart.structure_swing_mtf_structure_agreement"]]
@@ -157,6 +164,10 @@ def test_structure_swing_derivation_source_contract_is_explicit() -> None:
     assert STRUCTURE_SWING_DERIVATION_FEATURE_NAMES == EXPECTED_STRUCTURE_SWING_DERIVATION_FEATURE_NAMES
     assert len(STRUCTURE_SWING_DERIVATION_SOURCE_FIELDS) == len(set(STRUCTURE_SWING_DERIVATION_SOURCE_FIELDS))
     assert "chart.foundation_bos_up_recent_tau24" in STRUCTURE_SWING_DERIVATION_SOURCE_FIELDS
+    assert "ctx_cont.dist_last_swing_high_atr" in STRUCTURE_SWING_DERIVATION_SOURCE_FIELDS
+    assert "ctx_cont.dist_last_swing_low_atr" in STRUCTURE_SWING_DERIVATION_SOURCE_FIELDS
+    assert "ctx_cont.bars_since_swing_high" in STRUCTURE_SWING_DERIVATION_SOURCE_FIELDS
+    assert "ctx_cont.bars_since_swing_low" in STRUCTURE_SWING_DERIVATION_SOURCE_FIELDS
     assert "ctx_cont.struct_continuation_up_h1_v3" in STRUCTURE_SWING_DERIVATION_SOURCE_FIELDS
     assert "ctx_cont.struct_pullback_depth_d1_v3" in STRUCTURE_SWING_DERIVATION_SOURCE_FIELDS
     assert missing_structure_swing_derivation_source_fields(STRUCTURE_SWING_DERIVATION_SOURCE_FIELDS) == []
@@ -164,3 +175,16 @@ def test_structure_swing_derivation_source_contract_is_explicit() -> None:
         name for name in STRUCTURE_SWING_DERIVATION_SOURCE_FIELDS if name != "chart.foundation_hh_state"
     )
     assert missing == ["chart.foundation_hh_state"]
+
+
+def test_structure_swing_derivations_fail_closed_on_missing_source_fields() -> None:
+    names = [name for name in STRUCTURE_SWING_DERIVATION_SOURCE_FIELDS if name != "ctx_cont.dist_last_swing_high_atr"]
+    x = np.zeros((4, len(names)), dtype=np.float32)
+
+    try:
+        build_entry_structure_swing_derivation_layer(x, names)
+    except RuntimeError as exc:
+        assert "structure/swing derivation required source fields missing" in str(exc)
+        assert "ctx_cont.dist_last_swing_high_atr" in str(exc)
+    else:
+        raise AssertionError("builder should fail closed when required swing distance source is missing")

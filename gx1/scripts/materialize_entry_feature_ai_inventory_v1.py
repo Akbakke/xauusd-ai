@@ -100,7 +100,7 @@ SPECIALIST_CONTRACT_AUTHORITY = (
 NEXT_REQUIRED_GATE = (
     "seq215 challenger inputs and the 8-specialist contract are materialized and audited; "
     "next boundary is explicit SEQ215 smoke-manifest/smoke-train evidence with edge audit, "
-    "then candidate-readiness-seq215. smart_seq495 remains report-only until a separate capped "
+    "then candidate-readiness-seq215. The smart sequence candidate remains report-only until a separate capped "
     "dataset rebuild, feature audit, specialist audit, liveness/non-collapse proof and "
     "train-readiness gate pass. Do not start candidate training, replay, IQL, shadow or live "
     "from inventory alone."
@@ -800,7 +800,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             + _feature_rows(sequence_features, input_surface="seq_structure_extension", source="sequence_structure_manifest")
             + _feature_rows(chart_features, input_surface="chart_geometry_challenger", source="chart_geometry_manifest")
             + _feature_rows(candle_features, input_surface="candlestick_pattern_challenger", source="candlestick_manifest")
-            + _feature_rows(smart_features, input_surface="smart_seq495_candidate", source="smart_layer_manifest")
+            + _feature_rows(
+                smart_features,
+                input_surface=f"smart_seq{smart_candidate_expected_signal_dim}_candidate",
+                source="smart_layer_manifest",
+            )
         ),
         "active_input_counts_by_specialist": _count_groups(active_named_for_grouping),
         "active_inputs_by_specialist": _group(active_named_for_grouping),

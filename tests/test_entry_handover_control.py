@@ -87,6 +87,11 @@ def test_control_surface_routes_verify_to_active_foundation_state() -> None:
     assert "scripts/entry_next_edge_control.sh candidate-readiness-seq215" in text
     assert "scripts/entry_next_edge_control.sh candidate-train-seq215 --vedtak <id>" in text
     assert "scripts/entry_next_edge_control.sh replay-readiness-seq215" in text
+    assert "scripts/entry_next_edge_control.sh smart-rebuild-preflight" in text
+    assert "scripts/entry_next_edge_control.sh smart-post-rebuild-readiness" in text
+    assert "scripts/entry_next_edge_control.sh smart-smoke-manifest --vedtak <id>" in text
+    assert "scripts/entry_next_edge_control.sh smart-smoke-readiness" in text
+    assert "scripts/entry_next_edge_control.sh smart-ablation-replay-plan" in text
     assert 'handover)' in text
     assert 'exec "$REPO/scripts/gx1_handover.sh"' in text
     assert 'readiness-report)' in text
@@ -105,6 +110,16 @@ def test_control_surface_routes_verify_to_active_foundation_state() -> None:
     assert 'verify_entry_candidate_readiness_v1 --challenger-seq215' in text
     assert 'replay-readiness-seq215)' in text
     assert 'verify_entry_replay_readiness_v1 --challenger-seq215' in text
+    assert 'smart-rebuild-preflight)' in text
+    assert 'materialize_entry_smart_seq495_rebuild_preflight_v1' in text
+    assert 'smart-post-rebuild-readiness)' in text
+    assert 'audit_entry_smart_dataset_post_rebuild_readiness_v1' in text
+    assert 'smart-smoke-manifest)' in text
+    assert 'materialize_entry_smart_seq520_smoke_manifest_v1' in text
+    assert 'smart-smoke-readiness)' in text
+    assert 'verify_entry_smart_seq520_smoke_readiness_v1' in text
+    assert 'smart-ablation-replay-plan)' in text
+    assert 'materialize_entry_smart_ablation_replay_plan_gate_v1' in text
     assert 'candidate-train-seq215)' in text
     assert 'run_entry_foundation_seq146_smoke_train.sh" --manifest-only' in text
     assert 'run_entry_foundation_seq146_smoke_train.sh" --challenger-seq215 --manifest-only' in text
@@ -526,6 +541,94 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
     assert payload["commands"]["challenger_smart_extension_manifest"]["manifest_variant"] == (
         f"smart_seq{smart_expected_dim}_candidate"
     )
+    assert payload["commands"]["smart_rebuild_preflight"]["argv"] == [
+        "scripts/entry_next_edge_control.sh",
+        "smart-rebuild-preflight",
+        "--quiet",
+        "--no-fail-on-audit-fail",
+    ]
+    assert payload["commands"]["smart_rebuild_preflight"]["execution_allowed_now"] is True
+    assert payload["commands"]["smart_rebuild_preflight"]["requires_vedtak"] is False
+    assert payload["commands"]["smart_rebuild_preflight"]["starts_trainer"] is False
+    assert payload["commands"]["smart_rebuild_preflight"]["starts_replay"] is False
+    assert payload["commands"]["smart_rebuild_preflight"]["starts_iql_distillation"] is False
+    assert payload["commands"]["smart_rebuild_preflight"]["touches_shadow_or_live"] is False
+    assert payload["commands"]["smart_rebuild_preflight"]["dataset_rebuild_allowed_without_vedtak"] is False
+    assert payload["commands"]["smart_rebuild_preflight"]["requires_ram_cap_for_future_rebuild"] is True
+    assert payload["commands"]["smart_rebuild_preflight"]["expected_signal_dim"] == smart_expected_dim
+    assert payload["commands"]["smart_rebuild_preflight"]["manifest_variant"] == (
+        f"smart_seq{smart_expected_dim}_candidate"
+    )
+    assert payload["commands"]["smart_post_rebuild_readiness"]["argv"] == [
+        "scripts/entry_next_edge_control.sh",
+        "smart-post-rebuild-readiness",
+        "--quiet",
+        "--no-fail-on-not-ready",
+    ]
+    assert payload["commands"]["smart_post_rebuild_readiness"]["execution_allowed_now"] is True
+    assert payload["commands"]["smart_post_rebuild_readiness"]["requires_vedtak"] is False
+    assert payload["commands"]["smart_post_rebuild_readiness"]["starts_trainer"] is False
+    assert payload["commands"]["smart_post_rebuild_readiness"]["starts_replay"] is False
+    assert payload["commands"]["smart_post_rebuild_readiness"]["starts_iql_distillation"] is False
+    assert payload["commands"]["smart_post_rebuild_readiness"]["touches_shadow_or_live"] is False
+    assert payload["commands"]["smart_post_rebuild_readiness"]["specialist_contract_mode"] == (
+        "smart_seq520_candidate"
+    )
+    assert payload["commands"]["smart_post_rebuild_readiness"]["expected_signal_dim"] == smart_expected_dim
+    assert payload["commands"]["smart_smoke_manifest"]["argv"] == [
+        "scripts/entry_next_edge_control.sh",
+        "smart-smoke-manifest",
+        "--vedtak",
+        "<id>",
+    ]
+    assert (
+        payload["commands"]["smart_smoke_manifest"]["allowed"]
+        is payload["status_summary"]["smart_post_rebuild_readiness_ready"]
+    )
+    assert payload["commands"]["smart_smoke_manifest"]["execution_allowed_now"] is False
+    assert (
+        payload["commands"]["smart_smoke_manifest"]["allowed_after_explicit_vedtak"]
+        is payload["status_summary"]["smart_post_rebuild_readiness_ready"]
+    )
+    assert payload["commands"]["smart_smoke_manifest"]["requires_vedtak"] is True
+    assert payload["commands"]["smart_smoke_manifest"]["starts_trainer"] is False
+    assert payload["commands"]["smart_smoke_manifest"]["starts_replay"] is False
+    assert payload["commands"]["smart_smoke_manifest"]["starts_iql_distillation"] is False
+    assert payload["commands"]["smart_smoke_manifest"]["touches_shadow_or_live"] is False
+    assert payload["commands"]["smart_smoke_manifest"]["specialist_contract_mode"] == "smart_seq520_candidate"
+    assert payload["commands"]["smart_smoke_manifest"]["expected_signal_dim"] == smart_expected_dim
+    assert payload["commands"]["smart_smoke_manifest"]["num_workers"] == 0
+    assert "explicit smart smoke-manifest vedtak" in payload["commands"]["smart_smoke_manifest"][
+        "not_executable_now_reason"
+    ]
+    assert payload["commands"]["smart_smoke_readiness"]["argv"] == [
+        "scripts/entry_next_edge_control.sh",
+        "smart-smoke-readiness",
+        "--quiet",
+        "--no-fail-on-not-ready",
+    ]
+    assert payload["commands"]["smart_smoke_readiness"]["execution_allowed_now"] is True
+    assert payload["commands"]["smart_smoke_readiness"]["requires_vedtak"] is False
+    assert payload["commands"]["smart_smoke_readiness"]["starts_trainer"] is False
+    assert payload["commands"]["smart_smoke_readiness"]["starts_replay"] is False
+    assert payload["commands"]["smart_smoke_readiness"]["starts_iql_distillation"] is False
+    assert payload["commands"]["smart_smoke_readiness"]["touches_shadow_or_live"] is False
+    assert payload["commands"]["smart_smoke_readiness"]["specialist_contract_mode"] == "smart_seq520_candidate"
+    assert payload["commands"]["smart_smoke_readiness"]["requires_ram_cap_for_future_train"] is True
+    assert payload["commands"]["smart_smoke_readiness"]["num_workers"] == 0
+    assert payload["commands"]["smart_ablation_replay_plan"]["argv"] == [
+        "scripts/entry_next_edge_control.sh",
+        "smart-ablation-replay-plan",
+        "--quiet",
+        "--no-fail-on-not-ready",
+    ]
+    assert payload["commands"]["smart_ablation_replay_plan"]["execution_allowed_now"] is True
+    assert payload["commands"]["smart_ablation_replay_plan"]["requires_vedtak"] is False
+    assert payload["commands"]["smart_ablation_replay_plan"]["starts_trainer"] is False
+    assert payload["commands"]["smart_ablation_replay_plan"]["starts_replay"] is False
+    assert payload["commands"]["smart_ablation_replay_plan"]["starts_iql_distillation"] is False
+    assert payload["commands"]["smart_ablation_replay_plan"]["touches_shadow_or_live"] is False
+    assert payload["commands"]["smart_ablation_replay_plan"]["replay_allowed_by_this_gate"] is False
     assert payload["commands"]["stage_foundation_cleanup_dry_run"]["allowed"] is True
     assert payload["commands"]["stage_foundation_cleanup_dry_run"]["execution_allowed_now"] is True
     assert payload["commands"]["stage_foundation_cleanup_dry_run"]["allowed_after_explicit_vedtak"] is True
@@ -682,6 +785,19 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
         "scripts/entry_next_edge_control.sh challenger-smart-extension-manifest --quiet --no-fail-on-audit-fail"
         in payload["allowed_now"]
     )
+    assert "scripts/entry_next_edge_control.sh smart-rebuild-preflight --quiet --no-fail-on-audit-fail" in payload["allowed_now"]
+    assert (
+        "scripts/entry_next_edge_control.sh smart-post-rebuild-readiness --quiet --no-fail-on-not-ready"
+        in payload["allowed_now"]
+    )
+    assert (
+        "scripts/entry_next_edge_control.sh smart-smoke-readiness --quiet --no-fail-on-not-ready"
+        in payload["allowed_now"]
+    )
+    assert (
+        "scripts/entry_next_edge_control.sh smart-ablation-replay-plan --quiet --no-fail-on-not-ready"
+        in payload["allowed_now"]
+    )
     assert "scripts/entry_next_edge_control.sh stage-foundation-cleanup --dry-run" in payload["allowed_now"]
     assert not any("smoke-manifest" in item for item in payload["allowed_now"])
     if foundation_ready:
@@ -691,6 +807,10 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
         if seq215_manifest_allowed:
             expected_optional.append(
                 "scripts/entry_next_edge_control.sh smoke-manifest-seq215 --vedtak <id>  # proof only, no trainer start"
+            )
+        if payload["status_summary"]["smart_post_rebuild_readiness_ready"]:
+            expected_optional.append(
+                "scripts/entry_next_edge_control.sh smart-smoke-manifest --vedtak <id>  # proof only, no trainer start"
             )
         assert payload["optional_proof_commands"] == expected_optional
     else:

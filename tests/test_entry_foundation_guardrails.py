@@ -66,6 +66,10 @@ def test_foundation_guardrails_current_repo_lock_control_and_handover(tmp_path: 
     assert policy_checks["readiness_policy_safe_now_candlestick_audit"] is True
     assert policy_checks["readiness_policy_safe_now_challenger_extension_manifest"] is True
     assert policy_checks["readiness_policy_safe_now_challenger_smart_extension_manifest"] is True
+    assert policy_checks["readiness_policy_safe_now_smart_rebuild_preflight"] is True
+    assert policy_checks["readiness_policy_safe_now_smart_post_rebuild_readiness"] is True
+    assert policy_checks["readiness_policy_safe_now_smart_smoke_readiness"] is True
+    assert policy_checks["readiness_policy_safe_now_smart_ablation_replay_plan"] is True
     assert policy_checks["readiness_policy_safe_now_iql_slice_audit"] is True
     assert policy_checks["readiness_policy_safe_now_entry_exit_materialize"] is True
     assert policy_checks["readiness_policy_safe_now_entry_exit_handoff"] is True
@@ -83,6 +87,7 @@ def test_foundation_guardrails_current_repo_lock_control_and_handover(tmp_path: 
     assert policy_checks["readiness_policy_safe_now_entry_exit_transformer_post_train_contract"] is True
     assert policy_checks["readiness_policy_blocks_foundation_activation_apply"] is True
     assert policy_checks["readiness_policy_blocks_foundation_activation_post_apply"] is True
+    assert policy_checks["readiness_policy_blocks_smart_smoke_manifest"] is True
     assert policy_checks["readiness_policy_blocks_smoke_train"] is True
     assert policy_checks["readiness_policy_blocks_smoke_train_seq215"] is True
     assert policy_checks["readiness_policy_blocks_candidate_train"] is True

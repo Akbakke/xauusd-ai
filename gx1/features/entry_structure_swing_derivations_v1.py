@@ -12,7 +12,7 @@ from typing import Iterable
 import numpy as np
 
 
-STRUCTURE_SWING_DERIVATION_FEATURE_VERSION = "entry_structure_swing_derivations_v1_20260630_causal_quality_state_v2"
+STRUCTURE_SWING_DERIVATION_FEATURE_VERSION = "entry_structure_swing_derivations_v1_20260630_causal_quality_state_v3"
 STRUCTURE_SWING_DERIVATION_FEATURE_PREFIX = "chart.structure_swing_"
 
 STRUCTURE_TFS = ("m5", "m15", "h1", "h4", "d1")
@@ -39,12 +39,52 @@ STRUCTURE_SWING_DERIVATION_SOURCE_FIELDS = (
     "chart.foundation_compression_state",
     "chart.foundation_expansion_state",
     "chart.foundation_compression_release_trigger",
+    "ctx_cont.dist_last_swing_high_atr",
+    "ctx_cont.dist_last_swing_low_atr",
+    "ctx_cont.bars_since_swing_high",
+    "ctx_cont.bars_since_swing_low",
     "ctx_cont.struct_tf_agree_count_v3",
     *tuple(f"ctx_cont.struct_continuation_up_{tf}_v3" for tf in STRUCTURE_TFS),
     *tuple(f"ctx_cont.struct_pullback_in_uptrend_{tf}_v3" for tf in STRUCTURE_TFS),
     *tuple(f"ctx_cont.struct_continuation_down_{tf}_v3" for tf in STRUCTURE_TFS),
     *tuple(f"ctx_cont.struct_bounce_in_downtrend_{tf}_v3" for tf in STRUCTURE_TFS),
     *tuple(f"ctx_cont.struct_pullback_depth_{tf}_v3" for tf in STRUCTURE_TFS),
+)
+
+STRUCTURE_SWING_DERIVATION_FEATURE_SUFFIXES = (
+    "hh_hl_consistency_up",
+    "lh_ll_consistency_down",
+    "hh_hl_lh_ll_conflict",
+    "swing_leg_quality_up",
+    "swing_leg_quality_down",
+    "swing_leg_quality_balance",
+    "bos_choch_recency_alignment_up",
+    "bos_choch_recency_alignment_down",
+    "bos_choch_recency_conflict",
+    "bos_followthrough_up_quality",
+    "bos_followthrough_down_quality",
+    "bos_followthrough_balance",
+    "break_confirmation_up",
+    "break_confirmation_down",
+    "break_confirmation_balance",
+    "choch_failure_up_risk",
+    "choch_failure_down_risk",
+    "pullback_depth_quality",
+    "pullback_depth_phase_alignment_up",
+    "pullback_depth_phase_alignment_down",
+    "pullback_phase_continuation_up",
+    "pullback_phase_continuation_down",
+    "market_structure_regime_state",
+    "market_structure_regime_confidence",
+    "structure_compression_pressure",
+    "swing_compression_setup",
+    "mtf_structure_agreement",
+    "mtf_structure_divergence",
+)
+
+STRUCTURE_SWING_DERIVATION_FEATURE_NAMES = tuple(
+    f"{STRUCTURE_SWING_DERIVATION_FEATURE_PREFIX}{suffix}"
+    for suffix in STRUCTURE_SWING_DERIVATION_FEATURE_SUFFIXES
 )
 
 
@@ -59,7 +99,7 @@ def missing_structure_swing_derivation_source_fields(feature_names: Iterable[str
 
 def _col(x: np.ndarray, index: dict[str, int], name: str, default: float = 0.0) -> np.ndarray:
     if name not in index:
-        return np.full(x.shape[0], float(default), dtype=np.float32)
+        raise RuntimeError(f"structure/swing derivation required source field missing: {name}")
     arr = np.asarray(x[:, index[name]], dtype=np.float32)
     return np.nan_to_num(arr, nan=float(default), posinf=float(default), neginf=float(default))
 
@@ -78,6 +118,10 @@ def _pos(arr: np.ndarray) -> np.ndarray:
 
 def _neg(arr: np.ndarray) -> np.ndarray:
     return np.maximum(-arr, 0.0).astype(np.float32, copy=False)
+
+
+def _prox_abs(arr: np.ndarray) -> np.ndarray:
+    return (1.0 / (1.0 + np.abs(np.asarray(arr, dtype=np.float32)))).astype(np.float32, copy=False)
 
 
 def _lag1(arr: np.ndarray) -> np.ndarray:
@@ -119,7 +163,12 @@ def build_entry_structure_swing_derivation_layer(
 ) -> tuple[np.ndarray, list[str]]:
     """Build deterministic, closed-bar structure/swing quality features."""
     x = np.asarray(x, dtype=np.float32)
+    if x.ndim != 2:
+        raise RuntimeError(f"structure/swing derivation input matrix must be 2D, got {x.shape}")
     idx = _name_index(feature_names)
+    missing = missing_structure_swing_derivation_source_fields(feature_names)
+    if missing:
+        raise RuntimeError(f"structure/swing derivation required source fields missing: {missing}")
     arrays: list[np.ndarray] = []
     names: list[str] = []
 
@@ -184,133 +233,272 @@ def build_entry_structure_swing_derivation_layer(
     mtf_agreement = _clip01(0.60 * np.maximum(mtf_up, mtf_down) + 0.40 * tf_agree_count)
     mtf_divergence = _clip01((2.0 * np.minimum(mtf_up, mtf_down)) * 0.65 + (1.0 - tf_agree_count) * np.maximum(mtf_up, mtf_down) * 0.35)
 
+    dist_high = _clip(c("ctx_cont.dist_last_swing_high_atr"), -8.0, 8.0)
+    dist_low = _clip(c("ctx_cont.dist_last_swing_low_atr"), -8.0, 8.0)
+    swing_high_proximity = _clip01(_prox_abs(dist_high))
+    swing_low_proximity = _clip01(_prox_abs(dist_low))
+    swing_high_recent = _clip01(_age_recency(c("ctx_cont.bars_since_swing_high", default=96.0), tau=48.0))
+    swing_low_recent = _clip01(_age_recency(c("ctx_cont.bars_since_swing_low", default=96.0), tau=48.0))
+    swing_break_up = _clip01(_pos(dist_high) / 2.0)
+    swing_break_down = _clip01(_neg(dist_low) / 2.0)
+    swing_room_up = _clip01(_neg(dist_high) / 4.0)
+    swing_room_down = _clip01(_pos(dist_low) / 4.0)
+    swing_boundary_pressure = _clip01(
+        0.45 * np.maximum(swing_high_proximity, swing_low_proximity)
+        + 0.25 * np.maximum(swing_high_recent, swing_low_recent)
+        + 0.30 * np.maximum(swing_break_up, swing_break_down)
+    )
+    swing_distance_confirmation_up = _clip01(
+        0.40 * swing_break_up
+        + 0.25 * swing_room_up
+        + 0.20 * swing_low_proximity * swing_low_recent
+        + 0.15 * (1.0 - swing_high_proximity)
+    )
+    swing_distance_confirmation_down = _clip01(
+        0.40 * swing_break_down
+        + 0.25 * swing_room_down
+        + 0.20 * swing_high_proximity * swing_high_recent
+        + 0.15 * (1.0 - swing_low_proximity)
+    )
+
     combined_depth = _clip01(0.55 * pullback_depth + 0.45 * mtf_depth)
     depth_quality = _depth_quality(combined_depth)
     structure_delta = _clip(structure_balance - _lag1(structure_balance), -2.0, 2.0)
     expansion_quality = _clip01(0.55 * expansion + 0.45 * release)
+    continuation_pressure_up = _clip01(
+        0.28 * bos_up_recent
+        + 0.24 * mtf_up
+        + 0.20 * hh_hl_consistency_up
+        + 0.16 * swing_distance_confirmation_up
+        + 0.12 * _pos(impulse_direction)
+    )
+    continuation_pressure_down = _clip01(
+        0.28 * bos_down_recent
+        + 0.24 * mtf_down
+        + 0.20 * lh_ll_consistency_down
+        + 0.16 * swing_distance_confirmation_down
+        + 0.12 * _neg(impulse_direction)
+    )
+    long_invalidation_pressure = _clip01(
+        0.34 * bos_down_recent
+        + 0.24 * choch_recent
+        + 0.18 * mtf_down
+        + 0.14 * swing_break_down
+        + 0.10 * _neg(structure_delta)
+    )
+    short_invalidation_pressure = _clip01(
+        0.34 * bos_up_recent
+        + 0.24 * choch_recent
+        + 0.18 * mtf_up
+        + 0.14 * swing_break_up
+        + 0.10 * _pos(structure_delta)
+    )
     bos_choch_recency_alignment_up = _clip01(
         bos_up_recent
         * (1.0 - 0.45 * choch_recent)
-        * (0.50 + 0.30 * hh_hl_consistency_up + 0.20 * mtf_up)
+        * (0.48 + 0.25 * hh_hl_consistency_up + 0.20 * mtf_up + 0.10 * swing_distance_confirmation_up)
+        * (1.0 - 0.25 * long_invalidation_pressure)
     )
     bos_choch_recency_alignment_down = _clip01(
         bos_down_recent
         * (1.0 - 0.45 * choch_recent)
-        * (0.50 + 0.30 * lh_ll_consistency_down + 0.20 * mtf_down)
+        * (0.48 + 0.25 * lh_ll_consistency_down + 0.20 * mtf_down + 0.10 * swing_distance_confirmation_down)
+        * (1.0 - 0.25 * short_invalidation_pressure)
     )
     bos_choch_recency_conflict = _clip01(
-        choch_recent
+        0.75
+        * choch_recent
         * (
-            0.35 * np.maximum(bos_up_recent, bos_down_recent)
-            + 0.30 * hh_hl_lh_ll_conflict
-            + 0.20 * mtf_divergence
-            + 0.15 * (1.0 - mtf_agreement)
+            0.30 * np.maximum(bos_up_recent, bos_down_recent)
+            + 0.25 * hh_hl_lh_ll_conflict
+            + 0.18 * mtf_divergence
+            + 0.12 * (1.0 - mtf_agreement)
+            + 0.15 * np.maximum(long_invalidation_pressure, short_invalidation_pressure)
         )
+        + 0.25 * np.minimum(continuation_pressure_up, continuation_pressure_down)
     )
     pullback_depth_phase_alignment_up = _clip01(
         pullback_phase_up
         * depth_quality
-        * (0.50 * hh_hl_consistency_up + 0.30 * mtf_up + 0.20 * _pos(impulse_pullback_alignment))
+        * (
+            0.44 * hh_hl_consistency_up
+            + 0.26 * mtf_up
+            + 0.16 * _pos(impulse_pullback_alignment)
+            + 0.14 * swing_distance_confirmation_up
+        )
+        * (1.0 - 0.20 * long_invalidation_pressure)
     )
     pullback_depth_phase_alignment_down = _clip01(
         pullback_phase_down
         * depth_quality
-        * (0.50 * lh_ll_consistency_down + 0.30 * mtf_down + 0.20 * _neg(impulse_pullback_alignment))
+        * (
+            0.44 * lh_ll_consistency_down
+            + 0.26 * mtf_down
+            + 0.16 * _neg(impulse_pullback_alignment)
+            + 0.14 * swing_distance_confirmation_down
+        )
+        * (1.0 - 0.20 * short_invalidation_pressure)
     )
     break_confirmation_up = _clip01(
         bos_up_recent
         * expansion_quality
         * (
-            0.35 * hh_hl_consistency_up
-            + 0.25 * mtf_up
-            + 0.20 * _pos(structure_delta)
-            + 0.20 * _pos(impulse_direction)
+            0.30 * hh_hl_consistency_up
+            + 0.22 * mtf_up
+            + 0.18 * _pos(structure_delta)
+            + 0.18 * _pos(impulse_direction)
+            + 0.12 * swing_distance_confirmation_up
         )
         * (1.0 - 0.35 * choch_recent)
+        * (1.0 - 0.25 * long_invalidation_pressure)
     )
     break_confirmation_down = _clip01(
         bos_down_recent
         * expansion_quality
         * (
-            0.35 * lh_ll_consistency_down
-            + 0.25 * mtf_down
-            + 0.20 * _neg(structure_delta)
-            + 0.20 * _neg(impulse_direction)
+            0.30 * lh_ll_consistency_down
+            + 0.22 * mtf_down
+            + 0.18 * _neg(structure_delta)
+            + 0.18 * _neg(impulse_direction)
+            + 0.12 * swing_distance_confirmation_down
         )
         * (1.0 - 0.35 * choch_recent)
+        * (1.0 - 0.25 * short_invalidation_pressure)
     )
 
     swing_leg_quality_up = _clip01(
         up_structure
-        * (0.25 + 0.25 * bos_up_recent + 0.25 * mtf_up + 0.15 * impulse_age + 0.10 * depth_quality)
+        * (
+            0.20
+            + 0.22 * bos_up_recent
+            + 0.22 * mtf_up
+            + 0.13 * impulse_age
+            + 0.10 * depth_quality
+            + 0.13 * swing_distance_confirmation_up
+        )
         * (1.0 - 0.35 * choch_recent)
+        * (1.0 - 0.25 * long_invalidation_pressure)
     )
     swing_leg_quality_down = _clip01(
         down_structure
-        * (0.25 + 0.25 * bos_down_recent + 0.25 * mtf_down + 0.15 * impulse_age + 0.10 * depth_quality)
+        * (
+            0.20
+            + 0.22 * bos_down_recent
+            + 0.22 * mtf_down
+            + 0.13 * impulse_age
+            + 0.10 * depth_quality
+            + 0.13 * swing_distance_confirmation_down
+        )
         * (1.0 - 0.35 * choch_recent)
+        * (1.0 - 0.25 * short_invalidation_pressure)
     )
     bos_followthrough_up = _clip01(
         bos_up_recent
-        * (0.45 * up_structure + 0.30 * mtf_up + 0.25 * _pos(structure_delta))
+        * (
+            0.38 * up_structure
+            + 0.25 * mtf_up
+            + 0.20 * _pos(structure_delta)
+            + 0.17 * swing_distance_confirmation_up
+        )
         * (0.70 + 0.30 * expansion_quality)
         * (1.0 - 0.35 * choch_recent)
+        * (1.0 - 0.25 * long_invalidation_pressure)
     )
     bos_followthrough_down = _clip01(
         bos_down_recent
-        * (0.45 * down_structure + 0.30 * mtf_down + 0.25 * _neg(structure_delta))
+        * (
+            0.38 * down_structure
+            + 0.25 * mtf_down
+            + 0.20 * _neg(structure_delta)
+            + 0.17 * swing_distance_confirmation_down
+        )
         * (0.70 + 0.30 * expansion_quality)
         * (1.0 - 0.35 * choch_recent)
+        * (1.0 - 0.25 * short_invalidation_pressure)
     )
     choch_failure_up = _clip01(
         choch_recent
-        * (0.45 * up_structure + 0.30 * mtf_up + 0.15 * bos_up_recent + 0.10 * _pos(impulse_direction))
+        * (
+            0.38 * up_structure
+            + 0.25 * mtf_up
+            + 0.14 * bos_up_recent
+            + 0.10 * _pos(impulse_direction)
+            + 0.13 * swing_distance_confirmation_up
+        )
         * (1.0 - _clip01(0.50 * down_structure + 0.30 * bos_down_recent + 0.20 * mtf_down))
     )
     choch_failure_down = _clip01(
         choch_recent
-        * (0.45 * down_structure + 0.30 * mtf_down + 0.15 * bos_down_recent + 0.10 * _neg(impulse_direction))
+        * (
+            0.38 * down_structure
+            + 0.25 * mtf_down
+            + 0.14 * bos_down_recent
+            + 0.10 * _neg(impulse_direction)
+            + 0.13 * swing_distance_confirmation_down
+        )
         * (1.0 - _clip01(0.50 * up_structure + 0.30 * bos_up_recent + 0.20 * mtf_up))
     )
     pullback_continuation_up = _clip01(
         pullback_phase_up
         * depth_quality
-        * (0.45 * up_structure + 0.35 * mtf_up + 0.20 * _pos(impulse_pullback_alignment))
+        * (
+            0.38 * up_structure
+            + 0.29 * mtf_up
+            + 0.17 * _pos(impulse_pullback_alignment)
+            + 0.16 * swing_distance_confirmation_up
+        )
         * (1.0 - 0.25 * choch_failure_down)
+        * (1.0 - 0.20 * long_invalidation_pressure)
     )
     pullback_continuation_down = _clip01(
         pullback_phase_down
         * depth_quality
-        * (0.45 * down_structure + 0.35 * mtf_down + 0.20 * _neg(impulse_pullback_alignment))
+        * (
+            0.38 * down_structure
+            + 0.29 * mtf_down
+            + 0.17 * _neg(impulse_pullback_alignment)
+            + 0.16 * swing_distance_confirmation_down
+        )
         * (1.0 - 0.25 * choch_failure_up)
+        * (1.0 - 0.20 * short_invalidation_pressure)
     )
     regime_state = _clip(
-        0.45 * structure_balance
-        + 0.25 * impulse_direction
-        + 0.20 * (mtf_up - mtf_down)
-        + 0.10 * bos_balance,
+        0.42 * structure_balance
+        + 0.24 * impulse_direction
+        + 0.18 * (mtf_up - mtf_down)
+        + 0.08 * bos_balance
+        + 0.08 * (continuation_pressure_up - continuation_pressure_down),
         -2.0,
         2.0,
     )
+    dominant_invalidation = np.where(regime_state >= 0.0, long_invalidation_pressure, short_invalidation_pressure)
     regime_confidence = _clip01(
         (np.abs(regime_state) / 2.0)
         * (0.50 + 0.50 * mtf_agreement)
         * (1.0 - 0.35 * mtf_divergence)
+        * (1.0 - 0.25 * dominant_invalidation)
     )
     neutral_structure = 1.0 - _clip01(np.abs(regime_state) / 2.0)
     no_recent_break = 1.0 - _clip01(np.maximum(bos_up_recent, bos_down_recent))
     compression_pressure = _clip01(
-        (0.35 * compression + 0.25 * neutral_structure + 0.20 * mtf_divergence + 0.20 * depth_quality)
+        (
+            0.30 * compression
+            + 0.22 * neutral_structure
+            + 0.18 * mtf_divergence
+            + 0.16 * depth_quality
+            + 0.14 * swing_boundary_pressure
+        )
         * (0.50 + 0.50 * no_recent_break)
         * (1.0 - 0.25 * release)
     )
     swing_compression_setup = _clip01(
         (
-            0.35 * compression
-            + 0.20 * neutral_structure
-            + 0.20 * hh_hl_lh_ll_conflict
-            + 0.15 * mtf_divergence
+            0.30 * compression
+            + 0.17 * neutral_structure
+            + 0.18 * hh_hl_lh_ll_conflict
+            + 0.13 * mtf_divergence
             + 0.10 * depth_quality
+            + 0.12 * swing_boundary_pressure
         )
         * (0.55 + 0.45 * no_recent_break)
         * (1.0 - 0.30 * expansion_quality)
@@ -346,14 +534,11 @@ def build_entry_structure_swing_derivation_layer(
     _add(arrays, names, "mtf_structure_divergence", mtf_divergence, lo=0.0, hi=1.0)
 
     out = np.column_stack(arrays).astype(np.float32, copy=False) if arrays else np.empty((x.shape[0], 0), dtype=np.float32)
+    if tuple(names) != STRUCTURE_SWING_DERIVATION_FEATURE_NAMES:
+        raise RuntimeError("structure/swing derivation feature order drifted")
     if not np.isfinite(out).all():
         raise RuntimeError("structure/swing derivation layer contains non-finite values")
     if len(set(names)) != len(names):
         dupes = sorted({name for name in names if names.count(name) > 1})
         raise RuntimeError(f"structure/swing derivation layer has duplicate names: {dupes[:10]}")
     return out, names
-
-
-STRUCTURE_SWING_DERIVATION_FEATURE_NAMES = tuple(
-    name for name in build_entry_structure_swing_derivation_layer(np.zeros((1, 0), dtype=np.float32), [])[1]
-)

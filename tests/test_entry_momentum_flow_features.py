@@ -49,6 +49,7 @@ def _feature_names(extra: list[str] | None = None) -> list[str]:
                 "candle.pattern_bear_continuation_pressure",
                 "candle.pattern_bull_reversal_pressure",
                 "candle.pattern_bear_reversal_pressure",
+                "snap.body_pct",
                 "snap.wick_asym",
                 "ctx_cont.wick_ratio",
                 "candle.pattern_upper_wick_share",
@@ -109,6 +110,7 @@ def _matrix(names: list[str], n: int = 6) -> np.ndarray:
     set_col("candle.pattern_bear_continuation_pressure", [0.0, 0.0, 0.0, 0.0, 0.5, 1.0])
     set_col("candle.pattern_bull_reversal_pressure", [0.0, 0.1, 0.1, 0.0, 0.2, 0.3])
     set_col("candle.pattern_bear_reversal_pressure", [0.0, 0.0, 0.2, 0.8, 0.1, 0.1])
+    set_col("snap.body_pct", [0.2, 0.7, 0.9, 0.8, 0.7, 0.9])
     set_col("snap.wick_asym", [0.0, -0.35, -0.65, 0.75, 0.35, 0.75])
     set_col("ctx_cont.wick_ratio", [0.5, 0.25, 0.15, 0.85, 0.75, 0.90])
     set_col("candle.pattern_upper_wick_share", [0.0, 0.1, 0.1, 0.9, 0.5, 0.9])
@@ -138,13 +140,29 @@ def test_momentum_flow_layer_builds_causal_derivatives() -> None:
     assert len(MOMENTUM_FLOW_FEATURE_NAMES) == 26
     assert out.shape == (6, len(MOMENTUM_FLOW_FEATURE_NAMES))
     assert np.isfinite(out).all()
-    assert out[2, idx["momentum.flow_bull_followthrough_score"]] > out[2, idx["momentum.flow_bear_followthrough_score"]]
-    assert out[5, idx["momentum.flow_bear_followthrough_score"]] > out[5, idx["momentum.flow_bull_followthrough_score"]]
-    assert out[2, idx["momentum.flow_dip_continuation_long_input"]] > out[2, idx["momentum.flow_dip_reversal_long_risk_input"]]
+    assert out[2, idx["momentum.flow_bull_followthrough_score"]] > out[
+        2, idx["momentum.flow_bear_followthrough_score"]
+    ]
+    assert out[5, idx["momentum.flow_bear_followthrough_score"]] > out[
+        5, idx["momentum.flow_bull_followthrough_score"]
+    ]
+    assert out[2, idx["momentum.flow_dip_continuation_long_input"]] > out[
+        2, idx["momentum.flow_bad_path_long_initial_pressure"]
+    ]
+    assert out[3, idx["momentum.flow_bad_path_long_initial_pressure"]] > out[
+        2, idx["momentum.flow_bad_path_long_initial_pressure"]
+    ]
+    assert out[3, idx["momentum.flow_flow_divergence_pressure"]] > out[
+        2, idx["momentum.flow_flow_divergence_pressure"]
+    ]
     assert out[3, idx["momentum.flow_bull_exhaustion_pressure"]] > 0.0
     assert out[5, idx["momentum.flow_compression_release_followthrough_score"]] < 0.0
-    assert out[2, idx["momentum.flow_candle_bull_pressure"]] > out_no_wick[2, idx["momentum.flow_candle_bull_pressure"]]
-    assert out[3, idx["momentum.flow_candle_bear_pressure"]] > out_no_wick[3, idx["momentum.flow_candle_bear_pressure"]]
+    assert out[2, idx["momentum.flow_bodyflow_bull_pressure"]] > out_no_wick[
+        2, idx["momentum.flow_bodyflow_bull_pressure"]
+    ]
+    assert out[3, idx["momentum.flow_bodyflow_bear_pressure"]] > out_no_wick[
+        3, idx["momentum.flow_bodyflow_bear_pressure"]
+    ]
 
 
 def test_momentum_flow_layer_is_finite_and_row_causal() -> None:
@@ -188,6 +206,12 @@ def test_momentum_flow_source_contract_and_specialist_routing() -> None:
 
     assert missing_entry_momentum_flow_source_fields(names) == []
     assert missing_entry_momentum_flow_source_fields(names[:-1]) == ["micro_acceleration"]
+    try:
+        build_entry_momentum_flow_layer(np.zeros((2, len(names) - 1), dtype=np.float32), names[:-1])
+    except RuntimeError as exc:
+        assert "momentum flow required source fields missing" in str(exc)
+    else:
+        raise AssertionError("momentum flow layer did not fail closed on a missing required source")
     assert classify_entry_specialist_feature("momentum.flow_clean_edge_score") == "momentum_flow_encoder"
     assert len(MOMENTUM_FLOW_FEATURE_NAMES) == 26
     assert len(set(MOMENTUM_FLOW_FEATURE_NAMES)) == 26

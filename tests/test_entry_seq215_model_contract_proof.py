@@ -234,14 +234,14 @@ def test_feature_ai_inventory_next_gate_points_to_seq215_smoke_evidence() -> Non
     assert "build missing candlestick pattern layer" not in FEATURE_AI_INVENTORY_NEXT_REQUIRED_GATE
     assert "SEQ215 smoke-manifest/smoke-train evidence" in FEATURE_AI_INVENTORY_NEXT_REQUIRED_GATE
     assert "candidate-readiness-seq215" in FEATURE_AI_INVENTORY_NEXT_REQUIRED_GATE
-    assert "smart_seq495 remains report-only" in FEATURE_AI_INVENTORY_NEXT_REQUIRED_GATE
+    assert "smart sequence candidate remains report-only" in FEATURE_AI_INVENTORY_NEXT_REQUIRED_GATE
     assert "liveness/non-collapse proof" in FEATURE_AI_INVENTORY_NEXT_REQUIRED_GATE
     assert "replay, IQL, shadow or live" in FEATURE_AI_INVENTORY_NEXT_REQUIRED_GATE
 
 
 def test_feature_ai_inventory_registers_all_smart_layer_source_contracts() -> None:
     assert set(SMART_LAYER_SOURCE_CONTRACTS) == set(SMART_LAYER_FEATURES)
-    assert sum(len(features) for _, features, _, _ in SMART_LAYER_FEATURES.values()) == 280
+    assert sum(len(features) for _, features, _, _ in SMART_LAYER_FEATURES.values()) == 305
     assert SMART_LAYER_SOURCE_CONTRACTS["price_action_candle_smart3_layer"]["required_source_fields"] == (
         "time",
         "open",

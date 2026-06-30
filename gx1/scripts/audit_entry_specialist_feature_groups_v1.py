@@ -16,6 +16,10 @@ from gx1.audit.entry_transformer_feature_audit import _stack_list_column
 from gx1.features.entry_specialist_feature_groups_v1 import (
     FOUNDATION_OBJECTIVE_SPECIALISTS,
     FOUNDATION_REQUIREMENT_PATTERNS,
+    SMART_SEQ520_EXPECTED_SELECTED_FEATURE_COUNT,
+    SMART_SEQ520_EXPECTED_SIGNAL_DIM,
+    SMART_SEQ520_EXPECTED_SMART_FEATURE_COUNT,
+    SPECIALIST_AUDIT_CONTRACT_MODES,
     SPECIALIST_CONTRACT_MODES,
     SPECIALIST_FUSION_ACTIVE_HEADS,
     SPECIALIST_FUSION_BLOCKED_HEADS,
@@ -23,6 +27,8 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     classify_entry_specialist_feature,
     group_features_by_specialist,
     required_training_specialists_for_mode,
+    smart_family_contract_for_mode,
+    specialist_contract_training_allowed_for_mode,
     specialist_model_contract_for_mode,
 )
 from gx1.scripts.audit_entry_foundation_features_v1 import REQUIRED_FOUNDATION_OBJECTIVE_FEATURES
@@ -190,6 +196,107 @@ def _context_routing_failures(rows: list[dict[str, Any]], *, contract_mode: str)
             + f" total={len(unmapped)}"
         ]
     return []
+
+
+def _contract_training_surface(contract_mode: str) -> dict[str, Any]:
+    return {
+        "contract_mode": contract_mode,
+        "registered_for_training_surfaces": contract_mode in SPECIALIST_CONTRACT_MODES,
+        "training_allowed_by_contract_mode": specialist_contract_training_allowed_for_mode(contract_mode),
+        "training_allowed_by_this_audit": False,
+        "training_allowed": False,
+        "requires_separate_readiness_gate": True,
+    }
+
+
+def _smart_family_contract_rows(
+    seq_manifest: dict[str, Any],
+    *,
+    contract_mode: str,
+) -> list[dict[str, Any]]:
+    family_contract = smart_family_contract_for_mode(contract_mode)
+    if not family_contract:
+        return []
+    manifest_counts = (
+        seq_manifest.get("smart_layer_feature_counts")
+        if isinstance(seq_manifest.get("smart_layer_feature_counts"), dict)
+        else {}
+    )
+    rows: list[dict[str, Any]] = []
+    for label, spec in family_contract.items():
+        expected_specialist_counts = {
+            str(k): int(v)
+            for k, v in (spec.get("expected_specialist_counts") or {}).items()
+        }
+        expected_feature_count = int(spec.get("expected_feature_count") or sum(expected_specialist_counts.values()))
+        observed = manifest_counts.get(label)
+        rows.append(
+            {
+                "family": label,
+                "purpose": spec.get("purpose"),
+                "expected_feature_count": expected_feature_count,
+                "observed_feature_count": int(observed) if observed is not None else None,
+                "feature_count_matches": observed is not None and int(observed) == expected_feature_count,
+                "expected_specialist_counts": expected_specialist_counts,
+                "owned_specialists": list(spec.get("owned_specialists") or ()),
+            }
+        )
+    return rows
+
+
+def _smart_contract_failures(
+    seq_manifest: dict[str, Any],
+    *,
+    contract_mode: str,
+    signal_field_count: int,
+    selected_feature_count: int,
+    smart_family_rows: list[dict[str, Any]],
+) -> list[str]:
+    if contract_mode != "smart_seq520_candidate":
+        return []
+
+    failures: list[str] = []
+    manifest_variant = str(seq_manifest.get("manifest_variant") or "")
+    if manifest_variant != "smart_seq520_candidate":
+        failures.append(f"smart_seq520 manifest_variant mismatch: observed={manifest_variant!r}")
+    if signal_field_count != SMART_SEQ520_EXPECTED_SIGNAL_DIM:
+        failures.append(
+            f"smart_seq520 signal width mismatch: observed={signal_field_count} "
+            f"expected={SMART_SEQ520_EXPECTED_SIGNAL_DIM}"
+        )
+    if selected_feature_count != SMART_SEQ520_EXPECTED_SELECTED_FEATURE_COUNT:
+        failures.append(
+            f"smart_seq520 selected feature count mismatch: observed={selected_feature_count} "
+            f"expected={SMART_SEQ520_EXPECTED_SELECTED_FEATURE_COUNT}"
+        )
+    if seq_manifest.get("smart_layers_included") is not True:
+        failures.append("smart_seq520 manifest does not declare smart_layers_included=true")
+    if seq_manifest.get("dataset_rebuild_required_before_training") is not True:
+        failures.append("smart_seq520 manifest must preserve dataset_rebuild_required_before_training=true")
+    if seq_manifest.get("training_allowed") is not False:
+        failures.append("smart_seq520 manifest must keep training_allowed=false")
+
+    source_counts = (
+        seq_manifest.get("source_feature_counts")
+        if isinstance(seq_manifest.get("source_feature_counts"), dict)
+        else {}
+    )
+    observed_smart_count = int(source_counts.get("smart_candidate_layers") or 0)
+    if observed_smart_count != SMART_SEQ520_EXPECTED_SMART_FEATURE_COUNT:
+        failures.append(
+            "smart_seq520 smart layer source count mismatch: "
+            f"observed={source_counts.get('smart_candidate_layers')} "
+            f"expected={SMART_SEQ520_EXPECTED_SMART_FEATURE_COUNT}"
+        )
+    if len(smart_family_rows) != 10:
+        failures.append(f"smart_seq520 smart family contract must have exactly 10 families: {len(smart_family_rows)}")
+    for row in smart_family_rows:
+        if row.get("feature_count_matches") is not True:
+            failures.append(
+                f"smart_seq520 family count mismatch: {row.get('family')} "
+                f"observed={row.get('observed_feature_count')} expected={row.get('expected_feature_count')}"
+            )
+    return failures
 
 
 def _specialist_input_liveness_rows(
@@ -433,8 +540,10 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
         "# Entry Specialist Feature Group Audit",
         "",
         f"- Decision: `{report['decision']}`",
+        f"- Contract mode: `{report['contract_mode']}`",
         f"- Signal dim: `{report['signal_field_count']}`",
         f"- Selected extension features: `{report['selected_feature_count']}`",
+        f"- Training allowed by this audit: `{report['training_allowed']}`",
         f"- Failure count: `{len(report['failures'])}`",
         "",
         "## Failures",
@@ -471,6 +580,13 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
         lines.append(
             f"- `{specialist}`: role={spec.get('model_role')} owned={owned} supports={heads}"
         )
+    if report.get("smart_family_contract_required"):
+        lines.extend(["", "## Smart Family Contract", ""])
+        for row in report.get("smart_family_contract_rows") or []:
+            lines.append(
+                f"- `{row['family']}`: observed={row['observed_feature_count']} "
+                f"expected={row['expected_feature_count']} ok={row['feature_count_matches']}"
+            )
     lines.extend(["", "## Specialist Input Liveness", ""])
     for row in report["specialist_input_liveness"]:
         lines.append(
@@ -497,7 +613,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     specialist_model_contract = specialist_model_contract_for_mode(contract_mode)
 
     failures: list[str] = []
-    selected_features = _load_selected_features(seq_manifest_path)
+    seq_manifest = _read_json(seq_manifest_path)
+    selected_features = [str(x) for x in seq_manifest.get("selected_features", []) if str(x).strip()]
+    if not selected_features:
+        raise RuntimeError(f"sequence structure manifest has no selected_features: {seq_manifest_path}")
     split_contracts = _load_split_signal_fields(dataset_dir, splits)
     context_contracts = _load_split_context_fields(dataset_dir, splits)
     first_split = splits[0]
@@ -577,15 +696,31 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         required_training_specialists,
     )
     failures.extend(specialist_model_contract_failures)
+    contract_training_surface = _contract_training_surface(contract_mode)
+    smart_family_contract = smart_family_contract_for_mode(contract_mode)
+    smart_family_rows = _smart_family_contract_rows(seq_manifest, contract_mode=contract_mode)
+    smart_contract_failures = _smart_contract_failures(
+        seq_manifest,
+        contract_mode=contract_mode,
+        signal_field_count=len(signal_fields),
+        selected_feature_count=len(selected_features),
+        smart_family_rows=smart_family_rows,
+    )
+    failures.extend(smart_contract_failures)
 
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     report = {
         "schema_version": "entry_specialist_feature_group_audit_v1",
         "created_utc": datetime.now(timezone.utc).isoformat(),
         "decision": "PASS" if not failures else "FAIL",
+        "report_only": True,
+        "training_allowed": False,
+        "training_allowed_with_explicit_vedtak": False,
+        "training_allowed_reason": "specialist feature-group audit is report-only; training requires separate readiness gates",
         "dataset_dir": str(dataset_dir),
         "seq_structure_manifest": str(seq_manifest_path),
         "contract_mode": contract_mode,
+        "contract_training_surface": contract_training_surface,
         "data_splits": splits,
         "signal_field_count": int(len(signal_fields)),
         "signal_unmapped_count": int(len(signal_unmapped_fields)),
@@ -598,6 +733,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "specialist_model_contract": specialist_model_contract,
         "specialist_model_contract_valid": not specialist_model_contract_failures,
         "specialist_model_contract_failures": specialist_model_contract_failures,
+        "smart_family_contract": smart_family_contract,
+        "smart_family_contract_required": bool(smart_family_contract),
+        "smart_family_contract_rows": smart_family_rows,
+        "smart_family_contract_valid": not smart_contract_failures,
+        "smart_family_contract_failures": smart_contract_failures,
         "specialist_counts": specialist_counts,
         "specialist_input_liveness": specialist_input_liveness,
         "specialist_input_liveness_all_live": not specialist_input_liveness_failures,
@@ -671,7 +811,7 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--seq-structure-manifest", default=str(SEQ_STRUCTURE_MANIFEST))
     ap.add_argument("--out-dir", default=str(DEFAULT_OUT_DIR))
     ap.add_argument("--data-splits", default="train,val,test")
-    ap.add_argument("--contract-mode", choices=SPECIALIST_CONTRACT_MODES, default="foundation_seq146")
+    ap.add_argument("--contract-mode", choices=SPECIALIST_AUDIT_CONTRACT_MODES, default="foundation_seq146")
     ap.add_argument("--fail-on-audit-fail", action=argparse.BooleanOptionalAction, default=True)
     ap.add_argument("--quiet", action="store_true")
     return ap

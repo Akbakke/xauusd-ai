@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 from gx1.features.entry_smc_liquidity_quality_v1 import (
     SMC_LIQUIDITY_QUALITY_FEATURE_NAMES,
@@ -101,6 +102,8 @@ def test_smc_liquidity_quality_layer_builds_directional_closed_bar_features() ->
     assert out[4, idx["chart.smc_liquidity_reclaim_confirmation_short"]] > out[0, idx["chart.smc_liquidity_reclaim_confirmation_short"]]
     assert out[1, idx["chart.smc_liquidity_sweep_reclaim_strength_long"]] > out[0, idx["chart.smc_liquidity_sweep_reclaim_strength_long"]]
     assert out[4, idx["chart.smc_liquidity_sweep_reclaim_strength_short"]] > out[0, idx["chart.smc_liquidity_sweep_reclaim_strength_short"]]
+    assert out[1, idx["chart.smc_liquidity_false_break_reversal_pressure_long"]] > out[0, idx["chart.smc_liquidity_false_break_reversal_pressure_long"]]
+    assert out[4, idx["chart.smc_liquidity_false_break_reversal_pressure_short"]] > out[0, idx["chart.smc_liquidity_false_break_reversal_pressure_short"]]
     assert out[1, idx["chart.smc_liquidity_false_breakout_quality_long"]] > out[0, idx["chart.smc_liquidity_false_breakout_quality_long"]]
     assert out[4, idx["chart.smc_liquidity_false_breakout_quality_short"]] > out[0, idx["chart.smc_liquidity_false_breakout_quality_short"]]
     assert out[1, idx["chart.smc_liquidity_liquidity_pool_proximity_low"]] > out[0, idx["chart.smc_liquidity_liquidity_pool_proximity_low"]]
@@ -112,6 +115,8 @@ def test_smc_liquidity_quality_layer_builds_directional_closed_bar_features() ->
     assert out[4, idx["chart.smc_liquidity_wick_rejection_strength_short"]] > out[1, idx["chart.smc_liquidity_wick_rejection_strength_short"]]
     assert out[1, idx["chart.smc_liquidity_premium_discount_reclaim_confluence_long"]] > out[4, idx["chart.smc_liquidity_premium_discount_reclaim_confluence_long"]]
     assert out[4, idx["chart.smc_liquidity_premium_discount_reclaim_confluence_short"]] > out[1, idx["chart.smc_liquidity_premium_discount_reclaim_confluence_short"]]
+    assert out[1, idx["chart.smc_liquidity_continuation_pressure_long"]] > out[0, idx["chart.smc_liquidity_continuation_pressure_long"]]
+    assert out[4, idx["chart.smc_liquidity_continuation_pressure_short"]] > out[0, idx["chart.smc_liquidity_continuation_pressure_short"]]
 
 
 def test_smc_liquidity_quality_layer_sanitizes_nonfinite_inputs() -> None:
@@ -131,6 +136,14 @@ def test_smc_liquidity_quality_layer_sanitizes_nonfinite_inputs() -> None:
     assert len(out_names) == EXPECTED_SMC_LIQUIDITY_QUALITY_FEATURE_COUNT
     assert out.shape == (6, EXPECTED_SMC_LIQUIDITY_QUALITY_FEATURE_COUNT)
     assert np.isfinite(out).all()
+
+
+def test_smc_liquidity_quality_layer_fails_closed_on_missing_required_sources() -> None:
+    names = ["snap.smc_sweep_up"]
+    x = _matrix(names)
+
+    with pytest.raises(RuntimeError, match="SMC_LIQUIDITY_QUALITY_SOURCE_FIELDS_MISSING"):
+        build_entry_smc_liquidity_quality_layer(x, names)
 
 
 def test_smc_liquidity_quality_layer_is_future_row_invariant() -> None:

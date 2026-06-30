@@ -11,7 +11,7 @@ from typing import Iterable
 import numpy as np
 
 
-TREND_EMA_FEATURE_VERSION = "entry_trend_ema_v1_20260630_mtf_stack_pressure_coherence"
+TREND_EMA_FEATURE_VERSION = "entry_trend_ema_v1_20260630_mtf_stack_cross_age_pressure_failclosed"
 TREND_EMA_FEATURE_PREFIX = "trend.ema_"
 
 TREND_EMA_SOURCE_FIELDS = (
@@ -46,27 +46,54 @@ TREND_EMA_SOURCE_FIELDS = (
 
 
 TREND_EMA_FEATURE_DESCRIPTIONS = {
-    "mtf_score": "Signed M5/M15/H1/H4/D1 EMA and trend-slope composite.",
-    "stack_alignment_score": "Signed EMA-stack and slope-direction consensus.",
-    "stack_bull_pressure": "Bullish EMA stack pressure gated by MTF agreement and slope coherence.",
-    "stack_bear_pressure": "Bearish EMA stack pressure gated by MTF agreement and slope coherence.",
-    "inflect_up_pressure": "Causal EMA-trend cross/inflection pressure gated by current alignment context.",
-    "inflect_down_pressure": "Causal bearish EMA-trend cross/inflection pressure gated by current alignment context.",
+    "mtf_score": "Signed M5/M15/H1/H4/D1 EMA-stack and trend-slope composite.",
+    "stack_alignment_score": "Signed EMA-stack alignment weighted by slope agreement and regime stack.",
+    "stack_bull_pressure": "Bullish EMA-stack pressure gated by MTF stack agreement and slope coherence.",
+    "stack_bear_pressure": "Bearish EMA-stack pressure gated by MTF stack agreement and slope coherence.",
+    "inflect_up_pressure": "Causal bullish EMA cross/turning pressure gated by current alignment context.",
+    "inflect_down_pressure": "Causal bearish EMA cross/turning pressure gated by current alignment context.",
     "slope_score": "Signed slope composite across M5/H1/H4/D1 slope proxies.",
-    "slope_curvature": "Causal change in the slope composite.",
-    "slope_curvature_abs": "Absolute slope curvature, useful for trend acceleration/deceleration.",
-    "mtf_agreement_pressure": "Agreement pressure across EMA signs, slope coherence and existing regime agreement.",
+    "slope_curvature": "Causal one-bar change in the slope composite.",
+    "slope_curvature_abs": "Absolute slope curvature pressure for trend acceleration/deceleration.",
+    "mtf_agreement_pressure": "Agreement pressure across EMA-stack signs, slope coherence and existing regime agreement.",
     "mtf_divergence_pressure": "Divergence pressure across M5/H1/H4/D1, EMA-vs-slope direction and existing regime divergence.",
     "distance_fast_abs": "Absolute distance-to-fast-EMA proxy, squashed for stability.",
     "distance_stack_abs": "Mean absolute distance of M5/H1/H4/D1 EMA proxies.",
-    "distance_stretch_pressure": "Extended distance from EMA stack, higher when price is stretched.",
+    "distance_stretch_pressure": "Directional extension from the EMA stack plus counter-trend stress.",
     "retrace_to_fast_long_pressure": "Uptrend pullback/retrace-to-fast-EMA pressure.",
     "retrace_to_fast_short_pressure": "Downtrend pullback/retrace-to-fast-EMA pressure.",
     "trend_age_mean": "Mean normalized trend age across M5/M15/H1/H4/D1.",
-    "trend_age_exhaustion_pressure": "Mature trend, distance stretch and fading slope-support pressure.",
-    "late_reversal_risk": "Mature trend, divergence and direction-aware adverse curvature pressure.",
-    "d1_flip_pressure": "Trend-age and D1 distance-change pressure.",
+    "trend_age_exhaustion_pressure": "Mature trend, EMA extension and fading slope-support pressure.",
+    "late_reversal_risk": "Mature trend, divergence and direction-aware adverse curvature turning pressure.",
+    "d1_flip_pressure": "D1/MTF trend-age turning pressure from age, divergence and D1 distance change.",
 }
+
+TREND_EMA_FEATURE_SUFFIXES = (
+    "mtf_score",
+    "stack_alignment_score",
+    "stack_bull_pressure",
+    "stack_bear_pressure",
+    "inflect_up_pressure",
+    "inflect_down_pressure",
+    "slope_score",
+    "slope_curvature",
+    "slope_curvature_abs",
+    "mtf_agreement_pressure",
+    "mtf_divergence_pressure",
+    "distance_fast_abs",
+    "distance_stack_abs",
+    "distance_stretch_pressure",
+    "retrace_to_fast_long_pressure",
+    "retrace_to_fast_short_pressure",
+    "trend_age_mean",
+    "trend_age_exhaustion_pressure",
+    "late_reversal_risk",
+    "d1_flip_pressure",
+)
+
+TREND_EMA_FEATURE_NAMES = tuple(
+    f"{TREND_EMA_FEATURE_PREFIX}{suffix}" for suffix in TREND_EMA_FEATURE_SUFFIXES
+)
 
 
 def _name_index(names: Iterable[str]) -> dict[str, int]:
@@ -131,6 +158,12 @@ def _cross_down(arr: np.ndarray) -> np.ndarray:
     return ((arr < 0.0) & (prev >= 0.0)).astype(np.float32)
 
 
+def _mean_abs_deviation(parts: list[np.ndarray]) -> np.ndarray:
+    stack = np.vstack(parts)
+    center = stack.mean(axis=0)
+    return np.abs(stack - center).mean(axis=0).astype(np.float32)
+
+
 def _add(arrays: list[np.ndarray], names: list[str], name: str, arr: np.ndarray, *, lo: float = -25.0, hi: float = 25.0) -> None:
     clean = _clip(np.asarray(arr, dtype=np.float32), lo, hi)
     if clean.ndim != 1:
@@ -152,6 +185,16 @@ def build_entry_trend_ema_layer(
     `_lag1`, never future rows.
     """
     x = np.asarray(x, dtype=np.float32)
+    if x.ndim != 2:
+        raise RuntimeError(f"trend/EMA input matrix must be 2D, got {x.shape}")
+    if x.shape[1] != len(feature_names):
+        raise RuntimeError(
+            f"trend/EMA feature name count {len(feature_names)} does not match matrix width {x.shape[1]}"
+        )
+    missing = missing_trend_ema_source_fields(feature_names)
+    if missing:
+        raise RuntimeError(f"trend/EMA required source fields missing: {missing}")
+
     idx = _name_index(feature_names)
     arrays: list[np.ndarray] = []
     names: list[str] = []
@@ -199,6 +242,7 @@ def build_entry_trend_ema_layer(
     slope_bear_share = (slope_stack < 0.0).mean(axis=0).astype(np.float32)
     slope_direction = _clip(slope_bull_share - slope_bear_share, -1.0, 1.0)
     slope_coherence = np.maximum(slope_bull_share, slope_bear_share).astype(np.float32)
+    slope_dispersion = _clip01(0.5 * _mean_abs_deviation(list(slope_stack)))
 
     slope_score = _clip(
         0.20 * m5_slope
@@ -213,6 +257,26 @@ def build_entry_trend_ema_layer(
         -2.0,
         2.0,
     )
+
+    sign_stack = np.vstack([m5_ema, m5_pos_ema200, h1_ema, h4_ema, d1_slope, m15_trend])
+    bull_share = (sign_stack > 0.0).mean(axis=0).astype(np.float32)
+    bear_share = (sign_stack < 0.0).mean(axis=0).astype(np.float32)
+    ema_direction = _clip(bull_share - bear_share, -1.0, 1.0)
+    ema_stack_dispersion = _clip01(0.5 * _mean_abs_deviation(list(sign_stack)))
+    stack_consensus = _clip01(
+        0.45 * np.maximum(bull_share, bear_share)
+        + 0.25 * (1.0 - ema_stack_dispersion)
+        + 0.20 * regime_agreement
+        + 0.10 * (1.0 - slope_dispersion)
+    )
+    ema_slope_coherence = _clip01(1.0 - 0.50 * np.abs(ema_direction - slope_direction))
+    slope_agreement = _clip01(0.55 * slope_coherence + 0.25 * ema_slope_coherence + 0.20 * regime_agreement)
+    tf_direction_consensus = _clip(
+        (0.62 * ema_direction + 0.38 * slope_direction) * (0.55 + 0.45 * stack_consensus),
+        -1.0,
+        1.0,
+    )
+
     mtf_score = _clip(
         0.14 * m5_ema
         + 0.10 * m5_pos_ema200
@@ -227,18 +291,16 @@ def build_entry_trend_ema_layer(
         -2.0,
         2.0,
     )
-
-    sign_stack = np.vstack([m5_ema, m5_pos_ema200, h1_ema, h4_ema, d1_slope, m15_trend])
-    bull_share = (sign_stack > 0.0).mean(axis=0).astype(np.float32)
-    bear_share = (sign_stack < 0.0).mean(axis=0).astype(np.float32)
-    ema_direction = _clip(bull_share - bear_share, -1.0, 1.0)
-    ema_slope_coherence = _clip01(1.0 - 0.50 * np.abs(ema_direction - slope_direction))
-    tf_direction_consensus = _clip(0.70 * ema_direction + 0.30 * slope_direction, -1.0, 1.0)
-    stack_alignment = _clip(tf_direction_consensus + 0.20 * regime_stack, -1.5, 1.5)
+    stack_alignment = _clip(
+        tf_direction_consensus * (0.65 + 0.35 * slope_agreement) + 0.20 * regime_stack,
+        -1.5,
+        1.5,
+    )
     alignment_coherence = _clip01(
-        0.55 * np.maximum(bull_share, bear_share)
-        + 0.25 * slope_coherence
+        0.45 * stack_consensus
+        + 0.25 * slope_agreement
         + 0.20 * regime_agreement
+        + 0.10 * ema_slope_coherence
     )
     agreement_pressure = _clip01(alignment_coherence * (0.60 + 0.40 * ema_slope_coherence))
     divergence_pressure = _clip01(
@@ -253,38 +315,54 @@ def build_entry_trend_ema_layer(
     trend_down = _neg(mtf_score)
     slope_delta = _delta(slope_score)
     mtf_delta = _delta(mtf_score)
+    fast_delta = _delta(fast_dist)
     bull_context = _clip01(
-        0.30 * bull_share
-        + 0.25 * slope_bull_share
+        0.28 * bull_share
+        + 0.22 * slope_bull_share
+        + 0.18 * stack_consensus
         + 0.20 * regime_agreement
-        + 0.15 * _pos(mtf_score)
-        + 0.10 * ema_slope_coherence
+        + 0.07 * _pos(mtf_score)
+        + 0.05 * ema_slope_coherence
     )
     bear_context = _clip01(
-        0.30 * bear_share
-        + 0.25 * slope_bear_share
+        0.28 * bear_share
+        + 0.22 * slope_bear_share
+        + 0.18 * stack_consensus
         + 0.20 * regime_agreement
-        + 0.15 * _neg(mtf_score)
-        + 0.10 * ema_slope_coherence
+        + 0.07 * _neg(mtf_score)
+        + 0.05 * ema_slope_coherence
     )
     cross_quality = _clip01(0.75 + 0.25 * ema_slope_coherence - 0.25 * regime_divergence)
     m5_cross_base = _clip(0.55 * m5_ema + 0.25 * fast_dist + 0.20 * m5_slope, -2.0, 2.0)
+    turn_up_impulse = _clip01(0.45 * _pos(mtf_delta) + 0.35 * _pos(slope_delta) + 0.20 * _pos(fast_delta))
+    turn_down_impulse = _clip01(0.45 * _neg(mtf_delta) + 0.35 * _neg(slope_delta) + 0.20 * _neg(fast_delta))
     inflect_up = cross_quality * (
-        _cross_up(mtf_score) * (0.65 + bull_context)
+        _cross_up(mtf_score) * (0.55 + bull_context)
         + _cross_up(m5_cross_base) * (0.35 + bull_context)
-        + _pos(mtf_delta) * (0.15 + 0.45 * bull_context)
+        + _cross_up(slope_score) * (0.25 + 0.50 * bull_context)
+        + turn_up_impulse * (0.20 + 0.55 * bull_context)
     )
     inflect_down = cross_quality * (
-        _cross_down(mtf_score) * (0.65 + bear_context)
+        _cross_down(mtf_score) * (0.55 + bear_context)
         + _cross_down(m5_cross_base) * (0.35 + bear_context)
-        + _neg(mtf_delta) * (0.15 + 0.45 * bear_context)
+        + _cross_down(slope_score) * (0.25 + 0.50 * bear_context)
+        + turn_down_impulse * (0.20 + 0.55 * bear_context)
     )
 
     fast_distance_abs = np.abs(fast_dist).astype(np.float32)
     distance_stack_abs = np.vstack(
         [np.abs(m5_ema), np.abs(m5_pos_ema200), np.abs(h1_ema), np.abs(h4_ema), np.abs(d1_slope)]
     ).mean(axis=0).astype(np.float32)
-    distance_stretch = _clip01(0.60 * distance_stack_abs + 0.25 * fast_distance_abs + 0.15 * np.abs(d1_dist_roc))
+    directional_extension = _clip01(
+        np.abs(tf_direction_consensus)
+        * (0.45 * distance_stack_abs + 0.25 * fast_distance_abs + 0.20 * np.abs(mtf_score) + 0.10 * np.abs(d1_dist_roc))
+    )
+    countertrend_stress = _clip01(
+        0.45 * (trend_up * _neg(fast_dist) + trend_down * _pos(fast_dist))
+        + 0.35 * divergence_pressure
+        + 0.20 * (1.0 - ema_slope_coherence)
+    )
+    distance_stretch = _clip01(0.72 * directional_extension + 0.28 * countertrend_stress)
     near_fast_ema = _prox_abs(c("ctx_cont.distance_ema_fast"))
     retracement = _clip01(c("ctx_cont.retracement_from_last_impulse"))
 
@@ -298,28 +376,41 @@ def build_entry_trend_ema_layer(
         ]
     )
     trend_age_mean = age_stack.mean(axis=0).astype(np.float32)
+    short_age = age_stack[:2].mean(axis=0).astype(np.float32)
+    long_age = age_stack[2:].mean(axis=0).astype(np.float32)
+    age_stack_pressure = _clip01(0.65 * trend_age_mean + 0.20 * long_age + 0.15 * np.maximum(short_age, long_age))
     mature_d1 = _clip01(c("ctx_cont.d1_trend_age_mature_flag_v3"))
-    age_pressure = _clip01(0.65 * trend_age_mean + 0.35 * mature_d1)
+    age_pressure = _clip01(0.62 * age_stack_pressure + 0.38 * mature_d1)
     trend_support = _clip01(
-        0.40 * np.maximum(bull_share, bear_share)
-        + 0.25 * slope_coherence
+        0.34 * stack_consensus
+        + 0.28 * slope_agreement
         + 0.20 * regime_agreement
         + 0.15 * ema_slope_coherence
+        + 0.03 * (1.0 - ema_stack_dispersion)
     )
     slope_fade = _clip01(1.0 - trend_support + 0.35 * divergence_pressure)
     exhaustion = _clip01(
         age_pressure
-        * (0.45 + 0.35 * distance_stretch + 0.20 * np.abs(mtf_score))
+        * (0.42 + 0.40 * distance_stretch + 0.18 * np.abs(mtf_score))
         * (0.75 + 0.25 * slope_fade)
     )
     adverse_curvature_up = _neg(slope_delta) + _neg(mtf_delta)
     adverse_curvature_down = _pos(slope_delta) + _pos(mtf_delta)
     adverse_curvature = np.where(mtf_score >= 0.0, adverse_curvature_up, adverse_curvature_down).astype(np.float32)
-    late_reversal = _clip01(exhaustion * (0.45 + divergence_pressure) * (0.50 + adverse_curvature + 0.25 * slope_fade))
+    late_reversal = _clip01(
+        exhaustion
+        * (0.40 + 0.45 * divergence_pressure + 0.15 * countertrend_stress)
+        * (0.45 + adverse_curvature + 0.30 * slope_fade)
+    )
+    d1_turn_against_trend = np.where(mtf_score >= 0.0, _neg(d1_dist_roc), _pos(d1_dist_roc)).astype(np.float32)
     regime_flip = _clip01(
-        (mature_d1 + trend_age_mean)
-        * 0.5
-        * (0.55 * regime_divergence + 0.25 * np.abs(d1_dist_roc) + 0.20 * np.abs(ema_direction - slope_direction))
+        (0.45 + 0.55 * age_pressure)
+        * (
+            0.35 * regime_divergence
+            + 0.25 * d1_turn_against_trend
+            + 0.20 * np.abs(ema_direction - slope_direction)
+            + 0.20 * adverse_curvature
+        )
     )
 
     _add(arrays, names, "mtf_score", mtf_score, lo=-2.0, hi=2.0)
@@ -349,9 +440,6 @@ def build_entry_trend_ema_layer(
     if len(set(names)) != len(names):
         dupes = sorted({name for name in names if names.count(name) > 1})
         raise RuntimeError(f"trend/EMA layer has duplicate names: {dupes[:10]}")
+    if tuple(names) != TREND_EMA_FEATURE_NAMES:
+        raise RuntimeError("trend/EMA layer emitted non-deterministic feature names")
     return out, names
-
-
-TREND_EMA_FEATURE_NAMES = tuple(
-    name for name in build_entry_trend_ema_layer(np.zeros((1, 0), dtype=np.float32), [])[1]
-)

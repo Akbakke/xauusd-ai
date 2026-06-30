@@ -12,8 +12,40 @@ from typing import Iterable
 import numpy as np
 
 
-SMC_LIQUIDITY_QUALITY_FEATURE_VERSION = "entry_smc_liquidity_quality_v1_20260630_candidate_closed_bar_context_sweep_pd_confluence"
+SMC_LIQUIDITY_QUALITY_FEATURE_VERSION = (
+    "entry_smc_liquidity_quality_v1_20260630_candidate_closed_bar_context_falsebreak_continuation_failclosed"
+)
 SMC_LIQUIDITY_QUALITY_FEATURE_PREFIX = "chart.smc_liquidity_"
+
+SMC_LIQUIDITY_QUALITY_FEATURE_SUFFIXES = (
+    "sweep_low_quality_long",
+    "sweep_high_quality_short",
+    "reclaim_confirmation_long",
+    "reclaim_confirmation_short",
+    "false_break_reversal_pressure_long",
+    "false_break_reversal_pressure_short",
+    "sweep_reclaim_strength_long",
+    "sweep_reclaim_strength_short",
+    "false_breakout_quality_long",
+    "false_breakout_quality_short",
+    "inducement_trap_risk_long",
+    "inducement_trap_risk_short",
+    "liquidity_pool_proximity_low",
+    "liquidity_pool_proximity_high",
+    "liquidity_pool_proximity_balance_low_minus_high",
+    "two_sided_liquidity_pool_pressure",
+    "wick_rejection_strength_long",
+    "wick_rejection_strength_short",
+    "premium_discount_trend_alignment_long",
+    "premium_discount_trend_alignment_short",
+    "premium_discount_reclaim_confluence_long",
+    "premium_discount_reclaim_confluence_short",
+    "continuation_pressure_long",
+    "continuation_pressure_short",
+)
+SMC_LIQUIDITY_QUALITY_FEATURE_NAMES = tuple(
+    f"{SMC_LIQUIDITY_QUALITY_FEATURE_PREFIX}{name}" for name in SMC_LIQUIDITY_QUALITY_FEATURE_SUFFIXES
+)
 
 SMC_LIQUIDITY_QUALITY_SOURCE_FIELDS = (
     "snap.smc_sweep_up",
@@ -149,7 +181,17 @@ def build_entry_smc_liquidity_quality_layer(
 ) -> tuple[np.ndarray, list[str]]:
     """Build deterministic SMC/liquidity quality candidates from closed-bar inputs."""
     x = np.asarray(x, dtype=np.float32)
+    if x.ndim != 2:
+        raise RuntimeError(f"SMC_LIQUIDITY_QUALITY_INPUT_NOT_2D: shape={x.shape}")
+    if x.shape[1] != len(feature_names):
+        raise RuntimeError(
+            "SMC_LIQUIDITY_QUALITY_FEATURE_NAME_DIM_MISMATCH: "
+            f"cols={x.shape[1]} names={len(feature_names)}"
+        )
     idx = _name_index(feature_names)
+    missing = missing_smc_liquidity_quality_source_fields(feature_names)
+    if missing:
+        raise RuntimeError(f"SMC_LIQUIDITY_QUALITY_SOURCE_FIELDS_MISSING: {missing[:20]} total={len(missing)}")
     arrays: list[np.ndarray] = []
     names: list[str] = []
 
@@ -272,8 +314,6 @@ def build_entry_smc_liquidity_quality_layer(
     false_high_context = _clip01(0.40 * foundation_false_high + 0.20 * geometry_false_high + 0.40 * (sweep_high_quality / 5.0 + choch_recent * trend_down))
     long_pd_alignment = _clip01(discount * (0.50 + trend_up) * (0.50 + support_stack + low_pool))
     short_pd_alignment = _clip01(premium * (0.50 + trend_down) * (0.50 + resistance_stack + high_pool))
-    support_touch_recency = _clip01(support_touch_count * (0.50 + recent_swing_low) * (0.50 + support_stack))
-    resistance_touch_recency = _clip01(resistance_touch_count * (0.50 + recent_swing_high) * (0.50 + resistance_stack))
     inducement_risk_long = _clip(
         high_pool
         * resistance_stack
@@ -306,6 +346,14 @@ def build_entry_smc_liquidity_quality_layer(
         + 0.15 * close_near_low
         + 0.10 * foundation_reclaim_short
     )
+    false_break_reversal_pressure_long = _clip01(
+        (0.30 * false_low_context + 0.25 * wick_reject_long + 0.20 * reclaim_long + 0.15 * discount + 0.10 * low_pool)
+        * (0.75 + 0.25 * choch_recent)
+    )
+    false_break_reversal_pressure_short = _clip01(
+        (0.30 * false_high_context + 0.25 * wick_reject_short + 0.20 * reclaim_short + 0.15 * premium + 0.10 * high_pool)
+        * (0.75 + 0.25 * choch_recent)
+    )
     false_breakout_quality_long = _clip01(
         false_low_context
         * (0.45 + 0.35 * reclaim_long + 0.20 * wick_reject_long)
@@ -332,13 +380,31 @@ def build_entry_smc_liquidity_quality_layer(
         * reclaim_short
         * (0.45 + 0.25 * resistance_stack + 0.20 * high_pool + 0.10 * wick_reject_short)
     )
+    continuation_pressure_long = _clip01(
+        (
+            0.35 * trend_up
+            + 0.25 * long_pd_alignment
+            + 0.20 * sweep_reclaim_strength_long
+            + 0.20 * reclaim_long
+        )
+        * (1.0 - 0.35 * (inducement_risk_long / 5.0))
+    )
+    continuation_pressure_short = _clip01(
+        (
+            0.35 * trend_down
+            + 0.25 * short_pd_alignment
+            + 0.20 * sweep_reclaim_strength_short
+            + 0.20 * reclaim_short
+        )
+        * (1.0 - 0.35 * (inducement_risk_short / 5.0))
+    )
 
     _add(arrays, names, "sweep_low_quality_long", sweep_low_quality, lo=0.0, hi=5.0)
     _add(arrays, names, "sweep_high_quality_short", sweep_high_quality, lo=0.0, hi=5.0)
     _add(arrays, names, "reclaim_confirmation_long", reclaim_long, lo=0.0, hi=1.0)
     _add(arrays, names, "reclaim_confirmation_short", reclaim_short, lo=0.0, hi=1.0)
-    _add(arrays, names, "false_breakout_low_context_long", false_low_context, lo=0.0, hi=1.0)
-    _add(arrays, names, "false_breakout_high_context_short", false_high_context, lo=0.0, hi=1.0)
+    _add(arrays, names, "false_break_reversal_pressure_long", false_break_reversal_pressure_long, lo=0.0, hi=1.0)
+    _add(arrays, names, "false_break_reversal_pressure_short", false_break_reversal_pressure_short, lo=0.0, hi=1.0)
     _add(arrays, names, "sweep_reclaim_strength_long", sweep_reclaim_strength_long, lo=0.0, hi=1.0)
     _add(arrays, names, "sweep_reclaim_strength_short", sweep_reclaim_strength_short, lo=0.0, hi=1.0)
     _add(arrays, names, "false_breakout_quality_long", false_breakout_quality_long, lo=0.0, hi=1.0)
@@ -369,8 +435,8 @@ def build_entry_smc_liquidity_quality_layer(
         lo=0.0,
         hi=1.0,
     )
-    _add(arrays, names, "sr_support_touch_count_recency_proxy", support_touch_recency, lo=0.0, hi=1.0)
-    _add(arrays, names, "sr_resistance_touch_count_recency_proxy", resistance_touch_recency, lo=0.0, hi=1.0)
+    _add(arrays, names, "continuation_pressure_long", continuation_pressure_long, lo=0.0, hi=1.0)
+    _add(arrays, names, "continuation_pressure_short", continuation_pressure_short, lo=0.0, hi=1.0)
 
     out = np.column_stack(arrays).astype(np.float32, copy=False) if arrays else np.empty((x.shape[0], 0), dtype=np.float32)
     if not np.isfinite(out).all():
@@ -378,9 +444,6 @@ def build_entry_smc_liquidity_quality_layer(
     if len(set(names)) != len(names):
         dupes = sorted({name for name in names if names.count(name) > 1})
         raise RuntimeError(f"SMC/liquidity quality layer has duplicate names: {dupes[:10]}")
+    if tuple(names) != SMC_LIQUIDITY_QUALITY_FEATURE_NAMES:
+        raise RuntimeError("SMC_LIQUIDITY_QUALITY_FEATURE_NAME_DRIFT")
     return out, names
-
-
-SMC_LIQUIDITY_QUALITY_FEATURE_NAMES = tuple(
-    name for name in build_entry_smc_liquidity_quality_layer(np.zeros((1, 0), dtype=np.float32), [])[1]
-)

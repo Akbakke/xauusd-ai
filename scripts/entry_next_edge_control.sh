@@ -36,6 +36,11 @@ Usage:
   scripts/entry_next_edge_control.sh candlestick-audit
   scripts/entry_next_edge_control.sh challenger-extension-manifest
   scripts/entry_next_edge_control.sh challenger-smart-extension-manifest
+  scripts/entry_next_edge_control.sh smart-rebuild-preflight
+  scripts/entry_next_edge_control.sh smart-post-rebuild-readiness
+  scripts/entry_next_edge_control.sh smart-smoke-manifest --vedtak <id>
+  scripts/entry_next_edge_control.sh smart-smoke-readiness
+  scripts/entry_next_edge_control.sh smart-ablation-replay-plan
   scripts/entry_next_edge_control.sh smoke-train --vedtak <id> --require-edge-audit
   scripts/entry_next_edge_control.sh smoke-train-seq215 --vedtak <id> --require-edge-audit
   scripts/entry_next_edge_control.sh audit-smoke-bundle --bundle-dir <dir>
@@ -164,6 +169,11 @@ paths = {
     "candlestick-audit": Path("/home/andre2/GX1_DATA/reports/entry_candlestick_pattern_challenger_audit_20260630_v1/ENTRY_CANDLESTICK_PATTERN_CHALLENGER_AUDIT_latest.json"),
     "challenger-extension-manifest": Path("/home/andre2/GX1_DATA/reports/entry_specialist_challenger_extension_manifest_20260630_v1/ENTRY_SPECIALIST_CHALLENGER_EXTENSION_REPORT_latest.json"),
     "challenger-smart-extension-manifest": Path("/home/andre2/GX1_DATA/reports/entry_specialist_challenger_extension_manifest_20260630_v1/ENTRY_SPECIALIST_CHALLENGER_SMART_EXTENSION_REPORT_latest.json"),
+    "smart-rebuild-preflight": Path("/home/andre2/GX1_DATA/reports/entry_smart_seq_rebuild_preflight_20260630_v1/ENTRY_SMART_REBUILD_PREFLIGHT_latest.json"),
+    "smart-post-rebuild-readiness": Path("/home/andre2/GX1_DATA/reports/entry_smart_dataset_post_rebuild_readiness_20260630_v1/ENTRY_SMART_DATASET_POST_REBUILD_READINESS_latest.json"),
+    "smart-smoke-manifest": Path("/home/andre2/GX1_DATA/reports/entry_smart_seq520_smoke_manifest_20260630_v1/ENTRY_SMART_SEQ520_SMOKE_MANIFEST_READINESS_latest.json"),
+    "smart-smoke-readiness": Path("/home/andre2/GX1_DATA/reports/entry_smart_seq520_smoke_readiness_20260630_v1/ENTRY_SMART_SEQ520_SMOKE_READINESS_latest.json"),
+    "smart-ablation-replay-plan": Path("/home/andre2/GX1_DATA/reports/entry_smart_ablation_replay_plan_gate_20260630_v1/ENTRY_SMART_ABLATION_REPLAY_PLAN_GATE_latest.json"),
 }
 adoption_root = Path("/home/andre2/GX1_DATA/reports/entry_foundation_adoption_candidate_20260629_v1")
 adoption_candidates = (
@@ -273,6 +283,10 @@ allowed_now = [
     "scripts/entry_next_edge_control.sh candlestick-audit --quiet --no-fail-on-audit-fail",
     "scripts/entry_next_edge_control.sh challenger-extension-manifest --quiet --no-fail-on-audit-fail",
     "scripts/entry_next_edge_control.sh challenger-smart-extension-manifest --quiet --no-fail-on-audit-fail",
+    "scripts/entry_next_edge_control.sh smart-rebuild-preflight --quiet --no-fail-on-audit-fail",
+    "scripts/entry_next_edge_control.sh smart-post-rebuild-readiness --quiet --no-fail-on-not-ready",
+    "scripts/entry_next_edge_control.sh smart-smoke-readiness --quiet --no-fail-on-not-ready",
+    "scripts/entry_next_edge_control.sh smart-ablation-replay-plan --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh iql-slice-audit --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh entry-exit-materialize --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh entry-exit-handoff --quiet --no-fail-on-not-ready",
@@ -444,8 +458,14 @@ smoke_manifest_seq215_proof_allowed = bool(
 real_smoke_train_seq215_allowed = bool(
     real_smoke_train_allowed and seq215_smoke_contract_preflight_ready
 )
+smart_post_rebuild = reports.get("smart-post-rebuild-readiness") or {}
+smart_post_rebuild_ready = (
+    str(smart_post_rebuild.get("decision") or "") == "ENTRY_SMART_DATASET_READY_FOR_TRAIN_READINESS_REVIEW"
+)
 if smoke_manifest_seq215_proof_allowed:
     optional_proof_commands.append("scripts/entry_next_edge_control.sh smoke-manifest-seq215 --vedtak <id>  # proof only, no trainer start")
+if smart_post_rebuild_ready:
+    optional_proof_commands.append("scripts/entry_next_edge_control.sh smart-smoke-manifest --vedtak <id>  # proof only, no trainer start")
 iql_distillation_allowed = bool(
     (reports.get("replay-readiness") or {}).get("iql_distillation_allowed_with_explicit_vedtak")
 )
@@ -587,6 +607,22 @@ smart_candidate_expected_signal_dim = (
     + smart_layer_feature_count
 )
 smart_candidate_manifest_variant = f"smart_seq{smart_candidate_expected_signal_dim}_candidate"
+smart_post_rebuild = reports.get("smart-post-rebuild-readiness") or {}
+smart_smoke_manifest = reports.get("smart-smoke-manifest") or {}
+smart_smoke_readiness = reports.get("smart-smoke-readiness") or {}
+smart_ablation_replay_plan = reports.get("smart-ablation-replay-plan") or {}
+smart_post_rebuild_ready = (
+    str(smart_post_rebuild.get("decision") or "") == "ENTRY_SMART_DATASET_READY_FOR_TRAIN_READINESS_REVIEW"
+)
+smart_smoke_manifest_ready = (
+    str(smart_smoke_manifest.get("decision") or "") == "READY_FOR_SMART_SEQ520_SMOKE_MANIFEST_REVIEW"
+)
+smart_smoke_readiness_ready = (
+    str(smart_smoke_readiness.get("decision") or "") == "READY_FOR_SMART_SEQ520_SMOKE_MANIFEST_REVIEW"
+)
+smart_ablation_replay_plan_ready = (
+    str(smart_ablation_replay_plan.get("decision") or "") == "READY_FOR_SMART_ABLATION_REPLAY_PLAN_REVIEW"
+)
 
 commands = {
     "handover": {
@@ -1061,6 +1097,141 @@ commands.update(
                 "separately gated dataset rebuild; no training or replay."
             ),
         },
+        "smart_rebuild_preflight": {
+            "argv": [
+                "scripts/entry_next_edge_control.sh",
+                "smart-rebuild-preflight",
+                "--quiet",
+                "--no-fail-on-audit-fail",
+            ],
+            "allowed": True,
+            "mode": "report",
+            "requires_vedtak": False,
+            "requires_clean_git": False,
+            "mutates_git_index": False,
+            "starts_trainer": False,
+            "starts_replay": False,
+            "starts_iql_distillation": False,
+            "touches_shadow_or_live": False,
+            "dataset_rebuild_allowed_without_vedtak": False,
+            "requires_ram_cap_for_future_rebuild": True,
+            "ram_cap_runner": "scripts/gx1_capped_run.sh",
+            "manifest_variant": smart_candidate_manifest_variant,
+            "expected_signal_dim": smart_candidate_expected_signal_dim,
+            "smart_layer_feature_count": smart_layer_feature_count,
+            "description": (
+                "Preflight the smart capped dataset rebuild contract; "
+                "report-only, no dataset rebuild, training or replay."
+            ),
+        },
+        "smart_post_rebuild_readiness": {
+            "argv": [
+                "scripts/entry_next_edge_control.sh",
+                "smart-post-rebuild-readiness",
+                "--quiet",
+                "--no-fail-on-not-ready",
+            ],
+            "allowed": True,
+            "mode": "audit",
+            "requires_vedtak": False,
+            "requires_clean_git": False,
+            "mutates_git_index": False,
+            "starts_trainer": False,
+            "starts_replay": False,
+            "starts_iql_distillation": False,
+            "touches_shadow_or_live": False,
+            "manifest_variant": smart_candidate_manifest_variant,
+            "expected_signal_dim": smart_candidate_expected_signal_dim,
+            "specialist_contract_mode": "smart_seq520_candidate",
+            "training_allowed": False,
+            "description": (
+                "Report-only post-rebuild audit for the smart seq/snap dataset; "
+                "checks manifests, hashes, finite values and specialist liveness without training."
+            ),
+        },
+        "smart_smoke_manifest": {
+            "argv": [
+                "scripts/entry_next_edge_control.sh",
+                "smart-smoke-manifest",
+                "--vedtak",
+                "<id>",
+            ],
+            "allowed": smart_post_rebuild_ready,
+            "mode": "proof_only",
+            "requires_vedtak": True,
+            "requires_clean_git": False,
+            "mutates_git_index": False,
+            "starts_trainer": False,
+            "starts_replay": False,
+            "starts_iql_distillation": False,
+            "touches_shadow_or_live": False,
+            "manifest_variant": smart_candidate_manifest_variant,
+            "expected_signal_dim": smart_candidate_expected_signal_dim,
+            "specialist_contract_mode": "smart_seq520_candidate",
+            "training_allowed": False,
+            "replay_allowed": False,
+            "declares_ram_cap": True,
+            "ram_cap_runner": "scripts/gx1_capped_run.sh",
+            "num_workers": 0,
+            "description": (
+                "Vedtak-gated report-only smart smoke manifest proof; writes report-dir manifest "
+                "and never starts the trainer."
+            ),
+        },
+        "smart_smoke_readiness": {
+            "argv": [
+                "scripts/entry_next_edge_control.sh",
+                "smart-smoke-readiness",
+                "--quiet",
+                "--no-fail-on-not-ready",
+            ],
+            "allowed": True,
+            "mode": "audit",
+            "requires_vedtak": False,
+            "requires_clean_git": False,
+            "mutates_git_index": False,
+            "starts_trainer": False,
+            "starts_replay": False,
+            "starts_iql_distillation": False,
+            "touches_shadow_or_live": False,
+            "manifest_variant": smart_candidate_manifest_variant,
+            "expected_signal_dim": smart_candidate_expected_signal_dim,
+            "specialist_contract_mode": "smart_seq520_candidate",
+            "training_allowed": False,
+            "requires_clean_git_before_future_train": True,
+            "requires_ram_cap_for_future_train": True,
+            "ram_cap_runner": "scripts/gx1_capped_run.sh",
+            "num_workers": 0,
+            "description": (
+                "Report-only smart smoke-readiness gate; proves audit/smoke-manifest/RAM-cap contract "
+                "before any future vedtak-gated smart smoke trainer can be reviewed."
+            ),
+        },
+        "smart_ablation_replay_plan": {
+            "argv": [
+                "scripts/entry_next_edge_control.sh",
+                "smart-ablation-replay-plan",
+                "--quiet",
+                "--no-fail-on-not-ready",
+            ],
+            "allowed": True,
+            "mode": "evidence_plan",
+            "requires_vedtak": False,
+            "requires_clean_git": False,
+            "mutates_git_index": False,
+            "starts_trainer": False,
+            "starts_replay": False,
+            "starts_iql_distillation": False,
+            "touches_shadow_or_live": False,
+            "manifest_variant": smart_candidate_manifest_variant,
+            "expected_signal_dim": smart_candidate_expected_signal_dim,
+            "training_allowed": False,
+            "replay_allowed_by_this_gate": False,
+            "description": (
+                "Report-only smart ablation/replay evidence plan; requires future explicit replay evidence "
+                "but never starts replay from this gate."
+            ),
+        },
         "feature_ai_inventory": {
             "argv": [
                 "scripts/entry_next_edge_control.sh",
@@ -1480,6 +1651,11 @@ execution_allowed_now = {
     "candlestick_audit": True,
     "challenger_extension_manifest": True,
     "challenger_smart_extension_manifest": True,
+    "smart_rebuild_preflight": True,
+    "smart_post_rebuild_readiness": True,
+    "smart_smoke_manifest": False,
+    "smart_smoke_readiness": True,
+    "smart_ablation_replay_plan": True,
     "stage_foundation_cleanup_dry_run": True,
     "stage_foundation_cleanup_apply": False,
     "smoke_manifest": False,
@@ -1536,6 +1712,12 @@ allowed_after_explicit_vedtak = {
     "chart_geometry_audit": True,
     "candlestick_audit": True,
     "challenger_extension_manifest": True,
+    "challenger_smart_extension_manifest": True,
+    "smart_rebuild_preflight": True,
+    "smart_post_rebuild_readiness": True,
+    "smart_smoke_manifest": smart_post_rebuild_ready,
+    "smart_smoke_readiness": True,
+    "smart_ablation_replay_plan": True,
     "stage_foundation_cleanup_dry_run": True,
     "stage_foundation_cleanup_apply": foundation_cleanup_stage_ready,
     "smoke_manifest": smoke_manifest_proof_allowed,
@@ -1587,6 +1769,11 @@ not_executable_now_reason = {
     "foundation_activation_post_apply": activation_post_apply_not_executable_now_reason,
     "smoke_manifest": "requires explicit smoke-manifest vedtak; proof-only no trainer start",
     "smoke_manifest_seq215": "requires explicit SEQ215 smoke-manifest vedtak; proof-only no trainer start",
+    "smart_smoke_manifest": (
+        "requires smart post-rebuild dataset readiness PASS and explicit smart smoke-manifest vedtak"
+        if not smart_post_rebuild_ready
+        else "requires explicit smart smoke-manifest vedtak; proof-only no trainer start"
+    ),
     "smoke_train": (
         "requires clean git worktree and explicit smoke-train vedtak"
         if foundation_ready
@@ -1673,6 +1860,17 @@ payload = {
         "seq215_smoke_contract_required_specialists": sorted(candidate_seq215_required_specialists),
         "smoke_manifest_seq215_proof_allowed": smoke_manifest_seq215_proof_allowed,
         "real_smoke_train_seq215_allowed": real_smoke_train_seq215_allowed,
+        "smart_candidate_manifest_variant": smart_candidate_manifest_variant,
+        "smart_candidate_expected_signal_dim": smart_candidate_expected_signal_dim,
+        "smart_candidate_smart_layer_feature_count": smart_layer_feature_count,
+        "smart_post_rebuild_readiness_decision": smart_post_rebuild.get("decision"),
+        "smart_post_rebuild_readiness_ready": smart_post_rebuild_ready,
+        "smart_smoke_manifest_decision": smart_smoke_manifest.get("decision"),
+        "smart_smoke_manifest_ready": smart_smoke_manifest_ready,
+        "smart_smoke_readiness_decision": smart_smoke_readiness.get("decision"),
+        "smart_smoke_readiness_ready": smart_smoke_readiness_ready,
+        "smart_ablation_replay_plan_decision": smart_ablation_replay_plan.get("decision"),
+        "smart_ablation_replay_plan_ready": smart_ablation_replay_plan_ready,
         "iql_distillation_allowed": bool(
             iql_distillation_allowed
         ),
@@ -1941,6 +2139,26 @@ PY
 
   challenger-smart-extension-manifest)
     exec "$PY" -m gx1.scripts.materialize_entry_specialist_challenger_extension_manifest_v1 --include-smart-layers "$@"
+    ;;
+
+  smart-rebuild-preflight)
+    exec "$PY" -m gx1.scripts.materialize_entry_smart_seq495_rebuild_preflight_v1 "$@"
+    ;;
+
+  smart-post-rebuild-readiness)
+    exec "$PY" -m gx1.scripts.audit_entry_smart_dataset_post_rebuild_readiness_v1 "$@"
+    ;;
+
+  smart-smoke-manifest)
+    exec "$PY" -m gx1.scripts.materialize_entry_smart_seq520_smoke_manifest_v1 "$@"
+    ;;
+
+  smart-smoke-readiness)
+    exec "$PY" -m gx1.scripts.verify_entry_smart_seq520_smoke_readiness_v1 "$@"
+    ;;
+
+  smart-ablation-replay-plan)
+    exec "$PY" -m gx1.scripts.materialize_entry_smart_ablation_replay_plan_gate_v1 "$@"
     ;;
 
   candidate-train)

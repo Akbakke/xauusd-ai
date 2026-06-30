@@ -1,4 +1,4 @@
-"""Entry seq146 feature-to-specialist grouping contract.
+"""Entry feature-to-specialist grouping contract.
 
 The goal is to make the sequential specialist-AI design operational before
 training: every emitted seq/snap field gets one primary encoder group, and the
@@ -94,6 +94,11 @@ CHALLENGER_SEQ215_TRAINING_SPECIALISTS = (
     "chart_geometry_encoder",
     "price_action_candle_encoder",
 )
+
+SMART_SEQ520_CANDIDATE_SPECIALISTS = CHALLENGER_SEQ215_TRAINING_SPECIALISTS
+SMART_SEQ520_EXPECTED_SIGNAL_DIM = 520
+SMART_SEQ520_EXPECTED_SELECTED_FEATURE_COUNT = 479
+SMART_SEQ520_EXPECTED_SMART_FEATURE_COUNT = 305
 
 SPECIALIST_FUSION_ACTIVE_HEADS = (
     "direction",
@@ -367,7 +372,123 @@ CHALLENGER_SEQ215_SPECIALIST_MODEL_CONTRACT = OrderedDict(
     ]
 )
 
-SPECIALIST_CONTRACT_MODES = ("foundation_seq146", "challenger_seq215")
+SMART_SEQ520_SPECIALIST_MODEL_CONTRACT = CHALLENGER_SEQ215_SPECIALIST_MODEL_CONTRACT
+
+SMART_SEQ520_SMART_FAMILY_CONTRACT = OrderedDict(
+    [
+        (
+            "trend_ema_smart_layer",
+            {
+                "expected_feature_count": 20,
+                "expected_specialist_counts": {"trend_ema_encoder": 20},
+                "owned_specialists": ("trend_ema_encoder",),
+                "purpose": "Trend/EMA stack, slope, inflection, exhaustion and MTF trend pressure.",
+            },
+        ),
+        (
+            "smc_liquidity_quality_layer",
+            {
+                "expected_feature_count": 24,
+                "expected_specialist_counts": {"smc_liquidity_encoder": 24},
+                "owned_specialists": ("smc_liquidity_encoder",),
+                "purpose": "Sweep/reclaim, false-breakout and premium/discount quality scoring.",
+            },
+        ),
+        (
+            "structure_swing_derivation_layer",
+            {
+                "expected_feature_count": 28,
+                "expected_specialist_counts": {"structure_swing_encoder": 28},
+                "owned_specialists": ("structure_swing_encoder",),
+                "purpose": "HH/HL/LH/LL consistency, swing-leg quality, BOS/CHoCH and pullback derivations.",
+            },
+        ),
+        (
+            "momentum_flow_smart_layer",
+            {
+                "expected_feature_count": 26,
+                "expected_specialist_counts": {"momentum_flow_encoder": 26},
+                "owned_specialists": ("momentum_flow_encoder",),
+                "purpose": "Vol-adjusted returns, impulse, follow-through and clean-edge momentum pressure.",
+            },
+        ),
+        (
+            "session_regime_interaction_layer",
+            {
+                "expected_feature_count": 68,
+                "expected_specialist_counts": {"session_regime_encoder": 68},
+                "owned_specialists": ("session_regime_encoder",),
+                "purpose": "Session age/boundaries, regime agreement and session x structure/liquidity interactions.",
+            },
+        ),
+        (
+            "vol_compression_smart_layer",
+            {
+                "expected_feature_count": 28,
+                "expected_specialist_counts": {"vol_compression_encoder": 28},
+                "owned_specialists": ("vol_compression_encoder",),
+                "purpose": "ATR percentile, squeeze state, compression-release and volatility forecast confidence.",
+            },
+        ),
+        (
+            "chart_geometry_smart2_layer",
+            {
+                "expected_feature_count": 13,
+                "expected_specialist_counts": {"chart_geometry_encoder": 13},
+                "owned_specialists": ("chart_geometry_encoder",),
+                "purpose": "Smart2 trendline/channel/Fibonacci/EMA-cross/chart-pattern geometry fields.",
+            },
+        ),
+        (
+            "price_action_candle_smart3_layer",
+            {
+                "expected_feature_count": 32,
+                "expected_specialist_counts": {"price_action_candle_encoder": 32},
+                "owned_specialists": ("price_action_candle_encoder",),
+                "purpose": "Smart3 closed-bar candle body/wick/reversal/continuation pattern fields.",
+            },
+        ),
+        (
+            "support_resistance_memory_layer",
+            {
+                "expected_feature_count": 34,
+                "expected_specialist_counts": {"smc_liquidity_encoder": 34},
+                "owned_specialists": ("smc_liquidity_encoder",),
+                "purpose": "Support/resistance level memory, repeated tests, reclaim/break pressure and trap risk.",
+            },
+        ),
+        (
+            "mtf_confluence_layer",
+            {
+                "expected_feature_count": 32,
+                "expected_specialist_counts": {
+                    "trend_ema_encoder": 6,
+                    "structure_swing_encoder": 5,
+                    "smc_liquidity_encoder": 6,
+                    "chart_geometry_encoder": 4,
+                    "session_regime_encoder": 11,
+                },
+                "owned_specialists": (
+                    "trend_ema_encoder",
+                    "structure_swing_encoder",
+                    "smc_liquidity_encoder",
+                    "chart_geometry_encoder",
+                    "session_regime_encoder",
+                ),
+                "purpose": "Cross-family MTF confluence and disagreement features that route back to their mechanism owners.",
+            },
+        ),
+    ]
+)
+
+TRAINABLE_SPECIALIST_CONTRACT_MODES = ("foundation_seq146", "challenger_seq215")
+SPECIALIST_CONTRACT_MODES = TRAINABLE_SPECIALIST_CONTRACT_MODES
+SPECIALIST_AUDIT_CONTRACT_MODES = (*SPECIALIST_CONTRACT_MODES, "smart_seq520_candidate")
+SPECIALIST_CONTRACT_TRAINING_ALLOWED = {
+    "foundation_seq146": True,
+    "challenger_seq215": True,
+    "smart_seq520_candidate": False,
+}
 
 
 def required_training_specialists_for_mode(mode: str = "foundation_seq146") -> tuple[str, ...]:
@@ -376,6 +497,8 @@ def required_training_specialists_for_mode(mode: str = "foundation_seq146") -> t
         return REQUIRED_TRAINING_SPECIALISTS
     if normalized == "challenger_seq215":
         return CHALLENGER_SEQ215_TRAINING_SPECIALISTS
+    if normalized == "smart_seq520_candidate":
+        return SMART_SEQ520_CANDIDATE_SPECIALISTS
     raise ValueError(f"unknown specialist contract mode: {mode}")
 
 
@@ -385,6 +508,24 @@ def specialist_model_contract_for_mode(mode: str = "foundation_seq146") -> "Orde
         return SPECIALIST_MODEL_CONTRACT
     if normalized == "challenger_seq215":
         return CHALLENGER_SEQ215_SPECIALIST_MODEL_CONTRACT
+    if normalized == "smart_seq520_candidate":
+        return SMART_SEQ520_SPECIALIST_MODEL_CONTRACT
+    raise ValueError(f"unknown specialist contract mode: {mode}")
+
+
+def specialist_contract_training_allowed_for_mode(mode: str = "foundation_seq146") -> bool:
+    normalized = str(mode or "foundation_seq146").strip()
+    if normalized not in SPECIALIST_AUDIT_CONTRACT_MODES:
+        raise ValueError(f"unknown specialist contract mode: {mode}")
+    return bool(SPECIALIST_CONTRACT_TRAINING_ALLOWED.get(normalized, False))
+
+
+def smart_family_contract_for_mode(mode: str = "foundation_seq146") -> "OrderedDict[str, dict[str, object]]":
+    normalized = str(mode or "foundation_seq146").strip()
+    if normalized == "smart_seq520_candidate":
+        return SMART_SEQ520_SMART_FAMILY_CONTRACT
+    if normalized in SPECIALIST_CONTRACT_MODES:
+        return OrderedDict()
     raise ValueError(f"unknown specialist contract mode: {mode}")
 
 
