@@ -43,6 +43,7 @@ Usage:
   scripts/entry_next_edge_control.sh entry-exit-state-reward-contract
   scripts/entry_next_edge_control.sh entry-exit-split-leakage-audit
   scripts/entry_next_edge_control.sh entry-exit-model-dataset-readiness
+  scripts/entry_next_edge_control.sh entry-exit-feature-alignment
   scripts/entry_next_edge_control.sh entry-exit-transformer-architecture-readiness
   scripts/entry_next_edge_control.sh entry-exit-transformer-training-plan-readiness
   scripts/entry_next_edge_control.sh entry-exit-transformer-trainer-wrapper-readiness
@@ -53,7 +54,7 @@ Usage:
   scripts/entry_next_edge_control.sh entry-exit-transformer-train --vedtak <id> [--dry-run]
 
 Allowed path:
-  Entry foundation cleanup -> feature audit -> target audit -> rebuilt dataset -> adoption-candidate proof -> activation-plan review -> optional vedtak-gated activation apply -> vedtak-gated post-apply audit refresh + active verify -> foundation-guardrails -> worktree-hygiene -> optional vedtak-gated stage-foundation-cleanup -> train-readiness -> optional smoke-manifest proof -> vedtak-gated smoke train -> smoke bundle audit -> candidate-readiness -> vedtak-gated candidate train -> selective-edge/no-XGB ablation -> replay-evidence -> replay-readiness -> vedtak-gated IQL distillation contract -> IQL student trade log -> IQL replay evidence -> IQL replay comparison -> IQL slice/tail audit -> Entry-bound Exit per-bar handoff materialization -> Entry-to-Exit handoff readiness -> active Exit per-bar reconstruction audit -> active Exit state/reward contract -> active Exit split/leakage audit -> active Exit model dataset/readiness -> active Exit Transformer architecture/readiness -> active Exit Transformer training plan/readiness -> fail-closed active Exit Transformer trainer wrapper readiness -> active Exit Transformer pretrain manifest -> active Exit model dataset slice robustness -> active Exit Transformer train-execution review -> active Exit Transformer post-train audit contract.
+  Entry foundation cleanup -> feature audit -> target audit -> rebuilt dataset -> adoption-candidate proof -> activation-plan review -> optional vedtak-gated activation apply -> vedtak-gated post-apply audit refresh + active verify -> foundation-guardrails -> worktree-hygiene -> optional vedtak-gated stage-foundation-cleanup -> train-readiness -> optional smoke-manifest proof -> vedtak-gated smoke train -> smoke bundle audit -> candidate-readiness -> vedtak-gated candidate train -> selective-edge/no-XGB ablation -> replay-evidence -> replay-readiness -> vedtak-gated IQL distillation contract -> IQL student trade log -> IQL replay evidence -> IQL replay comparison -> IQL slice/tail audit -> Entry-bound Exit per-bar handoff materialization -> Entry-to-Exit handoff readiness -> active Exit per-bar reconstruction audit -> active Exit state/reward contract -> active Exit split/leakage audit -> active Exit model dataset/readiness -> active Entry-to-Exit feature alignment -> active Exit Transformer architecture/readiness -> active Exit Transformer training plan/readiness -> fail-closed active Exit Transformer trainer wrapper readiness -> active Exit Transformer pretrain manifest -> active Exit model dataset slice robustness -> active Exit Transformer train-execution review -> active Exit Transformer post-train audit contract.
 
 Blocked here:
   generic train, retrain, promote, pin, live, xgb-train, et-train, shadow.
@@ -135,6 +136,7 @@ paths = {
     "entry-exit-state-reward-contract": Path("/home/andre2/GX1_DATA/reports/entry_exit_state_reward_contract_20260630_v1/ENTRY_EXIT_STATE_REWARD_CONTRACT_latest.json"),
     "entry-exit-split-leakage-audit": Path("/home/andre2/GX1_DATA/reports/entry_exit_split_leakage_audit_20260630_v1/ENTRY_EXIT_SPLIT_LEAKAGE_AUDIT_latest.json"),
     "entry-exit-model-dataset-readiness": Path("/home/andre2/GX1_DATA/reports/entry_exit_model_dataset_readiness_20260630_v1/ENTRY_EXIT_MODEL_DATASET_READINESS_latest.json"),
+    "entry-exit-feature-alignment": Path("/home/andre2/GX1_DATA/reports/entry_exit_feature_alignment_20260630_v1/ENTRY_EXIT_FEATURE_ALIGNMENT_latest.json"),
     "entry-exit-transformer-architecture-readiness": Path("/home/andre2/GX1_DATA/reports/entry_exit_transformer_architecture_readiness_20260630_v1/ENTRY_EXIT_TRANSFORMER_ARCHITECTURE_READINESS_latest.json"),
     "entry-exit-transformer-training-plan-readiness": Path("/home/andre2/GX1_DATA/reports/entry_exit_transformer_training_plan_readiness_20260630_v1/ENTRY_EXIT_TRANSFORMER_TRAINING_PLAN_READINESS_latest.json"),
     "entry-exit-transformer-trainer-wrapper-readiness": Path("/home/andre2/GX1_DATA/reports/entry_exit_transformer_trainer_wrapper_readiness_20260630_v1/ENTRY_EXIT_TRANSFORMER_TRAINER_WRAPPER_READINESS_latest.json"),
@@ -251,6 +253,7 @@ allowed_now = [
     "scripts/entry_next_edge_control.sh entry-exit-state-reward-contract --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh entry-exit-split-leakage-audit --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh entry-exit-model-dataset-readiness --quiet --no-fail-on-not-ready",
+    "scripts/entry_next_edge_control.sh entry-exit-feature-alignment --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh entry-exit-transformer-architecture-readiness --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh entry-exit-transformer-training-plan-readiness --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh entry-exit-transformer-trainer-wrapper-readiness --quiet --no-fail-on-not-ready",
@@ -403,6 +406,7 @@ entry_exit_reconstruction = reports.get("entry-exit-reconstruction-audit") or {}
 entry_exit_state_reward = reports.get("entry-exit-state-reward-contract") or {}
 entry_exit_split_leakage = reports.get("entry-exit-split-leakage-audit") or {}
 entry_exit_model_dataset = reports.get("entry-exit-model-dataset-readiness") or {}
+entry_exit_feature_alignment = reports.get("entry-exit-feature-alignment") or {}
 entry_exit_transformer_architecture = reports.get("entry-exit-transformer-architecture-readiness") or {}
 entry_exit_transformer_training_plan = reports.get("entry-exit-transformer-training-plan-readiness") or {}
 entry_exit_transformer_trainer_wrapper = reports.get("entry-exit-transformer-trainer-wrapper-readiness") or {}
@@ -423,6 +427,8 @@ entry_exit_split_leakage_decision = str(entry_exit_split_leakage.get("decision")
 entry_exit_split_leakage_ready = entry_exit_split_leakage_decision == "ENTRY_EXIT_SPLIT_LEAKAGE_AUDIT_READY"
 entry_exit_model_dataset_decision = str(entry_exit_model_dataset.get("decision") or "")
 entry_exit_model_dataset_ready = entry_exit_model_dataset_decision == "ENTRY_EXIT_MODEL_DATASET_READY_FOR_EXIT_TRANSFORMER_READINESS_REVIEW"
+entry_exit_feature_alignment_decision = str(entry_exit_feature_alignment.get("decision") or "")
+entry_exit_feature_alignment_ready = entry_exit_feature_alignment_decision == "ENTRY_EXIT_FEATURE_ALIGNMENT_READY_FOR_EXIT_TRANSFORMER_TRAINING_REVIEW"
 entry_exit_transformer_architecture_decision = str(entry_exit_transformer_architecture.get("decision") or "")
 entry_exit_transformer_architecture_ready = entry_exit_transformer_architecture_decision == "ENTRY_EXIT_TRANSFORMER_ARCHITECTURE_READY_FOR_TRAINING_PLAN_REVIEW"
 entry_exit_transformer_training_plan_decision = str(entry_exit_transformer_training_plan.get("decision") or "")
@@ -463,7 +469,9 @@ if entry_exit_state_reward_ready and not entry_exit_split_leakage_ready:
     current_blockers.append("active Exit split/leakage audit required before Exit model dataset/readiness gates")
 if entry_exit_split_leakage_ready and not entry_exit_model_dataset_ready:
     current_blockers.append("active Exit model dataset/readiness required before Exit Transformer architecture/readiness review")
-if entry_exit_model_dataset_ready and not entry_exit_transformer_architecture_ready:
+if entry_exit_model_dataset_ready and not entry_exit_feature_alignment_ready:
+    current_blockers.append("active Entry-to-Exit feature alignment is missing HH/SMC/trend/momentum/MTF/specialist-gate state before Exit training")
+if entry_exit_feature_alignment_ready and not entry_exit_transformer_architecture_ready:
     current_blockers.append("active Exit Transformer architecture/readiness required before Exit training plan review")
 if entry_exit_transformer_architecture_ready and not entry_exit_transformer_training_plan_ready:
     current_blockers.append("active Exit Transformer training plan/readiness required before trainer wrapper review")
@@ -477,7 +485,7 @@ if entry_exit_model_dataset_slice_robustness_ready and not entry_exit_transforme
     current_blockers.append("active Exit Transformer train-execution review required before any training enablement package")
 if entry_exit_transformer_train_execution_review_ready and not entry_exit_transformer_post_train_contract_ready:
     current_blockers.append("active Exit Transformer post-train audit contract required before any training enablement package")
-if entry_exit_transformer_post_train_contract_ready:
+if entry_exit_transformer_post_train_contract_ready and entry_exit_feature_alignment_ready:
     current_blockers.append("explicit Exit Transformer train-execution enablement vedtak package required; training remains closed")
 if not iql_replay_evidence_ready:
     current_blockers.append("IQL replay evidence requires distillation contract and IQL-student replay trade log")
@@ -968,6 +976,19 @@ commands.update(
             "touches_shadow_or_live": False,
             "description": "Materialize active Exit model dataset shards/schema/readiness; no training or replay.",
         },
+        "entry_exit_feature_alignment": {
+            "argv": ["scripts/entry_next_edge_control.sh", "entry-exit-feature-alignment"],
+            "allowed": True,
+            "mode": "entry_exit_feature_alignment",
+            "requires_vedtak": False,
+            "requires_clean_git": False,
+            "mutates_git_index": False,
+            "starts_trainer": False,
+            "starts_replay": False,
+            "starts_iql_distillation": False,
+            "touches_shadow_or_live": False,
+            "description": "Audit Entry-to-Exit market-mechanism feature alignment; no training or replay.",
+        },
         "entry_exit_transformer_architecture_readiness": {
             "argv": ["scripts/entry_next_edge_control.sh", "entry-exit-transformer-architecture-readiness"],
             "allowed": True,
@@ -1148,6 +1169,7 @@ execution_allowed_now = {
     "entry_exit_state_reward_contract": True,
     "entry_exit_split_leakage_audit": True,
     "entry_exit_model_dataset_readiness": True,
+    "entry_exit_feature_alignment": True,
     "entry_exit_transformer_architecture_readiness": True,
     "entry_exit_transformer_training_plan_readiness": True,
     "entry_exit_transformer_trainer_wrapper_readiness": True,
@@ -1194,6 +1216,7 @@ allowed_after_explicit_vedtak = {
     "entry_exit_state_reward_contract": True,
     "entry_exit_split_leakage_audit": True,
     "entry_exit_model_dataset_readiness": True,
+    "entry_exit_feature_alignment": True,
     "entry_exit_transformer_architecture_readiness": True,
     "entry_exit_transformer_training_plan_readiness": True,
     "entry_exit_transformer_trainer_wrapper_readiness": True,
@@ -1234,7 +1257,7 @@ not_executable_now_reason = {
     "iql_student_trade_log": "requires ready IQL distillation contract and explicit IQL vedtak",
     "iql_replay_evidence": "requires IQL distillation contract and explicit IQL replay trade log",
     "iql_compare": "requires candidate and IQL replay evidence plus preserved distillation identity",
-    "entry_exit_transformer_train": "requires active Exit Transformer post-train audit contract, clean git and explicit Exit train enablement vedtak",
+    "entry_exit_transformer_train": "requires active Entry-to-Exit feature alignment, post-train audit contract, clean git and explicit Exit train enablement vedtak",
     "preview_shadow": "shadow/live remains blocked until promotion review explicitly opens it",
     "start_shadow": "shadow/live remains blocked until promotion review explicitly opens it",
     "live": "live/practice order path remains blocked during Entry foundation work",
@@ -1313,6 +1336,9 @@ payload = {
         "entry_exit_model_dataset_ready": entry_exit_model_dataset_ready,
         "entry_exit_model_dataset_rows": entry_exit_model_dataset.get("dataset_rows"),
         "entry_exit_model_dataset_episode_count": entry_exit_model_dataset.get("episode_count"),
+        "entry_exit_feature_alignment_decision": entry_exit_feature_alignment_decision,
+        "entry_exit_feature_alignment_ready": entry_exit_feature_alignment_ready,
+        "entry_exit_feature_alignment_missing_families": (entry_exit_feature_alignment.get("family_review") or {}).get("missing_families") if isinstance(entry_exit_feature_alignment.get("family_review"), dict) else None,
         "entry_exit_transformer_architecture_decision": entry_exit_transformer_architecture_decision,
         "entry_exit_transformer_architecture_ready": entry_exit_transformer_architecture_ready,
         "entry_exit_transformer_architecture_dataset_rows": entry_exit_transformer_architecture.get("dataset_rows"),
@@ -1560,6 +1586,10 @@ PY
 
   entry-exit-model-dataset-readiness)
     exec "$PY" -m gx1.scripts.materialize_entry_exit_model_dataset_readiness_v1 "$@"
+    ;;
+
+  entry-exit-feature-alignment)
+    exec "$PY" -m gx1.scripts.audit_entry_exit_feature_alignment_v1 "$@"
     ;;
 
   entry-exit-transformer-architecture-readiness)

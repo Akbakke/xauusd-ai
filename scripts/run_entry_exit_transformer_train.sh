@@ -12,6 +12,7 @@ PY=$REPO/.venv/bin/python
 TRAINING_PLAN_JSON=$DATA/reports/entry_exit_transformer_training_plan_readiness_20260630_v1/ENTRY_EXIT_TRANSFORMER_TRAINING_PLAN_READINESS_latest.json
 TRAIN_EXECUTION_REVIEW_JSON=$DATA/reports/entry_exit_transformer_train_execution_review_20260630_v1/ENTRY_EXIT_TRANSFORMER_TRAIN_EXECUTION_REVIEW_latest.json
 POST_TRAIN_AUDIT_CONTRACT_JSON=$DATA/reports/entry_exit_transformer_post_train_contract_20260630_v1/ENTRY_EXIT_TRANSFORMER_POST_TRAIN_CONTRACT_latest.json
+FEATURE_ALIGNMENT_JSON=$DATA/reports/entry_exit_feature_alignment_20260630_v1/ENTRY_EXIT_FEATURE_ALIGNMENT_latest.json
 VEDTAK_PREFIX=ENTRY_EXIT_TRANSFORMER_TRAIN_
 VEDTAK="${ENTRY_EXIT_TRANSFORMER_TRAIN_VEDTAK:-}"
 DEVICE=auto
@@ -43,8 +44,8 @@ Resource caps:
 
 This wrapper is intentionally fail-closed. It does not train, replay, distill,
 promote, shadow or touch live paths until a separate trainer implementation,
-pretrain-manifest audit, train-execution review, post-train audit contract and
-explicit Exit train vedtak gate are approved.
+pretrain-manifest audit, feature-alignment audit, train-execution review,
+post-train audit contract and explicit Exit train vedtak gate are approved.
 EOF
 }
 
@@ -81,7 +82,7 @@ fi
 
 cd "$REPO"
 
-"$PY" - "$TRAINING_PLAN_JSON" "$TRAIN_EXECUTION_REVIEW_JSON" "$POST_TRAIN_AUDIT_CONTRACT_JSON" <<'PY'
+"$PY" - "$TRAINING_PLAN_JSON" "$TRAIN_EXECUTION_REVIEW_JSON" "$POST_TRAIN_AUDIT_CONTRACT_JSON" "$FEATURE_ALIGNMENT_JSON" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -123,6 +124,21 @@ if contract.get("decision") != contract_required:
 if contract.get("exit_training_allowed") is not False or contract.get("exit_iql_allowed") is not False:
     print("FATAL: post-train audit contract must keep Exit training/IQL closed.", file=sys.stderr)
     raise SystemExit(2)
+feature_alignment_path = Path(sys.argv[4])
+if not feature_alignment_path.is_file():
+    print("FATAL: active Entry-to-Exit feature alignment report is missing.", file=sys.stderr)
+    print(f"Path: {feature_alignment_path}", file=sys.stderr)
+    raise SystemExit(2)
+feature_alignment = json.loads(feature_alignment_path.read_text(encoding="utf-8"))
+feature_alignment_required = "ENTRY_EXIT_FEATURE_ALIGNMENT_READY_FOR_EXIT_TRANSFORMER_TRAINING_REVIEW"
+if feature_alignment.get("decision") != feature_alignment_required:
+    print("FATAL: active Entry-to-Exit feature alignment is not ready.", file=sys.stderr)
+    print(f"Decision: {feature_alignment.get('decision')}", file=sys.stderr)
+    print(f"Required: {feature_alignment_required}", file=sys.stderr)
+    raise SystemExit(2)
+if feature_alignment.get("exit_training_allowed") is not False or feature_alignment.get("exit_iql_allowed") is not False:
+    print("FATAL: feature-alignment audit must keep Exit training/IQL closed.", file=sys.stderr)
+    raise SystemExit(2)
 PY
 
 TRAIN_CMD=(
@@ -130,6 +146,7 @@ TRAIN_CMD=(
   --training-plan-json "$TRAINING_PLAN_JSON"
   --train-execution-review-json "$TRAIN_EXECUTION_REVIEW_JSON"
   --post-train-contract-json "$POST_TRAIN_AUDIT_CONTRACT_JSON"
+  --feature-alignment-json "$FEATURE_ALIGNMENT_JSON"
   --vedtak "$VEDTAK"
   --device "$DEVICE"
   --epochs "$EPOCHS"

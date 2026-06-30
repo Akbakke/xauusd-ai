@@ -7,14 +7,14 @@ Entry-bound per-bar reconstruction, state/reward contract and split/leakage
 audit are ready; Exit Transformer/IQL training remains closed until explicit
 Exit architecture, training and replay evidence gates are added and pass. The
 active Exit model dataset/readiness gate is also ready, with train-only
-normalization metadata and train/val/test shards. The active Exit Transformer
-architecture/readiness contract is ready, and the active Exit Transformer
-training-plan/readiness manifest plus fail-closed trainer-wrapper readiness are
-ready. The preflight-only trainer core and active pretrain-manifest audit are
-also ready. Active Exit model dataset slice robustness is ready with explicit
-weak-slice disclosure, active Exit Transformer train-execution review is ready,
-and the active Exit Transformer post-train audit contract is ready. No Exit
-trainer is approved or allowed.
+normalization metadata and train/val/test shards. The active Entry-to-Exit
+feature alignment audit is now fail-closed because the current Exit state
+carries Entry policy context, path state, session/regime and cost fields, but
+does not yet carry HH/SMC/trend/momentum/MTF/specialist-gate mechanism fields
+as model state. Downstream Exit Transformer architecture, training-plan,
+wrapper, pretrain-manifest, slice robustness, train-execution review and
+post-train audit contract reports remain diagnostic until this alignment gap is
+repaired. No Exit trainer is approved or allowed.
 
 The original rule still applies: foundation pass required before any more Transformer training.
 
@@ -54,7 +54,7 @@ lower drawdown. Those artifacts are frozen as diagnostic history.
 
 The active path is now:
 
-`handover -> verify -> selftest -> foundation-guardrails -> readiness-report -> Entry evidence gates -> Entry/IQL replay and slice evidence -> Entry-to-Exit handoff -> active Exit per-bar reconstruction -> active Exit state/reward contract -> active Exit split/leakage audit -> active Exit model dataset/readiness gates -> active Exit Transformer architecture/readiness -> active Exit Transformer training plan/readiness -> fail-closed Exit Transformer trainer-wrapper readiness -> active Exit Transformer pretrain manifest -> active Exit model dataset slice robustness -> active Exit Transformer train-execution review -> active Exit Transformer post-train audit contract -> only then consider explicit Exit train vedtak/replay/IQL evidence gates`
+`handover -> verify -> selftest -> foundation-guardrails -> readiness-report -> Entry evidence gates -> Entry/IQL replay and slice evidence -> Entry-to-Exit handoff -> active Exit per-bar reconstruction -> active Exit state/reward contract -> active Exit split/leakage audit -> active Exit model dataset/readiness gates -> active Entry-to-Exit feature alignment -> active Exit Transformer architecture/readiness -> active Exit Transformer training plan/readiness -> fail-closed Exit Transformer trainer-wrapper readiness -> active Exit Transformer pretrain manifest -> active Exit model dataset slice robustness -> active Exit Transformer train-execution review -> active Exit Transformer post-train audit contract -> only then consider explicit Exit train vedtak/replay/IQL evidence gates`
 
 The historical activation path was:
 
@@ -172,6 +172,14 @@ Active status:
   `ENTRY_EXIT_SPLIT_LEAKAGE_AUDIT_READY`.
 - Active Exit model dataset/readiness:
   `ENTRY_EXIT_MODEL_DATASET_READY_FOR_EXIT_TRANSFORMER_READINESS_REVIEW`.
+- Active Entry-to-Exit feature alignment:
+  `BLOCKED_BY_ENTRY_EXIT_FEATURE_ALIGNMENT`.
+  The audit proves the current Exit state has Entry score/probabilities,
+  path-quality and bad-path context plus path/session/regime/spread/ATR state,
+  but is missing HH/SMC/liquidity, trend/EMA, compression/expansion,
+  momentum/flow, multi-timeframe context and specialist-gate outputs as model
+  state. These fields must be carried from Entry snapshots into the per-bar
+  Exit substrate/state/model dataset before Exit Transformer training can open.
 - Active Exit Transformer architecture/readiness:
   `ENTRY_EXIT_TRANSFORMER_ARCHITECTURE_READY_FOR_TRAINING_PLAN_REVIEW`.
 - Active Exit Transformer training plan/readiness:
@@ -219,9 +227,11 @@ Active status:
   MAE/drawdown, giveback risk and MFE capture. Replay, Exit-IQL, shadow, live
   and promotion remain blocked until a trained bundle later passes that audit.
 - Exit Transformer training, Exit IQL, shadow, live and promotion remain
-  closed. The next boundary is an explicit Exit train-execution enablement
-  vedtak package; it must account for weak slices, clean-git checks, RAM guard
-  and the active post-train audit contract before any Exit trainer can run.
+  closed. The next boundary is repairing Entry-to-Exit feature alignment; only
+  after that can an explicit Exit train-execution enablement vedtak package be
+  considered. That later package must account for weak slices, clean-git
+  checks, RAM guard and the active post-train audit contract before any Exit
+  trainer can run.
 
 ## Previous Operating Status - 2026-06-29
 

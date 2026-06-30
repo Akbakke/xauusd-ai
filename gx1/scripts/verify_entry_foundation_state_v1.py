@@ -137,6 +137,7 @@ def _active_entry_artifact_paths() -> list[str]:
         "entry_exit_state_reward_contract_20260630_v1",
         "entry_exit_split_leakage_audit_20260630_v1",
         "entry_exit_model_dataset_readiness_20260630_v1",
+        "entry_exit_feature_alignment_20260630_v1",
         "entry_exit_transformer_architecture_readiness_20260630_v1",
         "entry_exit_transformer_training_plan_readiness_20260630_v1",
         "entry_exit_transformer_trainer_wrapper_readiness_20260630_v1",
@@ -725,6 +726,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         entry_exit_state_reward = _read_text(REPO / "gx1/scripts/materialize_entry_exit_state_reward_contract_v1.py")
         entry_exit_split_leakage = _read_text(REPO / "gx1/scripts/audit_entry_exit_split_leakage_v1.py")
         entry_exit_model_dataset = _read_text(REPO / "gx1/scripts/materialize_entry_exit_model_dataset_readiness_v1.py")
+        entry_exit_feature_alignment = _read_text(REPO / "gx1/scripts/audit_entry_exit_feature_alignment_v1.py")
         entry_exit_transformer_architecture = _read_text(REPO / "gx1/scripts/audit_entry_exit_transformer_architecture_readiness_v1.py")
         entry_exit_transformer_training_plan = _read_text(REPO / "gx1/scripts/materialize_entry_exit_transformer_training_plan_readiness_v1.py")
         entry_exit_transformer_trainer_wrapper = _read_text(REPO / "gx1/scripts/audit_entry_exit_transformer_trainer_wrapper_readiness_v1.py")
@@ -816,6 +818,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         _require("audit_entry_exit_split_leakage_v1" in control, "control surface calls active Exit split/leakage audit", checks)
         _require("entry-exit-model-dataset-readiness" in control, "control surface exposes active Exit model dataset readiness", checks)
         _require("materialize_entry_exit_model_dataset_readiness_v1" in control, "control surface calls active Exit model dataset readiness", checks)
+        _require("entry-exit-feature-alignment" in control, "control surface exposes active Entry-to-Exit feature alignment", checks)
+        _require("audit_entry_exit_feature_alignment_v1" in control, "control surface calls active Entry-to-Exit feature alignment", checks)
         _require("entry-exit-transformer-architecture-readiness" in control, "control surface exposes active Exit Transformer architecture readiness", checks)
         _require("audit_entry_exit_transformer_architecture_readiness_v1" in control, "control surface calls active Exit Transformer architecture readiness", checks)
         _require("entry-exit-transformer-training-plan-readiness" in control, "control surface exposes active Exit Transformer training plan readiness", checks)
@@ -1134,6 +1138,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         _require("fit_numeric_mean_std_and_categorical_vocab_on_train_split_only" in entry_exit_model_dataset, "Entry Exit model dataset readiness uses train-only normalization", checks)
         _require("numeric state features are finite and live" in entry_exit_model_dataset, "Entry Exit model dataset readiness requires live numeric state", checks)
         _require("model dataset readiness never trains, replays, distills, promotes, shadows, or starts live" in entry_exit_model_dataset, "Entry Exit model dataset readiness keeps all side-effect paths closed", checks)
+        _require("entry_exit_feature_alignment_v1" in entry_exit_feature_alignment, "Entry Exit feature alignment writes schema", checks)
+        _require("ENTRY_EXIT_FEATURE_ALIGNMENT_READY_FOR_EXIT_TRANSFORMER_TRAINING_REVIEW" in entry_exit_feature_alignment, "Entry Exit feature alignment has ready decision", checks)
+        _require("BLOCKED_BY_ENTRY_EXIT_FEATURE_ALIGNMENT" in entry_exit_feature_alignment, "Entry Exit feature alignment has blocked decision", checks)
+        _require("structure_swing" in entry_exit_feature_alignment and "smc_liquidity" in entry_exit_feature_alignment and "momentum_flow" in entry_exit_feature_alignment, "Entry Exit feature alignment audits required market families", checks)
+        _require("feature alignment audit never trains, replays, distills, promotes, shadows, or starts live" in entry_exit_feature_alignment, "Entry Exit feature alignment keeps all side-effect paths closed", checks)
         _require("entry_exit_transformer_architecture_readiness_v1" in entry_exit_transformer_architecture, "Entry Exit Transformer architecture readiness writes schema", checks)
         _require("ENTRY_EXIT_TRANSFORMER_ARCHITECTURE_READY_FOR_TRAINING_PLAN_REVIEW" in entry_exit_transformer_architecture, "Entry Exit Transformer architecture readiness has ready decision", checks)
         _require("exit_sequence_transformer_v1" in entry_exit_transformer_architecture, "Entry Exit Transformer architecture readiness locks model family", checks)
@@ -1155,6 +1164,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         _require("ENTRY_EXIT_TRANSFORMER_TRAIN_EXECUTION_REVIEW_READY_FOR_EXPLICIT_VEDTAK_PACKAGE" in entry_exit_transformer_train_wrapper, "Entry Exit Transformer train wrapper requires ready train-execution review", checks)
         _require("POST_TRAIN_AUDIT_CONTRACT_JSON" in entry_exit_transformer_train_wrapper, "Entry Exit Transformer train wrapper requires post-train audit contract json", checks)
         _require("ENTRY_EXIT_TRANSFORMER_POST_TRAIN_AUDIT_CONTRACT_READY" in entry_exit_transformer_train_wrapper, "Entry Exit Transformer train wrapper requires ready post-train audit contract", checks)
+        _require("FEATURE_ALIGNMENT_JSON" in entry_exit_transformer_train_wrapper, "Entry Exit Transformer train wrapper requires Entry-to-Exit feature alignment json", checks)
+        _require("ENTRY_EXIT_FEATURE_ALIGNMENT_READY_FOR_EXIT_TRANSFORMER_TRAINING_REVIEW" in entry_exit_transformer_train_wrapper, "Entry Exit Transformer train wrapper requires ready Entry-to-Exit feature alignment", checks)
         _require("scripts/gx1_capped_run.sh" in entry_exit_transformer_train_wrapper, "Entry Exit Transformer train wrapper declares capped run", checks)
         _require("--num-workers" in entry_exit_transformer_train_wrapper and "NUM_WORKERS=0" in entry_exit_transformer_train_wrapper, "Entry Exit Transformer train wrapper declares num-workers zero", checks)
         _require("ExitSequenceTransformerV1" in entry_exit_transformer_trainer_core, "Entry Exit Transformer trainer core defines active model", checks)

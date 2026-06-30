@@ -296,6 +296,7 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--training-plan-json", required=True)
     ap.add_argument("--train-execution-review-json", default="")
     ap.add_argument("--post-train-contract-json", default="")
+    ap.add_argument("--feature-alignment-json", default="")
     ap.add_argument("--preflight-only", action="store_true")
     ap.add_argument("--out-manifest-json", default="")
     ap.add_argument("--split", default="train")

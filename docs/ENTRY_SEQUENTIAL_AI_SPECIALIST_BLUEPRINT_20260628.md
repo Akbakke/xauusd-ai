@@ -77,6 +77,13 @@ Machine contract:
     train-only numeric/categorical normalization metadata from the split/leakage
     dataset. It keeps Exit Transformer/IQL training closed until architecture,
     training and replay-evidence gates exist and pass.
+- Active Entry-to-Exit feature alignment:
+  `gx1/scripts/audit_entry_exit_feature_alignment_v1.py`
+  - Audits whether the Exit model state carries Entry policy context plus the
+    required HH/SMC/liquidity, trend/EMA, compression/expansion, momentum/flow,
+    multi-timeframe and specialist-gate mechanism families. It is fail-closed:
+    the current Exit state is blocked until those Entry snapshot families are
+    materialized as model state, not just broad score/probability fields.
 - Active Exit Transformer architecture/readiness:
   `gx1/scripts/audit_entry_exit_transformer_architecture_readiness_v1.py`
   - Locks the active `exit_sequence_transformer_v1` architecture contract
