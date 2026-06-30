@@ -8,10 +8,16 @@ import torch
 from gx1.scripts.evaluate_entry_candidate_selective_edge_v1 import (
     SIGNAL_BRIDGE_NEUTRAL_VALUES,
     _neutralize_signal_bridge,
+    _specialist_contract_snapshot,
+    build_parser,
     build_metric_rows,
     build_no_xgb_ablation_diagnostics,
     build_summary,
     run,
+)
+from gx1.features.entry_specialist_feature_groups_v1 import (
+    required_training_specialists_for_mode,
+    specialist_model_contract_for_mode,
 )
 
 
@@ -32,6 +38,64 @@ def _predictions() -> pd.DataFrame:
             "path_quality_pred": [1.0] * 12,
         }
     )
+
+
+def _bundle_meta_for_contract(mode: str) -> dict:
+    dim = 215 if mode == "challenger_seq215" else 146
+    specialists = required_training_specialists_for_mode(mode)
+    return {
+        "seq_input_dim": dim,
+        "snap_input_dim": dim,
+        "specialist_fusion": {
+            "enabled": True,
+            "contract_mode": mode,
+            "input_indices": {name: [idx] for idx, name in enumerate(specialists)},
+            "specialist_model_contract": specialist_model_contract_for_mode(mode),
+            "specialist_model_contract_valid": True,
+            "specialist_model_contract_set_exact": True,
+            "specialist_model_contract_owned_objectives_match": True,
+            "specialist_model_contract_signal_families_match": True,
+            "specialist_model_contract_support_heads_match": True,
+            "specialist_model_contract_model_roles_match": True,
+        },
+    }
+
+
+def test_specialist_contract_snapshot_accepts_foundation_six_specialists() -> None:
+    snapshot = _specialist_contract_snapshot(_bundle_meta_for_contract("foundation_seq146"), "foundation_seq146")
+
+    assert snapshot["failures"] == []
+    assert snapshot["expected_signal_dim"] == 146
+    assert snapshot["required_specialists_exact"] is True
+    assert snapshot["chart_geometry_present"] is False
+    assert snapshot["price_action_candle_present"] is False
+
+
+def test_specialist_contract_snapshot_accepts_challenger_seq215_eight_specialists() -> None:
+    snapshot = _specialist_contract_snapshot(_bundle_meta_for_contract("challenger_seq215"), "challenger_seq215")
+
+    assert snapshot["failures"] == []
+    assert snapshot["expected_signal_dim"] == 215
+    assert snapshot["required_specialists_exact"] is True
+    assert snapshot["chart_geometry_present"] is True
+    assert snapshot["price_action_candle_present"] is True
+
+
+def test_specialist_contract_snapshot_blocks_seq215_foundation_fallback() -> None:
+    meta = _bundle_meta_for_contract("foundation_seq146")
+
+    snapshot = _specialist_contract_snapshot(meta, "challenger_seq215")
+
+    assert any("seq_input_dim mismatch" in failure for failure in snapshot["failures"])
+    assert any("contract mode mismatch" in failure for failure in snapshot["failures"])
+    assert any("chart_geometry_encoder" in failure for failure in snapshot["failures"])
+    assert any("price_action_candle_encoder" in failure for failure in snapshot["failures"])
+
+
+def test_parser_has_challenger_seq215_alias() -> None:
+    args = build_parser().parse_args(["--bundle-dir", "/tmp/bundle", "--challenger-seq215"])
+
+    assert args.contract_mode == "challenger_seq215"
 
 
 def test_metric_rows_include_required_replay_readiness_columns_and_session_slices() -> None:

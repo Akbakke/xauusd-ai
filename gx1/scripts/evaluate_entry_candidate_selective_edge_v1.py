@@ -23,6 +23,10 @@ import torch
 from torch.utils.data import DataLoader
 
 from gx1.contracts.signal_bridge_v3 import ORDERED_SEQ_FIELDS_V3
+from gx1.features.entry_specialist_feature_groups_v1 import (
+    required_training_specialists_for_mode,
+    specialist_model_contract_for_mode,
+)
 from gx1.models.entry_v10.entry_v10_bundle import load_entry_v10_ctx_bundle
 from gx1.models.entry_v10.entry_v10_ctx_train_v3 import EntryV10CtxDataset, _multi_tf_kwargs_from_batch
 from gx1.scripts.audit_entry_foundation_smoke_bundle_v1 import (
@@ -39,6 +43,18 @@ from gx1.scripts.verify_entry_foundation_state_v1 import FOUNDATION_DATASET_DIR,
 DEFAULT_OUT_DIR = REPORTS_ROOT / "entry_candidate_selective_edge_20260628_v1"
 SESSION_NAMES = {0: "ASIA", 1: "EU", 2: "OVERLAP", 3: "US"}
 SIDE_NAMES = {0: "LONG", 1: "SHORT"}
+CONTRACT_SIGNAL_DIMS = {
+    "foundation_seq146": 146,
+    "challenger_seq215": 215,
+}
+SPECIALIST_MODEL_CONTRACT_FLAGS = (
+    "specialist_model_contract_valid",
+    "specialist_model_contract_set_exact",
+    "specialist_model_contract_owned_objectives_match",
+    "specialist_model_contract_signal_families_match",
+    "specialist_model_contract_support_heads_match",
+    "specialist_model_contract_model_roles_match",
+)
 SIGNAL_BRIDGE_NEUTRAL_VALUES = np.array(
     [
         1.0 / 3.0,  # p_long
@@ -70,6 +86,126 @@ def _safe_mean(series: pd.Series) -> float | None:
     if numeric.empty:
         return None
     return float(numeric.mean())
+
+
+def _normalize_contract_mode(value: Any) -> str:
+    mode = str(value or "foundation_seq146").strip()
+    if mode not in CONTRACT_SIGNAL_DIMS:
+        raise RuntimeError(f"unknown specialist contract mode: {mode}")
+    return mode
+
+
+def _specialist_cfg_from_meta(meta: dict[str, Any]) -> dict[str, Any]:
+    cfg = meta.get("specialist_fusion") if isinstance(meta.get("specialist_fusion"), dict) else {}
+    return dict(cfg)
+
+
+def _observed_contract_mode(meta: dict[str, Any]) -> str:
+    cfg = _specialist_cfg_from_meta(meta)
+    for source in (cfg, meta):
+        for key in ("contract_mode", "specialist_contract_mode"):
+            value = str(source.get(key) or "").strip()
+            if value:
+                return value
+    return ""
+
+
+def _string_tuple(value: Any) -> tuple[str, ...]:
+    return tuple(str(x) for x in (value or ()) if str(x))
+
+
+def _specialist_contract_snapshot(meta: dict[str, Any], requested_mode: str) -> dict[str, Any]:
+    contract_mode = _normalize_contract_mode(requested_mode)
+    expected_dim = int(CONTRACT_SIGNAL_DIMS[contract_mode])
+    expected_specialists = sorted(required_training_specialists_for_mode(contract_mode))
+    expected_contract = specialist_model_contract_for_mode(contract_mode)
+    cfg = _specialist_cfg_from_meta(meta)
+    input_indices = cfg.get("input_indices") if isinstance(cfg.get("input_indices"), dict) else {}
+    observed_specialists = sorted(
+        str(name)
+        for name, values in input_indices.items()
+        if str(name) and list(values or [])
+    )
+    observed_mode = _observed_contract_mode(meta)
+    observed_contract = cfg.get("specialist_model_contract") if isinstance(cfg.get("specialist_model_contract"), dict) else {}
+    seq_dim = int(meta.get("seq_input_dim") or meta.get("snap_input_dim") or 0)
+    snap_dim = int(meta.get("snap_input_dim") or meta.get("seq_input_dim") or 0)
+    failures: list[str] = []
+
+    if seq_dim != expected_dim:
+        failures.append(f"bundle seq_input_dim mismatch: observed={seq_dim} expected={expected_dim}")
+    if snap_dim != expected_dim:
+        failures.append(f"bundle snap_input_dim mismatch: observed={snap_dim} expected={expected_dim}")
+    if not bool(cfg.get("enabled")):
+        failures.append("bundle specialist_fusion.enabled is not true")
+    if observed_mode and observed_mode != contract_mode:
+        failures.append(f"bundle specialist contract mode mismatch: observed={observed_mode} expected={contract_mode}")
+    if contract_mode == "challenger_seq215" and not observed_mode:
+        failures.append("challenger_seq215 bundle must declare specialist_fusion.contract_mode")
+
+    missing = sorted(set(expected_specialists) - set(observed_specialists))
+    extra = sorted(set(observed_specialists) - set(expected_specialists))
+    if missing:
+        failures.append(f"bundle specialist_fusion missing required specialists: {missing}")
+    if extra:
+        failures.append(f"bundle specialist_fusion has non-required specialists: {extra}")
+    if contract_mode == "challenger_seq215":
+        for required in ("chart_geometry_encoder", "price_action_candle_encoder"):
+            if required not in observed_specialists:
+                failures.append(f"challenger_seq215 missing required specialist: {required}")
+
+    expected_contract_keys = sorted(str(name) for name in expected_contract)
+    observed_contract_keys = sorted(str(name) for name in observed_contract)
+    if observed_contract_keys != expected_contract_keys:
+        failures.append(
+            "bundle specialist_model_contract set mismatch: "
+            f"observed={observed_contract_keys} expected={expected_contract_keys}"
+        )
+    for flag in SPECIALIST_MODEL_CONTRACT_FLAGS:
+        if not bool(cfg.get(flag)):
+            failures.append(f"bundle specialist_fusion.{flag} is not true")
+    for name, expected_spec in expected_contract.items():
+        observed_spec = observed_contract.get(name)
+        if not isinstance(observed_spec, dict):
+            failures.append(f"bundle specialist_model_contract missing spec for {name}")
+            continue
+        if str(observed_spec.get("model_role") or "") != str(expected_spec.get("model_role") or ""):
+            failures.append(f"bundle specialist_model_contract model_role mismatch: {name}")
+        for field in ("owned_objectives", "primary_signal_families", "supports_heads"):
+            if _string_tuple(observed_spec.get(field)) != _string_tuple(expected_spec.get(field)):
+                failures.append(f"bundle specialist_model_contract {field} mismatch: {name}")
+
+    return {
+        "requested_contract_mode": contract_mode,
+        "observed_contract_mode": observed_mode,
+        "contract_mode_declared": bool(observed_mode),
+        "expected_signal_dim": expected_dim,
+        "bundle_seq_input_dim": seq_dim,
+        "bundle_snap_input_dim": snap_dim,
+        "specialist_fusion_enabled": bool(cfg.get("enabled")),
+        "expected_specialists": expected_specialists,
+        "observed_specialists": observed_specialists,
+        "required_specialists_exact": not missing and not extra,
+        "chart_geometry_present": "chart_geometry_encoder" in observed_specialists,
+        "price_action_candle_present": "price_action_candle_encoder" in observed_specialists,
+        "specialist_model_contract_keys": observed_contract_keys,
+        "specialist_model_contract_expected_keys": expected_contract_keys,
+        "specialist_model_contract_valid": bool(cfg.get("specialist_model_contract_valid")),
+        "specialist_model_contract_set_exact": bool(cfg.get("specialist_model_contract_set_exact")),
+        "specialist_model_contract_owned_objectives_match": bool(
+            cfg.get("specialist_model_contract_owned_objectives_match")
+        ),
+        "specialist_model_contract_signal_families_match": bool(
+            cfg.get("specialist_model_contract_signal_families_match")
+        ),
+        "specialist_model_contract_support_heads_match": bool(
+            cfg.get("specialist_model_contract_support_heads_match")
+        ),
+        "specialist_model_contract_model_roles_match": bool(
+            cfg.get("specialist_model_contract_model_roles_match")
+        ),
+        "failures": failures,
+    }
 
 
 def _pnl_proxy_for_side(frame: pd.DataFrame) -> np.ndarray:
@@ -477,7 +613,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     no_xgb_ablation_mode = str(getattr(args, "no_xgb_ablation_mode", "bundle")).strip()
     if no_xgb_ablation_mode not in {"bundle", "neutralize_signal_bridge"}:
         raise RuntimeError(f"invalid no-XGB ablation mode: {no_xgb_ablation_mode}")
-    contract_mode = str(getattr(args, "contract_mode", "foundation_seq146") or "foundation_seq146").strip()
+    contract_mode = _normalize_contract_mode(getattr(args, "contract_mode", "foundation_seq146"))
     out_dir.mkdir(parents=True, exist_ok=True)
     if mtf_cache_dir and mtf_cache_dir.exists():
         os.environ.setdefault("GX1_V10_MULTI_TF_V2_CACHE_DIR", str(mtf_cache_dir))
@@ -485,6 +621,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     failures: list[str] = []
     all_predictions: list[pd.DataFrame] = []
     bundle_meta: dict[str, Any] = {}
+    no_xgb_bundle_meta: dict[str, Any] = {}
     candidate, candidate_failures, bundle_meta = _predict_bundle(
         bundle_dir=bundle_dir,
         dataset_dir=dataset_dir,
@@ -496,9 +633,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     )
     all_predictions.append(candidate)
     failures.extend(candidate_failures)
+    bundle_specialist_contract = _specialist_contract_snapshot(bundle_meta, contract_mode)
+    failures.extend([f"candidate bundle: {failure}" for failure in bundle_specialist_contract["failures"]])
 
     no_xgb_bundle = str(args.no_xgb_bundle_dir or "").strip()
     no_xgb_neutralize = False
+    no_xgb_bundle_specialist_contract: dict[str, Any] | None = None
     if no_xgb_bundle:
         no_xgb_bundle_path = Path(no_xgb_bundle).expanduser().resolve()
         no_xgb_neutralize = no_xgb_ablation_mode == "neutralize_signal_bridge"
@@ -507,7 +647,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 "no-XGB bundle dir equals candidate bundle but mode=bundle; use "
                 "--no-xgb-ablation-mode neutralize_signal_bridge or provide a distinct ablation bundle"
             )
-        ablation, ablation_failures, _ = _predict_bundle(
+        ablation, ablation_failures, no_xgb_bundle_meta = _predict_bundle(
             bundle_dir=no_xgb_bundle_path,
             dataset_dir=dataset_dir,
             splits=splits,
@@ -519,6 +659,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         )
         all_predictions.append(ablation)
         failures.extend(ablation_failures)
+        no_xgb_bundle_specialist_contract = _specialist_contract_snapshot(no_xgb_bundle_meta, contract_mode)
+        failures.extend(
+            [f"no-XGB bundle: {failure}" for failure in no_xgb_bundle_specialist_contract["failures"]]
+        )
     elif args.require_no_xgb_ablation:
         failures.append("--no-xgb-bundle-dir is required to produce candidate_no_xgb ablation evidence")
 
@@ -566,6 +710,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "bundle_seq_input_dim": int(bundle_meta.get("seq_input_dim") or bundle_meta.get("snap_input_dim") or 0),
         "bundle_snap_input_dim": int(bundle_meta.get("snap_input_dim") or bundle_meta.get("seq_input_dim") or 0),
         "bundle_specialist_fusion_enabled": bool((bundle_meta.get("specialist_fusion") or {}).get("enabled")) if isinstance(bundle_meta.get("specialist_fusion"), dict) else False,
+        "bundle_specialist_contract": bundle_specialist_contract,
+        "no_xgb_bundle_specialist_contract": no_xgb_bundle_specialist_contract,
         "trainer_started": False,
         "promotion_shadow_live_allowed": False,
         "predictions_path": str(predictions_path),
@@ -587,6 +733,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "no_xgb_ablation_diagnostics": report["no_xgb_ablation_diagnostics"],
             "dataset_dir": report["dataset_dir"],
             "input_bridge_contract": report["input_bridge_contract"],
+            "bundle_specialist_contract": report["bundle_specialist_contract"],
+            "no_xgb_bundle_specialist_contract": report["no_xgb_bundle_specialist_contract"],
             "failures": failures,
         }
     )
@@ -627,6 +775,7 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--top-fracs", default="0.05,0.10")
     ap.add_argument("--model-name", default="candidate")
     ap.add_argument("--contract-mode", choices=("foundation_seq146", "challenger_seq215"), default="foundation_seq146")
+    ap.add_argument("--challenger-seq215", action="store_const", dest="contract_mode", const="challenger_seq215")
     ap.add_argument("--no-xgb-ablation-mode", choices=("bundle", "neutralize_signal_bridge"), default="bundle")
     ap.add_argument("--device", default="cpu")
     ap.add_argument("--batch-size", type=int, default=128)
