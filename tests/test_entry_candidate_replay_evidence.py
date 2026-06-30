@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from gx1.features.entry_specialist_feature_groups_v1 import required_training_specialists_for_mode
 from gx1.scripts.materialize_entry_candidate_replay_evidence_v1 import (
     _identity_contract,
     audit_iql_transition_trades,
@@ -12,6 +13,82 @@ from gx1.scripts.materialize_entry_candidate_replay_evidence_v1 import (
     run,
 )
 from gx1.scripts.verify_entry_replay_readiness_v1 import _replay_checks
+
+
+def _specialists(mode: str = "foundation_seq146") -> list[str]:
+    return sorted(required_training_specialists_for_mode(mode))
+
+
+def _specialist_snapshot(mode: str = "foundation_seq146") -> dict:
+    expected = _specialists(mode)
+    dim = 215 if mode == "challenger_seq215" else 146
+    return {
+        "requested_contract_mode": mode,
+        "observed_contract_mode": mode,
+        "expected_signal_dim": dim,
+        "bundle_seq_input_dim": dim,
+        "bundle_snap_input_dim": dim,
+        "specialist_fusion_enabled": True,
+        "expected_specialists": expected,
+        "observed_specialists": expected,
+        "required_specialists_exact": True,
+        "chart_geometry_present": "chart_geometry_encoder" in expected,
+        "price_action_candle_present": "price_action_candle_encoder" in expected,
+        "specialist_model_contract_valid": True,
+        "specialist_model_contract_set_exact": True,
+        "specialist_model_contract_owned_objectives_match": True,
+        "specialist_model_contract_signal_families_match": True,
+        "specialist_model_contract_support_heads_match": True,
+        "specialist_model_contract_model_roles_match": True,
+        "failures": [],
+    }
+
+
+def _candidate_audit(bundle_dir: str = "/tmp/candidate_bundle", mode: str = "foundation_seq146") -> dict:
+    specialists = _specialists(mode)
+    dim = 215 if mode == "challenger_seq215" else 146
+    return {
+        "decision": "PASS",
+        "bundle_dir": bundle_dir,
+        "specialist_contract_mode": mode,
+        "required_training_specialists": specialists,
+        "bundle_summary": {
+            "contract_mode": mode,
+            "seq_input_dim": dim,
+            "snap_input_dim": dim,
+            "specialist_fusion_enabled": True,
+            "specialist_groups": specialists,
+            "specialist_model_contract_valid": True,
+            "specialist_model_contract_set_exact": True,
+            "specialist_model_contract_owned_objectives_match": True,
+            "specialist_model_contract_support_heads_match": True,
+            "specialist_model_contract_signal_families_match": True,
+            "specialist_model_contract_model_roles_match": True,
+        },
+        "bundle_specialist_model_contract": {
+            "valid": True,
+            "set_exact": True,
+            "owned_objectives_match": True,
+            "support_heads_match": True,
+            "signal_families_match": True,
+            "model_roles_match": True,
+            "failures": [],
+        },
+    }
+
+
+def _selective_summary(bundle_dir: str = "/tmp/candidate_bundle", mode: str = "foundation_seq146") -> dict:
+    dim = 215 if mode == "challenger_seq215" else 146
+    return {
+        "decision": "PASS",
+        "contract_mode": mode,
+        "bundle_dir": bundle_dir,
+        "bundle_seq_input_dim": dim,
+        "bundle_snap_input_dim": dim,
+        "no_xgb_bundle_dir": "/tmp/candidate_no_xgb",
+        "bundle_specialist_contract": _specialist_snapshot(mode),
+        "no_xgb_bundle_specialist_contract": _specialist_snapshot(mode),
+    }
 
 
 def _raw_trades() -> pd.DataFrame:
@@ -45,11 +122,8 @@ def _raw_trades() -> pd.DataFrame:
 def _write_identity_artifacts(tmp_path: Path, *, bundle_dir: str = "/tmp/candidate_bundle") -> tuple[Path, Path]:
     candidate_audit = tmp_path / "candidate_audit.json"
     selective_summary = tmp_path / "selective_summary.json"
-    candidate_audit.write_text(json.dumps({"decision": "PASS", "bundle_dir": bundle_dir}), encoding="utf-8")
-    selective_summary.write_text(
-        json.dumps({"decision": "PASS", "bundle_dir": bundle_dir, "no_xgb_bundle_dir": "/tmp/candidate_no_xgb"}),
-        encoding="utf-8",
-    )
+    candidate_audit.write_text(json.dumps(_candidate_audit(bundle_dir=bundle_dir)), encoding="utf-8")
+    selective_summary.write_text(json.dumps(_selective_summary(bundle_dir=bundle_dir)), encoding="utf-8")
     return candidate_audit, selective_summary
 
 

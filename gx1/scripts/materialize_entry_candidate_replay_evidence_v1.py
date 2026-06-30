@@ -17,6 +17,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from gx1.features.entry_specialist_feature_groups_v1 import required_training_specialists_for_mode
 from gx1.scripts.verify_entry_foundation_state_v1 import REPORTS_ROOT
 
 
@@ -85,6 +86,151 @@ def _read_json_if_exists(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {}
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _expected_specialists(contract_mode: str) -> list[str]:
+    try:
+        return sorted(required_training_specialists_for_mode(contract_mode))
+    except ValueError:
+        return []
+
+
+def _candidate_bundle_specialist_contract(candidate_audit: dict[str, Any], contract_mode: str) -> dict[str, Any]:
+    bundle = candidate_audit.get("bundle_summary") if isinstance(candidate_audit.get("bundle_summary"), dict) else {}
+    specialist_contract = (
+        candidate_audit.get("bundle_specialist_model_contract")
+        if isinstance(candidate_audit.get("bundle_specialist_model_contract"), dict)
+        else {}
+    )
+    expected = _expected_specialists(contract_mode)
+    required = sorted(str(x) for x in candidate_audit.get("required_training_specialists", []) if str(x))
+    groups = sorted(str(x) for x in bundle.get("specialist_groups", []) if str(x))
+    failures: list[str] = []
+
+    if not expected:
+        failures.append(f"unknown specialist contract mode: {contract_mode}")
+    if required != expected:
+        failures.append(f"candidate audit required specialist set mismatch: observed={required} expected={expected}")
+    if groups != expected:
+        failures.append(f"candidate bundle specialist group mismatch: observed={groups} expected={expected}")
+    if not bool(bundle.get("specialist_fusion_enabled")):
+        failures.append("candidate bundle summary specialist_fusion_enabled is not true")
+    for flag in (
+        "specialist_model_contract_valid",
+        "specialist_model_contract_set_exact",
+        "specialist_model_contract_owned_objectives_match",
+        "specialist_model_contract_support_heads_match",
+        "specialist_model_contract_signal_families_match",
+        "specialist_model_contract_model_roles_match",
+    ):
+        if not bool(bundle.get(flag)):
+            failures.append(f"candidate bundle summary {flag} is not true")
+    for flag in (
+        "valid",
+        "set_exact",
+        "owned_objectives_match",
+        "support_heads_match",
+        "signal_families_match",
+        "model_roles_match",
+    ):
+        if not bool(specialist_contract.get(flag)):
+            failures.append(f"candidate bundle specialist contract {flag} is not true")
+    if specialist_contract.get("failures"):
+        failures.append(f"candidate bundle specialist contract failures: {specialist_contract.get('failures')}")
+    if contract_mode == "challenger_seq215":
+        for required_name in ("chart_geometry_encoder", "price_action_candle_encoder"):
+            if required_name not in groups:
+                failures.append(f"candidate seq215 bundle missing specialist group: {required_name}")
+            if required_name not in required:
+                failures.append(f"candidate seq215 audit missing required specialist: {required_name}")
+
+    return {
+        "ready": not failures,
+        "contract_mode": contract_mode,
+        "expected_specialists": expected,
+        "required_training_specialists": required,
+        "bundle_specialist_groups": groups,
+        "bundle_specialist_model_contract": specialist_contract,
+        "failures": failures,
+    }
+
+
+def _selective_specialist_snapshot_checks(snapshot: dict[str, Any], contract_mode: str, *, label: str) -> list[str]:
+    expected = _expected_specialists(contract_mode)
+    expected_dim = CONTRACT_INPUT_DIMS.get(contract_mode)
+    failures: list[str] = []
+    if not snapshot:
+        return [f"{label} missing specialist contract snapshot"]
+    if snapshot.get("failures"):
+        failures.append(f"{label} specialist contract snapshot failures: {snapshot.get('failures')}")
+    if str(snapshot.get("requested_contract_mode") or "") != contract_mode:
+        failures.append(
+            f"{label} specialist contract mode mismatch: "
+            f"{snapshot.get('requested_contract_mode')} != {contract_mode}"
+        )
+    if expected_dim is not None and int(snapshot.get("expected_signal_dim") or 0) != int(expected_dim):
+        failures.append(
+            f"{label} expected signal dim mismatch: {snapshot.get('expected_signal_dim')} != {expected_dim}"
+        )
+    if expected_dim is not None and int(snapshot.get("bundle_seq_input_dim") or 0) != int(expected_dim):
+        failures.append(
+            f"{label} seq_input_dim mismatch: {snapshot.get('bundle_seq_input_dim')} != {expected_dim}"
+        )
+    if expected_dim is not None and int(snapshot.get("bundle_snap_input_dim") or 0) != int(expected_dim):
+        failures.append(
+            f"{label} snap_input_dim mismatch: {snapshot.get('bundle_snap_input_dim')} != {expected_dim}"
+        )
+    if sorted(str(x) for x in snapshot.get("expected_specialists", []) if str(x)) != expected:
+        failures.append(f"{label} expected specialist set mismatch")
+    if sorted(str(x) for x in snapshot.get("observed_specialists", []) if str(x)) != expected:
+        failures.append(f"{label} observed specialist set mismatch")
+    if not bool(snapshot.get("specialist_fusion_enabled")):
+        failures.append(f"{label} specialist fusion is not enabled")
+    if not bool(snapshot.get("required_specialists_exact")):
+        failures.append(f"{label} required specialist set is not exact")
+    for flag in (
+        "specialist_model_contract_valid",
+        "specialist_model_contract_set_exact",
+        "specialist_model_contract_owned_objectives_match",
+        "specialist_model_contract_signal_families_match",
+        "specialist_model_contract_support_heads_match",
+        "specialist_model_contract_model_roles_match",
+    ):
+        if not bool(snapshot.get(flag)):
+            failures.append(f"{label} {flag} is not true")
+    if contract_mode == "challenger_seq215":
+        if not bool(snapshot.get("chart_geometry_present")):
+            failures.append(f"{label} missing chart_geometry_encoder")
+        if not bool(snapshot.get("price_action_candle_present")):
+            failures.append(f"{label} missing price_action_candle_encoder")
+    return failures
+
+
+def _selective_edge_specialist_contract(selective_summary: dict[str, Any], contract_mode: str) -> dict[str, Any]:
+    candidate_snapshot = (
+        selective_summary.get("bundle_specialist_contract")
+        if isinstance(selective_summary.get("bundle_specialist_contract"), dict)
+        else {}
+    )
+    no_xgb_snapshot = (
+        selective_summary.get("no_xgb_bundle_specialist_contract")
+        if isinstance(selective_summary.get("no_xgb_bundle_specialist_contract"), dict)
+        else {}
+    )
+    no_xgb_bundle_dir = str(selective_summary.get("no_xgb_bundle_dir") or "")
+    failures = _selective_specialist_snapshot_checks(candidate_snapshot, contract_mode, label="selective-edge candidate")
+    if no_xgb_bundle_dir:
+        failures.extend(
+            _selective_specialist_snapshot_checks(no_xgb_snapshot, contract_mode, label="selective-edge no-XGB")
+        )
+    return {
+        "ready": not failures,
+        "contract_mode": contract_mode,
+        "candidate_bundle_specialist_contract": candidate_snapshot,
+        "no_xgb_bundle_specialist_contract": no_xgb_snapshot,
+        "no_xgb_bundle_dir": no_xgb_bundle_dir,
+        "failures": failures,
+    }
 
 
 def _identity_contract(
@@ -157,6 +303,11 @@ def _identity_contract(
             f"seq={selective_seq_input_dim} snap={selective_snap_input_dim} expected={expected_input_dim}"
         )
 
+    candidate_specialist_contract = _candidate_bundle_specialist_contract(candidate_audit, contract_mode)
+    selective_specialist_contract = _selective_edge_specialist_contract(selective_summary, contract_mode)
+    failures.extend(candidate_specialist_contract["failures"])
+    failures.extend(selective_specialist_contract["failures"])
+
     return {
         "ready": not failures,
         "contract_mode": contract_mode,
@@ -173,6 +324,8 @@ def _identity_contract(
         "no_xgb_bundle_dir": str(selective_summary.get("no_xgb_bundle_dir") or ""),
         "candidate_audit_decision": str(candidate_audit.get("decision") or ""),
         "selective_edge_decision": str(selective_summary.get("decision") or ""),
+        "candidate_specialist_contract": candidate_specialist_contract,
+        "selective_edge_specialist_contract": selective_specialist_contract,
         "require_identity_artifacts": bool(require_identity_artifacts),
         "failures": failures,
     }

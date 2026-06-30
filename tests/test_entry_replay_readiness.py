@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from gx1.features.entry_specialist_feature_groups_v1 import required_training_specialists_for_mode
 from gx1.scripts.verify_entry_replay_readiness_v1 import (
     CHALLENGER_SEQ215_CANDIDATE_BUNDLE_AUDIT,
     CHALLENGER_SEQ215_CANDIDATE_READINESS_LATEST,
@@ -14,6 +15,32 @@ from gx1.scripts.verify_entry_replay_readiness_v1 import (
     run,
 )
 from gx1.scripts.verify_entry_training_readiness_v1 import EXPECTED_ACTIVE_TRAINING_HEADS, EXPECTED_BLOCKED_HEADS
+
+
+def _specialist_snapshot(mode: str = "foundation_seq146") -> dict:
+    expected = sorted(required_training_specialists_for_mode(mode))
+    dim = 215 if mode == "challenger_seq215" else 146
+    return {
+        "requested_contract_mode": mode,
+        "observed_contract_mode": mode,
+        "contract_mode_declared": True,
+        "expected_signal_dim": dim,
+        "bundle_seq_input_dim": dim,
+        "bundle_snap_input_dim": dim,
+        "specialist_fusion_enabled": True,
+        "expected_specialists": expected,
+        "observed_specialists": expected,
+        "required_specialists_exact": True,
+        "chart_geometry_present": "chart_geometry_encoder" in expected,
+        "price_action_candle_present": "price_action_candle_encoder" in expected,
+        "specialist_model_contract_valid": True,
+        "specialist_model_contract_set_exact": True,
+        "specialist_model_contract_owned_objectives_match": True,
+        "specialist_model_contract_signal_families_match": True,
+        "specialist_model_contract_support_heads_match": True,
+        "specialist_model_contract_model_roles_match": True,
+        "failures": [],
+    }
 
 
 def _selective_summary() -> dict:
@@ -69,6 +96,8 @@ def _selective_summary() -> dict:
         "dataset_dir": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_foundation_seq146_neutral",
         "bundle_seq_input_dim": 146,
         "bundle_snap_input_dim": 146,
+        "bundle_specialist_contract": _specialist_snapshot("foundation_seq146"),
+        "no_xgb_bundle_specialist_contract": _specialist_snapshot("foundation_seq146"),
         "input_bridge_contract": {
             "splits": {
                 "val": {"neutral_xgb_bridge": False},
@@ -530,6 +559,8 @@ def test_replay_checks_pass_on_positive_stable_replay(tmp_path: Path) -> None:
             "ready": True,
             "contract_mode": "foundation_seq146",
             "candidate_bundle_dir": "/tmp/candidate_bundle",
+            "candidate_specialist_contract": {"ready": True},
+            "selective_edge_specialist_contract": {"ready": True},
         },
     }
 
@@ -567,6 +598,36 @@ def test_replay_checks_reject_missing_explicit_replay_manifest(tmp_path: Path) -
 
     assert "offline replay manifest PASS" in failed
     assert "offline replay identity contract ready" in failed
+
+
+def test_replay_checks_reject_missing_specialist_contract_identity(tmp_path: Path) -> None:
+    replay_dir = tmp_path / "replay"
+    replay_dir.mkdir()
+    manifest = {
+        "decision": "PASS",
+        "failures": [],
+        "replay_identity_contract": {
+            "ready": True,
+            "contract_mode": "foundation_seq146",
+            "candidate_bundle_dir": "/tmp/candidate_bundle",
+        },
+    }
+
+    checks = _replay_checks(
+        replay_dir,
+        manifest,
+        _replay_metrics(),
+        _monthly_metrics(),
+        _replay_trades(),
+        min_net_sum_bps=0.0,
+        min_profit_factor=1.05,
+        max_drawdown_bps=650.0,
+        expected_candidate_bundle_dir="/tmp/candidate_bundle",
+    )
+    failed = {check["name"] for check in checks if not check["ok"]}
+
+    assert "offline replay identity preserves candidate specialist contract" in failed
+    assert "offline replay identity preserves selective-edge specialist contract" in failed
 
 
 def test_candidate_bundle_audit_checks_pass_on_strict_candidate_contract(tmp_path: Path) -> None:

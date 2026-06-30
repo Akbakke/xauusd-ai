@@ -17,7 +17,10 @@ import numpy as np
 import pandas as pd
 
 from gx1.features.entry_specialist_feature_groups_v1 import required_training_specialists_for_mode
-from gx1.scripts.materialize_entry_candidate_replay_evidence_v1 import IQL_TRANSITION_REQUIRED_COLUMNS
+from gx1.scripts.materialize_entry_candidate_replay_evidence_v1 import (
+    IQL_TRANSITION_REQUIRED_COLUMNS,
+    _selective_edge_specialist_contract,
+)
 from gx1.scripts.verify_entry_candidate_readiness_v1 import (
     DEFAULT_OUT_DIR as CANDIDATE_READINESS_OUT_DIR,
     _bundle_specialist_model_contract_passes,
@@ -170,6 +173,7 @@ def _selective_edge_checks(
     expected_seq_input_dim = CONTRACT_INPUT_DIMS.get(expected_contract_mode)
     observed_seq_input_dim = int(summary.get("bundle_seq_input_dim") or 0)
     observed_snap_input_dim = int(summary.get("bundle_snap_input_dim") or 0)
+    selective_specialist_contract = _selective_edge_specialist_contract(summary, expected_contract_mode)
     input_bridge_splits = input_bridge_contract.get("splits") if isinstance(input_bridge_contract.get("splits"), dict) else {}
     required_no_xgb_splits = [split for split in ("val", "test") if split in splits or not splits]
     no_xgb_diagnostics_ok = True
@@ -251,6 +255,11 @@ def _selective_edge_checks(
                 "bundle_seq_input_dim": observed_seq_input_dim,
                 "bundle_snap_input_dim": observed_snap_input_dim,
             },
+        ),
+        _check(
+            "selective-edge summary preserves specialist contract snapshot",
+            bool(selective_specialist_contract.get("ready")),
+            {"specialist_contract": selective_specialist_contract},
         ),
         _check("selective-edge summary has val/test", {"val", "test"}.issubset(splits), {"splits": sorted(splits)}),
         _check("selective-edge summary includes candidate model", model_name in models, {"models": sorted(models)}),
@@ -527,6 +536,16 @@ def _replay_checks(
     iql_missing_columns = sorted(set(IQL_TRANSITION_REQUIRED_COLUMNS) - trade_columns)
     identity = manifest.get("replay_identity_contract") if isinstance(manifest.get("replay_identity_contract"), dict) else {}
     identity_contract_mode = _contract_mode_from_identity(identity)
+    candidate_specialist_identity = (
+        identity.get("candidate_specialist_contract")
+        if isinstance(identity.get("candidate_specialist_contract"), dict)
+        else {}
+    )
+    selective_specialist_identity = (
+        identity.get("selective_edge_specialist_contract")
+        if isinstance(identity.get("selective_edge_specialist_contract"), dict)
+        else {}
+    )
     row_details = row or {}
     drawdown = row_details.get("max_drawdown_bps")
     drawdown_ok = drawdown is not None and abs(float(drawdown)) <= float(max_drawdown_bps)
@@ -535,6 +554,16 @@ def _replay_checks(
         _check("offline replay manifest PASS", str(manifest.get("decision")) == "PASS", {"manifest_failures": manifest.get("failures")}),
         _check("offline replay manifest has zero failures", not manifest.get("failures"), {"manifest_failures": manifest.get("failures")}),
         _check("offline replay identity contract ready", bool(identity.get("ready")), {"identity": identity}),
+        _check(
+            "offline replay identity preserves candidate specialist contract",
+            bool(candidate_specialist_identity.get("ready")),
+            {"candidate_specialist_contract": candidate_specialist_identity},
+        ),
+        _check(
+            "offline replay identity preserves selective-edge specialist contract",
+            bool(selective_specialist_identity.get("ready")),
+            {"selective_edge_specialist_contract": selective_specialist_identity},
+        ),
         _check(
             "offline replay identity contract mode matches replay-readiness contract",
             identity_contract_mode == expected_contract_mode,
