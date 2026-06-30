@@ -286,8 +286,10 @@ if hygiene.get("foundation_cleanup_stage_ready"):
 optional_proof_commands = []
 if train.get("foundation_contract_ready_for_smoke"):
     optional_proof_commands.append("scripts/entry_next_edge_control.sh smoke-manifest --vedtak <id>  # proof only, no trainer start")
+    optional_proof_commands.append("scripts/entry_next_edge_control.sh smoke-manifest-seq215 --vedtak <id>  # proof only, no trainer start")
 blocked_now = [
     "scripts/entry_next_edge_control.sh smoke-train --vedtak <id> --require-edge-audit  # needs clean git + explicit vedtak",
+    "scripts/entry_next_edge_control.sh smoke-train-seq215 --vedtak <id> --require-edge-audit  # needs clean git + explicit SEQ215 vedtak",
     "candidate-train, replay, IQL distillation, promotion, shadow and live remain blocked until their gates pass",
 ]
 stage_cmd = hygiene.get("foundation_cleanup_stage_command") or []
@@ -407,6 +409,8 @@ foundation_cleanup_stage_ready = bool(hygiene.get("foundation_cleanup_stage_read
 candidate_training_allowed = bool(
     (reports.get("candidate-readiness") or {}).get("candidate_training_allowed_with_explicit_vedtak")
 )
+candidate_seq215 = reports.get("candidate-readiness-seq215") or {}
+candidate_training_seq215_allowed = bool(candidate_seq215.get("candidate_training_allowed_with_explicit_vedtak"))
 iql_distillation_allowed = bool(
     (reports.get("replay-readiness") or {}).get("iql_distillation_allowed_with_explicit_vedtak")
 )
@@ -478,6 +482,8 @@ if activation_apply_applied and not activation_post_apply_completed:
     current_blockers.append("explicit post-apply vedtak to refresh canonical audits and smoke dataset")
 if not candidate_training_allowed:
     current_blockers.append("candidate training requires real smoke bundle edge audit")
+if not candidate_training_seq215_allowed:
+    current_blockers.append("seq215 candidate training requires real seq215 smoke bundle edge audit")
 if not iql_distillation_allowed:
     current_blockers.append("IQL distillation requires candidate train, selective-edge and replay evidence")
 if entry_exit_handoff_decision == "READY_FOR_EXIT_PER_BAR_RECONSTRUCTION_REVIEW" and not entry_exit_reconstruction_ready:
@@ -605,6 +611,19 @@ commands = {
         "touches_shadow_or_live": False,
         "description": "Run pre-train manifest proof and stop before trainer start.",
     },
+    "smoke_manifest_seq215": {
+        "argv": ["scripts/entry_next_edge_control.sh", "smoke-manifest-seq215", "--vedtak", "<id>"],
+        "allowed": smoke_manifest_proof_allowed,
+        "mode": "proof_only",
+        "requires_vedtak": True,
+        "requires_clean_git": False,
+        "mutates_git_index": False,
+        "starts_trainer": False,
+        "starts_replay": False,
+        "starts_iql_distillation": False,
+        "touches_shadow_or_live": False,
+        "description": "Run seq215 pre-train manifest proof and stop before trainer start.",
+    },
     "smoke_train": {
         "argv": [
             "scripts/entry_next_edge_control.sh",
@@ -623,6 +642,25 @@ commands = {
         "starts_iql_distillation": False,
         "touches_shadow_or_live": False,
         "description": "Real smoke train; requires clean git and explicit vedtak.",
+    },
+    "smoke_train_seq215": {
+        "argv": [
+            "scripts/entry_next_edge_control.sh",
+            "smoke-train-seq215",
+            "--vedtak",
+            "<id>",
+            "--require-edge-audit",
+        ],
+        "allowed": real_smoke_train_allowed,
+        "mode": "train",
+        "requires_vedtak": True,
+        "requires_clean_git": True,
+        "mutates_git_index": False,
+        "starts_trainer": True,
+        "starts_replay": False,
+        "starts_iql_distillation": False,
+        "touches_shadow_or_live": False,
+        "description": "Real seq215 smoke train; requires clean git and explicit SEQ215 vedtak.",
     },
 }
 
@@ -1281,7 +1319,9 @@ execution_allowed_now = {
     "stage_foundation_cleanup_dry_run": True,
     "stage_foundation_cleanup_apply": False,
     "smoke_manifest": False,
+    "smoke_manifest_seq215": False,
     "smoke_train": False,
+    "smoke_train_seq215": False,
     "candidate_train": False,
     "candidate_train_seq215": False,
     "selective_edge": False,
@@ -1334,9 +1374,11 @@ allowed_after_explicit_vedtak = {
     "stage_foundation_cleanup_dry_run": True,
     "stage_foundation_cleanup_apply": foundation_cleanup_stage_ready,
     "smoke_manifest": smoke_manifest_proof_allowed,
+    "smoke_manifest_seq215": smoke_manifest_proof_allowed,
     "smoke_train": real_smoke_train_allowed,
+    "smoke_train_seq215": real_smoke_train_allowed,
     "candidate_train": candidate_training_allowed,
-    "candidate_train_seq215": False,
+    "candidate_train_seq215": candidate_training_seq215_allowed,
     "selective_edge": False,
     "replay_evidence": False,
     "iql_distill": iql_distillation_allowed,
@@ -1379,8 +1421,14 @@ not_executable_now_reason = {
     "foundation_activation_apply": activation_apply_not_executable_now_reason,
     "foundation_activation_post_apply": activation_post_apply_not_executable_now_reason,
     "smoke_manifest": "requires explicit smoke-manifest vedtak; proof-only no trainer start",
+    "smoke_manifest_seq215": "requires explicit SEQ215 smoke-manifest vedtak; proof-only no trainer start",
     "smoke_train": (
         "requires clean git worktree and explicit smoke-train vedtak"
+        if foundation_ready
+        else "foundation contract is not ready for smoke"
+    ),
+    "smoke_train_seq215": (
+        "requires clean git worktree and explicit SEQ215 smoke-train vedtak"
         if foundation_ready
         else "foundation contract is not ready for smoke"
     ),
@@ -1441,6 +1489,19 @@ payload = {
         "candidate_training_allowed": bool(
             candidate_training_allowed
         ),
+        "candidate_training_foundation_seq146_allowed": bool(
+            candidate_training_allowed
+        ),
+        "candidate_training_seq215_allowed": bool(
+            candidate_training_seq215_allowed
+        ),
+        "candidate_readiness_seq215_decision": candidate_seq215.get("decision"),
+        "candidate_readiness_seq215_next": (
+            candidate_seq215.get("next_required_gate")
+            or summaries.get("candidate-readiness-seq215", {}).get("next")
+        ),
+        "smoke_manifest_seq215_proof_allowed": smoke_manifest_proof_allowed,
+        "real_smoke_train_seq215_allowed": real_smoke_train_allowed,
         "iql_distillation_allowed": bool(
             iql_distillation_allowed
         ),

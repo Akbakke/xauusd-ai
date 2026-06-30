@@ -82,7 +82,9 @@ def test_foundation_guardrails_current_repo_lock_control_and_handover(tmp_path: 
     assert policy_checks["readiness_policy_blocks_foundation_activation_apply"] is True
     assert policy_checks["readiness_policy_blocks_foundation_activation_post_apply"] is True
     assert policy_checks["readiness_policy_blocks_smoke_train"] is True
+    assert policy_checks["readiness_policy_blocks_smoke_train_seq215"] is True
     assert policy_checks["readiness_policy_blocks_candidate_train"] is True
+    assert policy_checks["readiness_policy_blocks_candidate_train_seq215"] is True
     assert policy_checks["readiness_policy_blocks_selective_edge"] is True
     assert policy_checks["readiness_policy_blocks_replay_evidence"] is True
     assert policy_checks["readiness_policy_blocks_iql_distill"] is True
@@ -94,6 +96,7 @@ def test_foundation_guardrails_current_repo_lock_control_and_handover(tmp_path: 
     assert policy_checks["readiness_policy_blocks_start_shadow"] is True
     assert policy_checks["readiness_policy_blocks_live"] is True
     assert policy_checks["readiness_policy_candidate_train_declares_trainer"] is True
+    assert policy_checks["readiness_policy_candidate_train_seq215_declares_trainer"] is True
     assert policy_checks["readiness_policy_iql_distill_declares_iql_side_effect"] is True
     assert policy_checks["readiness_policy_entry_exit_transformer_train_declares_trainer"] is True
     assert policy_checks["readiness_policy_shadow_live_declares_live_touch"] is True

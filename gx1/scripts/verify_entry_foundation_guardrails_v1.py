@@ -199,6 +199,7 @@ def _readiness_policy_checks() -> list[dict[str, Any]]:
     )
     blocked_downstream = (
         "smoke_train",
+        "smoke_train_seq215",
         "foundation_activation_apply",
         "foundation_activation_post_apply",
         "candidate_train",
@@ -222,7 +223,9 @@ def _readiness_policy_checks() -> list[dict[str, Any]]:
         "stage_foundation_cleanup_dry_run",
         "stage_foundation_cleanup_apply",
         "smoke_manifest",
+        "smoke_manifest_seq215",
         "smoke_train",
+        "smoke_train_seq215",
         "verify",
         "selftest",
         "foundation_guardrails",
@@ -405,6 +408,14 @@ def _readiness_policy_checks() -> list[dict[str, Any]]:
                 and (commands.get("candidate_train") or {}).get("requires_vedtak") is True
                 and (commands.get("candidate_train") or {}).get("requires_clean_git") is True,
                 "details": commands.get("candidate_train"),
+            },
+            {
+                "name": "readiness_policy_candidate_train_seq215_declares_trainer",
+                "ok": (commands.get("candidate_train_seq215") or {}).get("starts_trainer") is True
+                and (commands.get("candidate_train_seq215") or {}).get("requires_vedtak") is True
+                and (commands.get("candidate_train_seq215") or {}).get("requires_clean_git") is True
+                and (commands.get("candidate_train_seq215") or {}).get("execution_allowed_now") is False,
+                "details": commands.get("candidate_train_seq215"),
             },
             {
                 "name": "readiness_policy_iql_distill_declares_iql_side_effect",
