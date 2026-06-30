@@ -12,7 +12,7 @@ from typing import Iterable
 import numpy as np
 
 
-SESSION_REGIME_INTERACTION_FEATURE_VERSION = "entry_session_regime_interactions_v1_20260630_h4d1_transition_risk"
+SESSION_REGIME_INTERACTION_FEATURE_VERSION = "entry_session_regime_interactions_v1_20260630_asia_quiet_permission"
 SESSION_REGIME_INTERACTION_FEATURE_PREFIX = "session_regime."
 
 SESSION_REGIME_INTERACTION_SOURCE_FIELDS = (
@@ -438,7 +438,14 @@ def build_entry_session_regime_interaction_layer(
         arrays,
         names,
         "asia_mid_session_low_cost_permission",
-        asia * mid_session_stability * _clip01(0.55 * low_cost_mid_atr_permission + 0.30 * low_spread_permission + 0.15 * (1.0 - vol_pressure)),
+        asia
+        * _clip01(
+            0.30 * mid_session_stability
+            + 0.25 * (1.0 - boundary_transition)
+            + 0.20 * low_cost_mid_atr_permission
+            + 0.15 * low_spread_permission
+            + 0.10 * (1.0 - vol_pressure)
+        ),
         lo=0.0,
         hi=1.0,
     )

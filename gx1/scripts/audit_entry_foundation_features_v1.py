@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-import pandas as pd
 import pyarrow.parquet as pq
 
 from gx1.audit.entry_transformer_feature_audit import _stack_list_column
@@ -301,6 +300,237 @@ def _stats_rows(
             }
         )
     return rows
+
+
+class _SplitMatrixShapeError(RuntimeError):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+        self.message = message
+
+
+class _StreamingStatsAccumulator:
+    def __init__(self, names: list[str], *, liveness_epsilon: float) -> None:
+        self.names = list(names)
+        self.dim = len(self.names)
+        self.liveness_epsilon = float(liveness_epsilon)
+        self.n = 0
+        self.finite = np.zeros(self.dim, dtype=np.int64)
+        self.nonfinite = np.zeros(self.dim, dtype=np.int64)
+        self.zero = np.zeros(self.dim, dtype=np.int64)
+        self.active = np.zeros(self.dim, dtype=np.int64)
+        self.sum = np.zeros(self.dim, dtype=np.float64)
+        self.sumsq = np.zeros(self.dim, dtype=np.float64)
+        self.min = np.full(self.dim, np.inf, dtype=np.float64)
+        self.max = np.full(self.dim, -np.inf, dtype=np.float64)
+
+    def add(self, values: np.ndarray) -> None:
+        arr = np.asarray(values, dtype=np.float64)
+        if arr.ndim != 2 or arr.shape[1] != self.dim:
+            raise RuntimeError(f"streaming stats shape mismatch: got={arr.shape} expected=(*,{self.dim})")
+        rows = int(arr.shape[0])
+        self.n += rows
+        if self.dim == 0 or rows == 0:
+            return
+        finite = np.isfinite(arr)
+        clean = np.where(finite, arr, 0.0)
+        self.finite += finite.sum(axis=0).astype(np.int64)
+        self.nonfinite += (~finite).sum(axis=0).astype(np.int64)
+        self.zero += (clean == 0.0).sum(axis=0).astype(np.int64)
+        self.active += (np.abs(clean) > self.liveness_epsilon).sum(axis=0).astype(np.int64)
+        self.sum += clean.sum(axis=0)
+        self.sumsq += (clean * clean).sum(axis=0)
+        self.min = np.minimum(self.min, np.min(clean, axis=0))
+        self.max = np.maximum(self.max, np.max(clean, axis=0))
+
+    def _base_row(self, index: int, *, near_constant_std: float) -> dict[str, Any]:
+        if self.n <= 0:
+            mean = 0.0
+            std = 0.0
+            min_value = 0.0
+            max_value = 0.0
+            finite_rate = 0.0
+            zero_rate = 0.0
+            active_rate = 0.0
+        else:
+            mean = float(self.sum[index] / float(self.n))
+            variance = max(float(self.sumsq[index] / float(self.n) - mean * mean), 0.0)
+            std = float(np.sqrt(variance))
+            min_value = float(self.min[index]) if np.isfinite(self.min[index]) else 0.0
+            max_value = float(self.max[index]) if np.isfinite(self.max[index]) else 0.0
+            finite_rate = float(self.finite[index]) / float(self.n)
+            zero_rate = float(self.zero[index]) / float(self.n)
+            active_rate = float(self.active[index]) / float(self.n)
+        return {
+            "n": int(self.n),
+            "finite_rate": finite_rate,
+            "nonfinite_count": int(self.nonfinite[index]),
+            "zero_rate": zero_rate,
+            "active_count": int(self.active[index]),
+            "active_rate": active_rate,
+            "mean": mean,
+            "std": std,
+            "min": min_value,
+            "max": max_value,
+            "near_constant": bool(std <= float(near_constant_std)),
+        }
+
+    def feature_rows(self, *, split: str, near_constant_std: float) -> list[dict[str, Any]]:
+        rows: list[dict[str, Any]] = []
+        for i, name in enumerate(self.names):
+            base = self._base_row(i, near_constant_std=near_constant_std)
+            base.pop("active_count", None)
+            rows.append(
+                {
+                    "split": split,
+                    "feature": name,
+                    "family": _feature_family(name),
+                    **base,
+                    "constant_allowed": _is_neutral_constant_allowed(name),
+                }
+            )
+        return rows
+
+    def source_rows(
+        self,
+        *,
+        split: str,
+        near_constant_std: float,
+        min_active_rate: float,
+        min_active_count: int,
+    ) -> dict[str, dict[str, Any]]:
+        rows: dict[str, dict[str, Any]] = {}
+        for i, source_field in enumerate(self.names):
+            source_kind, raw_name = str(source_field).split(".", 1)
+            base = self._base_row(i, near_constant_std=near_constant_std)
+            nonfinite_count = int(base["nonfinite_count"])
+            active_count = int(base["active_count"])
+            active_rate = float(base["active_rate"])
+            near_constant = bool(base["near_constant"])
+            rows[source_field] = {
+                "split": split,
+                "source_field": source_field,
+                "source_kind": source_kind,
+                "raw_name": raw_name,
+                "observed": True,
+                "live": bool(
+                    nonfinite_count == 0
+                    and not near_constant
+                    and active_count >= int(min_active_count)
+                    and active_rate >= float(min_active_rate)
+                ),
+                **base,
+            }
+        return rows
+
+
+def _missing_source_liveness_row(split: str, source_field: str) -> dict[str, Any]:
+    source_kind, raw_name = str(source_field).split(".", 1)
+    return {
+        "split": split,
+        "source_field": source_field,
+        "source_kind": source_kind,
+        "raw_name": raw_name,
+        "observed": False,
+        "live": False,
+        "n": 0,
+        "finite_rate": 0.0,
+        "nonfinite_count": 0,
+        "zero_rate": 0.0,
+        "active_count": 0,
+        "active_rate": 0.0,
+        "mean": 0.0,
+        "std": 0.0,
+        "min": 0.0,
+        "max": 0.0,
+        "near_constant": True,
+    }
+
+
+def _batch_column_values(batch: Any, name: str) -> list[Any]:
+    idx = batch.schema.get_field_index(name)
+    if idx < 0:
+        raise RuntimeError(f"batch lacks required column: {name}")
+    return batch.column(idx).to_pylist()
+
+
+def _stream_split_liveness_rows(
+    parquet_path: Path,
+    *,
+    split: str,
+    signal_fields: list[str],
+    ctx_cont_names: list[str],
+    audit_features: list[str],
+    batch_size: int,
+    liveness_epsilon: float,
+    near_constant_std: float,
+    min_source_active_rate: float,
+    min_source_active_count: int,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    pf = pq.ParquetFile(parquet_path)
+    signal_idx = {str(name): i for i, name in enumerate(signal_fields)}
+    ctx_idx = {str(name): i for i, name in enumerate(ctx_cont_names)}
+    audit_cols = [signal_idx[str(name)] for name in audit_features]
+
+    source_specs: list[tuple[str, str, int]] = []
+    for source_field in FOUNDATION_STRUCTURE_SOURCE_FIELDS:
+        source_kind, raw_name = str(source_field).split(".", 1)
+        idx = (signal_idx if source_kind == "snap" else ctx_idx).get(raw_name)
+        if idx is not None:
+            source_specs.append((str(source_field), source_kind, int(idx)))
+    source_fields = [field for field, _, _ in source_specs]
+
+    feature_acc = _StreamingStatsAccumulator(
+        list(audit_features),
+        liveness_epsilon=float(liveness_epsilon),
+    )
+    source_acc = _StreamingStatsAccumulator(
+        source_fields,
+        liveness_epsilon=float(liveness_epsilon),
+    )
+
+    rows_seen = 0
+    for batch in pf.iter_batches(batch_size=max(1, int(batch_size)), columns=["snap", "ctx_cont"]):
+        snap = _stack_list_column(_batch_column_values(batch, "snap"), np.float32)
+        ctx_cont = _stack_list_column(_batch_column_values(batch, "ctx_cont"), np.float32)
+        if snap.ndim != 2 or snap.shape[1] != len(signal_fields):
+            raise _SplitMatrixShapeError(
+                f"{split}: snap matrix shape {list(snap.shape)} incompatible with emitted signal field count {len(signal_fields)}"
+            )
+        if ctx_cont.ndim != 2 or ctx_cont.shape[1] != len(ctx_cont_names):
+            raise _SplitMatrixShapeError(
+                f"{split}: ctx_cont matrix shape {list(ctx_cont.shape)} incompatible with emitted ctx_cont field count {len(ctx_cont_names)}"
+            )
+        rows_seen += int(snap.shape[0])
+        feature_acc.add(snap[:, audit_cols])
+        if source_specs:
+            source_matrix = np.stack(
+                [
+                    snap[:, idx] if source_kind == "snap" else ctx_cont[:, idx]
+                    for _, source_kind, idx in source_specs
+                ],
+                axis=1,
+            )
+            source_acc.add(source_matrix)
+
+    if rows_seen == 0:
+        raise _SplitMatrixShapeError(
+            f"{split}: snap matrix shape {[0]} incompatible with emitted signal field count {len(signal_fields)}"
+        )
+
+    source_by_field = source_acc.source_rows(
+        split=split,
+        near_constant_std=float(near_constant_std),
+        min_active_rate=float(min_source_active_rate),
+        min_active_count=int(min_source_active_count),
+    )
+    source_rows = [
+        source_by_field.get(str(source_field), _missing_source_liveness_row(split, str(source_field)))
+        for source_field in FOUNDATION_STRUCTURE_SOURCE_FIELDS
+    ]
+    return (
+        feature_acc.feature_rows(split=split, near_constant_std=float(near_constant_std)),
+        source_rows,
+    )
 
 
 def _source_field_liveness_rows(
@@ -807,44 +1037,27 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             if audit_missing:
                 failures.append(f"{split}: audit features missing from emitted signal fields: {audit_missing[:30]} total={len(audit_missing)}")
                 continue
-            cols = [signal_idx[name] for name in audit_features]
             try:
-                matrices = pd.read_parquet(parquet_path, columns=["snap", "ctx_cont"])
-                snap = _stack_list_column(matrices["snap"], np.float32)
-                ctx_cont = _stack_list_column(matrices["ctx_cont"], np.float32)
+                split_stats, split_source_rows = _stream_split_liveness_rows(
+                    parquet_path,
+                    split=split,
+                    signal_fields=signal_fields,
+                    ctx_cont_names=ctx_cont_names,
+                    audit_features=audit_features,
+                    batch_size=int(args.parquet_batch_size),
+                    liveness_epsilon=float(args.liveness_epsilon),
+                    near_constant_std=float(args.near_constant_std),
+                    min_source_active_rate=float(args.min_required_source_active_rate),
+                    min_source_active_count=int(args.min_required_source_active_count),
+                )
+            except _SplitMatrixShapeError as exc:
+                failures.append(exc.message)
+                continue
             except Exception as exc:
                 failures.append(f"{split}: snap/ctx_cont load failed: {exc}")
                 continue
-            if snap.ndim != 2 or snap.shape[1] != len(signal_fields):
-                failures.append(f"{split}: snap matrix shape {list(snap.shape)} incompatible with emitted signal field count {len(signal_fields)}")
-                continue
-            if ctx_cont.ndim != 2 or ctx_cont.shape[1] != len(ctx_cont_names):
-                failures.append(
-                    f"{split}: ctx_cont matrix shape {list(ctx_cont.shape)} incompatible with emitted ctx_cont field count {len(ctx_cont_names)}"
-                )
-                continue
-            source_field_liveness.extend(
-                _source_field_liveness_rows(
-                    snap=snap,
-                    ctx_cont=ctx_cont,
-                    signal_fields=signal_fields,
-                    ctx_cont_names=ctx_cont_names,
-                    split=split,
-                    liveness_epsilon=float(args.liveness_epsilon),
-                    near_constant_std=float(args.near_constant_std),
-                    min_active_rate=float(args.min_required_source_active_rate),
-                    min_active_count=int(args.min_required_source_active_count),
-                )
-            )
-            stats.extend(
-                _stats_rows(
-                    snap[:, cols],
-                    audit_features,
-                    split=split,
-                    liveness_epsilon=float(args.liveness_epsilon),
-                    near_constant_std=float(args.near_constant_std),
-                )
-            )
+            source_field_liveness.extend(split_source_rows)
+            stats.extend(split_stats)
     else:
         for split in splits:
             missing_by_split[split] = []
@@ -970,6 +1183,7 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--min-required-objective-active-rate", type=float, default=0.01)
     ap.add_argument("--min-required-source-active-rate", type=float, default=0.0001)
     ap.add_argument("--min-required-source-active-count", type=int, default=1)
+    ap.add_argument("--parquet-batch-size", type=int, default=4096)
     ap.add_argument("--fail-on-audit-fail", action=argparse.BooleanOptionalAction, default=True)
     ap.add_argument("--quiet", action="store_true")
     return ap

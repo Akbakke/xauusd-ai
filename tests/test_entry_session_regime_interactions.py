@@ -109,6 +109,8 @@ def test_session_regime_interaction_layer_is_finite_and_causal_shape() -> None:
     assert out[5, idx["session_regime.h4_d1_stack_bear_pressure"]] > 0.0
     assert out[5, idx["session_regime.h4_d1_d1_roc_reversal_pressure"]] > out[2, idx["session_regime.h4_d1_d1_roc_reversal_pressure"]]
     assert out[3, idx["session_regime.regime_transition_tail_risk"]] > out[2, idx["session_regime.regime_transition_tail_risk"]]
+    assert out[:, idx["session_regime.asia_mid_session_low_cost_permission"]].std() > 0.0
+    assert out[:, idx["session_regime.asia_mid_session_low_cost_permission"]].max() > 0.0
     assert out[3, idx["session_regime.eu_us_overlap_divergence_risk"]] > 0.0
     assert out[4, idx["session_regime.us_momentum_followthrough_pressure"]] > 0.0
     assert out[3, idx["session_regime.overlap_momentum_vol_spread_risk"]] > 0.0

@@ -20,6 +20,7 @@ from gx1.scripts.audit_entry_foundation_features_v1 import (
     _required_source_field_liveness_failures,
     _source_field_liveness_rows,
     _stats_rows,
+    _stream_split_liveness_rows,
 )
 from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
     SIGNAL_FIELDS,
@@ -327,6 +328,103 @@ def test_foundation_source_field_liveness_is_checked_per_split() -> None:
     assert any("active count too low" in item for item in failures)
     assert any("near-constant" in item for item in failures)
     assert any("required foundation source-field liveness missing" in item for item in failures)
+
+
+def _assert_liveness_rows_match(
+    actual: list[dict[str, object]],
+    expected: list[dict[str, object]],
+    *,
+    key: str,
+) -> None:
+    assert len(actual) == len(expected)
+    actual_by_key = {str(row[key]): row for row in actual}
+    for expected_row in expected:
+        actual_row = actual_by_key[str(expected_row[key])]
+        assert set(actual_row) == set(expected_row)
+        for field, expected_value in expected_row.items():
+            actual_value = actual_row[field]
+            if isinstance(expected_value, float):
+                assert actual_value == pytest.approx(expected_value, rel=1e-12, abs=1e-12)
+            else:
+                assert actual_value == expected_value
+
+
+def test_stream_split_liveness_matches_matrix_helpers(tmp_path) -> None:
+    audit_features = [
+        "chart.foundation_hh_state",
+        "chart.foundation_bos_up_age_bars",
+        "p_long",
+    ]
+    snap_source_names = [
+        field.split(".", 1)[1]
+        for field in FOUNDATION_STRUCTURE_SOURCE_FIELDS
+        if field.startswith("snap.")
+    ]
+    signal_fields = list(dict.fromkeys(audit_features + snap_source_names))
+    ctx_cont_names = list(
+        dict.fromkeys(
+            field.split(".", 1)[1]
+            for field in FOUNDATION_STRUCTURE_SOURCE_FIELDS
+            if field.startswith("ctx_cont.")
+        )
+    )
+    row_count = 5
+    snap = (
+        np.arange(row_count * len(signal_fields), dtype=np.float32)
+        .reshape(row_count, len(signal_fields))
+        / np.float32(10.0)
+    )
+    ctx_cont = (
+        np.arange(row_count * len(ctx_cont_names), dtype=np.float32)
+        .reshape(row_count, len(ctx_cont_names))
+        / np.float32(7.0)
+    )
+    snap[:, signal_fields.index("p_long")] = np.float32(1.0 / 3.0)
+    snap[1, signal_fields.index("chart.foundation_bos_up_age_bars")] = np.nan
+    if ctx_cont_names:
+        ctx_cont[2, 0] = np.inf
+    parquet_path = tmp_path / "sample.parquet"
+    pd.DataFrame(
+        {
+            "snap": [row.astype(np.float32) for row in snap],
+            "ctx_cont": [row.astype(np.float32) for row in ctx_cont],
+        }
+    ).to_parquet(parquet_path, index=False)
+
+    streamed_stats, streamed_source_rows = _stream_split_liveness_rows(
+        parquet_path,
+        split="train",
+        signal_fields=signal_fields,
+        ctx_cont_names=ctx_cont_names,
+        audit_features=audit_features,
+        batch_size=2,
+        liveness_epsilon=1e-7,
+        near_constant_std=1e-9,
+        min_source_active_rate=0.0001,
+        min_source_active_count=1,
+    )
+    audit_cols = [signal_fields.index(name) for name in audit_features]
+    expected_stats = _stats_rows(
+        snap[:, audit_cols],
+        audit_features,
+        split="train",
+        liveness_epsilon=1e-7,
+        near_constant_std=1e-9,
+    )
+    expected_source_rows = _source_field_liveness_rows(
+        snap=snap,
+        ctx_cont=ctx_cont,
+        signal_fields=signal_fields,
+        ctx_cont_names=ctx_cont_names,
+        split="train",
+        liveness_epsilon=1e-7,
+        near_constant_std=1e-9,
+        min_active_rate=0.0001,
+        min_active_count=1,
+    )
+
+    _assert_liveness_rows_match(streamed_stats, expected_stats, key="feature")
+    _assert_liveness_rows_match(streamed_source_rows, expected_source_rows, key="source_field")
 
 
 def test_foundation_objective_coverage_requires_exact_goal_features() -> None:
