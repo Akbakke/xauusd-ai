@@ -131,6 +131,7 @@ def _active_entry_artifact_paths() -> list[str]:
         "entry_iql_distillation_replay_20260628_v1",
         "entry_iql_replay_comparison_20260628_v1",
         "entry_iql_replay_slice_audit_20260628_v1",
+        "entry_exit_per_bar_handoff_20260630_v1",
         "entry_exit_handoff_readiness_20260630_v1",
         "entry_candidate_selective_edge_20260628_v1",
         "entry_candidate_replay_20260628_v1",
@@ -706,6 +707,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         iql_replay_evidence = _read_text(REPO / "gx1/scripts/materialize_entry_iql_replay_evidence_v1.py")
         iql_comparison = _read_text(REPO / "gx1/scripts/verify_entry_iql_replay_comparison_v1.py")
         iql_slice_audit = _read_text(REPO / "gx1/scripts/audit_entry_iql_replay_slices_v1.py")
+        entry_exit_materializer = _read_text(REPO / "gx1/scripts/materialize_entry_exit_per_bar_handoff_v1.py")
         entry_exit_handoff = _read_text(REPO / "gx1/scripts/audit_entry_exit_handoff_readiness_v1.py")
         worktree_hygiene = _read_text(REPO / "gx1/scripts/audit_entry_foundation_worktree_hygiene_v1.py")
         readiness = _read_text(REPO / "gx1/scripts/verify_entry_training_readiness_v1.py")
@@ -780,6 +782,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         _require("audit_entry_iql_replay_slices_v1" in control, "control surface calls IQL replay slice audit", checks)
         _require("entry-exit-handoff" in control, "control surface exposes Entry-to-Exit handoff audit", checks)
         _require("audit_entry_exit_handoff_readiness_v1" in control, "control surface calls Entry-to-Exit handoff audit", checks)
+        _require("entry-exit-materialize" in control, "control surface exposes Entry-bound Exit per-bar materializer", checks)
+        _require("materialize_entry_exit_per_bar_handoff_v1" in control, "control surface calls Entry-bound Exit per-bar materializer", checks)
         _require("smoke-train" in control, "control surface exposes vedtak-gated smoke train", checks)
         _require("--require-edge-audit" in control, "control surface documents edge-required smoke train", checks)
         _require("audit-smoke-bundle" in control, "control surface exposes smoke bundle audit", checks)
@@ -1056,6 +1060,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         _require("exit_training_allowed" in entry_exit_handoff, "Entry-to-Exit handoff audit keeps exit training closed", checks)
         _require("exit_iql_allowed" in entry_exit_handoff, "Entry-to-Exit handoff audit keeps exit IQL closed", checks)
         _require("handoff audit never trains, replays, builds adapters, promotes, shadows, or starts live" in entry_exit_handoff, "Entry-to-Exit handoff audit keeps all side-effect paths closed", checks)
+        _require("entry_exit_per_bar_handoff_v1" in entry_exit_materializer, "Entry-bound Exit per-bar materializer writes substrate schema", checks)
+        _require("REQUIRED_EXIT_SUBSTRATE_FIELDS" in entry_exit_materializer, "Entry-bound Exit per-bar materializer uses handoff substrate contract", checks)
+        _require("gap_exclusion_policy" in entry_exit_materializer and "never synthesize bars" in entry_exit_materializer, "Entry-bound Exit per-bar materializer documents gap exclusions without synthetic bars", checks)
+        _require("materializer never trains, replays, builds adapters, promotes, shadows, or starts live" in entry_exit_materializer, "Entry-bound Exit per-bar materializer keeps all side-effect paths closed", checks)
 
     report = {
         "schema_version": "entry_foundation_state_v1",

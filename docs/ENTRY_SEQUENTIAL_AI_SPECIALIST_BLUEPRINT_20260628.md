@@ -50,6 +50,12 @@ Machine contract:
   `gx1/scripts/audit_entry_exit_handoff_readiness_v1.py`
   - Must preserve active Entry/IQL replay evidence and keep Exit Transformer/IQL
     training blocked until an active Entry-bound per-bar Exit substrate exists.
+- Entry-bound Exit per-bar substrate materializer:
+  `gx1/scripts/materialize_entry_exit_per_bar_handoff_v1.py`
+  - Builds the active per-bar HOLD/EXIT_NOW substrate from IQL replay trades and
+    canonical M5 bid/ask bars, with hashed M1-to-M5 supplement when available
+    and explicit gap exclusions when price coverage is unresolved. It keeps
+    Exit Transformer/IQL training closed for separate review gates.
 - Latest report:
   `/home/andre2/GX1_DATA/reports/entry_specialist_feature_group_audit_20260628_v1/ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_latest.json`
 - Current decision: `PASS` on the active seq146 foundation dataset.

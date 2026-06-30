@@ -30,6 +30,7 @@ def test_foundation_state_allows_entry_train_manifest_report_roots() -> None:
     assert "entry_candidate_replay_trade_log_20260628_v1_stop80_tp120" in verifier
     assert "entry_iql_student_trade_log_20260628_v1" in verifier
     assert "entry_iql_replay_slice_audit_20260628_v1" in verifier
+    assert "entry_exit_per_bar_handoff_20260630_v1" in verifier
     assert "entry_exit_handoff_readiness_20260630_v1" in verifier
 
 
@@ -176,6 +177,8 @@ def test_foundation_state_selftest_covers_control_policy_contracts() -> None:
     assert "IQL slice audit compares diagnostic tail slices" in checks
     assert "control surface exposes Entry-to-Exit handoff audit" in checks
     assert "Entry-to-Exit handoff audit blocks missing exit substrate" in checks
+    assert "control surface exposes Entry-bound Exit per-bar materializer" in checks
+    assert "Entry-bound Exit per-bar materializer uses handoff substrate contract" in checks
     assert "foundation guardrail verifier blocks candidate train in readiness policy" in checks
     assert "foundation guardrail verifier blocks IQL in readiness policy" in checks
     assert "foundation guardrail verifier blocks live in readiness policy" in checks

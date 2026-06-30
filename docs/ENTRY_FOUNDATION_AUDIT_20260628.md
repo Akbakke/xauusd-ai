@@ -115,9 +115,16 @@ After IQL replay comparison, `scripts/entry_next_edge_control.sh
 iql-slice-audit` must prove that the edge survives supported session, regime
 and side slices, and must record exit-opportunity diagnostics from the exact
 candidate/IQL replay trade logs. `scripts/entry_next_edge_control.sh
-entry-exit-handoff` is report-only and must keep Exit Transformer/IQL training
-closed until an active Entry-bound per-bar Exit substrate exists with explicit
-trade, bar-state, entry-context and replay-identity fields.
+entry-exit-materialize` may materialize the active Entry-bound per-bar
+HOLD/EXIT_NOW substrate from IQL replay trades and canonical M5 bid/ask bars,
+with optional hashed M1-to-M5 supplement for real price gaps. It must never
+synthesize missing bars; trades with unresolved per-bar gaps must be excluded
+into an explicit gap manifest. It must not train, replay, distill, shadow or
+touch live paths.
+`scripts/entry_next_edge_control.sh entry-exit-handoff` is report-only and
+must keep Exit Transformer/IQL training closed until that substrate exists with
+explicit trade, bar-state, entry-context and replay-identity fields and has
+been audited.
 
 ## Current Operating Status - 2026-06-29
 

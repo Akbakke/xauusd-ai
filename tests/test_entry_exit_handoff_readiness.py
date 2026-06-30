@@ -4,7 +4,11 @@ from pathlib import Path
 
 import pandas as pd
 
-from gx1.scripts.audit_entry_exit_handoff_readiness_v1 import REQUIRED_TRADE_FIELDS, run
+from gx1.scripts.audit_entry_exit_handoff_readiness_v1 import (
+    REQUIRED_EXIT_SUBSTRATE_FIELDS,
+    REQUIRED_TRADE_FIELDS,
+    run,
+)
 
 
 def _write_trade_log(path: Path) -> None:
@@ -107,6 +111,35 @@ def _args(tmp_path: Path, *, comparison_ready: bool = True) -> argparse.Namespac
     )
 
 
+def _write_active_substrate(root: Path, *, decision: str = "PASS") -> None:
+    root.mkdir(parents=True, exist_ok=True)
+    dataset = root / "entry_exit_per_bar_handoff.csv"
+    pd.DataFrame([{field: "x" for field in REQUIRED_EXIT_SUBSTRATE_FIELDS}]).to_csv(dataset, index=False)
+    failures = [] if decision == "PASS" else [{"check": "all trades have complete per-bar coverage"}]
+    report = {
+        "decision": decision,
+        "dataset_csv": str(dataset),
+        "dataset_rows": 1,
+        "trade_count": 1,
+        "complete_trade_count": 1 if decision == "PASS" else 0,
+        "failures": failures,
+        "price_diagnostics": {
+            "supplemental_rows_used": 1,
+            "supplemental_paths_used": [str(root / "m1.parquet")],
+            "supplemental_input_sha256": {str(root / "m1.parquet"): "abc123"},
+        },
+        "exit_training_allowed": False,
+        "exit_iql_allowed": False,
+        "trainer_started": False,
+        "replay_started": False,
+        "promotion_shadow_live_allowed": False,
+    }
+    (root / "ENTRY_EXIT_PER_BAR_HANDOFF_latest.json").write_text(
+        json.dumps(report, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+
 def test_entry_exit_handoff_blocks_when_exit_substrate_missing(tmp_path: Path) -> None:
     report = run(_args(tmp_path))
 
@@ -130,3 +163,32 @@ def test_entry_exit_handoff_blocks_when_entry_evidence_missing(tmp_path: Path) -
     assert report["exit_training_allowed"] is False
     failed = {row["check"] for row in report["failures"]}
     assert "IQL replay comparison is ready" in failed
+
+
+def test_entry_exit_handoff_blocks_when_substrate_report_failed_even_if_csv_fields_exist(tmp_path: Path) -> None:
+    args = _args(tmp_path)
+    active_root = tmp_path / "active_exit_substrate"
+    _write_active_substrate(active_root, decision="FAIL")
+    args.active_exit_substrate_root = str(active_root)
+
+    report = run(args)
+
+    assert report["decision"] == "BLOCKED_BY_MISSING_EXIT_PER_BAR_SUBSTRATE"
+    assert report["exit_per_bar_substrate_ready"] is False
+    failed = {row["check"] for row in report["failures"]}
+    assert "active Entry-bound exit per-bar materializer report is PASS or explicit gap-exclusion PASS" in failed
+
+
+def test_entry_exit_handoff_passes_reconstruction_review_gate_with_passed_active_substrate(tmp_path: Path) -> None:
+    args = _args(tmp_path)
+    active_root = tmp_path / "active_exit_substrate"
+    _write_active_substrate(active_root, decision="PASS")
+    args.active_exit_substrate_root = str(active_root)
+
+    report = run(args)
+
+    assert report["decision"] == "READY_FOR_EXIT_PER_BAR_RECONSTRUCTION_REVIEW"
+    assert report["entry_evidence_ready"] is True
+    assert report["exit_per_bar_substrate_ready"] is True
+    assert report["exit_training_allowed"] is False
+    assert report["exit_iql_allowed"] is False

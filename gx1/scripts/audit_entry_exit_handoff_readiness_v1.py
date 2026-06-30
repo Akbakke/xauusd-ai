@@ -167,6 +167,83 @@ def _substrate_field_review(root: Path) -> dict[str, Any]:
     }
 
 
+def _substrate_report_review(root: Path) -> dict[str, Any]:
+    report_path = root / "ENTRY_EXIT_PER_BAR_HANDOFF_latest.json"
+    report = _read_json_or_empty(report_path)
+    dataset_raw = str(report.get("dataset_csv") or "").strip()
+    dataset_path = _path_from_report(report, "dataset_csv")
+    dataset_exists = bool(dataset_raw) and dataset_path.exists()
+    exclusions_raw = str(report.get("gap_exclusions_csv") or "").strip()
+    exclusions_path = _path_from_report(report, "gap_exclusions_csv")
+    exclusions_exists = bool(exclusions_raw) and exclusions_path.exists()
+    exclusions_hash = str(report.get("gap_exclusions_csv_sha256") or "").strip()
+    price_diagnostics = report.get("price_diagnostics") if isinstance(report.get("price_diagnostics"), dict) else {}
+    supplemental_rows = int(price_diagnostics.get("supplemental_rows_used") or 0)
+    supplemental_used = price_diagnostics.get("supplemental_paths_used")
+    supplemental_hashes = price_diagnostics.get("supplemental_input_sha256")
+    if not isinstance(supplemental_used, list):
+        supplemental_used = []
+    if not isinstance(supplemental_hashes, dict):
+        supplemental_hashes = {}
+    supplemental_hash_ready = supplemental_rows == 0 or (
+        bool(supplemental_used)
+        and all(str(path) in supplemental_hashes and bool(supplemental_hashes[str(path)]) for path in supplemental_used)
+    )
+    allowed_decisions = {"PASS", "PASS_WITH_EXPLICIT_GAP_EXCLUSIONS"}
+    source_trade_count = int(report.get("source_trade_count") or report.get("trade_count") or 0)
+    included_trade_count = int(report.get("included_trade_count") or report.get("complete_trade_count") or 0)
+    excluded_trade_count = int(report.get("excluded_trade_count") or max(0, source_trade_count - included_trade_count))
+    complete_trade_count = int(report.get("complete_trade_count") or 0)
+    gap_exclusions_ready = excluded_trade_count == 0 or (exclusions_exists and bool(exclusions_hash))
+    failures = report.get("failures")
+    ready = (
+        report_path.exists()
+        and str(report.get("decision")) in allowed_decisions
+        and dataset_exists
+        and int(report.get("dataset_rows") or 0) > 0
+        and source_trade_count > 0
+        and included_trade_count > 0
+        and complete_trade_count == included_trade_count
+        and excluded_trade_count == source_trade_count - included_trade_count
+        and gap_exclusions_ready
+        and not failures
+        and bool(supplemental_hash_ready)
+        and report.get("exit_training_allowed") is False
+        and report.get("exit_iql_allowed") is False
+        and report.get("trainer_started") is False
+        and report.get("replay_started") is False
+        and report.get("promotion_shadow_live_allowed") is False
+    )
+    return {
+        "path": str(report_path),
+        "exists": report_path.exists(),
+        "decision": report.get("decision"),
+        "dataset_csv": str(dataset_path) if dataset_raw else "",
+        "dataset_csv_exists": dataset_exists,
+        "gap_exclusions_csv": str(exclusions_path) if exclusions_raw else "",
+        "gap_exclusions_csv_exists": exclusions_exists,
+        "gap_exclusions_csv_sha256_present": bool(exclusions_hash),
+        "dataset_rows": int(report.get("dataset_rows") or 0),
+        "trade_count": source_trade_count,
+        "source_trade_count": source_trade_count,
+        "included_trade_count": included_trade_count,
+        "excluded_trade_count": excluded_trade_count,
+        "complete_trade_count": complete_trade_count,
+        "failure_count": len(failures) if isinstance(failures, list) else None,
+        "covered_trade_ratio": report.get("covered_trade_ratio"),
+        "supplemental_rows_used": supplemental_rows,
+        "supplemental_paths_used": supplemental_used,
+        "supplemental_hash_ready": bool(supplemental_hash_ready),
+        "gap_exclusions_ready": bool(gap_exclusions_ready),
+        "exit_training_allowed": report.get("exit_training_allowed"),
+        "exit_iql_allowed": report.get("exit_iql_allowed"),
+        "trainer_started": report.get("trainer_started"),
+        "replay_started": report.get("replay_started"),
+        "promotion_shadow_live_allowed": report.get("promotion_shadow_live_allowed"),
+        "ready": bool(ready),
+    }
+
+
 def _trade_field_review(path: Path) -> dict[str, Any]:
     columns = _read_csv_header(path)
     missing = [field for field in REQUIRED_TRADE_FIELDS if field not in set(columns)]
@@ -265,6 +342,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     exit_opportunity = _read_csv_or_empty(exit_csv, nrows=10)
     iql_all = _exit_opportunity_iql_all(slice_audit)
     legacy_review = _legacy_exit_review(legacy_exit_root)
+    substrate_report_review = _substrate_report_review(active_exit_root)
     substrate_review = _substrate_field_review(active_exit_root)
 
     entry_evidence_ready = (
@@ -276,7 +354,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         and exit_csv.exists()
         and not exit_opportunity.empty
     )
-    exit_per_bar_ready = bool(substrate_review["ready"])
+    exit_per_bar_ready = bool(substrate_report_review["ready"] and substrate_review["ready"])
     checks = [
         _check(
             "IQL replay comparison is ready",
@@ -296,9 +374,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             {"exit_opportunity_csv": str(exit_csv), "iql_all": iql_all},
         ),
         _check(
-            "legacy truth_e2e_sanity exit locks are available",
-            bool(legacy_review["ready"]),
+            "legacy truth_e2e_sanity exit locks are available or superseded by active substrate",
+            bool(legacy_review["ready"]) or exit_per_bar_ready,
             legacy_review,
+        ),
+        _check(
+            "active Entry-bound exit per-bar materializer report is PASS or explicit gap-exclusion PASS",
+            bool(substrate_report_review["ready"]),
+            substrate_report_review,
         ),
         _check(
             "active Entry-bound exit per-bar substrate is available",
@@ -351,6 +434,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "iql_exit_opportunity_all": iql_all,
         "exit_opportunity_csv": str(exit_csv),
         "legacy_exit_truth_root_review": legacy_review,
+        "active_exit_substrate_report_review": substrate_report_review,
         "active_exit_substrate_review": substrate_review,
         "required_exit_substrate_fields": list(REQUIRED_EXIT_SUBSTRATE_FIELDS),
         "checks": checks,

@@ -37,10 +37,11 @@ Usage:
   scripts/entry_next_edge_control.sh iql-replay-evidence --trades-path <csv|parquet>
   scripts/entry_next_edge_control.sh iql-compare
   scripts/entry_next_edge_control.sh iql-slice-audit
+  scripts/entry_next_edge_control.sh entry-exit-materialize
   scripts/entry_next_edge_control.sh entry-exit-handoff
 
 Allowed path:
-  Entry foundation cleanup -> feature audit -> target audit -> rebuilt dataset -> adoption-candidate proof -> activation-plan review -> optional vedtak-gated activation apply -> vedtak-gated post-apply audit refresh + active verify -> foundation-guardrails -> worktree-hygiene -> optional vedtak-gated stage-foundation-cleanup -> train-readiness -> optional smoke-manifest proof -> vedtak-gated smoke train -> smoke bundle audit -> candidate-readiness -> vedtak-gated candidate train -> selective-edge/no-XGB ablation -> replay-evidence -> replay-readiness -> vedtak-gated IQL distillation contract -> IQL student trade log -> IQL replay evidence -> IQL replay comparison -> IQL slice/tail audit -> Entry-to-Exit handoff readiness.
+  Entry foundation cleanup -> feature audit -> target audit -> rebuilt dataset -> adoption-candidate proof -> activation-plan review -> optional vedtak-gated activation apply -> vedtak-gated post-apply audit refresh + active verify -> foundation-guardrails -> worktree-hygiene -> optional vedtak-gated stage-foundation-cleanup -> train-readiness -> optional smoke-manifest proof -> vedtak-gated smoke train -> smoke bundle audit -> candidate-readiness -> vedtak-gated candidate train -> selective-edge/no-XGB ablation -> replay-evidence -> replay-readiness -> vedtak-gated IQL distillation contract -> IQL student trade log -> IQL replay evidence -> IQL replay comparison -> IQL slice/tail audit -> Entry-bound Exit per-bar handoff materialization -> Entry-to-Exit handoff readiness.
 
 Blocked here:
   generic train, retrain, promote, pin, live, xgb-train, et-train, shadow.
@@ -116,6 +117,7 @@ paths = {
     "iql-replay-evidence": Path("/home/andre2/GX1_DATA/reports/entry_iql_distillation_replay_20260628_v1/ENTRY_IQL_REPLAY_EVIDENCE_latest.json"),
     "iql-replay-comparison": Path("/home/andre2/GX1_DATA/reports/entry_iql_replay_comparison_20260628_v1/ENTRY_IQL_REPLAY_COMPARISON_latest.json"),
     "iql-replay-slice-audit": Path("/home/andre2/GX1_DATA/reports/entry_iql_replay_slice_audit_20260628_v1/ENTRY_IQL_REPLAY_SLICE_AUDIT_latest.json"),
+    "entry-exit-per-bar-handoff": Path("/home/andre2/GX1_DATA/reports/entry_exit_per_bar_handoff_20260630_v1/ENTRY_EXIT_PER_BAR_HANDOFF_latest.json"),
     "entry-exit-handoff": Path("/home/andre2/GX1_DATA/reports/entry_exit_handoff_readiness_20260630_v1/ENTRY_EXIT_HANDOFF_READINESS_latest.json"),
 }
 adoption_root = Path("/home/andre2/GX1_DATA/reports/entry_foundation_adoption_candidate_20260629_v1")
@@ -220,6 +222,7 @@ allowed_now = [
     "scripts/entry_next_edge_control.sh candidate-readiness --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh replay-readiness --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh iql-slice-audit --quiet --no-fail-on-not-ready",
+    "scripts/entry_next_edge_control.sh entry-exit-materialize --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh entry-exit-handoff --quiet --no-fail-on-not-ready",
 ]
 if hygiene.get("foundation_cleanup_stage_ready"):
@@ -361,6 +364,9 @@ iql_replay_comparison_ready = (
 )
 iql_replay_slice_audit_ready = str((reports.get("iql-replay-slice-audit") or {}).get("decision")) == "PASS"
 entry_exit_handoff = reports.get("entry-exit-handoff") or {}
+entry_exit_per_bar = reports.get("entry-exit-per-bar-handoff") or {}
+entry_exit_per_bar_decision = str(entry_exit_per_bar.get("decision") or "")
+entry_exit_per_bar_ready = entry_exit_per_bar_decision in {"PASS", "PASS_WITH_EXPLICIT_GAP_EXCLUSIONS"}
 entry_exit_handoff_entry_ready = bool(entry_exit_handoff.get("entry_evidence_ready"))
 entry_exit_handoff_substrate_ready = bool(entry_exit_handoff.get("exit_per_bar_substrate_ready"))
 entry_exit_handoff_decision = str(entry_exit_handoff.get("decision") or "")
@@ -806,6 +812,19 @@ commands.update(
             "touches_shadow_or_live": False,
             "description": "Report-only Entry/IQL evidence to Exit per-bar substrate handoff audit.",
         },
+        "entry_exit_materialize": {
+            "argv": ["scripts/entry_next_edge_control.sh", "entry-exit-materialize"],
+            "allowed": True,
+            "mode": "data_materializer",
+            "requires_vedtak": False,
+            "requires_clean_git": False,
+            "mutates_git_index": False,
+            "starts_trainer": False,
+            "starts_replay": False,
+            "starts_iql_distillation": False,
+            "touches_shadow_or_live": False,
+            "description": "Materialize active Entry-bound per-bar Exit handoff substrate; no training or replay.",
+        },
         "preview_shadow": {
             "argv": ["scripts/entry_next_edge_control.sh", "preview-shadow"],
             "allowed": False,
@@ -876,6 +895,7 @@ execution_allowed_now = {
     "iql_replay_evidence": False,
     "iql_compare": False,
     "iql_slice_audit": True,
+    "entry_exit_materialize": True,
     "entry_exit_handoff": True,
     "preview_shadow": False,
     "start_shadow": False,
@@ -909,6 +929,7 @@ allowed_after_explicit_vedtak = {
     "iql_replay_evidence": False,
     "iql_compare": False,
     "iql_slice_audit": True,
+    "entry_exit_materialize": True,
     "entry_exit_handoff": True,
     "preview_shadow": False,
     "start_shadow": False,
@@ -999,6 +1020,11 @@ payload = {
         "entry_exit_handoff_decision": entry_exit_handoff_decision,
         "entry_exit_handoff_entry_ready": entry_exit_handoff_entry_ready,
         "entry_exit_handoff_substrate_ready": entry_exit_handoff_substrate_ready,
+        "entry_exit_per_bar_decision": entry_exit_per_bar_decision,
+        "entry_exit_per_bar_ready": entry_exit_per_bar_ready,
+        "entry_exit_per_bar_included_trade_count": entry_exit_per_bar.get("included_trade_count"),
+        "entry_exit_per_bar_excluded_trade_count": entry_exit_per_bar.get("excluded_trade_count"),
+        "entry_exit_per_bar_covered_trade_ratio": entry_exit_per_bar.get("covered_trade_ratio"),
         "exit_training_allowed": False,
         "exit_iql_allowed": False,
         "promotion_review_allowed": promotion_review_allowed,
@@ -1204,6 +1230,10 @@ PY
 
   entry-exit-handoff)
     exec "$PY" -m gx1.scripts.audit_entry_exit_handoff_readiness_v1 "$@"
+    ;;
+
+  entry-exit-materialize)
+    exec "$PY" -m gx1.scripts.materialize_entry_exit_per_bar_handoff_v1 "$@"
     ;;
 
   smoke-train)
