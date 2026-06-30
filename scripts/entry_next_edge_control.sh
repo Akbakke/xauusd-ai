@@ -30,6 +30,7 @@ Usage:
   scripts/entry_next_edge_control.sh feature-ai-inventory
   scripts/entry_next_edge_control.sh chart-geometry-audit
   scripts/entry_next_edge_control.sh candlestick-audit
+  scripts/entry_next_edge_control.sh challenger-extension-manifest
   scripts/entry_next_edge_control.sh smoke-train --vedtak <id> --require-edge-audit
   scripts/entry_next_edge_control.sh audit-smoke-bundle --bundle-dir <dir>
   scripts/entry_next_edge_control.sh candidate-train --vedtak <id>
@@ -150,6 +151,7 @@ paths = {
     "feature-ai-inventory": Path("/home/andre2/GX1_DATA/reports/entry_feature_ai_inventory_20260630_v1/ENTRY_FEATURE_AI_INVENTORY_latest.json"),
     "chart-geometry-audit": Path("/home/andre2/GX1_DATA/reports/entry_chart_geometry_challenger_audit_20260630_v1/ENTRY_CHART_GEOMETRY_CHALLENGER_AUDIT_latest.json"),
     "candlestick-audit": Path("/home/andre2/GX1_DATA/reports/entry_candlestick_pattern_challenger_audit_20260630_v1/ENTRY_CANDLESTICK_PATTERN_CHALLENGER_AUDIT_latest.json"),
+    "challenger-extension-manifest": Path("/home/andre2/GX1_DATA/reports/entry_specialist_challenger_extension_manifest_20260630_v1/ENTRY_SPECIALIST_CHALLENGER_EXTENSION_REPORT_latest.json"),
 }
 adoption_root = Path("/home/andre2/GX1_DATA/reports/entry_foundation_adoption_candidate_20260629_v1")
 adoption_candidates = (
@@ -255,6 +257,7 @@ allowed_now = [
     "scripts/entry_next_edge_control.sh feature-ai-inventory --quiet --no-fail-on-audit-fail",
     "scripts/entry_next_edge_control.sh chart-geometry-audit --quiet --no-fail-on-audit-fail",
     "scripts/entry_next_edge_control.sh candlestick-audit --quiet --no-fail-on-audit-fail",
+    "scripts/entry_next_edge_control.sh challenger-extension-manifest --quiet --no-fail-on-audit-fail",
     "scripts/entry_next_edge_control.sh iql-slice-audit --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh entry-exit-materialize --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh entry-exit-handoff --quiet --no-fail-on-not-ready",
@@ -832,6 +835,24 @@ commands.update(
             "touches_shadow_or_live": False,
             "description": "Audit closed-bar candlestick pattern challenger features and manifest; no training or replay.",
         },
+        "challenger_extension_manifest": {
+            "argv": [
+                "scripts/entry_next_edge_control.sh",
+                "challenger-extension-manifest",
+                "--quiet",
+                "--no-fail-on-audit-fail",
+            ],
+            "allowed": True,
+            "mode": "report",
+            "requires_vedtak": False,
+            "requires_clean_git": False,
+            "mutates_git_index": False,
+            "starts_trainer": False,
+            "starts_replay": False,
+            "starts_iql_distillation": False,
+            "touches_shadow_or_live": False,
+            "description": "Materialize combined foundation+chart+candlestick sequence extension manifest for a later gated dataset rebuild.",
+        },
         "feature_ai_inventory": {
             "argv": [
                 "scripts/entry_next_edge_control.sh",
@@ -1217,6 +1238,7 @@ execution_allowed_now = {
     "feature_ai_inventory": True,
     "chart_geometry_audit": True,
     "candlestick_audit": True,
+    "challenger_extension_manifest": True,
     "stage_foundation_cleanup_dry_run": True,
     "stage_foundation_cleanup_apply": False,
     "smoke_manifest": False,
@@ -1267,6 +1289,7 @@ allowed_after_explicit_vedtak = {
     "feature_ai_inventory": True,
     "chart_geometry_audit": True,
     "candlestick_audit": True,
+    "challenger_extension_manifest": True,
     "stage_foundation_cleanup_dry_run": True,
     "stage_foundation_cleanup_apply": foundation_cleanup_stage_ready,
     "smoke_manifest": smoke_manifest_proof_allowed,
@@ -1619,6 +1642,10 @@ PY
 
   candlestick-audit)
     exec "$PY" -m gx1.scripts.audit_entry_candlestick_pattern_challenger_v1 "$@"
+    ;;
+
+  challenger-extension-manifest)
+    exec "$PY" -m gx1.scripts.materialize_entry_specialist_challenger_extension_manifest_v1 "$@"
     ;;
 
   candidate-train)
