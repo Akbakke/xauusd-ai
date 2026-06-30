@@ -33,6 +33,7 @@ def test_foundation_state_allows_entry_train_manifest_report_roots() -> None:
     assert "entry_exit_per_bar_handoff_20260630_v1" in verifier
     assert "entry_exit_handoff_readiness_20260630_v1" in verifier
     assert "entry_exit_per_bar_reconstruction_audit_20260630_v1" in verifier
+    assert "entry_exit_state_reward_contract_20260630_v1" in verifier
 
 
 def _args(*, selftest: bool) -> argparse.Namespace:
@@ -182,6 +183,8 @@ def test_foundation_state_selftest_covers_control_policy_contracts() -> None:
     assert "Entry-bound Exit per-bar materializer uses handoff substrate contract" in checks
     assert "control surface exposes active Exit per-bar reconstruction audit" in checks
     assert "Entry Exit per-bar reconstruction audit requires live ATR" in checks
+    assert "control surface exposes active Exit state/reward contract" in checks
+    assert "Entry Exit state/reward contract checks HOLD transition pointers" in checks
     assert "foundation guardrail verifier blocks candidate train in readiness policy" in checks
     assert "foundation guardrail verifier blocks IQL in readiness policy" in checks
     assert "foundation guardrail verifier blocks live in readiness policy" in checks

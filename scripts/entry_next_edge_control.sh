@@ -40,9 +40,10 @@ Usage:
   scripts/entry_next_edge_control.sh entry-exit-materialize
   scripts/entry_next_edge_control.sh entry-exit-handoff
   scripts/entry_next_edge_control.sh entry-exit-reconstruction-audit
+  scripts/entry_next_edge_control.sh entry-exit-state-reward-contract
 
 Allowed path:
-  Entry foundation cleanup -> feature audit -> target audit -> rebuilt dataset -> adoption-candidate proof -> activation-plan review -> optional vedtak-gated activation apply -> vedtak-gated post-apply audit refresh + active verify -> foundation-guardrails -> worktree-hygiene -> optional vedtak-gated stage-foundation-cleanup -> train-readiness -> optional smoke-manifest proof -> vedtak-gated smoke train -> smoke bundle audit -> candidate-readiness -> vedtak-gated candidate train -> selective-edge/no-XGB ablation -> replay-evidence -> replay-readiness -> vedtak-gated IQL distillation contract -> IQL student trade log -> IQL replay evidence -> IQL replay comparison -> IQL slice/tail audit -> Entry-bound Exit per-bar handoff materialization -> Entry-to-Exit handoff readiness -> active Exit per-bar reconstruction audit.
+  Entry foundation cleanup -> feature audit -> target audit -> rebuilt dataset -> adoption-candidate proof -> activation-plan review -> optional vedtak-gated activation apply -> vedtak-gated post-apply audit refresh + active verify -> foundation-guardrails -> worktree-hygiene -> optional vedtak-gated stage-foundation-cleanup -> train-readiness -> optional smoke-manifest proof -> vedtak-gated smoke train -> smoke bundle audit -> candidate-readiness -> vedtak-gated candidate train -> selective-edge/no-XGB ablation -> replay-evidence -> replay-readiness -> vedtak-gated IQL distillation contract -> IQL student trade log -> IQL replay evidence -> IQL replay comparison -> IQL slice/tail audit -> Entry-bound Exit per-bar handoff materialization -> Entry-to-Exit handoff readiness -> active Exit per-bar reconstruction audit -> active Exit state/reward contract.
 
 Blocked here:
   generic train, retrain, promote, pin, live, xgb-train, et-train, shadow.
@@ -121,6 +122,7 @@ paths = {
     "entry-exit-per-bar-handoff": Path("/home/andre2/GX1_DATA/reports/entry_exit_per_bar_handoff_20260630_v1/ENTRY_EXIT_PER_BAR_HANDOFF_latest.json"),
     "entry-exit-handoff": Path("/home/andre2/GX1_DATA/reports/entry_exit_handoff_readiness_20260630_v1/ENTRY_EXIT_HANDOFF_READINESS_latest.json"),
     "entry-exit-reconstruction-audit": Path("/home/andre2/GX1_DATA/reports/entry_exit_per_bar_reconstruction_audit_20260630_v1/ENTRY_EXIT_PER_BAR_RECONSTRUCTION_AUDIT_latest.json"),
+    "entry-exit-state-reward-contract": Path("/home/andre2/GX1_DATA/reports/entry_exit_state_reward_contract_20260630_v1/ENTRY_EXIT_STATE_REWARD_CONTRACT_latest.json"),
 }
 adoption_root = Path("/home/andre2/GX1_DATA/reports/entry_foundation_adoption_candidate_20260629_v1")
 adoption_candidates = (
@@ -227,6 +229,7 @@ allowed_now = [
     "scripts/entry_next_edge_control.sh entry-exit-materialize --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh entry-exit-handoff --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh entry-exit-reconstruction-audit --quiet --no-fail-on-not-ready",
+    "scripts/entry_next_edge_control.sh entry-exit-state-reward-contract --quiet --no-fail-on-not-ready",
 ]
 if hygiene.get("foundation_cleanup_stage_ready"):
     allowed_now.append("scripts/entry_next_edge_control.sh stage-foundation-cleanup --dry-run")
@@ -369,6 +372,7 @@ iql_replay_slice_audit_ready = str((reports.get("iql-replay-slice-audit") or {})
 entry_exit_handoff = reports.get("entry-exit-handoff") or {}
 entry_exit_per_bar = reports.get("entry-exit-per-bar-handoff") or {}
 entry_exit_reconstruction = reports.get("entry-exit-reconstruction-audit") or {}
+entry_exit_state_reward = reports.get("entry-exit-state-reward-contract") or {}
 entry_exit_per_bar_decision = str(entry_exit_per_bar.get("decision") or "")
 entry_exit_per_bar_ready = entry_exit_per_bar_decision in {"PASS", "PASS_WITH_EXPLICIT_GAP_EXCLUSIONS"}
 entry_exit_handoff_entry_ready = bool(entry_exit_handoff.get("entry_evidence_ready"))
@@ -376,6 +380,8 @@ entry_exit_handoff_substrate_ready = bool(entry_exit_handoff.get("exit_per_bar_s
 entry_exit_handoff_decision = str(entry_exit_handoff.get("decision") or "")
 entry_exit_reconstruction_decision = str(entry_exit_reconstruction.get("decision") or "")
 entry_exit_reconstruction_ready = entry_exit_reconstruction_decision == "READY_FOR_EXIT_STATE_REWARD_CONTRACT_REVIEW"
+entry_exit_state_reward_decision = str(entry_exit_state_reward.get("decision") or "")
+entry_exit_state_reward_ready = entry_exit_state_reward_decision == "ENTRY_EXIT_STATE_REWARD_CONTRACT_READY"
 promotion_review_allowed = bool(
     (reports.get("iql-replay-comparison") or {}).get("promotion_review_allowed_with_explicit_vedtak")
     and iql_replay_slice_audit_ready
@@ -396,6 +402,8 @@ if not iql_distillation_allowed:
     current_blockers.append("IQL distillation requires candidate train, selective-edge and replay evidence")
 if entry_exit_handoff_decision == "READY_FOR_EXIT_PER_BAR_RECONSTRUCTION_REVIEW" and not entry_exit_reconstruction_ready:
     current_blockers.append("active Exit per-bar reconstruction audit required before Exit state/reward contract work")
+if entry_exit_reconstruction_ready and not entry_exit_state_reward_ready:
+    current_blockers.append("active Exit state/reward contract required before Exit split/leakage work")
 if not iql_replay_evidence_ready:
     current_blockers.append("IQL replay evidence requires distillation contract and IQL-student replay trade log")
 if not iql_replay_comparison_ready:
@@ -846,6 +854,19 @@ commands.update(
             "touches_shadow_or_live": False,
             "description": "Report-only active Exit per-bar reconstruction audit before state/reward contract work.",
         },
+        "entry_exit_state_reward_contract": {
+            "argv": ["scripts/entry_next_edge_control.sh", "entry-exit-state-reward-contract"],
+            "allowed": True,
+            "mode": "exit_state_reward_contract",
+            "requires_vedtak": False,
+            "requires_clean_git": False,
+            "mutates_git_index": False,
+            "starts_trainer": False,
+            "starts_replay": False,
+            "starts_iql_distillation": False,
+            "touches_shadow_or_live": False,
+            "description": "Materialize active Exit HOLD/EXIT_NOW state/reward contract; no training or replay.",
+        },
         "preview_shadow": {
             "argv": ["scripts/entry_next_edge_control.sh", "preview-shadow"],
             "allowed": False,
@@ -919,6 +940,7 @@ execution_allowed_now = {
     "entry_exit_materialize": True,
     "entry_exit_handoff": True,
     "entry_exit_reconstruction_audit": True,
+    "entry_exit_state_reward_contract": True,
     "preview_shadow": False,
     "start_shadow": False,
     "live": False,
@@ -954,6 +976,7 @@ allowed_after_explicit_vedtak = {
     "entry_exit_materialize": True,
     "entry_exit_handoff": True,
     "entry_exit_reconstruction_audit": True,
+    "entry_exit_state_reward_contract": True,
     "preview_shadow": False,
     "start_shadow": False,
     "live": False,
@@ -1052,6 +1075,10 @@ payload = {
         "entry_exit_reconstruction_ready": entry_exit_reconstruction_ready,
         "entry_exit_reconstruction_dataset_rows": entry_exit_reconstruction.get("dataset_rows"),
         "entry_exit_reconstruction_observed_trade_count": entry_exit_reconstruction.get("observed_trade_count"),
+        "entry_exit_state_reward_decision": entry_exit_state_reward_decision,
+        "entry_exit_state_reward_ready": entry_exit_state_reward_ready,
+        "entry_exit_state_reward_dataset_rows": entry_exit_state_reward.get("dataset_rows"),
+        "entry_exit_state_reward_episode_count": entry_exit_state_reward.get("episode_count"),
         "exit_training_allowed": False,
         "exit_iql_allowed": False,
         "promotion_review_allowed": promotion_review_allowed,
@@ -1265,6 +1292,10 @@ PY
 
   entry-exit-reconstruction-audit)
     exec "$PY" -m gx1.scripts.audit_entry_exit_per_bar_reconstruction_v1 "$@"
+    ;;
+
+  entry-exit-state-reward-contract)
+    exec "$PY" -m gx1.scripts.materialize_entry_exit_state_reward_contract_v1 "$@"
     ;;
 
   smoke-train)
