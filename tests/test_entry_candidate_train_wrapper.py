@@ -91,6 +91,10 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "artifact_sha256" in text
     assert "artifact_provenance_decision" in text
     assert "artifact_fingerprints" in text
+    assert "report_json_path" in text
+    assert "candidate_readiness_json_path" in text
+    assert '"candidate_readiness_json": candidate_readiness_json_path' in text
+    assert '"candidate_readiness": sha256_file(candidate_readiness_json_path)' in text
     assert 'gate_decision(candidate_readiness, "artifact_provenance")' in text
     assert "candidate_readiness_json" in text
     assert "smoke_bundle_audit_json" in text

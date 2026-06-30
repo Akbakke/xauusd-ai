@@ -282,9 +282,18 @@ def command_env_value(command: list[str], name: str) -> str | None:
     return None
 
 
+def report_json_path(report: dict, fallback: str | Path) -> str:
+    raw = str(report.get("json_path") or "").strip()
+    path = Path(raw).expanduser() if raw else Path(fallback).expanduser()
+    return str(path.resolve())
+
+
 smoke_audit = read_json(sys.argv[5])
 specialist_audit = read_json(sys.argv[6])
 candidate_readiness = read_json(sys.argv[7])
+smoke_audit_json_path = report_json_path(smoke_audit, sys.argv[5])
+specialist_audit_json_path = report_json_path(specialist_audit, sys.argv[6])
+candidate_readiness_json_path = report_json_path(candidate_readiness, sys.argv[7])
 smoke_pretrain = (
     smoke_audit.get("pretrain_manifest_contract")
     if isinstance(smoke_audit.get("pretrain_manifest_contract"), dict)
@@ -308,17 +317,19 @@ payload = {
     "trainer_started_by_manifest_writer": False,
     "inputs": {
         "candidate_dataset_dir": sys.argv[4],
-        "smoke_bundle_audit_json": sys.argv[5],
-        "specialist_audit_json": sys.argv[6],
-        "candidate_readiness_json": sys.argv[7],
+        "smoke_bundle_audit_json": smoke_audit_json_path,
+        "specialist_audit_json": specialist_audit_json_path,
+        "candidate_readiness_json": candidate_readiness_json_path,
     },
     "artifact_sha256": {
-        "smoke_bundle_audit": sha256_file(sys.argv[5]),
-        "specialist_audit": sha256_file(sys.argv[6]),
-        "candidate_readiness": sha256_file(sys.argv[7]),
+        "smoke_bundle_audit": sha256_file(smoke_audit_json_path),
+        "specialist_audit": sha256_file(specialist_audit_json_path),
+        "candidate_readiness": sha256_file(candidate_readiness_json_path),
     },
     "preflight_contracts": {
         "candidate_readiness": {
+            "json_path": candidate_readiness.get("json_path"),
+            "created_utc": candidate_readiness.get("created_utc"),
             "decision": candidate_readiness.get("decision"),
             "candidate_training_allowed_with_explicit_vedtak": candidate_readiness.get(
                 "candidate_training_allowed_with_explicit_vedtak"

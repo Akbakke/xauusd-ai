@@ -823,6 +823,105 @@ def test_pretrain_manifest_contract_accepts_candidate_train_manifest(tmp_path) -
     assert any("specialist groups were not exact" in failure for failure in report["failures"])
 
 
+def test_pretrain_manifest_contract_accepts_candidate_latest_refresh_with_timestamped_match(tmp_path) -> None:
+    readiness_dir = tmp_path / "candidate_readiness_reports"
+    readiness_dir.mkdir()
+    candidate_readiness_timestamped = readiness_dir / "ENTRY_CANDIDATE_READINESS_20260630T020634Z.json"
+    candidate_readiness_latest = readiness_dir / "ENTRY_CANDIDATE_READINESS_latest.json"
+    candidate_readiness_timestamped.write_text(json.dumps({"artifact": "candidate_readiness"}), encoding="utf-8")
+    candidate_readiness_latest.write_text(json.dumps({"artifact": "candidate_readiness_refreshed"}), encoding="utf-8")
+
+    artifacts = {"candidate_readiness": candidate_readiness_latest}
+    for name in ("smoke_bundle_audit", "specialist_audit"):
+        path = tmp_path / f"{name}.json"
+        path.write_text(json.dumps({"artifact": name}), encoding="utf-8")
+        artifacts[name] = path
+    candidate_fingerprints = {
+        name: {
+            "path": str(path),
+            "exists": True,
+            "size_bytes": path.stat().st_size,
+            "mtime_ns": path.stat().st_mtime_ns,
+            "sha256": _sha256_file(path),
+        }
+        for name, path in artifacts.items()
+        if name in {"smoke_bundle_audit", "specialist_audit"}
+    }
+    bundle_dir = tmp_path / "candidate_bundle"
+    dataset_dir = tmp_path / "foundation_dataset"
+    bundle_dir.mkdir()
+    dataset_dir.mkdir()
+    manifest = {
+        "schema_version": "entry_foundation_candidate_train_run_manifest_v1",
+        "out_bundle_dir": str(bundle_dir),
+        "promotion_shadow_live_allowed": False,
+        "trainer_started_by_manifest_writer": False,
+        "inputs": {
+            "candidate_dataset_dir": str(dataset_dir),
+            "candidate_readiness_json": str(candidate_readiness_latest),
+            "smoke_bundle_audit_json": str(artifacts["smoke_bundle_audit"]),
+            "specialist_audit_json": str(artifacts["specialist_audit"]),
+        },
+        "artifact_sha256": {
+            "candidate_readiness": _sha256_file(candidate_readiness_timestamped),
+            "smoke_bundle_audit": _sha256_file(artifacts["smoke_bundle_audit"]),
+            "specialist_audit": _sha256_file(artifacts["specialist_audit"]),
+        },
+        "preflight_contracts": {
+            "candidate_readiness": {
+                "decision": "READY_FOR_CANDIDATE_TRAINING_VEDTAK",
+                "artifact_provenance_decision": "PASS",
+                "artifact_fingerprints": candidate_fingerprints,
+            },
+            "smoke_edge_audit": {
+                "decision": "PASS",
+                "required_training_specialists": REQUIRED_SPECIALISTS,
+                "specialist_groups": REQUIRED_SPECIALISTS,
+                "pretrain_manifest_contract_decision": "PASS",
+                "feature_objective_coverage_all_present": True,
+                "feature_objective_liveness_all_live": True,
+                "feature_source_field_liveness_all_live": True,
+                "specialist_active_heads_match_target": True,
+                "specialist_blocked_heads_match_target": True,
+                "specialist_objective_routing_all_present_and_expected": True,
+                "specialist_model_contract_valid": True,
+                "specialist_model_contract_set_exact": True,
+                "specialist_model_contract_owned_objectives_match": True,
+                "smoke_dataset_audit_provenance_all_artifacts_present": True,
+                "smoke_dataset_audit_provenance_all_artifact_hashes_present": True,
+                "worktree_critical_gate_review_ok": True,
+            },
+            "target_foundation": {
+                "decision": "PASS",
+                "active_training_heads": list(EXPECTED_ACTIVE_TRAINING_HEADS),
+                "blocked_heads": list(EXPECTED_BLOCKED_HEADS),
+            },
+            "specialist_contract": {
+                "architecture_active_heads": list(EXPECTED_ACTIVE_TRAINING_HEADS),
+                "architecture_blocked_heads": list(EXPECTED_BLOCKED_HEADS),
+                "required_training_specialists": REQUIRED_SPECIALISTS,
+                "trainable_specialists": REQUIRED_SPECIALISTS,
+                "specialist_model_contract_valid": True,
+                "specialist_model_contract_failures": [],
+                "specialist_model_contract": _specialist_model_contract_payload(),
+                "foundation_objective_routing_all_present_and_expected": True,
+                "specialist_input_liveness_all_live": True,
+            },
+        },
+    }
+    path = tmp_path / "candidate_pretrain_manifest.json"
+    path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    report = _pretrain_manifest_contract_report(path, expected_bundle_dir=bundle_dir, expected_dataset_dir=dataset_dir)
+
+    assert report["decision"] == "PASS"
+    candidate_check = report["artifact_hash_checks"]["candidate_readiness"]
+    assert candidate_check["path"] == str(candidate_readiness_latest.resolve())
+    assert candidate_check["resolved_path"] == str(candidate_readiness_timestamped.resolve())
+    assert candidate_check["resolution"] == "timestamped_sibling_by_expected_sha256"
+    assert candidate_check["mutable_latest_observed"] == _sha256_file(candidate_readiness_latest)
+
+
 def test_pretrain_manifest_contract_rejects_candidate_without_smoke_dataset_provenance(tmp_path) -> None:
     artifacts = {}
     for name in ("candidate_readiness", "smoke_bundle_audit", "specialist_audit"):

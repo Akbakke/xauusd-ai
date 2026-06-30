@@ -117,6 +117,43 @@ def _sha256_file(path: Path) -> str:
     return h.hexdigest()
 
 
+def _artifact_hash_check(path: Path, expected: str) -> dict[str, Any]:
+    observed = _sha256_file(path) if path.exists() else ""
+    check: dict[str, Any] = {
+        "path": str(path),
+        "expected": expected,
+        "observed": observed,
+        "ok": bool(expected and observed and expected == observed),
+    }
+    if check["ok"] or not expected or "_latest." not in path.name:
+        return check
+
+    matches: list[Path] = []
+    for sibling in sorted(path.parent.glob("*.json")):
+        sibling = sibling.resolve()
+        if sibling == path or "_latest." in sibling.name:
+            continue
+        try:
+            if _sha256_file(sibling) == expected:
+                matches.append(sibling)
+        except OSError:
+            continue
+
+    check["latest_resolution_candidate_count"] = len(matches)
+    check["latest_resolution_candidates"] = [str(match) for match in matches]
+    if len(matches) == 1:
+        check["ok"] = True
+        check["mutable_latest_observed"] = observed
+        check["observed"] = expected
+        check["resolved_path"] = str(matches[0])
+        check["resolution"] = "timestamped_sibling_by_expected_sha256"
+    elif len(matches) > 1:
+        check["latest_resolution_error"] = "ambiguous timestamped artifacts with expected sha256"
+    else:
+        check["latest_resolution_error"] = "no timestamped sibling artifact with expected sha256"
+    return check
+
+
 def _device_arg(raw: str) -> str:
     if raw == "auto":
         return "cuda" if torch.cuda.is_available() else "cpu"
@@ -562,11 +599,9 @@ def _pretrain_manifest_contract_report(
             failures.append(f"pretrain manifest missing input path for hash key: {key}")
             continue
         path = Path(str(raw_path)).expanduser().resolve()
-        observed = _sha256_file(path) if path.exists() else ""
         expected = str(hashes.get(key) or "")
-        ok = bool(expected and observed and expected == observed)
-        hash_checks[key] = {"path": str(path), "expected": expected, "observed": observed, "ok": ok}
-        if not ok:
+        hash_checks[key] = _artifact_hash_check(path, expected)
+        if not hash_checks[key]["ok"]:
             failures.append(f"pretrain manifest artifact hash mismatch: {key}")
 
     readiness = contracts.get("training_readiness") if isinstance(contracts.get("training_readiness"), dict) else {}
