@@ -1,11 +1,49 @@
 import argparse
+import json
 from pathlib import Path
 
-from gx1.scripts.verify_entry_candidate_readiness_v1 import _smoke_edge_checks, run
+from gx1.scripts.verify_entry_candidate_readiness_v1 import _mode_out_dir, _mode_smoke_bundle_audit_path, _smoke_edge_checks, run
 from gx1.scripts.verify_entry_training_readiness_v1 import EXPECTED_ACTIVE_TRAINING_HEADS, EXPECTED_BLOCKED_HEADS
 
 
-def _passing_smoke_audit() -> dict:
+SEQ146_SMOKE_DATASET = (
+    "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/"
+    "v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_foundation_seq146_smoke"
+)
+SEQ215_SMOKE_DATASET = (
+    "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/"
+    "v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_challenger_seq215_smoke_20260630"
+)
+SEQ146_SPECIALISTS = [
+    "structure_swing_encoder",
+    "smc_liquidity_encoder",
+    "trend_ema_encoder",
+    "vol_compression_encoder",
+    "momentum_flow_encoder",
+    "session_regime_encoder",
+]
+SEQ215_SPECIALISTS = [*SEQ146_SPECIALISTS, "chart_geometry_encoder", "price_action_candle_encoder"]
+
+
+def test_candidate_readiness_seq215_defaults_are_isolated_from_seq146_latest() -> None:
+    smoke_path = _mode_smoke_bundle_audit_path("challenger_seq215")
+    out_dir = _mode_out_dir("challenger_seq215")
+
+    assert "challenger_seq215_20260630" in str(smoke_path)
+    assert "challenger_seq215_20260630" in str(out_dir)
+    assert smoke_path.name == "ENTRY_FOUNDATION_SMOKE_BUNDLE_AUDIT_latest.json"
+    assert out_dir.name == "challenger_seq215_20260630"
+
+
+def _passing_smoke_audit(
+    *,
+    contract_mode: str = "foundation_seq146",
+    dataset_dir: str = SEQ146_SMOKE_DATASET,
+    signal_dim: int = 146,
+    specialists: list[str] | None = None,
+) -> dict:
+    groups = list(specialists or SEQ146_SPECIALISTS)
+    weight = round(1.0 / len(groups), 4)
     split = {
         "rows": 128,
         "direction": {
@@ -17,33 +55,19 @@ def _passing_smoke_audit() -> dict:
         "specialist_gate": {
             "finite": True,
             "row_sum_max_abs_error": 1e-7,
-            "active_specialist_count_gt_1pct": 6,
+            "active_specialist_count_gt_1pct": len(groups),
             "entropy_mean": 1.0,
-            "mean_weight": {
-                "structure_swing_encoder": 0.18,
-                "smc_liquidity_encoder": 0.17,
-                "trend_ema_encoder": 0.16,
-                "vol_compression_encoder": 0.16,
-                "momentum_flow_encoder": 0.17,
-                "session_regime_encoder": 0.16,
-            },
+            "mean_weight": {group: weight for group in groups},
         },
     }
-    return {
+    report = {
         "decision": "PASS",
         "failures": [],
-        "dataset_dir": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_foundation_seq146_smoke",
+        "dataset_dir": dataset_dir,
         "require_edge": True,
         "require_specialist_fusion": True,
-        "required_training_specialists": [
-            "structure_swing_encoder",
-            "smc_liquidity_encoder",
-            "trend_ema_encoder",
-            "vol_compression_encoder",
-            "momentum_flow_encoder",
-            "session_regime_encoder",
-        ],
-        "min_active_specialists": 6,
+        "required_training_specialists": groups,
+        "min_active_specialists": len(groups),
         "min_gate_entropy": 0.05,
         "require_head_contract": True,
         "head_contract": {
@@ -82,8 +106,8 @@ def _passing_smoke_audit() -> dict:
         "data_splits": ["val", "test"],
         "bundle_summary": {
             "sanity_bundle": False,
-            "seq_input_dim": 146,
-            "snap_input_dim": 146,
+            "seq_input_dim": signal_dim,
+            "snap_input_dim": signal_dim,
             "multi_tf_enabled": True,
             "specialist_fusion_enabled": True,
             "specialist_model_contract_declared_valid": True,
@@ -93,23 +117,47 @@ def _passing_smoke_audit() -> dict:
             "specialist_model_contract_support_heads_match": True,
             "specialist_model_contract_signal_families_match": True,
             "specialist_model_contract_model_roles_match": True,
-            "specialist_groups": [
-                "structure_swing_encoder",
-                "smc_liquidity_encoder",
-                "trend_ema_encoder",
-                "vol_compression_encoder",
-                "momentum_flow_encoder",
-                "session_regime_encoder",
-            ],
+            "specialist_groups": groups,
         },
         "splits": {"val": split, "test": split},
     }
+    if contract_mode != "foundation_seq146":
+        report["specialist_contract_mode"] = contract_mode
+        report["pretrain_manifest_contract"]["specialist_contract_mode"] = contract_mode
+        report["bundle_summary"]["specialist_contract_mode"] = contract_mode
+    return report
 
 
 def test_smoke_edge_checks_pass_on_actual_edge_contract() -> None:
     checks = _smoke_edge_checks(_passing_smoke_audit())
 
     assert all(check["ok"] for check in checks)
+
+
+def test_smoke_edge_checks_pass_on_challenger_seq215_contract() -> None:
+    report = _passing_smoke_audit(
+        contract_mode="challenger_seq215",
+        dataset_dir=SEQ215_SMOKE_DATASET,
+        signal_dim=215,
+        specialists=SEQ215_SPECIALISTS,
+    )
+
+    checks = _smoke_edge_checks(report, contract_mode="challenger_seq215", min_active_specialists=8)
+
+    assert all(check["ok"] for check in checks)
+
+
+def test_smoke_edge_checks_reject_seq215_without_challenger_contract() -> None:
+    report = _passing_smoke_audit(
+        dataset_dir=SEQ215_SMOKE_DATASET,
+        signal_dim=215,
+        specialists=SEQ215_SPECIALISTS,
+    )
+
+    checks = _smoke_edge_checks(report, contract_mode="challenger_seq215", min_active_specialists=8)
+    failed = {check["name"] for check in checks if not check["ok"]}
+
+    assert "smoke bundle audit specialist contract mode is challenger_seq215" in failed
 
 
 def test_smoke_edge_checks_reject_sanity_plumbing_audit() -> None:
@@ -238,11 +286,149 @@ def test_smoke_edge_checks_rejects_extra_specialist_group() -> None:
     assert "smoke bundle has exact specialist groups" in failed
 
 
+def test_candidate_readiness_seq215_requires_challenger_contract_and_clean_gates(tmp_path: Path, monkeypatch) -> None:
+    train_readiness_path = tmp_path / "train_readiness.json"
+    train_readiness_path.write_text(
+        json.dumps(
+            {
+                "decision": "READY_FOR_VEDTAK_SMOKE_TRAIN",
+                "candidate_training_allowed": False,
+                "promotion_shadow_live_allowed": False,
+                "failures": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+    specialist_path = tmp_path / "specialist_audit.json"
+    specialist_path.write_text(json.dumps({"decision": "PASS"}), encoding="utf-8")
+
+    def fake_train_readiness(_args):
+        return {
+            "decision": "READY_FOR_VEDTAK_SMOKE_TRAIN",
+            "candidate_training_allowed": False,
+            "promotion_shadow_live_allowed": False,
+            "failures": [],
+            "json_path": str(train_readiness_path),
+        }
+
+    monkeypatch.setattr("gx1.scripts.verify_entry_candidate_readiness_v1.run_train_readiness", fake_train_readiness)
+    smoke_path = tmp_path / "seq215_smoke_audit.json"
+    smoke_path.write_text(
+        json.dumps(
+            _passing_smoke_audit(
+                contract_mode="challenger_seq215",
+                dataset_dir=SEQ215_SMOKE_DATASET,
+                signal_dim=215,
+                specialists=SEQ215_SPECIALISTS,
+            )
+        ),
+        encoding="utf-8",
+    )
+
+    report = run(
+        argparse.Namespace(
+            audit_doc="/home/andre2/src/GX1_ENGINE/docs/ENTRY_FOUNDATION_AUDIT_20260628.md",
+            smoke_bundle_audit_json=str(smoke_path),
+            specialist_audit_json=str(specialist_path),
+            contract_mode="challenger_seq215",
+            out_dir=str(tmp_path / "out"),
+            min_active_specialists=8,
+            fail_on_not_ready=False,
+            quiet=True,
+        )
+    )
+
+    assert report["decision"] == "READY_FOR_CANDIDATE_TRAINING_VEDTAK"
+    assert report["contract_mode"] == "challenger_seq215"
+    assert report["expected_signal_dim"] == 215
+    assert report["required_specialist_groups"] == SEQ215_SPECIALISTS
+    assert report["candidate_training_allowed_with_explicit_vedtak"] is True
+    assert report["promotion_shadow_live_allowed"] is False
+
+    smoke_path.write_text(
+        json.dumps(
+            _passing_smoke_audit(
+                contract_mode="foundation_seq146",
+                dataset_dir=SEQ215_SMOKE_DATASET,
+                signal_dim=215,
+                specialists=SEQ215_SPECIALISTS,
+            )
+        ),
+        encoding="utf-8",
+    )
+    blocked = run(
+        argparse.Namespace(
+            audit_doc="/home/andre2/src/GX1_ENGINE/docs/ENTRY_FOUNDATION_AUDIT_20260628.md",
+            smoke_bundle_audit_json=str(smoke_path),
+            specialist_audit_json=str(specialist_path),
+            contract_mode="challenger_seq215",
+            out_dir=str(tmp_path / "blocked"),
+            min_active_specialists=8,
+            fail_on_not_ready=False,
+            quiet=True,
+        )
+    )
+
+    assert blocked["decision"] == "NOT_READY_FOR_CANDIDATE_TRAINING"
+    assert blocked["candidate_training_allowed_with_explicit_vedtak"] is False
+    failed = {failure["check"] for failure in blocked["failures"]}
+    assert "smoke bundle audit specialist contract mode is challenger_seq215" in failed
+
+
+def test_candidate_readiness_seq215_missing_smoke_audit_reports_not_ready(tmp_path: Path, monkeypatch) -> None:
+    train_readiness_path = tmp_path / "train_readiness.json"
+    train_readiness_path.write_text(
+        json.dumps(
+            {
+                "decision": "READY_FOR_VEDTAK_SMOKE_TRAIN",
+                "candidate_training_allowed": False,
+                "promotion_shadow_live_allowed": False,
+                "failures": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    def fake_train_readiness(_args):
+        return {
+            "decision": "READY_FOR_VEDTAK_SMOKE_TRAIN",
+            "candidate_training_allowed": False,
+            "promotion_shadow_live_allowed": False,
+            "failures": [],
+            "json_path": str(train_readiness_path),
+        }
+
+    monkeypatch.setattr("gx1.scripts.verify_entry_candidate_readiness_v1.run_train_readiness", fake_train_readiness)
+    missing_smoke_path = tmp_path / "missing_seq215_smoke_audit.json"
+    report = run(
+        argparse.Namespace(
+            audit_doc="/home/andre2/src/GX1_ENGINE/docs/ENTRY_FOUNDATION_AUDIT_20260628.md",
+            smoke_bundle_audit_json=str(missing_smoke_path),
+            specialist_audit_json=None,
+            contract_mode="challenger_seq215",
+            out_dir=str(tmp_path / "out_missing"),
+            min_active_specialists=8,
+            fail_on_not_ready=False,
+            quiet=True,
+        )
+    )
+
+    assert report["decision"] == "NOT_READY_FOR_CANDIDATE_TRAINING"
+    assert report["candidate_training_allowed_with_explicit_vedtak"] is False
+    assert report["smoke_bundle_audit_json"] == str(missing_smoke_path.resolve())
+    assert "missing JSON artifact" in str(report["smoke_bundle_audit_load_error"])
+    failed = {failure["check"] for failure in report["failures"]}
+    assert "smoke bundle audit JSON exists and is readable" in failed
+    assert Path(report["json_path"]).exists()
+
+
 def test_candidate_readiness_current_artifacts_are_not_ready_without_actual_smoke_train(tmp_path: Path) -> None:
     report = run(
         argparse.Namespace(
             audit_doc="/home/andre2/src/GX1_ENGINE/docs/ENTRY_FOUNDATION_AUDIT_20260628.md",
             smoke_bundle_audit_json="/home/andre2/GX1_DATA/reports/entry_foundation_smoke_bundle_audit_20260628_v1/ENTRY_FOUNDATION_SMOKE_BUNDLE_AUDIT_latest.json",
+            specialist_audit_json=None,
+            contract_mode="foundation_seq146",
             out_dir=str(tmp_path),
             min_active_specialists=3,
             fail_on_not_ready=False,
@@ -262,6 +448,10 @@ def test_candidate_readiness_current_artifacts_are_not_ready_without_actual_smok
         assert row["size_bytes"] > 0
         assert len(row["sha256"]) == 64
     failed = {failure["check"] for failure in report["failures"]}
-    assert "smoke bundle audit is from actual train output, not sanity bundle" in failed
-    assert "smoke bundle audit was run with require_edge" in failed
+    assert failed
+    assert (
+        "foundation train-readiness is green" in failed
+        or "smoke bundle audit is from actual train output, not sanity bundle" in failed
+        or "smoke bundle audit was run with require_edge" in failed
+    )
     assert Path(report["json_path"]).exists()

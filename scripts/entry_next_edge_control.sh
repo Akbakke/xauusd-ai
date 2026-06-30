@@ -23,17 +23,22 @@ Usage:
   scripts/entry_next_edge_control.sh worktree-hygiene
   scripts/entry_next_edge_control.sh stage-foundation-cleanup [--dry-run|--apply --vedtak <id>]
   scripts/entry_next_edge_control.sh materialize-smoke
+  scripts/entry_next_edge_control.sh materialize-smoke-seq215
   scripts/entry_next_edge_control.sh smoke-manifest --vedtak <id>
+  scripts/entry_next_edge_control.sh smoke-manifest-seq215 --vedtak <id>
   scripts/entry_next_edge_control.sh train-readiness
   scripts/entry_next_edge_control.sh candidate-readiness
+  scripts/entry_next_edge_control.sh candidate-readiness-seq215
   scripts/entry_next_edge_control.sh replay-readiness
   scripts/entry_next_edge_control.sh feature-ai-inventory
   scripts/entry_next_edge_control.sh chart-geometry-audit
   scripts/entry_next_edge_control.sh candlestick-audit
   scripts/entry_next_edge_control.sh challenger-extension-manifest
   scripts/entry_next_edge_control.sh smoke-train --vedtak <id> --require-edge-audit
+  scripts/entry_next_edge_control.sh smoke-train-seq215 --vedtak <id> --require-edge-audit
   scripts/entry_next_edge_control.sh audit-smoke-bundle --bundle-dir <dir>
   scripts/entry_next_edge_control.sh candidate-train --vedtak <id>
+  scripts/entry_next_edge_control.sh candidate-train-seq215 --vedtak <id>
   scripts/entry_next_edge_control.sh selective-edge --bundle-dir <dir> --no-xgb-bundle-dir <dir>
   scripts/entry_next_edge_control.sh replay-evidence --trades-path <csv|parquet>
   scripts/entry_next_edge_control.sh iql-distill --vedtak <id> [--materialize-only|--no-fail-on-not-ready]
@@ -128,6 +133,7 @@ paths = {
     "train-readiness": Path("/home/andre2/GX1_DATA/reports/entry_training_readiness_20260628_v1/ENTRY_TRAINING_READINESS_latest.json"),
     "worktree-hygiene": Path("/home/andre2/GX1_DATA/reports/entry_foundation_worktree_hygiene_20260628_v1/ENTRY_FOUNDATION_WORKTREE_HYGIENE_latest.json"),
     "candidate-readiness": Path("/home/andre2/GX1_DATA/reports/entry_candidate_readiness_20260628_v1/ENTRY_CANDIDATE_READINESS_latest.json"),
+    "candidate-readiness-seq215": Path("/home/andre2/GX1_DATA/reports/entry_candidate_readiness_20260628_v1/challenger_seq215_20260630/ENTRY_CANDIDATE_READINESS_latest.json"),
     "replay-readiness": Path("/home/andre2/GX1_DATA/reports/entry_replay_readiness_20260628_v1/ENTRY_REPLAY_READINESS_latest.json"),
     "iql-distillation-contract": Path("/home/andre2/GX1_DATA/reports/entry_iql_distillation_contract_20260628_v1/ENTRY_IQL_DISTILLATION_CONTRACT_latest.json"),
     "iql-student-trade-log": Path("/home/andre2/GX1_DATA/reports/entry_iql_student_trade_log_20260628_v1/ENTRY_IQL_STUDENT_TRADE_LOG_latest.json"),
@@ -253,6 +259,7 @@ allowed_now = [
     "scripts/entry_next_edge_control.sh worktree-hygiene --no-fail-on-dirty",
     "scripts/entry_next_edge_control.sh train-readiness --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh candidate-readiness --quiet --no-fail-on-not-ready",
+    "scripts/entry_next_edge_control.sh candidate-readiness-seq215 --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh replay-readiness --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh feature-ai-inventory --quiet --no-fail-on-audit-fail",
     "scripts/entry_next_edge_control.sh chart-geometry-audit --quiet --no-fail-on-audit-fail",
@@ -781,6 +788,24 @@ commands.update(
             "touches_shadow_or_live": False,
             "description": "Refresh candidate-readiness without opening candidate training.",
         },
+        "candidate_readiness_seq215_report": {
+            "argv": [
+                "scripts/entry_next_edge_control.sh",
+                "candidate-readiness-seq215",
+                "--quiet",
+                "--no-fail-on-not-ready",
+            ],
+            "allowed": True,
+            "mode": "audit",
+            "requires_vedtak": False,
+            "requires_clean_git": False,
+            "mutates_git_index": False,
+            "starts_trainer": False,
+            "starts_replay": False,
+            "starts_iql_distillation": False,
+            "touches_shadow_or_live": False,
+            "description": "Refresh seq215 candidate-readiness without opening candidate training.",
+        },
         "replay_readiness_report": {
             "argv": [
                 "scripts/entry_next_edge_control.sh",
@@ -883,6 +908,19 @@ commands.update(
             "starts_iql_distillation": False,
             "touches_shadow_or_live": False,
             "description": "Full candidate train after real smoke edge audit.",
+        },
+        "candidate_train_seq215": {
+            "argv": ["scripts/entry_next_edge_control.sh", "candidate-train-seq215", "--vedtak", "<id>"],
+            "allowed": False,
+            "mode": "train",
+            "requires_vedtak": True,
+            "requires_clean_git": True,
+            "mutates_git_index": False,
+            "starts_trainer": True,
+            "starts_replay": False,
+            "starts_iql_distillation": False,
+            "touches_shadow_or_live": False,
+            "description": "Seq215 candidate train after real seq215 smoke edge audit and seq215 candidate-readiness.",
         },
         "selective_edge": {
             "argv": [
@@ -1234,6 +1272,7 @@ execution_allowed_now = {
     "worktree_hygiene": True,
     "train_readiness_report": True,
     "candidate_readiness_report": True,
+    "candidate_readiness_seq215_report": True,
     "replay_readiness_report": True,
     "feature_ai_inventory": True,
     "chart_geometry_audit": True,
@@ -1244,6 +1283,7 @@ execution_allowed_now = {
     "smoke_manifest": False,
     "smoke_train": False,
     "candidate_train": False,
+    "candidate_train_seq215": False,
     "selective_edge": False,
     "replay_evidence": False,
     "iql_distill": False,
@@ -1285,6 +1325,7 @@ allowed_after_explicit_vedtak = {
     "worktree_hygiene": True,
     "train_readiness_report": True,
     "candidate_readiness_report": True,
+    "candidate_readiness_seq215_report": True,
     "replay_readiness_report": True,
     "feature_ai_inventory": True,
     "chart_geometry_audit": True,
@@ -1295,6 +1336,7 @@ allowed_after_explicit_vedtak = {
     "smoke_manifest": smoke_manifest_proof_allowed,
     "smoke_train": real_smoke_train_allowed,
     "candidate_train": candidate_training_allowed,
+    "candidate_train_seq215": False,
     "selective_edge": False,
     "replay_evidence": False,
     "iql_distill": iql_distillation_allowed,
@@ -1343,6 +1385,7 @@ not_executable_now_reason = {
         else "foundation contract is not ready for smoke"
     ),
     "candidate_train": "requires real smoke bundle edge audit, clean git worktree and explicit candidate-train vedtak",
+    "candidate_train_seq215": "requires real seq215 smoke bundle edge audit, clean git worktree and explicit seq215 candidate-train vedtak",
     "selective_edge": "requires actual candidate bundle and no-XGB ablation bundle",
     "replay_evidence": "requires explicit post-candidate replay trade log and candidate/selective-edge evidence",
     "iql_distill": "requires replay-readiness PASS and explicit IQL vedtak",
@@ -1616,8 +1659,16 @@ PY
     exec "$REPO/scripts/run_entry_foundation_seq146_smoke_train.sh" --vedtak MATERIALIZE_ONLY --materialize-only "$@"
     ;;
 
+  materialize-smoke-seq215)
+    exec "$REPO/scripts/run_entry_foundation_seq146_smoke_train.sh" --challenger-seq215 --vedtak MATERIALIZE_ONLY --materialize-only "$@"
+    ;;
+
   smoke-manifest)
     exec "$REPO/scripts/run_entry_foundation_seq146_smoke_train.sh" --manifest-only "$@"
+    ;;
+
+  smoke-manifest-seq215)
+    exec "$REPO/scripts/run_entry_foundation_seq146_smoke_train.sh" --challenger-seq215 --manifest-only "$@"
     ;;
 
   train-readiness)
@@ -1626,6 +1677,10 @@ PY
 
   candidate-readiness)
     exec "$PY" -m gx1.scripts.verify_entry_candidate_readiness_v1 "$@"
+    ;;
+
+  candidate-readiness-seq215)
+    exec "$PY" -m gx1.scripts.verify_entry_candidate_readiness_v1 --challenger-seq215 "$@"
     ;;
 
   replay-readiness)
@@ -1650,6 +1705,10 @@ PY
 
   candidate-train)
     exec "$REPO/scripts/run_entry_foundation_seq146_candidate_train.sh" "$@"
+    ;;
+
+  candidate-train-seq215)
+    exec "$REPO/scripts/run_entry_foundation_seq146_candidate_train.sh" --challenger-seq215 "$@"
     ;;
 
   iql-distill)
@@ -1734,6 +1793,10 @@ PY
 
   smoke-train)
     exec "$REPO/scripts/run_entry_foundation_seq146_smoke_train.sh" "$@"
+    ;;
+
+  smoke-train-seq215)
+    exec "$REPO/scripts/run_entry_foundation_seq146_smoke_train.sh" --challenger-seq215 "$@"
     ;;
 
   audit-smoke-bundle)

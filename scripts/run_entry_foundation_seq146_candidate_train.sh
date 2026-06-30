@@ -15,10 +15,14 @@ M5_PREBUILT=$DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260626_spread
 SPECIALIST_AUDIT=$DATA/reports/entry_specialist_feature_group_audit_20260628_v1/ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_latest.json
 SMOKE_BUNDLE_AUDIT=$DATA/reports/entry_foundation_smoke_bundle_audit_20260628_v1/ENTRY_FOUNDATION_SMOKE_BUNDLE_AUDIT_latest.json
 CANDIDATE_AUDIT_OUT=$DATA/reports/entry_candidate_bundle_audit_20260628_v1
-CANDIDATE_READINESS_JSON=$DATA/reports/entry_candidate_readiness_20260628_v1/ENTRY_CANDIDATE_READINESS_latest.json
+CANDIDATE_READINESS_DIR=$DATA/reports/entry_candidate_readiness_20260628_v1
+CANDIDATE_READINESS_JSON=$CANDIDATE_READINESS_DIR/ENTRY_CANDIDATE_READINESS_latest.json
 CANDIDATE_TRAIN_MANIFEST_DIR=$DATA/reports/entry_foundation_candidate_train_manifests_20260628_v1
 
 VEDTAK="${ENTRY_FOUNDATION_CANDIDATE_VEDTAK:-}"
+RUN_FLAVOR=foundation_seq146
+SPECIALIST_CONTRACT_MODE=foundation_seq146
+EXPECTED_SIGNAL_DIM=146
 DEVICE=auto
 EPOCHS=8
 BATCH_SIZE=96
@@ -52,6 +56,9 @@ Options:
   --batch-size <n>     Default: 96
   --smoke-bundle-audit-json <path>
                        Edge-required smoke bundle audit to satisfy candidate-readiness.
+  --challenger-seq215  Use the audited seq215 challenger dataset and 8-specialist
+                       challenger_seq215 contract. Still requires candidate-readiness,
+                       explicit vedtak, clean git and post-candidate audit.
   --skip-candidate-audit
                        Do not run strict post-candidate bundle/head-contract audit.
   --audit-device <auto|cpu|cuda>
@@ -92,6 +99,19 @@ while [[ $# -gt 0 ]]; do
     --epochs) EPOCHS="$2"; shift 2 ;;
     --batch-size) BATCH_SIZE="$2"; shift 2 ;;
     --smoke-bundle-audit-json) SMOKE_BUNDLE_AUDIT_ARG="$2"; shift 2 ;;
+    --challenger-seq215)
+      RUN_FLAVOR=challenger_seq215
+      FOUNDATION_DATASET=$DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_challenger_seq215_neutral_20260630
+      FOUNDATION_STEM=v10_challenger_seq215__HOLD_03B
+      SPECIALIST_AUDIT=$DATA/reports/entry_specialist_feature_group_audit_20260628_v1/challenger_seq215_20260630_contract8/ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_latest.json
+      SMOKE_BUNDLE_AUDIT_ARG=$DATA/reports/entry_foundation_smoke_bundle_audit_20260628_v1/challenger_seq215_20260630/ENTRY_FOUNDATION_SMOKE_BUNDLE_AUDIT_latest.json
+      CANDIDATE_AUDIT_OUT=$DATA/reports/entry_candidate_bundle_audit_20260628_v1/challenger_seq215_20260630
+      SPECIALIST_CONTRACT_MODE=challenger_seq215
+      EXPECTED_SIGNAL_DIM=215
+      CANDIDATE_READINESS_DIR=$DATA/reports/entry_candidate_readiness_20260628_v1/challenger_seq215_20260630
+      CANDIDATE_READINESS_JSON=$CANDIDATE_READINESS_DIR/ENTRY_CANDIDATE_READINESS_latest.json
+      shift
+      ;;
     --skip-candidate-audit) AUDIT_AFTER=0; shift ;;
     --audit-device) AUDIT_DEVICE="$2"; shift 2 ;;
     --audit-batch-size) AUDIT_BATCH_SIZE="$2"; shift 2 ;;
@@ -102,8 +122,13 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "${VEDTAK:-}" ]]; then
-  echo "FATAL: --vedtak is required for foundation seq146 candidate train." >&2
+  echo "FATAL: --vedtak is required for Entry foundation candidate train." >&2
   echo "This is a full train command, so it must be an explicit user decision." >&2
+  exit 2
+fi
+if [[ "$RUN_FLAVOR" = "challenger_seq215" && "$DRY_RUN" != "1" && "$VEDTAK" != *"SEQ215"* ]]; then
+  echo "FATAL: challenger seq215 candidate train requires an explicit SEQ215 vedtak id." >&2
+  echo "Use a reviewed id containing SEQ215 only after seq215 smoke and candidate-readiness gates are green." >&2
   exit 2
 fi
 
@@ -130,6 +155,9 @@ require_clean_git_for_real_candidate_train() {
 
 if ! scripts/entry_next_edge_control.sh candidate-readiness \
   --smoke-bundle-audit-json "$SMOKE_BUNDLE_AUDIT_ARG" \
+  --specialist-audit-json "$SPECIALIST_AUDIT" \
+  --contract-mode "$SPECIALIST_CONTRACT_MODE" \
+  --out-dir "$CANDIDATE_READINESS_DIR" \
   --quiet
 then
   cat >&2 <<EOF
@@ -145,7 +173,7 @@ EOF
 fi
 
 STAMP=$(date -u '+%Y%m%dT%H%M%SZ')
-OUT_BUNDLE=$DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_foundation_seq146_candidate_$STAMP
+OUT_BUNDLE=$DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_${RUN_FLAVOR}_candidate_$STAMP
 CANDIDATE_MANIFEST=$CANDIDATE_TRAIN_MANIFEST_DIR/ENTRY_FOUNDATION_CANDIDATE_TRAIN_RUN_MANIFEST_$STAMP.json
 
 CMD=(
@@ -193,7 +221,7 @@ CMD=(
   --enable-mtf-direction-head
   --enable-specialist-fusion
   --specialist-audit-json "$SPECIALIST_AUDIT"
-  --specialist-contract-mode foundation_seq146
+  --specialist-contract-mode "$SPECIALIST_CONTRACT_MODE"
   --specialist-num-layers 1
   --specialist-fusion-scale 0.25
   --enable-tf-input-scale
@@ -235,6 +263,7 @@ mkdir -p "$CANDIDATE_TRAIN_MANIFEST_DIR"
 "$PY" - "$CANDIDATE_MANIFEST" "$VEDTAK" "$OUT_BUNDLE" "$FOUNDATION_DATASET" "$SMOKE_BUNDLE_AUDIT_ARG" \
   "$SPECIALIST_AUDIT" "$CANDIDATE_READINESS_JSON" "$AUDIT_AFTER" "$DEVICE" "$EPOCHS" "$BATCH_SIZE" \
   "$CANDIDATE_MEM_CAP" "$CANDIDATE_SWAP_CAP" \
+  "$RUN_FLAVOR" "$SPECIALIST_CONTRACT_MODE" "$EXPECTED_SIGNAL_DIM" \
   "${CMD[@]}" __AUDIT_CMD__ "${AUDIT_CMD[@]}" <<'PY'
 import hashlib
 import json
@@ -247,7 +276,7 @@ manifest_path = Path(sys.argv[1])
 repo = Path("/home/andre2/src/GX1_ENGINE")
 sep = "__AUDIT_CMD__"
 sep_idx = sys.argv.index(sep)
-train_cmd = sys.argv[14:sep_idx]
+train_cmd = sys.argv[17:sep_idx]
 audit_cmd = sys.argv[sep_idx + 1:]
 
 
@@ -305,14 +334,16 @@ from gx1.models.entry_v10.entry_v10_ctx_train_v3 import _load_specialist_fusion_
 
 trainer_indices, trainer_meta = _load_specialist_fusion_contract(
     Path(sys.argv[6]),
-    expected_signal_dim=146,
-    contract_mode="foundation_seq146",
+    expected_signal_dim=int(sys.argv[16]),
+    contract_mode=sys.argv[15],
 )
 
 payload = {
     "schema_version": "entry_foundation_candidate_train_run_manifest_v1",
     "created_utc": datetime.now(timezone.utc).isoformat(),
-    "run_kind": "vedtak_gated_foundation_seq146_candidate_train",
+    "run_kind": f"vedtak_gated_{sys.argv[14]}_candidate_train",
+    "specialist_contract_mode": sys.argv[15],
+    "expected_signal_dim": int(sys.argv[16]),
     "vedtak": sys.argv[2],
     "out_bundle_dir": sys.argv[3],
     "promotion_shadow_live_allowed": False,

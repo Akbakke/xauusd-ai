@@ -83,6 +83,9 @@ def test_control_surface_routes_verify_to_active_foundation_state() -> None:
     assert "scripts/entry_next_edge_control.sh foundation-activation-apply --plan-json <json>" in text
     assert "scripts/entry_next_edge_control.sh foundation-activation-post-apply --activation-apply-json <json>" in text
     assert "scripts/entry_next_edge_control.sh smoke-manifest --vedtak <id>" in text
+    assert "scripts/entry_next_edge_control.sh smoke-manifest-seq215 --vedtak <id>" in text
+    assert "scripts/entry_next_edge_control.sh candidate-readiness-seq215" in text
+    assert "scripts/entry_next_edge_control.sh candidate-train-seq215 --vedtak <id>" in text
     assert 'handover)' in text
     assert 'exec "$REPO/scripts/gx1_handover.sh"' in text
     assert 'readiness-report)' in text
@@ -96,7 +99,12 @@ def test_control_surface_routes_verify_to_active_foundation_state() -> None:
     assert 'run_entry_foundation_activation_post_apply_v1' in text
     assert "report-only: no training, replay, IQL distillation, staging, shadow, or live path was started" in text
     assert 'smoke-manifest)' in text
+    assert 'smoke-manifest-seq215)' in text
+    assert 'candidate-readiness-seq215)' in text
+    assert 'candidate-train-seq215)' in text
     assert 'run_entry_foundation_seq146_smoke_train.sh" --manifest-only' in text
+    assert 'run_entry_foundation_seq146_smoke_train.sh" --challenger-seq215 --manifest-only' in text
+    assert 'run_entry_foundation_seq146_candidate_train.sh" --challenger-seq215' in text
     assert "verify_entry_foundation_state_v1" in text
     assert "run_entry_foundation_seq146_smoke_train.sh" in text
     assert "run_entry_foundation_iql_distill.sh" in text
@@ -140,12 +148,11 @@ def test_docs_name_handover_as_canonical_fresh_session_entrypoint() -> None:
     assert bundle_provenance_expected in specialist_doc
     assert "active Entry foundation seq146" in foundation_doc
     assert "active Entry foundation seq146" in specialist_doc
-    assert "2026-06-29 directional-SMC candidate is green" in foundation_doc
-    assert "foundation_activation_required_before_smoke=true" in foundation_doc
+    assert "active seq146 foundation is activated and post-apply refreshed" in foundation_doc
+    assert "Entry evidence gates" in foundation_doc
+    assert "foundation-activation-apply --dry-run" in foundation_doc
     assert "foundation-activation-apply --apply --vedtak <id>" in foundation_doc
     assert "foundation-activation-post-apply --apply --vedtak <id>" in foundation_doc
-    assert "READY_FOR_VEDTAK_APPLY" in foundation_doc
-    assert "activation_apply_mutation_performed=false" in foundation_doc
     assert "foundation_activation_required_before_smoke=true" in specialist_doc
     assert "foundation-activation-apply --apply --vedtak <id>" in specialist_doc
     assert "approve trainer start" in specialist_doc
@@ -194,6 +201,7 @@ def test_control_surface_readiness_report_is_fail_open_status_only() -> None:
     assert "allowed now:" in result.stdout
     assert "scripts/entry_next_edge_control.sh verify --quiet" in result.stdout
     assert "scripts/entry_next_edge_control.sh candidate-readiness --quiet --no-fail-on-not-ready" in result.stdout
+    assert "scripts/entry_next_edge_control.sh candidate-readiness-seq215 --quiet --no-fail-on-not-ready" in result.stdout
     assert "scripts/entry_next_edge_control.sh replay-readiness --quiet --no-fail-on-not-ready" in result.stdout
     assert "scripts/entry_next_edge_control.sh stage-foundation-cleanup --dry-run" in result.stdout
     if "train-readiness: NOT_READY" in result.stdout:

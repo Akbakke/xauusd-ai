@@ -12,10 +12,17 @@ SOURCE_DATASET=$DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_fou
 SMOKE_DATASET=$DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_foundation_seq146_smoke
 SMOKE_STEM=v10_foundation_seq146_smoke__HOLD_03B
 M5_PREBUILT=$DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260626_spreadfix/cv3/xauusd_m5_CANONICAL_V3_2020_2026.parquet
+FEATURE_AUDIT=$DATA/reports/entry_feature_foundation_audit_20260628_v1/foundation_seq146/ENTRY_FEATURE_FOUNDATION_AUDIT_latest.json
+TARGET_AUDIT=$DATA/reports/entry_target_foundation_audit_20260628_v1/foundation_seq146/ENTRY_TARGET_FOUNDATION_AUDIT_latest.json
 SPECIALIST_AUDIT=$DATA/reports/entry_specialist_feature_group_audit_20260628_v1/ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_latest.json
 SMOKE_TRAIN_MANIFEST_DIR=$DATA/reports/entry_foundation_smoke_train_manifests_20260628_v1
+SMOKE_BUNDLE_AUDIT_OUT=$DATA/reports/entry_foundation_smoke_bundle_audit_20260628_v1
 
 VEDTAK="${ENTRY_FOUNDATION_SMOKE_VEDTAK:-}"
+RUN_FLAVOR=foundation_seq146
+SPECIALIST_CONTRACT_MODE=foundation_seq146
+EXPECTED_SIGNAL_DIM=146
+SMOKE_DATASET_SCHEMA=entry_foundation_seq146_smoke_dataset_v1
 DEVICE=auto
 EPOCHS=1
 BATCH_SIZE=64
@@ -59,6 +66,8 @@ Options:
   --materialize-only   Build the small smoke dataset, then stop.
   --manifest-only      Run real preflight and write the pre-train manifest, then stop.
   --refresh-smoke      Rebuild the small smoke dataset before training/dry-run.
+  --challenger-seq215  Use the audited seq215 challenger dataset and 8-specialist
+                       challenger_seq215 contract.
   --dry-run            Print the train command, then stop.
   --skip-smoke-audit   Do not run the post-train smoke bundle audit.
   --audit-device <auto|cpu|cuda>
@@ -96,6 +105,21 @@ while [[ $# -gt 0 ]]; do
     --train-rows) TRAIN_ROWS="$2"; REFRESH_SMOKE=1; shift 2 ;;
     --val-rows) VAL_ROWS="$2"; REFRESH_SMOKE=1; shift 2 ;;
     --test-rows) TEST_ROWS="$2"; REFRESH_SMOKE=1; shift 2 ;;
+    --challenger-seq215)
+      RUN_FLAVOR=challenger_seq215
+      SOURCE_DATASET=$DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_challenger_seq215_neutral_20260630
+      SMOKE_DATASET=$DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_challenger_seq215_smoke_20260630
+      SMOKE_STEM=v10_challenger_seq215_smoke__HOLD_03B
+      FEATURE_AUDIT=$DATA/reports/entry_feature_foundation_audit_20260628_v1/challenger_seq215_20260630/ENTRY_FEATURE_FOUNDATION_AUDIT_latest.json
+      TARGET_AUDIT=$DATA/reports/entry_target_foundation_audit_20260628_v1/challenger_seq215_20260630/ENTRY_TARGET_FOUNDATION_AUDIT_latest.json
+      SPECIALIST_AUDIT=$DATA/reports/entry_specialist_feature_group_audit_20260628_v1/challenger_seq215_20260630_contract8/ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_latest.json
+      SMOKE_BUNDLE_AUDIT_OUT=$DATA/reports/entry_foundation_smoke_bundle_audit_20260628_v1/challenger_seq215_20260630
+      SPECIALIST_CONTRACT_MODE=challenger_seq215
+      EXPECTED_SIGNAL_DIM=215
+      SMOKE_DATASET_SCHEMA=entry_foundation_seq215_smoke_dataset_v1
+      REFRESH_SMOKE=1
+      shift
+      ;;
     --materialize-only) MATERIALIZE_ONLY=1; shift ;;
     --manifest-only) MANIFEST_ONLY=1; shift ;;
     --refresh-smoke) REFRESH_SMOKE=1; shift ;;
@@ -113,6 +137,11 @@ done
 if [[ -z "${VEDTAK:-}" ]]; then
   echo "FATAL: --vedtak is required for foundation seq146 smoke train." >&2
   echo "This is still a train command, so it must be an explicit user decision." >&2
+  exit 2
+fi
+if [[ "$RUN_FLAVOR" = "challenger_seq215" && "$MATERIALIZE_ONLY" != "1" && "$DRY_RUN" != "1" && "$VEDTAK" != *"SEQ215"* ]]; then
+  echo "FATAL: challenger seq215 smoke manifest/train requires an explicit SEQ215 vedtak id." >&2
+  echo "Use a new id such as ENTRY_FOUNDATION_SMOKE_TRAIN_20260630_SEQ215_V1 after gates are green." >&2
   exit 2
 fi
 
@@ -168,6 +197,10 @@ if [[ "$MATERIALIZE_ONLY" = "1" || "$REFRESH_SMOKE" = "1" || ! -f "$SMOKE_DATASE
     --source-dir "$SOURCE_DATASET" \
     --out-dir "$SMOKE_DATASET" \
     --stem "$SMOKE_STEM" \
+    --feature-audit-json "$FEATURE_AUDIT" \
+    --target-audit-json "$TARGET_AUDIT" \
+    --specialist-audit-json "$SPECIALIST_AUDIT" \
+    --schema-version "$SMOKE_DATASET_SCHEMA" \
     --train-rows "$TRAIN_ROWS" \
     --val-rows "$VAL_ROWS" \
     --test-rows "$TEST_ROWS" \
@@ -194,7 +227,7 @@ if [[ "$DRY_RUN" != "1" ]]; then
 fi
 
 STAMP=$(date -u '+%Y%m%dT%H%M%SZ')
-OUT_BUNDLE=$DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_foundation_seq146_smoke_$STAMP
+OUT_BUNDLE=$DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_${RUN_FLAVOR}_smoke_$STAMP
 PRETRAIN_MANIFEST=$SMOKE_TRAIN_MANIFEST_DIR/ENTRY_FOUNDATION_SMOKE_TRAIN_RUN_MANIFEST_$STAMP.json
 RUN_MODE=real_train
 if [[ "$MANIFEST_ONLY" = "1" ]]; then
@@ -246,7 +279,7 @@ CMD=(
   --enable-mtf-direction-head
   --enable-specialist-fusion
   --specialist-audit-json "$SPECIALIST_AUDIT"
-  --specialist-contract-mode foundation_seq146
+  --specialist-contract-mode "$SPECIALIST_CONTRACT_MODE"
   --specialist-num-layers 1
   --specialist-fusion-scale 0.25
 )
@@ -259,6 +292,8 @@ AUDIT_CMD=(
   --device "$AUDIT_DEVICE"
   --batch-size "$AUDIT_BATCH_SIZE"
   --require-head-contract
+  --out-dir "$SMOKE_BUNDLE_AUDIT_OUT"
+  --target-audit-json "$TARGET_AUDIT"
   --pretrain-manifest-json "$PRETRAIN_MANIFEST"
 )
 if [[ "$REQUIRE_EDGE_AUDIT" = "1" ]]; then
@@ -284,6 +319,11 @@ if [[ "$DRY_RUN" = "1" ]]; then
 fi
 
 mkdir -p "$SMOKE_TRAIN_MANIFEST_DIR"
+FEATURE_AUDIT_JSON="$FEATURE_AUDIT" \
+TARGET_AUDIT_JSON="$TARGET_AUDIT" \
+SPECIALIST_CONTRACT_MODE="$SPECIALIST_CONTRACT_MODE" \
+EXPECTED_SIGNAL_DIM="$EXPECTED_SIGNAL_DIM" \
+RUN_FLAVOR="$RUN_FLAVOR" \
 "$PY" - "$PRETRAIN_MANIFEST" "$VEDTAK" "$OUT_BUNDLE" "$SOURCE_DATASET" "$SMOKE_DATASET" \
   "$SMOKE_DATASET/SMOKE_DATASET_MANIFEST.json" "$M5_PREBUILT" "$SPECIALIST_AUDIT" \
   "$DATA/reports/entry_foundation_guardrails_20260628_v1/ENTRY_FOUNDATION_GUARDRAILS_latest.json" \
@@ -292,6 +332,7 @@ mkdir -p "$SMOKE_TRAIN_MANIFEST_DIR"
   "$RUN_MODE" "${CMD[@]}" __AUDIT_CMD__ "${AUDIT_CMD[@]}" <<'PY'
 import json
 import hashlib
+import os
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -401,10 +442,12 @@ def specialist_contract_summary(report: dict) -> dict:
     raw_indices = architecture.get("specialist_input_indices") if isinstance(architecture.get("specialist_input_indices"), dict) else {}
     from gx1.models.entry_v10.entry_v10_ctx_train_v3 import _load_specialist_fusion_contract
 
+    contract_mode = os.environ.get("SPECIALIST_CONTRACT_MODE", "foundation_seq146")
+    expected_signal_dim = int(os.environ.get("EXPECTED_SIGNAL_DIM", "146"))
     trainer_indices, trainer_meta = _load_specialist_fusion_contract(
         Path(specialist_audit_path),
-        expected_signal_dim=146,
-        contract_mode="foundation_seq146",
+        expected_signal_dim=expected_signal_dim,
+        contract_mode=contract_mode,
     )
     return {
         "decision": report.get("decision"),
@@ -535,8 +578,8 @@ def gate_decision(report: dict, name: str) -> str:
 
 readiness = read_json(sys.argv[10])
 artifacts = readiness.get("artifacts") if isinstance(readiness.get("artifacts"), dict) else {}
-feature_audit_path = artifacts.get("feature_audit")
-target_audit_path = artifacts.get("target_audit")
+feature_audit_path = os.environ.get("FEATURE_AUDIT_JSON") or artifacts.get("feature_audit")
+target_audit_path = os.environ.get("TARGET_AUDIT_JSON") or artifacts.get("target_audit")
 specialist_audit_path = sys.argv[8]
 worktree_hygiene_path = artifacts.get("worktree_hygiene")
 feature_audit = read_json(feature_audit_path) if feature_audit_path else {}
@@ -558,9 +601,10 @@ artifact_paths = {
 payload = {
     "schema_version": "entry_foundation_smoke_train_run_manifest_v1",
     "created_utc": datetime.now(timezone.utc).isoformat(),
-    "run_kind": "vedtak_gated_foundation_seq146_smoke_train",
+    "run_kind": f"vedtak_gated_{os.environ.get('RUN_FLAVOR', 'foundation_seq146')}_smoke_train",
     "run_mode": sys.argv[19],
     "vedtak": sys.argv[2],
+    "specialist_contract_mode": os.environ.get("SPECIALIST_CONTRACT_MODE", "foundation_seq146"),
     "out_bundle_dir": sys.argv[3],
     "promotion_shadow_live_allowed": False,
     "trainer_started_by_manifest_writer": False,

@@ -16,12 +16,12 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from gx1.features.entry_specialist_feature_groups_v1 import required_training_specialists_for_mode
 from gx1.scripts.materialize_entry_candidate_replay_evidence_v1 import IQL_TRANSITION_REQUIRED_COLUMNS
 from gx1.scripts.verify_entry_candidate_readiness_v1 import (
     DEFAULT_OUT_DIR as CANDIDATE_READINESS_OUT_DIR,
     _bundle_specialist_model_contract_passes,
     REQUIRED_MIN_GATE_ENTROPY,
-    REQUIRED_SPECIALIST_GROUPS,
 )
 from gx1.scripts.verify_entry_foundation_state_v1 import FOUNDATION_DATASET_DIR, REPORTS_ROOT, REPO
 from gx1.scripts.verify_entry_training_readiness_v1 import _check
@@ -40,6 +40,10 @@ DEFAULT_CANDIDATE_BUNDLE_AUDIT = (
     REPORTS_ROOT / "entry_candidate_bundle_audit_20260628_v1/ENTRY_FOUNDATION_SMOKE_BUNDLE_AUDIT_latest.json"
 )
 DEFAULT_OUT_DIR = REPORTS_ROOT / "entry_replay_readiness_20260628_v1"
+CONTRACT_INPUT_DIMS = {
+    "foundation_seq146": 146,
+    "challenger_seq215": 215,
+}
 
 
 def _json_default(obj: Any) -> Any:
@@ -79,6 +83,28 @@ def _same_resolved_path(actual: Any, expected: Path) -> bool:
         return False
 
 
+def _normalize_contract_mode(value: Any) -> str:
+    raw = str(value or "foundation_seq146").strip()
+    if raw not in CONTRACT_INPUT_DIMS:
+        return raw
+    return raw
+
+
+def _contract_mode_from_bundle_audit(report: dict[str, Any]) -> str:
+    bundle = report.get("bundle_summary") if isinstance(report.get("bundle_summary"), dict) else {}
+    return _normalize_contract_mode(
+        report.get("specialist_contract_mode")
+        or report.get("contract_mode")
+        or bundle.get("specialist_contract_mode")
+        or bundle.get("contract_mode")
+        or bundle.get("audit_contract_mode")
+    )
+
+
+def _contract_mode_from_identity(identity: dict[str, Any]) -> str:
+    return _normalize_contract_mode(identity.get("contract_mode"))
+
+
 def _model_summaries(summary: dict[str, Any], model_name: str) -> list[dict[str, Any]]:
     return [
         row
@@ -110,6 +136,7 @@ def _selective_edge_checks(
     min_top10_mean_pnl_bps: float,
     require_no_xgb_ablation: bool,
     expected_bundle_dir: str | None = None,
+    expected_contract_mode: str = "foundation_seq146",
 ) -> list[dict[str, Any]]:
     splits = set(str(x) for x in summary.get("splits", []))
     models = {str(row.get("model")) for row in summary.get("summaries", []) if isinstance(row, dict)}
@@ -131,6 +158,10 @@ def _selective_edge_checks(
     input_bridge_contract = (
         summary.get("input_bridge_contract") if isinstance(summary.get("input_bridge_contract"), dict) else {}
     )
+    contract_mode = _normalize_contract_mode(summary.get("contract_mode"))
+    expected_seq_input_dim = CONTRACT_INPUT_DIMS.get(expected_contract_mode)
+    observed_seq_input_dim = int(summary.get("bundle_seq_input_dim") or 0)
+    observed_snap_input_dim = int(summary.get("bundle_snap_input_dim") or 0)
     input_bridge_splits = input_bridge_contract.get("splits") if isinstance(input_bridge_contract.get("splits"), dict) else {}
     required_no_xgb_splits = [split for split in ("val", "test") if split in splits or not splits]
     no_xgb_diagnostics_ok = True
@@ -195,6 +226,23 @@ def _selective_edge_checks(
             "selective-edge summary matches candidate bundle audit bundle",
             True if expected_bundle_dir is None else str(summary.get("bundle_dir")) == str(expected_bundle_dir),
             {"expected_bundle_dir": expected_bundle_dir, "summary_bundle_dir": summary.get("bundle_dir")},
+        ),
+        _check(
+            "selective-edge summary contract mode matches candidate bundle audit",
+            contract_mode == expected_contract_mode,
+            {"expected_contract_mode": expected_contract_mode, "selective_edge_contract_mode": contract_mode},
+        ),
+        _check(
+            "selective-edge summary input dimensions match contract mode",
+            bool(expected_seq_input_dim)
+            and observed_seq_input_dim == expected_seq_input_dim
+            and observed_snap_input_dim == expected_seq_input_dim,
+            {
+                "expected_contract_mode": expected_contract_mode,
+                "expected_input_dim": expected_seq_input_dim,
+                "bundle_seq_input_dim": observed_seq_input_dim,
+                "bundle_snap_input_dim": observed_snap_input_dim,
+            },
         ),
         _check("selective-edge summary has val/test", {"val", "test"}.issubset(splits), {"splits": sorted(splits)}),
         _check("selective-edge summary includes candidate model", model_name in models, {"models": sorted(models)}),
@@ -268,7 +316,12 @@ def _selective_edge_checks(
     ]
 
 
-def _candidate_bundle_audit_checks(path: Path, report: dict[str, Any]) -> list[dict[str, Any]]:
+def _candidate_bundle_audit_checks(
+    path: Path,
+    report: dict[str, Any],
+    *,
+    contract_mode: str = "foundation_seq146",
+) -> list[dict[str, Any]]:
     exists = path.exists()
     bundle = report.get("bundle_summary") if isinstance(report.get("bundle_summary"), dict) else {}
     head_contract = report.get("head_contract") if isinstance(report.get("head_contract"), dict) else {}
@@ -287,11 +340,18 @@ def _candidate_bundle_audit_checks(path: Path, report: dict[str, Any]) -> list[d
     split_rows = {split: int((row or {}).get("rows") or 0) for split, row in splits.items()}
     specialist_groups = set(str(x) for x in bundle.get("specialist_groups", []) if str(x))
     required_specialists = {str(x) for x in report.get("required_training_specialists", []) if str(x)}
+    expected_contract_mode = _normalize_contract_mode(contract_mode)
+    observed_contract_mode = _contract_mode_from_bundle_audit(report)
+    expected_input_dim = CONTRACT_INPUT_DIMS.get(expected_contract_mode)
+    try:
+        expected_specialist_groups = tuple(required_training_specialists_for_mode(expected_contract_mode))
+    except ValueError:
+        expected_specialist_groups = ()
     required_gate_live = True
     for row in splits.values():
         gate = (row or {}).get("specialist_gate") if isinstance(row, dict) else {}
         mean_weight = gate.get("mean_weight") if isinstance(gate, dict) and isinstance(gate.get("mean_weight"), dict) else {}
-        for group in REQUIRED_SPECIALIST_GROUPS:
+        for group in expected_specialist_groups:
             if float(mean_weight.get(group) or 0.0) <= 0.01:
                 required_gate_live = False
     return [
@@ -300,7 +360,24 @@ def _candidate_bundle_audit_checks(path: Path, report: dict[str, Any]) -> list[d
         _check("candidate bundle audit has zero failures", exists and not report.get("failures"), {"failures": report.get("failures")}),
         _check("candidate bundle audit used foundation dataset", exists and _same_resolved_path(report.get("dataset_dir"), FOUNDATION_DATASET_DIR)),
         _check("candidate bundle audit is from actual train output, not sanity bundle", exists and not bool(bundle.get("sanity_bundle"))),
-        _check("candidate bundle is seq146", exists and int(bundle.get("seq_input_dim") or 0) == 146 and int(bundle.get("snap_input_dim") or 0) == 146),
+        _check(
+            "candidate bundle audit contract mode matches requested replay contract",
+            exists and observed_contract_mode == expected_contract_mode,
+            {"expected_contract_mode": expected_contract_mode, "observed_contract_mode": observed_contract_mode},
+        ),
+        _check(
+            "candidate bundle input dimensions match contract mode",
+            exists
+            and bool(expected_input_dim)
+            and int(bundle.get("seq_input_dim") or 0) == expected_input_dim
+            and int(bundle.get("snap_input_dim") or 0) == expected_input_dim,
+            {
+                "expected_contract_mode": expected_contract_mode,
+                "expected_input_dim": expected_input_dim,
+                "seq_input_dim": bundle.get("seq_input_dim"),
+                "snap_input_dim": bundle.get("snap_input_dim"),
+            },
+        ),
         _check("candidate bundle has multi-TF enabled", exists and bool(bundle.get("multi_tf_enabled"))),
         _check("candidate bundle has specialist fusion", exists and bool(bundle.get("specialist_fusion_enabled"))),
         _check(
@@ -321,14 +398,14 @@ def _candidate_bundle_audit_checks(path: Path, report: dict[str, Any]) -> list[d
         ),
         _check(
             "candidate bundle includes required specialist groups",
-            exists and set(REQUIRED_SPECIALIST_GROUPS).issubset(specialist_groups),
+            exists and set(expected_specialist_groups).issubset(specialist_groups),
             {"specialist_groups": sorted(specialist_groups)},
         ),
         _check(
             "candidate bundle has exact specialist groups",
-            exists and specialist_groups == set(REQUIRED_SPECIALIST_GROUPS),
+            exists and specialist_groups == set(expected_specialist_groups),
             {
-                "expected_specialist_groups": list(REQUIRED_SPECIALIST_GROUPS),
+                "expected_specialist_groups": list(expected_specialist_groups),
                 "actual_specialist_groups": sorted(specialist_groups),
             },
         ),
@@ -336,8 +413,8 @@ def _candidate_bundle_audit_checks(path: Path, report: dict[str, Any]) -> list[d
             "candidate bundle audit was run with specialist-fusion gate contract",
             exists
             and bool(report.get("require_specialist_fusion"))
-            and required_specialists == set(REQUIRED_SPECIALIST_GROUPS)
-            and int(report.get("min_active_specialists") or 0) >= len(REQUIRED_SPECIALIST_GROUPS)
+            and required_specialists == set(expected_specialist_groups)
+            and int(report.get("min_active_specialists") or 0) >= len(expected_specialist_groups)
             and float(report.get("min_gate_entropy") or -1.0) >= float(REQUIRED_MIN_GATE_ENTROPY),
             {
                 "required_training_specialists": report.get("required_training_specialists"),
@@ -348,7 +425,7 @@ def _candidate_bundle_audit_checks(path: Path, report: dict[str, Any]) -> list[d
         _check(
             "candidate bundle required specialist gate weights are non-collapsed",
             exists and required_gate_live,
-            {"min_mean_weight": 0.01, "required_specialists": list(REQUIRED_SPECIALIST_GROUPS)},
+            {"min_mean_weight": 0.01, "required_specialists": list(expected_specialist_groups)},
         ),
         _check("candidate bundle audit was run with require_head_contract", exists and bool(report.get("require_head_contract"))),
         _check(
@@ -424,6 +501,7 @@ def _replay_checks(
     min_profit_factor: float,
     max_drawdown_bps: float,
     expected_candidate_bundle_dir: str | None = None,
+    expected_contract_mode: str = "foundation_seq146",
 ) -> list[dict[str, Any]]:
     row = _best_replay_row(metrics)
     required_metric_columns = {
@@ -440,6 +518,7 @@ def _replay_checks(
     trade_columns = set(str(c) for c in trades.columns)
     iql_missing_columns = sorted(set(IQL_TRANSITION_REQUIRED_COLUMNS) - trade_columns)
     identity = manifest.get("replay_identity_contract") if isinstance(manifest.get("replay_identity_contract"), dict) else {}
+    identity_contract_mode = _contract_mode_from_identity(identity)
     row_details = row or {}
     drawdown = row_details.get("max_drawdown_bps")
     drawdown_ok = drawdown is not None and abs(float(drawdown)) <= float(max_drawdown_bps)
@@ -448,6 +527,11 @@ def _replay_checks(
         _check("offline replay manifest PASS", str(manifest.get("decision")) == "PASS", {"manifest_failures": manifest.get("failures")}),
         _check("offline replay manifest has zero failures", not manifest.get("failures"), {"manifest_failures": manifest.get("failures")}),
         _check("offline replay identity contract ready", bool(identity.get("ready")), {"identity": identity}),
+        _check(
+            "offline replay identity contract mode matches replay-readiness contract",
+            identity_contract_mode == expected_contract_mode,
+            {"expected_contract_mode": expected_contract_mode, "identity_contract_mode": identity_contract_mode},
+        ),
         _check(
             "offline replay identity matches candidate bundle audit",
             True if expected_candidate_bundle_dir is None else str(identity.get("candidate_bundle_dir") or "") == str(expected_candidate_bundle_dir),
@@ -530,6 +614,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     candidate_readiness = _read_json(candidate_readiness_path)
     candidate_bundle_audit = _read_json(candidate_bundle_audit_path) if candidate_bundle_audit_path.exists() else {}
     expected_candidate_bundle_dir = str(candidate_bundle_audit.get("bundle_dir") or "") or None
+    contract_mode = _normalize_contract_mode(getattr(args, "contract_mode", None) or _contract_mode_from_bundle_audit(candidate_bundle_audit))
     selective_summary = _read_json(selective_summary_path) if selective_summary_path.exists() else {}
     selective_metrics = _read_csv_or_empty(selective_metrics_path)
     replay_metrics = _read_csv_or_empty(replay_dir / "replay_policy_metrics.csv")
@@ -546,6 +631,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "replay_identity_candidate_bundle_dir": str(replay_identity.get("candidate_bundle_dir") or ""),
         "no_xgb_bundle_dir": str(selective_summary.get("no_xgb_bundle_dir") or replay_identity.get("no_xgb_bundle_dir") or ""),
         "replay_identity_ready": bool(replay_identity.get("ready")),
+        "contract_mode": contract_mode,
+        "candidate_bundle_contract_mode": _contract_mode_from_bundle_audit(candidate_bundle_audit),
+        "selective_edge_contract_mode": _normalize_contract_mode(selective_summary.get("contract_mode")),
+        "replay_identity_contract_mode": _contract_mode_from_identity(replay_identity),
     }
     artifacts = {
         "candidate_readiness": str(candidate_readiness_path),
@@ -571,7 +660,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 bool(candidate_readiness.get("promotion_shadow_live_allowed")) is False,
             ),
         ],
-        "candidate_bundle_audit": _candidate_bundle_audit_checks(candidate_bundle_audit_path, candidate_bundle_audit),
+        "candidate_bundle_audit": _candidate_bundle_audit_checks(
+            candidate_bundle_audit_path,
+            candidate_bundle_audit,
+            contract_mode=contract_mode,
+        ),
         "selective_edge": _selective_edge_checks(
             selective_summary,
             selective_metrics,
@@ -580,6 +673,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             min_top10_mean_pnl_bps=float(args.min_top10_mean_pnl_bps),
             require_no_xgb_ablation=bool(args.require_no_xgb_ablation),
             expected_bundle_dir=expected_candidate_bundle_dir,
+            expected_contract_mode=contract_mode,
         ),
         "offline_replay": _replay_checks(
             replay_dir,
@@ -591,6 +685,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             min_profit_factor=float(args.min_profit_factor),
             max_drawdown_bps=float(args.max_abs_drawdown_bps),
             expected_candidate_bundle_dir=expected_candidate_bundle_dir,
+            expected_contract_mode=contract_mode,
         ),
         "iql_distillation_guard": [
             _check("gate never trains IQL", True),
@@ -622,6 +717,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     report = {
         "schema_version": "entry_replay_readiness_v1",
         "created_utc": datetime.now(timezone.utc).isoformat(),
+        "contract_mode": contract_mode,
         "decision": "READY_FOR_IQL_DISTILLATION_VEDTAK" if ready else "NOT_READY_FOR_IQL_DISTILLATION",
         "iql_distillation_allowed_with_explicit_vedtak": bool(ready),
         "promotion_shadow_live_allowed": False,
@@ -687,6 +783,7 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--min-profit-factor", type=float, default=1.05)
     ap.add_argument("--max-abs-drawdown-bps", type=float, default=650.0)
     ap.add_argument("--require-no-xgb-ablation", action=argparse.BooleanOptionalAction, default=True)
+    ap.add_argument("--contract-mode", choices=tuple(CONTRACT_INPUT_DIMS), default="foundation_seq146")
     ap.add_argument("--fail-on-not-ready", action=argparse.BooleanOptionalAction, default=True)
     ap.add_argument("--quiet", action="store_true")
     return ap

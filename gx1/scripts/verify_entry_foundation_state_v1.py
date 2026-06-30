@@ -965,7 +965,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         _require("HEAD_OUTPUT_KEYS" in smoke_bundle_audit, "smoke bundle audit maps active heads to forward outputs", checks)
         _require("HEAD_OUTPUT_TRAILING_SHAPES" in smoke_bundle_audit, "smoke bundle audit maps active heads to output shapes", checks)
         _require("unapproved heads outside target contract" in smoke_bundle_audit, "smoke bundle audit rejects unapproved extra heads", checks)
-        _require("REQUIRED_TRAINING_SPECIALISTS" in smoke_bundle_audit, "smoke bundle audit requires training specialist set", checks)
+        _require(
+            "required_training_specialists_for_mode" in smoke_bundle_audit,
+            "smoke bundle audit requires mode-aware training specialist set",
+            checks,
+        )
         _require("required_training_specialists" in smoke_bundle_audit, "smoke bundle audit reports required specialist set", checks)
         _require("active_specialist_count_gt_1pct" in smoke_bundle_audit, "smoke bundle audit checks active specialist count", checks)
         _require("required specialist gate weights collapsed" in smoke_bundle_audit, "smoke bundle audit rejects collapsed required specialist gate weights", checks)

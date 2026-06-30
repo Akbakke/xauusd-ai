@@ -15,6 +15,10 @@ from typing import Any
 
 import numpy as np
 
+from gx1.features.entry_specialist_feature_groups_v1 import (
+    SPECIALIST_CONTRACT_MODES,
+    required_training_specialists_for_mode,
+)
 from gx1.scripts.verify_entry_foundation_state_v1 import (
     FOUNDATION_SMOKE_DATASET_DIR,
     REPORTS_ROOT,
@@ -34,15 +38,29 @@ from gx1.scripts.verify_entry_training_readiness_v1 import run as run_train_read
 
 
 DEFAULT_OUT_DIR = REPORTS_ROOT / "entry_candidate_readiness_20260628_v1"
-REQUIRED_SPECIALIST_GROUPS = (
-    "structure_swing_encoder",
-    "smc_liquidity_encoder",
-    "trend_ema_encoder",
-    "vol_compression_encoder",
-    "momentum_flow_encoder",
-    "session_regime_encoder",
+CHALLENGER_SEQ215_OUT_DIR = DEFAULT_OUT_DIR / "challenger_seq215_20260630"
+CHALLENGER_SEQ215_SMOKE_BUNDLE_AUDIT_LATEST = (
+    REPORTS_ROOT
+    / "entry_foundation_smoke_bundle_audit_20260628_v1"
+    / "challenger_seq215_20260630"
+    / "ENTRY_FOUNDATION_SMOKE_BUNDLE_AUDIT_latest.json"
 )
+CHALLENGER_SEQ215_SMOKE_DATASET_DIR = (
+    Path("/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605")
+    / "v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_challenger_seq215_smoke_20260630"
+)
+CHALLENGER_SEQ215_SPECIALIST_AUDIT_LATEST = (
+    REPORTS_ROOT
+    / "entry_specialist_feature_group_audit_20260628_v1"
+    / "challenger_seq215_20260630_contract8"
+    / "ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_latest.json"
+)
+REQUIRED_SPECIALIST_GROUPS = tuple(required_training_specialists_for_mode("foundation_seq146"))
 REQUIRED_MIN_GATE_ENTROPY = 0.05
+EXPECTED_SIGNAL_DIMS_BY_MODE = {
+    "foundation_seq146": 146,
+    "challenger_seq215": 215,
+}
 
 
 def _json_default(obj: Any) -> Any:
@@ -117,7 +135,12 @@ def _all_split_gate_live(report: dict[str, Any], *, min_active_specialists: int,
     return True
 
 
-def _all_required_split_gate_weights_live(report: dict[str, Any], *, min_mean_weight: float = 0.01) -> bool:
+def _all_required_split_gate_weights_live(
+    report: dict[str, Any],
+    *,
+    required_specialist_groups: tuple[str, ...],
+    min_mean_weight: float = 0.01,
+) -> bool:
     rows = _splits(report)
     names = _split_names(report)
     if not names:
@@ -125,17 +148,23 @@ def _all_required_split_gate_weights_live(report: dict[str, Any], *, min_mean_we
     for split in names:
         gate = ((rows.get(split) or {}).get("specialist_gate") or {})
         mean_weight = gate.get("mean_weight") if isinstance(gate.get("mean_weight"), dict) else {}
-        for group in REQUIRED_SPECIALIST_GROUPS:
+        for group in required_specialist_groups:
             if float(mean_weight.get(group) or 0.0) <= float(min_mean_weight):
                 return False
     return True
 
 
-def _specialist_audit_contract_passes(report: dict[str, Any], *, min_active_specialists: int, min_gate_entropy: float) -> bool:
+def _specialist_audit_contract_passes(
+    report: dict[str, Any],
+    *,
+    required_specialist_groups: tuple[str, ...],
+    min_active_specialists: int,
+    min_gate_entropy: float,
+) -> bool:
     required = {str(x) for x in report.get("required_training_specialists", []) if str(x)}
     return (
         bool(report.get("require_specialist_fusion"))
-        and required == set(REQUIRED_SPECIALIST_GROUPS)
+        and required == set(required_specialist_groups)
         and int(report.get("min_active_specialists") or 0) >= int(min_active_specialists)
         and float(report.get("min_gate_entropy") or -1.0) >= float(min_gate_entropy)
     )
@@ -180,8 +209,78 @@ def _bundle_specialist_model_contract_passes(report: dict[str, Any]) -> bool:
     )
 
 
-def _smoke_edge_checks(report: dict[str, Any], *, min_active_specialists: int = 3) -> list[dict[str, Any]]:
-    effective_min_active_specialists = max(int(min_active_specialists), len(REQUIRED_SPECIALIST_GROUPS))
+def _mode_smoke_dataset_dir(contract_mode: str) -> Path:
+    if contract_mode == "foundation_seq146":
+        return FOUNDATION_SMOKE_DATASET_DIR
+    if contract_mode == "challenger_seq215":
+        return CHALLENGER_SEQ215_SMOKE_DATASET_DIR
+    raise ValueError(f"unknown specialist contract mode: {contract_mode}")
+
+
+def _mode_specialist_audit_path(contract_mode: str) -> Path:
+    if contract_mode == "foundation_seq146":
+        return SPECIALIST_AUDIT_LATEST
+    if contract_mode == "challenger_seq215":
+        return CHALLENGER_SEQ215_SPECIALIST_AUDIT_LATEST
+    raise ValueError(f"unknown specialist contract mode: {contract_mode}")
+
+
+def _mode_smoke_bundle_audit_path(contract_mode: str) -> Path:
+    if contract_mode == "foundation_seq146":
+        return SMOKE_BUNDLE_AUDIT_LATEST
+    if contract_mode == "challenger_seq215":
+        return CHALLENGER_SEQ215_SMOKE_BUNDLE_AUDIT_LATEST
+    raise ValueError(f"unknown specialist contract mode: {contract_mode}")
+
+
+def _mode_out_dir(contract_mode: str) -> Path:
+    if contract_mode == "foundation_seq146":
+        return DEFAULT_OUT_DIR
+    if contract_mode == "challenger_seq215":
+        return CHALLENGER_SEQ215_OUT_DIR
+    raise ValueError(f"unknown specialist contract mode: {contract_mode}")
+
+
+def _observed_contract_mode(report: dict[str, Any]) -> str:
+    bundle = report.get("bundle_summary") if isinstance(report.get("bundle_summary"), dict) else {}
+    pretrain = (
+        report.get("pretrain_manifest_contract")
+        if isinstance(report.get("pretrain_manifest_contract"), dict)
+        else {}
+    )
+    for raw in (
+        report.get("specialist_contract_mode"),
+        report.get("contract_mode"),
+        bundle.get("specialist_contract_mode"),
+        bundle.get("contract_mode"),
+        pretrain.get("specialist_contract_mode"),
+        pretrain.get("contract_mode"),
+    ):
+        normalized = str(raw or "").strip()
+        if normalized:
+            return normalized
+    return ""
+
+
+def _smoke_audit_contract_mode_passes(report: dict[str, Any], *, contract_mode: str) -> bool:
+    observed = _observed_contract_mode(report)
+    if contract_mode == "foundation_seq146":
+        return observed in {"", "foundation_seq146"}
+    return observed == contract_mode
+
+
+def _smoke_edge_checks(
+    report: dict[str, Any],
+    *,
+    contract_mode: str = "foundation_seq146",
+    expected_smoke_dataset_dir: str | Path | None = None,
+    min_active_specialists: int = 3,
+) -> list[dict[str, Any]]:
+    normalized_contract_mode = str(contract_mode or "foundation_seq146").strip()
+    required_specialist_groups = tuple(required_training_specialists_for_mode(normalized_contract_mode))
+    expected_signal_dim = int(EXPECTED_SIGNAL_DIMS_BY_MODE[normalized_contract_mode])
+    expected_dataset_dir = Path(expected_smoke_dataset_dir or _mode_smoke_dataset_dir(normalized_contract_mode))
+    effective_min_active_specialists = max(int(min_active_specialists), len(required_specialist_groups))
     bundle = report.get("bundle_summary") if isinstance(report.get("bundle_summary"), dict) else {}
     split_rows = {split: int((row or {}).get("rows") or 0) for split, row in _splits(report).items()}
     specialist_groups = set(str(x) for x in bundle.get("specialist_groups", []) if str(x))
@@ -224,7 +323,12 @@ def _smoke_edge_checks(report: dict[str, Any], *, min_active_specialists: int = 
     return [
         _check("smoke bundle audit PASS", str(report.get("decision")) == "PASS", {"failures": report.get("failures")}),
         _check("smoke bundle audit has zero failures", not report.get("failures"), {"failures": report.get("failures")}),
-        _check("smoke bundle audit used smoke dataset", str(report.get("dataset_dir")) == str(FOUNDATION_SMOKE_DATASET_DIR)),
+        _check("smoke bundle audit used smoke dataset", str(report.get("dataset_dir")) == str(expected_dataset_dir)),
+        _check(
+            f"smoke bundle audit specialist contract mode is {normalized_contract_mode}",
+            _smoke_audit_contract_mode_passes(report, contract_mode=normalized_contract_mode),
+            {"observed_contract_mode": _observed_contract_mode(report) or None},
+        ),
         _check("smoke bundle audit is from actual train output, not sanity bundle", not bool(bundle.get("sanity_bundle"))),
         _check("smoke bundle audit was run with require_edge", bool(report.get("require_edge"))),
         _check("smoke bundle audit was run with require_head_contract", bool(report.get("require_head_contract"))),
@@ -258,7 +362,16 @@ def _smoke_edge_checks(report: dict[str, Any], *, min_active_specialists: int = 
                 "actual_blocked_heads": sorted(blocked_heads),
             },
         ),
-        _check("smoke bundle is seq146", int(bundle.get("seq_input_dim") or 0) == 146 and int(bundle.get("snap_input_dim") or 0) == 146),
+        _check(
+            "smoke bundle signal dims match contract",
+            int(bundle.get("seq_input_dim") or 0) == expected_signal_dim
+            and int(bundle.get("snap_input_dim") or 0) == expected_signal_dim,
+            {
+                "expected_signal_dim": expected_signal_dim,
+                "seq_input_dim": bundle.get("seq_input_dim"),
+                "snap_input_dim": bundle.get("snap_input_dim"),
+            },
+        ),
         _check("smoke bundle has multi-TF enabled", bool(bundle.get("multi_tf_enabled"))),
         _check("smoke bundle has specialist fusion", bool(bundle.get("specialist_fusion_enabled"))),
         _check(
@@ -281,6 +394,7 @@ def _smoke_edge_checks(report: dict[str, Any], *, min_active_specialists: int = 
             "smoke bundle audit was run with specialist-fusion gate contract",
             _specialist_audit_contract_passes(
                 report,
+                required_specialist_groups=required_specialist_groups,
                 min_active_specialists=effective_min_active_specialists,
                 min_gate_entropy=REQUIRED_MIN_GATE_ENTROPY,
             ),
@@ -292,14 +406,14 @@ def _smoke_edge_checks(report: dict[str, Any], *, min_active_specialists: int = 
         ),
         _check(
             "smoke bundle includes required specialist groups",
-            all(group in specialist_groups for group in REQUIRED_SPECIALIST_GROUPS),
+            all(group in specialist_groups for group in required_specialist_groups),
             {"specialist_groups": sorted(specialist_groups)},
         ),
         _check(
             "smoke bundle has exact specialist groups",
-            specialist_groups == set(REQUIRED_SPECIALIST_GROUPS),
+            specialist_groups == set(required_specialist_groups),
             {
-                "expected_specialist_groups": list(REQUIRED_SPECIALIST_GROUPS),
+                "expected_specialist_groups": list(required_specialist_groups),
                 "actual_specialist_groups": sorted(specialist_groups),
             },
         ),
@@ -325,7 +439,11 @@ def _smoke_edge_checks(report: dict[str, Any], *, min_active_specialists: int = 
         ),
         _check(
             "each required specialist has non-collapsed gate weight",
-            _all_required_split_gate_weights_live(report, min_mean_weight=0.01),
+            _all_required_split_gate_weights_live(
+                report,
+                required_specialist_groups=required_specialist_groups,
+                min_mean_weight=0.01,
+            ),
             {"min_mean_weight": 0.01, "gate": gate},
         ),
     ]
@@ -355,9 +473,18 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
-    out_dir = Path(args.out_dir).expanduser().resolve()
+    contract_mode = str(getattr(args, "contract_mode", "foundation_seq146") or "foundation_seq146").strip()
+    expected_smoke_dataset_dir = _mode_smoke_dataset_dir(contract_mode)
+    expected_signal_dim = int(EXPECTED_SIGNAL_DIMS_BY_MODE[contract_mode])
+    required_specialist_groups = tuple(required_training_specialists_for_mode(contract_mode))
+    out_dir = Path(getattr(args, "out_dir", None) or _mode_out_dir(contract_mode)).expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
-    smoke_audit_path = Path(args.smoke_bundle_audit_json).expanduser().resolve()
+    smoke_audit_path = Path(
+        getattr(args, "smoke_bundle_audit_json", None) or _mode_smoke_bundle_audit_path(contract_mode)
+    ).expanduser().resolve()
+    specialist_audit_path = Path(
+        getattr(args, "specialist_audit_json", None) or _mode_specialist_audit_path(contract_mode)
+    ).expanduser().resolve()
 
     train_readiness = run_train_readiness(
         argparse.Namespace(
@@ -367,11 +494,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             quiet=True,
         )
     )
-    smoke_audit = _read_json(smoke_audit_path)
+    smoke_audit_load_error = None
+    try:
+        smoke_audit = _read_json(smoke_audit_path)
+    except Exception as exc:  # Artifact absence/corruption is a gate failure, not a traceback.
+        smoke_audit = {}
+        smoke_audit_load_error = str(exc)
     artifacts = {
         "train_readiness": str(train_readiness.get("json_path") or (TRAIN_READINESS_OUT_DIR / "ENTRY_TRAINING_READINESS_latest.json")),
         "smoke_bundle_audit": str(smoke_audit_path),
-        "specialist_audit": str(SPECIALIST_AUDIT_LATEST),
+        "specialist_audit": str(specialist_audit_path),
     }
     artifact_fingerprints = _artifact_fingerprints(artifacts)
     gate_checks = {
@@ -384,7 +516,19 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             _check("train-readiness still blocks candidate training", bool(train_readiness.get("candidate_training_allowed")) is False),
             _check("train-readiness still blocks promotion/shadow/live", bool(train_readiness.get("promotion_shadow_live_allowed")) is False),
         ],
-        "smoke_edge_audit": _smoke_edge_checks(smoke_audit, min_active_specialists=int(args.min_active_specialists)),
+        "smoke_edge_audit": [
+            _check(
+                "smoke bundle audit JSON exists and is readable",
+                smoke_audit_load_error is None,
+                {"path": str(smoke_audit_path), "error": smoke_audit_load_error},
+            ),
+            *_smoke_edge_checks(
+                smoke_audit,
+                contract_mode=contract_mode,
+                expected_smoke_dataset_dir=expected_smoke_dataset_dir,
+                min_active_specialists=int(args.min_active_specialists),
+            ),
+        ],
         "promotion_guard": [
             _check("candidate gate never promotes", True),
             _check("candidate gate never starts shadow/live", True),
@@ -414,6 +558,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     report = {
         "schema_version": "entry_candidate_readiness_v1",
         "created_utc": datetime.now(timezone.utc).isoformat(),
+        "contract_mode": contract_mode,
+        "expected_signal_dim": expected_signal_dim,
+        "expected_smoke_dataset_dir": str(expected_smoke_dataset_dir),
+        "required_specialist_groups": list(required_specialist_groups),
         "decision": "READY_FOR_CANDIDATE_TRAINING_VEDTAK" if ready else "NOT_READY_FOR_CANDIDATE_TRAINING",
         "candidate_training_allowed_with_explicit_vedtak": bool(ready),
         "promotion_shadow_live_allowed": False,
@@ -425,6 +573,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "artifacts": artifacts,
         "artifact_fingerprints": artifact_fingerprints,
         "smoke_bundle_audit_json": str(smoke_audit_path),
+        "smoke_bundle_audit_load_error": smoke_audit_load_error,
         "train_readiness_json": train_readiness.get("json_path"),
         "gates": gates,
         "failures": failures,
@@ -463,8 +612,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--audit-doc", default=str(REPO / "docs/ENTRY_FOUNDATION_AUDIT_20260628.md"))
-    ap.add_argument("--smoke-bundle-audit-json", default=str(SMOKE_BUNDLE_AUDIT_LATEST))
-    ap.add_argument("--out-dir", default=str(DEFAULT_OUT_DIR))
+    ap.add_argument("--smoke-bundle-audit-json", default=None)
+    ap.add_argument("--specialist-audit-json", default=None)
+    ap.add_argument("--contract-mode", choices=SPECIALIST_CONTRACT_MODES, default="foundation_seq146")
+    ap.add_argument("--challenger-seq215", action="store_const", const="challenger_seq215", dest="contract_mode")
+    ap.add_argument("--out-dir", default=None)
     ap.add_argument("--min-active-specialists", type=int, default=len(REQUIRED_SPECIALIST_GROUPS))
     ap.add_argument("--fail-on-not-ready", action=argparse.BooleanOptionalAction, default=True)
     ap.add_argument("--quiet", action="store_true")

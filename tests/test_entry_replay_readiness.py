@@ -28,6 +28,7 @@ def _selective_summary() -> dict:
     return {
         "decision": "PASS",
         "failures": [],
+        "contract_mode": "foundation_seq146",
         "bundle_dir": "/tmp/candidate_bundle",
         "no_xgb_bundle_dir": "/tmp/candidate_no_xgb_bundle",
         "no_xgb_ablation": {
@@ -63,6 +64,8 @@ def _selective_summary() -> dict:
             },
         },
         "dataset_dir": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_foundation_seq146_neutral",
+        "bundle_seq_input_dim": 146,
+        "bundle_snap_input_dim": 146,
         "input_bridge_contract": {
             "splits": {
                 "val": {"neutral_xgb_bridge": False},
@@ -151,6 +154,7 @@ def _candidate_bundle_audit() -> dict:
     return {
         "decision": "PASS",
         "failures": [],
+        "specialist_contract_mode": "foundation_seq146",
         "dataset_dir": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_foundation_seq146_neutral",
         "require_specialist_fusion": True,
         "required_training_specialists": [
@@ -196,6 +200,7 @@ def _candidate_bundle_audit() -> dict:
         },
         "bundle_summary": {
             "sanity_bundle": False,
+            "contract_mode": "foundation_seq146",
             "seq_input_dim": 146,
             "snap_input_dim": 146,
             "multi_tf_enabled": True,
@@ -257,6 +262,27 @@ def test_selective_edge_checks_reject_mismatched_candidate_bundle() -> None:
     failed = {check["name"] for check in checks if not check["ok"]}
 
     assert "selective-edge summary matches candidate bundle audit bundle" in failed
+
+
+def test_selective_edge_checks_reject_seq215_summary_when_replay_contract_defaults_seq146() -> None:
+    summary = _selective_summary()
+    summary["contract_mode"] = "challenger_seq215"
+    summary["bundle_seq_input_dim"] = 215
+    summary["bundle_snap_input_dim"] = 215
+
+    checks = _selective_edge_checks(
+        summary,
+        _selective_metrics(),
+        model_name="candidate",
+        min_top5_mean_pnl_bps=0.0,
+        min_top10_mean_pnl_bps=0.0,
+        require_no_xgb_ablation=True,
+        expected_bundle_dir="/tmp/candidate_bundle",
+    )
+    failed = {check["name"] for check in checks if not check["ok"]}
+
+    assert "selective-edge summary contract mode matches candidate bundle audit" in failed
+    assert "selective-edge summary input dimensions match contract mode" in failed
 
 
 def test_selective_edge_checks_reject_same_bundle_without_neutralized_ablation() -> None:
@@ -455,6 +481,42 @@ def test_candidate_bundle_audit_checks_reject_extra_specialist_group(tmp_path: P
     assert "candidate bundle audit was run with specialist-fusion gate contract" in failed
 
 
+def test_candidate_bundle_audit_checks_reject_seq215_bundle_under_default_seq146_contract(tmp_path: Path) -> None:
+    audit_path = tmp_path / "candidate_audit.json"
+    audit_path.write_text("{}", encoding="utf-8")
+    report = _candidate_bundle_audit()
+    report["specialist_contract_mode"] = "challenger_seq215"
+    report["bundle_summary"]["contract_mode"] = "challenger_seq215"
+    report["bundle_summary"]["seq_input_dim"] = 215
+    report["bundle_summary"]["snap_input_dim"] = 215
+
+    checks = _candidate_bundle_audit_checks(audit_path, report)
+    failed = {check["name"] for check in checks if not check["ok"]}
+
+    assert "candidate bundle audit contract mode matches requested replay contract" in failed
+    assert "candidate bundle input dimensions match contract mode" in failed
+
+
+def test_candidate_bundle_audit_checks_accept_seq215_with_explicit_contract(tmp_path: Path) -> None:
+    audit_path = tmp_path / "candidate_audit.json"
+    audit_path.write_text("{}", encoding="utf-8")
+    report = _candidate_bundle_audit()
+    report["specialist_contract_mode"] = "challenger_seq215"
+    report["required_training_specialists"].extend(["chart_geometry_encoder", "price_action_candle_encoder"])
+    report["min_active_specialists"] = 8
+    report["bundle_summary"]["contract_mode"] = "challenger_seq215"
+    report["bundle_summary"]["seq_input_dim"] = 215
+    report["bundle_summary"]["snap_input_dim"] = 215
+    report["bundle_summary"]["specialist_groups"].extend(["chart_geometry_encoder", "price_action_candle_encoder"])
+    for split in report["splits"].values():
+        split["specialist_gate"]["mean_weight"]["chart_geometry_encoder"] = 0.05
+        split["specialist_gate"]["mean_weight"]["price_action_candle_encoder"] = 0.05
+
+    checks = _candidate_bundle_audit_checks(audit_path, report, contract_mode="challenger_seq215")
+
+    assert all(check["ok"] for check in checks)
+
+
 def test_replay_checks_pass_on_positive_stable_replay(tmp_path: Path) -> None:
     replay_dir = tmp_path / "replay"
     replay_dir.mkdir()
@@ -463,6 +525,7 @@ def test_replay_checks_pass_on_positive_stable_replay(tmp_path: Path) -> None:
         "failures": [],
         "replay_identity_contract": {
             "ready": True,
+            "contract_mode": "foundation_seq146",
             "candidate_bundle_dir": "/tmp/candidate_bundle",
         },
     }
@@ -480,6 +543,27 @@ def test_replay_checks_pass_on_positive_stable_replay(tmp_path: Path) -> None:
     )
 
     assert all(check["ok"] for check in checks)
+
+
+def test_replay_checks_reject_missing_explicit_replay_manifest(tmp_path: Path) -> None:
+    replay_dir = tmp_path / "replay"
+    replay_dir.mkdir()
+
+    checks = _replay_checks(
+        replay_dir,
+        {},
+        _replay_metrics(),
+        _monthly_metrics(),
+        _replay_trades(),
+        min_net_sum_bps=0.0,
+        min_profit_factor=1.05,
+        max_drawdown_bps=650.0,
+        expected_candidate_bundle_dir="/tmp/candidate_bundle",
+    )
+    failed = {check["name"] for check in checks if not check["ok"]}
+
+    assert "offline replay manifest PASS" in failed
+    assert "offline replay identity contract ready" in failed
 
 
 def test_candidate_bundle_audit_checks_pass_on_strict_candidate_contract(tmp_path: Path) -> None:

@@ -25,6 +25,10 @@ DEFAULT_REPLAY_READINESS_JSON = REPLAY_READINESS_OUT_DIR / "ENTRY_REPLAY_READINE
 DEFAULT_OUT_DIR = REPORTS_ROOT / "entry_iql_distillation_contract_20260628_v1"
 
 REQUIRED_DECISION = "READY_FOR_IQL_DISTILLATION_VEDTAK"
+CONTRACT_INPUT_DIMS = {
+    "foundation_seq146": 146,
+    "challenger_seq215": 215,
+}
 IQL_DISTILLATION_REQUIRED_ARTIFACT_KEYS = (
     "replay_readiness",
     "candidate_readiness",
@@ -136,8 +140,25 @@ def _identity_checks(replay_readiness: dict[str, Any]) -> list[dict[str, Any]]:
     candidate_bundle_dir = str(identity.get("candidate_bundle_dir") or "")
     selective_bundle_dir = str(identity.get("selective_edge_bundle_dir") or "")
     replay_bundle_dir = str(identity.get("replay_identity_candidate_bundle_dir") or "")
+    contract_mode = str(replay_readiness.get("contract_mode") or identity.get("contract_mode") or "foundation_seq146")
+    identity_contract_modes = {
+        "evidence_identity": str(identity.get("contract_mode") or contract_mode),
+        "candidate_bundle": str(identity.get("candidate_bundle_contract_mode") or contract_mode),
+        "selective_edge": str(identity.get("selective_edge_contract_mode") or contract_mode),
+        "replay_identity": str(identity.get("replay_identity_contract_mode") or contract_mode),
+    }
     return [
         _check("replay-readiness carries evidence identity", bool(identity), {"evidence_identity": identity}),
+        _check(
+            "replay-readiness carries supported contract mode",
+            contract_mode in CONTRACT_INPUT_DIMS,
+            {"contract_mode": contract_mode, "supported_contract_modes": sorted(CONTRACT_INPUT_DIMS)},
+        ),
+        _check(
+            "replay-readiness contract mode identity is aligned",
+            all(mode == contract_mode for mode in identity_contract_modes.values()),
+            {"contract_mode": contract_mode, "identity_contract_modes": identity_contract_modes},
+        ),
         _check("evidence identity has candidate bundle dir", bool(candidate_bundle_dir), {"evidence_identity": identity}),
         _check(
             "evidence identity matches selective-edge bundle",
@@ -396,6 +417,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     out_dir.mkdir(parents=True, exist_ok=True)
     replay_readiness_path = Path(args.replay_readiness_json).expanduser().resolve()
     replay_readiness = _read_json(replay_readiness_path)
+    evidence_identity = replay_readiness.get("evidence_identity") if isinstance(replay_readiness.get("evidence_identity"), dict) else {}
+    contract_mode = str(replay_readiness.get("contract_mode") or evidence_identity.get("contract_mode") or "foundation_seq146")
     artifact_paths = _artifact_paths_from_replay_readiness(replay_readiness, replay_readiness_path)
     artifact_sha256, artifact_hash_checks = _artifact_hash_contract(artifact_paths)
     pretrain_provenance = _replay_readiness_check(
@@ -509,7 +532,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         {
             "id": "entry_iql_student",
             "purpose": "Fit an offline IQL entry policy against replay rewards, then compare against the candidate before any adapter work.",
-            "inputs": ["foundation seq146 state", "teacher labels", "replay rewards"],
+            "inputs": [f"{contract_mode} state", "teacher labels", "replay rewards"],
         },
         {
             "id": "post_distillation_replay_compare",
@@ -520,11 +543,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     report = {
         "schema_version": "entry_iql_distillation_contract_v1",
         "created_utc": datetime.now(timezone.utc).isoformat(),
+        "contract_mode": contract_mode,
         "decision": "ENTRY_IQL_DISTILLATION_CONTRACT_READY" if ready else "ENTRY_IQL_DISTILLATION_CONTRACT_NOT_READY",
         "vedtak": str(args.vedtak),
         "replay_readiness_json": str(replay_readiness_path),
         "replay_readiness_decision": replay_readiness.get("decision"),
-        "evidence_identity": replay_readiness.get("evidence_identity") if isinstance(replay_readiness.get("evidence_identity"), dict) else {},
+        "evidence_identity": evidence_identity,
         "candidate_pretrain_provenance_contract": pretrain_provenance,
         "smoke_dataset_provenance_contract": smoke_dataset_provenance,
         "specialist_set_provenance_contract": specialist_set_provenance,

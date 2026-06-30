@@ -164,6 +164,7 @@ def build_comparison_checks(
         else {}
     )
     contract_bundle_dir = _identity_bundle_dir(evidence_identity)
+    contract_mode = str(distill_contract.get("contract_mode") or evidence_identity.get("contract_mode") or "foundation_seq146")
     contract_selective_bundle_dir = str(evidence_identity.get("selective_edge_bundle_dir") or "")
     contract_replay_bundle_dir = str(evidence_identity.get("replay_identity_candidate_bundle_dir") or "")
     expected_candidate_manifest_json = _normal_path_string(evidence_identity.get("replay_evidence_manifest_json"))
@@ -180,6 +181,8 @@ def build_comparison_checks(
     )
     candidate_manifest_bundle_dir = _identity_bundle_dir(candidate_manifest_identity)
     iql_manifest_bundle_dir = _identity_bundle_dir(iql_manifest_identity)
+    candidate_manifest_contract_mode = str(candidate_manifest_identity.get("contract_mode") or contract_mode)
+    iql_manifest_contract_mode = str(iql_manifest_identity.get("contract_mode") or contract_mode)
     iql_manifest_distillation_contract_json = _normal_path_string(
         iql_replay_manifest.get("distillation_contract_json")
         or iql_manifest_identity.get("distillation_contract_json")
@@ -204,6 +207,7 @@ def build_comparison_checks(
         "drawdown_delta_bps": iql_dd - cand_dd,
         "max_loss_delta_bps": iql_loss - cand_loss,
         "evidence_identity": evidence_identity,
+        "contract_mode": contract_mode,
         "candidate_replay_identity": candidate_manifest_identity,
         "iql_replay_identity": iql_manifest_identity,
         "candidate_replay_manifest_json": observed_candidate_manifest_json,
@@ -278,6 +282,15 @@ def build_comparison_checks(
                 "selective_edge_bundle_dir": contract_selective_bundle_dir,
                 "replay_identity_candidate_bundle_dir": contract_replay_bundle_dir,
                 "replay_identity_ready": evidence_identity.get("replay_identity_ready"),
+            },
+        ),
+        _check(
+            "IQL replay comparison contract mode identity is aligned",
+            candidate_manifest_contract_mode == contract_mode and iql_manifest_contract_mode == contract_mode,
+            {
+                "contract_mode": contract_mode,
+                "candidate_manifest_contract_mode": candidate_manifest_contract_mode,
+                "iql_manifest_contract_mode": iql_manifest_contract_mode,
             },
         ),
         _check(

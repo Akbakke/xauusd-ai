@@ -477,6 +477,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     no_xgb_ablation_mode = str(getattr(args, "no_xgb_ablation_mode", "bundle")).strip()
     if no_xgb_ablation_mode not in {"bundle", "neutralize_signal_bridge"}:
         raise RuntimeError(f"invalid no-XGB ablation mode: {no_xgb_ablation_mode}")
+    contract_mode = str(getattr(args, "contract_mode", "foundation_seq146") or "foundation_seq146").strip()
     out_dir.mkdir(parents=True, exist_ok=True)
     if mtf_cache_dir and mtf_cache_dir.exists():
         os.environ.setdefault("GX1_V10_MULTI_TF_V2_CACHE_DIR", str(mtf_cache_dir))
@@ -544,6 +545,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "schema_version": "entry_candidate_selective_edge_v1",
         "created_utc": datetime.now(timezone.utc).isoformat(),
         "decision": "PASS" if ready else "FAIL",
+        "contract_mode": contract_mode,
         "bundle_dir": str(bundle_dir),
         "no_xgb_bundle_dir": no_xgb_bundle or "",
         "no_xgb_ablation": {
@@ -561,6 +563,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "no_xgb_ablation_diagnostics": no_xgb_ablation_diagnostics,
         "top_fracs": top_fracs,
         "bundle_seq_len": int(bundle_meta.get("seq_len") or 0),
+        "bundle_seq_input_dim": int(bundle_meta.get("seq_input_dim") or bundle_meta.get("snap_input_dim") or 0),
+        "bundle_snap_input_dim": int(bundle_meta.get("snap_input_dim") or bundle_meta.get("seq_input_dim") or 0),
         "bundle_specialist_fusion_enabled": bool((bundle_meta.get("specialist_fusion") or {}).get("enabled")) if isinstance(bundle_meta.get("specialist_fusion"), dict) else False,
         "trainer_started": False,
         "promotion_shadow_live_allowed": False,
@@ -576,6 +580,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "schema_version": report["schema_version"],
             "created_utc": report["created_utc"],
             "decision": report["decision"],
+            "contract_mode": report["contract_mode"],
             "bundle_dir": report["bundle_dir"],
             "no_xgb_bundle_dir": report["no_xgb_bundle_dir"],
             "no_xgb_ablation": report["no_xgb_ablation"],
@@ -621,6 +626,7 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--splits", default="val,test")
     ap.add_argument("--top-fracs", default="0.05,0.10")
     ap.add_argument("--model-name", default="candidate")
+    ap.add_argument("--contract-mode", choices=("foundation_seq146", "challenger_seq215"), default="foundation_seq146")
     ap.add_argument("--no-xgb-ablation-mode", choices=("bundle", "neutralize_signal_bridge"), default="bundle")
     ap.add_argument("--device", default="cpu")
     ap.add_argument("--batch-size", type=int, default=128)

@@ -107,8 +107,17 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "specialist_model_contract_owned_objectives_match" in text
     assert "specialist_model_contract" in text
     assert "_load_specialist_fusion_contract" in text
-    assert "--specialist-contract-mode foundation_seq146" in text
-    assert 'contract_mode="foundation_seq146"' in text
+    assert "--specialist-contract-mode \"$SPECIALIST_CONTRACT_MODE\"" in text
+    assert 'SPECIALIST_CONTRACT_MODE=foundation_seq146' in text
+    assert 'SPECIALIST_CONTRACT_MODE=challenger_seq215' in text
+    assert 'EXPECTED_SIGNAL_DIM=215' in text
+    assert '--contract-mode "$SPECIALIST_CONTRACT_MODE"' in text
+    assert "--challenger-seq215" in text
+    assert "challenger_seq215_20260630_contract8" in text
+    assert "entry_foundation_smoke_bundle_audit_20260628_v1/challenger_seq215_20260630" in text
+    assert "v10_dataset_challenger_seq215_neutral_20260630" in text
+    assert 'contract_mode=sys.argv[15]' in text
+    assert "expected_signal_dim=int(sys.argv[16])" in text
     assert "feature_objective_liveness_all_live" in text
     assert "feature_source_field_liveness_all_live" in text
     assert "specialist_active_heads_match_target" in text

@@ -103,6 +103,7 @@ def _distillation_identity_contract(
     candidate_bundle_dir = str(identity.get("candidate_bundle_dir") or "")
     selective_bundle_dir = str(identity.get("selective_edge_bundle_dir") or "")
     replay_bundle_dir = str(identity.get("replay_identity_candidate_bundle_dir") or "")
+    contract_mode = str(distillation_contract.get("contract_mode") or identity.get("contract_mode") or "foundation_seq146")
     candidate_replay_manifest_json = str(identity.get("replay_evidence_manifest_json") or "")
     candidate_replay_manifest_path = Path(candidate_replay_manifest_json).expanduser() if candidate_replay_manifest_json else None
     candidate_replay_manifest = (
@@ -177,6 +178,11 @@ def _distillation_identity_contract(
         )
     if not bool(identity.get("replay_identity_ready")):
         failures.append("IQL distillation evidence_identity replay_identity_ready is false")
+    if str(identity.get("contract_mode") or contract_mode) != contract_mode:
+        failures.append(
+            "IQL distillation evidence_identity contract_mode mismatch: "
+            f"{identity.get('contract_mode')} != {contract_mode}"
+        )
     if not candidate_replay_manifest_json:
         failures.append("IQL distillation evidence_identity has no replay_evidence_manifest_json")
     elif candidate_replay_manifest_path is not None and not candidate_replay_manifest_path.exists():
@@ -299,6 +305,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "schema_version": "entry_iql_replay_evidence_v1",
         "created_utc": datetime.now(timezone.utc).isoformat(),
         "decision": "PASS" if not failures else "FAIL",
+        "contract_mode": str(distillation_contract.get("contract_mode") or identity.get("contract_mode") or "foundation_seq146"),
         "trades_path": str(trades_path),
         "out_dir": str(out_dir),
         "distillation_contract_json": str(distillation_contract_path),

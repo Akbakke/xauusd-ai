@@ -57,6 +57,8 @@ def test_smoke_train_dry_run_prints_post_smoke_audit_command() -> None:
     assert "audit-smoke-bundle" in result.stdout
     assert "--bundle-dir" in result.stdout
     assert "--dataset-dir" in result.stdout
+    assert "--out-dir" in result.stdout
+    assert "entry_foundation_smoke_bundle_audit_20260628_v1" in result.stdout
     assert "--require-head-contract" in result.stdout
     assert "--pretrain-manifest-json" in result.stdout
     assert "--require-edge" in result.stdout
@@ -94,6 +96,27 @@ def test_smoke_train_rejects_require_edge_without_audit() -> None:
 
     assert result.returncode == 2
     assert "--require-edge-audit cannot be combined with --skip-smoke-audit" in result.stderr
+
+
+def test_seq215_manifest_requires_seq215_vedtak() -> None:
+    result = subprocess.run(
+        [
+            "bash",
+            str(WRAPPER),
+            "--challenger-seq215",
+            "--vedtak",
+            "ENTRY_FOUNDATION_SMOKE_TRAIN_20260629_SEQ146_V1",
+            "--manifest-only",
+        ],
+        cwd=REPO,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode == 2
+    assert "requires an explicit SEQ215 vedtak id" in result.stderr
 
 
 def test_smoke_train_wrapper_enforces_train_readiness_for_real_train() -> None:
@@ -135,8 +158,16 @@ def test_smoke_train_wrapper_enforces_train_readiness_for_real_train() -> None:
     assert "specialist_model_contract_failures" in text
     assert "specialist_model_contract" in text
     assert "_load_specialist_fusion_contract" in text
-    assert "--specialist-contract-mode foundation_seq146" in text
-    assert 'contract_mode="foundation_seq146"' in text
+    assert "SPECIALIST_CONTRACT_MODE=foundation_seq146" in text
+    assert "--specialist-contract-mode \"$SPECIALIST_CONTRACT_MODE\"" in text
+    assert 'contract_mode = os.environ.get("SPECIALIST_CONTRACT_MODE", "foundation_seq146")' in text
+    assert "--challenger-seq215" in text
+    assert "SPECIALIST_CONTRACT_MODE=challenger_seq215" in text
+    assert "EXPECTED_SIGNAL_DIM=215" in text
+    assert "entry_foundation_seq215_smoke_dataset_v1" in text
+    assert "SMOKE_BUNDLE_AUDIT_OUT" in text
+    assert "entry_foundation_smoke_bundle_audit_20260628_v1/challenger_seq215_20260630" in text
+    assert '--out-dir "$SMOKE_BUNDLE_AUDIT_OUT"' in text
     assert "architecture_active_heads" in text
     assert "architecture_blocked_heads" in text
     assert "foundation_objective_routing_all_present_and_expected" in text
@@ -169,5 +200,10 @@ def test_control_surface_exposes_manifest_only_smoke_proof() -> None:
     text = CONTROL.read_text(encoding="utf-8")
 
     assert "scripts/entry_next_edge_control.sh smoke-manifest --vedtak <id>" in text
+    assert "scripts/entry_next_edge_control.sh smoke-manifest-seq215 --vedtak <id>" in text
+    assert "scripts/entry_next_edge_control.sh smoke-train-seq215 --vedtak <id> --require-edge-audit" in text
     assert "smoke-manifest)" in text
+    assert "smoke-manifest-seq215)" in text
+    assert "smoke-train-seq215)" in text
     assert 'run_entry_foundation_seq146_smoke_train.sh" --manifest-only' in text
+    assert 'run_entry_foundation_seq146_smoke_train.sh" --challenger-seq215 --manifest-only' in text

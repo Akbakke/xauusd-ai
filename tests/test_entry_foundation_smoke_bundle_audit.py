@@ -1,7 +1,11 @@
 import numpy as np
 import json
 
-from gx1.features.entry_specialist_feature_groups_v1 import SPECIALIST_MODEL_CONTRACT
+from gx1.features.entry_specialist_feature_groups_v1 import (
+    CHALLENGER_SEQ215_SPECIALIST_MODEL_CONTRACT,
+    CHALLENGER_SEQ215_TRAINING_SPECIALISTS,
+    SPECIALIST_MODEL_CONTRACT,
+)
 from gx1.scripts.audit_entry_foundation_smoke_bundle_v1 import (
     _direction_metrics,
     _gate_stats,
@@ -30,6 +34,10 @@ REQUIRED_SPECIALISTS = [
 
 def _specialist_model_contract_payload() -> dict:
     return json.loads(json.dumps(SPECIALIST_MODEL_CONTRACT))
+
+
+def _challenger_seq215_specialist_model_contract_payload() -> dict:
+    return json.loads(json.dumps(CHALLENGER_SEQ215_SPECIALIST_MODEL_CONTRACT))
 
 
 def test_majority_baseline_accuracy_counts_largest_class() -> None:
@@ -126,6 +134,7 @@ def test_specialist_model_contract_report_accepts_exact_contract() -> None:
     report = _specialist_model_contract_report(_specialist_model_contract_payload())
 
     assert report["decision"] == "PASS"
+    assert report["contract_mode"] == "foundation_seq146"
     assert report["valid"] is True
     assert report["set_exact"] is True
     assert report["owned_objectives_match"] is True
@@ -133,6 +142,30 @@ def test_specialist_model_contract_report_accepts_exact_contract() -> None:
     assert report["signal_families_match"] is True
     assert report["model_roles_match"] is True
     assert report["failures"] == []
+
+
+def test_specialist_model_contract_report_accepts_challenger_seq215_contract() -> None:
+    report = _specialist_model_contract_report(
+        _challenger_seq215_specialist_model_contract_payload(),
+        contract_mode="challenger_seq215",
+    )
+
+    assert report["decision"] == "PASS"
+    assert report["contract_mode"] == "challenger_seq215"
+    assert report["valid"] is True
+    assert report["set_exact"] is True
+    assert report["observed_specialists"] == sorted(CHALLENGER_SEQ215_TRAINING_SPECIALISTS)
+    assert "chart_geometry_encoder" in report["observed_specialists"]
+    assert "price_action_candle_encoder" in report["observed_specialists"]
+
+
+def test_specialist_model_contract_report_rejects_challenger_contract_under_foundation_mode() -> None:
+    report = _specialist_model_contract_report(_challenger_seq215_specialist_model_contract_payload())
+
+    assert report["decision"] == "FAIL"
+    assert report["valid"] is False
+    assert report["set_exact"] is False
+    assert any("set mismatch" in failure for failure in report["failures"])
 
 
 def test_specialist_model_contract_report_rejects_tampered_contract() -> None:

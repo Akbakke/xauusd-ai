@@ -276,7 +276,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         samples[split] = sample
 
     manifest = {
-        "schema_version": "entry_foundation_seq146_smoke_dataset_v1",
+        "schema_version": str(getattr(args, "schema_version", "entry_foundation_seq146_smoke_dataset_v1")),
         "created_utc": datetime.now(timezone.utc).isoformat(),
         "source_dir": str(source_dir),
         "out_dir": str(out_dir),
@@ -304,6 +304,7 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--feature-audit-json", default=str(FEATURE_AUDIT_LATEST))
     ap.add_argument("--target-audit-json", default=str(TARGET_AUDIT_LATEST))
     ap.add_argument("--specialist-audit-json", default=str(SPECIALIST_AUDIT_LATEST))
+    ap.add_argument("--schema-version", default="entry_foundation_seq146_smoke_dataset_v1")
     ap.add_argument("--quiet", action="store_true")
     return ap
 

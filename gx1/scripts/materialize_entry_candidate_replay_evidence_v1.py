@@ -25,6 +25,10 @@ DEFAULT_CANDIDATE_BUNDLE_AUDIT = (
     REPORTS_ROOT / "entry_candidate_bundle_audit_20260628_v1/ENTRY_FOUNDATION_SMOKE_BUNDLE_AUDIT_latest.json"
 )
 DEFAULT_SELECTIVE_EDGE_SUMMARY = REPORTS_ROOT / "entry_candidate_selective_edge_20260628_v1/summary.json"
+CONTRACT_INPUT_DIMS = {
+    "foundation_seq146": 146,
+    "challenger_seq215": 215,
+}
 
 IQL_TRANSITION_REQUIRED_COLUMNS = (
     "entry_time",
@@ -91,6 +95,21 @@ def _identity_contract(
 ) -> dict[str, Any]:
     candidate_audit = _read_json_if_exists(candidate_bundle_audit_path)
     selective_summary = _read_json_if_exists(selective_edge_summary_path)
+    bundle = candidate_audit.get("bundle_summary") if isinstance(candidate_audit.get("bundle_summary"), dict) else {}
+    contract_mode = str(
+        candidate_audit.get("specialist_contract_mode")
+        or candidate_audit.get("contract_mode")
+        or bundle.get("specialist_contract_mode")
+        or bundle.get("contract_mode")
+        or bundle.get("audit_contract_mode")
+        or "foundation_seq146"
+    ).strip()
+    selective_contract_mode = str(selective_summary.get("contract_mode") or "foundation_seq146").strip()
+    expected_input_dim = CONTRACT_INPUT_DIMS.get(contract_mode)
+    bundle_seq_input_dim = int(bundle.get("seq_input_dim") or 0)
+    bundle_snap_input_dim = int(bundle.get("snap_input_dim") or 0)
+    selective_seq_input_dim = int(selective_summary.get("bundle_seq_input_dim") or 0)
+    selective_snap_input_dim = int(selective_summary.get("bundle_snap_input_dim") or 0)
     failures: list[str] = []
     if require_identity_artifacts and not candidate_bundle_audit_path.exists():
         failures.append(f"missing candidate bundle audit: {candidate_bundle_audit_path}")
@@ -112,9 +131,41 @@ def _identity_contract(
             "selective-edge bundle_dir does not match candidate bundle audit: "
             f"{selective_bundle_dir} != {candidate_bundle_dir}"
         )
+    if selective_contract_mode != contract_mode:
+        failures.append(
+            "selective-edge contract_mode does not match candidate bundle audit: "
+            f"{selective_contract_mode} != {contract_mode}"
+        )
+    if expected_input_dim is None:
+        failures.append(f"unknown replay evidence contract_mode: {contract_mode}")
+    elif (
+        bundle_seq_input_dim
+        and bundle_snap_input_dim
+        and (bundle_seq_input_dim != expected_input_dim or bundle_snap_input_dim != expected_input_dim)
+    ):
+        failures.append(
+            "candidate bundle input dimensions do not match contract mode: "
+            f"seq={bundle_seq_input_dim} snap={bundle_snap_input_dim} expected={expected_input_dim}"
+        )
+    if expected_input_dim is not None and (
+        selective_seq_input_dim
+        and selective_snap_input_dim
+        and (selective_seq_input_dim != expected_input_dim or selective_snap_input_dim != expected_input_dim)
+    ):
+        failures.append(
+            "selective-edge input dimensions do not match contract mode: "
+            f"seq={selective_seq_input_dim} snap={selective_snap_input_dim} expected={expected_input_dim}"
+        )
 
     return {
         "ready": not failures,
+        "contract_mode": contract_mode,
+        "selective_edge_contract_mode": selective_contract_mode,
+        "expected_input_dim": expected_input_dim,
+        "candidate_bundle_seq_input_dim": bundle_seq_input_dim,
+        "candidate_bundle_snap_input_dim": bundle_snap_input_dim,
+        "selective_edge_seq_input_dim": selective_seq_input_dim,
+        "selective_edge_snap_input_dim": selective_snap_input_dim,
         "candidate_bundle_audit_json": str(candidate_bundle_audit_path),
         "selective_edge_summary_json": str(selective_edge_summary_path),
         "candidate_bundle_dir": candidate_bundle_dir,
@@ -490,6 +541,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "schema_version": "entry_candidate_replay_evidence_v1",
         "created_utc": datetime.now(timezone.utc).isoformat(),
         "decision": "PASS" if not failures else "FAIL",
+        "contract_mode": identity["contract_mode"],
         "trades_path": str(trades_path),
         "out_dir": str(out_dir),
         "candidate_bundle_audit_json": str(candidate_bundle_audit_path),

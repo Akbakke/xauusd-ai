@@ -223,6 +223,37 @@ def test_comparison_checks_fail_on_iql_identity_mismatch() -> None:
     assert "IQL replay manifest evidence identity matches distillation contract" in failed
 
 
+def test_comparison_checks_fail_on_contract_mode_identity_mismatch() -> None:
+    contract = _distill_contract()
+    contract["contract_mode"] = "challenger_seq215"
+    contract["evidence_identity"]["contract_mode"] = "challenger_seq215"
+    candidate_manifest = _replay_manifest()
+    iql_manifest = _replay_manifest()
+    candidate_manifest["replay_identity_contract"]["contract_mode"] = "foundation_seq146"
+    iql_manifest["replay_identity_contract"]["contract_mode"] = "challenger_seq215"
+
+    checks, _ = build_comparison_checks(
+        distill_contract=contract,
+        candidate_replay_manifest=candidate_manifest,
+        iql_replay_manifest=iql_manifest,
+        distillation_contract_json=DISTILLATION_CONTRACT_JSON,
+        candidate_replay_manifest_json=CANDIDATE_REPLAY_MANIFEST_JSON,
+        iql_replay_manifest_json=IQL_REPLAY_MANIFEST_JSON,
+        candidate_metrics=_metrics(200.0, 1.20, 100.0, -25.0),
+        candidate_monthly=_monthly(),
+        iql_metrics=_metrics(260.0, 1.35, 90.0, -20.0),
+        iql_monthly=_monthly(120.0, 140.0),
+        min_net_lift_bps=0.0,
+        min_iql_profit_factor=1.05,
+        min_profit_factor_lift=0.0,
+        max_drawdown_worsening_bps=0.0,
+        max_loss_worsening_bps=0.0,
+    )
+    failed = {check["name"] for check in checks if not check["ok"]}
+
+    assert "IQL replay comparison contract mode identity is aligned" in failed
+
+
 def test_comparison_checks_fail_when_distillation_pretrain_provenance_missing() -> None:
     bad_contract = _distill_contract()
     bad_contract["candidate_pretrain_provenance_contract"] = {"found": True, "ok": False}

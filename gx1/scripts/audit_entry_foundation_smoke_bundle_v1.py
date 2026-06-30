@@ -21,10 +21,10 @@ import torch
 from torch.utils.data import DataLoader
 
 from gx1.features.entry_specialist_feature_groups_v1 import (
-    REQUIRED_TRAINING_SPECIALISTS,
-    SPECIALIST_MODEL_CONTRACT,
     SPECIALIST_FUSION_ACTIVE_HEADS,
     SPECIALIST_FUSION_BLOCKED_HEADS,
+    required_training_specialists_for_mode,
+    specialist_model_contract_for_mode,
 )
 from gx1.models.entry_v10.entry_v10_bundle import load_entry_v10_ctx_bundle
 from gx1.models.entry_v10.entry_v10_ctx_train_v3 import EntryV10CtxDataset, _multi_tf_kwargs_from_batch
@@ -346,11 +346,16 @@ def _specialist_names(meta: dict[str, Any]) -> list[str]:
     return sorted(str(name) for name in indices.keys())
 
 
-def _specialist_model_contract_report(contract: dict[str, Any] | None) -> dict[str, Any]:
+def _specialist_model_contract_report(
+    contract: dict[str, Any] | None,
+    *,
+    contract_mode: str = "foundation_seq146",
+) -> dict[str, Any]:
     observed = contract if isinstance(contract, dict) else {}
     failures: list[str] = []
+    expected_contract = specialist_model_contract_for_mode(contract_mode)
     observed_keys = {str(name) for name in observed}
-    expected_keys = {str(name) for name in SPECIALIST_MODEL_CONTRACT}
+    expected_keys = {str(name) for name in expected_contract}
     if observed_keys != expected_keys:
         failures.append(
             "specialist model contract set mismatch: "
@@ -361,7 +366,7 @@ def _specialist_model_contract_report(contract: dict[str, Any] | None) -> dict[s
     support_heads_match = True
     signal_families_match = True
     model_roles_match = True
-    for name, expected_spec in SPECIALIST_MODEL_CONTRACT.items():
+    for name, expected_spec in expected_contract.items():
         observed_spec = observed.get(name)
         if not isinstance(observed_spec, dict):
             failures.append(f"specialist model contract missing spec for {name}")
@@ -392,6 +397,7 @@ def _specialist_model_contract_report(contract: dict[str, Any] | None) -> dict[s
 
     return {
         "decision": "PASS" if not failures else "FAIL",
+        "contract_mode": str(contract_mode),
         "valid": not failures,
         "set_exact": observed_keys == expected_keys,
         "owned_objectives_match": owned_objectives_match,
@@ -616,6 +622,14 @@ def _pretrain_manifest_contract_report(
     specialist = contracts.get("specialist_contract") if isinstance(contracts.get("specialist_contract"), dict) else {}
     smoke_dataset = contracts.get("smoke_dataset") if isinstance(contracts.get("smoke_dataset"), dict) else {}
     worktree = contracts.get("worktree_hygiene") if isinstance(contracts.get("worktree_hygiene"), dict) else {}
+    contract_mode = str(
+        manifest.get("specialist_contract_mode")
+        or specialist.get("contract_mode")
+        or specialist.get("audit_contract_mode")
+        or "foundation_seq146"
+    )
+    expected_required_specialists = set(required_training_specialists_for_mode(contract_mode))
+    expected_model_contract = specialist_model_contract_for_mode(contract_mode)
 
     if schema_version == "entry_foundation_candidate_train_run_manifest_v1":
         if str(candidate_readiness.get("decision")) != "READY_FOR_CANDIDATE_TRAINING_VEDTAK":
@@ -667,7 +681,6 @@ def _pretrain_manifest_contract_report(
         smoke_edge_specialist_groups = {
             str(name) for name in smoke_edge.get("specialist_groups", []) if str(name)
         }
-        expected_required_specialists = set(REQUIRED_TRAINING_SPECIALISTS)
         if smoke_edge_required_specialists != expected_required_specialists:
             failures.append(
                 "candidate pretrain smoke edge required specialists were not exact: "
@@ -777,8 +790,15 @@ def _pretrain_manifest_contract_report(
         for split, row in (feature.get("foundation_source_fields_by_split") or {}).items():
             if int((row or {}).get("source_missing_count") or 0) != 0:
                 failures.append(f"pretrain foundation source fields missing for split={split}")
-        if str(smoke_dataset.get("schema_version")) != "entry_foundation_seq146_smoke_dataset_v1":
-            failures.append("pretrain smoke dataset contract schema is not entry_foundation_seq146_smoke_dataset_v1")
+        allowed_smoke_dataset_schemas = {
+            "entry_foundation_seq146_smoke_dataset_v1",
+            "entry_foundation_seq215_smoke_dataset_v1",
+        }
+        if str(smoke_dataset.get("schema_version")) not in allowed_smoke_dataset_schemas:
+            failures.append(
+                "pretrain smoke dataset contract schema is not an approved foundation smoke schema: "
+                f"{smoke_dataset.get('schema_version')}"
+            )
         if (
             str(smoke_dataset.get("audit_provenance_schema_version"))
             != "entry_foundation_smoke_dataset_audit_provenance_v1"
@@ -836,7 +856,7 @@ def _pretrain_manifest_contract_report(
         else {}
     )
     specialist_model_contract_keys = {str(name) for name in specialist_model_contract}
-    expected_model_contract_keys = {str(name) for name in SPECIALIST_MODEL_CONTRACT}
+    expected_model_contract_keys = {str(name) for name in expected_model_contract}
     specialist_model_owned = {
         str(name): tuple(str(x) for x in (spec or {}).get("owned_objectives") or ())
         for name, spec in specialist_model_contract.items()
@@ -844,7 +864,7 @@ def _pretrain_manifest_contract_report(
     }
     expected_model_owned = {
         str(name): tuple(str(x) for x in spec.get("owned_objectives") or ())
-        for name, spec in SPECIALIST_MODEL_CONTRACT.items()
+        for name, spec in expected_model_contract.items()
     }
     specialist_model_support_heads = {
         str(name): tuple(str(x) for x in (spec or {}).get("supports_heads") or ())
@@ -856,7 +876,6 @@ def _pretrain_manifest_contract_report(
         for name, spec in specialist_model_contract.items()
         if isinstance(spec, dict)
     }
-    expected_required_specialists = set(REQUIRED_TRAINING_SPECIALISTS)
     train_manifest_with_loader_contract = schema_version in {
         "entry_foundation_smoke_train_run_manifest_v1",
         "entry_foundation_candidate_train_run_manifest_v1",
@@ -889,7 +908,7 @@ def _pretrain_manifest_contract_report(
                 "pretrain specialist model contract owned objectives mismatch: "
                 f"{specialist_model_owned}"
             )
-        for specialist_name in REQUIRED_TRAINING_SPECIALISTS:
+        for specialist_name in sorted(expected_required_specialists):
             support_heads = set(specialist_model_support_heads.get(specialist_name) or ())
             if not support_heads:
                 failures.append(f"pretrain specialist model contract has no support heads: {specialist_name}")
@@ -964,6 +983,8 @@ def _pretrain_manifest_contract_report(
         "manifest_path": str(manifest_path),
         "schema_version": manifest.get("schema_version"),
         "run_mode": manifest.get("run_mode"),
+        "specialist_contract_mode": contract_mode,
+        "expected_required_training_specialists": sorted(expected_required_specialists),
         "artifact_hash_checks": hash_checks,
         "feature_objective_coverage_all_present": (
             smoke_edge.get("feature_objective_coverage_all_present")
@@ -984,7 +1005,7 @@ def _pretrain_manifest_contract_report(
             {
                 str(name) for name in smoke_edge.get("required_training_specialists", []) if str(name)
             }
-            == set(REQUIRED_TRAINING_SPECIALISTS)
+            == expected_required_specialists
             if schema_version == "entry_foundation_candidate_train_run_manifest_v1"
             else None
         ),
@@ -992,7 +1013,7 @@ def _pretrain_manifest_contract_report(
             {
                 str(name) for name in smoke_edge.get("specialist_groups", []) if str(name)
             }
-            == set(REQUIRED_TRAINING_SPECIALISTS)
+            == expected_required_specialists
             if schema_version == "entry_foundation_candidate_train_run_manifest_v1"
             else None
         ),
@@ -1019,7 +1040,7 @@ def _pretrain_manifest_contract_report(
             {
                 str(name) for name in specialist.get("required_training_specialists", []) if str(name)
             }
-            == set(REQUIRED_TRAINING_SPECIALISTS)
+            == expected_required_specialists
             if train_manifest_with_loader_contract
             else None
         ),
@@ -1027,7 +1048,7 @@ def _pretrain_manifest_contract_report(
             {
                 str(name) for name in specialist.get("trainable_specialists", []) if str(name)
             }
-            == set(REQUIRED_TRAINING_SPECIALISTS)
+            == expected_required_specialists
             if train_manifest_with_loader_contract
             else None
         ),
@@ -1045,7 +1066,7 @@ def _pretrain_manifest_contract_report(
                     else {}
                 )
             }
-            == set(REQUIRED_TRAINING_SPECIALISTS)
+            == expected_required_specialists
             if train_manifest_with_loader_contract
             else None
         ),
@@ -1061,7 +1082,7 @@ def _pretrain_manifest_contract_report(
             }
             == {
                 str(name): tuple(str(x) for x in spec.get("owned_objectives") or ())
-                for name, spec in SPECIALIST_MODEL_CONTRACT.items()
+                for name, spec in expected_model_contract.items()
             }
             if train_manifest_with_loader_contract
             else None
@@ -1287,13 +1308,21 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     seq_len = int(meta.get("seq_len") or 96)
     specialist_cfg = meta.get("specialist_fusion") if isinstance(meta.get("specialist_fusion"), dict) else {}
     specialist_enabled = bool(specialist_cfg.get("enabled", False))
+    specialist_contract_mode = str(specialist_cfg.get("contract_mode") or "foundation_seq146")
+    required_specialists = tuple(required_training_specialists_for_mode(specialist_contract_mode))
+    min_active_specialists = (
+        len(required_specialists)
+        if int(args.min_active_specialists) <= 0
+        else int(args.min_active_specialists)
+    )
     specialist_names = _specialist_names(meta)
     if args.require_specialist_fusion and not specialist_enabled:
         failures.append("bundle metadata does not enable specialist_fusion")
     bundle_specialist_model_contract = _specialist_model_contract_report(
         specialist_cfg.get("specialist_model_contract")
         if isinstance(specialist_cfg.get("specialist_model_contract"), dict)
-        else None
+        else None,
+        contract_mode=specialist_contract_mode,
     )
     if args.require_specialist_fusion:
         if not bool(specialist_cfg.get("specialist_model_contract_valid")):
@@ -1330,8 +1359,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     split=split,
                     gate_report=split_report["specialist_gate"],
                     specialist_names=specialist_names,
-                    required_specialists=REQUIRED_TRAINING_SPECIALISTS,
-                    min_active_specialists=int(args.min_active_specialists),
+                    required_specialists=required_specialists,
+                    min_active_specialists=int(min_active_specialists),
                     min_gate_entropy=float(args.min_gate_entropy),
                 )
             )
@@ -1380,8 +1409,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "batch_size": int(args.batch_size),
         "require_edge": bool(args.require_edge),
         "require_specialist_fusion": bool(args.require_specialist_fusion),
-        "required_training_specialists": list(REQUIRED_TRAINING_SPECIALISTS),
-        "min_active_specialists": int(args.min_active_specialists),
+        "specialist_contract_mode": specialist_contract_mode,
+        "required_training_specialists": list(required_specialists),
+        "min_active_specialists": int(min_active_specialists),
         "min_gate_entropy": float(args.min_gate_entropy),
         "require_head_contract": bool(args.require_head_contract),
         "target_audit_json": str(Path(args.target_audit_json).expanduser().resolve()),
@@ -1468,7 +1498,7 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--require-head-contract", action="store_true")
     ap.add_argument("--target-audit-json", default=str(TARGET_AUDIT_LATEST))
     ap.add_argument("--pretrain-manifest-json", default="")
-    ap.add_argument("--min-active-specialists", type=int, default=len(REQUIRED_TRAINING_SPECIALISTS))
+    ap.add_argument("--min-active-specialists", type=int, default=0)
     ap.add_argument("--min-gate-entropy", type=float, default=0.05)
     ap.add_argument("--fail-on-audit-fail", action=argparse.BooleanOptionalAction, default=True)
     ap.add_argument("--quiet", action="store_true")
