@@ -1134,6 +1134,10 @@ PY
     exec "$PY" -m gx1.scripts.evaluate_entry_candidate_selective_edge_v1 "$@"
     ;;
 
+  candidate-replay-trade-log)
+    exec "$PY" -m gx1.scripts.materialize_entry_candidate_replay_trade_log_v1 "$@"
+    ;;
+
   replay-evidence)
     exec "$PY" -m gx1.scripts.materialize_entry_candidate_replay_evidence_v1 "$@"
     ;;
