@@ -12,7 +12,7 @@ from typing import Iterable
 import numpy as np
 
 
-CHART_GEOMETRY_FEATURE_VERSION = "entry_chart_geometry_v1_20260630_numeric_lines_fib_patterns"
+CHART_GEOMETRY_FEATURE_VERSION = "entry_chart_geometry_v1_20260630_numeric_lines_fib_patterns_smart2"
 CHART_GEOMETRY_FEATURE_PREFIX = "chart.geometry_"
 
 CHART_GEOMETRY_SOURCE_FIELDS = (
@@ -203,14 +203,70 @@ def build_entry_chart_geometry_layer(
     sign_agree_down = (sign_stack < 0.0).mean(axis=0).astype(np.float32)
     agreement_pressure = _clip01(np.maximum(sign_agree_up, sign_agree_down) * (0.50 + regime_agreement))
     divergence_pressure = _clip01(regime_divergence + np.abs(m5_ema - h4_ema) * 0.25 + np.abs(h1_ema - d1_slope) * 0.20)
+    ema_bull_cross_cluster = _clip01(
+        0.40 * _cross_up(m5_ema)
+        + 0.25 * _cross_up(h1_ema)
+        + 0.20 * _cross_up(h4_ema)
+        + 0.15 * _cross_up(d1_slope)
+    )
+    ema_bear_cross_cluster = _clip01(
+        0.40 * _cross_down(m5_ema)
+        + 0.25 * _cross_down(h1_ema)
+        + 0.20 * _cross_down(h4_ema)
+        + 0.15 * _cross_down(d1_slope)
+    )
+    ema_bull_follow = _clip01(
+        0.20 * _pos(_delta(m5_ema))
+        + 0.25 * _pos(_delta(h1_ema))
+        + 0.25 * _pos(_delta(h4_ema))
+        + 0.15 * _pos(_delta(d1_slope))
+        + 0.15 * trend_up
+    )
+    ema_bear_follow = _clip01(
+        0.20 * _neg(_delta(m5_ema))
+        + 0.25 * _neg(_delta(h1_ema))
+        + 0.25 * _neg(_delta(h4_ema))
+        + 0.15 * _neg(_delta(d1_slope))
+        + 0.15 * trend_down
+    )
+    ema_bull_confirmation = _clip01(
+        (ema_bull_cross_cluster + ema_bull_follow) * (0.50 + agreement_pressure) * (0.75 + sign_agree_up)
+    )
+    ema_bear_confirmation = _clip01(
+        (ema_bear_cross_cluster + ema_bear_follow) * (0.50 + agreement_pressure) * (0.75 + sign_agree_down)
+    )
+    ema_cross_up_pressure = (
+        _cross_up(mtf_trend) * (1.0 + agreement_pressure)
+        + _pos(trend_delta) * (0.65 + agreement_pressure)
+        + ema_bull_confirmation
+    )
+    ema_cross_down_pressure = (
+        _cross_down(mtf_trend) * (1.0 + agreement_pressure)
+        + _neg(trend_delta) * (0.65 + agreement_pressure)
+        + ema_bear_confirmation
+    )
     _add(arrays, names, "mtf_trend_score", mtf_trend, lo=-2.0, hi=2.0)
     _add(arrays, names, "h8_proxy_trend_score", h8_proxy, lo=-2.0, hi=2.0)
     _add(arrays, names, "mtf_trend_agreement_pressure", agreement_pressure, lo=0.0, hi=1.0)
     _add(arrays, names, "mtf_trend_divergence_pressure", divergence_pressure, lo=0.0, hi=1.0)
     _add(arrays, names, "ema_stack_bull_pressure", trend_up * agreement_pressure, lo=0.0, hi=2.0)
     _add(arrays, names, "ema_stack_bear_pressure", trend_down * agreement_pressure, lo=0.0, hi=2.0)
-    _add(arrays, names, "ema_cross_up_pressure", _cross_up(mtf_trend) + _pos(trend_delta), lo=0.0, hi=2.0)
-    _add(arrays, names, "ema_cross_down_pressure", _cross_down(mtf_trend) + _neg(trend_delta), lo=0.0, hi=2.0)
+    _add(
+        arrays,
+        names,
+        "ema_cross_up_pressure",
+        ema_cross_up_pressure,
+        lo=0.0,
+        hi=3.0,
+    )
+    _add(
+        arrays,
+        names,
+        "ema_cross_down_pressure",
+        ema_cross_down_pressure,
+        lo=0.0,
+        hi=3.0,
+    )
 
     near_swing_high = _prox_abs(c("ctx_cont.dist_last_swing_high_atr"))
     near_swing_low = _prox_abs(c("ctx_cont.dist_last_swing_low_atr"))
@@ -248,6 +304,13 @@ def build_entry_chart_geometry_layer(
     channel_position = _clip01(0.5 + 0.5 * support_minus_resistance)
     channel_center = _clip01(1.0 - 2.0 * np.abs(channel_position - 0.5))
     channel_edge = _clip01(level_max * (1.0 - channel_center))
+    sr_balance = _clip01(1.0 - np.abs(support_stack - resistance_stack))
+    channel_confluence = _clip01(
+        (0.50 * level_max + 0.30 * level_mean + 0.20 * sr_balance)
+        * (0.65 + 0.35 * agreement_pressure)
+        * (1.0 - 0.25 * divergence_pressure)
+    )
+    channel_edge_retest = _clip01(channel_edge * (0.50 + sr_balance) * (0.50 + agreement_pressure))
     _add(arrays, names, "support_line_proximity_stack", support_stack, lo=0.0, hi=1.0)
     _add(arrays, names, "resistance_line_proximity_stack", resistance_stack, lo=0.0, hi=1.0)
     _add(arrays, names, "support_minus_resistance_stack", support_minus_resistance, lo=-2.0, hi=2.0)
@@ -257,6 +320,22 @@ def build_entry_chart_geometry_layer(
     _add(arrays, names, "channel_center_bias", channel_center, lo=0.0, hi=1.0)
     _add(arrays, names, "channel_edge_pressure", channel_edge, lo=0.0, hi=1.0)
 
+    h1_compression = _clip01(c("ctx_cont.H1_range_compression_ratio"))
+    m15_compression = _clip01(c("ctx_cont.M15_range_compression_ratio"))
+    squeeze = _clip01(c("snap._v1_bb_squeeze_20_2"))
+    compression = _clip01(0.40 * h1_compression + 0.35 * m15_compression + 0.25 * squeeze)
+    vol_impulse = _clip01(
+        0.34 * _pos(_tanh(c("snap.atr_z"), scale=2.0))
+        + 0.33 * _pos(_tanh(c("snap.rvol_20"), scale=2.0))
+        + 0.33 * _pos(_tanh(c("snap.vol_ratio_5_20"), scale=2.0))
+    )
+    release = _clip01(compression * _pos(_delta(vol_impulse)))
+    trend_age = _clip01(
+        0.5 * c("ctx_cont.h1_trend_age_bars_norm_v2") + 0.5 * c("ctx_cont.h4_trend_age_bars_norm_v2")
+    )
+    d1_atr_pct = _clip01(c("ctx_cont.D1_atr_percentile_252"))
+    compression_apex = _clip01(compression * sr_balance * level_mean)
+
     bos_up = _clip01(c("snap.smc_bos_up") + 0.5 * _pos(c("ctx_cont.smc_bos_pressure_last12")) + 0.25 * _pos(c("ctx_cont.smc_bos_pressure_last48")))
     bos_down = _clip01(c("snap.smc_bos_down") + 0.5 * _neg(c("ctx_cont.smc_bos_pressure_last12")) + 0.25 * _neg(c("ctx_cont.smc_bos_pressure_last48")))
     choch = _clip01(c("snap.smc_choch") + c("ctx_cont.smc_choch_recent_tau12") + 0.5 * c("ctx_cont.smc_choch_recent_tau24"))
@@ -265,12 +344,68 @@ def build_entry_chart_geometry_layer(
     sweep_recent = _clip01(c("ctx_cont.smc_sweep_recency_tau24"))
     sweep_size = _clip01(c("snap.smc_sweep_size_atr") + c("ctx_cont.smc_sweep_size_recent_tau12"))
     wick_level = _clip01(c("ctx_cont.wick_ratio") + np.abs(c("snap.wick_asym")))
-    _add(arrays, names, "support_bounce_long_pressure", support_stack * trend_up * (1.0 + sweep_down + wick_level), lo=0.0, hi=4.0)
-    _add(arrays, names, "resistance_reject_short_pressure", resistance_stack * trend_down * (1.0 + sweep_up + wick_level), lo=0.0, hi=4.0)
-    _add(arrays, names, "trendline_break_up_pressure", resistance_stack * bos_up * (1.0 + trend_up + agreement_pressure), lo=0.0, hi=5.0)
-    _add(arrays, names, "trendline_break_down_pressure", support_stack * bos_down * (1.0 + trend_down + agreement_pressure), lo=0.0, hi=5.0)
-    _add(arrays, names, "failed_breakout_high_reversal_pressure", sweep_up * sweep_recent * resistance_stack * wick_level * (1.0 + trend_down + choch), lo=0.0, hi=5.0)
-    _add(arrays, names, "failed_breakout_low_reversal_pressure", sweep_down * sweep_recent * support_stack * wick_level * (1.0 + trend_up + choch), lo=0.0, hi=5.0)
+    breakout_up_seed = _clip01(
+        0.50 * bos_up + 0.20 * ema_bull_confirmation + 0.20 * release + 0.10 * _pos(regime_stack)
+    )
+    breakout_down_seed = _clip01(
+        0.50 * bos_down + 0.20 * ema_bear_confirmation + 0.20 * release + 0.10 * _neg(regime_stack)
+    )
+    _add(
+        arrays,
+        names,
+        "support_bounce_long_pressure",
+        support_stack * trend_up * (1.0 + sweep_down + wick_level + 0.5 * channel_confluence),
+        lo=0.0,
+        hi=5.0,
+    )
+    _add(
+        arrays,
+        names,
+        "resistance_reject_short_pressure",
+        resistance_stack * trend_down * (1.0 + sweep_up + wick_level + 0.5 * channel_confluence),
+        lo=0.0,
+        hi=5.0,
+    )
+    _add(
+        arrays,
+        names,
+        "trendline_break_up_pressure",
+        resistance_stack * breakout_up_seed * (1.0 + trend_up + agreement_pressure + 0.5 * compression),
+        lo=0.0,
+        hi=5.0,
+    )
+    _add(
+        arrays,
+        names,
+        "trendline_break_down_pressure",
+        support_stack * breakout_down_seed * (1.0 + trend_down + agreement_pressure + 0.5 * compression),
+        lo=0.0,
+        hi=5.0,
+    )
+    _add(
+        arrays,
+        names,
+        "failed_breakout_high_reversal_pressure",
+        sweep_up
+        * sweep_recent
+        * resistance_stack
+        * wick_level
+        * (1.0 + trend_down + choch + divergence_pressure + 0.5 * channel_edge),
+        lo=0.0,
+        hi=5.0,
+    )
+    _add(
+        arrays,
+        names,
+        "failed_breakout_low_reversal_pressure",
+        sweep_down
+        * sweep_recent
+        * support_stack
+        * wick_level
+        * (1.0 + trend_up + choch + divergence_pressure + 0.5 * channel_edge),
+        lo=0.0,
+        hi=5.0,
+    )
 
     premium = _clip01(c("snap.smc_premium_discount", default=0.5))
     retracement = _clip01(c("ctx_cont.retracement_from_last_impulse"))
@@ -284,6 +419,12 @@ def build_entry_chart_geometry_layer(
     golden = np.maximum(fib500, fib618).astype(np.float32)
     extension_up = _clip01(_pos(fib_position - 0.786) * 5.0)
     extension_down = _clip01(_pos(0.236 - fib_position) * 5.0)
+    fib_support_confluence = _clip01(
+        golden * support_stack * (0.50 + channel_confluence) * (0.50 + agreement_pressure)
+    )
+    fib_resistance_confluence = _clip01(
+        golden * resistance_stack * (0.50 + channel_confluence) * (0.50 + agreement_pressure)
+    )
     _add(arrays, names, "fib_position_proxy", fib_position, lo=0.0, hi=1.0)
     _add(arrays, names, "fib_retracement_236_proximity", fib236, lo=0.0, hi=1.0)
     _add(arrays, names, "fib_retracement_382_proximity", fib382, lo=0.0, hi=1.0)
@@ -291,27 +432,168 @@ def build_entry_chart_geometry_layer(
     _add(arrays, names, "fib_retracement_618_proximity", fib618, lo=0.0, hi=1.0)
     _add(arrays, names, "fib_retracement_786_proximity", fib786, lo=0.0, hi=1.0)
     _add(arrays, names, "fib_golden_zone_proximity", golden, lo=0.0, hi=1.0)
-    _add(arrays, names, "fib_pullback_long_pressure", golden * trend_up * support_stack * (0.5 + agreement_pressure), lo=0.0, hi=3.0)
-    _add(arrays, names, "fib_pullback_short_pressure", golden * trend_down * resistance_stack * (0.5 + agreement_pressure), lo=0.0, hi=3.0)
-    _add(arrays, names, "fib_extension_breakout_up_pressure", extension_up * trend_up * bos_up, lo=0.0, hi=3.0)
-    _add(arrays, names, "fib_extension_breakout_down_pressure", extension_down * trend_down * bos_down, lo=0.0, hi=3.0)
+    _add(
+        arrays,
+        names,
+        "fib_pullback_long_pressure",
+        trend_up * fib_support_confluence * (0.75 + ema_bull_follow),
+        lo=0.0,
+        hi=3.0,
+    )
+    _add(
+        arrays,
+        names,
+        "fib_pullback_short_pressure",
+        trend_down * fib_resistance_confluence * (0.75 + ema_bear_follow),
+        lo=0.0,
+        hi=3.0,
+    )
+    _add(
+        arrays,
+        names,
+        "fib_extension_breakout_up_pressure",
+        extension_up * trend_up * breakout_up_seed * (0.75 + resistance_stack),
+        lo=0.0,
+        hi=3.0,
+    )
+    _add(
+        arrays,
+        names,
+        "fib_extension_breakout_down_pressure",
+        extension_down * trend_down * breakout_down_seed * (0.75 + support_stack),
+        lo=0.0,
+        hi=3.0,
+    )
 
-    h1_compression = _clip01(c("ctx_cont.H1_range_compression_ratio"))
-    m15_compression = _clip01(c("ctx_cont.M15_range_compression_ratio"))
-    squeeze = _clip01(c("snap._v1_bb_squeeze_20_2"))
-    compression = _clip01(0.40 * h1_compression + 0.35 * m15_compression + 0.25 * squeeze)
-    vol_impulse = _clip01(0.34 * _pos(_tanh(c("snap.atr_z"), scale=2.0)) + 0.33 * _pos(_tanh(c("snap.rvol_20"), scale=2.0)) + 0.33 * _pos(_tanh(c("snap.vol_ratio_5_20"), scale=2.0)))
-    release = _clip01(compression * _pos(_delta(vol_impulse)))
-    trend_age = _clip01(0.5 * c("ctx_cont.h1_trend_age_bars_norm_v2") + 0.5 * c("ctx_cont.h4_trend_age_bars_norm_v2"))
-    d1_atr_pct = _clip01(c("ctx_cont.D1_atr_percentile_252"))
-    _add(arrays, names, "ascending_triangle_pressure", support_stack * resistance_stack * compression * trend_up, lo=0.0, hi=3.0)
-    _add(arrays, names, "descending_triangle_pressure", support_stack * resistance_stack * compression * trend_down, lo=0.0, hi=3.0)
-    _add(arrays, names, "bull_flag_pullback_pressure", trend_up * golden * compression * channel_center, lo=0.0, hi=3.0)
-    _add(arrays, names, "bear_flag_pullback_pressure", trend_down * golden * compression * channel_center, lo=0.0, hi=3.0)
-    _add(arrays, names, "compression_breakout_up_pressure", release * trend_up * (0.5 + bos_up + resistance_stack), lo=0.0, hi=5.0)
-    _add(arrays, names, "compression_breakout_down_pressure", release * trend_down * (0.5 + bos_down + support_stack), lo=0.0, hi=5.0)
+    _add(
+        arrays,
+        names,
+        "ascending_triangle_pressure",
+        support_stack
+        * resistance_stack
+        * compression
+        * trend_up
+        * (0.75 + _pos(_delta(support_stack)) + 0.25 * ema_bull_follow),
+        lo=0.0,
+        hi=3.0,
+    )
+    _add(
+        arrays,
+        names,
+        "descending_triangle_pressure",
+        support_stack
+        * resistance_stack
+        * compression
+        * trend_down
+        * (0.75 + _pos(_delta(resistance_stack)) + 0.25 * ema_bear_follow),
+        lo=0.0,
+        hi=3.0,
+    )
+    _add(
+        arrays,
+        names,
+        "bull_flag_pullback_pressure",
+        trend_up * golden * compression * channel_center * (0.75 + support_stack + 0.25 * ema_bull_follow),
+        lo=0.0,
+        hi=3.0,
+    )
+    _add(
+        arrays,
+        names,
+        "bear_flag_pullback_pressure",
+        trend_down * golden * compression * channel_center * (0.75 + resistance_stack + 0.25 * ema_bear_follow),
+        lo=0.0,
+        hi=3.0,
+    )
+    _add(
+        arrays,
+        names,
+        "compression_breakout_up_pressure",
+        release * trend_up * (0.5 + breakout_up_seed + resistance_stack + ema_bull_confirmation),
+        lo=0.0,
+        hi=5.0,
+    )
+    _add(
+        arrays,
+        names,
+        "compression_breakout_down_pressure",
+        release * trend_down * (0.5 + breakout_down_seed + support_stack + ema_bear_confirmation),
+        lo=0.0,
+        hi=5.0,
+    )
     _add(arrays, names, "late_trend_reversal_risk", trend_age * choch * (0.5 + divergence_pressure + d1_atr_pct), lo=0.0, hi=5.0)
     _add(arrays, names, "line_pattern_tail_risk", (sweep_size + wick_level + divergence_pressure + d1_atr_pct) * channel_edge, lo=0.0, hi=5.0)
+
+    prior_breakout_up = _lag1(_clip01(breakout_up_seed + extension_up * trend_up + release))
+    prior_breakout_down = _lag1(_clip01(breakout_down_seed + extension_down * trend_down + release))
+    mtf_breakout_up_quality = _clip01(
+        resistance_stack * breakout_up_seed * (0.50 + trend_up) * (0.50 + agreement_pressure + release)
+    )
+    mtf_breakout_down_quality = _clip01(
+        support_stack * breakout_down_seed * (0.50 + trend_down) * (0.50 + agreement_pressure + release)
+    )
+    mtf_retest_long_quality = _clip01(
+        support_stack * prior_breakout_up * trend_up * (0.50 + agreement_pressure) * (0.50 + compression + golden)
+    )
+    mtf_retest_short_quality = _clip01(
+        resistance_stack * prior_breakout_down * trend_down * (0.50 + agreement_pressure) * (0.50 + compression + golden)
+    )
+    fib_extension_exhaustion = _clip01(
+        (extension_up * trend_up * resistance_stack + extension_down * trend_down * support_stack)
+        * (0.50 + d1_atr_pct + divergence_pressure)
+    )
+    _add(
+        arrays,
+        names,
+        "trendline_channel_confluence_pressure",
+        channel_confluence * (0.50 + compression) * (0.50 + agreement_pressure),
+        lo=0.0,
+        hi=3.0,
+    )
+    _add(
+        arrays,
+        names,
+        "channel_edge_rejection_pressure",
+        channel_edge_retest * (sweep_up + sweep_down + wick_level) * (0.50 + divergence_pressure + choch),
+        lo=0.0,
+        hi=3.0,
+    )
+    _add(
+        arrays,
+        names,
+        "fib_support_confluence_long_pressure",
+        fib_support_confluence * trend_up * (0.75 + ema_bull_follow),
+        lo=0.0,
+        hi=3.0,
+    )
+    _add(
+        arrays,
+        names,
+        "fib_resistance_confluence_short_pressure",
+        fib_resistance_confluence * trend_down * (0.75 + ema_bear_follow),
+        lo=0.0,
+        hi=3.0,
+    )
+    _add(arrays, names, "fib_extension_exhaustion_risk", fib_extension_exhaustion, lo=0.0, hi=1.0)
+    _add(arrays, names, "ema_cross_mtf_bull_confirmation", ema_bull_confirmation, lo=0.0, hi=1.0)
+    _add(arrays, names, "ema_cross_mtf_bear_confirmation", ema_bear_confirmation, lo=0.0, hi=1.0)
+    _add(arrays, names, "triangle_apex_compression_pressure", compression_apex, lo=0.0, hi=1.0)
+    _add(
+        arrays,
+        names,
+        "flag_breakout_readiness_pressure",
+        golden
+        * compression
+        * channel_confluence
+        * (0.50 + np.maximum(trend_up, trend_down))
+        * (0.50 + release + 0.25 * vol_impulse),
+        lo=0.0,
+        hi=3.0,
+    )
+    _add(arrays, names, "mtf_channel_breakout_up_quality", mtf_breakout_up_quality, lo=0.0, hi=1.0)
+    _add(arrays, names, "mtf_channel_breakout_down_quality", mtf_breakout_down_quality, lo=0.0, hi=1.0)
+    _add(arrays, names, "mtf_channel_retest_long_quality", mtf_retest_long_quality, lo=0.0, hi=1.0)
+    _add(arrays, names, "mtf_channel_retest_short_quality", mtf_retest_short_quality, lo=0.0, hi=1.0)
 
     out = np.column_stack(arrays).astype(np.float32, copy=False) if arrays else np.empty((x.shape[0], 0), dtype=np.float32)
     if not np.isfinite(out).all():

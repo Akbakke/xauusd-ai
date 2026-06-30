@@ -415,6 +415,9 @@ def classify_entry_specialist_feature(name: str) -> str:
     if bare in CONTEXT_FEATURE_SPECIALIST_OVERRIDES:
         return CONTEXT_FEATURE_SPECIALIST_OVERRIDES[bare]
 
+    if n.startswith("candle.pattern_") or bare.startswith("candle.pattern_"):
+        return "price_action_candle_encoder"
+
     if n.startswith("chart.structure_swing_") or bare.startswith("structure_swing_"):
         return "structure_swing_encoder"
 

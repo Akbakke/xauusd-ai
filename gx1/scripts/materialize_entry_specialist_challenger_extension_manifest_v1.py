@@ -17,10 +17,17 @@ from typing import Any
 
 import numpy as np
 
-from gx1.features.entry_chart_geometry_v1 import CHART_GEOMETRY_FEATURE_VERSION
-from gx1.features.entry_candlestick_patterns_v1 import CANDLESTICK_PATTERN_FEATURE_VERSION
+from gx1.features.entry_chart_geometry_v1 import (
+    CHART_GEOMETRY_FEATURE_NAMES,
+    CHART_GEOMETRY_FEATURE_VERSION,
+)
+from gx1.features.entry_candlestick_patterns_v1 import (
+    CANDLESTICK_PATTERN_FEATURE_NAMES,
+    CANDLESTICK_PATTERN_FEATURE_VERSION,
+)
 from gx1.features.entry_foundation_structure_v1 import FOUNDATION_STRUCTURE_FEATURE_VERSION
 from gx1.features.entry_momentum_flow_v1 import MOMENTUM_FLOW_FEATURE_NAMES, MOMENTUM_FLOW_FEATURE_VERSION
+from gx1.features.entry_mtf_confluence_v1 import MTF_CONFLUENCE_FEATURE_NAMES, MTF_CONFLUENCE_FEATURE_VERSION
 from gx1.features.entry_session_regime_interactions_v1 import (
     SESSION_REGIME_INTERACTION_FEATURE_NAMES,
     SESSION_REGIME_INTERACTION_FEATURE_VERSION,
@@ -39,7 +46,12 @@ from gx1.features.entry_structure_swing_derivations_v1 import (
     STRUCTURE_SWING_DERIVATION_FEATURE_NAMES,
     STRUCTURE_SWING_DERIVATION_FEATURE_VERSION,
 )
+from gx1.features.entry_support_resistance_memory_v1 import (
+    SUPPORT_RESISTANCE_MEMORY_FEATURE_NAMES,
+    SUPPORT_RESISTANCE_MEMORY_FEATURE_VERSION,
+)
 from gx1.features.entry_trend_ema_v1 import TREND_EMA_FEATURE_NAMES, TREND_EMA_FEATURE_VERSION
+from gx1.features.entry_vol_compression_v1 import VOL_COMPRESSION_FEATURE_NAMES, VOL_COMPRESSION_FEATURE_VERSION
 from gx1.scripts.verify_entry_foundation_state_v1 import REPORTS_ROOT, REPO, SEQ_STRUCTURE_MANIFEST
 
 
@@ -55,10 +67,18 @@ DEFAULT_CANDLESTICK_MANIFEST = (
 ACTIVE_SPECIALIST_CONTRACT_MODE = "foundation_seq146"
 TARGET_CHALLENGER_CONTRACT_MODE = "challenger_seq215"
 DEFAULT_BASE_SIGNAL_FEATURE_COUNT = 41
+AUDITED_SEQ215_CHART_GEOMETRY_FEATURE_COUNT = 41
+AUDITED_SEQ215_CANDLESTICK_FEATURE_COUNT = 28
 SPECIALIST_CONTRACT_AUTHORITY = (
     "gx1.features.entry_specialist_feature_groups_v1:"
     "specialist_model_contract_for_mode()/required_training_specialists_for_mode()"
 )
+CHART_GEOMETRY_SMART_FEATURE_NAMES = CHART_GEOMETRY_FEATURE_NAMES[
+    AUDITED_SEQ215_CHART_GEOMETRY_FEATURE_COUNT:
+]
+CANDLESTICK_SMART_FEATURE_NAMES = CANDLESTICK_PATTERN_FEATURE_NAMES[
+    AUDITED_SEQ215_CANDLESTICK_FEATURE_COUNT:
+]
 SMART_LAYER_FEATURES: "OrderedDict[str, tuple[str, tuple[str, ...], str, Path]]" = OrderedDict(
     [
         (
@@ -104,6 +124,51 @@ SMART_LAYER_FEATURES: "OrderedDict[str, tuple[str, tuple[str, ...], str, Path]]"
                 SESSION_REGIME_INTERACTION_FEATURE_NAMES,
                 "gx1.features.entry_session_regime_interactions_v1:build_entry_session_regime_interaction_layer",
                 REPO / "gx1/features/entry_session_regime_interactions_v1.py",
+            ),
+        ),
+        (
+            "vol_compression_smart_layer",
+            (
+                VOL_COMPRESSION_FEATURE_VERSION,
+                VOL_COMPRESSION_FEATURE_NAMES,
+                "gx1.features.entry_vol_compression_v1:build_entry_vol_compression_layer",
+                REPO / "gx1/features/entry_vol_compression_v1.py",
+            ),
+        ),
+        (
+            "chart_geometry_smart2_layer",
+            (
+                CHART_GEOMETRY_FEATURE_VERSION,
+                CHART_GEOMETRY_SMART_FEATURE_NAMES,
+                "gx1.features.entry_chart_geometry_v1:build_entry_chart_geometry_layer",
+                REPO / "gx1/features/entry_chart_geometry_v1.py",
+            ),
+        ),
+        (
+            "price_action_candle_smart3_layer",
+            (
+                CANDLESTICK_PATTERN_FEATURE_VERSION,
+                CANDLESTICK_SMART_FEATURE_NAMES,
+                "gx1.features.entry_candlestick_patterns_v1:build_entry_candlestick_pattern_layer",
+                REPO / "gx1/features/entry_candlestick_patterns_v1.py",
+            ),
+        ),
+        (
+            "support_resistance_memory_layer",
+            (
+                SUPPORT_RESISTANCE_MEMORY_FEATURE_VERSION,
+                SUPPORT_RESISTANCE_MEMORY_FEATURE_NAMES,
+                "gx1.features.entry_support_resistance_memory_v1:build_entry_support_resistance_memory_layer",
+                REPO / "gx1/features/entry_support_resistance_memory_v1.py",
+            ),
+        ),
+        (
+            "mtf_confluence_layer",
+            (
+                MTF_CONFLUENCE_FEATURE_VERSION,
+                MTF_CONFLUENCE_FEATURE_NAMES,
+                "gx1.features.entry_mtf_confluence_v1:build_entry_mtf_confluence_layer",
+                REPO / "gx1/features/entry_mtf_confluence_v1.py",
             ),
         ),
     ]

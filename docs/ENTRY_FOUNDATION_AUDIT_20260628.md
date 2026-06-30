@@ -195,10 +195,12 @@ Active status:
   audit exists and passes.
 - Smart-layer candidate: report-only/dormant. The optional
   `materialize_entry_specialist_challenger_extension_manifest_v1 --include-smart-layers`
-  path currently combines the audited seq215 extension with 141 extra dormant smart-layer
+  path currently combines the audited seq215 extension with 280 extra dormant smart-layer
   features for trend/EMA, SMC/liquidity quality, structure/swing derivations,
-  momentum/flow and session/regime interactions. With the current feature
-  list this is a `smart_seq356_candidate` manifest candidate, not an active
+  momentum/flow, session/regime interactions, volatility/compression,
+  chart-geometry smart2, price-action/candle smart3, support/resistance level
+  memory and multi-timeframe confluence. With the current feature list this is
+  a `smart_seq495_candidate` manifest candidate, not an active
   dataset. It writes separate `SMART` manifest/report latest files and must
   not overwrite the seq215 latest contract. It is not train-ready and requires a
   separate rebuild, feature audit, specialist audit, liveness/non-collapse

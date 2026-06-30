@@ -306,12 +306,14 @@ Current report-only smart-layer candidate:
   `materialize_entry_specialist_challenger_extension_manifest_v1 --include-smart-layers`
   path preserves the existing seq215 latest files and writes separate `SMART`
   manifest/report latest files.
-- It currently adds 141 dormant smart-layer features on top of the 174-feature
+- It currently adds 280 dormant smart-layer features on top of the 174-feature
   seq215 extension: trend/EMA 20, SMC/liquidity quality 24,
-  structure/swing derivations 28, momentum/flow 26 and session/regime
-  interactions 43.
-- Expected rebuilt seq/snap width is currently 356 signal fields: 41 base
-  signal fields plus the 315-feature combined extension. This is a dataset rebuild candidate,
+  structure/swing derivations 28, momentum/flow 26, session/regime
+  interactions 43, volatility/compression 28, chart-geometry smart2 13,
+  price-action/candle smart3 32, support/resistance level memory 34 and
+  multi-timeframe confluence 32.
+- Expected rebuilt seq/snap width is currently 495 signal fields: 41 base
+  signal fields plus the 454-feature combined extension. This is a dataset rebuild candidate,
   not active training evidence.
 - These smart layers are diagnostic/report-only until a separate rebuild,
   feature audit, specialist audit, liveness/non-collapse proof and
