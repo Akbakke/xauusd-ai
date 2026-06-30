@@ -404,6 +404,35 @@ def sha256_file(path: str | Path) -> str:
     return h.hexdigest()
 
 
+def artifact_fingerprint(path: str | Path | None) -> dict:
+    if not path:
+        return {
+            "path": None,
+            "exists": False,
+            "size_bytes": 0,
+            "mtime_ns": 0,
+            "sha256": "",
+        }
+    p = Path(path).expanduser().resolve()
+    exists = p.exists() and p.is_file()
+    stat = p.stat() if exists else None
+    return {
+        "path": str(p),
+        "exists": bool(exists),
+        "size_bytes": int(stat.st_size) if stat is not None else 0,
+        "mtime_ns": int(stat.st_mtime_ns) if stat is not None else 0,
+        "sha256": sha256_file(p) if exists else "",
+    }
+
+
+def run_artifact_fingerprints(paths: dict) -> dict:
+    return {
+        key: artifact_fingerprint(path)
+        for key, path in paths.items()
+        if key != "training_readiness"
+    }
+
+
 def command_env_value(command: list[str], name: str) -> str | None:
     prefix = f"{name}="
     for item in command:
@@ -642,6 +671,9 @@ artifact_paths = {
     "smoke_dataset_manifest": sys.argv[6],
     "worktree_hygiene": worktree_hygiene_path,
 }
+readiness_artifact_fingerprints = readiness.get("artifact_fingerprints") or {}
+if os.environ.get("RUN_FLAVOR", "foundation_seq146") != "foundation_seq146":
+    readiness_artifact_fingerprints = run_artifact_fingerprints(artifact_paths)
 
 
 payload = {
@@ -684,7 +716,7 @@ payload = {
                 "smoke_training_allowed_with_explicit_vedtak"
             ),
             "artifact_provenance_decision": gate_decision(readiness, "artifact_provenance"),
-            "artifact_fingerprints": readiness.get("artifact_fingerprints") or {},
+            "artifact_fingerprints": readiness_artifact_fingerprints,
             "execution_blockers": readiness.get("execution_blockers") or [],
         },
         "feature_foundation": feature_contract_summary(feature_audit),
