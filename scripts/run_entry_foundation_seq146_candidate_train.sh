@@ -62,6 +62,10 @@ Options:
   --challenger-seq215  Use the audited seq215 challenger dataset and 8-specialist
                        challenger_seq215 contract. Still requires candidate-readiness,
                        explicit vedtak, clean git and post-candidate audit.
+  --smart-seq520       Use the audited smart seq520 candidate dataset and
+                       smart_seq520_candidate contract. Still requires smart
+                       trainability, candidate-readiness, explicit SMART vedtak,
+                       clean git and post-candidate audit.
   --skip-candidate-audit
                        Do not run strict post-candidate bundle/head-contract audit.
   --audit-device <auto|cpu|cuda>
@@ -117,6 +121,21 @@ while [[ $# -gt 0 ]]; do
       CANDIDATE_READINESS_JSON=$CANDIDATE_READINESS_DIR/ENTRY_CANDIDATE_READINESS_latest.json
       shift
       ;;
+    --smart-seq520)
+      RUN_FLAVOR=smart_seq520
+      FOUNDATION_DATASET=$DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_smart_candidate_20260630
+      FOUNDATION_STEM=v10_smart_seq520_candidate__HOLD_03B
+      SPECIALIST_AUDIT=$DATA/reports/entry_specialist_feature_group_audit_20260628_v1/smart_seq520_candidate_20260630/ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_latest.json
+      SMOKE_BUNDLE_AUDIT_ARG=$DATA/reports/entry_foundation_smoke_bundle_audit_20260628_v1/smart_seq520_candidate/ENTRY_FOUNDATION_SMOKE_BUNDLE_AUDIT_latest.json
+      CANDIDATE_AUDIT_OUT=$DATA/reports/entry_candidate_bundle_audit_20260628_v1/smart_seq520_candidate
+      SPECIALIST_CONTRACT_MODE=smart_seq520_candidate
+      EXPECTED_SIGNAL_DIM=520
+      CANDIDATE_READINESS_NEXT_CMD="scripts/entry_next_edge_control.sh smart-smoke-train --vedtak <id> --require-edge-audit"
+      CANDIDATE_READINESS_RERUN_CMD="scripts/entry_next_edge_control.sh candidate-readiness-smart"
+      CANDIDATE_READINESS_DIR=$DATA/reports/entry_candidate_readiness_20260628_v1/smart_seq520_candidate
+      CANDIDATE_READINESS_JSON=$CANDIDATE_READINESS_DIR/ENTRY_CANDIDATE_READINESS_latest.json
+      shift
+      ;;
     --skip-candidate-audit) AUDIT_AFTER=0; shift ;;
     --audit-device) AUDIT_DEVICE="$2"; shift 2 ;;
     --audit-batch-size) AUDIT_BATCH_SIZE="$2"; shift 2 ;;
@@ -136,6 +155,11 @@ if [[ "$RUN_FLAVOR" = "challenger_seq215" && "$VEDTAK" != *"SEQ215"* ]]; then
   echo "Use a reviewed id containing SEQ215 only after seq215 smoke and candidate-readiness gates are green." >&2
   exit 2
 fi
+if [[ "$RUN_FLAVOR" = "smart_seq520" && "$VEDTAK" != *"SMART"* && "$VEDTAK" != *"SEQ520"* ]]; then
+  echo "FATAL: smart seq520 candidate train requires an explicit SMART/SEQ520 vedtak id." >&2
+  echo "Use a reviewed id only after smart trainability, smoke edge audit and candidate-readiness gates are green." >&2
+  exit 2
+fi
 
 case "$DEVICE" in
   auto|cpu|cuda) ;;
@@ -147,6 +171,10 @@ case "$AUDIT_DEVICE" in
 esac
 
 cd "$REPO"
+
+if [[ "$RUN_FLAVOR" = "smart_seq520" ]]; then
+  scripts/entry_next_edge_control.sh smart-trainability-readiness --quiet
+fi
 
 require_clean_git_for_real_candidate_train() {
   GIT_STATUS_SHORT=$(git status --short)

@@ -29,6 +29,7 @@ DEFAULT_SELECTIVE_EDGE_SUMMARY = REPORTS_ROOT / "entry_candidate_selective_edge_
 CONTRACT_INPUT_DIMS = {
     "foundation_seq146": 146,
     "challenger_seq215": 215,
+    "smart_seq520_candidate": 520,
 }
 
 IQL_TRANSITION_REQUIRED_COLUMNS = (
@@ -137,12 +138,12 @@ def _candidate_bundle_specialist_contract(candidate_audit: dict[str, Any], contr
             failures.append(f"candidate bundle specialist contract {flag} is not true")
     if specialist_contract.get("failures"):
         failures.append(f"candidate bundle specialist contract failures: {specialist_contract.get('failures')}")
-    if contract_mode == "challenger_seq215":
+    if contract_mode != "foundation_seq146":
         for required_name in ("chart_geometry_encoder", "price_action_candle_encoder"):
             if required_name not in groups:
-                failures.append(f"candidate seq215 bundle missing specialist group: {required_name}")
+                failures.append(f"candidate {contract_mode} bundle missing specialist group: {required_name}")
             if required_name not in required:
-                failures.append(f"candidate seq215 audit missing required specialist: {required_name}")
+                failures.append(f"candidate {contract_mode} audit missing required specialist: {required_name}")
 
     return {
         "ready": not failures,
@@ -198,7 +199,7 @@ def _selective_specialist_snapshot_checks(snapshot: dict[str, Any], contract_mod
     ):
         if not bool(snapshot.get(flag)):
             failures.append(f"{label} {flag} is not true")
-    if contract_mode == "challenger_seq215":
+    if contract_mode != "foundation_seq146":
         if not bool(snapshot.get("chart_geometry_present")):
             failures.append(f"{label} missing chart_geometry_encoder")
         if not bool(snapshot.get("price_action_candle_present")):
@@ -238,18 +239,22 @@ def _identity_contract(
     candidate_bundle_audit_path: Path,
     selective_edge_summary_path: Path,
     require_identity_artifacts: bool,
+    requested_contract_mode: str | None = None,
 ) -> dict[str, Any]:
     candidate_audit = _read_json_if_exists(candidate_bundle_audit_path)
     selective_summary = _read_json_if_exists(selective_edge_summary_path)
     bundle = candidate_audit.get("bundle_summary") if isinstance(candidate_audit.get("bundle_summary"), dict) else {}
     contract_mode = str(
-        candidate_audit.get("specialist_contract_mode")
+        requested_contract_mode
+        or candidate_audit.get("specialist_contract_mode")
         or candidate_audit.get("contract_mode")
         or bundle.get("specialist_contract_mode")
         or bundle.get("contract_mode")
         or bundle.get("audit_contract_mode")
-        or "foundation_seq146"
+        or ""
     ).strip()
+    if not contract_mode:
+        contract_mode = "foundation_seq146"
     selective_contract_mode = str(selective_summary.get("contract_mode") or "foundation_seq146").strip()
     expected_input_dim = CONTRACT_INPUT_DIMS.get(contract_mode)
     bundle_seq_input_dim = int(bundle.get("seq_input_dim") or 0)
@@ -652,6 +657,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         candidate_bundle_audit_path=candidate_bundle_audit_path,
         selective_edge_summary_path=selective_edge_summary_path,
         require_identity_artifacts=bool(args.require_identity_artifacts),
+        requested_contract_mode=getattr(args, "contract_mode", None),
     )
     require_year = None if args.require_year <= 0 else int(args.require_year)
     trades, failures = normalize_trades(
@@ -763,6 +769,9 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--policy-id", default="candidate_replay")
     ap.add_argument("--require-year", type=int, default=2026)
     ap.add_argument("--allow-non-2026", action="store_true")
+    ap.add_argument("--contract-mode", choices=tuple(CONTRACT_INPUT_DIMS), default=None)
+    ap.add_argument("--challenger-seq215", action="store_const", const="challenger_seq215", dest="contract_mode")
+    ap.add_argument("--smart-seq520", action="store_const", const="smart_seq520_candidate", dest="contract_mode")
     ap.add_argument("--require-iql-transition-fields", action=argparse.BooleanOptionalAction, default=True)
     ap.add_argument("--require-identity-artifacts", action=argparse.BooleanOptionalAction, default=True)
     ap.add_argument("--fail-on-audit-fail", action=argparse.BooleanOptionalAction, default=True)

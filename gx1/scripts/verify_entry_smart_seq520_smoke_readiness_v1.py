@@ -359,7 +359,7 @@ def _future_contracts(
         ],
         "inner_train_argv_template": train_inner,
         "mode": "future_train_contract",
-        "implemented_in_control_surface": False,
+        "implemented_in_control_surface": True,
         "execution_allowed_now": False,
         "requires_explicit_vedtak": True,
         "requires_clean_git": True,
@@ -720,8 +720,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     future_contracts["smart_smoke_train"],
                 ),
                 _check(
-                    "smart command contract is not wired for execution by this gate",
-                    future_contracts["smart_smoke_train"]["implemented_in_control_surface"] is False
+                    "smart command contract is wired but not executed by this gate",
+                    future_contracts["smart_smoke_train"]["implemented_in_control_surface"] is True
                     and future_contracts["smart_smoke_train"]["execution_allowed_now"] is False,
                     future_contracts["smart_smoke_train"],
                 ),

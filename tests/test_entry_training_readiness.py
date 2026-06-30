@@ -214,10 +214,16 @@ def test_training_readiness_current_artifacts(tmp_path: Path) -> None:
     assert "readiness_policy_safe_now_foundation_activation_apply_dry_run" in required_policy_checks
     assert "readiness_policy_safe_now_foundation_activation_post_apply_dry_run" in required_policy_checks
     assert "readiness_policy_safe_now_candidate_readiness_report" in required_policy_checks
+    assert "readiness_policy_safe_now_candidate_readiness_smart_report" in required_policy_checks
+    assert "readiness_policy_safe_now_replay_readiness_smart_report" in required_policy_checks
     assert "readiness_policy_blocks_foundation_activation_apply" in required_policy_checks
     assert "readiness_policy_blocks_foundation_activation_post_apply" in required_policy_checks
     assert "readiness_policy_blocks_smoke_train" in required_policy_checks
+    assert "readiness_policy_blocks_smart_smoke_train" in required_policy_checks
     assert "readiness_policy_blocks_candidate_train" in required_policy_checks
+    assert "readiness_policy_blocks_candidate_train_smart" in required_policy_checks
+    assert "readiness_policy_smart_smoke_train_declares_ram_edge_smart_contract" in required_policy_checks
+    assert "readiness_policy_candidate_train_smart_declares_ram_edge_smart_contract" in required_policy_checks
     assert "readiness_policy_blocks_selective_edge" in required_policy_checks
     assert "readiness_policy_blocks_replay_evidence" in required_policy_checks
     assert "readiness_policy_blocks_iql_distill" in required_policy_checks

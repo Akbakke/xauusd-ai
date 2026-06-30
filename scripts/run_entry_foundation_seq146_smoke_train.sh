@@ -69,6 +69,9 @@ Options:
   --refresh-smoke      Rebuild the small smoke dataset before training/dry-run.
   --challenger-seq215  Use the audited seq215 challenger dataset and 8-specialist
                        challenger_seq215 contract.
+  --smart-seq520       Use the audited smart seq520 smoke dataset and
+                       smart_seq520_candidate contract. Still requires smart
+                       smoke-readiness, clean git and explicit SMART vedtak.
   --dry-run            Print the train command, then stop.
   --skip-smoke-audit   Do not run the post-train smoke bundle audit.
   --audit-device <auto|cpu|cuda>
@@ -121,6 +124,21 @@ while [[ $# -gt 0 ]]; do
       REFRESH_SMOKE=1
       shift
       ;;
+    --smart-seq520)
+      RUN_FLAVOR=smart_seq520
+      SOURCE_DATASET=$DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_smart_candidate_20260630
+      SMOKE_DATASET=$DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_smart_seq520_smoke_20260630
+      SMOKE_STEM=v10_smart_seq520_smoke__HOLD_03B
+      FEATURE_AUDIT=$DATA/reports/entry_feature_foundation_audit_20260628_v1/smart_seq520_candidate_20260630/ENTRY_FEATURE_FOUNDATION_AUDIT_latest.json
+      TARGET_AUDIT=$DATA/reports/entry_target_foundation_audit_20260628_v1/smart_seq520_candidate_20260630/ENTRY_TARGET_FOUNDATION_AUDIT_latest.json
+      SPECIALIST_AUDIT=$DATA/reports/entry_specialist_feature_group_audit_20260628_v1/smart_seq520_candidate_20260630/ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_latest.json
+      SMOKE_BUNDLE_AUDIT_OUT=$DATA/reports/entry_foundation_smoke_bundle_audit_20260628_v1/smart_seq520_candidate
+      SPECIALIST_CONTRACT_MODE=smart_seq520_candidate
+      EXPECTED_SIGNAL_DIM=520
+      SMOKE_DATASET_SCHEMA=entry_smart_seq520_smoke_dataset_v1
+      REFRESH_SMOKE=0
+      shift
+      ;;
     --materialize-only) MATERIALIZE_ONLY=1; shift ;;
     --manifest-only) MANIFEST_ONLY=1; shift ;;
     --refresh-smoke) REFRESH_SMOKE=1; shift ;;
@@ -143,6 +161,11 @@ fi
 if [[ "$RUN_FLAVOR" = "challenger_seq215" && "$MATERIALIZE_ONLY" != "1" && "$VEDTAK" != *"SEQ215"* ]]; then
   echo "FATAL: challenger seq215 smoke manifest/train/dry-run requires an explicit SEQ215 vedtak id." >&2
   echo "Use a new id such as ENTRY_FOUNDATION_SMOKE_TRAIN_20260630_SEQ215_V1 after gates are green." >&2
+  exit 2
+fi
+if [[ "$RUN_FLAVOR" = "smart_seq520" && "$MATERIALIZE_ONLY" != "1" && "$VEDTAK" != *"SMART"* && "$VEDTAK" != *"SEQ520"* ]]; then
+  echo "FATAL: smart seq520 smoke train requires an explicit SMART/SEQ520 vedtak id." >&2
+  echo "Use a reviewed id only after smart post-rebuild, smoke-readiness and trainability gates are green." >&2
   exit 2
 fi
 
@@ -194,6 +217,11 @@ PY
 }
 
 if [[ "$MATERIALIZE_ONLY" = "1" || "$REFRESH_SMOKE" = "1" || ! -f "$SMOKE_DATASET/SMOKE_DATASET_MANIFEST.json" ]]; then
+  if [[ "$RUN_FLAVOR" = "smart_seq520" ]]; then
+    echo "FATAL: smart seq520 smoke train cannot materialize/refresh the smoke dataset directly." >&2
+    echo "Run the explicit smart post-rebuild refresh gate first; this train wrapper consumes only proven smart smoke artifacts." >&2
+    exit 2
+  fi
   "$PY" -m gx1.scripts.materialize_entry_foundation_smoke_dataset_v1 \
     --source-dir "$SOURCE_DATASET" \
     --out-dir "$SMOKE_DATASET" \
@@ -218,6 +246,10 @@ fi
 if [[ "$DRY_RUN" != "1" ]]; then
   scripts/entry_next_edge_control.sh verify --quiet
   scripts/entry_next_edge_control.sh foundation-guardrails --quiet
+  if [[ "$RUN_FLAVOR" = "smart_seq520" ]]; then
+    scripts/entry_next_edge_control.sh smart-smoke-readiness --quiet
+    scripts/entry_next_edge_control.sh smart-trainability-readiness --quiet
+  fi
   if [[ "$MANIFEST_ONLY" = "1" ]]; then
     scripts/entry_next_edge_control.sh train-readiness --quiet --no-fail-on-not-ready
     require_foundation_contract_ready_for_manifest_only

@@ -175,8 +175,10 @@ def _readiness_policy_checks() -> list[dict[str, Any]]:
         "train_readiness_report",
         "candidate_readiness_report",
         "candidate_readiness_seq215_report",
+        "candidate_readiness_smart_report",
         "replay_readiness_report",
         "replay_readiness_seq215_report",
+        "replay_readiness_smart_report",
         "feature_ai_inventory",
         "chart_geometry_audit",
         "candlestick_audit",
@@ -210,8 +212,10 @@ def _readiness_policy_checks() -> list[dict[str, Any]]:
         "foundation_activation_apply",
         "foundation_activation_post_apply",
         "smart_smoke_manifest",
+        "smart_smoke_train",
         "candidate_train",
         "candidate_train_seq215",
+        "candidate_train_smart",
         "selective_edge",
         "replay_evidence",
         "iql_distill",
@@ -245,8 +249,10 @@ def _readiness_policy_checks() -> list[dict[str, Any]]:
         "train_readiness_report",
         "candidate_readiness_report",
         "candidate_readiness_seq215_report",
+        "candidate_readiness_smart_report",
         "replay_readiness_report",
         "replay_readiness_seq215_report",
+        "replay_readiness_smart_report",
         "feature_ai_inventory",
         "chart_geometry_audit",
         "candlestick_audit",
@@ -256,10 +262,12 @@ def _readiness_policy_checks() -> list[dict[str, Any]]:
         "smart_post_rebuild_readiness",
         "smart_smoke_manifest",
         "smart_smoke_readiness",
+        "smart_smoke_train",
         "smart_trainability_readiness",
         "smart_ablation_replay_plan",
         "candidate_train",
         "candidate_train_seq215",
+        "candidate_train_smart",
         "selective_edge",
         "replay_evidence",
         "iql_distill",
@@ -394,6 +402,8 @@ def _readiness_policy_checks() -> list[dict[str, Any]]:
                 and (commands.get("smart_rebuild_preflight") or {}).get("expected_signal_dim") == 520
                 and (commands.get("smart_rebuild_preflight") or {}).get("dataset_rebuild_allowed_without_vedtak")
                 is False
+                and (commands.get("smart_rebuild_preflight") or {}).get("verifies_large_input_hashes")
+                is True
                 and (commands.get("smart_rebuild_preflight") or {}).get("requires_ram_cap_for_future_rebuild")
                 is True
                 and status_summary.get("smart_rebuild_preflight_ready") is True,
@@ -420,6 +430,8 @@ def _readiness_policy_checks() -> list[dict[str, Any]]:
                         "smart_smoke_readiness",
                         "smart_trainability_readiness",
                         "smart_ablation_replay_plan",
+                        "candidate_readiness_smart_report",
+                        "replay_readiness_smart_report",
                     )
                 ),
                 "details": {
@@ -430,6 +442,8 @@ def _readiness_policy_checks() -> list[dict[str, Any]]:
                         "smart_smoke_readiness",
                         "smart_trainability_readiness",
                         "smart_ablation_replay_plan",
+                        "candidate_readiness_smart_report",
+                        "replay_readiness_smart_report",
                     )
                 },
             },
@@ -506,6 +520,23 @@ def _readiness_policy_checks() -> list[dict[str, Any]]:
                 "details": commands.get("smoke_train_seq215"),
             },
             {
+                "name": "readiness_policy_smart_smoke_train_declares_ram_edge_smart_contract",
+                "ok": (commands.get("smart_smoke_train") or {}).get("requires_smart_vedtak") is True
+                and (commands.get("smart_smoke_train") or {}).get("requires_edge_audit") is True
+                and (commands.get("smart_smoke_train") or {}).get("requires_ram_cap") is True
+                and (commands.get("smart_smoke_train") or {}).get("ram_cap_runner")
+                == "scripts/gx1_capped_run.sh"
+                and (commands.get("smart_smoke_train") or {}).get("num_workers") == 0
+                and (commands.get("smart_smoke_train") or {}).get("specialist_contract_mode")
+                == "smart_seq520_candidate"
+                and (commands.get("smart_smoke_train") or {}).get("expected_signal_dim") == 520
+                and (commands.get("smart_smoke_train") or {}).get("required_training_specialist_count") == 8
+                and (commands.get("smart_smoke_train") or {}).get("requires_exact_specialist_contract_proof")
+                is True
+                and (commands.get("smart_smoke_train") or {}).get("execution_allowed_now") is False,
+                "details": commands.get("smart_smoke_train"),
+            },
+            {
                 "name": "readiness_policy_candidate_train_seq215_declares_ram_edge_seq215_contract",
                 "ok": (commands.get("candidate_train_seq215") or {}).get("requires_seq215_vedtak") is True
                 and (commands.get("candidate_train_seq215") or {}).get("requires_candidate_readiness") is True
@@ -521,6 +552,24 @@ def _readiness_policy_checks() -> list[dict[str, Any]]:
                 and (commands.get("candidate_train_seq215") or {}).get("requires_exact_specialist_contract_proof")
                 is True,
                 "details": commands.get("candidate_train_seq215"),
+            },
+            {
+                "name": "readiness_policy_candidate_train_smart_declares_ram_edge_smart_contract",
+                "ok": (commands.get("candidate_train_smart") or {}).get("requires_smart_vedtak") is True
+                and (commands.get("candidate_train_smart") or {}).get("requires_candidate_readiness") is True
+                and (commands.get("candidate_train_smart") or {}).get("requires_smoke_bundle_edge_audit") is True
+                and (commands.get("candidate_train_smart") or {}).get("requires_ram_cap") is True
+                and (commands.get("candidate_train_smart") or {}).get("ram_cap_runner")
+                == "scripts/gx1_capped_run.sh"
+                and (commands.get("candidate_train_smart") or {}).get("num_workers") == 0
+                and (commands.get("candidate_train_smart") or {}).get("specialist_contract_mode")
+                == "smart_seq520_candidate"
+                and (commands.get("candidate_train_smart") or {}).get("expected_signal_dim") == 520
+                and (commands.get("candidate_train_smart") or {}).get("required_training_specialist_count") == 8
+                and (commands.get("candidate_train_smart") or {}).get("requires_exact_specialist_contract_proof")
+                is True
+                and (commands.get("candidate_train_smart") or {}).get("execution_allowed_now") is False,
+                "details": commands.get("candidate_train_smart"),
             },
             {
                 "name": "readiness_policy_iql_distill_declares_iql_side_effect",

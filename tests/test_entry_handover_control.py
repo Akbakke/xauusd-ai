@@ -85,11 +85,15 @@ def test_control_surface_routes_verify_to_active_foundation_state() -> None:
     assert "scripts/entry_next_edge_control.sh smoke-manifest --vedtak <id>" in text
     assert "scripts/entry_next_edge_control.sh smoke-manifest-seq215 --vedtak <id>" in text
     assert "scripts/entry_next_edge_control.sh candidate-readiness-seq215" in text
+    assert "scripts/entry_next_edge_control.sh candidate-readiness-smart" in text
     assert "scripts/entry_next_edge_control.sh candidate-train-seq215 --vedtak <id>" in text
+    assert "scripts/entry_next_edge_control.sh candidate-train-smart --vedtak <id>" in text
     assert "scripts/entry_next_edge_control.sh replay-readiness-seq215" in text
-    assert "scripts/entry_next_edge_control.sh smart-rebuild-preflight" in text
+    assert "scripts/entry_next_edge_control.sh replay-readiness-smart" in text
+    assert "scripts/entry_next_edge_control.sh smart-rebuild-preflight --verify-large-input-hashes" in text
     assert "scripts/entry_next_edge_control.sh smart-post-rebuild-readiness" in text
     assert "scripts/entry_next_edge_control.sh smart-smoke-manifest --vedtak <id>" in text
+    assert "scripts/entry_next_edge_control.sh smart-smoke-train --vedtak <id>" in text
     assert "scripts/entry_next_edge_control.sh smart-smoke-readiness" in text
     assert "scripts/entry_next_edge_control.sh smart-trainability-readiness" in text
     assert "scripts/entry_next_edge_control.sh smart-ablation-replay-plan" in text
@@ -109,8 +113,12 @@ def test_control_surface_routes_verify_to_active_foundation_state() -> None:
     assert 'smoke-manifest-seq215)' in text
     assert 'candidate-readiness-seq215)' in text
     assert 'verify_entry_candidate_readiness_v1 --challenger-seq215' in text
+    assert 'candidate-readiness-smart)' in text
+    assert 'verify_entry_candidate_readiness_v1 --smart-seq520' in text
     assert 'replay-readiness-seq215)' in text
     assert 'verify_entry_replay_readiness_v1 --challenger-seq215' in text
+    assert 'replay-readiness-smart)' in text
+    assert 'verify_entry_replay_readiness_v1 --smart-seq520' in text
     assert 'smart-rebuild-preflight)' in text
     assert 'materialize_entry_smart_seq520_rebuild_preflight_v1' in text
     assert 'smart-post-rebuild-readiness)' in text
@@ -124,9 +132,13 @@ def test_control_surface_routes_verify_to_active_foundation_state() -> None:
     assert 'smart-ablation-replay-plan)' in text
     assert 'materialize_entry_smart_ablation_replay_plan_gate_v1' in text
     assert 'candidate-train-seq215)' in text
+    assert 'candidate-train-smart)' in text
+    assert 'smart-smoke-train)' in text
     assert 'run_entry_foundation_seq146_smoke_train.sh" --manifest-only' in text
     assert 'run_entry_foundation_seq146_smoke_train.sh" --challenger-seq215 --manifest-only' in text
+    assert 'run_entry_foundation_seq146_smoke_train.sh" --smart-seq520' in text
     assert 'run_entry_foundation_seq146_candidate_train.sh" --challenger-seq215' in text
+    assert 'run_entry_foundation_seq146_candidate_train.sh" --smart-seq520' in text
     assert "verify_entry_foundation_state_v1" in text
     assert "run_entry_foundation_seq146_smoke_train.sh" in text
     assert "run_entry_foundation_iql_distill.sh" in text
@@ -373,7 +385,13 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
         payload["status_summary"]["candidate_training_allowed"]
     )
     assert isinstance(payload["status_summary"]["candidate_training_seq215_allowed"], bool)
+    assert isinstance(payload["status_summary"]["candidate_training_smart_seq520_allowed"], bool)
     assert payload["status_summary"]["candidate_readiness_seq215_decision"] in {
+        "READY_FOR_CANDIDATE_TRAINING_VEDTAK",
+        "NOT_READY_FOR_CANDIDATE_TRAINING",
+        None,
+    }
+    assert payload["status_summary"]["candidate_readiness_smart_decision"] in {
         "READY_FOR_CANDIDATE_TRAINING_VEDTAK",
         "NOT_READY_FOR_CANDIDATE_TRAINING",
         None,
@@ -386,6 +404,7 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
         )
     assert isinstance(payload["status_summary"]["smoke_manifest_seq215_proof_allowed"], bool)
     assert isinstance(payload["status_summary"]["real_smoke_train_seq215_allowed"], bool)
+    assert isinstance(payload["status_summary"]["real_smoke_train_smart_seq520_allowed"], bool)
     assert isinstance(payload["status_summary"]["seq215_smoke_contract_preflight_ready"], bool)
     assert "chart_geometry_encoder" in payload["status_summary"]["seq215_smoke_contract_required_specialists"]
     assert "price_action_candle_encoder" in payload["status_summary"]["seq215_smoke_contract_required_specialists"]
@@ -514,6 +533,22 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
     ]
     assert payload["commands"]["train_readiness_report"]["execution_allowed_now"] is True
     assert payload["commands"]["candidate_readiness_report"]["execution_allowed_now"] is True
+    assert payload["commands"]["candidate_readiness_smart_report"]["argv"] == [
+        "scripts/entry_next_edge_control.sh",
+        "candidate-readiness-smart",
+        "--quiet",
+        "--no-fail-on-not-ready",
+    ]
+    assert payload["commands"]["candidate_readiness_smart_report"]["execution_allowed_now"] is True
+    assert payload["commands"]["candidate_readiness_smart_report"]["starts_trainer"] is False
+    assert payload["commands"]["candidate_readiness_smart_report"]["starts_replay"] is False
+    assert payload["commands"]["candidate_readiness_smart_report"]["specialist_contract_mode"] == (
+        "smart_seq520_candidate"
+    )
+    assert payload["commands"]["candidate_readiness_smart_report"]["expected_signal_dim"] == 520
+    assert payload["commands"]["candidate_readiness_smart_report"]["training_allowed"] is False
+    assert payload["commands"]["candidate_readiness_smart_report"]["candidate_training_allowed"] is False
+    assert payload["commands"]["candidate_readiness_smart_report"]["replay_allowed"] is False
     assert payload["commands"]["replay_readiness_report"]["execution_allowed_now"] is True
     assert payload["commands"]["replay_readiness_seq215_report"]["argv"] == [
         "scripts/entry_next_edge_control.sh",
@@ -527,6 +562,23 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
     assert payload["commands"]["replay_readiness_seq215_report"]["starts_iql_distillation"] is False
     assert payload["commands"]["replay_readiness_seq215_report"]["specialist_contract_mode"] == "challenger_seq215"
     assert payload["commands"]["replay_readiness_seq215_report"]["expected_signal_dim"] == 215
+    assert payload["commands"]["replay_readiness_smart_report"]["argv"] == [
+        "scripts/entry_next_edge_control.sh",
+        "replay-readiness-smart",
+        "--quiet",
+        "--no-fail-on-not-ready",
+    ]
+    assert payload["commands"]["replay_readiness_smart_report"]["execution_allowed_now"] is True
+    assert payload["commands"]["replay_readiness_smart_report"]["allowed_after_explicit_vedtak"] is True
+    assert payload["commands"]["replay_readiness_smart_report"]["starts_replay"] is False
+    assert payload["commands"]["replay_readiness_smart_report"]["starts_iql_distillation"] is False
+    assert payload["commands"]["replay_readiness_smart_report"]["specialist_contract_mode"] == (
+        "smart_seq520_candidate"
+    )
+    assert payload["commands"]["replay_readiness_smart_report"]["expected_signal_dim"] == 520
+    assert payload["commands"]["replay_readiness_smart_report"]["training_allowed"] is False
+    assert payload["commands"]["replay_readiness_smart_report"]["candidate_training_allowed"] is False
+    assert payload["commands"]["replay_readiness_smart_report"]["replay_allowed"] is False
     assert payload["commands"]["challenger_smart_extension_manifest"]["argv"] == [
         "scripts/entry_next_edge_control.sh",
         "challenger-smart-extension-manifest",
@@ -548,6 +600,7 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
     assert payload["commands"]["smart_rebuild_preflight"]["argv"] == [
         "scripts/entry_next_edge_control.sh",
         "smart-rebuild-preflight",
+        "--verify-large-input-hashes",
         "--quiet",
         "--no-fail-on-audit-fail",
     ]
@@ -558,6 +611,7 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
     assert payload["commands"]["smart_rebuild_preflight"]["starts_iql_distillation"] is False
     assert payload["commands"]["smart_rebuild_preflight"]["touches_shadow_or_live"] is False
     assert payload["commands"]["smart_rebuild_preflight"]["dataset_rebuild_allowed_without_vedtak"] is False
+    assert payload["commands"]["smart_rebuild_preflight"]["verifies_large_input_hashes"] is True
     assert payload["commands"]["smart_rebuild_preflight"]["requires_ram_cap_for_future_rebuild"] is True
     assert payload["commands"]["smart_rebuild_preflight"]["expected_signal_dim"] == smart_expected_dim
     assert payload["commands"]["smart_rebuild_preflight"]["manifest_variant"] == (
@@ -755,6 +809,29 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
     assert payload["commands"]["smoke_train_seq215"]["requires_clean_git"] is True
     assert payload["commands"]["smoke_train_seq215"]["starts_trainer"] is True
     assert payload["commands"]["smoke_train_seq215"]["touches_shadow_or_live"] is False
+    assert payload["commands"]["smart_smoke_train"]["argv"] == [
+        "scripts/entry_next_edge_control.sh",
+        "smart-smoke-train",
+        "--vedtak",
+        "<id>",
+        "--require-edge-audit",
+    ]
+    assert payload["commands"]["smart_smoke_train"]["allowed"] is payload["status_summary"][
+        "real_smoke_train_smart_seq520_allowed"
+    ]
+    assert payload["commands"]["smart_smoke_train"]["execution_allowed_now"] is False
+    assert payload["commands"]["smart_smoke_train"]["allowed_after_explicit_vedtak"] is payload["status_summary"][
+        "real_smoke_train_smart_seq520_allowed"
+    ]
+    assert payload["commands"]["smart_smoke_train"]["requires_vedtak"] is True
+    assert payload["commands"]["smart_smoke_train"]["requires_clean_git"] is True
+    assert payload["commands"]["smart_smoke_train"]["starts_trainer"] is True
+    assert payload["commands"]["smart_smoke_train"]["touches_shadow_or_live"] is False
+    assert payload["commands"]["smart_smoke_train"]["requires_smart_vedtak"] is True
+    assert payload["commands"]["smart_smoke_train"]["requires_ram_cap"] is True
+    assert payload["commands"]["smart_smoke_train"]["ram_cap_runner"] == "scripts/gx1_capped_run.sh"
+    assert payload["commands"]["smart_smoke_train"]["specialist_contract_mode"] == "smart_seq520_candidate"
+    assert payload["commands"]["smart_smoke_train"]["expected_signal_dim"] == 520
     assert payload["commands"]["candidate_train"]["argv"] == [
         "scripts/entry_next_edge_control.sh",
         "candidate-train",
@@ -785,6 +862,27 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
     assert payload["commands"]["candidate_train_seq215"]["starts_trainer"] is True
     assert payload["commands"]["candidate_train_seq215"]["requires_seq215_vedtak"] is True
     assert "real seq215 smoke bundle edge audit" in payload["commands"]["candidate_train_seq215"]["not_executable_now_reason"]
+    assert payload["commands"]["candidate_train_smart"]["argv"] == [
+        "scripts/entry_next_edge_control.sh",
+        "candidate-train-smart",
+        "--vedtak",
+        "<id>",
+    ]
+    assert payload["commands"]["candidate_train_smart"]["allowed"] is payload["status_summary"][
+        "candidate_training_smart_seq520_allowed"
+    ]
+    assert payload["commands"]["candidate_train_smart"]["execution_allowed_now"] is False
+    assert (
+        payload["commands"]["candidate_train_smart"]["allowed_after_explicit_vedtak"]
+        is payload["status_summary"]["candidate_training_smart_seq520_allowed"]
+    )
+    assert payload["commands"]["candidate_train_smart"]["requires_vedtak"] is True
+    assert payload["commands"]["candidate_train_smart"]["requires_clean_git"] is True
+    assert payload["commands"]["candidate_train_smart"]["starts_trainer"] is True
+    assert payload["commands"]["candidate_train_smart"]["requires_smart_vedtak"] is True
+    assert "smart smoke bundle edge audit" in payload["commands"]["candidate_train_smart"][
+        "not_executable_now_reason"
+    ]
     assert payload["commands"]["selective_edge"]["execution_allowed_now"] is False
     assert payload["commands"]["selective_edge"]["starts_trainer"] is False
     assert payload["commands"]["replay_evidence"]["execution_allowed_now"] is False
@@ -806,13 +904,24 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
     assert any("foundation-activation-apply" in item and "--dry-run" in item for item in payload["allowed_now"])
     assert any("foundation-activation-post-apply" in item and "--dry-run" in item for item in payload["allowed_now"])
     assert "scripts/entry_next_edge_control.sh candidate-readiness --quiet --no-fail-on-not-ready" in payload["allowed_now"]
+    assert (
+        "scripts/entry_next_edge_control.sh candidate-readiness-smart --quiet --no-fail-on-not-ready"
+        in payload["allowed_now"]
+    )
     assert "scripts/entry_next_edge_control.sh replay-readiness --quiet --no-fail-on-not-ready" in payload["allowed_now"]
     assert "scripts/entry_next_edge_control.sh replay-readiness-seq215 --quiet --no-fail-on-not-ready" in payload["allowed_now"]
+    assert (
+        "scripts/entry_next_edge_control.sh replay-readiness-smart --quiet --no-fail-on-not-ready"
+        in payload["allowed_now"]
+    )
     assert (
         "scripts/entry_next_edge_control.sh challenger-smart-extension-manifest --quiet --no-fail-on-audit-fail"
         in payload["allowed_now"]
     )
-    assert "scripts/entry_next_edge_control.sh smart-rebuild-preflight --quiet --no-fail-on-audit-fail" in payload["allowed_now"]
+    assert (
+        "scripts/entry_next_edge_control.sh smart-rebuild-preflight --verify-large-input-hashes --quiet --no-fail-on-audit-fail"
+        in payload["allowed_now"]
+    )
     assert (
         "scripts/entry_next_edge_control.sh smart-post-rebuild-readiness --quiet --no-fail-on-not-ready"
         in payload["allowed_now"]

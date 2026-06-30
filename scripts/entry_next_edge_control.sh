@@ -29,24 +29,28 @@ Usage:
   scripts/entry_next_edge_control.sh train-readiness
   scripts/entry_next_edge_control.sh candidate-readiness
   scripts/entry_next_edge_control.sh candidate-readiness-seq215
+  scripts/entry_next_edge_control.sh candidate-readiness-smart
   scripts/entry_next_edge_control.sh replay-readiness
   scripts/entry_next_edge_control.sh replay-readiness-seq215
+  scripts/entry_next_edge_control.sh replay-readiness-smart
   scripts/entry_next_edge_control.sh feature-ai-inventory
   scripts/entry_next_edge_control.sh chart-geometry-audit
   scripts/entry_next_edge_control.sh candlestick-audit
   scripts/entry_next_edge_control.sh challenger-extension-manifest
   scripts/entry_next_edge_control.sh challenger-smart-extension-manifest
-  scripts/entry_next_edge_control.sh smart-rebuild-preflight
+  scripts/entry_next_edge_control.sh smart-rebuild-preflight --verify-large-input-hashes
   scripts/entry_next_edge_control.sh smart-post-rebuild-readiness
   scripts/entry_next_edge_control.sh smart-smoke-manifest --vedtak <id>
   scripts/entry_next_edge_control.sh smart-smoke-readiness
   scripts/entry_next_edge_control.sh smart-trainability-readiness
   scripts/entry_next_edge_control.sh smart-ablation-replay-plan
+  scripts/entry_next_edge_control.sh smart-smoke-train --vedtak <id> --require-edge-audit
   scripts/entry_next_edge_control.sh smoke-train --vedtak <id> --require-edge-audit
   scripts/entry_next_edge_control.sh smoke-train-seq215 --vedtak <id> --require-edge-audit
   scripts/entry_next_edge_control.sh audit-smoke-bundle --bundle-dir <dir>
   scripts/entry_next_edge_control.sh candidate-train --vedtak <id>
   scripts/entry_next_edge_control.sh candidate-train-seq215 --vedtak <id>
+  scripts/entry_next_edge_control.sh candidate-train-smart --vedtak <id>
   scripts/entry_next_edge_control.sh selective-edge --bundle-dir <dir> --no-xgb-bundle-dir <dir>
   scripts/entry_next_edge_control.sh replay-evidence --trades-path <csv|parquet>
   scripts/entry_next_edge_control.sh iql-distill --vedtak <id> [--materialize-only|--no-fail-on-not-ready]
@@ -132,8 +136,10 @@ case "$cmd" in
       "$PY" -m gx1.scripts.verify_entry_training_readiness_v1 --quiet --no-fail-on-not-ready
       "$PY" -m gx1.scripts.verify_entry_candidate_readiness_v1 --quiet --no-fail-on-not-ready
       "$PY" -m gx1.scripts.verify_entry_candidate_readiness_v1 --challenger-seq215 --quiet --no-fail-on-not-ready
+      "$PY" -m gx1.scripts.verify_entry_candidate_readiness_v1 --smart-seq520 --quiet --no-fail-on-not-ready
       "$PY" -m gx1.scripts.verify_entry_replay_readiness_v1 --quiet --no-fail-on-not-ready
       "$PY" -m gx1.scripts.verify_entry_replay_readiness_v1 --challenger-seq215 --quiet --no-fail-on-not-ready
+      "$PY" -m gx1.scripts.verify_entry_replay_readiness_v1 --smart-seq520 --quiet --no-fail-on-not-ready
       "$PY" -m gx1.scripts.materialize_entry_specialist_challenger_extension_manifest_v1 --include-smart-layers --quiet --no-fail-on-audit-fail
       "$PY" -m gx1.scripts.materialize_entry_smart_seq520_rebuild_preflight_v1 --verify-large-input-hashes --quiet --no-fail-on-audit-fail
       "$PY" -m gx1.scripts.audit_entry_smart_dataset_post_rebuild_readiness_v1 --fullscan --verify-source-parquet-hashes --quiet --no-fail-on-not-ready
@@ -161,8 +167,10 @@ paths = {
     "worktree-hygiene": Path("/home/andre2/GX1_DATA/reports/entry_foundation_worktree_hygiene_20260628_v1/ENTRY_FOUNDATION_WORKTREE_HYGIENE_latest.json"),
     "candidate-readiness": Path("/home/andre2/GX1_DATA/reports/entry_candidate_readiness_20260628_v1/ENTRY_CANDIDATE_READINESS_latest.json"),
     "candidate-readiness-seq215": Path("/home/andre2/GX1_DATA/reports/entry_candidate_readiness_20260628_v1/challenger_seq215_20260630/ENTRY_CANDIDATE_READINESS_latest.json"),
+    "candidate-readiness-smart": Path("/home/andre2/GX1_DATA/reports/entry_candidate_readiness_20260628_v1/smart_seq520_candidate/ENTRY_CANDIDATE_READINESS_latest.json"),
     "replay-readiness": Path("/home/andre2/GX1_DATA/reports/entry_replay_readiness_20260628_v1/ENTRY_REPLAY_READINESS_latest.json"),
     "replay-readiness-seq215": Path("/home/andre2/GX1_DATA/reports/entry_replay_readiness_20260628_v1/challenger_seq215_20260630/ENTRY_REPLAY_READINESS_latest.json"),
+    "replay-readiness-smart": Path("/home/andre2/GX1_DATA/reports/entry_replay_readiness_20260628_v1/smart_seq520_candidate/ENTRY_REPLAY_READINESS_latest.json"),
     "iql-distillation-contract": Path("/home/andre2/GX1_DATA/reports/entry_iql_distillation_contract_20260628_v1/ENTRY_IQL_DISTILLATION_CONTRACT_latest.json"),
     "iql-student-trade-log": Path("/home/andre2/GX1_DATA/reports/entry_iql_student_trade_log_20260628_v1/ENTRY_IQL_STUDENT_TRADE_LOG_latest.json"),
     "iql-replay-evidence": Path("/home/andre2/GX1_DATA/reports/entry_iql_distillation_replay_20260628_v1/ENTRY_IQL_REPLAY_EVIDENCE_latest.json"),
@@ -295,14 +303,16 @@ allowed_now = [
     "scripts/entry_next_edge_control.sh train-readiness --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh candidate-readiness --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh candidate-readiness-seq215 --quiet --no-fail-on-not-ready",
+    "scripts/entry_next_edge_control.sh candidate-readiness-smart --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh replay-readiness --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh replay-readiness-seq215 --quiet --no-fail-on-not-ready",
+    "scripts/entry_next_edge_control.sh replay-readiness-smart --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh feature-ai-inventory --quiet --no-fail-on-audit-fail",
     "scripts/entry_next_edge_control.sh chart-geometry-audit --quiet --no-fail-on-audit-fail",
     "scripts/entry_next_edge_control.sh candlestick-audit --quiet --no-fail-on-audit-fail",
     "scripts/entry_next_edge_control.sh challenger-extension-manifest --quiet --no-fail-on-audit-fail",
     "scripts/entry_next_edge_control.sh challenger-smart-extension-manifest --quiet --no-fail-on-audit-fail",
-    "scripts/entry_next_edge_control.sh smart-rebuild-preflight --quiet --no-fail-on-audit-fail",
+    "scripts/entry_next_edge_control.sh smart-rebuild-preflight --verify-large-input-hashes --quiet --no-fail-on-audit-fail",
     "scripts/entry_next_edge_control.sh smart-post-rebuild-readiness --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh smart-smoke-readiness --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh smart-trainability-readiness --quiet --no-fail-on-not-ready",
@@ -652,6 +662,9 @@ smart_ablation_replay_plan_ready = (
 smart_rebuild_preflight_ready = (
     str(smart_rebuild_preflight.get("decision") or "") == "READY_FOR_SMART_REBUILD_VEDTAK_REVIEW"
 )
+candidate_smart = reports.get("candidate-readiness-smart") or {}
+candidate_training_smart_allowed = bool(candidate_smart.get("candidate_training_allowed_with_explicit_vedtak"))
+real_smoke_train_smart_allowed = bool(smart_smoke_readiness_ready and smart_trainability_readiness_ready)
 
 commands = {
     "handover": {
@@ -823,6 +836,34 @@ commands = {
         "num_workers": 0,
         "specialist_contract_mode": "challenger_seq215",
         "expected_signal_dim": 215,
+        "required_training_specialist_count": 8,
+        "requires_exact_specialist_contract_proof": True,
+    },
+    "smart_smoke_train": {
+        "argv": [
+            "scripts/entry_next_edge_control.sh",
+            "smart-smoke-train",
+            "--vedtak",
+            "<id>",
+            "--require-edge-audit",
+        ],
+        "allowed": real_smoke_train_smart_allowed,
+        "mode": "train",
+        "requires_vedtak": True,
+        "requires_clean_git": True,
+        "mutates_git_index": False,
+        "starts_trainer": True,
+        "starts_replay": False,
+        "starts_iql_distillation": False,
+        "touches_shadow_or_live": False,
+        "description": "Real smart seq520 smoke train; requires smart smoke-readiness, trainability, clean git and explicit SMART/SEQ520 vedtak.",
+        "requires_smart_vedtak": True,
+        "requires_edge_audit": True,
+        "requires_ram_cap": True,
+        "ram_cap_runner": "scripts/gx1_capped_run.sh",
+        "num_workers": 0,
+        "specialist_contract_mode": "smart_seq520_candidate",
+        "expected_signal_dim": 520,
         "required_training_specialist_count": 8,
         "requires_exact_specialist_contract_proof": True,
     },
@@ -1008,6 +1049,29 @@ commands.update(
             "touches_shadow_or_live": False,
             "description": "Refresh seq215 candidate-readiness without opening candidate training.",
         },
+        "candidate_readiness_smart_report": {
+            "argv": [
+                "scripts/entry_next_edge_control.sh",
+                "candidate-readiness-smart",
+                "--quiet",
+                "--no-fail-on-not-ready",
+            ],
+            "allowed": True,
+            "mode": "audit",
+            "requires_vedtak": False,
+            "requires_clean_git": False,
+            "mutates_git_index": False,
+            "starts_trainer": False,
+            "starts_replay": False,
+            "starts_iql_distillation": False,
+            "touches_shadow_or_live": False,
+            "specialist_contract_mode": "smart_seq520_candidate",
+            "expected_signal_dim": 520,
+            "training_allowed": False,
+            "candidate_training_allowed": False,
+            "replay_allowed": False,
+            "description": "Refresh smart seq520 candidate-readiness without opening candidate training.",
+        },
         "replay_readiness_report": {
             "argv": [
                 "scripts/entry_next_edge_control.sh",
@@ -1046,6 +1110,29 @@ commands.update(
             "expected_signal_dim": 215,
             "required_training_specialist_count": 8,
             "description": "Refresh seq215 replay-readiness without opening IQL distillation.",
+        },
+        "replay_readiness_smart_report": {
+            "argv": [
+                "scripts/entry_next_edge_control.sh",
+                "replay-readiness-smart",
+                "--quiet",
+                "--no-fail-on-not-ready",
+            ],
+            "allowed": True,
+            "mode": "audit",
+            "requires_vedtak": False,
+            "requires_clean_git": False,
+            "mutates_git_index": False,
+            "starts_trainer": False,
+            "starts_replay": False,
+            "starts_iql_distillation": False,
+            "touches_shadow_or_live": False,
+            "specialist_contract_mode": "smart_seq520_candidate",
+            "expected_signal_dim": 520,
+            "training_allowed": False,
+            "candidate_training_allowed": False,
+            "replay_allowed": False,
+            "description": "Refresh smart seq520 replay-readiness without opening IQL distillation.",
         },
         "chart_geometry_audit": {
             "argv": [
@@ -1130,6 +1217,7 @@ commands.update(
             "argv": [
                 "scripts/entry_next_edge_control.sh",
                 "smart-rebuild-preflight",
+                "--verify-large-input-hashes",
                 "--quiet",
                 "--no-fail-on-audit-fail",
             ],
@@ -1143,6 +1231,7 @@ commands.update(
             "starts_iql_distillation": False,
             "touches_shadow_or_live": False,
             "dataset_rebuild_allowed_without_vedtak": False,
+            "verifies_large_input_hashes": True,
             "requires_ram_cap_for_future_rebuild": True,
             "ram_cap_runner": "scripts/gx1_capped_run.sh",
             "manifest_variant": smart_candidate_manifest_variant,
@@ -1346,6 +1435,29 @@ commands.update(
             "num_workers": 0,
             "specialist_contract_mode": "challenger_seq215",
             "expected_signal_dim": 215,
+            "required_training_specialist_count": 8,
+            "requires_exact_specialist_contract_proof": True,
+        },
+        "candidate_train_smart": {
+            "argv": ["scripts/entry_next_edge_control.sh", "candidate-train-smart", "--vedtak", "<id>"],
+            "allowed": candidate_training_smart_allowed,
+            "mode": "train",
+            "requires_vedtak": True,
+            "requires_clean_git": True,
+            "mutates_git_index": False,
+            "starts_trainer": True,
+            "starts_replay": False,
+            "starts_iql_distillation": False,
+            "touches_shadow_or_live": False,
+            "description": "Smart seq520 candidate train after smart smoke edge audit and smart candidate-readiness.",
+            "requires_smart_vedtak": True,
+            "requires_candidate_readiness": True,
+            "requires_smoke_bundle_edge_audit": True,
+            "requires_ram_cap": True,
+            "ram_cap_runner": "scripts/gx1_capped_run.sh",
+            "num_workers": 0,
+            "specialist_contract_mode": "smart_seq520_candidate",
+            "expected_signal_dim": 520,
             "required_training_specialist_count": 8,
             "requires_exact_specialist_contract_proof": True,
         },
@@ -1700,8 +1812,10 @@ execution_allowed_now = {
     "train_readiness_report": True,
     "candidate_readiness_report": True,
     "candidate_readiness_seq215_report": True,
+    "candidate_readiness_smart_report": True,
     "replay_readiness_report": True,
     "replay_readiness_seq215_report": True,
+    "replay_readiness_smart_report": True,
     "feature_ai_inventory": True,
     "chart_geometry_audit": True,
     "candlestick_audit": True,
@@ -1719,8 +1833,10 @@ execution_allowed_now = {
     "smoke_manifest_seq215": False,
     "smoke_train": False,
     "smoke_train_seq215": False,
+    "smart_smoke_train": False,
     "candidate_train": False,
     "candidate_train_seq215": False,
+    "candidate_train_smart": False,
     "selective_edge": False,
     "replay_evidence": False,
     "iql_distill": False,
@@ -1763,8 +1879,10 @@ allowed_after_explicit_vedtak = {
     "train_readiness_report": True,
     "candidate_readiness_report": True,
     "candidate_readiness_seq215_report": True,
+    "candidate_readiness_smart_report": True,
     "replay_readiness_report": True,
     "replay_readiness_seq215_report": True,
+    "replay_readiness_smart_report": True,
     "feature_ai_inventory": True,
     "chart_geometry_audit": True,
     "candlestick_audit": True,
@@ -1782,8 +1900,10 @@ allowed_after_explicit_vedtak = {
     "smoke_manifest_seq215": smoke_manifest_seq215_proof_allowed,
     "smoke_train": real_smoke_train_allowed,
     "smoke_train_seq215": real_smoke_train_seq215_allowed,
+    "smart_smoke_train": real_smoke_train_smart_allowed,
     "candidate_train": candidate_training_allowed,
     "candidate_train_seq215": candidate_training_seq215_allowed,
+    "candidate_train_smart": candidate_training_smart_allowed,
     "selective_edge": False,
     "replay_evidence": False,
     "iql_distill": iql_distillation_allowed,
@@ -1846,8 +1966,14 @@ not_executable_now_reason = {
             else "requires clean git worktree and explicit SEQ215 smoke-train vedtak"
         )
     ),
+    "smart_smoke_train": (
+        "smart smoke-readiness and smart trainability are not both ready"
+        if not real_smoke_train_smart_allowed
+        else "requires clean git worktree and explicit SMART/SEQ520 smoke-train vedtak"
+    ),
     "candidate_train": "requires real smoke bundle edge audit, clean git worktree and explicit candidate-train vedtak",
     "candidate_train_seq215": "requires real seq215 smoke bundle edge audit, clean git worktree and explicit seq215 candidate-train vedtak",
+    "candidate_train_smart": "requires smart smoke bundle edge audit, clean git worktree and explicit SMART/SEQ520 candidate-train vedtak",
     "selective_edge": "requires actual candidate bundle and no-XGB ablation bundle",
     "replay_evidence": "requires explicit post-candidate replay trade log and candidate/selective-edge evidence",
     "iql_distill": "requires replay-readiness PASS and explicit IQL vedtak",
@@ -1909,10 +2035,18 @@ payload = {
         "candidate_training_seq215_allowed": bool(
             candidate_training_seq215_allowed
         ),
+        "candidate_training_smart_seq520_allowed": bool(
+            candidate_training_smart_allowed
+        ),
         "candidate_readiness_seq215_decision": candidate_seq215.get("decision"),
         "candidate_readiness_seq215_next": (
             candidate_seq215.get("next_required_gate")
             or summaries.get("candidate-readiness-seq215", {}).get("next")
+        ),
+        "candidate_readiness_smart_decision": candidate_smart.get("decision"),
+        "candidate_readiness_smart_next": (
+            candidate_smart.get("next_required_gate")
+            or summaries.get("candidate-readiness-smart", {}).get("next")
         ),
         "seq215_smoke_contract_preflight_ready": seq215_smoke_contract_preflight_ready,
         "seq215_smoke_contract_required_specialists": sorted(candidate_seq215_required_specialists),
@@ -1935,6 +2069,7 @@ payload = {
         "smart_trainability_readiness_ready": smart_trainability_readiness_ready,
         "smart_ablation_replay_plan_decision": smart_ablation_replay_plan.get("decision"),
         "smart_ablation_replay_plan_ready": smart_ablation_replay_plan_ready,
+        "real_smoke_train_smart_seq520_allowed": real_smoke_train_smart_allowed,
         "iql_distillation_allowed": bool(
             iql_distillation_allowed
         ),
@@ -2178,12 +2313,20 @@ PY
     exec "$PY" -m gx1.scripts.verify_entry_candidate_readiness_v1 --challenger-seq215 "$@"
     ;;
 
+  candidate-readiness-smart)
+    exec "$PY" -m gx1.scripts.verify_entry_candidate_readiness_v1 --smart-seq520 "$@"
+    ;;
+
   replay-readiness)
     exec "$PY" -m gx1.scripts.verify_entry_replay_readiness_v1 "$@"
     ;;
 
   replay-readiness-seq215)
     exec "$PY" -m gx1.scripts.verify_entry_replay_readiness_v1 --challenger-seq215 "$@"
+    ;;
+
+  replay-readiness-smart)
+    exec "$PY" -m gx1.scripts.verify_entry_replay_readiness_v1 --smart-seq520 "$@"
     ;;
 
   chart-geometry-audit)
@@ -2207,7 +2350,7 @@ PY
     ;;
 
   smart-rebuild-preflight)
-    exec "$PY" -m gx1.scripts.materialize_entry_smart_seq520_rebuild_preflight_v1 "$@"
+    exec "$PY" -m gx1.scripts.materialize_entry_smart_seq520_rebuild_preflight_v1 --verify-large-input-hashes "$@"
     ;;
 
   smart-post-rebuild-readiness)
@@ -2236,6 +2379,10 @@ PY
 
   candidate-train-seq215)
     exec "$REPO/scripts/run_entry_foundation_seq146_candidate_train.sh" --challenger-seq215 "$@"
+    ;;
+
+  candidate-train-smart)
+    exec "$REPO/scripts/run_entry_foundation_seq146_candidate_train.sh" --smart-seq520 "$@"
     ;;
 
   iql-distill)
@@ -2324,6 +2471,10 @@ PY
 
   smoke-train-seq215)
     exec "$REPO/scripts/run_entry_foundation_seq146_smoke_train.sh" --challenger-seq215 "$@"
+    ;;
+
+  smart-smoke-train)
+    exec "$REPO/scripts/run_entry_foundation_seq146_smoke_train.sh" --smart-seq520 "$@"
     ;;
 
   audit-smoke-bundle)

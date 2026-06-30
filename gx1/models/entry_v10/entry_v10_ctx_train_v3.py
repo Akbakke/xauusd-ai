@@ -3,8 +3,8 @@
 Canonical ENTRY_V10_CTX trainer.
 
 ONE UNIVERSE (STRICT):
-- Signal bridge: XGB_SIGNAL_BRIDGE_V1 (7-dim)
-- Context: CTX6CAT6 base (ctx_cat=6 fixed; ctx_cont base=6 with optional micro extensions)
+- Signal bridge: versioned Entry signal bridge.
+- Context: contract-driven ctx_cont/ctx_cat dimensions from signal_bridge_v3.
 - No RL
 - No legacy
 - No fallback
@@ -3052,11 +3052,11 @@ def run_sanity_check(
         log.info(f"[SANITY] manifest contract OK: {p}")
 
     ctx = get_canonical_ctx_contract()
-    _require(ctx["tag"] == "CTX6CAT6", "[SANITY_CTX_SPLIT_BRAIN] expected CTX6CAT6")
+    expected_ctx_cat_dim = _expected_ctx_cat_dim()
     if not _is_vnext():
         _require(
-            ctx.get("ctx_cont_dim") == 6 and ctx.get("ctx_cat_dim") == 6,
-            "[SANITY_CTX_DIM_MISMATCH] expected ctx_cont_base=6 ctx_cat_dim=6",
+            int(ctx.get("ctx_cont_dim") or 0) >= 6 and expected_ctx_cat_dim > 0,
+            f"[SANITY_CTX_DIM_MISMATCH] expected ctx_cont_base>=6 ctx_cat_dim={expected_ctx_cat_dim}",
         )
     _require(seq_input_dim == snap_input_dim and seq_input_dim > 0, f"[SANITY_SIGNAL_DIM] seq={seq_input_dim} snap={snap_input_dim}")
 
@@ -3065,7 +3065,7 @@ def run_sanity_check(
         ctx_cat_dim = int(fc_ctx_cat_dim)
     else:
         ctx_cont_dim = int(ctx.get("ctx_cont_dim") or 6)
-        ctx_cat_dim = int(ctx.get("ctx_cat_dim") or 6)
+        ctx_cat_dim = expected_ctx_cat_dim
     if _is_vnext():
         ctx_cont_dim = max(ctx_cont_dim, 21)
 
@@ -3187,7 +3187,7 @@ def run_sanity_check(
         "signal_bridge_id": "XGB_SIGNAL_BRIDGE_V1",
         "ctx_tag": f"CTX6CAT{ctx_cat_dim}",
         "ordered_ctx_cont_names": ordered_ctx_cont_names,
-        "ordered_ctx_cat_names": list(ctx.get("ctx_cat_names") or []),
+        "ordered_ctx_cat_names": list(ORDERED_CTX_CAT_NAMES_V3),
         "feature_meta_path": str(feature_meta_path.name),
         "sanity_bundle": True,
     }
@@ -3289,11 +3289,12 @@ def run_train(
         )
 
     ctx = get_canonical_ctx_contract()
-    _require(ctx["tag"] == "CTX6CAT6", "[CTX_SPLIT_BRAIN]")
+    expected_ctx_cat_dim = _expected_ctx_cat_dim()
+    _require(expected_ctx_cat_dim > 0 and int(ctx.get("ctx_cont_dim") or 0) >= 6, "[CTX_CONTRACT_DIM]")
 
     log.info(
         f"[TRAIN] seed={seed} device={device} batch_size={batch_size} epochs={epochs} lr={lr} "
-        f"signal_dim=dynamic ctx_cont=dynamic ctx_cat=6 early_stop_patience={early_stopping_patience} "
+        f"signal_dim=dynamic ctx_cont=dynamic ctx_cat={expected_ctx_cat_dim} early_stop_patience={early_stopping_patience} "
         f"early_stop_min_delta={early_stopping_min_delta}"
     )
 
@@ -4452,8 +4453,8 @@ def run_eval(
 
     meta = json.loads(meta_path.read_text(encoding="utf-8"))
     _require(meta.get("signal_bridge_id") == "XGB_SIGNAL_BRIDGE_V1", "[EVAL_CONTRACT_BRIDGE]")
-    # R4: the ctx_tag self-describes the bundle's own ctx_cat_dim (CTX6CAT6 cement / CTX6CAT5
-    # regime-robust). Validate self-consistency, not a frozen literal. ctx_cat_dim read below.
+    # R4: the ctx_tag self-describes the bundle's own ctx_cat_dim. Validate
+    # self-consistency, not a frozen literal. ctx_cat_dim is read below.
     _meta_cat_dim = int(meta.get("ctx_cat_dim") or -1)
     _require(meta.get("ctx_tag") == f"CTX6CAT{_meta_cat_dim}", "[EVAL_CONTRACT_CTX_TAG]")
     ctx_cont_dim = int(meta.get("ctx_cont_dim") or -1)

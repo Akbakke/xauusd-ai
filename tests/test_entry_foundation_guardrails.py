@@ -60,7 +60,9 @@ def test_foundation_guardrails_current_repo_lock_control_and_handover(tmp_path: 
     assert policy_checks["readiness_policy_safe_now_foundation_activation_apply_dry_run"] is True
     assert policy_checks["readiness_policy_safe_now_foundation_activation_post_apply_dry_run"] is True
     assert policy_checks["readiness_policy_safe_now_candidate_readiness_report"] is True
+    assert policy_checks["readiness_policy_safe_now_candidate_readiness_smart_report"] is True
     assert policy_checks["readiness_policy_safe_now_replay_readiness_seq215_report"] is True
+    assert policy_checks["readiness_policy_safe_now_replay_readiness_smart_report"] is True
     assert policy_checks["readiness_policy_safe_now_feature_ai_inventory"] is True
     assert policy_checks["readiness_policy_safe_now_chart_geometry_audit"] is True
     assert policy_checks["readiness_policy_safe_now_candlestick_audit"] is True
@@ -92,10 +94,12 @@ def test_foundation_guardrails_current_repo_lock_control_and_handover(tmp_path: 
     assert policy_checks["readiness_policy_blocks_foundation_activation_apply"] is True
     assert policy_checks["readiness_policy_blocks_foundation_activation_post_apply"] is True
     assert policy_checks["readiness_policy_blocks_smart_smoke_manifest"] is True
+    assert policy_checks["readiness_policy_blocks_smart_smoke_train"] is True
     assert policy_checks["readiness_policy_blocks_smoke_train"] is True
     assert policy_checks["readiness_policy_blocks_smoke_train_seq215"] is True
     assert policy_checks["readiness_policy_blocks_candidate_train"] is True
     assert policy_checks["readiness_policy_blocks_candidate_train_seq215"] is True
+    assert policy_checks["readiness_policy_blocks_candidate_train_smart"] is True
     assert policy_checks["readiness_policy_blocks_selective_edge"] is True
     assert policy_checks["readiness_policy_blocks_replay_evidence"] is True
     assert policy_checks["readiness_policy_blocks_iql_distill"] is True
@@ -110,6 +114,8 @@ def test_foundation_guardrails_current_repo_lock_control_and_handover(tmp_path: 
     assert policy_checks["readiness_policy_candidate_train_seq215_declares_trainer"] is True
     assert policy_checks["readiness_policy_smoke_train_seq215_declares_ram_edge_seq215_contract"] is True
     assert policy_checks["readiness_policy_candidate_train_seq215_declares_ram_edge_seq215_contract"] is True
+    assert policy_checks["readiness_policy_smart_smoke_train_declares_ram_edge_smart_contract"] is True
+    assert policy_checks["readiness_policy_candidate_train_smart_declares_ram_edge_smart_contract"] is True
     assert policy_checks["readiness_policy_iql_distill_declares_iql_side_effect"] is True
     assert policy_checks["readiness_policy_entry_exit_transformer_train_declares_trainer"] is True
     assert policy_checks["readiness_policy_shadow_live_declares_live_touch"] is True

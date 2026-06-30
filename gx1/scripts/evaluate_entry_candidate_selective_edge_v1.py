@@ -41,11 +41,17 @@ from gx1.scripts.verify_entry_foundation_state_v1 import FOUNDATION_DATASET_DIR,
 
 
 DEFAULT_OUT_DIR = REPORTS_ROOT / "entry_candidate_selective_edge_20260628_v1"
+SMART_SEQ520_DATASET_DIR = (
+    Path("/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605")
+    / "v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_smart_candidate_20260630"
+)
+SMART_SEQ520_OUT_DIR = DEFAULT_OUT_DIR / "smart_seq520_candidate"
 SESSION_NAMES = {0: "ASIA", 1: "EU", 2: "OVERLAP", 3: "US"}
 SIDE_NAMES = {0: "LONG", 1: "SHORT"}
 CONTRACT_SIGNAL_DIMS = {
     "foundation_seq146": 146,
     "challenger_seq215": 215,
+    "smart_seq520_candidate": 520,
 }
 SPECIALIST_MODEL_CONTRACT_FLAGS = (
     "specialist_model_contract_valid",
@@ -140,8 +146,8 @@ def _specialist_contract_snapshot(meta: dict[str, Any], requested_mode: str) -> 
         failures.append("bundle specialist_fusion.enabled is not true")
     if observed_mode and observed_mode != contract_mode:
         failures.append(f"bundle specialist contract mode mismatch: observed={observed_mode} expected={contract_mode}")
-    if contract_mode == "challenger_seq215" and not observed_mode:
-        failures.append("challenger_seq215 bundle must declare specialist_fusion.contract_mode")
+    if contract_mode != "foundation_seq146" and not observed_mode:
+        failures.append(f"{contract_mode} bundle must declare specialist_fusion.contract_mode")
 
     missing = sorted(set(expected_specialists) - set(observed_specialists))
     extra = sorted(set(observed_specialists) - set(expected_specialists))
@@ -149,10 +155,10 @@ def _specialist_contract_snapshot(meta: dict[str, Any], requested_mode: str) -> 
         failures.append(f"bundle specialist_fusion missing required specialists: {missing}")
     if extra:
         failures.append(f"bundle specialist_fusion has non-required specialists: {extra}")
-    if contract_mode == "challenger_seq215":
+    if contract_mode != "foundation_seq146":
         for required in ("chart_geometry_encoder", "price_action_candle_encoder"):
             if required not in observed_specialists:
-                failures.append(f"challenger_seq215 missing required specialist: {required}")
+                failures.append(f"{contract_mode} missing required specialist: {required}")
 
     expected_contract_keys = sorted(str(name) for name in expected_contract)
     observed_contract_keys = sorted(str(name) for name in observed_contract)
@@ -603,8 +609,16 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
     bundle_dir = Path(args.bundle_dir).expanduser().resolve()
-    dataset_dir = Path(args.dataset_dir).expanduser().resolve()
-    out_dir = Path(args.out_dir).expanduser().resolve()
+    contract_mode = _normalize_contract_mode(getattr(args, "contract_mode", "foundation_seq146"))
+    dataset_dir_raw = Path(args.dataset_dir).expanduser()
+    out_dir_raw = Path(args.out_dir).expanduser()
+    if contract_mode == "smart_seq520_candidate":
+        if dataset_dir_raw.resolve() == FOUNDATION_DATASET_DIR.expanduser().resolve():
+            dataset_dir_raw = SMART_SEQ520_DATASET_DIR
+        if out_dir_raw.resolve() == DEFAULT_OUT_DIR.expanduser().resolve():
+            out_dir_raw = SMART_SEQ520_OUT_DIR
+    dataset_dir = dataset_dir_raw.resolve()
+    out_dir = out_dir_raw.resolve()
     m5_prebuilt = Path(args.m5_prebuilt_path).expanduser().resolve()
     mtf_cache_dir = Path(args.multi_tf_cache_dir).expanduser().resolve() if args.multi_tf_cache_dir else None
     splits = _parse_csv(args.splits)
@@ -613,7 +627,6 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     no_xgb_ablation_mode = str(getattr(args, "no_xgb_ablation_mode", "bundle")).strip()
     if no_xgb_ablation_mode not in {"bundle", "neutralize_signal_bridge"}:
         raise RuntimeError(f"invalid no-XGB ablation mode: {no_xgb_ablation_mode}")
-    contract_mode = _normalize_contract_mode(getattr(args, "contract_mode", "foundation_seq146"))
     out_dir.mkdir(parents=True, exist_ok=True)
     if mtf_cache_dir and mtf_cache_dir.exists():
         os.environ.setdefault("GX1_V10_MULTI_TF_V2_CACHE_DIR", str(mtf_cache_dir))
@@ -774,8 +787,13 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--splits", default="val,test")
     ap.add_argument("--top-fracs", default="0.05,0.10")
     ap.add_argument("--model-name", default="candidate")
-    ap.add_argument("--contract-mode", choices=("foundation_seq146", "challenger_seq215"), default="foundation_seq146")
+    ap.add_argument(
+        "--contract-mode",
+        choices=("foundation_seq146", "challenger_seq215", "smart_seq520_candidate"),
+        default="foundation_seq146",
+    )
     ap.add_argument("--challenger-seq215", action="store_const", dest="contract_mode", const="challenger_seq215")
+    ap.add_argument("--smart-seq520", action="store_const", dest="contract_mode", const="smart_seq520_candidate")
     ap.add_argument("--no-xgb-ablation-mode", choices=("bundle", "neutralize_signal_bridge"), default="bundle")
     ap.add_argument("--device", default="cpu")
     ap.add_argument("--batch-size", type=int, default=128)

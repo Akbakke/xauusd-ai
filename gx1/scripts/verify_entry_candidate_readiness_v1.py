@@ -55,11 +55,35 @@ CHALLENGER_SEQ215_SPECIALIST_AUDIT_LATEST = (
     / "challenger_seq215_20260630_contract8"
     / "ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_latest.json"
 )
+SMART_SEQ520_OUT_DIR = DEFAULT_OUT_DIR / "smart_seq520_candidate"
+SMART_SEQ520_SMOKE_BUNDLE_AUDIT_LATEST = (
+    REPORTS_ROOT
+    / "entry_foundation_smoke_bundle_audit_20260628_v1"
+    / "smart_seq520_candidate"
+    / "ENTRY_FOUNDATION_SMOKE_BUNDLE_AUDIT_latest.json"
+)
+SMART_SEQ520_SMOKE_DATASET_DIR = (
+    Path("/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605")
+    / "v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_smart_seq520_smoke_20260630"
+)
+SMART_SEQ520_SPECIALIST_AUDIT_LATEST = (
+    REPORTS_ROOT
+    / "entry_specialist_feature_group_audit_20260628_v1"
+    / "smart_seq520_candidate_20260630"
+    / "ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_latest.json"
+)
+SMART_SEQ520_TRAINABILITY_READINESS_LATEST = (
+    REPORTS_ROOT
+    / "entry_smart_seq520_trainability_readiness_20260630_v1"
+    / "ENTRY_SMART_SEQ520_TRAINABILITY_READINESS_latest.json"
+)
+SMART_SEQ520_TRAINABILITY_READY_DECISION = "READY_FOR_SMART_SEQ520_TRAINABILITY_REVIEW"
 REQUIRED_SPECIALIST_GROUPS = tuple(required_training_specialists_for_mode("foundation_seq146"))
 REQUIRED_MIN_GATE_ENTROPY = 0.05
 EXPECTED_SIGNAL_DIMS_BY_MODE = {
     "foundation_seq146": 146,
     "challenger_seq215": 215,
+    "smart_seq520_candidate": 520,
 }
 
 
@@ -214,6 +238,8 @@ def _mode_smoke_dataset_dir(contract_mode: str) -> Path:
         return FOUNDATION_SMOKE_DATASET_DIR
     if contract_mode == "challenger_seq215":
         return CHALLENGER_SEQ215_SMOKE_DATASET_DIR
+    if contract_mode == "smart_seq520_candidate":
+        return SMART_SEQ520_SMOKE_DATASET_DIR
     raise ValueError(f"unknown specialist contract mode: {contract_mode}")
 
 
@@ -222,6 +248,8 @@ def _mode_specialist_audit_path(contract_mode: str) -> Path:
         return SPECIALIST_AUDIT_LATEST
     if contract_mode == "challenger_seq215":
         return CHALLENGER_SEQ215_SPECIALIST_AUDIT_LATEST
+    if contract_mode == "smart_seq520_candidate":
+        return SMART_SEQ520_SPECIALIST_AUDIT_LATEST
     raise ValueError(f"unknown specialist contract mode: {contract_mode}")
 
 
@@ -230,6 +258,8 @@ def _mode_smoke_bundle_audit_path(contract_mode: str) -> Path:
         return SMOKE_BUNDLE_AUDIT_LATEST
     if contract_mode == "challenger_seq215":
         return CHALLENGER_SEQ215_SMOKE_BUNDLE_AUDIT_LATEST
+    if contract_mode == "smart_seq520_candidate":
+        return SMART_SEQ520_SMOKE_BUNDLE_AUDIT_LATEST
     raise ValueError(f"unknown specialist contract mode: {contract_mode}")
 
 
@@ -238,6 +268,8 @@ def _mode_out_dir(contract_mode: str) -> Path:
         return DEFAULT_OUT_DIR
     if contract_mode == "challenger_seq215":
         return CHALLENGER_SEQ215_OUT_DIR
+    if contract_mode == "smart_seq520_candidate":
+        return SMART_SEQ520_OUT_DIR
     raise ValueError(f"unknown specialist contract mode: {contract_mode}")
 
 
@@ -246,6 +278,8 @@ def _mode_smoke_train_command(contract_mode: str) -> str:
         return "scripts/entry_next_edge_control.sh smoke-train --vedtak <id> --require-edge-audit"
     if contract_mode == "challenger_seq215":
         return "scripts/entry_next_edge_control.sh smoke-train-seq215 --vedtak <id> --require-edge-audit"
+    if contract_mode == "smart_seq520_candidate":
+        return "scripts/entry_next_edge_control.sh smart-smoke-train --vedtak <id> --require-edge-audit"
     raise ValueError(f"unknown specialist contract mode: {contract_mode}")
 
 
@@ -254,6 +288,8 @@ def _mode_candidate_train_command(contract_mode: str) -> str:
         return "scripts/entry_next_edge_control.sh candidate-train --vedtak <id>"
     if contract_mode == "challenger_seq215":
         return "scripts/entry_next_edge_control.sh candidate-train-seq215 --vedtak <id>"
+    if contract_mode == "smart_seq520_candidate":
+        return "scripts/entry_next_edge_control.sh candidate-train-smart --vedtak <id>"
     raise ValueError(f"unknown specialist contract mode: {contract_mode}")
 
 
@@ -504,14 +540,59 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         getattr(args, "specialist_audit_json", None) or _mode_specialist_audit_path(contract_mode)
     ).expanduser().resolve()
 
-    train_readiness = run_train_readiness(
-        argparse.Namespace(
-            audit_doc=str(args.audit_doc),
-            out_dir=str(TRAIN_READINESS_OUT_DIR),
-            fail_on_not_ready=False,
-            quiet=True,
+    upstream_gate_name = "train_readiness"
+    upstream_artifact_path = TRAIN_READINESS_OUT_DIR / "ENTRY_TRAINING_READINESS_latest.json"
+    if contract_mode == "smart_seq520_candidate":
+        upstream_gate_name = "smart_trainability_readiness"
+        upstream_artifact_path = SMART_SEQ520_TRAINABILITY_READINESS_LATEST
+        try:
+            upstream_readiness = _read_json(upstream_artifact_path)
+            upstream_load_error = None
+        except Exception as exc:
+            upstream_readiness = {}
+            upstream_load_error = str(exc)
+        upstream_checks = [
+            _check(
+                "smart trainability readiness exists and is readable",
+                upstream_load_error is None,
+                {"path": str(upstream_artifact_path), "error": upstream_load_error},
+            ),
+            _check(
+                "smart trainability readiness is green",
+                str(upstream_readiness.get("decision")) == SMART_SEQ520_TRAINABILITY_READY_DECISION,
+                {"decision": upstream_readiness.get("decision"), "failures": upstream_readiness.get("failures")},
+            ),
+            _check("smart trainability gate still blocks direct execution", bool(upstream_readiness.get("execution_allowed_now")) is False),
+            _check("smart trainability gate still blocks training", bool(upstream_readiness.get("training_allowed")) is False),
+            _check(
+                "smart trainability gate still blocks replay IQL shadow live",
+                not any(
+                    bool(upstream_readiness.get(key))
+                    for key in ("replay_allowed", "iql_allowed", "shadow_live_allowed")
+                ),
+            ),
+        ]
+    else:
+        upstream_readiness = run_train_readiness(
+            argparse.Namespace(
+                audit_doc=str(args.audit_doc),
+                out_dir=str(TRAIN_READINESS_OUT_DIR),
+                fail_on_not_ready=False,
+                quiet=True,
+            )
         )
-    )
+        upstream_artifact_path = Path(
+            str(upstream_readiness.get("json_path") or (TRAIN_READINESS_OUT_DIR / "ENTRY_TRAINING_READINESS_latest.json"))
+        )
+        upstream_checks = [
+            _check(
+                "foundation train-readiness is green",
+                str(upstream_readiness.get("decision")) == "READY_FOR_VEDTAK_SMOKE_TRAIN",
+                {"decision": upstream_readiness.get("decision"), "failures": upstream_readiness.get("failures")},
+            ),
+            _check("train-readiness still blocks candidate training", bool(upstream_readiness.get("candidate_training_allowed")) is False),
+            _check("train-readiness still blocks promotion/shadow/live", bool(upstream_readiness.get("promotion_shadow_live_allowed")) is False),
+        ]
     smoke_audit_load_error = None
     try:
         smoke_audit = _read_json(smoke_audit_path)
@@ -519,21 +600,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         smoke_audit = {}
         smoke_audit_load_error = str(exc)
     artifacts = {
-        "train_readiness": str(train_readiness.get("json_path") or (TRAIN_READINESS_OUT_DIR / "ENTRY_TRAINING_READINESS_latest.json")),
+        upstream_gate_name: str(upstream_artifact_path),
         "smoke_bundle_audit": str(smoke_audit_path),
         "specialist_audit": str(specialist_audit_path),
     }
     artifact_fingerprints = _artifact_fingerprints(artifacts)
     gate_checks = {
-        "train_readiness": [
-            _check(
-                "foundation train-readiness is green",
-                str(train_readiness.get("decision")) == "READY_FOR_VEDTAK_SMOKE_TRAIN",
-                {"decision": train_readiness.get("decision"), "failures": train_readiness.get("failures")},
-            ),
-            _check("train-readiness still blocks candidate training", bool(train_readiness.get("candidate_training_allowed")) is False),
-            _check("train-readiness still blocks promotion/shadow/live", bool(train_readiness.get("promotion_shadow_live_allowed")) is False),
-        ],
+        upstream_gate_name: upstream_checks,
         "smoke_edge_audit": [
             _check(
                 "smoke bundle audit JSON exists and is readable",
@@ -592,7 +665,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "artifact_fingerprints": artifact_fingerprints,
         "smoke_bundle_audit_json": str(smoke_audit_path),
         "smoke_bundle_audit_load_error": smoke_audit_load_error,
-        "train_readiness_json": train_readiness.get("json_path"),
+        "upstream_readiness_gate": upstream_gate_name,
+        "upstream_readiness_json": str(upstream_artifact_path),
+        "train_readiness_json": str(upstream_artifact_path) if upstream_gate_name == "train_readiness" else None,
         "gates": gates,
         "failures": failures,
     }
@@ -634,6 +709,7 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--specialist-audit-json", default=None)
     ap.add_argument("--contract-mode", choices=SPECIALIST_CONTRACT_MODES, default="foundation_seq146")
     ap.add_argument("--challenger-seq215", action="store_const", const="challenger_seq215", dest="contract_mode")
+    ap.add_argument("--smart-seq520", action="store_const", const="smart_seq520_candidate", dest="contract_mode")
     ap.add_argument("--out-dir", default=None)
     ap.add_argument("--min-active-specialists", type=int, default=len(REQUIRED_SPECIALIST_GROUPS))
     ap.add_argument("--fail-on-not-ready", action=argparse.BooleanOptionalAction, default=True)

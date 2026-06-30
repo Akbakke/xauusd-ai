@@ -51,9 +51,26 @@ CHALLENGER_SEQ215_CANDIDATE_BUNDLE_AUDIT = (
 )
 DEFAULT_OUT_DIR = REPORTS_ROOT / "entry_replay_readiness_20260628_v1"
 CHALLENGER_SEQ215_OUT_DIR = DEFAULT_OUT_DIR / "challenger_seq215_20260630"
+SMART_SEQ520_CANDIDATE_READINESS_LATEST = (
+    CANDIDATE_READINESS_OUT_DIR / "smart_seq520_candidate/ENTRY_CANDIDATE_READINESS_latest.json"
+)
+SMART_SEQ520_CANDIDATE_BUNDLE_AUDIT = (
+    REPORTS_ROOT
+    / "entry_candidate_bundle_audit_20260628_v1/smart_seq520_candidate/ENTRY_FOUNDATION_SMOKE_BUNDLE_AUDIT_latest.json"
+)
+SMART_SEQ520_OUT_DIR = DEFAULT_OUT_DIR / "smart_seq520_candidate"
+CHALLENGER_SEQ215_DATASET_DIR = (
+    Path("/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605")
+    / "v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_challenger_seq215_neutral_20260630"
+)
+SMART_SEQ520_DATASET_DIR = (
+    Path("/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605")
+    / "v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_smart_candidate_20260630"
+)
 CONTRACT_INPUT_DIMS = {
     "foundation_seq146": 146,
     "challenger_seq215": 215,
+    "smart_seq520_candidate": 520,
 }
 
 
@@ -338,6 +355,7 @@ def _candidate_bundle_audit_checks(
     report: dict[str, Any],
     *,
     contract_mode: str = "foundation_seq146",
+    expected_dataset_dir: Path = FOUNDATION_DATASET_DIR,
 ) -> list[dict[str, Any]]:
     exists = path.exists()
     bundle = report.get("bundle_summary") if isinstance(report.get("bundle_summary"), dict) else {}
@@ -375,7 +393,11 @@ def _candidate_bundle_audit_checks(
         _check("candidate bundle audit exists", exists, {"path": str(path)}),
         _check("candidate bundle audit PASS", exists and str(report.get("decision")) == "PASS", {"failures": report.get("failures")}),
         _check("candidate bundle audit has zero failures", exists and not report.get("failures"), {"failures": report.get("failures")}),
-        _check("candidate bundle audit used foundation dataset", exists and _same_resolved_path(report.get("dataset_dir"), FOUNDATION_DATASET_DIR)),
+        _check(
+            "candidate bundle audit used expected dataset",
+            exists and _same_resolved_path(report.get("dataset_dir"), expected_dataset_dir),
+            {"expected_dataset_dir": str(expected_dataset_dir), "observed_dataset_dir": report.get("dataset_dir")},
+        ),
         _check("candidate bundle audit is from actual train output, not sanity bundle", exists and not bool(bundle.get("sanity_bundle"))),
         _check(
             "candidate bundle audit contract mode matches requested replay contract",
@@ -651,6 +673,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             candidate_bundle_audit_raw = CHALLENGER_SEQ215_CANDIDATE_BUNDLE_AUDIT
         if out_dir_raw == DEFAULT_OUT_DIR:
             out_dir_raw = CHALLENGER_SEQ215_OUT_DIR
+    elif requested_contract_mode == "smart_seq520_candidate":
+        if candidate_readiness_raw == CANDIDATE_READINESS_LATEST:
+            candidate_readiness_raw = SMART_SEQ520_CANDIDATE_READINESS_LATEST
+        if candidate_bundle_audit_raw == DEFAULT_CANDIDATE_BUNDLE_AUDIT:
+            candidate_bundle_audit_raw = SMART_SEQ520_CANDIDATE_BUNDLE_AUDIT
+        if out_dir_raw == DEFAULT_OUT_DIR:
+            out_dir_raw = SMART_SEQ520_OUT_DIR
 
     out_dir = out_dir_raw.resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -664,6 +693,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     candidate_bundle_audit = _read_json(candidate_bundle_audit_path) if candidate_bundle_audit_path.exists() else {}
     expected_candidate_bundle_dir = str(candidate_bundle_audit.get("bundle_dir") or "") or None
     contract_mode = _normalize_contract_mode(requested_contract_mode or _contract_mode_from_bundle_audit(candidate_bundle_audit))
+    expected_dataset_dir = {
+        "foundation_seq146": FOUNDATION_DATASET_DIR,
+        "challenger_seq215": CHALLENGER_SEQ215_DATASET_DIR,
+        "smart_seq520_candidate": SMART_SEQ520_DATASET_DIR,
+    }[contract_mode]
     selective_summary = _read_json(selective_summary_path) if selective_summary_path.exists() else {}
     selective_metrics = _read_csv_or_empty(selective_metrics_path)
     replay_metrics = _read_csv_or_empty(replay_dir / "replay_policy_metrics.csv")
@@ -727,6 +761,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             candidate_bundle_audit_path,
             candidate_bundle_audit,
             contract_mode=contract_mode,
+            expected_dataset_dir=expected_dataset_dir,
         ),
         "selective_edge": _selective_edge_checks(
             selective_summary,
@@ -848,6 +883,7 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--require-no-xgb-ablation", action=argparse.BooleanOptionalAction, default=True)
     ap.add_argument("--contract-mode", choices=tuple(CONTRACT_INPUT_DIMS), default=None)
     ap.add_argument("--challenger-seq215", action="store_const", const="challenger_seq215", dest="contract_mode")
+    ap.add_argument("--smart-seq520", action="store_const", const="smart_seq520_candidate", dest="contract_mode")
     ap.add_argument("--fail-on-not-ready", action=argparse.BooleanOptionalAction, default=True)
     ap.add_argument("--quiet", action="store_true")
     return ap
