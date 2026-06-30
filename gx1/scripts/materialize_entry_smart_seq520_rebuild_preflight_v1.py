@@ -146,7 +146,26 @@ def _split_contract(path: Path, *, verify_large_hashes: bool) -> dict[str, Any]:
             "ctx_cat_names": list(ctx_contract.get("ctx_cat_names") or []),
             "allow_zero_ctx": bool(ctx_contract.get("allow_zero_ctx")),
         },
+        "splits": data.get("splits") if isinstance(data.get("splits"), dict) else None,
     }
+
+
+def _split_schedule(split_contracts: dict[str, dict[str, Any]]) -> dict[str, dict[str, str]]:
+    schedules = [row.get("splits") for row in split_contracts.values() if isinstance(row.get("splits"), dict)]
+    if not schedules:
+        return {}
+    first = schedules[0]
+    if any(schedule != first for schedule in schedules):
+        return {}
+    out: dict[str, dict[str, str]] = {}
+    for split in ("train", "val", "test"):
+        item = first.get(split) if isinstance(first.get(split), dict) else {}
+        start = str(item.get("start") or "")
+        end = str(item.get("end") or "")
+        if not start or not end:
+            return {}
+        out[split] = {"start": start, "end": end}
+    return out
 
 
 def _check(checks: list[dict[str, Any]], name: str, ok: bool, details: Any = None) -> None:
@@ -160,6 +179,7 @@ def _command_contract(
     smart_manifest: Path,
     planned_dataset_dir: Path,
     manifest_variant: str,
+    split_schedule: dict[str, dict[str, str]],
 ) -> dict[str, Any]:
     output = planned_dataset_dir / f"v10_{manifest_variant}.parquet"
     argv = [
@@ -188,6 +208,23 @@ def _command_contract(
         "--output",
         str(output),
     ]
+    if split_schedule:
+        split_args = [
+            "--train_start",
+            split_schedule["train"]["start"],
+            "--train_end",
+            split_schedule["train"]["end"],
+            "--val_start",
+            split_schedule["val"]["start"],
+            "--val_end",
+            split_schedule["val"]["end"],
+            "--test_start",
+            split_schedule["test"]["start"],
+            "--test_end",
+            split_schedule["test"]["end"],
+        ]
+        insert_at = argv.index("--neutral-xgb-bridge")
+        argv[insert_at:insert_at] = split_args
     return {
         "argv": argv,
         "allowed_without_vedtak": False,
@@ -209,6 +246,7 @@ def _command_contract(
         "touches_shadow_or_live": False,
         "planned_dataset_dir": str(planned_dataset_dir),
         "planned_output_stem": output.stem,
+        "split_schedule": split_schedule,
     }
 
 
@@ -308,6 +346,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     source_parquets = {row["source_parquet"] for row in split_contracts.values()}
     recorded_source_hashes = {row["source_parquet_recorded_sha256"] for row in split_contracts.values()}
     xgb_bundles = {row["xgb_bundle"] for row in split_contracts.values()}
+    split_schedule = _split_schedule(split_contracts)
     _check(
         checks,
         "large source parquet hashes are explicitly verified",
@@ -330,6 +369,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     _check(checks, "all splits use one source parquet", len(source_parquets) == 1, sorted(source_parquets))
     _check(checks, "all splits use one recorded source sha256", len(recorded_source_hashes) == 1 and all(_is_sha256(x) for x in recorded_source_hashes), sorted(recorded_source_hashes))
     _check(checks, "all splits use one xgb bundle", len(xgb_bundles) == 1, sorted(xgb_bundles))
+    _check(
+        checks,
+        "active split schedule is explicit and consistent",
+        bool(split_schedule),
+        {split: row.get("splits") for split, row in split_contracts.items()},
+    )
 
     source_parquet = next(iter(source_parquets)) if len(source_parquets) == 1 else ""
     xgb_bundle = next(iter(xgb_bundles)) if len(xgb_bundles) == 1 else ""
@@ -339,6 +384,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         smart_manifest=smart_manifest_path,
         planned_dataset_dir=planned_dataset_dir,
         manifest_variant=str(smart_manifest.get("manifest_variant") or "smart_seq_candidate"),
+        split_schedule=split_schedule,
     )
     argv = command_contract["argv"]
     _check(checks, "rebuild command uses RAM cap runner", argv[:6] == ["scripts/gx1_capped_run.sh", "--mem", "16G", "--swap", "1G", "--"], argv[:8])

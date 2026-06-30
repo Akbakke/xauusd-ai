@@ -37,6 +37,20 @@ def _build_fixture(
             output_dir / f"v10_foundation_seq146__HOLD_03B_{split}.manifest.json",
             {
                 "output_data_path": str(parquet),
+                "splits": {
+                    "train": {
+                        "start": "2020-11-09 00:00:00+00:00",
+                        "end": "2025-09-30 23:59:59+00:00",
+                    },
+                    "val": {
+                        "start": "2025-10-01 00:00:00+00:00",
+                        "end": "2025-12-31 23:59:59+00:00",
+                    },
+                    "test": {
+                        "start": "2026-01-01 00:00:00+00:00",
+                        "end": "2026-06-26 03:25:00+00:00",
+                    },
+                },
                 "extra": {
                     "base28_manifest": {
                         "path": "/dev/null",
@@ -160,6 +174,13 @@ def test_smart_rebuild_preflight_accepts_dynamic_smart_seq_width(tmp_path: Path)
     assert argv[:6] == ["scripts/gx1_capped_run.sh", "--mem", "16G", "--swap", "1G", "--"]
     assert "--source-parquet-override" in argv
     assert "--seq-structure-compute-inline" in argv
+    assert argv[argv.index("--train_start") + 1] == "2020-11-09 00:00:00+00:00"
+    assert argv[argv.index("--train_end") + 1] == "2025-09-30 23:59:59+00:00"
+    assert argv[argv.index("--val_start") + 1] == "2025-10-01 00:00:00+00:00"
+    assert argv[argv.index("--val_end") + 1] == "2025-12-31 23:59:59+00:00"
+    assert argv[argv.index("--test_start") + 1] == "2026-01-01 00:00:00+00:00"
+    assert argv[argv.index("--test_end") + 1] == "2026-06-26 03:25:00+00:00"
+    assert report["rebuild_command_contract"]["split_schedule"]["train"]["start"] == "2020-11-09 00:00:00+00:00"
     assert report["rebuild_command_contract"]["allowed_without_vedtak"] is False
     assert report["rebuild_command_contract"]["requires_explicit_rebuild_vedtak"] is True
     assert report["rebuild_command_contract"]["requires_clean_git_before_execution"] is True
