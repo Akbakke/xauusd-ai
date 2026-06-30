@@ -1147,6 +1147,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         _require("ENTRY_EXIT_TRANSFORMER_TRAIN_" in entry_exit_transformer_train_wrapper, "Entry Exit Transformer train wrapper requires train vedtak prefix", checks)
         _require("TRAINER_IMPLEMENTATION_ENABLED=0" in entry_exit_transformer_train_wrapper, "Entry Exit Transformer train wrapper keeps implementation disabled", checks)
         _require("active Exit Transformer trainer implementation is not enabled" in entry_exit_transformer_train_wrapper, "Entry Exit Transformer train wrapper fail-closed before real training", checks)
+        _require("TRAIN_EXECUTION_REVIEW_JSON" in entry_exit_transformer_train_wrapper, "Entry Exit Transformer train wrapper requires train-execution review json", checks)
+        _require("ENTRY_EXIT_TRANSFORMER_TRAIN_EXECUTION_REVIEW_READY_FOR_EXPLICIT_VEDTAK_PACKAGE" in entry_exit_transformer_train_wrapper, "Entry Exit Transformer train wrapper requires ready train-execution review", checks)
         _require("scripts/gx1_capped_run.sh" in entry_exit_transformer_train_wrapper, "Entry Exit Transformer train wrapper declares capped run", checks)
         _require("--num-workers" in entry_exit_transformer_train_wrapper and "NUM_WORKERS=0" in entry_exit_transformer_train_wrapper, "Entry Exit Transformer train wrapper declares num-workers zero", checks)
         _require("ExitSequenceTransformerV1" in entry_exit_transformer_trainer_core, "Entry Exit Transformer trainer core defines active model", checks)

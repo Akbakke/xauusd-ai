@@ -10,6 +10,7 @@ DATA=/home/andre2/GX1_DATA
 PY=$REPO/.venv/bin/python
 
 TRAINING_PLAN_JSON=$DATA/reports/entry_exit_transformer_training_plan_readiness_20260630_v1/ENTRY_EXIT_TRANSFORMER_TRAINING_PLAN_READINESS_latest.json
+TRAIN_EXECUTION_REVIEW_JSON=$DATA/reports/entry_exit_transformer_train_execution_review_20260630_v1/ENTRY_EXIT_TRANSFORMER_TRAIN_EXECUTION_REVIEW_latest.json
 VEDTAK_PREFIX=ENTRY_EXIT_TRANSFORMER_TRAIN_
 VEDTAK="${ENTRY_EXIT_TRANSFORMER_TRAIN_VEDTAK:-}"
 DEVICE=auto
@@ -41,7 +42,8 @@ Resource caps:
 
 This wrapper is intentionally fail-closed. It does not train, replay, distill,
 promote, shadow or touch live paths until a separate trainer implementation,
-pretrain-manifest audit and explicit Exit train vedtak gate are approved.
+pretrain-manifest audit, train-execution review and explicit Exit train vedtak
+gate are approved.
 EOF
 }
 
@@ -78,7 +80,7 @@ fi
 
 cd "$REPO"
 
-"$PY" - "$TRAINING_PLAN_JSON" <<'PY'
+"$PY" - "$TRAINING_PLAN_JSON" "$TRAIN_EXECUTION_REVIEW_JSON" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -94,11 +96,23 @@ if report.get("decision") != required:
 if report.get("exit_training_allowed") is not False:
     print("FATAL: training plan report must keep exit_training_allowed=false.", file=sys.stderr)
     raise SystemExit(2)
+review_path = Path(sys.argv[2])
+review = json.loads(review_path.read_text(encoding="utf-8"))
+review_required = "ENTRY_EXIT_TRANSFORMER_TRAIN_EXECUTION_REVIEW_READY_FOR_EXPLICIT_VEDTAK_PACKAGE"
+if review.get("decision") != review_required:
+    print("FATAL: active Exit Transformer train-execution review is not ready.", file=sys.stderr)
+    print(f"Decision: {review.get('decision')}", file=sys.stderr)
+    print(f"Required: {review_required}", file=sys.stderr)
+    raise SystemExit(2)
+if review.get("exit_training_allowed") is not False or review.get("exit_training_allowed_with_explicit_vedtak") is not False:
+    print("FATAL: train-execution review must keep Exit training closed.", file=sys.stderr)
+    raise SystemExit(2)
 PY
 
 TRAIN_CMD=(
   "$PY" -m gx1.models.exit_sequence_transformer.train_v1
   --training-plan-json "$TRAINING_PLAN_JSON"
+  --train-execution-review-json "$TRAIN_EXECUTION_REVIEW_JSON"
   --vedtak "$VEDTAK"
   --device "$DEVICE"
   --epochs "$EPOCHS"

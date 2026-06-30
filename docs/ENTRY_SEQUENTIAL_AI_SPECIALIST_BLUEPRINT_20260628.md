@@ -94,8 +94,8 @@ Machine contract:
   `gx1/scripts/audit_entry_exit_transformer_trainer_wrapper_readiness_v1.py`
   - Audits `scripts/run_entry_exit_transformer_train.sh` as a fail-closed
     future train wrapper: vedtak prefix rejection, implementation disabled,
-    cgroup RAM cap declaration, `--num-workers 0` and no
-    train/replay/IQL/shadow/live side effects.
+    train-execution review requirement, cgroup RAM cap declaration,
+    `--num-workers 0` and no train/replay/IQL/shadow/live side effects.
 - Active Exit Transformer trainer core:
   `gx1/models/exit_sequence_transformer/train_v1.py`
   - Defines the active causal masked `ExitSequenceTransformerV1` with exact

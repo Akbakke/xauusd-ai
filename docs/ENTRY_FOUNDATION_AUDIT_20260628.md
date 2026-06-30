@@ -184,8 +184,8 @@ Active status:
   `ENTRY_EXIT_TRANSFORMER_TRAINER_WRAPPER_READY_FOR_IMPLEMENTATION_REVIEW`.
   The wrapper is executable and fail-closed: missing vedtak and wrong vedtak
   prefix both reject before side effects, the implementation flag remains
-  disabled, and the future train path declares cgroup RAM caps plus
-  `--num-workers 0`.
+  disabled, it requires the active train-execution review report, and the
+  future train path declares cgroup RAM caps plus `--num-workers 0`.
 - Active Exit Transformer pretrain manifest:
   `ENTRY_EXIT_TRANSFORMER_PRETRAIN_MANIFEST_READY_FOR_TRAIN_EXECUTION_REVIEW`.
   It imports the active trainer core, runs a CPU-only finite forward preflight
