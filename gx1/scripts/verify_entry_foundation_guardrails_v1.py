@@ -185,6 +185,7 @@ def _readiness_policy_checks() -> list[dict[str, Any]]:
         "entry_exit_model_dataset_readiness",
         "entry_exit_transformer_architecture_readiness",
         "entry_exit_transformer_training_plan_readiness",
+        "entry_exit_transformer_trainer_wrapper_readiness",
     )
     blocked_downstream = (
         "smoke_train",
@@ -197,6 +198,7 @@ def _readiness_policy_checks() -> list[dict[str, Any]]:
         "iql_student_trade_log",
         "iql_replay_evidence",
         "iql_compare",
+        "entry_exit_transformer_train",
         "preview_shadow",
         "start_shadow",
         "live",
@@ -237,6 +239,8 @@ def _readiness_policy_checks() -> list[dict[str, Any]]:
         "entry_exit_model_dataset_readiness",
         "entry_exit_transformer_architecture_readiness",
         "entry_exit_transformer_training_plan_readiness",
+        "entry_exit_transformer_trainer_wrapper_readiness",
+        "entry_exit_transformer_train",
         "preview_shadow",
         "start_shadow",
         "live",
@@ -385,6 +389,14 @@ def _readiness_policy_checks() -> list[dict[str, Any]]:
                 "ok": (commands.get("iql_distill") or {}).get("starts_iql_distillation") is True
                 and (commands.get("iql_distill") or {}).get("requires_vedtak") is True,
                 "details": commands.get("iql_distill"),
+            },
+            {
+                "name": "readiness_policy_entry_exit_transformer_train_declares_trainer",
+                "ok": (commands.get("entry_exit_transformer_train") or {}).get("starts_trainer") is True
+                and (commands.get("entry_exit_transformer_train") or {}).get("requires_vedtak") is True
+                and (commands.get("entry_exit_transformer_train") or {}).get("requires_clean_git") is True
+                and (commands.get("entry_exit_transformer_train") or {}).get("execution_allowed_now") is False,
+                "details": commands.get("entry_exit_transformer_train"),
             },
             {
                 "name": "readiness_policy_shadow_live_declares_live_touch",

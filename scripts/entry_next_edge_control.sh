@@ -45,9 +45,11 @@ Usage:
   scripts/entry_next_edge_control.sh entry-exit-model-dataset-readiness
   scripts/entry_next_edge_control.sh entry-exit-transformer-architecture-readiness
   scripts/entry_next_edge_control.sh entry-exit-transformer-training-plan-readiness
+  scripts/entry_next_edge_control.sh entry-exit-transformer-trainer-wrapper-readiness
+  scripts/entry_next_edge_control.sh entry-exit-transformer-train --vedtak <id> [--dry-run]
 
 Allowed path:
-  Entry foundation cleanup -> feature audit -> target audit -> rebuilt dataset -> adoption-candidate proof -> activation-plan review -> optional vedtak-gated activation apply -> vedtak-gated post-apply audit refresh + active verify -> foundation-guardrails -> worktree-hygiene -> optional vedtak-gated stage-foundation-cleanup -> train-readiness -> optional smoke-manifest proof -> vedtak-gated smoke train -> smoke bundle audit -> candidate-readiness -> vedtak-gated candidate train -> selective-edge/no-XGB ablation -> replay-evidence -> replay-readiness -> vedtak-gated IQL distillation contract -> IQL student trade log -> IQL replay evidence -> IQL replay comparison -> IQL slice/tail audit -> Entry-bound Exit per-bar handoff materialization -> Entry-to-Exit handoff readiness -> active Exit per-bar reconstruction audit -> active Exit state/reward contract -> active Exit split/leakage audit -> active Exit model dataset/readiness -> active Exit Transformer architecture/readiness -> active Exit Transformer training plan/readiness.
+  Entry foundation cleanup -> feature audit -> target audit -> rebuilt dataset -> adoption-candidate proof -> activation-plan review -> optional vedtak-gated activation apply -> vedtak-gated post-apply audit refresh + active verify -> foundation-guardrails -> worktree-hygiene -> optional vedtak-gated stage-foundation-cleanup -> train-readiness -> optional smoke-manifest proof -> vedtak-gated smoke train -> smoke bundle audit -> candidate-readiness -> vedtak-gated candidate train -> selective-edge/no-XGB ablation -> replay-evidence -> replay-readiness -> vedtak-gated IQL distillation contract -> IQL student trade log -> IQL replay evidence -> IQL replay comparison -> IQL slice/tail audit -> Entry-bound Exit per-bar handoff materialization -> Entry-to-Exit handoff readiness -> active Exit per-bar reconstruction audit -> active Exit state/reward contract -> active Exit split/leakage audit -> active Exit model dataset/readiness -> active Exit Transformer architecture/readiness -> active Exit Transformer training plan/readiness -> fail-closed active Exit Transformer trainer wrapper readiness.
 
 Blocked here:
   generic train, retrain, promote, pin, live, xgb-train, et-train, shadow.
@@ -131,6 +133,7 @@ paths = {
     "entry-exit-model-dataset-readiness": Path("/home/andre2/GX1_DATA/reports/entry_exit_model_dataset_readiness_20260630_v1/ENTRY_EXIT_MODEL_DATASET_READINESS_latest.json"),
     "entry-exit-transformer-architecture-readiness": Path("/home/andre2/GX1_DATA/reports/entry_exit_transformer_architecture_readiness_20260630_v1/ENTRY_EXIT_TRANSFORMER_ARCHITECTURE_READINESS_latest.json"),
     "entry-exit-transformer-training-plan-readiness": Path("/home/andre2/GX1_DATA/reports/entry_exit_transformer_training_plan_readiness_20260630_v1/ENTRY_EXIT_TRANSFORMER_TRAINING_PLAN_READINESS_latest.json"),
+    "entry-exit-transformer-trainer-wrapper-readiness": Path("/home/andre2/GX1_DATA/reports/entry_exit_transformer_trainer_wrapper_readiness_20260630_v1/ENTRY_EXIT_TRANSFORMER_TRAINER_WRAPPER_READINESS_latest.json"),
 }
 adoption_root = Path("/home/andre2/GX1_DATA/reports/entry_foundation_adoption_candidate_20260629_v1")
 adoption_candidates = (
@@ -242,6 +245,7 @@ allowed_now = [
     "scripts/entry_next_edge_control.sh entry-exit-model-dataset-readiness --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh entry-exit-transformer-architecture-readiness --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh entry-exit-transformer-training-plan-readiness --quiet --no-fail-on-not-ready",
+    "scripts/entry_next_edge_control.sh entry-exit-transformer-trainer-wrapper-readiness --quiet --no-fail-on-not-ready",
 ]
 if hygiene.get("foundation_cleanup_stage_ready"):
     allowed_now.append("scripts/entry_next_edge_control.sh stage-foundation-cleanup --dry-run")
@@ -389,6 +393,7 @@ entry_exit_split_leakage = reports.get("entry-exit-split-leakage-audit") or {}
 entry_exit_model_dataset = reports.get("entry-exit-model-dataset-readiness") or {}
 entry_exit_transformer_architecture = reports.get("entry-exit-transformer-architecture-readiness") or {}
 entry_exit_transformer_training_plan = reports.get("entry-exit-transformer-training-plan-readiness") or {}
+entry_exit_transformer_trainer_wrapper = reports.get("entry-exit-transformer-trainer-wrapper-readiness") or {}
 entry_exit_per_bar_decision = str(entry_exit_per_bar.get("decision") or "")
 entry_exit_per_bar_ready = entry_exit_per_bar_decision in {"PASS", "PASS_WITH_EXPLICIT_GAP_EXCLUSIONS"}
 entry_exit_handoff_entry_ready = bool(entry_exit_handoff.get("entry_evidence_ready"))
@@ -406,6 +411,8 @@ entry_exit_transformer_architecture_decision = str(entry_exit_transformer_archit
 entry_exit_transformer_architecture_ready = entry_exit_transformer_architecture_decision == "ENTRY_EXIT_TRANSFORMER_ARCHITECTURE_READY_FOR_TRAINING_PLAN_REVIEW"
 entry_exit_transformer_training_plan_decision = str(entry_exit_transformer_training_plan.get("decision") or "")
 entry_exit_transformer_training_plan_ready = entry_exit_transformer_training_plan_decision == "ENTRY_EXIT_TRANSFORMER_TRAINING_PLAN_READY_FOR_VEDTAK_REVIEW"
+entry_exit_transformer_trainer_wrapper_decision = str(entry_exit_transformer_trainer_wrapper.get("decision") or "")
+entry_exit_transformer_trainer_wrapper_ready = entry_exit_transformer_trainer_wrapper_decision == "ENTRY_EXIT_TRANSFORMER_TRAINER_WRAPPER_READY_FOR_IMPLEMENTATION_REVIEW"
 promotion_review_allowed = bool(
     (reports.get("iql-replay-comparison") or {}).get("promotion_review_allowed_with_explicit_vedtak")
     and iql_replay_slice_audit_ready
@@ -436,6 +443,10 @@ if entry_exit_model_dataset_ready and not entry_exit_transformer_architecture_re
     current_blockers.append("active Exit Transformer architecture/readiness required before Exit training plan review")
 if entry_exit_transformer_architecture_ready and not entry_exit_transformer_training_plan_ready:
     current_blockers.append("active Exit Transformer training plan/readiness required before trainer wrapper review")
+if entry_exit_transformer_training_plan_ready and not entry_exit_transformer_trainer_wrapper_ready:
+    current_blockers.append("fail-closed active Exit Transformer trainer wrapper readiness required before trainer implementation review")
+if entry_exit_transformer_trainer_wrapper_ready:
+    current_blockers.append("active Exit Transformer trainer core and pretrain-manifest audit required before any Exit training vedtak can run")
 if not iql_replay_evidence_ready:
     current_blockers.append("IQL replay evidence requires distillation contract and IQL-student replay trade log")
 if not iql_replay_comparison_ready:
@@ -951,6 +962,32 @@ commands.update(
             "touches_shadow_or_live": False,
             "description": "Materialize active Exit Transformer training plan/readiness manifest; no training or replay.",
         },
+        "entry_exit_transformer_trainer_wrapper_readiness": {
+            "argv": ["scripts/entry_next_edge_control.sh", "entry-exit-transformer-trainer-wrapper-readiness"],
+            "allowed": True,
+            "mode": "exit_transformer_trainer_wrapper_readiness",
+            "requires_vedtak": False,
+            "requires_clean_git": False,
+            "mutates_git_index": False,
+            "starts_trainer": False,
+            "starts_replay": False,
+            "starts_iql_distillation": False,
+            "touches_shadow_or_live": False,
+            "description": "Audit the fail-closed active Exit Transformer trainer wrapper; no training or replay.",
+        },
+        "entry_exit_transformer_train": {
+            "argv": ["scripts/entry_next_edge_control.sh", "entry-exit-transformer-train", "--vedtak", "<id>"],
+            "allowed": False,
+            "mode": "exit_transformer_train",
+            "requires_vedtak": True,
+            "requires_clean_git": True,
+            "mutates_git_index": False,
+            "starts_trainer": True,
+            "starts_replay": False,
+            "starts_iql_distillation": False,
+            "touches_shadow_or_live": False,
+            "description": "Blocked active Exit Transformer trainer path; trainer core/pretrain-manifest gate is not approved.",
+        },
         "preview_shadow": {
             "argv": ["scripts/entry_next_edge_control.sh", "preview-shadow"],
             "allowed": False,
@@ -1029,6 +1066,8 @@ execution_allowed_now = {
     "entry_exit_model_dataset_readiness": True,
     "entry_exit_transformer_architecture_readiness": True,
     "entry_exit_transformer_training_plan_readiness": True,
+    "entry_exit_transformer_trainer_wrapper_readiness": True,
+    "entry_exit_transformer_train": False,
     "preview_shadow": False,
     "start_shadow": False,
     "live": False,
@@ -1069,6 +1108,8 @@ allowed_after_explicit_vedtak = {
     "entry_exit_model_dataset_readiness": True,
     "entry_exit_transformer_architecture_readiness": True,
     "entry_exit_transformer_training_plan_readiness": True,
+    "entry_exit_transformer_trainer_wrapper_readiness": True,
+    "entry_exit_transformer_train": False,
     "preview_shadow": False,
     "start_shadow": False,
     "live": False,
@@ -1101,6 +1142,7 @@ not_executable_now_reason = {
     "iql_student_trade_log": "requires ready IQL distillation contract and explicit IQL vedtak",
     "iql_replay_evidence": "requires IQL distillation contract and explicit IQL replay trade log",
     "iql_compare": "requires candidate and IQL replay evidence plus preserved distillation identity",
+    "entry_exit_transformer_train": "requires active Exit Transformer trainer core, pretrain-manifest audit, clean git and explicit Exit train vedtak",
     "preview_shadow": "shadow/live remains blocked until promotion review explicitly opens it",
     "start_shadow": "shadow/live remains blocked until promotion review explicitly opens it",
     "live": "live/practice order path remains blocked during Entry foundation work",
@@ -1187,6 +1229,9 @@ payload = {
         "entry_exit_transformer_training_plan_ready": entry_exit_transformer_training_plan_ready,
         "entry_exit_transformer_training_plan_dataset_rows": entry_exit_transformer_training_plan.get("dataset_rows"),
         "entry_exit_transformer_training_plan_episode_count": entry_exit_transformer_training_plan.get("episode_count"),
+        "entry_exit_transformer_trainer_wrapper_decision": entry_exit_transformer_trainer_wrapper_decision,
+        "entry_exit_transformer_trainer_wrapper_ready": entry_exit_transformer_trainer_wrapper_ready,
+        "entry_exit_transformer_train_allowed_after_vedtak": False,
         "exit_training_allowed": False,
         "exit_iql_allowed": False,
         "promotion_review_allowed": promotion_review_allowed,
@@ -1420,6 +1465,14 @@ PY
 
   entry-exit-transformer-training-plan-readiness)
     exec "$PY" -m gx1.scripts.materialize_entry_exit_transformer_training_plan_readiness_v1 "$@"
+    ;;
+
+  entry-exit-transformer-trainer-wrapper-readiness)
+    exec "$PY" -m gx1.scripts.audit_entry_exit_transformer_trainer_wrapper_readiness_v1 "$@"
+    ;;
+
+  entry-exit-transformer-train)
+    exec "$REPO/scripts/run_entry_exit_transformer_train.sh" "$@"
     ;;
 
   smoke-train)

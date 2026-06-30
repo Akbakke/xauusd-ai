@@ -90,6 +90,12 @@ Machine contract:
     vedtak requirement, clean-git/pretrain-manifest requirements and RAM
     guardrails. It remains report-only and keeps trainer/replay/IQL/shadow/live
     side effects closed.
+- Active Exit Transformer trainer wrapper readiness:
+  `gx1/scripts/audit_entry_exit_transformer_trainer_wrapper_readiness_v1.py`
+  - Audits `scripts/run_entry_exit_transformer_train.sh` as a fail-closed
+    future train wrapper: vedtak prefix rejection, implementation disabled,
+    cgroup RAM cap declaration, `--num-workers 0` and no
+    train/replay/IQL/shadow/live side effects.
 - Latest report:
   `/home/andre2/GX1_DATA/reports/entry_specialist_feature_group_audit_20260628_v1/ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_latest.json`
 - Current decision: `PASS` on the active seq146 foundation dataset.
