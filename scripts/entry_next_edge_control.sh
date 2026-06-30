@@ -30,6 +30,7 @@ Usage:
   scripts/entry_next_edge_control.sh candidate-readiness
   scripts/entry_next_edge_control.sh candidate-readiness-seq215
   scripts/entry_next_edge_control.sh replay-readiness
+  scripts/entry_next_edge_control.sh replay-readiness-seq215
   scripts/entry_next_edge_control.sh feature-ai-inventory
   scripts/entry_next_edge_control.sh chart-geometry-audit
   scripts/entry_next_edge_control.sh candlestick-audit
@@ -124,6 +125,7 @@ case "$cmd" in
       "$PY" -m gx1.scripts.verify_entry_candidate_readiness_v1 --quiet --no-fail-on-not-ready
       "$PY" -m gx1.scripts.verify_entry_candidate_readiness_v1 --challenger-seq215 --quiet --no-fail-on-not-ready
       "$PY" -m gx1.scripts.verify_entry_replay_readiness_v1 --quiet --no-fail-on-not-ready
+      "$PY" -m gx1.scripts.verify_entry_replay_readiness_v1 --challenger-seq215 --quiet --no-fail-on-not-ready
     fi
     "$PY" - "$READINESS_REPORT_JSON" "$READINESS_REPORT_REFRESH_SKIPPED" <<'PY'
 import json
@@ -136,6 +138,7 @@ paths = {
     "candidate-readiness": Path("/home/andre2/GX1_DATA/reports/entry_candidate_readiness_20260628_v1/ENTRY_CANDIDATE_READINESS_latest.json"),
     "candidate-readiness-seq215": Path("/home/andre2/GX1_DATA/reports/entry_candidate_readiness_20260628_v1/challenger_seq215_20260630/ENTRY_CANDIDATE_READINESS_latest.json"),
     "replay-readiness": Path("/home/andre2/GX1_DATA/reports/entry_replay_readiness_20260628_v1/ENTRY_REPLAY_READINESS_latest.json"),
+    "replay-readiness-seq215": Path("/home/andre2/GX1_DATA/reports/entry_replay_readiness_20260628_v1/challenger_seq215_20260630/ENTRY_REPLAY_READINESS_latest.json"),
     "iql-distillation-contract": Path("/home/andre2/GX1_DATA/reports/entry_iql_distillation_contract_20260628_v1/ENTRY_IQL_DISTILLATION_CONTRACT_latest.json"),
     "iql-student-trade-log": Path("/home/andre2/GX1_DATA/reports/entry_iql_student_trade_log_20260628_v1/ENTRY_IQL_STUDENT_TRADE_LOG_latest.json"),
     "iql-replay-evidence": Path("/home/andre2/GX1_DATA/reports/entry_iql_distillation_replay_20260628_v1/ENTRY_IQL_REPLAY_EVIDENCE_latest.json"),
@@ -262,6 +265,7 @@ allowed_now = [
     "scripts/entry_next_edge_control.sh candidate-readiness --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh candidate-readiness-seq215 --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh replay-readiness --quiet --no-fail-on-not-ready",
+    "scripts/entry_next_edge_control.sh replay-readiness-seq215 --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh feature-ai-inventory --quiet --no-fail-on-audit-fail",
     "scripts/entry_next_edge_control.sh chart-geometry-audit --quiet --no-fail-on-audit-fail",
     "scripts/entry_next_edge_control.sh candlestick-audit --quiet --no-fail-on-audit-fail",
@@ -922,6 +926,27 @@ commands.update(
             "touches_shadow_or_live": False,
             "description": "Refresh replay-readiness without opening IQL distillation.",
         },
+        "replay_readiness_seq215_report": {
+            "argv": [
+                "scripts/entry_next_edge_control.sh",
+                "replay-readiness-seq215",
+                "--quiet",
+                "--no-fail-on-not-ready",
+            ],
+            "allowed": True,
+            "mode": "audit",
+            "requires_vedtak": False,
+            "requires_clean_git": False,
+            "mutates_git_index": False,
+            "starts_trainer": False,
+            "starts_replay": False,
+            "starts_iql_distillation": False,
+            "touches_shadow_or_live": False,
+            "specialist_contract_mode": "challenger_seq215",
+            "expected_signal_dim": 215,
+            "required_training_specialist_count": 8,
+            "description": "Refresh seq215 replay-readiness without opening IQL distillation.",
+        },
         "chart_geometry_audit": {
             "argv": [
                 "scripts/entry_next_edge_control.sh",
@@ -1389,6 +1414,7 @@ execution_allowed_now = {
     "candidate_readiness_report": True,
     "candidate_readiness_seq215_report": True,
     "replay_readiness_report": True,
+    "replay_readiness_seq215_report": True,
     "feature_ai_inventory": True,
     "chart_geometry_audit": True,
     "candlestick_audit": True,
@@ -1444,6 +1470,7 @@ allowed_after_explicit_vedtak = {
     "candidate_readiness_report": True,
     "candidate_readiness_seq215_report": True,
     "replay_readiness_report": True,
+    "replay_readiness_seq215_report": True,
     "feature_ai_inventory": True,
     "chart_geometry_audit": True,
     "candlestick_audit": True,
@@ -1829,6 +1856,10 @@ PY
 
   replay-readiness)
     exec "$PY" -m gx1.scripts.verify_entry_replay_readiness_v1 "$@"
+    ;;
+
+  replay-readiness-seq215)
+    exec "$PY" -m gx1.scripts.verify_entry_replay_readiness_v1 --challenger-seq215 "$@"
     ;;
 
   chart-geometry-audit)

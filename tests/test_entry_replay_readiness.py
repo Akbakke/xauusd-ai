@@ -5,9 +5,12 @@ from pathlib import Path
 import pandas as pd
 
 from gx1.scripts.verify_entry_replay_readiness_v1 import (
+    CHALLENGER_SEQ215_CANDIDATE_BUNDLE_AUDIT,
+    CHALLENGER_SEQ215_CANDIDATE_READINESS_LATEST,
     _candidate_bundle_audit_checks,
     _replay_checks,
     _selective_edge_checks,
+    build_parser,
     run,
 )
 from gx1.scripts.verify_entry_training_readiness_v1 import EXPECTED_ACTIVE_TRAINING_HEADS, EXPECTED_BLOCKED_HEADS
@@ -617,7 +620,28 @@ def test_replay_readiness_current_artifacts_are_not_ready(tmp_path: Path) -> Non
     assert {
         "candidate-readiness is green",
         "selective-edge summary has val/test",
+        "selective-edge summary input dimensions match contract mode",
         "offline replay dir exists",
     } & failed
     assert Path(report["json_path"]).exists()
     assert json.loads(Path(report["json_path"]).read_text())["decision"] == "NOT_READY_FOR_IQL_DISTILLATION"
+
+
+def test_replay_readiness_parser_defaults_to_infer_contract_mode() -> None:
+    args = build_parser().parse_args([])
+
+    assert args.contract_mode is None
+
+
+def test_replay_readiness_challenger_seq215_rewrites_default_contract_paths(tmp_path: Path) -> None:
+    args = build_parser().parse_args(
+        ["--challenger-seq215", "--quiet", "--no-fail-on-not-ready", "--out-dir", str(tmp_path)]
+    )
+    report = run(args)
+
+    assert report["contract_mode"] == "challenger_seq215"
+    assert report["candidate_readiness_json"] == str(CHALLENGER_SEQ215_CANDIDATE_READINESS_LATEST.resolve())
+    assert report["candidate_bundle_audit_json"] == str(CHALLENGER_SEQ215_CANDIDATE_BUNDLE_AUDIT.resolve())
+    assert Path(report["json_path"]).parent == tmp_path.resolve()
+    assert report["decision"] == "NOT_READY_FOR_IQL_DISTILLATION"
+    assert report["promotion_shadow_live_allowed"] is False

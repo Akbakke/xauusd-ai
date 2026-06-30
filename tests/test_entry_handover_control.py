@@ -86,6 +86,7 @@ def test_control_surface_routes_verify_to_active_foundation_state() -> None:
     assert "scripts/entry_next_edge_control.sh smoke-manifest-seq215 --vedtak <id>" in text
     assert "scripts/entry_next_edge_control.sh candidate-readiness-seq215" in text
     assert "scripts/entry_next_edge_control.sh candidate-train-seq215 --vedtak <id>" in text
+    assert "scripts/entry_next_edge_control.sh replay-readiness-seq215" in text
     assert 'handover)' in text
     assert 'exec "$REPO/scripts/gx1_handover.sh"' in text
     assert 'readiness-report)' in text
@@ -102,6 +103,8 @@ def test_control_surface_routes_verify_to_active_foundation_state() -> None:
     assert 'smoke-manifest-seq215)' in text
     assert 'candidate-readiness-seq215)' in text
     assert 'verify_entry_candidate_readiness_v1 --challenger-seq215' in text
+    assert 'replay-readiness-seq215)' in text
+    assert 'verify_entry_replay_readiness_v1 --challenger-seq215' in text
     assert 'candidate-train-seq215)' in text
     assert 'run_entry_foundation_seq146_smoke_train.sh" --manifest-only' in text
     assert 'run_entry_foundation_seq146_smoke_train.sh" --challenger-seq215 --manifest-only' in text
@@ -215,6 +218,7 @@ def test_control_surface_readiness_report_is_fail_open_status_only() -> None:
     assert "scripts/entry_next_edge_control.sh candidate-readiness --quiet --no-fail-on-not-ready" in result.stdout
     assert "scripts/entry_next_edge_control.sh candidate-readiness-seq215 --quiet --no-fail-on-not-ready" in result.stdout
     assert "scripts/entry_next_edge_control.sh replay-readiness --quiet --no-fail-on-not-ready" in result.stdout
+    assert "scripts/entry_next_edge_control.sh replay-readiness-seq215 --quiet --no-fail-on-not-ready" in result.stdout
     assert "scripts/entry_next_edge_control.sh stage-foundation-cleanup --dry-run" in result.stdout
     if "train-readiness: NOT_READY" in result.stdout:
         assert "optional proof commands:" not in result.stdout
@@ -471,6 +475,18 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
     assert payload["commands"]["train_readiness_report"]["execution_allowed_now"] is True
     assert payload["commands"]["candidate_readiness_report"]["execution_allowed_now"] is True
     assert payload["commands"]["replay_readiness_report"]["execution_allowed_now"] is True
+    assert payload["commands"]["replay_readiness_seq215_report"]["argv"] == [
+        "scripts/entry_next_edge_control.sh",
+        "replay-readiness-seq215",
+        "--quiet",
+        "--no-fail-on-not-ready",
+    ]
+    assert payload["commands"]["replay_readiness_seq215_report"]["execution_allowed_now"] is True
+    assert payload["commands"]["replay_readiness_seq215_report"]["allowed_after_explicit_vedtak"] is True
+    assert payload["commands"]["replay_readiness_seq215_report"]["starts_replay"] is False
+    assert payload["commands"]["replay_readiness_seq215_report"]["starts_iql_distillation"] is False
+    assert payload["commands"]["replay_readiness_seq215_report"]["specialist_contract_mode"] == "challenger_seq215"
+    assert payload["commands"]["replay_readiness_seq215_report"]["expected_signal_dim"] == 215
     assert payload["commands"]["stage_foundation_cleanup_dry_run"]["allowed"] is True
     assert payload["commands"]["stage_foundation_cleanup_dry_run"]["execution_allowed_now"] is True
     assert payload["commands"]["stage_foundation_cleanup_dry_run"]["allowed_after_explicit_vedtak"] is True
@@ -622,6 +638,7 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
     assert any("foundation-activation-post-apply" in item and "--dry-run" in item for item in payload["allowed_now"])
     assert "scripts/entry_next_edge_control.sh candidate-readiness --quiet --no-fail-on-not-ready" in payload["allowed_now"]
     assert "scripts/entry_next_edge_control.sh replay-readiness --quiet --no-fail-on-not-ready" in payload["allowed_now"]
+    assert "scripts/entry_next_edge_control.sh replay-readiness-seq215 --quiet --no-fail-on-not-ready" in payload["allowed_now"]
     assert "scripts/entry_next_edge_control.sh stage-foundation-cleanup --dry-run" in payload["allowed_now"]
     assert not any("smoke-manifest" in item for item in payload["allowed_now"])
     if foundation_ready:

@@ -34,12 +34,20 @@ from gx1.scripts.verify_entry_training_readiness_v1 import (
 
 
 CANDIDATE_READINESS_LATEST = CANDIDATE_READINESS_OUT_DIR / "ENTRY_CANDIDATE_READINESS_latest.json"
+CHALLENGER_SEQ215_CANDIDATE_READINESS_LATEST = (
+    CANDIDATE_READINESS_OUT_DIR / "challenger_seq215_20260630/ENTRY_CANDIDATE_READINESS_latest.json"
+)
 DEFAULT_SELECTIVE_EDGE_DIR = REPORTS_ROOT / "entry_candidate_selective_edge_20260628_v1"
 DEFAULT_REPLAY_DIR = REPORTS_ROOT / "entry_candidate_replay_20260628_v1"
 DEFAULT_CANDIDATE_BUNDLE_AUDIT = (
     REPORTS_ROOT / "entry_candidate_bundle_audit_20260628_v1/ENTRY_FOUNDATION_SMOKE_BUNDLE_AUDIT_latest.json"
 )
+CHALLENGER_SEQ215_CANDIDATE_BUNDLE_AUDIT = (
+    REPORTS_ROOT
+    / "entry_candidate_bundle_audit_20260628_v1/challenger_seq215_20260630/ENTRY_FOUNDATION_SMOKE_BUNDLE_AUDIT_latest.json"
+)
 DEFAULT_OUT_DIR = REPORTS_ROOT / "entry_replay_readiness_20260628_v1"
+CHALLENGER_SEQ215_OUT_DIR = DEFAULT_OUT_DIR / "challenger_seq215_20260630"
 CONTRACT_INPUT_DIMS = {
     "foundation_seq146": 146,
     "challenger_seq215": 215,
@@ -603,10 +611,22 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
-    out_dir = Path(args.out_dir).expanduser().resolve()
+    requested_contract_mode = getattr(args, "contract_mode", None)
+    candidate_readiness_raw = Path(args.candidate_readiness_json).expanduser()
+    candidate_bundle_audit_raw = Path(args.candidate_bundle_audit_json).expanduser()
+    out_dir_raw = Path(args.out_dir).expanduser()
+    if requested_contract_mode == "challenger_seq215":
+        if candidate_readiness_raw == CANDIDATE_READINESS_LATEST:
+            candidate_readiness_raw = CHALLENGER_SEQ215_CANDIDATE_READINESS_LATEST
+        if candidate_bundle_audit_raw == DEFAULT_CANDIDATE_BUNDLE_AUDIT:
+            candidate_bundle_audit_raw = CHALLENGER_SEQ215_CANDIDATE_BUNDLE_AUDIT
+        if out_dir_raw == DEFAULT_OUT_DIR:
+            out_dir_raw = CHALLENGER_SEQ215_OUT_DIR
+
+    out_dir = out_dir_raw.resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
-    candidate_readiness_path = Path(args.candidate_readiness_json).expanduser().resolve()
-    candidate_bundle_audit_path = Path(args.candidate_bundle_audit_json).expanduser().resolve()
+    candidate_readiness_path = candidate_readiness_raw.resolve()
+    candidate_bundle_audit_path = candidate_bundle_audit_raw.resolve()
     selective_summary_path = Path(args.selective_edge_summary_json).expanduser().resolve()
     selective_metrics_path = Path(args.selective_edge_metrics_csv).expanduser().resolve()
     replay_dir = Path(args.replay_dir).expanduser().resolve()
@@ -614,7 +634,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     candidate_readiness = _read_json(candidate_readiness_path)
     candidate_bundle_audit = _read_json(candidate_bundle_audit_path) if candidate_bundle_audit_path.exists() else {}
     expected_candidate_bundle_dir = str(candidate_bundle_audit.get("bundle_dir") or "") or None
-    contract_mode = _normalize_contract_mode(getattr(args, "contract_mode", None) or _contract_mode_from_bundle_audit(candidate_bundle_audit))
+    contract_mode = _normalize_contract_mode(requested_contract_mode or _contract_mode_from_bundle_audit(candidate_bundle_audit))
     selective_summary = _read_json(selective_summary_path) if selective_summary_path.exists() else {}
     selective_metrics = _read_csv_or_empty(selective_metrics_path)
     replay_metrics = _read_csv_or_empty(replay_dir / "replay_policy_metrics.csv")
@@ -783,7 +803,8 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--min-profit-factor", type=float, default=1.05)
     ap.add_argument("--max-abs-drawdown-bps", type=float, default=650.0)
     ap.add_argument("--require-no-xgb-ablation", action=argparse.BooleanOptionalAction, default=True)
-    ap.add_argument("--contract-mode", choices=tuple(CONTRACT_INPUT_DIMS), default="foundation_seq146")
+    ap.add_argument("--contract-mode", choices=tuple(CONTRACT_INPUT_DIMS), default=None)
+    ap.add_argument("--challenger-seq215", action="store_const", const="challenger_seq215", dest="contract_mode")
     ap.add_argument("--fail-on-not-ready", action=argparse.BooleanOptionalAction, default=True)
     ap.add_argument("--quiet", action="store_true")
     return ap
