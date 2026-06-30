@@ -25,6 +25,7 @@ def test_foundation_state_allows_entry_train_manifest_report_roots() -> None:
 
     assert "entry_foundation_smoke_train_manifests_20260628_v1" in verifier
     assert "entry_foundation_candidate_train_manifests_20260628_v1" in verifier
+    assert "entry_seq215_manifest_provenance_repair_20260630_v1" in verifier
     assert "entry_candidate_bundle_audit_20260628_v1" in verifier
     assert "entry_candidate_replay_trade_log_20260628_v1" in verifier
     assert "entry_candidate_replay_trade_log_20260628_v1_stop80_tp120" in verifier
