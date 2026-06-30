@@ -315,6 +315,10 @@ Current report-only smart-layer candidate:
 - Expected rebuilt seq/snap width is currently 495 signal fields: 41 base
   signal fields plus the 454-feature combined extension. This is a dataset rebuild candidate,
   not active training evidence.
+- The Entry feature AI inventory proves all ten smart layers have required
+  source coverage. The inline sequence-extension builder is wired to materialize
+  these smart fields from the existing emitted signal/context fields plus the
+  audited OHLC source parquet for candle smart3 during a later capped rebuild.
 - These smart layers are diagnostic/report-only until a separate rebuild,
   feature audit, specialist audit, liveness/non-collapse proof and
   train-readiness gate explicitly promote them into a trainable contract.

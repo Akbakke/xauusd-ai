@@ -202,9 +202,14 @@ Active status:
   memory and multi-timeframe confluence. With the current feature list this is
   a `smart_seq495_candidate` manifest candidate, not an active
   dataset. It writes separate `SMART` manifest/report latest files and must
-  not overwrite the seq215 latest contract. It is not train-ready and requires a
-  separate rebuild, feature audit, specialist audit, liveness/non-collapse
-  proof and train-readiness gate before any smoke/candidate/replay/IQL step.
+  not overwrite the seq215 latest contract. The Entry feature AI inventory now
+  proves smart-source coverage for all ten smart layers, including OHLC source
+  provenance for price-action/candle smart3, and the inline sequence-extension
+  builder can materialize the requested 280 smart-layer fields when a capped
+  rebuild is explicitly opened. It is still not train-ready and requires a
+  separate dataset rebuild, feature audit, specialist audit,
+  liveness/non-collapse proof and train-readiness gate before any
+  smoke/candidate/replay/IQL step.
 - Entry-to-Exit per-bar handoff: `PASS_WITH_EXPLICIT_GAP_EXCLUSIONS`.
   The active materializer fills missing canonical M5 `atr_bps` deterministically
   from closed-bar bid/ask OHLC true range and excludes unresolved/non-contiguous

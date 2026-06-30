@@ -22,6 +22,7 @@ from gx1.scripts.audit_entry_foundation_smoke_bundle_v1 import (
 )
 from gx1.scripts.materialize_entry_feature_ai_inventory_v1 import (
     NEXT_REQUIRED_GATE as FEATURE_AI_INVENTORY_NEXT_REQUIRED_GATE,
+    SMART_LAYER_SOURCE_CONTRACTS,
     _specialist_contract_provenance as _inventory_contract_provenance,
 )
 from gx1.scripts.materialize_entry_specialist_challenger_extension_manifest_v1 import (
@@ -233,7 +234,24 @@ def test_feature_ai_inventory_next_gate_points_to_seq215_smoke_evidence() -> Non
     assert "build missing candlestick pattern layer" not in FEATURE_AI_INVENTORY_NEXT_REQUIRED_GATE
     assert "SEQ215 smoke-manifest/smoke-train evidence" in FEATURE_AI_INVENTORY_NEXT_REQUIRED_GATE
     assert "candidate-readiness-seq215" in FEATURE_AI_INVENTORY_NEXT_REQUIRED_GATE
+    assert "smart_seq495 remains report-only" in FEATURE_AI_INVENTORY_NEXT_REQUIRED_GATE
+    assert "liveness/non-collapse proof" in FEATURE_AI_INVENTORY_NEXT_REQUIRED_GATE
     assert "replay, IQL, shadow or live" in FEATURE_AI_INVENTORY_NEXT_REQUIRED_GATE
+
+
+def test_feature_ai_inventory_registers_all_smart_layer_source_contracts() -> None:
+    assert set(SMART_LAYER_SOURCE_CONTRACTS) == set(SMART_LAYER_FEATURES)
+    assert sum(len(features) for _, features, _, _ in SMART_LAYER_FEATURES.values()) == 280
+    assert SMART_LAYER_SOURCE_CONTRACTS["price_action_candle_smart3_layer"]["required_source_fields"] == (
+        "time",
+        "open",
+        "high",
+        "low",
+        "close",
+    )
+    for label, contract in SMART_LAYER_SOURCE_CONTRACTS.items():
+        assert contract["required_source_fields"], label
+        assert callable(contract["missing_required_source_fields"])
 
 
 def _challenger_extension_args(tmp_path: Path, *, include_smart_layers: bool) -> argparse.Namespace:

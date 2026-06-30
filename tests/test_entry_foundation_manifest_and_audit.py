@@ -28,6 +28,8 @@ from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
     _resolve_seq_structure_extension,
     write_manifest,
 )
+from gx1.scripts.materialize_entry_feature_ai_inventory_v1 import SMART_LAYER_SOURCE_CONTRACTS
+from gx1.scripts.materialize_entry_specialist_challenger_extension_manifest_v1 import SMART_LAYER_FEATURES
 from gx1.scripts.materialize_sequence_structure_features_v1 import _requested_features
 from gx1.scripts.repair_entry_seq215_manifest_provenance_v1 import run as run_seq215_manifest_repair
 
@@ -364,6 +366,61 @@ def test_inline_seq_structure_extension_fails_on_missing_requested_feature() -> 
             ctx_cont_names=[],
             source_parquet=None,
         )
+
+
+def test_inline_seq_structure_extension_can_materialize_all_smart_layers(tmp_path) -> None:
+    periods = 12
+    times = pd.date_range("2026-01-01", periods=periods, freq="5min", tz="UTC")
+    ctx_cont_names: set[str] = set()
+    ctx_cat_names: set[str] = set()
+    for contract in SMART_LAYER_SOURCE_CONTRACTS.values():
+        for raw_name in tuple(contract["required_source_fields"]) + tuple(contract["optional_source_fields"]):
+            name = str(raw_name)
+            if name.startswith("ctx_cont."):
+                ctx_cont_names.add(name.removeprefix("ctx_cont."))
+            elif name.startswith("ctx_cat."):
+                ctx_cat_names.add(name.removeprefix("ctx_cat."))
+
+    data = {"time": times}
+    data.update({field: np.full(periods, 0.1, dtype=np.float32) for field in SIGNAL_FIELDS})
+    data.update({field: np.full(periods, 0.2, dtype=np.float32) for field in ctx_cont_names})
+    data.update({field: np.ones(periods, dtype=np.int64) for field in ctx_cat_names})
+    merged = pd.DataFrame(data)
+    source = tmp_path / "source.parquet"
+    pd.DataFrame(
+        {
+            "time": times,
+            "open": np.linspace(1.0, 1.1, periods),
+            "high": np.linspace(1.01, 1.11, periods),
+            "low": np.linspace(0.99, 1.09, periods),
+            "close": np.linspace(1.005, 1.105, periods),
+            "mid": np.linspace(1.005, 1.105, periods),
+        }
+    ).to_parquet(source)
+    requested = [name for _, features, _, _ in SMART_LAYER_FEATURES.values() for name in features]
+
+    out, names, meta = _build_inline_seq_structure_extension(
+        merged,
+        requested_features=requested,
+        ctx_cont_names=sorted(ctx_cont_names),
+        ctx_cat_names=sorted(ctx_cat_names),
+        source_parquet=source,
+    )
+
+    assert out.shape == (periods, 280)
+    assert names == requested
+    assert np.isfinite(out).all()
+    assert meta["smart_generated_dim"] >= 235
+    assert {row["label"] for row in meta["smart_generated_layers"]} >= {
+        "trend_ema_smart_layer",
+        "smc_liquidity_quality_layer",
+        "structure_swing_derivation_layer",
+        "momentum_flow_smart_layer",
+        "session_regime_interaction_layer",
+        "vol_compression_smart_layer",
+        "support_resistance_memory_layer",
+        "mtf_confluence_layer",
+    }
 
 
 def test_manifest_only_seq_structure_resolves_for_inline_mode(tmp_path) -> None:

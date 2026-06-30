@@ -497,6 +497,7 @@ def _build_inline_seq_structure_extension(
     *,
     requested_features: List[str],
     ctx_cont_names: List[str],
+    ctx_cat_names: Optional[List[str]] = None,
     source_parquet: Optional[Path],
 ) -> Tuple[np.ndarray, List[str], Dict[str, Any]]:
     if not requested_features:
@@ -508,6 +509,20 @@ def _build_inline_seq_structure_extension(
         _build_deep_interaction_layer,
         _build_price_derived_layer,
     )
+    from gx1.features.entry_candlestick_patterns_v1 import (
+        CANDLESTICK_PATTERN_SOURCE_FIELDS,
+        build_entry_candlestick_pattern_layer,
+    )
+    from gx1.features.entry_chart_geometry_v1 import build_entry_chart_geometry_layer
+    from gx1.features.entry_momentum_flow_v1 import build_entry_momentum_flow_layer
+    from gx1.features.entry_mtf_confluence_v1 import build_entry_mtf_confluence_layer
+    from gx1.features.entry_session_regime_interactions_v1 import build_entry_session_regime_interaction_layer
+    from gx1.features.entry_smc_liquidity_quality_v1 import build_entry_smc_liquidity_quality_layer
+    from gx1.features.entry_structure_swing_derivations_v1 import build_entry_structure_swing_derivation_layer
+    from gx1.features.entry_support_resistance_memory_v1 import build_entry_support_resistance_memory_layer
+    from gx1.features.entry_trend_ema_v1 import build_entry_trend_ema_layer
+    from gx1.features.entry_vol_compression_v1 import build_entry_vol_compression_layer
+    from gx1.scripts.materialize_entry_specialist_challenger_extension_manifest_v1 import SMART_LAYER_FEATURES
 
     base_blocks: List[np.ndarray] = []
     base_names: List[str] = []
@@ -521,6 +536,11 @@ def _build_inline_seq_structure_extension(
             raise RuntimeError(f"SEQ_STRUCTURE_INLINE_MISSING_CTX_FIELD: {field}")
         base_blocks.append(merged3[field].astype(np.float32).to_numpy().reshape(-1, 1))
         base_names.append(f"ctx_cont.{field}")
+    for field in ctx_cat_names or []:
+        if field not in merged3.columns:
+            raise RuntimeError(f"SEQ_STRUCTURE_INLINE_MISSING_CTX_CAT_FIELD: {field}")
+        base_blocks.append(merged3[field].astype(np.float32).to_numpy().reshape(-1, 1))
+        base_names.append(f"ctx_cat.{field}")
     base_x = np.concatenate(base_blocks, axis=1).astype(np.float32, copy=False)
 
     chart_x, chart_names = _build_chart_layer(base_x, base_names)
@@ -558,6 +578,82 @@ def _build_inline_seq_structure_extension(
         all_pieces.append(deep_x)
         all_names.extend(deep_names)
     all_x = np.concatenate(all_pieces, axis=1).astype(np.float32, copy=False)
+    requested_set = set(requested_features)
+    smart_generated_layers: List[Dict[str, Any]] = []
+
+    def _append_generated_layer(label: str, layer_x: np.ndarray, layer_names: List[str]) -> None:
+        nonlocal all_x, all_names
+        layer_x = np.asarray(layer_x, dtype=np.float32)
+        if layer_x.ndim != 2:
+            raise RuntimeError(f"SEQ_STRUCTURE_INLINE_SMART_LAYER_NOT_2D: {label} shape={layer_x.shape}")
+        if layer_x.shape[0] != all_x.shape[0]:
+            raise RuntimeError(
+                f"SEQ_STRUCTURE_INLINE_SMART_LAYER_ROW_MISMATCH: {label} "
+                f"rows={layer_x.shape[0]} expected={all_x.shape[0]}"
+            )
+        existing = set(all_names)
+        selected_pairs = [
+            (i, name)
+            for i, name in enumerate(layer_names)
+            if name in requested_set and name not in existing
+        ]
+        if not selected_pairs:
+            return
+        selected_idx = [i for i, _ in selected_pairs]
+        selected_names = [name for _, name in selected_pairs]
+        selected_x = layer_x[:, selected_idx].astype(np.float32, copy=False)
+        if not np.isfinite(selected_x).all():
+            raise RuntimeError(f"SEQ_STRUCTURE_INLINE_SMART_LAYER_NONFINITE: {label}")
+        all_x = np.concatenate([all_x, selected_x], axis=1).astype(np.float32, copy=False)
+        all_names.extend(selected_names)
+        smart_generated_layers.append(
+            {
+                "label": label,
+                "feature_count": int(len(selected_names)),
+                "features": selected_names,
+            }
+        )
+
+    def _build_candlestick_smart_layer_from_source() -> Tuple[np.ndarray, List[str]]:
+        if source_parquet is None:
+            raise RuntimeError("SEQ_STRUCTURE_INLINE_CANDLESTICK_SMART_SOURCE_PARQUET_REQUIRED")
+        source = pd.read_parquet(Path(source_parquet), columns=list(CANDLESTICK_PATTERN_SOURCE_FIELDS))
+        source["time"] = pd.to_datetime(source["time"], utc=True)
+        source = source.sort_values("time").drop_duplicates("time")
+        aligned = merged3[["time"]].copy()
+        aligned["time"] = pd.to_datetime(aligned["time"], utc=True)
+        aligned = aligned.merge(source, on="time", how="left", validate="one_to_one")
+        missing_ohlc = int(aligned[["open", "high", "low", "close"]].isna().any(axis=1).sum())
+        if missing_ohlc:
+            raise RuntimeError(
+                "SEQ_STRUCTURE_INLINE_CANDLESTICK_SMART_SOURCE_GAP: "
+                f"missing_ohlc_rows={missing_ohlc}"
+            )
+        candle_smart_x, candle_smart_names = build_entry_candlestick_pattern_layer(aligned)
+        return candle_smart_x.astype(np.float32, copy=False), list(candle_smart_names)
+
+    smart_builders = {
+        "trend_ema_smart_layer": build_entry_trend_ema_layer,
+        "smc_liquidity_quality_layer": build_entry_smc_liquidity_quality_layer,
+        "structure_swing_derivation_layer": build_entry_structure_swing_derivation_layer,
+        "momentum_flow_smart_layer": build_entry_momentum_flow_layer,
+        "session_regime_interaction_layer": build_entry_session_regime_interaction_layer,
+        "vol_compression_smart_layer": build_entry_vol_compression_layer,
+        "chart_geometry_smart2_layer": build_entry_chart_geometry_layer,
+        "price_action_candle_smart3_layer": _build_candlestick_smart_layer_from_source,
+        "support_resistance_memory_layer": build_entry_support_resistance_memory_layer,
+        "mtf_confluence_layer": build_entry_mtf_confluence_layer,
+    }
+    for label, (_, feature_names, _, _) in SMART_LAYER_FEATURES.items():
+        if not any(name in requested_set and name not in set(all_names) for name in feature_names):
+            continue
+        builder = smart_builders[label]
+        if label == "price_action_candle_smart3_layer":
+            smart_x, smart_names = builder()
+        else:
+            smart_x, smart_names = builder(all_x, all_names)
+        _append_generated_layer(label, smart_x, list(smart_names))
+
     index = {name: i for i, name in enumerate(all_names)}
     missing = [name for name in requested_features if name not in index]
     if missing:
@@ -578,6 +674,8 @@ def _build_inline_seq_structure_extension(
         "base_matrix_dim": int(base_x.shape[1]),
         "chart_generated_dim": int(chart_x.shape[1]),
         "deep_generated_dim": int(deep_x.shape[1]),
+        "smart_generated_dim": int(sum(row["feature_count"] for row in smart_generated_layers)),
+        "smart_generated_layers": smart_generated_layers,
         "available_feature_count": int(len(all_names)),
         "source_parquet_for_price_features": str(source_parquet) if source_parquet is not None else None,
         "missing_generated_features": [],
@@ -2187,6 +2285,7 @@ def build_dataset_canonical(
                 merged3,
                 requested_features=seq_structure_requested,
                 ctx_cont_names=ctx_cont_names,
+                ctx_cat_names=ctx_cat_names,
                 source_parquet=canonical_v2_parquet,
             )
         else:
