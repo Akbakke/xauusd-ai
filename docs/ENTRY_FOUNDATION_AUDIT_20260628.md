@@ -7,7 +7,9 @@ Entry-bound per-bar reconstruction, state/reward contract and split/leakage
 audit are ready; Exit Transformer/IQL training remains closed until explicit
 Exit architecture, training and replay evidence gates are added and pass. The
 active Exit model dataset/readiness gate is also ready, with train-only
-normalization metadata and train/val/test shards.
+normalization metadata and train/val/test shards. The active Exit Transformer
+architecture/readiness contract is ready for training-plan review, but no Exit
+trainer is approved or allowed.
 
 The original rule still applies: foundation pass required before any more Transformer training.
 
@@ -165,10 +167,12 @@ Active status:
   `ENTRY_EXIT_SPLIT_LEAKAGE_AUDIT_READY`.
 - Active Exit model dataset/readiness:
   `ENTRY_EXIT_MODEL_DATASET_READY_FOR_EXIT_TRANSFORMER_READINESS_REVIEW`.
+- Active Exit Transformer architecture/readiness:
+  `ENTRY_EXIT_TRANSFORMER_ARCHITECTURE_READY_FOR_TRAINING_PLAN_REVIEW`.
 - Exit Transformer training, Exit IQL, shadow, live and promotion remain
-  closed. The next safe work is active Exit Transformer architecture/readiness
-  review; it is still report-only until a separate explicit Exit training gate
-  exists and passes.
+  closed. The next safe work is active Exit Transformer training plan/readiness
+  manifest; it is still report-only until a separate explicit Exit training
+  vedtak gate exists and passes.
 
 ## Previous Operating Status - 2026-06-29
 
