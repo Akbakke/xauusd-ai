@@ -30,6 +30,7 @@ DEFAULT_OUT_DIR = REPORTS_ROOT / "entry_smart_seq_rebuild_preflight_20260630_v1"
 DEFAULT_PLANNED_DATASET_DIR = (
     FOUNDATION_DATASET_DIR.parent / "v10_dataset_smart_candidate_20260630"
 )
+REQUIRED_GX1_DATA_ROOT = "/home/andre2/GX1_DATA"
 FIXED_BASE_COUNTS = {
     "base_signal_features": 41,
     "foundation_sequence_extension_features": 105,
@@ -193,7 +194,10 @@ def _command_contract(
         "requires_explicit_rebuild_vedtak": True,
         "requires_clean_git_before_execution": True,
         "uses_legacy_guarded_builder": True,
-        "required_environment": {LEGACY_RESEARCH_ACK_ENV: LEGACY_RESEARCH_ACK_VALUE},
+        "required_environment": {
+            "GX1_DATA": REQUIRED_GX1_DATA_ROOT,
+            LEGACY_RESEARCH_ACK_ENV: LEGACY_RESEARCH_ACK_VALUE,
+        },
         "requires_ram_cap": True,
         "ram_cap_runner": "scripts/gx1_capped_run.sh",
         "memory_max": "4G",
@@ -347,6 +351,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "rebuild command declares legacy builder ack env",
         command_contract.get("required_environment", {}).get(LEGACY_RESEARCH_ACK_ENV)
         == LEGACY_RESEARCH_ACK_VALUE,
+        command_contract.get("required_environment"),
+    )
+    _check(
+        checks,
+        "rebuild command declares GX1_DATA root",
+        command_contract.get("required_environment", {}).get("GX1_DATA") == REQUIRED_GX1_DATA_ROOT,
         command_contract.get("required_environment"),
     )
     _check(checks, "rebuild command does not start trainer", command_contract["starts_trainer"] is False, command_contract)
