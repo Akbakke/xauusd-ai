@@ -1,0 +1,461 @@
+#!/usr/bin/env python3
+"""Materialize a foundation-bound Entry IQL-student replay trade log.
+
+This is an offline research materializer for the post-replay Entry foundation
+path. It consumes the ready IQL distillation contract, fits/selects a small
+validation-calibrated student policy on the active seq146 candidate predictions,
+and writes an explicit 2026 trade log for `iql-replay-evidence`.
+
+It does not build adapters, promote, shadow, live, or place orders.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+import pandas as pd
+
+from gx1.scripts.apply_entry_foundation_activation_v1 import DEFAULT_SOURCE_PARQUET
+from gx1.scripts.materialize_entry_candidate_replay_trade_log_v1 import (
+    DEFAULT_PREDICTIONS,
+    _cost_label,
+    _frac_label,
+    _json_default,
+    _parse_float_list,
+    _prepare_predictions,
+    _run_fixed_horizon_policy,
+)
+from gx1.scripts.materialize_entry_iql_distillation_contract_v1 import (
+    DEFAULT_OUT_DIR as DISTILL_CONTRACT_OUT_DIR,
+    IQL_DISTILLATION_REQUIRED_ARTIFACT_KEYS,
+    _sha256_file,
+)
+from gx1.scripts.replay_entry_tabular_no_xgb_policy_v1 import SourceTape, _policy_hash, _threshold_from_scores
+from gx1.scripts.verify_entry_foundation_state_v1 import FOUNDATION_DATASET_DIR, REPORTS_ROOT
+
+
+DEFAULT_DISTILL_CONTRACT_JSON = DISTILL_CONTRACT_OUT_DIR / "ENTRY_IQL_DISTILLATION_CONTRACT_latest.json"
+DEFAULT_OUT_DIR = REPORTS_ROOT / "entry_iql_student_trade_log_20260628_v1"
+REQUIRED_CONTRACT_DECISION = "ENTRY_IQL_DISTILLATION_CONTRACT_READY"
+VEDTAK_PREFIX = "ENTRY_FOUNDATION_IQL_DISTILL_"
+
+
+def _read_json(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        raise RuntimeError(f"missing JSON artifact: {path}")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise RuntimeError(f"JSON artifact is not an object: {path}")
+    return payload
+
+
+def _contract_identity(contract: dict[str, Any]) -> dict[str, Any]:
+    value = contract.get("evidence_identity")
+    return value if isinstance(value, dict) else {}
+
+
+def _distillation_contract_checks(contract_path: Path, contract: dict[str, Any]) -> dict[str, Any]:
+    failures: list[str] = []
+    if str(contract.get("decision")) != REQUIRED_CONTRACT_DECISION:
+        failures.append(f"IQL distillation contract decision is not ready: {contract.get('decision')}")
+    if bool(contract.get("iql_research_distillation_allowed")) is not True:
+        failures.append("IQL distillation contract does not allow research distillation")
+    if bool(contract.get("promotion_shadow_live_allowed")) is not False:
+        failures.append("IQL distillation contract does not block promotion/shadow/live")
+
+    artifact_paths = contract.get("artifact_paths") if isinstance(contract.get("artifact_paths"), dict) else {}
+    artifact_sha256 = contract.get("artifact_sha256") if isinstance(contract.get("artifact_sha256"), dict) else {}
+    hash_checks: dict[str, dict[str, Any]] = {}
+    for key in IQL_DISTILLATION_REQUIRED_ARTIFACT_KEYS:
+        raw_path = str(artifact_paths.get(key) or "")
+        path = Path(raw_path).expanduser().resolve() if raw_path else None
+        expected = str(artifact_sha256.get(key) or "")
+        exists = bool(path and path.is_file())
+        observed = _sha256_file(path) if exists and path is not None else ""
+        ok = bool(expected and observed and expected == observed)
+        hash_checks[key] = {
+            "path": str(path) if path is not None else "",
+            "expected": expected,
+            "observed": observed,
+            "exists": exists,
+            "ok": ok,
+        }
+        if not ok:
+            failures.append(f"IQL distillation contract artifact hash is stale or missing: {key}")
+
+    identity = _contract_identity(contract)
+    candidate_bundle_dir = str(identity.get("candidate_bundle_dir") or "")
+    if not candidate_bundle_dir:
+        failures.append("IQL distillation contract evidence_identity has no candidate_bundle_dir")
+    if candidate_bundle_dir and str(identity.get("selective_edge_bundle_dir") or "") != candidate_bundle_dir:
+        failures.append("IQL distillation contract selective-edge bundle identity does not match candidate bundle")
+    if candidate_bundle_dir and str(identity.get("replay_identity_candidate_bundle_dir") or "") != candidate_bundle_dir:
+        failures.append("IQL distillation contract replay identity does not match candidate bundle")
+    if not bool(identity.get("replay_identity_ready")):
+        failures.append("IQL distillation contract replay identity is not ready")
+
+    return {
+        "ready": not failures,
+        "distillation_contract_json": str(contract_path),
+        "artifact_hash_checks": hash_checks,
+        "evidence_identity": identity,
+        "failures": failures,
+    }
+
+
+def _safe_profit_factor(pnl: pd.Series) -> float | None:
+    values = pd.to_numeric(pnl, errors="coerce").to_numpy(np.float64)
+    values = values[np.isfinite(values)]
+    if values.size == 0:
+        return None
+    gains = float(values[values > 0.0].sum())
+    losses = float(values[values < 0.0].sum())
+    if losses == 0.0:
+        return None
+    return float(gains / abs(losses))
+
+
+def _max_drawdown_bps(pnl: pd.Series) -> float:
+    values = pd.to_numeric(pnl, errors="coerce").fillna(0.0).to_numpy(np.float64)
+    if values.size == 0:
+        return 0.0
+    curve = np.concatenate([[0.0], np.cumsum(values)])
+    drawdown = curve - np.maximum.accumulate(curve)
+    return abs(float(np.min(drawdown)))
+
+
+def _trade_metrics(trades: list[dict[str, Any]]) -> dict[str, Any]:
+    if not trades:
+        return {
+            "n_trades": 0,
+            "net_sum_bps": 0.0,
+            "net_mean_bps": None,
+            "profit_factor": None,
+            "max_drawdown_bps": 0.0,
+            "max_loss_bps": None,
+            "negative_month_count": 0,
+            "all_months_positive": False,
+        }
+    frame = pd.DataFrame(trades)
+    pnl = pd.to_numeric(frame["net_pnl_bps"], errors="coerce")
+    monthly = frame.groupby("entry_month")["net_pnl_bps"].sum()
+    return {
+        "n_trades": int(len(frame)),
+        "net_sum_bps": float(pnl.sum()),
+        "net_mean_bps": float(pnl.mean()),
+        "profit_factor": _safe_profit_factor(pnl),
+        "max_drawdown_bps": _max_drawdown_bps(pnl),
+        "max_loss_bps": float(pnl.min()) if len(pnl) else None,
+        "negative_month_count": int((monthly <= 0.0).sum()),
+        "all_months_positive": bool(len(monthly) > 0 and (monthly > 0.0).all()),
+    }
+
+
+def _passes_validation_constraints(metrics: dict[str, Any], args: argparse.Namespace) -> bool:
+    if int(metrics["n_trades"]) < int(args.min_validation_trades):
+        return False
+    pf = metrics.get("profit_factor")
+    if pf is None or float(pf) < float(args.min_validation_profit_factor):
+        return False
+    if float(metrics["max_drawdown_bps"]) > float(args.max_validation_drawdown_bps):
+        return False
+    max_loss = metrics.get("max_loss_bps")
+    if max_loss is None or abs(float(max_loss)) > float(args.max_abs_loss_bps):
+        return False
+    if bool(args.require_validation_positive_months) and not bool(metrics["all_months_positive"]):
+        return False
+    return True
+
+
+def _selection_tuple(metrics: dict[str, Any], args: argparse.Namespace) -> tuple[float, float, float, float]:
+    if not _passes_validation_constraints(metrics, args):
+        return (-float("inf"), -float("inf"), -float("inf"), -float("inf"))
+    # Path-quality first: prefer high average reward, then lower drawdown, then total reward/PF.
+    mean_pnl = float(metrics.get("net_mean_bps") or 0.0)
+    drawdown = float(metrics.get("max_drawdown_bps") or 0.0)
+    net = float(metrics.get("net_sum_bps") or 0.0)
+    pf = float(metrics.get("profit_factor") or 0.0)
+    return (mean_pnl, -drawdown, net, pf)
+
+
+def _annotate_student_trades(trades: list[dict[str, Any]], *, selected: dict[str, Any], args: argparse.Namespace) -> pd.DataFrame:
+    frame = pd.DataFrame(trades)
+    if frame.empty:
+        return frame
+    frame["policy_id"] = str(args.policy_id)
+    frame["student_policy_id"] = str(args.policy_id)
+    frame["student_policy_source"] = "entry_iql_val_reward_selection_v1"
+    frame["student_selection_metric"] = "validation_net_mean_bps_then_drawdown"
+    frame["student_selected_top_frac"] = float(selected["threshold_top_frac"])
+    frame["student_selected_stop_loss_bps"] = float(selected["stop_loss_bps"])
+    frame["student_selected_take_profit_bps"] = float(selected["take_profit_bps"])
+    frame["student_selected_daily_loss_limit_bps"] = float(selected["daily_loss_limit_bps"])
+    frame["student_selected_cost_stress_bps"] = float(selected["cost_stress_bps"])
+    frame["teacher_model"] = str(args.model_name)
+    frame["teacher_score"] = pd.to_numeric(frame["score"], errors="coerce")
+    frame["teacher_p_long"] = pd.to_numeric(frame["p_long"], errors="coerce")
+    frame["teacher_p_short"] = pd.to_numeric(frame["p_short"], errors="coerce")
+    frame["teacher_p_flat"] = pd.to_numeric(frame["p_flat"], errors="coerce")
+    if "source_split" in frame.columns:
+        frame["state_source_split"] = frame["source_split"].astype(str)
+    if "session" in frame.columns:
+        frame["state_session"] = frame["session"].astype(str)
+    if "vol_regime" in frame.columns:
+        frame["state_vol_regime"] = frame["vol_regime"].astype(str)
+    return frame
+
+
+def run(args: argparse.Namespace) -> dict[str, Any]:
+    vedtak = str(args.vedtak or "").strip()
+    if not vedtak.startswith(VEDTAK_PREFIX):
+        raise SystemExit(f"FATAL: --vedtak must start with {VEDTAK_PREFIX}")
+
+    out_dir = Path(args.out_dir).expanduser().resolve()
+    out_dir.mkdir(parents=True, exist_ok=True)
+    distillation_contract_path = Path(args.distillation_contract_json).expanduser().resolve()
+    predictions_path = Path(args.selective_edge_predictions).expanduser().resolve()
+    dataset_dir = Path(args.dataset_dir).expanduser().resolve()
+    source_parquet = Path(args.source_parquet).expanduser().resolve()
+
+    contract = _read_json(distillation_contract_path)
+    contract_check = _distillation_contract_checks(distillation_contract_path, contract)
+    predictions = _prepare_predictions(predictions_path, dataset_dir, str(args.model_name))
+    if "val" not in set(predictions["split"]) or "test" not in set(predictions["split"]):
+        raise RuntimeError("IQL student trade log requires val and test predictions")
+    val = predictions[predictions["split"].astype(str) == "val"].sort_values("time", kind="mergesort").reset_index(drop=True)
+    test = predictions[predictions["split"].astype(str) == "test"].sort_values("time", kind="mergesort").reset_index(drop=True)
+    if not bool((test["time"].dt.year == 2026).all()):
+        raise RuntimeError("IQL student replay test split must be entirely 2026")
+
+    tape = SourceTape.load(source_parquet)
+    top_fracs = _parse_float_list(str(args.threshold_top_fracs))
+    take_profit_values = _parse_float_list(str(args.take_profit_bps_grid))
+    daily_loss_values = _parse_float_list(str(args.daily_loss_limit_bps_grid))
+    cost_values = _parse_float_list(str(args.cost_stress_bps))
+    val_scores = pd.to_numeric(val["edge_score"], errors="coerce").to_numpy(np.float64)
+
+    validation_rows: list[dict[str, Any]] = []
+    selected_row: dict[str, Any] | None = None
+    selected_tuple = (-float("inf"), -float("inf"), -float("inf"), -float("inf"))
+
+    for top_frac in top_fracs:
+        threshold = _threshold_from_scores(val_scores, float(top_frac), float(args.min_score_floor))
+        for take_profit_bps in take_profit_values:
+            for daily_loss_limit_bps in daily_loss_values:
+                for cost_bps in cost_values:
+                    policy_config = {
+                        "student_policy_source": "entry_iql_val_reward_selection_v1",
+                        "model_name": str(args.model_name),
+                        "threshold_top_frac": float(top_frac),
+                        "score_threshold": float(threshold),
+                        "exit_mode": "stop_tp",
+                        "stop_loss_bps": float(args.stop_loss_bps),
+                        "take_profit_bps": float(take_profit_bps),
+                        "same_bar_policy": str(args.same_bar_policy),
+                        "cooldown_bars": int(args.cooldown_bars),
+                        "max_trades_per_day": int(args.max_trades_per_day),
+                        "daily_loss_limit_bps": float(daily_loss_limit_bps),
+                        "min_direction_prob": float(args.min_direction_prob),
+                        "cost_stress_bps": float(cost_bps),
+                        "slippage_bps": float(args.slippage_bps),
+                        "size_multiplier": float(args.size_multiplier),
+                    }
+                    config_hash = _policy_hash(policy_config)
+                    grid_policy_id = (
+                        f"entry_iql_student_grid_{_frac_label(top_frac)}_sl{int(args.stop_loss_bps)}"
+                        f"_tp{int(take_profit_bps)}_dl{int(daily_loss_limit_bps)}_"
+                        f"{_cost_label(cost_bps)}_{config_hash}"
+                    )
+                    run_args = argparse.Namespace(
+                        exit_mode="stop_tp",
+                        take_profit_bps=float(take_profit_bps),
+                        stop_loss_bps=float(args.stop_loss_bps),
+                        same_bar_policy=str(args.same_bar_policy),
+                        min_direction_prob=float(args.min_direction_prob),
+                        max_trades_per_day=int(args.max_trades_per_day),
+                        daily_loss_limit_bps=float(daily_loss_limit_bps),
+                        cooldown_bars=int(args.cooldown_bars),
+                        slippage_bps=float(args.slippage_bps),
+                        size_multiplier=float(args.size_multiplier),
+                    )
+                    val_trades, val_counts = _run_fixed_horizon_policy(
+                        eval_df=val,
+                        tape=tape,
+                        score_threshold=float(threshold),
+                        threshold_top_frac=float(top_frac),
+                        cost_stress_bps=float(cost_bps),
+                        args=run_args,
+                        policy_id=grid_policy_id,
+                        policy_config_hash=config_hash,
+                    )
+                    metrics = _trade_metrics(val_trades)
+                    row = {
+                        **policy_config,
+                        "policy_config_hash": config_hash,
+                        "grid_policy_id": grid_policy_id,
+                        "validation_counts": val_counts,
+                        "validation_metrics": metrics,
+                        "validation_constraints_pass": _passes_validation_constraints(metrics, args),
+                    }
+                    validation_rows.append(row)
+                    rank = _selection_tuple(metrics, args)
+                    if rank > selected_tuple:
+                        selected_tuple = rank
+                        selected_row = row
+
+    failures: list[str] = list(contract_check["failures"])
+    if selected_row is None or not bool(selected_row.get("validation_constraints_pass")):
+        failures.append("no IQL student policy passed validation constraints")
+        selected_row = selected_row or {}
+
+    selected_trades: list[dict[str, Any]] = []
+    selected_counts: dict[str, Any] = {}
+    if selected_row and not failures:
+        selected_run_args = argparse.Namespace(
+            exit_mode="stop_tp",
+            take_profit_bps=float(selected_row["take_profit_bps"]),
+            stop_loss_bps=float(selected_row["stop_loss_bps"]),
+            same_bar_policy=str(selected_row["same_bar_policy"]),
+            min_direction_prob=float(selected_row["min_direction_prob"]),
+            max_trades_per_day=int(selected_row["max_trades_per_day"]),
+            daily_loss_limit_bps=float(selected_row["daily_loss_limit_bps"]),
+            cooldown_bars=int(selected_row["cooldown_bars"]),
+            slippage_bps=float(selected_row["slippage_bps"]),
+            size_multiplier=float(selected_row["size_multiplier"]),
+        )
+        selected_trades, selected_counts = _run_fixed_horizon_policy(
+            eval_df=test,
+            tape=tape,
+            score_threshold=float(selected_row["score_threshold"]),
+            threshold_top_frac=float(selected_row["threshold_top_frac"]),
+            cost_stress_bps=float(selected_row["cost_stress_bps"]),
+            args=selected_run_args,
+            policy_id=str(args.policy_id),
+            policy_config_hash=str(selected_row["policy_config_hash"]),
+        )
+
+    trades_df = _annotate_student_trades(selected_trades, selected=selected_row, args=args) if selected_row else pd.DataFrame()
+    test_metrics = _trade_metrics(selected_trades)
+    if trades_df.empty:
+        failures.append("IQL student trade log produced zero trades")
+    else:
+        years = set(pd.to_datetime(trades_df["entry_time"], utc=True).dt.year.astype(int).unique())
+        if years != {2026}:
+            failures.append(f"IQL student trade log contains years outside 2026: {sorted(years)}")
+
+    trades_path = out_dir / "entry_iql_student_trade_log.csv"
+    validation_grid_path = out_dir / "entry_iql_student_validation_grid.json"
+    counts_path = out_dir / "entry_iql_student_policy_counts.json"
+    manifest_path = out_dir / "ENTRY_IQL_STUDENT_TRADE_LOG_MANIFEST.json"
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    report_json = out_dir / f"ENTRY_IQL_STUDENT_TRADE_LOG_{timestamp}.json"
+    report_md = out_dir / f"ENTRY_IQL_STUDENT_TRADE_LOG_{timestamp}.md"
+
+    trades_df.to_csv(trades_path, index=False)
+    validation_grid_path.write_text(json.dumps(validation_rows, indent=2, sort_keys=True, default=_json_default) + "\n", encoding="utf-8")
+    counts_path.write_text(json.dumps(selected_counts, indent=2, sort_keys=True, default=_json_default) + "\n", encoding="utf-8")
+    report = {
+        "schema_version": "entry_iql_student_trade_log_v1",
+        "created_utc": datetime.now(timezone.utc).isoformat(),
+        "decision": "PASS" if not failures else "FAIL",
+        "vedtak": vedtak,
+        "distillation_contract_json": str(distillation_contract_path),
+        "distillation_contract_check": contract_check,
+        "selective_edge_predictions": str(predictions_path),
+        "dataset_dir": str(dataset_dir),
+        "source_parquet": str(source_parquet),
+        "out_dir": str(out_dir),
+        "trades_path": str(trades_path),
+        "validation_grid_json": str(validation_grid_path),
+        "counts_json": str(counts_path),
+        "policy_id": str(args.policy_id),
+        "selection_method": "validation_net_mean_bps_then_drawdown_v1",
+        "selected_policy": selected_row,
+        "selected_validation_metrics": selected_row.get("validation_metrics", {}) if selected_row else {},
+        "test_metrics": test_metrics,
+        "n_trades": int(len(trades_df)),
+        "student_policy_fit_started": True,
+        "runtime_trainer_started": False,
+        "adapter_built": False,
+        "shadow_started": False,
+        "live_started": False,
+        "promotion_shadow_live_allowed": False,
+        "failures": failures,
+        "json_path": str(report_json),
+        "md_path": str(report_md),
+    }
+    manifest_path.write_text(json.dumps(report, indent=2, sort_keys=True, default=_json_default) + "\n", encoding="utf-8")
+    report_json.write_text(json.dumps(report, indent=2, sort_keys=True, default=_json_default) + "\n", encoding="utf-8")
+    report_md.write_text(
+        "\n".join(
+            [
+                "# Entry IQL Student Trade Log",
+                "",
+                f"- Decision: `{report['decision']}`",
+                f"- Trades: `{report['n_trades']}`",
+                f"- Policy: `{report['policy_id']}`",
+                f"- Promotion/shadow/live allowed: `{report['promotion_shadow_live_allowed']}`",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (out_dir / "ENTRY_IQL_STUDENT_TRADE_LOG_latest.json").write_text(
+        report_json.read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    (out_dir / "ENTRY_IQL_STUDENT_TRADE_LOG_latest.md").write_text(
+        report_md.read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+
+    if not args.quiet:
+        print(json.dumps(report, indent=2, sort_keys=True, default=_json_default))
+    if args.fail_on_audit_fail and failures:
+        raise SystemExit(2)
+    return report
+
+
+def build_parser() -> argparse.ArgumentParser:
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--vedtak", required=True)
+    ap.add_argument("--distillation-contract-json", default=str(DEFAULT_DISTILL_CONTRACT_JSON))
+    ap.add_argument("--selective-edge-predictions", default=str(DEFAULT_PREDICTIONS))
+    ap.add_argument("--dataset-dir", default=str(FOUNDATION_DATASET_DIR))
+    ap.add_argument("--source-parquet", default=str(DEFAULT_SOURCE_PARQUET))
+    ap.add_argument("--out-dir", default=str(DEFAULT_OUT_DIR))
+    ap.add_argument("--model-name", default="candidate")
+    ap.add_argument("--policy-id", default="entry_iql_student")
+    ap.add_argument("--threshold-top-fracs", default="0.05")
+    ap.add_argument("--cost-stress-bps", default="0.0")
+    ap.add_argument("--stop-loss-bps", type=float, default=80.0)
+    ap.add_argument("--take-profit-bps-grid", default="100,120,150,180")
+    ap.add_argument("--daily-loss-limit-bps-grid", default="80,120,150")
+    ap.add_argument("--same-bar-policy", choices=("stop_first", "target_first"), default="stop_first")
+    ap.add_argument("--cooldown-bars", type=int, default=6)
+    ap.add_argument("--max-trades-per-day", type=int, default=8)
+    ap.add_argument("--min-direction-prob", type=float, default=0.0)
+    ap.add_argument("--min-score-floor", type=float, default=0.0)
+    ap.add_argument("--slippage-bps", type=float, default=0.0)
+    ap.add_argument("--size-multiplier", type=float, default=1.0)
+    ap.add_argument("--min-validation-trades", type=int, default=25)
+    ap.add_argument("--min-validation-profit-factor", type=float, default=1.05)
+    ap.add_argument("--max-validation-drawdown-bps", type=float, default=650.0)
+    ap.add_argument("--max-abs-loss-bps", type=float, default=80.0)
+    ap.add_argument("--require-validation-positive-months", action=argparse.BooleanOptionalAction, default=True)
+    ap.add_argument("--fail-on-audit-fail", action=argparse.BooleanOptionalAction, default=True)
+    ap.add_argument("--quiet", action="store_true")
+    return ap
+
+
+def main() -> int:
+    run(build_parser().parse_args())
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

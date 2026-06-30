@@ -127,6 +127,7 @@ def _active_entry_artifact_paths() -> list[str]:
         "entry_foundation_candidate_train_manifests_20260628_v1",
         "entry_candidate_bundle_audit_20260628_v1",
         "entry_iql_distillation_contract_20260628_v1",
+        "entry_iql_student_trade_log_20260628_v1",
         "entry_iql_distillation_replay_20260628_v1",
         "entry_iql_replay_comparison_20260628_v1",
         "entry_candidate_selective_edge_20260628_v1",
@@ -707,6 +708,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         candidate_readiness = _read_text(REPO / "gx1/scripts/verify_entry_candidate_readiness_v1.py")
         replay_readiness = _read_text(REPO / "gx1/scripts/verify_entry_replay_readiness_v1.py")
         iql_distill_contract = _read_text(REPO / "gx1/scripts/materialize_entry_iql_distillation_contract_v1.py")
+        iql_student_trade_log = _read_text(REPO / "gx1/scripts/materialize_entry_iql_student_trade_log_v1.py")
         claude_head = _read_text(REPO / "CLAUDE.md")[:1600]
         agents_head = _read_text(REPO / "AGENTS.md")[:1800]
         system_map_head = _read_text(REPO / "SYSTEM_MAP.md")[:1800]
@@ -767,6 +769,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         _require("selective-edge" in control, "control surface exposes candidate selective-edge evaluator", checks)
         _require("replay-evidence" in control, "control surface exposes candidate replay evidence materializer", checks)
         _require("iql-distill" in control, "control surface exposes gated IQL distillation contract wrapper", checks)
+        _require("iql-student-trade-log" in control, "control surface exposes IQL student trade-log materializer", checks)
         _require("iql-replay-evidence" in control, "control surface exposes IQL replay evidence materializer", checks)
         _require("iql-compare" in control, "control surface exposes IQL replay comparison gate", checks)
         _require("smoke-train" in control, "control surface exposes vedtak-gated smoke train", checks)
@@ -1006,6 +1009,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         )
         _require("trainer_started" in iql_distill_contract, "IQL distillation contract records trainer-not-started invariant", checks)
         _require("promotion_shadow_live_allowed" in iql_distill_contract, "IQL distillation contract keeps promotion/shadow/live closed", checks)
+        _require("--vedtak" in iql_student_trade_log, "IQL student trade-log materializer requires vedtak", checks)
+        _require("ENTRY_IQL_STUDENT_TRADE_LOG_latest.json" in iql_student_trade_log, "IQL student trade-log materializer writes latest report", checks)
+        _require("entry_iql_student_trade_log.csv" in iql_student_trade_log, "IQL student trade-log materializer writes explicit trade log", checks)
+        _require("student_policy_fit_started" in iql_student_trade_log, "IQL student trade-log materializer records offline student fit", checks)
+        _require("promotion_shadow_live_allowed" in iql_student_trade_log, "IQL student trade-log materializer keeps promotion/shadow/live closed", checks)
         _require("ENTRY_IQL_REPLAY_EVIDENCE_latest.json" in iql_replay_evidence, "IQL replay evidence materializer writes latest report", checks)
         _require("REPLAY_EVIDENCE_MANIFEST.json" in iql_replay_evidence, "IQL replay evidence materializer writes comparison manifest", checks)
         _require("DEFAULT_DISTILL_CONTRACT_JSON" in iql_replay_evidence, "IQL replay evidence materializer requires distillation contract", checks)

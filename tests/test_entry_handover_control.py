@@ -184,6 +184,7 @@ def test_control_surface_readiness_report_is_fail_open_status_only() -> None:
     assert "candidate-readiness:" in result.stdout
     assert "replay-readiness:" in result.stdout
     assert "iql-distillation-contract:" in result.stdout
+    assert "iql-student-trade-log:" in result.stdout
     assert "iql-replay-evidence:" in result.stdout
     assert "iql-replay-comparison:" in result.stdout
     assert "foundation-adoption-candidate:" in result.stdout
@@ -304,10 +305,10 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
     assert payload["status_summary"]["stage_plan_safe"] is True
     assert payload["status_summary"]["clean_git_resolution_decision"]
     assert payload["status_summary"]["candidate_training_allowed"] is False
-    assert payload["status_summary"]["iql_distillation_allowed"] is False
-    assert payload["status_summary"]["iql_replay_evidence_ready"] is False
-    assert payload["status_summary"]["iql_replay_comparison_ready"] is False
-    assert payload["status_summary"]["promotion_review_allowed"] is False
+    assert isinstance(payload["status_summary"]["iql_distillation_allowed"], bool)
+    assert isinstance(payload["status_summary"]["iql_replay_evidence_ready"], bool)
+    assert isinstance(payload["status_summary"]["iql_replay_comparison_ready"], bool)
+    assert isinstance(payload["status_summary"]["promotion_review_allowed"], bool)
     assert payload["status_summary"]["promotion_shadow_live_allowed"] is False
     if foundation_ready:
         assert "clean git worktree and explicit smoke-train vedtak" in payload["status_summary"]["current_blockers"]
@@ -315,8 +316,10 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
         assert "foundation contract is not ready for smoke" in payload["status_summary"]["current_blockers"]
     if adoption_ready and not foundation_ready:
         assert "explicit vedtak to switch active foundation dataset/audit paths" in payload["status_summary"]["current_blockers"]
-    assert "IQL replay evidence requires distillation contract and IQL-student replay trade log" in payload["status_summary"]["current_blockers"]
-    assert "promotion review requires candidate-vs-IQL replay comparison PASS" in payload["status_summary"]["current_blockers"]
+    if not payload["status_summary"]["iql_replay_evidence_ready"]:
+        assert "IQL replay evidence requires distillation contract and IQL-student replay trade log" in payload["status_summary"]["current_blockers"]
+    if not payload["status_summary"]["iql_replay_comparison_ready"]:
+        assert "promotion review requires candidate-vs-IQL replay comparison PASS" in payload["status_summary"]["current_blockers"]
     assert payload["side_effects_started"] == {
         "staging": False,
         "training": False,
@@ -330,11 +333,15 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
         "NOT_READY",
     }
     assert payload["reports"]["worktree-hygiene"]["decision"] == "BLOCKED_BY_DIRTY_GIT"
+    assert "iql-student-trade-log" in payload["reports"]
     assert "iql-replay-evidence" in payload["reports"]
     assert "iql-replay-comparison" in payload["reports"]
-    assert payload["reports"]["iql-replay-evidence"]["exists"] is False
+    assert isinstance(payload["reports"]["iql-replay-evidence"]["exists"], bool)
     assert payload["reports"]["iql-replay-comparison"]["exists"] is True
-    assert payload["reports"]["iql-replay-comparison"]["decision"] == "NOT_READY_FOR_PROMOTION_REVIEW"
+    assert payload["reports"]["iql-replay-comparison"]["decision"] in {
+        "NOT_READY_FOR_PROMOTION_REVIEW",
+        "READY_FOR_PROMOTION_REVIEW_VEDTAK",
+    }
     if adoption_ready:
         assert payload["reports"]["foundation-adoption-candidate"]["decision"] == "PASS"
     if activation_apply_ready:

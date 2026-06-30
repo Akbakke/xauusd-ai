@@ -33,11 +33,12 @@ Usage:
   scripts/entry_next_edge_control.sh selective-edge --bundle-dir <dir> --no-xgb-bundle-dir <dir>
   scripts/entry_next_edge_control.sh replay-evidence --trades-path <csv|parquet>
   scripts/entry_next_edge_control.sh iql-distill --vedtak <id> [--materialize-only|--no-fail-on-not-ready]
+  scripts/entry_next_edge_control.sh iql-student-trade-log --vedtak <id>
   scripts/entry_next_edge_control.sh iql-replay-evidence --trades-path <csv|parquet>
   scripts/entry_next_edge_control.sh iql-compare
 
 Allowed path:
-  Entry foundation cleanup -> feature audit -> target audit -> rebuilt dataset -> adoption-candidate proof -> activation-plan review -> optional vedtak-gated activation apply -> vedtak-gated post-apply audit refresh + active verify -> foundation-guardrails -> worktree-hygiene -> optional vedtak-gated stage-foundation-cleanup -> train-readiness -> optional smoke-manifest proof -> vedtak-gated smoke train -> smoke bundle audit -> candidate-readiness -> vedtak-gated candidate train -> selective-edge/no-XGB ablation -> replay-evidence -> replay-readiness -> vedtak-gated IQL distillation contract -> IQL replay evidence -> IQL replay comparison.
+  Entry foundation cleanup -> feature audit -> target audit -> rebuilt dataset -> adoption-candidate proof -> activation-plan review -> optional vedtak-gated activation apply -> vedtak-gated post-apply audit refresh + active verify -> foundation-guardrails -> worktree-hygiene -> optional vedtak-gated stage-foundation-cleanup -> train-readiness -> optional smoke-manifest proof -> vedtak-gated smoke train -> smoke bundle audit -> candidate-readiness -> vedtak-gated candidate train -> selective-edge/no-XGB ablation -> replay-evidence -> replay-readiness -> vedtak-gated IQL distillation contract -> IQL student trade log -> IQL replay evidence -> IQL replay comparison.
 
 Blocked here:
   generic train, retrain, promote, pin, live, xgb-train, et-train, shadow.
@@ -109,6 +110,7 @@ paths = {
     "candidate-readiness": Path("/home/andre2/GX1_DATA/reports/entry_candidate_readiness_20260628_v1/ENTRY_CANDIDATE_READINESS_latest.json"),
     "replay-readiness": Path("/home/andre2/GX1_DATA/reports/entry_replay_readiness_20260628_v1/ENTRY_REPLAY_READINESS_latest.json"),
     "iql-distillation-contract": Path("/home/andre2/GX1_DATA/reports/entry_iql_distillation_contract_20260628_v1/ENTRY_IQL_DISTILLATION_CONTRACT_latest.json"),
+    "iql-student-trade-log": Path("/home/andre2/GX1_DATA/reports/entry_iql_student_trade_log_20260628_v1/ENTRY_IQL_STUDENT_TRADE_LOG_latest.json"),
     "iql-replay-evidence": Path("/home/andre2/GX1_DATA/reports/entry_iql_distillation_replay_20260628_v1/ENTRY_IQL_REPLAY_EVIDENCE_latest.json"),
     "iql-replay-comparison": Path("/home/andre2/GX1_DATA/reports/entry_iql_replay_comparison_20260628_v1/ENTRY_IQL_REPLAY_COMPARISON_latest.json"),
 }
@@ -343,6 +345,10 @@ candidate_training_allowed = bool(
 iql_distillation_allowed = bool(
     (reports.get("replay-readiness") or {}).get("iql_distillation_allowed_with_explicit_vedtak")
 )
+iql_distillation_contract_ready = (
+    str((reports.get("iql-distillation-contract") or {}).get("decision")) == "ENTRY_IQL_DISTILLATION_CONTRACT_READY"
+)
+iql_student_trade_log_allowed = bool(iql_distillation_contract_ready)
 iql_replay_evidence_ready = str((reports.get("iql-replay-evidence") or {}).get("decision")) == "PASS"
 iql_replay_comparison_ready = (
     str((reports.get("iql-replay-comparison") or {}).get("decision")) == "READY_FOR_PROMOTION_REVIEW_VEDTAK"
@@ -721,6 +727,19 @@ commands.update(
             "touches_shadow_or_live": False,
             "description": "Vedtak-gated IQL distillation contract after replay-readiness PASS.",
         },
+        "iql_student_trade_log": {
+            "argv": ["scripts/entry_next_edge_control.sh", "iql-student-trade-log", "--vedtak", "<id>"],
+            "allowed": iql_student_trade_log_allowed,
+            "mode": "offline_iql_student_trade_log",
+            "requires_vedtak": True,
+            "requires_clean_git": False,
+            "mutates_git_index": False,
+            "starts_trainer": True,
+            "starts_replay": False,
+            "starts_iql_distillation": True,
+            "touches_shadow_or_live": False,
+            "description": "Vedtak-gated offline IQL-student policy fit and explicit trade-log materializer.",
+        },
         "iql_replay_evidence": {
             "argv": ["scripts/entry_next_edge_control.sh", "iql-replay-evidence", "--trades-path", "<csv|parquet>"],
             "allowed": False,
@@ -813,6 +832,7 @@ execution_allowed_now = {
     "selective_edge": False,
     "replay_evidence": False,
     "iql_distill": False,
+    "iql_student_trade_log": False,
     "iql_replay_evidence": False,
     "iql_compare": False,
     "preview_shadow": False,
@@ -843,6 +863,7 @@ allowed_after_explicit_vedtak = {
     "selective_edge": False,
     "replay_evidence": False,
     "iql_distill": iql_distillation_allowed,
+    "iql_student_trade_log": iql_student_trade_log_allowed,
     "iql_replay_evidence": False,
     "iql_compare": False,
     "preview_shadow": False,
@@ -874,6 +895,7 @@ not_executable_now_reason = {
     "selective_edge": "requires actual candidate bundle and no-XGB ablation bundle",
     "replay_evidence": "requires explicit post-candidate replay trade log and candidate/selective-edge evidence",
     "iql_distill": "requires replay-readiness PASS and explicit IQL vedtak",
+    "iql_student_trade_log": "requires ready IQL distillation contract and explicit IQL vedtak",
     "iql_replay_evidence": "requires IQL distillation contract and explicit IQL replay trade log",
     "iql_compare": "requires candidate and IQL replay evidence plus preserved distillation identity",
     "preview_shadow": "shadow/live remains blocked until promotion review explicitly opens it",
@@ -1112,6 +1134,10 @@ PY
 
   iql-distill)
     exec "$REPO/scripts/run_entry_foundation_iql_distill.sh" "$@"
+    ;;
+
+  iql-student-trade-log)
+    exec "$PY" -m gx1.scripts.materialize_entry_iql_student_trade_log_v1 "$@"
     ;;
 
   iql-replay-evidence)

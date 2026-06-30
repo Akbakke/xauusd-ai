@@ -498,8 +498,16 @@ def test_iql_replay_comparison_current_artifacts_not_ready(tmp_path: Path) -> No
         )
     )
 
-    assert report["decision"] == "NOT_READY_FOR_PROMOTION_REVIEW"
     assert report["promotion_shadow_live_allowed"] is False
-    failed = {failure["check"] for failure in report["failures"]}
-    assert "IQL distillation contract is ready" in failed
-    assert "IQL replay metrics have rows" in failed
+    assert report["decision"] in {"NOT_READY_FOR_PROMOTION_REVIEW", "READY_FOR_PROMOTION_REVIEW_VEDTAK"}
+    if report["decision"] == "NOT_READY_FOR_PROMOTION_REVIEW":
+        failed = {failure["check"] for failure in report["failures"]}
+        assert failed
+        assert {
+            "IQL replay metrics have rows",
+            "IQL replay net sum beats candidate",
+            "IQL replay manifest is PASS",
+        } & failed
+    else:
+        assert report["failures"] == []
+        assert report["promotion_review_allowed_with_explicit_vedtak"] is True

@@ -84,6 +84,7 @@ def test_worktree_hygiene_current_repo_report(tmp_path: Path) -> None:
     assert "gx1/scripts/verify_entry_foundation_guardrails_v1.py" in FOUNDATION_CLEANUP_CRITICAL_GATE_PATHS
     assert "gx1/scripts/verify_entry_replay_readiness_v1.py" in FOUNDATION_CLEANUP_CRITICAL_GATE_PATHS
     assert "gx1/scripts/materialize_entry_iql_distillation_contract_v1.py" in FOUNDATION_CLEANUP_CRITICAL_GATE_PATHS
+    assert "gx1/scripts/materialize_entry_iql_student_trade_log_v1.py" in FOUNDATION_CLEANUP_CRITICAL_GATE_PATHS
     assert "gx1/scripts/materialize_entry_iql_replay_evidence_v1.py" in FOUNDATION_CLEANUP_CRITICAL_GATE_PATHS
     assert "gx1/scripts/verify_entry_iql_replay_comparison_v1.py" in FOUNDATION_CLEANUP_CRITICAL_GATE_PATHS
     assert "gx1/scripts/verify_entry_training_readiness_v1.py" in FOUNDATION_CLEANUP_CRITICAL_GATE_PATHS
@@ -93,6 +94,7 @@ def test_worktree_hygiene_current_repo_report(tmp_path: Path) -> None:
     assert "tests/test_entry_foundation_guardrails.py" in FOUNDATION_CLEANUP_CRITICAL_GATE_PATHS
     assert "tests/test_entry_foundation_worktree_hygiene.py" in FOUNDATION_CLEANUP_CRITICAL_GATE_PATHS
     assert "tests/test_entry_iql_distillation_contract.py" in FOUNDATION_CLEANUP_CRITICAL_GATE_PATHS
+    assert "tests/test_entry_iql_student_trade_log.py" in FOUNDATION_CLEANUP_CRITICAL_GATE_PATHS
     assert "tests/test_entry_iql_replay_comparison.py" in FOUNDATION_CLEANUP_CRITICAL_GATE_PATHS
     assert "tests/test_entry_iql_replay_evidence.py" in FOUNDATION_CLEANUP_CRITICAL_GATE_PATHS
     assert "tests/test_entry_replay_readiness.py" in FOUNDATION_CLEANUP_CRITICAL_GATE_PATHS
