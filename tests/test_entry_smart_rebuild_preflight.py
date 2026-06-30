@@ -3,7 +3,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from gx1.scripts import materialize_entry_smart_seq495_rebuild_preflight_v1 as preflight
+from gx1.scripts import materialize_entry_smart_seq520_rebuild_preflight_v1 as preflight
 
 
 def _sha256(path: Path) -> str:
@@ -15,7 +15,12 @@ def _write_json(path: Path, data: dict) -> None:
     path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
-def _build_fixture(tmp_path: Path, *, source_coverage: bool = True) -> argparse.Namespace:
+def _build_fixture(
+    tmp_path: Path,
+    *,
+    source_coverage: bool = True,
+    verify_large_input_hashes: bool = True,
+) -> argparse.Namespace:
     source = tmp_path / "FULL_PLUS_CTX_v3src.parquet"
     source.write_bytes(b"dummy parquet placeholder")
     output_dir = tmp_path / "foundation_dataset"
@@ -23,7 +28,7 @@ def _build_fixture(tmp_path: Path, *, source_coverage: bool = True) -> argparse.
     xgb_bundle = tmp_path / "xgb_bundle"
     xgb_bundle.mkdir(parents=True)
     (xgb_bundle / "xgb_universal_multihead_v2.joblib").write_bytes(b"dummy model")
-    source_sha = "a" * 64
+    source_sha = _sha256(source)
 
     for split in ("train", "val", "test"):
         parquet = output_dir / f"v10_foundation_seq146__HOLD_03B_{split}.parquet"
@@ -134,7 +139,7 @@ def _build_fixture(tmp_path: Path, *, source_coverage: bool = True) -> argparse.
         foundation_dataset_dir=str(output_dir),
         planned_dataset_dir=str(tmp_path / "smart_dataset"),
         out_dir=str(tmp_path / "reports"),
-        verify_large_input_hashes=False,
+        verify_large_input_hashes=verify_large_input_hashes,
         quiet=True,
         no_fail_on_audit_fail=False,
     )
@@ -148,13 +153,20 @@ def test_smart_rebuild_preflight_accepts_dynamic_smart_seq_width(tmp_path: Path)
     assert report["decision"] == "READY_FOR_SMART_REBUILD_VEDTAK_REVIEW"
     assert report["training_allowed"] is False
     assert report["dataset_rebuild_allowed_without_vedtak"] is False
+    assert not any(report["side_effects_started"].values())
     assert report["counts"]["expected_seq_snap_width"] == 520
     assert report["counts"]["smart_layer_features"] == 305
     argv = report["rebuild_command_contract"]["argv"]
     assert argv[:6] == ["scripts/gx1_capped_run.sh", "--mem", "4G", "--swap", "1G", "--"]
     assert "--source-parquet-override" in argv
     assert "--seq-structure-compute-inline" in argv
+    assert report["rebuild_command_contract"]["allowed_without_vedtak"] is False
+    assert report["rebuild_command_contract"]["requires_explicit_rebuild_vedtak"] is True
+    assert report["rebuild_command_contract"]["requires_clean_git_before_execution"] is True
     assert report["rebuild_command_contract"]["starts_trainer"] is False
+    assert report["rebuild_command_contract"]["starts_replay"] is False
+    assert report["rebuild_command_contract"]["starts_iql_distillation"] is False
+    assert report["rebuild_command_contract"]["touches_shadow_or_live"] is False
     assert Path(report["json_path"]).exists()
     assert _sha256(Path(report["inputs"]["smart_report"]["path"])) == report["inputs"]["smart_report"]["sha256"]
 
@@ -175,3 +187,15 @@ def test_smart_rebuild_preflight_fails_closed_on_missing_source_coverage(tmp_pat
         "shadow": False,
         "live": False,
     }
+
+
+def test_smart_rebuild_preflight_fails_closed_without_large_hash_verification(tmp_path: Path) -> None:
+    args = _build_fixture(tmp_path, verify_large_input_hashes=False)
+
+    report = preflight.run(args)
+
+    assert report["decision"] == "BLOCKED_SMART_REBUILD_PREFLIGHT"
+    failure_names = {row["name"] for row in report["failures"]}
+    assert "large source parquet hashes are explicitly verified" in failure_names
+    assert "train source parquet observed hash matches recorded" in failure_names
+    assert report["dataset_rebuild_allowed_after_explicit_vedtak_review"] is False

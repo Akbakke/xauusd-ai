@@ -66,6 +66,7 @@ DEFAULT_CANDLESTICK_MANIFEST = (
 )
 ACTIVE_SPECIALIST_CONTRACT_MODE = "foundation_seq146"
 TARGET_CHALLENGER_CONTRACT_MODE = "challenger_seq215"
+SMART_CANDIDATE_CONTRACT_MODE = "smart_seq520_candidate"
 DEFAULT_BASE_SIGNAL_FEATURE_COUNT = 41
 AUDITED_SEQ215_CHART_GEOMETRY_FEATURE_COUNT = 41
 AUDITED_SEQ215_CANDLESTICK_FEATURE_COUNT = 28
@@ -300,9 +301,9 @@ def _mode_specialist_contract(mode: str, *, role: str) -> dict[str, Any]:
     }
 
 
-def _specialist_contract_provenance() -> dict[str, Any]:
+def _specialist_contract_provenance(*, target_contract_mode: str = TARGET_CHALLENGER_CONTRACT_MODE) -> dict[str, Any]:
     active = _mode_specialist_contract(ACTIVE_SPECIALIST_CONTRACT_MODE, role="active_foundation")
-    target = _mode_specialist_contract(TARGET_CHALLENGER_CONTRACT_MODE, role="target_challenger")
+    target = _mode_specialist_contract(target_contract_mode, role="target_challenger")
     active_required = set(active["required_training_specialists"])
     target_required = set(target["required_training_specialists"])
     target["additional_training_specialists_vs_active_foundation"] = [
@@ -310,8 +311,8 @@ def _specialist_contract_provenance() -> dict[str, Any]:
     ]
     target["inherits_active_foundation_specialists"] = all(name in target_required for name in active_required)
     target["registered_contract_note"] = (
-        "challenger_seq215 8-specialist contract is registered; no specialist model contract "
-        "update is required before seq215 proof/smoke gates"
+        f"{target_contract_mode} specialist contract is registered for audit/loader proof; "
+        "execution remains closed until later gates and explicit vedtak"
     )
     return {
         "authority": SPECIALIST_CONTRACT_AUTHORITY,
@@ -320,7 +321,7 @@ def _specialist_contract_provenance() -> dict[str, Any]:
         "active_vs_target": {
             "active_contract_mode": ACTIVE_SPECIALIST_CONTRACT_MODE,
             "active_required_training_specialist_count": active["required_training_specialist_count"],
-            "target_contract_mode": TARGET_CHALLENGER_CONTRACT_MODE,
+            "target_contract_mode": target_contract_mode,
             "target_required_training_specialist_count": target["required_training_specialist_count"],
             "target_additional_training_specialists": target["additional_training_specialists_vs_active_foundation"],
         },
@@ -403,7 +404,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     if unmapped:
         failures.append(f"unmapped combined features: {unmapped[:30]} total={len(unmapped)}")
 
-    contract_provenance = _specialist_contract_provenance()
+    target_contract_mode = SMART_CANDIDATE_CONTRACT_MODE if include_smart_layers else TARGET_CHALLENGER_CONTRACT_MODE
+    contract_provenance = _specialist_contract_provenance(target_contract_mode=target_contract_mode)
     active_contract = contract_provenance["active_foundation"]
     target_contract = contract_provenance["target_challenger"]
     trainable_challengers = [
@@ -508,7 +510,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "active_foundation_contract_mode": ACTIVE_SPECIALIST_CONTRACT_MODE,
         "active_foundation_required_training_specialists": active_contract["required_training_specialists"],
         "active_foundation_specialist_model_contract": active_contract["specialist_model_contract"],
-        "target_challenger_contract_mode": TARGET_CHALLENGER_CONTRACT_MODE,
+        "target_challenger_contract_mode": target_contract_mode,
         "target_challenger_required_training_specialists": target_contract["required_training_specialists"],
         "target_challenger_specialist_model_contract": target_contract["specialist_model_contract"],
         "target_challenger_contract_update_required_before_training": bool(
@@ -518,21 +520,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "current_required_training_specialists": active_contract["required_training_specialists"],
         "current_specialist_model_contract": active_contract["specialist_model_contract"],
         "required_next_specialist_contract_review": {
-            "status": "REGISTERED_CHALLENGER_SEQ215_CONTRACT",
+            "status": (
+                "REGISTERED_SMART_SEQ520_CANDIDATE_CONTRACT"
+                if include_smart_layers
+                else "REGISTERED_CHALLENGER_SEQ215_CONTRACT"
+            ),
             "authority": SPECIALIST_CONTRACT_AUTHORITY,
             "contract_update_required_before_training": bool(
                 target_contract["contract_update_required_before_training"] or missing_target_challengers
             ),
-            "must_decide_exact_trainable_specialists": [
-                "structure_swing_encoder",
-                "smc_liquidity_encoder",
-                "trend_ema_encoder",
-                "vol_compression_encoder",
-                "momentum_flow_encoder",
-                "session_regime_encoder",
-                "chart_geometry_encoder",
-                "price_action_candle_encoder",
-            ],
+            "must_decide_exact_trainable_specialists": target_contract["required_training_specialists"],
             "must_update_bundle_audit_contract": False,
             "must_prove_liveness_noncollapse_edge_by_slice": True,
         },

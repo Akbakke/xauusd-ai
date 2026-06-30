@@ -207,6 +207,19 @@ def _build_fixture(tmp_path: Path, *, nonfinite_train_snap: bool = False, create
     )
 
 
+def _with_scan_policy(
+    args: argparse.Namespace,
+    *,
+    fullscan: bool | None = None,
+    verify_source_parquet_hashes: bool | None = None,
+) -> argparse.Namespace:
+    if fullscan is not None:
+        args.fullscan = fullscan
+    if verify_source_parquet_hashes is not None:
+        args.verify_source_parquet_hashes = verify_source_parquet_hashes
+    return args
+
+
 def test_smart_dataset_post_rebuild_readiness_passes_fullscan_fixture(tmp_path: Path) -> None:
     report = gate.run(_build_fixture(tmp_path))
 
@@ -220,6 +233,48 @@ def test_smart_dataset_post_rebuild_readiness_passes_fullscan_fixture(tmp_path: 
     assert report["signal_routing"]["unmapped_count"] == 0
     assert report["split_scans"]["train"]["total_rows"] == 5
     assert report["split_scans"]["train"]["all_scanned_values_finite"] is True
+    contract = report["post_rebuild_refresh_command_contract"]
+    assert contract["ordered_steps"] == [
+        "smart_feature_audit",
+        "smart_target_audit",
+        "smart_specialist_audit",
+        "smart_smoke_dataset",
+        "smart_smoke_manifest",
+        "smart_smoke_readiness",
+    ]
+    assert contract["all_commands_avoid_training_replay_iql_shadow_live"] is True
+    assert contract["commands"]["smart_feature_audit"]["argv"][:6] == [
+        "scripts/gx1_capped_run.sh",
+        "--mem",
+        "4G",
+        "--swap",
+        "1G",
+        "--",
+    ]
+    assert "--source-parquet" in contract["commands"]["smart_feature_audit"]["argv"]
+    assert str(tmp_path / "sources" / "canonical_v3_FULL_PLUS_CTX.parquet") in contract["commands"]["smart_feature_audit"]["argv"]
+    smoke_dataset_command = contract["commands"]["smart_smoke_dataset"]
+    assert smoke_dataset_command["argv"] == [
+        "scripts/entry_next_edge_control.sh",
+        "smart-post-rebuild-refresh",
+        "--apply",
+        "--vedtak",
+        "<SMART_SEQ520_POST_REBUILD_REFRESH_VEDTAK_ID>",
+    ]
+    assert smoke_dataset_command["implemented_in_control_surface"] is False
+    smoke_dataset_argv = smoke_dataset_command["inner_argv"]
+    assert "--schema-version" in smoke_dataset_argv
+    assert "entry_smart_seq520_smoke_dataset_v1" in smoke_dataset_argv
+    assert "--split-schema-version" in smoke_dataset_argv
+    assert "entry_smart_seq520_smoke_split_manifest_v1" in smoke_dataset_argv
+    assert smoke_dataset_command["requires_explicit_vedtak"] is True
+    assert contract["requires_explicit_smoke_dataset_refresh_vedtak"] is True
+    assert contract["commands"]["smart_smoke_manifest"]["requires_explicit_vedtak"] is True
+    for command in contract["commands"].values():
+        assert command["starts_trainer"] is False
+        assert command["starts_replay"] is False
+        assert command["starts_iql_distillation"] is False
+        assert command["touches_shadow_or_live"] is False
     assert Path(report["json_path"]).exists()
 
 
@@ -230,6 +285,7 @@ def test_smart_dataset_post_rebuild_readiness_fails_closed_when_dataset_missing(
     assert any(failure["check"] == "smart dataset directory exists" for failure in report["failures"])
     assert report["training_allowed"] is False
     assert not any(report["side_effects_started"].values())
+    assert report["post_rebuild_refresh_command_contract"]["all_commands_avoid_training_replay_iql_shadow_live"] is True
 
 
 def test_smart_dataset_post_rebuild_readiness_blocks_nonfinite_sample(tmp_path: Path) -> None:
@@ -238,4 +294,21 @@ def test_smart_dataset_post_rebuild_readiness_blocks_nonfinite_sample(tmp_path: 
     assert report["decision"] == gate.BLOCKED_DECISION
     assert report["split_scans"]["train"]["nonfinite_counts"]["snap"] == 1
     assert any(failure["check"] == "parquet scan loaded finite seq/snap/ctx sample" for failure in report["failures"])
+    assert report["training_allowed"] is False
+
+
+def test_smart_dataset_post_rebuild_readiness_requires_fullscan_and_source_hashes(tmp_path: Path) -> None:
+    args = _with_scan_policy(
+        _build_fixture(tmp_path),
+        fullscan=False,
+        verify_source_parquet_hashes=False,
+    )
+
+    report = gate.run(args)
+
+    failure_names = {failure["check"] for failure in report["failures"]}
+    assert report["decision"] == gate.BLOCKED_DECISION
+    assert "post-rebuild scan is fullscan" in failure_names
+    assert "source parquet hashes are explicitly verified" in failure_names
+    assert "train source parquet observed hash matches recorded" in failure_names
     assert report["training_allowed"] is False

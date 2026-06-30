@@ -423,6 +423,7 @@ def _replay_evidence_checks(
     replay_dir: Path,
     expected_variant: str,
     expected_candidate_bundle_dir: str = "",
+    expected_candidate_bundle_audit_sha256: str = "",
     required: bool,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     manifest_path = replay_dir / "REPLAY_EVIDENCE_MANIFEST.json"
@@ -454,6 +455,28 @@ def _replay_evidence_checks(
         manifest_identity.get("candidate_bundle_dir"),
         manifest_identity.get("replay_identity_candidate_bundle_dir"),
     )
+    manifest_bundle_audit_sha = _first_text(
+        manifest.get("candidate_bundle_audit_sha256"),
+        manifest_identity.get("candidate_bundle_audit_sha256"),
+        manifest_identity.get("bundle_audit_sha256"),
+    )
+    artifact_hashes = manifest.get("artifact_hashes") if isinstance(manifest.get("artifact_hashes"), dict) else {}
+    if not artifact_hashes and isinstance(manifest_identity.get("artifact_hashes"), dict):
+        artifact_hashes = manifest_identity.get("artifact_hashes")
+    replay_artifact_hash_review = {
+        "replay_policy_metrics.csv": {
+            "expected": artifact_hashes.get("replay_policy_metrics.csv"),
+            "observed": _sha256_file(metrics_path),
+        },
+        "replay_policy_monthly.csv": {
+            "expected": artifact_hashes.get("replay_policy_monthly.csv"),
+            "observed": _sha256_file(monthly_path),
+        },
+        "replay_policy_trades.csv": {
+            "expected": artifact_hashes.get("replay_policy_trades.csv"),
+            "observed": _sha256_file(trades_path),
+        },
+    }
 
     checks = [
         _check(f"{label} replay dir exists", replay_dir.exists(), {"replay_dir": str(replay_dir)}),
@@ -466,6 +489,16 @@ def _replay_evidence_checks(
         _check(f"{label} replay metrics exists", metrics_path.exists() and not metrics.empty, _artifact_meta(metrics_path)),
         _check(f"{label} replay monthly exists", monthly_path.exists() and not monthly.empty, _artifact_meta(monthly_path)),
         _check(f"{label} replay trades exists", trades_path.exists() and not trades.empty, _artifact_meta(trades_path)),
+        _check(
+            f"{label} replay manifest declares replay artifact hashes",
+            all(row["expected"] for row in replay_artifact_hash_review.values()),
+            replay_artifact_hash_review,
+        ),
+        _check(
+            f"{label} replay artifact hashes match manifest",
+            all(row["expected"] == row["observed"] for row in replay_artifact_hash_review.values()),
+            replay_artifact_hash_review,
+        ),
         _check(
             f"{label} replay manifest variant matches",
             manifest_variant == expected_variant,
@@ -480,6 +513,17 @@ def _replay_evidence_checks(
                 {
                     "expected_candidate_bundle_dir": expected_candidate_bundle_dir,
                     "manifest_candidate_bundle_dir": manifest_bundle_dir,
+                },
+            )
+        )
+    if expected_candidate_bundle_audit_sha256:
+        checks.append(
+            _check(
+                f"{label} replay identity includes candidate bundle audit sha",
+                manifest_bundle_audit_sha == expected_candidate_bundle_audit_sha256,
+                {
+                    "expected_candidate_bundle_audit_sha256": expected_candidate_bundle_audit_sha256,
+                    "manifest_candidate_bundle_audit_sha256": manifest_bundle_audit_sha,
                 },
             )
         )
@@ -529,6 +573,8 @@ def _replay_evidence_checks(
         "slices_csv": str(slices_path),
         "manifest_variant": manifest_variant,
         "candidate_bundle_dir": manifest_bundle_dir,
+        "candidate_bundle_audit_sha256": manifest_bundle_audit_sha,
+        "artifact_hashes": replay_artifact_hash_review,
         "metrics_columns": sorted(metric_cols),
         "trade_columns": sorted(trade_cols),
         "required": bool(required),
@@ -589,6 +635,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         replay_dir=candidate_replay_dir,
         expected_variant=SMART_VARIANT,
         expected_candidate_bundle_dir=str(candidate_identity.get("candidate_bundle_dir") or ""),
+        expected_candidate_bundle_audit_sha256=str(_sha256_file(candidate_bundle_audit_path) or ""),
         required=True,
     )
     gate_checks["smart_candidate_replay_evidence"] = candidate_replay_checks

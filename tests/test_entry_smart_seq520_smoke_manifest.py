@@ -13,7 +13,14 @@ def _write_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
-def _write_split(dataset_dir: Path, split: str, *, width: int = 520, write_manifest: bool = True) -> None:
+def _write_split(
+    dataset_dir: Path,
+    split: str,
+    *,
+    width: int = 520,
+    write_manifest: bool = True,
+    schema_version: str = "entry_smart_seq520_smoke_split_manifest_v1",
+) -> None:
     dataset_dir.mkdir(parents=True, exist_ok=True)
     parquet = dataset_dir / f"v10_smart_seq520_smoke__HOLD_03B_{split}.parquet"
     seq_values = [
@@ -34,7 +41,7 @@ def _write_split(dataset_dir: Path, split: str, *, width: int = 520, write_manif
         _write_json(
             parquet.with_suffix(".manifest.json"),
             {
-                "schema_version": "entry_smart_seq520_smoke_split_manifest_v1",
+                "schema_version": schema_version,
                 "manifest_variant": "smart_seq520_candidate",
                 "expected_seq_snap_width": width,
                 "output_data_path": str(parquet),
@@ -49,16 +56,64 @@ def _write_split(dataset_dir: Path, split: str, *, width: int = 520, write_manif
         )
 
 
-def _build_dataset(tmp_path: Path, *, missing_manifest_split: str | None = None, width: int = 520) -> Path:
+def _build_dataset(
+    tmp_path: Path,
+    *,
+    missing_manifest_split: str | None = None,
+    width: int = 520,
+    split_schema_version: str = "entry_smart_seq520_smoke_split_manifest_v1",
+) -> Path:
     dataset_dir = tmp_path / "v10_dataset_smart_seq520_smoke_20260630"
     for split in ("train", "val", "test"):
-        _write_split(dataset_dir, split, width=width, write_manifest=split != missing_manifest_split)
+        _write_split(
+            dataset_dir,
+            split,
+            width=width,
+            write_manifest=split != missing_manifest_split,
+            schema_version=split_schema_version,
+        )
     return dataset_dir
 
 
-def _args(tmp_path: Path, dataset_dir: Path, *, vedtak_id: str = "SMART_SEQ520_SMOKE_PYTEST") -> argparse.Namespace:
+def _write_post_rebuild_readiness(
+    tmp_path: Path,
+    dataset_dir: Path,
+    *,
+    decision: str = manifest_gate.POST_REBUILD_READY_DECISION,
+    include_side_effects: bool = True,
+) -> Path:
+    path = tmp_path / "ENTRY_SMART_DATASET_POST_REBUILD_READINESS_latest.json"
+    payload = {
+        "schema_version": "entry_smart_dataset_post_rebuild_readiness_v1",
+        "decision": decision,
+        "post_rebuild_refresh_command_contract": {
+            "smart_smoke_dataset_dir": str(dataset_dir),
+            "all_commands_avoid_training_replay_iql_shadow_live": True,
+        },
+    }
+    if include_side_effects:
+        payload["side_effects_started"] = {
+            "dataset_rebuild": False,
+            "training": False,
+            "replay": False,
+            "iql_distillation": False,
+            "shadow": False,
+            "live": False,
+        }
+    _write_json(path, payload)
+    return path
+
+
+def _args(
+    tmp_path: Path,
+    dataset_dir: Path,
+    *,
+    vedtak_id: str = "SMART_SEQ520_SMOKE_PYTEST",
+    post_rebuild_readiness_json: Path | None = None,
+) -> argparse.Namespace:
     return argparse.Namespace(
         smart_smoke_dataset_dir=str(dataset_dir),
+        post_rebuild_readiness_json=str(post_rebuild_readiness_json or _write_post_rebuild_readiness(tmp_path, dataset_dir)),
         out_dir=str(tmp_path / "reports"),
         vedtak_id=vedtak_id,
         memory_cap="22G",
@@ -80,6 +135,7 @@ def test_materialize_smart_seq520_smoke_manifest_report_only(tmp_path: Path) -> 
     assert report["manifest_written"] is True
     assert report["manifest_variant"] == "smart_seq520_candidate"
     assert report["expected_seq_snap_width"] == 520
+    assert report["post_rebuild_readiness"]["exists"] is True
     assert report["training_allowed"] is False
     assert report["replay_allowed"] is False
     assert report["iql_allowed"] is False
@@ -98,6 +154,7 @@ def test_materialize_smart_seq520_smoke_manifest_report_only(tmp_path: Path) -> 
         assert row["seq_input_dim"] == 520
         assert row["snap_input_dim"] == 520
         assert row["field_count"] == 520
+        assert row["split_manifest_schema_version"] == "entry_smart_seq520_smoke_split_manifest_v1"
         assert len(row["out_parquet_sha256"]) == 64
         assert len(row["out_manifest_sha256"]) == 64
 
@@ -142,6 +199,34 @@ def test_smart_seq520_smoke_manifest_requires_explicit_vedtak_id(tmp_path: Path)
     assert not Path(report["manifest_path"]).exists()
 
 
+def test_smart_seq520_smoke_manifest_requires_ready_post_rebuild_report(tmp_path: Path) -> None:
+    dataset_dir = _build_dataset(tmp_path)
+    post_rebuild = _write_post_rebuild_readiness(
+        tmp_path,
+        dataset_dir,
+        decision="BLOCKED_BY_ENTRY_SMART_DATASET_POST_REBUILD_AUDIT",
+    )
+
+    report = manifest_gate.run(_args(tmp_path, dataset_dir, post_rebuild_readiness_json=post_rebuild))
+
+    assert report["decision"] == "BLOCKED_SMART_SEQ520_SMOKE_MANIFEST_READINESS"
+    assert report["manifest_written"] is False
+    assert "smart post-rebuild readiness decision is ready" in report["blockers"]
+    assert not Path(report["manifest_path"]).exists()
+
+
+def test_smart_seq520_smoke_manifest_blocks_missing_post_rebuild_side_effects(tmp_path: Path) -> None:
+    dataset_dir = _build_dataset(tmp_path)
+    post_rebuild = _write_post_rebuild_readiness(tmp_path, dataset_dir, include_side_effects=False)
+
+    report = manifest_gate.run(_args(tmp_path, dataset_dir, post_rebuild_readiness_json=post_rebuild))
+
+    assert report["decision"] == "BLOCKED_SMART_SEQ520_SMOKE_MANIFEST_READINESS"
+    assert report["manifest_written"] is False
+    assert "smart post-rebuild refresh contract starts no trainer replay iql shadow live" in report["blockers"]
+    assert not Path(report["manifest_path"]).exists()
+
+
 def test_smart_seq520_smoke_manifest_blocks_wrong_width(tmp_path: Path) -> None:
     dataset_dir = _build_dataset(tmp_path, width=519)
 
@@ -151,3 +236,31 @@ def test_smart_seq520_smoke_manifest_blocks_wrong_width(tmp_path: Path) -> None:
     assert report["manifest_written"] is False
     assert "split signal_bridge seq and snap dims are 520" in report["blockers"]
     assert "split parquet seq and snap samples have width 520" in report["blockers"]
+
+
+def test_smart_seq520_smoke_manifest_blocks_stale_split_schema(tmp_path: Path) -> None:
+    dataset_dir = _build_dataset(tmp_path, split_schema_version="entry_foundation_smoke_split_manifest_v1")
+
+    report = manifest_gate.run(_args(tmp_path, dataset_dir))
+
+    assert report["decision"] == "BLOCKED_SMART_SEQ520_SMOKE_MANIFEST_READINESS"
+    assert report["manifest_written"] is False
+    assert "split manifests use smart seq520 split schema" in report["blockers"]
+
+
+def test_smart_seq520_smoke_manifest_quarantines_stale_manifest_on_blocked_rerun(tmp_path: Path) -> None:
+    dataset_dir = _build_dataset(tmp_path)
+    args = _args(tmp_path, dataset_dir)
+    ready_report = manifest_gate.run(args)
+    manifest_path = Path(ready_report["manifest_path"])
+    assert manifest_path.exists()
+
+    (dataset_dir / "v10_smart_seq520_smoke__HOLD_03B_val.manifest.json").unlink()
+    blocked_report = manifest_gate.run(args)
+
+    assert blocked_report["decision"] == "BLOCKED_SMART_SEQ520_SMOKE_MANIFEST_READINESS"
+    assert blocked_report["manifest_written"] is False
+    assert not manifest_path.exists()
+    quarantined = Path(blocked_report["stale_manifest_quarantined_path"])
+    assert quarantined.exists()
+    assert quarantined.name.startswith("SMOKE_DATASET_MANIFEST_STALE_BLOCKED_")

@@ -69,7 +69,11 @@ def test_foundation_guardrails_current_repo_lock_control_and_handover(tmp_path: 
     assert policy_checks["readiness_policy_safe_now_smart_rebuild_preflight"] is True
     assert policy_checks["readiness_policy_safe_now_smart_post_rebuild_readiness"] is True
     assert policy_checks["readiness_policy_safe_now_smart_smoke_readiness"] is True
+    assert policy_checks["readiness_policy_safe_now_smart_trainability_readiness"] is True
     assert policy_checks["readiness_policy_safe_now_smart_ablation_replay_plan"] is True
+    assert policy_checks["readiness_policy_smart_preflight_contract_exact"] is True
+    assert policy_checks["readiness_policy_smart_report_gates_keep_training_replay_closed"] is True
+    assert policy_checks["readiness_policy_smart_smoke_readiness_declares_ram_zero_workers"] is True
     assert policy_checks["readiness_policy_safe_now_iql_slice_audit"] is True
     assert policy_checks["readiness_policy_safe_now_entry_exit_materialize"] is True
     assert policy_checks["readiness_policy_safe_now_entry_exit_handoff"] is True

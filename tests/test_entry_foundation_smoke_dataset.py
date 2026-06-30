@@ -75,6 +75,7 @@ def test_materialize_entry_foundation_smoke_dataset_rewrites_manifests(tmp_path:
             feature_audit_json=str(feature_audit),
             target_audit_json=str(target_audit),
             specialist_audit_json=str(specialist_audit),
+            split_schema_version="",
             quiet=True,
         )
     )
@@ -99,3 +100,45 @@ def test_materialize_entry_foundation_smoke_dataset_rewrites_manifests(tmp_path:
     assert provenance["all_artifact_hashes_present"] is True
     assert provenance["artifacts"]["feature_audit"]["path"] == str(feature_audit)
     assert len(provenance["artifacts"]["feature_audit"]["sha256"]) == 64
+
+
+def test_materialize_entry_foundation_smoke_dataset_can_pin_split_schema(tmp_path: Path) -> None:
+    source = tmp_path / "source"
+    out = tmp_path / "out"
+    audits = tmp_path / "audits"
+    source.mkdir()
+    audits.mkdir()
+    feature_audit = audits / "feature.json"
+    target_audit = audits / "target.json"
+    specialist_audit = audits / "specialist.json"
+    _write_audit(feature_audit, schema="entry_feature_foundation_audit_v1")
+    _write_audit(target_audit, schema="entry_target_foundation_audit_v1")
+    _write_audit(specialist_audit, schema="entry_specialist_feature_group_audit_v1")
+    for split in ("train", "val", "test"):
+        _write_split(source, split, [0, 1, 2])
+
+    run(
+        argparse.Namespace(
+            source_dir=str(source),
+            out_dir=str(out),
+            stem="v10_smart_seq520_smoke__HOLD_03B",
+            train_rows=3,
+            val_rows=3,
+            test_rows=3,
+            batch_size=4,
+            feature_audit_json=str(feature_audit),
+            target_audit_json=str(target_audit),
+            specialist_audit_json=str(specialist_audit),
+            schema_version="entry_smart_seq520_smoke_dataset_v1",
+            split_schema_version="entry_smart_seq520_smoke_split_manifest_v1",
+            quiet=True,
+        )
+    )
+
+    split_manifest = json.loads(
+        (out / "v10_smart_seq520_smoke__HOLD_03B_train.manifest.json").read_text(encoding="utf-8")
+    )
+    assert split_manifest["schema_version"] == "entry_smart_seq520_smoke_split_manifest_v1"
+    assert split_manifest["output_data_path"] == str(out / "v10_smart_seq520_smoke__HOLD_03B_train.parquet")
+    manifest = json.loads((out / "SMOKE_DATASET_MANIFEST.json").read_text(encoding="utf-8"))
+    assert manifest["schema_version"] == "entry_smart_seq520_smoke_dataset_v1"

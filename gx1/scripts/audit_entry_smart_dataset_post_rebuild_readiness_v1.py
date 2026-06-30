@@ -39,6 +39,17 @@ DEFAULT_SMART_REPORT = (
 )
 DEFAULT_DATASET_DIR = FOUNDATION_DATASET_DIR.parent / "v10_dataset_smart_candidate_20260630"
 DEFAULT_OUT_DIR = REPORTS_ROOT / "entry_smart_dataset_post_rebuild_readiness_20260630_v1"
+DEFAULT_SMART_FEATURE_AUDIT_OUT_DIR = (
+    REPORTS_ROOT / "entry_feature_foundation_audit_20260628_v1/smart_seq520_candidate_20260630"
+)
+DEFAULT_SMART_TARGET_AUDIT_OUT_DIR = (
+    REPORTS_ROOT / "entry_target_foundation_audit_20260628_v1/smart_seq520_candidate_20260630"
+)
+DEFAULT_SMART_SPECIALIST_AUDIT_OUT_DIR = (
+    REPORTS_ROOT / "entry_specialist_feature_group_audit_20260628_v1/smart_seq520_candidate_20260630"
+)
+DEFAULT_SMART_SMOKE_DATASET_DIR = FOUNDATION_DATASET_DIR.parent / "v10_dataset_smart_seq520_smoke_20260630"
+DEFAULT_SMART_SMOKE_STEM = "v10_smart_seq520_smoke__HOLD_03B"
 
 SPLITS = ("train", "val", "test")
 EXPECTED_MANIFEST_VARIANT = "smart_seq520_candidate"
@@ -147,12 +158,7 @@ def _expected_width(smart_manifest: dict[str, Any], smart_report: dict[str, Any]
 
 def _required_specialists_for_audit_mode(mode: str) -> tuple[str, ...]:
     normalized = str(mode or EXPECTED_MANIFEST_VARIANT).strip()
-    try:
-        return tuple(required_training_specialists_for_mode(normalized))
-    except ValueError:
-        if normalized == EXPECTED_MANIFEST_VARIANT:
-            return tuple(required_training_specialists_for_mode("challenger_seq215"))
-        raise
+    return tuple(required_training_specialists_for_mode(normalized))
 
 
 def _walk_source_entries(obj: Any, *, prefix: str = "") -> Iterable[tuple[str, dict[str, Any]]]:
@@ -191,6 +197,194 @@ def _source_manifest_hash_review(smart_manifest: dict[str, Any]) -> dict[str, An
         "all_recorded_hashes_present": bool(rows and all(row["recorded_sha256_present"] for row in rows)),
         "all_observed_hashes_match": bool(rows and all(row["hash_matches"] for row in rows)),
         "rows": rows,
+    }
+
+
+def _capped_python_module(module: str, *module_args: str) -> list[str]:
+    return [
+        "scripts/gx1_capped_run.sh",
+        "--mem",
+        "4G",
+        "--swap",
+        "1G",
+        "--",
+        ".venv/bin/python",
+        "-m",
+        module,
+        *module_args,
+    ]
+
+
+def _report_or_dataset_command(
+    *,
+    argv: list[str],
+    mode: str,
+    writes_report: bool,
+    writes_smoke_dataset: bool = False,
+    requires_explicit_vedtak: bool = False,
+    inner_argv: list[str] | None = None,
+    implemented_in_control_surface: bool = True,
+) -> dict[str, Any]:
+    ram_argv = inner_argv or argv
+    return {
+        "argv": argv,
+        "inner_argv": inner_argv or [],
+        "mode": mode,
+        "implemented_in_control_surface": bool(implemented_in_control_surface),
+        "requires_explicit_vedtak": bool(requires_explicit_vedtak),
+        "requires_ram_cap": ram_argv[:6] == ["scripts/gx1_capped_run.sh", "--mem", "4G", "--swap", "1G", "--"],
+        "ram_cap_runner": "scripts/gx1_capped_run.sh" if ram_argv and ram_argv[0] == "scripts/gx1_capped_run.sh" else "",
+        "writes_report": bool(writes_report),
+        "writes_smoke_dataset": bool(writes_smoke_dataset),
+        "starts_trainer": False,
+        "starts_training": False,
+        "starts_replay": False,
+        "starts_iql_distillation": False,
+        "touches_shadow_or_live": False,
+        "touches_promotion": False,
+    }
+
+
+def _post_rebuild_refresh_command_contract(
+    *,
+    dataset_dir: Path,
+    smart_manifest_path: Path,
+    source_parquet: str,
+    feature_audit_out_dir: Path,
+    target_audit_out_dir: Path,
+    specialist_audit_out_dir: Path,
+    smart_smoke_dataset_dir: Path,
+) -> dict[str, Any]:
+    feature_audit_json = feature_audit_out_dir / "ENTRY_FEATURE_FOUNDATION_AUDIT_latest.json"
+    target_audit_json = target_audit_out_dir / "ENTRY_TARGET_FOUNDATION_AUDIT_latest.json"
+    specialist_audit_json = specialist_audit_out_dir / "ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_latest.json"
+    commands = {
+        "smart_feature_audit": _report_or_dataset_command(
+            argv=_capped_python_module(
+                "gx1.scripts.audit_entry_foundation_features_v1",
+                "--dataset-dir",
+                str(dataset_dir),
+                "--source-parquet",
+                source_parquet or "<SMART_SOURCE_PARQUET_FROM_REBUILD_MANIFEST>",
+                "--seq-structure-manifest",
+                str(smart_manifest_path),
+                "--out-dir",
+                str(feature_audit_out_dir),
+                "--data-splits",
+                "train,val,test",
+                "--quiet",
+            ),
+            mode="audit_report",
+            writes_report=True,
+        ),
+        "smart_target_audit": _report_or_dataset_command(
+            argv=_capped_python_module(
+                "gx1.scripts.audit_entry_foundation_targets_v1",
+                "--dataset-dir",
+                str(dataset_dir),
+                "--out-dir",
+                str(target_audit_out_dir),
+                "--data-splits",
+                "train,val,test",
+                "--quiet",
+            ),
+            mode="audit_report",
+            writes_report=True,
+        ),
+        "smart_specialist_audit": _report_or_dataset_command(
+            argv=_capped_python_module(
+                "gx1.scripts.audit_entry_specialist_feature_groups_v1",
+                "--dataset-dir",
+                str(dataset_dir),
+                "--seq-structure-manifest",
+                str(smart_manifest_path),
+                "--out-dir",
+                str(specialist_audit_out_dir),
+                "--data-splits",
+                "train,val,test",
+                "--contract-mode",
+                EXPECTED_MANIFEST_VARIANT,
+                "--quiet",
+            ),
+            mode="audit_report",
+            writes_report=True,
+        ),
+        "smart_smoke_dataset": _report_or_dataset_command(
+            argv=[
+                "scripts/entry_next_edge_control.sh",
+                "smart-post-rebuild-refresh",
+                "--apply",
+                "--vedtak",
+                "<SMART_SEQ520_POST_REBUILD_REFRESH_VEDTAK_ID>",
+            ],
+            inner_argv=_capped_python_module(
+                "gx1.scripts.materialize_entry_foundation_smoke_dataset_v1",
+                "--source-dir",
+                str(dataset_dir),
+                "--out-dir",
+                str(smart_smoke_dataset_dir),
+                "--stem",
+                DEFAULT_SMART_SMOKE_STEM,
+                "--feature-audit-json",
+                str(feature_audit_json),
+                "--target-audit-json",
+                str(target_audit_json),
+                "--specialist-audit-json",
+                str(specialist_audit_json),
+                "--schema-version",
+                "entry_smart_seq520_smoke_dataset_v1",
+                "--split-schema-version",
+                "entry_smart_seq520_smoke_split_manifest_v1",
+                "--quiet",
+            ),
+            mode="future_vedtak_gated_smoke_dataset_materialization",
+            writes_report=False,
+            writes_smoke_dataset=True,
+            requires_explicit_vedtak=True,
+            implemented_in_control_surface=False,
+        ),
+        "smart_smoke_manifest": _report_or_dataset_command(
+            argv=[
+                "scripts/entry_next_edge_control.sh",
+                "smart-smoke-manifest",
+                "--vedtak",
+                "<SMART_SEQ520_SMOKE_VEDTAK_ID>",
+            ],
+            mode="vedtak_gated_report_only_manifest",
+            writes_report=True,
+            requires_explicit_vedtak=True,
+        ),
+        "smart_smoke_readiness": _report_or_dataset_command(
+            argv=[
+                "scripts/entry_next_edge_control.sh",
+                "smart-smoke-readiness",
+                "--quiet",
+                "--no-fail-on-not-ready",
+            ],
+            mode="readiness_report",
+            writes_report=True,
+        ),
+    }
+    side_effects_closed = all(
+        row["starts_trainer"] is False
+        and row["starts_replay"] is False
+        and row["starts_iql_distillation"] is False
+        and row["touches_shadow_or_live"] is False
+        and row["touches_promotion"] is False
+        for row in commands.values()
+    )
+    return {
+        "schema_version": "entry_smart_post_rebuild_refresh_command_contract_v1",
+        "ordered_steps": list(commands),
+        "commands": commands,
+        "feature_audit_latest": str(feature_audit_json),
+        "target_audit_latest": str(target_audit_json),
+        "specialist_audit_latest": str(specialist_audit_json),
+        "smart_smoke_dataset_dir": str(smart_smoke_dataset_dir),
+        "smart_smoke_dataset_manifest": str(smart_smoke_dataset_dir / "SMOKE_DATASET_MANIFEST.json"),
+        "requires_explicit_smoke_manifest_vedtak": True,
+        "requires_explicit_smoke_dataset_refresh_vedtak": True,
+        "all_commands_avoid_training_replay_iql_shadow_live": bool(side_effects_closed),
     }
 
 
@@ -493,6 +687,18 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     smart_manifest_path = Path(args.smart_manifest).expanduser().resolve()
     smart_report_path = Path(args.smart_report).expanduser().resolve()
     out_dir = Path(args.out_dir).expanduser().resolve()
+    feature_audit_out_dir = Path(
+        getattr(args, "feature_audit_out_dir", str(DEFAULT_SMART_FEATURE_AUDIT_OUT_DIR))
+    ).expanduser().resolve()
+    target_audit_out_dir = Path(
+        getattr(args, "target_audit_out_dir", str(DEFAULT_SMART_TARGET_AUDIT_OUT_DIR))
+    ).expanduser().resolve()
+    specialist_audit_out_dir = Path(
+        getattr(args, "specialist_audit_out_dir", str(DEFAULT_SMART_SPECIALIST_AUDIT_OUT_DIR))
+    ).expanduser().resolve()
+    smart_smoke_dataset_dir = Path(
+        getattr(args, "smart_smoke_dataset_dir", str(DEFAULT_SMART_SMOKE_DATASET_DIR))
+    ).expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
     smart_manifest = _read_json_or_empty(smart_manifest_path)
     smart_report = _read_json_or_empty(smart_report_path)
@@ -519,6 +725,17 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         for split, row in split_manifests.items()
     }
     source_manifest_review = _source_manifest_hash_review(smart_manifest)
+    source_parquets = sorted({str(row.get("source_parquet") or "") for row in split_manifests.values() if row.get("source_parquet")})
+    shared_source_parquet = source_parquets[0] if len(source_parquets) == 1 else ""
+    post_rebuild_refresh_command_contract = _post_rebuild_refresh_command_contract(
+        dataset_dir=dataset_dir,
+        smart_manifest_path=smart_manifest_path,
+        source_parquet=shared_source_parquet,
+        feature_audit_out_dir=feature_audit_out_dir,
+        target_audit_out_dir=target_audit_out_dir,
+        specialist_audit_out_dir=specialist_audit_out_dir,
+        smart_smoke_dataset_dir=smart_smoke_dataset_dir,
+    )
 
     scans: dict[str, dict[str, Any]] = {}
     for split, row in split_manifests.items():
@@ -561,6 +778,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     checks: list[dict[str, Any]] = [
         _check("smart dataset directory exists", dataset_dir.exists(), {"dataset_dir": str(dataset_dir)}),
+        _check(
+            "post-rebuild scan is fullscan",
+            bool(args.fullscan),
+            {"fullscan": bool(args.fullscan), "sample_rows": int(args.sample_rows)},
+        ),
+        _check(
+            "source parquet hashes are explicitly verified",
+            bool(args.verify_source_parquet_hashes),
+            {"verify_source_parquet_hashes": bool(args.verify_source_parquet_hashes)},
+        ),
         _check("smart manifest exists", smart_manifest_path.exists(), _artifact_meta(smart_manifest_path)),
         _check(
             "smart manifest variant is smart_seq520_candidate",
@@ -591,6 +818,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             split_manifests,
         ),
         _check(
+            "split manifests share one source parquet",
+            len(source_parquets) == 1 and bool(shared_source_parquet),
+            {"source_parquets": source_parquets},
+        ),
+        _check(
             "split manifests declare train/val/test windows and per-split ts bounds",
             all(row["all_split_windows_declared"] and row["ts_min_max_declared_for_split"] for row in split_manifests.values()),
             split_manifests,
@@ -610,10 +842,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 _check(f"{split} neutral xgb bridge remains declared", row["neutral_xgb_bridge"] is True, row),
             ]
         )
-        if args.verify_source_parquet_hashes:
-            checks.append(
-                _check(f"{split} source parquet observed hash matches recorded", row["source_parquet_hash_verified"] is True, row)
-            )
+        checks.append(
+            _check(f"{split} source parquet observed hash matches recorded", row["source_parquet_hash_verified"] is True, row)
+        )
     checks.extend(
         [
             _check("all splits share identical signal field order", all(row["fields"] == first_fields for row in split_manifests.values()), {"field_counts": {split: row["field_count"] for split, row in split_manifests.items()}}),
@@ -635,6 +866,25 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 {split: (scan.get("liveness") or {}) for split, scan in scans.items()},
             ),
             _check("side effects remain closed", all(value is False for value in SIDE_EFFECTS_CLOSED.values()), SIDE_EFFECTS_CLOSED),
+            _check(
+                "post-rebuild refresh command contract starts no trainer replay iql shadow live",
+                post_rebuild_refresh_command_contract["all_commands_avoid_training_replay_iql_shadow_live"] is True,
+                post_rebuild_refresh_command_contract,
+            ),
+            _check(
+                "post-rebuild refresh command contract pins smart smoke split schema",
+                "--split-schema-version"
+                in (
+                    post_rebuild_refresh_command_contract["commands"]["smart_smoke_dataset"].get("inner_argv")
+                    or post_rebuild_refresh_command_contract["commands"]["smart_smoke_dataset"]["argv"]
+                )
+                and "entry_smart_seq520_smoke_split_manifest_v1"
+                in (
+                    post_rebuild_refresh_command_contract["commands"]["smart_smoke_dataset"].get("inner_argv")
+                    or post_rebuild_refresh_command_contract["commands"]["smart_smoke_dataset"]["argv"]
+                ),
+                post_rebuild_refresh_command_contract["commands"]["smart_smoke_dataset"],
+            ),
         ]
     )
 
@@ -674,6 +924,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         },
         "split_scans": scans,
         "specialist_liveness": specialist_liveness,
+        "post_rebuild_refresh_command_contract": post_rebuild_refresh_command_contract,
         "checks": checks,
         "failures": failures,
         "training_allowed": False,
@@ -683,9 +934,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "shadow_live_promotion_allowed": False,
         "side_effects_started": dict(SIDE_EFFECTS_CLOSED),
         "next_required_gate": (
-            "separate smart train-readiness review; no smoke/candidate/replay/IQL/shadow/live is opened by this audit"
+            "run the recorded smart feature/target/specialist audits, materialize the smart smoke dataset, "
+            "then run vedtak-gated smart-smoke-manifest and smart-smoke-readiness; no candidate/replay/IQL/"
+            "shadow/live is opened by this audit"
             if ready
-            else "run the explicit smart dataset rebuild and repair this post-rebuild audit before any train-readiness review"
+            else "run the explicit smart dataset rebuild and repair this post-rebuild audit before any smart refresh or train-readiness review"
         ),
         "json_path": str(json_path),
         "md_path": str(md_path),
@@ -713,6 +966,10 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--smart-manifest", default=str(DEFAULT_SMART_MANIFEST))
     ap.add_argument("--smart-report", default=str(DEFAULT_SMART_REPORT))
     ap.add_argument("--out-dir", default=str(DEFAULT_OUT_DIR))
+    ap.add_argument("--feature-audit-out-dir", default=str(DEFAULT_SMART_FEATURE_AUDIT_OUT_DIR))
+    ap.add_argument("--target-audit-out-dir", default=str(DEFAULT_SMART_TARGET_AUDIT_OUT_DIR))
+    ap.add_argument("--specialist-audit-out-dir", default=str(DEFAULT_SMART_SPECIALIST_AUDIT_OUT_DIR))
+    ap.add_argument("--smart-smoke-dataset-dir", default=str(DEFAULT_SMART_SMOKE_DATASET_DIR))
     ap.add_argument("--contract-mode", choices=AUDIT_CONTRACT_MODES, default=EXPECTED_MANIFEST_VARIANT)
     ap.add_argument("--expected-seq-len", type=int, default=DEFAULT_SEQ_LEN)
     ap.add_argument("--sample-rows", type=int, default=2048)

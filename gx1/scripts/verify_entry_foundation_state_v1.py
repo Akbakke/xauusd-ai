@@ -133,6 +133,7 @@ def _active_entry_artifact_paths() -> list[str]:
         "entry_smart_dataset_post_rebuild_readiness_20260630_v1",
         "entry_smart_seq520_smoke_manifest_20260630_v1",
         "entry_smart_seq520_smoke_readiness_20260630_v1",
+        "entry_smart_seq520_trainability_readiness_20260630_v1",
         "entry_smart_ablation_replay_plan_gate_20260630_v1",
         "entry_trend_ema_extension_manifest_20260630_v1",
         "entry_smc_liquidity_quality_manifest_20260630_v1",

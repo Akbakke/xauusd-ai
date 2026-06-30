@@ -59,7 +59,15 @@ DEFAULT_SPECIALIST_AUDIT = (
 DEFAULT_SMOKE_DATASET_MANIFEST = (
     REPORTS_ROOT / "entry_smart_seq520_smoke_manifest_20260630_v1/SMOKE_DATASET_MANIFEST.json"
 )
+DEFAULT_SMOKE_MANIFEST_READINESS = (
+    REPORTS_ROOT
+    / "entry_smart_seq520_smoke_manifest_20260630_v1/ENTRY_SMART_SEQ520_SMOKE_MANIFEST_READINESS_latest.json"
+)
 DEFAULT_OUT_DIR = REPORTS_ROOT / "entry_smart_seq520_smoke_readiness_20260630_v1"
+SMOKE_MANIFEST_READINESS_READY_DECISION = "READY_FOR_SMART_SEQ520_SMOKE_MANIFEST_REVIEW"
+SMOKE_MANIFEST_READINESS_SCHEMA = "entry_smart_seq520_smoke_manifest_readiness_v1"
+SMOKE_DATASET_MANIFEST_SCHEMA = "entry_smart_seq520_smoke_dataset_v1"
+SMOKE_SPLIT_MANIFEST_SCHEMA = "entry_smart_seq520_smoke_split_manifest_v1"
 
 
 def _json_default(obj: Any) -> Any:
@@ -136,6 +144,51 @@ def _dataset_path_matches(report: dict[str, Any], expected: Path) -> bool:
         except OSError:
             continue
     return False
+
+
+def _path_equals(raw: Any, expected: Path) -> bool:
+    text = str(raw or "").strip()
+    if not text:
+        return False
+    try:
+        return Path(text).expanduser().resolve() == expected.expanduser().resolve()
+    except OSError:
+        return False
+
+
+def _split_artifact_hash_review(splits: dict[str, Any]) -> dict[str, Any]:
+    details: dict[str, Any] = {}
+    for split in ("train", "val", "test"):
+        row = splits.get(split) if isinstance(splits.get(split), dict) else {}
+        parquet_path = Path(str(row.get("out_parquet") or "")).expanduser()
+        manifest_path = Path(str(row.get("out_manifest") or "")).expanduser()
+        parquet_exists = bool(str(row.get("out_parquet") or "").strip()) and parquet_path.is_file()
+        manifest_exists = bool(str(row.get("out_manifest") or "").strip()) and manifest_path.is_file()
+        parquet_sha = _sha256_file(parquet_path) if parquet_exists else None
+        manifest_sha = _sha256_file(manifest_path) if manifest_exists else None
+        details[split] = {
+            "out_parquet": str(row.get("out_parquet") or ""),
+            "out_manifest": str(row.get("out_manifest") or ""),
+            "out_parquet_exists": parquet_exists,
+            "out_manifest_exists": manifest_exists,
+            "expected_out_parquet_sha256": row.get("out_parquet_sha256"),
+            "expected_out_manifest_sha256": row.get("out_manifest_sha256"),
+            "observed_out_parquet_sha256": parquet_sha,
+            "observed_out_manifest_sha256": manifest_sha,
+            "parquet_hash_matches": parquet_sha == row.get("out_parquet_sha256"),
+            "manifest_hash_matches": manifest_sha == row.get("out_manifest_sha256"),
+        }
+    return {
+        "ok": set(splits) == {"train", "val", "test"}
+        and all(
+            details[split]["out_parquet_exists"]
+            and details[split]["out_manifest_exists"]
+            and details[split]["parquet_hash_matches"]
+            and details[split]["manifest_hash_matches"]
+            for split in ("train", "val", "test")
+        ),
+        "details": details,
+    }
 
 
 def _all_side_effects_false(payload: dict[str, Any], *, extra: tuple[str, ...] = ()) -> bool:
@@ -360,12 +413,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     target_audit_json = Path(args.smart_target_audit_json).expanduser().resolve()
     specialist_audit_json = Path(args.smart_specialist_audit_json).expanduser().resolve()
     smoke_dataset_manifest_json = Path(args.smart_smoke_dataset_manifest_json).expanduser().resolve()
+    smoke_manifest_readiness_json = Path(
+        getattr(args, "smart_smoke_dataset_manifest_readiness_json", DEFAULT_SMOKE_MANIFEST_READINESS)
+    ).expanduser().resolve()
 
     rebuild = _read_json_or_empty(rebuild_preflight_json)
     feature = _read_json_or_empty(feature_audit_json)
     target = _read_json_or_empty(target_audit_json)
     specialist = _read_json_or_empty(specialist_audit_json)
     smoke_manifest = _read_json_or_empty(smoke_dataset_manifest_json)
+    smoke_manifest_readiness = _read_json_or_empty(smoke_manifest_readiness_json)
     git_status = _git_status_short(Path(args.repo_dir).expanduser().resolve())
     trainer_probe = _trainer_loader_probe(specialist_audit_json) if specialist_audit_json.exists() else {"ok": False}
     future_contracts = _future_contracts(
@@ -383,6 +440,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     specialist_rows = _liveness_rows(specialist)
     feature_rows = _liveness_rows(feature)
     smoke_splits = smoke_manifest.get("splits") if isinstance(smoke_manifest.get("splits"), dict) else {}
+    split_artifact_hash_review = _split_artifact_hash_review(smoke_splits)
 
     gates = [
         _gate(
@@ -533,13 +591,47 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "smart_smoke_dataset_manifest",
             [
                 _check(
+                    "latest smart smoke manifest readiness report exists",
+                    smoke_manifest_readiness_json.exists(),
+                    _artifact_meta(smoke_manifest_readiness_json),
+                ),
+                _check(
+                    "latest smart smoke manifest readiness report is ready",
+                    smoke_manifest_readiness.get("schema_version") == SMOKE_MANIFEST_READINESS_SCHEMA
+                    and smoke_manifest_readiness.get("decision") == SMOKE_MANIFEST_READINESS_READY_DECISION
+                    and smoke_manifest_readiness.get("report_only") is True
+                    and smoke_manifest_readiness.get("manifest_written") is True,
+                    {
+                        "schema_version": smoke_manifest_readiness.get("schema_version"),
+                        "decision": smoke_manifest_readiness.get("decision"),
+                        "report_only": smoke_manifest_readiness.get("report_only"),
+                        "manifest_written": smoke_manifest_readiness.get("manifest_written"),
+                    },
+                ),
+                _check(
+                    "latest smart smoke manifest readiness points at this manifest",
+                    _path_equals(smoke_manifest_readiness.get("manifest_path"), smoke_dataset_manifest_json)
+                    and smoke_manifest_readiness.get("manifest_sha256") == _sha256_file(smoke_dataset_manifest_json),
+                    {
+                        "manifest_path": smoke_manifest_readiness.get("manifest_path"),
+                        "expected_manifest_path": str(smoke_dataset_manifest_json),
+                        "reported_manifest_sha256": smoke_manifest_readiness.get("manifest_sha256"),
+                        "actual_manifest_sha256": _sha256_file(smoke_dataset_manifest_json),
+                    },
+                ),
+                _check(
+                    "latest smart smoke manifest readiness keeps side effects closed",
+                    _all_side_effects_false(smoke_manifest_readiness, extra=("dataset_rebuild",)),
+                    smoke_manifest_readiness.get("side_effects_started"),
+                ),
+                _check(
                     "smart smoke dataset manifest exists",
                     smoke_dataset_manifest_json.exists(),
                     _artifact_meta(smoke_dataset_manifest_json),
                 ),
                 _check(
                     "smart smoke dataset manifest schema is smart seq520",
-                    smoke_manifest.get("schema_version") == "entry_smart_seq520_smoke_dataset_v1",
+                    smoke_manifest.get("schema_version") == SMOKE_DATASET_MANIFEST_SCHEMA,
                     {"schema_version": smoke_manifest.get("schema_version")},
                 ),
                 _check(
@@ -566,6 +658,24 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                         for split in ("train", "val", "test")
                     ),
                     {"splits": smoke_splits},
+                ),
+                _check(
+                    "smart smoke split artifact files exist and hashes match manifest",
+                    bool(split_artifact_hash_review["ok"]),
+                    split_artifact_hash_review["details"],
+                ),
+                _check(
+                    "smart smoke split manifests pin smart seq520 split schema",
+                    set(smoke_splits) == {"train", "val", "test"}
+                    and all(
+                        (smoke_splits.get(split) or {}).get("split_manifest_schema_version")
+                        == SMOKE_SPLIT_MANIFEST_SCHEMA
+                        for split in ("train", "val", "test")
+                    ),
+                    {
+                        split: (smoke_splits.get(split) or {}).get("split_manifest_schema_version")
+                        for split in ("train", "val", "test")
+                    },
                 ),
             ],
         ),
@@ -648,7 +758,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "smart_smoke_manifest_allowed_without_vedtak": False,
         "smart_smoke_manifest_allowed_after_explicit_vedtak_and_gates": bool(ready),
         "smart_smoke_training_allowed_without_vedtak": False,
-        "smart_smoke_training_allowed_after_explicit_vedtak_and_gates": bool(ready),
+        "smart_smoke_training_allowed_after_explicit_vedtak_and_gates": False,
+        "smart_trainability_readiness_required_before_training": True,
         "execution_allowed_now": False,
         "control_surface_mutated": False,
         "side_effects_started": {
@@ -665,6 +776,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "smart_target_audit": _artifact_meta(target_audit_json),
             "smart_specialist_audit": _artifact_meta(specialist_audit_json),
             "smart_smoke_dataset_manifest": _artifact_meta(smoke_dataset_manifest_json),
+            "smart_smoke_dataset_manifest_readiness": _artifact_meta(smoke_manifest_readiness_json),
             "smart_dataset_dir": str(smart_dataset_dir),
             "smart_smoke_dataset_dir": str(smart_smoke_dataset_dir),
         },
@@ -720,6 +832,10 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--smart-target-audit-json", default=str(DEFAULT_TARGET_AUDIT))
     ap.add_argument("--smart-specialist-audit-json", default=str(DEFAULT_SPECIALIST_AUDIT))
     ap.add_argument("--smart-smoke-dataset-manifest-json", default=str(DEFAULT_SMOKE_DATASET_MANIFEST))
+    ap.add_argument(
+        "--smart-smoke-dataset-manifest-readiness-json",
+        default=str(DEFAULT_SMOKE_MANIFEST_READINESS),
+    )
     ap.add_argument("--repo-dir", default=str(REPO))
     ap.add_argument("--out-dir", default=str(DEFAULT_OUT_DIR))
     ap.add_argument("--memory-cap", default="22G")

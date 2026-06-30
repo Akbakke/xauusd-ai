@@ -218,8 +218,18 @@ def _sample_split(source_path: Path, out_path: Path, *, max_rows: int, batch_siz
     }
 
 
-def _copy_split_manifest(source_manifest: Path, out_manifest: Path, *, out_parquet: Path, split: str, sample: dict[str, Any]) -> None:
+def _copy_split_manifest(
+    source_manifest: Path,
+    out_manifest: Path,
+    *,
+    out_parquet: Path,
+    split: str,
+    sample: dict[str, Any],
+    split_schema_version: str | None = None,
+) -> None:
     data = json.loads(source_manifest.read_text(encoding="utf-8"))
+    if split_schema_version:
+        data["schema_version"] = split_schema_version
     data["output_data_path"] = str(out_parquet)
     data["foundation_smoke_dataset_v1"] = {
         "source_manifest": str(source_manifest),
@@ -263,7 +273,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         if not source_manifest.exists():
             raise RuntimeError(f"source split manifest missing: {source_manifest}")
         out_manifest = out_path.with_suffix(".manifest.json")
-        _copy_split_manifest(source_manifest, out_manifest, out_parquet=out_path, split=split, sample=sample)
+        _copy_split_manifest(
+            source_manifest,
+            out_manifest,
+            out_parquet=out_path,
+            split=split,
+            sample=sample,
+            split_schema_version=str(getattr(args, "split_schema_version", "") or ""),
+        )
         sample.update(
             {
                 "source_manifest": str(source_manifest),
@@ -305,6 +322,7 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--target-audit-json", default=str(TARGET_AUDIT_LATEST))
     ap.add_argument("--specialist-audit-json", default=str(SPECIALIST_AUDIT_LATEST))
     ap.add_argument("--schema-version", default="entry_foundation_seq146_smoke_dataset_v1")
+    ap.add_argument("--split-schema-version", default="")
     ap.add_argument("--quiet", action="store_true")
     return ap
 

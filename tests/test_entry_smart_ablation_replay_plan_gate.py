@@ -52,21 +52,13 @@ def _write_candidate_bundle_audit(path: Path, bundle_dir: Path) -> None:
     )
 
 
-def _write_replay_dir(path: Path, *, variant: str, bundle_dir: Path | None = None) -> None:
-    _write_json(
-        path / "REPLAY_EVIDENCE_MANIFEST.json",
-        {
-            "decision": "PASS",
-            "failures": [],
-            "manifest_variant": variant,
-            "candidate_bundle_dir": str(bundle_dir or ""),
-            "replay_identity_contract": {
-                "ready": True,
-                "manifest_variant": variant,
-                "candidate_bundle_dir": str(bundle_dir or ""),
-            },
-        },
-    )
+def _write_replay_dir(
+    path: Path,
+    *,
+    variant: str,
+    bundle_dir: Path | None = None,
+    candidate_bundle_audit_sha256: str = "",
+) -> None:
     _write_csv(
         path / "replay_policy_metrics.csv",
         [
@@ -120,6 +112,29 @@ def _write_replay_dir(path: Path, *, variant: str, bundle_dir: Path | None = Non
             },
         ],
     )
+    artifact_hashes = {
+        "replay_policy_metrics.csv": gate._sha256_file(path / "replay_policy_metrics.csv"),
+        "replay_policy_monthly.csv": gate._sha256_file(path / "replay_policy_monthly.csv"),
+        "replay_policy_trades.csv": gate._sha256_file(path / "replay_policy_trades.csv"),
+    }
+    _write_json(
+        path / "REPLAY_EVIDENCE_MANIFEST.json",
+        {
+            "decision": "PASS",
+            "failures": [],
+            "manifest_variant": variant,
+            "candidate_bundle_dir": str(bundle_dir or ""),
+            "candidate_bundle_audit_sha256": candidate_bundle_audit_sha256,
+            "artifact_hashes": artifact_hashes,
+            "replay_identity_contract": {
+                "ready": True,
+                "manifest_variant": variant,
+                "candidate_bundle_dir": str(bundle_dir or ""),
+                "candidate_bundle_audit_sha256": candidate_bundle_audit_sha256,
+                "artifact_hashes": artifact_hashes,
+            },
+        },
+    )
 
 
 def _args(tmp_path: Path, *, require_baselines: bool = True) -> argparse.Namespace:
@@ -141,8 +156,14 @@ def test_smart_ablation_plan_gate_materializes_exact_report_only_matrix(tmp_path
     args = _args(tmp_path)
     bundle_dir = tmp_path / "smart_bundle"
     _write_smart_preflight(Path(args.smart_preflight_json))
-    _write_candidate_bundle_audit(Path(args.candidate_bundle_audit_json), bundle_dir)
-    _write_replay_dir(Path(args.candidate_replay_dir), variant="smart_seq520_candidate", bundle_dir=bundle_dir)
+    candidate_audit_path = Path(args.candidate_bundle_audit_json)
+    _write_candidate_bundle_audit(candidate_audit_path, bundle_dir)
+    _write_replay_dir(
+        Path(args.candidate_replay_dir),
+        variant="smart_seq520_candidate",
+        bundle_dir=bundle_dir,
+        candidate_bundle_audit_sha256=gate._sha256_file(candidate_audit_path) or "",
+    )
     _write_replay_dir(Path(args.seq146_replay_dir), variant="foundation_seq146")
     _write_replay_dir(Path(args.seq215_replay_dir), variant="challenger_seq215")
 
@@ -195,8 +216,14 @@ def test_smart_ablation_plan_gate_requires_path_quality_bad_path_and_tail_slice(
     args = _args(tmp_path, require_baselines=False)
     bundle_dir = tmp_path / "smart_bundle"
     _write_smart_preflight(Path(args.smart_preflight_json))
-    _write_candidate_bundle_audit(Path(args.candidate_bundle_audit_json), bundle_dir)
-    _write_replay_dir(Path(args.candidate_replay_dir), variant="smart_seq520_candidate", bundle_dir=bundle_dir)
+    candidate_audit_path = Path(args.candidate_bundle_audit_json)
+    _write_candidate_bundle_audit(candidate_audit_path, bundle_dir)
+    _write_replay_dir(
+        Path(args.candidate_replay_dir),
+        variant="smart_seq520_candidate",
+        bundle_dir=bundle_dir,
+        candidate_bundle_audit_sha256=gate._sha256_file(candidate_audit_path) or "",
+    )
     trades_path = Path(args.candidate_replay_dir) / "replay_policy_trades.csv"
     trades = pd.read_csv(trades_path).drop(columns=["bad_path_prob", "path_quality_pred", "tail_bucket"])
     trades.to_csv(trades_path, index=False)

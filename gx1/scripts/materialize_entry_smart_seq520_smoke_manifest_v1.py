@@ -22,6 +22,7 @@ from gx1.scripts.verify_entry_foundation_state_v1 import FOUNDATION_DATASET_DIR,
 
 SPLITS = ("train", "val", "test")
 SCHEMA_VERSION = "entry_smart_seq520_smoke_dataset_v1"
+SPLIT_SCHEMA_VERSION = "entry_smart_seq520_smoke_split_manifest_v1"
 REPORT_SCHEMA_VERSION = "entry_smart_seq520_smoke_manifest_readiness_v1"
 MANIFEST_VARIANT = "smart_seq520_candidate"
 EXPECTED_SEQ_SNAP_WIDTH = 520
@@ -29,6 +30,12 @@ DEFAULT_STEM = "v10_smart_seq520_smoke__HOLD_03B"
 SMART_SPECIALIST_CONTRACT_MODE = "smart_seq520_candidate"
 DEFAULT_SMART_SMOKE_DATASET_DIR = FOUNDATION_DATASET_DIR.parent / "v10_dataset_smart_seq520_smoke_20260630"
 DEFAULT_OUT_DIR = REPORTS_ROOT / "entry_smart_seq520_smoke_manifest_20260630_v1"
+DEFAULT_POST_REBUILD_READINESS_JSON = (
+    REPORTS_ROOT
+    / "entry_smart_dataset_post_rebuild_readiness_20260630_v1"
+    / "ENTRY_SMART_DATASET_POST_REBUILD_READINESS_latest.json"
+)
+POST_REBUILD_READY_DECISION = "ENTRY_SMART_DATASET_READY_FOR_TRAIN_READINESS_REVIEW"
 RAM_CAP_RUNNER = "scripts/gx1_capped_run.sh"
 DEFAULT_MEMORY_CAP = "22G"
 DEFAULT_SWAP_CAP = "2G"
@@ -40,6 +47,7 @@ SIDE_EFFECTS_STARTED = {
     "shadow": False,
     "live": False,
 }
+REQUIRED_POST_REBUILD_SIDE_EFFECT_KEYS = tuple(SIDE_EFFECTS_STARTED)
 
 
 def _json_default(obj: Any) -> Any:
@@ -335,6 +343,7 @@ def _build_smoke_manifest(
                 "out_manifest": row["manifest_path"],
                 "out_parquet_sha256": row["parquet_sha256"],
                 "out_manifest_sha256": row["manifest_sha256"],
+                "split_manifest_schema_version": row["schema_version"],
                 "seq_input_dim": int(row["seq_input_dim"]),
                 "snap_input_dim": int(row["snap_input_dim"]),
                 "field_count": int(row["field_count"]),
@@ -369,6 +378,7 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
     dataset_dir = Path(args.smart_smoke_dataset_dir).expanduser().resolve()
+    post_rebuild_readiness_json = Path(args.post_rebuild_readiness_json).expanduser().resolve()
     out_dir = Path(args.out_dir).expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
     vedtak_id = str(args.vedtak_id or "").strip()
@@ -381,6 +391,21 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         split: _split_summary(dataset_dir, split, sample_rows=sample_rows, batch_size=batch_size)
         for split in SPLITS
     }
+    post_rebuild_readiness = _read_json_or_empty(post_rebuild_readiness_json)
+    post_rebuild_refresh_contract = (
+        post_rebuild_readiness.get("post_rebuild_refresh_command_contract")
+        if isinstance(post_rebuild_readiness.get("post_rebuild_refresh_command_contract"), dict)
+        else {}
+    )
+    post_rebuild_side_effects = (
+        post_rebuild_readiness.get("side_effects_started")
+        if isinstance(post_rebuild_readiness.get("side_effects_started"), dict)
+        else {}
+    )
+    post_rebuild_side_effects_closed = (
+        all(key in post_rebuild_side_effects for key in REQUIRED_POST_REBUILD_SIDE_EFFECT_KEYS)
+        and all(post_rebuild_side_effects.get(key) is False for key in REQUIRED_POST_REBUILD_SIDE_EFFECT_KEYS)
+    )
     future_command_contracts = _future_command_contracts(
         dataset_dir=dataset_dir,
         vedtak_id=vedtak_id,
@@ -392,6 +417,37 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "explicit smart seq520 smoke vedtak id is provided",
             _explicit_vedtak_id_ok(vedtak_id),
             {"vedtak_id": vedtak_id},
+        ),
+        _check(
+            "smart post-rebuild readiness report exists",
+            post_rebuild_readiness_json.exists(),
+            _artifact_meta(post_rebuild_readiness_json),
+        ),
+        _check(
+            "smart post-rebuild readiness decision is ready",
+            post_rebuild_readiness.get("decision") == POST_REBUILD_READY_DECISION,
+            {"decision": post_rebuild_readiness.get("decision"), "expected": POST_REBUILD_READY_DECISION},
+        ),
+        _check(
+            "smart post-rebuild refresh contract points at this smoke dataset",
+            str(Path(str(post_rebuild_refresh_contract.get("smart_smoke_dataset_dir") or "")).expanduser().resolve())
+            == str(dataset_dir),
+            {
+                "reported_smart_smoke_dataset_dir": post_rebuild_refresh_contract.get("smart_smoke_dataset_dir"),
+                "actual_smart_smoke_dataset_dir": str(dataset_dir),
+            },
+        ),
+        _check(
+            "smart post-rebuild refresh contract starts no trainer replay iql shadow live",
+            post_rebuild_refresh_contract.get("all_commands_avoid_training_replay_iql_shadow_live") is True
+            and post_rebuild_side_effects_closed,
+            {
+                "all_commands_avoid_training_replay_iql_shadow_live": post_rebuild_refresh_contract.get(
+                    "all_commands_avoid_training_replay_iql_shadow_live"
+                ),
+                "required_side_effect_keys": list(REQUIRED_POST_REBUILD_SIDE_EFFECT_KEYS),
+                "side_effects_started": post_rebuild_side_effects,
+            },
         ),
         _check("smart smoke dataset directory exists", dataset_dir.exists(), {"dataset_dir": str(dataset_dir)}),
         _check(
@@ -415,13 +471,18 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             splits,
         ),
         _check(
-            "split manifests pin smart_seq520_candidate when declared",
-            all(row["manifest_variant"] in ("", MANIFEST_VARIANT) for row in splits.values()),
+            "split manifests use smart seq520 split schema",
+            all(row["schema_version"] == SPLIT_SCHEMA_VERSION for row in splits.values()),
+            {split: row["schema_version"] for split, row in splits.items()},
+        ),
+        _check(
+            "split manifests pin smart_seq520_candidate",
+            all(row["manifest_variant"] == MANIFEST_VARIANT for row in splits.values()),
             {split: row["manifest_variant"] for split, row in splits.items()},
         ),
         _check(
-            "split manifests pin expected seq snap width 520 when declared",
-            all(row["expected_seq_snap_width"] in (0, EXPECTED_SEQ_SNAP_WIDTH) for row in splits.values()),
+            "split manifests pin expected seq snap width 520",
+            all(row["expected_seq_snap_width"] == EXPECTED_SEQ_SNAP_WIDTH for row in splits.values()),
             {split: row["expected_seq_snap_width"] for split, row in splits.items()},
         ),
         _check(
@@ -470,11 +531,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         if ready
         else {}
     )
+    stale_manifest_quarantined_path: str | None = None
     if ready:
         manifest_path.write_text(
             json.dumps(smoke_manifest, indent=2, sort_keys=True, default=_json_default) + "\n",
             encoding="utf-8",
         )
+    elif manifest_path.exists():
+        quarantine_path = out_dir / f"SMOKE_DATASET_MANIFEST_STALE_BLOCKED_{stamp}.json"
+        manifest_path.replace(quarantine_path)
+        stale_manifest_quarantined_path = str(quarantine_path)
 
     report = {
         "schema_version": REPORT_SCHEMA_VERSION,
@@ -489,6 +555,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "manifest_path": str(manifest_path),
         "manifest_written": bool(ready),
         "manifest_sha256": _sha256_file(manifest_path) if ready else None,
+        "stale_manifest_quarantined_path": stale_manifest_quarantined_path,
+        "post_rebuild_readiness": _artifact_meta(post_rebuild_readiness_json),
         "split_artifacts": splits,
         "future_command_contracts": future_command_contracts,
         "checks": checks,
@@ -529,6 +597,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--smart-smoke-dataset-dir", default=str(DEFAULT_SMART_SMOKE_DATASET_DIR))
+    ap.add_argument("--post-rebuild-readiness-json", default=str(DEFAULT_POST_REBUILD_READINESS_JSON))
     ap.add_argument("--out-dir", default=str(DEFAULT_OUT_DIR))
     ap.add_argument("--vedtak-id", "--vedtak", dest="vedtak_id", required=True)
     ap.add_argument("--memory-cap", default=DEFAULT_MEMORY_CAP)

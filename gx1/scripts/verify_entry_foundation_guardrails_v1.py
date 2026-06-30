@@ -185,6 +185,7 @@ def _readiness_policy_checks() -> list[dict[str, Any]]:
         "smart_rebuild_preflight",
         "smart_post_rebuild_readiness",
         "smart_smoke_readiness",
+        "smart_trainability_readiness",
         "smart_ablation_replay_plan",
         "stage_foundation_cleanup_dry_run",
         "iql_slice_audit",
@@ -255,6 +256,7 @@ def _readiness_policy_checks() -> list[dict[str, Any]]:
         "smart_post_rebuild_readiness",
         "smart_smoke_manifest",
         "smart_smoke_readiness",
+        "smart_trainability_readiness",
         "smart_ablation_replay_plan",
         "candidate_train",
         "candidate_train_seq215",
@@ -376,16 +378,72 @@ def _readiness_policy_checks() -> list[dict[str, Any]]:
             "ok": not any("--vedtak <id>" in str(item) for item in allowed_now),
             "details": {"allowed_now": allowed_now},
         },
-        {
-            "name": "readiness_policy_adoption_candidate_does_not_activate_without_vedtak",
-            "ok": status_summary.get("activation_allowed_without_vedtak") is False,
-            "details": {
-                "foundation_adoption_candidate_ready": status_summary.get("foundation_adoption_candidate_ready"),
+            {
+                "name": "readiness_policy_adoption_candidate_does_not_activate_without_vedtak",
+                "ok": status_summary.get("activation_allowed_without_vedtak") is False,
+                "details": {
+                    "foundation_adoption_candidate_ready": status_summary.get("foundation_adoption_candidate_ready"),
                 "foundation_adoption_candidate_report": status_summary.get("foundation_adoption_candidate_report"),
-                "activation_allowed_without_vedtak": status_summary.get("activation_allowed_without_vedtak"),
+                    "activation_allowed_without_vedtak": status_summary.get("activation_allowed_without_vedtak"),
+                },
             },
-        },
-    ]
+            {
+                "name": "readiness_policy_smart_preflight_contract_exact",
+                "ok": (commands.get("smart_rebuild_preflight") or {}).get("manifest_variant")
+                == "smart_seq520_candidate"
+                and (commands.get("smart_rebuild_preflight") or {}).get("expected_signal_dim") == 520
+                and (commands.get("smart_rebuild_preflight") or {}).get("dataset_rebuild_allowed_without_vedtak")
+                is False
+                and (commands.get("smart_rebuild_preflight") or {}).get("requires_ram_cap_for_future_rebuild")
+                is True
+                and status_summary.get("smart_rebuild_preflight_ready") is True,
+                "details": {
+                    "command": commands.get("smart_rebuild_preflight"),
+                    "status_summary": {
+                        "smart_rebuild_preflight_decision": status_summary.get("smart_rebuild_preflight_decision"),
+                        "smart_rebuild_preflight_ready": status_summary.get("smart_rebuild_preflight_ready"),
+                        "smart_rebuild_preflight_sha256": status_summary.get("smart_rebuild_preflight_sha256"),
+                    },
+                },
+            },
+            {
+                "name": "readiness_policy_smart_report_gates_keep_training_replay_closed",
+                "ok": all(
+                    (commands.get(name) or {}).get("training_allowed") is False
+                    and (commands.get(name) or {}).get("starts_trainer") is False
+                    and (commands.get(name) or {}).get("starts_replay") is False
+                    and (commands.get(name) or {}).get("starts_iql_distillation") is False
+                    and (commands.get(name) or {}).get("touches_shadow_or_live") is False
+                    for name in (
+                        "smart_post_rebuild_readiness",
+                        "smart_smoke_manifest",
+                        "smart_smoke_readiness",
+                        "smart_trainability_readiness",
+                        "smart_ablation_replay_plan",
+                    )
+                ),
+                "details": {
+                    name: commands.get(name)
+                    for name in (
+                        "smart_post_rebuild_readiness",
+                        "smart_smoke_manifest",
+                        "smart_smoke_readiness",
+                        "smart_trainability_readiness",
+                        "smart_ablation_replay_plan",
+                    )
+                },
+            },
+            {
+                "name": "readiness_policy_smart_smoke_readiness_declares_ram_zero_workers",
+                "ok": (commands.get("smart_smoke_readiness") or {}).get("expected_signal_dim") == 520
+                and (commands.get("smart_smoke_readiness") or {}).get("specialist_contract_mode")
+                == "smart_seq520_candidate"
+                and (commands.get("smart_smoke_readiness") or {}).get("requires_ram_cap_for_future_train")
+                is True
+                and (commands.get("smart_smoke_readiness") or {}).get("num_workers") == 0,
+                "details": commands.get("smart_smoke_readiness"),
+            },
+        ]
 
     for name in safe_now:
         command = commands.get(name) if isinstance(commands.get(name), dict) else {}

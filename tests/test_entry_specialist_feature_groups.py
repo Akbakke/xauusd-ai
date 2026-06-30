@@ -90,7 +90,7 @@ def test_context_routing_failures_fail_closed_for_all_contract_modes() -> None:
 
 
 def test_smart_seq520_candidate_contract_is_audit_only_and_exact() -> None:
-    assert SPECIALIST_CONTRACT_MODES == ("foundation_seq146", "challenger_seq215")
+    assert SPECIALIST_CONTRACT_MODES == ("foundation_seq146", "challenger_seq215", "smart_seq520_candidate")
     assert "smart_seq520_candidate" in SPECIALIST_AUDIT_CONTRACT_MODES
     assert specialist_contract_training_allowed_for_mode("foundation_seq146") is True
     assert specialist_contract_training_allowed_for_mode("challenger_seq215") is True
@@ -400,7 +400,7 @@ def test_specialist_feature_group_audit_passes_smart_seq520_contract_prep(tmp_pa
     assert report["training_allowed_with_explicit_vedtak"] is False
     assert report["contract_training_surface"] == {
         "contract_mode": "smart_seq520_candidate",
-        "registered_for_training_surfaces": False,
+        "registered_for_training_surfaces": True,
         "training_allowed_by_contract_mode": False,
         "training_allowed_by_this_audit": False,
         "training_allowed": False,

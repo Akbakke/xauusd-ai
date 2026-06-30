@@ -1,4 +1,5 @@
 import argparse
+import hashlib
 import json
 from pathlib import Path
 
@@ -10,6 +11,14 @@ def _write_json(path: Path, data: dict) -> None:
     path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def _model_contract() -> dict:
     return json.loads(json.dumps(readiness.EXPECTED_MODEL_CONTRACT))
 
@@ -19,6 +28,18 @@ def _build_fixture(tmp_path: Path) -> argparse.Namespace:
     smart_smoke_dataset_dir = tmp_path / "v10_dataset_smart_seq520_smoke_20260630"
     smart_dataset_dir.mkdir()
     smart_smoke_dataset_dir.mkdir()
+    split_artifacts: dict[str, dict[str, str]] = {}
+    for split in ("train", "val", "test"):
+        parquet_path = smart_smoke_dataset_dir / f"v10_smart_seq520_smoke__HOLD_03B_{split}.parquet"
+        manifest_path = smart_smoke_dataset_dir / f"v10_smart_seq520_smoke__HOLD_03B_{split}.manifest.json"
+        parquet_path.write_bytes(f"{split}-parquet".encode("utf-8"))
+        manifest_path.write_text(f'{{"split":"{split}"}}\n', encoding="utf-8")
+        split_artifacts[split] = {
+            "out_parquet": str(parquet_path),
+            "out_manifest": str(manifest_path),
+            "out_parquet_sha256": _sha256(parquet_path),
+            "out_manifest_sha256": _sha256(manifest_path),
+        }
 
     _write_json(
         tmp_path / "smart_rebuild_preflight.json",
@@ -128,8 +149,9 @@ def _build_fixture(tmp_path: Path) -> argparse.Namespace:
             },
         },
     )
+    smoke_manifest_path = tmp_path / "smoke_manifest.json"
     _write_json(
-        tmp_path / "smoke_manifest.json",
+        smoke_manifest_path,
         {
             "schema_version": "entry_smart_seq520_smoke_dataset_v1",
             "manifest_variant": "smart_seq520_candidate",
@@ -138,10 +160,29 @@ def _build_fixture(tmp_path: Path) -> argparse.Namespace:
             "splits": {
                 split: {
                     "rows": 16,
-                    "out_parquet_sha256": "a" * 64,
-                    "out_manifest_sha256": "b" * 64,
+                    **split_artifacts[split],
+                    "split_manifest_schema_version": "entry_smart_seq520_smoke_split_manifest_v1",
                 }
                 for split in ("train", "val", "test")
+            },
+        },
+    )
+    _write_json(
+        tmp_path / "smoke_manifest_readiness.json",
+        {
+            "schema_version": "entry_smart_seq520_smoke_manifest_readiness_v1",
+            "decision": "READY_FOR_SMART_SEQ520_SMOKE_MANIFEST_REVIEW",
+            "report_only": True,
+            "manifest_written": True,
+            "manifest_path": str(smoke_manifest_path),
+            "manifest_sha256": _sha256(smoke_manifest_path),
+            "side_effects_started": {
+                "dataset_rebuild": False,
+                "training": False,
+                "replay": False,
+                "iql_distillation": False,
+                "shadow": False,
+                "live": False,
             },
         },
     )
@@ -152,7 +193,8 @@ def _build_fixture(tmp_path: Path) -> argparse.Namespace:
         smart_feature_audit_json=str(tmp_path / "feature_audit.json"),
         smart_target_audit_json=str(tmp_path / "target_audit.json"),
         smart_specialist_audit_json=str(tmp_path / "specialist_audit.json"),
-        smart_smoke_dataset_manifest_json=str(tmp_path / "smoke_manifest.json"),
+        smart_smoke_dataset_manifest_json=str(smoke_manifest_path),
+        smart_smoke_dataset_manifest_readiness_json=str(tmp_path / "smoke_manifest_readiness.json"),
         repo_dir=str(tmp_path),
         out_dir=str(tmp_path / "reports"),
         memory_cap="22G",
@@ -172,7 +214,8 @@ def test_smart_seq520_smoke_readiness_passes_as_report_only(monkeypatch, tmp_pat
     assert report["report_only"] is True
     assert report["training_allowed"] is False
     assert report["smart_smoke_training_allowed_without_vedtak"] is False
-    assert report["smart_smoke_training_allowed_after_explicit_vedtak_and_gates"] is True
+    assert report["smart_smoke_training_allowed_after_explicit_vedtak_and_gates"] is False
+    assert report["smart_trainability_readiness_required_before_training"] is True
     assert report["execution_allowed_now"] is False
     assert report["control_surface_mutated"] is False
     assert not any(report["side_effects_started"].values())
@@ -237,3 +280,83 @@ def test_smart_seq520_smoke_readiness_fails_closed_on_nonfinite_liveness(
     assert report["training_allowed"] is False
     assert "smart feature audit proves finite live features" in blockers
     assert "smart specialist input has no NaN inf or liveness collapse" in blockers
+
+
+def test_smart_seq520_smoke_readiness_fails_closed_on_blocked_manifest_readiness(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    args = _build_fixture(tmp_path)
+    readiness_path = Path(args.smart_smoke_dataset_manifest_readiness_json)
+    payload = json.loads(readiness_path.read_text(encoding="utf-8"))
+    payload["decision"] = "BLOCKED_SMART_SEQ520_SMOKE_MANIFEST_READINESS"
+    payload["manifest_written"] = False
+    _write_json(readiness_path, payload)
+    monkeypatch.setattr(readiness, "_git_status_short", lambda repo: [])
+
+    report = readiness.run(args)
+
+    blockers = "\n".join(report["blockers"])
+    assert report["decision"] == "BLOCKED_SMART_SEQ520_SMOKE_READINESS"
+    assert report["training_allowed"] is False
+    assert "latest smart smoke manifest readiness report is ready" in blockers
+
+
+def test_smart_seq520_smoke_readiness_fails_closed_on_stale_manifest_hash(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    args = _build_fixture(tmp_path)
+    readiness_path = Path(args.smart_smoke_dataset_manifest_readiness_json)
+    payload = json.loads(readiness_path.read_text(encoding="utf-8"))
+    payload["manifest_sha256"] = "0" * 64
+    _write_json(readiness_path, payload)
+    monkeypatch.setattr(readiness, "_git_status_short", lambda repo: [])
+
+    report = readiness.run(args)
+
+    blockers = "\n".join(report["blockers"])
+    assert report["decision"] == "BLOCKED_SMART_SEQ520_SMOKE_READINESS"
+    assert report["training_allowed"] is False
+    assert "latest smart smoke manifest readiness points at this manifest" in blockers
+
+
+def test_smart_seq520_smoke_readiness_fails_closed_on_split_artifact_hash_mismatch(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    args = _build_fixture(tmp_path)
+    manifest = json.loads(Path(args.smart_smoke_dataset_manifest_json).read_text(encoding="utf-8"))
+    train_parquet = Path(manifest["splits"]["train"]["out_parquet"])
+    train_parquet.write_bytes(b"changed after manifest")
+    monkeypatch.setattr(readiness, "_git_status_short", lambda repo: [])
+
+    report = readiness.run(args)
+
+    blockers = "\n".join(report["blockers"])
+    assert report["decision"] == "BLOCKED_SMART_SEQ520_SMOKE_READINESS"
+    assert report["training_allowed"] is False
+    assert "smart smoke split artifact files exist and hashes match manifest" in blockers
+
+
+def test_smart_seq520_smoke_readiness_fails_closed_on_stale_split_schema(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    args = _build_fixture(tmp_path)
+    manifest_path = Path(args.smart_smoke_dataset_manifest_json)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["splits"]["train"]["split_manifest_schema_version"] = "entry_foundation_smoke_split_manifest_v1"
+    _write_json(manifest_path, manifest)
+    readiness_path = Path(args.smart_smoke_dataset_manifest_readiness_json)
+    readiness_payload = json.loads(readiness_path.read_text(encoding="utf-8"))
+    readiness_payload["manifest_sha256"] = _sha256(manifest_path)
+    _write_json(readiness_path, readiness_payload)
+    monkeypatch.setattr(readiness, "_git_status_short", lambda repo: [])
+
+    report = readiness.run(args)
+
+    blockers = "\n".join(report["blockers"])
+    assert report["decision"] == "BLOCKED_SMART_SEQ520_SMOKE_READINESS"
+    assert report["training_allowed"] is False
+    assert "smart smoke split manifests pin smart seq520 split schema" in blockers
