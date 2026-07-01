@@ -184,6 +184,11 @@ def _selection_tuple(metrics: dict[str, Any], args: argparse.Namespace) -> tuple
     return (mean_pnl, -drawdown, net, pf)
 
 
+def _row_selection_tuple(row: dict[str, Any], args: argparse.Namespace) -> tuple[float, float, float, float]:
+    metrics = row.get("validation_metrics") if isinstance(row.get("validation_metrics"), dict) else {}
+    return _selection_tuple(metrics, args)
+
+
 def _parse_optional_float_grid(raw: str) -> list[float | None]:
     values: list[float | None] = []
     for part in str(raw or "").split(","):
@@ -213,6 +218,70 @@ def _apply_student_risk_filters(
             return frame.iloc[0:0].copy()
         mask &= pd.to_numeric(frame["path_quality_pred"], errors="coerce").ge(float(min_path_quality_pred)).fillna(False)
     return frame.loc[mask].copy()
+
+
+def _run_test_grid_diagnostics(
+    *,
+    validation_rows: list[dict[str, Any]],
+    test: pd.DataFrame,
+    tape: SourceTape,
+    args: argparse.Namespace,
+    limit: int,
+) -> list[dict[str, Any]]:
+    if limit <= 0:
+        return []
+    candidate_rows = [row for row in validation_rows if bool(row.get("validation_constraints_pass"))]
+    candidate_rows.sort(key=lambda row: _row_selection_tuple(row, args), reverse=True)
+    diagnostics: list[dict[str, Any]] = []
+    for row in candidate_rows[:limit]:
+        filtered_test = _apply_student_risk_filters(
+            test,
+            max_bad_path_prob=row.get("max_bad_path_prob"),
+            min_path_quality_pred=row.get("min_path_quality_pred"),
+        )
+        run_args = argparse.Namespace(
+            exit_mode="stop_tp",
+            take_profit_bps=float(row["take_profit_bps"]),
+            stop_loss_bps=float(row["stop_loss_bps"]),
+            same_bar_policy=str(row["same_bar_policy"]),
+            min_direction_prob=float(row["min_direction_prob"]),
+            max_trades_per_day=int(row["max_trades_per_day"]),
+            daily_loss_limit_bps=float(row["daily_loss_limit_bps"]),
+            cooldown_bars=int(row["cooldown_bars"]),
+            slippage_bps=float(row["slippage_bps"]),
+            size_multiplier=float(row["size_multiplier"]),
+        )
+        test_trades, test_counts = _run_fixed_horizon_policy(
+            eval_df=filtered_test,
+            tape=tape,
+            score_threshold=float(row["score_threshold"]),
+            threshold_top_frac=float(row["threshold_top_frac"]),
+            cost_stress_bps=float(row["cost_stress_bps"]),
+            args=run_args,
+            policy_id=str(row["grid_policy_id"]),
+            policy_config_hash=str(row["policy_config_hash"]),
+        )
+        diagnostics.append(
+            {
+                "diagnostic_only_not_selection_criterion": True,
+                "grid_policy_id": str(row["grid_policy_id"]),
+                "policy_config_hash": str(row["policy_config_hash"]),
+                "threshold_top_frac": float(row["threshold_top_frac"]),
+                "score_threshold": float(row["score_threshold"]),
+                "stop_loss_bps": float(row["stop_loss_bps"]),
+                "take_profit_bps": float(row["take_profit_bps"]),
+                "daily_loss_limit_bps": float(row["daily_loss_limit_bps"]),
+                "cost_stress_bps": float(row["cost_stress_bps"]),
+                "max_bad_path_prob": row.get("max_bad_path_prob"),
+                "min_path_quality_pred": row.get("min_path_quality_pred"),
+                "validation_eligible_rows": int(row.get("validation_eligible_rows") or 0),
+                "validation_metrics": row.get("validation_metrics", {}),
+                "test_eligible_rows": int(len(filtered_test)),
+                "test_counts": test_counts,
+                "test_metrics": _trade_metrics(test_trades),
+            }
+        )
+    return diagnostics
 
 
 def _annotate_student_trades(trades: list[dict[str, Any]], *, selected: dict[str, Any], args: argparse.Namespace) -> pd.DataFrame:
@@ -399,6 +468,29 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     trades_df = _annotate_student_trades(selected_trades, selected=selected_row, args=args) if selected_row else pd.DataFrame()
     test_metrics = _trade_metrics(selected_trades)
+    test_grid_diagnostics_limit = max(0, int(getattr(args, "test_grid_diagnostics_limit", 0) or 0))
+    test_grid_diagnostics = (
+        _run_test_grid_diagnostics(
+            validation_rows=validation_rows,
+            test=test,
+            tape=tape,
+            args=args,
+            limit=test_grid_diagnostics_limit,
+        )
+        if not failures
+        else []
+    )
+    test_grid_best_by_net = (
+        max(
+            test_grid_diagnostics,
+            key=lambda row: float(
+                (row.get("test_metrics") if isinstance(row.get("test_metrics"), dict) else {}).get("net_sum_bps")
+                or -float("inf")
+            ),
+        )
+        if test_grid_diagnostics
+        else None
+    )
     if trades_df.empty:
         failures.append("IQL student trade log produced zero trades")
     else:
@@ -408,6 +500,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     trades_path = out_dir / "entry_iql_student_trade_log.csv"
     validation_grid_path = out_dir / "entry_iql_student_validation_grid.json"
+    test_grid_diagnostics_path = out_dir / "entry_iql_student_test_grid_diagnostics.json"
     counts_path = out_dir / "entry_iql_student_policy_counts.json"
     manifest_path = out_dir / "ENTRY_IQL_STUDENT_TRADE_LOG_MANIFEST.json"
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
@@ -416,6 +509,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     trades_df.to_csv(trades_path, index=False)
     validation_grid_path.write_text(json.dumps(validation_rows, indent=2, sort_keys=True, default=_json_default) + "\n", encoding="utf-8")
+    test_grid_diagnostics_path.write_text(
+        json.dumps(test_grid_diagnostics, indent=2, sort_keys=True, default=_json_default) + "\n",
+        encoding="utf-8",
+    )
     counts_path.write_text(json.dumps(selected_counts, indent=2, sort_keys=True, default=_json_default) + "\n", encoding="utf-8")
     report = {
         "schema_version": "entry_iql_student_trade_log_v1",
@@ -430,6 +527,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "out_dir": str(out_dir),
         "trades_path": str(trades_path),
         "validation_grid_json": str(validation_grid_path),
+        "test_grid_diagnostics_json": str(test_grid_diagnostics_path),
         "counts_json": str(counts_path),
         "policy_id": str(args.policy_id),
         "selection_method": (
@@ -441,6 +539,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "student_risk_filter_grid": {
             "max_bad_path_prob_grid": [value for value in max_bad_path_values],
             "min_path_quality_pred_grid": [value for value in min_path_quality_values],
+        },
+        "test_grid_diagnostics": {
+            "enabled": bool(test_grid_diagnostics_limit > 0),
+            "limit": int(test_grid_diagnostics_limit),
+            "evaluated_policies": int(len(test_grid_diagnostics)),
+            "diagnostic_only_not_selection_criterion": True,
+            "best_by_test_net_bps": test_grid_best_by_net,
         },
         "selected_policy": selected_row,
         "selected_validation_metrics": selected_row.get("validation_metrics", {}) if selected_row else {},
@@ -513,6 +618,7 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--selection-objective", choices=("mean", "net"), default="mean")
     ap.add_argument("--max-bad-path-prob-grid", default="none")
     ap.add_argument("--min-path-quality-pred-grid", default="none")
+    ap.add_argument("--test-grid-diagnostics-limit", type=int, default=0)
     ap.add_argument("--min-validation-trades", type=int, default=25)
     ap.add_argument("--min-validation-profit-factor", type=float, default=1.05)
     ap.add_argument("--max-validation-drawdown-bps", type=float, default=650.0)

@@ -21,6 +21,10 @@ SEQ215_SMOKE_DATASET = (
     "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/"
     "v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_challenger_seq215_smoke_20260630"
 )
+SMART_SEQ520_SMOKE_DATASET = (
+    "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/"
+    "v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_smart_seq520_smoke_20260630"
+)
 SEQ146_SPECIALISTS = [
     "structure_swing_encoder",
     "smc_liquidity_encoder",
@@ -457,6 +461,62 @@ def test_candidate_readiness_seq215_missing_smoke_audit_reports_not_ready(tmp_pa
     failed = {failure["check"] for failure in report["failures"]}
     assert "smoke bundle audit JSON exists and is readable" in failed
     assert Path(report["json_path"]).exists()
+
+
+def test_candidate_readiness_smart_seq520_stays_closed_when_training_contract_disabled(
+    tmp_path: Path, monkeypatch
+) -> None:
+    trainability_path = tmp_path / "smart_trainability.json"
+    trainability_path.write_text(
+        json.dumps(
+            {
+                "decision": "READY_FOR_SMART_SEQ520_TRAINABILITY_REVIEW",
+                "candidate_training_allowed": False,
+                "promotion_shadow_live_allowed": False,
+                "failures": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+    specialist_path = tmp_path / "specialist_audit.json"
+    specialist_path.write_text(json.dumps({"decision": "PASS"}), encoding="utf-8")
+    smoke_path = tmp_path / "smart_smoke_audit.json"
+    smoke_path.write_text(
+        json.dumps(
+            _passing_smoke_audit(
+                contract_mode="smart_seq520_candidate",
+                dataset_dir=SMART_SEQ520_SMOKE_DATASET,
+                signal_dim=520,
+                specialists=SEQ215_SPECIALISTS,
+            )
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        "gx1.scripts.verify_entry_candidate_readiness_v1.SMART_SEQ520_TRAINABILITY_READINESS_LATEST",
+        trainability_path,
+    )
+
+    report = run(
+        argparse.Namespace(
+            audit_doc="/home/andre2/src/GX1_ENGINE/docs/ENTRY_FOUNDATION_AUDIT_20260628.md",
+            smoke_bundle_audit_json=str(smoke_path),
+            specialist_audit_json=str(specialist_path),
+            contract_mode="smart_seq520_candidate",
+            out_dir=str(tmp_path / "out_smart"),
+            min_active_specialists=8,
+            fail_on_not_ready=False,
+            quiet=True,
+        )
+    )
+
+    assert report["readiness_checks_pass"] is True
+    assert report["training_allowed_by_contract"] is False
+    assert report["decision"] == "NOT_READY_FOR_CANDIDATE_TRAINING"
+    assert report["candidate_training_allowed_with_explicit_vedtak"] is False
+    assert report["next_required_gate"] == "enable specialist contract training for this mode under explicit review"
+    failed = {failure["check"] for failure in report["failures"]}
+    assert "specialist contract training enabled" in failed
 
 
 def test_candidate_readiness_current_artifacts_are_not_ready_without_actual_smoke_train(tmp_path: Path) -> None:

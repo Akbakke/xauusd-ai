@@ -537,6 +537,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     md_path = out_dir / f"ENTRY_SMART_REBUILD_PREFLIGHT_{created}.md"
     latest_json = out_dir / "ENTRY_SMART_REBUILD_PREFLIGHT_latest.json"
     latest_md = out_dir / "ENTRY_SMART_REBUILD_PREFLIGHT_latest.md"
+    report["json_path"] = str(json_path)
+    report["md_path"] = str(md_path)
     json_text = json.dumps(report, indent=2, sort_keys=True, default=_json_default) + "\n"
     json_path.write_text(json_text, encoding="utf-8")
     latest_json.write_text(json_text, encoding="utf-8")
@@ -556,9 +558,6 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     md_text = "\n".join(md) + "\n"
     md_path.write_text(md_text, encoding="utf-8")
     latest_md.write_text(md_text, encoding="utf-8")
-    report["json_path"] = str(json_path)
-    report["md_path"] = str(md_path)
-    latest_json.write_text(json.dumps(report, indent=2, sort_keys=True, default=_json_default) + "\n", encoding="utf-8")
     return report
 
 

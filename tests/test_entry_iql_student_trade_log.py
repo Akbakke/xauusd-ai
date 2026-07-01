@@ -110,6 +110,7 @@ def test_iql_student_trade_log_selects_validation_policy_and_writes_2026_trades(
             selection_objective="mean",
             max_bad_path_prob_grid="none",
             min_path_quality_pred_grid="none",
+            test_grid_diagnostics_limit=2,
             min_validation_trades=1,
             min_validation_profit_factor=0.0,
             max_validation_drawdown_bps=1000.0,
@@ -126,10 +127,15 @@ def test_iql_student_trade_log_selects_validation_policy_and_writes_2026_trades(
     assert report["runtime_trainer_started"] is False
     assert report["adapter_built"] is False
     assert report["promotion_shadow_live_allowed"] is False
+    assert report["test_grid_diagnostics"]["enabled"] is True
+    assert report["test_grid_diagnostics"]["diagnostic_only_not_selection_criterion"] is True
     assert set(trades["policy_id"]) == {"entry_iql_student"}
     assert set(pd.to_datetime(trades["entry_time"], utc=True).dt.year) == {2026}
     assert "teacher_score" in trades.columns
     assert "state_session" in trades.columns
+    diagnostics = json.loads((tmp_path / "out" / "entry_iql_student_test_grid_diagnostics.json").read_text())
+    assert len(diagnostics) == 2
+    assert {row["diagnostic_only_not_selection_criterion"] for row in diagnostics} == {True}
 
 
 def test_iql_student_risk_filters_apply_bad_path_and_path_quality_veto() -> None:

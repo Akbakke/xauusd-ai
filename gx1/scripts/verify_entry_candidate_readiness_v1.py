@@ -18,6 +18,7 @@ import numpy as np
 from gx1.features.entry_specialist_feature_groups_v1 import (
     SPECIALIST_CONTRACT_MODES,
     required_training_specialists_for_mode,
+    specialist_contract_training_allowed_for_mode,
 )
 from gx1.scripts.verify_entry_foundation_state_v1 import (
     FOUNDATION_SMOKE_DATASET_DIR,
@@ -645,6 +646,20 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         if not check["ok"]
     ]
     ready = not failures
+    contract_training_enabled = bool(specialist_contract_training_allowed_for_mode(contract_mode))
+    candidate_training_allowed = bool(ready and contract_training_enabled)
+    if ready and not contract_training_enabled:
+        failures.append(
+            {
+                "gate": "training_enablement",
+                "check": "specialist contract training enabled",
+                "details": {
+                    "contract_mode": contract_mode,
+                    "training_allowed_by_contract": False,
+                    "reason": "audited evidence contract is not enabled for candidate trainer start",
+                },
+            }
+        )
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     report = {
         "schema_version": "entry_candidate_readiness_v1",
@@ -653,12 +668,20 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "expected_signal_dim": expected_signal_dim,
         "expected_smoke_dataset_dir": str(expected_smoke_dataset_dir),
         "required_specialist_groups": list(required_specialist_groups),
-        "decision": "READY_FOR_CANDIDATE_TRAINING_VEDTAK" if ready else "NOT_READY_FOR_CANDIDATE_TRAINING",
-        "candidate_training_allowed_with_explicit_vedtak": bool(ready),
+        "readiness_checks_pass": bool(ready),
+        "training_allowed_by_contract": bool(contract_training_enabled),
+        "decision": (
+            "READY_FOR_CANDIDATE_TRAINING_VEDTAK"
+            if candidate_training_allowed
+            else "NOT_READY_FOR_CANDIDATE_TRAINING"
+        ),
+        "candidate_training_allowed_with_explicit_vedtak": bool(candidate_training_allowed),
         "promotion_shadow_live_allowed": False,
         "next_required_gate": (
             f"{_mode_candidate_train_command(contract_mode)} then post-train replay gates"
-            if ready
+            if candidate_training_allowed
+            else "enable specialist contract training for this mode under explicit review"
+            if ready and not contract_training_enabled
             else f"run {_mode_smoke_train_command(contract_mode)}"
         ),
         "artifacts": artifacts,
