@@ -37,6 +37,11 @@ DEFAULT_SMART_REPORT = (
     / "entry_specialist_challenger_extension_manifest_20260630_v1"
     / "ENTRY_SPECIALIST_CHALLENGER_SMART_EXTENSION_REPORT_latest.json"
 )
+DEFAULT_SMART_REBUILD_PREFLIGHT = (
+    REPORTS_ROOT
+    / "entry_smart_seq_rebuild_preflight_20260630_v1"
+    / "ENTRY_SMART_REBUILD_PREFLIGHT_latest.json"
+)
 DEFAULT_DATASET_DIR = FOUNDATION_DATASET_DIR.parent / "v10_dataset_smart_candidate_20260630"
 DEFAULT_OUT_DIR = REPORTS_ROOT / "entry_smart_dataset_post_rebuild_readiness_20260630_v1"
 DEFAULT_SMART_FEATURE_AUDIT_OUT_DIR = (
@@ -732,6 +737,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     dataset_dir = Path(args.dataset_dir).expanduser().resolve()
     smart_manifest_path = Path(args.smart_manifest).expanduser().resolve()
     smart_report_path = Path(args.smart_report).expanduser().resolve()
+    smart_rebuild_preflight_path = Path(
+        getattr(args, "smart_rebuild_preflight", str(DEFAULT_SMART_REBUILD_PREFLIGHT))
+    ).expanduser().resolve()
     out_dir = Path(args.out_dir).expanduser().resolve()
     feature_audit_out_dir = Path(
         getattr(args, "feature_audit_out_dir", str(DEFAULT_SMART_FEATURE_AUDIT_OUT_DIR))
@@ -748,6 +756,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     out_dir.mkdir(parents=True, exist_ok=True)
     smart_manifest = _read_json_or_empty(smart_manifest_path)
     smart_report = _read_json_or_empty(smart_report_path)
+    smart_rebuild_preflight = _read_json_or_empty(smart_rebuild_preflight_path)
     expected = _expected_width(smart_manifest, smart_report)
     expected_width = int(expected["expected_seq_snap_width"])
     selected_features = _selected_features(smart_manifest)
@@ -771,6 +780,27 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         for split, row in split_manifests.items()
     }
     source_manifest_review = _source_manifest_hash_review(smart_manifest)
+    preflight_checks = {
+        str(row.get("name") or ""): row
+        for row in smart_rebuild_preflight.get("checks", [])
+        if isinstance(row, dict)
+    }
+    preflight_inputs = (
+        smart_rebuild_preflight.get("inputs") if isinstance(smart_rebuild_preflight.get("inputs"), dict) else {}
+    )
+    preflight_command = (
+        smart_rebuild_preflight.get("rebuild_command_contract")
+        if isinstance(smart_rebuild_preflight.get("rebuild_command_contract"), dict)
+        else {}
+    )
+    preflight_smart_manifest = (
+        preflight_inputs.get("smart_manifest") if isinstance(preflight_inputs.get("smart_manifest"), dict) else {}
+    )
+    preflight_side_effects = (
+        smart_rebuild_preflight.get("side_effects_started")
+        if isinstance(smart_rebuild_preflight.get("side_effects_started"), dict)
+        else {}
+    )
     source_parquets = sorted({str(row.get("source_parquet") or "") for row in split_manifests.values() if row.get("source_parquet")})
     shared_source_parquet = source_parquets[0] if len(source_parquets) == 1 else ""
     post_rebuild_refresh_command_contract = _post_rebuild_refresh_command_contract(
@@ -835,6 +865,59 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             {"verify_source_parquet_hashes": bool(args.verify_source_parquet_hashes)},
         ),
         _check("smart manifest exists", smart_manifest_path.exists(), _artifact_meta(smart_manifest_path)),
+        _check("smart rebuild preflight report exists", smart_rebuild_preflight_path.exists(), _artifact_meta(smart_rebuild_preflight_path)),
+        _check(
+            "smart rebuild preflight decision is ready",
+            smart_rebuild_preflight.get("decision") == "READY_FOR_SMART_REBUILD_VEDTAK_REVIEW"
+            and not smart_rebuild_preflight.get("failures"),
+            {
+                "decision": smart_rebuild_preflight.get("decision"),
+                "failure_count": len(smart_rebuild_preflight.get("failures") or []),
+            },
+        ),
+        _check(
+            "smart rebuild preflight proves feature harmony",
+            bool((preflight_checks.get("inventory feature harmony contract is ready") or {}).get("ok")),
+            preflight_checks.get("inventory feature harmony contract is ready"),
+        ),
+        _check(
+            "smart rebuild preflight proves feature orchestration",
+            bool((preflight_checks.get("inventory feature orchestration contract is ready") or {}).get("ok")),
+            preflight_checks.get("inventory feature orchestration contract is ready"),
+        ),
+        _check(
+            "smart rebuild preflight manifest hash matches post-rebuild manifest",
+            smart_manifest_path.exists()
+            and _is_sha256(preflight_smart_manifest.get("sha256"))
+            and preflight_smart_manifest.get("sha256") == _sha256_file(smart_manifest_path),
+            {
+                "preflight_smart_manifest": preflight_smart_manifest,
+                "post_rebuild_manifest": _artifact_meta(smart_manifest_path),
+            },
+        ),
+        _check(
+            "smart rebuild preflight planned dataset matches audited dataset",
+            str(Path(str(preflight_command.get("planned_dataset_dir") or "")).expanduser().resolve()) == str(dataset_dir)
+            if preflight_command.get("planned_dataset_dir")
+            else False,
+            {
+                "preflight_planned_dataset_dir": preflight_command.get("planned_dataset_dir"),
+                "audited_dataset_dir": str(dataset_dir),
+            },
+        ),
+        _check(
+            "smart rebuild preflight report-only side effects closed",
+            all(value is False for value in preflight_side_effects.values())
+            and smart_rebuild_preflight.get("training_allowed") is False
+            and smart_rebuild_preflight.get("dataset_rebuild_allowed_without_vedtak") is False,
+            {
+                "side_effects_started": preflight_side_effects,
+                "training_allowed": smart_rebuild_preflight.get("training_allowed"),
+                "dataset_rebuild_allowed_without_vedtak": smart_rebuild_preflight.get(
+                    "dataset_rebuild_allowed_without_vedtak"
+                ),
+            },
+        ),
         _check(
             "smart manifest variant is smart_seq520_candidate",
             expected["manifest_variant"] == EXPECTED_MANIFEST_VARIANT,
@@ -948,6 +1031,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "dataset_dir": str(dataset_dir),
         "smart_manifest": _artifact_meta(smart_manifest_path),
         "smart_report": _artifact_meta(smart_report_path) if smart_report_path.exists() else _artifact_meta(smart_report_path, compute_hash=False),
+        "smart_rebuild_preflight": (
+            _artifact_meta(smart_rebuild_preflight_path)
+            if smart_rebuild_preflight_path.exists()
+            else _artifact_meta(smart_rebuild_preflight_path, compute_hash=False)
+        ),
         "expected_contract": expected,
         "contract_mode": contract_mode,
         "required_training_specialists": list(required_specialists),
@@ -1011,6 +1099,7 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--dataset-dir", default=str(DEFAULT_DATASET_DIR))
     ap.add_argument("--smart-manifest", default=str(DEFAULT_SMART_MANIFEST))
     ap.add_argument("--smart-report", default=str(DEFAULT_SMART_REPORT))
+    ap.add_argument("--smart-rebuild-preflight", default=str(DEFAULT_SMART_REBUILD_PREFLIGHT))
     ap.add_argument("--out-dir", default=str(DEFAULT_OUT_DIR))
     ap.add_argument("--feature-audit-out-dir", default=str(DEFAULT_SMART_FEATURE_AUDIT_OUT_DIR))
     ap.add_argument("--target-audit-out-dir", default=str(DEFAULT_SMART_TARGET_AUDIT_OUT_DIR))

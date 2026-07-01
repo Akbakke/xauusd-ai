@@ -76,7 +76,13 @@ def _write_split_parquet(path: Path, *, split_offset: float, width: int, rows: i
     pq.write_table(table, path)
 
 
-def _build_fixture(tmp_path: Path, *, nonfinite_train_snap: bool = False, create_dataset: bool = True) -> argparse.Namespace:
+def _build_fixture(
+    tmp_path: Path,
+    *,
+    nonfinite_train_snap: bool = False,
+    create_dataset: bool = True,
+    preflight_orchestration: bool = True,
+) -> argparse.Namespace:
     fields = _smart_fields()
     selected = fields[41:]
     source_file = tmp_path / "sources" / "foundation_manifest.json"
@@ -133,6 +139,50 @@ def _build_fixture(tmp_path: Path, *, nonfinite_train_snap: bool = False, create
         "val": {"start": "2025-10-01T00:00:00+00:00", "end": "2025-11-30T23:59:59+00:00"},
         "test": {"start": "2025-12-01T00:00:00+00:00", "end": "2025-12-31T23:59:59+00:00"},
     }
+    smart_rebuild_preflight = tmp_path / "ENTRY_SMART_REBUILD_PREFLIGHT_latest.json"
+    _write_json(
+        smart_rebuild_preflight,
+        {
+            "decision": "READY_FOR_SMART_REBUILD_VEDTAK_REVIEW",
+            "failures": [] if preflight_orchestration else [{"check": "inventory feature orchestration contract is ready"}],
+            "training_allowed": False,
+            "dataset_rebuild_allowed_without_vedtak": False,
+            "dataset_rebuild_allowed_after_explicit_vedtak_review": preflight_orchestration,
+            "side_effects_started": {
+                "dataset_rebuild": False,
+                "training": False,
+                "replay": False,
+                "iql_distillation": False,
+                "shadow": False,
+                "live": False,
+            },
+            "inputs": {
+                "smart_manifest": {
+                    "path": str(smart_manifest),
+                    "exists": True,
+                    "sha256": _sha256(smart_manifest),
+                }
+            },
+            "rebuild_command_contract": {
+                "planned_dataset_dir": str(dataset_dir),
+            },
+            "checks": [
+                {
+                    "name": "inventory feature harmony contract is ready",
+                    "ok": True,
+                    "details": {"feature_harmony_ready": True, "unmapped_input_count": 0},
+                },
+                {
+                    "name": "inventory feature orchestration contract is ready",
+                    "ok": preflight_orchestration,
+                    "details": {
+                        "feature_orchestration_ready": preflight_orchestration,
+                        "missing_required_smart_layers": [] if preflight_orchestration else ["mtf_confluence_layer"],
+                    },
+                },
+            ],
+        },
+    )
     if create_dataset:
         for idx, split in enumerate(("train", "val", "test")):
             parquet = dataset_dir / f"v10_smart_seq520_candidate__HOLD_03B_{split}.parquet"
@@ -193,6 +243,7 @@ def _build_fixture(tmp_path: Path, *, nonfinite_train_snap: bool = False, create
         dataset_dir=str(dataset_dir),
         smart_manifest=str(smart_manifest),
         smart_report=str(smart_report),
+        smart_rebuild_preflight=str(smart_rebuild_preflight),
         out_dir=str(tmp_path / "reports"),
         contract_mode="smart_seq520_candidate",
         expected_seq_len=96,
@@ -233,6 +284,11 @@ def test_smart_dataset_post_rebuild_readiness_passes_fullscan_fixture(tmp_path: 
     assert report["signal_routing"]["unmapped_count"] == 0
     assert report["split_scans"]["train"]["total_rows"] == 5
     assert report["split_scans"]["train"]["all_scanned_values_finite"] is True
+    assert report["smart_rebuild_preflight"]["exists"] is True
+    check_names = {row["name"]: row for row in report["checks"]}
+    assert check_names["smart rebuild preflight proves feature harmony"]["ok"] is True
+    assert check_names["smart rebuild preflight proves feature orchestration"]["ok"] is True
+    assert check_names["smart rebuild preflight planned dataset matches audited dataset"]["ok"] is True
     contract = report["post_rebuild_refresh_command_contract"]
     assert contract["ordered_steps"] == [
         "smart_feature_audit",
@@ -307,6 +363,17 @@ def test_smart_dataset_post_rebuild_readiness_fails_closed_when_dataset_missing(
     assert report["training_allowed"] is False
     assert not any(report["side_effects_started"].values())
     assert report["post_rebuild_refresh_command_contract"]["all_commands_avoid_training_replay_iql_shadow_live"] is True
+
+
+def test_smart_dataset_post_rebuild_readiness_fails_closed_without_orchestration_preflight(tmp_path: Path) -> None:
+    report = gate.run(_build_fixture(tmp_path, preflight_orchestration=False))
+
+    assert report["decision"] == gate.BLOCKED_DECISION
+    failure_names = {failure["check"] for failure in report["failures"]}
+    assert "smart rebuild preflight decision is ready" in failure_names
+    assert "smart rebuild preflight proves feature orchestration" in failure_names
+    assert report["training_allowed"] is False
+    assert not any(report["side_effects_started"].values())
 
 
 def test_smart_dataset_post_rebuild_readiness_blocks_nonfinite_sample(tmp_path: Path) -> None:

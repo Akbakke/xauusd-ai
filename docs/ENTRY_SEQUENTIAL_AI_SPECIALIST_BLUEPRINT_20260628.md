@@ -54,6 +54,13 @@ Machine contract:
     `feature_harmony_ready=true` and `feature_orchestration_ready=true` with no
     missing mechanism specialists, input surfaces or smart layers. Smart
     dataset rebuild review cannot open from counts/source coverage alone.
+- Smart post-rebuild readiness:
+  `gx1/scripts/audit_entry_smart_dataset_post_rebuild_readiness_v1.py`
+  - Consumes the smart rebuild preflight report and must fail closed unless
+    that preflight proves feature harmony and feature orchestration, has no
+    failures, matches the audited dataset directory and matches the smart
+    manifest by hash. A rebuilt dataset cannot become smoke/trainability
+    authority if orchestration provenance is missing.
 - Candidate-readiness gate:
   `gx1/scripts/verify_entry_candidate_readiness_v1.py`
   - Supports `foundation_seq146` and `challenger_seq215`. The seq215 report

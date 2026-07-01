@@ -252,6 +252,11 @@ Active status:
   `inventory feature harmony contract is ready` and
   `inventory feature orchestration contract is ready`; smart rebuild review
   cannot open from feature counts or source coverage alone.
+- Smart post-rebuild readiness now consumes the smart rebuild preflight report
+  directly. It must fail closed unless the preflight report proves feature
+  harmony/orchestration, has no failures, matches the audited dataset directory
+  and matches the smart manifest by hash. Smoke/trainability authority cannot
+  be based on a rebuilt dataset with missing orchestration provenance.
 - The smart candidate contract is `smart_seq520_candidate`: expected
   seq/snap width 520, made from 41 base signal fields, 105 reused foundation
   extension fields, 41 chart-geometry fields, 28 candlestick fields and 305
