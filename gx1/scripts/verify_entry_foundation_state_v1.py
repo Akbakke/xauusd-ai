@@ -140,6 +140,7 @@ def _active_entry_artifact_paths() -> list[str]:
         "entry_momentum_flow_challenger_manifest_20260630_v1",
         "entry_session_regime_interaction_manifest_20260630_v1",
         "entry_seq215_manifest_provenance_repair_20260630_v1",
+        "entry_foundation_manifest_provenance_repair_20260701_v1",
         "entry_candidate_bundle_audit_20260628_v1",
         "entry_iql_distillation_contract_20260628_v1",
         "entry_iql_student_trade_log_20260628_v1",
