@@ -12,6 +12,7 @@ from gx1.scripts.verify_entry_replay_readiness_v1 import (
     CHALLENGER_SEQ215_SELECTIVE_EDGE_DIR,
     SMART_SEQ520_CANDIDATE_BUNDLE_AUDIT,
     SMART_SEQ520_CANDIDATE_READINESS_LATEST,
+    SMART_SEQ520_DATASET_DIR,
     SMART_SEQ520_REPLAY_DIR,
     SMART_SEQ520_SELECTIVE_EDGE_DIR,
     _candidate_bundle_audit_checks,
@@ -282,6 +283,30 @@ def test_selective_edge_checks_pass_on_candidate_contract() -> None:
         min_top10_mean_pnl_bps=0.0,
         require_no_xgb_ablation=True,
         expected_bundle_dir="/tmp/candidate_bundle",
+    )
+
+    assert all(check["ok"] for check in checks)
+
+
+def test_selective_edge_checks_accept_smart_dataset_contract() -> None:
+    summary = _selective_summary()
+    summary["contract_mode"] = "smart_seq520_candidate"
+    summary["dataset_dir"] = str(SMART_SEQ520_DATASET_DIR)
+    summary["bundle_seq_input_dim"] = 520
+    summary["bundle_snap_input_dim"] = 520
+    summary["bundle_specialist_contract"] = _specialist_snapshot("smart_seq520_candidate")
+    summary["no_xgb_bundle_specialist_contract"] = _specialist_snapshot("smart_seq520_candidate")
+
+    checks = _selective_edge_checks(
+        summary,
+        _selective_metrics(),
+        model_name="candidate",
+        min_top5_mean_pnl_bps=0.0,
+        min_top10_mean_pnl_bps=0.0,
+        require_no_xgb_ablation=True,
+        expected_bundle_dir="/tmp/candidate_bundle",
+        expected_dataset_dir=SMART_SEQ520_DATASET_DIR,
+        expected_contract_mode="smart_seq520_candidate",
     )
 
     assert all(check["ok"] for check in checks)

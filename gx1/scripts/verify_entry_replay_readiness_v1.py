@@ -168,6 +168,7 @@ def _selective_edge_checks(
     min_top10_mean_pnl_bps: float,
     require_no_xgb_ablation: bool,
     expected_bundle_dir: str | None = None,
+    expected_dataset_dir: Path = FOUNDATION_DATASET_DIR,
     expected_contract_mode: str = "foundation_seq146",
 ) -> list[dict[str, Any]]:
     splits = set(str(x) for x in summary.get("splits", []))
@@ -254,7 +255,11 @@ def _selective_edge_checks(
     return [
         _check("selective-edge summary PASS", str(summary.get("decision")) == "PASS", {"failures": summary.get("failures")}),
         _check("selective-edge summary has zero failures", not summary.get("failures"), {"failures": summary.get("failures")}),
-        _check("selective-edge summary uses foundation dataset", _same_resolved_path(summary.get("dataset_dir"), FOUNDATION_DATASET_DIR)),
+        _check(
+            "selective-edge summary uses expected dataset",
+            _same_resolved_path(summary.get("dataset_dir"), expected_dataset_dir),
+            {"expected_dataset_dir": str(expected_dataset_dir), "summary_dataset_dir": summary.get("dataset_dir")},
+        ),
         _check(
             "selective-edge summary matches candidate bundle audit bundle",
             True if expected_bundle_dir is None else str(summary.get("bundle_dir")) == str(expected_bundle_dir),
@@ -790,6 +795,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             min_top10_mean_pnl_bps=float(args.min_top10_mean_pnl_bps),
             require_no_xgb_ablation=bool(args.require_no_xgb_ablation),
             expected_bundle_dir=expected_candidate_bundle_dir,
+            expected_dataset_dir=expected_dataset_dir,
             expected_contract_mode=contract_mode,
         ),
         "offline_replay": _replay_checks(
