@@ -1604,6 +1604,31 @@ def _audit_split(
     return report, failures
 
 
+def _require_edge_failures(split: str, split_report: dict[str, Any]) -> list[str]:
+    failures: list[str] = []
+    if not bool(split_report["direction"]["beats_majority_baseline"]):
+        failures.append(f"{split}: direction accuracy does not beat majority baseline")
+    distribution_contract = split_report.get("direction_distribution_contract") or {}
+    if str(distribution_contract.get("decision")) != "PASS":
+        failures.append(
+            f"{split}: direction distribution collapsed: "
+            f"{distribution_contract.get('failures')}"
+        )
+    slice_contract = split_report.get("direction_slice_contract") or {}
+    if str(slice_contract.get("decision")) != "PASS":
+        failures.append(
+            f"{split}: direction slice diagnostics failed: "
+            f"{slice_contract.get('failures')}"
+        )
+    path_rho = split_report["path_quality"]["pred_vs_target_spearman"]
+    if path_rho is None or float(path_rho) <= 0.0:
+        failures.append(f"{split}: path_quality_pred is not positively related to path_quality_bps")
+    bad_path_rho = split_report["bad_path"]["prob_vs_path_quality_spearman"]
+    if bad_path_rho is None or float(bad_path_rho) >= 0.0:
+        failures.append(f"{split}: bad_path_prob is not negatively related to path_quality_bps")
+    return failures
+
+
 def _write_markdown(path: Path, report: dict[str, Any]) -> None:
     lines = [
         "# Entry Foundation Smoke Bundle Audit",
@@ -1772,23 +1797,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 )
             )
         if args.require_edge:
-            if not bool(split_report["direction"]["beats_majority_baseline"]):
-                failures.append(f"{split}: direction accuracy does not beat majority baseline")
-            distribution_contract = split_report.get("direction_distribution_contract") or {}
-            if str(distribution_contract.get("decision")) != "PASS":
-                failures.append(
-                    f"{split}: direction distribution collapsed: "
-                    f"{distribution_contract.get('failures')}"
-                )
-            slice_contract = split_report.get("direction_slice_contract") or {}
-            if str(slice_contract.get("decision")) != "PASS":
-                failures.append(
-                    f"{split}: direction slice diagnostics failed: "
-                    f"{slice_contract.get('failures')}"
-                )
-            rho = split_report["bad_path"]["prob_vs_path_quality_spearman"]
-            if rho is None or float(rho) >= 0.0:
-                failures.append(f"{split}: bad_path_prob is not negatively related to path_quality_bps")
+            failures.extend(_require_edge_failures(split, split_report))
 
     head_contract = None
     if args.require_head_contract:

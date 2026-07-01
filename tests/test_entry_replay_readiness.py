@@ -186,6 +186,11 @@ def _replay_trades() -> pd.DataFrame:
 def _candidate_bundle_audit() -> dict:
     split = {
         "rows": 128,
+        "direction": {"beats_majority_baseline": True},
+        "direction_distribution_contract": {"decision": "PASS", "failures": []},
+        "direction_slice_contract": {"decision": "PASS", "failures": [], "audited_slice_count": 2},
+        "path_quality": {"pred_vs_target_spearman": 0.25},
+        "bad_path": {"prob_vs_path_quality_spearman": -0.25},
         "specialist_gate": {
             "mean_weight": {
                 "structure_swing_encoder": 0.18,
@@ -202,6 +207,7 @@ def _candidate_bundle_audit() -> dict:
         "failures": [],
         "specialist_contract_mode": "foundation_seq146",
         "dataset_dir": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_foundation_seq146_neutral",
+        "require_edge": True,
         "require_specialist_fusion": True,
         "required_training_specialists": [
             "structure_swing_encoder",
@@ -233,6 +239,17 @@ def _candidate_bundle_audit() -> dict:
             "bad_path_quality_rank_weight": 2.0,
             "bad_path_quality_rank_margin": 0.25,
             "bad_path_quality_rank_quantile": 0.25,
+        },
+        "direction_balance_recipe_contract": {
+            "decision": "PASS",
+            "failures": [],
+            "active_heads": list(EXPECTED_ACTIVE_TRAINING_HEADS),
+            "direction_active": True,
+            "pred_balance_alpha": 0.05,
+            "pred_balance_target": "label",
+            "pred_balance_class_weights": [1.0, 1.0, 1.0],
+            "direction_ce_scale": 1.30,
+            "ckpt_monitor": "dir_acc",
         },
         "tail_direction_recipe_contract": {
             "decision": "PASS",
@@ -618,6 +635,67 @@ def test_candidate_bundle_audit_checks_reject_missing_path_calibration_recipe(tm
     failed = {check["name"] for check in checks if not check["ok"]}
 
     assert "candidate bundle path calibration recipe contract PASS" in failed
+
+
+def test_candidate_bundle_audit_checks_reject_missing_require_edge(tmp_path: Path) -> None:
+    audit_path = tmp_path / "candidate_audit.json"
+    audit_path.write_text("{}", encoding="utf-8")
+    report = _candidate_bundle_audit()
+    report["require_edge"] = False
+
+    checks = _candidate_bundle_audit_checks(audit_path, report)
+    failed = {check["name"] for check in checks if not check["ok"]}
+
+    assert "candidate bundle audit was run with require_edge" in failed
+
+
+def test_candidate_bundle_audit_checks_reject_candidate_direction_collapse(tmp_path: Path) -> None:
+    audit_path = tmp_path / "candidate_audit.json"
+    audit_path.write_text("{}", encoding="utf-8")
+    report = _candidate_bundle_audit()
+    report["splits"]["test"]["direction_distribution_contract"] = {
+        "decision": "FAIL",
+        "failures": ["FLAT prediction_rate=0.030000 below required 0.120000"],
+    }
+
+    checks = _candidate_bundle_audit_checks(audit_path, report)
+    failed = {check["name"] for check in checks if not check["ok"]}
+
+    assert "candidate bundle direction distribution covers active classes" in failed
+
+
+def test_candidate_bundle_audit_checks_reject_wrong_signed_candidate_path_heads(tmp_path: Path) -> None:
+    audit_path = tmp_path / "candidate_audit.json"
+    audit_path.write_text("{}", encoding="utf-8")
+    report = _candidate_bundle_audit()
+    report["splits"]["val"]["path_quality"]["pred_vs_target_spearman"] = -0.10
+    report["splits"]["test"]["bad_path"]["prob_vs_path_quality_spearman"] = 0.10
+
+    checks = _candidate_bundle_audit_checks(audit_path, report)
+    failed = {check["name"] for check in checks if not check["ok"]}
+
+    assert "candidate bundle path_quality ranks realized path quality positively" in failed
+    assert "candidate bundle bad_path ranks worse path quality higher" in failed
+
+
+def test_candidate_bundle_audit_checks_reject_missing_direction_balance_recipe(tmp_path: Path) -> None:
+    audit_path = tmp_path / "candidate_audit.json"
+    audit_path.write_text("{}", encoding="utf-8")
+    report = _candidate_bundle_audit()
+    report["direction_balance_recipe_contract"] = {
+        "decision": "FAIL",
+        "direction_active": True,
+        "pred_balance_alpha": 0.0,
+        "pred_balance_target": "uniform",
+        "direction_ce_scale": 1.30,
+        "ckpt_monitor": "val_loss",
+        "failures": ["direction active head requires pred_balance_target=label"],
+    }
+
+    checks = _candidate_bundle_audit_checks(audit_path, report)
+    failed = {check["name"] for check in checks if not check["ok"]}
+
+    assert "candidate bundle direction balance recipe contract PASS" in failed
 
 
 def test_candidate_bundle_audit_checks_reject_missing_tail_direction_recipe(tmp_path: Path) -> None:

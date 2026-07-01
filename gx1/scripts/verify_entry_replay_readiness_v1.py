@@ -480,6 +480,11 @@ def _candidate_bundle_audit_checks(
         if isinstance(report.get("path_calibration_recipe_contract"), dict)
         else {}
     )
+    direction_balance = (
+        report.get("direction_balance_recipe_contract")
+        if isinstance(report.get("direction_balance_recipe_contract"), dict)
+        else {}
+    )
     tail_direction = (
         report.get("tail_direction_recipe_contract")
         if isinstance(report.get("tail_direction_recipe_contract"), dict)
@@ -498,6 +503,7 @@ def _candidate_bundle_audit_checks(
         if isinstance(row, dict)
     }
     split_rows = {split: int((row or {}).get("rows") or 0) for split, row in splits.items()}
+    split_names = tuple(split for split in ("val", "test") if split in splits)
     specialist_groups = set(str(x) for x in bundle.get("specialist_groups", []) if str(x))
     required_specialists = {str(x) for x in report.get("required_training_specialists", []) if str(x)}
     expected_contract_mode = _normalize_contract_mode(contract_mode)
@@ -514,10 +520,31 @@ def _candidate_bundle_audit_checks(
         for group in expected_specialist_groups:
             if float(mean_weight.get(group) or 0.0) <= 0.01:
                 required_gate_live = False
+    direction_by_split = {
+        split: (splits.get(split) or {}).get("direction") or {}
+        for split in split_names
+    }
+    distribution_by_split = {
+        split: (splits.get(split) or {}).get("direction_distribution_contract") or {}
+        for split in split_names
+    }
+    slice_by_split = {
+        split: (splits.get(split) or {}).get("direction_slice_contract") or {}
+        for split in split_names
+    }
+    path_quality_rho = {
+        split: ((splits.get(split) or {}).get("path_quality") or {}).get("pred_vs_target_spearman")
+        for split in split_names
+    }
+    bad_path_rho = {
+        split: ((splits.get(split) or {}).get("bad_path") or {}).get("prob_vs_path_quality_spearman")
+        for split in split_names
+    }
     return [
         _check("candidate bundle audit exists", exists, {"path": str(path)}),
         _check("candidate bundle audit PASS", exists and str(report.get("decision")) == "PASS", {"failures": report.get("failures")}),
         _check("candidate bundle audit has zero failures", exists and not report.get("failures"), {"failures": report.get("failures")}),
+        _check("candidate bundle audit was run with require_edge", exists and bool(report.get("require_edge"))),
         _check(
             "candidate bundle audit used expected dataset",
             exists and _same_resolved_path(report.get("dataset_dir"), expected_dataset_dir),
@@ -608,6 +635,18 @@ def _candidate_bundle_audit_checks(
             },
         ),
         _check(
+            "candidate bundle direction balance recipe contract PASS",
+            exists
+            and str(direction_balance.get("decision")) == "PASS"
+            and not direction_balance.get("failures")
+            and bool(direction_balance.get("direction_active"))
+            and float(direction_balance.get("pred_balance_alpha") or 0.0) >= 0.05
+            and str(direction_balance.get("pred_balance_target") or "").strip().lower() == "label"
+            and float(direction_balance.get("direction_ce_scale") or 0.0) > 0.0
+            and str(direction_balance.get("ckpt_monitor") or "").strip().lower() == "dir_acc",
+            {"direction_balance_recipe_contract": direction_balance},
+        ),
+        _check(
             "candidate bundle path calibration recipe contract PASS",
             exists
             and str(path_calibration.get("decision")) == "PASS"
@@ -628,6 +667,45 @@ def _candidate_bundle_audit_checks(
             and int(tail_direction.get("tail_direction_min_batch") or 0) >= 2
             and str(tail_direction.get("tail_direction_mask") or "") == "directional_tradable_clean_path_top_quality",
             {"tail_direction_recipe_contract": tail_direction},
+        ),
+        _check(
+            "candidate bundle direction beats majority on val/test",
+            exists
+            and bool(split_names)
+            and all(bool((direction_by_split.get(split) or {}).get("beats_majority_baseline")) for split in split_names),
+            {"direction": direction_by_split},
+        ),
+        _check(
+            "candidate bundle direction distribution covers active classes",
+            exists
+            and bool(split_names)
+            and all(str((distribution_by_split.get(split) or {}).get("decision")) == "PASS" for split in split_names),
+            {"direction_distribution": distribution_by_split},
+        ),
+        _check(
+            "candidate bundle direction context slices pass",
+            exists
+            and bool(split_names)
+            and all(
+                str((slice_by_split.get(split) or {}).get("decision")) == "PASS"
+                and int((slice_by_split.get(split) or {}).get("audited_slice_count") or 0) > 0
+                for split in split_names
+            ),
+            {"direction_slices": slice_by_split},
+        ),
+        _check(
+            "candidate bundle path_quality ranks realized path quality positively",
+            exists
+            and bool(split_names)
+            and all(value is not None and float(value) > 0.0 for value in path_quality_rho.values()),
+            {"path_quality_pred_vs_target_spearman": path_quality_rho},
+        ),
+        _check(
+            "candidate bundle bad_path ranks worse path quality higher",
+            exists
+            and bool(split_names)
+            and all(value is not None and float(value) < 0.0 for value in bad_path_rho.values()),
+            {"bad_path_prob_vs_path_quality_spearman": bad_path_rho},
         ),
         _check(
             "candidate bundle audit validated pre-train manifest provenance",

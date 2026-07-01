@@ -276,6 +276,12 @@ The 2026-07-01 operating point is feature-harmony clean but not promotion-ready:
   distribution coverage on audited smoke splits. A bundle that beats majority
   by collapsing away from a common class, including underpredicting FLAT and
   overtrading LONG/SHORT, must remain blocked before candidate training.
+- Candidate post-train audit and replay-readiness are now edge-required too:
+  a candidate bundle cannot become replay/IQL authority unless its full
+  val/test audit was run with `--require-edge` and proves direction majority,
+  class-distribution coverage, context slices, direction-balance recipe,
+  positive `path_quality_pred` rank correlation and negative `bad_path_prob`
+  rank correlation against realized path quality.
 - Smoke bundle audit now carries direction context slice diagnostics for
   categorical context buckets. Candidate-readiness must fail closed when an
   audited session/regime/ATR/spread/H4-trend slice with enough rows and label

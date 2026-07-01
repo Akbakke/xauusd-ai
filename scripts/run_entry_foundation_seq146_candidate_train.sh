@@ -301,6 +301,7 @@ AUDIT_CMD=(
   --splits val,test
   --device "$AUDIT_DEVICE"
   --batch-size "$AUDIT_BATCH_SIZE"
+  --require-edge
   --require-head-contract
   --out-dir "$CANDIDATE_AUDIT_OUT"
   --pretrain-manifest-json "$CANDIDATE_MANIFEST"

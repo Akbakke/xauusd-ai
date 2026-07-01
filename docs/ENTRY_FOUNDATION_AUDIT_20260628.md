@@ -360,6 +360,14 @@ Active status:
   audited splits; old smoke bundles without these contracts cannot open
   candidate training, even if their older aggregate direction/PnL diagnostics
   looked acceptable.
+- Candidate post-train bundle audit must also run with `--require-edge`.
+  Replay-readiness may not accept a candidate bundle unless that full candidate
+  audit proves edge-required direction majority, LONG/SHORT/FLAT distribution,
+  context slice diagnostics, direction-balance recipe, positive
+  `path_quality_pred` rank correlation to realized `path_quality_bps`, and
+  negative `bad_path_prob` rank correlation to realized path quality. This
+  prevents IQL from consuming a full candidate whose broad metrics look
+  acceptable while direction/class balance or path heads are wrong-signed.
 - Smoke bundle audit and candidate-readiness must also prove direction context
   slice diagnostics across available categorical buckets such as session,
   volatility regime, ATR bucket, spread bucket and H4 trend sign. Audited

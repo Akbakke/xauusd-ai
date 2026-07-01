@@ -87,6 +87,7 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
 
     assert "AUDIT_CMD" in text
     assert "audit-smoke-bundle" in text
+    assert "--require-edge" in text
     assert "--require-head-contract" in text
     assert "--pretrain-manifest-json" in text
     assert "ENTRY_FOUNDATION_CANDIDATE_TRAIN_RUN_MANIFEST" in text

@@ -16,6 +16,7 @@ from gx1.scripts.audit_entry_foundation_smoke_bundle_v1 import (
     _majority_baseline_accuracy,
     _path_calibration_recipe_contract,
     _pretrain_manifest_contract_report,
+    _require_edge_failures,
     _sha256_file,
     _spearman,
     _specialist_gate_failures,
@@ -361,6 +362,33 @@ def test_spearman_reports_negative_bad_path_relation() -> None:
     path_quality = np.array([-8.0, -2.0, 5.0, 12.0], dtype=np.float32)
 
     assert _spearman(bad_path_prob, path_quality) == -1.0
+
+
+def test_require_edge_failures_rejects_wrong_signed_path_heads() -> None:
+    split_report = {
+        "direction": {"beats_majority_baseline": True},
+        "direction_distribution_contract": {"decision": "PASS", "failures": []},
+        "direction_slice_contract": {"decision": "PASS", "failures": []},
+        "path_quality": {"pred_vs_target_spearman": -0.10},
+        "bad_path": {"prob_vs_path_quality_spearman": 0.10},
+    }
+
+    failures = _require_edge_failures("test", split_report)
+
+    assert "test: path_quality_pred is not positively related to path_quality_bps" in failures
+    assert "test: bad_path_prob is not negatively related to path_quality_bps" in failures
+
+
+def test_require_edge_failures_accepts_correct_signed_path_heads() -> None:
+    split_report = {
+        "direction": {"beats_majority_baseline": True},
+        "direction_distribution_contract": {"decision": "PASS", "failures": []},
+        "direction_slice_contract": {"decision": "PASS", "failures": []},
+        "path_quality": {"pred_vs_target_spearman": 0.10},
+        "bad_path": {"prob_vs_path_quality_spearman": -0.10},
+    }
+
+    assert _require_edge_failures("val", split_report) == []
 
 
 def test_path_calibration_recipe_contract_requires_full_batch_path_quality_rank() -> None:
