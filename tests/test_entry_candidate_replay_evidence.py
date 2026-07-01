@@ -244,6 +244,8 @@ def test_replay_evidence_run_writes_readiness_files(tmp_path: Path) -> None:
     assert report["replay_started"] is False
     assert report["iql_transition_dataset_ready"] is True
     assert report["replay_identity_contract"]["ready"] is True
+    assert report["replay_identity_contract"]["candidate_bundle_audit_sha256"]
+    assert report["replay_identity_contract"]["selective_edge_summary_sha256"]
     assert report["promotion_shadow_live_allowed"] is False
     assert (out_dir / "replay_policy_metrics.csv").exists()
     assert (out_dir / "replay_policy_monthly.csv").exists()

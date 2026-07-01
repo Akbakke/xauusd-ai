@@ -49,6 +49,8 @@ CHALLENGER_SEQ215_CANDIDATE_BUNDLE_AUDIT = (
     REPORTS_ROOT
     / "entry_candidate_bundle_audit_20260628_v1/challenger_seq215_20260630/ENTRY_FOUNDATION_SMOKE_BUNDLE_AUDIT_latest.json"
 )
+CHALLENGER_SEQ215_SELECTIVE_EDGE_DIR = DEFAULT_SELECTIVE_EDGE_DIR / "challenger_seq215_20260630"
+CHALLENGER_SEQ215_REPLAY_DIR = DEFAULT_REPLAY_DIR / "challenger_seq215_20260630"
 DEFAULT_OUT_DIR = REPORTS_ROOT / "entry_replay_readiness_20260628_v1"
 CHALLENGER_SEQ215_OUT_DIR = DEFAULT_OUT_DIR / "challenger_seq215_20260630"
 SMART_SEQ520_CANDIDATE_READINESS_LATEST = (
@@ -58,6 +60,8 @@ SMART_SEQ520_CANDIDATE_BUNDLE_AUDIT = (
     REPORTS_ROOT
     / "entry_candidate_bundle_audit_20260628_v1/smart_seq520_candidate/ENTRY_FOUNDATION_SMOKE_BUNDLE_AUDIT_latest.json"
 )
+SMART_SEQ520_SELECTIVE_EDGE_DIR = DEFAULT_SELECTIVE_EDGE_DIR / "smart_seq520_candidate"
+SMART_SEQ520_REPLAY_DIR = DEFAULT_REPLAY_DIR / "smart_seq520_candidate"
 SMART_SEQ520_OUT_DIR = DEFAULT_OUT_DIR / "smart_seq520_candidate"
 CHALLENGER_SEQ215_DATASET_DIR = (
     Path("/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605")
@@ -665,12 +669,21 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     requested_contract_mode = getattr(args, "contract_mode", None)
     candidate_readiness_raw = Path(args.candidate_readiness_json).expanduser()
     candidate_bundle_audit_raw = Path(args.candidate_bundle_audit_json).expanduser()
+    selective_summary_raw = Path(args.selective_edge_summary_json).expanduser()
+    selective_metrics_raw = Path(args.selective_edge_metrics_csv).expanduser()
+    replay_dir_raw = Path(args.replay_dir).expanduser()
     out_dir_raw = Path(args.out_dir).expanduser()
     if requested_contract_mode == "challenger_seq215":
         if candidate_readiness_raw == CANDIDATE_READINESS_LATEST:
             candidate_readiness_raw = CHALLENGER_SEQ215_CANDIDATE_READINESS_LATEST
         if candidate_bundle_audit_raw == DEFAULT_CANDIDATE_BUNDLE_AUDIT:
             candidate_bundle_audit_raw = CHALLENGER_SEQ215_CANDIDATE_BUNDLE_AUDIT
+        if selective_summary_raw == DEFAULT_SELECTIVE_EDGE_DIR / "summary.json":
+            selective_summary_raw = CHALLENGER_SEQ215_SELECTIVE_EDGE_DIR / "summary.json"
+        if selective_metrics_raw == DEFAULT_SELECTIVE_EDGE_DIR / "selective_edge_metrics.csv":
+            selective_metrics_raw = CHALLENGER_SEQ215_SELECTIVE_EDGE_DIR / "selective_edge_metrics.csv"
+        if replay_dir_raw == DEFAULT_REPLAY_DIR:
+            replay_dir_raw = CHALLENGER_SEQ215_REPLAY_DIR
         if out_dir_raw == DEFAULT_OUT_DIR:
             out_dir_raw = CHALLENGER_SEQ215_OUT_DIR
     elif requested_contract_mode == "smart_seq520_candidate":
@@ -678,6 +691,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             candidate_readiness_raw = SMART_SEQ520_CANDIDATE_READINESS_LATEST
         if candidate_bundle_audit_raw == DEFAULT_CANDIDATE_BUNDLE_AUDIT:
             candidate_bundle_audit_raw = SMART_SEQ520_CANDIDATE_BUNDLE_AUDIT
+        if selective_summary_raw == DEFAULT_SELECTIVE_EDGE_DIR / "summary.json":
+            selective_summary_raw = SMART_SEQ520_SELECTIVE_EDGE_DIR / "summary.json"
+        if selective_metrics_raw == DEFAULT_SELECTIVE_EDGE_DIR / "selective_edge_metrics.csv":
+            selective_metrics_raw = SMART_SEQ520_SELECTIVE_EDGE_DIR / "selective_edge_metrics.csv"
+        if replay_dir_raw == DEFAULT_REPLAY_DIR:
+            replay_dir_raw = SMART_SEQ520_REPLAY_DIR
         if out_dir_raw == DEFAULT_OUT_DIR:
             out_dir_raw = SMART_SEQ520_OUT_DIR
 
@@ -685,9 +704,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     out_dir.mkdir(parents=True, exist_ok=True)
     candidate_readiness_path = candidate_readiness_raw.resolve()
     candidate_bundle_audit_path = candidate_bundle_audit_raw.resolve()
-    selective_summary_path = Path(args.selective_edge_summary_json).expanduser().resolve()
-    selective_metrics_path = Path(args.selective_edge_metrics_csv).expanduser().resolve()
-    replay_dir = Path(args.replay_dir).expanduser().resolve()
+    selective_summary_path = selective_summary_raw.resolve()
+    selective_metrics_path = selective_metrics_raw.resolve()
+    replay_dir = replay_dir_raw.resolve()
 
     candidate_readiness = _read_json(candidate_readiness_path)
     candidate_bundle_audit = _read_json(candidate_bundle_audit_path) if candidate_bundle_audit_path.exists() else {}

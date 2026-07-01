@@ -8,6 +8,12 @@ from gx1.features.entry_specialist_feature_groups_v1 import required_training_sp
 from gx1.scripts.verify_entry_replay_readiness_v1 import (
     CHALLENGER_SEQ215_CANDIDATE_BUNDLE_AUDIT,
     CHALLENGER_SEQ215_CANDIDATE_READINESS_LATEST,
+    CHALLENGER_SEQ215_REPLAY_DIR,
+    CHALLENGER_SEQ215_SELECTIVE_EDGE_DIR,
+    SMART_SEQ520_CANDIDATE_BUNDLE_AUDIT,
+    SMART_SEQ520_CANDIDATE_READINESS_LATEST,
+    SMART_SEQ520_REPLAY_DIR,
+    SMART_SEQ520_SELECTIVE_EDGE_DIR,
     _candidate_bundle_audit_checks,
     _replay_checks,
     _selective_edge_checks,
@@ -19,7 +25,7 @@ from gx1.scripts.verify_entry_training_readiness_v1 import EXPECTED_ACTIVE_TRAIN
 
 def _specialist_snapshot(mode: str = "foundation_seq146") -> dict:
     expected = sorted(required_training_specialists_for_mode(mode))
-    dim = 215 if mode == "challenger_seq215" else 146
+    dim = {"foundation_seq146": 146, "challenger_seq215": 215, "smart_seq520_candidate": 520}[mode]
     return {
         "requested_contract_mode": mode,
         "observed_contract_mode": mode,
@@ -645,9 +651,16 @@ def test_candidate_bundle_audit_accepts_resolved_foundation_dataset_path(tmp_pat
     path = tmp_path / "candidate_audit.json"
     path.write_text(json.dumps(report), encoding="utf-8")
 
-    checks = {check["name"]: check for check in _candidate_bundle_audit_checks(path, report)}
+    checks = {
+        check["name"]: check
+        for check in _candidate_bundle_audit_checks(
+            path,
+            report,
+            expected_dataset_dir=Path(report["dataset_dir"]),
+        )
+    }
 
-    assert checks["candidate bundle audit used foundation dataset"]["ok"] is True
+    assert checks["candidate bundle audit used expected dataset"]["ok"] is True
 
 
 def test_replay_readiness_current_artifacts_are_not_ready(tmp_path: Path) -> None:
@@ -703,6 +716,28 @@ def test_replay_readiness_challenger_seq215_rewrites_default_contract_paths(tmp_
     assert report["contract_mode"] == "challenger_seq215"
     assert report["candidate_readiness_json"] == str(CHALLENGER_SEQ215_CANDIDATE_READINESS_LATEST.resolve())
     assert report["candidate_bundle_audit_json"] == str(CHALLENGER_SEQ215_CANDIDATE_BUNDLE_AUDIT.resolve())
+    assert report["selective_edge_summary_json"] == str((CHALLENGER_SEQ215_SELECTIVE_EDGE_DIR / "summary.json").resolve())
+    assert report["selective_edge_metrics_csv"] == str(
+        (CHALLENGER_SEQ215_SELECTIVE_EDGE_DIR / "selective_edge_metrics.csv").resolve()
+    )
+    assert report["replay_dir"] == str(CHALLENGER_SEQ215_REPLAY_DIR.resolve())
     assert Path(report["json_path"]).parent == tmp_path.resolve()
     assert report["decision"] == "NOT_READY_FOR_IQL_DISTILLATION"
+    assert report["promotion_shadow_live_allowed"] is False
+
+
+def test_replay_readiness_smart_seq520_rewrites_default_contract_paths(tmp_path: Path) -> None:
+    args = build_parser().parse_args(
+        ["--smart-seq520", "--quiet", "--no-fail-on-not-ready", "--out-dir", str(tmp_path)]
+    )
+    report = run(args)
+
+    assert report["contract_mode"] == "smart_seq520_candidate"
+    assert report["candidate_readiness_json"] == str(SMART_SEQ520_CANDIDATE_READINESS_LATEST.resolve())
+    assert report["candidate_bundle_audit_json"] == str(SMART_SEQ520_CANDIDATE_BUNDLE_AUDIT.resolve())
+    assert report["selective_edge_summary_json"] == str((SMART_SEQ520_SELECTIVE_EDGE_DIR / "summary.json").resolve())
+    assert report["selective_edge_metrics_csv"] == str(
+        (SMART_SEQ520_SELECTIVE_EDGE_DIR / "selective_edge_metrics.csv").resolve()
+    )
+    assert report["replay_dir"] == str(SMART_SEQ520_REPLAY_DIR.resolve())
     assert report["promotion_shadow_live_allowed"] is False

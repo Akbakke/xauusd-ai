@@ -327,6 +327,12 @@ def _identity_contract(
         "contract_mode": contract_mode,
         "selective_edge_contract_mode": selective_contract_mode,
         "expected_input_dim": expected_input_dim,
+        "candidate_bundle_audit_sha256": _sha256_file(candidate_bundle_audit_path)
+        if candidate_bundle_audit_path.exists()
+        else "",
+        "selective_edge_summary_sha256": _sha256_file(selective_edge_summary_path)
+        if selective_edge_summary_path.exists()
+        else "",
         "candidate_bundle_seq_input_dim": bundle_seq_input_dim,
         "candidate_bundle_snap_input_dim": bundle_snap_input_dim,
         "selective_edge_seq_input_dim": selective_seq_input_dim,
