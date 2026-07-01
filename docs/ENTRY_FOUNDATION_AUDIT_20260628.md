@@ -231,10 +231,12 @@ Active status:
   extension fields, 41 chart-geometry fields, 28 candlestick fields and 305
   smart-layer fields across ten layers. All ten smart layers have required
   source coverage and zero missing required source fields.
-- Smart trainability and candidate-readiness are green:
-  `READY_FOR_SMART_SEQ520_TRAINABILITY_REVIEW` and
-  `READY_FOR_CANDIDATE_TRAINING_VEDTAK` under
-  `specialist_contract_mode=smart_seq520_candidate`.
+- Smart trainability is green:
+  `READY_FOR_SMART_SEQ520_TRAINABILITY_REVIEW` under
+  `specialist_contract_mode=smart_seq520_candidate`. Smart candidate-readiness
+  is intentionally `NOT_READY_FOR_CANDIDATE_TRAINING` until a newly trained
+  smart smoke bundle carries `path_calibration_recipe_contract=PASS`; the
+  latest old smart smoke bundle has `path_calibration_recipe_contract=null`.
 - The broad/default smart replay is not approved for IQL because drawdown is
   too high: the latest default replay-readiness remains
   `NOT_READY_FOR_IQL_DISTILLATION` with max drawdown about 1342 bps against
