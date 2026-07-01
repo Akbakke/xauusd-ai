@@ -210,6 +210,10 @@ The 2026-07-01 operating point is feature-harmony clean but not promotion-ready:
   recipe into future vedtak-gated runs. Existing selected smart replay
   artifacts are still old and must remain failed until a new capped smart
   smoke/candidate bundle proves corrected calibration in replay.
+- Commit `38170e56` makes that repair a gate, not just trainer code:
+  smoke/candidate bundle audit and replay-readiness now require
+  `path_calibration_recipe_contract=PASS` with full-batch path-quality ranking
+  before any candidate bundle can be replay/IQL authority.
 - Raw direction accuracy around 0.40 is a weak sanity diagnostic, not the
   primary objective. The smart selected replay has direction precision only
   about 0.478 for candidate and 0.452 for IQL, so the next improvement must

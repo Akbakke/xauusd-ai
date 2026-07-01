@@ -258,6 +258,12 @@ Active status:
   recipe into future vedtak-gated runs. Existing smart replay artifacts are
   still old and must remain failed until a new capped smart smoke/candidate
   bundle proves corrected calibration in replay.
+- Commit `38170e56` locks that repair into the proof gates: smoke/candidate
+  bundle audit and replay-readiness now require a passing
+  `path_calibration_recipe_contract` with full-batch path-quality ranking
+  before a candidate bundle can be replay/IQL authority. Old bundle-audit
+  reports without this recipe are fail-closed until regenerated from a newly
+  trained bundle.
 - Raw smoke/bundle direction accuracy around 0.40 is not an acceptance metric by
   itself. It is only a sanity diagnostic against the majority baseline; Entry
   acceptance remains replay/PnL, drawdown, MAE, bad-path, calibration and
