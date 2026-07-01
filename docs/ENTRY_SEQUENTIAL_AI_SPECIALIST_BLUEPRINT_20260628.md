@@ -284,6 +284,11 @@ The 2026-07-01 operating point is feature-harmony clean but not promotion-ready:
   cost-sensitive loss is disabled. This keeps the smart FLAT-repair recipe from
   becoming metadata-only while checkpoint selection and bundle audits appear
   wired.
+- If the class-balance checkpoint guard is active, training must stop before
+  bundle write unless the best checkpoint has
+  `best_direction_balance_guard_ok=true`. Smoke/candidate bundle audit must
+  fail closed on the same proof, so collapsed LONG/SHORT/FLAT coverage cannot
+  survive as a downstream candidate artifact.
 - Smart smoke/candidate training must also carry the tail-direction recipe:
   `ENTRY_TAIL_DIRECTION_CE_WEIGHT=0.35`,
   `ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE=0.70` and

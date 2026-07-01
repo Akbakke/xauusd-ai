@@ -449,6 +449,7 @@ def test_direction_balance_recipe_contract_requires_label_balance_and_dir_acc_mo
 
 def test_smart_direction_balance_recipe_contract_requires_flat_repair_weights() -> None:
     meta = {
+        "best_direction_balance_guard_ok": True,
         "train_recipe": {
             "active_heads": ["direction", "path_quality", "bad_path"],
             "pred_balance_alpha": 0.20,
@@ -470,6 +471,7 @@ def test_smart_direction_balance_recipe_contract_requires_flat_repair_weights() 
     assert report["ckpt_class_balance_guard_weight"] == 0.50
     assert report["ckpt_class_balance_min_pred_to_label"] == 0.35
     assert report["ckpt_class_balance_min_pred_rate"] == 0.05
+    assert report["best_direction_balance_guard_ok"] is True
 
 
 def test_smart_direction_balance_recipe_contract_rejects_weak_flat_repair() -> None:
@@ -490,6 +492,29 @@ def test_smart_direction_balance_recipe_contract_rejects_weak_flat_repair() -> N
     assert any("pred_balance_alpha" in failure for failure in report["failures"])
     assert any("pred_balance_class_weights" in failure for failure in report["failures"])
     assert any("ckpt_class_balance_guard_weight" in failure for failure in report["failures"])
+
+
+def test_smart_direction_balance_recipe_contract_rejects_failed_best_checkpoint_guard() -> None:
+    meta = {
+        "best_direction_balance_guard_ok": False,
+        "train_recipe": {
+            "active_heads": ["direction", "path_quality", "bad_path"],
+            "pred_balance_alpha": 0.20,
+            "pred_balance_target": "label",
+            "pred_balance_class_weights": [1.0, 1.0, 4.0],
+            "direction_ce_scale": 1.30,
+            "ckpt_monitor": "dir_acc",
+            "ckpt_class_balance_guard_weight": 0.50,
+            "ckpt_class_balance_min_pred_to_label": 0.35,
+            "ckpt_class_balance_min_pred_rate": 0.05,
+        },
+    }
+
+    report = _direction_balance_recipe_contract(meta, {}, contract_mode="smart_seq520_candidate")
+
+    assert report["decision"] == "FAIL"
+    assert report["ckpt_balance_guard_required"] is True
+    assert any("best_direction_balance_guard_ok=true" in failure for failure in report["failures"])
 
 
 def test_direction_balance_recipe_contract_rejects_missing_balance() -> None:

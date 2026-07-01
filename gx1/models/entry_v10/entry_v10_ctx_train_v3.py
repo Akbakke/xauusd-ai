@@ -2683,6 +2683,16 @@ def _direction_ckpt_balance_stats(
     }
 
 
+def _direction_ckpt_balance_guard_required() -> bool:
+    return (
+        float(ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT) > 0.0
+        and (
+            float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL) > 0.0
+            or float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE) > 0.0
+        )
+    )
+
+
 def validate(
     model,
     loader,
@@ -4380,6 +4390,12 @@ def run_train(
                 break
 
     _require(best_state is not None, "[TRAIN_FAIL_NO_BEST_STATE]")
+    if _direction_ckpt_balance_guard_required() and not bool(best_direction_balance_guard_ok):
+        raise RuntimeError(
+            "[TRAIN_FAIL_DIRECTION_CLASS_BALANCE_GUARD] "
+            "best checkpoint failed active LONG/SHORT/FLAT class-balance guard; "
+            "refusing to write a collapsed direction bundle"
+        )
 
     # Resolve output bundle dir (under GX1_DATA if relative)
     out_bundle_dir = Path(out_bundle_dir).expanduser().resolve()

@@ -399,6 +399,11 @@ Active status:
   distribution loss even when cost-sensitive loss is disabled. This closes the
   previous hole where the smart FLAT-repair recipe could be present in
   metadata/checkpoint guards but not affect the actual train/validation loss.
+- When the class-balance checkpoint guard is active, the trainer must refuse
+  to write a bundle unless the best checkpoint records
+  `best_direction_balance_guard_ok=true`, and bundle audit must fail closed on
+  the same field. A smart run that never finds a live LONG/SHORT/FLAT
+  checkpoint is a failed train, not a weak artifact to pass downstream.
 - Candidate-readiness now also requires the smoke bundle audit itself to carry
   `path_calibration_recipe_contract=PASS` with active path-quality and bad-path
   heads, full-batch path-quality ranking and positive rank weights/margins.

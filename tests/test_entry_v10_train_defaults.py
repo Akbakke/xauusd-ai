@@ -152,6 +152,29 @@ def test_entry_v10_direction_ckpt_balance_guard_penalizes_class_collapse(monkeyp
     assert collapsed["direction_ckpt_score"] < collapsed["direction_ckpt_balance_penalty"]
 
 
+def test_entry_v10_direction_ckpt_balance_guard_required_requires_active_thresholds(monkeypatch) -> None:
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    monkeypatch.setattr(trainer, "ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT", 0.50)
+    monkeypatch.setattr(trainer, "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL", 0.35)
+    monkeypatch.setattr(trainer, "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE", 0.05)
+
+    assert trainer._direction_ckpt_balance_guard_required() is True
+
+    monkeypatch.setattr(trainer, "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL", 0.0)
+    monkeypatch.setattr(trainer, "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE", 0.0)
+
+    assert trainer._direction_ckpt_balance_guard_required() is False
+
+
+def test_entry_v10_train_refuses_to_write_bundle_when_best_class_balance_guard_failed() -> None:
+    text = TRAINER_PATH.read_text(encoding="utf-8")
+
+    assert "[TRAIN_FAIL_DIRECTION_CLASS_BALANCE_GUARD]" in text
+    assert "_direction_ckpt_balance_guard_required()" in text
+    assert "refusing to write a collapsed direction bundle" in text
+
+
 def test_entry_foundation_train_wrappers_enable_path_quality_rank_recipe() -> None:
     repo = Path(__file__).resolve().parents[1]
     smoke = (repo / "scripts" / "run_entry_foundation_seq146_smoke_train.sh").read_text(encoding="utf-8")
