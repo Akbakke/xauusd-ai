@@ -237,6 +237,24 @@ def int_or_none(value):
     except (TypeError, ValueError):
         return None
 
+CLASS_NAMES = ("LONG", "SHORT", "FLAT")
+
+def class_count_map(value):
+    raw = value if isinstance(value, dict) else {}
+    return {
+        name: int_or_none(raw.get(name)) or 0
+        for name in CLASS_NAMES
+    }
+
+def class_rate_map(counts):
+    total = sum(int(value or 0) for value in counts.values())
+    if total <= 0:
+        return {name: None for name in CLASS_NAMES}
+    return {
+        name: float(int(counts.get(name) or 0)) / float(total)
+        for name in CLASS_NAMES
+    }
+
 def direction_split_metrics(report):
     splits = report.get("splits") if isinstance(report.get("splits"), dict) else {}
     out = {}
@@ -254,6 +272,18 @@ def direction_split_metrics(report):
             if accuracy is not None and majority is not None
             else None
         )
+        label_counts = class_count_map(direction.get("label_counts"))
+        prediction_counts = class_count_map(direction.get("prediction_counts"))
+        label_rate = class_rate_map(label_counts)
+        prediction_rate = class_rate_map(prediction_counts)
+        prediction_minus_label_rate = {
+            name: (
+                prediction_rate.get(name) - label_rate.get(name)
+                if prediction_rate.get(name) is not None and label_rate.get(name) is not None
+                else None
+            )
+            for name in CLASS_NAMES
+        }
         out[split] = {
             "accuracy": accuracy,
             "majority_baseline_accuracy": majority,
@@ -264,6 +294,15 @@ def direction_split_metrics(report):
                 else None
             ),
             "rows": int_or_none(direction.get("rows") or split_report.get("rows")),
+            "label_counts": label_counts,
+            "prediction_counts": prediction_counts,
+            "label_rate": label_rate,
+            "prediction_rate": prediction_rate,
+            "prediction_minus_label_rate": prediction_minus_label_rate,
+            "mean_probability": {
+                name: number_or_none((direction.get("mean_probability") or {}).get(name))
+                for name in CLASS_NAMES
+            } if isinstance(direction.get("mean_probability"), dict) else {},
         }
     return out
 
@@ -287,6 +326,42 @@ def smart_direction_regressions(smart_metrics, baselines):
                     }
                 )
     return regressions
+
+def smart_class_balance_regressions(smart_metrics, baselines):
+    regressions = []
+    for baseline_name, baseline_metrics in baselines.items():
+        for split in ("val", "test"):
+            smart_split = smart_metrics.get(split) or {}
+            baseline_split = baseline_metrics.get(split) or {}
+            smart_drift = smart_split.get("prediction_minus_label_rate") or {}
+            baseline_drift = baseline_split.get("prediction_minus_label_rate") or {}
+            for class_name in CLASS_NAMES:
+                smart_value = smart_drift.get(class_name)
+                baseline_value = baseline_drift.get(class_name)
+                if smart_value is None or baseline_value is None:
+                    continue
+                smart_abs = abs(float(smart_value))
+                baseline_abs = abs(float(baseline_value))
+                worse_by = smart_abs - baseline_abs
+                if worse_by <= 0.0:
+                    continue
+                regressions.append(
+                    {
+                        "baseline": baseline_name,
+                        "split": split,
+                        "class": class_name,
+                        "smart_prediction_minus_label_rate": smart_value,
+                        "baseline_prediction_minus_label_rate": baseline_value,
+                        "smart_abs_drift": smart_abs,
+                        "baseline_abs_drift": baseline_abs,
+                        "worse_by": worse_by,
+                        "smart_prediction_rate": (smart_split.get("prediction_rate") or {}).get(class_name),
+                        "smart_label_rate": (smart_split.get("label_rate") or {}).get(class_name),
+                        "baseline_prediction_rate": (baseline_split.get("prediction_rate") or {}).get(class_name),
+                        "baseline_label_rate": (baseline_split.get("label_rate") or {}).get(class_name),
+                    }
+                )
+    return sorted(regressions, key=lambda row: row["worse_by"], reverse=True)
 
 paths = {
     "train-readiness": Path("/home/andre2/GX1_DATA/reports/entry_training_readiness_20260628_v1/ENTRY_TRAINING_READINESS_latest.json"),
@@ -859,6 +934,16 @@ smart_smoke_direction_accuracy_regressions = smart_direction_regressions(
 smart_smoke_direction_accuracy_regression_count = len(
     smart_smoke_direction_accuracy_regressions
 )
+smart_smoke_direction_class_balance_regressions = smart_class_balance_regressions(
+    smart_smoke_direction_metrics,
+    {
+        "foundation_seq146": foundation_smoke_direction_metrics,
+        "challenger_seq215": seq215_smoke_direction_metrics,
+    },
+)
+smart_smoke_direction_class_balance_regression_count = len(
+    smart_smoke_direction_class_balance_regressions
+)
 smart_smoke_direction_benchmark_has_all_metrics = all(
     (metrics.get(split) or {}).get("accuracy") is not None
     for metrics in (
@@ -871,6 +956,7 @@ smart_smoke_direction_benchmark_has_all_metrics = all(
 smart_smoke_direction_benchmark_ready = bool(
     smart_smoke_direction_benchmark_has_all_metrics
     and smart_smoke_direction_accuracy_regression_count == 0
+    and smart_smoke_direction_class_balance_regression_count == 0
 )
 smart_post_rebuild_ready = (
     str(smart_post_rebuild.get("decision") or "") == "ENTRY_SMART_DATASET_READY_FOR_TRAIN_READINESS_REVIEW"
@@ -934,6 +1020,10 @@ if promotion_review_blocked_by_smart_selected_calibration:
 if smart_smoke_direction_accuracy_regression_count:
     current_blockers.append(
         "smart seq520 smoke bundle direction accuracy regresses versus foundation/seq215; require refreshed calibrated smart evidence before treating smart features as improvement"
+    )
+if smart_smoke_direction_class_balance_regression_count:
+    current_blockers.append(
+        "smart seq520 smoke bundle class-balance drift is worse than foundation/seq215; repair FLAT/LONG/SHORT calibration before treating smart features as improvement"
     )
 smart_rebuild_preflight_ready = (
     str(smart_rebuild_preflight.get("decision") or "") == "READY_FOR_SMART_REBUILD_VEDTAK_REVIEW"
@@ -2447,6 +2537,9 @@ payload = {
         "smart_smoke_direction_benchmark_ready": smart_smoke_direction_benchmark_ready,
         "smart_smoke_direction_accuracy_regression_count": smart_smoke_direction_accuracy_regression_count,
         "smart_smoke_direction_accuracy_regressions": smart_smoke_direction_accuracy_regressions,
+        "smart_smoke_direction_class_balance_regression_count": smart_smoke_direction_class_balance_regression_count,
+        "smart_smoke_direction_class_balance_regressions": smart_smoke_direction_class_balance_regressions,
+        "smart_smoke_direction_top_class_balance_regressions": smart_smoke_direction_class_balance_regressions[:6],
         "smart_rebuild_preflight_decision": smart_rebuild_preflight.get("decision"),
         "smart_rebuild_preflight_ready": smart_rebuild_preflight_ready,
         "smart_rebuild_preflight_report": str(smart_rebuild_preflight_path) if smart_rebuild_preflight_path else None,
@@ -2697,6 +2790,18 @@ else:
         "  smart regression count: "
         f"{payload['status_summary']['smart_smoke_direction_accuracy_regression_count']}"
     )
+    print(
+        "  smart class-balance regression count: "
+        f"{payload['status_summary']['smart_smoke_direction_class_balance_regression_count']}"
+    )
+    for row in payload["status_summary"]["smart_smoke_direction_top_class_balance_regressions"]:
+        print(
+            "  class-balance regression: "
+            f"{row['split']} {row['class']} vs {row['baseline']} "
+            f"smart_drift={row['smart_prediction_minus_label_rate']} "
+            f"baseline_drift={row['baseline_prediction_minus_label_rate']} "
+            f"worse_by={row['worse_by']}"
+        )
     print("allowed now:")
     for cmd in allowed_now:
         print(f"  {cmd}")

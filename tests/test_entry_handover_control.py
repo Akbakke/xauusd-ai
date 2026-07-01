@@ -444,15 +444,30 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
                 "edge_vs_majority",
                 "beats_majority",
                 "rows",
+                "label_counts",
+                "prediction_counts",
+                "label_rate",
+                "prediction_rate",
+                "prediction_minus_label_rate",
+                "mean_probability",
             } <= set(split_metrics)
     assert isinstance(payload["status_summary"]["smart_smoke_direction_benchmark_has_all_metrics"], bool)
     assert isinstance(payload["status_summary"]["smart_smoke_direction_benchmark_ready"], bool)
     assert isinstance(payload["status_summary"]["smart_smoke_direction_accuracy_regression_count"], int)
     assert isinstance(payload["status_summary"]["smart_smoke_direction_accuracy_regressions"], list)
+    assert isinstance(payload["status_summary"]["smart_smoke_direction_class_balance_regression_count"], int)
+    assert isinstance(payload["status_summary"]["smart_smoke_direction_class_balance_regressions"], list)
+    assert isinstance(payload["status_summary"]["smart_smoke_direction_top_class_balance_regressions"], list)
     if payload["status_summary"]["smart_smoke_direction_accuracy_regression_count"]:
         assert payload["status_summary"]["smart_smoke_direction_benchmark_ready"] is False
         assert (
             "smart seq520 smoke bundle direction accuracy regresses versus foundation/seq215; require refreshed calibrated smart evidence before treating smart features as improvement"
+            in payload["status_summary"]["current_blockers"]
+        )
+    if payload["status_summary"]["smart_smoke_direction_class_balance_regression_count"]:
+        assert payload["status_summary"]["smart_smoke_direction_benchmark_ready"] is False
+        assert (
+            "smart seq520 smoke bundle class-balance drift is worse than foundation/seq215; repair FLAT/LONG/SHORT calibration before treating smart features as improvement"
             in payload["status_summary"]["current_blockers"]
         )
     assert isinstance(payload["status_summary"]["iql_distillation_allowed"], bool)

@@ -292,6 +292,11 @@ The 2026-07-01 operating point is feature-harmony clean but not promotion-ready:
   simpler baseline on val/test direction accuracy, the smart lane remains a
   weak diagnostic artifact until refreshed calibrated smart evidence proves a
   real improvement in replay and slices.
+- That benchmark must also surface label-rate versus prediction-rate drift for
+  LONG, SHORT and FLAT. A smart bundle that gets its extra mechanism features
+  by underpredicting FLAT or overpredicting one side more than the simpler
+  baselines is not harmonized; the next training recipe must repair class
+  balance before replay/IQL authority can treat smart520 as an improvement.
 - Replay-readiness now fails closed on weak selected-tail direction quality:
   candidate top-5/top-10 selected tails and supported session/side/vol-regime
   slices must clear the configured direction precision threshold before IQL

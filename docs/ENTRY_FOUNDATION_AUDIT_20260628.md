@@ -378,6 +378,11 @@ Active status:
   either simpler baseline on val/test direction accuracy is not evidence that
   the smart features improved the Entry eyes; it requires refreshed calibrated
   smart evidence before candidate/IQL/promotion authority can be discussed.
+- The same benchmark must disclose LONG/SHORT/FLAT class-balance drift from
+  label rates versus prediction rates. If smart520 underpredicts FLAT or
+  overpredicts LONG/SHORT more than a simpler baseline, readiness must expose
+  that as root-cause evidence for the direction regression and keep the smart
+  lane fail-closed until the next calibrated bundle fixes it.
 - Exit report-only gates remain ready through feature alignment, architecture,
   training plan, wrapper readiness, pretrain manifest, slice robustness,
   train-execution review and post-train audit contract. Exit Transformer/IQL
