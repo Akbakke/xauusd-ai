@@ -7,7 +7,12 @@ import pandas as pd
 from gx1.scripts.audit_entry_iql_replay_slices_v1 import run
 
 
-def _write_fixture(root: Path, *, iql_eu_negative: bool = False) -> argparse.Namespace:
+def _write_fixture(
+    root: Path,
+    *,
+    iql_eu_negative: bool = False,
+    iql_stop_loss_positive_mfe: bool = False,
+) -> argparse.Namespace:
     candidate_dir = root / "candidate"
     iql_dir = root / "iql"
     out_dir = root / "out"
@@ -51,7 +56,7 @@ def _write_fixture(root: Path, *, iql_eu_negative: bool = False) -> argparse.Nam
 
     candidate_rows = []
     iql_rows = []
-    for base, candidate_pnl, iql_pnl in rows:
+    for idx, (base, candidate_pnl, iql_pnl) in enumerate(rows):
         cand = dict(base)
         cand["net_pnl_bps"] = candidate_pnl
         cand["gross_pnl_bps"] = candidate_pnl
@@ -60,6 +65,12 @@ def _write_fixture(root: Path, *, iql_eu_negative: bool = False) -> argparse.Nam
         iql["policy_id"] = "entry_iql_student"
         iql["net_pnl_bps"] = iql_pnl
         iql["gross_pnl_bps"] = iql_pnl
+        if iql_stop_loss_positive_mfe and idx < 20:
+            iql["exit_reason"] = "stop_loss"
+            iql["net_pnl_bps"] = -45.0
+            iql["gross_pnl_bps"] = -45.0
+            iql["mfe_bps"] = 12.0
+            iql["mae_bps"] = 45.0
         iql_rows.append(iql)
 
     candidate_trades = candidate_dir / "candidate_trades.csv"
@@ -108,6 +119,11 @@ def _write_fixture(root: Path, *, iql_eu_negative: bool = False) -> argparse.Nam
         max_diagnostic_mean_degradation_bps=10.0,
         max_tail_p10_degradation_bps=20.0,
         max_diagnostic_max_loss_worsening_bps=10.0,
+        max_total_stop_loss_rate=0.25,
+        max_supported_slice_stop_loss_rate=0.40,
+        max_stop_loss_positive_mfe_rate=0.70,
+        max_abs_replay_loss_bps=90.0,
+        max_tail_loss_p05_abs_mean_bps=90.0,
         fail_on_not_ready=False,
         quiet=True,
     )
@@ -132,6 +148,7 @@ def test_iql_replay_slice_audit_passes_supported_slices(tmp_path: Path) -> None:
     assert checks["IQL supported edge slices keep positive net/PF/drawdown/max-loss"] is True
     assert checks["IQL diagnostic slices do not materially worsen tails vs candidate"] is True
     assert checks["exit opportunity diagnostics were produced from replay MFE/MAE/held bars"] is True
+    assert checks["candidate and IQL tail/path quality hard checks pass"] is True
 
 
 def test_iql_replay_slice_audit_fails_when_supported_session_loses_edge(tmp_path: Path) -> None:
@@ -141,3 +158,17 @@ def test_iql_replay_slice_audit_fails_when_supported_session_loses_edge(tmp_path
     failed = {row["check"] for row in report["failures"]}
     assert "IQL supported edge slices keep positive net/PF/drawdown/max-loss" in failed
     assert any(row["cube"] == "session" and row["slice"] == "EU" for row in report["edge_failures"])
+
+
+def test_iql_replay_slice_audit_fails_on_stop_loss_with_positive_mfe_tail_path(
+    tmp_path: Path,
+) -> None:
+    report = run(_write_fixture(tmp_path, iql_stop_loss_positive_mfe=True))
+
+    assert report["decision"] == "FAIL"
+    failed = {row["check"] for row in report["failures"]}
+    assert "candidate and IQL tail/path quality hard checks pass" in failed
+    iql_tail = report["tail_path_quality"]["iql"]
+    assert iql_tail["stop_loss_rate"] > 0.25
+    assert iql_tail["stop_loss_with_positive_mfe_rate"] > 0.70
+    assert any(row["model"] == "iql" for row in report["tail_path_failures"])

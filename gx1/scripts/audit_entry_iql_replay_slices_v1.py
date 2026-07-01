@@ -38,6 +38,23 @@ CUBE_COLUMNS = {
     "mae_tail": "mae_tail_slice",
     "held_bars": "held_bars_slice",
 }
+TAIL_PATH_REQUIRED_COLUMNS = {
+    "net_pnl_bps",
+    "exit_reason",
+    "mfe_bps",
+    "mae_bps",
+    "held_bars",
+    "bad_path_prob",
+    "path_quality_pred",
+}
+TAIL_PATH_NUMERIC_COLUMNS = {
+    "net_pnl_bps",
+    "mfe_bps",
+    "mae_bps",
+    "held_bars",
+    "bad_path_prob",
+    "path_quality_pred",
+}
 
 
 def _json_default(obj: Any) -> Any:
@@ -407,6 +424,117 @@ def _exit_opportunity(trades_by_model: dict[str, pd.DataFrame]) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def _tail_path_summary(model: str, trades: pd.DataFrame, args: argparse.Namespace) -> dict[str, Any]:
+    missing_columns = sorted(TAIL_PATH_REQUIRED_COLUMNS - set(str(column) for column in trades.columns))
+    numeric_nonfinite: dict[str, int] = {}
+    for column in sorted(TAIL_PATH_NUMERIC_COLUMNS & set(str(column) for column in trades.columns)):
+        values = pd.to_numeric(trades[column], errors="coerce")
+        numeric_nonfinite[column] = int(values.isna().sum())
+
+    pnl = _numeric(trades, "net_pnl_bps").fillna(0.0)
+    mfe = _numeric(trades, "mfe_bps").fillna(0.0)
+    exit_reason = _category_series(trades, "exit_reason")
+    stop_loss = exit_reason == "STOP_LOSS"
+    positive_mfe = mfe > 0.0
+    stop_loss_count = int(stop_loss.sum())
+    trade_count = int(len(trades))
+    stop_loss_rate = float(stop_loss_count / trade_count) if trade_count else 0.0
+    stop_loss_positive_mfe_count = int((stop_loss & positive_mfe).sum())
+    stop_loss_positive_mfe_rate = (
+        float(stop_loss_positive_mfe_count / stop_loss_count) if stop_loss_count else 0.0
+    )
+    tail_count = max(1, int(np.ceil(trade_count * 0.05))) if trade_count else 0
+    tail_p05 = pnl.sort_values(kind="mergesort").head(tail_count) if tail_count else pd.Series(dtype="float64")
+    supported_slice_failures: list[dict[str, Any]] = []
+    for scope, column in (
+        ("session", "session_slice"),
+        ("vol_regime", "vol_regime_slice"),
+        ("side", "side_slice"),
+    ):
+        if column not in trades.columns:
+            continue
+        for value, group in trades.groupby(column, dropna=False, sort=True):
+            if len(group) < int(args.min_slice_trades):
+                continue
+            group_exit = _category_series(group, "exit_reason")
+            group_stop_rate = float((group_exit == "STOP_LOSS").mean()) if len(group) else 0.0
+            if group_stop_rate > float(args.max_supported_slice_stop_loss_rate):
+                supported_slice_failures.append(
+                    {
+                        "scope": scope,
+                        "slice": str(value),
+                        "n_trades": int(len(group)),
+                        "stop_loss_rate": group_stop_rate,
+                        "threshold": float(args.max_supported_slice_stop_loss_rate),
+                    }
+                )
+
+    failures: list[dict[str, Any]] = []
+    if missing_columns:
+        failures.append({"reason": "missing_tail_path_columns", "columns": missing_columns})
+    bad_numeric = {key: value for key, value in numeric_nonfinite.items() if value > 0}
+    if bad_numeric:
+        failures.append({"reason": "nonfinite_tail_path_columns", "columns": bad_numeric})
+    max_loss_bps = float(pnl.min()) if len(pnl) else None
+    tail_p05_mean_bps = float(tail_p05.mean()) if len(tail_p05) else None
+    if max_loss_bps is None or max_loss_bps < -float(args.max_abs_replay_loss_bps):
+        failures.append(
+            {
+                "reason": "max_loss_bps",
+                "max_loss_bps": max_loss_bps,
+                "threshold": -float(args.max_abs_replay_loss_bps),
+            }
+        )
+    if stop_loss_rate > float(args.max_total_stop_loss_rate):
+        failures.append(
+            {
+                "reason": "stop_loss_rate",
+                "stop_loss_rate": stop_loss_rate,
+                "threshold": float(args.max_total_stop_loss_rate),
+            }
+        )
+    if stop_loss_count and stop_loss_positive_mfe_rate > float(args.max_stop_loss_positive_mfe_rate):
+        failures.append(
+            {
+                "reason": "stop_loss_positive_mfe_rate",
+                "stop_loss_positive_mfe_rate": stop_loss_positive_mfe_rate,
+                "threshold": float(args.max_stop_loss_positive_mfe_rate),
+            }
+        )
+    if tail_p05_mean_bps is None or tail_p05_mean_bps < -float(args.max_tail_loss_p05_abs_mean_bps):
+        failures.append(
+            {
+                "reason": "tail_loss_p05_mean_bps",
+                "tail_loss_p05_mean_bps": tail_p05_mean_bps,
+                "threshold": -float(args.max_tail_loss_p05_abs_mean_bps),
+            }
+        )
+    if supported_slice_failures:
+        failures.append(
+            {
+                "reason": "supported_slice_stop_loss_rate",
+                "failures": supported_slice_failures[:25],
+                "failure_count": len(supported_slice_failures),
+            }
+        )
+    return {
+        "model": model,
+        "n_trades": trade_count,
+        "missing_columns": missing_columns,
+        "numeric_nonfinite": numeric_nonfinite,
+        "max_loss_bps": max_loss_bps,
+        "tail_loss_p05_count": int(len(tail_p05)),
+        "tail_loss_p05_mean_bps": tail_p05_mean_bps,
+        "stop_loss_count": stop_loss_count,
+        "stop_loss_rate": stop_loss_rate,
+        "stop_loss_with_positive_mfe_count": stop_loss_positive_mfe_count,
+        "stop_loss_with_positive_mfe_rate": stop_loss_positive_mfe_rate,
+        "supported_slice_stop_loss_failures": supported_slice_failures,
+        "failures": failures,
+        "ready": not failures,
+    }
+
+
 def _edge_failures(comparison: pd.DataFrame, args: argparse.Namespace) -> list[dict[str, Any]]:
     failures: list[dict[str, Any]] = []
     if comparison.empty:
@@ -538,6 +666,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     metrics = _slice_metrics(candidate, iql)
     comparison = _comparison(metrics, min_slice_trades=int(args.min_slice_trades))
     exit_opportunity = _exit_opportunity({"candidate": candidate, "iql": iql})
+    tail_path_quality = {
+        "candidate": _tail_path_summary("candidate", candidate, args),
+        "iql": _tail_path_summary("iql", iql, args),
+    }
+    tail_path_failures = [
+        {"model": model, "failures": summary["failures"]}
+        for model, summary in tail_path_quality.items()
+        if summary["failures"]
+    ]
     edge_failures = _edge_failures(comparison, args)
     diagnostic_failures = _diagnostic_failures(comparison, args)
     coverage = _coverage("candidate", candidate) + _coverage("iql", iql)
@@ -576,6 +713,20 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "exit opportunity diagnostics were produced from replay MFE/MAE/held bars",
             not exit_opportunity.empty,
             {"rows": int(len(exit_opportunity))},
+        ),
+        _check(
+            "candidate and IQL tail/path quality hard checks pass",
+            not tail_path_failures,
+            {
+                "failures": tail_path_failures,
+                "thresholds": {
+                    "max_total_stop_loss_rate": float(args.max_total_stop_loss_rate),
+                    "max_supported_slice_stop_loss_rate": float(args.max_supported_slice_stop_loss_rate),
+                    "max_stop_loss_positive_mfe_rate": float(args.max_stop_loss_positive_mfe_rate),
+                    "max_abs_replay_loss_bps": float(args.max_abs_replay_loss_bps),
+                    "max_tail_loss_p05_abs_mean_bps": float(args.max_tail_loss_p05_abs_mean_bps),
+                },
+            },
         ),
         _check("session/regime/side/direction/bad-path/tail coverage is live", not coverage_failures, {"failures": coverage_failures}),
         _check(
@@ -652,7 +803,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "max_diagnostic_mean_degradation_bps": float(args.max_diagnostic_mean_degradation_bps),
             "max_tail_p10_degradation_bps": float(args.max_tail_p10_degradation_bps),
             "max_diagnostic_max_loss_worsening_bps": float(args.max_diagnostic_max_loss_worsening_bps),
+            "max_total_stop_loss_rate": float(args.max_total_stop_loss_rate),
+            "max_supported_slice_stop_loss_rate": float(args.max_supported_slice_stop_loss_rate),
+            "max_stop_loss_positive_mfe_rate": float(args.max_stop_loss_positive_mfe_rate),
+            "max_abs_replay_loss_bps": float(args.max_abs_replay_loss_bps),
+            "max_tail_loss_p05_abs_mean_bps": float(args.max_tail_loss_p05_abs_mean_bps),
         },
+        "tail_path_quality": tail_path_quality,
+        "tail_path_failures": tail_path_failures,
         "supported_edge_counts": supported_edge_counts,
         "coverage": coverage,
         "low_support_slice_count": int(len(low_support)),
@@ -746,6 +904,11 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--max-diagnostic-mean-degradation-bps", type=float, default=10.0)
     ap.add_argument("--max-tail-p10-degradation-bps", type=float, default=20.0)
     ap.add_argument("--max-diagnostic-max-loss-worsening-bps", type=float, default=10.0)
+    ap.add_argument("--max-total-stop-loss-rate", type=float, default=0.25)
+    ap.add_argument("--max-supported-slice-stop-loss-rate", type=float, default=0.40)
+    ap.add_argument("--max-stop-loss-positive-mfe-rate", type=float, default=0.70)
+    ap.add_argument("--max-abs-replay-loss-bps", type=float, default=90.0)
+    ap.add_argument("--max-tail-loss-p05-abs-mean-bps", type=float, default=90.0)
     ap.add_argument("--fail-on-not-ready", action=argparse.BooleanOptionalAction, default=True)
     ap.add_argument("--quiet", action="store_true")
     return ap
