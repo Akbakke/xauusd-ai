@@ -469,6 +469,7 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
         "NOT_READY_FOR_PROMOTION_REVIEW",
         "READY_FOR_PROMOTION_REVIEW_VEDTAK",
     }
+    assert "smart_seq520_candidate_" not in payload["reports"]["iql-replay-comparison"]["path"]
     if adoption_ready:
         assert payload["reports"]["foundation-adoption-candidate"]["decision"] == "PASS"
     if activation_apply_ready:
@@ -623,6 +624,22 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
             payload["status_summary"]["smart_selected_iql_distillation_allowed"]
             is payload["status_summary"]["smart_selected_replay_readiness_ready"]
         )
+    if "iql-replay-comparison-smart-selected" in payload["reports"]:
+        selected_comparison = payload["reports"]["iql-replay-comparison-smart-selected"]
+        assert payload["status_summary"]["smart_selected_iql_replay_comparison_decision"] == (
+            selected_comparison["decision"]
+        )
+        assert payload["status_summary"]["smart_selected_iql_replay_comparison_report"] == (
+            selected_comparison["path"]
+        )
+        assert isinstance(payload["status_summary"]["smart_selected_iql_replay_comparison_ready"], bool)
+    if "iql-replay-slice-audit-smart-selected" in payload["reports"]:
+        selected_slice = payload["reports"]["iql-replay-slice-audit-smart-selected"]
+        assert payload["status_summary"]["smart_selected_iql_replay_slice_audit_decision"] == (
+            selected_slice["decision"]
+        )
+        assert payload["status_summary"]["smart_selected_iql_replay_slice_audit_report"] == selected_slice["path"]
+        assert isinstance(payload["status_summary"]["smart_selected_iql_replay_slice_audit_ready"], bool)
     assert payload["commands"]["challenger_smart_extension_manifest"]["argv"] == [
         "scripts/entry_next_edge_control.sh",
         "challenger-smart-extension-manifest",

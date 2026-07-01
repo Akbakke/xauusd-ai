@@ -272,27 +272,27 @@ smart_selected_replay_readiness_path = latest_smart_selected_replay_readiness(
 if smart_selected_replay_readiness_path is not None:
     paths["replay-readiness-smart-selected"] = smart_selected_replay_readiness_path
 smart_iql_artifacts = {
-    "iql-distillation-contract": (
+    "iql-distillation-contract-smart-selected": (
         Path("/home/andre2/GX1_DATA/reports/entry_iql_distillation_contract_20260628_v1"),
         "smart_seq520_candidate_*/ENTRY_IQL_DISTILLATION_CONTRACT_latest.json",
         {"ENTRY_IQL_DISTILLATION_CONTRACT_READY"},
     ),
-    "iql-student-trade-log": (
+    "iql-student-trade-log-smart-selected": (
         Path("/home/andre2/GX1_DATA/reports/entry_iql_student_trade_log_20260628_v1"),
         "smart_seq520_candidate_*/ENTRY_IQL_STUDENT_TRADE_LOG_latest.json",
         {"PASS"},
     ),
-    "iql-replay-evidence": (
+    "iql-replay-evidence-smart-selected": (
         Path("/home/andre2/GX1_DATA/reports/entry_iql_distillation_replay_20260628_v1"),
         "smart_seq520_candidate_*/ENTRY_IQL_REPLAY_EVIDENCE_latest.json",
         {"PASS"},
     ),
-    "iql-replay-comparison": (
+    "iql-replay-comparison-smart-selected": (
         Path("/home/andre2/GX1_DATA/reports/entry_iql_replay_comparison_20260628_v1"),
         "smart_seq520_candidate_*/ENTRY_IQL_REPLAY_COMPARISON_latest.json",
         {"READY_FOR_PROMOTION_REVIEW_VEDTAK"},
     ),
-    "iql-replay-slice-audit": (
+    "iql-replay-slice-audit-smart-selected": (
         Path("/home/andre2/GX1_DATA/reports/entry_iql_replay_slice_audit_20260628_v1"),
         "smart_seq520_candidate_*/ENTRY_IQL_REPLAY_SLICE_AUDIT_latest.json",
         {"PASS"},
@@ -613,6 +613,12 @@ iql_replay_comparison_ready = (
     str((reports.get("iql-replay-comparison") or {}).get("decision")) == "READY_FOR_PROMOTION_REVIEW_VEDTAK"
 )
 iql_replay_slice_audit_ready = str((reports.get("iql-replay-slice-audit") or {}).get("decision")) == "PASS"
+smart_iql_replay_comparison = reports.get("iql-replay-comparison-smart-selected") or {}
+smart_iql_replay_comparison_ready = (
+    str(smart_iql_replay_comparison.get("decision")) == "READY_FOR_PROMOTION_REVIEW_VEDTAK"
+)
+smart_iql_replay_slice_audit = reports.get("iql-replay-slice-audit-smart-selected") or {}
+smart_iql_replay_slice_audit_ready = str(smart_iql_replay_slice_audit.get("decision")) == "PASS"
 entry_exit_handoff = reports.get("entry-exit-handoff") or {}
 entry_exit_per_bar = reports.get("entry-exit-per-bar-handoff") or {}
 entry_exit_reconstruction = reports.get("entry-exit-reconstruction-audit") or {}
@@ -2316,6 +2322,16 @@ payload = {
         "iql_replay_evidence_ready": iql_replay_evidence_ready,
         "iql_replay_comparison_ready": iql_replay_comparison_ready,
         "iql_replay_slice_audit_ready": iql_replay_slice_audit_ready,
+        "smart_selected_iql_replay_comparison_decision": smart_iql_replay_comparison.get("decision"),
+        "smart_selected_iql_replay_comparison_ready": smart_iql_replay_comparison_ready,
+        "smart_selected_iql_replay_comparison_report": str(paths.get("iql-replay-comparison-smart-selected"))
+        if paths.get("iql-replay-comparison-smart-selected")
+        else None,
+        "smart_selected_iql_replay_slice_audit_decision": smart_iql_replay_slice_audit.get("decision"),
+        "smart_selected_iql_replay_slice_audit_ready": smart_iql_replay_slice_audit_ready,
+        "smart_selected_iql_replay_slice_audit_report": str(paths.get("iql-replay-slice-audit-smart-selected"))
+        if paths.get("iql-replay-slice-audit-smart-selected")
+        else None,
         "entry_exit_handoff_decision": entry_exit_handoff_decision,
         "entry_exit_handoff_entry_ready": entry_exit_handoff_entry_ready,
         "entry_exit_handoff_substrate_ready": entry_exit_handoff_substrate_ready,
