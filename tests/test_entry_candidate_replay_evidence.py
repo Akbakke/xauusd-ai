@@ -116,6 +116,13 @@ def _raw_trades() -> pd.DataFrame:
             "mfe_bps": [140.0, 10.0, 110.0, 50.0],
             "mae_bps": [10.0, 35.0, 12.0, 20.0],
             "held_bars": [12, 8, 10, 6],
+            "exit_mode": ["stop_tp_mfe_protect"] * 4,
+            "exit_policy_config_hash": ["exit_hash_1"] * 4,
+            "exit_reason": ["take_profit", "mfe_protect_stop", "take_profit", "horizon"],
+            "mfe_protect_activated": [True, True, True, False],
+            "mfe_protect_activation_bar": [4, 3, 5, None],
+            "mfe_protect_floor_bps_at_exit": [20.0, 0.0, 15.0, None],
+            "mfe_protect_peak_mfe_bps_at_exit": [140.0, 10.0, 110.0, None],
             "bad_path_prob": [0.10, 0.70, 0.20, 0.35],
             "path_quality_pred": [0.90, 0.30, 0.80, 0.60],
             "foundation_bos_age_long": [3, 12, 4, 8],
@@ -141,6 +148,9 @@ def test_normalize_trades_requires_2026_and_derives_fields() -> None:
     assert "vol_regime" in trades.columns
     assert "tail_bucket" in trades.columns
     assert "bad_path_bucket" in trades.columns
+    assert "exit_mode" in trades.columns
+    assert "exit_policy_config_hash" in trades.columns
+    assert "mfe_protect_activated" in trades.columns
     assert "foundation_bos_age_long" in trades.columns
     assert "specialist_structure_gate" in trades.columns
     assert int(trades["direction_correct"].sum()) == 3
@@ -254,6 +264,10 @@ def test_replay_evidence_run_writes_readiness_files(tmp_path: Path) -> None:
     assert (out_dir / "replay_policy_slices.csv").exists()
     assert (out_dir / "replay_policy_slices.csv").stat().st_size > 0
     assert "replay_policy_slices.csv" in report["artifact_hashes"]
+    materialized = pd.read_csv(out_dir / "replay_policy_trades.csv")
+    assert "exit_mode" in materialized.columns
+    assert "exit_policy_config_hash" in materialized.columns
+    assert "mfe_protect_activated" in materialized.columns
     assert json.loads((out_dir / "summary.json").read_text())["decision"] == "PASS"
 
 

@@ -87,3 +87,91 @@ def test_candidate_replay_trade_log_materializes_iql_transition_columns(tmp_path
     assert report["trainer_started"] is False
     assert report["replay_started"] is False
     assert report["promotion_shadow_live_allowed"] is False
+
+
+def test_candidate_replay_trade_log_supports_mfe_protect_exit_policy(tmp_path: Path) -> None:
+    dataset_dir = tmp_path / "dataset"
+    dataset_dir.mkdir()
+    val_times = pd.date_range("2025-12-31T23:00:00Z", periods=1, freq="5min")
+    test_times = pd.date_range("2026-01-01T00:00:00Z", periods=1, freq="5min")
+    pd.DataFrame({"time": val_times, "label_horizon_bars": [3]}).to_parquet(
+        dataset_dir / "tiny_val.parquet",
+        index=False,
+    )
+    pd.DataFrame({"time": test_times, "label_horizon_bars": [3]}).to_parquet(
+        dataset_dir / "tiny_test.parquet",
+        index=False,
+    )
+    predictions = pd.DataFrame(
+        {
+            "split": ["val", "test"],
+            "model": ["candidate", "candidate"],
+            "time": [val_times[0], test_times[0]],
+            "y_direction": [0, 0],
+            "trade_side": [0, 0],
+            "session": ["EU", "EU"],
+            "vol_regime": ["1", "1"],
+            "edge_score": [0.50, 0.95],
+            "p_long": [0.80, 0.90],
+            "p_short": [0.10, 0.05],
+            "p_flat": [0.10, 0.05],
+            "path_quality_pred": [1.0, 1.0],
+            "bad_path_prob": [0.2, 0.2],
+        }
+    )
+    predictions_path = tmp_path / "predictions.parquet"
+    predictions.to_parquet(predictions_path, index=False)
+    source = pd.DataFrame(
+        {
+            "time": [val_times[0], test_times[0], test_times[0] + pd.Timedelta(minutes=5), test_times[0] + pd.Timedelta(minutes=10), test_times[0] + pd.Timedelta(minutes=15)],
+            "bid_close": [100.0, 100.0, 100.2, 100.1, 100.1],
+            "ask_close": [100.0, 100.0, 100.2, 100.1, 100.1],
+            "bid_high": [100.0, 100.3, 100.25, 100.15, 100.15],
+            "bid_low": [100.0, 99.8, 100.0, 100.0, 100.05],
+            "ask_high": [100.0, 100.2, 100.0, 100.05, 100.05],
+            "ask_low": [100.0, 99.7, 99.85, 99.95, 99.95],
+        }
+    )
+    source_path = tmp_path / "source.parquet"
+    source.to_parquet(source_path, index=False)
+    out_dir = tmp_path / "out"
+
+    report = run(
+        argparse.Namespace(
+            selective_edge_predictions=str(predictions_path),
+            dataset_dir=str(dataset_dir),
+            source_parquet=str(source_path),
+            out_dir=str(out_dir),
+            model_name="candidate",
+            threshold_top_fracs="1.0",
+            cost_stress_bps="0.0",
+            policy_id="candidate_mfe_protect",
+            exit_mode="stop_tp_mfe_protect",
+            take_profit_bps=90.0,
+            stop_loss_bps=45.0,
+            same_bar_policy="stop_first",
+            mfe_protect_activation_bps=20.0,
+            mfe_protect_breakeven_offset_bps=0.0,
+            mfe_protect_trailing_capture_ratio=0.0,
+            mfe_protect_trailing_floor_bps=0.0,
+            cooldown_bars=0,
+            max_trades_per_day=0,
+            daily_loss_limit_bps=0.0,
+            min_direction_prob=0.0,
+            min_score_floor=0.0,
+            slippage_bps=0.0,
+            size_multiplier=1.0,
+            fail_on_audit_fail=True,
+            quiet=True,
+        )
+    )
+
+    trades = pd.read_csv(out_dir / "candidate_replay_trade_log.csv")
+    assert report["decision"] == "PASS"
+    assert report["exit_policy_contract"]["offline_only"] is True
+    assert report["exit_policy_contract"]["promotion_shadow_live_allowed"] is False
+    assert set(trades["exit_mode"]) == {"stop_tp_mfe_protect"}
+    assert set(trades["exit_reason"]) == {"mfe_protect_stop"}
+    assert trades["exit_policy_config_hash"].notna().all()
+    assert bool(trades["mfe_protect_activated"].iloc[0]) is True
+    assert int(trades["held_bars"].iloc[0]) < int(trades["horizon_bars"].iloc[0])

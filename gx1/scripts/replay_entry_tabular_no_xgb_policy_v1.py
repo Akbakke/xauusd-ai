@@ -36,6 +36,64 @@ from gx1.scripts.evaluate_entry_tabular_no_xgb_walkforward_v1 import (
     _parse_folds,
 )
 
+EXIT_MODE_CHOICES = ("horizon", "stop_tp", "stop_tp_mfe_protect")
+MFE_PROTECT_EXIT_MODE = "stop_tp_mfe_protect"
+MFE_PROTECT_ACTIVATION_POLICY = "prior_bar_only"
+
+
+def _exit_policy_config_from_args(args: argparse.Namespace) -> dict[str, Any]:
+    return {
+        "schema_version": "entry_replay_exit_policy_v1",
+        "exit_mode": str(getattr(args, "exit_mode", "horizon")),
+        "take_profit_bps": float(getattr(args, "take_profit_bps", 0.0)),
+        "stop_loss_bps": float(getattr(args, "stop_loss_bps", 0.0)),
+        "same_bar_policy": str(getattr(args, "same_bar_policy", "stop_first")),
+        "mfe_protect_activation_policy": MFE_PROTECT_ACTIVATION_POLICY,
+        "mfe_protect_activation_bps": float(getattr(args, "mfe_protect_activation_bps", 20.0)),
+        "mfe_protect_breakeven_offset_bps": float(getattr(args, "mfe_protect_breakeven_offset_bps", 0.0)),
+        "mfe_protect_trailing_capture_ratio": float(getattr(args, "mfe_protect_trailing_capture_ratio", 0.0)),
+        "mfe_protect_trailing_floor_bps": float(getattr(args, "mfe_protect_trailing_floor_bps", 0.0)),
+    }
+
+
+def _exit_policy_config_hash(config: dict[str, Any]) -> str:
+    return _policy_hash(config)
+
+
+def _exit_policy_contract_from_args(args: argparse.Namespace) -> dict[str, Any]:
+    params = _exit_policy_config_from_args(args)
+    return {
+        "schema_version": "entry_replay_exit_policy_contract_v1",
+        "offline_only": True,
+        "promotion_shadow_live_allowed": False,
+        "code_path": "gx1/scripts/replay_entry_tabular_no_xgb_policy_v1.py",
+        "params": params,
+        "config_hash": _exit_policy_config_hash(params),
+    }
+
+
+def _validate_exit_policy_args(args: argparse.Namespace) -> None:
+    config = _exit_policy_config_from_args(args)
+    exit_mode = str(config["exit_mode"])
+    if exit_mode not in EXIT_MODE_CHOICES:
+        raise RuntimeError(f"unknown exit mode: {exit_mode}")
+    if exit_mode in {"stop_tp", MFE_PROTECT_EXIT_MODE}:
+        if float(config["take_profit_bps"]) <= 0.0 or float(config["stop_loss_bps"]) <= 0.0:
+            raise RuntimeError(f"{exit_mode} exit requires positive take-profit and stop-loss bps")
+    if exit_mode == MFE_PROTECT_EXIT_MODE:
+        activation = float(config["mfe_protect_activation_bps"])
+        capture = float(config["mfe_protect_trailing_capture_ratio"])
+        breakeven = float(config["mfe_protect_breakeven_offset_bps"])
+        floor = float(config["mfe_protect_trailing_floor_bps"])
+        if activation <= 0.0 or not np.isfinite(activation):
+            raise RuntimeError("stop_tp_mfe_protect requires positive finite --mfe-protect-activation-bps")
+        if not np.isfinite(capture) or capture < 0.0 or capture > 1.0:
+            raise RuntimeError("stop_tp_mfe_protect requires --mfe-protect-trailing-capture-ratio in [0, 1]")
+        if not np.isfinite(breakeven) or breakeven < 0.0:
+            raise RuntimeError("stop_tp_mfe_protect requires non-negative finite --mfe-protect-breakeven-offset-bps")
+        if not np.isfinite(floor) or floor < 0.0:
+            raise RuntimeError("stop_tp_mfe_protect requires non-negative finite --mfe-protect-trailing-floor-bps")
+
 
 @dataclass(frozen=True)
 class SourceTape:
@@ -81,6 +139,10 @@ class SourceTape:
         take_profit_bps: float,
         stop_loss_bps: float,
         same_bar_policy: str,
+        mfe_protect_activation_bps: float = 20.0,
+        mfe_protect_breakeven_offset_bps: float = 0.0,
+        mfe_protect_trailing_capture_ratio: float = 0.0,
+        mfe_protect_trailing_floor_bps: float = 0.0,
     ) -> dict[str, Any] | None:
         start = int(start_idx)
         end = start + int(horizon_bars)
@@ -100,6 +162,12 @@ class SourceTape:
         exit_reason = "horizon"
         exit_price: float
         gross_pnl_bps: float
+        protect_meta: dict[str, Any] = {
+            "mfe_protect_activated": False,
+            "mfe_protect_activation_bar": None,
+            "mfe_protect_floor_bps_at_exit": None,
+            "mfe_protect_peak_mfe_bps_at_exit": None,
+        }
 
         if exit_mode == "stop_tp":
             if take_profit_bps <= 0 or stop_loss_bps <= 0:
@@ -120,6 +188,42 @@ class SourceTape:
                 gross_pnl_bps = float(hit["gross_pnl_bps"])
             else:
                 exit_price, gross_pnl_bps = self._horizon_exit(start=start, end=end, side=side, entry_price=entry_price)
+        elif exit_mode == MFE_PROTECT_EXIT_MODE:
+            if take_profit_bps <= 0 or stop_loss_bps <= 0:
+                raise RuntimeError("stop_tp_mfe_protect exit requires positive take-profit and stop-loss bps")
+            hit = self._first_stop_tp_mfe_protect_hit(
+                start=start,
+                end=end,
+                side=side,
+                entry_price=entry_price,
+                take_profit_bps=float(take_profit_bps),
+                stop_loss_bps=float(stop_loss_bps),
+                same_bar_policy=same_bar_policy,
+                mfe_protect_activation_bps=float(mfe_protect_activation_bps),
+                mfe_protect_breakeven_offset_bps=float(mfe_protect_breakeven_offset_bps),
+                mfe_protect_trailing_capture_ratio=float(mfe_protect_trailing_capture_ratio),
+                mfe_protect_trailing_floor_bps=float(mfe_protect_trailing_floor_bps),
+            )
+            if hit is not None:
+                exit_idx = int(hit["exit_idx"])
+                exit_reason = str(hit["exit_reason"])
+                exit_price = float(hit["exit_price"])
+                gross_pnl_bps = float(hit["gross_pnl_bps"])
+                protect_meta.update({k: hit.get(k) for k in protect_meta})
+            else:
+                exit_price, gross_pnl_bps = self._horizon_exit(start=start, end=end, side=side, entry_price=entry_price)
+                protect_meta.update(
+                    self._mfe_protect_terminal_meta(
+                        start=start,
+                        end=end,
+                        side=side,
+                        entry_price=entry_price,
+                        mfe_protect_activation_bps=float(mfe_protect_activation_bps),
+                        mfe_protect_breakeven_offset_bps=float(mfe_protect_breakeven_offset_bps),
+                        mfe_protect_trailing_capture_ratio=float(mfe_protect_trailing_capture_ratio),
+                        mfe_protect_trailing_floor_bps=float(mfe_protect_trailing_floor_bps),
+                    )
+                )
         elif exit_mode == "horizon":
             exit_price, gross_pnl_bps = self._horizon_exit(start=start, end=end, side=side, entry_price=entry_price)
         else:
@@ -141,6 +245,7 @@ class SourceTape:
             "mae_bps": mae_bps,
             "held_bars": int(exit_idx - start),
             "exit_reason": exit_reason,
+            **protect_meta,
         }
 
     def _horizon_exit(self, *, start: int, end: int, side: int, entry_price: float) -> tuple[float, float]:
@@ -195,6 +300,147 @@ class SourceTape:
                 "gross_pnl_bps": -stop_loss_bps,
                 "exit_reason": "stop_loss",
             }
+        return None
+
+    @staticmethod
+    def _mfe_protect_floor_bps(
+        *,
+        peak_mfe_bps: float,
+        mfe_protect_breakeven_offset_bps: float,
+        mfe_protect_trailing_capture_ratio: float,
+        mfe_protect_trailing_floor_bps: float,
+    ) -> float:
+        floor = max(float(mfe_protect_breakeven_offset_bps), float(mfe_protect_trailing_floor_bps))
+        if float(mfe_protect_trailing_capture_ratio) > 0.0:
+            floor = max(floor, float(peak_mfe_bps) * float(mfe_protect_trailing_capture_ratio))
+        floor = max(0.0, floor)
+        return min(floor, max(0.0, float(peak_mfe_bps)))
+
+    def _mfe_protect_terminal_meta(
+        self,
+        *,
+        start: int,
+        end: int,
+        side: int,
+        entry_price: float,
+        mfe_protect_activation_bps: float,
+        mfe_protect_breakeven_offset_bps: float,
+        mfe_protect_trailing_capture_ratio: float,
+        mfe_protect_trailing_floor_bps: float,
+    ) -> dict[str, Any]:
+        activated = False
+        activation_bar: int | None = None
+        peak_mfe_bps = 0.0
+        for idx in range(start + 1, end + 1):
+            current_mfe = self._bar_mfe_bps(idx=idx, side=side, entry_price=entry_price)
+            if np.isfinite(current_mfe):
+                peak_mfe_bps = max(peak_mfe_bps, float(current_mfe))
+            if not activated and peak_mfe_bps >= float(mfe_protect_activation_bps):
+                activated = True
+                activation_bar = idx
+        floor = (
+            self._mfe_protect_floor_bps(
+                peak_mfe_bps=peak_mfe_bps,
+                mfe_protect_breakeven_offset_bps=mfe_protect_breakeven_offset_bps,
+                mfe_protect_trailing_capture_ratio=mfe_protect_trailing_capture_ratio,
+                mfe_protect_trailing_floor_bps=mfe_protect_trailing_floor_bps,
+            )
+            if activated
+            else None
+        )
+        return {
+            "mfe_protect_activated": activated,
+            "mfe_protect_activation_bar": activation_bar,
+            "mfe_protect_floor_bps_at_exit": floor,
+            "mfe_protect_peak_mfe_bps_at_exit": peak_mfe_bps if activated else None,
+        }
+
+    def _bar_mfe_bps(self, *, idx: int, side: int, entry_price: float) -> float:
+        if side == 0:
+            return float((float(self.bid_high[idx]) - entry_price) / entry_price * 1e4)
+        return float((entry_price - float(self.ask_low[idx])) / entry_price * 1e4)
+
+    def _first_stop_tp_mfe_protect_hit(
+        self,
+        *,
+        start: int,
+        end: int,
+        side: int,
+        entry_price: float,
+        take_profit_bps: float,
+        stop_loss_bps: float,
+        same_bar_policy: str,
+        mfe_protect_activation_bps: float,
+        mfe_protect_breakeven_offset_bps: float,
+        mfe_protect_trailing_capture_ratio: float,
+        mfe_protect_trailing_floor_bps: float,
+    ) -> dict[str, Any] | None:
+        activated = False
+        activation_bar: int | None = None
+        peak_mfe_bps = 0.0
+        floor_bps: float | None = None
+
+        for idx in range(start + 1, end + 1):
+            if activated:
+                floor_bps = self._mfe_protect_floor_bps(
+                    peak_mfe_bps=peak_mfe_bps,
+                    mfe_protect_breakeven_offset_bps=mfe_protect_breakeven_offset_bps,
+                    mfe_protect_trailing_capture_ratio=mfe_protect_trailing_capture_ratio,
+                    mfe_protect_trailing_floor_bps=mfe_protect_trailing_floor_bps,
+                )
+
+            if side == 0:
+                tp_price = entry_price * (1.0 + take_profit_bps / 1e4)
+                stop_price = (
+                    entry_price * (1.0 + float(floor_bps) / 1e4)
+                    if activated and floor_bps is not None
+                    else entry_price * (1.0 - stop_loss_bps / 1e4)
+                )
+                hit_tp = bool(self.bid_high[idx] >= tp_price)
+                hit_stop = bool(self.bid_low[idx] <= stop_price)
+            else:
+                tp_price = entry_price * (1.0 - take_profit_bps / 1e4)
+                stop_price = (
+                    entry_price * (1.0 - float(floor_bps) / 1e4)
+                    if activated and floor_bps is not None
+                    else entry_price * (1.0 + stop_loss_bps / 1e4)
+                )
+                hit_tp = bool(self.ask_low[idx] <= tp_price)
+                hit_stop = bool(self.ask_high[idx] >= stop_price)
+
+            if hit_tp or hit_stop:
+                if hit_tp and hit_stop and same_bar_policy == "target_first":
+                    hit_stop = False
+                elif hit_tp and hit_stop:
+                    hit_tp = False
+                if hit_tp:
+                    return {
+                        "exit_idx": idx,
+                        "exit_price": tp_price,
+                        "gross_pnl_bps": take_profit_bps,
+                        "exit_reason": "take_profit",
+                        "mfe_protect_activated": activated,
+                        "mfe_protect_activation_bar": activation_bar,
+                        "mfe_protect_floor_bps_at_exit": floor_bps,
+                        "mfe_protect_peak_mfe_bps_at_exit": peak_mfe_bps if activated else None,
+                    }
+                return {
+                    "exit_idx": idx,
+                    "exit_price": stop_price,
+                    "gross_pnl_bps": float(floor_bps) if activated and floor_bps is not None else -stop_loss_bps,
+                    "exit_reason": "mfe_protect_stop" if activated else "stop_loss",
+                    "mfe_protect_activated": activated,
+                    "mfe_protect_activation_bar": activation_bar,
+                    "mfe_protect_floor_bps_at_exit": floor_bps,
+                    "mfe_protect_peak_mfe_bps_at_exit": peak_mfe_bps if activated else None,
+                }
+
+            current_mfe = self._bar_mfe_bps(idx=idx, side=side, entry_price=entry_price)
+            if np.isfinite(current_mfe):
+                peak_mfe_bps = max(peak_mfe_bps, float(current_mfe))
+            if not activated and peak_mfe_bps >= float(mfe_protect_activation_bps):
+                activated = True
+                activation_bar = idx
         return None
 
     def _mfe_mae(self, *, start: int, end: int, side: int, entry_price: float) -> tuple[float | None, float | None]:
@@ -323,6 +569,10 @@ def _run_policy(
             take_profit_bps=float(args.take_profit_bps),
             stop_loss_bps=float(args.stop_loss_bps),
             same_bar_policy=str(args.same_bar_policy),
+            mfe_protect_activation_bps=float(getattr(args, "mfe_protect_activation_bps", 20.0)),
+            mfe_protect_breakeven_offset_bps=float(getattr(args, "mfe_protect_breakeven_offset_bps", 0.0)),
+            mfe_protect_trailing_capture_ratio=float(getattr(args, "mfe_protect_trailing_capture_ratio", 0.0)),
+            mfe_protect_trailing_floor_bps=float(getattr(args, "mfe_protect_trailing_floor_bps", 0.0)),
         )
         if sim is None:
             counts["skipped_invalid_path"] += 1
@@ -337,6 +587,8 @@ def _run_policy(
             "fold": fold_id,
             "policy_id": policy_id,
             "policy_config_hash": policy_config_hash,
+            "exit_mode": str(args.exit_mode),
+            "exit_policy_config_hash": _exit_policy_config_hash(_exit_policy_config_from_args(args)),
             "threshold_top_frac": float(threshold_top_frac),
             "score_threshold": float(score_threshold),
             "cost_stress_bps": float(cost_stress_bps),
@@ -365,6 +617,10 @@ def _run_policy(
             "horizon_bars": int(row.label_horizon_bars),
             "held_bars": sim["held_bars"],
             "exit_reason": sim["exit_reason"],
+            "mfe_protect_activated": sim["mfe_protect_activated"],
+            "mfe_protect_activation_bar": sim["mfe_protect_activation_bar"],
+            "mfe_protect_floor_bps_at_exit": sim["mfe_protect_floor_bps_at_exit"],
+            "mfe_protect_peak_mfe_bps_at_exit": sim["mfe_protect_peak_mfe_bps_at_exit"],
         }
         trades.append(trade)
         counts["trades"] += 1
@@ -529,6 +785,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     x, _y, df, feature_names, _categorical_idx = _load_all_data(dataset_dir, data_splits)
     _check_no_xgb_feature_names(feature_names)
     tape = SourceTape.load(source_parquet)
+    _validate_exit_policy_args(args)
 
     all_trades: list[dict[str, Any]] = []
     decision_rows: list[dict[str, Any]] = []
@@ -537,10 +794,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     base_policy_config = {
         "model_name": str(args.model_name),
         "data_splits": data_splits,
-        "exit_mode": str(args.exit_mode),
-        "take_profit_bps": float(args.take_profit_bps),
-        "stop_loss_bps": float(args.stop_loss_bps),
-        "same_bar_policy": str(args.same_bar_policy),
+        **_exit_policy_config_from_args(args),
         "cooldown_bars": int(args.cooldown_bars),
         "max_trades_per_day": int(args.max_trades_per_day),
         "daily_loss_limit_bps": float(args.daily_loss_limit_bps),
@@ -639,6 +893,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             ],
         },
         "policy_config": base_policy_config,
+        "exit_policy_contract": _exit_policy_contract_from_args(args),
         "threshold_top_fracs": threshold_top_fracs,
         "cost_stress_bps": cost_stress_bps_values,
         "n_trades_total": int(len(trades_df)),
@@ -670,10 +925,14 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--val-tail-days", type=int, default=30)
     ap.add_argument("--min-val-rows", type=int, default=2500)
     ap.add_argument("--min-train-rows", type=int, default=50000)
-    ap.add_argument("--exit-mode", choices=("horizon", "stop_tp"), default="horizon")
+    ap.add_argument("--exit-mode", choices=EXIT_MODE_CHOICES, default="horizon")
     ap.add_argument("--take-profit-bps", type=float, default=60.0)
     ap.add_argument("--stop-loss-bps", type=float, default=45.0)
     ap.add_argument("--same-bar-policy", choices=("stop_first", "target_first"), default="stop_first")
+    ap.add_argument("--mfe-protect-activation-bps", type=float, default=20.0)
+    ap.add_argument("--mfe-protect-breakeven-offset-bps", type=float, default=0.0)
+    ap.add_argument("--mfe-protect-trailing-capture-ratio", type=float, default=0.0)
+    ap.add_argument("--mfe-protect-trailing-floor-bps", type=float, default=0.0)
     ap.add_argument("--cooldown-bars", type=int, default=6)
     ap.add_argument("--max-trades-per-day", type=int, default=8)
     ap.add_argument("--daily-loss-limit-bps", type=float, default=150.0)

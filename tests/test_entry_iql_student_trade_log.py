@@ -97,10 +97,15 @@ def test_iql_student_trade_log_selects_validation_policy_and_writes_2026_trades(
             policy_id="entry_iql_student",
             threshold_top_fracs="0.50",
             cost_stress_bps="0.0",
+            exit_mode="stop_tp_mfe_protect",
             stop_loss_bps=80.0,
             take_profit_bps_grid="80,120",
             daily_loss_limit_bps_grid="0",
             same_bar_policy="stop_first",
+            mfe_protect_activation_bps=20.0,
+            mfe_protect_breakeven_offset_bps=0.0,
+            mfe_protect_trailing_capture_ratio=0.0,
+            mfe_protect_trailing_floor_bps=0.0,
             cooldown_bars=0,
             max_trades_per_day=0,
             min_direction_prob=0.0,
@@ -129,7 +134,13 @@ def test_iql_student_trade_log_selects_validation_policy_and_writes_2026_trades(
     assert report["promotion_shadow_live_allowed"] is False
     assert report["test_grid_diagnostics"]["enabled"] is True
     assert report["test_grid_diagnostics"]["diagnostic_only_not_selection_criterion"] is True
+    assert report["selected_policy"]["exit_mode"] == "stop_tp_mfe_protect"
+    assert report["exit_policy_contract"]["offline_only"] is True
+    assert report["exit_policy_contract"]["promotion_shadow_live_allowed"] is False
     assert set(trades["policy_id"]) == {"entry_iql_student"}
+    assert set(trades["exit_mode"]) == {"stop_tp_mfe_protect"}
+    assert trades["exit_policy_config_hash"].notna().all()
+    assert trades["student_selected_exit_policy_config_hash"].notna().all()
     assert set(pd.to_datetime(trades["entry_time"], utc=True).dt.year) == {2026}
     assert "teacher_score" in trades.columns
     assert "state_session" in trades.columns

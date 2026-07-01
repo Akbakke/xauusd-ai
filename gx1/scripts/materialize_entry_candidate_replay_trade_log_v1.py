@@ -18,7 +18,16 @@ import numpy as np
 import pandas as pd
 
 from gx1.scripts.apply_entry_foundation_activation_v1 import DEFAULT_SOURCE_PARQUET
-from gx1.scripts.replay_entry_tabular_no_xgb_policy_v1 import SourceTape, _policy_hash, _threshold_from_scores
+from gx1.scripts.replay_entry_tabular_no_xgb_policy_v1 import (
+    EXIT_MODE_CHOICES,
+    SourceTape,
+    _exit_policy_config_from_args,
+    _exit_policy_config_hash,
+    _exit_policy_contract_from_args,
+    _policy_hash,
+    _threshold_from_scores,
+    _validate_exit_policy_args,
+)
 from gx1.scripts.verify_entry_foundation_state_v1 import FOUNDATION_DATASET_DIR, REPORTS_ROOT
 
 
@@ -146,6 +155,8 @@ def _run_fixed_horizon_policy(
         "threshold_top_frac": float(threshold_top_frac),
         "score_threshold": float(score_threshold),
         "cost_stress_bps": float(cost_stress_bps),
+        "exit_mode": str(args.exit_mode),
+        "exit_policy_config_hash": _exit_policy_config_hash(_exit_policy_config_from_args(args)),
         "rows": int(len(eval_df)),
         "below_threshold": 0,
         "below_min_direction_prob": 0,
@@ -187,6 +198,10 @@ def _run_fixed_horizon_policy(
             take_profit_bps=float(args.take_profit_bps),
             stop_loss_bps=float(args.stop_loss_bps),
             same_bar_policy=str(args.same_bar_policy),
+            mfe_protect_activation_bps=float(getattr(args, "mfe_protect_activation_bps", 20.0)),
+            mfe_protect_breakeven_offset_bps=float(getattr(args, "mfe_protect_breakeven_offset_bps", 0.0)),
+            mfe_protect_trailing_capture_ratio=float(getattr(args, "mfe_protect_trailing_capture_ratio", 0.0)),
+            mfe_protect_trailing_floor_bps=float(getattr(args, "mfe_protect_trailing_floor_bps", 0.0)),
         )
         if sim is None:
             counts["skipped_invalid_path"] += 1
@@ -198,6 +213,8 @@ def _run_fixed_horizon_policy(
             "fold": "2026_TEST",
             "policy_id": policy_id,
             "policy_config_hash": policy_config_hash,
+            "exit_mode": str(args.exit_mode),
+            "exit_policy_config_hash": _exit_policy_config_hash(_exit_policy_config_from_args(args)),
             "threshold_source": "validation_top_fraction",
             "threshold_top_frac": float(threshold_top_frac),
             "score_threshold": float(score_threshold),
@@ -230,6 +247,10 @@ def _run_fixed_horizon_policy(
             "horizon_bars": int(row.label_horizon_bars),
             "held_bars": sim["held_bars"],
             "exit_reason": sim["exit_reason"],
+            "mfe_protect_activated": sim["mfe_protect_activated"],
+            "mfe_protect_activation_bar": sim["mfe_protect_activation_bar"],
+            "mfe_protect_floor_bps_at_exit": sim["mfe_protect_floor_bps_at_exit"],
+            "mfe_protect_peak_mfe_bps_at_exit": sim["mfe_protect_peak_mfe_bps_at_exit"],
         }
         trades.append(trade)
         counts["trades"] += 1
@@ -245,6 +266,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     source_parquet = Path(args.source_parquet).expanduser().resolve()
     out_dir = Path(args.out_dir).expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
+    _validate_exit_policy_args(args)
 
     predictions = _prepare_predictions(predictions_path, dataset_dir, str(args.model_name))
     if "val" not in set(predictions["split"]) or "test" not in set(predictions["split"]):
@@ -261,10 +283,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "model_name": str(args.model_name),
         "threshold_source": "validation_top_fraction",
         "eval_split": "test",
-        "exit_mode": str(args.exit_mode),
-        "take_profit_bps": float(args.take_profit_bps),
-        "stop_loss_bps": float(args.stop_loss_bps),
-        "same_bar_policy": str(args.same_bar_policy),
+        **_exit_policy_config_from_args(args),
         "cooldown_bars": int(args.cooldown_bars),
         "max_trades_per_day": int(args.max_trades_per_day),
         "daily_loss_limit_bps": float(args.daily_loss_limit_bps),
@@ -365,6 +384,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "cost_stress_bps": cost_values,
         "n_trades": int(len(trades_df)),
         "policy_counts": all_counts,
+        "policy_config": base_policy_config,
+        "exit_policy_contract": _exit_policy_contract_from_args(args),
         "trainer_started": False,
         "replay_started": False,
         "promotion_shadow_live_allowed": False,
@@ -393,10 +414,14 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--threshold-top-fracs", default="0.05")
     ap.add_argument("--cost-stress-bps", default="0.0")
     ap.add_argument("--policy-id", default="")
-    ap.add_argument("--exit-mode", choices=("horizon", "stop_tp"), default="horizon")
+    ap.add_argument("--exit-mode", choices=EXIT_MODE_CHOICES, default="horizon")
     ap.add_argument("--take-profit-bps", type=float, default=60.0)
     ap.add_argument("--stop-loss-bps", type=float, default=45.0)
     ap.add_argument("--same-bar-policy", choices=("stop_first", "target_first"), default="stop_first")
+    ap.add_argument("--mfe-protect-activation-bps", type=float, default=20.0)
+    ap.add_argument("--mfe-protect-breakeven-offset-bps", type=float, default=0.0)
+    ap.add_argument("--mfe-protect-trailing-capture-ratio", type=float, default=0.0)
+    ap.add_argument("--mfe-protect-trailing-floor-bps", type=float, default=0.0)
     ap.add_argument("--cooldown-bars", type=int, default=6)
     ap.add_argument("--max-trades-per-day", type=int, default=8)
     ap.add_argument("--daily-loss-limit-bps", type=float, default=150.0)

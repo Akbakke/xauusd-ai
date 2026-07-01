@@ -187,6 +187,27 @@ def latest_smart_selected_replay_readiness(root):
         return None
     return sorted(candidates, reverse=True)[0][2]
 
+def latest_ready_smart_report(root, pattern, ready_decisions):
+    candidates = []
+    if not root.exists():
+        return None
+    for path in root.glob(pattern):
+        if not path.is_file():
+            continue
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        ready = int(str(payload.get("decision") or "") in set(ready_decisions))
+        try:
+            mtime_ns = path.stat().st_mtime_ns
+        except OSError:
+            mtime_ns = 0
+        candidates.append((ready, mtime_ns, path))
+    if not candidates:
+        return None
+    return sorted(candidates, reverse=True)[0][2]
+
 paths = {
     "train-readiness": Path("/home/andre2/GX1_DATA/reports/entry_training_readiness_20260628_v1/ENTRY_TRAINING_READINESS_latest.json"),
     "worktree-hygiene": Path("/home/andre2/GX1_DATA/reports/entry_foundation_worktree_hygiene_20260628_v1/ENTRY_FOUNDATION_WORKTREE_HYGIENE_latest.json"),
@@ -233,6 +254,37 @@ smart_selected_replay_readiness_path = latest_smart_selected_replay_readiness(
 )
 if smart_selected_replay_readiness_path is not None:
     paths["replay-readiness-smart-selected"] = smart_selected_replay_readiness_path
+smart_iql_artifacts = {
+    "iql-distillation-contract": (
+        Path("/home/andre2/GX1_DATA/reports/entry_iql_distillation_contract_20260628_v1"),
+        "smart_seq520_candidate_*/ENTRY_IQL_DISTILLATION_CONTRACT_latest.json",
+        {"ENTRY_IQL_DISTILLATION_CONTRACT_READY"},
+    ),
+    "iql-student-trade-log": (
+        Path("/home/andre2/GX1_DATA/reports/entry_iql_student_trade_log_20260628_v1"),
+        "smart_seq520_candidate_*/ENTRY_IQL_STUDENT_TRADE_LOG_latest.json",
+        {"PASS"},
+    ),
+    "iql-replay-evidence": (
+        Path("/home/andre2/GX1_DATA/reports/entry_iql_distillation_replay_20260628_v1"),
+        "smart_seq520_candidate_*/ENTRY_IQL_REPLAY_EVIDENCE_latest.json",
+        {"PASS"},
+    ),
+    "iql-replay-comparison": (
+        Path("/home/andre2/GX1_DATA/reports/entry_iql_replay_comparison_20260628_v1"),
+        "smart_seq520_candidate_*/ENTRY_IQL_REPLAY_COMPARISON_latest.json",
+        {"READY_FOR_PROMOTION_REVIEW_VEDTAK"},
+    ),
+    "iql-replay-slice-audit": (
+        Path("/home/andre2/GX1_DATA/reports/entry_iql_replay_slice_audit_20260628_v1"),
+        "smart_seq520_candidate_*/ENTRY_IQL_REPLAY_SLICE_AUDIT_latest.json",
+        {"PASS"},
+    ),
+}
+for key, (root, pattern, ready_decisions) in smart_iql_artifacts.items():
+    selected = latest_ready_smart_report(root, pattern, ready_decisions)
+    if selected is not None:
+        paths[key] = selected
 adoption_root = Path("/home/andre2/GX1_DATA/reports/entry_foundation_adoption_candidate_20260629_v1")
 adoption_candidates = (
     sorted(

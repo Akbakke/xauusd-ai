@@ -34,7 +34,15 @@ from gx1.scripts.materialize_entry_iql_distillation_contract_v1 import (
     IQL_DISTILLATION_REQUIRED_ARTIFACT_KEYS,
     _sha256_file,
 )
-from gx1.scripts.replay_entry_tabular_no_xgb_policy_v1 import SourceTape, _policy_hash, _threshold_from_scores
+from gx1.scripts.replay_entry_tabular_no_xgb_policy_v1 import (
+    EXIT_MODE_CHOICES,
+    SourceTape,
+    _exit_policy_config_from_args,
+    _exit_policy_contract_from_args,
+    _policy_hash,
+    _threshold_from_scores,
+    _validate_exit_policy_args,
+)
 from gx1.scripts.verify_entry_foundation_state_v1 import FOUNDATION_DATASET_DIR, REPORTS_ROOT
 
 
@@ -220,6 +228,31 @@ def _apply_student_risk_filters(
     return frame.loc[mask].copy()
 
 
+def _student_policy_run_args(
+    args: argparse.Namespace,
+    *,
+    take_profit_bps: float,
+    stop_loss_bps: float,
+    daily_loss_limit_bps: float,
+) -> argparse.Namespace:
+    return argparse.Namespace(
+        exit_mode=str(args.exit_mode),
+        take_profit_bps=float(take_profit_bps),
+        stop_loss_bps=float(stop_loss_bps),
+        same_bar_policy=str(args.same_bar_policy),
+        min_direction_prob=float(args.min_direction_prob),
+        max_trades_per_day=int(args.max_trades_per_day),
+        daily_loss_limit_bps=float(daily_loss_limit_bps),
+        cooldown_bars=int(args.cooldown_bars),
+        slippage_bps=float(args.slippage_bps),
+        size_multiplier=float(args.size_multiplier),
+        mfe_protect_activation_bps=float(getattr(args, "mfe_protect_activation_bps", 20.0)),
+        mfe_protect_breakeven_offset_bps=float(getattr(args, "mfe_protect_breakeven_offset_bps", 0.0)),
+        mfe_protect_trailing_capture_ratio=float(getattr(args, "mfe_protect_trailing_capture_ratio", 0.0)),
+        mfe_protect_trailing_floor_bps=float(getattr(args, "mfe_protect_trailing_floor_bps", 0.0)),
+    )
+
+
 def _run_test_grid_diagnostics(
     *,
     validation_rows: list[dict[str, Any]],
@@ -240,7 +273,7 @@ def _run_test_grid_diagnostics(
             min_path_quality_pred=row.get("min_path_quality_pred"),
         )
         run_args = argparse.Namespace(
-            exit_mode="stop_tp",
+            exit_mode=str(row["exit_mode"]),
             take_profit_bps=float(row["take_profit_bps"]),
             stop_loss_bps=float(row["stop_loss_bps"]),
             same_bar_policy=str(row["same_bar_policy"]),
@@ -250,6 +283,10 @@ def _run_test_grid_diagnostics(
             cooldown_bars=int(row["cooldown_bars"]),
             slippage_bps=float(row["slippage_bps"]),
             size_multiplier=float(row["size_multiplier"]),
+            mfe_protect_activation_bps=float(row["mfe_protect_activation_bps"]),
+            mfe_protect_breakeven_offset_bps=float(row["mfe_protect_breakeven_offset_bps"]),
+            mfe_protect_trailing_capture_ratio=float(row["mfe_protect_trailing_capture_ratio"]),
+            mfe_protect_trailing_floor_bps=float(row["mfe_protect_trailing_floor_bps"]),
         )
         test_trades, test_counts = _run_fixed_horizon_policy(
             eval_df=filtered_test,
@@ -268,8 +305,14 @@ def _run_test_grid_diagnostics(
                 "policy_config_hash": str(row["policy_config_hash"]),
                 "threshold_top_frac": float(row["threshold_top_frac"]),
                 "score_threshold": float(row["score_threshold"]),
+                "exit_mode": str(row["exit_mode"]),
+                "exit_policy_config_hash": str(row.get("exit_policy_config_hash", "")),
                 "stop_loss_bps": float(row["stop_loss_bps"]),
                 "take_profit_bps": float(row["take_profit_bps"]),
+                "mfe_protect_activation_bps": float(row["mfe_protect_activation_bps"]),
+                "mfe_protect_breakeven_offset_bps": float(row["mfe_protect_breakeven_offset_bps"]),
+                "mfe_protect_trailing_capture_ratio": float(row["mfe_protect_trailing_capture_ratio"]),
+                "mfe_protect_trailing_floor_bps": float(row["mfe_protect_trailing_floor_bps"]),
                 "daily_loss_limit_bps": float(row["daily_loss_limit_bps"]),
                 "cost_stress_bps": float(row["cost_stress_bps"]),
                 "max_bad_path_prob": row.get("max_bad_path_prob"),
@@ -297,8 +340,14 @@ def _annotate_student_trades(trades: list[dict[str, Any]], *, selected: dict[str
         else "validation_net_mean_bps_then_drawdown"
     )
     frame["student_selected_top_frac"] = float(selected["threshold_top_frac"])
+    frame["student_selected_exit_mode"] = str(selected["exit_mode"])
+    frame["student_selected_exit_policy_config_hash"] = str(selected.get("exit_policy_config_hash", ""))
     frame["student_selected_stop_loss_bps"] = float(selected["stop_loss_bps"])
     frame["student_selected_take_profit_bps"] = float(selected["take_profit_bps"])
+    frame["student_selected_mfe_protect_activation_bps"] = float(selected["mfe_protect_activation_bps"])
+    frame["student_selected_mfe_protect_breakeven_offset_bps"] = float(selected["mfe_protect_breakeven_offset_bps"])
+    frame["student_selected_mfe_protect_trailing_capture_ratio"] = float(selected["mfe_protect_trailing_capture_ratio"])
+    frame["student_selected_mfe_protect_trailing_floor_bps"] = float(selected["mfe_protect_trailing_floor_bps"])
     frame["student_selected_daily_loss_limit_bps"] = float(selected["daily_loss_limit_bps"])
     frame["student_selected_cost_stress_bps"] = float(selected["cost_stress_bps"])
     frame["student_selected_max_bad_path_prob"] = selected.get("max_bad_path_prob")
@@ -328,6 +377,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     predictions_path = Path(args.selective_edge_predictions).expanduser().resolve()
     dataset_dir = Path(args.dataset_dir).expanduser().resolve()
     source_parquet = Path(args.source_parquet).expanduser().resolve()
+    _validate_exit_policy_args(_student_policy_run_args(
+        args,
+        take_profit_bps=float(_parse_float_list(str(args.take_profit_bps_grid))[0]),
+        stop_loss_bps=float(args.stop_loss_bps),
+        daily_loss_limit_bps=float(_parse_float_list(str(args.daily_loss_limit_bps_grid))[0]),
+    ))
 
     contract = _read_json(distillation_contract_path)
     contract_check = _distillation_contract_checks(distillation_contract_path, contract)
@@ -366,15 +421,19 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                         for cost_bps in cost_values:
                             max_bad_label = "none" if max_bad_path_prob is None else str(max_bad_path_prob)
                             min_path_label = "none" if min_path_quality_pred is None else str(min_path_quality_pred)
+                            run_args = _student_policy_run_args(
+                                args,
+                                take_profit_bps=float(take_profit_bps),
+                                stop_loss_bps=float(args.stop_loss_bps),
+                                daily_loss_limit_bps=float(daily_loss_limit_bps),
+                            )
+                            exit_policy_config = _exit_policy_config_from_args(run_args)
                             policy_config = {
                                 "student_policy_source": "entry_iql_val_reward_selection_v1",
                                 "model_name": str(args.model_name),
                                 "threshold_top_frac": float(top_frac),
                                 "score_threshold": float(threshold),
-                                "exit_mode": "stop_tp",
-                                "stop_loss_bps": float(args.stop_loss_bps),
-                                "take_profit_bps": float(take_profit_bps),
-                                "same_bar_policy": str(args.same_bar_policy),
+                                **exit_policy_config,
                                 "cooldown_bars": int(args.cooldown_bars),
                                 "max_trades_per_day": int(args.max_trades_per_day),
                                 "daily_loss_limit_bps": float(daily_loss_limit_bps),
@@ -387,22 +446,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                                 "min_path_quality_pred": min_path_quality_pred,
                             }
                             config_hash = _policy_hash(policy_config)
+                            exit_policy_config_hash = _policy_hash(exit_policy_config)
                             grid_policy_id = (
                                 f"entry_iql_student_grid_{_frac_label(top_frac)}_sl{int(args.stop_loss_bps)}"
                                 f"_tp{int(take_profit_bps)}_dl{int(daily_loss_limit_bps)}_"
                                 f"{_cost_label(cost_bps)}_bad{max_bad_label}_pq{min_path_label}_{config_hash}"
-                            )
-                            run_args = argparse.Namespace(
-                                exit_mode="stop_tp",
-                                take_profit_bps=float(take_profit_bps),
-                                stop_loss_bps=float(args.stop_loss_bps),
-                                same_bar_policy=str(args.same_bar_policy),
-                                min_direction_prob=float(args.min_direction_prob),
-                                max_trades_per_day=int(args.max_trades_per_day),
-                                daily_loss_limit_bps=float(daily_loss_limit_bps),
-                                cooldown_bars=int(args.cooldown_bars),
-                                slippage_bps=float(args.slippage_bps),
-                                size_multiplier=float(args.size_multiplier),
                             )
                             val_trades, val_counts = _run_fixed_horizon_policy(
                                 eval_df=filtered_val,
@@ -418,6 +466,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                             row = {
                                 **policy_config,
                                 "policy_config_hash": config_hash,
+                                "exit_policy_config_hash": exit_policy_config_hash,
                                 "grid_policy_id": grid_policy_id,
                                 "validation_eligible_rows": int(len(filtered_val)),
                                 "validation_counts": val_counts,
@@ -444,7 +493,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             min_path_quality_pred=selected_row.get("min_path_quality_pred"),
         )
         selected_run_args = argparse.Namespace(
-            exit_mode="stop_tp",
+            exit_mode=str(selected_row["exit_mode"]),
             take_profit_bps=float(selected_row["take_profit_bps"]),
             stop_loss_bps=float(selected_row["stop_loss_bps"]),
             same_bar_policy=str(selected_row["same_bar_policy"]),
@@ -454,6 +503,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             cooldown_bars=int(selected_row["cooldown_bars"]),
             slippage_bps=float(selected_row["slippage_bps"]),
             size_multiplier=float(selected_row["size_multiplier"]),
+            mfe_protect_activation_bps=float(selected_row["mfe_protect_activation_bps"]),
+            mfe_protect_breakeven_offset_bps=float(selected_row["mfe_protect_breakeven_offset_bps"]),
+            mfe_protect_trailing_capture_ratio=float(selected_row["mfe_protect_trailing_capture_ratio"]),
+            mfe_protect_trailing_floor_bps=float(selected_row["mfe_protect_trailing_floor_bps"]),
         )
         selected_trades, selected_counts = _run_fixed_horizon_policy(
             eval_df=filtered_test,
@@ -540,6 +593,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "max_bad_path_prob_grid": [value for value in max_bad_path_values],
             "min_path_quality_pred_grid": [value for value in min_path_quality_values],
         },
+        "exit_policy_contract": _exit_policy_contract_from_args(
+            _student_policy_run_args(
+                args,
+                take_profit_bps=float(selected_row.get("take_profit_bps", _parse_float_list(str(args.take_profit_bps_grid))[0])),
+                stop_loss_bps=float(selected_row.get("stop_loss_bps", args.stop_loss_bps)),
+                daily_loss_limit_bps=float(
+                    selected_row.get("daily_loss_limit_bps", _parse_float_list(str(args.daily_loss_limit_bps_grid))[0])
+                ),
+            )
+        ),
         "test_grid_diagnostics": {
             "enabled": bool(test_grid_diagnostics_limit > 0),
             "limit": int(test_grid_diagnostics_limit),
@@ -605,10 +668,15 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--policy-id", default="entry_iql_student")
     ap.add_argument("--threshold-top-fracs", default="0.05")
     ap.add_argument("--cost-stress-bps", default="0.0")
+    ap.add_argument("--exit-mode", choices=EXIT_MODE_CHOICES, default="stop_tp")
     ap.add_argument("--stop-loss-bps", type=float, default=80.0)
     ap.add_argument("--take-profit-bps-grid", default="100,120,150,180")
     ap.add_argument("--daily-loss-limit-bps-grid", default="80,120,150")
     ap.add_argument("--same-bar-policy", choices=("stop_first", "target_first"), default="stop_first")
+    ap.add_argument("--mfe-protect-activation-bps", type=float, default=20.0)
+    ap.add_argument("--mfe-protect-breakeven-offset-bps", type=float, default=0.0)
+    ap.add_argument("--mfe-protect-trailing-capture-ratio", type=float, default=0.0)
+    ap.add_argument("--mfe-protect-trailing-floor-bps", type=float, default=0.0)
     ap.add_argument("--cooldown-bars", type=int, default=6)
     ap.add_argument("--max-trades-per-day", type=int, default=8)
     ap.add_argument("--min-direction-prob", type=float, default=0.0)
