@@ -145,6 +145,17 @@ def test_control_surface_routes_verify_to_active_foundation_state() -> None:
     assert "train|retrain|promote|pin|live|start-live|xgb|xgb-train|et|et-train|entry-train|shadow" in text
 
 
+def test_control_surface_train_command_allowed_flags_use_matching_gates() -> None:
+    text = CONTROL.read_text(encoding="utf-8")
+    smoke_block = text[text.index('    "smoke_train": {') : text.index('    "smoke_train_seq215": {')]
+    seq215_block = text[text.index('    "smoke_train_seq215": {') : text.index('    "smart_smoke_train": {')]
+
+    assert '"allowed": real_smoke_train_allowed,' in smoke_block
+    assert '"allowed": real_smoke_train_seq215_allowed,' not in smoke_block
+    assert '"allowed": real_smoke_train_seq215_allowed,' in seq215_block
+    assert '"allowed": real_smoke_train_allowed,' not in seq215_block
+
+
 def test_control_surface_verify_fails_closed_without_traceback() -> None:
     result = subprocess.run(
         ["bash", str(CONTROL), "verify", "--quiet"],

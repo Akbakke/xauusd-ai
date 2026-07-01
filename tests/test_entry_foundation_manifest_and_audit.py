@@ -93,6 +93,7 @@ def test_seq215_manifest_repair_updates_stale_top_level_contract(tmp_path) -> No
             "ctx_cont_dim": 142,
             "ctx_cat_dim": 5,
             "signal_bridge_id": "XGB_SIGNAL_BRIDGE_V2",
+            "signal_bridge_contract_sha256": "abc123",
         },
         "extra": {
             "signal_bridge": {
@@ -111,7 +112,15 @@ def test_seq215_manifest_repair_updates_stale_top_level_contract(tmp_path) -> No
     }
     (dataset_dir / "sample_train.manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
     (dataset_dir / "DATASET_BUILD_PROOF.json").write_text(
-        json.dumps({"ctx_tag": "CTX6CAT6", "ctx_cont_dim": 6, "ctx_cat_dim": 6, "signal_bridge_id": "XGB_SIGNAL_BRIDGE_V2"}),
+        json.dumps(
+            {
+                "ctx_tag": "CTX6CAT6",
+                "ctx_cont_dim": 6,
+                "ctx_cat_dim": 6,
+                "signal_bridge_id": "XGB_SIGNAL_BRIDGE_V2",
+                "signal_bridge_contract_sha256": "abc123",
+            }
+        ),
         encoding="utf-8",
     )
 
@@ -133,6 +142,125 @@ def test_seq215_manifest_repair_updates_stale_top_level_contract(tmp_path) -> No
     assert proof["ctx_tag"] == "CTX6CAT5"
     assert proof["ctx_cont_dim"] == 142
     assert proof["ctx_cat_dim"] == 5
+
+
+def test_foundation_manifest_repair_updates_stale_top_level_contract_when_hash_consistent(tmp_path) -> None:
+    dataset_dir = tmp_path / "dataset"
+    out_dir = tmp_path / "reports"
+    dataset_dir.mkdir()
+    manifest = {
+        "feature_contract": {
+            "ctx_tag": "CTX6CAT6",
+            "ctx_cont_dim": 142,
+            "ctx_cat_dim": 5,
+            "signal_bridge_id": "XGB_SIGNAL_BRIDGE_V2",
+            "signal_bridge_contract_sha256": "abc123",
+            "signal_bridge_fields": ["p_long"],
+        },
+        "extra": {
+            "signal_bridge": {
+                "id": SIGNAL_BRIDGE_ID_V3,
+                "fields": ["p_long", "chart.foundation_hh_state"],
+                "contract_sha256": "abc123",
+            },
+            "ctx_contract": {
+                "tag": "CTX6CAT5",
+                "ctx_cont_dim": 142,
+                "ctx_cat_dim": 5,
+                "ctx_cont_names": ["spread_bps"],
+                "ctx_cat_names": ["spread_bucket"],
+            },
+        },
+    }
+    (dataset_dir / "sample_train.manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    (dataset_dir / "DATASET_BUILD_PROOF.json").write_text(
+        json.dumps(
+            {
+                "ctx_tag": "CTX6CAT6",
+                "ctx_cont_dim": 6,
+                "ctx_cat_dim": 6,
+                "signal_bridge_id": "XGB_SIGNAL_BRIDGE_V2",
+                "signal_bridge_contract_sha256": "abc123",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    report = run_seq215_manifest_repair(
+        argparse.Namespace(
+            dataset_kind="foundation_seq146",
+            dataset_dir=str(dataset_dir),
+            out_dir=str(out_dir),
+            apply=True,
+            quiet=True,
+        )
+    )
+
+    repaired = json.loads((dataset_dir / "sample_train.manifest.json").read_text(encoding="utf-8"))
+    proof = json.loads((dataset_dir / "DATASET_BUILD_PROOF.json").read_text(encoding="utf-8"))
+    assert report["schema_version"] == "entry_foundation_manifest_provenance_repair_v1"
+    assert report["dataset_kind"] == "foundation_seq146"
+    assert report["decision"] == "APPLIED"
+    assert report["parquet_data_modified"] is False
+    assert repaired["feature_contract"]["ctx_tag"] == "CTX6CAT5"
+    assert repaired["feature_contract"]["signal_bridge_id"] == SIGNAL_BRIDGE_ID_V3
+    assert repaired["feature_contract"]["signal_bridge_contract_sha256"] == "abc123"
+    assert repaired["feature_contract"]["signal_bridge_fields"] == ["p_long", "chart.foundation_hh_state"]
+    assert proof["ctx_tag"] == "CTX6CAT5"
+    assert proof["ctx_cont_dim"] == 142
+    assert proof["ctx_cat_dim"] == 5
+    assert proof["signal_bridge_id"] == SIGNAL_BRIDGE_ID_V3
+
+
+def test_manifest_repair_fails_closed_when_top_level_bridge_hash_disagrees(tmp_path) -> None:
+    dataset_dir = tmp_path / "dataset"
+    out_dir = tmp_path / "reports"
+    dataset_dir.mkdir()
+    manifest_path = dataset_dir / "sample_train.manifest.json"
+    manifest = {
+        "feature_contract": {
+            "ctx_tag": "CTX6CAT6",
+            "ctx_cont_dim": 142,
+            "ctx_cat_dim": 5,
+            "signal_bridge_id": "XGB_SIGNAL_BRIDGE_V2",
+            "signal_bridge_contract_sha256": "stale_hash",
+        },
+        "extra": {
+            "signal_bridge": {
+                "id": SIGNAL_BRIDGE_ID_V3,
+                "fields": ["p_long"],
+                "contract_sha256": "abc123",
+            },
+            "ctx_contract": {
+                "tag": "CTX6CAT5",
+                "ctx_cont_dim": 142,
+                "ctx_cat_dim": 5,
+            },
+        },
+    }
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    before = manifest_path.read_text(encoding="utf-8")
+
+    with pytest.raises(SystemExit) as excinfo:
+        run_seq215_manifest_repair(
+            argparse.Namespace(
+                dataset_kind="foundation_seq146",
+                dataset_dir=str(dataset_dir),
+                out_dir=str(out_dir),
+                apply=True,
+                quiet=True,
+            )
+        )
+
+    report = json.loads(
+        (out_dir / "ENTRY_FOUNDATION_MANIFEST_PROVENANCE_REPAIR_latest.json").read_text(encoding="utf-8")
+    )
+    assert excinfo.value.code == 2
+    assert manifest_path.read_text(encoding="utf-8") == before
+    assert report["decision"] == "FAIL"
+    assert report["manifest_repairs"][0]["repair_allowed"] is False
+    assert report["manifest_repairs"][0]["changed"] is False
+    assert any("signal bridge contract sha mismatch" in failure for failure in report["failures"])
 
 
 def test_foundation_audit_stats_report_liveness_and_allow_neutral_bridge_constant() -> None:
