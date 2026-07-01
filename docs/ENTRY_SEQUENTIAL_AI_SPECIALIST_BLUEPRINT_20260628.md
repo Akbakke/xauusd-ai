@@ -289,6 +289,12 @@ The 2026-07-01 operating point is feature-harmony clean but not promotion-ready:
   `best_direction_balance_guard_ok=true`. Smoke/candidate bundle audit must
   fail closed on the same proof, so collapsed LONG/SHORT/FLAT coverage cannot
   survive as a downstream candidate artifact.
+- Symmetric smart training must keep train and validation on the same
+  bidirectional objective. With `ENTRY_SYMMETRIC_NEGATIVES=1`, validation must
+  use the LONG+SHORT aux selector, bidirectional clean-edge/survival targets,
+  bad-path CE/probability penalties and mirrored SHORT hard-negative penalties.
+  Otherwise checkpoint selection can approve a bundle against a different
+  bad-path/path-quality contract than the one being trained.
 - Smart smoke/candidate training must also carry the tail-direction recipe:
   `ENTRY_TAIL_DIRECTION_CE_WEIGHT=0.35`,
   `ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE=0.70` and

@@ -2039,6 +2039,120 @@ def _tail_direction_mask(
     return mask
 
 
+def _hard_negative_residual(
+    y_hard_negative: torch.Tensor,
+    y_dead_negative: torch.Tensor,
+    y_teaser_negative: torch.Tensor,
+) -> torch.Tensor:
+    return torch.clamp(
+        y_hard_negative.float() - y_dead_negative.float() - y_teaser_negative.float(),
+        min=0.0,
+        max=1.0,
+    )
+
+
+def _direction_ce_sample_weight(
+    y_bad_path: torch.Tensor,
+    y_dead_negative_long: torch.Tensor,
+    y_teaser_negative_long: torch.Tensor,
+    residual_hard_neg_long: torch.Tensor,
+    y_dead_negative_short: torch.Tensor,
+    y_teaser_negative_short: torch.Tensor,
+    residual_hard_neg_short: torch.Tensor,
+) -> torch.Tensor:
+    ce_sample_weight = torch.ones_like(y_bad_path.float())
+    if float(ENTRY_DEAD_LONG_CE_MULTIPLIER) > 1.0:
+        ce_sample_weight = ce_sample_weight + (
+            (float(ENTRY_DEAD_LONG_CE_MULTIPLIER) - 1.0) * y_dead_negative_long.float()
+        )
+    if float(ENTRY_TEASER_LONG_CE_MULTIPLIER) > 1.0:
+        ce_sample_weight = ce_sample_weight + (
+            (float(ENTRY_TEASER_LONG_CE_MULTIPLIER) - 1.0) * y_teaser_negative_long.float()
+        )
+    if float(ENTRY_BAD_PATH_CE_MULTIPLIER) > 1.0:
+        ce_sample_weight = ce_sample_weight + (
+            (float(ENTRY_BAD_PATH_CE_MULTIPLIER) - 1.0) * y_bad_path.float()
+        )
+    if float(ENTRY_HARD_NEG_LONG_CE_MULTIPLIER) > 1.0:
+        ce_sample_weight = ce_sample_weight + (
+            (float(ENTRY_HARD_NEG_LONG_CE_MULTIPLIER) - 1.0) * residual_hard_neg_long
+        )
+    if ENTRY_SYMMETRIC_NEGATIVES:
+        if float(ENTRY_DEAD_LONG_CE_MULTIPLIER) > 1.0:
+            ce_sample_weight = ce_sample_weight + (
+                (float(ENTRY_DEAD_LONG_CE_MULTIPLIER) - 1.0) * y_dead_negative_short.float()
+            )
+        if float(ENTRY_TEASER_LONG_CE_MULTIPLIER) > 1.0:
+            ce_sample_weight = ce_sample_weight + (
+                (float(ENTRY_TEASER_LONG_CE_MULTIPLIER) - 1.0) * y_teaser_negative_short.float()
+            )
+        if float(ENTRY_HARD_NEG_LONG_CE_MULTIPLIER) > 1.0:
+            ce_sample_weight = ce_sample_weight + (
+                (float(ENTRY_HARD_NEG_LONG_CE_MULTIPLIER) - 1.0) * residual_hard_neg_short
+            )
+    return ce_sample_weight
+
+
+def _aux_selector_mask(
+    y_selector_long_mask: torch.Tensor,
+    y_selector_short_mask: torch.Tensor,
+) -> torch.Tensor:
+    if ENTRY_SYMMETRIC_NEGATIVES:
+        return (y_selector_long_mask.float() + y_selector_short_mask.float()) > 0.5
+    return y_selector_long_mask.float() > 0.5
+
+
+def _aux_clean_edge_target(
+    y_clean_edge_long: torch.Tensor,
+    y_clean_edge_bidir: torch.Tensor,
+) -> torch.Tensor:
+    return (y_clean_edge_bidir if ENTRY_SYMMETRIC_NEGATIVES else y_clean_edge_long).float()
+
+
+def _aux_survival_target(
+    y_survival_long: torch.Tensor,
+    y_survival_bidir: torch.Tensor,
+) -> torch.Tensor:
+    return (y_survival_bidir if ENTRY_SYMMETRIC_NEGATIVES else y_survival_long).float()
+
+
+def _clean_edge_rank_masks(
+    y_teacher_winner_long: torch.Tensor,
+    y_teacher_bad_long: torch.Tensor,
+    y_clean_edge_long: torch.Tensor,
+    y_clean_edge_bidir: torch.Tensor,
+    y_dead_negative_long: torch.Tensor,
+    y_teaser_negative_long: torch.Tensor,
+    residual_hard_neg_long: torch.Tensor,
+    y_dead_negative_short: torch.Tensor,
+    y_teaser_negative_short: torch.Tensor,
+    residual_hard_neg_short: torch.Tensor,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    if ENTRY_SYMMETRIC_NEGATIVES:
+        clean_pos = y_clean_edge_bidir.float() > 0.5
+        ranked_neg = (
+            (y_teacher_bad_long.float() > 0.5)
+            | (y_dead_negative_long.float() > 0.5)
+            | (y_teaser_negative_long.float() > 0.5)
+            | (residual_hard_neg_long.float() > 0.5)
+            | (y_dead_negative_short.float() > 0.5)
+            | (y_teaser_negative_short.float() > 0.5)
+            | (residual_hard_neg_short.float() > 0.5)
+        )
+        return clean_pos, ranked_neg
+
+    clean_pos = y_teacher_winner_long.float() > 0.5
+    ranked_neg = y_teacher_bad_long.float() > 0.5
+    if not clean_pos.any() or not ranked_neg.any():
+        clean_pos = y_clean_edge_long.float() > 0.5
+        ranked_neg = (
+            (y_teacher_bad_long.float() > 0.5)
+            | (y_dead_negative_long.float() > 0.5)
+            | (y_teaser_negative_long.float() > 0.5)
+        )
+    return clean_pos, ranked_neg
+
+
 def train_epoch(
     model,
     loader,
@@ -2162,49 +2276,22 @@ def train_epoch(
         bad_path_quality_rank_loss = _bad_path_quality_rank_loss(bad_path_logit, y_path_quality, device)
         path_quality_rank_loss = _path_quality_rank_loss(path_pred, y_path_quality, device)
 
-        residual_hard_neg_long = torch.clamp(
-            y_hard_negative_long.float() - y_dead_negative_long.float() - y_teaser_negative_long.float(),
-            min=0.0,
-            max=1.0,
+        residual_hard_neg_long = _hard_negative_residual(
+            y_hard_negative_long, y_dead_negative_long, y_teaser_negative_long
         )
-        residual_hard_neg_short = torch.clamp(
-            y_hard_negative_short.float() - y_dead_negative_short.float() - y_teaser_negative_short.float(),
-            min=0.0,
-            max=1.0,
+        residual_hard_neg_short = _hard_negative_residual(
+            y_hard_negative_short, y_dead_negative_short, y_teaser_negative_short
         )
         ce_per = criterion.ce(logits, y)
-        ce_sample_weight = torch.ones_like(ce_per)
-        if float(ENTRY_DEAD_LONG_CE_MULTIPLIER) > 1.0:
-            ce_sample_weight = ce_sample_weight + (
-                (float(ENTRY_DEAD_LONG_CE_MULTIPLIER) - 1.0) * y_dead_negative_long.float()
-            )
-        if float(ENTRY_TEASER_LONG_CE_MULTIPLIER) > 1.0:
-            ce_sample_weight = ce_sample_weight + (
-                (float(ENTRY_TEASER_LONG_CE_MULTIPLIER) - 1.0) * y_teaser_negative_long.float()
-            )
-        if float(ENTRY_BAD_PATH_CE_MULTIPLIER) > 1.0:
-            ce_sample_weight = ce_sample_weight + (
-                (float(ENTRY_BAD_PATH_CE_MULTIPLIER) - 1.0) * y_bad_path.float()
-            )
-        if float(ENTRY_HARD_NEG_LONG_CE_MULTIPLIER) > 1.0:
-            ce_sample_weight = ce_sample_weight + (
-                (float(ENTRY_HARD_NEG_LONG_CE_MULTIPLIER) - 1.0) * residual_hard_neg_long
-            )
-        # SYMMETRIC SHORT CE-multipliers (vedtak v10_symmetric_negatives_20260603) — reuse the
-        # SAME magnitudes as long, applied to the short-negative labels. OFF by default (cement).
-        if ENTRY_SYMMETRIC_NEGATIVES:
-            if float(ENTRY_DEAD_LONG_CE_MULTIPLIER) > 1.0:
-                ce_sample_weight = ce_sample_weight + (
-                    (float(ENTRY_DEAD_LONG_CE_MULTIPLIER) - 1.0) * y_dead_negative_short.float()
-                )
-            if float(ENTRY_TEASER_LONG_CE_MULTIPLIER) > 1.0:
-                ce_sample_weight = ce_sample_weight + (
-                    (float(ENTRY_TEASER_LONG_CE_MULTIPLIER) - 1.0) * y_teaser_negative_short.float()
-                )
-            if float(ENTRY_HARD_NEG_LONG_CE_MULTIPLIER) > 1.0:
-                ce_sample_weight = ce_sample_weight + (
-                    (float(ENTRY_HARD_NEG_LONG_CE_MULTIPLIER) - 1.0) * residual_hard_neg_short
-                )
+        ce_sample_weight = _direction_ce_sample_weight(
+            y_bad_path,
+            y_dead_negative_long,
+            y_teaser_negative_long,
+            residual_hard_neg_long,
+            y_dead_negative_short,
+            y_teaser_negative_short,
+            residual_hard_neg_short,
+        ).to(device=ce_per.device, dtype=ce_per.dtype)
         ce_loss_raw = (ce_per * ce_sample_weight).mean()
         ce_loss = float(ENTRY_DIRECTION_CE_SCALE) * ce_loss_raw
         probs = torch.softmax(logits, dim=1)
@@ -2276,13 +2363,9 @@ def train_epoch(
         path_loss = torch.tensor(0.0, device=device)
         mfe_loss = torch.tensor(0.0, device=device)
         positive_mask = y_tradable.float() > 0.5
-        # SYM (vedtak v10_symmetric_negatives_20260603): supervise the quality aux heads
-        # (tradable/bad_path/clean_edge/survival) on BOTH sides so the latent z is not shaped
-        # LONG-only. Default OFF = cement bit-parity (long-only selector + long targets).
-        if ENTRY_SYMMETRIC_NEGATIVES:
-            selector_mask = (y_selector_long_mask.float() + y_selector_short_mask.float()) > 0.5
-        else:
-            selector_mask = y_selector_long_mask.float() > 0.5
+        selector_mask = _aux_selector_mask(y_selector_long_mask, y_selector_short_mask)
+        clean_edge_target = _aux_clean_edge_target(y_clean_edge_long, y_clean_edge_bidir)
+        survival_target = _aux_survival_target(y_survival_long, y_survival_bidir)
         if aux_path_weight > 0.0 and path_pred is not None:
             if positive_mask.any():
                 p_scale = max(1.0, float(aux_path_scale_bps))
@@ -2338,7 +2421,7 @@ def train_epoch(
             if selector_mask.any():
                 clean_edge_loss = nn.functional.binary_cross_entropy_with_logits(
                     clean_edge_logit.squeeze(1)[selector_mask],
-                    (y_clean_edge_bidir if ENTRY_SYMMETRIC_NEGATIVES else y_clean_edge_long).float()[selector_mask],
+                    clean_edge_target[selector_mask],
                     pos_weight=torch.tensor(float(clean_edge_pos_weight), device=device, dtype=clean_edge_logit.dtype),
                 )
                 clean_edge_loss = float(ENTRY_AUX_CLEAN_EDGE_WEIGHT) * clean_edge_loss
@@ -2348,7 +2431,7 @@ def train_epoch(
             if selector_mask.any():
                 survival_loss = nn.functional.binary_cross_entropy_with_logits(
                     survival_logit.squeeze(1)[selector_mask],
-                    (y_survival_bidir if ENTRY_SYMMETRIC_NEGATIVES else y_survival_long).float()[selector_mask],
+                    survival_target[selector_mask],
                     pos_weight=torch.tensor(float(survival_pos_weight), device=device, dtype=survival_logit.dtype),
                 )
                 survival_loss = float(ENTRY_AUX_SURVIVAL_WEIGHT) * survival_loss
@@ -2360,15 +2443,18 @@ def train_epoch(
                 if clean_edge_logit is not None
                 else probs[:, 0]
             )
-            clean_pos = y_teacher_winner_long.float() > 0.5
-            ranked_neg = y_teacher_bad_long.float() > 0.5
-            if not clean_pos.any() or not ranked_neg.any():
-                clean_pos = y_clean_edge_long.float() > 0.5
-                ranked_neg = (
-                    (y_teacher_bad_long.float() > 0.5)
-                    | (y_dead_negative_long.float() > 0.5)
-                    | (y_teaser_negative_long.float() > 0.5)
-                )
+            clean_pos, ranked_neg = _clean_edge_rank_masks(
+                y_teacher_winner_long,
+                y_teacher_bad_long,
+                y_clean_edge_long,
+                y_clean_edge_bidir,
+                y_dead_negative_long,
+                y_teaser_negative_long,
+                residual_hard_neg_long,
+                y_dead_negative_short,
+                y_teaser_negative_short,
+                residual_hard_neg_short,
+            )
             if clean_pos.any() and ranked_neg.any():
                 pos_long = clean_edge_prob[clean_pos].mean()
                 neg_long = clean_edge_prob[ranked_neg].mean()
@@ -2760,11 +2846,17 @@ def validate(
             y_dead_negative_long = batch["y_dead_negative_long"].to(device, non_blocking=non_blocking)
             y_teaser_negative_long = batch["y_teaser_negative_long"].to(device, non_blocking=non_blocking)
             y_hard_negative_long = batch["y_hard_negative_long"].to(device, non_blocking=non_blocking)
+            y_dead_negative_short = batch["y_dead_negative_short"].to(device, non_blocking=non_blocking)
+            y_teaser_negative_short = batch["y_teaser_negative_short"].to(device, non_blocking=non_blocking)
+            y_hard_negative_short = batch["y_hard_negative_short"].to(device, non_blocking=non_blocking)
             y_clean_edge_long = batch["y_clean_edge_long"].to(device, non_blocking=non_blocking)
             y_survival_long = batch["y_survival_long"].to(device, non_blocking=non_blocking)
             y_teacher_bad_long = batch["y_teacher_bad_long"].to(device, non_blocking=non_blocking)
             y_teacher_winner_long = batch["y_teacher_winner_long"].to(device, non_blocking=non_blocking)
             y_selector_long_mask = batch["y_selector_long_mask"].to(device, non_blocking=non_blocking)
+            y_selector_short_mask = batch["y_selector_short_mask"].to(device, non_blocking=non_blocking)
+            y_clean_edge_bidir = batch["y_clean_edge_bidir"].to(device, non_blocking=non_blocking)
+            y_survival_bidir = batch["y_survival_bidir"].to(device, non_blocking=non_blocking)
 
             out = _autocast_forward(model, seq_x.device, seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **_multi_tf_kwargs_from_batch(batch, seq_x.device))
             logits = out["direction_logits"]
@@ -2797,30 +2889,27 @@ def validate(
                 _diag_pred["mfe_first_n"].append(_np1d(mfe_pred))
             _diag_lbl["tradable"].append(_np1d(y_tradable))
             _diag_lbl["bad_path"].append(_np1d(y_bad_path))
-            _diag_lbl["clean_edge"].append(_np1d(y_clean_edge_long))
-            _diag_lbl["survival"].append(_np1d(y_survival_long))
+            _diag_lbl["clean_edge"].append(_np1d(_aux_clean_edge_target(y_clean_edge_long, y_clean_edge_bidir)))
+            _diag_lbl["survival"].append(_np1d(_aux_survival_target(y_survival_long, y_survival_bidir)))
             _diag_real["mfe_first_n_bps"].append(_np1d(y_mfe_first))
             _diag_real["path_quality_bps"].append(_np1d(y_path_quality))
 
-            residual_hard_neg_long = torch.clamp(
-                y_hard_negative_long.float() - y_dead_negative_long.float() - y_teaser_negative_long.float(),
-                min=0.0,
-                max=1.0,
+            residual_hard_neg_long = _hard_negative_residual(
+                y_hard_negative_long, y_dead_negative_long, y_teaser_negative_long
+            )
+            residual_hard_neg_short = _hard_negative_residual(
+                y_hard_negative_short, y_dead_negative_short, y_teaser_negative_short
             )
             ce_per = criterion.ce(logits, y)
-            ce_sample_weight = torch.ones_like(ce_per)
-            if float(ENTRY_DEAD_LONG_CE_MULTIPLIER) > 1.0:
-                ce_sample_weight = ce_sample_weight + (
-                    (float(ENTRY_DEAD_LONG_CE_MULTIPLIER) - 1.0) * y_dead_negative_long.float()
-                )
-            if float(ENTRY_TEASER_LONG_CE_MULTIPLIER) > 1.0:
-                ce_sample_weight = ce_sample_weight + (
-                    (float(ENTRY_TEASER_LONG_CE_MULTIPLIER) - 1.0) * y_teaser_negative_long.float()
-                )
-            if float(ENTRY_HARD_NEG_LONG_CE_MULTIPLIER) > 1.0:
-                ce_sample_weight = ce_sample_weight + (
-                    (float(ENTRY_HARD_NEG_LONG_CE_MULTIPLIER) - 1.0) * residual_hard_neg_long
-                )
+            ce_sample_weight = _direction_ce_sample_weight(
+                y_bad_path,
+                y_dead_negative_long,
+                y_teaser_negative_long,
+                residual_hard_neg_long,
+                y_dead_negative_short,
+                y_teaser_negative_short,
+                residual_hard_neg_short,
+            ).to(device=ce_per.device, dtype=ce_per.dtype)
             ce_loss_raw = (ce_per * ce_sample_weight).mean()
             ce_loss = float(ENTRY_DIRECTION_CE_SCALE) * ce_loss_raw
             probs = torch.softmax(logits, dim=1)
@@ -2848,12 +2937,14 @@ def validate(
             hard_neg_prob_loss = torch.tensor(0.0, device=device)
             dead_neg_prob_loss = torch.tensor(0.0, device=device)
             teaser_neg_prob_loss = torch.tensor(0.0, device=device)
+            bad_path_prob_loss = torch.tensor(0.0, device=device)
             if residual_side_bias_alpha > 0.0 and delta_logits is not None:
                 residual_gap = delta_logits[:, 0] - delta_logits[:, 1]
                 residual_side_bias_loss = residual_gap.mean().pow(2)
                 loss = loss + (float(residual_side_bias_alpha) * residual_side_bias_loss)
             dead_neg_mask = y_dead_negative_long.float() > 0.5
             teaser_neg_mask = y_teaser_negative_long.float() > 0.5
+            bad_path_neg_mask = y_bad_path.float() > 0.5
             hard_neg_mask = residual_hard_neg_long > 0.5
             if float(ENTRY_DEAD_LONG_PROB_PENALTY) > 0.0 and dead_neg_mask.any():
                 dead_neg_prob_loss = float(ENTRY_DEAD_LONG_PROB_PENALTY) * probs[dead_neg_mask, 0].mean()
@@ -2861,9 +2952,22 @@ def validate(
             if float(ENTRY_TEASER_LONG_PROB_PENALTY) > 0.0 and teaser_neg_mask.any():
                 teaser_neg_prob_loss = float(ENTRY_TEASER_LONG_PROB_PENALTY) * probs[teaser_neg_mask, 0].mean()
                 loss = loss + teaser_neg_prob_loss
+            if float(ENTRY_BAD_PATH_PROB_PENALTY) > 0.0 and bad_path_neg_mask.any():
+                bad_path_prob_loss = float(ENTRY_BAD_PATH_PROB_PENALTY) * probs[bad_path_neg_mask, 0].mean()
+                loss = loss + bad_path_prob_loss
             if float(ENTRY_HARD_NEG_LONG_PROB_PENALTY) > 0.0 and hard_neg_mask.any():
                 hard_neg_prob_loss = float(ENTRY_HARD_NEG_LONG_PROB_PENALTY) * probs[hard_neg_mask, 0].mean()
                 loss = loss + hard_neg_prob_loss
+            if ENTRY_SYMMETRIC_NEGATIVES:
+                dead_neg_short_mask = y_dead_negative_short.float() > 0.5
+                teaser_neg_short_mask = y_teaser_negative_short.float() > 0.5
+                hard_neg_short_mask = residual_hard_neg_short > 0.5
+                if float(ENTRY_DEAD_LONG_PROB_PENALTY) > 0.0 and dead_neg_short_mask.any():
+                    loss = loss + float(ENTRY_DEAD_LONG_PROB_PENALTY) * probs[dead_neg_short_mask, 1].mean()
+                if float(ENTRY_TEASER_LONG_PROB_PENALTY) > 0.0 and teaser_neg_short_mask.any():
+                    loss = loss + float(ENTRY_TEASER_LONG_PROB_PENALTY) * probs[teaser_neg_short_mask, 1].mean()
+                if float(ENTRY_HARD_NEG_LONG_PROB_PENALTY) > 0.0 and hard_neg_short_mask.any():
+                    loss = loss + float(ENTRY_HARD_NEG_LONG_PROB_PENALTY) * probs[hard_neg_short_mask, 1].mean()
 
             tradable_loss = torch.tensor(0.0, device=device)
             clean_edge_loss = torch.tensor(0.0, device=device)
@@ -2873,7 +2977,9 @@ def validate(
             path_loss = torch.tensor(0.0, device=device)
             mfe_loss = torch.tensor(0.0, device=device)
             positive_mask = y_tradable.float() > 0.5
-            selector_mask = y_selector_long_mask.float() > 0.5
+            selector_mask = _aux_selector_mask(y_selector_long_mask, y_selector_short_mask)
+            clean_edge_target = _aux_clean_edge_target(y_clean_edge_long, y_clean_edge_bidir)
+            survival_target = _aux_survival_target(y_survival_long, y_survival_bidir)
             if aux_path_weight > 0.0 and path_pred is not None:
                 if positive_mask.any():
                     p_scale = max(1.0, float(aux_path_scale_bps))
@@ -2922,7 +3028,7 @@ def validate(
                 if selector_mask.any():
                     clean_edge_loss = nn.functional.binary_cross_entropy_with_logits(
                         clean_edge_logit.squeeze(1)[selector_mask],
-                        y_clean_edge_long.float()[selector_mask],
+                        clean_edge_target[selector_mask],
                         pos_weight=torch.tensor(float(clean_edge_pos_weight), device=device, dtype=clean_edge_logit.dtype),
                     )
                     loss = loss + (float(ENTRY_AUX_CLEAN_EDGE_WEIGHT) * clean_edge_loss)
@@ -2931,7 +3037,7 @@ def validate(
                 if selector_mask.any():
                     survival_loss = nn.functional.binary_cross_entropy_with_logits(
                         survival_logit.squeeze(1)[selector_mask],
-                        y_survival_long.float()[selector_mask],
+                        survival_target[selector_mask],
                         pos_weight=torch.tensor(float(survival_pos_weight), device=device, dtype=survival_logit.dtype),
                     )
                     loss = loss + (float(ENTRY_AUX_SURVIVAL_WEIGHT) * survival_loss)
@@ -2942,15 +3048,18 @@ def validate(
                     if clean_edge_logit is not None
                     else probs[:, 0]
                 )
-                clean_pos = y_teacher_winner_long.float() > 0.5
-                ranked_neg = y_teacher_bad_long.float() > 0.5
-                if not clean_pos.any() or not ranked_neg.any():
-                    clean_pos = y_clean_edge_long.float() > 0.5
-                    ranked_neg = (
-                        (y_teacher_bad_long.float() > 0.5)
-                        | (y_dead_negative_long.float() > 0.5)
-                        | (y_teaser_negative_long.float() > 0.5)
-                    )
+                clean_pos, ranked_neg = _clean_edge_rank_masks(
+                    y_teacher_winner_long,
+                    y_teacher_bad_long,
+                    y_clean_edge_long,
+                    y_clean_edge_bidir,
+                    y_dead_negative_long,
+                    y_teaser_negative_long,
+                    residual_hard_neg_long,
+                    y_dead_negative_short,
+                    y_teaser_negative_short,
+                    residual_hard_neg_short,
+                )
                 if clean_pos.any() and ranked_neg.any():
                     pos_long = clean_edge_prob[clean_pos].mean()
                     neg_long = clean_edge_prob[ranked_neg].mean()
@@ -2970,6 +3079,7 @@ def validate(
             bad_path_quality_rank_loss_sum += float(bad_path_quality_rank_loss.detach().cpu().item()) * bs
             path_quality_rank_loss_sum += float(path_quality_rank_loss.detach().cpu().item()) * bs
             hard_neg_prob_loss_sum += float(hard_neg_prob_loss) * bs
+            bad_path_loss_sum += float(bad_path_prob_loss) * bs
             n += bs
 
             p = probs.cpu().numpy()

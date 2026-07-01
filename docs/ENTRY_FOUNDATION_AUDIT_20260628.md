@@ -404,6 +404,12 @@ Active status:
   `best_direction_balance_guard_ok=true`, and bundle audit must fail closed on
   the same field. A smart run that never finds a live LONG/SHORT/FLAT
   checkpoint is a failed train, not a weak artifact to pass downstream.
+- Symmetric smart training must evaluate the same objective it trains. When
+  `ENTRY_SYMMETRIC_NEGATIVES=1`, validation/checkpoint diagnostics must use the
+  LONG+SHORT aux selector, bidirectional clean-edge/survival targets, bad-path
+  CE/probability penalties and mirrored SHORT hard-negative penalties. A
+  smart520 bundle cannot be treated as calibrated if train and validation
+  measure different bad-path/path-quality semantics.
 - Candidate-readiness now also requires the smoke bundle audit itself to carry
   `path_calibration_recipe_contract=PASS` with active path-quality and bad-path
   heads, full-batch path-quality ranking and positive rank weights/margins.

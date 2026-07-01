@@ -108,6 +108,84 @@ def test_entry_v10_train_and_validate_apply_pred_balance_loss_directly() -> None
     assert text.count("_direction_balance_term(probs, y, criterion)") >= 2
 
 
+def test_entry_v10_train_and_validate_share_symmetric_aux_helpers() -> None:
+    text = TRAINER_PATH.read_text(encoding="utf-8")
+    assert text.count("_direction_ce_sample_weight(") >= 3
+    assert text.count("_aux_selector_mask(y_selector_long_mask, y_selector_short_mask)") >= 2
+    assert text.count("_aux_clean_edge_target(y_clean_edge_long, y_clean_edge_bidir)") >= 2
+    assert text.count("_aux_survival_target(y_survival_long, y_survival_bidir)") >= 2
+    assert text.count("_clean_edge_rank_masks(") >= 3
+
+
+def test_entry_v10_symmetric_aux_helpers_use_short_side(monkeypatch) -> None:
+    import torch
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    monkeypatch.setattr(trainer, "ENTRY_SYMMETRIC_NEGATIVES", True)
+
+    long_selector = torch.tensor([1.0, 0.0, 0.0])
+    short_selector = torch.tensor([0.0, 1.0, 0.0])
+    assert trainer._aux_selector_mask(long_selector, short_selector).tolist() == [True, True, False]
+
+    clean_long = torch.tensor([1.0, 0.0, 0.0])
+    clean_bidir = torch.tensor([1.0, 1.0, 0.0])
+    survival_long = torch.tensor([0.0, 1.0, 0.0])
+    survival_bidir = torch.tensor([1.0, 1.0, 0.0])
+    assert trainer._aux_clean_edge_target(clean_long, clean_bidir).tolist() == [1.0, 1.0, 0.0]
+    assert trainer._aux_survival_target(survival_long, survival_bidir).tolist() == [1.0, 1.0, 0.0]
+
+
+def test_entry_v10_direction_ce_weight_includes_bad_path_and_short_side(monkeypatch) -> None:
+    import torch
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    monkeypatch.setattr(trainer, "ENTRY_SYMMETRIC_NEGATIVES", True)
+    monkeypatch.setattr(trainer, "ENTRY_DEAD_LONG_CE_MULTIPLIER", 1.80)
+    monkeypatch.setattr(trainer, "ENTRY_TEASER_LONG_CE_MULTIPLIER", 1.35)
+    monkeypatch.setattr(trainer, "ENTRY_BAD_PATH_CE_MULTIPLIER", 1.50)
+    monkeypatch.setattr(trainer, "ENTRY_HARD_NEG_LONG_CE_MULTIPLIER", 1.35)
+
+    weight = trainer._direction_ce_sample_weight(
+        y_bad_path=torch.tensor([0.0, 0.0, 1.0]),
+        y_dead_negative_long=torch.tensor([1.0, 0.0, 0.0]),
+        y_teaser_negative_long=torch.zeros(3),
+        residual_hard_neg_long=torch.zeros(3),
+        y_dead_negative_short=torch.tensor([0.0, 1.0, 0.0]),
+        y_teaser_negative_short=torch.zeros(3),
+        residual_hard_neg_short=torch.tensor([0.0, 0.0, 1.0]),
+    )
+
+    assert float(weight[0]) > 1.0
+    assert float(weight[1]) > 1.0
+    assert float(weight[2]) > 1.0
+
+
+def test_entry_v10_clean_edge_rank_masks_use_bidir_short_negatives(monkeypatch) -> None:
+    import torch
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    monkeypatch.setattr(trainer, "ENTRY_SYMMETRIC_NEGATIVES", True)
+
+    clean_pos, ranked_neg = trainer._clean_edge_rank_masks(
+        y_teacher_winner_long=torch.zeros(3),
+        y_teacher_bad_long=torch.zeros(3),
+        y_clean_edge_long=torch.tensor([1.0, 0.0, 0.0]),
+        y_clean_edge_bidir=torch.tensor([1.0, 1.0, 0.0]),
+        y_dead_negative_long=torch.zeros(3),
+        y_teaser_negative_long=torch.zeros(3),
+        residual_hard_neg_long=torch.zeros(3),
+        y_dead_negative_short=torch.tensor([0.0, 0.0, 1.0]),
+        y_teaser_negative_short=torch.zeros(3),
+        residual_hard_neg_short=torch.zeros(3),
+    )
+
+    assert clean_pos.tolist() == [True, True, False]
+    assert ranked_neg.tolist() == [False, False, True]
+
+
 def test_entry_v10_path_quality_rank_loss_penalizes_inverted_order(monkeypatch) -> None:
     import torch
 
