@@ -143,6 +143,9 @@ def test_iql_replay_slice_audit_passes_supported_slices(tmp_path: Path) -> None:
     assert Path(report["slice_metrics_csv"]).exists()
     assert Path(report["slice_comparison_csv"]).exists()
     assert Path(report["exit_opportunity_csv"]).exists()
+    assert Path(report["path_signal_calibration"]["csv"]).exists()
+    assert report["path_signal_calibration"]["rows"] > 0
+    assert report["path_signal_calibration"]["diagnostic_only_not_gate"] is True
     assert report["exit_opportunity_summary"]["iql_all"][0]["peak_oracle_lift_sum_bps"] >= 0.0
     checks = {row["name"]: row["ok"] for row in report["checks"]}
     assert checks["IQL supported edge slices keep positive net/PF/drawdown/max-loss"] is True

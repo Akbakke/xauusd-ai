@@ -535,6 +535,97 @@ def _tail_path_summary(model: str, trades: pd.DataFrame, args: argparse.Namespac
     }
 
 
+def _path_signal_calibration(trades_by_model: dict[str, pd.DataFrame]) -> pd.DataFrame:
+    rows: list[dict[str, Any]] = []
+    for model, trades in trades_by_model.items():
+        if trades.empty:
+            continue
+        exit_reason = _category_series(trades, "exit_reason")
+        enriched = trades.copy()
+        enriched["_is_stop_loss"] = (exit_reason == "STOP_LOSS").astype(float)
+        for signal in ("path_quality_pred", "bad_path_prob"):
+            if signal not in enriched.columns:
+                continue
+            signal_values = pd.to_numeric(enriched[signal], errors="coerce")
+            valid = enriched.loc[signal_values.notna()].copy()
+            if valid.empty:
+                continue
+            valid["_signal"] = pd.to_numeric(valid[signal], errors="coerce")
+            bins = min(10, int(len(valid)))
+            valid["_decile"] = pd.qcut(
+                valid["_signal"].rank(method="first"),
+                q=bins,
+                labels=False,
+                duplicates="drop",
+            ).astype(int) + 1
+            for decile, group in valid.groupby("_decile", sort=True):
+                pnl = _numeric(group, "net_pnl_bps")
+                mae = _numeric(group, "mae_bps")
+                mfe = _numeric(group, "mfe_bps")
+                rows.append(
+                    {
+                        "model": model,
+                        "signal": signal,
+                        "decile": int(decile),
+                        "n_trades": int(len(group)),
+                        "signal_min": float(group["_signal"].min()),
+                        "signal_max": float(group["_signal"].max()),
+                        "signal_mean": float(group["_signal"].mean()),
+                        "net_sum_bps": float(pnl.sum()),
+                        "net_mean_bps": float(pnl.mean()) if len(pnl) else None,
+                        "stop_loss_rate": float(group["_is_stop_loss"].mean()) if len(group) else None,
+                        "mean_mae_bps": float(mae.mean()) if len(mae) else None,
+                        "mean_mfe_bps": float(mfe.mean()) if len(mfe) else None,
+                    }
+                )
+    return pd.DataFrame(rows)
+
+
+def _path_signal_calibration_summary(calibration: pd.DataFrame) -> list[dict[str, Any]]:
+    if calibration.empty:
+        return []
+    rows: list[dict[str, Any]] = []
+    for (model, signal), group in calibration.groupby(["model", "signal"], sort=True):
+        ordered = group.sort_values("decile")
+        decile = pd.to_numeric(ordered["decile"], errors="coerce")
+        stop_loss = pd.to_numeric(ordered["stop_loss_rate"], errors="coerce")
+        net_mean = pd.to_numeric(ordered["net_mean_bps"], errors="coerce")
+        stop_corr = (
+            float(decile.corr(stop_loss, method="spearman"))
+            if stop_loss.notna().sum() >= 2 and stop_loss.nunique(dropna=True) >= 2 and decile.nunique(dropna=True) >= 2
+            else None
+        )
+        net_corr = (
+            float(decile.corr(net_mean, method="spearman"))
+            if net_mean.notna().sum() >= 2 and net_mean.nunique(dropna=True) >= 2 and decile.nunique(dropna=True) >= 2
+            else None
+        )
+        expected_stop_corr_sign = "negative" if signal == "path_quality_pred" else "positive"
+        expected_net_corr_sign = "positive" if signal == "path_quality_pred" else "negative"
+        stop_direction_ok = (
+            stop_corr is not None
+            and (stop_corr <= 0.0 if expected_stop_corr_sign == "negative" else stop_corr >= 0.0)
+        )
+        net_direction_ok = (
+            net_corr is not None
+            and (net_corr >= 0.0 if expected_net_corr_sign == "positive" else net_corr <= 0.0)
+        )
+        rows.append(
+            {
+                "model": str(model),
+                "signal": str(signal),
+                "decile_count": int(len(ordered)),
+                "stop_loss_rate_spearman_vs_decile": stop_corr,
+                "net_mean_spearman_vs_decile": net_corr,
+                "expected_stop_corr_sign": expected_stop_corr_sign,
+                "expected_net_corr_sign": expected_net_corr_sign,
+                "stop_direction_ok": bool(stop_direction_ok),
+                "net_direction_ok": bool(net_direction_ok),
+            }
+        )
+    return rows
+
+
 def _edge_failures(comparison: pd.DataFrame, args: argparse.Namespace) -> list[dict[str, Any]]:
     failures: list[dict[str, Any]] = []
     if comparison.empty:
@@ -666,6 +757,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     metrics = _slice_metrics(candidate, iql)
     comparison = _comparison(metrics, min_slice_trades=int(args.min_slice_trades))
     exit_opportunity = _exit_opportunity({"candidate": candidate, "iql": iql})
+    path_signal_calibration = _path_signal_calibration({"candidate": candidate, "iql": iql})
+    path_signal_calibration_summary = _path_signal_calibration_summary(path_signal_calibration)
     tail_path_quality = {
         "candidate": _tail_path_summary("candidate", candidate, args),
         "iql": _tail_path_summary("iql", iql, args),
@@ -772,9 +865,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     metrics_csv = out_dir / "entry_iql_replay_slice_metrics.csv"
     comparison_csv = out_dir / "entry_iql_replay_slice_comparison.csv"
     exit_opportunity_csv = out_dir / "entry_iql_replay_exit_opportunity.csv"
+    path_signal_calibration_csv = out_dir / "entry_iql_replay_path_signal_calibration.csv"
     metrics.to_csv(metrics_csv, index=False)
     comparison.to_csv(comparison_csv, index=False)
     exit_opportunity.to_csv(exit_opportunity_csv, index=False)
+    path_signal_calibration.to_csv(path_signal_calibration_csv, index=False)
     json_path = out_dir / f"ENTRY_IQL_REPLAY_SLICE_AUDIT_{timestamp}.json"
     md_path = out_dir / f"ENTRY_IQL_REPLAY_SLICE_AUDIT_{timestamp}.md"
     report = {
@@ -837,6 +932,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 "Hindsight opportunity only. These numbers estimate where an exit/hazard model might add value; "
                 "they are not deployable policy evidence."
             ),
+        },
+        "path_signal_calibration": {
+            "csv": str(path_signal_calibration_csv),
+            "rows": int(len(path_signal_calibration)),
+            "summary": path_signal_calibration_summary,
+            "diagnostic_only_not_gate": True,
         },
         "edge_failures": edge_failures,
         "diagnostic_failures": diagnostic_failures,
