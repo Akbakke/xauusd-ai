@@ -416,6 +416,22 @@ def _path_calibration_contract_passes(report: dict[str, Any]) -> bool:
     )
 
 
+def _direction_balance_contract_passes(report: dict[str, Any]) -> bool:
+    contract = report.get("direction_balance_recipe_contract")
+    if not isinstance(contract, dict):
+        return False
+    alpha = _float_or_zero(contract.get("pred_balance_alpha"))
+    return (
+        str(contract.get("decision")) == "PASS"
+        and not contract.get("failures")
+        and bool(contract.get("direction_active"))
+        and 0.05 <= alpha <= 0.50
+        and str(contract.get("pred_balance_target") or "").strip().lower() == "label"
+        and _float_or_zero(contract.get("direction_ce_scale")) > 0.0
+        and str(contract.get("ckpt_monitor") or "").strip().lower() == "dir_acc"
+    )
+
+
 def _smoke_edge_checks(
     report: dict[str, Any],
     *,
@@ -487,6 +503,11 @@ def _smoke_edge_checks(
             "smoke bundle audit path calibration recipe contract PASS",
             _path_calibration_contract_passes(report),
             {"path_calibration_recipe_contract": report.get("path_calibration_recipe_contract")},
+        ),
+        _check(
+            "smoke bundle audit direction balance recipe contract PASS",
+            _direction_balance_contract_passes(report),
+            {"direction_balance_recipe_contract": report.get("direction_balance_recipe_contract")},
         ),
         _check(
             "smoke bundle audit validated pre-train manifest provenance",

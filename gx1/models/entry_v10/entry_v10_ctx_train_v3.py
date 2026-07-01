@@ -4372,6 +4372,9 @@ def run_train(
         "weight_decay": float(_WEIGHT_DECAY),
         "train_recipe": {
             "direction_ce_scale": float(ENTRY_DIRECTION_CE_SCALE),
+            "pred_balance_alpha": float(ENTRY_PRED_BALANCE_ALPHA),
+            "pred_balance_target": str(ENTRY_PRED_BALANCE_TARGET),
+            "ckpt_monitor": str(_ckpt_monitor),
             "residual_scale": float(ENTRY_RESIDUAL_SCALE),
             "tradable_weight": float(ENTRY_AUX_TRADABLE_WEIGHT),
             "tradable_pos_weight": float(tradable_pos_weight),

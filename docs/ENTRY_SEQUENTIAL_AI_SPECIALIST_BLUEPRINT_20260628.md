@@ -225,6 +225,13 @@ The 2026-07-01 operating point is feature-harmony clean but not promotion-ready:
   those envs, so smart training readiness cannot pass unless the repaired
   path-quality/bad-path ranking recipe is actually wired into the next capped
   trainer command.
+- Smart smoke/candidate training must also carry an exact direction-balance
+  recipe: `ENTRY_PRED_BALANCE_ALPHA=0.05`, `ENTRY_PRED_BALANCE_TARGET=label`,
+  positive `ENTRY_DIRECTION_CE_SCALE` and `GX1_V10_CKPT_MONITOR=dir_acc`.
+  Bundle audit and candidate-readiness must fail closed when this
+  `direction_balance_recipe_contract` is missing or stale, because broad
+  direction accuracy around 0.40 is not acceptable without class-distribution
+  calibration proof.
 - Candidate-readiness now requires the smoke bundle audit to preserve
   `path_calibration_recipe_contract=PASS` before any candidate-train vedtak can
   be considered. This closes old smoke bundles that lack full-batch

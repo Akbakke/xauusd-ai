@@ -47,6 +47,8 @@ def test_smoke_train_dry_run_prints_post_smoke_audit_command() -> None:
     assert "ENTRY_BAD_PATH_QUALITY_RANK_MARGIN=0.25" in result.stdout
     assert "ENTRY_BAD_PATH_QUALITY_RANK_QUANTILE=0.25" in result.stdout
     assert "ENTRY_PRED_BALANCE_ALPHA=0.05" in result.stdout
+    assert "ENTRY_PRED_BALANCE_TARGET=label" in result.stdout
+    assert "ENTRY_DIRECTION_CE_SCALE=1.30" in result.stdout
     assert "GX1_V10_CKPT_MONITOR=dir_acc" in result.stdout
     assert "ENTRY_SYMMETRIC_NEGATIVES=1" in result.stdout
     assert "ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT=0.05" in result.stdout
@@ -159,6 +161,8 @@ def test_smoke_train_wrapper_enforces_train_readiness_for_real_train() -> None:
     assert "ENTRY_BAD_PATH_QUALITY_RANK_MARGIN" in text
     assert "ENTRY_BAD_PATH_QUALITY_RANK_QUANTILE" in text
     assert "ENTRY_PRED_BALANCE_ALPHA" in text
+    assert "ENTRY_PRED_BALANCE_TARGET" in text
+    assert "ENTRY_DIRECTION_CE_SCALE" in text
     assert "GX1_V10_CKPT_MONITOR" in text
     assert "ENTRY_SYMMETRIC_NEGATIVES" in text
     assert "ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT" in text

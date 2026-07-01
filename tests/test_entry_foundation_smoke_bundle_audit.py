@@ -7,6 +7,7 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     SPECIALIST_MODEL_CONTRACT,
 )
 from gx1.scripts.audit_entry_foundation_smoke_bundle_v1 import (
+    _direction_balance_recipe_contract,
     _direction_distribution_contract,
     _direction_metrics,
     _gate_stats,
@@ -349,6 +350,43 @@ def test_path_calibration_recipe_contract_rejects_old_path_quality_recipe() -> N
     assert report["decision"] == "FAIL"
     assert any("path_quality_rank_weight" in failure for failure in report["failures"])
     assert any("path_quality_rank_full_batch" in failure for failure in report["failures"])
+
+
+def test_direction_balance_recipe_contract_requires_label_balance_and_dir_acc_monitor() -> None:
+    meta = {
+        "train_recipe": {
+            "active_heads": ["direction", "path_quality", "bad_path"],
+            "pred_balance_alpha": 0.05,
+            "pred_balance_target": "label",
+            "direction_ce_scale": 1.30,
+            "ckpt_monitor": "dir_acc",
+        }
+    }
+
+    report = _direction_balance_recipe_contract(meta, {})
+
+    assert report["decision"] == "PASS"
+    assert report["direction_active"] is True
+    assert report["pred_balance_alpha"] == 0.05
+
+
+def test_direction_balance_recipe_contract_rejects_missing_balance() -> None:
+    meta = {
+        "train_recipe": {
+            "active_heads": ["direction", "path_quality", "bad_path"],
+            "pred_balance_alpha": 0.0,
+            "pred_balance_target": "uniform",
+            "direction_ce_scale": 1.30,
+            "ckpt_monitor": "val_loss",
+        }
+    }
+
+    report = _direction_balance_recipe_contract(meta, {})
+
+    assert report["decision"] == "FAIL"
+    assert any("pred_balance_alpha" in failure for failure in report["failures"])
+    assert any("pred_balance_target=label" in failure for failure in report["failures"])
+    assert any("ckpt_monitor=dir_acc" in failure for failure in report["failures"])
 
 
 def test_head_contract_report_accepts_supported_declared_forward_outputs() -> None:

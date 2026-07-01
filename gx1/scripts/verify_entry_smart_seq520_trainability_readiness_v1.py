@@ -49,6 +49,19 @@ PATH_CALIBRATION_ENV_TEMPLATE = {
     "ENTRY_PATH_QUALITY_RANK_QUANTILE": "0.25",
 }
 PATH_CALIBRATION_ENV_KEYS = tuple(PATH_CALIBRATION_ENV_TEMPLATE)
+DIRECTION_BALANCE_RECIPE_CONTRACT = {
+    "pred_balance_alpha": 0.05,
+    "pred_balance_target": "label",
+    "direction_ce_scale": 1.30,
+    "ckpt_monitor": "dir_acc",
+}
+DIRECTION_BALANCE_ENV_TEMPLATE = {
+    "ENTRY_PRED_BALANCE_ALPHA": "0.05",
+    "ENTRY_PRED_BALANCE_TARGET": "label",
+    "ENTRY_DIRECTION_CE_SCALE": "1.30",
+    "GX1_V10_CKPT_MONITOR": "dir_acc",
+}
+DIRECTION_BALANCE_ENV_KEYS = tuple(DIRECTION_BALANCE_ENV_TEMPLATE)
 
 DEFAULT_POST_REBUILD_READINESS_JSON = (
     REPORTS_ROOT
@@ -159,6 +172,34 @@ def _path_calibration_recipe_review(contract: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _direction_balance_recipe_review(contract: dict[str, Any]) -> dict[str, Any]:
+    recipe = contract.get("direction_balance_recipe_contract")
+    env_template = contract.get("direction_balance_env_template")
+    recipe_exact = isinstance(recipe, dict) and recipe == DIRECTION_BALANCE_RECIPE_CONTRACT
+    env_exact = isinstance(env_template, dict) and all(
+        env_template.get(key) == value for key, value in DIRECTION_BALANCE_ENV_TEMPLATE.items()
+    )
+    argv = contract.get("inner_train_argv_template")
+    argv_text = " ".join(str(part) for part in argv) if isinstance(argv, list) else ""
+    argv_declares_env = all(f"{key}=" in argv_text for key in DIRECTION_BALANCE_ENV_KEYS)
+    return {
+        "ok": bool(
+            contract.get("requires_direction_balance_recipe_contract") is True
+            and recipe_exact
+            and env_exact
+            and argv_declares_env
+        ),
+        "requires_direction_balance_recipe_contract": contract.get("requires_direction_balance_recipe_contract"),
+        "recipe_exact": recipe_exact,
+        "env_template_exact": env_exact,
+        "inner_train_argv_declares_env": argv_declares_env,
+        "expected_recipe": DIRECTION_BALANCE_RECIPE_CONTRACT,
+        "observed_recipe": recipe,
+        "expected_env_template": DIRECTION_BALANCE_ENV_TEMPLATE,
+        "observed_env_template": env_template,
+    }
+
+
 def _wrapper_path_calibration_env_review(text: str) -> dict[str, Any]:
     missing_entry_env = [key for key in PATH_CALIBRATION_ENV_KEYS if key not in text]
     missing_foundation_env = [
@@ -173,6 +214,36 @@ def _wrapper_path_calibration_env_review(text: str) -> dict[str, Any]:
     ]
     return {
         "entry_env_keys": list(PATH_CALIBRATION_ENV_KEYS),
+        "missing_entry_env_keys": missing_entry_env,
+        "missing_foundation_smoke_env_keys": missing_foundation_env,
+        "missing_foundation_candidate_env_keys": missing_candidate_env,
+        "has_any_foundation_defaults": not missing_foundation_env or not missing_candidate_env,
+        "ok": not missing_entry_env and (not missing_foundation_env or not missing_candidate_env),
+    }
+
+
+def _direction_balance_foundation_env_name(key: str, prefix: str) -> str:
+    if key.startswith("ENTRY_"):
+        return key.replace("ENTRY_", prefix, 1)
+    if key.startswith("GX1_V10_"):
+        return key.replace("GX1_V10_", prefix, 1)
+    return key
+
+
+def _wrapper_direction_balance_env_review(text: str) -> dict[str, Any]:
+    missing_entry_env = [key for key in DIRECTION_BALANCE_ENV_KEYS if key not in text]
+    missing_foundation_env = [
+        _direction_balance_foundation_env_name(key, "ENTRY_FOUNDATION_SMOKE_")
+        for key in DIRECTION_BALANCE_ENV_KEYS
+        if _direction_balance_foundation_env_name(key, "ENTRY_FOUNDATION_SMOKE_") not in text
+    ]
+    missing_candidate_env = [
+        _direction_balance_foundation_env_name(key, "ENTRY_FOUNDATION_CANDIDATE_")
+        for key in DIRECTION_BALANCE_ENV_KEYS
+        if _direction_balance_foundation_env_name(key, "ENTRY_FOUNDATION_CANDIDATE_") not in text
+    ]
+    return {
+        "entry_env_keys": list(DIRECTION_BALANCE_ENV_KEYS),
         "missing_entry_env_keys": missing_entry_env,
         "missing_foundation_smoke_env_keys": missing_foundation_env,
         "missing_foundation_candidate_env_keys": missing_candidate_env,
@@ -307,8 +378,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     except Exception:
         registry_training_allowed = False
     path_calibration_review = _path_calibration_recipe_review(future_train)
+    direction_balance_review = _direction_balance_recipe_review(future_train)
     smoke_wrapper_path_calibration_review = _wrapper_path_calibration_env_review(smoke_wrapper_text)
     candidate_wrapper_path_calibration_review = _wrapper_path_calibration_env_review(candidate_wrapper_text)
+    smoke_wrapper_direction_balance_review = _wrapper_direction_balance_env_review(smoke_wrapper_text)
+    candidate_wrapper_direction_balance_review = _wrapper_direction_balance_env_review(candidate_wrapper_text)
 
     checks = [
         _check("smart post-rebuild dataset audit is ready", post_rebuild.get("decision") == "ENTRY_SMART_DATASET_READY_FOR_TRAIN_READINESS_REVIEW", post_rebuild.get("decision")),
@@ -346,6 +420,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             bool(smoke_wrapper_path_calibration_review["ok"]),
             smoke_wrapper_path_calibration_review,
         ),
+        _check(
+            "smart smoke wrapper exposes direction balance env",
+            bool(smoke_wrapper_direction_balance_review["ok"]),
+            smoke_wrapper_direction_balance_review,
+        ),
         _check("smart smoke train is wired in control surface", "smart-smoke-train)" in control_text and "smart-smoke-train --vedtak <id>" in control_text, _artifact_meta(control_script)),
         _check("smart smoke future contract is implemented in control surface", future_train.get("implemented_in_control_surface") is True, future_train),
         _check(
@@ -354,9 +433,19 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             path_calibration_review,
         ),
         _check(
+            "smart smoke future contract declares direction balance recipe",
+            bool(direction_balance_review["ok"]),
+            direction_balance_review,
+        ),
+        _check(
             "trainer supports path calibration rank env",
             all(key in trainer_text for key in PATH_CALIBRATION_ENV_KEYS),
             {"required_env_keys": list(PATH_CALIBRATION_ENV_KEYS), "trainer_source": _artifact_meta(trainer_source)},
+        ),
+        _check(
+            "trainer supports direction balance env",
+            all(key in trainer_text for key in DIRECTION_BALANCE_ENV_KEYS),
+            {"required_env_keys": list(DIRECTION_BALANCE_ENV_KEYS), "trainer_source": _artifact_meta(trainer_source)},
         ),
         _check("smart candidate-readiness supports smart_seq520", CONTRACT_MODE in candidate_readiness_text and str(EXPECTED_SIGNAL_DIM) in candidate_readiness_text, _artifact_meta(candidate_readiness_script)),
         _check("smart candidate train wrapper exposes --smart-seq520 lane", "--smart-seq520" in candidate_wrapper_text and CONTRACT_MODE in candidate_wrapper_text, _artifact_meta(candidate_wrapper)),
@@ -364,6 +453,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "smart candidate train wrapper exposes path calibration rank env",
             bool(candidate_wrapper_path_calibration_review["ok"]),
             candidate_wrapper_path_calibration_review,
+        ),
+        _check(
+            "smart candidate train wrapper exposes direction balance env",
+            bool(candidate_wrapper_direction_balance_review["ok"]),
+            candidate_wrapper_direction_balance_review,
         ),
         _check("smart selective-edge supports smart_seq520", CONTRACT_MODE in selective_edge_text and str(EXPECTED_SIGNAL_DIM) in selective_edge_text, _artifact_meta(selective_edge_script)),
         _check("smart replay evidence supports smart_seq520", CONTRACT_MODE in replay_evidence_text and str(EXPECTED_SIGNAL_DIM) in replay_evidence_text, _artifact_meta(replay_evidence_script)),

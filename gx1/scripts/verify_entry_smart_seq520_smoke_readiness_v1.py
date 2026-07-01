@@ -85,6 +85,18 @@ PATH_CALIBRATION_ENV_TEMPLATE = {
     "ENTRY_PATH_QUALITY_RANK_MARGIN": "0.25",
     "ENTRY_PATH_QUALITY_RANK_QUANTILE": "0.25",
 }
+DIRECTION_BALANCE_RECIPE_CONTRACT = {
+    "pred_balance_alpha": 0.05,
+    "pred_balance_target": "label",
+    "direction_ce_scale": 1.30,
+    "ckpt_monitor": "dir_acc",
+}
+DIRECTION_BALANCE_ENV_TEMPLATE = {
+    "ENTRY_PRED_BALANCE_ALPHA": "0.05",
+    "ENTRY_PRED_BALANCE_TARGET": "label",
+    "ENTRY_DIRECTION_CE_SCALE": "1.30",
+    "GX1_V10_CKPT_MONITOR": "dir_acc",
+}
 
 
 def _json_default(obj: Any) -> Any:
@@ -144,6 +156,16 @@ def _path_calibration_recipe_ok(contract: dict[str, Any]) -> bool:
     if recipe != PATH_CALIBRATION_RECIPE_CONTRACT:
         return False
     return all(env_template.get(key) == value for key, value in PATH_CALIBRATION_ENV_TEMPLATE.items())
+
+
+def _direction_balance_recipe_ok(contract: dict[str, Any]) -> bool:
+    recipe = contract.get("direction_balance_recipe_contract")
+    env_template = contract.get("direction_balance_env_template")
+    if not isinstance(recipe, dict) or not isinstance(env_template, dict):
+        return False
+    if recipe != DIRECTION_BALANCE_RECIPE_CONTRACT:
+        return False
+    return all(env_template.get(key) == value for key, value in DIRECTION_BALANCE_ENV_TEMPLATE.items())
 
 
 def _git_status_short(repo: Path) -> list[str]:
@@ -331,7 +353,11 @@ def _future_contracts(
         "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/"
         "v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_smoke_<STAMP>"
     )
-    env_prefix = ["env", *[f"{key}={value}" for key, value in PATH_CALIBRATION_ENV_TEMPLATE.items()]]
+    env_prefix = [
+        "env",
+        *[f"{key}={value}" for key, value in PATH_CALIBRATION_ENV_TEMPLATE.items()],
+        *[f"{key}={value}" for key, value in DIRECTION_BALANCE_ENV_TEMPLATE.items()],
+    ]
     train_inner = [
         *env_prefix,
         ".venv/bin/python",
@@ -405,6 +431,9 @@ def _future_contracts(
         "requires_path_calibration_recipe_contract": True,
         "path_calibration_recipe_contract": dict(PATH_CALIBRATION_RECIPE_CONTRACT),
         "path_calibration_env_template": dict(PATH_CALIBRATION_ENV_TEMPLATE),
+        "requires_direction_balance_recipe_contract": True,
+        "direction_balance_recipe_contract": dict(DIRECTION_BALANCE_RECIPE_CONTRACT),
+        "direction_balance_env_template": dict(DIRECTION_BALANCE_ENV_TEMPLATE),
         "post_smoke_audit_argv_template": audit,
         "specialist_contract_mode": CONTRACT_MODE,
         "expected_signal_dim": EXPECTED_SIGNAL_DIM,
@@ -748,6 +777,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     "smart smoke train contract declares path-quality and bad-path rank recipe",
                     future_contracts["smart_smoke_train"]["requires_path_calibration_recipe_contract"] is True
                     and _path_calibration_recipe_ok(future_contracts["smart_smoke_train"]),
+                    future_contracts["smart_smoke_train"],
+                ),
+                _check(
+                    "smart smoke train contract declares direction balance recipe",
+                    future_contracts["smart_smoke_train"]["requires_direction_balance_recipe_contract"] is True
+                    and _direction_balance_recipe_ok(future_contracts["smart_smoke_train"]),
                     future_contracts["smart_smoke_train"],
                 ),
                 _check(

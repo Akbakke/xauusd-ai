@@ -668,6 +668,46 @@ def _path_calibration_recipe_contract(meta: dict[str, Any], capabilities: dict[s
     }
 
 
+def _direction_balance_recipe_contract(meta: dict[str, Any], capabilities: dict[str, Any]) -> dict[str, Any]:
+    recipe = meta.get("train_recipe") if isinstance(meta.get("train_recipe"), dict) else {}
+    active_heads = {
+        str(head)
+        for head in (
+            recipe.get("active_heads")
+            or capabilities.get("declared_active_heads")
+            or capabilities.get("supported_heads")
+            or []
+        )
+        if str(head)
+    }
+    pred_balance_alpha = _safe_float(recipe.get("pred_balance_alpha", meta.get("pred_balance_alpha", 0.0)))
+    pred_balance_target = str(recipe.get("pred_balance_target", meta.get("pred_balance_target", ""))).strip().lower()
+    direction_ce_scale = _safe_float(recipe.get("direction_ce_scale", meta.get("direction_ce_scale", 0.0)))
+    ckpt_monitor = str(recipe.get("ckpt_monitor", meta.get("ckpt_monitor", ""))).strip().lower()
+    failures: list[str] = []
+    if "direction" in active_heads:
+        if pred_balance_alpha < 0.05:
+            failures.append("direction active head requires pred_balance_alpha >= 0.05")
+        if pred_balance_alpha > 0.50:
+            failures.append("direction active head requires pred_balance_alpha <= 0.50")
+        if pred_balance_target != "label":
+            failures.append("direction active head requires pred_balance_target=label")
+        if direction_ce_scale <= 0.0:
+            failures.append("direction active head requires positive direction_ce_scale")
+        if ckpt_monitor != "dir_acc":
+            failures.append("direction active head requires ckpt_monitor=dir_acc")
+    return {
+        "decision": "PASS" if not failures else "FAIL",
+        "active_heads": sorted(active_heads),
+        "direction_active": "direction" in active_heads,
+        "pred_balance_alpha": pred_balance_alpha,
+        "pred_balance_target": pred_balance_target,
+        "direction_ce_scale": direction_ce_scale,
+        "ckpt_monitor": ckpt_monitor,
+        "failures": failures,
+    }
+
+
 def _pretrain_manifest_contract_report(
     manifest_path: Path | None,
     *,
@@ -1491,6 +1531,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         f"path_calibration_recipe: {failure}"
         for failure in path_calibration_recipe_contract.get("failures", [])
     )
+    direction_balance_recipe_contract = _direction_balance_recipe_contract(meta, bundle.capabilities)
+    failures.extend(
+        f"direction_balance_recipe: {failure}"
+        for failure in direction_balance_recipe_contract.get("failures", [])
+    )
 
     dataset_kwargs = _bundle_dataset_kwargs(meta, m5_prebuilt)
     split_reports: dict[str, Any] = {}
@@ -1586,6 +1631,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "pretrain_manifest_json": str(pretrain_manifest_path) if pretrain_manifest_path else "",
         "pretrain_manifest_contract": pretrain_manifest_contract,
         "path_calibration_recipe_contract": path_calibration_recipe_contract,
+        "direction_balance_recipe_contract": direction_balance_recipe_contract,
         "bundle_specialist_model_contract": bundle_specialist_model_contract,
         "bundle_summary": {
             "manifest_variant": manifest_variant,

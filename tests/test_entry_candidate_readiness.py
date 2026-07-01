@@ -129,6 +129,16 @@ def _passing_smoke_audit(
             "bad_path_quality_rank_quantile": 0.25,
             "failures": [],
         },
+        "direction_balance_recipe_contract": {
+            "decision": "PASS",
+            "active_heads": ["bad_path", "direction", "path_quality"],
+            "direction_active": True,
+            "pred_balance_alpha": 0.05,
+            "pred_balance_target": "label",
+            "direction_ce_scale": 1.30,
+            "ckpt_monitor": "dir_acc",
+            "failures": [],
+        },
         "bundle_specialist_model_contract": {
             "decision": "PASS",
             "valid": True,
@@ -238,6 +248,24 @@ def test_smoke_edge_checks_reject_missing_path_calibration_contract() -> None:
     failed = {check["name"] for check in checks if not check["ok"]}
 
     assert "smoke bundle audit path calibration recipe contract PASS" in failed
+
+
+def test_smoke_edge_checks_reject_missing_direction_balance_contract() -> None:
+    report = _passing_smoke_audit()
+    report["direction_balance_recipe_contract"] = {
+        "decision": "FAIL",
+        "direction_active": True,
+        "pred_balance_alpha": 0.0,
+        "pred_balance_target": "uniform",
+        "direction_ce_scale": 1.30,
+        "ckpt_monitor": "val_loss",
+        "failures": ["direction active head requires pred_balance_alpha >= 0.05"],
+    }
+
+    checks = _smoke_edge_checks(report)
+    failed = {check["name"] for check in checks if not check["ok"]}
+
+    assert "smoke bundle audit direction balance recipe contract PASS" in failed
 
 
 def test_smoke_edge_checks_reject_direction_distribution_collapse() -> None:
