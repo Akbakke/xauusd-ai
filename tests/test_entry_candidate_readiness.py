@@ -112,6 +112,20 @@ def _passing_smoke_audit(
             "smoke_dataset_audit_provenance_all_artifact_hashes_present": True,
             "worktree_critical_gate_review_ok": True,
         },
+        "path_calibration_recipe_contract": {
+            "decision": "PASS",
+            "active_heads": ["bad_path", "direction", "path_quality"],
+            "path_quality_active": True,
+            "bad_path_active": True,
+            "path_quality_rank_full_batch": True,
+            "path_quality_rank_weight": 2.0,
+            "path_quality_rank_margin": 0.25,
+            "path_quality_rank_quantile": 0.25,
+            "bad_path_quality_rank_weight": 2.0,
+            "bad_path_quality_rank_margin": 0.25,
+            "bad_path_quality_rank_quantile": 0.25,
+            "failures": [],
+        },
         "bundle_specialist_model_contract": {
             "decision": "PASS",
             "valid": True,
@@ -205,6 +219,22 @@ def test_smoke_edge_checks_reject_missing_head_contract() -> None:
 
     assert "smoke bundle audit was run with require_head_contract" in failed
     assert "smoke bundle head contract PASS" in failed
+
+
+def test_smoke_edge_checks_reject_missing_path_calibration_contract() -> None:
+    report = _passing_smoke_audit()
+    report["path_calibration_recipe_contract"] = {
+        "decision": "FAIL",
+        "path_quality_rank_full_batch": False,
+        "path_quality_rank_weight": 0.0,
+        "bad_path_quality_rank_weight": 2.0,
+        "failures": ["path_quality active head requires path_quality_rank_full_batch=true"],
+    }
+
+    checks = _smoke_edge_checks(report)
+    failed = {check["name"] for check in checks if not check["ok"]}
+
+    assert "smoke bundle audit path calibration recipe contract PASS" in failed
 
 
 def test_smoke_edge_checks_reject_missing_pretrain_manifest_contract() -> None:

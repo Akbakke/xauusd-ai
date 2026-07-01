@@ -225,6 +225,11 @@ The 2026-07-01 operating point is feature-harmony clean but not promotion-ready:
   those envs, so smart training readiness cannot pass unless the repaired
   path-quality/bad-path ranking recipe is actually wired into the next capped
   trainer command.
+- Candidate-readiness now requires the smoke bundle audit to preserve
+  `path_calibration_recipe_contract=PASS` before any candidate-train vedtak can
+  be considered. This closes old smoke bundles that lack full-batch
+  path-quality ranking or positive bad-path/path-quality rank weights, even
+  when their older broad metrics still pass.
 - Raw direction accuracy around 0.40 is a weak sanity diagnostic, not the
   primary objective. The smart selected replay has direction precision only
   about 0.478 for candidate and 0.452 for IQL, so the next improvement must

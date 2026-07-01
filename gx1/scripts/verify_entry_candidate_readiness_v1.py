@@ -322,6 +322,34 @@ def _smoke_audit_contract_mode_passes(report: dict[str, Any], *, contract_mode: 
     return observed == contract_mode
 
 
+def _float_or_zero(value: Any) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _path_calibration_contract_passes(report: dict[str, Any]) -> bool:
+    contract = report.get("path_calibration_recipe_contract")
+    if not isinstance(contract, dict):
+        return False
+    path_quantile = _float_or_zero(contract.get("path_quality_rank_quantile"))
+    bad_quantile = _float_or_zero(contract.get("bad_path_quality_rank_quantile"))
+    return (
+        str(contract.get("decision")) == "PASS"
+        and not contract.get("failures")
+        and bool(contract.get("path_quality_active"))
+        and bool(contract.get("bad_path_active"))
+        and bool(contract.get("path_quality_rank_full_batch"))
+        and _float_or_zero(contract.get("path_quality_rank_weight")) > 0.0
+        and _float_or_zero(contract.get("path_quality_rank_margin")) > 0.0
+        and 0.05 <= path_quantile <= 0.45
+        and _float_or_zero(contract.get("bad_path_quality_rank_weight")) > 0.0
+        and _float_or_zero(contract.get("bad_path_quality_rank_margin")) > 0.0
+        and 0.05 <= bad_quantile <= 0.45
+    )
+
+
 def _smoke_edge_checks(
     report: dict[str, Any],
     *,
@@ -385,6 +413,11 @@ def _smoke_edge_checks(
         _check("smoke bundle audit is from actual train output, not sanity bundle", not bool(bundle.get("sanity_bundle"))),
         _check("smoke bundle audit was run with require_edge", bool(report.get("require_edge"))),
         _check("smoke bundle audit was run with require_head_contract", bool(report.get("require_head_contract"))),
+        _check(
+            "smoke bundle audit path calibration recipe contract PASS",
+            _path_calibration_contract_passes(report),
+            {"path_calibration_recipe_contract": report.get("path_calibration_recipe_contract")},
+        ),
         _check(
             "smoke bundle audit validated pre-train manifest provenance",
             str(pretrain_manifest.get("decision")) == "PASS"

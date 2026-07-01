@@ -290,6 +290,11 @@ Active status:
   smoke and candidate wrappers expose those envs. The smart lane must fail
   closed if the path-quality/bad-path ranking repair is not actually carried
   into the next capped trainer command.
+- Candidate-readiness now also requires the smoke bundle audit itself to carry
+  `path_calibration_recipe_contract=PASS` with active path-quality and bad-path
+  heads, full-batch path-quality ranking and positive rank weights/margins.
+  Old smoke bundles without this contract cannot open candidate training, even
+  if their older aggregate direction/PnL diagnostics looked acceptable.
 - Raw smoke/bundle direction accuracy around 0.40 is not an acceptance metric by
   itself. It is only a sanity diagnostic against the majority baseline; Entry
   acceptance remains replay/PnL, drawdown, MAE, bad-path, calibration and
