@@ -549,6 +549,9 @@ def _path_calibration_contract_passes(report: dict[str, Any]) -> bool:
 
 SMART_DIRECTION_BALANCE_MIN_ALPHA = 0.20
 SMART_DIRECTION_BALANCE_CLASS_WEIGHTS = [1.0, 1.0, 4.0]
+SMART_DIRECTION_CKPT_BALANCE_GUARD_MIN_WEIGHT = 0.50
+SMART_DIRECTION_CKPT_BALANCE_MIN_PRED_TO_LABEL = 0.35
+SMART_DIRECTION_CKPT_BALANCE_MIN_PRED_RATE = 0.05
 
 
 def _direction_balance_contract_passes(
@@ -581,6 +584,12 @@ def _direction_balance_contract_passes(
     return (
         alpha >= SMART_DIRECTION_BALANCE_MIN_ALPHA
         and parsed_weights == SMART_DIRECTION_BALANCE_CLASS_WEIGHTS
+        and _float_or_zero(contract.get("ckpt_class_balance_guard_weight"))
+        >= SMART_DIRECTION_CKPT_BALANCE_GUARD_MIN_WEIGHT
+        and _float_or_zero(contract.get("ckpt_class_balance_min_pred_to_label"))
+        >= SMART_DIRECTION_CKPT_BALANCE_MIN_PRED_TO_LABEL
+        and _float_or_zero(contract.get("ckpt_class_balance_min_pred_rate"))
+        >= SMART_DIRECTION_CKPT_BALANCE_MIN_PRED_RATE
     )
 
 

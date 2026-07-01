@@ -50,6 +50,9 @@ MIN_DIRECTION_CLASS_PRED_TO_LABEL_RATIO = 0.35
 MIN_DIRECTION_SLICE_ROWS = 64
 SMART_DIRECTION_BALANCE_MIN_ALPHA = 0.20
 SMART_DIRECTION_BALANCE_CLASS_WEIGHTS = [1.0, 1.0, 4.0]
+SMART_DIRECTION_CKPT_BALANCE_GUARD_MIN_WEIGHT = 0.50
+SMART_DIRECTION_CKPT_BALANCE_MIN_PRED_TO_LABEL = 0.35
+SMART_DIRECTION_CKPT_BALANCE_MIN_PRED_RATE = 0.05
 HEAD_OUTPUT_KEYS = {
     "direction": "direction_logits",
     "tradable": "tradable_logit",
@@ -819,6 +822,24 @@ def _direction_balance_recipe_contract(
     )
     direction_ce_scale = _safe_float(recipe.get("direction_ce_scale", meta.get("direction_ce_scale", 0.0)))
     ckpt_monitor = str(recipe.get("ckpt_monitor", meta.get("ckpt_monitor", ""))).strip().lower()
+    ckpt_class_balance_guard_weight = _safe_float(
+        recipe.get(
+            "ckpt_class_balance_guard_weight",
+            meta.get("ckpt_class_balance_guard_weight", 0.0),
+        )
+    )
+    ckpt_class_balance_min_pred_to_label = _safe_float(
+        recipe.get(
+            "ckpt_class_balance_min_pred_to_label",
+            meta.get("ckpt_class_balance_min_pred_to_label", 0.0),
+        )
+    )
+    ckpt_class_balance_min_pred_rate = _safe_float(
+        recipe.get(
+            "ckpt_class_balance_min_pred_rate",
+            meta.get("ckpt_class_balance_min_pred_rate", 0.0),
+        )
+    )
     failures: list[str] = []
     if "direction" in active_heads:
         if pred_balance_alpha < 0.05:
@@ -842,6 +863,21 @@ def _direction_balance_recipe_contract(
                     "smart direction active head requires pred_balance_class_weights="
                     + ",".join(str(value) for value in SMART_DIRECTION_BALANCE_CLASS_WEIGHTS)
                 )
+            if ckpt_class_balance_guard_weight < SMART_DIRECTION_CKPT_BALANCE_GUARD_MIN_WEIGHT:
+                failures.append(
+                    "smart direction active head requires ckpt_class_balance_guard_weight >= "
+                    f"{SMART_DIRECTION_CKPT_BALANCE_GUARD_MIN_WEIGHT:.2f}"
+                )
+            if ckpt_class_balance_min_pred_to_label < SMART_DIRECTION_CKPT_BALANCE_MIN_PRED_TO_LABEL:
+                failures.append(
+                    "smart direction active head requires ckpt_class_balance_min_pred_to_label >= "
+                    f"{SMART_DIRECTION_CKPT_BALANCE_MIN_PRED_TO_LABEL:.2f}"
+                )
+            if ckpt_class_balance_min_pred_rate < SMART_DIRECTION_CKPT_BALANCE_MIN_PRED_RATE:
+                failures.append(
+                    "smart direction active head requires ckpt_class_balance_min_pred_rate >= "
+                    f"{SMART_DIRECTION_CKPT_BALANCE_MIN_PRED_RATE:.2f}"
+                )
     return {
         "decision": "PASS" if not failures else "FAIL",
         "active_heads": sorted(active_heads),
@@ -852,6 +888,9 @@ def _direction_balance_recipe_contract(
         "pred_balance_class_weights": pred_balance_class_weights,
         "direction_ce_scale": direction_ce_scale,
         "ckpt_monitor": ckpt_monitor,
+        "ckpt_class_balance_guard_weight": ckpt_class_balance_guard_weight,
+        "ckpt_class_balance_min_pred_to_label": ckpt_class_balance_min_pred_to_label,
+        "ckpt_class_balance_min_pred_rate": ckpt_class_balance_min_pred_rate,
         "failures": failures,
     }
 

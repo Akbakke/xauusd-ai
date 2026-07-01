@@ -91,6 +91,30 @@ def test_entry_v10_path_quality_rank_loss_penalizes_inverted_order(monkeypatch) 
     assert float(inverted.item()) > 0.5
 
 
+def test_entry_v10_direction_ckpt_balance_guard_penalizes_class_collapse(monkeypatch) -> None:
+    import numpy as np
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    monkeypatch.setattr(trainer, "ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT", 0.50)
+    monkeypatch.setattr(trainer, "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL", 0.35)
+    monkeypatch.setattr(trainer, "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE", 0.05)
+
+    targets = np.asarray([0] * 10 + [1] * 10 + [2] * 10)
+    balanced = trainer._direction_ckpt_balance_stats(targets, targets, 1.0)
+    collapsed = trainer._direction_ckpt_balance_stats(
+        targets,
+        np.asarray([0] * 10 + [1] * 20),
+        20.0 / 30.0,
+    )
+
+    assert balanced["direction_class_balance_guard_ok"] is True
+    assert balanced["direction_ckpt_score"] == 1.0
+    assert collapsed["direction_class_balance_guard_ok"] is False
+    assert collapsed["direction_pred_rate_flat"] == 0.0
+    assert collapsed["direction_ckpt_score"] < collapsed["direction_ckpt_balance_penalty"]
+
+
 def test_entry_foundation_train_wrappers_enable_path_quality_rank_recipe() -> None:
     repo = Path(__file__).resolve().parents[1]
     smoke = (repo / "scripts" / "run_entry_foundation_seq146_smoke_train.sh").read_text(encoding="utf-8")

@@ -94,6 +94,9 @@ DIRECTION_BALANCE_RECIPE_CONTRACT = {
     "pred_balance_class_weights": [1.0, 1.0, 4.0],
     "direction_ce_scale": 1.30,
     "ckpt_monitor": "dir_acc",
+    "ckpt_class_balance_guard_weight": 0.50,
+    "ckpt_class_balance_min_pred_to_label": 0.35,
+    "ckpt_class_balance_min_pred_rate": 0.05,
 }
 DIRECTION_BALANCE_ENV_TEMPLATE = {
     "ENTRY_PRED_BALANCE_ALPHA": "0.20",
@@ -101,6 +104,9 @@ DIRECTION_BALANCE_ENV_TEMPLATE = {
     "ENTRY_PRED_BALANCE_CLASS_WEIGHTS": "1.0,1.0,4.0",
     "ENTRY_DIRECTION_CE_SCALE": "1.30",
     "GX1_V10_CKPT_MONITOR": "dir_acc",
+    "ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT": "0.50",
+    "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL": "0.35",
+    "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE": "0.05",
 }
 TAIL_DIRECTION_RECIPE_CONTRACT = {
     "tail_direction_ce_weight": 0.35,

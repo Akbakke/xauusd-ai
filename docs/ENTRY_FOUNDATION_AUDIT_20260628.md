@@ -349,10 +349,14 @@ Active status:
   `direction_balance_recipe_contract=PASS` with the smart FLAT-repair recipe:
   `ENTRY_PRED_BALANCE_ALPHA=0.20`, `ENTRY_PRED_BALANCE_TARGET=label`,
   `ENTRY_PRED_BALANCE_CLASS_WEIGHTS=1.0,1.0,4.0`, positive
-  `ENTRY_DIRECTION_CE_SCALE` and `GX1_V10_CKPT_MONITOR=dir_acc`. This directly
-  targets the observed smart520 class-collapse risk where FLAT is heavily
-  underpredicted and LONG/SHORT are overcalled, turning weak broad direction
-  accuracy into a train contract and bundle-audit gate, not a cosmetic metric.
+  `ENTRY_DIRECTION_CE_SCALE`, `GX1_V10_CKPT_MONITOR=dir_acc`,
+  `ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT=0.50`,
+  `ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL=0.35` and
+  `ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE=0.05`. This directly targets the
+  observed smart520 class-collapse risk where FLAT is heavily underpredicted
+  and LONG/SHORT are overcalled, turning weak broad direction accuracy into a
+  train contract, checkpoint-selection guard and bundle-audit gate, not a
+  cosmetic metric.
 - Candidate-readiness now also requires the smoke bundle audit itself to carry
   `path_calibration_recipe_contract=PASS` with active path-quality and bad-path
   heads, full-batch path-quality ranking and positive rank weights/margins.

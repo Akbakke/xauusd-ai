@@ -253,8 +253,11 @@ The 2026-07-01 operating point is feature-harmony clean but not promotion-ready:
   repair recipe: `ENTRY_PRED_BALANCE_ALPHA=0.20`,
   `ENTRY_PRED_BALANCE_TARGET=label`,
   `ENTRY_PRED_BALANCE_CLASS_WEIGHTS=1.0,1.0,4.0`, positive
-  `ENTRY_DIRECTION_CE_SCALE` and `GX1_V10_CKPT_MONITOR=dir_acc`. The extra
-  FLAT balance weight targets the observed smart520 failure mode where FLAT is
+  `ENTRY_DIRECTION_CE_SCALE`, `GX1_V10_CKPT_MONITOR=dir_acc`,
+  `ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT=0.50`,
+  `ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL=0.35` and
+  `ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE=0.05`. The extra FLAT balance weight
+  and checkpoint guard target the observed smart520 failure mode where FLAT is
   underpredicted and LONG/SHORT are overcalled. Bundle audit and
   candidate-readiness must fail closed when this
   `direction_balance_recipe_contract` is missing or stale, because broad

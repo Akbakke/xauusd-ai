@@ -51,6 +51,9 @@ def test_smoke_train_dry_run_prints_post_smoke_audit_command() -> None:
     assert "ENTRY_PRED_BALANCE_CLASS_WEIGHTS=1.0\\,1.0\\,1.0" in result.stdout
     assert "ENTRY_DIRECTION_CE_SCALE=1.30" in result.stdout
     assert "GX1_V10_CKPT_MONITOR=dir_acc" in result.stdout
+    assert "ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT=0.0" in result.stdout
+    assert "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL=0.0" in result.stdout
+    assert "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE=0.0" in result.stdout
     assert "ENTRY_SYMMETRIC_NEGATIVES=1" in result.stdout
     assert "ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT=0.05" in result.stdout
     assert "ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT=0.25" in result.stdout
@@ -166,6 +169,9 @@ def test_smoke_train_wrapper_enforces_train_readiness_for_real_train() -> None:
     assert "ENTRY_PRED_BALANCE_CLASS_WEIGHTS" in text
     assert "ENTRY_DIRECTION_CE_SCALE" in text
     assert "GX1_V10_CKPT_MONITOR" in text
+    assert "ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT" in text
+    assert "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL" in text
+    assert "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE" in text
     assert "ENTRY_SYMMETRIC_NEGATIVES" in text
     assert "ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT" in text
     assert "ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT" in text

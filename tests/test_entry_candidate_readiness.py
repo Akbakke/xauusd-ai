@@ -177,6 +177,9 @@ def _passing_smoke_audit(
             "pred_balance_class_weights": [1.0, 1.0, 1.0],
             "direction_ce_scale": 1.30,
             "ckpt_monitor": "dir_acc",
+            "ckpt_class_balance_guard_weight": 0.0,
+            "ckpt_class_balance_min_pred_to_label": 0.0,
+            "ckpt_class_balance_min_pred_rate": 0.0,
             "failures": [],
         },
         "tail_direction_recipe_contract": {
@@ -345,6 +348,9 @@ def test_smoke_edge_checks_accept_stronger_smart_direction_balance_contract() ->
     )
     report["direction_balance_recipe_contract"]["pred_balance_alpha"] = 0.20
     report["direction_balance_recipe_contract"]["pred_balance_class_weights"] = [1.0, 1.0, 4.0]
+    report["direction_balance_recipe_contract"]["ckpt_class_balance_guard_weight"] = 0.50
+    report["direction_balance_recipe_contract"]["ckpt_class_balance_min_pred_to_label"] = 0.35
+    report["direction_balance_recipe_contract"]["ckpt_class_balance_min_pred_rate"] = 0.05
 
     checks = _smoke_edge_checks(
         report,
@@ -734,6 +740,9 @@ def test_candidate_readiness_smart_seq520_opens_after_contract_and_smoke_evidenc
     )
     smart_smoke_report["direction_balance_recipe_contract"]["pred_balance_alpha"] = 0.20
     smart_smoke_report["direction_balance_recipe_contract"]["pred_balance_class_weights"] = [1.0, 1.0, 4.0]
+    smart_smoke_report["direction_balance_recipe_contract"]["ckpt_class_balance_guard_weight"] = 0.50
+    smart_smoke_report["direction_balance_recipe_contract"]["ckpt_class_balance_min_pred_to_label"] = 0.35
+    smart_smoke_report["direction_balance_recipe_contract"]["ckpt_class_balance_min_pred_rate"] = 0.05
     smoke_path.write_text(json.dumps(smart_smoke_report), encoding="utf-8")
     foundation_smoke_path = tmp_path / "foundation_smoke_audit.json"
     foundation_smoke_path.write_text(json.dumps(_passing_smoke_audit()), encoding="utf-8")

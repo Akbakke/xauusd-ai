@@ -109,6 +109,18 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert 'CANDIDATE_DIRECTION_CE_SCALE="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_CE_SCALE:-1.30}"' in text
     assert 'CANDIDATE_CKPT_MONITOR="${ENTRY_FOUNDATION_CANDIDATE_CKPT_MONITOR:-dir_acc}"' in text
     assert (
+        'CANDIDATE_CKPT_CLASS_BALANCE_GUARD_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_CKPT_CLASS_BALANCE_GUARD_WEIGHT:-0.0}"'
+        in text
+    )
+    assert (
+        'CANDIDATE_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL="${ENTRY_FOUNDATION_CANDIDATE_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL:-0.0}"'
+        in text
+    )
+    assert (
+        'CANDIDATE_CKPT_CLASS_BALANCE_MIN_PRED_RATE="${ENTRY_FOUNDATION_CANDIDATE_CKPT_CLASS_BALANCE_MIN_PRED_RATE:-0.0}"'
+        in text
+    )
+    assert (
         'CANDIDATE_SPECIALIST_GATE_BALANCE_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_SPECIALIST_GATE_BALANCE_WEIGHT:-0.25}"'
         in text
     )
@@ -134,6 +146,9 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "ENTRY_PRED_BALANCE_CLASS_WEIGHTS=" in text
     assert "ENTRY_DIRECTION_CE_SCALE=" in text
     assert "GX1_V10_CKPT_MONITOR=" in text
+    assert "ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT=" in text
+    assert "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL=" in text
+    assert "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE=" in text
     assert "ENTRY_SYMMETRIC_NEGATIVES=" in text
     assert "ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT=" in text
     assert "artifact_sha256" in text

@@ -291,6 +291,9 @@ ENTRY_MTF_DIR_AUX_WEIGHT = float(_env_str("ENTRY_MTF_DIR_AUX_WEIGHT", "0.30"))
 # with the highest direction validation accuracy (the metric the chain actually acts on).
 # Default "val_loss" = bit-identical to the historical behavior.
 ENTRY_CKPT_MONITOR = _env_str("GX1_V10_CKPT_MONITOR", "val_loss").strip().lower()
+ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT = float(_env_str("ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT", "0.0"))
+ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL = float(_env_str("ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL", "0.0"))
+ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE = float(_env_str("ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE", "0.0"))
 
 # -----------------------------------------------------------------------------
 # Timing loss (early adverse move penalty)
@@ -438,6 +441,9 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_TAIL_DIRECTION_CE_WEIGHT": "0.0",
     "ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE": "0.70",
     "ENTRY_TAIL_DIRECTION_MIN_BATCH": "8",
+    "ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT": "0.0",
+    "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL": "0.0",
+    "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE": "0.0",
     "ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT": "0.0",
     "ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT": "0.0",
     "ENTRY_SPECIALIST_GATE_MIN_MEAN": "0.01",
@@ -2629,6 +2635,55 @@ def _aux_head_diagnostics(
     return metrics, warns
 
 
+def _direction_ckpt_balance_stats(
+    targets_np: np.ndarray,
+    preds_np: np.ndarray,
+    acc: float,
+) -> Dict[str, Any]:
+    targets_i = np.asarray(targets_np, dtype=np.int64)
+    preds_i = np.asarray(preds_np, dtype=np.int64)
+    label_counts = np.bincount(targets_i, minlength=3)[:3].astype(np.float64)
+    pred_counts = np.bincount(preds_i, minlength=3)[:3].astype(np.float64)
+    label_total = float(label_counts.sum())
+    pred_total = float(pred_counts.sum())
+    label_rates = label_counts / max(label_total, 1.0)
+    pred_rates = pred_counts / max(pred_total, 1.0)
+    active = label_rates > 0.0
+    pred_to_label = np.divide(
+        pred_rates,
+        np.maximum(label_rates, 1e-12),
+        out=np.zeros_like(pred_rates),
+        where=active,
+    )
+    min_pred_to_label = float(np.min(pred_to_label[active])) if np.any(active) else 0.0
+    l1_drift = float(np.abs(pred_rates - label_rates).sum())
+    min_pred_to_label_req = float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL)
+    min_pred_rate_req = float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE)
+    required_pred_rates = np.maximum(label_rates * min_pred_to_label_req, min_pred_rate_req)
+    guard_ok = bool(np.all(pred_rates[active] + 1e-12 >= required_pred_rates[active]))
+    guard_weight = float(ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT)
+    penalty = guard_weight * l1_drift
+    if guard_weight > 0.0 and not guard_ok:
+        penalty += guard_weight
+    score = float(acc) - float(penalty)
+    return {
+        "direction_label_rate_long": float(label_rates[0]),
+        "direction_label_rate_short": float(label_rates[1]),
+        "direction_label_rate_flat": float(label_rates[2]),
+        "direction_pred_rate_long": float(pred_rates[0]),
+        "direction_pred_rate_short": float(pred_rates[1]),
+        "direction_pred_rate_flat": float(pred_rates[2]),
+        "direction_pred_label_l1": l1_drift,
+        "direction_min_pred_to_label": min_pred_to_label,
+        "direction_class_balance_guard_ok": guard_ok,
+        "direction_ckpt_balance_penalty": float(penalty),
+        "direction_ckpt_score": score,
+        "direction_ckpt_guard_weight": guard_weight,
+        "direction_ckpt_min_pred_to_label": min_pred_to_label_req,
+        "direction_ckpt_min_pred_rate": min_pred_rate_req,
+    }
+
+
 def validate(
     model,
     loader,
@@ -2962,6 +3017,7 @@ def validate(
         "path_quality_rank_loss_mean": (path_quality_rank_loss_sum / max(1, n)),
         "hard_neg_prob_loss_mean": (hard_neg_prob_loss_sum / max(1, n)),
     }
+    stats.update(_direction_ckpt_balance_stats(targets_np, preds_np, acc))
     # V10-AUX-02: cross-head / AUC / realized-target diagnostics. Fail-soft, WARN-level,
     # does NOT affect the returned loss or any checkpoint-selection metric.
     try:
@@ -3983,6 +4039,19 @@ def run_train(
     _require_nonneg("ENTRY_ANCHOR_EPS", ENTRY_ANCHOR_EPS)
     _require_nonneg("ENTRY_RESIDUAL_SIDE_BIAS_ALPHA", ENTRY_RESIDUAL_SIDE_BIAS_ALPHA)
     _require_nonneg("ENTRY_TAIL_DIRECTION_CE_WEIGHT", ENTRY_TAIL_DIRECTION_CE_WEIGHT)
+    _require_nonneg("ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT", ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT)
+    _require_nonneg("ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL", ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL)
+    _require_nonneg("ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE", ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE)
+    if ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL > 1.0:
+        raise RuntimeError(
+            "[ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL_INVALID] "
+            f"ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL={ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL:.6f} expected <=1.0"
+        )
+    if ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE > 1.0:
+        raise RuntimeError(
+            "[ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE_INVALID] "
+            f"ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE={ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE:.6f} expected <=1.0"
+        )
     if ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE < 0.50 or ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE > 0.95:
         raise RuntimeError(
             "[ENTRY_TAIL_DIRECTION_QUANTILE_INVALID] "
@@ -4108,12 +4177,20 @@ def run_train(
     best_state = None
     best_val = float("inf")
     best_acc = float("-inf")  # direction-acc monitor (GX1_V10_CKPT_MONITOR=dir_acc)
+    best_dir_ckpt_score = float("-inf")
+    best_direction_balance_guard_ok: Optional[bool] = None
     best_epoch = -1
     epochs_since_improve = 0
     last_epoch = 0
     early_stopped = False
     _ckpt_monitor = ENTRY_CKPT_MONITOR if ENTRY_CKPT_MONITOR in {"val_loss", "dir_acc"} else "val_loss"
-    log.info("[CKPT_MONITOR] selecting best checkpoint on %s", _ckpt_monitor)
+    log.info(
+        "[CKPT_MONITOR] selecting best checkpoint on %s class_balance_guard_weight=%.3f min_pred_to_label=%.3f min_pred_rate=%.3f",
+        _ckpt_monitor,
+        float(ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT),
+        float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL),
+        float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE),
+    )
 
     for epoch in range(epochs):
         last_epoch = epoch + 1
@@ -4218,6 +4295,24 @@ def run_train(
                 float(val_stats.get("bad_path_quality_rank_loss_mean", 0.0)),
                 float(val_stats.get("path_quality_rank_loss_mean", 0.0)),
             )
+            log.info(
+                "[ENTRY_DIR_CKPT_BALANCE] split=val epoch=%d score=%.6f raw_acc=%.6f l1=%.6f "
+                "penalty=%.6f guard_ok=%d pred_long=%.6f pred_short=%.6f pred_flat=%.6f "
+                "label_long=%.6f label_short=%.6f label_flat=%.6f min_pred_to_label=%.6f",
+                epoch + 1,
+                float(val_stats.get("direction_ckpt_score", acc)),
+                float(acc),
+                float(val_stats.get("direction_pred_label_l1", 0.0)),
+                float(val_stats.get("direction_ckpt_balance_penalty", 0.0)),
+                int(bool(val_stats.get("direction_class_balance_guard_ok", True))),
+                float(val_stats.get("direction_pred_rate_long", 0.0)),
+                float(val_stats.get("direction_pred_rate_short", 0.0)),
+                float(val_stats.get("direction_pred_rate_flat", 0.0)),
+                float(val_stats.get("direction_label_rate_long", 0.0)),
+                float(val_stats.get("direction_label_rate_short", 0.0)),
+                float(val_stats.get("direction_label_rate_flat", 0.0)),
+                float(val_stats.get("direction_min_pred_to_label", 0.0)),
+            )
         log.info(
             "[SHORT_TO_LONG_TRAIN] rate=%.6f short_lead_count=%d short_lead_long_prob_mean=%.6f",
             float(tr_stats.get("short_pred_long_rate", 0.0)),
@@ -4254,22 +4349,33 @@ def run_train(
                 float(tr_stats.get("path_quality_rank_loss_mean", 0.0)),
             )
         if _ckpt_monitor == "dir_acc":
-            _improved = np.isfinite(acc) and (acc - best_acc) > float(early_stopping_min_delta)
+            _dir_ckpt_score = float(val_stats.get("direction_ckpt_score", acc)) if val_stats else float(acc)
+            _improved = np.isfinite(_dir_ckpt_score) and (
+                _dir_ckpt_score - best_dir_ckpt_score
+            ) > float(early_stopping_min_delta)
         else:
+            _dir_ckpt_score = float(val_stats.get("direction_ckpt_score", acc)) if val_stats else float(acc)
             _improved = (best_val - va_loss) > float(early_stopping_min_delta)
         if _improved:
             best_val = va_loss
             if np.isfinite(acc):
                 best_acc = acc
+            if np.isfinite(_dir_ckpt_score):
+                best_dir_ckpt_score = _dir_ckpt_score
+            best_direction_balance_guard_ok = (
+                bool(val_stats.get("direction_class_balance_guard_ok", True)) if val_stats else True
+            )
             _ckpt_model = model._orig_mod if hasattr(model, "_orig_mod") else model
             best_state = {k: v.cpu().clone() for k, v in _ckpt_model.state_dict().items()}
             best_epoch = epoch + 1
             epochs_since_improve = 0
             log.info(
-                "[BEST_CHECKPOINT] epoch=%d val=%.6f dir_acc=%.6f monitor=%s",
+                "[BEST_CHECKPOINT] epoch=%d val=%.6f dir_acc=%.6f dir_ckpt_score=%.6f balance_guard_ok=%d monitor=%s",
                 best_epoch,
                 best_val,
                 acc,
+                best_dir_ckpt_score,
+                int(bool(best_direction_balance_guard_ok)),
                 _ckpt_monitor,
             )
         else:
@@ -4369,6 +4475,11 @@ def run_train(
         "best_epoch": best_epoch,
         "ckpt_monitor": _ckpt_monitor,
         "best_dir_acc": (float(best_acc) if np.isfinite(best_acc) else None),
+        "best_dir_ckpt_score": (float(best_dir_ckpt_score) if np.isfinite(best_dir_ckpt_score) else None),
+        "best_direction_balance_guard_ok": best_direction_balance_guard_ok,
+        "ckpt_class_balance_guard_weight": float(ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT),
+        "ckpt_class_balance_min_pred_to_label": float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL),
+        "ckpt_class_balance_min_pred_rate": float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE),
         "last_epoch": last_epoch,
         "early_stopped": bool(early_stopped),
         "early_stopping_patience": int(early_stopping_patience),
@@ -4471,6 +4582,9 @@ def run_train(
         "pred_balance_class_weights": [float(value) for value in ENTRY_PRED_BALANCE_CLASS_WEIGHTS],
         "residual_side_bias_alpha": float(ENTRY_RESIDUAL_SIDE_BIAS_ALPHA),
         "direction_ce_scale": float(ENTRY_DIRECTION_CE_SCALE),
+        "ckpt_class_balance_guard_weight": float(ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT),
+        "ckpt_class_balance_min_pred_to_label": float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL),
+        "ckpt_class_balance_min_pred_rate": float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE),
         "tail_direction_ce_weight": float(ENTRY_TAIL_DIRECTION_CE_WEIGHT),
         "tail_direction_quality_quantile": float(ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE),
         "tail_direction_min_batch": int(ENTRY_TAIL_DIRECTION_MIN_BATCH),
@@ -4494,6 +4608,9 @@ def run_train(
             "pred_balance_target": str(ENTRY_PRED_BALANCE_TARGET),
             "pred_balance_class_weights": [float(value) for value in ENTRY_PRED_BALANCE_CLASS_WEIGHTS],
             "ckpt_monitor": str(_ckpt_monitor),
+            "ckpt_class_balance_guard_weight": float(ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT),
+            "ckpt_class_balance_min_pred_to_label": float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL),
+            "ckpt_class_balance_min_pred_rate": float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE),
             "residual_scale": float(ENTRY_RESIDUAL_SCALE),
             "tradable_weight": float(ENTRY_AUX_TRADABLE_WEIGHT),
             "tradable_pos_weight": float(tradable_pos_weight),
