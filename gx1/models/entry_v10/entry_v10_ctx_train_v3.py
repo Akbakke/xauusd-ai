@@ -19,6 +19,7 @@ import logging
 import os
 import subprocess
 import sys
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple
@@ -1205,6 +1206,7 @@ class EntryV10CtxDataset(Dataset):
         self._multi_tf_feats: Optional[Dict[str, pd.DataFrame]] = None
         self._multi_tf_shift: Optional[Dict[str, pd.Timedelta]] = None
         self._multi_tf_feature_count: int = 0
+        self._memmap_tmpdir: Optional[tempfile.TemporaryDirectory] = None
 
         if not self.parquet_path.exists():
             raise FileNotFoundError(self.parquet_path)
@@ -1309,10 +1311,48 @@ class EntryV10CtxDataset(Dataset):
                 f"ctx_cont=(N,{ctx_cont_dim})  ctx_cat=(N,{ctx_cat_dim}) "
                 f"neutral_xgb_bridge={self.neutral_xgb_bridge}"
             )
-            self._np_seq = np.zeros((n_rows, seq_len, seq_dim), dtype=np.float32)
-            self._np_snap = np.zeros((n_rows, snap_dim), dtype=np.float32)
-            self._np_ctx_cont = np.zeros((n_rows, ctx_cont_dim), dtype=np.float32)
-            self._np_ctx_cat = np.zeros((n_rows, ctx_cat_dim), dtype=np.int64)
+            seq_shape = (n_rows, seq_len, seq_dim)
+            snap_shape = (n_rows, snap_dim)
+            ctx_cont_shape = (n_rows, ctx_cont_dim)
+            ctx_cat_shape = (n_rows, ctx_cat_dim)
+            nested_bytes = (
+                np.prod(seq_shape, dtype=np.int64) * np.dtype(np.float32).itemsize
+                + np.prod(snap_shape, dtype=np.int64) * np.dtype(np.float32).itemsize
+                + np.prod(ctx_cont_shape, dtype=np.int64) * np.dtype(np.float32).itemsize
+                + np.prod(ctx_cat_shape, dtype=np.int64) * np.dtype(np.int64).itemsize
+            )
+            memmap_min_gb = float(os.environ.get("ENTRY_V10_CTX_MEMMAP_MIN_GB", "8.0"))
+            memmap_disabled = os.environ.get("ENTRY_V10_CTX_DISABLE_MEMMAP", "0") == "1"
+            use_memmap = (not memmap_disabled) and nested_bytes >= int(memmap_min_gb * (1024 ** 3))
+            if use_memmap:
+                memmap_root = Path(
+                    os.environ.get("ENTRY_V10_CTX_MEMMAP_ROOT", "/home/andre2/GX1_DATA/tmp/entry_v10_memmap")
+                )
+                memmap_root.mkdir(parents=True, exist_ok=True)
+                self._memmap_tmpdir = tempfile.TemporaryDirectory(
+                    prefix=f"{self.parquet_path.stem}_{os.getpid()}_",
+                    dir=str(memmap_root),
+                )
+                memmap_dir = Path(self._memmap_tmpdir.name)
+                self._np_seq = np.memmap(memmap_dir / "seq.float32.mmap", dtype=np.float32, mode="w+", shape=seq_shape)
+                self._np_snap = np.memmap(memmap_dir / "snap.float32.mmap", dtype=np.float32, mode="w+", shape=snap_shape)
+                self._np_ctx_cont = np.memmap(
+                    memmap_dir / "ctx_cont.float32.mmap", dtype=np.float32, mode="w+", shape=ctx_cont_shape
+                )
+                self._np_ctx_cat = np.memmap(
+                    memmap_dir / "ctx_cat.int64.mmap", dtype=np.int64, mode="w+", shape=ctx_cat_shape
+                )
+                log.info(
+                    "[MEMMAP] advanced nested arrays disk-backed: total=%.2f GB threshold=%.2f GB dir=%s",
+                    nested_bytes / 1e9,
+                    memmap_min_gb,
+                    memmap_dir,
+                )
+            else:
+                self._np_seq = np.zeros(seq_shape, dtype=np.float32)
+                self._np_snap = np.zeros(snap_shape, dtype=np.float32)
+                self._np_ctx_cont = np.zeros(ctx_cont_shape, dtype=np.float32)
+                self._np_ctx_cat = np.zeros(ctx_cat_shape, dtype=np.int64)
             # Re-iterate (first batch was consumed) — read the whole file in chunks
             idx = 0
             for batch in pq.ParquetFile(self.parquet_path).iter_batches(
@@ -1328,6 +1368,9 @@ class EntryV10CtxDataset(Dataset):
                 self._np_ctx_cat[idx:idx+nb] = batch.column("ctx_cat").flatten().to_numpy(
                     zero_copy_only=False).reshape(nb, ctx_cat_dim).astype(np.int64, copy=False)
                 idx += nb
+            for arr in (self._np_seq, self._np_snap, self._np_ctx_cont, self._np_ctx_cat):
+                if isinstance(arr, np.memmap):
+                    arr.flush()
             log.info(f"[MEM_FIX] arrays built: seq={self._np_seq.shape} ({self._np_seq.nbytes/1e9:.2f} GB)")
             # Drop nested cols from df (they were in df from earlier pd.read_parquet)
             # to free the pandas object memory.
