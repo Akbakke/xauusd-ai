@@ -150,6 +150,10 @@ Machine contract:
     support/resistance memory and MTF confluence. Smart Entry evidence is not
     Exit-ready if only the fused Entry score or generic seq215 fields survive
     into the Exit dataset.
+  - Control/readiness exposes `entry-exit-feature-alignment-smart` as the
+    smart selected report-only lane pinned to `smart_seq520_candidate`, so
+    smart Exit Transformer/IQL work cannot rely on the foundation alignment
+    latest report by mistake.
 - Active Exit Transformer architecture/readiness:
   `gx1/scripts/audit_entry_exit_transformer_architecture_readiness_v1.py`
   - Locks the active `exit_sequence_transformer_v1` architecture contract

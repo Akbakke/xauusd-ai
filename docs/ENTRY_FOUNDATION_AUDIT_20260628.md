@@ -333,6 +333,10 @@ Active status:
   and the Exit state/reward contract carries those fields forward as numeric
   state. Foundation runs do not require smart fields, but smart Exit alignment
   remains blocked unless the carried state is live.
+- Readiness now exposes a separate smart selected Entry-to-Exit feature
+  alignment lane, `entry-exit-feature-alignment-smart`, pinned to
+  `smart_seq520_candidate`. Foundation Exit alignment cannot be used as proof
+  that smart520 Entry evidence is Exit-ready.
 - Commit `e7aa6762` repairs the next Entry training recipe for this known
   path-signal defect: `entry_v10_ctx_train_v3.py` now has a full-batch
   `path_quality_pred` ranking loss against realized `path_quality_bps`, and

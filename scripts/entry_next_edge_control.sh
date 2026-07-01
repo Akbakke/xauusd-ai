@@ -68,6 +68,7 @@ Usage:
   scripts/entry_next_edge_control.sh entry-exit-split-leakage-audit
   scripts/entry_next_edge_control.sh entry-exit-model-dataset-readiness
   scripts/entry_next_edge_control.sh entry-exit-feature-alignment
+  scripts/entry_next_edge_control.sh entry-exit-feature-alignment-smart
   scripts/entry_next_edge_control.sh entry-exit-transformer-architecture-readiness
   scripts/entry_next_edge_control.sh entry-exit-transformer-training-plan-readiness
   scripts/entry_next_edge_control.sh entry-exit-transformer-trainer-wrapper-readiness
@@ -444,6 +445,13 @@ for key, (root, pattern, ready_decisions) in smart_iql_artifacts.items():
     selected = latest_ready_smart_report(root, pattern, ready_decisions)
     if selected is not None:
         paths[key] = selected
+smart_entry_exit_feature_alignment_path = latest_ready_smart_report(
+    Path("/home/andre2/GX1_DATA/reports/entry_exit_feature_alignment_20260630_v1"),
+    "smart_seq520_candidate_*/ENTRY_EXIT_FEATURE_ALIGNMENT_latest.json",
+    {"ENTRY_EXIT_FEATURE_ALIGNMENT_READY_FOR_EXIT_TRANSFORMER_TRAINING_REVIEW"},
+)
+if smart_entry_exit_feature_alignment_path is not None:
+    paths["entry-exit-feature-alignment-smart-selected"] = smart_entry_exit_feature_alignment_path
 adoption_root = Path("/home/andre2/GX1_DATA/reports/entry_foundation_adoption_candidate_20260629_v1")
 adoption_candidates = (
     sorted(
@@ -570,6 +578,7 @@ allowed_now = [
     "scripts/entry_next_edge_control.sh entry-exit-split-leakage-audit --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh entry-exit-model-dataset-readiness --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh entry-exit-feature-alignment --quiet --no-fail-on-not-ready",
+    "scripts/entry_next_edge_control.sh entry-exit-feature-alignment-smart --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh entry-exit-transformer-architecture-readiness --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh entry-exit-transformer-training-plan-readiness --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh entry-exit-transformer-trainer-wrapper-readiness --quiet --no-fail-on-not-ready",
@@ -779,6 +788,7 @@ entry_exit_state_reward = reports.get("entry-exit-state-reward-contract") or {}
 entry_exit_split_leakage = reports.get("entry-exit-split-leakage-audit") or {}
 entry_exit_model_dataset = reports.get("entry-exit-model-dataset-readiness") or {}
 entry_exit_feature_alignment = reports.get("entry-exit-feature-alignment") or {}
+entry_exit_feature_alignment_smart_selected = reports.get("entry-exit-feature-alignment-smart-selected") or {}
 entry_exit_transformer_architecture = reports.get("entry-exit-transformer-architecture-readiness") or {}
 entry_exit_transformer_training_plan = reports.get("entry-exit-transformer-training-plan-readiness") or {}
 entry_exit_transformer_trainer_wrapper = reports.get("entry-exit-transformer-trainer-wrapper-readiness") or {}
@@ -802,6 +812,11 @@ entry_exit_model_dataset_decision = str(entry_exit_model_dataset.get("decision")
 entry_exit_model_dataset_ready = entry_exit_model_dataset_decision == "ENTRY_EXIT_MODEL_DATASET_READY_FOR_EXIT_TRANSFORMER_READINESS_REVIEW"
 entry_exit_feature_alignment_decision = str(entry_exit_feature_alignment.get("decision") or "")
 entry_exit_feature_alignment_ready = entry_exit_feature_alignment_decision == "ENTRY_EXIT_FEATURE_ALIGNMENT_READY_FOR_EXIT_TRANSFORMER_TRAINING_REVIEW"
+entry_exit_feature_alignment_smart_selected_decision = str(entry_exit_feature_alignment_smart_selected.get("decision") or "")
+entry_exit_feature_alignment_smart_selected_ready = (
+    entry_exit_feature_alignment_smart_selected_decision
+    == "ENTRY_EXIT_FEATURE_ALIGNMENT_READY_FOR_EXIT_TRANSFORMER_TRAINING_REVIEW"
+)
 entry_exit_transformer_architecture_decision = str(entry_exit_transformer_architecture.get("decision") or "")
 entry_exit_transformer_architecture_ready = entry_exit_transformer_architecture_decision == "ENTRY_EXIT_TRANSFORMER_ARCHITECTURE_READY_FOR_TRAINING_PLAN_REVIEW"
 entry_exit_transformer_training_plan_decision = str(entry_exit_transformer_training_plan.get("decision") or "")
@@ -850,6 +865,10 @@ if entry_exit_split_leakage_ready and not entry_exit_model_dataset_ready:
     current_blockers.append("active Exit model dataset/readiness required before Exit Transformer architecture/readiness review")
 if entry_exit_model_dataset_ready and not entry_exit_feature_alignment_ready:
     current_blockers.append("active Entry-to-Exit feature alignment is missing HH/SMC/trend/momentum/MTF/specialist-gate state before Exit training")
+if smart_iql_replay_comparison_ready and not entry_exit_feature_alignment_smart_selected_ready:
+    current_blockers.append(
+        "smart selected Entry-to-Exit feature alignment is missing smart-layer state before smart Exit Transformer/IQL training"
+    )
 if entry_exit_feature_alignment_ready and not entry_exit_transformer_architecture_ready:
     current_blockers.append("active Exit Transformer architecture/readiness required before Exit training plan review")
 if entry_exit_transformer_architecture_ready and not entry_exit_transformer_training_plan_ready:
@@ -2099,6 +2118,24 @@ commands.update(
             "touches_shadow_or_live": False,
             "description": "Audit Entry-to-Exit market-mechanism feature alignment; no training or replay.",
         },
+        "entry_exit_feature_alignment_smart_selected": {
+            "argv": ["scripts/entry_next_edge_control.sh", "entry-exit-feature-alignment-smart"],
+            "allowed": True,
+            "mode": "entry_exit_feature_alignment",
+            "requires_vedtak": False,
+            "requires_clean_git": False,
+            "mutates_git_index": False,
+            "starts_trainer": False,
+            "starts_replay": False,
+            "starts_iql_distillation": False,
+            "touches_shadow_or_live": False,
+            "specialist_contract_mode": "smart_seq520_candidate",
+            "expected_signal_dim": 520,
+            "selected_report": str(paths.get("entry-exit-feature-alignment-smart-selected"))
+            if paths.get("entry-exit-feature-alignment-smart-selected")
+            else None,
+            "description": "Audit smart selected Entry-to-Exit feature alignment with smart520 layer state; no training or replay.",
+        },
         "entry_exit_transformer_architecture_readiness": {
             "argv": ["scripts/entry_next_edge_control.sh", "entry-exit-transformer-architecture-readiness"],
             "allowed": True,
@@ -2316,6 +2353,7 @@ execution_allowed_now = {
     "entry_exit_split_leakage_audit": True,
     "entry_exit_model_dataset_readiness": True,
     "entry_exit_feature_alignment": True,
+    "entry_exit_feature_alignment_smart_selected": True,
     "entry_exit_transformer_architecture_readiness": True,
     "entry_exit_transformer_training_plan_readiness": True,
     "entry_exit_transformer_trainer_wrapper_readiness": True,
@@ -2387,6 +2425,7 @@ allowed_after_explicit_vedtak = {
     "entry_exit_split_leakage_audit": True,
     "entry_exit_model_dataset_readiness": True,
     "entry_exit_feature_alignment": True,
+    "entry_exit_feature_alignment_smart_selected": True,
     "entry_exit_transformer_architecture_readiness": True,
     "entry_exit_transformer_training_plan_readiness": True,
     "entry_exit_transformer_trainer_wrapper_readiness": True,
@@ -2655,6 +2694,16 @@ payload = {
         "entry_exit_feature_alignment_decision": entry_exit_feature_alignment_decision,
         "entry_exit_feature_alignment_ready": entry_exit_feature_alignment_ready,
         "entry_exit_feature_alignment_missing_families": (entry_exit_feature_alignment.get("family_review") or {}).get("missing_families") if isinstance(entry_exit_feature_alignment.get("family_review"), dict) else None,
+        "entry_exit_feature_alignment_smart_selected_decision": entry_exit_feature_alignment_smart_selected_decision,
+        "entry_exit_feature_alignment_smart_selected_ready": entry_exit_feature_alignment_smart_selected_ready,
+        "entry_exit_feature_alignment_smart_selected_report": str(paths.get("entry-exit-feature-alignment-smart-selected"))
+        if paths.get("entry-exit-feature-alignment-smart-selected")
+        else None,
+        "entry_exit_feature_alignment_smart_selected_missing_families": (
+            entry_exit_feature_alignment_smart_selected.get("family_review") or {}
+        ).get("missing_families")
+        if isinstance(entry_exit_feature_alignment_smart_selected.get("family_review"), dict)
+        else None,
         "entry_exit_transformer_architecture_decision": entry_exit_transformer_architecture_decision,
         "entry_exit_transformer_architecture_ready": entry_exit_transformer_architecture_ready,
         "entry_exit_transformer_architecture_dataset_rows": entry_exit_transformer_architecture.get("dataset_rows"),
@@ -3087,6 +3136,14 @@ PY
 
   entry-exit-feature-alignment)
     exec "$PY" -m gx1.scripts.audit_entry_exit_feature_alignment_v1 "$@"
+    ;;
+
+  entry-exit-feature-alignment-smart)
+    exec "$PY" -m gx1.scripts.audit_entry_exit_feature_alignment_v1 \
+      --model-dataset-json "/home/andre2/GX1_DATA/reports/entry_exit_model_dataset_readiness_20260630_v1/smart_seq520_candidate_stop_tp_mfe_protect_act1_sl45_broad_net_min190/ENTRY_EXIT_MODEL_DATASET_READINESS_latest.json" \
+      --out-dir "/home/andre2/GX1_DATA/reports/entry_exit_feature_alignment_20260630_v1/smart_seq520_candidate_stop_tp_mfe_protect_act1_sl45_broad_net_min190" \
+      --entry-specialist-contract-mode smart_seq520_candidate \
+      "$@"
     ;;
 
   entry-exit-transformer-architecture-readiness)

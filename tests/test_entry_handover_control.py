@@ -719,6 +719,19 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
             "promotion review is blocked until smart selected slice and path-signal calibration gates PASS"
             in payload["status_summary"]["current_blockers"]
         )
+    if "entry-exit-feature-alignment-smart-selected" in payload["reports"]:
+        selected_alignment = payload["reports"]["entry-exit-feature-alignment-smart-selected"]
+        assert payload["status_summary"]["entry_exit_feature_alignment_smart_selected_decision"] == (
+            selected_alignment["decision"]
+        )
+        assert payload["status_summary"]["entry_exit_feature_alignment_smart_selected_report"] == (
+            selected_alignment["path"]
+        )
+        assert isinstance(payload["status_summary"]["entry_exit_feature_alignment_smart_selected_ready"], bool)
+        assert isinstance(
+            payload["status_summary"]["entry_exit_feature_alignment_smart_selected_missing_families"],
+            list,
+        )
     assert isinstance(payload["status_summary"]["iql_replay_slice_edge_regression_count"], int)
     assert isinstance(payload["status_summary"]["iql_replay_slice_diagnostic_regression_count"], int)
     assert isinstance(payload["status_summary"]["iql_replay_slice_worst_edge_regressions"], list)
@@ -740,6 +753,21 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
     assert payload["commands"]["challenger_smart_extension_manifest"]["manifest_variant"] == (
         f"smart_seq{smart_expected_dim}_candidate"
     )
+    assert payload["commands"]["entry_exit_feature_alignment_smart_selected"]["argv"] == [
+        "scripts/entry_next_edge_control.sh",
+        "entry-exit-feature-alignment-smart",
+    ]
+    assert payload["commands"]["entry_exit_feature_alignment_smart_selected"]["allowed"] is True
+    assert payload["commands"]["entry_exit_feature_alignment_smart_selected"]["execution_allowed_now"] is True
+    assert payload["commands"]["entry_exit_feature_alignment_smart_selected"]["requires_vedtak"] is False
+    assert payload["commands"]["entry_exit_feature_alignment_smart_selected"]["starts_trainer"] is False
+    assert payload["commands"]["entry_exit_feature_alignment_smart_selected"]["starts_replay"] is False
+    assert payload["commands"]["entry_exit_feature_alignment_smart_selected"]["starts_iql_distillation"] is False
+    assert payload["commands"]["entry_exit_feature_alignment_smart_selected"]["touches_shadow_or_live"] is False
+    assert payload["commands"]["entry_exit_feature_alignment_smart_selected"]["specialist_contract_mode"] == (
+        "smart_seq520_candidate"
+    )
+    assert payload["commands"]["entry_exit_feature_alignment_smart_selected"]["expected_signal_dim"] == 520
     assert payload["commands"]["smart_rebuild_preflight"]["argv"] == [
         "scripts/entry_next_edge_control.sh",
         "smart-rebuild-preflight",
