@@ -295,6 +295,7 @@ def test_control_surface_readiness_report_is_fail_open_status_only() -> None:
         assert "scripts/entry_next_edge_control.sh smoke-manifest --vedtak <id>  # proof only, no trainer start" in result.stdout
     assert "blocked now:" in result.stdout
     assert "scripts/entry_next_edge_control.sh smoke-train --vedtak <id> --require-edge-audit  # needs clean git + explicit vedtak" in result.stdout
+    assert "scripts/entry_next_edge_control.sh smart-smoke-train --vedtak <id> --require-edge-audit" in result.stdout
     assert "candidate-train, replay, IQL distillation, promotion, shadow and live remain blocked" in result.stdout
     assert "report-only: no training, replay, IQL distillation, staging, shadow, or live path was started" in result.stdout
 
@@ -424,6 +425,7 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
     assert isinstance(payload["status_summary"]["smoke_manifest_seq215_proof_allowed"], bool)
     assert isinstance(payload["status_summary"]["real_smoke_train_seq215_allowed"], bool)
     assert isinstance(payload["status_summary"]["real_smoke_train_smart_seq520_allowed"], bool)
+    assert isinstance(payload["status_summary"]["smart_smoke_train_blocked_reason"], str)
     assert isinstance(payload["status_summary"]["seq215_smoke_contract_preflight_ready"], bool)
     assert "chart_geometry_encoder" in payload["status_summary"]["seq215_smoke_contract_required_specialists"]
     assert "price_action_candle_encoder" in payload["status_summary"]["seq215_smoke_contract_required_specialists"]
@@ -969,6 +971,9 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
     assert payload["commands"]["smart_smoke_train"]["requires_smart_vedtak"] is True
     assert payload["commands"]["smart_smoke_train"]["requires_ram_cap"] is True
     assert payload["commands"]["smart_smoke_train"]["ram_cap_runner"] == "scripts/gx1_capped_run.sh"
+    assert payload["commands"]["smart_smoke_train"]["not_executable_now_reason"] == payload["status_summary"][
+        "smart_smoke_train_blocked_reason"
+    ]
     assert payload["commands"]["smart_smoke_train"]["specialist_contract_mode"] == "smart_seq520_candidate"
     assert payload["commands"]["smart_smoke_train"]["expected_signal_dim"] == 520
     assert payload["commands"]["candidate_train"]["argv"] == [
@@ -1128,6 +1133,7 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
     )
     assert payload["worktree_hygiene"]["raw_stage_command"].startswith("git add --pathspec-from-file=")
     assert any("smoke-train" in item for item in payload["blocked_now"])
+    assert any("smart-smoke-train" in item for item in payload["blocked_now"])
 
 
 def test_control_surface_readiness_report_rejects_unknown_args() -> None:

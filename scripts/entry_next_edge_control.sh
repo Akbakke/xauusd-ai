@@ -842,6 +842,15 @@ smart_rebuild_preflight_ready = (
 candidate_smart = reports.get("candidate-readiness-smart") or {}
 candidate_training_smart_allowed = bool(candidate_smart.get("candidate_training_allowed_with_explicit_vedtak"))
 real_smoke_train_smart_allowed = bool(smart_smoke_readiness_ready and smart_trainability_readiness_ready)
+smart_smoke_train_blocked_reason = (
+    "requires clean git worktree and explicit SMART/SEQ520 smoke-train vedtak"
+    if real_smoke_train_smart_allowed
+    else "requires smart smoke-readiness and smart trainability PASS before explicit SMART/SEQ520 smoke-train vedtak"
+)
+blocked_now.append(
+    "scripts/entry_next_edge_control.sh smart-smoke-train --vedtak <id> --require-edge-audit  # "
+    + smart_smoke_train_blocked_reason
+)
 
 commands = {
     "handover": {
@@ -2243,11 +2252,7 @@ not_executable_now_reason = {
             else "requires clean git worktree and explicit SEQ215 smoke-train vedtak"
         )
     ),
-    "smart_smoke_train": (
-        "smart smoke-readiness and smart trainability are not both ready"
-        if not real_smoke_train_smart_allowed
-        else "requires clean git worktree and explicit SMART/SEQ520 smoke-train vedtak"
-    ),
+    "smart_smoke_train": smart_smoke_train_blocked_reason,
     "candidate_train": "requires real smoke bundle edge audit, clean git worktree and explicit candidate-train vedtak",
     "candidate_train_seq215": "requires real seq215 smoke bundle edge audit, clean git worktree and explicit seq215 candidate-train vedtak",
     "candidate_train_smart": "requires smart smoke bundle edge audit, clean git worktree and explicit SMART/SEQ520 candidate-train vedtak",
@@ -2366,6 +2371,7 @@ payload = {
         "smart_selected_iql_distillation_allowed": smart_replay_selected_ready,
         "smart_selected_promotion_review_allowed": smart_selected_promotion_review_allowed,
         "real_smoke_train_smart_seq520_allowed": real_smoke_train_smart_allowed,
+        "smart_smoke_train_blocked_reason": smart_smoke_train_blocked_reason,
         "iql_distillation_allowed": bool(
             iql_distillation_allowed
         ),
