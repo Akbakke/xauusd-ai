@@ -12,6 +12,7 @@ def _write_fixture(
     *,
     iql_eu_negative: bool = False,
     iql_stop_loss_positive_mfe: bool = False,
+    iql_us_underperforms_candidate: bool = False,
 ) -> argparse.Namespace:
     candidate_dir = root / "candidate"
     iql_dir = root / "iql"
@@ -29,6 +30,8 @@ def _write_fixture(
         iql_pnl = 18.0 if direction_correct else -4.0
         if iql_eu_negative and session == "EU":
             iql_pnl = -9.0
+        if iql_us_underperforms_candidate and session == "US":
+            iql_pnl = 10.0 if direction_correct else -4.0
         base = {
             "fold": "2026_TEST",
             "policy_id": "policy",
@@ -146,6 +149,8 @@ def test_iql_replay_slice_audit_passes_supported_slices(tmp_path: Path) -> None:
     assert Path(report["path_signal_calibration"]["csv"]).exists()
     assert report["path_signal_calibration"]["rows"] > 0
     assert report["path_signal_calibration"]["diagnostic_only_not_gate"] is True
+    assert report["candidate_vs_iql_regression_disclosure"]["diagnostic_only_not_gate"] is True
+    assert "worst_supported_edge_net_regressions" in report["candidate_vs_iql_regression_disclosure"]
     assert report["exit_opportunity_summary"]["iql_all"][0]["peak_oracle_lift_sum_bps"] >= 0.0
     checks = {row["name"]: row["ok"] for row in report["checks"]}
     assert checks["IQL supported edge slices keep positive net/PF/drawdown/max-loss"] is True
@@ -175,3 +180,17 @@ def test_iql_replay_slice_audit_fails_on_stop_loss_with_positive_mfe_tail_path(
     assert iql_tail["stop_loss_rate"] > 0.25
     assert iql_tail["stop_loss_with_positive_mfe_rate"] > 0.70
     assert any(row["model"] == "iql" for row in report["tail_path_failures"])
+
+
+def test_iql_replay_slice_audit_discloses_supported_candidate_regressions(tmp_path: Path) -> None:
+    args = _write_fixture(tmp_path, iql_us_underperforms_candidate=True)
+    args.max_max_loss_worsening_bps = 5.0
+    report = run(args)
+
+    assert report["decision"] == "PASS"
+    disclosure = report["candidate_vs_iql_regression_disclosure"]
+    assert disclosure["supported_edge_regression_count"] >= 1
+    assert any(
+        row["cube"] == "session" and row["slice"] == "US"
+        for row in disclosure["worst_supported_edge_net_regressions"]
+    )

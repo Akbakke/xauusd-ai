@@ -664,6 +664,80 @@ def _diagnostic_failures(comparison: pd.DataFrame, args: argparse.Namespace) -> 
     return failures
 
 
+def _candidate_vs_iql_regression_disclosure(comparison: pd.DataFrame) -> dict[str, Any]:
+    if comparison.empty:
+        return {
+            "diagnostic_only_not_gate": True,
+            "supported_edge_regression_count": 0,
+            "supported_diagnostic_regression_count": 0,
+            "worst_supported_edge_net_regressions": [],
+            "worst_supported_diagnostic_net_regressions": [],
+            "worst_supported_drawdown_regressions": [],
+            "worst_supported_mae_regressions": [],
+        }
+
+    supported = comparison[comparison["supported"]].copy()
+    edge = supported[supported["class"] == "edge"].copy()
+    diagnostic = supported[supported["class"] == "diagnostic"].copy()
+    edge_net = edge[edge["net_sum_delta_bps"] < 0.0].sort_values("net_sum_delta_bps", kind="mergesort")
+    diagnostic_net = diagnostic[diagnostic["net_sum_delta_bps"] < 0.0].sort_values(
+        "net_sum_delta_bps",
+        kind="mergesort",
+    )
+    drawdown = supported[supported["max_drawdown_delta_bps"] > 0.0].sort_values(
+        "max_drawdown_delta_bps",
+        ascending=False,
+        kind="mergesort",
+    )
+    mae = supported[supported["p90_mae_delta_bps"] > 0.0].sort_values(
+        "p90_mae_delta_bps",
+        ascending=False,
+        kind="mergesort",
+    )
+
+    keep_columns = [
+        "cube",
+        "slice",
+        "class",
+        "candidate_n_trades",
+        "iql_n_trades",
+        "candidate_net_sum_bps",
+        "iql_net_sum_bps",
+        "net_sum_delta_bps",
+        "candidate_net_mean_bps",
+        "iql_net_mean_bps",
+        "net_mean_delta_bps",
+        "candidate_profit_factor_for_check",
+        "iql_profit_factor_for_check",
+        "profit_factor_delta",
+        "candidate_max_drawdown_bps",
+        "iql_max_drawdown_bps",
+        "max_drawdown_delta_bps",
+        "candidate_p90_mae_bps",
+        "iql_p90_mae_bps",
+        "p90_mae_delta_bps",
+    ]
+
+    def records(frame: pd.DataFrame, limit: int = 10) -> list[dict[str, Any]]:
+        return frame[[column for column in keep_columns if column in frame.columns]].head(limit).to_dict("records")
+
+    return {
+        "diagnostic_only_not_gate": True,
+        "interpretation": (
+            "PASS means IQL kept required supported edge/tail gates alive. These rows disclose where IQL "
+            "still underperforms candidate on supported slices so broad averages cannot hide weak behavior."
+        ),
+        "supported_edge_regression_count": int(len(edge_net)),
+        "supported_diagnostic_regression_count": int(len(diagnostic_net)),
+        "supported_drawdown_regression_count": int(len(drawdown)),
+        "supported_p90_mae_regression_count": int(len(mae)),
+        "worst_supported_edge_net_regressions": records(edge_net),
+        "worst_supported_diagnostic_net_regressions": records(diagnostic_net),
+        "worst_supported_drawdown_regressions": records(drawdown),
+        "worst_supported_mae_regressions": records(mae),
+    }
+
+
 def _write_markdown(path: Path, report: dict[str, Any], comparison: pd.DataFrame, exit_opportunity: pd.DataFrame) -> None:
     lines = [
         "# Entry IQL Replay Slice Audit",
@@ -696,6 +770,23 @@ def _write_markdown(path: Path, report: dict[str, Any], comparison: pd.DataFrame
             lines.append(f"- `{failure['check']}`")
     else:
         lines.append("- None")
+    lines.extend(["", "## Candidate-vs-IQL Regression Disclosure", ""])
+    disclosure = report.get("candidate_vs_iql_regression_disclosure") or {}
+    lines.append(
+        "- "
+        f"Supported edge regressions: `{disclosure.get('supported_edge_regression_count', 0)}`; "
+        f"diagnostic regressions: `{disclosure.get('supported_diagnostic_regression_count', 0)}`; "
+        f"drawdown regressions: `{disclosure.get('supported_drawdown_regression_count', 0)}`; "
+        f"p90 MAE regressions: `{disclosure.get('supported_p90_mae_regression_count', 0)}`"
+    )
+    for row in disclosure.get("worst_supported_edge_net_regressions", [])[:10]:
+        lines.append(
+            "- "
+            f"`{row.get('cube')}={row.get('slice')}` "
+            f"net_delta=`{row.get('net_sum_delta_bps')}` "
+            f"iql_net=`{row.get('iql_net_sum_bps')}` "
+            f"candidate_net=`{row.get('candidate_net_sum_bps')}`"
+        )
     lines.extend(["", "## Exit Opportunity", ""])
     if exit_opportunity.empty:
         lines.append("- None")
@@ -770,6 +861,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     ]
     edge_failures = _edge_failures(comparison, args)
     diagnostic_failures = _diagnostic_failures(comparison, args)
+    candidate_vs_iql_regression_disclosure = _candidate_vs_iql_regression_disclosure(comparison)
     coverage = _coverage("candidate", candidate) + _coverage("iql", iql)
     coverage_failures = [
         row
@@ -939,6 +1031,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "summary": path_signal_calibration_summary,
             "diagnostic_only_not_gate": True,
         },
+        "candidate_vs_iql_regression_disclosure": candidate_vs_iql_regression_disclosure,
         "edge_failures": edge_failures,
         "diagnostic_failures": diagnostic_failures,
         "checks": checks,
