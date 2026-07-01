@@ -137,6 +137,13 @@ Machine contract:
     specialists. For `challenger_seq215`, Exit alignment must carry
     `chart_geometry_encoder` and `price_action_candle_encoder` state plus all
     eight specialist-gate weights before any Exit train/replay/IQL step.
+    For `smart_seq520_candidate`, Exit alignment must also carry live state
+    from all ten smart-layer families: trend/EMA, SMC/liquidity quality,
+    structure/swing derivations, momentum/flow, session/regime interactions,
+    volatility/compression, smart chart geometry, smart price action/candles,
+    support/resistance memory and MTF confluence. Smart Entry evidence is not
+    Exit-ready if only the fused Entry score or generic seq215 fields survive
+    into the Exit dataset.
 - Active Exit Transformer architecture/readiness:
   `gx1/scripts/audit_entry_exit_transformer_architecture_readiness_v1.py`
   - Locks the active `exit_sequence_transformer_v1` architecture contract

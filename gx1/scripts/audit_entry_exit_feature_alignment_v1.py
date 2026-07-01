@@ -20,6 +20,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from gx1.features.entry_specialist_feature_groups_v1 import smart_family_contract_for_mode
 from gx1.scripts.verify_entry_foundation_state_v1 import REPORTS_ROOT
 
 
@@ -71,6 +72,7 @@ CHALLENGER_SEQ215_ENTRY_SPECIALIST_GATE_FIELDS = (
     "entry_chart_geometry_gate_weight",
     "entry_price_action_candle_gate_weight",
 )
+SMART_SEQ520_SMART_LAYER_FAMILIES = tuple(smart_family_contract_for_mode("smart_seq520_candidate").keys())
 
 ALIGNMENT_FAMILIES: dict[str, dict[str, Any]] = {
     "entry_policy_context": {
@@ -160,6 +162,96 @@ ALIGNMENT_FAMILIES: dict[str, dict[str, Any]] = {
         "contract_modes": EIGHT_SPECIALIST_CONTRACT_MODES,
         "reason": "Seq215 Exit alignment must preserve candlestick/price-action context that Entry used.",
     },
+    "smart_trend_ema_layer_context": {
+        "tokens": ("ema_mtf_score", "ema_stack", "ema_inflect", "trend_exhaustion", "trend_pressure"),
+        "scope": "state",
+        "min_fields": 1,
+        "expected_specialist": "trend_ema_encoder",
+        "contract_modes": ("smart_seq520_candidate",),
+        "smart_layer": "trend_ema_smart_layer",
+        "reason": "Smart520 Exit alignment must preserve trend/EMA smart-layer evidence, not only generic trend fields.",
+    },
+    "smart_smc_liquidity_quality_context": {
+        "tokens": ("smc_liquidity_sweep", "smc_liquidity_reclaim", "false_break_reversal", "premium_discount_quality"),
+        "scope": "state",
+        "min_fields": 1,
+        "expected_specialist": "smc_liquidity_encoder",
+        "contract_modes": ("smart_seq520_candidate",),
+        "smart_layer": "smc_liquidity_quality_layer",
+        "reason": "Smart520 Exit alignment must preserve SMC/liquidity quality scoring used by Entry.",
+    },
+    "smart_structure_swing_derivation_context": {
+        "tokens": ("structure_swing_hh_hl", "structure_swing_lh_ll", "swing_leg_quality", "bos_choch"),
+        "scope": "state",
+        "min_fields": 1,
+        "expected_specialist": "structure_swing_encoder",
+        "contract_modes": ("smart_seq520_candidate",),
+        "smart_layer": "structure_swing_derivation_layer",
+        "reason": "Smart520 Exit alignment must preserve derived swing-structure quality, not only a fused Entry score.",
+    },
+    "smart_momentum_flow_context": {
+        "tokens": ("flow_ret", "flow_micro_impulse", "flow_follow_through", "flow_vol_scale"),
+        "scope": "state",
+        "min_fields": 1,
+        "expected_specialist": "momentum_flow_encoder",
+        "contract_modes": ("smart_seq520_candidate",),
+        "smart_layer": "momentum_flow_smart_layer",
+        "reason": "Smart520 Exit alignment must preserve momentum/flow smart evidence for profit-capture timing.",
+    },
+    "smart_session_regime_interaction_context": {
+        "tokens": ("session_boundary", "session_opening", "regime_agreement", "session_age_progress"),
+        "scope": "state",
+        "min_fields": 1,
+        "expected_specialist": "session_regime_encoder",
+        "contract_modes": ("smart_seq520_candidate",),
+        "smart_layer": "session_regime_interaction_layer",
+        "reason": "Smart520 Exit alignment must preserve session/regime interaction state, not broad session labels only.",
+    },
+    "smart_vol_compression_context": {
+        "tokens": ("squeeze_state", "compression_release", "atr_percentile", "volatility_forecast"),
+        "scope": "state",
+        "min_fields": 1,
+        "expected_specialist": "vol_compression_encoder",
+        "contract_modes": ("smart_seq520_candidate",),
+        "smart_layer": "vol_compression_smart_layer",
+        "reason": "Smart520 Exit alignment must preserve compression/release evidence for hold-risk and exit timing.",
+    },
+    "smart_chart_geometry_context": {
+        "tokens": ("geometry_trendline_channel_confluence", "geometry_channel_edge", "geometry_fib_extension", "geometry_fib_support", "geometry_fib_resistance"),
+        "scope": "state",
+        "min_fields": 1,
+        "expected_specialist": "chart_geometry_encoder",
+        "contract_modes": ("smart_seq520_candidate",),
+        "smart_layer": "chart_geometry_smart2_layer",
+        "reason": "Smart520 Exit alignment must preserve smart chart-geometry evidence beyond the seq215 base fields.",
+    },
+    "smart_price_action_candle_context": {
+        "tokens": ("pattern_close_pressure", "pattern_wick_imbalance", "pattern_body_expansion", "pattern_reversal", "pattern_continuation"),
+        "scope": "state",
+        "min_fields": 1,
+        "expected_specialist": "price_action_candle_encoder",
+        "contract_modes": ("smart_seq520_candidate",),
+        "smart_layer": "price_action_candle_smart3_layer",
+        "reason": "Smart520 Exit alignment must preserve smart candle-pattern evidence beyond generic candle context.",
+    },
+    "smart_support_resistance_memory_context": {
+        "tokens": ("sr_memory", "support_resistance_memory", "nearest_pivot", "nearest_level", "trap_risk"),
+        "scope": "state",
+        "min_fields": 1,
+        "expected_specialist": "smc_liquidity_encoder",
+        "contract_modes": ("smart_seq520_candidate",),
+        "smart_layer": "support_resistance_memory_layer",
+        "reason": "Smart520 Exit alignment must preserve support/resistance memory and trap-risk context.",
+    },
+    "smart_mtf_confluence_context": {
+        "tokens": ("mtf_confluence", "tf_conflict", "m5_m15_h1_h4_d1_alignment"),
+        "scope": "state",
+        "min_fields": 1,
+        "expected_specialist": "multi_specialist_confluence",
+        "contract_modes": ("smart_seq520_candidate",),
+        "smart_layer": "mtf_confluence_layer",
+        "reason": "Smart520 Exit alignment must preserve cross-family MTF confluence and disagreement evidence.",
+    },
     "entry_specialist_gate_outputs": {
         "required_fields_by_mode": {
             "foundation_seq146": FOUNDATION_ENTRY_SPECIALIST_GATE_FIELDS,
@@ -241,6 +333,7 @@ def _family_review(
                 "reason": spec.get("reason"),
                 "expected_specialist": spec.get("expected_specialist"),
                 "contract_modes": list(contract_modes),
+                "smart_layer": spec.get("smart_layer"),
                 "required_fields": [],
                 "tokens": list(spec.get("tokens") or ()),
                 "present_fields": [],
@@ -270,6 +363,7 @@ def _family_review(
             "reason": spec.get("reason"),
             "expected_specialist": spec.get("expected_specialist"),
             "contract_modes": list(contract_modes),
+            "smart_layer": spec.get("smart_layer"),
             "required_fields": required_fields,
             "tokens": list(tokens),
             "present_fields": present,
@@ -462,6 +556,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "state_features": state_features,
         "provenance_features": provenance_features,
         "required_alignment_families": ALIGNMENT_FAMILIES,
+        "required_smart_layer_families": (
+            list(SMART_SEQ520_SMART_LAYER_FAMILIES)
+            if review_contract_mode == "smart_seq520_candidate"
+            else []
+        ),
         "family_review": family_review,
         "liveness_review": liveness,
         "checks": checks,

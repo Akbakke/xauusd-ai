@@ -49,6 +49,18 @@ SEQ215_ALIGNMENT = [
     "entry_chart_geometry_gate_weight",
     "entry_price_action_candle_gate_weight",
 ]
+SMART_ALIGNMENT = [
+    "entry_trend_ema_stack_alignment_score",
+    "entry_smc_liquidity_sweep_low_quality_long",
+    "entry_structure_swing_swing_leg_quality_up",
+    "entry_momentum_flow_micro_impulse_norm",
+    "entry_session_regime_session_boundary_risk",
+    "entry_vol_compression_squeeze_state_score",
+    "entry_chart_geometry_trendline_channel_confluence_pressure",
+    "entry_price_action_candle_pattern_close_pressure_signed",
+    "entry_support_resistance_sr_memory_nearest_level_proximity",
+    "entry_mtf_confluence_trend_tf_conflict",
+]
 PROVENANCE = ["entry_trade_id", "entry_iql_policy_id", "entry_replay_identity_hash"]
 
 
@@ -58,13 +70,20 @@ def _write_json(path: Path, payload: dict) -> Path:
     return path
 
 
-def _write_fixture(tmp_path: Path, *, full_alignment: bool, seq215_alignment: bool = False) -> Path:
+def _write_fixture(
+    tmp_path: Path,
+    *,
+    full_alignment: bool,
+    seq215_alignment: bool = False,
+    smart_alignment: bool = False,
+) -> Path:
     root = tmp_path / "dataset"
     root.mkdir()
     state = [
         *BASE_STATE,
         *(FULL_ALIGNMENT if full_alignment else []),
         *(SEQ215_ALIGNMENT if seq215_alignment else []),
+        *(SMART_ALIGNMENT if smart_alignment else []),
     ]
     schema = {
         "state_feature_names": state,
@@ -98,7 +117,7 @@ def _write_fixture(tmp_path: Path, *, full_alignment: bool, seq215_alignment: bo
                 "entry_path_quality_pred": 2.0 + idx,
                 "entry_bad_path_prob": 0.2 + idx / 100.0,
             }
-            for pos, field in enumerate([*FULL_ALIGNMENT, *SEQ215_ALIGNMENT]):
+            for pos, field in enumerate([*FULL_ALIGNMENT, *SEQ215_ALIGNMENT, *SMART_ALIGNMENT]):
                 if field in state:
                     row[field] = float(idx + pos + 1)
             rows.append(row)
@@ -139,10 +158,10 @@ def test_entry_exit_feature_alignment_passes_with_all_market_families(tmp_path: 
         "entry_session_regime_gate_weight",
     ]
     assert report["family_review"]["ready"] is True
-    assert set(report["family_review"]["skipped_families"]) == {
-        "chart_geometry_context",
-        "price_action_candle_context",
-    }
+    skipped = set(report["family_review"]["skipped_families"])
+    assert {"chart_geometry_context", "price_action_candle_context"}.issubset(skipped)
+    assert "smart_trend_ema_layer_context" in skipped
+    assert "smart_mtf_confluence_context" in skipped
     assert report["exit_training_allowed"] is False
     assert report["exit_iql_allowed"] is False
     assert report["trainer_started"] is False
@@ -211,10 +230,34 @@ def test_entry_exit_feature_alignment_blocks_smart_seq520_without_eight_speciali
     assert "chart_geometry_context" in missing
     assert "price_action_candle_context" in missing
     assert "entry_specialist_gate_outputs" in missing
+    assert "smart_trend_ema_layer_context" in missing
+    assert "smart_smc_liquidity_quality_context" in missing
+    assert "smart_structure_swing_derivation_context" in missing
+    assert "smart_momentum_flow_context" in missing
+    assert "smart_session_regime_interaction_context" in missing
+    assert "smart_vol_compression_context" in missing
+    assert "smart_chart_geometry_context" in missing
+    assert "smart_price_action_candle_context" in missing
+    assert "smart_support_resistance_memory_context" in missing
+    assert "smart_mtf_confluence_context" in missing
 
 
-def test_entry_exit_feature_alignment_passes_smart_seq520_with_eight_specialist_state(tmp_path: Path) -> None:
+def test_entry_exit_feature_alignment_blocks_smart_seq520_without_smart_layer_state(tmp_path: Path) -> None:
     model_dataset = _write_fixture(tmp_path, full_alignment=True, seq215_alignment=True)
+
+    report = run(_args(tmp_path, model_dataset, contract_mode="smart_seq520_candidate"))
+
+    assert report["decision"] == "BLOCKED_BY_ENTRY_EXIT_FEATURE_ALIGNMENT"
+    missing = set(report["family_review"]["missing_families"])
+    assert "chart_geometry_context" not in missing
+    assert "price_action_candle_context" not in missing
+    assert "entry_specialist_gate_outputs" not in missing
+    assert "smart_trend_ema_layer_context" in missing
+    assert "smart_mtf_confluence_context" in missing
+
+
+def test_entry_exit_feature_alignment_passes_smart_seq520_with_smart_layer_state(tmp_path: Path) -> None:
+    model_dataset = _write_fixture(tmp_path, full_alignment=True, seq215_alignment=True, smart_alignment=True)
 
     report = run(_args(tmp_path, model_dataset, contract_mode="smart_seq520_candidate"))
 
@@ -224,6 +267,31 @@ def test_entry_exit_feature_alignment_passes_smart_seq520_with_eight_specialist_
     assert "chart_geometry_context" not in report["family_review"]["skipped_families"]
     assert "price_action_candle_context" not in report["family_review"]["skipped_families"]
     assert len(report["family_review"]["families"]["entry_specialist_gate_outputs"]["present_fields"]) == 8
+    assert report["required_smart_layer_families"] == [
+        "trend_ema_smart_layer",
+        "smc_liquidity_quality_layer",
+        "structure_swing_derivation_layer",
+        "momentum_flow_smart_layer",
+        "session_regime_interaction_layer",
+        "vol_compression_smart_layer",
+        "chart_geometry_smart2_layer",
+        "price_action_candle_smart3_layer",
+        "support_resistance_memory_layer",
+        "mtf_confluence_layer",
+    ]
+    for family in (
+        "smart_trend_ema_layer_context",
+        "smart_smc_liquidity_quality_context",
+        "smart_structure_swing_derivation_context",
+        "smart_momentum_flow_context",
+        "smart_session_regime_interaction_context",
+        "smart_vol_compression_context",
+        "smart_chart_geometry_context",
+        "smart_price_action_candle_context",
+        "smart_support_resistance_memory_context",
+        "smart_mtf_confluence_context",
+    ):
+        assert report["family_review"]["families"][family]["ok"] is True
 
 
 def test_entry_exit_feature_alignment_parser_accepts_smart_seq520_mode() -> None:

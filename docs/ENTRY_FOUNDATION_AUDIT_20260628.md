@@ -319,6 +319,15 @@ Active status:
   slack, including about 12895 bps IQL peak-oracle lift, which is the current
   evidence for prioritizing Exit Transformer/hazard/IQL work after the Entry
   calibration issue is handled.
+- Entry-to-Exit feature alignment now treats `smart_seq520_candidate` as more
+  than seq215 plus eight gate weights. A smart Entry policy is Exit-ready only
+  when the Exit model state carries live fields from all ten smart-layer
+  families: trend/EMA, SMC/liquidity quality, structure/swing derivations,
+  momentum/flow, session/regime interactions, volatility/compression, smart
+  chart geometry, smart candle/price action, support/resistance memory and MTF
+  confluence. If those smart-layer states are missing, Exit Transformer/IQL
+  training must stay blocked because profit capture would not see the same
+  market-state language as Entry.
 - Commit `e7aa6762` repairs the next Entry training recipe for this known
   path-signal defect: `entry_v10_ctx_train_v3.py` now has a full-batch
   `path_quality_pred` ranking loss against realized `path_quality_bps`, and
