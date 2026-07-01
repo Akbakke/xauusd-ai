@@ -136,8 +136,11 @@ Machine contract:
 - Active Exit Transformer trainer core:
   `gx1/models/exit_sequence_transformer/train_v1.py`
   - Defines the active causal masked `ExitSequenceTransformerV1` with exact
-    output heads and a CPU-only `--preflight-only` path. Non-preflight training
-    exits fail-closed.
+    output heads, a CPU-safe `--preflight-only` path and the supervised
+    per-bar Exit training loop. Non-preflight training remains fail-closed
+    unless `--enable-training`, an `ENTRY_EXIT_TRANSFORMER_TRAIN_` vedtak,
+    ready train-execution/post-train/feature-alignment reports and `--num-workers 0`
+    are all provided.
 - Active Exit Transformer pretrain manifest:
   `gx1/scripts/materialize_entry_exit_transformer_pretrain_manifest_v1.py`
   - Runs a finite forward preflight on active train episodes, writes the

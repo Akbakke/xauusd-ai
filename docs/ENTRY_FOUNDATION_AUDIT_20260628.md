@@ -12,7 +12,9 @@ into Exit model state. Downstream Exit Transformer architecture, training-plan,
 wrapper, pretrain-manifest, slice robustness, train-execution review and
 post-train audit contract reports are ready in report-only mode. Exit
 Transformer/IQL training remains closed until a separate explicit train
-enablement vedtak package is reviewed; no Exit trainer is approved or allowed.
+enablement vedtak package is reviewed. The Exit Transformer supervised trainer
+core exists, but the wrapper keeps it disabled by default and no Exit trainer is
+approved to run without that enablement package.
 
 The original rule still applies: foundation pass required before any more Transformer training.
 

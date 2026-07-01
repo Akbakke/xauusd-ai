@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from gx1.models.exit_sequence_transformer.train_v1 import run_preflight
+from gx1.models.exit_sequence_transformer.train_v1 import TRAINING_COMPLETE_DECISION, run_preflight, run_training
 
 
 HEADS = [
@@ -34,6 +34,11 @@ def _write_training_plan(tmp_path: Path) -> Path:
                     "bars_held": float(step),
                     "session": "ASIA" if episode == 0 else "US",
                     "side": "LONG" if episode == 0 else "SHORT",
+                    "exit_now_label": step == 2,
+                    "future_best_exit_lift_bps": float(10 - step),
+                    "exit_now_reward_bps": float(step * 5 - episode),
+                    "future_giveback_from_peak_bps": float(episode + step),
+                    "exit_now_mfe_capture_ratio_reward": float(step / 3.0),
                 }
             )
     shard = root / "train.csv"
@@ -85,6 +90,11 @@ def _write_training_plan(tmp_path: Path) -> Path:
     return path
 
 
+def _write_ready_report(path: Path, decision: str) -> Path:
+    path.write_text(json.dumps({"decision": decision, "promotion_shadow_live_allowed": False}, indent=2) + "\n", encoding="utf-8")
+    return path
+
+
 def test_exit_sequence_transformer_train_v1_preflight_passes(tmp_path: Path) -> None:
     training_plan = _write_training_plan(tmp_path)
 
@@ -105,3 +115,52 @@ def test_exit_sequence_transformer_train_v1_preflight_passes(tmp_path: Path) -> 
     assert manifest["trainer_started"] is False
     assert manifest["optimizer_steps"] == 0
     assert manifest["preflight_batch"]["valid_token_count"] == 6
+
+
+def test_exit_sequence_transformer_train_v1_supervised_training_writes_bundle(tmp_path: Path) -> None:
+    training_plan = _write_training_plan(tmp_path)
+    train_review = _write_ready_report(
+        tmp_path / "train_execution_review.json",
+        "ENTRY_EXIT_TRANSFORMER_TRAIN_EXECUTION_REVIEW_READY_FOR_EXPLICIT_VEDTAK_PACKAGE",
+    )
+    post_contract = _write_ready_report(
+        tmp_path / "post_train_contract.json",
+        "ENTRY_EXIT_TRANSFORMER_POST_TRAIN_AUDIT_CONTRACT_READY",
+    )
+    feature_alignment = _write_ready_report(
+        tmp_path / "feature_alignment.json",
+        "ENTRY_EXIT_FEATURE_ALIGNMENT_READY_FOR_EXIT_TRANSFORMER_TRAINING_REVIEW",
+    )
+    out_bundle = tmp_path / "bundle"
+
+    report = run_training(
+        argparse.Namespace(
+            training_plan_json=str(training_plan),
+            train_execution_review_json=str(train_review),
+            post_train_contract_json=str(post_contract),
+            feature_alignment_json=str(feature_alignment),
+            vedtak="ENTRY_EXIT_TRANSFORMER_TRAIN_TEST_V1",
+            enable_training=True,
+            out_bundle_dir=str(out_bundle),
+            device="cpu",
+            epochs=1,
+            batch_size=2,
+            lr=1e-3,
+            weight_decay=0.0,
+            clip_grad_norm=1.0,
+            num_workers=0,
+            seed=7,
+            max_train_episodes=0,
+            max_eval_episodes=0,
+        )
+    )
+
+    assert report["decision"] == TRAINING_COMPLETE_DECISION
+    assert report["trainer_started"] is True
+    assert report["optimizer_steps"] > 0
+    assert report["replay_started"] is False
+    assert report["iql_distillation_started"] is False
+    assert report["promotion_shadow_live_allowed"] is False
+    assert report["final_metrics"]["val"]["finite_by_head"] == {head: True for head in HEADS}
+    assert (out_bundle / "model_state_dict.pt").is_file()
+    assert (out_bundle / "bundle_metadata.json").is_file()

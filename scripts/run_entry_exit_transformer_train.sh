@@ -9,21 +9,25 @@ REPO=/home/andre2/src/GX1_ENGINE
 DATA=/home/andre2/GX1_DATA
 PY=$REPO/.venv/bin/python
 
-TRAINING_PLAN_JSON=$DATA/reports/entry_exit_transformer_training_plan_readiness_20260630_v1/ENTRY_EXIT_TRANSFORMER_TRAINING_PLAN_READINESS_latest.json
-TRAIN_EXECUTION_REVIEW_JSON=$DATA/reports/entry_exit_transformer_train_execution_review_20260630_v1/ENTRY_EXIT_TRANSFORMER_TRAIN_EXECUTION_REVIEW_latest.json
-POST_TRAIN_AUDIT_CONTRACT_JSON=$DATA/reports/entry_exit_transformer_post_train_contract_20260630_v1/ENTRY_EXIT_TRANSFORMER_POST_TRAIN_CONTRACT_latest.json
-FEATURE_ALIGNMENT_JSON=$DATA/reports/entry_exit_feature_alignment_20260630_v1/ENTRY_EXIT_FEATURE_ALIGNMENT_latest.json
+TRAINING_PLAN_JSON=${ENTRY_EXIT_TRANSFORMER_TRAINING_PLAN_JSON:-$DATA/reports/entry_exit_transformer_training_plan_readiness_20260630_v1/ENTRY_EXIT_TRANSFORMER_TRAINING_PLAN_READINESS_latest.json}
+TRAIN_EXECUTION_REVIEW_JSON=${ENTRY_EXIT_TRANSFORMER_TRAIN_EXECUTION_REVIEW_JSON:-$DATA/reports/entry_exit_transformer_train_execution_review_20260630_v1/ENTRY_EXIT_TRANSFORMER_TRAIN_EXECUTION_REVIEW_latest.json}
+POST_TRAIN_AUDIT_CONTRACT_JSON=${ENTRY_EXIT_TRANSFORMER_POST_TRAIN_CONTRACT_JSON:-$DATA/reports/entry_exit_transformer_post_train_contract_20260630_v1/ENTRY_EXIT_TRANSFORMER_POST_TRAIN_CONTRACT_latest.json}
+FEATURE_ALIGNMENT_JSON=${ENTRY_EXIT_FEATURE_ALIGNMENT_JSON:-$DATA/reports/entry_exit_feature_alignment_20260630_v1/ENTRY_EXIT_FEATURE_ALIGNMENT_latest.json}
 VEDTAK_PREFIX=ENTRY_EXIT_TRANSFORMER_TRAIN_
 VEDTAK="${ENTRY_EXIT_TRANSFORMER_TRAIN_VEDTAK:-}"
 DEVICE=auto
 EPOCHS=1
 BATCH_SIZE=32
 NUM_WORKERS=0
+OUT_BUNDLE_DIR=${ENTRY_EXIT_TRANSFORMER_OUT_BUNDLE_DIR:-$DATA/runs/entry_exit_transformer/manual_review_bundle}
 MEM_CAP="${ENTRY_EXIT_TRANSFORMER_TRAIN_MEM_CAP:-8G}"
 SWAP_CAP="${ENTRY_EXIT_TRANSFORMER_TRAIN_SWAP_CAP:-1G}"
 DRY_RUN=0
 MANIFEST_ONLY=0
 TRAINER_IMPLEMENTATION_ENABLED=0
+if [[ "${ENTRY_EXIT_TRANSFORMER_TRAINER_IMPLEMENTATION_ENABLED:-0}" = "1" ]]; then
+  TRAINER_IMPLEMENTATION_ENABLED=1
+fi
 
 usage() {
   cat <<'EOF'
@@ -35,6 +39,7 @@ Options:
   --device <auto|cpu|cuda>
   --epochs <n>       Default: 1
   --batch-size <n>   Default: 32
+  --out-bundle-dir <path>
   --dry-run          Print the future capped train command, then stop.
   --manifest-only    Reserved for a later train-execution enablement gate; currently blocked.
 
@@ -55,6 +60,7 @@ while [[ $# -gt 0 ]]; do
     --device) DEVICE="$2"; shift 2 ;;
     --epochs) EPOCHS="$2"; shift 2 ;;
     --batch-size) BATCH_SIZE="$2"; shift 2 ;;
+    --out-bundle-dir) OUT_BUNDLE_DIR="$2"; shift 2 ;;
     --dry-run) DRY_RUN=1; shift ;;
     --manifest-only) MANIFEST_ONLY=1; shift ;;
     -h|--help) usage; exit 0 ;;
@@ -148,6 +154,8 @@ TRAIN_CMD=(
   --post-train-contract-json "$POST_TRAIN_AUDIT_CONTRACT_JSON"
   --feature-alignment-json "$FEATURE_ALIGNMENT_JSON"
   --vedtak "$VEDTAK"
+  --enable-training
+  --out-bundle-dir "$OUT_BUNDLE_DIR"
   --device "$DEVICE"
   --epochs "$EPOCHS"
   --batch-size "$BATCH_SIZE"
@@ -170,7 +178,13 @@ fi
 
 if [[ "$TRAINER_IMPLEMENTATION_ENABLED" != "1" ]]; then
   echo "FATAL: active Exit Transformer trainer implementation is not enabled." >&2
-  echo "Next gate: implement trainer core plus pretrain-manifest audit; no trainer has started." >&2
+  echo "Next gate: explicit Exit Transformer train-enablement package; no trainer has started." >&2
+  exit 2
+fi
+
+if [[ -n "$(git status --porcelain)" ]]; then
+  echo "FATAL: active Exit Transformer training requires clean git." >&2
+  git status --short >&2
   exit 2
 fi
 

@@ -205,7 +205,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "iql_distillation_started": False,
         "promotion_shadow_live_allowed": False,
         "next_required_gate": (
-            "implement active Exit Transformer trainer core plus pretrain-manifest audit; training still closed"
+            "explicit active Exit Transformer train-enablement package; training still closed by default"
             if ready
             else "repair active Exit Transformer trainer wrapper readiness before trainer implementation review"
         ),
