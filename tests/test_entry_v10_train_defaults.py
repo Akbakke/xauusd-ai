@@ -68,3 +68,35 @@ def test_entry_v10_bad_path_aux_default_is_parked() -> None:
     env_defaults = _env_str_defaults(_trainer_ast())
     assert env_defaults["ENTRY_AUX_BAD_PATH_WEIGHT"] == "0.0"
     assert env_defaults["ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT"] == "0.0"
+    assert env_defaults["ENTRY_PATH_QUALITY_RANK_WEIGHT"] == "0.0"
+
+
+def test_entry_v10_path_quality_rank_loss_penalizes_inverted_order(monkeypatch) -> None:
+    import torch
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    monkeypatch.setattr(trainer, "ENTRY_PATH_QUALITY_RANK_WEIGHT", 1.0)
+    monkeypatch.setattr(trainer, "ENTRY_PATH_QUALITY_RANK_MARGIN", 0.20)
+    monkeypatch.setattr(trainer, "ENTRY_PATH_QUALITY_RANK_QUANTILE", 0.25)
+
+    quality = torch.arange(12, dtype=torch.float32)
+    aligned_pred = (quality / 10.0).reshape(-1, 1)
+    inverted_pred = torch.flip(aligned_pred, dims=[0])
+
+    aligned = trainer._path_quality_rank_loss(aligned_pred, quality, torch.device("cpu"))
+    inverted = trainer._path_quality_rank_loss(inverted_pred, quality, torch.device("cpu"))
+
+    assert float(aligned.item()) == 0.0
+    assert float(inverted.item()) > 0.5
+
+
+def test_entry_foundation_train_wrappers_enable_path_quality_rank_recipe() -> None:
+    repo = Path(__file__).resolve().parents[1]
+    smoke = (repo / "scripts" / "run_entry_foundation_seq146_smoke_train.sh").read_text(encoding="utf-8")
+    candidate = (repo / "scripts" / "run_entry_foundation_seq146_candidate_train.sh").read_text(encoding="utf-8")
+
+    for text in (smoke, candidate):
+        assert "ENTRY_PATH_QUALITY_RANK_WEIGHT" in text
+        assert "ENTRY_PATH_QUALITY_RANK_MARGIN" in text
+        assert "ENTRY_PATH_QUALITY_RANK_QUANTILE" in text
