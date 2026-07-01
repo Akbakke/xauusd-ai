@@ -539,6 +539,20 @@ def _stack_list_column(values: Iterable[Any], dtype: np.dtype) -> np.ndarray:
         return np.stack([np.stack(item) for item in items]).astype(dtype, copy=False)
 
 
+def _arrow_list_column_to_numpy(column: Any, dtype: np.dtype, shape_tail: tuple[int, ...]) -> np.ndarray:
+    flat = column
+    for _ in shape_tail:
+        flat = flat.flatten()
+    values = flat.to_numpy(zero_copy_only=False).astype(dtype, copy=False)
+    rows = int(len(column))
+    expected = rows * int(np.prod(shape_tail, dtype=np.int64))
+    if values.size != expected:
+        raise RuntimeError(
+            f"column flattened size mismatch got={values.size} expected={expected} shape_tail={shape_tail}"
+        )
+    return values.reshape((rows, *shape_tail))
+
+
 class _FeatureStats:
     def __init__(self, dim: int) -> None:
         self.dim = int(dim)
@@ -650,16 +664,26 @@ def _scan_split_parquet(
         for batch in pf.iter_batches(batch_size=int(batch_size), columns=required_cols):
             if not fullscan and scanned >= scan_limit:
                 break
-            pdf = batch.to_pandas()
             if not fullscan:
                 remaining = scan_limit - scanned
-                pdf = pdf.iloc[:remaining].copy()
-            if pdf.empty:
+                if remaining <= 0:
+                    break
+                if int(batch.num_rows) > remaining:
+                    batch = batch.slice(0, remaining)
+            if int(batch.num_rows) <= 0:
                 continue
-            seq = _stack_list_column(pdf["seq"], np.float32)
-            snap = _stack_list_column(pdf["snap"], np.float32)
-            ctx_cont = _stack_list_column(pdf["ctx_cont"], np.float32)
-            ctx_cat = _stack_list_column(pdf["ctx_cat"], np.float64)
+            seq = _arrow_list_column_to_numpy(
+                batch.column("seq"),
+                np.float32,
+                (expected_seq_len, expected_width),
+            )
+            snap = _arrow_list_column_to_numpy(batch.column("snap"), np.float32, (expected_width,))
+            ctx_cont = _arrow_list_column_to_numpy(
+                batch.column("ctx_cont"),
+                np.float32,
+                (expected_ctx_cont_dim,),
+            )
+            ctx_cat = _arrow_list_column_to_numpy(batch.column("ctx_cat"), np.float64, (expected_ctx_cat_dim,))
             if seq.ndim != 3 or seq.shape[1:] != (expected_seq_len, expected_width):
                 errors.append(f"seq shape mismatch got={list(seq.shape)} expected=(*,{expected_seq_len},{expected_width})")
             if snap.ndim != 2 or snap.shape[1] != expected_width:
@@ -675,7 +699,7 @@ def _scan_split_parquet(
                 "ctx_cat": list(ctx_cat.shape),
             }
             if errors:
-                scanned += int(len(pdf))
+                scanned += int(batch.num_rows)
                 continue
             nonfinite["seq"] += int((~np.isfinite(seq)).sum())
             nonfinite["snap"] += int((~np.isfinite(snap)).sum())
@@ -683,7 +707,7 @@ def _scan_split_parquet(
             nonfinite["ctx_cat"] += int((~np.isfinite(ctx_cat)).sum())
             seq_last_snap_mismatch_rows += int(np.any(np.abs(seq[:, -1, :] - snap) > 1e-6, axis=1).sum())
             stats.add(snap)
-            scanned += int(len(pdf))
+            scanned += int(batch.num_rows)
     except Exception as exc:
         errors.append(f"parquet scan error: {type(exc).__name__}: {exc}")
     stats_summary = stats.summarize(signal_fields, groups)
