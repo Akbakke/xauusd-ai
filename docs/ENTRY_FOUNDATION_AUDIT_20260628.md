@@ -129,6 +129,9 @@ shows removal improves edge. A smart520 bundle with weak FLAT/LONG/SHORT
 calibration, weak selected-tail direction, wrong-signed path-quality or
 bad-path signals, weak session/regime/side slices or missing smart
 Entry-to-Exit state is not harmonized and must stay fail-closed.
+Replay-readiness must preserve that same fail-closed rule: `smart_seq520_candidate`
+cannot become replay/IQL authority with a weak or stale FLAT-repair
+`direction_balance_recipe_contract`.
 
 `<id>` in `--vedtak <id>` is a deliberate human approval token, not a report id
 that the scripts invent automatically. Activation apply requires the

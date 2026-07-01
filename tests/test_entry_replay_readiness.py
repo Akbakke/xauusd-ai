@@ -322,6 +322,23 @@ def _candidate_bundle_audit() -> dict:
     }
 
 
+def _smart_candidate_bundle_audit() -> dict:
+    report = _candidate_bundle_audit()
+    specialists = list(required_training_specialists_for_mode("smart_seq520_candidate"))
+    mean_weight = {name: 1.0 / float(len(specialists)) for name in specialists}
+    report["specialist_contract_mode"] = "smart_seq520_candidate"
+    report["dataset_dir"] = str(SMART_SEQ520_DATASET_DIR)
+    report["required_training_specialists"] = specialists
+    report["min_active_specialists"] = len(specialists)
+    report["bundle_summary"]["contract_mode"] = "smart_seq520_candidate"
+    report["bundle_summary"]["seq_input_dim"] = 520
+    report["bundle_summary"]["snap_input_dim"] = 520
+    report["bundle_summary"]["specialist_groups"] = specialists
+    for split in report["splits"].values():
+        split["specialist_gate"]["mean_weight"] = dict(mean_weight)
+    return report
+
+
 def test_selective_edge_checks_pass_on_candidate_contract() -> None:
     checks = _selective_edge_checks(
         _selective_summary(),
@@ -696,6 +713,48 @@ def test_candidate_bundle_audit_checks_reject_missing_direction_balance_recipe(t
     failed = {check["name"] for check in checks if not check["ok"]}
 
     assert "candidate bundle direction balance recipe contract PASS" in failed
+
+
+def test_candidate_bundle_audit_checks_reject_smart_weak_flat_repair_recipe(tmp_path: Path) -> None:
+    audit_path = tmp_path / "candidate_audit.json"
+    audit_path.write_text("{}", encoding="utf-8")
+    report = _smart_candidate_bundle_audit()
+
+    checks = _candidate_bundle_audit_checks(
+        audit_path,
+        report,
+        contract_mode="smart_seq520_candidate",
+        expected_dataset_dir=SMART_SEQ520_DATASET_DIR,
+    )
+    failed = {check["name"] for check in checks if not check["ok"]}
+
+    assert "candidate bundle direction balance recipe contract PASS" in failed
+
+
+def test_candidate_bundle_audit_checks_accept_smart_flat_repair_recipe(tmp_path: Path) -> None:
+    audit_path = tmp_path / "candidate_audit.json"
+    audit_path.write_text("{}", encoding="utf-8")
+    report = _smart_candidate_bundle_audit()
+    report["direction_balance_recipe_contract"].update(
+        {
+            "pred_balance_alpha": 0.20,
+            "pred_balance_class_weights": [1.0, 1.0, 4.0],
+            "ckpt_class_balance_guard_weight": 0.50,
+            "ckpt_class_balance_min_pred_to_label": 0.35,
+            "ckpt_class_balance_min_pred_rate": 0.05,
+            "best_direction_balance_guard_ok": True,
+        }
+    )
+
+    checks = _candidate_bundle_audit_checks(
+        audit_path,
+        report,
+        contract_mode="smart_seq520_candidate",
+        expected_dataset_dir=SMART_SEQ520_DATASET_DIR,
+    )
+    failed = {check["name"] for check in checks if not check["ok"]}
+
+    assert "candidate bundle direction balance recipe contract PASS" not in failed
 
 
 def test_candidate_bundle_audit_checks_reject_missing_tail_direction_recipe(tmp_path: Path) -> None:

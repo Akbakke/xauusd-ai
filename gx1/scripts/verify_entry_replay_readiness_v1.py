@@ -76,6 +76,11 @@ CONTRACT_INPUT_DIMS = {
     "challenger_seq215": 215,
     "smart_seq520_candidate": 520,
 }
+SMART_DIRECTION_BALANCE_MIN_ALPHA = 0.20
+SMART_DIRECTION_BALANCE_CLASS_WEIGHTS = [1.0, 1.0, 4.0]
+SMART_DIRECTION_CKPT_BALANCE_GUARD_MIN_WEIGHT = 0.50
+SMART_DIRECTION_CKPT_BALANCE_MIN_PRED_TO_LABEL = 0.35
+SMART_DIRECTION_CKPT_BALANCE_MIN_PRED_RATE = 0.05
 
 
 def _json_default(obj: Any) -> Any:
@@ -120,6 +125,51 @@ def _normalize_contract_mode(value: Any) -> str:
     if raw not in CONTRACT_INPUT_DIMS:
         return raw
     return raw
+
+
+def _float_or_zero(value: Any) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _direction_balance_contract_passes(
+    contract: dict[str, Any],
+    *,
+    contract_mode: str,
+) -> bool:
+    alpha = _float_or_zero(contract.get("pred_balance_alpha"))
+    base_ok = (
+        str(contract.get("decision")) == "PASS"
+        and not contract.get("failures")
+        and bool(contract.get("direction_active"))
+        and 0.05 <= alpha <= 0.50
+        and str(contract.get("pred_balance_target") or "").strip().lower() == "label"
+        and _float_or_zero(contract.get("direction_ce_scale")) > 0.0
+        and str(contract.get("ckpt_monitor") or "").strip().lower() == "dir_acc"
+    )
+    if not base_ok:
+        return False
+    if contract_mode != "smart_seq520_candidate":
+        return True
+
+    weights = contract.get("pred_balance_class_weights")
+    try:
+        parsed_weights = [float(value) for value in weights] if isinstance(weights, list) else []
+    except (TypeError, ValueError):
+        parsed_weights = []
+    return (
+        alpha >= SMART_DIRECTION_BALANCE_MIN_ALPHA
+        and parsed_weights == SMART_DIRECTION_BALANCE_CLASS_WEIGHTS
+        and _float_or_zero(contract.get("ckpt_class_balance_guard_weight"))
+        >= SMART_DIRECTION_CKPT_BALANCE_GUARD_MIN_WEIGHT
+        and _float_or_zero(contract.get("ckpt_class_balance_min_pred_to_label"))
+        >= SMART_DIRECTION_CKPT_BALANCE_MIN_PRED_TO_LABEL
+        and _float_or_zero(contract.get("ckpt_class_balance_min_pred_rate"))
+        >= SMART_DIRECTION_CKPT_BALANCE_MIN_PRED_RATE
+        and contract.get("best_direction_balance_guard_ok") is True
+    )
 
 
 def _contract_mode_from_bundle_audit(report: dict[str, Any]) -> str:
@@ -637,13 +687,10 @@ def _candidate_bundle_audit_checks(
         _check(
             "candidate bundle direction balance recipe contract PASS",
             exists
-            and str(direction_balance.get("decision")) == "PASS"
-            and not direction_balance.get("failures")
-            and bool(direction_balance.get("direction_active"))
-            and float(direction_balance.get("pred_balance_alpha") or 0.0) >= 0.05
-            and str(direction_balance.get("pred_balance_target") or "").strip().lower() == "label"
-            and float(direction_balance.get("direction_ce_scale") or 0.0) > 0.0
-            and str(direction_balance.get("ckpt_monitor") or "").strip().lower() == "dir_acc",
+            and _direction_balance_contract_passes(
+                direction_balance,
+                contract_mode=expected_contract_mode,
+            ),
             {"direction_balance_recipe_contract": direction_balance},
         ),
         _check(

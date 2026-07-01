@@ -289,6 +289,11 @@ The 2026-07-01 operating point is feature-harmony clean but not promotion-ready:
   `best_direction_balance_guard_ok=true`. Smoke/candidate bundle audit must
   fail closed on the same proof, so collapsed LONG/SHORT/FLAT coverage cannot
   survive as a downstream candidate artifact.
+- Replay-readiness must enforce the same smart-specific direction-balance
+  contract for `smart_seq520_candidate`: the 0.20 prediction-balance alpha,
+  `[1.0, 1.0, 4.0]` LONG/SHORT/FLAT weights, checkpoint class-balance guard
+  thresholds and `best_direction_balance_guard_ok=true` are required before any
+  smart candidate bundle can become replay/IQL authority.
 - Symmetric smart training must keep train and validation on the same
   bidirectional objective. With `ENTRY_SYMMETRIC_NEGATIVES=1`, validation must
   use the LONG+SHORT aux selector, bidirectional clean-edge/survival targets,
