@@ -7,6 +7,7 @@ import pandas as pd
 from gx1.scripts.materialize_entry_exit_state_reward_contract_v1 import (
     BASE_SPECIALIST_GATE_STATE_FEATURES,
     ENTRY_ALIGNMENT_STATE_FEATURES,
+    ENTRY_SMART_ALIGNMENT_STATE_FEATURES,
     run,
 )
 
@@ -71,7 +72,13 @@ def _dataset() -> pd.DataFrame:
                 "realized_exit_reason": realized_exit_reason,
                 "is_realized_exit_bar": bar_index == 2,
             }
-            for pos, field in enumerate((*ENTRY_ALIGNMENT_STATE_FEATURES, *BASE_SPECIALIST_GATE_STATE_FEATURES)):
+            for pos, field in enumerate(
+                (
+                    *ENTRY_ALIGNMENT_STATE_FEATURES,
+                    *BASE_SPECIALIST_GATE_STATE_FEATURES,
+                    *ENTRY_SMART_ALIGNMENT_STATE_FEATURES[:3],
+                )
+            ):
                 row[field] = float(pos + bar_index + trade_idx + 1)
             rows.append(row)
     return pd.DataFrame(rows)
@@ -119,6 +126,8 @@ def test_entry_exit_state_reward_contract_materializes_actions_rewards_and_point
     assert dataset.loc[dataset["logged_action"].eq("HOLD"), "logged_reward_bps"].eq(0.0).all()
     assert sorted(dataset.loc[dataset["logged_action"].eq("EXIT_NOW"), "logged_reward_bps"].tolist()) == [-45.0, 25.0]
     assert report["hazard_label_review"]["ready"] is True
+    assert set(ENTRY_SMART_ALIGNMENT_STATE_FEATURES[:3]).issubset(report["state_feature_names"])
+    assert report["specialist_gate_mode_review"]["smart_alignment_state_field_count"] == 3
     assert {
         "future_max_running_pnl_bps",
         "future_adverse_excursion_bps",

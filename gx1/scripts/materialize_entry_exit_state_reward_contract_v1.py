@@ -21,6 +21,7 @@ import pandas as pd
 from gx1.scripts.materialize_entry_exit_per_bar_handoff_v1 import (
     ENTRY_ALIGNMENT_CTX_CONT_FEATURES,
     ENTRY_ALIGNMENT_SNAP_FEATURES,
+    ENTRY_SMART_ALIGNMENT_STATE_FEATURES,
     SPECIALIST_GATE_OUTPUT_FIELDS,
     _safe_feature_field,
 )
@@ -216,18 +217,26 @@ def _active_state_features(source: pd.DataFrame) -> tuple[tuple[str, ...], tuple
     source_columns = set(str(column) for column in source.columns)
     present_challenger = [field for field in CHALLENGER_SPECIALIST_GATE_STATE_FEATURES if field in source_columns]
     challenger_complete = len(present_challenger) in {0, len(CHALLENGER_SPECIALIST_GATE_STATE_FEATURES)}
+    present_smart_alignment = [field for field in ENTRY_SMART_ALIGNMENT_STATE_FEATURES if field in source_columns]
     active_state_features = list(STATE_FEATURES)
     if present_challenger:
         active_state_features.extend(CHALLENGER_SPECIALIST_GATE_STATE_FEATURES)
+    if present_smart_alignment:
+        active_state_features.extend(present_smart_alignment)
     active_numeric_features = list(NUMERIC_STATE_FEATURES)
     if present_challenger:
         active_numeric_features.extend(CHALLENGER_SPECIALIST_GATE_STATE_FEATURES)
+    if present_smart_alignment:
+        active_numeric_features.extend(present_smart_alignment)
     review = {
         "base_gate_fields": list(BASE_SPECIALIST_GATE_STATE_FEATURES),
         "challenger_gate_fields": list(CHALLENGER_SPECIALIST_GATE_STATE_FEATURES),
         "present_challenger_gate_fields": present_challenger,
         "challenger_gate_fields_complete": challenger_complete,
         "active_gate_mode": "challenger_or_smart_8_gate" if present_challenger else "foundation_seq146_6_gate",
+        "smart_alignment_state_fields_available": len(present_smart_alignment) > 0,
+        "smart_alignment_state_field_count": len(present_smart_alignment),
+        "smart_alignment_state_fields": present_smart_alignment,
     }
     return tuple(active_state_features), tuple(active_numeric_features), review
 

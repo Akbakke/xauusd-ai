@@ -328,6 +328,11 @@ Active status:
   confluence. If those smart-layer states are missing, Exit Transformer/IQL
   training must stay blocked because profit capture would not see the same
   market-state language as Entry.
+- Entry-bound per-bar handoff now preserves optional smart520 snapshot fields
+  from all ten smart-layer families when the source manifest contains them,
+  and the Exit state/reward contract carries those fields forward as numeric
+  state. Foundation runs do not require smart fields, but smart Exit alignment
+  remains blocked unless the carried state is live.
 - Commit `e7aa6762` repairs the next Entry training recipe for this known
   path-signal defect: `entry_v10_ctx_train_v3.py` now has a full-batch
   `path_quality_pred` ranking loss against realized `path_quality_bps`, and

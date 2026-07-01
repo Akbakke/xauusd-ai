@@ -9,6 +9,8 @@ from gx1.scripts.materialize_entry_exit_per_bar_handoff_v1 import (
     CHALLENGER_SEQ215_SPECIALIST_GATE_SET,
     ENTRY_ALIGNMENT_CTX_CONT_FEATURES,
     ENTRY_ALIGNMENT_SNAP_FEATURES,
+    ENTRY_SMART_ALIGNMENT_SNAP_FEATURES,
+    ENTRY_SMART_ALIGNMENT_STATE_FEATURES,
     FOUNDATION_SPECIALIST_GATE_SET,
     _gate_output_fields_for_names,
     _supported_specialist_gate_set,
@@ -38,12 +40,16 @@ def test_entry_exit_per_bar_handoff_supports_foundation_and_seq215_gate_sets() -
     ]
 
 
-def _write_foundation_dataset(tmp_path: Path, times: list[str]) -> Path:
+def _write_foundation_dataset(tmp_path: Path, times: list[str], *, smart_alignment: bool = False) -> Path:
     root = tmp_path / "foundation"
     root.mkdir(parents=True)
+    snap_fields = [
+        *ENTRY_ALIGNMENT_SNAP_FEATURES,
+        *(ENTRY_SMART_ALIGNMENT_SNAP_FEATURES if smart_alignment else ()),
+    ]
     manifest = {
         "extra": {
-            "signal_bridge": {"snap_fields": list(ENTRY_ALIGNMENT_SNAP_FEATURES)},
+            "signal_bridge": {"snap_fields": list(snap_fields)},
             "ctx_contract": {"ctx_cont_names": list(ENTRY_ALIGNMENT_CTX_CONT_FEATURES)},
         },
         "ts_min_max_by_split": {
@@ -60,7 +66,7 @@ def _write_foundation_dataset(tmp_path: Path, times: list[str]) -> Path:
         rows.append(
             {
                 "time": ts.tz_localize("UTC") if ts.tzinfo is None else ts.tz_convert("UTC"),
-                "snap": [float(idx + 1) for idx, _ in enumerate(ENTRY_ALIGNMENT_SNAP_FEATURES)],
+                "snap": [float(idx + 1) for idx, _ in enumerate(snap_fields)],
                 "ctx_cont": [float(idx + 101) for idx, _ in enumerate(ENTRY_ALIGNMENT_CTX_CONT_FEATURES)],
             }
         )
@@ -167,7 +173,11 @@ def test_entry_exit_per_bar_handoff_materializes_required_fields(tmp_path: Path)
     )
     slice_audit = tmp_path / "slice.json"
     slice_audit.write_text(json.dumps({"decision": "PASS"}) + "\n", encoding="utf-8")
-    foundation_dataset = _write_foundation_dataset(tmp_path, ["2026-01-01 00:00:00+00:00"])
+    foundation_dataset = _write_foundation_dataset(
+        tmp_path,
+        ["2026-01-01 00:00:00+00:00"],
+        smart_alignment=True,
+    )
 
     report = run(
         argparse.Namespace(
@@ -192,6 +202,11 @@ def test_entry_exit_per_bar_handoff_materializes_required_fields(tmp_path: Path)
     dataset = pd.read_csv(report["dataset_csv"])
     assert set(REQUIRED_EXIT_SUBSTRATE_FIELDS).issubset(dataset.columns)
     assert "entry_snap_chart_foundation_hh_state" in dataset.columns
+    assert ENTRY_SMART_ALIGNMENT_STATE_FEATURES[0] in dataset.columns
+    assert report["entry_alignment_diagnostics"]["contract"]["present_optional_smart_snap_feature_count"] == len(
+        ENTRY_SMART_ALIGNMENT_SNAP_FEATURES
+    )
+    assert report["entry_alignment_diagnostics"]["contract"]["missing_optional_smart_snap_feature_count"] == 0
     assert report["entry_alignment_missing_included_trade_count"] == 0
     assert dataset.iloc[-1]["running_pnl_bps"] > 190.0
     assert dataset.iloc[-1]["running_mfe_bps"] > 290.0

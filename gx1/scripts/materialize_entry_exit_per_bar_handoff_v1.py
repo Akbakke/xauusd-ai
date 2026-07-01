@@ -22,6 +22,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from gx1.scripts.audit_entry_exit_handoff_readiness_v1 import REQUIRED_EXIT_SUBSTRATE_FIELDS
+from gx1.scripts.materialize_entry_specialist_challenger_extension_manifest_v1 import SMART_LAYER_FEATURES
 from gx1.scripts.verify_entry_foundation_state_v1 import FOUNDATION_DATASET_DIR, REPORTS_ROOT
 
 
@@ -91,6 +92,11 @@ ENTRY_ALIGNMENT_CTX_CONT_FEATURES = (
     "sr_support_minus_resistance_prox",
     "liquidity_hi_nearest_abs_atr",
     "liquidity_lo_nearest_abs_atr",
+)
+ENTRY_SMART_ALIGNMENT_SNAP_FEATURES = tuple(
+    feature
+    for _label, (_version, features, _builder, _path) in SMART_LAYER_FEATURES.items()
+    for feature in features
 )
 SPECIALIST_GATE_OUTPUT_FIELDS = {
     "structure_swing_encoder": "entry_structure_swing_gate_weight",
@@ -179,6 +185,11 @@ def _safe_feature_field(prefix: str, name: str) -> str:
     return f"{prefix}_{clean.strip('_')}"
 
 
+ENTRY_SMART_ALIGNMENT_STATE_FEATURES = tuple(
+    _safe_feature_field("entry_snap", field) for field in ENTRY_SMART_ALIGNMENT_SNAP_FEATURES
+)
+
+
 def _split_manifest(dataset_dir: Path, split: str) -> dict[str, Any]:
     matches = sorted(dataset_dir.glob(f"*_{split}.manifest.json"))
     return _read_json_or_empty(matches[0]) if matches else {}
@@ -201,6 +212,8 @@ def _feature_index_contract(dataset_dir: Path) -> dict[str, Any]:
     ctx_cont_names = list(ctx_contract.get("ctx_cont_names") or [])
     fields: list[dict[str, Any]] = []
     missing: list[dict[str, str]] = []
+    optional_fields: list[dict[str, Any]] = []
+    optional_missing: list[dict[str, str]] = []
     for source, names, requested, prefix in (
         ("snap", snap_fields, ENTRY_ALIGNMENT_SNAP_FEATURES, "entry_snap"),
         ("ctx_cont", ctx_cont_names, ENTRY_ALIGNMENT_CTX_CONT_FEATURES, "entry_ctx"),
@@ -218,6 +231,20 @@ def _feature_index_contract(dataset_dir: Path) -> dict[str, Any]:
                     "output_field": _safe_feature_field(prefix, name),
                 }
             )
+    snap_index = {name: idx for idx, name in enumerate(snap_fields)}
+    for name in ENTRY_SMART_ALIGNMENT_SNAP_FEATURES:
+        if name not in snap_index:
+            optional_missing.append({"source": "snap", "name": name})
+            continue
+        row = {
+            "source": "snap",
+            "name": name,
+            "index": int(snap_index[name]),
+            "output_field": _safe_feature_field("entry_snap", name),
+            "optional_smart_layer": True,
+        }
+        fields.append(row)
+        optional_fields.append(row)
     return {
         "dataset_dir": str(dataset_dir),
         "manifest_path": str(manifest_matches[0]) if manifest_matches else "",
@@ -225,6 +252,12 @@ def _feature_index_contract(dataset_dir: Path) -> dict[str, Any]:
         "ctx_cont_field_count": len(ctx_cont_names),
         "requested_snap_features": list(ENTRY_ALIGNMENT_SNAP_FEATURES),
         "requested_ctx_cont_features": list(ENTRY_ALIGNMENT_CTX_CONT_FEATURES),
+        "optional_smart_snap_features": list(ENTRY_SMART_ALIGNMENT_SNAP_FEATURES),
+        "optional_smart_snap_feature_count": len(ENTRY_SMART_ALIGNMENT_SNAP_FEATURES),
+        "present_optional_smart_snap_feature_count": len(optional_fields),
+        "missing_optional_smart_snap_feature_count": len(optional_missing),
+        "missing_optional_smart_snap_features": optional_missing,
+        "optional_smart_output_fields": [str(field["output_field"]) for field in optional_fields],
         "fields": fields,
         "missing_requested_features": missing,
         "ready": bool(fields and not missing),
@@ -283,13 +316,13 @@ def _load_entry_alignment_snapshots(dataset_dir: Path, start: pd.Timestamp, end:
         part = part.loc[(part["time"] >= start) & (part["time"] <= end)].copy()
         if part.empty:
             continue
+        extracted: dict[str, Any] = {"time": part["time"].to_numpy()}
         for field in fields:
             source = str(field["source"])
             output_field = str(field["output_field"])
             index = int(field["index"])
-            part[output_field] = part[source].map(lambda value, idx=index: _value_from_array(value, idx))
-        keep = ["time", *[str(field["output_field"]) for field in fields]]
-        frames.append(part[keep])
+            extracted[output_field] = part[source].map(lambda value, idx=index: _value_from_array(value, idx)).to_numpy()
+        frames.append(pd.DataFrame(extracted))
     snapshots = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame(columns=["time"])
     if not snapshots.empty:
         snapshots = snapshots.dropna(subset=["time"]).drop_duplicates("time", keep="last")

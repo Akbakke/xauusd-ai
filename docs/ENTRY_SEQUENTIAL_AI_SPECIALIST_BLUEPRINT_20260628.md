@@ -104,6 +104,9 @@ Machine contract:
     canonical M5 bid/ask bars, with hashed M1-to-M5 supplement when available
     and explicit gap exclusions when price coverage is unresolved. It keeps
     Exit Transformer/IQL training closed for separate review gates.
+  - Preserves optional smart520 snapshot fields from all ten smart-layer
+    families when the source manifest contains them, without making those
+    fields required for foundation-only handoff.
 - Active Exit per-bar reconstruction audit:
   `gx1/scripts/audit_entry_exit_per_bar_reconstruction_v1.py`
   - Proves the active Entry-bound per-bar substrate has live ATR/spread,
@@ -114,6 +117,9 @@ Machine contract:
   - Materializes HOLD/EXIT_NOW state, reward and next-row pointer semantics
     from the active reconstruction. It keeps reward/outcome fields out of state
     and keeps Exit training/IQL closed.
+  - Carries any preserved smart520 snapshot fields forward as numeric Exit
+    model state so smart Entry evidence can become profit-capture state for
+    Exit Transformer/IQL once the smart alignment gate proves the fields live.
 - Active Exit split/leakage audit:
   `gx1/scripts/audit_entry_exit_split_leakage_v1.py`
   - Assigns deterministic time-ordered train/val/test episode splits and
