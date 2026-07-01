@@ -60,6 +60,7 @@ Usage:
   scripts/entry_next_edge_control.sh iql-replay-evidence --trades-path <csv|parquet>
   scripts/entry_next_edge_control.sh iql-compare
   scripts/entry_next_edge_control.sh iql-slice-audit
+  scripts/entry_next_edge_control.sh foundation-smart-selector-readiness
   scripts/entry_next_edge_control.sh entry-exit-materialize
   scripts/entry_next_edge_control.sh entry-exit-handoff
   scripts/entry_next_edge_control.sh entry-exit-reconstruction-audit
@@ -598,7 +599,7 @@ smart_post_rebuild_ready = (
 )
 if smoke_manifest_seq215_proof_allowed:
     optional_proof_commands.append("scripts/entry_next_edge_control.sh smoke-manifest-seq215 --vedtak <id>  # proof only, no trainer start")
-if smart_post_rebuild_ready:
+if foundation_ready and smart_post_rebuild_ready:
     optional_proof_commands.append("scripts/entry_next_edge_control.sh smart-post-rebuild-refresh --apply --vedtak <id>  # materialize smart smoke dataset only")
     optional_proof_commands.append("scripts/entry_next_edge_control.sh smart-smoke-manifest --vedtak <id>  # proof only, no trainer start")
 iql_distillation_allowed = bool(
@@ -2768,6 +2769,10 @@ PY
 
   iql-slice-audit)
     exec "$PY" -m gx1.scripts.audit_entry_iql_replay_slices_v1 "$@"
+    ;;
+
+  foundation-smart-selector-readiness)
+    exec "$PY" -m gx1.scripts.materialize_entry_foundation_smart_selector_readiness_v1 "$@"
     ;;
 
   entry-exit-handoff)

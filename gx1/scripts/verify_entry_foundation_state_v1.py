@@ -125,6 +125,7 @@ def _active_entry_artifact_paths() -> list[str]:
         "entry_foundation_worktree_hygiene_20260628_v1",
         "entry_foundation_smoke_train_manifests_20260628_v1",
         "entry_foundation_candidate_train_manifests_20260628_v1",
+        "entry_foundation_smart_selector_readiness_20260701_v1",
         "entry_feature_ai_inventory_20260630_v1",
         "entry_chart_geometry_challenger_audit_20260630_v1",
         "entry_candlestick_pattern_challenger_audit_20260630_v1",
@@ -766,6 +767,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         replay_readiness = _read_text(REPO / "gx1/scripts/verify_entry_replay_readiness_v1.py")
         iql_distill_contract = _read_text(REPO / "gx1/scripts/materialize_entry_iql_distillation_contract_v1.py")
         iql_student_trade_log = _read_text(REPO / "gx1/scripts/materialize_entry_iql_student_trade_log_v1.py")
+        foundation_smart_selector = _read_text(
+            REPO / "gx1/scripts/materialize_entry_foundation_smart_selector_readiness_v1.py"
+        )
         claude_head = _read_text(REPO / "CLAUDE.md")[:1600]
         agents_head = _read_text(REPO / "AGENTS.md")[:1800]
         system_map_head = _read_text(REPO / "SYSTEM_MAP.md")[:1800]
@@ -836,6 +840,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         _require("replay-evidence" in control, "control surface exposes candidate replay evidence materializer", checks)
         _require("iql-distill" in control, "control surface exposes gated IQL distillation contract wrapper", checks)
         _require("iql-student-trade-log" in control, "control surface exposes IQL student trade-log materializer", checks)
+        _require(
+            "foundation-smart-selector-readiness" in control,
+            "control surface exposes foundation-vs-smart selector readiness",
+            checks,
+        )
+        _require(
+            "materialize_entry_foundation_smart_selector_readiness_v1" in control,
+            "control surface calls foundation-vs-smart selector readiness",
+            checks,
+        )
         _require("iql-replay-evidence" in control, "control surface exposes IQL replay evidence materializer", checks)
         _require("iql-compare" in control, "control surface exposes IQL replay comparison gate", checks)
         _require("iql-slice-audit" in control, "control surface exposes IQL replay slice audit", checks)
@@ -1118,6 +1132,31 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         _require("entry_iql_student_trade_log.csv" in iql_student_trade_log, "IQL student trade-log materializer writes explicit trade log", checks)
         _require("student_policy_fit_started" in iql_student_trade_log, "IQL student trade-log materializer records offline student fit", checks)
         _require("promotion_shadow_live_allowed" in iql_student_trade_log, "IQL student trade-log materializer keeps promotion/shadow/live closed", checks)
+        _require(
+            "selector_uses_validation_only" in foundation_smart_selector,
+            "foundation-vs-smart selector uses validation only",
+            checks,
+        )
+        _require(
+            "test_diagnostic_only_not_selection_criterion" in foundation_smart_selector,
+            "foundation-vs-smart selector keeps test slices diagnostic-only",
+            checks,
+        )
+        _require(
+            "selector_training_started" in foundation_smart_selector,
+            "foundation-vs-smart selector records no selector training",
+            checks,
+        )
+        _require(
+            "promotion_shadow_live_allowed" in foundation_smart_selector,
+            "foundation-vs-smart selector keeps promotion/shadow/live closed",
+            checks,
+        )
+        _require(
+            "ENTRY_FOUNDATION_SMART_SELECTOR_READINESS_READY_FOR_REVIEW" in foundation_smart_selector,
+            "foundation-vs-smart selector emits review-only decision",
+            checks,
+        )
         _require("ENTRY_IQL_REPLAY_EVIDENCE_latest.json" in iql_replay_evidence, "IQL replay evidence materializer writes latest report", checks)
         _require("REPLAY_EVIDENCE_MANIFEST.json" in iql_replay_evidence, "IQL replay evidence materializer writes comparison manifest", checks)
         _require("DEFAULT_DISTILL_CONTRACT_JSON" in iql_replay_evidence, "IQL replay evidence materializer requires distillation contract", checks)
