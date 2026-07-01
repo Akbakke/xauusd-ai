@@ -372,6 +372,12 @@ Active status:
   itself. It is only a sanity diagnostic against the majority baseline; Entry
   acceptance remains replay/PnL, drawdown, MAE, bad-path, class-distribution
   calibration and session/regime/side/tail slice evidence.
+- Readiness-report must also expose the smart smoke direction benchmark against
+  the active `foundation_seq146` and `challenger_seq215` smoke bundle audits.
+  A `smart_seq520_candidate` bundle that beats majority but regresses versus
+  either simpler baseline on val/test direction accuracy is not evidence that
+  the smart features improved the Entry eyes; it requires refreshed calibrated
+  smart evidence before candidate/IQL/promotion authority can be discussed.
 - Exit report-only gates remain ready through feature alignment, architecture,
   training plan, wrapper readiness, pretrain manifest, slice robustness,
   train-execution review and post-train audit contract. Exit Transformer/IQL

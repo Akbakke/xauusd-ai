@@ -286,6 +286,12 @@ The 2026-07-01 operating point is feature-harmony clean but not promotion-ready:
   target class-distribution calibration, selected-tail direction quality,
   bad-path/path-quality semantics and exit timing rather than celebrating broad
   accuracy.
+- `readiness-report` must surface a smart smoke direction benchmark comparing
+  `smart_seq520_candidate` against `foundation_seq146` and
+  `challenger_seq215` smoke bundle audits. If smart520 regresses versus either
+  simpler baseline on val/test direction accuracy, the smart lane remains a
+  weak diagnostic artifact until refreshed calibrated smart evidence proves a
+  real improvement in replay and slices.
 - Replay-readiness now fails closed on weak selected-tail direction quality:
   candidate top-5/top-10 selected tails and supported session/side/vol-regime
   slices must clear the configured direction precision threshold before IQL

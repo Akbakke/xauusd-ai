@@ -225,12 +225,78 @@ def latest_ready_smart_report(root, pattern, ready_decisions):
         return None
     return sorted(candidates, reverse=True)[0][2]
 
+def number_or_none(value):
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+def int_or_none(value):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+def direction_split_metrics(report):
+    splits = report.get("splits") if isinstance(report.get("splits"), dict) else {}
+    out = {}
+    for split in ("val", "test"):
+        split_report = splits.get(split) if isinstance(splits.get(split), dict) else {}
+        direction = (
+            split_report.get("direction")
+            if isinstance(split_report.get("direction"), dict)
+            else {}
+        )
+        accuracy = number_or_none(direction.get("accuracy"))
+        majority = number_or_none(direction.get("majority_baseline_accuracy"))
+        edge_vs_majority = (
+            accuracy - majority
+            if accuracy is not None and majority is not None
+            else None
+        )
+        out[split] = {
+            "accuracy": accuracy,
+            "majority_baseline_accuracy": majority,
+            "edge_vs_majority": edge_vs_majority,
+            "beats_majority": (
+                accuracy > majority
+                if accuracy is not None and majority is not None
+                else None
+            ),
+            "rows": int_or_none(direction.get("rows") or split_report.get("rows")),
+        }
+    return out
+
+def smart_direction_regressions(smart_metrics, baselines):
+    regressions = []
+    for baseline_name, baseline_metrics in baselines.items():
+        for split in ("val", "test"):
+            smart_accuracy = (smart_metrics.get(split) or {}).get("accuracy")
+            baseline_accuracy = (baseline_metrics.get(split) or {}).get("accuracy")
+            if smart_accuracy is None or baseline_accuracy is None:
+                continue
+            delta = smart_accuracy - baseline_accuracy
+            if delta < 0.0:
+                regressions.append(
+                    {
+                        "baseline": baseline_name,
+                        "split": split,
+                        "smart_accuracy": smart_accuracy,
+                        "baseline_accuracy": baseline_accuracy,
+                        "delta": delta,
+                    }
+                )
+    return regressions
+
 paths = {
     "train-readiness": Path("/home/andre2/GX1_DATA/reports/entry_training_readiness_20260628_v1/ENTRY_TRAINING_READINESS_latest.json"),
     "worktree-hygiene": Path("/home/andre2/GX1_DATA/reports/entry_foundation_worktree_hygiene_20260628_v1/ENTRY_FOUNDATION_WORKTREE_HYGIENE_latest.json"),
     "candidate-readiness": Path("/home/andre2/GX1_DATA/reports/entry_candidate_readiness_20260628_v1/ENTRY_CANDIDATE_READINESS_latest.json"),
     "candidate-readiness-seq215": Path("/home/andre2/GX1_DATA/reports/entry_candidate_readiness_20260628_v1/challenger_seq215_20260630/ENTRY_CANDIDATE_READINESS_latest.json"),
     "candidate-readiness-smart": Path("/home/andre2/GX1_DATA/reports/entry_candidate_readiness_20260628_v1/smart_seq520_candidate/ENTRY_CANDIDATE_READINESS_latest.json"),
+    "smoke-bundle-foundation": Path("/home/andre2/GX1_DATA/reports/entry_candidate_bundle_audit_20260628_v1/ENTRY_FOUNDATION_SMOKE_BUNDLE_AUDIT_latest.json"),
+    "smoke-bundle-seq215": Path("/home/andre2/GX1_DATA/reports/entry_candidate_bundle_audit_20260628_v1/challenger_seq215_20260630/ENTRY_FOUNDATION_SMOKE_BUNDLE_AUDIT_latest.json"),
+    "smoke-bundle-smart": Path("/home/andre2/GX1_DATA/reports/entry_candidate_bundle_audit_20260628_v1/smart_seq520_candidate/ENTRY_FOUNDATION_SMOKE_BUNDLE_AUDIT_latest.json"),
     "replay-readiness": Path("/home/andre2/GX1_DATA/reports/entry_replay_readiness_20260628_v1/ENTRY_REPLAY_READINESS_latest.json"),
     "replay-readiness-seq215": Path("/home/andre2/GX1_DATA/reports/entry_replay_readiness_20260628_v1/challenger_seq215_20260630/ENTRY_REPLAY_READINESS_latest.json"),
     "replay-readiness-smart": Path("/home/andre2/GX1_DATA/reports/entry_replay_readiness_20260628_v1/smart_seq520_candidate/ENTRY_REPLAY_READINESS_latest.json"),
@@ -777,6 +843,35 @@ smart_ablation_replay_plan = reports.get("smart-ablation-replay-plan") or {}
 smart_ablation_replay_matrix = reports.get("smart-ablation-replay-matrix") or {}
 smart_replay_default = reports.get("replay-readiness-smart") or {}
 smart_replay_selected = reports.get("replay-readiness-smart-selected") or {}
+foundation_smoke_bundle = reports.get("smoke-bundle-foundation") or {}
+seq215_smoke_bundle = reports.get("smoke-bundle-seq215") or {}
+smart_smoke_bundle = reports.get("smoke-bundle-smart") or {}
+foundation_smoke_direction_metrics = direction_split_metrics(foundation_smoke_bundle)
+seq215_smoke_direction_metrics = direction_split_metrics(seq215_smoke_bundle)
+smart_smoke_direction_metrics = direction_split_metrics(smart_smoke_bundle)
+smart_smoke_direction_accuracy_regressions = smart_direction_regressions(
+    smart_smoke_direction_metrics,
+    {
+        "foundation_seq146": foundation_smoke_direction_metrics,
+        "challenger_seq215": seq215_smoke_direction_metrics,
+    },
+)
+smart_smoke_direction_accuracy_regression_count = len(
+    smart_smoke_direction_accuracy_regressions
+)
+smart_smoke_direction_benchmark_has_all_metrics = all(
+    (metrics.get(split) or {}).get("accuracy") is not None
+    for metrics in (
+        smart_smoke_direction_metrics,
+        foundation_smoke_direction_metrics,
+        seq215_smoke_direction_metrics,
+    )
+    for split in ("val", "test")
+)
+smart_smoke_direction_benchmark_ready = bool(
+    smart_smoke_direction_benchmark_has_all_metrics
+    and smart_smoke_direction_accuracy_regression_count == 0
+)
 smart_post_rebuild_ready = (
     str(smart_post_rebuild.get("decision") or "") == "ENTRY_SMART_DATASET_READY_FOR_TRAIN_READINESS_REVIEW"
 )
@@ -835,6 +930,10 @@ if smart_replay_selected_stale_by_path_calibration:
 if promotion_review_blocked_by_smart_selected_calibration:
     current_blockers.append(
         "promotion review is blocked until smart selected slice and path-signal calibration gates PASS"
+    )
+if smart_smoke_direction_accuracy_regression_count:
+    current_blockers.append(
+        "smart seq520 smoke bundle direction accuracy regresses versus foundation/seq215; require refreshed calibrated smart evidence before treating smart features as improvement"
     )
 smart_rebuild_preflight_ready = (
     str(smart_rebuild_preflight.get("decision") or "") == "READY_FOR_SMART_REBUILD_VEDTAK_REVIEW"
@@ -2339,6 +2438,15 @@ payload = {
         "smart_candidate_manifest_variant": smart_candidate_manifest_variant,
         "smart_candidate_expected_signal_dim": smart_candidate_expected_signal_dim,
         "smart_candidate_smart_layer_feature_count": smart_layer_feature_count,
+        "smart_smoke_direction_accuracy_benchmark": {
+            "foundation_seq146": foundation_smoke_direction_metrics,
+            "challenger_seq215": seq215_smoke_direction_metrics,
+            "smart_seq520_candidate": smart_smoke_direction_metrics,
+        },
+        "smart_smoke_direction_benchmark_has_all_metrics": smart_smoke_direction_benchmark_has_all_metrics,
+        "smart_smoke_direction_benchmark_ready": smart_smoke_direction_benchmark_ready,
+        "smart_smoke_direction_accuracy_regression_count": smart_smoke_direction_accuracy_regression_count,
+        "smart_smoke_direction_accuracy_regressions": smart_smoke_direction_accuracy_regressions,
         "smart_rebuild_preflight_decision": smart_rebuild_preflight.get("decision"),
         "smart_rebuild_preflight_ready": smart_rebuild_preflight_ready,
         "smart_rebuild_preflight_report": str(smart_rebuild_preflight_path) if smart_rebuild_preflight_path else None,
@@ -2574,6 +2682,21 @@ else:
                 print(f"  raw stage command: {wh['raw_stage_command']}")
         if summary["next"]:
             print(f"  next: {summary['next']}")
+    print("smart smoke direction benchmark:")
+    for name, metrics in payload["status_summary"]["smart_smoke_direction_accuracy_benchmark"].items():
+        val_acc = (metrics.get("val") or {}).get("accuracy")
+        test_acc = (metrics.get("test") or {}).get("accuracy")
+        val_majority = (metrics.get("val") or {}).get("majority_baseline_accuracy")
+        test_majority = (metrics.get("test") or {}).get("majority_baseline_accuracy")
+        print(
+            f"  {name}: "
+            f"val_acc={val_acc} val_majority={val_majority} "
+            f"test_acc={test_acc} test_majority={test_majority}"
+        )
+    print(
+        "  smart regression count: "
+        f"{payload['status_summary']['smart_smoke_direction_accuracy_regression_count']}"
+    )
     print("allowed now:")
     for cmd in allowed_now:
         print(f"  {cmd}")

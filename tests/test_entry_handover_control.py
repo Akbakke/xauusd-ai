@@ -429,6 +429,32 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
     assert isinstance(payload["status_summary"]["seq215_smoke_contract_preflight_ready"], bool)
     assert "chart_geometry_encoder" in payload["status_summary"]["seq215_smoke_contract_required_specialists"]
     assert "price_action_candle_encoder" in payload["status_summary"]["seq215_smoke_contract_required_specialists"]
+    smart_direction_benchmark = payload["status_summary"]["smart_smoke_direction_accuracy_benchmark"]
+    assert set(smart_direction_benchmark) == {
+        "foundation_seq146",
+        "challenger_seq215",
+        "smart_seq520_candidate",
+    }
+    for metrics in smart_direction_benchmark.values():
+        assert set(metrics) == {"val", "test"}
+        for split_metrics in metrics.values():
+            assert {
+                "accuracy",
+                "majority_baseline_accuracy",
+                "edge_vs_majority",
+                "beats_majority",
+                "rows",
+            } <= set(split_metrics)
+    assert isinstance(payload["status_summary"]["smart_smoke_direction_benchmark_has_all_metrics"], bool)
+    assert isinstance(payload["status_summary"]["smart_smoke_direction_benchmark_ready"], bool)
+    assert isinstance(payload["status_summary"]["smart_smoke_direction_accuracy_regression_count"], int)
+    assert isinstance(payload["status_summary"]["smart_smoke_direction_accuracy_regressions"], list)
+    if payload["status_summary"]["smart_smoke_direction_accuracy_regression_count"]:
+        assert payload["status_summary"]["smart_smoke_direction_benchmark_ready"] is False
+        assert (
+            "smart seq520 smoke bundle direction accuracy regresses versus foundation/seq215; require refreshed calibrated smart evidence before treating smart features as improvement"
+            in payload["status_summary"]["current_blockers"]
+        )
     assert isinstance(payload["status_summary"]["iql_distillation_allowed"], bool)
     assert isinstance(payload["status_summary"]["iql_replay_evidence_ready"], bool)
     assert isinstance(payload["status_summary"]["iql_replay_comparison_ready"], bool)
