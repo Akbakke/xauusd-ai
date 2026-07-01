@@ -275,8 +275,17 @@ def test_feature_ai_inventory_registers_all_smart_layer_source_contracts() -> No
 
 def test_feature_harmony_contract_accounts_for_routed_and_excluded_inputs() -> None:
     rows = (
-        _feature_rows(["ema20_slope", "chart.foundation_hh_state"], input_surface="seq", source="fixture")
-        + _feature_rows(["p_long"], input_surface="seq", source="fixture")
+        _feature_rows(["ema20_slope", "atr_pct", "p_long"], input_surface="seq_and_snap_signal", source="fixture")
+        + _feature_rows(["ctx_cont.spread_bps"], input_surface="ctx_cont", source="fixture")
+        + _feature_rows(["ctx_cat.session_id"], input_surface="ctx_cat", source="fixture")
+        + _feature_rows(
+            ["chart.foundation_hh_state", "foundation_sweep_up"],
+            input_surface="seq_structure_extension",
+            source="fixture",
+        )
+        + _feature_rows(["chart.geometry_fib_retrace"], input_surface="chart_geometry_challenger", source="fixture")
+        + _feature_rows(["candle.pattern_doji"], input_surface="candlestick_pattern_challenger", source="fixture")
+        + _feature_rows(["momentum.flow_impulse_score"], input_surface="smart_seq520_candidate", source="fixture")
     )
 
     contract = _feature_harmony_contract(
@@ -285,19 +294,28 @@ def test_feature_harmony_contract_accounts_for_routed_and_excluded_inputs() -> N
         vector_columns={"seq", "snap", "ctx_cont", "ctx_cat"},
         smart_layer_rows=[
             {
-                "label": "trend_ema_smart_layer",
+                "label": label,
                 "missing_required_source_field_count": 0,
                 "missing_required_source_fields": [],
             }
+            for label in SMART_LAYER_SOURCE_CONTRACTS
         ],
         specialist_contract_provenance=_inventory_contract_provenance(),
     )
 
     assert contract["schema_version"] == "entry_feature_harmony_contract_v1"
     assert contract["feature_harmony_ready"] is True
-    assert contract["routed_input_count"] == 3
+    assert contract["feature_orchestration_ready"] is True
+    assert contract["missing_required_mechanism_specialists"] == []
+    assert contract["missing_required_input_surfaces"] == []
+    assert contract["missing_required_smart_layers"] == []
+    assert set(contract["required_smart_layers"]) == set(SMART_LAYER_SOURCE_CONTRACTS)
+    assert contract["mechanism_input_counts_by_specialist"]["chart_geometry_encoder"] == 1
+    assert contract["mechanism_input_counts_by_specialist"]["price_action_candle_encoder"] == 1
+    assert contract["mechanism_input_counts_by_specialist"]["momentum_flow_encoder"] == 1
+    assert contract["routed_input_count"] == len(rows)
     assert contract["excluded_input_count"] == 6
-    assert contract["accounted_input_count"] == 9
+    assert contract["accounted_input_count"] == len(rows) + 6
     assert contract["unmapped_input_count"] == 0
     assert contract["neutral_bridge_anchor_count"] == 1
     assert contract["source_coverage_all_required_available"] is True
@@ -316,6 +334,10 @@ def test_feature_harmony_contract_accounts_for_routed_and_excluded_inputs() -> N
     assert bad["feature_harmony_ready"] is False
     assert bad["unmapped_input_count"] == 1
     assert any("unmapped routed inputs" in failure for failure in bad["failures"])
+    assert bad["feature_orchestration_ready"] is False
+    assert bad["missing_required_mechanism_specialists"]
+    assert bad["missing_required_input_surfaces"]
+    assert bad["missing_required_smart_layers"]
 
 
 def _challenger_extension_args(tmp_path: Path, *, include_smart_layers: bool) -> argparse.Namespace:

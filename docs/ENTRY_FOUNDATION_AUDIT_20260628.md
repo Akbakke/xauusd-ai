@@ -240,6 +240,13 @@ Active status:
   `ctx_cat=5`: `session_id`, `vol_regime_id`, `atr_bucket`,
   `spread_bucket` and `H4_trend_sign_cat`; these are context embeddings, not
   a reduction of the full signal surface.
+- Feature orchestration is now machine-gated inside
+  `feature_harmony_contract`: all eight required mechanism specialists, all
+  required input surfaces and all ten smart-layer source contracts must be
+  present before inventory readiness can pass. The latest inventory has
+  `feature_orchestration_ready=true`, no missing required mechanism
+  specialists, no missing required input surfaces and no missing required
+  smart layers.
 - The smart candidate contract is `smart_seq520_candidate`: expected
   seq/snap width 520, made from 41 base signal fields, 105 reused foundation
   extension fields, 41 chart-geometry fields, 28 candlestick fields and 305

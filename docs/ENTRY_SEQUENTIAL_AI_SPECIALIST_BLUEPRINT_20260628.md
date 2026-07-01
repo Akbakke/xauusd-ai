@@ -44,6 +44,10 @@ Machine contract:
     specialist-routed or explicitly excluded with a recorded reason, smart
     layers must preserve source coverage, and unmapped fields keep downstream
     training/replay gates closed.
+  - Also writes `feature_orchestration_ready` inside that contract. This proves
+    the full Entry decision surface has all required mechanism specialists,
+    all required input surfaces and all smart-layer source contracts present
+    before the feature inventory can be treated as ready.
 - Candidate-readiness gate:
   `gx1/scripts/verify_entry_candidate_readiness_v1.py`
   - Supports `foundation_seq146` and `challenger_seq215`. The seq215 report

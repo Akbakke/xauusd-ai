@@ -191,6 +191,24 @@ SMART_LAYER_SOURCE_CONTRACTS: "OrderedDict[str, dict[str, Any]]" = OrderedDict(
         ),
     ]
 )
+FEATURE_ORCHESTRATION_REQUIRED_SPECIALISTS = (
+    "structure_swing_encoder",
+    "smc_liquidity_encoder",
+    "trend_ema_encoder",
+    "vol_compression_encoder",
+    "momentum_flow_encoder",
+    "session_regime_encoder",
+    "chart_geometry_encoder",
+    "price_action_candle_encoder",
+)
+FEATURE_ORCHESTRATION_REQUIRED_INPUT_SURFACES = (
+    "seq_and_snap_signal",
+    "ctx_cont",
+    "ctx_cat",
+    "seq_structure_extension",
+    "chart_geometry_challenger",
+    "candlestick_pattern_challenger",
+)
 
 
 def _json_default(obj: Any) -> Any:
@@ -519,6 +537,22 @@ def _feature_harmony_contract(
     smart_missing_rows = [
         row for row in smart_layer_rows if int(row.get("missing_required_source_field_count") or 0) > 0
     ]
+    specialist_counts = Counter(str(row.get("specialist") or "") for row in feature_rows)
+    surface_counts = Counter(str(row.get("input_surface") or "") for row in feature_rows)
+    present_smart_layers = {
+        str(row.get("label") or "") for row in smart_layer_rows if str(row.get("label") or "")
+    }
+    missing_orchestration_specialists = [
+        name for name in FEATURE_ORCHESTRATION_REQUIRED_SPECIALISTS if int(specialist_counts.get(name) or 0) <= 0
+    ]
+    missing_orchestration_surfaces = [
+        name for name in FEATURE_ORCHESTRATION_REQUIRED_INPUT_SURFACES if int(surface_counts.get(name) or 0) <= 0
+    ]
+    if not any(str(surface).startswith("smart_seq") for surface in surface_counts):
+        missing_orchestration_surfaces.append("smart_seq_candidate")
+    missing_orchestration_smart_layers = [
+        name for name in SMART_LAYER_SOURCE_CONTRACTS if name not in present_smart_layers
+    ]
     active = specialist_contract_provenance.get("active_foundation", {})
     target = specialist_contract_provenance.get("target_challenger", {})
     smart = specialist_contract_provenance.get("target_smart_candidate", {})
@@ -548,6 +582,27 @@ def _feature_harmony_contract(
         failures.append("feature harmony target challenger specialist contract is not exact")
     if not bool(smart.get("specialist_model_contract_set_exact")):
         failures.append("feature harmony target smart candidate specialist contract is not exact")
+    if missing_orchestration_specialists:
+        failures.append(
+            "feature orchestration missing required mechanism specialists: "
+            + ", ".join(missing_orchestration_specialists)
+        )
+    if missing_orchestration_surfaces:
+        failures.append(
+            "feature orchestration missing required input surfaces: "
+            + ", ".join(missing_orchestration_surfaces)
+        )
+    if missing_orchestration_smart_layers:
+        failures.append(
+            "feature orchestration missing required smart layers: "
+            + ", ".join(missing_orchestration_smart_layers)
+        )
+    feature_orchestration_ready = not (
+        missing_orchestration_specialists
+        or missing_orchestration_surfaces
+        or missing_orchestration_smart_layers
+        or smart_missing_rows
+    )
     return {
         "schema_version": "entry_feature_harmony_contract_v1",
         "rule": (
@@ -555,14 +610,34 @@ def _feature_harmony_contract(
             "or explicitly excluded with a recorded reason; smart layers must keep "
             "source coverage, routing ownership, provenance and liveness gates."
         ),
+        "feature_orchestration_rule": (
+            "Foundation features, sequence extensions, chart/candle challengers, "
+            "smart-layer summaries and context embeddings must remain one coordinated "
+            "Entry decision surface unless ablation plus replay/slice evidence proves "
+            "a removal improves tradable edge."
+        ),
         "routed_input_count": int(len(feature_rows)),
         "excluded_input_count": int(len(excluded_inputs)),
         "accounted_input_count": int(len(feature_rows) + len(excluded_inputs)),
         "unmapped_input_count": int(len(unmapped_rows)),
         "neutral_bridge_anchor_count": int(len(neutral_rows)),
+        "mechanism_input_counts_by_specialist": {
+            name: int(specialist_counts.get(name) or 0)
+            for name in FEATURE_ORCHESTRATION_REQUIRED_SPECIALISTS
+        },
+        "required_mechanism_specialists": list(FEATURE_ORCHESTRATION_REQUIRED_SPECIALISTS),
+        "missing_required_mechanism_specialists": missing_orchestration_specialists,
+        "input_surface_counts": {name: int(count) for name, count in sorted(surface_counts.items())},
+        "required_input_surfaces": list(FEATURE_ORCHESTRATION_REQUIRED_INPUT_SURFACES)
+        + ["smart_seq_candidate"],
+        "missing_required_input_surfaces": missing_orchestration_surfaces,
         "smart_layer_count": int(len(smart_layer_rows)),
+        "required_smart_layers": list(SMART_LAYER_SOURCE_CONTRACTS),
+        "present_smart_layers": sorted(present_smart_layers),
+        "missing_required_smart_layers": missing_orchestration_smart_layers,
         "smart_layers_missing_required_source_count": int(len(smart_missing_rows)),
         "source_coverage_all_required_available": not smart_missing_rows,
+        "feature_orchestration_ready": feature_orchestration_ready,
         "active_foundation_contract_mode": active.get("contract_mode"),
         "active_foundation_contract_exact": bool(active.get("specialist_model_contract_set_exact")),
         "target_challenger_contract_mode": target.get("contract_mode"),
