@@ -4,7 +4,11 @@ from pathlib import Path
 
 import pandas as pd
 
-from gx1.scripts.materialize_entry_exit_state_reward_contract_v1 import ENTRY_ALIGNMENT_STATE_FEATURES, run
+from gx1.scripts.materialize_entry_exit_state_reward_contract_v1 import (
+    BASE_SPECIALIST_GATE_STATE_FEATURES,
+    ENTRY_ALIGNMENT_STATE_FEATURES,
+    run,
+)
 
 
 def _dataset() -> pd.DataFrame:
@@ -15,15 +19,32 @@ def _dataset() -> pd.DataFrame:
         trade_id = f"entry_iql_student:{trade_idx}:{entry_time.isoformat()}:{side}"
         for bar_index in range(3):
             bar_ts = entry_time + pd.Timedelta(minutes=5 * bar_index)
+            running_pnl = 10.0 + bar_index
+            running_mfe = 20.0 + bar_index
+            running_mae = 2.0 + bar_index
+            realized_net = 25.0
+            realized_gross = 26.0
+            realized_mfe = 40.0
+            realized_mae = 5.0
+            realized_exit_reason = "tp"
+            if trade_idx == 1:
+                running_pnl = [10.0, -10.0, -45.0][bar_index]
+                running_mfe = 30.0
+                running_mae = [2.0, 20.0, 45.0][bar_index]
+                realized_net = -45.0
+                realized_gross = -44.0
+                realized_mfe = 30.0
+                realized_mae = 45.0
+                realized_exit_reason = "STOP_LOSS"
             row = {
                 "entry_trade_id": trade_id,
                 "bar_ts": bar_ts.isoformat(),
                 "bar_index": bar_index,
                 "side": side,
                 "action_set": "HOLD,EXIT_NOW",
-                "running_pnl_bps": 10.0 + bar_index,
-                "running_mfe_bps": 20.0 + bar_index,
-                "running_mae_bps": 2.0 + bar_index,
+                "running_pnl_bps": running_pnl,
+                "running_mfe_bps": running_mfe,
+                "running_mae_bps": running_mae,
                 "running_giveback_bps": 1.0,
                 "bars_held": bar_index,
                 "session": "EU" if trade_idx == 0 else "US",
@@ -43,14 +64,14 @@ def _dataset() -> pd.DataFrame:
                 "entry_replay_identity_hash": "hash123",
                 "entry_time": entry_time.isoformat(),
                 "exit_time": exit_time.isoformat(),
-                "realized_net_pnl_bps": 25.0,
-                "realized_gross_pnl_bps": 26.0,
-                "realized_mfe_bps": 40.0,
-                "realized_mae_bps": 5.0,
-                "realized_exit_reason": "tp",
+                "realized_net_pnl_bps": realized_net,
+                "realized_gross_pnl_bps": realized_gross,
+                "realized_mfe_bps": realized_mfe,
+                "realized_mae_bps": realized_mae,
+                "realized_exit_reason": realized_exit_reason,
                 "is_realized_exit_bar": bar_index == 2,
             }
-            for pos, field in enumerate(ENTRY_ALIGNMENT_STATE_FEATURES):
+            for pos, field in enumerate((*ENTRY_ALIGNMENT_STATE_FEATURES, *BASE_SPECIALIST_GATE_STATE_FEATURES)):
                 row[field] = float(pos + bar_index + trade_idx + 1)
             rows.append(row)
     return pd.DataFrame(rows)
@@ -96,7 +117,16 @@ def test_entry_exit_state_reward_contract_materializes_actions_rewards_and_point
     dataset = pd.read_csv(report["state_reward_dataset_csv"])
     assert {"exit_now_label", "hold_reward_bps", "exit_now_reward_bps", "logged_reward_bps"}.issubset(dataset.columns)
     assert dataset.loc[dataset["logged_action"].eq("HOLD"), "logged_reward_bps"].eq(0.0).all()
-    assert dataset.loc[dataset["logged_action"].eq("EXIT_NOW"), "logged_reward_bps"].eq(25.0).all()
+    assert sorted(dataset.loc[dataset["logged_action"].eq("EXIT_NOW"), "logged_reward_bps"].tolist()) == [-45.0, 25.0]
+    assert report["hazard_label_review"]["ready"] is True
+    assert {
+        "future_max_running_pnl_bps",
+        "future_adverse_excursion_bps",
+        "exit_hazard_adverse_15bps_label",
+        "positive_mfe_stopout_episode_label",
+        "oracle_exit_before_giveback_label",
+    }.issubset(dataset.columns)
+    assert dataset["positive_mfe_stopout_episode_label"].sum() == 3
 
 
 def test_entry_exit_state_reward_contract_blocks_when_reconstruction_not_ready(tmp_path: Path) -> None:

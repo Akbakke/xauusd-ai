@@ -42,8 +42,23 @@ ENTRY_ALIGNMENT_STATE_FEATURES = tuple(
     [
         *(_safe_feature_field("entry_snap", field) for field in ENTRY_ALIGNMENT_SNAP_FEATURES),
         *(_safe_feature_field("entry_ctx", field) for field in ENTRY_ALIGNMENT_CTX_CONT_FEATURES),
-        *SPECIALIST_GATE_OUTPUT_FIELDS.values(),
     ]
+)
+BASE_SPECIALIST_GATE_NAMES = (
+    "structure_swing_encoder",
+    "smc_liquidity_encoder",
+    "trend_ema_encoder",
+    "vol_compression_encoder",
+    "momentum_flow_encoder",
+    "session_regime_encoder",
+)
+CHALLENGER_SPECIALIST_GATE_NAMES = (
+    "chart_geometry_encoder",
+    "price_action_candle_encoder",
+)
+BASE_SPECIALIST_GATE_STATE_FEATURES = tuple(SPECIALIST_GATE_OUTPUT_FIELDS[name] for name in BASE_SPECIALIST_GATE_NAMES)
+CHALLENGER_SPECIALIST_GATE_STATE_FEATURES = tuple(
+    SPECIALIST_GATE_OUTPUT_FIELDS[name] for name in CHALLENGER_SPECIALIST_GATE_NAMES
 )
 STATE_FEATURES = (
     "running_pnl_bps",
@@ -63,6 +78,7 @@ STATE_FEATURES = (
     "entry_path_quality_pred",
     "entry_bad_path_prob",
     *ENTRY_ALIGNMENT_STATE_FEATURES,
+    *BASE_SPECIALIST_GATE_STATE_FEATURES,
 )
 NUMERIC_STATE_FEATURES = (
     "running_pnl_bps",
@@ -79,6 +95,7 @@ NUMERIC_STATE_FEATURES = (
     "entry_path_quality_pred",
     "entry_bad_path_prob",
     *ENTRY_ALIGNMENT_STATE_FEATURES,
+    *BASE_SPECIALIST_GATE_STATE_FEATURES,
 )
 STATE_PROVENANCE_FIELDS = (
     "entry_trade_id",
@@ -104,6 +121,10 @@ FORBIDDEN_STATE_FIELDS = (
     "logged_reward_bps",
     "next_exit_episode_id",
     "next_exit_timestep",
+    "future_",
+    "hazard_",
+    "oracle_",
+    "positive_mfe_stopout",
 )
 REWARD_FIELDS = (
     "hold_reward_bps",
@@ -115,6 +136,15 @@ REWARD_FIELDS = (
     "exit_now_mae_penalty_reward_bps",
     "exit_now_giveback_penalty_reward_bps",
     "exit_now_transparent_combined_reward_bps",
+    "future_max_running_pnl_bps",
+    "future_min_running_pnl_bps",
+    "future_best_exit_lift_bps",
+    "future_adverse_excursion_bps",
+    "future_giveback_from_peak_bps",
+    "exit_hazard_adverse_15bps_label",
+    "exit_hazard_giveback_20bps_label",
+    "positive_mfe_stopout_episode_label",
+    "oracle_exit_before_giveback_label",
 )
 
 
@@ -182,6 +212,26 @@ def _finite_review(frame: pd.DataFrame, fields: tuple[str, ...]) -> dict[str, An
     return {"all_finite": bool(all_finite), "fields": field_reviews}
 
 
+def _active_state_features(source: pd.DataFrame) -> tuple[tuple[str, ...], tuple[str, ...], dict[str, Any]]:
+    source_columns = set(str(column) for column in source.columns)
+    present_challenger = [field for field in CHALLENGER_SPECIALIST_GATE_STATE_FEATURES if field in source_columns]
+    challenger_complete = len(present_challenger) in {0, len(CHALLENGER_SPECIALIST_GATE_STATE_FEATURES)}
+    active_state_features = list(STATE_FEATURES)
+    if present_challenger:
+        active_state_features.extend(CHALLENGER_SPECIALIST_GATE_STATE_FEATURES)
+    active_numeric_features = list(NUMERIC_STATE_FEATURES)
+    if present_challenger:
+        active_numeric_features.extend(CHALLENGER_SPECIALIST_GATE_STATE_FEATURES)
+    review = {
+        "base_gate_fields": list(BASE_SPECIALIST_GATE_STATE_FEATURES),
+        "challenger_gate_fields": list(CHALLENGER_SPECIALIST_GATE_STATE_FEATURES),
+        "present_challenger_gate_fields": present_challenger,
+        "challenger_gate_fields_complete": challenger_complete,
+        "active_gate_mode": "challenger_or_smart_8_gate" if present_challenger else "foundation_seq146_6_gate",
+    }
+    return tuple(active_state_features), tuple(active_numeric_features), review
+
+
 def _build_state_reward_dataset(frame: pd.DataFrame) -> pd.DataFrame:
     out = frame.copy()
     out["bar_index"] = pd.to_numeric(out["bar_index"], errors="raise").astype(int)
@@ -216,6 +266,37 @@ def _build_state_reward_dataset(frame: pd.DataFrame) -> pd.DataFrame:
     out["exit_now_mae_penalty_reward_bps"] = pnl - 0.5 * mae.abs()
     out["exit_now_giveback_penalty_reward_bps"] = -giveback.clip(lower=0.0)
     out["exit_now_transparent_combined_reward_bps"] = pnl - 0.25 * mae.abs() - 0.25 * giveback.clip(lower=0.0)
+    running_pnl = pd.to_numeric(out["running_pnl_bps"], errors="coerce")
+    future_max = (
+        out.groupby("exit_episode_id", sort=False)["running_pnl_bps"]
+        .transform(lambda series: pd.to_numeric(series, errors="coerce").iloc[::-1].cummax().iloc[::-1])
+        .astype(float)
+    )
+    future_min = (
+        out.groupby("exit_episode_id", sort=False)["running_pnl_bps"]
+        .transform(lambda series: pd.to_numeric(series, errors="coerce").iloc[::-1].cummin().iloc[::-1])
+        .astype(float)
+    )
+    episode_max = out.groupby("exit_episode_id", sort=False)["running_mfe_bps"].transform(
+        lambda series: pd.to_numeric(series, errors="coerce").max()
+    )
+    realized_exit_reason = out.get("realized_exit_reason", pd.Series([""] * len(out), index=out.index))
+    realized_mfe = pd.to_numeric(out.get("realized_mfe_bps", pd.Series([np.nan] * len(out), index=out.index)), errors="coerce")
+    stopout_episode = realized_exit_reason.astype(str).str.strip().str.upper().eq("STOP_LOSS")
+    positive_mfe_stopout = stopout_episode & realized_mfe.gt(0.0)
+    out["future_max_running_pnl_bps"] = future_max
+    out["future_min_running_pnl_bps"] = future_min
+    out["future_best_exit_lift_bps"] = (future_max - running_pnl).clip(lower=0.0)
+    out["future_adverse_excursion_bps"] = (running_pnl - future_min).clip(lower=0.0)
+    out["future_giveback_from_peak_bps"] = (episode_max - running_pnl).clip(lower=0.0)
+    out["exit_hazard_adverse_15bps_label"] = out["future_adverse_excursion_bps"].ge(15.0).astype(int)
+    out["exit_hazard_giveback_20bps_label"] = out["future_giveback_from_peak_bps"].ge(20.0).astype(int)
+    out["positive_mfe_stopout_episode_label"] = positive_mfe_stopout.astype(int)
+    out["oracle_exit_before_giveback_label"] = (
+        out["future_best_exit_lift_bps"].le(5.0)
+        & out["future_adverse_excursion_bps"].ge(15.0)
+        & running_pnl.gt(0.0)
+    ).astype(int)
     out["next_exit_episode_id"] = out.groupby("exit_episode_id")["exit_episode_id"].shift(-1)
     out["next_exit_timestep"] = out.groupby("exit_episode_id")["exit_timestep"].shift(-1)
     out.loc[out["is_terminal_transition"], "next_exit_episode_id"] = ""
@@ -241,6 +322,37 @@ def _pointer_review(frame: pd.DataFrame) -> dict[str, Any]:
         elif str(terminal["next_exit_episode_id"].iloc[0]).strip():
             failures.append({"exit_episode_id": str(episode_id), "reason": "terminal_has_next_episode"})
     return {"ready": not failures, "failure_count": int(len(failures)), "failures": failures[:50]}
+
+
+def _hazard_label_review(frame: pd.DataFrame) -> dict[str, Any]:
+    labels = (
+        "exit_hazard_adverse_15bps_label",
+        "exit_hazard_giveback_20bps_label",
+        "positive_mfe_stopout_episode_label",
+        "oracle_exit_before_giveback_label",
+    )
+    rows: dict[str, dict[str, Any]] = {}
+    ready = True
+    for label in labels:
+        if label not in frame.columns:
+            rows[label] = {"present": False, "finite": False, "positive_count": 0, "negative_count": 0}
+            ready = False
+            continue
+        values = pd.to_numeric(frame[label], errors="coerce")
+        finite = bool(values.notna().all())
+        positive = int(values.eq(1).sum()) if finite else 0
+        negative = int(values.eq(0).sum()) if finite else 0
+        label_ready = finite and positive > 0 and negative > 0
+        ready = ready and label_ready
+        rows[label] = {
+            "present": True,
+            "finite": finite,
+            "positive_count": positive,
+            "negative_count": negative,
+            "positive_rate": float(positive / len(values)) if len(values) else 0.0,
+            "ready": label_ready,
+        }
+    return {"ready": bool(ready), "labels": rows}
 
 
 def _write_markdown(path: Path, report: dict[str, Any]) -> None:
@@ -276,11 +388,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     dataset_exists = bool(str(reconstruction.get("dataset_csv") or "").strip()) and dataset_path.exists()
     source = pd.read_csv(dataset_path, low_memory=False) if dataset_exists else pd.DataFrame()
     state_reward = _build_state_reward_dataset(source) if not source.empty else pd.DataFrame()
-    missing_state_fields = [field for field in STATE_FEATURES if field not in source.columns]
-    forbidden_overlap = [field for field in STATE_FEATURES if field in set(FORBIDDEN_STATE_FIELDS)]
-    numeric_state_review = _finite_review(state_reward, NUMERIC_STATE_FEATURES) if not state_reward.empty else {"all_finite": False, "fields": {}}
+    active_state_features, active_numeric_state_features, gate_mode_review = _active_state_features(source)
+    missing_state_fields = [field for field in active_state_features if field not in source.columns]
+    forbidden_overlap = [field for field in active_state_features if field in set(FORBIDDEN_STATE_FIELDS)]
+    numeric_state_review = _finite_review(state_reward, active_numeric_state_features) if not state_reward.empty else {"all_finite": False, "fields": {}}
     reward_review = _finite_review(state_reward, REWARD_FIELDS) if not state_reward.empty else {"all_finite": False, "fields": {}}
     pointer_review = _pointer_review(state_reward) if not state_reward.empty else {"ready": False, "failure_count": 0, "failures": []}
+    hazard_label_review = _hazard_label_review(state_reward) if not state_reward.empty else {"ready": False, "labels": {}}
     action_counts = (
         state_reward["logged_action"].value_counts().to_dict()
         if "logged_action" in state_reward.columns
@@ -315,7 +429,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         _check(
             "state feature contract fields are present",
             not missing_state_fields,
-            {"missing_state_fields": missing_state_fields, "state_features": list(STATE_FEATURES)},
+            {"missing_state_fields": missing_state_fields, "state_features": list(active_state_features)},
+        ),
+        _check(
+            "specialist gate state fields match active Entry contract mode",
+            bool(gate_mode_review.get("challenger_gate_fields_complete")),
+            gate_mode_review,
         ),
         _check(
             "state feature contract excludes reward/outcome shortcut fields",
@@ -324,6 +443,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         ),
         _check("numeric state features are finite", bool(numeric_state_review.get("all_finite")), numeric_state_review),
         _check("reward fields are finite", bool(reward_review.get("all_finite")), reward_review),
+        _check("survival/hazard outcome labels are finite and live", bool(hazard_label_review.get("ready")), hazard_label_review),
         _check("logged HOLD/EXIT_NOW actions match terminal semantics", logged_action_ok, {"action_counts": action_counts}),
         _check("HOLD next-row pointers are intra-episode and terminal rows stop", bool(pointer_review.get("ready")), pointer_review),
         _check(
@@ -344,11 +464,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     decision = READY_DECISION if ready else BLOCKED_DECISION
     state_feature_contract = {
         "state_timing": "AS_OF_CLOSED_M5_BAR_T_WITH_ENTRY_SNAPSHOT",
-        "state_feature_names": list(STATE_FEATURES),
-        "numeric_state_features": list(NUMERIC_STATE_FEATURES),
+        "state_feature_names": list(active_state_features),
+        "numeric_state_features": list(active_numeric_state_features),
         "categorical_state_features": ["session", "vol_regime", "side"],
         "provenance_fields_not_state": list(STATE_PROVENANCE_FIELDS),
         "forbidden_state_fields": list(FORBIDDEN_STATE_FIELDS),
+        "specialist_gate_mode_review": gate_mode_review,
     }
     reward_contract = {
         "action_set": ACTION_ID,
@@ -357,6 +478,17 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "forced_terminal_hold_reward_bps": "realized net PnL when historical data terminates an attempted HOLD at terminal row",
         "exit_now_reward_bps": "running close PnL at the current closed M5 bar",
         "logged_reward_bps": "0 for logged HOLD, realized net PnL for logged EXIT_NOW",
+        "survival_hazard_labels": {
+            "future_max_running_pnl_bps": "best future closed-bar running PnL from current row through terminal",
+            "future_min_running_pnl_bps": "worst future closed-bar running PnL from current row through terminal",
+            "future_best_exit_lift_bps": "remaining upside if HOLD can still improve over EXIT_NOW",
+            "future_adverse_excursion_bps": "worst future loss of running PnL after current row",
+            "future_giveback_from_peak_bps": "episode peak MFE still at risk of giveback from current row",
+            "exit_hazard_adverse_15bps_label": "future adverse excursion reaches at least 15 bps",
+            "exit_hazard_giveback_20bps_label": "future giveback from episode peak is at least 20 bps",
+            "positive_mfe_stopout_episode_label": "episode eventually stopped out after having positive MFE",
+            "oracle_exit_before_giveback_label": "diagnostic oracle label: little remaining upside, material adverse risk, current PnL positive",
+        },
         "reward_fields": list(REWARD_FIELDS),
         "discount_default_gamma": 0.99,
     }
@@ -376,11 +508,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "dataset_rows": int(len(state_reward)),
         "episode_count": int(state_reward["exit_episode_id"].nunique()) if "exit_episode_id" in state_reward.columns else 0,
         "state_feature_contract": state_feature_contract,
-        "state_feature_names": list(STATE_FEATURES),
+        "state_feature_names": list(active_state_features),
+        "specialist_gate_mode_review": gate_mode_review,
         "reward_contract": reward_contract,
         "action_counts": action_counts,
         "numeric_state_review": numeric_state_review,
         "reward_review": reward_review,
+        "hazard_label_review": hazard_label_review,
         "pointer_review": pointer_review,
         "checks": checks,
         "failures": failures,

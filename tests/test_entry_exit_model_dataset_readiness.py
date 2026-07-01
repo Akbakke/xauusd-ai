@@ -25,6 +25,21 @@ NUMERIC = [
 ]
 CATEGORICAL = ["session", "vol_regime", "side"]
 STATE_FEATURES = [*NUMERIC, *CATEGORICAL]
+EXTRA_REWARD_OUTCOMES = {
+    "exit_now_mfe_capture_ratio_reward": 0.5,
+    "exit_now_mae_penalty_reward_bps": 2.0,
+    "exit_now_giveback_penalty_reward_bps": -1.0,
+    "exit_now_transparent_combined_reward_bps": 3.0,
+    "future_max_running_pnl_bps": 8.0,
+    "future_min_running_pnl_bps": -2.0,
+    "future_best_exit_lift_bps": 4.0,
+    "future_adverse_excursion_bps": 6.0,
+    "future_giveback_from_peak_bps": 7.0,
+    "exit_hazard_adverse_15bps_label": 1,
+    "exit_hazard_giveback_20bps_label": 0,
+    "positive_mfe_stopout_episode_label": 0,
+    "oracle_exit_before_giveback_label": 0,
+}
 
 
 def _dataset() -> pd.DataFrame:
@@ -37,8 +52,7 @@ def _dataset() -> pd.DataFrame:
         vol_regime = "2" if episode % 3 == 0 else "3"
         for step in range(3):
             terminal = step == 2
-            rows.append(
-                {
+            row = {
                     "entry_trade_id": f"trade_{episode}",
                     "bar_ts": f"2026-01-01T0{episode}:{step * 5:02d}:00+00:00",
                     "bar_index": step,
@@ -79,7 +93,8 @@ def _dataset() -> pd.DataFrame:
                     "next_exit_timestep": np.nan if terminal else step + 1,
                     "next_row_available": not terminal,
                 }
-            )
+            row.update(EXTRA_REWARD_OUTCOMES)
+            rows.append(row)
     return pd.DataFrame(rows)
 
 

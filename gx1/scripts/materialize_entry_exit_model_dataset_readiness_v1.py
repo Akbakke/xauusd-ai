@@ -43,6 +43,19 @@ REQUIRED_REWARD_COLUMNS = (
     "exit_now_reward_bps",
     "logged_reward_bps",
     "terminal_reward_realized_net_pnl_bps",
+    "exit_now_mfe_capture_ratio_reward",
+    "exit_now_mae_penalty_reward_bps",
+    "exit_now_giveback_penalty_reward_bps",
+    "exit_now_transparent_combined_reward_bps",
+    "future_max_running_pnl_bps",
+    "future_min_running_pnl_bps",
+    "future_best_exit_lift_bps",
+    "future_adverse_excursion_bps",
+    "future_giveback_from_peak_bps",
+    "exit_hazard_adverse_15bps_label",
+    "exit_hazard_giveback_20bps_label",
+    "positive_mfe_stopout_episode_label",
+    "oracle_exit_before_giveback_label",
 )
 REQUIRED_TRANSITION_COLUMNS = (
     "next_exit_episode_id",
@@ -70,6 +83,10 @@ SHORTCUT_TOKENS = (
     "exit_time",
     "exit_reason",
     "next_exit_",
+    "future_",
+    "hazard_",
+    "oracle_",
+    "positive_mfe_stopout",
 )
 
 
