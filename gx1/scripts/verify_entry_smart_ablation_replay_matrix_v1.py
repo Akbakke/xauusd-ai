@@ -374,6 +374,112 @@ def _slice_nonfinite_summary(slices: pd.DataFrame) -> dict[str, Any]:
     return summary
 
 
+def _metric_row(metrics: pd.DataFrame) -> dict[str, Any]:
+    if metrics.empty:
+        return {}
+    frame = metrics.copy()
+    if "scope" in frame.columns:
+        aggregate = frame[frame["scope"].astype(str).str.lower().eq("aggregate")]
+        if not aggregate.empty:
+            frame = aggregate
+    if "fold" in frame.columns:
+        all_fold = frame[frame["fold"].astype(str).str.upper().eq("ALL")]
+        if not all_fold.empty:
+            frame = all_fold
+    if "net_sum_bps" in frame.columns:
+        values = pd.to_numeric(frame["net_sum_bps"], errors="coerce")
+        if bool(values.notna().any()):
+            return frame.iloc[int(values.fillna(-np.inf).to_numpy().argmax())].to_dict()
+    return frame.iloc[0].to_dict()
+
+
+def _num(row: dict[str, Any], key: str) -> float | None:
+    value = pd.to_numeric(pd.Series([row.get(key)]), errors="coerce").iloc[0]
+    if pd.isna(value) or not np.isfinite(float(value)):
+        return None
+    return float(value)
+
+
+def _metrics_summary(metrics: pd.DataFrame) -> dict[str, Any]:
+    row = _metric_row(metrics)
+    if not row:
+        return {}
+    out: dict[str, Any] = {}
+    for key in (
+        "policy_id",
+        "n_trades",
+        "net_sum_bps",
+        "profit_factor",
+        "max_drawdown_bps",
+        "win_rate",
+        "direction_precision",
+        "mean_mae_bps",
+        "mean_mfe_bps",
+        "avg_trades_per_day",
+    ):
+        if key not in row:
+            continue
+        if key == "policy_id":
+            out[key] = str(row.get(key) or "")
+            continue
+        value = _num(row, key)
+        out[key] = int(value) if key == "n_trades" and value is not None else value
+    return out
+
+
+def _monthly_summary(monthly: pd.DataFrame) -> dict[str, Any]:
+    if monthly.empty or "net_sum_bps" not in monthly.columns:
+        return {"months": int(len(monthly)), "negative_months": None, "min_month_net_bps": None}
+    values = pd.to_numeric(monthly["net_sum_bps"], errors="coerce")
+    valid = monthly.loc[values.notna()].copy()
+    if valid.empty:
+        return {"months": int(len(monthly)), "negative_months": None, "min_month_net_bps": None}
+    valid["_net_sum_bps_num"] = pd.to_numeric(valid["net_sum_bps"], errors="coerce")
+    worst = valid.sort_values("_net_sum_bps_num", ascending=True).iloc[0].to_dict()
+    month_label = str(worst.get("entry_month") or worst.get("month") or "")
+    min_month = _num(worst, "_net_sum_bps_num")
+    negative_months = int((valid["_net_sum_bps_num"] < 0).sum())
+    return {
+        "months": int(len(valid)),
+        "negative_months": negative_months,
+        "all_months_positive": negative_months == 0,
+        "min_month_net_bps": min_month,
+        "worst_month": month_label,
+    }
+
+
+def _slice_edge_summary(slices: pd.DataFrame) -> dict[str, Any]:
+    if slices.empty or "net_sum_bps" not in slices.columns:
+        return {"slices": int(len(slices)), "negative_slices": None, "worst_slice": {}}
+    frame = slices.copy()
+    frame["_net_sum_bps_num"] = pd.to_numeric(frame["net_sum_bps"], errors="coerce")
+    valid = frame.loc[frame["_net_sum_bps_num"].notna()]
+    if valid.empty:
+        return {"slices": int(len(slices)), "negative_slices": None, "worst_slice": {}}
+    worst = valid.sort_values("_net_sum_bps_num", ascending=True).iloc[0].to_dict()
+    family_col = "slice_family" if "slice_family" in valid.columns else "scope" if "scope" in valid.columns else ""
+    value_col = "slice_value" if "slice_value" in valid.columns else "value" if "value" in valid.columns else ""
+    by_family: dict[str, Any] = {}
+    if family_col:
+        for family, group in valid.groupby(family_col, dropna=False):
+            values = pd.to_numeric(group["_net_sum_bps_num"], errors="coerce")
+            by_family[str(family)] = {
+                "slice_count": int(len(group)),
+                "min_net_sum_bps": float(values.min()) if len(values) else None,
+                "negative_slices": int((values < 0).sum()),
+            }
+    return {
+        "slices": int(len(valid)),
+        "negative_slices": int((valid["_net_sum_bps_num"] < 0).sum()),
+        "worst_slice": {
+            "family": str(worst.get(family_col) or "") if family_col else "",
+            "value": str(worst.get(value_col) or "") if value_col else "",
+            "net_sum_bps": _num(worst, "_net_sum_bps_num"),
+        },
+        "by_family": by_family,
+    }
+
+
 def _artifact_hashes_from_manifest(manifest: dict[str, Any]) -> dict[str, Any]:
     for source in _nested_dicts(manifest):
         artifact_hashes = source.get("artifact_hashes")
@@ -523,6 +629,9 @@ def _validate_replay_arm(
         "trades_rows": int(len(trades)),
         "slices_rows": int(len(slices)),
         "metrics_columns": list(metrics.columns),
+        "metrics_summary": _metrics_summary(metrics),
+        "monthly_summary": _monthly_summary(monthly),
+        "slice_edge_summary": _slice_edge_summary(slices),
         "slice_scopes": slice_scopes,
         "artifact_hashes": artifact_hash_review,
         "plan_arm": _canonical_arm_signature(arm),
@@ -546,9 +655,28 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
         "",
     ]
     for arm in report["ablation_results"]:
+        identity = arm.get("identity") if isinstance(arm.get("identity"), dict) else {}
+        metrics = identity.get("metrics_summary") if isinstance(identity.get("metrics_summary"), dict) else {}
+        monthly = identity.get("monthly_summary") if isinstance(identity.get("monthly_summary"), dict) else {}
+        slices = identity.get("slice_edge_summary") if isinstance(identity.get("slice_edge_summary"), dict) else {}
+        edge_bits = []
+        if metrics:
+            edge_bits.extend(
+                [
+                    f"n={metrics.get('n_trades')}",
+                    f"net={metrics.get('net_sum_bps')}",
+                    f"PF={metrics.get('profit_factor')}",
+                    f"DD={metrics.get('max_drawdown_bps')}",
+                ]
+            )
+        if monthly:
+            edge_bits.append(f"neg_months={monthly.get('negative_months')}")
+        if slices:
+            edge_bits.append(f"neg_slices={slices.get('negative_slices')}")
+        suffix = f"; {'; '.join(edge_bits)}" if edge_bits else ""
         lines.append(
             f"- `{arm['ablation_id']}`: `{arm['decision']}` "
-            f"({arm['passed']}/{arm['total']} checks)"
+            f"({arm['passed']}/{arm['total']} checks{suffix})"
         )
     lines.extend(["", "## Failures", ""])
     if report["failures"]:

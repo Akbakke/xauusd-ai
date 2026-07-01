@@ -730,6 +730,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     out_dir = Path(args.out_dir).expanduser().resolve()
     candidate_bundle_audit_path = Path(args.candidate_bundle_audit_json).expanduser().resolve()
     selective_edge_summary_path = Path(args.selective_edge_summary_json).expanduser().resolve()
+    ablation_id = str(args.ablation_id or "").strip()
+    policy_id = str(args.policy_id or "").strip()
     out_dir.mkdir(parents=True, exist_ok=True)
     raw = _read_table(trades_path)
     identity = _identity_contract(
@@ -790,6 +792,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "created_utc": datetime.now(timezone.utc).isoformat(),
         "decision": "PASS" if not failures else "FAIL",
         "contract_mode": identity["contract_mode"],
+        "ablation_id": ablation_id,
+        "policy_id": policy_id,
         "trades_path": str(trades_path),
         "out_dir": str(out_dir),
         "candidate_bundle_audit_json": str(candidate_bundle_audit_path),
@@ -858,6 +862,7 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--candidate-bundle-audit-json", default=str(DEFAULT_CANDIDATE_BUNDLE_AUDIT))
     ap.add_argument("--selective-edge-summary-json", default=str(DEFAULT_SELECTIVE_EDGE_SUMMARY))
     ap.add_argument("--policy-id", default="candidate_replay")
+    ap.add_argument("--ablation-id", default="")
     ap.add_argument("--require-year", type=int, default=2026)
     ap.add_argument("--allow-non-2026", action="store_true")
     ap.add_argument("--contract-mode", choices=tuple(CONTRACT_INPUT_DIMS), default=None)
