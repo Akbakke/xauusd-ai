@@ -60,6 +60,8 @@ def _selective_summary() -> dict:
                     "model": model,
                     "top5_all_mean_pnl_bps": 3.2,
                     "top10_all_mean_pnl_bps": 2.1,
+                    "top5_all_direction_precision": 0.57,
+                    "top10_all_direction_precision": 0.56,
                 }
             )
     return {
@@ -117,19 +119,24 @@ def _selective_summary() -> dict:
 
 
 def _selective_metrics() -> pd.DataFrame:
-    return pd.DataFrame(
-        {
-            "split": ["val", "test"],
-            "model": ["candidate", "candidate"],
-            "scope": ["top_score", "top_score"],
-            "top_frac": [0.05, 0.05],
-            "group": ["session=EU", "session=US"],
-            "n": [25, 31],
-            "mean_pnl_bps": [3.0, 2.5],
-            "win_rate": [0.56, 0.55],
-            "direction_precision": [0.57, 0.56],
-        }
-    )
+    rows = []
+    for split, session in (("val", "EU"), ("test", "US")):
+        for top_frac in (0.05, 0.10):
+            for group in ("ALL", f"session={session}", "side=LONG", "vol_regime=2"):
+                rows.append(
+                    {
+                        "split": split,
+                        "model": "candidate",
+                        "scope": "top_score",
+                        "top_frac": top_frac,
+                        "group": group,
+                        "n": 31 if split == "test" else 25,
+                        "mean_pnl_bps": 2.5 if split == "test" else 3.0,
+                        "win_rate": 0.55 if split == "test" else 0.56,
+                        "direction_precision": 0.56 if split == "test" else 0.57,
+                    }
+                )
+    return pd.DataFrame(rows)
 
 
 def _replay_metrics() -> pd.DataFrame:
@@ -324,6 +331,49 @@ def test_selective_edge_checks_accept_smart_dataset_contract() -> None:
     )
 
     assert all(check["ok"] for check in checks)
+
+
+def test_selective_edge_checks_reject_low_selected_tail_direction_precision() -> None:
+    summary = _selective_summary()
+    for row in summary["summaries"]:
+        if row["model"] == "candidate" and row["split"] == "test":
+            row["top5_all_direction_precision"] = 0.49
+
+    checks = _selective_edge_checks(
+        summary,
+        _selective_metrics(),
+        model_name="candidate",
+        min_top5_mean_pnl_bps=0.0,
+        min_top10_mean_pnl_bps=0.0,
+        require_no_xgb_ablation=True,
+        expected_bundle_dir="/tmp/candidate_bundle",
+    )
+    failed = {check["name"] for check in checks if not check["ok"]}
+
+    assert "candidate top5 selected-tail direction precision clears threshold on val/test" in failed
+
+
+def test_selective_edge_checks_reject_low_selected_tail_direction_slice() -> None:
+    metrics = _selective_metrics()
+    metrics.loc[
+        (metrics["split"] == "test")
+        & (metrics["group"] == "session=US")
+        & (metrics["top_frac"] == 0.05),
+        "direction_precision",
+    ] = 0.49
+
+    checks = _selective_edge_checks(
+        _selective_summary(),
+        metrics,
+        model_name="candidate",
+        min_top5_mean_pnl_bps=0.0,
+        min_top10_mean_pnl_bps=0.0,
+        require_no_xgb_ablation=True,
+        expected_bundle_dir="/tmp/candidate_bundle",
+    )
+    failed = {check["name"] for check in checks if not check["ok"]}
+
+    assert "selective-edge selected-tail direction slices clear threshold" in failed
 
 
 def test_selective_edge_checks_reject_mismatched_candidate_bundle() -> None:

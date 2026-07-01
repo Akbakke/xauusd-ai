@@ -251,6 +251,11 @@ Active status:
   drawdown about 418 bps and max loss -45 bps. Its direction precision is only
   about 0.478, so the policy is edge-positive through selective ranking and
   risk/exit controls, not through strong broad direction accuracy.
+- Replay-readiness now treats selected-tail direction quality as a hard
+  contract: candidate top-5/top-10 selected tails and supported
+  session/side/vol-regime slices must clear the configured direction precision
+  threshold before IQL distillation authority can open. PnL filtering may not
+  hide a weak long/short direction model.
 - The selected smart IQL replay
   `smart_seq520_iql_student_stop_tp_mfe_protect_act1_sl45_broad_net_min190_v2`
   passes with 735 trades, net about 3886 bps, profit factor about 3.13, max

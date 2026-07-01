@@ -255,6 +255,11 @@ The 2026-07-01 operating point is feature-harmony clean but not promotion-ready:
   target class-distribution calibration, selected-tail direction quality,
   bad-path/path-quality semantics and exit timing rather than celebrating broad
   accuracy.
+- Replay-readiness now fails closed on weak selected-tail direction quality:
+  candidate top-5/top-10 selected tails and supported session/side/vol-regime
+  slices must clear the configured direction precision threshold before IQL
+  distillation authority can open. PnL filtering may not hide a weak long/short
+  direction model.
 - Smart selected slice audit now fails closed on path-signal calibration:
   `path_quality_pred` is wrong-signed for net PnL and stop-loss behavior on
   both candidate and IQL, and `bad_path_prob` is wrong-signed versus stop-loss

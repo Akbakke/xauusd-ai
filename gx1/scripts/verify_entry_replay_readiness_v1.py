@@ -159,6 +159,81 @@ def _all_split_metric_gt(summary: dict[str, Any], model_name: str, key: str, thr
     return len(required) == 2 and all(values[split] is not None and float(values[split]) > float(threshold) for split in required)
 
 
+def _all_split_metric_ge(summary: dict[str, Any], model_name: str, key: str, threshold: float) -> bool:
+    values = _split_metric(summary, model_name, key)
+    required = [split for split in ("val", "test") if split in values]
+    if len(required) != 2:
+        return False
+    for split in required:
+        value = values.get(split)
+        if value is None:
+            return False
+        try:
+            numeric = float(value)
+        except (TypeError, ValueError):
+            return False
+        if not np.isfinite(numeric) or numeric < float(threshold):
+            return False
+    return True
+
+
+def _selected_tail_direction_slice_report(
+    metrics: pd.DataFrame,
+    *,
+    model_name: str,
+    min_direction_precision: float,
+    min_rows: int,
+) -> dict[str, Any]:
+    required_columns = {"split", "model", "scope", "top_frac", "group", "n", "direction_precision"}
+    metric_columns = set(str(c) for c in metrics.columns)
+    if metrics.empty or not required_columns.issubset(metric_columns):
+        return {
+            "checked_rows": 0,
+            "failed_rows": 0,
+            "failures": [],
+            "missing_columns": sorted(required_columns - metric_columns),
+        }
+    rows = metrics[
+        (metrics["model"].astype(str) == str(model_name))
+        & (metrics["scope"].astype(str) == "top_score")
+    ].copy()
+    if rows.empty:
+        return {"checked_rows": 0, "failed_rows": 0, "failures": [], "missing_columns": []}
+    groups = rows["group"].astype(str)
+    top_frac = pd.to_numeric(rows["top_frac"], errors="coerce")
+    n = pd.to_numeric(rows["n"], errors="coerce")
+    wanted_group = (
+        (groups == "ALL")
+        | groups.str.startswith("session=")
+        | groups.str.startswith("side=")
+        | groups.str.startswith("vol_regime=")
+    )
+    wanted_frac = np.isclose(top_frac.astype(float), 0.05) | np.isclose(top_frac.astype(float), 0.10)
+    eligible = rows[wanted_group & wanted_frac & (n >= int(min_rows))].copy()
+    if eligible.empty:
+        return {"checked_rows": 0, "failed_rows": 0, "failures": [], "missing_columns": []}
+    eligible_direction = pd.to_numeric(eligible["direction_precision"], errors="coerce")
+    failed = eligible[(~np.isfinite(eligible_direction)) | (eligible_direction < float(min_direction_precision))].copy()
+    failures = []
+    for _, row in failed.head(25).iterrows():
+        value = pd.to_numeric(pd.Series([row.get("direction_precision")]), errors="coerce").iloc[0]
+        failures.append(
+            {
+                "split": str(row.get("split")),
+                "group": str(row.get("group")),
+                "top_frac": float(row.get("top_frac")),
+                "n": int(row.get("n")),
+                "direction_precision": None if pd.isna(value) else float(value),
+            }
+        )
+    return {
+        "checked_rows": int(len(eligible)),
+        "failed_rows": int(len(failed)),
+        "failures": failures,
+        "missing_columns": [],
+    }
+
+
 def _selective_edge_checks(
     summary: dict[str, Any],
     metrics: pd.DataFrame,
@@ -167,6 +242,9 @@ def _selective_edge_checks(
     min_top5_mean_pnl_bps: float,
     min_top10_mean_pnl_bps: float,
     require_no_xgb_ablation: bool,
+    min_top_direction_precision: float = 0.50,
+    min_direction_slice_precision: float = 0.50,
+    min_direction_slice_n: int = 20,
     expected_bundle_dir: str | None = None,
     expected_dataset_dir: Path = FOUNDATION_DATASET_DIR,
     expected_contract_mode: str = "foundation_seq146",
@@ -233,6 +311,8 @@ def _selective_edge_checks(
     candidate_by_split = _summary_by_split(summary, model_name)
     top5 = _split_metric(summary, model_name, "top5_all_mean_pnl_bps")
     top10 = _split_metric(summary, model_name, "top10_all_mean_pnl_bps")
+    top5_direction = _split_metric(summary, model_name, "top5_all_direction_precision")
+    top10_direction = _split_metric(summary, model_name, "top10_all_direction_precision")
     required_columns = {
         "split",
         "model",
@@ -252,6 +332,12 @@ def _selective_edge_checks(
             & (metrics["scope"].astype(str) == "top_score")
             & (metrics["group"].astype(str).str.startswith("session="))
         ]
+    direction_slice_report = _selected_tail_direction_slice_report(
+        metrics,
+        model_name=model_name,
+        min_direction_precision=min_direction_slice_precision,
+        min_rows=min_direction_slice_n,
+    )
     return [
         _check("selective-edge summary PASS", str(summary.get("decision")) == "PASS", {"failures": summary.get("failures")}),
         _check("selective-edge summary has zero failures", not summary.get("failures"), {"failures": summary.get("failures")}),
@@ -345,6 +431,16 @@ def _selective_edge_checks(
             _all_split_metric_gt(summary, model_name, "top10_all_mean_pnl_bps", min_top10_mean_pnl_bps),
             {"threshold": min_top10_mean_pnl_bps, "top10_all_mean_pnl_bps": top10},
         ),
+        _check(
+            "candidate top5 selected-tail direction precision clears threshold on val/test",
+            _all_split_metric_ge(summary, model_name, "top5_all_direction_precision", min_top_direction_precision),
+            {"threshold": min_top_direction_precision, "top5_all_direction_precision": top5_direction},
+        ),
+        _check(
+            "candidate top10 selected-tail direction precision clears threshold on val/test",
+            _all_split_metric_ge(summary, model_name, "top10_all_direction_precision", min_top_direction_precision),
+            {"threshold": min_top_direction_precision, "top10_all_direction_precision": top10_direction},
+        ),
         _check("selective-edge metrics CSV exists and has rows", not metrics.empty, {"rows": int(len(metrics))}),
         _check(
             "selective-edge metrics CSV has required columns",
@@ -355,6 +451,16 @@ def _selective_edge_checks(
             "selective-edge metrics include session slices",
             len(slice_rows) > 0,
             {"session_slice_rows": int(len(slice_rows))},
+        ),
+        _check(
+            "selective-edge selected-tail direction slices clear threshold",
+            int(direction_slice_report.get("checked_rows") or 0) > 0
+            and int(direction_slice_report.get("failed_rows") or 0) == 0,
+            {
+                "threshold": min_direction_slice_precision,
+                "min_rows": min_direction_slice_n,
+                **direction_slice_report,
+            },
         ),
     ]
 
@@ -809,6 +915,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             min_top5_mean_pnl_bps=float(args.min_top5_mean_pnl_bps),
             min_top10_mean_pnl_bps=float(args.min_top10_mean_pnl_bps),
             require_no_xgb_ablation=bool(args.require_no_xgb_ablation),
+            min_top_direction_precision=float(getattr(args, "min_top_direction_precision", 0.50)),
+            min_direction_slice_precision=float(getattr(args, "min_direction_slice_precision", 0.50)),
+            min_direction_slice_n=int(getattr(args, "min_direction_slice_n", 20)),
             expected_bundle_dir=expected_candidate_bundle_dir,
             expected_dataset_dir=expected_dataset_dir,
             expected_contract_mode=contract_mode,
@@ -917,6 +1026,9 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--model-name", default="candidate")
     ap.add_argument("--min-top5-mean-pnl-bps", type=float, default=0.0)
     ap.add_argument("--min-top10-mean-pnl-bps", type=float, default=0.0)
+    ap.add_argument("--min-top-direction-precision", type=float, default=0.50)
+    ap.add_argument("--min-direction-slice-precision", type=float, default=0.50)
+    ap.add_argument("--min-direction-slice-n", type=int, default=20)
     ap.add_argument("--min-replay-net-sum-bps", type=float, default=0.0)
     ap.add_argument("--min-profit-factor", type=float, default=1.05)
     ap.add_argument("--max-abs-drawdown-bps", type=float, default=650.0)
