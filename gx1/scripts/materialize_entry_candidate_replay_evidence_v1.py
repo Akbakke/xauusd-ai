@@ -9,6 +9,7 @@ or select implicit latest/legacy artifacts.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -87,6 +88,14 @@ def _read_json_if_exists(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {}
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def _expected_specialists(contract_mode: str) -> list[str]:
@@ -430,6 +439,27 @@ def normalize_trades(raw: pd.DataFrame, *, policy_id: str, require_year: int | N
     )
     out["entry_day"] = out["entry_time"].dt.strftime("%Y-%m-%d")
     out["entry_month"] = out["entry_time"].dt.strftime("%Y-%m")
+    if "tail_bucket" not in out.columns:
+        pnl_values = pd.to_numeric(out["net_pnl_bps"], errors="coerce")
+        p05 = float(pnl_values.quantile(0.05)) if len(pnl_values) else 0.0
+        p10 = float(pnl_values.quantile(0.10)) if len(pnl_values) else 0.0
+        out["tail_bucket"] = np.select(
+            [pnl_values <= p05, pnl_values <= p10],
+            ["tail_loss_p05", "tail_loss_p10"],
+            default="normal",
+        )
+    if "bad_path_bucket" not in out.columns:
+        if "bad_path_prob" in out.columns:
+            bad_path = pd.to_numeric(out["bad_path_prob"], errors="coerce")
+            p75 = float(bad_path.quantile(0.75)) if bad_path.notna().any() else 0.0
+            p90 = float(bad_path.quantile(0.90)) if bad_path.notna().any() else 0.0
+            out["bad_path_bucket"] = np.select(
+                [bad_path >= p90, bad_path >= p75],
+                ["bad_path_p90", "bad_path_p75"],
+                default="normal",
+            )
+        else:
+            out["bad_path_bucket"] = "unknown"
 
     if require_year is not None:
         years = set(int(x) for x in out["entry_time"].dt.year.dropna().astype(int).unique())
@@ -468,6 +498,13 @@ def normalize_trades(raw: pd.DataFrame, *, policy_id: str, require_year: int | N
         "exit_reason",
         "held_bars",
         "horizon_bars",
+        "vol_regime",
+        "tail_bucket",
+        "bad_path_bucket",
+        "threshold_top_frac",
+        "score_threshold",
+        "cost_stress_bps",
+        "policy_config_hash",
         "p_long",
         "p_short",
         "p_flat",
@@ -627,6 +664,42 @@ def build_replay_tables(trades: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFram
     return metrics, daily, monthly
 
 
+def _slice_metrics_row(slice_dimension: str, slice_value: str, policy_id: str, frame: pd.DataFrame) -> dict[str, Any]:
+    row = _metrics_row("slice", f"{slice_dimension}={slice_value}", policy_id, frame)
+    row["slice_family"] = slice_dimension
+    row["slice_dimension"] = slice_dimension
+    row["slice_value"] = slice_value
+    if "bad_path_prob" in frame.columns:
+        bad_path = pd.to_numeric(frame["bad_path_prob"], errors="coerce")
+        row["mean_bad_path_prob"] = _safe_mean(bad_path)
+        row["bad_path_rate"] = float((bad_path >= 0.5).mean()) if len(bad_path) else None
+    if "path_quality_pred" in frame.columns:
+        row["mean_path_quality_pred"] = _safe_mean(frame["path_quality_pred"])
+        row["path_quality_p10"] = _safe_percentile(frame["path_quality_pred"], 10)
+    if "mae_bps" in frame.columns:
+        row["mae_p95_bps"] = _safe_percentile(frame["mae_bps"], 95)
+    return row
+
+
+def build_replay_slices(trades: pd.DataFrame) -> pd.DataFrame:
+    dimensions = [
+        ("session", "session"),
+        ("regime", "vol_regime"),
+        ("direction", "side"),
+        ("tail", "tail_bucket"),
+        ("bad_path", "bad_path_bucket"),
+    ]
+    rows: list[dict[str, Any]] = []
+    for slice_dimension, column in dimensions:
+        if column not in trades.columns:
+            continue
+        work = trades.copy()
+        work[column] = work[column].fillna("UNKNOWN").astype(str)
+        for (policy_id, value), frame in work.groupby(["policy_id", column], sort=True):
+            rows.append(_slice_metrics_row(slice_dimension, str(value), str(policy_id), frame))
+    return pd.DataFrame(rows)
+
+
 def _write_markdown(path: Path, report: dict[str, Any]) -> None:
     lines = [
         "# Entry Candidate Replay Evidence",
@@ -668,6 +741,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     )
     failures.extend(identity["failures"])
     metrics, daily, monthly = build_replay_tables(trades)
+    slices = build_replay_slices(trades)
     iql_transition_audit = audit_iql_transition_trades(trades)
     if bool(args.require_iql_transition_fields):
         failures.extend(iql_transition_audit["failures"])
@@ -684,6 +758,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     metrics_out = out_dir / "replay_policy_metrics.csv"
     daily_out = out_dir / "replay_policy_daily.csv"
     monthly_out = out_dir / "replay_policy_monthly.csv"
+    slices_out = out_dir / "replay_policy_slices.csv"
     summary_out = out_dir / "summary.json"
     manifest_out = out_dir / "REPLAY_EVIDENCE_MANIFEST.json"
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
@@ -694,6 +769,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     metrics.to_csv(metrics_out, index=False)
     daily.to_csv(daily_out, index=False)
     monthly.to_csv(monthly_out, index=False)
+    slices.to_csv(slices_out, index=False)
+    artifact_hashes = {
+        "replay_policy_trades.csv": _sha256_file(trades_out),
+        "replay_policy_metrics.csv": _sha256_file(metrics_out),
+        "replay_policy_daily.csv": _sha256_file(daily_out),
+        "replay_policy_monthly.csv": _sha256_file(monthly_out),
+        "replay_policy_slices.csv": _sha256_file(slices_out),
+    }
 
     best_row = best.sort_values("net_sum_bps", ascending=False).iloc[0].to_dict() if not best.empty else {}
     report = {
@@ -716,8 +799,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "metrics_csv": str(metrics_out),
         "daily_csv": str(daily_out),
         "monthly_csv": str(monthly_out),
+        "slices_csv": str(slices_out),
         "summary_json": str(summary_out),
         "manifest_json": str(manifest_out),
+        "artifact_hashes": artifact_hashes,
         "iql_transition_dataset_ready": bool(iql_transition_audit["ready"]),
         "iql_transition_contract": iql_transition_audit,
         "json_path": str(report_json),

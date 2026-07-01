@@ -8,6 +8,7 @@ from gx1.features.entry_specialist_feature_groups_v1 import required_training_sp
 from gx1.scripts.materialize_entry_candidate_replay_evidence_v1 import (
     _identity_contract,
     audit_iql_transition_trades,
+    build_replay_slices,
     build_replay_tables,
     normalize_trades,
     run,
@@ -102,6 +103,7 @@ def _raw_trades() -> pd.DataFrame:
             ],
             "policy_id": ["candidate_top5"] * 4,
             "session": ["EU", "EU", "US", "US"],
+            "vol_regime": ["2", "2", "3", "3"],
             "side": ["LONG", "SHORT", "LONG", "SHORT"],
             "label": ["LONG", "SHORT", "LONG", "LONG"],
             "score": [0.8, 0.7, 0.75, 0.6],
@@ -113,6 +115,8 @@ def _raw_trades() -> pd.DataFrame:
             "mfe_bps": [140.0, 10.0, 110.0, 50.0],
             "mae_bps": [10.0, 35.0, 12.0, 20.0],
             "held_bars": [12, 8, 10, 6],
+            "bad_path_prob": [0.10, 0.70, 0.20, 0.35],
+            "path_quality_pred": [0.90, 0.30, 0.80, 0.60],
             "foundation_bos_age_long": [3, 12, 4, 8],
             "specialist_structure_gate": [0.21, 0.18, 0.25, 0.17],
         }
@@ -133,6 +137,9 @@ def test_normalize_trades_requires_2026_and_derives_fields() -> None:
     assert failures == []
     assert list(trades["entry_month"].unique()) == ["2026-01", "2026-02"]
     assert "direction_correct" in trades.columns
+    assert "vol_regime" in trades.columns
+    assert "tail_bucket" in trades.columns
+    assert "bad_path_bucket" in trades.columns
     assert "foundation_bos_age_long" in trades.columns
     assert "specialist_structure_gate" in trades.columns
     assert int(trades["direction_correct"].sum()) == 3
@@ -161,9 +168,13 @@ def test_iql_transition_audit_fails_when_probabilities_are_missing() -> None:
 def test_build_replay_tables_matches_replay_readiness_contract(tmp_path: Path) -> None:
     trades, _ = normalize_trades(_raw_trades(), policy_id="candidate_top5", require_year=2026, allow_non_2026=False)
     metrics, _daily, monthly = build_replay_tables(trades)
+    slices = build_replay_slices(trades)
 
     assert {"policy_id", "n_trades", "net_sum_bps", "win_rate", "profit_factor", "max_drawdown_bps", "max_loss_bps"}.issubset(metrics.columns)
     assert "month" in monthly.columns
+    assert {"session", "regime", "direction", "tail", "bad_path"}.issubset(
+        set(slices["slice_dimension"])
+    )
     replay_dir = tmp_path / "replay"
     replay_dir.mkdir()
     candidate_audit, selective_summary = _write_identity_artifacts(tmp_path)
@@ -236,6 +247,9 @@ def test_replay_evidence_run_writes_readiness_files(tmp_path: Path) -> None:
     assert report["promotion_shadow_live_allowed"] is False
     assert (out_dir / "replay_policy_metrics.csv").exists()
     assert (out_dir / "replay_policy_monthly.csv").exists()
+    assert (out_dir / "replay_policy_slices.csv").exists()
+    assert (out_dir / "replay_policy_slices.csv").stat().st_size > 0
+    assert "replay_policy_slices.csv" in report["artifact_hashes"]
     assert json.loads((out_dir / "summary.json").read_text())["decision"] == "PASS"
 
 
