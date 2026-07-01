@@ -174,12 +174,45 @@ def _passes_validation_constraints(metrics: dict[str, Any], args: argparse.Names
 def _selection_tuple(metrics: dict[str, Any], args: argparse.Namespace) -> tuple[float, float, float, float]:
     if not _passes_validation_constraints(metrics, args):
         return (-float("inf"), -float("inf"), -float("inf"), -float("inf"))
-    # Path-quality first: prefer high average reward, then lower drawdown, then total reward/PF.
     mean_pnl = float(metrics.get("net_mean_bps") or 0.0)
     drawdown = float(metrics.get("max_drawdown_bps") or 0.0)
     net = float(metrics.get("net_sum_bps") or 0.0)
     pf = float(metrics.get("profit_factor") or 0.0)
+    if str(getattr(args, "selection_objective", "mean")) == "net":
+        return (net, -drawdown, mean_pnl, pf)
+    # Path-quality first: prefer high average reward, then lower drawdown, then total reward/PF.
     return (mean_pnl, -drawdown, net, pf)
+
+
+def _parse_optional_float_grid(raw: str) -> list[float | None]:
+    values: list[float | None] = []
+    for part in str(raw or "").split(","):
+        token = part.strip()
+        if not token:
+            continue
+        if token.lower() in {"none", "off", "null"}:
+            values.append(None)
+        else:
+            values.append(float(token))
+    return values or [None]
+
+
+def _apply_student_risk_filters(
+    frame: pd.DataFrame,
+    *,
+    max_bad_path_prob: float | None,
+    min_path_quality_pred: float | None,
+) -> pd.DataFrame:
+    mask = pd.Series(True, index=frame.index)
+    if max_bad_path_prob is not None:
+        if "bad_path_prob" not in frame.columns:
+            return frame.iloc[0:0].copy()
+        mask &= pd.to_numeric(frame["bad_path_prob"], errors="coerce").le(float(max_bad_path_prob)).fillna(False)
+    if min_path_quality_pred is not None:
+        if "path_quality_pred" not in frame.columns:
+            return frame.iloc[0:0].copy()
+        mask &= pd.to_numeric(frame["path_quality_pred"], errors="coerce").ge(float(min_path_quality_pred)).fillna(False)
+    return frame.loc[mask].copy()
 
 
 def _annotate_student_trades(trades: list[dict[str, Any]], *, selected: dict[str, Any], args: argparse.Namespace) -> pd.DataFrame:
@@ -189,12 +222,18 @@ def _annotate_student_trades(trades: list[dict[str, Any]], *, selected: dict[str
     frame["policy_id"] = str(args.policy_id)
     frame["student_policy_id"] = str(args.policy_id)
     frame["student_policy_source"] = "entry_iql_val_reward_selection_v1"
-    frame["student_selection_metric"] = "validation_net_mean_bps_then_drawdown"
+    frame["student_selection_metric"] = (
+        "validation_net_sum_bps_then_drawdown"
+        if str(getattr(args, "selection_objective", "mean")) == "net"
+        else "validation_net_mean_bps_then_drawdown"
+    )
     frame["student_selected_top_frac"] = float(selected["threshold_top_frac"])
     frame["student_selected_stop_loss_bps"] = float(selected["stop_loss_bps"])
     frame["student_selected_take_profit_bps"] = float(selected["take_profit_bps"])
     frame["student_selected_daily_loss_limit_bps"] = float(selected["daily_loss_limit_bps"])
     frame["student_selected_cost_stress_bps"] = float(selected["cost_stress_bps"])
+    frame["student_selected_max_bad_path_prob"] = selected.get("max_bad_path_prob")
+    frame["student_selected_min_path_quality_pred"] = selected.get("min_path_quality_pred")
     frame["teacher_model"] = str(args.model_name)
     frame["teacher_score"] = pd.to_numeric(frame["score"], errors="coerce")
     frame["teacher_p_long"] = pd.to_numeric(frame["p_long"], errors="coerce")
@@ -236,76 +275,91 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     take_profit_values = _parse_float_list(str(args.take_profit_bps_grid))
     daily_loss_values = _parse_float_list(str(args.daily_loss_limit_bps_grid))
     cost_values = _parse_float_list(str(args.cost_stress_bps))
-    val_scores = pd.to_numeric(val["edge_score"], errors="coerce").to_numpy(np.float64)
+    max_bad_path_values = _parse_optional_float_grid(str(args.max_bad_path_prob_grid))
+    min_path_quality_values = _parse_optional_float_grid(str(args.min_path_quality_pred_grid))
+    base_val_scores = pd.to_numeric(val["edge_score"], errors="coerce").to_numpy(np.float64)
 
     validation_rows: list[dict[str, Any]] = []
     selected_row: dict[str, Any] | None = None
     selected_tuple = (-float("inf"), -float("inf"), -float("inf"), -float("inf"))
 
-    for top_frac in top_fracs:
-        threshold = _threshold_from_scores(val_scores, float(top_frac), float(args.min_score_floor))
-        for take_profit_bps in take_profit_values:
-            for daily_loss_limit_bps in daily_loss_values:
-                for cost_bps in cost_values:
-                    policy_config = {
-                        "student_policy_source": "entry_iql_val_reward_selection_v1",
-                        "model_name": str(args.model_name),
-                        "threshold_top_frac": float(top_frac),
-                        "score_threshold": float(threshold),
-                        "exit_mode": "stop_tp",
-                        "stop_loss_bps": float(args.stop_loss_bps),
-                        "take_profit_bps": float(take_profit_bps),
-                        "same_bar_policy": str(args.same_bar_policy),
-                        "cooldown_bars": int(args.cooldown_bars),
-                        "max_trades_per_day": int(args.max_trades_per_day),
-                        "daily_loss_limit_bps": float(daily_loss_limit_bps),
-                        "min_direction_prob": float(args.min_direction_prob),
-                        "cost_stress_bps": float(cost_bps),
-                        "slippage_bps": float(args.slippage_bps),
-                        "size_multiplier": float(args.size_multiplier),
-                    }
-                    config_hash = _policy_hash(policy_config)
-                    grid_policy_id = (
-                        f"entry_iql_student_grid_{_frac_label(top_frac)}_sl{int(args.stop_loss_bps)}"
-                        f"_tp{int(take_profit_bps)}_dl{int(daily_loss_limit_bps)}_"
-                        f"{_cost_label(cost_bps)}_{config_hash}"
-                    )
-                    run_args = argparse.Namespace(
-                        exit_mode="stop_tp",
-                        take_profit_bps=float(take_profit_bps),
-                        stop_loss_bps=float(args.stop_loss_bps),
-                        same_bar_policy=str(args.same_bar_policy),
-                        min_direction_prob=float(args.min_direction_prob),
-                        max_trades_per_day=int(args.max_trades_per_day),
-                        daily_loss_limit_bps=float(daily_loss_limit_bps),
-                        cooldown_bars=int(args.cooldown_bars),
-                        slippage_bps=float(args.slippage_bps),
-                        size_multiplier=float(args.size_multiplier),
-                    )
-                    val_trades, val_counts = _run_fixed_horizon_policy(
-                        eval_df=val,
-                        tape=tape,
-                        score_threshold=float(threshold),
-                        threshold_top_frac=float(top_frac),
-                        cost_stress_bps=float(cost_bps),
-                        args=run_args,
-                        policy_id=grid_policy_id,
-                        policy_config_hash=config_hash,
-                    )
-                    metrics = _trade_metrics(val_trades)
-                    row = {
-                        **policy_config,
-                        "policy_config_hash": config_hash,
-                        "grid_policy_id": grid_policy_id,
-                        "validation_counts": val_counts,
-                        "validation_metrics": metrics,
-                        "validation_constraints_pass": _passes_validation_constraints(metrics, args),
-                    }
-                    validation_rows.append(row)
-                    rank = _selection_tuple(metrics, args)
-                    if rank > selected_tuple:
-                        selected_tuple = rank
-                        selected_row = row
+    for max_bad_path_prob in max_bad_path_values:
+        for min_path_quality_pred in min_path_quality_values:
+            filtered_val = _apply_student_risk_filters(
+                val,
+                max_bad_path_prob=max_bad_path_prob,
+                min_path_quality_pred=min_path_quality_pred,
+            )
+            for top_frac in top_fracs:
+                threshold = _threshold_from_scores(base_val_scores, float(top_frac), float(args.min_score_floor))
+                for take_profit_bps in take_profit_values:
+                    for daily_loss_limit_bps in daily_loss_values:
+                        for cost_bps in cost_values:
+                            max_bad_label = "none" if max_bad_path_prob is None else str(max_bad_path_prob)
+                            min_path_label = "none" if min_path_quality_pred is None else str(min_path_quality_pred)
+                            policy_config = {
+                                "student_policy_source": "entry_iql_val_reward_selection_v1",
+                                "model_name": str(args.model_name),
+                                "threshold_top_frac": float(top_frac),
+                                "score_threshold": float(threshold),
+                                "exit_mode": "stop_tp",
+                                "stop_loss_bps": float(args.stop_loss_bps),
+                                "take_profit_bps": float(take_profit_bps),
+                                "same_bar_policy": str(args.same_bar_policy),
+                                "cooldown_bars": int(args.cooldown_bars),
+                                "max_trades_per_day": int(args.max_trades_per_day),
+                                "daily_loss_limit_bps": float(daily_loss_limit_bps),
+                                "min_direction_prob": float(args.min_direction_prob),
+                                "cost_stress_bps": float(cost_bps),
+                                "slippage_bps": float(args.slippage_bps),
+                                "size_multiplier": float(args.size_multiplier),
+                                "selection_objective": str(args.selection_objective),
+                                "max_bad_path_prob": max_bad_path_prob,
+                                "min_path_quality_pred": min_path_quality_pred,
+                            }
+                            config_hash = _policy_hash(policy_config)
+                            grid_policy_id = (
+                                f"entry_iql_student_grid_{_frac_label(top_frac)}_sl{int(args.stop_loss_bps)}"
+                                f"_tp{int(take_profit_bps)}_dl{int(daily_loss_limit_bps)}_"
+                                f"{_cost_label(cost_bps)}_bad{max_bad_label}_pq{min_path_label}_{config_hash}"
+                            )
+                            run_args = argparse.Namespace(
+                                exit_mode="stop_tp",
+                                take_profit_bps=float(take_profit_bps),
+                                stop_loss_bps=float(args.stop_loss_bps),
+                                same_bar_policy=str(args.same_bar_policy),
+                                min_direction_prob=float(args.min_direction_prob),
+                                max_trades_per_day=int(args.max_trades_per_day),
+                                daily_loss_limit_bps=float(daily_loss_limit_bps),
+                                cooldown_bars=int(args.cooldown_bars),
+                                slippage_bps=float(args.slippage_bps),
+                                size_multiplier=float(args.size_multiplier),
+                            )
+                            val_trades, val_counts = _run_fixed_horizon_policy(
+                                eval_df=filtered_val,
+                                tape=tape,
+                                score_threshold=float(threshold),
+                                threshold_top_frac=float(top_frac),
+                                cost_stress_bps=float(cost_bps),
+                                args=run_args,
+                                policy_id=grid_policy_id,
+                                policy_config_hash=config_hash,
+                            )
+                            metrics = _trade_metrics(val_trades)
+                            row = {
+                                **policy_config,
+                                "policy_config_hash": config_hash,
+                                "grid_policy_id": grid_policy_id,
+                                "validation_eligible_rows": int(len(filtered_val)),
+                                "validation_counts": val_counts,
+                                "validation_metrics": metrics,
+                                "validation_constraints_pass": _passes_validation_constraints(metrics, args),
+                            }
+                            validation_rows.append(row)
+                            rank = _selection_tuple(metrics, args)
+                            if rank > selected_tuple:
+                                selected_tuple = rank
+                                selected_row = row
 
     failures: list[str] = list(contract_check["failures"])
     if selected_row is None or not bool(selected_row.get("validation_constraints_pass")):
@@ -315,6 +369,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     selected_trades: list[dict[str, Any]] = []
     selected_counts: dict[str, Any] = {}
     if selected_row and not failures:
+        filtered_test = _apply_student_risk_filters(
+            test,
+            max_bad_path_prob=selected_row.get("max_bad_path_prob"),
+            min_path_quality_pred=selected_row.get("min_path_quality_pred"),
+        )
         selected_run_args = argparse.Namespace(
             exit_mode="stop_tp",
             take_profit_bps=float(selected_row["take_profit_bps"]),
@@ -328,7 +387,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             size_multiplier=float(selected_row["size_multiplier"]),
         )
         selected_trades, selected_counts = _run_fixed_horizon_policy(
-            eval_df=test,
+            eval_df=filtered_test,
             tape=tape,
             score_threshold=float(selected_row["score_threshold"]),
             threshold_top_frac=float(selected_row["threshold_top_frac"]),
@@ -373,7 +432,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "validation_grid_json": str(validation_grid_path),
         "counts_json": str(counts_path),
         "policy_id": str(args.policy_id),
-        "selection_method": "validation_net_mean_bps_then_drawdown_v1",
+        "selection_method": (
+            "validation_net_sum_bps_then_drawdown_v1"
+            if str(args.selection_objective) == "net"
+            else "validation_net_mean_bps_then_drawdown_v1"
+        ),
+        "selection_objective": str(args.selection_objective),
+        "student_risk_filter_grid": {
+            "max_bad_path_prob_grid": [value for value in max_bad_path_values],
+            "min_path_quality_pred_grid": [value for value in min_path_quality_values],
+        },
         "selected_policy": selected_row,
         "selected_validation_metrics": selected_row.get("validation_metrics", {}) if selected_row else {},
         "test_metrics": test_metrics,
@@ -442,6 +510,9 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--min-score-floor", type=float, default=0.0)
     ap.add_argument("--slippage-bps", type=float, default=0.0)
     ap.add_argument("--size-multiplier", type=float, default=1.0)
+    ap.add_argument("--selection-objective", choices=("mean", "net"), default="mean")
+    ap.add_argument("--max-bad-path-prob-grid", default="none")
+    ap.add_argument("--min-path-quality-pred-grid", default="none")
     ap.add_argument("--min-validation-trades", type=int, default=25)
     ap.add_argument("--min-validation-profit-factor", type=float, default=1.05)
     ap.add_argument("--max-validation-drawdown-bps", type=float, default=650.0)

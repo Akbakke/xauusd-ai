@@ -8,7 +8,7 @@ from gx1.scripts.materialize_entry_iql_distillation_contract_v1 import (
     IQL_DISTILLATION_REQUIRED_ARTIFACT_KEYS,
     _sha256_file,
 )
-from gx1.scripts.materialize_entry_iql_student_trade_log_v1 import run
+from gx1.scripts.materialize_entry_iql_student_trade_log_v1 import _apply_student_risk_filters, run
 
 
 def _write_ready_distillation_contract(path: Path) -> None:
@@ -107,6 +107,9 @@ def test_iql_student_trade_log_selects_validation_policy_and_writes_2026_trades(
             min_score_floor=0.0,
             slippage_bps=0.0,
             size_multiplier=1.0,
+            selection_objective="mean",
+            max_bad_path_prob_grid="none",
+            min_path_quality_pred_grid="none",
             min_validation_trades=1,
             min_validation_profit_factor=0.0,
             max_validation_drawdown_bps=1000.0,
@@ -127,3 +130,21 @@ def test_iql_student_trade_log_selects_validation_policy_and_writes_2026_trades(
     assert set(pd.to_datetime(trades["entry_time"], utc=True).dt.year) == {2026}
     assert "teacher_score" in trades.columns
     assert "state_session" in trades.columns
+
+
+def test_iql_student_risk_filters_apply_bad_path_and_path_quality_veto() -> None:
+    frame = pd.DataFrame(
+        {
+            "edge_score": [0.9, 0.8, 0.7, 0.6],
+            "bad_path_prob": [0.10, 0.35, 0.20, 0.05],
+            "path_quality_pred": [0.55, 0.80, 0.30, 0.95],
+        }
+    )
+
+    filtered = _apply_student_risk_filters(
+        frame,
+        max_bad_path_prob=0.20,
+        min_path_quality_pred=0.50,
+    )
+
+    assert filtered["edge_score"].tolist() == [0.9, 0.6]
