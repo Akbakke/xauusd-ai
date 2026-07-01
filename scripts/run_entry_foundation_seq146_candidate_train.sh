@@ -385,6 +385,8 @@ payload = {
     "schema_version": "entry_foundation_candidate_train_run_manifest_v1",
     "created_utc": datetime.now(timezone.utc).isoformat(),
     "run_kind": f"vedtak_gated_{sys.argv[14]}_candidate_train",
+    "manifest_variant": sys.argv[15],
+    "candidate_variant": sys.argv[15],
     "specialist_contract_mode": sys.argv[15],
     "expected_signal_dim": int(sys.argv[16]),
     "vedtak": sys.argv[2],

@@ -364,10 +364,13 @@ def _candidate_bundle_checks(path: Path, report: dict[str, Any], candidate_bundl
     variant = _first_text(
         report.get("manifest_variant"),
         report.get("candidate_variant"),
+        report.get("specialist_contract_mode"),
         bundle.get("manifest_variant"),
         bundle.get("candidate_variant"),
+        bundle.get("specialist_contract_mode"),
         pretrain.get("manifest_variant"),
         pretrain.get("candidate_variant"),
+        pretrain.get("specialist_contract_mode"),
     )
     identity = {
         "candidate_bundle_audit_json": str(path),

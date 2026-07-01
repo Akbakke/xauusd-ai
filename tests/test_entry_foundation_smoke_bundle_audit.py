@@ -962,6 +962,30 @@ def test_pretrain_manifest_contract_accepts_candidate_latest_refresh_with_timest
     assert candidate_check["mutable_latest_observed"] == _sha256_file(candidate_readiness_latest)
 
 
+def test_pretrain_manifest_contract_exposes_candidate_variant_from_contract_mode(tmp_path) -> None:
+    bundle_dir = tmp_path / "candidate_bundle"
+    dataset_dir = tmp_path / "candidate_dataset"
+    bundle_dir.mkdir()
+    dataset_dir.mkdir()
+    manifest = {
+        "schema_version": "entry_foundation_candidate_train_run_manifest_v1",
+        "specialist_contract_mode": "smart_seq520_candidate",
+        "out_bundle_dir": str(bundle_dir),
+        "promotion_shadow_live_allowed": False,
+        "trainer_started_by_manifest_writer": False,
+        "inputs": {"candidate_dataset_dir": str(dataset_dir)},
+        "artifact_sha256": {},
+        "preflight_contracts": {},
+    }
+    path = tmp_path / "candidate_pretrain_manifest.json"
+    path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    report = _pretrain_manifest_contract_report(path, expected_bundle_dir=bundle_dir, expected_dataset_dir=dataset_dir)
+
+    assert report["manifest_variant"] == "smart_seq520_candidate"
+    assert report["candidate_variant"] == "smart_seq520_candidate"
+
+
 def test_pretrain_manifest_contract_rejects_candidate_without_smoke_dataset_provenance(tmp_path) -> None:
     artifacts = {}
     for name in ("candidate_readiness", "smoke_bundle_audit", "specialist_audit"):

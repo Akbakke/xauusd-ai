@@ -983,6 +983,16 @@ def _pretrain_manifest_contract_report(
         "decision": "PASS" if not failures else "FAIL",
         "manifest_path": str(manifest_path),
         "schema_version": manifest.get("schema_version"),
+        "manifest_variant": str(
+            manifest.get("manifest_variant")
+            or manifest.get("candidate_variant")
+            or contract_mode
+        ),
+        "candidate_variant": str(
+            manifest.get("candidate_variant")
+            or manifest.get("manifest_variant")
+            or contract_mode
+        ),
         "run_mode": manifest.get("run_mode"),
         "specialist_contract_mode": contract_mode,
         "expected_required_training_specialists": sorted(expected_required_specialists),
@@ -1397,12 +1407,19 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             f"pretrain_manifest: {failure}"
             for failure in pretrain_manifest_contract.get("failures", [])
         )
+    manifest_variant = str(
+        (pretrain_manifest_contract or {}).get("manifest_variant")
+        or (pretrain_manifest_contract or {}).get("candidate_variant")
+        or specialist_contract_mode
+    )
 
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     report = {
         "schema_version": "entry_foundation_smoke_bundle_audit_v1",
         "created_utc": datetime.now(timezone.utc).isoformat(),
         "decision": "PASS" if not failures else "FAIL",
+        "manifest_variant": manifest_variant,
+        "candidate_variant": manifest_variant,
         "bundle_dir": str(bundle_dir),
         "dataset_dir": str(dataset_dir),
         "data_splits": splits,
@@ -1421,6 +1438,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "pretrain_manifest_contract": pretrain_manifest_contract,
         "bundle_specialist_model_contract": bundle_specialist_model_contract,
         "bundle_summary": {
+            "manifest_variant": manifest_variant,
+            "candidate_variant": manifest_variant,
+            "specialist_contract_mode": specialist_contract_mode,
             "seq_len": seq_len,
             "seq_input_dim": int(meta.get("seq_input_dim") or 0),
             "snap_input_dim": int(meta.get("snap_input_dim") or 0),

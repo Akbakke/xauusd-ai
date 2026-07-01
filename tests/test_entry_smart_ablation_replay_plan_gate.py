@@ -197,6 +197,32 @@ def test_smart_ablation_plan_gate_materializes_exact_report_only_matrix(tmp_path
     assert Path(report["md_path"]).exists()
 
 
+def test_smart_ablation_plan_gate_accepts_legacy_audit_variant_from_contract_mode(tmp_path: Path) -> None:
+    args = _args(tmp_path, require_baselines=False)
+    bundle_dir = tmp_path / "smart_bundle"
+    _write_smart_preflight(Path(args.smart_preflight_json))
+    candidate_audit_path = Path(args.candidate_bundle_audit_json)
+    _write_candidate_bundle_audit(candidate_audit_path, bundle_dir)
+    audit = json.loads(candidate_audit_path.read_text(encoding="utf-8"))
+    audit.pop("manifest_variant", None)
+    audit.pop("candidate_variant", None)
+    audit["specialist_contract_mode"] = "smart_seq520_candidate"
+    audit["bundle_summary"].pop("manifest_variant", None)
+    audit["bundle_summary"].pop("candidate_variant", None)
+    audit["bundle_summary"]["specialist_contract_mode"] = "smart_seq520_candidate"
+    _write_json(candidate_audit_path, audit)
+    _write_replay_dir(
+        Path(args.candidate_replay_dir),
+        variant="smart_seq520_candidate",
+        bundle_dir=bundle_dir,
+        candidate_bundle_audit_sha256=gate._sha256_file(candidate_audit_path) or "",
+    )
+
+    report = gate.run(args)
+
+    assert report["decision"] == "READY_FOR_SMART_ABLATION_REPLAY_PLAN_REVIEW"
+
+
 def test_smart_ablation_plan_gate_fails_closed_without_candidate_bundle_or_replay(tmp_path: Path) -> None:
     args = _args(tmp_path, require_baselines=False)
     _write_smart_preflight(Path(args.smart_preflight_json))
