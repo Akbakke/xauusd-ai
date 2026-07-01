@@ -798,9 +798,22 @@ smart_ablation_replay_matrix_ready = (
 smart_replay_default_ready = (
     str(smart_replay_default.get("decision") or "") == "READY_FOR_IQL_DISTILLATION_VEDTAK"
 )
-smart_replay_selected_ready = (
+smart_replay_selected_raw_ready = (
     str(smart_replay_selected.get("decision") or "") == "READY_FOR_IQL_DISTILLATION_VEDTAK"
 )
+smart_selected_path_signal_calibration_ready = bool(
+    smart_iql_replay_path_signal_calibration.get("ready")
+)
+smart_replay_selected_stale_by_path_calibration = bool(
+    smart_replay_selected_raw_ready and not smart_selected_path_signal_calibration_ready
+)
+smart_replay_selected_ready = bool(
+    smart_replay_selected_raw_ready and smart_selected_path_signal_calibration_ready
+)
+if smart_replay_selected_stale_by_path_calibration:
+    current_blockers.append(
+        "smart selected replay-readiness is stale until path-signal calibration and refreshed path-calibration recipe gates PASS"
+    )
 smart_rebuild_preflight_ready = (
     str(smart_rebuild_preflight.get("decision") or "") == "READY_FOR_SMART_REBUILD_VEDTAK_REVIEW"
 )
@@ -2323,12 +2336,12 @@ payload = {
         "smart_replay_default_readiness_ready": smart_replay_default_ready,
         "smart_replay_default_readiness_report": str(paths.get("replay-readiness-smart")) if paths.get("replay-readiness-smart") else None,
         "smart_selected_replay_readiness_decision": smart_replay_selected.get("decision"),
+        "smart_selected_replay_readiness_raw_ready": smart_replay_selected_raw_ready,
         "smart_selected_replay_readiness_ready": smart_replay_selected_ready,
+        "smart_selected_replay_readiness_stale_by_path_calibration": smart_replay_selected_stale_by_path_calibration,
         "smart_selected_replay_readiness_report": str(paths.get("replay-readiness-smart-selected")) if paths.get("replay-readiness-smart-selected") else None,
         "smart_selected_replay_dir": smart_replay_selected.get("replay_dir"),
-        "smart_selected_iql_distillation_allowed": bool(
-            smart_replay_selected.get("iql_distillation_allowed_with_explicit_vedtak")
-        ),
+        "smart_selected_iql_distillation_allowed": smart_replay_selected_ready,
         "real_smoke_train_smart_seq520_allowed": real_smoke_train_smart_allowed,
         "iql_distillation_allowed": bool(
             iql_distillation_allowed

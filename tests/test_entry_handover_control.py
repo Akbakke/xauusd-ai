@@ -614,7 +614,12 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
     if "replay-readiness-smart-selected" in payload["reports"]:
         selected = payload["reports"]["replay-readiness-smart-selected"]
         assert payload["status_summary"]["smart_selected_replay_readiness_decision"] == selected["decision"]
+        assert isinstance(payload["status_summary"]["smart_selected_replay_readiness_raw_ready"], bool)
         assert isinstance(payload["status_summary"]["smart_selected_replay_readiness_ready"], bool)
+        assert isinstance(
+            payload["status_summary"]["smart_selected_replay_readiness_stale_by_path_calibration"],
+            bool,
+        )
         assert payload["status_summary"]["smart_selected_replay_readiness_report"].endswith(
             "ENTRY_REPLAY_READINESS_latest.json"
         )
@@ -624,6 +629,11 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
             payload["status_summary"]["smart_selected_iql_distillation_allowed"]
             is payload["status_summary"]["smart_selected_replay_readiness_ready"]
         )
+        if payload["status_summary"]["smart_selected_replay_readiness_stale_by_path_calibration"]:
+            assert (
+                "smart selected replay-readiness is stale until path-signal calibration and refreshed path-calibration recipe gates PASS"
+                in payload["status_summary"]["current_blockers"]
+            )
     if "iql-replay-comparison-smart-selected" in payload["reports"]:
         selected_comparison = payload["reports"]["iql-replay-comparison-smart-selected"]
         assert payload["status_summary"]["smart_selected_iql_replay_comparison_decision"] == (
