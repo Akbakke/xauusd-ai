@@ -334,13 +334,22 @@ def _run_test_grid_diagnostics(
     return diagnostics
 
 
-def _annotate_student_trades(trades: list[dict[str, Any]], *, selected: dict[str, Any], args: argparse.Namespace) -> pd.DataFrame:
+def _annotate_student_trades(
+    trades: list[dict[str, Any]],
+    *,
+    selected: dict[str, Any],
+    args: argparse.Namespace,
+    trade_log_split: str,
+    diagnostic_only_not_replay_evidence: bool,
+) -> pd.DataFrame:
     frame = pd.DataFrame(trades)
     if frame.empty:
         return frame
     frame["policy_id"] = str(args.policy_id)
     frame["student_policy_id"] = str(args.policy_id)
     frame["student_policy_source"] = "entry_iql_val_reward_selection_v1"
+    frame["student_trade_log_split"] = str(trade_log_split)
+    frame["diagnostic_only_not_replay_evidence"] = bool(diagnostic_only_not_replay_evidence)
     frame["student_selection_metric"] = (
         "validation_net_sum_bps_then_drawdown"
         if str(getattr(args, "selection_objective", "mean")) == "net"
@@ -491,9 +500,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         failures.append("no IQL student policy passed validation constraints")
         selected_row = selected_row or {}
 
+    selected_validation_trades: list[dict[str, Any]] = []
+    selected_validation_counts: dict[str, Any] = {}
     selected_trades: list[dict[str, Any]] = []
     selected_counts: dict[str, Any] = {}
     if selected_row and not failures:
+        filtered_selected_val = _apply_student_risk_filters(
+            val,
+            max_bad_path_prob=selected_row.get("max_bad_path_prob"),
+            min_path_quality_pred=selected_row.get("min_path_quality_pred"),
+        )
         filtered_test = _apply_student_risk_filters(
             test,
             max_bad_path_prob=selected_row.get("max_bad_path_prob"),
@@ -515,6 +531,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             mfe_protect_trailing_capture_ratio=float(selected_row["mfe_protect_trailing_capture_ratio"]),
             mfe_protect_trailing_floor_bps=float(selected_row["mfe_protect_trailing_floor_bps"]),
         )
+        selected_validation_trades, selected_validation_counts = _run_fixed_horizon_policy(
+            eval_df=filtered_selected_val,
+            tape=tape,
+            score_threshold=float(selected_row["score_threshold"]),
+            threshold_top_frac=float(selected_row["threshold_top_frac"]),
+            cost_stress_bps=float(selected_row["cost_stress_bps"]),
+            args=selected_run_args,
+            policy_id=str(args.policy_id),
+            policy_config_hash=str(selected_row["policy_config_hash"]),
+        )
         selected_trades, selected_counts = _run_fixed_horizon_policy(
             eval_df=filtered_test,
             tape=tape,
@@ -526,7 +552,29 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             policy_config_hash=str(selected_row["policy_config_hash"]),
         )
 
-    trades_df = _annotate_student_trades(selected_trades, selected=selected_row, args=args) if selected_row else pd.DataFrame()
+    validation_trades_df = (
+        _annotate_student_trades(
+            selected_validation_trades,
+            selected=selected_row,
+            args=args,
+            trade_log_split="validation",
+            diagnostic_only_not_replay_evidence=True,
+        )
+        if selected_row
+        else pd.DataFrame()
+    )
+    trades_df = (
+        _annotate_student_trades(
+            selected_trades,
+            selected=selected_row,
+            args=args,
+            trade_log_split="test",
+            diagnostic_only_not_replay_evidence=False,
+        )
+        if selected_row
+        else pd.DataFrame()
+    )
+    selected_validation_trade_metrics = _trade_metrics(selected_validation_trades)
     test_metrics = _trade_metrics(selected_trades)
     test_grid_diagnostics_limit = max(0, int(getattr(args, "test_grid_diagnostics_limit", 0) or 0))
     test_grid_diagnostics = (
@@ -551,6 +599,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         if test_grid_diagnostics
         else None
     )
+    if selected_row and validation_trades_df.empty and not failures:
+        failures.append("selected IQL student validation trade log produced zero trades")
     if trades_df.empty:
         failures.append("IQL student trade log produced zero trades")
     else:
@@ -559,21 +609,28 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             failures.append(f"IQL student trade log contains years outside 2026: {sorted(years)}")
 
     trades_path = out_dir / "entry_iql_student_trade_log.csv"
+    validation_trades_path = out_dir / "entry_iql_student_validation_trade_log.csv"
     validation_grid_path = out_dir / "entry_iql_student_validation_grid.json"
     test_grid_diagnostics_path = out_dir / "entry_iql_student_test_grid_diagnostics.json"
     counts_path = out_dir / "entry_iql_student_policy_counts.json"
+    validation_counts_path = out_dir / "entry_iql_student_validation_policy_counts.json"
     manifest_path = out_dir / "ENTRY_IQL_STUDENT_TRADE_LOG_MANIFEST.json"
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     report_json = out_dir / f"ENTRY_IQL_STUDENT_TRADE_LOG_{timestamp}.json"
     report_md = out_dir / f"ENTRY_IQL_STUDENT_TRADE_LOG_{timestamp}.md"
 
     trades_df.to_csv(trades_path, index=False)
+    validation_trades_df.to_csv(validation_trades_path, index=False)
     validation_grid_path.write_text(json.dumps(validation_rows, indent=2, sort_keys=True, default=_json_default) + "\n", encoding="utf-8")
     test_grid_diagnostics_path.write_text(
         json.dumps(test_grid_diagnostics, indent=2, sort_keys=True, default=_json_default) + "\n",
         encoding="utf-8",
     )
     counts_path.write_text(json.dumps(selected_counts, indent=2, sort_keys=True, default=_json_default) + "\n", encoding="utf-8")
+    validation_counts_path.write_text(
+        json.dumps(selected_validation_counts, indent=2, sort_keys=True, default=_json_default) + "\n",
+        encoding="utf-8",
+    )
     report = {
         "schema_version": "entry_iql_student_trade_log_v1",
         "created_utc": datetime.now(timezone.utc).isoformat(),
@@ -586,9 +643,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "source_parquet": str(source_parquet),
         "out_dir": str(out_dir),
         "trades_path": str(trades_path),
+        "validation_trades_path": str(validation_trades_path),
         "validation_grid_json": str(validation_grid_path),
         "test_grid_diagnostics_json": str(test_grid_diagnostics_path),
         "counts_json": str(counts_path),
+        "validation_counts_json": str(validation_counts_path),
         "policy_id": str(args.policy_id),
         "selection_method": (
             "validation_net_sum_bps_then_drawdown_v1"
@@ -619,6 +678,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         },
         "selected_policy": selected_row,
         "selected_validation_metrics": selected_row.get("validation_metrics", {}) if selected_row else {},
+        "selected_validation_trade_metrics": selected_validation_trade_metrics,
+        "selected_validation_counts": selected_validation_counts,
+        "selected_validation_trade_count": int(len(validation_trades_df)),
+        "validation_trade_log_diagnostic_only_not_replay_evidence": True,
+        "validation_trade_log_replay_evidence_allowed": False,
         "test_metrics": test_metrics,
         "n_trades": int(len(trades_df)),
         "student_policy_fit_started": True,

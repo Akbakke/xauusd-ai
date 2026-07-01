@@ -131,23 +131,41 @@ def test_iql_student_trade_log_selects_validation_policy_and_writes_2026_trades(
     )
 
     trades = pd.read_csv(tmp_path / "out" / "entry_iql_student_trade_log.csv")
+    validation_trades = pd.read_csv(tmp_path / "out" / "entry_iql_student_validation_trade_log.csv")
     assert report["decision"] == "PASS"
     assert report["student_policy_fit_started"] is True
     assert report["runtime_trainer_started"] is False
     assert report["adapter_built"] is False
     assert report["promotion_shadow_live_allowed"] is False
+    assert report["validation_trade_log_diagnostic_only_not_replay_evidence"] is True
+    assert report["validation_trade_log_replay_evidence_allowed"] is False
+    assert Path(report["validation_trades_path"]).is_file()
+    assert report["selected_validation_trade_count"] == len(validation_trades)
+    assert report["selected_validation_counts"]["trades"] == len(validation_trades)
+    assert report["selected_validation_trade_metrics"]["n_trades"] == len(validation_trades)
     assert report["test_grid_diagnostics"]["enabled"] is True
     assert report["test_grid_diagnostics"]["diagnostic_only_not_selection_criterion"] is True
     assert report["selected_policy"]["exit_mode"] == "stop_tp_mfe_protect"
     assert report["exit_policy_contract"]["offline_only"] is True
     assert report["exit_policy_contract"]["promotion_shadow_live_allowed"] is False
     assert set(trades["policy_id"]) == {"entry_iql_student"}
+    assert set(validation_trades["policy_id"]) == {"entry_iql_student"}
     assert set(trades["exit_mode"]) == {"stop_tp_mfe_protect"}
+    assert set(validation_trades["exit_mode"]) == {"stop_tp_mfe_protect"}
+    assert set(trades["student_trade_log_split"]) == {"test"}
+    assert set(validation_trades["student_trade_log_split"]) == {"validation"}
+    assert set(trades["diagnostic_only_not_replay_evidence"]) == {False}
+    assert set(validation_trades["diagnostic_only_not_replay_evidence"]) == {True}
     assert trades["exit_policy_config_hash"].notna().all()
+    assert validation_trades["exit_policy_config_hash"].notna().all()
     assert trades["student_selected_exit_policy_config_hash"].notna().all()
+    assert validation_trades["student_selected_exit_policy_config_hash"].notna().all()
     assert set(pd.to_datetime(trades["entry_time"], utc=True).dt.year) == {2026}
+    assert set(pd.to_datetime(validation_trades["entry_time"], utc=True).dt.year) == {2025}
     assert "teacher_score" in trades.columns
+    assert "teacher_score" in validation_trades.columns
     assert "state_session" in trades.columns
+    assert "state_session" in validation_trades.columns
     diagnostics = json.loads((tmp_path / "out" / "entry_iql_student_test_grid_diagnostics.json").read_text())
     assert len(diagnostics) == 2
     assert {row["diagnostic_only_not_selection_criterion"] for row in diagnostics} == {True}
