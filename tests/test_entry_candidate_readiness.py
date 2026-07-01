@@ -463,7 +463,7 @@ def test_candidate_readiness_seq215_missing_smoke_audit_reports_not_ready(tmp_pa
     assert Path(report["json_path"]).exists()
 
 
-def test_candidate_readiness_smart_seq520_stays_closed_when_training_contract_disabled(
+def test_candidate_readiness_smart_seq520_opens_after_contract_and_smoke_evidence(
     tmp_path: Path, monkeypatch
 ) -> None:
     trainability_path = tmp_path / "smart_trainability.json"
@@ -511,12 +511,11 @@ def test_candidate_readiness_smart_seq520_stays_closed_when_training_contract_di
     )
 
     assert report["readiness_checks_pass"] is True
-    assert report["training_allowed_by_contract"] is False
-    assert report["decision"] == "NOT_READY_FOR_CANDIDATE_TRAINING"
-    assert report["candidate_training_allowed_with_explicit_vedtak"] is False
-    assert report["next_required_gate"] == "enable specialist contract training for this mode under explicit review"
-    failed = {failure["check"] for failure in report["failures"]}
-    assert "specialist contract training enabled" in failed
+    assert report["training_allowed_by_contract"] is True
+    assert report["decision"] == "READY_FOR_CANDIDATE_TRAINING_VEDTAK"
+    assert report["candidate_training_allowed_with_explicit_vedtak"] is True
+    assert report["next_required_gate"] == "scripts/entry_next_edge_control.sh candidate-train-smart --vedtak <id> then post-train replay gates"
+    assert report["failures"] == []
 
 
 def test_candidate_readiness_current_artifacts_are_not_ready_without_actual_smoke_train(tmp_path: Path) -> None:

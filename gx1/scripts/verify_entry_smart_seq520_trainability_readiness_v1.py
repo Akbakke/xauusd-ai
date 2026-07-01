@@ -243,7 +243,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         _check("smart post-rebuild dataset audit is ready", post_rebuild.get("decision") == "ENTRY_SMART_DATASET_READY_FOR_TRAIN_READINESS_REVIEW", post_rebuild.get("decision")),
         _check("smart smoke readiness is ready", smoke_readiness.get("decision") == "READY_FOR_SMART_SEQ520_SMOKE_MANIFEST_REVIEW", smoke_readiness.get("decision")),
         _check("smart specialist mode is accepted by trainer contract modes", CONTRACT_MODE in SPECIALIST_CONTRACT_MODES, list(SPECIALIST_CONTRACT_MODES)),
-        _check("smart specialist registry keeps training disabled until explicit train gate", registry_training_allowed is False, registry_training_allowed),
+        _check(
+            "smart specialist registry is trainable only through explicit candidate gate",
+            registry_training_allowed is True,
+            {
+                "registry_training_allowed": registry_training_allowed,
+                "candidate_training_allowed_by_this_report": False,
+                "requires_candidate_readiness_and_explicit_vedtak": True,
+            },
+        ),
         _check("smart required specialist count is eight", len(required_specialists) == EXPECTED_SPECIALIST_COUNT, list(required_specialists)),
         _check("trainer CLI can accept smart specialist contract mode", CONTRACT_MODE in SPECIALIST_CONTRACT_MODES and "specialist-contract-mode" in trainer_text, _artifact_meta(trainer_source)),
         _check(

@@ -80,6 +80,8 @@ def _training_plan(architecture: dict[str, Any], model_dataset: dict[str, Any]) 
     encoder = contract.get("sequence_encoder") if isinstance(contract.get("sequence_encoder"), dict) else {}
     input_contract = contract.get("input_contract") if isinstance(contract.get("input_contract"), dict) else {}
     feature_schema = model_dataset.get("feature_schema") if isinstance(model_dataset.get("feature_schema"), dict) else {}
+    feature_schema_json = str(model_dataset.get("feature_schema_json") or "").strip()
+    feature_schema_path = _path(feature_schema_json)
     return {
         "plan_id": "entry_exit_transformer_training_plan_20260630_v1",
         "model_family": contract.get("model_family"),
@@ -96,6 +98,8 @@ def _training_plan(architecture: dict[str, Any], model_dataset: dict[str, Any]) 
             "episode_count": model_dataset.get("episode_count"),
             "shards": model_dataset.get("model_dataset_shards") if isinstance(model_dataset.get("model_dataset_shards"), dict) else {},
             "feature_schema": feature_schema,
+            "feature_schema_json": feature_schema_json,
+            "feature_schema_json_sha256": _sha256_file(feature_schema_path) if feature_schema_json and feature_schema_path.is_file() else "",
             "normalization_json": model_dataset.get("normalization_json"),
         },
         "future_training_command_contract": {
@@ -178,6 +182,7 @@ def _plan_review(plan: dict[str, Any]) -> dict[str, Any]:
     command = plan.get("future_training_command_contract") if isinstance(plan.get("future_training_command_contract"), dict) else {}
     resources = plan.get("resource_guardrails") if isinstance(plan.get("resource_guardrails"), dict) else {}
     architecture = plan.get("architecture") if isinstance(plan.get("architecture"), dict) else {}
+    dataset = plan.get("dataset") if isinstance(plan.get("dataset"), dict) else {}
     encoder = architecture.get("encoder") if isinstance(architecture.get("encoder"), dict) else {}
     heads = architecture.get("output_heads") if isinstance(architecture.get("output_heads"), list) else []
     num_workers = resources.get("num_workers")
@@ -189,6 +194,8 @@ def _plan_review(plan: dict[str, Any]) -> dict[str, Any]:
             and command.get("requires_explicit_vedtak") is True
             and command.get("requires_clean_git") is True
             and str(command.get("vedtak_prefix_required") or "").startswith("ENTRY_EXIT_TRANSFORMER_TRAIN_")
+            and bool(str(dataset.get("feature_schema_json") or "").strip())
+            and bool(str(dataset.get("feature_schema_json_sha256") or "").strip())
             and num_workers is not None
             and int(num_workers) == 0
             and float(resources.get("max_process_rss_gib") or 0.0) <= 8.0
@@ -197,6 +204,8 @@ def _plan_review(plan: dict[str, Any]) -> dict[str, Any]:
         "output_heads": heads,
         "vedtak_prefix_required": command.get("vedtak_prefix_required"),
         "resource_guardrails": resources,
+        "feature_schema_json": dataset.get("feature_schema_json"),
+        "feature_schema_json_sha256": dataset.get("feature_schema_json_sha256"),
     }
 
 

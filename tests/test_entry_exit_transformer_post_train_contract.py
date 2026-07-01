@@ -38,6 +38,7 @@ def _write_inputs(
 ) -> Path:
     root = tmp_path / "reports"
     heads = EXPECTED_HEADS[:-1] if head_mismatch else EXPECTED_HEADS
+    feature_schema = _write_json(root / "feature_schema.json", {"state_feature_names": ["running_pnl_bps"]})
     training_plan = _write_json(
         root / "training_plan.json",
         {
@@ -45,7 +46,8 @@ def _write_inputs(
             "training_plan": {
                 "architecture": {"output_heads": heads},
                 "dataset": {
-                    "feature_schema_json": "/tmp/feature_schema.json",
+                    "feature_schema_json": str(feature_schema),
+                    "feature_schema_json_sha256": _sha256(feature_schema),
                     "normalization_json": "/tmp/normalization.json",
                 },
                 "resource_guardrails": {
@@ -122,6 +124,9 @@ def test_entry_exit_transformer_post_train_contract_passes_but_keeps_downstream_
     assert report["decision"] == "ENTRY_EXIT_TRANSFORMER_POST_TRAIN_AUDIT_CONTRACT_READY"
     assert report["head_contract"]["training_plan_heads"] == EXPECTED_HEADS
     assert report["post_train_audit_contract"]["required_metric_slices"]["weak_slice_count_to_preserve"] == 2
+    identity = report["post_train_audit_contract"]["required_bundle_identity"]
+    assert identity["feature_schema_json"]
+    assert len(identity["feature_schema_json_sha256"]) == 64
     assert report["exit_training_allowed"] is False
     assert report["exit_iql_allowed"] is False
     assert report["trainer_started"] is False

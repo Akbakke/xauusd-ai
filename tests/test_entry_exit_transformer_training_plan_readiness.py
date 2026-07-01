@@ -57,6 +57,9 @@ def _write_architecture_bundle(
         },
         "normalization_json": str(root / "normalization.json"),
     }
+    feature_schema_json = root / "entry_exit_model_dataset_feature_schema.json"
+    feature_schema_json.write_text(json.dumps(model_dataset["feature_schema"], indent=2) + "\n", encoding="utf-8")
+    model_dataset["feature_schema_json"] = str(feature_schema_json)
     model_dataset_json = root / "ENTRY_EXIT_MODEL_DATASET_READINESS_latest.json"
     model_dataset_json.write_text(json.dumps(model_dataset, indent=2) + "\n", encoding="utf-8")
     (root / "normalization.json").write_text('{"normalization_policy":"train_split_only"}\n', encoding="utf-8")
@@ -118,6 +121,8 @@ def test_entry_exit_transformer_training_plan_readiness_passes_contract(tmp_path
     assert report["training_plan"]["future_training_command_contract"]["requires_ram_guard"] is True
     assert report["training_plan"]["resource_guardrails"]["num_workers"] == 0
     assert report["training_plan"]["architecture"]["output_heads"] == HEADS
+    assert report["training_plan"]["dataset"]["feature_schema_json"]
+    assert len(report["training_plan"]["dataset"]["feature_schema_json_sha256"]) == 64
     assert report["exit_training_allowed"] is False
     assert report["exit_training_allowed_with_explicit_vedtak"] is False
     assert report["trainer_started"] is False

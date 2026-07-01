@@ -830,7 +830,7 @@ commands = {
             "<id>",
             "--require-edge-audit",
         ],
-        "allowed": real_smoke_train_allowed,
+        "allowed": real_smoke_train_seq215_allowed,
         "mode": "train",
         "requires_vedtak": True,
         "requires_clean_git": True,

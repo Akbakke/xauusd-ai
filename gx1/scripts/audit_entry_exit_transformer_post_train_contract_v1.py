@@ -123,6 +123,8 @@ def _build_contract(train_review: dict[str, Any], training_plan: dict[str, Any],
         else {}
     )
     review_json_path = Path(str(train_review.get("json_path") or ""))
+    feature_schema_json = str(dataset.get("feature_schema_json") or "").strip()
+    feature_schema_sha256 = str(dataset.get("feature_schema_json_sha256") or "").strip()
     return {
         "model_family": "exit_sequence_transformer_v1",
         "audit_name": "entry_exit_transformer_post_train_bundle_audit_v1",
@@ -135,7 +137,8 @@ def _build_contract(train_review: dict[str, Any], training_plan: dict[str, Any],
             "slice_robustness_json_sha256": train_review.get("slice_robustness_json_sha256"),
             "normalization_policy": "train_split_only",
             "normalization_json": dataset.get("normalization_json"),
-            "feature_schema_json": dataset.get("feature_schema_json"),
+            "feature_schema_json": feature_schema_json,
+            "feature_schema_json_sha256": feature_schema_sha256,
         },
         "required_load_checks": {
             "strict_bundle_load": True,
@@ -263,6 +266,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "weak-slice policy is preserved for post-train audit",
             _weak_slice_policy_ready(train_review),
             (train_review.get("review_contract") or {}).get("weak_slice_policy") if isinstance(train_review.get("review_contract"), dict) else {},
+        ),
+        _check(
+            "feature schema identity is pinned for post-train audit",
+            bool(contract["required_bundle_identity"]["feature_schema_json"])
+            and bool(contract["required_bundle_identity"]["feature_schema_json_sha256"]),
+            contract["required_bundle_identity"],
         ),
         _check(
             "post-train audit contract requires edge diagnostics and blocks broad averages",
