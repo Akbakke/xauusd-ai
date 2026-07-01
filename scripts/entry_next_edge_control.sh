@@ -163,6 +163,28 @@ def sha256_file(path):
             digest.update(chunk)
     return digest.hexdigest()
 
+def latest_smart_selected_replay_readiness(root):
+    candidates = []
+    if not root.exists():
+        return None
+    for path in root.glob("smart_seq520_candidate_*/ENTRY_REPLAY_READINESS_latest.json"):
+        if not path.is_file():
+            continue
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        decision = str(payload.get("decision") or "")
+        ready = int(decision == "READY_FOR_IQL_DISTILLATION_VEDTAK")
+        try:
+            mtime_ns = path.stat().st_mtime_ns
+        except OSError:
+            mtime_ns = 0
+        candidates.append((ready, mtime_ns, path))
+    if not candidates:
+        return None
+    return sorted(candidates, reverse=True)[0][2]
+
 paths = {
     "train-readiness": Path("/home/andre2/GX1_DATA/reports/entry_training_readiness_20260628_v1/ENTRY_TRAINING_READINESS_latest.json"),
     "worktree-hygiene": Path("/home/andre2/GX1_DATA/reports/entry_foundation_worktree_hygiene_20260628_v1/ENTRY_FOUNDATION_WORKTREE_HYGIENE_latest.json"),
@@ -203,6 +225,11 @@ paths = {
     "smart-trainability-readiness": Path("/home/andre2/GX1_DATA/reports/entry_smart_seq520_trainability_readiness_20260630_v1/ENTRY_SMART_SEQ520_TRAINABILITY_READINESS_latest.json"),
     "smart-ablation-replay-plan": Path("/home/andre2/GX1_DATA/reports/entry_smart_ablation_replay_plan_gate_20260630_v1/ENTRY_SMART_ABLATION_REPLAY_PLAN_GATE_latest.json"),
 }
+smart_selected_replay_readiness_path = latest_smart_selected_replay_readiness(
+    Path("/home/andre2/GX1_DATA/reports/entry_replay_readiness_20260628_v1")
+)
+if smart_selected_replay_readiness_path is not None:
+    paths["replay-readiness-smart-selected"] = smart_selected_replay_readiness_path
 adoption_root = Path("/home/andre2/GX1_DATA/reports/entry_foundation_adoption_candidate_20260629_v1")
 adoption_candidates = (
     sorted(
@@ -646,6 +673,8 @@ smart_smoke_manifest = reports.get("smart-smoke-manifest") or {}
 smart_smoke_readiness = reports.get("smart-smoke-readiness") or {}
 smart_trainability_readiness = reports.get("smart-trainability-readiness") or {}
 smart_ablation_replay_plan = reports.get("smart-ablation-replay-plan") or {}
+smart_replay_default = reports.get("replay-readiness-smart") or {}
+smart_replay_selected = reports.get("replay-readiness-smart-selected") or {}
 smart_post_rebuild_ready = (
     str(smart_post_rebuild.get("decision") or "") == "ENTRY_SMART_DATASET_READY_FOR_TRAIN_READINESS_REVIEW"
 )
@@ -660,6 +689,12 @@ smart_trainability_readiness_ready = (
 )
 smart_ablation_replay_plan_ready = (
     str(smart_ablation_replay_plan.get("decision") or "") == "READY_FOR_SMART_ABLATION_REPLAY_PLAN_REVIEW"
+)
+smart_replay_default_ready = (
+    str(smart_replay_default.get("decision") or "") == "READY_FOR_IQL_DISTILLATION_VEDTAK"
+)
+smart_replay_selected_ready = (
+    str(smart_replay_selected.get("decision") or "") == "READY_FOR_IQL_DISTILLATION_VEDTAK"
 )
 smart_rebuild_preflight_ready = (
     str(smart_rebuild_preflight.get("decision") or "") == "READY_FOR_SMART_REBUILD_VEDTAK_REVIEW"
@@ -2113,6 +2148,16 @@ payload = {
         "smart_trainability_readiness_ready": smart_trainability_readiness_ready,
         "smart_ablation_replay_plan_decision": smart_ablation_replay_plan.get("decision"),
         "smart_ablation_replay_plan_ready": smart_ablation_replay_plan_ready,
+        "smart_replay_default_readiness_decision": smart_replay_default.get("decision"),
+        "smart_replay_default_readiness_ready": smart_replay_default_ready,
+        "smart_replay_default_readiness_report": str(paths.get("replay-readiness-smart")) if paths.get("replay-readiness-smart") else None,
+        "smart_selected_replay_readiness_decision": smart_replay_selected.get("decision"),
+        "smart_selected_replay_readiness_ready": smart_replay_selected_ready,
+        "smart_selected_replay_readiness_report": str(paths.get("replay-readiness-smart-selected")) if paths.get("replay-readiness-smart-selected") else None,
+        "smart_selected_replay_dir": smart_replay_selected.get("replay_dir"),
+        "smart_selected_iql_distillation_allowed": bool(
+            smart_replay_selected.get("iql_distillation_allowed_with_explicit_vedtak")
+        ),
         "real_smoke_train_smart_seq520_allowed": real_smoke_train_smart_allowed,
         "iql_distillation_allowed": bool(
             iql_distillation_allowed

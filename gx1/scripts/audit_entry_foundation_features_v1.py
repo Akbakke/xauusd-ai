@@ -342,6 +342,33 @@ class _StreamingStatsAccumulator:
         self.min = np.minimum(self.min, np.min(clean, axis=0))
         self.max = np.maximum(self.max, np.max(clean, axis=0))
 
+    def add_columns(self, columns: list[np.ndarray]) -> None:
+        if len(columns) != self.dim:
+            raise RuntimeError(f"streaming stats column mismatch: got={len(columns)} expected={self.dim}")
+        if self.dim == 0:
+            return
+        first = np.asarray(columns[0])
+        rows = int(first.shape[0])
+        self.n += rows
+        if rows == 0:
+            return
+        for i, values in enumerate(columns):
+            arr = np.asarray(values, dtype=np.float64)
+            if arr.ndim != 1 or int(arr.shape[0]) != rows:
+                raise RuntimeError(
+                    f"streaming stats column shape mismatch: got={arr.shape} expected=({rows},)"
+                )
+            finite = np.isfinite(arr)
+            clean = np.where(finite, arr, 0.0)
+            self.finite[i] += int(finite.sum())
+            self.nonfinite[i] += int((~finite).sum())
+            self.zero[i] += int((clean == 0.0).sum())
+            self.active[i] += int((np.abs(clean) > self.liveness_epsilon).sum())
+            self.sum[i] += float(clean.sum())
+            self.sumsq[i] += float((clean * clean).sum())
+            self.min[i] = min(float(self.min[i]), float(clean.min()))
+            self.max[i] = max(float(self.max[i]), float(clean.max()))
+
     def _base_row(self, index: int, *, near_constant_std: float) -> dict[str, Any]:
         if self.n <= 0:
             mean = 0.0
@@ -503,14 +530,12 @@ def _stream_split_liveness_rows(
         rows_seen += int(snap.shape[0])
         feature_acc.add(snap[:, audit_cols])
         if source_specs:
-            source_matrix = np.stack(
+            source_acc.add_columns(
                 [
                     snap[:, idx] if source_kind == "snap" else ctx_cont[:, idx]
                     for _, source_kind, idx in source_specs
-                ],
-                axis=1,
+                ]
             )
-            source_acc.add(source_matrix)
 
     if rows_seen == 0:
         raise _SplitMatrixShapeError(

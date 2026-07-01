@@ -16,7 +16,7 @@ def _write(path: Path, text: str) -> Path:
     return path
 
 
-def _args(tmp_path: Path, *, wired: bool) -> argparse.Namespace:
+def _args(tmp_path: Path, *, wired: bool, ctx_tag: str = "CTX6CAT5") -> argparse.Namespace:
     post_rebuild = tmp_path / "post_rebuild.json"
     smoke_readiness = tmp_path / "smoke_readiness.json"
     _write_json(
@@ -26,7 +26,17 @@ def _args(tmp_path: Path, *, wired: bool) -> argparse.Namespace:
                 "ENTRY_SMART_DATASET_READY_FOR_TRAIN_READINESS_REVIEW"
                 if wired
                 else "BLOCKED_BY_ENTRY_SMART_DATASET_POST_REBUILD_AUDIT"
-            )
+            ),
+            "split_manifests": {
+                split: {
+                    "ctx_contract": {
+                        "tag": ctx_tag,
+                        "ctx_cont_dim": 142,
+                        "ctx_cat_dim": 5,
+                    }
+                }
+                for split in ("train", "val", "test")
+            },
         },
     )
     _write_json(
@@ -90,6 +100,18 @@ def test_smart_trainability_can_pass_when_all_surfaces_are_wired(monkeypatch, tm
 
     assert report["decision"] == gate.READY_DECISION
     assert report["expected_signal_dim"] == 520
+    assert report["source_metadata_contract"]["declared_ctx_contracts_match_expected"] is True
+    assert report["source_metadata_contract"]["no_stale_ctx6cat6"] is True
     assert report["training_allowed"] is False
     assert report["execution_allowed_now"] is False
     assert report["failures"] == []
+
+
+def test_smart_trainability_blocks_stale_ctx6cat6_source_metadata(tmp_path: Path) -> None:
+    report = gate.run(_args(tmp_path, wired=True, ctx_tag="CTX6CAT6"))
+
+    assert report["decision"] == gate.BLOCKED_DECISION
+    assert "smart source metadata has no stale CTX6CAT6 ctx contract" in report["blockers"]
+    assert "declared smart source ctx metadata matches CTX6CAT5" in report["blockers"]
+    assert report["source_metadata_contract"]["stale_ctx6cat6_paths"]
+    assert report["training_allowed"] is False

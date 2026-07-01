@@ -26,6 +26,9 @@ from gx1.scripts.verify_entry_foundation_state_v1 import REPO, REPORTS_ROOT
 CONTRACT_MODE = "smart_seq520_candidate"
 EXPECTED_SIGNAL_DIM = 520
 EXPECTED_SPECIALIST_COUNT = 8
+EXPECTED_CTX_TAG = "CTX6CAT5"
+EXPECTED_CTX_CONT_DIM = 142
+EXPECTED_CTX_CAT_DIM = 5
 READY_DECISION = "READY_FOR_SMART_SEQ520_TRAINABILITY_REVIEW"
 BLOCKED_DECISION = "BLOCKED_SMART_SEQ520_TRAINABILITY_READINESS"
 
@@ -110,6 +113,90 @@ def _future_train_contract(smoke_readiness: dict[str, Any]) -> dict[str, Any]:
     return contract if isinstance(contract, dict) else {}
 
 
+def _walk_json(value: Any, *, path: str = "$"):
+    yield path, value
+    if isinstance(value, dict):
+        for key, item in value.items():
+            yield from _walk_json(item, path=f"{path}.{key}")
+    elif isinstance(value, list):
+        for idx, item in enumerate(value):
+            yield from _walk_json(item, path=f"{path}[{idx}]")
+
+
+def _contains_exact_string(payloads: dict[str, Any], needle: str) -> list[str]:
+    matches: list[str] = []
+    for root, payload in payloads.items():
+        for path, value in _walk_json(payload, path=root):
+            if value == needle:
+                matches.append(path)
+    return matches
+
+
+def _ctx_contract_rows(payloads: dict[str, Any]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for root, payload in payloads.items():
+        for path, value in _walk_json(payload, path=root):
+            if not isinstance(value, dict):
+                continue
+            if "ctx_contract" in value and isinstance(value.get("ctx_contract"), dict):
+                ctx = value["ctx_contract"]
+                rows.append(
+                    {
+                        "path": f"{path}.ctx_contract",
+                        "tag": ctx.get("tag") or ctx.get("ctx_tag"),
+                        "ctx_cont_dim": ctx.get("ctx_cont_dim"),
+                        "ctx_cat_dim": ctx.get("ctx_cat_dim"),
+                    }
+                )
+            elif ("ctx_tag" in value or "tag" in value) and (
+                "ctx_cont_dim" in value or "ctx_cat_dim" in value
+            ):
+                rows.append(
+                    {
+                        "path": path,
+                        "tag": value.get("ctx_tag") or value.get("tag"),
+                        "ctx_cont_dim": value.get("ctx_cont_dim"),
+                        "ctx_cat_dim": value.get("ctx_cat_dim"),
+                    }
+                )
+    deduped: list[dict[str, Any]] = []
+    seen: set[tuple[Any, ...]] = set()
+    for row in rows:
+        key = (row.get("path"), row.get("tag"), row.get("ctx_cont_dim"), row.get("ctx_cat_dim"))
+        if key not in seen:
+            seen.add(key)
+            deduped.append(row)
+    return deduped
+
+
+def _ctx_metadata_contract(payloads: dict[str, Any]) -> dict[str, Any]:
+    rows = _ctx_contract_rows(payloads)
+    stale_ctx6cat6_paths = _contains_exact_string(payloads, "CTX6CAT6")
+    declared_rows = [row for row in rows if row.get("tag") or row.get("ctx_cont_dim") or row.get("ctx_cat_dim")]
+    mismatched_rows = [
+        row
+        for row in declared_rows
+        if not (
+            row.get("tag") == EXPECTED_CTX_TAG
+            and int(row.get("ctx_cont_dim") or 0) == EXPECTED_CTX_CONT_DIM
+            and int(row.get("ctx_cat_dim") or 0) == EXPECTED_CTX_CAT_DIM
+        )
+    ]
+    return {
+        "expected": {
+            "ctx_tag": EXPECTED_CTX_TAG,
+            "ctx_cont_dim": EXPECTED_CTX_CONT_DIM,
+            "ctx_cat_dim": EXPECTED_CTX_CAT_DIM,
+        },
+        "declared_ctx_contract_count": int(len(declared_rows)),
+        "declared_ctx_contracts": declared_rows,
+        "mismatched_ctx_contracts": mismatched_rows,
+        "stale_ctx6cat6_paths": stale_ctx6cat6_paths,
+        "no_stale_ctx6cat6": not stale_ctx6cat6_paths,
+        "declared_ctx_contracts_match_expected": not mismatched_rows,
+    }
+
+
 def run(args: argparse.Namespace) -> dict[str, Any]:
     post_rebuild_json = Path(args.smart_post_rebuild_readiness_json).expanduser().resolve()
     smoke_readiness_json = Path(args.smart_smoke_readiness_json).expanduser().resolve()
@@ -127,6 +214,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     post_rebuild = _read_json_or_empty(post_rebuild_json)
     smoke_readiness = _read_json_or_empty(smoke_readiness_json)
     future_train = _future_train_contract(smoke_readiness)
+    source_metadata_contract = _ctx_metadata_contract(
+        {
+            "smart_post_rebuild_readiness": post_rebuild,
+            "smart_smoke_readiness": smoke_readiness,
+        }
+    )
 
     control_text = _read_text(control_script)
     trainer_text = _read_text(trainer_source)
@@ -157,6 +250,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "trainer ctx contract is not hard-coded to stale CTX6CAT6 for smart",
             "CTX6CAT6" not in trainer_text,
             _artifact_meta(trainer_source),
+        ),
+        _check(
+            "smart source metadata has no stale CTX6CAT6 ctx contract",
+            source_metadata_contract["no_stale_ctx6cat6"],
+            source_metadata_contract,
+        ),
+        _check(
+            "declared smart source ctx metadata matches CTX6CAT5",
+            source_metadata_contract["declared_ctx_contracts_match_expected"],
+            source_metadata_contract,
         ),
         _check("smart smoke wrapper exposes --smart-seq520 lane", "--smart-seq520" in smoke_wrapper_text and CONTRACT_MODE in smoke_wrapper_text, _artifact_meta(smoke_wrapper)),
         _check("smart smoke train is wired in control surface", "smart-smoke-train)" in control_text and "smart-smoke-train --vedtak <id>" in control_text, _artifact_meta(control_script)),
@@ -195,6 +298,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "replay_readiness_script": _artifact_meta(replay_readiness_script),
         },
         "future_train_contract": future_train,
+        "source_metadata_contract": source_metadata_contract,
         "checks": checks,
         "failures": failures,
         "blockers": [row["name"] for row in failures],

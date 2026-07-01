@@ -232,6 +232,23 @@ def test_report_only_seq215_contract_provenance_separates_active_and_target_mode
     assert provenance["contract_update_required_before_training"] is False
 
 
+def test_feature_ai_inventory_contract_provenance_includes_explicit_smart_seq520_target() -> None:
+    provenance = _inventory_contract_provenance()
+    smart = provenance["target_smart_candidate"]
+
+    assert smart["contract_mode"] == "smart_seq520_candidate"
+    assert smart["required_training_specialists"] == list(
+        required_training_specialists_for_mode("smart_seq520_candidate")
+    )
+    assert smart["required_training_specialist_count"] == 8
+    assert smart["specialist_model_contract"] == specialist_model_contract_for_mode("smart_seq520_candidate")
+    assert smart["contract_registered"] is True
+    assert smart["contract_update_required_before_training"] is False
+    assert smart["matches_seq215_specialist_set"] is True
+    assert provenance["active_vs_smart_candidate"]["target_contract_mode"] == "smart_seq520_candidate"
+    assert provenance["active_vs_smart_candidate"]["matches_seq215_specialist_set"] is True
+
+
 def test_feature_ai_inventory_next_gate_points_to_seq215_smoke_evidence() -> None:
     assert "build missing candlestick pattern layer" not in FEATURE_AI_INVENTORY_NEXT_REQUIRED_GATE
     assert "SEQ215 smoke-manifest/smoke-train evidence" in FEATURE_AI_INVENTORY_NEXT_REQUIRED_GATE

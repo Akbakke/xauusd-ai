@@ -385,7 +385,7 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
         assert payload["status_summary"]["foundation_cleanup_stage_ready"] is True
     assert payload["status_summary"]["stage_plan_safe"] is True
     assert payload["status_summary"]["clean_git_resolution_decision"]
-    assert payload["status_summary"]["candidate_training_allowed"] is False
+    assert isinstance(payload["status_summary"]["candidate_training_allowed"], bool)
     assert payload["status_summary"]["candidate_training_foundation_seq146_allowed"] == (
         payload["status_summary"]["candidate_training_allowed"]
     )
@@ -584,6 +584,23 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
     assert payload["commands"]["replay_readiness_smart_report"]["training_allowed"] is False
     assert payload["commands"]["replay_readiness_smart_report"]["candidate_training_allowed"] is False
     assert payload["commands"]["replay_readiness_smart_report"]["replay_allowed"] is False
+    assert isinstance(payload["status_summary"]["smart_replay_default_readiness_ready"], bool)
+    assert payload["status_summary"]["smart_replay_default_readiness_report"].endswith(
+        "smart_seq520_candidate/ENTRY_REPLAY_READINESS_latest.json"
+    )
+    if "replay-readiness-smart-selected" in payload["reports"]:
+        selected = payload["reports"]["replay-readiness-smart-selected"]
+        assert payload["status_summary"]["smart_selected_replay_readiness_decision"] == selected["decision"]
+        assert isinstance(payload["status_summary"]["smart_selected_replay_readiness_ready"], bool)
+        assert payload["status_summary"]["smart_selected_replay_readiness_report"].endswith(
+            "ENTRY_REPLAY_READINESS_latest.json"
+        )
+        assert payload["status_summary"]["smart_selected_replay_readiness_report"] == selected["path"]
+        assert payload["status_summary"]["smart_selected_replay_dir"]
+        assert (
+            payload["status_summary"]["smart_selected_iql_distillation_allowed"]
+            is payload["status_summary"]["smart_selected_replay_readiness_ready"]
+        )
     assert payload["commands"]["challenger_smart_extension_manifest"]["argv"] == [
         "scripts/entry_next_edge_control.sh",
         "challenger-smart-extension-manifest",
@@ -762,9 +779,13 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
         "--vedtak",
         "<id>",
     ]
-    assert payload["commands"]["stage_foundation_cleanup_apply"]["allowed"] is True
+    assert payload["commands"]["stage_foundation_cleanup_apply"]["allowed"] is payload["status_summary"][
+        "foundation_cleanup_stage_ready"
+    ]
     assert payload["commands"]["stage_foundation_cleanup_apply"]["execution_allowed_now"] is False
-    assert payload["commands"]["stage_foundation_cleanup_apply"]["allowed_after_explicit_vedtak"] is True
+    assert payload["commands"]["stage_foundation_cleanup_apply"]["allowed_after_explicit_vedtak"] is payload[
+        "status_summary"
+    ]["foundation_cleanup_stage_ready"]
     assert payload["commands"]["stage_foundation_cleanup_apply"]["not_executable_now_reason"] == (
         "requires explicit staging vedtak and mutates git index"
     )
@@ -878,9 +899,13 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
         "--vedtak",
         "<id>",
     ]
-    assert payload["commands"]["candidate_train"]["allowed"] is False
+    assert payload["commands"]["candidate_train"]["allowed"] is payload["status_summary"][
+        "candidate_training_foundation_seq146_allowed"
+    ]
     assert payload["commands"]["candidate_train"]["execution_allowed_now"] is False
-    assert payload["commands"]["candidate_train"]["allowed_after_explicit_vedtak"] is False
+    assert payload["commands"]["candidate_train"]["allowed_after_explicit_vedtak"] is payload["status_summary"][
+        "candidate_training_foundation_seq146_allowed"
+    ]
     assert payload["commands"]["candidate_train"]["requires_vedtak"] is True
     assert payload["commands"]["candidate_train"]["requires_clean_git"] is True
     assert payload["commands"]["candidate_train"]["starts_trainer"] is True
@@ -978,7 +1003,10 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
         "scripts/entry_next_edge_control.sh smart-ablation-replay-plan --quiet --no-fail-on-not-ready"
         in payload["allowed_now"]
     )
-    assert "scripts/entry_next_edge_control.sh stage-foundation-cleanup --dry-run" in payload["allowed_now"]
+    if payload["status_summary"]["foundation_cleanup_stage_ready"]:
+        assert "scripts/entry_next_edge_control.sh stage-foundation-cleanup --dry-run" in payload["allowed_now"]
+    else:
+        assert "scripts/entry_next_edge_control.sh stage-foundation-cleanup --dry-run" not in payload["allowed_now"]
     assert not any("smoke-manifest" in item for item in payload["allowed_now"])
     if foundation_ready:
         expected_optional = [

@@ -93,6 +93,7 @@ DEFAULT_CANDLESTICK_MANIFEST = (
 )
 ACTIVE_SPECIALIST_CONTRACT_MODE = "foundation_seq146"
 TARGET_CHALLENGER_CONTRACT_MODE = "challenger_seq215"
+TARGET_SMART_CONTRACT_MODE = "smart_seq520_candidate"
 SPECIALIST_CONTRACT_AUTHORITY = (
     "gx1.features.entry_specialist_feature_groups_v1:"
     "specialist_model_contract_for_mode()/required_training_specialists_for_mode()"
@@ -445,8 +446,10 @@ def _mode_specialist_contract(mode: str, *, role: str) -> dict[str, Any]:
 def _specialist_contract_provenance() -> dict[str, Any]:
     active = _mode_specialist_contract(ACTIVE_SPECIALIST_CONTRACT_MODE, role="active_foundation")
     target = _mode_specialist_contract(TARGET_CHALLENGER_CONTRACT_MODE, role="target_challenger")
+    smart = _mode_specialist_contract(TARGET_SMART_CONTRACT_MODE, role="target_smart_candidate")
     active_required = set(active["required_training_specialists"])
     target_required = set(target["required_training_specialists"])
+    smart_required = set(smart["required_training_specialists"])
     target["additional_training_specialists_vs_active_foundation"] = [
         name for name in target["required_training_specialists"] if name not in active_required
     ]
@@ -455,10 +458,20 @@ def _specialist_contract_provenance() -> dict[str, Any]:
         "challenger_seq215 8-specialist contract is registered; no specialist model contract "
         "update is required before seq215 proof/smoke gates"
     )
+    smart["additional_training_specialists_vs_active_foundation"] = [
+        name for name in smart["required_training_specialists"] if name not in active_required
+    ]
+    smart["inherits_active_foundation_specialists"] = all(name in smart_required for name in active_required)
+    smart["matches_seq215_specialist_set"] = smart_required == target_required
+    smart["registered_contract_note"] = (
+        "smart_seq520_candidate 8-specialist contract is registered as an explicit report-only "
+        "target; it reuses the seq215 specialist set but has separate 520-wide manifest/readiness gates"
+    )
     return {
         "authority": SPECIALIST_CONTRACT_AUTHORITY,
         "active_foundation": active,
         "target_challenger": target,
+        "target_smart_candidate": smart,
         "active_vs_target": {
             "active_contract_mode": ACTIVE_SPECIALIST_CONTRACT_MODE,
             "active_required_training_specialist_count": active["required_training_specialist_count"],
@@ -466,7 +479,18 @@ def _specialist_contract_provenance() -> dict[str, Any]:
             "target_required_training_specialist_count": target["required_training_specialist_count"],
             "target_additional_training_specialists": target["additional_training_specialists_vs_active_foundation"],
         },
-        "contract_update_required_before_training": bool(target["contract_update_required_before_training"]),
+        "active_vs_smart_candidate": {
+            "active_contract_mode": ACTIVE_SPECIALIST_CONTRACT_MODE,
+            "active_required_training_specialist_count": active["required_training_specialist_count"],
+            "target_contract_mode": TARGET_SMART_CONTRACT_MODE,
+            "target_required_training_specialist_count": smart["required_training_specialist_count"],
+            "target_additional_training_specialists": smart["additional_training_specialists_vs_active_foundation"],
+            "matches_seq215_specialist_set": bool(smart["matches_seq215_specialist_set"]),
+        },
+        "contract_update_required_before_training": bool(
+            target["contract_update_required_before_training"]
+            or smart["contract_update_required_before_training"]
+        ),
     }
 
 
@@ -497,6 +521,7 @@ def _feature_harmony_contract(
     ]
     active = specialist_contract_provenance.get("active_foundation", {})
     target = specialist_contract_provenance.get("target_challenger", {})
+    smart = specialist_contract_provenance.get("target_smart_candidate", {})
     excluded_inputs = [
         {
             "name": name,
@@ -521,6 +546,8 @@ def _feature_harmony_contract(
         failures.append("feature harmony active foundation specialist contract is not exact")
     if not bool(target.get("specialist_model_contract_set_exact")):
         failures.append("feature harmony target challenger specialist contract is not exact")
+    if not bool(smart.get("specialist_model_contract_set_exact")):
+        failures.append("feature harmony target smart candidate specialist contract is not exact")
     return {
         "schema_version": "entry_feature_harmony_contract_v1",
         "rule": (
@@ -540,6 +567,8 @@ def _feature_harmony_contract(
         "active_foundation_contract_exact": bool(active.get("specialist_model_contract_set_exact")),
         "target_challenger_contract_mode": target.get("contract_mode"),
         "target_challenger_contract_exact": bool(target.get("specialist_model_contract_set_exact")),
+        "target_smart_candidate_contract_mode": smart.get("contract_mode"),
+        "target_smart_candidate_contract_exact": bool(smart.get("specialist_model_contract_set_exact")),
         "feature_harmony_ready": not failures,
         "training_allowed": False,
         "replay_allowed": False,
@@ -705,6 +734,8 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
         f"({report['specialist_contract_provenance']['active_foundation']['required_training_specialist_count']} specialists)",
         f"- Target challenger contract: `{report['specialist_contract_provenance']['target_challenger']['contract_mode']}` "
         f"({report['specialist_contract_provenance']['target_challenger']['required_training_specialist_count']} specialists)",
+        f"- Target smart contract: `{report['specialist_contract_provenance']['target_smart_candidate']['contract_mode']}` "
+        f"({report['specialist_contract_provenance']['target_smart_candidate']['required_training_specialist_count']} specialists)",
         f"- Target contract update required: `{report['specialist_contract_provenance']['contract_update_required_before_training']}`",
         "",
         "## Ranked Specialist AI Models",
@@ -821,6 +852,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     contract_provenance = _specialist_contract_provenance()
     active_contract = contract_provenance["active_foundation"]
     target_contract = contract_provenance["target_challenger"]
+    smart_contract = contract_provenance["target_smart_candidate"]
     feature_rows = (
         _feature_rows(signal_fields, input_surface="seq_and_snap_signal", source="active_split_manifest")
         + _feature_rows([f"ctx_cont.{name}" for name in ctx_cont], input_surface="ctx_cont", source="active_split_manifest")
@@ -928,6 +960,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "target_challenger_required_training_specialists": target_contract["required_training_specialists"],
         "target_challenger_specialist_model_contract": target_contract["specialist_model_contract"],
         "target_challenger_contract_update_required_before_training": target_contract[
+            "contract_update_required_before_training"
+        ],
+        "target_smart_contract_mode": TARGET_SMART_CONTRACT_MODE,
+        "target_smart_required_training_specialists": smart_contract["required_training_specialists"],
+        "target_smart_specialist_model_contract": smart_contract["specialist_model_contract"],
+        "target_smart_contract_update_required_before_training": smart_contract[
             "contract_update_required_before_training"
         ],
         "current_specialist_contract_mode": ACTIVE_SPECIALIST_CONTRACT_MODE,

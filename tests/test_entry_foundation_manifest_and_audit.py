@@ -4,6 +4,7 @@ import pytest
 import numpy as np
 import json
 
+import gx1.scripts.audit_entry_foundation_features_v1 as foundation_audit
 from gx1.features.entry_foundation_structure_v1 import (
     FOUNDATION_STRUCTURE_FEATURE_NAMES,
     FOUNDATION_STRUCTURE_FEATURE_VERSION,
@@ -425,6 +426,67 @@ def test_stream_split_liveness_matches_matrix_helpers(tmp_path) -> None:
 
     _assert_liveness_rows_match(streamed_stats, expected_stats, key="feature")
     _assert_liveness_rows_match(streamed_source_rows, expected_source_rows, key="source_field")
+
+
+def test_stream_split_source_scan_avoids_stacked_source_matrix(tmp_path, monkeypatch) -> None:
+    audit_features = ["chart.foundation_hh_state"]
+    snap_source_names = [
+        field.split(".", 1)[1]
+        for field in FOUNDATION_STRUCTURE_SOURCE_FIELDS
+        if field.startswith("snap.")
+    ]
+    signal_fields = list(dict.fromkeys(audit_features + snap_source_names))
+    ctx_cont_names = list(
+        dict.fromkeys(
+            field.split(".", 1)[1]
+            for field in FOUNDATION_STRUCTURE_SOURCE_FIELDS
+            if field.startswith("ctx_cont.")
+        )
+    )
+    row_count = 3
+    snap = (
+        np.arange(row_count * len(signal_fields), dtype=np.float32)
+        .reshape(row_count, len(signal_fields))
+        + np.float32(1.0)
+    )
+    ctx_cont = (
+        np.arange(row_count * len(ctx_cont_names), dtype=np.float32)
+        .reshape(row_count, len(ctx_cont_names))
+        + np.float32(1.0)
+    )
+    parquet_path = tmp_path / "sample.parquet"
+    pd.DataFrame(
+        {
+            "snap": [row.astype(np.float32) for row in snap],
+            "ctx_cont": [row.astype(np.float32) for row in ctx_cont],
+        }
+    ).to_parquet(parquet_path, index=False)
+
+    original_add = foundation_audit._StreamingStatsAccumulator.add
+
+    def _forbid_source_matrix_add(self, values):
+        if self.names == list(FOUNDATION_STRUCTURE_SOURCE_FIELDS):
+            raise AssertionError("source scan should not materialize a stacked source matrix")
+        return original_add(self, values)
+
+    monkeypatch.setattr(foundation_audit._StreamingStatsAccumulator, "add", _forbid_source_matrix_add)
+
+    streamed_stats, streamed_source_rows = foundation_audit._stream_split_liveness_rows(
+        parquet_path,
+        split="train",
+        signal_fields=signal_fields,
+        ctx_cont_names=ctx_cont_names,
+        audit_features=audit_features,
+        batch_size=2,
+        liveness_epsilon=1e-7,
+        near_constant_std=1e-9,
+        min_source_active_rate=0.0001,
+        min_source_active_count=1,
+    )
+
+    assert len(streamed_stats) == len(audit_features)
+    assert len(streamed_source_rows) == len(FOUNDATION_STRUCTURE_SOURCE_FIELDS)
+    assert all(row["n"] == row_count for row in streamed_source_rows)
 
 
 def test_foundation_objective_coverage_requires_exact_goal_features() -> None:
