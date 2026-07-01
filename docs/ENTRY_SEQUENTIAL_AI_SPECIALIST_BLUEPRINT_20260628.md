@@ -230,11 +230,16 @@ The 2026-07-01 operating point is feature-harmony clean but not promotion-ready:
   be considered. This closes old smoke bundles that lack full-batch
   path-quality ranking or positive bad-path/path-quality rank weights, even
   when their older broad metrics still pass.
+- Candidate-readiness also requires active LONG/SHORT/FLAT direction
+  distribution coverage on audited smoke splits. A bundle that beats majority
+  by collapsing away from a common class, including underpredicting FLAT and
+  overtrading LONG/SHORT, must remain blocked before candidate training.
 - Raw direction accuracy around 0.40 is a weak sanity diagnostic, not the
   primary objective. The smart selected replay has direction precision only
   about 0.478 for candidate and 0.452 for IQL, so the next improvement must
-  target calibration, selected-tail direction quality, bad-path/path-quality
-  semantics and exit timing rather than celebrating broad accuracy.
+  target class-distribution calibration, selected-tail direction quality,
+  bad-path/path-quality semantics and exit timing rather than celebrating broad
+  accuracy.
 - Smart selected slice audit now fails closed on path-signal calibration:
   `path_quality_pred` is wrong-signed for net PnL and stop-loss behavior on
   both candidate and IQL, and `bad_path_prob` is wrong-signed versus stop-loss

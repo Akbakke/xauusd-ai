@@ -86,6 +86,10 @@ EXPECTED_SIGNAL_DIMS_BY_MODE = {
     "challenger_seq215": 215,
     "smart_seq520_candidate": 520,
 }
+CLASS_NAMES = ("LONG", "SHORT", "FLAT")
+MIN_DIRECTION_CLASS_LABEL_RATE_FOR_COVERAGE = 0.10
+MIN_DIRECTION_CLASS_PRED_RATE = 0.05
+MIN_DIRECTION_CLASS_PRED_TO_LABEL_RATIO = 0.35
 
 
 def _json_default(obj: Any) -> Any:
@@ -129,6 +133,68 @@ def _all_split_direction_beats_majority(report: dict[str, Any]) -> bool:
     rows = _splits(report)
     names = _split_names(report)
     return bool(names) and all(bool(((rows.get(split) or {}).get("direction") or {}).get("beats_majority_baseline")) for split in names)
+
+
+def _direction_distribution_contract(direction: dict[str, Any]) -> dict[str, Any]:
+    rows = int(direction.get("rows") or 0)
+    label_counts = direction.get("label_counts") if isinstance(direction.get("label_counts"), dict) else {}
+    prediction_counts = (
+        direction.get("prediction_counts") if isinstance(direction.get("prediction_counts"), dict) else {}
+    )
+    failures: list[str] = []
+    class_rows: dict[str, dict[str, float | int]] = {}
+    for name in CLASS_NAMES:
+        label_count = int(label_counts.get(name) or 0)
+        prediction_count = int(prediction_counts.get(name) or 0)
+        label_rate = float(label_count) / float(rows) if rows > 0 else 0.0
+        prediction_rate = float(prediction_count) / float(rows) if rows > 0 else 0.0
+        required_prediction_rate = 0.0
+        if label_rate >= MIN_DIRECTION_CLASS_LABEL_RATE_FOR_COVERAGE:
+            required_prediction_rate = max(
+                MIN_DIRECTION_CLASS_PRED_RATE,
+                label_rate * MIN_DIRECTION_CLASS_PRED_TO_LABEL_RATIO,
+            )
+            if prediction_rate < required_prediction_rate:
+                failures.append(
+                    f"{name} prediction_rate={prediction_rate:.6f} below required "
+                    f"{required_prediction_rate:.6f} for label_rate={label_rate:.6f}"
+                )
+        class_rows[name] = {
+            "label_count": label_count,
+            "prediction_count": prediction_count,
+            "label_rate": label_rate,
+            "prediction_rate": prediction_rate,
+            "prediction_to_label_rate": prediction_rate / max(label_rate, 1e-12),
+            "required_prediction_rate": required_prediction_rate,
+        }
+    if rows <= 0:
+        failures.append("direction distribution has zero rows")
+    if rows > 0 and not label_counts:
+        failures.append("direction distribution missing label_counts")
+    if rows > 0 and not prediction_counts:
+        failures.append("direction distribution missing prediction_counts")
+    return {
+        "decision": "PASS" if not failures else "FAIL",
+        "classes": class_rows,
+        "failures": failures,
+    }
+
+
+def _split_direction_distribution_contract(split_row: dict[str, Any]) -> dict[str, Any]:
+    contract = split_row.get("direction_distribution_contract")
+    if isinstance(contract, dict):
+        return contract
+    direction = split_row.get("direction") if isinstance(split_row.get("direction"), dict) else {}
+    return _direction_distribution_contract(direction)
+
+
+def _all_split_direction_distribution_live(report: dict[str, Any]) -> bool:
+    rows = _splits(report)
+    names = _split_names(report)
+    return bool(names) and all(
+        str(_split_direction_distribution_contract(rows.get(split) or {}).get("decision")) == "PASS"
+        for split in names
+    )
 
 
 def _all_split_bad_path_negative(report: dict[str, Any]) -> bool:
@@ -377,6 +443,10 @@ def _smoke_edge_checks(
         }
         for split, row in _splits(report).items()
     }
+    direction_distribution = {
+        split: _split_direction_distribution_contract(row or {})
+        for split, row in _splits(report).items()
+    }
     gate = {
         split: {
             "row_sum_max_abs_error": (((row or {}).get("specialist_gate") or {}).get("row_sum_max_abs_error")),
@@ -511,6 +581,11 @@ def _smoke_edge_checks(
             {"split_rows": split_rows},
         ),
         _check("direction beats majority on all audited splits", _all_split_direction_beats_majority(report), direction),
+        _check(
+            "direction distribution covers active LONG/SHORT/FLAT classes",
+            _all_split_direction_distribution_live(report),
+            {"direction_distribution": direction_distribution},
+        ),
         _check("bad_path probability ranks worse path quality higher", _all_split_bad_path_negative(report), {"bad_path_rho": bad_path_rho}),
         _check(
             "specialist gate is finite, normalized, non-collapsed, and entropic",

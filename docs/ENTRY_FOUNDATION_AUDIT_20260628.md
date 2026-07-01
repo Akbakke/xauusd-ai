@@ -237,6 +237,9 @@ Active status:
   is intentionally `NOT_READY_FOR_CANDIDATE_TRAINING` until a newly trained
   smart smoke bundle carries `path_calibration_recipe_contract=PASS`; the
   latest old smart smoke bundle has `path_calibration_recipe_contract=null`.
+  Candidate-readiness also requires direction distribution coverage across
+  active LONG/SHORT/FLAT classes, so a bundle that beats majority while
+  collapsing away from a common class remains blocked.
 - The broad/default smart replay is not approved for IQL because drawdown is
   too high: the latest default replay-readiness remains
   `NOT_READY_FOR_IQL_DISTILLATION` with max drawdown about 1342 bps against
@@ -295,12 +298,14 @@ Active status:
 - Candidate-readiness now also requires the smoke bundle audit itself to carry
   `path_calibration_recipe_contract=PASS` with active path-quality and bad-path
   heads, full-batch path-quality ranking and positive rank weights/margins.
-  Old smoke bundles without this contract cannot open candidate training, even
-  if their older aggregate direction/PnL diagnostics looked acceptable.
+  It also requires active LONG/SHORT/FLAT direction distribution coverage on
+  audited splits; old smoke bundles without these contracts cannot open
+  candidate training, even if their older aggregate direction/PnL diagnostics
+  looked acceptable.
 - Raw smoke/bundle direction accuracy around 0.40 is not an acceptance metric by
   itself. It is only a sanity diagnostic against the majority baseline; Entry
-  acceptance remains replay/PnL, drawdown, MAE, bad-path, calibration and
-  session/regime/side/tail slice evidence.
+  acceptance remains replay/PnL, drawdown, MAE, bad-path, class-distribution
+  calibration and session/regime/side/tail slice evidence.
 - Exit report-only gates remain ready through feature alignment, architecture,
   training plan, wrapper readiness, pretrain manifest, slice robustness,
   train-execution review and post-train audit contract. Exit Transformer/IQL

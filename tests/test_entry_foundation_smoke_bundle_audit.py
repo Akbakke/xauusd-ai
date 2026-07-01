@@ -7,6 +7,7 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     SPECIALIST_MODEL_CONTRACT,
 )
 from gx1.scripts.audit_entry_foundation_smoke_bundle_v1 import (
+    _direction_distribution_contract,
     _direction_metrics,
     _gate_stats,
     _head_contract_report,
@@ -65,6 +66,34 @@ def test_direction_metrics_reports_accuracy_and_prediction_distribution() -> Non
     assert metrics["majority_baseline_accuracy"] == 0.5
     assert metrics["beats_majority_baseline"] is True
     assert metrics["prediction_counts"] == {"LONG": 2, "SHORT": 1, "FLAT": 1}
+    assert metrics["label_rate"] == {"LONG": 0.25, "SHORT": 0.25, "FLAT": 0.5}
+    assert metrics["prediction_rate"] == {"LONG": 0.5, "SHORT": 0.25, "FLAT": 0.25}
+
+
+def test_direction_distribution_contract_rejects_flat_collapse() -> None:
+    direction = {
+        "rows": 1000,
+        "label_counts": {"LONG": 330, "SHORT": 320, "FLAT": 350},
+        "prediction_counts": {"LONG": 520, "SHORT": 430, "FLAT": 50},
+    }
+
+    report = _direction_distribution_contract(direction)
+
+    assert report["decision"] == "FAIL"
+    assert any("FLAT prediction_rate" in failure for failure in report["failures"])
+
+
+def test_direction_distribution_contract_accepts_balanced_active_classes() -> None:
+    direction = {
+        "rows": 1000,
+        "label_counts": {"LONG": 330, "SHORT": 320, "FLAT": 350},
+        "prediction_counts": {"LONG": 430, "SHORT": 370, "FLAT": 200},
+    }
+
+    report = _direction_distribution_contract(direction)
+
+    assert report["decision"] == "PASS"
+    assert report["failures"] == []
 
 
 def test_gate_stats_checks_row_sums_and_mean_weights() -> None:

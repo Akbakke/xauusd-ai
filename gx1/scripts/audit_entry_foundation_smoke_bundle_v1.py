@@ -44,6 +44,9 @@ DEFAULT_M5_PREBUILT = (
 )
 DEFAULT_MTF_CACHE_DIR = RUN_ROOT / "MULTI_TF_V2_CACHE"
 CLASS_NAMES = {0: "LONG", 1: "SHORT", 2: "FLAT"}
+MIN_DIRECTION_CLASS_LABEL_RATE_FOR_COVERAGE = 0.10
+MIN_DIRECTION_CLASS_PRED_RATE = 0.05
+MIN_DIRECTION_CLASS_PRED_TO_LABEL_RATIO = 0.35
 HEAD_OUTPUT_KEYS = {
     "direction": "direction_logits",
     "tradable": "tradable_logit",
@@ -227,18 +230,86 @@ def _direction_metrics(direction_logits: np.ndarray, labels: np.ndarray) -> dict
     pred = probs.argmax(axis=1).astype(np.int64)
     accuracy = float((pred == y).mean()) if y.size else 0.0
     majority = _majority_baseline_accuracy(y)
+    label_counts = _class_count_dict(y)
+    prediction_counts = _class_count_dict(pred)
+    rows = int(y.size)
+    label_rate = {
+        name: (float(count) / float(rows) if rows else 0.0)
+        for name, count in label_counts.items()
+    }
+    prediction_rate = {
+        name: (float(count) / float(rows) if rows else 0.0)
+        for name, count in prediction_counts.items()
+    }
     return {
-        "rows": int(y.size),
+        "rows": rows,
         "accuracy": accuracy,
         "majority_baseline_accuracy": majority,
         "beats_majority_baseline": bool(accuracy > majority),
-        "label_counts": _class_count_dict(y),
-        "prediction_counts": _class_count_dict(pred),
+        "label_counts": label_counts,
+        "prediction_counts": prediction_counts,
+        "label_rate": label_rate,
+        "prediction_rate": prediction_rate,
+        "prediction_to_label_rate": {
+            name: (
+                float(prediction_rate.get(name, 0.0)) / max(float(label_rate.get(name, 0.0)), 1e-12)
+            )
+            for name in CLASS_NAMES.values()
+        },
         "mean_probability": {
             CLASS_NAMES[i]: float(probs[:, i].mean()) if probs.size else 0.0
             for i in range(3)
         },
         "max_abs_logit": float(np.nanmax(np.abs(logits))) if logits.size else 0.0,
+    }
+
+
+def _direction_distribution_contract(direction: dict[str, Any]) -> dict[str, Any]:
+    rows = int(direction.get("rows") or 0)
+    label_counts = direction.get("label_counts") if isinstance(direction.get("label_counts"), dict) else {}
+    prediction_counts = (
+        direction.get("prediction_counts") if isinstance(direction.get("prediction_counts"), dict) else {}
+    )
+    failures: list[str] = []
+    class_rows: dict[str, dict[str, float | int]] = {}
+    for name in CLASS_NAMES.values():
+        label_count = int(label_counts.get(name) or 0)
+        prediction_count = int(prediction_counts.get(name) or 0)
+        label_rate = float(label_count) / float(rows) if rows > 0 else 0.0
+        prediction_rate = float(prediction_count) / float(rows) if rows > 0 else 0.0
+        required_prediction_rate = 0.0
+        if label_rate >= MIN_DIRECTION_CLASS_LABEL_RATE_FOR_COVERAGE:
+            required_prediction_rate = max(
+                MIN_DIRECTION_CLASS_PRED_RATE,
+                label_rate * MIN_DIRECTION_CLASS_PRED_TO_LABEL_RATIO,
+            )
+            if prediction_rate < required_prediction_rate:
+                failures.append(
+                    f"{name} prediction_rate={prediction_rate:.6f} below required "
+                    f"{required_prediction_rate:.6f} for label_rate={label_rate:.6f}"
+                )
+        class_rows[name] = {
+            "label_count": label_count,
+            "prediction_count": prediction_count,
+            "label_rate": label_rate,
+            "prediction_rate": prediction_rate,
+            "prediction_to_label_rate": prediction_rate / max(label_rate, 1e-12),
+            "required_prediction_rate": required_prediction_rate,
+        }
+    if rows <= 0:
+        failures.append("direction distribution has zero rows")
+    if rows > 0 and not label_counts:
+        failures.append("direction distribution missing label_counts")
+    if rows > 0 and not prediction_counts:
+        failures.append("direction distribution missing prediction_counts")
+    return {
+        "decision": "PASS" if not failures else "FAIL",
+        "rows": rows,
+        "min_label_rate_for_coverage": MIN_DIRECTION_CLASS_LABEL_RATE_FOR_COVERAGE,
+        "min_prediction_rate": MIN_DIRECTION_CLASS_PRED_RATE,
+        "min_prediction_to_label_rate": MIN_DIRECTION_CLASS_PRED_TO_LABEL_RATIO,
+        "classes": class_rows,
+        "failures": failures,
     }
 
 
@@ -1259,6 +1330,7 @@ def _audit_split(
         for key, value in chunks.items()
     }
     direction = _direction_metrics(arr["direction_logits"], arr["labels"])
+    direction_distribution = _direction_distribution_contract(direction)
     path_quality_spearman = _spearman(arr["path_quality_pred"], arr["path_quality_target"])
     bad_path_spearman = _spearman(arr["bad_path_prob"], arr["path_quality_target"])
     gate_report = None
@@ -1276,6 +1348,7 @@ def _audit_split(
         "parquet_path": str(parquet_path),
         "rows": int(direction["rows"]),
         "direction": direction,
+        "direction_distribution_contract": direction_distribution,
         "path_quality": {
             "target_mean_bps": _safe_mean(arr["path_quality_target"]),
             "pred_mean_bps": _safe_mean(arr["path_quality_pred"]),
@@ -1448,6 +1521,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         if args.require_edge:
             if not bool(split_report["direction"]["beats_majority_baseline"]):
                 failures.append(f"{split}: direction accuracy does not beat majority baseline")
+            distribution_contract = split_report.get("direction_distribution_contract") or {}
+            if str(distribution_contract.get("decision")) != "PASS":
+                failures.append(
+                    f"{split}: direction distribution collapsed: "
+                    f"{distribution_contract.get('failures')}"
+                )
             rho = split_report["bad_path"]["prob_vs_path_quality_spearman"]
             if rho is None or float(rho) >= 0.0:
                 failures.append(f"{split}: bad_path_prob is not negatively related to path_quality_bps")

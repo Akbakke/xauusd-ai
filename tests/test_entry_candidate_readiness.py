@@ -64,9 +64,12 @@ def _passing_smoke_audit(
     split = {
         "rows": 128,
         "direction": {
+            "rows": 128,
             "accuracy": 0.46,
             "majority_baseline_accuracy": 0.34,
             "beats_majority_baseline": True,
+            "label_counts": {"LONG": 43, "SHORT": 41, "FLAT": 44},
+            "prediction_counts": {"LONG": 48, "SHORT": 44, "FLAT": 36},
         },
         "bad_path": {"prob_vs_path_quality_spearman": -0.22},
         "specialist_gate": {
@@ -235,6 +238,17 @@ def test_smoke_edge_checks_reject_missing_path_calibration_contract() -> None:
     failed = {check["name"] for check in checks if not check["ok"]}
 
     assert "smoke bundle audit path calibration recipe contract PASS" in failed
+
+
+def test_smoke_edge_checks_reject_direction_distribution_collapse() -> None:
+    report = _passing_smoke_audit()
+    report["splits"]["test"]["direction"]["label_counts"] = {"LONG": 42, "SHORT": 40, "FLAT": 46}
+    report["splits"]["test"]["direction"]["prediction_counts"] = {"LONG": 70, "SHORT": 54, "FLAT": 4}
+
+    checks = _smoke_edge_checks(report)
+    failed = {check["name"] for check in checks if not check["ok"]}
+
+    assert "direction distribution covers active LONG/SHORT/FLAT classes" in failed
 
 
 def test_smoke_edge_checks_reject_missing_pretrain_manifest_contract() -> None:
