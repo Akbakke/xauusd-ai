@@ -677,7 +677,7 @@ entry_exit_transformer_post_train_contract_decision = str(entry_exit_transformer
 entry_exit_transformer_post_train_contract_ready = entry_exit_transformer_post_train_contract_decision == "ENTRY_EXIT_TRANSFORMER_POST_TRAIN_AUDIT_CONTRACT_READY"
 entry_exit_transformer_train_enablement_decision = str(entry_exit_transformer_train_enablement.get("decision") or "")
 entry_exit_transformer_train_enablement_ready = entry_exit_transformer_train_enablement_decision == "ENTRY_EXIT_TRANSFORMER_TRAIN_ENABLEMENT_READY_FOR_EXPLICIT_EXECUTION"
-promotion_review_allowed = bool(
+promotion_review_raw_allowed = bool(
     (reports.get("iql-replay-comparison") or {}).get("promotion_review_allowed_with_explicit_vedtak")
     and iql_replay_slice_audit_ready
 )
@@ -810,9 +810,31 @@ smart_replay_selected_stale_by_path_calibration = bool(
 smart_replay_selected_ready = bool(
     smart_replay_selected_raw_ready and smart_selected_path_signal_calibration_ready
 )
+smart_selected_promotion_review_allowed = bool(
+    smart_iql_replay_comparison_ready
+    and smart_iql_replay_slice_audit_ready
+    and smart_selected_path_signal_calibration_ready
+    and smart_replay_selected_ready
+)
+promotion_review_blocked_by_smart_selected_calibration = bool(
+    promotion_review_raw_allowed
+    and smart_iql_replay_comparison_ready
+    and not smart_selected_promotion_review_allowed
+)
+promotion_review_allowed = bool(
+    promotion_review_raw_allowed
+    and (
+        not smart_iql_replay_comparison_ready
+        or smart_selected_promotion_review_allowed
+    )
+)
 if smart_replay_selected_stale_by_path_calibration:
     current_blockers.append(
         "smart selected replay-readiness is stale until path-signal calibration and refreshed path-calibration recipe gates PASS"
+    )
+if promotion_review_blocked_by_smart_selected_calibration:
+    current_blockers.append(
+        "promotion review is blocked until smart selected slice and path-signal calibration gates PASS"
     )
 smart_rebuild_preflight_ready = (
     str(smart_rebuild_preflight.get("decision") or "") == "READY_FOR_SMART_REBUILD_VEDTAK_REVIEW"
@@ -2342,6 +2364,7 @@ payload = {
         "smart_selected_replay_readiness_report": str(paths.get("replay-readiness-smart-selected")) if paths.get("replay-readiness-smart-selected") else None,
         "smart_selected_replay_dir": smart_replay_selected.get("replay_dir"),
         "smart_selected_iql_distillation_allowed": smart_replay_selected_ready,
+        "smart_selected_promotion_review_allowed": smart_selected_promotion_review_allowed,
         "real_smoke_train_smart_seq520_allowed": real_smoke_train_smart_allowed,
         "iql_distillation_allowed": bool(
             iql_distillation_allowed
@@ -2453,6 +2476,8 @@ payload = {
         "entry_exit_transformer_train_allowed_after_vedtak": False,
         "exit_training_allowed": False,
         "exit_iql_allowed": False,
+        "promotion_review_raw_allowed": promotion_review_raw_allowed,
+        "promotion_review_blocked_by_smart_selected_calibration": promotion_review_blocked_by_smart_selected_calibration,
         "promotion_review_allowed": promotion_review_allowed,
         "promotion_shadow_live_allowed": False,
         "current_blockers": current_blockers,

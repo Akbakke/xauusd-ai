@@ -430,6 +430,11 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
     assert isinstance(payload["status_summary"]["iql_distillation_allowed"], bool)
     assert isinstance(payload["status_summary"]["iql_replay_evidence_ready"], bool)
     assert isinstance(payload["status_summary"]["iql_replay_comparison_ready"], bool)
+    assert isinstance(payload["status_summary"]["promotion_review_raw_allowed"], bool)
+    assert isinstance(
+        payload["status_summary"]["promotion_review_blocked_by_smart_selected_calibration"],
+        bool,
+    )
     assert isinstance(payload["status_summary"]["promotion_review_allowed"], bool)
     assert payload["status_summary"]["promotion_shadow_live_allowed"] is False
     if not real_smoke_train_allowed and foundation_ready:
@@ -629,6 +634,7 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
             payload["status_summary"]["smart_selected_iql_distillation_allowed"]
             is payload["status_summary"]["smart_selected_replay_readiness_ready"]
         )
+        assert isinstance(payload["status_summary"]["smart_selected_promotion_review_allowed"], bool)
         if payload["status_summary"]["smart_selected_replay_readiness_stale_by_path_calibration"]:
             assert (
                 "smart selected replay-readiness is stale until path-signal calibration and refreshed path-calibration recipe gates PASS"
@@ -661,6 +667,14 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
         assert isinstance(
             payload["status_summary"]["smart_selected_iql_replay_slice_worst_edge_regressions"],
             list,
+        )
+    if payload["status_summary"]["promotion_review_blocked_by_smart_selected_calibration"]:
+        assert payload["status_summary"]["promotion_review_raw_allowed"] is True
+        assert payload["status_summary"]["promotion_review_allowed"] is False
+        assert payload["status_summary"]["smart_selected_promotion_review_allowed"] is False
+        assert (
+            "promotion review is blocked until smart selected slice and path-signal calibration gates PASS"
+            in payload["status_summary"]["current_blockers"]
         )
     assert isinstance(payload["status_summary"]["iql_replay_slice_edge_regression_count"], int)
     assert isinstance(payload["status_summary"]["iql_replay_slice_diagnostic_regression_count"], int)

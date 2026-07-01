@@ -214,6 +214,10 @@ The 2026-07-01 operating point is feature-harmony clean but not promotion-ready:
   smoke/candidate bundle audit and replay-readiness now require
   `path_calibration_recipe_contract=PASS` with full-batch path-quality ranking
   before any candidate bundle can be replay/IQL authority.
+- Commit `20677b4d` makes old selected smart replay-readiness stale when the
+  selected IQL slice/path-signal calibration gate is not ready; stale selected
+  replay can no longer open IQL distillation authority in the readiness
+  summary.
 - Raw direction accuracy around 0.40 is a weak sanity diagnostic, not the
   primary objective. The smart selected replay has direction precision only
   about 0.478 for candidate and 0.452 for IQL, so the next improvement must
@@ -262,6 +266,20 @@ liveness and replay evidence. Entry remains first, then Exit must reuse the
 same calibrated state from the exact Entry policy traces. Keep the repo clean
 at every transition, reuse existing modules and controls where possible, and
 create new files only for genuinely new artifacts, gates or model components.
+
+Codex Operating Rule - 2026-07-01: continue the build as one full
+Entry-to-Exit bot objective. The 520 smart seq/snap surface, the 142 continuous
+context inputs and the five categorical context embeddings are one market-state
+language, not competing feature sets. The older foundation features remain
+source truth and provenance; smart features are higher-level calibrated
+summaries for the specialist Transformer to fuse. Do not remove or bypass a
+base feature family just because a smart layer exists until ablation and replay
+prove the replacement is better. Entry Transformer must first become the
+calibrated evidence layer, Entry IQL the replay-proven entry policy, then Exit
+Transformer and Exit IQL must learn profit capture from the exact Entry traces.
+If path-quality, bad-path, selected-tail direction, session/regime/side or tail
+calibration fails, the system must fail closed even when broad accuracy or old
+aggregate replay metrics look acceptable.
 
 ## Operating Doctrine
 

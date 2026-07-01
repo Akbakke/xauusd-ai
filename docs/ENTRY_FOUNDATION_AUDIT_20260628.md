@@ -83,6 +83,19 @@ fit the existing ownership boundaries. Every step must preserve clean-git
 hygiene before real training and must fail closed on missing provenance, hashes,
 liveness, exact contracts or weak replay slices.
 
+Codex Objective Lock - 2026-07-01: every session must continue toward one
+coherent Entry-to-Exit trading system, not isolated feature experiments. The
+existing foundation inputs, smart-layer inputs and multi-timeframe context must
+all stay routed, live, hashed and explainable by market mechanism. Smart layers
+are not replacements for the old foundation features; they are calibrated
+mechanism summaries layered on top of the same source language. Entry
+Transformer training must improve the evidence layer first, Entry IQL may only
+consume replay-proven Entry evidence, and Exit Transformer/IQL work must reuse
+the exact Entry policy traces to learn profit capture. Raw direction accuracy is
+only a diagnostic; the acceptance proof is replay net PnL, drawdown, MAE,
+bad-path avoidance, path-quality calibration, selected-tail direction quality
+and session/regime/side/tail robustness.
+
 `<id>` in `--vedtak <id>` is a deliberate human approval token, not a report id
 that the scripts invent automatically. Activation apply requires the
 `ENTRY_FOUNDATION_ACTIVATE_` prefix, for example
@@ -264,6 +277,12 @@ Active status:
   before a candidate bundle can be replay/IQL authority. Old bundle-audit
   reports without this recipe are fail-closed until regenerated from a newly
   trained bundle.
+- Commit `20677b4d` makes the selected smart replay-readiness effective status
+  fail closed when the selected IQL slice/path-signal calibration report is not
+  ready, even if an older selected replay-readiness artifact still says
+  `READY_FOR_IQL_DISTILLATION_VEDTAK`. New training/replay authority requires a
+  freshly trained bundle with the path-calibration recipe and a refreshed
+  replay/slice audit that passes.
 - Raw smoke/bundle direction accuracy around 0.40 is not an acceptance metric by
   itself. It is only a sanity diagnostic against the majority baseline; Entry
   acceptance remains replay/PnL, drawdown, MAE, bad-path, calibration and
