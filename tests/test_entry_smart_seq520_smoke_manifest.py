@@ -176,12 +176,17 @@ def test_materialize_smart_seq520_smoke_manifest_report_only(tmp_path: Path) -> 
     assert train_contract["requires_direction_balance_recipe_contract"] is True
     assert train_contract["direction_balance_recipe_contract"] == manifest_gate.DIRECTION_BALANCE_RECIPE_CONTRACT
     assert train_contract["direction_balance_env_template"] == manifest_gate.DIRECTION_BALANCE_ENV_TEMPLATE
+    assert train_contract["requires_tail_direction_recipe_contract"] is True
+    assert train_contract["tail_direction_recipe_contract"] == manifest_gate.TAIL_DIRECTION_RECIPE_CONTRACT
+    assert train_contract["tail_direction_env_template"] == manifest_gate.TAIL_DIRECTION_ENV_TEMPLATE
     assert train_contract["requires_direction_context_slice_contract"] is True
     assert train_contract["direction_context_slice_contract"] == manifest_gate.DIRECTION_CONTEXT_SLICE_CONTRACT
     train_argv = " ".join(train_contract["inner_train_argv_template"])
     for key, value in manifest_gate.PATH_CALIBRATION_ENV_TEMPLATE.items():
         assert f"{key}={value}" in train_argv
     for key, value in manifest_gate.DIRECTION_BALANCE_ENV_TEMPLATE.items():
+        assert f"{key}={value}" in train_argv
+    for key, value in manifest_gate.TAIL_DIRECTION_ENV_TEMPLATE.items():
         assert f"{key}={value}" in train_argv
     assert train_contract["started_by_this_report"] is False
     assert train_contract["starts_replay"] is False

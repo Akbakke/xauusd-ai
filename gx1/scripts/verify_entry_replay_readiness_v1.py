@@ -480,6 +480,11 @@ def _candidate_bundle_audit_checks(
         if isinstance(report.get("path_calibration_recipe_contract"), dict)
         else {}
     )
+    tail_direction = (
+        report.get("tail_direction_recipe_contract")
+        if isinstance(report.get("tail_direction_recipe_contract"), dict)
+        else {}
+    )
     pretrain_manifest = (
         report.get("pretrain_manifest_contract")
         if isinstance(report.get("pretrain_manifest_contract"), dict)
@@ -611,6 +616,18 @@ def _candidate_bundle_audit_checks(
             and bool(path_calibration.get("path_quality_rank_full_batch"))
             and float(path_calibration.get("path_quality_rank_weight") or 0.0) > 0.0,
             {"path_calibration_recipe_contract": path_calibration},
+        ),
+        _check(
+            "candidate bundle tail direction recipe contract PASS",
+            exists
+            and str(tail_direction.get("decision")) == "PASS"
+            and not tail_direction.get("failures")
+            and bool(tail_direction.get("direction_active"))
+            and float(tail_direction.get("tail_direction_ce_weight") or 0.0) > 0.0
+            and 0.50 <= float(tail_direction.get("tail_direction_quality_quantile") or 0.0) <= 0.95
+            and int(tail_direction.get("tail_direction_min_batch") or 0) >= 2
+            and str(tail_direction.get("tail_direction_mask") or "") == "directional_tradable_clean_path_top_quality",
+            {"tail_direction_recipe_contract": tail_direction},
         ),
         _check(
             "candidate bundle audit validated pre-train manifest provenance",

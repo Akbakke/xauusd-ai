@@ -177,6 +177,16 @@ def _passing_smoke_audit(
             "ckpt_monitor": "dir_acc",
             "failures": [],
         },
+        "tail_direction_recipe_contract": {
+            "decision": "PASS",
+            "active_heads": ["bad_path", "direction", "path_quality"],
+            "direction_active": True,
+            "tail_direction_ce_weight": 0.35,
+            "tail_direction_quality_quantile": 0.70,
+            "tail_direction_min_batch": 8,
+            "tail_direction_mask": "directional_tradable_clean_path_top_quality",
+            "failures": [],
+        },
         "bundle_specialist_model_contract": {
             "decision": "PASS",
             "valid": True,
@@ -304,6 +314,24 @@ def test_smoke_edge_checks_reject_missing_direction_balance_contract() -> None:
     failed = {check["name"] for check in checks if not check["ok"]}
 
     assert "smoke bundle audit direction balance recipe contract PASS" in failed
+
+
+def test_smoke_edge_checks_reject_missing_tail_direction_contract() -> None:
+    report = _passing_smoke_audit()
+    report["tail_direction_recipe_contract"] = {
+        "decision": "FAIL",
+        "direction_active": True,
+        "tail_direction_ce_weight": 0.0,
+        "tail_direction_quality_quantile": 0.70,
+        "tail_direction_min_batch": 8,
+        "tail_direction_mask": "directional_tradable_clean_path_top_quality",
+        "failures": ["direction active head requires positive tail_direction_ce_weight"],
+    }
+
+    checks = _smoke_edge_checks(report)
+    failed = {check["name"] for check in checks if not check["ok"]}
+
+    assert "smoke bundle audit tail direction recipe contract PASS" in failed
 
 
 def test_smoke_edge_checks_reject_direction_distribution_collapse() -> None:

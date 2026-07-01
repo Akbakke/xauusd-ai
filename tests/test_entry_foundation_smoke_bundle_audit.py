@@ -20,6 +20,7 @@ from gx1.scripts.audit_entry_foundation_smoke_bundle_v1 import (
     _spearman,
     _specialist_gate_failures,
     _specialist_model_contract_report,
+    _tail_direction_recipe_contract,
 )
 from gx1.scripts.verify_entry_training_readiness_v1 import (
     EXPECTED_ACTIVE_TRAINING_HEADS,
@@ -435,6 +436,41 @@ def test_direction_balance_recipe_contract_rejects_missing_balance() -> None:
     assert any("pred_balance_alpha" in failure for failure in report["failures"])
     assert any("pred_balance_target=label" in failure for failure in report["failures"])
     assert any("ckpt_monitor=dir_acc" in failure for failure in report["failures"])
+
+
+def test_tail_direction_recipe_contract_requires_positive_top_quality_ce() -> None:
+    meta = {
+        "train_recipe": {
+            "active_heads": ["direction", "path_quality", "bad_path"],
+            "tail_direction_ce_weight": 0.35,
+            "tail_direction_quality_quantile": 0.70,
+            "tail_direction_min_batch": 8,
+        }
+    }
+
+    report = _tail_direction_recipe_contract(meta, {})
+
+    assert report["decision"] == "PASS"
+    assert report["direction_active"] is True
+    assert report["tail_direction_mask"] == "directional_tradable_clean_path_top_quality"
+
+
+def test_tail_direction_recipe_contract_rejects_missing_weight() -> None:
+    meta = {
+        "train_recipe": {
+            "active_heads": ["direction", "path_quality", "bad_path"],
+            "tail_direction_ce_weight": 0.0,
+            "tail_direction_quality_quantile": 0.99,
+            "tail_direction_min_batch": 1,
+        }
+    }
+
+    report = _tail_direction_recipe_contract(meta, {})
+
+    assert report["decision"] == "FAIL"
+    assert any("tail_direction_ce_weight" in failure for failure in report["failures"])
+    assert any("tail_direction_quality_quantile" in failure for failure in report["failures"])
+    assert any("tail_direction_min_batch" in failure for failure in report["failures"])
 
 
 def test_head_contract_report_accepts_supported_declared_forward_outputs() -> None:

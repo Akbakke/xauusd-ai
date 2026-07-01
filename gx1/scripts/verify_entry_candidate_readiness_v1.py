@@ -451,6 +451,24 @@ def _direction_balance_contract_passes(report: dict[str, Any]) -> bool:
     )
 
 
+def _tail_direction_contract_passes(report: dict[str, Any]) -> bool:
+    contract = report.get("tail_direction_recipe_contract")
+    if not isinstance(contract, dict):
+        return False
+    weight = _float_or_zero(contract.get("tail_direction_ce_weight"))
+    quantile = _float_or_zero(contract.get("tail_direction_quality_quantile"))
+    min_batch = int(_float_or_zero(contract.get("tail_direction_min_batch")))
+    return (
+        str(contract.get("decision")) == "PASS"
+        and not contract.get("failures")
+        and bool(contract.get("direction_active"))
+        and weight > 0.0
+        and 0.50 <= quantile <= 0.95
+        and min_batch >= 2
+        and str(contract.get("tail_direction_mask") or "") == "directional_tradable_clean_path_top_quality"
+    )
+
+
 def _smoke_edge_checks(
     report: dict[str, Any],
     *,
@@ -531,6 +549,11 @@ def _smoke_edge_checks(
             "smoke bundle audit direction balance recipe contract PASS",
             _direction_balance_contract_passes(report),
             {"direction_balance_recipe_contract": report.get("direction_balance_recipe_contract")},
+        ),
+        _check(
+            "smoke bundle audit tail direction recipe contract PASS",
+            _tail_direction_contract_passes(report),
+            {"tail_direction_recipe_contract": report.get("tail_direction_recipe_contract")},
         ),
         _check(
             "smoke bundle audit validated pre-train manifest provenance",

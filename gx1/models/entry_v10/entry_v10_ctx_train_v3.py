@@ -257,6 +257,9 @@ ENTRY_PRED_BALANCE_ALPHA = float(_env_str("ENTRY_PRED_BALANCE_ALPHA", "0.0"))
 ENTRY_PRED_BALANCE_TARGET = _env_str("ENTRY_PRED_BALANCE_TARGET", "label").lower()
 ENTRY_RESIDUAL_SIDE_BIAS_ALPHA = float(_env_str("ENTRY_RESIDUAL_SIDE_BIAS_ALPHA", "0.0"))
 ENTRY_DIRECTION_CE_SCALE = float(_env_str("ENTRY_DIRECTION_CE_SCALE", "1.30"))
+ENTRY_TAIL_DIRECTION_CE_WEIGHT = float(_env_str("ENTRY_TAIL_DIRECTION_CE_WEIGHT", "0.0"))
+ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE = float(_env_str("ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE", "0.70"))
+ENTRY_TAIL_DIRECTION_MIN_BATCH = int(_env_str("ENTRY_TAIL_DIRECTION_MIN_BATCH", "8"))
 ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT = float(_env_str("ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT", "0.0"))
 ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT = float(_env_str("ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT", "0.0"))
 ENTRY_SPECIALIST_GATE_MIN_MEAN = float(_env_str("ENTRY_SPECIALIST_GATE_MIN_MEAN", "0.01"))
@@ -413,6 +416,9 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_PRED_BALANCE_TARGET": "label",
     "ENTRY_RESIDUAL_SIDE_BIAS_ALPHA": "0.0",
     "ENTRY_DIRECTION_CE_SCALE": "1.30",
+    "ENTRY_TAIL_DIRECTION_CE_WEIGHT": "0.0",
+    "ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE": "0.70",
+    "ENTRY_TAIL_DIRECTION_MIN_BATCH": "8",
     "ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT": "0.0",
     "ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT": "0.0",
     "ENTRY_SPECIALIST_GATE_MIN_MEAN": "0.01",
@@ -1966,6 +1972,30 @@ def _path_quality_rank_loss(
     return float(ENTRY_PATH_QUALITY_RANK_WEIGHT) * torch.relu(margin - rank_gap)
 
 
+def _tail_direction_mask(
+    y: torch.Tensor,
+    y_tradable: torch.Tensor,
+    y_bad_path: torch.Tensor,
+    path_quality_bps: torch.Tensor,
+) -> torch.Tensor:
+    finite_quality = torch.isfinite(path_quality_bps.float())
+    directional = y.long() != 2
+    tradable = y_tradable.float() > 0.5
+    clean_path = y_bad_path.float() <= 0.5
+    base = finite_quality & directional & tradable & clean_path
+    if int(base.sum().detach().cpu().item()) < int(ENTRY_TAIL_DIRECTION_MIN_BATCH):
+        return torch.zeros_like(base, dtype=torch.bool)
+    quality = path_quality_bps.float()[base]
+    if quality.numel() == 0 or (quality.max() - quality.min()).abs() <= 1e-6:
+        return torch.zeros_like(base, dtype=torch.bool)
+    q = min(0.95, max(0.50, float(ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE)))
+    cutoff = torch.quantile(quality.detach(), q)
+    mask = base & (path_quality_bps.float() >= cutoff)
+    if int(mask.sum().detach().cpu().item()) < int(ENTRY_TAIL_DIRECTION_MIN_BATCH):
+        return torch.zeros_like(base, dtype=torch.bool)
+    return mask
+
+
 def train_epoch(
     model,
     loader,
@@ -2006,6 +2036,7 @@ def train_epoch(
     total_ce = 0.0
     total_cost = 0.0
     total_balance = 0.0
+    total_tail_direction = 0.0
     total_timing = 0.0
     total_aux_early = 0.0
     total_aux_quality = 0.0
@@ -2042,6 +2073,7 @@ def train_epoch(
     clean_edge_rank_loss_sum = 0.0
     bad_path_loss_sum = 0.0
     hard_neg_prob_loss_sum = 0.0
+    tail_direction_rows = 0
 
     for batch in loader:
         non_blocking = device.type == "cuda"
@@ -2133,6 +2165,12 @@ def train_epoch(
         ce_loss_raw = (ce_per * ce_sample_weight).mean()
         ce_loss = float(ENTRY_DIRECTION_CE_SCALE) * ce_loss_raw
         probs = torch.softmax(logits, dim=1)
+        tail_direction_loss = torch.tensor(0.0, device=device)
+        tail_direction_mask = torch.zeros_like(y, dtype=torch.bool)
+        if float(ENTRY_TAIL_DIRECTION_CE_WEIGHT) > 0.0:
+            tail_direction_mask = _tail_direction_mask(y, y_tradable, y_bad_path, y_path_quality)
+            if tail_direction_mask.any():
+                tail_direction_loss = float(ENTRY_TAIL_DIRECTION_CE_WEIGHT) * ce_per[tail_direction_mask].mean()
 
         cost_term = 0.0
         balance_term = 0.0
@@ -2152,6 +2190,8 @@ def train_epoch(
                 balance_term = float(getattr(criterion, "balance_alpha", 0.0)) * balance_loss
 
         loss = ce_loss + cost_term + balance_term
+        if float(ENTRY_TAIL_DIRECTION_CE_WEIGHT) > 0.0:
+            loss = loss + tail_direction_loss
         if float(ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT) > 0.0 or float(ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT) > 0.0:
             loss = loss + specialist_gate_loss
         if float(ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT) > 0.0:
@@ -2381,6 +2421,8 @@ def train_epoch(
         total_ce += float(ce_loss) * bs
         total_cost += float(cost_term) * bs
         total_balance += float(balance_term) * bs
+        total_tail_direction += float(tail_direction_loss.detach().cpu().item()) * bs
+        tail_direction_rows += int(tail_direction_mask.sum().detach().cpu().item())
         specialist_gate_loss_sum += float(specialist_gate_loss.detach().cpu().item()) * bs
         specialist_gate_entropy_sum += float(specialist_gate_stats.get("entropy", 0.0)) * bs
         specialist_gate_min_mean_sum += float(specialist_gate_stats.get("min_mean", 0.0)) * bs
@@ -2406,6 +2448,8 @@ def train_epoch(
         "ce_loss_mean": (total_ce / max(1, n)),
         "cost_loss_mean": (total_cost / max(1, n)),
         "balance_loss_mean": (total_balance / max(1, n)),
+        "tail_direction_loss_mean": (total_tail_direction / max(1, n)),
+        "tail_direction_rows": int(tail_direction_rows),
         "specialist_gate_loss_mean": (specialist_gate_loss_sum / max(1, n)),
         "specialist_gate_entropy_mean": (specialist_gate_entropy_sum / max(1, n)),
         "specialist_gate_min_mean": (specialist_gate_min_mean_sum / max(1, n)),
@@ -2581,6 +2625,7 @@ def validate(
     total_ce = 0.0
     total_cost = 0.0
     total_balance = 0.0
+    total_tail_direction = 0.0
     bad_path_quality_rank_loss_sum = 0.0
     path_quality_rank_loss_sum = 0.0
     n = 0
@@ -2601,6 +2646,7 @@ def validate(
     clean_edge_rank_loss_sum = 0.0
     bad_path_loss_sum = 0.0
     hard_neg_prob_loss_sum = 0.0
+    tail_direction_rows = 0
     # V10-AUX-02: read-only accumulators for the cross-head / AUC / realized-target panel.
     _diag_pred: "dict[str, list]" = {k: [] for k in (
         "tradable", "bad_path", "clean_edge", "survival", "path_quality", "mfe_first_n")}
@@ -2686,6 +2732,12 @@ def validate(
             ce_loss_raw = (ce_per * ce_sample_weight).mean()
             ce_loss = float(ENTRY_DIRECTION_CE_SCALE) * ce_loss_raw
             probs = torch.softmax(logits, dim=1)
+            tail_direction_loss = torch.tensor(0.0, device=device)
+            tail_direction_mask = torch.zeros_like(y, dtype=torch.bool)
+            if float(ENTRY_TAIL_DIRECTION_CE_WEIGHT) > 0.0:
+                tail_direction_mask = _tail_direction_mask(y, y_tradable, y_bad_path, y_path_quality)
+                if tail_direction_mask.any():
+                    tail_direction_loss = float(ENTRY_TAIL_DIRECTION_CE_WEIGHT) * ce_per[tail_direction_mask].mean()
 
             cost_term = 0.0
             balance_term = 0.0
@@ -2705,6 +2757,8 @@ def validate(
                     balance_term = float(getattr(criterion, "balance_alpha", 0.0)) * balance_loss
 
             loss = ce_loss + cost_term + balance_term
+            if float(ENTRY_TAIL_DIRECTION_CE_WEIGHT) > 0.0:
+                loss = loss + tail_direction_loss
             if float(ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT) > 0.0:
                 loss = loss + bad_path_quality_rank_loss
             if float(ENTRY_PATH_QUALITY_RANK_WEIGHT) > 0.0:
@@ -2829,6 +2883,8 @@ def validate(
             total_ce += float(ce_loss) * bs
             total_cost += float(cost_term) * bs
             total_balance += float(balance_term) * bs
+            total_tail_direction += float(tail_direction_loss.detach().cpu().item()) * bs
+            tail_direction_rows += int(tail_direction_mask.sum().detach().cpu().item())
             bad_path_quality_rank_loss_sum += float(bad_path_quality_rank_loss.detach().cpu().item()) * bs
             path_quality_rank_loss_sum += float(path_quality_rank_loss.detach().cpu().item()) * bs
             hard_neg_prob_loss_sum += float(hard_neg_prob_loss) * bs
@@ -2870,6 +2926,8 @@ def validate(
         "ce_loss_mean": (total_ce / max(1, n)),
         "cost_loss_mean": (total_cost / max(1, n)),
         "balance_loss_mean": (total_balance / max(1, n)),
+        "tail_direction_loss_mean": (total_tail_direction / max(1, n)),
+        "tail_direction_rows": int(tail_direction_rows),
         "bad_path_quality_rank_loss_mean": (bad_path_quality_rank_loss_sum / max(1, n)),
         "path_quality_rank_loss_mean": (path_quality_rank_loss_sum / max(1, n)),
         "hard_neg_prob_loss_mean": (hard_neg_prob_loss_sum / max(1, n)),
@@ -3894,6 +3952,17 @@ def run_train(
     _require_nonneg("ENTRY_RESIDUAL_SCALE", ENTRY_RESIDUAL_SCALE)
     _require_nonneg("ENTRY_ANCHOR_EPS", ENTRY_ANCHOR_EPS)
     _require_nonneg("ENTRY_RESIDUAL_SIDE_BIAS_ALPHA", ENTRY_RESIDUAL_SIDE_BIAS_ALPHA)
+    _require_nonneg("ENTRY_TAIL_DIRECTION_CE_WEIGHT", ENTRY_TAIL_DIRECTION_CE_WEIGHT)
+    if ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE < 0.50 or ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE > 0.95:
+        raise RuntimeError(
+            "[ENTRY_TAIL_DIRECTION_QUANTILE_INVALID] "
+            f"ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE={ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE:.6f} expected [0.50, 0.95]"
+        )
+    if ENTRY_TAIL_DIRECTION_MIN_BATCH < 2:
+        raise RuntimeError(
+            "[ENTRY_TAIL_DIRECTION_MIN_BATCH_INVALID] "
+            f"ENTRY_TAIL_DIRECTION_MIN_BATCH={ENTRY_TAIL_DIRECTION_MIN_BATCH} expected >=2"
+        )
     if ENTRY_PRED_BALANCE_TARGET not in ("label", "uniform"):
         raise RuntimeError(
             f"[ENTRY_BALANCE_TARGET_INVALID] ENTRY_PRED_BALANCE_TARGET={ENTRY_PRED_BALANCE_TARGET!r} "
@@ -3919,8 +3988,10 @@ def run_train(
         balance_target=str(ENTRY_PRED_BALANCE_TARGET),
     )
     log.info(
-        "[ENTRY_TRAIN_RECIPE] direction_ce_scale=%.3f residual_scale=%.3f tradable_w=%.3f path_w=%.3f mfe_w=%.3f tradable_pos_weight=%.3f bad_path_w=%.3f bad_path_pos_weight=%.3f clean_edge_w=%.3f clean_edge_pos_weight=%.3f survival_w=%.3f survival_pos_weight=%.3f rank_w=%.3f rank_margin=%.3f",
+        "[ENTRY_TRAIN_RECIPE] direction_ce_scale=%.3f tail_direction_w=%.3f tail_direction_q=%.3f residual_scale=%.3f tradable_w=%.3f path_w=%.3f mfe_w=%.3f tradable_pos_weight=%.3f bad_path_w=%.3f bad_path_pos_weight=%.3f clean_edge_w=%.3f clean_edge_pos_weight=%.3f survival_w=%.3f survival_pos_weight=%.3f rank_w=%.3f rank_margin=%.3f",
         float(ENTRY_DIRECTION_CE_SCALE),
+        float(ENTRY_TAIL_DIRECTION_CE_WEIGHT),
+        float(ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE),
         float(ENTRY_RESIDUAL_SCALE),
         float(ENTRY_AUX_TRADABLE_WEIGHT),
         float(ENTRY_AUX_PATH_WEIGHT),
@@ -4095,9 +4166,11 @@ def run_train(
                 ratio,
             )
             log.info(
-                "[ENTRY_LOSS_SUMMARY] split=val epoch=%d ce=%.6f path=%.6f mfe=%.6f tradable=%.6f total=%.6f",
+                "[ENTRY_LOSS_SUMMARY] split=val epoch=%d ce=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f total=%.6f",
                 epoch + 1,
                 float(val_stats.get("ce_loss_mean", 0.0)),
+                float(val_stats.get("tail_direction_loss_mean", 0.0)),
+                int(val_stats.get("tail_direction_rows", 0)),
                 float(val_stats.get("aux_path_loss_mean", 0.0)),
                 float(val_stats.get("aux_mfe_loss_mean", 0.0)),
                 float(val_stats.get("aux_tradable_loss_mean", 0.0)),
@@ -4117,9 +4190,11 @@ def run_train(
         )
         if tr_stats:
             log.info(
-                "[ENTRY_LOSS_SUMMARY] split=train epoch=%d ce=%.6f path=%.6f mfe=%.6f tradable=%.6f total=%.6f",
+                "[ENTRY_LOSS_SUMMARY] split=train epoch=%d ce=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f total=%.6f",
                 epoch + 1,
                 float(tr_stats.get("ce_loss_mean", 0.0)),
+                float(tr_stats.get("tail_direction_loss_mean", 0.0)),
+                int(tr_stats.get("tail_direction_rows", 0)),
                 float(tr_stats.get("aux_path_loss_mean", 0.0)),
                 float(tr_stats.get("aux_mfe_loss_mean", 0.0)),
                 float(tr_stats.get("aux_tradable_loss_mean", 0.0)),
@@ -4359,6 +4434,9 @@ def run_train(
         "pred_balance_target": str(ENTRY_PRED_BALANCE_TARGET),
         "residual_side_bias_alpha": float(ENTRY_RESIDUAL_SIDE_BIAS_ALPHA),
         "direction_ce_scale": float(ENTRY_DIRECTION_CE_SCALE),
+        "tail_direction_ce_weight": float(ENTRY_TAIL_DIRECTION_CE_WEIGHT),
+        "tail_direction_quality_quantile": float(ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE),
+        "tail_direction_min_batch": int(ENTRY_TAIL_DIRECTION_MIN_BATCH),
         "specialist_gate_entropy_weight": float(ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT),
         "specialist_gate_balance_weight": float(ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT),
         "specialist_gate_min_mean": float(ENTRY_SPECIALIST_GATE_MIN_MEAN),
@@ -4372,6 +4450,9 @@ def run_train(
         "weight_decay": float(_WEIGHT_DECAY),
         "train_recipe": {
             "direction_ce_scale": float(ENTRY_DIRECTION_CE_SCALE),
+            "tail_direction_ce_weight": float(ENTRY_TAIL_DIRECTION_CE_WEIGHT),
+            "tail_direction_quality_quantile": float(ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE),
+            "tail_direction_min_batch": int(ENTRY_TAIL_DIRECTION_MIN_BATCH),
             "pred_balance_alpha": float(ENTRY_PRED_BALANCE_ALPHA),
             "pred_balance_target": str(ENTRY_PRED_BALANCE_TARGET),
             "ckpt_monitor": str(_ckpt_monitor),

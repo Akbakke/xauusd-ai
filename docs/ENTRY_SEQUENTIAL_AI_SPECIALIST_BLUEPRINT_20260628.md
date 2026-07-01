@@ -232,6 +232,13 @@ The 2026-07-01 operating point is feature-harmony clean but not promotion-ready:
   `direction_balance_recipe_contract` is missing or stale, because broad
   direction accuracy around 0.40 is not acceptable without class-distribution
   calibration proof.
+- Smart smoke/candidate training must also carry the tail-direction recipe:
+  `ENTRY_TAIL_DIRECTION_CE_WEIGHT=0.35`,
+  `ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE=0.70` and
+  `ENTRY_TAIL_DIRECTION_MIN_BATCH=8`. This focuses extra direction CE on
+  directional, tradable, clean-path rows in the top path-quality tail, so the
+  next bundle directly optimizes the selected-tail direction weakness instead
+  of only reporting it after replay.
 - Candidate-readiness now requires the smoke bundle audit to preserve
   `path_calibration_recipe_contract=PASS` before any candidate-train vedtak can
   be considered. This closes old smoke bundles that lack full-batch

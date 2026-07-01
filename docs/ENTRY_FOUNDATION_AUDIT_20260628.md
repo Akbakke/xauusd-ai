@@ -240,6 +240,14 @@ Active status:
   Candidate-readiness also requires direction distribution coverage across
   active LONG/SHORT/FLAT classes, so a bundle that beats majority while
   collapsing away from a common class remains blocked.
+- Future smart smoke/candidate bundles must carry
+  `tail_direction_recipe_contract=PASS` with
+  `ENTRY_TAIL_DIRECTION_CE_WEIGHT=0.35`,
+  `ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE=0.70` and
+  `ENTRY_TAIL_DIRECTION_MIN_BATCH=8`. The trainer applies this extra
+  direction CE only to directional, tradable, clean-path rows in the top
+  path-quality tail, so low broad direction accuracy and weak selected-tail
+  direction precision are attacked during training, not just diagnosed later.
 - The broad/default smart replay is not approved for IQL because drawdown is
   too high: the latest default replay-readiness remains
   `NOT_READY_FOR_IQL_DISTILLATION` with max drawdown about 1342 bps against

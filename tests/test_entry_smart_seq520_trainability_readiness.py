@@ -26,12 +26,16 @@ def _path_calibration_future_contract(wired: bool) -> dict:
         "requires_direction_balance_recipe_contract": True,
         "direction_balance_recipe_contract": dict(gate.DIRECTION_BALANCE_RECIPE_CONTRACT),
         "direction_balance_env_template": dict(gate.DIRECTION_BALANCE_ENV_TEMPLATE),
+        "requires_tail_direction_recipe_contract": True,
+        "tail_direction_recipe_contract": dict(gate.TAIL_DIRECTION_RECIPE_CONTRACT),
+        "tail_direction_env_template": dict(gate.TAIL_DIRECTION_ENV_TEMPLATE),
         "requires_direction_context_slice_contract": True,
         "direction_context_slice_contract": dict(gate.DIRECTION_CONTEXT_SLICE_CONTRACT),
         "inner_train_argv_template": [
             "env",
             *[f"{key}={value}" for key, value in gate.PATH_CALIBRATION_ENV_TEMPLATE.items()],
             *[f"{key}={value}" for key, value in gate.DIRECTION_BALANCE_ENV_TEMPLATE.items()],
+            *[f"{key}={value}" for key, value in gate.TAIL_DIRECTION_ENV_TEMPLATE.items()],
             ".venv/bin/python",
         ],
     }
@@ -51,6 +55,13 @@ def _direction_balance_wrapper_text(kind: str) -> str:
         for key in gate.DIRECTION_BALANCE_ENV_KEYS
     )
     downstream = "\n".join(gate.DIRECTION_BALANCE_ENV_KEYS)
+    return f"{upstream}\n{downstream}\n"
+
+
+def _tail_direction_wrapper_text(kind: str) -> str:
+    prefix = "ENTRY_FOUNDATION_SMOKE_" if kind == "smoke" else "ENTRY_FOUNDATION_CANDIDATE_"
+    upstream = "\n".join(key.replace("ENTRY_", prefix) for key in gate.TAIL_DIRECTION_ENV_KEYS)
+    downstream = "\n".join(gate.TAIL_DIRECTION_ENV_KEYS)
     return f"{upstream}\n{downstream}\n"
 
 
@@ -100,11 +111,13 @@ def _args(tmp_path: Path, *, wired: bool, ctx_tag: str = "CTX6CAT5") -> argparse
             "--smart-seq520 SPECIALIST_CONTRACT_MODE=smart_seq520_candidate\n"
             + _path_calibration_wrapper_text("smoke")
             + _direction_balance_wrapper_text("smoke")
+            + _tail_direction_wrapper_text("smoke")
         )
         candidate_wrapper_text = (
             "--smart-seq520 SPECIALIST_CONTRACT_MODE=smart_seq520_candidate\n"
             + _path_calibration_wrapper_text("candidate")
             + _direction_balance_wrapper_text("candidate")
+            + _tail_direction_wrapper_text("candidate")
         )
         smart_script_text = "smart_seq520_candidate 520\n"
     else:
@@ -117,6 +130,8 @@ def _args(tmp_path: Path, *, wired: bool, ctx_tag: str = "CTX6CAT5") -> argparse
         + "\n".join(gate.PATH_CALIBRATION_ENV_KEYS)
         + "\n"
         + "\n".join(gate.DIRECTION_BALANCE_ENV_KEYS)
+        + "\n"
+        + "\n".join(gate.TAIL_DIRECTION_ENV_KEYS)
         + "\n"
     )
     return argparse.Namespace(

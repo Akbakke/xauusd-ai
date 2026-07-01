@@ -234,6 +234,16 @@ def _candidate_bundle_audit() -> dict:
             "bad_path_quality_rank_margin": 0.25,
             "bad_path_quality_rank_quantile": 0.25,
         },
+        "tail_direction_recipe_contract": {
+            "decision": "PASS",
+            "failures": [],
+            "active_heads": list(EXPECTED_ACTIVE_TRAINING_HEADS),
+            "direction_active": True,
+            "tail_direction_ce_weight": 0.35,
+            "tail_direction_quality_quantile": 0.70,
+            "tail_direction_min_batch": 8,
+            "tail_direction_mask": "directional_tradable_clean_path_top_quality",
+        },
         "pretrain_manifest_contract": {
             "decision": "PASS",
             "failures": [],
@@ -608,6 +618,26 @@ def test_candidate_bundle_audit_checks_reject_missing_path_calibration_recipe(tm
     failed = {check["name"] for check in checks if not check["ok"]}
 
     assert "candidate bundle path calibration recipe contract PASS" in failed
+
+
+def test_candidate_bundle_audit_checks_reject_missing_tail_direction_recipe(tmp_path: Path) -> None:
+    audit_path = tmp_path / "candidate_audit.json"
+    audit_path.write_text("{}", encoding="utf-8")
+    report = _candidate_bundle_audit()
+    report["tail_direction_recipe_contract"] = {
+        "decision": "FAIL",
+        "direction_active": True,
+        "tail_direction_ce_weight": 0.0,
+        "tail_direction_quality_quantile": 0.70,
+        "tail_direction_min_batch": 8,
+        "tail_direction_mask": "directional_tradable_clean_path_top_quality",
+        "failures": ["direction active head requires positive tail_direction_ce_weight"],
+    }
+
+    checks = _candidate_bundle_audit_checks(audit_path, report)
+    failed = {check["name"] for check in checks if not check["ok"]}
+
+    assert "candidate bundle tail direction recipe contract PASS" in failed
 
 
 def test_candidate_bundle_audit_checks_reject_extra_specialist_group(tmp_path: Path) -> None:

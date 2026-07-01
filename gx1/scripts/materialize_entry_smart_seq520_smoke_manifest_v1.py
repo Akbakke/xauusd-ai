@@ -74,6 +74,17 @@ DIRECTION_BALANCE_ENV_TEMPLATE = {
     "ENTRY_DIRECTION_CE_SCALE": "1.30",
     "GX1_V10_CKPT_MONITOR": "dir_acc",
 }
+TAIL_DIRECTION_RECIPE_CONTRACT = {
+    "tail_direction_ce_weight": 0.35,
+    "tail_direction_quality_quantile": 0.70,
+    "tail_direction_min_batch": 8,
+    "tail_direction_mask": "directional_tradable_clean_path_top_quality",
+}
+TAIL_DIRECTION_ENV_TEMPLATE = {
+    "ENTRY_TAIL_DIRECTION_CE_WEIGHT": "0.35",
+    "ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE": "0.70",
+    "ENTRY_TAIL_DIRECTION_MIN_BATCH": "8",
+}
 DIRECTION_CONTEXT_SLICE_CONTRACT = {
     "source": "post_smoke_audit.direction_slice_contract",
     "ctx_cat_names": ["session_id", "vol_regime_id", "atr_bucket", "spread_bucket", "H4_trend_sign_cat"],
@@ -159,6 +170,16 @@ def _direction_balance_recipe_ok(contract: dict[str, Any]) -> bool:
     if recipe != DIRECTION_BALANCE_RECIPE_CONTRACT:
         return False
     return all(env_template.get(key) == value for key, value in DIRECTION_BALANCE_ENV_TEMPLATE.items())
+
+
+def _tail_direction_recipe_ok(contract: dict[str, Any]) -> bool:
+    recipe = contract.get("tail_direction_recipe_contract")
+    env_template = contract.get("tail_direction_env_template")
+    if not isinstance(recipe, dict) or not isinstance(env_template, dict):
+        return False
+    if recipe != TAIL_DIRECTION_RECIPE_CONTRACT:
+        return False
+    return all(env_template.get(key) == value for key, value in TAIL_DIRECTION_ENV_TEMPLATE.items())
 
 
 def _direction_context_slice_ok(contract: dict[str, Any]) -> bool:
@@ -329,6 +350,7 @@ def _future_command_contracts(
         "env",
         *[f"{key}={value}" for key, value in PATH_CALIBRATION_ENV_TEMPLATE.items()],
         *[f"{key}={value}" for key, value in DIRECTION_BALANCE_ENV_TEMPLATE.items()],
+        *[f"{key}={value}" for key, value in TAIL_DIRECTION_ENV_TEMPLATE.items()],
     ]
     train_inner = [
         *env_prefix,
@@ -393,6 +415,9 @@ def _future_command_contracts(
             "requires_direction_balance_recipe_contract": True,
             "direction_balance_recipe_contract": dict(DIRECTION_BALANCE_RECIPE_CONTRACT),
             "direction_balance_env_template": dict(DIRECTION_BALANCE_ENV_TEMPLATE),
+            "requires_tail_direction_recipe_contract": True,
+            "tail_direction_recipe_contract": dict(TAIL_DIRECTION_RECIPE_CONTRACT),
+            "tail_direction_env_template": dict(TAIL_DIRECTION_ENV_TEMPLATE),
             "requires_direction_context_slice_contract": True,
             "direction_context_slice_contract": dict(DIRECTION_CONTEXT_SLICE_CONTRACT),
             "started_by_this_report": False,
@@ -606,6 +631,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         _check(
             "future train contract declares direction balance recipe",
             _direction_balance_recipe_ok(future_command_contracts["smart_smoke_train"]),
+            future_command_contracts["smart_smoke_train"],
+        ),
+        _check(
+            "future train contract declares tail direction recipe",
+            _tail_direction_recipe_ok(future_command_contracts["smart_smoke_train"]),
             future_command_contracts["smart_smoke_train"],
         ),
         _check(

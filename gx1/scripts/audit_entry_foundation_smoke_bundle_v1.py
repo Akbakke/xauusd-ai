@@ -817,6 +817,43 @@ def _direction_balance_recipe_contract(meta: dict[str, Any], capabilities: dict[
     }
 
 
+def _tail_direction_recipe_contract(meta: dict[str, Any], capabilities: dict[str, Any]) -> dict[str, Any]:
+    recipe = meta.get("train_recipe") if isinstance(meta.get("train_recipe"), dict) else {}
+    active_heads = {
+        str(head)
+        for head in (
+            recipe.get("active_heads")
+            or capabilities.get("declared_active_heads")
+            or capabilities.get("supported_heads")
+            or []
+        )
+        if str(head)
+    }
+    weight = _safe_float(recipe.get("tail_direction_ce_weight", meta.get("tail_direction_ce_weight", 0.0)))
+    quantile = _safe_float(
+        recipe.get("tail_direction_quality_quantile", meta.get("tail_direction_quality_quantile", 0.0))
+    )
+    min_batch = int(_safe_float(recipe.get("tail_direction_min_batch", meta.get("tail_direction_min_batch", 0))))
+    failures: list[str] = []
+    if "direction" in active_heads:
+        if weight <= 0.0:
+            failures.append("direction active head requires positive tail_direction_ce_weight")
+        if quantile < 0.50 or quantile > 0.95:
+            failures.append("direction active head requires tail_direction_quality_quantile in [0.50, 0.95]")
+        if min_batch < 2:
+            failures.append("direction active head requires tail_direction_min_batch >= 2")
+    return {
+        "decision": "PASS" if not failures else "FAIL",
+        "active_heads": sorted(active_heads),
+        "direction_active": "direction" in active_heads,
+        "tail_direction_ce_weight": weight,
+        "tail_direction_quality_quantile": quantile,
+        "tail_direction_min_batch": min_batch,
+        "tail_direction_mask": "directional_tradable_clean_path_top_quality",
+        "failures": failures,
+    }
+
+
 def _pretrain_manifest_contract_report(
     manifest_path: Path | None,
     *,
@@ -1658,6 +1695,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         f"direction_balance_recipe: {failure}"
         for failure in direction_balance_recipe_contract.get("failures", [])
     )
+    tail_direction_recipe_contract = _tail_direction_recipe_contract(meta, bundle.capabilities)
+    failures.extend(
+        f"tail_direction_recipe: {failure}"
+        for failure in tail_direction_recipe_contract.get("failures", [])
+    )
 
     dataset_kwargs = _bundle_dataset_kwargs(meta, m5_prebuilt)
     split_reports: dict[str, Any] = {}
@@ -1761,6 +1803,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "pretrain_manifest_contract": pretrain_manifest_contract,
         "path_calibration_recipe_contract": path_calibration_recipe_contract,
         "direction_balance_recipe_contract": direction_balance_recipe_contract,
+        "tail_direction_recipe_contract": tail_direction_recipe_contract,
         "bundle_specialist_model_contract": bundle_specialist_model_contract,
         "bundle_summary": {
             "manifest_variant": manifest_variant,
