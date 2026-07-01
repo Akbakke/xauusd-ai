@@ -167,6 +167,13 @@ Machine contract:
     hash, weak-slice disclosure, session/regime/side/tail diagnostics, net
     reward, MAE/drawdown, giveback risk and MFE capture. It keeps
     training/replay/IQL/shadow/live closed.
+- Active Exit Transformer train-enablement package:
+  `gx1/scripts/materialize_entry_exit_transformer_train_enablement_package_v1.py`
+  - Binds feature alignment, training plan, wrapper readiness, train-execution
+    review and post-train audit contract into one explicit
+    `ENTRY_EXIT_TRANSFORMER_TRAIN_` package. It exercises only the wrapper
+    dry-run path, records the exact capped future training command and keeps
+    trainer/replay/IQL/shadow/live closed.
 - Latest report:
   `/home/andre2/GX1_DATA/reports/entry_specialist_feature_group_audit_20260628_v1/ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_latest.json`
 - Current decision: `PASS` on the active seq146 foundation dataset.

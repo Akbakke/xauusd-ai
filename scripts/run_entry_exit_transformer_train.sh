@@ -13,6 +13,7 @@ TRAINING_PLAN_JSON=${ENTRY_EXIT_TRANSFORMER_TRAINING_PLAN_JSON:-$DATA/reports/en
 TRAIN_EXECUTION_REVIEW_JSON=${ENTRY_EXIT_TRANSFORMER_TRAIN_EXECUTION_REVIEW_JSON:-$DATA/reports/entry_exit_transformer_train_execution_review_20260630_v1/ENTRY_EXIT_TRANSFORMER_TRAIN_EXECUTION_REVIEW_latest.json}
 POST_TRAIN_AUDIT_CONTRACT_JSON=${ENTRY_EXIT_TRANSFORMER_POST_TRAIN_CONTRACT_JSON:-$DATA/reports/entry_exit_transformer_post_train_contract_20260630_v1/ENTRY_EXIT_TRANSFORMER_POST_TRAIN_CONTRACT_latest.json}
 FEATURE_ALIGNMENT_JSON=${ENTRY_EXIT_FEATURE_ALIGNMENT_JSON:-$DATA/reports/entry_exit_feature_alignment_20260630_v1/ENTRY_EXIT_FEATURE_ALIGNMENT_latest.json}
+TRAIN_ENABLEMENT_JSON=${ENTRY_EXIT_TRANSFORMER_TRAIN_ENABLEMENT_JSON:-$DATA/reports/entry_exit_transformer_train_enablement_20260701_v1/ENTRY_EXIT_TRANSFORMER_TRAIN_ENABLEMENT_latest.json}
 VEDTAK_PREFIX=ENTRY_EXIT_TRANSFORMER_TRAIN_
 VEDTAK="${ENTRY_EXIT_TRANSFORMER_TRAIN_VEDTAK:-}"
 DEVICE=auto
@@ -46,6 +47,7 @@ Options:
 Resource caps:
   ENTRY_EXIT_TRANSFORMER_TRAIN_MEM_CAP   Default: 8G
   ENTRY_EXIT_TRANSFORMER_TRAIN_SWAP_CAP  Default: 1G
+  ENTRY_EXIT_TRANSFORMER_TRAIN_ENABLEMENT_JSON
 
 This wrapper is intentionally fail-closed. It does not train, replay, distill,
 promote, shadow or touch live paths until a separate trainer implementation,
@@ -187,5 +189,43 @@ if [[ -n "$(git status --porcelain)" ]]; then
   git status --short >&2
   exit 2
 fi
+
+"$PY" - "$TRAIN_ENABLEMENT_JSON" "$VEDTAK" "$OUT_BUNDLE_DIR" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+vedtak = sys.argv[2]
+out_bundle_dir = str(Path(sys.argv[3]).expanduser().resolve())
+if not path.is_file():
+    print("FATAL: active Exit Transformer train enablement package is missing.", file=sys.stderr)
+    print(f"Path: {path}", file=sys.stderr)
+    raise SystemExit(2)
+report = json.loads(path.read_text(encoding="utf-8"))
+required = "ENTRY_EXIT_TRANSFORMER_TRAIN_ENABLEMENT_READY_FOR_EXPLICIT_EXECUTION"
+if report.get("decision") != required:
+    print("FATAL: active Exit Transformer train enablement package is not ready.", file=sys.stderr)
+    print(f"Decision: {report.get('decision')}", file=sys.stderr)
+    print(f"Required: {required}", file=sys.stderr)
+    raise SystemExit(2)
+if report.get("vedtak") != vedtak:
+    print("FATAL: train enablement vedtak does not match wrapper vedtak.", file=sys.stderr)
+    print(f"Enablement vedtak: {report.get('vedtak')}", file=sys.stderr)
+    print(f"Wrapper vedtak: {vedtak}", file=sys.stderr)
+    raise SystemExit(2)
+if str(Path(str(report.get("out_bundle_dir") or "")).expanduser().resolve()) != out_bundle_dir:
+    print("FATAL: train enablement out_bundle_dir does not match wrapper output.", file=sys.stderr)
+    print(f"Enablement out_bundle_dir: {report.get('out_bundle_dir')}", file=sys.stderr)
+    print(f"Wrapper out_bundle_dir: {out_bundle_dir}", file=sys.stderr)
+    raise SystemExit(2)
+if report.get("exit_training_allowed_with_this_package") is not True:
+    print("FATAL: train enablement package does not explicitly allow this package.", file=sys.stderr)
+    raise SystemExit(2)
+for key in ("trainer_started", "replay_started", "iql_distillation_started", "promotion_shadow_live_allowed"):
+    if report.get(key) is not False:
+        print(f"FATAL: train enablement package has unsafe {key}={report.get(key)!r}.", file=sys.stderr)
+        raise SystemExit(2)
+PY
 
 scripts/gx1_capped_run.sh --mem "$MEM_CAP" --swap "$SWAP_CAP" -- "${TRAIN_CMD[@]}"
