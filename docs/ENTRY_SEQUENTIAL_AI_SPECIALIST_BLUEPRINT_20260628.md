@@ -400,10 +400,14 @@ Fuse specialist embeddings with a gated mixture layer:
    replay, IQL, shadow or live paths. `verify`/`selftest` must cover the
    readiness-policy snapshot and critical-gate path coverage contracts. Use
    `scripts/entry_next_edge_control.sh readiness-report` for a report-only
-   snapshot across train, candidate, replay, IQL distillation, IQL replay
-   evidence and IQL comparison gates, or add `--json` for a machine-readable
-   snapshot. The report includes worktree stage/hold counts and critical-gate
-   path coverage for cleanup review. Machine agents must use
+   light refresh of worktree/train-readiness plus latest candidate, replay,
+   IQL and Exit reports, or add `--json` for a machine-readable report. Use
+   `readiness-report --snapshot` only for a strict latest-report read and
+   `readiness-report --refresh` only when an explicit full report refresh is
+   intended; full refresh may rerun large smart hash/fullscan gates but still
+   must not stage, train, replay, distill, shadow or touch live paths.
+   The report includes worktree stage/hold counts and critical-gate path
+   coverage for cleanup review. Machine agents must use
    `commands.*.execution_allowed_now` for autonomous report/audit/dry-run
    actions and `commands.*.allowed_after_explicit_vedtak` only after a real
    vedtak id is supplied; placeholder commands containing `--vedtak <id>` are

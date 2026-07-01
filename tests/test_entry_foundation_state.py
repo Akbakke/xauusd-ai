@@ -190,6 +190,7 @@ def test_foundation_state_selftest_covers_control_policy_contracts() -> None:
     checks = set(report["checks"])
 
     assert "control surface supports non-refreshing readiness policy snapshot" in checks
+    assert "control surface separates fast readiness light refresh from snapshot and explicit full refresh" in checks
     assert "control surface reports critical gate path coverage" in checks
     assert "handover reports critical gate path coverage" in checks
     assert "foundation guardrail verifier uses readiness policy snapshot" in checks

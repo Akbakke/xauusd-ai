@@ -812,6 +812,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             checks,
         )
         _require(
+            "--refresh" in control
+            and "--snapshot" in control
+            and "default_light_refresh" in control
+            and "latest_report_snapshot" in control
+            and "explicit_full_refresh" in control,
+            "control surface separates fast readiness light refresh from snapshot and explicit full refresh",
+            checks,
+        )
+        _require(
             "critical_gate_ok_count" in control and "critical gate paths ok" in control,
             "control surface reports critical gate path coverage",
             checks,

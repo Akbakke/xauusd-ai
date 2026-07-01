@@ -12,7 +12,7 @@ usage() {
   cat <<'EOF'
 Usage:
   scripts/entry_next_edge_control.sh handover
-  scripts/entry_next_edge_control.sh readiness-report [--json]
+  scripts/entry_next_edge_control.sh readiness-report [--json] [--refresh|--snapshot]
   scripts/entry_next_edge_control.sh verify
   scripts/entry_next_edge_control.sh selftest
   scripts/entry_next_edge_control.sh foundation-guardrails
@@ -95,6 +95,7 @@ promote, pin, start shadow, or place live/practice orders.
 Run:
   scripts/entry_next_edge_control.sh handover
   scripts/entry_next_edge_control.sh readiness-report
+  scripts/entry_next_edge_control.sh readiness-report --refresh
   scripts/entry_next_edge_control.sh verify
   scripts/entry_next_edge_control.sh selftest
   scripts/entry_next_edge_control.sh foundation-guardrails
@@ -121,20 +122,29 @@ case "$cmd" in
 
   readiness-report)
     READINESS_REPORT_JSON=0
+    READINESS_REPORT_REFRESH=0
     while [[ $# -gt 0 ]]; do
       case "$1" in
         --json) READINESS_REPORT_JSON=1; shift ;;
+        --refresh) READINESS_REPORT_REFRESH=1; shift ;;
+        --snapshot|--no-refresh) READINESS_REPORT_REFRESH=0; shift ;;
         -h|--help)
-          echo "Usage: scripts/entry_next_edge_control.sh readiness-report [--json]"
+          echo "Usage: scripts/entry_next_edge_control.sh readiness-report [--json] [--refresh|--snapshot]"
           exit 0
           ;;
         *) echo "FATAL: unknown readiness-report arg: $1" >&2; exit 2 ;;
       esac
     done
-    READINESS_REPORT_REFRESH_SKIPPED=0
+    READINESS_REPORT_REFRESH_SKIPPED=1
+    READINESS_REPORT_REFRESH_MODE=latest_report_snapshot
     if [[ "${GX1_READINESS_REPORT_POLICY_SNAPSHOT:-}" == "20260629_GUARDRAIL_POLICY_ONLY" ]]; then
       READINESS_REPORT_REFRESH_SKIPPED=1
-    else
+      READINESS_REPORT_REFRESH_MODE=latest_report_snapshot
+    elif [[ "${GX1_READINESS_REPORT_REFRESH:-0}" == "1" || "$READINESS_REPORT_REFRESH" == "1" ]]; then
+      READINESS_REPORT_REFRESH_SKIPPED=0
+      READINESS_REPORT_REFRESH_MODE=explicit_full_refresh
+      # Full refresh intentionally remains explicit: some smart gates verify
+      # large parquet hashes/fullscans and must not run during a normal status read.
       "$PY" -m gx1.scripts.audit_entry_foundation_worktree_hygiene_v1 --quiet --no-fail-on-dirty
       "$PY" -m gx1.scripts.verify_entry_training_readiness_v1 --quiet --no-fail-on-not-ready
       "$PY" -m gx1.scripts.verify_entry_candidate_readiness_v1 --quiet --no-fail-on-not-ready
@@ -150,8 +160,13 @@ case "$cmd" in
       "$PY" -m gx1.scripts.verify_entry_smart_seq520_trainability_readiness_v1 --quiet --no-fail-on-not-ready
       "$PY" -m gx1.scripts.materialize_entry_smart_ablation_replay_plan_gate_v1 --quiet --no-fail-on-not-ready
       "$PY" -m gx1.scripts.verify_entry_smart_ablation_replay_matrix_v1 --quiet --no-fail-on-not-ready
+    else
+      READINESS_REPORT_REFRESH_SKIPPED=0
+      READINESS_REPORT_REFRESH_MODE=default_light_refresh
+      "$PY" -m gx1.scripts.audit_entry_foundation_worktree_hygiene_v1 --quiet --no-fail-on-dirty
+      "$PY" -m gx1.scripts.verify_entry_training_readiness_v1 --quiet --no-fail-on-not-ready
     fi
-    "$PY" - "$READINESS_REPORT_JSON" "$READINESS_REPORT_REFRESH_SKIPPED" <<'PY'
+    "$PY" - "$READINESS_REPORT_JSON" "$READINESS_REPORT_REFRESH_SKIPPED" "$READINESS_REPORT_REFRESH_MODE" <<'PY'
 import json
 import hashlib
 import sys
@@ -353,6 +368,7 @@ if activation_post_apply_candidates:
 
 json_mode = sys.argv[1] == "1"
 refresh_skipped = sys.argv[2] == "1"
+refresh_mode = sys.argv[3] if len(sys.argv) > 3 else ("latest_report_snapshot" if refresh_skipped else "default_light_refresh")
 reports = {}
 for name, path in paths.items():
     if not path.exists():
@@ -380,6 +396,7 @@ allowed_now = [
     "scripts/entry_next_edge_control.sh handover",
     "scripts/entry_next_edge_control.sh readiness-report",
     "scripts/entry_next_edge_control.sh readiness-report --json",
+    "scripts/entry_next_edge_control.sh readiness-report --refresh",
     "scripts/entry_next_edge_control.sh verify --quiet",
     "scripts/entry_next_edge_control.sh selftest --quiet",
     "scripts/entry_next_edge_control.sh foundation-guardrails --quiet",
@@ -797,6 +814,19 @@ commands = {
         "starts_iql_distillation": False,
         "touches_shadow_or_live": False,
         "description": "Human-readable readiness snapshot.",
+    },
+    "readiness_report_refresh": {
+        "argv": ["scripts/entry_next_edge_control.sh", "readiness-report", "--refresh"],
+        "allowed": True,
+        "mode": "report_refresh",
+        "requires_vedtak": False,
+        "requires_clean_git": False,
+        "mutates_git_index": False,
+        "starts_trainer": False,
+        "starts_replay": False,
+        "starts_iql_distillation": False,
+        "touches_shadow_or_live": False,
+        "description": "Explicit full report refresh; may run large smart hash/fullscan gates but never trains.",
     },
     "readiness_report_json": {
         "argv": ["scripts/entry_next_edge_control.sh", "readiness-report", "--json"],
@@ -1978,6 +2008,7 @@ commands.update(
 execution_allowed_now = {
     "handover": True,
     "readiness_report": True,
+    "readiness_report_refresh": True,
     "readiness_report_json": True,
     "verify": True,
     "selftest": True,
@@ -2048,6 +2079,7 @@ execution_allowed_now = {
 allowed_after_explicit_vedtak = {
     "handover": True,
     "readiness_report": True,
+    "readiness_report_refresh": True,
     "readiness_report_json": True,
     "verify": True,
     "selftest": True,
@@ -2185,6 +2217,7 @@ payload = {
     "schema_version": "entry_next_edge_readiness_report_v1",
     "report_only": True,
     "refresh_skipped": refresh_skipped,
+    "refresh_mode": refresh_mode,
     "status_summary": {
         "foundation_contract_ready_for_smoke": foundation_ready,
         "foundation_adoption_candidate_ready": adoption_candidate_ready,

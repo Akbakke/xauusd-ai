@@ -109,10 +109,16 @@ foundation verification, summarizes readiness, and keeps the historical legacy
 handover behind the explicit `GX1_ALLOW_LEGACY_HANDOVER=20260627_ALLOW_LEGACY_HANDOVER`
 token.
 Use `scripts/entry_next_edge_control.sh readiness-report` when you need a
-non-training status refresh across train-readiness, candidate-readiness,
-replay-readiness, the latest IQL distillation contract, IQL replay evidence and
-IQL replay comparison. It is report-only: it must not stage, train, replay,
-distill, shadow or touch live paths. It also
+fast non-training light refresh: it refreshes worktree hygiene and
+train-readiness, then reads the latest candidate-readiness, replay-readiness,
+IQL distillation, IQL replay and Exit reports. It is report-only: it must not
+stage, train, replay, distill, shadow or touch live paths. Use
+`scripts/entry_next_edge_control.sh readiness-report --snapshot` only when a
+strict latest-report read is required, and use
+`scripts/entry_next_edge_control.sh readiness-report --refresh` only when an
+explicit full report refresh is needed; that path may rerun large smart hash
+and fullscan gates, but still must not stage, train, replay, distill, shadow or
+touch live paths. The report also
 prints the latest worktree-hygiene dirty/stage/hold counts, stage-ready/safe
 flags, critical-gate path coverage, post-stage status and stage/hold path lists
 so cleanup can be reviewed without changing the git index. It prints the canonical
@@ -727,8 +733,12 @@ Required acceptance gates:
    handover unless the explicit legacy env token is set.
    `scripts/entry_next_edge_control.sh verify`/`selftest` must also cover the
    readiness-policy snapshot and critical-gate path coverage source contracts.
-   Use `scripts/entry_next_edge_control.sh readiness-report` for a full
-   fail-open readiness snapshot while the current step is still blocked.
+   Use `scripts/entry_next_edge_control.sh readiness-report` for a fast
+   fail-open light refresh of worktree/train-readiness plus latest downstream
+   reports while the current step is still blocked; use
+   `readiness-report --snapshot` only for strict latest-report reads and
+   `readiness-report --refresh` only when an explicit full report refresh is
+   intended.
 3. Run `scripts/entry_next_edge_control.sh foundation-guardrails` to prove
    legacy shadow/live entrypoints fail closed. It must also parse a
    non-refreshing readiness-policy JSON snapshot and prove safe audit/dry-run

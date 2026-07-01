@@ -77,7 +77,8 @@ def test_control_surface_routes_verify_to_active_foundation_state() -> None:
     text = CONTROL.read_text(encoding="utf-8")
 
     assert "scripts/entry_next_edge_control.sh handover" in text
-    assert "scripts/entry_next_edge_control.sh readiness-report [--json]" in text
+    assert "scripts/entry_next_edge_control.sh readiness-report [--json] [--refresh|--snapshot]" in text
+    assert "scripts/entry_next_edge_control.sh readiness-report --refresh" in text
     assert "scripts/entry_next_edge_control.sh foundation-adoption-candidate --dataset-dir <dir>" in text
     assert "scripts/entry_next_edge_control.sh foundation-activation-plan [--adoption-report <json>]" in text
     assert "scripts/entry_next_edge_control.sh foundation-activation-apply --plan-json <json>" in text
@@ -313,6 +314,8 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
     assert result.stderr == ""
     assert payload["schema_version"] == "entry_next_edge_readiness_report_v1"
     assert payload["report_only"] is True
+    assert payload["refresh_skipped"] is False
+    assert payload["refresh_mode"] == "default_light_refresh"
     foundation_ready = bool(payload["status_summary"]["foundation_contract_ready_for_smoke"])
     adoption_ready = bool(payload["status_summary"].get("foundation_adoption_candidate_ready"))
     activation_required = bool(payload["status_summary"].get("foundation_activation_required_before_smoke"))
@@ -492,6 +495,14 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
     assert payload["commands"]["readiness_report_json"]["requires_vedtak"] is False
     assert payload["commands"]["readiness_report_json"]["mutates_git_index"] is False
     assert payload["commands"]["readiness_report_json"]["starts_trainer"] is False
+    assert payload["commands"]["readiness_report_refresh"]["argv"] == [
+        "scripts/entry_next_edge_control.sh",
+        "readiness-report",
+        "--refresh",
+    ]
+    assert payload["commands"]["readiness_report_refresh"]["mode"] == "report_refresh"
+    assert payload["commands"]["readiness_report_refresh"]["execution_allowed_now"] is True
+    assert payload["commands"]["readiness_report_refresh"]["starts_trainer"] is False
     assert payload["commands"]["verify"]["execution_allowed_now"] is True
     assert payload["commands"]["verify"]["mode"] == "audit"
     assert payload["commands"]["verify"]["starts_trainer"] is False
@@ -975,6 +986,7 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
     assert payload["commands"]["live"]["execution_allowed_now"] is False
     assert "scripts/entry_next_edge_control.sh readiness-report" in payload["allowed_now"]
     assert "scripts/entry_next_edge_control.sh readiness-report --json" in payload["allowed_now"]
+    assert "scripts/entry_next_edge_control.sh readiness-report --refresh" in payload["allowed_now"]
     assert "scripts/entry_next_edge_control.sh verify --quiet" in payload["allowed_now"]
     assert "scripts/entry_next_edge_control.sh foundation-activation-plan" in payload["allowed_now"]
     assert any("foundation-activation-apply" in item and "--dry-run" in item for item in payload["allowed_now"])
@@ -1019,9 +1031,14 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
     else:
         assert "scripts/entry_next_edge_control.sh stage-foundation-cleanup --dry-run" not in payload["allowed_now"]
     assert not any("smoke-manifest" in item for item in payload["allowed_now"])
+    exit_enablement_optional = (
+        "scripts/entry_next_edge_control.sh entry-exit-transformer-train-enablement --vedtak <id> "
+        "--quiet --no-fail-on-not-ready  # package proof only, no trainer start"
+    )
     if foundation_ready:
         expected_optional = [
             "scripts/entry_next_edge_control.sh smoke-manifest --vedtak <id>  # proof only, no trainer start",
+            exit_enablement_optional,
         ]
         if seq215_manifest_allowed:
             expected_optional.append(
@@ -1036,7 +1053,7 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
             )
         assert payload["optional_proof_commands"] == expected_optional
     else:
-        assert payload["optional_proof_commands"] == []
+        assert payload["optional_proof_commands"] == [exit_enablement_optional]
     if payload["worktree_hygiene"]["dirty_count"] == 0:
         assert payload["worktree_hygiene"]["foundation_cleanup_stage_ready"] is False
     else:
