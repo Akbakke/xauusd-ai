@@ -1,7 +1,8 @@
 """Active signal bridge — env-gated v1/v2/v3 selector.
 
 Default (unset or "3"): v3 contract (2026-Q2 wave 2, canonical_v3 stack —
-SEQ/SNAP 37, ctx_cont 45, ctx_cat 6, seq_len 96).
+SEQ/SNAP 37, ctx_tag CTX6CAT5, ctx_cont_dim 142, ctx_cat_dim 5,
+seq_len 96).
 
 Set `GX1_SIGNAL_BRIDGE_VERSION=2` for the wave 1 v2 contract
 (SEQ/SNAP 37, ctx_cont 43, ctx_cat 6, seq_len 96).

@@ -45,6 +45,7 @@ Usage:
   scripts/entry_next_edge_control.sh smart-smoke-readiness
   scripts/entry_next_edge_control.sh smart-trainability-readiness
   scripts/entry_next_edge_control.sh smart-ablation-replay-plan
+  scripts/entry_next_edge_control.sh smart-ablation-replay-matrix
   scripts/entry_next_edge_control.sh smart-smoke-train --vedtak <id> --require-edge-audit
   scripts/entry_next_edge_control.sh smoke-train --vedtak <id> --require-edge-audit
   scripts/entry_next_edge_control.sh smoke-train-seq215 --vedtak <id> --require-edge-audit
@@ -147,6 +148,7 @@ case "$cmd" in
       "$PY" -m gx1.scripts.verify_entry_smart_seq520_smoke_readiness_v1 --quiet --no-fail-on-not-ready
       "$PY" -m gx1.scripts.verify_entry_smart_seq520_trainability_readiness_v1 --quiet --no-fail-on-not-ready
       "$PY" -m gx1.scripts.materialize_entry_smart_ablation_replay_plan_gate_v1 --quiet --no-fail-on-not-ready
+      "$PY" -m gx1.scripts.verify_entry_smart_ablation_replay_matrix_v1 --quiet --no-fail-on-not-ready
     fi
     "$PY" - "$READINESS_REPORT_JSON" "$READINESS_REPORT_REFRESH_SKIPPED" <<'PY'
 import json
@@ -224,6 +226,7 @@ paths = {
     "smart-smoke-readiness": Path("/home/andre2/GX1_DATA/reports/entry_smart_seq520_smoke_readiness_20260630_v1/ENTRY_SMART_SEQ520_SMOKE_READINESS_latest.json"),
     "smart-trainability-readiness": Path("/home/andre2/GX1_DATA/reports/entry_smart_seq520_trainability_readiness_20260630_v1/ENTRY_SMART_SEQ520_TRAINABILITY_READINESS_latest.json"),
     "smart-ablation-replay-plan": Path("/home/andre2/GX1_DATA/reports/entry_smart_ablation_replay_plan_gate_20260630_v1/ENTRY_SMART_ABLATION_REPLAY_PLAN_GATE_latest.json"),
+    "smart-ablation-replay-matrix": Path("/home/andre2/GX1_DATA/reports/entry_smart_ablation_replay_matrix_gate_20260701_v1/ENTRY_SMART_ABLATION_REPLAY_MATRIX_GATE_latest.json"),
 }
 smart_selected_replay_readiness_path = latest_smart_selected_replay_readiness(
     Path("/home/andre2/GX1_DATA/reports/entry_replay_readiness_20260628_v1")
@@ -345,6 +348,7 @@ allowed_now = [
     "scripts/entry_next_edge_control.sh smart-smoke-readiness --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh smart-trainability-readiness --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh smart-ablation-replay-plan --quiet --no-fail-on-not-ready",
+    "scripts/entry_next_edge_control.sh smart-ablation-replay-matrix --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh iql-slice-audit --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh entry-exit-materialize --quiet --no-fail-on-not-ready",
     "scripts/entry_next_edge_control.sh entry-exit-handoff --quiet --no-fail-on-not-ready",
@@ -673,6 +677,7 @@ smart_smoke_manifest = reports.get("smart-smoke-manifest") or {}
 smart_smoke_readiness = reports.get("smart-smoke-readiness") or {}
 smart_trainability_readiness = reports.get("smart-trainability-readiness") or {}
 smart_ablation_replay_plan = reports.get("smart-ablation-replay-plan") or {}
+smart_ablation_replay_matrix = reports.get("smart-ablation-replay-matrix") or {}
 smart_replay_default = reports.get("replay-readiness-smart") or {}
 smart_replay_selected = reports.get("replay-readiness-smart-selected") or {}
 smart_post_rebuild_ready = (
@@ -689,6 +694,9 @@ smart_trainability_readiness_ready = (
 )
 smart_ablation_replay_plan_ready = (
     str(smart_ablation_replay_plan.get("decision") or "") == "READY_FOR_SMART_ABLATION_REPLAY_PLAN_REVIEW"
+)
+smart_ablation_replay_matrix_ready = (
+    str(smart_ablation_replay_matrix.get("decision") or "") == "READY_FOR_SMART_ABLATION_REPLAY_MATRIX_REVIEW"
 )
 smart_replay_default_ready = (
     str(smart_replay_default.get("decision") or "") == "READY_FOR_IQL_DISTILLATION_VEDTAK"
@@ -1449,6 +1457,32 @@ commands.update(
                 "but never starts replay from this gate."
             ),
         },
+        "smart_ablation_replay_matrix": {
+            "argv": [
+                "scripts/entry_next_edge_control.sh",
+                "smart-ablation-replay-matrix",
+                "--quiet",
+                "--no-fail-on-not-ready",
+            ],
+            "allowed": True,
+            "mode": "evidence_matrix_gate",
+            "requires_vedtak": False,
+            "requires_clean_git": False,
+            "mutates_git_index": False,
+            "starts_trainer": False,
+            "starts_replay": False,
+            "starts_iql_distillation": False,
+            "touches_shadow_or_live": False,
+            "manifest_variant": smart_candidate_manifest_variant,
+            "expected_signal_dim": smart_candidate_expected_signal_dim,
+            "training_allowed": False,
+            "replay_allowed_by_this_gate": False,
+            "ready": smart_ablation_replay_matrix_ready,
+            "description": (
+                "Report-only gate for the complete smart ablation replay matrix. "
+                "Requires all 14 arm replay artifacts and never starts replay itself."
+            ),
+        },
         "feature_ai_inventory": {
             "argv": [
                 "scripts/entry_next_edge_control.sh",
@@ -1900,6 +1934,7 @@ execution_allowed_now = {
     "smart_smoke_readiness": True,
     "smart_trainability_readiness": True,
     "smart_ablation_replay_plan": True,
+    "smart_ablation_replay_matrix": True,
     "stage_foundation_cleanup_dry_run": True,
     "stage_foundation_cleanup_apply": False,
     "smoke_manifest": False,
@@ -1968,6 +2003,7 @@ allowed_after_explicit_vedtak = {
     "smart_smoke_readiness": True,
     "smart_trainability_readiness": True,
     "smart_ablation_replay_plan": True,
+    "smart_ablation_replay_matrix": True,
     "stage_foundation_cleanup_dry_run": True,
     "stage_foundation_cleanup_apply": foundation_cleanup_stage_ready,
     "smoke_manifest": smoke_manifest_proof_allowed,
@@ -2148,6 +2184,12 @@ payload = {
         "smart_trainability_readiness_ready": smart_trainability_readiness_ready,
         "smart_ablation_replay_plan_decision": smart_ablation_replay_plan.get("decision"),
         "smart_ablation_replay_plan_ready": smart_ablation_replay_plan_ready,
+        "smart_ablation_replay_matrix_decision": smart_ablation_replay_matrix.get("decision"),
+        "smart_ablation_replay_matrix_ready": smart_ablation_replay_matrix_ready,
+        "smart_ablation_replay_matrix_failures": int(len(smart_ablation_replay_matrix.get("failures") or [])),
+        "smart_ablation_replay_matrix_report": str(paths.get("smart-ablation-replay-matrix"))
+        if paths.get("smart-ablation-replay-matrix")
+        else None,
         "smart_replay_default_readiness_decision": smart_replay_default.get("decision"),
         "smart_replay_default_readiness_ready": smart_replay_default_ready,
         "smart_replay_default_readiness_report": str(paths.get("replay-readiness-smart")) if paths.get("replay-readiness-smart") else None,
@@ -2523,6 +2565,10 @@ PY
 
   smart-ablation-replay-plan)
     exec "$PY" -m gx1.scripts.materialize_entry_smart_ablation_replay_plan_gate_v1 "$@"
+    ;;
+
+  smart-ablation-replay-matrix)
+    exec "$PY" -m gx1.scripts.verify_entry_smart_ablation_replay_matrix_v1 "$@"
     ;;
 
   candidate-train)

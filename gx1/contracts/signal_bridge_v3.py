@@ -529,10 +529,16 @@ def get_canonical_ctx_contract() -> Dict[str, object]:
         "ctx_cat_dim": int(N_CTX_CAT_EXTENDED),
         "ctx_cont_names": list(ORDERED_CTX_CONT_NAMES_EXTENDED),
         "ctx_cat_names": list(ORDERED_CTX_CAT_NAMES_EXTENDED),
-        "tag": "CTX45CAT6_V3",
+        "tag": f"CTX6CAT{int(N_CTX_CAT_EXTENDED)}",
         "source": "signal_bridge_v3_full_contract",
-        "ctx_cont_rule": "bundle-driven ctx_cont_dim must equal 69 and match the v3 ordered list",
-        "ctx_cat_rule": "bundle-driven ctx_cat_dim must equal 6 and match the v3 ordered list",
+        "ctx_cont_rule": (
+            f"bundle-driven ctx_cont_dim must equal {int(N_CTX_CONT_EXTENDED)} "
+            "and match the v3 ordered list"
+        ),
+        "ctx_cat_rule": (
+            f"bundle-driven ctx_cat_dim must equal {int(N_CTX_CAT_EXTENDED)} "
+            "and match the v3 ordered list"
+        ),
     }
 
 
