@@ -257,17 +257,23 @@ Active status:
   harmony/orchestration, has no failures, matches the audited dataset directory
   and matches the smart manifest by hash. Smoke/trainability authority cannot
   be based on a rebuilt dataset with missing orchestration provenance.
+- Smart smoke-manifest and smoke-readiness now require that post-rebuild
+  orchestration provenance to be preserved in the latest smoke-manifest
+  readiness report. A stale smoke-manifest report that predates the
+  orchestration checks must block smart smoke-readiness until the proof-only
+  smart smoke-manifest gate is regenerated with an explicit vedtak.
 - The smart candidate contract is `smart_seq520_candidate`: expected
   seq/snap width 520, made from 41 base signal fields, 105 reused foundation
   extension fields, 41 chart-geometry fields, 28 candlestick fields and 305
   smart-layer fields across ten layers. All ten smart layers have required
   source coverage and zero missing required source fields.
-- Smart trainability is green:
-  `READY_FOR_SMART_SEQ520_TRAINABILITY_REVIEW` under
-  `specialist_contract_mode=smart_seq520_candidate`. Smart candidate-readiness
-  is intentionally `NOT_READY_FOR_CANDIDATE_TRAINING` until a newly trained
-  smart smoke bundle carries `path_calibration_recipe_contract=PASS`; the
-  latest old smart smoke bundle has `path_calibration_recipe_contract=null`.
+- Smart trainability is structurally wired under
+  `specialist_contract_mode=smart_seq520_candidate`, but it must remain
+  fail-closed whenever smart smoke-readiness is blocked by stale
+  smoke-manifest/post-rebuild provenance. Smart candidate-readiness is
+  intentionally `NOT_READY_FOR_CANDIDATE_TRAINING` until a newly trained smart
+  smoke bundle carries `path_calibration_recipe_contract=PASS`; the latest old
+  smart smoke bundle has `path_calibration_recipe_contract=null`.
   Candidate-readiness also requires direction distribution coverage across
   active LONG/SHORT/FLAT classes, so a bundle that beats majority while
   collapsing away from a common class remains blocked.

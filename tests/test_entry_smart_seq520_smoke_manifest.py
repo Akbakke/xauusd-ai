@@ -81,6 +81,7 @@ def _write_post_rebuild_readiness(
     *,
     decision: str = manifest_gate.POST_REBUILD_READY_DECISION,
     include_side_effects: bool = True,
+    include_orchestration_checks: bool = True,
 ) -> Path:
     path = tmp_path / "ENTRY_SMART_DATASET_POST_REBUILD_READINESS_latest.json"
     payload = {
@@ -91,6 +92,15 @@ def _write_post_rebuild_readiness(
             "all_commands_avoid_training_replay_iql_shadow_live": True,
         },
     }
+    if include_orchestration_checks:
+        payload["checks"] = [
+            {
+                "name": name,
+                "ok": True,
+                "details": {},
+            }
+            for name in manifest_gate.REQUIRED_POST_REBUILD_ORCHESTRATION_CHECKS
+        ]
     if include_side_effects:
         payload["side_effects_started"] = {
             "dataset_rebuild": False,
@@ -244,6 +254,22 @@ def test_smart_seq520_smoke_manifest_blocks_missing_post_rebuild_side_effects(tm
     assert report["decision"] == "BLOCKED_SMART_SEQ520_SMOKE_MANIFEST_READINESS"
     assert report["manifest_written"] is False
     assert "smart post-rebuild refresh contract starts no trainer replay iql shadow live" in report["blockers"]
+    assert not Path(report["manifest_path"]).exists()
+
+
+def test_smart_seq520_smoke_manifest_blocks_stale_post_rebuild_orchestration_report(tmp_path: Path) -> None:
+    dataset_dir = _build_dataset(tmp_path)
+    post_rebuild = _write_post_rebuild_readiness(
+        tmp_path,
+        dataset_dir,
+        include_orchestration_checks=False,
+    )
+
+    report = manifest_gate.run(_args(tmp_path, dataset_dir, post_rebuild_readiness_json=post_rebuild))
+
+    assert report["decision"] == "BLOCKED_SMART_SEQ520_SMOKE_MANIFEST_READINESS"
+    assert report["manifest_written"] is False
+    assert "smart post-rebuild readiness proves orchestration provenance" in report["blockers"]
     assert not Path(report["manifest_path"]).exists()
 
 

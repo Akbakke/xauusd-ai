@@ -23,7 +23,7 @@ def _model_contract() -> dict:
     return json.loads(json.dumps(readiness.EXPECTED_MODEL_CONTRACT))
 
 
-def _build_fixture(tmp_path: Path) -> argparse.Namespace:
+def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) -> argparse.Namespace:
     smart_dataset_dir = tmp_path / "v10_dataset_smart_candidate_20260630"
     smart_smoke_dataset_dir = tmp_path / "v10_dataset_smart_seq520_smoke_20260630"
     smart_dataset_dir.mkdir()
@@ -184,6 +184,18 @@ def _build_fixture(tmp_path: Path) -> argparse.Namespace:
                 "shadow": False,
                 "live": False,
             },
+            "checks": (
+                [
+                    {
+                        "name": name,
+                        "ok": True,
+                        "details": {},
+                    }
+                    for name in readiness.REQUIRED_SMOKE_MANIFEST_PROVENANCE_CHECKS
+                ]
+                if smoke_manifest_provenance
+                else []
+            ),
         },
     )
     return argparse.Namespace(
@@ -319,6 +331,21 @@ def test_smart_seq520_smoke_readiness_fails_closed_on_blocked_manifest_readiness
     assert report["decision"] == "BLOCKED_SMART_SEQ520_SMOKE_READINESS"
     assert report["training_allowed"] is False
     assert "latest smart smoke manifest readiness report is ready" in blockers
+
+
+def test_smart_seq520_smoke_readiness_fails_closed_on_stale_manifest_provenance(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    args = _build_fixture(tmp_path, smoke_manifest_provenance=False)
+    monkeypatch.setattr(readiness, "_git_status_short", lambda repo: [])
+
+    report = readiness.run(args)
+
+    blockers = "\n".join(report["blockers"])
+    assert report["decision"] == "BLOCKED_SMART_SEQ520_SMOKE_READINESS"
+    assert report["training_allowed"] is False
+    assert "latest smart smoke manifest readiness proves post-rebuild orchestration provenance" in blockers
 
 
 def test_smart_seq520_smoke_readiness_fails_closed_on_stale_manifest_hash(

@@ -42,6 +42,13 @@ DEFAULT_SPECIALIST_AUDIT_JSON = (
     / "ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_latest.json"
 )
 POST_REBUILD_READY_DECISION = "ENTRY_SMART_DATASET_READY_FOR_TRAIN_READINESS_REVIEW"
+REQUIRED_POST_REBUILD_ORCHESTRATION_CHECKS = (
+    "smart rebuild preflight decision is ready",
+    "smart rebuild preflight proves feature harmony",
+    "smart rebuild preflight proves feature orchestration",
+    "smart rebuild preflight manifest hash matches post-rebuild manifest",
+    "smart rebuild preflight planned dataset matches audited dataset",
+)
 RAM_CAP_RUNNER = "scripts/gx1_capped_run.sh"
 DEFAULT_MEMORY_CAP = "22G"
 DEFAULT_SWAP_CAP = "2G"
@@ -519,6 +526,18 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         all(key in post_rebuild_side_effects for key in REQUIRED_POST_REBUILD_SIDE_EFFECT_KEYS)
         and all(post_rebuild_side_effects.get(key) is False for key in REQUIRED_POST_REBUILD_SIDE_EFFECT_KEYS)
     )
+    post_rebuild_checks = {
+        str(row.get("name") or ""): row
+        for row in post_rebuild_readiness.get("checks", [])
+        if isinstance(row, dict)
+    }
+    missing_post_rebuild_orchestration_checks = [
+        name for name in REQUIRED_POST_REBUILD_ORCHESTRATION_CHECKS if name not in post_rebuild_checks
+    ]
+    failed_post_rebuild_orchestration_checks = [
+        name for name in REQUIRED_POST_REBUILD_ORCHESTRATION_CHECKS
+        if name in post_rebuild_checks and not bool(post_rebuild_checks[name].get("ok"))
+    ]
     future_command_contracts = _future_command_contracts(
         dataset_dir=dataset_dir,
         specialist_audit_json=Path(getattr(args, "smart_specialist_audit_json", DEFAULT_SPECIALIST_AUDIT_JSON)).expanduser().resolve(),
@@ -541,6 +560,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "smart post-rebuild readiness decision is ready",
             post_rebuild_readiness.get("decision") == POST_REBUILD_READY_DECISION,
             {"decision": post_rebuild_readiness.get("decision"), "expected": POST_REBUILD_READY_DECISION},
+        ),
+        _check(
+            "smart post-rebuild readiness proves orchestration provenance",
+            not missing_post_rebuild_orchestration_checks
+            and not failed_post_rebuild_orchestration_checks,
+            {
+                "required_checks": list(REQUIRED_POST_REBUILD_ORCHESTRATION_CHECKS),
+                "missing_checks": missing_post_rebuild_orchestration_checks,
+                "failed_checks": failed_post_rebuild_orchestration_checks,
+            },
         ),
         _check(
             "smart post-rebuild refresh contract points at this smoke dataset",

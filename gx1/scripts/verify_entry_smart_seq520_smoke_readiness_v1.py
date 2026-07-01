@@ -68,6 +68,9 @@ SMOKE_MANIFEST_READINESS_READY_DECISION = "READY_FOR_SMART_SEQ520_SMOKE_MANIFEST
 SMOKE_MANIFEST_READINESS_SCHEMA = "entry_smart_seq520_smoke_manifest_readiness_v1"
 SMOKE_DATASET_MANIFEST_SCHEMA = "entry_smart_seq520_smoke_dataset_v1"
 SMOKE_SPLIT_MANIFEST_SCHEMA = "entry_smart_seq520_smoke_split_manifest_v1"
+REQUIRED_SMOKE_MANIFEST_PROVENANCE_CHECKS = (
+    "smart post-rebuild readiness proves orchestration provenance",
+)
 PATH_CALIBRATION_RECIPE_CONTRACT = {
     "path_quality_rank_full_batch": True,
     "path_quality_rank_weight": 2.0,
@@ -526,6 +529,18 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     specialist = _read_json_or_empty(specialist_audit_json)
     smoke_manifest = _read_json_or_empty(smoke_dataset_manifest_json)
     smoke_manifest_readiness = _read_json_or_empty(smoke_manifest_readiness_json)
+    smoke_manifest_readiness_checks = {
+        str(row.get("name") or ""): row
+        for row in smoke_manifest_readiness.get("checks", [])
+        if isinstance(row, dict)
+    }
+    missing_smoke_manifest_provenance_checks = [
+        name for name in REQUIRED_SMOKE_MANIFEST_PROVENANCE_CHECKS if name not in smoke_manifest_readiness_checks
+    ]
+    failed_smoke_manifest_provenance_checks = [
+        name for name in REQUIRED_SMOKE_MANIFEST_PROVENANCE_CHECKS
+        if name in smoke_manifest_readiness_checks and not bool(smoke_manifest_readiness_checks[name].get("ok"))
+    ]
     git_status = _git_status_short(Path(args.repo_dir).expanduser().resolve())
     trainer_probe = _trainer_loader_probe(specialist_audit_json) if specialist_audit_json.exists() else {"ok": False}
     future_contracts = _future_contracts(
@@ -709,6 +724,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                         "decision": smoke_manifest_readiness.get("decision"),
                         "report_only": smoke_manifest_readiness.get("report_only"),
                         "manifest_written": smoke_manifest_readiness.get("manifest_written"),
+                    },
+                ),
+                _check(
+                    "latest smart smoke manifest readiness proves post-rebuild orchestration provenance",
+                    not missing_smoke_manifest_provenance_checks
+                    and not failed_smoke_manifest_provenance_checks,
+                    {
+                        "required_checks": list(REQUIRED_SMOKE_MANIFEST_PROVENANCE_CHECKS),
+                        "missing_checks": missing_smoke_manifest_provenance_checks,
+                        "failed_checks": failed_smoke_manifest_provenance_checks,
                     },
                 ),
                 _check(

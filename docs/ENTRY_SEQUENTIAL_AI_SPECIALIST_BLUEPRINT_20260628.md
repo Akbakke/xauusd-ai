@@ -61,6 +61,13 @@ Machine contract:
     failures, matches the audited dataset directory and matches the smart
     manifest by hash. A rebuilt dataset cannot become smoke/trainability
     authority if orchestration provenance is missing.
+- Smart smoke-manifest and smoke-readiness:
+  `gx1/scripts/materialize_entry_smart_seq520_smoke_manifest_v1.py` and
+  `gx1/scripts/verify_entry_smart_seq520_smoke_readiness_v1.py`
+  - Must preserve and re-check post-rebuild orchestration provenance. A stale
+    smoke-manifest readiness report that lacks the post-rebuild orchestration
+    check must keep smart smoke-readiness and trainability blocked until the
+    proof-only smoke-manifest gate is regenerated with explicit vedtak.
 - Candidate-readiness gate:
   `gx1/scripts/verify_entry_candidate_readiness_v1.py`
   - Supports `foundation_seq146` and `challenger_seq215`. The seq215 report
