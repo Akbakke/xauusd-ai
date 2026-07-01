@@ -192,6 +192,22 @@ def _passing_smoke_audit(
             "tail_direction_mask": "directional_tradable_clean_path_top_quality",
             "failures": [],
         },
+        "symmetric_validation_recipe_contract": {
+            "decision": "PASS",
+            "active_heads": ["bad_path", "direction", "path_quality"],
+            "contract_mode": contract_mode,
+            "symmetric_negatives": True,
+            "selector_masked_aux": True,
+            "validation_objective_matches_train": True,
+            "aux_selector_mode": "long_short_union",
+            "clean_edge_target_mode": "bidir",
+            "survival_target_mode": "bidir",
+            "bad_path_ce_in_direction_loss": True,
+            "bad_path_prob_penalty_in_validation": True,
+            "symmetric_short_prob_penalties": True,
+            "symmetric_clean_edge_rank": True,
+            "failures": [],
+        },
         "bundle_specialist_model_contract": {
             "decision": "PASS",
             "valid": True,
@@ -360,6 +376,43 @@ def test_smoke_edge_checks_accept_stronger_smart_direction_balance_contract() ->
     failed = {check["name"] for check in checks if not check["ok"]}
 
     assert "smoke bundle audit direction balance recipe contract PASS" not in failed
+
+
+def test_smoke_edge_checks_reject_smart_missing_symmetric_validation_contract() -> None:
+    report = _passing_smoke_audit(
+        contract_mode="smart_seq520_candidate",
+        dataset_dir=SMART_SEQ520_SMOKE_DATASET,
+        signal_dim=520,
+        specialists=SEQ215_SPECIALISTS,
+    )
+    report["direction_balance_recipe_contract"]["pred_balance_alpha"] = 0.20
+    report["direction_balance_recipe_contract"]["pred_balance_class_weights"] = [1.0, 1.0, 4.0]
+    report["direction_balance_recipe_contract"]["ckpt_class_balance_guard_weight"] = 0.50
+    report["direction_balance_recipe_contract"]["ckpt_class_balance_min_pred_to_label"] = 0.35
+    report["direction_balance_recipe_contract"]["ckpt_class_balance_min_pred_rate"] = 0.05
+    report["symmetric_validation_recipe_contract"] = {
+        "decision": "FAIL",
+        "active_heads": ["bad_path", "direction", "path_quality"],
+        "symmetric_negatives": True,
+        "selector_masked_aux": True,
+        "validation_objective_matches_train": False,
+        "aux_selector_mode": "long_only",
+        "clean_edge_target_mode": "long",
+        "survival_target_mode": "long",
+        "bad_path_ce_in_direction_loss": True,
+        "bad_path_prob_penalty_in_validation": False,
+        "symmetric_short_prob_penalties": False,
+        "failures": ["smart symmetric validation requires validation_objective_matches_train=true"],
+    }
+
+    checks = _smoke_edge_checks(
+        report,
+        contract_mode="smart_seq520_candidate",
+        expected_smoke_dataset_dir=SMART_SEQ520_SMOKE_DATASET,
+    )
+    failed = {check["name"] for check in checks if not check["ok"]}
+
+    assert "smoke bundle audit symmetric validation recipe contract PASS" in failed
 
 
 def test_smart_smoke_benchmark_checks_accept_matching_baselines() -> None:

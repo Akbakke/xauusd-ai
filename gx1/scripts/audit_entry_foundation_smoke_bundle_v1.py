@@ -740,6 +740,20 @@ def _three_float_list(value: Any, default: list[float]) -> list[float]:
     return [float(part) for part in out]
 
 
+def _bool_value(value: Any, default: bool = False) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"1", "true", "yes", "on"}:
+            return True
+        if normalized in {"0", "false", "no", "off"}:
+            return False
+    if value is None:
+        return bool(default)
+    return bool(value)
+
+
 def _path_calibration_recipe_contract(meta: dict[str, Any], capabilities: dict[str, Any]) -> dict[str, Any]:
     recipe = meta.get("train_recipe") if isinstance(meta.get("train_recipe"), dict) else {}
     active_heads = {
@@ -940,6 +954,90 @@ def _tail_direction_recipe_contract(meta: dict[str, Any], capabilities: dict[str
         "tail_direction_quality_quantile": quantile,
         "tail_direction_min_batch": min_batch,
         "tail_direction_mask": "directional_tradable_clean_path_top_quality",
+        "failures": failures,
+    }
+
+
+def _symmetric_validation_recipe_contract(
+    meta: dict[str, Any],
+    capabilities: dict[str, Any],
+    *,
+    contract_mode: str = "foundation_seq146",
+) -> dict[str, Any]:
+    recipe = meta.get("train_recipe") if isinstance(meta.get("train_recipe"), dict) else {}
+    active_heads = {
+        str(head)
+        for head in (
+            recipe.get("active_heads")
+            or capabilities.get("declared_active_heads")
+            or capabilities.get("supported_heads")
+            or []
+        )
+        if str(head)
+    }
+    symmetric_negatives = _bool_value(recipe.get("symmetric_negatives", meta.get("symmetric_negatives", False)))
+    selector_masked_aux = _bool_value(recipe.get("selector_masked_aux", meta.get("selector_masked_aux", False)))
+    validation_objective_matches_train = _bool_value(
+        recipe.get(
+            "validation_objective_matches_train",
+            meta.get("validation_objective_matches_train", False),
+        )
+    )
+    aux_selector_mode = str(recipe.get("aux_selector_mode", meta.get("aux_selector_mode", ""))).strip()
+    clean_edge_target_mode = str(recipe.get("clean_edge_target_mode", meta.get("clean_edge_target_mode", ""))).strip()
+    survival_target_mode = str(recipe.get("survival_target_mode", meta.get("survival_target_mode", ""))).strip()
+    bad_path_ce_in_direction_loss = _bool_value(
+        recipe.get("bad_path_ce_in_direction_loss", meta.get("bad_path_ce_in_direction_loss", False))
+    )
+    bad_path_prob_penalty_in_validation = _bool_value(
+        recipe.get(
+            "bad_path_prob_penalty_in_validation",
+            meta.get("bad_path_prob_penalty_in_validation", False),
+        )
+    )
+    symmetric_short_prob_penalties = _bool_value(
+        recipe.get("symmetric_short_prob_penalties", meta.get("symmetric_short_prob_penalties", False))
+    )
+    symmetric_clean_edge_rank = _bool_value(
+        recipe.get("symmetric_clean_edge_rank", meta.get("symmetric_clean_edge_rank", False))
+    )
+    failures: list[str] = []
+    if contract_mode == "smart_seq520_candidate":
+        if not symmetric_negatives:
+            failures.append("smart symmetric validation requires symmetric_negatives=true")
+        if not selector_masked_aux:
+            failures.append("smart symmetric validation requires selector_masked_aux=true")
+        if not validation_objective_matches_train:
+            failures.append("smart symmetric validation requires validation_objective_matches_train=true")
+        if aux_selector_mode != "long_short_union":
+            failures.append("smart symmetric validation requires aux_selector_mode=long_short_union")
+        if clean_edge_target_mode != "bidir":
+            failures.append("smart symmetric validation requires clean_edge_target_mode=bidir")
+        if survival_target_mode != "bidir":
+            failures.append("smart symmetric validation requires survival_target_mode=bidir")
+        if "bad_path" in active_heads:
+            if not bad_path_ce_in_direction_loss:
+                failures.append("smart bad_path active head requires bad_path_ce_in_direction_loss=true")
+            if not bad_path_prob_penalty_in_validation:
+                failures.append("smart bad_path active head requires bad_path_prob_penalty_in_validation=true")
+        if not symmetric_short_prob_penalties:
+            failures.append("smart symmetric validation requires symmetric_short_prob_penalties=true")
+        if "clean_edge" in active_heads and not symmetric_clean_edge_rank:
+            failures.append("smart clean_edge active head requires symmetric_clean_edge_rank=true")
+    return {
+        "decision": "PASS" if not failures else "FAIL",
+        "active_heads": sorted(active_heads),
+        "contract_mode": contract_mode,
+        "symmetric_negatives": symmetric_negatives,
+        "selector_masked_aux": selector_masked_aux,
+        "validation_objective_matches_train": validation_objective_matches_train,
+        "aux_selector_mode": aux_selector_mode,
+        "clean_edge_target_mode": clean_edge_target_mode,
+        "survival_target_mode": survival_target_mode,
+        "bad_path_ce_in_direction_loss": bad_path_ce_in_direction_loss,
+        "bad_path_prob_penalty_in_validation": bad_path_prob_penalty_in_validation,
+        "symmetric_short_prob_penalties": symmetric_short_prob_penalties,
+        "symmetric_clean_edge_rank": symmetric_clean_edge_rank,
         "failures": failures,
     }
 
@@ -1819,6 +1917,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         f"tail_direction_recipe: {failure}"
         for failure in tail_direction_recipe_contract.get("failures", [])
     )
+    symmetric_validation_recipe_contract = _symmetric_validation_recipe_contract(
+        meta,
+        bundle.capabilities,
+        contract_mode=specialist_contract_mode,
+    )
+    failures.extend(
+        f"symmetric_validation_recipe: {failure}"
+        for failure in symmetric_validation_recipe_contract.get("failures", [])
+    )
 
     dataset_kwargs = _bundle_dataset_kwargs(meta, m5_prebuilt)
     split_reports: dict[str, Any] = {}
@@ -1907,6 +2014,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "path_calibration_recipe_contract": path_calibration_recipe_contract,
         "direction_balance_recipe_contract": direction_balance_recipe_contract,
         "tail_direction_recipe_contract": tail_direction_recipe_contract,
+        "symmetric_validation_recipe_contract": symmetric_validation_recipe_contract,
         "bundle_specialist_model_contract": bundle_specialist_model_contract,
         "bundle_summary": {
             "manifest_variant": manifest_variant,

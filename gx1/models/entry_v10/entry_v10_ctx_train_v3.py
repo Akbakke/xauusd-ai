@@ -4754,6 +4754,14 @@ def run_train(
             "clean_edge_ranking_margin": float(ENTRY_CLEAN_EDGE_RANKING_MARGIN),
             "selector_masked_aux": True,
             "symmetric_negatives": bool(ENTRY_SYMMETRIC_NEGATIVES),  # A7 2026-06-06: long==short
+            "validation_objective_matches_train": True,
+            "aux_selector_mode": "long_short_union" if ENTRY_SYMMETRIC_NEGATIVES else "long_only",
+            "clean_edge_target_mode": "bidir" if ENTRY_SYMMETRIC_NEGATIVES else "long",
+            "survival_target_mode": "bidir" if ENTRY_SYMMETRIC_NEGATIVES else "long",
+            "bad_path_ce_in_direction_loss": bool(ENTRY_BAD_PATH_CE_MULTIPLIER > 1.0),
+            "bad_path_prob_penalty_in_validation": bool(ENTRY_BAD_PATH_PROB_PENALTY > 0.0),
+            "symmetric_short_prob_penalties": bool(ENTRY_SYMMETRIC_NEGATIVES),
+            "symmetric_clean_edge_rank": bool(ENTRY_SYMMETRIC_NEGATIVES),
             "teacher_v6_mined": bool(ENTRY_CLEAN_EDGE_RANKING_WEIGHT > 0.0),  # A5: honest (dead targets ⇒ off)
             "aux_regression_positive_only": True,
             "path_quality_rank_full_batch": bool(ENTRY_PATH_QUALITY_RANK_WEIGHT > 0.0),

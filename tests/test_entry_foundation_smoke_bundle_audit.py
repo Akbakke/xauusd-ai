@@ -21,6 +21,7 @@ from gx1.scripts.audit_entry_foundation_smoke_bundle_v1 import (
     _spearman,
     _specialist_gate_failures,
     _specialist_model_contract_report,
+    _symmetric_validation_recipe_contract,
     _tail_direction_recipe_contract,
 )
 from gx1.scripts.verify_entry_training_readiness_v1 import (
@@ -569,6 +570,56 @@ def test_tail_direction_recipe_contract_rejects_missing_weight() -> None:
     assert any("tail_direction_ce_weight" in failure for failure in report["failures"])
     assert any("tail_direction_quality_quantile" in failure for failure in report["failures"])
     assert any("tail_direction_min_batch" in failure for failure in report["failures"])
+
+
+def test_smart_symmetric_validation_recipe_contract_requires_bidir_validation() -> None:
+    meta = {
+        "train_recipe": {
+            "active_heads": ["direction", "path_quality", "bad_path", "clean_edge"],
+            "symmetric_negatives": True,
+            "selector_masked_aux": True,
+            "validation_objective_matches_train": True,
+            "aux_selector_mode": "long_short_union",
+            "clean_edge_target_mode": "bidir",
+            "survival_target_mode": "bidir",
+            "bad_path_ce_in_direction_loss": True,
+            "bad_path_prob_penalty_in_validation": True,
+            "symmetric_short_prob_penalties": True,
+            "symmetric_clean_edge_rank": True,
+        }
+    }
+
+    report = _symmetric_validation_recipe_contract(meta, {}, contract_mode="smart_seq520_candidate")
+
+    assert report["decision"] == "PASS"
+    assert report["aux_selector_mode"] == "long_short_union"
+    assert report["clean_edge_target_mode"] == "bidir"
+
+
+def test_smart_symmetric_validation_recipe_contract_rejects_long_only_validation() -> None:
+    meta = {
+        "train_recipe": {
+            "active_heads": ["direction", "path_quality", "bad_path", "clean_edge"],
+            "symmetric_negatives": True,
+            "selector_masked_aux": True,
+            "validation_objective_matches_train": False,
+            "aux_selector_mode": "long_only",
+            "clean_edge_target_mode": "long",
+            "survival_target_mode": "long",
+            "bad_path_ce_in_direction_loss": True,
+            "bad_path_prob_penalty_in_validation": False,
+            "symmetric_short_prob_penalties": False,
+            "symmetric_clean_edge_rank": False,
+        }
+    }
+
+    report = _symmetric_validation_recipe_contract(meta, {}, contract_mode="smart_seq520_candidate")
+
+    assert report["decision"] == "FAIL"
+    assert any("validation_objective_matches_train" in failure for failure in report["failures"])
+    assert any("aux_selector_mode=long_short_union" in failure for failure in report["failures"])
+    assert any("bad_path_prob_penalty_in_validation=true" in failure for failure in report["failures"])
+    assert any("symmetric_clean_edge_rank=true" in failure for failure in report["failures"])
 
 
 def test_head_contract_report_accepts_supported_declared_forward_outputs() -> None:

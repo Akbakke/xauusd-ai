@@ -410,6 +410,11 @@ Active status:
   CE/probability penalties and mirrored SHORT hard-negative penalties. A
   smart520 bundle cannot be treated as calibrated if train and validation
   measure different bad-path/path-quality semantics.
+- Smoke/candidate bundle audit must expose
+  `symmetric_validation_recipe_contract=PASS`, and smart candidate-readiness
+  must consume it as a hard gate for `smart_seq520_candidate`. This contract is
+  the proof that symmetric validation did not fall back to a stale LONG-only
+  aux objective while training used bidirectional labels.
 - Candidate-readiness now also requires the smoke bundle audit itself to carry
   `path_calibration_recipe_contract=PASS` with active path-quality and bad-path
   heads, full-batch path-quality ranking and positive rank weights/margins.

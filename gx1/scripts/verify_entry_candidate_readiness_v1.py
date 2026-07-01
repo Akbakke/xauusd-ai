@@ -611,6 +611,40 @@ def _tail_direction_contract_passes(report: dict[str, Any]) -> bool:
     )
 
 
+def _symmetric_validation_contract_passes(
+    report: dict[str, Any],
+    *,
+    contract_mode: str = "foundation_seq146",
+) -> bool:
+    if contract_mode != "smart_seq520_candidate":
+        return True
+    contract = report.get("symmetric_validation_recipe_contract")
+    if not isinstance(contract, dict):
+        return False
+    active_heads = {str(head) for head in (contract.get("active_heads") or []) if str(head)}
+    base_ok = (
+        str(contract.get("decision")) == "PASS"
+        and not contract.get("failures")
+        and bool(contract.get("symmetric_negatives"))
+        and bool(contract.get("selector_masked_aux"))
+        and bool(contract.get("validation_objective_matches_train"))
+        and str(contract.get("aux_selector_mode") or "") == "long_short_union"
+        and str(contract.get("clean_edge_target_mode") or "") == "bidir"
+        and str(contract.get("survival_target_mode") or "") == "bidir"
+        and bool(contract.get("symmetric_short_prob_penalties"))
+    )
+    if not base_ok:
+        return False
+    if "bad_path" in active_heads and not (
+        bool(contract.get("bad_path_ce_in_direction_loss"))
+        and bool(contract.get("bad_path_prob_penalty_in_validation"))
+    ):
+        return False
+    if "clean_edge" in active_heads and not bool(contract.get("symmetric_clean_edge_rank")):
+        return False
+    return True
+
+
 def _smoke_edge_checks(
     report: dict[str, Any],
     *,
@@ -696,6 +730,11 @@ def _smoke_edge_checks(
             "smoke bundle audit tail direction recipe contract PASS",
             _tail_direction_contract_passes(report),
             {"tail_direction_recipe_contract": report.get("tail_direction_recipe_contract")},
+        ),
+        _check(
+            "smoke bundle audit symmetric validation recipe contract PASS",
+            _symmetric_validation_contract_passes(report, contract_mode=normalized_contract_mode),
+            {"symmetric_validation_recipe_contract": report.get("symmetric_validation_recipe_contract")},
         ),
         _check(
             "smoke bundle audit validated pre-train manifest provenance",

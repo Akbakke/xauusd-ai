@@ -295,6 +295,11 @@ The 2026-07-01 operating point is feature-harmony clean but not promotion-ready:
   bad-path CE/probability penalties and mirrored SHORT hard-negative penalties.
   Otherwise checkpoint selection can approve a bundle against a different
   bad-path/path-quality contract than the one being trained.
+- Smoke/candidate bundle audit writes
+  `symmetric_validation_recipe_contract`, and smart candidate-readiness requires
+  that contract to pass for `smart_seq520_candidate`. This keeps future smart
+  bundles from opening candidate training unless the bundle metadata proves
+  train and validation shared the same bidirectional aux objective.
 - Smart smoke/candidate training must also carry the tail-direction recipe:
   `ENTRY_TAIL_DIRECTION_CE_WEIGHT=0.35`,
   `ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE=0.70` and
