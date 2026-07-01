@@ -307,6 +307,11 @@ The 2026-07-01 operating point is feature-harmony clean but not promotion-ready:
   by underpredicting FLAT or overpredicting one side more than the simpler
   baselines is not harmonized; the next training recipe must repair class
   balance before replay/IQL authority can treat smart520 as an improvement.
+- Smart candidate-readiness consumes the same smart-vs-baseline benchmark for
+  the smoke bundle as a hard gate. The smart lane cannot open candidate
+  training just because it beats majority; it must avoid val/test direction
+  accuracy and LONG/SHORT/FLAT class-balance regression versus both simpler
+  smoke baselines.
 - Replay-readiness now fails closed on weak selected-tail direction quality:
   candidate top-5/top-10 selected tails and supported session/side/vol-regime
   slices must clear the configured direction precision threshold before IQL

@@ -393,6 +393,11 @@ Active status:
   overpredicts LONG/SHORT more than a simpler baseline, readiness must expose
   that as root-cause evidence for the direction regression and keep the smart
   lane fail-closed until the next calibrated bundle fixes it.
+- Smart candidate-readiness now treats that benchmark as an actual gate for
+  the smart smoke bundle: candidate training cannot open unless smart520 has
+  no val/test direction-accuracy regression and no worse LONG/SHORT/FLAT
+  prediction-vs-label drift versus both `foundation_seq146` and
+  `challenger_seq215` smoke baselines.
 - Exit report-only gates remain ready through feature alignment, architecture,
   training plan, wrapper readiness, pretrain manifest, slice robustness,
   train-execution review and post-train audit contract. Exit Transformer/IQL

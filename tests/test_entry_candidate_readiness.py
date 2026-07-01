@@ -8,6 +8,7 @@ from gx1.scripts.verify_entry_candidate_readiness_v1 import (
     _mode_smoke_bundle_audit_path,
     _mode_smoke_train_command,
     _smoke_edge_checks,
+    _smart_smoke_benchmark_checks,
     run,
 )
 from gx1.scripts.verify_entry_training_readiness_v1 import EXPECTED_ACTIVE_TRAINING_HEADS, EXPECTED_BLOCKED_HEADS
@@ -355,6 +356,59 @@ def test_smoke_edge_checks_accept_stronger_smart_direction_balance_contract() ->
     assert "smoke bundle audit direction balance recipe contract PASS" not in failed
 
 
+def test_smart_smoke_benchmark_checks_accept_matching_baselines() -> None:
+    smart = _passing_smoke_audit(
+        contract_mode="smart_seq520_candidate",
+        dataset_dir=SMART_SEQ520_SMOKE_DATASET,
+        signal_dim=520,
+        specialists=SEQ215_SPECIALISTS,
+    )
+    foundation = _passing_smoke_audit()
+    seq215 = _passing_smoke_audit(
+        contract_mode="challenger_seq215",
+        dataset_dir=SEQ215_SMOKE_DATASET,
+        signal_dim=215,
+        specialists=SEQ215_SPECIALISTS,
+    )
+
+    checks = _smart_smoke_benchmark_checks(
+        smart,
+        foundation_report=foundation,
+        seq215_report=seq215,
+    )
+
+    assert all(check["ok"] for check in checks)
+
+
+def test_smart_smoke_benchmark_checks_reject_direction_and_balance_regression() -> None:
+    smart = _passing_smoke_audit(
+        contract_mode="smart_seq520_candidate",
+        dataset_dir=SMART_SEQ520_SMOKE_DATASET,
+        signal_dim=520,
+        specialists=SEQ215_SPECIALISTS,
+    )
+    for split in smart["splits"].values():
+        split["direction"]["accuracy"] = 0.35
+        split["direction"]["prediction_counts"] = {"LONG": 80, "SHORT": 44, "FLAT": 4}
+    foundation = _passing_smoke_audit()
+    seq215 = _passing_smoke_audit(
+        contract_mode="challenger_seq215",
+        dataset_dir=SEQ215_SMOKE_DATASET,
+        signal_dim=215,
+        specialists=SEQ215_SPECIALISTS,
+    )
+
+    checks = _smart_smoke_benchmark_checks(
+        smart,
+        foundation_report=foundation,
+        seq215_report=seq215,
+    )
+    failed = {check["name"] for check in checks if not check["ok"]}
+
+    assert "smart smoke direction accuracy does not regress versus foundation/seq215" in failed
+    assert "smart smoke class-balance drift does not regress versus foundation/seq215" in failed
+
+
 def test_smoke_edge_checks_reject_missing_tail_direction_contract() -> None:
     report = _passing_smoke_audit()
     report["tail_direction_recipe_contract"] = {
@@ -681,9 +735,31 @@ def test_candidate_readiness_smart_seq520_opens_after_contract_and_smoke_evidenc
     smart_smoke_report["direction_balance_recipe_contract"]["pred_balance_alpha"] = 0.20
     smart_smoke_report["direction_balance_recipe_contract"]["pred_balance_class_weights"] = [1.0, 1.0, 4.0]
     smoke_path.write_text(json.dumps(smart_smoke_report), encoding="utf-8")
+    foundation_smoke_path = tmp_path / "foundation_smoke_audit.json"
+    foundation_smoke_path.write_text(json.dumps(_passing_smoke_audit()), encoding="utf-8")
+    seq215_smoke_path = tmp_path / "seq215_smoke_audit.json"
+    seq215_smoke_path.write_text(
+        json.dumps(
+            _passing_smoke_audit(
+                contract_mode="challenger_seq215",
+                dataset_dir=SEQ215_SMOKE_DATASET,
+                signal_dim=215,
+                specialists=SEQ215_SPECIALISTS,
+            )
+        ),
+        encoding="utf-8",
+    )
     monkeypatch.setattr(
         "gx1.scripts.verify_entry_candidate_readiness_v1.SMART_SEQ520_TRAINABILITY_READINESS_LATEST",
         trainability_path,
+    )
+    monkeypatch.setattr(
+        "gx1.scripts.verify_entry_candidate_readiness_v1.SMOKE_BUNDLE_AUDIT_LATEST",
+        foundation_smoke_path,
+    )
+    monkeypatch.setattr(
+        "gx1.scripts.verify_entry_candidate_readiness_v1.CHALLENGER_SEQ215_SMOKE_BUNDLE_AUDIT_LATEST",
+        seq215_smoke_path,
     )
 
     report = run(

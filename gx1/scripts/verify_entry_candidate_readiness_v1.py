@@ -188,6 +188,118 @@ def _split_direction_distribution_contract(split_row: dict[str, Any]) -> dict[st
     return _direction_distribution_contract(direction)
 
 
+def _direction_split_summary(report: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    rows = _splits(report)
+    out: dict[str, dict[str, Any]] = {}
+    for split in ("val", "test"):
+        split_row = rows.get(split) or {}
+        direction = split_row.get("direction") if isinstance(split_row.get("direction"), dict) else {}
+        out[split] = {
+            "accuracy": direction.get("accuracy"),
+            "label_counts": direction.get("label_counts") if isinstance(direction.get("label_counts"), dict) else {},
+            "prediction_counts": (
+                direction.get("prediction_counts") if isinstance(direction.get("prediction_counts"), dict) else {}
+            ),
+        }
+    return out
+
+
+def _class_rate(counts: dict[str, Any], class_name: str) -> float | None:
+    total = sum(int(counts.get(name) or 0) for name in CLASS_NAMES)
+    if total <= 0:
+        return None
+    return float(int(counts.get(class_name) or 0)) / float(total)
+
+
+def _class_balance_drift(direction: dict[str, Any], class_name: str) -> float | None:
+    label_counts = direction.get("label_counts") if isinstance(direction.get("label_counts"), dict) else {}
+    prediction_counts = (
+        direction.get("prediction_counts") if isinstance(direction.get("prediction_counts"), dict) else {}
+    )
+    label_rate = _class_rate(label_counts, class_name)
+    prediction_rate = _class_rate(prediction_counts, class_name)
+    if label_rate is None or prediction_rate is None:
+        return None
+    return prediction_rate - label_rate
+
+
+def _smart_smoke_benchmark_checks(
+    smart_report: dict[str, Any],
+    *,
+    foundation_report: dict[str, Any],
+    seq215_report: dict[str, Any],
+) -> list[dict[str, Any]]:
+    smart = _direction_split_summary(smart_report)
+    baselines = {
+        "foundation_seq146": _direction_split_summary(foundation_report),
+        "challenger_seq215": _direction_split_summary(seq215_report),
+    }
+    missing_metrics: list[dict[str, str]] = []
+    accuracy_regressions: list[dict[str, Any]] = []
+    balance_regressions: list[dict[str, Any]] = []
+    for split in ("val", "test"):
+        smart_accuracy = smart.get(split, {}).get("accuracy")
+        if smart_accuracy is None:
+            missing_metrics.append({"model": "smart_seq520_candidate", "split": split, "metric": "accuracy"})
+        for baseline_name, baseline in baselines.items():
+            baseline_accuracy = baseline.get(split, {}).get("accuracy")
+            if baseline_accuracy is None:
+                missing_metrics.append({"model": baseline_name, "split": split, "metric": "accuracy"})
+                continue
+            if smart_accuracy is not None and float(smart_accuracy) < float(baseline_accuracy):
+                accuracy_regressions.append(
+                    {
+                        "baseline": baseline_name,
+                        "split": split,
+                        "smart_accuracy": float(smart_accuracy),
+                        "baseline_accuracy": float(baseline_accuracy),
+                        "delta": float(smart_accuracy) - float(baseline_accuracy),
+                    }
+                )
+            for class_name in CLASS_NAMES:
+                smart_drift = _class_balance_drift(smart.get(split, {}), class_name)
+                baseline_drift = _class_balance_drift(baseline.get(split, {}), class_name)
+                if smart_drift is None:
+                    missing_metrics.append(
+                        {"model": "smart_seq520_candidate", "split": split, "metric": f"{class_name}_drift"}
+                    )
+                    continue
+                if baseline_drift is None:
+                    missing_metrics.append(
+                        {"model": baseline_name, "split": split, "metric": f"{class_name}_drift"}
+                    )
+                    continue
+                worse_by = abs(float(smart_drift)) - abs(float(baseline_drift))
+                if worse_by > 1e-12:
+                    balance_regressions.append(
+                        {
+                            "baseline": baseline_name,
+                            "split": split,
+                            "class": class_name,
+                            "smart_prediction_minus_label_rate": float(smart_drift),
+                            "baseline_prediction_minus_label_rate": float(baseline_drift),
+                            "worse_by": float(worse_by),
+                        }
+                    )
+    return [
+        _check(
+            "smart smoke direction benchmark has foundation/seq215 metrics",
+            not missing_metrics,
+            {"missing_metrics": missing_metrics},
+        ),
+        _check(
+            "smart smoke direction accuracy does not regress versus foundation/seq215",
+            not accuracy_regressions,
+            {"accuracy_regressions": accuracy_regressions},
+        ),
+        _check(
+            "smart smoke class-balance drift does not regress versus foundation/seq215",
+            not balance_regressions,
+            {"class_balance_regressions": balance_regressions[:12]},
+        ),
+    ]
+
+
 def _all_split_direction_distribution_live(report: dict[str, Any]) -> bool:
     rows = _splits(report)
     names = _split_names(report)
@@ -801,6 +913,37 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     except Exception as exc:  # Artifact absence/corruption is a gate failure, not a traceback.
         smoke_audit = {}
         smoke_audit_load_error = str(exc)
+    smart_benchmark_checks: list[dict[str, Any]] = []
+    if contract_mode == "smart_seq520_candidate":
+        try:
+            foundation_smoke_audit = _read_json(SMOKE_BUNDLE_AUDIT_LATEST)
+            foundation_smoke_load_error = None
+        except Exception as exc:
+            foundation_smoke_audit = {}
+            foundation_smoke_load_error = str(exc)
+        try:
+            seq215_smoke_audit = _read_json(CHALLENGER_SEQ215_SMOKE_BUNDLE_AUDIT_LATEST)
+            seq215_smoke_load_error = None
+        except Exception as exc:
+            seq215_smoke_audit = {}
+            seq215_smoke_load_error = str(exc)
+        smart_benchmark_checks = [
+            _check(
+                "foundation smoke benchmark audit exists and is readable",
+                foundation_smoke_load_error is None,
+                {"path": str(SMOKE_BUNDLE_AUDIT_LATEST), "error": foundation_smoke_load_error},
+            ),
+            _check(
+                "seq215 smoke benchmark audit exists and is readable",
+                seq215_smoke_load_error is None,
+                {"path": str(CHALLENGER_SEQ215_SMOKE_BUNDLE_AUDIT_LATEST), "error": seq215_smoke_load_error},
+            ),
+            *_smart_smoke_benchmark_checks(
+                smoke_audit,
+                foundation_report=foundation_smoke_audit,
+                seq215_report=seq215_smoke_audit,
+            ),
+        ]
     artifacts = {
         upstream_gate_name: str(upstream_artifact_path),
         "smoke_bundle_audit": str(smoke_audit_path),
@@ -828,6 +971,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         ],
         "artifact_provenance": _artifact_fingerprint_checks(artifact_fingerprints),
     }
+    if smart_benchmark_checks:
+        gate_checks["smart_smoke_benchmark"] = smart_benchmark_checks
     gates = []
     for name, checks in gate_checks.items():
         passed = sum(1 for check in checks if check["ok"])
