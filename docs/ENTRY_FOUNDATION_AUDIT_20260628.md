@@ -201,6 +201,65 @@ must keep Exit Transformer/IQL training closed until that substrate exists with
 explicit trade, bar-state, entry-context and replay-identity fields and has
 been audited.
 
+## Current Operating Status - 2026-07-01
+
+Active status:
+
+- Worktree hygiene is `PASS_CLEAN_GIT`, and
+  `scripts/entry_next_edge_control.sh verify --quiet` passes.
+- Feature harmony is current: 843 active/generated inputs are accounted for,
+  772 are specialist-routed, 71 are explicitly excluded with recorded reasons
+  and `unmapped_input_count=0`. The active categorical context is
+  `ctx_cat=5`: `session_id`, `vol_regime_id`, `atr_bucket`,
+  `spread_bucket` and `H4_trend_sign_cat`; these are context embeddings, not
+  a reduction of the full signal surface.
+- The smart candidate contract is `smart_seq520_candidate`: expected
+  seq/snap width 520, made from 41 base signal fields, 105 reused foundation
+  extension fields, 41 chart-geometry fields, 28 candlestick fields and 305
+  smart-layer fields across ten layers. All ten smart layers have required
+  source coverage and zero missing required source fields.
+- Smart trainability and candidate-readiness are green:
+  `READY_FOR_SMART_SEQ520_TRAINABILITY_REVIEW` and
+  `READY_FOR_CANDIDATE_TRAINING_VEDTAK` under
+  `specialist_contract_mode=smart_seq520_candidate`.
+- The broad/default smart replay is not approved for IQL because drawdown is
+  too high: the latest default replay-readiness remains
+  `NOT_READY_FOR_IQL_DISTILLATION` with max drawdown about 1342 bps against
+  the 650 bps bound. This is an explicit fail-closed result, not a hidden
+  failure.
+- The selected smart replay policy
+  `smart_seq520_stop_tp_mfe_protect_act1_sl45_tp90_top10_cost00` passes replay
+  evidence with 655 trades, net about 3439 bps, profit factor about 3.08, max
+  drawdown about 418 bps and max loss -45 bps. Its direction precision is only
+  about 0.478, so the policy is edge-positive through selective ranking and
+  risk/exit controls, not through strong broad direction accuracy.
+- The selected smart IQL replay
+  `smart_seq520_iql_student_stop_tp_mfe_protect_act1_sl45_broad_net_min190_v2`
+  passes with 735 trades, net about 3886 bps, profit factor about 3.13, max
+  drawdown 315 bps and max loss -45 bps. IQL comparison is
+  `READY_FOR_PROMOTION_REVIEW_VEDTAK` with about +447 bps net lift versus the
+  selected candidate, but `promotion_shadow_live_allowed=false`.
+- Smart IQL slice audit is `PASS`, but it explicitly discloses remaining weak
+  behavior: supported regression counts are diagnostic=5, drawdown=2, edge=3
+  and p90 MAE=8. Worst supported edge regressions include volatility regime 3,
+  SHORT side and ASIA session. `path_quality_pred` calibration is wrong-signed
+  for both candidate and IQL, so it must not be trusted as a policy gate until
+  repaired. Exit opportunity diagnostics show large remaining giveback/peak
+  oracle slack, including about 12895 bps IQL peak-oracle lift, which is the
+  current evidence for prioritizing Exit Transformer/hazard/IQL work after the
+  Entry policy is reviewed.
+- Raw smoke/bundle direction accuracy around 0.40 is not an acceptance metric by
+  itself. It is only a sanity diagnostic against the majority baseline; Entry
+  acceptance remains replay/PnL, drawdown, MAE, bad-path, calibration and
+  session/regime/side/tail slice evidence.
+- Exit report-only gates remain ready through feature alignment, architecture,
+  training plan, wrapper readiness, pretrain manifest, slice robustness,
+  train-execution review and post-train audit contract. Exit Transformer/IQL
+  training is still blocked by
+  `BLOCKED_BY_EXIT_TRANSFORMER_TRAIN_ENABLEMENT_PACKAGE`; no Exit training may
+  run without a separate explicit `ENTRY_EXIT_TRANSFORMER_TRAIN_` package.
+- Shadow, live and promotion remain closed.
+
 ## Current Operating Status - 2026-06-30
 
 Active status:

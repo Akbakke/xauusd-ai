@@ -178,6 +178,46 @@ Machine contract:
   `/home/andre2/GX1_DATA/reports/entry_specialist_feature_group_audit_20260628_v1/ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_latest.json`
 - Current decision: `PASS` on the active seq146 foundation dataset.
 
+## Current Evidence Status - 2026-07-01
+
+The 2026-07-01 operating point is feature-harmony clean but not promotion-ready:
+
+- Worktree hygiene is `PASS_CLEAN_GIT`, and `verify --quiet` passes.
+- The active feature harmony report accounts for 843 inputs: 772 routed,
+  71 explicitly excluded and `unmapped_input_count=0`.
+- `ctx_cat=5` means the five categorical context embeddings
+  `session_id`, `vol_regime_id`, `atr_bucket`, `spread_bucket` and
+  `H4_trend_sign_cat`; it does not replace the 520 smart seq/snap signal
+  surface or the 142 continuous context fields.
+- `smart_seq520_candidate` is the active smart evidence contract for the smart
+  path: 520 seq/snap signals, 8 required trainable specialists and 10 smart
+  layers with 305 generated mechanism features. Required smart-layer source
+  coverage is complete.
+- Default broad smart replay remains fail-closed because max drawdown is about
+  1342 bps, above the 650 bps bound. Do not use the default replay as IQL
+  authority.
+- The selected smart candidate replay policy with SL45/TP90/MFE-protect passes:
+  655 trades, net about 3439 bps, profit factor about 3.08, max drawdown about
+  418 bps and max loss -45 bps.
+- The selected smart IQL replay passes: 735 trades, net about 3886 bps, profit
+  factor about 3.13, max drawdown 315 bps and max loss -45 bps. It beats the
+  selected candidate by about +447 bps net in the comparison gate, while
+  `promotion_shadow_live_allowed=false`.
+- Raw direction accuracy around 0.40 is a weak sanity diagnostic, not the
+  primary objective. The smart selected replay has direction precision only
+  about 0.478 for candidate and 0.452 for IQL, so the next improvement must
+  target calibration, selected-tail direction quality, bad-path/path-quality
+  semantics and exit timing rather than celebrating broad accuracy.
+- Slice audit passes but discloses remaining weak behavior: supported IQL-vs-
+  candidate regressions still exist in volatility regime 3, SHORT side and
+  ASIA session, with additional p90 MAE and diagnostic regressions. Both
+  candidate and IQL have wrong-signed `path_quality_pred` calibration, so that
+  head must not be used as a policy gate until repaired.
+- Exit diagnostics show large remaining profit-capture opportunity; IQL peak
+  oracle lift is about 12895 bps. This supports Exit Transformer/hazard/IQL as
+  the next major improvement after Entry review, but Exit training remains
+  closed until an explicit `ENTRY_EXIT_TRANSFORMER_TRAIN_` enablement package.
+
 ## Goal
 
 Find tradable XAUUSD edge with sequence models that understand different market
