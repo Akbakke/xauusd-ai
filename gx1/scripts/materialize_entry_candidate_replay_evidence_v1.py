@@ -513,6 +513,8 @@ def normalize_trades(raw: pd.DataFrame, *, policy_id: str, require_year: int | N
         "trade_uid",
         "exit_mode",
         "exit_policy_config_hash",
+        "entry_price",
+        "exit_price",
         "exit_time",
         "exit_reason",
         "held_bars",

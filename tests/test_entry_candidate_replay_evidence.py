@@ -116,6 +116,8 @@ def _raw_trades() -> pd.DataFrame:
             "mfe_bps": [140.0, 10.0, 110.0, 50.0],
             "mae_bps": [10.0, 35.0, 12.0, 20.0],
             "held_bars": [12, 8, 10, 6],
+            "entry_price": [2000.0, 2001.0, 2002.0, 2003.0],
+            "exit_price": [2025.0, 1998.0, 2021.0, 2010.0],
             "exit_mode": ["stop_tp_mfe_protect"] * 4,
             "exit_policy_config_hash": ["exit_hash_1"] * 4,
             "exit_reason": ["take_profit", "mfe_protect_stop", "take_profit", "horizon"],
@@ -150,6 +152,8 @@ def test_normalize_trades_requires_2026_and_derives_fields() -> None:
     assert "bad_path_bucket" in trades.columns
     assert "exit_mode" in trades.columns
     assert "exit_policy_config_hash" in trades.columns
+    assert "entry_price" in trades.columns
+    assert "exit_price" in trades.columns
     assert "mfe_protect_activated" in trades.columns
     assert "foundation_bos_age_long" in trades.columns
     assert "specialist_structure_gate" in trades.columns
@@ -267,6 +271,8 @@ def test_replay_evidence_run_writes_readiness_files(tmp_path: Path) -> None:
     materialized = pd.read_csv(out_dir / "replay_policy_trades.csv")
     assert "exit_mode" in materialized.columns
     assert "exit_policy_config_hash" in materialized.columns
+    assert "entry_price" in materialized.columns
+    assert "exit_price" in materialized.columns
     assert "mfe_protect_activated" in materialized.columns
     assert json.loads((out_dir / "summary.json").read_text())["decision"] == "PASS"
 
