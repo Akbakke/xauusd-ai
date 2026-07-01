@@ -408,6 +408,26 @@ to the Entry Transformer and preserve the Entry-to-Exit state required for Exit
 Transformer/IQL profit capture; isolated feature polish without replay impact
 is outside the active objective.
 
+Codex Objective Lock - 2026-07-02: all active Entry/Exit inputs and
+multi-timeframe context must be harmonized as one market-state language for the
+full automated XAUUSD bot objective. The system is not complete when smart
+features exist, when feature counts rise, or when broad direction accuracy
+looks acceptable. HH/HL/LH/LL, SMC/liquidity, momentum/flow, trend/EMA,
+volatility/compression, session/regime, support/resistance, spread/ATR,
+Fibonacci/chart geometry, price action/candles and all context embeddings must
+be grounded, routed, hashed, live, non-collapsed and cross-compatible so the
+specialist Transformer can see the whole picture. Entry is first: the Entry
+Transformer is the evidence layer, and Entry IQL can only become the entry
+policy after exact replay proves tradable edge. Exit follows with the same
+language: Exit Transformer learns exit timing from exact Entry traces, and
+Exit IQL learns profit capture from replay-bound Exit state. Smart layers are
+mechanism summaries on top of the old foundation language, not replacements,
+unless ablation plus replay/slice evidence proves the removal improves edge.
+Any smart520 evidence with weak FLAT/LONG/SHORT calibration, weak selected-tail
+direction, wrong-signed path-quality or bad-path signals, weak
+session/regime/side slices or missing smart Entry-to-Exit state is not
+harmonized and cannot be treated as policy authority.
+
 ## Operating Doctrine
 
 The objective is a live-equivalent XAUUSD policy, not another isolated

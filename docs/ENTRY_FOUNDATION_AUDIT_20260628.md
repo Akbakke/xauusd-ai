@@ -110,6 +110,26 @@ and preserve the Entry-to-Exit state needed for Exit Transformer/IQL profit
 capture; isolated feature polish that cannot improve replay evidence is not
 approved work.
 
+Codex Objective Lock - 2026-07-02: the active goal is not to add more isolated
+features or chase a single accuracy number. The goal is to make every active
+Entry/Exit input and every multi-timeframe view speak one harmonized
+market-state language for a fully automated XAUUSD policy: enter long or short
+at high-quality points and exit near maximum profit opportunity. HH/HL/LH/LL,
+SMC/liquidity, momentum/flow, trend/EMA, volatility/compression,
+session/regime, support/resistance, spread/ATR, Fibonacci/chart geometry,
+price action/candles and all context inputs must be grounded, routed, hashed,
+live, non-collapsed and cross-compatible. The Entry Transformer is the first
+active evidence layer and must see the whole multi-timeframe picture; Entry
+IQL can only become the entry policy after exact replay proves tradable edge.
+Exit Transformer and Exit IQL come after Entry evidence and must learn profit
+capture from the exact Entry traces, with the same calibrated state language.
+The old foundation features, smart-layer summaries and context embeddings must
+remain traceable and available unless an exact ablation plus replay/slice proof
+shows removal improves edge. A smart520 bundle with weak FLAT/LONG/SHORT
+calibration, weak selected-tail direction, wrong-signed path-quality or
+bad-path signals, weak session/regime/side slices or missing smart
+Entry-to-Exit state is not harmonized and must stay fail-closed.
+
 `<id>` in `--vedtak <id>` is a deliberate human approval token, not a report id
 that the scripts invent automatically. Activation apply requires the
 `ENTRY_FOUNDATION_ACTIVATE_` prefix, for example

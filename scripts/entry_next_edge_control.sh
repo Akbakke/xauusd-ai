@@ -995,6 +995,9 @@ smart_ablation_replay_plan_ready = (
 smart_ablation_replay_matrix_ready = (
     str(smart_ablation_replay_matrix.get("decision") or "") == "READY_FOR_SMART_ABLATION_REPLAY_MATRIX_REVIEW"
 )
+smart_rebuild_preflight_ready = (
+    str(smart_rebuild_preflight.get("decision") or "") == "READY_FOR_SMART_REBUILD_VEDTAK_REVIEW"
+)
 smart_replay_default_ready = (
     str(smart_replay_default.get("decision") or "") == "READY_FOR_IQL_DISTILLATION_VEDTAK"
 )
@@ -1044,9 +1047,40 @@ if smart_smoke_direction_class_balance_regression_count:
     current_blockers.append(
         "smart seq520 smoke bundle class-balance drift is worse than foundation/seq215; repair FLAT/LONG/SHORT calibration before treating smart features as improvement"
     )
-smart_rebuild_preflight_ready = (
-    str(smart_rebuild_preflight.get("decision") or "") == "READY_FOR_SMART_REBUILD_VEDTAK_REVIEW"
-)
+smart_entry_market_state_harmony_failures = []
+if not smart_rebuild_preflight_ready:
+    smart_entry_market_state_harmony_failures.append(
+        "smart feature harmony/orchestration preflight is not ready"
+    )
+if not smart_post_rebuild_ready:
+    smart_entry_market_state_harmony_failures.append(
+        "smart post-rebuild provenance/readiness is not ready"
+    )
+if not smart_smoke_readiness_ready:
+    smart_entry_market_state_harmony_failures.append(
+        "smart smoke-readiness is not ready"
+    )
+if not smart_trainability_readiness_ready:
+    smart_entry_market_state_harmony_failures.append(
+        "smart trainability-readiness is not ready"
+    )
+if not smart_smoke_direction_benchmark_ready:
+    smart_entry_market_state_harmony_failures.append(
+        "smart smoke direction benchmark regresses on accuracy or LONG/SHORT/FLAT class balance"
+    )
+if not smart_selected_path_signal_calibration_ready:
+    smart_entry_market_state_harmony_failures.append(
+        "smart selected path-signal calibration is not ready"
+    )
+if not entry_exit_feature_alignment_smart_selected_ready:
+    smart_entry_market_state_harmony_failures.append(
+        "smart Entry-to-Exit alignment is missing live smart-layer state"
+    )
+smart_entry_market_state_harmony_ready = not smart_entry_market_state_harmony_failures
+if not smart_entry_market_state_harmony_ready:
+    current_blockers.append(
+        "smart Entry market-state harmony is not ready; repair orchestration/provenance, FLAT/LONG/SHORT calibration, selected-tail/path signals and smart Exit handoff before treating smart520 as coordinated evidence"
+    )
 candidate_smart = reports.get("candidate-readiness-smart") or {}
 candidate_training_smart_allowed = bool(candidate_smart.get("candidate_training_allowed_with_explicit_vedtak"))
 real_smoke_train_smart_allowed = bool(smart_smoke_readiness_ready and smart_trainability_readiness_ready)
@@ -2579,6 +2613,9 @@ payload = {
         "smart_smoke_direction_class_balance_regression_count": smart_smoke_direction_class_balance_regression_count,
         "smart_smoke_direction_class_balance_regressions": smart_smoke_direction_class_balance_regressions,
         "smart_smoke_direction_top_class_balance_regressions": smart_smoke_direction_class_balance_regressions[:6],
+        "smart_entry_market_state_harmony_ready": smart_entry_market_state_harmony_ready,
+        "smart_entry_market_state_harmony_failure_count": len(smart_entry_market_state_harmony_failures),
+        "smart_entry_market_state_harmony_failures": smart_entry_market_state_harmony_failures,
         "smart_rebuild_preflight_decision": smart_rebuild_preflight.get("decision"),
         "smart_rebuild_preflight_ready": smart_rebuild_preflight_ready,
         "smart_rebuild_preflight_report": str(smart_rebuild_preflight_path) if smart_rebuild_preflight_path else None,
@@ -2843,6 +2880,10 @@ else:
         "  smart class-balance regression count: "
         f"{payload['status_summary']['smart_smoke_direction_class_balance_regression_count']}"
     )
+    print("smart Entry market-state harmony:")
+    print(f"  ready: {payload['status_summary']['smart_entry_market_state_harmony_ready']}")
+    for failure in payload["status_summary"]["smart_entry_market_state_harmony_failures"]:
+        print(f"  failure: {failure}")
     for row in payload["status_summary"]["smart_smoke_direction_top_class_balance_regressions"]:
         print(
             "  class-balance regression: "

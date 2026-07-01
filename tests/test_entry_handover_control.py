@@ -234,6 +234,21 @@ def test_docs_name_handover_as_canonical_fresh_session_entrypoint() -> None:
     assert "all eight specialist-gate weights before any Exit train/replay/IQL step" in foundation_doc
     assert "chart_geometry_encoder` and `price_action_candle_encoder` state" in specialist_doc
     assert "eight specialist-gate weights before any Exit train/replay/IQL step" in specialist_doc
+    objective_lock = "Codex Objective Lock - 2026-07-02"
+    assert objective_lock in foundation_doc
+    assert objective_lock in specialist_doc
+    assert "all active Entry/Exit inputs and" in specialist_doc
+    assert "multi-timeframe context must be harmonized as one market-state language" in specialist_doc
+    assert "every active" in foundation_doc
+    assert "Entry/Exit input and every multi-timeframe view speak one harmonized" in foundation_doc
+    assert "speak one harmonized" in foundation_doc
+    assert "The Entry Transformer is the first" in foundation_doc
+    assert "active evidence layer and must see the whole multi-timeframe picture" in foundation_doc
+    assert "Exit Transformer learns exit timing from exact Entry traces" in specialist_doc
+    assert "weak FLAT/LONG/SHORT" in foundation_doc
+    assert "calibration" in foundation_doc
+    assert "weak FLAT/LONG/SHORT" in specialist_doc
+    assert "calibration" in specialist_doc
 
 
 def test_control_surface_readiness_report_is_fail_open_status_only() -> None:
@@ -293,6 +308,8 @@ def test_control_surface_readiness_report_is_fail_open_status_only() -> None:
     else:
         assert "optional proof commands:" in result.stdout
         assert "scripts/entry_next_edge_control.sh smoke-manifest --vedtak <id>  # proof only, no trainer start" in result.stdout
+    assert "smart Entry market-state harmony:" in result.stdout
+    assert "  ready:" in result.stdout
     assert "blocked now:" in result.stdout
     assert "scripts/entry_next_edge_control.sh smoke-train --vedtak <id> --require-edge-audit  # needs clean git + explicit vedtak" in result.stdout
     assert "scripts/entry_next_edge_control.sh smart-smoke-train --vedtak <id> --require-edge-audit" in result.stdout
@@ -458,6 +475,12 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
     assert isinstance(payload["status_summary"]["smart_smoke_direction_class_balance_regression_count"], int)
     assert isinstance(payload["status_summary"]["smart_smoke_direction_class_balance_regressions"], list)
     assert isinstance(payload["status_summary"]["smart_smoke_direction_top_class_balance_regressions"], list)
+    assert isinstance(payload["status_summary"]["smart_entry_market_state_harmony_ready"], bool)
+    assert isinstance(payload["status_summary"]["smart_entry_market_state_harmony_failure_count"], int)
+    assert isinstance(payload["status_summary"]["smart_entry_market_state_harmony_failures"], list)
+    assert payload["status_summary"]["smart_entry_market_state_harmony_failure_count"] == len(
+        payload["status_summary"]["smart_entry_market_state_harmony_failures"]
+    )
     if payload["status_summary"]["smart_smoke_direction_accuracy_regression_count"]:
         assert payload["status_summary"]["smart_smoke_direction_benchmark_ready"] is False
         assert (
@@ -468,6 +491,12 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
         assert payload["status_summary"]["smart_smoke_direction_benchmark_ready"] is False
         assert (
             "smart seq520 smoke bundle class-balance drift is worse than foundation/seq215; repair FLAT/LONG/SHORT calibration before treating smart features as improvement"
+            in payload["status_summary"]["current_blockers"]
+        )
+    if not payload["status_summary"]["smart_entry_market_state_harmony_ready"]:
+        assert payload["status_summary"]["smart_entry_market_state_harmony_failures"]
+        assert (
+            "smart Entry market-state harmony is not ready; repair orchestration/provenance, FLAT/LONG/SHORT calibration, selected-tail/path signals and smart Exit handoff before treating smart520 as coordinated evidence"
             in payload["status_summary"]["current_blockers"]
         )
     assert isinstance(payload["status_summary"]["iql_distillation_allowed"], bool)
