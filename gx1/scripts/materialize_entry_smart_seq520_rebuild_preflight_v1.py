@@ -335,6 +335,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     checks: list[dict[str, Any]] = []
     counts = smart_report.get("counts") if isinstance(smart_report.get("counts"), dict) else {}
     smart_candidate = inventory.get("smart_candidate") if isinstance(inventory.get("smart_candidate"), dict) else {}
+    feature_harmony = (
+        inventory.get("feature_harmony_contract")
+        if isinstance(inventory.get("feature_harmony_contract"), dict)
+        else {}
+    )
     inventory_side_effects = (
         inventory.get("side_effects_started") if isinstance(inventory.get("side_effects_started"), dict) else {}
     )
@@ -379,6 +384,31 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     )
 
     _check(checks, "inventory decision is design-review ready", inventory.get("decision") == "READY_FOR_SPECIALIST_AI_DESIGN_REVIEW", inventory_path)
+    _check(
+        checks,
+        "inventory feature harmony contract is ready",
+        feature_harmony.get("feature_harmony_ready") is True
+        and int(feature_harmony.get("unmapped_input_count") or 0) == 0,
+        {
+            "feature_harmony_ready": feature_harmony.get("feature_harmony_ready"),
+            "unmapped_input_count": feature_harmony.get("unmapped_input_count"),
+            "failures": feature_harmony.get("failures"),
+        },
+    )
+    _check(
+        checks,
+        "inventory feature orchestration contract is ready",
+        feature_harmony.get("feature_orchestration_ready") is True
+        and not feature_harmony.get("missing_required_mechanism_specialists")
+        and not feature_harmony.get("missing_required_input_surfaces")
+        and not feature_harmony.get("missing_required_smart_layers"),
+        {
+            "feature_orchestration_ready": feature_harmony.get("feature_orchestration_ready"),
+            "missing_required_mechanism_specialists": feature_harmony.get("missing_required_mechanism_specialists"),
+            "missing_required_input_surfaces": feature_harmony.get("missing_required_input_surfaces"),
+            "missing_required_smart_layers": feature_harmony.get("missing_required_smart_layers"),
+        },
+    )
     _check(checks, "inventory smart variant matches manifest", smart_candidate.get("manifest_variant") == manifest_variant, smart_candidate)
     _check(checks, "inventory expected signal dim matches smart formula", smart_candidate.get("expected_signal_dim") == expected_seq_width, smart_candidate)
     _check(checks, "inventory smart layer feature count is positive", smart_layer_features > 0, smart_candidate)

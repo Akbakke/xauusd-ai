@@ -48,6 +48,12 @@ Machine contract:
     the full Entry decision surface has all required mechanism specialists,
     all required input surfaces and all smart-layer source contracts present
     before the feature inventory can be treated as ready.
+- Smart rebuild preflight:
+  `gx1/scripts/materialize_entry_smart_seq520_rebuild_preflight_v1.py`
+  - Consumes `feature_harmony_contract` and must fail closed unless both
+    `feature_harmony_ready=true` and `feature_orchestration_ready=true` with no
+    missing mechanism specialists, input surfaces or smart layers. Smart
+    dataset rebuild review cannot open from counts/source coverage alone.
 - Candidate-readiness gate:
   `gx1/scripts/verify_entry_candidate_readiness_v1.py`
   - Supports `foundation_seq146` and `challenger_seq215`. The seq215 report

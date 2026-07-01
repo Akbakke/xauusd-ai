@@ -247,6 +247,11 @@ Active status:
   `feature_orchestration_ready=true`, no missing required mechanism
   specialists, no missing required input surfaces and no missing required
   smart layers.
+- Smart rebuild preflight now consumes that contract directly. The latest
+  `ENTRY_SMART_REBUILD_PREFLIGHT_latest.json` has PASS checks for both
+  `inventory feature harmony contract is ready` and
+  `inventory feature orchestration contract is ready`; smart rebuild review
+  cannot open from feature counts or source coverage alone.
 - The smart candidate contract is `smart_seq520_candidate`: expected
   seq/snap width 520, made from 41 base signal fields, 105 reused foundation
   extension fields, 41 chart-geometry fields, 28 candlestick fields and 305

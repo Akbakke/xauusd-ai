@@ -19,6 +19,7 @@ def _build_fixture(
     tmp_path: Path,
     *,
     source_coverage: bool = True,
+    feature_orchestration: bool = True,
     verify_large_input_hashes: bool = True,
 ) -> argparse.Namespace:
     source = tmp_path / "FULL_PLUS_CTX_v3src.parquet"
@@ -154,6 +155,15 @@ def _build_fixture(
                 "live": False,
                 "promotion": False,
             },
+            "feature_harmony_contract": {
+                "feature_harmony_ready": True,
+                "feature_orchestration_ready": feature_orchestration,
+                "unmapped_input_count": 0,
+                "missing_required_mechanism_specialists": [] if feature_orchestration else ["momentum_flow_encoder"],
+                "missing_required_input_surfaces": [] if feature_orchestration else ["smart_seq_candidate"],
+                "missing_required_smart_layers": [] if feature_orchestration else ["mtf_confluence_layer"],
+                "failures": [] if feature_orchestration else ["feature orchestration missing required smart layers"],
+            },
             "smart_candidate": {
                 "manifest_variant": "smart_seq520_candidate",
                 "expected_signal_dim": 520,
@@ -233,6 +243,17 @@ def test_smart_rebuild_preflight_fails_closed_on_missing_source_coverage(tmp_pat
         "shadow": False,
         "live": False,
     }
+
+
+def test_smart_rebuild_preflight_fails_closed_on_missing_feature_orchestration(tmp_path: Path) -> None:
+    args = _build_fixture(tmp_path, feature_orchestration=False)
+
+    report = preflight.run(args)
+
+    assert report["decision"] == "BLOCKED_SMART_REBUILD_PREFLIGHT"
+    assert any(row["name"] == "inventory feature orchestration contract is ready" for row in report["failures"])
+    assert report["dataset_rebuild_allowed_after_explicit_vedtak_review"] is False
+    assert not any(report["side_effects_started"].values())
 
 
 def test_smart_rebuild_preflight_fails_closed_without_large_hash_verification(tmp_path: Path) -> None:
