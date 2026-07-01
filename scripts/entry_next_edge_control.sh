@@ -613,12 +613,20 @@ iql_replay_comparison_ready = (
     str((reports.get("iql-replay-comparison") or {}).get("decision")) == "READY_FOR_PROMOTION_REVIEW_VEDTAK"
 )
 iql_replay_slice_audit_ready = str((reports.get("iql-replay-slice-audit") or {}).get("decision")) == "PASS"
+iql_replay_slice_disclosure = (
+    (reports.get("iql-replay-slice-audit") or {}).get("candidate_vs_iql_regression_disclosure")
+)
+if not isinstance(iql_replay_slice_disclosure, dict):
+    iql_replay_slice_disclosure = {}
 smart_iql_replay_comparison = reports.get("iql-replay-comparison-smart-selected") or {}
 smart_iql_replay_comparison_ready = (
     str(smart_iql_replay_comparison.get("decision")) == "READY_FOR_PROMOTION_REVIEW_VEDTAK"
 )
 smart_iql_replay_slice_audit = reports.get("iql-replay-slice-audit-smart-selected") or {}
 smart_iql_replay_slice_audit_ready = str(smart_iql_replay_slice_audit.get("decision")) == "PASS"
+smart_iql_replay_slice_disclosure = smart_iql_replay_slice_audit.get("candidate_vs_iql_regression_disclosure")
+if not isinstance(smart_iql_replay_slice_disclosure, dict):
+    smart_iql_replay_slice_disclosure = {}
 entry_exit_handoff = reports.get("entry-exit-handoff") or {}
 entry_exit_per_bar = reports.get("entry-exit-per-bar-handoff") or {}
 entry_exit_reconstruction = reports.get("entry-exit-reconstruction-audit") or {}
@@ -2322,6 +2330,21 @@ payload = {
         "iql_replay_evidence_ready": iql_replay_evidence_ready,
         "iql_replay_comparison_ready": iql_replay_comparison_ready,
         "iql_replay_slice_audit_ready": iql_replay_slice_audit_ready,
+        "iql_replay_slice_edge_regression_count": int(
+            iql_replay_slice_disclosure.get("supported_edge_regression_count") or 0
+        ),
+        "iql_replay_slice_diagnostic_regression_count": int(
+            iql_replay_slice_disclosure.get("supported_diagnostic_regression_count") or 0
+        ),
+        "iql_replay_slice_drawdown_regression_count": int(
+            iql_replay_slice_disclosure.get("supported_drawdown_regression_count") or 0
+        ),
+        "iql_replay_slice_p90_mae_regression_count": int(
+            iql_replay_slice_disclosure.get("supported_p90_mae_regression_count") or 0
+        ),
+        "iql_replay_slice_worst_edge_regressions": (
+            iql_replay_slice_disclosure.get("worst_supported_edge_net_regressions") or []
+        )[:5],
         "smart_selected_iql_replay_comparison_decision": smart_iql_replay_comparison.get("decision"),
         "smart_selected_iql_replay_comparison_ready": smart_iql_replay_comparison_ready,
         "smart_selected_iql_replay_comparison_report": str(paths.get("iql-replay-comparison-smart-selected"))
@@ -2332,6 +2355,21 @@ payload = {
         "smart_selected_iql_replay_slice_audit_report": str(paths.get("iql-replay-slice-audit-smart-selected"))
         if paths.get("iql-replay-slice-audit-smart-selected")
         else None,
+        "smart_selected_iql_replay_slice_edge_regression_count": int(
+            smart_iql_replay_slice_disclosure.get("supported_edge_regression_count") or 0
+        ),
+        "smart_selected_iql_replay_slice_diagnostic_regression_count": int(
+            smart_iql_replay_slice_disclosure.get("supported_diagnostic_regression_count") or 0
+        ),
+        "smart_selected_iql_replay_slice_drawdown_regression_count": int(
+            smart_iql_replay_slice_disclosure.get("supported_drawdown_regression_count") or 0
+        ),
+        "smart_selected_iql_replay_slice_p90_mae_regression_count": int(
+            smart_iql_replay_slice_disclosure.get("supported_p90_mae_regression_count") or 0
+        ),
+        "smart_selected_iql_replay_slice_worst_edge_regressions": (
+            smart_iql_replay_slice_disclosure.get("worst_supported_edge_net_regressions") or []
+        )[:5],
         "entry_exit_handoff_decision": entry_exit_handoff_decision,
         "entry_exit_handoff_entry_ready": entry_exit_handoff_entry_ready,
         "entry_exit_handoff_substrate_ready": entry_exit_handoff_substrate_ready,

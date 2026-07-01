@@ -640,6 +640,21 @@ def test_control_surface_readiness_report_json_is_machine_readable() -> None:
         )
         assert payload["status_summary"]["smart_selected_iql_replay_slice_audit_report"] == selected_slice["path"]
         assert isinstance(payload["status_summary"]["smart_selected_iql_replay_slice_audit_ready"], bool)
+        assert isinstance(
+            payload["status_summary"]["smart_selected_iql_replay_slice_edge_regression_count"],
+            int,
+        )
+        assert isinstance(
+            payload["status_summary"]["smart_selected_iql_replay_slice_diagnostic_regression_count"],
+            int,
+        )
+        assert isinstance(
+            payload["status_summary"]["smart_selected_iql_replay_slice_worst_edge_regressions"],
+            list,
+        )
+    assert isinstance(payload["status_summary"]["iql_replay_slice_edge_regression_count"], int)
+    assert isinstance(payload["status_summary"]["iql_replay_slice_diagnostic_regression_count"], int)
+    assert isinstance(payload["status_summary"]["iql_replay_slice_worst_edge_regressions"], list)
     assert payload["commands"]["challenger_smart_extension_manifest"]["argv"] == [
         "scripts/entry_next_edge_control.sh",
         "challenger-smart-extension-manifest",
