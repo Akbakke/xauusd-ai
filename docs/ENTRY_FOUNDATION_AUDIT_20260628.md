@@ -96,6 +96,20 @@ only a diagnostic; the acceptance proof is replay net PnL, drawdown, MAE,
 bad-path avoidance, path-quality calibration, selected-tail direction quality
 and session/regime/side/tail robustness.
 
+Feature Orchestration Rule - 2026-07-01: no feature family is considered
+"done" merely because it is present in the dataset or routed to a specialist.
+Structure, SMC/liquidity, momentum/flow, trend/EMA, volatility/compression,
+session/regime, spread/ATR, support/resistance, chart geometry, price action
+and every multi-timeframe interaction must be tested as cooperating evidence
+for the same Entry decision surface. The old foundation features, reused
+sequence extensions, chart/candle challengers, smart-layer summaries and
+context embeddings must remain available to the Transformer unless an exact
+ablation plus replay/slice proof shows a removal improves tradable edge. Any
+new smart specialist must feed calibrated evidence into the Entry Transformer
+and preserve the Entry-to-Exit state needed for Exit Transformer/IQL profit
+capture; isolated feature polish that cannot improve replay evidence is not
+approved work.
+
 `<id>` in `--vedtak <id>` is a deliberate human approval token, not a report id
 that the scripts invent automatically. Activation apply requires the
 `ENTRY_FOUNDATION_ACTIVATE_` prefix, for example

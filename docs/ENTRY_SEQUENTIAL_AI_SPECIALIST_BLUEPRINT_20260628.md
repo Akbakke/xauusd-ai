@@ -325,6 +325,19 @@ If path-quality, bad-path, selected-tail direction, session/regime/side or tail
 calibration fails, the system must fail closed even when broad accuracy or old
 aggregate replay metrics look acceptable.
 
+Feature Orchestration Rule - 2026-07-01: specialist readiness is not complete
+when features are merely counted or routed. Structure, SMC/liquidity,
+momentum/flow, trend/EMA, volatility/compression, session/regime, spread/ATR,
+support/resistance, chart geometry, price action and multi-timeframe
+interactions must be treated as cooperating evidence for one Entry decision
+surface. The foundation features, reused sequence extensions, chart/candle
+challengers, smart-layer summaries and context embeddings stay available to
+the Transformer unless an exact ablation plus replay/slice proof shows removal
+improves tradable edge. Each smart specialist must expose calibrated evidence
+to the Entry Transformer and preserve the Entry-to-Exit state required for Exit
+Transformer/IQL profit capture; isolated feature polish without replay impact
+is outside the active objective.
+
 ## Operating Doctrine
 
 The objective is a live-equivalent XAUUSD policy, not another isolated
