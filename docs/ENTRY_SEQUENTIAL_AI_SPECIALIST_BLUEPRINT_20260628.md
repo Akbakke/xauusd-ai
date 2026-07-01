@@ -208,11 +208,13 @@ The 2026-07-01 operating point is feature-harmony clean but not promotion-ready:
   about 0.478 for candidate and 0.452 for IQL, so the next improvement must
   target calibration, selected-tail direction quality, bad-path/path-quality
   semantics and exit timing rather than celebrating broad accuracy.
-- Slice audit passes but discloses remaining weak behavior: supported IQL-vs-
-  candidate regressions still exist in volatility regime 3, SHORT side and
-  ASIA session, with additional p90 MAE and diagnostic regressions. Both
-  candidate and IQL have wrong-signed `path_quality_pred` calibration, so that
-  head must not be used as a policy gate until repaired.
+- Smart selected slice audit now fails closed on path-signal calibration:
+  `path_quality_pred` is wrong-signed for net PnL and stop-loss behavior on
+  both candidate and IQL, and `bad_path_prob` is wrong-signed versus stop-loss
+  behavior. Supported IQL-vs-candidate regressions still exist in volatility
+  regime 3, SHORT side and ASIA session, with additional p90 MAE and
+  diagnostic regressions. These heads must not be used as policy gates until
+  repaired, and smart selected promotion review is blocked by this audit.
 - Exit diagnostics show large remaining profit-capture opportunity; IQL peak
   oracle lift is about 12895 bps. This supports Exit Transformer/hazard/IQL as
   the next major improvement after Entry review, but Exit training remains

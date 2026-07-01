@@ -47,8 +47,8 @@ def _write_fixture(
             "p_long": 0.8 if side == "LONG" else 0.1,
             "p_short": 0.8 if side == "SHORT" else 0.1,
             "p_flat": 0.1,
-            "path_quality_pred": 1.0,
-            "bad_path_prob": 0.15 + (idx % 5) * 0.08,
+            "path_quality_pred": 0.85 if direction_correct else 0.15,
+            "bad_path_prob": 0.15 if direction_correct else 0.85,
             "mfe_bps": 30.0,
             "mae_bps": 10.0 + idx,
             "horizon_bars": 24,
@@ -148,7 +148,9 @@ def test_iql_replay_slice_audit_passes_supported_slices(tmp_path: Path) -> None:
     assert Path(report["exit_opportunity_csv"]).exists()
     assert Path(report["path_signal_calibration"]["csv"]).exists()
     assert report["path_signal_calibration"]["rows"] > 0
-    assert report["path_signal_calibration"]["diagnostic_only_not_gate"] is True
+    assert report["path_signal_calibration"]["diagnostic_only_not_gate"] is False
+    assert report["path_signal_calibration"]["promotion_review_gate"] is True
+    assert report["path_signal_calibration"]["ready"] is True
     assert report["candidate_vs_iql_regression_disclosure"]["diagnostic_only_not_gate"] is True
     assert "worst_supported_edge_net_regressions" in report["candidate_vs_iql_regression_disclosure"]
     assert report["exit_opportunity_summary"]["iql_all"][0]["peak_oracle_lift_sum_bps"] >= 0.0
@@ -157,6 +159,7 @@ def test_iql_replay_slice_audit_passes_supported_slices(tmp_path: Path) -> None:
     assert checks["IQL diagnostic slices do not materially worsen tails vs candidate"] is True
     assert checks["exit opportunity diagnostics were produced from replay MFE/MAE/held bars"] is True
     assert checks["candidate and IQL tail/path quality hard checks pass"] is True
+    assert checks["candidate and IQL path signal calibration has expected direction"] is True
 
 
 def test_iql_replay_slice_audit_fails_when_supported_session_loses_edge(tmp_path: Path) -> None:
@@ -166,6 +169,28 @@ def test_iql_replay_slice_audit_fails_when_supported_session_loses_edge(tmp_path
     failed = {row["check"] for row in report["failures"]}
     assert "IQL supported edge slices keep positive net/PF/drawdown/max-loss" in failed
     assert any(row["cube"] == "session" and row["slice"] == "EU" for row in report["edge_failures"])
+
+
+def test_iql_replay_slice_audit_fails_on_wrong_signed_path_quality_calibration(
+    tmp_path: Path,
+) -> None:
+    args = _write_fixture(tmp_path)
+    for path in (tmp_path / "candidate/candidate_trades.csv", tmp_path / "iql/iql_trades.csv"):
+        frame = pd.read_csv(path)
+        frame["path_quality_pred"] = frame["net_pnl_bps"].map(lambda value: 0.15 if float(value) > 0.0 else 0.85)
+        frame.to_csv(path, index=False)
+
+    report = run(args)
+
+    assert report["decision"] == "FAIL"
+    failed = {row["check"] for row in report["failures"]}
+    assert "candidate and IQL path signal calibration has expected direction" in failed
+    assert report["path_signal_calibration"]["ready"] is False
+    assert any(
+        row["signal"] == "path_quality_pred"
+        and row["reason"] == "net_direction_calibration_wrong_sign"
+        for row in report["path_signal_calibration"]["failures"]
+    )
 
 
 def test_iql_replay_slice_audit_fails_on_stop_loss_with_positive_mfe_tail_path(

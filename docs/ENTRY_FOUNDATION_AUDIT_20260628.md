@@ -239,15 +239,18 @@ Active status:
   drawdown 315 bps and max loss -45 bps. IQL comparison is
   `READY_FOR_PROMOTION_REVIEW_VEDTAK` with about +447 bps net lift versus the
   selected candidate, but `promotion_shadow_live_allowed=false`.
-- Smart IQL slice audit is `PASS`, but it explicitly discloses remaining weak
-  behavior: supported regression counts are diagnostic=5, drawdown=2, edge=3
-  and p90 MAE=8. Worst supported edge regressions include volatility regime 3,
-  SHORT side and ASIA session. `path_quality_pred` calibration is wrong-signed
-  for both candidate and IQL, so it must not be trusted as a policy gate until
-  repaired. Exit opportunity diagnostics show large remaining giveback/peak
-  oracle slack, including about 12895 bps IQL peak-oracle lift, which is the
-  current evidence for prioritizing Exit Transformer/hazard/IQL work after the
-  Entry policy is reviewed.
+- Smart selected IQL slice audit is now fail-closed on path-signal
+  calibration. The report decision is `FAIL` because `path_quality_pred` is
+  wrong-signed for net PnL and stop-loss behavior on both candidate and IQL,
+  and `bad_path_prob` is wrong-signed versus stop-loss behavior. Supported
+  regression counts remain diagnostic=5, drawdown=2, edge=3 and p90 MAE=8.
+  Worst supported edge regressions include volatility regime 3, SHORT side and
+  ASIA session. The next required gate is to repair weak slices or path-signal
+  calibration before promotion review; shadow/live remain blocked. Exit
+  opportunity diagnostics still show large remaining giveback/peak oracle
+  slack, including about 12895 bps IQL peak-oracle lift, which is the current
+  evidence for prioritizing Exit Transformer/hazard/IQL work after the Entry
+  calibration issue is handled.
 - Raw smoke/bundle direction accuracy around 0.40 is not an acceptance metric by
   itself. It is only a sanity diagnostic against the majority baseline; Entry
   acceptance remains replay/PnL, drawdown, MAE, bad-path, calibration and

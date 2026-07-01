@@ -628,6 +628,9 @@ smart_iql_replay_slice_audit_ready = str(smart_iql_replay_slice_audit.get("decis
 smart_iql_replay_slice_disclosure = smart_iql_replay_slice_audit.get("candidate_vs_iql_regression_disclosure")
 if not isinstance(smart_iql_replay_slice_disclosure, dict):
     smart_iql_replay_slice_disclosure = {}
+smart_iql_replay_path_signal_calibration = smart_iql_replay_slice_audit.get("path_signal_calibration")
+if not isinstance(smart_iql_replay_path_signal_calibration, dict):
+    smart_iql_replay_path_signal_calibration = {}
 entry_exit_handoff = reports.get("entry-exit-handoff") or {}
 entry_exit_per_bar = reports.get("entry-exit-per-bar-handoff") or {}
 entry_exit_reconstruction = reports.get("entry-exit-reconstruction-audit") or {}
@@ -730,6 +733,8 @@ if not iql_replay_comparison_ready:
     current_blockers.append("promotion review requires candidate-vs-IQL replay comparison PASS")
 if iql_replay_comparison_ready and not iql_replay_slice_audit_ready:
     current_blockers.append("promotion review requires IQL slice/tail audit PASS")
+if smart_iql_replay_comparison_ready and not smart_iql_replay_slice_audit_ready:
+    current_blockers.append("smart selected promotion review requires IQL slice/tail/path-signal calibration audit PASS")
 
 try:
     from gx1.scripts.materialize_entry_specialist_challenger_extension_manifest_v1 import (
@@ -2356,6 +2361,15 @@ payload = {
         "smart_selected_iql_replay_slice_audit_report": str(paths.get("iql-replay-slice-audit-smart-selected"))
         if paths.get("iql-replay-slice-audit-smart-selected")
         else None,
+        "smart_selected_iql_replay_path_signal_calibration_ready": bool(
+            smart_iql_replay_path_signal_calibration.get("ready")
+        ),
+        "smart_selected_iql_replay_path_signal_calibration_failure_count": len(
+            smart_iql_replay_path_signal_calibration.get("failures") or []
+        ),
+        "smart_selected_iql_replay_path_signal_calibration_failures": (
+            smart_iql_replay_path_signal_calibration.get("failures") or []
+        )[:10],
         "smart_selected_iql_replay_slice_edge_regression_count": int(
             smart_iql_replay_slice_disclosure.get("supported_edge_regression_count") or 0
         ),

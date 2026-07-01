@@ -626,6 +626,53 @@ def _path_signal_calibration_summary(calibration: pd.DataFrame) -> list[dict[str
     return rows
 
 
+def _path_signal_calibration_failures(summary: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    failures: list[dict[str, Any]] = []
+    expected = {
+        ("candidate", "bad_path_prob"),
+        ("candidate", "path_quality_pred"),
+        ("iql", "bad_path_prob"),
+        ("iql", "path_quality_pred"),
+    }
+    seen = {(str(row.get("model")), str(row.get("signal"))) for row in summary}
+    for model, signal in sorted(expected - seen):
+        failures.append({"model": model, "signal": signal, "reason": "missing_calibration_summary"})
+
+    for row in summary:
+        decile_count = int(row.get("decile_count") or 0)
+        if decile_count < 3:
+            failures.append(
+                {
+                    "model": row.get("model"),
+                    "signal": row.get("signal"),
+                    "reason": "insufficient_calibration_deciles",
+                    "decile_count": decile_count,
+                }
+            )
+            continue
+        if not bool(row.get("net_direction_ok")):
+            failures.append(
+                {
+                    "model": row.get("model"),
+                    "signal": row.get("signal"),
+                    "reason": "net_direction_calibration_wrong_sign",
+                    "net_mean_spearman_vs_decile": row.get("net_mean_spearman_vs_decile"),
+                    "expected_net_corr_sign": row.get("expected_net_corr_sign"),
+                }
+            )
+        if row.get("stop_loss_rate_spearman_vs_decile") is not None and not bool(row.get("stop_direction_ok")):
+            failures.append(
+                {
+                    "model": row.get("model"),
+                    "signal": row.get("signal"),
+                    "reason": "stop_loss_calibration_wrong_sign",
+                    "stop_loss_rate_spearman_vs_decile": row.get("stop_loss_rate_spearman_vs_decile"),
+                    "expected_stop_corr_sign": row.get("expected_stop_corr_sign"),
+                }
+            )
+    return failures
+
+
 def _edge_failures(comparison: pd.DataFrame, args: argparse.Namespace) -> list[dict[str, Any]]:
     failures: list[dict[str, Any]] = []
     if comparison.empty:
@@ -850,6 +897,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     exit_opportunity = _exit_opportunity({"candidate": candidate, "iql": iql})
     path_signal_calibration = _path_signal_calibration({"candidate": candidate, "iql": iql})
     path_signal_calibration_summary = _path_signal_calibration_summary(path_signal_calibration)
+    path_signal_calibration_failures = _path_signal_calibration_failures(path_signal_calibration_summary)
     tail_path_quality = {
         "candidate": _tail_path_summary("candidate", candidate, args),
         "iql": _tail_path_summary("iql", iql, args),
@@ -911,6 +959,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     "max_abs_replay_loss_bps": float(args.max_abs_replay_loss_bps),
                     "max_tail_loss_p05_abs_mean_bps": float(args.max_tail_loss_p05_abs_mean_bps),
                 },
+            },
+        ),
+        _check(
+            "candidate and IQL path signal calibration has expected direction",
+            not path_signal_calibration_failures,
+            {
+                "failures": path_signal_calibration_failures[:25],
+                "failure_count": len(path_signal_calibration_failures),
             },
         ),
         _check("session/regime/side/direction/bad-path/tail coverage is live", not coverage_failures, {"failures": coverage_failures}),
@@ -1029,7 +1085,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "csv": str(path_signal_calibration_csv),
             "rows": int(len(path_signal_calibration)),
             "summary": path_signal_calibration_summary,
-            "diagnostic_only_not_gate": True,
+            "failures": path_signal_calibration_failures,
+            "ready": not path_signal_calibration_failures,
+            "diagnostic_only_not_gate": False,
+            "promotion_review_gate": True,
         },
         "candidate_vs_iql_regression_disclosure": candidate_vs_iql_regression_disclosure,
         "edge_failures": edge_failures,
@@ -1048,7 +1107,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "next_required_gate": (
             "manual review of slice/tail audit; shadow/live remain blocked"
             if ready
-            else "diagnose weak supported slices before promotion review; shadow/live remain blocked"
+            else "repair weak slices or path-signal calibration before promotion review; shadow/live remain blocked"
         ),
     }
     json_path.write_text(json.dumps(report, indent=2, sort_keys=True, default=_json_default) + "\n", encoding="utf-8")
