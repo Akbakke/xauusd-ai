@@ -173,6 +173,23 @@ def _env_str(name: str, default: str) -> str:
     return str(os.getenv(name, default)).strip()
 
 
+def _parse_three_float_value(name: str, raw: str) -> Tuple[float, float, float]:
+    parts = [part.strip() for part in raw.split(",")]
+    if len(parts) != 3:
+        raise RuntimeError(f"[{name}_INVALID] expected three comma-separated floats, got {raw!r}")
+    try:
+        values = tuple(float(part) for part in parts)
+    except ValueError as exc:
+        raise RuntimeError(f"[{name}_INVALID] expected three comma-separated floats, got {raw!r}") from exc
+    if any((not np.isfinite(value)) or value <= 0.0 for value in values):
+        raise RuntimeError(f"[{name}_INVALID] all weights must be finite and >0, got {raw!r}")
+    return values  # type: ignore[return-value]
+
+
+def _parse_three_float_env(name: str, default: str) -> Tuple[float, float, float]:
+    return _parse_three_float_value(name, _env_str(name, default))
+
+
 def _running_in_wsl() -> bool:
     try:
         return "microsoft" in Path("/proc/version").read_text(encoding="utf-8").lower()
@@ -255,6 +272,7 @@ ENTRY_COST_FLAT_TO_SHORT = float(_env_str("ENTRY_COST_FLAT_TO_SHORT", "1.60"))
 # the batch label distribution (not uniform), to reduce single-side collapse.
 ENTRY_PRED_BALANCE_ALPHA = float(_env_str("ENTRY_PRED_BALANCE_ALPHA", "0.0"))
 ENTRY_PRED_BALANCE_TARGET = _env_str("ENTRY_PRED_BALANCE_TARGET", "label").lower()
+ENTRY_PRED_BALANCE_CLASS_WEIGHTS = _parse_three_float_env("ENTRY_PRED_BALANCE_CLASS_WEIGHTS", "1.0,1.0,1.0")
 ENTRY_RESIDUAL_SIDE_BIAS_ALPHA = float(_env_str("ENTRY_RESIDUAL_SIDE_BIAS_ALPHA", "0.0"))
 ENTRY_DIRECTION_CE_SCALE = float(_env_str("ENTRY_DIRECTION_CE_SCALE", "1.30"))
 ENTRY_TAIL_DIRECTION_CE_WEIGHT = float(_env_str("ENTRY_TAIL_DIRECTION_CE_WEIGHT", "0.0"))
@@ -414,6 +432,7 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_COST_FLAT_TO_SHORT": "1.60",
     "ENTRY_PRED_BALANCE_ALPHA": "0.0",
     "ENTRY_PRED_BALANCE_TARGET": "label",
+    "ENTRY_PRED_BALANCE_CLASS_WEIGHTS": "1.0,1.0,1.0",
     "ENTRY_RESIDUAL_SIDE_BIAS_ALPHA": "0.0",
     "ENTRY_DIRECTION_CE_SCALE": "1.30",
     "ENTRY_TAIL_DIRECTION_CE_WEIGHT": "0.0",
@@ -1814,6 +1833,7 @@ class CostSensitiveCrossEntropyLoss(nn.Module):
         enabled: bool = True,
         balance_alpha: float = 0.0,
         balance_target: str = "label",
+        balance_class_weights: Optional[torch.Tensor] = None,
     ) -> None:
         super().__init__()
         self.enabled = bool(enabled)
@@ -1822,6 +1842,9 @@ class CostSensitiveCrossEntropyLoss(nn.Module):
         self.balance_target = str(balance_target).strip().lower()
         self.ce = nn.CrossEntropyLoss(weight=class_weights, reduction="none")
         self.register_buffer("cost_matrix", cost_matrix.float())
+        if balance_class_weights is None:
+            balance_class_weights = torch.ones(3, dtype=torch.float32)
+        self.register_buffer("balance_class_weights", balance_class_weights.float())
 
     def forward(self, logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
         ce = self.ce(logits, targets)  # (B,)
@@ -1841,7 +1864,8 @@ class CostSensitiveCrossEntropyLoss(nn.Module):
                 counts = torch.bincount(targets, minlength=mean_probs.numel()).float()
                 denom = counts.sum().clamp(min=1.0)
                 target = counts / denom
-            balance_loss = torch.mean((mean_probs - target) ** 2)
+            weights = self.balance_class_weights.to(device=mean_probs.device, dtype=mean_probs.dtype)
+            balance_loss = torch.mean(((mean_probs - target) ** 2) * weights)
             loss = loss + (self.balance_alpha * balance_loss)
         return loss.mean()
 
@@ -1860,6 +1884,7 @@ def _build_cost_sensitive_criterion(
     enabled: bool,
     balance_alpha: float,
     balance_target: str,
+    balance_class_weights: torch.Tensor,
 ) -> Tuple[CostSensitiveCrossEntropyLoss, torch.Tensor]:
     cost_matrix = torch.tensor(
         [
@@ -1876,6 +1901,7 @@ def _build_cost_sensitive_criterion(
         enabled=bool(enabled),
         balance_alpha=float(balance_alpha),
         balance_target=str(balance_target),
+        balance_class_weights=balance_class_weights,
     )
     return criterion, cost_matrix
 
@@ -2186,7 +2212,9 @@ def train_epoch(
                     counts = torch.bincount(y, minlength=mean_probs.numel()).float()
                     denom = counts.sum().clamp(min=1.0)
                     target = counts / denom
-                balance_loss = torch.mean((mean_probs - target) ** 2)
+                weights = getattr(criterion, "balance_class_weights", torch.ones_like(mean_probs))
+                weights = weights.to(device=mean_probs.device, dtype=mean_probs.dtype)
+                balance_loss = torch.mean(((mean_probs - target) ** 2) * weights)
                 balance_term = float(getattr(criterion, "balance_alpha", 0.0)) * balance_loss
 
         loss = ce_loss + cost_term + balance_term
@@ -2753,7 +2781,9 @@ def validate(
                         counts = torch.bincount(y, minlength=mean_probs.numel()).float()
                         denom = counts.sum().clamp(min=1.0)
                         target = counts / denom
-                    balance_loss = torch.mean((mean_probs - target) ** 2)
+                    weights = getattr(criterion, "balance_class_weights", torch.ones_like(mean_probs))
+                    weights = weights.to(device=mean_probs.device, dtype=mean_probs.dtype)
+                    balance_loss = torch.mean(((mean_probs - target) ** 2) * weights)
                     balance_term = float(getattr(criterion, "balance_alpha", 0.0)) * balance_loss
 
             loss = ce_loss + cost_term + balance_term
@@ -3968,6 +3998,10 @@ def run_train(
             f"[ENTRY_BALANCE_TARGET_INVALID] ENTRY_PRED_BALANCE_TARGET={ENTRY_PRED_BALANCE_TARGET!r} "
             "expected 'label' or 'uniform'"
         )
+    pred_balance_class_weights = torch.tensor(
+        [float(value) for value in ENTRY_PRED_BALANCE_CLASS_WEIGHTS],
+        device=device,
+    )
 
     class_weights = torch.tensor(
         [float(long_class_weight), float(short_class_weight), float(flat_class_weight)],
@@ -3986,6 +4020,7 @@ def run_train(
         enabled=bool(ENTRY_COST_SENSITIVE_ENABLED),
         balance_alpha=float(ENTRY_PRED_BALANCE_ALPHA),
         balance_target=str(ENTRY_PRED_BALANCE_TARGET),
+        balance_class_weights=pred_balance_class_weights,
     )
     log.info(
         "[ENTRY_TRAIN_RECIPE] direction_ce_scale=%.3f tail_direction_w=%.3f tail_direction_q=%.3f residual_scale=%.3f tradable_w=%.3f path_w=%.3f mfe_w=%.3f tradable_pos_weight=%.3f bad_path_w=%.3f bad_path_pos_weight=%.3f clean_edge_w=%.3f clean_edge_pos_weight=%.3f survival_w=%.3f survival_pos_weight=%.3f rank_w=%.3f rank_margin=%.3f",
@@ -4007,11 +4042,12 @@ def run_train(
         float(ENTRY_CLEAN_EDGE_RANKING_MARGIN),
     )
     log.info(
-        "[ENTRY_TRAIN_PARKED] cost_sensitive=%d cost_scale=%.3f pred_balance_alpha=%.3f residual_side_bias_alpha=%.3f "
+        "[ENTRY_TRAIN_PARKED] cost_sensitive=%d cost_scale=%.3f pred_balance_alpha=%.3f pred_balance_class_weights=%s residual_side_bias_alpha=%.3f "
         "timing_scale=%.3f early_w=%.3f quality_w=%.3f bad_path_w=%.3f xgb_short_penalty=%.3f short_class_weight=%.3f",
         int(bool(ENTRY_COST_SENSITIVE_ENABLED)),
         float(ENTRY_COST_SENSITIVE_SCALE),
         float(ENTRY_PRED_BALANCE_ALPHA),
+        ",".join(f"{float(value):.3f}" for value in ENTRY_PRED_BALANCE_CLASS_WEIGHTS),
         float(ENTRY_RESIDUAL_SIDE_BIAS_ALPHA),
         float(ENTRY_TIMING_LOSS_SCALE),
         float(ENTRY_AUX_EARLY_WEIGHT),
@@ -4432,6 +4468,7 @@ def run_train(
         "cost_sensitive_loss_scale": float(ENTRY_COST_SENSITIVE_SCALE),
         "pred_balance_alpha": float(ENTRY_PRED_BALANCE_ALPHA),
         "pred_balance_target": str(ENTRY_PRED_BALANCE_TARGET),
+        "pred_balance_class_weights": [float(value) for value in ENTRY_PRED_BALANCE_CLASS_WEIGHTS],
         "residual_side_bias_alpha": float(ENTRY_RESIDUAL_SIDE_BIAS_ALPHA),
         "direction_ce_scale": float(ENTRY_DIRECTION_CE_SCALE),
         "tail_direction_ce_weight": float(ENTRY_TAIL_DIRECTION_CE_WEIGHT),
@@ -4455,6 +4492,7 @@ def run_train(
             "tail_direction_min_batch": int(ENTRY_TAIL_DIRECTION_MIN_BATCH),
             "pred_balance_alpha": float(ENTRY_PRED_BALANCE_ALPHA),
             "pred_balance_target": str(ENTRY_PRED_BALANCE_TARGET),
+            "pred_balance_class_weights": [float(value) for value in ENTRY_PRED_BALANCE_CLASS_WEIGHTS],
             "ckpt_monitor": str(_ckpt_monitor),
             "residual_scale": float(ENTRY_RESIDUAL_SCALE),
             "tradable_weight": float(ENTRY_AUX_TRADABLE_WEIGHT),
@@ -4757,6 +4795,20 @@ def run_eval(
     _require_nonneg("EVAL_COST_SENSITIVE_SCALE", cost_scale)
     balance_alpha = float(meta.get("pred_balance_alpha", ENTRY_PRED_BALANCE_ALPHA))
     balance_target = str(meta.get("pred_balance_target", ENTRY_PRED_BALANCE_TARGET)).strip().lower()
+    raw_balance_weights = meta.get("pred_balance_class_weights", ENTRY_PRED_BALANCE_CLASS_WEIGHTS)
+    if isinstance(raw_balance_weights, str):
+        balance_class_weights_values = _parse_three_float_value(
+            "EVAL_PRED_BALANCE_CLASS_WEIGHTS",
+            raw_balance_weights,
+        )
+    else:
+        balance_class_weights_values = tuple(float(value) for value in raw_balance_weights)
+        if len(balance_class_weights_values) != 3 or any(
+            (not np.isfinite(value)) or value <= 0.0 for value in balance_class_weights_values
+        ):
+            raise RuntimeError(
+                "[EVAL_PRED_BALANCE_CLASS_WEIGHTS_INVALID] expected three finite positive weights"
+            )
     _require_nonneg("EVAL_PRED_BALANCE_ALPHA", balance_alpha)
     residual_side_bias_alpha = float(
         meta.get("residual_side_bias_alpha", ENTRY_RESIDUAL_SIDE_BIAS_ALPHA)
@@ -4771,6 +4823,10 @@ def run_eval(
     cw_short = float(meta_cw.get("short", SHORT_CLASS_WEIGHT))
     cw_flat = float(meta_cw.get("flat", 1.0))
     class_weights = torch.tensor([cw_long, cw_short, cw_flat], device=device)
+    pred_balance_class_weights = torch.tensor(
+        [float(value) for value in balance_class_weights_values],
+        device=device,
+    )
 
     cost_long_to_short = float(meta_cost.get("long_to_short", ENTRY_COST_LONG_TO_SHORT))
     cost_long_to_flat = float(meta_cost.get("long_to_flat", ENTRY_COST_LONG_TO_FLAT))
@@ -4798,6 +4854,7 @@ def run_eval(
         enabled=cost_enabled,
         balance_alpha=balance_alpha,
         balance_target=balance_target,
+        balance_class_weights=pred_balance_class_weights,
     )
     test_loss, test_auc, test_acc = _validate_eval(
         model,

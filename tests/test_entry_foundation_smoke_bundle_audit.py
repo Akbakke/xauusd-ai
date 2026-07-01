@@ -419,6 +419,44 @@ def test_direction_balance_recipe_contract_requires_label_balance_and_dir_acc_mo
     assert report["pred_balance_alpha"] == 0.05
 
 
+def test_smart_direction_balance_recipe_contract_requires_flat_repair_weights() -> None:
+    meta = {
+        "train_recipe": {
+            "active_heads": ["direction", "path_quality", "bad_path"],
+            "pred_balance_alpha": 0.20,
+            "pred_balance_target": "label",
+            "pred_balance_class_weights": [1.0, 1.0, 4.0],
+            "direction_ce_scale": 1.30,
+            "ckpt_monitor": "dir_acc",
+        }
+    }
+
+    report = _direction_balance_recipe_contract(meta, {}, contract_mode="smart_seq520_candidate")
+
+    assert report["decision"] == "PASS"
+    assert report["contract_mode"] == "smart_seq520_candidate"
+    assert report["pred_balance_class_weights"] == [1.0, 1.0, 4.0]
+
+
+def test_smart_direction_balance_recipe_contract_rejects_weak_flat_repair() -> None:
+    meta = {
+        "train_recipe": {
+            "active_heads": ["direction", "path_quality", "bad_path"],
+            "pred_balance_alpha": 0.05,
+            "pred_balance_target": "label",
+            "pred_balance_class_weights": [1.0, 1.0, 1.0],
+            "direction_ce_scale": 1.30,
+            "ckpt_monitor": "dir_acc",
+        }
+    }
+
+    report = _direction_balance_recipe_contract(meta, {}, contract_mode="smart_seq520_candidate")
+
+    assert report["decision"] == "FAIL"
+    assert any("pred_balance_alpha" in failure for failure in report["failures"])
+    assert any("pred_balance_class_weights" in failure for failure in report["failures"])
+
+
 def test_direction_balance_recipe_contract_rejects_missing_balance() -> None:
     meta = {
         "train_recipe": {

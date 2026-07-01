@@ -173,6 +173,7 @@ def _passing_smoke_audit(
             "direction_active": True,
             "pred_balance_alpha": 0.05,
             "pred_balance_target": "label",
+            "pred_balance_class_weights": [1.0, 1.0, 1.0],
             "direction_ce_scale": 1.30,
             "ckpt_monitor": "dir_acc",
             "failures": [],
@@ -314,6 +315,44 @@ def test_smoke_edge_checks_reject_missing_direction_balance_contract() -> None:
     failed = {check["name"] for check in checks if not check["ok"]}
 
     assert "smoke bundle audit direction balance recipe contract PASS" in failed
+
+
+def test_smoke_edge_checks_require_stronger_smart_direction_balance_contract() -> None:
+    report = _passing_smoke_audit(
+        contract_mode="smart_seq520_candidate",
+        dataset_dir=SMART_SEQ520_SMOKE_DATASET,
+        signal_dim=520,
+        specialists=SEQ215_SPECIALISTS,
+    )
+
+    checks = _smoke_edge_checks(
+        report,
+        contract_mode="smart_seq520_candidate",
+        expected_smoke_dataset_dir=SMART_SEQ520_SMOKE_DATASET,
+    )
+    failed = {check["name"] for check in checks if not check["ok"]}
+
+    assert "smoke bundle audit direction balance recipe contract PASS" in failed
+
+
+def test_smoke_edge_checks_accept_stronger_smart_direction_balance_contract() -> None:
+    report = _passing_smoke_audit(
+        contract_mode="smart_seq520_candidate",
+        dataset_dir=SMART_SEQ520_SMOKE_DATASET,
+        signal_dim=520,
+        specialists=SEQ215_SPECIALISTS,
+    )
+    report["direction_balance_recipe_contract"]["pred_balance_alpha"] = 0.20
+    report["direction_balance_recipe_contract"]["pred_balance_class_weights"] = [1.0, 1.0, 4.0]
+
+    checks = _smoke_edge_checks(
+        report,
+        contract_mode="smart_seq520_candidate",
+        expected_smoke_dataset_dir=SMART_SEQ520_SMOKE_DATASET,
+    )
+    failed = {check["name"] for check in checks if not check["ok"]}
+
+    assert "smoke bundle audit direction balance recipe contract PASS" not in failed
 
 
 def test_smoke_edge_checks_reject_missing_tail_direction_contract() -> None:
@@ -633,17 +672,15 @@ def test_candidate_readiness_smart_seq520_opens_after_contract_and_smoke_evidenc
     specialist_path = tmp_path / "specialist_audit.json"
     specialist_path.write_text(json.dumps({"decision": "PASS"}), encoding="utf-8")
     smoke_path = tmp_path / "smart_smoke_audit.json"
-    smoke_path.write_text(
-        json.dumps(
-            _passing_smoke_audit(
-                contract_mode="smart_seq520_candidate",
-                dataset_dir=SMART_SEQ520_SMOKE_DATASET,
-                signal_dim=520,
-                specialists=SEQ215_SPECIALISTS,
-            )
-        ),
-        encoding="utf-8",
+    smart_smoke_report = _passing_smoke_audit(
+        contract_mode="smart_seq520_candidate",
+        dataset_dir=SMART_SEQ520_SMOKE_DATASET,
+        signal_dim=520,
+        specialists=SEQ215_SPECIALISTS,
     )
+    smart_smoke_report["direction_balance_recipe_contract"]["pred_balance_alpha"] = 0.20
+    smart_smoke_report["direction_balance_recipe_contract"]["pred_balance_class_weights"] = [1.0, 1.0, 4.0]
+    smoke_path.write_text(json.dumps(smart_smoke_report), encoding="utf-8")
     monkeypatch.setattr(
         "gx1.scripts.verify_entry_candidate_readiness_v1.SMART_SEQ520_TRAINABILITY_READINESS_LATEST",
         trainability_path,

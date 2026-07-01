@@ -48,6 +48,8 @@ MIN_DIRECTION_CLASS_LABEL_RATE_FOR_COVERAGE = 0.10
 MIN_DIRECTION_CLASS_PRED_RATE = 0.05
 MIN_DIRECTION_CLASS_PRED_TO_LABEL_RATIO = 0.35
 MIN_DIRECTION_SLICE_ROWS = 64
+SMART_DIRECTION_BALANCE_MIN_ALPHA = 0.20
+SMART_DIRECTION_BALANCE_CLASS_WEIGHTS = [1.0, 1.0, 4.0]
 HEAD_OUTPUT_KEYS = {
     "direction": "direction_logits",
     "tradable": "tradable_logit",
@@ -720,6 +722,21 @@ def _safe_float(value: Any, default: float = 0.0) -> float:
     return out if np.isfinite(out) else float(default)
 
 
+def _three_float_list(value: Any, default: list[float]) -> list[float]:
+    if isinstance(value, str):
+        parts = [part.strip() for part in value.split(",")]
+    elif isinstance(value, (list, tuple)):
+        parts = list(value)
+    else:
+        return list(default)
+    if len(parts) != 3:
+        return list(default)
+    out = [_safe_float(part, np.nan) for part in parts]
+    if any(not np.isfinite(part) for part in out):
+        return list(default)
+    return [float(part) for part in out]
+
+
 def _path_calibration_recipe_contract(meta: dict[str, Any], capabilities: dict[str, Any]) -> dict[str, Any]:
     recipe = meta.get("train_recipe") if isinstance(meta.get("train_recipe"), dict) else {}
     active_heads = {
@@ -777,7 +794,12 @@ def _path_calibration_recipe_contract(meta: dict[str, Any], capabilities: dict[s
     }
 
 
-def _direction_balance_recipe_contract(meta: dict[str, Any], capabilities: dict[str, Any]) -> dict[str, Any]:
+def _direction_balance_recipe_contract(
+    meta: dict[str, Any],
+    capabilities: dict[str, Any],
+    *,
+    contract_mode: str = "foundation_seq146",
+) -> dict[str, Any]:
     recipe = meta.get("train_recipe") if isinstance(meta.get("train_recipe"), dict) else {}
     active_heads = {
         str(head)
@@ -791,6 +813,10 @@ def _direction_balance_recipe_contract(meta: dict[str, Any], capabilities: dict[
     }
     pred_balance_alpha = _safe_float(recipe.get("pred_balance_alpha", meta.get("pred_balance_alpha", 0.0)))
     pred_balance_target = str(recipe.get("pred_balance_target", meta.get("pred_balance_target", ""))).strip().lower()
+    pred_balance_class_weights = _three_float_list(
+        recipe.get("pred_balance_class_weights", meta.get("pred_balance_class_weights")),
+        [1.0, 1.0, 1.0],
+    )
     direction_ce_scale = _safe_float(recipe.get("direction_ce_scale", meta.get("direction_ce_scale", 0.0)))
     ckpt_monitor = str(recipe.get("ckpt_monitor", meta.get("ckpt_monitor", ""))).strip().lower()
     failures: list[str] = []
@@ -805,12 +831,25 @@ def _direction_balance_recipe_contract(meta: dict[str, Any], capabilities: dict[
             failures.append("direction active head requires positive direction_ce_scale")
         if ckpt_monitor != "dir_acc":
             failures.append("direction active head requires ckpt_monitor=dir_acc")
+        if contract_mode == "smart_seq520_candidate":
+            if pred_balance_alpha < SMART_DIRECTION_BALANCE_MIN_ALPHA:
+                failures.append(
+                    "smart direction active head requires pred_balance_alpha >= "
+                    f"{SMART_DIRECTION_BALANCE_MIN_ALPHA:.2f}"
+                )
+            if pred_balance_class_weights != SMART_DIRECTION_BALANCE_CLASS_WEIGHTS:
+                failures.append(
+                    "smart direction active head requires pred_balance_class_weights="
+                    + ",".join(str(value) for value in SMART_DIRECTION_BALANCE_CLASS_WEIGHTS)
+                )
     return {
         "decision": "PASS" if not failures else "FAIL",
         "active_heads": sorted(active_heads),
         "direction_active": "direction" in active_heads,
+        "contract_mode": contract_mode,
         "pred_balance_alpha": pred_balance_alpha,
         "pred_balance_target": pred_balance_target,
+        "pred_balance_class_weights": pred_balance_class_weights,
         "direction_ce_scale": direction_ce_scale,
         "ckpt_monitor": ckpt_monitor,
         "failures": failures,
@@ -1690,7 +1729,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         f"path_calibration_recipe: {failure}"
         for failure in path_calibration_recipe_contract.get("failures", [])
     )
-    direction_balance_recipe_contract = _direction_balance_recipe_contract(meta, bundle.capabilities)
+    direction_balance_recipe_contract = _direction_balance_recipe_contract(
+        meta,
+        bundle.capabilities,
+        contract_mode=specialist_contract_mode,
+    )
     failures.extend(
         f"direction_balance_recipe: {failure}"
         for failure in direction_balance_recipe_contract.get("failures", [])

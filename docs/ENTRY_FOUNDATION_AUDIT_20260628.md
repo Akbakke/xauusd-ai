@@ -346,11 +346,13 @@ Active status:
   closed if the path-quality/bad-path ranking repair is not actually carried
   into the next capped trainer command.
 - The next smart smoke/candidate training recipe must also preserve
-  `direction_balance_recipe_contract=PASS`: `ENTRY_PRED_BALANCE_ALPHA=0.05`,
-  `ENTRY_PRED_BALANCE_TARGET=label`, positive `ENTRY_DIRECTION_CE_SCALE` and
-  `GX1_V10_CKPT_MONITOR=dir_acc`. This turns weak broad direction accuracy and
-  class-collapse risk into a train contract and bundle-audit gate, not a
-  cosmetic metric.
+  `direction_balance_recipe_contract=PASS` with the smart FLAT-repair recipe:
+  `ENTRY_PRED_BALANCE_ALPHA=0.20`, `ENTRY_PRED_BALANCE_TARGET=label`,
+  `ENTRY_PRED_BALANCE_CLASS_WEIGHTS=1.0,1.0,4.0`, positive
+  `ENTRY_DIRECTION_CE_SCALE` and `GX1_V10_CKPT_MONITOR=dir_acc`. This directly
+  targets the observed smart520 class-collapse risk where FLAT is heavily
+  underpredicted and LONG/SHORT are overcalled, turning weak broad direction
+  accuracy into a train contract and bundle-audit gate, not a cosmetic metric.
 - Candidate-readiness now also requires the smoke bundle audit itself to carry
   `path_calibration_recipe_contract=PASS` with active path-quality and bad-path
   heads, full-batch path-quality ranking and positive rank weights/margins.

@@ -89,14 +89,16 @@ PATH_CALIBRATION_ENV_TEMPLATE = {
     "ENTRY_PATH_QUALITY_RANK_QUANTILE": "0.25",
 }
 DIRECTION_BALANCE_RECIPE_CONTRACT = {
-    "pred_balance_alpha": 0.05,
+    "pred_balance_alpha": 0.20,
     "pred_balance_target": "label",
+    "pred_balance_class_weights": [1.0, 1.0, 4.0],
     "direction_ce_scale": 1.30,
     "ckpt_monitor": "dir_acc",
 }
 DIRECTION_BALANCE_ENV_TEMPLATE = {
-    "ENTRY_PRED_BALANCE_ALPHA": "0.05",
+    "ENTRY_PRED_BALANCE_ALPHA": "0.20",
     "ENTRY_PRED_BALANCE_TARGET": "label",
+    "ENTRY_PRED_BALANCE_CLASS_WEIGHTS": "1.0,1.0,4.0",
     "ENTRY_DIRECTION_CE_SCALE": "1.30",
     "GX1_V10_CKPT_MONITOR": "dir_acc",
 }

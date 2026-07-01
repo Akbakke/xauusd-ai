@@ -435,12 +435,20 @@ def _path_calibration_contract_passes(report: dict[str, Any]) -> bool:
     )
 
 
-def _direction_balance_contract_passes(report: dict[str, Any]) -> bool:
+SMART_DIRECTION_BALANCE_MIN_ALPHA = 0.20
+SMART_DIRECTION_BALANCE_CLASS_WEIGHTS = [1.0, 1.0, 4.0]
+
+
+def _direction_balance_contract_passes(
+    report: dict[str, Any],
+    *,
+    contract_mode: str = "foundation_seq146",
+) -> bool:
     contract = report.get("direction_balance_recipe_contract")
     if not isinstance(contract, dict):
         return False
     alpha = _float_or_zero(contract.get("pred_balance_alpha"))
-    return (
+    base_ok = (
         str(contract.get("decision")) == "PASS"
         and not contract.get("failures")
         and bool(contract.get("direction_active"))
@@ -448,6 +456,19 @@ def _direction_balance_contract_passes(report: dict[str, Any]) -> bool:
         and str(contract.get("pred_balance_target") or "").strip().lower() == "label"
         and _float_or_zero(contract.get("direction_ce_scale")) > 0.0
         and str(contract.get("ckpt_monitor") or "").strip().lower() == "dir_acc"
+    )
+    if not base_ok:
+        return False
+    if contract_mode != "smart_seq520_candidate":
+        return True
+    weights = contract.get("pred_balance_class_weights")
+    try:
+        parsed_weights = [float(value) for value in weights] if isinstance(weights, list) else []
+    except (TypeError, ValueError):
+        parsed_weights = []
+    return (
+        alpha >= SMART_DIRECTION_BALANCE_MIN_ALPHA
+        and parsed_weights == SMART_DIRECTION_BALANCE_CLASS_WEIGHTS
     )
 
 
@@ -547,7 +568,7 @@ def _smoke_edge_checks(
         ),
         _check(
             "smoke bundle audit direction balance recipe contract PASS",
-            _direction_balance_contract_passes(report),
+            _direction_balance_contract_passes(report, contract_mode=normalized_contract_mode),
             {"direction_balance_recipe_contract": report.get("direction_balance_recipe_contract")},
         ),
         _check(

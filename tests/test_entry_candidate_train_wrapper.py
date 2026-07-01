@@ -101,6 +101,10 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     )
     assert 'CANDIDATE_PRED_BALANCE_ALPHA="${ENTRY_FOUNDATION_CANDIDATE_PRED_BALANCE_ALPHA:-0.05}"' in text
     assert 'CANDIDATE_PRED_BALANCE_TARGET="${ENTRY_FOUNDATION_CANDIDATE_PRED_BALANCE_TARGET:-label}"' in text
+    assert (
+        'CANDIDATE_PRED_BALANCE_CLASS_WEIGHTS="${ENTRY_FOUNDATION_CANDIDATE_PRED_BALANCE_CLASS_WEIGHTS:-1.0,1.0,1.0}"'
+        in text
+    )
     assert 'CANDIDATE_DIRECTION_CE_SCALE="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_CE_SCALE:-1.30}"' in text
     assert 'CANDIDATE_CKPT_MONITOR="${ENTRY_FOUNDATION_CANDIDATE_CKPT_MONITOR:-dir_acc}"' in text
     assert (
@@ -126,6 +130,7 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT=" in text
     assert "ENTRY_PRED_BALANCE_ALPHA=" in text
     assert "ENTRY_PRED_BALANCE_TARGET=" in text
+    assert "ENTRY_PRED_BALANCE_CLASS_WEIGHTS=" in text
     assert "ENTRY_DIRECTION_CE_SCALE=" in text
     assert "GX1_V10_CKPT_MONITOR=" in text
     assert "ENTRY_SYMMETRIC_NEGATIVES=" in text
