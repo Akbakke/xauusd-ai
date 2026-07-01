@@ -11,6 +11,7 @@ from gx1.scripts.audit_entry_foundation_smoke_bundle_v1 import (
     _gate_stats,
     _head_contract_report,
     _majority_baseline_accuracy,
+    _path_calibration_recipe_contract,
     _pretrain_manifest_contract_report,
     _sha256_file,
     _spearman,
@@ -281,6 +282,44 @@ def test_spearman_reports_negative_bad_path_relation() -> None:
     path_quality = np.array([-8.0, -2.0, 5.0, 12.0], dtype=np.float32)
 
     assert _spearman(bad_path_prob, path_quality) == -1.0
+
+
+def test_path_calibration_recipe_contract_requires_full_batch_path_quality_rank() -> None:
+    meta = {
+        "train_recipe": {
+            "active_heads": ["direction", "path_quality", "bad_path"],
+            "path_quality_rank_full_batch": True,
+            "path_quality_rank_weight": 2.0,
+            "path_quality_rank_margin": 0.25,
+            "path_quality_rank_quantile": 0.25,
+            "bad_path_quality_rank_weight": 2.0,
+            "bad_path_quality_rank_margin": 0.25,
+            "bad_path_quality_rank_quantile": 0.25,
+        }
+    }
+
+    report = _path_calibration_recipe_contract(meta, {})
+
+    assert report["decision"] == "PASS"
+    assert report["path_quality_rank_full_batch"] is True
+
+
+def test_path_calibration_recipe_contract_rejects_old_path_quality_recipe() -> None:
+    meta = {
+        "train_recipe": {
+            "active_heads": ["direction", "path_quality", "bad_path"],
+            "path_quality_rank_weight": 0.0,
+            "bad_path_quality_rank_weight": 2.0,
+            "bad_path_quality_rank_margin": 0.25,
+            "bad_path_quality_rank_quantile": 0.25,
+        }
+    }
+
+    report = _path_calibration_recipe_contract(meta, {})
+
+    assert report["decision"] == "FAIL"
+    assert any("path_quality_rank_weight" in failure for failure in report["failures"])
+    assert any("path_quality_rank_full_batch" in failure for failure in report["failures"])
 
 
 def test_head_contract_report_accepts_supported_declared_forward_outputs() -> None:

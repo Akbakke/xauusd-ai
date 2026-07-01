@@ -213,6 +213,20 @@ def _candidate_bundle_audit() -> dict:
             "active_training_heads": list(EXPECTED_ACTIVE_TRAINING_HEADS),
             "blocked_heads": list(EXPECTED_BLOCKED_HEADS),
         },
+        "path_calibration_recipe_contract": {
+            "decision": "PASS",
+            "failures": [],
+            "active_heads": list(EXPECTED_ACTIVE_TRAINING_HEADS),
+            "path_quality_active": True,
+            "bad_path_active": True,
+            "path_quality_rank_full_batch": True,
+            "path_quality_rank_weight": 2.0,
+            "path_quality_rank_margin": 0.25,
+            "path_quality_rank_quantile": 0.25,
+            "bad_path_quality_rank_weight": 2.0,
+            "bad_path_quality_rank_margin": 0.25,
+            "bad_path_quality_rank_quantile": 0.25,
+        },
         "pretrain_manifest_contract": {
             "decision": "PASS",
             "failures": [],
@@ -528,6 +542,24 @@ def test_candidate_bundle_audit_checks_reject_missing_bundle_specialist_model_co
     assert "candidate bundle specialist model contract is preserved in bundle metadata" in failed
 
 
+def test_candidate_bundle_audit_checks_reject_missing_path_calibration_recipe(tmp_path: Path) -> None:
+    audit_path = tmp_path / "candidate_audit.json"
+    audit_path.write_text("{}", encoding="utf-8")
+    report = _candidate_bundle_audit()
+    report["path_calibration_recipe_contract"] = {
+        "decision": "FAIL",
+        "path_quality_active": True,
+        "path_quality_rank_full_batch": False,
+        "path_quality_rank_weight": 0.0,
+        "failures": ["path_quality active head requires positive path_quality_rank_weight"],
+    }
+
+    checks = _candidate_bundle_audit_checks(audit_path, report)
+    failed = {check["name"] for check in checks if not check["ok"]}
+
+    assert "candidate bundle path calibration recipe contract PASS" in failed
+
+
 def test_candidate_bundle_audit_checks_reject_extra_specialist_group(tmp_path: Path) -> None:
     audit_path = tmp_path / "candidate_audit.json"
     audit_path.write_text("{}", encoding="utf-8")
@@ -721,6 +753,7 @@ def test_replay_readiness_current_artifacts_roundtrip_report_contract(tmp_path: 
         assert failed
         assert {
             "candidate-readiness is green",
+            "candidate bundle path calibration recipe contract PASS",
             "selective-edge summary has val/test",
             "selective-edge summary input dimensions match contract mode",
             "offline replay dir exists",

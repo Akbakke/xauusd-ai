@@ -369,6 +369,11 @@ def _candidate_bundle_audit_checks(
     exists = path.exists()
     bundle = report.get("bundle_summary") if isinstance(report.get("bundle_summary"), dict) else {}
     head_contract = report.get("head_contract") if isinstance(report.get("head_contract"), dict) else {}
+    path_calibration = (
+        report.get("path_calibration_recipe_contract")
+        if isinstance(report.get("path_calibration_recipe_contract"), dict)
+        else {}
+    )
     pretrain_manifest = (
         report.get("pretrain_manifest_contract")
         if isinstance(report.get("pretrain_manifest_contract"), dict)
@@ -490,6 +495,16 @@ def _candidate_bundle_audit_checks(
                 "expected_blocked_heads": list(EXPECTED_BLOCKED_HEADS),
                 "actual_blocked_heads": sorted(blocked_heads),
             },
+        ),
+        _check(
+            "candidate bundle path calibration recipe contract PASS",
+            exists
+            and str(path_calibration.get("decision")) == "PASS"
+            and not path_calibration.get("failures")
+            and bool(path_calibration.get("path_quality_active"))
+            and bool(path_calibration.get("path_quality_rank_full_batch"))
+            and float(path_calibration.get("path_quality_rank_weight") or 0.0) > 0.0,
+            {"path_calibration_recipe_contract": path_calibration},
         ),
         _check(
             "candidate bundle audit validated pre-train manifest provenance",

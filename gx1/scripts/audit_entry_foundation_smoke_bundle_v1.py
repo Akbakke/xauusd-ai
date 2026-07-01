@@ -532,6 +532,71 @@ def _head_contract_report(
     }
 
 
+def _safe_float(value: Any, default: float = 0.0) -> float:
+    try:
+        out = float(value)
+    except (TypeError, ValueError):
+        return float(default)
+    return out if np.isfinite(out) else float(default)
+
+
+def _path_calibration_recipe_contract(meta: dict[str, Any], capabilities: dict[str, Any]) -> dict[str, Any]:
+    recipe = meta.get("train_recipe") if isinstance(meta.get("train_recipe"), dict) else {}
+    active_heads = {
+        str(head)
+        for head in (
+            recipe.get("active_heads")
+            or capabilities.get("declared_active_heads")
+            or capabilities.get("supported_heads")
+            or []
+        )
+        if str(head)
+    }
+    path_weight = _safe_float(recipe.get("path_quality_rank_weight", meta.get("path_quality_rank_weight", 0.0)))
+    path_margin = _safe_float(recipe.get("path_quality_rank_margin", meta.get("path_quality_rank_margin", 0.0)))
+    path_quantile = _safe_float(recipe.get("path_quality_rank_quantile", meta.get("path_quality_rank_quantile", 0.0)))
+    bad_weight = _safe_float(
+        recipe.get("bad_path_quality_rank_weight", meta.get("bad_path_quality_rank_weight", 0.0))
+    )
+    bad_margin = _safe_float(
+        recipe.get("bad_path_quality_rank_margin", meta.get("bad_path_quality_rank_margin", 0.0))
+    )
+    bad_quantile = _safe_float(
+        recipe.get("bad_path_quality_rank_quantile", meta.get("bad_path_quality_rank_quantile", 0.0))
+    )
+    failures: list[str] = []
+    if "path_quality" in active_heads:
+        if path_weight <= 0.0:
+            failures.append("path_quality active head requires positive path_quality_rank_weight")
+        if not bool(recipe.get("path_quality_rank_full_batch")):
+            failures.append("path_quality active head requires path_quality_rank_full_batch=true")
+        if path_margin <= 0.0:
+            failures.append("path_quality active head requires positive path_quality_rank_margin")
+        if path_quantile < 0.05 or path_quantile > 0.45:
+            failures.append("path_quality active head requires path_quality_rank_quantile in [0.05, 0.45]")
+    if "bad_path" in active_heads:
+        if bad_weight <= 0.0:
+            failures.append("bad_path active head requires positive bad_path_quality_rank_weight")
+        if bad_margin <= 0.0:
+            failures.append("bad_path active head requires positive bad_path_quality_rank_margin")
+        if bad_quantile < 0.05 or bad_quantile > 0.45:
+            failures.append("bad_path active head requires bad_path_quality_rank_quantile in [0.05, 0.45]")
+    return {
+        "decision": "PASS" if not failures else "FAIL",
+        "active_heads": sorted(active_heads),
+        "path_quality_active": "path_quality" in active_heads,
+        "bad_path_active": "bad_path" in active_heads,
+        "path_quality_rank_full_batch": bool(recipe.get("path_quality_rank_full_batch")),
+        "path_quality_rank_weight": path_weight,
+        "path_quality_rank_margin": path_margin,
+        "path_quality_rank_quantile": path_quantile,
+        "bad_path_quality_rank_weight": bad_weight,
+        "bad_path_quality_rank_margin": bad_margin,
+        "bad_path_quality_rank_quantile": bad_quantile,
+        "failures": failures,
+    }
+
+
 def _pretrain_manifest_contract_report(
     manifest_path: Path | None,
     *,
@@ -1348,6 +1413,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 f"bundle metadata specialist model contract: {failure}"
                 for failure in bundle_specialist_model_contract["failures"]
             )
+    path_calibration_recipe_contract = _path_calibration_recipe_contract(meta, bundle.capabilities)
+    failures.extend(
+        f"path_calibration_recipe: {failure}"
+        for failure in path_calibration_recipe_contract.get("failures", [])
+    )
 
     dataset_kwargs = _bundle_dataset_kwargs(meta, m5_prebuilt)
     split_reports: dict[str, Any] = {}
@@ -1436,6 +1506,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "head_contract": head_contract,
         "pretrain_manifest_json": str(pretrain_manifest_path) if pretrain_manifest_path else "",
         "pretrain_manifest_contract": pretrain_manifest_contract,
+        "path_calibration_recipe_contract": path_calibration_recipe_contract,
         "bundle_specialist_model_contract": bundle_specialist_model_contract,
         "bundle_summary": {
             "manifest_variant": manifest_variant,
