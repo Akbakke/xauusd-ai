@@ -251,6 +251,13 @@ Active status:
   slack, including about 12895 bps IQL peak-oracle lift, which is the current
   evidence for prioritizing Exit Transformer/hazard/IQL work after the Entry
   calibration issue is handled.
+- Commit `e7aa6762` repairs the next Entry training recipe for this known
+  path-signal defect: `entry_v10_ctx_train_v3.py` now has a full-batch
+  `path_quality_pred` ranking loss against realized `path_quality_bps`, and
+  the smoke/candidate wrappers pass the matching `ENTRY_PATH_QUALITY_RANK_*`
+  recipe into future vedtak-gated runs. Existing smart replay artifacts are
+  still old and must remain failed until a new capped smart smoke/candidate
+  bundle proves corrected calibration in replay.
 - Raw smoke/bundle direction accuracy around 0.40 is not an acceptance metric by
   itself. It is only a sanity diagnostic against the majority baseline; Entry
   acceptance remains replay/PnL, drawdown, MAE, bad-path, calibration and

@@ -203,6 +203,13 @@ The 2026-07-01 operating point is feature-harmony clean but not promotion-ready:
   factor about 3.13, max drawdown 315 bps and max loss -45 bps. It beats the
   selected candidate by about +447 bps net in the comparison gate, while
   `promotion_shadow_live_allowed=false`.
+- Commit `e7aa6762` repairs the next Entry training recipe for the known
+  path-signal calibration defect: the trainer now has full-batch
+  `path_quality_pred` ranking loss against realized `path_quality_bps`, and
+  smoke/candidate wrappers pass the matching `ENTRY_PATH_QUALITY_RANK_*`
+  recipe into future vedtak-gated runs. Existing selected smart replay
+  artifacts are still old and must remain failed until a new capped smart
+  smoke/candidate bundle proves corrected calibration in replay.
 - Raw direction accuracy around 0.40 is a weak sanity diagnostic, not the
   primary objective. The smart selected replay has direction precision only
   about 0.478 for candidate and 0.452 for IQL, so the next improvement must
