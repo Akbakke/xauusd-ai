@@ -13,6 +13,7 @@ import argparse
 import json
 import math
 import os
+import hashlib
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -53,6 +54,7 @@ CONTRACT_SIGNAL_DIMS = {
     "challenger_seq215": 215,
     "smart_seq520_candidate": 520,
 }
+FEATURE_MASK_SCHEMA_VERSION = "entry_selective_edge_feature_mask_v1"
 SPECIALIST_MODEL_CONTRACT_FLAGS = (
     "specialist_model_contract_valid",
     "specialist_model_contract_set_exact",
@@ -290,6 +292,110 @@ def _neutralize_signal_bridge(seq_x: torch.Tensor, snap_x: torch.Tensor) -> None
     snap_x[..., : len(SIGNAL_BRIDGE_NEUTRAL_VALUES)] = values.to(dtype=snap_x.dtype, device=snap_x.device)
 
 
+def _sha256_file(path: Path) -> str:
+    if not path.exists() or not path.is_file():
+        return ""
+    digest = hashlib.sha256()
+    with path.open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _read_signal_fields(dataset_dir: Path, splits: list[str]) -> tuple[list[str], str, str]:
+    candidates: list[Path] = []
+    for split in splits:
+        candidates.extend(sorted(dataset_dir.glob(f"*_{split}.manifest.json")))
+    candidates.extend(sorted(dataset_dir.glob("*.manifest.json")))
+    seen: set[Path] = set()
+    for path in candidates:
+        if path in seen:
+            continue
+        seen.add(path)
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        extra = data.get("extra") if isinstance(data.get("extra"), dict) else {}
+        signal_bridge = extra.get("signal_bridge") if isinstance(extra.get("signal_bridge"), dict) else {}
+        fields = [str(value) for value in signal_bridge.get("fields", []) if str(value)]
+        if fields:
+            return fields, str(path), _sha256_file(path)
+    return [], "", ""
+
+
+def _load_feature_mask_spec(path_text: str, *, dataset_dir: Path, splits: list[str]) -> tuple[dict[str, Any], list[str]]:
+    path_text = str(path_text or "").strip()
+    if not path_text:
+        return {"enabled": False}, []
+    path = Path(path_text).expanduser().resolve()
+    failures: list[str] = []
+    if not path.exists() or not path.is_file():
+        return {"enabled": True, "path": str(path)}, [f"feature mask json missing: {path}"]
+    try:
+        spec = json.loads(path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        return {"enabled": True, "path": str(path)}, [f"feature mask json parse failed: {path}: {exc}"]
+    if not isinstance(spec, dict):
+        return {"enabled": True, "path": str(path)}, [f"feature mask json must be an object: {path}"]
+
+    signal_fields, manifest_path, manifest_sha = _read_signal_fields(dataset_dir, splits)
+    if not signal_fields:
+        failures.append(f"could not resolve signal fields from dataset manifests in {dataset_dir}")
+    field_to_idx = {name: idx for idx, name in enumerate(signal_fields)}
+    names = [str(value) for value in spec.get("zero_feature_names", []) if str(value)]
+    raw_indices = [int(value) for value in spec.get("zero_indices", []) if str(value).strip()]
+    missing_names = [name for name in names if name not in field_to_idx]
+    if missing_names:
+        failures.append(f"feature mask names not found in signal fields: {missing_names[:20]}")
+    name_indices = [field_to_idx[name] for name in names if name in field_to_idx]
+    all_indices = sorted(set(name_indices + raw_indices))
+    invalid_indices = [idx for idx in all_indices if idx < 0 or idx >= len(signal_fields)]
+    if invalid_indices:
+        failures.append(f"feature mask indices out of range: {invalid_indices[:20]}")
+    all_indices = [idx for idx in all_indices if 0 <= idx < len(signal_fields)]
+    if not all_indices:
+        failures.append("feature mask selects zero valid signal indices")
+    schema_version = str(spec.get("schema_version") or "")
+    if schema_version and schema_version != FEATURE_MASK_SCHEMA_VERSION:
+        failures.append(
+            f"feature mask schema_version mismatch: observed={schema_version} expected={FEATURE_MASK_SCHEMA_VERSION}"
+        )
+
+    normalized = {
+        "enabled": True,
+        "path": str(path),
+        "sha256": _sha256_file(path),
+        "schema_version": schema_version or FEATURE_MASK_SCHEMA_VERSION,
+        "mask_mode": str(spec.get("mask_mode") or "zero_seq_snap_features"),
+        "ablation_id": str(spec.get("ablation_id") or ""),
+        "model_name": str(spec.get("model_name") or ""),
+        "zero_value": float(spec.get("zero_value", 0.0)),
+        "zero_indices": all_indices,
+        "zero_feature_names": [signal_fields[idx] for idx in all_indices],
+        "requested_zero_feature_names": names,
+        "requested_zero_indices": raw_indices,
+        "signal_field_count": int(len(signal_fields)),
+        "signal_fields_manifest": manifest_path,
+        "signal_fields_manifest_sha256": manifest_sha,
+        "missing_feature_names": missing_names,
+        "invalid_indices": invalid_indices,
+    }
+    return normalized, failures
+
+
+def _apply_feature_mask(seq_x: torch.Tensor, snap_x: torch.Tensor, feature_mask: dict[str, Any] | None) -> None:
+    if not feature_mask or not bool(feature_mask.get("enabled")):
+        return
+    indices = [int(value) for value in feature_mask.get("zero_indices", [])]
+    if not indices:
+        return
+    index = torch.as_tensor(indices, dtype=torch.long, device=seq_x.device)
+    value = float(feature_mask.get("zero_value", 0.0))
+    seq_x.index_fill_(-1, index, value)
+    snap_x.index_fill_(-1, index, value)
+
+
 def build_metric_rows(predictions: pd.DataFrame, *, top_fracs: list[float]) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     if predictions.empty:
@@ -472,6 +578,7 @@ def _predict_bundle(
     batch_size: int,
     m5_prebuilt_path: Path,
     neutralize_signal_bridge: bool = False,
+    feature_mask: dict[str, Any] | None = None,
 ) -> tuple[pd.DataFrame, list[str], dict[str, Any]]:
     failures: list[str] = []
     bundle = load_entry_v10_ctx_bundle(bundle_dir=bundle_dir, device=str(device), xgb_models=None)
@@ -511,6 +618,7 @@ def _predict_bundle(
                 ctx_cont = batch["ctx_cont"].to(device)
                 if neutralize_signal_bridge:
                     _neutralize_signal_bridge(seq_x, snap_x)
+                _apply_feature_mask(seq_x, snap_x, feature_mask)
                 out = model(
                     seq_x,
                     snap_x,
@@ -632,6 +740,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         os.environ.setdefault("GX1_V10_MULTI_TF_V2_CACHE_DIR", str(mtf_cache_dir))
 
     failures: list[str] = []
+    feature_mask, feature_mask_failures = _load_feature_mask_spec(
+        str(getattr(args, "feature_mask_json", "") or ""),
+        dataset_dir=dataset_dir,
+        splits=splits,
+    )
+    failures.extend(feature_mask_failures)
     all_predictions: list[pd.DataFrame] = []
     bundle_meta: dict[str, Any] = {}
     no_xgb_bundle_meta: dict[str, Any] = {}
@@ -643,6 +757,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         device=device,
         batch_size=int(args.batch_size),
         m5_prebuilt_path=m5_prebuilt,
+        feature_mask=feature_mask,
     )
     all_predictions.append(candidate)
     failures.extend(candidate_failures)
@@ -669,6 +784,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             batch_size=int(args.batch_size),
             m5_prebuilt_path=m5_prebuilt,
             neutralize_signal_bridge=no_xgb_neutralize,
+            feature_mask=feature_mask,
         )
         all_predictions.append(ablation)
         failures.extend(ablation_failures)
@@ -712,6 +828,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "neutralized_fields": ORDERED_SEQ_FIELDS_V3[: len(SIGNAL_BRIDGE_NEUTRAL_VALUES)] if no_xgb_neutralize else [],
             "neutral_values": SIGNAL_BRIDGE_NEUTRAL_VALUES.tolist() if no_xgb_neutralize else [],
         },
+        "feature_mask_ablation": feature_mask,
         "dataset_dir": str(dataset_dir),
         "input_bridge_contract": input_bridge_contract,
         "splits": summary_payload["splits"],
@@ -744,6 +861,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "no_xgb_bundle_dir": report["no_xgb_bundle_dir"],
             "no_xgb_ablation": report["no_xgb_ablation"],
             "no_xgb_ablation_diagnostics": report["no_xgb_ablation_diagnostics"],
+            "feature_mask_ablation": report["feature_mask_ablation"],
             "dataset_dir": report["dataset_dir"],
             "input_bridge_contract": report["input_bridge_contract"],
             "bundle_seq_len": report["bundle_seq_len"],
@@ -799,6 +917,7 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--challenger-seq215", action="store_const", dest="contract_mode", const="challenger_seq215")
     ap.add_argument("--smart-seq520", action="store_const", dest="contract_mode", const="smart_seq520_candidate")
     ap.add_argument("--no-xgb-ablation-mode", choices=("bundle", "neutralize_signal_bridge"), default="bundle")
+    ap.add_argument("--feature-mask-json", default="")
     ap.add_argument("--device", default="cpu")
     ap.add_argument("--batch-size", type=int, default=128)
     ap.add_argument("--m5-prebuilt-path", default=str(DEFAULT_M5_PREBUILT))

@@ -342,6 +342,9 @@ def _identity_contract(
         "candidate_bundle_dir": candidate_bundle_dir,
         "selective_edge_bundle_dir": selective_bundle_dir,
         "no_xgb_bundle_dir": str(selective_summary.get("no_xgb_bundle_dir") or ""),
+        "selective_edge_feature_mask_ablation": selective_summary.get("feature_mask_ablation")
+        if isinstance(selective_summary.get("feature_mask_ablation"), dict)
+        else {},
         "candidate_audit_decision": str(candidate_audit.get("decision") or ""),
         "selective_edge_decision": str(selective_summary.get("decision") or ""),
         "candidate_specialist_contract": candidate_specialist_contract,
@@ -419,6 +422,12 @@ def normalize_trades(raw: pd.DataFrame, *, policy_id: str, require_year: int | N
     if "policy_id" not in out.columns:
         out["policy_id"] = str(policy_id)
     out["policy_id"] = out["policy_id"].fillna(str(policy_id)).astype(str)
+    observed_policies = sorted({str(value).strip() for value in out["policy_id"].dropna().astype(str) if str(value).strip()})
+    if observed_policies != [str(policy_id)]:
+        failures.append(
+            "replay trades policy_id mismatch: "
+            f"expected={[str(policy_id)]} observed={observed_policies}"
+        )
     if "fold" not in out.columns:
         out["fold"] = "2026"
     out["fold"] = out["fold"].fillna("2026").astype(str)
@@ -800,6 +809,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "selective_edge_summary_json": str(selective_edge_summary_path),
         "candidate_bundle_dir": identity["candidate_bundle_dir"],
         "no_xgb_bundle_dir": identity["no_xgb_bundle_dir"],
+        "feature_mask_ablation": identity["selective_edge_feature_mask_ablation"],
         "replay_identity_contract": identity,
         "required_year": require_year,
         "n_trades": int(len(trades)),

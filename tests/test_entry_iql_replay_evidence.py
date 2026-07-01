@@ -645,6 +645,7 @@ def test_iql_replay_evidence_output_can_feed_iql_compare(tmp_path: Path) -> None
             candidate_bundle_audit_json=str(candidate_audit),
             selective_edge_summary_json=str(selective_summary),
             policy_id="candidate_replay",
+            ablation_id="",
             require_year=2026,
             allow_non_2026=False,
             require_iql_transition_fields=True,

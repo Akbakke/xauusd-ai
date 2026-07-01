@@ -10,6 +10,7 @@ from gx1.scripts.materialize_entry_candidate_replay_evidence_v1 import (
     audit_iql_transition_trades,
     build_replay_slices,
     build_replay_tables,
+    build_parser,
     normalize_trades,
     run,
 )
@@ -231,6 +232,7 @@ def test_replay_evidence_run_writes_readiness_files(tmp_path: Path) -> None:
             candidate_bundle_audit_json=str(candidate_audit),
             selective_edge_summary_json=str(selective_summary),
             policy_id="candidate_top5",
+            ablation_id="",
             require_year=2026,
             allow_non_2026=False,
             require_iql_transition_fields=True,
@@ -255,6 +257,73 @@ def test_replay_evidence_run_writes_readiness_files(tmp_path: Path) -> None:
     assert json.loads((out_dir / "summary.json").read_text())["decision"] == "PASS"
 
 
+def test_replay_evidence_cli_persists_ablation_id_and_top_level_policy_id(tmp_path: Path) -> None:
+    trades_path = tmp_path / "trades.csv"
+    _raw_trades().to_csv(trades_path, index=False)
+    out_dir = tmp_path / "out"
+    candidate_audit, selective_summary = _write_identity_artifacts(tmp_path)
+
+    args = build_parser().parse_args(
+        [
+            "--trades-path",
+            str(trades_path),
+            "--out-dir",
+            str(out_dir),
+            "--candidate-bundle-audit-json",
+            str(candidate_audit),
+            "--selective-edge-summary-json",
+            str(selective_summary),
+            "--policy-id",
+            "candidate_top5",
+            "--ablation-id",
+            "drop_family_structure_context",
+            "--quiet",
+        ]
+    )
+
+    report = run(args)
+
+    assert report["decision"] == "PASS"
+    assert report["ablation_id"] == "drop_family_structure_context"
+    assert report["policy_id"] == "candidate_top5"
+    manifest = json.loads((out_dir / "REPLAY_EVIDENCE_MANIFEST.json").read_text(encoding="utf-8"))
+    summary = json.loads((out_dir / "summary.json").read_text(encoding="utf-8"))
+    assert manifest["ablation_id"] == "drop_family_structure_context"
+    assert manifest["policy_id"] == "candidate_top5"
+    assert summary["ablation_id"] == "drop_family_structure_context"
+    assert summary["policy_id"] == "candidate_top5"
+
+
+def test_replay_evidence_fails_closed_on_policy_id_mismatch(tmp_path: Path) -> None:
+    trades = _raw_trades()
+    trades["policy_id"] = "unexpected_policy"
+    trades_path = tmp_path / "trades.csv"
+    trades.to_csv(trades_path, index=False)
+    candidate_audit, selective_summary = _write_identity_artifacts(tmp_path)
+
+    report = run(
+        argparse.Namespace(
+            trades_path=str(trades_path),
+            out_dir=str(tmp_path / "out"),
+            candidate_bundle_audit_json=str(candidate_audit),
+            selective_edge_summary_json=str(selective_summary),
+            policy_id="candidate_top5",
+            ablation_id="drop_family_structure_context",
+            require_year=2026,
+            allow_non_2026=False,
+            require_iql_transition_fields=True,
+            require_identity_artifacts=True,
+            fail_on_audit_fail=False,
+            quiet=True,
+        )
+    )
+
+    assert report["decision"] == "FAIL"
+    assert report["policy_id"] == "candidate_top5"
+    assert report["policies"] == ["unexpected_policy"]
+    assert any("policy_id mismatch" in failure for failure in report["failures"])
+
+
 def test_replay_evidence_fails_on_non_2026_rows(tmp_path: Path) -> None:
     bad = _raw_trades()
     bad.loc[0, "entry_time"] = "2025-12-31T08:00:00Z"
@@ -268,6 +337,7 @@ def test_replay_evidence_fails_on_non_2026_rows(tmp_path: Path) -> None:
             candidate_bundle_audit_json=str(tmp_path / "missing_candidate_audit.json"),
             selective_edge_summary_json=str(tmp_path / "missing_selective_summary.json"),
             policy_id="candidate_top5",
+            ablation_id="",
             require_year=2026,
             allow_non_2026=False,
             require_iql_transition_fields=True,
