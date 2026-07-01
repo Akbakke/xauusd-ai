@@ -71,6 +71,43 @@ def test_entry_v10_bad_path_aux_default_is_parked() -> None:
     assert env_defaults["ENTRY_PATH_QUALITY_RANK_WEIGHT"] == "0.0"
 
 
+def test_entry_v10_pred_balance_loss_runs_when_cost_sensitive_is_disabled() -> None:
+    import torch
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    logits = torch.tensor(
+        [
+            [6.0, -3.0, -3.0],
+            [6.0, -3.0, -3.0],
+            [6.0, -3.0, -3.0],
+        ],
+        dtype=torch.float32,
+    )
+    targets = torch.tensor([0, 1, 2], dtype=torch.long)
+    criterion = trainer.CostSensitiveCrossEntropyLoss(
+        class_weights=None,
+        cost_matrix=torch.zeros((3, 3), dtype=torch.float32),
+        cost_scale=0.0,
+        enabled=False,
+        balance_alpha=0.20,
+        balance_target="label",
+        balance_class_weights=torch.tensor([1.0, 1.0, 4.0], dtype=torch.float32),
+    )
+
+    ce_only = criterion.ce(logits, targets).mean()
+    loss = criterion(logits, targets)
+    balance_term = trainer._direction_balance_term(torch.softmax(logits, dim=1), targets, criterion)
+
+    assert float(balance_term.item()) > 0.0
+    assert float(loss.item()) > float(ce_only.item())
+
+
+def test_entry_v10_train_and_validate_apply_pred_balance_loss_directly() -> None:
+    text = TRAINER_PATH.read_text(encoding="utf-8")
+    assert text.count("_direction_balance_term(probs, y, criterion)") >= 2
+
+
 def test_entry_v10_path_quality_rank_loss_penalizes_inverted_order(monkeypatch) -> None:
     import torch
 

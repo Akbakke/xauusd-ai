@@ -395,6 +395,10 @@ Active status:
   and LONG/SHORT are overcalled, turning weak broad direction accuracy into a
   train contract, checkpoint-selection guard and bundle-audit gate, not a
   cosmetic metric.
+- The trainer now applies `ENTRY_PRED_BALANCE_ALPHA` as an active direction
+  distribution loss even when cost-sensitive loss is disabled. This closes the
+  previous hole where the smart FLAT-repair recipe could be present in
+  metadata/checkpoint guards but not affect the actual train/validation loss.
 - Candidate-readiness now also requires the smoke bundle audit itself to carry
   `path_calibration_recipe_contract=PASS` with active path-quality and bad-path
   heads, full-batch path-quality ranking and positive rank weights/margins.

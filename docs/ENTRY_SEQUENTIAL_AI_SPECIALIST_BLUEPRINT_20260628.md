@@ -280,6 +280,10 @@ The 2026-07-01 operating point is feature-harmony clean but not promotion-ready:
   `direction_balance_recipe_contract` is missing or stale, because broad
   direction accuracy around 0.40 is not acceptable without class-distribution
   calibration proof.
+- The trainer must apply `ENTRY_PRED_BALANCE_ALPHA` as active loss even when
+  cost-sensitive loss is disabled. This keeps the smart FLAT-repair recipe from
+  becoming metadata-only while checkpoint selection and bundle audits appear
+  wired.
 - Smart smoke/candidate training must also carry the tail-direction recipe:
   `ENTRY_TAIL_DIRECTION_CE_WEIGHT=0.35`,
   `ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE=0.70` and

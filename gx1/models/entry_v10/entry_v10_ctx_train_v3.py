@@ -1854,26 +1854,37 @@ class CostSensitiveCrossEntropyLoss(nn.Module):
 
     def forward(self, logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
         ce = self.ce(logits, targets)  # (B,)
-        if not self.enabled:
-            return ce.mean()
-
         probs = torch.softmax(logits, dim=1)
-        cost = self.cost_matrix.to(dtype=logits.dtype)[targets]  # (B,3)
-        expected_cost = (cost * probs).sum(dim=1)
-        loss = ce + (self.cost_scale * expected_cost)
-
-        if self.balance_alpha > 0.0:
-            mean_probs = probs.mean(dim=0)
-            if self.balance_target == "uniform":
-                target = torch.full_like(mean_probs, 1.0 / mean_probs.numel())
-            else:
-                counts = torch.bincount(targets, minlength=mean_probs.numel()).float()
-                denom = counts.sum().clamp(min=1.0)
-                target = counts / denom
-            weights = self.balance_class_weights.to(device=mean_probs.device, dtype=mean_probs.dtype)
-            balance_loss = torch.mean(((mean_probs - target) ** 2) * weights)
-            loss = loss + (self.balance_alpha * balance_loss)
+        loss = ce
+        if self.enabled:
+            cost = self.cost_matrix.to(dtype=logits.dtype)[targets]  # (B,3)
+            expected_cost = (cost * probs).sum(dim=1)
+            loss = loss + (self.cost_scale * expected_cost)
+        balance_loss = _direction_balance_term(probs, targets, self)
+        if balance_loss.numel() == 1:
+            loss = loss + balance_loss
         return loss.mean()
+
+
+def _direction_balance_term(
+    probs: torch.Tensor,
+    targets: torch.Tensor,
+    criterion: Any,
+) -> torch.Tensor:
+    zero = torch.zeros((), device=probs.device, dtype=probs.dtype)
+    if float(getattr(criterion, "balance_alpha", 0.0)) <= 0.0:
+        return zero
+    mean_probs = probs.mean(dim=0)
+    if str(getattr(criterion, "balance_target", "label")).strip().lower() == "uniform":
+        target = torch.full_like(mean_probs, 1.0 / mean_probs.numel())
+    else:
+        counts = torch.bincount(targets, minlength=mean_probs.numel()).float()
+        denom = counts.sum().clamp(min=1.0)
+        target = counts / denom
+    weights = getattr(criterion, "balance_class_weights", torch.ones_like(mean_probs))
+    weights = weights.to(device=mean_probs.device, dtype=mean_probs.dtype)
+    balance_loss = torch.mean(((mean_probs - target) ** 2) * weights)
+    return float(getattr(criterion, "balance_alpha", 0.0)) * balance_loss
 
 
 def _build_cost_sensitive_criterion(
@@ -2204,24 +2215,12 @@ def train_epoch(
             if tail_direction_mask.any():
                 tail_direction_loss = float(ENTRY_TAIL_DIRECTION_CE_WEIGHT) * ce_per[tail_direction_mask].mean()
 
-        cost_term = 0.0
-        balance_term = 0.0
+        cost_term = torch.tensor(0.0, device=device)
+        balance_term = _direction_balance_term(probs, y, criterion)
         if bool(getattr(criterion, "enabled", False)):
             cost = criterion.cost_matrix.to(dtype=logits.dtype)[y]
             expected_cost = (cost * probs).sum(dim=1)
             cost_term = float(getattr(criterion, "cost_scale", 1.0)) * expected_cost.mean()
-            if float(getattr(criterion, "balance_alpha", 0.0)) > 0.0:
-                mean_probs = probs.mean(dim=0)
-                if str(getattr(criterion, "balance_target", "label")).strip().lower() == "uniform":
-                    target = torch.full_like(mean_probs, 1.0 / mean_probs.numel())
-                else:
-                    counts = torch.bincount(y, minlength=mean_probs.numel()).float()
-                    denom = counts.sum().clamp(min=1.0)
-                    target = counts / denom
-                weights = getattr(criterion, "balance_class_weights", torch.ones_like(mean_probs))
-                weights = weights.to(device=mean_probs.device, dtype=mean_probs.dtype)
-                balance_loss = torch.mean(((mean_probs - target) ** 2) * weights)
-                balance_term = float(getattr(criterion, "balance_alpha", 0.0)) * balance_loss
 
         loss = ce_loss + cost_term + balance_term
         if float(ENTRY_TAIL_DIRECTION_CE_WEIGHT) > 0.0:
@@ -2453,8 +2452,8 @@ def train_epoch(
         bs = y.shape[0]
         total += float(loss) * bs
         total_ce += float(ce_loss) * bs
-        total_cost += float(cost_term) * bs
-        total_balance += float(balance_term) * bs
+        total_cost += float(cost_term.detach().cpu().item()) * bs
+        total_balance += float(balance_term.detach().cpu().item()) * bs
         total_tail_direction += float(tail_direction_loss.detach().cpu().item()) * bs
         tail_direction_rows += int(tail_direction_mask.sum().detach().cpu().item())
         specialist_gate_loss_sum += float(specialist_gate_loss.detach().cpu().item()) * bs
@@ -2822,24 +2821,12 @@ def validate(
                 if tail_direction_mask.any():
                     tail_direction_loss = float(ENTRY_TAIL_DIRECTION_CE_WEIGHT) * ce_per[tail_direction_mask].mean()
 
-            cost_term = 0.0
-            balance_term = 0.0
+            cost_term = torch.tensor(0.0, device=device)
+            balance_term = _direction_balance_term(probs, y, criterion)
             if bool(getattr(criterion, "enabled", False)):
                 cost = criterion.cost_matrix.to(dtype=logits.dtype)[y]
                 expected_cost = (cost * probs).sum(dim=1)
                 cost_term = float(getattr(criterion, "cost_scale", 1.0)) * expected_cost.mean()
-                if float(getattr(criterion, "balance_alpha", 0.0)) > 0.0:
-                    mean_probs = probs.mean(dim=0)
-                    if str(getattr(criterion, "balance_target", "label")).strip().lower() == "uniform":
-                        target = torch.full_like(mean_probs, 1.0 / mean_probs.numel())
-                    else:
-                        counts = torch.bincount(y, minlength=mean_probs.numel()).float()
-                        denom = counts.sum().clamp(min=1.0)
-                        target = counts / denom
-                    weights = getattr(criterion, "balance_class_weights", torch.ones_like(mean_probs))
-                    weights = weights.to(device=mean_probs.device, dtype=mean_probs.dtype)
-                    balance_loss = torch.mean(((mean_probs - target) ** 2) * weights)
-                    balance_term = float(getattr(criterion, "balance_alpha", 0.0)) * balance_loss
 
             loss = ce_loss + cost_term + balance_term
             if float(ENTRY_TAIL_DIRECTION_CE_WEIGHT) > 0.0:
@@ -2966,8 +2953,8 @@ def validate(
             bs = y.shape[0]
             total += float(loss) * bs
             total_ce += float(ce_loss) * bs
-            total_cost += float(cost_term) * bs
-            total_balance += float(balance_term) * bs
+            total_cost += float(cost_term.detach().cpu().item()) * bs
+            total_balance += float(balance_term.detach().cpu().item()) * bs
             total_tail_direction += float(tail_direction_loss.detach().cpu().item()) * bs
             tail_direction_rows += int(tail_direction_mask.sum().detach().cpu().item())
             bad_path_quality_rank_loss_sum += float(bad_path_quality_rank_loss.detach().cpu().item()) * bs
