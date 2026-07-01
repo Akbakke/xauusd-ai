@@ -16,6 +16,7 @@ import argparse
 import hashlib
 import json
 import logging
+import mmap
 import os
 import subprocess
 import sys
@@ -151,6 +152,21 @@ def _guard_no_rl() -> None:
 # -----------------------------------------------------------------------------
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)
+
+
+def _flush_memmap_pages(*arrays: np.ndarray) -> None:
+    """Flush disk-backed arrays and release clean mapped pages from RSS when supported."""
+    for arr in arrays:
+        if not isinstance(arr, np.memmap):
+            continue
+        arr.flush()
+        mm = getattr(arr, "_mmap", None)
+        if mm is None or not hasattr(mm, "madvise"):
+            continue
+        try:
+            mm.madvise(mmap.MADV_DONTNEED)
+        except (OSError, ValueError, AttributeError):
+            pass
 
 
 def _env_str(name: str, default: str) -> str:
@@ -1353,6 +1369,7 @@ class EntryV10CtxDataset(Dataset):
                 self._np_snap = np.zeros(snap_shape, dtype=np.float32)
                 self._np_ctx_cont = np.zeros(ctx_cont_shape, dtype=np.float32)
                 self._np_ctx_cat = np.zeros(ctx_cat_shape, dtype=np.int64)
+            memmap_flush_rows = max(0, int(os.environ.get("ENTRY_V10_CTX_MEMMAP_FLUSH_ROWS", "8192")))
             # Re-iterate (first batch was consumed) — read the whole file in chunks
             idx = 0
             for batch in pq.ParquetFile(self.parquet_path).iter_batches(
@@ -1368,9 +1385,13 @@ class EntryV10CtxDataset(Dataset):
                 self._np_ctx_cat[idx:idx+nb] = batch.column("ctx_cat").flatten().to_numpy(
                     zero_copy_only=False).reshape(nb, ctx_cat_dim).astype(np.int64, copy=False)
                 idx += nb
+                if use_memmap and memmap_flush_rows and idx % memmap_flush_rows == 0:
+                    _flush_memmap_pages(self._np_seq, self._np_snap, self._np_ctx_cont, self._np_ctx_cat)
             for arr in (self._np_seq, self._np_snap, self._np_ctx_cont, self._np_ctx_cat):
                 if isinstance(arr, np.memmap):
                     arr.flush()
+            if use_memmap:
+                _flush_memmap_pages(self._np_seq, self._np_snap, self._np_ctx_cont, self._np_ctx_cat)
             log.info(f"[MEM_FIX] arrays built: seq={self._np_seq.shape} ({self._np_seq.nbytes/1e9:.2f} GB)")
             # Drop nested cols from df (they were in df from earlier pd.read_parquet)
             # to free the pandas object memory.
