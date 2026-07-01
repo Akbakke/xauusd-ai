@@ -283,6 +283,13 @@ Active status:
   `READY_FOR_IQL_DISTILLATION_VEDTAK`. New training/replay authority requires a
   freshly trained bundle with the path-calibration recipe and a refreshed
   replay/slice audit that passes.
+- Smart smoke-manifest, smoke-readiness and trainability gates now require the
+  future smart train contract to declare the exact full-batch
+  `path_calibration_recipe_contract` and the six
+  `ENTRY_*_QUALITY_RANK_*` env values, and trainability checks that both
+  smoke and candidate wrappers expose those envs. The smart lane must fail
+  closed if the path-quality/bad-path ranking repair is not actually carried
+  into the next capped trainer command.
 - Raw smoke/bundle direction accuracy around 0.40 is not an acceptance metric by
   itself. It is only a sanity diagnostic against the majority baseline; Entry
   acceptance remains replay/PnL, drawdown, MAE, bad-path, calibration and

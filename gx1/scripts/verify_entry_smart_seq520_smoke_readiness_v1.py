@@ -68,6 +68,23 @@ SMOKE_MANIFEST_READINESS_READY_DECISION = "READY_FOR_SMART_SEQ520_SMOKE_MANIFEST
 SMOKE_MANIFEST_READINESS_SCHEMA = "entry_smart_seq520_smoke_manifest_readiness_v1"
 SMOKE_DATASET_MANIFEST_SCHEMA = "entry_smart_seq520_smoke_dataset_v1"
 SMOKE_SPLIT_MANIFEST_SCHEMA = "entry_smart_seq520_smoke_split_manifest_v1"
+PATH_CALIBRATION_RECIPE_CONTRACT = {
+    "path_quality_rank_full_batch": True,
+    "path_quality_rank_weight": 2.0,
+    "path_quality_rank_margin": 0.25,
+    "path_quality_rank_quantile": 0.25,
+    "bad_path_quality_rank_weight": 2.0,
+    "bad_path_quality_rank_margin": 0.25,
+    "bad_path_quality_rank_quantile": 0.25,
+}
+PATH_CALIBRATION_ENV_TEMPLATE = {
+    "ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT": "2.00",
+    "ENTRY_BAD_PATH_QUALITY_RANK_MARGIN": "0.25",
+    "ENTRY_BAD_PATH_QUALITY_RANK_QUANTILE": "0.25",
+    "ENTRY_PATH_QUALITY_RANK_WEIGHT": "2.00",
+    "ENTRY_PATH_QUALITY_RANK_MARGIN": "0.25",
+    "ENTRY_PATH_QUALITY_RANK_QUANTILE": "0.25",
+}
 
 
 def _json_default(obj: Any) -> Any:
@@ -117,6 +134,16 @@ def _gate(name: str, checks: list[dict[str, Any]]) -> dict[str, Any]:
         "decision": "PASS" if all(bool(row.get("ok")) for row in checks) else "FAIL",
         "checks": checks,
     }
+
+
+def _path_calibration_recipe_ok(contract: dict[str, Any]) -> bool:
+    recipe = contract.get("path_calibration_recipe_contract")
+    env_template = contract.get("path_calibration_env_template")
+    if not isinstance(recipe, dict) or not isinstance(env_template, dict):
+        return False
+    if recipe != PATH_CALIBRATION_RECIPE_CONTRACT:
+        return False
+    return all(env_template.get(key) == value for key, value in PATH_CALIBRATION_ENV_TEMPLATE.items())
 
 
 def _git_status_short(repo: Path) -> list[str]:
@@ -304,7 +331,9 @@ def _future_contracts(
         "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/"
         "v10_6yr_rebuild_20260628_foundation_seq146/v10_entry_smart_seq520_smoke_<STAMP>"
     )
+    env_prefix = ["env", *[f"{key}={value}" for key, value in PATH_CALIBRATION_ENV_TEMPLATE.items()]]
     train_inner = [
+        *env_prefix,
         ".venv/bin/python",
         "-m",
         "gx1.models.entry_v10.entry_v10_ctx_train_v3",
@@ -373,6 +402,9 @@ def _future_contracts(
         "starts_iql_distillation": False,
         "touches_shadow_or_live": False,
         "requires_edge_audit": True,
+        "requires_path_calibration_recipe_contract": True,
+        "path_calibration_recipe_contract": dict(PATH_CALIBRATION_RECIPE_CONTRACT),
+        "path_calibration_env_template": dict(PATH_CALIBRATION_ENV_TEMPLATE),
         "post_smoke_audit_argv_template": audit,
         "specialist_contract_mode": CONTRACT_MODE,
         "expected_signal_dim": EXPECTED_SIGNAL_DIM,
@@ -711,6 +743,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     future_contracts["smart_smoke_train"]["requires_edge_audit"] is True
                     and "--require-edge" in future_contracts["smart_smoke_train"]["post_smoke_audit_argv_template"],
                     future_contracts["smart_smoke_train"]["post_smoke_audit_argv_template"],
+                ),
+                _check(
+                    "smart smoke train contract declares path-quality and bad-path rank recipe",
+                    future_contracts["smart_smoke_train"]["requires_path_calibration_recipe_contract"] is True
+                    and _path_calibration_recipe_ok(future_contracts["smart_smoke_train"]),
+                    future_contracts["smart_smoke_train"],
                 ),
                 _check(
                     "smart smoke train contract has no replay IQL shadow or live side effects",

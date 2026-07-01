@@ -16,6 +16,28 @@ def _write(path: Path, text: str) -> Path:
     return path
 
 
+def _path_calibration_future_contract(wired: bool) -> dict:
+    if not wired:
+        return {}
+    return {
+        "requires_path_calibration_recipe_contract": True,
+        "path_calibration_recipe_contract": dict(gate.PATH_CALIBRATION_RECIPE_CONTRACT),
+        "path_calibration_env_template": dict(gate.PATH_CALIBRATION_ENV_TEMPLATE),
+        "inner_train_argv_template": [
+            "env",
+            *[f"{key}={value}" for key, value in gate.PATH_CALIBRATION_ENV_TEMPLATE.items()],
+            ".venv/bin/python",
+        ],
+    }
+
+
+def _path_calibration_wrapper_text(kind: str) -> str:
+    prefix = "ENTRY_FOUNDATION_SMOKE_" if kind == "smoke" else "ENTRY_FOUNDATION_CANDIDATE_"
+    upstream = "\n".join(key.replace("ENTRY_", prefix) for key in gate.PATH_CALIBRATION_ENV_KEYS)
+    downstream = "\n".join(gate.PATH_CALIBRATION_ENV_KEYS)
+    return f"{upstream}\n{downstream}\n"
+
+
 def _args(tmp_path: Path, *, wired: bool, ctx_tag: str = "CTX6CAT5") -> argparse.Namespace:
     post_rebuild = tmp_path / "post_rebuild.json"
     smoke_readiness = tmp_path / "smoke_readiness.json"
@@ -51,25 +73,33 @@ def _args(tmp_path: Path, *, wired: bool, ctx_tag: str = "CTX6CAT5") -> argparse
                 "smart_smoke_train": {
                     "implemented_in_control_surface": wired,
                     "specialist_contract_mode": "smart_seq520_candidate",
+                    **_path_calibration_future_contract(wired),
                 }
             },
         },
     )
     if wired:
         control_text = "Usage: smart-smoke-train --vedtak <id>\ncase\nsmart-smoke-train) exec wrapper ;;\n"
-        smoke_wrapper_text = "--smart-seq520 SPECIALIST_CONTRACT_MODE=smart_seq520_candidate\n"
-        candidate_wrapper_text = "--smart-seq520 SPECIALIST_CONTRACT_MODE=smart_seq520_candidate\n"
+        smoke_wrapper_text = (
+            "--smart-seq520 SPECIALIST_CONTRACT_MODE=smart_seq520_candidate\n"
+            + _path_calibration_wrapper_text("smoke")
+        )
+        candidate_wrapper_text = (
+            "--smart-seq520 SPECIALIST_CONTRACT_MODE=smart_seq520_candidate\n"
+            + _path_calibration_wrapper_text("candidate")
+        )
         smart_script_text = "smart_seq520_candidate 520\n"
     else:
         control_text = "smart-smoke-readiness)\n"
         smoke_wrapper_text = "--challenger-seq215 SPECIALIST_CONTRACT_MODE=challenger_seq215\n"
         candidate_wrapper_text = "--challenger-seq215 SPECIALIST_CONTRACT_MODE=challenger_seq215\n"
         smart_script_text = "challenger_seq215 215\n"
+    trainer_text = "--specialist-contract-mode\n" + "\n".join(gate.PATH_CALIBRATION_ENV_KEYS) + "\n"
     return argparse.Namespace(
         smart_post_rebuild_readiness_json=str(post_rebuild),
         smart_smoke_readiness_json=str(smoke_readiness),
         control_script=str(_write(tmp_path / "entry_next_edge_control.sh", control_text)),
-        trainer_source=str(_write(tmp_path / "entry_v10_ctx_train_v3.py", "--specialist-contract-mode\n")),
+        trainer_source=str(_write(tmp_path / "entry_v10_ctx_train_v3.py", trainer_text)),
         smoke_wrapper=str(_write(tmp_path / "run_smoke.sh", smoke_wrapper_text)),
         candidate_wrapper=str(_write(tmp_path / "run_candidate.sh", candidate_wrapper_text)),
         candidate_readiness_script=str(_write(tmp_path / "candidate_readiness.py", smart_script_text)),

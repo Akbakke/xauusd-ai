@@ -218,6 +218,13 @@ The 2026-07-01 operating point is feature-harmony clean but not promotion-ready:
   selected IQL slice/path-signal calibration gate is not ready; stale selected
   replay can no longer open IQL distillation authority in the readiness
   summary.
+- Smart smoke-manifest, smoke-readiness and trainability gates now require the
+  future smart train contract to declare the exact full-batch
+  `path_calibration_recipe_contract` plus the six `ENTRY_*_QUALITY_RANK_*`
+  env values. Trainability also checks that smoke and candidate wrappers expose
+  those envs, so smart training readiness cannot pass unless the repaired
+  path-quality/bad-path ranking recipe is actually wired into the next capped
+  trainer command.
 - Raw direction accuracy around 0.40 is a weak sanity diagnostic, not the
   primary objective. The smart selected replay has direction precision only
   about 0.478 for candidate and 0.452 for IQL, so the next improvement must

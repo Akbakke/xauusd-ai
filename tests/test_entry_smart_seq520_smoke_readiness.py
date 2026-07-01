@@ -231,6 +231,12 @@ def test_smart_seq520_smoke_readiness_passes_as_report_only(monkeypatch, tmp_pat
     assert "--require-edge" in train_contract["post_smoke_audit_argv_template"]
     assert train_contract["specialist_contract_mode"] == "smart_seq520_candidate"
     assert train_contract["expected_signal_dim"] == 520
+    assert train_contract["requires_path_calibration_recipe_contract"] is True
+    assert train_contract["path_calibration_recipe_contract"] == readiness.PATH_CALIBRATION_RECIPE_CONTRACT
+    assert train_contract["path_calibration_env_template"] == readiness.PATH_CALIBRATION_ENV_TEMPLATE
+    train_argv = " ".join(train_contract["inner_train_argv_template"])
+    for key, value in readiness.PATH_CALIBRATION_ENV_TEMPLATE.items():
+        assert f"{key}={value}" in train_argv
     assert Path(report["json_path"]).exists()
 
 

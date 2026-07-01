@@ -170,6 +170,12 @@ def test_materialize_smart_seq520_smoke_manifest_report_only(tmp_path: Path) -> 
     assert train_contract["requires_ram_cap"] is True
     assert train_contract["ram_cap_runner"] == "scripts/gx1_capped_run.sh"
     assert train_contract["num_workers"] == 0
+    assert train_contract["requires_path_calibration_recipe_contract"] is True
+    assert train_contract["path_calibration_recipe_contract"] == manifest_gate.PATH_CALIBRATION_RECIPE_CONTRACT
+    assert train_contract["path_calibration_env_template"] == manifest_gate.PATH_CALIBRATION_ENV_TEMPLATE
+    train_argv = " ".join(train_contract["inner_train_argv_template"])
+    for key, value in manifest_gate.PATH_CALIBRATION_ENV_TEMPLATE.items():
+        assert f"{key}={value}" in train_argv
     assert train_contract["started_by_this_report"] is False
     assert train_contract["starts_replay"] is False
     assert train_contract["starts_iql_distillation"] is False

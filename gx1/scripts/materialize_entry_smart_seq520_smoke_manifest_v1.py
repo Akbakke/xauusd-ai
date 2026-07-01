@@ -45,6 +45,23 @@ POST_REBUILD_READY_DECISION = "ENTRY_SMART_DATASET_READY_FOR_TRAIN_READINESS_REV
 RAM_CAP_RUNNER = "scripts/gx1_capped_run.sh"
 DEFAULT_MEMORY_CAP = "22G"
 DEFAULT_SWAP_CAP = "2G"
+PATH_CALIBRATION_RECIPE_CONTRACT = {
+    "path_quality_rank_full_batch": True,
+    "path_quality_rank_weight": 2.0,
+    "path_quality_rank_margin": 0.25,
+    "path_quality_rank_quantile": 0.25,
+    "bad_path_quality_rank_weight": 2.0,
+    "bad_path_quality_rank_margin": 0.25,
+    "bad_path_quality_rank_quantile": 0.25,
+}
+PATH_CALIBRATION_ENV_TEMPLATE = {
+    "ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT": "2.00",
+    "ENTRY_BAD_PATH_QUALITY_RANK_MARGIN": "0.25",
+    "ENTRY_BAD_PATH_QUALITY_RANK_QUANTILE": "0.25",
+    "ENTRY_PATH_QUALITY_RANK_WEIGHT": "2.00",
+    "ENTRY_PATH_QUALITY_RANK_MARGIN": "0.25",
+    "ENTRY_PATH_QUALITY_RANK_QUANTILE": "0.25",
+}
 SIDE_EFFECTS_STARTED = {
     "dataset_rebuild": False,
     "training": False,
@@ -102,6 +119,16 @@ def _read_json_or_empty(path: Path) -> dict[str, Any]:
 
 def _check(name: str, ok: bool, details: Any = None) -> dict[str, Any]:
     return {"name": name, "ok": bool(ok), "details": details if details is not None else {}}
+
+
+def _path_calibration_recipe_ok(contract: dict[str, Any]) -> bool:
+    recipe = contract.get("path_calibration_recipe_contract")
+    env_template = contract.get("path_calibration_env_template")
+    if not isinstance(recipe, dict) or not isinstance(env_template, dict):
+        return False
+    if recipe != PATH_CALIBRATION_RECIPE_CONTRACT:
+        return False
+    return all(env_template.get(key) == value for key, value in PATH_CALIBRATION_ENV_TEMPLATE.items())
 
 
 def _explicit_vedtak_id_ok(vedtak_id: str) -> bool:
@@ -261,7 +288,9 @@ def _future_command_contracts(
     swap_cap: str,
 ) -> dict[str, Any]:
     train_parquet = dataset_dir / f"{DEFAULT_STEM}_train.parquet"
+    env_prefix = ["env", *[f"{key}={value}" for key, value in PATH_CALIBRATION_ENV_TEMPLATE.items()]]
     train_inner = [
+        *env_prefix,
         ".venv/bin/python",
         "-m",
         "gx1.models.entry_v10.entry_v10_ctx_train_v3",
@@ -317,6 +346,9 @@ def _future_command_contracts(
             "memory_cap": memory_cap,
             "swap_cap": swap_cap,
             "num_workers": 0,
+            "requires_path_calibration_recipe_contract": True,
+            "path_calibration_recipe_contract": dict(PATH_CALIBRATION_RECIPE_CONTRACT),
+            "path_calibration_env_template": dict(PATH_CALIBRATION_ENV_TEMPLATE),
             "started_by_this_report": False,
             "starts_training_if_executed": True,
             "starts_replay": False,
@@ -518,6 +550,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             and future_command_contracts["smart_smoke_train"]["ram_cap_runner"] == RAM_CAP_RUNNER
             and future_command_contracts["smart_smoke_train"]["num_workers"] == 0
             and "--num-workers" in future_command_contracts["smart_smoke_train"]["inner_train_argv_template"],
+            future_command_contracts["smart_smoke_train"],
+        ),
+        _check(
+            "future train contract declares path-quality and bad-path rank recipe",
+            _path_calibration_recipe_ok(future_command_contracts["smart_smoke_train"]),
             future_command_contracts["smart_smoke_train"],
         ),
     ]
