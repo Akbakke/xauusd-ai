@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from gx1.scripts.audit_entry_exit_feature_alignment_v1 import run
+from gx1.scripts.audit_entry_exit_feature_alignment_v1 import build_parser, run
 
 
 BASE_STATE = [
@@ -194,3 +194,39 @@ def test_entry_exit_feature_alignment_passes_seq215_with_challenger_state_and_ei
     assert report["family_review"]["families"]["chart_geometry_context"]["ok"] is True
     assert report["family_review"]["families"]["price_action_candle_context"]["ok"] is True
     assert len(report["family_review"]["families"]["entry_specialist_gate_outputs"]["present_fields"]) == 8
+
+
+def test_entry_exit_feature_alignment_blocks_smart_seq520_without_eight_specialist_state(tmp_path: Path) -> None:
+    model_dataset = _write_fixture(tmp_path, full_alignment=True)
+
+    report = run(_args(tmp_path, model_dataset, contract_mode="smart_seq520_candidate"))
+
+    assert report["decision"] == "BLOCKED_BY_ENTRY_EXIT_FEATURE_ALIGNMENT"
+    assert report["entry_specialist_contract_mode"] == "smart_seq520_candidate"
+    assert report["required_entry_specialist_gate_fields"][-2:] == [
+        "entry_chart_geometry_gate_weight",
+        "entry_price_action_candle_gate_weight",
+    ]
+    missing = set(report["family_review"]["missing_families"])
+    assert "chart_geometry_context" in missing
+    assert "price_action_candle_context" in missing
+    assert "entry_specialist_gate_outputs" in missing
+
+
+def test_entry_exit_feature_alignment_passes_smart_seq520_with_eight_specialist_state(tmp_path: Path) -> None:
+    model_dataset = _write_fixture(tmp_path, full_alignment=True, seq215_alignment=True)
+
+    report = run(_args(tmp_path, model_dataset, contract_mode="smart_seq520_candidate"))
+
+    assert report["decision"] == "ENTRY_EXIT_FEATURE_ALIGNMENT_READY_FOR_EXIT_TRANSFORMER_TRAINING_REVIEW"
+    assert report["entry_specialist_contract_mode"] == "smart_seq520_candidate"
+    assert report["family_review"]["ready"] is True
+    assert "chart_geometry_context" not in report["family_review"]["skipped_families"]
+    assert "price_action_candle_context" not in report["family_review"]["skipped_families"]
+    assert len(report["family_review"]["families"]["entry_specialist_gate_outputs"]["present_fields"]) == 8
+
+
+def test_entry_exit_feature_alignment_parser_accepts_smart_seq520_mode() -> None:
+    args = build_parser().parse_args(["--entry-specialist-contract-mode", "smart_seq520_candidate"])
+
+    assert args.entry_specialist_contract_mode == "smart_seq520_candidate"

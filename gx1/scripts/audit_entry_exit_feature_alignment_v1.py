@@ -56,7 +56,8 @@ BASE_REQUIRED_PROVENANCE_FIELDS = (
     "entry_iql_policy_id",
     "entry_replay_identity_hash",
 )
-ENTRY_SPECIALIST_CONTRACT_MODES = ("foundation_seq146", "challenger_seq215")
+ENTRY_SPECIALIST_CONTRACT_MODES = ("foundation_seq146", "challenger_seq215", "smart_seq520_candidate")
+EIGHT_SPECIALIST_CONTRACT_MODES = ("challenger_seq215", "smart_seq520_candidate")
 FOUNDATION_ENTRY_SPECIALIST_GATE_FIELDS = (
     "entry_structure_swing_gate_weight",
     "entry_smc_liquidity_gate_weight",
@@ -148,7 +149,7 @@ ALIGNMENT_FAMILIES: dict[str, dict[str, Any]] = {
         "scope": "state",
         "min_fields": 1,
         "expected_specialist": "chart_geometry_encoder",
-        "contract_modes": ("challenger_seq215",),
+        "contract_modes": EIGHT_SPECIALIST_CONTRACT_MODES,
         "reason": "Seq215 Exit alignment must preserve numeric chart geometry that Entry used, not only the fused score.",
     },
     "price_action_candle_context": {
@@ -156,13 +157,14 @@ ALIGNMENT_FAMILIES: dict[str, dict[str, Any]] = {
         "scope": "state",
         "min_fields": 1,
         "expected_specialist": "price_action_candle_encoder",
-        "contract_modes": ("challenger_seq215",),
+        "contract_modes": EIGHT_SPECIALIST_CONTRACT_MODES,
         "reason": "Seq215 Exit alignment must preserve candlestick/price-action context that Entry used.",
     },
     "entry_specialist_gate_outputs": {
         "required_fields_by_mode": {
             "foundation_seq146": FOUNDATION_ENTRY_SPECIALIST_GATE_FIELDS,
             "challenger_seq215": CHALLENGER_SEQ215_ENTRY_SPECIALIST_GATE_FIELDS,
+            "smart_seq520_candidate": CHALLENGER_SEQ215_ENTRY_SPECIALIST_GATE_FIELDS,
         },
         "tokens": ("specialist_gate", "gate_weight", "specialist_weight", "structure_swing_gate", "smc_liquidity_gate", "trend_ema_gate", "vol_compression_gate", "momentum_flow_gate", "session_regime_gate", "chart_geometry_gate", "price_action_candle_gate"),
         "scope": "state",
@@ -453,7 +455,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "entry_specialist_contract_mode_valid": contract_mode_valid,
         "required_entry_specialist_gate_fields": list(
             CHALLENGER_SEQ215_ENTRY_SPECIALIST_GATE_FIELDS
-            if review_contract_mode == "challenger_seq215"
+            if review_contract_mode in EIGHT_SPECIALIST_CONTRACT_MODES
             else FOUNDATION_ENTRY_SPECIALIST_GATE_FIELDS
         ),
         "state_feature_count": len(state_features),
@@ -477,7 +479,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             else (
                 "extend Entry-bound Exit materializer/state-reward/model dataset with seq215 chart-geometry, "
                 "price-action/candle and 8-specialist-gate snapshots before Exit training"
-                if review_contract_mode == "challenger_seq215"
+                if review_contract_mode in EIGHT_SPECIALIST_CONTRACT_MODES
                 else "extend Entry-bound Exit materializer/state-reward/model dataset with missing HH/SMC/trend/momentum/MTF/specialist-gate snapshots before Exit training"
             )
         ),
