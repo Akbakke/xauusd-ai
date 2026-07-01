@@ -28,6 +28,7 @@ REQUIRED_DECISION = "READY_FOR_IQL_DISTILLATION_VEDTAK"
 CONTRACT_INPUT_DIMS = {
     "foundation_seq146": 146,
     "challenger_seq215": 215,
+    "smart_seq520_candidate": 520,
 }
 IQL_DISTILLATION_REQUIRED_ARTIFACT_KEYS = (
     "replay_readiness",
@@ -226,7 +227,7 @@ def _replay_specialist_identity_contract(
             failures.append(f"{label} specialist identity contract mode mismatch: {observed_mode} != {contract_mode}")
         if payload.get("failures"):
             failures.append(f"{label} specialist identity has failures: {payload.get('failures')}")
-    if contract_mode == "challenger_seq215":
+    if contract_mode in {"challenger_seq215", "smart_seq520_candidate"}:
         candidate_groups = set(str(x) for x in candidate_specialist.get("bundle_specialist_groups", []) if str(x))
         selective_candidate = (
             selective_specialist.get("candidate_bundle_specialist_contract")

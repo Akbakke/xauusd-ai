@@ -3,7 +3,11 @@ import hashlib
 import json
 from pathlib import Path
 
-from gx1.scripts.materialize_entry_iql_distillation_contract_v1 import IQL_DISTILLATION_REQUIRED_ARTIFACT_KEYS, run
+from gx1.scripts.materialize_entry_iql_distillation_contract_v1 import (
+    CONTRACT_INPUT_DIMS,
+    IQL_DISTILLATION_REQUIRED_ARTIFACT_KEYS,
+    run,
+)
 
 
 PRETRAIN_PROVENANCE_GATE = {
@@ -99,7 +103,7 @@ BASE_SPECIALIST_GROUPS = [
 
 def _candidate_specialist_identity(contract_mode: str = "foundation_seq146") -> dict:
     groups = list(BASE_SPECIALIST_GROUPS)
-    if contract_mode == "challenger_seq215":
+    if contract_mode in {"challenger_seq215", "smart_seq520_candidate"}:
         groups.extend(["chart_geometry_encoder", "price_action_candle_encoder"])
     return {
         "ready": True,
@@ -278,6 +282,107 @@ def test_iql_distillation_contract_opens_on_replay_ready_contract(tmp_path: Path
         "entry_iql_student",
         "post_distillation_replay_compare",
     }
+
+
+def test_iql_distillation_contract_opens_on_smart_seq520_replay_ready_contract(tmp_path: Path) -> None:
+    assert CONTRACT_INPUT_DIMS["smart_seq520_candidate"] == 520
+    candidate = tmp_path / "candidate.json"
+    candidate_audit = tmp_path / "candidate_audit.json"
+    selective_summary = tmp_path / "selective" / "summary.json"
+    selective_metrics = tmp_path / "selective" / "selective_edge_metrics.csv"
+    replay_dir = tmp_path / "replay"
+    replay_manifest = replay_dir / "REPLAY_EVIDENCE_MANIFEST.json"
+    _write_json(candidate, {"decision": "READY_FOR_CANDIDATE_TRAINING_VEDTAK"})
+    _write_json(candidate_audit, {"decision": "PASS", "bundle_dir": "/tmp/smart_candidate_bundle"})
+    _write_json(selective_summary, {"splits": ["val", "test"], "contract_mode": "smart_seq520_candidate"})
+    selective_metrics.parent.mkdir(parents=True, exist_ok=True)
+    selective_metrics.write_text("split,model\nval,candidate\n", encoding="utf-8")
+    replay_dir.mkdir(parents=True)
+    (replay_dir / "replay_policy_metrics.csv").write_text(
+        "scope,policy_id,n_trades,net_sum_bps,win_rate,profit_factor,max_drawdown_bps,max_loss_bps\n"
+        "aggregate,smart_replay,4,200,0.75,1.5,50,-20\n",
+        encoding="utf-8",
+    )
+    (replay_dir / "replay_policy_monthly.csv").write_text(
+        "policy_id,month,net_sum_bps\nsmart_replay,2026-01,100\nsmart_replay,2026-02,100\n",
+        encoding="utf-8",
+    )
+    (replay_dir / "replay_policy_trades.csv").write_text(
+        "entry_time,policy_id,session,side,score,p_long,p_short,p_flat,net_pnl_bps,mfe_bps,mae_bps,held_bars\n"
+        "2026-01-03T08:00:00Z,smart_replay,EU,LONG,0.8,0.8,0.1,0.1,100,120,10,8\n",
+        encoding="utf-8",
+    )
+    _write_json(
+        replay_manifest,
+        {
+            "decision": "PASS",
+            "replay_identity_contract": _replay_identity_contract(
+                bundle_dir="/tmp/smart_candidate_bundle",
+                contract_mode="smart_seq520_candidate",
+            ),
+        },
+    )
+    ready = tmp_path / "ENTRY_REPLAY_READINESS_latest.json"
+    replay_fingerprints = _replay_artifact_fingerprints(
+        candidate=candidate,
+        candidate_audit=candidate_audit,
+        selective_summary=selective_summary,
+        selective_metrics=selective_metrics,
+        replay_manifest=replay_manifest,
+        replay_dir=replay_dir,
+    )
+    _write_json(
+        ready,
+        {
+            "decision": "READY_FOR_IQL_DISTILLATION_VEDTAK",
+            "iql_distillation_allowed_with_explicit_vedtak": True,
+            "promotion_shadow_live_allowed": False,
+            "contract_mode": "smart_seq520_candidate",
+            "candidate_readiness_json": str(candidate),
+            "candidate_bundle_audit_json": str(candidate_audit),
+            "selective_edge_summary_json": str(selective_summary),
+            "selective_edge_metrics_csv": str(selective_metrics),
+            "replay_dir": str(replay_dir),
+            "evidence_identity": {
+                "contract_mode": "smart_seq520_candidate",
+                "candidate_bundle_contract_mode": "smart_seq520_candidate",
+                "selective_edge_contract_mode": "smart_seq520_candidate",
+                "replay_identity_contract_mode": "smart_seq520_candidate",
+                "candidate_bundle_audit_json": str(candidate_audit),
+                "selective_edge_summary_json": str(selective_summary),
+                "replay_evidence_manifest_json": str(replay_manifest),
+                "candidate_bundle_dir": "/tmp/smart_candidate_bundle",
+                "selective_edge_bundle_dir": "/tmp/smart_candidate_bundle",
+                "replay_identity_candidate_bundle_dir": "/tmp/smart_candidate_bundle",
+                "no_xgb_bundle_dir": "/tmp/smart_candidate_bundle",
+                "replay_identity_ready": True,
+                "candidate_specialist_contract": _candidate_specialist_identity("smart_seq520_candidate"),
+                "selective_edge_specialist_contract": _selective_specialist_identity("smart_seq520_candidate"),
+                "candidate_specialist_contract_ready": True,
+                "selective_edge_specialist_contract_ready": True,
+            },
+            "artifact_fingerprints": replay_fingerprints,
+            "gates": [
+                PRETRAIN_PROVENANCE_GATE,
+                BUNDLE_SPECIALIST_MODEL_GATE,
+                {"name": "artifact_provenance", "decision": "PASS", "checks": []},
+            ],
+        },
+    )
+
+    report = run(
+        argparse.Namespace(
+            vedtak="PYTEST_SMART_READY",
+            replay_readiness_json=str(ready),
+            out_dir=str(tmp_path / "out"),
+            fail_on_not_ready=True,
+            quiet=True,
+        )
+    )
+
+    assert report["decision"] == "ENTRY_IQL_DISTILLATION_CONTRACT_READY"
+    assert report["contract_mode"] == "smart_seq520_candidate"
+    assert report["replay_specialist_identity_contract"]["ok"] is True
 
 
 def test_iql_distillation_contract_rejects_missing_pretrain_provenance_gate(tmp_path: Path) -> None:
