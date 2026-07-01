@@ -197,6 +197,25 @@ def _all_split_direction_distribution_live(report: dict[str, Any]) -> bool:
     )
 
 
+def _split_direction_slice_contract(split_row: dict[str, Any]) -> dict[str, Any]:
+    contract = split_row.get("direction_slice_contract")
+    return contract if isinstance(contract, dict) else {}
+
+
+def _all_split_direction_slices_live(report: dict[str, Any]) -> bool:
+    rows = _splits(report)
+    names = _split_names(report)
+    if not names:
+        return False
+    for split in names:
+        contract = _split_direction_slice_contract(rows.get(split) or {})
+        if str(contract.get("decision")) != "PASS":
+            return False
+        if int(contract.get("audited_slice_count") or 0) <= 0:
+            return False
+    return True
+
+
 def _all_split_bad_path_negative(report: dict[str, Any]) -> bool:
     rows = _splits(report)
     names = _split_names(report)
@@ -463,6 +482,10 @@ def _smoke_edge_checks(
         split: _split_direction_distribution_contract(row or {})
         for split, row in _splits(report).items()
     }
+    direction_slices = {
+        split: _split_direction_slice_contract(row or {})
+        for split, row in _splits(report).items()
+    }
     gate = {
         split: {
             "row_sum_max_abs_error": (((row or {}).get("specialist_gate") or {}).get("row_sum_max_abs_error")),
@@ -606,6 +629,11 @@ def _smoke_edge_checks(
             "direction distribution covers active LONG/SHORT/FLAT classes",
             _all_split_direction_distribution_live(report),
             {"direction_distribution": direction_distribution},
+        ),
+        _check(
+            "direction context slices pass session/regime bucket diagnostics",
+            _all_split_direction_slices_live(report),
+            {"direction_slices": direction_slices},
         ),
         _check("bad_path probability ranks worse path quality higher", _all_split_bad_path_negative(report), {"bad_path_rho": bad_path_rho}),
         _check(

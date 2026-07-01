@@ -47,6 +47,7 @@ CLASS_NAMES = {0: "LONG", 1: "SHORT", 2: "FLAT"}
 MIN_DIRECTION_CLASS_LABEL_RATE_FOR_COVERAGE = 0.10
 MIN_DIRECTION_CLASS_PRED_RATE = 0.05
 MIN_DIRECTION_CLASS_PRED_TO_LABEL_RATIO = 0.35
+MIN_DIRECTION_SLICE_ROWS = 64
 HEAD_OUTPUT_KEYS = {
     "direction": "direction_logits",
     "tradable": "tradable_logit",
@@ -309,6 +310,114 @@ def _direction_distribution_contract(direction: dict[str, Any]) -> dict[str, Any
         "min_prediction_rate": MIN_DIRECTION_CLASS_PRED_RATE,
         "min_prediction_to_label_rate": MIN_DIRECTION_CLASS_PRED_TO_LABEL_RATIO,
         "classes": class_rows,
+        "failures": failures,
+    }
+
+
+def _direction_slice_contract(
+    direction_logits: np.ndarray,
+    labels: np.ndarray,
+    ctx_cat: np.ndarray,
+    ctx_cat_names: list[str],
+    *,
+    min_rows: int = MIN_DIRECTION_SLICE_ROWS,
+) -> dict[str, Any]:
+    logits = np.asarray(direction_logits, dtype=np.float64)
+    y = np.asarray(labels, dtype=np.int64).ravel()
+    cat = np.asarray(ctx_cat)
+    if cat.ndim == 1:
+        cat = cat.reshape(-1, 1)
+    if logits.shape[0] != y.shape[0] or cat.shape[0] != y.shape[0]:
+        raise RuntimeError(
+            "direction slice row mismatch: "
+            f"logits={logits.shape[0]} labels={y.shape[0]} ctx_cat={cat.shape[0]}"
+        )
+    names = list(ctx_cat_names or [])
+    if len(names) < cat.shape[1]:
+        names.extend(f"ctx_cat_{idx}" for idx in range(len(names), cat.shape[1]))
+
+    failures: list[str] = []
+    fields: dict[str, Any] = {}
+    audited_slice_count = 0
+    skipped_slice_count = 0
+    for col in range(cat.shape[1]):
+        field_name = str(names[col])
+        raw_values = cat[:, col]
+        finite = np.isfinite(raw_values.astype(np.float64, copy=False))
+        field_slices: dict[str, Any] = {}
+        for raw_value in sorted(set(int(v) for v in raw_values[finite].ravel())):
+            mask = finite & (raw_values.astype(np.int64, copy=False) == int(raw_value))
+            rows = int(mask.sum())
+            if rows < int(min_rows):
+                skipped_slice_count += 1
+                field_slices[str(raw_value)] = {
+                    "decision": "SKIP_INSUFFICIENT_ROWS",
+                    "rows": rows,
+                    "min_rows": int(min_rows),
+                }
+                continue
+            metrics = _direction_metrics(logits[mask], y[mask])
+            active_label_class_count = sum(
+                1
+                for rate in (metrics.get("label_rate") or {}).values()
+                if float(rate) >= MIN_DIRECTION_CLASS_LABEL_RATE_FOR_COVERAGE
+            )
+            if active_label_class_count < 2:
+                skipped_slice_count += 1
+                field_slices[str(raw_value)] = {
+                    "decision": "SKIP_LOW_LABEL_DIVERSITY",
+                    "rows": rows,
+                    "min_rows": int(min_rows),
+                    "active_label_class_count": int(active_label_class_count),
+                    "label_counts": metrics["label_counts"],
+                }
+                continue
+            audited_slice_count += 1
+            distribution = _direction_distribution_contract(metrics)
+            slice_failures: list[str] = []
+            if not bool(metrics.get("beats_majority_baseline")):
+                slice_failures.append(
+                    f"accuracy={float(metrics.get('accuracy') or 0.0):.6f} does not beat "
+                    f"majority={float(metrics.get('majority_baseline_accuracy') or 0.0):.6f}"
+                )
+            if str(distribution.get("decision")) != "PASS":
+                slice_failures.extend(str(item) for item in distribution.get("failures", []))
+            if slice_failures:
+                failures.extend(
+                    f"{field_name}={raw_value}: {failure}"
+                    for failure in slice_failures
+                )
+            field_slices[str(raw_value)] = {
+                "decision": "PASS" if not slice_failures else "FAIL",
+                "rows": rows,
+                "accuracy": metrics["accuracy"],
+                "majority_baseline_accuracy": metrics["majority_baseline_accuracy"],
+                "beats_majority_baseline": metrics["beats_majority_baseline"],
+                "label_counts": metrics["label_counts"],
+                "prediction_counts": metrics["prediction_counts"],
+                "direction_distribution_contract": distribution,
+                "failures": slice_failures,
+            }
+        fields[field_name] = {
+            "finite": bool(finite.all()),
+            "slice_count": len(field_slices),
+            "slices": field_slices,
+        }
+        if not bool(finite.all()):
+            failures.append(f"{field_name}: non-finite categorical slice values")
+
+    if cat.shape[1] <= 0:
+        failures.append("direction slice contract has no categorical context columns")
+    if audited_slice_count <= 0:
+        failures.append("direction slice contract has no audited slices with sufficient rows")
+
+    return {
+        "decision": "PASS" if not failures else "FAIL",
+        "min_rows": int(min_rows),
+        "ctx_cat_names": names[: cat.shape[1]],
+        "audited_slice_count": int(audited_slice_count),
+        "skipped_slice_count": int(skipped_slice_count),
+        "fields": fields,
         "failures": failures,
     }
 
@@ -1313,6 +1422,7 @@ def _audit_split(
     batch_size: int,
     dataset_kwargs: dict[str, Any],
     specialist_names: list[str],
+    ctx_cat_names: list[str],
 ) -> tuple[dict[str, Any], list[str]]:
     failures: list[str] = []
     dataset = EntryV10CtxDataset(
@@ -1327,6 +1437,7 @@ def _audit_split(
         "path_quality_pred": [],
         "bad_path_prob": [],
         "labels": [],
+        "ctx_cat": [],
         "path_quality_target": [],
         "bad_path_target": [],
         "specialist_gate": [],
@@ -1358,6 +1469,7 @@ def _audit_split(
                 failures.append(f"{parquet_path.name}: direction_logits shape={tuple(direction_logits.shape)}")
             chunks["direction_logits"].append(direction_logits.detach().cpu().float().numpy())
             chunks["labels"].append(batch["y"].detach().cpu().numpy().astype(np.int64))
+            chunks["ctx_cat"].append(batch["ctx_cat"].detach().cpu().numpy().astype(np.int64))
             chunks["path_quality_target"].append(batch["path_quality_bps"].detach().cpu().float().numpy())
             chunks["bad_path_target"].append(batch["y_bad_path"].detach().cpu().float().numpy())
             chunks["path_quality_pred"].append(out["path_quality"].detach().cpu().float().numpy().reshape(-1))
@@ -1371,6 +1483,12 @@ def _audit_split(
     }
     direction = _direction_metrics(arr["direction_logits"], arr["labels"])
     direction_distribution = _direction_distribution_contract(direction)
+    direction_slice = _direction_slice_contract(
+        arr["direction_logits"],
+        arr["labels"],
+        arr["ctx_cat"],
+        ctx_cat_names,
+    )
     path_quality_spearman = _spearman(arr["path_quality_pred"], arr["path_quality_target"])
     bad_path_spearman = _spearman(arr["bad_path_prob"], arr["path_quality_target"])
     gate_report = None
@@ -1389,6 +1507,7 @@ def _audit_split(
         "rows": int(direction["rows"]),
         "direction": direction,
         "direction_distribution_contract": direction_distribution,
+        "direction_slice_contract": direction_slice,
         "path_quality": {
             "target_mean_bps": _safe_mean(arr["path_quality_target"]),
             "pred_mean_bps": _safe_mean(arr["path_quality_pred"]),
@@ -1467,10 +1586,12 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
     for split, row in report["splits"].items():
         direction = row["direction"]
         bad_path = row["bad_path"]
+        direction_slice = row.get("direction_slice_contract") or {}
         lines.append(
             f"- `{split}` rows={row['rows']} acc={direction['accuracy']:.4f} "
             f"majority={direction['majority_baseline_accuracy']:.4f} "
             f"beats_majority={direction['beats_majority_baseline']} "
+            f"direction_slices={direction_slice.get('decision')} "
             f"bad_path_rho={bad_path['prob_vs_path_quality_spearman']}"
         )
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -1505,6 +1626,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         else int(args.min_active_specialists)
     )
     specialist_names = _specialist_names(meta)
+    ctx_cat_names = [str(name) for name in (meta.get("ordered_ctx_cat_names") or []) if str(name)]
     if args.require_specialist_fusion and not specialist_enabled:
         failures.append("bundle metadata does not enable specialist_fusion")
     bundle_specialist_model_contract = _specialist_model_contract_report(
@@ -1549,6 +1671,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             batch_size=int(args.batch_size),
             dataset_kwargs=dataset_kwargs,
             specialist_names=specialist_names,
+            ctx_cat_names=ctx_cat_names,
         )
         split_reports[split] = split_report
         failures.extend(split_failures)
@@ -1571,6 +1694,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 failures.append(
                     f"{split}: direction distribution collapsed: "
                     f"{distribution_contract.get('failures')}"
+                )
+            slice_contract = split_report.get("direction_slice_contract") or {}
+            if str(slice_contract.get("decision")) != "PASS":
+                failures.append(
+                    f"{split}: direction slice diagnostics failed: "
+                    f"{slice_contract.get('failures')}"
                 )
             rho = split_report["bad_path"]["prob_vs_path_quality_spearman"]
             if rho is None or float(rho) >= 0.0:

@@ -308,6 +308,12 @@ Active status:
   audited splits; old smoke bundles without these contracts cannot open
   candidate training, even if their older aggregate direction/PnL diagnostics
   looked acceptable.
+- Smoke bundle audit and candidate-readiness must also prove direction context
+  slice diagnostics across available categorical buckets such as session,
+  volatility regime, ATR bucket, spread bucket and H4 trend sign. Audited
+  slices with enough rows and label diversity must beat their own majority
+  baseline and preserve active class distribution, so broad accuracy around
+  0.40 cannot hide a weak regime/session bucket.
 - Raw smoke/bundle direction accuracy around 0.40 is not an acceptance metric by
   itself. It is only a sanity diagnostic against the majority baseline; Entry
   acceptance remains replay/PnL, drawdown, MAE, bad-path, class-distribution

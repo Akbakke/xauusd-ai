@@ -10,6 +10,7 @@ from gx1.scripts.audit_entry_foundation_smoke_bundle_v1 import (
     _direction_balance_recipe_contract,
     _direction_distribution_contract,
     _direction_metrics,
+    _direction_slice_contract,
     _gate_stats,
     _head_contract_report,
     _majority_baseline_accuracy,
@@ -95,6 +96,53 @@ def test_direction_distribution_contract_accepts_balanced_active_classes() -> No
 
     assert report["decision"] == "PASS"
     assert report["failures"] == []
+
+
+def test_direction_slice_contract_accepts_live_context_slices() -> None:
+    logits = np.array(
+        [
+            [4.0, 1.0, 0.0],
+            [0.0, 4.0, 1.0],
+            [0.0, 1.0, 4.0],
+            [3.0, 1.0, 0.0],
+            [4.0, 1.0, 0.0],
+            [0.0, 4.0, 1.0],
+            [0.0, 1.0, 4.0],
+            [3.0, 1.0, 0.0],
+        ],
+        dtype=np.float32,
+    )
+    labels = np.array([0, 1, 2, 2, 0, 1, 2, 2], dtype=np.int64)
+    ctx_cat = np.array([[0], [0], [0], [0], [1], [1], [1], [1]], dtype=np.int64)
+
+    report = _direction_slice_contract(logits, labels, ctx_cat, ["session_id"], min_rows=4)
+
+    assert report["decision"] == "PASS"
+    assert report["audited_slice_count"] == 2
+    assert report["fields"]["session_id"]["slices"]["0"]["decision"] == "PASS"
+
+
+def test_direction_slice_contract_rejects_slice_direction_collapse() -> None:
+    logits = np.array(
+        [
+            [0.0, 1.0, 4.0],
+            [0.0, 1.0, 4.0],
+            [0.0, 1.0, 4.0],
+            [0.0, 1.0, 4.0],
+            [4.0, 1.0, 0.0],
+            [0.0, 4.0, 1.0],
+            [0.0, 1.0, 4.0],
+            [3.0, 1.0, 0.0],
+        ],
+        dtype=np.float32,
+    )
+    labels = np.array([0, 1, 2, 2, 0, 1, 2, 2], dtype=np.int64)
+    ctx_cat = np.array([[0], [0], [0], [0], [1], [1], [1], [1]], dtype=np.int64)
+
+    report = _direction_slice_contract(logits, labels, ctx_cat, ["session_id"], min_rows=4)
+
+    assert report["decision"] == "FAIL"
+    assert any("session_id=0" in failure for failure in report["failures"])
 
 
 def test_gate_stats_checks_row_sums_and_mean_weights() -> None:
