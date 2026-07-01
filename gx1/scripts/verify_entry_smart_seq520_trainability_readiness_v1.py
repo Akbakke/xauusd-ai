@@ -62,6 +62,14 @@ DIRECTION_BALANCE_ENV_TEMPLATE = {
     "GX1_V10_CKPT_MONITOR": "dir_acc",
 }
 DIRECTION_BALANCE_ENV_KEYS = tuple(DIRECTION_BALANCE_ENV_TEMPLATE)
+DIRECTION_CONTEXT_SLICE_CONTRACT = {
+    "source": "post_smoke_audit.direction_slice_contract",
+    "ctx_cat_names": ["session_id", "vol_regime_id", "atr_bucket", "spread_bucket", "H4_trend_sign_cat"],
+    "min_rows": 64,
+    "requires_majority_baseline": True,
+    "requires_class_distribution_coverage": True,
+    "skips_low_label_diversity": True,
+}
 
 DEFAULT_POST_REBUILD_READINESS_JSON = (
     REPORTS_ROOT
@@ -197,6 +205,18 @@ def _direction_balance_recipe_review(contract: dict[str, Any]) -> dict[str, Any]
         "observed_recipe": recipe,
         "expected_env_template": DIRECTION_BALANCE_ENV_TEMPLATE,
         "observed_env_template": env_template,
+    }
+
+
+def _direction_context_slice_review(contract: dict[str, Any]) -> dict[str, Any]:
+    observed = contract.get("direction_context_slice_contract")
+    exact = isinstance(observed, dict) and observed == DIRECTION_CONTEXT_SLICE_CONTRACT
+    return {
+        "ok": bool(contract.get("requires_direction_context_slice_contract") is True and exact),
+        "requires_direction_context_slice_contract": contract.get("requires_direction_context_slice_contract"),
+        "contract_exact": exact,
+        "expected_contract": DIRECTION_CONTEXT_SLICE_CONTRACT,
+        "observed_contract": observed,
     }
 
 
@@ -379,6 +399,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         registry_training_allowed = False
     path_calibration_review = _path_calibration_recipe_review(future_train)
     direction_balance_review = _direction_balance_recipe_review(future_train)
+    direction_context_slice_review = _direction_context_slice_review(future_train)
     smoke_wrapper_path_calibration_review = _wrapper_path_calibration_env_review(smoke_wrapper_text)
     candidate_wrapper_path_calibration_review = _wrapper_path_calibration_env_review(candidate_wrapper_text)
     smoke_wrapper_direction_balance_review = _wrapper_direction_balance_env_review(smoke_wrapper_text)
@@ -436,6 +457,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "smart smoke future contract declares direction balance recipe",
             bool(direction_balance_review["ok"]),
             direction_balance_review,
+        ),
+        _check(
+            "smart smoke future contract declares direction context slice audit",
+            bool(direction_context_slice_review["ok"]),
+            direction_context_slice_review,
         ),
         _check(
             "trainer supports path calibration rank env",

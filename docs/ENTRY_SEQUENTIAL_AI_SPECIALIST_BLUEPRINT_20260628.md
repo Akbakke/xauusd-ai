@@ -246,6 +246,9 @@ The 2026-07-01 operating point is feature-harmony clean but not promotion-ready:
   audited session/regime/ATR/spread/H4-trend slice with enough rows and label
   diversity fails its own majority baseline or active class-distribution
   coverage. This prevents broad direction accuracy from hiding a broken bucket.
+- Smart smoke-manifest, smoke-readiness and trainability reports must declare
+  the same `direction_context_slice_contract` as a future post-smoke audit
+  requirement before the smart smoke train surface is treated as wired.
 - Raw direction accuracy around 0.40 is a weak sanity diagnostic, not the
   primary objective. The smart selected replay has direction precision only
   about 0.478 for candidate and 0.452 for IQL, so the next improvement must

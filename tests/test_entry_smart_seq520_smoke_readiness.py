@@ -234,8 +234,15 @@ def test_smart_seq520_smoke_readiness_passes_as_report_only(monkeypatch, tmp_pat
     assert train_contract["requires_path_calibration_recipe_contract"] is True
     assert train_contract["path_calibration_recipe_contract"] == readiness.PATH_CALIBRATION_RECIPE_CONTRACT
     assert train_contract["path_calibration_env_template"] == readiness.PATH_CALIBRATION_ENV_TEMPLATE
+    assert train_contract["requires_direction_balance_recipe_contract"] is True
+    assert train_contract["direction_balance_recipe_contract"] == readiness.DIRECTION_BALANCE_RECIPE_CONTRACT
+    assert train_contract["direction_balance_env_template"] == readiness.DIRECTION_BALANCE_ENV_TEMPLATE
+    assert train_contract["requires_direction_context_slice_contract"] is True
+    assert train_contract["direction_context_slice_contract"] == readiness.DIRECTION_CONTEXT_SLICE_CONTRACT
     train_argv = " ".join(train_contract["inner_train_argv_template"])
     for key, value in readiness.PATH_CALIBRATION_ENV_TEMPLATE.items():
+        assert f"{key}={value}" in train_argv
+    for key, value in readiness.DIRECTION_BALANCE_ENV_TEMPLATE.items():
         assert f"{key}={value}" in train_argv
     assert Path(report["json_path"]).exists()
 

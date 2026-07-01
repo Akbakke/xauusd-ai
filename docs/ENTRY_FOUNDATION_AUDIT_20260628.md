@@ -314,6 +314,10 @@ Active status:
   slices with enough rows and label diversity must beat their own majority
   baseline and preserve active class distribution, so broad accuracy around
   0.40 cannot hide a weak regime/session bucket.
+- Smart smoke-manifest, smoke-readiness and trainability must declare this
+  `direction_context_slice_contract` before a future smart smoke train can be
+  considered cleanly wired; the proof still happens in the post-smoke bundle
+  audit from the actual trained bundle.
 - Raw smoke/bundle direction accuracy around 0.40 is not an acceptance metric by
   itself. It is only a sanity diagnostic against the majority baseline; Entry
   acceptance remains replay/PnL, drawdown, MAE, bad-path, class-distribution

@@ -26,6 +26,8 @@ def _path_calibration_future_contract(wired: bool) -> dict:
         "requires_direction_balance_recipe_contract": True,
         "direction_balance_recipe_contract": dict(gate.DIRECTION_BALANCE_RECIPE_CONTRACT),
         "direction_balance_env_template": dict(gate.DIRECTION_BALANCE_ENV_TEMPLATE),
+        "requires_direction_context_slice_contract": True,
+        "direction_context_slice_contract": dict(gate.DIRECTION_CONTEXT_SLICE_CONTRACT),
         "inner_train_argv_template": [
             "env",
             *[f"{key}={value}" for key, value in gate.PATH_CALIBRATION_ENV_TEMPLATE.items()],
@@ -145,6 +147,7 @@ def test_smart_trainability_blocks_until_train_surface_exists(tmp_path: Path) ->
     assert not any(report["side_effects_started"].values())
     assert "smart smoke wrapper exposes --smart-seq520 lane" in report["blockers"]
     assert "smart smoke train is wired in control surface" in report["blockers"]
+    assert "smart smoke future contract declares direction context slice audit" in report["blockers"]
 
 
 def test_smart_trainability_can_pass_when_all_surfaces_are_wired(monkeypatch, tmp_path: Path) -> None:

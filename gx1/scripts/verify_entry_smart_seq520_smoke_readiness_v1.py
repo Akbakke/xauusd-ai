@@ -97,6 +97,14 @@ DIRECTION_BALANCE_ENV_TEMPLATE = {
     "ENTRY_DIRECTION_CE_SCALE": "1.30",
     "GX1_V10_CKPT_MONITOR": "dir_acc",
 }
+DIRECTION_CONTEXT_SLICE_CONTRACT = {
+    "source": "post_smoke_audit.direction_slice_contract",
+    "ctx_cat_names": ["session_id", "vol_regime_id", "atr_bucket", "spread_bucket", "H4_trend_sign_cat"],
+    "min_rows": 64,
+    "requires_majority_baseline": True,
+    "requires_class_distribution_coverage": True,
+    "skips_low_label_diversity": True,
+}
 
 
 def _json_default(obj: Any) -> Any:
@@ -166,6 +174,13 @@ def _direction_balance_recipe_ok(contract: dict[str, Any]) -> bool:
     if recipe != DIRECTION_BALANCE_RECIPE_CONTRACT:
         return False
     return all(env_template.get(key) == value for key, value in DIRECTION_BALANCE_ENV_TEMPLATE.items())
+
+
+def _direction_context_slice_ok(contract: dict[str, Any]) -> bool:
+    return (
+        contract.get("requires_direction_context_slice_contract") is True
+        and contract.get("direction_context_slice_contract") == DIRECTION_CONTEXT_SLICE_CONTRACT
+    )
 
 
 def _git_status_short(repo: Path) -> list[str]:
@@ -434,6 +449,8 @@ def _future_contracts(
         "requires_direction_balance_recipe_contract": True,
         "direction_balance_recipe_contract": dict(DIRECTION_BALANCE_RECIPE_CONTRACT),
         "direction_balance_env_template": dict(DIRECTION_BALANCE_ENV_TEMPLATE),
+        "requires_direction_context_slice_contract": True,
+        "direction_context_slice_contract": dict(DIRECTION_CONTEXT_SLICE_CONTRACT),
         "post_smoke_audit_argv_template": audit,
         "specialist_contract_mode": CONTRACT_MODE,
         "expected_signal_dim": EXPECTED_SIGNAL_DIM,
@@ -783,6 +800,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     "smart smoke train contract declares direction balance recipe",
                     future_contracts["smart_smoke_train"]["requires_direction_balance_recipe_contract"] is True
                     and _direction_balance_recipe_ok(future_contracts["smart_smoke_train"]),
+                    future_contracts["smart_smoke_train"],
+                ),
+                _check(
+                    "smart smoke train contract declares direction context slice audit",
+                    future_contracts["smart_smoke_train"]["requires_direction_context_slice_contract"] is True
+                    and _direction_context_slice_ok(future_contracts["smart_smoke_train"]),
                     future_contracts["smart_smoke_train"],
                 ),
                 _check(
