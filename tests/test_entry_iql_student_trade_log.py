@@ -8,7 +8,11 @@ from gx1.scripts.materialize_entry_iql_distillation_contract_v1 import (
     IQL_DISTILLATION_REQUIRED_ARTIFACT_KEYS,
     _sha256_file,
 )
-from gx1.scripts.materialize_entry_iql_student_trade_log_v1 import _apply_student_risk_filters, run
+from gx1.scripts.materialize_entry_iql_student_trade_log_v1 import (
+    _apply_student_risk_filters,
+    _row_selection_tuple,
+    run,
+)
 
 
 def _write_ready_distillation_contract(path: Path) -> None:
@@ -165,3 +169,35 @@ def test_iql_student_risk_filters_apply_bad_path_and_path_quality_veto() -> None
     )
 
     assert filtered["edge_score"].tolist() == [0.9, 0.6]
+
+
+def test_iql_student_selection_tiebreak_prefers_less_restrictive_daily_loss() -> None:
+    args = argparse.Namespace(
+        min_validation_trades=10,
+        min_validation_profit_factor=1.05,
+        max_validation_drawdown_bps=650.0,
+        max_abs_loss_bps=80.0,
+        require_validation_positive_months=True,
+        selection_objective="net",
+    )
+    metrics = {
+        "n_trades": 231,
+        "net_sum_bps": 4161.731,
+        "net_mean_bps": 18.016,
+        "profit_factor": 11.95,
+        "max_drawdown_bps": 45.0,
+        "max_loss_bps": -45.0,
+        "all_months_positive": True,
+    }
+    restrictive = {
+        "validation_metrics": metrics,
+        "daily_loss_limit_bps": 80.0,
+        "validation_eligible_rows": 17_646,
+    }
+    less_restrictive = {
+        "validation_metrics": metrics,
+        "daily_loss_limit_bps": 150.0,
+        "validation_eligible_rows": 17_646,
+    }
+
+    assert _row_selection_tuple(less_restrictive, args) > _row_selection_tuple(restrictive, args)

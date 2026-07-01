@@ -192,9 +192,16 @@ def _selection_tuple(metrics: dict[str, Any], args: argparse.Namespace) -> tuple
     return (mean_pnl, -drawdown, net, pf)
 
 
-def _row_selection_tuple(row: dict[str, Any], args: argparse.Namespace) -> tuple[float, float, float, float]:
+def _row_selection_tuple(row: dict[str, Any], args: argparse.Namespace) -> tuple[float, ...]:
     metrics = row.get("validation_metrics") if isinstance(row.get("validation_metrics"), dict) else {}
-    return _selection_tuple(metrics, args)
+    base = _selection_tuple(metrics, args)
+    if not np.isfinite(base[0]):
+        return base
+    return base + (
+        float(row.get("daily_loss_limit_bps") or 0.0),
+        float(row.get("validation_eligible_rows") or 0.0),
+        float(metrics.get("n_trades") or 0.0),
+    )
 
 
 def _parse_optional_float_grid(raw: str) -> list[float | None]:
@@ -405,7 +412,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     validation_rows: list[dict[str, Any]] = []
     selected_row: dict[str, Any] | None = None
-    selected_tuple = (-float("inf"), -float("inf"), -float("inf"), -float("inf"))
+    selected_tuple: tuple[float, ...] = (-float("inf"),) * 7
 
     for max_bad_path_prob in max_bad_path_values:
         for min_path_quality_pred in min_path_quality_values:
@@ -474,7 +481,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                                 "validation_constraints_pass": _passes_validation_constraints(metrics, args),
                             }
                             validation_rows.append(row)
-                            rank = _selection_tuple(metrics, args)
+                            rank = _row_selection_tuple(row, args)
                             if rank > selected_tuple:
                                 selected_tuple = rank
                                 selected_row = row
