@@ -25,6 +25,7 @@ EXPECTED_SIGNAL_DIM=146
 SMOKE_DATASET_SCHEMA=entry_foundation_seq146_smoke_dataset_v1
 DEVICE=auto
 EPOCHS=1
+EARLY_STOP_PATIENCE="${ENTRY_FOUNDATION_SMOKE_EARLY_STOP_PATIENCE:-1}"
 BATCH_SIZE=64
 TRAIN_ROWS=4095
 VAL_ROWS=1536
@@ -72,6 +73,7 @@ Options:
   --vedtak <id>        Required explicit user decision id for this smoke train.
   --device <auto|cpu|cuda>
   --epochs <n>         Default: 1
+  --early-stop-patience <n>  Default: 1 (epochs without val improvement before stop)
   --batch-size <n>     Default: 64
   --train-rows <n>     Default: 4095
   --val-rows <n>       Default: 1536
@@ -128,6 +130,7 @@ Smoke edge recipe env:
   ENTRY_FOUNDATION_SMOKE_CKPT_CLASS_BALANCE_GUARD_WEIGHT Default: 0.0
   ENTRY_FOUNDATION_SMOKE_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL Default: 0.0
   ENTRY_FOUNDATION_SMOKE_CKPT_CLASS_BALANCE_MIN_PRED_RATE Default: 0.0
+  ENTRY_FOUNDATION_SMOKE_EARLY_STOP_PATIENCE             Default: 1
 EOF
 }
 
@@ -136,6 +139,7 @@ while [[ $# -gt 0 ]]; do
     --vedtak) VEDTAK="$2"; shift 2 ;;
     --device) DEVICE="$2"; shift 2 ;;
     --epochs) EPOCHS="$2"; shift 2 ;;
+    --early-stop-patience) EARLY_STOP_PATIENCE="$2"; shift 2 ;;
     --batch-size) BATCH_SIZE="$2"; shift 2 ;;
     --train-rows) TRAIN_ROWS="$2"; REFRESH_SMOKE=1; shift 2 ;;
     --val-rows) VAL_ROWS="$2"; REFRESH_SMOKE=1; shift 2 ;;
@@ -352,7 +356,7 @@ CMD=(
   --m5-prebuilt-path "$M5_PREBUILT"
   --epochs "$EPOCHS"
   --batch_size "$BATCH_SIZE"
-  --early-stopping-patience 1
+  --early-stopping-patience "$EARLY_STOP_PATIENCE"
   --early-stopping-min-delta 0.0
   --num-workers 0
   --multi-tf-seq-len 16

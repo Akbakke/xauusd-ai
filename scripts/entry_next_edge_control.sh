@@ -3035,6 +3035,9 @@ PY
   smart-post-rebuild-refresh)
     APPLY=0
     VEDTAK_ID=""
+    SMART_SMOKE_TRAIN_ROWS=4095
+    SMART_SMOKE_VAL_ROWS=1536
+    SMART_SMOKE_TEST_ROWS=1536
     while [[ $# -gt 0 ]]; do
       case "$1" in
         --apply)
@@ -3045,8 +3048,20 @@ PY
           VEDTAK_ID="${2:-}"
           shift 2
           ;;
+        --train-rows)
+          SMART_SMOKE_TRAIN_ROWS="${2:-}"
+          shift 2
+          ;;
+        --val-rows)
+          SMART_SMOKE_VAL_ROWS="${2:-}"
+          shift 2
+          ;;
+        --test-rows)
+          SMART_SMOKE_TEST_ROWS="${2:-}"
+          shift 2
+          ;;
         -h|--help)
-          echo "Usage: scripts/entry_next_edge_control.sh smart-post-rebuild-refresh --apply --vedtak <id>"
+          echo "Usage: scripts/entry_next_edge_control.sh smart-post-rebuild-refresh --apply --vedtak <id> [--train-rows <n>] [--val-rows <n>] [--test-rows <n>]"
           exit 0
           ;;
         *)
@@ -3090,6 +3105,9 @@ PY
       --manifest-variant smart_seq520_candidate \
       --expected-seq-snap-width 520 \
       --batch-size 256 \
+      --train-rows "$SMART_SMOKE_TRAIN_ROWS" \
+      --val-rows "$SMART_SMOKE_VAL_ROWS" \
+      --test-rows "$SMART_SMOKE_TEST_ROWS" \
       --extreme-snap-feature session_regime.session_trend_structure_liquidity_long_score \
       --extreme-snap-rows 64 \
       --quiet
