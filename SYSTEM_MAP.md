@@ -1,22 +1,26 @@
-# ACTIVE ENTRY FOUNDATION OVERRIDE - 2026-06-28
+# ACTIVE ENTRY/EXIT SUPER AI BOT OVERRIDE - 2026-07-02
 
-This map documents the historical live GX1 chain, but the current Entry
-workstream is the foundation seq146 cleanup/audit/smoke-readiness path in
+This map documents the historical live GX1 chain, but the current Entry/Exit AI
+workstream is the smart foundation-to-replay path in
+`docs/ACTIVE_SUPER_AI_BOT_GOAL_20260702.md`,
 `docs/ENTRY_FOUNDATION_AUDIT_20260628.md` and
 `docs/ENTRY_SEQUENTIAL_AI_SPECIALIST_BLUEPRINT_20260628.md`. For current Entry
 operations, use `scripts/entry_next_edge_control.sh` for guards, including
-`foundation-guardrails` and `worktree-hygiene` before train-readiness. Optional
-foundation cleanup staging is exposed only through
-`scripts/entry_next_edge_control.sh stage-foundation-cleanup --apply --vedtak <id>`.
-The executable smoke gate is `READY_FOR_VEDTAK_SMOKE_TRAIN`; if train-readiness emits
-`READY_FOR_VEDTAK_SMOKE_TRAIN_AFTER_GIT_CLEAN`, the foundation contract is ready
-but git-clean execution hygiene still blocks trainer start. The next real
-command requires explicit user vedtak and clean git:
-`scripts/entry_next_edge_control.sh smoke-train --vedtak <id> --require-edge-audit`.
-Candidate training, replay, IQL, promotion review, shadow, and live remain
-closed until their preceding foundation gates produce explicit PASS/READY
-artifacts. Do not use older XGB/V10/Entry-IQL live-practice instructions here as
-the active operating point.
+`foundation-guardrails`, `worktree-hygiene`, readiness reports and smart
+readiness checks.
+
+Active state: `smart_seq520_candidate` is structurally ready, but old smart
+smoke evidence is still fail-closed on direction/class balance. The next smart
+train may only be a capped `smart-smoke-train` after clean git, green gate and
+explicit SMART/SEQ520 vedtak. Candidate training, replay, IQL, promotion
+review, shadow and live remain closed until their exact gates produce
+PASS/READY artifacts.
+
+Feature rule: the old foundation inputs, seq215 chart/candle inputs, smart520
+summaries, context embeddings, specialist gates and Exit state are one shared
+market-state language. Do not remove old features just because smart summaries
+exist; removal requires ablation plus replay/slice proof. Do not use older
+XGB/V10/Entry-IQL live-practice instructions here as the active operating point.
 
 # GX1 SYSTEM MAP — read this BEFORE tracing the chain or any train/serve question
 

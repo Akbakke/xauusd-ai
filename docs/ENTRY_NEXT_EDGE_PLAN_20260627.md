@@ -1,10 +1,22 @@
 # Entry Edge Rebuild Plan 2026-06-27
 
-Status: ACTIVE PLAN, not a promotion lock.
+Status: historical seed plan, superseded as active roadmap by
+`docs/ACTIVE_SUPER_AI_BOT_GOAL_20260702.md`,
+`docs/ENTRY_FOUNDATION_AUDIT_20260628.md` and
+`docs/ENTRY_SEQUENTIAL_AI_SPECIALIST_BLUEPRINT_20260628.md`.
 
-This plan replaces blind Entry Transformer retraining. The current result
-(`test_acc=0.492626`) is only a candidate improvement, not a sufficient trading
-edge. Future work must prove selective EV/PnL before any live pin.
+This plan replaced blind Entry Transformer retraining. It remains useful
+historical context for why the project moved from broad XGB/V10 accuracy toward
+sequence-aware specialist evidence. The current active path is now
+foundation_seq146 -> challenger_seq215 -> smart_seq520_candidate -> capped smart
+smoke -> candidate -> selective-edge/no-XGB ablation -> replay evidence ->
+Entry IQL -> Entry-to-Exit handoff -> Exit Transformer/IQL. No shadow/live
+decision can be made from this document alone.
+
+Current 2026-07-02 rule: `smart_seq520_candidate` is structurally ready but
+evidence-red on direction/class balance. The next smart smoke must prove the
+FLAT/class-balance repair in the main direction head and MTF direction auxiliary
+head, preserve exact specialist contracts, and improve replay-relevant slices.
 
 ## 2026-06-28 Sequential Pivot
 

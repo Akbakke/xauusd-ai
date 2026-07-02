@@ -2,6 +2,13 @@
 > Current state lives in `PROJECT_STATE_artifacts.json` (the ONE selection truth)
 > + `bash scripts/gx1_handover.sh` (live overview). Nothing below reflects the
 > fase2b/CLEAN cement era; do not act on it.
+>
+> **ACTIVE 2026-07-02 POINTER:** current Entry/Exit AI objective lives in
+> `docs/ACTIVE_SUPER_AI_BOT_GOAL_20260702.md`,
+> `docs/ENTRY_FOUNDATION_AUDIT_20260628.md` and
+> `docs/ENTRY_SEQUENTIAL_AI_SPECIALIST_BLUEPRINT_20260628.md`. The old log below
+> must not be used for training, replay, IQL, shadow, live or promotion
+> decisions.
 
 # Project State
 

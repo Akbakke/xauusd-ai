@@ -1,5 +1,13 @@
 # Feature Manifest
 
+> **ACTIVE 2026-07-02 OVERRIDE:** this generated 98-feature manifest is
+> historical for the current smart Entry work. The active feature surface is
+> governed by `docs/ACTIVE_SUPER_AI_BOT_GOAL_20260702.md`,
+> `docs/ENTRY_FOUNDATION_AUDIT_20260628.md` and
+> `docs/ENTRY_SEQUENTIAL_AI_SPECIALIST_BLUEPRINT_20260628.md`, with
+> foundation_seq146, challenger_seq215 and smart_seq520 contracts. Do not use
+> this manifest to drop features or approve training.
+
 **Version:** 1.0  
 **Generated:** 2026-01-21T15:46:52.247114  
 **Prebuilt Parquet:** `data/features/xauusd_m5_2025_features_v10_ctx.parquet`  

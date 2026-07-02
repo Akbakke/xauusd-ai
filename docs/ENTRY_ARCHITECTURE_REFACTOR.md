@@ -1,5 +1,15 @@
 # Entry Architecture Refactor Plan
 
+> **ACTIVE 2026-07-02 OVERRIDE:** this January refactor plan is historical.
+> Current Entry architecture work is governed by
+> `docs/ACTIVE_SUPER_AI_BOT_GOAL_20260702.md`,
+> `docs/ENTRY_FOUNDATION_AUDIT_20260628.md` and
+> `docs/ENTRY_SEQUENTIAL_AI_SPECIALIST_BLUEPRINT_20260628.md`. The active path
+> is foundation_seq146 -> challenger_seq215 -> smart_seq520_candidate -> capped
+> smart smoke/candidate/replay/IQL -> Entry-to-Exit handoff -> Exit
+> Transformer/IQL. Do not use this file to open training, shadow, live or
+> promotion.
+
 **Date:** 2026-01-06  
 **Goal:** Færre, bedre entry-kandidater. Markedsregimer skal være INPUT til modellen, ikke etter-gating.
 
@@ -151,6 +161,5 @@
 - [ ] OPPGAVE 2: Gate refaktor
 - [ ] OPPGAVE 3: Feature contract
 - [ ] OPPGAVE 4: Entry count target verification
-
 
 

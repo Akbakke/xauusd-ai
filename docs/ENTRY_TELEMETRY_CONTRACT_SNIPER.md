@@ -1,5 +1,13 @@
 # ENTRY TELEMETRY CONTRACT (SNIPER/NY)
 
+> **ACTIVE 2026-07-02 OVERRIDE:** this SNIPER/NY telemetry contract is
+> historical for the active smart Entry work. Current telemetry/evidence must
+> preserve smart520 feature provenance, exact specialist contracts, direction
+> balance, selected-tail direction, replay trades and Entry-to-Exit state as
+> described in `docs/ACTIVE_SUPER_AI_BOT_GOAL_20260702.md`,
+> `docs/ENTRY_FOUNDATION_AUDIT_20260628.md` and
+> `docs/ENTRY_SEQUENTIAL_AI_SPECIALIST_BLUEPRINT_20260628.md`.
+
 **Scope:** SNIPER/NY entry pipeline telemetry definitions, invariants, and verification procedures.
 
 **Last Updated:** 2026-01-05  
@@ -343,4 +351,3 @@ python3 scripts/assert_perf_invariants.py merged \
 - **Merge Implementation:** `scripts/merge_perf_summaries.py`
 - **Entry Manager:** `gx1/execution/entry_manager.py` (telemetry container, counter increments)
 - **Verify Script:** `scripts/verify_fullyear_perf.sh`
-

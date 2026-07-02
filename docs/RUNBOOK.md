@@ -1,5 +1,14 @@
 # GX1 Runbook - Operational Guidelines
 
+> **ACTIVE 2026-07-02 OVERRIDE:** this runbook contains older operational
+> guidance. Current Entry/Exit AI work is governed by
+> `docs/ACTIVE_SUPER_AI_BOT_GOAL_20260702.md`,
+> `docs/ENTRY_FOUNDATION_AUDIT_20260628.md` and
+> `docs/ENTRY_SEQUENTIAL_AI_SPECIALIST_BLUEPRINT_20260628.md`. No training,
+> replay, IQL, shadow, live or promotion may be launched from this older
+> runbook unless the current control surface reports the gate as ready and a
+> matching explicit vedtak exists.
+
 **Last Updated:** 2025-12-15
 
 ---
@@ -1304,4 +1313,3 @@ After running execution smoke test, verify:
 - Pipeline Overview: `docs/pipeline/PIPELINE_OVERVIEW.md`
 - Invariants: `docs/pipeline/INVARIANTS_AND_CHECKS.md`
 - Trade Journal: `gx1/monitoring/trade_journal.py`
-

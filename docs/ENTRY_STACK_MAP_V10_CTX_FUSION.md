@@ -1,5 +1,13 @@
 # ENTRY Stack Map: V10_CTX Fusion Architecture
 
+> **ACTIVE 2026-07-02 OVERRIDE:** this file maps an older V10_CTX fusion design.
+> Current Entry work is governed by
+> `docs/ACTIVE_SUPER_AI_BOT_GOAL_20260702.md`,
+> `docs/ENTRY_FOUNDATION_AUDIT_20260628.md` and
+> `docs/ENTRY_SEQUENTIAL_AI_SPECIALIST_BLUEPRINT_20260628.md`. The active smart
+> path is `smart_seq520_candidate`; broad XGB/V10 fusion notes below are
+> historical unless explicitly revalidated by the current gates.
+
 **Date:** 2026-01-07  
 **Purpose:** Complete SSoT mapping of ENTRY stack before implementing "Gated Fusion + calibrated XGB + uncertainty signals"  
 **Status:** Phase 0 - Mapping Only (No Logic Changes)

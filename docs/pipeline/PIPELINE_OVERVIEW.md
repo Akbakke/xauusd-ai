@@ -1,5 +1,14 @@
 # GX1 Pipeline Overview - Single Source of Truth
 
+> **ACTIVE 2026-07-02 OVERRIDE:** this 2025 PROD_BASELINE pipeline overview is
+> historical. Current Entry/Exit AI work is governed by
+> `docs/ACTIVE_SUPER_AI_BOT_GOAL_20260702.md`,
+> `docs/ENTRY_FOUNDATION_AUDIT_20260628.md` and
+> `docs/ENTRY_SEQUENTIAL_AI_SPECIALIST_BLUEPRINT_20260628.md`. The active path
+> is smart520 Entry evidence, replay-proven Entry IQL, Entry-to-Exit handoff,
+> then Exit Transformer/IQL. No train/replay/shadow/live decision may rely on
+> this older pipeline overview alone.
+
 **Last Updated:** 2025-12-15  
 **Status:** PROD_BASELINE (V3_RANGE + Guardrail)
 

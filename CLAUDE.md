@@ -1,10 +1,19 @@
-# ACTIVE ENTRY FOUNDATION OVERRIDE - 2026-06-28
+# ACTIVE ENTRY/EXIT SUPER AI BOT OVERRIDE - 2026-07-02
 
-The current Entry workstream is governed by
+The current Entry/Exit AI workstream is governed by
+`docs/ACTIVE_SUPER_AI_BOT_GOAL_20260702.md`,
 `docs/ENTRY_FOUNDATION_AUDIT_20260628.md` and
 `docs/ENTRY_SEQUENTIAL_AI_SPECIALIST_BLUEPRINT_20260628.md`. The older
-2026-06-27 no-XGB shadow plan is historical pre-foundation evidence, not the
-active operating point.
+2026-06-27 no-XGB shadow plan and older live-practice instructions are
+historical evidence, not the active operating point.
+
+Active goal: build one replay-proven XAUUSD policy where all Entry and Exit
+inputs cooperate as a shared market-state language. `smart_seq520_candidate` is
+structurally ready but old smart smoke evidence remains fail-closed on
+direction/class balance. The next SMART/SEQ520 smoke must prove repaired FLAT
+calibration, main direction loss, MTF direction auxiliary loss, checkpoint guard,
+specialist liveness, path calibration, selected-tail direction and Exit-bound
+smart state preservation.
 
 Current allowed path:
 - `scripts/entry_next_edge_control.sh verify`
@@ -16,6 +25,8 @@ Current allowed path:
 - `scripts/entry_next_edge_control.sh train-readiness`
 - after explicit user vedtak only:
   `scripts/entry_next_edge_control.sh smoke-train --vedtak <id> --require-edge-audit`
+- after explicit SMART/SEQ520 user vedtak only:
+  `scripts/entry_next_edge_control.sh smart-smoke-train --vedtak <id> --require-edge-audit`
 
 Current blocked path:
 - no generic train/retrain, promote, pin, shadow, paper/live order placement, or
@@ -27,6 +38,9 @@ Current blocked path:
   git-clean execution hygiene both pass; `READY_FOR_VEDTAK_SMOKE_TRAIN_AFTER_GIT_CLEAN`
   means the foundation contract is ready but real trainer start is still blocked
 - downstream gates remain closed
+- no shadow/live/promotion until Entry Transformer, Entry IQL, Exit Transformer
+  and Exit IQL are replay-proven as one live-equivalent policy
+- heavy jobs must preserve RAM headroom and use capped runners where required
 
 # GX1 — operational constitution (read every session)
 

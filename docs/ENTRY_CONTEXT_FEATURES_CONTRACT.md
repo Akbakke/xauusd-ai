@@ -1,5 +1,14 @@
 # Entry Context Features Contract
 
+> **ACTIVE 2026-07-02 OVERRIDE:** current context governance is the smart520
+> Entry/Exit feature language, not this January 7-feature contract alone. The
+> active categorical context is `ctx_cat=5`: `session_id`, `vol_regime_id`,
+> `atr_bucket`, `spread_bucket` and `H4_trend_sign_cat`; continuous context is
+> audited separately. Read `docs/ACTIVE_SUPER_AI_BOT_GOAL_20260702.md`,
+> `docs/ENTRY_FOUNDATION_AUDIT_20260628.md` and
+> `docs/ENTRY_SEQUENTIAL_AI_SPECIALIST_BLUEPRINT_20260628.md` before changing
+> context routing.
+
 **Date:** 2026-01-06  
 **Status:** STEP 2 - Contract Definition  
 **Purpose:** Define context features as MODEL INPUT (not gates)

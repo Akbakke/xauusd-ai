@@ -1,5 +1,12 @@
 # Entry Architecture Refactor - Implementation Plan
 
+> **ACTIVE 2026-07-02 OVERRIDE:** this January architecture plan is historical.
+> Current work is the smart Entry-to-Exit AI roadmap in
+> `docs/ACTIVE_SUPER_AI_BOT_GOAL_20260702.md`,
+> `docs/ENTRY_FOUNDATION_AUDIT_20260628.md` and
+> `docs/ENTRY_SEQUENTIAL_AI_SPECIALIST_BLUEPRINT_20260628.md`. Do not use this
+> file to justify new training, replay, shadow, live or promotion decisions.
+
 **Date:** 2026-01-06  
 **Status:** Plan (ikke implementert enda)  
 **Goal:** Færre, bedre entry-kandidater. Markedsregimer som INPUT, ikke gates.
@@ -425,6 +432,5 @@ else:
 6. ⏳ OPPGAVE 4: Verifiser entry count reduction
 
 **Start med STEP 1 (hard eligibility) - lav risiko, høy verdi.**
-
 
 

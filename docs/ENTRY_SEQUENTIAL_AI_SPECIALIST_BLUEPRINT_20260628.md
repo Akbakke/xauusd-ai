@@ -1,11 +1,15 @@
 # Entry Sequential AI Specialist Blueprint
 
-Status: machine-audited feature grouping contracts exist. The active canonical
-Entry foundation remains `foundation_seq146`, and `train-readiness` is green
-for a vedtak-gated smoke run. The `challenger_seq215` path is now an audited
-8-specialist challenger contract, but it is not candidate/replay/IQL evidence
-until its own real smoke train and post-smoke edge audit pass. Do not promote
-from either path until smoke training, replay and explicit promotion gates pass.
+Status: machine-audited feature grouping contracts exist. The active super-AI
+objective is recorded in `docs/ACTIVE_SUPER_AI_BOT_GOAL_20260702.md`. The active
+canonical Entry foundation remains `foundation_seq146`; `challenger_seq215` is
+an audited 8-specialist intermediate; `smart_seq520_candidate` is the active
+smart evidence contract for the next capped SMART/SEQ520 smoke. Smart smoke and
+trainability are structurally ready, but smart direction benchmark evidence is
+still fail-closed because old smart smoke underpredicts FLAT and overcalls
+LONG/SHORT. Do not promote from any path until smoke training, candidate
+training, replay, IQL and explicit promotion gates pass as one Entry-to-Exit
+policy.
 
 Machine contract:
 
@@ -30,6 +34,11 @@ Machine contract:
   - Must validate both the pre-train manifest specialist model contract and the
     trained bundle metadata's preserved `bundle_specialist_model_contract` for
     the declared contract mode.
+  - For `smart_seq520_candidate`, must also preserve the repaired direction
+    objective, including `direction_balance_recipe_contract=PASS`,
+    `best_direction_balance_guard_ok=true` and
+    `mtf_dir_aux_uses_direction_balance_repair=true` when MTF direction aux is
+    active.
 - Train-readiness gate:
   `gx1/scripts/verify_entry_training_readiness_v1.py`
 - Worktree-hygiene gate:
@@ -218,6 +227,29 @@ Machine contract:
 - Latest report:
   `/home/andre2/GX1_DATA/reports/entry_specialist_feature_group_audit_20260628_v1/ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_latest.json`
 - Current decision: `PASS` on the active seq146 foundation dataset.
+
+## Current Evidence Status - 2026-07-02
+
+The active evidence stack is feature-harmony clean but not edge-proven:
+
+- `foundation_seq146` remains the canonical activated foundation.
+- `challenger_seq215` remains the audited chart/candle 8-specialist
+  intermediate.
+- `smart_seq520_candidate` is the active smart evidence contract: 520 seq/snap
+  signals, 142 continuous context fields, 5 categorical context embeddings and
+  305 smart mechanism features.
+- Smart smoke-readiness and smart trainability are structurally ready.
+- Smart direction benchmark remains not ready because old smart smoke evidence
+  regresses against foundation/seq215 on direction accuracy and class balance.
+- The immediate repaired learning contract is: direction CE scale positive,
+  `ENTRY_PRED_BALANCE_ALPHA=0.20`, FLAT-weighted
+  `ENTRY_PRED_BALANCE_CLASS_WEIGHTS=1.0,1.0,4.0`, `GX1_V10_CKPT_MONITOR=dir_acc`,
+  active checkpoint class-balance guard, MTF direction aux sharing the same
+  repair, path-quality ranking, tail-direction CE, symmetric validation and
+  exact specialist contract preservation.
+- The next proof is a new capped SMART/SEQ520 smoke with post-smoke edge audit.
+  Until that exists, candidate-readiness, replay-readiness, IQL authority,
+  Exit training, shadow, live and promotion remain closed.
 
 ## Current Evidence Status - 2026-07-01
 

@@ -1,5 +1,23 @@
 # Decision Log
 
+## 2026-07-02 - Active Super AI Bot Objective
+
+- Current objective is a fully automated XAUUSD Entry-to-Exit policy where all
+  Entry and Exit features share one calibrated market-state language.
+- Active source-of-truth docs are
+  `docs/ACTIVE_SUPER_AI_BOT_GOAL_20260702.md`,
+  `docs/ENTRY_FOUNDATION_AUDIT_20260628.md` and
+  `docs/ENTRY_SEQUENTIAL_AI_SPECIALIST_BLUEPRINT_20260628.md`.
+- `smart_seq520_candidate` is structurally ready for SMART/SEQ520 smoke review,
+  but old smart smoke evidence remains fail-closed on direction/class balance:
+  FLAT is underpredicted and LONG/SHORT are overcalled.
+- The next smart training path must prove the repaired direction objective:
+  main direction loss and MTF direction auxiliary loss use the same
+  FLAT/class-balance repair, checkpoint guard and bundle-audit provenance.
+- No candidate training, replay, IQL distillation, shadow, live or promotion is
+  approved. Any real trainer requires clean git, current readiness PASS and an
+  explicit matching vedtak. Heavy jobs must preserve RAM headroom.
+
 ## 2026-04-27 - V2 Revalidation Before More Search
 
 - Constrained Optuna on the green selected V3 OOF root produced a safe but weak 56 bad / 55 tail candidate.

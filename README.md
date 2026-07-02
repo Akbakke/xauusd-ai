@@ -1,4 +1,32 @@
-# GX1 / FARM – Active Runtime
+# GX1 / FARM - Active Runtime
+
+## Active Objective - 2026-07-02
+
+Current active work is the Entry-to-Exit smart AI bot foundation, not the older
+V9/FARM live-runtime description below. Read
+`docs/ACTIVE_SUPER_AI_BOT_GOAL_20260702.md`,
+`docs/ENTRY_FOUNDATION_AUDIT_20260628.md` and
+`docs/ENTRY_SEQUENTIAL_AI_SPECIALIST_BLUEPRINT_20260628.md` before acting.
+
+The goal is one replay-proven XAUUSD policy where all Entry and Exit inputs
+share a calibrated market-state language: structure/swing, SMC/liquidity,
+trend/EMA, momentum/flow, volatility/compression, session/regime,
+spread/ATR, support/resistance, chart geometry, candles and multi-timeframe
+context. The old foundation features remain source language; smart features are
+audited summaries on top, not replacements.
+
+Current operating point:
+
+- `smart_seq520_candidate` is structurally ready for a capped SMART/SEQ520 smoke
+  run, but the smart direction benchmark is still fail-closed.
+- Known defect to prove repaired: FLAT is underpredicted and LONG/SHORT are
+  overcalled in old smart smoke evidence.
+- Recent trainer/audit repair: main direction loss and MTF direction auxiliary
+  loss now share the same FLAT/class-balance repair; bundle audit must preserve
+  that proof.
+- No training, replay, IQL, shadow, live or promotion may start unless the
+  matching gate is green and the required explicit vedtak exists.
+- Heavy runs must preserve RAM headroom and use capped runners where required.
 
 ## Reports
 

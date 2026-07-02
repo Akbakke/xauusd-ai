@@ -1,5 +1,12 @@
 # Fase-2B rebuild — exact order, inputs, dependencies (learned 2026-06-05, hard-won)
 
+> **ACTIVE 2026-07-02 OVERRIDE:** this Fase-2B rebuild order is historical.
+> Current Entry/Exit AI work is governed by
+> `docs/ACTIVE_SUPER_AI_BOT_GOAL_20260702.md`,
+> `docs/ENTRY_FOUNDATION_AUDIT_20260628.md` and
+> `docs/ENTRY_SEQUENTIAL_AI_SPECIALIST_BLUEPRINT_20260628.md`. Do not use this
+> file to open training, replay, IQL, shadow, live or promotion.
+
 READ THIS before running/resuming the rebuild. It captures the precise ordering, the fail-closed guards,
 and the dims map — so we COME HERE AND READ instead of re-scanning the whole chain every session. Each
 fact below was discovered by hitting a fail-closed guard and verifying the fix against the cement artifacts.

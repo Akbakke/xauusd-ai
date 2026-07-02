@@ -1,5 +1,13 @@
 # SYSTEM SPEC: SNIPER & FARM Unified Architecture
 
+> **ACTIVE 2026-07-02 OVERRIDE:** this SNIPER/FARM spec is historical context.
+> Current Entry/Exit AI work is governed by
+> `docs/ACTIVE_SUPER_AI_BOT_GOAL_20260702.md`,
+> `docs/ENTRY_FOUNDATION_AUDIT_20260628.md` and
+> `docs/ENTRY_SEQUENTIAL_AI_SPECIALIST_BLUEPRINT_20260628.md`. The active goal
+> is one smart Entry-to-Exit XAUUSD policy with shared feature language, not the
+> old split SNIPER/FARM operating model.
+
 **Generert:** 2025-12-28  
 **Status:** Konsolidert kunnskapsgrunnlag for videreutvikling  
 **Formål:** Blueprint for FARM/SNIPER-fordeling som to spesialiserte motorer
@@ -848,4 +856,3 @@ python3 gx1/scripts/analyze_trades_by_regime.py \
 
 **Dokument Status:** ✅ Komplett  
 **Neste Steg:** Implementer P1 (p_long 0.80) CANARY config og deploy
-

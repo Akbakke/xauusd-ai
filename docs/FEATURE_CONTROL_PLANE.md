@@ -1,5 +1,13 @@
 # Feature Control Plane
 
+> **ACTIVE 2026-07-02 OVERRIDE:** current feature governance for Entry/Exit AI
+> is the feature harmony and smart520 contract in
+> `docs/ACTIVE_SUPER_AI_BOT_GOAL_20260702.md`,
+> `docs/ENTRY_FOUNDATION_AUDIT_20260628.md` and
+> `docs/ENTRY_SEQUENTIAL_AI_SPECIALIST_BLUEPRINT_20260628.md`. Every active
+> input must be routed, explicitly excluded, live, finite, hashed and
+> non-collapsed before it can feed training/replay gates.
+
 **Version:** 2.0  
 **Purpose:** Single Source of Truth (SSoT) for feature definitions, contracts, and validation.
 

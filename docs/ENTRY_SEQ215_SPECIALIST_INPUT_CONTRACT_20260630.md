@@ -4,6 +4,15 @@ Status: report-only proof note for `challenger_seq215`. Do not treat this as
 training approval. Smoke training, candidate training, replay, IQL, shadow,
 live and promotion remain closed behind their normal gates.
 
+2026-07-02 update: this document is an intermediate contract, not the active
+super-AI target. The active roadmap is
+`docs/ACTIVE_SUPER_AI_BOT_GOAL_20260702.md`. `challenger_seq215` proves the
+8-specialist chart/candle extension, while `smart_seq520_candidate` is the
+current smart evidence contract for the next capped SMART/SEQ520 smoke. Seq215
+features must remain traceable and may feed smart520/Exit state, but seq215 does
+not replace foundation features and has no candidate/replay/IQL authority until
+its own gates pass.
+
 ## Sources
 
 - Machine contract: `gx1/features/entry_specialist_feature_groups_v1.py`

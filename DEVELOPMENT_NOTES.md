@@ -1,5 +1,14 @@
 # Development Notes
 
+## Active Docs First
+
+For current Entry/Exit AI work, read
+`docs/ACTIVE_SUPER_AI_BOT_GOAL_20260702.md`,
+`docs/ENTRY_FOUNDATION_AUDIT_20260628.md` and
+`docs/ENTRY_SEQUENTIAL_AI_SPECIALIST_BLUEPRINT_20260628.md` before editing.
+Those files define the current fail-closed gates, smart520 roadmap, RAM
+discipline and no-shadow/no-live/no-promotion rule.
+
 ## Code Quality Checklist
 
 **IMPORTANT: Before committing any changes, always verify:**
@@ -55,4 +64,3 @@ Some third-party libraries may not have type stubs:
 4. Stage changes: `git add <files>`
 5. Commit with descriptive message
 6. Push to GitHub
-

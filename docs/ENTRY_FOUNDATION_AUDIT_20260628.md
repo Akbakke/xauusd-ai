@@ -133,6 +133,22 @@ Replay-readiness must preserve that same fail-closed rule: `smart_seq520_candida
 cannot become replay/IQL authority with a weak or stale FLAT-repair
 `direction_balance_recipe_contract`.
 
+Active Super AI Bot Objective - 2026-07-02: the current target is recorded in
+`docs/ACTIVE_SUPER_AI_BOT_GOAL_20260702.md`. Treat it as the high-level roadmap
+for all Entry/Exit AI work. The operating point is: foundation_seq146 is
+canonical, challenger_seq215 is an audited 8-specialist intermediate, and
+smart_seq520_candidate is the active smart evidence contract for the next capped
+smoke. Smart520 is structurally ready but not evidence-ready: the old smart
+smoke benchmark still fails direction/class-balance checks. The next SMART/SEQ520
+smoke must prove the repaired direction objective, including main direction
+loss, MTF direction auxiliary loss, FLAT/class-balance checkpoint guard,
+selected-tail direction, path calibration, specialist liveness and Exit-bound
+smart state preservation. No old feature may be removed merely because a smart
+summary exists; removal requires ablation plus replay/slice proof that tradable
+edge improves. No shadow/live/promotion path opens until the whole Entry
+Transformer -> Entry IQL -> Exit Transformer -> Exit IQL policy is replay-proven
+as one live-equivalent system.
+
 `<id>` in `--vedtak <id>` is a deliberate human approval token, not a report id
 that the scripts invent automatically. Activation apply requires the
 `ENTRY_FOUNDATION_ACTIVATE_` prefix, for example
@@ -250,6 +266,28 @@ touch live paths.
 must keep Exit Transformer/IQL training closed until that substrate exists with
 explicit trade, bar-state, entry-context and replay-identity fields and has
 been audited.
+
+## Current Operating Status - 2026-07-02
+
+Active state:
+
+- Worktree hygiene is `PASS_CLEAN_GIT`.
+- `smart_seq520_candidate` is the active smart evidence contract for the next
+  capped SMART/SEQ520 smoke path.
+- Smart smoke-readiness and smart trainability are structurally ready, but smart
+  direction benchmark readiness is false.
+- Known blocker: old smart smoke evidence still has direction accuracy
+  regressions versus foundation/seq215 baselines and class-balance regressions,
+  with FLAT underpredicted and LONG/SHORT overcalled.
+- Latest trainer/audit repair: the main direction objective and MTF direction
+  auxiliary objective now use the same FLAT/class-balance repair, and smart
+  bundle audit must preserve `mtf_dir_aux_uses_direction_balance_repair=true`
+  when MTF direction aux is active.
+- Next real action is not automatic training. It is a capped
+  `smart-smoke-train --vedtak <id> --require-edge-audit` only after clean git,
+  current readiness and an explicit SMART/SEQ520 smoke-train vedtak.
+- Candidate training, replay, IQL distillation, Exit training, shadow, live and
+  promotion remain closed until their own gates pass.
 
 ## Current Operating Status - 2026-07-01
 

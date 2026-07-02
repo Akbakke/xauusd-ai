@@ -1,5 +1,16 @@
 # Canonical EXIT Status
 
+> **ACTIVE 2026-07-02 OVERRIDE:** current Exit work is not the 2026-03-14
+> canonical bundle below. Exit is now a report-only downstream track for the
+> active Entry-to-Exit smart AI objective in
+> `docs/ACTIVE_SUPER_AI_BOT_GOAL_20260702.md`,
+> `docs/ENTRY_FOUNDATION_AUDIT_20260628.md` and
+> `docs/ENTRY_SEQUENTIAL_AI_SPECIALIST_BLUEPRINT_20260628.md`. Exit Transformer
+> and Exit IQL training remain closed until Entry replay evidence and the Exit
+> feature-alignment/reconstruction/state-reward/split/architecture/training
+> gates are ready. No shadow/live/promotion decision may use the historical
+> bundle details below.
+
 **Updated (UTC):** 2026-03-14  
 
 ## Current Canonical EXIT

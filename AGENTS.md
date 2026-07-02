@@ -1,10 +1,26 @@
-# ACTIVE ENTRY FOUNDATION OVERRIDE - 2026-06-28
+# ACTIVE ENTRY/EXIT SUPER AI BOT OVERRIDE - 2026-07-02
 
-Read `docs/ENTRY_FOUNDATION_AUDIT_20260628.md` and
+Read `docs/ACTIVE_SUPER_AI_BOT_GOAL_20260702.md`,
+`docs/ENTRY_FOUNDATION_AUDIT_20260628.md` and
 `docs/ENTRY_SEQUENTIAL_AI_SPECIALIST_BLUEPRINT_20260628.md` before acting on
-Entry work. They supersede older XGB/V10/Entry-IQL live-practice instructions in
-this file. The 2026-06-27 no-XGB shadow plan is historical pre-foundation
-evidence, not the active operating point.
+Entry/Exit AI work. They supersede older XGB/V10/Entry-IQL live-practice
+instructions in this file. The 2026-06-27 no-XGB shadow plan and the older
+runtime notes below are historical context, not the active operating point.
+
+Active goal: build one replay-proven XAUUSD super AI bot where all Entry and
+Exit inputs cooperate as a shared market-state language. Foundation features,
+seq215 chart/candle inputs, smart520 mechanism summaries, context embeddings,
+specialist-gate outputs and Exit state must remain routed, live, hashed,
+non-collapsed and explainable by mechanism. Smart features do not replace the
+old foundation features unless an exact ablation plus replay/slice proof shows
+edge improves.
+
+Current status: `smart_seq520_candidate` is structurally ready, but old smart
+smoke evidence is still fail-closed on direction/class balance. The known
+failure mode is FLAT underprediction with LONG/SHORT overcalls. The trainer now
+applies the FLAT/class-balance repair to both the main direction objective and
+the MTF direction auxiliary objective, and bundle audit must preserve
+`mtf_dir_aux_uses_direction_balance_repair=true`.
 
 Use only the canonical control surface for this wave:
 - `scripts/entry_next_edge_control.sh verify`
@@ -16,6 +32,8 @@ Use only the canonical control surface for this wave:
 - `scripts/entry_next_edge_control.sh train-readiness`
 - after explicit user vedtak only:
   `scripts/entry_next_edge_control.sh smoke-train --vedtak <id> --require-edge-audit`
+- for the active smart path, after explicit SMART/SEQ520 vedtak only:
+  `scripts/entry_next_edge_control.sh smart-smoke-train --vedtak <id> --require-edge-audit`
 
 Readiness is `READY_FOR_VEDTAK_SMOKE_TRAIN` only when foundation gates and
 git-clean execution hygiene both pass. `READY_FOR_VEDTAK_SMOKE_TRAIN_AFTER_GIT_CLEAN`
@@ -25,8 +43,10 @@ promotion review, shadow, and live remain closed until their preceding
 foundation gates produce explicit PASS/READY artifacts.
 
 Do not start legacy live/practice/OANDA order paths, old V10/XGB/ET research
-launchers, direct `v12_paper_runner`, or promotion/pin/live actions without the
-foundation-specific gate and explicit user vedtak.
+launchers, direct `v12_paper_runner`, replay, IQL, promotion, shadow or live
+actions without the current gate, clean git and explicit matching vedtak. Heavy
+train/replay jobs must preserve RAM headroom and use capped runners where the
+readiness report requires them.
 
 # GX1 Agent Guardrails
 
