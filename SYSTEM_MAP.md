@@ -9,6 +9,11 @@ operations, use `scripts/entry_next_edge_control.sh` for guards, including
 `foundation-guardrails`, `worktree-hygiene`, readiness reports and smart
 readiness checks.
 
+Foundation smoke readiness is the literal gate
+`READY_FOR_VEDTAK_SMOKE_TRAIN`; smart smoke still requires clean git, green
+smart gates and an explicit SMART/SEQ520 vedtak. Canonical gated smoke command:
+`smoke-train --vedtak <id> --require-edge-audit`.
+
 Active state: `smart_seq520_candidate` is structurally ready, but old smart
 smoke evidence is still fail-closed on direction/class balance. The next smart
 train may only be a capped `smart-smoke-train` after clean git, green gate and

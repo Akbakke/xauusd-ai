@@ -15,6 +15,12 @@ non-collapsed and explainable by mechanism. Smart features do not replace the
 old foundation features unless an exact ablation plus replay/slice proof shows
 edge improves.
 
+Foundation smoke readiness is the literal gate
+`READY_FOR_VEDTAK_SMOKE_TRAIN`; it opens only vedtak review, not ungated
+training, replay, shadow or live. Canonical gated smoke command:
+`smoke-train --vedtak <id> --require-edge-audit`. Required preflight includes
+`foundation-guardrails`.
+
 Current status: `smart_seq520_candidate` is structurally ready, but old smart
 smoke evidence is still fail-closed on direction/class balance. The known
 failure mode is FLAT underprediction with LONG/SHORT overcalls. The trainer now

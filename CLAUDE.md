@@ -15,6 +15,11 @@ calibration, main direction loss, MTF direction auxiliary loss, checkpoint guard
 specialist liveness, path calibration, selected-tail direction and Exit-bound
 smart state preservation.
 
+Foundation smoke readiness is the literal gate
+`READY_FOR_VEDTAK_SMOKE_TRAIN`; even then trainer start still requires clean git
+and an explicit matching vedtak. Canonical gated smoke command:
+`smoke-train --vedtak <id> --require-edge-audit`.
+
 Current allowed path:
 - `scripts/entry_next_edge_control.sh verify`
 - `scripts/entry_next_edge_control.sh selftest`
