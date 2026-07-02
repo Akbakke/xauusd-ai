@@ -2093,6 +2093,20 @@ def _direction_ce_sample_weight(
     return ce_sample_weight
 
 
+def _direction_aux_ce_loss(
+    aux_logits: torch.Tensor,
+    targets: torch.Tensor,
+    criterion: CostSensitiveCrossEntropyLoss,
+    ce_sample_weight: torch.Tensor,
+) -> torch.Tensor:
+    aux_ce_per = criterion.ce(aux_logits, targets)
+    aux_weight = ce_sample_weight.to(device=aux_ce_per.device, dtype=aux_ce_per.dtype)
+    aux_ce = (aux_ce_per * aux_weight).mean()
+    aux_probs = torch.softmax(aux_logits, dim=1)
+    aux_balance = _direction_balance_term(aux_probs, targets, criterion)
+    return aux_ce + aux_balance
+
+
 def _aux_selector_mask(
     y_selector_long_mask: torch.Tensor,
     y_selector_short_mask: torch.Tensor,
@@ -2495,13 +2509,12 @@ def train_epoch(
             loss = loss + 0.2 * hold_horizon_loss  # reduced from 0.3 after first retrain
 
         # Forceful MTF→direction aux CE (2026-06-06): force the multi-TF repr to
-        # predict direction (LONG/SHORT/FLAT). Mirrors the MAIN direction CE
-        # (criterion.ce = class-weighted, full-batch — same weighting as the
-        # symmetric-negatives recipe), NOT selector-masked, so the 5 multi-TF
-        # streams learn full directional signal and genuinely inform direction.
+        # predict direction (LONG/SHORT/FLAT). Mirrors the active direction
+        # repair recipe: class weights, bad-path/side sample weights and
+        # prediction-balance, NOT selector-masked.
         if "mtf_dir_logits" in out and float(ENTRY_MTF_DIR_AUX_WEIGHT) > 0.0:
-            mtf_dir_ce = criterion.ce(out["mtf_dir_logits"], y).mean()
-            loss = loss + float(ENTRY_MTF_DIR_AUX_WEIGHT) * mtf_dir_ce
+            mtf_dir_loss = _direction_aux_ce_loss(out["mtf_dir_logits"], y, criterion, ce_sample_weight)
+            loss = loss + float(ENTRY_MTF_DIR_AUX_WEIGHT) * mtf_dir_loss
 
         # Dip-head (18, pinball) + forecast-head (4, smooth_l1). Returns a 0-tensor
         # if heads/targets absent (gated) → harmless. Conservative weight (0.2):
@@ -3069,6 +3082,9 @@ def validate(
                     )
                     loss = loss + clean_edge_rank_loss
                     clean_edge_rank_loss_sum += float(clean_edge_rank_loss.item()) * y.shape[0]
+            if "mtf_dir_logits" in out and float(ENTRY_MTF_DIR_AUX_WEIGHT) > 0.0:
+                mtf_dir_loss = _direction_aux_ce_loss(out["mtf_dir_logits"], y, criterion, ce_sample_weight)
+                loss = loss + float(ENTRY_MTF_DIR_AUX_WEIGHT) * mtf_dir_loss
             bs = y.shape[0]
             total += float(loss) * bs
             total_ce += float(ce_loss) * bs

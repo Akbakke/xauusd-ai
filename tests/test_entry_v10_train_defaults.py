@@ -108,6 +108,44 @@ def test_entry_v10_train_and_validate_apply_pred_balance_loss_directly() -> None
     assert text.count("_direction_balance_term(probs, y, criterion)") >= 2
 
 
+def test_entry_v10_direction_aux_loss_uses_sample_weight_and_balance() -> None:
+    import torch
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    logits = torch.tensor(
+        [
+            [5.0, -2.0, -2.0],
+            [5.0, -2.0, -2.0],
+            [5.0, -2.0, -2.0],
+        ],
+        dtype=torch.float32,
+    )
+    targets = torch.tensor([0, 1, 2], dtype=torch.long)
+    sample_weight = torch.tensor([1.0, 1.0, 5.0], dtype=torch.float32)
+    criterion = trainer.CostSensitiveCrossEntropyLoss(
+        class_weights=None,
+        cost_matrix=torch.zeros((3, 3), dtype=torch.float32),
+        cost_scale=0.0,
+        enabled=False,
+        balance_alpha=0.20,
+        balance_target="label",
+        balance_class_weights=torch.tensor([1.0, 1.0, 4.0], dtype=torch.float32),
+    )
+
+    loss = trainer._direction_aux_ce_loss(logits, targets, criterion, sample_weight)
+    weighted_ce = (criterion.ce(logits, targets) * sample_weight).mean()
+    balance_term = trainer._direction_balance_term(torch.softmax(logits, dim=1), targets, criterion)
+
+    assert torch.allclose(loss, weighted_ce + balance_term)
+    assert float(loss.item()) > float(criterion.ce(logits, targets).mean().item())
+
+
+def test_entry_v10_train_and_validate_apply_mtf_aux_direction_repair() -> None:
+    text = TRAINER_PATH.read_text(encoding="utf-8")
+    assert text.count("_direction_aux_ce_loss(out[\"mtf_dir_logits\"], y, criterion, ce_sample_weight)") >= 2
+
+
 def test_entry_v10_train_and_validate_share_symmetric_aux_helpers() -> None:
     text = TRAINER_PATH.read_text(encoding="utf-8")
     assert text.count("_direction_ce_sample_weight(") >= 3
