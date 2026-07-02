@@ -834,6 +834,19 @@ def _direction_balance_recipe_contract(
         recipe.get("pred_balance_class_weights", meta.get("pred_balance_class_weights")),
         [1.0, 1.0, 1.0],
     )
+    enable_mtf_direction_head = bool(meta.get("enable_mtf_direction_head", False))
+    mtf_dir_aux_weight = _safe_float(recipe.get("mtf_dir_aux_weight", meta.get("mtf_dir_aux_weight", 0.0)))
+    mtf_dir_aux_uses_direction_balance_repair = bool(
+        recipe.get(
+            "mtf_dir_aux_uses_direction_balance_repair",
+            meta.get("mtf_dir_aux_uses_direction_balance_repair", False),
+        )
+    )
+    mtf_dir_aux_balance_repair_required = bool(
+        contract_mode == "smart_seq520_candidate"
+        and enable_mtf_direction_head
+        and mtf_dir_aux_weight > 0.0
+    )
     direction_ce_scale = _safe_float(recipe.get("direction_ce_scale", meta.get("direction_ce_scale", 0.0)))
     ckpt_monitor = str(recipe.get("ckpt_monitor", meta.get("ckpt_monitor", ""))).strip().lower()
     ckpt_class_balance_guard_weight = _safe_float(
@@ -900,6 +913,11 @@ def _direction_balance_recipe_contract(
                     "smart direction active head requires ckpt_class_balance_min_pred_rate >= "
                     f"{SMART_DIRECTION_CKPT_BALANCE_MIN_PRED_RATE:.2f}"
                 )
+            if mtf_dir_aux_balance_repair_required and not mtf_dir_aux_uses_direction_balance_repair:
+                failures.append(
+                    "smart direction active head with MTF aux requires "
+                    "mtf_dir_aux_uses_direction_balance_repair=true"
+                )
         if ckpt_balance_guard_required and best_direction_balance_guard_ok is not True:
             failures.append("direction active head requires best_direction_balance_guard_ok=true")
     return {
@@ -910,6 +928,10 @@ def _direction_balance_recipe_contract(
         "pred_balance_alpha": pred_balance_alpha,
         "pred_balance_target": pred_balance_target,
         "pred_balance_class_weights": pred_balance_class_weights,
+        "enable_mtf_direction_head": enable_mtf_direction_head,
+        "mtf_dir_aux_weight": mtf_dir_aux_weight,
+        "mtf_dir_aux_balance_repair_required": mtf_dir_aux_balance_repair_required,
+        "mtf_dir_aux_uses_direction_balance_repair": mtf_dir_aux_uses_direction_balance_repair,
         "direction_ce_scale": direction_ce_scale,
         "ckpt_monitor": ckpt_monitor,
         "ckpt_class_balance_guard_weight": ckpt_class_balance_guard_weight,

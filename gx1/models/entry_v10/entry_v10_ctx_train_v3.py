@@ -4656,6 +4656,9 @@ def run_train(
         "enable_regime_film": bool(enable_regime_film),
         "enable_mtf_direction_head": bool(enable_mtf_direction_head),  # forceful MTF→dir (2026-06-06)
         "mtf_dir_aux_weight": float(ENTRY_MTF_DIR_AUX_WEIGHT),
+        "mtf_dir_aux_uses_direction_balance_repair": bool(
+            enable_mtf_direction_head and float(ENTRY_MTF_DIR_AUX_WEIGHT) > 0.0
+        ),
         "batch_size": batch_size,
         "seed": seed,
         "seq_input_dim": seq_input_dim,
@@ -4736,6 +4739,10 @@ def run_train(
             "pred_balance_alpha": float(ENTRY_PRED_BALANCE_ALPHA),
             "pred_balance_target": str(ENTRY_PRED_BALANCE_TARGET),
             "pred_balance_class_weights": [float(value) for value in ENTRY_PRED_BALANCE_CLASS_WEIGHTS],
+            "mtf_dir_aux_weight": float(ENTRY_MTF_DIR_AUX_WEIGHT),
+            "mtf_dir_aux_uses_direction_balance_repair": bool(
+                enable_mtf_direction_head and float(ENTRY_MTF_DIR_AUX_WEIGHT) > 0.0
+            ),
             "ckpt_monitor": str(_ckpt_monitor),
             "ckpt_class_balance_guard_weight": float(ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT),
             "ckpt_class_balance_min_pred_to_label": float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL),

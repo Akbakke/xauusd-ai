@@ -475,6 +475,57 @@ def test_smart_direction_balance_recipe_contract_requires_flat_repair_weights() 
     assert report["best_direction_balance_guard_ok"] is True
 
 
+def test_smart_direction_balance_recipe_contract_accepts_mtf_aux_repair_proof() -> None:
+    meta = {
+        "best_direction_balance_guard_ok": True,
+        "enable_mtf_direction_head": True,
+        "train_recipe": {
+            "active_heads": ["direction", "path_quality", "bad_path"],
+            "pred_balance_alpha": 0.20,
+            "pred_balance_target": "label",
+            "pred_balance_class_weights": [1.0, 1.0, 4.0],
+            "mtf_dir_aux_weight": 0.30,
+            "mtf_dir_aux_uses_direction_balance_repair": True,
+            "direction_ce_scale": 1.30,
+            "ckpt_monitor": "dir_acc",
+            "ckpt_class_balance_guard_weight": 0.50,
+            "ckpt_class_balance_min_pred_to_label": 0.35,
+            "ckpt_class_balance_min_pred_rate": 0.05,
+        },
+    }
+
+    report = _direction_balance_recipe_contract(meta, {}, contract_mode="smart_seq520_candidate")
+
+    assert report["decision"] == "PASS"
+    assert report["mtf_dir_aux_balance_repair_required"] is True
+    assert report["mtf_dir_aux_uses_direction_balance_repair"] is True
+
+
+def test_smart_direction_balance_recipe_contract_rejects_missing_mtf_aux_repair_proof() -> None:
+    meta = {
+        "best_direction_balance_guard_ok": True,
+        "enable_mtf_direction_head": True,
+        "train_recipe": {
+            "active_heads": ["direction", "path_quality", "bad_path"],
+            "pred_balance_alpha": 0.20,
+            "pred_balance_target": "label",
+            "pred_balance_class_weights": [1.0, 1.0, 4.0],
+            "mtf_dir_aux_weight": 0.30,
+            "direction_ce_scale": 1.30,
+            "ckpt_monitor": "dir_acc",
+            "ckpt_class_balance_guard_weight": 0.50,
+            "ckpt_class_balance_min_pred_to_label": 0.35,
+            "ckpt_class_balance_min_pred_rate": 0.05,
+        },
+    }
+
+    report = _direction_balance_recipe_contract(meta, {}, contract_mode="smart_seq520_candidate")
+
+    assert report["decision"] == "FAIL"
+    assert report["mtf_dir_aux_balance_repair_required"] is True
+    assert any("mtf_dir_aux_uses_direction_balance_repair=true" in failure for failure in report["failures"])
+
+
 def test_smart_direction_balance_recipe_contract_rejects_weak_flat_repair() -> None:
     meta = {
         "train_recipe": {

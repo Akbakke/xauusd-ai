@@ -402,6 +402,11 @@ Active status:
   distribution loss even when cost-sensitive loss is disabled. This closes the
   previous hole where the smart FLAT-repair recipe could be present in
   metadata/checkpoint guards but not affect the actual train/validation loss.
+- When the multi-timeframe direction auxiliary head is active, it must use the
+  same class weights, bad-path/side sample weights and prediction-balance repair
+  as the main direction objective. Smart bundle audit must preserve
+  `mtf_dir_aux_uses_direction_balance_repair=true` so the MTF evidence channel
+  cannot silently train against a weaker LONG/SHORT/FLAT objective.
 - When the class-balance checkpoint guard is active, the trainer must refuse
   to write a bundle unless the best checkpoint records
   `best_direction_balance_guard_ok=true`, and bundle audit must fail closed on

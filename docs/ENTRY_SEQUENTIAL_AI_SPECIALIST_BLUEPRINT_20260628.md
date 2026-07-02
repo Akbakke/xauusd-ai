@@ -284,6 +284,11 @@ The 2026-07-01 operating point is feature-harmony clean but not promotion-ready:
   cost-sensitive loss is disabled. This keeps the smart FLAT-repair recipe from
   becoming metadata-only while checkpoint selection and bundle audits appear
   wired.
+- When the multi-timeframe direction auxiliary head is active, it must share the
+  same class weights, bad-path/side sample weights and prediction-balance repair
+  as the main direction objective. Smart bundle audit must preserve
+  `mtf_dir_aux_uses_direction_balance_repair=true`, otherwise MTF evidence can
+  still push an unbalanced LONG/SHORT/FLAT representation.
 - If the class-balance checkpoint guard is active, training must stop before
   bundle write unless the best checkpoint has
   `best_direction_balance_guard_ok=true`. Smoke/candidate bundle audit must
