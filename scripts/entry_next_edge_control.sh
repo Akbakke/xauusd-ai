@@ -3038,6 +3038,7 @@ PY
     SMART_SMOKE_TRAIN_ROWS=4095
     SMART_SMOKE_VAL_ROWS=1536
     SMART_SMOKE_TEST_ROWS=1536
+    SMART_REFRESH_MEM=8G
     while [[ $# -gt 0 ]]; do
       case "$1" in
         --apply)
@@ -3060,8 +3061,12 @@ PY
           SMART_SMOKE_TEST_ROWS="${2:-}"
           shift 2
           ;;
+        --mem)
+          SMART_REFRESH_MEM="${2:-}"
+          shift 2
+          ;;
         -h|--help)
-          echo "Usage: scripts/entry_next_edge_control.sh smart-post-rebuild-refresh --apply --vedtak <id> [--train-rows <n>] [--val-rows <n>] [--test-rows <n>]"
+          echo "Usage: scripts/entry_next_edge_control.sh smart-post-rebuild-refresh --apply --vedtak <id> [--train-rows <n>] [--val-rows <n>] [--test-rows <n>] [--mem <cap, default 8G>]"
           exit 0
           ;;
         *)
@@ -3093,7 +3098,7 @@ if decision != "ENTRY_SMART_DATASET_READY_FOR_TRAIN_READINESS_REVIEW":
     print(f"FATAL: smart-post-rebuild-refresh blocked by decision={decision}", file=sys.stderr)
     raise SystemExit(2)
 PY
-    exec "$REPO/scripts/gx1_capped_run.sh" --mem 8G --swap 1G -- "$PY" -m gx1.scripts.materialize_entry_foundation_smoke_dataset_v1 \
+    exec "$REPO/scripts/gx1_capped_run.sh" --mem "$SMART_REFRESH_MEM" --swap 1G -- "$PY" -m gx1.scripts.materialize_entry_foundation_smoke_dataset_v1 \
       --source-dir /home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_smart_candidate_20260630 \
       --out-dir /home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_smart_seq520_smoke_20260630 \
       --stem v10_smart_seq520_smoke__HOLD_03B \
