@@ -126,6 +126,14 @@ The intended AI stack is cooperative, not a set of isolated bots:
      `GX1_V10_CKPT_MONITOR=dir_acc` and active class-balance checkpoint guard.
    - Require MTF direction auxiliary head to prove
      `mtf_dir_aux_uses_direction_balance_repair=true`.
+   - Tunable within the same SMART/SEQ520 vedtak: early-stop patience via
+     `--early-stop-patience <n>` (wrapper default 1) and stronger FLAT press via
+     explicit `ENTRY_FOUNDATION_SMOKE_PRED_BALANCE_*` env overrides — overrides
+     are loud-logged and recorded in the pre-train manifest. Smoke dataset size
+     is enlarged only via the sanctioned
+     `smart-post-rebuild-refresh --apply --vedtak <id> [--train-rows <n>]
+     [--val-rows <n>] [--test-rows <n>]` gate followed by a regenerated
+     smoke-manifest.
 
 2. Post-smoke bundle audit
    - Prove strict load, finite forward, exact active heads, blocked

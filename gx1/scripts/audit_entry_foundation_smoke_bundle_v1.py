@@ -835,6 +835,7 @@ def _direction_balance_recipe_contract(
         [1.0, 1.0, 1.0],
     )
     enable_mtf_direction_head = bool(meta.get("enable_mtf_direction_head", False))
+    mtf_dir_aux_weight_present = ("mtf_dir_aux_weight" in recipe) or ("mtf_dir_aux_weight" in meta)
     mtf_dir_aux_weight = _safe_float(recipe.get("mtf_dir_aux_weight", meta.get("mtf_dir_aux_weight", 0.0)))
     mtf_dir_aux_uses_direction_balance_repair = bool(
         recipe.get(
@@ -912,6 +913,12 @@ def _direction_balance_recipe_contract(
                 failures.append(
                     "smart direction active head requires ckpt_class_balance_min_pred_rate >= "
                     f"{SMART_DIRECTION_CKPT_BALANCE_MIN_PRED_RATE:.2f}"
+                )
+            if enable_mtf_direction_head and not mtf_dir_aux_weight_present:
+                failures.append(
+                    "smart direction active head with MTF aux head enabled requires "
+                    "mtf_dir_aux_weight present in bundle metadata (missing key would "
+                    "silently default to 0.0 and skip the balance-repair requirement)"
                 )
             if mtf_dir_aux_balance_repair_required and not mtf_dir_aux_uses_direction_balance_repair:
                 failures.append(

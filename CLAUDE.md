@@ -27,6 +27,9 @@ Current allowed path:
 - `scripts/entry_next_edge_control.sh worktree-hygiene`
 - optional, explicit cleanup staging:
   `scripts/entry_next_edge_control.sh stage-foundation-cleanup --apply --vedtak <id>`
+- optional, explicit smart smoke-dataset refresh/resize + proof-only re-manifest:
+  `scripts/entry_next_edge_control.sh smart-post-rebuild-refresh --apply --vedtak <id> [--train-rows <n>] [--val-rows <n>] [--test-rows <n>]`
+  followed by `scripts/entry_next_edge_control.sh smart-smoke-manifest --vedtak <id>`
 - `scripts/entry_next_edge_control.sh train-readiness`
 - after explicit user vedtak only:
   `scripts/entry_next_edge_control.sh smoke-train --vedtak <id> --require-edge-audit`

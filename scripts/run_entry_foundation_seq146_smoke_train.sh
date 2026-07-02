@@ -171,20 +171,32 @@ while [[ $# -gt 0 ]]; do
       SPECIALIST_CONTRACT_MODE=smart_seq520_candidate
       EXPECTED_SIGNAL_DIM=520
       SMOKE_DATASET_SCHEMA=entry_smart_seq520_smoke_dataset_v1
+      # Pre-set ENTRY_FOUNDATION_SMOKE_* env deliberately overrides the smart
+      # auto-recipe below — must be LOUD, never silent (weld-audit 2026-07-02).
       if [[ -z "${ENTRY_FOUNDATION_SMOKE_PRED_BALANCE_ALPHA+x}" ]]; then
         SMOKE_PRED_BALANCE_ALPHA=0.20
+      else
+        echo "WARNING: smart auto-recipe PRED_BALANCE_ALPHA=0.20 overridden by env: ${SMOKE_PRED_BALANCE_ALPHA}" >&2
       fi
       if [[ -z "${ENTRY_FOUNDATION_SMOKE_PRED_BALANCE_CLASS_WEIGHTS+x}" ]]; then
         SMOKE_PRED_BALANCE_CLASS_WEIGHTS=1.0,1.0,4.0
+      else
+        echo "WARNING: smart auto-recipe PRED_BALANCE_CLASS_WEIGHTS=1.0,1.0,4.0 overridden by env: ${SMOKE_PRED_BALANCE_CLASS_WEIGHTS}" >&2
       fi
       if [[ -z "${ENTRY_FOUNDATION_SMOKE_CKPT_CLASS_BALANCE_GUARD_WEIGHT+x}" ]]; then
         SMOKE_CKPT_CLASS_BALANCE_GUARD_WEIGHT=0.50
+      else
+        echo "WARNING: smart auto-recipe CKPT_CLASS_BALANCE_GUARD_WEIGHT=0.50 overridden by env: ${SMOKE_CKPT_CLASS_BALANCE_GUARD_WEIGHT}" >&2
       fi
       if [[ -z "${ENTRY_FOUNDATION_SMOKE_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL+x}" ]]; then
         SMOKE_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL=0.35
+      else
+        echo "WARNING: smart auto-recipe CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL=0.35 overridden by env: ${SMOKE_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL}" >&2
       fi
       if [[ -z "${ENTRY_FOUNDATION_SMOKE_CKPT_CLASS_BALANCE_MIN_PRED_RATE+x}" ]]; then
         SMOKE_CKPT_CLASS_BALANCE_MIN_PRED_RATE=0.05
+      else
+        echo "WARNING: smart auto-recipe CKPT_CLASS_BALANCE_MIN_PRED_RATE=0.05 overridden by env: ${SMOKE_CKPT_CLASS_BALANCE_MIN_PRED_RATE}" >&2
       fi
       REFRESH_SMOKE=0
       shift
@@ -813,6 +825,7 @@ payload = {
         "cgroup_runner": "scripts/gx1_capped_run.sh",
         "uses_gx1_capped_run": True,
         "num_workers": int(command_arg_value(train_cmd, "--num-workers") or -1),
+        "early_stopping_patience": int(command_arg_value(train_cmd, "--early-stopping-patience") or -1),
     },
     "smoke_recipe_env": {
         name: command_env_value(train_cmd, name)
