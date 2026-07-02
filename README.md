@@ -30,6 +30,12 @@ Current operating point:
 
 ## Reports
 
+### Active Entry/Exit Objective
+- Active roadmap: `docs/ACTIVE_SUPER_AI_BOT_GOAL_20260702.md`
+- Foundation audit: `docs/ENTRY_FOUNDATION_AUDIT_20260628.md`
+- Specialist blueprint: `docs/ENTRY_SEQUENTIAL_AI_SPECIALIST_BLUEPRINT_20260628.md`
+- Cleanup manifest: `docs/CLEANUP_DELETION_MANIFEST_20260702.md`
+
 ### SNIPER 2025 – Frozen Analysis
 - Fullyear report: `docs/SNIPER_2025_FULLYEAR_REPORT__20251218.md`
 - Freeze marker: `docs/SNIPER_2025_ANALYSIS_FROZEN.md`
@@ -43,7 +49,9 @@ This repository now contains only the components that power the current GX1 FARM
 - **Tape contract:** raw canonical M1 is the source-of-truth for exit; canonical M5 is the model view used by XGB/entry.
 - **Features:** `gx1/features/basic_v1.py`, `gx1/features/runtime_v9.py`, and `gx1/seq/sequence_features.py`.
 - **Policies & Configs:** `gx1/configs/policies/active/*.yaml` (only the three active bundles) and the matching exits in `gx1/configs/exits/`.
-- **Docs:** `gx1/docs/FARM_V2B_EXIT_A_audit.md` and `gx1/docs/GX1_ACTIVE_PIPELINE.md`.
+- **Docs:** active Entry/Exit docs live under `docs/`; old FARM docs, when
+  needed for historical context, live under
+  `gx1/legacy/_legacy_disabled/docs_farm_exit/`.
 - **Scripts:** `scripts/run_replay.sh` plus the minimal helpers inside `scripts/active/`.
 - **Models:** `gx1/models/entry_v9/nextgen_2020_2025_clean/` (with scalers + meta) and the light-weight meta / seq artefacts required for FARM logging.
 
