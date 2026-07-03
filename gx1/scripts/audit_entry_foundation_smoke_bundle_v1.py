@@ -1782,8 +1782,26 @@ def _audit_split(
     return report, failures
 
 
-def _require_edge_failures(split: str, split_report: dict[str, Any]) -> list[str]:
+def _require_edge_failures(
+    split: str, split_report: dict[str, Any], *, edge_test_scope: str = "strict"
+) -> tuple[list[str], list[str]]:
+    """Split-level edge checks. Returns (failures, advisories).
+
+    edge_test_scope="strict" (default): every check is a hard failure on every
+    split — the candidate-stage contract (goal-doc roadmap steps 4-5).
+    edge_test_scope="smoke": on the strict-OOT TEST split only, the per-slice
+    direction contract and the path/bad_path head-sign checks are demoted to
+    LOUD advisories (recorded in the report, never silently dropped) — the
+    smoke proves trainability + non-collapse (roadmap steps 1-2); per-slice
+    2026 robustness and OOT head-sign quality are candidate-stage evidence
+    where 2026 data enters training (user vedtak SMART_SEQ520_smoke_wave_20260702).
+    Whole-split majority-beat and the global distribution contract stay hard on
+    every split in both scopes.
+    """
     failures: list[str] = []
+    advisories: list[str] = []
+    demote_oot_checks = edge_test_scope == "smoke" and split == "test"
+    soft = advisories if demote_oot_checks else failures
     if not bool(split_report["direction"]["beats_majority_baseline"]):
         failures.append(f"{split}: direction accuracy does not beat majority baseline")
     distribution_contract = split_report.get("direction_distribution_contract") or {}
@@ -1794,17 +1812,17 @@ def _require_edge_failures(split: str, split_report: dict[str, Any]) -> list[str
         )
     slice_contract = split_report.get("direction_slice_contract") or {}
     if str(slice_contract.get("decision")) != "PASS":
-        failures.append(
+        soft.append(
             f"{split}: direction slice diagnostics failed: "
             f"{slice_contract.get('failures')}"
         )
     path_rho = split_report["path_quality"]["pred_vs_target_spearman"]
     if path_rho is None or float(path_rho) <= 0.0:
-        failures.append(f"{split}: path_quality_pred is not positively related to path_quality_bps")
+        soft.append(f"{split}: path_quality_pred is not positively related to path_quality_bps")
     bad_path_rho = split_report["bad_path"]["prob_vs_path_quality_spearman"]
     if bad_path_rho is None or float(bad_path_rho) >= 0.0:
-        failures.append(f"{split}: bad_path_prob is not negatively related to path_quality_bps")
-    return failures
+        soft.append(f"{split}: bad_path_prob is not negatively related to path_quality_bps")
+    return failures, advisories
 
 
 def _write_markdown(path: Path, report: dict[str, Any]) -> None:
@@ -1815,14 +1833,21 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
         f"- Bundle: `{report['bundle_dir']}`",
         f"- Dataset: `{report['dataset_dir']}`",
         f"- Require edge: `{report['require_edge']}`",
+        f"- Edge test scope: `{report.get('edge_test_scope', 'strict')}`",
         f"- Require head contract: `{report['require_head_contract']}`",
         f"- Failure count: `{len(report['failures'])}`",
+        f"- Edge advisory count (smoke-scope demoted, candidate-stage hard): `{len(report.get('edge_advisories') or [])}`",
         "",
         "## Failures",
         "",
     ]
     if report["failures"]:
         lines.extend([f"- {failure}" for failure in report["failures"]])
+    else:
+        lines.append("- None")
+    lines.extend(["", "## Edge Advisories (NOT gating at smoke scope — hard at candidate stage)", ""])
+    if report.get("edge_advisories"):
+        lines.extend([f"- ADVISORY: {advisory}" for advisory in report["edge_advisories"]])
     else:
         lines.append("- None")
     bundle_specialist_contract = report.get("bundle_specialist_model_contract")
@@ -1890,6 +1915,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         os.environ.setdefault("GX1_V10_MULTI_TF_V2_CACHE_DIR", str(mtf_cache_dir))
 
     failures: list[str] = []
+    edge_advisories: list[str] = []
     bundle = load_entry_v10_ctx_bundle(bundle_dir=bundle_dir, device=str(device), xgb_models=None)
     model = bundle.transformer_model
     model.eval()
@@ -1984,7 +2010,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 )
             )
         if args.require_edge:
-            failures.extend(_require_edge_failures(split, split_report))
+            edge_failures, split_advisories = _require_edge_failures(
+                split, split_report, edge_test_scope=str(args.edge_test_scope)
+            )
+            failures.extend(edge_failures)
+            edge_advisories.extend(split_advisories)
 
     head_contract = None
     if args.require_head_contract:
@@ -2030,6 +2060,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "device": str(device),
         "batch_size": int(args.batch_size),
         "require_edge": bool(args.require_edge),
+        "edge_test_scope": str(args.edge_test_scope),
+        "edge_advisories": edge_advisories,
         "require_specialist_fusion": bool(args.require_specialist_fusion),
         "specialist_contract_mode": specialist_contract_mode,
         "required_training_specialists": list(required_specialists),
@@ -2123,6 +2155,16 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--multi-tf-cache-dir", default=str(DEFAULT_MTF_CACHE_DIR))
     ap.add_argument("--out-dir", default=str(DEFAULT_OUT_DIR))
     ap.add_argument("--require-edge", action="store_true")
+    ap.add_argument(
+        "--edge-test-scope",
+        choices=("strict", "smoke"),
+        default="strict",
+        help=(
+            "strict (default): all edge checks hard-fail on every split (candidate-stage). "
+            "smoke: TEST-split per-slice + path/bad_path head-sign checks become loud "
+            "advisories; whole-split majority-beat and distribution contract stay hard."
+        ),
+    )
     ap.add_argument("--require-specialist-fusion", action=argparse.BooleanOptionalAction, default=True)
     ap.add_argument("--require-head-contract", action="store_true")
     ap.add_argument("--target-audit-json", default=str(TARGET_AUDIT_LATEST))

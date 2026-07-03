@@ -136,6 +136,13 @@ The intended AI stack is cooperative, not a set of isolated bots:
      smoke-manifest.
 
 2. Post-smoke bundle audit
+   - Edge scope (vedtak SMART_SEQ520_smoke_wave_20260702): the smoke audit runs
+     `--edge-test-scope smoke` — whole-split majority-beat and the global
+     direction-distribution contract stay HARD on every split, while
+     per-slice direction diagnostics and path/bad_path head-sign checks on the
+     strict-OOT TEST split are loud advisories at smoke stage. They remain
+     HARD (`strict`, the default) at candidate stage (steps 4-5), where 2026
+     data enters training.
    - Prove strict load, finite forward, exact active heads, blocked
      `hold_horizon`, exact specialist contract, non-collapsed specialist gate
      liveness, path calibration, tail-direction recipe and direction-balance
