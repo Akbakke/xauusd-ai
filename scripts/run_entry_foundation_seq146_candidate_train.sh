@@ -23,6 +23,7 @@ VEDTAK="${ENTRY_FOUNDATION_CANDIDATE_VEDTAK:-}"
 RUN_FLAVOR=foundation_seq146
 SPECIALIST_CONTRACT_MODE=foundation_seq146
 EXPECTED_SIGNAL_DIM=146
+CANDIDATE_READINESS_EDGE_SCOPE=strict
 CANDIDATE_READINESS_NEXT_CMD="scripts/entry_next_edge_control.sh smoke-train --vedtak <id> --require-edge-audit"
 CANDIDATE_READINESS_RERUN_CMD="scripts/entry_next_edge_control.sh candidate-readiness"
 DEVICE=auto
@@ -147,6 +148,7 @@ while [[ $# -gt 0 ]]; do
       ;;
     --smart-seq520)
       RUN_FLAVOR=smart_seq520
+      CANDIDATE_READINESS_EDGE_SCOPE=smoke
       FOUNDATION_DATASET=$DATA/runs/FASE2B_REGIME_V4_20260605/v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_smart_candidate_20260630
       FOUNDATION_STEM=v10_smart_seq520_candidate__HOLD_03B
       SPECIALIST_AUDIT=$DATA/reports/entry_specialist_feature_group_audit_20260628_v1/smart_seq520_candidate_20260630/ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_latest.json
@@ -243,6 +245,7 @@ if ! scripts/entry_next_edge_control.sh candidate-readiness \
   --smoke-bundle-audit-json "$SMOKE_BUNDLE_AUDIT_ARG" \
   --specialist-audit-json "$SPECIALIST_AUDIT" \
   --contract-mode "$SPECIALIST_CONTRACT_MODE" \
+  --edge-test-scope "$CANDIDATE_READINESS_EDGE_SCOPE" \
   --out-dir "$CANDIDATE_READINESS_DIR" \
   --quiet
 then
