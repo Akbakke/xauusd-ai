@@ -178,11 +178,25 @@ while [[ $# -gt 0 ]]; do
     --skip-candidate-audit) AUDIT_AFTER=0; shift ;;
     --audit-device) AUDIT_DEVICE="$2"; shift 2 ;;
     --audit-batch-size) AUDIT_BATCH_SIZE="$2"; shift 2 ;;
+    --dataset-dir) DATASET_DIR_OVERRIDE="$2"; shift 2 ;;
     --dry-run) DRY_RUN=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "FATAL: unknown arg: $1" >&2; usage >&2; exit 2 ;;
   esac
 done
+
+# Optional explicit candidate dataset dir (same *_HOLD_03B_{train,val,test}.parquet
+# stem). Used for the 2026-in-train re-split so the candidate learns the current
+# regime. Provenance is recorded (not pinned) in the pre-train manifest.
+# Vedtak SMART_SEQ520_candidate_train_20260703.
+if [[ -n "${DATASET_DIR_OVERRIDE:-}" ]]; then
+  if [[ ! -f "$DATASET_DIR_OVERRIDE/${FOUNDATION_STEM}_train.parquet" ]]; then
+    echo "FATAL: --dataset-dir override missing ${FOUNDATION_STEM}_train.parquet in $DATASET_DIR_OVERRIDE" >&2
+    exit 2
+  fi
+  echo "NOTE: dataset dir overridden -> $DATASET_DIR_OVERRIDE" >&2
+  FOUNDATION_DATASET="$DATASET_DIR_OVERRIDE"
+fi
 
 if [[ -z "${VEDTAK:-}" ]]; then
   echo "FATAL: --vedtak is required for Entry foundation candidate train." >&2
