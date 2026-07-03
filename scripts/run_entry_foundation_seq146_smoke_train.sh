@@ -35,8 +35,12 @@ MANIFEST_ONLY=0
 DRY_RUN=0
 REFRESH_SMOKE=0
 AUDIT_AFTER=1
-AUDIT_DEVICE=cpu
-AUDIT_BATCH_SIZE=128
+# Post-smoke audit runs on the (idle, post-train) GPU by default — validated
+# byte-identical edge verdict vs CPU on the run6 PASS bundle, ~2-3 min faster
+# (SMART+MAXED resource directive). Falls back to CPU when no CUDA. Override
+# with --audit-device cpu.
+AUDIT_DEVICE=auto
+AUDIT_BATCH_SIZE=512
 REQUIRE_EDGE_AUDIT=1
 SMOKE_BAD_PATH_WEIGHT="${ENTRY_FOUNDATION_SMOKE_BAD_PATH_WEIGHT:-1.00}"
 SMOKE_BAD_PATH_QUALITY_RANK_WEIGHT="${ENTRY_FOUNDATION_SMOKE_BAD_PATH_QUALITY_RANK_WEIGHT:-2.00}"
