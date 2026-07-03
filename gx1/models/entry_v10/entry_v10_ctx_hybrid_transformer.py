@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 
 import torch
 import torch.nn as nn
@@ -470,6 +470,15 @@ class EntryV10CtxHybridTransformer(nn.Module):
 
         # 3-class direction head: LONG / SHORT / FLAT
         self.head_direction = nn.Linear(d_model, 3)
+        # Post-hoc direction calibration (temperature + per-class bias). Identity
+        # (None) by default; the bundle loader sets it from
+        # bundle_metadata["direction_calibration"] via set_direction_calibration().
+        # Plain attribute (NOT a Parameter/buffer) so existing bundles strict-load
+        # unchanged and bundles without the metadata key are bit-identical. Applied
+        # in forward on the FINAL direction_logits so audit and live serve see the
+        # same calibrated outputs by construction. (Vedtak
+        # SMART_SEQ520_candidate_train_20260703 — FLAT-rate non-stationarity leg.)
+        self._direction_cal: Optional[Tuple[float, torch.Tensor]] = None
         # V10-7 (2026-06-03 all-models scan): zero-init the direction RESIDUAL head so cold-start
         # delta_logits=0 -> direction == the (balanced) XGB anchor, and the residual is learned
         # from zero. head_direction was the lone correction head NOT zero-init (q_head/FiLM/
@@ -696,6 +705,18 @@ class EntryV10CtxHybridTransformer(nn.Module):
         anchor_logits = torch.log(probs)
         return anchor_logits.detach()
 
+    def set_direction_calibration(self, temperature: float, bias: torch.Tensor) -> None:
+        """Install post-hoc direction calibration (fitted on a recent held-out
+        window, stored in bundle_metadata["direction_calibration"], applied by
+        the bundle loader). direction_logits -> logits/temperature + bias.
+        Identity when never called. Fail-loud on bad values."""
+        t = float(temperature)
+        if not (t > 0.0) or not torch.isfinite(bias).all() or tuple(bias.shape) != (3,):
+            raise ValueError(
+                f"[ENTRY_DIRECTION_CAL] invalid calibration: temperature={temperature} bias_shape={tuple(bias.shape)}"
+            )
+        self._direction_cal = (t, bias.detach().clone().float())
+
     def forward(
         self,
         seq_x: torch.Tensor,
@@ -890,6 +911,15 @@ class EntryV10CtxHybridTransformer(nn.Module):
             _assert_finite("mtf_dir_logits", mtf_dir_logits)
             direction_logits = direction_logits + (
                 self.mtf_dir_scale.to(direction_logits.dtype) * mtf_dir_logits
+            )
+
+        # Post-hoc direction calibration (identity unless the bundle loader
+        # installed metadata-fitted values — see set_direction_calibration).
+        # Applied to the FINAL logits so audit == serve by construction.
+        if self._direction_cal is not None:
+            _cal_t, _cal_b = self._direction_cal
+            direction_logits = direction_logits / _cal_t + _cal_b.to(
+                device=direction_logits.device, dtype=direction_logits.dtype
             )
 
         # Hard output finite checks

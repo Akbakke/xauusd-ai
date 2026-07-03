@@ -297,6 +297,20 @@ def load_entry_v10_ctx_bundle(
     if missing - allowed_missing:
         raise RuntimeError(f"[ENTRY_V10_CTX_MISSING_KEYS] {sorted(missing - allowed_missing)}")
     model.eval()
+    # Post-hoc direction calibration (vedtak SMART_SEQ520_candidate_train_20260703):
+    # installed from bundle metadata into the model's canonical forward, so the
+    # bundle audit and live serve see identical calibrated logits by construction.
+    # Bundles without the key (all cemented/live bundles) are bit-identical.
+    _dir_cal = meta.get("direction_calibration") if isinstance(meta, dict) else None
+    if isinstance(_dir_cal, dict) and bool(_dir_cal.get("enabled", True)):
+        _cal_bias = torch.tensor([float(x) for x in (_dir_cal.get("bias") or [])], dtype=torch.float32)
+        model.set_direction_calibration(float(_dir_cal.get("temperature", 1.0)), _cal_bias)
+        logging.getLogger(__name__).info(
+            "[ENTRY_DIRECTION_CAL] installed: temperature=%.4f bias=%s fitted_on=%s",
+            float(_dir_cal.get("temperature", 1.0)),
+            [round(float(x), 4) for x in (_dir_cal.get("bias") or [])],
+            _dir_cal.get("fitted_on_split", "?"),
+        )
     capabilities = _infer_entry_bundle_capabilities(meta, state_dict)
     logging.getLogger(__name__).info(
         "[ENTRY_BUNDLE_CAPABILITIES] supported_heads=%s declared_active_heads=%s unsupported_heads=%s",
