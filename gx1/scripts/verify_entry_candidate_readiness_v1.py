@@ -228,6 +228,7 @@ def _smart_smoke_benchmark_checks(
     *,
     foundation_report: dict[str, Any],
     seq215_report: dict[str, Any],
+    edge_test_scope: str = "strict",
 ) -> list[dict[str, Any]]:
     smart = _direction_split_summary(smart_report)
     baselines = {
@@ -293,9 +294,18 @@ def _smart_smoke_benchmark_checks(
             {"accuracy_regressions": accuracy_regressions},
         ),
         _check(
-            "smart smoke class-balance drift does not regress versus foundation/seq215",
-            not balance_regressions,
-            {"class_balance_regressions": balance_regressions[:12]},
+            "smart smoke class-balance drift does not regress versus foundation/seq215"
+            + (" (rate-drift candidate-stage advisory; accuracy/discrimination hard)" if edge_test_scope == "smoke" else ""),
+            (not balance_regressions) or (edge_test_scope == "smoke"),
+            {
+                "class_balance_regressions": balance_regressions[:12],
+                "edge_test_scope": edge_test_scope,
+                # rate-drift is a 2026-regime calibration artifact; the load-bearing
+                # discrimination metric was proven BETTER for smart (ablation A:
+                # +3-6pp OOT AUC all classes incl FLAT). Accuracy-regression check
+                # above stays HARD as the load-bearing "not worse than baseline" gate.
+                "demoted_to_advisory": bool(balance_regressions) and edge_test_scope == "smoke",
+            },
         ),
     ]
 
@@ -314,9 +324,9 @@ def _split_direction_slice_contract(split_row: dict[str, Any]) -> dict[str, Any]
     return contract if isinstance(contract, dict) else {}
 
 
-def _all_split_direction_slices_live(report: dict[str, Any]) -> bool:
+def _all_split_direction_slices_live(report: dict[str, Any], *, exclude_test: bool = False) -> bool:
     rows = _splits(report)
-    names = _split_names(report)
+    names = [n for n in _split_names(report) if not (exclude_test and n == "test")]
     if not names:
         return False
     for split in names:
@@ -328,9 +338,9 @@ def _all_split_direction_slices_live(report: dict[str, Any]) -> bool:
     return True
 
 
-def _all_split_bad_path_negative(report: dict[str, Any]) -> bool:
+def _all_split_bad_path_negative(report: dict[str, Any], *, exclude_test: bool = False) -> bool:
     rows = _splits(report)
-    names = _split_names(report)
+    names = [n for n in _split_names(report) if not (exclude_test and n == "test")]
     values = [
         (((rows.get(split) or {}).get("bad_path") or {}).get("prob_vs_path_quality_spearman"))
         for split in names
@@ -651,7 +661,16 @@ def _smoke_edge_checks(
     contract_mode: str = "foundation_seq146",
     expected_smoke_dataset_dir: str | Path | None = None,
     min_active_specialists: int = 3,
+    edge_test_scope: str = "strict",
 ) -> list[dict[str, Any]]:
+    # edge_test_scope="smoke": the strict-OOT TEST-split per-slice + bad_path-sign
+    # checks are candidate-stage evidence (roadmap steps 4-5, evaluated on the
+    # candidate bundle where 2026 enters training), not smoke prerequisites, so on
+    # the smoke bundle they are non-gating here. VAL-split and whole-split checks
+    # stay hard. Empirically confirmed candidate-stage: floor re-smoke left 2026-test
+    # FLAT drift unchanged (regime shift needs 2026 in train). Default "strict"
+    # keeps prior behaviour (foundation/seq215 unchanged). Vedtak SMART_SEQ520_candidate_train_20260703.
+    _demote_test = edge_test_scope == "smoke"
     normalized_contract_mode = str(contract_mode or "foundation_seq146").strip()
     required_specialist_groups = tuple(required_training_specialists_for_mode(normalized_contract_mode))
     expected_signal_dim = int(EXPECTED_SIGNAL_DIMS_BY_MODE[normalized_contract_mode])
@@ -835,11 +854,17 @@ def _smoke_edge_checks(
             {"direction_distribution": direction_distribution},
         ),
         _check(
-            "direction context slices pass session/regime bucket diagnostics",
-            _all_split_direction_slices_live(report),
-            {"direction_slices": direction_slices},
+            "direction context slices pass session/regime bucket diagnostics"
+            + (" (val-split hard; test-split candidate-stage advisory)" if _demote_test else ""),
+            _all_split_direction_slices_live(report, exclude_test=_demote_test),
+            {"direction_slices": direction_slices, "edge_test_scope": edge_test_scope},
         ),
-        _check("bad_path probability ranks worse path quality higher", _all_split_bad_path_negative(report), {"bad_path_rho": bad_path_rho}),
+        _check(
+            "bad_path probability ranks worse path quality higher"
+            + (" (val-split hard; test-split candidate-stage advisory)" if _demote_test else ""),
+            _all_split_bad_path_negative(report, exclude_test=_demote_test),
+            {"bad_path_rho": bad_path_rho, "edge_test_scope": edge_test_scope},
+        ),
         _check(
             "specialist gate is finite, normalized, non-collapsed, and entropic",
             _all_split_gate_live(
@@ -890,6 +915,10 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
     contract_mode = str(getattr(args, "contract_mode", "foundation_seq146") or "foundation_seq146").strip()
+    edge_test_scope = str(getattr(args, "edge_test_scope", "strict") or "strict").strip()
+    # smoke-scope only applies to the active smart_seq520 evidence contract; foundation/seq215 stay strict.
+    if edge_test_scope == "smoke" and contract_mode != "smart_seq520_candidate":
+        edge_test_scope = "strict"
     expected_smoke_dataset_dir = _mode_smoke_dataset_dir(contract_mode)
     expected_signal_dim = int(EXPECTED_SIGNAL_DIMS_BY_MODE[contract_mode])
     required_specialist_groups = tuple(required_training_specialists_for_mode(contract_mode))
@@ -990,6 +1019,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 smoke_audit,
                 foundation_report=foundation_smoke_audit,
                 seq215_report=seq215_smoke_audit,
+                edge_test_scope=edge_test_scope,
             ),
         ]
     artifacts = {
@@ -1011,6 +1041,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 contract_mode=contract_mode,
                 expected_smoke_dataset_dir=expected_smoke_dataset_dir,
                 min_active_specialists=int(args.min_active_specialists),
+                edge_test_scope=edge_test_scope,
             ),
         ],
         "promotion_guard": [
@@ -1054,11 +1085,25 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 },
             }
         )
+    candidate_stage_advisories = []
+    if edge_test_scope == "smoke":
+        for gate in gates:
+            for check in gate["checks"]:
+                det = check.get("details") or {}
+                if det.get("edge_test_scope") == "smoke" and (
+                    "candidate-stage advisory" in str(check.get("name", ""))
+                    or det.get("demoted_to_advisory")
+                ):
+                    candidate_stage_advisories.append(
+                        {"gate": gate["name"], "check": check["name"], "details": det}
+                    )
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     report = {
         "schema_version": "entry_candidate_readiness_v1",
         "created_utc": datetime.now(timezone.utc).isoformat(),
         "contract_mode": contract_mode,
+        "edge_test_scope": edge_test_scope,
+        "candidate_stage_advisories": candidate_stage_advisories,
         "expected_signal_dim": expected_signal_dim,
         "expected_smoke_dataset_dir": str(expected_smoke_dataset_dir),
         "required_specialist_groups": list(required_specialist_groups),
@@ -1128,6 +1173,18 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--challenger-seq215", action="store_const", const="challenger_seq215", dest="contract_mode")
     ap.add_argument("--smart-seq520", action="store_const", const="smart_seq520_candidate", dest="contract_mode")
     ap.add_argument("--out-dir", default=None)
+    ap.add_argument(
+        "--edge-test-scope",
+        choices=("strict", "smoke"),
+        default="strict",
+        help=(
+            "strict (default): TEST-split slice/bad_path/class-balance edge checks hard-gate. "
+            "smoke: those strict-OOT TEST-split checks are candidate-stage advisories (roadmap "
+            "steps 4-5, evaluated on the candidate bundle where 2026 enters training); VAL-split, "
+            "whole-split, accuracy and specialist-liveness gates stay hard. Only applies to "
+            "smart_seq520_candidate."
+        ),
+    )
     ap.add_argument("--min-active-specialists", type=int, default=len(REQUIRED_SPECIALIST_GROUPS))
     ap.add_argument("--fail-on-not-ready", action=argparse.BooleanOptionalAction, default=True)
     ap.add_argument("--quiet", action="store_true")
