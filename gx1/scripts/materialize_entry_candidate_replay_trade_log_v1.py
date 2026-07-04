@@ -274,7 +274,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     val = predictions[predictions["split"].astype(str) == "val"].reset_index(drop=True)
     test = predictions[predictions["split"].astype(str) == "test"].sort_values("time", kind="mergesort").reset_index(drop=True)
     if not bool((test["time"].dt.year == 2026).all()):
-        raise RuntimeError("candidate replay trade log test split must be entirely 2026")
+        if not bool(getattr(args, "allow_non_2026_test", False)):
+            raise RuntimeError("candidate replay trade log test split must be entirely 2026")
+        # Exit-training SUBSTRATE mode (exit-parity wave 2026-07-04): historical
+        # coverage is the purpose (goal-doc step 7 — Entry-bound per-bar state
+        # from replay trades across history). This log is NOT replay evidence;
+        # the replay-evidence gate enforces its own 2026-only guard and will
+        # reject historical logs, so the two purposes cannot be confused.
+        print("[TRADE_LOG] allow-non-2026-test: exit-training substrate mode (not replay evidence)", flush=True)
     top_fracs = _parse_float_list(str(args.threshold_top_fracs))
     cost_values = _parse_float_list(str(args.cost_stress_bps))
     tape = SourceTape.load(source_parquet)
@@ -414,6 +421,16 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--threshold-top-fracs", default="0.05")
     ap.add_argument("--cost-stress-bps", default="0.0")
     ap.add_argument("--policy-id", default="")
+    ap.add_argument(
+        "--allow-non-2026-test",
+        action="store_true",
+        help=(
+            "Exit-training substrate mode: allow historical (non-2026) test rows. "
+            "Mirrors replay-evidence's --allow-non-2026. The output is a training "
+            "substrate, NOT replay evidence (the evidence gate enforces its own "
+            "2026-only guard)."
+        ),
+    )
     ap.add_argument("--exit-mode", choices=EXIT_MODE_CHOICES, default="horizon")
     ap.add_argument("--take-profit-bps", type=float, default=60.0)
     ap.add_argument("--stop-loss-bps", type=float, default=45.0)
