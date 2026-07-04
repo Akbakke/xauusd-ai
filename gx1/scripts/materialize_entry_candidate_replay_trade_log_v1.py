@@ -83,7 +83,13 @@ def _load_horizons(dataset_dir: Path, splits: list[str]) -> pd.DataFrame:
     return out
 
 
-def _prepare_predictions(predictions_path: Path, dataset_dir: Path, model_name: str) -> pd.DataFrame:
+def _prepare_predictions(
+    predictions_path: Path,
+    dataset_dir: Path,
+    model_name: str,
+    *,
+    substrate_mode: bool = False,
+) -> pd.DataFrame:
     if not predictions_path.exists():
         raise FileNotFoundError(f"missing selective-edge predictions: {predictions_path}")
     required = {
@@ -109,8 +115,23 @@ def _prepare_predictions(predictions_path: Path, dataset_dir: Path, model_name: 
     if predictions["time"].isna().any():
         raise RuntimeError("selective-edge predictions have unparsable time rows")
     predictions["split"] = predictions["split"].astype(str)
-    horizons = _load_horizons(dataset_dir, sorted(str(x) for x in predictions["split"].dropna().unique()))
-    merged = predictions.merge(horizons, on=["split", "time"], how="left", validate="one_to_one")
+    if substrate_mode:
+        # Exit-training substrate: dense rows carry their SOURCE-split times
+        # (e.g. the 2020-2026 train window) but are labelled 'test' to satisfy
+        # the val/test contract. Dataset splits are time-DISJOINT, so a given
+        # `time` has a unique label_horizon regardless of which split it lives
+        # in — load the union of all dataset splits and join on time alone.
+        all_splits = sorted(
+            path.name.rsplit("_", 1)[-1].removesuffix(".parquet")
+            for path in dataset_dir.glob("*_*.parquet")
+            if path.name.rsplit("_", 1)[-1].removesuffix(".parquet") in ("train", "val", "test")
+        )
+        horizons = _load_horizons(dataset_dir, sorted(set(all_splits)))
+        horizons_by_time = horizons.drop_duplicates("time")[["time", "label_horizon_bars"]]
+        merged = predictions.merge(horizons_by_time, on=["time"], how="left", validate="many_to_one")
+    else:
+        horizons = _load_horizons(dataset_dir, sorted(str(x) for x in predictions["split"].dropna().unique()))
+        merged = predictions.merge(horizons, on=["split", "time"], how="left", validate="one_to_one")
     if merged["label_horizon_bars"].isna().any():
         missing_rows = int(merged["label_horizon_bars"].isna().sum())
         raise RuntimeError(f"failed to attach label_horizon_bars to selective-edge predictions: rows={missing_rows}")
@@ -268,7 +289,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     out_dir.mkdir(parents=True, exist_ok=True)
     _validate_exit_policy_args(args)
 
-    predictions = _prepare_predictions(predictions_path, dataset_dir, str(args.model_name))
+    predictions = _prepare_predictions(
+        predictions_path,
+        dataset_dir,
+        str(args.model_name),
+        substrate_mode=bool(getattr(args, "allow_non_2026_test", False)),
+    )
     if "val" not in set(predictions["split"]) or "test" not in set(predictions["split"]):
         raise RuntimeError("candidate replay trade log requires val and test predictions")
     val = predictions[predictions["split"].astype(str) == "val"].reset_index(drop=True)
