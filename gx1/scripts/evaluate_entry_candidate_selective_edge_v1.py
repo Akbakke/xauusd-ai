@@ -605,6 +605,7 @@ def _iter_split_chunks(parquet_path: Path, stream_chunk_rows: int):
         while end < n_groups and rows_acc + group_rows[end] <= max(stream_chunk_rows, group_rows[end]):
             rows_acc += group_rows[end]
             end += 1
+        print(f"[STREAM_CHUNK] reading row-groups {start}..{end - 1} of {n_groups} ({rows_acc:,} rows)", flush=True)
         table = pf.read_row_groups(list(range(start, end)))
         tmp = tempfile.NamedTemporaryFile(
             suffix=f"_{parquet_path.stem}_rg{start}-{end - 1}.parquet", delete=False
@@ -613,6 +614,7 @@ def _iter_split_chunks(parquet_path: Path, stream_chunk_rows: int):
         _pq.write_table(table, tmp.name)
         del table
         tmp_path = Path(tmp.name)
+        print(f"[STREAM_CHUNK] chunk ready: {tmp_path.name}", flush=True)
         yield tmp_path, (lambda p=tmp_path: p.unlink(missing_ok=True))
         start = end
 
