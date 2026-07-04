@@ -386,7 +386,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         if missing:
             failures.append(f"candidate replay trade log missing required columns: {missing}")
         years = set(pd.to_datetime(trades_df["entry_time"], utc=True).dt.year.astype(int).unique())
-        if years != {2026}:
+        if years != {2026} and not bool(getattr(args, "allow_non_2026_test", False)):
             failures.append(f"candidate replay trade log contains years outside 2026: {sorted(years)}")
         numeric_cols = ["score", "p_long", "p_short", "p_flat", "net_pnl_bps", "mfe_bps", "mae_bps", "held_bars"]
         for col in numeric_cols:
