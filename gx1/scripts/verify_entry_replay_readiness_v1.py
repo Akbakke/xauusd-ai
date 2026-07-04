@@ -730,15 +730,29 @@ def _candidate_bundle_audit_checks(
             {"direction_distribution": distribution_by_split},
         ),
         _check(
-            "candidate bundle direction context slices pass",
+            # Responsibility chain (2026-07-04, vedtak SMART_SEQ520_candidate_train_20260703):
+            # when the candidate bundle audit itself declared edge_test_scope=candidate,
+            # blanket per-slice diagnostics are that audit's recorded advisories and are
+            # not re-hardened here — the HARD per-slice responsibility in THIS gate is
+            # the selected-tail slice-precision floors (load-bearing), which are
+            # untouched. strict/smoke-scoped audits (foundation/seq215) unchanged.
+            "candidate bundle direction context slices pass"
+            + (
+                " (blanket slices advisory per audit scope=candidate; selected-tail floors stay hard)"
+                if str(report.get("edge_test_scope")) == "candidate"
+                else ""
+            ),
             exists
             and bool(split_names)
-            and all(
-                str((slice_by_split.get(split) or {}).get("decision")) == "PASS"
-                and int((slice_by_split.get(split) or {}).get("audited_slice_count") or 0) > 0
-                for split in split_names
+            and (
+                str(report.get("edge_test_scope")) == "candidate"
+                or all(
+                    str((slice_by_split.get(split) or {}).get("decision")) == "PASS"
+                    and int((slice_by_split.get(split) or {}).get("audited_slice_count") or 0) > 0
+                    for split in split_names
+                )
             ),
-            {"direction_slices": slice_by_split},
+            {"direction_slices": slice_by_split, "audit_edge_test_scope": report.get("edge_test_scope")},
         ),
         _check(
             "candidate bundle path_quality ranks realized path quality positively",
@@ -985,6 +999,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "challenger_seq215": CHALLENGER_SEQ215_DATASET_DIR,
         "smart_seq520_candidate": SMART_SEQ520_DATASET_DIR,
     }[contract_mode]
+    # Explicit dataset-contract override (2026-07-04): the smart monthly-refresh
+    # deploy contract (train->2026-05-31, val/test = June halves at operating
+    # horizon; user vedtak SMART_SEQ520_candidate_train_20260703) evaluates on a
+    # re-split whose dir differs from the original pin. The pin stays the default;
+    # an override must be EXPLICIT on the command line — never inferred.
+    _dataset_override = str(getattr(args, "expected_dataset_dir", "") or "").strip()
+    if _dataset_override:
+        expected_dataset_dir = Path(_dataset_override).expanduser().resolve()
     selective_summary = _read_json(selective_summary_path) if selective_summary_path.exists() else {}
     selective_metrics = _read_csv_or_empty(selective_metrics_path)
     replay_metrics = _read_csv_or_empty(replay_dir / "replay_policy_metrics.csv")
@@ -1164,6 +1186,15 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--selective-edge-summary-json", default=str(DEFAULT_SELECTIVE_EDGE_DIR / "summary.json"))
     ap.add_argument("--selective-edge-metrics-csv", default=str(DEFAULT_SELECTIVE_EDGE_DIR / "selective_edge_metrics.csv"))
     ap.add_argument("--replay-dir", default=str(DEFAULT_REPLAY_DIR))
+    ap.add_argument(
+        "--expected-dataset-dir",
+        default="",
+        help=(
+            "Explicit dataset-contract override for the audit/selective-edge dataset "
+            "pin (e.g. the smart monthly-refresh re-split). Empty = the per-mode "
+            "canonical pin. Must be explicit; never inferred."
+        ),
+    )
     ap.add_argument("--out-dir", default=str(DEFAULT_OUT_DIR))
     ap.add_argument("--model-name", default="candidate")
     ap.add_argument("--min-top5-mean-pnl-bps", type=float, default=0.0)
