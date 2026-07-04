@@ -38,8 +38,18 @@ EXPECTED_HEADS = (
     "giveback_risk_bps",
     "mfe_capture_ratio",
 )
+# EXIT_NOW_LABEL_COLUMN (exit-parity wave 2026-07-04): which dataset column
+# supervises the exit_now head. Default = prior behaviour (exit_now_label = the
+# student policy's own exits — measured to encode the held-too-short disease:
+# 50% of bar-2 marked "exit now"). Alternative curricula, e.g.
+# oracle_exit_before_giveback_label (exit-at-tops; strict-OOT pre-gate PASS
+# AUC 0.77/0.81 both directions), are selected via env. Recorded in
+# EXIT_PARITY_KNOBS for rule-4 provenance.
+import os as _os_label
+EXIT_NOW_LABEL_COLUMN = str(_os_label.environ.get("EXIT_NOW_LABEL_COLUMN", "exit_now_label") or "exit_now_label").strip()
+
 TARGET_COLUMNS_BY_HEAD = {
-    "exit_now_logit": "exit_now_label",
+    "exit_now_logit": EXIT_NOW_LABEL_COLUMN,
     "hold_value_bps": "future_best_exit_lift_bps",
     "exit_now_reward_bps": "exit_now_reward_bps",
     "giveback_risk_bps": "future_giveback_from_peak_bps",
@@ -94,6 +104,7 @@ EXIT_PARITY_KNOBS = {
     "EXIT_REWARD_RANK_WEIGHT": EXIT_REWARD_RANK_WEIGHT,
     "EXIT_REWARD_RANK_MARGIN": EXIT_REWARD_RANK_MARGIN,
     "EXIT_CKPT_MONITOR": EXIT_CKPT_MONITOR,
+    "EXIT_NOW_LABEL_COLUMN": EXIT_NOW_LABEL_COLUMN,
 }
 
 LOSS_TARGET_SCALE = {
