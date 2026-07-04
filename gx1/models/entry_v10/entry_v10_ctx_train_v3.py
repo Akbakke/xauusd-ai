@@ -1607,7 +1607,28 @@ class EntryV10CtxDataset(Dataset):
             elif v2_mode and _disk_cache_dir:
                 from gx1.features.htf_features import load_multi_tf_v2_cache
                 log.info(f"[MULTI_TF] loading V2 disk cache: {_disk_cache_dir}")
-                self._multi_tf_feats = load_multi_tf_v2_cache(_disk_cache_dir)
+                _loaded_cache = load_multi_tf_v2_cache(_disk_cache_dir)
+                # FRESHNESS GUARD (2026-07-04 stale-cache incident): the disk cache is
+                # keyed by filename, so an in-place-extended prebuilt silently serves a
+                # stale snapshot — June eval bars got MTF context frozen at 2026-05-25
+                # (same freeze class as the 2026-05-25 BASE34 incident, rule 9). The
+                # dataset-build side already fail-closes on this; this is the eval/train
+                # twin. Cache lagging the prebuilt by >2 days = hard error, never a
+                # silent frozen-context eval.
+                import pyarrow.parquet as _pq
+                _prebuilt_max = pd.to_datetime(
+                    _pq.read_table(m5_path, columns=["time"]).column("time").to_numpy(zero_copy_only=False).max(),
+                    utc=True,
+                )
+                _cache_max = _loaded_cache["M5"].index.max()
+                if _cache_max + pd.Timedelta(days=2) < _prebuilt_max:
+                    raise RuntimeError(
+                        f"[MULTI_TF_CACHE_STALE] disk cache M5 max {_cache_max} lags prebuilt "
+                        f"{_prebuilt_max} by >2d — regenerate via "
+                        f"python -m gx1.scripts.prebuild_multi_tf_cache_v2 --m5-prebuilt {m5_path} "
+                        f"--out-dir {_disk_cache_dir}"
+                    )
+                self._multi_tf_feats = _loaded_cache
                 _MULTI_TF_CACHE[cache_key] = self._multi_tf_feats
             else:
                 log.info(f"[MULTI_TF] loading M5 prebuilt for resample: {m5_path.name} (v2={v2_mode})")
