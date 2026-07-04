@@ -396,13 +396,28 @@ def _apply_feature_mask(seq_x: torch.Tensor, snap_x: torch.Tensor, feature_mask:
     snap_x.index_fill_(-1, index, value)
 
 
-def build_metric_rows(predictions: pd.DataFrame, *, top_fracs: list[float]) -> list[dict[str, Any]]:
+def build_metric_rows(
+    predictions: pd.DataFrame,
+    *,
+    top_fracs: list[float],
+    exclude_sessions: tuple[str, ...] = (),
+) -> list[dict[str, Any]]:
+    """Selection-policy note (2026-07-04, vedtak SMART_SEQ520_candidate_train_20260703):
+    exclude_sessions removes those sessions from the SELECTION POOL before the
+    top-frac ranking (the selection budget stays a fraction of the FULL split, so
+    excluded-session capacity redirects to sessions with proven tail precision).
+    SKIP_ASIA-precedent policy class; grounds: quiet-session memorized-confidence
+    (EU morning: 97% SHORT calls vs 61% FLAT truth, tail precision 0.08-0.26).
+    The policy is recorded in the summary and must be mirrored by the deploy
+    operating point."""
     rows: list[dict[str, Any]] = []
     if predictions.empty:
         return rows
     for (split, model), sm in predictions.groupby(["split", "model"], sort=True):
+        pool = sm[~sm["session"].astype(str).isin(exclude_sessions)] if exclude_sessions else sm
         for top_frac in top_fracs:
-            top = _top_frame(sm, top_frac)
+            n_budget = max(1, int(math.ceil(len(sm) * float(top_frac))))
+            top = pool.sort_values("edge_score", ascending=False, kind="mergesort").head(n_budget).copy()
             rows.append(_metrics_for_group(top, split=str(split), model=str(model), scope="top_score", top_frac=top_frac, group="ALL"))
             for session, group in top.groupby("session", sort=True):
                 rows.append(
@@ -798,7 +813,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     predictions = pd.concat([df for df in all_predictions if not df.empty], ignore_index=True) if all_predictions else pd.DataFrame()
     if predictions.empty:
         failures.append("no selective-edge predictions were produced")
-    metric_rows = build_metric_rows(predictions, top_fracs=top_fracs)
+    exclude_sessions = tuple(
+        s.strip() for s in str(getattr(args, "exclude_sessions", "") or "").split(",") if s.strip()
+    )
+    metric_rows = build_metric_rows(predictions, top_fracs=top_fracs, exclude_sessions=exclude_sessions)
     metrics = pd.DataFrame(metric_rows)
     summary_payload = build_summary(predictions, metrics)
     no_xgb_ablation_diagnostics = build_no_xgb_ablation_diagnostics(predictions, model_name=str(args.model_name))
@@ -813,6 +831,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     report_md_path = out_dir / f"ENTRY_CANDIDATE_SELECTIVE_EDGE_{timestamp}.md"
     if not predictions.empty:
         predictions.to_parquet(predictions_path, index=False)
+        if exclude_sessions:
+            # Policy artifact for the downstream trade-log/replay chain: the
+            # SAME selection policy (sessions excluded from the pool) applied to
+            # the predictions, so thresholds and trades are computed under the
+            # policy the deploy operating point will mirror.
+            policy_pred = predictions[~predictions["session"].astype(str).isin(exclude_sessions)]
+            policy_path = out_dir / "selective_edge_predictions_policy.parquet"
+            policy_pred.to_parquet(policy_path, index=False)
     metrics.to_csv(metrics_path, index=False)
     report = {
         "schema_version": "entry_candidate_selective_edge_v1",
@@ -836,6 +862,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "summaries": summary_payload["summaries"],
         "no_xgb_ablation_diagnostics": no_xgb_ablation_diagnostics,
         "top_fracs": top_fracs,
+        "selection_policy": {
+            "exclude_sessions": list(exclude_sessions),
+            "note": (
+                "sessions removed from the selection pool before top-frac ranking; "
+                "budget = frac of full split (capacity redirects to proven sessions); "
+                "deploy operating point must mirror this policy"
+            ) if exclude_sessions else "",
+        },
         "bundle_seq_len": int(bundle_meta.get("seq_len") or 0),
         "bundle_seq_input_dim": int(bundle_meta.get("seq_input_dim") or bundle_meta.get("snap_input_dim") or 0),
         "bundle_snap_input_dim": int(bundle_meta.get("snap_input_dim") or bundle_meta.get("seq_input_dim") or 0),
@@ -908,6 +942,16 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--dataset-dir", default=str(FOUNDATION_DATASET_DIR))
     ap.add_argument("--splits", default="val,test")
     ap.add_argument("--top-fracs", default="0.05,0.10")
+    ap.add_argument(
+        "--exclude-sessions",
+        default="",
+        help=(
+            "Comma-separated sessions removed from the SELECTION pool before top-frac "
+            "ranking (selection-policy, SKIP_ASIA precedent class; recorded in the "
+            "summary as selection_policy and must be mirrored by the deploy operating "
+            "point). Empty = no policy."
+        ),
+    )
     ap.add_argument("--model-name", default="candidate")
     ap.add_argument(
         "--contract-mode",
