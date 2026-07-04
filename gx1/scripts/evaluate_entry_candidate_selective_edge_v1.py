@@ -583,6 +583,40 @@ def _dataset_signal_bridge_contract(dataset_dir: Path, splits: list[str]) -> dic
     return {"splits": rows}
 
 
+def _iter_split_chunks(parquet_path: Path, stream_chunk_rows: int):
+    """Yield (chunk_parquet_path, cleanup_fn). Each dataset row carries its own
+    nested (seq_len, signal_dim) sequence, so rows are independent and row-range
+    chunking is loss-free. stream_chunk_rows<=0 -> the original file, unsliced.
+    Memory-bounded evaluation for huge splits (2026-07-04: the 390K-row dense
+    forward would need ~78GB if materialized in one piece)."""
+    import pyarrow.parquet as _pq
+    import tempfile
+
+    if stream_chunk_rows <= 0:
+        yield parquet_path, (lambda: None)
+        return
+    pf = _pq.ParquetFile(parquet_path)
+    n_groups = pf.metadata.num_row_groups
+    group_rows = [pf.metadata.row_group(i).num_rows for i in range(n_groups)]
+    start = 0
+    while start < n_groups:
+        rows_acc = 0
+        end = start
+        while end < n_groups and rows_acc + group_rows[end] <= max(stream_chunk_rows, group_rows[end]):
+            rows_acc += group_rows[end]
+            end += 1
+        table = pf.read_row_groups(list(range(start, end)))
+        tmp = tempfile.NamedTemporaryFile(
+            suffix=f"_{parquet_path.stem}_rg{start}-{end - 1}.parquet", delete=False
+        )
+        tmp.close()
+        _pq.write_table(table, tmp.name)
+        del table
+        tmp_path = Path(tmp.name)
+        yield tmp_path, (lambda p=tmp_path: p.unlink(missing_ok=True))
+        start = end
+
+
 def _predict_bundle(
     *,
     bundle_dir: Path,
@@ -594,6 +628,7 @@ def _predict_bundle(
     m5_prebuilt_path: Path,
     neutralize_signal_bridge: bool = False,
     feature_mask: dict[str, Any] | None = None,
+    stream_chunk_rows: int = 0,
 ) -> tuple[pd.DataFrame, list[str], dict[str, Any]]:
     failures: list[str] = []
     bundle = load_entry_v10_ctx_bundle(bundle_dir=bundle_dir, device=str(device), xgb_models=None)
@@ -606,101 +641,105 @@ def _predict_bundle(
 
     for split in splits:
         parquet_path = _split_file(dataset_dir, split)
-        dataset = EntryV10CtxDataset(
-            parquet_path=parquet_path,
-            seq_len=seq_len,
-            allow_constant_labels=True,
-            **dataset_kwargs,
-        )
-        loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=0)
-        chunks: dict[str, list[np.ndarray]] = {
-            "p_long": [],
-            "p_short": [],
-            "p_flat": [],
-            "edge_score": [],
-            "trade_side": [],
-            "pred_direction": [],
-            "y_direction": [],
-            "ctx_cat": [],
-            "path_quality_pred": [],
-            "bad_path_prob": [],
-        }
-        with torch.no_grad():
-            for batch in loader:
-                seq_x = batch["seq_x"].to(device)
-                snap_x = batch["snap_x"].to(device)
-                ctx_cat = batch["ctx_cat"].to(device)
-                ctx_cont = batch["ctx_cont"].to(device)
-                if neutralize_signal_bridge:
-                    _neutralize_signal_bridge(seq_x, snap_x)
-                _apply_feature_mask(seq_x, snap_x, feature_mask)
-                out = model(
-                    seq_x,
-                    snap_x,
-                    ctx_cat=ctx_cat,
-                    ctx_cont=ctx_cont,
-                    **_multi_tf_kwargs_from_batch(batch, device),
+        for _chunk_path, _chunk_cleanup in _iter_split_chunks(parquet_path, int(stream_chunk_rows)):
+            try:
+                dataset = EntryV10CtxDataset(
+                    parquet_path=_chunk_path,
+                    seq_len=seq_len,
+                    allow_constant_labels=True,
+                    **dataset_kwargs,
                 )
-                for key, value in out.items():
-                    if hasattr(value, "detach") and not bool(torch.isfinite(value).all().item()):
-                        failures.append(f"{model_name}/{split}: non-finite model output {key}")
-                probs = torch.softmax(out["direction_logits"], dim=-1).detach().cpu().float().numpy()
-                trade_side = np.where(probs[:, 0] >= probs[:, 1], 0, 1).astype(np.int64)
-                edge_score = np.maximum(probs[:, 0], probs[:, 1]) - probs[:, 2]
-                chunks["p_long"].append(probs[:, 0])
-                chunks["p_short"].append(probs[:, 1])
-                chunks["p_flat"].append(probs[:, 2])
-                chunks["edge_score"].append(edge_score.astype(np.float32))
-                chunks["trade_side"].append(trade_side)
-                chunks["pred_direction"].append(probs.argmax(axis=1).astype(np.int64))
-                chunks["y_direction"].append(batch["y"].detach().cpu().numpy().astype(np.int64))
-                chunks["ctx_cat"].append(batch["ctx_cat"].detach().cpu().numpy().astype(np.int64))
-                chunks["path_quality_pred"].append(out["path_quality"].detach().cpu().float().numpy().reshape(-1))
-                chunks["bad_path_prob"].append(torch.sigmoid(out["bad_path_logit"]).detach().cpu().float().numpy().reshape(-1))
+                loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=0)
+                chunks: dict[str, list[np.ndarray]] = {
+                    "p_long": [],
+                    "p_short": [],
+                    "p_flat": [],
+                    "edge_score": [],
+                    "trade_side": [],
+                    "pred_direction": [],
+                    "y_direction": [],
+                    "ctx_cat": [],
+                    "path_quality_pred": [],
+                    "bad_path_prob": [],
+                }
+                with torch.no_grad():
+                    for batch in loader:
+                        seq_x = batch["seq_x"].to(device)
+                        snap_x = batch["snap_x"].to(device)
+                        ctx_cat = batch["ctx_cat"].to(device)
+                        ctx_cont = batch["ctx_cont"].to(device)
+                        if neutralize_signal_bridge:
+                            _neutralize_signal_bridge(seq_x, snap_x)
+                        _apply_feature_mask(seq_x, snap_x, feature_mask)
+                        out = model(
+                            seq_x,
+                            snap_x,
+                            ctx_cat=ctx_cat,
+                            ctx_cont=ctx_cont,
+                            **_multi_tf_kwargs_from_batch(batch, device),
+                        )
+                        for key, value in out.items():
+                            if hasattr(value, "detach") and not bool(torch.isfinite(value).all().item()):
+                                failures.append(f"{model_name}/{split}: non-finite model output {key}")
+                        probs = torch.softmax(out["direction_logits"], dim=-1).detach().cpu().float().numpy()
+                        trade_side = np.where(probs[:, 0] >= probs[:, 1], 0, 1).astype(np.int64)
+                        edge_score = np.maximum(probs[:, 0], probs[:, 1]) - probs[:, 2]
+                        chunks["p_long"].append(probs[:, 0])
+                        chunks["p_short"].append(probs[:, 1])
+                        chunks["p_flat"].append(probs[:, 2])
+                        chunks["edge_score"].append(edge_score.astype(np.float32))
+                        chunks["trade_side"].append(trade_side)
+                        chunks["pred_direction"].append(probs.argmax(axis=1).astype(np.int64))
+                        chunks["y_direction"].append(batch["y"].detach().cpu().numpy().astype(np.int64))
+                        chunks["ctx_cat"].append(batch["ctx_cat"].detach().cpu().numpy().astype(np.int64))
+                        chunks["path_quality_pred"].append(out["path_quality"].detach().cpu().float().numpy().reshape(-1))
+                        chunks["bad_path_prob"].append(torch.sigmoid(out["bad_path_logit"]).detach().cpu().float().numpy().reshape(-1))
 
-        arrays = {key: np.concatenate(value, axis=0) if value else np.zeros((0,), dtype=np.float32) for key, value in chunks.items()}
-        frame = dataset.df.iloc[dataset.indices].reset_index(drop=True).copy()
-        n = int(len(arrays["y_direction"]))
-        frame = frame.iloc[:n].copy()
-        ctx_cat = np.asarray(arrays["ctx_cat"], dtype=np.int64)
-        frame["split"] = split
-        frame["model"] = model_name
-        frame["p_long"] = arrays["p_long"]
-        frame["p_short"] = arrays["p_short"]
-        frame["p_flat"] = arrays["p_flat"]
-        frame["edge_score"] = arrays["edge_score"]
-        frame["trade_side"] = arrays["trade_side"].astype(np.int64)
-        frame["pred_direction"] = arrays["pred_direction"].astype(np.int64)
-        frame["y_direction"] = arrays["y_direction"].astype(np.int64)
-        frame["path_quality_pred"] = arrays["path_quality_pred"]
-        frame["bad_path_prob"] = arrays["bad_path_prob"]
-        frame["session"] = [SESSION_NAMES.get(int(x), f"UNKNOWN_{int(x)}") for x in ctx_cat[:, 0]]
-        frame["vol_regime"] = [str(int(x)) for x in ctx_cat[:, 1]] if ctx_cat.shape[1] > 1 else "UNKNOWN"
-        frame["side"] = [SIDE_NAMES.get(int(x), f"UNKNOWN_{int(x)}") for x in frame["trade_side"].to_numpy()]
-        frame["pnl_proxy_bps"] = _pnl_proxy_for_side(frame)
-        keep_cols = [
-            "split",
-            "model",
-            "time",
-            "y_direction",
-            "pred_direction",
-            "trade_side",
-            "side",
-            "session",
-            "vol_regime",
-            "edge_score",
-            "p_long",
-            "p_short",
-            "p_flat",
-            "path_quality_pred",
-            "bad_path_prob",
-            "path_quality_bps",
-            "y_bad_path",
-            "pnl_proxy_bps",
-        ]
-        if "y_forecast_ret_K24" in frame.columns:
-            keep_cols.append("y_forecast_ret_K24")
-        rows.append(frame[[c for c in keep_cols if c in frame.columns]])
+                arrays = {key: np.concatenate(value, axis=0) if value else np.zeros((0,), dtype=np.float32) for key, value in chunks.items()}
+                frame = dataset.df.iloc[dataset.indices].reset_index(drop=True).copy()
+                n = int(len(arrays["y_direction"]))
+                frame = frame.iloc[:n].copy()
+                ctx_cat = np.asarray(arrays["ctx_cat"], dtype=np.int64)
+                frame["split"] = split
+                frame["model"] = model_name
+                frame["p_long"] = arrays["p_long"]
+                frame["p_short"] = arrays["p_short"]
+                frame["p_flat"] = arrays["p_flat"]
+                frame["edge_score"] = arrays["edge_score"]
+                frame["trade_side"] = arrays["trade_side"].astype(np.int64)
+                frame["pred_direction"] = arrays["pred_direction"].astype(np.int64)
+                frame["y_direction"] = arrays["y_direction"].astype(np.int64)
+                frame["path_quality_pred"] = arrays["path_quality_pred"]
+                frame["bad_path_prob"] = arrays["bad_path_prob"]
+                frame["session"] = [SESSION_NAMES.get(int(x), f"UNKNOWN_{int(x)}") for x in ctx_cat[:, 0]]
+                frame["vol_regime"] = [str(int(x)) for x in ctx_cat[:, 1]] if ctx_cat.shape[1] > 1 else "UNKNOWN"
+                frame["side"] = [SIDE_NAMES.get(int(x), f"UNKNOWN_{int(x)}") for x in frame["trade_side"].to_numpy()]
+                frame["pnl_proxy_bps"] = _pnl_proxy_for_side(frame)
+                keep_cols = [
+                    "split",
+                    "model",
+                    "time",
+                    "y_direction",
+                    "pred_direction",
+                    "trade_side",
+                    "side",
+                    "session",
+                    "vol_regime",
+                    "edge_score",
+                    "p_long",
+                    "p_short",
+                    "p_flat",
+                    "path_quality_pred",
+                    "bad_path_prob",
+                    "path_quality_bps",
+                    "y_bad_path",
+                    "pnl_proxy_bps",
+                ]
+                if "y_forecast_ret_K24" in frame.columns:
+                    keep_cols.append("y_forecast_ret_K24")
+                rows.append(frame[[c for c in keep_cols if c in frame.columns]])
+            finally:
+                _chunk_cleanup()
 
     return pd.concat(rows, ignore_index=True) if rows else pd.DataFrame(), failures, meta
 
@@ -773,6 +812,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         batch_size=int(args.batch_size),
         m5_prebuilt_path=m5_prebuilt,
         feature_mask=feature_mask,
+        stream_chunk_rows=int(getattr(args, "stream_chunk_rows", 0) or 0),
     )
     all_predictions.append(candidate)
     failures.extend(candidate_failures)
@@ -800,6 +840,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             m5_prebuilt_path=m5_prebuilt,
             neutralize_signal_bridge=no_xgb_neutralize,
             feature_mask=feature_mask,
+            stream_chunk_rows=int(getattr(args, "stream_chunk_rows", 0) or 0),
         )
         all_predictions.append(ablation)
         failures.extend(ablation_failures)
@@ -964,6 +1005,17 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--feature-mask-json", default="")
     ap.add_argument("--device", default="cpu")
     ap.add_argument("--batch-size", type=int, default=128)
+    ap.add_argument(
+        "--stream-chunk-rows",
+        type=int,
+        default=0,
+        help=(
+            "Memory-bounded evaluation: forward the split in row-chunks of this size "
+            "(each dataset row carries its own nested sequence, so chunking is loss-free). "
+            "0 = load the whole split (default, unchanged). Use for huge splits, e.g. the "
+            "390K-row dense train-window forward (~78GB unchunked)."
+        ),
+    )
     ap.add_argument("--m5-prebuilt-path", default=str(DEFAULT_M5_PREBUILT))
     ap.add_argument("--multi-tf-cache-dir", default=str(DEFAULT_MTF_CACHE_DIR))
     ap.add_argument("--out-dir", default=str(DEFAULT_OUT_DIR))
