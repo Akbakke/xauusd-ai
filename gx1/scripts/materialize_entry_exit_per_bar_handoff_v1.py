@@ -121,6 +121,12 @@ CHALLENGER_SEQ215_SPECIALIST_GATE_SET = (
     "chart_geometry_encoder",
     "price_action_candle_encoder",
 )
+# smart_seq520_candidate trains the SAME 8 specialists as challenger_seq215
+# (the 305 smart-layer features route INTO those specialists; the gate set is
+# identical). Exit-parity wave 2026-07-04 (goal-doc step 7): the handoff must
+# accept the smart contract so Exit training can consume smart-entry replay
+# traces — and in smart mode the smart-layer snap fields become REQUIRED.
+SMART_SEQ520_SPECIALIST_GATE_SET = CHALLENGER_SEQ215_SPECIALIST_GATE_SET
 
 PRICE_COLUMNS = (
     "time",
@@ -195,9 +201,20 @@ def _split_manifest(dataset_dir: Path, split: str) -> dict[str, Any]:
     return _read_json_or_empty(matches[0]) if matches else {}
 
 
-def _feature_index_contract(dataset_dir: Path) -> dict[str, Any]:
+def _feature_index_contract(dataset_dir: Path, *, entry_contract_mode: str = "") -> dict[str, Any]:
     manifest = _split_manifest(dataset_dir, "train")
     manifest_matches = sorted(dataset_dir.glob("*_train.manifest.json"))
+    # Entry contract mode (exit-parity wave 2026-07-04, goal-doc step 7):
+    # derived from the dataset manifest_variant, overridable by explicit arg —
+    # a mismatch between the two is a hard error, never a silent pick.
+    manifest_mode = str(manifest.get("manifest_variant") or "").strip()
+    if entry_contract_mode and manifest_mode and entry_contract_mode != manifest_mode:
+        raise RuntimeError(
+            f"[ENTRY_EXIT_HANDOFF_CONTRACT_MISMATCH] --entry-contract-mode={entry_contract_mode} "
+            f"but dataset manifest_variant={manifest_mode} ({dataset_dir})"
+        )
+    effective_mode = entry_contract_mode or manifest_mode or "foundation_seq146"
+    smart_required = effective_mode == "smart_seq520_candidate"
     signal_bridge = (
         ((manifest.get("extra") or {}).get("signal_bridge") or {})
         if isinstance(manifest.get("extra"), dict)
@@ -234,20 +251,29 @@ def _feature_index_contract(dataset_dir: Path) -> dict[str, Any]:
     snap_index = {name: idx for idx, name in enumerate(snap_fields)}
     for name in ENTRY_SMART_ALIGNMENT_SNAP_FEATURES:
         if name not in snap_index:
-            optional_missing.append({"source": "snap", "name": name})
+            # smart mode: smart-layer fields are REQUIRED (goal-doc step 7 —
+            # "No Exit training if the Entry reason-for-trade is missing from
+            # Exit state"); foundation/seq215: optional as before.
+            if smart_required:
+                missing.append({"source": "snap", "name": name, "smart_layer": True})
+            else:
+                optional_missing.append({"source": "snap", "name": name})
             continue
         row = {
             "source": "snap",
             "name": name,
             "index": int(snap_index[name]),
             "output_field": _safe_feature_field("entry_snap", name),
-            "optional_smart_layer": True,
+            "optional_smart_layer": not smart_required,
+            "smart_layer": True,
         }
         fields.append(row)
         optional_fields.append(row)
     return {
         "dataset_dir": str(dataset_dir),
         "manifest_path": str(manifest_matches[0]) if manifest_matches else "",
+        "entry_contract_mode": effective_mode,
+        "smart_snap_features_required": bool(smart_required),
         "snap_field_count": len(snap_fields),
         "ctx_cont_field_count": len(ctx_cont_names),
         "requested_snap_features": list(ENTRY_ALIGNMENT_SNAP_FEATURES),
@@ -305,8 +331,14 @@ def _float_or_nan(value: Any) -> float:
         return float("nan")
 
 
-def _load_entry_alignment_snapshots(dataset_dir: Path, start: pd.Timestamp, end: pd.Timestamp) -> tuple[pd.DataFrame, dict[str, Any]]:
-    contract = _feature_index_contract(dataset_dir)
+def _load_entry_alignment_snapshots(
+    dataset_dir: Path,
+    start: pd.Timestamp,
+    end: pd.Timestamp,
+    *,
+    entry_contract_mode: str = "",
+) -> tuple[pd.DataFrame, dict[str, Any]]:
+    contract = _feature_index_contract(dataset_dir, entry_contract_mode=entry_contract_mode)
     fields = list(contract.get("fields") or [])
     parquets = _foundation_split_parquets(dataset_dir, start, end)
     frames: list[pd.DataFrame] = []
@@ -402,7 +434,11 @@ def _specialist_names_from_bundle(bundle: Any) -> list[str]:
 
 def _supported_specialist_gate_set(names: list[str]) -> bool:
     observed = set(str(name) for name in names)
-    return observed in (set(FOUNDATION_SPECIALIST_GATE_SET), set(CHALLENGER_SEQ215_SPECIALIST_GATE_SET))
+    return observed in (
+        set(FOUNDATION_SPECIALIST_GATE_SET),
+        set(CHALLENGER_SEQ215_SPECIALIST_GATE_SET),
+        set(SMART_SEQ520_SPECIALIST_GATE_SET),
+    )
 
 
 def _gate_output_fields_for_names(names: list[str]) -> list[str]:
@@ -873,7 +909,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         .expanduser()
         .resolve()
     )
-    entry_alignment_snapshots, entry_alignment_diagnostics = _load_entry_alignment_snapshots(foundation_dataset_dir, start, end)
+    entry_alignment_snapshots, entry_alignment_diagnostics = _load_entry_alignment_snapshots(
+        foundation_dataset_dir,
+        start,
+        end,
+        entry_contract_mode=str(getattr(args, "entry_contract_mode", "") or ""),
+    )
     entry_snapshot_alignment_fields = tuple(str(field) for field in entry_alignment_diagnostics.get("output_fields") or [])
     if not entry_alignment_snapshots.empty:
         trades = trades.merge(
@@ -909,6 +950,25 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     else:
         for field in entry_specialist_gate_fields:
             trades[field] = np.nan
+    # Gate-weight carry-forward e2e validation (exit-parity wave 2026-07-04):
+    # softmax gate weights must arrive complete per trade and sum to ~1.0 —
+    # NaN-filled or partial rows would train Exit on corrupt specialist
+    # consensus. Recorded loud; counted rows surface in the report.
+    gate_weight_incomplete_rows = 0
+    gate_weight_badsum_rows = 0
+    if entry_specialist_gate_fields:
+        _gw = trades[list(entry_specialist_gate_fields)]
+        _has_any = _gw.notna().any(axis=1)
+        _has_all = _gw.notna().all(axis=1)
+        gate_weight_incomplete_rows = int((_has_any & ~_has_all).sum())
+        _sums = _gw[_has_all].sum(axis=1)
+        gate_weight_badsum_rows = int(((_sums - 1.0).abs() > 1e-3).sum())
+        if gate_weight_incomplete_rows or gate_weight_badsum_rows:
+            print(
+                f"[ENTRY_EXIT_HANDOFF_GATE_WEIGHTS] incomplete_rows={gate_weight_incomplete_rows} "
+                f"badsum_rows={gate_weight_badsum_rows} of {len(trades)} trades",
+                flush=True,
+            )
     entry_alignment_fields = tuple(
         dict.fromkeys([*entry_snapshot_alignment_fields, *entry_specialist_gate_fields])
     )
@@ -1051,6 +1111,17 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             entry_specialist_gate_diagnostics,
         ),
         _check(
+            # Exit-parity wave 2026-07-04 (weld finding 3): gate weights must be
+            # row-complete and sum to ~1.0 per trade — never NaN-filled silently.
+            "Entry specialist gate weights are row-complete and normalized",
+            gate_weight_incomplete_rows == 0 and gate_weight_badsum_rows == 0,
+            {
+                "gate_weight_incomplete_rows": int(gate_weight_incomplete_rows),
+                "gate_weight_badsum_rows": int(gate_weight_badsum_rows),
+                "trade_rows": int(len(trades)),
+            },
+        ),
+        _check(
             "Entry alignment fields cover included trades",
             bool(entry_alignment_fields)
             and entry_alignment_missing_included_trade_count == 0
@@ -1171,6 +1242,17 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--entry-multi-tf-cache-dir", default=str(DEFAULT_ENTRY_MTF_CACHE_DIR))
     ap.add_argument("--entry-specialist-gate-batch-size", type=int, default=32)
     ap.add_argument("--require-entry-specialist-gates", action=argparse.BooleanOptionalAction, default=True)
+    ap.add_argument(
+        "--entry-contract-mode",
+        choices=("", "foundation_seq146", "challenger_seq215", "smart_seq520_candidate"),
+        default="",
+        help=(
+            "Explicit entry contract mode; must match the dataset manifest_variant "
+            "(mismatch = hard error). smart_seq520_candidate makes the smart-layer "
+            "snap fields REQUIRED in the alignment contract. Empty = derive from "
+            "the dataset manifest."
+        ),
+    )
     ap.add_argument("--out-dir", default=str(DEFAULT_OUT_DIR))
     ap.add_argument("--min-covered-trade-ratio", type=float, default=0.95)
     ap.add_argument("--min-covered-trades", type=int, default=100)
