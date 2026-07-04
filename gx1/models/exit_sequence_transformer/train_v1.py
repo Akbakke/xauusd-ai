@@ -470,7 +470,12 @@ def _supervised_loss(outputs: dict[str, torch.Tensor], targets: dict[str, torch.
         true_r = targets["exit_now_reward_bps"][mask] / scale
         n = pred_r.numel()
         if n >= 2:
-            perm = torch.randperm(n, device=pred_r.device)
+            # DETERMINISTIC pairing (reverse-index), not torch.randperm: this loss
+            # term is also evaluated inside _evaluate_model, so a random pairing
+            # would make the val-loss-monitored best-checkpoint selection
+            # non-reproducible. Reverse pairs each sample with a distant partner;
+            # training-batch shuffling still varies the pairs across epochs.
+            perm = torch.arange(n - 1, -1, -1, device=pred_r.device)
             a, b = pred_r, pred_r[perm]
             ta, tb = true_r, true_r[perm]
             sign = torch.sign(ta - tb)

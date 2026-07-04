@@ -214,7 +214,12 @@ def _feature_index_contract(dataset_dir: Path, *, entry_contract_mode: str = "")
             f"but dataset manifest_variant={manifest_mode} ({dataset_dir})"
         )
     effective_mode = entry_contract_mode or manifest_mode or "foundation_seq146"
-    smart_required = effective_mode == "smart_seq520_candidate"
+    # Width-agnostic smart detection: the generator writes
+    # f"smart_seq{width}_candidate" (materialize_entry_specialist_challenger_
+    # extension_manifest_v1.py) — match the family by prefix/suffix so a smart
+    # dataset at any width still makes the smart snap fields REQUIRED (never
+    # silently demote them to optional on a non-520 width).
+    smart_required = effective_mode.startswith("smart_seq") and effective_mode.endswith("_candidate")
     signal_bridge = (
         ((manifest.get("extra") or {}).get("signal_bridge") or {})
         if isinstance(manifest.get("extra"), dict)
@@ -467,7 +472,7 @@ def _extract_entry_specialist_gate_outputs(
         "output_fields": output_fields,
         "supported_specialist_sets": {
             "foundation_seq146": list(FOUNDATION_SPECIALIST_GATE_SET),
-            "challenger_seq215": list(CHALLENGER_SEQ215_SPECIALIST_GATE_SET),
+            "seq215_challenger": list(CHALLENGER_SEQ215_SPECIALIST_GATE_SET),
         },
         "ready": False,
         "failures": [],
@@ -1244,7 +1249,7 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--require-entry-specialist-gates", action=argparse.BooleanOptionalAction, default=True)
     ap.add_argument(
         "--entry-contract-mode",
-        choices=("", "foundation_seq146", "challenger_seq215", "smart_seq520_candidate"),
+        choices=("", "foundation_seq146", "seq215_challenger", "smart_seq520_candidate"),
         default="",
         help=(
             "Explicit entry contract mode; must match the dataset manifest_variant "

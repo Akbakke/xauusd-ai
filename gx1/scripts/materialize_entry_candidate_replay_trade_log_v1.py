@@ -127,6 +127,18 @@ def _prepare_predictions(
             if path.name.rsplit("_", 1)[-1].removesuffix(".parquet") in ("train", "val", "test")
         )
         horizons = _load_horizons(dataset_dir, sorted(set(all_splits)))
+        # Rule 9: make the time-disjointness assumption LOUD, never silent. If a
+        # time carries conflicting label_horizon_bars across splits the splits
+        # are NOT disjoint and drop_duplicates would silently mis-attach a label
+        # (train/serve-label skew) — hard-fail instead.
+        _conflict = horizons.groupby("time")["label_horizon_bars"].nunique()
+        _n_conflict = int((_conflict > 1).sum())
+        if _n_conflict:
+            raise RuntimeError(
+                f"[SUBSTRATE_HORIZON_CONFLICT] {_n_conflict} times carry conflicting "
+                "label_horizon_bars across dataset splits — splits are NOT time-disjoint; "
+                "the substrate time-only horizon join would mis-attach labels"
+            )
         horizons_by_time = horizons.drop_duplicates("time")[["time", "label_horizon_bars"]]
         merged = predictions.merge(horizons_by_time, on=["time"], how="left", validate="many_to_one")
     else:
