@@ -45,6 +45,57 @@ TARGET_COLUMNS_BY_HEAD = {
     "giveback_risk_bps": "future_giveback_from_peak_bps",
     "mfe_capture_ratio": "exit_now_mfe_capture_ratio_reward",
 }
+# ---------------------------------------------------------------------------
+# Exit-parity tuning knobs (2026-07-04, exit-parity wave — mirrors the entry
+# smart520 recipe surface). ALL defaults equal the previous hardcoded values,
+# so behaviour is byte-identical until a knob is explicitly set. Every value
+# used lands in the training summary for the pretrain-manifest/audit chain.
+#   EXIT_LOSS_W_*            : multi-objective reward mix (was hardcoded
+#                              1.0 / 0.30 / 0.30 / 0.20 / 0.20)
+#   EXIT_POS_WEIGHT_MIN/MAX  : exit-now BCE class-balance clamp (was 1 / 10)
+#   EXIT_PRED_BALANCE_ALPHA  : exit-now prediction-rate balance penalty
+#                              (entry FLAT-repair analogue for the binary exit
+#                              head; 0.0 = off)
+#   EXIT_REWARD_RANK_WEIGHT  : pairwise margin rank loss on exit_now_reward —
+#                              learn to RANK bars by exit-favourability so the
+#                              policy exits at tops, not just regress
+#                              magnitudes (entry path-quality-rank analogue;
+#                              0.0 = off)
+#   EXIT_REWARD_RANK_MARGIN  : margin for the rank loss (scaled units)
+#   EXIT_CKPT_MONITOR        : best-checkpoint metric: val_loss (default) |
+#                              exit_now_accuracy (load-bearing analogue of
+#                              entry's dir_acc monitor)
+import os as _os
+
+def _env_float(name: str, default: float) -> float:
+    raw = str(_os.environ.get(name, "") or "").strip()
+    return float(raw) if raw else float(default)
+
+EXIT_LOSS_W_EXIT_NOW_BCE = _env_float("EXIT_LOSS_W_EXIT_NOW_BCE", 1.0)
+EXIT_LOSS_W_HOLD_VALUE = _env_float("EXIT_LOSS_W_HOLD_VALUE", 0.30)
+EXIT_LOSS_W_EXIT_NOW_REWARD = _env_float("EXIT_LOSS_W_EXIT_NOW_REWARD", 0.30)
+EXIT_LOSS_W_GIVEBACK = _env_float("EXIT_LOSS_W_GIVEBACK", 0.20)
+EXIT_LOSS_W_MFE_CAPTURE = _env_float("EXIT_LOSS_W_MFE_CAPTURE", 0.20)
+EXIT_POS_WEIGHT_MIN = _env_float("EXIT_POS_WEIGHT_MIN", 1.0)
+EXIT_POS_WEIGHT_MAX = _env_float("EXIT_POS_WEIGHT_MAX", 10.0)
+EXIT_PRED_BALANCE_ALPHA = _env_float("EXIT_PRED_BALANCE_ALPHA", 0.0)
+EXIT_REWARD_RANK_WEIGHT = _env_float("EXIT_REWARD_RANK_WEIGHT", 0.0)
+EXIT_REWARD_RANK_MARGIN = _env_float("EXIT_REWARD_RANK_MARGIN", 0.10)
+EXIT_CKPT_MONITOR = str(_os.environ.get("EXIT_CKPT_MONITOR", "val_loss") or "val_loss").strip()
+EXIT_PARITY_KNOBS = {
+    "EXIT_LOSS_W_EXIT_NOW_BCE": EXIT_LOSS_W_EXIT_NOW_BCE,
+    "EXIT_LOSS_W_HOLD_VALUE": EXIT_LOSS_W_HOLD_VALUE,
+    "EXIT_LOSS_W_EXIT_NOW_REWARD": EXIT_LOSS_W_EXIT_NOW_REWARD,
+    "EXIT_LOSS_W_GIVEBACK": EXIT_LOSS_W_GIVEBACK,
+    "EXIT_LOSS_W_MFE_CAPTURE": EXIT_LOSS_W_MFE_CAPTURE,
+    "EXIT_POS_WEIGHT_MIN": EXIT_POS_WEIGHT_MIN,
+    "EXIT_POS_WEIGHT_MAX": EXIT_POS_WEIGHT_MAX,
+    "EXIT_PRED_BALANCE_ALPHA": EXIT_PRED_BALANCE_ALPHA,
+    "EXIT_REWARD_RANK_WEIGHT": EXIT_REWARD_RANK_WEIGHT,
+    "EXIT_REWARD_RANK_MARGIN": EXIT_REWARD_RANK_MARGIN,
+    "EXIT_CKPT_MONITOR": EXIT_CKPT_MONITOR,
+}
+
 LOSS_TARGET_SCALE = {
     "hold_value_bps": 100.0,
     "exit_now_reward_bps": 100.0,
@@ -398,20 +449,49 @@ def _supervised_loss(outputs: dict[str, torch.Tensor], targets: dict[str, torch.
     logits = outputs["exit_now_logit"][mask]
     pos = torch.clamp(labels.sum(), min=1.0)
     neg = torch.clamp(torch.tensor(float(labels.numel()), device=labels.device) - labels.sum(), min=1.0)
-    pos_weight = torch.clamp(neg / pos, min=1.0, max=10.0)
+    pos_weight = torch.clamp(neg / pos, min=float(EXIT_POS_WEIGHT_MIN), max=float(EXIT_POS_WEIGHT_MAX))
     loss_terms: dict[str, torch.Tensor] = {
         "exit_now_logit_bce": F.binary_cross_entropy_with_logits(logits, labels, pos_weight=pos_weight)
     }
     for head in ("hold_value_bps", "exit_now_reward_bps", "giveback_risk_bps", "mfe_capture_ratio"):
         scale = float(LOSS_TARGET_SCALE[head])
         loss_terms[f"{head}_huber"] = F.smooth_l1_loss(outputs[head][mask] / scale, targets[head][mask] / scale)
+    # Exit-now prediction-rate balance penalty (entry FLAT-repair analogue for
+    # the binary exit head; 0.0 = off = prior behaviour).
+    if EXIT_PRED_BALANCE_ALPHA > 0.0:
+        pred_rate = torch.sigmoid(logits).mean()
+        label_rate = labels.mean()
+        loss_terms["exit_now_pred_balance"] = (pred_rate - label_rate).abs()
+    # Pairwise margin rank loss on exit_now_reward: learn to RANK bars by
+    # exit-favourability (exit at tops), not just regress magnitudes.
+    if EXIT_REWARD_RANK_WEIGHT > 0.0:
+        scale = float(LOSS_TARGET_SCALE["exit_now_reward_bps"])
+        pred_r = outputs["exit_now_reward_bps"][mask] / scale
+        true_r = targets["exit_now_reward_bps"][mask] / scale
+        n = pred_r.numel()
+        if n >= 2:
+            perm = torch.randperm(n, device=pred_r.device)
+            a, b = pred_r, pred_r[perm]
+            ta, tb = true_r, true_r[perm]
+            sign = torch.sign(ta - tb)
+            valid_pairs = sign != 0
+            if bool(valid_pairs.any()):
+                rank = torch.clamp(
+                    float(EXIT_REWARD_RANK_MARGIN) - sign[valid_pairs] * (a - b)[valid_pairs],
+                    min=0.0,
+                ).mean()
+                loss_terms["exit_now_reward_rank"] = rank
     total = (
-        loss_terms["exit_now_logit_bce"]
-        + 0.30 * loss_terms["hold_value_bps_huber"]
-        + 0.30 * loss_terms["exit_now_reward_bps_huber"]
-        + 0.20 * loss_terms["giveback_risk_bps_huber"]
-        + 0.20 * loss_terms["mfe_capture_ratio_huber"]
+        EXIT_LOSS_W_EXIT_NOW_BCE * loss_terms["exit_now_logit_bce"]
+        + EXIT_LOSS_W_HOLD_VALUE * loss_terms["hold_value_bps_huber"]
+        + EXIT_LOSS_W_EXIT_NOW_REWARD * loss_terms["exit_now_reward_bps_huber"]
+        + EXIT_LOSS_W_GIVEBACK * loss_terms["giveback_risk_bps_huber"]
+        + EXIT_LOSS_W_MFE_CAPTURE * loss_terms["mfe_capture_ratio_huber"]
     )
+    if "exit_now_pred_balance" in loss_terms:
+        total = total + EXIT_PRED_BALANCE_ALPHA * loss_terms["exit_now_pred_balance"]
+    if "exit_now_reward_rank" in loss_terms:
+        total = total + EXIT_REWARD_RANK_WEIGHT * loss_terms["exit_now_reward_rank"]
     return total, {name: float(value.detach().cpu().item()) for name, value in loss_terms.items()}
 
 
@@ -616,8 +696,16 @@ def run_training(args: argparse.Namespace) -> dict[str, Any]:
             "val": val_eval,
         }
         epoch_metrics.append(epoch_row)
-        if float(val_eval["loss"]) < best_val_loss:
-            best_val_loss = float(val_eval["loss"])
+        # Load-bearing checkpoint monitor (EXIT_CKPT_MONITOR): val_loss keeps
+        # prior behaviour; exit_now_accuracy selects on the decision metric
+        # (entry dir_acc-monitor analogue). Score is stored negated for accuracy
+        # so 'lower is better' stays uniform.
+        if EXIT_CKPT_MONITOR == "exit_now_accuracy":
+            _ckpt_score = -float(val_eval.get("exit_now_accuracy") or 0.0)
+        else:
+            _ckpt_score = float(val_eval["loss"])
+        if _ckpt_score < best_val_loss:
+            best_val_loss = _ckpt_score
             best_state = {key: value.detach().cpu().clone() for key, value in model.state_dict().items()}
     if best_state is not None:
         model.load_state_dict(best_state)
@@ -672,6 +760,9 @@ def run_training(args: argparse.Namespace) -> dict[str, Any]:
             "clip_grad_norm": clip_grad_norm,
             "device": str(device),
             "num_workers": int(getattr(args, "num_workers", 0) or 0),
+            # Rule-4 provenance: the effective exit-parity recipe (all knobs,
+            # incl. defaults) — the audit/pretrain-manifest chain reads this.
+            "exit_parity_knobs": dict(EXIT_PARITY_KNOBS),
             "max_train_episodes": max_train_episodes,
             "max_eval_episodes": max_eval_episodes,
         },
