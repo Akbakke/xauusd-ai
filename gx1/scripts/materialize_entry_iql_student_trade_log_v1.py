@@ -402,13 +402,24 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     contract = _read_json(distillation_contract_path)
     contract_check = _distillation_contract_checks(distillation_contract_path, contract)
-    predictions = _prepare_predictions(predictions_path, dataset_dir, str(args.model_name))
+    predictions = _prepare_predictions(
+        predictions_path,
+        dataset_dir,
+        str(args.model_name),
+        substrate_mode=bool(getattr(args, "allow_non_2026", False)),
+    )
     if "val" not in set(predictions["split"]) or "test" not in set(predictions["split"]):
         raise RuntimeError("IQL student trade log requires val and test predictions")
     val = predictions[predictions["split"].astype(str) == "val"].sort_values("time", kind="mergesort").reset_index(drop=True)
     test = predictions[predictions["split"].astype(str) == "test"].sort_values("time", kind="mergesort").reset_index(drop=True)
     if not bool((test["time"].dt.year == 2026).all()):
-        raise RuntimeError("IQL student replay test split must be entirely 2026")
+        if not bool(getattr(args, "allow_non_2026", False)):
+            raise RuntimeError("IQL student replay test split must be entirely 2026")
+        # Exit-training SUBSTRATE mode (exit-parity wave 2026-07-04): historical
+        # coverage for the Exit transformer. This is a training substrate, NOT
+        # 2026 OOT replay evidence — iql-replay-evidence enforces its own 2026
+        # guard, so a historical substrate log can never masquerade as evidence.
+        print("[IQL_STUDENT_TRADE_LOG] allow-non-2026: exit-training substrate mode (not replay evidence)", flush=True)
 
     tape = SourceTape.load(source_parquet)
     top_fracs = _parse_float_list(str(args.threshold_top_fracs))
@@ -605,7 +616,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         failures.append("IQL student trade log produced zero trades")
     else:
         years = set(pd.to_datetime(trades_df["entry_time"], utc=True).dt.year.astype(int).unique())
-        if years != {2026}:
+        if years != {2026} and not bool(getattr(args, "allow_non_2026", False)):
             failures.append(f"IQL student trade log contains years outside 2026: {sorted(years)}")
 
     trades_path = out_dir / "entry_iql_student_trade_log.csv"
@@ -730,6 +741,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--vedtak", required=True)
+    ap.add_argument(
+        "--allow-non-2026",
+        action="store_true",
+        help=(
+            "Exit-training substrate mode: allow historical (non-2026) test rows for "
+            "dense Exit-transformer coverage. Mirrors the candidate trade-log flag. The "
+            "output is a training substrate, NOT 2026 OOT replay evidence (iql-replay-"
+            "evidence enforces its own 2026-only guard)."
+        ),
+    )
     ap.add_argument("--distillation-contract-json", default=str(DEFAULT_DISTILL_CONTRACT_JSON))
     ap.add_argument("--selective-edge-predictions", default=str(DEFAULT_PREDICTIONS))
     ap.add_argument("--dataset-dir", default=str(FOUNDATION_DATASET_DIR))
