@@ -697,16 +697,37 @@ def _glob_paths(pattern: str) -> list[Path]:
     return [Path(raw).expanduser().resolve() for raw in sorted(glob.glob(str(Path(pattern).expanduser())))]
 
 
-def _load_prices(path: Path, supplemental_m1_glob: str, start: pd.Timestamp, end: pd.Timestamp) -> tuple[pd.DataFrame, dict[str, Any]]:
-    available = set(pq.ParquetFile(path).schema_arrow.names)
-    cols = [col for col in PRICE_COLUMNS if col in available]
-    if not cols:
-        cols = list(PRICE_COLUMNS)
-    prices = pd.read_parquet(path, columns=cols)
-    prices["time"] = pd.to_datetime(prices["time"], utc=True)
-    prices = prices[(prices["time"] >= start) & (prices["time"] <= end)].copy()
-    prices["price_source"] = "canonical_m5"
-    prices["price_source_path"] = str(path)
+def _load_prices(
+    path: Path,
+    supplemental_m1_glob: str,
+    start: pd.Timestamp,
+    end: pd.Timestamp,
+    *,
+    bar_grid: str = "m5",
+) -> tuple[pd.DataFrame, dict[str, Any]]:
+    if bar_grid == "m1" and path.is_dir():
+        # M1 grid (exit-parity wave 2026-07-04): read the partitioned canonical
+        # M1 bid/ask tape raw — never aggregate; exit is M1-native by rule.
+        prices = pd.read_parquet(path)
+        prices["time"] = pd.to_datetime(prices["time"], utc=True)
+        prices = prices[(prices["time"] >= start) & (prices["time"] <= end)].copy()
+        if "spread_bps" not in prices.columns and {"ask_close", "bid_close"}.issubset(prices.columns):
+            mid = (pd.to_numeric(prices["ask_close"], errors="coerce") + pd.to_numeric(prices["bid_close"], errors="coerce")) / 2.0
+            prices["spread_bps"] = (
+                (pd.to_numeric(prices["ask_close"], errors="coerce") - pd.to_numeric(prices["bid_close"], errors="coerce")) / mid * 10000.0
+            )
+        prices["price_source"] = "canonical_m1"
+        prices["price_source_path"] = str(path)
+    else:
+        available = set(pq.ParquetFile(path).schema_arrow.names)
+        cols = [col for col in PRICE_COLUMNS if col in available]
+        if not cols:
+            cols = list(PRICE_COLUMNS)
+        prices = pd.read_parquet(path, columns=cols)
+        prices["time"] = pd.to_datetime(prices["time"], utc=True)
+        prices = prices[(prices["time"] >= start) & (prices["time"] <= end)].copy()
+        prices["price_source"] = "canonical_m5"
+        prices["price_source_path"] = str(path)
     supplemental_frames: list[pd.DataFrame] = []
     supplemental_paths = _glob_paths(supplemental_m1_glob)
     for supplemental_path in supplemental_paths:
@@ -779,17 +800,20 @@ def _build_trade_rows(
     candidate_bundle_dir: str,
     replay_identity_hash: str,
     entry_alignment_fields: tuple[str, ...],
+    bar_grid_minutes: int = 5,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     side = str(trade["side"]).upper()
     entry = _side_entry_price(trade)
-    expected = int(trade.get("held_bars") or 0) + 1
+    # held_bars is denominated in M5 bars (the trade-log sim tape); rescale to
+    # the requested bar grid (m1 -> 5x bars per trade).
+    expected = int(round(int(trade.get("held_bars") or 0) * 5 / max(1, int(bar_grid_minutes)))) + 1
     entry_trade_id = f"{trade.get('policy_id')}:{trade_idx}:{trade.get('entry_time')}:{side}"
     rows: list[dict[str, Any]] = []
     missing = max(0, expected - len(bars))
     bar_times = pd.to_datetime(bars["time"], utc=True, errors="coerce") if "time" in bars.columns else pd.Series(dtype="datetime64[ns, UTC]")
     invalid_bar_timestamp_count = int(bar_times.isna().sum()) if len(bar_times) else 0
     bar_time_diffs = bar_times.diff().dropna() if len(bar_times) else pd.Series(dtype="timedelta64[ns]")
-    non_contiguous_5min_gap_count = int((bar_time_diffs != pd.Timedelta(minutes=5)).sum())
+    non_contiguous_5min_gap_count = int((bar_time_diffs != pd.Timedelta(minutes=int(bar_grid_minutes))).sum())
     first_bar_matches_entry = bool(len(bar_times) and bar_times.iloc[0] == pd.Timestamp(trade["entry_time"]))
     last_bar_matches_exit = bool(len(bar_times) and bar_times.iloc[-1] == pd.Timestamp(trade["exit_time"]))
     if side == "LONG":
@@ -977,7 +1001,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     entry_alignment_fields = tuple(
         dict.fromkeys([*entry_snapshot_alignment_fields, *entry_specialist_gate_fields])
     )
-    prices, price_diagnostics = _load_prices(price_path, str(args.supplemental_m1_glob), start, end)
+    bar_grid = str(getattr(args, "bar_grid", "m5") or "m5")
+    bar_grid_minutes = 1 if bar_grid == "m1" else 5
+    prices, price_diagnostics = _load_prices(
+        price_path, str(args.supplemental_m1_glob), start, end, bar_grid=bar_grid
+    )
     replay_identity_hash = hashlib.sha256(
         (
             _sha256_file(trade_log_path)
@@ -1000,6 +1028,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             candidate_bundle_dir=candidate_bundle_dir,
             replay_identity_hash=replay_identity_hash,
             entry_alignment_fields=entry_alignment_fields,
+            bar_grid_minutes=bar_grid_minutes,
         )
         diag["source_trade_index"] = int(trade_idx)
         diagnostics.append(diag)
@@ -1156,7 +1185,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "iql_trade_log": str(trade_log_path),
         "iql_trade_log_sha256": _sha256_file(trade_log_path),
         "m5_price_parquet": str(price_path),
-        "m5_price_parquet_sha256": _sha256_file(price_path),
+        "m5_price_parquet_sha256": (
+            _sha256_file(price_path)
+            if price_path.is_file()
+            else _sha256_file(price_path / "MANIFEST.json")
+            if (price_path / "MANIFEST.json").is_file()
+            else ""
+        ),
+        "bar_grid": bar_grid,
         "supplemental_m1_glob": str(args.supplemental_m1_glob),
         "price_diagnostics": price_diagnostics,
         "entry_alignment_diagnostics": entry_alignment_diagnostics,
@@ -1239,6 +1275,17 @@ def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--iql-trade-log", default=str(DEFAULT_IQL_TRADE_LOG))
     ap.add_argument("--m5-price-parquet", default=str(DEFAULT_M5_PRICE_PARQUET))
+    ap.add_argument(
+        "--bar-grid",
+        choices=("m5", "m1"),
+        default="m5",
+        help=(
+            "Per-bar walk grid. m5 = prior behaviour (default). m1 = native M1 exit grid: "
+            "pass the partitioned canonical M1 bid/ask tape dir as --m5-price-parquet; "
+            "held_bars (M5-denominated) is rescaled 5x; contiguity checks run at 1min. "
+            "Exit is M1-native by constitution — this UPGRADES the substrate, never coarsens."
+        ),
+    )
     ap.add_argument("--supplemental-m1-glob", default=DEFAULT_SUPPLEMENTAL_M1_GLOB)
     ap.add_argument("--iql-comparison-json", default=str(DEFAULT_IQL_COMPARISON_JSON))
     ap.add_argument("--iql-slice-audit-json", default=str(DEFAULT_IQL_SLICE_AUDIT_JSON))
