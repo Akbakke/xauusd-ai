@@ -187,8 +187,8 @@ def _validate_training_enablement(args: argparse.Namespace) -> dict[str, Any]:
     _git = _git_provenance()
     if _git["status_short"]:
         raise ValueError(
-            "active Exit Transformer training requires clean git (rule 2); dirty:
-" + _git["status_short"]
+            "active Exit Transformer training requires clean git (rule 2); dirty:\n"
+            + _git["status_short"]
         )
     if not vedtak.startswith(VEDTAK_PREFIX):
         raise ValueError(f"--vedtak must start with {VEDTAK_PREFIX}")
