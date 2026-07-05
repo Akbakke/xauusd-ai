@@ -165,10 +165,31 @@ def _require_ready_report(path: Path, required_decision: str, label: str) -> dic
     return report
 
 
+def _git_provenance() -> dict[str, Any]:
+    """Rule-4 provenance + rule-2 enforcement in-process (2026-07-05 sweep):
+    the git-clean gate previously lived only in the shell wrapper — a direct
+    `python -m ...train_v1 --enable-training` could train on a dirty tree."""
+    import subprocess
+    repo = str(Path(__file__).resolve().parents[3])
+    def _run(*cmd: str) -> str:
+        return subprocess.run(["git", "-C", repo, *cmd], capture_output=True, text=True, timeout=30).stdout.strip()
+    return {
+        "commit": _run("rev-parse", "HEAD"),
+        "branch": _run("rev-parse", "--abbrev-ref", "HEAD"),
+        "status_short": _run("status", "--short"),
+    }
+
+
 def _validate_training_enablement(args: argparse.Namespace) -> dict[str, Any]:
     vedtak = str(getattr(args, "vedtak", "") or "")
     if not bool(getattr(args, "enable_training", False)):
         raise ValueError("active Exit Transformer training is disabled; pass --enable-training only after explicit train enablement")
+    _git = _git_provenance()
+    if _git["status_short"]:
+        raise ValueError(
+            "active Exit Transformer training requires clean git (rule 2); dirty:
+" + _git["status_short"]
+        )
     if not vedtak.startswith(VEDTAK_PREFIX):
         raise ValueError(f"--vedtak must start with {VEDTAK_PREFIX}")
     if int(getattr(args, "num_workers", 0) or 0) != 0:
@@ -759,6 +780,12 @@ def run_training(args: argparse.Namespace) -> dict[str, Any]:
         "normalization_json": str(normalization_json),
         "normalization_json_sha256": _sha256_file(normalization_json) if normalization_json.is_file() else "",
         "dataset_shards": dataset.get("shards") if isinstance(dataset.get("shards"), dict) else {},
+        "dataset_shard_sha256": {
+            name: _sha256_file(Path(path))
+            for name, path in (dataset.get("shards") or {}).items()
+            if isinstance(path, str) and Path(path).is_file()
+        },
+        "git": _git_provenance(),
         "target_contract": {
             "target_columns_by_head": TARGET_COLUMNS_BY_HEAD,
             "loss_target_scale": LOSS_TARGET_SCALE,
