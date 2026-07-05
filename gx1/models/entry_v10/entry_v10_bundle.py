@@ -305,6 +305,21 @@ def load_entry_v10_ctx_bundle(
     if isinstance(_dir_cal, dict) and bool(_dir_cal.get("enabled", True)):
         _cal_bias = torch.tensor([float(x) for x in (_dir_cal.get("bias") or [])], dtype=torch.float32)
         model.set_direction_calibration(float(_dir_cal.get("temperature", 1.0)), _cal_bias)
+        _path_cal = meta.get("path_calibration") if isinstance(meta, dict) else None
+        if isinstance(_path_cal, dict):
+            model.set_path_calibration(
+                float(_path_cal.get("path_quality_scale", 1.0)),
+                float(_path_cal.get("path_quality_shift", 0.0)),
+                float(_path_cal.get("bad_path_temperature", 1.0)),
+                float(_path_cal.get("bad_path_bias", 0.0)),
+            )
+            logging.getLogger(__name__).info(
+                "[ENTRY_PATH_CAL] installed: pq=%.4f*x%+.4f bad_path=x/%.4f%+.4f",
+                float(_path_cal.get("path_quality_scale", 1.0)),
+                float(_path_cal.get("path_quality_shift", 0.0)),
+                float(_path_cal.get("bad_path_temperature", 1.0)),
+                float(_path_cal.get("bad_path_bias", 0.0)),
+            )
         logging.getLogger(__name__).info(
             "[ENTRY_DIRECTION_CAL] installed: temperature=%.4f bias=%s fitted_on=%s",
             float(_dir_cal.get("temperature", 1.0)),

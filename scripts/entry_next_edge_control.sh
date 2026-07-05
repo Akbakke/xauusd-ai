@@ -3266,6 +3266,14 @@ PY
     exec "$PY" -m gx1.scripts.audit_entry_foundation_smoke_bundle_v1 "$@"
     ;;
 
+  fit-direction-calibration)
+    exec "$PY" -m gx1.scripts.fit_entry_direction_calibration_v1 "$@"
+    ;;
+
+  fit-path-calibration)
+    exec "$PY" -m gx1.scripts.fit_entry_direction_calibration_v1 --heads path "$@"
+    ;;
+
   selective-edge)
     exec "$PY" -m gx1.scripts.evaluate_entry_candidate_selective_edge_v1 "$@"
     ;;

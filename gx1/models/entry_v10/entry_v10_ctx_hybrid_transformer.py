@@ -479,6 +479,10 @@ class EntryV10CtxHybridTransformer(nn.Module):
         # same calibrated outputs by construction. (Vedtak
         # SMART_SEQ520_candidate_train_20260703 — FLAT-rate non-stationarity leg.)
         self._direction_cal: Optional[Tuple[float, torch.Tensor]] = None
+        # Post-hoc PATH-head calibration (2026-07-05, cand#1 path-inversion lesson):
+        # affine on path_quality (a*x+b) + Platt on bad_path_logit (x/T+b).
+        # Identity when never installed -> bit-identical for existing bundles.
+        self._path_cal: Optional[Tuple[float, float, float, float]] = None
         # V10-7 (2026-06-03 all-models scan): zero-init the direction RESIDUAL head so cold-start
         # delta_logits=0 -> direction == the (balanced) XGB anchor, and the residual is learned
         # from zero. head_direction was the lone correction head NOT zero-init (q_head/FiLM/
@@ -717,6 +721,26 @@ class EntryV10CtxHybridTransformer(nn.Module):
             )
         self._direction_cal = (t, bias.detach().clone().float())
 
+    def set_path_calibration(
+        self,
+        path_quality_scale: float,
+        path_quality_shift: float,
+        bad_path_temperature: float,
+        bad_path_bias: float,
+    ) -> None:
+        """Install post-hoc path-head calibration (fitted on held-out val,
+        stored in bundle_metadata["path_calibration"], applied by the loader).
+        path_quality -> scale*x + shift; bad_path_logit -> x/T + b.
+        Identity when never called. Fail-loud on bad values. NOTE: affine/Platt
+        recalibration fixes MAGNITUDE, never SIGN — a wrong-sign selected-subset
+        correlation (the cand#1 defect) must fail the slice-audit gate and be
+        fixed by recipe/retrain, not papered over here."""
+        vals = (float(path_quality_scale), float(path_quality_shift), float(bad_path_temperature), float(bad_path_bias))
+        import math as _math
+        if not all(_math.isfinite(v) for v in vals) or vals[2] <= 0.0:
+            raise ValueError(f"[ENTRY_PATH_CAL] invalid calibration: {vals}")
+        self._path_cal = vals
+
     def forward(
         self,
         seq_x: torch.Tensor,
@@ -930,6 +954,10 @@ class EntryV10CtxHybridTransformer(nn.Module):
         bad_path_logit = self.head_bad_path(z)
         clean_edge_logit = self.head_clean_edge(z)
         survival_logit = self.head_survival(z)
+        if self._path_cal is not None:
+            _pq_a, _pq_b, _bp_t, _bp_b = self._path_cal
+            path_quality = path_quality * _pq_a + _pq_b
+            bad_path_logit = bad_path_logit / _bp_t + _bp_b
         _assert_finite("path_quality", path_quality)
         _assert_finite("mfe_first_n", mfe_first_n)
         _assert_finite("tradable_logit", tradable_logit)
