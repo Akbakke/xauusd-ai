@@ -1,18 +1,24 @@
 {
   "project": "XAUUSD",
-  "note": "ONE source of truth for decision-valid artifacts. Edit ONLY via explicit vedtak. Paths absolute. CLEAN x10-April-repaired V3+exit-IQL FLIPPED LIVE 2026-06-10 (cement vedtak 'a'): EXIT chain now on FASE2B_CLEAN_20260608 (honest Phase-D gate PASS, clean +4.88 bps/take vs fase2b, all hardened checks; re-audit GREEN 208/209). XGB/V10/entry-IQL UNCHANGED (fase2b). Rollback = re-point v3_exit+exit_iql to the FASE2B_REGIME_V4 history entries (bundles intact). FASE2B regime-v4 chain CEMENTED 2026-06-08 (user vedtak 'keep this' + 'mengde forst'). Higher-EV/volume frontier: honest vs cement +1.58 bps/take, volume-first +49% total @ max_trades=3, BETTER drawdown (-1089 vs cement -1762). Win 0.91-0.95 vs 0.97 (direction-ceiling-bound, accepted). Operating point: min_advantage_bps=0, max_trades=3 (live-tunable), exit agg=max K=144. Prior COSTFIX chain -> history (parked rollback; workspace bundles intact). ENTRY operating point CEMENTED 2026-06-10 (vedtak 'Cement + restart live') to conviction-gate + skip-ASIA (serve-time selection overlay; entry_iql BUNDLE unchanged; reversible by unsetting GX1_CONVICTION_GATE/GX1_SKIP_ASIA) - see entry_iql.operating_point.",
+  "note": "ONE source of truth for decision-valid artifacts. Edit ONLY via explicit vedtak. Paths absolute. CLEAN x10-April-repaired V3+exit-IQL FLIPPED LIVE 2026-06-10 (cement vedtak 'a'): EXIT chain now on FASE2B_CLEAN_20260608 (honest Phase-D gate PASS, clean +4.88 bps/take vs fase2b, all hardened checks; re-audit GREEN 208/209). XGB/V10/entry-IQL UNCHANGED (fase2b). Rollback = re-point v3_exit+exit_iql to the FASE2B_REGIME_V4 history entries (bundles intact). FASE2B regime-v4 chain CEMENTED 2026-06-08 (user vedtak 'keep this' + 'mengde forst'). Higher-EV/volume frontier: honest vs cement +1.58 bps/take, volume-first +49% total @ max_trades=3, BETTER drawdown (-1089 vs cement -1762). Win 0.91-0.95 vs 0.97 (direction-ceiling-bound, accepted). Operating point: min_advantage_bps=0, max_trades=3 (live-tunable), exit agg=max K=144. Prior COSTFIX chain -> history (parked rollback; workspace bundles intact). ENTRY operating point CEMENTED 2026-06-10 (vedtak 'Cement + restart live') to conviction-gate + skip-ASIA (serve-time selection overlay; entry_iql BUNDLE unchanged; reversible by unsetting GX1_CONVICTION_GATE/GX1_SKIP_ASIA) - see entry_iql.operating_point. | 2026-07-05: legacy ENTRY roles RETIRED (vedtak); exit roles remain ACTIVE; smart_seq520 chain is the successor.",
   "active": {
     "xgb": {
-      "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/xgb_v7",
-      "status": "ACTIVE",
+      "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/_LEGACY_PRE_FOUNDATION_DO_NOT_USE_20260628/root_xgb_runs/xgb_v7",
+      "status": "RETIRED_PRE_FOUNDATION",
       "in_sample_only": false,
-      "note": "fase2b base80 multihead XGB (regime-v4 rebuild, isotonic-calibrated). 0 dead features (rule-9 strict)."
+      "note": "fase2b base80 multihead XGB (regime-v4 rebuild, isotonic-calibrated). 0 dead features (rule-9 strict).",
+      "retired_utc": "2026-07-05",
+      "retired_reason": "2026-06-28 foundation cleanup physically quarantined this bundle without a contract update -> resolver hard-failed on a dead path since then (found by the A1 chain-replay agent 2026-07-05). User vedtak 2026-07-05 ('legacy gjor dette ferdig'): legacy entry chain is RETIRED; the smart_seq520 chain is the successor (in qualification). Path now points at the ACTUAL quarantine location for forensics/rollforward; quarantined V10 additionally no longer matches current code (ctx_cont_dim 123 vs 142).",
+      "pre_retirement_path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/xgb_v7"
     },
     "v10_entry": {
-      "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_bundle_clean",
-      "status": "ACTIVE",
+      "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/_LEGACY_PRE_FOUNDATION_DO_NOT_USE_20260628/root_bundles/v10_bundle_clean",
+      "status": "RETIRED_PRE_FOUNDATION",
       "in_sample_only": false,
-      "note": "fase2b clean V10: FiLM-off, BIDIRECTIONAL, regime-v4, multi-TF-v2 (5TF x25, ATR distinct M5 13->D1 246). Honest OOT dir 0.5876 (at ceiling; edge=exit+selection)."
+      "note": "fase2b clean V10: FiLM-off, BIDIRECTIONAL, regime-v4, multi-TF-v2 (5TF x25, ATR distinct M5 13->D1 246). Honest OOT dir 0.5876 (at ceiling; edge=exit+selection).",
+      "retired_utc": "2026-07-05",
+      "retired_reason": "2026-06-28 foundation cleanup physically quarantined this bundle without a contract update -> resolver hard-failed on a dead path since then (found by the A1 chain-replay agent 2026-07-05). User vedtak 2026-07-05 ('legacy gjor dette ferdig'): legacy entry chain is RETIRED; the smart_seq520 chain is the successor (in qualification). Path now points at the ACTUAL quarantine location for forensics/rollforward; quarantined V10 additionally no longer matches current code (ctx_cont_dim 123 vs 142).",
+      "pre_retirement_path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_bundle_clean"
     },
     "v3_exit": {
       "path": "/home/andre2/GX1_DATA/runs/FASE2B_CLEAN_20260608/v3_train_out_clean/v3_exit_clean_20260608",
@@ -21,7 +27,7 @@
       "note": "CLEAN x10-April-repaired V3 exit transformer EXIT_IO_V8, multi-TF-v2 5TF x25. Flipped 2026-06-10 (cement vedtak 'a'). The clean Exit-IQL was scored/trained on THIS V3 -> they flip together (flipping exit-IQL alone would be train/serve skew). Prior fase2b V3 -> history (rollback)."
     },
     "entry_iql": {
-      "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/entry_iql_volbal_20260611",
+      "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/_LEGACY_PRE_FOUNDATION_DO_NOT_USE_20260628/entry_iql_runs/entry_iql_volbal_20260611",
       "active_variant": "R_WAIT_OPP_K96_LAM50_SYM",
       "active_folds": [
         "FOLD_1",
@@ -59,9 +65,12 @@
         "live_env": "GX1_CONVICTION_GATE=1 GX1_SKIP_ASIA=1 GX1_CONVICTION_THR=-37.71 GX1_SIZING_MODE=both GX1_SIZING_CONV_SRC=margin GX1_SIZING_MARGIN_POW=2.0 GX1_SIZING_MARGIN_REF=0.3318 GX1_SIZING_MAX_MULT=2.0 GX1_SIZING_MIN_MULT=0.5 GX1_SIZING_CONV_LO=-37.71 GX1_SIZING_CONV_HI=-13.99 GX1_SIZING_ATR_REF_BPS=14.0 GX1_SIZING_ATR_FLOOR_BPS=14.0 GX1_ENTRY_DIPFIX=1 GX1_ENTRY_DIPFIX_MODE=both",
         "note": "TIGHTEN-TO-QUALITY 2026-06-16 (vedtak 'Maksimal kvalitet'): conviction_thr -100 -> -37.71 (volbal top-35%, gate-VALIDATED 24.43 bps/take @ 0.9466 win skipASIA, 2026 30.66 bps @ 0.8543 floor PASS, cap-3 DD -113). The open-more -100 marginal band [-100,0) validated POSITIVE-but-LOWER-quality (fwd-EV 18-31 bps/0.59-0.63 win, exit-preserved; LONG-half DIPFIX +29.7% thru exit) = positive volume but per-take-diluting; user chose max per-take quality over volume. DIPFIX KEPT (quality-consistent). REVERSIBLE: thr back to -100. ---- PRIOR (history) OPEN-MORE WAVE ARMED 2026-06-13/14 (vedtak 'B: -100 er perfekt' + 'mer gass mer hale -> Fortsett'): conviction_thr -37.71 -> -100 (open-more, ~+70% takes at full quality, win + worst-MAE unchanged to -100); sizing source raw_adv -> margin^2 (margin corr 0.36 w/ realized vs raw_adv 0.04; +22% A/B) x inverse-ATR(14)=min(14/atr,1) high-vol de-risk (mode=both); conv_lo pinned -37.71 so new marginal trades enter at base size. BUNDLE UNCHANGED (entry_iql_volbal_20260611). journal suffix open100_conv_sized_skipasia_pure_phase6. DD ANALYSIS + ENTRY-RETRAIN VERDICT (9-agent OOT-verified 2026-06-14): TRUE cap-3 per-M1-bar mark-to-market account DD = 564 bps, ret/DD 30.5 (BETTER than flat 24.5 - the inverse-ATR leg already de-risks the EXTREME-vol tail; the worst moment is a recovering concurrent-underwater excursion, not lost capital). ENTRY-IQL RETRAIN REFUTED: the EXTREME+TREND_UP high-confidence LONG family is net-PROFITABLE (+5447 bps, 77.7% win, BETTER than other LONGs); confidence-inversion is a side-artifact (within-LONG winners are MORE confident); the trough labels do NOT separate the toxic entries OOT (loser-AUC 0.46-0.54 in-sample, GBM 0.70-0.94 in-sample -> 0.44-0.51 OOT both split directions; pre-gate >=0.58 FAILS at 0.501) -> a trough-reward refit is futile and would drop profitable LONGs (label-oracle -3053 bps). DO NOT retrain entry on this. See memory project_gx1_dd_analysis_retrain_refuted_20260614. REVERSIBLE: launcher GX1_CONVICTION_THR=-37.71, GX1_SIZING_CONV_SRC=raw_adv (or MARGIN_POW=1.0 for gentler margin^1). ---- PRIOR OP (history): CEMENTED 2026-06-11 (user vedtak 'Flip!'). BUNDLE FLIP + recalibrated OP on the new Q-scale: thr -37.71 = volbal top-35% (matches the prior coverage); sizing anchors = its own 65th/80th pctiles (LO -37.71 / HI -13.99); vol-sizing both-mode REF=14 unchanged. EVIDENCE (12k full-exit-chain replay, PARALLEL gate 2.8min): 24.43 bps/take @ 0.9466 win skipASIA, 2026 30.66 bps @ 0.8543 win (floor PASS without vol-sizing help), cap-3 DD -113.0 (HALF of v2fix -214.8 at same density). MECHANISM CONFIRMED: high-vol takes 943 short/890 long, shorts 38.6 vs longs 26.1 bps (the measured vol-regime inversion, learned via GX1_REWARD_VOLBALANCE_FACTOR=6 + POSGATE + TRUNC_MASK training). Trained on REGIME_V4 forward_outcome_clean; decisions provenance entry_decisions_volbal(_top35). Posthoc-vs-top20-baseline expectancy delta is a coverage artifact (35% vs 20%); per-year floor PASSES. Reversible: see history[0] rollback note."
       },
-      "status": "ACTIVE",
+      "status": "RETIRED_PRE_FOUNDATION",
       "in_sample_only": false,
-      "note": "Vol-regime-balanced Entry-IQL (LAM50_SYM reward: true per-K, no spread double-count; trained with bad_path POSGATE + Friday-trunc mask + 6x high-vol oversample, vedtak vol_regime_balance_20260611). Serves with the CONVICTION_GATE_VOLSIZED overlay (see operating_point)."
+      "note": "Vol-regime-balanced Entry-IQL (LAM50_SYM reward: true per-K, no spread double-count; trained with bad_path POSGATE + Friday-trunc mask + 6x high-vol oversample, vedtak vol_regime_balance_20260611). Serves with the CONVICTION_GATE_VOLSIZED overlay (see operating_point).",
+      "retired_utc": "2026-07-05",
+      "retired_reason": "2026-06-28 foundation cleanup physically quarantined this bundle without a contract update -> resolver hard-failed on a dead path since then (found by the A1 chain-replay agent 2026-07-05). User vedtak 2026-07-05 ('legacy gjor dette ferdig'): legacy entry chain is RETIRED; the smart_seq520 chain is the successor (in qualification). Path now points at the ACTUAL quarantine location for forensics/rollforward; quarantined V10 additionally no longer matches current code (ctx_cont_dim 123 vs 142).",
+      "pre_retirement_path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/entry_iql_volbal_20260611"
     },
     "exit_iql": {
       "path": "/home/andre2/GX1_DATA/runs/FASE2B_CLEAN_20260608/exit_iql_retrain_clean_20260609",
@@ -170,6 +179,24 @@
       "path": "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/INFERENCE_BATCH_CANDIDATES_V3PLUS_COSTFIX_20260526T201825Z__SUPERSEDED_BY_HEADS_BATCH",
       "status": "INVALIDATED",
       "reason": "headless COSTFIX candidate batch; superseded by HEADS_20260527T123431Z (strict superset: identical entries + 43 V10 new-head cols for Entry-IQL)."
+    },
+    {
+      "role": "xgb",
+      "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/xgb_v7",
+      "status": "RETIRED_PRE_FOUNDATION_20260705",
+      "note": "see active.xgb.retired_reason"
+    },
+    {
+      "role": "v10_entry",
+      "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_bundle_clean",
+      "status": "RETIRED_PRE_FOUNDATION_20260705",
+      "note": "see active.v10_entry.retired_reason"
+    },
+    {
+      "role": "entry_iql",
+      "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/entry_iql_volbal_20260611",
+      "status": "RETIRED_PRE_FOUNDATION_20260705",
+      "note": "see active.entry_iql.retired_reason"
     }
   ]
 }
