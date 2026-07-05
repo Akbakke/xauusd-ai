@@ -708,7 +708,12 @@ def _load_prices(
     if bar_grid == "m1" and path.is_dir():
         # M1 grid (exit-parity wave 2026-07-04): read the partitioned canonical
         # M1 bid/ask tape raw — never aggregate; exit is M1-native by rule.
-        prices = pd.read_parquet(path)
+        # Glob only *.parquet: the dataset dir also holds MANIFEST.json, which
+        # pd.read_parquet(dir) would try (and fail) to read as parquet.
+        _parts = sorted(path.glob("year=*/**/*.parquet")) or sorted(path.glob("**/*.parquet"))
+        if not _parts:
+            raise RuntimeError(f"[M1_TAPE_EMPTY] no parquet parts under {path}")
+        prices = pd.concat([pd.read_parquet(_pp) for _pp in _parts], ignore_index=True)
         prices["time"] = pd.to_datetime(prices["time"], utc=True)
         prices = prices[(prices["time"] >= start) & (prices["time"] <= end)].copy()
         if "spread_bps" not in prices.columns and {"ask_close", "bid_close"}.issubset(prices.columns):
