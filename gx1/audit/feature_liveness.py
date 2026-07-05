@@ -208,6 +208,8 @@ KNOWN_DATA_GAPS = {  # aksepterte historiske hull (dato → grunn). Repareres vi
     "2026-06-10": "OOM-reboot (2 hull 35+75min) — BACKFILL-KANDIDAT.",
     "2026-06-11": "reboot 15min.",
     "2026-06-17": "OOM-reboot (full phase6-gate tippet 58G-cap) — ~15-16min hull 14:27-14:43 (collector/daemon starved under RAM-thrash, mistet OANDA M1-vindu). Scroller ut av lookback ~22:43Z; nattlig tape-freshener (v12_backfill_to_present) backfiller. BACKFILL-KANDIDAT.",
+    "2026-06-27": "Live-stack nede 26. jun→5. jul (logs/-dir slettet 29. jun + reboot 2. jul → 209/STDOUT). REPARERT 2026-07-05: OANDA-backfill jun26→jul3 + cv3/BASE34 trunker+re-append (backup .bak_hole_repair_20260705). Kun helg/vedlikeholds-gap gjenstår i uken.",
+    "2026-07-03": "US Independence Day (4. juli observert): tidlig stenging 16:59Z fredag — OANDA har ingen candles 17:00Z fre → 21:00Z søn. Markeds-kalender, ikke utfall.",
 }
 
 
