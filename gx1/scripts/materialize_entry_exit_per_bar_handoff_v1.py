@@ -198,6 +198,12 @@ ENTRY_SMART_ALIGNMENT_STATE_FEATURES = tuple(
 
 def _split_manifest(dataset_dir: Path, split: str) -> dict[str, Any]:
     matches = sorted(dataset_dir.glob(f"*_{split}.manifest.json"))
+    # Rule 8 (2026-07-05 sweep): two stems in one dataset dir must be a hard
+    # error, never an alphabetical silent pick.
+    if len(matches) > 1:
+        raise RuntimeError(
+            f"[HANDOFF_MANIFEST_AMBIGUOUS] {len(matches)} *_{split}.manifest.json under {dataset_dir}: {matches}"
+        )
     return _read_json_or_empty(matches[0]) if matches else {}
 
 
@@ -673,19 +679,23 @@ def _mid_or_fallback(frame: pd.DataFrame, bid_col: str, ask_col: str, fallback_c
 
 
 def _deterministic_atr_bps(frame: pd.DataFrame, *, period_bars: int = ATR_PERIOD_BARS) -> pd.Series:
-    high = _mid_or_fallback(frame, "bid_high", "ask_high", "high")
-    low = _mid_or_fallback(frame, "bid_low", "ask_low", "low")
-    close = _mid_or_fallback(frame, "bid_close", "ask_close", "close")
-    prev_close = close.shift(1)
-    true_range = pd.concat(
-        [
-            (high - low).abs(),
-            (high - prev_close).abs(),
-            (low - prev_close).abs(),
-        ],
-        axis=1,
-    ).max(axis=1, skipna=True)
-    atr = true_range.rolling(int(period_bars), min_periods=1).mean()
+    """Train==serve (2026-07-05 sweep fix): fill missing atr_bps with the SAME
+    family the live serve produces — one-truth htf_features._atr (min_periods=n)
+    on plain OHLC, atr/close*1e4 (v12_ctx_augment_live._add_spread_atr_bps).
+    The prior local formula (mid-of-bid/ask TR, min_periods=1) produced an ATR
+    the serve path never emits. Warmup rows (<n bars) stay NaN and are counted
+    in the manifest, never silently substituted."""
+    from gx1.features.htf_features import _atr as _one_truth_atr
+
+    def _plain(col: str, bid: str, ask: str) -> pd.Series:
+        if col in frame.columns:
+            return pd.to_numeric(frame[col], errors="coerce")
+        return _mid_or_fallback(frame, bid, ask, col)
+
+    high = _plain("high", "bid_high", "ask_high")
+    low = _plain("low", "bid_low", "ask_low")
+    close = _plain("close", "bid_close", "ask_close")
+    atr = _one_truth_atr(high, low, close, int(period_bars))
     close_abs = close.abs().replace(0.0, np.nan)
     atr_bps = (atr / close_abs) * 10000.0
     return atr_bps.where(np.isfinite(atr_bps) & (atr_bps >= 0.0), np.nan)
