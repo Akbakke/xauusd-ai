@@ -32,6 +32,20 @@ KNOWN_ALLOWED_DEAD: Dict[str, str] = {
     "_v1_cost_bps_est": "const fallback (no spread). _v1_cost_bps_dyn IS alive.",
     "vol_pct_m5_1yr": "1-year vol-percentile not computed → pinned 0.5. Hygiene wave: compute or drop.",
     "vol_pct_h1_1yr": "ditto (pinned 0.5).",
+    # smart520 no-XGB neutral bridge (2026-07-05 sweep): seq/snap dims 0-6 are the
+    # DELIBERATE neutral-uniform bridge (p_long/short/flat/p_hat=1/3, uncertainty=2/3,
+    # margin=0, entropy=ln3) — bundle_metadata.neutral_xgb_bridge=true. Remove these
+    # entries when a real bridge returns.
+    "p_long": "smart520 neutral bridge constant (deliberate no-XGB).",
+    "p_short": "smart520 neutral bridge constant (deliberate no-XGB).",
+    "p_flat": "smart520 neutral bridge constant (deliberate no-XGB).",
+    "p_hat": "smart520 neutral bridge constant (deliberate no-XGB).",
+    "uncertainty_score": "smart520 neutral bridge constant (deliberate no-XGB).",
+    "margin_top1_top2": "smart520 neutral bridge constant (deliberate no-XGB).",
+    "entropy": "smart520 neutral bridge constant (deliberate no-XGB, ln3).",
+    # Ultra-sparse but ALIVE (91 nonzero / 396,681 rows): false-flags as dead below
+    # DEAD_STD on typical sample sizes — the documented slow-varying D1 class.
+    "d1_regime_changed_flag_v3": "ultra-sparse impulse flag (0.023% nonzero) — alive on full scan 2026-07-05; sibling bars_since_d1_regime_change_v3 carries the signal.",
     # Benign by construction — XGB is SESSION-HEADED so session feats are const within a head:
     "session_id": "0 XGB gain by construction (session-headed model).",
     "is_ASIA": "ditto.", "session_change_flag": "ditto.", "session_tradable": "ditto.",
