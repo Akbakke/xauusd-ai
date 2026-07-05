@@ -723,6 +723,7 @@ def _load_prices(
             )
         prices["price_source"] = "canonical_m1"
         prices["price_source_path"] = str(path)
+        available = set(prices.columns)
     else:
         available = set(pq.ParquetFile(path).schema_arrow.names)
         cols = [col for col in PRICE_COLUMNS if col in available]
