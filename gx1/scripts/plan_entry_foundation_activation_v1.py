@@ -120,6 +120,15 @@ def _latest_adoption_report(root: Path) -> Path:
     )
     if not candidates:
         raise RuntimeError(f"no adoption candidate latest report under {root}")
+    # Rule 8 (2026-07-05 sweep): a silent mtime-latest pick feeding the
+    # vedtak-gated activation apply is version roulette. Multiple candidates
+    # require an explicit --adoption-report — hard error, never a guess.
+    if len(candidates) > 1:
+        raise RuntimeError(
+            "[ADOPTION_REPORT_AMBIGUOUS] "
+            f"{len(candidates)} adoption candidates under {root}; pass --adoption-report explicitly: "
+            + ", ".join(str(c) for c in candidates)
+        )
     return candidates[0]
 
 
