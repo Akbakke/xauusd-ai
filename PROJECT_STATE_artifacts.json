@@ -9,7 +9,9 @@
       "note": "fase2b base80 multihead XGB (regime-v4 rebuild, isotonic-calibrated). 0 dead features (rule-9 strict).",
       "retired_utc": "2026-07-05",
       "retired_reason": "2026-06-28 foundation cleanup physically quarantined this bundle without a contract update -> resolver hard-failed on a dead path since then (found by the A1 chain-replay agent 2026-07-05). User vedtak 2026-07-05 ('legacy gjor dette ferdig'): legacy entry chain is RETIRED; the smart_seq520 chain is the successor (in qualification). Path now points at the ACTUAL quarantine location for forensics/rollforward; quarantined V10 additionally no longer matches current code (ctx_cont_dim 123 vs 142).",
-      "pre_retirement_path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/xgb_v7"
+      "pre_retirement_path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/xgb_v7",
+      "path_status": "PHYSICALLY_GONE_20260707_delete_incident",
+      "path_fix_note_20260707": "PHYSICALLY_GONE_20260707_delete_incident: destroyed by rule-5 delete 2026-07-07 \u2014 inventory exclusion paths were '...'-abbreviated and the executor failed to resolve them (should have hard-failed). json/md metadata salvaged under /home/andre2/GX1_DATA/reports/cand4_julyext_evidence_20260705/cleanup_wave_20260707/salvaged_manifests; binaries lost. Legacy chain was already RETIRED + code-incompatible; runtime impact none."
     },
     "v10_entry": {
       "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/_LEGACY_PRE_FOUNDATION_DO_NOT_USE_20260628/root_bundles/v10_bundle_clean",
@@ -18,7 +20,9 @@
       "note": "fase2b clean V10: FiLM-off, BIDIRECTIONAL, regime-v4, multi-TF-v2 (5TF x25, ATR distinct M5 13->D1 246). Honest OOT dir 0.5876 (at ceiling; edge=exit+selection).",
       "retired_utc": "2026-07-05",
       "retired_reason": "2026-06-28 foundation cleanup physically quarantined this bundle without a contract update -> resolver hard-failed on a dead path since then (found by the A1 chain-replay agent 2026-07-05). User vedtak 2026-07-05 ('legacy gjor dette ferdig'): legacy entry chain is RETIRED; the smart_seq520 chain is the successor (in qualification). Path now points at the ACTUAL quarantine location for forensics/rollforward; quarantined V10 additionally no longer matches current code (ctx_cont_dim 123 vs 142).",
-      "pre_retirement_path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_bundle_clean"
+      "pre_retirement_path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_bundle_clean",
+      "path_status": "PHYSICALLY_GONE_20260707_delete_incident",
+      "path_fix_note_20260707": "PHYSICALLY_GONE_20260707_delete_incident: destroyed by rule-5 delete 2026-07-07 \u2014 inventory exclusion paths were '...'-abbreviated and the executor failed to resolve them (should have hard-failed). json/md metadata salvaged under /home/andre2/GX1_DATA/reports/cand4_julyext_evidence_20260705/cleanup_wave_20260707/salvaged_manifests; binaries lost. Legacy chain was already RETIRED + code-incompatible; runtime impact none."
     },
     "v3_exit": {
       "path": "/home/andre2/GX1_DATA/runs/FASE2B_CLEAN_20260608/v3_train_out_clean/v3_exit_clean_20260608",
@@ -70,7 +74,9 @@
       "note": "Vol-regime-balanced Entry-IQL (LAM50_SYM reward: true per-K, no spread double-count; trained with bad_path POSGATE + Friday-trunc mask + 6x high-vol oversample, vedtak vol_regime_balance_20260611). Serves with the CONVICTION_GATE_VOLSIZED overlay (see operating_point).",
       "retired_utc": "2026-07-05",
       "retired_reason": "2026-06-28 foundation cleanup physically quarantined this bundle without a contract update -> resolver hard-failed on a dead path since then (found by the A1 chain-replay agent 2026-07-05). User vedtak 2026-07-05 ('legacy gjor dette ferdig'): legacy entry chain is RETIRED; the smart_seq520 chain is the successor (in qualification). Path now points at the ACTUAL quarantine location for forensics/rollforward; quarantined V10 additionally no longer matches current code (ctx_cont_dim 123 vs 142).",
-      "pre_retirement_path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/entry_iql_volbal_20260611"
+      "pre_retirement_path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/entry_iql_volbal_20260611",
+      "path_status": "PHYSICALLY_GONE_20260707_delete_incident",
+      "path_fix_note_20260707": "PHYSICALLY_GONE_20260707_delete_incident: destroyed by rule-5 delete 2026-07-07 \u2014 inventory exclusion paths were '...'-abbreviated and the executor failed to resolve them (should have hard-failed). json/md metadata salvaged under /home/andre2/GX1_DATA/reports/cand4_julyext_evidence_20260705/cleanup_wave_20260707/salvaged_manifests; binaries lost. Legacy chain was already RETIRED + code-incompatible; runtime impact none."
     },
     "exit_iql": {
       "path": "/home/andre2/GX1_DATA/runs/FASE2B_CLEAN_20260608/exit_iql_retrain_clean_20260609",
@@ -140,7 +146,9 @@
       "path_fix_note": "cleanup wave 2026-07-07 (audit #10 prerequisite B): the 2026-06-28 foundation cleanup moved this rollback bundle into the FASE2B quarantine without updating this pointer. Verified on disk 2026-07-07 (manifest_v1.json + trained_models_v1 present). DO NOT DELETE this subtree in any quarantine cleanup - it is a contract-referenced rollback copy.",
       "active_variant": "R_WAIT_OPP_K96_LAM50",
       "status": "INVALIDATED",
-      "reason": "ROLLBACK TARGET. fase2b entry_iql_clean (R_WAIT_OPP_K96_LAM50) superseded 2026-06-11 by entry_iql_volbal_20260611 (vedtak 'Flip!'): vol-regime-balanced LAM50_SYM beat it on ALL axes at the same 35% coverage (24.43 vs 23.45 bps/take, win 0.9466 vs 0.937, 2026-win 0.8543 PASS vs 0.847 FAIL, 12k-sample cap-3 DD -113 vs v2fix -215). Bundle intact on disk; rollback = re-point path+variant here and restore thr -67.0 / SIZING_CONV_LO -67 / HI -34.2 in launcher+OP."
+      "reason": "ROLLBACK TARGET. fase2b entry_iql_clean (R_WAIT_OPP_K96_LAM50) superseded 2026-06-11 by entry_iql_volbal_20260611 (vedtak 'Flip!'): vol-regime-balanced LAM50_SYM beat it on ALL axes at the same 35% coverage (24.43 vs 23.45 bps/take, win 0.9466 vs 0.937, 2026-win 0.8543 PASS vs 0.847 FAIL, 12k-sample cap-3 DD -113 vs v2fix -215). Bundle intact on disk; rollback = re-point path+variant here and restore thr -67.0 / SIZING_CONV_LO -67 / HI -34.2 in launcher+OP.",
+      "path_status": "PHYSICALLY_GONE_20260707_delete_incident",
+      "path_fix_note_20260707": "PHYSICALLY_GONE_20260707_delete_incident: destroyed by rule-5 delete 2026-07-07 \u2014 inventory exclusion paths were '...'-abbreviated and the executor failed to resolve them (should have hard-failed). json/md metadata salvaged under /home/andre2/GX1_DATA/reports/cand4_julyext_evidence_20260705/cleanup_wave_20260707/salvaged_manifests; binaries lost. Legacy chain was already RETIRED + code-incompatible; runtime impact none."
     },
     {
       "role": "exit_iql",
@@ -161,7 +169,9 @@
       "path_fixed_utc": "2026-07-07",
       "path_fix_note": "cleanup wave 2026-07-07 (audit #10 prerequisite B): the 2026-06-28 foundation cleanup moved truth_e2e_sanity into the reports quarantine without updating this pointer. Verified on disk 2026-07-07 (manifest_v1.json + trained_models_v1 present). DO NOT DELETE this subtree in any quarantine cleanup - it is a contract-referenced rollback copy.",
       "status": "INVALIDATED",
-      "reason": "superseded by fase2b regime-v4 chain (user vedtak 'keep this' 2026-06-08). Parked as rollback (workspace bundles intact)."
+      "reason": "superseded by fase2b regime-v4 chain (user vedtak 'keep this' 2026-06-08). Parked as rollback (workspace bundles intact).",
+      "path_status": "PHYSICALLY_GONE_20260707_delete_incident",
+      "path_fix_note_20260707": "PHYSICALLY_GONE_20260707_delete_incident: destroyed by rule-5 delete 2026-07-07 \u2014 inventory exclusion paths were '...'-abbreviated and the executor failed to resolve them (should have hard-failed). json/md metadata salvaged under /home/andre2/GX1_DATA/reports/cand4_julyext_evidence_20260705/cleanup_wave_20260707/salvaged_manifests; binaries lost. Legacy chain was already RETIRED + code-incompatible; runtime impact none."
     },
     {
       "role": "entry_iql",
@@ -170,7 +180,9 @@
       "path_fixed_utc": "2026-07-07",
       "path_fix_note": "cleanup wave 2026-07-07 (audit #10 prerequisite B): the 2026-06-28 foundation cleanup moved truth_e2e_sanity into the reports quarantine without updating this pointer. Verified on disk 2026-07-07 (manifest_v1.json + trained_models_v1 present). DO NOT DELETE this subtree in any quarantine cleanup - it is a contract-referenced rollback copy.",
       "status": "INVALIDATED",
-      "reason": "superseded by fase2b regime-v4 chain (user vedtak 'keep this' 2026-06-08). Parked as rollback (workspace bundles intact)."
+      "reason": "superseded by fase2b regime-v4 chain (user vedtak 'keep this' 2026-06-08). Parked as rollback (workspace bundles intact).",
+      "path_status": "PHYSICALLY_GONE_20260707_delete_incident",
+      "path_fix_note_20260707": "PHYSICALLY_GONE_20260707_delete_incident: destroyed by rule-5 delete 2026-07-07 \u2014 inventory exclusion paths were '...'-abbreviated and the executor failed to resolve them (should have hard-failed). json/md metadata salvaged under /home/andre2/GX1_DATA/reports/cand4_julyext_evidence_20260705/cleanup_wave_20260707/salvaged_manifests; binaries lost. Legacy chain was already RETIRED + code-incompatible; runtime impact none."
     },
     {
       "role": "v3_exit",
