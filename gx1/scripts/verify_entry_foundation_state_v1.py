@@ -48,7 +48,7 @@ SEQ_STRUCTURE_MANIFEST = (
 )
 FOUNDATION_DATASET_DIR = (
     RUN_ROOT
-    / "v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_foundation_seq146_neutral"
+    / "v10_6yr_rebuild_20260628_foundation_seq146/v10_dataset_foundation_seq146_neutral_20260629_directional_smc"
 )
 FOUNDATION_SANITY_BUNDLE_DIR = (
     RUN_ROOT / "v10_6yr_rebuild_20260628_foundation_seq146/sanity_entry_v10_ctx_seq146"
