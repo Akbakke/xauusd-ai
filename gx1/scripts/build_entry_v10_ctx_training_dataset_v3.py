@@ -115,6 +115,22 @@ SURVIVAL_LONG_MAE_MAX_BPS = 6.0
 SURVIVAL_LONG_PATH_MIN_BPS = 8.0
 CANONICAL_PREMIUM_LONG_ONLY = False  # V2: BIDIRECTIONAL — emit both long and short labels
 
+# Audit 2026-07-07 fix (finding #7): the hold-horizon label source used to be a
+# hardcoded 2026-05-19 Exit-IQL per_bar dir that no longer exists on disk, so the
+# join silently produced constant y_hold_horizon=0.5 → the hold_horizon head was
+# dead end-to-end while every log line looked green. The LIVING one-truth source
+# is the entry_exit per-bar handoff (bars_held per trade+bar, produced by
+# materialize_entry_exit_per_bar_handoff_v1). Newest canonical artifact at fix
+# time (smart_seq520 wave, manifest 2026-07-04, 728 trades). Override with
+# --hold-map-source; a dead/constant label now FAILS LOUD (rule-9 class) instead
+# of filling silent 0.5 — --allow-missing-hold-map is the explicit escape and
+# marks the head inactive in the manifest.
+DEFAULT_HOLD_MAP_SOURCE = Path(
+    "/home/andre2/GX1_DATA/reports/entry_exit_per_bar_handoff_20260630_v1/"
+    "smart_seq520_candidate_stop_tp_mfe_protect_act1_sl45_broad_net_min190/"
+    "entry_exit_per_bar_handoff.csv"
+)
+
 
 def final_direction_label_horizon_bars() -> int:
     """Return the actual horizon used by the emitted final y_direction label."""
@@ -1461,6 +1477,8 @@ def build_dataset_canonical(
     seq_structure_manifest_path: Optional[Path] = None,
     seq_structure_compute_inline: bool = False,
     neutral_xgb_bridge: bool = False,
+    hold_map_source: Optional[Path] = DEFAULT_HOLD_MAP_SOURCE,
+    allow_missing_hold_map: bool = False,
 ) -> Tuple[pd.DataFrame, Dict[str, Any]]:
     ctx = _hard_gate_ctx6cat6()
     if source_parquet_override is None:
@@ -2371,54 +2389,143 @@ def build_dataset_canonical(
         log.warning(f"[V3_TF_AGREEMENT] compute failed ({exc}) — filling with neutral 0.5")
         y_tf_agreement = np.full(len(merged3), 0.5, dtype=np.float32)
 
-    # V10 v3+ TARGET 4: realized hold-horizon ∈ [0,1] (bars / 1440).
-    # Join V10 candidates (entry-side) with Exit-IQL per_bar dataset to
-    # get max(bars_in_trade_v1) per candidate = realized hold. Non-trade
-    # samples (y_tradable=0) get neutral 0.5 (=~720 bars).
+    # V10 v3+ TARGET 4: realized hold-horizon ∈ [0,1] (hold minutes / 1440).
+    # Audit 2026-07-07 fix (finding #7): the old source was a hardcoded
+    # 2026-05-19 Exit-IQL per_bar dir that no longer exists, so the join
+    # silently filled constant 0.5 and the hold_horizon head trained dead
+    # end-to-end. Now: (1) source = the LIVING one-truth entry_exit per-bar
+    # handoff (bars_held per trade+bar), parametrized via --hold-map-source;
+    # (2) FAIL-LOUD (rule-9 class): a constant label on a shuffled sample
+    # raises RuntimeError; (3) --allow-missing-hold-map is the explicit
+    # escape — WARNING + head marked inactive in the manifest
+    # (extra.hold_horizon_label.head_active=false), never silent 0.5.
+    # Non-trade samples (y_tradable=0) still get neutral 0.5 (=~12h).
     # Spec: GX1_DATA/V10_V3_RETRAIN_TARGETS.md target 4.
-    try:
-        from pathlib import Path as _P
-        per_bar_root = _P("/home/andre2/GX1_DATA/reports/truth_e2e_sanity/"
-                           "BUILD_EXIT_IQL_PER_BAR_DATASET_V12_V3PLUS_FULL_20260519T012648Z_LOCK_V3TRACKED_20260519T022946Z_LOCK/per_week")
-        if not per_bar_root.exists():
-            raise RuntimeError(f"Exit-IQL per_bar root missing: {per_bar_root}")
-        # Build a candidate_uid → max_bars_in_trade map across all weeks.
-        # We only need the columns; this is a cheap pass.
-        hold_map: dict = {}  # decision_ts_utc → max_bars_in_trade
-        for wp in sorted(per_bar_root.glob("*.parquet")):
-            try:
-                _df_pb = pd.read_parquet(wp, columns=["decision_ts_utc", "bars_in_trade_v1"])
-                _agg = _df_pb.groupby("decision_ts_utc")["bars_in_trade_v1"].max()
-                for ts, max_bars in _agg.items():
-                    hold_map[ts] = float(max_bars)
-            except Exception:
-                continue
-        log.info(f"[V3_HOLD_HORIZON] candidates with realized hold: {len(hold_map):,}")
-        # Map onto merged3 by time (entry timestamp). Per_bar dataset stores
-        # decision_ts_utc as ISO string ("2026-04-13T00:00:00+00:00") so we
-        # must match that format — pandas .astype(str) gives space-separator
-        # which won't match.
-        time_series = merged3["time"]
-        if not pd.api.types.is_datetime64_any_dtype(time_series):
-            time_series = pd.to_datetime(time_series, utc=True)
-        time_keys = time_series.apply(lambda t: t.isoformat() if pd.notna(t) else "")
-        realized_hold = time_keys.map(hold_map).fillna(720.0)  # 720 = neutral 12h default
-        y_hold_horizon = (realized_hold.astype(np.float32) / 1440.0).clip(0.0, 1.0).to_numpy()
-        # Non-tradable rows get neutral 0.5
-        try:
-            non_tradable_mask = merged3["y_tradable"].astype(np.float32).to_numpy() <= 0.5
-            y_hold_horizon[non_tradable_mask] = 0.5
-        except KeyError:
-            pass
-        n_with_real = int((~np.isclose(y_hold_horizon, 0.5)).sum())
-        log.info(
-            "[V3_HOLD_HORIZON] computed n=%d (with realized=%d)  mean=%.3f  p50=%.3f",
-            len(y_hold_horizon), n_with_real, float(y_hold_horizon.mean()),
-            float(np.percentile(y_hold_horizon, 50)),
+    hold_horizon_label_meta: Dict[str, Any] = {
+        "source": str(hold_map_source) if hold_map_source is not None else None,
+        "allow_missing_hold_map": bool(allow_missing_hold_map),
+        "head_active": False,
+        "inactive_reason": None,
+        "trades_in_map": 0,
+        "rows_with_realized": 0,
+        "bar_interval_minutes": None,
+    }
+
+    def _hold_label_fail(msg: str) -> np.ndarray:
+        hold_horizon_label_meta["head_active"] = False
+        hold_horizon_label_meta["inactive_reason"] = msg
+        if allow_missing_hold_map:
+            log.warning(
+                "[V3_HOLD_HORIZON] %s — --allow-missing-hold-map set: filling neutral 0.5 and "
+                "marking the hold_horizon head INACTIVE in the manifest "
+                "(extra.hold_horizon_label.head_active=false)",
+                msg,
+            )
+            return np.full(len(merged3), 0.5, dtype=np.float32)
+        raise RuntimeError(
+            f"V3_HOLD_HORIZON_LABEL_DEAD: {msg} — refusing to emit a silent-constant hold "
+            f"label (rule-9 class; this exact silence shipped a dead head for weeks). "
+            f"Fix --hold-map-source, or pass --allow-missing-hold-map to build with the "
+            f"head explicitly inactive."
         )
-    except Exception as exc:
-        log.warning(f"[V3_HOLD_HORIZON] compute failed ({exc}) — filling with neutral 0.5")
-        y_hold_horizon = np.full(len(merged3), 0.5, dtype=np.float32)
+
+    _hold_src = Path(hold_map_source).expanduser().resolve() if hold_map_source is not None else None
+    if _hold_src is None or not _hold_src.exists():
+        y_hold_horizon = _hold_label_fail(f"hold-map source missing: {_hold_src}")
+    else:
+        _df_hold = (
+            pd.read_parquet(_hold_src)
+            if _hold_src.suffix.lower() == ".parquet"
+            else pd.read_csv(_hold_src)
+        )
+        _need_cols = ("entry_trade_id", "entry_time", "bar_ts", "bars_held")
+        _missing_cols = [c for c in _need_cols if c not in _df_hold.columns]
+        if _missing_cols:
+            y_hold_horizon = _hold_label_fail(
+                f"hold-map source {_hold_src} lacks columns {_missing_cols}"
+            )
+        elif len(_df_hold) == 0:
+            y_hold_horizon = _hold_label_fail(f"hold-map source {_hold_src} is empty")
+        else:
+            # Bar cadence from within-trade bar_ts deltas (the handoff is per
+            # M5 bar today; derive instead of assuming so an M1-cadence handoff
+            # keeps the same minutes/1440 label convention).
+            _bar_ts = pd.to_datetime(_df_hold["bar_ts"], utc=True)
+            _step_min = float(
+                _bar_ts.groupby(_df_hold["entry_trade_id"])
+                .diff()
+                .dt.total_seconds()
+                .median()
+                / 60.0
+            )
+            if not np.isfinite(_step_min) or _step_min <= 0:
+                y_hold_horizon = _hold_label_fail(
+                    f"hold-map source {_hold_src}: cannot derive bar cadence (median step {_step_min})"
+                )
+            else:
+                _per_trade = _df_hold.groupby("entry_trade_id", sort=False).agg(
+                    entry_time=("entry_time", "first"),
+                    max_bars_held=("bars_held", "max"),
+                )
+                _entry_ts = pd.to_datetime(_per_trade["entry_time"], utc=True)
+                hold_minutes_map = {
+                    ts.isoformat(): float(b) * _step_min
+                    for ts, b in zip(_entry_ts, _per_trade["max_bars_held"])
+                    if pd.notna(ts)
+                }
+                log.info(
+                    "[V3_HOLD_HORIZON] source=%s trades_with_realized_hold=%d bar_interval_min=%.1f",
+                    _hold_src, len(hold_minutes_map), _step_min,
+                )
+                # Map onto merged3 by entry timestamp (ISO string keys — the
+                # handoff stores "2026-01-05T00:00:00+00:00").
+                time_series = merged3["time"]
+                if not pd.api.types.is_datetime64_any_dtype(time_series):
+                    time_series = pd.to_datetime(time_series, utc=True)
+                time_keys = time_series.apply(lambda t: t.isoformat() if pd.notna(t) else "")
+                realized_hold_min = time_keys.map(hold_minutes_map)
+                n_with_real = int(realized_hold_min.notna().sum())
+                realized_hold_min = realized_hold_min.fillna(720.0)  # 720 min = neutral 12h
+                y_hold_horizon = (
+                    (realized_hold_min.astype(np.float32) / 1440.0).clip(0.0, 1.0).to_numpy()
+                )
+                # Non-tradable rows get neutral 0.5
+                try:
+                    non_tradable_mask = merged3["y_tradable"].astype(np.float32).to_numpy() <= 0.5
+                    y_hold_horizon[non_tradable_mask] = 0.5
+                except KeyError:
+                    pass
+                # Rule-9-class guard: the label must be ALIVE (non-constant on a
+                # SHUFFLED sample) or the build fails loud.
+                _rng = np.random.default_rng(9)
+                _n_samp = int(min(4096, len(y_hold_horizon)))
+                _samp = (
+                    y_hold_horizon[_rng.choice(len(y_hold_horizon), size=_n_samp, replace=False)]
+                    if _n_samp > 0
+                    else np.zeros((0,), dtype=np.float32)
+                )
+                if _n_samp == 0 or float(np.nanstd(_samp)) <= 0.0 or len(np.unique(_samp)) <= 1:
+                    y_hold_horizon = _hold_label_fail(
+                        f"hold label constant on shuffled sample (n={_n_samp}, "
+                        f"rows_with_realized={n_with_real}/{len(merged3)}, source={_hold_src})"
+                    )
+                else:
+                    hold_horizon_label_meta.update(
+                        {
+                            "head_active": True,
+                            "trades_in_map": int(len(hold_minutes_map)),
+                            "rows_with_realized": n_with_real,
+                            "bar_interval_minutes": _step_min,
+                            "coverage_ratio": float(n_with_real / max(1, len(merged3))),
+                            "label_mean": float(np.mean(y_hold_horizon)),
+                            "label_p50": float(np.percentile(y_hold_horizon, 50)),
+                        }
+                    )
+                    log.info(
+                        "[V3_HOLD_HORIZON] computed n=%d (with realized=%d)  mean=%.3f  p50=%.3f",
+                        len(y_hold_horizon), n_with_real, float(np.mean(y_hold_horizon)),
+                        float(np.percentile(y_hold_horizon, 50)),
+                    )
 
     # V10 v3+ TARGET 3: position-size target ∈ [0,1].
     # Proxy: realized signed edge in ATR units, sigmoid-mapped.
@@ -3014,6 +3121,9 @@ def build_dataset_canonical(
         "xgb_bridge_source": "neutral_uniform_proba" if neutral_xgb_bridge else "xgb_bundle_inference",
         "tape_root": str(Path(tape_root).resolve()),
         "join_ratio_tape": float(rows_joined / max(1, rows_base28)),
+        # Audit 2026-07-07 fix (finding #7): hold-horizon label provenance +
+        # head-active marker (trainer must treat head_active=false as inactive).
+        "hold_horizon_label": hold_horizon_label_meta,
         "signal_bridge": {
             "id": SIGNAL_BRIDGE_ID_V3,
             "neutral_xgb_bridge": bool(neutral_xgb_bridge),
@@ -3221,6 +3331,26 @@ def main() -> None:
         action="store_true",
         help="Compute selected sequence-structure features inline from per-bar merged3 instead of joining the parquet. "
              "Use this for true temporal seq extension builds.",
+    )
+
+    # Hold-horizon label source (V10 v3+ TARGET 4) — audit 2026-07-07 fix (finding #7)
+    parser.add_argument(
+        "--hold-map-source",
+        dest="hold_map_source",
+        type=str,
+        default=str(DEFAULT_HOLD_MAP_SOURCE),
+        help="Per-bar handoff artifact (csv/parquet with entry_trade_id, entry_time, bar_ts, bars_held) "
+             "used to build the realized hold-horizon label y_hold_horizon. Default: the newest canonical "
+             "entry_exit per-bar handoff. A missing source or constant label FAILS LOUD unless "
+             "--allow-missing-hold-map is passed.",
+    )
+    parser.add_argument(
+        "--allow-missing-hold-map",
+        dest="allow_missing_hold_map",
+        action="store_true",
+        help="Explicit escape for builds without hold-map coverage: log WARNING, fill y_hold_horizon with "
+             "neutral 0.5 and mark the hold_horizon head INACTIVE in the manifest "
+             "(extra.hold_horizon_label.head_active=false) instead of failing loud.",
     )
 
     # Labels (fixed-hold)
@@ -3493,6 +3623,8 @@ def main() -> None:
                 seq_structure_manifest_path=(Path(args.seq_structure_manifest).expanduser().resolve() if args.seq_structure_manifest else None),
                 seq_structure_compute_inline=bool(args.seq_structure_compute_inline),
                 neutral_xgb_bridge=bool(args.neutral_xgb_bridge),
+                hold_map_source=(Path(args.hold_map_source).expanduser().resolve() if args.hold_map_source else None),
+                allow_missing_hold_map=bool(args.allow_missing_hold_map),
             )
             _log_label_distribution_proof(df_built, split=split_name)
             # V2: parquet already written by streaming_write inside build_dataset_canonical
@@ -3538,6 +3670,8 @@ def main() -> None:
         seq_structure_manifest_path=(Path(args.seq_structure_manifest).expanduser().resolve() if args.seq_structure_manifest else None),
         seq_structure_compute_inline=bool(args.seq_structure_compute_inline),
         neutral_xgb_bridge=bool(args.neutral_xgb_bridge),
+        hold_map_source=(Path(args.hold_map_source).expanduser().resolve() if args.hold_map_source else None),
+        allow_missing_hold_map=bool(args.allow_missing_hold_map),
     )
     _log_label_distribution_proof(df_built, split="SINGLE")
     # V2: parquet already written by streaming_write inside build_dataset_canonical

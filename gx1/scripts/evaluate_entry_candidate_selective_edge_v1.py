@@ -619,6 +619,33 @@ def _iter_split_chunks(parquet_path: Path, stream_chunk_rows: int):
         start = end
 
 
+# Audit 2026-07-07 fix (finding #5): the evaluator used to persist only the
+# direction/edge_score/path_quality/bad_path columns and threw away 13/16 active
+# head outputs. Persist ALL head outputs the bundle forward emits. Column names
+# mirror the legacy materializer (materialize_inference_batch_candidates_v3_v1.py
+# emit_candidates) so the columns stay one-truth across evaluation surfaces.
+# Presence-conditional: a head absent from the forward output (bundle without
+# that head) is simply skipped — existing columns keep name/dtype (backward
+# compatible).
+_EXTRA_SIGMOID_HEADS = {
+    # forward-output key -> persisted probability column (sigmoid of raw logit)
+    "tradable_logit": "tradable_prob",
+    "clean_edge_logit": "clean_edge_prob",
+    "survival_logit": "survival_prob",
+    "tf_agreement_logit": "tf_agreement_prob",
+    "position_size_logit": "position_size_pred",
+    "hold_horizon_logit": "hold_horizon_pred",
+}
+_EXTRA_RAW_HEADS = {
+    # forward-output key -> persisted raw-value column
+    "mfe_first_n": "mfe_first_n_pred",
+    "path_quality_log_var": "path_quality_log_var",
+}
+# Multi-dim heads -> per-index columns <key>_{i} (widths: dip 18, forecast 4,
+# timing 12, tail_risk 6, vol_forecast 3 — taken from the tensor itself).
+_EXTRA_VECTOR_HEADS = ("dip_pred", "forecast_pred", "timing_pred", "tail_risk_pred", "vol_forecast_pred")
+
+
 def _predict_bundle(
     *,
     bundle_dir: Path,
@@ -664,6 +691,9 @@ def _predict_bundle(
                     "path_quality_pred": [],
                     "bad_path_prob": [],
                 }
+                # Audit 2026-07-07 fix (finding #5): dynamic per-head buffers for
+                # every extra head the bundle forward emits.
+                extra_chunks: dict[str, list[np.ndarray]] = {}
                 with torch.no_grad():
                     for batch in loader:
                         seq_x = batch["seq_x"].to(device)
@@ -696,8 +726,30 @@ def _predict_bundle(
                         chunks["ctx_cat"].append(batch["ctx_cat"].detach().cpu().numpy().astype(np.int64))
                         chunks["path_quality_pred"].append(out["path_quality"].detach().cpu().float().numpy().reshape(-1))
                         chunks["bad_path_prob"].append(torch.sigmoid(out["bad_path_logit"]).detach().cpu().float().numpy().reshape(-1))
+                        # Audit 2026-07-07 fix (finding #5): persist all extra head outputs.
+                        for _out_key, _col in _EXTRA_SIGMOID_HEADS.items():
+                            if _out_key in out:
+                                extra_chunks.setdefault(_col, []).append(
+                                    torch.sigmoid(out[_out_key]).detach().cpu().float().numpy().reshape(-1)
+                                )
+                        for _out_key, _col in _EXTRA_RAW_HEADS.items():
+                            if _out_key in out:
+                                extra_chunks.setdefault(_col, []).append(
+                                    out[_out_key].detach().cpu().float().numpy().reshape(-1)
+                                )
+                        for _out_key in _EXTRA_VECTOR_HEADS:
+                            if _out_key in out:
+                                _vec = out[_out_key].detach().cpu().float().numpy()
+                                for _i in range(_vec.shape[1]):
+                                    extra_chunks.setdefault(f"{_out_key}_{_i}", []).append(_vec[:, _i])
+                        if "mtf_dir_logits" in out:
+                            _mtf = torch.softmax(out["mtf_dir_logits"], dim=-1).detach().cpu().float().numpy()
+                            extra_chunks.setdefault("mtf_p_long", []).append(_mtf[:, 0])
+                            extra_chunks.setdefault("mtf_p_short", []).append(_mtf[:, 1])
+                            extra_chunks.setdefault("mtf_p_flat", []).append(_mtf[:, 2])
 
                 arrays = {key: np.concatenate(value, axis=0) if value else np.zeros((0,), dtype=np.float32) for key, value in chunks.items()}
+                extra_arrays = {col: np.concatenate(vals, axis=0) for col, vals in extra_chunks.items()}
                 frame = dataset.df.iloc[dataset.indices].reset_index(drop=True).copy()
                 n = int(len(arrays["y_direction"]))
                 frame = frame.iloc[:n].copy()
@@ -713,6 +765,9 @@ def _predict_bundle(
                 frame["y_direction"] = arrays["y_direction"].astype(np.int64)
                 frame["path_quality_pred"] = arrays["path_quality_pred"]
                 frame["bad_path_prob"] = arrays["bad_path_prob"]
+                # Audit 2026-07-07 fix (finding #5): all extra head outputs as columns.
+                for _col, _arr in extra_arrays.items():
+                    frame[_col] = _arr.astype(np.float32)
                 frame["session"] = [SESSION_NAMES.get(int(x), f"UNKNOWN_{int(x)}") for x in ctx_cat[:, 0]]
                 frame["vol_regime"] = [str(int(x)) for x in ctx_cat[:, 1]] if ctx_cat.shape[1] > 1 else "UNKNOWN"
                 frame["side"] = [SIDE_NAMES.get(int(x), f"UNKNOWN_{int(x)}") for x in frame["trade_side"].to_numpy()]
@@ -739,6 +794,10 @@ def _predict_bundle(
                 ]
                 if "y_forecast_ret_K24" in frame.columns:
                     keep_cols.append("y_forecast_ret_K24")
+                # Audit 2026-07-07 fix (finding #5): keep every persisted extra
+                # head column (appended AFTER the legacy columns so existing
+                # consumers see an unchanged prefix schema).
+                keep_cols.extend(c for c in extra_arrays.keys() if c not in keep_cols)
                 rows.append(frame[[c for c in keep_cols if c in frame.columns]])
             finally:
                 _chunk_cleanup()
