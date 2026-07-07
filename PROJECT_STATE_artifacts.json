@@ -86,6 +86,9 @@
       "in_sample_only": false,
       "note": "CLEAN x10-April-repaired Exit-IQL R_NET_REAL agg=max K=144 +AUG64. Phase-D honest gate PASS vs live fase2b: +4.88 bps/take (skip-ASIA 35.3 vs 30.4), win 0.962, all 5 hardened checks + per-year floor. Flipped 2026-06-10 (vedtak 'a'). active_variant PINNED R_NET_REAL FROM THE GATE: the bundle summary_v1.json self-recommends R_PEAK_QUALITY which the gate REJECTED (win 0.826<0.85) - do NOT trust the bundle headline. Re-audit GREEN (208/209 alive). Prior fase2b -> history (rollback).",
       "operating_point": {
+        "vedtak": "EXIT_OPERATING_POINT_CONTRACT_PIN_20260707",
+        "pinned_utc": "2026-07-07",
+        "note": "ONE truth for the FULL live exit policy (audit finding #4 2026-07-07: only ~4 of 16 exit env constants were mirrored here; GX1_EXIT_HARD_STOP_BPS=80 and GX1_EXIT_LET_WINNERS_RUN=1 lived ONLY as launcher exports while the code defaults are OFF, and the gate scripts did not pin them -> gate evidence could be measured on a different exit policy than live). live_env is the pinned effective env: launch_live_practice.sh must export every var (launch-assert), ExitIQLLiveInference.load() hard-asserts the effective env against it at init (RuntimeError with diff; escape hatch GX1_EXIT_ENV_ASSERT=0 with WARNING for explicit research replays only), and gate/replay launchers (gx1_candidate_gate.sh, v12_phase6_full_launch.sh, nightly true-netcap) export their exit env FROM it via scripts/gx1_exit_env_pin.sh. Values DOCUMENT the policy armed by prior vedtak (exit_hard_stop_20260617, let_winners_run_20260618, Strategy-F 2026-05-16 cement + 2026-06-04 launcher pins, AUG64 EX2/EX3 2026-06-04, REGIME_V4 cutover 2026-06-13) - NOTHING re-tuned by this pin.",
         "hard_mae_stop_bps": 80.0,
         "hard_mae_stop_vedtak": "exit_hard_stop_20260617",
         "let_winners_run": {
@@ -96,14 +99,45 @@
           "note": "Serve-time EXIT overlay (bundle UNCHANGED): suppress IQL profit-EXIT_NOW while in-profit+near-peak so winners ride to a real trailing giveback. Gated cap-3: block4 +16.6%PnL/+16.4%DD, period2 +32.7%PnL/+0%DD. Reversible GX1_EXIT_LET_WINNERS_RUN=0."
         },
         "strategy_f_enabled": true,
-        "mfe_giveback_pct": 0.3
+        "mfe_giveback_pct": 0.3,
+        "mfe_giveback_min_mfe_bps": 30.0,
+        "breakeven_ratio": 0.3,
+        "breakeven_min_mfe_bps": 10.0,
+        "strong_hold_qadv": -200.0,
+        "hold_horizon_overrun_mult": 1.5,
+        "hold_horizon_min_floor_bars": 60,
+        "use_distilled_exit": false,
+        "exit_augment_64": true,
+        "regime_v4": true,
+        "trend_regime_from_d1": true,
+        "live_env": {
+          "GX1_STRATEGY_F_ENABLED": "1",
+          "GX1_MFE_GIVEBACK_PCT": "0.30",
+          "GX1_MFE_GIVEBACK_MIN_MFE_BPS": "30.0",
+          "GX1_BREAKEVEN_RATIO": "0.30",
+          "GX1_BREAKEVEN_MIN_MFE": "10.0",
+          "GX1_STRONG_HOLD_QADV": "-200.0",
+          "GX1_HOLD_HORIZON_OVERRUN_MULT": "1.5",
+          "GX1_HOLD_HORIZON_MIN_FLOOR_BARS": "60",
+          "GX1_USE_DISTILLED_EXIT": "0",
+          "GX1_EXIT_HARD_STOP_BPS": "80",
+          "GX1_EXIT_LET_WINNERS_RUN": "1",
+          "GX1_LWR_GIVEBACK_FRAC": "0.30",
+          "GX1_LWR_MIN_PNL_BPS": "15.0",
+          "GX1_EXIT_AUGMENT_64": "1",
+          "GX1_REGIME_V4": "1",
+          "GX1_TREND_REGIME_FROM_D1": "1"
+        }
       }
     }
   },
   "history": [
     {
       "role": "entry_iql",
-      "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/entry_iql_clean",
+      "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/_LEGACY_PRE_FOUNDATION_DO_NOT_USE_20260628/entry_iql_runs/entry_iql_clean",
+      "pre_quarantine_path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/entry_iql_clean",
+      "path_fixed_utc": "2026-07-07",
+      "path_fix_note": "cleanup wave 2026-07-07 (audit #10 prerequisite B): the 2026-06-28 foundation cleanup moved this rollback bundle into the FASE2B quarantine without updating this pointer. Verified on disk 2026-07-07 (manifest_v1.json + trained_models_v1 present). DO NOT DELETE this subtree in any quarantine cleanup - it is a contract-referenced rollback copy.",
       "active_variant": "R_WAIT_OPP_K96_LAM50",
       "status": "INVALIDATED",
       "reason": "ROLLBACK TARGET. fase2b entry_iql_clean (R_WAIT_OPP_K96_LAM50) superseded 2026-06-11 by entry_iql_volbal_20260611 (vedtak 'Flip!'): vol-regime-balanced LAM50_SYM beat it on ALL axes at the same 35% coverage (24.43 vs 23.45 bps/take, win 0.9466 vs 0.937, 2026-win 0.8543 PASS vs 0.847 FAIL, 12k-sample cap-3 DD -113 vs v2fix -215). Bundle intact on disk; rollback = re-point path+variant here and restore thr -67.0 / SIZING_CONV_LO -67 / HI -34.2 in launcher+OP."
@@ -122,13 +156,19 @@
     },
     {
       "role": "exit_iql",
-      "path": "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/BUILD_EXIT_IQL_V3_M1_COSTFIX_HEADS_FAST_20260528T205051Z",
+      "path": "/home/andre2/GX1_DATA/reports/_LEGACY_ENTRY_PRE_FOUNDATION_DO_NOT_USE_20260628/iql_model_reports/truth_e2e_sanity/BUILD_EXIT_IQL_V3_M1_COSTFIX_HEADS_FAST_20260528T205051Z",
+      "pre_quarantine_path": "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/BUILD_EXIT_IQL_V3_M1_COSTFIX_HEADS_FAST_20260528T205051Z",
+      "path_fixed_utc": "2026-07-07",
+      "path_fix_note": "cleanup wave 2026-07-07 (audit #10 prerequisite B): the 2026-06-28 foundation cleanup moved truth_e2e_sanity into the reports quarantine without updating this pointer. Verified on disk 2026-07-07 (manifest_v1.json + trained_models_v1 present). DO NOT DELETE this subtree in any quarantine cleanup - it is a contract-referenced rollback copy.",
       "status": "INVALIDATED",
       "reason": "superseded by fase2b regime-v4 chain (user vedtak 'keep this' 2026-06-08). Parked as rollback (workspace bundles intact)."
     },
     {
       "role": "entry_iql",
-      "path": "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/BUILD_ENTRY_IQL_V2_COSTFIX_HEADS_FAST_20260528T071646Z",
+      "path": "/home/andre2/GX1_DATA/reports/_LEGACY_ENTRY_PRE_FOUNDATION_DO_NOT_USE_20260628/iql_model_reports/truth_e2e_sanity/BUILD_ENTRY_IQL_V2_COSTFIX_HEADS_FAST_20260528T071646Z",
+      "pre_quarantine_path": "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/BUILD_ENTRY_IQL_V2_COSTFIX_HEADS_FAST_20260528T071646Z",
+      "path_fixed_utc": "2026-07-07",
+      "path_fix_note": "cleanup wave 2026-07-07 (audit #10 prerequisite B): the 2026-06-28 foundation cleanup moved truth_e2e_sanity into the reports quarantine without updating this pointer. Verified on disk 2026-07-07 (manifest_v1.json + trained_models_v1 present). DO NOT DELETE this subtree in any quarantine cleanup - it is a contract-referenced rollback copy.",
       "status": "INVALIDATED",
       "reason": "superseded by fase2b regime-v4 chain (user vedtak 'keep this' 2026-06-08). Parked as rollback (workspace bundles intact)."
     },
@@ -140,13 +180,19 @@
     },
     {
       "role": "v10_entry",
-      "path": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_RELABEL15H24_SYMW_COSTFIX_20260526T183658Z",
+      "path": "/home/andre2/GX1_DATA/models/_LEGACY_ENTRY_PRE_FOUNDATION_DO_NOT_USE_20260628/models/entry_v10_ctx/ENTRY_V10_RELABEL15H24_SYMW_COSTFIX_20260526T183658Z",
+      "pre_quarantine_path": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_RELABEL15H24_SYMW_COSTFIX_20260526T183658Z",
+      "path_fixed_utc": "2026-07-07",
+      "path_fix_note": "cleanup wave 2026-07-07 (audit #10 prerequisite B): the 2026-06-28 foundation cleanup moved this bundle into the models quarantine without updating this pointer. Verified on disk 2026-07-07 (model_state_dict.pt + bundle_metadata.json + MASTER_TRANSFORMER_LOCK.json present). DO NOT DELETE this subtree in any quarantine cleanup - it is a contract-referenced rollback copy.",
       "status": "INVALIDATED",
       "reason": "superseded by fase2b regime-v4 chain (user vedtak 'keep this' 2026-06-08). Parked as rollback (workspace bundles intact)."
     },
     {
       "role": "xgb",
-      "path": "/home/andre2/GX1_DATA/models/models/xgb_v7_base80_20260526T052210Z",
+      "path": "/home/andre2/GX1_DATA/models/_LEGACY_ENTRY_PRE_FOUNDATION_DO_NOT_USE_20260628/models/xgb_v7_base80_20260526T052210Z",
+      "pre_quarantine_path": "/home/andre2/GX1_DATA/models/models/xgb_v7_base80_20260526T052210Z",
+      "path_fixed_utc": "2026-07-07",
+      "path_fix_note": "cleanup wave 2026-07-07 (audit #10 prerequisite B): the 2026-06-28 foundation cleanup moved this bundle into the models quarantine without updating this pointer. Verified on disk 2026-07-07 (xgb_universal_multihead_v2.joblib + CALIBRATION.json present). DO NOT DELETE this subtree in any quarantine cleanup - it is a contract-referenced rollback copy.",
       "status": "INVALIDATED",
       "reason": "superseded by fase2b regime-v4 chain (user vedtak 'keep this' 2026-06-08). Parked as rollback (workspace bundles intact)."
     },
@@ -154,12 +200,16 @@
       "role": "v10_entry",
       "path": "/home/andre2/GX1_DATA/models/models/entry_v10_ctx/ENTRY_V10_RELABEL15H24_SYMW_20260526T144328Z",
       "status": "INVALIDATED",
+      "path_status": "PHYSICALLY_GONE_VERIFIED_20260707",
+      "path_fix_note": "cleanup wave 2026-07-07 (audit #10 prerequisite B): exhaustive find over GX1_DATA + src found NO copy of this bundle (only the training log v10_train_symw_20260526T144328Z.log survives in the models quarantine). Was never a rollback target (short-biased, superseded by COSTFIX) - no rollback capability lost. Entry kept as historical record only; there is nothing on disk to protect or delete for this pointer.",
       "reason": "anti-long cost-matrix short-bias (65% short vs 47% true); superseded by COSTFIX."
     },
     {
       "role": "candidate_batch",
       "path": "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/INFERENCE_BATCH_CANDIDATES_V3PLUS_RELABEL15H24_SYMW_20260526T173100Z__SUPERSEDED_SHORTBIAS_DO_NOT_USE",
       "status": "INVALIDATED",
+      "path_status": "PHYSICALLY_GONE_VERIFIED_20260707",
+      "path_fix_note": "cleanup wave 2026-07-07 (audit #10 prerequisite B): exhaustive find over GX1_DATA + src found NO copy (also not inside reports/_LEGACY_ENTRY_PRE_FOUNDATION_DO_NOT_USE_20260628 where the other truth_e2e_sanity dirs moved). Was DO_NOT_USE, never a rollback target - historical record only.",
       "reason": "candidate batch from short-biased SYMW V10; superseded by COSTFIX batch."
     },
     {
@@ -172,31 +222,41 @@
       "role": "v3_exit",
       "path": "/home/andre2/GX1_DATA/models/models/exit_transformer/EXIT_V3_V7_COSTFIX_20260526T211756Z__SUPERSEDED_BY_LR3E4_DO_NOT_USE",
       "status": "INVALIDATED",
+      "path_status": "PHYSICALLY_GONE_VERIFIED_20260707",
+      "path_fix_note": "cleanup wave 2026-07-07 (audit #10 prerequisite B): exhaustive find over GX1_DATA + src found NO copy. The 'kept for reversibility' claim in reason is NO LONGER TRUE on disk; the successor LR3E4 rollback bundle (EXIT_V3_V7_COSTFIX_LR3E4_20260527T150041Z/EXIT_V6_DISK__BIDIR_2026Q2_20260527T150320Z) still EXISTS at its original path and remains the real v3_exit rollback of that era. Historical record only.",
       "reason": "V3 baseline lr=1.2e-3 (epoch-1-best, immediate overfit). OOT PR-AUC 0.161 / ROC 0.770. Superseded 2026-05-28 by lr=3e-4 (healthier convergence, better operational metrics). Quarantined on disk (renamed __SUPERSEDED_BY_LR3E4_DO_NOT_USE) \u2014 kept for reversibility."
     },
     {
       "role": "candidate_batch",
       "path": "/home/andre2/GX1_DATA/reports/truth_e2e_sanity/INFERENCE_BATCH_CANDIDATES_V3PLUS_COSTFIX_20260526T201825Z__SUPERSEDED_BY_HEADS_BATCH",
       "status": "INVALIDATED",
+      "path_status": "PHYSICALLY_GONE_VERIFIED_20260707",
+      "path_fix_note": "cleanup wave 2026-07-07 (audit #10 prerequisite B): exhaustive find over GX1_DATA + src found NO copy (also not inside reports/_LEGACY_ENTRY_PRE_FOUNDATION_DO_NOT_USE_20260628). Was superseded by the strict-superset HEADS batch, never a rollback target - historical record only.",
       "reason": "headless COSTFIX candidate batch; superseded by HEADS_20260527T123431Z (strict superset: identical entries + 43 V10 new-head cols for Entry-IQL)."
     },
     {
       "role": "xgb",
       "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/xgb_v7",
       "status": "RETIRED_PRE_FOUNDATION_20260705",
-      "note": "see active.xgb.retired_reason"
+      "path_status": "PRE_RETIREMENT_PATH_DOES_NOT_EXIST",
+      "actual_path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/_LEGACY_PRE_FOUNDATION_DO_NOT_USE_20260628/root_xgb_runs/xgb_v7",
+      "note": "see active.xgb.retired_reason; actual_path added 2026-07-07 cleanup wave (audit #10 prerequisite B) - the bundle lives in the FASE2B quarantine (same location active.xgb.path points to). DO NOT DELETE that subtree."
     },
     {
       "role": "v10_entry",
       "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/v10_bundle_clean",
       "status": "RETIRED_PRE_FOUNDATION_20260705",
-      "note": "see active.v10_entry.retired_reason"
+      "path_status": "PRE_RETIREMENT_PATH_DOES_NOT_EXIST",
+      "actual_path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/_LEGACY_PRE_FOUNDATION_DO_NOT_USE_20260628/root_bundles/v10_bundle_clean",
+      "note": "see active.v10_entry.retired_reason; actual_path added 2026-07-07 cleanup wave (audit #10 prerequisite B) - the bundle lives in the FASE2B quarantine (same location active.v10_entry.path points to). DO NOT DELETE that subtree."
     },
     {
       "role": "entry_iql",
       "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/entry_iql_volbal_20260611",
       "status": "RETIRED_PRE_FOUNDATION_20260705",
-      "note": "see active.entry_iql.retired_reason"
+      "path_status": "PRE_RETIREMENT_PATH_DOES_NOT_EXIST",
+      "actual_path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/_LEGACY_PRE_FOUNDATION_DO_NOT_USE_20260628/entry_iql_runs/entry_iql_volbal_20260611",
+      "note": "see active.entry_iql.retired_reason; actual_path added 2026-07-07 cleanup wave (audit #10 prerequisite B) - the bundle lives in the FASE2B quarantine (same location active.entry_iql.path points to). DO NOT DELETE that subtree."
     }
   ]
 }

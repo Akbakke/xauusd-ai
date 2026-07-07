@@ -248,9 +248,15 @@ else
     NETCAP_DATE=$(basename "$CF_REPORT" | sed -E 's/counterfactual_([0-9]+)_.*/\1/')
     NETCAP_OUT="$OUT_DIR/true_netcap_${NETCAP_DATE}.parquet"
     log "true-netcap (k=$TRUE_NETCAP_K) on $(basename "$CF_REPORT") → $NETCAP_OUT"
-    if PYTHONPATH=$REPO $PY -m gx1.research.exit_netcapture \
+    # EXIT env pinned FROM THE CONTRACT (vedtak EXIT_OPERATING_POINT_CONTRACT_PIN_20260707): the
+    # true-netcap replay loads V12Pipeline → ExitIQLLiveInference and MUST run the SAME exit policy
+    # live runs (hard-stop/LWR/Strategy-F were launcher-only exports — under this systemd timer the
+    # leg silently replayed the default-OFF policy, and it now fails the runner's startup assert
+    # without the pin). Subshell keeps the pin scoped to this leg.
+    if ( eval "$(bash "$REPO/scripts/gx1_exit_env_pin.sh")" && \
+         PYTHONPATH=$REPO $PY -m gx1.research.exit_netcapture \
             --skip-source "$CF_REPORT" --top-k "$TRUE_NETCAP_K" \
-            --out "$NETCAP_OUT" > "$OUT_DIR/true_netcap_${TODAY}.log" 2>&1; then
+            --out "$NETCAP_OUT" ) > "$OUT_DIR/true_netcap_${TODAY}.log" 2>&1; then
         STATUS[true_netcap]=ok
         log "true-netcap ok → $NETCAP_OUT"
         tail -8 "$OUT_DIR/true_netcap_${TODAY}.log" || true

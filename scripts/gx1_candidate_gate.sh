@@ -169,10 +169,16 @@ if ! $DRYRUN && [[ "$AVAIL_GB" -lt "$NEED_GB" ]]; then
   exit 1
 fi
 
-# train==serve env parity — EXACTLY launch_phaseD_gate_clean.sh:36. Without GX1_EXIT_AUGMENT_64=1
-# the gate loader's _compute_exit_aug64 returns None → 64 exit features missing →
-# FEATURE_COVERAGE_FATAL (the 2026-06-10 lesson). REGIME flags for ctx parity.
-export GX1_EXIT_AUGMENT_64=1 GX1_REGIME_V4=1 GX1_TREND_REGIME_FROM_D1=1
+# train==serve env parity — pinned FROM THE CONTRACT (vedtak EXIT_OPERATING_POINT_CONTRACT_PIN_20260707):
+# the gate must score the EXACT exit policy live runs. Previously only GX1_EXIT_AUGMENT_64/REGIME flags
+# were hardcoded here while GX1_EXIT_HARD_STOP_BPS=80 + GX1_EXIT_LET_WINNERS_RUN=1 lived ONLY as
+# launch_live_practice.sh exports (code defaults OFF) → gate evidence was measured on a DIFFERENT exit
+# policy than live. Now every exit-policy var (hard-stop, LWR, Strategy-F, hold-horizon, distilled,
+# AUG64, regime flags) comes from exit_iql.operating_point.live_env via the one-truth pin helper —
+# no per-script duplication. (Without GX1_EXIT_AUGMENT_64=1 the gate loader's _compute_exit_aug64
+# returns None → 64 exit features missing → FEATURE_COVERAGE_FATAL, the 2026-06-10 lesson.)
+EXIT_ENV_PIN=$(bash "$REPO/scripts/gx1_exit_env_pin.sh")
+eval "$EXIT_ENV_PIN"
 
 PH6_EXTRA=()
 $QUICK && PH6_EXTRA+=(--max-candidates 3000)
@@ -222,7 +228,8 @@ echo "  exit bundle:  $EXIT_BUNDLE (ACTIVE via contract, variant=$EXIT_VARIANT)"
 echo "  scored:       $SCORED"
 echo "  fwd:          $FWD"
 echo "  canon:        $CANON"
-echo "  env:          GX1_EXIT_AUGMENT_64=1 GX1_REGIME_V4=1 GX1_TREND_REGIME_FROM_D1=1 GX1_REPLAY_WORKERS=${GX1_REPLAY_WORKERS:-<tool default: cores-4 capped 12>}"
+echo "  env (contract exit pin): $(echo "$EXIT_ENV_PIN" | sed 's/^export //' | tr '\n' ' ')"
+echo "  env:          GX1_REPLAY_WORKERS=${GX1_REPLAY_WORKERS:-<tool default: cores-4 capped 12>}"
 echo "  mode:         quick=$QUICK dry_run=$DRYRUN  ram_avail=${AVAIL_GB}GB"
 echo "  out:          $GATE_OUT"
 echo "  posthoc base: $BASELINE_NOTE"

@@ -208,6 +208,105 @@ def let_winners_run_hold(current_pnl_bps: float, cum_mfe_bps: float, *, enabled:
     giveback_frac = (mfe - pnl) / mfe
     return giveback_frac < LWR_GIVEBACK_FRAC
 
+
+# ══════════════════════════════════════════════════════════════════════════
+# EXIT OPERATING-POINT CONTRACT PIN (user vedtak EXIT_OPERATING_POINT_CONTRACT_PIN_20260707)
+# ══════════════════════════════════════════════════════════════════════════
+# Every overlay constant above is env-read with a code default that DIFFERS from
+# the live policy on the load-bearing knobs (hard-stop 0-vs-80, LWR off-vs-on):
+# before this pin they lived ONLY as launch_live_practice.sh exports, so any
+# other entrypoint (gate replay, nightly netcap, a manual runner start) silently
+# ran a DIFFERENT exit policy than live — gate evidence could be measured on a
+# non-live policy. The contract's exit_iql.operating_point.live_env is the ONE
+# truth for the effective exit-policy env:
+#   - assert_exit_env_matches_contract(): fail-closed startup assert — runs on
+#     every contract-resolved ExitIQLLiveInference.load() (the live path) and is
+#     called by the launch_live_practice.sh launch-assert. Mismatch →
+#     RuntimeError with a per-var diff.
+#   - Gate/replay launchers pin their env FROM the contract via
+#     scripts/gx1_exit_env_pin.sh (eval its `export` lines) — never hardcoded.
+#   - Escape hatch GX1_EXIT_ENV_ASSERT=0 for EXPLICIT research replays only —
+#     logs a WARNING, never silent.
+
+_EXIT_ENV_ASSERT_VAR = "GX1_EXIT_ENV_ASSERT"
+
+
+def _normalize_env_value(raw: object) -> str:
+    """Canonicalize an env/contract value for comparison: '80'=='80.0',
+    '0.30'=='0.3', 'true'=='1'=='on' (mirrors _env_bool's truthy set). None
+    (unset) → '<unset>', which never equals a pinned value — a contract-named
+    but UNexported var (the GX1_SIZING_MARGIN_REF class) is a mismatch."""
+    if raw is None:
+        return "<unset>"
+    s = str(raw).strip()
+    low = s.lower()
+    if low in ("true", "yes", "on"):
+        return "1"
+    if low in ("false", "no", "off"):
+        return "0"
+    try:
+        f = float(s)
+    except (TypeError, ValueError):
+        return low
+    return str(int(f)) if f == int(f) else repr(f)
+
+
+def exit_env_contract_diff(live_env: dict, environ=os.environ) -> list[str]:
+    """Per-var diff of the EFFECTIVE env vs a contract live_env {var: value}
+    dict. Empty list == match. ONE compare truth — shared by the live startup
+    assert below AND the launch_live_practice.sh launch-assert."""
+    diffs: list[str] = []
+    for var in sorted(live_env):
+        expected = live_env[var]
+        effective = environ.get(var)
+        if _normalize_env_value(effective) != _normalize_env_value(expected):
+            eff_repr = "<unset>" if effective is None else repr(effective)
+            diffs.append(f"{var}: contract={str(expected)!r} effective={eff_repr}")
+    return diffs
+
+
+def assert_exit_env_matches_contract(context: str, contract_entry: dict | None = None) -> None:
+    """Fail-closed: the effective exit-policy env MUST equal the contract's
+    exit_iql.operating_point.live_env — otherwise this process runs a different
+    exit policy (hard-stop / LWR / Strategy-F / AUG64 / regime flags) than the
+    pinned live operating point. RuntimeError carries the per-var diff.
+    GX1_EXIT_ENV_ASSERT=0 = explicit research-replay escape hatch (WARNING)."""
+    if os.environ.get(_EXIT_ENV_ASSERT_VAR, "1") == "0":
+        LOG.warning(
+            "[EXIT_ENV_ASSERT] DISABLED via %s=0 (%s) — explicit research-replay "
+            "escape hatch; the effective exit policy is NOT verified against the "
+            "contract live_env. Never produce live/gate evidence this way.",
+            _EXIT_ENV_ASSERT_VAR, context,
+        )
+        return
+    if contract_entry is None:
+        from gx1_guards.artifacts import load_decision_entry
+        contract_entry = load_decision_entry("exit_iql")
+    live_env = (contract_entry.get("operating_point") or {}).get("live_env") or {}
+    if not isinstance(live_env, dict) or not live_env:
+        raise RuntimeError(
+            f"[EXIT_ENV_ASSERT] ({context}) contract exit_iql.operating_point.live_env "
+            "is missing/empty — the exit operating point is UNPINNED (fail-closed). "
+            "Pin it via vedtak in PROJECT_STATE_artifacts.json, or set "
+            f"{_EXIT_ENV_ASSERT_VAR}=0 for an explicit research replay."
+        )
+    diffs = exit_env_contract_diff(live_env)
+    if diffs:
+        raise RuntimeError(
+            f"[EXIT_ENV_ASSERT] ({context}) effective exit-policy env does NOT match "
+            "the contract exit_iql.operating_point.live_env — refusing to run a "
+            "policy that differs from the pinned live operating point:\n  "
+            + "\n  ".join(diffs)
+            + "\nFix: export the contract values (launch_live_practice.sh, or "
+            "`eval \"$(bash scripts/gx1_exit_env_pin.sh)\"` for gates/replays), or set "
+            f"{_EXIT_ENV_ASSERT_VAR}=0 for an explicit research replay ONLY."
+        )
+    LOG.info(
+        "[EXIT_ENV_ASSERT] OK (%s): %d exit-policy env vars match the contract live_env.",
+        context, len(live_env),
+    )
+
+
 # V12.4-cement Exit-IQL bundle. The Exit-IQL TRAINING is identical to V12.2's
 # (variant R_V12, FOLD_1). V12.4 differs from V12.2 ONLY in the post-IQL
 # Strategy-F overlay above, NOT in the underlying model. R_V13_MFE_AWARE
@@ -319,6 +418,15 @@ class ExitIQLLiveInference:
                     "Either fix the import or pass explicit bundle_dir/variant/fold_id/aggregator."
                 ) from _e
             entry = load_decision_entry("exit_iql")
+            # Startup assert (vedtak EXIT_OPERATING_POINT_CONTRACT_PIN_20260707): a
+            # contract-resolved load IS the live policy — the effective env must match
+            # the pinned exit_iql.operating_point.live_env (hard-stop/LWR/Strategy-F/
+            # AUG64/regime flags). Explicit-args loads (tests/shadow/research) skip
+            # this; gate launchers pin the env via scripts/gx1_exit_env_pin.sh.
+            assert_exit_env_matches_contract(
+                context="ExitIQLLiveInference.load(contract-resolved)",
+                contract_entry=entry,
+            )
             bundle_dir = bundle_dir if bundle_dir is not None else Path(entry["path"])
             variant = variant if variant is not None else entry.get("active_variant", DEFAULT_VARIANT)
             fold_id = fold_id if fold_id is not None else entry.get("active_folds", [DEFAULT_FOLD])[0]

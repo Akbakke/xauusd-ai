@@ -15,6 +15,15 @@ REPO=/home/andre2/src/GX1_ENGINE
 LOG_DIR=/tmp/v12_cascade_logs
 mkdir -p "$LOG_DIR"
 
+# EXIT operating-point pin FROM THE CONTRACT (vedtak EXIT_OPERATING_POINT_CONTRACT_PIN_20260707):
+# phase6 replays the one-truth exit overlays (strategy_f_decision / let_winners_run_hold / hard-stop
+# knobs) whose constants are env-read at import — without this pin a replay silently used the code
+# DEFAULTS (hard-stop OFF, LWR OFF) instead of the live policy, so replay evidence could be measured
+# on a different exit policy than live. Research ablations: override AFTER this line, deliberately.
+EXIT_ENV_PIN=$(bash "$REPO/scripts/gx1_exit_env_pin.sh")
+eval "$EXIT_ENV_PIN"
+echo "[exit-env pin] $(echo "$EXIT_ENV_PIN" | sed 's/^export //' | tr '\n' ' ')"
+
 # Default: auto-detect newest V12.2 trained Phase 5 LOCK.
 # Glob is V12_2_* (NOT V12_*) so we never silently fall back to a V12.1 build
 # if a V12.2 dir is removed/touched. V12.1 datasets were retired 2026-05-16.

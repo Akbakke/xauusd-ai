@@ -92,6 +92,10 @@ export GX1_STRONG_HOLD_QADV=-200.0
 export GX1_HOLD_HORIZON_OVERRUN_MULT=1.5
 export GX1_HOLD_HORIZON_MIN_FLOOR_BARS=60
 export GX1_USE_DISTILLED_EXIT=0
+# AUG64 exit features (EX2/EX3 2026-06-04 cement). Was inline-only on the paper-runner line;
+# promoted to a top-level export 2026-07-07 (vedtak EXIT_OPERATING_POINT_CONTRACT_PIN_20260707)
+# so the contract launch-assert below can verify it mechanically. Value UNCHANGED (=1 since cement).
+export GX1_EXIT_AUGMENT_64=1
 # ── HARD MAE-STOP risk overlay (2026-06-17, user vedtak: stop 'tåle 500 i minus i 8t for 16 i pluss') ──
 # The learned Exit-IQL holds through deep adverse excursion to scratch a win (95% win-rate but worst
 # single trade −416 bps MAE = the bulk of the 564 bps cap-3 account-DD). This caps EVERY trade: when the
@@ -155,6 +159,11 @@ export GX1_SIZING_CONV_LO=-37.71
 # =margin GX1_SIZING_MARGIN_POW=1.0 for the gentler +10% margin¹). margin² × inverse-ATR (mode=both).
 export GX1_SIZING_CONV_SRC=margin
 export GX1_SIZING_MARGIN_POW=2.0
+# 2026-07-07 (vedtak EXIT_OPERATING_POINT_CONTRACT_PIN_20260707): MARGIN_REF was contract-named
+# (entry_iql.operating_point live_env + sizing.margin_ref) but NEVER exported here — live was correct
+# only because the code default (v12_paper_runner.py:306) happens to equal 0.3318. Pinned explicitly;
+# value UNCHANGED (== code default; the launch-assert below now catches this class mechanically).
+export GX1_SIZING_MARGIN_REF=0.3318
 export GX1_SIZING_CONV_HI=-13.99
 export GX1_SIZING_ATR_REF_BPS=14.0
 export GX1_SIZING_ATR_FLOOR_BPS=14.0
@@ -171,6 +180,40 @@ export GX1_SIZING_ATR_FLOOR_BPS=14.0
 # (or GX1_ENTRY_DIPFIX_MODE=suppress_short for the short-suppression-only arm).
 export GX1_ENTRY_DIPFIX=1
 export GX1_ENTRY_DIPFIX_MODE=both
+
+# ── CONTRACT OPERATING-POINT LAUNCH-ASSERT (vedtak EXIT_OPERATING_POINT_CONTRACT_PIN_20260707) ──
+# For EVERY var in the contract's exit_iql.operating_point.live_env (dict) AND
+# entry_iql.operating_point.live_env (string), verify this launcher actually exported it with the
+# contract value — a contract-named-but-never-exported var (the GX1_SIZING_MARGIN_REF class) is
+# caught MECHANICALLY here instead of silently riding on a code default. ONE compare truth:
+# gx1.execution.v12_exit_iql_live.exit_env_contract_diff (same normalize as the runner's own
+# fail-closed startup assert). Reads the RAW contract JSON (export-coverage check, not artifact
+# selection — entry_iql is RETIRED so the fail-closed resolver would refuse it; the runner itself
+# still resolves bundles ONLY via gx1_guards, rule 8).
+echo "[preflight] contract operating-point launch-assert (exit + entry live_env)…"
+PYTHONPATH=$REPO "$REPO/.venv/bin/python" - <<'PYEOF' || { echo "FATAL: launcher exports do not match the contract live_env — fix the export blocks above (or the contract, via explicit vedtak) before launching."; exit 1; }
+import json, sys
+from gx1.execution.v12_exit_iql_live import exit_env_contract_diff
+
+contract = json.loads(open("/home/andre2/src/GX1_ENGINE/PROJECT_STATE_artifacts.json").read())
+problems: list[str] = []
+
+exit_le = (((contract.get("active") or {}).get("exit_iql") or {}).get("operating_point") or {}).get("live_env") or {}
+if not exit_le:
+    problems.append("exit_iql.operating_point.live_env missing/empty — exit policy UNPINNED (fail-closed)")
+else:
+    problems += [f"exit_iql: {d}" for d in exit_env_contract_diff(exit_le)]
+
+entry_le_raw = (((contract.get("active") or {}).get("entry_iql") or {}).get("operating_point") or {}).get("live_env") or ""
+entry_le = (dict(tok.split("=", 1) for tok in str(entry_le_raw).split() if "=" in tok)
+            if isinstance(entry_le_raw, str) else dict(entry_le_raw))
+problems += [f"entry_iql: {d}" for d in exit_env_contract_diff(entry_le)]
+
+if problems:
+    print("[launch-assert] CONTRACT/LAUNCHER ENV MISMATCH:", *("  " + p for p in problems), sep="\n")
+    sys.exit(1)
+print(f"[launch-assert] OK: {len(exit_le)} exit + {len(entry_le)} entry contract live_env vars exported by this launcher")
+PYEOF
 
 # IN-PROCESS SHADOW (2026-06-12, ladder wave): if a candidate bundle is named in
 # the config file, the runner loads it as a SHADOW adapter — scores every poll,

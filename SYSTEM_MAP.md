@@ -326,8 +326,11 @@ Entry-snapshot (cols 0-4, frozen, from **V10 direction softmax** — candidate-g
 | `GX1_STRATEGY_F_ENABLED` | MFE-giveback exit overlay (4 rules) | `True` (OOT-ablate → OFF post-retrain) |
 | `GX1_MFE_GIVEBACK_PCT` / `_MIN_MFE_BPS` | profit-lock thresholds | `0.30` / `30.0` |
 | `GX1_BREAKEVEN_*` / `_STRONG_HOLD_QADV` / `_HOLD_HORIZON_*` | other Strategy-F thresholds | ablatable |
-| `GX1_USE_DISTILLED_EXIT` | swap Exit-IQL rec for V3 distilled Q | off |
-| `GX1_EXIT_AUGMENT_64` | emit AUG64 bare-name canon feats (V8-train) | off |
+| `GX1_USE_DISTILLED_EXIT` | swap Exit-IQL rec for V3 distilled Q | off; contract live_env PIN `0` |
+| `GX1_EXIT_AUGMENT_64` | emit AUG64 bare-name canon feats (V8-train) | off; launcher/contract live_env PIN `1` |
+| `GX1_EXIT_HARD_STOP_BPS` | force EXIT_NOW at unrealized ≤ −N bps ([v12_pipeline.py:79](gx1/execution/v12_pipeline.py#L79)) | code `0`=OFF; launcher/contract live_env PIN `80` (vedtak exit_hard_stop_20260617) |
+| `GX1_EXIT_LET_WINNERS_RUN` / `GX1_LWR_GIVEBACK_FRAC` / `GX1_LWR_MIN_PNL_BPS` | suppress profit-EXIT_NOW near peak (`let_winners_run_hold`) | code OFF/`0.30`/`15.0`; launcher/contract live_env PIN `1`/`0.30`/`15.0` (vedtak let_winners_run_20260618) |
+| `GX1_EXIT_ENV_ASSERT` | fail-closed startup assert: effective exit env vs contract `exit_iql.operating_point.live_env` — mismatch = RuntimeError w/ per-var diff at every contract-resolved `ExitIQLLiveInference.load()` + launcher launch-assert; gate/replay launchers pin env FROM the contract via `scripts/gx1_exit_env_pin.sh` | `1`; `0` = explicit research-replay hatch, WARNING (vedtak EXIT_OPERATING_POINT_CONTRACT_PIN_20260707) |
 | `ADAPTIVE_MIN_ADV_ATR_MULT` / `_FLOOR_BPS` | runtime entry adv gate | `0.35` / `1.5` |
 | `GX1_EXIT_IQL_SPLIT_MODE` | chronological embargo split | chronological (cement-parity) |
 | `GX1_MAX_PREBUILT_STALENESS_MIN` | fail-closed SKIP if prebuilt older | `30` |
