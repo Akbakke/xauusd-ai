@@ -633,6 +633,21 @@ class V12Pipeline:
         else:
             trade.update_bar(bid=bid, ask=ask, m1_close=m1_close)
 
+        # HARD_MAE_STOP must be data-independent: pnl is already updated from
+        # fresh quotes above, so the catastrophe floor fires even when the
+        # canonical feed is stalled — a daemon stall with an open trade deep
+        # under water must never bypass the -80 floor (audit 2026-07-07).
+        if _EXIT_HARD_STOP_BPS > 0.0 and float(trade.current_pnl_bps) <= -_EXIT_HARD_STOP_BPS:
+            LOG.info(f"[HARD_MAE_STOP] {trade.side} trade_id={getattr(trade, 'trade_id', '?')} "
+                     f"pnl={trade.current_pnl_bps:+.1f}bps <= -{_EXIT_HARD_STOP_BPS:.0f} → force EXIT_NOW "
+                     f"pre-canonical (bars={trade.bars_in_trade}, mae={trade.cum_mae_bps:+.1f})")
+            return {
+                "action": "EXIT_NOW", "action_id": 1, "stub": False,
+                "decision_source": "HARD_MAE_STOP",
+                "bars_in_trade": trade.bars_in_trade,
+                "current_pnl_bps": trade.current_pnl_bps,
+            }
+
         if not self._refresh_canonical(now_minute):
             return {
                 "action": "HOLD", "action_id": 0, "stub": False,
@@ -677,8 +692,19 @@ class V12Pipeline:
             # Update trade with V3 output → maintains running stats for next bar
             trade.update_v3(v3_v8_out)
         except Exception as exc:
-            LOG.warning(f"V3 v8 inference failed: {exc}; using zero fallback")
+            # Degraded decisioning input is forbidden silently (AGENTS.md).
+            # Mirror the entry-shadow 3-strikes semantics: WARN per bar, but
+            # escalate to ERROR-loud on persistent breakage so a broken V3
+            # cannot quietly zero-feed Exit-IQL for hours (audit 2026-07-07).
+            self._v3_fail_strikes = getattr(self, "_v3_fail_strikes", 0) + 1
+            if self._v3_fail_strikes >= 3:
+                LOG.error(f"[V3_DEGRADED] v8 inference failed {self._v3_fail_strikes}x consecutively: "
+                          f"{exc}; Exit-IQL is running on zero-fallback V3 state — investigate NOW")
+            else:
+                LOG.warning(f"V3 v8 inference failed: {exc}; using zero fallback")
             v3_v8_out = None
+        else:
+            self._v3_fail_strikes = 0
 
         # C1 fix 2026-05-19: training uses per-M1-bar (ask_high - bid_low)/mid bps
         # (typical 3-7 bps), live had been using canonical M5 ATR14 (10-50 bps).
@@ -737,6 +763,7 @@ class V12Pipeline:
             "action_id": _action_id,
             "decision_source": _decision_source,
             "v3_should_exit_prob": float(rec.v3_should_exit_prob_v1),
+            "v3_degraded": bool(v3_v8_out is None),
             "q_hold": q_hold,
             "q_exit": q_exit,
             "q_advantage": float(iql_rec.advantage_exit_over_hold_v1),
