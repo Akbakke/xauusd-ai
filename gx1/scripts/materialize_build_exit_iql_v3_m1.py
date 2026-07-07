@@ -126,6 +126,23 @@ except Exception:  # noqa: BLE001 — import-time guard; absent only on a broken
     NUMERIC_STATE_COLS_AUG64 = []
 
 
+# ── DEFERRAL RELABEL (user vedtak EXIT_IQL_DEFERRAL_RELABEL_20260707, default OFF) ──────────────
+# Teach the Q-net the value of DEFERRING a premature Strategy-F hand-rule exit. At every row where
+# the ONE-TRUTH Strategy-F fire formulas trigger (profit_lock | breakeven_cut — constants imported
+# from gx1.execution.v12_exit_iql_live, so an env-pinned build uses the exact live operating point),
+# the HOLD reward is RELABELED to the realized continuation value:
+#     r_hold(K) = hold_max_pnl_K{K}_v1 - GAMMA*spread     (alpha->1.0, MAE-penalty->0, fire bars only)
+# EXIT reward is untouched everywhere ("reward for EXIT on a correct fire unchanged"). Premature
+# fires (real continuation ahead) get HOLD >> EXIT; correct fires (no continuation) keep EXIT >= HOLD
+# — the separation is purely realized-outcome data, no classifier, no new hand rule. All K horizons
+# are <= 240 M1 bars == the binding deferral horizon cap (serve mirror: GX1_STRATEGY_F_DEFER_CAP_BARS).
+# Relabeling covers ALL trigger bars (not only first fires): serve re-consults the strong-hold veto
+# on every trigger bar, and first-fire rows are state-indistinguishable from later trigger rows — an
+# MSE fit on conflicting targets would average a first-fire-only relabel away. Pregate evidence:
+# strategyf_lwr_pregate_20260707 (OOT AUC 0.74-0.88 both directions). Default OFF = cement bit-parity.
+_DEFERRAL_RELABEL = os.environ.get("GX1_EXIT_DEFERRAL_RELABEL", "0") == "1"
+
+
 def _compute_exit_aug64(canonical_path: Path) -> "pd.DataFrame | None":
     """Compute the 64 declared exit features (volume/group_a/dip_struct) on the raw M5 tape via
     the one-truth helpers; returns `_time_ns` + the 64 base-named cols for merge_asof. Flag-gated."""
@@ -299,6 +316,25 @@ def build_reward_matrix(df: pd.DataFrame, *, variant: str) -> np.ndarray:
         if "bars_in_trade_v1" in df.columns else np.zeros(n, dtype=float)
     )
 
+    # DEFERRAL RELABEL fire mask (vedtak EXIT_IQL_DEFERRAL_RELABEL_20260707; see module comment).
+    fire_mask = None
+    if _DEFERRAL_RELABEL:
+        from gx1.execution.v12_exit_iql_live import (  # one-truth Strategy-F constants (env-pinned)
+            BREAKEVEN_MIN_MFE,
+            BREAKEVEN_RATIO,
+            MFE_GIVEBACK_MIN_MFE_BPS,
+            MFE_GIVEBACK_PCT,
+        )
+        _mfe = pd.to_numeric(df["current_mfe_bps_v1"], errors="coerce").fillna(0.0).to_numpy()
+        _pnl = pd.to_numeric(df["current_unrealized_pnl_bps_v1"], errors="coerce").fillna(0.0).to_numpy()
+        _dd = np.maximum(0.0, _mfe - _pnl)
+        _profit_lock = (_mfe >= MFE_GIVEBACK_MIN_MFE_BPS) & (_dd >= MFE_GIVEBACK_PCT * _mfe) & (_mfe > 0)
+        _breakeven = (_mfe >= BREAKEVEN_MIN_MFE) & (_pnl < BREAKEVEN_RATIO * _mfe)
+        fire_mask = _profit_lock | _breakeven
+        print(f"[{ACTION}] DEFERRAL_RELABEL({variant}): {int(fire_mask.sum()):,}/{n:,} Strategy-F "
+              f"trigger bars ({100.0 * float(fire_mask.mean()):.1f}%) -> r_hold(K) = realized "
+              f"continuation (hold_K - gamma*spread); r_exit unchanged", flush=True)
+
     # R_PEAK_QUALITY family (ported from v2 builder, ONE-truth math): scale-invariant
     # giveback-quality needs the running MFE peak. Fail-closed (rule 9 / 2026-06-03 audit):
     # refuse a degraded reward if the peak column is absent rather than silently filling 0
@@ -357,11 +393,88 @@ def build_reward_matrix(df: pd.DataFrame, *, variant: str) -> np.ndarray:
         else:
             raise ValueError(f"unknown reward variant for M1 trainer: {variant}")
 
+        if fire_mask is not None:
+            # Deferral relabel: at Strategy-F trigger bars the HOLD reward IS the realized
+            # continuation value net of the same spread cost as EXIT (K <= 240 == horizon cap).
+            r_hold = np.where(fire_mask, hold_K - v2_train.R_NET_REAL_GAMMA * spread, r_hold)
+
         r_hold = np.clip(r_hold, -500.0, 500.0)
         r_exit = np.clip(r_exit, -500.0, 500.0)
         R[:, v2_train.ACTION_HOLD_ID, ki] = r_hold.astype(np.float32)
         R[:, v2_train.ACTION_EXIT_NOW_ID, ki] = r_exit.astype(np.float32)
     return R
+
+
+def maybe_year_sample_weights(df: pd.DataFrame) -> "np.ndarray | None":
+    """Per-row loss weight by calendar year of decision_ts_utc (mean-normalised to 1.0).
+
+    GX1_EXIT_IQL_YEAR_WEIGHT="2026:4.0[,2025:1.5]" upweights named years so a decayed recent
+    regime (pregate: 2026 AUC decay) carries more gradient than its ~7.6% row share. Unset =
+    None = cement bit-parity. Fail-closed on a missing decision_ts_utc column. Composes
+    multiplicatively with maybe_per_trade_sample_weights in write_artifacts.
+    (Vedtak EXIT_IQL_DEFERRAL_RELABEL_20260707 — documented 2026-slice weighting.)"""
+    spec = os.environ.get("GX1_EXIT_IQL_YEAR_WEIGHT", "").strip()
+    if not spec:
+        return None
+    if "decision_ts_utc" not in df.columns:
+        raise RuntimeError(
+            "GX1_EXIT_IQL_YEAR_WEIGHT set but 'decision_ts_utc' is absent from the per-bar df — "
+            "cannot compute year weights; fix the dataset or unset the flag.")
+    wmap: dict[int, float] = {}
+    for part in spec.split(","):
+        y_s, w_s = part.split(":")
+        wmap[int(y_s)] = float(w_s)
+    years = pd.to_datetime(df["decision_ts_utc"], utc=True).dt.year.to_numpy()
+    w = np.ones(len(df), dtype=np.float64)
+    for y, wv in wmap.items():
+        w[years == y] = wv
+    n_up = int((w != 1.0).sum())
+    w = w * (float(len(w)) / float(w.sum()))  # mean-normalise (loss magnitude / eff-LR unchanged)
+    print(f"[{ACTION}] YEAR_WEIGHT {wmap}: {n_up:,}/{len(w):,} rows re-weighted "
+          f"(mean-normalised)", flush=True)
+    return w.astype(np.float32)
+
+
+def _maybe_warmstart_state_dicts(
+    variant: str, fold_id: str, feature_names: list[str],
+) -> "tuple[dict | None, dict | None]":
+    """WARM-START source resolution (vedtak EXIT_IQL_DEFERRAL_RELABEL_20260707, default OFF).
+
+    GX1_EXIT_IQL_WARMSTART_FROM_CONTRACT=1 -> init Q/V weights from the ACTIVE exit_iql bundle
+    resolved via gx1_guards.load_decision_entry('exit_iql') (rule 8 — NEVER a hardcoded path).
+    Fail-closed guards: (a) the warm-start bundle's feature_names_v1 must be IDENTICAL (same
+    order — weights are input-order-bound) to this build's; (b) arch (hidden/n_hidden) must match
+    the effective training budget; (c) a missing per-(variant,fold) checkpoint is a hard error,
+    never a silent cold start."""
+    if os.environ.get("GX1_EXIT_IQL_WARMSTART_FROM_CONTRACT", "0") != "1":
+        return None, None
+    import torch
+    from gx1_guards.artifacts import load_decision_entry
+    entry = load_decision_entry("exit_iql")
+    ws_root = Path(entry["path"])
+    ws_summary = json.loads((ws_root / "summary_v1.json").read_text())
+    ws_feats = list(ws_summary.get("feature_names_v1") or [])
+    if ws_feats != list(feature_names):
+        diff_a = [c for c in ws_feats if c not in feature_names][:5]
+        diff_b = [c for c in feature_names if c not in ws_feats][:5]
+        raise RuntimeError(
+            f"[{ACTION}] WARM-START feature-name mismatch vs ACTIVE bundle {ws_root.name}: "
+            f"{len(ws_feats)} vs {len(feature_names)} names (bundle-only={diff_a}, "
+            f"build-only={diff_b}) — weights are input-order-bound; refusing a silently "
+            f"mis-mapped warm start.")
+    ckpt_path = ws_root / "trained_models_v1" / f"{variant}_{fold_id}.pt"
+    if not ckpt_path.exists():
+        raise RuntimeError(f"[{ACTION}] WARM-START checkpoint missing: {ckpt_path}")
+    ck = torch.load(ckpt_path, map_location="cpu", weights_only=False)
+    if int(ck.get("hidden_dim", -1)) != int(v2_train.TRAIN_HIDDEN_DIM) or \
+            int(ck.get("n_hidden", -1)) != int(v2_train.TRAIN_N_HIDDEN):
+        raise RuntimeError(
+            f"[{ACTION}] WARM-START arch mismatch: ckpt hidden={ck.get('hidden_dim')}/"
+            f"n_hidden={ck.get('n_hidden')} vs budget {v2_train.TRAIN_HIDDEN_DIM}/"
+            f"{v2_train.TRAIN_N_HIDDEN} — pick the matching --budget or disable warm start.")
+    print(f"[{ACTION}] WARM-START init from {ckpt_path} (contract-resolved ACTIVE exit_iql)",
+          flush=True)
+    return ck["q_state_dict"], ck["v_state_dict"]
 
 
 def build_state_matrix(df: pd.DataFrame) -> tuple[np.ndarray, list[str]]:
@@ -524,14 +637,25 @@ def write_artifacts(
         per_fold_results: list[dict[str, Any]] = []
         flat_evaluations: list[dict[str, Any]] = []
         _exit_sample_weights = v2_train.maybe_per_trade_sample_weights(df)  # EXIT-8 part 2 (None = cement)
+        _year_weights = maybe_year_sample_weights(df)  # vedtak EXIT_IQL_DEFERRAL_RELABEL_20260707 (None = cement)
+        if _year_weights is not None:
+            if _exit_sample_weights is None:
+                _exit_sample_weights = _year_weights
+            else:  # compose multiplicatively, re-mean-normalise
+                _w = _exit_sample_weights.astype(np.float64) * _year_weights.astype(np.float64)
+                _exit_sample_weights = (_w * (float(len(_w)) / float(_w.sum()))).astype(np.float32)
         _exit_loss_mask = v2_train.maybe_degenerate_loss_mask(df, v2_train.N_ACTIONS_EXIT, list(K_HORIZONS))  # EXIT-9
         for variant in variants:
             for fold in folds:
+                _init_q, _init_v = _maybe_warmstart_state_dicts(
+                    variant, fold["fold_id_v1"], feature_names)
                 r = v2_train.evaluate_one_fold(
                     fold, X, R_by_variant[variant], oracle_action,
                     variant=variant, artifact_root=artifact_root,
                     sample_weights=_exit_sample_weights,
                     loss_mask=_exit_loss_mask,
+                    init_q_state_dict=_init_q,
+                    init_v_state_dict=_init_v,
                 )
                 per_fold_results.append(r)
                 flat_evaluations.extend(r.get("all_evaluations_v1", []))
@@ -579,6 +703,10 @@ def write_artifacts(
         ],
         "research_only_v1": True,
         "iql_production_allowed_v1": False,
+        # Wave-flag provenance (vedtak EXIT_IQL_DEFERRAL_RELABEL_20260707); all default-OFF.
+        "deferral_relabel_v1": bool(_DEFERRAL_RELABEL),
+        "warmstart_from_contract_v1": os.environ.get("GX1_EXIT_IQL_WARMSTART_FROM_CONTRACT", "0") == "1",
+        "year_weight_spec_v1": os.environ.get("GX1_EXIT_IQL_YEAR_WEIGHT", "") or None,
     }
     v2_train._write_json(artifact_root / "summary_v1.json", summary)
     v2_train._write_json(artifact_root / "status_v1.json", {

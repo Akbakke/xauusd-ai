@@ -115,6 +115,13 @@ MFE_GIVEBACK_MIN_MFE_BPS = _env_float("GX1_MFE_GIVEBACK_MIN_MFE_BPS", 30.0)
 BREAKEVEN_RATIO = _env_float("GX1_BREAKEVEN_RATIO", 0.30)
 BREAKEVEN_MIN_MFE = _env_float("GX1_BREAKEVEN_MIN_MFE", 10.0)
 STRONG_HOLD_QADV = _env_float("GX1_STRONG_HOLD_QADV", -200.0)
+# DEFERRAL HORIZON CAP (user vedtak EXIT_IQL_DEFERRAL_RELABEL_20260707, default 0 = OFF = exact
+# pre-vedtak behavior): when > 0, a strong-hold deferral of a triggered Strategy-F fire may run at
+# most this many M1 bars counted from the FIRST vetoed fire of the trade; past the cap the fire
+# proceeds regardless of Q ("the model may only defer within the horizon cap"). Requires the caller
+# to own a per-trade defer_state dict (live: TradeState attr; phase6 gate: per-candidate dict) —
+# without one the cap is inert, never guessed.
+STRATEGY_F_DEFER_CAP_BARS = _env_float("GX1_STRATEGY_F_DEFER_CAP_BARS", 0.0)
 # V10 v3+ Target 4: hold-horizon-expired override (cuts stale grinders).
 HOLD_HORIZON_OVERRUN_MULT = _env_float("GX1_HOLD_HORIZON_OVERRUN_MULT", 1.5)
 # Sentinel: V10 returns -1 when bundle has no hold_horizon head.
@@ -152,6 +159,7 @@ def strategy_f_decision(
     bars_in_trade: int,
     *,
     enabled: bool = True,
+    defer_state: dict | None = None,  # per-trade mutable dict for the defer-cap (None = cap inert)
 ) -> tuple[bool, str]:
     """ONE-TRUTH Strategy-F overlay decision (the 4-rule post-IQL exit override).
 
@@ -183,6 +191,16 @@ def strategy_f_decision(
         and int(bars_in_trade or 0) > int(HOLD_HORIZON_OVERRUN_MULT * hold_eff)
         and mfe < MFE_GIVEBACK_MIN_MFE_BPS
     )
+    # DEFERRAL HORIZON CAP (vedtak EXIT_IQL_DEFERRAL_RELABEL_20260707, default OFF): a strong-hold
+    # veto of a triggered fire is honoured for at most STRATEGY_F_DEFER_CAP_BARS M1 bars from the
+    # trade's FIRST vetoed fire; past the cap the fire proceeds regardless of Q. Matches the
+    # training-side relabel whose continuation horizons are all <= 240 M1 bars. Inert when the cap
+    # is 0 (cement) or the caller passes no defer_state.
+    if (defer_state is not None and STRATEGY_F_DEFER_CAP_BARS > 0
+            and strong_hold and (f_trigger or hold_horizon_expired)):
+        _first_veto = defer_state.setdefault("sf_first_veto_bar", int(bars_in_trade or 0))
+        if int(bars_in_trade or 0) - int(_first_veto) >= STRATEGY_F_DEFER_CAP_BARS:
+            strong_hold = False  # deferral budget exhausted -> release the veto
     if hold_horizon_expired and not strong_hold:
         return True, "HOLD_HORIZON_EXPIRED"
     if f_trigger and not strong_hold:
@@ -696,12 +714,23 @@ class ExitIQLLiveInference:
             # ONE-TRUTH Strategy-F overlay (2026-06-13 L7A): the 4-rule decision is now in
             # strategy_f_decision so the Phase-6 gate scores the IDENTICAL +Strategy-F policy.
             iql_q_adv = float(rec.iql_recommendation_v1.advantage_exit_over_hold_v1 or 0.0)
+            # Defer-cap state (vedtak EXIT_IQL_DEFERRAL_RELABEL_20260707): per-trade dict hung on
+            # the TradeState so the cap survives across bars. Inert unless
+            # GX1_STRATEGY_F_DEFER_CAP_BARS > 0 (cement default 0).
+            _defer_state = getattr(trade, "sf_defer_state_v1", None)
+            if _defer_state is None:
+                _defer_state = {}
+                try:
+                    setattr(trade, "sf_defer_state_v1", _defer_state)
+                except Exception:  # noqa: BLE001 — a frozen/slotted TradeState degrades to inert cap
+                    _defer_state = None
             force_exit, reason = strategy_f_decision(
                 mfe_bps=float(trade.cum_mfe_bps or 0.0),
                 pnl_bps=float(trade.current_pnl_bps or 0.0),
                 iql_q_adv=iql_q_adv,
                 hold_horizon_pred_bars=float((trade.v10_snapshot or {}).get("hold_horizon_bars_pred", -1.0)),
                 bars_in_trade=int(trade.bars_in_trade or 0),
+                defer_state=_defer_state,
             )
             if force_exit:
                 rec = ExitDeciderV12Recommendation(

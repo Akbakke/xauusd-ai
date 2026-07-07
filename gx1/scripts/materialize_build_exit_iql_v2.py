@@ -843,6 +843,8 @@ def evaluate_one_fold(
     variant: str, artifact_root: Path,
     sample_weights: np.ndarray | None = None,   # EXIT-8 part 2: per-row weights (full-dataset)
     loss_mask: np.ndarray | None = None,        # EXIT-9: (n, n_actions*n_K) full-dataset Q-loss mask
+    init_q_state_dict: dict | None = None,      # WARM-START init (vedtak EXIT_IQL_DEFERRAL_RELABEL_20260707); None = cold = bit-parity
+    init_v_state_dict: dict | None = None,
 ) -> dict[str, Any]:
     fold_id_v1 = fold["fold_id_v1"]
     train_idx = fold["train_idx_v1"]
@@ -873,6 +875,8 @@ def evaluate_one_fold(
         seed=SEED_V1, prefer_cuda=True,
         sample_weights=train_sample_weights,
         loss_mask=train_loss_mask,
+        init_q_state_dict=init_q_state_dict,
+        init_v_state_dict=init_v_state_dict,
     )
 
     K_primary_idx = K_HORIZONS.index(K_PRIMARY)

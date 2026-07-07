@@ -393,13 +393,18 @@ def simulate_one_candidate(
         hold_pred = float(hold_pred) if pd.notna(hold_pred) else -1.0
         _base = [b for b in (v3_override_bar, iql_exit_bar) if b >= 0]
         _scan_to = (min(_base) if _base else n_bars - 1) + 1
+        # Defer-cap state (vedtak EXIT_IQL_DEFERRAL_RELABEL_20260707): per-candidate dict so the
+        # gate scores the IDENTICAL deferral policy as live decide_for_trade. Inert unless
+        # GX1_STRATEGY_F_DEFER_CAP_BARS > 0 (cement default 0).
+        _sf_defer_state: dict = {}
         for t in range(min(n_bars, _scan_to)):
             # adapter ExitRecommendation exposes advantage_exit_over_hold_v1 FLAT (the live
             # ExitDeciderV12Recommendation nests it under .iql_recommendation_v1 — different type).
             q_adv = float(getattr(recs[t], "advantage_exit_over_hold_v1", 0.0) or 0.0)
             _mfe_t = float(run_mfe[t]) if np.isfinite(run_mfe[t]) else 0.0
             _pnl_t = float(pnl_arr[t]) if np.isfinite(pnl_arr[t]) else 0.0
-            force, _r = strategy_f_decision(_mfe_t, _pnl_t, q_adv, hold_pred, t)
+            force, _r = strategy_f_decision(_mfe_t, _pnl_t, q_adv, hold_pred, t,
+                                            defer_state=_sf_defer_state)
             if force:
                 strategy_f_bar = t
                 break
