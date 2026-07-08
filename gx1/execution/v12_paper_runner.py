@@ -120,7 +120,7 @@ TRADE_STATE_FILE = JOURNAL_DIR / "open_trade_state.json"  # LEGACY single-trade 
 TRADE_STATE_DIR = JOURNAL_DIR / "open_trades"             # one JSON file per open virtual trade
 TRADE_ALERTS_FILE = Path("/home/andre2/TRADES_ALERTS.txt")  # easy-to-tail alerts file
 ENTRY_NEXT_EDGE_SHADOW_ACK_REQUIRED = "20260627_ENTRY_NO_XGB_LIVE_SHADOW"
-ENTRY_NEXT_EDGE_LEGACY_RUNNER_ACK_REQUIRED = "20260627_ALLOW_LEGACY_ENTRY_PAPER_RUNNER"
+# (legacy runner-ack constant removed 2026-07-08 — smart serving gate replaces it)
 ENTRY_NEXT_EDGE_SHADOW_RUNNER_ACK_REQUIRED = "20260627_ENTRY_NEXT_EDGE_SHADOW_RUNNER"
 ENTRY_NEXT_EDGE_SHADOW_MANIFEST_REQUIRED = Path(
     "/home/andre2/GX1_DATA/reports/entry_tabular_no_xgb_candidates/"
@@ -489,26 +489,30 @@ def daily_journal_path(suffix: str = "") -> Path:
 
 
 def enforce_entry_next_edge_runner_guard(args: argparse.Namespace) -> None:
-    """Fail closed while the active Entry foundation-freeze is in force."""
-    legacy_ack = os.environ.get("GX1_ALLOW_LEGACY_ENTRY_PAPER_RUNNER", "").strip()
-    if legacy_ack == ENTRY_NEXT_EDGE_LEGACY_RUNNER_ACK_REQUIRED:
+    """Fail closed: the runner serves the SMART entry chain (vedtak
+    SMART_JOINT_POLICY_PROMOTION_20260708). A direct start requires
+    (1) an explicit launch vedtak in GX1_SMART_LAUNCH_VEDTAK and
+    (2) the one-truth smart serving gate (train==serve parity PASS for the
+        contract-ACTIVE bundle) — the same gate launch_live_practice.sh
+        enforces, so runner-direct cannot bypass the launcher's floor.
+    The 20260627 legacy foundation-freeze ack is RETIRED with the legacy chain."""
+    vedtak = os.environ.get("GX1_SMART_LAUNCH_VEDTAK", "").strip()
+    if vedtak:
+        from gx1.execution.v12_smart_entry_live import assert_smart_serving_gate
+        rep = assert_smart_serving_gate()   # raises loud on any violation
+        LOG.warning("[SMART_GATE] runner start authorized: vedtak=%s parity=%s (%s bars, %s)",
+                    vedtak, rep.get("decision"), rep.get("n_bars"), rep.get("created_utc"))
         return
 
     print(
         "\n".join(
             [
-                "Active Entry foundation-freeze blocks direct v12_paper_runner use.",
-                "Current path is Entry foundation seq146 cleanup/audit/smoke-readiness.",
-                "Use:",
-                "  scripts/entry_next_edge_control.sh verify",
-                "  scripts/entry_next_edge_control.sh selftest",
-                "  scripts/entry_next_edge_control.sh foundation-guardrails",
-                "  scripts/entry_next_edge_control.sh worktree-hygiene",
-                "  scripts/entry_next_edge_control.sh stage-foundation-cleanup --dry-run",
-                "  scripts/entry_next_edge_control.sh materialize-smoke",
-                "  scripts/entry_next_edge_control.sh train-readiness",
-                "Override only with:",
-                f"  GX1_ALLOW_LEGACY_ENTRY_PAPER_RUNNER={ENTRY_NEXT_EDGE_LEGACY_RUNNER_ACK_REQUIRED} <command>",
+                "Smart serving gate blocks direct v12_paper_runner use.",
+                "Demo/paper start requires the parity gate + an explicit launch vedtak:",
+                "  1. scripts/gx1_capped_run.sh --mem 34G -- .venv/bin/python -m "
+                "gx1.scripts.verify_smart520_serve_parity_v1   (must PASS)",
+                "  2. GX1_SMART_LAUNCH_VEDTAK=<vedtak-id> bash scripts/launch_live_practice.sh",
+                "(The legacy XGB->V10->Entry-IQL chain is RETIRED; its 20260627 ack no longer opens anything.)",
             ]
         ),
         file=sys.stderr,

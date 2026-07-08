@@ -9,8 +9,10 @@
 #                                        → /home/andre2/GX1_DATA/reports/v12_live_data/xauusd_m1_<DATE>.parquet
 #   2. v12_canonical_incremental loop — appends new M1 → canonical_v3 + BASE34 prebuilts
 #                                        (paper runner's PrebuiltStateLoader auto-detects + re-augments)
-#   3. v12_paper_runner               — XGB → V10 → Entry-IQL → V3 → Exit-IQL → OANDA orders
-#                                        env GX1_PURE_PHASE6=1 = no live-only wrappers (1:1 Phase 6 OOT)
+#   3. v12_paper_runner               — SMART entry (smart_seq520 cand#4, contract-resolved,
+#                                        vedtak SMART_JOINT_POLICY_PROMOTION_20260708)
+#                                        + XGB-bridge → V3 → Exit-IQL exits → OANDA orders
+#                                        env GX1_PURE_PHASE6=1 = no live-only wrappers (1:1 joint replay)
 #
 # Usage:
 #   bash scripts/launch_live_practice.sh           # idempotent, won't restart what's already up
@@ -35,32 +37,30 @@ if [[ -f .env ]]; then
     set +o allexport
 fi
 
-# Entry foundation-freeze guard:
-# The active Entry path is foundation seq146 cleanup/audit/smoke-readiness. This
-# full-stack launcher starts the older XGB -> V10 -> Entry-IQL path with OANDA
-# order placement, so it must not be the accidental next step. Use the
-# canonical control surface unless deliberately overriding this legacy launcher.
-ENTRY_LEGACY_ACK_REQUIRED=20260627_ALLOW_LEGACY_ENTRY_LIVE_PRACTICE
-if [[ "${GX1_ALLOW_LEGACY_ENTRY_LIVE_PRACTICE:-}" != "$ENTRY_LEGACY_ACK_REQUIRED" ]]; then
-    "$REPO/.venv/bin/python" -m gx1.scripts.verify_entry_foundation_state_v1 \
-        --quiet \
-        --out "$PAPER_RUNS/entry_foundation_legacy_live_guard.json" \
-        >/tmp/gx1_entry_foundation_live_guard.json
-    echo "[ABORT] Active Entry next-edge plan blocks legacy live-practice launch." >&2
-    echo "        Current path is Entry foundation seq146 cleanup/audit/smoke-readiness." >&2
-    echo "        This script can start XGB -> V10 -> Entry-IQL with OANDA orders." >&2
-    echo "        Required path now:" >&2
-    echo "          scripts/entry_next_edge_control.sh verify" >&2
-    echo "          scripts/entry_next_edge_control.sh selftest" >&2
-    echo "          scripts/entry_next_edge_control.sh foundation-guardrails" >&2
-    echo "          scripts/entry_next_edge_control.sh worktree-hygiene" >&2
-    echo "          scripts/entry_next_edge_control.sh stage-foundation-cleanup --dry-run" >&2
-    echo "          scripts/entry_next_edge_control.sh materialize-smoke" >&2
-    echo "          scripts/entry_next_edge_control.sh train-readiness" >&2
-    echo "        Override only with:" >&2
-    echo "          GX1_ALLOW_LEGACY_ENTRY_LIVE_PRACTICE=$ENTRY_LEGACY_ACK_REQUIRED bash scripts/launch_live_practice.sh" >&2
+# ── SMART-SERVING LAUNCH GATE (serving wave, vedtak SMART_JOINT_POLICY_PROMOTION_20260708) ──
+# The legacy XGB->V10->Entry-IQL entry chain is RETIRED (bundles physically gone
+# 2026-07-07); the entry policy is the contract-ACTIVE smart_seq520 cand#4 served
+# by gx1/execution/v12_smart_entry_live (operating point read from the contract —
+# ONE truth, no env pins here). Launch is fail-closed on TWO artifacts:
+#   1. the TRAIN==SERVE parity gate PASS for the contract-ACTIVE bundle
+#      (gx1.scripts.verify_smart520_serve_parity_v1 -> SMART520_SERVE_PARITY_latest.json)
+#   2. an explicit user LAUNCH VEDTAK id in GX1_SMART_LAUNCH_VEDTAK
+# (This replaces the 20260627 legacy-ack block, which guarded — and referenced —
+# the retired chain.)
+if [[ -z "${GX1_SMART_LAUNCH_VEDTAK:-}" ]]; then
+    echo "[ABORT] smart-serving launch requires an explicit user vedtak:" >&2
+    echo "        GX1_SMART_LAUNCH_VEDTAK=<vedtak-id> bash scripts/launch_live_practice.sh" >&2
+    echo "        (demo/paper launch opens only after parity-gate PASS + preflight + vedtak)" >&2
     exit 2
 fi
+echo "[preflight] smart520 train==serve parity-gate check…"
+PYTHONPATH=$REPO "$REPO/.venv/bin/python" - <<'PYEOF' || { echo "FATAL: smart520 serve gate BLOCKED — run scripts/gx1_capped_run.sh --mem 34G -- .venv/bin/python -m gx1.scripts.verify_smart520_serve_parity_v1 to (re)prove parity for the contract-ACTIVE bundle, then relaunch." >&2; exit 2; }
+# ONE truth: the same assert the runner's own guard calls — launcher and
+# runner-direct cannot diverge (gx1/execution/v12_smart_entry_live.py).
+from gx1.execution.v12_smart_entry_live import assert_smart_serving_gate
+rep = assert_smart_serving_gate()
+print(f"[smart-gate] OK: parity PASS ({rep.get('n_bars')} bars, created {rep.get('created_utc')})")
+PYEOF
 
 # ── Collector poll cadence (live SLA) ───────────────────────────────────────
 # Tighten the OANDA M1 poll to 15s so a newly-closed bar reaches disk within ~15s
@@ -120,81 +120,25 @@ export GX1_EXIT_LET_WINNERS_RUN=1
 export GX1_LWR_GIVEBACK_FRAC=0.30
 export GX1_LWR_MIN_PNL_BPS=15.0
 
-# ── ENTRY-SELECTION pins (2026-06-11, CEMENTED — vedtak 'thr −67 + conviction-sizing, låser denne') ──
-# Entry-selection #2 = WIDER conviction-gate + CONVICTION-SIZING + skip-ASIA (PROJECT_STATE_artifacts.json
-# entry_iql.operating_point). OPEN when raw_adv = best-TAKE-Q − SKIP-Q (un-clipped) >= −67.0
-# (band [−67,−34.2) replayed through the FULL exit chain 2026-06-11: 18.2 bps/take @ 0.915 win,
-# FLAT across sub-bands — the old top-20% gate was cutting into positive EV). SIZING: linear
-# conviction multiplier 1.0→2.0 over [−67,−34.2] (band trades at 0.5–1.0× the old-gate exposure;
-# UNITS dropped 10→5 so old-gate trades keep EXACTLY their prior 10-unit exposure at 2.0×).
-# Locked numbers (skipASIA, size-weighted, scaled to full take-set): total +36.0% vs the −34.2
-# gate, 2026 size-weighted win 0.847 (vs 0.853 — ACCEPTED by vedtak), union cap-3 DD −315 (vs
-# −172). test==serve: size_units 500/500 exact; gate formula parity 200/200 (e44fd7dc).
-# SUPERSEDES the 2026-06-10 thr −34.2 operating point. Bundle UNCHANGED — serve-time overlay,
-# fully reversible (thr back to −34.2 + GX1_SIZING_MODE=off). Pinned EXPLICITLY.
-# 2026-06-11 v2 (vedtak 'Go — lås both-sizing'): conviction × inverse-ATR vol-sizing. Replayed
-# (exact live formula): total +25.8% vs the −34.2 gate, 2026 size-w win 0.8505 (BACK ABOVE the
-# 0.85 floor), cap-3 DD −118.7 (vs −314.6 conviction-only, −172.3 old gate). 2026-vol (atr p50
-# 13.4 vs 8.3 hist) auto-downsizes the tail regime. test==serve size_units 500/500 exact.
-# 2026-06-11 v3 (vedtak 'Flip!'): BUNDLE flip -> entry_iql_volbal_20260611 (LAM50_SYM, vol-regime-
-# balansert). OP rekalibrert til NY Q-skala: thr -37.71 = top-35%, sizing-ankre 65./80. pctil
-# (LO -37.71 / HI -13.99). Evidens: 24.43 bps/take @ 0.9466 win, 2026-win 0.8543 PASS, DD -113.
-# Kontrakten (entry_iql.operating_point) er sannhetskilden; kommentarene over beskriver v1/v2-historikken.
-export GX1_CONVICTION_GATE=1
-export GX1_SKIP_ASIA=1
-# 2026-06-16 TIGHTEN-TO-QUALITY (user vedtak «Maksimal kvalitet»): gate −100 → −37.71. The open-more
-# −100 marginal band [−100,0) validated POSITIVE-but-LOWER-quality (forward-EV 18-31 bps/0.59-0.63 win,
-# exit-preserved; LONG-half DIPFIX +29.7% through exit) — positive VOLUME, not a loser, but it DILUTES
-# per-take quality vs the 32-bps IQL-natural core. User chose max per-take quality over volume. −37.71 =
-# volbal top-35% (gate-VALIDATED: 24.43 bps/take @ 0.9466 win skipASIA, 2026 30.66 bps @ 0.8543 win floor
-# PASS, cap-3 DD −113). SIZING_CONV_LO already pinned −37.71 = the gate threshold (marginal trades at base
-# size). DIPFIX KEPT (quality-consistent: suppresses in-regime −EV shorts + revives only p_long≥0.80).
-# REVERSIBLE: thr back to −100 for the open-more volume op.
-# ---- PRIOR (history): 2026-06-13 OPEN-MORE «B: -100 er perfekt» — −37.71→−100, +70% TOTAL bps volume.
-export GX1_CONVICTION_THR=-37.71
-export GX1_SIZING_MODE=both
-export GX1_SIZING_MAX_MULT=2.0
-export GX1_SIZING_MIN_MULT=0.5
-export GX1_SIZING_CONV_LO=-37.71
-# 2026-06-13 MARGIN²-SIZING armed (user vedtak «mer gass mer hale → Fortsett»): conviction source
-# raw_adv → margin (=1−uncertainty, corr 0.36 w/ realized vs raw_adv's 0.04). At the −100 gate replay
-# raw_adv-sizing HURT (−3% vs flat); margin² = +16.6% TOTAL but worst-trade −48→−81, maxDD 135→233
-# (~70% bigger tail — the deliberate gas/tail tradeoff). REVERSIBLE: GX1_SIZING_CONV_SRC=raw_adv (or
-# =margin GX1_SIZING_MARGIN_POW=1.0 for the gentler +10% margin¹). margin² × inverse-ATR (mode=both).
-export GX1_SIZING_CONV_SRC=margin
-export GX1_SIZING_MARGIN_POW=2.0
-# 2026-07-07 (vedtak EXIT_OPERATING_POINT_CONTRACT_PIN_20260707): MARGIN_REF was contract-named
-# (entry_iql.operating_point live_env + sizing.margin_ref) but NEVER exported here — live was correct
-# only because the code default (v12_paper_runner.py:306) happens to equal 0.3318. Pinned explicitly;
-# value UNCHANGED (== code default; the launch-assert below now catches this class mechanically).
-export GX1_SIZING_MARGIN_REF=0.3318
-export GX1_SIZING_CONV_HI=-13.99
-export GX1_SIZING_ATR_REF_BPS=14.0
-export GX1_SIZING_ATR_FLOOR_BPS=14.0
-# 2026-06-16 DIPFIX SERVE-OVERLAY armed (user vedtak «Ja armer dette»). Selection overlay on the SAME
-# cemented bundle (entry_iql_volbal_20260611) — NOT a bundle flip, fully reversible. In TREND_UP +
-# V10-leans-LONG + normal/low-vol it (a) suppresses the IQL's forced TAKE_SHORT → SKIP and (b) revives
-# SKIP → TAKE_LONG when p_long ≥ 0.80. Cures the learned anti-LONG floor that force-shorts profitable
-# dip-LONGs (OOT 2026: take-LONG +30.8 vs forced-SHORT −34.6 bps). DIPFIX-experiment arm C ("both")
-# validated on the FULL exit+cap-3 OOT-2026 replay: total PnL 35333→45826 (+29.7%), win 0.769→0.783
-# (+1.4pp), maxDD −424.8 UNCHANGED (DD-neutral), +1000 revived dip-longs. The regime-long REWARD-REFIT
-# (factor-2/4) was REFUTED by the full anchored gate 2026-06-16 (−12 bps vs cement) — SELECTION works,
-# retrain dilutes. ONE-TRUTH fn apply_dipfix_overlay applied in BOTH live serve (v12_entry_iql_live.py)
-# AND the OOT gate (v12_phase1_entry_iql_inference) so live == gate. REVERSIBLE: GX1_ENTRY_DIPFIX=0
-# (or GX1_ENTRY_DIPFIX_MODE=suppress_short for the short-suppression-only arm).
-export GX1_ENTRY_DIPFIX=1
-export GX1_ENTRY_DIPFIX_MODE=both
+# ── ENTRY operating point (smart_seq520, vedtak SMART_JOINT_POLICY_PROMOTION_20260708) ──
+# The smart entry has NO env-pinned operating point: session gate (US+OVERLAP),
+# edge_score threshold and fill convention are read IN-PROCESS from
+# PROJECT_STATE_artifacts.json v10_entry.operating_point by the contract-resolved
+# adapter (v12_smart_entry_live.SmartEntryLiveInference.load) — ONE truth, no
+# launcher duplication. The retired entry_iql-era pins (GX1_CONVICTION_*,
+# GX1_SIZING_*, GX1_SKIP_ASIA, GX1_ENTRY_DIPFIX) are REMOVED with the legacy
+# chain: the joint replay evidence ran flat units, sessions gated in-adapter.
+# (History: see git — 2026-06-11 conviction-sizing pins through 2026-06-16 DIPFIX.)
 
 # ── CONTRACT OPERATING-POINT LAUNCH-ASSERT (vedtak EXIT_OPERATING_POINT_CONTRACT_PIN_20260707) ──
-# For EVERY var in the contract's exit_iql.operating_point.live_env (dict) AND
-# entry_iql.operating_point.live_env (string), verify this launcher actually exported it with the
-# contract value — a contract-named-but-never-exported var (the GX1_SIZING_MARGIN_REF class) is
-# caught MECHANICALLY here instead of silently riding on a code default. ONE compare truth:
-# gx1.execution.v12_exit_iql_live.exit_env_contract_diff (same normalize as the runner's own
-# fail-closed startup assert). Reads the RAW contract JSON (export-coverage check, not artifact
-# selection — entry_iql is RETIRED so the fail-closed resolver would refuse it; the runner itself
-# still resolves bundles ONLY via gx1_guards, rule 8).
-echo "[preflight] contract operating-point launch-assert (exit + entry live_env)…"
+# For EVERY var in the contract's exit_iql.operating_point.live_env (dict), verify this launcher
+# actually exported it with the contract value — a contract-named-but-never-exported var (the
+# GX1_SIZING_MARGIN_REF class) is caught MECHANICALLY here instead of silently riding on a code
+# default. ONE compare truth: gx1.execution.v12_exit_iql_live.exit_env_contract_diff (same
+# normalize as the runner's own fail-closed startup assert). The entry-side live_env leg was
+# REMOVED with the retired entry_iql chain (serving wave 2026-07-08): the smart entry consumes
+# its operating point in-process from v10_entry.operating_point (asserted in the smart-gate above).
+echo "[preflight] contract operating-point launch-assert (exit live_env)…"
 PYTHONPATH=$REPO "$REPO/.venv/bin/python" - <<'PYEOF' || { echo "FATAL: launcher exports do not match the contract live_env — fix the export blocks above (or the contract, via explicit vedtak) before launching."; exit 1; }
 import json, sys
 from gx1.execution.v12_exit_iql_live import exit_env_contract_diff
@@ -208,26 +152,17 @@ if not exit_le:
 else:
     problems += [f"exit_iql: {d}" for d in exit_env_contract_diff(exit_le)]
 
-entry_le_raw = (((contract.get("active") or {}).get("entry_iql") or {}).get("operating_point") or {}).get("live_env") or ""
-entry_le = (dict(tok.split("=", 1) for tok in str(entry_le_raw).split() if "=" in tok)
-            if isinstance(entry_le_raw, str) else dict(entry_le_raw))
-problems += [f"entry_iql: {d}" for d in exit_env_contract_diff(entry_le)]
-
 if problems:
     print("[launch-assert] CONTRACT/LAUNCHER ENV MISMATCH:", *("  " + p for p in problems), sep="\n")
     sys.exit(1)
-print(f"[launch-assert] OK: {len(exit_le)} exit + {len(entry_le)} entry contract live_env vars exported by this launcher")
+print(f"[launch-assert] OK: {len(exit_le)} exit contract live_env vars exported by this launcher")
 PYEOF
 
-# IN-PROCESS SHADOW (2026-06-12, ladder wave): if a candidate bundle is named in
-# the config file, the runner loads it as a SHADOW adapter — scores every poll,
-# journals shadow_q/action/agreement, affects NOTHING. The nightly refit updates
-# this file to its newest PENDING candidate; the runner picks it up at restart.
-SHADOW_CFG=/home/andre2/GX1_DATA/config/shadow_bundle_dir.txt
-if [[ -s "$SHADOW_CFG" ]]; then
-    export GX1_SHADOW_BUNDLE_DIR="$(head -1 "$SHADOW_CFG" | tr -d '[:space:]')"
-    echo "[launch] in-process SHADOW armed: $GX1_SHADOW_BUNDLE_DIR"
-fi
+# IN-PROCESS SHADOW: DISABLED with the retired Entry-IQL chain (serving wave
+# 2026-07-08). The shadow config (GX1_DATA/config/shadow_bundle_dir.txt) named
+# Entry-IQL candidate bundles; the smart chain v1 has no entry-IQL layer, so a
+# shadow export would only produce fail-safe load errors in the runner log.
+# Re-enable (new adapter class) when a smart-chain shadow candidate exists.
 
 FORCE=0
 [[ "${1-}" == "--force" ]] && FORCE=1
@@ -266,7 +201,7 @@ echo "[preflight] rule-9 distribution-drift scan (advisory)…"
 DRIFT_REF=$(PYTHONPATH=/home/andre2/src/GX1_ENGINE /home/andre2/src/GX1_ENGINE/.venv/bin/python -c "
 from gx1_guards.artifacts import load_decision_artifact
 from pathlib import Path
-p = Path(load_decision_artifact('entry_iql')) / 'drift_reference_v1.parquet'
+p = Path(load_decision_artifact('v10_entry')) / 'drift_reference_v1.parquet'
 print(p if p.is_file() else '')" 2>/dev/null || true)
 if [[ -n "$DRIFT_REF" ]]; then
     PYTHONPATH=/home/andre2/src/GX1_ENGINE /home/andre2/src/GX1_ENGINE/.venv/bin/python \
@@ -353,7 +288,7 @@ UNITS=${GX1_PAPER_UNITS:-5}   # 2026-06-11: 10→5 with SIZING_MAX_MULT=2.0 — 
 # −201 DD was measured at this cap. Default was 100 (unbounded-risk footgun); pinned to 3 for live.
 MAX_TRADES=${GX1_PAPER_MAX_TRADES:-3}
 MAX_SPREAD=${GX1_PAPER_MAX_SPREAD_BPS:-9999}
-SUFFIX=${GX1_PAPER_SUFFIX:-open100_conv_sized_skipasia_pure_phase6}   # 2026-06-13 open-more thr -100 (was conviction67sized)
+SUFFIX=${GX1_PAPER_SUFFIX:-smart520_cand4_usoverlap_pure_phase6}   # 2026-07-08 smart serving wave (was open100_conv_sized_skipasia)
 
 # Orphan-reaper (2026-06-13 audit): the spawn gate below only kill -0's the SINGLE pid in the
 # pid-file, so every relaunch that found that pid dead spawned a fresh runner ON TOP of still-alive

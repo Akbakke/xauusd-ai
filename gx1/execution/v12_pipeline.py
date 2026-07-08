@@ -1,12 +1,21 @@
 #!/usr/bin/env python3
 """V12 live pipeline orchestrator.
 
-Single entry point for the live V12 stack:
-    M1 → canonical_v3 (live) → ctx_augment → XGB v5 → V10 v3 → Entry-IQL v2
+Single entry point for the live V12 stack (SMART serving wave, vedtak
+SMART_JOINT_POLICY_PROMOTION_20260708):
+    ENTRY (per closed M5 row):
+        cv3+BASE28 prebuilts → Smart520StateBuilder (anchored 520-dim state)
+        → smart_seq520 cand#4 (contract-resolved, calibrated)
+        → edge_score/session operating point (from the contract) → SKIP/TAKE
+    EXIT (per M1, unchanged joint-replay-proven chain):
+        XGB bridge (M5, asof) + V3 exit transformer + Exit-IQL (+ overlays)
                                                           ↓ if TAKE
                                                        open TradeState
                                                           ↓ per-M1
                                                        Exit-IQL V12.1 → HOLD/EXIT
+The legacy XGB→V10→Entry-IQL entry chain is RETIRED (2026-07-05; bundles
+physically gone 2026-07-07) — v10/entry_iql fields remain only for offline
+replay drivers that construct the pipeline explicitly.
 
 Encapsulates model loading (~300 ms one-time at startup) and provides
 two main inference methods:
@@ -44,7 +53,13 @@ import pandas as pd
 from gx1.execution.v12_state_from_prebuilt import PrebuiltStateLoader
 from gx1.execution.v12_xgb_live import XGBLiveInference
 from gx1.execution.v12_v10_live import V10LiveInference, SEQ_LEN as V10_SEQ_LEN
-from gx1.execution.v12_entry_iql_live import EntryIQLLiveInference
+# LAZY: v12_entry_iql_live resolves the (RETIRED) entry_iql contract at import
+# time and would hard-fail the whole pipeline import. The legacy Entry-IQL is
+# retired (vedtak SMART_JOINT_POLICY_PROMOTION_20260708) — only the fail-SAFE
+# shadow loader may import it, inside its try/except.
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:  # annotation-only; never imported at runtime (retired contract)
+    from gx1.execution.v12_entry_iql_live import EntryIQLLiveInference
 from gx1.execution.v12_exit_iql_live import ExitIQLLiveInference, let_winners_run_hold
 from gx1.execution.v12_v3_live import V3LiveInference
 from gx1.execution.v12_trade_state import TradeState, SIDE_LONG, SIDE_SHORT
@@ -148,10 +163,18 @@ ACTION_LABEL_BY_ID = {0: "SKIP", 1: "TAKE_LONG_NOW", 2: "TAKE_SHORT_NOW"}
 class V12Pipeline:
     prebuilt_loader: PrebuiltStateLoader
     xgb: XGBLiveInference
-    v10: V10LiveInference
-    entry_iql: EntryIQLLiveInference
-    exit_iql: ExitIQLLiveInference
+    # LEGACY entry chain (RETIRED 2026-07-05, bundles physically gone 2026-07-07):
+    # v10/entry_iql stay as fields for the offline replay drivers that construct
+    # V12Pipeline(v10=None, entry_iql=None) explicitly — the SMART serving path
+    # (vedtak SMART_JOINT_POLICY_PROMOTION_20260708) uses smart_entry instead.
+    v10: "V10LiveInference | None" = None
+    entry_iql: "EntryIQLLiveInference | None" = None
+    exit_iql: "ExitIQLLiveInference | None" = None
     v3: V3LiveInference | None = None     # V3 v8 — used for exit decisions
+    # SMART entry adapter (contract-resolved cand#4 smart_seq520 + pinned
+    # operating point) — the ACTIVE entry policy since promotion d98bc61e.
+    smart_entry: "object | None" = None
+    _last_smart_bucket: pd.Timestamp | None = None
     # Cache for the most recent augmented window + XGB bridge (refreshed per M5)
     _last_augmented_bucket: pd.Timestamp | None = None
     _last_augmented: pd.DataFrame | None = None
@@ -174,7 +197,7 @@ class V12Pipeline:
     _last_m1_bar: dict | None = None
     # In-process shadow (2026-06-12, ladder wave): candidate Entry-IQL scoring
     # every poll alongside the live adapter. None = shadow off / load failed.
-    shadow_entry_iql: EntryIQLLiveInference | None = None
+    shadow_entry_iql: "EntryIQLLiveInference | None" = None
     _shadow_errors: int = 0
     _shadow_disabled_reason: str | None = None
 
@@ -210,6 +233,7 @@ class V12Pipeline:
                 fold = f"FOLD_{fold}"
                 LOG.warning(f"SHADOW: configured {ckpt.name} absent — auto-resolved to "
                             f"{stem}.pt from the candidate bundle ({len(avail)} ckpts)")
+            from gx1.execution.v12_entry_iql_live import EntryIQLLiveInference
             shadow = EntryIQLLiveInference.load(
                 bundle_dir=Path(_SHADOW_BUNDLE_DIR), variant=variant, fold_id=fold,
                 aggregator=DEFAULT_AGGREGATOR,
@@ -223,26 +247,32 @@ class V12Pipeline:
 
     @classmethod
     def load_default(cls) -> "V12Pipeline":
+        """SMART serving stack (vedtak SMART_JOINT_POLICY_PROMOTION_20260708):
+        entry = contract-resolved smart_seq520 cand#4 via SmartEntryLiveInference
+        (the LEGACY V10->Entry-IQL chain is RETIRED and its bundles physically
+        gone — it is NOT loaded); exit = XGB bridge + V3 + contract-resolved
+        Exit-IQL, unchanged (the joint-replay-proven chain)."""
         t0 = time.perf_counter()
         loader = PrebuiltStateLoader()
         loader.load()
         xgb = XGBLiveInference.load_default()
-        v10 = V10LiveInference.load_default()
-        entry_iql = EntryIQLLiveInference.load_default()
+        from gx1.execution.v12_smart_entry_live import SmartEntryLiveInference
+        smart_entry = SmartEntryLiveInference.load()
         exit_iql = ExitIQLLiveInference.load_default()
         v3 = V3LiveInference.load_default()   # V3 v8 exit transformer
-        shadow_entry_iql = cls._load_shadow_entry_iql()
-        # V12.2: if any model needs multi-TF, build the per-bar feature tables once
-        # on the loader so predict() calls can slice cheaply.
-        needs_mtf = getattr(v10, "_enable_multi_tf", False) or getattr(v3, "_enable_multi_tf", False)
-        if needs_mtf:
+        # exit-side multi-TF tables (V3) — loader-owned, refreshed by its async cycle
+        if getattr(v3, "_enable_multi_tf", False):
             LOG.info("V12.2: building multi-TF features on PrebuiltStateLoader (one-time)")
             loader.build_multi_tf_features()
+        # entry-side smart context (float32 MTF + full-frame overrides) — heavy
+        # (~2 min); built once here so the first decision doesn't stall the loop.
+        smart_entry.refresh_multi_tf(loader._cv3)
         LOG.info(f"V12Pipeline loaded in {(time.perf_counter()-t0)*1000:.0f} ms")
-        LOG.info(f"  prebuilt cutoff: {loader.cutoff_ts}  multi_tf_active={needs_mtf}")
-        return cls(prebuilt_loader=loader, xgb=xgb, v10=v10,
-                    entry_iql=entry_iql, exit_iql=exit_iql, v3=v3,
-                    shadow_entry_iql=shadow_entry_iql)
+        LOG.info(f"  prebuilt cutoff: {loader.cutoff_ts}  entry=smart_seq520 exit_mtf={getattr(v3, '_enable_multi_tf', False)}")
+        return cls(prebuilt_loader=loader, xgb=xgb, v10=None,
+                    entry_iql=None, exit_iql=exit_iql, v3=v3,
+                    smart_entry=smart_entry,
+                    shadow_entry_iql=None)
 
     def _refresh_m1_bar(self, now_minute: pd.Timestamp) -> dict | None:
         """Latest CLOSED M1 bar's intrabar OHLC (bid/ask high/low/close) + per-bar
@@ -379,85 +409,78 @@ class V12Pipeline:
         ask: float,
         portfolio_state: dict[str, float] | None = None,
     ) -> dict[str, Any]:
-        """Run the full XGB → V10 → Entry-IQL chain for the current bar.
+        """Run the SMART entry policy (contract-resolved smart_seq520 cand#4,
+        vedtak SMART_JOINT_POLICY_PROMOTION_20260708) for the latest CLOSED M5 bar.
 
-        Returns dict with:
+        One decision per M5 row (the replay cadence): prediction row time T =
+        M5 bar-START label; the row lands in cv3 after the bar closes at T+5,
+        so decision availability ≈ T+5 (+ daemon latency) and the live fill is
+        the first quote after that — the operating point's 'M1 open at T+5'
+        convention (RUN_MANIFEST entry_fill_convention; live pays real latency
+        slippage vs the replay's exact T+5 open).
+
+        Returns dict with (runner contract preserved):
             action: SKIP / TAKE_LONG_NOW / TAKE_SHORT_NOW
-            action_id: 0 / 1 / 2
-            q_per_action: [Q_skip, Q_take_long, Q_take_short]
-            advantage_over_skip: float
-            advantage_over_skip_long: float
-            advantage_over_skip_short: float
-            xgb: {p_long, p_short, p_flat}
-            v10: {direction_probs, tradable_prob, mfe_first_n, ...}
-            decision_ts: ISO timestamp of the M5 bucket used
+            action_id / edge_score / p_long / p_short / p_flat / session
+            advantage_over_skip_*: 0.0 (no Q-model — smart chain v1 is
+                candidate-policy only; kept for journal-schema stability)
+            decision_ts: ISO timestamp of the M5 row decided
+            _v10_snapshot: exit-bound cand#4-head snapshot (replay-proven wiring)
         """
+        _SKIP_BASE = {"action": "SKIP", "action_id": 0,
+                      "q_per_action": [0.0, 0.0, 0.0],
+                      "advantage_over_skip": 0.0,
+                      "advantage_over_skip_long": 0.0, "advantage_over_skip_short": 0.0,
+                      "stub": False}
+        if self.smart_entry is None:
+            # fail-closed: the legacy V10->Entry-IQL chain is RETIRED (bundles
+            # physically gone); a pipeline without smart_entry must never trade.
+            raise RuntimeError(
+                "[SMART_ENTRY] V12Pipeline has no smart_entry adapter — the legacy entry "
+                "chain is RETIRED; construct via load_default() or pass smart_entry."
+            )
         if not self._refresh_canonical(now_minute):
-            return {"action": "SKIP", "error": "no_canonical_data",
-                     "q_per_action": [0.0, 0.0, 0.0],
-                     "advantage_over_skip": 0.0,
-                     "advantage_over_skip_long": 0.0, "advantage_over_skip_short": 0.0}
+            return {**_SKIP_BASE, "error": "no_canonical_data"}
 
         augmented = self._last_augmented
-        bridge = self._last_bridge
 
         # V10 requires 96-bar history → make sure we have it
         if len(augmented) < V10_SEQ_LEN:
-            return {"action": "SKIP", "error": f"insufficient_history_{len(augmented)}<{V10_SEQ_LEN}",
-                     "q_per_action": [0.0, 0.0, 0.0],
-                     "advantage_over_skip": 0.0,
-                     "advantage_over_skip_long": 0.0, "advantage_over_skip_short": 0.0}
+            return {**_SKIP_BASE, "error": f"insufficient_history_{len(augmented)}<{V10_SEQ_LEN}"}
 
-        # The decision-bar is the LATEST closed M5 bar in augmented
+        # ── SMART entry: one decision per NEW closed M5 row ──────────────────
+        decision_m5 = augmented.index[-1]
+        if self._last_smart_bucket is not None and decision_m5 <= self._last_smart_bucket:
+            return {**_SKIP_BASE, "skip_reason": "awaiting_new_m5_bar",
+                    "decision_ts": str(decision_m5)}
+        try:
+            frame = self.smart_entry.build_anchored_frame(self.prebuilt_loader, decision_m5)
+            states = self.smart_entry._builder.build_states(frame, [decision_m5])
+            head = self.smart_entry.forward_states(states)[0]
+        except Exception as exc:  # noqa: BLE001 — fail-closed SKIP, keep exits alive
+            LOG.error(f"[SMART_ENTRY] state/forward failed for {decision_m5}: {exc} — SKIP "
+                      f"(fail-closed; exit management continues)")
+            return {**_SKIP_BASE, "error": f"smart_entry_failed:{type(exc).__name__}",
+                    "decision_ts": str(decision_m5)}
+        self._last_smart_bucket = decision_m5
+        # exit-bound snapshot atr_bps = RAW live cv3 row value at T — the
+        # joint-replay-proven convention (RUN_MANIFEST snapshot_policy), NOT the
+        # state-builder's offline-derived atr_bps.
+        _atr_raw = float(pd.to_numeric(augmented.iloc[-1].get("atr_bps", 0.0), errors="coerce") or 0.0)
+        decision = self.smart_entry.decide(head, atr_bps=_atr_raw)
+        decision.update({k: v for k, v in _SKIP_BASE.items() if k not in decision})
+        # (Legacy V10->Entry-IQL forward, distilled-Q swap and the in-process
+        # Entry-IQL shadow were REMOVED with the retired legacy chain — git
+        # history holds the implementation; shadow_entry_iql stays None.)
+
+        # xgb probs for the decided bar (journal continuity; the smart entry
+        # itself runs a NEUTRAL bridge and never consumes these)
         end_idx = len(augmented) - 1
-        # V12.2: fetch multi-TF windows if V10 bundle requires them (no-op for v3 bundle)
-        mtf_windows = None
-        if getattr(self.v10, "_enable_multi_tf", False):
-            decision_ts = augmented.index[end_idx]
-            mtf_windows = self.prebuilt_loader.get_multi_tf_windows(decision_ts)
-            if not mtf_windows:
-                LOG.warning("V10 multi-TF needed but PrebuiltStateLoader has no multi-TF features built — "
-                             "build_multi_tf_features() must be called once after load()")
-        v10_out = self.v10.predict(augmented, bridge, end_idx=end_idx, multi_tf_windows=mtf_windows)
-
-        # Entry-IQL input
-        row = augmented.iloc[end_idx]
-        xgb_this = {
+        decision["xgb"] = {
             "p_long": float(self._last_xgb_p_long[end_idx]),
             "p_short": float(self._last_xgb_p_short[end_idx]),
             "p_flat": float(self._last_xgb_p_flat[end_idx]),
         }
-        rec, candidate = self.entry_iql.predict_from_pipeline(
-            row, xgb_this, v10_out, portfolio_state=portfolio_state,
-        )
-        entry_signal_fields = _entry_signal_fields_from_candidate(candidate)
-        # Phase 3a A/B: replace IQL Q with distilled V10 q_head when env says so.
-        # Has no effect if v10_out lacks q_per_action_v1 (non-distilled bundle).
-        if _USE_DISTILLED_ENTRY and "q_per_action_v1" in v10_out:
-            rec = _entry_rec_with_distilled_q(rec, v10_out, beta=self.entry_iql.adapter.beta)
-
-        # IN-PROCESS SHADOW (2026-06-12): candidate bundle scores the SAME inputs
-        # through the SAME predict() path (incl. conviction-gate/overlay env flags
-        # → candidate-vs-active on the live operating point). Observability only —
-        # any error logs ONCE and disables; the live decision is already final.
-        shadow_rec = None
-        if self.shadow_entry_iql is not None:
-            try:
-                shadow_rec, _ = self.shadow_entry_iql.predict_from_pipeline(
-                    row, xgb_this, v10_out, portfolio_state=portfolio_state,
-                )
-            except Exception as exc:
-                # Disable after 3 strikes (transient CUDA hiccups must not kill
-                # days of observability), and record WHY in every later journal
-                # record — 'disabled mid-run' must be distinguishable from
-                # 'never armed' (2026-06-12 adversarial finding).
-                self._shadow_errors += 1
-                LOG.error(f"SHADOW predict failed ({self._shadow_errors}/3: {exc})")
-                if self._shadow_errors >= 3:
-                    self.shadow_entry_iql = None
-                    self._shadow_disabled_reason = f"predict_failed_x3:{type(exc).__name__}"
-                    LOG.error("SHADOW disabled for the rest of this run — journals will carry shadow_disabled_reason")
-                shadow_rec = None
 
         # V12.2 CLUSTER-1 RATE-LIMIT: block repeat entries within same M5 bucket.
         # Live V10/IQL fires multiple times per minute; without this, IQL takes 4×
@@ -477,10 +500,9 @@ class V12Pipeline:
         # Override via GX1_CLUSTER1_DISABLE=1 only for explicit OOT-replay runs.
         import os as _os
         _cluster1_disabled = bool(int(_os.environ.get("GX1_CLUSTER1_DISABLE", "0")))
-        action_label = rec.action_label_v1
+        action_label = decision["action"]
         if (not _cluster1_disabled) and action_label in ("TAKE_LONG_NOW", "TAKE_SHORT_NOW"):
             side_key = "long" if action_label == "TAKE_LONG_NOW" else "short"
-            decision_m5 = augmented.index[end_idx]  # already an M5-bar timestamp
             last_m5_same = self._last_entry_m5_by_side.get(side_key)
             last_m5_opp = self._last_entry_m5_by_side.get(
                 "short" if side_key == "long" else "long"
@@ -495,96 +517,12 @@ class V12Pipeline:
                     f"[CLUSTER1_RATE_LIMIT] blocking {side_key} entry ({block_reason}) — "
                     f"last_same={last_m5_same} last_opp={last_m5_opp} current_m5={decision_m5}"
                 )
-                blocked_out = {
-                    "action": "SKIP",
-                    "action_id": 0,
-                    "q_per_action": [float(rec.q_per_action_v1[0]), float(rec.q_per_action_v1[1]), float(rec.q_per_action_v1[2])],
-                    "q_skip": float(rec.q_per_action_v1[0]),
-                    "q_take_long": float(rec.q_per_action_v1[1]),
-                    "q_take_short": float(rec.q_per_action_v1[2]),
-                    "advantage_over_skip": 0.0,
-                    "advantage_over_skip_long": float(rec.q_per_action_v1[1] - rec.q_per_action_v1[0]),
-                    "advantage_over_skip_short": float(rec.q_per_action_v1[2] - rec.q_per_action_v1[0]),
-                    "blocked_reason": block_reason,
-                    "decision_ts": str(decision_m5),
-                    "stub": False,
-                }
-                blocked_out.update(entry_signal_fields)
-                # shadow already scored this poll — blocked polls are exactly the
-                # disagreement-relevant samples; don't drop the record (2026-06-12).
-                self._attach_shadow_fields(blocked_out, shadow_rec, rec.action_label_v1)
-                return blocked_out
-            # Cluster1-state advance moved to v12_paper_runner.py post-fill.
-            # Audit 3 C-3 fix 2026-05-20: previously this wrote state regardless
-            # of downstream gate/portfolio-guard rejection, causing false
-            # cluster-blocks on subsequent ticks. Caller must call
-            # `pipeline.record_entry_for_cluster(side, decision_m5)` AFTER the
-            # trade is actually opened (not on TAKE_*_NOW recommendation alone).
-
-        q = rec.q_per_action_v1
-        # 2026-05-30: capture full 192-dim state vector + feature_names + per-K
-        # raw Q for offline counterfactual variant replay (multi_variant_counterfactual.py)
-        # and online-IQL prep. Adds ~2 KB per journal event. Safe to drop if
-        # journal disk pressure becomes an issue.
-        try:
-            state_arr = rec.state_v1
-            state_list = [float(v) for v in state_arr.tolist()] if state_arr is not None else None
-        except Exception as exc:
-            LOG.warning(f"[ONLINE_IQL_CAPTURE] state_v1 extract failed: {exc} — "
-                        f"journal will have null state_v1 for this poll. If this "
-                        f"persists, online-IQL replay buffer build will skip these "
-                        f"events.")
-            state_list = None
-        try:
-            q_per_k_arr = rec.q_per_action_per_k_v1
-            q_per_k_list = q_per_k_arr.tolist() if q_per_k_arr is not None else None
-        except Exception as exc:
-            LOG.warning(f"[ONLINE_IQL_CAPTURE] q_per_action_per_k_v1 extract failed: {exc}")
-            q_per_k_list = None
-        out = {
-            "action": rec.action_label_v1,
-            "action_id": int(rec.action_id_v1),
-            "q_per_action": [float(q[0]), float(q[1]), float(q[2])],
-            "q_skip": float(q[0]),
-            "q_take_long": float(q[1]),
-            "q_take_short": float(q[2]),
-            "advantage_over_skip": float(rec.advantage_over_skip_v1),
-            "advantage_over_skip_long": float(q[1] - q[0]),
-            "advantage_over_skip_short": float(q[2] - q[0]),
-            "confidence_softmax": [float(p) for p in rec.confidence_softmax_v1],
-            "xgb": xgb_this,
-            "v10_path_quality_pred": float(v10_out["path_quality"]),
-            "v10_mfe_pred_at_entry": float(v10_out["mfe_first_n"]),
-            "v10_p_long": float(v10_out["direction_probs"][0]),
-            "v10_p_short": float(v10_out["direction_probs"][1]),
-            "v10_tradable_prob": float(v10_out["tradable_prob"]),
-            "v10_bad_path_prob": float(v10_out["bad_path_prob"]),
-            # V10 v3+ aux heads (only present when retrained with those flags).
-            # Use .get() so older v_FIXED bundles don't break the dict.
-            "v10_tf_agreement_pred": float(v10_out.get("tf_agreement_pred", -1.0)),
-            "v10_path_quality_std": float(v10_out.get("path_quality_std", -1.0)),
-            "v10_position_size_pred": float(v10_out.get("position_size_pred", -1.0)),
-            "v10_hold_horizon_pred": float(v10_out.get("hold_horizon_pred", -1.0)),
-            "v10_hold_horizon_bars_pred": int(v10_out.get("hold_horizon_bars_pred", -1)),
-            "decision_ts": str(augmented.index[end_idx]),
-            "_v10_snapshot": v10_out,   # for later TradeState.open()
-            # trend_regime / vol_regime surfaced from the SAME candidate dict DIPFIX
-            # reads (train==serve-matched REGIME_V4 labels) so the runner's
-            # regime-adaptive sizing overlay + journaling can key on them. Additive.
-            "trend_regime": str(candidate.get("trend_regime", "")),
-            "vol_regime": str(candidate.get("vol_regime", "")),
-            "stub": False,
-            # Online-IQL prep payload (2026-05-30). state_v1 is the 192-dim raw
-            # vector Entry-IQL saw at this poll. Schema constants (feature_names,
-            # k_horizons, variant, fold, aggregator) DON'T change per poll — they
-            # live in the bundle dir referenced by PROJECT_STATE_artifacts.json
-            # so we don't pay disk for redundancy.
-            "entry_iql_state_v1": state_list,
-            "entry_iql_q_per_action_per_k_v1": q_per_k_list,
-        }
-        out.update(entry_signal_fields)
-        self._attach_shadow_fields(out, shadow_rec, rec.action_label_v1)
-        return out
+                decision.update({"action": "SKIP", "action_id": 0,
+                                 "blocked_reason": block_reason})
+                return decision
+            # Cluster1-state advance stays in v12_paper_runner.py post-fill
+            # (record_entry_for_cluster AFTER the trade actually opens).
+        return decision
 
     def _attach_shadow_fields(self, out: dict, shadow_rec, live_action: str) -> None:
         """Attach IN-PROCESS SHADOW fields to a decision dict (both the normal and
