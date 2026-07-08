@@ -18,13 +18,35 @@ if [[ "${GX1_ALLOW_LEGACY_HANDOVER:-}" != "20260627_ALLOW_LEGACY_HANDOVER" ]]; t
   bar(){ printf '%s\n' "------------------------------------------------------------------------"; }
   echo
   bar
-  echo "  GX1 HANDOVER - active Entry foundation seq146 @ $(date -u '+%Y-%m-%d %H:%M:%SZ')"
+  echo "  GX1 HANDOVER - SMART JOINT POLICY PROMOTED (2026-07-08) @ $(date -u '+%Y-%m-%d %H:%M:%SZ')"
   echo "  Canonical docs:"
-  echo "    docs/ENTRY_FOUNDATION_AUDIT_20260628.md"
-  echo "    docs/ENTRY_SEQUENTIAL_AI_SPECIALIST_BLUEPRINT_20260628.md"
+  echo "    docs/ACTIVE_SUPER_AI_BOT_GOAL_20260702.md (STATUS 2026-07-08 + roadmap)"
+  echo "    /home/andre2/GX1_DATA/HANDOVER_2026_07_08_SMART_CHAIN_PROMOTED.md (baton pass)"
+  echo "    PROJECT_STATE_artifacts.json (ONE selection truth; promotion commit d98bc61e)"
   echo "  Control surface:"
-  echo "    scripts/entry_next_edge_control.sh"
+  echo "    scripts/entry_next_edge_control.sh   (foundation gates)"
+  echo "    scripts/gx1_exit_env_pin.sh          (exit env pin - eval before any gate/replay)"
   bar
+  echo
+  echo "ACTIVE roles (contract; resolve only via gx1_guards.load_decision_artifact):"
+  "$PY" - "$CONTRACT" <<'PY'
+import json, os, sys
+c = json.load(open(sys.argv[1]))
+for role, v in c["active"].items():
+    p = v.get("path", "")
+    ok = "OK " if os.path.exists(p) else "MISSING!!"
+    status = v.get("status", "?")
+    print(f"  [{ok}] {role:10s} {status:24s} {p.replace('/home/andre2/GX1_DATA/', '')}")
+op = (c["active"].get("v10_entry") or {}).get("operating_point") or {}
+if op:
+    print(f"  entry OP: selection={op.get('selection')} thr={op.get('edge_score_threshold')} "
+          f"sessions={op.get('sessions')} max_trades={op.get('max_trades')}")
+xop = (c["active"].get("exit_iql") or {}).get("operating_point") or {}
+if xop:
+    print(f"  exit OP:  strong_hold_qadv={xop.get('strong_hold_qadv')} "
+          f"defer_cap_bars={xop.get('strategy_f_defer_cap_bars')} hard_stop={xop.get('hard_mae_stop_bps')} "
+          f"(full live_env pinned; use scripts/gx1_exit_env_pin.sh)")
+PY
   echo
   echo "Verification:"
   VERIFY_ERR=$(mktemp)
@@ -168,13 +190,16 @@ if post_apply_path:
 PY
   fi
   echo
-  echo "Allowed next:"
-  echo "  Follow train-readiness next command above."
-  echo "  Smoke training stays closed until train-readiness PASS, clean git, and explicit vedtak."
+  echo "Allowed next (SERVING WAVE - in flight in gx1/execution; extend, never fork):"
+  echo "  live per-M5 520-dim state-builder + smart-entry adapter + train==serve"
+  echo "  parity gate + runner integration; then rule-9 3-leg preflight; demo/paper"
+  echo "  launch ONLY after parity PASS + preflight + explicit user vedtak."
   echo
   echo "Blocked:"
-  echo "  generic train/retrain, promote, pin, shadow, paper/live order placement,"
-  echo "  candidate train, replay, IQL, promotion review, and legacy live/practice paths."
+  echo "  live/demo/paper order placement (until serving wave + parity + preflight + vedtak),"
+  echo "  legacy live/practice launch (legacy entry bundles PHYSICALLY GONE 20260707),"
+  echo "  entry retraining for direction, and the parked tracks: M1 mid-trade timing,"
+  echo "  grid-proxy student, hold-horizon head, full-history exit substrate."
   echo
   echo "Historical legacy handover is available only with:"
   echo "  GX1_ALLOW_LEGACY_HANDOVER=20260627_ALLOW_LEGACY_HANDOVER bash scripts/gx1_handover.sh"
@@ -199,11 +224,12 @@ import json,sys,os
 c=json.load(open(sys.argv[1])); a=c["active"]
 def line(role,extra=""):
     v=a[role]; p=v["path"]; ok="OK " if os.path.exists(p) else "MISSING!!"
-    print(f"   [{ok}] {role:10s} {p.replace('/home/andre2/GX1_DATA/','')}  {extra}")
-line("xgb")
-line("v10_entry", "(regime-v4, ctx_cont contract-driven)")
+    st=v.get("status","?")
+    print(f"   [{ok}] {role:10s} [{st}] {p.replace('/home/andre2/GX1_DATA/','')}  {extra}")
+line("xgb", "(2026-07-08: V3-exit-bridge role only)")
+line("v10_entry", "(2026-07-08: smart_seq520 cand#4, edge_score OP)")
 line("v3_exit", "(EXIT_IO_V8)")
-line("entry_iql", f"variant={a['entry_iql'].get('active_variant')}  + CONVICTION-GATE overlay")
+line("entry_iql", f"variant={a['entry_iql'].get('active_variant')}  (RETIRED legacy - overlay text below is HISTORICAL)")
 line("exit_iql", f"variant={a['exit_iql'].get('active_variant')} agg={a['exit_iql'].get('active_aggregator')} K={a['exit_iql'].get('active_k_horizon')}")
 op=a["entry_iql"].get("operating_point",{})
 print()

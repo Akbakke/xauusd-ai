@@ -1,61 +1,70 @@
-# ACTIVE ENTRY/EXIT SUPER AI BOT OVERRIDE - 2026-07-02
+# ACTIVE ENTRY/EXIT SUPER AI BOT OVERRIDE - 2026-07-08 (SMART CHAIN PROMOTED)
 
-Read `docs/ACTIVE_SUPER_AI_BOT_GOAL_20260702.md`,
-`docs/ENTRY_FOUNDATION_AUDIT_20260628.md` and
-`docs/ENTRY_SEQUENTIAL_AI_SPECIALIST_BLUEPRINT_20260628.md` before acting on
-Entry/Exit AI work. They supersede older XGB/V10/Entry-IQL live-practice
-instructions in this file. The 2026-06-27 no-XGB shadow plan and the older
-runtime notes below are historical context, not the active operating point.
+Read `docs/ACTIVE_SUPER_AI_BOT_GOAL_20260702.md` (STATUS 2026-07-08 section),
+`/home/andre2/GX1_DATA/HANDOVER_2026_07_08_SMART_CHAIN_PROMOTED.md` and
+`PROJECT_STATE_artifacts.json` (the ONE selection truth; promotion commit
+d98bc61e) before acting on Entry/Exit AI work. The 2026-07-02 smoke-wave
+instructions are COMPLETED history — the smart chain qualified the entire
+ladder (smoke -> bundle audit -> calibration -> replay-readiness -> joint
+replay) and was PROMOTED. The older XGB/V10/Entry-IQL live-practice runtime
+notes below describe the RETIRED legacy chain; its bundles are physically gone
+(20260707 delete-incident).
 
-Active goal: build one replay-proven XAUUSD super AI bot where all Entry and
-Exit inputs cooperate as a shared market-state language. Foundation features,
-seq215 chart/candle inputs, smart520 mechanism summaries, context embeddings,
-specialist-gate outputs and Exit state must remain routed, live, hashed,
-non-collapsed and explainable by mechanism. Smart features do not replace the
-old foundation features unless an exact ablation plus replay/slice proof shows
-edge improves.
+Active state (every flip by explicit user vedtak):
+- v10_entry = smart_seq520 cand#4 ACTIVE (vedtak
+  SMART_JOINT_POLICY_PROMOTION_20260708, commit d98bc61e): pin-aligned bundle
+  audit PASS, calibrated (direction NLL 1.87->1.02, path corr +0.251),
+  replay-readiness READY both identities. Pinned operating point: US+OVERLAP,
+  edge_score threshold 0.16176772117614746 (top-20% US+OVERLAP VAL Q4-2025),
+  M1-open fill at T+5, max_trades=3. Smart chain v1 = CANDIDATE-POLICY ONLY
+  (no entry-IQL layer).
+- xgb = May-2026 CPU base80 bundle ACTIVE — V3-exit-bridge input ONLY (smart
+  entry runs a neutral bridge).
+- exit_iql = `exit_iql_deferral_20260707` ACTIVE (vedtak
+  EXIT_IQL_DEFERRAL_PROMOTION_20260707, commit 8e252246): cap-3 return/DD
+  14.50/23.31 vs baseline 9.52/11.05 with lower DD. Serving requires
+  GX1_STRONG_HOLD_QADV=-66.5 + GX1_STRATEGY_F_DEFER_CAP_BARS=240, pinned in
+  contract live_env; gates/replays MUST eval `scripts/gx1_exit_env_pin.sh`.
+- entry_iql = RETIRED (grid-proxy student refuted; REAL Q-net student
+  research-PENDING under `runs/entry_iql_research/real_student_20260707/`).
+- JOINT policy replay evidence: `reports/joint_smart_policy_replay_20260708/`
+  — 3506 trades jan-jul 2026, EV 74.69 bps, win 0.944, cap-3 +52,867 bps,
+  maxDD 805, return/DD per month 15.5/11.4/17.4/14.1/21.1/15.3.
 
-Foundation smoke readiness is the literal gate
-`READY_FOR_VEDTAK_SMOKE_TRAIN`; it opens only vedtak review, not ungated
-training, replay, shadow or live. Canonical gated smoke command:
-`smoke-train --vedtak <id> --require-edge-audit`. Required preflight includes
-`foundation-guardrails`.
+Allowed path (SERVING WAVE — in flight in `gx1/execution`; extend, never fork):
+1. live per-M5 520-dim state-builder for the smart entry;
+2. smart-entry adapter (bundle load via contract, edge_score selection per the
+   pinned operating point);
+3. train==serve parity gate — live serve must be replay-identical on the same
+   bars;
+4. runner integration; then rule-9 three-leg preflight on the live data path;
+5. demo/paper launch ONLY after parity PASS + preflight + explicit user vedtak.
 
-Current status: `smart_seq520_candidate` is structurally ready, but old smart
-smoke evidence is still fail-closed on direction/class balance. The known
-failure mode is FLAT underprediction with LONG/SHORT overcalls. The trainer now
-applies the FLAT/class-balance repair to both the main direction objective and
-the MTF direction auxiliary objective, and bundle audit must preserve
-`mtf_dir_aux_uses_direction_balance_repair=true`.
+Blocked path:
+- no live/demo/paper order placement before serving wave + parity gate PASS +
+  preflight + explicit launch vedtak;
+- no legacy live/practice/OANDA order paths, old V10/XGB/ET research
+  launchers or direct legacy `v12_paper_runner` start — the legacy entry chain
+  cannot start (bundles gone) and must not be resurrected;
+- no entry retraining for direction (information ceiling stands);
+- parked/refuted, reopen only with new data + explicit vedtak: M1 mid-trade
+  exit timing (3x independent null at n=218 episodes — needs more live
+  episodes), IQL grid-proxy student, hold-horizon label head (OOT pregate
+  FAIL, head inactive), full-history dense exit substrate (entry-IQL
+  provenance 2026-bound, not provable).
 
-Use only the canonical control surface for this wave:
-- `scripts/entry_next_edge_control.sh verify`
-- `scripts/entry_next_edge_control.sh selftest`
-- `scripts/entry_next_edge_control.sh foundation-guardrails`
-- `scripts/entry_next_edge_control.sh worktree-hygiene`
-- optional, explicit cleanup staging:
-  `scripts/entry_next_edge_control.sh stage-foundation-cleanup --apply --vedtak <id>`
-- optional, explicit smart smoke-dataset refresh/resize + proof-only re-manifest:
-  `scripts/entry_next_edge_control.sh smart-post-rebuild-refresh --apply --vedtak <id> [--train-rows <n>] [--val-rows <n>] [--test-rows <n>]`
-  followed by `scripts/entry_next_edge_control.sh smart-smoke-manifest --vedtak <id>`
-- `scripts/entry_next_edge_control.sh train-readiness`
-- after explicit user vedtak only:
-  `scripts/entry_next_edge_control.sh smoke-train --vedtak <id> --require-edge-audit`
-- for the active smart path, after explicit SMART/SEQ520 vedtak only:
-  `scripts/entry_next_edge_control.sh smart-smoke-train --vedtak <id> --require-edge-audit`
-
-Readiness is `READY_FOR_VEDTAK_SMOKE_TRAIN` only when foundation gates and
-git-clean execution hygiene both pass. `READY_FOR_VEDTAK_SMOKE_TRAIN_AFTER_GIT_CLEAN`
-means the foundation contract is ready but real trainer start is still blocked.
-Candidate training, replay-readiness, IQL distillation, IQL replay comparison,
-promotion review, shadow, and live remain closed until their preceding
-foundation gates produce explicit PASS/READY artifacts.
-
-Do not start legacy live/practice/OANDA order paths, old V10/XGB/ET research
-launchers, direct `v12_paper_runner`, replay, IQL, promotion, shadow or live
-actions without the current gate, clean git and explicit matching vedtak. Heavy
-train/replay jobs must preserve RAM headroom and use capped runners where the
-readiness report requires them.
+Hard lessons codified 2026-07-08:
+- label-AUC pregate proves separability, NOT replay value — timing/label
+  tracks additionally need a replay-simulated pregate (first-trigger dynamics
+  vs the actual policy) before training;
+- delete-executors hard-fail on unresolvable exclusion paths; rule-5 dry-run
+  inventories carry FULL paths, never '...'-abbreviated (20260707 incident:
+  6 contract-referenced rollback bundles destroyed);
+- exit env is pinned from the contract via `scripts/gx1_exit_env_pin.sh` —
+  nightly true-netcap numbers from before 2026-07-07 measured the wrong exit
+  policy and are decision-invalid;
+- heavy train/replay jobs must preserve RAM headroom and use capped runners
+  where the readiness report requires them.
 
 # GX1 Agent Guardrails
 
@@ -235,6 +244,15 @@ readiness report requires them.
 - Keep historical artifacts as history unless an explicit selection contract marks them active.
 
 ## Running live practice
+- **STATUS 2026-07-08 — LEGACY LAUNCH BLOCKED; section kept for the data daemons + serving-wave reference.**
+  The entry chain this section launches (XGB->V10->Entry-IQL with conviction-gate/DIPFIX/sizing) is RETIRED
+  and its bundles are PHYSICALLY GONE (20260707 delete-incident) — `launch_live_practice.sh` cannot start the
+  legacy paper runner and must NOT be repaired back onto it. What remains VALID here: the data daemons
+  (collector + canonical_incremental, systemd, with their pinned env flags), the rule-9 three-leg preflight,
+  the nightly-learning plumbing and the stop script. The promoted smart chain (contract HEAD d98bc61e) gets a
+  NEW serving path (per-M5 520-dim state-builder + adapter + parity gate + runner integration — the serving
+  wave, in flight in `gx1/execution`); demo/paper relaunch happens only after parity PASS + preflight +
+  explicit vedtak. Exit-side env for ANY run comes from the contract via `scripts/gx1_exit_env_pin.sh`.
 - One launcher script for the whole stack: `bash scripts/launch_live_practice.sh`.
 - Idempotent — reads `*.pid` files in `GX1_DATA/reports/v12_paper_runs/`, skips anything already alive, starts only what's missing. Re-run any time to verify the stack is up.
 - Starts four components together (they must ALL be running for live to track Phase 6 cement + auto-report):

@@ -6,6 +6,72 @@ for current Entry/Exit AI work. Detailed gates remain in
 `docs/ENTRY_FOUNDATION_AUDIT_20260628.md` and
 `docs/ENTRY_SEQUENTIAL_AI_SPECIALIST_BLUEPRINT_20260628.md`.
 
+## STATUS 2026-07-08 — SMART JOINT POLICY PROMOTED; SERVING WAVE IN FLIGHT
+
+The ladder in this document has been executed through step 9's replay proof.
+The sections below ("Current Position", "Roadmap" steps 1-6) describe the
+2026-07-02 smoke-wave starting point and are COMPLETED history; the contract
+`PROJECT_STATE_artifacts.json` (promotion commit d98bc61e) is the selection
+truth. Baton pass with full evidence paths and rollback recipes:
+`/home/andre2/GX1_DATA/HANDOVER_2026_07_08_SMART_CHAIN_PROMOTED.md`.
+
+What is proven and ACTIVE (each flip by explicit user vedtak):
+
+- Entry: smart_seq520 cand#4 qualified the whole ladder — pin-aligned bundle
+  audit PASS, calibrated (direction NLL 1.87 -> 1.02, path corr +0.251),
+  replay-readiness READY on both identities — and is ACTIVE as v10_entry
+  (vedtak SMART_JOINT_POLICY_PROMOTION_20260708). Pinned operating point:
+  US+OVERLAP, edge_score threshold 0.16176772117614746 (top-20% of US+OVERLAP
+  VAL Q4-2025), M1-open fill at T+5, max_trades=3. Smart chain v1 runs
+  CANDIDATE-POLICY ONLY (no entry-IQL layer; role RETIRED).
+- Exit: exit_iql_deferral_20260707 ACTIVE (vedtak
+  EXIT_IQL_DEFERRAL_PROMOTION_20260707, commit 8e252246) — cap-3 return/DD
+  14.50/23.31 vs re-based baseline 9.52/11.05 with lower account-DD. Serving
+  requires GX1_STRONG_HOLD_QADV=-66.5 + GX1_STRATEGY_F_DEFER_CAP_BARS=240
+  (contract live_env; pin helper `scripts/gx1_exit_env_pin.sh`).
+- Joint policy replay-proven (pre-registered, one run):
+  `reports/joint_smart_policy_replay_20260708/` — 3506 trades jan-jul 2026,
+  per-trade EV 74.69 bps, win 0.944; cap-3 account +52,867 bps, maxDD 805 bps,
+  return/DD per month 15.5 / 11.4 / 17.4 / 14.1 / 21.1 / 15.3 (every month
+  above the legacy ~9-11 reference).
+- XGB: May-2026 CPU base80 bundle ACTIVE for the V3-exit-bridge only; the
+  smart entry runs a neutral bridge.
+
+Refuted/parked this wave (reopen only with new data + explicit vedtak):
+
+- M1 mid-trade exit timing: three independent statistical nulls at n=218
+  2026-episodes (`reports/exit_parity_wave_20260704_evidence/
+  m1_timing_train_20260707/RESULT.md`) — needs more live episodes, not
+  retrains. Lesson: label-AUC pregate proves separability, not replay value;
+  a replay-simulated pregate is now required before any timing train.
+- Entry-IQL grid-proxy student: honestly refuted (cannot beat the calibrated
+  candidate). REAL Q-net student research-PENDING
+  (`runs/entry_iql_research/real_student_20260707/`, beats candidate PnL but
+  fails PF/DD bounds).
+- hold_horizon label head: OOT pregate FAIL (`reports/
+  cand4_julyext_evidence_20260705/fixwave_20260707/hold_label_pregate/
+  RESULT.md`) — head stays inactive, fail-loud.
+- Full-history dense exit substrate: blocked on provenance (entry-IQL
+  2026-bound + hash-pinned; top-20% selection not provable pre-2026).
+
+## Roadmap from here (2026-07-08)
+
+1. SERVING WAVE (in flight, `gx1/execution`): live per-M5 520-dim
+   state-builder + smart-entry adapter + runner integration. Extend the
+   in-flight work; never fork a parallel serving path.
+2. TRAIN==SERVE PARITY GATE: live serve output replay-identical on the same
+   bars (hard gate; nothing downstream opens before PASS).
+3. RULE-9 PREFLIGHT on the live data path (live-tail freeze hard-fail /
+   continuity-gap hard-fail / KS-drift advisory).
+4. DEMO/PAPER LAUNCH — only after 2+3 PASS and an explicit user launch vedtak.
+5. DATA ACCUMULATION under demo: live episodes for the parked M1-timing track,
+   live selected-trade distribution vs replay, deferral-exit liveness.
+6. ROUND-3 RESEARCH TRACKS (each its own pregate + vedtak): real Q-net student
+   vs its PF/DD bounds; M1 timing re-attempt ONLY once enough live episodes
+   exist AND a replay-simulated pregate passes; threshold recalibration on a
+   fresh val window (explicit vedtak, per the contract's recalibration
+   policy).
+
 ## Goal
 
 Build a fully automated XAUUSD policy where all Entry and Exit inputs cooperate

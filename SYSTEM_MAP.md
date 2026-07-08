@@ -1,31 +1,45 @@
-# ACTIVE ENTRY/EXIT SUPER AI BOT OVERRIDE - 2026-07-02
+# ACTIVE ENTRY/EXIT SUPER AI BOT OVERRIDE - 2026-07-08 (SMART CHAIN PROMOTED)
 
-This map documents the historical live GX1 chain, but the current Entry/Exit AI
-workstream is the smart foundation-to-replay path in
-`docs/ACTIVE_SUPER_AI_BOT_GOAL_20260702.md`,
-`docs/ENTRY_FOUNDATION_AUDIT_20260628.md` and
-`docs/ENTRY_SEQUENTIAL_AI_SPECIALIST_BLUEPRINT_20260628.md`. For current Entry
-operations, use `scripts/entry_next_edge_control.sh` for guards, including
-`foundation-guardrails`, `worktree-hygiene`, readiness reports and smart
-readiness checks.
+This map's §1-19 document the LEGACY live GX1 chain (entry side now RETIRED —
+bundles physically gone, 20260707 delete-incident). The ACTIVE state is the
+promoted SMART JOINT POLICY (contract `PROJECT_STATE_artifacts.json`, promotion
+commit d98bc61e); read `docs/ACTIVE_SUPER_AI_BOT_GOAL_20260702.md` (STATUS
+2026-07-08) + `/home/andre2/GX1_DATA/HANDOVER_2026_07_08_SMART_CHAIN_PROMOTED.md`.
 
-Foundation smoke readiness is the literal gate
-`READY_FOR_VEDTAK_SMOKE_TRAIN`; smart smoke still requires clean git, green
-smart gates and an explicit SMART/SEQ520 vedtak. Canonical gated smoke command:
-`smoke-train --vedtak <id> --require-edge-audit`.
+Active roles (contract-resolved, rule 8 — never glob/latest):
+- **v10_entry** = smart_seq520 cand#4 ACTIVE (vedtak
+  SMART_JOINT_POLICY_PROMOTION_20260708). Operating point pinned in
+  `v10_entry.operating_point`: US+OVERLAP, edge_score thr 0.16176772117614746
+  (top-20% US+OVERLAP VAL Q4-2025), M1-open fill at T+5, max_trades=3.
+  Smart chain v1 = candidate-policy ONLY (no entry-IQL layer).
+- **xgb** = `models/xgb_v7_base80_20260526_cpu_PROMOTED_20260708` ACTIVE —
+  role is V3-EXIT-BRIDGE input ONLY; the smart entry runs a NEUTRAL bridge
+  (`neutral_xgb_bridge=true` in the candidate dataset). §13's entry-side
+  bridge description is legacy.
+- **v3_exit** = `v3_exit_clean_20260608` ACTIVE (unchanged, EXIT_IO_V8).
+- **exit_iql** = `exit_iql_deferral_20260707` ACTIVE (vedtak
+  EXIT_IQL_DEFERRAL_PROMOTION_20260707): deferral-relabel of Strategy-F trigger
+  bars, cap-3 return/DD 14.50/23.31 vs baseline 9.52/11.05. Serving REQUIRES
+  `GX1_STRONG_HOLD_QADV=-66.5` + `GX1_STRATEGY_F_DEFER_CAP_BARS=240` (contract
+  live_env; §11's "−200" strong-hold line is the superseded prior bundle).
+  Rollback = history[0] `exit_iql_retrain_clean_20260609` (intact on disk).
+- **entry_iql** = RETIRED (real-student research-PENDING,
+  `runs/entry_iql_research/real_student_20260707/`). §2's conviction-gate /
+  sizing / DIPFIX selection describes the RETIRED legacy operating point.
 
-Active state: `smart_seq520_candidate` is structurally ready, but old smart
-smoke evidence is still fail-closed on direction/class balance. The next smart
-train may only be a capped `smart-smoke-train` after clean git, green gate and
-explicit SMART/SEQ520 vedtak. Candidate training, replay, IQL, promotion
-review, shadow and live remain closed until their exact gates produce
-PASS/READY artifacts.
+**SERVING WAVE IN FLIGHT (2026-07-08):** the smart chain has NO live serving
+path yet — live per-M5 520-dim state-builder + smart-entry adapter +
+train==serve parity gate + runner integration are under construction in
+`gx1/execution`. This map does NOT yet describe that code; map it here when it
+lands (Maintenance rule). Until parity gate PASS + rule-9 preflight + explicit
+vedtak: no demo/live. Exit env for any gate/replay comes from the contract via
+`scripts/gx1_exit_env_pin.sh` (ONE truth, vedtak
+EXIT_OPERATING_POINT_CONTRACT_PIN_20260707).
 
-Feature rule: the old foundation inputs, seq215 chart/candle inputs, smart520
-summaries, context embeddings, specialist gates and Exit state are one shared
-market-state language. Do not remove old features just because smart summaries
-exist; removal requires ablation plus replay/slice proof. Do not use older
-XGB/V10/Entry-IQL live-practice instructions here as the active operating point.
+Feature rule (unchanged): the old foundation inputs, seq215 chart/candle
+inputs, smart520 summaries, context embeddings, specialist gates and Exit state
+are one shared market-state language. Do not remove old features just because
+smart summaries exist; removal requires ablation plus replay/slice proof.
 
 # GX1 SYSTEM MAP — read this BEFORE tracing the chain or any train/serve question
 
@@ -144,7 +158,9 @@ Entry-snapshot (cols 0-4, frozen, from **V10 direction softmax** — candidate-g
   `v10_dip_*`, ...). The legacy partial rescore is disabled under `gx1/scripts/_legacy_disabled/`.
 - **V10 `--eval` contract:** eval must use the same manifest-driven runtime bundle loader and multi-TF dataset kwargs
   as train/export. Manual single-TF model construction is invalid for modern V10 bundles with cross-TF/new-head params.
-- **ACTIVE Entry/Exit feature-coverage contract (2026-06-26 audit):** active Entry-IQL
+- **ACTIVE Entry/Exit feature-coverage contract (2026-06-26 audit — roles flipped 2026-07-08):** entry_iql is now
+  RETIRED (bundle physically gone) and exit_iql is `exit_iql_deferral_20260707` (warm-started strict-load 0/0 from
+  the clean bundle → SAME 209-dim feature contract). The numbers below document the audit as run: legacy Entry-IQL
   `entry_iql_volbal_20260611/R_WAIT_OPP_K96_LAM50_SYM/FOLD_1` loads 197 features / 189 required; live candidate
   audit had `required_missing=0` and nonzero V10 new-head groups (`v10_dip`, `v10_forecast`, `v10_timing`,
   `v10_tail_risk`, `v10_vol_forecast`). Active Exit-IQL `exit_iql_retrain_clean_20260609/R_NET_REAL/FOLD_1`
@@ -235,7 +251,7 @@ Entry-snapshot (cols 0-4, frozen, from **V10 direction softmax** — candidate-g
 ## 11. Exit stack internals (V3 → Exit-IQL → overlays)
 
 - **V3 has 4 heads:** should_exit_prob (main), profit_protect_prob, family_argmax (4-class), family_logit_max — Exit-IQL consumes all 4 ([v12_v3_live.py:8-11](gx1/execution/v12_v3_live.py#L8)). These are the **raw `v3_v8_*` block** (present in the cement's 209-feat state, fed live every M1 — [v12_pipeline.py:634](gx1/execution/v12_pipeline.py#L634)). NOT to be confused with the **7 `v3_*_v1` running-stats** (max-prob-since-entry, consecutive-exits, acceleration…) derived in [v12_trade_state.py:395-418](gx1/execution/v12_trade_state.py#L395) — a Phase-4/V12.1.1-vintage feature the CURRENT CLEAN cement was **not** built with.
-- **`[EXIT_IQL_V3_TRACKING_MISSING]` warning is BENIGN (verified 2026-06-21):** the active `exit_iql_retrain_clean_20260609` bundle has all 4 raw `v3_v8_*` but none of the 7 running-stats → the load-time sentinel ([v12_exit_iql_live.py:355-363](gx1/execution/v12_exit_iql_live.py#L355)) fires by design. Serve still *computes* the 7 ([v12_pipeline.py:658](gx1/execution/v12_pipeline.py#L658)) but the featurizer drops any name absent from the bundle's `feature_names` → **train==serve preserved, no skew**. Companion `[EXIT_IQL_V3_BLOCK_PARTIAL]` (line 348) guards the raw block; does NOT fire (all 4 present). Re-adding the 7 = a vedtak-gated IQL refit (transformer frozen) via [augment_exit_iql_dataset_with_v3_tracking.py](gx1/scripts/augment_exit_iql_dataset_with_v3_tracking.py), NOT a fix — exit is the strong link.
+- **`[EXIT_IQL_V3_TRACKING_MISSING]` warning is BENIGN (verified 2026-06-21):** the `exit_iql_retrain_clean_20260609` bundle (ACTIVE until 2026-07-08; now history[0] rollback — the active `exit_iql_deferral_20260707` warm-started from it with the same feature contract) has all 4 raw `v3_v8_*` but none of the 7 running-stats → the load-time sentinel ([v12_exit_iql_live.py:355-363](gx1/execution/v12_exit_iql_live.py#L355)) fires by design. Serve still *computes* the 7 ([v12_pipeline.py:658](gx1/execution/v12_pipeline.py#L658)) but the featurizer drops any name absent from the bundle's `feature_names` → **train==serve preserved, no skew**. Companion `[EXIT_IQL_V3_BLOCK_PARTIAL]` (line 348) guards the raw block; does NOT fire (all 4 present). Re-adding the 7 = a vedtak-gated IQL refit (transformer frozen) via [augment_exit_iql_dataset_with_v3_tracking.py](gx1/scripts/augment_exit_iql_dataset_with_v3_tracking.py), NOT a fix — exit is the strong link.
 - **V3 multi-TF MANDATORY live:** `transformer_config.json` must have `multi_tf.enabled=true`; single-TF bundles fail
   hard (`RuntimeError`) — prevents the COSTFIX-era silent V7-loaded-as-V6 path ([v12_v3_live.py:156-163](gx1/execution/v12_v3_live.py#L156)).
 - **Exit-IQL reward = R_NET_REAL:** `r_hold = 0.5·hold_K − 0.5·|MAE| − 2·spread`; `r_exit = exit_now − 2·spread`
@@ -244,7 +260,9 @@ Entry-snapshot (cols 0-4, frozen, from **V10 direction softmax** — candidate-g
 - **Strategy-F (MFE-giveback overlay), `GX1_STRATEGY_F_ENABLED` default ON** — 4 sequential rules ([v12_exit_iql_live.py:72-551](gx1/execution/v12_exit_iql_live.py#L72)):
   1. profit-lock: MFE≥30bps & drawdown≥30%·MFE → EXIT
   2. break-even-cut: MFE≥10bps & pnl<30%·MFE → EXIT
-  3. strong-hold: suppress 1+2 if IQL `Q_adv < −200`
+  3. strong-hold: suppress 1+2 if IQL `Q_adv <` `GX1_STRONG_HOLD_QADV` — **contract live_env PIN `−66.5` since the
+     2026-07-08 deferral flip** (code default −200 = the superseded `exit_iql_retrain_clean_20260609` policy); the
+     suppression is capped at `GX1_STRATEGY_F_DEFER_CAP_BARS` bars (**PIN `240`**, serve-veto-cap, commit 218889fb)
   4. hold-horizon-expired: bars > 1.5×hold_pred & mfe<30bps (floor 60 bars) → EXIT
   All thresholds `GX1_*` ablatable (§17). Validated +136 bps WITHOUT Strategy-F but live runs it ON → OOT-ablate, default OFF post-retrain. ⚠ The +136 figure is corrupt-April-2026-INFLATED (~80%); honest post-x10-repair value ≈ **28 bps/take** (2026-06-06 correction) — re-measure on ALL repaired data before relying on it.
 - **Distilled Q-swap (`GX1_USE_DISTILLED_EXIT=1`):** if `v3_v8_out` carries `v3_q_hold/exit`, swap IQL rec for distilled argmax; `decision_source='DISTILLED_V3_QHEAD'`; Strategy-F overlays on the swapped baseline ([v12_exit_iql_live.py:177-214](gx1/execution/v12_exit_iql_live.py#L177)).
@@ -325,7 +343,11 @@ Entry-snapshot (cols 0-4, frozen, from **V10 direction softmax** — candidate-g
 | `GX1_PURE_PHASE6` | disable live-only wrappers (live=Phase6 1:1); CLUSTER1 stays ON; safety always-on | `1` for paper-runner |
 | `GX1_STRATEGY_F_ENABLED` | MFE-giveback exit overlay (4 rules) | `True` (OOT-ablate → OFF post-retrain) |
 | `GX1_MFE_GIVEBACK_PCT` / `_MIN_MFE_BPS` | profit-lock thresholds | `0.30` / `30.0` |
-| `GX1_BREAKEVEN_*` / `_STRONG_HOLD_QADV` / `_HOLD_HORIZON_*` | other Strategy-F thresholds | ablatable |
+| `GX1_STRONG_HOLD_QADV` | Strategy-F strong-hold suppression threshold | code `-200`; **contract live_env PIN `-66.5`** (deferral bundle, vedtak EXIT_IQL_DEFERRAL_PROMOTION_20260707) |
+| `GX1_STRATEGY_F_DEFER_CAP_BARS` | cap on strong-hold deferral (serve-veto-cap, bars) | code OFF; **contract live_env PIN `240`** (commit 218889fb) |
+| `GX1_EXIT_DEFERRAL_RELABEL` | TRAIN-side: reward-relabel on Strategy-F trigger bars (r_hold=realized continuation) | OFF (flag-gated; used to build `exit_iql_deferral_20260707`) |
+| `GX1_EXIT_IQL_WARMSTART_FROM_CONTRACT` / `GX1_EXIT_IQL_YEAR_WEIGHT` | TRAIN-side: rule-8 warm-start resolver / year-weighting (deferral used 2026×4) | OFF / `1.0` (flag-gated, commit 218889fb) |
+| `GX1_BREAKEVEN_*` / `_HOLD_HORIZON_*` | other Strategy-F thresholds | ablatable (contract live_env pins values) |
 | `GX1_USE_DISTILLED_EXIT` | swap Exit-IQL rec for V3 distilled Q | off; contract live_env PIN `0` |
 | `GX1_EXIT_AUGMENT_64` | emit AUG64 bare-name canon feats (V8-train) | off; launcher/contract live_env PIN `1` |
 | `GX1_EXIT_HARD_STOP_BPS` | force EXIT_NOW at unrealized ≤ −N bps ([v12_pipeline.py:79](gx1/execution/v12_pipeline.py#L79)) | code `0`=OFF; launcher/contract live_env PIN `80` (vedtak exit_hard_stop_20260617) |
