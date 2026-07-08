@@ -42,6 +42,23 @@ LEGACY_NO_XGB_PACKAGE = (
     LEGACY_REPORTS
     / "entry_pre_foundation_reports/entry_tabular_no_xgb_candidates/entry_tabular_no_xgb_top5_v1_20260627"
 )
+# The legacy quarantine roots were rule-5-DELETED 2026-07-08 (user-confirmed wave,
+# executed log below). A legacy root is therefore OK if it exists (archived) OR its
+# deletion is recorded in the executed-delete log — anything else is a hard error.
+DELETE_EXECUTED_LOG = Path(
+    "/home/andre2/GX1_DATA/reports/cand4_julyext_evidence_20260705/cleanup_wave_20260707/DELETE_EXECUTED_20260707.json"
+)
+
+
+def _legacy_root_ok(path: Path) -> bool:
+    if path.exists():
+        return True
+    try:
+        deleted = json.loads(DELETE_EXECUTED_LOG.read_text())["deleted"]
+    except Exception:
+        return False
+    p = str(path)
+    return any(d == p or d.startswith(p + "/") or p.startswith(d + "/") or p == d for d in deleted)
 SEQ_STRUCTURE_MANIFEST = (
     REPORTS_ROOT
     / "sequence_structure_feature_layer_20260628_v1/sequence_structure_feature_layer_manifest.json"
@@ -166,6 +183,9 @@ def _active_entry_artifact_paths() -> list[str]:
         "entry_exit_transformer_train_execution_review_20260630_v1",
         "entry_exit_transformer_post_train_contract_20260630_v1",
         "entry_exit_transformer_train_enablement_20260701_v1",
+        # 2026-07-08: research-PENDING real Q-net student evidence, contract-referenced
+        # from entry_iql role note (runs/entry_iql_research/real_student_20260707).
+        "entry_iql_real_student_20260707",
         "entry_candidate_selective_edge_20260628_v1",
         "entry_candidate_replay_20260628_v1",
         "entry_candidate_replay_trade_log_20260628_v1",
@@ -386,10 +406,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         text = _read_text(marker)
         _require("ENTRY_FOUNDATION_AUDIT_20260628.md" in text or "foundation" in text.lower(), f"freeze marker present: {marker}", checks)
 
-    _require(LEGACY_REPORTS.exists(), f"legacy reports root exists: {LEGACY_REPORTS}", checks)
-    _require(LEGACY_SEQ_NEUTRAL.exists(), f"legacy seq-neutral root exists: {LEGACY_SEQ_NEUTRAL}", checks)
+    _require(_legacy_root_ok(LEGACY_REPORTS), f"legacy reports root archived-or-logged-deleted: {LEGACY_REPORTS}", checks)
+    _require(_legacy_root_ok(LEGACY_SEQ_NEUTRAL), f"legacy seq-neutral root archived-or-logged-deleted: {LEGACY_SEQ_NEUTRAL}", checks)
     _require(not ACTIVE_NO_XGB_PACKAGE.exists(), "no-XGB candidate package absent from active reports path", checks)
-    _require(LEGACY_NO_XGB_PACKAGE.exists(), "no-XGB candidate package is archived under legacy reports", checks)
+    _require(_legacy_root_ok(LEGACY_NO_XGB_PACKAGE), f"no-XGB candidate package archived-or-logged-deleted: {LEGACY_NO_XGB_PACKAGE}", checks)
 
     active_entry_artifacts = _active_entry_artifact_paths()
     active_seq_neutral_files = _active_seq_neutral_files()
