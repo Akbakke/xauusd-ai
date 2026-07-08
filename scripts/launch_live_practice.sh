@@ -88,7 +88,11 @@ export GX1_MFE_GIVEBACK_PCT=0.30
 export GX1_MFE_GIVEBACK_MIN_MFE_BPS=30.0
 export GX1_BREAKEVEN_RATIO=0.30
 export GX1_BREAKEVEN_MIN_MFE=10.0
-export GX1_STRONG_HOLD_QADV=-200.0
+export GX1_STRONG_HOLD_QADV=-66.5
+# Deferral-Exit-IQL serving knob (vedtak EXIT_IQL_DEFERRAL_PROMOTION_20260707):
+# the Q-net may DEFER a Strategy-F exit at most this many M1 bars; the -80 hard
+# stop and giveback hard-release remain rule-based floors (unlearnable).
+export GX1_STRATEGY_F_DEFER_CAP_BARS=240
 export GX1_HOLD_HORIZON_OVERRUN_MULT=1.5
 export GX1_HOLD_HORIZON_MIN_FLOOR_BARS=60
 export GX1_USE_DISTILLED_EXIT=0

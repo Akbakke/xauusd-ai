@@ -79,7 +79,7 @@
       "path_fix_note_20260707": "PHYSICALLY_GONE_20260707_delete_incident: destroyed by rule-5 delete 2026-07-07 \u2014 inventory exclusion paths were '...'-abbreviated and the executor failed to resolve them (should have hard-failed). json/md metadata salvaged under /home/andre2/GX1_DATA/reports/cand4_julyext_evidence_20260705/cleanup_wave_20260707/salvaged_manifests; binaries lost. Legacy chain was already RETIRED + code-incompatible; runtime impact none."
     },
     "exit_iql": {
-      "path": "/home/andre2/GX1_DATA/runs/FASE2B_CLEAN_20260608/exit_iql_retrain_clean_20260609",
+      "path": "/home/andre2/GX1_DATA/runs/FASE2B_CLEAN_20260608/exit_iql_deferral_20260707",
       "active_variant": "R_NET_REAL",
       "active_aggregator": "max",
       "active_k_horizon": 144,
@@ -90,7 +90,9 @@
       ],
       "status": "ACTIVE",
       "in_sample_only": false,
-      "note": "CLEAN x10-April-repaired Exit-IQL R_NET_REAL agg=max K=144 +AUG64. Phase-D honest gate PASS vs live fase2b: +4.88 bps/take (skip-ASIA 35.3 vs 30.4), win 0.962, all 5 hardened checks + per-year floor. Flipped 2026-06-10 (vedtak 'a'). active_variant PINNED R_NET_REAL FROM THE GATE: the bundle summary_v1.json self-recommends R_PEAK_QUALITY which the gate REJECTED (win 0.826<0.85) - do NOT trust the bundle headline. Re-audit GREEN (208/209 alive). Prior fase2b -> history (rollback).",
+      "flipped_utc": "2026-07-08",
+      "vedtak": "EXIT_IQL_DEFERRAL_PROMOTION_20260707",
+      "note": "Deferral-relabel Exit-IQL (vedtak EXIT_IQL_DEFERRAL_RELABEL_20260707): relabel of ALL Strategy-F trigger bars (r_hold=realized continuation), warm-start from prior ACTIVE (strict-load 0/0), 2026-weighted 4x. Cap-3 phase6 gate PASS: return/DD 14.50 W2026 / 23.31 W2025 vs re-based baseline 9.52/11.05 - HIGHER total (4555/4333 vs 4026/3016) with LOWER account-DD (314/186 vs 423/273), worst-trade equal/better. Serving REQUIRES GX1_STRONG_HOLD_QADV=-66.5 + GX1_STRATEGY_F_DEFER_CAP_BARS=240 (pinned in live_env below + launcher). Evidence: reports/exit_iql_deferral_relabel_20260707/. Flipped 2026-07-08 on explicit user vedtak 'Flip exit IQL til deferral kandidat'. Prior exit_iql_retrain_clean_20260609 -> history (rollback; NOT physically parked - deliberate deviation from auto-park after the 20260707 delete-incident).",
       "operating_point": {
         "vedtak": "EXIT_OPERATING_POINT_CONTRACT_PIN_20260707",
         "pinned_utc": "2026-07-07",
@@ -109,7 +111,9 @@
         "mfe_giveback_min_mfe_bps": 30.0,
         "breakeven_ratio": 0.3,
         "breakeven_min_mfe_bps": 10.0,
-        "strong_hold_qadv": -200.0,
+        "strong_hold_qadv": -66.5,
+        "strategy_f_defer_cap_bars": 240,
+        "deferral_op_vedtak": "EXIT_IQL_DEFERRAL_PROMOTION_20260707",
         "hold_horizon_overrun_mult": 1.5,
         "hold_horizon_min_floor_bars": 60,
         "use_distilled_exit": false,
@@ -122,7 +126,8 @@
           "GX1_MFE_GIVEBACK_MIN_MFE_BPS": "30.0",
           "GX1_BREAKEVEN_RATIO": "0.30",
           "GX1_BREAKEVEN_MIN_MFE": "10.0",
-          "GX1_STRONG_HOLD_QADV": "-200.0",
+          "GX1_STRONG_HOLD_QADV": "-66.5",
+          "GX1_STRATEGY_F_DEFER_CAP_BARS": "240",
           "GX1_HOLD_HORIZON_OVERRUN_MULT": "1.5",
           "GX1_HOLD_HORIZON_MIN_FLOOR_BARS": "60",
           "GX1_USE_DISTILLED_EXIT": "0",
@@ -138,6 +143,19 @@
     }
   },
   "history": [
+    {
+      "role": "exit_iql",
+      "path": "/home/andre2/GX1_DATA/runs/FASE2B_CLEAN_20260608/exit_iql_retrain_clean_20260609",
+      "active_variant": "R_NET_REAL",
+      "active_aggregator": "max",
+      "active_k_horizon": 144,
+      "active_folds": ["FOLD_1", "FOLD_2", "FOLD_3"],
+      "status": "INVALIDATED_SUPERSEDED",
+      "superseded_utc": "2026-07-08",
+      "superseded_by_vedtak": "EXIT_IQL_DEFERRAL_PROMOTION_20260707",
+      "reason": "ROLLBACK TARGET. CLEAN x10-April-repaired Exit-IQL R_NET_REAL agg=max K=144 +AUG64 (flipped 2026-06-10, vedtak 'a'; Phase-D gate +4.88 bps/take, win 0.962). Superseded 2026-07-08 by exit_iql_deferral_20260707 (cap-3 return/DD 14.50/23.31 vs 9.52/11.05, lower DD). Rollback = re-point active.exit_iql.path here AND restore GX1_STRONG_HOLD_QADV=-200.0 + remove GX1_STRATEGY_F_DEFER_CAP_BARS from live_env+launcher. Bundle intact on disk; NOT physically parked (deliberate deviation from auto-park after the 20260707 delete-incident). DO NOT DELETE.",
+      "path_status": "VERIFIED_ON_DISK_20260707"
+    },
     {
       "role": "entry_iql",
       "path": "/home/andre2/GX1_DATA/runs/FASE2B_REGIME_V4_20260605/_LEGACY_PRE_FOUNDATION_DO_NOT_USE_20260628/entry_iql_runs/entry_iql_clean",
