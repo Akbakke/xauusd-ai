@@ -52,6 +52,7 @@ Parity proof: gx1/scripts/verify_smart520_serve_parity_v1.py (mandatory gate).
 from __future__ import annotations
 
 import logging
+import os
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -93,6 +94,11 @@ SMART520_MODEL_RANGE_START_UTC = pd.Timestamp("2020-11-09 00:00:00", tz="UTC")
 # bars AFTER this get percentile-vs-frozen-reference digitize (deterministic,
 # no rank drift as live data accumulates). PROMOTION-COUPLED like the anchor.
 SMART520_RANK_REFERENCE_END_UTC = pd.Timestamp("2026-07-03 16:55:00", tz="UTC")
+# Pinned per-timestamp bucket table + frozen distributions from the JULYEXT
+# evidence frame (built 2026-07-08; see compute_bucket_ctx_cat_full_frame).
+# MUST be re-pinned together with the anchor/ref-end constants at the next
+# dataset rebuild / contract flip (promotion-coupled constant).
+SMART520_RANK_REFERENCE_NPZ = "/home/andre2/GX1_DATA/models/smart520_rank_reference_julyext_20260708.npz"
 
 SEQ_LEN_SMART520 = 96
 SIGNAL_DIM_SMART520 = 520
@@ -220,12 +226,18 @@ class Smart520StateBuilder:
         self,
         joined: pd.DataFrame,
         bucket_ctx_cat: pd.DataFrame | None = None,
+        multi_tf: dict | None = None,
     ) -> pd.DataFrame:
         """Take the joined cv3+BASE28 anchored window (DatetimeIndex, rows
         [ANCHOR .. decision bar]) and recompute the frame-dependent families
         on it — the offline builder's exact order:
         neutral bridge -> group-A/dip-struct -> volume -> 'atr' -> entry-smart.
         Returns a NEW frame with a 'time' column (offline builders join on it).
+
+        `multi_tf`: explicit MTF-v2 bundle for the group-A recompute. The LIVE
+        async-context path (serving-wave gap 3) passes the snapshot's bundle so
+        one decision is internally consistent even if the background refresh
+        swaps `self.multi_tf` mid-call; None keeps the legacy self.multi_tf.
         """
         if joined.empty:
             raise RuntimeError("[SMART520_STATE] empty joined frame")
@@ -256,6 +268,28 @@ class Smart520StateBuilder:
         #     snapshot atr_bps deliberately keeps the RAW live cv3 row value
         #     (the joint-replay-proven exit convention) — see v12_pipeline.
         frame["atr"] = _compute_bare_atr14(frame)
+        # BIT-TRUE evidence-window 'atr': the seq extension internally RANKS on
+        # 'atr' over the anchored window — a 1-ulp recompute difference at a
+        # quintile edge flips a bucket-derived feature (parity finding
+        # 2026-07-09: session_regime.atr_bucket_high_pressure single-row flip).
+        # For in-evidence timestamps we overlay the PINNED FULL_PLUS_CTX 'atr'
+        # (the literal offline source values); tail bars keep the recompute
+        # (14-bar bounded, verified equal). Same pinning pattern as the rank
+        # reference below.
+        try:
+            _refA = np.load(SMART520_RANK_REFERENCE_NPZ)
+            if "atr_pinned" in _refA.files:
+                _t = pd.to_datetime(frame["time"], utc=True).astype("int64").to_numpy()
+                _pos = np.searchsorted(_refA["time_ns"], _t)
+                _hit = _pos < len(_refA["time_ns"])
+                _hit[_hit] &= _refA["time_ns"][_pos[_hit]] == _t[_hit]
+                if _hit.any():
+                    atr_col = frame["atr"].to_numpy(dtype=np.float64, copy=True)
+                    atr_col[_hit] = _refA["atr_pinned"][_pos[_hit]]
+                    frame["atr"] = atr_col
+        except FileNotFoundError:
+            raise RuntimeError(
+                f"[SMART520_STATE] pinned rank reference missing: {SMART520_RANK_REFERENCE_NPZ}")
         mid_hl = (pd.to_numeric(frame["high"], errors="coerce")
                   + pd.to_numeric(frame["low"], errors="coerce")) * 0.5
         frame["atr_bps"] = (
@@ -312,13 +346,14 @@ class Smart520StateBuilder:
         ga_cols = list(ORDERED_CTX_CONT_GROUP_A_PARITY) + list(ORDERED_CTX_CONT_DIP_STRUCT)
         frame = frame.drop(columns=[c for c in ga_cols if c in frame.columns])
         from gx1.scripts.augment_forward_outcome_v2 import attach_group_a_dip_struct_ctx_columns
-        if self.multi_tf is None:
+        mtf = multi_tf if multi_tf is not None else self.multi_tf
+        if mtf is None:
             raise RuntimeError(
                 "[SMART520_STATE] multi_tf bundle required for group-A recompute — "
                 "pass the in-memory MTF-v2 dict (build_multi_tf_from_cv3)"
             )
         frame = attach_group_a_dip_struct_ctx_columns(
-            frame, multi_tf=self.multi_tf, journal_label="smart520_live",
+            frame, multi_tf=mtf, journal_label="smart520_live",
         )
 
         # 3) volume features (4) — anchored-frame recompute (offline computed
@@ -451,10 +486,15 @@ def compute_bucket_ctx_cat_full_frame(cv3: pd.DataFrame) -> pd.DataFrame:
     offline convention itself has at every rebuild. Verified within tolerance
     by the parity gate.
     Returns a DataFrame indexed by cv3 time with the 3 int64 columns.
+
+    CHEAP + CAUSAL (gap-3 probe 2026-07-08: ~0.2s on the full 6-yr frame): the
+    in-ref ranks are frozen and the post-ref digitize is against the frozen
+    reference, so appending new cv3 bars NEVER changes existing rows — the live
+    async-context path simply recomputes this fresh per decision (exact by
+    construction; no incremental machinery needed).
     """
     from gx1.scripts.add_ctx_cont_columns_to_prebuilt import (
         _derive_spread_bps_from_available,
-        _rank_bucket_0_4,
     )
     if not isinstance(cv3.index, pd.DatetimeIndex):
         raise RuntimeError("[SMART520_STATE] cv3 must have a DatetimeIndex for bucket recompute")
@@ -471,26 +511,39 @@ def compute_bucket_ctx_cat_full_frame(cv3: pd.DataFrame) -> pd.DataFrame:
         dtype=float,
     )
 
-    def _bucket_with_frozen_tail(values: np.ndarray, fallback: int) -> np.ndarray:
-        """Rank buckets over EXACTLY the offline frame [MODEL_RANGE_START,
-        RANK_REF_END] (bit-parity with the promoted evidence); bars after
-        RANK_REF_END are digitized against the FROZEN in-frame distribution
-        (percentile = right-searchsorted fraction — the continuous-data
-        equivalent of rank(pct, method='average'))."""
-        in_ref = np.asarray(sub.index <= SMART520_RANK_REFERENCE_END_UTC)
+    # BIT-TRUE in-ref buckets via the PINNED julyext reference table (same
+    # pattern as the daemon's frozen regime_bucket_edges_v1, 2026-06-13): the
+    # in-ref rows are LOOKED UP from the exact buckets the promoted evidence
+    # used — recomputing ranks from the live frame lets any tiny 6-yr history
+    # diff shift percentiles a hair and flip edge values (parity-gate finding
+    # 2026-07-08: session_regime atr_bucket single-row flips). Tail bars are
+    # digitized against the FROZEN reference distribution. Fail-loud if the
+    # pinned artifact is missing or the live frame misses >0.1% of ref rows.
+    _ref = np.load(SMART520_RANK_REFERENCE_NPZ)
+    ref_time_ns = _ref["time_ns"]
+    lookup_pos = np.searchsorted(ref_time_ns, sub.index.asi8)
+    in_table = (lookup_pos < len(ref_time_ns))
+    in_table[in_table] &= ref_time_ns[lookup_pos[in_table]] == sub.index.asi8[in_table]
+    in_ref_mask = np.asarray(sub.index <= SMART520_RANK_REFERENCE_END_UTC)
+    miss = in_ref_mask & ~in_table
+    if miss.sum() > max(10, 0.001 * in_ref_mask.sum()):
+        raise RuntimeError(
+            f"[SMART520_STATE] {int(miss.sum())} in-ref bars missing from pinned rank reference "
+            f"{SMART520_RANK_REFERENCE_NPZ} — live frame has drifted from the promoted evidence frame; "
+            f"repair the prebuilt or re-pin the reference (own vedtak)")
+
+    def _bucket_pinned(values: np.ndarray, table_col: str, sorted_key: str, fallback: int) -> np.ndarray:
         out = np.full(len(values), int(fallback), dtype=np.int64)
-        ref_vals = values[in_ref]
-        if ref_vals.size:
-            out[in_ref] = _rank_bucket_0_4(ref_vals, fallback=fallback)
-            tail = ~in_ref
-            if tail.any():
-                frozen = np.sort(ref_vals[np.isfinite(ref_vals)])
-                pct = np.searchsorted(frozen, values[tail], side="right") / max(len(frozen), 1)
-                out[tail] = np.clip(pct * 5.0, 0.0, 4.99).astype(np.int64)
+        out[in_table] = _ref[table_col][lookup_pos[in_table]].astype(np.int64)
+        rest = ~in_table
+        if rest.any():
+            frozen = _ref[sorted_key]
+            pct = np.searchsorted(frozen, values[rest], side="right") / max(len(frozen), 1)
+            out[rest] = np.clip(pct * 5.0, 0.0, 4.99).astype(np.int64)
         return out
 
-    vol_regime_id = _bucket_with_frozen_tail(atr_bps, fallback=2)
-    spread_bucket = _bucket_with_frozen_tail(spread_bps, fallback=0)
+    vol_regime_id = _bucket_pinned(atr_bps, "vol_regime_id", "atr_bps_sorted", fallback=2)
+    spread_bucket = _bucket_pinned(spread_bps, "spread_bucket", "spread_bps_sorted", fallback=0)
     return pd.DataFrame(
         {
             "vol_regime_id": vol_regime_id.astype(np.int64),
@@ -577,3 +630,89 @@ def build_multi_tf_from_cv3(cv3: pd.DataFrame) -> dict:
     if not isinstance(m5.index, pd.DatetimeIndex):
         raise RuntimeError("[SMART520_STATE] cv3 must have a DatetimeIndex for MTF build")
     return build_multi_tf_per_bar_features_v2(m5)
+
+
+# ── incremental MTF extension (serving-wave gap 3 — async refresh) ──────────────
+# Entry decisions must never block on the ~2-min full context refresh (it starved
+# the per-M1 exit loop). Probe 2026-07-08 on the full 6-yr cv3: the refresh is
+# build_multi_tf_from_cv3 ~94s (dominant) + buckets ~0.2s + HTF/REGIME ~0.4s.
+# The refresh runs in a background thread (v12_smart_entry_live); the cheap+causal
+# override tables are simply recomputed FRESH per decision (exact by construction);
+# ONLY the MTF cache needs the incremental splice below to make gap-bar decisions
+# exact. Every completed full refresh REPLACES the spliced bundle, so incremental
+# output can never live longer than one refresh cycle. Bit-identity vs the full
+# rebuild is proven (and re-verifiable) by
+# gx1.scripts.selftest_smart520_ctx_incremental_v1.
+
+# Per-TF splice set for the incremental MTF append: ONLY TFs whose tail-recompute is
+# float32-bit-identical to the full rebuild after SMART520_MTF_SPLICE_WARMUP_M5 bars of
+# warmup. EMA-200 tail-convergence (adjust=False recursion, alpha=2/201) over the warmup:
+#   M5  : 30000 bars   -> (1-a)^30000 ~ e^-299  (far below float32 ulp)
+#   M15 : 10000 bars   -> ~ e^-100
+#   H1  :  2500 bars   -> ~ e^-25  ~ 1.4e-11    (below float32 ulp 6e-8)
+#   H4  :   625 bars   -> ~ e^-6.2 ~ 2e-3       NOT converged -> NEVER spliced
+#   D1  :   ~75 bars   -> ~ e^-0.75             NOT converged (needs ~7 YEARS) -> NEVER spliced
+# H4/D1 keep the snapshot rows: their CLOSED bars are exact by causality; only the
+# FORMING bar lags by the (journaled, capped) context age. Proven empirically by the
+# selftest; keep this set in sync with its report.
+# M5 removed from the splice set 2026-07-09: the async selftest (TEST B) found
+# the M5 splice 1 ulp off bit-identity (2.4e-07) — per its own remedy, M5 does
+# a FULL recompute in the async refresh thread (slower refresh, still off the
+# exit path); M15/H1 splices are selftest-proven bit-identical.
+SMART520_MTF_SPLICE_TFS = ("M15", "H1")
+SMART520_MTF_SPLICE_WARMUP_M5 = int(os.environ.get("GX1_SMART_CTX_MTF_WARMUP_M5", "30000"))
+
+
+def append_multi_tf_incremental(
+    cv3: pd.DataFrame,
+    multi_tf: dict,
+    warmup_bars: int | None = None,
+    splice_tfs: Sequence[str] = SMART520_MTF_SPLICE_TFS,
+) -> tuple[dict, bool]:
+    """Extend an in-memory float32 MTF-v2 bundle (build_multi_tf_from_cv3 output) to
+    cv3's current cutoff WITHOUT the full-history rebuild: rebuild only a warmup TAIL
+    (one-truth build_multi_tf_from_cv3 on the tail slice — no formula re-derivation)
+    and splice, per TF in `splice_tfs`, every row whose label >= the TF-period start
+    of the first NEW M5 bar (the only rows whose aggregation can have changed; all
+    earlier rows are causal and therefore already exact in the snapshot).
+
+    Float32 bit-identity for the SMART520_MTF_SPLICE_TFS set is proven by
+    selftest_smart520_ctx_incremental_v1 (see the constant's convergence table);
+    H4/D1 keep snapshot rows (forming-bar staleness only, journaled + capped).
+    Returns (bundle, spliced) — spliced=False when nothing new. Never mutates input.
+    """
+    m5_feats = multi_tf.get("M5")
+    if m5_feats is None or len(m5_feats) == 0:
+        raise RuntimeError("[SMART520_STATE] multi_tf bundle lacks the M5 frame")
+    old_last = pd.Timestamp(m5_feats.index[-1])
+    idx = cv3.index
+    new_mask = idx > old_last
+    if not new_mask.any():
+        return multi_tf, False
+    first_new = idx[new_mask][0]
+    warmup = int(warmup_bars if warmup_bars is not None else SMART520_MTF_SPLICE_WARMUP_M5)
+    lo = max(0, int(idx.searchsorted(first_new)) - warmup)
+    tail_bundle = build_multi_tf_from_cv3(cv3.iloc[lo:])
+    from gx1.features.htf_features import MULTI_TF_RESAMPLE_RULES
+    out: dict = {}
+    for tf, old in multi_tf.items():
+        if tf not in splice_tfs:
+            out[tf] = old
+            continue
+        tail = tail_bundle[tf]
+        splice_ns = int(first_new.floor(MULTI_TF_RESAMPLE_RULES[tf]).value)
+        old_ts = np.asarray(old.attrs["ts_int64"])
+        old_np = np.asarray(old.attrs["feats_np"])
+        tail_ts = np.asarray(tail.attrs["ts_int64"])
+        tail_np = np.asarray(tail.attrs["feats_np"])
+        k_old = int(np.searchsorted(old_ts, splice_ns, side="left"))
+        k_tail = int(np.searchsorted(tail_ts, splice_ns, side="left"))
+        new_ts = np.concatenate([old_ts[:k_old], tail_ts[k_tail:]])
+        new_np = np.concatenate([old_np[:k_old], tail_np[k_tail:]], axis=0)
+        df = pd.DataFrame(new_np,
+                          index=old.index[:k_old].append(tail.index[k_tail:]),
+                          columns=list(old.columns))
+        df.attrs["ts_int64"] = new_ts
+        df.attrs["feats_np"] = new_np
+        out[tf] = df
+    return out, True

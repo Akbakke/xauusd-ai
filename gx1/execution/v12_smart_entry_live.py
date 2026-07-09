@@ -40,6 +40,9 @@ replay_driver.py build_snapshot):
 from __future__ import annotations
 
 import logging
+import os
+import threading
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -53,6 +56,7 @@ from gx1.execution.v12_smart520_state_live import (
     SIGNAL_DIM_SMART520,
     SMART520_STATE_FRAME_ANCHOR_UTC,
     Smart520StateBuilder,
+    append_multi_tf_incremental,
     build_multi_tf_from_cv3,
 )
 
@@ -64,6 +68,47 @@ SIDE_ACTION = {0: "TAKE_LONG_NOW", 1: "TAKE_SHORT_NOW"}
 SMART_PARITY_GATE_LATEST = Path(
     "/home/andre2/GX1_DATA/reports/smart520_serve_parity_v1/SMART520_SERVE_PARITY_latest.json"
 )
+
+# Fail-closed context-staleness cap for LIVE decisions (serving-wave gap 3): when the
+# last COMPLETED smart-context snapshot lags the decision bar by MORE than this many
+# cv3 M5 bars, entry decisions are SKIPPED (journaled smart_ctx_stale_refresh_pending)
+# until the background refresh lands — never decide on rotten context. Steady state is
+# age<=1: the ~2-min refresh finishes well inside one M5 cycle.
+SMART_CTX_MAX_STALENESS_M5 = int(os.environ.get("GX1_SMART_CTX_MAX_STALENESS_M5", "3"))
+
+# Kill-switch for the (self-test-proven) incremental MTF splice at age>=1;
+# 0 falls back to the raw snapshot bundle (staleness stays journaled via
+# context_age_m5_bars). See SMART520_MTF_SPLICE_TFS in v12_smart520_state_live.
+SMART_CTX_MTF_INCREMENTAL = os.environ.get("GX1_SMART_CTX_MTF_INCREMENTAL", "1") == "1"
+
+
+class SmartContextStaleError(RuntimeError):
+    """Raised by predict_live_bar when the context snapshot is older than
+    SMART_CTX_MAX_STALENESS_M5 bars behind the decision bar — the pipeline
+    journals it as a SKIP (fail-closed) and retries on the next poll."""
+
+    def __init__(self, age: int, cap: int, ctx_cutoff: pd.Timestamp, end_ts: pd.Timestamp):
+        super().__init__(
+            f"[SMART_ENTRY] context snapshot {age} M5 bars behind decision bar {end_ts} "
+            f"(cutoff {ctx_cutoff}, cap {cap}) — refusing to decide on stale context"
+        )
+        self.age = int(age)
+        self.cap = int(cap)
+        self.ctx_cutoff = ctx_cutoff
+        self.end_ts = end_ts
+
+
+@dataclass(frozen=True)
+class SmartCtxSnapshot:
+    """One COMPLETED smart-context build — swapped in as a single atomic reference
+    (the loader's 2026-06-01 async-refresh pattern) so a decision that grabbed the
+    snapshot can never observe a half-refreshed context. Immutable by convention:
+    the background refresh builds a NEW snapshot and replaces the reference."""
+    multi_tf: dict
+    frame_overrides: pd.DataFrame       # bucket ctx_cat + HTF/REGIME_V4 override cols
+    cv3_cutoff: pd.Timestamp
+    built_utc: pd.Timestamp
+    build_seconds: float
 
 
 def assert_smart_serving_gate() -> dict:
@@ -107,10 +152,12 @@ class SmartEntryLiveInference:
     _meta: dict = field(default_factory=dict)
     _builder: Smart520StateBuilder | None = field(default=None)
     _per_tf_seq_lens: dict[str, int] = field(default_factory=dict)
-    _multi_tf_feats: dict | None = field(default=None, repr=False)
     _multi_tf_shift: dict = field(default_factory=dict, repr=False)
-    _multi_tf_cv3_cutoff: pd.Timestamp | None = field(default=None)
-    _bucket_ctx_cat: pd.DataFrame | None = field(default=None, repr=False)
+    # LAST COMPLETED context snapshot (one atomic reference — loader async pattern)
+    # + the in-flight background refresh thread (serving-wave gap 3). The per-M1
+    # EXIT path never touches either — no lock exists to starve it.
+    _ctx: SmartCtxSnapshot | None = field(default=None, repr=False)
+    _ctx_refresh_thread: threading.Thread | None = field(default=None, repr=False)
     # per-decision-bucket cache of the prepared anchored frame states
     _last_state_bucket: pd.Timestamp | None = field(default=None)
 
@@ -181,44 +228,152 @@ class SmartEntryLiveInference:
             _model=model, _meta=meta, _builder=builder, _per_tf_seq_lens=per_tf,
         )
 
-    # ── multi-TF (in-memory, refreshed on cv3 cutoff advance) ────────────────
+    # ── smart context (in-memory snapshot, refreshed on cv3 cutoff advance) ──
+    # The build (~2 min: float32 MTF over full cv3 + frozen-rank buckets + full-
+    # frame HTF/REGIME_V4 overrides) ran SYNCHRONOUSLY in the runner loop pre
+    # gap-3 — every cv3 cutoff advance starved the per-M1 exit decisions for
+    # ~2 min. Now it follows the loader's async-refresh pattern
+    # (v12_state_from_prebuilt 2026-06-01): background thread builds a NEW
+    # SmartCtxSnapshot on a LOCAL cv3 reference, then swaps ONE attribute
+    # (GIL-atomic); decisions read the last completed snapshot and journal
+    # context_age_m5_bars. No lock anywhere — the exit path cannot be starved.
 
-    def refresh_multi_tf(self, cv3: pd.DataFrame) -> None:
-        """(Re)build the in-memory MTF-v2 bundle from the live cv3 when its
-        cutoff advanced. float32 cache convention (see build_multi_tf_from_cv3).
-        Shared by the entry forward AND the state builder's group-A recompute.
-        """
-        cutoff = cv3.index[-1]
-        if self._multi_tf_feats is not None and self._multi_tf_cv3_cutoff == cutoff:
-            return
-        from gx1.features.htf_features import MULTI_TF_SHIFT
+    def _build_ctx_snapshot(self, cv3: pd.DataFrame) -> SmartCtxSnapshot:
+        """The FULL context build (unchanged math — same one-truth functions the
+        blocking path always used). Runs on local state only; safe in a thread."""
         from gx1.execution.v12_smart520_state_live import (
             compute_bucket_ctx_cat_full_frame,
             compute_htf_ctx_full_frame,
         )
-        LOG.info("[SMART_ENTRY] building in-memory MTF-v2 from cv3 (cutoff=%s)…", cutoff)
-        self._multi_tf_feats = build_multi_tf_from_cv3(cv3)
-        self._multi_tf_shift = dict(MULTI_TF_SHIFT)
+        t0 = time.perf_counter()
+        cutoff = cv3.index[-1]
+        multi_tf = build_multi_tf_from_cv3(cv3)
         # full-frame overrides: ctx_cat buckets (offline frame-global-rank
         # convention) + the 5 long-lookback HTF ctx cols (fresh full-frame
         # recompute; B28's incremental M1-lane stamping is one M5 bar behind
         # the offline convention — parity gate finding 2026-07-08)
-        self._bucket_ctx_cat = pd.concat(
+        overrides = pd.concat(
             [compute_bucket_ctx_cat_full_frame(cv3), compute_htf_ctx_full_frame(cv3)],
             axis=1,
         )
-        self._multi_tf_cv3_cutoff = cutoff
-        if self._builder is not None:
-            self._builder.multi_tf = self._multi_tf_feats
+        return SmartCtxSnapshot(
+            multi_tf=multi_tf, frame_overrides=overrides,
+            cv3_cutoff=cutoff, built_utc=pd.Timestamp.utcnow(),
+            build_seconds=time.perf_counter() - t0,
+        )
 
-    def build_anchored_frame(self, loader, end_ts: pd.Timestamp) -> pd.DataFrame:
-        """ONE-TRUTH anchored state frame [SMART520_STATE_FRAME_ANCHOR_UTC .. end_ts]
-        from the live prebuilt loader (joined cv3+BASE28), prepared with all
-        smart520 recomputes. Shared by the parity gate and the live pipeline."""
-        if self._builder is None:
-            raise RuntimeError("[SMART_ENTRY] not loaded")
-        self.refresh_multi_tf(loader._cv3)
-        cv3_idx = loader._cv3.index
+    def _install_ctx_snapshot(self, snap: SmartCtxSnapshot) -> None:
+        """Single-reference swap (GIL-atomic). The builder mirror exists only for
+        direct Smart520StateBuilder callers; the live decision path passes the
+        snapshot's bundle explicitly so it never races the mirror write."""
+        self._ctx = snap
+        if self._builder is not None:
+            self._builder.multi_tf = snap.multi_tf
+
+    def refresh_multi_tf(self, cv3: pd.DataFrame) -> None:
+        """BLOCKING context (re)build when cv3's cutoff advanced — the startup /
+        parity-gate / offline-driver path (semantics unchanged from pre-gap-3).
+        The live runner path uses maybe_schedule_ctx_refresh + predict_live_bar
+        instead and never blocks on this."""
+        cutoff = cv3.index[-1]
+        ctx = self._ctx
+        if ctx is not None and ctx.cv3_cutoff == cutoff:
+            return
+        from gx1.features.htf_features import MULTI_TF_SHIFT
+        LOG.info("[SMART_ENTRY] building smart-context snapshot from cv3 (cutoff=%s, blocking)…", cutoff)
+        self._multi_tf_shift = dict(MULTI_TF_SHIFT)
+        snap = self._build_ctx_snapshot(cv3)
+        self._install_ctx_snapshot(snap)
+        LOG.info("[SMART_ENTRY] smart-context snapshot ready (cutoff=%s, %.1fs)",
+                 cutoff, snap.build_seconds)
+
+    def maybe_schedule_ctx_refresh(self, cv3: pd.DataFrame) -> bool:
+        """NON-BLOCKING: schedule a background context rebuild when cv3's cutoff
+        advanced past the snapshot's and no refresh is in flight (the loader's
+        refresh_if_changed pattern). Returns True only on the scheduling cycle."""
+        ctx = self._ctx
+        if ctx is None:
+            raise RuntimeError(
+                "[SMART_ENTRY] no context snapshot — the initial (blocking) "
+                "refresh_multi_tf() at startup is mandatory before live decisions"
+            )
+        if cv3.index[-1] <= ctx.cv3_cutoff:
+            return False
+        t = self._ctx_refresh_thread
+        if t is not None and t.is_alive():
+            return False
+        t = threading.Thread(
+            target=self._async_ctx_refresh, args=(cv3,), daemon=True,
+            name="smart_ctx_async_refresh",
+        )
+        self._ctx_refresh_thread = t
+        t.start()
+        return True
+
+    def _async_ctx_refresh(self, cv3: pd.DataFrame) -> None:
+        """Background-thread worker: full context build on the cv3 reference
+        grabbed at schedule time (the loader swaps — never mutates — its frames,
+        so this read is race-free), then one atomic snapshot swap. Fail-SAFE:
+        on error the previous snapshot stays live and the staleness cap
+        (SMART_CTX_MAX_STALENESS_M5) turns a persistent failure into journaled
+        entry SKIPs — exits are never affected."""
+        try:
+            old = self._ctx
+            snap = self._build_ctx_snapshot(cv3)
+            self._install_ctx_snapshot(snap)
+            LOG.info("[smart-ctx-refresh] snapshot cutoff %s → %s (took %.1fs, decisions never blocked)",
+                     old.cv3_cutoff if old is not None else None,
+                     snap.cv3_cutoff, snap.build_seconds)
+        except Exception as exc:  # noqa: BLE001 — fail-safe: keep prior snapshot
+            LOG.error(f"[smart-ctx-refresh] FAILED: {exc} — keeping previous snapshot "
+                      f"(staleness cap will SKIP entries if this persists)")
+
+    @staticmethod
+    def context_age_m5_bars(cv3: pd.DataFrame, end_ts: pd.Timestamp,
+                            ctx: SmartCtxSnapshot) -> int:
+        """cv3 M5 bars in (ctx.cv3_cutoff, end_ts] — 0 ⇒ the snapshot covers the
+        decision bar (may be negative for historical end_ts, e.g. the parity gate)."""
+        idx = cv3.index
+        return int(idx.searchsorted(end_ts, side="right")
+                   - idx.searchsorted(ctx.cv3_cutoff, side="right"))
+
+    def _effective_context(
+        self, cv3: pd.DataFrame, ctx: SmartCtxSnapshot, end_ts: pd.Timestamp,
+    ) -> tuple[dict, pd.DataFrame, int, bool]:
+        """The snapshot context extended to end_ts (age > 0 = gap bars exist):
+          * override tables — CHEAP (~0.6s, gap-3 probe) FULL-frame recompute on
+            the current cv3 via the same one-truth functions the snapshot build
+            used: causal + frozen-rank digitize, so overlapping rows are
+            bit-identical and the gap bars are EXACT by construction (no ffill,
+            no staleness).
+          * MTF cache — the heavy part (~94s full): self-test-proven incremental
+            tail splice (append_multi_tf_incremental) for M5/M15/H1; H4/D1 keep
+            snapshot rows (forming-bar staleness only, journaled via
+            context_age_m5_bars, capped by SMART_CTX_MAX_STALENESS_M5).
+        Returns (multi_tf, frame_overrides, age, mtf_spliced)."""
+        age = self.context_age_m5_bars(cv3, end_ts, ctx)
+        if age <= 0:
+            return ctx.multi_tf, ctx.frame_overrides, age, False
+        from gx1.execution.v12_smart520_state_live import (
+            compute_bucket_ctx_cat_full_frame,
+            compute_htf_ctx_full_frame,
+        )
+        overrides = pd.concat(
+            [compute_bucket_ctx_cat_full_frame(cv3), compute_htf_ctx_full_frame(cv3)],
+            axis=1,
+        )
+        multi_tf, spliced = ctx.multi_tf, False
+        if SMART_CTX_MTF_INCREMENTAL:
+            multi_tf, spliced = append_multi_tf_incremental(cv3, ctx.multi_tf)
+        return multi_tf, overrides, age, spliced
+
+    def _prepare_anchored_frame(
+        self, loader, cv3: pd.DataFrame, end_ts: pd.Timestamp,
+        overrides: pd.DataFrame, multi_tf: dict,
+    ) -> pd.DataFrame:
+        """Shared anchored-window build + prepare (ONE truth for the blocking
+        gate path and the live async path)."""
+        cv3_idx = cv3.index
         n_from_anchor = int(cv3_idx.searchsorted(end_ts, side="right")
                             - cv3_idx.searchsorted(SMART520_STATE_FRAME_ANCHOR_UTC, side="left"))
         if n_from_anchor < SEQ_LEN_SMART520:
@@ -229,17 +384,40 @@ class SmartEntryLiveInference:
                 f"[SMART_ENTRY] anchored window build failed: rows={len(joined)} "
                 f"start={joined.index[0] if len(joined) else None}"
             )
-        return self._builder.prepare_frame(joined, bucket_ctx_cat=self._bucket_ctx_cat)
+        return self._builder.prepare_frame(joined, bucket_ctx_cat=overrides, multi_tf=multi_tf)
 
-    def _multi_tf_window_tensors(self, ts: pd.Timestamp) -> dict[str, torch.Tensor]:
+    def build_anchored_frame(
+        self, loader, end_ts: pd.Timestamp, ctx: SmartCtxSnapshot | None = None,
+    ) -> pd.DataFrame:
+        """ONE-TRUTH anchored state frame [SMART520_STATE_FRAME_ANCHOR_UTC .. end_ts]
+        from the live prebuilt loader (joined cv3+BASE28), prepared with all
+        smart520 recomputes. Shared by the parity gate and the live pipeline.
+        ctx=None (gate/startup path): BLOCKING refresh first — behavior and
+        values identical to the pre-gap-3 synchronous implementation."""
+        if self._builder is None:
+            raise RuntimeError("[SMART_ENTRY] not loaded")
+        if ctx is None:
+            self.refresh_multi_tf(loader._cv3)
+            ctx = self._ctx
+        cv3 = loader._cv3
+        multi_tf, overrides, _age, _spliced = self._effective_context(cv3, ctx, end_ts)
+        return self._prepare_anchored_frame(loader, cv3, end_ts, overrides, multi_tf)
+
+    def _multi_tf_window_tensors(
+        self, ts: pd.Timestamp, multi_tf: dict | None = None,
+    ) -> dict[str, torch.Tensor]:
         """Per-TF windows at-or-before ts with the BUNDLE's per-TF seq lens —
         the exact offline dataset path (EntryV10CtxDataset._get_multi_tf_window:
-        get_last_n_at_or_before(feats, ts, n=per_tf, tf_shift=MULTI_TF_SHIFT))."""
-        if self._multi_tf_feats is None:
-            raise RuntimeError("[SMART_ENTRY] multi-TF not built — call refresh_multi_tf() first")
+        get_last_n_at_or_before(feats, ts, n=per_tf, tf_shift=MULTI_TF_SHIFT)).
+        `multi_tf=None` uses the current snapshot (gate/offline callers)."""
+        if multi_tf is None:
+            ctx = self._ctx
+            if ctx is None:
+                raise RuntimeError("[SMART_ENTRY] multi-TF not built — call refresh_multi_tf() first")
+            multi_tf = ctx.multi_tf
         from gx1.features.htf_features import get_last_n_at_or_before
         out: dict[str, torch.Tensor] = {}
-        for tf, feats in self._multi_tf_feats.items():
+        for tf, feats in multi_tf.items():
             n = int(self._per_tf_seq_lens.get(tf, SEQ_LEN_SMART520))
             arr = get_last_n_at_or_before(feats, ts, n=n, tf_shift=self._multi_tf_shift[tf])
             out[f"seq_{tf.lower()}"] = torch.from_numpy(
@@ -249,10 +427,14 @@ class SmartEntryLiveInference:
 
     # ── forward ───────────────────────────────────────────────────────────────
 
-    def forward_states(self, states: dict[str, Any]) -> list[dict[str, Any]]:
+    def forward_states(
+        self, states: dict[str, Any], multi_tf: dict | None = None,
+    ) -> list[dict[str, Any]]:
         """Forward pre-built smart520 states (from Smart520StateBuilder) through
         the calibrated model. Mirrors evaluate_entry_candidate_selective_edge_v1
-        _predict_bundle head-for-head. Returns one dict per state row."""
+        _predict_bundle head-for-head. Returns one dict per state row.
+        `multi_tf=None` uses the current snapshot (gate/offline callers); the
+        live path passes the SAME bundle the states were built with."""
         if self._model is None:
             raise RuntimeError("[SMART_ENTRY] not loaded")
         results: list[dict[str, Any]] = []
@@ -264,7 +446,7 @@ class SmartEntryLiveInference:
                 snap_t = torch.from_numpy(states["snap"][k]).unsqueeze(0).to(self.device)
                 ctx_cont_t = torch.from_numpy(states["ctx_cont"][k]).unsqueeze(0).to(self.device)
                 ctx_cat_t = torch.from_numpy(states["ctx_cat"][k]).unsqueeze(0).to(self.device)
-                mtf_kwargs = self._multi_tf_window_tensors(ts)
+                mtf_kwargs = self._multi_tf_window_tensors(ts, multi_tf=multi_tf)
                 out = self._model(seq_t, snap_t, ctx_cat=ctx_cat_t, ctx_cont=ctx_cont_t, **mtf_kwargs)
                 for key, value in out.items():
                     if torch.is_tensor(value) and not bool(torch.isfinite(value).all().item()):
@@ -285,6 +467,44 @@ class SmartEntryLiveInference:
                 }
                 results.append(res)
         return results
+
+    # ── live per-M5 forward (async-context path — serving-wave gap 3) ────────
+
+    def predict_live_bar(self, loader, end_ts: pd.Timestamp) -> dict[str, Any]:
+        """LIVE per-M5 decision forward: uses the LAST COMPLETED context snapshot
+        — NEVER blocks on the ~2-min context refresh (which now runs in a
+        background thread, scheduled here on cv3 cutoff advance). One atomic
+        snapshot grab keeps state build + model forward internally consistent.
+
+        Fail-closed: raises SmartContextStaleError when the snapshot lags the
+        decision bar by more than SMART_CTX_MAX_STALENESS_M5 cv3 bars (the
+        pipeline journals the SKIP and retries next poll). Journals staleness on
+        every result: context_age_m5_bars / context_cutoff_ts /
+        context_refresh_in_flight / context_mtf_incremental.
+        """
+        if self._builder is None or self._model is None:
+            raise RuntimeError("[SMART_ENTRY] not loaded")
+        cv3 = loader._cv3
+        self.maybe_schedule_ctx_refresh(cv3)
+        ctx = self._ctx   # ONE atomic grab — never re-read during this decision
+        if ctx is None:
+            raise RuntimeError("[SMART_ENTRY] no context snapshot — startup refresh missing")
+        age = self.context_age_m5_bars(cv3, end_ts, ctx)
+        if age > SMART_CTX_MAX_STALENESS_M5:
+            raise SmartContextStaleError(
+                age=age, cap=SMART_CTX_MAX_STALENESS_M5,
+                ctx_cutoff=ctx.cv3_cutoff, end_ts=end_ts,
+            )
+        multi_tf, overrides, age, spliced = self._effective_context(cv3, ctx, end_ts)
+        frame = self._prepare_anchored_frame(loader, cv3, end_ts, overrides, multi_tf)
+        states = self._builder.build_states(frame, [end_ts])
+        head = self.forward_states(states, multi_tf=multi_tf)[0]
+        t = self._ctx_refresh_thread
+        head["context_age_m5_bars"] = int(max(age, 0))
+        head["context_cutoff_ts"] = str(ctx.cv3_cutoff)
+        head["context_refresh_in_flight"] = bool(t is not None and t.is_alive())
+        head["context_mtf_incremental"] = bool(spliced)
+        return head
 
     # ── decision (operating point from the contract — ONE truth) ─────────────
 
@@ -317,7 +537,7 @@ class SmartEntryLiveInference:
             "position_size_pred": 0.0,
             "atr_bps": float(atr_bps),
         }
-        return {
+        out = {
             "action": action,
             "action_id": {"SKIP": 0, "TAKE_LONG_NOW": 1, "TAKE_SHORT_NOW": 2}[action],
             "edge_score": edge,
@@ -336,3 +556,10 @@ class SmartEntryLiveInference:
             "policy": "smart_seq520_candidate_v1",
             "stub": False,
         }
+        # async-context staleness journal (serving-wave gap 3) — present only on
+        # the live predict_live_bar path; the parity gate forwards heads directly.
+        for k in ("context_age_m5_bars", "context_cutoff_ts",
+                  "context_refresh_in_flight", "context_mtf_incremental"):
+            if k in head_out:
+                out[k] = head_out[k]
+        return out

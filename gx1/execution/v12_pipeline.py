@@ -62,7 +62,7 @@ if TYPE_CHECKING:  # annotation-only; never imported at runtime (retired contrac
     from gx1.execution.v12_entry_iql_live import EntryIQLLiveInference
 from gx1.execution.v12_exit_iql_live import ExitIQLLiveInference, let_winners_run_hold
 from gx1.execution.v12_v3_live import V3LiveInference
-from gx1.execution.v12_trade_state import TradeState, SIDE_LONG, SIDE_SHORT
+from gx1.execution.v12_trade_state import TradeState
 
 LOG = logging.getLogger("v12_pipeline")
 
@@ -128,7 +128,7 @@ def _entry_rec_with_distilled_q(rec, v10_out, beta: float = 1.0):
     replaced. variant/fold/feature_names/state stay as-is — they're only
     informational. Caller must verify v10_out has q_per_action_v1 before calling.
     """
-    from gx1.runtime.entry_iql_v2_adapter import EntryRecommendation, iql_core
+    from gx1.runtime.entry_iql_v2_adapter import iql_core
     q = np.asarray(v10_out["q_per_action_v1"], dtype=np.float32)
     a_id = int(np.argmax(q))
     q_skip = float(q[iql_core.ACTION_SKIP_ID])
@@ -265,7 +265,10 @@ class V12Pipeline:
             LOG.info("V12.2: building multi-TF features on PrebuiltStateLoader (one-time)")
             loader.build_multi_tf_features()
         # entry-side smart context (float32 MTF + full-frame overrides) — heavy
-        # (~2 min); built once here so the first decision doesn't stall the loop.
+        # (~2 min); built BLOCKING once here (mandatory initial snapshot). Every
+        # later cv3 cutoff advance refreshes it in a BACKGROUND thread
+        # (predict_live_bar / maybe_schedule_ctx_refresh — serving-wave gap 3),
+        # so neither entry nor the per-M1 exit loop ever stalls on it again.
         smart_entry.refresh_multi_tf(loader._cv3)
         LOG.info(f"V12Pipeline loaded in {(time.perf_counter()-t0)*1000:.0f} ms")
         LOG.info(f"  prebuilt cutoff: {loader.cutoff_ts}  entry=smart_seq520 exit_mtf={getattr(v3, '_enable_multi_tf', False)}")
@@ -453,10 +456,22 @@ class V12Pipeline:
         if self._last_smart_bucket is not None and decision_m5 <= self._last_smart_bucket:
             return {**_SKIP_BASE, "skip_reason": "awaiting_new_m5_bar",
                     "decision_ts": str(decision_m5)}
+        # Serving-wave gap 3: predict_live_bar NEVER blocks on the ~2-min smart-
+        # context refresh (background thread + last-completed-snapshot, staleness
+        # journaled as context_age_m5_bars) — the per-M1 exit loop is no longer
+        # starved at every cv3 cutoff advance.
+        from gx1.execution.v12_smart_entry_live import SmartContextStaleError
         try:
-            frame = self.smart_entry.build_anchored_frame(self.prebuilt_loader, decision_m5)
-            states = self.smart_entry._builder.build_states(frame, [decision_m5])
-            head = self.smart_entry.forward_states(states)[0]
+            head = self.smart_entry.predict_live_bar(self.prebuilt_loader, decision_m5)
+        except SmartContextStaleError as exc:
+            # fail-closed on rotten context (> GX1_SMART_CTX_MAX_STALENESS_M5 bars):
+            # SKIP now, do NOT mark the bucket decided — retried every poll until
+            # the background refresh catches up (or the bar is superseded).
+            LOG.warning(f"[SMART_ENTRY] {exc} — SKIP (refresh in background; retry next poll)")
+            return {**_SKIP_BASE, "skip_reason": "smart_ctx_stale_refresh_pending",
+                    "context_age_m5_bars": exc.age,
+                    "context_cutoff_ts": str(exc.ctx_cutoff),
+                    "decision_ts": str(decision_m5)}
         except Exception as exc:  # noqa: BLE001 — fail-closed SKIP, keep exits alive
             LOG.error(f"[SMART_ENTRY] state/forward failed for {decision_m5}: {exc} — SKIP "
                       f"(fail-closed; exit management continues)")
