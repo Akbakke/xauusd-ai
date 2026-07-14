@@ -756,12 +756,30 @@ def test_entry_v10_direction_ckpt_balance_guard_required_requires_active_thresho
     assert trainer._direction_ckpt_balance_guard_required() is False
 
 
+def test_entry_v10_direction_ckpt_slice_guard_required(monkeypatch) -> None:
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    monkeypatch.setattr(trainer, "ENTRY_CKPT_DIRECTION_SLICE_GUARD", False)
+    assert trainer._direction_ckpt_slice_guard_required() is False
+
+    monkeypatch.setattr(trainer, "ENTRY_CKPT_DIRECTION_SLICE_GUARD", True)
+    assert trainer._direction_ckpt_slice_guard_required() is True
+
+
 def test_entry_v10_train_refuses_to_write_bundle_when_best_class_balance_guard_failed() -> None:
     text = TRAINER_PATH.read_text(encoding="utf-8")
 
     assert "[TRAIN_FAIL_DIRECTION_CLASS_BALANCE_GUARD]" in text
     assert "_direction_ckpt_balance_guard_required()" in text
     assert "refusing to write a collapsed direction bundle" in text
+
+
+def test_entry_v10_train_refuses_to_write_bundle_when_best_slice_guard_failed() -> None:
+    text = TRAINER_PATH.read_text(encoding="utf-8")
+
+    assert "[TRAIN_FAIL_DIRECTION_SLICE_GUARD]" in text
+    assert "_direction_ckpt_slice_guard_required()" in text
+    assert "refusing to write a slice-failed direction bundle" in text
 
 
 def test_entry_foundation_train_wrappers_enable_path_quality_rank_recipe() -> None:

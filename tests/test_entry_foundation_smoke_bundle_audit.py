@@ -455,6 +455,7 @@ def test_direction_balance_recipe_contract_requires_label_balance_and_dir_acc_mo
 def test_smart_direction_balance_recipe_contract_requires_flat_repair_weights() -> None:
     meta = {
         "best_direction_balance_guard_ok": True,
+        "best_direction_slice_contract_ok": True,
         "train_recipe": {
             "active_heads": ["direction", "path_quality", "bad_path"],
             "pred_balance_alpha": 0.50,
@@ -476,6 +477,7 @@ def test_smart_direction_balance_recipe_contract_requires_flat_repair_weights() 
             "ckpt_class_balance_guard_weight": 0.50,
             "ckpt_class_balance_min_pred_to_label": 0.35,
             "ckpt_class_balance_min_pred_rate": 0.05,
+            "ckpt_direction_slice_guard": True,
             "direction_min_pred_rate_loss_weight": 2.50,
             "direction_min_pred_rate_fraction": 0.50,
             "direction_min_pred_rate_floor": 0.05,
@@ -493,6 +495,7 @@ def test_smart_direction_balance_recipe_contract_requires_flat_repair_weights() 
     assert report["ckpt_class_balance_guard_weight"] == 0.50
     assert report["ckpt_class_balance_min_pred_to_label"] == 0.35
     assert report["ckpt_class_balance_min_pred_rate"] == 0.05
+    assert report["ckpt_direction_slice_guard"] is True
     assert report["direction_min_pred_rate_loss_weight"] == 2.50
     assert report["direction_min_pred_rate_fraction"] == 0.50
     assert report["direction_min_pred_rate_floor"] == 0.05
@@ -509,11 +512,13 @@ def test_smart_direction_balance_recipe_contract_requires_flat_repair_weights() 
     assert report["anchor_gate_enabled"] is True
     assert report["anchor_gate_init"] == 0.0
     assert report["best_direction_balance_guard_ok"] is True
+    assert report["best_direction_slice_contract_ok"] is True
 
 
 def test_smart_direction_balance_recipe_contract_accepts_mtf_aux_repair_proof() -> None:
     meta = {
         "best_direction_balance_guard_ok": True,
+        "best_direction_slice_contract_ok": True,
         "enable_mtf_direction_head": True,
         "train_recipe": {
             "active_heads": ["direction", "path_quality", "bad_path"],
@@ -538,6 +543,7 @@ def test_smart_direction_balance_recipe_contract_accepts_mtf_aux_repair_proof() 
             "ckpt_class_balance_guard_weight": 0.50,
             "ckpt_class_balance_min_pred_to_label": 0.35,
             "ckpt_class_balance_min_pred_rate": 0.05,
+            "ckpt_direction_slice_guard": True,
             "direction_min_pred_rate_loss_weight": 2.50,
             "direction_min_pred_rate_fraction": 0.50,
             "direction_min_pred_rate_floor": 0.05,
@@ -557,6 +563,7 @@ def test_smart_direction_balance_recipe_contract_accepts_mtf_aux_repair_proof() 
 def test_smart_direction_balance_recipe_contract_rejects_missing_mtf_aux_repair_proof() -> None:
     meta = {
         "best_direction_balance_guard_ok": True,
+        "best_direction_slice_contract_ok": True,
         "enable_mtf_direction_head": True,
         "train_recipe": {
             "active_heads": ["direction", "path_quality", "bad_path"],
@@ -580,6 +587,7 @@ def test_smart_direction_balance_recipe_contract_rejects_missing_mtf_aux_repair_
             "ckpt_class_balance_guard_weight": 0.50,
             "ckpt_class_balance_min_pred_to_label": 0.35,
             "ckpt_class_balance_min_pred_rate": 0.05,
+            "ckpt_direction_slice_guard": True,
             "direction_min_pred_rate_loss_weight": 2.50,
             "direction_min_pred_rate_fraction": 0.50,
             "direction_min_pred_rate_floor": 0.05,
@@ -622,6 +630,7 @@ def test_smart_direction_balance_recipe_contract_rejects_weak_flat_repair() -> N
 def test_smart_direction_balance_recipe_contract_rejects_failed_best_checkpoint_guard() -> None:
     meta = {
         "best_direction_balance_guard_ok": False,
+        "best_direction_slice_contract_ok": True,
         "train_recipe": {
             "active_heads": ["direction", "path_quality", "bad_path"],
             "pred_balance_alpha": 0.50,
@@ -643,6 +652,7 @@ def test_smart_direction_balance_recipe_contract_rejects_failed_best_checkpoint_
             "ckpt_class_balance_guard_weight": 0.50,
             "ckpt_class_balance_min_pred_to_label": 0.35,
             "ckpt_class_balance_min_pred_rate": 0.05,
+            "ckpt_direction_slice_guard": True,
             "direction_min_pred_rate_loss_weight": 2.50,
             "direction_min_pred_rate_fraction": 0.50,
             "direction_min_pred_rate_floor": 0.05,
@@ -657,6 +667,48 @@ def test_smart_direction_balance_recipe_contract_rejects_failed_best_checkpoint_
     assert report["decision"] == "FAIL"
     assert report["ckpt_balance_guard_required"] is True
     assert any("best_direction_balance_guard_ok=true" in failure for failure in report["failures"])
+
+
+def test_smart_direction_balance_recipe_contract_rejects_failed_best_slice_guard() -> None:
+    meta = {
+        "best_direction_balance_guard_ok": True,
+        "best_direction_slice_contract_ok": False,
+        "train_recipe": {
+            "active_heads": ["direction", "path_quality", "bad_path"],
+            "pred_balance_alpha": 0.50,
+            "pred_balance_target": "label",
+            "pred_balance_class_weights": [1.0, 1.0, 4.0],
+            "direction_ce_scale": 2.00,
+            "hierarchical_entry_heads_enabled": True,
+            "side_validity_head_enabled": True,
+            "hier_side_validity_weight": 1.50,
+            "hier_side_validity_min_utility_bps": 15.0,
+            "hier_side_validity_pos_weight_cap": 8.0,
+            "trendline_rail_head_enabled": True,
+            "trendline_rail_aux_weight": 1.00,
+            "trendline_rail_wrong_side_weight": 1.50,
+            "hier_legacy_ce_mult": 1.00,
+            "anchor_gate_enabled": True,
+            "anchor_gate_init": 0.0,
+            "ckpt_monitor": "dir_acc",
+            "ckpt_class_balance_guard_weight": 0.50,
+            "ckpt_class_balance_min_pred_to_label": 0.35,
+            "ckpt_class_balance_min_pred_rate": 0.05,
+            "ckpt_direction_slice_guard": True,
+            "direction_min_pred_rate_loss_weight": 2.50,
+            "direction_min_pred_rate_fraction": 0.50,
+            "direction_min_pred_rate_floor": 0.05,
+            "direction_min_pred_rate_softmax_temperature": 0.20,
+            "direction_vs_flat_margin_weight": 4.00,
+            "direction_vs_flat_margin": 0.10,
+        },
+    }
+
+    report = _direction_balance_recipe_contract(meta, {}, contract_mode="smart_seq520_candidate")
+
+    assert report["decision"] == "FAIL"
+    assert report["ckpt_direction_slice_guard"] is True
+    assert any("best_direction_slice_contract_ok=true" in failure for failure in report["failures"])
 
 
 def test_direction_balance_recipe_contract_rejects_missing_balance() -> None:

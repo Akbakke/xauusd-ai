@@ -309,6 +309,12 @@ ENTRY_CKPT_MONITOR = _env_str("GX1_V10_CKPT_MONITOR", "val_loss").strip().lower(
 ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT = float(_env_str("ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT", "0.0"))
 ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL = float(_env_str("ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL", "0.0"))
 ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE = float(_env_str("ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE", "0.0"))
+ENTRY_CKPT_DIRECTION_SLICE_GUARD = _env_str("ENTRY_CKPT_DIRECTION_SLICE_GUARD", "0").lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
 ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT = float(_env_str("ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT", "0.0"))
 ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION = float(_env_str("ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION", "0.0"))
 ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR = float(_env_str("ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR", "0.0"))
@@ -531,6 +537,7 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT": "0.0",
     "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL": "0.0",
     "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE": "0.0",
+    "ENTRY_CKPT_DIRECTION_SLICE_GUARD": "0",
     "ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT": "0.0",
     "ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION": "0.0",
     "ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR": "0.0",
@@ -4302,6 +4309,10 @@ def _direction_ckpt_balance_guard_required() -> bool:
     )
 
 
+def _direction_ckpt_slice_guard_required() -> bool:
+    return bool(ENTRY_CKPT_DIRECTION_SLICE_GUARD)
+
+
 def validate(
     model,
     loader,
@@ -6142,6 +6153,8 @@ def run_train(
                 "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE="
                 f"{ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE:.3f} expected >=0.05"
             )
+        if not bool(ENTRY_CKPT_DIRECTION_SLICE_GUARD):
+            repair_failures.append("ENTRY_CKPT_DIRECTION_SLICE_GUARD=0 expected 1")
         if ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT < 2.50:
             repair_failures.append(
                 "ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT="
@@ -6394,7 +6407,9 @@ def run_train(
     best_acc = float("-inf")  # direction-acc monitor (GX1_V10_CKPT_MONITOR=dir_acc)
     best_dir_ckpt_score = float("-inf")
     best_direction_balance_guard_ok: Optional[bool] = None
+    best_direction_slice_contract_ok: Optional[bool] = None
     raw_best_direction_balance_guard_ok: Optional[bool] = None
+    raw_best_direction_slice_contract_ok: Optional[bool] = None
     best_epoch = -1
     epochs_since_improve = 0
     last_epoch = 0
@@ -6620,17 +6635,22 @@ def run_train(
             best_direction_balance_guard_ok = (
                 bool(val_stats.get("direction_class_balance_guard_ok", True)) if val_stats else True
             )
+            best_direction_slice_contract_ok = (
+                bool(val_stats.get("direction_slice_contract_ok", False)) if val_stats else False
+            )
             _ckpt_model = model._orig_mod if hasattr(model, "_orig_mod") else model
             best_state = {k: v.cpu().clone() for k, v in _ckpt_model.state_dict().items()}
             best_epoch = epoch + 1
             epochs_since_improve = 0
             log.info(
-                "[BEST_CHECKPOINT] epoch=%d val=%.6f dir_acc=%.6f dir_ckpt_score=%.6f balance_guard_ok=%d monitor=%s",
+                "[BEST_CHECKPOINT] epoch=%d val=%.6f dir_acc=%.6f dir_ckpt_score=%.6f "
+                "balance_guard_ok=%d slice_contract_ok=%d monitor=%s",
                 best_epoch,
                 best_val,
                 acc,
                 best_dir_ckpt_score,
                 int(bool(best_direction_balance_guard_ok)),
+                int(bool(best_direction_slice_contract_ok)),
                 _ckpt_monitor,
             )
         else:
@@ -6649,11 +6669,18 @@ def run_train(
 
     _require(best_state is not None, "[TRAIN_FAIL_NO_BEST_STATE]")
     raw_best_direction_balance_guard_ok = best_direction_balance_guard_ok
+    raw_best_direction_slice_contract_ok = best_direction_slice_contract_ok
     if _direction_ckpt_balance_guard_required() and not bool(best_direction_balance_guard_ok):
         raise RuntimeError(
             "[TRAIN_FAIL_DIRECTION_CLASS_BALANCE_GUARD] "
             "best checkpoint failed active LONG/SHORT/FLAT class-balance guard; "
             "refusing to write a collapsed direction bundle"
+        )
+    if _direction_ckpt_slice_guard_required() and not bool(best_direction_slice_contract_ok):
+        raise RuntimeError(
+            "[TRAIN_FAIL_DIRECTION_SLICE_GUARD] "
+            "best checkpoint failed active direction slice contract; "
+            "refusing to write a slice-failed direction bundle"
         )
 
     # Resolve output bundle dir (under GX1_DATA if relative)
@@ -6755,9 +6782,12 @@ def run_train(
         "best_dir_ckpt_score": (float(best_dir_ckpt_score) if np.isfinite(best_dir_ckpt_score) else None),
         "best_direction_balance_guard_ok": best_direction_balance_guard_ok,
         "raw_best_direction_balance_guard_ok": raw_best_direction_balance_guard_ok,
+        "best_direction_slice_contract_ok": best_direction_slice_contract_ok,
+        "raw_best_direction_slice_contract_ok": raw_best_direction_slice_contract_ok,
         "ckpt_class_balance_guard_weight": float(ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT),
         "ckpt_class_balance_min_pred_to_label": float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL),
         "ckpt_class_balance_min_pred_rate": float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE),
+        "ckpt_direction_slice_guard": bool(ENTRY_CKPT_DIRECTION_SLICE_GUARD),
         "last_epoch": last_epoch,
         "early_stopped": bool(early_stopped),
         "early_stopping_patience": int(early_stopping_patience),
@@ -6964,6 +6994,7 @@ def run_train(
         "ckpt_class_balance_guard_weight": float(ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT),
         "ckpt_class_balance_min_pred_to_label": float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL),
         "ckpt_class_balance_min_pred_rate": float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE),
+        "ckpt_direction_slice_guard": bool(ENTRY_CKPT_DIRECTION_SLICE_GUARD),
         "direction_min_pred_rate_loss_weight": float(ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT),
         "direction_min_pred_rate_fraction": float(ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION),
         "direction_min_pred_rate_floor": float(ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR),
@@ -7013,6 +7044,7 @@ def run_train(
             "ckpt_class_balance_guard_weight": float(ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT),
             "ckpt_class_balance_min_pred_to_label": float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL),
             "ckpt_class_balance_min_pred_rate": float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE),
+            "ckpt_direction_slice_guard": bool(ENTRY_CKPT_DIRECTION_SLICE_GUARD),
             "direction_min_pred_rate_loss_weight": float(ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT),
             "direction_min_pred_rate_fraction": float(ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION),
             "direction_min_pred_rate_floor": float(ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR),

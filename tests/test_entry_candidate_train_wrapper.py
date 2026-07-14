@@ -121,6 +121,10 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
         in text
     )
     assert (
+        'CANDIDATE_CKPT_DIRECTION_SLICE_GUARD="${ENTRY_FOUNDATION_CANDIDATE_CKPT_DIRECTION_SLICE_GUARD:-0}"'
+        in text
+    )
+    assert (
         'CANDIDATE_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT:-0.0}"'
         in text
     )
@@ -232,6 +236,7 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT=" in text
     assert "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL=" in text
     assert "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE=" in text
+    assert "ENTRY_CKPT_DIRECTION_SLICE_GUARD=" in text
     assert "ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT=" in text
     assert "ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION=" in text
     assert "ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR=" in text

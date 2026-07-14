@@ -1025,6 +1025,12 @@ def _direction_balance_recipe_contract(
             meta.get("ckpt_class_balance_min_pred_rate", 0.0),
         )
     )
+    ckpt_direction_slice_guard = _bool_value(
+        recipe.get(
+            "ckpt_direction_slice_guard",
+            meta.get("ckpt_direction_slice_guard", False),
+        )
+    )
     direction_min_pred_rate_loss_weight = _safe_float(
         recipe.get(
             "direction_min_pred_rate_loss_weight",
@@ -1062,6 +1068,7 @@ def _direction_balance_recipe_contract(
         )
     )
     best_direction_balance_guard_ok = meta.get("best_direction_balance_guard_ok")
+    best_direction_slice_contract_ok = meta.get("best_direction_slice_contract_ok")
     ckpt_balance_guard_required = (
         ckpt_class_balance_guard_weight > 0.0
         and (
@@ -1145,6 +1152,8 @@ def _direction_balance_recipe_contract(
                     "smart direction active head requires ckpt_class_balance_min_pred_rate >= "
                     f"{SMART_DIRECTION_CKPT_BALANCE_MIN_PRED_RATE:.2f}"
                 )
+            if not ckpt_direction_slice_guard:
+                failures.append("smart direction active head requires ckpt_direction_slice_guard=true")
             if direction_min_pred_rate_loss_weight < SMART_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT:
                 failures.append(
                     "smart direction active head requires direction_min_pred_rate_loss_weight >= "
@@ -1192,6 +1201,8 @@ def _direction_balance_recipe_contract(
                 )
         if ckpt_balance_guard_required and best_direction_balance_guard_ok is not True:
             failures.append("direction active head requires best_direction_balance_guard_ok=true")
+        if ckpt_direction_slice_guard and best_direction_slice_contract_ok is not True:
+            failures.append("direction active head requires best_direction_slice_contract_ok=true")
     return {
         "decision": "PASS" if not failures else "FAIL",
         "active_heads": sorted(active_heads),
@@ -1220,6 +1231,7 @@ def _direction_balance_recipe_contract(
         "ckpt_class_balance_guard_weight": ckpt_class_balance_guard_weight,
         "ckpt_class_balance_min_pred_to_label": ckpt_class_balance_min_pred_to_label,
         "ckpt_class_balance_min_pred_rate": ckpt_class_balance_min_pred_rate,
+        "ckpt_direction_slice_guard": ckpt_direction_slice_guard,
         "direction_min_pred_rate_loss_weight": direction_min_pred_rate_loss_weight,
         "direction_min_pred_rate_fraction": direction_min_pred_rate_fraction,
         "direction_min_pred_rate_floor": direction_min_pred_rate_floor,
@@ -1228,6 +1240,7 @@ def _direction_balance_recipe_contract(
         "direction_vs_flat_margin": direction_vs_flat_margin,
         "ckpt_balance_guard_required": ckpt_balance_guard_required,
         "best_direction_balance_guard_ok": best_direction_balance_guard_ok,
+        "best_direction_slice_contract_ok": best_direction_slice_contract_ok,
         "failures": failures,
     }
 

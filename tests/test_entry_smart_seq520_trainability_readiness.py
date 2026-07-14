@@ -66,6 +66,7 @@ def _direction_balance_wrapper_text(kind: str) -> str:
             "CKPT_CLASS_BALANCE_GUARD_WEIGHT=0.50",
             "CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL=0.35",
             "CKPT_CLASS_BALANCE_MIN_PRED_RATE=0.05",
+            "CKPT_DIRECTION_SLICE_GUARD=1",
             "DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT=12.00",
             "DIRECTION_MIN_PRED_RATE_FRACTION=0.50",
             "DIRECTION_MIN_PRED_RATE_FLOOR=0.05",
