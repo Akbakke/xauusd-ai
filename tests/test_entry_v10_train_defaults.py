@@ -213,6 +213,46 @@ def test_entry_v10_direction_slice_balance_stats_penalizes_audit_slice_collapse(
     assert trainer._direction_slice_ckpt_score(0.40, collapsed) < trainer._direction_slice_ckpt_score(0.40, covered)
 
 
+def test_entry_v10_direction_slice_recall_term_penalizes_low_true_class_prob(monkeypatch) -> None:
+    import torch
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_RECALL_LOSS_WEIGHT", 5.0)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_RECALL_PROB_FLOOR", 0.30)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_RECALL_MIN_LABEL_RATE", 0.10)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_RECALL_MIN_ROWS", 3)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES", "0")
+
+    targets = torch.tensor([0, 0, 1, 1, 2, 2], dtype=torch.long)
+    ctx_cat = torch.tensor([[2], [2], [2], [2], [2], [2]], dtype=torch.long)
+    low_recall = torch.tensor(
+        [
+            [0.10, 0.45, 0.45],
+            [0.10, 0.45, 0.45],
+            [0.45, 0.10, 0.45],
+            [0.45, 0.10, 0.45],
+            [0.45, 0.45, 0.10],
+            [0.45, 0.45, 0.10],
+        ],
+        dtype=torch.float32,
+    )
+    covered = torch.tensor(
+        [
+            [0.34, 0.33, 0.33],
+            [0.34, 0.33, 0.33],
+            [0.33, 0.34, 0.33],
+            [0.33, 0.34, 0.33],
+            [0.33, 0.33, 0.34],
+            [0.33, 0.33, 0.34],
+        ],
+        dtype=torch.float32,
+    )
+
+    assert float(trainer._direction_slice_recall_prob_term(low_recall, targets, ctx_cat).item()) > 0.0
+    assert float(trainer._direction_slice_recall_prob_term(covered, targets, ctx_cat).item()) == 0.0
+
+
 def test_entry_v10_direction_vs_flat_margin_term_penalizes_directional_flat_argmax(monkeypatch) -> None:
     import torch
 
