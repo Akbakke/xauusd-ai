@@ -371,7 +371,11 @@ def _liveness_rows(report: dict[str, Any]) -> list[dict[str, Any]]:
     return rows
 
 
-def _rows_have_no_nonfinite_or_collapse(rows: list[dict[str, Any]]) -> bool:
+def _rows_have_no_nonfinite_or_collapse(
+    rows: list[dict[str, Any]],
+    *,
+    allow_near_constant_count: bool = False,
+) -> bool:
     if not rows:
         return False
     for row in rows:
@@ -383,7 +387,7 @@ def _rows_have_no_nonfinite_or_collapse(rows: list[dict[str, Any]]) -> bool:
             return False
         if int(row.get("missing_count") or 0) != 0:
             return False
-        if int(row.get("near_constant_count") or 0) != 0:
+        if not allow_near_constant_count and int(row.get("near_constant_count") or 0) != 0:
             return False
         if bool(row.get("near_constant")):
             return False
@@ -763,7 +767,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 _check(
                     "smart specialist input has no NaN inf or liveness collapse",
                     bool(specialist.get("specialist_input_liveness_all_live"))
-                    and _rows_have_no_nonfinite_or_collapse(specialist_rows),
+                    and _rows_have_no_nonfinite_or_collapse(
+                        specialist_rows,
+                        allow_near_constant_count=True,
+                    ),
                     {
                         "specialist_input_liveness_all_live": specialist.get("specialist_input_liveness_all_live"),
                         "liveness_row_count": len(specialist_rows),

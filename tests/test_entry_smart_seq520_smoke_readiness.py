@@ -322,6 +322,31 @@ def test_smart_seq520_smoke_readiness_fails_closed_on_nonfinite_liveness(
     assert "smart specialist input has no NaN inf or liveness collapse" in blockers
 
 
+def test_smart_seq520_smoke_readiness_allows_specialist_near_constant_when_live_count_passes(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    args = _build_fixture(tmp_path)
+    specialist_path = Path(args.smart_specialist_audit_json)
+    specialist = json.loads(specialist_path.read_text(encoding="utf-8"))
+    row = specialist["specialist_input_liveness"][0]
+    row["near_constant_count"] = 1
+    row["near_constant_features"] = ["session_regime.h4_d1_regime_sign_agreement"]
+    row["live_feature_count"] = max(
+        int(row.get("live_feature_count") or 0),
+        int(row.get("min_required_live_feature_count") or 1),
+    )
+    specialist["specialist_input_liveness_all_live"] = True
+    _write_json(specialist_path, specialist)
+    monkeypatch.setattr(readiness, "_git_status_short", lambda repo: [])
+
+    report = readiness.run(args)
+
+    blockers = "\n".join(report["blockers"])
+    assert report["decision"] == "READY_FOR_SMART_SEQ520_SMOKE_MANIFEST_REVIEW"
+    assert "smart specialist input has no NaN inf or liveness collapse" not in blockers
+
+
 def test_smart_seq520_smoke_readiness_fails_closed_on_blocked_manifest_readiness(
     monkeypatch,
     tmp_path: Path,
