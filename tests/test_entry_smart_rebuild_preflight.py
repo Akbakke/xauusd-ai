@@ -22,6 +22,7 @@ def _build_fixture(
     feature_orchestration: bool = True,
     verify_large_input_hashes: bool = True,
     xgb_bundle_exists: bool = True,
+    smart_built_source: bool = False,
 ) -> argparse.Namespace:
     source = tmp_path / "FULL_PLUS_CTX_v3src.parquet"
     source.write_bytes(b"dummy parquet placeholder")
@@ -50,6 +51,8 @@ def _build_fixture(
         xgb_bundle.mkdir(parents=True)
         (xgb_bundle / "xgb_universal_multihead_v2.joblib").write_bytes(b"dummy model")
     source_sha = _sha256(source)
+    seq_input_dim = 520 if smart_built_source else 146
+    extension_dim = 479 if smart_built_source else 105
 
     for split in ("train", "val", "test"):
         parquet = output_dir / f"v10_foundation_seq146__HOLD_03B_{split}.parquet"
@@ -81,17 +84,17 @@ def _build_fixture(
                     "xgb_bundle": str(xgb_bundle),
                     "signal_bridge": {
                         "id": "XGB_SIGNAL_BRIDGE_V3",
-                        "seq_input_dim": 146,
-                        "snap_input_dim": 146,
+                        "seq_input_dim": seq_input_dim,
+                        "snap_input_dim": seq_input_dim,
                         "base_seq_input_dim": 41,
-                        "seq_structure_extension_dim": 105,
+                        "seq_structure_extension_dim": extension_dim,
                         "neutral_xgb_bridge": True,
-                        "fields": [f"f{i}" for i in range(146)],
+                        "fields": [f"f{i}" for i in range(seq_input_dim)],
                         "seq_structure_extension_v1": {
                             "enabled": True,
-                            "feature_count": 105,
+                            "feature_count": extension_dim,
                             "manifest_path": "/tmp/sequence_structure_feature_layer_manifest.json",
-                            "manifest_selected_feature_count": 105,
+                            "manifest_selected_feature_count": extension_dim,
                             "source_parquet_for_price_features": str(source),
                         },
                     },
@@ -258,6 +261,17 @@ def test_smart_rebuild_preflight_accepts_dynamic_smart_seq_width(tmp_path: Path)
     }
     assert Path(report["json_path"]).exists()
     assert _sha256(Path(report["inputs"]["smart_report"]["path"])) == report["inputs"]["smart_report"]["sha256"]
+
+
+def test_smart_rebuild_preflight_accepts_xau_smart520_built_source(tmp_path: Path) -> None:
+    args = _build_fixture(tmp_path, smart_built_source=True)
+
+    report = preflight.run(args)
+
+    assert report["decision"] == "READY_FOR_SMART_REBUILD_VEDTAK_REVIEW"
+    assert report["counts"]["source_dataset_mode"] == "xau_smart_seq520_built_source"
+    assert report["counts"]["source_active_seq_snap_width"] == 520
+    assert not report["failures"]
 
 
 def test_smart_rebuild_preflight_uses_active_xgb_only_as_neutral_placeholder(

@@ -519,6 +519,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     recorded_source_hashes = {row["source_parquet_recorded_sha256"] for row in split_contracts.values()}
     xgb_bundles = {row["xgb_bundle"] for row in split_contracts.values()}
     split_schedule = _split_schedule(split_contracts)
+    observed_seq_dims = {row["signal_bridge"]["seq_input_dim"] for row in split_contracts.values()}
+    observed_extension_dims = {
+        row["signal_bridge"]["seq_structure_extension_dim"]
+        for row in split_contracts.values()
+    }
+    source_dataset_mode = "unknown"
+    if observed_seq_dims == {146} and observed_extension_dims == {FIXED_BASE_COUNTS["foundation_sequence_extension_features"]}:
+        source_dataset_mode = "legacy_foundation_seq146_source"
+    elif observed_seq_dims == {expected_seq_width} and observed_extension_dims == {expected_combined}:
+        source_dataset_mode = "xau_smart_seq520_built_source"
     _check(
         checks,
         "large source parquet hashes are explicitly verified",
@@ -549,8 +559,42 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             row["signal_bridge"]["neutral_xgb_bridge"] is True,
             row["signal_bridge"],
         )
-        _check(checks, f"{split} active source seq dim is 146", row["signal_bridge"]["seq_input_dim"] == 146, row["signal_bridge"])
-        _check(checks, f"{split} active foundation extension dim is 105", row["signal_bridge"]["seq_structure_extension_dim"] == 105, row["signal_bridge"])
+        _check(
+            checks,
+            f"{split} active source seq dim matches supported preflight mode",
+            source_dataset_mode in {"legacy_foundation_seq146_source", "xau_smart_seq520_built_source"},
+            {
+                "source_dataset_mode": source_dataset_mode,
+                "observed_seq_dims": sorted(observed_seq_dims),
+                "observed_extension_dims": sorted(observed_extension_dims),
+                "legacy_expected": {
+                    "seq_input_dim": 146,
+                    "seq_structure_extension_dim": FIXED_BASE_COUNTS["foundation_sequence_extension_features"],
+                },
+                "smart_expected": {
+                    "seq_input_dim": expected_seq_width,
+                    "seq_structure_extension_dim": expected_combined,
+                },
+            },
+        )
+        _check(
+            checks,
+            f"{split} active extension dim matches supported preflight mode",
+            (
+                source_dataset_mode == "legacy_foundation_seq146_source"
+                and row["signal_bridge"]["seq_structure_extension_dim"]
+                == FIXED_BASE_COUNTS["foundation_sequence_extension_features"]
+            )
+            or (
+                source_dataset_mode == "xau_smart_seq520_built_source"
+                and row["signal_bridge"]["seq_structure_extension_dim"] == expected_combined
+            ),
+            {
+                "source_dataset_mode": source_dataset_mode,
+                "signal_bridge": row["signal_bridge"],
+                "expected_combined": expected_combined,
+            },
+        )
         _check(checks, f"{split} ctx contract is CTX6CAT5", row["ctx_contract"]["tag"] == "CTX6CAT5", row["ctx_contract"])
         _check(checks, f"{split} ctx dims are 142/5", row["ctx_contract"]["ctx_cont_dim"] == 142 and row["ctx_contract"]["ctx_cat_dim"] == 5, row["ctx_contract"])
         _check(checks, f"{split} ctx cat names include spread_bucket", tuple(row["ctx_contract"]["ctx_cat_names"]) == EXPECTED_CTX_CAT_NAMES, row["ctx_contract"])
@@ -706,7 +750,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "combined_extension_features": expected_combined,
             "expected_seq_snap_width": expected_seq_width,
             "manifest_variant": manifest_variant,
-            "source_active_seq_snap_width": 146,
+            "source_active_seq_snap_width": (
+                sorted(observed_seq_dims)[0] if len(observed_seq_dims) == 1 else None
+            ),
+            "source_dataset_mode": source_dataset_mode,
         },
         "inputs": {
             "smart_report": _artifact_meta(smart_report_path),
