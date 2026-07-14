@@ -246,6 +246,12 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION=" in text
     assert "ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT=" in text
     assert "ENTRY_DIRECTION_VS_FLAT_MARGIN=" in text
+    assert "ENTRY_FOUNDATION_CANDIDATE_RESIDUAL_SCALE" in text
+    assert "ENTRY_FOUNDATION_CANDIDATE_ANCHOR_EPS" in text
+    assert 'ENTRY_RESIDUAL_SCALE="$CANDIDATE_RESIDUAL_SCALE"' in text
+    assert 'ENTRY_ANCHOR_EPS="$CANDIDATE_ANCHOR_EPS"' in text
+    assert "ENTRY_RESIDUAL_SCALE" in text
+    assert "ENTRY_ANCHOR_EPS" in text
     assert "ENTRY_HIER_LEGACY_CE_MULT=" in text
     assert "ENTRY_HIER_SIDE_VALIDITY_WEIGHT=" in text
     assert "ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS=" in text

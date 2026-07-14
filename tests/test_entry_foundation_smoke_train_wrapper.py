@@ -262,6 +262,12 @@ def test_smoke_train_wrapper_enforces_train_readiness_for_real_train() -> None:
     assert "ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION" in text
     assert "ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT" in text
     assert "ENTRY_DIRECTION_VS_FLAT_MARGIN" in text
+    assert "ENTRY_FOUNDATION_SMOKE_RESIDUAL_SCALE" in text
+    assert "ENTRY_FOUNDATION_SMOKE_ANCHOR_EPS" in text
+    assert 'ENTRY_RESIDUAL_SCALE="$SMOKE_RESIDUAL_SCALE"' in text
+    assert 'ENTRY_ANCHOR_EPS="$SMOKE_ANCHOR_EPS"' in text
+    assert "ENTRY_RESIDUAL_SCALE" in text
+    assert "ENTRY_ANCHOR_EPS" in text
     assert "ENTRY_HIER_LEGACY_CE_MULT" in text
     assert "ENTRY_HIER_SIDE_VALIDITY_WEIGHT" in text
     assert "ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS" in text

@@ -483,6 +483,8 @@ def test_smart_direction_balance_recipe_contract_requires_flat_repair_weights() 
             "trendline_rail_aux_weight": 1.00,
             "trendline_rail_wrong_side_weight": 1.50,
             "hier_legacy_ce_mult": 1.00,
+            "residual_scale": 0.35,
+            "anchor_eps": 1e-6,
             "anchor_gate_enabled": True,
             "anchor_gate_init": 0.0,
             "ckpt_monitor": "dir_acc",
@@ -549,6 +551,8 @@ def test_smart_direction_balance_recipe_contract_accepts_mtf_aux_repair_proof() 
             "trendline_rail_aux_weight": 1.00,
             "trendline_rail_wrong_side_weight": 1.50,
             "hier_legacy_ce_mult": 1.00,
+            "residual_scale": 0.35,
+            "anchor_eps": 1e-6,
             "anchor_gate_enabled": True,
             "anchor_gate_init": 0.0,
             "ckpt_monitor": "dir_acc",
@@ -637,6 +641,8 @@ def test_smart_direction_balance_recipe_contract_rejects_weak_flat_repair() -> N
     assert any("direction_min_pred_rate_loss_weight" in failure for failure in report["failures"])
     assert any("direction_vs_flat_margin_weight" in failure for failure in report["failures"])
     assert any("trendline_rail_head_enabled" in failure for failure in report["failures"])
+    assert any("residual_scale" in failure for failure in report["failures"])
+    assert any("anchor_eps" in failure for failure in report["failures"])
 
 
 def test_smart_direction_balance_recipe_contract_rejects_failed_best_checkpoint_guard() -> None:

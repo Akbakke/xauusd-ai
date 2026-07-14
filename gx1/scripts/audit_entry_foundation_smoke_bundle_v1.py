@@ -61,6 +61,8 @@ SMART_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE_MAX = 0.50
 SMART_DIRECTION_VS_FLAT_MARGIN_WEIGHT = 3.00
 SMART_DIRECTION_VS_FLAT_MARGIN = 0.05
 SMART_DIRECTION_HIER_LEGACY_CE_MULT_MIN = 1.00
+SMART_DIRECTION_RESIDUAL_SCALE = 0.35
+SMART_DIRECTION_ANCHOR_EPS = 1e-6
 SMART_DIRECTION_ANCHOR_GATE_INIT_MAX = 0.05
 SMART_DIRECTION_SIDE_VALIDITY_WEIGHT_MIN = 1.50
 SMART_DIRECTION_TRENDLINE_RAIL_AUX_WEIGHT_MIN = 1.00
@@ -992,6 +994,18 @@ def _direction_balance_recipe_contract(
             meta.get("hier_legacy_ce_mult", 0.0),
         )
     )
+    residual_scale = _safe_float(
+        recipe.get(
+            "residual_scale",
+            meta.get("residual_scale", -1.0),
+        )
+    )
+    anchor_eps = _safe_float(
+        recipe.get(
+            "anchor_eps",
+            meta.get("anchor_eps", -1.0),
+        )
+    )
     anchor_gate_enabled = bool(
         recipe.get(
             "anchor_gate_enabled",
@@ -1130,6 +1144,16 @@ def _direction_balance_recipe_contract(
                     "smart direction active head requires hier_legacy_ce_mult >= "
                     f"{SMART_DIRECTION_HIER_LEGACY_CE_MULT_MIN:.2f}"
                 )
+            if abs(residual_scale - SMART_DIRECTION_RESIDUAL_SCALE) > 1e-12:
+                failures.append(
+                    "smart direction active head requires residual_scale="
+                    f"{SMART_DIRECTION_RESIDUAL_SCALE:.2f}"
+                )
+            if abs(anchor_eps - SMART_DIRECTION_ANCHOR_EPS) > 1e-18:
+                failures.append(
+                    "smart direction active head requires anchor_eps="
+                    f"{SMART_DIRECTION_ANCHOR_EPS:.0e}"
+                )
             if not anchor_gate_enabled:
                 failures.append("smart direction active head requires anchor_gate_enabled=true")
             if anchor_gate_init > SMART_DIRECTION_ANCHOR_GATE_INIT_MAX:
@@ -1225,6 +1249,8 @@ def _direction_balance_recipe_contract(
         "trendline_rail_aux_weight": trendline_rail_aux_weight,
         "trendline_rail_wrong_side_weight": trendline_rail_wrong_side_weight,
         "hier_legacy_ce_mult": hier_legacy_ce_mult,
+        "residual_scale": residual_scale,
+        "anchor_eps": anchor_eps,
         "anchor_gate_enabled": anchor_gate_enabled,
         "anchor_gate_init": anchor_gate_init,
         "ckpt_monitor": ckpt_monitor,
