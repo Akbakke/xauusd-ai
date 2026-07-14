@@ -283,90 +283,14 @@ def test_entry_v10_direction_vs_flat_margin_term_penalizes_directional_flat_argm
     assert float(trainer._direction_vs_flat_margin_term(side_above_flat, targets).item()) < 1.0
 
 
-def test_entry_v10_direction_calibration_fallback_can_recover_marginal_flat_argmax(monkeypatch) -> None:
-    import numpy as np
+def test_entry_v10_direction_repair_fails_closed_without_calibration_fallback() -> None:
+    text = TRAINER_PATH.read_text(encoding="utf-8")
 
-    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
-
-    monkeypatch.setattr(trainer, "ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT", 0.50)
-    monkeypatch.setattr(trainer, "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL", 0.35)
-    monkeypatch.setattr(trainer, "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE", 0.05)
-
-    labels = np.asarray([0] * 200 + [1] * 200 + [2] * 200, dtype=np.int64)
-    logits = np.asarray(
-        [[1.05, 0.00, 1.10]] * 200
-        + [[0.00, 1.05, 1.10]] * 200
-        + [[0.00, 0.00, 1.10]] * 200,
-        dtype=np.float64,
-    )
-    raw_preds = np.argmax(logits, axis=1)
-    raw_stats = trainer._direction_ckpt_balance_stats(labels, raw_preds, float((raw_preds == labels).mean()))
-
-    payload = trainer._fit_direction_calibration_from_logits(
-        logits,
-        labels,
-        vedtak="PYTEST_DIRECTION_CAL_FALLBACK",
-        fitted_on_split="val",
-    )
-    calibrated_logits = logits / float(payload["temperature"]) + np.asarray(payload["bias"], dtype=np.float64)
-    calibrated_preds = np.argmax(calibrated_logits, axis=1)
-    calibrated_stats = trainer._direction_ckpt_balance_stats(
-        labels,
-        calibrated_preds,
-        float((calibrated_preds == labels).mean()),
-    )
-
-    assert raw_stats["direction_class_balance_guard_ok"] is False
-    assert raw_stats["direction_pred_rate_flat"] == 1.0
-    assert payload["enabled"] is True
-    assert payload["nll_after"] <= payload["nll_before"]
-    assert payload["equal_logit_long_short_odds_after"] <= 1.20
-    assert calibrated_stats["direction_class_balance_guard_ok"] is True
-
-
-def test_entry_v10_direction_calibration_guard_constrained_recovers_zero_long(monkeypatch) -> None:
-    import numpy as np
-
-    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
-
-    monkeypatch.setattr(trainer, "ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT", 0.50)
-    monkeypatch.setattr(trainer, "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL", 0.35)
-    monkeypatch.setattr(trainer, "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE", 0.05)
-
-    labels = np.asarray([0] * 240 + [1] * 240 + [2] * 240, dtype=np.int64)
-    logits = np.asarray(
-        [[0.60, 0.05, 1.00]] * 240
-        + [[0.05, 1.20, 1.00]] * 240
-        + [[0.10, 0.05, 1.00]] * 240,
-        dtype=np.float64,
-    )
-    raw_preds = np.argmax(logits, axis=1)
-    raw_stats = trainer._direction_ckpt_balance_stats(labels, raw_preds, float((raw_preds == labels).mean()))
-
-    payload = trainer._fit_direction_calibration_from_logits(
-        logits,
-        labels,
-        vedtak="PYTEST_DIRECTION_CAL_GUARD_CONSTRAINED",
-        fitted_on_split="val",
-        side_tied=False,
-        guard_constrained=True,
-    )
-    calibrated_logits = logits / float(payload["temperature"]) + np.asarray(payload["bias"], dtype=np.float64)
-    calibrated_preds = np.argmax(calibrated_logits, axis=1)
-    calibrated_stats = trainer._direction_ckpt_balance_stats(
-        labels,
-        calibrated_preds,
-        float((calibrated_preds == labels).mean()),
-    )
-
-    assert raw_stats["direction_class_balance_guard_ok"] is False
-    assert raw_stats["direction_pred_rate_long"] == 0.0
-    assert payload["mode"] == "guard_constrained_full_bias"
-    assert payload["nll_after"] <= payload["nll_before"]
-    assert payload["equal_logit_long_short_odds_after"] <= 4.00 + 1e-9
-    assert payload["hard_guard_fit_ok"] is True
-    assert calibrated_stats["direction_class_balance_guard_ok"] is True
-    assert calibrated_stats["direction_pred_rate_long"] > 0.0
+    assert "ENTRY_DIRECTION_CAL_FALLBACK" not in text
+    assert "fallback_candidates" not in text
+    assert "direction_calibration_guard_fallback_used" not in text
+    assert "run_train_xau_direction_repair_guard_fallback" not in text
+    assert "refusing to write a collapsed direction bundle" in text
 
 
 def test_entry_v10_direction_aux_loss_uses_sample_weight_and_balance() -> None:
