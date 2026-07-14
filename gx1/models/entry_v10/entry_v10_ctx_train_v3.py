@@ -312,6 +312,9 @@ ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE = float(_env_str("ENTRY_CKPT_CLASS_BALANC
 ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT = float(_env_str("ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT", "0.0"))
 ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION = float(_env_str("ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION", "0.0"))
 ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR = float(_env_str("ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR", "0.0"))
+ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE = float(
+    _env_str("ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE", "1.0")
+)
 ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT = float(
     _env_str("ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT", "0.0")
 )
@@ -529,6 +532,7 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT": "0.0",
     "ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION": "0.0",
     "ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR": "0.0",
+    "ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE": "1.0",
     "ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT": "0.0",
     "ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FRACTION": "0.0",
     "ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FLOOR": "0.0",
@@ -2477,7 +2481,8 @@ def _direction_min_pred_rate_term(
         return zero
     if probs.ndim != 2 or probs.shape[1] < 2:
         return zero
-    mean_probs = probs.mean(dim=0)
+    pred_rate_probs = _direction_pred_rate_probs(probs)
+    mean_probs = pred_rate_probs.mean(dim=0)
     counts = torch.bincount(targets, minlength=probs.shape[1]).to(device=probs.device, dtype=probs.dtype)
     counts = counts[: probs.shape[1]]
     label_rates = counts / counts.sum().clamp(min=1.0)
@@ -2490,6 +2495,17 @@ def _direction_min_pred_rate_term(
     required = torch.maximum(fraction_req, floor_req)
     deficit = torch.relu(required[active] - pred_rates[active])
     return weight * deficit.sum()
+
+
+def _direction_pred_rate_probs(probs: torch.Tensor) -> torch.Tensor:
+    temperature = float(ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE)
+    if abs(temperature - 1.0) <= 1e-12:
+        return probs
+    temperature = max(temperature, 1e-6)
+    return torch.softmax(
+        torch.log(torch.clamp(probs, min=torch.finfo(probs.dtype).tiny)) / temperature,
+        dim=1,
+    )
 
 
 def _direction_slice_ctx_cat_indices(ctx_cat_dim: int) -> list[int]:
@@ -2529,6 +2545,7 @@ def _direction_slice_min_pred_rate_term(
     if not indices:
         return zero
 
+    pred_rate_probs = _direction_pred_rate_probs(probs)
     total = torch.zeros((), device=probs.device, dtype=probs.dtype)
     slices = 0
     target_i = targets.long()
@@ -2548,7 +2565,7 @@ def _direction_slice_min_pred_rate_term(
             active = label_rates >= min_label_rate
             if not bool(active.any().detach().cpu().item()):
                 continue
-            pred_rates = probs[mask].mean(dim=0)
+            pred_rates = pred_rate_probs[mask].mean(dim=0)
             required = torch.maximum(
                 label_rates * fraction,
                 torch.full_like(label_rates, floor),
@@ -5953,6 +5970,10 @@ def run_train(
     _require_nonneg("ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION", ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION)
     _require_nonneg("ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR", ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR)
     _require_nonneg(
+        "ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE",
+        ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE,
+    )
+    _require_nonneg(
         "ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT",
         ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT,
     )
@@ -5986,6 +6007,12 @@ def run_train(
         raise RuntimeError(
             "[ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR_INVALID] "
             f"ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR={ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR:.6f} expected <=1.0"
+        )
+    if ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE <= 0.0:
+        raise RuntimeError(
+            "[ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE_INVALID] "
+            "ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE="
+            f"{ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE:.6f} expected >0.0"
         )
     if ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FRACTION > 1.0:
         raise RuntimeError(
@@ -6242,13 +6269,14 @@ def run_train(
         float(ENTRY_SPECIALIST_GATE_MIN_MEAN),
     )
     log.info(
-        "[ENTRY_DIRECTION_MIN_PRED_RATE_RECIPE] weight=%.3f fraction=%.3f floor=%.3f "
+        "[ENTRY_DIRECTION_MIN_PRED_RATE_RECIPE] weight=%.3f fraction=%.3f floor=%.3f temp=%.3f "
         "slice_w=%.3f slice_fraction=%.3f slice_floor=%.3f slice_min_rows=%d slice_min_label_rate=%.3f "
         "slice_ctx_cat=%s slice_recall_w=%.3f slice_recall_floor=%.3f slice_recall_min_rows=%d "
         "slice_recall_min_label_rate=%.3f flat_margin_w=%.3f flat_margin=%.3f",
         float(ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT),
         float(ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION),
         float(ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR),
+        float(ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE),
         float(ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT),
         float(ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FRACTION),
         float(ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FLOOR),
@@ -6899,6 +6927,9 @@ def run_train(
         "direction_min_pred_rate_loss_weight": float(ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT),
         "direction_min_pred_rate_fraction": float(ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION),
         "direction_min_pred_rate_floor": float(ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR),
+        "direction_min_pred_rate_softmax_temperature": float(
+            ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE
+        ),
         "direction_slice_min_pred_rate_loss_weight": float(ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT),
         "direction_slice_min_pred_rate_fraction": float(ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FRACTION),
         "direction_slice_min_pred_rate_floor": float(ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FLOOR),
@@ -6944,6 +6975,9 @@ def run_train(
             "direction_min_pred_rate_loss_weight": float(ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT),
             "direction_min_pred_rate_fraction": float(ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION),
             "direction_min_pred_rate_floor": float(ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR),
+            "direction_min_pred_rate_softmax_temperature": float(
+                ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE
+            ),
             "direction_slice_min_pred_rate_loss_weight": float(ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT),
             "direction_slice_min_pred_rate_fraction": float(ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FRACTION),
             "direction_slice_min_pred_rate_floor": float(ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FLOOR),

@@ -117,6 +117,7 @@ def test_entry_v10_direction_min_pred_rate_term_penalizes_active_class_collapse(
     monkeypatch.setattr(trainer, "ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT", 2.0)
     monkeypatch.setattr(trainer, "ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION", 0.50)
     monkeypatch.setattr(trainer, "ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR", 0.05)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE", 1.0)
 
     targets = torch.tensor([0, 0, 1, 1, 2, 2], dtype=torch.long)
     collapsed = torch.tensor(
@@ -158,6 +159,35 @@ def test_entry_v10_direction_min_pred_rate_term_penalizes_active_class_collapse(
     assert float(trainer._direction_min_pred_rate_term(balanced_enough, targets).item()) == 0.0
 
 
+def test_entry_v10_direction_min_pred_rate_temperature_tracks_argmax_collapse(monkeypatch) -> None:
+    import torch
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT", 2.0)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION", 0.50)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR", 0.05)
+
+    targets = torch.tensor([0, 0, 1, 1, 2, 2], dtype=torch.long)
+    same_argmax = torch.tensor(
+        [
+            [0.45, 0.35, 0.20],
+            [0.45, 0.35, 0.20],
+            [0.45, 0.35, 0.20],
+            [0.45, 0.35, 0.20],
+            [0.45, 0.35, 0.20],
+            [0.45, 0.35, 0.20],
+        ],
+        dtype=torch.float32,
+    )
+
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE", 1.0)
+    assert float(trainer._direction_min_pred_rate_term(same_argmax, targets).item()) == 0.0
+
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE", 0.10)
+    assert float(trainer._direction_min_pred_rate_term(same_argmax, targets).item()) > 0.0
+
+
 def test_entry_v10_direction_slice_min_pred_rate_term_penalizes_dead_slice_class(monkeypatch) -> None:
     import torch
 
@@ -166,6 +196,7 @@ def test_entry_v10_direction_slice_min_pred_rate_term_penalizes_dead_slice_class
     monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT", 3.0)
     monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FRACTION", 0.50)
     monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FLOOR", 0.05)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE", 1.0)
     monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_MIN_LABEL_RATE", 0.10)
     monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_MIN_ROWS", 3)
     monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES", "0")
