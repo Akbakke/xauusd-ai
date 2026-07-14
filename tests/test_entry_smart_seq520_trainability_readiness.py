@@ -69,6 +69,8 @@ def _direction_balance_wrapper_text(kind: str) -> str:
             "DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT=2.50",
             "DIRECTION_MIN_PRED_RATE_FRACTION=0.50",
             "DIRECTION_MIN_PRED_RATE_FLOOR=0.05",
+            "DIRECTION_VS_FLAT_MARGIN_WEIGHT=4.00",
+            "DIRECTION_VS_FLAT_MARGIN=0.10",
             "HIER_LEGACY_CE_MULT=1.00",
             "HIER_SIDE_VALIDITY_WEIGHT=1.50",
             "HIER_POCKET_ABSTAIN_WEIGHT=5.00",

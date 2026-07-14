@@ -312,6 +312,8 @@ ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE = float(_env_str("ENTRY_CKPT_CLASS_BALANC
 ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT = float(_env_str("ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT", "0.0"))
 ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION = float(_env_str("ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION", "0.0"))
 ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR = float(_env_str("ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR", "0.0"))
+ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT = float(_env_str("ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT", "0.0"))
+ENTRY_DIRECTION_VS_FLAT_MARGIN = float(_env_str("ENTRY_DIRECTION_VS_FLAT_MARGIN", "0.0"))
 
 # -----------------------------------------------------------------------------
 # Timing loss (early adverse move penalty)
@@ -500,6 +502,8 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT": "0.0",
     "ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION": "0.0",
     "ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR": "0.0",
+    "ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT": "0.0",
+    "ENTRY_DIRECTION_VS_FLAT_MARGIN": "0.0",
     "ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT": "0.0",
     "ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT": "0.0",
     "ENTRY_SPECIALIST_GATE_MIN_MEAN": "0.01",
@@ -2399,6 +2403,9 @@ class CostSensitiveCrossEntropyLoss(nn.Module):
         min_pred_rate_loss = _direction_min_pred_rate_term(probs, targets)
         if min_pred_rate_loss.numel() == 1:
             loss = loss + min_pred_rate_loss
+        flat_margin_loss = _direction_vs_flat_margin_term(logits, targets)
+        if flat_margin_loss.numel() == 1:
+            loss = loss + flat_margin_loss
         return loss.mean()
 
 
@@ -2446,6 +2453,26 @@ def _direction_min_pred_rate_term(
     required = torch.maximum(fraction_req, floor_req)
     deficit = torch.relu(required[active_side] - side_pred_rates[active_side])
     return weight * deficit.sum()
+
+
+def _direction_vs_flat_margin_term(
+    logits: torch.Tensor,
+    targets: torch.Tensor,
+) -> torch.Tensor:
+    zero = torch.zeros((), device=logits.device, dtype=logits.dtype)
+    weight = float(ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT)
+    if weight <= 0.0:
+        return zero
+    if logits.ndim != 2 or logits.shape[1] < 3:
+        return zero
+    target = targets.long()
+    directional = (target == 0) | (target == 1)
+    if not bool(directional.any().detach().cpu().item()):
+        return zero
+    side_logits = logits[directional].gather(1, target[directional].view(-1, 1)).squeeze(1)
+    flat_logits = logits[directional, 2]
+    margin = max(0.0, float(ENTRY_DIRECTION_VS_FLAT_MARGIN))
+    return weight * nn.functional.softplus(flat_logits - side_logits + margin).mean()
 
 
 def _build_cost_sensitive_criterion(
@@ -3282,6 +3309,7 @@ def train_epoch(
     total_ce = 0.0
     total_cost = 0.0
     total_balance = 0.0
+    total_direction_flat_margin = 0.0
     total_tail_direction = 0.0
     total_timing = 0.0
     total_aux_early = 0.0
@@ -3416,12 +3444,13 @@ def train_epoch(
         cost_term = torch.tensor(0.0, device=device)
         balance_term = _direction_balance_term(probs, y, criterion)
         min_pred_rate_term = _direction_min_pred_rate_term(probs, y)
+        direction_flat_margin_term = _direction_vs_flat_margin_term(logits, y)
         if bool(getattr(criterion, "enabled", False)):
             cost = criterion.cost_matrix.to(dtype=logits.dtype)[y]
             expected_cost = (cost * probs).sum(dim=1)
             cost_term = float(getattr(criterion, "cost_scale", 1.0)) * expected_cost.mean()
 
-        loss = ce_loss + cost_term + balance_term + min_pred_rate_term
+        loss = ce_loss + cost_term + balance_term + min_pred_rate_term + direction_flat_margin_term
         if float(ENTRY_TAIL_DIRECTION_CE_WEIGHT) > 0.0:
             loss = loss + tail_direction_loss
         if float(ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT) > 0.0 or float(ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT) > 0.0:
@@ -3663,6 +3692,7 @@ def train_epoch(
         total_ce += float(ce_loss) * bs
         total_cost += float(cost_term.detach().cpu().item()) * bs
         total_balance += float(balance_term.detach().cpu().item()) * bs
+        total_direction_flat_margin += float(direction_flat_margin_term.detach().cpu().item()) * bs
         total_tail_direction += float(tail_direction_loss.detach().cpu().item()) * bs
         tail_direction_rows += int(tail_direction_mask.sum().detach().cpu().item())
         specialist_gate_loss_sum += float(specialist_gate_loss.detach().cpu().item()) * bs
@@ -3713,6 +3743,7 @@ def train_epoch(
         "ce_loss_mean": (total_ce / max(1, n)),
         "cost_loss_mean": (total_cost / max(1, n)),
         "balance_loss_mean": (total_balance / max(1, n)),
+        "direction_flat_margin_loss_mean": (total_direction_flat_margin / max(1, n)),
         "tail_direction_loss_mean": (total_tail_direction / max(1, n)),
         "tail_direction_rows": int(tail_direction_rows),
         "specialist_gate_loss_mean": (specialist_gate_loss_sum / max(1, n)),
@@ -3972,6 +4003,7 @@ def validate(
     total_ce = 0.0
     total_cost = 0.0
     total_balance = 0.0
+    total_direction_flat_margin = 0.0
     total_tail_direction = 0.0
     bad_path_quality_rank_loss_sum = 0.0
     path_quality_rank_loss_sum = 0.0
@@ -4114,12 +4146,13 @@ def validate(
             cost_term = torch.tensor(0.0, device=device)
             balance_term = _direction_balance_term(probs, y, criterion)
             min_pred_rate_term = _direction_min_pred_rate_term(probs, y)
+            direction_flat_margin_term = _direction_vs_flat_margin_term(logits, y)
             if bool(getattr(criterion, "enabled", False)):
                 cost = criterion.cost_matrix.to(dtype=logits.dtype)[y]
                 expected_cost = (cost * probs).sum(dim=1)
                 cost_term = float(getattr(criterion, "cost_scale", 1.0)) * expected_cost.mean()
 
-            loss = ce_loss + cost_term + balance_term + min_pred_rate_term
+            loss = ce_loss + cost_term + balance_term + min_pred_rate_term + direction_flat_margin_term
             if float(ENTRY_TAIL_DIRECTION_CE_WEIGHT) > 0.0:
                 loss = loss + tail_direction_loss
             if float(ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT) > 0.0:
@@ -4281,6 +4314,7 @@ def validate(
             total_ce += float(ce_loss) * bs
             total_cost += float(cost_term.detach().cpu().item()) * bs
             total_balance += float(balance_term.detach().cpu().item()) * bs
+            total_direction_flat_margin += float(direction_flat_margin_term.detach().cpu().item()) * bs
             total_tail_direction += float(tail_direction_loss.detach().cpu().item()) * bs
             tail_direction_rows += int(tail_direction_mask.sum().detach().cpu().item())
             bad_path_quality_rank_loss_sum += float(bad_path_quality_rank_loss.detach().cpu().item()) * bs
@@ -4348,6 +4382,7 @@ def validate(
         "ce_loss_mean": (total_ce / max(1, n)),
         "cost_loss_mean": (total_cost / max(1, n)),
         "balance_loss_mean": (total_balance / max(1, n)),
+        "direction_flat_margin_loss_mean": (total_direction_flat_margin / max(1, n)),
         "tail_direction_loss_mean": (total_tail_direction / max(1, n)),
         "tail_direction_rows": int(tail_direction_rows),
         "bad_path_quality_rank_loss_mean": (bad_path_quality_rank_loss_sum / max(1, n)),
@@ -5589,6 +5624,8 @@ def run_train(
     _require_nonneg("ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT", ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT)
     _require_nonneg("ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION", ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION)
     _require_nonneg("ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR", ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR)
+    _require_nonneg("ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT", ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT)
+    _require_nonneg("ENTRY_DIRECTION_VS_FLAT_MARGIN", ENTRY_DIRECTION_VS_FLAT_MARGIN)
     if ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL > 1.0:
         raise RuntimeError(
             "[ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL_INVALID] "
@@ -5688,6 +5725,16 @@ def run_train(
             repair_failures.append(
                 "ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR="
                 f"{ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR:.3f} expected >=0.05"
+            )
+        if ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT < 3.0:
+            repair_failures.append(
+                "ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT="
+                f"{ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT:.3f} expected >=3.0"
+            )
+        if ENTRY_DIRECTION_VS_FLAT_MARGIN < 0.05:
+            repair_failures.append(
+                "ENTRY_DIRECTION_VS_FLAT_MARGIN="
+                f"{ENTRY_DIRECTION_VS_FLAT_MARGIN:.3f} expected >=0.05"
             )
         if ENTRY_HIER_LEGACY_CE_MULT < 1.0:
             repair_failures.append(f"ENTRY_HIER_LEGACY_CE_MULT={ENTRY_HIER_LEGACY_CE_MULT:.3f} expected >=1.0")
@@ -5826,10 +5873,12 @@ def run_train(
         float(ENTRY_SPECIALIST_GATE_MIN_MEAN),
     )
     log.info(
-        "[ENTRY_DIRECTION_MIN_PRED_RATE_RECIPE] weight=%.3f fraction=%.3f floor=%.3f",
+        "[ENTRY_DIRECTION_MIN_PRED_RATE_RECIPE] weight=%.3f fraction=%.3f floor=%.3f flat_margin_w=%.3f flat_margin=%.3f",
         float(ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT),
         float(ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION),
         float(ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR),
+        float(ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT),
+        float(ENTRY_DIRECTION_VS_FLAT_MARGIN),
     )
     log.info(
         "[ENTRY_BAD_PATH_RANK_RECIPE] weight=%.3f margin=%.3f quantile=%.3f",
@@ -6003,9 +6052,10 @@ def run_train(
                 ratio,
             )
             log.info(
-                "[ENTRY_LOSS_SUMMARY] split=val epoch=%d ce=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_side=%.6f hier_side_acc=%.4f total=%.6f",
+                "[ENTRY_LOSS_SUMMARY] split=val epoch=%d ce=%.6f flat_margin=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_side=%.6f hier_side_acc=%.4f total=%.6f",
                 epoch + 1,
                 float(val_stats.get("ce_loss_mean", 0.0)),
+                float(val_stats.get("direction_flat_margin_loss_mean", 0.0)),
                 float(val_stats.get("tail_direction_loss_mean", 0.0)),
                 int(val_stats.get("tail_direction_rows", 0)),
                 float(val_stats.get("aux_path_loss_mean", 0.0)),
@@ -6048,9 +6098,10 @@ def run_train(
         )
         if tr_stats:
             log.info(
-                "[ENTRY_LOSS_SUMMARY] split=train epoch=%d ce=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_side=%.6f hier_side_acc=%.4f total=%.6f",
+                "[ENTRY_LOSS_SUMMARY] split=train epoch=%d ce=%.6f flat_margin=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_side=%.6f hier_side_acc=%.4f total=%.6f",
                 epoch + 1,
                 float(tr_stats.get("ce_loss_mean", 0.0)),
+                float(tr_stats.get("direction_flat_margin_loss_mean", 0.0)),
                 float(tr_stats.get("tail_direction_loss_mean", 0.0)),
                 int(tr_stats.get("tail_direction_rows", 0)),
                 float(tr_stats.get("aux_path_loss_mean", 0.0)),
@@ -6440,6 +6491,8 @@ def run_train(
         "direction_min_pred_rate_loss_weight": float(ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT),
         "direction_min_pred_rate_fraction": float(ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION),
         "direction_min_pred_rate_floor": float(ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR),
+        "direction_vs_flat_margin_weight": float(ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT),
+        "direction_vs_flat_margin": float(ENTRY_DIRECTION_VS_FLAT_MARGIN),
         "tail_direction_ce_weight": float(ENTRY_TAIL_DIRECTION_CE_WEIGHT),
         "tail_direction_quality_quantile": float(ENTRY_TAIL_DIRECTION_QUALITY_QUANTILE),
         "tail_direction_min_batch": int(ENTRY_TAIL_DIRECTION_MIN_BATCH),
@@ -6473,6 +6526,8 @@ def run_train(
             "direction_min_pred_rate_loss_weight": float(ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT),
             "direction_min_pred_rate_fraction": float(ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION),
             "direction_min_pred_rate_floor": float(ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR),
+            "direction_vs_flat_margin_weight": float(ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT),
+            "direction_vs_flat_margin": float(ENTRY_DIRECTION_VS_FLAT_MARGIN),
             "residual_scale": float(ENTRY_RESIDUAL_SCALE),
             "anchor_gate_enabled": bool(enable_anchor_gate),
             "anchor_gate_init": float(anchor_gate_init),

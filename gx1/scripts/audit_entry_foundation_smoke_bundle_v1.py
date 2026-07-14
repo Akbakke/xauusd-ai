@@ -57,6 +57,8 @@ SMART_DIRECTION_CKPT_BALANCE_MIN_PRED_RATE = 0.05
 SMART_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT = 2.50
 SMART_DIRECTION_MIN_PRED_RATE_FRACTION = 0.50
 SMART_DIRECTION_MIN_PRED_RATE_FLOOR = 0.05
+SMART_DIRECTION_VS_FLAT_MARGIN_WEIGHT = 3.00
+SMART_DIRECTION_VS_FLAT_MARGIN = 0.05
 SMART_DIRECTION_HIER_LEGACY_CE_MULT_MIN = 1.00
 SMART_DIRECTION_ANCHOR_GATE_INIT_MAX = 0.05
 SMART_DIRECTION_SIDE_VALIDITY_WEIGHT_MIN = 1.50
@@ -1040,6 +1042,18 @@ def _direction_balance_recipe_contract(
             meta.get("direction_min_pred_rate_floor", 0.0),
         )
     )
+    direction_vs_flat_margin_weight = _safe_float(
+        recipe.get(
+            "direction_vs_flat_margin_weight",
+            meta.get("direction_vs_flat_margin_weight", 0.0),
+        )
+    )
+    direction_vs_flat_margin = _safe_float(
+        recipe.get(
+            "direction_vs_flat_margin",
+            meta.get("direction_vs_flat_margin", 0.0),
+        )
+    )
     best_direction_balance_guard_ok = meta.get("best_direction_balance_guard_ok")
     ckpt_balance_guard_required = (
         ckpt_class_balance_guard_weight > 0.0
@@ -1139,6 +1153,16 @@ def _direction_balance_recipe_contract(
                     "smart direction active head requires direction_min_pred_rate_floor >= "
                     f"{SMART_DIRECTION_MIN_PRED_RATE_FLOOR:.2f}"
                 )
+            if direction_vs_flat_margin_weight < SMART_DIRECTION_VS_FLAT_MARGIN_WEIGHT:
+                failures.append(
+                    "smart direction active head requires direction_vs_flat_margin_weight >= "
+                    f"{SMART_DIRECTION_VS_FLAT_MARGIN_WEIGHT:.2f}"
+                )
+            if direction_vs_flat_margin < SMART_DIRECTION_VS_FLAT_MARGIN:
+                failures.append(
+                    "smart direction active head requires direction_vs_flat_margin >= "
+                    f"{SMART_DIRECTION_VS_FLAT_MARGIN:.2f}"
+                )
             if enable_mtf_direction_head and not mtf_dir_aux_weight_present:
                 failures.append(
                     "smart direction active head with MTF aux head enabled requires "
@@ -1183,6 +1207,8 @@ def _direction_balance_recipe_contract(
         "direction_min_pred_rate_loss_weight": direction_min_pred_rate_loss_weight,
         "direction_min_pred_rate_fraction": direction_min_pred_rate_fraction,
         "direction_min_pred_rate_floor": direction_min_pred_rate_floor,
+        "direction_vs_flat_margin_weight": direction_vs_flat_margin_weight,
+        "direction_vs_flat_margin": direction_vs_flat_margin,
         "ckpt_balance_guard_required": ckpt_balance_guard_required,
         "best_direction_balance_guard_ok": best_direction_balance_guard_ok,
         "failures": failures,

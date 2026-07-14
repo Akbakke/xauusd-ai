@@ -132,6 +132,14 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
         'CANDIDATE_DIRECTION_MIN_PRED_RATE_FLOOR="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_MIN_PRED_RATE_FLOOR:-0.0}"'
         in text
     )
+    assert (
+        'CANDIDATE_DIRECTION_VS_FLAT_MARGIN_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_VS_FLAT_MARGIN_WEIGHT:-0.0}"'
+        in text
+    )
+    assert (
+        'CANDIDATE_DIRECTION_VS_FLAT_MARGIN="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_VS_FLAT_MARGIN:-0.0}"'
+        in text
+    )
     assert 'CANDIDATE_HIER_LEGACY_CE_MULT="${ENTRY_FOUNDATION_CANDIDATE_HIER_LEGACY_CE_MULT:-0.35}"' in text
     assert (
         'CANDIDATE_HIER_SIDE_VALIDITY_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_HIER_SIDE_VALIDITY_WEIGHT:-0.0}"'
@@ -211,6 +219,8 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT=" in text
     assert "ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION=" in text
     assert "ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR=" in text
+    assert "ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT=" in text
+    assert "ENTRY_DIRECTION_VS_FLAT_MARGIN=" in text
     assert "ENTRY_HIER_LEGACY_CE_MULT=" in text
     assert "ENTRY_HIER_SIDE_VALIDITY_WEIGHT=" in text
     assert "ENTRY_HIER_SIDE_VALIDITY_MIN_UTILITY_BPS=" in text
@@ -269,6 +279,8 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "CANDIDATE_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT=2.50" in text
     assert "CANDIDATE_DIRECTION_MIN_PRED_RATE_FRACTION=0.50" in text
     assert "CANDIDATE_DIRECTION_MIN_PRED_RATE_FLOOR=0.05" in text
+    assert "CANDIDATE_DIRECTION_VS_FLAT_MARGIN_WEIGHT=4.00" in text
+    assert "CANDIDATE_DIRECTION_VS_FLAT_MARGIN=0.10" in text
     assert "CANDIDATE_HIER_LEGACY_CE_MULT=1.00" in text
     assert "CANDIDATE_HIER_TRADE_WEIGHT=2.00" in text
     assert "CANDIDATE_HIER_SIDE_WEIGHT=1.75" in text

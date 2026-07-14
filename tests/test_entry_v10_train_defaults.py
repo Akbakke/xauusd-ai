@@ -146,6 +146,36 @@ def test_entry_v10_direction_min_pred_rate_term_penalizes_active_side_collapse(m
     assert float(trainer._direction_min_pred_rate_term(balanced_enough, targets).item()) == 0.0
 
 
+def test_entry_v10_direction_vs_flat_margin_term_penalizes_directional_flat_argmax(monkeypatch) -> None:
+    import torch
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT", 4.0)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_VS_FLAT_MARGIN", 0.10)
+
+    targets = torch.tensor([0, 1, 2], dtype=torch.long)
+    collapsed = torch.tensor(
+        [
+            [0.0, -1.0, 1.0],
+            [-1.0, 0.0, 1.0],
+            [-1.0, 0.0, 1.0],
+        ],
+        dtype=torch.float32,
+    )
+    side_above_flat = torch.tensor(
+        [
+            [2.0, -1.0, 0.0],
+            [-1.0, 2.0, 0.0],
+            [-1.0, 0.0, 1.0],
+        ],
+        dtype=torch.float32,
+    )
+
+    assert float(trainer._direction_vs_flat_margin_term(collapsed, targets).item()) > 4.0
+    assert float(trainer._direction_vs_flat_margin_term(side_above_flat, targets).item()) < 1.0
+
+
 def test_entry_v10_direction_aux_loss_uses_sample_weight_and_balance() -> None:
     import torch
 
