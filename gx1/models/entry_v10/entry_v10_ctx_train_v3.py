@@ -335,6 +335,7 @@ ENTRY_DIRECTION_SLICE_RECALL_MIN_LABEL_RATE = float(
 ENTRY_DIRECTION_SLICE_RECALL_MIN_ROWS = int(
     float(_env_str("ENTRY_DIRECTION_SLICE_RECALL_MIN_ROWS", str(ENTRY_DIRECTION_SLICE_MIN_ROWS)))
 )
+ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION = _env_str("ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION", "mean").strip().lower()
 ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT = float(_env_str("ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT", "0.0"))
 ENTRY_DIRECTION_VS_FLAT_MARGIN = float(_env_str("ENTRY_DIRECTION_VS_FLAT_MARGIN", "0.0"))
 
@@ -344,6 +345,7 @@ _DIRECTION_AUDIT_MIN_PRED_TO_LABEL = 0.35
 _DIRECTION_AUDIT_MIN_SLICE_ROWS = 64
 _DIRECTION_SLICE_CKPT_FAILURE_PENALTY = 0.02
 _DIRECTION_SLICE_CKPT_DEFICIT_PENALTY = 0.25
+_DIRECTION_SLICE_LOSS_AGGREGATIONS = {"mean", "max", "mean_max", "sum", "sqrt"}
 
 # -----------------------------------------------------------------------------
 # Timing loss (early adverse move penalty)
@@ -543,6 +545,7 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_DIRECTION_SLICE_RECALL_PROB_FLOOR": "0.30",
     "ENTRY_DIRECTION_SLICE_RECALL_MIN_LABEL_RATE": "0.10",
     "ENTRY_DIRECTION_SLICE_RECALL_MIN_ROWS": "8",
+    "ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION": "mean",
     "ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT": "0.0",
     "ENTRY_DIRECTION_VS_FLAT_MARGIN": "0.0",
     "ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT": "0.0",
@@ -2523,6 +2526,30 @@ def _direction_slice_ctx_cat_indices(ctx_cat_dim: int) -> list[int]:
     return sorted(set(out))
 
 
+def _direction_slice_loss_aggregate(values: list[torch.Tensor]) -> torch.Tensor:
+    if not values:
+        raise RuntimeError("[ENTRY_DIRECTION_SLICE_LOSS_EMPTY]")
+    stacked = torch.stack(values)
+    mode = str(ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION or "mean").strip().lower()
+    if mode == "mean":
+        return stacked.mean()
+    if mode == "max":
+        return stacked.max()
+    if mode == "mean_max":
+        return stacked.mean() + stacked.max()
+    if mode == "sum":
+        return stacked.sum()
+    if mode == "sqrt":
+        denom = torch.sqrt(
+            torch.as_tensor(float(stacked.numel()), device=stacked.device, dtype=stacked.dtype)
+        )
+        return stacked.sum() / denom
+    raise RuntimeError(
+        "[ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION_INVALID] "
+        f"ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION={ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION!r}"
+    )
+
+
 def _direction_slice_min_pred_rate_term(
     probs: torch.Tensor,
     targets: torch.Tensor,
@@ -2546,12 +2573,11 @@ def _direction_slice_min_pred_rate_term(
         return zero
 
     pred_rate_probs = _direction_pred_rate_probs(probs)
-    total = torch.zeros((), device=probs.device, dtype=probs.dtype)
-    slices = 0
+    values: list[torch.Tensor] = []
     target_i = targets.long()
     for idx in indices:
-        values = torch.unique(ctx_cat[:, idx].long())
-        for value in values:
+        slice_values = torch.unique(ctx_cat[:, idx].long())
+        for value in slice_values:
             mask = ctx_cat[:, idx].long() == value
             rows = int(mask.sum().detach().cpu().item())
             if rows < min_rows:
@@ -2570,11 +2596,10 @@ def _direction_slice_min_pred_rate_term(
                 label_rates * fraction,
                 torch.full_like(label_rates, floor),
             )
-            total = total + torch.relu(required[active] - pred_rates[active]).sum()
-            slices += 1
-    if slices <= 0:
+            values.append(torch.relu(required[active] - pred_rates[active]).sum())
+    if not values:
         return zero
-    return weight * total / float(slices)
+    return weight * _direction_slice_loss_aggregate(values)
 
 
 def _direction_slice_recall_prob_term(
@@ -2598,12 +2623,11 @@ def _direction_slice_recall_prob_term(
     if not indices:
         return zero
 
-    total = torch.zeros((), device=probs.device, dtype=probs.dtype)
-    terms = 0
+    values: list[torch.Tensor] = []
     target_i = targets.long()
     for idx in indices:
-        values = torch.unique(ctx_cat[:, idx].long())
-        for value in values:
+        slice_values = torch.unique(ctx_cat[:, idx].long())
+        for value in slice_values:
             mask = ctx_cat[:, idx].long() == value
             rows = int(mask.sum().detach().cpu().item())
             if rows < min_rows:
@@ -2624,11 +2648,10 @@ def _direction_slice_recall_prob_term(
                 if class_rows <= 0:
                     continue
                 class_prob = slice_probs[class_mask, int(cls)].mean()
-                total = total + torch.relu(torch.as_tensor(prob_floor, device=probs.device, dtype=probs.dtype) - class_prob)
-                terms += 1
-    if terms <= 0:
+                values.append(torch.relu(torch.as_tensor(prob_floor, device=probs.device, dtype=probs.dtype) - class_prob))
+    if not values:
         return zero
-    return weight * total / float(terms)
+    return weight * _direction_slice_loss_aggregate(values)
 
 
 def _direction_vs_flat_margin_term(
@@ -6048,6 +6071,12 @@ def run_train(
             f"ENTRY_DIRECTION_SLICE_RECALL_MIN_LABEL_RATE={ENTRY_DIRECTION_SLICE_RECALL_MIN_LABEL_RATE:.6f} "
             "expected <=1.0"
         )
+    if ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION not in _DIRECTION_SLICE_LOSS_AGGREGATIONS:
+        raise RuntimeError(
+            "[ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION_INVALID] "
+            f"ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION={ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION!r} "
+            f"expected one of {sorted(_DIRECTION_SLICE_LOSS_AGGREGATIONS)}"
+        )
     if bool(enable_side_validity_head) and ENTRY_HIER_SIDE_VALIDITY_WEIGHT <= 0.0:
         raise RuntimeError(
             "[ENTRY_SIDE_VALIDITY_HEAD_UNTRAINED] enable_side_validity_head=true requires "
@@ -6278,7 +6307,7 @@ def run_train(
         "[ENTRY_DIRECTION_MIN_PRED_RATE_RECIPE] weight=%.3f fraction=%.3f floor=%.3f temp=%.3f "
         "slice_w=%.3f slice_fraction=%.3f slice_floor=%.3f slice_min_rows=%d slice_min_label_rate=%.3f "
         "slice_ctx_cat=%s slice_recall_w=%.3f slice_recall_floor=%.3f slice_recall_min_rows=%d "
-        "slice_recall_min_label_rate=%.3f flat_margin_w=%.3f flat_margin=%.3f",
+        "slice_recall_min_label_rate=%.3f slice_agg=%s flat_margin_w=%.3f flat_margin=%.3f",
         float(ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT),
         float(ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION),
         float(ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR),
@@ -6293,6 +6322,7 @@ def run_train(
         float(ENTRY_DIRECTION_SLICE_RECALL_PROB_FLOOR),
         int(ENTRY_DIRECTION_SLICE_RECALL_MIN_ROWS),
         float(ENTRY_DIRECTION_SLICE_RECALL_MIN_LABEL_RATE),
+        str(ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION),
         float(ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT),
         float(ENTRY_DIRECTION_VS_FLAT_MARGIN),
     )
@@ -6950,6 +6980,7 @@ def run_train(
         "direction_slice_recall_prob_floor": float(ENTRY_DIRECTION_SLICE_RECALL_PROB_FLOOR),
         "direction_slice_recall_min_label_rate": float(ENTRY_DIRECTION_SLICE_RECALL_MIN_LABEL_RATE),
         "direction_slice_recall_min_rows": int(ENTRY_DIRECTION_SLICE_RECALL_MIN_ROWS),
+        "direction_slice_loss_aggregation": str(ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION),
         "direction_vs_flat_margin_weight": float(ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT),
         "direction_vs_flat_margin": float(ENTRY_DIRECTION_VS_FLAT_MARGIN),
         "tail_direction_ce_weight": float(ENTRY_TAIL_DIRECTION_CE_WEIGHT),
@@ -6998,6 +7029,7 @@ def run_train(
             "direction_slice_recall_prob_floor": float(ENTRY_DIRECTION_SLICE_RECALL_PROB_FLOOR),
             "direction_slice_recall_min_label_rate": float(ENTRY_DIRECTION_SLICE_RECALL_MIN_LABEL_RATE),
             "direction_slice_recall_min_rows": int(ENTRY_DIRECTION_SLICE_RECALL_MIN_ROWS),
+            "direction_slice_loss_aggregation": str(ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION),
             "direction_vs_flat_margin_weight": float(ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT),
             "direction_vs_flat_margin": float(ENTRY_DIRECTION_VS_FLAT_MARGIN),
             "residual_scale": float(ENTRY_RESIDUAL_SCALE),

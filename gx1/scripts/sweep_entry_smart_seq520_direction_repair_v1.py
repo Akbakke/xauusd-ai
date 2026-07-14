@@ -90,6 +90,7 @@ FIXED_ENV: dict[str, str] = {
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_RECALL_PROB_FLOOR": "0.30",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_RECALL_MIN_LABEL_RATE": "0.10",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_RECALL_MIN_ROWS": "8",
+    "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_LOSS_AGGREGATION": "mean_max",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_VS_FLAT_MARGIN_WEIGHT": "4.00",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_VS_FLAT_MARGIN": "0.10",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_LEGACY_CE_MULT": "1.00",
@@ -155,6 +156,8 @@ def lint_trial_env(env: dict[str, str]) -> list[str]:
     slice_recall_weight = float(env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_RECALL_LOSS_WEIGHT", "0"))
     if slice_recall_weight < 0.0:
         failures.append(f"DIRECTION_SLICE_RECALL_LOSS_WEIGHT must be non-negative, got {slice_recall_weight}")
+    if env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_LOSS_AGGREGATION") != "mean_max":
+        failures.append("DIRECTION_SLICE_LOSS_AGGREGATION must stay mean_max for strict XAU repair")
     if bad_path_penalty != 0.0:
         failures.append(f"BAD_PATH_PROB_PENALTY must stay 0.0, got {bad_path_penalty}")
     if anchor_gate != 0.0:

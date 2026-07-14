@@ -61,6 +61,7 @@ def test_smoke_train_dry_run_prints_post_smoke_audit_command() -> None:
     assert "ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE=1.0" in result.stdout
     assert "ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT=0.0" in result.stdout
     assert "ENTRY_DIRECTION_SLICE_RECALL_LOSS_WEIGHT=0.0" in result.stdout
+    assert "ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION=mean" in result.stdout
     assert "ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT=0.0" in result.stdout
     assert "ENTRY_DIRECTION_VS_FLAT_MARGIN=0.0" in result.stdout
     assert "ENTRY_HIER_LEGACY_CE_MULT=0.35" in result.stdout
@@ -119,6 +120,7 @@ def test_smart_smoke_dry_run_uses_xau_direction_repair_recipe() -> None:
     assert "ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FRACTION=0.50" in result.stdout
     assert "ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FLOOR=0.05" in result.stdout
     assert "ENTRY_DIRECTION_SLICE_RECALL_LOSS_WEIGHT=4.00" in result.stdout
+    assert "ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION=mean_max" in result.stdout
     assert "ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT=4.00" in result.stdout
     assert "ENTRY_DIRECTION_VS_FLAT_MARGIN=0.10" in result.stdout
     assert "ENTRY_HIER_LEGACY_CE_MULT=1.00" in result.stdout
@@ -252,6 +254,7 @@ def test_smoke_train_wrapper_enforces_train_readiness_for_real_train() -> None:
     assert "ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION" in text
     assert "ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR" in text
     assert "ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE" in text
+    assert "ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION" in text
     assert "ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT" in text
     assert "ENTRY_DIRECTION_VS_FLAT_MARGIN" in text
     assert "ENTRY_HIER_LEGACY_CE_MULT" in text
@@ -311,6 +314,7 @@ def test_smoke_train_wrapper_enforces_train_readiness_for_real_train() -> None:
     assert "SMOKE_DIRECTION_SLICE_MIN_PRED_RATE_FRACTION=0.50" in text
     assert "SMOKE_DIRECTION_SLICE_MIN_PRED_RATE_FLOOR=0.05" in text
     assert "SMOKE_DIRECTION_SLICE_RECALL_LOSS_WEIGHT=4.00" in text
+    assert "SMOKE_DIRECTION_SLICE_LOSS_AGGREGATION=mean_max" in text
     assert "SMOKE_DIRECTION_VS_FLAT_MARGIN_WEIGHT=4.00" in text
     assert "SMOKE_DIRECTION_VS_FLAT_MARGIN=0.10" in text
     assert "SMOKE_HIER_LEGACY_CE_MULT=1.00" in text

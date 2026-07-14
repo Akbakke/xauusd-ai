@@ -230,6 +230,48 @@ def test_entry_v10_direction_slice_min_pred_rate_term_penalizes_dead_slice_class
     assert float(trainer._direction_slice_min_pred_rate_term(covered, targets, ctx_cat).item()) == 0.0
 
 
+def test_entry_v10_direction_slice_loss_mean_max_weights_worst_slice(monkeypatch) -> None:
+    import torch
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT", 1.0)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FRACTION", 0.50)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FLOOR", 0.05)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE", 1.0)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_MIN_LABEL_RATE", 0.10)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_MIN_ROWS", 3)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES", "0")
+
+    targets = torch.tensor([0, 0, 1, 1, 2, 2, 0, 0, 1, 1, 2, 2], dtype=torch.long)
+    ctx_cat = torch.tensor([[0], [0], [0], [0], [0], [0], [1], [1], [1], [1], [1], [1]], dtype=torch.long)
+    probs = torch.tensor(
+        [
+            [0.48, 0.50, 0.02],
+            [0.48, 0.50, 0.02],
+            [0.48, 0.50, 0.02],
+            [0.48, 0.50, 0.02],
+            [0.48, 0.50, 0.02],
+            [0.48, 0.50, 0.02],
+            [0.34, 0.33, 0.33],
+            [0.34, 0.33, 0.33],
+            [0.33, 0.34, 0.33],
+            [0.33, 0.34, 0.33],
+            [0.33, 0.33, 0.34],
+            [0.33, 0.33, 0.34],
+        ],
+        dtype=torch.float32,
+    )
+
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION", "mean")
+    mean_loss = float(trainer._direction_slice_min_pred_rate_term(probs, targets, ctx_cat).item())
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_LOSS_AGGREGATION", "mean_max")
+    mean_max_loss = float(trainer._direction_slice_min_pred_rate_term(probs, targets, ctx_cat).item())
+
+    assert mean_loss > 0.0
+    assert mean_max_loss > mean_loss
+
+
 def test_entry_v10_direction_slice_balance_stats_penalizes_audit_slice_collapse(monkeypatch) -> None:
     import numpy as np
 
