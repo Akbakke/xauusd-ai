@@ -327,6 +327,13 @@ ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES = _env_str("ENTRY_DIRECTION_SLICE_CTX_CAT_
 ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT = float(_env_str("ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT", "0.0"))
 ENTRY_DIRECTION_VS_FLAT_MARGIN = float(_env_str("ENTRY_DIRECTION_VS_FLAT_MARGIN", "0.0"))
 
+_DIRECTION_AUDIT_MIN_LABEL_RATE = 0.10
+_DIRECTION_AUDIT_MIN_PRED_RATE = 0.05
+_DIRECTION_AUDIT_MIN_PRED_TO_LABEL = 0.35
+_DIRECTION_AUDIT_MIN_SLICE_ROWS = 64
+_DIRECTION_SLICE_CKPT_FAILURE_PENALTY = 0.02
+_DIRECTION_SLICE_CKPT_DEFICIT_PENALTY = 0.25
+
 # -----------------------------------------------------------------------------
 # Timing loss (early adverse move penalty)
 # -----------------------------------------------------------------------------
@@ -4064,6 +4071,109 @@ def _direction_ckpt_balance_stats(
     }
 
 
+def _direction_slice_balance_stats(
+    targets_np: np.ndarray,
+    preds_np: np.ndarray,
+    ctx_cat_np: Optional[np.ndarray],
+) -> Dict[str, Any]:
+    targets_i = np.asarray(targets_np, dtype=np.int64).reshape(-1)
+    preds_i = np.asarray(preds_np, dtype=np.int64).reshape(-1)
+    if ctx_cat_np is None or targets_i.size <= 0 or preds_i.size != targets_i.size:
+        return {
+            "direction_slice_audited_count": 0,
+            "direction_slice_failure_count": 0,
+            "direction_slice_accuracy_failure_count": 0,
+            "direction_slice_pred_rate_failure_count": 0,
+            "direction_slice_accuracy_deficit": 0.0,
+            "direction_slice_pred_rate_shortfall": 0.0,
+        }
+
+    cat = np.asarray(ctx_cat_np)
+    if cat.ndim == 1:
+        cat = cat.reshape(-1, 1)
+    if cat.ndim != 2 or cat.shape[0] != targets_i.size:
+        return {
+            "direction_slice_audited_count": 0,
+            "direction_slice_failure_count": 0,
+            "direction_slice_accuracy_failure_count": 0,
+            "direction_slice_pred_rate_failure_count": 0,
+            "direction_slice_accuracy_deficit": 0.0,
+            "direction_slice_pred_rate_shortfall": 0.0,
+        }
+
+    min_rows = max(_DIRECTION_AUDIT_MIN_SLICE_ROWS, int(ENTRY_DIRECTION_SLICE_MIN_ROWS))
+    min_label_rate = max(_DIRECTION_AUDIT_MIN_LABEL_RATE, float(ENTRY_DIRECTION_SLICE_MIN_LABEL_RATE))
+    min_pred_rate = max(_DIRECTION_AUDIT_MIN_PRED_RATE, float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE))
+    pred_to_label = max(
+        _DIRECTION_AUDIT_MIN_PRED_TO_LABEL,
+        float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL),
+    )
+    indices = _direction_slice_ctx_cat_indices(int(cat.shape[1]))
+    if not indices:
+        indices = list(range(int(cat.shape[1])))
+
+    audited = 0
+    accuracy_failures = 0
+    pred_rate_failures = 0
+    accuracy_deficit = 0.0
+    pred_rate_shortfall = 0.0
+    for idx in indices:
+        values = cat[:, idx].astype(np.float64, copy=False)
+        finite = np.isfinite(values)
+        if not bool(np.any(finite)):
+            continue
+        for raw_value in sorted(set(int(v) for v in values[finite].ravel())):
+            mask = finite & (cat[:, idx].astype(np.int64, copy=False) == int(raw_value))
+            rows = int(mask.sum())
+            if rows < min_rows:
+                continue
+            labels_s = targets_i[mask]
+            preds_s = preds_i[mask]
+            label_counts = np.bincount(labels_s, minlength=3)[:3].astype(np.float64)
+            label_rates = label_counts / max(float(label_counts.sum()), 1.0)
+            active = label_rates >= min_label_rate
+            if int(active.sum()) < 2:
+                continue
+            audited += 1
+            pred_counts = np.bincount(preds_s, minlength=3)[:3].astype(np.float64)
+            pred_rates = pred_counts / max(float(pred_counts.sum()), 1.0)
+            acc = float(np.mean(preds_s == labels_s)) if rows > 0 else 0.0
+            majority = float(label_rates.max()) if label_rates.size else 0.0
+            acc_deficit = max(0.0, majority - acc)
+            if acc <= majority + 1e-12:
+                accuracy_failures += 1
+                accuracy_deficit += acc_deficit
+            required = np.maximum(label_rates * pred_to_label, min_pred_rate)
+            shortfalls = np.maximum(required[active] - pred_rates[active], 0.0)
+            pred_rate_failures += int(np.sum(shortfalls > 1e-12))
+            pred_rate_shortfall += float(shortfalls.sum())
+
+    failure_count = int(accuracy_failures + pred_rate_failures)
+    return {
+        "direction_slice_audited_count": int(audited),
+        "direction_slice_failure_count": failure_count,
+        "direction_slice_accuracy_failure_count": int(accuracy_failures),
+        "direction_slice_pred_rate_failure_count": int(pred_rate_failures),
+        "direction_slice_accuracy_deficit": float(accuracy_deficit),
+        "direction_slice_pred_rate_shortfall": float(pred_rate_shortfall),
+        "direction_slice_contract_ok": bool(audited > 0 and failure_count == 0),
+        "direction_slice_min_rows": int(min_rows),
+        "direction_slice_min_label_rate": float(min_label_rate),
+        "direction_slice_min_pred_rate": float(min_pred_rate),
+        "direction_slice_min_pred_to_label": float(pred_to_label),
+    }
+
+
+def _direction_slice_ckpt_score(base_score: float, slice_stats: Dict[str, Any]) -> float:
+    failures = float(slice_stats.get("direction_slice_failure_count", 0.0) or 0.0)
+    rate_shortfall = float(slice_stats.get("direction_slice_pred_rate_shortfall", 0.0) or 0.0)
+    acc_deficit = float(slice_stats.get("direction_slice_accuracy_deficit", 0.0) or 0.0)
+    return float(base_score) - (
+        _DIRECTION_SLICE_CKPT_FAILURE_PENALTY * failures
+        + _DIRECTION_SLICE_CKPT_DEFICIT_PENALTY * (rate_shortfall + acc_deficit)
+    )
+
+
 def _direction_ckpt_balance_guard_required() -> bool:
     return (
         float(ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT) > 0.0
@@ -4422,9 +4532,10 @@ def _collect_direction_logits_for_calibration(
     model: nn.Module,
     loader: DataLoader,
     device: torch.device,
-) -> tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     logits_chunks: list[np.ndarray] = []
     label_chunks: list[np.ndarray] = []
+    ctx_cat_chunks: list[np.ndarray] = []
     model.eval()
     with torch.no_grad():
         for batch in loader:
@@ -4444,9 +4555,34 @@ def _collect_direction_logits_for_calibration(
             )
             logits_chunks.append(out["direction_logits"].detach().cpu().float().numpy())
             label_chunks.append(batch["y"].detach().cpu().long().numpy())
+            ctx_cat_chunks.append(batch["ctx_cat"].detach().cpu().long().numpy())
     if not logits_chunks:
         raise RuntimeError("[ENTRY_DIRECTION_CAL_NO_ROWS] validation loader produced no rows")
-    return np.concatenate(logits_chunks, axis=0), np.concatenate(label_chunks, axis=0)
+    return (
+        np.concatenate(logits_chunks, axis=0),
+        np.concatenate(label_chunks, axis=0),
+        np.concatenate(ctx_cat_chunks, axis=0),
+    )
+
+
+def _direction_calibration_slice_stats(
+    logits: np.ndarray,
+    labels: np.ndarray,
+    ctx_cat: Optional[np.ndarray],
+    payload: Dict[str, Any],
+) -> Dict[str, Any]:
+    temperature = max(float(payload.get("temperature", 1.0)), 1e-12)
+    bias = np.asarray(payload.get("bias") or [0.0, 0.0, 0.0], dtype=np.float64)
+    calibrated = np.asarray(logits, dtype=np.float64) / temperature + bias
+    preds = np.argmax(calibrated, axis=1).astype(np.int64)
+    acc = float(np.mean(preds == np.asarray(labels, dtype=np.int64))) if len(preds) else 0.0
+    balance_stats = _direction_ckpt_balance_stats(labels, preds, acc)
+    slice_stats = _direction_slice_balance_stats(labels, preds, ctx_cat)
+    slice_stats["direction_slice_ckpt_score"] = _direction_slice_ckpt_score(
+        float(balance_stats.get("direction_ckpt_score", acc)),
+        slice_stats,
+    )
+    return {**balance_stats, **slice_stats}
 
 
 def validate(
@@ -4482,6 +4618,7 @@ def validate(
     path_quality_rank_loss_sum = 0.0
     n = 0
     preds, targets = [], []
+    ctx_cats: List[np.ndarray] = []
     short_total = 0
     short_pred_long = 0
     anchor_abs_sum = 0.0
@@ -4851,6 +4988,7 @@ def validate(
             p = probs.cpu().numpy()
             preds.extend(np.argmax(p, axis=1).tolist())
             targets.extend(y.cpu().numpy().tolist())
+            ctx_cats.append(batch["ctx_cat"].detach().cpu().numpy().astype(np.int64))
             y_np = y.cpu().numpy()
             pred_np = np.argmax(p, axis=1)
             short_total += int((y_np == 1).sum())
@@ -4866,6 +5004,7 @@ def validate(
 
     preds_np = np.asarray(preds)
     targets_np = np.asarray(targets)
+    ctx_cat_np = np.concatenate(ctx_cats, axis=0) if ctx_cats else None
 
     acc = float(accuracy_score(targets_np.astype(int), preds_np.astype(int)))
     short_pred_long_rate = (short_pred_long / short_total if short_total > 0 else 0.0)
@@ -4914,6 +5053,12 @@ def validate(
         "trendline_wrong_side_prob_mean": (trendline_wrong_side_prob_sum / max(1, n)),
     }
     stats.update(_direction_ckpt_balance_stats(targets_np, preds_np, acc))
+    slice_stats = _direction_slice_balance_stats(targets_np, preds_np, ctx_cat_np)
+    stats.update(slice_stats)
+    stats["direction_slice_ckpt_score"] = _direction_slice_ckpt_score(
+        float(stats.get("direction_ckpt_score", acc)),
+        slice_stats,
+    )
     # V10-AUX-02: cross-head / AUC / realized-target diagnostics. Fail-soft, WARN-level,
     # does NOT affect the returned loss or any checkpoint-selection metric.
     try:
@@ -6631,6 +6776,18 @@ def run_train(
                 float(val_stats.get("direction_label_rate_flat", 0.0)),
                 float(val_stats.get("direction_min_pred_to_label", 0.0)),
             )
+            log.info(
+                "[ENTRY_DIR_SLICE_CKPT] split=val epoch=%d score=%.6f failures=%d "
+                "acc_failures=%d pred_rate_failures=%d audited=%d acc_deficit=%.6f pred_shortfall=%.6f",
+                epoch + 1,
+                float(val_stats.get("direction_slice_ckpt_score", val_stats.get("direction_ckpt_score", acc))),
+                int(val_stats.get("direction_slice_failure_count", 0)),
+                int(val_stats.get("direction_slice_accuracy_failure_count", 0)),
+                int(val_stats.get("direction_slice_pred_rate_failure_count", 0)),
+                int(val_stats.get("direction_slice_audited_count", 0)),
+                float(val_stats.get("direction_slice_accuracy_deficit", 0.0)),
+                float(val_stats.get("direction_slice_pred_rate_shortfall", 0.0)),
+            )
         log.info(
             "[SHORT_TO_LONG_TRAIN] rate=%.6f short_lead_count=%d short_lead_long_prob_mean=%.6f",
             float(tr_stats.get("short_pred_long_rate", 0.0)),
@@ -6671,7 +6828,16 @@ def run_train(
                 float(tr_stats.get("path_quality_rank_loss_mean", 0.0)),
             )
         if _ckpt_monitor == "dir_acc":
-            _dir_ckpt_score = float(val_stats.get("direction_ckpt_score", acc)) if val_stats else float(acc)
+            _dir_ckpt_score = (
+                float(
+                    val_stats.get(
+                        "direction_slice_ckpt_score" if bool(xau_direction_repair_mode) else "direction_ckpt_score",
+                        acc,
+                    )
+                )
+                if val_stats
+                else float(acc)
+            )
             _improved = np.isfinite(_dir_ckpt_score) and (
                 _dir_ckpt_score - best_dir_ckpt_score
             ) > float(early_stopping_min_delta)
@@ -6721,7 +6887,7 @@ def run_train(
             try:
                 _ckpt_model = model._orig_mod if hasattr(model, "_orig_mod") else model
                 _ckpt_model.load_state_dict(best_state, strict=True)
-                raw_logits, cal_labels = _collect_direction_logits_for_calibration(model, val_loader, device)
+                raw_logits, cal_labels, cal_ctx_cat = _collect_direction_logits_for_calibration(model, val_loader, device)
                 calibration_candidates: list[Dict[str, Any]] = []
                 for cal_mode in (
                     "side_tied_flat_vs_direction",
@@ -6762,6 +6928,12 @@ def run_train(
                         hier_bad_path_pos_weight=hier_bad_path_pos_weight,
                     )
                     calibrated_guard_ok = bool(cal_stats.get("direction_class_balance_guard_ok", False))
+                    candidate_slice_stats = _direction_calibration_slice_stats(
+                        raw_logits,
+                        cal_labels,
+                        cal_ctx_cat,
+                        candidate_payload,
+                    )
                     candidate_payload["raw_direction_class_balance_guard_ok"] = bool(
                         raw_best_direction_balance_guard_ok
                     )
@@ -6770,6 +6942,30 @@ def run_train(
                     candidate_payload["calibrated_dir_acc"] = float(cal_acc)
                     candidate_payload["calibrated_direction_ckpt_score"] = float(
                         cal_stats.get("direction_ckpt_score", cal_acc)
+                    )
+                    candidate_payload["calibrated_direction_slice_ckpt_score"] = float(
+                        candidate_slice_stats.get(
+                            "direction_slice_ckpt_score",
+                            candidate_payload["calibrated_direction_ckpt_score"],
+                        )
+                    )
+                    candidate_payload["calibrated_direction_slice_failure_count"] = int(
+                        candidate_slice_stats.get("direction_slice_failure_count", 0)
+                    )
+                    candidate_payload["calibrated_direction_slice_accuracy_failure_count"] = int(
+                        candidate_slice_stats.get("direction_slice_accuracy_failure_count", 0)
+                    )
+                    candidate_payload["calibrated_direction_slice_pred_rate_failure_count"] = int(
+                        candidate_slice_stats.get("direction_slice_pred_rate_failure_count", 0)
+                    )
+                    candidate_payload["calibrated_direction_slice_pred_rate_shortfall"] = float(
+                        candidate_slice_stats.get("direction_slice_pred_rate_shortfall", 0.0)
+                    )
+                    candidate_payload["calibrated_direction_slice_accuracy_deficit"] = float(
+                        candidate_slice_stats.get("direction_slice_accuracy_deficit", 0.0)
+                    )
+                    candidate_payload["calibrated_direction_slice_audited_count"] = int(
+                        candidate_slice_stats.get("direction_slice_audited_count", 0)
                     )
                     candidate_payload["calibrated_direction_pred_label_l1"] = float(
                         cal_stats.get("direction_pred_label_l1", 1e9)
@@ -6786,7 +6982,7 @@ def run_train(
                     }
                     log.info(
                         "[ENTRY_DIRECTION_CAL_FALLBACK] mode=%s temperature=%.6f bias=%s nll=%.6f->%.6f "
-                        "guard_ok=%d pred_long=%.6f pred_short=%.6f pred_flat=%.6f",
+                        "guard_ok=%d pred_long=%.6f pred_short=%.6f pred_flat=%.6f slice_failures=%d",
                         str(candidate_payload.get("mode") or ""),
                         float(candidate_payload["temperature"]),
                         [round(float(x), 6) for x in candidate_payload["bias"]],
@@ -6796,6 +6992,7 @@ def run_train(
                         float(cal_stats.get("direction_pred_rate_long", 0.0)),
                         float(cal_stats.get("direction_pred_rate_short", 0.0)),
                         float(cal_stats.get("direction_pred_rate_flat", 0.0)),
+                        int(candidate_payload.get("calibrated_direction_slice_failure_count", 0)),
                     )
                     if calibrated_guard_ok:
                         calibration_candidates.append(candidate_payload)
@@ -6806,16 +7003,40 @@ def run_train(
                             "guard_ok": bool(row.get("calibrated_direction_class_balance_guard_ok")),
                             "dir_acc": float(row.get("calibrated_dir_acc", 0.0)),
                             "direction_ckpt_score": float(row.get("calibrated_direction_ckpt_score", 0.0)),
+                            "direction_slice_ckpt_score": float(
+                                row.get("calibrated_direction_slice_ckpt_score", 0.0)
+                            ),
+                            "slice_failure_count": int(
+                                row.get("calibrated_direction_slice_failure_count", 0)
+                            ),
+                            "slice_accuracy_failure_count": int(
+                                row.get("calibrated_direction_slice_accuracy_failure_count", 0)
+                            ),
+                            "slice_pred_rate_failure_count": int(
+                                row.get("calibrated_direction_slice_pred_rate_failure_count", 0)
+                            ),
+                            "slice_pred_rate_shortfall": float(
+                                row.get("calibrated_direction_slice_pred_rate_shortfall", 0.0)
+                            ),
+                            "slice_accuracy_deficit": float(
+                                row.get("calibrated_direction_slice_accuracy_deficit", 0.0)
+                            ),
                             "pred_label_l1": float(row.get("calibrated_direction_pred_label_l1", 1e9)),
                             "val_loss": float(row.get("calibrated_val_loss", 1e9)),
                             "nll_after": float(row.get("nll_after", 1e9)),
                             "pred_rates": row.get("calibrated_direction_pred_rates"),
+                            "temperature": float(row.get("temperature", 1.0)),
+                            "bias": [float(x) for x in list(row.get("bias") or [])],
                         }
                         for row in calibration_candidates
                     ]
                     direction_calibration_payload = max(
                         calibration_candidates,
                         key=lambda row: (
+                            -float(row.get("calibrated_direction_slice_failure_count", 1e9)),
+                            -float(row.get("calibrated_direction_slice_pred_rate_shortfall", 1e9)),
+                            -float(row.get("calibrated_direction_slice_accuracy_deficit", 1e9)),
+                            float(row.get("calibrated_direction_slice_ckpt_score", -1e9)),
                             float(row.get("calibrated_direction_ckpt_score", -1e9)),
                             float(row.get("calibrated_dir_acc", 0.0)),
                             -float(row.get("calibrated_direction_pred_label_l1", 1e9)),
@@ -6830,14 +7051,24 @@ def run_train(
                     best_direction_balance_guard_ok = True
                     best_acc = float(direction_calibration_payload.get("calibrated_dir_acc", best_acc))
                     best_dir_ckpt_score = float(
-                        direction_calibration_payload.get("calibrated_direction_ckpt_score", best_acc)
+                        direction_calibration_payload.get(
+                            "calibrated_direction_slice_ckpt_score",
+                            direction_calibration_payload.get("calibrated_direction_ckpt_score", best_acc),
+                        )
                     )
                     log.info(
                         "[ENTRY_DIRECTION_CAL_FALLBACK_SELECTED] mode=%s dir_acc=%.6f score=%.6f "
-                        "pred_l1=%.6f val_loss=%.6f candidates=%s",
+                        "slice_score=%.6f slice_failures=%d pred_l1=%.6f val_loss=%.6f candidates=%s",
                         str(direction_calibration_payload.get("mode") or ""),
                         float(direction_calibration_payload.get("calibrated_dir_acc", 0.0)),
                         float(direction_calibration_payload.get("calibrated_direction_ckpt_score", 0.0)),
+                        float(
+                            direction_calibration_payload.get(
+                                "calibrated_direction_slice_ckpt_score",
+                                direction_calibration_payload.get("calibrated_direction_ckpt_score", 0.0),
+                            )
+                        ),
+                        int(direction_calibration_payload.get("calibrated_direction_slice_failure_count", 0)),
                         float(direction_calibration_payload.get("calibrated_direction_pred_label_l1", 0.0)),
                         float(direction_calibration_payload.get("calibrated_val_loss", 0.0)),
                         [row["mode"] for row in candidate_summaries],

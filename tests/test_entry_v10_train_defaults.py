@@ -187,6 +187,32 @@ def test_entry_v10_direction_slice_min_pred_rate_term_penalizes_dead_slice_class
     assert float(trainer._direction_slice_min_pred_rate_term(covered, targets, ctx_cat).item()) == 0.0
 
 
+def test_entry_v10_direction_slice_balance_stats_penalizes_audit_slice_collapse(monkeypatch) -> None:
+    import numpy as np
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_MIN_ROWS", 4)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_MIN_LABEL_RATE", 0.10)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES", "0")
+    monkeypatch.setattr(trainer, "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE", 0.05)
+    monkeypatch.setattr(trainer, "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL", 0.35)
+
+    labels = np.asarray([0, 0, 1, 1, 2, 2] * 12, dtype=np.int64)
+    collapsed_preds = np.asarray([0, 0, 0, 0, 0, 0] * 12, dtype=np.int64)
+    covered_preds = labels.copy()
+    ctx_cat = np.asarray([[2]] * len(labels), dtype=np.int64)
+
+    collapsed = trainer._direction_slice_balance_stats(labels, collapsed_preds, ctx_cat)
+    covered = trainer._direction_slice_balance_stats(labels, covered_preds, ctx_cat)
+
+    assert collapsed["direction_slice_audited_count"] == 1
+    assert collapsed["direction_slice_failure_count"] > 0
+    assert collapsed["direction_slice_pred_rate_shortfall"] > 0.0
+    assert covered["direction_slice_failure_count"] == 0
+    assert trainer._direction_slice_ckpt_score(0.40, collapsed) < trainer._direction_slice_ckpt_score(0.40, covered)
+
+
 def test_entry_v10_direction_vs_flat_margin_term_penalizes_directional_flat_argmax(monkeypatch) -> None:
     import torch
 
