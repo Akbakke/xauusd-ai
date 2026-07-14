@@ -324,6 +324,51 @@ def test_entry_v10_xau_direction_repair_target_contract_rejects_wrong_side_rows(
     assert "SHORT utility >= LONG utility" in text
 
 
+def test_entry_v10_xau_direction_repair_target_contract_uses_float32_path_semantics() -> None:
+    import numpy as np
+    import pandas as pd
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    mfe_short = np.float32(347.28643798828125)
+    mae_short = np.float32(3.334178924560547)
+    path_quality = np.float32(mfe_short - mae_short)
+    frame = pd.DataFrame(
+        {
+            "y_direction": [1],
+            "y_bad_path": [0.0],
+            "y_trade": [1.0],
+            "y_tradable": [1.0],
+            "y_side": [1],
+            "y_side_mask": [1.0],
+            "mae_first_n_bps": [float(mae_short)],
+            "mfe_first_n_bps": [float(mfe_short)],
+            "path_quality_bps": [float(path_quality)],
+            "y_position_size_target": [0.75],
+            "mfe_long_first_n_bps": [-3.3330674171447754],
+            "mae_long_first_n_bps": [355.1455078125],
+            "mfe_short_first_n_bps": [float(mfe_short)],
+            "mae_short_first_n_bps": [float(mae_short)],
+            "y_long_path_utility_bps": [-358.47857666015625],
+            "y_short_path_utility_bps": [float(path_quality)],
+            "y_long_bad_path": [1.0],
+            "y_short_bad_path": [0.0],
+            "y_long_expected_mae_bps": [355.1455078125],
+            "y_short_expected_mae_bps": [float(mae_short)],
+            "y_rising_channel_support_touch": [0.0],
+            "y_falling_channel_resistance_touch": [0.0],
+            "y_support_retest_continuation": [0.0],
+            "y_resistance_retest_continuation": [0.0],
+            "y_countertrend_short_trap": [0.0],
+            "y_countertrend_long_trap": [0.0],
+            "y_long_high_mae_low_mfe_early_failure": [0.0],
+            "y_short_high_mae_low_mfe_early_failure": [0.0],
+        }
+    )
+
+    assert trainer._xau_direction_repair_target_failures("train", frame) == []
+
+
 def test_entry_v10_train_and_validate_share_symmetric_aux_helpers() -> None:
     text = TRAINER_PATH.read_text(encoding="utf-8")
     assert text.count("_direction_ce_sample_weight(") >= 3

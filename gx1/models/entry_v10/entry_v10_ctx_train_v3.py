@@ -1431,7 +1431,9 @@ def _xau_direction_repair_target_failures(split_name: str, df: pd.DataFrame) -> 
     expected_mae[long_rows] = mae_long[long_rows]
     expected_mfe[short_rows] = mfe_short[short_rows]
     expected_mae[short_rows] = mae_short[short_rows]
-    expected_path = expected_mfe - expected_mae
+    expected_path = (
+        expected_mfe.astype(np.float32) - expected_mae.astype(np.float32)
+    ).astype(np.float32).astype(np.float64)
 
     checks = {
         "y_direction contains values outside LONG/SHORT/FLAT": ~np.isin(y_direction, [0.0, 1.0, 2.0]),
