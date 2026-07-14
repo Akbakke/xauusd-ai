@@ -122,6 +122,14 @@ def _dataset_path_matches(reported: Any, expected: Path) -> bool:
         return False
 
 
+def _has_active_xau_direction_repair_override(text: str) -> bool:
+    return (
+        "ACTIVE XAUUSD DIRECTION REPAIR OVERRIDE" in text
+        and "HANDOVER_XAU_DIRECTION_REPAIR_20260714.md" in text
+        and "not launch-valid until the fresh XAU direction-repair" in text
+    )
+
+
 def _active_entry_artifact_paths() -> list[str]:
     if not REPORTS_ROOT.exists():
         return []
@@ -190,6 +198,11 @@ def _active_entry_artifact_paths() -> list[str]:
         "entry_candidate_replay_20260628_v1",
         "entry_candidate_replay_trade_log_20260628_v1",
         "entry_candidate_replay_trade_log_20260628_v1_stop80_tp120",
+        # XAU direction-repair report-only evidence roots. These are not bundles,
+        # live paths, or promotion proof by themselves; downstream launch gates
+        # still require fresh provenance and passing pocket metrics.
+        "entry_pocket_audit_20260713",
+        "entry_selective_edge_20260713",
         "entry_candidate_replay_tight_probe_20260630_v1",
         "entry_candidate_replay_trade_log_tight_probe_20260630_v1",
         "entry_iql_student_trade_log_probe_sl45_20260630_v1",
@@ -740,6 +753,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     if args.selftest:
         control = _read_text(REPO / "scripts/entry_next_edge_control.sh")
         handover = _read_text(REPO / "scripts/gx1_handover.sh")
+        xau_handover = _read_text(REPO / "HANDOVER_XAU_DIRECTION_REPAIR_20260714.md")
         legacy_blocker = _read_text(REPO / "scripts/entry_next_edge_legacy_block.sh")
         live_legacy_blocker = _read_text(REPO / "scripts/entry_next_edge_live_legacy_block.sh")
         launch_live_practice = _read_text(REPO / "scripts/launch_live_practice.sh")
@@ -793,11 +807,24 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         claude_head = _read_text(REPO / "CLAUDE.md")[:1600]
         agents_head = _read_text(REPO / "AGENTS.md")[:1800]
         system_map_head = _read_text(REPO / "SYSTEM_MAP.md")[:1800]
+        xau_override_active = _has_active_xau_direction_repair_override(agents_head)
+        if xau_override_active:
+            checks.append("AGENTS.md active XAU override points at direction-repair handover")
         for name, text in (
             ("CLAUDE.md active override", claude_head),
             ("AGENTS.md active override", agents_head),
             ("SYSTEM_MAP.md active override", system_map_head),
         ):
+            if xau_override_active and name != "AGENTS.md active override":
+                checks.append(f"{name} is historical under AGENTS.md XAU override")
+                continue
+            if xau_override_active and name == "AGENTS.md active override":
+                _require(
+                    _has_active_xau_direction_repair_override(text),
+                    f"{name} points at XAU direction-repair handover",
+                    checks,
+                )
+                continue
             _require("ENTRY_FOUNDATION_AUDIT_20260628.md" in text, f"{name} points at foundation audit", checks)
             _require(
                 "ENTRY_SEQUENTIAL_AI_SPECIALIST_BLUEPRINT_20260628.md" in text,
@@ -909,10 +936,37 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         _require("smoke-train" in control, "control surface exposes vedtak-gated smoke train", checks)
         _require("--require-edge-audit" in control, "control surface documents edge-required smoke train", checks)
         _require("audit-smoke-bundle" in control, "control surface exposes smoke bundle audit", checks)
-        _require("verify_entry_foundation_state_v1" in handover, "handover redirects to foundation verifier", checks)
-        _require("foundation-guardrails --quiet" in handover, "handover runs foundation guardrails", checks)
-        _require("GX1_HANDOVER_SKIP_TRAIN_READINESS" in handover, "handover exposes internal train-readiness skip for guardrail tests", checks)
-        _require("critical gate paths ok" in handover, "handover reports critical gate path coverage", checks)
+        if xau_override_active:
+            _require(
+                "HANDOVER_XAU_DIRECTION_REPAIR_20260714.md" in handover,
+                "handover viewer points at active XAU direction-repair handover",
+                checks,
+            )
+            _require(
+                "Do not use non-XAU project artifacts" in xau_handover,
+                "XAU handover blocks non-XAU artifacts",
+                checks,
+            )
+            _require(
+                "Do not promote any XAU bundle live until fresh XAU datasets, parity, live-like replay, calibration, and direction-pocket audits all pass"
+                in xau_handover,
+                "XAU handover keeps live promotion closed until fresh proof gates pass",
+                checks,
+            )
+            _require(
+                "Direction pocket audit remains a promotion gate, not a live trading rule" in xau_handover,
+                "XAU handover keeps pocket audit as promotion gate only",
+                checks,
+            )
+        else:
+            _require("verify_entry_foundation_state_v1" in handover, "handover redirects to foundation verifier", checks)
+            _require("foundation-guardrails --quiet" in handover, "handover runs foundation guardrails", checks)
+            _require(
+                "GX1_HANDOVER_SKIP_TRAIN_READINESS" in handover,
+                "handover exposes internal train-readiness skip for guardrail tests",
+                checks,
+            )
+            _require("critical gate paths ok" in handover, "handover reports critical gate path coverage", checks)
         for name, text in (
             ("legacy Entry blocker", legacy_blocker),
             ("legacy live blocker", live_legacy_blocker),
@@ -924,6 +978,50 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             ("legacy paper runner", legacy_paper_runner),
             ("legacy runtime guard", legacy_runtime_guard),
         ):
+            if xau_override_active and name == "legacy paper runner":
+                _require(
+                    "Smart serving gate blocks direct v12_paper_runner use" in text,
+                    f"{name} blocks direct use under active XAU override",
+                    checks,
+                )
+                _require(
+                    "Demo/paper start requires the parity gate + an explicit launch vedtak" in text,
+                    f"{name} documents parity/vedtak launch gate under active XAU override",
+                    checks,
+                )
+                _require(
+                    "assert_smart_serving_gate" in text,
+                    f"{name} uses the smart-serving gate under active XAU override",
+                    checks,
+                )
+                _require(
+                    "verify_entry_next_edge_plan_state_v1" not in text,
+                    f"{name} no longer depends on old shadow-plan verifier",
+                    checks,
+                )
+                continue
+            if xau_override_active and name == "legacy live-practice launcher":
+                _require(
+                    "smart-serving launch requires an explicit user vedtak" in text,
+                    f"{name} remains vedtak-gated under active XAU override",
+                    checks,
+                )
+                _require(
+                    "parity-gate PASS + preflight + vedtak" in text,
+                    f"{name} documents parity/preflight/vedtak launch gate under active XAU override",
+                    checks,
+                )
+                _require(
+                    "directional live-like pocket audit PASS" in text,
+                    f"{name} documents directional pocket launch gate under active XAU override",
+                    checks,
+                )
+                _require(
+                    "verify_entry_next_edge_plan_state_v1" not in text,
+                    f"{name} no longer depends on old shadow-plan verifier",
+                    checks,
+                )
+                continue
             _require("Entry foundation seq146 cleanup/audit/smoke-readiness" in text, f"{name} points at foundation seq146 path", checks)
             _require("foundation-guardrails" in text, f"{name} points at foundation guardrails", checks)
             _require("worktree-hygiene" in text, f"{name} points at worktree hygiene", checks)
@@ -932,10 +1030,20 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             _require("train-readiness" in text, f"{name} points at train readiness", checks)
             _require("Current path is no-XGB tabular shadow-only observation" not in text, f"{name} no longer advertises no-XGB shadow as current path", checks)
             _require("entry_next_edge_control.sh start-shadow" not in text, f"{name} no longer points at shadow start", checks)
-        _require("verify_entry_foundation_state_v1" in launch_live_practice, "legacy live-practice guard uses foundation verifier", checks)
+        if xau_override_active:
+            checks.append("legacy live-practice guard is superseded by active XAU launch gates")
+        else:
+            _require("verify_entry_foundation_state_v1" in launch_live_practice, "legacy live-practice guard uses foundation verifier", checks)
         _require("verify_entry_next_edge_plan_state_v1" not in launch_live_practice, "legacy live-practice guard no longer depends on old shadow-plan verifier", checks)
         _require("verify_entry_next_edge_plan_state_v1" not in legacy_paper_runner, "legacy paper runner no longer depends on old shadow-plan verifier", checks)
-        _require("foundation-freeze blocks direct v12_paper_runner use" in legacy_paper_runner, "legacy paper runner blocks direct use under foundation freeze", checks)
+        if xau_override_active:
+            _require(
+                "Smart serving gate blocks direct v12_paper_runner use" in legacy_paper_runner,
+                "legacy paper runner blocks direct use under smart-serving gate",
+                checks,
+            )
+        else:
+            _require("foundation-freeze blocks direct v12_paper_runner use" in legacy_paper_runner, "legacy paper runner blocks direct use under foundation freeze", checks)
         _require("blocked by active Entry foundation-freeze" in legacy_shadow_launcher, "legacy no-XGB shadow launcher fails under foundation freeze", checks)
         _require("verify_entry_next_edge_plan_state_v1" not in legacy_shadow_launcher, "legacy no-XGB shadow launcher no longer calls old plan verifier", checks)
         _require("LEGACY_PLAN_CLOSED" in legacy_plan_verifier, "old no-XGB plan verifier is a closed-plan tombstone", checks)

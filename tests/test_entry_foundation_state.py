@@ -30,6 +30,8 @@ def test_foundation_state_allows_entry_train_manifest_report_roots() -> None:
     assert "entry_candidate_bundle_audit_20260628_v1" in verifier
     assert "entry_candidate_replay_trade_log_20260628_v1" in verifier
     assert "entry_candidate_replay_trade_log_20260628_v1_stop80_tp120" in verifier
+    assert "entry_pocket_audit_20260713" in verifier
+    assert "entry_selective_edge_20260713" in verifier
     assert "entry_iql_student_trade_log_20260628_v1" in verifier
     assert "entry_iql_replay_slice_audit_20260628_v1" in verifier
     assert "entry_exit_per_bar_handoff_20260630_v1" in verifier
@@ -192,7 +194,10 @@ def test_foundation_state_selftest_covers_control_policy_contracts() -> None:
     assert "control surface supports non-refreshing readiness policy snapshot" in checks
     assert "control surface separates fast readiness light refresh from snapshot and explicit full refresh" in checks
     assert "control surface reports critical gate path coverage" in checks
-    assert "handover reports critical gate path coverage" in checks
+    assert "handover viewer points at active XAU direction-repair handover" in checks
+    assert "XAU handover blocks non-XAU artifacts" in checks
+    assert "XAU handover keeps live promotion closed until fresh proof gates pass" in checks
+    assert "XAU handover keeps pocket audit as promotion gate only" in checks
     assert "foundation guardrail verifier uses readiness policy snapshot" in checks
     assert "foundation guardrail verifier reports readiness policy checks" in checks
     assert "control surface exposes IQL replay slice audit" in checks
