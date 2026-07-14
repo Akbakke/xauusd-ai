@@ -47,6 +47,9 @@ NEUTRAL_CONSTANT_ALLOWLIST = {
     "uncertainty_score",
     "margin_top1_top2",
     "entropy",
+    # XAU direction repair uses this as a regime-context bit. It can be
+    # constant inside short val/test windows while still being live in train.
+    "session_regime.h4_d1_regime_sign_agreement",
 }
 KNOWN_SPARSE_SOURCE_FIELDS = {
     "snap.smc_choch",

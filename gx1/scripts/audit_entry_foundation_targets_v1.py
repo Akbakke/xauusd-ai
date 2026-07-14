@@ -365,6 +365,82 @@ def _xau_direction_repair_liveness(frames: list[pd.DataFrame]) -> dict[str, Any]
     }
 
 
+def _xau_side_quality_row(df: pd.DataFrame, *, split: str, side: str) -> dict[str, Any]:
+    bad_col = f"y_{side}_bad_path"
+    utility_col = f"y_{side}_path_utility_bps"
+    mae_col = f"y_{side}_expected_mae_bps"
+    bad = pd.to_numeric(df.get(bad_col, pd.Series(dtype=float)), errors="coerce")
+    utility = pd.to_numeric(df.get(utility_col, pd.Series(dtype=float)), errors="coerce")
+    mae = pd.to_numeric(df.get(mae_col, pd.Series(dtype=float)), errors="coerce")
+    bad_mask = bad > 0.5
+    clean_mask = bad <= 0.5
+    utility_bad = utility[bad_mask & utility.notna()]
+    utility_clean = utility[clean_mask & utility.notna()]
+    mae_bad = mae[bad_mask & mae.notna()]
+    mae_clean = mae[clean_mask & mae.notna()]
+    utility_corr = _safe_spearman(df, bad_col, utility_col)
+    mae_corr = _safe_spearman(df, bad_col, mae_col)
+    missing = [col for col in (bad_col, utility_col, mae_col) if col not in df.columns]
+    bad_live = int(bad.dropna().nunique()) >= 2
+    return {
+        "split": split,
+        "side": side,
+        "missing_columns": missing,
+        "bad_path_rate": None if bad.dropna().empty else float(bad_mask[bad.notna()].mean()),
+        "bad_path_unique_count": int(bad.dropna().nunique()) if not bad.dropna().empty else 0,
+        "bad_path_vs_utility_spearman": utility_corr,
+        "bad_path_vs_expected_mae_spearman": mae_corr,
+        "utility_mean_clean_path_bps": float(utility_clean.mean()) if len(utility_clean) else None,
+        "utility_mean_bad_path_bps": float(utility_bad.mean()) if len(utility_bad) else None,
+        "expected_mae_mean_clean_path_bps": float(mae_clean.mean()) if len(mae_clean) else None,
+        "expected_mae_mean_bad_path_bps": float(mae_bad.mean()) if len(mae_bad) else None,
+        "ok": (
+            not missing
+            and bad_live
+            and utility_corr is not None
+            and mae_corr is not None
+            and float(utility_corr) <= -0.10
+            and float(mae_corr) >= 0.10
+            and len(utility_bad) > 0
+            and len(utility_clean) > 0
+            and float(utility_bad.mean()) < float(utility_clean.mean())
+            and len(mae_bad) > 0
+            and len(mae_clean) > 0
+            and float(mae_bad.mean()) > float(mae_clean.mean())
+        ),
+    }
+
+
+def _xau_direction_repair_side_quality_contract(frames: list[pd.DataFrame]) -> dict[str, Any]:
+    enabled = any(
+        any(col in df.columns for col in XAU_DIRECTION_REPAIR_TARGET_COLUMNS)
+        for df in frames
+    )
+    rows: list[dict[str, Any]] = []
+    for df in frames:
+        split = str(df["split"].iloc[0]) if "split" in df and len(df) else "UNKNOWN"
+        for side in ("long", "short"):
+            rows.append(_xau_side_quality_row(df, split=split, side=side))
+    return {
+        "enabled": bool(enabled),
+        "description": (
+            "XAU direction repair validates side-specific bad-path targets against "
+            "side utility and expected MAE. Scalar y_bad_path is selected-side sparse "
+            "and is not the primary monotonic quality surface."
+        ),
+        "rows": rows,
+        "all_side_quality_checks_pass": bool(enabled) and all(bool(row["ok"]) for row in rows),
+        "failures": [
+            (
+                f"{row['split']} {row['side']}: side bad-path must be negatively related "
+                "to side utility and positively related to expected MAE"
+            )
+            for row in rows
+            if enabled and not bool(row["ok"])
+        ],
+    }
+
+
 def _target_metrics(df: pd.DataFrame, *, split: str, scope: str, value: str, side: str = "ALL") -> dict[str, Any]:
     if side == "LONG":
         clean_col, survival_col, tail48_col, tail96_col = (
@@ -543,13 +619,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     for split, values in path_quality_horizons.items():
         if values != [10.0]:
             failures.append(f"{split}: path_quality_horizon_bars expected [10], observed {values}")
+    xau_side_quality_contract = _xau_direction_repair_side_quality_contract(frames)
     for row in metrics:
         if row["scope"] == "split":
             corr = row.get("bad_path_vs_path_quality_spearman")
-            if corr is None:
-                failures.append(f"{row['split']}: y_bad_path/path_quality correlation unavailable")
-            elif float(corr) >= 0.0:
-                failures.append(f"{row['split']}: y_bad_path should be negatively related to path_quality_bps, got {corr}")
+            if not xau_side_quality_contract["enabled"]:
+                if corr is None:
+                    failures.append(f"{row['split']}: y_bad_path/path_quality correlation unavailable")
+                elif float(corr) >= 0.0:
+                    failures.append(f"{row['split']}: y_bad_path should be negatively related to path_quality_bps, got {corr}")
             majority = row.get("majority_label_baseline_acc")
             if majority is not None and float(majority) > float(args.max_majority_rate):
                 failures.append(f"{row['split']}: y_direction majority label collapsed: {majority}")
@@ -567,6 +645,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         )
     if xau_repair_liveness["enabled"] and not xau_repair_liveness["live_all_expected_columns_all_splits"]:
         failures.append("xau direction-repair target columns are present but not live in all splits")
+    if xau_side_quality_contract["enabled"] and not xau_side_quality_contract["all_side_quality_checks_pass"]:
+        failures.extend(xau_side_quality_contract["failures"])
     for head in EXPECTED_ACTIVE_OPTIONAL_HEADS:
         if not bool((head_liveness.get(head) or {}).get("live_all_splits")):
             failures.append(f"expected active optional head target is not live in all splits: {head}")
@@ -584,6 +664,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "trading_objective": "offline replay/PnL/drawdown/tail-risk, not validation accuracy alone",
         "active_training_heads": target_head_contract["active_training_heads"],
         "blocked_heads": target_head_contract["blocked_heads"],
+        "xau_direction_repair_side_quality_contract": xau_side_quality_contract,
         "approval_status": "MACHINE_AUDITED_NOT_HUMAN_APPROVED",
     }
     report = {
@@ -599,6 +680,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "target_contract": target_contract,
         "target_head_contract": target_head_contract,
         "xau_direction_repair_target_liveness": xau_repair_liveness,
+        "xau_direction_repair_side_quality_contract": xau_side_quality_contract,
         "metrics": metrics,
         "drift": drift,
         "failures": failures,

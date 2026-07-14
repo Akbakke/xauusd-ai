@@ -9,6 +9,7 @@ from gx1.scripts.audit_entry_foundation_targets_v1 import (
     _drift,
     _head_contract,
     _target_metrics,
+    _xau_direction_repair_side_quality_contract,
     _xau_direction_repair_liveness,
 )
 
@@ -139,3 +140,30 @@ def test_xau_direction_repair_liveness_requires_all_hierarchical_targets() -> No
     assert live["live_all_expected_columns_all_splits"] is True
     assert missing["all_expected_columns_present_all_splits"] is False
     assert "y_trade" in missing["missing_columns_any_split"]
+
+
+def test_xau_direction_repair_side_quality_replaces_scalar_bad_path_monotonicity() -> None:
+    frames = []
+    for split in ("train", "val"):
+        frame = pd.DataFrame(
+            {
+                "split": [split] * 6,
+                "y_long_bad_path": [0, 0, 0, 1, 1, 1],
+                "y_short_bad_path": [1, 1, 1, 0, 0, 0],
+                "y_long_path_utility_bps": [30, 25, 20, -10, -15, -20],
+                "y_short_path_utility_bps": [-30, -25, -20, 10, 15, 20],
+                "y_long_expected_mae_bps": [2, 3, 4, 12, 13, 14],
+                "y_short_expected_mae_bps": [14, 13, 12, 4, 3, 2],
+                # Scalar bad-path is selected-side sparse in XAU repair and
+                # is not the side-quality monotonicity surface.
+                "y_bad_path": [0, 0, 1, 0, 0, 1],
+                "path_quality_bps": [1, 2, 3, 4, 5, 6],
+            }
+        )
+        frames.append(frame)
+
+    contract = _xau_direction_repair_side_quality_contract(frames)
+
+    assert contract["enabled"] is True
+    assert contract["all_side_quality_checks_pass"] is True
+    assert not contract["failures"]

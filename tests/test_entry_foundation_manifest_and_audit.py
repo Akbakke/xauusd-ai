@@ -19,6 +19,7 @@ from gx1.scripts.audit_entry_foundation_features_v1 import (
     _required_objective_liveness_failures,
     _required_family_liveness_failures,
     _required_source_field_liveness_failures,
+    _is_neutral_constant_allowed,
     _source_field_liveness_rows,
     _stats_rows,
     _stream_split_liveness_rows,
@@ -48,6 +49,11 @@ def test_sequence_structure_manifest_request_includes_all_foundation_features_on
     assert set(FOUNDATION_STRUCTURE_FEATURE_NAMES).issubset(set(requested))
     assert meta["foundation_structure_features_required"] is True
     assert meta["foundation_structure_feature_count"] == len(FOUNDATION_STRUCTURE_FEATURE_NAMES)
+
+
+def test_xau_regime_agreement_feature_can_be_split_constant() -> None:
+    assert _is_neutral_constant_allowed("session_regime.h4_d1_regime_sign_agreement") is True
+    assert _is_neutral_constant_allowed("session_regime.some_other_context") is False
 
 
 def test_dataset_manifest_uses_actual_v3_ctx_and_signal_contract(tmp_path) -> None:
