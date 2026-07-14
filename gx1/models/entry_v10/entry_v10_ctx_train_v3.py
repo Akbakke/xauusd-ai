@@ -3489,6 +3489,7 @@ def train_epoch(
     total_ce = 0.0
     total_cost = 0.0
     total_balance = 0.0
+    total_direction_min_pred = 0.0
     total_direction_slice_min_pred = 0.0
     total_direction_slice_recall = 0.0
     total_direction_flat_margin = 0.0
@@ -3884,6 +3885,7 @@ def train_epoch(
         total_ce += float(ce_loss) * bs
         total_cost += float(cost_term.detach().cpu().item()) * bs
         total_balance += float(balance_term.detach().cpu().item()) * bs
+        total_direction_min_pred += float(min_pred_rate_term.detach().cpu().item()) * bs
         total_direction_slice_min_pred += float(slice_min_pred_rate_term.detach().cpu().item()) * bs
         total_direction_slice_recall += float(slice_recall_term.detach().cpu().item()) * bs
         total_direction_flat_margin += float(direction_flat_margin_term.detach().cpu().item()) * bs
@@ -3937,6 +3939,7 @@ def train_epoch(
         "ce_loss_mean": (total_ce / max(1, n)),
         "cost_loss_mean": (total_cost / max(1, n)),
         "balance_loss_mean": (total_balance / max(1, n)),
+        "direction_min_pred_rate_loss_mean": (total_direction_min_pred / max(1, n)),
         "direction_slice_min_pred_rate_loss_mean": (total_direction_slice_min_pred / max(1, n)),
         "direction_slice_recall_loss_mean": (total_direction_slice_recall / max(1, n)),
         "direction_flat_margin_loss_mean": (total_direction_flat_margin / max(1, n)),
@@ -4302,6 +4305,7 @@ def validate(
     total_ce = 0.0
     total_cost = 0.0
     total_balance = 0.0
+    total_direction_min_pred = 0.0
     total_direction_slice_min_pred = 0.0
     total_direction_slice_recall = 0.0
     total_direction_flat_margin = 0.0
@@ -4646,6 +4650,7 @@ def validate(
             total_ce += float(ce_loss) * bs
             total_cost += float(cost_term.detach().cpu().item()) * bs
             total_balance += float(balance_term.detach().cpu().item()) * bs
+            total_direction_min_pred += float(min_pred_rate_term.detach().cpu().item()) * bs
             total_direction_slice_min_pred += float(slice_min_pred_rate_term.detach().cpu().item()) * bs
             total_direction_slice_recall += float(slice_recall_term.detach().cpu().item()) * bs
             total_direction_flat_margin += float(direction_flat_margin_term.detach().cpu().item()) * bs
@@ -4718,6 +4723,7 @@ def validate(
         "ce_loss_mean": (total_ce / max(1, n)),
         "cost_loss_mean": (total_cost / max(1, n)),
         "balance_loss_mean": (total_balance / max(1, n)),
+        "direction_min_pred_rate_loss_mean": (total_direction_min_pred / max(1, n)),
         "direction_slice_min_pred_rate_loss_mean": (total_direction_slice_min_pred / max(1, n)),
         "direction_slice_recall_loss_mean": (total_direction_slice_recall / max(1, n)),
         "direction_flat_margin_loss_mean": (total_direction_flat_margin / max(1, n)),
@@ -6463,9 +6469,11 @@ def run_train(
                 ratio,
             )
             log.info(
-                "[ENTRY_LOSS_SUMMARY] split=val epoch=%d ce=%.6f flat_margin=%.6f slice_recall=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_side=%.6f hier_side_acc=%.4f total=%.6f",
+                "[ENTRY_LOSS_SUMMARY] split=val epoch=%d ce=%.6f min_pred=%.6f slice_min_pred=%.6f flat_margin=%.6f slice_recall=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_side=%.6f hier_side_acc=%.4f total=%.6f",
                 epoch + 1,
                 float(val_stats.get("ce_loss_mean", 0.0)),
+                float(val_stats.get("direction_min_pred_rate_loss_mean", 0.0)),
+                float(val_stats.get("direction_slice_min_pred_rate_loss_mean", 0.0)),
                 float(val_stats.get("direction_flat_margin_loss_mean", 0.0)),
                 float(val_stats.get("direction_slice_recall_loss_mean", 0.0)),
                 float(val_stats.get("tail_direction_loss_mean", 0.0)),
@@ -6522,9 +6530,11 @@ def run_train(
         )
         if tr_stats:
             log.info(
-                "[ENTRY_LOSS_SUMMARY] split=train epoch=%d ce=%.6f flat_margin=%.6f slice_recall=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_side=%.6f hier_side_acc=%.4f total=%.6f",
+                "[ENTRY_LOSS_SUMMARY] split=train epoch=%d ce=%.6f min_pred=%.6f slice_min_pred=%.6f flat_margin=%.6f slice_recall=%.6f tail_direction=%.6f tail_rows=%d path=%.6f mfe=%.6f tradable=%.6f hier_trade=%.6f hier_side=%.6f hier_side_acc=%.4f total=%.6f",
                 epoch + 1,
                 float(tr_stats.get("ce_loss_mean", 0.0)),
+                float(tr_stats.get("direction_min_pred_rate_loss_mean", 0.0)),
+                float(tr_stats.get("direction_slice_min_pred_rate_loss_mean", 0.0)),
                 float(tr_stats.get("direction_flat_margin_loss_mean", 0.0)),
                 float(tr_stats.get("direction_slice_recall_loss_mean", 0.0)),
                 float(tr_stats.get("tail_direction_loss_mean", 0.0)),
