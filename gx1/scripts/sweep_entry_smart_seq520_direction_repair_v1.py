@@ -53,9 +53,16 @@ SWEEP_SPACES: tuple[Space, ...] = (
     Space("ENTRY_FOUNDATION_CANDIDATE_MULTI_TF_SCALE", "choice", choices=(0.25, 0.35, 0.50, 0.65)),
     Space("ENTRY_FOUNDATION_CANDIDATE_MTF_DIR_SCALE_INIT", "choice", choices=(0.15, 0.25, 0.35, 0.50)),
     Space("ENTRY_FOUNDATION_CANDIDATE_SPECIALIST_FUSION_SCALE", "choice", choices=(0.15, 0.25, 0.35)),
-    Space("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_CE_SCALE", "choice", choices=(2.0, 2.25, 2.50)),
+    Space("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_CE_SCALE", "choice", choices=(3.0, 4.0, 5.0)),
     Space("ENTRY_FOUNDATION_CANDIDATE_PRED_BALANCE_ALPHA", "choice", choices=(0.45, 0.50)),
-    Space("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT", "choice", choices=(2.5, 3.0)),
+    Space("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT", "choice", choices=(8.0, 12.0, 16.0)),
+    Space(
+        "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE",
+        "choice",
+        choices=(0.12, 0.15, 0.20),
+    ),
+    Space("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT", "choice", choices=(4.0, 8.0, 12.0)),
+    Space("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_RECALL_LOSS_WEIGHT", "choice", choices=(0.0, 4.0, 8.0)),
     Space("ENTRY_FOUNDATION_CANDIDATE_HIER_TRADE_WEIGHT", "choice", choices=(2.00, 2.50)),
     Space("ENTRY_FOUNDATION_CANDIDATE_HIER_SIDE_WEIGHT", "choice", choices=(1.75, 2.00, 2.25)),
     Space("ENTRY_FOUNDATION_CANDIDATE_HIER_SIDE_VALIDITY_WEIGHT", "choice", choices=(1.50, 2.00)),
@@ -65,7 +72,7 @@ SWEEP_SPACES: tuple[Space, ...] = (
     Space("ENTRY_FOUNDATION_CANDIDATE_TRENDLINE_RAIL_FINAL_MARGIN_WEIGHT", "choice", choices=(5.0, 7.0)),
     Space("ENTRY_FOUNDATION_CANDIDATE_TRENDLINE_RAIL_HIER_MARGIN_WEIGHT", "choice", choices=(4.0, 5.0)),
     Space("ENTRY_FOUNDATION_CANDIDATE_TRENDLINE_RAIL_UTILITY_MARGIN_WEIGHT", "choice", choices=(5.0, 7.0)),
-    Space("ENTRY_FOUNDATION_CANDIDATE_FLAT_CLASS_WEIGHT_FLOOR", "choice", choices=(2.00, 2.50)),
+    Space("ENTRY_FOUNDATION_CANDIDATE_FLAT_CLASS_WEIGHT_FLOOR", "choice", choices=(1.00, 1.50, 2.00)),
 )
 
 FIXED_ENV: dict[str, str] = {
@@ -75,7 +82,14 @@ FIXED_ENV: dict[str, str] = {
     "ENTRY_FOUNDATION_CANDIDATE_BAD_PATH_PROB_PENALTY": "0.0",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_MIN_PRED_RATE_FRACTION": "0.50",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_MIN_PRED_RATE_FLOOR": "0.05",
-    "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE": "0.20",
+    "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_MIN_PRED_RATE_FRACTION": "0.50",
+    "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_MIN_PRED_RATE_FLOOR": "0.05",
+    "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_MIN_LABEL_RATE": "0.10",
+    "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_MIN_ROWS": "8",
+    "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_CTX_CAT_INDICES": "0,1,2,3,4",
+    "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_RECALL_PROB_FLOOR": "0.30",
+    "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_RECALL_MIN_LABEL_RATE": "0.10",
+    "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_RECALL_MIN_ROWS": "8",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_VS_FLAT_MARGIN_WEIGHT": "4.00",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_VS_FLAT_MARGIN": "0.10",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_LEGACY_CE_MULT": "1.00",
@@ -130,6 +144,17 @@ def lint_trial_env(env: dict[str, str]) -> list[str]:
         )
     if flat_margin < 0.05:
         failures.append(f"DIRECTION_VS_FLAT_MARGIN must be >= 0.05 for strict XAU repair, got {flat_margin}")
+    slice_min_pred_rate_weight = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT", "0")
+    )
+    if slice_min_pred_rate_weight < 0.0:
+        failures.append(
+            "DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT must be non-negative, "
+            f"got {slice_min_pred_rate_weight}"
+        )
+    slice_recall_weight = float(env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_RECALL_LOSS_WEIGHT", "0"))
+    if slice_recall_weight < 0.0:
+        failures.append(f"DIRECTION_SLICE_RECALL_LOSS_WEIGHT must be non-negative, got {slice_recall_weight}")
     if bad_path_penalty != 0.0:
         failures.append(f"BAD_PATH_PROB_PENALTY must stay 0.0, got {bad_path_penalty}")
     if anchor_gate != 0.0:

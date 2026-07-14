@@ -59,6 +59,8 @@ def test_smoke_train_dry_run_prints_post_smoke_audit_command() -> None:
     assert "ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION=0.0" in result.stdout
     assert "ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR=0.0" in result.stdout
     assert "ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE=1.0" in result.stdout
+    assert "ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT=0.0" in result.stdout
+    assert "ENTRY_DIRECTION_SLICE_RECALL_LOSS_WEIGHT=0.0" in result.stdout
     assert "ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT=0.0" in result.stdout
     assert "ENTRY_DIRECTION_VS_FLAT_MARGIN=0.0" in result.stdout
     assert "ENTRY_HIER_LEGACY_CE_MULT=0.35" in result.stdout
@@ -105,14 +107,18 @@ def test_smart_smoke_dry_run_uses_xau_direction_repair_recipe() -> None:
     assert "smart_seq520_candidate" in result.stdout
     assert "ENTRY_PRED_BALANCE_ALPHA=0.50" in result.stdout
     assert "ENTRY_PRED_BALANCE_CLASS_WEIGHTS=1.0\\,1.0\\,4.0" in result.stdout
-    assert "ENTRY_DIRECTION_CE_SCALE=2.00" in result.stdout
+    assert "ENTRY_DIRECTION_CE_SCALE=4.00" in result.stdout
     assert "ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT=0.50" in result.stdout
     assert "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL=0.35" in result.stdout
     assert "ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE=0.05" in result.stdout
-    assert "ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT=2.50" in result.stdout
+    assert "ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT=12.00" in result.stdout
     assert "ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION=0.50" in result.stdout
     assert "ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR=0.05" in result.stdout
-    assert "ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE=0.20" in result.stdout
+    assert "ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE=0.15" in result.stdout
+    assert "ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT=8.00" in result.stdout
+    assert "ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FRACTION=0.50" in result.stdout
+    assert "ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FLOOR=0.05" in result.stdout
+    assert "ENTRY_DIRECTION_SLICE_RECALL_LOSS_WEIGHT=4.00" in result.stdout
     assert "ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT=4.00" in result.stdout
     assert "ENTRY_DIRECTION_VS_FLAT_MARGIN=0.10" in result.stdout
     assert "ENTRY_HIER_LEGACY_CE_MULT=1.00" in result.stdout
@@ -137,7 +143,7 @@ def test_smart_smoke_dry_run_uses_xau_direction_repair_recipe() -> None:
     assert "ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_WEIGHT=5.00" in result.stdout
     assert "ENTRY_TRENDLINE_RAIL_MARGIN=1.00" in result.stdout
     assert "ENTRY_TRENDLINE_RAIL_UTILITY_MARGIN_BPS=30.0" in result.stdout
-    assert "ENTRY_FLAT_CLASS_WEIGHT_FLOOR=2.00" in result.stdout
+    assert "ENTRY_FLAT_CLASS_WEIGHT_FLOOR=1.00" in result.stdout
     assert "--enable-xau-direction-repair-heads" in result.stdout
     assert "--anchor-gate-init 0.0" in result.stdout
 
@@ -296,11 +302,15 @@ def test_smoke_train_wrapper_enforces_train_readiness_for_real_train() -> None:
     assert "SMOKE_ENABLE_XAU_DIRECTION_REPAIR_HEADS=1" in text
     assert "GX1_PERTF_CLOSED_BAR=1" in text
     assert "SMOKE_PRED_BALANCE_ALPHA=0.50" in text
-    assert "SMOKE_DIRECTION_CE_SCALE=2.00" in text
-    assert "SMOKE_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT=2.50" in text
+    assert "SMOKE_DIRECTION_CE_SCALE=4.00" in text
+    assert "SMOKE_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT=12.00" in text
     assert "SMOKE_DIRECTION_MIN_PRED_RATE_FRACTION=0.50" in text
     assert "SMOKE_DIRECTION_MIN_PRED_RATE_FLOOR=0.05" in text
-    assert "SMOKE_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE=0.20" in text
+    assert "SMOKE_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE=0.15" in text
+    assert "SMOKE_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT=8.00" in text
+    assert "SMOKE_DIRECTION_SLICE_MIN_PRED_RATE_FRACTION=0.50" in text
+    assert "SMOKE_DIRECTION_SLICE_MIN_PRED_RATE_FLOOR=0.05" in text
+    assert "SMOKE_DIRECTION_SLICE_RECALL_LOSS_WEIGHT=4.00" in text
     assert "SMOKE_DIRECTION_VS_FLAT_MARGIN_WEIGHT=4.00" in text
     assert "SMOKE_DIRECTION_VS_FLAT_MARGIN=0.10" in text
     assert "SMOKE_HIER_LEGACY_CE_MULT=1.00" in text
@@ -321,7 +331,7 @@ def test_smoke_train_wrapper_enforces_train_readiness_for_real_train() -> None:
     assert "SMOKE_TRENDLINE_RAIL_UTILITY_MARGIN_WEIGHT=5.00" in text
     assert "SMOKE_TRENDLINE_RAIL_MARGIN=1.00" in text
     assert "SMOKE_TRENDLINE_RAIL_UTILITY_MARGIN_BPS=30.0" in text
-    assert "SMOKE_FLAT_CLASS_WEIGHT_FLOOR=2.00" in text
+    assert "SMOKE_FLAT_CLASS_WEIGHT_FLOOR=1.00" in text
     assert "SMOKE_ANCHOR_GATE_INIT=0.0" in text
     assert "--enable-xau-direction-repair-heads" in text
     assert '--anchor-gate-init "$SMOKE_ANCHOR_GATE_INIT"' in text

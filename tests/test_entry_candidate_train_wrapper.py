@@ -137,6 +137,14 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
         in text
     )
     assert (
+        'CANDIDATE_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT:-0.0}"'
+        in text
+    )
+    assert (
+        'CANDIDATE_DIRECTION_SLICE_RECALL_LOSS_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_RECALL_LOSS_WEIGHT:-0.0}"'
+        in text
+    )
+    assert (
         'CANDIDATE_DIRECTION_VS_FLAT_MARGIN_WEIGHT="${ENTRY_FOUNDATION_CANDIDATE_DIRECTION_VS_FLAT_MARGIN_WEIGHT:-0.0}"'
         in text
     )
@@ -224,6 +232,8 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION=" in text
     assert "ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR=" in text
     assert "ENTRY_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE=" in text
+    assert "ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT=" in text
+    assert "ENTRY_DIRECTION_SLICE_RECALL_LOSS_WEIGHT=" in text
     assert "ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT=" in text
     assert "ENTRY_DIRECTION_VS_FLAT_MARGIN=" in text
     assert "ENTRY_HIER_LEGACY_CE_MULT=" in text
@@ -279,12 +289,16 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "CANDIDATE_ENABLE_XAU_DIRECTION_REPAIR_HEADS=1" in text
     assert "GX1_PERTF_CLOSED_BAR=1" in text
     assert "CANDIDATE_PRED_BALANCE_ALPHA=0.50" in text
-    assert "CANDIDATE_DIRECTION_CE_SCALE=2.00" in text
+    assert "CANDIDATE_DIRECTION_CE_SCALE=4.00" in text
     assert "CANDIDATE_PRED_BALANCE_CLASS_WEIGHTS=1.0,1.0,4.0" in text
-    assert "CANDIDATE_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT=2.50" in text
+    assert "CANDIDATE_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT=12.00" in text
     assert "CANDIDATE_DIRECTION_MIN_PRED_RATE_FRACTION=0.50" in text
     assert "CANDIDATE_DIRECTION_MIN_PRED_RATE_FLOOR=0.05" in text
-    assert "CANDIDATE_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE=0.20" in text
+    assert "CANDIDATE_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE=0.15" in text
+    assert "CANDIDATE_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT=8.00" in text
+    assert "CANDIDATE_DIRECTION_SLICE_MIN_PRED_RATE_FRACTION=0.50" in text
+    assert "CANDIDATE_DIRECTION_SLICE_MIN_PRED_RATE_FLOOR=0.05" in text
+    assert "CANDIDATE_DIRECTION_SLICE_RECALL_LOSS_WEIGHT=4.00" in text
     assert "CANDIDATE_DIRECTION_VS_FLAT_MARGIN_WEIGHT=4.00" in text
     assert "CANDIDATE_DIRECTION_VS_FLAT_MARGIN=0.10" in text
     assert "CANDIDATE_HIER_LEGACY_CE_MULT=1.00" in text
@@ -308,7 +322,7 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "CANDIDATE_TRENDLINE_RAIL_UTILITY_MARGIN_WEIGHT=5.00" in text
     assert "CANDIDATE_TRENDLINE_RAIL_MARGIN=1.00" in text
     assert "CANDIDATE_TRENDLINE_RAIL_UTILITY_MARGIN_BPS=30.0" in text
-    assert "CANDIDATE_FLAT_CLASS_WEIGHT_FLOOR=2.00" in text
+    assert "CANDIDATE_FLAT_CLASS_WEIGHT_FLOOR=1.00" in text
     assert "CANDIDATE_ANCHOR_GATE_INIT=0.0" in text
     assert "CANDIDATE_BAD_PATH_PROB_PENALTY=0.0" in text
     assert "--enable-xau-direction-repair-heads" in text
