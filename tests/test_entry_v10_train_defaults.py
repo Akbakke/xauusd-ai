@@ -146,6 +146,47 @@ def test_entry_v10_direction_min_pred_rate_term_penalizes_active_side_collapse(m
     assert float(trainer._direction_min_pred_rate_term(balanced_enough, targets).item()) == 0.0
 
 
+def test_entry_v10_direction_slice_min_pred_rate_term_penalizes_dead_slice_class(monkeypatch) -> None:
+    import torch
+
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT", 3.0)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FRACTION", 0.50)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FLOOR", 0.05)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_MIN_LABEL_RATE", 0.10)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_MIN_ROWS", 3)
+    monkeypatch.setattr(trainer, "ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES", "0")
+
+    targets = torch.tensor([0, 0, 1, 1, 2, 2], dtype=torch.long)
+    ctx_cat = torch.tensor([[2], [2], [2], [2], [2], [2]], dtype=torch.long)
+    collapsed = torch.tensor(
+        [
+            [0.48, 0.50, 0.02],
+            [0.48, 0.50, 0.02],
+            [0.48, 0.50, 0.02],
+            [0.48, 0.50, 0.02],
+            [0.48, 0.50, 0.02],
+            [0.48, 0.50, 0.02],
+        ],
+        dtype=torch.float32,
+    )
+    covered = torch.tensor(
+        [
+            [0.34, 0.33, 0.33],
+            [0.34, 0.33, 0.33],
+            [0.34, 0.33, 0.33],
+            [0.34, 0.33, 0.33],
+            [0.34, 0.33, 0.33],
+            [0.34, 0.33, 0.33],
+        ],
+        dtype=torch.float32,
+    )
+
+    assert float(trainer._direction_slice_min_pred_rate_term(collapsed, targets, ctx_cat).item()) > 0.0
+    assert float(trainer._direction_slice_min_pred_rate_term(covered, targets, ctx_cat).item()) == 0.0
+
+
 def test_entry_v10_direction_vs_flat_margin_term_penalizes_directional_flat_argmax(monkeypatch) -> None:
     import torch
 

@@ -312,6 +312,18 @@ ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE = float(_env_str("ENTRY_CKPT_CLASS_BALANC
 ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT = float(_env_str("ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT", "0.0"))
 ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION = float(_env_str("ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION", "0.0"))
 ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR = float(_env_str("ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR", "0.0"))
+ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT = float(
+    _env_str("ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT", "0.0")
+)
+ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FRACTION = float(
+    _env_str("ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FRACTION", str(ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION))
+)
+ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FLOOR = float(
+    _env_str("ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FLOOR", str(ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR))
+)
+ENTRY_DIRECTION_SLICE_MIN_LABEL_RATE = float(_env_str("ENTRY_DIRECTION_SLICE_MIN_LABEL_RATE", "0.10"))
+ENTRY_DIRECTION_SLICE_MIN_ROWS = int(float(_env_str("ENTRY_DIRECTION_SLICE_MIN_ROWS", "8")))
+ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES = _env_str("ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES", "0,1,2,3,4")
 ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT = float(_env_str("ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT", "0.0"))
 ENTRY_DIRECTION_VS_FLAT_MARGIN = float(_env_str("ENTRY_DIRECTION_VS_FLAT_MARGIN", "0.0"))
 
@@ -502,6 +514,12 @@ _CANONICAL_ENTRY_TRAIN_ENV_DEFAULTS: Dict[str, str] = {
     "ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT": "0.0",
     "ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION": "0.0",
     "ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR": "0.0",
+    "ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT": "0.0",
+    "ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FRACTION": "0.0",
+    "ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FLOOR": "0.0",
+    "ENTRY_DIRECTION_SLICE_MIN_LABEL_RATE": "0.10",
+    "ENTRY_DIRECTION_SLICE_MIN_ROWS": "8",
+    "ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES": "0,1,2,3,4",
     "ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT": "0.0",
     "ENTRY_DIRECTION_VS_FLAT_MARGIN": "0.0",
     "ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT": "0.0",
@@ -2455,6 +2473,74 @@ def _direction_min_pred_rate_term(
     return weight * deficit.sum()
 
 
+def _direction_slice_ctx_cat_indices(ctx_cat_dim: int) -> list[int]:
+    out: list[int] = []
+    for raw in str(ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES or "").split(","):
+        raw = raw.strip()
+        if not raw:
+            continue
+        try:
+            idx = int(raw)
+        except ValueError:
+            continue
+        if 0 <= idx < int(ctx_cat_dim):
+            out.append(idx)
+    return sorted(set(out))
+
+
+def _direction_slice_min_pred_rate_term(
+    probs: torch.Tensor,
+    targets: torch.Tensor,
+    ctx_cat: Optional[torch.Tensor],
+) -> torch.Tensor:
+    zero = torch.zeros((), device=probs.device, dtype=probs.dtype)
+    weight = float(ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT)
+    if weight <= 0.0:
+        return zero
+    if probs.ndim != 2 or probs.shape[1] < 3 or ctx_cat is None or ctx_cat.ndim != 2:
+        return zero
+    if len(targets) != probs.shape[0] or ctx_cat.shape[0] != probs.shape[0]:
+        return zero
+
+    min_rows = max(2, int(ENTRY_DIRECTION_SLICE_MIN_ROWS))
+    fraction = max(0.0, float(ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FRACTION))
+    floor = max(0.0, float(ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FLOOR))
+    min_label_rate = max(0.0, float(ENTRY_DIRECTION_SLICE_MIN_LABEL_RATE))
+    indices = _direction_slice_ctx_cat_indices(int(ctx_cat.shape[1]))
+    if not indices:
+        return zero
+
+    total = torch.zeros((), device=probs.device, dtype=probs.dtype)
+    slices = 0
+    target_i = targets.long()
+    for idx in indices:
+        values = torch.unique(ctx_cat[:, idx].long())
+        for value in values:
+            mask = ctx_cat[:, idx].long() == value
+            rows = int(mask.sum().detach().cpu().item())
+            if rows < min_rows:
+                continue
+            slice_targets = target_i[mask]
+            counts = torch.bincount(slice_targets, minlength=probs.shape[1]).to(
+                device=probs.device,
+                dtype=probs.dtype,
+            )
+            label_rates = counts / counts.sum().clamp(min=1.0)
+            active = label_rates >= min_label_rate
+            if not bool(active.any().detach().cpu().item()):
+                continue
+            pred_rates = probs[mask].mean(dim=0)
+            required = torch.maximum(
+                label_rates * fraction,
+                torch.full_like(label_rates, floor),
+            )
+            total = total + torch.relu(required[active] - pred_rates[active]).sum()
+            slices += 1
+    if slices <= 0:
+        return zero
+    return weight * total / float(slices)
+
+
 def _direction_vs_flat_margin_term(
     logits: torch.Tensor,
     targets: torch.Tensor,
@@ -3309,6 +3395,7 @@ def train_epoch(
     total_ce = 0.0
     total_cost = 0.0
     total_balance = 0.0
+    total_direction_slice_min_pred = 0.0
     total_direction_flat_margin = 0.0
     total_tail_direction = 0.0
     total_timing = 0.0
@@ -3444,13 +3531,21 @@ def train_epoch(
         cost_term = torch.tensor(0.0, device=device)
         balance_term = _direction_balance_term(probs, y, criterion)
         min_pred_rate_term = _direction_min_pred_rate_term(probs, y)
+        slice_min_pred_rate_term = _direction_slice_min_pred_rate_term(probs, y, ctx_cat)
         direction_flat_margin_term = _direction_vs_flat_margin_term(logits, y)
         if bool(getattr(criterion, "enabled", False)):
             cost = criterion.cost_matrix.to(dtype=logits.dtype)[y]
             expected_cost = (cost * probs).sum(dim=1)
             cost_term = float(getattr(criterion, "cost_scale", 1.0)) * expected_cost.mean()
 
-        loss = ce_loss + cost_term + balance_term + min_pred_rate_term + direction_flat_margin_term
+        loss = (
+            ce_loss
+            + cost_term
+            + balance_term
+            + min_pred_rate_term
+            + slice_min_pred_rate_term
+            + direction_flat_margin_term
+        )
         if float(ENTRY_TAIL_DIRECTION_CE_WEIGHT) > 0.0:
             loss = loss + tail_direction_loss
         if float(ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT) > 0.0 or float(ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT) > 0.0:
@@ -3692,6 +3787,7 @@ def train_epoch(
         total_ce += float(ce_loss) * bs
         total_cost += float(cost_term.detach().cpu().item()) * bs
         total_balance += float(balance_term.detach().cpu().item()) * bs
+        total_direction_slice_min_pred += float(slice_min_pred_rate_term.detach().cpu().item()) * bs
         total_direction_flat_margin += float(direction_flat_margin_term.detach().cpu().item()) * bs
         total_tail_direction += float(tail_direction_loss.detach().cpu().item()) * bs
         tail_direction_rows += int(tail_direction_mask.sum().detach().cpu().item())
@@ -3743,6 +3839,7 @@ def train_epoch(
         "ce_loss_mean": (total_ce / max(1, n)),
         "cost_loss_mean": (total_cost / max(1, n)),
         "balance_loss_mean": (total_balance / max(1, n)),
+        "direction_slice_min_pred_rate_loss_mean": (total_direction_slice_min_pred / max(1, n)),
         "direction_flat_margin_loss_mean": (total_direction_flat_margin / max(1, n)),
         "tail_direction_loss_mean": (total_tail_direction / max(1, n)),
         "tail_direction_rows": int(tail_direction_rows),
@@ -4378,6 +4475,7 @@ def validate(
     total_ce = 0.0
     total_cost = 0.0
     total_balance = 0.0
+    total_direction_slice_min_pred = 0.0
     total_direction_flat_margin = 0.0
     total_tail_direction = 0.0
     bad_path_quality_rank_loss_sum = 0.0
@@ -4522,13 +4620,21 @@ def validate(
             cost_term = torch.tensor(0.0, device=device)
             balance_term = _direction_balance_term(probs, y, criterion)
             min_pred_rate_term = _direction_min_pred_rate_term(probs, y)
+            slice_min_pred_rate_term = _direction_slice_min_pred_rate_term(probs, y, ctx_cat)
             direction_flat_margin_term = _direction_vs_flat_margin_term(logits, y)
             if bool(getattr(criterion, "enabled", False)):
                 cost = criterion.cost_matrix.to(dtype=logits.dtype)[y]
                 expected_cost = (cost * probs).sum(dim=1)
                 cost_term = float(getattr(criterion, "cost_scale", 1.0)) * expected_cost.mean()
 
-            loss = ce_loss + cost_term + balance_term + min_pred_rate_term + direction_flat_margin_term
+            loss = (
+                ce_loss
+                + cost_term
+                + balance_term
+                + min_pred_rate_term
+                + slice_min_pred_rate_term
+                + direction_flat_margin_term
+            )
             if float(ENTRY_TAIL_DIRECTION_CE_WEIGHT) > 0.0:
                 loss = loss + tail_direction_loss
             if float(ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT) > 0.0 or float(ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT) > 0.0:
@@ -4709,6 +4815,7 @@ def validate(
             total_ce += float(ce_loss) * bs
             total_cost += float(cost_term.detach().cpu().item()) * bs
             total_balance += float(balance_term.detach().cpu().item()) * bs
+            total_direction_slice_min_pred += float(slice_min_pred_rate_term.detach().cpu().item()) * bs
             total_direction_flat_margin += float(direction_flat_margin_term.detach().cpu().item()) * bs
             total_tail_direction += float(tail_direction_loss.detach().cpu().item()) * bs
             tail_direction_rows += int(tail_direction_mask.sum().detach().cpu().item())
@@ -4777,6 +4884,7 @@ def validate(
         "ce_loss_mean": (total_ce / max(1, n)),
         "cost_loss_mean": (total_cost / max(1, n)),
         "balance_loss_mean": (total_balance / max(1, n)),
+        "direction_slice_min_pred_rate_loss_mean": (total_direction_slice_min_pred / max(1, n)),
         "direction_flat_margin_loss_mean": (total_direction_flat_margin / max(1, n)),
         "tail_direction_loss_mean": (total_tail_direction / max(1, n)),
         "tail_direction_rows": int(tail_direction_rows),
@@ -6020,6 +6128,16 @@ def run_train(
     _require_nonneg("ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT", ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT)
     _require_nonneg("ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION", ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION)
     _require_nonneg("ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR", ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR)
+    _require_nonneg(
+        "ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT",
+        ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT,
+    )
+    _require_nonneg(
+        "ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FRACTION",
+        ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FRACTION,
+    )
+    _require_nonneg("ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FLOOR", ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FLOOR)
+    _require_nonneg("ENTRY_DIRECTION_SLICE_MIN_LABEL_RATE", ENTRY_DIRECTION_SLICE_MIN_LABEL_RATE)
     _require_nonneg("ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT", ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT)
     _require_nonneg("ENTRY_DIRECTION_VS_FLAT_MARGIN", ENTRY_DIRECTION_VS_FLAT_MARGIN)
     if ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL > 1.0:
@@ -6041,6 +6159,23 @@ def run_train(
         raise RuntimeError(
             "[ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR_INVALID] "
             f"ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR={ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR:.6f} expected <=1.0"
+        )
+    if ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FRACTION > 1.0:
+        raise RuntimeError(
+            "[ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FRACTION_INVALID] "
+            f"ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FRACTION={ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FRACTION:.6f} "
+            "expected <=1.0"
+        )
+    if ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FLOOR > 1.0:
+        raise RuntimeError(
+            "[ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FLOOR_INVALID] "
+            f"ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FLOOR={ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FLOOR:.6f} "
+            "expected <=1.0"
+        )
+    if ENTRY_DIRECTION_SLICE_MIN_LABEL_RATE > 1.0:
+        raise RuntimeError(
+            "[ENTRY_DIRECTION_SLICE_MIN_LABEL_RATE_INVALID] "
+            f"ENTRY_DIRECTION_SLICE_MIN_LABEL_RATE={ENTRY_DIRECTION_SLICE_MIN_LABEL_RATE:.6f} expected <=1.0"
         )
     if bool(enable_side_validity_head) and ENTRY_HIER_SIDE_VALIDITY_WEIGHT <= 0.0:
         raise RuntimeError(
@@ -6269,10 +6404,18 @@ def run_train(
         float(ENTRY_SPECIALIST_GATE_MIN_MEAN),
     )
     log.info(
-        "[ENTRY_DIRECTION_MIN_PRED_RATE_RECIPE] weight=%.3f fraction=%.3f floor=%.3f flat_margin_w=%.3f flat_margin=%.3f",
+        "[ENTRY_DIRECTION_MIN_PRED_RATE_RECIPE] weight=%.3f fraction=%.3f floor=%.3f "
+        "slice_w=%.3f slice_fraction=%.3f slice_floor=%.3f slice_min_rows=%d slice_min_label_rate=%.3f "
+        "slice_ctx_cat=%s flat_margin_w=%.3f flat_margin=%.3f",
         float(ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT),
         float(ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION),
         float(ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR),
+        float(ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT),
+        float(ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FRACTION),
+        float(ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FLOOR),
+        int(ENTRY_DIRECTION_SLICE_MIN_ROWS),
+        float(ENTRY_DIRECTION_SLICE_MIN_LABEL_RATE),
+        str(ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES),
         float(ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT),
         float(ENTRY_DIRECTION_VS_FLAT_MARGIN),
     )
@@ -7024,6 +7167,12 @@ def run_train(
         "direction_min_pred_rate_loss_weight": float(ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT),
         "direction_min_pred_rate_fraction": float(ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION),
         "direction_min_pred_rate_floor": float(ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR),
+        "direction_slice_min_pred_rate_loss_weight": float(ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT),
+        "direction_slice_min_pred_rate_fraction": float(ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FRACTION),
+        "direction_slice_min_pred_rate_floor": float(ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FLOOR),
+        "direction_slice_min_label_rate": float(ENTRY_DIRECTION_SLICE_MIN_LABEL_RATE),
+        "direction_slice_min_rows": int(ENTRY_DIRECTION_SLICE_MIN_ROWS),
+        "direction_slice_ctx_cat_indices": str(ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES),
         "direction_vs_flat_margin_weight": float(ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT),
         "direction_vs_flat_margin": float(ENTRY_DIRECTION_VS_FLAT_MARGIN),
         "tail_direction_ce_weight": float(ENTRY_TAIL_DIRECTION_CE_WEIGHT),
@@ -7059,6 +7208,12 @@ def run_train(
             "direction_min_pred_rate_loss_weight": float(ENTRY_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT),
             "direction_min_pred_rate_fraction": float(ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION),
             "direction_min_pred_rate_floor": float(ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR),
+            "direction_slice_min_pred_rate_loss_weight": float(ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT),
+            "direction_slice_min_pred_rate_fraction": float(ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FRACTION),
+            "direction_slice_min_pred_rate_floor": float(ENTRY_DIRECTION_SLICE_MIN_PRED_RATE_FLOOR),
+            "direction_slice_min_label_rate": float(ENTRY_DIRECTION_SLICE_MIN_LABEL_RATE),
+            "direction_slice_min_rows": int(ENTRY_DIRECTION_SLICE_MIN_ROWS),
+            "direction_slice_ctx_cat_indices": str(ENTRY_DIRECTION_SLICE_CTX_CAT_INDICES),
             "direction_vs_flat_margin_weight": float(ENTRY_DIRECTION_VS_FLAT_MARGIN_WEIGHT),
             "direction_vs_flat_margin": float(ENTRY_DIRECTION_VS_FLAT_MARGIN),
             "residual_scale": float(ENTRY_RESIDUAL_SCALE),
