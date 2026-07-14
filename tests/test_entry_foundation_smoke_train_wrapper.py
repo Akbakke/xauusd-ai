@@ -359,6 +359,10 @@ def test_smoke_train_wrapper_enforces_train_readiness_for_real_train() -> None:
     assert 'SMOKE_CAPPED_RUNNER=scripts/gx1_capped_run.sh' in text
     assert 'Smoke resource cap: mem=$SMOKE_RUN_MEM swap=$SMOKE_RUN_SWAP runner=$SMOKE_CAPPED_RUNNER num_workers=0' in text
     assert 'Capped smoke train command:' in text
+    assert "Smoke bundle export completed; post-smoke audit pending" in text
+    assert "Smoke bundle accepted by post-smoke audit" in text
+    assert "Post-smoke edge audit failed; removing rejected smoke bundle" in text
+    assert 'rm -rf -- "$OUT_BUNDLE"' in text
     assert '"memory_cap": os.environ.get("SMOKE_RUN_MEM")' in text
     assert '"swap_cap": os.environ.get("SMOKE_RUN_SWAP")' in text
     assert '"cgroup_runner": "scripts/gx1_capped_run.sh"' in text

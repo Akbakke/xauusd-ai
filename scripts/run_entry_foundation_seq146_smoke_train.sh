@@ -1127,9 +1127,18 @@ if [[ "$MANIFEST_ONLY" = "1" ]]; then
 fi
 
 "$SMOKE_CAPPED_RUNNER" --mem "$SMOKE_RUN_MEM" --swap "$SMOKE_RUN_SWAP" -- "${CMD[@]}"
-echo "Smoke bundle written: $OUT_BUNDLE"
+echo "Smoke bundle export completed; post-smoke audit pending: $OUT_BUNDLE"
 if [[ "$AUDIT_AFTER" = "1" ]]; then
-  "${AUDIT_CMD[@]}"
+  if "${AUDIT_CMD[@]}"; then
+    echo "Smoke bundle accepted by post-smoke audit: $OUT_BUNDLE"
+  else
+    AUDIT_RC=$?
+    if [[ "$REQUIRE_EDGE_AUDIT" = "1" ]]; then
+      echo "Post-smoke edge audit failed; removing rejected smoke bundle: $OUT_BUNDLE" >&2
+      rm -rf -- "$OUT_BUNDLE"
+    fi
+    exit "$AUDIT_RC"
+  fi
 else
   echo "Smoke bundle audit skipped by --skip-smoke-audit: $OUT_BUNDLE"
 fi
