@@ -298,9 +298,18 @@ def test_entry_v10_direction_vs_flat_margin_term_penalizes_directional_flat_argm
         ],
         dtype=torch.float32,
     )
+    wrong_side = torch.tensor(
+        [
+            [-1.0, 2.0, 0.0],
+            [2.0, -1.0, 0.0],
+            [-1.0, 0.0, 2.0],
+        ],
+        dtype=torch.float32,
+    )
 
     assert float(trainer._direction_vs_flat_margin_term(collapsed, targets).item()) > 4.0
     assert float(trainer._direction_vs_flat_margin_term(flat_wrong_side, targets).item()) > 2.0
+    assert float(trainer._direction_vs_flat_margin_term(wrong_side, targets).item()) > 4.0
     assert float(trainer._direction_vs_flat_margin_term(side_above_flat, targets).item()) < 1.0
 
 

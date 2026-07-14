@@ -2625,21 +2625,17 @@ def _direction_vs_flat_margin_term(
     if logits.ndim != 2 or logits.shape[1] < 3:
         return zero
     target = targets.long()
-    directional = (target == 0) | (target == 1)
-    flat = target == 2
-    if not bool((directional | flat).any().detach().cpu().item()):
+    valid = (target >= 0) & (target < logits.shape[1])
+    if not bool(valid.any().detach().cpu().item()):
         return zero
     margin = max(0.0, float(ENTRY_DIRECTION_VS_FLAT_MARGIN))
-    terms: list[torch.Tensor] = []
-    if bool(directional.any().detach().cpu().item()):
-        side_logits = logits[directional].gather(1, target[directional].view(-1, 1)).squeeze(1)
-        flat_logits = logits[directional, 2]
-        terms.append(nn.functional.softplus(flat_logits - side_logits + margin))
-    if bool(flat.any().detach().cpu().item()):
-        flat_logits = logits[flat, 2]
-        side_logits = logits[flat, :2].max(dim=1).values
-        terms.append(nn.functional.softplus(side_logits - flat_logits + margin))
-    return weight * torch.cat(terms).mean()
+    logits_v = logits[valid]
+    target_v = target[valid]
+    target_logits = logits_v.gather(1, target_v.view(-1, 1)).squeeze(1)
+    competitor_logits = logits_v.clone()
+    competitor_logits.scatter_(1, target_v.view(-1, 1), torch.finfo(logits_v.dtype).min)
+    competitor = competitor_logits.max(dim=1).values
+    return weight * nn.functional.softplus(competitor - target_logits + margin).mean()
 
 
 def _build_cost_sensitive_criterion(
