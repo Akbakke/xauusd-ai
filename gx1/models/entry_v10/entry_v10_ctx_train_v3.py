@@ -2479,16 +2479,16 @@ def _direction_min_pred_rate_term(
         return zero
     mean_probs = probs.mean(dim=0)
     counts = torch.bincount(targets, minlength=probs.shape[1]).to(device=probs.device, dtype=probs.dtype)
+    counts = counts[: probs.shape[1]]
     label_rates = counts / counts.sum().clamp(min=1.0)
-    side_label_rates = label_rates[:2]
-    active_side = side_label_rates > 0.0
-    if not bool(active_side.any().detach().cpu().item()):
+    active = label_rates > 0.0
+    if not bool(active.any().detach().cpu().item()):
         return zero
-    side_pred_rates = mean_probs[:2]
-    fraction_req = torch.clamp(side_label_rates * float(ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION), min=0.0)
+    pred_rates = mean_probs[: label_rates.numel()]
+    fraction_req = torch.clamp(label_rates * float(ENTRY_DIRECTION_MIN_PRED_RATE_FRACTION), min=0.0)
     floor_req = torch.full_like(fraction_req, max(0.0, float(ENTRY_DIRECTION_MIN_PRED_RATE_FLOOR)))
     required = torch.maximum(fraction_req, floor_req)
-    deficit = torch.relu(required[active_side] - side_pred_rates[active_side])
+    deficit = torch.relu(required[active] - pred_rates[active])
     return weight * deficit.sum()
 
 
@@ -2626,12 +2626,20 @@ def _direction_vs_flat_margin_term(
         return zero
     target = targets.long()
     directional = (target == 0) | (target == 1)
-    if not bool(directional.any().detach().cpu().item()):
+    flat = target == 2
+    if not bool((directional | flat).any().detach().cpu().item()):
         return zero
-    side_logits = logits[directional].gather(1, target[directional].view(-1, 1)).squeeze(1)
-    flat_logits = logits[directional, 2]
     margin = max(0.0, float(ENTRY_DIRECTION_VS_FLAT_MARGIN))
-    return weight * nn.functional.softplus(flat_logits - side_logits + margin).mean()
+    terms: list[torch.Tensor] = []
+    if bool(directional.any().detach().cpu().item()):
+        side_logits = logits[directional].gather(1, target[directional].view(-1, 1)).squeeze(1)
+        flat_logits = logits[directional, 2]
+        terms.append(nn.functional.softplus(flat_logits - side_logits + margin))
+    if bool(flat.any().detach().cpu().item()):
+        flat_logits = logits[flat, 2]
+        side_logits = logits[flat, :2].max(dim=1).values
+        terms.append(nn.functional.softplus(side_logits - flat_logits + margin))
+    return weight * torch.cat(terms).mean()
 
 
 def _build_cost_sensitive_criterion(

@@ -109,7 +109,7 @@ def test_entry_v10_train_and_validate_apply_pred_balance_loss_directly() -> None
     assert text.count("_direction_balance_term(probs, y, criterion)") >= 2
 
 
-def test_entry_v10_direction_min_pred_rate_term_penalizes_active_side_collapse(monkeypatch) -> None:
+def test_entry_v10_direction_min_pred_rate_term_penalizes_active_class_collapse(monkeypatch) -> None:
     import torch
 
     from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
@@ -130,6 +130,17 @@ def test_entry_v10_direction_min_pred_rate_term_penalizes_active_side_collapse(m
         ],
         dtype=torch.float32,
     )
+    no_flat = torch.tensor(
+        [
+            [0.48, 0.50, 0.02],
+            [0.48, 0.50, 0.02],
+            [0.48, 0.50, 0.02],
+            [0.48, 0.50, 0.02],
+            [0.48, 0.50, 0.02],
+            [0.48, 0.50, 0.02],
+        ],
+        dtype=torch.float32,
+    )
     balanced_enough = torch.tensor(
         [
             [0.20, 0.20, 0.60],
@@ -143,6 +154,7 @@ def test_entry_v10_direction_min_pred_rate_term_penalizes_active_side_collapse(m
     )
 
     assert float(trainer._direction_min_pred_rate_term(collapsed, targets).item()) > 0.0
+    assert float(trainer._direction_min_pred_rate_term(no_flat, targets).item()) > 0.0
     assert float(trainer._direction_min_pred_rate_term(balanced_enough, targets).item()) == 0.0
 
 
@@ -278,8 +290,17 @@ def test_entry_v10_direction_vs_flat_margin_term_penalizes_directional_flat_argm
         ],
         dtype=torch.float32,
     )
+    flat_wrong_side = torch.tensor(
+        [
+            [2.0, -1.0, 0.0],
+            [-1.0, 2.0, 0.0],
+            [1.2, 1.0, 0.0],
+        ],
+        dtype=torch.float32,
+    )
 
     assert float(trainer._direction_vs_flat_margin_term(collapsed, targets).item()) > 4.0
+    assert float(trainer._direction_vs_flat_margin_term(flat_wrong_side, targets).item()) > 2.0
     assert float(trainer._direction_vs_flat_margin_term(side_above_flat, targets).item()) < 1.0
 
 
