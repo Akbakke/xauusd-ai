@@ -6579,6 +6579,7 @@ def run_train(
                 _ckpt_model = model._orig_mod if hasattr(model, "_orig_mod") else model
                 _ckpt_model.load_state_dict(best_state, strict=True)
                 raw_logits, cal_labels = _collect_direction_logits_for_calibration(model, val_loader, device)
+                calibration_candidates: list[Dict[str, Any]] = []
                 for cal_mode in (
                     "side_tied_flat_vs_direction",
                     "side_regularized_full_bias",
@@ -6627,6 +6628,9 @@ def run_train(
                     candidate_payload["calibrated_direction_ckpt_score"] = float(
                         cal_stats.get("direction_ckpt_score", cal_acc)
                     )
+                    candidate_payload["calibrated_direction_pred_label_l1"] = float(
+                        cal_stats.get("direction_pred_label_l1", 1e9)
+                    )
                     candidate_payload["calibrated_direction_pred_rates"] = {
                         "long": float(cal_stats.get("direction_pred_rate_long", 0.0)),
                         "short": float(cal_stats.get("direction_pred_rate_short", 0.0)),
@@ -6651,11 +6655,50 @@ def run_train(
                         float(cal_stats.get("direction_pred_rate_flat", 0.0)),
                     )
                     if calibrated_guard_ok:
-                        direction_calibration_payload = candidate_payload
-                        best_direction_balance_guard_ok = True
-                        best_acc = float(cal_acc)
-                        best_dir_ckpt_score = float(cal_stats.get("direction_ckpt_score", cal_acc))
-                        break
+                        calibration_candidates.append(candidate_payload)
+                if calibration_candidates:
+                    candidate_summaries = [
+                        {
+                            "mode": str(row.get("mode") or ""),
+                            "guard_ok": bool(row.get("calibrated_direction_class_balance_guard_ok")),
+                            "dir_acc": float(row.get("calibrated_dir_acc", 0.0)),
+                            "direction_ckpt_score": float(row.get("calibrated_direction_ckpt_score", 0.0)),
+                            "pred_label_l1": float(row.get("calibrated_direction_pred_label_l1", 1e9)),
+                            "val_loss": float(row.get("calibrated_val_loss", 1e9)),
+                            "nll_after": float(row.get("nll_after", 1e9)),
+                            "pred_rates": row.get("calibrated_direction_pred_rates"),
+                        }
+                        for row in calibration_candidates
+                    ]
+                    direction_calibration_payload = max(
+                        calibration_candidates,
+                        key=lambda row: (
+                            float(row.get("calibrated_direction_ckpt_score", -1e9)),
+                            float(row.get("calibrated_dir_acc", 0.0)),
+                            -float(row.get("calibrated_direction_pred_label_l1", 1e9)),
+                            -float(row.get("calibrated_val_loss", 1e9)),
+                        ),
+                    )
+                    direction_calibration_payload["fallback_candidates"] = candidate_summaries
+                    _ckpt_model.set_direction_calibration(
+                        float(direction_calibration_payload["temperature"]),
+                        torch.tensor(direction_calibration_payload["bias"], device=device, dtype=torch.float32),
+                    )
+                    best_direction_balance_guard_ok = True
+                    best_acc = float(direction_calibration_payload.get("calibrated_dir_acc", best_acc))
+                    best_dir_ckpt_score = float(
+                        direction_calibration_payload.get("calibrated_direction_ckpt_score", best_acc)
+                    )
+                    log.info(
+                        "[ENTRY_DIRECTION_CAL_FALLBACK_SELECTED] mode=%s dir_acc=%.6f score=%.6f "
+                        "pred_l1=%.6f val_loss=%.6f candidates=%s",
+                        str(direction_calibration_payload.get("mode") or ""),
+                        float(direction_calibration_payload.get("calibrated_dir_acc", 0.0)),
+                        float(direction_calibration_payload.get("calibrated_direction_ckpt_score", 0.0)),
+                        float(direction_calibration_payload.get("calibrated_direction_pred_label_l1", 0.0)),
+                        float(direction_calibration_payload.get("calibrated_val_loss", 0.0)),
+                        [row["mode"] for row in candidate_summaries],
+                    )
             except Exception as exc:
                 raise RuntimeError(
                     "[TRAIN_FAIL_DIRECTION_CLASS_BALANCE_GUARD] "
