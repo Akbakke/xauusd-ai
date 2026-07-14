@@ -297,6 +297,11 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "refuses known stale dataset path" in text
     assert "dataset path must be XAU-specific" in text
     assert "CANDIDATE_ENABLE_XAU_DIRECTION_REPAIR_HEADS=1" in text
+    assert "CANDIDATE_READINESS_EDGE_SCOPE=smoke" not in text
+    assert "AUDIT_EDGE_SCOPE=candidate" not in text
+    assert "--edge-test-scope candidate" not in text
+    assert "CANDIDATE_READINESS_EDGE_SCOPE=strict" in text
+    assert "AUDIT_EDGE_SCOPE=strict" in text
     assert "GX1_PERTF_CLOSED_BAR=1" in text
     assert "CANDIDATE_PRED_BALANCE_ALPHA=0.50" in text
     assert "CANDIDATE_DIRECTION_CE_SCALE=4.00" in text

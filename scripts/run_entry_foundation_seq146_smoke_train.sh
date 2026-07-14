@@ -676,10 +676,7 @@ AUDIT_CMD=(
   --pretrain-manifest-json "$PRETRAIN_MANIFEST"
 )
 if [[ "$REQUIRE_EDGE_AUDIT" = "1" ]]; then
-  # Smoke-stage scope: TEST-split per-slice + path/bad_path head-sign checks are
-  # loud advisories here; they stay HARD at candidate stage (strict default in
-  # the audit script). User vedtak SMART_SEQ520_smoke_wave_20260702.
-  AUDIT_CMD+=(--require-edge --edge-test-scope smoke)
+  AUDIT_CMD+=(--require-edge --edge-test-scope strict)
 fi
 
 if [[ "$DRY_RUN" = "1" ]]; then

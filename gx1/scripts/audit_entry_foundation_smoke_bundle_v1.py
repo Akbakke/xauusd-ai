@@ -2123,36 +2123,20 @@ def _audit_split(
 
 def _require_edge_failures(
     split: str, split_report: dict[str, Any], *, edge_test_scope: str = "strict"
-) -> tuple[list[str], list[str]]:
-    """Split-level edge checks. Returns (failures, advisories).
+) -> list[str]:
+    """Split-level edge checks. Returns hard failures.
 
-    edge_test_scope="strict" (default): every check is a hard failure on every
-    split — the candidate-stage contract (goal-doc roadmap steps 4-5).
-    edge_test_scope="smoke": on the strict-OOT TEST split only, the per-slice
-    direction contract and the path/bad_path head-sign checks are demoted to
-    LOUD advisories (recorded in the report, never silently dropped) — the
-    smoke proves trainability + non-collapse (roadmap steps 1-2); per-slice
-    2026 robustness and OOT head-sign quality are candidate-stage evidence
-    where 2026 data enters training (user vedtak SMART_SEQ520_smoke_wave_20260702).
-    edge_test_scope="candidate": ONLY the per-slice direction diagnostics are
-    demoted to LOUD advisories (on every split); path/bad_path head-sign,
-    whole-split majority-beat and the global distribution contract all stay
-    HARD. Grounds (user directive 2026-07-04 'fortsett til 6' after the
-    vol_regime=2 investigation): the slice checks grade BLANKET accuracy vs a
-    FLAT-heavy slice majority, which the load-bearing selected-trade evidence
-    contradicted (multi-month probe: slices failing blanket ties carry +67bps
-    selected PnL; the one weak slice, vol2, is a no-edge zone whose toxic
-    subcluster is covered by the live SKIP_ASIA overlay and is left for the
-    IQL policy layer to learn). AGENTS.md: verify on the load-bearing metric,
-    not blanket accuracy.
-    Whole-split majority-beat and the global distribution contract stay hard on
-    every split in all scopes.
+    edge_test_scope="strict" (default): every edge check is a hard failure on
+    every split. Non-strict scopes are forbidden for XAU direction repair; a
+    slice/path failure must block the artifact instead of becoming a logged-only
+    diagnostic.
     """
+    if edge_test_scope != "strict":
+        raise ValueError(
+            "[ENTRY_SMOKE_AUDIT_NO_EDGE_FALLBACK] "
+            f"edge_test_scope={edge_test_scope!r} is forbidden; use strict"
+        )
     failures: list[str] = []
-    advisories: list[str] = []
-    demote_oot_checks = edge_test_scope == "smoke" and split == "test"
-    soft = advisories if demote_oot_checks else failures
-    slice_soft = advisories if (demote_oot_checks or edge_test_scope == "candidate") else failures
     if not bool(split_report["direction"]["beats_majority_baseline"]):
         failures.append(f"{split}: direction accuracy does not beat majority baseline")
     distribution_contract = split_report.get("direction_distribution_contract") or {}
@@ -2163,17 +2147,17 @@ def _require_edge_failures(
         )
     slice_contract = split_report.get("direction_slice_contract") or {}
     if str(slice_contract.get("decision")) != "PASS":
-        slice_soft.append(
+        failures.append(
             f"{split}: direction slice diagnostics failed: "
             f"{slice_contract.get('failures')}"
         )
     path_rho = split_report["path_quality"]["pred_vs_target_spearman"]
     if path_rho is None or float(path_rho) <= 0.0:
-        soft.append(f"{split}: path_quality_pred is not positively related to path_quality_bps")
+        failures.append(f"{split}: path_quality_pred is not positively related to path_quality_bps")
     bad_path_rho = split_report["bad_path"]["prob_vs_path_quality_spearman"]
     if bad_path_rho is None or float(bad_path_rho) >= 0.0:
-        soft.append(f"{split}: bad_path_prob is not negatively related to path_quality_bps")
-    return failures, advisories
+        failures.append(f"{split}: bad_path_prob is not negatively related to path_quality_bps")
+    return failures
 
 
 def _write_markdown(path: Path, report: dict[str, Any]) -> None:
@@ -2187,18 +2171,12 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
         f"- Edge test scope: `{report.get('edge_test_scope', 'strict')}`",
         f"- Require head contract: `{report['require_head_contract']}`",
         f"- Failure count: `{len(report['failures'])}`",
-        f"- Edge advisory count (smoke-scope demoted, candidate-stage hard): `{len(report.get('edge_advisories') or [])}`",
         "",
         "## Failures",
         "",
     ]
     if report["failures"]:
         lines.extend([f"- {failure}" for failure in report["failures"]])
-    else:
-        lines.append("- None")
-    lines.extend(["", "## Edge Advisories (NOT gating at smoke scope — hard at candidate stage)", ""])
-    if report.get("edge_advisories"):
-        lines.extend([f"- ADVISORY: {advisory}" for advisory in report["edge_advisories"]])
     else:
         lines.append("- None")
     bundle_specialist_contract = report.get("bundle_specialist_model_contract")
@@ -2253,6 +2231,11 @@ def _write_markdown(path: Path, report: dict[str, Any]) -> None:
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
+    if str(getattr(args, "edge_test_scope", "strict") or "strict").strip() != "strict":
+        raise ValueError(
+            "[ENTRY_SMOKE_AUDIT_NO_EDGE_FALLBACK] "
+            f"edge_test_scope={getattr(args, 'edge_test_scope', None)!r} is forbidden; use strict"
+        )
     bundle_dir = Path(args.bundle_dir).expanduser().resolve()
     dataset_dir = Path(args.dataset_dir).expanduser().resolve()
     out_dir = Path(args.out_dir).expanduser().resolve()
@@ -2266,7 +2249,6 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         os.environ.setdefault("GX1_V10_MULTI_TF_V2_CACHE_DIR", str(mtf_cache_dir))
 
     failures: list[str] = []
-    edge_advisories: list[str] = []
     bundle = load_entry_v10_ctx_bundle(bundle_dir=bundle_dir, device=str(device), xgb_models=None)
     model = bundle.transformer_model
     model.eval()
@@ -2359,13 +2341,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     min_active_specialists=int(min_active_specialists),
                     min_gate_entropy=float(args.min_gate_entropy),
                 )
-            )
+        )
         if args.require_edge:
-            edge_failures, split_advisories = _require_edge_failures(
+            edge_failures = _require_edge_failures(
                 split, split_report, edge_test_scope=str(args.edge_test_scope)
             )
             failures.extend(edge_failures)
-            edge_advisories.extend(split_advisories)
 
     head_contract = None
     if args.require_head_contract:
@@ -2413,7 +2394,6 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "batch_size": int(args.batch_size),
         "require_edge": bool(args.require_edge),
         "edge_test_scope": str(args.edge_test_scope),
-        "edge_advisories": edge_advisories,
         "require_specialist_fusion": bool(args.require_specialist_fusion),
         "specialist_contract_mode": specialist_contract_mode,
         "required_training_specialists": list(required_specialists),
@@ -2509,16 +2489,11 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--require-edge", action="store_true")
     ap.add_argument(
         "--edge-test-scope",
-        choices=("strict", "smoke", "candidate"),
+        choices=("strict",),
         default="strict",
         help=(
-            "strict (default): all edge checks hard-fail on every split. "
-            "smoke: TEST-split per-slice + path/bad_path head-sign checks become loud "
-            "advisories (smoke = trainability proof). "
-            "candidate: ONLY per-slice direction diagnostics become loud advisories on "
-            "every split (blanket slice-accuracy vs FLAT-heavy majorities graded by the "
-            "load-bearing selected-trade evidence instead); path/bad_path sign, "
-            "whole-split majority-beat and distribution contract stay hard."
+            "strict only: all edge checks hard-fail on every split. Non-strict scopes are "
+            "forbidden for XAU direction repair."
         ),
     )
     ap.add_argument("--require-specialist-fusion", action=argparse.BooleanOptionalAction, default=True)

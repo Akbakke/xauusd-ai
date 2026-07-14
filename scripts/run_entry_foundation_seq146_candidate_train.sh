@@ -230,7 +230,7 @@ while [[ $# -gt 0 ]]; do
       ;;
     --smart-seq520)
       RUN_FLAVOR=smart_seq520
-      CANDIDATE_READINESS_EDGE_SCOPE=smoke
+      CANDIDATE_READINESS_EDGE_SCOPE=strict
       # XAU-only direction repair candidate: use the fresh stage-5 rebuild
       # dataset. Older utilityrepair_v2 artifacts are explicitly audit-blocked
       # because they predate scalar bad-path/size-target repair and rail
@@ -614,18 +614,7 @@ if [[ "$CANDIDATE_ENABLE_XAU_DIRECTION_REPAIR_HEADS" = "1" ]]; then
   )
 fi
 
-# Post-candidate audit edge scope (red-team fix 2026-07-04): the smart flavor
-# audits with --edge-test-scope candidate — per-slice BLANKET diagnostics are
-# loud advisories there; the HARD per-slice responsibility lives in
-# replay-readiness' SELECTED-TAIL slice-precision floors (min 0.50, min n 20),
-# which stay untouched and currently fail-close on real weaknesses (e.g. EU).
-# foundation/seq215 keep strict. Responsibility chain, ONE truth:
-#   blanket slices  -> advisory @ candidate audit (this cmd)
-#   selected-tail   -> HARD     @ replay-readiness (verify_entry_replay_readiness_v1)
 AUDIT_EDGE_SCOPE=strict
-if [[ "$RUN_FLAVOR" = "smart_seq520" ]]; then
-  AUDIT_EDGE_SCOPE=candidate
-fi
 AUDIT_CMD=(
   scripts/entry_next_edge_control.sh
   audit-smoke-bundle

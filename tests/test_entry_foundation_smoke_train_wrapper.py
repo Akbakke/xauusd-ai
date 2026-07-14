@@ -381,6 +381,8 @@ def test_smoke_train_wrapper_enforces_train_readiness_for_real_train() -> None:
     assert "Smoke bundle export completed; post-smoke audit pending" in text
     assert "Smoke bundle accepted by post-smoke audit" in text
     assert "Post-smoke edge audit failed; removing rejected smoke bundle" in text
+    assert "--edge-test-scope smoke" not in text
+    assert "--edge-test-scope strict" in text
     assert 'rm -rf -- "$OUT_BUNDLE"' in text
     assert '"memory_cap": os.environ.get("SMOKE_RUN_MEM")' in text
     assert '"swap_cap": os.environ.get("SMOKE_RUN_SWAP")' in text
@@ -400,5 +402,7 @@ def test_control_surface_exposes_manifest_only_smoke_proof() -> None:
     assert "smoke-manifest-seq215)" in text
     assert "smoke-train-seq215)" in text
     assert "smart-smoke-train)" in text
+    assert "--smart-seq520 --edge-test-scope smoke" not in text
+    assert "--smart-seq520 --edge-test-scope strict" in text
     assert 'run_entry_foundation_seq146_smoke_train.sh" --manifest-only' in text
     assert 'run_entry_foundation_seq146_smoke_train.sh" --challenger-seq215 --manifest-only' in text

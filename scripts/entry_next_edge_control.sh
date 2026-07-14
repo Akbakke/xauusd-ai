@@ -2989,11 +2989,7 @@ PY
     ;;
 
   candidate-readiness-smart)
-    # --edge-test-scope smoke: strict-OOT TEST-split slice/bad_path/class-balance edge
-    # checks are candidate-stage advisories (evaluated on the candidate bundle where 2026
-    # enters training); val/whole-split/accuracy/liveness gates stay hard. Vedtak
-    # SMART_SEQ520_candidate_train_20260703. Pass --edge-test-scope strict to override.
-    exec "$PY" -m gx1.scripts.verify_entry_candidate_readiness_v1 --smart-seq520 --edge-test-scope smoke "$@"
+    exec "$PY" -m gx1.scripts.verify_entry_candidate_readiness_v1 --smart-seq520 --edge-test-scope strict "$@"
     ;;
 
   replay-readiness)

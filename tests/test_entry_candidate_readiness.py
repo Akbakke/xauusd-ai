@@ -2,6 +2,8 @@ import argparse
 import json
 from pathlib import Path
 
+import pytest
+
 from gx1.scripts.verify_entry_candidate_readiness_v1 import (
     _mode_candidate_train_command,
     _mode_out_dir,
@@ -508,6 +510,30 @@ def test_smart_smoke_benchmark_checks_reject_direction_and_balance_regression() 
     assert "smart smoke class-balance drift does not regress versus foundation/seq215" in failed
 
 
+def test_smart_smoke_benchmark_checks_reject_non_strict_scope() -> None:
+    smart = _passing_smoke_audit(
+        contract_mode="smart_seq520_candidate",
+        dataset_dir=SMART_SEQ520_SMOKE_DATASET,
+        signal_dim=520,
+        specialists=SEQ215_SPECIALISTS,
+    )
+    foundation = _passing_smoke_audit()
+    seq215 = _passing_smoke_audit(
+        contract_mode="challenger_seq215",
+        dataset_dir=SEQ215_SMOKE_DATASET,
+        signal_dim=215,
+        specialists=SEQ215_SPECIALISTS,
+    )
+
+    with pytest.raises(ValueError, match="NO_EDGE_FALLBACK"):
+        _smart_smoke_benchmark_checks(
+            smart,
+            foundation_report=foundation,
+            seq215_report=seq215,
+            edge_test_scope="smoke",
+        )
+
+
 def test_smoke_edge_checks_reject_missing_tail_direction_contract() -> None:
     report = _passing_smoke_audit()
     report["tail_direction_recipe_contract"] = {
@@ -549,6 +575,13 @@ def test_smoke_edge_checks_reject_direction_slice_failure() -> None:
     failed = {check["name"] for check in checks if not check["ok"]}
 
     assert "direction context slices pass session/regime bucket diagnostics" in failed
+
+
+def test_smoke_edge_checks_reject_non_strict_scope() -> None:
+    report = _passing_smoke_audit()
+
+    with pytest.raises(ValueError, match="NO_EDGE_FALLBACK"):
+        _smoke_edge_checks(report, edge_test_scope="smoke")
 
 
 def test_smoke_edge_checks_reject_missing_pretrain_manifest_contract() -> None:
@@ -943,3 +976,20 @@ def test_candidate_readiness_current_artifacts_are_not_ready(tmp_path: Path) -> 
     }
     assert failed & readiness_blockers
     assert Path(report["json_path"]).exists()
+
+
+def test_candidate_readiness_rejects_non_strict_edge_scope(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="NO_EDGE_FALLBACK"):
+        run(
+            argparse.Namespace(
+                audit_doc="/home/andre2/src/GX1_ENGINE/docs/ENTRY_FOUNDATION_AUDIT_20260628.md",
+                smoke_bundle_audit_json=str(tmp_path / "smoke.json"),
+                specialist_audit_json=None,
+                contract_mode="smart_seq520_candidate",
+                edge_test_scope="smoke",
+                out_dir=str(tmp_path / "out"),
+                min_active_specialists=8,
+                fail_on_not_ready=False,
+                quiet=True,
+            )
+        )

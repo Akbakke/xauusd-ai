@@ -1,5 +1,6 @@
 import numpy as np
 import json
+import pytest
 
 from gx1.features.entry_specialist_feature_groups_v1 import (
     CHALLENGER_SEQ215_SPECIALIST_MODEL_CONTRACT,
@@ -374,11 +375,23 @@ def test_require_edge_failures_rejects_wrong_signed_path_heads() -> None:
         "bad_path": {"prob_vs_path_quality_spearman": 0.10},
     }
 
-    failures, advisories = _require_edge_failures("test", split_report)
+    failures = _require_edge_failures("test", split_report)
 
     assert "test: path_quality_pred is not positively related to path_quality_bps" in failures
     assert "test: bad_path_prob is not negatively related to path_quality_bps" in failures
-    assert advisories == []
+
+
+def test_require_edge_failures_rejects_non_strict_scope() -> None:
+    split_report = {
+        "direction": {"beats_majority_baseline": True},
+        "direction_distribution_contract": {"decision": "PASS", "failures": []},
+        "direction_slice_contract": {"decision": "PASS", "failures": []},
+        "path_quality": {"pred_vs_target_spearman": 0.10},
+        "bad_path": {"prob_vs_path_quality_spearman": -0.10},
+    }
+
+    with pytest.raises(ValueError, match="NO_EDGE_FALLBACK"):
+        _require_edge_failures("test", split_report, edge_test_scope="smoke")
 
 
 def test_require_edge_failures_accepts_correct_signed_path_heads() -> None:
@@ -390,10 +403,9 @@ def test_require_edge_failures_accepts_correct_signed_path_heads() -> None:
         "bad_path": {"prob_vs_path_quality_spearman": -0.10},
     }
 
-    failures, advisories = _require_edge_failures("val", split_report)
+    failures = _require_edge_failures("val", split_report)
 
     assert failures == []
-    assert advisories == []
 
 
 def test_path_calibration_recipe_contract_requires_full_batch_path_quality_rank() -> None:
