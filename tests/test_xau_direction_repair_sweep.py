@@ -23,7 +23,7 @@ def test_xau_direction_repair_sweep_samples_xau_learning_knobs_only() -> None:
         assert 0.0 < float(env["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE"]) <= 0.50
         assert float(env["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT"]) >= 0.0
         assert float(env["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_RECALL_LOSS_WEIGHT"]) >= 0.0
-        assert env["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_LOSS_AGGREGATION"] == "mean_max"
+        assert env["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_LOSS_AGGREGATION"] == "mean"
         assert lint_trial_env(env) == []
         assert not any("EUR" in key.upper() for key in env)
     assert FIXED_ENV["ENTRY_FOUNDATION_CANDIDATE_PRED_BALANCE_CLASS_WEIGHTS"] == "1.0,1.0,4.0"
@@ -55,7 +55,7 @@ def test_xau_direction_repair_sweep_command_uses_smart_wrapper_and_dry_run() -> 
     assert "--subsample-rows" in cmd
     assert "ENTRY_FOUNDATION_CANDIDATE_LR=" in text
     assert "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_MIN_PRED_RATE_LOSS_WEIGHT=" in text
-    assert "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_LOSS_AGGREGATION=mean_max" in text
+    assert "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_LOSS_AGGREGATION=mean" in text
     assert "FOREIGN_FX" not in text.upper()
 
 
@@ -65,7 +65,7 @@ def test_xau_direction_repair_sweep_lints_invalid_contract_values() -> None:
     env["ENTRY_FOUNDATION_CANDIDATE_PRED_BALANCE_ALPHA"] = "0.35"
     env["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT"] = "2.0"
     env["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE"] = "1.0"
-    env["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_LOSS_AGGREGATION"] = "mean"
+    env["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_SLICE_LOSS_AGGREGATION"] = "sqrt"
 
     failures = lint_trial_env(env)
 

@@ -304,7 +304,7 @@ def test_candidate_train_wrapper_declares_post_candidate_head_contract_audit() -
     assert "CANDIDATE_DIRECTION_SLICE_MIN_PRED_RATE_FRACTION=0.50" in text
     assert "CANDIDATE_DIRECTION_SLICE_MIN_PRED_RATE_FLOOR=0.05" in text
     assert "CANDIDATE_DIRECTION_SLICE_RECALL_LOSS_WEIGHT=4.00" in text
-    assert "CANDIDATE_DIRECTION_SLICE_LOSS_AGGREGATION=mean_max" in text
+    assert "CANDIDATE_DIRECTION_SLICE_LOSS_AGGREGATION=mean" in text
     assert "CANDIDATE_DIRECTION_VS_FLAT_MARGIN_WEIGHT=4.00" in text
     assert "CANDIDATE_DIRECTION_VS_FLAT_MARGIN=0.10" in text
     assert "CANDIDATE_HIER_LEGACY_CE_MULT=1.00" in text
