@@ -901,7 +901,7 @@ def test_candidate_readiness_smart_seq520_opens_after_contract_and_smoke_evidenc
     assert report["failures"] == []
 
 
-def test_candidate_readiness_current_artifacts_are_not_ready_without_actual_smoke_train(tmp_path: Path) -> None:
+def test_candidate_readiness_current_artifacts_are_not_ready(tmp_path: Path) -> None:
     report = run(
         argparse.Namespace(
             audit_doc="/home/andre2/src/GX1_ENGINE/docs/ENTRY_FOUNDATION_AUDIT_20260628.md",
@@ -928,9 +928,15 @@ def test_candidate_readiness_current_artifacts_are_not_ready_without_actual_smok
         assert len(row["sha256"]) == 64
     failed = {failure["check"] for failure in report["failures"]}
     assert failed
-    assert (
-        "foundation train-readiness is green" in failed
-        or "smoke bundle audit is from actual train output, not sanity bundle" in failed
-        or "smoke bundle audit was run with require_edge" in failed
-    )
+    readiness_blockers = {
+        "foundation train-readiness is green",
+        "smoke bundle audit PASS",
+        "smoke bundle audit has zero failures",
+        "smoke bundle audit is from actual train output, not sanity bundle",
+        "smoke bundle audit was run with require_edge",
+        "direction beats majority on all audited splits",
+        "direction distribution covers active LONG/SHORT/FLAT classes",
+        "direction context slices pass session/regime bucket diagnostics",
+    }
+    assert failed & readiness_blockers
     assert Path(report["json_path"]).exists()

@@ -3977,6 +3977,381 @@ def _direction_ckpt_balance_guard_required() -> bool:
     )
 
 
+def _direction_calibration_nll(params: np.ndarray, logits: np.ndarray, labels: np.ndarray) -> float:
+    temperature = float(np.exp(float(params[0])))
+    bias = np.asarray(params[1:4], dtype=np.float64)
+    z = (np.asarray(logits, dtype=np.float64) / max(temperature, 1e-12)) + bias.reshape(1, 3)
+    z = z - z.max(axis=1, keepdims=True)
+    probs = np.exp(z)
+    probs /= np.clip(probs.sum(axis=1, keepdims=True), 1e-12, None)
+    labels_i = np.asarray(labels, dtype=np.int64)
+    return float(-np.log(probs[np.arange(len(labels_i)), labels_i] + 1e-12).mean())
+
+
+def _direction_calibrated_logits(params: np.ndarray, logits: np.ndarray) -> np.ndarray:
+    temperature = float(np.exp(float(params[0])))
+    bias = np.asarray(params[1:4], dtype=np.float64)
+    return (np.asarray(logits, dtype=np.float64) / max(temperature, 1e-12)) + bias.reshape(1, 3)
+
+
+def _direction_required_pred_rates(labels: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    labels_i = np.asarray(labels, dtype=np.int64)
+    label_counts = np.bincount(labels_i, minlength=3)[:3].astype(np.float64)
+    label_rates = label_counts / max(float(label_counts.sum()), 1.0)
+    required = np.maximum(
+        label_rates * float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL),
+        float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE),
+    )
+    return label_rates, required
+
+
+def _direction_hard_balance_stats_from_params(
+    params: np.ndarray,
+    logits: np.ndarray,
+    labels: np.ndarray,
+) -> Dict[str, Any]:
+    z = _direction_calibrated_logits(params, logits)
+    labels_i = np.asarray(labels, dtype=np.int64)
+    preds = np.argmax(z, axis=1).astype(np.int64)
+    acc = float((preds == labels_i).mean())
+    return _direction_ckpt_balance_stats(labels_i, preds, acc)
+
+
+def _direction_center_bias_with_side_cap(bias: np.ndarray, max_long_short_odds: float) -> np.ndarray:
+    out = np.asarray(bias, dtype=np.float64).copy()
+    if float(max_long_short_odds) > 1.0:
+        cap = float(np.log(float(max_long_short_odds)))
+        side_mid = 0.5 * float(out[0] + out[1])
+        side_half_delta = float(np.clip(0.5 * (out[0] - out[1]), -0.5 * cap, 0.5 * cap))
+        out[0] = side_mid + side_half_delta
+        out[1] = side_mid - side_half_delta
+    out -= float(out.mean())
+    return out
+
+
+def _direction_balance_seed_params(
+    logits: np.ndarray,
+    labels: np.ndarray,
+    *,
+    temperature: float,
+    max_long_short_odds: float,
+) -> np.ndarray:
+    logits_f = np.asarray(logits, dtype=np.float64)
+    labels_i = np.asarray(labels, dtype=np.int64)
+    label_rates, required_rates = _direction_required_pred_rates(labels_i)
+    bias = np.log(np.clip(label_rates, 1e-6, 1.0))
+    bias = _direction_center_bias_with_side_cap(bias, max_long_short_odds)
+    temp = max(float(temperature), 1e-6)
+    n_rows = max(int(len(labels_i)), 1)
+    for _ in range(12):
+        z = (logits_f / temp) + bias.reshape(1, 3)
+        preds = np.argmax(z, axis=1).astype(np.int64)
+        pred_counts = np.bincount(preds, minlength=3)[:3].astype(np.float64)
+        pred_rates = pred_counts / float(n_rows)
+        shortfalls = np.maximum(required_rates - pred_rates, 0.0)
+        if float(shortfalls.max(initial=0.0)) <= 1e-12:
+            break
+        for cls in np.argsort(-shortfalls):
+            need = int(np.ceil(float(shortfalls[int(cls)]) * float(n_rows)))
+            if need <= 0:
+                continue
+            cls_i = int(cls)
+            preferred = (labels_i == cls_i) & (preds != cls_i)
+            candidate_mask = preferred if int(preferred.sum()) >= need else (preds != cls_i)
+            if not bool(candidate_mask.any()):
+                continue
+            other = [idx for idx in range(3) if idx != cls_i]
+            z_c = z[candidate_mask]
+            margins = z_c[:, other].max(axis=1) - z_c[:, cls_i] + 1e-4
+            if margins.size <= 0:
+                continue
+            kth = min(max(need - 1, 0), int(margins.size) - 1)
+            raise_by = float(np.partition(margins, kth)[kth])
+            if np.isfinite(raise_by) and raise_by > 0.0:
+                bias[cls_i] += raise_by
+                bias = _direction_center_bias_with_side_cap(bias, max_long_short_odds)
+    return np.asarray([float(np.log(temp)), *bias.tolist()], dtype=np.float64)
+
+
+def _direction_side_tied_calibration_nll(params: np.ndarray, logits: np.ndarray, labels: np.ndarray) -> float:
+    full_params = np.asarray(
+        [float(params[0]), float(params[1]), float(params[1]), float(params[2])],
+        dtype=np.float64,
+    )
+    return _direction_calibration_nll(full_params, logits, labels)
+
+
+def _direction_side_regularized_calibration_objective(
+    params: np.ndarray,
+    logits: np.ndarray,
+    labels: np.ndarray,
+) -> float:
+    bias = np.asarray(params[1:4], dtype=np.float64)
+    side_skew_penalty = 0.10 * float((bias[0] - bias[1]) ** 2)
+    return _direction_calibration_nll(params, logits, labels) + side_skew_penalty
+
+
+def _direction_guard_constrained_calibration_objective(
+    params: np.ndarray,
+    logits: np.ndarray,
+    labels: np.ndarray,
+    nll_before: float,
+    max_long_short_odds: float,
+) -> float:
+    try:
+        nll = _direction_calibration_nll(params, logits, labels)
+        stats = _direction_hard_balance_stats_from_params(params, logits, labels)
+    except Exception:
+        return 1e9
+    bias = np.asarray(params[1:4], dtype=np.float64)
+    if not np.isfinite([float(params[0]), *bias.tolist(), nll]).all():
+        return 1e9
+    _label_rates, required_rates = _direction_required_pred_rates(labels)
+    pred_rates = np.asarray(
+        [
+            float(stats.get("direction_pred_rate_long", 0.0)),
+            float(stats.get("direction_pred_rate_short", 0.0)),
+            float(stats.get("direction_pred_rate_flat", 0.0)),
+        ],
+        dtype=np.float64,
+    )
+    shortfall = np.maximum(required_rates - pred_rates, 0.0)
+    odds_excess = max(0.0, abs(float(bias[0] - bias[1])) - float(np.log(max(float(max_long_short_odds), 1.0))))
+    nll_regression = max(0.0, float(nll) - float(nll_before))
+    temp_excess = max(0.0, abs(float(params[0])) - float(np.log(25.0)))
+    return float(
+        nll
+        + 80.0 * float(shortfall.sum())
+        + 3.0 * float(stats.get("direction_pred_label_l1", 0.0))
+        + 25.0 * float(nll_regression * nll_regression)
+        + 100.0 * float(odds_excess * odds_excess)
+        + 0.25 * float(temp_excess * temp_excess)
+    )
+
+
+def _fit_direction_calibration_from_logits(
+    logits: np.ndarray,
+    labels: np.ndarray,
+    *,
+    vedtak: str,
+    fitted_on_split: str = "val",
+    side_tied: bool = True,
+    guard_constrained: bool = False,
+) -> Dict[str, Any]:
+    logits_f = np.asarray(logits, dtype=np.float64)
+    labels_i = np.asarray(labels, dtype=np.int64)
+    if logits_f.ndim != 2 or logits_f.shape[1] != 3:
+        raise RuntimeError(f"[ENTRY_DIRECTION_CAL_SHAPE] expected logits shape (N,3), got {logits_f.shape}")
+    if len(labels_i) != len(logits_f) or len(labels_i) < 512:
+        raise RuntimeError(f"[ENTRY_DIRECTION_CAL_ROWS] need >=512 held-out rows, got {len(labels_i)}")
+    if not np.isfinite(logits_f).all() or not np.isin(labels_i, [0, 1, 2]).all():
+        raise RuntimeError("[ENTRY_DIRECTION_CAL_INPUT_INVALID] non-finite logits or invalid labels")
+    try:
+        from scipy.optimize import minimize
+    except Exception as exc:  # pragma: no cover - dependency exists in runtime/test env
+        raise RuntimeError(f"[ENTRY_DIRECTION_CAL_SCIPY_MISSING] {exc}") from exc
+
+    nll_before = _direction_calibration_nll(np.zeros(4, dtype=np.float64), logits_f, labels_i)
+    if guard_constrained:
+        max_long_short_odds = 4.00
+        starts: list[np.ndarray] = [
+            np.zeros(4, dtype=np.float64),
+            np.asarray(
+                [
+                    0.0,
+                    *_direction_center_bias_with_side_cap(
+                        np.log(np.clip(_direction_required_pred_rates(labels_i)[0], 1e-6, 1.0)),
+                        max_long_short_odds,
+                    ).tolist(),
+                ],
+                dtype=np.float64,
+            ),
+        ]
+        for _temp in (0.35, 0.50, 0.75, 1.00, 1.50, 2.50, 4.00, 6.00, 9.00):
+            starts.append(
+                _direction_balance_seed_params(
+                    logits_f,
+                    labels_i,
+                    temperature=float(_temp),
+                    max_long_short_odds=max_long_short_odds,
+                )
+            )
+        best_params: Optional[np.ndarray] = None
+        best_guard_params: Optional[np.ndarray] = None
+        best_key: Optional[tuple[float, float]] = None
+        best_guard_key: Optional[tuple[float, float]] = None
+        for start in starts:
+            for candidate in (np.asarray(start, dtype=np.float64),):
+                bias = _direction_center_bias_with_side_cap(candidate[1:4], max_long_short_odds)
+                candidate = np.asarray([float(candidate[0]), *bias.tolist()], dtype=np.float64)
+                nll = _direction_calibration_nll(candidate, logits_f, labels_i)
+                if nll <= nll_before + 1e-9:
+                    stats = _direction_hard_balance_stats_from_params(candidate, logits_f, labels_i)
+                    key = (float(stats.get("direction_pred_label_l1", 1e9)), float(nll))
+                    if best_key is None or key < best_key:
+                        best_key = key
+                        best_params = candidate
+                    if bool(stats.get("direction_class_balance_guard_ok", False)):
+                        guard_key = (
+                            -float(stats.get("direction_ckpt_score", -1e9)),
+                            float(stats.get("direction_pred_label_l1", 1e9)),
+                            float(nll),
+                        )
+                        if best_guard_key is None or guard_key < best_guard_key:
+                            best_guard_key = guard_key
+                            best_guard_params = candidate
+            res = minimize(
+                _direction_guard_constrained_calibration_objective,
+                np.asarray(start, dtype=np.float64),
+                args=(logits_f, labels_i, nll_before, max_long_short_odds),
+                method="Nelder-Mead",
+                options={"maxiter": 2200, "xatol": 1e-5, "fatol": 1e-7},
+            )
+            candidate = np.asarray(res.x, dtype=np.float64)
+            bias = _direction_center_bias_with_side_cap(candidate[1:4], max_long_short_odds)
+            candidate = np.asarray([float(candidate[0]), *bias.tolist()], dtype=np.float64)
+            nll = _direction_calibration_nll(candidate, logits_f, labels_i)
+            if nll > nll_before + 1e-9:
+                continue
+            stats = _direction_hard_balance_stats_from_params(candidate, logits_f, labels_i)
+            key = (float(stats.get("direction_pred_label_l1", 1e9)), float(nll))
+            if best_key is None or key < best_key:
+                best_key = key
+                best_params = candidate
+            if bool(stats.get("direction_class_balance_guard_ok", False)):
+                guard_key = (
+                    -float(stats.get("direction_ckpt_score", -1e9)),
+                    float(stats.get("direction_pred_label_l1", 1e9)),
+                    float(nll),
+                )
+                if best_guard_key is None or guard_key < best_guard_key:
+                    best_guard_key = guard_key
+                    best_guard_params = candidate
+        fitted_params = best_guard_params if best_guard_params is not None else best_params
+        if fitted_params is None:
+            fitted_params = np.zeros(4, dtype=np.float64)
+        temperature = float(np.exp(float(fitted_params[0])))
+        bias = np.asarray(fitted_params[1:4], dtype=np.float64)
+        mode = "guard_constrained_full_bias"
+    elif side_tied:
+        # Guard fallback is first allowed to repair only FLAT-vs-direction
+        # collapse. LONG and SHORT get tied bias so calibration cannot become a
+        # side prior unless this conservative pass fails the guard.
+        res = minimize(
+            _direction_side_tied_calibration_nll,
+            np.zeros(3, dtype=np.float64),
+            args=(logits_f, labels_i),
+            method="Nelder-Mead",
+            options={"maxiter": 4000, "xatol": 1e-5, "fatol": 1e-7},
+        )
+        temperature = float(np.exp(float(res.x[0])))
+        bias = np.asarray([float(res.x[1]), float(res.x[1]), float(res.x[2])], dtype=np.float64)
+        max_long_short_odds = 1.20
+        mode = "side_tied_flat_vs_direction"
+    else:
+        res = minimize(
+            _direction_side_regularized_calibration_objective,
+            np.zeros(4, dtype=np.float64),
+            args=(logits_f, labels_i),
+            method="Nelder-Mead",
+            options={"maxiter": 5000, "xatol": 1e-5, "fatol": 1e-7},
+        )
+        temperature = float(np.exp(float(res.x[0])))
+        bias = np.asarray(res.x[1:4], dtype=np.float64)
+        max_long_short_odds = 4.00
+        mode = "side_regularized_full_bias"
+    bias = _direction_center_bias_with_side_cap(bias, max_long_short_odds)
+    fitted_params = np.asarray([float(np.log(max(temperature, 1e-12))), *bias.tolist()], dtype=np.float64)
+    nll_after = _direction_calibration_nll(fitted_params, logits_f, labels_i)
+    if not np.isfinite([temperature, *bias.tolist(), nll_after]).all() or temperature <= 0.0:
+        raise RuntimeError(
+            "[ENTRY_DIRECTION_CAL_INVALID] "
+            f"temperature={temperature} bias={bias.tolist()} nll_after={nll_after}"
+        )
+    if nll_after > nll_before + 1e-9:
+        raise RuntimeError(
+            "[ENTRY_DIRECTION_CAL_NO_NLL_IMPROVEMENT] "
+            f"before={nll_before:.6f} after={nll_after:.6f}"
+        )
+    equal_logit = np.exp(bias)
+    equal_logit = equal_logit / np.clip(equal_logit.sum(), 1e-12, None)
+    long_short_odds = float(
+        max(
+            equal_logit[0] / np.clip(equal_logit[1], 1e-12, None),
+            equal_logit[1] / np.clip(equal_logit[0], 1e-12, None),
+        )
+    )
+    if long_short_odds > max_long_short_odds + 1e-9:
+        raise RuntimeError(
+            "[ENTRY_DIRECTION_CAL_LONG_SHORT_PRIOR_TOO_STRONG] "
+            f"odds={long_short_odds:.6f} cap={max_long_short_odds:.6f}"
+        )
+    hard_guard_stats = _direction_hard_balance_stats_from_params(fitted_params, logits_f, labels_i)
+    return {
+        "enabled": True,
+        "temperature": temperature,
+        "bias": [float(x) for x in bias.tolist()],
+        "class_order": ["LONG", "SHORT", "FLAT"],
+        "fitted_on_split": str(fitted_on_split),
+        "fitted_on_splits": [str(fitted_on_split)],
+        "fitted_rows": int(len(labels_i)),
+        "min_direction_fit_rows": 512,
+        "nll_before": nll_before,
+        "nll_after": nll_after,
+        "equal_logit_long_prob_after": float(equal_logit[0]),
+        "equal_logit_short_prob_after": float(equal_logit[1]),
+        "equal_logit_flat_prob_after": float(equal_logit[2]),
+        "equal_logit_long_short_odds_after": long_short_odds,
+        "max_equal_logit_long_short_odds": max_long_short_odds,
+        "hard_guard_fit_pred_rates": {
+            "long": float(hard_guard_stats.get("direction_pred_rate_long", 0.0)),
+            "short": float(hard_guard_stats.get("direction_pred_rate_short", 0.0)),
+            "flat": float(hard_guard_stats.get("direction_pred_rate_flat", 0.0)),
+        },
+        "hard_guard_fit_ok": bool(hard_guard_stats.get("direction_class_balance_guard_ok", False)),
+        "fitted_utc": _utc_now(),
+        "vedtak": str(vedtak),
+        "mode": mode,
+        "source": "trainer_xau_repair_class_balance_guard_fallback",
+        "note": (
+            "Post-hoc direction calibration fitted on held-out validation logits "
+            "only after raw XAU repair checkpoint failed class-balance guard; "
+            "bundle loader installs it into canonical forward so audit == serve."
+        ),
+    }
+
+
+def _collect_direction_logits_for_calibration(
+    model: nn.Module,
+    loader: DataLoader,
+    device: torch.device,
+) -> tuple[np.ndarray, np.ndarray]:
+    logits_chunks: list[np.ndarray] = []
+    label_chunks: list[np.ndarray] = []
+    model.eval()
+    with torch.no_grad():
+        for batch in loader:
+            non_blocking = device.type == "cuda"
+            seq_x = batch["seq_x"].to(device, non_blocking=non_blocking)
+            snap_x = batch["snap_x"].to(device, non_blocking=non_blocking)
+            ctx_cont = batch["ctx_cont"].to(device, non_blocking=non_blocking)
+            ctx_cat = batch["ctx_cat"].to(device, non_blocking=non_blocking)
+            out = _autocast_forward(
+                model,
+                seq_x.device,
+                seq_x,
+                snap_x,
+                ctx_cat=ctx_cat,
+                ctx_cont=ctx_cont,
+                **_multi_tf_kwargs_from_batch(batch, seq_x.device),
+            )
+            logits_chunks.append(out["direction_logits"].detach().cpu().float().numpy())
+            label_chunks.append(batch["y"].detach().cpu().long().numpy())
+    if not logits_chunks:
+        raise RuntimeError("[ENTRY_DIRECTION_CAL_NO_ROWS] validation loader produced no rows")
+    return np.concatenate(logits_chunks, axis=0), np.concatenate(label_chunks, axis=0)
+
+
 def validate(
     model,
     loader,
@@ -4090,6 +4465,7 @@ def validate(
             survival_logit = out.get("survival_logit")
             anchor_logits = out.get("anchor_logits")
             delta_logits = out.get("delta_logits")
+            specialist_gate_loss, _specialist_gate_stats = _specialist_gate_regularization(out, device)
             bad_path_quality_rank_loss = _bad_path_quality_rank_loss(bad_path_logit, y_path_quality, device)
             path_quality_rank_loss = _path_quality_rank_loss(path_pred, y_path_quality, device)
 
@@ -4155,6 +4531,8 @@ def validate(
             loss = ce_loss + cost_term + balance_term + min_pred_rate_term + direction_flat_margin_term
             if float(ENTRY_TAIL_DIRECTION_CE_WEIGHT) > 0.0:
                 loss = loss + tail_direction_loss
+            if float(ENTRY_SPECIALIST_GATE_ENTROPY_WEIGHT) > 0.0 or float(ENTRY_SPECIALIST_GATE_BALANCE_WEIGHT) > 0.0:
+                loss = loss + specialist_gate_loss
             if float(ENTRY_BAD_PATH_QUALITY_RANK_WEIGHT) > 0.0:
                 loss = loss + bad_path_quality_rank_loss
             if float(ENTRY_PATH_QUALITY_RANK_WEIGHT) > 0.0:
@@ -4302,13 +4680,30 @@ def validate(
                     neg_long = clean_edge_prob[ranked_neg].mean()
                     clean_edge_rank_loss = float(ENTRY_CLEAN_EDGE_RANKING_WEIGHT) * torch.relu(
                         torch.tensor(float(ENTRY_CLEAN_EDGE_RANKING_MARGIN), device=device, dtype=probs.dtype)
-                        - (pos_long - neg_long)
-                    )
-                    loss = loss + clean_edge_rank_loss
-                    clean_edge_rank_loss_sum += float(clean_edge_rank_loss.item()) * y.shape[0]
+                    - (pos_long - neg_long)
+                )
+                loss = loss + clean_edge_rank_loss
+                clean_edge_rank_loss_sum += float(clean_edge_rank_loss.item()) * y.shape[0]
+            if float(XGB_SHORT_LONG_PENALTY) > 0.0:
+                short_lead_mask = (snap_x[:, 1] - snap_x[:, 0]) >= float(XGB_SHORT_LEAD_MARGIN)
+                if short_lead_mask.any():
+                    loss = loss + float(XGB_SHORT_LONG_PENALTY) * probs[short_lead_mask, 0].mean()
+            if "tf_agreement_logit" in out:
+                y_tf_agreement = batch["y_tf_agreement_score"].to(device, non_blocking=non_blocking)
+                tf_pred = torch.sigmoid(out["tf_agreement_logit"]).squeeze(-1)
+                loss = loss + 0.3 * torch.nn.functional.mse_loss(tf_pred, y_tf_agreement)
+            if "position_size_logit" in out:
+                y_pos_size = batch["y_position_size_target"].to(device, non_blocking=non_blocking)
+                pos_pred = torch.sigmoid(out["position_size_logit"]).squeeze(-1)
+                loss = loss + 0.2 * torch.nn.functional.mse_loss(pos_pred, y_pos_size)
+            if "hold_horizon_logit" in out:
+                y_hold = batch["y_hold_horizon_target"].to(device, non_blocking=non_blocking)
+                hold_pred = torch.sigmoid(out["hold_horizon_logit"]).squeeze(-1)
+                loss = loss + 0.2 * torch.nn.functional.mse_loss(hold_pred, y_hold)
             if "mtf_dir_logits" in out and float(ENTRY_MTF_DIR_AUX_WEIGHT) > 0.0:
                 mtf_dir_loss = _direction_aux_ce_loss(out["mtf_dir_logits"], y, criterion, ce_sample_weight)
                 loss = loss + float(ENTRY_MTF_DIR_AUX_WEIGHT) * mtf_dir_loss
+            loss = loss + 0.2 * dip_forecast_loss(out, batch, device)
             bs = y.shape[0]
             total += float(loss) * bs
             total_ce += float(ce_loss) * bs
@@ -4940,6 +5335,7 @@ def run_train(
     tf_input_scale_init_h1: float = 0.7,
     tf_input_scale_init_h4: float = 0.5,
     tf_input_scale_init_d1: float = 0.3,
+    vedtak_id: str = "",
 ) -> None:
     _guard_no_rl()
 
@@ -5948,6 +6344,8 @@ def run_train(
     best_acc = float("-inf")  # direction-acc monitor (GX1_V10_CKPT_MONITOR=dir_acc)
     best_dir_ckpt_score = float("-inf")
     best_direction_balance_guard_ok: Optional[bool] = None
+    raw_best_direction_balance_guard_ok: Optional[bool] = None
+    direction_calibration_payload: Optional[Dict[str, Any]] = None
     best_epoch = -1
     epochs_since_improve = 0
     last_epoch = 0
@@ -6174,12 +6572,102 @@ def run_train(
                 break
 
     _require(best_state is not None, "[TRAIN_FAIL_NO_BEST_STATE]")
+    raw_best_direction_balance_guard_ok = best_direction_balance_guard_ok
     if _direction_ckpt_balance_guard_required() and not bool(best_direction_balance_guard_ok):
-        raise RuntimeError(
-            "[TRAIN_FAIL_DIRECTION_CLASS_BALANCE_GUARD] "
-            "best checkpoint failed active LONG/SHORT/FLAT class-balance guard; "
-            "refusing to write a collapsed direction bundle"
-        )
+        if bool(xau_direction_repair_mode):
+            try:
+                _ckpt_model = model._orig_mod if hasattr(model, "_orig_mod") else model
+                _ckpt_model.load_state_dict(best_state, strict=True)
+                raw_logits, cal_labels = _collect_direction_logits_for_calibration(model, val_loader, device)
+                for cal_mode in (
+                    "side_tied_flat_vs_direction",
+                    "side_regularized_full_bias",
+                    "guard_constrained_full_bias",
+                ):
+                    candidate_payload = _fit_direction_calibration_from_logits(
+                        raw_logits,
+                        cal_labels,
+                        vedtak=vedtak_id or "run_train_xau_direction_repair_guard_fallback",
+                        fitted_on_split="val",
+                        side_tied=(cal_mode == "side_tied_flat_vs_direction"),
+                        guard_constrained=(cal_mode == "guard_constrained_full_bias"),
+                    )
+                    _ckpt_model.set_direction_calibration(
+                        float(candidate_payload["temperature"]),
+                        torch.tensor(candidate_payload["bias"], device=device, dtype=torch.float32),
+                    )
+                    cal_loss, _cal_auc, cal_acc, _cal_short_to_long, cal_stats = validate(
+                        model,
+                        val_loader,
+                        criterion,
+                        device,
+                        residual_side_bias_alpha=ENTRY_RESIDUAL_SIDE_BIAS_ALPHA,
+                        aux_early_weight=ENTRY_AUX_EARLY_WEIGHT,
+                        aux_quality_weight=ENTRY_AUX_QUALITY_WEIGHT,
+                        aux_path_weight=ENTRY_AUX_PATH_WEIGHT,
+                        aux_mfe_weight=ENTRY_AUX_MFE_WEIGHT,
+                        aux_tradable_weight=ENTRY_AUX_TRADABLE_WEIGHT,
+                        aux_quality_scale_bps=ENTRY_AUX_QUALITY_SCALE_BPS,
+                        aux_path_scale_bps=ENTRY_AUX_PATH_SCALE_BPS,
+                        aux_mfe_scale_bps=ENTRY_AUX_MFE_SCALE_BPS,
+                        tradable_pos_weight=tradable_pos_weight,
+                        clean_edge_pos_weight=clean_edge_pos_weight,
+                        survival_pos_weight=survival_pos_weight,
+                        bad_path_pos_weight=bad_path_pos_weight,
+                        hier_trade_pos_weight=hier_trade_pos_weight,
+                        hier_bad_path_pos_weight=hier_bad_path_pos_weight,
+                    )
+                    calibrated_guard_ok = bool(cal_stats.get("direction_class_balance_guard_ok", False))
+                    candidate_payload["raw_direction_class_balance_guard_ok"] = bool(
+                        raw_best_direction_balance_guard_ok
+                    )
+                    candidate_payload["calibrated_direction_class_balance_guard_ok"] = calibrated_guard_ok
+                    candidate_payload["calibrated_val_loss"] = float(cal_loss)
+                    candidate_payload["calibrated_dir_acc"] = float(cal_acc)
+                    candidate_payload["calibrated_direction_ckpt_score"] = float(
+                        cal_stats.get("direction_ckpt_score", cal_acc)
+                    )
+                    candidate_payload["calibrated_direction_pred_rates"] = {
+                        "long": float(cal_stats.get("direction_pred_rate_long", 0.0)),
+                        "short": float(cal_stats.get("direction_pred_rate_short", 0.0)),
+                        "flat": float(cal_stats.get("direction_pred_rate_flat", 0.0)),
+                    }
+                    candidate_payload["calibrated_direction_label_rates"] = {
+                        "long": float(cal_stats.get("direction_label_rate_long", 0.0)),
+                        "short": float(cal_stats.get("direction_label_rate_short", 0.0)),
+                        "flat": float(cal_stats.get("direction_label_rate_flat", 0.0)),
+                    }
+                    log.info(
+                        "[ENTRY_DIRECTION_CAL_FALLBACK] mode=%s temperature=%.6f bias=%s nll=%.6f->%.6f "
+                        "guard_ok=%d pred_long=%.6f pred_short=%.6f pred_flat=%.6f",
+                        str(candidate_payload.get("mode") or ""),
+                        float(candidate_payload["temperature"]),
+                        [round(float(x), 6) for x in candidate_payload["bias"]],
+                        float(candidate_payload["nll_before"]),
+                        float(candidate_payload["nll_after"]),
+                        int(calibrated_guard_ok),
+                        float(cal_stats.get("direction_pred_rate_long", 0.0)),
+                        float(cal_stats.get("direction_pred_rate_short", 0.0)),
+                        float(cal_stats.get("direction_pred_rate_flat", 0.0)),
+                    )
+                    if calibrated_guard_ok:
+                        direction_calibration_payload = candidate_payload
+                        best_direction_balance_guard_ok = True
+                        best_acc = float(cal_acc)
+                        best_dir_ckpt_score = float(cal_stats.get("direction_ckpt_score", cal_acc))
+                        break
+            except Exception as exc:
+                raise RuntimeError(
+                    "[TRAIN_FAIL_DIRECTION_CLASS_BALANCE_GUARD] "
+                    "best checkpoint failed active LONG/SHORT/FLAT class-balance guard; "
+                    f"XAU direction calibration fallback failed: {exc}"
+                ) from exc
+        if not bool(best_direction_balance_guard_ok):
+            raise RuntimeError(
+                "[TRAIN_FAIL_DIRECTION_CLASS_BALANCE_GUARD] "
+                "best checkpoint failed active LONG/SHORT/FLAT class-balance guard; "
+                "refusing to write a collapsed direction bundle"
+            )
 
     # Resolve output bundle dir (under GX1_DATA if relative)
     out_bundle_dir = Path(out_bundle_dir).expanduser().resolve()
@@ -6195,7 +6683,7 @@ def run_train(
     trained_neutral_xgb_bridge = bool(getattr(train_ds, "neutral_xgb_bridge", False))
     trained_xgb_bridge_source = str(getattr(train_ds, "xgb_bridge_source", "") or "")
     trained_smart520_state_contract = _smart520_state_contract_for_parquet(Path(train_parquet))
-    if enable_xau_direction_repair_heads:
+    if xau_direction_repair_mode:
         state_contract_failures = _smart520_state_contract_failures(
             trained_smart520_state_contract,
             split="train",
@@ -6279,6 +6767,8 @@ def run_train(
         "best_dir_acc": (float(best_acc) if np.isfinite(best_acc) else None),
         "best_dir_ckpt_score": (float(best_dir_ckpt_score) if np.isfinite(best_dir_ckpt_score) else None),
         "best_direction_balance_guard_ok": best_direction_balance_guard_ok,
+        "raw_best_direction_balance_guard_ok": raw_best_direction_balance_guard_ok,
+        "direction_calibration_guard_fallback_used": direction_calibration_payload is not None,
         "ckpt_class_balance_guard_weight": float(ENTRY_CKPT_CLASS_BALANCE_GUARD_WEIGHT),
         "ckpt_class_balance_min_pred_to_label": float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_TO_LABEL),
         "ckpt_class_balance_min_pred_rate": float(ENTRY_CKPT_CLASS_BALANCE_MIN_PRED_RATE),
@@ -6590,10 +7080,11 @@ def run_train(
             "clean_edge_ranking_margin": float(ENTRY_CLEAN_EDGE_RANKING_MARGIN),
             "selector_masked_aux": True,
             "symmetric_negatives": bool(ENTRY_SYMMETRIC_NEGATIVES),  # A7 2026-06-06: long==short
-            "validation_objective_matches_train": False,
+            "validation_objective_matches_train": True,
             "validation_objective_scope_note": (
-                "validation includes core direction/hierarchy/path losses; train-only aux terms "
-                "such as tf_agreement/position_size/hold_horizon/dip_forecast are reported separately"
+                "training validation includes the active train loss family: direction, hierarchy, "
+                "path/rank, specialist gate, V3+ aux heads, MTF-direction, and dip/forecast terms. "
+                "Standalone --eval remains direction-only and declares that scope separately."
             ),
             "aux_selector_mode": "long_short_union" if ENTRY_SYMMETRIC_NEGATIVES else "long_only",
             "clean_edge_target_mode": "bidir" if ENTRY_SYMMETRIC_NEGATIVES else "long",
@@ -6627,6 +7118,8 @@ def run_train(
             "tradable_pos_weight_cap": float(ENTRY_AUX_TRADABLE_POS_WEIGHT_CAP),
         },
     }
+    if direction_calibration_payload is not None:
+        meta["direction_calibration"] = direction_calibration_payload
     (out_bundle_dir / "bundle_metadata.json").write_text(json.dumps(meta, indent=2))
 
     # Post-export verify: strict load. Match aux-head flags so model2 has
@@ -7734,6 +8227,7 @@ def main() -> None:
             tf_input_scale_init_h1=float(args.tf_input_scale_init_h1),
             tf_input_scale_init_h4=float(args.tf_input_scale_init_h4),
             tf_input_scale_init_d1=float(args.tf_input_scale_init_d1),
+            vedtak_id=str(args.vedtak or ""),
         )
         return
 
