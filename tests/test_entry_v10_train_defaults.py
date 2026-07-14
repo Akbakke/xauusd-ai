@@ -782,6 +782,14 @@ def test_entry_v10_train_refuses_to_write_bundle_when_best_slice_guard_failed() 
     assert "refusing to write a slice-failed direction bundle" in text
 
 
+def test_entry_v10_train_model_uses_residual_scale_env() -> None:
+    text = TRAINER_PATH.read_text(encoding="utf-8")
+
+    train_ctor = text.split("model = EntryV10CtxHybridTransformer(", 2)[2].split(").to(device)", 1)[0]
+    assert "residual_scale=float(ENTRY_RESIDUAL_SCALE)" in train_ctor
+    assert "anchor_eps=float(ENTRY_ANCHOR_EPS)" in train_ctor
+
+
 def test_entry_foundation_train_wrappers_enable_path_quality_rank_recipe() -> None:
     repo = Path(__file__).resolve().parents[1]
     smoke = (repo / "scripts" / "run_entry_foundation_seq146_smoke_train.sh").read_text(encoding="utf-8")

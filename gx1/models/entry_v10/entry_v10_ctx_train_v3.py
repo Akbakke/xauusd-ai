@@ -5836,6 +5836,8 @@ def run_train(
         seq_len=seq_len,
         ctx_cont_dim=ctx_cont_dim,
         ctx_cat_dim=ctx_cat_dim,
+        residual_scale=float(ENTRY_RESIDUAL_SCALE),
+        anchor_eps=float(ENTRY_ANCHOR_EPS),
         enable_multi_tf=enable_multi_tf,
         m15_seq_dim=_mtf_feat_count,
         h1_seq_dim=_mtf_feat_count,
