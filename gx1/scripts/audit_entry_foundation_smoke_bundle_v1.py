@@ -57,6 +57,7 @@ SMART_DIRECTION_CKPT_BALANCE_MIN_PRED_RATE = 0.05
 SMART_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT = 2.50
 SMART_DIRECTION_MIN_PRED_RATE_FRACTION = 0.50
 SMART_DIRECTION_MIN_PRED_RATE_FLOOR = 0.05
+SMART_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE_MAX = 0.50
 SMART_DIRECTION_VS_FLAT_MARGIN_WEIGHT = 3.00
 SMART_DIRECTION_VS_FLAT_MARGIN = 0.05
 SMART_DIRECTION_HIER_LEGACY_CE_MULT_MIN = 1.00
@@ -1042,6 +1043,12 @@ def _direction_balance_recipe_contract(
             meta.get("direction_min_pred_rate_floor", 0.0),
         )
     )
+    direction_min_pred_rate_softmax_temperature = _safe_float(
+        recipe.get(
+            "direction_min_pred_rate_softmax_temperature",
+            meta.get("direction_min_pred_rate_softmax_temperature", 0.0),
+        )
+    )
     direction_vs_flat_margin_weight = _safe_float(
         recipe.get(
             "direction_vs_flat_margin_weight",
@@ -1153,6 +1160,15 @@ def _direction_balance_recipe_contract(
                     "smart direction active head requires direction_min_pred_rate_floor >= "
                     f"{SMART_DIRECTION_MIN_PRED_RATE_FLOOR:.2f}"
                 )
+            if not (
+                0.0
+                < direction_min_pred_rate_softmax_temperature
+                <= SMART_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE_MAX
+            ):
+                failures.append(
+                    "smart direction active head requires direction_min_pred_rate_softmax_temperature "
+                    f"in (0.0, {SMART_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE_MAX:.2f}]"
+                )
             if direction_vs_flat_margin_weight < SMART_DIRECTION_VS_FLAT_MARGIN_WEIGHT:
                 failures.append(
                     "smart direction active head requires direction_vs_flat_margin_weight >= "
@@ -1207,6 +1223,7 @@ def _direction_balance_recipe_contract(
         "direction_min_pred_rate_loss_weight": direction_min_pred_rate_loss_weight,
         "direction_min_pred_rate_fraction": direction_min_pred_rate_fraction,
         "direction_min_pred_rate_floor": direction_min_pred_rate_floor,
+        "direction_min_pred_rate_softmax_temperature": direction_min_pred_rate_softmax_temperature,
         "direction_vs_flat_margin_weight": direction_vs_flat_margin_weight,
         "direction_vs_flat_margin": direction_vs_flat_margin,
         "ckpt_balance_guard_required": ckpt_balance_guard_required,

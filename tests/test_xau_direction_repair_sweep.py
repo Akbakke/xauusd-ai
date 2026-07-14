@@ -20,10 +20,12 @@ def test_xau_direction_repair_sweep_samples_xau_learning_knobs_only() -> None:
         assert float(env["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_CE_SCALE"]) >= 2.0
         assert 0.45 <= float(env["ENTRY_FOUNDATION_CANDIDATE_PRED_BALANCE_ALPHA"]) <= 0.50
         assert float(env["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT"]) >= 2.5
+        assert 0.0 < float(env["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE"]) <= 0.50
         assert lint_trial_env(env) == []
         assert not any("EUR" in key.upper() for key in env)
     assert FIXED_ENV["ENTRY_FOUNDATION_CANDIDATE_PRED_BALANCE_CLASS_WEIGHTS"] == "1.0,1.0,4.0"
     assert FIXED_ENV["ENTRY_FOUNDATION_CANDIDATE_PRED_BALANCE_TARGET"] == "label"
+    assert FIXED_ENV["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE"] == "0.20"
 
 
 def test_xau_direction_repair_sweep_command_uses_smart_wrapper_and_dry_run() -> None:
@@ -57,9 +59,11 @@ def test_xau_direction_repair_sweep_lints_invalid_contract_values() -> None:
     env["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_CE_SCALE"] = "1.75"
     env["ENTRY_FOUNDATION_CANDIDATE_PRED_BALANCE_ALPHA"] = "0.35"
     env["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT"] = "2.0"
+    env["ENTRY_FOUNDATION_CANDIDATE_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE"] = "1.0"
 
     failures = lint_trial_env(env)
 
     assert any("DIRECTION_CE_SCALE" in item for item in failures)
     assert any("PRED_BALANCE_ALPHA" in item for item in failures)
     assert any("DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT" in item for item in failures)
+    assert any("DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE" in item for item in failures)

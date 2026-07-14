@@ -385,6 +385,7 @@ def test_smoke_edge_checks_accept_stronger_smart_direction_balance_contract() ->
     report["direction_balance_recipe_contract"]["direction_min_pred_rate_loss_weight"] = 2.50
     report["direction_balance_recipe_contract"]["direction_min_pred_rate_fraction"] = 0.50
     report["direction_balance_recipe_contract"]["direction_min_pred_rate_floor"] = 0.05
+    report["direction_balance_recipe_contract"]["direction_min_pred_rate_softmax_temperature"] = 0.20
     report["direction_balance_recipe_contract"]["direction_vs_flat_margin_weight"] = 4.00
     report["direction_balance_recipe_contract"]["direction_vs_flat_margin"] = 0.10
     report["direction_balance_recipe_contract"]["best_direction_balance_guard_ok"] = True
@@ -426,6 +427,7 @@ def test_smoke_edge_checks_reject_smart_missing_symmetric_validation_contract() 
     report["direction_balance_recipe_contract"]["direction_min_pred_rate_loss_weight"] = 2.50
     report["direction_balance_recipe_contract"]["direction_min_pred_rate_fraction"] = 0.50
     report["direction_balance_recipe_contract"]["direction_min_pred_rate_floor"] = 0.05
+    report["direction_balance_recipe_contract"]["direction_min_pred_rate_softmax_temperature"] = 0.20
     report["direction_balance_recipe_contract"]["direction_vs_flat_margin_weight"] = 4.00
     report["direction_balance_recipe_contract"]["direction_vs_flat_margin"] = 0.10
     report["symmetric_validation_recipe_contract"] = {
@@ -849,6 +851,7 @@ def test_candidate_readiness_smart_seq520_opens_after_contract_and_smoke_evidenc
     smart_smoke_report["direction_balance_recipe_contract"]["direction_min_pred_rate_loss_weight"] = 2.50
     smart_smoke_report["direction_balance_recipe_contract"]["direction_min_pred_rate_fraction"] = 0.50
     smart_smoke_report["direction_balance_recipe_contract"]["direction_min_pred_rate_floor"] = 0.05
+    smart_smoke_report["direction_balance_recipe_contract"]["direction_min_pred_rate_softmax_temperature"] = 0.20
     smart_smoke_report["direction_balance_recipe_contract"]["direction_vs_flat_margin_weight"] = 4.00
     smart_smoke_report["direction_balance_recipe_contract"]["direction_vs_flat_margin"] = 0.10
     smart_smoke_report["direction_balance_recipe_contract"]["best_direction_balance_guard_ok"] = True

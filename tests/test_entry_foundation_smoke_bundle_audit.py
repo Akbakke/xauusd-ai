@@ -479,6 +479,7 @@ def test_smart_direction_balance_recipe_contract_requires_flat_repair_weights() 
             "direction_min_pred_rate_loss_weight": 2.50,
             "direction_min_pred_rate_fraction": 0.50,
             "direction_min_pred_rate_floor": 0.05,
+            "direction_min_pred_rate_softmax_temperature": 0.20,
             "direction_vs_flat_margin_weight": 4.00,
             "direction_vs_flat_margin": 0.10,
         }
@@ -495,6 +496,7 @@ def test_smart_direction_balance_recipe_contract_requires_flat_repair_weights() 
     assert report["direction_min_pred_rate_loss_weight"] == 2.50
     assert report["direction_min_pred_rate_fraction"] == 0.50
     assert report["direction_min_pred_rate_floor"] == 0.05
+    assert report["direction_min_pred_rate_softmax_temperature"] == 0.20
     assert report["direction_vs_flat_margin_weight"] == 4.00
     assert report["direction_vs_flat_margin"] == 0.10
     assert report["hierarchical_entry_heads_enabled"] is True
@@ -539,6 +541,7 @@ def test_smart_direction_balance_recipe_contract_accepts_mtf_aux_repair_proof() 
             "direction_min_pred_rate_loss_weight": 2.50,
             "direction_min_pred_rate_fraction": 0.50,
             "direction_min_pred_rate_floor": 0.05,
+            "direction_min_pred_rate_softmax_temperature": 0.20,
             "direction_vs_flat_margin_weight": 4.00,
             "direction_vs_flat_margin": 0.10,
         },
@@ -580,6 +583,7 @@ def test_smart_direction_balance_recipe_contract_rejects_missing_mtf_aux_repair_
             "direction_min_pred_rate_loss_weight": 2.50,
             "direction_min_pred_rate_fraction": 0.50,
             "direction_min_pred_rate_floor": 0.05,
+            "direction_min_pred_rate_softmax_temperature": 0.20,
             "direction_vs_flat_margin_weight": 4.00,
             "direction_vs_flat_margin": 0.10,
         },
@@ -642,6 +646,7 @@ def test_smart_direction_balance_recipe_contract_rejects_failed_best_checkpoint_
             "direction_min_pred_rate_loss_weight": 2.50,
             "direction_min_pred_rate_fraction": 0.50,
             "direction_min_pred_rate_floor": 0.05,
+            "direction_min_pred_rate_softmax_temperature": 0.20,
             "direction_vs_flat_margin_weight": 4.00,
             "direction_vs_flat_margin": 0.10,
         },

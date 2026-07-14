@@ -575,6 +575,7 @@ SMART_DIRECTION_CKPT_BALANCE_MIN_PRED_RATE = 0.05
 SMART_DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT = 2.50
 SMART_DIRECTION_MIN_PRED_RATE_FRACTION = 0.50
 SMART_DIRECTION_MIN_PRED_RATE_FLOOR = 0.05
+SMART_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE_MAX = 0.50
 SMART_DIRECTION_VS_FLAT_MARGIN_WEIGHT = 3.00
 SMART_DIRECTION_VS_FLAT_MARGIN = 0.05
 SMART_DIRECTION_HIER_LEGACY_CE_MULT_MIN = 1.00
@@ -642,6 +643,9 @@ def _direction_balance_contract_passes(
         >= SMART_DIRECTION_MIN_PRED_RATE_FRACTION
         and _float_or_zero(contract.get("direction_min_pred_rate_floor"))
         >= SMART_DIRECTION_MIN_PRED_RATE_FLOOR
+        and 0.0
+        < _float_or_zero(contract.get("direction_min_pred_rate_softmax_temperature"))
+        <= SMART_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE_MAX
         and _float_or_zero(contract.get("direction_vs_flat_margin_weight"))
         >= SMART_DIRECTION_VS_FLAT_MARGIN_WEIGHT
         and _float_or_zero(contract.get("direction_vs_flat_margin"))

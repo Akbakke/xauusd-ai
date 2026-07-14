@@ -75,6 +75,7 @@ FIXED_ENV: dict[str, str] = {
     "ENTRY_FOUNDATION_CANDIDATE_BAD_PATH_PROB_PENALTY": "0.0",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_MIN_PRED_RATE_FRACTION": "0.50",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_MIN_PRED_RATE_FLOOR": "0.05",
+    "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE": "0.20",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_VS_FLAT_MARGIN_WEIGHT": "4.00",
     "ENTRY_FOUNDATION_CANDIDATE_DIRECTION_VS_FLAT_MARGIN": "0.10",
     "ENTRY_FOUNDATION_CANDIDATE_HIER_LEGACY_CE_MULT": "1.00",
@@ -111,6 +112,14 @@ def lint_trial_env(env: dict[str, str]) -> list[str]:
         failures.append(
             "DIRECTION_MIN_PRED_RATE_LOSS_WEIGHT must be >= 2.5 for strict XAU repair, "
             f"got {min_pred_rate_weight}"
+        )
+    min_pred_rate_temp = float(
+        env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE", "1.0")
+    )
+    if min_pred_rate_temp <= 0.0 or min_pred_rate_temp > 0.50:
+        failures.append(
+            "DIRECTION_MIN_PRED_RATE_SOFTMAX_TEMPERATURE must be in (0.0, 0.50] for strict XAU repair, "
+            f"got {min_pred_rate_temp}"
         )
     flat_margin_weight = float(env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_VS_FLAT_MARGIN_WEIGHT", "0"))
     flat_margin = float(env.get("ENTRY_FOUNDATION_CANDIDATE_DIRECTION_VS_FLAT_MARGIN", "0"))
